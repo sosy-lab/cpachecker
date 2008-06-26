@@ -201,14 +201,14 @@ System.out.println("WWWWWWWWWWWWWWWPPPPPPPPPPPPPPPPPP " + wp);
 		String postCondition = WPAssumption(false);
 
 		if (TheoremProverInterface.implies(preCondition, postCondition) == ThreeValuedBoolean.TRUE){
-			setTruthValue(ThreeValuedBoolean.FALSE);
+			setTruthValue(ThreeValuedBoolean.TRUE);
 			return;
 		}
 
 		postCondition = WPAssumption(true);
 
 		if (TheoremProverInterface.implies(preCondition, postCondition) == ThreeValuedBoolean.TRUE){
-			setTruthValue(ThreeValuedBoolean.TRUE);
+			setTruthValue(ThreeValuedBoolean.FALSE);
 			return;
 		}
 		
