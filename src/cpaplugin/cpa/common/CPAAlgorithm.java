@@ -5,13 +5,12 @@ import java.util.Collection;
 import java.util.Deque;
 import java.util.List;
 
-import cpaplugin.common.CPAException;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.ConfigurableProblemAnalysis;
 import cpaplugin.cpa.common.interfaces.MergeOperator;
 import cpaplugin.cpa.common.interfaces.StopOperator;
 import cpaplugin.cpa.common.interfaces.TransferRelation;
-import cpaplugin.cpa.domains.location.LocationElement;
+import cpaplugin.exceptions.CPAException;
 
 public class CPAAlgorithm
 {
@@ -32,20 +31,9 @@ public class CPAAlgorithm
             AbstractElement e = waitlist.pollFirst ();
             List<AbstractElement> successors = transferRelation.getAllAbstractSuccessors (e);
             
-            if (((LocationElement)((CompositeElement)e).getElements ().get (0)).getLocationNode ().getNodeNumber () == 8)
-            {
-                int asdf = 1;
-                asdf++;
-            }
             for (AbstractElement successor : successors)
             {
                 int numReached = reached.size (); // Need to iterate this way to avoid concurrent mod exceptions
-                
-                if (((LocationElement)((CompositeElement)successor).getElements ().get (0)).getLocationNode ().getNodeNumber () == 8)
-                {
-                    int fda = 1;
-                    fda++;
-                }
                 
                 for (int reachedIdx = 0; reachedIdx < numReached; reachedIdx++)
                 {
@@ -59,7 +47,7 @@ public class CPAAlgorithm
                         waitlist.add (mergedElement);
                     }
                 }
-                
+
                 if (!stopOperator.stop (successor, reached))
                 {
                     waitlist.addLast (successor);

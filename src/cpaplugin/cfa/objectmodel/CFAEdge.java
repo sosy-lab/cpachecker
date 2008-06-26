@@ -1,7 +1,8 @@
 package cpaplugin.cfa.objectmodel;
 
 
-public interface CFAEdge
+
+public interface CFAEdge 
 {
     public CFAEdgeType getEdgeType ();
        

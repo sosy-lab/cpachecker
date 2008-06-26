@@ -3,13 +3,22 @@ package cpaplugin.cfa.objectmodel;
 import java.util.ArrayList;
 import java.util.List;
 
+import cpaplugin.cfa.objectmodel.c.CallToReturnEdge;
+
 
 public class CFANode
 {
-    private int lineNumber;
+	private int lineNumber;
     protected List<CFAEdge> leavingEdges;
     protected List<CFAEdge> enteringEdges;
     private int nodeNumber;
+    // is start node of a loop?
+    private boolean isLoopStart = false;
+    // in which function is that node?
+    private String functionName;
+    // list of summary edges
+    protected CallToReturnEdge leavingSummaryEdge;
+    protected CallToReturnEdge enteringSummaryEdge;
     
     private static int nextNodeNumber = 0;
        
@@ -19,6 +28,8 @@ public class CFANode
         this.nodeNumber = nextNodeNumber++;
         leavingEdges = new ArrayList<CFAEdge>();
         enteringEdges = new ArrayList<CFAEdge> ();
+        leavingSummaryEdge = null;
+        enteringSummaryEdge = null;
     }
       
     public int getLineNumber ()
@@ -94,5 +105,37 @@ public class CFANode
                 return true;
         }
         return false;
+    }
+    
+    public void setLoopStart(){
+    	isLoopStart = true;
+    }
+    
+    public boolean isLoopStart(){
+    	return isLoopStart;
+    }
+    
+    public void setFunctionName(String fName){
+    	functionName = fName;
+    }
+    
+    public String getFunctionName(){
+    	return functionName;
+    }
+    
+    public void addEnteringSummaryEdge(CallToReturnEdge edge){
+    	enteringSummaryEdge = edge;
+    }
+    
+    public void addLeavingSummaryEdge(CallToReturnEdge edge){
+    	leavingSummaryEdge = edge;
+    }
+    
+    public CallToReturnEdge getEnteringSummaryEdge(){
+    	return enteringSummaryEdge;
+    }
+    
+    public CallToReturnEdge getLeavingSummaryEdge(){
+    	return leavingSummaryEdge;
     }
 }

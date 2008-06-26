@@ -4,6 +4,9 @@ package cpaplugin.cfa.objectmodel;
 public abstract class CFAFunctionDefinitionNode extends CFANode
 {
     private String functionName;
+    // Check if call edges are added in the second pass
+    public boolean CFAProcessed = false;
+    private CFAExitNode exitNode;
     
     public CFAFunctionDefinitionNode (int lineNumber, String functionName)
     {
@@ -13,6 +16,21 @@ public abstract class CFAFunctionDefinitionNode extends CFANode
     
     public String getFunctionName ()
     {
-        return functionName;
+        return this.functionName;
+    }
+    
+    public void setFunctionName (String s)
+    {
+    	this.functionName = s;
+    }
+    
+    public CFANode getExitNode ()
+    {
+        return this.exitNode;
+    }
+    
+    public void setExitNode (CFAExitNode en)
+    {
+    	this.exitNode = en;
     }
 }

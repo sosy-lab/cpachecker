@@ -6,7 +6,10 @@ import cpaplugin.cfa.objectmodel.CFAEdgeType;
 
 public class ReturnEdge extends AbstractCFAEdge 
 {
-    public ReturnEdge (String rawStatement)
+
+	private boolean isExitingRecursiveCall = false;
+	
+	public ReturnEdge (String rawStatement)
     {
         super (rawStatement);
     }
@@ -15,4 +18,12 @@ public class ReturnEdge extends AbstractCFAEdge
     {
         return CFAEdgeType.ReturnEdge;
     }
+
+	public void setExitFromRecursive() {
+		isExitingRecursiveCall = true;
+	}
+	
+	public boolean isExitingRecursiveCall() {
+		return isExitingRecursiveCall;
+	}
 }

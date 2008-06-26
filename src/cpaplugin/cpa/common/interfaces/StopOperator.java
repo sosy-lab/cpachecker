@@ -2,7 +2,7 @@ package cpaplugin.cpa.common.interfaces;
 
 import java.util.Collection;
 
-import cpaplugin.common.CPAException;
+import cpaplugin.exceptions.CPAException;
 
 public interface StopOperator
 {

@@ -2,9 +2,9 @@ package cpaplugin.cpa.common;
 
 import java.util.List;
 
-import cpaplugin.common.CPAException;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.PreOrder;
+import cpaplugin.exceptions.CPAException;
 
 public class CompositePreOrder implements PreOrder
 {

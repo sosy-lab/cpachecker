@@ -9,5 +9,6 @@ public enum CFAEdgeType
     FunctionCallEdge,
     ReturnEdge,
     MultiStatementEdge,
-    MultiDeclarationEdge
+    MultiDeclarationEdge,
+    CallToReturnEdge
 }

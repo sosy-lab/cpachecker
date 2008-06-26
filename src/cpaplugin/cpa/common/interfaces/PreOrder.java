@@ -1,6 +1,6 @@
 package cpaplugin.cpa.common.interfaces;
 
-import cpaplugin.common.CPAException;
+import cpaplugin.exceptions.CPAException;
 
 public interface PreOrder
 {

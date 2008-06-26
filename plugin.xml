@@ -18,7 +18,7 @@
          <action
                label="&amp;Launch CPA"
                icon="icons/sample.gif"
-               class="cpaplugin.actions.CPAAction"
+               class="cpaplugin.actions.CPARun"
                tooltip="Configurable Program Analysis"
                menubarPath="CPAMenu/sampleGroup"
                toolbarPath="CPAGroup"

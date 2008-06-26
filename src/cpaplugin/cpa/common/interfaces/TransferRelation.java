@@ -3,7 +3,7 @@ package cpaplugin.cpa.common.interfaces;
 import java.util.List;
 
 import cpaplugin.cfa.objectmodel.CFAEdge;
-import cpaplugin.common.CPAException;
+import cpaplugin.exceptions.CPAException;
 
 public interface TransferRelation
 {

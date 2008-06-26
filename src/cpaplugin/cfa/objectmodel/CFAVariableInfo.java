@@ -1,5 +1,6 @@
 package cpaplugin.cfa.objectmodel;
 
+
 public class CFAVariableInfo
 {
     private String name;

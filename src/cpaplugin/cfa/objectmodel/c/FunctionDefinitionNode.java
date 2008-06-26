@@ -11,10 +11,10 @@ import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTStandardFunctionDeclarator;
 import org.eclipse.cdt.core.dom.ast.c.ICASTSimpleDeclSpecifier;
 
-import cpaplugin.cfa.CFAGenerationRuntimeException;
 import cpaplugin.cfa.objectmodel.CFAFunctionDefinitionNode;
 import cpaplugin.cfa.objectmodel.CFAVariableInfo;
 import cpaplugin.common.TypeNames;
+import cpaplugin.exceptions.CFAGenerationRuntimeException;
 
 public class FunctionDefinitionNode extends CFAFunctionDefinitionNode
 {

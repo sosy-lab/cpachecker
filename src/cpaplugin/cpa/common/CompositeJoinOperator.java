@@ -3,9 +3,9 @@ package cpaplugin.cpa.common;
 import java.util.ArrayList;
 import java.util.List;
 
-import cpaplugin.common.CPAException;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.JoinOperator;
+import cpaplugin.exceptions.CPAException;
 
 public class CompositeJoinOperator implements JoinOperator
 {

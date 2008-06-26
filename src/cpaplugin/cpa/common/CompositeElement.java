@@ -18,6 +18,10 @@ public class CompositeElement implements AbstractElement
         return elements;
     }
     
+    public int getNumberofElements(){
+    	return elements.size();
+    }
+    
     public boolean equals (Object other)
     {
         if (other == this)
