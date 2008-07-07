@@ -6,8 +6,8 @@ public class Tester {
 
 	public static void main(String[] args) {
 		try {
-//			System.out.println(TheoremProverInterface.implies("& [  ]", "~ & [ <= 9 8 ~= 9 8 ] ]"));
-			System.out.println(TheoremProverInterface.satis("~ | [ ~ & [ & [ ~ = a 6 ~ = a 7 <= a 90 ~ & [ <= 9 a ~ = 9 a ] ~ = b 24 <= b 12  ] <= a 9 ] ~ = a 6 ]"));
+			System.out.println(TheoremProverInterface.implies("& [ = a 7 & [ <= a 10 ~ = a 10 ] ]", " & [= temp 12 = temp + [ x y ] = x 7 = y 5 ~ = y 8 ]"));
+			System.out.println(TheoremProverInterface.satis("& [  ~ = temp b = temp + [ x y ] = x 7 = y 5 ~ = y 8 ]"));
 			
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
@@ -15,7 +15,6 @@ public class Tester {
 		}
 //		System.out.println(TheoremProverInterface.sat("| [ false ~ <= 7 90 ]"));
 //		System.out.println(TheoremProverInterface.sat("| [ ~ false  = 7 7 ]"));
-		
 		
 	}
 }

@@ -27,4 +27,10 @@ private OctDomain octDomain;
         return false;
     }
 
+    //TODO test this
+	public boolean isBottomElement(AbstractElement element) {
+		OctElement octElem = (OctElement) element;
+		return octElem.isEmpty();
+	}
+
 }

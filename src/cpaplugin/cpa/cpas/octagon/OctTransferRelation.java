@@ -927,8 +927,6 @@ public class OctTransferRelation implements TransferRelation{
 		/** Second operand is an addition*/
 		case IASTBinaryExpression.op_plus:
 		{
-			System.out.println("ADDITION");
-
 			if(lVarInBinaryExp instanceof IASTUnaryExpression){
 				IASTUnaryExpression unaryExpression = (IASTUnaryExpression) lVarInBinaryExp;
 				int operator = unaryExpression.getOperator ();

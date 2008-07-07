@@ -42,57 +42,25 @@ public class CPASecondPassBuilder {
 			{
 				CFAEdge edge = node.getLeavingEdge (edgeIdx);
 				CFANode successorNode = edge.getSuccessor();
-				
+				System.out.println("+++++++++++++++++++ " + edge.getRawStatement());
 				if(edge instanceof StatementEdge)
 				{
 					IASTExpression expr = ((StatementEdge)edge).getExpression();
-
+					
 					// TODO add the case for call(2, a)
 					if(expr instanceof IASTBinaryExpression){
 						IASTExpression operand2 = ((IASTBinaryExpression)expr).getOperand2();
 						if(operand2 instanceof IASTFunctionCallExpression){
-							IASTFunctionCallExpression functCall = (IASTFunctionCallExpression) operand2;
-							String functionName = functCall.getFunctionNameExpression().getRawSignature();
-							IASTExpression parameters = functCall.getParameterExpression();
-							
-							FunctionCallEdge callEdge = new FunctionCallEdge(operand2.getRawSignature(), parameters);
-							callEdge.initialize (node, cfas.getCFA(functionName));
-							
-							// set return edge from exit node of the function
-							ReturnEdge returnEdge = new ReturnEdge("return edge");
-							returnEdge.initialize(cfas.getCFA(functionName).getExitNode(), successorNode);
-							successorNode.setFunctionName(node.getFunctionName());
-							CallToReturnEdge calltoReturnEdge = new CallToReturnEdge("summaryEdge", expr);
-							calltoReturnEdge.initializeSummaryEdge(node, successorNode);
-							node.removeLeavingEdge(edge);
-							successorNode.removeEnteringEdge(edge);
-							
-							if(!cfas.getCFA(functionName).CFAProcessed){
-								cfas.getCFA(functionName).CFAProcessed = true;
-								insertCallEdges(functionName);
-							}
-							
-							// set function parameters
-							if(parameters instanceof IASTIdExpression){
-								IASTIdExpression variableParam = (IASTIdExpression)parameters;
-								IASTExpression[] expressionList = new IASTExpression[1];
-								expressionList[0] = variableParam;
-								callEdge.setArguments(expressionList);
-							}
-							else if(parameters instanceof IASTExpressionList){
-								IASTExpressionList paramList = (IASTExpressionList)parameters;
-								IASTExpression[] expressionList = paramList.getExpressions();
-								callEdge.setArguments(expressionList);
-							}
+							createCallAndReturnEdges(node, successorNode, edge, expr, (IASTFunctionCallExpression)operand2);
 						}
 						else{
 							successorNode.setFunctionName(node.getFunctionName());
 						}
 					}
 					
-					if(expr instanceof IASTFunctionCallExpression){
-						IASTExpression functionCall = ((IASTFunctionCallExpression)expr).getFunctionNameExpression();
-						System.out.println(" Function call expr #2  " + functionCall.getRawSignature());
+					else if(expr instanceof IASTFunctionCallExpression){
+						IASTFunctionCallExpression functionCall = (IASTFunctionCallExpression)expr;
+						createCallAndReturnEdges(node, successorNode, edge, expr, functionCall);
 					}
 					
 					else{
@@ -100,21 +68,50 @@ public class CPASecondPassBuilder {
 					}
 				}
 				
-				else if(edge instanceof ReturnEdge){
-					
-				}
-				
-				else{
+				else if(!((edge instanceof FunctionCallEdge) ||
+						(edge instanceof ReturnEdge))){
 					successorNode.setFunctionName(node.getFunctionName());
 				}
-
-				System.out.println("Node number #2 " + successorNode.getNodeNumber());
-				if(!processedList.contains(successorNode)){
+				
+				if(!processedList.contains(successorNode) &&
+				   node.getFunctionName().equals(successorNode.getFunctionName())){
 					workList.add(successorNode);
 				}
 			}
-
 			processedList.add(node);
+		}
+	}
+
+	private void createCallAndReturnEdges(CFANode node, CFANode successorNode, CFAEdge edge, IASTExpression expr, IASTFunctionCallExpression operand2) {
+		IASTFunctionCallExpression functCall = (IASTFunctionCallExpression) operand2;
+		String functionName = functCall.getFunctionNameExpression().getRawSignature();
+		IASTExpression parameters = functCall.getParameterExpression();
+		FunctionCallEdge callEdge = new FunctionCallEdge(operand2.getRawSignature(), parameters);
+		callEdge.initialize (node, cfas.getCFA(functionName));
+		// set name of the function
+		callEdge.getSuccessor().setFunctionName(functionName);
+		// set return edge from exit node of the function
+		ReturnEdge returnEdge = new ReturnEdge("Return Edge to " + successorNode.getNodeNumber());
+		returnEdge.initialize(cfas.getCFA(functionName).getExitNode(), successorNode);
+		returnEdge.getSuccessor().setFunctionName(node.getFunctionName());
+		
+		CallToReturnEdge calltoReturnEdge = new CallToReturnEdge("Summary Edge", expr);
+		calltoReturnEdge.initializeSummaryEdge(node, successorNode);
+		
+		node.removeLeavingEdge(edge);
+		successorNode.removeEnteringEdge(edge);
+		
+		// set function parameters
+		if(parameters instanceof IASTIdExpression){
+			IASTIdExpression variableParam = (IASTIdExpression)parameters;
+			IASTExpression[] expressionList = new IASTExpression[1];
+			expressionList[0] = variableParam;
+			callEdge.setArguments(expressionList);
+		}
+		else if(parameters instanceof IASTExpressionList){
+			IASTExpressionList paramList = (IASTExpressionList)parameters;
+			IASTExpression[] expressionList = paramList.getExpressions();
+			callEdge.setArguments(expressionList);
 		}
 	}
 }

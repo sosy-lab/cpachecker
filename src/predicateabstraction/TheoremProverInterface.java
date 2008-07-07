@@ -23,7 +23,7 @@ public class TheoremProverInterface {
 	
 	public static ThreeValuedBoolean sat(String query) {
 		String ans = satis(query);
-		System.out.println(ans);
+		//System.out.println(ans);
 		if(ans.equalsIgnoreCase("satisfiable")){
 			return ThreeValuedBoolean.TRUE;
 		}
@@ -32,7 +32,7 @@ public class TheoremProverInterface {
 		}
 		
 		assert(false);
-		System.out.println(query);
+		//System.out.println(query);
 		return ThreeValuedBoolean.DONTKNOW;
 	}
 
@@ -70,9 +70,10 @@ public class TheoremProverInterface {
 
 			// any error?
 			int exitVal = proc.waitFor();
-			System.out.println("ExitValue: " + exitVal);
+			//System.out.println("ExitValue: " + exitVal);
 			if(exitVal != 0){
 				// TODO exception
+				System.out.println("ExitValue: " + exitVal);
 				System.exit(0);
 			}
 //			fos.flush();
@@ -116,7 +117,6 @@ public class TheoremProverInterface {
 //					if (pw != null)
 //						pw.println(line);
 					answer = line;
-					System.out.println("_________________________________________________________________________" + answer);
 				}
 				isr.close();
 				br.close();
@@ -131,20 +131,20 @@ public class TheoremProverInterface {
 		}
 	}
 	
-	public static ThreeValuedBoolean satisfiability(String query) throws IOException{
+	public static ThreeValuedBoolean satisfiability(String query){
 		//createFile(query);
 		//ThreeValuedBoolean result = TheoremProverInterface.sat(CPAConfig.tempTheoremProverFile);
 		ThreeValuedBoolean result = TheoremProverInterface.sat(query);
-		System.out.println("result: === " + result);
+		//System.out.println("result: === " + result);
 		return result;
 	}
 
 	// returns true if r1 ==> r2
 	public static ThreeValuedBoolean implies(String r1, String r2) throws IOException{
-		System.out.println("======> " + r1 + " implies " + r2);
+//		System.out.println("======> " + r1 + " implies " + r2);
 		String s;
 		s = "~ | [ " + "~ " + r1 + " " + r2 + " ]";
-		System.out.println(s);
+//		System.out.println(s);
 		return negate(satisfiability(s));
 		//return ThreeValuedBoolean.FALSE;
 	}

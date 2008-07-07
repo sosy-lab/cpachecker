@@ -36,6 +36,13 @@ public class LibraryAccess {
 		Octagon res = or.J_empty(numOfVars);
 		return res;
 	}
+	
+	// returns true if empty (used for checking if element is bottom element)
+	public static boolean isEmpty(AbstractElement element1) {
+		Octagon oct = ((OctElement)element1).getOctagon();
+		return or.J_isEmpty(oct);
+	}
+	
 	// creating a full octagon ov numOfVars dimensions, considered as the top element
 	public static Octagon universe(int numOfVars) {
 		Octagon res = or.J_universe(numOfVars);

@@ -27,4 +27,8 @@ public class DefUseStopJoin implements StopOperator
     	// TODO Erkan implement
     	 return false;
     }
+
+	public boolean isBottomElement(AbstractElement element) {
+		return false;
+	}
 }

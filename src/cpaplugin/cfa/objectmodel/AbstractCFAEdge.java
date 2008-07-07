@@ -1,7 +1,5 @@
 package cpaplugin.cfa.objectmodel;
 
-import com.sun.org.apache.xml.internal.dtm.ref.DTMDefaultBaseIterators.PrecedingIterator;
-
 import cpaplugin.exceptions.CFAGenerationRuntimeException;
 
 
@@ -24,7 +22,7 @@ public abstract class AbstractCFAEdge implements CFAEdge
     {
         setPredecessor (predecessor);
         setSuccessor (successor);
-        successor.setFunctionName(predecessor.getFunctionName());
+        //successor.setFunctionName(predecessor.getFunctionName());
     }
       
     public CFANode getPredecessor ()

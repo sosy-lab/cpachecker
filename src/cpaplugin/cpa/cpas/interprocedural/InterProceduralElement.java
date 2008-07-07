@@ -36,13 +36,12 @@ public class InterProceduralElement implements AbstractElement
 			return false;
 		}
 
-		Iterator<CallElement> it = this.callStack.iterator();
-		while(it.hasNext()){
-			CallElement ce = it.next();
-			if(!ipe.containsCallElement(ce)){
+		for(int i=0; i<this.getStackSize(); i++){
+			if(!this.callStack.get(i).equals(ipe.callStack.get(i))){
 				return false;
 			}
 		}
+			
 		return true;
 	}
 
@@ -54,7 +53,7 @@ public class InterProceduralElement implements AbstractElement
 		Iterator<CallElement> it = this.callStack.iterator();
 		while(it.hasNext()){
 			CallElement ce = it.next();
-			if(ce.getFunctionName().compareTo("fName") == 0){
+			if(ce.getFunctionName().compareTo(fName) == 0){
 				return true;
 			}
 		}

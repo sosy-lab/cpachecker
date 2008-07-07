@@ -76,11 +76,7 @@ public class PredicateList {
 			}
 		}
 		s = s + " ]";
-		
-//		if(s.compareTo("& [  ]") == 0){
-//			s = "true";
-//		}
-		
+
 		return s;
 	}
 
@@ -97,7 +93,20 @@ public class PredicateList {
 			predicate.updateAssumption(previousState, instruction);
 		}
 	}
-	
+
+	public void updateFunctionCall(String previousState, String parameterAssignment) throws IOException
+	{
+		for(Predicate predicate:predicates){
+			predicate.updateFunctionCall(previousState, parameterAssignment);
+		}
+	}
+
+	public void updateFunctionReturn(String query) {
+		for(Predicate predicate:predicates){
+			predicate.updateFunctionReturn(query);
+		}
+	}
+
 	public String toString(){
 		String s = "";
 		for(Predicate predicate:predicates){
@@ -105,5 +114,23 @@ public class PredicateList {
 		}
 		return s;
 	}
-	
+
+	public void emptyList(){
+		predicates.clear();
+	}
+
+	public String getRegionWithoutVariable(String modifiedVariableName) {
+
+		String s = "& [ "; //= S1 1 ~ = S2 0 = S2 0 ]
+		for(Predicate predicate:predicates){
+			if(!predicate.containsVariable(modifiedVariableName)){
+				if(predicate.getTruthValue() != ThreeValuedBoolean.DONTKNOW){
+					s = s + predicate.getPredicateAsQuery() + " ";
+				}
+			}
+		}
+		s = s + " ]";
+
+		return s;
+	}
 }

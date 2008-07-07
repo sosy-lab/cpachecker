@@ -6,8 +6,8 @@ import java.util.Scanner;
 
 public class PredicateListConstructor {
 
-	public static void constructList(PredicateList predicateList){
-		File fFile = new File(PredAbstractionConstants.predicateListPath);  
+	public static void constructList(PredicateList predicateList, String functionName){
+		File fFile = new File(PredAbstractionConstants.getFileLoc(functionName));  
 		Scanner scanner = null;
 		try {
 			scanner = new Scanner(fFile);

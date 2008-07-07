@@ -96,7 +96,7 @@ public class PredicateAbstractionCPA implements ConfigurableProblemAnalysis{
 
 	public AbstractElement getInitialElement (CFAFunctionDefinitionNode node)
 	{
-		return new PredicateAbstractionElement ();
+		return new PredicateAbstractionElement ("main");
 	}
 
 

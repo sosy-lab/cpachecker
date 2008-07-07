@@ -2,8 +2,6 @@ package predicateabstraction;
 
 import java.io.IOException;
 
-import javax.sound.midi.SysexMessage;
-
 
 public class Predicate {
 
@@ -163,7 +161,7 @@ public class Predicate {
 			assert(false);
 			return null;
 		}
-System.out.println("WWWWWWWWWWWWWWWPPPPPPPPPPPPPPPPPP " + wp);
+
 		if(!negated)
 			return wp;
 		else
@@ -239,5 +237,52 @@ System.out.println("WWWWWWWWWWWWWWWPPPPPPPPPPPPPPPPPP " + wp);
 		else{
 			setTruthValue(ThreeValuedBoolean.DONTKNOW);
 		}
+	}
+	
+	public void updateFunctionCall(String previousState, String parameterAssignment) throws IOException{
+
+		String postCondition = "& [ " + parameterAssignment +  " " + getPredicateAsString() + " ]"; 
+
+		if (TheoremProverInterface.satisfiability("& [ " + previousState +  " " + postCondition + " ]") == ThreeValuedBoolean.TRUE){
+			setTruthValue(ThreeValuedBoolean.TRUE);
+			return;
+		}
+
+		postCondition = "& [ " + parameterAssignment +  " ~ " + getPredicateAsString() + " ]"; 
+		
+		if (TheoremProverInterface.satisfiability("& [ " + previousState +  " " + postCondition + " ]") == ThreeValuedBoolean.TRUE){
+			setTruthValue(ThreeValuedBoolean.FALSE);
+			return;
+		}
+		
+		setTruthValue(ThreeValuedBoolean.DONTKNOW);
+	}
+	
+	public void updateFunctionReturn(String query) {
+		
+		String queryPos = " & [ " + getPredicateAsString() + " " + query + " ] ";
+
+		if (TheoremProverInterface.satisfiability(queryPos) == ThreeValuedBoolean.TRUE){
+			System.out.println(queryPos);
+			setTruthValue(ThreeValuedBoolean.TRUE);
+			return;
+		}
+		
+		String queryNeg = " & [ ~ " + getPredicateAsString() + " " + query + " ] ";
+
+		if (TheoremProverInterface.satisfiability(queryNeg) == ThreeValuedBoolean.TRUE){
+			System.out.println(queryNeg);
+			setTruthValue(ThreeValuedBoolean.FALSE);
+			return;
+		}
+		setTruthValue(ThreeValuedBoolean.DONTKNOW);
+	}
+
+	public boolean containsVariable(String modifiedVariableName) {
+		return firstVariable.equals(modifiedVariableName) || secondVariable.equals(modifiedVariableName);
+	}
+	
+	public Predicate clone(){
+		return new Predicate(this);
 	}
 }

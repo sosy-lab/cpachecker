@@ -8,7 +8,7 @@ import cpaplugin.cfa.objectmodel.CFAFunctionDefinitionNode;
 
 public class CFAMap {
 	
-	HashMap<String, CFAFunctionDefinitionNode> cfaMap;
+	private HashMap<String, CFAFunctionDefinitionNode> cfaMap;
 	
 	public CFAMap (){
 		cfaMap = new HashMap<String, CFAFunctionDefinitionNode>();
@@ -28,5 +28,14 @@ public class CFAMap {
 	
 	public Collection <CFAFunctionDefinitionNode> cfaMapIterator (){
 		return cfaMap.values();
+	}
+	
+	public String toString(){
+		String s = "";
+		Collection <CFAFunctionDefinitionNode> cfas = cfaMapIterator ();
+		for(CFAFunctionDefinitionNode cfa:cfas){
+			s = s + cfa.getFunctionName() + "\n";
+		}
+		return s;
 	}
 }

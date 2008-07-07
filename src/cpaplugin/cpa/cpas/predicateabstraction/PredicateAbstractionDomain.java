@@ -64,8 +64,12 @@ public class PredicateAbstractionDomain implements AbstractDomain{
             PredicateAbstractionElement predAbstElement1 = (PredicateAbstractionElement) element1;
             PredicateAbstractionElement predAbstElement2 = (PredicateAbstractionElement) element2;
 
-            PredicateAbstractionElement joined = new PredicateAbstractionElement();
+            if(predAbstElement1.getPredicateList().size() != 
+            	predAbstElement2.getPredicateList().size()){
+            	// TODO handle this case
+            }
             
+            PredicateAbstractionElement joined = new PredicateAbstractionElement(predAbstElement1.getPredicateList(), false);
             
             for(Predicate pred1:predAbstElement1.getPredicateList().getPredicates()){
             	Predicate pred2 = predAbstElement2.getPredicateList().getPredicate(pred1);

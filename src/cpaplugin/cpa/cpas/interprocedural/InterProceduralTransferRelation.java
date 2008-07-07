@@ -3,6 +3,7 @@ package cpaplugin.cpa.cpas.interprocedural;
 import java.util.List;
 
 import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
+import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTIdExpression;
 
 import cpaplugin.cfa.objectmodel.CFAEdge;
@@ -11,10 +12,12 @@ import cpaplugin.cfa.objectmodel.c.CallToReturnEdge;
 import cpaplugin.cfa.objectmodel.c.FunctionCallEdge;
 import cpaplugin.cfa.objectmodel.c.FunctionDefinitionNode;
 import cpaplugin.cfa.objectmodel.c.ReturnEdge;
+import cpaplugin.cfa.objectmodel.c.StatementEdge;
 import cpaplugin.cpa.common.interfaces.AbstractDomain;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.TransferRelation;
 import cpaplugin.exceptions.CPAException;
+import cpaplugin.exceptions.OctagonTransferException;
 
 public class InterProceduralTransferRelation implements TransferRelation
 {
@@ -41,7 +44,7 @@ public class InterProceduralTransferRelation implements TransferRelation
 			ipElement = ipElement.clone();
 			FunctionCallEdge functionCallEdge = (FunctionCallEdge) cfaEdge;
 			FunctionDefinitionNode calledNode = ((FunctionDefinitionNode)functionCallEdge.getSuccessor());
-			FunctionDefinitionNode callerNode = ((FunctionDefinitionNode)functionCallEdge.getPredecessor());
+			CFANode callerNode = ((CFANode)functionCallEdge.getPredecessor());
 
 			if(ipElement.containsCall(calledNode.getFunctionName())){
 				handleRecursiveFunctionCall(functionCallEdge);
@@ -53,6 +56,22 @@ public class InterProceduralTransferRelation implements TransferRelation
 			}
 			return ipElement;
 		}
+		
+//		case StatementEdge:
+//		{
+//			ipElement = ipElement.clone();
+//
+//			StatementEdge statementEdge = (StatementEdge) cfaEdge;
+//			IASTExpression expression = statementEdge.getExpression ();
+//
+//			// handling function return
+//			if(statementEdge.isJumpEdge()){
+//				System.out.println(" ++++++++++++++++++++ ");
+//				System.out.println(statementEdge.getPredecessor().getFunctionName() + " " + statementEdge.getSuccessor().getFunctionName());
+//				System.out.println(" ++++++++++++++++++++ ");
+//			}
+//			return ipElement;
+//		}
 		
 		case ReturnEdge:
 		{
@@ -66,12 +85,18 @@ public class InterProceduralTransferRelation implements TransferRelation
 			CallToReturnEdge summaryEdge = (CallToReturnEdge)successorNode.getEnteringSummaryEdge();
 
 			if(pfName.compareTo(sfName) == 0 ){
+System.out.println("do nothing  ================================");
+				
+				System.out.println(pfName);
 				handleExitFromRecursiveCall(exitEdge);
 			}
-			else if(predecessorNode.getFunctionName().compareTo("main") == 0){
-				//Do nothing
+			else if(pfName.compareTo("main") == 0){
+				System.out.println("do nothing  ================================");
+				
+				System.out.println(pfName);
 			}
 			else{
+				System.out.println("remove call ================================");
 				handleExitFromCall(exitEdge);
 				ipElement.removeCallElement(pfName);
 			}

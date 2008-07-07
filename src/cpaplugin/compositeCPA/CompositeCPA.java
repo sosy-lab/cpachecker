@@ -146,7 +146,7 @@ public class CompositeCPA implements ConfigurableProblemAnalysis
 			}
 			else if(typeOfCPA == CPAType.PredicateAbstractionCPA){
 				// TODO read from file
-				predicateAbstractionMergeType = MergeType.MergeSep;
+				predicateAbstractionMergeType = MergeType.MergeJoin;
 				predicateAbstractionStopType = StopType.StopSep;
 				predicateAbstractionCpa = PredicateAbstractionCPA.createNewPredicateAbstractionCPA (predicateAbstractionMergeType, predicateAbstractionStopType);
 				cpas.add(predicateAbstractionCpa);

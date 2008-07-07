@@ -33,4 +33,15 @@ public class PredicateAbstractionStopSep implements StopOperator
         
         return false;
     }
+    
+    public boolean isBottomElement(AbstractElement element) {
+
+		PredicateAbstractionElement predAbsElem = (PredicateAbstractionElement) element;
+		
+		if(predAbsElem.equals(predicateAbstractionDomain.getBottomElement())){
+			return true;
+		}
+		
+		return false;
+	}
 }

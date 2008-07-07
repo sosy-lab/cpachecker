@@ -2,6 +2,7 @@ package cpaplugin.cfa.objectmodel.c;
 
 import cpaplugin.cfa.objectmodel.AbstractCFAEdge;
 import cpaplugin.cfa.objectmodel.CFAEdgeType;
+import cpaplugin.cfa.objectmodel.CFANode;
 
 
 public class ReturnEdge extends AbstractCFAEdge 
@@ -26,4 +27,5 @@ public class ReturnEdge extends AbstractCFAEdge
 	public boolean isExitingRecursiveCall() {
 		return isExitingRecursiveCall;
 	}
+
 }

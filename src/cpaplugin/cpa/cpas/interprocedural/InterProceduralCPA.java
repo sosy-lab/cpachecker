@@ -52,7 +52,7 @@ public class InterProceduralCPA implements ConfigurableProblemAnalysis{
         	interProceduralMergeOp = new InterProceduralMergeSep (interProceduralDomain);
         }
         if(mergeType == MergeType.MergeJoin){
-        	throw new CPAException("Interprocedural domain cannot be joined");
+        	throw new CPAException("Interprocedural elements cannot be merged");
         }
         StopOperator interProceduralStopOp = new InterProceduralStopSep (interProceduralDomain);
         TransferRelation interProceduralRelation = new InterProceduralTransferRelation (interProceduralDomain);
@@ -83,5 +83,4 @@ public class InterProceduralCPA implements ConfigurableProblemAnalysis{
 	public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
 		return new InterProceduralElement();
 	}
-
 }

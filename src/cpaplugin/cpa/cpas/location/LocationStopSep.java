@@ -33,4 +33,9 @@ public class LocationStopSep implements StopOperator
         
         return false;
     }
+
+	public boolean isBottomElement(AbstractElement element) {
+		// TODO Auto-generated method stub
+		return false;
+	}
 }

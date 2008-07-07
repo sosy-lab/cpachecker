@@ -10,6 +10,6 @@ public class CPAConfig
     // note: if simplifyCFA = true and combineBlockStatements = false
     // only blank edges will be removed while simplfying
     public static final boolean combineBlockStatements = false;
-    //
-    public static boolean isAnalysisInterprocedural = false;
+    // set to true if you want to run an interprocedural analysis
+    public static boolean isAnalysisInterprocedural = true;
 }

@@ -3,13 +3,18 @@ package cpaplugin.cfa;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayDeque;
+import java.util.Collection;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import cpaplugin.cfa.objectmodel.CFAEdge;
 import cpaplugin.cfa.objectmodel.CFAFunctionDefinitionNode;
 import cpaplugin.cfa.objectmodel.CFANode;
+import cpaplugin.cfa.objectmodel.c.FunctionCallEdge;
+import cpaplugin.cfa.objectmodel.c.ReturnEdge;
 
 public class DOTBuilder
 {
@@ -18,17 +23,39 @@ public class DOTBuilder
 
 	}
 
-	public void generateDOT (CFAFunctionDefinitionNode cfa, String fileName) throws IOException
+	public void generateDOT (Collection<CFAFunctionDefinitionNode> cfasMapList, CFAFunctionDefinitionNode cfa, String fileName) throws IOException
 	{
+		Map<String, DOTWriter> subGraphWriters = new HashMap<String, DOTWriter>();
+
+		DOTWriter dw = new DOTWriter("____Main____Diagram__");
+		subGraphWriters.put("____Main____Diagram__", dw);
+		
+		for(CFAFunctionDefinitionNode fnode:cfasMapList){
+			dw = new DOTWriter(fnode.getFunctionName());
+			subGraphWriters.put(fnode.getFunctionName(), dw);
+		}
+
 		PrintWriter writer = new PrintWriter (fileName);
 
-		writer.println ("digraph " + cfa.getFunctionName () + " {");
-		generateDotHelper (writer, cfa);
+		generateDotHelper (subGraphWriters, cfa);
+
+		writer.println ("digraph " + "CFA" + " {");
+
+		for(CFAFunctionDefinitionNode fnode:cfasMapList){
+			dw = subGraphWriters.get(fnode.getFunctionName());
+			writer.println ("subgraph cluster_" + fnode.getFunctionName() + " {");
+			writer.println ("label = \"" + fnode.getFunctionName() + "()\";");
+			writer.print(dw.getSubGraph());
+			writer.println ("}");
+		}
+
+		dw = subGraphWriters.get("____Main____Diagram__");
+		writer.print(dw.getSubGraph());
 		writer.println ("}");
 		writer.close ();
 	}
 
-	private void generateDotHelper (PrintWriter writer, CFAFunctionDefinitionNode cfa) throws IOException
+	private void generateDotHelper (Map<String, DOTWriter> subGraphWriters, CFAFunctionDefinitionNode cfa)
 	{
 		Set<CFANode> visitedNodes = new HashSet<CFANode> ();
 		Deque<CFANode> waitingNodeList = new ArrayDeque<CFANode> ();
@@ -48,6 +75,7 @@ public class DOTBuilder
 			{
 				CFAEdge edge = node.getLeavingEdge (edgeIdx);
 				CFANode successor = edge.getSuccessor ();
+				String line = "";
 
 				if ((!visitedNodes.contains (successor)) && (!waitingNodeSet.contains (successor)))
 				{
@@ -55,14 +83,46 @@ public class DOTBuilder
 					waitingNodeSet.add (successor);
 				}
 
-				writer.print (node.getNodeNumber ());
-				writer.print (" -> ");
-				writer.print (successor.getNodeNumber ());
-				writer.print (" [label=\"");
+				line = line + node.getNodeNumber ();
+				line = line + " -> ";
+				line = line + successor.getNodeNumber ();
+				line = line + " [label=\"" ;
 
 				String edgeText = edge.getRawStatement ().replaceAll ("\\\"", "\\\\\\\"");
-				writer.print (edgeText);
-				writer.println ("\"];");
+				line = line + edgeText;
+				line = line + "\"];";
+				DOTWriter dw;
+				if(edge instanceof FunctionCallEdge || 
+						edge instanceof ReturnEdge){
+					dw = (DOTWriter)subGraphWriters.get("____Main____Diagram__");
+				}
+				else{
+					dw = (DOTWriter)subGraphWriters.get(node.getFunctionName());
+				}
+				dw.add(line);
+			}
+
+			CFAEdge edge = node.getLeavingSummaryEdge();
+			if(edge != null){
+				CFANode successor = edge.getSuccessor ();
+				String line = "";
+				
+				if ((!visitedNodes.contains (successor)) && (!waitingNodeSet.contains (successor)))
+				{
+					waitingNodeList.add (successor);
+					waitingNodeSet.add (successor);
+				}
+
+				line = line + node.getNodeNumber ();
+				line = line + " -> ";
+				line = line + successor.getNodeNumber ();
+				line = line + " [label=\"" ;
+
+				String edgeText = edge.getRawStatement ().replaceAll ("\\\"", "\\\\\\\"");
+				line = line + edgeText;
+				line = line + "\" style=dotted arrowhead=empty];";
+				DOTWriter dw = (DOTWriter)subGraphWriters.get(node.getFunctionName());
+				dw.add(line);
 			}
 		}
 	}

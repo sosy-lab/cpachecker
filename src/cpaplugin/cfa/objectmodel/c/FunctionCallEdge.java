@@ -4,6 +4,7 @@ import org.eclipse.cdt.core.dom.ast.IASTExpression;
 
 import cpaplugin.cfa.objectmodel.AbstractCFAEdge;
 import cpaplugin.cfa.objectmodel.CFAEdgeType;
+import cpaplugin.cfa.objectmodel.CFANode;
 
 public class FunctionCallEdge extends AbstractCFAEdge 
 {

@@ -17,10 +17,10 @@ public class PredicateAbstractionElement implements AbstractElement{
 	private PredicateList predicateList;
 	private boolean isFalsePredicate;
 
-	public PredicateAbstractionElement(){
+	public PredicateAbstractionElement(String functionName){
 		isFalsePredicate = false;
 		predicateList = new PredicateList();
-		PredicateListConstructor.constructList(predicateList);
+		PredicateListConstructor.constructList(predicateList, functionName);
 	}
 
 	public PredicateAbstractionElement(PredicateList pl, boolean isFalse){
@@ -57,7 +57,6 @@ public class PredicateAbstractionElement implements AbstractElement{
 	}
 
 	public String getRegion(){
-		System.out.println("FALSE PREDICATE IS " + isFalsePredicate);
 		if(isFalsePredicate){
 			return "false";
 		}
@@ -69,7 +68,7 @@ public class PredicateAbstractionElement implements AbstractElement{
 		if(isFalsePredicate){
 			return;
 		}
-		
+
 		String leftVar = simpIns.getLeftVariable();
 		String rigthVar = simpIns.getRightVariable();
 		Operator op = simpIns.getOperator();
@@ -77,17 +76,33 @@ public class PredicateAbstractionElement implements AbstractElement{
 		predicateList.updateAssignment(previousState, leftVar, rigthVar, op);
 	}
 
+	public void updateFunctionCall(String previousState, String parameterAssignment) throws IOException
+	{
+		if(isFalsePredicate){
+			return;
+		}
+
+		predicateList.updateFunctionCall(previousState, parameterAssignment);
+	}
+
+	public void updateFunctionReturn(String query) {
+		if(isFalsePredicate){
+			return;
+		}
+
+		predicateList.updateFunctionReturn(query);
+	}
+
 	public void updateAssumption(String previousState, String instruction) throws IOException
 	{
 		if(isFalsePredicate){
 			return;
 		}
-		
+
 		if(TheoremProverInterface.implies(previousState, "~ " + instruction) == ThreeValuedBoolean.TRUE){
-			System.out.println("we are here");
 			isFalsePredicate = true;
 			predicateList = null;
-			
+
 		}
 		else if(TheoremProverInterface.implies(previousState, instruction) == ThreeValuedBoolean.FALSE){
 			predicateList.updateAssumption(previousState, instruction);
@@ -103,5 +118,24 @@ public class PredicateAbstractionElement implements AbstractElement{
 
 	public boolean isFalsePredicate(){
 		return isFalsePredicate;
+	}
+
+	public void empty(){
+		predicateList.emptyList();
+	}
+
+	public void addPredicates(PredicateAbstractionElement newElement) {
+		for(Predicate pred:newElement.getPredicateList().getPredicates()){
+			Predicate newPred = pred.clone();
+			predicateList.addPredicate(newPred);
+		}
+	}
+
+	public void addPredicateOnTheFly(Predicate pred){
+		predicateList.addPredicate(pred);
+	}
+
+	public String getRegionWithoutVariable(String modifiedVariableName) {
+		return predicateList.getRegionWithoutVariable(modifiedVariableName);
 	}
 }

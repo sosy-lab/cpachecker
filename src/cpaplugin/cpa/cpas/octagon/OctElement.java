@@ -136,6 +136,10 @@ public class OctElement implements AbstractElement{
 	public int removeVariablesOfFunction(String fname) {
 		return variables.removeVariablesOfFunction(fname);
 	}
+	
+	public boolean isEmpty(){
+		return LibraryAccess.isEmpty(this);
+	}
 
 //	public void addVariablesFrom(OctElement octEl1) {
 //		VariableMap oct1Map = octEl1.getVarMap();

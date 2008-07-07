@@ -5,7 +5,6 @@ public abstract class CFAFunctionDefinitionNode extends CFANode
 {
     private String functionName;
     // Check if call edges are added in the second pass
-    public boolean CFAProcessed = false;
     private CFAExitNode exitNode;
     
     public CFAFunctionDefinitionNode (int lineNumber, String functionName)

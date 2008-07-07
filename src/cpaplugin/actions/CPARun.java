@@ -23,6 +23,7 @@ import cpaplugin.cfa.CFASimplifier;
 import cpaplugin.cfa.CPASecondPassBuilder;
 import cpaplugin.cfa.DOTBuilder;
 import cpaplugin.cfa.objectmodel.CFAFunctionDefinitionNode;
+import cpaplugin.cfa.objectmodel.CFANode;
 import cpaplugin.compositeCPA.CPAType;
 import cpaplugin.compositeCPA.CompositeCPA;
 import cpaplugin.cpa.common.CPAAlgorithm;
@@ -44,8 +45,6 @@ public class CPARun implements IWorkbenchWindowActionDelegate
 	private ConfigurableProblemAnalysis getCPA (CPAType[] cpaNamesArray, CFAFunctionDefinitionNode node) throws CPAException
 	{
 		return CompositeCPA.getCompositeCPA(cpaNamesArray, node);
-		//return JavaOctagonDemo.getOctDemoCPA();
-		//return DemoCPA.getDemoCPA();
 	}
 
 	/**
@@ -56,7 +55,7 @@ public class CPARun implements IWorkbenchWindowActionDelegate
 	 */
 	public void run (IAction action)
 	{
-		MessageDialog.openInformation (window.getShell (), "CPAPlugin Plug-in", "Launching Geoff's CPA Plugin");
+		MessageDialog.openInformation (window.getShell (), "CPAPlugin Plug-in", "Launching CPAChecker Eclipse Plugin");
 
 		try
 		{
@@ -123,16 +122,18 @@ public class CPARun implements IWorkbenchWindowActionDelegate
 			ast.accept (builder);
 			CFAMap cfas = builder.getCFAs ();
 			int numFunctions = cfas.size ();
+			Collection <CFAFunctionDefinitionNode> cfasMapList = cfas.cfaMapIterator();
 
 			// Insert call and return edges and build the supergraph
 			if(CPAConfig.isAnalysisInterprocedural){
 				CPASecondPassBuilder spbuilder = new CPASecondPassBuilder(cfas);
-				spbuilder.insertCallEdges("main");
+				for (CFAFunctionDefinitionNode cfa : cfasMapList){
+					spbuilder.insertCallEdges(cfa.getFunctionName());
+				}
 			}
 
 			System.out.println (numFunctions + " functions parsed");
 
-			// Iterate over all functions and perform CPA on each
 			DOTBuilder dotBuilder = new DOTBuilder ();
 
 			// Erkan: For interprocedural analysis, we start with the
@@ -140,11 +141,11 @@ public class CPARun implements IWorkbenchWindowActionDelegate
 			// all functions separately
 
 			if(!CPAConfig.isAnalysisInterprocedural){
-				Collection <CFAFunctionDefinitionNode> cfasMapList = cfas.cfaMapIterator();
+
 				for (CFAFunctionDefinitionNode cfa : cfasMapList)
 				{
 					if (CPAConfig.exportDOTfiles)
-						dotBuilder.generateDOT (cfa, CPAConfig.DOTOutputPath + "dot_" + cfa.getFunctionName() + ".dot");
+						dotBuilder.generateDOT (cfasMapList, cfa, CPAConfig.DOTOutputPath + "dot_" + cfa.getFunctionName() + ".dot");
 
 					if (CPAConfig.simplifyCFA)
 					{
@@ -153,7 +154,7 @@ public class CPARun implements IWorkbenchWindowActionDelegate
 
 						if (CPAConfig.exportDOTfiles)
 						{// If we've simplified the CFA, also export to DOT the simplified version
-							dotBuilder.generateDOT (cfa, CPAConfig.DOTOutputPath + "dot_" + cfa.getFunctionName() + "simple.dot");
+							dotBuilder.generateDOT (cfasMapList, cfa, CPAConfig.DOTOutputPath + "dot_" + cfa.getFunctionName() + "simple.dot");
 						}
 					}
 
@@ -180,7 +181,7 @@ public class CPARun implements IWorkbenchWindowActionDelegate
 
 				// TODO Erkan print to dot file
 				if (CPAConfig.exportDOTfiles)
-					dotBuilder.generateDOT (cfa, CPAConfig.DOTOutputPath + "dot" + "_main" + ".dot");
+					dotBuilder.generateDOT (cfasMapList, cfa, CPAConfig.DOTOutputPath + "dot" + "_main" + ".dot");
 
 				// TODO Erkan Simplify each CFA
 				if (CPAConfig.simplifyCFA)
@@ -188,17 +189,17 @@ public class CPARun implements IWorkbenchWindowActionDelegate
 					CFASimplifier simplifier = new CFASimplifier (CPAConfig.combineBlockStatements);
 					simplifier.simplify (cfa);
 				}
-				
+
 				// TODO read from file
 				CPAType[] cpaArray = {CPAType.LocationCPA, CPAType.PredicateAbstractionCPA};
-				
+
 				ConfigurableProblemAnalysis cpa = getCPA (cpaArray, cfa);
 				CPAAlgorithm algo = new CPAAlgorithm ();
 				AbstractElement initialElement = cpa.getInitialElement(cfa);
 				Collection<AbstractElement> reached = algo.CPA (cpa, initialElement);
 
 				System.out.println ("Reached CPA Size: " + reached.size () + " for function: " + cfa.getFunctionName ());
-				
+
 				for (AbstractElement element : reached)
 				{
 					System.out.println (element.toString ());
