@@ -85,7 +85,7 @@ public class PredicateAbstractionElement implements AbstractElement{
 		predicateList.updateFunctionCall(previousState, parameterAssignment);
 	}
 
-	public void updateFunctionReturn(String query) {
+	public void updateFunctionReturn(String query) throws IOException {
 		if(isFalsePredicate){
 			return;
 		}
@@ -99,12 +99,12 @@ public class PredicateAbstractionElement implements AbstractElement{
 			return;
 		}
 
-		if(TheoremProverInterface.implies(previousState, "~ " + instruction) == ThreeValuedBoolean.TRUE){
+		if(TheoremProverInterface.satisfiability(" & [ " + previousState + " " + instruction + " ] ") == ThreeValuedBoolean.FALSE){
 			isFalsePredicate = true;
 			predicateList = null;
 
 		}
-		else if(TheoremProverInterface.implies(previousState, instruction) == ThreeValuedBoolean.FALSE){
+		else {
 			predicateList.updateAssumption(previousState, instruction);
 		}
 	}

@@ -31,6 +31,8 @@ import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.TransferRelation;
 import cpaplugin.exceptions.CPAException;
 import cpaplugin.exceptions.PredicateAbstractionTransferException;
+import cpaplugin.logging.CPACheckerLogger;
+import cpaplugin.logging.CustomLogLevel;
 
 public class PredicateAbstractionTransferRelation implements TransferRelation 
 {
@@ -106,7 +108,7 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 		case BlankEdge:
 		{
 			predAbsElement = predAbsElement.clone ();
-			System.out.println("Blank Edge -- Do Nothing");
+			//System.out.println("Blank Edge -- Do Nothing");
 			break;
 		}
 
@@ -124,6 +126,8 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 //			}
 //			else{
 			try {
+				CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel, "Function Call Edge from node " +  
+						cfaEdge.getPredecessor().getNodeNumber() + " to " + cfaEdge.getSuccessor().getNodeNumber() );
 				handleFunctionCall(predAbsElement, functionCallEdge);
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
@@ -201,6 +205,8 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 		List<String> paramNames = functionEntryNode.getFunctionParameterNames();
 		IASTExpression[] arguments = functionCallEdge.getArguments();
 
+		CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel, "Function Paramater: " +  paramNames);
+		
 		assert (paramNames.size() == arguments.length);
 		String instr = "& [";
 		// TODO here we assume that all parameters are type of int or double
@@ -213,7 +219,12 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 		}
 
 		instr = instr + " ]";
+		CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel, "Query for function call: " +  instr);
+		
 		newElement.updateFunctionCall(previousState, instr);
+		
+		CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel, "State is updated to: " +  newElement);
+		
 		predAbsElement.empty();
 		predAbsElement.addPredicates(newElement);
 	}
@@ -223,6 +234,10 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 			IASTExpression expression, StatementEdge statementEdge) throws PredicateAbstractionTransferException {
 
 		String functionName = statementEdge.getPredecessor().getFunctionName();
+		if(functionName.equals("main")){
+			return;
+		}
+			
 		if(expression instanceof IASTUnaryExpression){
 			IASTUnaryExpression unaryExp = (IASTUnaryExpression)expression;
 			if(unaryExp.getOperator() == IASTUnaryExpression.op_bracketedPrimary){
@@ -317,7 +332,12 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 		predAbsElement.empty();
 		predAbsElement.addPredicates(newElement);
 		
-		predAbsElement.updateFunctionReturn(query);
+		try {
+			predAbsElement.updateFunctionReturn(query);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
 	private void handleStatement (PredicateAbstractionElement predAbsElement, IASTExpression expression, CFAEdge cfaEdge) throws PredicateAbstractionTransferException
@@ -347,16 +367,14 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 			IASTExpression expression, CFAEdge cfaEdge, boolean truthValue) throws PredicateAbstractionTransferException
 			{
 
-		IASTBinaryExpression binExp = ((IASTBinaryExpression)expression);
-		int opType = binExp.getOperator ();
-
-		IASTExpression op1 = binExp.getOperand1();
-		IASTExpression op2 = binExp.getOperand2();
-
-		String leftOperator = op1.getRawSignature();
-		String rightOperator = op2.getRawSignature();
-
 		if (expression instanceof IASTBinaryExpression) {
+			IASTBinaryExpression binExp = ((IASTBinaryExpression)expression);
+			int opType = binExp.getOperator ();
+			IASTExpression op1 = binExp.getOperand1();
+			IASTExpression op2 = binExp.getOperand2();
+			String leftOperator = op1.getRawSignature();
+			String rightOperator = op2.getRawSignature();
+			
 			if(opType == IASTBinaryExpression.op_greaterThan){
 				// this is the if then edge
 				if(truthValue){

@@ -19,7 +19,6 @@ public class PredicateAbstractionDomain implements AbstractDomain{
         public PredicateAbstractionBottomElement ()
         {
             super (null, true);
-            System.out.println("predicate abstraction bottom element");
         }
     }
     
@@ -27,7 +26,6 @@ public class PredicateAbstractionDomain implements AbstractDomain{
     {
     	public PredicateAbstractionTopElement ()
         {
-    		System.out.println("predicate abstraction top element");
         }
     }
     
@@ -41,8 +39,6 @@ public class PredicateAbstractionDomain implements AbstractDomain{
             
         	ThreeValuedBoolean tbv = ThreeValuedBoolean.DONTKNOW;
 			try {
-				System.out.println("1::: " + predicateAbstractionElement1.getRegion());
-				System.out.println("2::: " + predicateAbstractionElement2.getRegion());
 				tbv = TheoremProverInterface.implies(predicateAbstractionElement1.getRegion(), predicateAbstractionElement2.getRegion());
 			} catch (IOException e) {
 				// TODO Auto-generated catch block

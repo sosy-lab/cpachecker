@@ -18,6 +18,8 @@ import cpaplugin.cpa.cpas.location.LocationCPA;
 import cpaplugin.cpa.cpas.octagon.OctagonCPA;
 import cpaplugin.cpa.cpas.predicateabstraction.PredicateAbstractionCPA;
 import cpaplugin.exceptions.CPAException;
+import cpaplugin.logging.CPACheckerLogger;
+import cpaplugin.logging.CustomLogLevel;
 
 public class CompositeCPA implements ConfigurableProblemAnalysis
 {
@@ -122,6 +124,8 @@ public class CompositeCPA implements ConfigurableProblemAnalysis
 
 		for(int i=0; i<sizeOfCompositeCPA; i++){
 			CPAType typeOfCPA = cpaNamesArray[i];
+			CPACheckerLogger.log(CustomLogLevel.MainApplicationLevel, typeOfCPA + " is added to the list of CPAs ");
+
 			if(typeOfCPA == CPAType.LocationCPA){
 				locationCpa = LocationCPA.createNewLocationCPA(MergeType.MergeSep);
 				cpas.add(locationCpa);
@@ -146,13 +150,13 @@ public class CompositeCPA implements ConfigurableProblemAnalysis
 			}
 			else if(typeOfCPA == CPAType.PredicateAbstractionCPA){
 				// TODO read from file
-				predicateAbstractionMergeType = MergeType.MergeJoin;
+				predicateAbstractionMergeType = MergeType.MergeSep;
 				predicateAbstractionStopType = StopType.StopSep;
 				predicateAbstractionCpa = PredicateAbstractionCPA.createNewPredicateAbstractionCPA (predicateAbstractionMergeType, predicateAbstractionStopType);
 				cpas.add(predicateAbstractionCpa);
 			}
 		}
-
+		CPACheckerLogger.log(CustomLogLevel.MainApplicationLevel, "CompositeCPA is built using the list of CPAs");
 		ConfigurableProblemAnalysis cpa = CompositeCPA.createNewCompositeCPA (cpas, node);
 		return cpa;
 	}

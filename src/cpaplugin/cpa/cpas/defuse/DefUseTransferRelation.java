@@ -62,9 +62,6 @@ public class DefUseTransferRelation implements TransferRelation
                 String lParam = binaryExpression.getOperand1 ().getRawSignature ();
                 String lParam2 = binaryExpression.getOperand2 ().getRawSignature ();
                 
-                System.out.println("Operand1 ::: " + lParam);
-                System.out.println("Operand2 ::: " + lParam2);
-                
                 DefUseDefinition definition = new DefUseDefinition (lParam, cfaEdge);
                 defUseElement.update (definition);
             }

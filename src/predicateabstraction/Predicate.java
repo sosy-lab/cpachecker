@@ -2,6 +2,9 @@ package predicateabstraction;
 
 import java.io.IOException;
 
+import cpaplugin.logging.CPACheckerLogger;
+import cpaplugin.logging.CustomLogLevel;
+
 
 public class Predicate {
 
@@ -240,38 +243,35 @@ public class Predicate {
 	}
 	
 	public void updateFunctionCall(String previousState, String parameterAssignment) throws IOException{
+		
+		CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel, "Function Call Update on Predicate: " +
+				this.getPredicateAsString());
 
-		String postCondition = "& [ " + parameterAssignment +  " " + getPredicateAsString() + " ]"; 
+		String currentState = "& [ " + previousState +  " " + parameterAssignment + " ]"; 
 
-		if (TheoremProverInterface.satisfiability("& [ " + previousState +  " " + postCondition + " ]") == ThreeValuedBoolean.TRUE){
+		if (TheoremProverInterface.implies(currentState, getPredicateAsString()) == ThreeValuedBoolean.TRUE){
+			CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel, "Predicate is set to TRUE ");
 			setTruthValue(ThreeValuedBoolean.TRUE);
 			return;
 		}
 
-		postCondition = "& [ " + parameterAssignment +  " ~ " + getPredicateAsString() + " ]"; 
-		
-		if (TheoremProverInterface.satisfiability("& [ " + previousState +  " " + postCondition + " ]") == ThreeValuedBoolean.TRUE){
+		if (TheoremProverInterface.implies(currentState, " ~ " + getPredicateAsString()) == ThreeValuedBoolean.TRUE){
+			CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel, "Predicate is set to FALSE ");
 			setTruthValue(ThreeValuedBoolean.FALSE);
 			return;
 		}
-		
+		CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel, "Predicate is set to DONTKNOW");
 		setTruthValue(ThreeValuedBoolean.DONTKNOW);
 	}
 	
-	public void updateFunctionReturn(String query) {
+	public void updateFunctionReturn(String query) throws IOException {
 		
-		String queryPos = " & [ " + getPredicateAsString() + " " + query + " ] ";
-
-		if (TheoremProverInterface.satisfiability(queryPos) == ThreeValuedBoolean.TRUE){
-			System.out.println(queryPos);
+		if (TheoremProverInterface.implies(query, getPredicateAsString()) == ThreeValuedBoolean.TRUE){
 			setTruthValue(ThreeValuedBoolean.TRUE);
 			return;
 		}
 		
-		String queryNeg = " & [ ~ " + getPredicateAsString() + " " + query + " ] ";
-
-		if (TheoremProverInterface.satisfiability(queryNeg) == ThreeValuedBoolean.TRUE){
-			System.out.println(queryNeg);
+		if (TheoremProverInterface.implies(query, " ~ " + getPredicateAsString()) == ThreeValuedBoolean.TRUE){
 			setTruthValue(ThreeValuedBoolean.FALSE);
 			return;
 		}

@@ -1,8 +1,10 @@
 package cpaplugin.actions;
 
 import java.util.Collection;
+import java.util.List;
 
 import org.eclipse.cdt.core.dom.CDOM;
+import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.jface.action.IAction;
@@ -23,13 +25,14 @@ import cpaplugin.cfa.CFASimplifier;
 import cpaplugin.cfa.CPASecondPassBuilder;
 import cpaplugin.cfa.DOTBuilder;
 import cpaplugin.cfa.objectmodel.CFAFunctionDefinitionNode;
-import cpaplugin.cfa.objectmodel.CFANode;
 import cpaplugin.compositeCPA.CPAType;
 import cpaplugin.compositeCPA.CompositeCPA;
 import cpaplugin.cpa.common.CPAAlgorithm;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.ConfigurableProblemAnalysis;
 import cpaplugin.exceptions.CPAException;
+import cpaplugin.logging.CPACheckerLogger;
+import cpaplugin.logging.CustomLogLevel;
 
 public class CPARun implements IWorkbenchWindowActionDelegate
 {
@@ -55,6 +58,9 @@ public class CPARun implements IWorkbenchWindowActionDelegate
 	 */
 	public void run (IAction action)
 	{
+		CPACheckerLogger.init();
+		CPACheckerLogger.log(CustomLogLevel.INFO, "Program Started");
+		
 		MessageDialog.openInformation (window.getShell (), "CPAPlugin Plug-in", "Launching CPAChecker Eclipse Plugin");
 
 		try
@@ -116,7 +122,9 @@ public class CPARun implements IWorkbenchWindowActionDelegate
 				System.out.println ("Eclipse had trouble parsing C");
 				return;
 			}
-
+			
+			CPACheckerLogger.log(CustomLogLevel.MainApplicationLevel, "Parsing Finished");
+			
 			// Build CFA
 			CFABuilder builder = new CFABuilder ();
 			ast.accept (builder);
@@ -124,6 +132,8 @@ public class CPARun implements IWorkbenchWindowActionDelegate
 			int numFunctions = cfas.size ();
 			Collection <CFAFunctionDefinitionNode> cfasMapList = cfas.cfaMapIterator();
 
+			CPACheckerLogger.log(CustomLogLevel.MainApplicationLevel, "Adding super edges");
+			
 			// Insert call and return edges and build the supergraph
 			if(CPAConfig.isAnalysisInterprocedural){
 				CPASecondPassBuilder spbuilder = new CPASecondPassBuilder(cfas);
@@ -132,7 +142,7 @@ public class CPARun implements IWorkbenchWindowActionDelegate
 				}
 			}
 
-			System.out.println (numFunctions + " functions parsed");
+			CPACheckerLogger.log(CustomLogLevel.MainApplicationLevel, numFunctions + " functions parsed");
 
 			DOTBuilder dotBuilder = new DOTBuilder ();
 
@@ -141,6 +151,7 @@ public class CPARun implements IWorkbenchWindowActionDelegate
 			// all functions separately
 
 			if(!CPAConfig.isAnalysisInterprocedural){
+				CPACheckerLogger.log(CustomLogLevel.MainApplicationLevel, "Analysis is not interprocedural");
 
 				for (CFAFunctionDefinitionNode cfa : cfasMapList)
 				{
@@ -161,13 +172,15 @@ public class CPARun implements IWorkbenchWindowActionDelegate
 					// TODO read from config file
 					CPAType[] cpaArray = {CPAType.LocationCPA, CPAType.PredicateAbstractionCPA};
 
+					CPACheckerLogger.log(CustomLogLevel.MainApplicationLevel, "CPA Algorithm Called");
+
 					ConfigurableProblemAnalysis cpa = getCPA (cpaArray,cfa);
 					CPAAlgorithm algo = new CPAAlgorithm ();
 
 					AbstractElement initialElement = cpa.getInitialElement(cfa);
 					Collection<AbstractElement> reached = algo.CPA (cpa, initialElement);
 
-					System.out.println ("Reached CPA Size: " + reached.size () + " for function: " + cfa.getFunctionName ());
+					CPACheckerLogger.log(CustomLogLevel.MainApplicationLevel, numFunctions + "Reached CPA Size: " + reached.size () + " for function: " + cfa.getFunctionName ());
 
 					for (AbstractElement element : reached)
 					{
@@ -177,6 +190,8 @@ public class CPARun implements IWorkbenchWindowActionDelegate
 			}
 			else
 			{
+				CPACheckerLogger.log(CustomLogLevel.MainApplicationLevel, "Analysis is interprocedural ");
+
 				CFAFunctionDefinitionNode cfa = cfas.getCFA("main");
 
 				// TODO Erkan print to dot file
@@ -192,13 +207,14 @@ public class CPARun implements IWorkbenchWindowActionDelegate
 
 				// TODO read from file
 				CPAType[] cpaArray = {CPAType.LocationCPA, CPAType.PredicateAbstractionCPA};
+				CPACheckerLogger.log(CustomLogLevel.MainApplicationLevel, "CPA Algorithm Called");
 
 				ConfigurableProblemAnalysis cpa = getCPA (cpaArray, cfa);
 				CPAAlgorithm algo = new CPAAlgorithm ();
 				AbstractElement initialElement = cpa.getInitialElement(cfa);
 				Collection<AbstractElement> reached = algo.CPA (cpa, initialElement);
 
-				System.out.println ("Reached CPA Size: " + reached.size () + " for function: " + cfa.getFunctionName ());
+				CPACheckerLogger.log(CustomLogLevel.MainApplicationLevel, numFunctions + "Reached CPA Size: " + reached.size () + " for function: " + cfa.getFunctionName ());
 
 				for (AbstractElement element : reached)
 				{

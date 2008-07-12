@@ -42,7 +42,6 @@ public class CPASecondPassBuilder {
 			{
 				CFAEdge edge = node.getLeavingEdge (edgeIdx);
 				CFANode successorNode = edge.getSuccessor();
-				System.out.println("+++++++++++++++++++ " + edge.getRawStatement());
 				if(edge instanceof StatementEdge)
 				{
 					IASTExpression expr = ((StatementEdge)edge).getExpression();

@@ -101,7 +101,7 @@ public class PredicateList {
 		}
 	}
 
-	public void updateFunctionReturn(String query) {
+	public void updateFunctionReturn(String query) throws IOException {
 		for(Predicate predicate:predicates){
 			predicate.updateFunctionReturn(query);
 		}

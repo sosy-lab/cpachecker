@@ -30,12 +30,6 @@ public class PredicateAbstractionMergeJoin implements MergeOperator{
 			// TODO handle this case
 		}
 
-		System.out.println("________________________________");
-		System.out.println("MERGING");
-		System.out.println(predAbstElement1);
-		System.out.println(predAbstElement2);
-		System.out.println("________________________________");
-		
 		PredicateAbstractionElement joined = new PredicateAbstractionElement(predAbstElement1.getPredicateList(), false);
 
 		if(predAbstElement1.isFalsePredicate()){
@@ -58,11 +52,6 @@ public class PredicateAbstractionMergeJoin implements MergeOperator{
 				}
 			}
 		}
-		
-		System.out.println("________________________________");
-		System.out.println("MERGED");
-		System.out.println(joined);
-		System.out.println("________________________________");
 		
 		return joined;
 	}
