@@ -22,7 +22,6 @@ public abstract class AbstractCFAEdge implements CFAEdge
     {
         setPredecessor (predecessor);
         setSuccessor (successor);
-        //successor.setFunctionName(predecessor.getFunctionName());
     }
       
     public CFANode getPredecessor ()

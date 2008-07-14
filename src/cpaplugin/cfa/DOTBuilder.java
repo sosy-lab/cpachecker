@@ -92,7 +92,7 @@ public class DOTBuilder
 				line = line + edgeText;
 				line = line + "\"];";
 				DOTWriter dw;
-				if(edge instanceof FunctionCallEdge || 
+				if((edge instanceof FunctionCallEdge && !((FunctionCallEdge)edge).isExternalCall()) || 
 						edge instanceof ReturnEdge){
 					dw = (DOTWriter)subGraphWriters.get("____Main____Diagram__");
 				}

@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.eclipse.cdt.core.dom.ast.ASTVisitor;
+import org.eclipse.cdt.core.dom.ast.IASTArrayModifier;
 import org.eclipse.cdt.core.dom.ast.IASTBreakStatement;
 import org.eclipse.cdt.core.dom.ast.IASTCaseStatement;
 import org.eclipse.cdt.core.dom.ast.IASTCompoundStatement;
@@ -22,7 +23,6 @@ import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
 import org.eclipse.cdt.core.dom.ast.IASTGotoStatement;
 import org.eclipse.cdt.core.dom.ast.IASTIfStatement;
 import org.eclipse.cdt.core.dom.ast.IASTLabelStatement;
-import org.eclipse.cdt.core.dom.ast.IASTName;
 import org.eclipse.cdt.core.dom.ast.IASTNullStatement;
 import org.eclipse.cdt.core.dom.ast.IASTProblem;
 import org.eclipse.cdt.core.dom.ast.IASTReturnStatement;
@@ -30,6 +30,7 @@ import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTStatement;
 import org.eclipse.cdt.core.dom.ast.IASTSwitchStatement;
 import org.eclipse.cdt.core.dom.ast.IASTWhileStatement;
+
 import cpaplugin.CPADebugOutput;
 import cpaplugin.cfa.objectmodel.BlankEdge;
 import cpaplugin.cfa.objectmodel.CFAExitNode;
@@ -69,19 +70,19 @@ public class CFABuilder extends ASTVisitor
 
 	public CFABuilder ()
 	{
-		shouldVisitComments = false;   //
-		shouldVisitDeclarations = true;  
-		shouldVisitDeclarators = true;  //
-		shouldVisitDeclSpecifiers = true;  //
+		shouldVisitComments = false;
+		shouldVisitDeclarations = true;
+		shouldVisitDeclarators = false;
+		shouldVisitDeclSpecifiers = false;
 		shouldVisitEnumerators = true;
-		shouldVisitExpressions = true;  //
-		shouldVisitInitializers = true;  //
-		shouldVisitNames = true;  //
+		shouldVisitExpressions = false;
+		shouldVisitInitializers = false;
+		shouldVisitNames = false;
 		shouldVisitParameterDeclarations = true;
 		shouldVisitProblems = true;
 		shouldVisitStatements = true;
-		shouldVisitTranslationUnit = true; //
-		shouldVisitTypeIds = true; //
+		shouldVisitTranslationUnit = false;
+		shouldVisitTypeIds = false;
 
 		locStack = new ArrayDeque<CFANode> ();
 		loopStartStack = new ArrayDeque<CFANode> ();
@@ -110,15 +111,8 @@ public class CFABuilder extends ASTVisitor
 	{
 		return globalDeclarations;
 	}
-
-	public int visit(IASTName node) {
-		if(node instanceof ASTMacroName){
-			System.out.println("here");
-		}
-		System.out.println("130: " + node.getRawSignature()); 
-		return PROCESS_CONTINUE;
-	}
-
+	
+	
 	/* *************************************************************************************
 	 * Methods for Declarations, whether of variables, or of functions
 	 * ************************************************************************************/
@@ -128,7 +122,7 @@ public class CFABuilder extends ASTVisitor
 
 		//CPADebugOutput.debugPrintln ("IASTDeclaration Raw Signature: " + declaration.getRawSignature ());
 		//System.out.println("decl: " + declaration.getRawSignature());
-
+		
 		if (declaration instanceof IASTSimpleDeclaration)
 		{
 			if (locStack.size () > 0) // i.e. we're in a function
@@ -162,16 +156,16 @@ public class CFABuilder extends ASTVisitor
 			FunctionDefinitionNode newCFA = new FunctionDefinitionNode (fileloc.getStartingLineNumber (), fdef);
 			String nameOfFunction = newCFA.getFunctionName();
 			newCFA.setFunctionName(nameOfFunction);
-
+			
 			locStack.add (newCFA);
 			cfas.addCFA(nameOfFunction, newCFA);
 
 			returnNode = new CFAExitNode (fileloc.getEndingLineNumber (), nameOfFunction);
 			newCFA.setExitNode(returnNode);
-
+			
 			CPADebugOutput.debugPrintln("    Type: FunctionDeclaration");
 		}
-
+		
 		CPADebugOutput.debugPrintln ("    File Loc: " + fileloc);
 
 		return PROCESS_CONTINUE;

@@ -10,6 +10,7 @@ import org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression;
 import org.eclipse.cdt.core.dom.ast.IASTIdExpression;
 
 import cpaplugin.cfa.objectmodel.CFAEdge;
+import cpaplugin.cfa.objectmodel.CFAFunctionDefinitionNode;
 import cpaplugin.cfa.objectmodel.CFANode;
 import cpaplugin.cfa.objectmodel.c.CallToReturnEdge;
 import cpaplugin.cfa.objectmodel.c.FunctionCallEdge;
@@ -84,9 +85,23 @@ public class CPASecondPassBuilder {
 	private void createCallAndReturnEdges(CFANode node, CFANode successorNode, CFAEdge edge, IASTExpression expr, IASTFunctionCallExpression operand2) {
 		IASTFunctionCallExpression functCall = (IASTFunctionCallExpression) operand2;
 		String functionName = functCall.getFunctionNameExpression().getRawSignature();
+		CFAFunctionDefinitionNode fDefNode = cfas.getCFA(functionName);
+		
 		IASTExpression parameters = functCall.getParameterExpression();
 		FunctionCallEdge callEdge = new FunctionCallEdge(operand2.getRawSignature(), parameters);
-		callEdge.initialize (node, cfas.getCFA(functionName));
+		
+		if(fDefNode == null){
+			callEdge.setExternalCall();
+			callEdge.initialize (node, edge.getSuccessor());
+			callEdge.getSuccessor().setFunctionName(node.getFunctionName());
+			CallToReturnEdge calltoReturnEdge = new CallToReturnEdge("External Call", expr);
+			calltoReturnEdge.initializeSummaryEdge(node, edge.getSuccessor());
+			node.removeLeavingEdge(edge);
+			successorNode.removeEnteringEdge(edge);
+			return;
+		}
+		
+		callEdge.initialize (node, fDefNode);
 		// set name of the function
 		callEdge.getSuccessor().setFunctionName(functionName);
 		// set return edge from exit node of the function

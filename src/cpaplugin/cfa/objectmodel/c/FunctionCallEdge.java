@@ -10,6 +10,7 @@ public class FunctionCallEdge extends AbstractCFAEdge
 {
 	private IASTExpression[] functionArguments;
 	private boolean isRecursiveCallEdge = false;
+	private boolean isExternalCall = false;
 	
     public FunctionCallEdge (String rawStatement, IASTExpression arguments)
     {
@@ -35,5 +36,13 @@ public class FunctionCallEdge extends AbstractCFAEdge
 	
 	public boolean isRecursive() {
 		return this.isRecursiveCallEdge;
+	}
+	
+	public void setExternalCall() {
+		this.isExternalCall = true;
+	}
+	
+	public boolean isExternalCall() {
+		return this.isExternalCall;
 	}
 }

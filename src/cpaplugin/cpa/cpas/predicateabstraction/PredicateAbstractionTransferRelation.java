@@ -6,6 +6,7 @@ import java.util.List;
 import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTCastExpression;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
+import org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression;
 import org.eclipse.cdt.core.dom.ast.IASTIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
@@ -50,6 +51,7 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 
 	public AbstractElement getAbstractSuccessor (AbstractElement element, CFAEdge cfaEdge)
 	{
+		System.out.println(cfaEdge.getRawStatement());
 		PredicateAbstractionElement predAbsElement = (PredicateAbstractionElement) element;
 		switch (cfaEdge.getEdgeType ())
 		{
@@ -114,13 +116,21 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 
 		case FunctionCallEdge: 
 		{
+			FunctionCallEdge functionCallEdge = (FunctionCallEdge) cfaEdge;
+			predAbsElement = predAbsElement.clone ();
+			
+			if(functionCallEdge.isExternalCall()){
+				try {
+					handleExternalCalls(predAbsElement, functionCallEdge);
+				} catch (PredicateAbstractionTransferException e) {
+					e.printStackTrace();
+				}
+				break;
+			}
 			// save the data on the summary edge before proceeding with the function call
 			CallToReturnEdge summaryEdge = cfaEdge.getPredecessor().getLeavingSummaryEdge();
 			summaryEdge.registerElementOnSummaryEdge(CPAType.PredicateAbstractionCPA, predAbsElement);
 			
-			predAbsElement = predAbsElement.clone ();
-			FunctionCallEdge functionCallEdge = (FunctionCallEdge) cfaEdge;
-
 //			if(functionCallEdge.isRecursive()){
 //			handleRecursiveFunctionCall(predAbsElement, functionCallEdge);
 //			}
@@ -672,7 +682,6 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 
 	private void handleAssignment(PredicateAbstractionElement predAbsElement, IASTBinaryExpression binaryExpression, CFAEdge cfaEdge) throws PredicateAbstractionTransferException {
 
-		String functionName = cfaEdge.getPredecessor().getFunctionName();
 		IASTExpression op1 = binaryExpression.getOperand1();
 		IASTExpression op2 = binaryExpression.getOperand2();
 
@@ -847,7 +856,7 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 					/** a = 8 * 9 */
 					else if(rVarInBinaryExp instanceof IASTLiteralExpression){
 						//Cil eliminates this case
-						throw new PredicateAbstractionTransferException("Unhandled case " + cfaEdge.getPredecessor().getNodeNumber());
+						throw new PredicateAbstractionTransferException("Cil eliminates this case " + cfaEdge.getPredecessor().getNodeNumber());
 					}
 				}
 				else {
@@ -936,6 +945,33 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 		}
 	}
 
-
+	private void handleExternalCalls(PredicateAbstractionElement predAbsElement, FunctionCallEdge functionCallEdge) throws PredicateAbstractionTransferException {
+		
+		IASTExpression expr = functionCallEdge.getSuccessor().getEnteringSummaryEdge().getExpression();
+		
+		if(expr instanceof IASTBinaryExpression){
+			IASTBinaryExpression binaryExpression = (IASTBinaryExpression) expr;
+			IASTExpression leftHandSideExp = binaryExpression.getOperand1();
+			if(leftHandSideExp instanceof IASTIdExpression){
+				IASTIdExpression variable = (IASTIdExpression)leftHandSideExp;
+				String variableName = variable.getRawSignature();
+				SimplifiedInstruction simpIns = new SimplifiedInstruction(variableName, "__________cpa_________unknownVal___", Operator.equals);
+				System.out.println(variableName);
+				handleAssignmetQuery(predAbsElement, simpIns);
+			}
+			else if(leftHandSideExp instanceof IASTUnaryExpression){
+				System.out.println("Unary" + expr.getRawSignature());
+			}
+			else {
+				throw new PredicateAbstractionTransferException("Unhandled case " + functionCallEdge.getPredecessor().getNodeNumber());
+			}
+		}
+		else if(expr instanceof IASTFunctionCallExpression){
+			return;
+		}
+		else{
+			throw new PredicateAbstractionTransferException("Unhandled case " + functionCallEdge.getPredecessor().getNodeNumber());
+		}
+	}
 
 }
