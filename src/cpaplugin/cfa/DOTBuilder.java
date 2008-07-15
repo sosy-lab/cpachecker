@@ -13,6 +13,7 @@ import java.util.Set;
 import cpaplugin.cfa.objectmodel.CFAEdge;
 import cpaplugin.cfa.objectmodel.CFAFunctionDefinitionNode;
 import cpaplugin.cfa.objectmodel.CFANode;
+import cpaplugin.cfa.objectmodel.c.AssumeEdge;
 import cpaplugin.cfa.objectmodel.c.FunctionCallEdge;
 import cpaplugin.cfa.objectmodel.c.ReturnEdge;
 
@@ -26,7 +27,8 @@ public class DOTBuilder
 	public void generateDOT (Collection<CFAFunctionDefinitionNode> cfasMapList, CFAFunctionDefinitionNode cfa, String fileName) throws IOException
 	{
 		Map<String, DOTWriter> subGraphWriters = new HashMap<String, DOTWriter>();
-
+		DOTNodeShapeWriter nodeWriter = new DOTNodeShapeWriter();
+		
 		DOTWriter dw = new DOTWriter("____Main____Diagram__");
 		subGraphWriters.put("____Main____Diagram__", dw);
 		
@@ -37,10 +39,14 @@ public class DOTBuilder
 
 		PrintWriter writer = new PrintWriter (fileName);
 
-		generateDotHelper (subGraphWriters, cfa);
+		generateDotHelper (subGraphWriters, nodeWriter, cfa);
 
 		writer.println ("digraph " + "CFA" + " {");
 
+		writer.print(nodeWriter.getDot());
+		writer.print("node [shape = circle];");
+		writer.println();
+		
 		for(CFAFunctionDefinitionNode fnode:cfasMapList){
 			dw = subGraphWriters.get(fnode.getFunctionName());
 			writer.println ("subgraph cluster_" + fnode.getFunctionName() + " {");
@@ -55,7 +61,7 @@ public class DOTBuilder
 		writer.close ();
 	}
 
-	private void generateDotHelper (Map<String, DOTWriter> subGraphWriters, CFAFunctionDefinitionNode cfa)
+	private void generateDotHelper (Map<String, DOTWriter> subGraphWriters, DOTNodeShapeWriter nodeWriter, CFAFunctionDefinitionNode cfa)
 	{
 		Set<CFANode> visitedNodes = new HashSet<CFANode> ();
 		Deque<CFANode> waitingNodeList = new ArrayDeque<CFANode> ();
@@ -69,11 +75,20 @@ public class DOTBuilder
 			waitingNodeSet.remove (node);
 
 			visitedNodes.add (node);
+			
+			if(node.isLoopStart()){
+				nodeWriter.add(node.getNodeNumber(), "doublecircle");
+			}
 
 			int leavingEdgeCount = node.getNumLeavingEdges ();
 			for (int edgeIdx = 0; edgeIdx < leavingEdgeCount; edgeIdx++)
 			{
 				CFAEdge edge = node.getLeavingEdge (edgeIdx);
+				
+				if(edge instanceof AssumeEdge){
+					nodeWriter.add(node.getNodeNumber(), "diamond");
+				}
+				
 				CFANode successor = edge.getSuccessor ();
 				String line = "";
 

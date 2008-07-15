@@ -24,7 +24,7 @@ public class CPACheckerLogger {
 		CustomLogLevel.initializeLevels(levelList);
 		
 		try {
-			FileHandler fileHandler = new FileHandler("/home/erkan/CPAlog.txt");
+			FileHandler fileHandler = new FileHandler(CPAConfig.LogPath);
 			Formatter formatter = new SimpleFormatter();
 			fileHandler.setFormatter(formatter);
 			mainLogger.addHandler(fileHandler);

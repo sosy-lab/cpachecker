@@ -3,6 +3,7 @@ package cpaplugin.cpa.cpas.predicateabstraction;
 import java.util.ArrayList;
 import java.util.List;
 
+import cpaplugin.CPAConfig;
 import cpaplugin.cfa.objectmodel.CFAFunctionDefinitionNode;
 import cpaplugin.cfa.objectmodel.c.FunctionDefinitionNode;
 import cpaplugin.compositeCPA.MergeType;
@@ -96,7 +97,7 @@ public class PredicateAbstractionCPA implements ConfigurableProblemAnalysis{
 
 	public AbstractElement getInitialElement (CFAFunctionDefinitionNode node)
 	{
-		return new PredicateAbstractionElement ("main");
+		return new PredicateAbstractionElement (CPAConfig.entryFunction);
 	}
 
 

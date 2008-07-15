@@ -15,6 +15,7 @@ import org.eclipse.cdt.core.dom.ast.IASTIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 
+import cpaplugin.CPAConfig;
 import cpaplugin.cfa.objectmodel.CFAEdge;
 import cpaplugin.cfa.objectmodel.CFAExitNode;
 import cpaplugin.cfa.objectmodel.CFANode;
@@ -140,7 +141,7 @@ public class OctTransferRelation implements TransferRelation{
 				// TODO recursive return
 				handleSummaryEdge(octElement, varName, pfName, callerFunctionName);
 			}
-			else if(predecessorNode.getFunctionName().compareTo("main") == 0){
+			else if(predecessorNode.getFunctionName().compareTo(CPAConfig.entryFunction) == 0){
 				//Do nothing
 			}
 			else{
@@ -220,7 +221,7 @@ public class OctTransferRelation implements TransferRelation{
 					octElement.addVar(varName, functionName);
 				}
 				else{
-					if(cfaEdge.getSuccessor().getFunctionName().compareTo("main") !=0){
+					if(cfaEdge.getSuccessor().getFunctionName().compareTo(CPAConfig.entryFunction) !=0){
 						if(!octElement.contains(varName, functionName)){
 							System.out.println(varName + " is added to VARIABLES of " + functionName);
 							octElement.update(LibraryAccess.addDimension(octElement, 1));

@@ -6,6 +6,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 
+import cpaplugin.CPAConfig;
 import cpaplugin.logging.CPACheckerLogger;
 import cpaplugin.logging.CustomLogLevel;
 
@@ -47,7 +48,7 @@ public class TheoremProverInterface {
 		try
 		{
 			//FileOutputStream fos = new FileOutputStream(fileLocation);
-			String str = "/home/erkan/csisat/bin/csisat -sat";
+			String str = CPAConfig.csisatPath + " -sat";
 			Runtime rt = Runtime.getRuntime();
 			Process proc = rt.exec(str);
 			StreamReaderThread outputHandler = new StreamReaderThread(proc.getInputStream());

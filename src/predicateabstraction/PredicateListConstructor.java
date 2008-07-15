@@ -39,6 +39,16 @@ public class PredicateListConstructor {
 			leftVar = scanner.next();
 			rightVar = scanner.next();
 		}
+		
+		if(leftVar.startsWith("*")){
+			leftVar = leftVar.substring(1);
+			leftVar = "__cpa___starOp__[" + leftVar + "]";
+		}
+		
+		if(rightVar.startsWith("*")){
+			rightVar = rightVar.substring(1);
+			rightVar = "__cpa___starOp__[" + rightVar + "]";
+		}
 
 		Predicate predicate = new Predicate(leftVar, Operator.convertToOperator(operator), rightVar); 
 		predicateListString.addPredicate(predicate);

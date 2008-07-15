@@ -85,7 +85,7 @@ public class Predicate {
 			return "";
 		}
 	}
-	
+
 	public String getPredicateAsString(){
 		String res = "";
 
@@ -109,9 +109,9 @@ public class Predicate {
 			System.exit(0);
 			res = "";
 		}
-		
+
 		return res;
-		
+
 	}
 
 	public boolean samePredicate(Predicate other){
@@ -212,19 +212,19 @@ public class Predicate {
 			setTruthValue(ThreeValuedBoolean.FALSE);
 			return;
 		}
-		
+
 		setTruthValue(ThreeValuedBoolean.DONTKNOW);
 	}
 
 	public void updateAssignment(String previousState, String leftVar, String rightVar, Operator op) throws IOException{
 
 		String postCondition = WPAssignment(leftVar, rightVar, op, false);
-		
+
 		if(postCondition.contains("__________cpa_________unknownVal___")){
 			setTruthValue(ThreeValuedBoolean.DONTKNOW);
 			return;
 		}
-		
+
 		if (TheoremProverInterface.implies(previousState, postCondition) == ThreeValuedBoolean.TRUE){
 			setTruthValue(ThreeValuedBoolean.TRUE);
 			return;
@@ -236,14 +236,14 @@ public class Predicate {
 			setTruthValue(ThreeValuedBoolean.FALSE);
 			return;
 		}
-		
+
 		else{
 			setTruthValue(ThreeValuedBoolean.DONTKNOW);
 		}
 	}
-	
+
 	public void updateFunctionCall(String previousState, String parameterAssignment) throws IOException{
-		
+
 		CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel, "Function Call Update on Predicate: " +
 				this.getPredicateAsString());
 
@@ -263,14 +263,14 @@ public class Predicate {
 		CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel, "Predicate is set to DONTKNOW");
 		setTruthValue(ThreeValuedBoolean.DONTKNOW);
 	}
-	
+
 	public void updateFunctionReturn(String query) throws IOException {
-		
+
 		if (TheoremProverInterface.implies(query, getPredicateAsString()) == ThreeValuedBoolean.TRUE){
 			setTruthValue(ThreeValuedBoolean.TRUE);
 			return;
 		}
-		
+
 		if (TheoremProverInterface.implies(query, " ~ " + getPredicateAsString()) == ThreeValuedBoolean.TRUE){
 			setTruthValue(ThreeValuedBoolean.FALSE);
 			return;
@@ -281,7 +281,7 @@ public class Predicate {
 	public boolean containsVariable(String modifiedVariableName) {
 		return firstVariable.equals(modifiedVariableName) || secondVariable.equals(modifiedVariableName);
 	}
-	
+
 	public Predicate clone(){
 		return new Predicate(this);
 	}

@@ -6,6 +6,7 @@ import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTIdExpression;
 
+import cpaplugin.CPAConfig;
 import cpaplugin.cfa.objectmodel.CFAEdge;
 import cpaplugin.cfa.objectmodel.CFANode;
 import cpaplugin.cfa.objectmodel.c.CallToReturnEdge;
@@ -90,7 +91,7 @@ System.out.println("do nothing  ================================");
 				System.out.println(pfName);
 				handleExitFromRecursiveCall(exitEdge);
 			}
-			else if(pfName.compareTo("main") == 0){
+			else if(pfName.compareTo(CPAConfig.entryFunction) == 0){
 				System.out.println("do nothing  ================================");
 				
 				System.out.println(pfName);

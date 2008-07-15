@@ -192,7 +192,7 @@ public class CPARun implements IWorkbenchWindowActionDelegate
 			{
 				CPACheckerLogger.log(CustomLogLevel.MainApplicationLevel, "Analysis is interprocedural ");
 
-				CFAFunctionDefinitionNode cfa = cfas.getCFA("main");
+				CFAFunctionDefinitionNode cfa = cfas.getCFA(CPAConfig.entryFunction);
 
 				// TODO Erkan print to dot file
 				if (CPAConfig.exportDOTfiles)
