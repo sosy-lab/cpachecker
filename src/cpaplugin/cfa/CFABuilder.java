@@ -11,10 +11,13 @@ import org.eclipse.cdt.core.dom.ast.ASTVisitor;
 import org.eclipse.cdt.core.dom.ast.IASTArrayModifier;
 import org.eclipse.cdt.core.dom.ast.IASTBreakStatement;
 import org.eclipse.cdt.core.dom.ast.IASTCaseStatement;
+import org.eclipse.cdt.core.dom.ast.IASTComment;
 import org.eclipse.cdt.core.dom.ast.IASTCompoundStatement;
 import org.eclipse.cdt.core.dom.ast.IASTContinueStatement;
+import org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTDeclarationStatement;
+import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTDefaultStatement;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTExpressionStatement;
@@ -22,14 +25,20 @@ import org.eclipse.cdt.core.dom.ast.IASTFileLocation;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
 import org.eclipse.cdt.core.dom.ast.IASTGotoStatement;
 import org.eclipse.cdt.core.dom.ast.IASTIfStatement;
+import org.eclipse.cdt.core.dom.ast.IASTInitializer;
 import org.eclipse.cdt.core.dom.ast.IASTLabelStatement;
+import org.eclipse.cdt.core.dom.ast.IASTName;
 import org.eclipse.cdt.core.dom.ast.IASTNullStatement;
+import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTProblem;
 import org.eclipse.cdt.core.dom.ast.IASTReturnStatement;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTStatement;
 import org.eclipse.cdt.core.dom.ast.IASTSwitchStatement;
+import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
+import org.eclipse.cdt.core.dom.ast.IASTTypeId;
 import org.eclipse.cdt.core.dom.ast.IASTWhileStatement;
+import org.eclipse.cdt.core.dom.ast.IASTEnumerationSpecifier.IASTEnumerator;
 
 import cpaplugin.CPADebugOutput;
 import cpaplugin.cfa.objectmodel.BlankEdge;
@@ -112,7 +121,6 @@ public class CFABuilder extends ASTVisitor
 		return globalDeclarations;
 	}
 	
-	
 	/* *************************************************************************************
 	 * Methods for Declarations, whether of variables, or of functions
 	 * ************************************************************************************/
@@ -162,12 +170,8 @@ public class CFABuilder extends ASTVisitor
 
 			returnNode = new CFAExitNode (fileloc.getEndingLineNumber (), nameOfFunction);
 			newCFA.setExitNode(returnNode);
-			
-			CPADebugOutput.debugPrintln("    Type: FunctionDeclaration");
 		}
 		
-		CPADebugOutput.debugPrintln ("    File Loc: " + fileloc);
-
 		return PROCESS_CONTINUE;
 	}
 
@@ -200,7 +204,7 @@ public class CFABuilder extends ASTVisitor
 		IASTFileLocation fileloc = statement.getFileLocation ();
 
 		//CPADebugOutput.debugPrintln ("IASTStatement Raw Signature: " + statement.getRawSignature ());
-
+        //System.out.println("Statement= " + statement.getRawSignature());
 		// Handle special condition for else
 		if (statement.getPropertyInParent () == IASTIfStatement.ELSE)
 		{
@@ -256,16 +260,20 @@ public class CFABuilder extends ASTVisitor
 		}
 		else
 		{
+			System.out.println("statement " + statement.getRawSignature());
 			throw new CFAGenerationRuntimeException ("Type: " + statement.getClass ().getName () + " support not implemented", fileloc.getStartingLineNumber ());
 		}
-
-		CPADebugOutput.debugPrintln ("    File Loc: " + fileloc);
 
 		return PROCESS_CONTINUE;
 	}
 
 	private void handleExpressionStatement (IASTExpressionStatement exprStatement, IASTFileLocation fileloc)
 	{
+		//System.out.println("Expression Statement= " + exprStatement.getRawSignature());
+		IASTExpression exp = exprStatement.getExpression();
+		
+		//System.out.println("iastexpr " + exprStatement.getExpression ().getRawSignature() );
+		
 		CFANode prevNode = locStack.pop ();
 		CFANode nextNode = new CFANode (fileloc.getStartingLineNumber ());
 
@@ -544,8 +552,8 @@ public class CFABuilder extends ASTVisitor
 	{
 		IASTFileLocation fileloc = problem.getFileLocation ();
 
-		System.out.println ("IASTProblem Raw Signature: " + problem.getRawSignature ());
-		System.out.println ("    File Loc: " + fileloc);
+		//System.out.println ("IASTProblem Raw Signature: " + problem.getRawSignature ());
+		//System.out.println ("    File Loc: " + fileloc);
 
 		return PROCESS_CONTINUE;
 	}

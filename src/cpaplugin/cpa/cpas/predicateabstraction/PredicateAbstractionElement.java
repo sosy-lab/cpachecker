@@ -1,6 +1,7 @@
 package cpaplugin.cpa.cpas.predicateabstraction;
 
 import java.io.IOException;
+import java.util.List;
 
 import predicateabstraction.Operator;
 import predicateabstraction.Predicate;
@@ -135,7 +136,7 @@ public class PredicateAbstractionElement implements AbstractElement{
 		predicateList.addPredicate(pred);
 	}
 
-	public String getRegionWithoutVariable(String modifiedVariableName) {
-		return predicateList.getRegionWithoutVariable(modifiedVariableName);
+	public String getRegionWithoutVariable(List<String> modifiedVariables) {
+		return predicateList.getRegionWithoutVariable(modifiedVariables);
 	}
 }

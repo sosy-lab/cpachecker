@@ -76,6 +76,9 @@ public class PredicateList {
 			}
 		}
 		s = s + " ]";
+		
+		if(s.equals("& [  ]"))
+			s = "& [ true ]";
 
 		return s;
 	}
@@ -119,17 +122,19 @@ public class PredicateList {
 		predicates.clear();
 	}
 
-	public String getRegionWithoutVariable(String modifiedVariableName) {
+	public String getRegionWithoutVariable(List<String> modifiedVariables) {
 
 		String s = "& [ "; //= S1 1 ~ = S2 0 = S2 0 ]
-		for(Predicate predicate:predicates){
-			if(!predicate.containsVariable(modifiedVariableName)){
-				if(predicate.getTruthValue() != ThreeValuedBoolean.DONTKNOW){
-					s = s + predicate.getPredicateAsQuery() + " ";
+		for(String modifiedVariable:modifiedVariables){
+			for(Predicate predicate:predicates){
+				if(!predicate.containsVariable(modifiedVariable)){
+					if(predicate.getTruthValue() != ThreeValuedBoolean.DONTKNOW){
+						s = s + predicate.getPredicateAsQuery() + " ";
+					}
 				}
 			}
 		}
-		s = s + " ]";
+		s = s + "]";
 
 		return s;
 	}

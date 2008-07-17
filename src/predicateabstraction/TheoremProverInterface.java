@@ -142,7 +142,6 @@ public class TheoremProverInterface {
 				while ( (line = br.readLine()) != null){
 //					if (pw != null)
 //					pw.println(line);
-					CPACheckerLogger.log(CustomLogLevel.ExternalToolLevel, "Line at line 149: " + line);
 					//System.out.println("Line::: "+ line);
 					answer = line;
 				}

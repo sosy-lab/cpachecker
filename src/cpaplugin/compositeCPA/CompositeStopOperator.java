@@ -37,8 +37,9 @@ public class CompositeStopOperator implements StopOperator{
 		PreOrder preOrder = compositeDomain.getPreOrder ();
 		for (AbstractElement testElement : reached)
 		{
-			if (preOrder.satisfiesPreOrder (element, testElement))
+			if (preOrder.satisfiesPreOrder (element, testElement)){
 				return true;
+			}
 		}
 
 		return false;
