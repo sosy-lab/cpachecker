@@ -23,6 +23,7 @@ public enum Operator {
 	}
 
 	public static Operator convertToOperator(String s){
+		
 		if(s.compareTo("=") == 0){
 			return equals;
 		}
@@ -42,7 +43,8 @@ public enum Operator {
 			return largerOrEqual;
 		}
 		else{
-			System.out.println("Invalid Input");
+			System.out.println("Invalid Input " + s);
+			System.out.println("Remove the new line on predicated file");
 			return null;
 		}
 	}

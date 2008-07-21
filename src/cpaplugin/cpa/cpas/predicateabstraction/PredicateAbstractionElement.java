@@ -71,10 +71,10 @@ public class PredicateAbstractionElement implements AbstractElement{
 		}
 
 		String leftVar = simpIns.getLeftVariable();
-		String rigthVar = simpIns.getRightVariable();
+		String rightvar = simpIns.getRightVariable();
 		Operator op = simpIns.getOperator();
 
-		predicateList.updateAssignment(previousState, leftVar, rigthVar, op);
+		predicateList.updateAssignment(previousState, leftVar, rightvar, op);
 	}
 
 	public void updateFunctionCall(String previousState, String parameterAssignment) throws IOException

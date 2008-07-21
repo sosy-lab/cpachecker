@@ -37,4 +37,10 @@ public class PredicateAbstractionStopJoin implements StopOperator
 		
 		return false;
 	}
+
+	public boolean stop(AbstractElement element, AbstractElement reachedElement)
+			throws CPAException {
+		// TODO Erkan implement
+		return false;
+	}
 }

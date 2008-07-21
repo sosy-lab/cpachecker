@@ -83,10 +83,10 @@ public class PredicateList {
 		return s;
 	}
 
-	public void updateAssignment(String previousState, String leftVar, String rigthVar, Operator op) throws IOException
+	public void updateAssignment(String previousState, String leftVar, String rightVar, Operator op) throws IOException
 	{
 		for(Predicate predicate:predicates){
-			predicate.updateAssignment(previousState, leftVar, rigthVar, op);
+			predicate.updateAssignment(previousState, leftVar, rightVar, op);
 		}
 	}
 
@@ -124,18 +124,26 @@ public class PredicateList {
 
 	public String getRegionWithoutVariable(List<String> modifiedVariables) {
 
-		String s = "& [ "; //= S1 1 ~ = S2 0 = S2 0 ]
+		List<Predicate> toRemoveList = new ArrayList<Predicate>();
+		
 		for(String modifiedVariable:modifiedVariables){
 			for(Predicate predicate:predicates){
-				if(!predicate.containsVariable(modifiedVariable)){
-					if(predicate.getTruthValue() != ThreeValuedBoolean.DONTKNOW){
-						s = s + predicate.getPredicateAsQuery() + " ";
-					}
+				if(predicate.containsVariable(modifiedVariable)){
+					toRemoveList.add(predicate);
 				}
 			}
 		}
-		s = s + "]";
+		
+		String s = "& [ "; //= S1 1 ~ = S2 0 = S2 0 ]
+		for(Predicate predicate:predicates){
+			if(!toRemoveList.contains(predicate)){
+				if(predicate.getTruthValue() != ThreeValuedBoolean.DONTKNOW){
+					s = s + predicate.getPredicateAsQuery() + " ";
+				}
+			}
+		}
 
+		s = s + "]";
 		return s;
 	}
 }

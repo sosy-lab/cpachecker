@@ -31,28 +31,21 @@ public class CompositeStopOperator implements StopOperator{
 
 	public boolean stop (AbstractElement element, Collection<AbstractElement> reached) throws CPAException
 	{
-		CompositeElement compositeElement = (CompositeElement) element;
-
-		List<AbstractElement> compositeElements = compositeElement.getElements ();
+		CompositeElement comp1 = (CompositeElement) element;
+		List<AbstractElement> comp1Elements = comp1.getElements ();
+		
+		if (comp1Elements.size () != stopOperators.size ())
+			throw new CPAException ("Wrong number of stop operator");
 
 		if(isBottomElement(element)){
 			return true;
 		}
-
-		for (int idx = 0; idx < stopOperators.size (); idx++)
-		{
-			Collection<AbstractElement> tempCol = new ArrayList<AbstractElement> ();
-			for(AbstractElement ae:reached){
-				CompositeElement ce = (CompositeElement) ae;
-				tempCol.add(ce.get(idx));
-			}
-			
-			StopOperator stopOp = stopOperators.get(idx);
-			AbstractElement absElem = compositeElements.get(idx);
-			if (stopOp.stop(absElem, tempCol))
+		
+		for(AbstractElement reachedElement:reached){
+			if (stop (element, reachedElement)){
 				return true;
+			}
 		}
-
 		return false;
 	}
 
@@ -71,5 +64,24 @@ public class CompositeStopOperator implements StopOperator{
 		}
 
 		return false;
+	}
+
+	public boolean stop(AbstractElement element, AbstractElement reachedElement)
+	throws CPAException {
+		CompositeElement compositeElement1 = (CompositeElement) element;
+		CompositeElement compositeElement2 = (CompositeElement) reachedElement;
+
+		List<AbstractElement> compositeElements1 = compositeElement1.getElements ();
+		List<AbstractElement> compositeElements2 = compositeElement2.getElements ();
+
+		for (int idx = 0; idx < compositeElements1.size (); idx++)
+		{
+			StopOperator stopOp = stopOperators.get(idx);
+			AbstractElement absElem1 = compositeElements1.get(idx);
+			AbstractElement absElem2 = compositeElements2.get(idx);
+			if (!stopOp.stop(absElem1, absElem2))
+				return false;
+		}
+		return true;
 	}
 }

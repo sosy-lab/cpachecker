@@ -12,41 +12,50 @@ import cpaplugin.logging.CustomLogLevel;
 
 public class PredicateAbstractionStopSep implements StopOperator
 {
-    private PredicateAbstractionDomain predicateAbstractionDomain;
-    
-    public PredicateAbstractionStopSep (PredicateAbstractionDomain predAbsDomain)
-    {
-        this.predicateAbstractionDomain = predAbsDomain;
-    }
-    
-    public AbstractDomain getAbstractDomain ()
-    {
-        return predicateAbstractionDomain;
-    }
+	private PredicateAbstractionDomain predicateAbstractionDomain;
 
-    public boolean stop (AbstractElement element, Collection<AbstractElement> reached) throws CPAException
-    {
-    	System.out.println("++++++++++++++++++++++++++++++++++++++");
-        PreOrder preOrder = predicateAbstractionDomain.getPreOrder ();
-        for (AbstractElement testElement : reached)
-        {
-        	CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel, " Preorder check: element:  " + element
-            		+ " reached " + reached + " --> "+ preOrder.satisfiesPreOrder (element, testElement));
-            if (preOrder.satisfiesPreOrder (element, testElement))
-                return true;
-        }
-        
-        return false;
-    }
-    
-    public boolean isBottomElement(AbstractElement element) {
+	public PredicateAbstractionStopSep (PredicateAbstractionDomain predAbsDomain)
+	{
+		this.predicateAbstractionDomain = predAbsDomain;
+	}
+
+	public AbstractDomain getAbstractDomain ()
+	{
+		return predicateAbstractionDomain;
+	}
+
+	public boolean stop (AbstractElement element, Collection<AbstractElement> reached) throws CPAException
+	{
+		PreOrder preOrder = predicateAbstractionDomain.getPreOrder ();
+		for (AbstractElement testElement : reached)
+		{
+			CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel, " Preorder check: element:  " + element
+					+ " reached " + reached + " --> "+ preOrder.satisfiesPreOrder (element, testElement));
+			if (preOrder.satisfiesPreOrder (element, testElement))
+				return true;
+		}
+
+		return false;
+	}
+
+	public boolean isBottomElement(AbstractElement element) {
 
 		PredicateAbstractionElement predAbsElem = (PredicateAbstractionElement) element;
-		
+
 		if(predAbsElem.equals(predicateAbstractionDomain.getBottomElement())){
 			return true;
 		}
-		
+
+		return false;
+	}
+
+	public boolean stop(AbstractElement element, AbstractElement reachedElement)
+	throws CPAException {
+		PreOrder preOrder = predicateAbstractionDomain.getPreOrder ();
+		CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel, " Preorder check: element:  " + element
+				+ " reached element" + reachedElement + " --> "+ preOrder.satisfiesPreOrder (element, reachedElement));
+		if (preOrder.satisfiesPreOrder (element, reachedElement))
+			return true;
 		return false;
 	}
 }

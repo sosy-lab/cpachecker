@@ -170,7 +170,7 @@ public class CPARun implements IWorkbenchWindowActionDelegate
 					}
 
 					// TODO read from config file
-					CPAType[] cpaArray = {CPAType.LocationCPA, CPAType.PredicateAbstractionCPA};
+					CPAType[] cpaArray = {CPAType.LocationCPA, CPAType.DefUseCPA};
 
 					CPACheckerLogger.log(CustomLogLevel.MainApplicationLevel, "CPA Algorithm Called");
 

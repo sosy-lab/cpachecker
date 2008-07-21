@@ -10,32 +10,41 @@ import cpaplugin.exceptions.CPAException;
 
 public class DefUseStopSep implements StopOperator
 {
-    private DefUseDomain defUseDomain;
-    
-    public DefUseStopSep (DefUseDomain defUseDomain)
-    {
-        this.defUseDomain = defUseDomain;
-    }
-    
-    public AbstractDomain getAbstractDomain ()
-    {
-        return defUseDomain;
-    }
+	private DefUseDomain defUseDomain;
 
-    public boolean stop (AbstractElement element, Collection<AbstractElement> reached) throws CPAException
-    {
-        PreOrder preOrder = defUseDomain.getPreOrder ();
-        for (AbstractElement testElement : reached)
-        {
-            if (preOrder.satisfiesPreOrder (element, testElement))
-                return true;
-        }
-        
-        return false;
-    }
+	public DefUseStopSep (DefUseDomain defUseDomain)
+	{
+		this.defUseDomain = defUseDomain;
+	}
+
+	public AbstractDomain getAbstractDomain ()
+	{
+		return defUseDomain;
+	}
+
+	public boolean stop (AbstractElement element, Collection<AbstractElement> reached) throws CPAException
+	{
+		PreOrder preOrder = defUseDomain.getPreOrder ();
+		for (AbstractElement testElement : reached)
+		{
+			if (preOrder.satisfiesPreOrder (element, testElement))
+				return true;
+		}
+
+		return false;
+	}
 
 	public boolean isBottomElement(AbstractElement element) {
 		// TODO Auto-generated method stub
+		return false;
+	}
+
+	public boolean stop(AbstractElement element, AbstractElement reachedElement)
+	throws CPAException {
+		// TODO check
+		PreOrder preOrder = defUseDomain.getPreOrder ();
+		if (preOrder.satisfiesPreOrder (element, reachedElement))
+			return true;
 		return false;
 	}
 }

@@ -42,4 +42,12 @@ public class OctStopSep implements StopOperator{
 		return octElem.isEmpty();
 	}
 
+	public boolean stop(AbstractElement element, AbstractElement reachedElement)
+	throws CPAException {
+		PreOrder preOrder = octDomain.getPreOrder ();
+		if (preOrder.satisfiesPreOrder (element, reachedElement))
+			return true;
+		return false;
+	}
+
 }

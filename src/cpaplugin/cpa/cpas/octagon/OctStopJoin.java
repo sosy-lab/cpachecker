@@ -33,4 +33,10 @@ private OctDomain octDomain;
 		return octElem.isEmpty();
 	}
 
+	public boolean stop(AbstractElement element, AbstractElement reachedElement)
+			throws CPAException {
+        // TODO implement
+        return false;
+    }
+
 }
