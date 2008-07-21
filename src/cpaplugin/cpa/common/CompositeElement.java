@@ -58,4 +58,8 @@ public class CompositeElement implements AbstractElement
         
         return builder.toString ();
     }
+
+	public AbstractElement get(int idx) {
+		return elements.get(idx);
+	}
 }
