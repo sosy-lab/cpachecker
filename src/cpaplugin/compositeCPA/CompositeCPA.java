@@ -23,6 +23,8 @@ import cpaplugin.logging.CustomLogLevel;
 
 public class CompositeCPA implements ConfigurableProblemAnalysis
 {
+	//public final static CompositeCPA CompositeCPA_INSTANCE = new CompositeCPA();
+	
 	private AbstractDomain abstractDomain;
     private MergeOperator mergeOperator;
     private StopOperator stopOperator;
@@ -150,7 +152,7 @@ public class CompositeCPA implements ConfigurableProblemAnalysis
 			}
 			else if(typeOfCPA == CPAType.PredicateAbstractionCPA){
 				// TODO read from file
-				predicateAbstractionMergeType = MergeType.MergeJoin;
+				predicateAbstractionMergeType = MergeType.MergeSep;
 				predicateAbstractionStopType = StopType.StopSep;
 				predicateAbstractionCpa = PredicateAbstractionCPA.createNewPredicateAbstractionCPA (predicateAbstractionMergeType, predicateAbstractionStopType);
 				cpas.add(predicateAbstractionCpa);

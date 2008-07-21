@@ -1,5 +1,6 @@
 package cpaplugin.compositeCPA;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
@@ -30,16 +31,26 @@ public class CompositeStopOperator implements StopOperator{
 
 	public boolean stop (AbstractElement element, Collection<AbstractElement> reached) throws CPAException
 	{
+		CompositeElement compositeElement = (CompositeElement) element;
+
+		List<AbstractElement> compositeElements = compositeElement.getElements ();
+
 		if(isBottomElement(element)){
 			return true;
 		}
-		
-		PreOrder preOrder = compositeDomain.getPreOrder ();
-		for (AbstractElement testElement : reached)
+
+		for (int idx = 0; idx < stopOperators.size (); idx++)
 		{
-			if (preOrder.satisfiesPreOrder (element, testElement)){
-				return true;
+			Collection<AbstractElement> tempCol = new ArrayList<AbstractElement> ();
+			for(AbstractElement ae:reached){
+				CompositeElement ce = (CompositeElement) ae;
+				tempCol.add(ce.get(idx));
 			}
+			
+			StopOperator stopOp = stopOperators.get(idx);
+			AbstractElement absElem = compositeElements.get(idx);
+			if (stopOp.stop(absElem, tempCol))
+				return true;
 		}
 
 		return false;
@@ -47,18 +58,18 @@ public class CompositeStopOperator implements StopOperator{
 
 	public boolean isBottomElement(AbstractElement element) {
 
-        CompositeElement compositeElement = (CompositeElement) element;
-        
-        List<AbstractElement> compositeElements = compositeElement.getElements ();
-        
-        for (int idx = 0; idx < compositeElements.size (); idx++)
-        {
-        	StopOperator stopOp = stopOperators.get(idx);
-        	AbstractElement absElem = compositeElements.get(idx);
-            if (stopOp.isBottomElement(absElem))
-                return true;
-        }
-        
-        return false;
+		CompositeElement compositeElement = (CompositeElement) element;
+
+		List<AbstractElement> compositeElements = compositeElement.getElements ();
+
+		for (int idx = 0; idx < compositeElements.size (); idx++)
+		{
+			StopOperator stopOp = stopOperators.get(idx);
+			AbstractElement absElem = compositeElements.get(idx);
+			if (stopOp.isBottomElement(absElem))
+				return true;
+		}
+
+		return false;
 	}
 }
