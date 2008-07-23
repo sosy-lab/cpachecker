@@ -97,9 +97,8 @@ public class PredicateAbstractionCPA implements ConfigurableProblemAnalysis{
 
 	public AbstractElement getInitialElement (CFAFunctionDefinitionNode node)
 	{
-		return new PredicateAbstractionElement (CPAConfig.entryFunction);
+		String fileName = node.getContainingFileName(); 
+		return new PredicateAbstractionElement (CPAConfig.entryFunction, fileName);
 	}
-
-
 
 }

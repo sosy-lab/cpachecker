@@ -1,4 +1,4 @@
-package cpaplugin;
+package deprecated;
 
 public class CPADebugOutput
 {

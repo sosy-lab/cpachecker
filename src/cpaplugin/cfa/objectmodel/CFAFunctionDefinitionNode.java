@@ -1,16 +1,20 @@
 package cpaplugin.cfa.objectmodel;
 
+import cpaplugin.CPAConfig;
+
 
 public abstract class CFAFunctionDefinitionNode extends CFANode
 {
     private String functionName;
+    private String containingFileLocation;
     // Check if call edges are added in the second pass
     private CFAExitNode exitNode;
     
-    public CFAFunctionDefinitionNode (int lineNumber, String functionName)
+    public CFAFunctionDefinitionNode (int lineNumber, String functionName, String containingFileLocation)
     {
         super (lineNumber);
         this.functionName = functionName;
+        this.containingFileLocation = containingFileLocation;
     }
     
     public String getFunctionName ()
@@ -32,4 +36,15 @@ public abstract class CFAFunctionDefinitionNode extends CFANode
     {
     	this.exitNode = en;
     }
+
+    public String getContainingFileName(){
+    	String filePath = containingFileLocation;
+		String[] pathArray = filePath.split(CPAConfig.workspacedata);
+		String fileName = pathArray[1];
+		fileName = fileName.replace("/", ".");
+		// TODO we assume the file name ends with .c or .h
+		fileName = fileName.substring(0, fileName.length()-2);
+		return fileName;
+    }
+
 }

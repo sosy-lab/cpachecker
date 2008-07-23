@@ -6,8 +6,8 @@ public class PredAbstractionConstants {
 
 	public static final String predicateListPath = CPAConfig.predicateListPath;
 	
-	public static String getFileLoc(String functionName){
-		return predicateListPath + functionName + ".predicates";
+	public static String getFileLoc(String functionName, String fileName){
+		return predicateListPath + functionName + "@" + fileName + ".predicates";
 	}
 	
 	public static String getStarOperator(String variableName){

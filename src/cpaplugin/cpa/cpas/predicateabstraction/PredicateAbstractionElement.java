@@ -11,17 +11,16 @@ import predicateabstraction.SimplifiedInstruction;
 import predicateabstraction.TheoremProverInterface;
 import predicateabstraction.ThreeValuedBoolean;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
-import cpaplugin.cpa.cpas.octagon.OctElement;
 
 public class PredicateAbstractionElement implements AbstractElement{
 
 	private PredicateList predicateList;
 	private boolean isFalsePredicate;
 
-	public PredicateAbstractionElement(String functionName){
+	public PredicateAbstractionElement(String functionName, String fileName){
 		isFalsePredicate = false;
 		predicateList = new PredicateList();
-		PredicateListConstructor.constructList(predicateList, functionName);
+		PredicateListConstructor.constructList(predicateList, functionName, fileName);
 	}
 
 	public PredicateAbstractionElement(PredicateList pl, boolean isFalse){

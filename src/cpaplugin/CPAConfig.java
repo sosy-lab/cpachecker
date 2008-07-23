@@ -4,10 +4,9 @@ import java.util.logging.Level;
 
 public class CPAConfig
 {
-    public static final boolean showDebugOutput = false;
-    public static final String LogPath = "/home/erkan/cpa/CPALog.txt";
-    // FINE, FINER, FINEST, OFF
-    public static final Level LogLevel = Level.FINEST;
+    public static final String LogPath = "/media/sda7/cpa/CPALog.txt";
+    // FINEST, OFF
+    public static final Level LogLevel = Level.OFF;
     public static final boolean exportDOTfiles = true;
     public static final String DOTOutputPath = "/home/erkan/cpa/";
     public static final boolean simplifyCFA = false;
@@ -23,4 +22,5 @@ public class CPAConfig
 	public static final String csisatPath = "/home/erkan/csisat/bin/csisat";
 	// entry function
 	public static final String entryFunction = "main";
+	public static final String workspacedata = "/home/erkan/cpa/runtime-config/";
 }

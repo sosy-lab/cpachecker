@@ -16,7 +16,7 @@ public class FunctionDefinitionNode extends CFAFunctionDefinitionNode
     
     public FunctionDefinitionNode (int lineNumber, IASTFunctionDefinition functionDefinition)
     {
-        super (lineNumber, functionDefinition.getDeclarator ().getName ().toString ());
+        super (lineNumber, functionDefinition.getDeclarator().getName().toString(), functionDefinition.getContainingFilename());
         this.functionDefinition = functionDefinition;
     }
 
