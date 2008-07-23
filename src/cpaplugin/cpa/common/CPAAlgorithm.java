@@ -6,6 +6,7 @@ import java.util.Deque;
 import java.util.List;
 import java.util.logging.Level;
 
+import cpaplugin.CPAConfig;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.ConfigurableProblemAnalysis;
 import cpaplugin.cpa.common.interfaces.MergeOperator;
@@ -32,7 +33,14 @@ public class CPAAlgorithm
         StopOperator stopOperator = cpa.getStopOperator ();
         while (!waitlist.isEmpty ())
         {
-            AbstractElement e = waitlist.pollFirst ();
+//            AbstractElement e = waitlist.pollFirst ();
+            // AG - BFS or DFS, according to the configuration
+            AbstractElement e = null;
+            if (CPAConfig.useBFSVisit) {
+                e = waitlist.removeFirst();
+            } else {
+                e = waitlist.removeLast();
+            }
             CPACheckerLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel, e + " is popped from queue");
             List<AbstractElement> successors = transferRelation.getAllAbstractSuccessors (e);
             

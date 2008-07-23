@@ -6,5 +6,6 @@ public enum CPAType
     InterProceduralCPA,
     DefUseCPA,
     OctagonCPA,
-    PredicateAbstractionCPA
+    PredicateAbstractionCPA,
+    SymbolicPredAbstCPA
 }

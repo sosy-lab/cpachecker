@@ -31,6 +31,7 @@ import org.eclipse.cdt.core.dom.ast.IASTSwitchStatement;
 import org.eclipse.cdt.core.dom.ast.IASTWhileStatement;
 
 import cpaplugin.cfa.objectmodel.BlankEdge;
+import cpaplugin.cfa.objectmodel.CFAErrorNode;
 import cpaplugin.cfa.objectmodel.CFAExitNode;
 import cpaplugin.cfa.objectmodel.CFANode;
 import cpaplugin.cfa.objectmodel.c.AssumeEdge;
@@ -68,7 +69,7 @@ public class CFABuilder extends ASTVisitor
 
 	public CFABuilder ()
 	{
-		shouldVisitComments = false;
+		//shouldVisitComments = false;
 		shouldVisitDeclarations = true;
 		shouldVisitDeclarators = false;
 		shouldVisitDeclSpecifiers = false;
@@ -346,7 +347,15 @@ public class CFABuilder extends ASTVisitor
 		String labelName = labelStatement.getName ().toString ();
 
 		CFANode prevNode = locStack.pop ();
-		CFANode labelNode = new CFANode (fileloc.getStartingLineNumber ());
+		CFANode labelNode = null; // AG
+		if (labelName.startsWith("error")) {
+		    // AG - we want to know which are the error locations: each
+		    // node with a label starting with "error"
+		    labelNode = new CFAErrorNode(
+		            fileloc.getStartingLineNumber());
+		} else {
+		    labelNode = new CFANode (fileloc.getStartingLineNumber ());
+		}
 
 		BlankEdge blankEdge = new BlankEdge ("Label: " + labelName);
 		blankEdge.initialize (prevNode, labelNode);

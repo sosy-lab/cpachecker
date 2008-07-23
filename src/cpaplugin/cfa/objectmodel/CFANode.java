@@ -138,4 +138,9 @@ public class CFANode
     public CallToReturnEdge getLeavingSummaryEdge(){
     	return leavingSummaryEdge;
     }
+    
+    public boolean equals(Object other) {
+        if (!(other instanceof CFANode)) return false;
+        return getNodeNumber() == ((CFANode)other).getNodeNumber();
+    }
 }

@@ -38,17 +38,17 @@ public class CompositeMergeOperator implements MergeOperator{
 		AbstractElement elementsArray1[] = new AbstractElement[comp1.getNumberofElements()];
 		AbstractElement elementsArray2[] = new AbstractElement[comp2.getNumberofElements()];
 
-		// TODO Maybe we should not handle location element separetely
-		LocationElement locationElement1 = (LocationElement) comp1.getElements ().get (0);
-		LocationElement locationElement2 = (LocationElement) comp2.getElements ().get (0);
+//		// TODO Maybe we should not handle location element separetely
+//		LocationElement locationElement1 = (LocationElement) comp1.getElements ().get (0);
+//		LocationElement locationElement2 = (LocationElement) comp2.getElements ().get (0);
 
 		for(int i=0; i<comp1.getNumberofElements(); i++){
 			elementsArray1[i] = comp1.getElements().get(i);
 			elementsArray2[i] = comp2.getElements().get(i);
 		}
 
-		if (!locationElement1.equals (locationElement2))
-			return element2;
+//		if (!locationElement1.equals (locationElement2))
+//			return element2;
 
 		List<AbstractElement> mergedElements = new ArrayList<AbstractElement> ();
 

@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Set;
 
 import cpaplugin.cfa.objectmodel.CFAEdge;
+import cpaplugin.cfa.objectmodel.CFAErrorNode;
 import cpaplugin.cfa.objectmodel.CFAFunctionDefinitionNode;
 import cpaplugin.cfa.objectmodel.CFANode;
 import cpaplugin.cfa.objectmodel.c.AssumeEdge;
@@ -76,7 +77,12 @@ public class DOTBuilder
 
 			visitedNodes.add (node);
 			
-			if(node.isLoopStart()){
+			// AG - give a shape also to error nodes
+			if (node instanceof CFAErrorNode) {
+			    nodeWriter.add(node.getNodeNumber(), 
+			            "tripleoctagon");
+			}
+			else if(node.isLoopStart()){
 				nodeWriter.add(node.getNodeNumber(), "doublecircle");
 			}
 
