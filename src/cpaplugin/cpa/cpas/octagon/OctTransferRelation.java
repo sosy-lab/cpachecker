@@ -1,7 +1,5 @@
 package cpaplugin.cpa.cpas.octagon;
 
-import java.util.Hashtable;
-import java.util.Iterator;
 import java.util.List;
 
 import octagon.LibraryAccess;
@@ -15,7 +13,6 @@ import org.eclipse.cdt.core.dom.ast.IASTIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 
-import cpaplugin.CPAConfig;
 import cpaplugin.cfa.objectmodel.CFAEdge;
 import cpaplugin.cfa.objectmodel.CFAExitNode;
 import cpaplugin.cfa.objectmodel.CFANode;
@@ -31,6 +28,7 @@ import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.TransferRelation;
 import cpaplugin.exceptions.CPAException;
 import cpaplugin.exceptions.OctagonTransferException;
+import deprecated.CPAConfig;
 
 public class OctTransferRelation implements TransferRelation{
 

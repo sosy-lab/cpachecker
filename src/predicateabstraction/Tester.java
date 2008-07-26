@@ -1,31 +1,54 @@
 package predicateabstraction;
 
-import java.io.IOException;
+import java.lang.reflect.Constructor;
+import java.util.Set;
+
+import cpaplugin.CPAConfiguration;
 
 public class Tester {
 
 	public static void main(String[] args) {
-		try {
-			for(int i=0; i<1000; i++){
-				String s = TheoremProverInterface.satis("~ | [ ~ & [  ] <= 10 7 ]");
-				String s1 = TheoremProverInterface.satis("& [ = 4 4 = 6 6 = 8 8 = 9 9 <= 10 7 = 5 9 ]");
-				if(s1.equals("satisfiable") || s.equals("unsatisfiable") ){
-					System.out.println("sacma " + s + " 1: "+ s1);
-					System.exit(0);
-				}
-				else{
-					System.out.println(s);
-					System.out.println(s1);
-				}
-			}
-			//System.out.println(TheoremProverInterface.satis("& [  ~ = temp b = temp + [ x y ] = x 7 = y 5 ~ = y 8 ]"));
-			
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+//		String s = "dkdk";
+//		System.out.println(s.concat("\""));
+
+//		String fociFormula = "~ | [ ~ & [ ~ = sstate 4352 ~ = s_state 4528 ~ = s_state 4448 ~ = s_state 4400 = s_state 12292 ~ = s_state 4384 ~ = s_state 4560 ~ = s_state 4416 ~ = s_state 4432 ~ = s_state 4512 ~ = s_state 4464 ~ = s_state 4480 ~ = s_state 4496  ] = 0 0 ]";
+//		boolean b = MathSatWrapper.satisfiability(fociFormula);
+//		if(b){
+//		System.out.println("sat");
+//		}
+//		else
+//		System.out.println("unsat");
+
+		CPAConfiguration configFile = new CPAConfiguration(args);
+		//System.out.println(configFile.getProperty("dfs"));
+		configFile.setProperty("bfs", "gl");
+		Set e = configFile.entrySet();
+//		for(Object a:e){
+//		Map.Entry<String, String> ent = (Map.Entry)a;
+//		String key = ent.getKey();
+//		String val = ent.getValue();
+//		System.out.println(key + " ======= " + val);
+//		}
+		//configFile.setProperty("dot.path", "gl");
+		String sa[] = configFile.getPropertiesArray("analysis.programNames");
+		for(String s:sa){
+			System.out.println(s);
 		}
-//		System.out.println(TheoremProverInterface.sat("| [ false ~ <= 7 90 ]"));
-//		System.out.println(TheoremProverInterface.sat("| [ ~ false  = 7 7 ]"));
-		
+
+		try {
+			Class cls = Class.forName("predicateabstraction.Cons");
+			Class partypes[] = new Class[2];
+			partypes[0] = String.class;
+			partypes[1] = String.class;
+			Constructor ct = cls.getConstructor(partypes);
+			Object arglist[] = new Object[2];
+			arglist[0] = "+sadsad+";
+			arglist[1] = "_sasaaS_";
+			Object retobj = ct.newInstance(arglist);
+		}
+		catch (Throwable err) {
+			System.err.println(err);
+		}
 	}
+	
 }

@@ -8,11 +8,11 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 
-import cpaplugin.CPAConfig;
+import cpaplugin.cmdline.CPAMain;
 
 public class CPACheckerLogger {
 	
-	public static Logger mainLogger = Logger.getLogger(CPAConfig.LogPath);
+	public static Logger mainLogger = Logger.getLogger(CPAMain.cpaConfig.getProperty("log.path"));
 
 	public static void init(){
 		// TODO read from config // Array that includes levels to include
@@ -24,11 +24,13 @@ public class CPACheckerLogger {
 		CustomLogLevel.initializeLevels(levelList);
 		
 		try {
-			FileHandler fileHandler = new FileHandler(CPAConfig.LogPath);
+			FileHandler fileHandler = new FileHandler(CPAMain.cpaConfig.getProperty("log.path"));
 			Formatter formatter = new SimpleFormatter();
 			fileHandler.setFormatter(formatter);
 			mainLogger.addHandler(fileHandler);
-			mainLogger.setLevel(Level.FINE);
+			// TODO read from config file 
+			//CPAMain.cpaConfig.getProperty("log.level");
+			mainLogger.setLevel(Level.OFF);
 		} catch (SecurityException e) {
 			e.printStackTrace();
 		} catch (IOException e) {

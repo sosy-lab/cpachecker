@@ -1,13 +1,7 @@
 package cpaplugin.cpa.cpas.predicateabstraction;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import cpaplugin.CPAConfig;
 import cpaplugin.cfa.objectmodel.CFAFunctionDefinitionNode;
-import cpaplugin.cfa.objectmodel.c.FunctionDefinitionNode;
-import cpaplugin.compositeCPA.MergeType;
-import cpaplugin.compositeCPA.StopType;
+import cpaplugin.cmdline.CPAMain;
 import cpaplugin.cpa.common.interfaces.AbstractDomain;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.ConfigurableProblemAnalysis;
@@ -23,56 +17,32 @@ public class PredicateAbstractionCPA implements ConfigurableProblemAnalysis{
 	private StopOperator stopOperator;
 	private TransferRelation transferRelation;
 
-	private PredicateAbstractionCPA (AbstractDomain abstractDomain,
-			MergeOperator mergeOperator,
-			StopOperator stopOperator,
-			TransferRelation transferRelation)
-	{
-		this.abstractDomain = abstractDomain;
-		this.mergeOperator = mergeOperator;
-		this.stopOperator = stopOperator;
-		this.transferRelation = transferRelation;
-	}
-
-	public static PredicateAbstractionCPA createPredicateAbstractionCPA (AbstractDomain abstractDomain,
-			MergeOperator mergeOperator,
-			StopOperator stopOperator,
-			TransferRelation transferRelation)
-	{
-		if (abstractDomain == null || mergeOperator == null ||
-				stopOperator == null || transferRelation == null)
-			return null;
-
-		if (mergeOperator.getAbstractDomain () != abstractDomain ||
-				stopOperator.getAbstractDomain () != abstractDomain ||
-				transferRelation.getAbstractDomain () != abstractDomain)
-			return null;
-
-		return new PredicateAbstractionCPA (abstractDomain, mergeOperator, stopOperator, transferRelation);
-	}
-
-	public static PredicateAbstractionCPA createNewPredicateAbstractionCPA (MergeType mergeType, StopType stopType) throws CPAException{
+	public PredicateAbstractionCPA (String mergeType, String stopType) throws CPAException{
+		System.out.println("this is called");
 		PredicateAbstractionDomain predicateAbstractionDomain = new PredicateAbstractionDomain ();
 		MergeOperator predicateAbstractionMergeOp = null;
-		if(mergeType == MergeType.MergeSep){
+		if(mergeType.equals("sep")){
 			predicateAbstractionMergeOp = new PredicateAbstractionMergeSep (predicateAbstractionDomain);
 		}
-		else if(mergeType == MergeType.MergeJoin){
+		else if(mergeType.equals("join")){
 			predicateAbstractionMergeOp = new PredicateAbstractionMergeJoin (predicateAbstractionDomain);
 		}
 
 		StopOperator predicateAbstractionStopOp = null;
 
-		if(stopType == StopType.StopSep){
+		if(stopType.equals("sep")){
 			predicateAbstractionStopOp = new PredicateAbstractionStopSep (predicateAbstractionDomain);
 		}
-		else if(stopType == StopType.StopJoin){
+		else if(stopType.equals("join")){
 			predicateAbstractionStopOp = new PredicateAbstractionStopJoin (predicateAbstractionDomain);
 		}
 
 		TransferRelation predicateAbstractionTransferRelation = new PredicateAbstractionTransferRelation (predicateAbstractionDomain);
 
-		return new PredicateAbstractionCPA (predicateAbstractionDomain, predicateAbstractionMergeOp, predicateAbstractionStopOp, predicateAbstractionTransferRelation);
+		this.abstractDomain = predicateAbstractionDomain;
+		this.mergeOperator = predicateAbstractionMergeOp;
+		this.stopOperator = predicateAbstractionStopOp;
+		this.transferRelation = predicateAbstractionTransferRelation;
 	}
 
 	public AbstractDomain getAbstractDomain ()
@@ -98,7 +68,7 @@ public class PredicateAbstractionCPA implements ConfigurableProblemAnalysis{
 	public AbstractElement getInitialElement (CFAFunctionDefinitionNode node)
 	{
 		String fileName = node.getContainingFileName(); 
-		return new PredicateAbstractionElement (CPAConfig.entryFunction, fileName);
+		return new PredicateAbstractionElement (CPAMain.cpaConfig.getProperty("analysis.entryFunction"), fileName);
 	}
 
 }

@@ -5,16 +5,12 @@ import java.util.List;
 
 import cpaplugin.cfa.objectmodel.CFAFunctionDefinitionNode;
 import cpaplugin.cfa.objectmodel.c.FunctionDefinitionNode;
-import cpaplugin.compositeCPA.MergeType;
-import cpaplugin.compositeCPA.StopType;
-import cpaplugin.cpa.common.CompositeElement;
 import cpaplugin.cpa.common.interfaces.AbstractDomain;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.ConfigurableProblemAnalysis;
 import cpaplugin.cpa.common.interfaces.MergeOperator;
 import cpaplugin.cpa.common.interfaces.StopOperator;
 import cpaplugin.cpa.common.interfaces.TransferRelation;
-import cpaplugin.cpa.cpas.location.LocationElement;
 import cpaplugin.exceptions.CPAException;
 
 public class DefUseCPA implements ConfigurableProblemAnalysis{
@@ -24,56 +20,31 @@ public class DefUseCPA implements ConfigurableProblemAnalysis{
 	private StopOperator stopOperator;
 	private TransferRelation transferRelation;
 
-	private DefUseCPA (AbstractDomain abstractDomain,
-			MergeOperator mergeOperator,
-			StopOperator stopOperator,
-			TransferRelation transferRelation)
-	{
-		this.abstractDomain = abstractDomain;
-		this.mergeOperator = mergeOperator;
-		this.stopOperator = stopOperator;
-		this.transferRelation = transferRelation;
-	}
-
-	public static DefUseCPA createDefUseCPA (AbstractDomain abstractDomain,
-			MergeOperator mergeOperator,
-			StopOperator stopOperator,
-			TransferRelation transferRelation)
-	{
-		if (abstractDomain == null || mergeOperator == null ||
-				stopOperator == null || transferRelation == null)
-			return null;
-
-		if (mergeOperator.getAbstractDomain () != abstractDomain ||
-				stopOperator.getAbstractDomain () != abstractDomain ||
-				transferRelation.getAbstractDomain () != abstractDomain)
-			return null;
-
-		return new DefUseCPA (abstractDomain, mergeOperator, stopOperator, transferRelation);
-	}
-
-	public static DefUseCPA createNewDefUseCPA (MergeType mergeType, StopType stopType) throws CPAException{
+	public DefUseCPA (String mergeType, String stopType) throws CPAException{
 		DefUseDomain defUseDomain = new DefUseDomain ();
 		MergeOperator defUseMergeOp = null;
-		if(mergeType == MergeType.MergeSep){
+		if(mergeType.equals("sep")){
 			defUseMergeOp = new DefUseMergeSep (defUseDomain);
 		}
-		if(mergeType == MergeType.MergeJoin){
+		if(mergeType.equals("join")){
 			defUseMergeOp = new DefUseMergeJoin (defUseDomain);
 		}
 
 		StopOperator defUseStopOp = null;
 
-		if(stopType == StopType.StopSep){
+		if(stopType.equals("sep")){
 			defUseStopOp = new DefUseStopSep (defUseDomain);
 		}
-		if(stopType == StopType.StopJoin){
+		if(stopType.equals("join")){
 			defUseStopOp = new DefUseStopJoin (defUseDomain);
 		}
 
 		TransferRelation defUseTransferRelation = new DefUseTransferRelation (defUseDomain);
 
-		return new DefUseCPA (defUseDomain, defUseMergeOp, defUseStopOp, defUseTransferRelation);
+		this.abstractDomain = defUseDomain;
+		this.mergeOperator = defUseMergeOp;
+		this.stopOperator = defUseStopOp;
+		this.transferRelation = defUseTransferRelation;
 	}
 
 	public AbstractDomain getAbstractDomain ()

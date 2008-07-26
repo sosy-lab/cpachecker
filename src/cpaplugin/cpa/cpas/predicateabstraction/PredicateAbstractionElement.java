@@ -3,12 +3,12 @@ package cpaplugin.cpa.cpas.predicateabstraction;
 import java.io.IOException;
 import java.util.List;
 
+import predicateabstraction.MathSatWrapper;
 import predicateabstraction.Operator;
 import predicateabstraction.Predicate;
 import predicateabstraction.PredicateList;
 import predicateabstraction.PredicateListConstructor;
 import predicateabstraction.SimplifiedInstruction;
-import predicateabstraction.TheoremProverInterface;
 import predicateabstraction.ThreeValuedBoolean;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 
@@ -99,7 +99,7 @@ public class PredicateAbstractionElement implements AbstractElement{
 			return;
 		}
 
-		if(TheoremProverInterface.satisfiability(" & [ " + previousState + " " + instruction + " ] ") == ThreeValuedBoolean.FALSE){
+		if(!MathSatWrapper.satisfiability(" & [ " + previousState + " " + instruction + " ] ")){
 			isFalsePredicate = true;
 			predicateList = null;
 

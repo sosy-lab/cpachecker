@@ -102,7 +102,9 @@ public class CPARun implements IWorkbenchWindowActionDelegate
 				return;
 			}
 			
-			CPAMain.doRunAnalysis(ast);			
+			String s[] = {};
+			
+			CPAMain.doRunAnalysis(s, ast);			
 		}
 		catch (Exception e)
 		{

@@ -51,7 +51,7 @@ public class LocationTransferRelation implements TransferRelation
     {
         LocationElement inputElement = (LocationElement) element;
         CFANode node = inputElement.getLocationNode ();
-        
+
         List<AbstractElement> allSuccessors = new ArrayList<AbstractElement> ();
         int numLeavingEdges = node.getNumLeavingEdges ();
 

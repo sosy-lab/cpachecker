@@ -9,20 +9,19 @@ import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import cpaplugin.cfa.objectmodel.AbstractCFAEdge;
 import cpaplugin.cfa.objectmodel.CFAEdgeType;
 import cpaplugin.cfa.objectmodel.CFANode;
-import cpaplugin.compositeCPA.CPAType;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 
 public class CallToReturnEdge extends AbstractCFAEdge {
 
 	private IASTExpression expression;
-	private HashMap<CPAType, AbstractElement> abstractElements;
+	private HashMap<String, AbstractElement> abstractElements;
 	private List<AliasedPointers> aliasedList;
 	private boolean hasAnyPointerParameters = false;
 
 	public CallToReturnEdge(String rawStatement, IASTExpression exp) {
 		super(rawStatement);
 		this.expression = exp;
-		abstractElements = new HashMap<CPAType, AbstractElement>();
+		abstractElements = new HashMap<String, AbstractElement>();
 		aliasedList = new ArrayList<AliasedPointers>();
 	}
 	
@@ -43,11 +42,11 @@ public class CallToReturnEdge extends AbstractCFAEdge {
 		return CFAEdgeType.CallToReturnEdge;
 	}
 
-	public void registerElementOnSummaryEdge(CPAType type, AbstractElement element){
+	public void registerElementOnSummaryEdge(String type, AbstractElement element){
 		abstractElements.put(type, element);
 	}
 
-	public AbstractElement retrieveAbstractElement(CPAType type){
+	public AbstractElement retrieveAbstractElement(String type){
 		return abstractElements.get(type);
 	}
 

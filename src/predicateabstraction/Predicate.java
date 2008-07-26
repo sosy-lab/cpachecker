@@ -144,6 +144,10 @@ public class Predicate {
 		else{
 			s2 = this.secondVariable;
 		}
+		
+		if(s1.equals(this.firstVariable) && s2.equals(this.secondVariable)){
+			return "____cpa_same_predicate";
+		}
 
 		if(operator == Operator.equals || operator == Operator.smallarOrEqual ||
 				operator == Operator.notEquals){
@@ -201,14 +205,14 @@ public class Predicate {
 		String preCondition = "& [ " + previousState + " " + instruction + " ]"; 
 		String postCondition = WPAssumption(false);
 
-		if (TheoremProverInterface.implies(preCondition, postCondition) == ThreeValuedBoolean.TRUE){
+		if (MathSatWrapper.implies(preCondition, postCondition) == ThreeValuedBoolean.TRUE){
 			setTruthValue(ThreeValuedBoolean.TRUE);
 			return;
 		}
 
 		postCondition = WPAssumption(true);
 
-		if (TheoremProverInterface.implies(preCondition, postCondition) == ThreeValuedBoolean.TRUE){
+		if (MathSatWrapper.implies(preCondition, postCondition) == ThreeValuedBoolean.TRUE){
 			setTruthValue(ThreeValuedBoolean.FALSE);
 			return;
 		}
@@ -219,20 +223,24 @@ public class Predicate {
 	public void updateAssignment(String previousState, String leftVar, String rightVar, Operator op) throws IOException{
 
 		String postCondition = WPAssignment(leftVar, rightVar, op, false);
+		
+		if(postCondition.equals("____cpa_same_predicate")){
+			return;
+		}
 
 		if(postCondition.contains("__________cpa_________unknownVal___")){
 			setTruthValue(ThreeValuedBoolean.DONTKNOW);
 			return;
 		}
 
-		if (TheoremProverInterface.implies(previousState, postCondition) == ThreeValuedBoolean.TRUE){
+		if (MathSatWrapper.implies(previousState, postCondition) == ThreeValuedBoolean.TRUE){
 			setTruthValue(ThreeValuedBoolean.TRUE);
 			return;
 		}
 
 		postCondition = WPAssignment(leftVar, rightVar, op, true);
 
-		if (TheoremProverInterface.implies(previousState, postCondition) == ThreeValuedBoolean.TRUE){
+		if (MathSatWrapper.implies(previousState, postCondition) == ThreeValuedBoolean.TRUE){
 			setTruthValue(ThreeValuedBoolean.FALSE);
 			return;
 		}
@@ -249,13 +257,13 @@ public class Predicate {
 
 		String currentState = "& [ " + previousState +  " " + parameterAssignment + " ]"; 
 
-		if (TheoremProverInterface.implies(currentState, getPredicateAsString()) == ThreeValuedBoolean.TRUE){
+		if (MathSatWrapper.implies(currentState, getPredicateAsString()) == ThreeValuedBoolean.TRUE){
 			CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel, "Predicate is set to TRUE ");
 			setTruthValue(ThreeValuedBoolean.TRUE);
 			return;
 		}
 
-		if (TheoremProverInterface.implies(currentState, " ~ " + getPredicateAsString()) == ThreeValuedBoolean.TRUE){
+		if (MathSatWrapper.implies(currentState, " ~ " + getPredicateAsString()) == ThreeValuedBoolean.TRUE){
 			CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel, "Predicate is set to FALSE ");
 			setTruthValue(ThreeValuedBoolean.FALSE);
 			return;
@@ -266,12 +274,12 @@ public class Predicate {
 
 	public void updateFunctionReturn(String query) throws IOException {
 
-		if (TheoremProverInterface.implies(query, getPredicateAsString()) == ThreeValuedBoolean.TRUE){
+		if (MathSatWrapper.implies(query, getPredicateAsString()) == ThreeValuedBoolean.TRUE){
 			setTruthValue(ThreeValuedBoolean.TRUE);
 			return;
 		}
 
-		if (TheoremProverInterface.implies(query, " ~ " + getPredicateAsString()) == ThreeValuedBoolean.TRUE){
+		if (MathSatWrapper.implies(query, " ~ " + getPredicateAsString()) == ThreeValuedBoolean.TRUE){
 			setTruthValue(ThreeValuedBoolean.FALSE);
 			return;
 		}

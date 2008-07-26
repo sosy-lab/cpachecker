@@ -1,10 +1,10 @@
 package predicateabstraction;
 
-import cpaplugin.CPAConfig;
+import cpaplugin.cmdline.CPAMain;
 
 public class PredAbstractionConstants {
 
-	public static final String predicateListPath = CPAConfig.predicateListPath;
+	public static final String predicateListPath = CPAMain.cpaConfig.getProperty("predicates.path");
 	
 	public static String getFileLoc(String functionName, String fileName){
 		return predicateListPath + functionName + "@" + fileName + ".predicates";

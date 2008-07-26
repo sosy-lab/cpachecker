@@ -1,9 +1,12 @@
 package cpaplugin.compositeCPA;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
 
 import cpaplugin.cfa.objectmodel.CFAFunctionDefinitionNode;
+import cpaplugin.cmdline.CPAMain;
 import cpaplugin.cpa.common.CompositeDomain;
 import cpaplugin.cpa.common.CompositeElement;
 import cpaplugin.cpa.common.interfaces.AbstractDomain;
@@ -12,24 +15,17 @@ import cpaplugin.cpa.common.interfaces.ConfigurableProblemAnalysis;
 import cpaplugin.cpa.common.interfaces.MergeOperator;
 import cpaplugin.cpa.common.interfaces.StopOperator;
 import cpaplugin.cpa.common.interfaces.TransferRelation;
-import cpaplugin.cpa.cpas.defuse.DefUseCPA;
-import cpaplugin.cpa.cpas.interprocedural.InterProceduralCPA;
-import cpaplugin.cpa.cpas.location.LocationCPA;
-import cpaplugin.cpa.cpas.octagon.OctagonCPA;
-import cpaplugin.cpa.cpas.predicateabstraction.PredicateAbstractionCPA;
 import cpaplugin.exceptions.CPAException;
 import cpaplugin.logging.CPACheckerLogger;
 import cpaplugin.logging.CustomLogLevel;
 
 public class CompositeCPA implements ConfigurableProblemAnalysis
 {
-	//public final static CompositeCPA CompositeCPA_INSTANCE = new CompositeCPA();
-	
 	private AbstractDomain abstractDomain;
-    private MergeOperator mergeOperator;
-    private StopOperator stopOperator;
-    private TransferRelation transferRelation;
-    private AbstractElement initialElement;
+	private MergeOperator mergeOperator;
+	private StopOperator stopOperator;
+	private TransferRelation transferRelation;
+	private AbstractElement initialElement;
 
 	private CompositeCPA (AbstractDomain abstractDomain,
 			MergeOperator mergeOperator,
@@ -56,6 +52,8 @@ public class CompositeCPA implements ConfigurableProblemAnalysis
 		for(int i=0; i<sizeOfCompositeDomain; i++){
 			ConfigurableProblemAnalysis sp = cpas.get(i);
 			AbstractDomain domain = sp.getAbstractDomain();
+			System.err.println("i is: " + i + ", domain is null?" +
+					(domain == null));
 			domains.add(domain);
 
 			MergeOperator mergeOperator = sp.getMergeOperator();
@@ -66,7 +64,7 @@ public class CompositeCPA implements ConfigurableProblemAnalysis
 
 			TransferRelation transferRelation = sp.getTransferRelation();
 			transferRelations.add(transferRelation);
-			
+
 			AbstractElement initialElement = sp.getInitialElement(node);
 			initialElements.add(initialElement);
 		}
@@ -99,65 +97,57 @@ public class CompositeCPA implements ConfigurableProblemAnalysis
 
 		return new CompositeCPA (abstractDomain, mergeOperator, stopOperator, transferRelation, initialElement);
 	}
-	
-	public static ConfigurableProblemAnalysis getCompositeCPA (CPAType[] cpaNamesArray, CFAFunctionDefinitionNode node) throws CPAException
+
+	@SuppressWarnings("unchecked")
+	public static ConfigurableProblemAnalysis getCompositeCPA (CFAFunctionDefinitionNode node) throws CPAException
 	{
+		String[] cpaNamesArray = CPAMain.cpaConfig.getPropertiesArray("analysis.cpas");
+		String[] mergeTypesArray = CPAMain.cpaConfig.getPropertiesArray("analysis.mergeOperators");
+		String[] stopTypesArray = CPAMain.cpaConfig.getPropertiesArray("analysis.stopOperators");
+
 		// The list to keep all cpas
 		List<ConfigurableProblemAnalysis> cpas = new ArrayList<ConfigurableProblemAnalysis> ();
-
-		// Create new instances of domains and operators when you add a new cpa
-		
-		LocationCPA locationCpa;
-		InterProceduralCPA interProceduralCpa;
-
-		DefUseCPA defUseCpa;
-		MergeType defUseMergeType;
-		StopType defUseStopType;
-
-		OctagonCPA octagonCpa;
-		MergeType octagonMergeType;
-		StopType octagonStopType;
-
-		PredicateAbstractionCPA predicateAbstractionCpa;
-		MergeType predicateAbstractionMergeType;
-		StopType predicateAbstractionStopType;
 
 		int sizeOfCompositeCPA = cpaNamesArray.length;
 
 		for(int i=0; i<sizeOfCompositeCPA; i++){
-			CPAType typeOfCPA = cpaNamesArray[i];
-			CPACheckerLogger.log(CustomLogLevel.MainApplicationLevel, typeOfCPA + " is added to the list of CPAs ");
+			// TODO make sure that the first CPA carries location information
+			// otherwise the analysis will have efficiency problems
 
-			if(typeOfCPA == CPAType.LocationCPA){
-				locationCpa = LocationCPA.createNewLocationCPA(MergeType.MergeSep);
-				cpas.add(locationCpa);
-			}
-			else if(typeOfCPA == CPAType.InterProceduralCPA){
-				interProceduralCpa = InterProceduralCPA.createNewInterProceduralCPA(MergeType.MergeSep);
-				cpas.add(interProceduralCpa);
-			}
-			else if(typeOfCPA == CPAType.DefUseCPA){
-				// TODO read from file
-				defUseMergeType = MergeType.MergeSep;
-				defUseStopType = StopType.StopSep;
-				defUseCpa = DefUseCPA.createNewDefUseCPA (defUseMergeType, defUseStopType);
-				cpas.add(defUseCpa);
-			}
-			else if(typeOfCPA == CPAType.OctagonCPA){
-				// TODO read from file
-				octagonMergeType = MergeType.MergeSep;
-				octagonStopType = StopType.StopSep;
-				octagonCpa = OctagonCPA.createNewDefUseCPA (octagonMergeType, octagonStopType);
-				cpas.add(octagonCpa);
-			}
-			else if(typeOfCPA == CPAType.PredicateAbstractionCPA){
-				// TODO read from file
-				predicateAbstractionMergeType = MergeType.MergeSep;
-				predicateAbstractionStopType = StopType.StopSep;
-				predicateAbstractionCpa = PredicateAbstractionCPA.createNewPredicateAbstractionCPA (predicateAbstractionMergeType, predicateAbstractionStopType);
-				cpas.add(predicateAbstractionCpa);
+			// get name of the cpa, we are getting the explicit 
+			// path of the representing class of this cpa
+			String cpaName = cpaNamesArray[i];
+
+			Class cls;
+			try {
+				cls = Class.forName(cpaName);
+				Class parameterTypes[] = {String.class, String.class};
+				Constructor ct = cls.getConstructor(parameterTypes);
+				Object argumentlist[] = {mergeTypesArray[i], stopTypesArray[i]};
+				Object obj = ct.newInstance(argumentlist);
+				// Convert object to CPA
+				ConfigurableProblemAnalysis newCPA = (ConfigurableProblemAnalysis)obj; 
+
+				System.err.println("newCPA is null? " + (newCPA == null) + ", class: " + newCPA.getClass());
+				cpas.add(newCPA); 
+
+			} catch (ClassNotFoundException e) {
+				e.printStackTrace();
+			} catch (SecurityException e) {
+				e.printStackTrace();
+			} catch (NoSuchMethodException e) {
+				e.printStackTrace();
+			} catch (IllegalArgumentException e) {
+				e.printStackTrace();
+			} catch (InstantiationException e) {
+				e.printStackTrace();
+			} catch (IllegalAccessException e) {
+				e.printStackTrace();
+			} catch (InvocationTargetException e) {
+				e.printStackTrace();
 			}
 		}
+
 		CPACheckerLogger.log(CustomLogLevel.MainApplicationLevel, "CompositeCPA is built using the list of CPAs");
 		ConfigurableProblemAnalysis cpa = CompositeCPA.createNewCompositeCPA (cpas, node);
 		return cpa;
@@ -178,10 +168,10 @@ public class CompositeCPA implements ConfigurableProblemAnalysis
 	public TransferRelation getTransferRelation() {
 		return transferRelation;
 	}
-	
-    public AbstractElement getInitialElement (CFAFunctionDefinitionNode node)
-    {
-        return initialElement;
-    }
+
+	public AbstractElement getInitialElement (CFAFunctionDefinitionNode node)
+	{
+		return initialElement;
+	}
 }
 

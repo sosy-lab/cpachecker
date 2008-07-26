@@ -1,6 +1,6 @@
 package cpaplugin.cfa.objectmodel;
 
-import cpaplugin.CPAConfig;
+import cpaplugin.cmdline.CPAMain;
 
 
 public abstract class CFAFunctionDefinitionNode extends CFANode
@@ -39,7 +39,7 @@ public abstract class CFAFunctionDefinitionNode extends CFANode
 
     public String getContainingFileName(){
     	String filePath = containingFileLocation;
-		String[] pathArray = filePath.split(CPAConfig.workspacedata);
+		String[] pathArray = filePath.split(CPAMain.cpaConfig.getProperty("analysis.programs"));
 		String fileName = pathArray[1];
 		fileName = fileName.replace("/", ".");
 		// TODO we assume the file name ends with .c or .h

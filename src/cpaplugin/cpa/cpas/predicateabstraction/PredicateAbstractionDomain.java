@@ -2,8 +2,8 @@ package cpaplugin.cpa.cpas.predicateabstraction;
 
 import java.io.IOException;
 
+import predicateabstraction.MathSatWrapper;
 import predicateabstraction.Predicate;
-import predicateabstraction.TheoremProverInterface;
 import predicateabstraction.ThreeValuedBoolean;
 import cpaplugin.cpa.common.interfaces.AbstractDomain;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
@@ -39,7 +39,7 @@ public class PredicateAbstractionDomain implements AbstractDomain{
             
         	ThreeValuedBoolean tbv = ThreeValuedBoolean.DONTKNOW;
 			try {
-				tbv = TheoremProverInterface.implies(predicateAbstractionElement1.getRegion(), predicateAbstractionElement2.getRegion());
+				tbv = MathSatWrapper.implies(predicateAbstractionElement1.getRegion(), predicateAbstractionElement2.getRegion());
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();

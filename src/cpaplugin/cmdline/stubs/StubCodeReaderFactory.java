@@ -65,7 +65,6 @@ public class StubCodeReaderFactory implements ICodeReaderFactory {
     public ICodeReaderCache getCodeReaderCache() {
         return cache;
     }
-    @Override
     public CodeReader createCodeReaderForInclusion(String arg0) {
         // TODO Auto-generated method stub
         return null;

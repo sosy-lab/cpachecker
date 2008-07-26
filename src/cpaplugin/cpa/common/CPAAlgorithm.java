@@ -4,9 +4,8 @@ import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.List;
-import java.util.logging.Level;
 
-import cpaplugin.CPAConfig;
+import cpaplugin.cmdline.CPAMain;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.ConfigurableProblemAnalysis;
 import cpaplugin.cpa.common.interfaces.MergeOperator;
@@ -36,7 +35,7 @@ public class CPAAlgorithm
 //            AbstractElement e = waitlist.pollFirst ();
             // AG - BFS or DFS, according to the configuration
             AbstractElement e = null;
-            if (CPAConfig.useBFSVisit) {
+            if (CPAMain.cpaConfig.getBooleanValue("analysis.bfs")) {
                 e = waitlist.removeFirst();
             } else {
                 e = waitlist.removeLast();

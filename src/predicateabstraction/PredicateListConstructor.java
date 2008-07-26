@@ -28,7 +28,7 @@ public class PredicateListConstructor {
 
 	private static void processLine(PredicateList predicateListString, String line) {
 		Scanner scanner = new Scanner(line);
-		scanner.useDelimiter(" ");
+		scanner.useDelimiter("/");
 		
 		String operator = "";
 		String leftVar = "";

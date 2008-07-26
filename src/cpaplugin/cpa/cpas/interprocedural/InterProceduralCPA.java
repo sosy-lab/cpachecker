@@ -1,7 +1,6 @@
 package cpaplugin.cpa.cpas.interprocedural;
 
 import cpaplugin.cfa.objectmodel.CFAFunctionDefinitionNode;
-import cpaplugin.compositeCPA.MergeType;
 import cpaplugin.cpa.common.interfaces.AbstractDomain;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.ConfigurableProblemAnalysis;
@@ -17,47 +16,22 @@ public class InterProceduralCPA implements ConfigurableProblemAnalysis{
 	private StopOperator stopOperator;
 	private TransferRelation transferRelation;
 
-	private InterProceduralCPA (AbstractDomain abstractDomain,
-			MergeOperator mergeOperator,
-			StopOperator stopOperator,
-			TransferRelation transferRelation)
-	{
-		this.abstractDomain = abstractDomain;
-		this.mergeOperator = mergeOperator;
-		this.stopOperator = stopOperator;
-		this.transferRelation = transferRelation;
-	}
-
-	public static InterProceduralCPA createInterProceduralCPA (AbstractDomain abstractDomain,
-			MergeOperator mergeOperator,
-			StopOperator stopOperator,
-			TransferRelation transferRelation)
-	{
-		if (abstractDomain == null || mergeOperator == null ||
-				stopOperator == null || transferRelation == null)
-			return null;
-
-		if (mergeOperator.getAbstractDomain () != abstractDomain ||
-				stopOperator.getAbstractDomain () != abstractDomain ||
-				transferRelation.getAbstractDomain () != abstractDomain)
-			return null;
-
-		return new InterProceduralCPA (abstractDomain, mergeOperator, stopOperator, transferRelation);
-	}
-	
-	public static InterProceduralCPA createNewInterProceduralCPA(MergeType mergeType) throws CPAException{
+	public InterProceduralCPA (String mergeType) throws CPAException{
 		InterProceduralDomain interProceduralDomain = new InterProceduralDomain ();
         MergeOperator interProceduralMergeOp = null;
-        if(mergeType == MergeType.MergeSep){
+        if(mergeType.equals("sep")){
         	interProceduralMergeOp = new InterProceduralMergeSep (interProceduralDomain);
         }
-        if(mergeType == MergeType.MergeJoin){
+        if(mergeType.equals("join")){
         	throw new CPAException("Interprocedural elements cannot be merged");
         }
         StopOperator interProceduralStopOp = new InterProceduralStopSep (interProceduralDomain);
         TransferRelation interProceduralRelation = new InterProceduralTransferRelation (interProceduralDomain);
 		
-		return new InterProceduralCPA (interProceduralDomain, interProceduralMergeOp, interProceduralStopOp, interProceduralRelation);
+        this.abstractDomain = interProceduralDomain;
+		this.mergeOperator = interProceduralMergeOp;
+		this.stopOperator = interProceduralStopOp;
+		this.transferRelation = interProceduralRelation;
 	}
 
 	public AbstractDomain getAbstractDomain ()

@@ -1,4 +1,5 @@
 package predicateabstraction;
+
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -6,14 +7,11 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 
-import cpaplugin.CPAConfig;
-import cpaplugin.logging.CPACheckerLogger;
-import cpaplugin.logging.CustomLogLevel;
-
 public class TheoremProverInterface {
 
 	private static final long serialVersionUID = 112L;
 	static String answer = "";
+	public static int noOfSMTSolverCalls = 0;
 
 	public TheoremProverInterface(String query)
 	{
@@ -23,14 +21,14 @@ public class TheoremProverInterface {
 	public static String satis(String query) {
 		new TheoremProverInterface(query);
 		String s =  answer;
-		//System.out.println("answer is: " + s);
 		answer = "NULL";
 		return s;
 	}
 
 	public static ThreeValuedBoolean satisfiability(String query) {
+		noOfSMTSolverCalls++;
 		String ans = satis(query);
-		CPACheckerLogger.log(CustomLogLevel.ExternalToolLevel, "Satisfiability Test: " + query + ": " + ans);
+		//CPACheckerLogger.log(CustomLogLevel.ExternalToolLevel, "Satisfiability Test: " + query + ": " + ans);
 		if(ans.equalsIgnoreCase("satisfiable")){
 			return ThreeValuedBoolean.TRUE;
 		}
@@ -48,7 +46,7 @@ public class TheoremProverInterface {
 		try
 		{
 			//FileOutputStream fos = new FileOutputStream(fileLocation);
-			String str = CPAConfig.csisatPath + " -sat";
+			String str = "/home/erkan/csisat/bin/csisat -sat";
 			Runtime rt = Runtime.getRuntime();
 			Process proc = rt.exec(str);
 			StreamReaderThread outputHandler = new StreamReaderThread(proc.getInputStream());
@@ -76,7 +74,6 @@ public class TheoremProverInterface {
 			int exitVal = proc.waitFor();
 			//System.out.println("ExitValue: " + exitVal);
 			if(exitVal != 0){
-				// TODO exception
 				System.out.println("ExitValue: " + exitVal);
 				System.exit(0);
 			}
@@ -97,7 +94,8 @@ public class TheoremProverInterface {
 		String s;
 		s = "~ | [ " + "~ " + r1 + " " + r2 + " ]";
 //		System.out.println(s);
-		return negate(satisfiability(s));
+		ThreeValuedBoolean res = satisfiability(s); 
+		return negate(res);
 		//return ThreeValuedBoolean.FALSE;
 	}
 
@@ -140,9 +138,8 @@ public class TheoremProverInterface {
 				BufferedReader br = new BufferedReader(isr);
 				String line=null;
 				while ( (line = br.readLine()) != null){
-//					if (pw != null)
 //					pw.println(line);
-					CPACheckerLogger.log(CustomLogLevel.ExternalToolLevel, "Line at line 149: " + line);
+				//	CPACheckerLogger.log(CustomLogLevel.ExternalToolLevel, "Line at line 149: " + line);
 					//System.out.println("Line::: "+ line);
 					answer = line;
 				}

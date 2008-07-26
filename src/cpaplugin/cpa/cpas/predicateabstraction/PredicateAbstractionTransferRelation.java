@@ -20,7 +20,6 @@ import predicateabstraction.PredAbstractionConstants;
 import predicateabstraction.Predicate;
 import predicateabstraction.SimplifiedInstruction;
 import predicateabstraction.ThreeValuedBoolean;
-import cpaplugin.CPAConfig;
 import cpaplugin.cfa.objectmodel.CFAEdge;
 import cpaplugin.cfa.objectmodel.CFAExitNode;
 import cpaplugin.cfa.objectmodel.CFANode;
@@ -31,7 +30,7 @@ import cpaplugin.cfa.objectmodel.c.FunctionCallEdge;
 import cpaplugin.cfa.objectmodel.c.FunctionDefinitionNode;
 import cpaplugin.cfa.objectmodel.c.ReturnEdge;
 import cpaplugin.cfa.objectmodel.c.StatementEdge;
-import cpaplugin.compositeCPA.CPAType;
+import cpaplugin.cmdline.CPAMain;
 import cpaplugin.cpa.common.interfaces.AbstractDomain;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.TransferRelation;
@@ -89,6 +88,9 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 					e.printStackTrace();
 				}
 			}
+			
+			predAbsElement = predAbsElement.clone ();
+			
 			break;
 		}
 
@@ -96,7 +98,6 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 		{
 			// we don't do anything for declarations
 			predAbsElement = predAbsElement.clone ();
-
 //			DeclarationEdge declarationEdge = (DeclarationEdge) cfaEdge;
 //			IASTDeclarator [] declarators = declarationEdge.getDeclarators ();
 //			handleDeclaration (octElement, declarators, cfaEdge);
@@ -129,7 +130,8 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 		{
 			FunctionCallEdge functionCallEdge = (FunctionCallEdge) cfaEdge;
 			CallToReturnEdge summaryEdge = cfaEdge.getPredecessor().getLeavingSummaryEdge();
-			summaryEdge.registerElementOnSummaryEdge(CPAType.PredicateAbstractionCPA, predAbsElement);
+			// TODO String?
+			summaryEdge.registerElementOnSummaryEdge("cpaplugin.cpa.cpas.predicateabstraction.PredicateAbstractionCPA", predAbsElement);
 
 			predAbsElement = predAbsElement.clone ();
 
@@ -211,6 +213,8 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 			break;
 		}
 		}
+		
+		long end = System.currentTimeMillis();
 
 		return predAbsElement;
 	}
@@ -285,7 +289,7 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 			IASTExpression expression, StatementEdge statementEdge) throws PredicateAbstractionTransferException {
 
 		String functionName = statementEdge.getPredecessor().getFunctionName();
-		if(functionName.equals(CPAConfig.entryFunction)){
+		if(functionName.equals(CPAMain.cpaConfig.getProperty("analysis.entryFunction"))){
 			return;
 		}
 
@@ -418,7 +422,7 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 			throw new PredicateAbstractionTransferException("Unhandled case ");
 		}
 
-		PredicateAbstractionElement newElement = (PredicateAbstractionElement)summaryEdge.retrieveAbstractElement(CPAType.PredicateAbstractionCPA);
+		PredicateAbstractionElement newElement = (PredicateAbstractionElement)summaryEdge.retrieveAbstractElement("cpaplugin.cpa.cpas.predicateabstraction.PredicateAbstractionCPA");
 		CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel, "New element is " + newElement );
 
 		String prevRegion = newElement.getRegionWithoutVariable(modifiedVariables);
@@ -475,7 +479,11 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 
 			if(op1 instanceof IASTFieldReference){
 				String fieldName = ((IASTFieldReference)op1).getRawSignature();
-				leftOperator = fieldName.replaceAll("->", ">");
+				// TODO
+//				fieldName.
+//				 = fieldName.concat("\"");
+				leftOperator = fieldName;
+				
 			}
 
 			else{
@@ -484,7 +492,8 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 
 			if(op2 instanceof IASTFieldReference){
 				String fieldName = ((IASTFieldReference)op2).getRawSignature();
-				rightOperator = fieldName.replaceAll("->", ">");
+				// TODO
+				rightOperator = fieldName; //.replaceAll(
 			}
 
 			else{
@@ -618,8 +627,6 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 			
 			String leftOperator = filedRefExp.getRawSignature().replaceAll("->", ">");
 			
-			System.out.println("left operator" + leftOperator);
-		
 			if(truthValue){
 				propagateBooleanExpression(predAbsElement, IASTBinaryExpression.op_notequals, leftOperator, "0");
 			}
@@ -1276,7 +1283,6 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 				IASTIdExpression variable = (IASTIdExpression)leftHandSideExp;
 				String variableName = variable.getRawSignature();
 				SimplifiedInstruction simpIns = new SimplifiedInstruction(variableName, "__________cpa_________unknownVal___", Operator.equals);
-				System.out.println(variableName);
 				handleAssignmetQuery(predAbsElement, simpIns);
 			}
 			else if(leftHandSideExp instanceof IASTUnaryExpression){

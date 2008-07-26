@@ -2,42 +2,36 @@ package cpaplugin.cpa.cpas.interprocedural;
 
 import java.util.List;
 
-import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
-import org.eclipse.cdt.core.dom.ast.IASTExpression;
-import org.eclipse.cdt.core.dom.ast.IASTIdExpression;
-
-import cpaplugin.CPAConfig;
 import cpaplugin.cfa.objectmodel.CFAEdge;
 import cpaplugin.cfa.objectmodel.CFANode;
 import cpaplugin.cfa.objectmodel.c.CallToReturnEdge;
 import cpaplugin.cfa.objectmodel.c.FunctionCallEdge;
 import cpaplugin.cfa.objectmodel.c.FunctionDefinitionNode;
 import cpaplugin.cfa.objectmodel.c.ReturnEdge;
-import cpaplugin.cfa.objectmodel.c.StatementEdge;
+import cpaplugin.cmdline.CPAMain;
 import cpaplugin.cpa.common.interfaces.AbstractDomain;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.TransferRelation;
 import cpaplugin.exceptions.CPAException;
-import cpaplugin.exceptions.OctagonTransferException;
 
 public class InterProceduralTransferRelation implements TransferRelation
 {
-    private InterProceduralDomain ipDomain;
+	private InterProceduralDomain ipDomain;
 
-    public InterProceduralTransferRelation (InterProceduralDomain interProDomain)
-    {
-        this.ipDomain = interProDomain;
-    }
+	public InterProceduralTransferRelation (InterProceduralDomain interProDomain)
+	{
+		this.ipDomain = interProDomain;
+	}
 
-    public AbstractDomain getAbstractDomain ()
-    {
-        return this.ipDomain;
-    }
+	public AbstractDomain getAbstractDomain ()
+	{
+		return this.ipDomain;
+	}
 
-    public AbstractElement getAbstractSuccessor (AbstractElement element, CFAEdge cfaEdge)
-    {
-    	InterProceduralElement ipElement = (InterProceduralElement) element;
-    	
+	public AbstractElement getAbstractSuccessor (AbstractElement element, CFAEdge cfaEdge)
+	{
+		InterProceduralElement ipElement = (InterProceduralElement) element;
+
 		switch (cfaEdge.getEdgeType ())
 		{
 		case FunctionCallEdge:
@@ -57,23 +51,23 @@ public class InterProceduralTransferRelation implements TransferRelation
 			}
 			return ipElement;
 		}
-		
+
 //		case StatementEdge:
-//		{
-//			ipElement = ipElement.clone();
-//
-//			StatementEdge statementEdge = (StatementEdge) cfaEdge;
-//			IASTExpression expression = statementEdge.getExpression ();
-//
-//			// handling function return
-//			if(statementEdge.isJumpEdge()){
-//				System.out.println(" ++++++++++++++++++++ ");
-//				System.out.println(statementEdge.getPredecessor().getFunctionName() + " " + statementEdge.getSuccessor().getFunctionName());
-//				System.out.println(" ++++++++++++++++++++ ");
-//			}
-//			return ipElement;
+//	{
+//	ipElement = ipElement.clone();
+
+//		StatementEdge statementEdge = (StatementEdge) cfaEdge;
+//		IASTExpression expression = statementEdge.getExpression ();
+
+//		// handling function return
+//		if(statementEdge.isJumpEdge()){
+//		System.out.println(" ++++++++++++++++++++ ");
+//		System.out.println(statementEdge.getPredecessor().getFunctionName() + " " + statementEdge.getSuccessor().getFunctionName());
+//		System.out.println(" ++++++++++++++++++++ ");
 //		}
-		
+//		return ipElement;
+//		}
+
 		case ReturnEdge:
 		{
 			ipElement = ipElement.clone();
@@ -86,14 +80,14 @@ public class InterProceduralTransferRelation implements TransferRelation
 			CallToReturnEdge summaryEdge = (CallToReturnEdge)successorNode.getEnteringSummaryEdge();
 
 			if(pfName.compareTo(sfName) == 0 ){
-System.out.println("do nothing  ================================");
-				
+				System.out.println("do nothing  ================================");
+
 				System.out.println(pfName);
 				handleExitFromRecursiveCall(exitEdge);
 			}
-			else if(pfName.compareTo(CPAConfig.entryFunction) == 0){
+			else if(pfName.compareTo(CPAMain.cpaConfig.getProperty("analysis.entryFunction")) == 0){
 				System.out.println("do nothing  ================================");
-				
+
 				System.out.println(pfName);
 			}
 			else{
@@ -105,14 +99,14 @@ System.out.println("do nothing  ================================");
 		}
 		default: return ipElement;
 		}
-    }
+	}
 
-    private void handleExitFromCall(ReturnEdge exitEdge) {
-    	// TODO Auto-generated method stub
+	private void handleExitFromCall(ReturnEdge exitEdge) {
+		// TODO Auto-generated method stub
 	}
 
 	private void handleExitFromRecursiveCall(ReturnEdge exitEdge) {
-    	exitEdge.setExitFromRecursive();
+		exitEdge.setExitFromRecursive();
 	}
 
 	private void handleFunctionCall(FunctionCallEdge functionCallEdge) {
@@ -120,12 +114,12 @@ System.out.println("do nothing  ================================");
 	}
 
 	private void handleRecursiveFunctionCall(FunctionCallEdge functionCallEdge) {
-    	if(!functionCallEdge.isRecursive())
-    		functionCallEdge.setRecursive();
+		if(!functionCallEdge.isRecursive())
+			functionCallEdge.setRecursive();
 	}
 
 	public List<AbstractElement> getAllAbstractSuccessors (AbstractElement element) throws CPAException
-    {
-    	throw new CPAException ("Cannot get all abstract successors from non-location domain");
-    }
+	{
+		throw new CPAException ("Cannot get all abstract successors from non-location domain");
+	}
 }
