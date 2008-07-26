@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 import java.util.Properties;
 import java.util.Vector;
 
@@ -11,7 +12,6 @@ public class CPAConfiguration extends Properties{
 
 	private static final long serialVersionUID = -5910186668866464153L;
 	Object source;
-	boolean gotProperties;
 	String fileName;
 
 	// Delimiters to create string arrays
@@ -22,7 +22,7 @@ public class CPAConfiguration extends Properties{
 		super(new CPAConfiguration());
 
 		loadFileName(args);
-		gotProperties = loadFile(args, this.fileName);
+		loadFile(args, this.fileName);
 
 		if (args != null){
 			try {
@@ -46,7 +46,9 @@ public class CPAConfiguration extends Properties{
 				return;
 			}
 		}
-		this.fileName = "default.properties";
+		URL binDir = getClass().getProtectionDomain().getCodeSource().getLocation();
+		String binDirString = binDir.getPath();
+		this.fileName = binDirString + "../default.properties";
 	}
 
 	private void processArgs(String[] args) throws Exception {

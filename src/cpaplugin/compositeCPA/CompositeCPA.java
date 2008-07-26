@@ -52,8 +52,6 @@ public class CompositeCPA implements ConfigurableProblemAnalysis
 		for(int i=0; i<sizeOfCompositeDomain; i++){
 			ConfigurableProblemAnalysis sp = cpas.get(i);
 			AbstractDomain domain = sp.getAbstractDomain();
-			System.err.println("i is: " + i + ", domain is null?" +
-					(domain == null));
 			domains.add(domain);
 
 			MergeOperator mergeOperator = sp.getMergeOperator();
@@ -128,7 +126,6 @@ public class CompositeCPA implements ConfigurableProblemAnalysis
 				// Convert object to CPA
 				ConfigurableProblemAnalysis newCPA = (ConfigurableProblemAnalysis)obj; 
 
-				System.err.println("newCPA is null? " + (newCPA == null) + ", class: " + newCPA.getClass());
 				cpas.add(newCPA); 
 
 			} catch (ClassNotFoundException e) {

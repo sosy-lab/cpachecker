@@ -479,11 +479,7 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 
 			if(op1 instanceof IASTFieldReference){
 				String fieldName = ((IASTFieldReference)op1).getRawSignature();
-				// TODO
-//				fieldName.
-//				 = fieldName.concat("\"");
-				leftOperator = fieldName;
-				
+				leftOperator = "\"".concat(fieldName).concat("\"");
 			}
 
 			else{
@@ -492,8 +488,7 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 
 			if(op2 instanceof IASTFieldReference){
 				String fieldName = ((IASTFieldReference)op2).getRawSignature();
-				// TODO
-				rightOperator = fieldName; //.replaceAll(
+				rightOperator = "\"".concat(fieldName).concat("\"");
 			}
 
 			else{
@@ -624,8 +619,7 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 		
 		else if(expression instanceof IASTFieldReference){
 			IASTFieldReference filedRefExp = (IASTFieldReference)expression;
-			
-			String leftOperator = filedRefExp.getRawSignature().replaceAll("->", ">");
+			String leftOperator = "\"".concat(filedRefExp.getRawSignature()).concat("\"");
 			
 			if(truthValue){
 				propagateBooleanExpression(predAbsElement, IASTBinaryExpression.op_notequals, leftOperator, "0");
@@ -935,7 +929,7 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 
 			else if(op2 instanceof IASTFieldReference){
 				String fieldName = ((IASTFieldReference)op2).getRawSignature();
-				String rightvariable = fieldName.replaceAll("->", ">");
+				String rightvariable = "\"".concat(fieldName).concat("\"");
 				
 				String leftVariable = op1.getRawSignature();
 				int binaryOp = binaryExpression.getOperator();
@@ -963,7 +957,7 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 					op2 instanceof IASTIdExpression)
 			{
 				
-				String leftVariable = fieldRef.getRawSignature().replaceAll("->", ">");
+				String leftVariable =  "\"".concat(fieldRef.getRawSignature()).concat("\"");
 				String rightVariable = op2.getRawSignature();
 				int binaryOp = binaryExpression.getOperator();
 
@@ -986,12 +980,12 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 				String leftVariable = "";
 				String rightVariable = ""; 
 				if(operator == IASTUnaryExpression.op_minus){
-					leftVariable = fieldRef.getRawSignature().replaceAll("->", ">");
+					leftVariable =  "\"".concat(fieldRef.getRawSignature()).concat("\"");
 					rightVariable = op2.getRawSignature();
 				}
 
 				else if(operator == IASTUnaryExpression.op_star){
-					leftVariable = fieldRef.getRawSignature().replaceAll("->", ">");
+					leftVariable =  "\"".concat(fieldRef.getRawSignature()).concat("\"");
 					String operandName = unaryExp.getOperand().getRawSignature();
 					rightVariable = PredAbstractionConstants.getStarOperator(operandName);
 				}
@@ -1011,14 +1005,15 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 
 			// a = b op c
 			else if(op2 instanceof IASTBinaryExpression){
-				String leftVariable = fieldRef.getRawSignature().replaceAll("->", ">");
+				String leftVariable =  "\"".concat(fieldRef.getRawSignature()).concat("\"");
 				handleAssignmentOfBinaryOp(predAbsElement, leftVariable, binaryExpression, cfaEdge);
 			}
 			// a->b = c->d
 			else if(op2 instanceof IASTFieldReference){
-				String leftVariable = fieldRef.getRawSignature().replaceAll("->", ">");
-				String rightVariable = ((IASTFieldReference)op2).getRawSignature().replaceAll("->", ">");
-				
+				String leftVariable =  "\"".concat(fieldRef.getRawSignature()).concat("\"");
+				String fieldName = ((IASTFieldReference)op2).getRawSignature();
+				String rightVariable =  "\"".concat(fieldName).concat("\"");
+
 				int binaryOp = binaryExpression.getOperator();
 				assert(binaryOp == IASTBinaryExpression.op_assign);
 				
@@ -1251,7 +1246,10 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 		/** For handling expressions of the form a = (double) b->d */
 		else if(castOperand instanceof IASTFieldReference){
 			IASTFieldReference fieldRef = ((IASTFieldReference)castOperand);
-			String rightVar = fieldRef.getRawSignature().replaceAll("->", ">");
+			String fieldName = fieldRef.getRawSignature();
+			String rightVar = "\"".concat(fieldName).concat("\"");
+
+			
 			simpIns = new SimplifiedInstruction(leftVar, rightVar, Operator.equals);
 		}
 

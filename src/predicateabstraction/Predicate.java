@@ -68,8 +68,6 @@ public class Predicate {
 		}
 		else {
 			assert(false);
-			// TODO exception
-			System.exit(0);
 			res = "";
 		}
 
@@ -80,8 +78,6 @@ public class Predicate {
 			return "~ " + res;
 		}
 		else{
-			assert(false);
-			// TODO is that true? normally this should never be executed
 			return "";
 		}
 	}

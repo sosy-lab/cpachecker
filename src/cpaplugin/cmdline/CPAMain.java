@@ -39,8 +39,10 @@ public class CPAMain {
 	public static void doRunAnalysis(String args[], IASTTranslationUnit ast)
 	throws Exception {
 
+		System.out.println("here");
 		cpaConfig = new CPAConfiguration(args);
-
+System.out.println(cpaConfig.getPropertiesArray("analysis.cpas")[1]);
+		
 		CPACheckerLogger.init();
 		CPACheckerLogger.log(CustomLogLevel.INFO, "Analysis Started");
 

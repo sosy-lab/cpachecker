@@ -15,8 +15,6 @@ import org.eclipse.ui.IWorkbenchWindowActionDelegate;
 import org.eclipse.ui.PlatformUI;
 
 import cpaplugin.cmdline.CPAMain;
-import cpaplugin.logging.CPACheckerLogger;
-import cpaplugin.logging.CustomLogLevel;
 
 public class CPARun implements IWorkbenchWindowActionDelegate
 {
@@ -37,9 +35,6 @@ public class CPARun implements IWorkbenchWindowActionDelegate
 	 */
 	public void run (IAction action)
 	{
-		CPACheckerLogger.init();
-		CPACheckerLogger.log(CustomLogLevel.INFO, "Program Started");
-		
 		MessageDialog.openInformation (window.getShell (), "CPAPlugin Plug-in", "Launching CPAChecker Eclipse Plugin");
 
 		try
@@ -86,7 +81,7 @@ public class CPARun implements IWorkbenchWindowActionDelegate
 				System.out.println ("No file associated with current editor input");
 				return;
 			}
-
+			
 			// Get Eclipse to parse the C in the current file
 			IASTTranslationUnit ast = null;
 			try

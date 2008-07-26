@@ -18,7 +18,6 @@ public class PredicateAbstractionCPA implements ConfigurableProblemAnalysis{
 	private TransferRelation transferRelation;
 
 	public PredicateAbstractionCPA (String mergeType, String stopType) throws CPAException{
-		System.out.println("this is called");
 		PredicateAbstractionDomain predicateAbstractionDomain = new PredicateAbstractionDomain ();
 		MergeOperator predicateAbstractionMergeOp = null;
 		if(mergeType.equals("sep")){

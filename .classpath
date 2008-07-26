@@ -12,8 +12,9 @@
 	</classpathentry>
 	<classpathentry kind="con" path="org.eclipse.pde.core.requiredPlugins">
 		<attributes>
-			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="/home/erkan/Workspace/CPAPlugin/bin"/>
+			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="/home/erkan/Workspace/CPAChecker/nativeLibs"/>
 		</attributes>
 	</classpathentry>
+	<classpathentry kind="lib" path="/home/erkan/Workspace/CPAChecker/lib/mathsat.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

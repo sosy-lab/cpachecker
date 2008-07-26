@@ -17,7 +17,6 @@ public class LocationCPA implements ConfigurableProblemAnalysis{
 	private TransferRelation transferRelation;
 
 	public LocationCPA (String mergeType, String stopType) throws CPAException{
-		System.err.println("CALLING CONSTRUT");
 		LocationDomain locationDomain = new LocationDomain ();
         MergeOperator locationMergeOp = null;
         if(mergeType.equals("sep")){

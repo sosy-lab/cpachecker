@@ -42,5 +42,5 @@ Export-Package: cpaplugin,
  cpaplugin.cpa.common,
  cpaplugin.cpa.common.interfaces,
  cpaplugin.cpa.cpas.defuse,
- cpaplugin.cpa.cpas.location,
- cpaplugin.demo
+ cpaplugin.cpa.cpas.location
+ 
