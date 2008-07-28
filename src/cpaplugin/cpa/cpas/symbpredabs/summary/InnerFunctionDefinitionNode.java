@@ -1,0 +1,23 @@
+package cpaplugin.cpa.cpas.symbpredabs.summary;
+
+import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
+
+import cpaplugin.cfa.objectmodel.c.FunctionDefinitionNode;
+
+public class InnerFunctionDefinitionNode extends FunctionDefinitionNode
+    implements InnerCFANode {
+
+    private SummaryCFANode summary;
+    
+    public InnerFunctionDefinitionNode(int lineNumber, 
+                                       IASTFunctionDefinition def) {
+        super(lineNumber, def);
+        summary = null;
+    }
+    
+    public SummaryCFANode getSummaryNode() { return summary; }
+
+    public void setSummaryNode(SummaryCFANode s) {
+        summary = s;
+    }
+}

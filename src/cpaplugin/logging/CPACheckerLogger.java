@@ -11,6 +11,43 @@ import java.util.logging.SimpleFormatter;
 import cpaplugin.cmdline.CPAMain;
 
 public class CPACheckerLogger {
+    
+        public static class ConfigLevel extends Level {
+
+            public ConfigLevel(int val) {
+                super("ConfigLevel", val);
+            }
+            
+            public static ConfigLevel create(String configVal) {
+                if (configVal.toLowerCase().equals("off")) {
+                    return new ConfigLevel(Level.OFF.intValue());
+                } else if (configVal.toLowerCase().equals("on")) {
+                    return new ConfigLevel(Level.FINE.intValue());
+                } else if (configVal.toLowerCase().equals("all")) {
+                    return new ConfigLevel(Level.ALL.intValue());
+                } else if (configVal.toLowerCase().equals("info")) {
+                    return new ConfigLevel(Level.INFO.intValue());
+                } else if (configVal.toLowerCase().equals("fine")) {
+                    return new ConfigLevel(Level.FINE.intValue());
+                } else if (configVal.toLowerCase().equals("finer")) {
+                    return new ConfigLevel(Level.FINER.intValue());
+                } else if (configVal.toLowerCase().equals("finest")) {
+                    return new ConfigLevel(Level.FINEST.intValue());
+                } else {
+                    int val = Level.OFF.intValue();
+                    try {
+                        val = Integer.parseInt(configVal);
+                    } catch (NumberFormatException e) {
+                    }
+                    return new ConfigLevel(val);
+                }
+            }
+
+            /**
+             * 
+             */
+            private static final long serialVersionUID = 3305833981214128835L;
+        }
 	
 	public static Logger mainLogger = Logger.getLogger(CPAMain.cpaConfig.getProperty("log.path"));
 
@@ -30,7 +67,10 @@ public class CPACheckerLogger {
 			mainLogger.addHandler(fileHandler);
 			// TODO read from config file 
 			//CPAMain.cpaConfig.getProperty("log.level");
-			mainLogger.setLevel(Level.OFF);
+			//mainLogger.setLevel(Level.OFF);
+			Level cfg = ConfigLevel.create(
+			        CPAMain.cpaConfig.getProperty("log.level"));
+			mainLogger.setLevel(cfg);
 		} catch (SecurityException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
@@ -40,6 +80,10 @@ public class CPACheckerLogger {
 	
 	public static void log(Level level, String msg){
 		mainLogger.log(level, msg);
+	}
+	
+	public static int getLevel() {
+	    return mainLogger.getLevel().intValue();
 	}
 	
 }

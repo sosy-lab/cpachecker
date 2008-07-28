@@ -1,0 +1,25 @@
+package cpaplugin.cpa.cpas.symbpredabs.summary;
+
+import cpaplugin.cfa.objectmodel.AbstractCFAEdge;
+import cpaplugin.cfa.objectmodel.CFAEdgeType;
+
+/**
+ * An edge that connects two SummaryCFANodes
+ * @author alb
+ */
+public class SummaryCFAEdge extends AbstractCFAEdge {
+
+    public SummaryCFAEdge() {
+        super("");
+    }
+
+    @Override
+    public CFAEdgeType getEdgeType() {
+        return CFAEdgeType.BlankEdge;
+    }
+    
+    public String toString() {
+        return "(" + getPredecessor().toString() + 
+            "->" + getSuccessor().toString() + ")";
+    }
+}

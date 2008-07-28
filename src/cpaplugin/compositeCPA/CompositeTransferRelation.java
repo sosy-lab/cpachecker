@@ -9,9 +9,11 @@ import cpaplugin.cpa.common.CompositeDomain;
 import cpaplugin.cpa.common.CompositeElement;
 import cpaplugin.cpa.common.interfaces.AbstractDomain;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
+import cpaplugin.cpa.common.interfaces.AbstractElementWithLocation;
 import cpaplugin.cpa.common.interfaces.TransferRelation;
 import cpaplugin.cpa.cpas.location.LocationElement;
 import cpaplugin.cpa.cpas.location.LocationTransferRelation;
+import cpaplugin.cpa.cpas.symbpredabs.SymbPredAbstElement;
 import cpaplugin.exceptions.CPAException;
 
 public class CompositeTransferRelation implements TransferRelation{
@@ -58,16 +60,26 @@ public class CompositeTransferRelation implements TransferRelation{
 
 	public List<AbstractElement> getAllAbstractSuccessors (AbstractElement element) throws CPAException
 	{
-		if (locationTransferRelation == null)
-			throw new CPAException ("First abstract domain must be a location domain to call getAllAbstractSuccessors()");
+//		if (locationTransferRelation == null)
+//			throw new CPAException ("First abstract domain must be a location domain to call getAllAbstractSuccessors()");
 
 		CompositeElement compositeElement = (CompositeElement) element;
-		List<AbstractElement> abstractElements = compositeElement.getElements (); 
-		LocationElement locationElement = (LocationElement) abstractElements.get (0);
-
+		List<AbstractElement> abstractElements = compositeElement.getElements ();
+		
+		CFANode node = null;
+		
+		AbstractElement elem = abstractElements.get(0);
+		if (elem instanceof AbstractElementWithLocation) {
+		    AbstractElementWithLocation wl = 
+		        (AbstractElementWithLocation)elem;
+		    node = wl.getLocationNode();
+		} else {
+		    throw new CPAException("No Location information available, impossible to continue");
+		}
+		
 		List<AbstractElement> results = new ArrayList<AbstractElement> ();
 
-		CFANode node = locationElement.getLocationNode ();
+//		CFANode node = locationElement.getLocationNode ();
 		for (int edgeIdx = 0; edgeIdx < node.getNumLeavingEdges (); edgeIdx++)
 		{
 			CFAEdge edge = node.getLeavingEdge (edgeIdx);

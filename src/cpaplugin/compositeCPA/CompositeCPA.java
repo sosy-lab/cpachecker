@@ -125,7 +125,6 @@ public class CompositeCPA implements ConfigurableProblemAnalysis
 				Object obj = ct.newInstance(argumentlist);
 				// Convert object to CPA
 				ConfigurableProblemAnalysis newCPA = (ConfigurableProblemAnalysis)obj; 
-
 				cpas.add(newCPA); 
 
 			} catch (ClassNotFoundException e) {

@@ -18,7 +18,7 @@ import cpaplugin.cfa.objectmodel.c.AssumeEdge;
 import cpaplugin.cfa.objectmodel.c.FunctionCallEdge;
 import cpaplugin.cfa.objectmodel.c.ReturnEdge;
 
-public class DOTBuilder
+public class DOTBuilder implements DOTBuilderInterface
 {
 	public DOTBuilder ()
 	{
