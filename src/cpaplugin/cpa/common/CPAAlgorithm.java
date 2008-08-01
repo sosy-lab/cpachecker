@@ -6,7 +6,6 @@ import java.util.Deque;
 import java.util.LinkedList;
 import java.util.List;
 
-import cpaplugin.CPACheckerStatistics;
 import cpaplugin.cmdline.CPAMain;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.ConfigurableProblemAnalysis;
@@ -88,7 +87,7 @@ public class CPAAlgorithm
                     reached.addLast (successor);
                 }
             }
-            CPACheckerStatistics.noOfReachedSet = reached.size();
+            //CPACheckerStatistics.noOfReachedSet = reached.size();
         }
         
         return reached;

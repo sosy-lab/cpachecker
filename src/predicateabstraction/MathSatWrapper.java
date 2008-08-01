@@ -3,7 +3,6 @@ package predicateabstraction;
 import java.io.IOException;
 
 import mathsat.api;
-import cpaplugin.CPACheckerStatistics;
 
 public class MathSatWrapper {
 
@@ -11,7 +10,7 @@ public class MathSatWrapper {
 
 		//System.out.println(fociFormula);
 		//keeps number of calls to sat checker
-        CPACheckerStatistics.numberOfSATSolverCalls++;
+                //TODO CPACheckerStatistics.numberOfSATSolverCalls++;
 		// create the environment
 		long msatEnv = api.msat_create_env();
 		// initialize the environment with the theories you want

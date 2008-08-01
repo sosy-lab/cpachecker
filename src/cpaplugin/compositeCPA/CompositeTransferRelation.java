@@ -6,7 +6,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Vector;
 
-import cpaplugin.CPACheckerStatistics;
 import cpaplugin.cfa.objectmodel.CFAEdge;
 import cpaplugin.cfa.objectmodel.CFANode;
 import cpaplugin.cpa.common.CPATransferException;
@@ -86,7 +85,7 @@ public class CompositeTransferRelation implements TransferRelation{
 	public List<AbstractElement> getAllAbstractSuccessors (AbstractElement element) throws CPAException, CPATransferException
 	{
 
-		CPACheckerStatistics.noOfTransferRelations++;
+		//TODO CPACheckerStatistics.noOfTransferRelations++;
 		
 		CompositeElement compositeElement = (CompositeElement) element;
 		List<AbstractElement> abstractElements = compositeElement.getElements ();
