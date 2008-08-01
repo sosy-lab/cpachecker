@@ -157,7 +157,6 @@ public class SummaryDOTBuilder implements DOTBuilderInterface {
         nodeBuf.append(";\n");
     }
 
-    @Override
     public void generateDOT(Collection<CFAFunctionDefinitionNode> cfasMapList,
             CFAFunctionDefinitionNode cfa, String fileName) throws IOException {
         generateDOT(cfasMapList, fileName);

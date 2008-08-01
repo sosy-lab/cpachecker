@@ -80,12 +80,12 @@ public class SummaryCPA implements ConfigurableProblemAnalysis {
         this();
     }
     
-    @Override
+    
     public AbstractDomain getAbstractDomain() {
         return domain;
     }
 
-    @Override
+    
     public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
         CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel, 
                 "Getting initial element from node: " + node.toString());
@@ -98,17 +98,17 @@ public class SummaryCPA implements ConfigurableProblemAnalysis {
         return e;
     }
 
-    @Override
+    
     public MergeOperator getMergeOperator() {
         return merge;
     }
 
-    @Override
+    
     public StopOperator getStopOperator() {
         return stop;
     }
 
-    @Override
+    
     public TransferRelation getTransferRelation() {
         return trans;
     }

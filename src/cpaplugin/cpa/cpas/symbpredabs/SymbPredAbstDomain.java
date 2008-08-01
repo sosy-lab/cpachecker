@@ -88,22 +88,18 @@ public class SymbPredAbstDomain implements AbstractDomain {
     private final JoinOperator joinOperator = 
         new SymbPredAbstJoinOperator();
     
-    @Override
     public BottomElement getBottomElement() {
         return bottomElement;
     }
 
-    @Override
     public JoinOperator getJoinOperator() {
         return joinOperator;
     }
 
-    @Override
     public PreOrder getPreOrder() {
         return preOrder;
     }
 
-    @Override
     public TopElement getTopElement() {
         return topElement;
     }

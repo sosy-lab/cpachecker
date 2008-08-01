@@ -13,7 +13,6 @@ public class SummaryCFAFunctionDefinitionNode extends CFAFunctionDefinitionNode
         inner = innerNode;
     }
 
-    @Override
     public CFANode getInnerNode() {
         return inner;
     }

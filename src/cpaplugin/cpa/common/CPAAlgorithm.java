@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.Deque;
 import java.util.List;
 
+import cpaplugin.CPACheckerStatistics;
 import cpaplugin.cmdline.CPAMain;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.ConfigurableProblemAnalysis;
@@ -32,7 +33,6 @@ public class CPAAlgorithm
         StopOperator stopOperator = cpa.getStopOperator ();
         while (!waitlist.isEmpty ())
         {
-//            AbstractElement e = waitlist.pollFirst ();
             // AG - BFS or DFS, according to the configuration
             AbstractElement e = null;
             if (CPAMain.cpaConfig.getBooleanValue("analysis.bfs")) {
@@ -73,6 +73,7 @@ public class CPAAlgorithm
                     reached.addLast (successor);
                 }
             }
+            CPACheckerStatistics.noOfReachedSet = reached.size();
         }
         
         return reached;

@@ -69,7 +69,6 @@ public class SummaryAbstractElement
                 Integer.toString(getId()) + ")"; 
     }
 
-    @Override
     public CFANode getLocationNode() {
         return (CFANode)summaryLocation;
     }

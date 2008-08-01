@@ -19,6 +19,10 @@ import cpaplugin.cmdline.CPAMain;
 import cpaplugin.logging.CPACheckerLogger;
 import cpaplugin.logging.CustomLogLevel;
 
+/**
+ * @author erkan
+ *
+ */
 public class CPARun implements IWorkbenchWindowActionDelegate
 {
 	private IWorkbenchWindow window;
@@ -38,12 +42,13 @@ public class CPARun implements IWorkbenchWindowActionDelegate
 	 */
 	public void run (IAction action)
 	{
-	        String s[] = {};
-	        CPAMain.cpaConfig = new CPAConfiguration(s);
-	        
+		// Build the configuration file before starting analysis
+		String s[] = {};
+		CPAMain.cpaConfig = new CPAConfiguration(s);
+
 		CPACheckerLogger.init();
 		CPACheckerLogger.log(CustomLogLevel.INFO, "Program Started");
-		
+
 		MessageDialog.openInformation (window.getShell (), "CPAPlugin Plug-in", "Launching CPAChecker Eclipse Plugin");
 
 		try
@@ -105,7 +110,7 @@ public class CPARun implements IWorkbenchWindowActionDelegate
 				System.out.println ("Eclipse had trouble parsing C");
 				return;
 			}
-			
+
 			CPAMain.doRunAnalysis(ast);			
 		}
 		catch (Exception e)

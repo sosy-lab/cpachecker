@@ -143,4 +143,8 @@ public class CFANode
         if (!(other instanceof CFANode)) return false;
         return getNodeNumber() == ((CFANode)other).getNodeNumber();
     }
+    
+    public static int getFinalNumberOfNodes(){
+    	return nextNodeNumber;
+    }
 }

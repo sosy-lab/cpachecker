@@ -40,10 +40,12 @@ import cpaplugin.cfa.objectmodel.c.FunctionDefinitionNode;
 import cpaplugin.cfa.objectmodel.c.StatementEdge;
 import cpaplugin.exceptions.CFAGenerationRuntimeException;
 
-/*
+/**
+ * Builder to traverse AST.
+ * @author erkan
  * Known Limitations:
- *  -- K&R style function definitions not implemented
- *  -- Pointer modifiers not tracked (i.e. const, volatile, etc. for *)
+ * <p> -- K&R style function definitions not implemented
+ * <p> -- Pointer modifiers not tracked (i.e. const, volatile, etc. for *
  */
 public class CFABuilder extends ASTVisitor
 {
@@ -98,34 +100,35 @@ public class CFABuilder extends ASTVisitor
 		globalDeclarations = new ArrayList<IASTDeclaration> ();
 	}
 
-	/* *************************************************************************************
-	 * Public method to retrieve list of all functions and list of all global declarations
-	 * ************************************************************************************/
+	/**
+	 * Retrieves list of all functions
+	 * @return all CFAs in the program
+	 */
 	public CFAMap getCFAs ()
 	{
 		return cfas;
 	}
 
+	/**
+	 * Retrieves list of all global declarations
+	 * @return global declarations
+	 */
 	public List<IASTDeclaration> getGlobalDeclarations ()
 	{
 		return globalDeclarations;
 	}
 	
-	/* *************************************************************************************
-	 * Methods for Declarations, whether of variables, or of functions
-	 * ************************************************************************************/
+	/* (non-Javadoc)
+	 * @see org.eclipse.cdt.core.dom.ast.ASTVisitor#visit(org.eclipse.cdt.core.dom.ast.IASTDeclaration)
+	 */
 	public int visit (IASTDeclaration declaration)
 	{
 		IASTFileLocation fileloc = declaration.getFileLocation ();
 
-		//CPADebugOutput.debugPrintln ("IASTDeclaration Raw Signature: " + declaration.getRawSignature ());
-		//System.out.println("decl: " + declaration.getRawSignature());
-		
 		if (declaration instanceof IASTSimpleDeclaration)
 		{
 			if (locStack.size () > 0) // i.e. we're in a function
 			{
-				//System.out.println("decl1: " + ((IASTSimpleDeclaration)declaration).getRawSignature());
 				CFANode prevNode = locStack.pop ();
 				CFANode nextNode = new CFANode (fileloc.getStartingLineNumber ());
 
@@ -186,15 +189,14 @@ public class CFABuilder extends ASTVisitor
 		return PROCESS_CONTINUE;
 	}
 
-	/* *************************************************************************************
-	 * Methods for to handle visiting and leaving Statements
-	 * ************************************************************************************/
+	// Methods for to handle visiting and leaving Statements
+	/* (non-Javadoc)
+	 * @see org.eclipse.cdt.core.dom.ast.ASTVisitor#visit(org.eclipse.cdt.core.dom.ast.IASTStatement)
+	 */
 	public int visit (IASTStatement statement)
 	{
 		IASTFileLocation fileloc = statement.getFileLocation ();
 
-		//CPADebugOutput.debugPrintln ("IASTStatement Raw Signature: " + statement.getRawSignature ());
-        //System.out.println("Statement= " + statement.getRawSignature());
 		// Handle special condition for else
 		if (statement.getPropertyInParent () == IASTIfStatement.ELSE)
 		{
@@ -259,8 +261,6 @@ public class CFABuilder extends ASTVisitor
 
 	private void handleExpressionStatement (IASTExpressionStatement exprStatement, IASTFileLocation fileloc)
 	{
-		//IASTExpression exp = exprStatement.getExpression();
-		
 		CFANode prevNode = locStack.pop ();
 		CFANode nextNode = new CFANode (fileloc.getStartingLineNumber ());
 
@@ -469,6 +469,9 @@ public class CFABuilder extends ASTVisitor
 		locStack.push (caseNode);
 	}
 
+	/* (non-Javadoc)
+	 * @see org.eclipse.cdt.core.dom.ast.ASTVisitor#leave(org.eclipse.cdt.core.dom.ast.IASTStatement)
+	 */
 	public int leave (IASTStatement statement)
 	{
 		if (statement instanceof IASTIfStatement)
@@ -540,9 +543,10 @@ public class CFABuilder extends ASTVisitor
 		return PROCESS_CONTINUE;
 	}
 
-	/* *************************************************************************************
-	 * Method to handle visiting a parsing problem.  Hopefully none exist
-	 * ************************************************************************************/
+	//Method to handle visiting a parsing problem.  Hopefully none exist
+	/* (non-Javadoc)
+	 * @see org.eclipse.cdt.core.dom.ast.ASTVisitor#visit(org.eclipse.cdt.core.dom.ast.IASTProblem)
+	 */
 	public int visit (IASTProblem problem)
 	{
 		IASTFileLocation fileloc = problem.getFileLocation ();

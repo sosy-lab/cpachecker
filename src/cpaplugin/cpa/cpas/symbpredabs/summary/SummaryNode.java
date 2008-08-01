@@ -10,7 +10,6 @@ public class SummaryNode extends CFANode implements SummaryCFANode {
         inner = innerNode;
     }
 
-    @Override
     public CFANode getInnerNode() {
         return inner;
     }

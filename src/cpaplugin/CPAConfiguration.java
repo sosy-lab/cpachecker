@@ -8,22 +8,35 @@ import java.net.URL;
 import java.util.Properties;
 import java.util.Vector;
 
+/**
+ * CPA Checker properties file. Processes the properties file and save them as strings.
+ * If -config is not among program arguments, reads properties file from a default
+ * location. If properties are modified via command line arguments, they are processed
+ * and related properties keys are modified by this class.
+ * @author erkan
+ *
+ */
 public class CPAConfiguration extends Properties{
 
     private static final long serialVersionUID = -5910186668866464153L;
-    Object source;
-    String fileName;
+    private String fileName;
 
-    // Delimiters to create string arrays
-    static final String DELIMS = "[:;, ]+";
+    /** Delimiters to create string arrays */
+    static final String DELIMS = "[;, ]+";
 
     // TODO use arguments later to change config values dynamically
+    /**
+     * Class constructor to process arguments and load file.
+     * @param args arguments to change values dynamically
+     */
     public CPAConfiguration(String[] args) {
         super(new CPAConfiguration());
 
+        // get the file name
         loadFileName(args);
-        loadFile(args, this.fileName);
-
+        // load the file
+        loadFile(this.fileName);
+        // if there are some commandline arguments, process them
         if (args != null){
             try {
                 processArgs(args);
@@ -34,10 +47,19 @@ public class CPAConfiguration extends Properties{
         //normalizeValues();
     }
 
+    /**
+     * Class constructor.
+     */
     private CPAConfiguration() {
 
     }
 
+    /**
+     * if -config is specified in arguments, loads this properties file,
+     * otherwise loads the file from a default location. Default properties file is
+     * $CPACheckerMain/default.properties
+     * @param args commandline arguments
+     */
     private void loadFileName(String[] args){
         for (int i = 0; i < args.length; i++) {
             String arg = args[i];
@@ -51,6 +73,12 @@ public class CPAConfiguration extends Properties{
 	this.fileName = binDirString + "../default.properties";
     }
 
+    /**
+     * Reads the arguments and process them. If a corresponding key is found, the property 
+     * is updated
+     * @param args commandline arguments
+     * @throws Exception if an option is set but no value for the option is found
+     */
     private void processArgs(String[] args) throws Exception {
         Vector<String> ret = new Vector<String>();
 
@@ -113,6 +141,7 @@ public class CPAConfiguration extends Properties{
             }
         }
 
+        // arguments with non-specified options are considered as file names
         String programNames = "";
         if(ret.size() > 0){
             programNames = programNames + ret.get(0);
@@ -123,19 +152,21 @@ public class CPAConfiguration extends Properties{
         }
     }
 
-    boolean loadFile(String[] args, String fileName) {
+    /**
+     * Load the file as property file see {@link Properties}
+     * @param fileName name of the property file
+     * @return true if file is loaded successfully
+     */
+    private boolean loadFile(String fileName) {
         InputStream is = null;
-
         try {
             // first, try to load from a file
             File f = new File(fileName);
-            if (!f.exists()) {}
-
+            if (!f.exists()) {
+            }
             if (f.exists()) {
-                source = f;
                 is = new FileInputStream(f);
             }
-
             if (is != null) {
                 load(is);
                 return true;
@@ -169,7 +200,13 @@ public class CPAConfiguration extends Properties{
     //	}
     //	}
 
-    // to get arrays
+    
+    /**
+     * If there are a number of properties for a given key, this method will split them
+     * using {@link CPAConfiguration#DELIMS} and return the array of properties
+     * @param key the key for the property
+     * @return array of properties
+     */
     public String[] getPropertiesArray(String key){
         String s = getProperty(key);
         if (s != null) {
@@ -178,9 +215,19 @@ public class CPAConfiguration extends Properties{
         return null;
     }
 
-    // get boolean value for properties with only true, false value
+
+    /**
+     * A shortcut for properties which has only true, false value
+     * @param key the key for the property
+     * @return the boolean value of the property, if the key is not present in
+     * the properties file false 
+     */
     public boolean getBooleanValue(String key){
         String s = getProperty(key);
+        // if there is no such file, return false
+        if(s == null){
+        	return false;
+        }
         if(s.equals("true")){
             return true;
         }

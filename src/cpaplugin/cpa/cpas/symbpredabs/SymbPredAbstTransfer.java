@@ -21,7 +21,6 @@ public class SymbPredAbstTransfer implements TransferRelation {
         this.domain = domain;
     }
     
-    @Override
     public AbstractDomain getAbstractDomain() {
         return domain;
     }
@@ -69,7 +68,6 @@ public class SymbPredAbstTransfer implements TransferRelation {
         }
     }
 
-    @Override
     public AbstractElement getAbstractSuccessor(AbstractElement element,
                                                 CFAEdge cfaEdge) {
         SymbPredAbstElement e = (SymbPredAbstElement)element;
@@ -99,7 +97,6 @@ public class SymbPredAbstTransfer implements TransferRelation {
         return domain.getBottomElement();
     }
 
-    @Override
     public List<AbstractElement> getAllAbstractSuccessors(
             AbstractElement element) throws CPAException {
         SymbPredAbstElement e = (SymbPredAbstElement)element;

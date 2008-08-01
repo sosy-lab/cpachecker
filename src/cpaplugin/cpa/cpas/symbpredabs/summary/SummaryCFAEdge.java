@@ -13,7 +13,6 @@ public class SummaryCFAEdge extends AbstractCFAEdge {
         super("");
     }
 
-    @Override
     public CFAEdgeType getEdgeType() {
         return CFAEdgeType.BlankEdge;
     }

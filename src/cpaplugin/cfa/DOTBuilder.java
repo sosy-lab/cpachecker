@@ -20,6 +20,9 @@ import cpaplugin.cfa.objectmodel.c.ReturnEdge;
 
 public class DOTBuilder implements DOTBuilderInterface
 {
+	/**
+	 * Class constructor.
+	 */
 	public DOTBuilder ()
 	{
 

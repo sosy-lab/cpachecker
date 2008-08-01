@@ -378,8 +378,7 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 			throw new PredicateAbstractionTransferException("Unhandled case");
 		}
 		else {
-			System.exit(0);
-			//throw new PredicateAbstractionTransferException("Unhandled case");
+			throw new PredicateAbstractionTransferException("Unhandled case");
 		}
 	}
 
@@ -1285,6 +1284,7 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 			}
 			else if(leftHandSideExp instanceof IASTUnaryExpression){
 				System.out.println("Unary" + expr.getRawSignature());
+				assert(false);
 			}
 			else {
 				throw new PredicateAbstractionTransferException("Unhandled case " + functionCallEdge.getPredecessor().getNodeNumber());

@@ -30,7 +30,7 @@ public class SummaryTransferRelation implements TransferRelation {
         domain = d;
     }
     
-    @Override
+    
     public AbstractDomain getAbstractDomain() {
         return domain;
     }
@@ -76,7 +76,7 @@ public class SummaryTransferRelation implements TransferRelation {
         }
     }
 
-    @Override
+    
     public AbstractElement getAbstractSuccessor(AbstractElement element,
             CFAEdge cfaEdge) {
         LazyLogger.log(CustomLogLevel.SpecificCPALevel, 
@@ -107,7 +107,7 @@ public class SummaryTransferRelation implements TransferRelation {
         return domain.getBottomElement();
     }
 
-    @Override
+    
     public List<AbstractElement> getAllAbstractSuccessors(
             AbstractElement element) throws CPAException {
         LazyLogger.log(CustomLogLevel.SpecificCPALevel, 

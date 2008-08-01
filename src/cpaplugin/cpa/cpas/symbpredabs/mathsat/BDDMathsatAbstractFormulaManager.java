@@ -34,7 +34,7 @@ public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
         
         public int getBDD() { return bdd; }
 
-        @Override
+        
         public void callback(long[] model) {
             // the abstraction is created simply by taking the disjunction
             // of all the models found by msat_all_sat, and storing them 
@@ -117,7 +117,7 @@ public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
         }
     }
 
-    @Override
+    
     public boolean entails(AbstractFormula f1, AbstractFormula f2) {
         // check entailment using BDDs: create the BDD representing 
         // the implication, and check that it is the TRUE formula
@@ -152,7 +152,7 @@ public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
         return new Pair<Long, long[]>(preddef, important);
     }
 
-    @Override
+    
     public AbstractFormula toAbstract(SymbolicFormulaManager mgr,
             SymbolicFormula f, SSAMap ssa, Collection<Predicate> predicates) {
         MathsatSymbolicFormulaManager mmgr = (MathsatSymbolicFormulaManager)mgr;
@@ -222,7 +222,7 @@ public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
         }
     }
     
-    @Override
+    
     public SymbolicFormula toConcrete(SymbolicFormulaManager mgr,
             AbstractFormula af) {
         MathsatSymbolicFormulaManager mmgr = (MathsatSymbolicFormulaManager)mgr;
@@ -283,12 +283,12 @@ public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
         return new MathsatSymbolicFormula(cache.get(bdd));
     }
 
-    @Override
+    
     public boolean isFalse(AbstractFormula f) {
         return ((BDDAbstractFormula)f).getBDD() == bddManager.getZero();
     }
 
-    @Override
+    
     public AbstractFormula makeTrue() {
         int t = bddManager.getOne();
         bddManager.ref(t);

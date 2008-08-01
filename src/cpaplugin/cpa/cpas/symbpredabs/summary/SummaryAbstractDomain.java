@@ -23,7 +23,6 @@ public class SummaryAbstractDomain implements AbstractDomain {
     private final class SummaryTopElement implements TopElement {}
     
     private final class SummaryJoinOperator implements JoinOperator {
-        @Override
         public AbstractElement join(AbstractElement element1,
                 AbstractElement element2) throws CPAException {
             throw new CPAException("Can't join summaries!");
@@ -31,7 +30,6 @@ public class SummaryAbstractDomain implements AbstractDomain {
     }
     
     private final class SummaryPreOrder implements PreOrder {
-        @Override
         public boolean satisfiesPreOrder(AbstractElement element1,
                 AbstractElement element2) throws CPAException {
             SummaryAbstractElement e1 = (SummaryAbstractElement)element1;
@@ -53,22 +51,18 @@ public class SummaryAbstractDomain implements AbstractDomain {
     private final JoinOperator join = new SummaryJoinOperator();
     private final PreOrder pre = new SummaryPreOrder();
 
-    @Override
     public BottomElement getBottomElement() {
         return bottom;
     }
 
-    @Override
     public JoinOperator getJoinOperator() {
         return join;
     }
 
-    @Override
     public PreOrder getPreOrder() {
         return pre;
     }
 
-    @Override
     public TopElement getTopElement() {
         return top;
     }

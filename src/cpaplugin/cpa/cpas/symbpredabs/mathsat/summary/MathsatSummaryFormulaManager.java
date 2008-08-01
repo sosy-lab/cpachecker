@@ -59,7 +59,6 @@ public class MathsatSummaryFormulaManager extends MathsatSymbolicFormulaManager
         return order;
     }
 
-    @Override
     public Map<CFANode, Pair<SymbolicFormula, SSAMap>> buildPathFormulas(
             SummaryCFANode summary) throws UnrecognizedCFAEdgeException {
         // here we assume that all variables start with index 1 in the ssa

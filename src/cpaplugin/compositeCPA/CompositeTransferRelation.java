@@ -3,6 +3,7 @@ package cpaplugin.compositeCPA;
 import java.util.ArrayList;
 import java.util.List;
 
+import cpaplugin.CPACheckerStatistics;
 import cpaplugin.cfa.objectmodel.CFAEdge;
 import cpaplugin.cfa.objectmodel.CFANode;
 import cpaplugin.cpa.common.CompositeDomain;
@@ -60,9 +61,9 @@ public class CompositeTransferRelation implements TransferRelation{
 
 	public List<AbstractElement> getAllAbstractSuccessors (AbstractElement element) throws CPAException
 	{
-//		if (locationTransferRelation == null)
-//			throw new CPAException ("First abstract domain must be a location domain to call getAllAbstractSuccessors()");
 
+		CPACheckerStatistics.noOfTransferRelations++;
+		
 		CompositeElement compositeElement = (CompositeElement) element;
 		List<AbstractElement> abstractElements = compositeElement.getElements ();
 		
@@ -79,7 +80,6 @@ public class CompositeTransferRelation implements TransferRelation{
 		
 		List<AbstractElement> results = new ArrayList<AbstractElement> ();
 
-//		CFANode node = locationElement.getLocationNode ();
 		for (int edgeIdx = 0; edgeIdx < node.getNumLeavingEdges (); edgeIdx++)
 		{
 			CFAEdge edge = node.getLeavingEdge (edgeIdx);

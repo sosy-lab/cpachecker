@@ -31,7 +31,6 @@ public class BDDMathsatSummaryAbstractManager extends
         super();
     }
 
-    @Override
     public AbstractFormula buildAbstraction(SummaryFormulaManager mgr,
             SummaryAbstractElement e, SummaryAbstractElement succ, 
             Collection<Predicate> predicates) {
@@ -149,7 +148,6 @@ public class BDDMathsatSummaryAbstractManager extends
         }
     }
     
-    @Override
     public CounterexampleTraceInfo buildCounterexampleTrace(
             SummaryFormulaManager mgr, List<SummaryCFANode> abstractTrace) {
         // TODO Auto-generated method stub

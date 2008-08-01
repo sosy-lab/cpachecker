@@ -102,7 +102,6 @@ public class SymbPredAbstElement
         this(locationNode, cf, af, null, new SSAMap());
     }
     
-    @Override
     public CFANode getLocationNode() {
         return location;
     }

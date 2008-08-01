@@ -18,17 +18,14 @@ public class SymbPredAbstStop implements StopOperator {
         this.domain = domain;
     }
     
-    @Override
     public AbstractDomain getAbstractDomain() {
         return domain;
     }
 
-    @Override
     public boolean isBottomElement(AbstractElement element) {
         return element instanceof BottomElement;
     }
 
-    @Override
     public boolean stop(AbstractElement element,
             Collection<AbstractElement> reached) throws CPAException {
         for (AbstractElement e2 : reached) {
@@ -39,7 +36,6 @@ public class SymbPredAbstStop implements StopOperator {
         return false;
     }
 
-    @Override
     public boolean stop(AbstractElement element, AbstractElement reachedElement)
             throws CPAException {
         SymbPredAbstElement e = (SymbPredAbstElement)element;

@@ -14,12 +14,12 @@ public class SummaryMergeOperator implements MergeOperator {
         domain = d;
     }
     
-    @Override
+    
     public AbstractDomain getAbstractDomain() {
         return domain;
     }
 
-    @Override
+    
     public AbstractElement merge(AbstractElement element1,
                                  AbstractElement element2) {
         CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel, 

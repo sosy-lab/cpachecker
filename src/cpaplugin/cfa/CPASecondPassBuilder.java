@@ -17,15 +17,35 @@ import cpaplugin.cfa.objectmodel.c.FunctionCallEdge;
 import cpaplugin.cfa.objectmodel.c.ReturnEdge;
 import cpaplugin.cfa.objectmodel.c.StatementEdge;
 
+/**
+ * Used for post processing the CFA. This class provides methods which are used 
+ * to modify the CFAs for each function according to user's needs. For example 
+ * to handle function calls, call, return and summary edges can be inserted to 
+ * the CFA using methods in this class.
+ * @author erkan
+ *
+ */
 public class CPASecondPassBuilder {
 
 	private CFAMap cfas;
 
+	/**
+	 * Class constructor.
+	 * @param map List of all CFA's in the program.
+	 */
 	public CPASecondPassBuilder(CFAMap map){
 		cfas = map;
 	}
 
+	/**
+	 * Traverses a CFA with the specified function name and insert call edges 
+	 * and return edges from the call site and to the return site of the function
+	 * call. Each node carries information about the function they are in and
+	 * this information is also set by this method, see {@link CFANode#setFunctionName(String)}.
+	 * @param funcName name of the function to be processed.
+	 */
 	public void insertCallEdges(String funcName){
+		// we use a worklist algorithm
 		Deque<CFANode> workList = new ArrayDeque<CFANode> ();
 		Deque<CFANode> processedList = new ArrayDeque<CFANode> ();
 
@@ -47,17 +67,20 @@ public class CPASecondPassBuilder {
 				{
 					IASTExpression expr = ((StatementEdge)edge).getExpression();
 					
-					// TODO add the case for call(2, a)
+					// if expression is a binary expression
 					if(expr instanceof IASTBinaryExpression){
 						IASTExpression operand2 = ((IASTBinaryExpression)expr).getOperand2();
+						// if statement is of the form x = call(a,b);
 						if(operand2 instanceof IASTFunctionCallExpression){
 							createCallAndReturnEdges(node, successorNode, edge, expr, (IASTFunctionCallExpression)operand2);
 						}
+						// if this is not a function call just set the function name 
 						else{
 							successorNode.setFunctionName(node.getFunctionName());
 						}
 					}
 					
+					// if expression is function call, e.g. call(a,b);
 					else if(expr instanceof IASTFunctionCallExpression){
 						IASTFunctionCallExpression functionCall = (IASTFunctionCallExpression)expr;
 						createCallAndReturnEdges(node, successorNode, edge, expr, functionCall);
@@ -73,23 +96,36 @@ public class CPASecondPassBuilder {
 					successorNode.setFunctionName(node.getFunctionName());
 				}
 				
+				// if the node is not already processed and if successor node is not
+				// on a different CFA, add successor node to the worklist
 				if(!processedList.contains(successorNode) &&
 				   node.getFunctionName().equals(successorNode.getFunctionName())){
 					workList.add(successorNode);
 				}
 			}
+			// node is processed
 			processedList.add(node);
 		}
 	}
 
-	private void createCallAndReturnEdges(CFANode node, CFANode successorNode, CFAEdge edge, IASTExpression expr, IASTFunctionCallExpression operand2) {
-		IASTFunctionCallExpression functCall = (IASTFunctionCallExpression) operand2;
-		String functionName = functCall.getFunctionNameExpression().getRawSignature();
+	/**
+	 * inserts call, return and summary edges from a node to its successor node.
+	 * @param node The node which is the call site.
+	 * @param successorNode The first node of the called function.
+	 * @param edge The function call edge.
+	 * @param expr The function call expression.
+	 * @param functionCall If the call was an assignment from the function call
+	 * this keeps only the function call expression, e.g. if statement is a = call(b);
+	 * then expr is a = call(b); and functionCall is call(b).
+	 */
+	private void createCallAndReturnEdges(CFANode node, CFANode successorNode, CFAEdge edge, IASTExpression expr, IASTFunctionCallExpression functionCall) {
+		String functionName = functionCall.getFunctionNameExpression().getRawSignature();
 		CFAFunctionDefinitionNode fDefNode = cfas.getCFA(functionName);
 		
-		IASTExpression parameters = functCall.getParameterExpression();
-		FunctionCallEdge callEdge = new FunctionCallEdge(operand2.getRawSignature(), parameters);
+		IASTExpression parameters = functionCall.getParameterExpression();
+		FunctionCallEdge callEdge = new FunctionCallEdge(functionCall.getRawSignature(), parameters);
 		
+		// if the successor node is null, then this is an external call
 		if(fDefNode == null){
 			callEdge.setExternalCall();
 			callEdge.initialize (node, edge.getSuccessor());

@@ -35,7 +35,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         return msatEnv;
     }
 
-    @Override
+    
     public boolean entails(SymbolicFormula f1, SymbolicFormula f2) {
         MathsatSymbolicFormula m1 = (MathsatSymbolicFormula)f1;
         MathsatSymbolicFormula m2 = (MathsatSymbolicFormula)f2;
@@ -58,7 +58,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         return res == mathsat.api.MSAT_UNSAT;
     }
 
-    @Override
+    
     public SymbolicFormula makeAnd(SymbolicFormula f1, SymbolicFormula f2) {
         MathsatSymbolicFormula m1 = (MathsatSymbolicFormula)f1;
         MathsatSymbolicFormula m2 = (MathsatSymbolicFormula)f2;
@@ -67,7 +67,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         return new MathsatSymbolicFormula(a);
     }
 
-    @Override
+    
     public SymbolicFormula makeOr(SymbolicFormula f1, SymbolicFormula f2) {
         MathsatSymbolicFormula m1 = (MathsatSymbolicFormula)f1;
         MathsatSymbolicFormula m2 = (MathsatSymbolicFormula)f2;
@@ -76,12 +76,12 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         return new MathsatSymbolicFormula(a);
     }
 
-    @Override
+    
     public SymbolicFormula makeTrue() {
         return new MathsatSymbolicFormula(mathsat.api.msat_make_true(msatEnv));
     }
 
-    @Override
+    
     public Pair<SymbolicFormula, SSAMap> makeAnd(
             SymbolicFormula f1, CFAEdge edge, SSAMap ssa, 
             boolean updateSSA, boolean absoluteSSAIndices) 
@@ -541,7 +541,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         return new Pair<Long, Long>(e1, e2);
     }
 
-    @Override
+    
     public Pair<Pair<SymbolicFormula, SymbolicFormula>, SSAMap> mergeSSAMaps(
             SSAMap ssa1, SSAMap ssa2, boolean absoluteSSAIndices) {
         SSAMap result = new SSAMap();
@@ -586,7 +586,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
 
     // ssa can be null. In this case, all the variables are instantiated 
     // at index 1
-    @Override
+    
     public SymbolicFormula instantiate(SymbolicFormula f, SSAMap ssa) {
         Stack<Long> toProcess = new Stack<Long>();
         Map<Long, Long> cache = new HashMap<Long, Long>();
@@ -638,12 +638,12 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         return new MathsatSymbolicFormula(cache.get(term));
     }
 
-    @Override
+    
     public SymbolicFormula makeFalse() {
         return new MathsatSymbolicFormula(mathsat.api.msat_make_false(msatEnv));
     }
 
-    @Override
+    
     public Pair<SymbolicFormula, SSAMap> shift(SymbolicFormula f, SSAMap ssa) {
         Stack<Long> toProcess = new Stack<Long>();
         Map<Long, Long> cache = new HashMap<Long, Long>();

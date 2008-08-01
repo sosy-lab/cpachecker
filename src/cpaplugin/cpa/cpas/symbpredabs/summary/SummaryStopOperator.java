@@ -17,17 +17,17 @@ public class SummaryStopOperator implements StopOperator {
         domain = d;
     }
 
-    @Override
+    
     public AbstractDomain getAbstractDomain() {
         return domain;
     }
 
-    @Override
+    
     public boolean isBottomElement(AbstractElement element) {
         return element == domain.getBottomElement();
     }
 
-    @Override
+    
     public boolean stop(AbstractElement element,
             Collection<AbstractElement> reached) throws CPAException {
         for (AbstractElement e : reached) {
@@ -38,7 +38,7 @@ public class SummaryStopOperator implements StopOperator {
         return false;
     }
 
-    @Override
+    
     public boolean stop(AbstractElement element, AbstractElement reachedElement)
             throws CPAException {
 

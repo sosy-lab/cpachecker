@@ -76,12 +76,10 @@ public class SymbPredAbstCPA implements ConfigurableProblemAnalysis {
         return abstractManager;
     }
     
-    @Override
     public AbstractDomain getAbstractDomain() {
         return abstractDomain;
     }
 
-    @Override
     public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
         LazyLogger.log(CustomLogLevel.SpecificCPALevel, 
                 "Getting initial element from node: ", node.getNodeNumber());
@@ -89,17 +87,14 @@ public class SymbPredAbstCPA implements ConfigurableProblemAnalysis {
         return new SymbPredAbstElement(node, formulaManager.makeTrue(), null);
     }
 
-    @Override
     public MergeOperator getMergeOperator() {
         return mergeOperator;
     }
 
-    @Override
     public StopOperator getStopOperator() {
         return stopOperator;
     }
 
-    @Override
     public TransferRelation getTransferRelation() {
         return transferRelation;
     }

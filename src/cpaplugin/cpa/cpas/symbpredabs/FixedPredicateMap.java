@@ -15,7 +15,6 @@ public class FixedPredicateMap implements PredicateMap {
         thePredicates = preds;
     }
 
-    @Override
     public Collection<Predicate> getRelevantPredicates(CFANode n) {
         return thePredicates;
     }

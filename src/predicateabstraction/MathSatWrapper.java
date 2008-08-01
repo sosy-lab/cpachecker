@@ -3,16 +3,15 @@ package predicateabstraction;
 import java.io.IOException;
 
 import mathsat.api;
+import cpaplugin.CPACheckerStatistics;
 
 public class MathSatWrapper {
-	
-	public static int noOfSMTSolverCalls = 0;
 
 	public static boolean satisfiability(String fociFormula){
-		
+
 		//System.out.println(fociFormula);
 		//keeps number of calls to sat checker
-		noOfSMTSolverCalls++;
+        CPACheckerStatistics.numberOfSATSolverCalls++;
 		// create the environment
 		long msatEnv = api.msat_create_env();
 		// initialize the environment with the theories you want
@@ -32,7 +31,7 @@ public class MathSatWrapper {
 		assert(result != mathsat.api.MSAT_UNKNOWN);
 
 		boolean res;
-		
+
 		if (result == mathsat.api.MSAT_SAT) {
 			// return true if satisfiable
 			res = true;
@@ -41,7 +40,7 @@ public class MathSatWrapper {
 			assert(result == mathsat.api.MSAT_UNSAT);
 			res = false;
 		}
-		
+
 		// destroy the env at the end
 		mathsat.api.msat_destroy_env(msatEnv);
 		return res;
@@ -50,7 +49,13 @@ public class MathSatWrapper {
 	public static ThreeValuedBoolean implies(String r1, String r2) throws IOException{
 		String s;
 		s = "~ | [ " + "~ " + r1 + " " + r2 + " ]";
-		boolean b = satisfiability(s); 
+		boolean b = false;
+		try {
+			b = satisfiability(s);
+		} catch(Throwable e) {
+			e.printStackTrace();
+			System.exit(0);
+		}
 		if(b){
 			return ThreeValuedBoolean.FALSE;
 		}

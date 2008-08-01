@@ -43,4 +43,6 @@ Export-Package: cpaplugin,
  cpaplugin.cpa.common.interfaces,
  cpaplugin.cpa.cpas.defuse,
  cpaplugin.cpa.cpas.location
- 
+Bundle-ClassPath: lib/mathsat.jar,
+ lib/minijdd_103.jar,
+ .

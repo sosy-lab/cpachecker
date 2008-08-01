@@ -18,12 +18,10 @@ public class SymbPredAbstMerge implements MergeOperator {
         this.domain = domain;
     }
     
-    @Override
     public AbstractDomain getAbstractDomain() {
         return domain;
     }
 
-    @Override
     public AbstractElement merge(AbstractElement element1,
                                  AbstractElement element2) {
         
