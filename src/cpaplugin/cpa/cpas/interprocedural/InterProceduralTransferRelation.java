@@ -9,6 +9,7 @@ import cpaplugin.cfa.objectmodel.c.FunctionCallEdge;
 import cpaplugin.cfa.objectmodel.c.FunctionDefinitionNode;
 import cpaplugin.cfa.objectmodel.c.ReturnEdge;
 import cpaplugin.cmdline.CPAMain;
+import cpaplugin.cpa.common.CPATransferException;
 import cpaplugin.cpa.common.interfaces.AbstractDomain;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.TransferRelation;
@@ -28,7 +29,7 @@ public class InterProceduralTransferRelation implements TransferRelation
 		return this.ipDomain;
 	}
 
-	public AbstractElement getAbstractSuccessor (AbstractElement element, CFAEdge cfaEdge)
+	public AbstractElement getAbstractSuccessor (AbstractElement element, CFAEdge cfaEdge) throws CPATransferException
 	{
 		InterProceduralElement ipElement = (InterProceduralElement) element;
 
@@ -118,7 +119,7 @@ public class InterProceduralTransferRelation implements TransferRelation
 			functionCallEdge.setRecursive();
 	}
 
-	public List<AbstractElement> getAllAbstractSuccessors (AbstractElement element) throws CPAException
+	public List<AbstractElement> getAllAbstractSuccessors (AbstractElement element) throws CPAException, CPATransferException
 	{
 		throw new CPAException ("Cannot get all abstract successors from non-location domain");
 	}

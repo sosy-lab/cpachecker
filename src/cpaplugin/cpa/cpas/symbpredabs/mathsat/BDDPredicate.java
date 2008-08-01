@@ -4,12 +4,32 @@ import cpaplugin.cpa.cpas.symbpredabs.Predicate;
 
 public class BDDPredicate implements Predicate {
     private int bddVar;
+    private int varindex;
     
-    public BDDPredicate(int var) {
+    public BDDPredicate(int var, int idx) {
         bddVar = var;
+        varindex = idx;
     }
     
     public int getBDDVar() {
         return bddVar;
+    }
+    
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        } else if (o instanceof BDDPredicate) {
+            return varindex == ((BDDPredicate)o).varindex;
+        } else {
+            return false;
+        }
+    }
+    
+    public int hashCode() {
+        return varindex;
+    }
+    
+    public String toString() {
+        return "BDD(" + varindex + ")";
     }
 }

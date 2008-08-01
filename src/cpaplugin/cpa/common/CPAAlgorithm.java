@@ -3,6 +3,7 @@ package cpaplugin.cpa.common;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
+import java.util.LinkedList;
 import java.util.List;
 
 import cpaplugin.CPACheckerStatistics;
@@ -41,7 +42,21 @@ public class CPAAlgorithm
                 e = waitlist.removeLast();
             }
             CPACheckerLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel, e + " is popped from queue");
-            List<AbstractElement> successors = transferRelation.getAllAbstractSuccessors (e);
+            List<AbstractElement> successors = null;
+            try {
+                successors = transferRelation.getAllAbstractSuccessors (e);
+            } catch (ErrorReachedExeption err) {
+                System.out.println("Reached error state! Message is:");
+                System.out.println(err.toString());
+                return reached;
+            } catch (RefinementNeededException re) {
+                doRefinement(reached, waitlist, re.getReachableToUndo(),
+                             re.getToWaitlist());
+                continue;
+            } catch (CPATransferException e1) {
+                e1.printStackTrace();
+                assert(false); // should not happen
+            }
             
             for (AbstractElement successor : successors)
             {
@@ -68,7 +83,7 @@ public class CPAAlgorithm
 
                 if (!stopOperator.stop (successor, reached))
                 {
-                	CPACheckerLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel, "No need to stop " + successor + " is added to queue");
+                    CPACheckerLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel, "No need to stop " + successor + " is added to queue");
                     waitlist.addLast (successor);
                     reached.addLast (successor);
                 }
@@ -77,5 +92,40 @@ public class CPAAlgorithm
         }
         
         return reached;
+    }
+
+    private void doRefinement(Deque<AbstractElement> reached,
+            Deque<AbstractElement> waitlist,
+            Collection<AbstractElement> reachableToUndo,
+            Collection<AbstractElement> toWaitlist) {
+        CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel, 
+                             "Performing refinement");        
+        // remove from reached all the elements in reachableToUndo
+        Collection<AbstractElement> newreached =
+            new LinkedList<AbstractElement>();
+        for (AbstractElement e : reached) {
+            if (!reachableToUndo.contains(e)) {
+                newreached.add(e);
+            } else {
+                CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel, 
+                                    "Removing element; " + e + " from reached");
+                if (waitlist.remove(e)) {
+                    CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel, 
+                            "Removing element; " + e + " also from waitlist");                    
+                }
+            }
+        }
+        reached.clear();
+        reached.addAll(newreached);
+        CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel,
+                "Reached now is: " + newreached.toString());
+        // and add to the wait list all the elements in toWaitlist
+        for (AbstractElement e : toWaitlist) {
+            CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel, 
+                                 "Adding element; " + e + " to waitlist");
+            waitlist.addLast(e);
+        }
+        CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel, 
+                             "Refinement done");
     }
 }

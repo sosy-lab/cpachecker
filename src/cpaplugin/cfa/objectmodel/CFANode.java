@@ -147,4 +147,8 @@ public class CFANode
     public static int getFinalNumberOfNodes(){
     	return nextNodeNumber;
     }
+    
+    public int hashCode() {
+        return getNodeNumber();
+    }
 }

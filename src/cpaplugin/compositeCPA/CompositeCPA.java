@@ -2,9 +2,11 @@ package cpaplugin.compositeCPA;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
+import cpaplugin.CPAStatistics;
 import cpaplugin.cfa.objectmodel.CFAFunctionDefinitionNode;
 import cpaplugin.cmdline.CPAMain;
 import cpaplugin.cpa.common.CompositeDomain;
@@ -126,6 +128,19 @@ public class CompositeCPA implements ConfigurableProblemAnalysis
 				// Convert object to CPA
 				ConfigurableProblemAnalysis newCPA = (ConfigurableProblemAnalysis)obj; 
 				cpas.add(newCPA); 
+				
+				// AG - check if this cpa defines its own 
+				// statistics, and if so add them to the
+				// main ones
+				try {
+				    Method meth = 
+				        cls.getDeclaredMethod("getStatistics");
+				    CPAStatistics s = 
+				        (CPAStatistics)meth.invoke(newCPA);
+				    CPAMain.cpaStats.addSubStatistics(s);
+				} catch (Exception e) {
+				    // ignore, this is not an error
+				}
 
 			} catch (ClassNotFoundException e) {
 				e.printStackTrace();

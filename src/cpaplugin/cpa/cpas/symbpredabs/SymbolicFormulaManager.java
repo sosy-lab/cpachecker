@@ -1,5 +1,7 @@
 package cpaplugin.cpa.cpas.symbpredabs;
 
+import java.util.Collection;
+
 import cpaplugin.cfa.objectmodel.CFAEdge;
 
 /**
@@ -103,4 +105,15 @@ public interface SymbolicFormulaManager {
      * @return the shifted formula and the new SSA map
      */
     public Pair<SymbolicFormula, SSAMap> shift(SymbolicFormula f, SSAMap ssa);
+    
+    /**
+     * Extracts the atoms from the given formula. If uninstantiate is true, 
+     * then the atoms are in the "generic" form
+     * @param f the formula to operate on
+     * @param uninstantiate controls whether the returned atoms are still
+     *                      instantiated or not
+     * @return a collection of atomic formulas
+     */
+    public Collection<SymbolicFormula> extractAtoms(SymbolicFormula f,
+                                                    boolean uninstantiate);
 }

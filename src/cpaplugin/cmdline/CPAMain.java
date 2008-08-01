@@ -1,6 +1,7 @@
 package cpaplugin.cmdline;
 
 import java.io.File;
+import java.io.PrintWriter;
 import java.util.Collection;
 import java.util.logging.Level;
 
@@ -10,8 +11,8 @@ import org.eclipse.cdt.internal.core.dom.InternalASTServiceProvider;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.ui.IWorkbenchWindowActionDelegate;
 
-import cpaplugin.CPACheckerStatistics;
 import cpaplugin.CPAConfiguration;
+import cpaplugin.MainCPAStatistics;
 import cpaplugin.cfa.CFABuilder;
 import cpaplugin.cfa.CFAMap;
 import cpaplugin.cfa.CFASimplifier;
@@ -19,7 +20,6 @@ import cpaplugin.cfa.CPASecondPassBuilder;
 import cpaplugin.cfa.DOTBuilder;
 import cpaplugin.cfa.DOTBuilderInterface;
 import cpaplugin.cfa.objectmodel.CFAFunctionDefinitionNode;
-import cpaplugin.cfa.objectmodel.CFANode;
 import cpaplugin.cmdline.stubs.StubCodeReaderFactory;
 import cpaplugin.cmdline.stubs.StubConfiguration;
 import cpaplugin.cmdline.stubs.StubFile;
@@ -36,152 +36,172 @@ import cpaplugin.logging.CustomLogLevel;
 @SuppressWarnings("restriction")
 public class CPAMain {
 
-	public static CPAConfiguration cpaConfig;
+    public static CPAConfiguration cpaConfig;
+    public static MainCPAStatistics cpaStats;
 
-	private static ConfigurableProblemAnalysis getCPA(
-			CFAFunctionDefinitionNode node) throws CPAException {
-		return CompositeCPA.getCompositeCPA(node);
-	}
+    private static ConfigurableProblemAnalysis getCPA(
+            CFAFunctionDefinitionNode node) throws CPAException {
+        return CompositeCPA.getCompositeCPA(node);
+    }
 
-	public static void doRunAnalysis(IASTTranslationUnit ast)
-	throws Exception {
+    public static void doRunAnalysis(IASTTranslationUnit ast)
+            throws Exception {
+        
+        cpaStats = new MainCPAStatistics();
 
-		CPACheckerLogger.init();
-		CPACheckerLogger.log(CustomLogLevel.INFO, "Analysis Started");
+        CPACheckerLogger.init();
+        CPACheckerLogger.log(CustomLogLevel.INFO, "Analysis Started");
 
-		CPACheckerLogger.log(CustomLogLevel.MainApplicationLevel, 
-		"Parsing Finished");
+        CPACheckerLogger.log(CustomLogLevel.MainApplicationLevel, 
+                             "Parsing Finished");
+        
+        //long analysisStartingTime = System.currentTimeMillis();
+        cpaStats.startProgramTimer();
 
-		// Build CFA
-		CFABuilder builder = new CFABuilder();
-		ast.accept(builder);
-		CFAMap cfas = builder.getCFAs();
-		int numFunctions = cfas.size();
-		Collection<CFAFunctionDefinitionNode> cfasMapList = 
-			cfas.cfaMapIterator();
-		// Save number of total nodes
-		CPACheckerStatistics.noOfNodes = CFANode.getFinalNumberOfNodes();
+        // Build CFA
+        CFABuilder builder = new CFABuilder();
+        ast.accept(builder);
+        CFAMap cfas = builder.getCFAs();
+        int numFunctions = cfas.size();
+        Collection<CFAFunctionDefinitionNode> cfasMapList = 
+            cfas.cfaMapIterator();
 
-		CFAFunctionDefinitionNode cfa = cfas.getCFA(
-				CPAMain.cpaConfig.getProperty("analysis.entryFunction"));
-		
-		// TODO Erkan Simplify each CFA
-		if (CPAMain.cpaConfig.getBooleanValue("cfa.simplify")) {
-			CFASimplifier simplifier = new CFASimplifier();
-			simplifier.simplify(cfa);
-		}
-		
-		// Insert call and return edges and build the supergraph
-		if (CPAMain.cpaConfig.getBooleanValue("analysis.interprocedural")) {
-			CPACheckerLogger.log(CustomLogLevel.MainApplicationLevel, 
-			"Analysis is interprocedural ");
-			CPACheckerLogger.log(CustomLogLevel.MainApplicationLevel, 
-			"Adding super edges");
-			CPASecondPassBuilder spbuilder = new CPASecondPassBuilder(cfas);
-			for (CFAFunctionDefinitionNode cfaSep : cfasMapList){
-				spbuilder.insertCallEdges(cfaSep.getFunctionName());
-			}
-		} else if (CPAMain.cpaConfig.getBooleanValue(
-		"analysis.useSummaryLocations")) {
-			CPACheckerLogger.log(CustomLogLevel.MainApplicationLevel,
-			"Building Summary CFAs");
-			SummaryCFABuilder summaryBuilder = new SummaryCFABuilder(cfas);
-			cfas = summaryBuilder.buildSummary();
-			CPACheckerLogger.log(CustomLogLevel.MainApplicationLevel, "DONE");
-			cfasMapList = cfas.cfaMapIterator();
-		}
+        CFAFunctionDefinitionNode cfa = cfas.getCFA(
+                CPAMain.cpaConfig.getProperty("analysis.entryFunction"));
 
-		CPACheckerLogger.log(CustomLogLevel.MainApplicationLevel, 
-				numFunctions + " functions parsed");
+        // TODO Erkan Simplify each CFA
+        if (CPAMain.cpaConfig.getBooleanValue("cfa.simplify")) {
+            CFASimplifier simplifier = new CFASimplifier();
+            simplifier.simplify(cfa);
+        }
 
-		// Erkan: For interprocedural analysis, we start with the
-		// main function and we proceed, we don't need to traverse
-		// all functions separately
+        // Insert call and return edges and build the supergraph
+        if (CPAMain.cpaConfig.getBooleanValue("analysis.interprocedural")) {
+            CPACheckerLogger.log(CustomLogLevel.MainApplicationLevel, 
+                                 "Analysis is interprocedural ");
+            CPACheckerLogger.log(CustomLogLevel.MainApplicationLevel, 
+                                 "Adding super edges");
+            CPASecondPassBuilder spbuilder = new CPASecondPassBuilder(cfas);
+            for (CFAFunctionDefinitionNode cfa2 : cfasMapList){
+                spbuilder.insertCallEdges(cfa2.getFunctionName());
+            }
+        } else if (CPAMain.cpaConfig.getBooleanValue(
+                "analysis.useSummaryLocations")) {
+            CPACheckerLogger.log(CustomLogLevel.MainApplicationLevel,
+                    "Building Summary CFAs");
+            SummaryCFABuilder summaryBuilder = new SummaryCFABuilder(cfas);
+            cfas = summaryBuilder.buildSummary();
+            CPACheckerLogger.log(CustomLogLevel.MainApplicationLevel, "DONE");
+            cfasMapList = cfas.cfaMapIterator();
+        }
 
-		if (false) {//!CPAMain.cpaConfig.getBooleanValue("analysis.interprocedural")) {
-		} else {
+        CPACheckerLogger.log(CustomLogLevel.MainApplicationLevel, 
+                             numFunctions + " functions parsed");
 
-			if (CPAMain.cpaConfig.getBooleanValue("dot.export")) {
-				DOTBuilderInterface dotBuilder = null;
-				if (CPAMain.cpaConfig.getBooleanValue(
-				"analysis.useSummaryLocations")) {
-					dotBuilder = new SummaryDOTBuilder();
-				} else {
-					dotBuilder = new DOTBuilder();
-				}
-				String dotPath = CPAMain.cpaConfig.getProperty("dot.path");
-				dotBuilder.generateDOT(cfasMapList, cfa,
-						new File(dotPath, "dot" + "_main" + ".dot").getPath());
-			}
+        // Erkan: For interprocedural analysis, we start with the
+        // main function and we proceed, we don't need to traverse
+        // all functions separately
 
-			CPACheckerLogger.log(CustomLogLevel.MainApplicationLevel, 
-			"CPA Algorithm Called");
+        if (false) {//!CPAMain.cpaConfig.getBooleanValue("analysis.interprocedural")) {
+        } else {
 
-			ConfigurableProblemAnalysis cpa = getCPA(cfa);
+            cfa = cfas.getCFA(
+                    CPAMain.cpaConfig.getProperty("analysis.entryFunction"));
 
-			CPACheckerLogger.log(Level.INFO, "CPA Algorithm starting ... ");
-			long analysisStartTime = System.currentTimeMillis();
+            if (CPAMain.cpaConfig.getBooleanValue("dot.export")) {
+                DOTBuilderInterface dotBuilder = null;
+                if (CPAMain.cpaConfig.getBooleanValue(
+                        "analysis.useSummaryLocations")) {
+                    dotBuilder = new SummaryDOTBuilder();
+                } else {
+                    dotBuilder = new DOTBuilder();
+                }
+                String dotPath = CPAMain.cpaConfig.getProperty("dot.path");
+                dotBuilder.generateDOT(cfasMapList, cfa,
+                        new File(dotPath, "dot" + "_main" + ".dot").getPath());
+            }
 
-			CPAAlgorithm algo = new CPAAlgorithm();
-			AbstractElement initialElement = cpa.getInitialElement(cfa);
-			Collection<AbstractElement> reached = algo.CPA(cpa, initialElement);
+            CPACheckerLogger.log(CustomLogLevel.MainApplicationLevel, 
+                    "CPA Algorithm Called");
 
-			long analysisFinishTime = System.currentTimeMillis();
-			CPACheckerStatistics.totalAnalysisTime = analysisStartTime - analysisFinishTime;
+            ConfigurableProblemAnalysis cpa = getCPA(cfa);
 
-			CPACheckerLogger.log(Level.INFO, "CPA Algorithm finished ");
+            CPACheckerLogger.log(Level.INFO, "CPA Algorithm starting ... ");
+            //long startingTime = System.currentTimeMillis();
+            cpaStats.startAnalysisTimer();
 
-			CPACheckerLogger.log(CustomLogLevel.MainApplicationLevel, 
-					numFunctions + "Reached CPA Size: " + reached.size() + 
-					" for function: " + cfa.getFunctionName());
+            CPAAlgorithm algo = new CPAAlgorithm();
+            AbstractElement initialElement = cpa.getInitialElement(cfa);
+            Collection<AbstractElement> reached = algo.CPA(cpa, initialElement);
 
-			for (AbstractElement element : reached) {
-				System.out.println(element.toString ());
-			}
+//            long endingTime = System.currentTimeMillis();
+//            long totalTimeInMilis = endingTime - startingTime;
+//            long totalAbsoluteTimeMillis = endingTime - analysisStartingTime;
+            cpaStats.stopAnalysisTimer();
 
-			if(CPAMain.cpaConfig.getBooleanValue("analysis.saveStatistics")){
-				CPACheckerStatistics.printStatictics();
-			}
-		}
-	}
+            CPACheckerLogger.log(Level.INFO, "CPA Algorithm finished ");
 
-	/**
-	 * The action has been activated. The argument of the method represents the
-	 * 'real' action sitting in the workbench UI.
-	 * 
-	 * @see IWorkbenchWindowActionDelegate#run
-	 */
-	public static void main(String[] args) {
+            CPACheckerLogger.log(CustomLogLevel.MainApplicationLevel, 
+                    numFunctions + "Reached CPA Size: " + reached.size() + 
+                    " for function: " + cfa.getFunctionName());
 
-		try {
-			cpaConfig = new CPAConfiguration(args);
-			String[] names = 
-				cpaConfig.getPropertiesArray("analysis.programNames");
-			if (names == null || names.length != 1) {
-				throw new Exception(
-				"One non-option argument expected (filename)!");
-			}
-			IFile currentFile = new StubFile(names[0]);
+            for (AbstractElement element : reached) {
+                System.out.println(element.toString ());
+            }
+//            System.out.println("Total Time Elapsed " + 
+//                    (int) totalTimeInMilis / (1000 * 60 * 60) + " hr, " +  
+//                    (int) totalTimeInMilis / (1000 * 60) + " min, " + 
+//                    (int) totalTimeInMilis / 1000 + " sec, " + 
+//                    (int) totalTimeInMilis % 1000 + " ms");
+//            System.out.println(
+//                    "Total Time Elapsed including CFA construction " + 
+//                    (int) totalAbsoluteTimeMillis / (1000 * 60 * 60) + " hr, " +  
+//                    (int) totalAbsoluteTimeMillis / (1000 * 60) + " min, " + 
+//                    (int) totalAbsoluteTimeMillis / 1000 + " sec, " + 
+//                    (int) totalAbsoluteTimeMillis % 1000 + " ms");
+//            System.out.println("Total Number of SMTSolver calls: " + 
+//                    MathSatWrapper.noOfSMTSolverCalls);
+            cpaStats.printStatistics(new PrintWriter(System.out));
+        }
+    }
 
-			// Get Eclipse to parse the C in the current file
-			IASTTranslationUnit ast = null;
-			try {
-				IASTServiceProvider p = new InternalASTServiceProvider();
-				ast = p.getTranslationUnit(currentFile, 
-						StubCodeReaderFactory.getInstance(), 
-						new StubConfiguration());
-			} catch (Exception e) {
-				e.printStackTrace();
-				e.getMessage();
+    /**
+     * The action has been activated. The argument of the method represents the
+     * 'real' action sitting in the workbench UI.
+     * 
+     * @see IWorkbenchWindowActionDelegate#run
+     */
+    public static void main(String[] args) {
 
-				System.out.println("Eclipse had trouble parsing C");
-				return;
-			}
+        try {
+            cpaConfig = new CPAConfiguration(args);
+            String[] names = 
+                cpaConfig.getPropertiesArray("analysis.programNames");
+            if (names == null || names.length != 1) {
+                throw new Exception(
+                        "One non-option argument expected (filename)!");
+            }
+            IFile currentFile = new StubFile(names[0]);
 
-			doRunAnalysis(ast);
-		} catch (Exception e) {
-			System.out.println(e.getMessage());
-			e.printStackTrace();
-		}
-	}    
+            // Get Eclipse to parse the C in the current file
+            IASTTranslationUnit ast = null;
+            try {
+                IASTServiceProvider p = new InternalASTServiceProvider();
+                ast = p.getTranslationUnit(currentFile, 
+                        StubCodeReaderFactory.getInstance(), 
+                        new StubConfiguration());
+            } catch (Exception e) {
+                e.printStackTrace();
+                e.getMessage();
+
+                System.out.println("Eclipse had trouble parsing C");
+                return;
+            }
+
+            doRunAnalysis(ast);
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+            e.printStackTrace();
+        }
+    }    
 }

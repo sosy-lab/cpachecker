@@ -6,6 +6,7 @@ import java.util.List;
 import cpaplugin.cfa.objectmodel.CFAEdge;
 import cpaplugin.cfa.objectmodel.CFAErrorNode;
 import cpaplugin.cfa.objectmodel.CFANode;
+import cpaplugin.cpa.common.CPATransferException;
 import cpaplugin.cpa.common.interfaces.AbstractDomain;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.TransferRelation;
@@ -69,7 +70,7 @@ public class SymbPredAbstTransfer implements TransferRelation {
     }
 
     public AbstractElement getAbstractSuccessor(AbstractElement element,
-                                                CFAEdge cfaEdge) {
+                                                CFAEdge cfaEdge) throws CPATransferException {
         SymbPredAbstElement e = (SymbPredAbstElement)element;
 
         CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel, 
@@ -98,7 +99,7 @@ public class SymbPredAbstTransfer implements TransferRelation {
     }
 
     public List<AbstractElement> getAllAbstractSuccessors(
-            AbstractElement element) throws CPAException {
+            AbstractElement element) throws CPAException, CPATransferException {
         SymbPredAbstElement e = (SymbPredAbstElement)element;
         
         CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel, 

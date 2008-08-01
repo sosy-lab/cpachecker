@@ -1,1 +1,5 @@
 .hg*
+build.properties
+META-INF/*
+lib*
+.classpath

@@ -29,4 +29,8 @@ public class MathsatSymbolicFormula implements SymbolicFormula {
     }
     
     public long getTerm() { return msatTerm; }
+    
+    public int hashCode() {
+        return (int)msatTerm;
+    }
 }

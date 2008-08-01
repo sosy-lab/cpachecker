@@ -348,7 +348,7 @@ public class CFABuilder extends ASTVisitor
 
 		CFANode prevNode = locStack.pop ();
 		CFANode labelNode = null; // AG
-		if (labelName.startsWith("error")) {
+		if (labelName.toLowerCase().startsWith("error")) {
 		    // AG - we want to know which are the error locations: each
 		    // node with a label starting with "error"
 		    labelNode = new CFAErrorNode(

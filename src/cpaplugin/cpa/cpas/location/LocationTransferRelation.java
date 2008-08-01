@@ -6,6 +6,7 @@ import java.util.List;
 import cpaplugin.cfa.objectmodel.CFAEdge;
 import cpaplugin.cfa.objectmodel.CFANode;
 import cpaplugin.cfa.objectmodel.c.CallToReturnEdge;
+import cpaplugin.cpa.common.CPATransferException;
 import cpaplugin.cpa.common.interfaces.AbstractDomain;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.TransferRelation;
@@ -24,7 +25,7 @@ public class LocationTransferRelation implements TransferRelation
         return locationDomain;
     }
 
-    public AbstractElement getAbstractSuccessor (AbstractElement element, CFAEdge cfaEdge)
+    public AbstractElement getAbstractSuccessor (AbstractElement element, CFAEdge cfaEdge) throws CPATransferException
     {
         LocationElement inputElement = (LocationElement) element;
         CFANode node = inputElement.getLocationNode ();
@@ -47,7 +48,7 @@ public class LocationTransferRelation implements TransferRelation
         return locationDomain.getBottomElement ();
     }
 
-    public List<AbstractElement> getAllAbstractSuccessors (AbstractElement element)
+    public List<AbstractElement> getAllAbstractSuccessors (AbstractElement element) throws CPATransferException
     {
         LocationElement inputElement = (LocationElement) element;
         CFANode node = inputElement.getLocationNode ();

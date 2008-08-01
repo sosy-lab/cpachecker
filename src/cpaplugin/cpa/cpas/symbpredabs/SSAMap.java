@@ -34,4 +34,17 @@ public class SSAMap {
     public Collection<String> allVariables() {
         return repr.keySet();
     }
+    
+    public String toString() {
+        StringBuffer buf = new StringBuffer();
+        buf.append("{ ");
+        for (String s : allVariables()) {
+            buf.append(s);
+            buf.append("@");
+            buf.append(repr.get(s));
+            buf.append(" ");
+        }
+        buf.append("}");
+        return buf.toString();
+    }
 }

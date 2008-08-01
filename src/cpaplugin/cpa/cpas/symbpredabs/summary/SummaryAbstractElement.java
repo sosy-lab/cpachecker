@@ -63,6 +63,10 @@ public class SummaryAbstractElement
         }
     }
     
+    public int hashCode() {
+        return elemId;
+    }
+    
     public String toString() {
         return "SE<" + Integer.toString(
                 summaryLocation.getInnerNode().getNodeNumber()) + ">(" +

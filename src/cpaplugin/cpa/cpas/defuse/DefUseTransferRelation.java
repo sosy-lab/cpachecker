@@ -14,6 +14,7 @@ import cpaplugin.cfa.objectmodel.c.DeclarationEdge;
 import cpaplugin.cfa.objectmodel.c.MultiDeclarationEdge;
 import cpaplugin.cfa.objectmodel.c.MultiStatementEdge;
 import cpaplugin.cfa.objectmodel.c.StatementEdge;
+import cpaplugin.cpa.common.CPATransferException;
 import cpaplugin.cpa.common.interfaces.AbstractDomain;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.TransferRelation;
@@ -97,7 +98,7 @@ public class DefUseTransferRelation implements TransferRelation
         }
     }
 
-    public AbstractElement getAbstractSuccessor (AbstractElement element, CFAEdge cfaEdge)
+    public AbstractElement getAbstractSuccessor (AbstractElement element, CFAEdge cfaEdge) throws CPATransferException
     {
         DefUseElement defUseElement = (DefUseElement) element;
 
@@ -156,7 +157,7 @@ public class DefUseTransferRelation implements TransferRelation
         return defUseElement;
     }
 
-    public List<AbstractElement> getAllAbstractSuccessors (AbstractElement element) throws CPAException
+    public List<AbstractElement> getAllAbstractSuccessors (AbstractElement element) throws CPAException, CPATransferException
     {
         throw new CPAException ("Cannot get all abstract successors from non-location domain");
     }

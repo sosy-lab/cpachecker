@@ -65,6 +65,10 @@ public class SymbPredAbstElement
         return getId() == ((SymbPredAbstElement)other).getId();
     }
     
+    public int hashCode() {
+        return getId();
+    }
+    
     public String toString() {
         
         if (CPACheckerLogger.getLevel() > LazyLogger.DEBUG_1.intValue()) {

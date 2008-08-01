@@ -1,31 +1,22 @@
 package cpaplugin.cpa.cpas.symbpredabs.summary;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Vector;
 
 import cpaplugin.cfa.objectmodel.CFAFunctionDefinitionNode;
 import cpaplugin.cfa.objectmodel.CFANode;
-import cpaplugin.cmdline.CPAMain;
 import cpaplugin.cpa.common.interfaces.AbstractDomain;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.ConfigurableProblemAnalysis;
 import cpaplugin.cpa.common.interfaces.MergeOperator;
 import cpaplugin.cpa.common.interfaces.StopOperator;
 import cpaplugin.cpa.common.interfaces.TransferRelation;
-import cpaplugin.cpa.cpas.symbpredabs.FixedPredicateMap;
 import cpaplugin.cpa.cpas.symbpredabs.Pair;
-import cpaplugin.cpa.cpas.symbpredabs.Predicate;
 import cpaplugin.cpa.cpas.symbpredabs.PredicateMap;
 import cpaplugin.cpa.cpas.symbpredabs.SSAMap;
 import cpaplugin.cpa.cpas.symbpredabs.SymbolicFormula;
 import cpaplugin.cpa.cpas.symbpredabs.UnrecognizedCFAEdgeException;
-import cpaplugin.cpa.cpas.symbpredabs.mathsat.MathsatPredicateParser;
+import cpaplugin.cpa.cpas.symbpredabs.UpdateablePredicateMap;
 import cpaplugin.cpa.cpas.symbpredabs.mathsat.summary.BDDMathsatSummaryAbstractManager;
 import cpaplugin.cpa.cpas.symbpredabs.mathsat.summary.MathsatSummaryFormulaManager;
 import cpaplugin.logging.CPACheckerLogger;
@@ -51,19 +42,19 @@ public class SummaryCPA implements ConfigurableProblemAnalysis {
         mgr = new MathsatSummaryFormulaManager();
         amgr = new BDDMathsatSummaryAbstractManager();
         
-        MathsatPredicateParser p = new MathsatPredicateParser(mgr, amgr);
-        
-        Collection<Predicate> preds = null;
-        try {
-            String pth = CPAMain.cpaConfig.getProperty("predicates.path");
-            File f = new File(pth, "predicates.msat");
-            InputStream in = new FileInputStream(f);
-            preds = p.parsePredicates(in);
-        } catch (IOException e) {
-            e.printStackTrace();
-            preds = new Vector<Predicate>();
-        }
-        pmap = new FixedPredicateMap(preds);        
+//        MathsatPredicateParser p = new MathsatPredicateParser(mgr, amgr);        
+//        Collection<Predicate> preds = null;
+//        try {
+//            String pth = CPAMain.cpaConfig.getProperty("predicates.path");
+//            File f = new File(pth, "predicates.msat");
+//            InputStream in = new FileInputStream(f);
+//            preds = p.parsePredicates(in);
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//            preds = new Vector<Predicate>();
+//        }
+//        pmap = new FixedPredicateMap(preds);        
+        pmap = new UpdateablePredicateMap();
         
         summaryToFormulaMap = 
             new HashMap<SummaryCFANode, 
@@ -80,12 +71,23 @@ public class SummaryCPA implements ConfigurableProblemAnalysis {
         this();
     }
     
+//    public CPAStatistics getStatistics() {
+//        return new CPAStatistics() {
+//            public String getName() {
+//                return "TEST SUMMARY CPA STATS";
+//            }
+//
+//            public void printStatistics(PrintWriter out) {
+//            }
+//        };
+//    }
     
+    @Override
     public AbstractDomain getAbstractDomain() {
         return domain;
     }
 
-    
+    @Override
     public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
         CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel, 
                 "Getting initial element from node: " + node.toString());
@@ -98,17 +100,17 @@ public class SummaryCPA implements ConfigurableProblemAnalysis {
         return e;
     }
 
-    
+    @Override
     public MergeOperator getMergeOperator() {
         return merge;
     }
 
-    
+    @Override
     public StopOperator getStopOperator() {
         return stop;
     }
 
-    
+    @Override
     public TransferRelation getTransferRelation() {
         return trans;
     }
@@ -140,6 +142,7 @@ public class SummaryCPA implements ConfigurableProblemAnalysis {
             }
             return summaryToFormulaMap.get(succLoc);
         } catch (UnrecognizedCFAEdgeException e) {
+            e.printStackTrace();
             return null;
         }
     }

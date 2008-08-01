@@ -34,10 +34,12 @@ public class CPACheckerLogger {
                 } else if (configVal.toLowerCase().equals("finest")) {
                     return new ConfigLevel(Level.FINEST.intValue());
                 } else {
-                    int val = Level.OFF.intValue();
+                    int val = Level.ALL.intValue();
                     try {
                         val = Integer.parseInt(configVal);
                     } catch (NumberFormatException e) {
+                        e.printStackTrace();
+                        System.exit(1);
                     }
                     return new ConfigLevel(val);
                 }
@@ -54,10 +56,10 @@ public class CPACheckerLogger {
 	public static void init(){
 		// TODO read from config // Array that includes levels to include
 		ArrayList<String> levelList = new ArrayList<String>();
-		levelList.add("MainApplicationLevel");
-		levelList.add("CentralCPAAlgorithmLevel");
+//		levelList.add("MainApplicationLevel");
+//		levelList.add("CentralCPAAlgorithmLevel");
 		levelList.add("SpecificCPALevel");
-		levelList.add("ExternalToolLevel");
+//		levelList.add("ExternalToolLevel");
 		CustomLogLevel.initializeLevels(levelList);
 		
 		try {

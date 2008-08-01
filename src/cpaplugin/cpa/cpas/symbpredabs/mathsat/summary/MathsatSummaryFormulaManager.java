@@ -146,5 +146,5 @@ public class MathsatSummaryFormulaManager extends MathsatSymbolicFormulaManager
         }
         return ret;
     }
-
+    
 }

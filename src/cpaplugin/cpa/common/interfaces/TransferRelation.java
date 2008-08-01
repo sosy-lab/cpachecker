@@ -3,6 +3,7 @@ package cpaplugin.cpa.common.interfaces;
 import java.util.List;
 
 import cpaplugin.cfa.objectmodel.CFAEdge;
+import cpaplugin.cpa.common.CPATransferException;
 import cpaplugin.exceptions.CPAException;
 
 /**
@@ -28,7 +29,8 @@ public interface TransferRelation
      * @param cfaEdge the edge from one location of CFA to the other
      * @return updated abstract element
      */
-    public AbstractElement getAbstractSuccessor (AbstractElement element, CFAEdge cfaEdge);
+    public AbstractElement getAbstractSuccessor (AbstractElement element, CFAEdge cfaEdge) 
+        throws CPATransferException;
     /** Gets all successors of the current element. This method returns a non-null list
      * only if the abstract element contains traversal information such as a CFA or CFG
      * @param element abstract element on current state
@@ -36,5 +38,6 @@ public interface TransferRelation
      * @throws CPAException if the element does not contain any traversal information such as nodes
      * and edges on CFA.
      */
-    public List<AbstractElement> getAllAbstractSuccessors (AbstractElement element) throws CPAException;
+    public List<AbstractElement> getAllAbstractSuccessors (AbstractElement element) 
+        throws CPAException, CPATransferException;
 }

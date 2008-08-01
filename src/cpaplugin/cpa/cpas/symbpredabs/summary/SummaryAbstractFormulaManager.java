@@ -1,7 +1,7 @@
 package cpaplugin.cpa.cpas.symbpredabs.summary;
 
 import java.util.Collection;
-import java.util.List;
+import java.util.Deque;
 
 import cpaplugin.cpa.cpas.symbpredabs.AbstractFormula;
 import cpaplugin.cpa.cpas.symbpredabs.AbstractFormulaManager;
@@ -15,5 +15,6 @@ public interface SummaryAbstractFormulaManager extends AbstractFormulaManager {
             Collection<Predicate> predicates);
 
     public CounterexampleTraceInfo buildCounterexampleTrace(
-            SummaryFormulaManager mgr, List<SummaryCFANode> abstractTrace);
+            SummaryFormulaManager mgr, 
+            Deque<SummaryAbstractElement> abstractTrace);
 }

@@ -46,7 +46,7 @@ public class SummaryStopOperator implements StopOperator {
         SummaryAbstractElement e2 = (SummaryAbstractElement)reachedElement;
         
         if (e1.getLocation().equals(e2.getLocation())) {
-            LazyLogger.log(CustomLogLevel.SpecificCPALevel, 
+            LazyLogger.log(LazyLogger.DEBUG_4, 
                     "Checking Coverage of element: ", element);
 
             SummaryCPA cpa = domain.getCPA();
@@ -58,8 +58,8 @@ public class SummaryStopOperator implements StopOperator {
             boolean ok = amgr.entails(e1.getAbstraction(), e2.getAbstraction());
 
             if (ok) {
-                LazyLogger.log(CustomLogLevel.SpecificCPALevel, 
-                               "YES, covered by: ", e2);
+                LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+                               "Element: ", element, " COVERED by: ", e2);
             } else {
                 LazyLogger.log(CustomLogLevel.SpecificCPALevel,
                                "NO, not covered");
