@@ -4,6 +4,7 @@ import java.util.List;
 
 import octagon.LibraryAccess;
 import octagon.Num;
+import octagon.VariableMap;
 
 import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTCastExpression;
@@ -12,6 +13,7 @@ import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression;
 import org.eclipse.cdt.core.dom.ast.IASTIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
+import org.eclipse.cdt.core.dom.ast.IASTPointerOperator;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 
 import cpaplugin.cfa.objectmodel.CFAEdge;
@@ -266,12 +268,13 @@ public class OctTransferRelation implements TransferRelation{
 	 */
 	private void handleDeclaration(OctElement octElement,
 			IASTDeclarator[] declarators, CFAEdge cfaEdge) {
-
 		for (IASTDeclarator declarator : declarators)
 		{
 			if(declarator != null){
 				// get the variable name in the declarator
 				String varName = declarator.getName().toString();
+				// get pointer operators of the declaration
+				IASTPointerOperator[] pointerOps = declarator.getPointerOperators();
 				// get the function name, we need this because there is a unique
 				// set of variables saved for each function
 				String functionName = cfaEdge.getPredecessor().getFunctionName();
@@ -530,7 +533,7 @@ public class OctTransferRelation implements TransferRelation{
 	 * @param isRightVarPos sign of the right variable, if variable is -a, then false
 	 * @param valueOfLiteral the value of the second variable if it is a literal, e.g. a < 9, alternatively can be used to represent cases such as a < b + 6, then the value will be 6
 	 * @throws OctagonTransferException
-	 * @see cpaplugin.cpa.cpas.octagon.VariableMap
+	 * @see octagon.VariableMap
 	 */
 	private void propagateBooleanExpression(OctElement octElement, int opType,
 			int leftVariableId, int rightVariableId, boolean isLeftVarPos, 
@@ -612,7 +615,7 @@ public class OctTransferRelation implements TransferRelation{
 	 * @param isFirstVarPos sign of the left variable, if variable is -a, then false
 	 * @param isSecondVarPos sign of the right variable, if variable is -a, then false
 	 * @param valueOfLiteral the value of the second variable if it is a literal, e.g. a < 9, alternatively can be used to represent cases such as a < b + 6, then the value will be 6
-	 * @see cpaplugin.cpa.cpas.octagon.VariableMap
+	 * @see octagon.VariableMap
 	 * @see octagon.LibraryAccess
 	 */
 	private void handleBooleanExpression(OctElement octElement,
@@ -659,7 +662,7 @@ public class OctTransferRelation implements TransferRelation{
 	 * @param isFirstVarPos sign of the left variable, if variable is -a, then false
 	 * @param isSecondVarPos sign of the right variable, if variable is -a, then false
 	 * @param valueOfLiteral the value of the second variable if it is a literal, e.g. a < 9, alternatively can be used to represent cases such as a < b + 6, then the value will be 6
-	 * @see cpaplugin.cpa.cpas.octagon.VariableMap
+	 * @see octagon.VariableMap
 	 * @see octagon.LibraryAccess
 	 */
 	private void handleNonEquality(OctElement octElement,

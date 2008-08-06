@@ -1,17 +1,30 @@
 package cpaplugin.cpa.cpas.octagon;
 
+import octagon.FunctionMap;
 import octagon.LibraryAccess;
 import octagon.Octagon;
+import octagon.VariableMap;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 
+/**
+ * An element of octagon abstract domain. This element contains an {@link Octagon} which 
+ * is the concrete representation of the octagon and a {@link FunctionMap} which
+ * provides a mapping from each function to its variables and variable IDs.
+ * 
+ * @author erkan
+ *
+ */
 public class OctElement implements AbstractElement{
 	
-	public Octagon oct;
-	private VariableMap variables;
+	private Octagon oct;
+	private FunctionMap variables;
 	
+	/**
+	 * Class constructor.
+	 */
 	public OctElement(){
 		oct = LibraryAccess.empty(1);
-		this.variables = new VariableMap(0);
+		this.variables = new FunctionMap();
 	}
 	
 	public OctElement(Octagon oct, VariableMap varMap){
