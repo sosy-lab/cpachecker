@@ -13,7 +13,7 @@ public class LibraryAccess {
 		Octagon oct1 = o1.getOctagon();
 		Octagon oct2 = o2.getOctagon();
 		Octagon res = or.J_widening(oct1, oct2, true, 0);
-		return new OctElement(res, o1.getVarMap());
+		return new OctElement(res, o1.getMap());
 	}
 	
 	public static int getDim(OctElement octElm){
@@ -28,7 +28,7 @@ public class LibraryAccess {
 		Octagon oct1 = o1.getOctagon();
 		Octagon oct2 = o2.getOctagon();
 		Octagon res = or.J_union(oct1, oct2, true);
-		return new OctElement(res, o1.getVarMap());
+		return new OctElement(res, o1.getMap());
 	}
 	
 	// creating an empty octagon, considered as the bottom element
@@ -70,26 +70,26 @@ public class LibraryAccess {
 	public static OctElement forget(OctElement elem, int var) {
 		Octagon oct1 = elem.getOctagon();
 		Octagon res = or.J_forget(oct1, var, true);
-		return new OctElement(res, elem.getVarMap());
+		return new OctElement(res, elem.getMap());
 	}
 
 	public static OctElement assignVar(OctElement octElement, int var,
 			Num[] array) {
 		Octagon oct = octElement.getOctagon();
 		Octagon res = or.J_assingVar(oct, var, array, true);
-		return new OctElement(res, octElement.getVarMap());
+		return new OctElement(res, octElement.getMap());
 	}
 
 	public static OctElement addDimension(OctElement octElement, int numOfVars) {
 		Octagon oct = octElement.getOctagon();
 		Octagon res = or.J_addDimenensionAndEmbed(oct, numOfVars, true);
-		return new OctElement(res, octElement.getVarMap());
+		return new OctElement(res, octElement.getMap());
 	}
 	
 	public static OctElement removeDimension(OctElement octElement, int numOfVars) {
 		Octagon oct = octElement.getOctagon();
 		Octagon res = or.J_removeDimenension(oct, numOfVars, true);
-		return new OctElement(res, octElement.getVarMap());
+		return new OctElement(res, octElement.getMap());
 	}
 	
 	public static OctElement addConstraint(OctElement octElement,
@@ -97,7 +97,7 @@ public class LibraryAccess {
 		Octagon oct = octElement.getOctagon();
 		Octagon res = or.J_addConstraint(oct, array, true);
 		//System.out.println(res);
-		return new OctElement(res, octElement.getVarMap());
+		return new OctElement(res, octElement.getMap());
 	}
 	
 	

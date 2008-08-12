@@ -127,16 +127,11 @@ public class CPAMain {
             ConfigurableProblemAnalysis cpa = getCPA(cfa);
 
             CPACheckerLogger.log(Level.INFO, "CPA Algorithm starting ... ");
-            //long startingTime = System.currentTimeMillis();
             cpaStats.startAnalysisTimer();
 
             CPAAlgorithm algo = new CPAAlgorithm();
             AbstractElement initialElement = cpa.getInitialElement(cfa);
             Collection<AbstractElement> reached = algo.CPA(cpa, initialElement);
-
-//            long endingTime = System.currentTimeMillis();
-//            long totalTimeInMilis = endingTime - startingTime;
-//            long totalAbsoluteTimeMillis = endingTime - analysisStartingTime;
             cpaStats.stopAnalysisTimer();
 
             CPACheckerLogger.log(Level.INFO, "CPA Algorithm finished ");
@@ -148,19 +143,6 @@ public class CPAMain {
             for (AbstractElement element : reached) {
                 System.out.println(element.toString ());
             }
-//            System.out.println("Total Time Elapsed " + 
-//                    (int) totalTimeInMilis / (1000 * 60 * 60) + " hr, " +  
-//                    (int) totalTimeInMilis / (1000 * 60) + " min, " + 
-//                    (int) totalTimeInMilis / 1000 + " sec, " + 
-//                    (int) totalTimeInMilis % 1000 + " ms");
-//            System.out.println(
-//                    "Total Time Elapsed including CFA construction " + 
-//                    (int) totalAbsoluteTimeMillis / (1000 * 60 * 60) + " hr, " +  
-//                    (int) totalAbsoluteTimeMillis / (1000 * 60) + " min, " + 
-//                    (int) totalAbsoluteTimeMillis / 1000 + " sec, " + 
-//                    (int) totalAbsoluteTimeMillis % 1000 + " ms");
-//            System.out.println("Total Number of SMTSolver calls: " + 
-//                    MathSatWrapper.noOfSMTSolverCalls);
             cpaStats.printStatistics(new PrintWriter(System.out));
         }
     }

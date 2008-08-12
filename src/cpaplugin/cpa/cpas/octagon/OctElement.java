@@ -1,65 +1,84 @@
 package cpaplugin.cpa.cpas.octagon;
 
-import octagon.FunctionMap;
+import java.util.HashMap;
+import java.util.Set;
+
 import octagon.LibraryAccess;
 import octagon.Octagon;
-import octagon.VariableMap;
+import octagon.Variable;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 
 /**
  * An element of octagon abstract domain. This element contains an {@link Octagon} which 
- * is the concrete representation of the octagon and a {@link FunctionMap} which
- * provides a mapping from each function to its variables and variable IDs.
+ * is the concrete representation of the octagon and a map which
+ * provides a mapping from variable names to variables. 
+ * see {@link Variable}.
  * 
  * @author erkan
  *
  */
 public class OctElement implements AbstractElement{
-	
+
 	private Octagon oct;
-	private FunctionMap variables;
-	
+	// mapping from variable name to its variable object
+	private HashMap<String, Variable> variables;
+
 	/**
-	 * Class constructor.
+	 * Class constructor creating a new octagon and an empty variables list.
 	 */
 	public OctElement(){
 		oct = LibraryAccess.empty(1);
-		this.variables = new FunctionMap();
+		this.variables = new HashMap<String, Variable>();
 	}
-	
-	public OctElement(Octagon oct, VariableMap varMap){
+
+	/**
+	 * Class constructor with an existing octagon and map to variables.
+	 * @param oct Octagon.
+	 * @param variables Variables map.
+	 */
+	public OctElement(Octagon oct, HashMap<String, Variable> variables){
 		this.oct = oct;
-		this.variables = varMap; 
+		this.variables = variables; 
 	}
-	
-	public Octagon getOctagon(){
-		return this.oct;
-	}
-	
+
+	/* (non-Javadoc)
+	 * @see java.lang.Object#clone()
+	 */
 	public OctElement clone(){
-		VariableMap vp = new VariableMap(variables.getSize());
-		vp = variables.clone();
-		return new OctElement(oct, vp);
+		HashMap<String, Variable> newMap = new HashMap<String, Variable>();
+		Set<String> keys = variables.keySet();
+		for(String key:keys){
+			Variable var = variables.get(key);
+			newMap.put(key, var);
+		}
+		return new OctElement(oct, newMap);
 	}
-	
+
+	/**
+	 * Update the element with a new octagon element. This method is accessed frequently by {@link OctTransferRelation}
+	 * to update the current region.
+	 * @param ent
+	 */
 	public void update(OctElement ent){
 		this.oct = ent.oct;
 		this.variables = ent.variables;
 	}
-	
+
 	@Override
 	public boolean equals (Object other)
-    {
-        if (this == other)
-            return true;
-        
-        if (!(other instanceof OctElement))
-            return false;
+	{
+		if (this == other)
+			return true;
 
-        OctElement otherOctagon = (OctElement) other;
-        return LibraryAccess.isEqual(this, otherOctagon);
-    }
-	
+		if (!(other instanceof OctElement))
+			return false;
+
+		OctElement otherOctagon = (OctElement) other;
+		// we check for equality on native library because it optimizes octagons first and
+		// check for equality
+		return LibraryAccess.isEqual(this, otherOctagon);
+	}
+
 	@Override
 	public String toString() {
 
@@ -75,7 +94,8 @@ public class OctElement implements AbstractElement{
 		}
 
 		for (int i=0; i<oct.getDimension(); i++) {
-			String varName = variables.getVarName(i);
+			Variable var = variables.get(i);
+			String varName = var.getVariableName() + "@" + var.getFunctionName(); 
 			if (oct.getMatrix()[oct.matPos(2*i,2*i)].f > 0) {
 				s = s + "\n  " + varName + "-" + varName + " <= " + oct.getMatrix()[oct.matPos(2*i, 2*i)].f;
 			}
@@ -94,8 +114,11 @@ public class OctElement implements AbstractElement{
 
 		for (int i=0; i<oct.getDimension(); i++){
 			for (int j=i+1; j<oct.getDimension(); j++) {
-				String iVarName = variables.getVarName(i);
-				String jVarName = variables.getVarName(j);
+				Variable ivar = variables.get(i);
+				String iVarName = ivar.getVariableName() + "@" + ivar.getFunctionName();
+				Variable jvar = variables.get(j);
+				String jVarName = jvar.getVariableName() + "@" + jvar.getFunctionName();
+				
 				if((oct.getMatrix()[oct.matPos(2*j,2*i)].f != Double.NEGATIVE_INFINITY) &&
 						(oct.getMatrix()[oct.matPos(2*j,2*i)].f != Double.POSITIVE_INFINITY)){
 					s = s + "\n  " + iVarName + "-" + jVarName +" <= " + (oct.getMatrix()[oct.matPos(2*j,2*i)].f);
@@ -119,50 +142,103 @@ public class OctElement implements AbstractElement{
 		}
 		s = s + "\n";
 		return s;
-	
+
 	}
 
+	/**
+	 * Add a new variable to the list of variables.
+	 * @param varName Name of the variable.
+	 * @param funcName Name of the function.
+	 */
 	public void addVar(String varName, String funcName) {
-		variables.addVar(varName, funcName);
-	}
-	
-	public void removeVar(String varName, String functionName) {
-		variables.removeVar(varName, functionName);
+		Variable variable = new Variable(varName, funcName, variables.size());
+		variables.put(varName, variable);
 	}
 
+	/**
+	 * Remove a variable from the list by its name.
+	 * @param varName
+	 */
+	public void removeVar(String varName) {
+		Variable var = getVariable(varName);
+		variables.remove(var);
+	}
+	
+	/**
+	 * Retrieve a variable by its name.
+	 * @param varName Name of the variable.
+	 * @return the variable object.
+	 */
+	public Variable getVariable(String varName){
+		return variables.get(varName);
+	}
+
+	/**
+	 * Total number of variables.
+	 * @return
+	 */
 	public int getNumberOfVars() {
-		return variables.getSize();
+		return variables.size();
 	}
 
-	public int getVarId(String varName, String functionName) {
-		return variables.getVarId(varName, functionName);
+	/**
+	 * Get the id of a variable by its name.
+	 * @param varName Name of the variable.
+	 * @return id of the variable.
+	 */
+	public int getVarId(String varName) {
+		Variable var = getVariable(varName);
+		Integer in = variables.get(var).getId();
+		int i = in.intValue();
+		return i;
 	}
 
-	public VariableMap getVarMap() {
-		return this.variables;
-	}
+//	public boolean contains(String varName) {
+//		return variables.containsKey(varName);
+//	}
 
-	public boolean contains(String varName, String functionName) {
-		return variables.contains(varName, functionName);
-	}
-
-	public int removeVariablesOfFunction(String fname) {
-		return variables.removeVariablesOfFunction(fname);
-	}
-	
+	/** Is octagon empty?
+	 * @return true if octagon is empty, false o.w.
+	 */
 	public boolean isEmpty(){
 		return LibraryAccess.isEmpty(this);
 	}
-
-//	public void addVariablesFrom(OctElement octEl1) {
-//		VariableMap oct1Map = octEl1.getVarMap();
-//		for(int i=0; i<oct1Map.getSize(); i++){
-//			String s = oct1Map.getVarName(i);
-//			if(!this.variables.contains(s)){
-//				this.update(LibraryAccess.addDimension(this, 1));
-//				this.addVar(s);
-//			}
-//		}
-//	}
 	
+	/**
+	 * Retrieves the octagon of this element.
+	 * @return the octagon.
+	 */
+	public Octagon getOctagon(){
+		return oct;
+	}
+	
+	/**
+	 * Retrieve the map of variables.
+	 * @return map of variables.
+	 */
+	public HashMap getMap(){
+		return variables;
+	}
+
+	/**
+	 * Asks if the variable list contains a variable.
+	 * @param varName Name of the variable.
+	 * @return true if the list contains variable, false o.w.
+	 */
+	public boolean contains(String varName) {
+		return variables.containsKey(varName);
+	}
+
+	// TODO fix this
+//	public void addVariablesFrom(OctElement octEl1) {
+//	VariableMap oct1Map = octEl1.getVarMap();
+//	for(int i=0; i<oct1Map.getSize(); i++){
+//	String s = oct1Map.getVarName(i);
+//	if(!this.variables.contains(s)){
+//	this.update(LibraryAccess.addDimension(this, 1));
+//	this.addVar(s);
+//	}
+//	}
+//	}
+
 }

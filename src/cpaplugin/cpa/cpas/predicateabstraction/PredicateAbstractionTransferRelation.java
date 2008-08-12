@@ -293,7 +293,7 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 		if(functionName.equals(CPAMain.cpaConfig.getProperty("analysis.entryFunction"))){
 			return;
 		}
-
+		
 		if(expression instanceof IASTUnaryExpression){
 			IASTUnaryExpression unaryExp = (IASTUnaryExpression)expression;
 			if(unaryExp.getOperator() == IASTUnaryExpression.op_bracketedPrimary){

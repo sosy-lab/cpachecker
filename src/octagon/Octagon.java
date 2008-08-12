@@ -20,44 +20,21 @@ public class Octagon {
 		return dimension;
 	}
 
-	public void setDimension(int dimension) {
-		this.dimension = dimension;
-	}
-
 	public int getRef() {
 		return ref;
-	}
-
-	public void setRef(int ref) {
-		this.ref = ref;
 	}
 
 	public int getState() {
 		return state;
 	}
 
-	public void setState(int state) {
-		this.state = state;
-	}
-
 	public Octagon getClosed() {
 		return closed;
-	}
-
-	public void setClosed(Octagon closed) {
-		this.closed = closed;
 	}
 
 	public Num[] getMatrix() {
 		return matrix;
 	}
-
-	public void setMatrix(Num[] matrix) {
-		this.matrix = matrix;
-	}
-
-	//@Override
-	//public String toString() {,,,}
 
 	public String getContents(){
 		String s = "";
