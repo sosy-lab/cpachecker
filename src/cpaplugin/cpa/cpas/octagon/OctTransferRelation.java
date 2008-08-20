@@ -1549,7 +1549,8 @@ public class OctTransferRelation implements TransferRelation{
 		
 		OctElement temp = new OctElement(LibraryAccess.universe(1), new HashMap<String, Variable>());
 		octElement.update(temp);
-		octElement.addVar(varName, functionName);
+		// TODO fix
+		//octElement.addVar("null");
 		
 		for(int i=0; i<paramNames.size(); i++){
 			octElement.update(LibraryAccess.addDimension(octElement, 1));
@@ -1581,7 +1582,8 @@ public class OctTransferRelation implements TransferRelation{
 				if( typeOfLiteral ==  IASTLiteralExpression.lk_integer_constant || 
 						typeOfLiteral == IASTLiteralExpression.lk_float_constant)
 				{
-					int lvar = octElement.getVarId(paramName, calledFunctionName);
+					//TODO fix
+					int lvar = octElement.getVarId(paramName);
 					double val = Double.valueOf(argumentValue).doubleValue();
 					Num n = new Num(val);
 					Num[] array = new Num[octElement.getNumberOfVars()+1];
@@ -1599,8 +1601,9 @@ public class OctTransferRelation implements TransferRelation{
 				IASTIdExpression varId = ((IASTIdExpression)argument);
 				String nameOfVar = varId.getRawSignature();
 
-				int lvar = octElement.getVarId(paramName, calledFunctionName);
-				int var2 = octElement.getVarId(nameOfVar, callerFunctionName);
+				// TODO fix
+				int lvar = octElement.getVarId(paramName);
+				int var2 = octElement.getVarId(nameOfVar);
 				Num[] array = new Num[octElement.getNumberOfVars()+1];
 
 				for(int j=0; j<array.length-1; j++){
@@ -1635,7 +1638,8 @@ public class OctTransferRelation implements TransferRelation{
 			if(leftHandSideExp instanceof IASTIdExpression){
 				IASTIdExpression variable = (IASTIdExpression)leftHandSideExp;
 				String variableName = variable.getRawSignature();
-				int varid = octElement.getVarId(variableName, functionName);
+				// TODO fix
+				int varid = octElement.getVarId(variableName);
 				octElement.update(LibraryAccess.forget(octElement, varid));
 			}
 			else if(leftHandSideExp instanceof IASTUnaryExpression){
@@ -1675,7 +1679,8 @@ public class OctTransferRelation implements TransferRelation{
 				if( typeOfLiteral ==  IASTLiteralExpression.lk_integer_constant || 
 						typeOfLiteral == IASTLiteralExpression.lk_float_constant)
 				{
-					int lvar = octElement.getVarId(paramName, null);
+					// TODO fix
+					int lvar = octElement.getVarId(paramName);
 					double val = Double.valueOf(argumentValue).doubleValue();
 					Num n = new Num(val);
 					Num[] array = new Num[octElement.getNumberOfVars()+1];
@@ -1692,8 +1697,9 @@ public class OctTransferRelation implements TransferRelation{
 
 				IASTIdExpression varId = ((IASTIdExpression)argument);
 				String nameOfVar = varId.getRawSignature();
-				int lvar = octElement.getVarId(paramName, null);
-				int var2 = octElement.getVarId(nameOfVar, null);
+				// TODO fix
+				int lvar = octElement.getVarId(paramName);
+				int var2 = octElement.getVarId(nameOfVar);
 				Num[] array = new Num[octElement.getNumberOfVars()+1];
 
 				for(int j=0; j<array.length-1; j++){
@@ -1719,7 +1725,8 @@ public class OctTransferRelation implements TransferRelation{
 				if(exprInParanhesis instanceof IASTLiteralExpression){
 					IASTLiteralExpression litExpr = (IASTLiteralExpression)exprInParanhesis;
 					String fName = ((CFAExitNode)statementEdge.getSuccessor()).getFunctionName();
-					int resultvarID = octElement.getVarId("___cpa_temp_result_var_" + fName + "()", returnedFunction);
+					// TODO fix
+					int resultvarID = octElement.getVarId("___cpa_temp_result_var_" + fName + "()");
 					String literalValue = litExpr.getRawSignature ();
 					int typeOfLiteral = (litExpr.getKind());
 					if( typeOfLiteral ==  IASTLiteralExpression.lk_integer_constant || 
@@ -1740,10 +1747,11 @@ public class OctTransferRelation implements TransferRelation{
 				else if(exprInParanhesis instanceof IASTIdExpression){
 					IASTIdExpression idExpr = (IASTIdExpression)exprInParanhesis;
 					String fName = ((CFAExitNode)statementEdge.getSuccessor()).getFunctionName();
-					int lvar = octElement.getVarId("___cpa_temp_result_var_" + fName + "()", returnedFunction);
+					// TODO fix
+					int lvar = octElement.getVarId("___cpa_temp_result_var_" + fName + "()");
 					String idExpName = idExpr.getRawSignature ();
-
-					int rvar = octElement.getVarId(idExpName, returnedFunction);
+					// TODO fix
+					int rvar = octElement.getVarId(idExpName);
 					Num[] array = new Num[octElement.getNumberOfVars()+1];
 
 					for(int i=0; i<array.length-1; i++){
@@ -1769,11 +1777,12 @@ public class OctTransferRelation implements TransferRelation{
 
 	private void handleSummaryEdge(OctElement octElement, String varName,
 			String functionName, String callerFunctionName) {
-
-		int lvar = octElement.getVarId(varName, callerFunctionName);
+		// TODO fix
+		int lvar = octElement.getVarId(varName);
 
 		System.out.println("___cpa_temp_result_var_" + functionName + "()");
-		int rvar = octElement.getVarId("___cpa_temp_result_var_" + functionName + "()", functionName);
+		// TODO fix
+		int rvar = octElement.getVarId("___cpa_temp_result_var_" + functionName + "()");
 		Num[] array = new Num[octElement.getNumberOfVars()+1];
 
 		for(int i=0; i<array.length-1; i++){
@@ -1803,9 +1812,9 @@ public class OctTransferRelation implements TransferRelation{
 //		octElement.update(LibraryAccess.removeDimension(octElement, 1));
 //		}
 //		octElement.getTempVarList().remove(fname);
-
-		int numOfValuesToRemove = octElement.removeVariablesOfFunction(fname);
-		octElement.update(LibraryAccess.removeDimension(octElement, numOfValuesToRemove));
+		// TODO fix
+		//int numOfValuesToRemove = octElement.removeVariablesOfFunction(fname);
+		//octElement.update(LibraryAccess.removeDimension(octElement, numOfValuesToRemove));
 
 	}
 }

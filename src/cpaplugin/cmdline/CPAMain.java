@@ -49,9 +49,7 @@ public class CPAMain {
         
         cpaStats = new MainCPAStatistics();
 
-        CPACheckerLogger.init();
         CPACheckerLogger.log(CustomLogLevel.INFO, "Analysis Started");
-
         CPACheckerLogger.log(CustomLogLevel.MainApplicationLevel, 
                              "Parsing Finished");
         
@@ -179,7 +177,7 @@ public class CPAMain {
                 System.out.println("Eclipse had trouble parsing C");
                 return;
             }
-
+            CPACheckerLogger.init();
             doRunAnalysis(ast);
         } catch (Exception e) {
             System.out.println(e.getMessage());

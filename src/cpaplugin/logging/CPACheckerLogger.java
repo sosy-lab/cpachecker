@@ -1,5 +1,6 @@
 package cpaplugin.logging;
 
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.logging.FileHandler;
@@ -61,7 +62,16 @@ public class CPACheckerLogger {
 		levelList.add("SpecificCPALevel");
 //		levelList.add("ExternalToolLevel");
 		CustomLogLevel.initializeLevels(levelList);
-		
+
+		FileWriter writer;
+	    try {
+	      writer = new FileWriter("/tmp/myFile.txt");
+	      writer.write(CPAMain.cpaConfig.getProperty("log.path"));
+	      writer.close();
+	    } catch (IOException e) {
+	      // TODO Auto-generated catch block
+	      e.printStackTrace();
+	    }
 		try {
 			FileHandler fileHandler = new FileHandler(CPAMain.cpaConfig.getProperty("log.path"));
 			Formatter formatter = new SimpleFormatter();

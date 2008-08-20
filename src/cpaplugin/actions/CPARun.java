@@ -1,5 +1,7 @@
 package cpaplugin.actions;
 
+import java.io.PrintStream;
+
 import org.eclipse.cdt.core.dom.CDOM;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.core.resources.IFile;
@@ -13,18 +15,24 @@ import org.eclipse.ui.IWorkbenchPage;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.IWorkbenchWindowActionDelegate;
 import org.eclipse.ui.PlatformUI;
+import org.eclipse.ui.console.ConsolePlugin;
+import org.eclipse.ui.console.IConsole;
+import org.eclipse.ui.console.IConsoleConstants;
+import org.eclipse.ui.console.IConsoleManager;
+import org.eclipse.ui.console.IConsoleView;
+import org.eclipse.ui.console.IOConsoleOutputStream;
+import org.eclipse.ui.console.MessageConsole;
+import org.eclipse.swt.widgets.Display;
 
 import cpaplugin.CPAConfiguration;
 import cpaplugin.cmdline.CPAMain;
 import cpaplugin.logging.CPACheckerLogger;
 import cpaplugin.logging.CustomLogLevel;
 
-/**
- * @author erkan
- *
- */
 public class CPARun implements IWorkbenchWindowActionDelegate
 {
+	private boolean init = false;
+	private int numberOfRuns = 0;
 	private IWorkbenchWindow window;
 
 	/**
@@ -32,8 +40,35 @@ public class CPARun implements IWorkbenchWindowActionDelegate
 	 */
 	public CPARun ()
 	{
+		
 	}
-
+	private void init()
+	{
+		if(init == false)
+		{
+			MessageConsole myConsole = findConsole("CPACHECKER");
+			IOConsoleOutputStream outStream = myConsole.newOutputStream();
+			IOConsoleOutputStream errStream = myConsole.newOutputStream();
+			errStream.setColor(new org.eclipse.swt.graphics.Color(Display.getDefault(), 255,0,0));
+			System.setOut(new PrintStream(outStream));
+			System.setErr(new PrintStream(errStream));
+			CPACheckerLogger.init();
+			init = true;
+		}
+		return;
+	}
+	private MessageConsole findConsole(String name) {
+	      ConsolePlugin plugin = ConsolePlugin.getDefault();
+	      IConsoleManager conMan = plugin.getConsoleManager();
+	      IConsole[] existing = conMan.getConsoles();
+	      for (int i = 0; i < existing.length; i++)
+	         if (name.equals(existing[i].getName()))
+	            return (MessageConsole) existing[i];
+	      //no console found, so create a new one
+	      MessageConsole myConsole = new MessageConsole(name, null);
+	      conMan.addConsoles(new IConsole[]{myConsole});
+	      return myConsole;
+	   }
 	/**
 	 * The action has been activated. The argument of the method represents the
 	 * 'real' action sitting in the workbench UI.
@@ -42,13 +77,16 @@ public class CPARun implements IWorkbenchWindowActionDelegate
 	 */
 	public void run (IAction action)
 	{
-		// Build the configuration file before starting analysis
-		String s[] = {};
-		CPAMain.cpaConfig = new CPAConfiguration(s);
-
-		CPACheckerLogger.init();
+		numberOfRuns++;
+	    String s[] = {};
+	    CPAMain.cpaConfig = new CPAConfiguration(s);
+	    //Lets set up a console to write to
+	    init();
+		MessageConsole myConsole = findConsole("CPACHECKER");
+		
+		CPACheckerLogger.log(CustomLogLevel.INFO, "Run #: " + numberOfRuns);
 		CPACheckerLogger.log(CustomLogLevel.INFO, "Program Started");
-
+		
 		MessageDialog.openInformation (window.getShell (), "CPAPlugin Plug-in", "Launching CPAChecker Eclipse Plugin");
 
 		try
@@ -57,45 +95,50 @@ public class CPARun implements IWorkbenchWindowActionDelegate
 			IWorkbench workbench = PlatformUI.getWorkbench ();
 			if (workbench == null)
 			{
-				System.out.println ("Workbench cannot be found");
+				MessageDialog.openInformation (window.getShell (), "CPAPlugin Plug-in", "Workbench cannot be found");
 				return;
 			}
 
 			IWorkbenchWindow workbenchWindow = workbench.getActiveWorkbenchWindow ();
 			if (workbenchWindow == null)
 			{
-				System.out.println ("No active workbench window");
+				MessageDialog.openInformation (window.getShell (), "CPAPlugin Plug-in", "No active workbench window");
 				return;
 			}
 
 			IWorkbenchPage workbenchPage = workbenchWindow.getActivePage ();
 			if (workbenchPage == null)
 			{
-				System.out.println ("No active page in active workbench window");
+				MessageDialog.openInformation (window.getShell (), "CPAPlugin Plug-in", "No active page in active workbench window");
 				return;
 			}
 
 			IEditorPart editorPart = workbenchPage.getActiveEditor ();
 			if (editorPart == null)
 			{
-				System.out.println ("No active editor in the active workbench");
+				MessageDialog.openInformation (window.getShell (), "CPAPlugin Plug-in", "No active editor in the active workbench");
 				return;
 			}
 
 			IEditorInput editorInput = editorPart.getEditorInput ();
 			if (editorInput == null)
 			{
-				System.out.println ("No active editor input in active editor part");
+				MessageDialog.openInformation (window.getShell (), "CPAPlugin Plug-in", "No active editor input in active editor part");
 				return;
 			}
 
 			IFile currentFile = (IFile) editorInput.getAdapter (IFile.class);
 			if (currentFile == null)
 			{
-				System.out.println ("No file associated with current editor input");
+				MessageDialog.openInformation (window.getShell (), "CPAPlugin Plug-in", "No file associated with current editor input");
 				return;
 			}
-
+			String extension = currentFile.getFileExtension();
+			if(extension.compareTo("c") != 0)
+			{
+				MessageDialog.openInformation (window.getShell (), "CPAPlugin Plug-in", "Cannot parse non-c file");
+				return;
+			}
 			// Get Eclipse to parse the C in the current file
 			IASTTranslationUnit ast = null;
 			try
@@ -106,12 +149,18 @@ public class CPARun implements IWorkbenchWindowActionDelegate
 			{
 				e.printStackTrace ();
 				e.getMessage ();
-
-				System.out.println ("Eclipse had trouble parsing C");
+				
+				MessageDialog.openInformation (window.getShell (), "CPAPlugin Plug-in", "Eclipse had trouble parsing C");
 				return;
 			}
-
-			CPAMain.doRunAnalysis(ast);			
+			
+			//Now grab its attention and display
+		    String id = IConsoleConstants.ID_CONSOLE_VIEW;
+		    IConsoleView view = (IConsoleView) workbenchPage.showView(id);
+		    view.display(myConsole);
+		    
+		    //Now run analysis
+			CPAMain.doRunAnalysis(ast);
 		}
 		catch (Exception e)
 		{
