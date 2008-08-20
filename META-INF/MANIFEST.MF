@@ -92,9 +92,4 @@ Export-Package: cpaplugin;uses:="org.eclipse.jface.resource,org.eclipse.ui.plugi
 Bundle-ClassPath: lib/javabdd-1.0b2.jar,
  lib/mathsat.jar,
  lib/minijdd_103.jar,
- bin/,
- doc/,
- nativeLibs/,
- META-INF/,
- src/,
- lib/
+ bin/
