@@ -44,7 +44,7 @@ public class CPAAlgorithm
             List<AbstractElement> successors = null;
             try {
                 successors = transferRelation.getAllAbstractSuccessors (e);
-            } catch (ErrorReachedExeption err) {
+            } catch (ErrorReachedException err) {
                 System.out.println("Reached error state! Message is:");
                 System.out.println(err.toString());
                 return reached;
@@ -119,11 +119,18 @@ public class CPAAlgorithm
         CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel,
                 "Reached now is: " + newreached.toString());
         // and add to the wait list all the elements in toWaitlist
+        boolean useBfs = CPAMain.cpaConfig.getBooleanValue("analysis.bfs");
         for (AbstractElement e : toWaitlist) {
             CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel, 
                                  "Adding element; " + e + " to waitlist");
-            waitlist.addLast(e);
+            if (useBfs) {
+                waitlist.addLast(e);
+            } else {
+                waitlist.addFirst(e);
+            }
         }
+        CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel,
+                "Waitlist now is: " + waitlist.toString());
         CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel, 
                              "Refinement done");
     }
