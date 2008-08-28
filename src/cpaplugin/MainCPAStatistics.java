@@ -47,17 +47,25 @@ public class MainCPAStatistics implements CPAStatistics {
         out.println("\nCPAChecker general statistics:");
         out.println("------------------------------");
 
+        long hours = totalTimeInMillis / (1000 * 60 * 60);
+        totalTimeInMillis %= (1000 * 60 * 60);
+        long minutes = totalTimeInMillis / (1000 * 60);
+        totalTimeInMillis %= (1000 * 60);
         out.println("Total Time Elapsed " + 
-                (int) totalTimeInMillis / (1000 * 60 * 60) + " hr, " +  
-                (int) totalTimeInMillis / (1000 * 60) + " min, " + 
-                (int) totalTimeInMillis / 1000 + " sec, " + 
-                (int) totalTimeInMillis % 1000 + " ms");
+                hours + " hr, " +  
+                minutes + " min, " + 
+                totalTimeInMillis / 1000 + " sec, " + 
+                totalTimeInMillis % 1000 + " ms");
+        hours = totalAbsoluteTimeMillis / (1000 * 60 * 60);
+        totalAbsoluteTimeMillis %= (1000 * 60 * 60);
+        minutes = totalAbsoluteTimeMillis / (1000 * 60);
+        totalAbsoluteTimeMillis %= (1000 * 60);
         out.println(
                 "Total Time Elapsed including CFA construction " + 
-                (int) totalAbsoluteTimeMillis / (1000 * 60 * 60) + " hr, " +  
-                (int) totalAbsoluteTimeMillis / (1000 * 60) + " min, " + 
-                (int) totalAbsoluteTimeMillis / 1000 + " sec, " + 
-                (int) totalAbsoluteTimeMillis % 1000 + " ms");
+                hours + " hr, " +  
+                minutes + " min, " + 
+                totalAbsoluteTimeMillis / 1000 + " sec, " + 
+                totalAbsoluteTimeMillis % 1000 + " ms");
         
         if (!subStats.isEmpty()) {
             out.println("\nAnalysis-specific statistics:");
