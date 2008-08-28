@@ -14,6 +14,12 @@ import cpaplugin.cfa.objectmodel.CFAFunctionDefinitionNode;
 import cpaplugin.cfa.objectmodel.CFANode;
 import cpaplugin.cfa.objectmodel.c.AssumeEdge;
 
+
+/**
+ * Specialized DOT generator for dumping summarized CFAs
+ *
+ * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
+ */
 public class SummaryDOTBuilder implements DOTBuilderInterface {
     private StringBuffer nodeBuf;
     private StringBuffer out;
@@ -25,15 +31,13 @@ public class SummaryDOTBuilder implements DOTBuilderInterface {
         outerEdges = new Stack<CFAEdge>();
     }
 
-    public void generateDOT(Collection<CFAFunctionDefinitionNode> cfasMapList, 
+    public void generateDOT(CFAFunctionDefinitionNode mainFunction, 
                             String fileName) throws IOException {
         PrintWriter pw = new PrintWriter(fileName);
         
         pw.println("digraph CFA {");
         
-        for (CFAFunctionDefinitionNode cfa : cfasMapList) {
-            generateFunctionDOT((SummaryCFAFunctionDefinitionNode)cfa);
-        }
+        generateFunctionDOT((SummaryCFAFunctionDefinitionNode)mainFunction);
         
         pw.println(nodeBuf.toString());
         pw.println(out.toString());
@@ -43,15 +47,15 @@ public class SummaryDOTBuilder implements DOTBuilderInterface {
     }
     
     private String escape(String s) {
-        return s.replaceAll("\\\"", "\\\\\\\"");
+        return s.replaceAll("\n", " ").replaceAll("\\\"", "\\\\\\\"");
     }
     
     private void generateFunctionDOT(SummaryCFAFunctionDefinitionNode cfa) {
         Set<SummaryCFANode> seen = new HashSet<SummaryCFANode>();
         Stack<SummaryCFANode> toProcess = new Stack<SummaryCFANode>();
         
-        out.append("subgraph cluster_" + cfa.getFunctionName() + " {\n");
-        out.append("label = \"" + escape(cfa.getFunctionName()) + "\";\n");
+//        out.append("subgraph cluster_" + cfa.getFunctionName() + " {\n");
+//        out.append("label = \"" + escape(cfa.getFunctionName()) + "\";\n");
         
         toProcess.push(cfa);
         while (!toProcess.empty()) {
@@ -87,7 +91,7 @@ public class SummaryDOTBuilder implements DOTBuilderInterface {
             out.append(",style=\"dashed\",arrowhead=\"empty\"];\n");
         }
         
-        out.append("}\n");
+//        out.append("}\n");
     }
     
     private void generateNodeDOT(SummaryCFANode summary) {
@@ -159,6 +163,6 @@ public class SummaryDOTBuilder implements DOTBuilderInterface {
 
     public void generateDOT(Collection<CFAFunctionDefinitionNode> cfasMapList,
             CFAFunctionDefinitionNode cfa, String fileName) throws IOException {
-        generateDOT(cfasMapList, fileName);
+        generateDOT(cfa, fileName);
     }
 }

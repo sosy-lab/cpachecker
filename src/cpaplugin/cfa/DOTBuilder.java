@@ -112,7 +112,7 @@ public class DOTBuilder implements DOTBuilderInterface
 				line = line + successor.getNodeNumber ();
 				line = line + " [label=\"" ;
 
-				String edgeText = edge.getRawStatement ().replaceAll ("\\\"", "\\\\\\\"");
+				String edgeText = edge.getRawStatement ().replaceAll ("\\\"", "\\\\\\\"").replaceAll("\n", " ");
 				line = line + edgeText;
 				line = line + "\"];";
 				DOTWriter dw;
@@ -142,7 +142,7 @@ public class DOTBuilder implements DOTBuilderInterface
 				line = line + successor.getNodeNumber ();
 				line = line + " [label=\"" ;
 
-				String edgeText = edge.getRawStatement ().replaceAll ("\\\"", "\\\\\\\"");
+				String edgeText = edge.getRawStatement ().replaceAll ("\\\"", "\\\\\\\"").replaceAll("\n", " ");
 				line = line + edgeText;
 				line = line + "\" style=dotted arrowhead=empty];";
 				DOTWriter dw = (DOTWriter)subGraphWriters.get(node.getFunctionName());
