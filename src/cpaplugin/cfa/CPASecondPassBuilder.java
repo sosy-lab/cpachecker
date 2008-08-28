@@ -152,16 +152,25 @@ public class CPASecondPassBuilder {
 		successorNode.removeEnteringEdge(edge);
 		
 		// set function parameters
-		if(parameters instanceof IASTIdExpression){
-			IASTIdExpression variableParam = (IASTIdExpression)parameters;
-			IASTExpression[] expressionList = new IASTExpression[1];
-			expressionList[0] = variableParam;
-			callEdge.setArguments(expressionList);
-		}
-		else if(parameters instanceof IASTExpressionList){
-			IASTExpressionList paramList = (IASTExpressionList)parameters;
-			IASTExpression[] expressionList = paramList.getExpressions();
-			callEdge.setArguments(expressionList);
+//		if(parameters instanceof IASTIdExpression){
+//			IASTIdExpression variableParam = (IASTIdExpression)parameters;
+//			IASTExpression[] expressionList = new IASTExpression[1];
+//			expressionList[0] = variableParam;
+//			callEdge.setArguments(expressionList);
+//		}
+//		else if(parameters instanceof IASTExpressionList){
+//			IASTExpressionList paramList = (IASTExpressionList)parameters;
+//			IASTExpression[] expressionList = paramList.getExpressions();
+//			callEdge.setArguments(expressionList);
+//		}
+		// AG - the above is not exhaustive, there are some cases that
+		// are not handled (e.g. f(5))
+		if (parameters instanceof IASTExpressionList) {
+		    IASTExpressionList paramList = (IASTExpressionList)parameters;
+		    IASTExpression[] expressionList = paramList.getExpressions();
+		    callEdge.setArguments(expressionList);
+		} else if (parameters != null) {
+		    callEdge.setArguments(new IASTExpression[]{parameters});
 		}
 	}
 }
