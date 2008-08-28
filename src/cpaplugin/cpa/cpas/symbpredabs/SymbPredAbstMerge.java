@@ -10,6 +10,9 @@ import cpaplugin.cpa.common.interfaces.MergeOperator;
 import cpaplugin.cpa.cpas.symbpredabs.logging.LazyLogger;
 import cpaplugin.logging.CustomLogLevel;
 
+/**
+ * TODO. This is currently broken
+ */
 public class SymbPredAbstMerge implements MergeOperator {
 
     private SymbPredAbstDomain domain;

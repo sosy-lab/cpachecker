@@ -6,6 +6,9 @@ import cpaplugin.cpa.common.interfaces.AbstractElementWithLocation;
 import cpaplugin.cpa.cpas.symbpredabs.logging.LazyLogger;
 import cpaplugin.logging.CPACheckerLogger;
 
+/**
+ * TODO. This is currently broken
+ */
 public class SymbPredAbstElement 
         implements AbstractElement, AbstractElementWithLocation {
     // unique identifier for each domain element

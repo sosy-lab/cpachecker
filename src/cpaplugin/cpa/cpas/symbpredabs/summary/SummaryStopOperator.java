@@ -9,6 +9,11 @@ import cpaplugin.cpa.cpas.symbpredabs.logging.LazyLogger;
 import cpaplugin.exceptions.CPAException;
 import cpaplugin.logging.CustomLogLevel;
 
+/**
+ * coverage check for symbolic lazy abstraction with summaries
+ *
+ * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
+ */
 public class SummaryStopOperator implements StopOperator {
 
     private SummaryAbstractDomain domain;
@@ -48,6 +53,12 @@ public class SummaryStopOperator implements StopOperator {
         if (e1.getLocation().equals(e2.getLocation())) {
             LazyLogger.log(LazyLogger.DEBUG_4, 
                     "Checking Coverage of element: ", element);
+            
+            if (!e1.sameContext(e2)) {
+                LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+                               "NO, not covered: context differs");
+                return false;
+            }
 
             SummaryCPA cpa = domain.getCPA();
             SummaryAbstractFormulaManager amgr = cpa.getAbstractFormulaManager();
@@ -60,6 +71,7 @@ public class SummaryStopOperator implements StopOperator {
             if (ok) {
                 LazyLogger.log(CustomLogLevel.SpecificCPALevel,
                                "Element: ", element, " COVERED by: ", e2);
+                cpa.setCoveredBy(e1, e2);
             } else {
                 LazyLogger.log(CustomLogLevel.SpecificCPALevel,
                                "NO, not covered");

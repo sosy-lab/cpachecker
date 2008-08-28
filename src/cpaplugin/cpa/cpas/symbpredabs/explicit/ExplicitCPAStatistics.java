@@ -1,0 +1,158 @@
+package cpaplugin.cpa.cpas.symbpredabs.explicit;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
+
+import cpaplugin.CPAStatistics;
+import cpaplugin.cfa.objectmodel.CFANode;
+import cpaplugin.cmdline.CPAMain;
+import cpaplugin.cpa.cpas.symbpredabs.Pair;
+import cpaplugin.cpa.cpas.symbpredabs.Predicate;
+import cpaplugin.cpa.cpas.symbpredabs.PredicateMap;
+import cpaplugin.cpa.cpas.symbpredabs.mathsat.BDDPredicate;
+import cpaplugin.cpa.cpas.symbpredabs.mathsat.MathsatSymbolicFormula;
+
+
+/**
+ * Statistics relative to Explicit-state lazy abstraction.
+ *
+ * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
+ */
+public class ExplicitCPAStatistics implements CPAStatistics {
+    
+    private ExplicitCPA cpa;
+    
+    public ExplicitCPAStatistics(ExplicitCPA cpa) {
+        this.cpa = cpa;
+    }
+
+    @Override
+    public String getName() {
+        return "Explicit-State Predicate Abstraction";
+    }
+
+    @Override
+    public void printStatistics(PrintWriter out) {
+        ExplicitTransferRelation trans = 
+            (ExplicitTransferRelation)cpa.getTransferRelation();
+        PredicateMap pmap = cpa.getPredicateMap();
+        BDDMathsatExplicitAbstractManager amgr = 
+            (BDDMathsatExplicitAbstractManager)cpa.getAbstractFormulaManager();
+        
+        Set<Predicate> allPreds = new HashSet<Predicate>();
+        Collection<CFANode> allLocs = null;
+        Collection<String> allFuncs = null;
+        int maxPreds = 0;
+        int totPreds = 0;
+        int avgPreds = 0;
+        if (!CPAMain.cpaConfig.getBooleanValue(
+                "cpas.symbpredabs.refinement.addPredicatesGlobally")) {
+            allLocs = pmap.getKnownLocations();
+            for (CFANode l : allLocs) {
+                Collection<Predicate> p = pmap.getRelevantPredicates(l);
+                maxPreds = Math.max(maxPreds, p.size());
+                totPreds += p.size();
+                allPreds.addAll(p);
+            }
+            avgPreds = allLocs.size() > 0 ? totPreds/allLocs.size() : 0;
+        } else {
+            allFuncs = pmap.getKnownFunctions();
+            for (String s : allFuncs) {
+                Collection<Predicate> p = pmap.getRelevantPredicates(s);
+                maxPreds = Math.max(maxPreds, p.size());
+                totPreds += p.size();
+                allPreds.addAll(p);
+            }
+            avgPreds = allFuncs.size() > 0 ? totPreds/allFuncs.size() : 0;
+        }
+        
+        // check if/where to dump the predicate map
+        if (!trans.hasReachedError()) {
+            String pth = CPAMain.cpaConfig.getProperty(
+                    "cpas.symbpredabs.refinement.finalPredMapPath", "");
+            if (!pth.equals("")) {
+                File f = new File(pth);
+                try {
+                    PrintWriter pw = new PrintWriter(f);
+                    pw.println("ALL PREDICATES:");
+                    for (Predicate p : allPreds) {
+                        Pair<MathsatSymbolicFormula, MathsatSymbolicFormula> d =
+                            amgr.getPredicateNameAndDef((BDDPredicate)p);
+                        pw.format("%s ==> %s <-> %s\n", p, d.getFirst(),
+                                d.getSecond());
+                    }
+                    if (!CPAMain.cpaConfig.getBooleanValue(
+                        "cpas.symbpredabs.refinement.addPredicatesGlobally")) {
+                        pw.println("\nFOR EACH LOCATION:");
+                        for (CFANode l : allLocs) {
+                            Collection<Predicate> c = 
+                                pmap.getRelevantPredicates(l);
+                            pw.println("LOCATION: " + l);
+                            for (Predicate p : c) {
+                                pw.println(p);
+                            }
+                            pw.println("");
+                        }
+                    }
+                    pw.close();
+                } catch (FileNotFoundException e) {
+                    // just issue a warning to the user
+                    out.println("WARNING: impossible to dump predicate map on `"
+                                + pth + "'");
+                }
+            }
+        }
+        
+        BDDMathsatExplicitAbstractManager.Stats bs = amgr.getStats();
+
+        out.println("Number of abstract states visited: " + 
+                trans.getNumAbstractStates());
+        out.println("Number of abstraction steps: " + bs.numCallsAbstraction);
+        out.println("Number of SMT queries in abstraction: " + 
+                bs.abstractionNumMathsatQueries);
+        out.println("Number of refinement steps: " + bs.numCallsCexAnalysis);
+        out.println("");
+        out.println("Total number of predicates discovered: " + 
+                allPreds.size());
+        out.println("Average number of predicates per location: " + avgPreds);
+        out.println("Max number of predicates per location: " + maxPreds);
+        out.println("");
+        out.println("Total time for abstraction computation: " + 
+                toTime(bs.abstractionMathsatTime + bs.abstractionBddTime));
+        out.println("  Time for All-SMT: ");
+        out.println("    Total:             " + 
+                toTime(bs.abstractionMathsatTime)); 
+        out.println("    Max:               " + 
+                toTime(bs.abstractionMaxMathsatTime));
+        out.println("    Solving time only: " + 
+                toTime(bs.abstractionMathsatSolveTime));
+        out.println("  Time for BDD construction: ");
+        out.println("    Total:             " + toTime(bs.abstractionBddTime)); 
+        out.println("    Max:               " + 
+                toTime(bs.abstractionMaxBddTime));
+        out.println(
+                "Time for counterexample analysis/abstraction refinement: ");
+        out.println("  Total:               " + toTime(bs.cexAnalysisTime)); 
+        out.println("  Max:                 " + toTime(bs.cexAnalysisMaxTime));
+        out.println("  Solving time only:   " + 
+                toTime(bs.cexAnalysisMathsatTime));
+        out.println("");
+        out.println("Error location(s) reached? " + 
+                (trans.hasReachedError() ? "YES, there is a BUG!" : 
+                "NO, the system is safe"));
+    }
+    
+    private String toTime(long timeMillis) {
+//        return String.format("%02dh:%02dm:%02d.%03ds",
+//                timeMillis / (1000 * 60 * 60),  
+//                timeMillis / (1000 * 60), 
+//                timeMillis / 1000, 
+//                timeMillis % 1000);
+        return String.format("% 5d.%03ds", timeMillis/1000, timeMillis%1000);
+    }
+
+}

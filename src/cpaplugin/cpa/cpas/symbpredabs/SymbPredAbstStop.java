@@ -10,6 +10,9 @@ import cpaplugin.cpa.cpas.symbpredabs.logging.LazyLogger;
 import cpaplugin.exceptions.CPAException;
 import cpaplugin.logging.CustomLogLevel;
 
+/**
+ * TODO. This is currently broken
+ */
 public class SymbPredAbstStop implements StopOperator {
 
     private SymbPredAbstDomain domain;

@@ -5,7 +5,8 @@ import cpaplugin.cfa.objectmodel.CFAEdgeType;
 
 /**
  * An edge that connects two SummaryCFANodes
- * @author alb
+ * 
+ * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
 public class SummaryCFAEdge extends AbstractCFAEdge {
 

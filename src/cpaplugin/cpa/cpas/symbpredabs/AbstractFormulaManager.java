@@ -2,6 +2,12 @@ package cpaplugin.cpa.cpas.symbpredabs;
 
 import java.util.Collection;
 
+/**
+ * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
+ *
+ * An AbstractFormulaManager is an object that knows how to create/manipulate
+ * AbstractFormulas
+ */
 public interface AbstractFormulaManager {
     /**
      * @return a concrete representation of af

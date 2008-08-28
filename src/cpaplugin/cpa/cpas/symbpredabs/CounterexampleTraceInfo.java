@@ -1,21 +1,31 @@
 package cpaplugin.cpa.cpas.symbpredabs;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+
+import cpaplugin.cpa.common.interfaces.AbstractElement;
+
+
 /**
- * An class that stores information about a counterexample trace. For 
+ * A class that stores information about a counterexample trace. For 
  * real counterexamples, this stores the actual execution trace leading to
  * the error. For spurious counterexamples, this stores a predicate map
  * with new predicates that are sufficient to rule out the trace in the
  * refined abstract model
- * @author alb
+ *
+ * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
 public class CounterexampleTraceInfo {
     private boolean spurious;
-    private PredicateMap pmap;
+    private Map<AbstractElement, Set<Predicate>> pmap;
     private ConcreteTrace ctrace;
     
     public CounterexampleTraceInfo(boolean spurious) {
         this.spurious = spurious;
-        pmap = null;
+        pmap = new HashMap<AbstractElement, Set<Predicate>>();
         ctrace = null;
     }
     /**
@@ -25,14 +35,35 @@ public class CounterexampleTraceInfo {
     public boolean isSpurious() { return spurious; }
     
     /**
-     * returns a PredicateMap with a sufficient set of predicates to refine
-     * the abstract model such that this trace is no longer feasible in it
-     * @return a predicate map to refine the abstraction
+     * returns the list of Predicates that were discovered during
+     * counterexample analysis for the given AbstractElement. The invariant is
+     * that the union of all the predicates for all the AbstractElements in
+     * the spurious counterexample is sufficient for refining the abstract
+     * model such that this trace is no longer feasible in it
+     * 
+     * @return a list of predicates
      */
-    public PredicateMap getPredicatesForRefinement() { return pmap; }
-    
-    public void setPredicateMap(PredicateMap pmap) {
-        this.pmap = pmap;
+    public Collection<Predicate> getPredicatesForRefinement(AbstractElement e) {
+        if (pmap.containsKey(e)) {
+            return pmap.get(e);
+        } else {
+            return Collections.emptySet();
+        }
+    }
+
+    /**
+     * Adds some predicates to the list of those corresponding to the given
+     * AbstractElement
+     */
+    public void addPredicatesForRefinement(AbstractElement e, 
+                                           Set<Predicate> preds) {
+        if (pmap.containsKey(e)) {
+            Set<Predicate> old = pmap.get(e);
+            old.addAll(preds);
+            pmap.put(e, old);
+        } else {
+            pmap.put(e, preds);
+        }
     }
     
     /**

@@ -16,7 +16,8 @@ import cpaplugin.cpa.cpas.symbpredabs.logging.LazyLogger;
  * should contain a formula that is a conjunction of
  * PREDICATE_NAME <-> PREDICATE_DEF
  * where PREDICATE_NAME is a Boolean variable, and PREDICATE_DEF is an atom
- * @author alb
+ * 
+ * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
 public class MathsatPredicateParser {
     private MathsatSymbolicFormulaManager mgr;

@@ -2,15 +2,26 @@ package cpaplugin.cpa.cpas.symbpredabs.mathsat;
 
 import cpaplugin.cpa.cpas.symbpredabs.AbstractFormula;
 
+/**
+ * Abstract formulas represented using BDDs
+ *
+ * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
+ */ 
 public class BDDAbstractFormula implements AbstractFormula {
-    // BDD representation of the formula, using the jdd BDD package
-    private int jddRepr;
+    private int bddRepr;
     
     public BDDAbstractFormula(int r) {
-        jddRepr = r;
+        bddRepr = r;
     }
     
     public int getBDD() {
-        return jddRepr;
+        return bddRepr;
+    }
+    
+    public boolean equals(Object o) {
+        if (o instanceof BDDAbstractFormula) {
+            return bddRepr == ((BDDAbstractFormula)o).bddRepr;
+        }
+        return false;
     }
 }

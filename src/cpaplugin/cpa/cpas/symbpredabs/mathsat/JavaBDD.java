@@ -3,7 +3,16 @@ package cpaplugin.cpa.cpas.symbpredabs.mathsat;
 import java.util.HashMap;
 import java.util.Map;
 
-public class JavaBDD implements BDD {
+/**
+ * A wrapper for a generic BDD package. At the moment, only javabdd
+ * (http://javabdd.sf.net) is supported
+ *
+ * For our purposes, BDDs are just integers. This class takes care of
+ * converting between javabdd representation and ints
+ *
+ * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
+ */ 
+public class JavaBDD {
     private Map<Integer, net.sf.javabdd.BDD> index2bdd;
     private Map<net.sf.javabdd.BDD, Integer> bdd2index;
     private net.sf.javabdd.BDDFactory factory;
@@ -41,7 +50,6 @@ public class JavaBDD implements BDD {
         }
     }
 
-    @Override
     public int and(int bdd1, int bdd2) {
         assert(index2bdd.containsKey(bdd1));
         assert(index2bdd.containsKey(bdd2));
@@ -51,8 +59,7 @@ public class JavaBDD implements BDD {
         
         return toInt(b1.and(b2));
     }
-    
-    @Override
+        
     public int createVar() {
         if (nextvar >= varnum) {
             varnum *= 1.5;
@@ -64,25 +71,21 @@ public class JavaBDD implements BDD {
         return nextindex++;
     }
     
-    @Override
     public int getOne() {
         return 1;
     }
 
-    @Override
     public int getZero() {
         return 0;
     }
 
-    @Override
     public int getVar(int bdd) {
         assert(index2bdd.containsKey(bdd));
         
         net.sf.javabdd.BDD b = index2bdd.get(bdd);
         return b.var();
     }
-
-    @Override
+    
     public int imp(int bdd1, int bdd2) {
         assert(index2bdd.containsKey(bdd1));
         assert(index2bdd.containsKey(bdd2));
@@ -93,7 +96,6 @@ public class JavaBDD implements BDD {
         return toInt(b1.imp(b2));
     }
 
-    @Override
     public int not(int bdd) {
         assert(index2bdd.containsKey(bdd));
         
@@ -101,8 +103,7 @@ public class JavaBDD implements BDD {
         
         return toInt(b.not());
     }
-
-    @Override
+    
     public int or(int bdd1, int bdd2) {
         assert(index2bdd.containsKey(bdd1));
         assert(index2bdd.containsKey(bdd2));
@@ -112,37 +113,37 @@ public class JavaBDD implements BDD {
         
         return toInt(b1.or(b2));
     }
-
-    @Override
+   
     public int getElse(int bdd) {
         assert(index2bdd.containsKey(bdd));
         
         net.sf.javabdd.BDD b = index2bdd.get(bdd);
         net.sf.javabdd.BDD e = b.low();
         
-//        assert(bdd2index.containsKey(e));
-//        return bdd2index.get(e);
         return toInt(e);
     }
     
-    @Override
     public int getThen(int bdd) {
         assert(index2bdd.containsKey(bdd));
         
         net.sf.javabdd.BDD b = index2bdd.get(bdd);
         net.sf.javabdd.BDD t = b.high();
         
-//        assert(bdd2index.containsKey(t));
-//        return bdd2index.get(t);
         return toInt(t);
     }
 
-    @Override
-    public int ref(int bdd) {
-        return bdd;
+    public int bddForVar(int var) {
+        net.sf.javabdd.BDD v = factory.ithVar(var);
+        return toInt(v);
     }
-
-    @Override
-    public void deref(int bdd) {
-    }    
+    
+    public int ite(int var, int thenBdd, int elseBdd) {
+        assert(index2bdd.containsKey(thenBdd));
+        assert(index2bdd.containsKey(elseBdd));
+        
+        net.sf.javabdd.BDD t = index2bdd.get(thenBdd);
+        net.sf.javabdd.BDD e = index2bdd.get(elseBdd);
+        
+        return toInt(factory.ithVar(var).ite(t, e));
+    }
 }

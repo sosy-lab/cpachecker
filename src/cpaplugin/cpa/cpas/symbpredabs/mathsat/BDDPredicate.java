@@ -2,6 +2,11 @@ package cpaplugin.cpa.cpas.symbpredabs.mathsat;
 
 import cpaplugin.cpa.cpas.symbpredabs.Predicate;
 
+/**
+ * A predicate represented as a BDD variable
+ *
+ * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
+ */
 public class BDDPredicate implements Predicate {
     private int bddVar;
     private int varindex;

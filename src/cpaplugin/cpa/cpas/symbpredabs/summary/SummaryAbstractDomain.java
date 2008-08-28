@@ -9,6 +9,12 @@ import cpaplugin.cpa.common.interfaces.TopElement;
 import cpaplugin.cpa.cpas.symbpredabs.AbstractFormulaManager;
 import cpaplugin.exceptions.CPAException;
 
+
+/** 
+ * Abstract domain for Symbolic lazy abstraction with summaries.
+ *
+ * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
+ */ 
 public class SummaryAbstractDomain implements AbstractDomain {
     
     private SummaryCPA cpa;

@@ -5,6 +5,11 @@ import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.MergeOperator;
 import cpaplugin.cpa.cpas.symbpredabs.logging.LazyLogger;
 
+/**
+ * trivial merge operation for symbolic lazy abstraction with summaries
+ *
+ * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
+ */
 public class SummaryMergeOperator implements MergeOperator {
 
     private SummaryAbstractDomain domain;

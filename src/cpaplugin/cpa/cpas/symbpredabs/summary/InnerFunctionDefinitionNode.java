@@ -4,6 +4,11 @@ import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
 
 import cpaplugin.cfa.objectmodel.c.FunctionDefinitionNode;
 
+/**
+ * InnerCFANode for function definitions
+ *
+ * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
+ */
 public class InnerFunctionDefinitionNode extends FunctionDefinitionNode
     implements InnerCFANode {
 

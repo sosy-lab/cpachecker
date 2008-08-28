@@ -8,6 +8,9 @@ import cpaplugin.cpa.common.interfaces.PreOrder;
 import cpaplugin.cpa.common.interfaces.TopElement;
 
 
+/**
+ * TODO. This is currently broken
+ */
 public class SymbPredAbstDomain implements AbstractDomain {
     
     private SymbPredAbstCPA cpa;

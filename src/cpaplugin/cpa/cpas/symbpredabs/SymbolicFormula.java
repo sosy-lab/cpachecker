@@ -1,7 +1,7 @@
 package cpaplugin.cpa.cpas.symbpredabs;
 
 /**
- * @author alb
+ * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  * 
  * A generic interface for manipulating symbolic representations of formulas.
  */

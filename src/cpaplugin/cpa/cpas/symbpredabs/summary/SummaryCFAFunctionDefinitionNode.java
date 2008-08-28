@@ -3,6 +3,11 @@ package cpaplugin.cpa.cpas.symbpredabs.summary;
 import cpaplugin.cfa.objectmodel.CFAFunctionDefinitionNode;
 import cpaplugin.cfa.objectmodel.CFANode;
 
+/**
+ * A summary node corresponding to a function definition
+ *
+ * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
+ */
 public class SummaryCFAFunctionDefinitionNode extends CFAFunctionDefinitionNode
         implements SummaryCFANode {
     private CFANode inner;

@@ -14,6 +14,9 @@ import cpaplugin.exceptions.CPAException;
 import cpaplugin.logging.CPACheckerLogger;
 import cpaplugin.logging.CustomLogLevel;
 
+/**
+ * TODO. This is currently broken
+ */
 public class SymbPredAbstTransfer implements TransferRelation {
 
     private SymbPredAbstDomain domain;

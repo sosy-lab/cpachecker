@@ -1,12 +1,13 @@
 package cpaplugin.cpa.cpas.symbpredabs.summary;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Stack;
 import java.util.Vector;
 import java.util.logging.Level;
@@ -14,8 +15,12 @@ import java.util.logging.Level;
 import cpaplugin.cfa.objectmodel.CFAEdge;
 import cpaplugin.cfa.objectmodel.CFAErrorNode;
 import cpaplugin.cfa.objectmodel.CFANode;
+import cpaplugin.cfa.objectmodel.c.CallToReturnEdge;
+import cpaplugin.cfa.objectmodel.c.FunctionDefinitionNode;
+import cpaplugin.cfa.objectmodel.c.ReturnEdge;
+import cpaplugin.cmdline.CPAMain;
 import cpaplugin.cpa.common.CPATransferException;
-import cpaplugin.cpa.common.ErrorReachedExeption;
+import cpaplugin.cpa.common.ErrorReachedException;
 import cpaplugin.cpa.common.RefinementNeededException;
 import cpaplugin.cpa.common.interfaces.AbstractDomain;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
@@ -24,7 +29,6 @@ import cpaplugin.cpa.cpas.symbpredabs.AbstractFormula;
 import cpaplugin.cpa.cpas.symbpredabs.CounterexampleTraceInfo;
 import cpaplugin.cpa.cpas.symbpredabs.Pair;
 import cpaplugin.cpa.cpas.symbpredabs.Predicate;
-import cpaplugin.cpa.cpas.symbpredabs.PredicateMap;
 import cpaplugin.cpa.cpas.symbpredabs.SSAMap;
 import cpaplugin.cpa.cpas.symbpredabs.SymbolicFormula;
 import cpaplugin.cpa.cpas.symbpredabs.UpdateablePredicateMap;
@@ -33,8 +37,15 @@ import cpaplugin.exceptions.CPAException;
 import cpaplugin.logging.CPACheckerLogger;
 import cpaplugin.logging.CustomLogLevel;
 
+
+/**
+ * Transfer relation for symbolic lazy abstraction with summaries
+ *
+ * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
+ */
 public class SummaryTransferRelation implements TransferRelation {
-    
+
+    // the Abstract Reachability Tree
     class ART {
         Map<AbstractElement, Collection<AbstractElement>> tree;
         
@@ -77,20 +88,44 @@ public class SummaryTransferRelation implements TransferRelation {
     private SummaryAbstractDomain domain;
     private ART abstractTree;
     
+    private int numAbstractStates = 0; // for statistics
+    private boolean errorReached = false;
+    
     public SummaryTransferRelation(SummaryAbstractDomain d) {
         domain = d;
         abstractTree = new ART();
     }
     
+    public int getNumAbstractStates() { return numAbstractStates; }
+    public boolean hasReachedError() { return errorReached; }
+    
     @Override
     public AbstractDomain getAbstractDomain() {
         return domain;
     }
+
+    // isFunctionStart and isFunctionEnd are used for managing the context,
+    // needed for handling function calls
     
+    private boolean isFunctionStart(SummaryAbstractElement elem) {
+        return (elem.getLocation().getInnerNode() instanceof 
+                FunctionDefinitionNode);
+    }
+    
+    private boolean isFunctionEnd(SummaryAbstractElement elem) {
+        CFANode n = elem.getLocation().getInnerNode();
+        return (n.getNumLeavingEdges() == 1 &&
+                n.getLeavingEdge(0) instanceof ReturnEdge);
+//        return (elem.getLocation().getInnerNode().getEnteringSummaryEdge() 
+//                != null);
+    }
+
+    // abstract post operation
     private AbstractElement buildSuccessor(SummaryAbstractElement e,
             CFAEdge edge) throws CPATransferException {
         SummaryCPA cpa = domain.getCPA();
         SummaryCFANode succLoc = (SummaryCFANode)edge.getSuccessor();
+        
         // check whether the successor is an error location: if so, we want
         // to check for feasibility of the path...
         
@@ -102,13 +137,37 @@ public class SummaryTransferRelation implements TransferRelation {
         Map<CFANode, Pair<SymbolicFormula, SSAMap>> p = 
             cpa.getPathFormulas(succLoc);
         succ.setPathFormulas(p);
-        SummaryAbstractFormulaManager amgr = cpa.getAbstractFormulaManager(); 
+        
+        // if e is the end of a function, we must find the correct return 
+        // location
+        if (isFunctionEnd(succ)) {
+            SummaryCFANode retNode = e.topContextLocation();
+            if (!succLoc.equals(retNode)) {
+                LazyLogger.log(LazyLogger.DEBUG_1,
+                        "Return node for this call is: ", retNode,
+                        ", but edge leads to: ", succLoc, ", returning BOTTOM");
+                return domain.getBottomElement();
+            }
+        }
+        
+//        Stack<AbstractFormula> context = 
+//            (Stack<AbstractFormula>)e.getContext().clone();
+//        if (isFunctionEnd(e)) {
+//            context.pop();
+//        }
+//        succ.setContext(context);
+        succ.setContext(e.getContext(), false);
+        if (isFunctionEnd(succ)) {
+            succ.popContext();
+        }
+        
+        SummaryAbstractFormulaManager amgr = cpa.getAbstractFormulaManager();
         AbstractFormula abstraction = amgr.buildAbstraction(
                 cpa.getFormulaManager(), e, succ, predicates);
         succ.setAbstraction(abstraction);
         succ.setParent(e);
         
-        Level lvl = CustomLogLevel.SpecificCPALevel;
+        Level lvl = LazyLogger.DEBUG_1;
         if (CPACheckerLogger.getLevel() <= lvl.intValue()) {
             SummaryFormulaManager mgr = cpa.getFormulaManager();
             LazyLogger.log(lvl, "COMPUTED ABSTRACTION: ", 
@@ -117,9 +176,16 @@ public class SummaryTransferRelation implements TransferRelation {
         
         if (amgr.isFalse(abstraction)) {
             return domain.getBottomElement();
-        } else {            
+        } else {
+            ++numAbstractStates;
             // if we reach an error state, we want to log this...
             if (succ.getLocation().getInnerNode() instanceof CFAErrorNode) {
+                if (CPAMain.cpaConfig.getBooleanValue(
+                        "cpas.symbpredabs.abstraction.norefinement")) {
+                    errorReached = true;
+                    throw new ErrorReachedException(
+                            "Reached error location, but refinement disabled");
+                }
                 // oh oh, reached error location. Let's check whether the 
                 // trace is feasible or spurious, and in case refine the
                 // abstraction
@@ -140,39 +206,97 @@ public class SummaryTransferRelation implements TransferRelation {
                     LazyLogger.log(CustomLogLevel.SpecificCPALevel,
                             "Found spurious error trace, refining the ",
                             "abstraction");
-                    performRefinement(path, info.getPredicatesForRefinement());
+                    performRefinement(path, info);
                 } else {
                     LazyLogger.log(CustomLogLevel.SpecificCPALevel, 
                             "REACHED ERROR LOCATION!: ", succ, 
                             " RETURNING BOTTOM!");
-                    throw new ErrorReachedExeption(
+                    errorReached = true;
+                    throw new ErrorReachedException(
                             info.getConcreteTrace().toString());
                 }
                 return domain.getBottomElement();
-            } 
+            }
+            
+            if (isFunctionStart(succ)) {
+                // we push into the context the return location, which is
+                // the successor location of the summary edge
+                SummaryCFANode retNode = null;
+                for (CFANode l : e.getLeaves()) {  
+                    if (l instanceof FunctionDefinitionNode) {
+                        assert(l.getNumLeavingEdges() == 1);
+                        //assert(l.getNumEnteringEdges() == 1);
+                        
+                        CFAEdge ee = l.getLeavingEdge(0);
+                        InnerCFANode n = (InnerCFANode)ee.getSuccessor();
+                        if (n.getSummaryNode().equals(succ.getLocation())) {
+                            CFANode pr = l.getEnteringEdge(0).getPredecessor();
+                            CallToReturnEdge ce = pr.getLeavingSummaryEdge();
+                            //assert(ce != null);
+                            if (ce != null) {
+                                retNode = ((InnerCFANode)ce.getSuccessor()).
+                                            getSummaryNode();
+                                break;
+                            }
+                        }
+                    }
+                }
+                //assert(retNode != null);
+                if (retNode != null) {
+                LazyLogger.log(LazyLogger.DEBUG_3, "PUSHING CONTEXT TO ", succ,
+                        ": ", cpa.getAbstractFormulaManager().toConcrete(
+                                cpa.getFormulaManager(), 
+                                succ.getAbstraction()));
+                //succ.getContext().push(succ.getAbstraction());
+                succ.pushContext(succ.getAbstraction(), retNode);
+                }
+            }            
+            
             return succ;
         }
     }
 
+
+    // abstraction refinement and undoing of (part of) the ART
     private void performRefinement(Deque<SummaryAbstractElement> path, 
-            PredicateMap pmap) throws CPATransferException {
+            CounterexampleTraceInfo info) throws CPATransferException {
         // TODO Auto-generated method stub
         UpdateablePredicateMap curpmap =
             (UpdateablePredicateMap)domain.getCPA().getPredicateMap();
         AbstractElement root = null;
+        AbstractElement firstInterpolant = null;
         for (SummaryAbstractElement e : path) {
-            Collection<Predicate> newpreds = pmap.getRelevantPredicates(
-                    (CFANode)e.getLocation());
+            Collection<Predicate> newpreds = info.getPredicatesForRefinement(e);
+            if (firstInterpolant == null && newpreds.size() > 0) {
+                firstInterpolant = e;
+            }
             if (curpmap.update((CFANode)e.getLocation(), newpreds)) {
                 if (root == null) {
                     root = e.getParent();
                 }
             }
         }
+        if (root == null) {
+            root = firstInterpolant;
+        }
         assert(root != null);
-        Collection<AbstractElement> toWaitlist = Collections.singleton(root);
+        //root = path.getFirst();
+        Collection<AbstractElement> toWaitlist = new HashSet<AbstractElement>();
+        toWaitlist.add(root);
         Collection<AbstractElement> toUnreach = 
             abstractTree.getSubtree(root, true, false);
+        SummaryCPA cpa = domain.getCPA();
+        for (AbstractElement e : toUnreach) {
+            Set<SummaryAbstractElement> cov = cpa.getCoveredBy(
+                    (SummaryAbstractElement)e);
+            for (AbstractElement c : cov) {
+                if (!((SummaryAbstractElement)c).isDescendant(
+                        (SummaryAbstractElement)root)) {
+                    toWaitlist.add(c);
+                }
+            }
+            cpa.uncoverAll((SummaryAbstractElement)e);
+        }
 //        Collection<AbstractElement> toUnreach = new Vector<AbstractElement>();
 //        boolean add = false;
 //        for (AbstractElement e : path) {
@@ -229,13 +353,17 @@ public class SummaryTransferRelation implements TransferRelation {
         LazyLogger.log(CustomLogLevel.SpecificCPALevel, 
                        "Getting ALL Abstract Successors of element: ", 
                        element);
-
+        
         List<AbstractElement> allSucc = new Vector<AbstractElement>();
         SummaryAbstractElement e = (SummaryAbstractElement)element;
         CFANode src = (CFANode)e.getLocation();
         
         for (int i = 0; i < src.getNumLeavingEdges(); ++i) {
-            allSucc.add(buildSuccessor(e, src.getLeavingEdge(i)));
+            AbstractElement newe = 
+                getAbstractSuccessor(e, src.getLeavingEdge(i));
+            if (newe != domain.getBottomElement()) {
+                allSucc.add(newe);
+            }
         }
         
         LazyLogger.log(CustomLogLevel.SpecificCPALevel, 

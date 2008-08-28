@@ -5,8 +5,15 @@ import java.util.logging.Level;
 import cpaplugin.logging.CPACheckerLogger;
 
 /**
- * Poor man's lazy evaluation :-)
- * @author alb
+ * A class that uses a sort-of "lazy evaluation" for constructing (and
+ * printing) log messages. Sometimes, simply building the string
+ * representation of some objects might be costly (for instance, if we want to
+ * print big MathSAT formulas). If logging is turned off, there's no need of
+ * constructing this string representation if arguments to the log function
+ * are evaluated "lazily". This is what this class provides. The logging
+ * itself is performed by calling CPACheckerLogger
+ * 
+ * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
 public class LazyLogger {
     static class LogLevel extends Level {

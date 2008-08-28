@@ -5,7 +5,7 @@ import java.util.Collection;
 import cpaplugin.cfa.objectmodel.CFAEdge;
 
 /**
- * @author alb
+ * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  *
  * A SymbolicFormulaManager is an object that can create/manipulate 
  * SymbolicFormulas
@@ -37,7 +37,7 @@ public interface SymbolicFormulaManager {
      * @param absoluteSSAIndices if true, use a unique index for each ssa 
      *                           variable, instead of keeping a separate index
      *                           for each var
-     * @return (f1 & e)
+     * @return The formula (f1 & e), and the new/updated SSAMap
      */
     public Pair<SymbolicFormula, SSAMap> makeAnd(SymbolicFormula f1, CFAEdge e, 
                                                  SSAMap ssa, boolean updateSSA, 
@@ -112,8 +112,10 @@ public interface SymbolicFormulaManager {
      * @param f the formula to operate on
      * @param uninstantiate controls whether the returned atoms are still
      *                      instantiated or not
+     * @param splitArithEqualities if true, return (x <= y) and (y <= x) 
+     *                             instead of (x = y)
      * @return a collection of atomic formulas
      */
     public Collection<SymbolicFormula> extractAtoms(SymbolicFormula f,
-                                                    boolean uninstantiate);
+            boolean uninstantiate, boolean splitArithEqualities);
 }

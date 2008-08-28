@@ -3,6 +3,11 @@ package cpaplugin.cpa.cpas.symbpredabs.mathsat;
 import cpaplugin.cpa.cpas.symbpredabs.SymbolicFormula;
 
 
+/**
+ * A SymbolicFormula represented as a MathSAT term.
+ *
+ * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
+ */
 public class MathsatSymbolicFormula implements SymbolicFormula {
 
     private long msatTerm;

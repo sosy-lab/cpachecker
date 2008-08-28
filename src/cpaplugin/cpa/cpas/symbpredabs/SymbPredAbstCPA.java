@@ -21,6 +21,9 @@ import cpaplugin.cpa.cpas.symbpredabs.mathsat.MathsatPredicateParser;
 import cpaplugin.cpa.cpas.symbpredabs.mathsat.MathsatSymbolicFormulaManager;
 import cpaplugin.logging.CustomLogLevel;
 
+/**
+ * TODO. This is currently broken
+ */
 public class SymbPredAbstCPA implements ConfigurableProblemAnalysis {
 
     private AbstractDomain abstractDomain;

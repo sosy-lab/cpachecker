@@ -2,6 +2,7 @@ package cpaplugin.cpa.cpas.symbpredabs.summary;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.Stack;
 
 import cpaplugin.cfa.objectmodel.CFANode;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
@@ -11,6 +12,11 @@ import cpaplugin.cpa.cpas.symbpredabs.Pair;
 import cpaplugin.cpa.cpas.symbpredabs.SSAMap;
 import cpaplugin.cpa.cpas.symbpredabs.SymbolicFormula;
 
+/**
+ * AbstractElement for symbolic lazy abstraction with summaries
+ *
+ * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
+ */
 public class SummaryAbstractElement 
         implements AbstractElement, AbstractElementWithLocation {
     
@@ -21,6 +27,10 @@ public class SummaryAbstractElement
     private Map<CFANode, Pair<SymbolicFormula, SSAMap>> pathFormulas;
     private AbstractFormula abstraction;
     private SummaryAbstractElement parent;
+
+    // context is used to deal with function calls/returns
+    private Stack<Pair<AbstractFormula, SummaryCFANode>> context;
+    private boolean ownsContext;
     
     private static int nextAvailableId = 1;
     
@@ -31,14 +41,16 @@ public class SummaryAbstractElement
     }
     public AbstractFormula getAbstraction() { return abstraction; }
     
-    public void setAbstraction(AbstractFormula a) { abstraction = a; }
+    public void setAbstraction(AbstractFormula a) { 
+        abstraction = a;
+    }
     public void setPathFormulas(Map<CFANode, Pair<SymbolicFormula, SSAMap>> pf){
         pathFormulas = pf;
     }
     
     public SummaryAbstractElement getParent() { return parent; }
     public void setParent(SummaryAbstractElement p) { parent = p; }
-
+    
     private SummaryAbstractElement(SummaryCFANode loc, AbstractFormula a, 
             Map<CFANode, Pair<SymbolicFormula, SSAMap>> pf,
             SummaryAbstractElement p) {
@@ -47,6 +59,8 @@ public class SummaryAbstractElement
         abstraction = a;
         pathFormulas = pf;
         parent = p;
+        context = null;
+        ownsContext = true;
     }
     
     public SummaryAbstractElement(SummaryCFANode loc) {
@@ -82,4 +96,81 @@ public class SummaryAbstractElement
         
         return pathFormulas.keySet();
     }
+
+    public Stack<Pair<AbstractFormula, SummaryCFANode>> getContext() 
+    { 
+        return context; 
+    }
+    
+    public void setContext(Stack<Pair<AbstractFormula, SummaryCFANode>> ctx, 
+                           boolean owns) 
+    { 
+        context = ctx;
+        ownsContext = owns;
+    }
+
+    public AbstractFormula topContextAbstraction() {
+        assert(context != null);
+        assert(!context.empty());
+        return context.peek().getFirst();
+    }
+    
+    public SummaryCFANode topContextLocation() {
+        assert(context != null);
+        assert(!context.empty());
+        return context.peek().getSecond();
+    }
+    
+    private void cloneContext() {
+        // copy-on-write semantics: just duplicate the context and push
+        // in the copy
+        Stack<Pair<AbstractFormula, SummaryCFANode>> copy = 
+            new Stack<Pair<AbstractFormula, SummaryCFANode>>();
+        for (Pair<AbstractFormula, SummaryCFANode> a : context) {
+            copy.add(a);
+        }
+        context = copy;
+        ownsContext = true;
+    }
+    
+    public void pushContext(AbstractFormula af, SummaryCFANode returnLoc) {
+        if (!ownsContext) {
+            cloneContext();
+        }
+        context.push(new Pair<AbstractFormula, SummaryCFANode>(af, returnLoc));
+    }
+    
+    public void popContext() {
+        if (!ownsContext) {
+            cloneContext();
+        }
+        context.pop();
+    }
+    
+    public boolean sameContext(SummaryAbstractElement e2) {
+        assert(context != null && e2.context != null);
+        
+        if (context == e2.context) {
+            return true;
+        } else if (context.size() != e2.context.size()) {
+            return false;
+        } else {
+            for (int i = 0; i < context.size(); ++i) {
+                if (!context.elementAt(i).equals(e2.context.elementAt(i))) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+    
+    public boolean isDescendant(SummaryAbstractElement c) {
+        SummaryAbstractElement a = this;
+        while (a != null) {
+            if (a.equals(c)) return true;
+            a = a.getParent();
+        }
+        return false;
+    }
+    
 }
