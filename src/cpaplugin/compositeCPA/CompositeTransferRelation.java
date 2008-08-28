@@ -1,17 +1,13 @@
 package cpaplugin.compositeCPA;
 
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
-import java.util.Vector;
 
 import cpaplugin.cfa.objectmodel.CFAEdge;
 import cpaplugin.cfa.objectmodel.CFANode;
 import cpaplugin.cpa.common.CPATransferException;
 import cpaplugin.cpa.common.CompositeDomain;
 import cpaplugin.cpa.common.CompositeElement;
-import cpaplugin.cpa.common.RefinementNeededException;
 import cpaplugin.cpa.common.interfaces.AbstractDomain;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.AbstractElementWithLocation;
@@ -54,29 +50,8 @@ public class CompositeTransferRelation implements TransferRelation{
 			TransferRelation transfer = transferRelations.get (idx);
 			AbstractElement subElement = inputElements.get (idx);
 
-			try {
-			    AbstractElement successor = transfer.getAbstractSuccessor (subElement, cfaEdge);
-			    resultingElements.add (successor);
-			} catch (RefinementNeededException re) {
-			    // AG TODO this is really a hack! 
-			    assert(transferRelations.size() == 1);
-			    Collection<AbstractElement> toUnreach = 
-			        new Vector<AbstractElement>();
-			    Collection<AbstractElement> toWaitlist = 
-			        new Vector<AbstractElement>();
-			    for (AbstractElement se : re.getReachableToUndo()){
-			        toUnreach.add(
-			                new CompositeElement(
-			                        Collections.singletonList(se)));
-			    }
-			    for (AbstractElement se : re.getToWaitlist()) {
-			        toWaitlist.add(
-			                new CompositeElement(
-			                        Collections.singletonList(se)));
-			    }
-			    throw new RefinementNeededException(toUnreach,
-			            toWaitlist);
-			}
+			AbstractElement successor = transfer.getAbstractSuccessor (subElement, cfaEdge);
+			resultingElements.add (successor);
 		}
 
 		return new CompositeElement (resultingElements);

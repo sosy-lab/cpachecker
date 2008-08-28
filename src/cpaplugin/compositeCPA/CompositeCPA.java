@@ -17,6 +17,7 @@ import cpaplugin.cpa.common.interfaces.ConfigurableProblemAnalysis;
 import cpaplugin.cpa.common.interfaces.MergeOperator;
 import cpaplugin.cpa.common.interfaces.StopOperator;
 import cpaplugin.cpa.common.interfaces.TransferRelation;
+import cpaplugin.cpa.cpas.symbpredabs.logging.LazyLogger;
 import cpaplugin.exceptions.CPAException;
 import cpaplugin.logging.CPACheckerLogger;
 import cpaplugin.logging.CustomLogLevel;
@@ -158,9 +159,17 @@ public class CompositeCPA implements ConfigurableProblemAnalysis
 				e.printStackTrace();
 			}
 		}
-
-		CPACheckerLogger.log(CustomLogLevel.MainApplicationLevel, "CompositeCPA is built using the list of CPAs");
-		ConfigurableProblemAnalysis cpa = CompositeCPA.createNewCompositeCPA (cpas, node);
+		
+		ConfigurableProblemAnalysis cpa = null;		
+		if (cpas.size() == 1) {
+		    LazyLogger.log(CustomLogLevel.MainApplicationLevel, 
+		            "Only one analyis active, ",
+		            "no need of a composite CPA");
+		    cpa = cpas.get(0);
+		} else {
+		    CPACheckerLogger.log(CustomLogLevel.MainApplicationLevel, "CompositeCPA is built using the list of CPAs");
+		    cpa = CompositeCPA.createNewCompositeCPA (cpas, node);
+		}
 		return cpa;
 	}
 
