@@ -151,4 +151,8 @@ public class CFANode
     public int hashCode() {
         return getNodeNumber();
     }
+    
+    public String toString() {
+        return "N" + getNodeNumber();
+    }
 }
