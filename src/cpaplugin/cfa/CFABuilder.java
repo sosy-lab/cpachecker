@@ -133,7 +133,9 @@ public class CFABuilder extends ASTVisitor
 				CFANode nextNode = new CFANode (fileloc.getStartingLineNumber ());
 
 				IASTSimpleDeclaration simpleDeclaration = (IASTSimpleDeclaration) declaration;
-				DeclarationEdge edge = new DeclarationEdge (simpleDeclaration.getRawSignature (), simpleDeclaration.getDeclarators ());
+				DeclarationEdge edge = new DeclarationEdge (
+				        simpleDeclaration.getRawSignature (), simpleDeclaration.getDeclarators (),
+				        simpleDeclaration.getDeclSpecifier());
 				edge.initialize (prevNode, nextNode);
 
 				locStack.push (nextNode);
