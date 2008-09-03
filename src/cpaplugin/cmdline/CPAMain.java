@@ -35,6 +35,7 @@ import cpaplugin.compositeCPA.CompositeCPA;
 import cpaplugin.cpa.common.CPAAlgorithm;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.ConfigurableProblemAnalysis;
+import cpaplugin.cpa.cpas.symbpredabs.BlockCFABuilder;
 import cpaplugin.cpa.cpas.symbpredabs.GlobalDeclarationEdge;
 import cpaplugin.cpa.cpas.symbpredabs.summary.ConeOfInfluenceCFAReduction;
 import cpaplugin.cpa.cpas.symbpredabs.summary.SummaryCFABuilder;
@@ -42,12 +43,17 @@ import cpaplugin.cpa.cpas.symbpredabs.summary.SummaryDOTBuilder;
 import cpaplugin.exceptions.CPAException;
 import cpaplugin.logging.CPACheckerLogger;
 import cpaplugin.logging.CustomLogLevel;
+import cpaplugin.logging.LazyLogger;
 
 @SuppressWarnings("restriction")
 public class CPAMain {
 
     public static CPAConfiguration cpaConfig;
     public static MainCPAStatistics cpaStats;
+    
+    // used in the ShutdownHook to check whether the analysis has been 
+    // interrupted by the user
+    private static boolean interrupted = true;
 
     private static ConfigurableProblemAnalysis getCPA(
             CFAFunctionDefinitionNode node) throws CPAException {
@@ -59,9 +65,9 @@ public class CPAMain {
         
         cpaStats = new MainCPAStatistics();
 
-        CPACheckerLogger.log(CustomLogLevel.INFO, "Analysis Started");
-        CPACheckerLogger.log(CustomLogLevel.MainApplicationLevel, 
-                             "Parsing Finished");
+        LazyLogger.log(CustomLogLevel.INFO, "Analysis Started");
+        LazyLogger.log(CustomLogLevel.MainApplicationLevel, 
+                       "Parsing Finished");
         
         CFAFunctionDefinitionNode mainFunction = null;
         
@@ -87,10 +93,10 @@ public class CPAMain {
 
         // Insert call and return edges and build the supergraph
         if (CPAMain.cpaConfig.getBooleanValue("analysis.interprocedural")) {
-            CPACheckerLogger.log(CustomLogLevel.MainApplicationLevel, 
-                                 "Analysis is interprocedural ");
-            CPACheckerLogger.log(CustomLogLevel.MainApplicationLevel, 
-                                 "Adding super edges");
+            LazyLogger.log(CustomLogLevel.MainApplicationLevel, 
+                           "Analysis is interprocedural ");
+            LazyLogger.log(CustomLogLevel.MainApplicationLevel, 
+                           "Adding super edges");
             CPASecondPassBuilder spbuilder = new CPASecondPassBuilder(cfas);
             for (CFAFunctionDefinitionNode cfa2 : cfasMapList){
                 spbuilder.insertCallEdges(cfa2.getFunctionName());
@@ -99,8 +105,8 @@ public class CPAMain {
         
         if (CPAMain.cpaConfig.getBooleanValue(
                 "analysis.useSummaryLocations")) {
-            CPACheckerLogger.log(CustomLogLevel.MainApplicationLevel,
-                    "Building Summary CFAs");
+            LazyLogger.log(CustomLogLevel.MainApplicationLevel,
+                           "Building Summary CFAs");
             mainFunction = cfas.getCFA(CPAMain.cpaConfig.getProperty(
                     "analysis.entryFunction"));
             if (CPAMain.cpaConfig.getBooleanValue(
@@ -114,8 +120,26 @@ public class CPAMain {
                 new SummaryCFABuilder(mainFunction, 
                         builder.getGlobalDeclarations());
             mainFunction = summaryBuilder.buildSummary();
-            CPACheckerLogger.log(CustomLogLevel.MainApplicationLevel, "DONE");
+            LazyLogger.log(CustomLogLevel.MainApplicationLevel, "DONE");
             cfasMapList = cfas.cfaMapIterator();
+        } else if (CPAMain.cpaConfig.getBooleanValue("analysis.useBlockEdges")){
+            CPACheckerLogger.log(CustomLogLevel.MainApplicationLevel,
+            "Building Block CFAs");
+            mainFunction = cfas.getCFA(CPAMain.cpaConfig.getProperty(
+            "analysis.entryFunction"));
+            if (CPAMain.cpaConfig.getBooleanValue(
+            "cfa.removeIrrelevantForErrorLocations")) {
+                ConeOfInfluenceCFAReduction coi = 
+                    new ConeOfInfluenceCFAReduction();
+                mainFunction = 
+                    coi.removeIrrelevantForErrorLocations(mainFunction);
+            }
+            BlockCFABuilder summaryBuilder = 
+                new BlockCFABuilder(mainFunction, 
+                        builder.getGlobalDeclarations());
+            mainFunction = summaryBuilder.buildBlocks();
+            CPACheckerLogger.log(CustomLogLevel.MainApplicationLevel, "DONE");
+            cfasMapList = cfas.cfaMapIterator();            
         } else if (CPAMain.cpaConfig.getBooleanValue("analysis.useGlobalVars")){
             // add global variables at the beginning of main
             mainFunction = cfas.getCFA(CPAMain.cpaConfig.getProperty(
@@ -131,8 +155,8 @@ public class CPAMain {
             mainFunction = addGlobalDeclarations(mainFunction, globalVars);
         }
 
-        CPACheckerLogger.log(CustomLogLevel.MainApplicationLevel, 
-                             numFunctions + " functions parsed");
+        LazyLogger.log(CustomLogLevel.MainApplicationLevel, 
+                       numFunctions, " functions parsed");
 
         // Erkan: For interprocedural analysis, we start with the
         // main function and we proceed, we don't need to traverse
@@ -160,12 +184,12 @@ public class CPAMain {
                 //System.exit(0);
             }
 
-            CPACheckerLogger.log(CustomLogLevel.MainApplicationLevel, 
-                    "CPA Algorithm Called");
+            LazyLogger.log(CustomLogLevel.MainApplicationLevel, 
+                           "CPA Algorithm Called");
 
             ConfigurableProblemAnalysis cpa = getCPA(mainFunction);
 
-            CPACheckerLogger.log(Level.INFO, "CPA Algorithm starting ... ");
+            LazyLogger.log(Level.INFO, "CPA Algorithm starting ... ");
             cpaStats.startAnalysisTimer();
 
             CPAAlgorithm algo = new CPAAlgorithm();
@@ -174,11 +198,11 @@ public class CPAMain {
             Collection<AbstractElement> reached = algo.CPA(cpa, initialElement);
             cpaStats.stopAnalysisTimer();
 
-            CPACheckerLogger.log(Level.INFO, "CPA Algorithm finished ");
+            LazyLogger.log(Level.INFO, "CPA Algorithm finished ");
 
-            CPACheckerLogger.log(CustomLogLevel.MainApplicationLevel, 
-                    numFunctions + "Reached CPA Size: " + reached.size() + 
-                    " for function: " + mainFunction.getFunctionName());
+            LazyLogger.log(CustomLogLevel.MainApplicationLevel, 
+                           numFunctions, " Reached CPA Size: ", reached.size(),
+                           " for function: ", mainFunction.getFunctionName());
 
             if (!cpaConfig.getBooleanValue(
                     "analysis.dontPrintReachableStates")) {
@@ -186,8 +210,12 @@ public class CPAMain {
                     System.out.println(element.toString ());
                 }
             }
-            cpaStats.printStatistics(new PrintWriter(System.out));
+            displayStatistics();
         }
+    }
+    
+    public static synchronized void displayStatistics() {
+        cpaStats.printStatistics(new PrintWriter(System.out));
     }
 
     private static CFAFunctionDefinitionNode addGlobalDeclarations(
@@ -235,6 +263,25 @@ public class CPAMain {
         return cfa;
     }
     
+    public static class ShutdownHook extends Thread {
+        public void run() {
+            if (interrupted) {
+                cpaStats.stopAnalysisTimer();
+                System.out.flush();
+                System.err.flush();
+                displayStatistics();
+                System.out.println("\n" +
+                        "***************************************************" +
+                        "****************************\n" +
+                        "* WARNING:  Analysis interrupted!! The statistics " + 
+                        "might be unreliable!        *\n" + 
+                        "***************************************************" +
+                        "****************************\n"
+                );
+                System.out.flush();
+            }
+        }
+    }
     
     /**
      * The action has been activated. The argument of the method represents the
@@ -269,10 +316,19 @@ public class CPAMain {
                 return;
             }
             CPACheckerLogger.init();
+
+            // this is for catching Ctrl+C and printing statistics even in that
+            // case. It might be useful to understand what's going on when
+            // the analysis takes a lot of time...
+            Runtime.getRuntime().addShutdownHook(new ShutdownHook());
+            
             doRunAnalysis(ast);
+            interrupted = false;
         } catch (Exception e) {
             System.out.println(e.getMessage());
             e.printStackTrace();
+            System.out.flush();
+            System.err.flush();
         }
     }    
 }
