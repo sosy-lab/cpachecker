@@ -104,4 +104,10 @@ public abstract class AbstractCFAEdge implements CFAEdge
         
         return true;
     }
+    
+    public String toString() {
+        return "(" + getPredecessor() + " -{" + 
+                getRawStatement().replaceAll("\n", " ") + 
+               "}-> " + getSuccessor() + ")";
+    }
 }
