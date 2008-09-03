@@ -4,10 +4,14 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.Vector;
 
 import cpaplugin.CPAStatistics;
+import cpaplugin.cfa.objectmodel.CFAEdge;
 import cpaplugin.cfa.objectmodel.CFANode;
 import cpaplugin.cmdline.CPAMain;
 import cpaplugin.cpa.cpas.symbpredabs.Pair;
@@ -112,8 +116,34 @@ public class ExplicitCPAStatistics implements CPAStatistics {
         out.println("Number of abstract states visited: " + 
                 trans.getNumAbstractStates());
         out.println("Number of abstraction steps: " + bs.numCallsAbstraction);
+        if (!bs.edgeAbstCountMap.isEmpty()) {
+            out.println("Number of abstraction steps per each edge:");
+            Vector<Pair<Integer, CFAEdge>> v = 
+                new Vector<Pair<Integer, CFAEdge>>();
+            for (CFAEdge e : bs.edgeAbstCountMap.keySet()) {
+                v.add(new Pair<Integer, CFAEdge>(
+                        bs.edgeAbstCountMap.get(e), e));
+            }
+            Collections.sort(v, new Comparator<Pair<Integer, CFAEdge>>() {
+                public int compare(Pair<Integer, CFAEdge> o1,
+                        Pair<Integer, CFAEdge> o2) {
+                    int r = (o2.getFirst() - o1.getFirst());
+                    if (r == 0) {
+                        return o1.getSecond().getPredecessor().getNodeNumber() -
+                               o2.getSecond().getPredecessor().getNodeNumber(); 
+                    } else {
+                        return r;
+                    }
+                }
+            });
+            for (Pair<Integer, CFAEdge> p : v) {
+                out.println("  " + p.getSecond() + " : " + p.getFirst());
+            }
+        }
         out.println("Number of SMT queries in abstraction: " + 
-                bs.abstractionNumMathsatQueries);
+                (bs.abstractionNumMathsatQueries + 
+                 bs.abstractionNumCachedQueries) + " total, " + 
+                 bs.abstractionNumCachedQueries + " cached");
         out.println("Number of refinement steps: " + bs.numCallsCexAnalysis);
         out.println("");
         out.println("Total number of predicates discovered: " + 
