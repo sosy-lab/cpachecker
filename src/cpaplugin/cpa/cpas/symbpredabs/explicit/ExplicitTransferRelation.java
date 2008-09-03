@@ -29,10 +29,10 @@ import cpaplugin.cpa.cpas.symbpredabs.CounterexampleTraceInfo;
 import cpaplugin.cpa.cpas.symbpredabs.Predicate;
 import cpaplugin.cpa.cpas.symbpredabs.SymbolicFormulaManager;
 import cpaplugin.cpa.cpas.symbpredabs.UpdateablePredicateMap;
-import cpaplugin.cpa.cpas.symbpredabs.logging.LazyLogger;
 import cpaplugin.exceptions.CPAException;
 import cpaplugin.logging.CPACheckerLogger;
 import cpaplugin.logging.CustomLogLevel;
+import cpaplugin.logging.LazyLogger;
 
 
 /**
@@ -182,6 +182,10 @@ public class ExplicitTransferRelation implements TransferRelation {
         Collection<Predicate> predicates = 
             cpa.getPredicateMap().getRelevantPredicates(
                     e.getLocation());
+//        if (predicates.isEmpty() && e.getParent() != null) {
+//            predicates = cpa.getPredicateMap().getRelevantPredicates(
+//                    e.getParent().getLocation());
+//        }
                 
         ExplicitAbstractElement succ = new ExplicitAbstractElement(succLoc);
         
@@ -304,24 +308,31 @@ public class ExplicitTransferRelation implements TransferRelation {
     // abstraction refinement is performed here
     private void performRefinement(Deque<ExplicitAbstractElement> path, 
             CounterexampleTraceInfo info) throws CPATransferException {
-        // TODO Auto-generated method stub
+        LazyLogger.log(LazyLogger.DEBUG_1, "STARTING REFINEMENT");
         UpdateablePredicateMap curpmap =
             (UpdateablePredicateMap)domain.getCPA().getPredicateMap();
-        AbstractElement root = null;
-        AbstractElement firstInterpolant = null;
+        ExplicitAbstractElement root = null;
+        ExplicitAbstractElement firstInterpolant = null;
         for (ExplicitAbstractElement e : path) {
             Collection<Predicate> newpreds = info.getPredicatesForRefinement(e);
             if (firstInterpolant == null && newpreds.size() > 0) {
                 firstInterpolant = e;
             }
             if (curpmap.update((CFANode)e.getLocation(), newpreds)) {
+                LazyLogger.log(LazyLogger.DEBUG_1, "REFINING LOCATION: ",
+                        e.getLocation());
                 if (root == null) {
 //                    cur = e;
                     root = e.getParent();
                 }
+//                else if (root.getLocation().equals(e.getLocation())) {
+//                    root = e;
+//                }
             }
         }
-//        root = abstractTree.getRoot();
+        assert(root != null);// || firstInterpolant == path.getFirst());
+        //root = firstInterpolant;
+        //root = (ExplicitAbstractElement)abstractTree.getRoot();
         if (root == null) {
             assert(firstInterpolant != null);            
 //            assert(CPAMain.cpaConfig.getBooleanValue(
@@ -330,7 +341,7 @@ public class ExplicitTransferRelation implements TransferRelation {
             root = firstInterpolant;
         }
         assert(root != null);
-        root = path.getFirst();
+        //root = path.getFirst();
         Collection<AbstractElement> toWaitlist = new HashSet<AbstractElement>();
         toWaitlist.add(root);
         Collection<AbstractElement> toUnreach = 
