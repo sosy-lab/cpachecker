@@ -3,7 +3,7 @@ package cpaplugin.cpa.cpas.symbpredabs.summary;
 import cpaplugin.cpa.common.interfaces.AbstractDomain;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.MergeOperator;
-import cpaplugin.cpa.cpas.symbpredabs.logging.LazyLogger;
+import cpaplugin.logging.LazyLogger;
 
 /**
  * trivial merge operation for symbolic lazy abstraction with summaries

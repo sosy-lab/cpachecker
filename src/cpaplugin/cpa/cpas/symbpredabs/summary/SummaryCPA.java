@@ -35,8 +35,8 @@ import cpaplugin.cpa.cpas.symbpredabs.UpdateablePredicateMap;
 import cpaplugin.cpa.cpas.symbpredabs.mathsat.MathsatPredicateParser;
 import cpaplugin.cpa.cpas.symbpredabs.mathsat.summary.BDDMathsatSummaryAbstractManager;
 import cpaplugin.cpa.cpas.symbpredabs.mathsat.summary.MathsatSummaryFormulaManager;
-import cpaplugin.logging.CPACheckerLogger;
 import cpaplugin.logging.CustomLogLevel;
+import cpaplugin.logging.LazyLogger;
 
 
 /**
@@ -117,8 +117,8 @@ public class SummaryCPA implements ConfigurableProblemAnalysis {
 
     @Override
     public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
-        CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel, 
-                "Getting initial element from node: " + node.toString());
+        LazyLogger.log(CustomLogLevel.SpecificCPALevel, 
+                       "Getting initial element from node: ", node);
         
         SummaryCFANode loc = (SummaryCFANode)node;
         SummaryAbstractElement e = new SummaryAbstractElement(loc);
@@ -131,7 +131,8 @@ public class SummaryCPA implements ConfigurableProblemAnalysis {
 
     @Override
     public MergeOperator getMergeOperator() {
-        return merge;
+        //return merge;
+        return null;
     }
 
     @Override
