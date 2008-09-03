@@ -3,8 +3,8 @@ package cpaplugin.cpa.cpas.symbpredabs;
 import cpaplugin.cfa.objectmodel.CFANode;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.AbstractElementWithLocation;
-import cpaplugin.cpa.cpas.symbpredabs.logging.LazyLogger;
 import cpaplugin.logging.CPACheckerLogger;
+import cpaplugin.logging.LazyLogger;
 
 /**
  * TODO. This is currently broken
