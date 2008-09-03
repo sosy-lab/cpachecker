@@ -24,7 +24,6 @@ import cpaplugin.cpa.cpas.symbpredabs.Pair;
 import cpaplugin.cpa.cpas.symbpredabs.Predicate;
 import cpaplugin.cpa.cpas.symbpredabs.SSAMap;
 import cpaplugin.cpa.cpas.symbpredabs.SymbolicFormula;
-import cpaplugin.cpa.cpas.symbpredabs.logging.LazyLogger;
 import cpaplugin.cpa.cpas.symbpredabs.mathsat.BDDAbstractFormula;
 import cpaplugin.cpa.cpas.symbpredabs.mathsat.BDDMathsatAbstractFormulaManager;
 import cpaplugin.cpa.cpas.symbpredabs.mathsat.MathsatSymbolicFormula;
@@ -34,6 +33,7 @@ import cpaplugin.cpa.cpas.symbpredabs.summary.SummaryAbstractFormulaManager;
 import cpaplugin.cpa.cpas.symbpredabs.summary.SummaryFormulaManager;
 import cpaplugin.logging.CPACheckerLogger;
 import cpaplugin.logging.CustomLogLevel;
+import cpaplugin.logging.LazyLogger;
 
 /**
  * Implementation of SummaryAbstractFormulaManager that works with BDDs for
@@ -537,7 +537,7 @@ public class BDDMathsatSummaryAbstractManager extends
                 long itpc = mathsat.api.msat_make_copy_from(msatEnv, itp, env);
                 Collection<SymbolicFormula> atoms = mmgr.extractAtoms(
                             new MathsatSymbolicFormula(itpc), true, 
-                            splitItpAtoms);
+                            splitItpAtoms, false);
                 Set<Predicate> preds = buildPredicates(env, msatEnv, atoms);
                 SummaryAbstractElement s1 = 
                     (SummaryAbstractElement)abstarr[i];
