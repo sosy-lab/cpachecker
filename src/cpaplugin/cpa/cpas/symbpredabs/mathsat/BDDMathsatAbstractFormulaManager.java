@@ -16,8 +16,8 @@ import cpaplugin.cpa.cpas.symbpredabs.Predicate;
 import cpaplugin.cpa.cpas.symbpredabs.SSAMap;
 import cpaplugin.cpa.cpas.symbpredabs.SymbolicFormula;
 import cpaplugin.cpa.cpas.symbpredabs.SymbolicFormulaManager;
-import cpaplugin.cpa.cpas.symbpredabs.logging.LazyLogger;
 import cpaplugin.logging.CustomLogLevel;
+import cpaplugin.logging.LazyLogger;
 
 public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
     
@@ -179,7 +179,7 @@ public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
         int i = 0;
         for (Predicate p : predicates) {
             BDDPredicate bp = (BDDPredicate)p;
-            int idx = bp.getBDDVar();
+            int idx = bp.getBDD();
             int bddvar = bddManager.getVar(idx);
             long var = bddPredicateToMsatAtom.get(bddvar).getFirst();
             long def = bddPredicateToMsatAtom.get(bddvar).getSecond();
@@ -196,7 +196,7 @@ public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
 
     public Pair<MathsatSymbolicFormula, MathsatSymbolicFormula> 
       getPredicateNameAndDef(BDDPredicate p) {
-        int idx = p.getBDDVar();
+        int idx = p.getBDD();
         int bddvar = bddManager.getVar(idx);
         long var = bddPredicateToMsatAtom.get(bddvar).getFirst();
         long def = bddPredicateToMsatAtom.get(bddvar).getSecond();
