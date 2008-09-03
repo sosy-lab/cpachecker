@@ -6,7 +6,7 @@ import java.util.Map;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.cpas.symbpredabs.ConcreteTrace;
 import cpaplugin.cpa.cpas.symbpredabs.SymbolicFormula;
-import cpaplugin.cpa.cpas.symbpredabs.logging.LazyLogger;
+import cpaplugin.logging.LazyLogger;
 
 
 /**

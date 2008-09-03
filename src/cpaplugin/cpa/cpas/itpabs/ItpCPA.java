@@ -20,8 +20,8 @@ import cpaplugin.cpa.cpas.symbpredabs.Pair;
 import cpaplugin.cpa.cpas.symbpredabs.SymbolicFormula;
 import cpaplugin.cpa.cpas.symbpredabs.SymbolicFormulaManager;
 import cpaplugin.cpa.cpas.symbpredabs.mathsat.MathsatSymbolicFormulaManager;
-import cpaplugin.logging.CPACheckerLogger;
 import cpaplugin.logging.CustomLogLevel;
+import cpaplugin.logging.LazyLogger;
 
 
 /**
@@ -74,8 +74,8 @@ public abstract class ItpCPA implements ConfigurableProblemAnalysis {
 
     @Override
     public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
-        CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel, 
-                "Getting initial element from node: " + node.toString());
+        LazyLogger.log(CustomLogLevel.SpecificCPALevel, 
+                       "Getting initial element from node: ", node);
         
         ItpAbstractElement e = getElementCreator().create(node);
         e.setAbstraction(mgr.makeTrue());
@@ -85,7 +85,8 @@ public abstract class ItpCPA implements ConfigurableProblemAnalysis {
 
     @Override
     public MergeOperator getMergeOperator() {
-        return merge;
+        //return merge;
+        return null;
     }
 
     @Override

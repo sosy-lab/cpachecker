@@ -27,9 +27,9 @@ import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.TransferRelation;
 import cpaplugin.cpa.cpas.symbpredabs.SymbolicFormula;
 import cpaplugin.cpa.cpas.symbpredabs.SymbolicFormulaManager;
-import cpaplugin.cpa.cpas.symbpredabs.logging.LazyLogger;
 import cpaplugin.exceptions.CPAException;
 import cpaplugin.logging.CustomLogLevel;
+import cpaplugin.logging.LazyLogger;
 
 
 /**
@@ -251,7 +251,7 @@ public class ItpTransferRelation implements TransferRelation {
                     if (elemMgr.isFunctionStart(elem)) {
                         System.out.println("CALLER: " + elem.getParent());
                         System.out.println("CALLED FUNCTION: " + elem);
-                    } else if (elemMgr.isFunctionEnd(elem)) {
+                    } else if (elemMgr.isFunctionEnd(elem, null)) {
                         retloc = true;
                     } else if (retloc) {
                         retloc = false;
@@ -304,7 +304,7 @@ public class ItpTransferRelation implements TransferRelation {
         
         succ.setContext(e.getContext(), false);
         //if (isFunctionEnd(e)) {
-        if (elemMgr.isFunctionEnd(e)) {
+        if (elemMgr.isFunctionEnd(e, succ)) {
             succ.popContext();
         }
         

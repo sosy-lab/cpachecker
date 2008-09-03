@@ -6,8 +6,8 @@ import cpaplugin.cpa.common.interfaces.AbstractDomain;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.StopOperator;
 import cpaplugin.cpa.cpas.symbpredabs.SymbolicFormulaManager;
-import cpaplugin.cpa.cpas.symbpredabs.logging.LazyLogger;
 import cpaplugin.exceptions.CPAException;
+import cpaplugin.logging.LazyLogger;
 
 /**
  * Coverage check for interpolation-based lazy abstraction
@@ -43,11 +43,11 @@ public class ItpStopOperator implements StopOperator {
     public boolean stop(AbstractElement element,
             Collection<AbstractElement> reached) throws CPAException {
         ItpCPA cpa = domain.getCPA();
+        ItpAbstractElement ie = (ItpAbstractElement)element;
+        if (cpa.isCovered(ie)) {
+            return true;
+        }
         for (AbstractElement e : reached) {
-            ItpAbstractElement ie = (ItpAbstractElement)element;
-            if (cpa.isCovered(ie)) {
-                return true;
-            }
             if (stop(element, e)) {
                 return true;
             }

@@ -15,11 +15,11 @@ import cpaplugin.cpa.cpas.symbpredabs.SSAMap;
 import cpaplugin.cpa.cpas.symbpredabs.SymbolicFormula;
 import cpaplugin.cpa.cpas.symbpredabs.SymbolicFormulaManager;
 import cpaplugin.cpa.cpas.symbpredabs.UnrecognizedCFAEdgeException;
-import cpaplugin.cpa.cpas.symbpredabs.logging.LazyLogger;
 import cpaplugin.cpa.cpas.symbpredabs.mathsat.MathsatSymbolicFormula;
 import cpaplugin.cpa.cpas.symbpredabs.mathsat.MathsatSymbolicFormulaManager;
 import cpaplugin.logging.CPACheckerLogger;
 import cpaplugin.logging.CustomLogLevel;
+import cpaplugin.logging.LazyLogger;
 
 /**
  * An ItpCounterexampleRefiner is an object that is used to perform refinement

@@ -3,7 +3,7 @@ package cpaplugin.cpa.cpas.itpabs;
 import cpaplugin.cpa.common.interfaces.AbstractDomain;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.MergeOperator;
-import cpaplugin.cpa.cpas.symbpredabs.logging.LazyLogger;
+import cpaplugin.logging.LazyLogger;
 
 /**
  * Trivial merge operator for interpolation-based lazy abstraction
