@@ -9,7 +9,7 @@ import java.util.Set;
 
 import cpaplugin.cfa.objectmodel.CFANode;
 import cpaplugin.cmdline.CPAMain;
-import cpaplugin.cpa.cpas.symbpredabs.logging.LazyLogger;
+import cpaplugin.logging.LazyLogger;
 
 
 /**
@@ -21,10 +21,16 @@ public class UpdateablePredicateMap implements PredicateMap {
     
     private Map<CFANode, Set<Predicate>> repr;
     private Map<String, Set<Predicate>> functionGlobalPreds;
+    private Collection<Predicate> initialGlobalPreds;
 
-    public UpdateablePredicateMap() {
+    public UpdateablePredicateMap(Collection<Predicate> initial) {
         repr = new HashMap<CFANode, Set<Predicate>>();
         functionGlobalPreds = new HashMap<String, Set<Predicate>>();
+        initialGlobalPreds = initial;
+    }
+    
+    public UpdateablePredicateMap() {
+        this(null);
     }
     
     public boolean update(CFANode n, Collection<Predicate> preds) {
@@ -34,20 +40,28 @@ public class UpdateablePredicateMap implements PredicateMap {
             String fn = n.getFunctionName();
             assert(fn != null);
             if (!functionGlobalPreds.containsKey(fn)) {
-                functionGlobalPreds.put(fn, new HashSet<Predicate>());
+                Set<Predicate> s = new HashSet<Predicate>();
+                if (initialGlobalPreds != null) {
+                    added |= s.addAll(initialGlobalPreds);
+                }
+                functionGlobalPreds.put(fn, s);
             }
             Set<Predicate> s = functionGlobalPreds.get(fn);
-            added = s.addAll(preds);
+            added |= s.addAll(preds);
             if (added) {
                 LazyLogger.log(LazyLogger.DEBUG_1, 
                         "UPDATED PREDICATES FOR FUNCTION ", fn, ": ", s);
             }
         } else {
             if (!repr.containsKey(n)) {
-                repr.put(n, new HashSet<Predicate>());
+                Set<Predicate> s = new HashSet<Predicate>();
+                if (initialGlobalPreds != null) {
+                    added |= s.addAll(initialGlobalPreds);
+                }
+                repr.put(n, s);
             }
             Set<Predicate> s = repr.get(n);
-            added = s.addAll(preds);
+            added |= s.addAll(preds);
             if (added) {
                 LazyLogger.log(LazyLogger.DEBUG_1, "UPDATED PREDICATES FOR ", n,
                         ": ", s);
@@ -63,12 +77,22 @@ public class UpdateablePredicateMap implements PredicateMap {
             String fn = n.getFunctionName();
             if (functionGlobalPreds.containsKey(fn)) {
                 return functionGlobalPreds.get(fn);
+            } else if (initialGlobalPreds != null) {
+                Set<Predicate> s = new HashSet<Predicate>();
+                s.addAll(initialGlobalPreds);
+                functionGlobalPreds.put(fn, s);
+                return s;
             } else {
                 return Collections.emptySet();
             }
         } else {
             if (repr.containsKey(n)) {
                 return repr.get(n);
+            } else if (initialGlobalPreds != null) {
+                Set<Predicate> s = new HashSet<Predicate>();
+                s.addAll(initialGlobalPreds);
+                repr.put(n, s);
+                return s;
             } else {
                 return Collections.emptySet();
             }

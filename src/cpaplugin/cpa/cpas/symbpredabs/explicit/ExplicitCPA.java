@@ -32,8 +32,8 @@ import cpaplugin.cpa.cpas.symbpredabs.SymbolicFormulaManager;
 import cpaplugin.cpa.cpas.symbpredabs.UpdateablePredicateMap;
 import cpaplugin.cpa.cpas.symbpredabs.mathsat.MathsatPredicateParser;
 import cpaplugin.cpa.cpas.symbpredabs.mathsat.MathsatSymbolicFormulaManager;
-import cpaplugin.logging.CPACheckerLogger;
 import cpaplugin.logging.CustomLogLevel;
+import cpaplugin.logging.LazyLogger;
 
 
 /**
@@ -62,28 +62,43 @@ public class ExplicitCPA implements ConfigurableProblemAnalysis {
         stop = new ExplicitStopOperator(domain);
         trans = new ExplicitTransferRelation(domain);
         mgr = new MathsatSymbolicFormulaManager();
-        amgr = new BDDMathsatExplicitAbstractManager();
+        String whichAmgr = CPAMain.cpaConfig.getProperty(
+                "cpas.symbpredabs.explicit.abstraction.solver", "mathsat");
+        if (whichAmgr.equals("mathsat")) {
+            amgr = new BDDMathsatExplicitAbstractManager();
+        } else if (whichAmgr.equals("yices")) {
+            amgr = new BDDYicesExplicitAbstractManager();
+        } else if (whichAmgr.equals("simplify")) {
+            amgr = new BDDSimplifyExplicitAbstractManager();
+        } else {
+            System.out.println("ERROR, UNSUPPORTED SOLVER: " + whichAmgr);
+            System.exit(1);
+        }
         
         covers = new HashMap<ExplicitAbstractElement, 
                              Set<ExplicitAbstractElement>>();
         
-        if (CPAMain.cpaConfig.getBooleanValue(
-                "cpas.symbpredabs.abstraction.norefinement")) {
-            MathsatPredicateParser p = new MathsatPredicateParser(mgr, amgr);        
-            Collection<Predicate> preds = null;
-            try {
-                String pth = CPAMain.cpaConfig.getProperty(
-                        "cpas.symbpredabs.abstraction.fixedPredMap");
+        MathsatPredicateParser p = new MathsatPredicateParser(mgr, amgr);        
+        Collection<Predicate> preds = null;
+        try {
+            String pth = CPAMain.cpaConfig.getProperty(
+                    "cpas.symbpredabs.abstraction.fixedPredMap", null);
+            if (pth != null) {
                 File f = new File(pth);
                 InputStream in = new FileInputStream(f);
                 preds = p.parsePredicates(in);
-            } catch (IOException e) {
-                e.printStackTrace();
-                preds = new Vector<Predicate>();
+            } else {
+                preds = null;
             }
+        } catch (IOException e) {
+            e.printStackTrace();
+            preds = new Vector<Predicate>();
+        }
+        if (CPAMain.cpaConfig.getBooleanValue(
+                "cpas.symbpredabs.abstraction.norefinement")) {
             pmap = new FixedPredicateMap(preds);
         } else {
-            pmap = new UpdateablePredicateMap();
+            pmap = new UpdateablePredicateMap(preds);
         }
         
         stats = new ExplicitCPAStatistics(this);
@@ -110,8 +125,8 @@ public class ExplicitCPA implements ConfigurableProblemAnalysis {
 
     @Override
     public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
-        CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel, 
-                "Getting initial element from node: " + node.toString());
+        LazyLogger.log(CustomLogLevel.SpecificCPALevel, 
+                       "Getting initial element from node: ", node);
         
         ExplicitAbstractElement e = new ExplicitAbstractElement(node);
         e.setAbstraction(amgr.makeTrue());
@@ -121,7 +136,8 @@ public class ExplicitCPA implements ConfigurableProblemAnalysis {
 
     @Override
     public MergeOperator getMergeOperator() {
-        return merge;
+        //return merge;
+        return null;
     }
 
     @Override
