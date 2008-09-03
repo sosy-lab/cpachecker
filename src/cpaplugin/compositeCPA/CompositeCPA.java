@@ -17,10 +17,10 @@ import cpaplugin.cpa.common.interfaces.ConfigurableProblemAnalysis;
 import cpaplugin.cpa.common.interfaces.MergeOperator;
 import cpaplugin.cpa.common.interfaces.StopOperator;
 import cpaplugin.cpa.common.interfaces.TransferRelation;
-import cpaplugin.cpa.cpas.symbpredabs.logging.LazyLogger;
 import cpaplugin.exceptions.CPAException;
 import cpaplugin.logging.CPACheckerLogger;
 import cpaplugin.logging.CustomLogLevel;
+import cpaplugin.logging.LazyLogger;
 
 public class CompositeCPA implements ConfigurableProblemAnalysis
 {
@@ -167,7 +167,9 @@ public class CompositeCPA implements ConfigurableProblemAnalysis
 		            "no need of a composite CPA");
 		    cpa = cpas.get(0);
 		} else {
-		    CPACheckerLogger.log(CustomLogLevel.MainApplicationLevel, "CompositeCPA is built using the list of CPAs");
+		    LazyLogger.log(CustomLogLevel.MainApplicationLevel,
+                                   "CompositeCPA is built using the list " +
+                                   "of CPAs");
 		    cpa = CompositeCPA.createNewCompositeCPA (cpas, node);
 		}
 		return cpa;
