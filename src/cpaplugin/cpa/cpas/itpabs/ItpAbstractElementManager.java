@@ -14,7 +14,7 @@ import cpaplugin.cfa.objectmodel.CFANode;
 public interface ItpAbstractElementManager {
     public ItpAbstractElement create(CFANode location);
     
-    public boolean isFunctionEnd(ItpAbstractElement e);
+    public boolean isFunctionEnd(ItpAbstractElement e, ItpAbstractElement succ);
     public boolean isFunctionStart(ItpAbstractElement e);
     public boolean isRightEdge(ItpAbstractElement e, CFAEdge edge,
                                ItpAbstractElement succ);

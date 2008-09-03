@@ -19,13 +19,13 @@ import cpaplugin.cpa.cpas.symbpredabs.Pair;
 import cpaplugin.cpa.cpas.symbpredabs.SSAMap;
 import cpaplugin.cpa.cpas.symbpredabs.SymbolicFormula;
 import cpaplugin.cpa.cpas.symbpredabs.SymbolicFormulaManager;
-import cpaplugin.cpa.cpas.symbpredabs.logging.LazyLogger;
 import cpaplugin.cpa.cpas.symbpredabs.mathsat.MathsatSymbolicFormula;
 import cpaplugin.cpa.cpas.symbpredabs.mathsat.summary.MathsatSummaryFormulaManager;
 import cpaplugin.cpa.cpas.symbpredabs.summary.InnerCFANode;
 import cpaplugin.cpa.cpas.symbpredabs.summary.SummaryCFANode;
 import cpaplugin.logging.CPACheckerLogger;
 import cpaplugin.logging.CustomLogLevel;
+import cpaplugin.logging.LazyLogger;
 
 
 /**
@@ -218,7 +218,7 @@ public class ItpSymbolicCounterexampleRefiner extends ItpCounterexampleRefiner {
                 assert(!mathsat.api.MSAT_ERROR_TERM(itp));
                 
                 if (CPACheckerLogger.getLevel() <= 
-                    LazyLogger.DEBUG_1.intValue()) {
+                    LazyLogger.DEBUG_2.intValue()) {
                     StringBuffer buf = new StringBuffer();
                     for (int g : groups_of_a) {
                         buf.append(g);

@@ -6,20 +6,21 @@ import java.util.Map;
 import cpaplugin.CPAStatistics;
 import cpaplugin.cfa.objectmodel.CFAEdge;
 import cpaplugin.cfa.objectmodel.CFANode;
+import cpaplugin.cfa.objectmodel.c.CallToReturnEdge;
 import cpaplugin.cfa.objectmodel.c.FunctionDefinitionNode;
 import cpaplugin.cfa.objectmodel.c.ReturnEdge;
 import cpaplugin.cpa.cpas.itpabs.ItpAbstractElement;
 import cpaplugin.cpa.cpas.itpabs.ItpAbstractElementManager;
 import cpaplugin.cpa.cpas.itpabs.ItpCPA;
 import cpaplugin.cpa.cpas.itpabs.ItpCPAStatistics;
-import cpaplugin.cpa.cpas.itpabs.ItpCounterexampleRefiner;
 import cpaplugin.cpa.cpas.symbpredabs.Pair;
 import cpaplugin.cpa.cpas.symbpredabs.SSAMap;
 import cpaplugin.cpa.cpas.symbpredabs.SymbolicFormula;
 import cpaplugin.cpa.cpas.symbpredabs.UnrecognizedCFAEdgeException;
-import cpaplugin.cpa.cpas.symbpredabs.logging.LazyLogger;
 import cpaplugin.cpa.cpas.symbpredabs.mathsat.summary.MathsatSummaryFormulaManager;
+import cpaplugin.cpa.cpas.symbpredabs.summary.InnerCFANode;
 import cpaplugin.cpa.cpas.symbpredabs.summary.SummaryCFANode;
+import cpaplugin.logging.LazyLogger;
 
 
 /**
@@ -41,8 +42,9 @@ public class ItpSymbolicCPA extends ItpCPA {
         }
 
         @Override
-        public boolean isFunctionEnd(ItpAbstractElement e) {
-            CFANode n = e.getLocation();
+        public boolean isFunctionEnd(ItpAbstractElement e, 
+                                     ItpAbstractElement succ) {
+            CFANode n = succ.getLocation();
             return (n.getNumLeavingEdges() > 0 &&
                     n.getLeavingEdge(0) instanceof ReturnEdge);
         }
@@ -55,7 +57,7 @@ public class ItpSymbolicCPA extends ItpCPA {
         @Override
         public boolean isRightEdge(ItpAbstractElement e, CFAEdge edge,
                 ItpAbstractElement succ) {
-            if (isFunctionEnd(e)) {
+            if (isFunctionEnd(e, succ)) {
                 CFANode retNode = e.topContextLocation();
                 if (!succ.getLocation().equals(retNode)) {
                     LazyLogger.log(LazyLogger.DEBUG_1,
@@ -69,11 +71,29 @@ public class ItpSymbolicCPA extends ItpCPA {
         
         @Override
         public void pushContextFindRetNode(ItpAbstractElement e,
-                ItpAbstractElement succ) {
-            assert(e.getLocation().getLeavingSummaryEdge() != null);
-            CFANode retNode = 
-                e.getLocation().getLeavingSummaryEdge().getSuccessor();
-            succ.pushContext(succ.getAbstraction(), retNode);            
+                                           ItpAbstractElement succ) {            
+            SummaryCFANode retNode = null;
+            for (CFANode l : e.getLeaves()) {  
+                if (l instanceof FunctionDefinitionNode) {
+                    assert(l.getNumLeavingEdges() == 1);
+
+                    CFAEdge ee = l.getLeavingEdge(0);
+                    InnerCFANode n = (InnerCFANode)ee.getSuccessor();
+                    if (n.getSummaryNode().equals(succ.getLocation())) {
+                        CFANode pr = l.getEnteringEdge(0).getPredecessor();
+                        CallToReturnEdge ce = pr.getLeavingSummaryEdge();
+                        if (ce != null) {
+                            retNode = ((InnerCFANode)ce.getSuccessor()).
+                            getSummaryNode();
+                            break;
+                        }
+                    }
+                }
+            }
+            if (retNode != null) {
+                LazyLogger.log(LazyLogger.DEBUG_3, "PUSHING CONTEXT TO ", succ);
+                succ.pushContext(succ.getAbstraction(), (CFANode)retNode);
+            }
         }
     }
     

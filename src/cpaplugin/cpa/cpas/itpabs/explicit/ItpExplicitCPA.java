@@ -9,7 +9,7 @@ import cpaplugin.cpa.cpas.itpabs.ItpAbstractElement;
 import cpaplugin.cpa.cpas.itpabs.ItpAbstractElementManager;
 import cpaplugin.cpa.cpas.itpabs.ItpCPA;
 import cpaplugin.cpa.cpas.itpabs.ItpCPAStatistics;
-import cpaplugin.cpa.cpas.symbpredabs.logging.LazyLogger;
+import cpaplugin.logging.LazyLogger;
 
 /**
  * Explicit-state version of the interpolation-based lazy abstraction
@@ -26,7 +26,8 @@ public class ItpExplicitCPA extends ItpCPA {
         }
 
         @Override
-        public boolean isFunctionEnd(ItpAbstractElement e) {
+        public boolean isFunctionEnd(ItpAbstractElement e, 
+                                     ItpAbstractElement succ) {
             CFANode n = e.getLocation();
             return (n.getNumLeavingEdges() > 0 &&
                     n.getLeavingEdge(0) instanceof ReturnEdge);
@@ -40,7 +41,7 @@ public class ItpExplicitCPA extends ItpCPA {
         @Override
         public boolean isRightEdge(ItpAbstractElement e, CFAEdge edge,
                 ItpAbstractElement succ) {
-            if (isFunctionEnd(e)) {
+            if (isFunctionEnd(e, succ)) {
                 CFANode retNode = e.topContextLocation();
                 if (!succ.getLocation().equals(retNode)) {
                     LazyLogger.log(LazyLogger.DEBUG_1,
