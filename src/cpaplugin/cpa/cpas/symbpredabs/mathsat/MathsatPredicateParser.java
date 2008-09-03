@@ -9,7 +9,7 @@ import java.util.Stack;
 import java.util.Vector;
 
 import cpaplugin.cpa.cpas.symbpredabs.Predicate;
-import cpaplugin.cpa.cpas.symbpredabs.logging.LazyLogger;
+import cpaplugin.logging.LazyLogger;
 
 /**
  * Parses a file in msat format to extract a list of predicates. The file
