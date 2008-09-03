@@ -8,7 +8,7 @@ import cpaplugin.cfa.objectmodel.CFAEdge;
 import cpaplugin.cfa.objectmodel.CFAErrorNode;
 import cpaplugin.cfa.objectmodel.CFAFunctionDefinitionNode;
 import cpaplugin.cfa.objectmodel.CFANode;
-import cpaplugin.cpa.cpas.symbpredabs.logging.LazyLogger;
+import cpaplugin.logging.LazyLogger;
 
 /**
  * Perform a (very) simple cone-of-influence reduction on the given CFA. 

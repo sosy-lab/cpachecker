@@ -14,12 +14,12 @@ import cpaplugin.cpa.cpas.symbpredabs.Pair;
 import cpaplugin.cpa.cpas.symbpredabs.SSAMap;
 import cpaplugin.cpa.cpas.symbpredabs.SymbolicFormula;
 import cpaplugin.cpa.cpas.symbpredabs.UnrecognizedCFAEdgeException;
-import cpaplugin.cpa.cpas.symbpredabs.logging.LazyLogger;
 import cpaplugin.cpa.cpas.symbpredabs.mathsat.MathsatSymbolicFormula;
 import cpaplugin.cpa.cpas.symbpredabs.mathsat.MathsatSymbolicFormulaManager;
 import cpaplugin.cpa.cpas.symbpredabs.summary.InnerCFANode;
 import cpaplugin.cpa.cpas.symbpredabs.summary.SummaryCFANode;
 import cpaplugin.cpa.cpas.symbpredabs.summary.SummaryFormulaManager;
+import cpaplugin.logging.LazyLogger;
 
 /**
  * A SummaryFormulaManager for MathSAT formulas.
