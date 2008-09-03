@@ -13,8 +13,8 @@ import cpaplugin.cpa.common.interfaces.MergeOperator;
 import cpaplugin.cpa.common.interfaces.StopOperator;
 import cpaplugin.cpa.common.interfaces.TransferRelation;
 import cpaplugin.exceptions.CPAException;
-import cpaplugin.logging.CPACheckerLogger;
 import cpaplugin.logging.CustomLogLevel;
+import cpaplugin.logging.LazyLogger;
 
 public class CPAAlgorithm
 {
@@ -23,7 +23,8 @@ public class CPAAlgorithm
         Deque<AbstractElement> waitlist = new ArrayDeque<AbstractElement> ();
         Deque<AbstractElement> reached = new ArrayDeque<AbstractElement> ();
      
-        CPACheckerLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel, initialState + " added as initial state to CPA");
+        LazyLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel, initialState,
+                       " added as initial state to CPA");
         
         waitlist.addLast (initialState);
         reached.addLast (initialState);
@@ -40,7 +41,8 @@ public class CPAAlgorithm
             } else {
                 e = waitlist.removeLast();
             }
-            CPACheckerLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel, e + " is popped from queue");
+            LazyLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel, e,
+                           " is popped from queue");
             List<AbstractElement> successors = null;
             try {
                 successors = transferRelation.getAllAbstractSuccessors (e);
@@ -59,30 +61,42 @@ public class CPAAlgorithm
             
             for (AbstractElement successor : successors)
             {
-            	CPACheckerLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel, "successor of " + e + " --> " + successor);
-                int numReached = reached.size (); // Need to iterate this way to avoid concurrent mod exceptions
-                
-                for (int reachedIdx = 0; reachedIdx < numReached; reachedIdx++)
-                {
-                    AbstractElement reachedElement = reached.pollFirst ();
-                    AbstractElement mergedElement = mergeOperator.merge (successor, reachedElement);
-                    reached.addLast (mergedElement);
-                    
-                    CPACheckerLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel, " Merged " + successor
-                    		+ " and " + reachedElement + " --> "+ mergedElement);
-                    
-                    if (!mergedElement.equals (reachedElement))
-                    {
-                    	CPACheckerLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel, "reached element " + reachedElement + " is removed from queue" + 
-                    			" and " + mergedElement + " is added to queue");
-                        waitlist.remove (reachedElement);
-                        waitlist.add (mergedElement);
-                    }
-                }
+            	LazyLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel,
+                               "successor of ", e, " --> ", successor);
+            	
+            	// AG as an optimization, we allow the mergeOperator to be null,
+            	// as a synonym of a trivial operator that never merges 
+            	if (mergeOperator != null) {
+            	    int numReached = reached.size (); // Need to iterate this way to avoid concurrent mod exceptions
+
+            	    for (int reachedIdx = 0; reachedIdx < numReached; reachedIdx++)
+            	    {
+            	        AbstractElement reachedElement = reached.pollFirst ();
+            	        AbstractElement mergedElement = mergeOperator.merge (successor, reachedElement);
+            	        reached.addLast (mergedElement);
+
+            	        LazyLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel,
+            	                " Merged ", successor, " and ",
+            	                reachedElement, " --> ", mergedElement);
+
+            	        if (!mergedElement.equals (reachedElement))
+            	        {
+            	            LazyLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel,
+            	                    "reached element ", reachedElement,
+            	                    " is removed from queue", 
+            	                    " and ", mergedElement,
+            	            " is added to queue");
+            	            waitlist.remove (reachedElement);
+            	            waitlist.add (mergedElement);
+            	        }
+            	    }
+            	}
 
                 if (!stopOperator.stop (successor, reached))
                 {
-                    CPACheckerLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel, "No need to stop " + successor + " is added to queue");
+                    LazyLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel,
+                                   "No need to stop ", successor,
+                                   " is added to queue");
                     waitlist.addLast (successor);
                     reached.addLast (successor);
                 }
@@ -97,8 +111,8 @@ public class CPAAlgorithm
             Deque<AbstractElement> waitlist,
             Collection<AbstractElement> reachableToUndo,
             Collection<AbstractElement> toWaitlist) {
-        CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel, 
-                             "Performing refinement");        
+        LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+                       "Performing refinement");        
         // remove from reached all the elements in reachableToUndo
         Collection<AbstractElement> newreached =
             new LinkedList<AbstractElement>();
@@ -106,32 +120,35 @@ public class CPAAlgorithm
             if (!reachableToUndo.contains(e)) {
                 newreached.add(e);
             } else {
-                CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel, 
-                                    "Removing element; " + e + " from reached");
+                LazyLogger.log(CustomLogLevel.SpecificCPALevel, 
+                               "Removing element: ", e, " from reached");
                 if (waitlist.remove(e)) {
-                    CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel, 
-                            "Removing element; " + e + " also from waitlist");                    
+                    LazyLogger.log(CustomLogLevel.SpecificCPALevel, 
+                                   "Removing element: ", e,
+                                   " also from waitlist");                    
                 }
             }
         }
         reached.clear();
         reached.addAll(newreached);
-        CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel,
-                "Reached now is: " + newreached.toString());
+        LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+                       "Reached now is: ", newreached);
         // and add to the wait list all the elements in toWaitlist
         boolean useBfs = CPAMain.cpaConfig.getBooleanValue("analysis.bfs");
         for (AbstractElement e : toWaitlist) {
-            CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel, 
-                                 "Adding element; " + e + " to waitlist");
+            LazyLogger.log(CustomLogLevel.SpecificCPALevel, 
+                           "Adding element: ", e, " to waitlist");
             if (useBfs) {
                 waitlist.addLast(e);
             } else {
                 waitlist.addFirst(e);
             }
         }
-        CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel,
-                "Waitlist now is: " + waitlist.toString());
-        CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel, 
-                             "Refinement done");
+        LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+                       "Waitlist now is: ", waitlist);
+        LazyLogger.log(CustomLogLevel.SpecificCPALevel, 
+                       "Refinement done");
+        
+        System.gc();
     }
 }
