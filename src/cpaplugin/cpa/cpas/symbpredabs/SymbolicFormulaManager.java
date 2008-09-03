@@ -114,8 +114,13 @@ public interface SymbolicFormulaManager {
      *                      instantiated or not
      * @param splitArithEqualities if true, return (x <= y) and (y <= x) 
      *                             instead of (x = y)
-     * @return a collection of atomic formulas
+     * @param conjunctionsOnly if true, don't extract atoms, but only top-level
+     *                         conjuncts. For example, if called on:
+     *                         a & (b | c), the result will be [a, (b | c)]
+     *                         instead of [a, b, c]
+     * @return a collection of (atomic) formulas
      */
     public Collection<SymbolicFormula> extractAtoms(SymbolicFormula f,
-            boolean uninstantiate, boolean splitArithEqualities);
+            boolean uninstantiate, boolean splitArithEqualities, 
+            boolean conjunctionsOnly);
 }

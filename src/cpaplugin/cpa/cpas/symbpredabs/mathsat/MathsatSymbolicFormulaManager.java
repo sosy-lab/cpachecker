@@ -45,13 +45,14 @@ import cpaplugin.cfa.objectmodel.c.FunctionCallEdge;
 import cpaplugin.cfa.objectmodel.c.FunctionDefinitionNode;
 import cpaplugin.cfa.objectmodel.c.StatementEdge;
 import cpaplugin.cmdline.CPAMain;
+import cpaplugin.cpa.cpas.symbpredabs.BlockEdge;
 import cpaplugin.cpa.cpas.symbpredabs.GlobalDeclarationEdge;
 import cpaplugin.cpa.cpas.symbpredabs.Pair;
 import cpaplugin.cpa.cpas.symbpredabs.SSAMap;
 import cpaplugin.cpa.cpas.symbpredabs.SymbolicFormula;
 import cpaplugin.cpa.cpas.symbpredabs.SymbolicFormulaManager;
 import cpaplugin.cpa.cpas.symbpredabs.UnrecognizedCFAEdgeException;
-import cpaplugin.cpa.cpas.symbpredabs.logging.LazyLogger;
+import cpaplugin.logging.LazyLogger;
 
 
 /**
@@ -282,6 +283,19 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
             throws UnrecognizedCFAEdgeException {
         // this is where the "meat" is... We have to parse the statement 
         // attached to the edge, and convert it to the appropriate formula
+
+        if (edge instanceof BlockEdge) {
+            BlockEdge block = (BlockEdge)edge;
+            Pair<SymbolicFormula, SSAMap> ret = null;
+            for (CFAEdge e : block.getEdges()) {
+                ret = makeAnd(f1, e, ssa, updateSSA, absoluteSSAIndices);
+                f1 = ret.getFirst();
+                ssa = ret.getSecond();
+            }
+            assert(ret != null);
+            return ret;
+        }
+
         MathsatSymbolicFormula m1 = (MathsatSymbolicFormula)f1;
  
         setNamespace(edge.getPredecessor().getFunctionName());
@@ -1728,7 +1742,8 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
 
     @Override
     public Collection<SymbolicFormula> extractAtoms(SymbolicFormula f,
-            boolean uninst, boolean splitArithEqualities) {
+            boolean uninst, boolean splitArithEqualities, 
+            boolean conjunctionsOnly) {
         Set<Long> cache = new HashSet<Long>();
         Set<Long> atoms = new HashSet<Long>();
         Map<Long, Long> varcache = new HashMap<Long, Long>();
@@ -1741,9 +1756,12 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
             assert(!cache.contains(term));
             cache.add(term);
             
-            if (mathsat.api.msat_term_is_atom(term) != 0 &&
-                mathsat.api.msat_term_is_true(term) == 0 &&
-                mathsat.api.msat_term_is_false(term) == 0) {
+            if (mathsat.api.msat_term_is_true(term) != 0 ||
+                mathsat.api.msat_term_is_false(term) != 0) {
+                continue;
+            }
+            
+            if (mathsat.api.msat_term_is_atom(term) != 0) {
                 if (uninst) {
                     term = uninstantiate(term, varcache);
                 }
@@ -1753,12 +1771,30 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
                     long a1 = mathsat.api.msat_term_get_arg(term, 0);
                     long a2 = mathsat.api.msat_term_get_arg(term, 1);
                     long t1 = mathsat.api.msat_make_leq(msatEnv, a1, a2);
-                    long t2 = mathsat.api.msat_make_leq(msatEnv, a2, a1);
+                    //long t2 = mathsat.api.msat_make_leq(msatEnv, a2, a1);
                     cache.add(t1);
-                    cache.add(t2);
+                    //cache.add(t2);
                     atoms.add(t1);
-                    atoms.add(t2);
+                    //atoms.add(t2);
+                    atoms.add(term);
                 } else {
+                    atoms.add(term);
+                }
+            } else if (conjunctionsOnly) {
+                if (mathsat.api.msat_term_is_not(term) != 0 ||
+                    mathsat.api.msat_term_is_and(term) != 0) {
+                    // ok, go into this formula
+                    for (int i = 0; i < mathsat.api.msat_term_arity(term); ++i){
+                        long c = mathsat.api.msat_term_get_arg(term, i);
+                        if (!cache.contains(c)) {
+                            toProcess.push(c);
+                        }
+                    }
+                } else {
+                    // otherwise, treat this as atomic
+                    if (uninst) {
+                        term = uninstantiate(term, varcache);
+                    }
                     atoms.add(term);
                 }
             } else {
