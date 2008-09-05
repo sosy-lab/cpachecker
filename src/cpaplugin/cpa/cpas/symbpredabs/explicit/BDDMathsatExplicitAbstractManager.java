@@ -1029,7 +1029,7 @@ public class BDDMathsatExplicitAbstractManager extends
                 } 
                 if (lastIndexBlastWay < 0 &&
                     mathsat.api.msat_term_is_false(itp) != 0) {
-                    lastIndexBlastWay = i-1;
+                    lastIndexBlastWay = i;
                 }
                 
                 if (CPACheckerLogger.getLevel() <= 
