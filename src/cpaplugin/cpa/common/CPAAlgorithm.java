@@ -1,10 +1,13 @@
 package cpaplugin.cpa.common;
 
+import java.lang.reflect.Method;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Vector;
 
 import cpaplugin.cmdline.CPAMain;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
@@ -21,13 +24,13 @@ public class CPAAlgorithm
     public Collection<AbstractElement> CPA (ConfigurableProblemAnalysis cpa, AbstractElement initialState) throws CPAException
     {
         Deque<AbstractElement> waitlist = new ArrayDeque<AbstractElement> ();
-        Deque<AbstractElement> reached = new ArrayDeque<AbstractElement> ();
+        Collection<AbstractElement> reached = createReachedSet(cpa);
      
         LazyLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel, initialState,
                        " added as initial state to CPA");
         
         waitlist.addLast (initialState);
-        reached.addLast (initialState);
+        reached.add(initialState);
         
         TransferRelation transferRelation = cpa.getTransferRelation ();
         MergeOperator mergeOperator = cpa.getMergeOperator ();
@@ -67,29 +70,55 @@ public class CPAAlgorithm
             	// AG as an optimization, we allow the mergeOperator to be null,
             	// as a synonym of a trivial operator that never merges 
             	if (mergeOperator != null) {
-            	    int numReached = reached.size (); // Need to iterate this way to avoid concurrent mod exceptions
-
-            	    for (int reachedIdx = 0; reachedIdx < numReached; reachedIdx++)
-            	    {
-            	        AbstractElement reachedElement = reached.pollFirst ();
-            	        AbstractElement mergedElement = mergeOperator.merge (successor, reachedElement);
-            	        reached.addLast (mergedElement);
-
-            	        LazyLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel,
-            	                " Merged ", successor, " and ",
-            	                reachedElement, " --> ", mergedElement);
-
-            	        if (!mergedElement.equals (reachedElement))
-            	        {
-            	            LazyLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel,
-            	                    "reached element ", reachedElement,
-            	                    " is removed from queue", 
-            	                    " and ", mergedElement,
-            	            " is added to queue");
-            	            waitlist.remove (reachedElement);
-            	            waitlist.add (mergedElement);
-            	        }
+            	    List<AbstractElement> toRemove =
+            	        new Vector<AbstractElement>();
+            	    List<AbstractElement> toAdd = new Vector<AbstractElement>();
+            	    for (AbstractElement reachedElement : reached) {
+            	        AbstractElement mergedElement = mergeOperator.merge(
+            	                successor, reachedElement);
+                        LazyLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel,
+                                " Merged ", successor, " and ",
+                                reachedElement, " --> ", mergedElement);
+                        if (!mergedElement.equals(reachedElement)) {
+                            LazyLogger.log(
+                                    CustomLogLevel.CentralCPAAlgorithmLevel,
+                                    "reached element ", reachedElement,
+                                    " is removed from queue", 
+                                    " and ", mergedElement,
+                                    " is added to queue");
+                            waitlist.remove(reachedElement);
+                            waitlist.add(mergedElement);
+                            
+                            toRemove.add(reachedElement);
+                            toAdd.add(mergedElement);
+                        }
             	    }
+            	    reached.removeAll(toRemove);
+            	    reached.addAll(toAdd);
+            	    
+//            	    int numReached = reached.size (); // Need to iterate this way to avoid concurrent mod exceptions
+//
+//            	    for (int reachedIdx = 0; reachedIdx < numReached; reachedIdx++)
+//            	    {
+//            	        AbstractElement reachedElement = reached.pollFirst ();
+//            	        AbstractElement mergedElement = mergeOperator.merge (successor, reachedElement);
+//            	        reached.addLast (mergedElement);
+//
+//            	        LazyLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel,
+//            	                " Merged ", successor, " and ",
+//            	                reachedElement, " --> ", mergedElement);
+//
+//            	        if (!mergedElement.equals (reachedElement))
+//            	        {
+//            	            LazyLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel,
+//            	                    "reached element ", reachedElement,
+//            	                    " is removed from queue", 
+//            	                    " and ", mergedElement,
+//            	            " is added to queue");
+//            	            waitlist.remove (reachedElement);
+//            	            waitlist.add (mergedElement);
+//            	        }
+//            	    }
             	}
 
                 if (!stopOperator.stop (successor, reached))
@@ -98,7 +127,7 @@ public class CPAAlgorithm
                                    "No need to stop ", successor,
                                    " is added to queue");
                     waitlist.addLast (successor);
-                    reached.addLast (successor);
+                    reached.add(successor);
                 }
             }
             //CPACheckerStatistics.noOfReachedSet = reached.size();
@@ -107,7 +136,21 @@ public class CPAAlgorithm
         return reached;
     }
 
-    private void doRefinement(Deque<AbstractElement> reached,
+    @SuppressWarnings("unchecked")
+    private Collection<AbstractElement> createReachedSet(
+            ConfigurableProblemAnalysis cpa) {
+        // check whether the cpa provides a method for building a specialized
+        // reached set. If not, just use a HashSet
+        try {
+            Method meth = cpa.getClass().getDeclaredMethod("newReachedSet");
+            return (Collection<AbstractElement>)meth.invoke(cpa);
+        } catch (Exception e) {
+            // ignore, this is not an error
+        }
+        return new HashSet<AbstractElement>();
+    }
+
+    private void doRefinement(Collection<AbstractElement> reached,
             Deque<AbstractElement> waitlist,
             Collection<AbstractElement> reachableToUndo,
             Collection<AbstractElement> toWaitlist) {
