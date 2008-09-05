@@ -1,5 +1,6 @@
 package cpaplugin.cpa.cpas.symbpredabs.explicit;
 
+import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
@@ -8,6 +9,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Stack;
 import java.util.Vector;
 import java.util.logging.Level;
@@ -95,48 +97,28 @@ public class ExplicitTransferRelation implements TransferRelation {
             return ret;
         }
 
-        // TODO - OBSOLETE and to be removed
-        public Collection<AbstractElement> getRightSubtree(AbstractElement root,
-                Collection<ExplicitAbstractElement> path, boolean includeRoot) {
-            Vector<AbstractElement> ret = new Vector<AbstractElement>();
-            
-            Stack<AbstractElement> toProcess = new Stack<AbstractElement>();
-            toProcess.push(root);
-            Iterator<ExplicitAbstractElement> it = path.iterator();
-            AbstractElement curInPath = null;//it.next();
-            //assert(curInPath.equals(root));
-            
-            while (!toProcess.empty()) {
-                AbstractElement cur = toProcess.pop();
-                ret.add(cur);
-                if (tree.containsKey(cur)) {
-                    assert(it.hasNext());
-                    curInPath = it.next();
-                    Vector<AbstractElement> children = tree.get(cur);
-                    for (int j = 0; j < children.size(); ++j) {
-                        if (children.elementAt(j).equals(curInPath)) {
-                            toProcess.add(children.remove(children.size()-1));
-                            while (children.size() > j) {
-                                Collection<AbstractElement> t = 
-                                    getSubtree(children.remove(
-                                            children.size()-1), true, true);
-                                ret.addAll(t);
-                            }
-                        }
-                    }                    
-                }
-            }
-            if (!includeRoot) {
-                AbstractElement tmp = ret.lastElement();
-                assert(ret.firstElement() == root);
-                ret.setElementAt(tmp, 0);
-                ret.remove(ret.size()-1);
-            }
-            return ret;
-        }
-        
         public boolean contains(AbstractElement n) {
             return tree.containsKey(n);
+        }
+        
+        public ExplicitAbstractElement findHighest(CFANode loc) {
+            if (root == null) return null;
+            
+            Queue<AbstractElement> toProcess =
+                new ArrayDeque<AbstractElement>();
+            toProcess.add(root);
+            
+            while (!toProcess.isEmpty()) {
+                ExplicitAbstractElement e = 
+                    (ExplicitAbstractElement)toProcess.remove();
+                if (e.getLocationNode().equals(loc)) {
+                    return e;
+                }
+                if (tree.containsKey(e)) {
+                    toProcess.addAll(tree.get(e));
+                }
+            }
+            return null;
         }
     }
 
@@ -146,9 +128,14 @@ public class ExplicitTransferRelation implements TransferRelation {
     private int numAbstractStates = 0; // for statistics
     private boolean errorReached = false;
     
+    // this is used for deciding how much of the ART to undo after refinement
+    private Deque<ExplicitAbstractElement> lastErrorPath;
+    private boolean samePathAlready = false;
+    
     public ExplicitTransferRelation(ExplicitAbstractDomain d) {
         domain = d;
         abstractTree = new ART();
+        lastErrorPath = null;
     }
     
     public int getNumAbstractStates() { return numAbstractStates; }
@@ -312,6 +299,7 @@ public class ExplicitTransferRelation implements TransferRelation {
         UpdateablePredicateMap curpmap =
             (UpdateablePredicateMap)domain.getCPA().getPredicateMap();
         ExplicitAbstractElement root = null;
+        ExplicitAbstractElement cur = null;
         ExplicitAbstractElement firstInterpolant = null;
         for (ExplicitAbstractElement e : path) {
             Collection<Predicate> newpreds = info.getPredicatesForRefinement(e);
@@ -322,30 +310,72 @@ public class ExplicitTransferRelation implements TransferRelation {
                 LazyLogger.log(LazyLogger.DEBUG_1, "REFINING LOCATION: ",
                         e.getLocation());
                 if (root == null) {
-//                    cur = e;
-                    root = e.getParent();
+                    cur = e;
+                    root = e;//.getParent();
                 }
 //                else if (root.getLocation().equals(e.getLocation())) {
 //                    root = e;
 //                }
             }
         }
+        if (root == null) {
+            if (samePath(path, lastErrorPath)) {
+                if (samePathAlready) {
+                    // we have not enough predicates to rule out this path, and
+                    // we can't find any new, we are forced to exit :-(
+                    assert(false);
+                } else {
+                    samePathAlready = true;
+                    root = firstInterpolant;
+                }
+            } else {
+                assert(firstInterpolant != null);
+                root = abstractTree.findHighest(
+                        firstInterpolant.getLocationNode());
+                LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+                               "Restarting ART from scratch");
+                //root = (ExplicitAbstractElement)abstractTree.getRoot();                
+            }
+        } else {
+            samePathAlready  = false;
+        }
         assert(root != null);// || firstInterpolant == path.getFirst());
+        lastErrorPath = path;
         //root = firstInterpolant;
         //root = (ExplicitAbstractElement)abstractTree.getRoot();
-        if (root == null) {
-            assert(firstInterpolant != null);            
-//            assert(CPAMain.cpaConfig.getBooleanValue(
-//                    "cpas.symbpredabs.refinement.addPredicatesGlobally"));
-            //root = abstractTree.getRoot();
-            root = firstInterpolant;
-        }
+
+//        root = abstractTree.findHighest(root.getLocationNode());
+//        assert(root != null);
+//        if (root.getParent() != null) {
+//            root = root.getParent();
+//        }
+        
+//        if (root == null) {
+//            assert(firstInterpolant != null);            
+////            assert(CPAMain.cpaConfig.getBooleanValue(
+////                    "cpas.symbpredabs.refinement.addPredicatesGlobally"));
+//            //root = abstractTree.getRoot();
+//            root = firstInterpolant;
+//        }
         assert(root != null);
         //root = path.getFirst();
         Collection<AbstractElement> toWaitlist = new HashSet<AbstractElement>();
         toWaitlist.add(root);
         Collection<AbstractElement> toUnreach = 
             abstractTree.getSubtree(root, true, false);
+        if (cur != null) {
+            // we don't want to unreach elements that were covered before
+            // reaching the error!
+            for (Iterator<AbstractElement> it = toUnreach.iterator();
+                 it.hasNext(); ) {
+                ExplicitAbstractElement e = (ExplicitAbstractElement)it.next();
+                if (e.isCovered() && e.getId() < cur.getId()) {
+                    LazyLogger.log(LazyLogger.DEBUG_1, "NOT unreaching ", e,
+                            " because it was covered before ", cur);
+                    it.remove();
+                }
+            }
+        }
 //        ExplicitCPA cpa = domain.getCPA();
 //        for (AbstractElement e : toUnreach) {
 //            Set<ExplicitAbstractElement> cov = cpa.getCoveredBy(
@@ -377,6 +407,25 @@ public class ExplicitTransferRelation implements TransferRelation {
         LazyLogger.log(LazyLogger.DEBUG_1, "REFINEMENT - toUnreach: ", 
                 toUnreach);
         throw new RefinementNeededException(toUnreach, toWaitlist);
+    }
+
+    // checks whether the two paths are the same (in terms of locations)
+    private boolean samePath(Deque<ExplicitAbstractElement> path1,
+                             Deque<ExplicitAbstractElement> path2) {
+        if (path1.size() == path2.size()) {
+            Iterator<ExplicitAbstractElement> it1 = path1.iterator();
+            Iterator<ExplicitAbstractElement> it2 = path2.iterator();
+            while (it1.hasNext()) {
+                ExplicitAbstractElement e1 = it1.next();
+                ExplicitAbstractElement e2 = it2.next();
+                if (!e1.getLocationNode().equals(e2.getLocationNode())) {
+                    return false;
+                }
+            }
+            return true;
+        } else {
+            return false;
+        }
     }
 
     @Override
