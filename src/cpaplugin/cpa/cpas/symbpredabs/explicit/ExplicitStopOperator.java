@@ -2,6 +2,7 @@ package cpaplugin.cpa.cpas.symbpredabs.explicit;
 
 import java.util.Collection;
 
+import cpaplugin.common.LocationMappedReachedSet;
 import cpaplugin.cpa.common.interfaces.AbstractDomain;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.StopOperator;
@@ -36,6 +37,12 @@ public class ExplicitStopOperator implements StopOperator {
     
     public boolean stop(AbstractElement element,
             Collection<AbstractElement> reached) throws CPAException {
+        if (reached instanceof LocationMappedReachedSet) {
+            ExplicitAbstractElement e = (ExplicitAbstractElement)element;
+            reached = ((LocationMappedReachedSet)reached).get(
+                    e.getLocationNode());
+            if (reached == null) return false;
+        } 
         for (AbstractElement e : reached) {
             if (stop(element, e)) {
                 return true;
@@ -74,6 +81,7 @@ public class ExplicitStopOperator implements StopOperator {
                 LazyLogger.log(CustomLogLevel.SpecificCPALevel,
                                "Element: ", element, " COVERED by: ", e2);
                 cpa.setCoveredBy(e1, e2);
+                e1.setCovered(true);
             } else {
                 LazyLogger.log(CustomLogLevel.SpecificCPALevel,
                                "NO, not covered");

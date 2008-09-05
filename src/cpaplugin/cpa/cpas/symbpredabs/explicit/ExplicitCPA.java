@@ -17,6 +17,7 @@ import cpaplugin.CPAStatistics;
 import cpaplugin.cfa.objectmodel.CFAFunctionDefinitionNode;
 import cpaplugin.cfa.objectmodel.CFANode;
 import cpaplugin.cmdline.CPAMain;
+import cpaplugin.common.LocationMappedReachedSet;
 import cpaplugin.cpa.common.interfaces.AbstractDomain;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.ConfigurableProblemAnalysis;
@@ -116,6 +117,10 @@ public class ExplicitCPA implements ConfigurableProblemAnalysis {
     
     public CPAStatistics getStatistics() {
         return stats;
+    }
+    
+    public Collection<AbstractElement> newReachedSet() {
+        return new LocationMappedReachedSet();
     }
     
     @Override
