@@ -24,6 +24,8 @@ public class ExplicitAbstractElement
     private Stack<Pair<AbstractFormula, CFANode>> context;
     private boolean ownsContext;
     
+    private boolean covered;
+    
     private static int nextAvailableId = 1;
     
     public int getId() { return elemId; }
@@ -37,6 +39,9 @@ public class ExplicitAbstractElement
     public ExplicitAbstractElement getParent() { return parent; }
     public void setParent(ExplicitAbstractElement p) { parent = p; }
     
+    public boolean isCovered() { return covered; }
+    public void setCovered(boolean yes) { covered = yes; }
+    
     private ExplicitAbstractElement(CFANode loc, AbstractFormula a, 
             ExplicitAbstractElement p) {
         elemId = nextAvailableId++;
@@ -45,6 +50,7 @@ public class ExplicitAbstractElement
         parent = p;
         context = null;
         ownsContext = true;
+        covered = false;
     }
     
     public ExplicitAbstractElement(CFANode loc) {
