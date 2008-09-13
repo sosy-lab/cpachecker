@@ -1,4 +1,4 @@
-package cpaplugin.cpa.cpas.symbpredabs.summary;
+package symbpredabstraction;
 
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -33,10 +33,10 @@ import cpaplugin.logging.LazyLogger;
  * 
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
-public class SummaryCFABuilder {
+public class SymbPredAbsCFABuilder {
     // maps each original node to its summary location
-    private Map<CFANode, SummaryCFANode> summaryMap;
-    private Map<SummaryCFANode, Integer> summarySizeMap;
+    private Map<CFANode, SymbPredAbsCFANode> summaryMap;
+    private Map<SymbPredAbsCFANode, Integer> summarySizeMap;
     // entry point of the program
     private CFAFunctionDefinitionNode mainFunction;
     // maps each original node to its copy used in the summary CFA
@@ -45,13 +45,13 @@ public class SummaryCFABuilder {
     // at the beginning of mainFunction
     private List<IASTDeclaration> globalVars;
     
-    public SummaryCFABuilder(CFAFunctionDefinitionNode mainFunction,
+    public SymbPredAbsCFABuilder(CFAFunctionDefinitionNode mainFunction,
                              List<IASTDeclaration> globalVars) {
         this.mainFunction = mainFunction;
         this.globalVars = globalVars;
-        summaryMap = new HashMap<CFANode, SummaryCFANode>();
+        summaryMap = new HashMap<CFANode, SymbPredAbsCFANode>();
         nodeMap = new HashMap<CFANode, CFANode>();
-        summarySizeMap = new HashMap<SummaryCFANode, Integer>();
+        summarySizeMap = new HashMap<SymbPredAbsCFANode, Integer>();
     }
     
     public CFAFunctionDefinitionNode buildSummary() {
@@ -60,13 +60,13 @@ public class SummaryCFABuilder {
         mainFunction = buildSummary(mainFunction);
         // ensure that the error location has a dummy successor - this is needed
         // by some of the CPAs (like the interpolation-based ones)
-        for (SummaryCFANode s : summarySizeMap.keySet()) {
+        for (SymbPredAbsCFANode s : summarySizeMap.keySet()) {
             if (s.getInnerNode() instanceof CFAErrorNode) {
                 if (((CFANode)s).getNumLeavingEdges() == 0) {
-                    InnerNode n = new InnerNode(0);
-                    SummaryNode s2 = new SummaryNode(n);
+                	SymbPredAbsInnerNode n = new SymbPredAbsInnerNode(0);
+                	SymbPredAbsNode s2 = new SymbPredAbsNode(n);
                     n.setSummaryNode(s2);
-                    CFAEdge e = new SummaryCFAEdge();
+                    CFAEdge e = new SymbPredAbsCFAEdge();
                     e.initialize((CFANode)s, s2);
                     e = new BlankEdge("DUMMY");
                     e.initialize(s.getInnerNode(), n);
@@ -125,9 +125,9 @@ public class SummaryCFABuilder {
         
         LazyLogger.log(LazyLogger.DEBUG_3,
                 "LINKING NODES: " + src.getNodeNumber() + "(", 
-                ((InnerCFANode)src).getSummaryNode(), ") AND " + 
+                ((SymbPredAbsInnerCFANode)src).getSummaryNode(), ") AND " + 
                  + dest.getNodeNumber() +
-                "(", ((InnerCFANode)dest).getSummaryNode() + ")");
+                "(", ((SymbPredAbsInnerCFANode)dest).getSummaryNode() + ")");
         LazyLogger.log(LazyLogger.DEBUG_3, 
                 "  ORIGINAL: ", orig.getPredecessor().getNodeNumber(), " AND ",
                 orig.getSuccessor().getNodeNumber());
@@ -144,12 +144,12 @@ public class SummaryCFABuilder {
             CFANode ret = null;
             if (orig instanceof FunctionDefinitionNode) {
                 FunctionDefinitionNode f = (FunctionDefinitionNode)orig;
-                ret = new InnerFunctionDefinitionNode(
+                ret = new SymbPredAbsInnerFunctionDefinitionNode(
                         f.getLineNumber(), f.getFunctionDefinition());
             } else if (orig instanceof CFAErrorNode) {
-                ret = new InnerCFAErrorNode(orig.getLineNumber());
+                ret = new SymbPredAbsInnerCFAErrorNode(orig.getLineNumber());
             } else {
-                ret = new InnerNode(orig.getLineNumber());
+                ret = new SymbPredAbsInnerNode(orig.getLineNumber());
             }
             if (orig.isLoopStart()) {
                 ret.setLoopStart();
@@ -181,7 +181,7 @@ public class SummaryCFABuilder {
             // if a node has two or more incoming edges from different
             // summary nodes, it starts a new summary node
         } else {
-            SummaryCFANode cur = null;
+        	SymbPredAbsCFANode cur = null;
             for (int i = 0; i < n.getNumEnteringEdges(); ++i) {
                 CFAEdge e = n.getEnteringEdge(i);
                 if (!isLoopBack(e)) {
@@ -193,7 +193,7 @@ public class SummaryCFABuilder {
                         continue;
                     }
                     assert(summaryMap.containsKey(p));
-                    SummaryCFANode s = summaryMap.get(p);
+                    SymbPredAbsCFANode s = summaryMap.get(p);
                     if (cur == null) {
                         cur = s;
                     } else if (cur != s) {
@@ -264,7 +264,7 @@ public class SummaryCFABuilder {
 
     // links the summary nodes "s1" and "s2", by connecting them with a
     // SummaryCFAEdge
-    private void linkSummaries(SummaryCFANode s1, SummaryCFANode s2) {
+    private void linkSummaries(SymbPredAbsCFANode s1, SymbPredAbsCFANode s2) {
         CFANode n1 = (CFANode)s1;
         CFANode n2 = (CFANode)s2;
         
@@ -276,7 +276,7 @@ public class SummaryCFABuilder {
             }
         }
         if (!alreadyLinked) {
-            CFAEdge se = new SummaryCFAEdge();
+            CFAEdge se = new SymbPredAbsCFAEdge();
             se.setPredecessor((CFANode)s1);
             se.setSuccessor((CFANode)s2);
             
@@ -285,8 +285,8 @@ public class SummaryCFABuilder {
         }
     }
     
-    private void setSummary(CFANode n, SummaryCFANode s) {
-        ((InnerCFANode)n).setSummaryNode(s);
+    private void setSummary(CFANode n, SymbPredAbsCFANode s) {
+        ((SymbPredAbsInnerCFANode)n).setSummaryNode(s);
         int count = 0;
         if (summarySizeMap.containsKey(s)) {
             count = summarySizeMap.get(s);
@@ -362,15 +362,15 @@ public class SummaryCFABuilder {
             CFAFunctionDefinitionNode cfa) {
         List<CFANode> toProcess = topologicalSort(cfa);
         
-        SummaryCFANode curSummary =
-            new SummaryCFAFunctionDefinitionNode(copyNode(cfa),
+        SymbPredAbsCFANode curSummary =
+            new SymbPredAbsCFAFunctionDefinitionNode(copyNode(cfa),
                 cfa.getLineNumber(), cfa.getFunctionName(),
                 ""/* TODO - cfa.getContainingFileName()*/);
         summaryMap.put(cfa, curSummary);
         setSummary(copyNode(cfa), curSummary);               
         
-        SummaryCFAFunctionDefinitionNode ret = 
-            (SummaryCFAFunctionDefinitionNode)curSummary;
+        SymbPredAbsCFAFunctionDefinitionNode ret = 
+            (SymbPredAbsCFAFunctionDefinitionNode)curSummary;
         
         List<CFAEdge> loopbacks = new LinkedList<CFAEdge>();
         List<CFANode> loopbacksDup = new LinkedList<CFANode>();
@@ -382,14 +382,14 @@ public class SummaryCFABuilder {
                     "PROCESSING: ", n.getNodeNumber());
             
             if (shouldStartSummary(n)) {
-                curSummary = new SummaryNode(copyNode(n));
+                curSummary = new SymbPredAbsNode(copyNode(n));
                 setSummary(copyNode(n), curSummary);
                 summaryMap.put(n, curSummary);
                 int res = shouldDuplicate(n);
                 if (res == DUPLICATE_BACKWARD) {
                     assert(n.getNumEnteringEdges() > 0);
                     CFANode dup = null;//duplicateNode(copyNode(n));
-                    SummaryCFANode s = null;
+                    SymbPredAbsCFANode s = null;
                     for (int i = 0; i < n.getNumEnteringEdges(); ++i) {
                         CFAEdge e = n.getEnteringEdge(i);
                         assert(!isLoopBack(e));
@@ -406,8 +406,8 @@ public class SummaryCFABuilder {
                                 be.setPredecessor(dup);
                                 be.setSuccessor(copyNode(n));
                             } else {
-                                SummaryCFANode curs = summaryMap.get(pred);
-                                if (((InnerCFANode)dup).getSummaryNode() != 
+                            	SymbPredAbsCFANode curs = summaryMap.get(pred);
+                                if (((SymbPredAbsInnerCFANode)dup).getSummaryNode() != 
                                     curs) {
                                     dup = duplicateNode(copyNode(n));
                                     s = curs;
@@ -438,7 +438,7 @@ public class SummaryCFABuilder {
                     // in this case, the duplicate will be the first node of
                     // the new summary. So, we re-create the summary and
                     // re-set the information on (the copy of) n
-                    curSummary = new SummaryNode(dup);                    
+                    curSummary = new SymbPredAbsNode(dup);                    
                     setSummary(dup, curSummary);
                     setSummary(copyNode(n), curSummary);
                     summaryMap.put(n, curSummary);
@@ -463,7 +463,7 @@ public class SummaryCFABuilder {
                             if (!summaryMap.containsKey(pred)) {
                                 assert(e instanceof BlankEdge);
                             } else {
-                                SummaryCFANode s = summaryMap.get(pred);
+                            	SymbPredAbsCFANode s = summaryMap.get(pred);
                                 linkSummaries(s, curSummary);
                                 copyEdge(e, copyNode(pred), copyNode(n));
                             }
@@ -473,7 +473,7 @@ public class SummaryCFABuilder {
                     }
                 }
             } else {
-                SummaryCFANode sum = null;
+            	SymbPredAbsCFANode sum = null;
                 for (int i = 0; i < n.getNumEnteringEdges(); ++i) {
                     CFAEdge e = n.getEnteringEdge(i);
                     CFANode pred = e.getPredecessor();
@@ -500,8 +500,8 @@ public class SummaryCFABuilder {
             assert(summaryMap.containsKey(p));
             assert(summaryMap.containsKey(s));
             
-            SummaryCFANode sp = summaryMap.get(p);
-            SummaryCFANode ss = summaryMap.get(s);
+            SymbPredAbsCFANode sp = summaryMap.get(p);
+            SymbPredAbsCFANode ss = summaryMap.get(s);
             linkSummaries(sp, ss);
             copyEdge(e, copyNode(p), copyNode(s));
         }
@@ -522,7 +522,7 @@ public class SummaryCFABuilder {
             copyEdge(e, dup, copyNode(n));
             // link the summaries
             assert(summaryMap.containsKey(pred));
-            SummaryCFANode s = summaryMap.get(pred);
+            SymbPredAbsCFANode s = summaryMap.get(pred);
             linkSummaries(s, curSummary);
             // now link together pred and the duplicate
             BlankEdge be = new BlankEdge("");
@@ -542,8 +542,8 @@ public class SummaryCFABuilder {
         // create a series of GlobalDeclarationEdges, one for each declaration,
         // and add them as successors of the input node
         List<CFANode> decls = new LinkedList<CFANode>();
-        InnerNode cur = new InnerNode(0);
-        cur.setSummaryNode(((InnerCFANode)cfa).getSummaryNode());
+        SymbPredAbsInnerNode cur = new SymbPredAbsInnerNode(0);
+        cur.setSummaryNode(((SymbPredAbsInnerCFANode)cfa).getSummaryNode());
         cur.setFunctionName(cfa.getFunctionName());
         decls.add(cur);
         
@@ -558,7 +558,7 @@ public class SummaryCFABuilder {
                     d.getRawSignature(),
                     ((IASTSimpleDeclaration)d).getDeclarators(),
                     ((IASTSimpleDeclaration)d).getDeclSpecifier());
-            InnerNode n = new InnerNode(0);
+            SymbPredAbsInnerNode n = new SymbPredAbsInnerNode(0);
             n.setSummaryNode(cur.getSummaryNode());
             n.setFunctionName(cur.getFunctionName());
             e.initialize(cur, n);
@@ -583,10 +583,10 @@ public class SummaryCFABuilder {
         CFANode ret = null;
         if (orig instanceof FunctionDefinitionNode) {
             FunctionDefinitionNode f = (FunctionDefinitionNode)orig;
-            ret = new InnerFunctionDefinitionNode(
+            ret = new SymbPredAbsInnerFunctionDefinitionNode(
                     f.getLineNumber(), f.getFunctionDefinition());
         } else {
-            ret = new InnerNode(orig.getLineNumber());
+            ret = new SymbPredAbsInnerNode(orig.getLineNumber());
             if (orig.getEnteringSummaryEdge() != null) {
                 CallToReturnEdge ce = orig.getEnteringSummaryEdge();
                 CallToReturnEdge nce = new CallToReturnEdge(

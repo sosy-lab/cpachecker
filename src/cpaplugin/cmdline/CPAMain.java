@@ -154,7 +154,6 @@ public class CPAMain {
             List<IASTDeclaration> globalVars = builder.getGlobalDeclarations();
             mainFunction = addGlobalDeclarations(mainFunction, globalVars);
         }
-
         LazyLogger.log(CustomLogLevel.MainApplicationLevel, 
                        numFunctions, " functions parsed");
 

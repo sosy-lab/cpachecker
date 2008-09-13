@@ -1,4 +1,4 @@
-package cpaplugin.cpa.cpas.symbpredabs.summary;
+package cpaplugin.cpa.cpas.symbpredabsCPA;
 
 import java.util.Collection;
 import java.util.Deque;
@@ -11,6 +11,11 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.Vector;
 import java.util.logging.Level;
+
+import symbpredabstraction.SymbPredAbsAbstractFormulaManager;
+import symbpredabstraction.SymbPredAbsCFANode;
+import symbpredabstraction.SymbPredAbsFormulaManager;
+import symbpredabstraction.SymbPredAbsInnerCFANode;
 
 import cpaplugin.cfa.objectmodel.CFAEdge;
 import cpaplugin.cfa.objectmodel.CFAErrorNode;
@@ -43,7 +48,7 @@ import cpaplugin.logging.LazyLogger;
  *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
-public class SummaryTransferRelation implements TransferRelation {
+public class SymbPredAbsTransferRelation implements TransferRelation {
 
     // the Abstract Reachability Tree
     class ART {
@@ -85,13 +90,13 @@ public class SummaryTransferRelation implements TransferRelation {
         }
     }
 
-    private SummaryAbstractDomain domain;
+    private SymbPredAbsAbstractDomain domain;
     private ART abstractTree;
     
     private int numAbstractStates = 0; // for statistics
     private boolean errorReached = false;
     
-    public SummaryTransferRelation(SummaryAbstractDomain d) {
+    public SymbPredAbsTransferRelation(SymbPredAbsAbstractDomain d) {
         domain = d;
         abstractTree = new ART();
     }
@@ -107,12 +112,12 @@ public class SummaryTransferRelation implements TransferRelation {
     // isFunctionStart and isFunctionEnd are used for managing the context,
     // needed for handling function calls
     
-    private boolean isFunctionStart(SummaryAbstractElement elem) {
+    private boolean isFunctionStart(SymbPredAbsAbstractElement elem) {
         return (elem.getLocation().getInnerNode() instanceof 
                 FunctionDefinitionNode);
     }
     
-    private boolean isFunctionEnd(SummaryAbstractElement elem) {
+    private boolean isFunctionEnd(SymbPredAbsAbstractElement elem) {
         CFANode n = elem.getLocation().getInnerNode();
         return (n.getNumLeavingEdges() == 1 &&
                 n.getLeavingEdge(0) instanceof ReturnEdge);
@@ -121,10 +126,10 @@ public class SummaryTransferRelation implements TransferRelation {
     }
 
     // abstract post operation
-    private AbstractElement buildSuccessor(SummaryAbstractElement e,
+    private AbstractElement buildSuccessor(SymbPredAbsAbstractElement e,
             CFAEdge edge) throws CPATransferException {
-        SummaryCPA cpa = domain.getCPA();
-        SummaryCFANode succLoc = (SummaryCFANode)edge.getSuccessor();
+    	SymbPredAbsCPA cpa = domain.getCPA();
+    	SymbPredAbsCFANode succLoc = (SymbPredAbsCFANode)edge.getSuccessor();
         // check whether the successor is an error location: if so, we want
         // to check for feasibility of the path...
 
@@ -132,7 +137,7 @@ public class SummaryTransferRelation implements TransferRelation {
             cpa.getPredicateMap().getRelevantPredicates(
                     edge.getSuccessor());
         
-        SummaryAbstractElement succ = new SummaryAbstractElement(succLoc);
+        SymbPredAbsAbstractElement succ = new SymbPredAbsAbstractElement(succLoc);
         Map<CFANode, Pair<SymbolicFormula, SSAMap>> p = 
             cpa.getPathFormulas(succLoc);
         succ.setPathFormulas(p);
@@ -140,7 +145,7 @@ public class SummaryTransferRelation implements TransferRelation {
         // if e is the end of a function, we must find the correct return 
         // location
         if (isFunctionEnd(succ)) {
-            SummaryCFANode retNode = e.topContextLocation();
+        	SymbPredAbsCFANode retNode = e.topContextLocation();
             if (!succLoc.equals(retNode)) {
                 LazyLogger.log(LazyLogger.DEBUG_1,
                         "Return node for this call is: ", retNode,
@@ -160,7 +165,7 @@ public class SummaryTransferRelation implements TransferRelation {
             succ.popContext();
         }
         
-        SummaryAbstractFormulaManager amgr = cpa.getAbstractFormulaManager();
+        SymbPredAbsAbstractFormulaManager amgr = cpa.getAbstractFormulaManager();
         AbstractFormula abstraction = amgr.buildAbstraction(
                 cpa.getFormulaManager(), e, succ, predicates);
         succ.setAbstraction(abstraction);
@@ -168,7 +173,7 @@ public class SummaryTransferRelation implements TransferRelation {
         
         Level lvl = LazyLogger.DEBUG_1;
         if (CPACheckerLogger.getLevel() <= lvl.intValue()) {
-            SummaryFormulaManager mgr = cpa.getFormulaManager();
+        	SymbPredAbsFormulaManager mgr = cpa.getFormulaManager();
             LazyLogger.log(lvl, "COMPUTED ABSTRACTION: ", 
                            amgr.toConcrete(mgr, abstraction));
         }
@@ -190,10 +195,10 @@ public class SummaryTransferRelation implements TransferRelation {
                 // abstraction
                 //
                 // first we build the abstract path
-                Deque<SummaryAbstractElement> path = 
-                    new LinkedList<SummaryAbstractElement>();
+                Deque<SymbPredAbsAbstractElement> path = 
+                    new LinkedList<SymbPredAbsAbstractElement>();
                 path.addFirst(succ);
-                SummaryAbstractElement parent = succ.getParent();
+                SymbPredAbsAbstractElement parent = succ.getParent();
                 while (parent != null) {
                     path.addFirst(parent);
                     parent = parent.getParent();
@@ -220,20 +225,20 @@ public class SummaryTransferRelation implements TransferRelation {
             if (isFunctionStart(succ)) {
                 // we push into the context the return location, which is
                 // the successor location of the summary edge
-                SummaryCFANode retNode = null;
+            	SymbPredAbsCFANode retNode = null;
                 for (CFANode l : e.getLeaves()) {  
                     if (l instanceof FunctionDefinitionNode) {
                         assert(l.getNumLeavingEdges() == 1);
                         //assert(l.getNumEnteringEdges() == 1);
                         
                         CFAEdge ee = l.getLeavingEdge(0);
-                        InnerCFANode n = (InnerCFANode)ee.getSuccessor();
+                        SymbPredAbsInnerCFANode n = (SymbPredAbsInnerCFANode)ee.getSuccessor();
                         if (n.getSummaryNode().equals(succ.getLocation())) {
                             CFANode pr = l.getEnteringEdge(0).getPredecessor();
                             CallToReturnEdge ce = pr.getLeavingSummaryEdge();
                             //assert(ce != null);
                             if (ce != null) {
-                                retNode = ((InnerCFANode)ce.getSuccessor()).
+                                retNode = ((SymbPredAbsInnerCFANode)ce.getSuccessor()).
                                             getSummaryNode();
                                 break;
                             }
@@ -257,14 +262,14 @@ public class SummaryTransferRelation implements TransferRelation {
 
 
     // abstraction refinement and undoing of (part of) the ART
-    private void performRefinement(Deque<SummaryAbstractElement> path, 
+    private void performRefinement(Deque<SymbPredAbsAbstractElement> path, 
             CounterexampleTraceInfo info) throws CPATransferException {
         // TODO Auto-generated method stub
         UpdateablePredicateMap curpmap =
             (UpdateablePredicateMap)domain.getCPA().getPredicateMap();
         AbstractElement root = null;
         AbstractElement firstInterpolant = null;
-        for (SummaryAbstractElement e : path) {
+        for (SymbPredAbsAbstractElement e : path) {
             Collection<Predicate> newpreds = info.getPredicatesForRefinement(e);
             if (firstInterpolant == null && newpreds.size() > 0) {
                 firstInterpolant = e;
@@ -284,17 +289,17 @@ public class SummaryTransferRelation implements TransferRelation {
         toWaitlist.add(root);
         Collection<AbstractElement> toUnreach = 
             abstractTree.getSubtree(root, true, false);
-        SummaryCPA cpa = domain.getCPA();
+        SymbPredAbsCPA cpa = domain.getCPA();
         for (AbstractElement e : toUnreach) {
-            Set<SummaryAbstractElement> cov = cpa.getCoveredBy(
-                    (SummaryAbstractElement)e);
+            Set<SymbPredAbsAbstractElement> cov = cpa.getCoveredBy(
+                    (SymbPredAbsAbstractElement)e);
             for (AbstractElement c : cov) {
-                if (!((SummaryAbstractElement)c).isDescendant(
-                        (SummaryAbstractElement)root)) {
+                if (!((SymbPredAbsAbstractElement)c).isDescendant(
+                        (SymbPredAbsAbstractElement)root)) {
                     toWaitlist.add(c);
                 }
             }
-            cpa.uncoverAll((SummaryAbstractElement)e);
+            cpa.uncoverAll((SymbPredAbsAbstractElement)e);
         }
 //        Collection<AbstractElement> toUnreach = new Vector<AbstractElement>();
 //        boolean add = false;
@@ -321,7 +326,7 @@ public class SummaryTransferRelation implements TransferRelation {
         // formula of element plus all the edges that connect any of the 
         // inner nodes of the summary of element to any inner node of the  
         // destination
-        SummaryAbstractElement e = (SummaryAbstractElement)element;
+        SymbPredAbsAbstractElement e = (SymbPredAbsAbstractElement)element;
         CFANode src = (CFANode)e.getLocation();
         
         for (int i = 0; i < src.getNumLeavingEdges(); ++i) {
@@ -353,7 +358,7 @@ public class SummaryTransferRelation implements TransferRelation {
                        element);
         
         List<AbstractElement> allSucc = new Vector<AbstractElement>();
-        SummaryAbstractElement e = (SummaryAbstractElement)element;
+        SymbPredAbsAbstractElement e = (SymbPredAbsAbstractElement)element;
         CFANode src = (CFANode)e.getLocation();
         
         for (int i = 0; i < src.getNumLeavingEdges(); ++i) {
