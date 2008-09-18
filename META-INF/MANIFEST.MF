@@ -62,7 +62,6 @@ Export-Package: cpaplugin;uses:="org.eclipse.jface.resource,org.eclipse.ui.plugi
    cpaplugin.cpa.common.interfaces",
  cpaplugin.cpa.cpas.predicateabstraction;uses:="cpaplugin.cfa.objectmodel,predicateabstraction,cpaplugin.cpa.common.interfaces",
  cpaplugin.cpa.cpas.symbpredabs;uses:="cpaplugin.cfa.objectmodel,cpaplugin.exceptions,cpaplugin.cpa.common.interfaces",
- cpaplugin.cpa.cpas.symbpredabs.logging,
  cpaplugin.cpa.cpas.symbpredabs.mathsat;uses:="cpaplugin.cfa.objectmodel,mathsat,cpaplugin.cpa.cpas.symbpredabs",
  cpaplugin.cpa.cpas.symbpredabs.mathsat.summary;uses:="cpaplugin.cpa.cpas.symbpredabs.mathsat,cpaplugin.cpa.cpas.symbpredabs,cpaplugin.cpa.cpas.symbpredabs.summary",
  cpaplugin.cpa.cpas.symbpredabs.summary;
@@ -72,7 +71,6 @@ Export-Package: cpaplugin;uses:="org.eclipse.jface.resource,org.eclipse.ui.plugi
    cpaplugin.cpa.cpas.symbpredabs,
    cpaplugin.cfa.objectmodel.c,
    cpaplugin.cpa.common.interfaces",
- cpaplugin.cpa.path,
  cpaplugin.exceptions,
  cpaplugin.logging,
  jdd,

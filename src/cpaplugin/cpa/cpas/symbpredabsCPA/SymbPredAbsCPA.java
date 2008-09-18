@@ -12,10 +12,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
+import symbpredabstraction.AbstractionLocationPointer;
 import symbpredabstraction.BDDMathsatSymbPredAbsAbstractManager;
 import symbpredabstraction.MathsatSymbPredAbsFormulaManager;
 import symbpredabstraction.SymbPredAbsAbstractFormulaManager;
-import symbpredabstraction.SymbPredAbsCFANode;
 import symbpredabstraction.SymbPredAbsCPAStatistics;
 import symbpredabstraction.SymbPredAbsFormulaManager;
 import cpaplugin.CPAStatistics;
@@ -36,8 +36,6 @@ import cpaplugin.cpa.cpas.symbpredabs.SSAMap;
 import cpaplugin.cpa.cpas.symbpredabs.SymbolicFormula;
 import cpaplugin.cpa.cpas.symbpredabs.UpdateablePredicateMap;
 import cpaplugin.cpa.cpas.symbpredabs.mathsat.MathsatPredicateParser;
-import cpaplugin.cpa.cpas.symbpredabs.mathsat.summary.BDDMathsatSummaryAbstractManager;
-import cpaplugin.cpa.cpas.symbpredabs.mathsat.summary.MathsatSummaryFormulaManager;
 import cpaplugin.logging.CustomLogLevel;
 import cpaplugin.logging.LazyLogger;
 
@@ -56,8 +54,9 @@ public class SymbPredAbsCPA implements ConfigurableProblemAnalysis {
     private MathsatSymbPredAbsFormulaManager mgr;
     private BDDMathsatSymbPredAbsAbstractManager amgr;
     private PredicateMap pmap;
-    private Map<SymbPredAbsCFANode, Map<CFANode, Pair<SymbolicFormula, SSAMap>>> 
-        summaryToFormulaMap;
+    private Map<CFANode, AbstractionLocationPointer> nodeToAbstracionLocsMap;
+//    private Map<SymbPredAbsCFANode, Map<CFANode, Pair<SymbolicFormula, SSAMap>>> 
+//        summaryToFormulaMap;
     private Map<SymbPredAbsAbstractElement, Set<SymbPredAbsAbstractElement>> covers;
     
     private SymbPredAbsCPAStatistics stats;
@@ -67,8 +66,8 @@ public class SymbPredAbsCPA implements ConfigurableProblemAnalysis {
         merge = new SymbPredAbsMergeOperator(domain);
         stop = new SymbPredAbsStopOperator(domain);
         trans = new SymbPredAbsTransferRelation(domain);
-        mgr = new MathsatSummaryFormulaManager();
-        amgr = new BDDMathsatSummaryAbstractManager();
+        mgr = new MathsatSymbPredAbsFormulaManager();
+        amgr = new BDDMathsatSymbPredAbsAbstractManager();
         covers = new HashMap<SymbPredAbsAbstractElement, 
                              Set<SymbPredAbsAbstractElement>>();
 
@@ -92,9 +91,9 @@ public class SymbPredAbsCPA implements ConfigurableProblemAnalysis {
             pmap = new UpdateablePredicateMap();
         }
         
-        summaryToFormulaMap = 
-            new HashMap<SymbPredAbsCFANode, 
-                        Map<CFANode, Pair<SymbolicFormula, SSAMap>>>();
+//        summaryToFormulaMap = 
+//            new HashMap<SymbPredAbsCFANode, 
+//                        Map<CFANode, Pair<SymbolicFormula, SSAMap>>>();
         
         stats = new SymbPredAbsCPAStatistics(this);
     }
@@ -211,5 +210,22 @@ public class SymbPredAbsCPA implements ConfigurableProblemAnalysis {
         }
     }
     
+    public AbstractionLocationPointer getAbstractionLocForNode(CFANode node){
+    	return nodeToAbstracionLocsMap.get(node);
+    }
+    
+    public boolean addAbstractionForLocation(CFANode node, AbstractionLocationPointer absp){
+    	if(nodeToAbstracionLocsMap.containsKey(node)){
+    		return false;
+    	}
+    	else{
+    		nodeToAbstracionLocsMap.put(node, absp);
+    		return true;
+    	}
+    }
+    
+    public Map<CFANode, AbstractionLocationPointer> getAbstracionLocsMap(){
+    	return nodeToAbstracionLocsMap;
+    }
 
 }

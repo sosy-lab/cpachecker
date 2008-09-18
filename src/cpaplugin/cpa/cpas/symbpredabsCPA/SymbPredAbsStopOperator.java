@@ -56,11 +56,11 @@ public class SymbPredAbsStopOperator implements StopOperator {
             LazyLogger.log(LazyLogger.DEBUG_4, 
                     "Checking Coverage of element: ", element);
             
-            if (!e1.sameContext(e2)) {
-                LazyLogger.log(CustomLogLevel.SpecificCPALevel,
-                               "NO, not covered: context differs");
-                return false;
-            }
+//            if (!e1.sameContext(e2)) {
+//                LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+//                               "NO, not covered: context differs");
+//                return false;
+//            }
 
             SymbPredAbsCPA cpa = domain.getCPA();
             SymbPredAbsAbstractFormulaManager amgr = cpa.getAbstractFormulaManager();

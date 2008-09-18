@@ -29,8 +29,8 @@ import cpaplugin.cpa.cpas.symbpredabs.mathsat.BDDMathsatAbstractFormulaManager;
 import cpaplugin.cpa.cpas.symbpredabs.mathsat.MathsatSymbolicFormula;
 import cpaplugin.cpa.cpas.symbpredabs.summary.InnerCFANode;
 import cpaplugin.cpa.cpas.symbpredabs.summary.SummaryAbstractElement;
-import cpaplugin.cpa.cpas.symbpredabs.summary.SummaryAbstractFormulaManager;
 import cpaplugin.cpa.cpas.symbpredabs.summary.SummaryFormulaManager;
+import cpaplugin.cpa.cpas.symbpredabsCPA.SymbPredAbsAbstractElement;
 import cpaplugin.logging.CPACheckerLogger;
 import cpaplugin.logging.CustomLogLevel;
 import cpaplugin.logging.LazyLogger;
@@ -43,7 +43,7 @@ import cpaplugin.logging.LazyLogger;
  */
 public class BDDMathsatSymbPredAbsAbstractManager extends
         BDDMathsatAbstractFormulaManager implements
-        SummaryAbstractFormulaManager {
+        SymbPredAbsAbstractFormulaManager {
     
     public class AllSatCallbackStats extends AllSatCallback {
         public long totTime = 0;
@@ -101,7 +101,7 @@ public class BDDMathsatSymbPredAbsAbstractManager extends
     // actually a loop-free subgraph of the original CFA
     private Pair<SymbolicFormula, SSAMap> buildConcreteFormula(
             MathsatSymbPredAbsFormulaManager mgr, 
-            SummaryAbstractElement e, SummaryAbstractElement succ,
+            SymbPredAbsAbstractElement e, SymbPredAbsAbstractElement succ,
             boolean replaceAssignments) {
         // first, get all the paths in e that lead to succ
         Collection<Pair<SymbolicFormula, SSAMap>> relevantPaths = 
@@ -145,16 +145,16 @@ public class BDDMathsatSymbPredAbsAbstractManager extends
 
     // computes the abstract post from "e" to "succ"
     @Override
-    public AbstractFormula buildAbstraction(SummaryFormulaManager mgr,
-            SummaryAbstractElement e, SummaryAbstractElement succ, 
+    public AbstractFormula buildAbstraction(SymbPredAbsFormulaManager mgr,
+    		SymbPredAbsAbstractElement e, SymbPredAbsAbstractElement succ, 
             Collection<Predicate> predicates) {
         stats.numCallsAbstraction++;
         return buildBooleanAbstraction(mgr, e, succ, predicates);
     }
     
     @SuppressWarnings("unchecked")
-    private AbstractFormula buildBooleanAbstraction(SummaryFormulaManager mgr,
-            SummaryAbstractElement e, SummaryAbstractElement succ, 
+    private AbstractFormula buildBooleanAbstraction(SymbPredAbsFormulaManager mgr,
+    		SymbPredAbsAbstractElement e, SymbPredAbsAbstractElement succ, 
             Collection<Predicate> predicates) {
         MathsatSymbPredAbsFormulaManager mmgr = (MathsatSymbPredAbsFormulaManager)mgr;
         
@@ -170,28 +170,28 @@ public class BDDMathsatSymbPredAbsAbstractManager extends
             (MathsatSymbolicFormula)mmgr.instantiate(
                     toConcrete(mmgr, abs), null);
                 
-        if (isFunctionExit(e)) {
-            // we have to take the context before the function call 
-            // into account, otherwise we are not building the right 
-            // abstraction!
-            if (CPAMain.cpaConfig.getBooleanValue(
-                    "cpas.symbpredabs.refinement.addWellScopedPredicates")) {
-                // but only if we are adding well-scoped predicates, otherwise 
-                // this should not be necessary
-                AbstractFormula ctx = e.topContextAbstraction();
-                MathsatSymbolicFormula fctx = 
-                    (MathsatSymbolicFormula)mmgr.instantiate(
-                            toConcrete(mmgr, ctx), null);
-                fabs = (MathsatSymbolicFormula)mmgr.makeAnd(fabs, fctx);
-
-                LazyLogger.log(LazyLogger.DEBUG_3, 
-                        "TAKING CALLING CONTEXT INTO ACCOUNT: ", fctx);
-            } else {
-                LazyLogger.log(LazyLogger.DEBUG_3, 
-                        "NOT TAKING CALLING CONTEXT INTO ACCOUNT,",
-                        "as we are not using well-scoped predicates");
-            }
-        }
+//        if (isFunctionExit(e)) {
+//            // we have to take the context before the function call 
+//            // into account, otherwise we are not building the right 
+//            // abstraction!
+//            if (CPAMain.cpaConfig.getBooleanValue(
+//                    "cpas.symbpredabs.refinement.addWellScopedPredicates")) {
+//                // but only if we are adding well-scoped predicates, otherwise 
+//                // this should not be necessary
+//                AbstractFormula ctx = e.topContextAbstraction();
+//                MathsatSymbolicFormula fctx = 
+//                    (MathsatSymbolicFormula)mmgr.instantiate(
+//                            toConcrete(mmgr, ctx), null);
+//                fabs = (MathsatSymbolicFormula)mmgr.makeAnd(fabs, fctx);
+//
+//                LazyLogger.log(LazyLogger.DEBUG_3, 
+//                        "TAKING CALLING CONTEXT INTO ACCOUNT: ", fctx);
+//            } else {
+//                LazyLogger.log(LazyLogger.DEBUG_3, 
+//                        "NOT TAKING CALLING CONTEXT INTO ACCOUNT,",
+//                        "as we are not using well-scoped predicates");
+//            }
+//        }
         
         SSAMap absSsa = mmgr.extractSSA(fabs);
        
@@ -606,8 +606,9 @@ public class BDDMathsatSymbPredAbsAbstractManager extends
         return info;
     }
 
-    private boolean isFunctionExit(SummaryAbstractElement e) {
-        CFANode inner = e.getLocation().getInnerNode();
+    private boolean isFunctionExit(SymbPredAbsAbstractElement e) {
+    	// TODO check
+        CFANode inner = e.getLocation();
         return (inner.getNumLeavingEdges() == 1 && 
                 inner.getLeavingEdge(0) instanceof ReturnEdge);
     }

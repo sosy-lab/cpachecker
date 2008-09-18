@@ -26,7 +26,6 @@ implements AbstractElement, AbstractElementWithLocation {
 	private CFANode CFALocation;
 	// for each "leaf" node in the inner CFA of this summary, we keep the 
 	// symbolic representation of all the paths leading to the leaf
-	private Pair<SymbolicFormula, SSAMap> pathFormula;
 	private AbstractFormula abstraction;
 	private SymbPredAbsAbstractElement parent;
 
@@ -64,20 +63,20 @@ implements AbstractElement, AbstractElementWithLocation {
 		parent = p;
 	}
 
-	private SymbPredAbsAbstractElement(CFANode CFALoc, AbstractFormula a, 
-			Pair<SymbolicFormula, SSAMap> pf, SymbPredAbsAbstractElement p) {
+	public SymbPredAbsAbstractElement(CFANode CFALoc, AbstractFormula a, 
+			SymbPredAbsAbstractElement p) {
 //		elemId = nextAvailableId++;
 		
 		CFALocation = CFALoc;
 		abstraction = a;
-		pathFormula = pf;
+//		pathFormula = pf;
 		parent = p;
 //		context = null;
 //		ownsContext = true;
 	}
 
 	public SymbPredAbsAbstractElement(CFANode loc) {
-		this(loc, null, null, null);
+		this(loc, /*null,*/ null, null);
 	}
 
 	public boolean equals(Object o) {
