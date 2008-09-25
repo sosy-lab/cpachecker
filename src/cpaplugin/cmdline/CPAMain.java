@@ -21,6 +21,7 @@ import cpaplugin.MainCPAStatistics;
 import cpaplugin.cfa.CFABuilder;
 import cpaplugin.cfa.CFAMap;
 import cpaplugin.cfa.CFASimplifier;
+import cpaplugin.cfa.CFATopologicalSort;
 import cpaplugin.cfa.CPASecondPassBuilder;
 import cpaplugin.cfa.DOTBuilder;
 import cpaplugin.cfa.DOTBuilderInterface;
@@ -48,286 +49,291 @@ import cpaplugin.logging.LazyLogger;
 @SuppressWarnings("restriction")
 public class CPAMain {
 
-    public static CPAConfiguration cpaConfig;
-    public static MainCPAStatistics cpaStats;
-    
-    // used in the ShutdownHook to check whether the analysis has been 
-    // interrupted by the user
-    private static boolean interrupted = true;
+	public static CPAConfiguration cpaConfig;
+	public static MainCPAStatistics cpaStats;
 
-    private static ConfigurableProblemAnalysis getCPA(
-            CFAFunctionDefinitionNode node) throws CPAException {
-        return CompositeCPA.getCompositeCPA(node);
-    }
+	// used in the ShutdownHook to check whether the analysis has been 
+	// interrupted by the user
+	private static boolean interrupted = true;
 
-    public static void doRunAnalysis(IASTTranslationUnit ast)
-            throws Exception {
-        
-        cpaStats = new MainCPAStatistics();
+	private static ConfigurableProblemAnalysis getCPA(
+			CFAFunctionDefinitionNode node) throws CPAException {
+		return CompositeCPA.getCompositeCPA(node);
+	}
 
-        LazyLogger.log(CustomLogLevel.INFO, "Analysis Started");
-        LazyLogger.log(CustomLogLevel.MainApplicationLevel, 
-                       "Parsing Finished");
-        
-        CFAFunctionDefinitionNode mainFunction = null;
-        
-        //long analysisStartingTime = System.currentTimeMillis();
-        cpaStats.startProgramTimer();
+	public static void doRunAnalysis(IASTTranslationUnit ast)
+	throws Exception {
 
-        // Build CFA
-        CFABuilder builder = new CFABuilder();
-        ast.accept(builder);
-        CFAMap cfas = builder.getCFAs();
-        int numFunctions = cfas.size();
-        Collection<CFAFunctionDefinitionNode> cfasMapList = 
-            cfas.cfaMapIterator();
+		cpaStats = new MainCPAStatistics();
 
-        CFAFunctionDefinitionNode cfa = cfas.getCFA(
-                CPAMain.cpaConfig.getProperty("analysis.entryFunction"));
+		LazyLogger.log(CustomLogLevel.INFO, "Analysis Started");
+		LazyLogger.log(CustomLogLevel.MainApplicationLevel, 
+		"Parsing Finished");
 
-        // TODO Erkan Simplify each CFA
-        if (CPAMain.cpaConfig.getBooleanValue("cfa.simplify")) {
-            CFASimplifier simplifier = new CFASimplifier();
-            simplifier.simplify(cfa);
-        }
+		CFAFunctionDefinitionNode mainFunction = null;
 
-        // Insert call and return edges and build the supergraph
-        if (CPAMain.cpaConfig.getBooleanValue("analysis.interprocedural")) {
-            LazyLogger.log(CustomLogLevel.MainApplicationLevel, 
-                           "Analysis is interprocedural ");
-            LazyLogger.log(CustomLogLevel.MainApplicationLevel, 
-                           "Adding super edges");
-            CPASecondPassBuilder spbuilder = new CPASecondPassBuilder(cfas);
-            for (CFAFunctionDefinitionNode cfa2 : cfasMapList){
-                spbuilder.insertCallEdges(cfa2.getFunctionName());
-            }
-        }
-        
-        if (CPAMain.cpaConfig.getBooleanValue(
-                "analysis.useSummaryLocations")) {
-            LazyLogger.log(CustomLogLevel.MainApplicationLevel,
-                           "Building Summary CFAs");
-            mainFunction = cfas.getCFA(CPAMain.cpaConfig.getProperty(
-                    "analysis.entryFunction"));
-            if (CPAMain.cpaConfig.getBooleanValue(
-            		"cfa.removeIrrelevantForErrorLocations")) {
-                ConeOfInfluenceCFAReduction coi = 
-                    new ConeOfInfluenceCFAReduction();
-                mainFunction = 
-                    coi.removeIrrelevantForErrorLocations(mainFunction);
-            }
-            SummaryCFABuilder summaryBuilder = 
-                new SummaryCFABuilder(mainFunction, 
-                        builder.getGlobalDeclarations());
-            mainFunction = summaryBuilder.buildSummary();
-            LazyLogger.log(CustomLogLevel.MainApplicationLevel, "DONE");
-            cfasMapList = cfas.cfaMapIterator();
-        } else if (CPAMain.cpaConfig.getBooleanValue("analysis.useBlockEdges")){
-            CPACheckerLogger.log(CustomLogLevel.MainApplicationLevel,
-            "Building Block CFAs");
-            mainFunction = cfas.getCFA(CPAMain.cpaConfig.getProperty(
-            "analysis.entryFunction"));
-            if (CPAMain.cpaConfig.getBooleanValue(
-            "cfa.removeIrrelevantForErrorLocations")) {
-                ConeOfInfluenceCFAReduction coi = 
-                    new ConeOfInfluenceCFAReduction();
-                mainFunction = 
-                    coi.removeIrrelevantForErrorLocations(mainFunction);
-            }
-            BlockCFABuilder summaryBuilder = 
-                new BlockCFABuilder(mainFunction, 
-                        builder.getGlobalDeclarations());
-            mainFunction = summaryBuilder.buildBlocks();
-            CPACheckerLogger.log(CustomLogLevel.MainApplicationLevel, "DONE");
-            cfasMapList = cfas.cfaMapIterator();            
-        } else if (CPAMain.cpaConfig.getBooleanValue("analysis.useGlobalVars")){
-            // add global variables at the beginning of main
-            mainFunction = cfas.getCFA(CPAMain.cpaConfig.getProperty(
-                    "analysis.entryFunction"));
-            if (CPAMain.cpaConfig.getBooleanValue(
-            "cfa.removeIrrelevantForErrorLocations")) {
-                ConeOfInfluenceCFAReduction coi = 
-                    new ConeOfInfluenceCFAReduction();
-                mainFunction = 
-                    coi.removeIrrelevantForErrorLocations(mainFunction);
-            }
-            List<IASTDeclaration> globalVars = builder.getGlobalDeclarations();
-            mainFunction = addGlobalDeclarations(mainFunction, globalVars);
-        }
-        LazyLogger.log(CustomLogLevel.MainApplicationLevel, 
-                       numFunctions, " functions parsed");
+		//long analysisStartingTime = System.currentTimeMillis();
+		cpaStats.startProgramTimer();
 
-        // Erkan: For interprocedural analysis, we start with the
-        // main function and we proceed, we don't need to traverse
-        // all functions separately
+		// Build CFA
+		CFABuilder builder = new CFABuilder();
+		ast.accept(builder);
+		CFAMap cfas = builder.getCFAs();
+		int numFunctions = cfas.size();
+		Collection<CFAFunctionDefinitionNode> cfasMapList = 
+			cfas.cfaMapIterator();
 
-        if (false) {//!CPAMain.cpaConfig.getBooleanValue("analysis.interprocedural")) {
-        } else {
+		for(CFAFunctionDefinitionNode cfa:cfasMapList){
+			CFATopologicalSort topSort = new CFATopologicalSort();
+			topSort.topologicalSort(cfa);
+		}
+		
+		CFAFunctionDefinitionNode cfa = cfas.getCFA(
+				CPAMain.cpaConfig.getProperty("analysis.entryFunction"));
 
-            if (mainFunction == null) {
-                mainFunction = cfas.getCFA(CPAMain.cpaConfig.getProperty(
-                        "analysis.entryFunction"));
-            }
+		// TODO Erkan Simplify each CFA
+		if (CPAMain.cpaConfig.getBooleanValue("cfa.simplify")) {
+			CFASimplifier simplifier = new CFASimplifier();
+			simplifier.simplify(cfa);
+		}
 
-            if (CPAMain.cpaConfig.getBooleanValue("dot.export")) {
-                DOTBuilderInterface dotBuilder = null;
-                if (CPAMain.cpaConfig.getBooleanValue(
-                        "analysis.useSummaryLocations")) {
-                    dotBuilder = new SummaryDOTBuilder();
-                } else {
-                    dotBuilder = new DOTBuilder();
-                }
-                String dotPath = CPAMain.cpaConfig.getProperty("dot.path");
-                dotBuilder.generateDOT(cfasMapList, mainFunction,
-                        new File(dotPath, "dot" + "_main" + ".dot").getPath());
-                //System.exit(0);
-            }
+		// Insert call and return edges and build the supergraph
+		if (CPAMain.cpaConfig.getBooleanValue("analysis.interprocedural")) {
+			LazyLogger.log(CustomLogLevel.MainApplicationLevel, 
+			"Analysis is interprocedural ");
+			LazyLogger.log(CustomLogLevel.MainApplicationLevel, 
+			"Adding super edges");
+			CPASecondPassBuilder spbuilder = new CPASecondPassBuilder(cfas);
+			for (CFAFunctionDefinitionNode cfa2 : cfasMapList){
+				spbuilder.insertCallEdges(cfa2.getFunctionName());
+			}
+		}
 
-            LazyLogger.log(CustomLogLevel.MainApplicationLevel, 
-                           "CPA Algorithm Called");
+		if (CPAMain.cpaConfig.getBooleanValue(
+		"analysis.useSummaryLocations")) {
+			LazyLogger.log(CustomLogLevel.MainApplicationLevel,
+			"Building Summary CFAs");
+			mainFunction = cfas.getCFA(CPAMain.cpaConfig.getProperty(
+			"analysis.entryFunction"));
+			if (CPAMain.cpaConfig.getBooleanValue(
+			"cfa.removeIrrelevantForErrorLocations")) {
+				ConeOfInfluenceCFAReduction coi = 
+					new ConeOfInfluenceCFAReduction();
+				mainFunction = 
+					coi.removeIrrelevantForErrorLocations(mainFunction);
+			}
+			SummaryCFABuilder summaryBuilder = 
+				new SummaryCFABuilder(mainFunction, 
+						builder.getGlobalDeclarations());
+			mainFunction = summaryBuilder.buildSummary();
+			LazyLogger.log(CustomLogLevel.MainApplicationLevel, "DONE");
+			cfasMapList = cfas.cfaMapIterator();
+		} else if (CPAMain.cpaConfig.getBooleanValue("analysis.useBlockEdges")){
+			CPACheckerLogger.log(CustomLogLevel.MainApplicationLevel,
+			"Building Block CFAs");
+			mainFunction = cfas.getCFA(CPAMain.cpaConfig.getProperty(
+			"analysis.entryFunction"));
+			if (CPAMain.cpaConfig.getBooleanValue(
+			"cfa.removeIrrelevantForErrorLocations")) {
+				ConeOfInfluenceCFAReduction coi = 
+					new ConeOfInfluenceCFAReduction();
+				mainFunction = 
+					coi.removeIrrelevantForErrorLocations(mainFunction);
+			}
+			BlockCFABuilder summaryBuilder = 
+				new BlockCFABuilder(mainFunction, 
+						builder.getGlobalDeclarations());
+			mainFunction = summaryBuilder.buildBlocks();
+			CPACheckerLogger.log(CustomLogLevel.MainApplicationLevel, "DONE");
+			cfasMapList = cfas.cfaMapIterator();            
+		} else if (CPAMain.cpaConfig.getBooleanValue("analysis.useGlobalVars")){
+			// add global variables at the beginning of main
+			mainFunction = cfas.getCFA(CPAMain.cpaConfig.getProperty(
+			"analysis.entryFunction"));
+			if (CPAMain.cpaConfig.getBooleanValue(
+			"cfa.removeIrrelevantForErrorLocations")) {
+				ConeOfInfluenceCFAReduction coi = 
+					new ConeOfInfluenceCFAReduction();
+				mainFunction = 
+					coi.removeIrrelevantForErrorLocations(mainFunction);
+			}
+			List<IASTDeclaration> globalVars = builder.getGlobalDeclarations();
+			mainFunction = addGlobalDeclarations(mainFunction, globalVars);
+		}
+		LazyLogger.log(CustomLogLevel.MainApplicationLevel, 
+				numFunctions, " functions parsed");
 
-            ConfigurableProblemAnalysis cpa = getCPA(mainFunction);
+		// Erkan: For interprocedural analysis, we start with the
+		// main function and we proceed, we don't need to traverse
+		// all functions separately
 
-            LazyLogger.log(Level.INFO, "CPA Algorithm starting ... ");
-            cpaStats.startAnalysisTimer();
+		if (false) {//!CPAMain.cpaConfig.getBooleanValue("analysis.interprocedural")) {
+		} else {
 
-            CPAAlgorithm algo = new CPAAlgorithm();
-            AbstractElement initialElement = 
-                cpa.getInitialElement(mainFunction);
-            Collection<AbstractElement> reached = algo.CPA(cpa, initialElement);
-            cpaStats.stopAnalysisTimer();
+			if (mainFunction == null) {
+				mainFunction = cfas.getCFA(CPAMain.cpaConfig.getProperty(
+						"analysis.entryFunction"));
+			}
 
-            LazyLogger.log(Level.INFO, "CPA Algorithm finished ");
+			if (CPAMain.cpaConfig.getBooleanValue("dot.export")) {
+				DOTBuilderInterface dotBuilder = null;
+				if (CPAMain.cpaConfig.getBooleanValue(
+						"analysis.useSummaryLocations")) {
+					dotBuilder = new SummaryDOTBuilder();
+				} else {
+					dotBuilder = new DOTBuilder();
+				}
+				String dotPath = CPAMain.cpaConfig.getProperty("dot.path");
+				dotBuilder.generateDOT(cfasMapList, mainFunction,
+						new File(dotPath, "dot" + "_main" + ".dot").getPath());
+				//System.exit(0);
+			}
 
-            LazyLogger.log(CustomLogLevel.MainApplicationLevel, 
-                           numFunctions, " Reached CPA Size: ", reached.size(),
-                           " for function: ", mainFunction.getFunctionName());
+			LazyLogger.log(CustomLogLevel.MainApplicationLevel, 
+			"CPA Algorithm Called");
 
-            if (!cpaConfig.getBooleanValue(
-                    "analysis.dontPrintReachableStates")) {
-                for (AbstractElement element : reached) {
-                    System.out.println(element.toString ());
-                }
-            }
-            displayStatistics();
-        }
-    }
-    
-    public static synchronized void displayStatistics() {
-        cpaStats.printStatistics(new PrintWriter(System.out));
-    }
+			ConfigurableProblemAnalysis cpa = getCPA(mainFunction);
 
-    private static CFAFunctionDefinitionNode addGlobalDeclarations(
-            CFAFunctionDefinitionNode cfa, List<IASTDeclaration> globalVars) {
-        if (globalVars.isEmpty()) {
-            return cfa;
-        }
-        // create a series of GlobalDeclarationEdges, one for each declaration,
-        // and add them as successors of the input node
-        List<CFANode> decls = new LinkedList<CFANode>();
-        CFANode cur = new CFANode(0);
-        cur.setFunctionName(cfa.getFunctionName());
-        decls.add(cur);
-        
-        for (IASTDeclaration d : globalVars) {
-            assert(d instanceof IASTSimpleDeclaration);
-            IASTSimpleDeclaration sd = (IASTSimpleDeclaration)d;
-            if (sd.getDeclarators().length == 1 && 
-                    sd.getDeclarators()[0] instanceof IASTFunctionDeclarator) {
-                continue;
-            }
-            GlobalDeclarationEdge e = new GlobalDeclarationEdge(
-                    d.getRawSignature(),
-                    ((IASTSimpleDeclaration)d).getDeclarators(),
-                    ((IASTSimpleDeclaration)d).getDeclSpecifier());
-            CFANode n = new CFANode(0);
-            n.setFunctionName(cur.getFunctionName());
-            e.initialize(cur, n);
-            decls.add(n);
-            cur = n;
-        }
-        
-        // now update the successors of cfa
-        for (int i = 0; i < cfa.getNumLeavingEdges(); ++i) {
-            CFAEdge e = cfa.getLeavingEdge(i);
-            e.setPredecessor(cur);
-        }
-        if (cfa.getLeavingSummaryEdge() != null) {
-            cfa.getLeavingSummaryEdge().setPredecessor(cur);
-        }
-        // and add a blank edge connecting the first node in decl with cfa
-        BlankEdge be = new BlankEdge("INIT GLOBAL VARS");
-        be.initialize(cfa, decls.get(0));
-        
-        return cfa;
-    }
-    
-    public static class ShutdownHook extends Thread {
-        public void run() {
-            if (interrupted) {
-                cpaStats.stopAnalysisTimer();
-                System.out.flush();
-                System.err.flush();
-                displayStatistics();
-                System.out.println("\n" +
-                        "***************************************************" +
-                        "****************************\n" +
-                        "* WARNING:  Analysis interrupted!! The statistics " + 
-                        "might be unreliable!        *\n" + 
-                        "***************************************************" +
-                        "****************************\n"
-                );
-                System.out.flush();
-            }
-        }
-    }
-    
-    /**
-     * The action has been activated. The argument of the method represents the
-     * 'real' action sitting in the workbench UI.
-     * 
-     * @see IWorkbenchWindowActionDelegate#run
-     */
-    public static void main(String[] args) {
+			LazyLogger.log(Level.INFO, "CPA Algorithm starting ... ");
+			cpaStats.startAnalysisTimer();
 
-        try {
-            cpaConfig = new CPAConfiguration(args);
-            String[] names = 
-                cpaConfig.getPropertiesArray("analysis.programNames");
-            if (names == null || names.length != 1) {
-                throw new Exception(
-                        "One non-option argument expected (filename)!");
-            }
-            IFile currentFile = new StubFile(names[0]);
+			CPAAlgorithm algo = new CPAAlgorithm();
+			AbstractElement initialElement = 
+				cpa.getInitialElement(mainFunction);
+			Collection<AbstractElement> reached = algo.CPA(cpa, initialElement);
+			cpaStats.stopAnalysisTimer();
 
-            // Get Eclipse to parse the C in the current file
-            IASTTranslationUnit ast = null;
-            try {
-                IASTServiceProvider p = new InternalASTServiceProvider();
-                ast = p.getTranslationUnit(currentFile, 
-                        StubCodeReaderFactory.getInstance(), 
-                        new StubConfiguration());
-            } catch (Exception e) {
-                e.printStackTrace();
-                e.getMessage();
+			LazyLogger.log(Level.INFO, "CPA Algorithm finished ");
 
-                System.out.println("Eclipse had trouble parsing C");
-                return;
-            }
-            CPACheckerLogger.init();
+			LazyLogger.log(CustomLogLevel.MainApplicationLevel, 
+					numFunctions, " Reached CPA Size: ", reached.size(),
+					" for function: ", mainFunction.getFunctionName());
 
-            // this is for catching Ctrl+C and printing statistics even in that
-            // case. It might be useful to understand what's going on when
-            // the analysis takes a lot of time...
-            Runtime.getRuntime().addShutdownHook(new ShutdownHook());
-            
-            doRunAnalysis(ast);
-            interrupted = false;
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
-            e.printStackTrace();
-            System.out.flush();
-            System.err.flush();
-        }
-    }    
+			if (!cpaConfig.getBooleanValue(
+			"analysis.dontPrintReachableStates")) {
+				for (AbstractElement element : reached) {
+					System.out.println(element.toString ());
+				}
+			}
+			displayStatistics();
+		}
+	}
+
+	public static synchronized void displayStatistics() {
+		cpaStats.printStatistics(new PrintWriter(System.out));
+	}
+
+	private static CFAFunctionDefinitionNode addGlobalDeclarations(
+			CFAFunctionDefinitionNode cfa, List<IASTDeclaration> globalVars) {
+		if (globalVars.isEmpty()) {
+			return cfa;
+		}
+		// create a series of GlobalDeclarationEdges, one for each declaration,
+		// and add them as successors of the input node
+		List<CFANode> decls = new LinkedList<CFANode>();
+		CFANode cur = new CFANode(0);
+		cur.setFunctionName(cfa.getFunctionName());
+		decls.add(cur);
+
+		for (IASTDeclaration d : globalVars) {
+			assert(d instanceof IASTSimpleDeclaration);
+			IASTSimpleDeclaration sd = (IASTSimpleDeclaration)d;
+			if (sd.getDeclarators().length == 1 && 
+					sd.getDeclarators()[0] instanceof IASTFunctionDeclarator) {
+				continue;
+			}
+			GlobalDeclarationEdge e = new GlobalDeclarationEdge(
+					d.getRawSignature(),
+					((IASTSimpleDeclaration)d).getDeclarators(),
+					((IASTSimpleDeclaration)d).getDeclSpecifier());
+			CFANode n = new CFANode(0);
+			n.setFunctionName(cur.getFunctionName());
+			e.initialize(cur, n);
+			decls.add(n);
+			cur = n;
+		}
+
+		// now update the successors of cfa
+		for (int i = 0; i < cfa.getNumLeavingEdges(); ++i) {
+			CFAEdge e = cfa.getLeavingEdge(i);
+			e.setPredecessor(cur);
+		}
+		if (cfa.getLeavingSummaryEdge() != null) {
+			cfa.getLeavingSummaryEdge().setPredecessor(cur);
+		}
+		// and add a blank edge connecting the first node in decl with cfa
+		BlankEdge be = new BlankEdge("INIT GLOBAL VARS");
+		be.initialize(cfa, decls.get(0));
+
+		return cfa;
+	}
+
+	public static class ShutdownHook extends Thread {
+		public void run() {
+			if (interrupted) {
+				cpaStats.stopAnalysisTimer();
+				System.out.flush();
+				System.err.flush();
+				displayStatistics();
+				System.out.println("\n" +
+						"***************************************************" +
+						"****************************\n" +
+						"* WARNING:  Analysis interrupted!! The statistics " + 
+						"might be unreliable!        *\n" + 
+						"***************************************************" +
+						"****************************\n"
+				);
+				System.out.flush();
+			}
+		}
+	}
+
+	/**
+	 * The action has been activated. The argument of the method represents the
+	 * 'real' action sitting in the workbench UI.
+	 * 
+	 * @see IWorkbenchWindowActionDelegate#run
+	 */
+	public static void main(String[] args) {
+
+		try {
+			cpaConfig = new CPAConfiguration(args);
+			String[] names = 
+				cpaConfig.getPropertiesArray("analysis.programNames");
+			if (names == null || names.length != 1) {
+				throw new Exception(
+						"One non-option argument expected (filename)!");
+			}
+			IFile currentFile = new StubFile(names[0]);
+
+			// Get Eclipse to parse the C in the current file
+			IASTTranslationUnit ast = null;
+			try {
+				IASTServiceProvider p = new InternalASTServiceProvider();
+				ast = p.getTranslationUnit(currentFile, 
+						StubCodeReaderFactory.getInstance(), 
+						new StubConfiguration());
+			} catch (Exception e) {
+				e.printStackTrace();
+				e.getMessage();
+
+				System.out.println("Eclipse had trouble parsing C");
+				return;
+			}
+			CPACheckerLogger.init();
+
+			// this is for catching Ctrl+C and printing statistics even in that
+			// case. It might be useful to understand what's going on when
+			// the analysis takes a lot of time...
+			Runtime.getRuntime().addShutdownHook(new ShutdownHook());
+
+			doRunAnalysis(ast);
+			interrupted = false;
+		} catch (Exception e) {
+			System.out.println(e.getMessage());
+			e.printStackTrace();
+			System.out.flush();
+			System.err.flush();
+		}
+	}    
 }

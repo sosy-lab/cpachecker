@@ -5,6 +5,9 @@
 			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="/home/erkan/Workspace/CPAPlugin/bin"/>
 		</attributes>
 	</classpathentry>
+	<classpathentry exported="true" kind="lib" path="META-INF/"/>
+	<classpathentry exported="true" kind="lib" path="nativeLibs/"/>
+	<classpathentry exported="true" kind="lib" path="bin/"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER">
 		<attributes>
 			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="/home/erkan/Workspace/CPAChecker/nativeLibs"/>
@@ -15,11 +18,8 @@
 			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="/home/erkan/Workspace/CPAChecker/nativeLibs"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="lib" path="/home/erkan/Workspace/CPAChecker/lib/mathsat.jar">
-		<attributes>
-			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="/home/erkan/Workspace/CPAChecker/nativeLibs"/>
-		</attributes>
-	</classpathentry>
-	<classpathentry kind="lib" path="/home/erkan/Workspace/CPAChecker/lib/minijdd_103.jar"/>
+	<classpathentry kind="lib" path="/localhome/erkan/workspace/CPAPlugin/lib/mathsat.jar"/>
+	<classpathentry kind="lib" path="/localhome/erkan/workspace/CPAPlugin/lib/minijdd_103.jar"/>
+	<classpathentry kind="lib" path="/localhome/erkan/workspace/CPAPlugin/lib/javabdd-1.0b2.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

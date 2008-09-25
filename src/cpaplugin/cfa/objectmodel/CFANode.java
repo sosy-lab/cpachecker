@@ -19,6 +19,8 @@ public class CFANode
     // list of summary edges
     protected CallToReturnEdge leavingSummaryEdge;
     protected CallToReturnEdge enteringSummaryEdge;
+    // topological sort id, smaller if it appears later in sorting
+    private int topologicalSortId;
     
     private static int nextNodeNumber = 0;
        
@@ -40,6 +42,16 @@ public class CFANode
     public int getNodeNumber ()
     {
         return nodeNumber;
+    }
+    
+    public int getTopologicalSortId ()
+    {
+        return topologicalSortId;
+    }
+    
+    public void setTopologicalSortId (int i)
+    {
+        topologicalSortId = i;
     }
         
     public void addLeavingEdge (CFAEdge newLeavingEdge)

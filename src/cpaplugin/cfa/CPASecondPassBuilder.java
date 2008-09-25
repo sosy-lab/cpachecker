@@ -1,7 +1,12 @@
 package cpaplugin.cfa;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.Stack;
 
 import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
@@ -16,6 +21,7 @@ import cpaplugin.cfa.objectmodel.c.CallToReturnEdge;
 import cpaplugin.cfa.objectmodel.c.FunctionCallEdge;
 import cpaplugin.cfa.objectmodel.c.ReturnEdge;
 import cpaplugin.cfa.objectmodel.c.StatementEdge;
+import cpaplugin.logging.LazyLogger;
 
 /**
  * Used for post processing the CFA. This class provides methods which are used 
@@ -36,6 +42,7 @@ public class CPASecondPassBuilder {
 	public CPASecondPassBuilder(CFAMap map){
 		cfas = map;
 	}
+	
 
 	/**
 	 * Traverses a CFA with the specified function name and insert call edges 
