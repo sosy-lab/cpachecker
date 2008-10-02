@@ -3,7 +3,6 @@ package cpaplugin.cpa.common;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Deque;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -148,6 +147,7 @@ public class CPAAlgorithm
 			AbstractElement currentElement = waitlist.get(0);
 			CompositeElement compElem = (CompositeElement)currentElement;
 			AbstractElement firstElement = compElem.get(0);
+			// TODO we require the first element to contain the location information
 			if(!(firstElement instanceof AbstractElementWithLocation)){
 				try {
 					throw new CPAException("No Location information available, impossible to continue");
@@ -162,16 +162,13 @@ public class CPAAlgorithm
 				CompositeElement compTempElem = (CompositeElement)currentTempElement;
 				AbstractElement firstTempElement = compTempElem.get(0);
 				AbstractElementWithLocation tempElem2 = (AbstractElementWithLocation)firstTempElement;
-				if(tempElem2.getLocationNode().getNodeNumber() > tempElem.getLocationNode().getNodeNumber()){
+				if(tempElem2.getLocationNode().getTopologicalSortId() > tempElem.getLocationNode().getTopologicalSortId()){
 					currentElement = currentTempElement;
+					tempElem = tempElem2;
 				}
 			}
 			
 			e = (AbstractElement)currentElement;
-			
-			System.out.println(" Waitlist: " + waitlist);
-			System.out.println(" ===== " + e);
-			
 			
 			waitlist.remove(e);
 		}

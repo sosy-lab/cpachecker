@@ -83,11 +83,13 @@ public class CPAMain {
 		Collection<CFAFunctionDefinitionNode> cfasMapList = 
 			cfas.cfaMapIterator();
 
-		for(CFAFunctionDefinitionNode cfa:cfasMapList){
-			CFATopologicalSort topSort = new CFATopologicalSort();
-			topSort.topologicalSort(cfa);
+		if(CPAMain.cpaConfig.getBooleanValue("analysis.topSort")){
+			for(CFAFunctionDefinitionNode cfa:cfasMapList){
+				CFATopologicalSort topSort = new CFATopologicalSort();
+				topSort.topologicalSort(cfa);
+			}
 		}
-		
+
 		CFAFunctionDefinitionNode cfa = cfas.getCFA(
 				CPAMain.cpaConfig.getProperty("analysis.entryFunction"));
 
@@ -172,13 +174,13 @@ public class CPAMain {
 
 			if (mainFunction == null) {
 				mainFunction = cfas.getCFA(CPAMain.cpaConfig.getProperty(
-						"analysis.entryFunction"));
+				"analysis.entryFunction"));
 			}
 
 			if (CPAMain.cpaConfig.getBooleanValue("dot.export")) {
 				DOTBuilderInterface dotBuilder = null;
 				if (CPAMain.cpaConfig.getBooleanValue(
-						"analysis.useSummaryLocations")) {
+				"analysis.useSummaryLocations")) {
 					dotBuilder = new SummaryDOTBuilder();
 				} else {
 					dotBuilder = new DOTBuilder();
@@ -186,7 +188,6 @@ public class CPAMain {
 				String dotPath = CPAMain.cpaConfig.getProperty("dot.path");
 				dotBuilder.generateDOT(cfasMapList, mainFunction,
 						new File(dotPath, "dot" + "_main" + ".dot").getPath());
-				//System.exit(0);
 			}
 
 			LazyLogger.log(CustomLogLevel.MainApplicationLevel, 
@@ -302,7 +303,7 @@ public class CPAMain {
 				cpaConfig.getPropertiesArray("analysis.programNames");
 			if (names == null || names.length != 1) {
 				throw new Exception(
-						"One non-option argument expected (filename)!");
+				"One non-option argument expected (filename)!");
 			}
 			IFile currentFile = new StubFile(names[0]);
 
