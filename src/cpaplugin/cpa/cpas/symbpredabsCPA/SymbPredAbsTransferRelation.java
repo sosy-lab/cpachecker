@@ -2,29 +2,39 @@ package cpaplugin.cpa.cpas.symbpredabsCPA;
 
 import java.util.Collection;
 import java.util.Deque;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Stack;
 import java.util.Vector;
 import java.util.logging.Level;
 
-import symbpredabstraction.AbstractionLocationPointer;
-import symbpredabstraction.SymbPredAbsAbstractFormulaManager;
-import symbpredabstraction.SymbPredAbsFormulaManager;
-import symbpredabstraction.SymbPredAbsInnerCFANode;
+import org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier;
+import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
+import org.eclipse.cdt.core.dom.ast.IASTExpression;
+import org.eclipse.cdt.core.dom.ast.IASTInitializer;
+import org.eclipse.cdt.core.dom.ast.IASTInitializerExpression;
+import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclSpecifier;
 
+import symbpredabstraction.AbstractFormula;
+import symbpredabstraction.PathFormula;
+import symbpredabstraction.Predicate;
+import symbpredabstraction.PredicateMap;
+import symbpredabstraction.SSAMap;
+import symbpredabstraction.UpdateablePredicateMap;
 import cpaplugin.cfa.objectmodel.BlankEdge;
 import cpaplugin.cfa.objectmodel.CFAEdge;
 import cpaplugin.cfa.objectmodel.CFAErrorNode;
 import cpaplugin.cfa.objectmodel.CFAFunctionDefinitionNode;
 import cpaplugin.cfa.objectmodel.CFANode;
+import cpaplugin.cfa.objectmodel.c.AssumeEdge;
 import cpaplugin.cfa.objectmodel.c.CallToReturnEdge;
+import cpaplugin.cfa.objectmodel.c.DeclarationEdge;
+import cpaplugin.cfa.objectmodel.c.FunctionCallEdge;
 import cpaplugin.cfa.objectmodel.c.FunctionDefinitionNode;
 import cpaplugin.cfa.objectmodel.c.ReturnEdge;
+import cpaplugin.cfa.objectmodel.c.StatementEdge;
 import cpaplugin.cmdline.CPAMain;
 import cpaplugin.cpa.common.CPATransferException;
 import cpaplugin.cpa.common.ErrorReachedException;
@@ -32,17 +42,11 @@ import cpaplugin.cpa.common.RefinementNeededException;
 import cpaplugin.cpa.common.interfaces.AbstractDomain;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.TransferRelation;
-import cpaplugin.cpa.cpas.symbpredabs.AbstractFormula;
-import cpaplugin.cpa.cpas.symbpredabs.CounterexampleTraceInfo;
-import cpaplugin.cpa.cpas.symbpredabs.Pair;
-import cpaplugin.cpa.cpas.symbpredabs.Predicate;
-import cpaplugin.cpa.cpas.symbpredabs.SSAMap;
-import cpaplugin.cpa.cpas.symbpredabs.SymbolicFormula;
-import cpaplugin.cpa.cpas.symbpredabs.UpdateablePredicateMap;
 import cpaplugin.exceptions.CPAException;
 import cpaplugin.logging.CPACheckerLogger;
 import cpaplugin.logging.CustomLogLevel;
 import cpaplugin.logging.LazyLogger;
+import symbpredabstraction.*;
 
 
 /**
@@ -131,23 +135,27 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 	}
 
 	// abstract post operation
-	private AbstractElement buildSuccessor(SymbPredAbsAbstractElement e,
+	private AbstractElement buildSuccessor(SymbPredAbsAbstractElement element,
 			CFAEdge edge) throws CPATransferException {
-		SymbPredAbsCPA cpa = domain.getCPA();
+		SymbPredAbsAbstractElement newElement = new SymbPredAbsAbstractElement();
+		//SymbPredAbsCPA cpa = domain.getCPA();
 		CFANode succLoc = edge.getSuccessor();
-		// check whether the successor is an error location: if so, we want
+		// TODO check whether the successor is an error location: if so, we want
 		// to check for feasibility of the path...
 
 		// check if the successor is an abstraction location
 		boolean b = isAbstractionLocation(succLoc);
 
 		if(b){
-			handleAbstractionLocation(e, edge);
+			handleAbstractionLocation(element, newElement, edge);
 		}
 
 		else{
-			handleNonAbstractionLocation();
+			handleNonAbstractionLocation(element, newElement, edge);
 		}
+		
+		
+		return newElement;
 
 		Collection<Predicate> predicates = 
 			cpa.getPredicateMap().getRelevantPredicates(
@@ -201,10 +209,10 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 			// if we reach an error state, we want to log this...
 			if (succ.getLocation().getInnerNode() instanceof CFAErrorNode) {
 				if (CPAMain.cpaConfig.getBooleanValue(
-						"cpas.symbpredabs.abstraction.norefinement")) {
+				"cpas.symbpredabs.abstraction.norefinement")) {
 					errorReached = true;
 					throw new ErrorReachedException(
-							"Reached error location, but refinement disabled");
+					"Reached error location, but refinement disabled");
 				}
 				// oh oh, reached error location. Let's check whether the 
 				// trace is feasible or spurious, and in case refine the
@@ -225,7 +233,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 				if (info.isSpurious()) {
 					LazyLogger.log(CustomLogLevel.SpecificCPALevel,
 							"Found spurious error trace, refining the ",
-							"abstraction");
+					"abstraction");
 					performRefinement(path, info);
 				} else {
 					LazyLogger.log(CustomLogLevel.SpecificCPALevel, 
@@ -276,12 +284,218 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 		}
 	}
 
+	// TODO implement this
+	private void handleNonAbstractionLocation(SymbPredAbsAbstractElement element,
+			SymbPredAbsAbstractElement newElement, CFAEdge edge) {
+		CFANode succLocation = edge.getSuccessor();
+		CFANode abstractionLoc = element.getAbstractionLocation();
+		AbstractFormula abst = element.getAbstraction();
+		SymbPredAbsAbstractElement parent = element;
+		PredicateMap pmap = element.getPredicates();
+		PathFormula pf = update(element, newElement, edge);
+		newElement.setLocation(succLocation);
+		newElement.setAbstractionLocation(abstractionLoc);
+        newElement.setAbstraction(abst);
+        newElement.setParent(parent);
+        newElement.setPathFormula(pf);
+        newElement.setPredicates(pmap);
+	}
+	
+	/**
+	 * TODO 
+	 * @param element
+	 * @param newElement 
+	 * @param edge
+	 * @return
+	 */
+	private PathFormula update(SymbPredAbsAbstractElement element, SymbPredAbsAbstractElement newElement, CFAEdge edge, 
+			boolean updateSSA, boolean absoluteSSAIndices) {
+
+		SymbolicFormula f1 = element.getPathFormula().getPathFormula();
+		
+//		if (edge instanceof BlockEdge) {
+//			BlockEdge block = (BlockEdge)edge;
+//			Pair<SymbolicFormula, SSAMap> ret = null;
+//			for (CFAEdge e : block.getEdges()) {
+//				ret = makeAnd(f1, e, ssa, updateSSA, absoluteSSAIndices);
+//				f1 = ret.getFirst();
+//				ssa = ret.getSecond();
+//			}
+//			assert(ret != null);
+//			return ret;
+//		}
+
+		MathsatSymbolicFormula m1 = (MathsatSymbolicFormula)f1;
+
+		setNamespace(edge.getPredecessor().getFunctionName());
+
+		// if the edge is a function call edge
+		if (edge.getPredecessor() instanceof FunctionDefinitionNode) {
+			PathFormula p = makeAndEnterFunction(element, newElement, 
+					edge.getPredecessor(), updateSSA, absoluteSSAIndices);
+			m1 = (MathsatSymbolicFormula)p.getPathFormula();
+			f1 = m1;
+			// TODO check here - i'm not sure if that's what we want to do
+			SSAMap ssa = element.getPathFormula().getSsa(); 
+			ssa = p.getSsa();
+			//
+		}
+
+		switch (edge.getEdgeType ()) {
+		case StatementEdge: {
+			StatementEdge statementEdge = (StatementEdge)edge;
+
+			if (statementEdge.isJumpEdge()) {
+				if (statementEdge.getSuccessor().getFunctionName().equals(
+						"main")) {
+					LazyLogger.log(LazyLogger.DEBUG_3, 
+							"MathsatSymbolicFormulaManager, IGNORING return ",
+							"from main: ", edge.getRawStatement());
+				} else {
+					return makeAndReturn(element, newElement, 
+							edge.getPredecessor(), updateSSA, absoluteSSAIndices);
+				}
+			} else {
+				return makeAndStatement(element, newElement, 
+						edge.getPredecessor(), updateSSA, absoluteSSAIndices);
+			}
+			break;
+		}
+
+		case DeclarationEdge: {
+			// at each declaration, we instantiate the variable in the SSA: 
+			// this is o avoid problems with uninitialized variables
+			// TODO check here
+			SSAMap newssa = element.getPathFormula().getSsa();
+			if (!updateSSA) {
+				newssa = new SSAMap();
+				// TODO check
+				newssa.copyFrom(element.getPathFormula().getSsa());
+			}
+			IASTDeclarator[] decls = 
+				((DeclarationEdge)edge).getDeclarators();
+			IASTDeclSpecifier spec = ((DeclarationEdge)edge).getDeclSpecifier();
+
+			if (!(spec instanceof IASTSimpleDeclSpecifier)) {
+				throw new UnrecognizedCFAEdgeException(
+						"UNSUPPORTED SPECIFIER FOR DECLARATION: " + 
+						edge.getRawStatement());
+			}
+
+			boolean isGlobal = edge instanceof GlobalDeclarationEdge;
+			for (IASTDeclarator d : decls) {
+				String var = d.getName().getRawSignature();
+				if (isGlobal) {
+					globalVars.add(var);
+				}
+				var = scoped(var);
+				int idx = absoluteSSAIndices ? SSAMap.getNextSSAIndex() : 1;
+				newssa.setIndex(var, idx);
+
+				LazyLogger.log(LazyLogger.DEBUG_3, 
+						"Declared variable: ", var, ", index: ", idx);
+				// TODO get the type of the variable, and act accordingly
+
+				// if the var is unsigned, add the constraint that it should
+				// be > 0
+//				if (((IASTSimpleDeclSpecifier)spec).isUnsigned()) {
+//				long z = mathsat.api.msat_make_number(msatEnv, "0");
+//				long mvar = buildMsatVariable(var, idx);
+//				long t = mathsat.api.msat_make_gt(msatEnv, mvar, z);
+//				t = mathsat.api.msat_make_and(msatEnv, m1.getTerm(), t);
+//				m1 = new MathsatSymbolicFormula(t);
+//				}
+
+				// if there is an initializer associated to this variable,
+				// take it into account
+				if (d.getInitializer() != null) {
+					IASTInitializer init = d.getInitializer();
+					if (!(init instanceof IASTInitializerExpression)) {
+						throw new UnrecognizedCFAEdgeException(
+								"BAD INITIALIZER: " + edge.getRawStatement());
+					}
+					IASTExpression exp = 
+						((IASTInitializerExpression)init).getExpression();
+					long minit = buildMsatTerm(exp, newssa, absoluteSSAIndices);
+					long mvar = buildMsatVariable(var, idx);
+					long t = makeAssignment(mvar, minit);
+					t = mathsat.api.msat_make_and(msatEnv, m1.getTerm(), t);
+					m1 = new MathsatSymbolicFormula(t);
+				} else if (isGlobal || 
+						CPAMain.cpaConfig.getBooleanValue(
+								"cpas.symbpredabs.initAllVars")) {
+					// auto-initialize variables to zero, unless they match
+					// the noAutoInitPrefix pattern
+					String noAutoInit = CPAMain.cpaConfig.getProperty(
+							"cpas.symbpredabs.noAutoInitPrefix", "");
+					if (noAutoInit.equals("") || 
+							!d.getName().getRawSignature().startsWith(noAutoInit)) {
+						long mvar = buildMsatVariable(var, idx);
+						long z = mathsat.api.msat_make_number(msatEnv, "0");
+						long t = makeAssignment(mvar, z);
+						t = mathsat.api.msat_make_and(msatEnv, m1.getTerm(), t);
+						m1 = new MathsatSymbolicFormula(t);
+						LazyLogger.log(LazyLogger.DEBUG_3, "AUTO-INITIALIZING ",
+								(isGlobal ? "GLOBAL" : ""), "VAR: ",
+								var, " (", d.getName().getRawSignature(), ")");
+					} else {
+						LazyLogger.log(LazyLogger.DEBUG_3, 
+								"NOT AUTO-INITIALIZING VAR: ", var);
+					}
+				}
+			}
+			return new Pair<SymbolicFormula, SSAMap>(m1, newssa);
+		}
+
+		case AssumeEdge: {
+			AssumeEdge assumeEdge = (AssumeEdge)edge;
+			return makeAndAssume(m1, assumeEdge, ssa, absoluteSSAIndices);
+		}
+
+		case BlankEdge: {
+			break;
+		}
+
+		case FunctionCallEdge: {
+			if (!updateSSA) {
+				SSAMap newssa = new SSAMap();
+				newssa.copyFrom(ssa);
+				ssa = newssa;
+			}
+			return makeAndFunctionCall(m1, (FunctionCallEdge)edge, ssa,
+					absoluteSSAIndices);
+		}
+
+		case ReturnEdge: {
+			// get the expression from the summary edge
+			CFANode succ = edge.getSuccessor();
+			CallToReturnEdge ce = succ.getEnteringSummaryEdge();
+			Pair<SymbolicFormula, SSAMap> ret = 
+				makeAndExitFunction(m1, ce, ssa, updateSSA, absoluteSSAIndices);
+			//popNamespace(); - done inside makeAndExitFunction
+			return ret;
+		}
+
+		case MultiStatementEdge: {
+			throw new UnrecognizedCFAEdgeException("MULTI STATEMENT: " + 
+					edge.getRawStatement());
+		}
+
+		case MultiDeclarationEdge: {
+			break;
+		}
+		}
+
+		return new Pair<SymbolicFormula, SSAMap>(f1, ssa);
+	}
+
+	// TODO implement this
 	private SymbPredAbsAbstractElement handleAbstractionLocation(SymbPredAbsAbstractElement e,
 			CFAEdge edge) {
 		Map<CFANode, AbstractionLocationPointer> abstLocsMap = domain.getCPA().getAbstracionLocsMap();
 		CFANode successorNode = edge.getSuccessor(); 
 		// TODO erkan -last point-
-		
+
 	}
 
 	private boolean isAbstractionLocation(CFANode succLoc) {
@@ -308,8 +522,8 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 						continue;
 					}
 					assert(abstLocsMap.containsKey(p));
-					 AbstractionLocationPointer abp = abstLocsMap.get(p);
-					 CFANode summ = abp.getAbstractionLocation();
+					AbstractionLocationPointer abp = abstLocsMap.get(p);
+					CFANode summ = abp.getAbstractionLocation();
 					if (cur == null) {
 						cur = summ;
 					} else if (cur != summ) {
@@ -327,7 +541,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 						if (!(e instanceof BlankEdge)) break;
 						if (e instanceof BlankEdge && 
 								e.getRawStatement().startsWith(
-										"Goto: BREAK_SUMMARY")) {
+								"Goto: BREAK_SUMMARY")) {
 							return true;
 						}
 					}
@@ -405,9 +619,9 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 			cpa.uncoverAll((SymbPredAbsAbstractElement)e);
 		}
 //		Collection<AbstractElement> toUnreach = new Vector<AbstractElement>();
-//boolean add = false;
-//for (AbstractElement e : path) {
-//	if (add) { 
+//		boolean add = false;
+//		for (AbstractElement e : path) {
+//		if (add) { 
 //		toUnreach.add(e);
 //		} else if (e == root) {
 //		add = true;

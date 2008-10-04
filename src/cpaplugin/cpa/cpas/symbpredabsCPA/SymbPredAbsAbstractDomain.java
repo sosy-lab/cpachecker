@@ -23,21 +23,21 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
 		this.cpa = cpa;
 	}
 
-	private final class SummaryBottomElement implements BottomElement {
+	private final class SymbPredAbsBottomElement implements BottomElement {
 		public String toString() { 
 			return "<BOTTOM>"; 
 		}
 	}
-	private final class SummaryTopElement implements TopElement {}
+	private final class SymbPredAbsTopElement implements TopElement {}
 
-	private final class SummaryJoinOperator implements JoinOperator {
+	private final class SymbPredAbsJoinOperator implements JoinOperator {
 		public AbstractElement join(AbstractElement element1,
 				AbstractElement element2) throws CPAException {
 			throw new CPAException("Can't join summaries!");
 		}
 	}
 
-	private final class SummaryPreOrder implements PreOrder {
+	private final class SymbPredAbsPreOrder implements PreOrder {
 		public boolean satisfiesPreOrder(AbstractElement element1,
 				AbstractElement element2) throws CPAException {
 			SymbPredAbsAbstractElement e1 = (SymbPredAbsAbstractElement)element1;
@@ -54,10 +54,10 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
 		}
 	}
 
-	private final BottomElement bottom = new SummaryBottomElement();
-	private final TopElement top = new SummaryTopElement();
-	private final JoinOperator join = new SummaryJoinOperator();
-	private final PreOrder pre = new SummaryPreOrder();
+	private final BottomElement bottom = new SymbPredAbsBottomElement();
+	private final TopElement top = new SymbPredAbsTopElement();
+	private final JoinOperator join = new SymbPredAbsJoinOperator();
+	private final PreOrder pre = new SymbPredAbsPreOrder();
 
 	public BottomElement getBottomElement() {
 		return bottom;
@@ -78,5 +78,4 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
 	public SymbPredAbsCPA getCPA() {
 		return cpa;
 	}
-
 }

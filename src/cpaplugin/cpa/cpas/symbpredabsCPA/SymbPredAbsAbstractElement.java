@@ -1,34 +1,32 @@
 package cpaplugin.cpa.cpas.symbpredabsCPA;
 
-import java.util.Collection;
-import java.util.Map;
-import java.util.Stack;
-
-import symbpredabstraction.SymbPredAbsCFANode;
-
+import symbpredabstraction.PathFormula;
 import cpaplugin.cfa.objectmodel.CFANode;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.AbstractElementWithLocation;
-import cpaplugin.cpa.cpas.symbpredabs.AbstractFormula;
-import cpaplugin.cpa.cpas.symbpredabs.Pair;
-import cpaplugin.cpa.cpas.symbpredabs.SSAMap;
-import cpaplugin.cpa.cpas.symbpredabs.SymbolicFormula;
+import symbpredabstraction.*;
 
 /**
  * AbstractElement for symbolic lazy abstraction with summaries
  *
- * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
+ * @author erkan
  */
 public class SymbPredAbsAbstractElement 
 implements AbstractElement, AbstractElementWithLocation {
 
-//	private int elemId;
+	/** The location on CFA */
 	private CFANode CFALocation;
-	// for each "leaf" node in the inner CFA of this summary, we keep the 
-	// symbolic representation of all the paths leading to the leaf
+	/** The abstraction location for this node */
+	private CFANode abstractionLocation;
+	/** the path formula from the abstraction location to this node */
+	private PathFormula pathFormula;
+	/** the abstraction which is updated only on abstraction locations */
 	private AbstractFormula abstraction;
+	/** parent of this element on ART */
 	private SymbPredAbsAbstractElement parent;
-
+	/** predicate list for this element*/
+    private PredicateMap predicates;
+	
 	// context is used to deal with function calls/returns
 //	private Stack<Pair<AbstractFormula, SymbPredAbsCFANode>> context;
 //	private boolean ownsContext;
@@ -40,8 +38,12 @@ implements AbstractElement, AbstractElementWithLocation {
 		return CFALocation; 
 	}
 
-	public Pair<SymbolicFormula, SSAMap> getPathFormula() { 
+	public PathFormula getPathFormula() { 
 		return pathFormula;
+	}
+	
+	public void setLocation(CFANode loc){
+		CFALocation = loc;
 	}
 
 	public AbstractFormula getAbstraction() { 
@@ -51,7 +53,7 @@ implements AbstractElement, AbstractElementWithLocation {
 	public void setAbstraction(AbstractFormula a) { 
 		abstraction = a;
 	}
-	public void setPathFormula(Pair<SymbolicFormula, SSAMap> pf){
+	public void setPathFormula(PathFormula pf){
 		pathFormula = pf;
 	}
 
@@ -62,21 +64,34 @@ implements AbstractElement, AbstractElementWithLocation {
 	public void setParent(SymbPredAbsAbstractElement p) { 
 		parent = p;
 	}
+	
+	public CFANode getAbstractionLocation(){
+		return abstractionLocation;
+	}
+	
+	public void setAbstractionLocation(CFANode absLoc){
+		abstractionLocation = absLoc;
+	}
 
-	public SymbPredAbsAbstractElement(CFANode CFALoc, AbstractFormula a, 
-			SymbPredAbsAbstractElement p) {
-//		elemId = nextAvailableId++;
-		
+	public SymbPredAbsAbstractElement(CFANode CFALoc, CFANode abstLoc, 
+			PathFormula pf, AbstractFormula a, 
+			SymbPredAbsAbstractElement p, PredicateMap pmap) {
 		CFALocation = CFALoc;
+		abstractionLocation = abstLoc;
 		abstraction = a;
-//		pathFormula = pf;
+		pathFormula = pf;
 		parent = p;
+		predicates = pmap;
 //		context = null;
 //		ownsContext = true;
 	}
 
-	public SymbPredAbsAbstractElement(CFANode loc) {
-		this(loc, /*null,*/ null, null);
+	public SymbPredAbsAbstractElement(CFANode loc, CFANode abstLoc) {
+		this(loc, abstLoc, null, null, null, null);
+	}
+	
+	public SymbPredAbsAbstractElement() {
+		this(null, null, null, null, null, null);
 	}
 
 	public boolean equals(Object o) {
@@ -106,12 +121,20 @@ implements AbstractElement, AbstractElementWithLocation {
 	public CFANode getLocationNode() {
 		return CFALocation;
 	}
-
+	
 //	public Collection<CFANode> getLeaves() {
 //		assert(pathFormulas != null);
 //
 //		return pathFormulas.keySet();
 //	}
+
+	public PredicateMap getPredicates() {
+		return predicates;
+	}
+
+	public void setPredicates(PredicateMap predicates) {
+		this.predicates = predicates;
+	}
 
 	/**
 	public Stack<Pair<AbstractFormula, SymbPredAbsCFANode>> getContext() 
@@ -189,5 +212,4 @@ implements AbstractElement, AbstractElementWithLocation {
 		}
 		return false;
 	}
-
 }

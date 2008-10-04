@@ -12,12 +12,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-import symbpredabstraction.AbstractionLocationPointer;
-import symbpredabstraction.BDDMathsatSymbPredAbsAbstractManager;
-import symbpredabstraction.MathsatSymbPredAbsFormulaManager;
-import symbpredabstraction.SymbPredAbsAbstractFormulaManager;
-import symbpredabstraction.SymbPredAbsCPAStatistics;
-import symbpredabstraction.SymbPredAbsFormulaManager;
+import symbpredabstraction.FixedPredicateMap;
+import symbpredabstraction.PathFormula;
+import symbpredabstraction.Predicate;
+import symbpredabstraction.PredicateMap;
+import symbpredabstraction.SSAMap;
+import symbpredabstraction.UpdateablePredicateMap;
 import cpaplugin.CPAStatistics;
 import cpaplugin.cfa.objectmodel.CFAFunctionDefinitionNode;
 import cpaplugin.cfa.objectmodel.CFANode;
@@ -28,13 +28,6 @@ import cpaplugin.cpa.common.interfaces.ConfigurableProblemAnalysis;
 import cpaplugin.cpa.common.interfaces.MergeOperator;
 import cpaplugin.cpa.common.interfaces.StopOperator;
 import cpaplugin.cpa.common.interfaces.TransferRelation;
-import cpaplugin.cpa.cpas.symbpredabs.FixedPredicateMap;
-import cpaplugin.cpa.cpas.symbpredabs.Pair;
-import cpaplugin.cpa.cpas.symbpredabs.Predicate;
-import cpaplugin.cpa.cpas.symbpredabs.PredicateMap;
-import cpaplugin.cpa.cpas.symbpredabs.SSAMap;
-import cpaplugin.cpa.cpas.symbpredabs.SymbolicFormula;
-import cpaplugin.cpa.cpas.symbpredabs.UpdateablePredicateMap;
 import cpaplugin.cpa.cpas.symbpredabs.mathsat.MathsatPredicateParser;
 import cpaplugin.logging.CustomLogLevel;
 import cpaplugin.logging.LazyLogger;
@@ -54,9 +47,6 @@ public class SymbPredAbsCPA implements ConfigurableProblemAnalysis {
     private MathsatSymbPredAbsFormulaManager mgr;
     private BDDMathsatSymbPredAbsAbstractManager amgr;
     private PredicateMap pmap;
-    private Map<CFANode, AbstractionLocationPointer> nodeToAbstracionLocsMap;
-//    private Map<SymbPredAbsCFANode, Map<CFANode, Pair<SymbolicFormula, SSAMap>>> 
-//        summaryToFormulaMap;
     private Map<SymbPredAbsAbstractElement, Set<SymbPredAbsAbstractElement>> covers;
     
     private SymbPredAbsCPAStatistics stats;
@@ -123,11 +113,18 @@ public class SymbPredAbsCPA implements ConfigurableProblemAnalysis {
                        "Getting initial element from node: ", node);
         
         CFANode loc = node;
-        SymbPredAbsAbstractElement e = new SymbPredAbsAbstractElement(loc);
-        Pair<SymbolicFormula, SSAMap> p = getNewPathFormula(loc);  
-        e.setPathFormula(p);
+        SymbPredAbsAbstractElement e = new SymbPredAbsAbstractElement(loc, loc);
+        PathFormula pf = getNewPathFormula(loc);  
+        e.setPathFormula(pf);
         e.setAbstraction(amgr.makeTrue());
+        // TODO update here
+        // we can start we initial set of predicated
+        // or we can use fixed predicate maps
+        PredicateMap pmap = new UpdateablePredicateMap();
+        e.setPredicates(pmap);
         //e.setContext(new Stack<Pair<AbstractFormula, SymbPredAbsCFANode>>(), true);
+        // we return an tuple (loc, loc, pf, abst, null), the parent is null since this is the 
+        // initial element
         return e;
     }
 
@@ -161,10 +158,10 @@ public class SymbPredAbsCPA implements ConfigurableProblemAnalysis {
 
     // builds the path formulas corresponding to the leaves of the inner
     // subgraph of the given summary location
-    public Pair<SymbolicFormula, SSAMap> getNewPathFormula(CFANode succLoc) {
+    public PathFormula getNewPathFormula(CFANode succLoc) {
     	
     	SSAMap ssamap = new SSAMap();
-    	return new Pair<SymbolicFormula, SSAMap>(mgr.makeTrue(), ssamap); 
+    	return new PathFormula(mgr.makeTrue(), ssamap);
     	
 //        try {
 //            if (!summaryToFormulaMap.containsKey(succLoc)) {
@@ -209,23 +206,4 @@ public class SymbPredAbsCPA implements ConfigurableProblemAnalysis {
             covers.remove(e);
         }
     }
-    
-    public AbstractionLocationPointer getAbstractionLocForNode(CFANode node){
-    	return nodeToAbstracionLocsMap.get(node);
-    }
-    
-    public boolean addAbstractionForLocation(CFANode node, AbstractionLocationPointer absp){
-    	if(nodeToAbstracionLocsMap.containsKey(node)){
-    		return false;
-    	}
-    	else{
-    		nodeToAbstracionLocsMap.put(node, absp);
-    		return true;
-    	}
-    }
-    
-    public Map<CFANode, AbstractionLocationPointer> getAbstracionLocsMap(){
-    	return nodeToAbstracionLocsMap;
-    }
-
 }

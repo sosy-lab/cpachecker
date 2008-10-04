@@ -26,8 +26,8 @@ import cpaplugin.logging.LazyLogger;
  *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
-public class MathsatSymbPredAbsFormulaManager extends MathsatSymbolicFormulaManager
-        implements SymbPredAbsFormulaManager {
+public class MathsatSummaryFormulaManager extends MathsatSymbolicFormulaManager
+        implements SummaryFormulaManager {
     
     private SSAMap maxIndex = null;
 
