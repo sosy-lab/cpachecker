@@ -10,12 +10,17 @@ import java.util.Set;
 import java.util.Vector;
 import java.util.logging.Level;
 
+import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
+import org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression;
+import org.eclipse.cdt.core.dom.ast.IASTIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTInitializer;
 import org.eclipse.cdt.core.dom.ast.IASTInitializerExpression;
+import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclSpecifier;
+import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 
 import symbpredabstraction.AbstractFormula;
 import symbpredabstraction.PathFormula;
@@ -42,6 +47,10 @@ import cpaplugin.cpa.common.RefinementNeededException;
 import cpaplugin.cpa.common.interfaces.AbstractDomain;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.TransferRelation;
+import cpaplugin.cpa.cpas.symbpredabs.Pair;
+import cpaplugin.cpa.cpas.symbpredabs.SymbolicFormula;
+import cpaplugin.cpa.cpas.symbpredabs.UnrecognizedCFAEdgeException;
+import cpaplugin.cpa.cpas.symbpredabs.mathsat.MathsatSymbolicFormula;
 import cpaplugin.exceptions.CPAException;
 import cpaplugin.logging.CPACheckerLogger;
 import cpaplugin.logging.CustomLogLevel;
@@ -101,9 +110,13 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
 	private int numAbstractStates = 0; // for statistics
 	private boolean errorReached = false;
+	
+	// associate a Mathsat Formula Manager with the transfer relation
+	private MathsatSymbPredAbsFormulaManager mathsatFormMan;
 
 	public SymbPredAbsTransferRelation(SymbPredAbsAbstractDomain d) {
 		domain = d;
+		mathsatFormMan = new MathsatSymbPredAbsFormulaManager();
 //		abstractTree = new ART();
 	}
 
@@ -153,8 +166,8 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 		else{
 			handleNonAbstractionLocation(element, newElement, edge);
 		}
-		
-		
+
+
 		return newElement;
 
 		Collection<Predicate> predicates = 
@@ -295,12 +308,12 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 		PathFormula pf = update(element, newElement, edge);
 		newElement.setLocation(succLocation);
 		newElement.setAbstractionLocation(abstractionLoc);
-        newElement.setAbstraction(abst);
-        newElement.setParent(parent);
-        newElement.setPathFormula(pf);
-        newElement.setPredicates(pmap);
+		newElement.setAbstraction(abst);
+		newElement.setParent(parent);
+		newElement.setPathFormula(pf);
+		newElement.setPredicates(pmap);
 	}
-	
+
 	/**
 	 * TODO 
 	 * @param element
@@ -312,22 +325,22 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 			boolean updateSSA, boolean absoluteSSAIndices) {
 
 		SymbolicFormula f1 = element.getPathFormula().getPathFormula();
-		
+
 //		if (edge instanceof BlockEdge) {
-//			BlockEdge block = (BlockEdge)edge;
-//			Pair<SymbolicFormula, SSAMap> ret = null;
-//			for (CFAEdge e : block.getEdges()) {
-//				ret = makeAnd(f1, e, ssa, updateSSA, absoluteSSAIndices);
-//				f1 = ret.getFirst();
-//				ssa = ret.getSecond();
-//			}
-//			assert(ret != null);
-//			return ret;
+//		BlockEdge block = (BlockEdge)edge;
+//		Pair<SymbolicFormula, SSAMap> ret = null;
+//		for (CFAEdge e : block.getEdges()) {
+//		ret = makeAnd(f1, e, ssa, updateSSA, absoluteSSAIndices);
+//		f1 = ret.getFirst();
+//		ssa = ret.getSecond();
+//		}
+//		assert(ret != null);
+//		return ret;
 //		}
 
 		MathsatSymbolicFormula m1 = (MathsatSymbolicFormula)f1;
 
-		setNamespace(edge.getPredecessor().getFunctionName());
+		mathsatFormMan.setNamespace(edge.getPredecessor().getFunctionName());
 
 		// if the edge is a function call edge
 		if (edge.getPredecessor() instanceof FunctionDefinitionNode) {
@@ -345,9 +358,11 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 		case StatementEdge: {
 			StatementEdge statementEdge = (StatementEdge)edge;
 
+			// returning from function
 			if (statementEdge.isJumpEdge()) {
+				// if we are returning from "main" do nothing
 				if (statementEdge.getSuccessor().getFunctionName().equals(
-						"main")) {
+				"main")) {
 					LazyLogger.log(LazyLogger.DEBUG_3, 
 							"MathsatSymbolicFormulaManager, IGNORING return ",
 							"from main: ", edge.getRawStatement());
@@ -416,24 +431,25 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 					}
 					IASTExpression exp = 
 						((IASTInitializerExpression)init).getExpression();
-					long minit = buildMsatTerm(exp, newssa, absoluteSSAIndices);
-					long mvar = buildMsatVariable(var, idx);
-					long t = makeAssignment(mvar, minit);
-					t = mathsat.api.msat_make_and(msatEnv, m1.getTerm(), t);
+					long minit = mathsatFormMan.buildMsatTerm(exp, newssa, absoluteSSAIndices);
+					long mvar = mathsatFormMan.buildMsatVariable(var, idx);
+					long t = mathsatFormMan.makeAssignment(mvar, minit);
+					// TODO check this
+					t = mathsat.api.msat_make_and(mathsatFormMan.getMsatEnv(), m1.getTerm(), t);
 					m1 = new MathsatSymbolicFormula(t);
 				} else if (isGlobal || 
 						CPAMain.cpaConfig.getBooleanValue(
-								"cpas.symbpredabs.initAllVars")) {
+						"cpas.symbpredabs.initAllVars")) {
 					// auto-initialize variables to zero, unless they match
 					// the noAutoInitPrefix pattern
 					String noAutoInit = CPAMain.cpaConfig.getProperty(
 							"cpas.symbpredabs.noAutoInitPrefix", "");
 					if (noAutoInit.equals("") || 
 							!d.getName().getRawSignature().startsWith(noAutoInit)) {
-						long mvar = buildMsatVariable(var, idx);
-						long z = mathsat.api.msat_make_number(msatEnv, "0");
-						long t = makeAssignment(mvar, z);
-						t = mathsat.api.msat_make_and(msatEnv, m1.getTerm(), t);
+						long mvar = mathsatFormMan.buildMsatVariable(var, idx);
+						long z = mathsat.api.msat_make_number(mathsatFormMan.getMsatEnv(), "0");
+						long t = mathsatFormMan.makeAssignment(mvar, z);
+						t = mathsat.api.msat_make_and(mathsatFormMan.getMsatEnv(), m1.getTerm(), t);
 						m1 = new MathsatSymbolicFormula(t);
 						LazyLogger.log(LazyLogger.DEBUG_3, "AUTO-INITIALIZING ",
 								(isGlobal ? "GLOBAL" : ""), "VAR: ",
@@ -449,7 +465,8 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
 		case AssumeEdge: {
 			AssumeEdge assumeEdge = (AssumeEdge)edge;
-			return makeAndAssume(m1, assumeEdge, ssa, absoluteSSAIndices);
+			return makeAndAssume(element, newElement, 
+					edge.getPredecessor(), updateSSA, absoluteSSAIndices);
 		}
 
 		case BlankEdge: {
@@ -462,8 +479,8 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 				newssa.copyFrom(ssa);
 				ssa = newssa;
 			}
-			return makeAndFunctionCall(m1, (FunctionCallEdge)edge, ssa,
-					absoluteSSAIndices);
+			return makeAndFunctionCall(element, newElement, 
+					edge.getPredecessor(), updateSSA, absoluteSSAIndices);
 		}
 
 		case ReturnEdge: {
@@ -471,7 +488,8 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 			CFANode succ = edge.getSuccessor();
 			CallToReturnEdge ce = succ.getEnteringSummaryEdge();
 			Pair<SymbolicFormula, SSAMap> ret = 
-				makeAndExitFunction(m1, ce, ssa, updateSSA, absoluteSSAIndices);
+				makeAndExitFunction(element, newElement, 
+						edge.getPredecessor(), updateSSA, absoluteSSAIndices);
 			//popNamespace(); - done inside makeAndExitFunction
 			return ret;
 		}
@@ -489,12 +507,279 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 		return new Pair<SymbolicFormula, SSAMap>(f1, ssa);
 	}
 
+	private Pair<SymbolicFormula, SSAMap> makeAndExitFunction(
+			SymbPredAbsAbstractElement element,
+			SymbPredAbsAbstractElement newElement, CFANode predecessor,
+			boolean updateSSA, boolean absoluteSSAIndices) {
+        IASTExpression retExp = ce.getExpression();
+        if (retExp instanceof IASTFunctionCallExpression) {
+            // this should be a void return, just do nothing...
+            //popNamespace();
+            return new Pair<SymbolicFormula, SSAMap>(m1, ssa);
+        } else if (retExp instanceof IASTBinaryExpression) {
+            IASTBinaryExpression exp = (IASTBinaryExpression)retExp;
+            assert(exp.getOperator() == IASTBinaryExpression.op_assign);
+            String retvar = scoped(VAR_RETURN_NAME);
+            //assert(ssa.getIndex(retvar) < 0);
+            //popNamespace();
+            if (!updateSSA) {
+                SSAMap newssa = new SSAMap();
+                newssa.copyFrom(ssa);
+                ssa = newssa;
+            }
+            int retidx = ssa.getIndex(retvar);
+            if (retidx < 0) {
+                retidx = absoluteSSAIndices ? SSAMap.getNextSSAIndex() : 1;
+            }
+            ssa.setIndex(retvar, retidx);
+            long msatretvar = buildMsatVariable(retvar, retidx);
+            IASTExpression e = exp.getOperand1();
+            // TODO - we assume this is an assignment to a plain variable. If
+            // we want to handle structs, this might not be the case anymore...
+            assert(e instanceof IASTIdExpression);
+            setNamespace(ce.getSuccessor().getFunctionName());
+            String outvar = ((IASTIdExpression)e).getName().getRawSignature();
+            outvar = scoped(outvar);
+            int idx = ssa.getIndex(outvar);
+            if (idx < 0) {
+                idx = autoInstantiateVar(outvar, ssa);
+                if (idx == 1) {
+                    ++idx;
+                    ssa.setIndex(outvar, idx);
+                }
+            } else {
+                //idx = absoluteSSAIndices ? SSAMap.getNextSSAIndex() : idx+1;
+                idx = absoluteSSAIndices ? SSAMap.getNextSSAIndex() : 
+                      getNewIndex(outvar, ssa);
+                ssa.setIndex(outvar, idx);
+            }
+            long msatoutvar = buildMsatVariable(outvar, idx);
+            long term = makeAssignment(msatoutvar, msatretvar);
+            term = mathsat.api.msat_make_and(msatEnv, m1.getTerm(), term);
+            return new Pair<SymbolicFormula, SSAMap>(
+                    new MathsatSymbolicFormula(term), ssa);
+        } else {
+            throw new UnrecognizedCFAEdgeException(
+                    "UNKNOWN FUNCTION EXIT EXPRESSION: " + 
+                    ce.getRawStatement());
+        }
+    }
+
+	private PathFormula makeAndFunctionCall(SymbPredAbsAbstractElement element,
+			SymbPredAbsAbstractElement newElement, CFANode predecessor,
+			boolean updateSSA, boolean absoluteSSAIndices) {
+        if (edge.isExternalCall()) {
+            throw new UnrecognizedCFAEdgeException(
+                    "EXTERNAL CALL UNSUPPORTED: " + edge.getRawStatement());
+        } else {
+            // build the actual parameters in the caller's context
+            long[] msatActualParams;
+            if (edge.getArguments() == null) {
+                msatActualParams = new long[0];
+            } else {
+                msatActualParams = new long[edge.getArguments().length];
+                IASTExpression[] actualParams = edge.getArguments();
+                for (int i = 0; i < msatActualParams.length; ++i) {
+                    msatActualParams[i] = buildMsatTerm(actualParams[i], ssa, 
+                            absoluteSSAIndices);
+                    if (mathsat.api.MSAT_ERROR_TERM(msatActualParams[i])) {
+                        throw new UnrecognizedCFAEdgeException(
+                                "ERROR CONVERTING: " + edge.getRawStatement());
+                    }
+                }
+            }
+            // now switch to the context of the function
+            FunctionDefinitionNode fn = 
+                (FunctionDefinitionNode)edge.getSuccessor();
+            setNamespace(fn.getFunctionName());
+            // create the symbolic vars for the formal parameters
+            List<IASTParameterDeclaration> formalParams = 
+                fn.getFunctionParameters();
+            assert(formalParams.size() == msatActualParams.length);
+         
+            int i = 0;
+            long term = mathsat.api.msat_make_true(msatEnv);
+            for (IASTParameterDeclaration param : formalParams) {
+                long arg = msatActualParams[i++];
+                if (param.getDeclarator().getPointerOperators().length != 0) {
+                    throw new UnrecognizedCFAEdgeException("SORRY, POINTERS " +
+                            "NOT HANDLED: " + edge.getRawStatement());
+                } else {
+                    String paramName = scoped(FUNCTION_PARAM_NAME + (i-1));
+                    int idx = ssa.getIndex(paramName);
+                    if (idx < 0 || absoluteSSAIndices) {
+                        idx = absoluteSSAIndices ? SSAMap.getNextSSAIndex() : 1;
+                    } else {
+                        //idx += 1;
+                        idx = getNewIndex(paramName, ssa);
+                    }
+                    long msatParam = buildMsatVariable(paramName, idx);
+                    if (mathsat.api.MSAT_ERROR_TERM(msatParam)) {
+                        throw new UnrecognizedCFAEdgeException(
+                                "ERROR HANDLING FUNCTION CALL: " +
+                                edge.getRawStatement());
+                    }
+                    ssa.setIndex(paramName, idx);
+                    long eq = makeAssignment(msatParam, arg);
+                    term = mathsat.api.msat_make_and(msatEnv, term, eq);
+                }
+            }
+            assert(!mathsat.api.MSAT_ERROR_TERM(term));
+            term = mathsat.api.msat_make_and(msatEnv, m1.getTerm(), term);
+            return new Pair<SymbolicFormula, SSAMap>(
+                    new MathsatSymbolicFormula(term), ssa);
+        }
+    }
+
+	private PathFormula makeAndAssume(SymbPredAbsAbstractElement element,
+			SymbPredAbsAbstractElement newElement, CFANode predecessor,
+			boolean updateSSA, boolean absoluteSSAIndices) {
+        MathsatSymbolicFormula f2 = buildFormulaPredicate(
+                assume.getExpression(), assume.getTruthAssumption(), ssa, 
+                absoluteSSAIndices);
+        if (f2 == null) {
+            throw new UnrecognizedCFAEdgeException("ASSUME: " + 
+                    assume.getRawStatement());
+        } else {
+            long res = mathsat.api.msat_make_and(msatEnv, f1.getTerm(),
+                    f2.getTerm());
+            return new Pair<SymbolicFormula, SSAMap>(
+                    new MathsatSymbolicFormula(res), ssa);
+        }
+    }
+
+	private PathFormula makeAndStatement(SymbPredAbsAbstractElement element,
+			SymbPredAbsAbstractElement newElement, CFANode predecessor,
+			boolean updateSSA, boolean absoluteSSAIndices) {
+
+        IASTExpression expr = stmt.getExpression();
+        if (!updateSSA && needsSSAUpdate(expr)) {
+            SSAMap ssa2 = new SSAMap();
+            for (String key : ssa.allVariables()) {
+                ssa2.setIndex(key, ssa.getIndex(key));
+            }
+            ssa = ssa2;
+        }
+        long f2 = buildMsatTerm(expr, ssa, absoluteSSAIndices);
+
+        if (!mathsat.api.MSAT_ERROR_TERM(f2)) {
+            long a = mathsat.api.msat_make_and(msatEnv, f1.getTerm(), f2);
+            return new Pair<SymbolicFormula, SSAMap>(
+                    new MathsatSymbolicFormula(a), ssa);
+        } else {
+            throw new UnrecognizedCFAEdgeException("STATEMENT: " +
+                    stmt.getRawStatement());
+        }
+	}
+
+	private PathFormula makeAndReturn(SymbPredAbsAbstractElement element,
+			SymbPredAbsAbstractElement newElement, CFANode predecessor,
+			boolean updateSSA, boolean absoluteSSAIndices) {
+
+        IASTExpression exp = edge.getExpression();
+        if (exp == null) {
+            // this is a return from a void function, do nothing
+            return new Pair<SymbolicFormula, SSAMap>(m1, ssa);
+        } else if (exp instanceof IASTUnaryExpression) {
+            // we have to save the information about the return value,
+            // so that we can use it later on, if it is assigned to
+            // a variable. We create a function::<retval> variable
+            // that will hold the return value
+            String retvalname = scoped(VAR_RETURN_NAME);
+            assert(ssa.getIndex(retvalname) < 0);
+            int idx = absoluteSSAIndices ? SSAMap.getNextSSAIndex() : 2;
+            if (idx == 1) ++idx;
+            if (!updateSSA) {
+                SSAMap ssa2 = new SSAMap();
+                for (String var : ssa.allVariables()) {
+                    ssa2.setIndex(var, ssa.getIndex(var));
+                }
+                ssa = ssa2;
+            }
+            long retvar = buildMsatVariable(retvalname, idx);
+            ssa.setIndex(retvalname, idx);
+            long retval = buildMsatTerm(exp, ssa, absoluteSSAIndices);
+            if (!mathsat.api.MSAT_ERROR_TERM(retval)) {
+                long term = makeAssignment(retvar, retval);
+                if (!mathsat.api.MSAT_ERROR_TERM(term)) {
+                    term = mathsat.api.msat_make_and(
+                            msatEnv, m1.getTerm(), term);
+                    assert(!mathsat.api.MSAT_ERROR_TERM(term));
+                    return new Pair<SymbolicFormula, SSAMap>(
+                            new MathsatSymbolicFormula(term), ssa);
+                }
+            }
+        } 
+        // if we are here, we can't handle the return properly...
+        throw new UnrecognizedCFAEdgeException("UNRECOGNIZED: " +
+                edge.getRawStatement());
+	}
+
+	private PathFormula makeAndEnterFunction(
+			SymbPredAbsAbstractElement element,
+			SymbPredAbsAbstractElement newElement, CFANode predecessor,
+			boolean updateSSA, boolean absoluteSSAIndices) {
+
+		FunctionDefinitionNode fn = (FunctionDefinitionNode)pred;
+		List<IASTParameterDeclaration> params = fn.getFunctionParameters();
+		if (params.isEmpty()) {
+			return new Pair<SymbolicFormula, SSAMap>(m1, ssa);
+		}
+		if (!updateSSA) {
+			SSAMap newssa = new SSAMap();
+			newssa.copyFrom(ssa);
+			ssa = newssa;
+		}
+		long term = mathsat.api.msat_make_true(msatEnv);
+		int i = 0;
+		for (IASTParameterDeclaration param : params) {            
+			String paramName = scoped(FUNCTION_PARAM_NAME + (i++));
+			int idx = ssa.getIndex(paramName);
+			if (idx < 0) {
+				idx = absoluteSSAIndices ? SSAMap.getNextSSAIndex() : 1;
+			}
+			long msatParam = buildMsatVariable(paramName, idx);
+			if (mathsat.api.MSAT_ERROR_TERM(msatParam)) {
+				throw new UnrecognizedCFAEdgeException(
+						"ERROR ENTERING FUNCTION: " + 
+						fn.getFunctionDefinition().getRawSignature());
+			}
+			if (param.getDeclarator().getPointerOperators().length != 0) {
+				throw new UnrecognizedCFAEdgeException("SORRY, POINTERS " +
+						"NOT HANDLED: " + 
+						fn.getFunctionDefinition().getRawSignature());
+			} else {
+				String formalParamName = 
+					scoped(param.getDeclarator().getName().toString());
+				idx = ssa.getIndex(formalParamName);
+				if (idx < 0 || absoluteSSAIndices) {
+					idx = absoluteSSAIndices ? SSAMap.getNextSSAIndex() : 1;
+				} else {
+					//idx += 1;
+					idx = getNewIndex(formalParamName, ssa);
+				}
+				long msatFormalParam = buildMsatVariable(formalParamName, idx);
+				if (mathsat.api.MSAT_ERROR_TERM(msatParam)) {
+					throw new UnrecognizedCFAEdgeException(
+							"ERROR HANDLING FUNCTION CALL: " +
+							fn.getFunctionDefinition().getRawSignature());
+				}
+				ssa.setIndex(formalParamName, idx);
+				long eq = makeAssignment(msatFormalParam, msatParam);
+				term = mathsat.api.msat_make_and(msatEnv, term, eq);
+			}
+		}
+		term = mathsat.api.msat_make_and(msatEnv, m1.getTerm(), term);
+		return new Pair<SymbolicFormula, SSAMap>(
+				new MathsatSymbolicFormula(term), ssa);
+	}
+
 	// TODO implement this
 	private SymbPredAbsAbstractElement handleAbstractionLocation(SymbPredAbsAbstractElement e,
 			CFAEdge edge) {
 		Map<CFANode, AbstractionLocationPointer> abstLocsMap = domain.getCPA().getAbstracionLocsMap();
 		CFANode successorNode = edge.getSuccessor(); 
-		// TODO erkan -last point-
+		// TODO erkan 
 
 	}
 
