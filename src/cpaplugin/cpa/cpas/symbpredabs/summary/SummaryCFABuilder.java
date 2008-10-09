@@ -21,10 +21,10 @@ import cpaplugin.cfa.objectmodel.c.CallToReturnEdge;
 import cpaplugin.cfa.objectmodel.c.DeclarationEdge;
 import cpaplugin.cfa.objectmodel.c.FunctionCallEdge;
 import cpaplugin.cfa.objectmodel.c.FunctionDefinitionNode;
+import cpaplugin.cfa.objectmodel.c.GlobalDeclarationEdge;
 import cpaplugin.cfa.objectmodel.c.ReturnEdge;
 import cpaplugin.cfa.objectmodel.c.StatementEdge;
 import cpaplugin.cmdline.CPAMain;
-import cpaplugin.cpa.cpas.symbpredabs.GlobalDeclarationEdge;
 import cpaplugin.logging.LazyLogger;
 
 /**

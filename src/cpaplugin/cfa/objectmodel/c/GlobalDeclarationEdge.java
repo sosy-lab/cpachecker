@@ -1,4 +1,4 @@
-package cpaplugin.cpa.cpas.symbpredabs;
+package cpaplugin.cfa.objectmodel.c;
 
 import org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTDeclarator;

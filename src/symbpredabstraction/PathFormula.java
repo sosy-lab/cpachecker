@@ -3,11 +3,11 @@ package symbpredabstraction;
 public class PathFormula {
 	
 	SSAMap ssa;
-	SymbolicFormula pathFormula;
+	SymbolicFormula symbolicFormula;
 	
 	public PathFormula(SymbolicFormula pf, SSAMap newssa){
 		ssa = newssa;
-		pathFormula = pf;
+		symbolicFormula = pf;
 	}
 
 	public SSAMap getSsa() {
@@ -18,11 +18,11 @@ public class PathFormula {
 		this.ssa = ssa;
 	}
 
-	public SymbolicFormula getPathFormula() {
-		return pathFormula;
+	public SymbolicFormula getSymbolicFormula() {
+		return symbolicFormula;
 	}
 
-	public void setPathFormula(SymbolicFormula pathFormula) {
-		this.pathFormula = pathFormula;
+	public void setSymbolicFormula(SymbolicFormula symFormula) {
+		this.symbolicFormula = symFormula;
 	}
 }

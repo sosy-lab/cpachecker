@@ -18,6 +18,7 @@ import cpaplugin.cfa.objectmodel.CFAErrorNode;
 import cpaplugin.cfa.objectmodel.CFAFunctionDefinitionNode;
 import cpaplugin.cfa.objectmodel.CFANode;
 import cpaplugin.cfa.objectmodel.c.AssumeEdge;
+import cpaplugin.cfa.objectmodel.c.GlobalDeclarationEdge;
 import cpaplugin.cfa.objectmodel.c.ReturnEdge;
 import cpaplugin.logging.LazyLogger;
 

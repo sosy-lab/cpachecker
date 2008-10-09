@@ -1120,7 +1120,7 @@ public class MathsatSymbPredAbsFormulaManager implements SymbolicFormulaManager 
         }
     }
 
-    private MathsatSymbolicFormula buildFormulaPredicate(
+    public MathsatSymbolicFormula buildFormulaPredicate(
             IASTExpression exp, boolean isTrue, SSAMap ssa, 
             boolean absoluteSSAIndices) {
         if (exp instanceof IASTBinaryExpression) {

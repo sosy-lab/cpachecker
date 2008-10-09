@@ -38,6 +38,7 @@ import cpaplugin.cfa.objectmodel.c.CallToReturnEdge;
 import cpaplugin.cfa.objectmodel.c.DeclarationEdge;
 import cpaplugin.cfa.objectmodel.c.FunctionCallEdge;
 import cpaplugin.cfa.objectmodel.c.FunctionDefinitionNode;
+import cpaplugin.cfa.objectmodel.c.GlobalDeclarationEdge;
 import cpaplugin.cfa.objectmodel.c.ReturnEdge;
 import cpaplugin.cfa.objectmodel.c.StatementEdge;
 import cpaplugin.cmdline.CPAMain;
@@ -47,11 +48,8 @@ import cpaplugin.cpa.common.RefinementNeededException;
 import cpaplugin.cpa.common.interfaces.AbstractDomain;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.TransferRelation;
-import cpaplugin.cpa.cpas.symbpredabs.Pair;
-import cpaplugin.cpa.cpas.symbpredabs.SymbolicFormula;
-import cpaplugin.cpa.cpas.symbpredabs.UnrecognizedCFAEdgeException;
-import cpaplugin.cpa.cpas.symbpredabs.mathsat.MathsatSymbolicFormula;
 import cpaplugin.exceptions.CPAException;
+import cpaplugin.exceptions.SymbPredAbstTransferException;
 import cpaplugin.logging.CPACheckerLogger;
 import cpaplugin.logging.CustomLogLevel;
 import cpaplugin.logging.LazyLogger;
@@ -111,9 +109,17 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 	private int numAbstractStates = 0; // for statistics
 	private boolean errorReached = false;
 	
+	// TODO maybe we shold move these into CPA later
 	// associate a Mathsat Formula Manager with the transfer relation
 	private MathsatSymbPredAbsFormulaManager mathsatFormMan;
-
+	// a namespace to have a unique name for each variable in the program. 
+    // Whenever we enter a function, we push its name as namespace. Each
+    // variable will be instantiated inside mathsat as namespace::variable
+    //private Stack<String> namespaces;
+    private String namespace;
+    // global variables (do not live in any namespace)
+    private Set<String> globalVars;
+	
 	public SymbPredAbsTransferRelation(SymbPredAbsAbstractDomain d) {
 		domain = d;
 		mathsatFormMan = new MathsatSymbPredAbsFormulaManager();
@@ -320,11 +326,12 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 	 * @param newElement 
 	 * @param edge
 	 * @return
+	 * @throws SymbPredAbstTransferException 
 	 */
 	private PathFormula update(SymbPredAbsAbstractElement element, SymbPredAbsAbstractElement newElement, CFAEdge edge, 
-			boolean updateSSA, boolean absoluteSSAIndices) {
+			boolean updateSSA, boolean absoluteSSAIndices) throws SymbPredAbstTransferException {
 
-		SymbolicFormula f1 = element.getPathFormula().getPathFormula();
+		SymbolicFormula f1 = element.getPathFormula().getSymbolicFormula();
 
 //		if (edge instanceof BlockEdge) {
 //		BlockEdge block = (BlockEdge)edge;
@@ -345,8 +352,8 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 		// if the edge is a function call edge
 		if (edge.getPredecessor() instanceof FunctionDefinitionNode) {
 			PathFormula p = makeAndEnterFunction(element, newElement, 
-					edge.getPredecessor(), updateSSA, absoluteSSAIndices);
-			m1 = (MathsatSymbolicFormula)p.getPathFormula();
+					edge, updateSSA, absoluteSSAIndices);
+			m1 = (MathsatSymbolicFormula)p.getSymbolicFormula();
 			f1 = m1;
 			// TODO check here - i'm not sure if that's what we want to do
 			SSAMap ssa = element.getPathFormula().getSsa(); 
@@ -372,7 +379,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 				}
 			} else {
 				return makeAndStatement(element, newElement, 
-						edge.getPredecessor(), updateSSA, absoluteSSAIndices);
+						statementEdge, updateSSA, absoluteSSAIndices);
 			}
 			break;
 		}
@@ -392,7 +399,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 			IASTDeclSpecifier spec = ((DeclarationEdge)edge).getDeclSpecifier();
 
 			if (!(spec instanceof IASTSimpleDeclSpecifier)) {
-				throw new UnrecognizedCFAEdgeException(
+				throw new SymbPredAbstTransferException(
 						"UNSUPPORTED SPECIFIER FOR DECLARATION: " + 
 						edge.getRawStatement());
 			}
@@ -426,7 +433,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 				if (d.getInitializer() != null) {
 					IASTInitializer init = d.getInitializer();
 					if (!(init instanceof IASTInitializerExpression)) {
-						throw new UnrecognizedCFAEdgeException(
+						throw new SymbPredAbstTransferException(
 								"BAD INITIALIZER: " + edge.getRawStatement());
 					}
 					IASTExpression exp = 
@@ -460,42 +467,46 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 					}
 				}
 			}
-			return new Pair<SymbolicFormula, SSAMap>(m1, newssa);
+			// TODO check
+			// return new Pair<SymbolicFormula, SSAMap>(m1, newssa);
+			return new PathFormula(m1, newssa);
 		}
 
 		case AssumeEdge: {
 			AssumeEdge assumeEdge = (AssumeEdge)edge;
 			return makeAndAssume(element, newElement, 
-					edge.getPredecessor(), updateSSA, absoluteSSAIndices);
+					assumeEdge, updateSSA, absoluteSSAIndices);
 		}
 
 		case BlankEdge: {
 			break;
 		}
 
-		case FunctionCallEdge: {
-			if (!updateSSA) {
-				SSAMap newssa = new SSAMap();
-				newssa.copyFrom(ssa);
-				ssa = newssa;
-			}
-			return makeAndFunctionCall(element, newElement, 
-					edge.getPredecessor(), updateSSA, absoluteSSAIndices);
-		}
+		// TODO handle function calls later
+//		case FunctionCallEdge: {
+//			if (!updateSSA) {
+//				SSAMap newssa = new SSAMap();
+//				newssa.copyFrom(ssa);
+//				ssa = newssa;
+//			}
+//			return makeAndFunctionCall(element, newElement, 
+//					edge.getPredecessor(), updateSSA, absoluteSSAIndices);
+//		}
 
-		case ReturnEdge: {
-			// get the expression from the summary edge
-			CFANode succ = edge.getSuccessor();
-			CallToReturnEdge ce = succ.getEnteringSummaryEdge();
-			Pair<SymbolicFormula, SSAMap> ret = 
-				makeAndExitFunction(element, newElement, 
-						edge.getPredecessor(), updateSSA, absoluteSSAIndices);
-			//popNamespace(); - done inside makeAndExitFunction
-			return ret;
-		}
+		// TODO handle return from functions later
+//		case ReturnEdge: {
+//			// get the expression from the summary edge
+//			CFANode succ = edge.getSuccessor();
+//			CallToReturnEdge ce = succ.getEnteringSummaryEdge();
+//			Pair<SymbolicFormula, SSAMap> ret = 
+//				makeAndExitFunction(element, newElement, 
+//						edge.getPredecessor(), updateSSA, absoluteSSAIndices);
+//			//popNamespace(); - done inside makeAndExitFunction
+//			return ret;
+//		}
 
 		case MultiStatementEdge: {
-			throw new UnrecognizedCFAEdgeException("MULTI STATEMENT: " + 
+			throw new SymbPredAbstTransferException("MULTI STATEMENT: " + 
 					edge.getRawStatement());
 		}
 
@@ -504,155 +515,179 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 		}
 		}
 
-		return new Pair<SymbolicFormula, SSAMap>(f1, ssa);
+		// TODO check
+		// return new Pair<SymbolicFormula, SSAMap>(f1, ssa);
+		return new PathFormula(m1, element.getPathFormula().getSsa());
 	}
-
-	private Pair<SymbolicFormula, SSAMap> makeAndExitFunction(
-			SymbPredAbsAbstractElement element,
-			SymbPredAbsAbstractElement newElement, CFANode predecessor,
-			boolean updateSSA, boolean absoluteSSAIndices) {
-        IASTExpression retExp = ce.getExpression();
-        if (retExp instanceof IASTFunctionCallExpression) {
-            // this should be a void return, just do nothing...
-            //popNamespace();
-            return new Pair<SymbolicFormula, SSAMap>(m1, ssa);
-        } else if (retExp instanceof IASTBinaryExpression) {
-            IASTBinaryExpression exp = (IASTBinaryExpression)retExp;
-            assert(exp.getOperator() == IASTBinaryExpression.op_assign);
-            String retvar = scoped(VAR_RETURN_NAME);
-            //assert(ssa.getIndex(retvar) < 0);
-            //popNamespace();
-            if (!updateSSA) {
-                SSAMap newssa = new SSAMap();
-                newssa.copyFrom(ssa);
-                ssa = newssa;
-            }
-            int retidx = ssa.getIndex(retvar);
-            if (retidx < 0) {
-                retidx = absoluteSSAIndices ? SSAMap.getNextSSAIndex() : 1;
-            }
-            ssa.setIndex(retvar, retidx);
-            long msatretvar = buildMsatVariable(retvar, retidx);
-            IASTExpression e = exp.getOperand1();
-            // TODO - we assume this is an assignment to a plain variable. If
-            // we want to handle structs, this might not be the case anymore...
-            assert(e instanceof IASTIdExpression);
-            setNamespace(ce.getSuccessor().getFunctionName());
-            String outvar = ((IASTIdExpression)e).getName().getRawSignature();
-            outvar = scoped(outvar);
-            int idx = ssa.getIndex(outvar);
-            if (idx < 0) {
-                idx = autoInstantiateVar(outvar, ssa);
-                if (idx == 1) {
-                    ++idx;
-                    ssa.setIndex(outvar, idx);
-                }
-            } else {
-                //idx = absoluteSSAIndices ? SSAMap.getNextSSAIndex() : idx+1;
-                idx = absoluteSSAIndices ? SSAMap.getNextSSAIndex() : 
-                      getNewIndex(outvar, ssa);
-                ssa.setIndex(outvar, idx);
-            }
-            long msatoutvar = buildMsatVariable(outvar, idx);
-            long term = makeAssignment(msatoutvar, msatretvar);
-            term = mathsat.api.msat_make_and(msatEnv, m1.getTerm(), term);
-            return new Pair<SymbolicFormula, SSAMap>(
-                    new MathsatSymbolicFormula(term), ssa);
+	
+	// looks up the variable in the current namespace
+    private String scoped(String var) {
+        if (globalVars.contains(var)) {
+            return var;
         } else {
-            throw new UnrecognizedCFAEdgeException(
-                    "UNKNOWN FUNCTION EXIT EXPRESSION: " + 
-                    ce.getRawStatement());
+            return getNamespace() + "::" + var;
         }
     }
-
-	private PathFormula makeAndFunctionCall(SymbPredAbsAbstractElement element,
-			SymbPredAbsAbstractElement newElement, CFANode predecessor,
-			boolean updateSSA, boolean absoluteSSAIndices) {
-        if (edge.isExternalCall()) {
-            throw new UnrecognizedCFAEdgeException(
-                    "EXTERNAL CALL UNSUPPORTED: " + edge.getRawStatement());
-        } else {
-            // build the actual parameters in the caller's context
-            long[] msatActualParams;
-            if (edge.getArguments() == null) {
-                msatActualParams = new long[0];
-            } else {
-                msatActualParams = new long[edge.getArguments().length];
-                IASTExpression[] actualParams = edge.getArguments();
-                for (int i = 0; i < msatActualParams.length; ++i) {
-                    msatActualParams[i] = buildMsatTerm(actualParams[i], ssa, 
-                            absoluteSSAIndices);
-                    if (mathsat.api.MSAT_ERROR_TERM(msatActualParams[i])) {
-                        throw new UnrecognizedCFAEdgeException(
-                                "ERROR CONVERTING: " + edge.getRawStatement());
-                    }
-                }
-            }
-            // now switch to the context of the function
-            FunctionDefinitionNode fn = 
-                (FunctionDefinitionNode)edge.getSuccessor();
-            setNamespace(fn.getFunctionName());
-            // create the symbolic vars for the formal parameters
-            List<IASTParameterDeclaration> formalParams = 
-                fn.getFunctionParameters();
-            assert(formalParams.size() == msatActualParams.length);
-         
-            int i = 0;
-            long term = mathsat.api.msat_make_true(msatEnv);
-            for (IASTParameterDeclaration param : formalParams) {
-                long arg = msatActualParams[i++];
-                if (param.getDeclarator().getPointerOperators().length != 0) {
-                    throw new UnrecognizedCFAEdgeException("SORRY, POINTERS " +
-                            "NOT HANDLED: " + edge.getRawStatement());
-                } else {
-                    String paramName = scoped(FUNCTION_PARAM_NAME + (i-1));
-                    int idx = ssa.getIndex(paramName);
-                    if (idx < 0 || absoluteSSAIndices) {
-                        idx = absoluteSSAIndices ? SSAMap.getNextSSAIndex() : 1;
-                    } else {
-                        //idx += 1;
-                        idx = getNewIndex(paramName, ssa);
-                    }
-                    long msatParam = buildMsatVariable(paramName, idx);
-                    if (mathsat.api.MSAT_ERROR_TERM(msatParam)) {
-                        throw new UnrecognizedCFAEdgeException(
-                                "ERROR HANDLING FUNCTION CALL: " +
-                                edge.getRawStatement());
-                    }
-                    ssa.setIndex(paramName, idx);
-                    long eq = makeAssignment(msatParam, arg);
-                    term = mathsat.api.msat_make_and(msatEnv, term, eq);
-                }
-            }
-            assert(!mathsat.api.MSAT_ERROR_TERM(term));
-            term = mathsat.api.msat_make_and(msatEnv, m1.getTerm(), term);
-            return new Pair<SymbolicFormula, SSAMap>(
-                    new MathsatSymbolicFormula(term), ssa);
-        }
+    
+    private String getNamespace() {
+        return namespace;
     }
+
+    // TODO for return edge, check later
+//	private PathFormula makeAndExitFunction(
+//			SymbPredAbsAbstractElement element,
+//			SymbPredAbsAbstractElement newElement, CFANode predecessor,
+//			boolean updateSSA, boolean absoluteSSAIndices) {
+//		assert()
+//        IASTExpression retExp = ce.getExpression();
+//        if (retExp instanceof IASTFunctionCallExpression) {
+//            // this should be a void return, just do nothing...
+//            //popNamespace();
+//            return new Pair<SymbolicFormula, SSAMap>(m1, ssa);
+//        } else if (retExp instanceof IASTBinaryExpression) {
+//            IASTBinaryExpression exp = (IASTBinaryExpression)retExp;
+//            assert(exp.getOperator() == IASTBinaryExpression.op_assign);
+//            String retvar = scoped(VAR_RETURN_NAME);
+//            //assert(ssa.getIndex(retvar) < 0);
+//            //popNamespace();
+//            if (!updateSSA) {
+//                SSAMap newssa = new SSAMap();
+//                newssa.copyFrom(ssa);
+//                ssa = newssa;
+//            }
+//            int retidx = ssa.getIndex(retvar);
+//            if (retidx < 0) {
+//                retidx = absoluteSSAIndices ? SSAMap.getNextSSAIndex() : 1;
+//            }
+//            ssa.setIndex(retvar, retidx);
+//            long msatretvar = buildMsatVariable(retvar, retidx);
+//            IASTExpression e = exp.getOperand1();
+//            // TODO - we assume this is an assignment to a plain variable. If
+//            // we want to handle structs, this might not be the case anymore...
+//            assert(e instanceof IASTIdExpression);
+//            setNamespace(ce.getSuccessor().getFunctionName());
+//            String outvar = ((IASTIdExpression)e).getName().getRawSignature();
+//            outvar = scoped(outvar);
+//            int idx = ssa.getIndex(outvar);
+//            if (idx < 0) {
+//                idx = autoInstantiateVar(outvar, ssa);
+//                if (idx == 1) {
+//                    ++idx;
+//                    ssa.setIndex(outvar, idx);
+//                }
+//            } else {
+//                //idx = absoluteSSAIndices ? SSAMap.getNextSSAIndex() : idx+1;
+//                idx = absoluteSSAIndices ? SSAMap.getNextSSAIndex() : 
+//                      getNewIndex(outvar, ssa);
+//                ssa.setIndex(outvar, idx);
+//            }
+//            long msatoutvar = buildMsatVariable(outvar, idx);
+//            long term = makeAssignment(msatoutvar, msatretvar);
+//            term = mathsat.api.msat_make_and(msatEnv, m1.getTerm(), term);
+//            return new Pair<SymbolicFormula, SSAMap>(
+//                    new MathsatSymbolicFormula(term), ssa);
+//        } else {
+//            throw new UnrecognizedCFAEdgeException(
+//                    "UNKNOWN FUNCTION EXIT EXPRESSION: " + 
+//                    ce.getRawStatement());
+//        }
+//    }
+
+    // TODO for function call - check later
+//	private PathFormula makeAndFunctionCall(SymbPredAbsAbstractElement element,
+//			SymbPredAbsAbstractElement newElement, CFANode predecessor,
+//			boolean updateSSA, boolean absoluteSSAIndices) {
+//        if (edge.isExternalCall()) {
+//            throw new UnrecognizedCFAEdgeException(
+//                    "EXTERNAL CALL UNSUPPORTED: " + edge.getRawStatement());
+//        } else {
+//            // build the actual parameters in the caller's context
+//            long[] msatActualParams;
+//            if (edge.getArguments() == null) {
+//                msatActualParams = new long[0];
+//            } else {
+//                msatActualParams = new long[edge.getArguments().length];
+//                IASTExpression[] actualParams = edge.getArguments();
+//                for (int i = 0; i < msatActualParams.length; ++i) {
+//                    msatActualParams[i] = buildMsatTerm(actualParams[i], ssa, 
+//                            absoluteSSAIndices);
+//                    if (mathsat.api.MSAT_ERROR_TERM(msatActualParams[i])) {
+//                        throw new UnrecognizedCFAEdgeException(
+//                                "ERROR CONVERTING: " + edge.getRawStatement());
+//                    }
+//                }
+//            }
+//            // now switch to the context of the function
+//            FunctionDefinitionNode fn = 
+//                (FunctionDefinitionNode)edge.getSuccessor();
+//            setNamespace(fn.getFunctionName());
+//            // create the symbolic vars for the formal parameters
+//            List<IASTParameterDeclaration> formalParams = 
+//                fn.getFunctionParameters();
+//            assert(formalParams.size() == msatActualParams.length);
+//         
+//            int i = 0;
+//            long term = mathsat.api.msat_make_true(msatEnv);
+//            for (IASTParameterDeclaration param : formalParams) {
+//                long arg = msatActualParams[i++];
+//                if (param.getDeclarator().getPointerOperators().length != 0) {
+//                    throw new UnrecognizedCFAEdgeException("SORRY, POINTERS " +
+//                            "NOT HANDLED: " + edge.getRawStatement());
+//                } else {
+//                    String paramName = scoped(FUNCTION_PARAM_NAME + (i-1));
+//                    int idx = ssa.getIndex(paramName);
+//                    if (idx < 0 || absoluteSSAIndices) {
+//                        idx = absoluteSSAIndices ? SSAMap.getNextSSAIndex() : 1;
+//                    } else {
+//                        //idx += 1;
+//                        idx = getNewIndex(paramName, ssa);
+//                    }
+//                    long msatParam = buildMsatVariable(paramName, idx);
+//                    if (mathsat.api.MSAT_ERROR_TERM(msatParam)) {
+//                        throw new UnrecognizedCFAEdgeException(
+//                                "ERROR HANDLING FUNCTION CALL: " +
+//                                edge.getRawStatement());
+//                    }
+//                    ssa.setIndex(paramName, idx);
+//                    long eq = makeAssignment(msatParam, arg);
+//                    term = mathsat.api.msat_make_and(msatEnv, term, eq);
+//                }
+//            }
+//            assert(!mathsat.api.MSAT_ERROR_TERM(term));
+//            term = mathsat.api.msat_make_and(msatEnv, m1.getTerm(), term);
+//            return new Pair<SymbolicFormula, SSAMap>(
+//                    new MathsatSymbolicFormula(term), ssa);
+//        }
+//    }
 
 	private PathFormula makeAndAssume(SymbPredAbsAbstractElement element,
-			SymbPredAbsAbstractElement newElement, CFANode predecessor,
-			boolean updateSSA, boolean absoluteSSAIndices) {
-        MathsatSymbolicFormula f2 = buildFormulaPredicate(
-                assume.getExpression(), assume.getTruthAssumption(), ssa, 
+			SymbPredAbsAbstractElement newElement, AssumeEdge edge,
+			boolean updateSSA, boolean absoluteSSAIndices) throws SymbPredAbstTransferException {
+		// TODO check
+		SSAMap ssa = element.getPathFormula().getSsa();
+        MathsatSymbolicFormula f2 = mathsatFormMan.buildFormulaPredicate(
+        		edge.getExpression(), edge.getTruthAssumption(), ssa, 
                 absoluteSSAIndices);
         if (f2 == null) {
-            throw new UnrecognizedCFAEdgeException("ASSUME: " + 
-                    assume.getRawStatement());
+            throw new SymbPredAbstTransferException("ASSUME: " + 
+                    edge.getRawStatement());
         } else {
-            long res = mathsat.api.msat_make_and(msatEnv, f1.getTerm(),
+        	// TODO check next two lines
+        	MathsatSymbolicFormula form =  (MathsatSymbolicFormula)element.getPathFormula().getSymbolicFormula();
+            long res = mathsat.api.msat_make_and(mathsatFormMan.getMsatEnv(), //f1.getTerm(),
+            		form.getTerm(),
                     f2.getTerm());
-            return new Pair<SymbolicFormula, SSAMap>(
-                    new MathsatSymbolicFormula(res), ssa);
+            //return new Pair<SymbolicFormula, SSAMap>(new MathsatSymbolicFormula(res), ssa);
+            return new PathFormula(new MathsatSymbolicFormula(res), ssa);
         }
     }
 
 	private PathFormula makeAndStatement(SymbPredAbsAbstractElement element,
-			SymbPredAbsAbstractElement newElement, CFANode predecessor,
-			boolean updateSSA, boolean absoluteSSAIndices) {
-
-        IASTExpression expr = stmt.getExpression();
+			SymbPredAbsAbstractElement newElement, StatementEdge statementEdge,
+			boolean updateSSA, boolean absoluteSSAIndices) throws SymbPredAbstTransferException {
+		// TODO check this
+		SSAMap ssa = element.getPathFormula().getSsa();
+        IASTExpression expr = statementEdge.getExpression();
         if (!updateSSA && needsSSAUpdate(expr)) {
             SSAMap ssa2 = new SSAMap();
             for (String key : ssa.allVariables()) {
@@ -660,17 +695,46 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
             }
             ssa = ssa2;
         }
-        long f2 = buildMsatTerm(expr, ssa, absoluteSSAIndices);
+        long f2 = mathsatFormMan.buildMsatTerm(expr, ssa, absoluteSSAIndices);
 
         if (!mathsat.api.MSAT_ERROR_TERM(f2)) {
-            long a = mathsat.api.msat_make_and(msatEnv, f1.getTerm(), f2);
-            return new Pair<SymbolicFormula, SSAMap>(
-                    new MathsatSymbolicFormula(a), ssa);
+        	// TODO check
+        	MathsatSymbolicFormula form = (MathsatSymbolicFormula)element.getPathFormula().getSymbolicFormula();
+            long a = mathsat.api.msat_make_and(mathsatFormMan.getMsatEnv(), form.getTerm(), f2);
+//            return new Pair<SymbolicFormula, SSAMap>(
+//                    new MathsatSymbolicFormula(a), ssa);
+            // TODO check
+            return new PathFormula(new MathsatSymbolicFormula(a), ssa);
         } else {
-            throw new UnrecognizedCFAEdgeException("STATEMENT: " +
-                    stmt.getRawStatement());
+            throw new SymbPredAbstTransferException("STATEMENT: " +
+                    statementEdge.getRawStatement());
         }
 	}
+	
+    /*
+     * checks whether the given expression is going to modify the SSAMap. If
+     * not, we can avoid copying it
+     */ 
+    private boolean needsSSAUpdate(IASTExpression expr) {
+        if (expr instanceof IASTUnaryExpression) {
+            switch (((IASTUnaryExpression)expr).getOperator()) {
+            case IASTUnaryExpression.op_postFixIncr:
+            case IASTUnaryExpression.op_prefixIncr: 
+            case IASTUnaryExpression.op_postFixDecr:
+            case IASTUnaryExpression.op_prefixDecr: 
+                return true;
+            }
+        } else if (expr instanceof IASTBinaryExpression) {
+            switch (((IASTBinaryExpression)expr).getOperator()) {
+            case IASTBinaryExpression.op_assign: 
+            case IASTBinaryExpression.op_plusAssign:
+            case IASTBinaryExpression.op_minusAssign:
+            case IASTBinaryExpression.op_multiplyAssign:
+                return true;
+            }
+        }
+        return false;
+    }
 
 	private PathFormula makeAndReturn(SymbPredAbsAbstractElement element,
 			SymbPredAbsAbstractElement newElement, CFANode predecessor,
