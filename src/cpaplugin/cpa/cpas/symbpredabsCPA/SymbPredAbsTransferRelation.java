@@ -111,20 +111,23 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 	// TODO maybe we shold move these into CPA later
 	// associate a Mathsat Formula Manager with the transfer relation
 	private MathsatSymbPredAbsFormulaManager mathsatFormMan;
+	private SymbAbsBDDMathsatAbstractFormulaManager bddMathsatMan;
 
 	// a namespace to have a unique name for each variable in the program.
 	// Whenever we enter a function, we push its name as namespace. Each
 	// variable will be instantiated inside mathsat as namespace::variable
-	// TODO
 	// private Stack<String> namespaces;
-	// private String namespace;
-	// global variables (do not live in any namespace)
 	// TODO
-	// private Set<String> globalVars;
+	private String namespace;
+	// global variables (do not live in any namespace)
+	private Set<String> globalVars;
 
 	public SymbPredAbsTransferRelation(SymbPredAbsAbstractDomain d) {
 		domain = d;
 		mathsatFormMan = new MathsatSymbPredAbsFormulaManager();
+		bddMathsatMan = new SymbAbsBDDMathsatAbstractFormulaManager();
+		setNamespace("");
+        globalVars = new HashSet<String>();
 		// abstractTree = new ART();
 	}
 
@@ -523,7 +526,8 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 		}
 
 		case MultiDeclarationEdge: {
-			break;
+			throw new SymbPredAbstTransferException("MULTI DECL: "
+					+ edge.getRawStatement());
 		}
 		}
 
@@ -541,9 +545,13 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 		}
 	}
 
-	private String getNamespace() {
-		return namespace;
-	}
+	private void setNamespace(String ns) {
+        namespace = ns;
+    }
+    
+    private String getNamespace() {
+        return namespace;
+    }
 
 	// TODO for return edge, check later
 	// private PathFormula makeAndExitFunction(
@@ -869,12 +877,12 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 		long absEnv = mathsat.api.msat_create_shared_env(msatEnv);
 
 		// first, build the concrete representation of the abstract formula of e
-		AbstractFormula abs = e.getAbstraction();
+		AbstractFormula abs = element.getAbstraction();
 		MathsatSymbolicFormula fabs =
 			// TODO check
 			(MathsatSymbolicFormula) mathsatFormMan.instantiate(
 					// TODO check
-					toConcrete(/* mmgr */mathsatFormMan, abs), null);
+					bddMathsatMan.toConcrete(/* mmgr */mathsatFormMan, abs), null);
 
 		// TODO function exit
 		// if (isFunctionExit(e)) {
