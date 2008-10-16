@@ -865,12 +865,37 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 	// new MathsatSymbolicFormula(term), ssa);
 	// }
 
-	private SymbPredAbsAbstractElement handleAbstractionLocation(
+	private void handleAbstractionLocation(
 			SymbPredAbsAbstractElement element,
 			SymbPredAbsAbstractElement newElement, CFAEdge edge) {
 
 		long startTime = System.currentTimeMillis();
 
+		// update the abstract element
+		// get the successor node
+		CFANode succLocation = edge.getSuccessor();
+		// successor node is now the abstraction location
+		CFANode abstractionLoc = succLocation;
+		SymbPredAbsAbstractElement parent = element;
+		// TODO check this (false, false is used when constructing pf for
+		// summary nodes)
+		// path formula is set to TRUE
+		// TODO update mgr and ssa - do we create a new ssamap or do
+		// we update the ssamap from the previous element
+		PathFormula pf = new PathFormula(mgr.makeTrue(), ssamap)
+		newElement.setLocation(succLocation);
+		newElement.setAbstractionLocation(abstractionLoc);
+		// TODO that we will do at the end
+		//newElement.setAbstraction(abst);
+		newElement.setParent(parent);
+		newElement.setPathFormula(pf);
+		// TODO what about predicates?
+//		PredicateMap pmap = element.getPredicates();
+//		newElement.setPredicates(pmap);
+		
+		// we will update this in this method
+		AbstractFormula abstraction;
+		
 		// TODO check
 		// long msatEnv = mmgr.getMsatEnv();
 		long msatEnv = mathsatFormMan.getMsatEnv();
@@ -925,7 +950,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 		// TODO check
 		// Pair<SymbolicFormula, SSAMap> pc =
 		// buildConcreteFormula(mmgr, e, succ, false);
-		PathFormula pc = buildSuccessor(mathsatFormMan, element, newElement,
+		PathFormula pc = buildConcreteFormula(mathsatFormMan, element, newElement,
 				false);
 		// SymbolicFormula f = pc.getFirst();
 		// SSAMap ssa = pc.getSecond();
@@ -1086,7 +1111,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 	// attached to the edge connecting "e" and "succ", but in our case this is
 	// actually a loop-free subgraph of the original CFA
 	private PathFormula buildConcreteFormula(MathsatSummaryFormulaManager mgr,
-			SummaryAbstractElement e, SummaryAbstractElement succ,
+			SymbPredAbsAbstractElement e, SymbPredAbsAbstractElement succ,
 			boolean replaceAssignments) {
 		// first, get all the paths in e that lead to succ
 		Collection<Pair<SymbolicFormula, SSAMap>> relevantPaths = new Vector<Pair<SymbolicFormula, SSAMap>>();
