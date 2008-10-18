@@ -156,16 +156,23 @@ public class BDDMathsatSummaryAbstractManager extends
     private AbstractFormula buildBooleanAbstraction(SummaryFormulaManager mgr,
             SummaryAbstractElement e, SummaryAbstractElement succ, 
             Collection<Predicate> predicates) {
+    	// A SummaryFormulaManager for MathSAT formulas
         MathsatSummaryFormulaManager mmgr = (MathsatSummaryFormulaManager)mgr;
         
         long startTime = System.currentTimeMillis();
         
+        // get the environment from the manager - this is unique, it is the
+        // environment in which all terms are created
         long msatEnv = mmgr.getMsatEnv();       
         //long absEnv = mathsat.api.msat_create_env();
         long absEnv = mathsat.api.msat_create_shared_env(msatEnv);
         
         // first, build the concrete representation of the abstract formula of e
+        // this is an abstract formula - specifically it is a bddabstractformula
+        // which is basically an integer which represents it
         AbstractFormula abs = e.getAbstraction();
+        // create the concrete form of the abstract formula 
+        // (abstract formula is the bdd representation)
         MathsatSymbolicFormula fabs = 
             (MathsatSymbolicFormula)mmgr.instantiate(
                     toConcrete(mmgr, abs), null);
@@ -193,6 +200,7 @@ public class BDDMathsatSummaryAbstractManager extends
             }
         }
         
+        // create an ssamap from concrete formula
         SSAMap absSsa = mmgr.extractSSA(fabs);
        
         SymbolicFormula f = null;
@@ -205,6 +213,7 @@ public class BDDMathsatSummaryAbstractManager extends
             f = pc.getFirst();
             ssa = pc.getSecond();
         } else {
+        	// take all outgoing edges from e to succ and OR them
             Pair<SymbolicFormula, SSAMap> pc = 
                 buildConcreteFormula(mmgr, e, succ, false);
 //            SymbolicFormula f = pc.getFirst();
