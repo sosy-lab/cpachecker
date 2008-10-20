@@ -3,7 +3,7 @@ Bundle-ManifestVersion: 2
 Bundle-Name: CPAPlugin Plug-in
 Bundle-SymbolicName: CPAPlugin; singleton:=true
 Bundle-Version: 1.0.0
-Bundle-Activator: cpaplugin.Activator
+Bundle-Activator: cpaplugin.PreferencesActivator
 Require-Bundle: org.eclipse.ui,
  org.eclipse.core.runtime,
  org.eclipse.core.resources,
@@ -73,6 +73,7 @@ Export-Package: cpaplugin;uses:="org.eclipse.jface.resource,org.eclipse.ui.plugi
    cpaplugin.cpa.common.interfaces",
  cpaplugin.exceptions,
  cpaplugin.logging,
+ cpaplugin.preferences,
  jdd,
  jdd.bdd;uses:="jdd.bdd.debug,jdd.util",
  jdd.bdd.debug;uses:="jdd.bdd",
@@ -87,7 +88,7 @@ Export-Package: cpaplugin;uses:="org.eclipse.jface.resource,org.eclipse.ui.plugi
  net.sf.javabdd;uses:="jdd.bdd,new net.sf.javabdd",
  octagon;uses:="cpaplugin.cpa.cpas.octagon,cpaplugin.cpa.common.interfaces",
  predicateabstraction
-Bundle-ClassPath: lib/javabdd-1.0b2.jar,
+Bundle-ClassPath: bin/,
+ lib/javabdd-1.0b2.jar,
  lib/mathsat.jar,
- lib/minijdd_103.jar,
- bin/
+ lib/minijdd_103.jar

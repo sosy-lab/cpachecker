@@ -17,6 +17,38 @@
       [Enter License Description here.]
    </license>
 
+   <requires>
+      <import plugin="org.eclipse.ui"/>
+      <import plugin="org.eclipse.core.runtime"/>
+      <import plugin="org.eclipse.core.resources"/>
+      <import plugin="org.eclipse.cdt"/>
+      <import plugin="org.eclipse.cdt.core.parser.c99"/>
+      <import plugin="org.eclipse.cdt.core.parser.upc"/>
+      <import plugin="org.eclipse.cdt.debug.core"/>
+      <import plugin="org.eclipse.cdt.debug.gdbjtag"/>
+      <import plugin="org.eclipse.cdt.debug.gdbjtag.core"/>
+      <import plugin="org.eclipse.cdt.debug.gdbjtag.ui"/>
+      <import plugin="org.eclipse.cdt.debug.mi.core"/>
+      <import plugin="org.eclipse.cdt.debug.mi.ui"/>
+      <import plugin="org.eclipse.cdt.debug.ui"/>
+      <import plugin="org.eclipse.cdt.doc.isv"/>
+      <import plugin="org.eclipse.cdt.doc.user"/>
+      <import plugin="org.eclipse.cdt.errorparsers.xlc"/>
+      <import plugin="org.eclipse.cdt.launch"/>
+      <import plugin="org.eclipse.cdt.make.core"/>
+      <import plugin="org.eclipse.cdt.make.ui"/>
+      <import plugin="org.eclipse.cdt.managedbuilder.core"/>
+      <import plugin="org.eclipse.cdt.managedbuilder.gnu.ui"/>
+      <import plugin="org.eclipse.cdt.managedbuilder.ui"/>
+      <import plugin="org.eclipse.cdt.managedbuilder.xlc.ui"/>
+      <import plugin="org.eclipse.cdt.refactoring"/>
+      <import plugin="org.eclipse.cdt.sdk"/>
+      <import plugin="org.eclipse.cdt.source"/>
+      <import plugin="org.eclipse.cdt.ui"/>
+      <import plugin="org.eclipse.cdt.core"/>
+      <import plugin="org.eclipse.ui.console"/>
+   </requires>
+
    <plugin
          id="CPAPlugin"
          download-size="0"

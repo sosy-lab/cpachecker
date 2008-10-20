@@ -53,7 +53,7 @@ public class CPACheckerLogger {
         }
 	
 	public static Logger mainLogger = Logger.getLogger(CPAMain.cpaConfig.getProperty("log.path"));
-
+	private static FileHandler fileHandler = null;
 	public static void init(){
 		// TODO read from config // Array that includes levels to include
 		ArrayList<String> levelList = new ArrayList<String>();
@@ -62,7 +62,7 @@ public class CPACheckerLogger {
 		levelList.add("SpecificCPALevel");
 //		levelList.add("ExternalToolLevel");
 		CustomLogLevel.initializeLevels(levelList);
-
+		/*
 		FileWriter writer;
 	    try {
 	      writer = new FileWriter("/tmp/myFile.txt");
@@ -72,8 +72,9 @@ public class CPACheckerLogger {
 	      // TODO Auto-generated catch block
 	      e.printStackTrace();
 	    }
+	    */
 		try {
-			FileHandler fileHandler = new FileHandler(CPAMain.cpaConfig.getProperty("log.path"));
+			fileHandler = new FileHandler(CPAMain.cpaConfig.getProperty("log.path"), true);
 			Formatter formatter = new SimpleFormatter();
 			fileHandler.setFormatter(formatter);
 			mainLogger.addHandler(fileHandler);
@@ -96,6 +97,12 @@ public class CPACheckerLogger {
 	
 	public static int getLevel() {
 	    return mainLogger.getLevel().intValue();
+	}
+	public static void clear()
+	{
+		mainLogger.removeHandler(fileHandler);
+		if(fileHandler != null)
+			fileHandler.close();
 	}
 	
 }

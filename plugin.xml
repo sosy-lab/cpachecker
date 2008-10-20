@@ -26,5 +26,19 @@
          </action>
       </actionSet>
    </extension>
+   <extension
+         point="org.eclipse.ui.preferencePages">
+      <page
+            name="CPAPlugin"
+            class="cpaplugin.preferences.CPAPreferencePage"
+            id="cpaplugin.preferences.CPAPreferencePage">
+      </page>
+   </extension>
+   <extension
+         point="org.eclipse.core.runtime.preferences">
+      <initializer
+            class="cpaplugin.preferences.PreferenceInitializer">
+      </initializer>
+   </extension>
 
 </plugin>

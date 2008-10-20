@@ -2,11 +2,16 @@ package cpaplugin;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.Properties;
 import java.util.Vector;
+
+import javax.swing.JOptionPane;
+
+import com.sun.org.apache.xalan.internal.xsltc.compiler.Pattern;
 
 /**
  * CPA Checker properties file. Processes the properties file and save them as strings.
@@ -20,7 +25,7 @@ public class CPAConfiguration extends Properties{
 
     private static final long serialVersionUID = -5910186668866464153L;
     private String fileName;
-
+    public boolean validConfig = true;
     /** Delimiters to create string arrays */
     static final String DELIMS = "[;, ]+";
 
@@ -35,7 +40,7 @@ public class CPAConfiguration extends Properties{
         // get the file name
         loadFileName(args);
         // load the file
-        loadFile(this.fileName);
+        validConfig = loadFile(this.fileName);
         // if there are some commandline arguments, process them
         if (args != null){
             try {
@@ -186,17 +191,24 @@ public class CPAConfiguration extends Properties{
             // first, try to load from a file
             File f = new File(fileName);
             if (!f.exists()) {
+            	String path = cpaplugin.PreferencesActivator.getDefault().getPreferenceStore().getString(cpaplugin.preferences.PreferenceConstants.P_PATH);
+            	if(path.endsWith(".properties") == false)
+            		return false;
+            	f = new File(path);
             }
-            if (f.exists()) {
-                is = new FileInputStream(f);
-            }
-            if (is != null) {
-                load(is);
-                return true;
-            }
-        } catch (IOException iex) {
+	            if (f.exists()) {
+	                is = new FileInputStream(f);
+	            }
+	            if (is != null) {
+	                load(is);
+	                return true;
+	            }
+        } catch (IOException iex) 
+        {
+        	
             return false;
         }
+        JOptionPane.showMessageDialog(null, "Could not find default.properties, set path in window>preferences>CPAPlugin", "Missing Default Properties", JOptionPane.ERROR_MESSAGE);
         return false;
     }
 
@@ -257,3 +269,4 @@ public class CPAConfiguration extends Properties{
         }
     }
 }
+

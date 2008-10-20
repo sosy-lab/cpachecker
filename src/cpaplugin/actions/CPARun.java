@@ -52,9 +52,10 @@ public class CPARun implements IWorkbenchWindowActionDelegate
 			errStream.setColor(new org.eclipse.swt.graphics.Color(Display.getDefault(), 255,0,0));
 			System.setOut(new PrintStream(outStream));
 			System.setErr(new PrintStream(errStream));
-			CPACheckerLogger.init();
 			init = true;
 		}
+		CPACheckerLogger.clear();
+		CPACheckerLogger.init();
 		return;
 	}
 	private MessageConsole findConsole(String name) {
@@ -80,10 +81,13 @@ public class CPARun implements IWorkbenchWindowActionDelegate
 		numberOfRuns++;
 	    String s[] = {};
 	    CPAMain.cpaConfig = new CPAConfiguration(s);
+	    if(!CPAMain.cpaConfig.validConfig)
+	    {
+	    	return;
+	    }
 	    //Lets set up a console to write to
 	    init();
 		MessageConsole myConsole = findConsole("CPACHECKER");
-		
 		CPACheckerLogger.log(CustomLogLevel.INFO, "Run #: " + numberOfRuns);
 		CPACheckerLogger.log(CustomLogLevel.INFO, "Program Started");
 		
