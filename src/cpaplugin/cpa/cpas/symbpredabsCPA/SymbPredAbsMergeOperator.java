@@ -23,6 +23,12 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
         return domain;
     }
 
+    buralari hep bir kodla donat
+    // if (not abstraction location)
+    //    merge two path formulas
+    // if (abstraction location)
+    //    do not merge if pf is not updated
+    //    
     
     public AbstractElement merge(AbstractElement element1,
                                  AbstractElement element2) {

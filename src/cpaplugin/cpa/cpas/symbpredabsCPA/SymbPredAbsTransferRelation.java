@@ -305,7 +305,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 		}
 	}
 
-	
+	// TODO implement support for pfParents
 	private void handleNonAbstractionLocation(
 			SymbPredAbsAbstractElement element,
 			SymbPredAbsAbstractElement newElement, CFAEdge edge)
@@ -869,8 +869,9 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 			SymbPredAbsAbstractElement element,
 			SymbPredAbsAbstractElement newElement, CFAEdge edge) {
 
-		long startTime = System.currentTimeMillis();
-
+		// if all nodes are processed go to abstraction phase
+		// if not 
+		
 		// update the abstract element
 		// get the successor node
 		CFANode succLocation = edge.getSuccessor();

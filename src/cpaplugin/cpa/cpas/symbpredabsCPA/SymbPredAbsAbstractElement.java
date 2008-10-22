@@ -1,10 +1,14 @@
 package cpaplugin.cpa.cpas.symbpredabsCPA;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+
+import symbpredabstraction.AbstractFormula;
 import symbpredabstraction.PathFormula;
+import symbpredabstraction.PredicateMap;
 import cpaplugin.cfa.objectmodel.CFANode;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.AbstractElementWithLocation;
-import symbpredabstraction.*;
 
 /**
  * AbstractElement for symbolic lazy abstraction with summaries
@@ -20,6 +24,10 @@ implements AbstractElement, AbstractElementWithLocation {
 	private CFANode abstractionLocation;
 	/** the path formula from the abstraction location to this node */
 	private PathFormula pathFormula;
+	/** predecessor nodes used so far to construct the path formula*/
+	// used only at abstraction locations currently
+	// we can make use of this if we want to get rid of extra work for calculating pf
+	private HashMap<Integer, PathFormula> pfParents;
 	/** the abstraction which is updated only on abstraction locations */
 	private AbstractFormula abstraction;
 	/** parent of this element on ART */
@@ -82,6 +90,7 @@ implements AbstractElement, AbstractElementWithLocation {
 		pathFormula = pf;
 		parent = p;
 		predicates = pmap;
+		pfParents = new HashMap<Integer, PathFormula>();
 //		context = null;
 //		ownsContext = true;
 	}
