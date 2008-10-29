@@ -3,6 +3,7 @@ package symbpredabstraction;
 import java.util.Collection;
 
 import cpaplugin.cfa.objectmodel.CFAEdge;
+import cpaplugin.exceptions.UnrecognizedCFAEdgeException;
 
 /**
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
@@ -39,7 +40,7 @@ public interface SymbolicFormulaManager {
      *                           for each var
      * @return The formula (f1 & e), and the new/updated SSAMap
      */
-    public Pair<SymbolicFormula, SSAMap> makeAnd(SymbolicFormula f1, CFAEdge e, 
+    public PathFormula makeAnd(SymbolicFormula f1, CFAEdge e, 
                                                  SSAMap ssa, boolean updateSSA, 
                                                  boolean absoluteSSAIndices)
         throws UnrecognizedCFAEdgeException;
@@ -104,7 +105,7 @@ public interface SymbolicFormulaManager {
      * @param ssa the SSAMap to use for shifting
      * @return the shifted formula and the new SSA map
      */
-    public Pair<SymbolicFormula, SSAMap> shift(SymbolicFormula f, SSAMap ssa);
+    public PathFormula shift(SymbolicFormula f, SSAMap ssa);
     
     /**
      * Extracts the atoms from the given formula. If uninstantiate is true, 

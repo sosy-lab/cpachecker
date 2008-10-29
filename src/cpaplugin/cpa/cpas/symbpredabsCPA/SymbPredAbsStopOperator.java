@@ -2,8 +2,6 @@ package cpaplugin.cpa.cpas.symbpredabsCPA;
 
 import java.util.Collection;
 
-import symbpredabstraction.SymbPredAbsAbstractFormulaManager;
-
 import cpaplugin.cpa.common.interfaces.AbstractDomain;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.StopOperator;

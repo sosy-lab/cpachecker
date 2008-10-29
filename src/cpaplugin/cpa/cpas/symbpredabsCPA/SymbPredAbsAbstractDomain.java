@@ -6,8 +6,8 @@ import cpaplugin.cpa.common.interfaces.BottomElement;
 import cpaplugin.cpa.common.interfaces.JoinOperator;
 import cpaplugin.cpa.common.interfaces.PreOrder;
 import cpaplugin.cpa.common.interfaces.TopElement;
-import cpaplugin.cpa.cpas.symbpredabs.AbstractFormulaManager;
 import cpaplugin.exceptions.CPAException;
+import symbpredabstraction.*;
 
 
 /** 

@@ -12,12 +12,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-import symbpredabstraction.FixedPredicateMap;
-import symbpredabstraction.PathFormula;
-import symbpredabstraction.Predicate;
-import symbpredabstraction.PredicateMap;
-import symbpredabstraction.SSAMap;
-import symbpredabstraction.UpdateablePredicateMap;
+import symbpredabstraction.*;
 import cpaplugin.CPAStatistics;
 import cpaplugin.cfa.objectmodel.CFAFunctionDefinitionNode;
 import cpaplugin.cfa.objectmodel.CFANode;
@@ -28,7 +23,6 @@ import cpaplugin.cpa.common.interfaces.ConfigurableProblemAnalysis;
 import cpaplugin.cpa.common.interfaces.MergeOperator;
 import cpaplugin.cpa.common.interfaces.StopOperator;
 import cpaplugin.cpa.common.interfaces.TransferRelation;
-import cpaplugin.cpa.cpas.symbpredabs.mathsat.MathsatPredicateParser;
 import cpaplugin.logging.CustomLogLevel;
 import cpaplugin.logging.LazyLogger;
 
@@ -44,48 +38,50 @@ public class SymbPredAbsCPA implements ConfigurableProblemAnalysis {
     private SymbPredAbsMergeOperator merge;
     private SymbPredAbsStopOperator stop;
     private SymbPredAbsTransferRelation trans;
-    private MathsatSymbPredAbsFormulaManager mgr;
+//    private MathsatSymbPredAbsFormulaManager mgr;
     private BDDMathsatSymbPredAbsAbstractManager amgr;
     private PredicateMap pmap;
     private Map<SymbPredAbsAbstractElement, Set<SymbPredAbsAbstractElement>> covers;
     
-    private SymbPredAbsCPAStatistics stats;
+//    private SymbPredAbsCPAStatistics stats;
     
     private SymbPredAbsCPA() {
         domain = new SymbPredAbsAbstractDomain(this);
         merge = new SymbPredAbsMergeOperator(domain);
         stop = new SymbPredAbsStopOperator(domain);
         trans = new SymbPredAbsTransferRelation(domain);
-        mgr = new MathsatSymbPredAbsFormulaManager();
-        amgr = new BDDMathsatSymbPredAbsAbstractManager();
+//        mgr = new MathsatSymbPredAbsFormulaManager();
+//        amgr = new BDDMathsatSymbPredAbsAbstractManager();
         covers = new HashMap<SymbPredAbsAbstractElement, 
                              Set<SymbPredAbsAbstractElement>>();
 
         // for testing purposes, it's nice to be able to use a given set of
         // predicates and disable refinement
-        if (CPAMain.cpaConfig.getBooleanValue(
-        "cpas.symbpredabs.abstraction.norefinement")) {
-            MathsatPredicateParser p = new MathsatPredicateParser(mgr, amgr);
-            Collection<Predicate> preds = null;
-            try {
-                String pth = CPAMain.cpaConfig.getProperty("predicates.path");
-                File f = new File(pth, "predicates.msat");
-                InputStream in = new FileInputStream(f);
-                preds = p.parsePredicates(in);
-            } catch (IOException e) {
-                e.printStackTrace();
-                preds = new Vector<Predicate>();
-            }
-            pmap = new FixedPredicateMap(preds);
-        } else {
-            pmap = new UpdateablePredicateMap();
-        }
+        // TODO enable later
+//        if (CPAMain.cpaConfig.getBooleanValue(
+//        "cpas.symbpredabs.abstraction.norefinement")) {
+//            MathsatPredicateParser p = new MathsatPredicateParser(mgr, amgr);
+//            Collection<Predicate> preds = null;
+//            try {
+//                String pth = CPAMain.cpaConfig.getProperty("predicates.path");
+//                File f = new File(pth, "predicates.msat");
+//                InputStream in = new FileInputStream(f);
+//                preds = p.parsePredicates(in);
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//                preds = new Vector<Predicate>();
+//            }
+//            pmap = new FixedPredicateMap(preds);
+//        } else {
+//            pmap = new UpdateablePredicateMap();
+//        }
         
 //        summaryToFormulaMap = 
 //            new HashMap<SymbPredAbsCFANode, 
 //                        Map<CFANode, Pair<SymbolicFormula, SSAMap>>>();
         
-        stats = new SymbPredAbsCPAStatistics(this);
+        // TODO later
+//        stats = new SymbPredAbsCPAStatistics(this);
     }
     
     /**
@@ -98,9 +94,10 @@ public class SymbPredAbsCPA implements ConfigurableProblemAnalysis {
         this();
     }
     
-    public CPAStatistics getStatistics() {
-        return stats;
-    }
+    // TODO later
+//    public CPAStatistics getStatistics() {
+//        return stats;
+//    }
     
     @Override
     public AbstractDomain getAbstractDomain() {

@@ -1,7 +1,7 @@
 package cpaplugin.cpa.cpas.symbpredabsCPA;
 
-import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 import symbpredabstraction.AbstractFormula;
 import symbpredabstraction.PathFormula;
@@ -24,14 +24,13 @@ implements AbstractElement, AbstractElementWithLocation {
 	private CFANode abstractionLocation;
 	/** the path formula from the abstraction location to this node */
 	private PathFormula pathFormula;
-	/** predecessor nodes used so far to construct the path formula*/
-	// used only at abstraction locations currently
-	// we can make use of this if we want to get rid of extra work for calculating pf
-	private HashMap<Integer, PathFormula> pfParents;
+	/** initial abstraction values*/
+	// updated only at abstraction locations currently
+	private HashMap<Integer, PathFormula> initAbstractionSet;
 	/** the abstraction which is updated only on abstraction locations */
 	private AbstractFormula abstraction;
-	/** parent of this element on ART */
-	private SymbPredAbsAbstractElement parent;
+	/** parents of this element */
+	private List<Integer> parents;
 	/** predicate list for this element*/
     private PredicateMap predicates;
 	
@@ -65,12 +64,12 @@ implements AbstractElement, AbstractElementWithLocation {
 		pathFormula = pf;
 	}
 
-	public SymbPredAbsAbstractElement getParent() { 
-		return parent; 
+	public List<Integer> getParents() { 
+		return parents; 
 	}
 	
-	public void setParent(SymbPredAbsAbstractElement p) { 
-		parent = p;
+	public void addParent(Integer i) { 
+		parents.add(i);
 	}
 	
 	public CFANode getAbstractionLocation(){
@@ -83,14 +82,14 @@ implements AbstractElement, AbstractElementWithLocation {
 
 	public SymbPredAbsAbstractElement(CFANode CFALoc, CFANode abstLoc, 
 			PathFormula pf, AbstractFormula a, 
-			SymbPredAbsAbstractElement p, PredicateMap pmap) {
+			List<Integer> p, PredicateMap pmap) {
 		CFALocation = CFALoc;
 		abstractionLocation = abstLoc;
 		abstraction = a;
 		pathFormula = pf;
-		parent = p;
+		parents = p;
 		predicates = pmap;
-		pfParents = new HashMap<Integer, PathFormula>();
+		initAbstractionSet = new HashMap<Integer, PathFormula>();
 //		context = null;
 //		ownsContext = true;
 	}
@@ -213,12 +212,26 @@ implements AbstractElement, AbstractElementWithLocation {
 		return true;
 	}
 **/
-	public boolean isDescendant(SymbPredAbsAbstractElement c) {
-		SymbPredAbsAbstractElement a = this;
-		while (a != null) {
-			if (a.equals(c)) return true;
-			a = a.getParent();
-		}
-		return false;
+	// TODO enable this later
+//	public boolean isDescendant(SymbPredAbsAbstractElement c) {
+//		SymbPredAbsAbstractElement a = this;
+//		while (a != null) {
+//			if (a.equals(c)) return true;
+//			a = a.getParent();
+//		}
+//		return false;
+//	}
+
+	public void setParents(List<Integer> parents2) {
+		parents = parents2;
+	}
+
+	public HashMap<Integer, PathFormula> getInitAbstractionSet() {
+		return initAbstractionSet;
+	}
+
+	public void setInitAbstractionSet(
+			HashMap<Integer, PathFormula> initAbstractionSet) {
+		this.initAbstractionSet = initAbstractionSet;
 	}
 }
