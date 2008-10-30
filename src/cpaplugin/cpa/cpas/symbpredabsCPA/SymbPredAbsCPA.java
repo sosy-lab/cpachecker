@@ -38,7 +38,7 @@ public class SymbPredAbsCPA implements ConfigurableProblemAnalysis {
     private SymbPredAbsMergeOperator merge;
     private SymbPredAbsStopOperator stop;
     private SymbPredAbsTransferRelation trans;
-//    private MathsatSymbPredAbsFormulaManager mgr;
+    private MathsatSymbPredAbsFormulaManager mgr;
     private BDDMathsatSymbPredAbsAbstractManager amgr;
     private PredicateMap pmap;
     private Map<SymbPredAbsAbstractElement, Set<SymbPredAbsAbstractElement>> covers;
@@ -111,7 +111,7 @@ public class SymbPredAbsCPA implements ConfigurableProblemAnalysis {
         
         CFANode loc = node;
         SymbPredAbsAbstractElement e = new SymbPredAbsAbstractElement(loc, loc);
-        PathFormula pf = getNewPathFormula(loc);  
+        PathFormula pf = getNewPathFormula();  
         e.setPathFormula(pf);
         e.setAbstraction(amgr.makeTrue());
         // TODO update here
@@ -145,7 +145,7 @@ public class SymbPredAbsCPA implements ConfigurableProblemAnalysis {
         return amgr;
     }
 
-    public SymbPredAbsFormulaManager getFormulaManager() {
+    public SymbolicFormulaManager getFormulaManager() {
         return mgr;
     }
 
@@ -155,7 +155,7 @@ public class SymbPredAbsCPA implements ConfigurableProblemAnalysis {
 
     // builds the path formulas corresponding to the leaves of the inner
     // subgraph of the given summary location
-    public PathFormula getNewPathFormula(CFANode succLoc) {
+    public PathFormula getNewPathFormula() {
     	
     	SSAMap ssamap = new SSAMap();
     	return new PathFormula(mgr.makeTrue(), ssamap);
