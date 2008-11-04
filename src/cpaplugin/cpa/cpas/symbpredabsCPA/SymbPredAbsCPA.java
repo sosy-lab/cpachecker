@@ -111,8 +111,10 @@ public class SymbPredAbsCPA implements ConfigurableProblemAnalysis {
         
         CFANode loc = node;
         SymbPredAbsAbstractElement e = new SymbPredAbsAbstractElement(loc, loc);
+        ParentsList parents = new ParentsList();
         PathFormula pf = getNewPathFormula();  
         e.setPathFormula(pf);
+        e.setParents(parents);
         e.setAbstraction(amgr.makeTrue());
         // TODO update here
         // we can start we initial set of predicated

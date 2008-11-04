@@ -318,7 +318,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 		CFANode abstractionLoc = element.getAbstractionLocation();
 		AbstractFormula abst = element.getAbstraction();
 		PredicateMap pmap = element.getPredicates();
-		List<Integer> parents = element.getParents();
+		ParentsList parents = element.getParents();
 		// TODO check this (false, false is used when constructing pf for
 		// summary nodes)
 		PathFormula pf = null;

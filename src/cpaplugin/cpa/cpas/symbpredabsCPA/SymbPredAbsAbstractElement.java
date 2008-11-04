@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.List;
 
 import symbpredabstraction.AbstractFormula;
+import symbpredabstraction.ParentsList;
 import symbpredabstraction.PathFormula;
 import symbpredabstraction.PredicateMap;
 import cpaplugin.cfa.objectmodel.CFANode;
@@ -30,7 +31,7 @@ implements AbstractElement, AbstractElementWithLocation {
 	/** the abstraction which is updated only on abstraction locations */
 	private AbstractFormula abstraction;
 	/** parents of this element */
-	private List<Integer> parents;
+	private ParentsList parents;
 	/** predicate list for this element*/
     private PredicateMap predicates;
 	
@@ -64,12 +65,12 @@ implements AbstractElement, AbstractElementWithLocation {
 		pathFormula = pf;
 	}
 
-	public List<Integer> getParents() { 
+	public ParentsList getParents() { 
 		return parents; 
 	}
 	
 	public void addParent(Integer i) { 
-		parents.add(i);
+		parents.addToList(i);
 	}
 	
 	public CFANode getAbstractionLocation(){
@@ -82,7 +83,7 @@ implements AbstractElement, AbstractElementWithLocation {
 
 	public SymbPredAbsAbstractElement(CFANode CFALoc, CFANode abstLoc, 
 			PathFormula pf, AbstractFormula a, 
-			List<Integer> p, PredicateMap pmap) {
+			ParentsList p, PredicateMap pmap) {
 		CFALocation = CFALoc;
 		abstractionLocation = abstLoc;
 		abstraction = a;
@@ -222,7 +223,7 @@ implements AbstractElement, AbstractElementWithLocation {
 //		return false;
 //	}
 
-	public void setParents(List<Integer> parents2) {
+	public void setParents(ParentsList parents2) {
 		parents = parents2;
 	}
 
