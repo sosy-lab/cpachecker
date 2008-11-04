@@ -37,6 +37,10 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
     	SymbPredAbsAbstractElement elem2 = (SymbPredAbsAbstractElement)element2;
     	CFANode loc1 = elem1.getLocation();
     	CFANode loc2 = elem2.getLocation();
+    	// TODO later
+    	if(loc1.getNodeNumber() != loc2.getNodeNumber()){
+    		return element2;
+    	}
     	// if elemen1's location is not abstraction location
     	if(!isAbstractionLocation(loc1)){
     		// if elements cannot be merged

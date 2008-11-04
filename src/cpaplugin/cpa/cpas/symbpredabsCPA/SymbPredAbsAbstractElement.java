@@ -10,6 +10,7 @@ import symbpredabstraction.PredicateMap;
 import cpaplugin.cfa.objectmodel.CFANode;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.AbstractElementWithLocation;
+import cpaplugin.cpa.cpas.symbpredabs.SSAMap;
 
 /**
  * AbstractElement for symbolic lazy abstraction with summaries
@@ -34,6 +35,9 @@ implements AbstractElement, AbstractElementWithLocation {
 	private ParentsList parents;
 	/** predicate list for this element*/
     private PredicateMap predicates;
+    
+    // TODO 
+    SSAMap maxIndex;
 	
 	// context is used to deal with function calls/returns
 //	private Stack<Pair<AbstractFormula, SymbPredAbsCFANode>> context;
@@ -91,6 +95,7 @@ implements AbstractElement, AbstractElementWithLocation {
 		parents = p;
 		predicates = pmap;
 		initAbstractionSet = new HashMap<Integer, PathFormula>();
+		maxIndex = new SSAMap();
 //		context = null;
 //		ownsContext = true;
 	}
@@ -119,6 +124,15 @@ implements AbstractElement, AbstractElementWithLocation {
 //	public int hashCode() {
 //	return elemId;
 //	}
+	
+	public void updateMaxIndex(SSAMap ssa) {
+        assert(maxIndex != null);
+        for (String var : ssa.allVariables()) {
+            int i = ssa.getIndex(var);
+            int i2 = maxIndex.getIndex(var);
+            maxIndex.setIndex(var, Math.max(i, i2));
+        }
+    }
 
 	public String toString() {
 		return "SE<" + Integer.toString(
@@ -234,5 +248,13 @@ implements AbstractElement, AbstractElementWithLocation {
 	public void setInitAbstractionSet(
 			HashMap<Integer, PathFormula> initAbstractionSet) {
 		this.initAbstractionSet = initAbstractionSet;
+	}
+
+	public SSAMap getMaxIndex() {
+		return maxIndex;
+	}
+
+	public void setMaxIndex(SSAMap maxIndex) {
+		this.maxIndex = maxIndex;
 	}
 }

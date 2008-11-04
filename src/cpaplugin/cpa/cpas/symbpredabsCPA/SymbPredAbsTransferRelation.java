@@ -23,10 +23,13 @@ import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 
 import symbpredabstraction.AbstractFormula;
+import symbpredabstraction.MathsatSymbPredAbsFormulaManager;
+import symbpredabstraction.ParentsList;
 import symbpredabstraction.PathFormula;
 import symbpredabstraction.Predicate;
 import symbpredabstraction.PredicateMap;
 import symbpredabstraction.SSAMap;
+import symbpredabstraction.SymbolicFormula;
 import cpaplugin.cfa.objectmodel.BlankEdge;
 import cpaplugin.cfa.objectmodel.CFAEdge;
 import cpaplugin.cfa.objectmodel.CFAErrorNode;
@@ -53,7 +56,6 @@ import cpaplugin.exceptions.UnrecognizedCFAEdgeException;
 import cpaplugin.logging.CPACheckerLogger;
 import cpaplugin.logging.CustomLogLevel;
 import cpaplugin.logging.LazyLogger;
-import symbpredabstraction.*;
 
 /**
  * Transfer relation for symbolic lazy abstraction with summaries
@@ -177,6 +179,8 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 		}
 
 		else {
+			// TODO check this
+			// maxIndex = new SSAMap();
 			//handleAbstractionLocation(element, newElement, edge);
 		}
 
@@ -326,6 +330,10 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 			pf = mathsatFormMan.makeAnd(
 					element.getPathFormula().getSymbolicFormula(), 
 					edge, element.getPathFormula().getSsa(), false, false);
+			// TODO check these 3 lines
+			SymbolicFormula t1 = pf.getSymbolicFormula();
+            SSAMap ssa1 = pf.getSsa();
+            updateMaxIndex(ssa1);
 		} catch (UnrecognizedCFAEdgeException e) {
 			e.printStackTrace();
 		}
@@ -355,7 +363,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     private String getNamespace() {
         return namespace;
     }
-
+    
 	// TODO for return edge, check later
 	// private PathFormula makeAndExitFunction(
 	// SymbPredAbsAbstractElement element,
@@ -1044,9 +1052,6 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 	@Override
 	public AbstractElement getAbstractSuccessor(AbstractElement element,
 			CFAEdge cfaEdge) throws CPATransferException {
-		LazyLogger.log(CustomLogLevel.SpecificCPALevel, 
-				"Getting Abstract Successor of element: ", element, 
-				" on edge: ", cfaEdge);
 		// To get the successor, we compute the predicate abstraction of the
 		// formula of element plus all the edges that connect any of the
 		// inner nodes of the summary of element to any inner node of the
@@ -1058,15 +1063,10 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 			CFAEdge edge = src.getLeavingEdge(i);
 			if (edge.equals(cfaEdge)) {
 				AbstractElement ret = buildSuccessor(e, edge);
-
-				LazyLogger.log(CustomLogLevel.SpecificCPALevel, 
-						"Successor is: ", ret);
-
 				// TODO art
 //				if (ret != domain.getBottomElement()) {
 //				abstractTree.addChild(e, ret);
 //				}
-
 				return ret;
 			}
 		}
@@ -1079,8 +1079,6 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 	@Override
 	public List<AbstractElement> getAllAbstractSuccessors(
 			AbstractElement element) throws CPAException, CPATransferException {
-		LazyLogger.log(CustomLogLevel.SpecificCPALevel,
-				"Getting ALL Abstract Successors of element: ", element);
 
 		List<AbstractElement> allSucc = new Vector<AbstractElement>();
 		SymbPredAbsAbstractElement e = (SymbPredAbsAbstractElement) element;

@@ -15,6 +15,7 @@ import cpaplugin.cpa.common.interfaces.ConfigurableProblemAnalysis;
 import cpaplugin.cpa.common.interfaces.MergeOperator;
 import cpaplugin.cpa.common.interfaces.StopOperator;
 import cpaplugin.cpa.common.interfaces.TransferRelation;
+import cpaplugin.cpa.cpas.symbpredabsCPA.SymbPredAbsAbstractElement;
 import cpaplugin.exceptions.CPAException;
 import cpaplugin.logging.CustomLogLevel;
 import cpaplugin.logging.LazyLogger;
@@ -70,6 +71,11 @@ public class CPAAlgorithm
 				LazyLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel,
 						"successor of ", e, " --> ", successor);
 
+				SymbPredAbsAbstractElement symbElem = (SymbPredAbsAbstractElement) successor;
+				System.out.println("==================");
+				System.out.println(symbElem.getLocation().getNodeNumber());
+				System.out.println("formula: " + symbElem.getPathFormula().getSymbolicFormula());
+				System.out.println("===================");
 				// AG as an optimization, we allow the mergeOperator to be null,
 				// as a synonym of a trivial operator that never merges 
 				if (mergeOperator != null) {

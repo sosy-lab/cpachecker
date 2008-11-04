@@ -46,41 +46,42 @@ public class SymbPredAbsStopOperator implements StopOperator {
     
     public boolean stop(AbstractElement element, AbstractElement reachedElement)
             throws CPAException {
-
-    	SymbPredAbsAbstractElement e1 = (SymbPredAbsAbstractElement)element;
-    	SymbPredAbsAbstractElement e2 = (SymbPredAbsAbstractElement)reachedElement;
-        
-        if (e1.getLocation().equals(e2.getLocation())) {
-            LazyLogger.log(LazyLogger.DEBUG_4, 
-                    "Checking Coverage of element: ", element);
-            
-//            if (!e1.sameContext(e2)) {
+    	// TODO later
+    	return false;
+//    	SymbPredAbsAbstractElement e1 = (SymbPredAbsAbstractElement)element;
+//    	SymbPredAbsAbstractElement e2 = (SymbPredAbsAbstractElement)reachedElement;
+//        
+//        if (e1.getLocation().equals(e2.getLocation())) {
+//            LazyLogger.log(LazyLogger.DEBUG_4, 
+//                    "Checking Coverage of element: ", element);
+//            
+////            if (!e1.sameContext(e2)) {
+////                LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+////                               "NO, not covered: context differs");
+////                return false;
+////            }
+//
+//            SymbPredAbsCPA cpa = domain.getCPA();
+//            SymbPredAbsAbstractFormulaManager amgr = cpa.getAbstractFormulaManager();
+//
+//            assert(e1.getAbstraction() != null);
+//            assert(e2.getAbstraction() != null);
+//
+//            boolean ok = amgr.entails(e1.getAbstraction(), e2.getAbstraction());
+//
+//            if (ok) {
 //                LazyLogger.log(CustomLogLevel.SpecificCPALevel,
-//                               "NO, not covered: context differs");
-//                return false;
+//                               "Element: ", element, " COVERED by: ", e2);
+//                cpa.setCoveredBy(e1, e2);
+//            } else {
+//                LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+//                               "NO, not covered");
 //            }
-
-            SymbPredAbsCPA cpa = domain.getCPA();
-            SymbPredAbsAbstractFormulaManager amgr = cpa.getAbstractFormulaManager();
-
-            assert(e1.getAbstraction() != null);
-            assert(e2.getAbstraction() != null);
-
-            boolean ok = amgr.entails(e1.getAbstraction(), e2.getAbstraction());
-
-            if (ok) {
-                LazyLogger.log(CustomLogLevel.SpecificCPALevel,
-                               "Element: ", element, " COVERED by: ", e2);
-                cpa.setCoveredBy(e1, e2);
-            } else {
-                LazyLogger.log(CustomLogLevel.SpecificCPALevel,
-                               "NO, not covered");
-            }
-
-            return ok;
-        } else {
-            return false;
-        }
+//
+//            return ok;
+//        } else {
+//            return false;
+//        }
     }
 
 }
