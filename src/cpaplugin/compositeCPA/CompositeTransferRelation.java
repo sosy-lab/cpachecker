@@ -13,6 +13,7 @@ import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.AbstractElementWithLocation;
 import cpaplugin.cpa.common.interfaces.TransferRelation;
 import cpaplugin.cpa.cpas.location.LocationTransferRelation;
+import cpaplugin.cpa.cpas.symbpredabsCPA.SymbPredAbsAbstractElement;
 import cpaplugin.exceptions.CPAException;
 
 public class CompositeTransferRelation implements TransferRelation{
@@ -41,6 +42,7 @@ public class CompositeTransferRelation implements TransferRelation{
 
 	public AbstractElement getAbstractSuccessor (AbstractElement element, CFAEdge cfaEdge) throws CPATransferException
 	{
+		
 		CompositeElement compositeElement = (CompositeElement) element;
 		List<AbstractElement> inputElements = compositeElement.getElements ();
 		List<AbstractElement> resultingElements = new ArrayList<AbstractElement> ();

@@ -71,13 +71,9 @@ public class CPAAlgorithm
 				LazyLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel,
 						"successor of ", e, " --> ", successor);
 
-				SymbPredAbsAbstractElement symbElem = (SymbPredAbsAbstractElement) successor;
-				System.out.println("==================");
-				System.out.println(symbElem.getLocation().getNodeNumber());
-				System.out.println("formula: " + symbElem.getPathFormula().getSymbolicFormula());
-				System.out.println("===================");
 				// AG as an optimization, we allow the mergeOperator to be null,
-				// as a synonym of a trivial operator that never merges 
+				// as a synonym of a trivial operator that never merges
+				
 				if (mergeOperator != null) {
 					List<AbstractElement> toRemove =
 						new Vector<AbstractElement>();
@@ -98,6 +94,12 @@ public class CPAAlgorithm
 							waitlist.remove(reachedElement);
 							waitlist.add(mergedElement);
 
+							System.out.println("===== removing from waitlist =============");
+							CompositeElement comel = (CompositeElement) reachedElement;
+							SymbPredAbsAbstractElement symbElem = (SymbPredAbsAbstractElement)comel.get(0); 
+							System.out.println("location: " + symbElem.getLocation().getNodeNumber());
+							// System.out.println("formula: " + symbElem.getPathFormula().getSymbolicFormula());
+							System.out.println("===================");
 							toRemove.add(reachedElement);
 							toAdd.add(mergedElement);
 						}
@@ -136,6 +138,7 @@ public class CPAAlgorithm
 							"No need to stop ", successor,
 					" is added to queue");
 					// end to the end
+					
 					waitlist.add (successor);
 					reached.add(successor);
 				}

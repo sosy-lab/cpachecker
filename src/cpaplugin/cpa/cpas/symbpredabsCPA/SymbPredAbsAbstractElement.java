@@ -1,5 +1,6 @@
 package cpaplugin.cpa.cpas.symbpredabsCPA;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
@@ -7,10 +8,11 @@ import symbpredabstraction.AbstractFormula;
 import symbpredabstraction.ParentsList;
 import symbpredabstraction.PathFormula;
 import symbpredabstraction.PredicateMap;
+import symbpredabstraction.SSAMap;
+import symbpredabstraction.SymbolicFormula;
 import cpaplugin.cfa.objectmodel.CFANode;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.AbstractElementWithLocation;
-import cpaplugin.cpa.cpas.symbpredabs.SSAMap;
 
 /**
  * AbstractElement for symbolic lazy abstraction with summaries
@@ -28,17 +30,17 @@ implements AbstractElement, AbstractElementWithLocation {
 	private PathFormula pathFormula;
 	/** initial abstraction values*/
 	// updated only at abstraction locations currently
-	private HashMap<Integer, PathFormula> initAbstractionSet;
+	private List<PathFormula> initAbstractionSet;
 	/** the abstraction which is updated only on abstraction locations */
 	private AbstractFormula abstraction;
 	/** parents of this element */
 	private ParentsList parents;
 	/** predicate list for this element*/
-    private PredicateMap predicates;
-    
-    // TODO 
-    SSAMap maxIndex;
-	
+	private PredicateMap predicates;
+
+	// TODO 
+	SSAMap maxIndex;
+
 	// context is used to deal with function calls/returns
 //	private Stack<Pair<AbstractFormula, SymbPredAbsCFANode>> context;
 //	private boolean ownsContext;
@@ -53,7 +55,7 @@ implements AbstractElement, AbstractElementWithLocation {
 	public PathFormula getPathFormula() { 
 		return pathFormula;
 	}
-	
+
 	public void setLocation(CFANode loc){
 		CFALocation = loc;
 	}
@@ -72,19 +74,22 @@ implements AbstractElement, AbstractElementWithLocation {
 	public ParentsList getParents() { 
 		return parents; 
 	}
-	
+
 	public void addParent(Integer i) { 
 		parents.addToList(i);
 	}
-	
+
 	public CFANode getAbstractionLocation(){
 		return abstractionLocation;
 	}
-	
+
 	public void setAbstractionLocation(CFANode absLoc){
 		abstractionLocation = absLoc;
 	}
 
+	// TODO fix these constructors, check all callers later
+	// when an element for abstraction and non-abstraction location
+	// is created call different constructors 
 	public SymbPredAbsAbstractElement(CFANode CFALoc, CFANode abstLoc, 
 			PathFormula pf, AbstractFormula a, 
 			ParentsList p, PredicateMap pmap) {
@@ -94,7 +99,7 @@ implements AbstractElement, AbstractElementWithLocation {
 		pathFormula = pf;
 		parents = p;
 		predicates = pmap;
-		initAbstractionSet = new HashMap<Integer, PathFormula>();
+		initAbstractionSet = new ArrayList<PathFormula>();
 		maxIndex = new SSAMap();
 //		context = null;
 //		ownsContext = true;
@@ -102,10 +107,6 @@ implements AbstractElement, AbstractElementWithLocation {
 
 	public SymbPredAbsAbstractElement(CFANode loc, CFANode abstLoc) {
 		this(loc, abstLoc, null, null, null, null);
-	}
-	
-	public SymbPredAbsAbstractElement() {
-		this(null, null, null, null, null, null);
 	}
 
 	public boolean equals(Object o) {
@@ -115,7 +116,7 @@ implements AbstractElement, AbstractElementWithLocation {
 			return false;
 		} 
 //		else {
-//			return elemId == ((SymbPredAbsAbstractElement)o).elemId;
+//		return elemId == ((SymbPredAbsAbstractElement)o).elemId;
 //		}
 		// TODO fix this
 		return false;
@@ -124,31 +125,29 @@ implements AbstractElement, AbstractElementWithLocation {
 //	public int hashCode() {
 //	return elemId;
 //	}
-	
+
 	public void updateMaxIndex(SSAMap ssa) {
-        assert(maxIndex != null);
-        for (String var : ssa.allVariables()) {
-            int i = ssa.getIndex(var);
-            int i2 = maxIndex.getIndex(var);
-            maxIndex.setIndex(var, Math.max(i, i2));
-        }
-    }
+		assert(maxIndex != null);
+		for (String var : ssa.allVariables()) {
+			int i = ssa.getIndex(var);
+			int i2 = maxIndex.getIndex(var);
+			maxIndex.setIndex(var, Math.max(i, i2));
+		}
+	}
 
 	public String toString() {
-		return "SE<" + Integer.toString(
-				CFALocation.getNodeNumber()) 
-				//+ ">(" + Integer.toString(getId()) + ")"
-				; 
+		return  "node: " + getLocation().getNodeNumber() + " PF: "+ getPathFormula().getSymbolicFormula();
+		//+ ">(" + Integer.toString(getId()) + ")"
 	}
 
 	public CFANode getLocationNode() {
 		return CFALocation;
 	}
-	
+
 //	public Collection<CFANode> getLeaves() {
-//		assert(pathFormulas != null);
-//
-//		return pathFormulas.keySet();
+//	assert(pathFormulas != null);
+
+//	return pathFormulas.keySet();
 //	}
 
 	public PredicateMap getPredicates() {
@@ -226,28 +225,32 @@ implements AbstractElement, AbstractElementWithLocation {
 		}
 		return true;
 	}
-**/
+	 **/
 	// TODO enable this later
 //	public boolean isDescendant(SymbPredAbsAbstractElement c) {
-//		SymbPredAbsAbstractElement a = this;
-//		while (a != null) {
-//			if (a.equals(c)) return true;
-//			a = a.getParent();
-//		}
-//		return false;
+//	SymbPredAbsAbstractElement a = this;
+//	while (a != null) {
+//	if (a.equals(c)) return true;
+//	a = a.getParent();
+//	}
+//	return false;
 //	}
 
 	public void setParents(ParentsList parents2) {
 		parents = parents2;
 	}
 
-	public HashMap<Integer, PathFormula> getInitAbstractionSet() {
+	public List<PathFormula> getInitAbstractionSet() {
 		return initAbstractionSet;
 	}
 
 	public void setInitAbstractionSet(
-			HashMap<Integer, PathFormula> initAbstractionSet) {
+			List<PathFormula> initAbstractionSet) {
 		this.initAbstractionSet = initAbstractionSet;
+	}
+	
+	public boolean addToInitAbstractionSet(PathFormula pf){
+		return initAbstractionSet.add(pf);
 	}
 
 	public SSAMap getMaxIndex() {

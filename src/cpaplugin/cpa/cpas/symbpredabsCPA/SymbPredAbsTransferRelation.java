@@ -126,10 +126,10 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
 	public SymbPredAbsTransferRelation(SymbPredAbsAbstractDomain d) {
 		domain = d;
-		mathsatFormMan = new MathsatSymbPredAbsFormulaManager();
+		mathsatFormMan = d.getCPA().getMathsatSymbPredAbsFormulaManager();
 		//bddMathsatMan = new SymbAbsBDDMathsatAbstractFormulaManager();
 		setNamespace("");
-        globalVars = new HashSet<String>();
+		globalVars = new HashSet<String>();
 		// abstractTree = new ART();
 	}
 
@@ -161,7 +161,8 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 	// abstract post operation
 	private AbstractElement buildSuccessor(SymbPredAbsAbstractElement element,
 			CFAEdge edge) throws CPATransferException {
-		SymbPredAbsAbstractElement newElement = new SymbPredAbsAbstractElement();
+		// TODO fix later
+		SymbPredAbsAbstractElement newElement = null;
 		// SymbPredAbsCPA cpa = domain.getCPA();
 		CFANode succLoc = edge.getSuccessor();
 		// TODO check whether the successor is an error location: if so, we want
@@ -172,6 +173,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
 		if (!b) {
 			try {
+				newElement = new SymbPredAbsAbstractElement(succLoc, element.getAbstractionLocation());
 				handleNonAbstractionLocation(element, newElement, edge);
 			} catch (SymbPredAbstTransferException e) {
 				e.printStackTrace();
@@ -179,22 +181,21 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 		}
 
 		else {
-			// TODO check this
-			// maxIndex = new SSAMap();
-			//handleAbstractionLocation(element, newElement, edge);
+			newElement = new SymbPredAbsAbstractElement(succLoc, succLoc);
+			handleAbstractionLocation(element, newElement, edge);
 		}
 
 		return newElement;
 
 //		Collection<Predicate> predicates = cpa.getPredicateMap()
 //		.getRelevantPredicates(edge.getSuccessor());
-//
+
 //		SymbPredAbsAbstractElement succ = new SymbPredAbsAbstractElement(
-//				succLoc);
+//		succLoc);
 //		Map<CFANode, Pair<SymbolicFormula, SSAMap>> p = cpa
 //		.getPathFormulas(succLoc);
 //		succ.setPathFormulas(p);
-//
+
 //		// if e is the end of a function, we must find the correct return
 //		// location
 //		// if (isFunctionEnd(succ)) {
@@ -206,7 +207,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 //		// return domain.getBottomElement();
 //		// }
 //		// }
-//
+
 //		// Stack<AbstractFormula> context =
 //		// (Stack<AbstractFormula>)e.getContext().clone();
 //		// if (isFunctionEnd(e)) {
@@ -217,100 +218,130 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 //		// if (isFunctionEnd(succ)) {
 //		// succ.popContext();
 //		// }
-//
+
 //		SymbPredAbsAbstractFormulaManager amgr = cpa
 //		.getAbstractFormulaManager();
 //		AbstractFormula abstraction = amgr.buildAbstraction(cpa
-//				.getFormulaManager(), e, succ, predicates);
+//		.getFormulaManager(), e, succ, predicates);
 //		succ.setAbstraction(abstraction);
 //		succ.setParent(e);
-//
+
 //		Level lvl = LazyLogger.DEBUG_1;
 //		if (CPACheckerLogger.getLevel() <= lvl.intValue()) {
-//			SymbPredAbsFormulaManager mgr = cpa.getFormulaManager();
-//			LazyLogger.log(lvl, "COMPUTED ABSTRACTION: ", amgr.toConcrete(mgr,
-//					abstraction));
+//		SymbPredAbsFormulaManager mgr = cpa.getFormulaManager();
+//		LazyLogger.log(lvl, "COMPUTED ABSTRACTION: ", amgr.toConcrete(mgr,
+//		abstraction));
 //		}
-//
+
 //		if (amgr.isFalse(abstraction)) {
-//			return domain.getBottomElement();
+//		return domain.getBottomElement();
 //		} else {
-//			++numAbstractStates;
-//			// if we reach an error state, we want to log this...
-//			if (succ.getLocation().getInnerNode() instanceof CFAErrorNode) {
-//				if (CPAMain.cpaConfig
-//						.getBooleanValue("cpas.symbpredabs.abstraction.norefinement")) {
-//					errorReached = true;
-//					throw new ErrorReachedException(
-//					"Reached error location, but refinement disabled");
-//				}
-//				// oh oh, reached error location. Let's check whether the
-//				// trace is feasible or spurious, and in case refine the
-//				// abstraction
-//				//
-//				// first we build the abstract path
-//				Deque<SymbPredAbsAbstractElement> path = new LinkedList<SymbPredAbsAbstractElement>();
-//				path.addFirst(succ);
-//				SymbPredAbsAbstractElement parent = succ.getParent();
-//				while (parent != null) {
-//					path.addFirst(parent);
-//					parent = parent.getParent();
-//				}
-//				CounterexampleTraceInfo info = amgr.buildCounterexampleTrace(
-//						cpa.getFormulaManager(), path);
-//				if (info.isSpurious()) {
-//					LazyLogger.log(CustomLogLevel.SpecificCPALevel,
-//							"Found spurious error trace, refining the ",
-//					"abstraction");
-//					performRefinement(path, info);
-//				} else {
-//					LazyLogger.log(CustomLogLevel.SpecificCPALevel,
-//							"REACHED ERROR LOCATION!: ", succ,
-//					" RETURNING BOTTOM!");
-//					errorReached = true;
-//					throw new ErrorReachedException(info.getConcreteTrace()
-//							.toString());
-//				}
-//				return domain.getBottomElement();
-//			}
-//
-//			if (isFunctionStart(succ)) {
-//				// we push into the context the return location, which is
-//				// the successor location of the summary edge
-//				SymbPredAbsCFANode retNode = null;
-//				for (CFANode l : e.getLeaves()) {
-//					if (l instanceof FunctionDefinitionNode) {
-//						assert (l.getNumLeavingEdges() == 1);
-//						// assert(l.getNumEnteringEdges() == 1);
-//
-//						CFAEdge ee = l.getLeavingEdge(0);
-//						SymbPredAbsInnerCFANode n = (SymbPredAbsInnerCFANode) ee
-//						.getSuccessor();
-//						if (n.getSummaryNode().equals(succ.getLocation())) {
-//							CFANode pr = l.getEnteringEdge(0).getPredecessor();
-//							CallToReturnEdge ce = pr.getLeavingSummaryEdge();
-//							// assert(ce != null);
-//							if (ce != null) {
-//								retNode = ((SymbPredAbsInnerCFANode) ce
-//										.getSuccessor()).getSummaryNode();
-//								break;
-//							}
-//						}
-//					}
-//				}
-//				// assert(retNode != null);
-//				if (retNode != null) {
-//					LazyLogger.log(LazyLogger.DEBUG_3, "PUSHING CONTEXT TO ",
-//							succ, ": ", cpa.getAbstractFormulaManager()
-//							.toConcrete(cpa.getFormulaManager(),
-//									succ.getAbstraction()));
-//					// succ.getContext().push(succ.getAbstraction());
-//					succ.pushContext(succ.getAbstraction(), retNode);
-//				}
-//			}
-//
-//			return succ;
+//		++numAbstractStates;
+//		// if we reach an error state, we want to log this...
+//		if (succ.getLocation().getInnerNode() instanceof CFAErrorNode) {
+//		if (CPAMain.cpaConfig
+//		.getBooleanValue("cpas.symbpredabs.abstraction.norefinement")) {
+//		errorReached = true;
+//		throw new ErrorReachedException(
+//		"Reached error location, but refinement disabled");
 //		}
+//		// oh oh, reached error location. Let's check whether the
+//		// trace is feasible or spurious, and in case refine the
+//		// abstraction
+//		//
+//		// first we build the abstract path
+//		Deque<SymbPredAbsAbstractElement> path = new LinkedList<SymbPredAbsAbstractElement>();
+//		path.addFirst(succ);
+//		SymbPredAbsAbstractElement parent = succ.getParent();
+//		while (parent != null) {
+//		path.addFirst(parent);
+//		parent = parent.getParent();
+//		}
+//		CounterexampleTraceInfo info = amgr.buildCounterexampleTrace(
+//		cpa.getFormulaManager(), path);
+//		if (info.isSpurious()) {
+//		LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+//		"Found spurious error trace, refining the ",
+//		"abstraction");
+//		performRefinement(path, info);
+//		} else {
+//		LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+//		"REACHED ERROR LOCATION!: ", succ,
+//		" RETURNING BOTTOM!");
+//		errorReached = true;
+//		throw new ErrorReachedException(info.getConcreteTrace()
+//		.toString());
+//		}
+//		return domain.getBottomElement();
+//		}
+
+//		if (isFunctionStart(succ)) {
+//		// we push into the context the return location, which is
+//		// the successor location of the summary edge
+//		SymbPredAbsCFANode retNode = null;
+//		for (CFANode l : e.getLeaves()) {
+//		if (l instanceof FunctionDefinitionNode) {
+//		assert (l.getNumLeavingEdges() == 1);
+//		// assert(l.getNumEnteringEdges() == 1);
+
+//		CFAEdge ee = l.getLeavingEdge(0);
+//		SymbPredAbsInnerCFANode n = (SymbPredAbsInnerCFANode) ee
+//		.getSuccessor();
+//		if (n.getSummaryNode().equals(succ.getLocation())) {
+//		CFANode pr = l.getEnteringEdge(0).getPredecessor();
+//		CallToReturnEdge ce = pr.getLeavingSummaryEdge();
+//		// assert(ce != null);
+//		if (ce != null) {
+//		retNode = ((SymbPredAbsInnerCFANode) ce
+//		.getSuccessor()).getSummaryNode();
+//		break;
+//		}
+//		}
+//		}
+//		}
+//		// assert(retNode != null);
+//		if (retNode != null) {
+//		LazyLogger.log(LazyLogger.DEBUG_3, "PUSHING CONTEXT TO ",
+//		succ, ": ", cpa.getAbstractFormulaManager()
+//		.toConcrete(cpa.getFormulaManager(),
+//		succ.getAbstraction()));
+//		// succ.getContext().push(succ.getAbstraction());
+//		succ.pushContext(succ.getAbstraction(), retNode);
+//		}
+//		}
+
+//		return succ;
+//		}
+	}
+
+	private void handleAbstractionLocation(SymbPredAbsAbstractElement element,
+			SymbPredAbsAbstractElement newElement, CFAEdge edge) {
+		SSAMap maxIndex = new SSAMap();
+		// TODO update abstraction
+		AbstractFormula abst = null;
+		newElement.setAbstraction(abst);
+
+		ParentsList parents = element.getParents();
+		// TODO check this (false, false is used when constructing pf for
+		// summary nodes)
+		PathFormula pf = null;
+		SSAMap ssamap = new SSAMap();
+		pf = new PathFormula(mathsatFormMan.makeTrue(), ssamap);
+		newElement.setPathFormula(pf);
+		newElement.setMaxIndex(maxIndex);
+
+		// add the parent to the list
+		ParentsList newParents = new ParentsList();
+		newParents.copyFromExisting(parents);
+		newElement.setParents(newParents);
+		newElement.addParent(edge.getSuccessor().getNodeNumber());
+
+		newElement.addToInitAbstractionSet(element.getPathFormula());
+
+		// TODO set predicates
+		PredicateMap pmap = element.getPredicates();
+		newElement.setPredicates(pmap);
+
 	}
 
 	// TODO implement support for pfParents
@@ -318,8 +349,6 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 			SymbPredAbsAbstractElement element,
 			SymbPredAbsAbstractElement newElement, CFAEdge edge)
 	throws SymbPredAbstTransferException {
-		CFANode succLocation = edge.getSuccessor();
-		CFANode abstractionLoc = element.getAbstractionLocation();
 		AbstractFormula abst = element.getAbstraction();
 		PredicateMap pmap = element.getPredicates();
 		ParentsList parents = element.getParents();
@@ -332,18 +361,17 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 					edge, element.getPathFormula().getSsa(), false, false);
 			// TODO check these 3 lines
 			SymbolicFormula t1 = pf.getSymbolicFormula();
-            SSAMap ssa1 = pf.getSsa();
-            updateMaxIndex(ssa1);
+			SSAMap ssa1 = pf.getSsa();
+			assert(pf != null);
+			newElement.setPathFormula(pf);
+			// TODO check
+			newElement.updateMaxIndex(ssa1);
 		} catch (UnrecognizedCFAEdgeException e) {
 			e.printStackTrace();
 		}
-		newElement.setLocation(succLocation);
-		newElement.setAbstractionLocation(abstractionLoc);
 		newElement.setAbstraction(abst);
 		newElement.setParents(parents);
 		newElement.setInitAbstractionSet(null);
-		assert(pf != null);
-		newElement.setPathFormula(pf);
 		newElement.setPredicates(pmap);
 	}
 
@@ -357,13 +385,13 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 	}
 
 	private void setNamespace(String ns) {
-        namespace = ns;
-    }
-    
-    private String getNamespace() {
-        return namespace;
-    }
-    
+		namespace = ns;
+	}
+
+	private String getNamespace() {
+		return namespace;
+	}
+
 	// TODO for return edge, check later
 	// private PathFormula makeAndExitFunction(
 	// SymbPredAbsAbstractElement element,
@@ -623,245 +651,245 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 	// }
 
 //	private void handleAbstractionLocation(
-//			SymbPredAbsAbstractElement element,
-//			SymbPredAbsAbstractElement newElement, CFAEdge edge) {
-//
-//		// if all nodes are processed go to abstraction phase
-//		// if not 
-//		
-//		// update the abstract element
-//		// get the successor node
-//		CFANode succLocation = edge.getSuccessor();
-//		// successor node is now the abstraction location
-//		CFANode abstractionLoc = succLocation;
-//		SymbPredAbsAbstractElement parent = element;
-//		// TODO check this (false, false is used when constructing pf for
-//		// summary nodes)
-//		// path formula is set to TRUE
-//		// TODO update mgr and ssa - do we create a new ssamap or do
-//		// we update the ssamap from the previous element
-//		PathFormula pf = new PathFormula(mgr.makeTrue(), ssamap)
-//		newElement.setLocation(succLocation);
-//		newElement.setAbstractionLocation(abstractionLoc);
-//		// TODO that we will do at the end
-//		//newElement.setAbstraction(abst);
-//		newElement.setParent(parent);
-//		newElement.setPathFormula(pf);
-//		// TODO what about predicates?
-////		PredicateMap pmap = element.getPredicates();
-////		newElement.setPredicates(pmap);
-//		
-//		// we will update this in this method
-//		AbstractFormula abstraction;
-//		
-//		// TODO check
-//		// long msatEnv = mmgr.getMsatEnv();
-//		long msatEnv = mathsatFormMan.getMsatEnv();
-//		long absEnv = mathsat.api.msat_create_shared_env(msatEnv);
-//
-//		// first, build the concrete representation of the abstract formula of e
-//		AbstractFormula abs = element.getAbstraction();
-//		MathsatSymbolicFormula fabs =
-//			// TODO check
-//			(MathsatSymbolicFormula) mathsatFormMan.instantiate(
-//					// TODO check
-//					bddMathsatMan.toConcrete(/* mmgr */mathsatFormMan, abs), null);
-//
-//		// TODO function exit
-//		// if (isFunctionExit(e)) {
-//		// // we have to take the context before the function call
-//		// // into account, otherwise we are not building the right
-//		// // abstraction!
-//		// if (CPAMain.cpaConfig.getBooleanValue(
-//		// "cpas.symbpredabs.refinement.addWellScopedPredicates")) {
-//		// // but only if we are adding well-scoped predicates, otherwise
-//		// // this should not be necessary
-//		// AbstractFormula ctx = e.topContextAbstraction();
-//		// MathsatSymbolicFormula fctx =
-//		// (MathsatSymbolicFormula)mmgr.instantiate(
-//		// toConcrete(mmgr, ctx), null);
-//		// fabs = (MathsatSymbolicFormula)mmgr.makeAnd(fabs, fctx);
-//
-//		// LazyLogger.log(LazyLogger.DEBUG_3,
-//		// "TAKING CALLING CONTEXT INTO ACCOUNT: ", fctx);
-//		// } else {
-//		// LazyLogger.log(LazyLogger.DEBUG_3,
-//		// "NOT TAKING CALLING CONTEXT INTO ACCOUNT,",
-//		// "as we are not using well-scoped predicates");
-//		// }
-//		// }
-//
-//		// TODO check
-//		SSAMap absSsa = mathsatFormMan.extractSSA(fabs);
-//
-//		SymbolicFormula f = null;
-//		SSAMap ssa = null;
-//
-//		// TODO implement cache later
-//		// Pair<CFANode, CFANode> key = new Pair<CFANode, CFANode>(
-//		// e.getLocationNode(), succ.getLocationNode());
-//		// if (abstractionCache.containsKey(key)) {
-//		// Pair<MathsatSymbolicFormula, SSAMap> pc = abstractionCache.get(key);
-//		// f = pc.getFirst();
-//		// ssa = pc.getSecond();
-//		// } else {
-//		// TODO check
-//		// Pair<SymbolicFormula, SSAMap> pc =
-//		// buildConcreteFormula(mmgr, e, succ, false);
-//		PathFormula pc = buildConcreteFormula(mathsatFormMan, element, newElement,
-//				false);
-//		// SymbolicFormula f = pc.getFirst();
-//		// SSAMap ssa = pc.getSecond();
-//		f = pc.getFirst();
-//		ssa = pc.getSecond();
-//
-//		pc = mmgr.shift(f, absSsa);
-//		f = mmgr.replaceAssignments((MathsatSymbolicFormula) pc.getFirst());
-//		ssa = pc.getSecond();
-//
-//		abstractionCache.put(key, new Pair<MathsatSymbolicFormula, SSAMap>(
-//				(MathsatSymbolicFormula) f, ssa));
-//
-//		Pair<SymbolicFormula, SSAMap> pc = buildConcreteFormula(mmgr, e, succ,
-//				false);
-//		// SymbolicFormula f = pc.getFirst();
-//		// SSAMap ssa = pc.getSecond();
-//		f = pc.getFirst();
-//		ssa = pc.getSecond();
-//
-//		pc = mmgr.shift(f, absSsa);
-//		f = mmgr.replaceAssignments((MathsatSymbolicFormula) pc.getFirst());
-//		ssa = pc.getSecond();
-//
-//		abstractionCache.put(key, new Pair<MathsatSymbolicFormula, SSAMap>(
-//				(MathsatSymbolicFormula) f, ssa));
-//		// }
-//
-//		if (CPAMain.cpaConfig
-//				.getBooleanValue("cpas.symbpredabs.useBitwiseAxioms")) {
-//			MathsatSymbolicFormula bitwiseAxioms = mmgr
-//			.getBitwiseAxioms((MathsatSymbolicFormula) f);
-//			f = mmgr.makeAnd(f, bitwiseAxioms);
-//
-//			LazyLogger.log(LazyLogger.DEBUG_3, "ADDED BITWISE AXIOMS: ",
-//					bitwiseAxioms);
-//		}
-//
-//		// long term = mathsat.api.msat_make_copy_from(
-//		// absEnv, ((MathsatSymbolicFormula)f).getTerm(), msatEnv);
-//		long term = ((MathsatSymbolicFormula) f).getTerm();
-//		assert (!mathsat.api.MSAT_ERROR_TERM(term));
-//
-//		// build the definition of the predicates, and instantiate them
-//		Object[] predinfo = buildPredList(mmgr, predicates);
-//		long preddef = (Long) predinfo[0];
-//		long[] important = (long[]) predinfo[1];
-//		Collection<String> predvars = (Collection<String>) predinfo[2];
-//		// for (int i = 0; i < important.length; ++i) {
-//		// important[i] = mathsat.api.msat_make_copy_from(
-//		// absEnv, important[i], msatEnv);
-//		// }
-//
-//		// update the SSA map, by instantiating all the uninstantiated
-//		// variables that occur in the predicates definitions (at index 1)
-//		for (String var : predvars) {
-//			if (ssa.getIndex(var) < 0) {
-//				ssa.setIndex(var, 1);
-//			}
-//		}
-//
-//		if (CPACheckerLogger.getLevel() <= LazyLogger.DEBUG_1.intValue()) {
-//			StringBuffer importantStrBuf = new StringBuffer();
-//			for (long t : important) {
-//				importantStrBuf.append(mathsat.api.msat_term_repr(t));
-//				importantStrBuf.append(" ");
-//			}
-//			LazyLogger.log(LazyLogger.DEBUG_1, "IMPORTANT SYMBOLS (",
-//					important.length, "): ", importantStrBuf);
-//		}
-//
-//		// first, create the new formula corresponding to
-//		// (f & edges from e to succ)
-//		// TODO - at the moment, we assume that all the edges connecting e and
-//		// succ have no statement or assertion attached (i.e. they are just
-//		// return edges or gotos). This might need to change in the future!!
-//		// (So, for now we don't need to to anything...)
-//
-//		// instantiate the definitions with the right SSA
-//		MathsatSymbolicFormula inst = (MathsatSymbolicFormula) mmgr
-//		.instantiate(new MathsatSymbolicFormula(preddef), ssa);
-//		// preddef = mathsat.api.msat_make_copy_from(absEnv, inst.getTerm(),
-//		// msatEnv);
-//		// long curstate = mathsat.api.msat_make_copy_from(absEnv,
-//		// fabs.getTerm(),
-//		// msatEnv);
-//		preddef = inst.getTerm();
-//		long curstate = fabs.getTerm();
-//
-//		// the formula is (curstate & term & preddef)
-//		// build the formula and send it to the absEnv
-//		long formula = mathsat.api.msat_make_and(absEnv, mathsat.api
-//				.msat_make_and(absEnv, curstate, term), preddef);
-//		mathsat.api.msat_add_theory(absEnv, mathsat.api.MSAT_UF);
-//		if (CPAMain.cpaConfig
-//				.getBooleanValue("cpas.symbpredabs.mathsat.useIntegers")) {
-//			mathsat.api.msat_add_theory(absEnv, mathsat.api.MSAT_LIA);
-//			int ok = mathsat.api.msat_set_option(absEnv, "split_eq", "true");
-//			assert (ok == 0);
-//		} else {
-//			mathsat.api.msat_add_theory(absEnv, mathsat.api.MSAT_LRA);
-//		}
-//		mathsat.api.msat_set_theory_combination(absEnv,
-//				mathsat.api.MSAT_COMB_ACK);
-//		int ok = mathsat.api.msat_set_option(absEnv, "toplevelprop", "2");
-//		assert (ok == 0);
-//
-//		LazyLogger.log(LazyLogger.DEBUG_3, "COMPUTING ALL-SMT ON FORMULA: ",
-//				new MathsatSymbolicFormula(formula));
-//
-//		int absbdd = bddManager.getZero();
-//		AllSatCallbackStats func = new AllSatCallbackStats(absbdd, msatEnv,
-//				absEnv);
-//		long msatSolveStartTime = System.currentTimeMillis();
-//		mathsat.api.msat_assert_formula(absEnv, formula);
-//		int numModels = mathsat.api.msat_all_sat(absEnv, important, func);
-//		assert (numModels != -1);
-//		long msatSolveEndTime = System.currentTimeMillis();
-//
-//		mathsat.api.msat_destroy_env(absEnv);
-//
-//		// update statistics
-//		long endTime = System.currentTimeMillis();
-//		long msatSolveTime = (msatSolveEndTime - msatSolveStartTime)
-//		- func.totTime;
-//		long abstractionMsatTime = (endTime - startTime) - func.totTime;
-//		stats.abstractionMaxMathsatTime = Math.max(abstractionMsatTime,
-//				stats.abstractionMaxMathsatTime);
-//		stats.abstractionMaxBddTime = Math.max(func.totTime,
-//				stats.abstractionMaxBddTime);
-//		stats.abstractionMathsatTime += abstractionMsatTime;
-//		stats.abstractionBddTime += func.totTime;
-//		stats.abstractionMathsatSolveTime += msatSolveTime;
-//		stats.abstractionMaxMathsatSolveTime = Math.max(msatSolveTime,
-//				stats.abstractionMaxMathsatSolveTime);
-//
-//		if (abstractionMsatTime > 1000 && dumpHardAbstractions) {
-//			// we want to dump "hard" problems...
-//			if (absPrinter == null) {
-//				absPrinter = new BDDMathsatSummaryAbstractionPrinter(msatEnv,
-//				"abs");
-//			}
-//			absPrinter.printMsatFormat(curstate, term, preddef, important);
-//			absPrinter.printNusmvFormat(curstate, term, preddef, important);
-//			absPrinter.nextNum();
-//		}
-//
-//		if (numModels == -2) {
-//			absbdd = bddManager.getOne();
-//			return new BDDAbstractFormula(absbdd);
-//		} else {
-//			return new BDDAbstractFormula(func.getBDD());
-//		}
+//	SymbPredAbsAbstractElement element,
+//	SymbPredAbsAbstractElement newElement, CFAEdge edge) {
+
+//	// if all nodes are processed go to abstraction phase
+//	// if not 
+
+//	// update the abstract element
+//	// get the successor node
+//	CFANode succLocation = edge.getSuccessor();
+//	// successor node is now the abstraction location
+//	CFANode abstractionLoc = succLocation;
+//	SymbPredAbsAbstractElement parent = element;
+//	// TODO check this (false, false is used when constructing pf for
+//	// summary nodes)
+//	// path formula is set to TRUE
+//	// TODO update mgr and ssa - do we create a new ssamap or do
+//	// we update the ssamap from the previous element
+//	PathFormula pf = new PathFormula(mgr.makeTrue(), ssamap)
+//	newElement.setLocation(succLocation);
+//	newElement.setAbstractionLocation(abstractionLoc);
+//	// TODO that we will do at the end
+//	//newElement.setAbstraction(abst);
+//	newElement.setParent(parent);
+//	newElement.setPathFormula(pf);
+//	// TODO what about predicates?
+////	PredicateMap pmap = element.getPredicates();
+////	newElement.setPredicates(pmap);
+
+//	// we will update this in this method
+//	AbstractFormula abstraction;
+
+//	// TODO check
+//	// long msatEnv = mmgr.getMsatEnv();
+//	long msatEnv = mathsatFormMan.getMsatEnv();
+//	long absEnv = mathsat.api.msat_create_shared_env(msatEnv);
+
+//	// first, build the concrete representation of the abstract formula of e
+//	AbstractFormula abs = element.getAbstraction();
+//	MathsatSymbolicFormula fabs =
+//	// TODO check
+//	(MathsatSymbolicFormula) mathsatFormMan.instantiate(
+//	// TODO check
+//	bddMathsatMan.toConcrete(/* mmgr */mathsatFormMan, abs), null);
+
+//	// TODO function exit
+//	// if (isFunctionExit(e)) {
+//	// // we have to take the context before the function call
+//	// // into account, otherwise we are not building the right
+//	// // abstraction!
+//	// if (CPAMain.cpaConfig.getBooleanValue(
+//	// "cpas.symbpredabs.refinement.addWellScopedPredicates")) {
+//	// // but only if we are adding well-scoped predicates, otherwise
+//	// // this should not be necessary
+//	// AbstractFormula ctx = e.topContextAbstraction();
+//	// MathsatSymbolicFormula fctx =
+//	// (MathsatSymbolicFormula)mmgr.instantiate(
+//	// toConcrete(mmgr, ctx), null);
+//	// fabs = (MathsatSymbolicFormula)mmgr.makeAnd(fabs, fctx);
+
+//	// LazyLogger.log(LazyLogger.DEBUG_3,
+//	// "TAKING CALLING CONTEXT INTO ACCOUNT: ", fctx);
+//	// } else {
+//	// LazyLogger.log(LazyLogger.DEBUG_3,
+//	// "NOT TAKING CALLING CONTEXT INTO ACCOUNT,",
+//	// "as we are not using well-scoped predicates");
+//	// }
+//	// }
+
+//	// TODO check
+//	SSAMap absSsa = mathsatFormMan.extractSSA(fabs);
+
+//	SymbolicFormula f = null;
+//	SSAMap ssa = null;
+
+//	// TODO implement cache later
+//	// Pair<CFANode, CFANode> key = new Pair<CFANode, CFANode>(
+//	// e.getLocationNode(), succ.getLocationNode());
+//	// if (abstractionCache.containsKey(key)) {
+//	// Pair<MathsatSymbolicFormula, SSAMap> pc = abstractionCache.get(key);
+//	// f = pc.getFirst();
+//	// ssa = pc.getSecond();
+//	// } else {
+//	// TODO check
+//	// Pair<SymbolicFormula, SSAMap> pc =
+//	// buildConcreteFormula(mmgr, e, succ, false);
+//	PathFormula pc = buildConcreteFormula(mathsatFormMan, element, newElement,
+//	false);
+//	// SymbolicFormula f = pc.getFirst();
+//	// SSAMap ssa = pc.getSecond();
+//	f = pc.getFirst();
+//	ssa = pc.getSecond();
+
+//	pc = mmgr.shift(f, absSsa);
+//	f = mmgr.replaceAssignments((MathsatSymbolicFormula) pc.getFirst());
+//	ssa = pc.getSecond();
+
+//	abstractionCache.put(key, new Pair<MathsatSymbolicFormula, SSAMap>(
+//	(MathsatSymbolicFormula) f, ssa));
+
+//	Pair<SymbolicFormula, SSAMap> pc = buildConcreteFormula(mmgr, e, succ,
+//	false);
+//	// SymbolicFormula f = pc.getFirst();
+//	// SSAMap ssa = pc.getSecond();
+//	f = pc.getFirst();
+//	ssa = pc.getSecond();
+
+//	pc = mmgr.shift(f, absSsa);
+//	f = mmgr.replaceAssignments((MathsatSymbolicFormula) pc.getFirst());
+//	ssa = pc.getSecond();
+
+//	abstractionCache.put(key, new Pair<MathsatSymbolicFormula, SSAMap>(
+//	(MathsatSymbolicFormula) f, ssa));
+//	// }
+
+//	if (CPAMain.cpaConfig
+//	.getBooleanValue("cpas.symbpredabs.useBitwiseAxioms")) {
+//	MathsatSymbolicFormula bitwiseAxioms = mmgr
+//	.getBitwiseAxioms((MathsatSymbolicFormula) f);
+//	f = mmgr.makeAnd(f, bitwiseAxioms);
+
+//	LazyLogger.log(LazyLogger.DEBUG_3, "ADDED BITWISE AXIOMS: ",
+//	bitwiseAxioms);
+//	}
+
+//	// long term = mathsat.api.msat_make_copy_from(
+//	// absEnv, ((MathsatSymbolicFormula)f).getTerm(), msatEnv);
+//	long term = ((MathsatSymbolicFormula) f).getTerm();
+//	assert (!mathsat.api.MSAT_ERROR_TERM(term));
+
+//	// build the definition of the predicates, and instantiate them
+//	Object[] predinfo = buildPredList(mmgr, predicates);
+//	long preddef = (Long) predinfo[0];
+//	long[] important = (long[]) predinfo[1];
+//	Collection<String> predvars = (Collection<String>) predinfo[2];
+//	// for (int i = 0; i < important.length; ++i) {
+//	// important[i] = mathsat.api.msat_make_copy_from(
+//	// absEnv, important[i], msatEnv);
+//	// }
+
+//	// update the SSA map, by instantiating all the uninstantiated
+//	// variables that occur in the predicates definitions (at index 1)
+//	for (String var : predvars) {
+//	if (ssa.getIndex(var) < 0) {
+//	ssa.setIndex(var, 1);
+//	}
+//	}
+
+//	if (CPACheckerLogger.getLevel() <= LazyLogger.DEBUG_1.intValue()) {
+//	StringBuffer importantStrBuf = new StringBuffer();
+//	for (long t : important) {
+//	importantStrBuf.append(mathsat.api.msat_term_repr(t));
+//	importantStrBuf.append(" ");
+//	}
+//	LazyLogger.log(LazyLogger.DEBUG_1, "IMPORTANT SYMBOLS (",
+//	important.length, "): ", importantStrBuf);
+//	}
+
+//	// first, create the new formula corresponding to
+//	// (f & edges from e to succ)
+//	// TODO - at the moment, we assume that all the edges connecting e and
+//	// succ have no statement or assertion attached (i.e. they are just
+//	// return edges or gotos). This might need to change in the future!!
+//	// (So, for now we don't need to to anything...)
+
+//	// instantiate the definitions with the right SSA
+//	MathsatSymbolicFormula inst = (MathsatSymbolicFormula) mmgr
+//	.instantiate(new MathsatSymbolicFormula(preddef), ssa);
+//	// preddef = mathsat.api.msat_make_copy_from(absEnv, inst.getTerm(),
+//	// msatEnv);
+//	// long curstate = mathsat.api.msat_make_copy_from(absEnv,
+//	// fabs.getTerm(),
+//	// msatEnv);
+//	preddef = inst.getTerm();
+//	long curstate = fabs.getTerm();
+
+//	// the formula is (curstate & term & preddef)
+//	// build the formula and send it to the absEnv
+//	long formula = mathsat.api.msat_make_and(absEnv, mathsat.api
+//	.msat_make_and(absEnv, curstate, term), preddef);
+//	mathsat.api.msat_add_theory(absEnv, mathsat.api.MSAT_UF);
+//	if (CPAMain.cpaConfig
+//	.getBooleanValue("cpas.symbpredabs.mathsat.useIntegers")) {
+//	mathsat.api.msat_add_theory(absEnv, mathsat.api.MSAT_LIA);
+//	int ok = mathsat.api.msat_set_option(absEnv, "split_eq", "true");
+//	assert (ok == 0);
+//	} else {
+//	mathsat.api.msat_add_theory(absEnv, mathsat.api.MSAT_LRA);
+//	}
+//	mathsat.api.msat_set_theory_combination(absEnv,
+//	mathsat.api.MSAT_COMB_ACK);
+//	int ok = mathsat.api.msat_set_option(absEnv, "toplevelprop", "2");
+//	assert (ok == 0);
+
+//	LazyLogger.log(LazyLogger.DEBUG_3, "COMPUTING ALL-SMT ON FORMULA: ",
+//	new MathsatSymbolicFormula(formula));
+
+//	int absbdd = bddManager.getZero();
+//	AllSatCallbackStats func = new AllSatCallbackStats(absbdd, msatEnv,
+//	absEnv);
+//	long msatSolveStartTime = System.currentTimeMillis();
+//	mathsat.api.msat_assert_formula(absEnv, formula);
+//	int numModels = mathsat.api.msat_all_sat(absEnv, important, func);
+//	assert (numModels != -1);
+//	long msatSolveEndTime = System.currentTimeMillis();
+
+//	mathsat.api.msat_destroy_env(absEnv);
+
+//	// update statistics
+//	long endTime = System.currentTimeMillis();
+//	long msatSolveTime = (msatSolveEndTime - msatSolveStartTime)
+//	- func.totTime;
+//	long abstractionMsatTime = (endTime - startTime) - func.totTime;
+//	stats.abstractionMaxMathsatTime = Math.max(abstractionMsatTime,
+//	stats.abstractionMaxMathsatTime);
+//	stats.abstractionMaxBddTime = Math.max(func.totTime,
+//	stats.abstractionMaxBddTime);
+//	stats.abstractionMathsatTime += abstractionMsatTime;
+//	stats.abstractionBddTime += func.totTime;
+//	stats.abstractionMathsatSolveTime += msatSolveTime;
+//	stats.abstractionMaxMathsatSolveTime = Math.max(msatSolveTime,
+//	stats.abstractionMaxMathsatSolveTime);
+
+//	if (abstractionMsatTime > 1000 && dumpHardAbstractions) {
+//	// we want to dump "hard" problems...
+//	if (absPrinter == null) {
+//	absPrinter = new BDDMathsatSummaryAbstractionPrinter(msatEnv,
+//	"abs");
+//	}
+//	absPrinter.printMsatFormat(curstate, term, preddef, important);
+//	absPrinter.printNusmvFormat(curstate, term, preddef, important);
+//	absPrinter.nextNum();
+//	}
+
+//	if (numModels == -2) {
+//	absbdd = bddManager.getOne();
+//	return new BDDAbstractFormula(absbdd);
+//	} else {
+//	return new BDDAbstractFormula(func.getBDD());
+//	}
 //	}
 
 	// builds the SymbolicFormula corresponding to the path between "e" and
@@ -869,45 +897,45 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 	// attached to the edge connecting "e" and "succ", but in our case this is
 	// actually a loop-free subgraph of the original CFA
 //	private PathFormula buildConcreteFormula(MathsatSummaryFormulaManager mgr,
-//			SymbPredAbsAbstractElement e, SymbPredAbsAbstractElement succ,
-//			boolean replaceAssignments) {
-//		// first, get all the paths in e that lead to succ
-//		Collection<Pair<SymbolicFormula, SSAMap>> relevantPaths = new Vector<Pair<SymbolicFormula, SSAMap>>();
-//		for (CFANode leaf : e.getLeaves()) {
-//			for (int i = 0; i < leaf.getNumLeavingEdges(); ++i) {
-//				CFAEdge edge = leaf.getLeavingEdge(i);
-//				InnerCFANode s = (InnerCFANode) edge.getSuccessor();
-//				if (s.getSummaryNode().equals(succ.getLocation())) {
-//					// ok, this path is relevant
-//					relevantPaths.add(e.getPathFormula(leaf));
-//
-//					LazyLogger
-//					.log(LazyLogger.DEBUG_1,
-//							"FOUND RELEVANT PATH, leaf: ", leaf
-//							.getNodeNumber());
-//					LazyLogger.log(LazyLogger.DEBUG_3, "Formula: ", e
-//							.getPathFormula(leaf).getFirst());
-//				}
-//			}
-//		}
-//		// now, we want to create a new formula that is the OR of all the
-//		// possible paths. So we merge the SSA maps and OR the formulas
-//		SSAMap ssa = new SSAMap();
-//		SymbolicFormula f = mgr.makeFalse();
-//		for (Pair<SymbolicFormula, SSAMap> p : relevantPaths) {
-//			Pair<Pair<SymbolicFormula, SymbolicFormula>, SSAMap> mp = mgr
-//			.mergeSSAMaps(ssa, p.getSecond(), false);
-//			SymbolicFormula curf = p.getFirst();
-//			if (replaceAssignments) {
-//				curf = mgr.replaceAssignments((MathsatSymbolicFormula) curf);
-//			}
-//			f = mgr.makeAnd(f, mp.getFirst().getFirst());
-//			curf = mgr.makeAnd(curf, mp.getFirst().getSecond());
-//			f = mgr.makeOr(f, curf);
-//			ssa = mp.getSecond();
-//		}
-//
-//		return new Pair<SymbolicFormula, SSAMap>(f, ssa);
+//	SymbPredAbsAbstractElement e, SymbPredAbsAbstractElement succ,
+//	boolean replaceAssignments) {
+//	// first, get all the paths in e that lead to succ
+//	Collection<Pair<SymbolicFormula, SSAMap>> relevantPaths = new Vector<Pair<SymbolicFormula, SSAMap>>();
+//	for (CFANode leaf : e.getLeaves()) {
+//	for (int i = 0; i < leaf.getNumLeavingEdges(); ++i) {
+//	CFAEdge edge = leaf.getLeavingEdge(i);
+//	InnerCFANode s = (InnerCFANode) edge.getSuccessor();
+//	if (s.getSummaryNode().equals(succ.getLocation())) {
+//	// ok, this path is relevant
+//	relevantPaths.add(e.getPathFormula(leaf));
+
+//	LazyLogger
+//	.log(LazyLogger.DEBUG_1,
+//	"FOUND RELEVANT PATH, leaf: ", leaf
+//	.getNodeNumber());
+//	LazyLogger.log(LazyLogger.DEBUG_3, "Formula: ", e
+//	.getPathFormula(leaf).getFirst());
+//	}
+//	}
+//	}
+//	// now, we want to create a new formula that is the OR of all the
+//	// possible paths. So we merge the SSA maps and OR the formulas
+//	SSAMap ssa = new SSAMap();
+//	SymbolicFormula f = mgr.makeFalse();
+//	for (Pair<SymbolicFormula, SSAMap> p : relevantPaths) {
+//	Pair<Pair<SymbolicFormula, SymbolicFormula>, SSAMap> mp = mgr
+//	.mergeSSAMaps(ssa, p.getSecond(), false);
+//	SymbolicFormula curf = p.getFirst();
+//	if (replaceAssignments) {
+//	curf = mgr.replaceAssignments((MathsatSymbolicFormula) curf);
+//	}
+//	f = mgr.makeAnd(f, mp.getFirst().getFirst());
+//	curf = mgr.makeAnd(curf, mp.getFirst().getSecond());
+//	f = mgr.makeOr(f, curf);
+//	ssa = mp.getSecond();
+//	}
+
+//	return new Pair<SymbolicFormula, SSAMap>(f, ssa);
 //	}
 
 	private boolean isAbstractionLocation(CFANode succLoc) {
@@ -921,63 +949,6 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 			// if a node has two or more incoming edges from different
 			// summary nodes, it is a abstraction location
 		} else {
-			// TODO implement
-//			CFANode cur = null;
-//			Map<CFANode, AbstractionLocationPointer> abstLocsMap = domain
-//			.getCPA().getAbstracionLocsMap();
-//			for (int i = 0; i < succLoc.getNumEnteringEdges(); ++i) {
-//				CFAEdge e = succLoc.getEnteringEdge(i);
-//				if (!isLoopBack(e)) {
-//					CFANode p = e.getPredecessor();
-//					if (!abstLocsMap.containsKey(p)) {
-//						// this might happen if this e is a jump edge: in this
-//						// case, we ignore it...
-//						assert (e instanceof BlankEdge);
-//						continue;
-//					}
-//					assert (abstLocsMap.containsKey(p));
-//					AbstractionLocationPointer abp = abstLocsMap.get(p);
-//					CFANode summ = abp.getAbstractionLocation();
-//					if (cur == null) {
-//						cur = summ;
-//					} else if (cur != summ) {
-//						return true;
-//					}
-//				}
-//			}
-//			// check if we have only blank incoming edges, and the current
-//			// summary is already big TODO
-//			if (CPAMain.cpaConfig
-//					.getBooleanValue("cpas.symbpredabs.smallSummaries")) {
-//				if (succLoc.getNumEnteringEdges() >= 1) {
-//					for (int i = 0; i < succLoc.getNumEnteringEdges(); ++i) {
-//						CFAEdge e = succLoc.getEnteringEdge(i);
-//						if (!(e instanceof BlankEdge))
-//							break;
-//						if (e instanceof BlankEdge
-//								&& e.getRawStatement().startsWith(
-//								"Goto: BREAK_SUMMARY")) {
-//							return true;
-//						}
-//					}
-//				}
-//			}
-//			// int summarySize = 0;
-//			// if (cur != null && summarySizeMap.containsKey(cur)) {
-//			// summarySize = summarySizeMap.get(cur);
-//			// }
-//			// final int MAX_SUMMARY_SIZE = 5;
-//			// if (summarySize > MAX_SUMMARY_SIZE) {
-//			// boolean allIncomingBlank = true;
-//			// for (int i = 0; i < n.getNumEnteringEdges(); ++i) {
-//			// CFAEdge e = n.getEnteringEdge(i);
-//			// if (!isLoopBack(e) && !(e instanceof BlankEdge)) {
-//			// allIncomingBlank = false;
-//			// break;
-//			// }
-//			// }
-//			// if (allIncomingBlank) return true;
-//			// }
 			return false;
 		}
 
@@ -995,58 +966,58 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
 	// abstraction refinement and undoing of (part of) the ART
 //	private void performRefinement(Deque<SymbPredAbsAbstractElement> path,
-//			CounterexampleTraceInfo info) throws CPATransferException {
-//		// TODO Auto-generated method stub
-//		UpdateablePredicateMap curpmap = (UpdateablePredicateMap) domain
-//		.getCPA().getPredicateMap();
-//		AbstractElement root = null;
-//		AbstractElement firstInterpolant = null;
-//		for (SymbPredAbsAbstractElement e : path) {
-//			Collection<Predicate> newpreds = info.getPredicatesForRefinement(e);
-//			if (firstInterpolant == null && newpreds.size() > 0) {
-//				firstInterpolant = e;
-//			}
-//			if (curpmap.update((CFANode) e.getLocation(), newpreds)) {
-//				if (root == null) {
-//					root = e.getParent();
-//				}
-//			}
-//		}
-//		if (root == null) {
-//			root = firstInterpolant;
-//		}
-//		assert (root != null);
-//		// root = path.getFirst();
-//		Collection<AbstractElement> toWaitlist = new HashSet<AbstractElement>();
-//		toWaitlist.add(root);
-//		Collection<AbstractElement> toUnreach = abstractTree.getSubtree(root,
-//				true, false);
-//		SymbPredAbsCPA cpa = domain.getCPA();
-//		for (AbstractElement e : toUnreach) {
-//			Set<SymbPredAbsAbstractElement> cov = cpa
-//			.getCoveredBy((SymbPredAbsAbstractElement) e);
-//			for (AbstractElement c : cov) {
-//				if (!((SymbPredAbsAbstractElement) c)
-//						.isDescendant((SymbPredAbsAbstractElement) root)) {
-//					toWaitlist.add(c);
-//				}
-//			}
-//			cpa.uncoverAll((SymbPredAbsAbstractElement) e);
-//		}
-//		// Collection<AbstractElement> toUnreach = new
-//		// Vector<AbstractElement>();
-//		// boolean add = false;
-//		// for (AbstractElement e : path) {
-//		// if (add) {
-//		// toUnreach.add(e);
-//		// } else if (e == root) {
-//		// add = true;
-//		// }
-//		// }
-//		LazyLogger.log(LazyLogger.DEBUG_1, "REFINEMENT - toWaitlist: ", root);
-//		LazyLogger.log(LazyLogger.DEBUG_1, "REFINEMENT - toUnreach: ",
-//				toUnreach);
-//		throw new RefinementNeededException(toUnreach, toWaitlist);
+//	CounterexampleTraceInfo info) throws CPATransferException {
+//	// TODO Auto-generated method stub
+//	UpdateablePredicateMap curpmap = (UpdateablePredicateMap) domain
+//	.getCPA().getPredicateMap();
+//	AbstractElement root = null;
+//	AbstractElement firstInterpolant = null;
+//	for (SymbPredAbsAbstractElement e : path) {
+//	Collection<Predicate> newpreds = info.getPredicatesForRefinement(e);
+//	if (firstInterpolant == null && newpreds.size() > 0) {
+//	firstInterpolant = e;
+//	}
+//	if (curpmap.update((CFANode) e.getLocation(), newpreds)) {
+//	if (root == null) {
+//	root = e.getParent();
+//	}
+//	}
+//	}
+//	if (root == null) {
+//	root = firstInterpolant;
+//	}
+//	assert (root != null);
+//	// root = path.getFirst();
+//	Collection<AbstractElement> toWaitlist = new HashSet<AbstractElement>();
+//	toWaitlist.add(root);
+//	Collection<AbstractElement> toUnreach = abstractTree.getSubtree(root,
+//	true, false);
+//	SymbPredAbsCPA cpa = domain.getCPA();
+//	for (AbstractElement e : toUnreach) {
+//	Set<SymbPredAbsAbstractElement> cov = cpa
+//	.getCoveredBy((SymbPredAbsAbstractElement) e);
+//	for (AbstractElement c : cov) {
+//	if (!((SymbPredAbsAbstractElement) c)
+//	.isDescendant((SymbPredAbsAbstractElement) root)) {
+//	toWaitlist.add(c);
+//	}
+//	}
+//	cpa.uncoverAll((SymbPredAbsAbstractElement) e);
+//	}
+//	// Collection<AbstractElement> toUnreach = new
+//	// Vector<AbstractElement>();
+//	// boolean add = false;
+//	// for (AbstractElement e : path) {
+//	// if (add) {
+//	// toUnreach.add(e);
+//	// } else if (e == root) {
+//	// add = true;
+//	// }
+//	// }
+//	LazyLogger.log(LazyLogger.DEBUG_1, "REFINEMENT - toWaitlist: ", root);
+//	LazyLogger.log(LazyLogger.DEBUG_1, "REFINEMENT - toUnreach: ",
+//	toUnreach);
+//	throw new RefinementNeededException(toUnreach, toWaitlist);
 //	}
 
 	@Override
@@ -1056,6 +1027,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 		// formula of element plus all the edges that connect any of the
 		// inner nodes of the summary of element to any inner node of the
 		// destination
+
 		SymbPredAbsAbstractElement e = (SymbPredAbsAbstractElement)element;
 		CFANode src = (CFANode)e.getLocation();
 

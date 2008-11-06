@@ -46,12 +46,12 @@ public class SymbPredAbsCPA implements ConfigurableProblemAnalysis {
 //    private SymbPredAbsCPAStatistics stats;
     
     private SymbPredAbsCPA() {
+    	mgr = new MathsatSymbPredAbsFormulaManager();
+        amgr = new BDDMathsatSymbPredAbsAbstractManager();
         domain = new SymbPredAbsAbstractDomain(this);
         merge = new SymbPredAbsMergeOperator(domain);
         stop = new SymbPredAbsStopOperator(domain);
         trans = new SymbPredAbsTransferRelation(domain);
-        mgr = new MathsatSymbPredAbsFormulaManager();
-        amgr = new BDDMathsatSymbPredAbsAbstractManager();
         covers = new HashMap<SymbPredAbsAbstractElement, 
                              Set<SymbPredAbsAbstractElement>>();
 
@@ -129,8 +129,7 @@ public class SymbPredAbsCPA implements ConfigurableProblemAnalysis {
 
     @Override
     public MergeOperator getMergeOperator() {
-        //return merge;
-        return null;
+        return merge;
     }
 
     @Override
@@ -205,4 +204,12 @@ public class SymbPredAbsCPA implements ConfigurableProblemAnalysis {
             covers.remove(e);
         }
     }
+
+	public MathsatSymbPredAbsFormulaManager getMathsatSymbPredAbsFormulaManager() {
+		return mgr;
+	}
+
+	public BDDMathsatSymbPredAbsAbstractManager getBDDMathsatSymbPredAbsAbstractManager() {
+		return amgr;
+	}
 }

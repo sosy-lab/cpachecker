@@ -30,4 +30,8 @@ public class ParentsList {
 		}
 		return true;
 	}
+
+	public void copyFromExisting(ParentsList parents2) {
+		parents.addAll(parents2.parents);
+	}
 }

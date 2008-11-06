@@ -160,18 +160,19 @@ public class CompositeCPA implements ConfigurableProblemAnalysis
 			}
 		}
 		
-		ConfigurableProblemAnalysis cpa = null;		
-		if (cpas.size() == 1) {
-		    LazyLogger.log(CustomLogLevel.MainApplicationLevel, 
-		            "Only one analyis active, ",
-		            "no need of a composite CPA");
-		    cpa = cpas.get(0);
-		} else {
+		ConfigurableProblemAnalysis cpa = null;
+		// TODO this was for efficiency but I removed this
+//		if (cpas.size() == 1) {
+//		    LazyLogger.log(CustomLogLevel.MainApplicationLevel, 
+//		            "Only one analyis active, ",
+//		            "no need of a composite CPA");
+//		    cpa = cpas.get(0);
+//		} else {
 		    LazyLogger.log(CustomLogLevel.MainApplicationLevel,
                                    "CompositeCPA is built using the list " +
                                    "of CPAs");
 		    cpa = CompositeCPA.createNewCompositeCPA (cpas, node);
-		}
+		// }
 		return cpa;
 	}
 
