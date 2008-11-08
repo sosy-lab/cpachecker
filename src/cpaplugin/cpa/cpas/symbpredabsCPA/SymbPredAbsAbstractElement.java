@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import javax.jws.soap.InitParam;
+
 import symbpredabstraction.AbstractFormula;
 import symbpredabstraction.ParentsList;
 import symbpredabstraction.PathFormula;
@@ -30,7 +32,7 @@ implements AbstractElement, AbstractElementWithLocation {
 	private PathFormula pathFormula;
 	/** initial abstraction values*/
 	// updated only at abstraction locations currently
-	private List<PathFormula> initAbstractionSet;
+	private PathFormula initAbstractionFormula;
 	/** the abstraction which is updated only on abstraction locations */
 	private AbstractFormula abstraction;
 	/** parents of this element */
@@ -92,21 +94,21 @@ implements AbstractElement, AbstractElementWithLocation {
 	// is created call different constructors 
 	public SymbPredAbsAbstractElement(CFANode CFALoc, CFANode abstLoc, 
 			PathFormula pf, AbstractFormula a, 
-			ParentsList p, PredicateMap pmap) {
+			ParentsList p, PathFormula initFormula, PredicateMap pmap) {
 		CFALocation = CFALoc;
 		abstractionLocation = abstLoc;
 		abstraction = a;
 		pathFormula = pf;
 		parents = p;
 		predicates = pmap;
-		initAbstractionSet = new ArrayList<PathFormula>();
+		initAbstractionFormula = initFormula;
 		maxIndex = new SSAMap();
 //		context = null;
 //		ownsContext = true;
 	}
 
 	public SymbPredAbsAbstractElement(CFANode loc, CFANode abstLoc) {
-		this(loc, abstLoc, null, null, null, null);
+		this(loc, abstLoc, null, null, null, null, null);
 	}
 
 	public boolean equals(Object o) {
@@ -240,19 +242,14 @@ implements AbstractElement, AbstractElementWithLocation {
 		parents = parents2;
 	}
 
-	public List<PathFormula> getInitAbstractionSet() {
-		return initAbstractionSet;
+	public PathFormula getInitAbstractionSet() {
+		return initAbstractionFormula;
 	}
 
-	public void setInitAbstractionSet(
-			List<PathFormula> initAbstractionSet) {
-		this.initAbstractionSet = initAbstractionSet;
+	public void setInitAbstractionSet(PathFormula initFormula) {
+		this.initAbstractionFormula = initFormula;
 	}
 	
-	public boolean addToInitAbstractionSet(PathFormula pf){
-		return initAbstractionSet.add(pf);
-	}
-
 	public SSAMap getMaxIndex() {
 		return maxIndex;
 	}

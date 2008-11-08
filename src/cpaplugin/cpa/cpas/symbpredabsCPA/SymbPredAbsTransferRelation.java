@@ -23,6 +23,7 @@ import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 
 import symbpredabstraction.AbstractFormula;
+import symbpredabstraction.BDDMathsatSymbPredAbsAbstractManager;
 import symbpredabstraction.MathsatSymbPredAbsFormulaManager;
 import symbpredabstraction.ParentsList;
 import symbpredabstraction.PathFormula;
@@ -113,6 +114,8 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 	// TODO maybe we shold move these into CPA later
 	// associate a Mathsat Formula Manager with the transfer relation
 	private MathsatSymbPredAbsFormulaManager mathsatFormMan;
+	//private BDDMathsatSummaryAbstractManager
+	private BDDMathsatSymbPredAbsAbstractManager bddMathsatMan;
 	// private SymbAbsBDDMathsatAbstractFormulaManager bddMathsatMan;
 
 	// a namespace to have a unique name for each variable in the program.
@@ -127,7 +130,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 	public SymbPredAbsTransferRelation(SymbPredAbsAbstractDomain d) {
 		domain = d;
 		mathsatFormMan = d.getCPA().getMathsatSymbPredAbsFormulaManager();
-		//bddMathsatMan = new SymbAbsBDDMathsatAbstractFormulaManager();
+		bddMathsatMan = d.getCPA().getBDDMathsatSymbPredAbsAbstractManager();
 		setNamespace("");
 		globalVars = new HashSet<String>();
 		// abstractTree = new ART();
@@ -169,7 +172,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 		// to check for feasibility of the path...
 
 		// check if the successor is an abstraction location
-		boolean b = isAbstractionLocation(succLoc);
+		boolean b = ((SymbPredAbsAbstractDomain)getAbstractDomain()).getCPA().isAbstractionLocation(succLoc);
 
 		if (!b) {
 			try {
@@ -318,7 +321,8 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 			SymbPredAbsAbstractElement newElement, CFAEdge edge) {
 		SSAMap maxIndex = new SSAMap();
 		// TODO update abstraction
-		AbstractFormula abst = null;
+		// abstraction is set to true
+		AbstractFormula abst = bddMathsatMan.makeTrue();
 		newElement.setAbstraction(abst);
 
 		ParentsList parents = element.getParents();
@@ -336,7 +340,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 		newElement.setParents(newParents);
 		newElement.addParent(edge.getSuccessor().getNodeNumber());
 
-		newElement.addToInitAbstractionSet(element.getPathFormula());
+		newElement.setInitAbstractionSet(element.getPathFormula());
 
 		// TODO set predicates
 		PredicateMap pmap = element.getPredicates();
@@ -938,21 +942,6 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 //	return new Pair<SymbolicFormula, SSAMap>(f, ssa);
 //	}
 
-	private boolean isAbstractionLocation(CFANode succLoc) {
-		if (succLoc.isLoopStart() || succLoc instanceof CFAErrorNode
-				|| succLoc.getNumLeavingEdges() == 0) {
-			return true;
-		} else if (succLoc instanceof CFAFunctionDefinitionNode) {
-			return true;
-		} else if (succLoc.getEnteringSummaryEdge() != null) {
-			return true;
-			// if a node has two or more incoming edges from different
-			// summary nodes, it is a abstraction location
-		} else {
-			return false;
-		}
-
-	}
 
 	private boolean isLoopBack(CFAEdge e) {
 		CFANode s = e.getSuccessor();

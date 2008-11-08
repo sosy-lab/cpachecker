@@ -14,6 +14,7 @@ import java.util.Vector;
 
 import symbpredabstraction.*;
 import cpaplugin.CPAStatistics;
+import cpaplugin.cfa.objectmodel.CFAErrorNode;
 import cpaplugin.cfa.objectmodel.CFAFunctionDefinitionNode;
 import cpaplugin.cfa.objectmodel.CFANode;
 import cpaplugin.cmdline.CPAMain;
@@ -212,4 +213,20 @@ public class SymbPredAbsCPA implements ConfigurableProblemAnalysis {
 	public BDDMathsatSymbPredAbsAbstractManager getBDDMathsatSymbPredAbsAbstractManager() {
 		return amgr;
 	}
+	
+	public boolean isAbstractionLocation(CFANode succLoc) {
+		if (succLoc.isLoopStart() || succLoc instanceof CFAErrorNode
+				|| succLoc.getNumLeavingEdges() == 0) {
+			return true;
+		} else if (succLoc instanceof CFAFunctionDefinitionNode) {
+			return true;
+		} else if (succLoc.getEnteringSummaryEdge() != null) {
+			return true;
+			// if a node has two or more incoming edges from different
+			// summary nodes, it is a abstraction location
+		} else {
+			return false;
+		}
+	}
+	
 }
