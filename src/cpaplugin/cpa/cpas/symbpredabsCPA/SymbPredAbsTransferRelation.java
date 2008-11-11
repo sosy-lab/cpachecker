@@ -320,10 +320,6 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 	private void handleAbstractionLocation(SymbPredAbsAbstractElement element,
 			SymbPredAbsAbstractElement newElement, CFAEdge edge) {
 		SSAMap maxIndex = new SSAMap();
-		// TODO update abstraction
-		// abstraction is set to true
-		AbstractFormula abst = bddMathsatMan.makeTrue();
-		newElement.setAbstraction(abst);
 
 		ParentsList parents = element.getParents();
 		// TODO check this (false, false is used when constructing pf for
@@ -345,7 +341,140 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 		// TODO set predicates
 		PredicateMap pmap = element.getPredicates();
 		newElement.setPredicates(pmap);
+		
+		// TODO update abstraction
+		// abstraction is set to true
+		AbstractFormula abst = computeAbstraction(element, newElement, edge);
+		newElement.setAbstraction(abst);
+	}
 
+	private AbstractFormula computeAbstraction(
+			SymbPredAbsAbstractElement element,
+			SymbPredAbsAbstractElement newElement, CFAEdge edge) {
+		SymbPredAbsCPA cpa = ((SymbPredAbsAbstractDomain)getAbstractDomain()).getCPA();
+		CFANode succLoc = edge.getSuccessor();
+		// check whether the successor is an error location: if so, we want
+		// to check for feasibility of the path...
+
+		// TODO check - get predicates from the element
+		PredicateMap predicates = newElement.getPredicates(); 
+
+		// if e is the end of a function, we must find the correct return 
+		// location
+		if (isFunctionEnd(succ)) {
+			SummaryCFANode retNode = e.topContextLocation();
+			if (!succLoc.equals(retNode)) {
+				LazyLogger.log(LazyLogger.DEBUG_1,
+						"Return node for this call is: ", retNode,
+						", but edge leads to: ", succLoc, ", returning BOTTOM");
+				return domain.getBottomElement();
+			}
+		}
+
+//		Stack<AbstractFormula> context = 
+//		(Stack<AbstractFormula>)e.getContext().clone();
+//		if (isFunctionEnd(e)) {
+//		context.pop();
+//		}
+//		succ.setContext(context);
+		succ.setContext(e.getContext(), false);
+		if (isFunctionEnd(succ)) {
+			succ.popContext();
+		}
+
+		SymbPredAbsAbstractFormulaManager amgr = cpa.getAbstractFormulaManager();
+		AbstractFormula abstraction = amgr.buildAbstraction(
+				cpa.getFormulaManager(), e, succ, predicates);
+		succ.setAbstraction(abstraction);
+		succ.setParent(e);
+
+		Level lvl = LazyLogger.DEBUG_1;
+		if (CPACheckerLogger.getLevel() <= lvl.intValue()) {
+			SymbPredAbsFormulaManager mgr = cpa.getFormulaManager();
+			LazyLogger.log(lvl, "COMPUTED ABSTRACTION: ", 
+					amgr.toConcrete(mgr, abstraction));
+		}
+
+		if (amgr.isFalse(abstraction)) {
+			return domain.getBottomElement();
+		} else {
+			++numAbstractStates;
+			// if we reach an error state, we want to log this...
+			if (succ.getLocation().getInnerNode() instanceof CFAErrorNode) {
+				if (CPAMain.cpaConfig.getBooleanValue(
+						"cpas.symbpredabs.abstraction.norefinement")) {
+					errorReached = true;
+					throw new ErrorReachedException(
+							"Reached error location, but refinement disabled");
+				}
+				// oh oh, reached error location. Let's check whether the 
+				// trace is feasible or spurious, and in case refine the
+				// abstraction
+				//
+				// first we build the abstract path
+				Deque<SummaryAbstractElement> path = 
+					new LinkedList<SummaryAbstractElement>();
+				path.addFirst(succ);
+				SummaryAbstractElement parent = succ.getParent();
+				while (parent != null) {
+					path.addFirst(parent);
+					parent = parent.getParent();
+				}
+				CounterexampleTraceInfo info = 
+					amgr.buildCounterexampleTrace(
+							cpa.getFormulaManager(), path);
+				if (info.isSpurious()) {
+					LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+							"Found spurious error trace, refining the ",
+							"abstraction");
+					performRefinement(path, info);
+				} else {
+					LazyLogger.log(CustomLogLevel.SpecificCPALevel, 
+							"REACHED ERROR LOCATION!: ", succ, 
+					" RETURNING BOTTOM!");
+					errorReached = true;
+					throw new ErrorReachedException(
+							info.getConcreteTrace().toString());
+				}
+				return domain.getBottomElement();
+			}
+
+			if (isFunctionStart(succ)) {
+				// we push into the context the return location, which is
+				// the successor location of the summary edge
+				SummaryCFANode retNode = null;
+				for (CFANode l : e.getLeaves()) {  
+					if (l instanceof FunctionDefinitionNode) {
+						assert(l.getNumLeavingEdges() == 1);
+						//assert(l.getNumEnteringEdges() == 1);
+
+						CFAEdge ee = l.getLeavingEdge(0);
+						InnerCFANode n = (InnerCFANode)ee.getSuccessor();
+						if (n.getSummaryNode().equals(succ.getLocation())) {
+							CFANode pr = l.getEnteringEdge(0).getPredecessor();
+							CallToReturnEdge ce = pr.getLeavingSummaryEdge();
+							//assert(ce != null);
+							if (ce != null) {
+								retNode = ((InnerCFANode)ce.getSuccessor()).
+								getSummaryNode();
+								break;
+							}
+						}
+					}
+				}
+				//assert(retNode != null);
+				if (retNode != null) {
+					LazyLogger.log(LazyLogger.DEBUG_3, "PUSHING CONTEXT TO ", succ,
+							": ", cpa.getAbstractFormulaManager().toConcrete(
+									cpa.getFormulaManager(), 
+									succ.getAbstraction()));
+					//succ.getContext().push(succ.getAbstraction());
+					succ.pushContext(succ.getAbstraction(), retNode);
+				}
+			}            
+
+			return succ;
+		}
 	}
 
 	// TODO implement support for pfParents

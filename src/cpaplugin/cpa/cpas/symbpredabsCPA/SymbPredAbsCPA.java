@@ -41,7 +41,6 @@ public class SymbPredAbsCPA implements ConfigurableProblemAnalysis {
     private SymbPredAbsTransferRelation trans;
     private MathsatSymbPredAbsFormulaManager mgr;
     private BDDMathsatSymbPredAbsAbstractManager amgr;
-    private PredicateMap pmap;
     private Map<SymbPredAbsAbstractElement, Set<SymbPredAbsAbstractElement>> covers;
     
 //    private SymbPredAbsCPAStatistics stats;
@@ -149,10 +148,6 @@ public class SymbPredAbsCPA implements ConfigurableProblemAnalysis {
 
     public SymbolicFormulaManager getFormulaManager() {
         return mgr;
-    }
-
-    public PredicateMap getPredicateMap() {
-        return pmap;
     }
 
     // builds the path formulas corresponding to the leaves of the inner
