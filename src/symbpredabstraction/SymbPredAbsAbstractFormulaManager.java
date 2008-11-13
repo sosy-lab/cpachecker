@@ -10,14 +10,15 @@ public interface SymbPredAbsAbstractFormulaManager extends AbstractFormulaManage
 	 * Abstract post operation.
 	 */
 
-	public AbstractFormula buildAbstraction(SymbPredAbsFormulaManager mgr,
+	public AbstractFormula buildAbstraction(SymbolicFormulaManager symbolicFormulaManager,
 			SymbPredAbsAbstractElement elem, SymbPredAbsAbstractElement newElem, 
-			Collection<Predicate> predicates);
+			PredicateMap predicates);
 
-	/**
-	 * Counterexample analysis and predicate discovery.
-	 */
-	public CounterexampleTraceInfo buildCounterexampleTrace(
-			SymbPredAbsFormulaManager mgr, 
-			Deque<SymbPredAbsAbstractElement> abstractTrace);
+	// TODO
+//	/**
+//	 * Counterexample analysis and predicate discovery.
+//	 */
+//	public CounterexampleTraceInfo buildCounterexampleTrace(
+//			SymbPredAbsFormulaManager mgr, 
+//			Deque<SymbPredAbsAbstractElement> abstractTrace);
 }
