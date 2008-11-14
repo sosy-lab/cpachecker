@@ -7,6 +7,9 @@ import java.util.List;
 import javax.jws.soap.InitParam;
 
 import symbpredabstraction.AbstractFormula;
+import symbpredabstraction.BDDAbstractFormula;
+import symbpredabstraction.BDDMathsatSymbPredAbsAbstractManager;
+import symbpredabstraction.MathsatSymbPredAbsFormulaManager;
 import symbpredabstraction.ParentsList;
 import symbpredabstraction.PathFormula;
 import symbpredabstraction.PredicateMap;
@@ -31,7 +34,6 @@ implements AbstractElement, AbstractElementWithLocation {
 	/** the path formula from the abstraction location to this node */
 	private PathFormula pathFormula;
 	/** initial abstraction values*/
-	// updated only at abstraction locations currently
 	private PathFormula initAbstractionFormula;
 	/** the abstraction which is updated only on abstraction locations */
 	private AbstractFormula abstraction;
@@ -42,6 +44,10 @@ implements AbstractElement, AbstractElementWithLocation {
 
 	// TODO 
 	SSAMap maxIndex;
+	
+	private SymbPredAbsAbstractDomain domain;
+	private BDDMathsatSymbPredAbsAbstractManager bddMathsatMan;
+	private MathsatSymbPredAbsFormulaManager mathsatFormMan;
 
 	// context is used to deal with function calls/returns
 //	private Stack<Pair<AbstractFormula, SymbPredAbsCFANode>> context;
@@ -92,7 +98,7 @@ implements AbstractElement, AbstractElementWithLocation {
 	// TODO fix these constructors, check all callers later
 	// when an element for abstraction and non-abstraction location
 	// is created call different constructors 
-	public SymbPredAbsAbstractElement(CFANode CFALoc, CFANode abstLoc, 
+	public SymbPredAbsAbstractElement(SymbPredAbsAbstractDomain d, CFANode CFALoc, CFANode abstLoc, 
 			PathFormula pf, AbstractFormula a, 
 			ParentsList p, PathFormula initFormula, PredicateMap pmap) {
 		CFALocation = CFALoc;
@@ -103,12 +109,15 @@ implements AbstractElement, AbstractElementWithLocation {
 		predicates = pmap;
 		initAbstractionFormula = initFormula;
 		maxIndex = new SSAMap();
+		domain = d;
+		bddMathsatMan = d.getCPA().getBDDMathsatSymbPredAbsAbstractManager();
+		mathsatFormMan = d.getCPA().getMathsatSymbPredAbsFormulaManager();
 //		context = null;
 //		ownsContext = true;
 	}
 
-	public SymbPredAbsAbstractElement(CFANode loc, CFANode abstLoc) {
-		this(loc, abstLoc, null, null, null, null, null);
+	public SymbPredAbsAbstractElement(SymbPredAbsAbstractDomain d, CFANode loc, CFANode abstLoc) {
+		this(d, loc, abstLoc, null, null, null, null, null);
 	}
 
 	public boolean equals(Object o) {
@@ -138,7 +147,13 @@ implements AbstractElement, AbstractElementWithLocation {
 	}
 
 	public String toString() {
-		return  "node: " + getLocation().getNodeNumber() + " PF: "+ getPathFormula().getSymbolicFormula();
+		BDDAbstractFormula abst = (BDDAbstractFormula)getAbstraction();
+		SymbolicFormula symbReprAbst = bddMathsatMan.toConcrete(mathsatFormMan, abst);
+		return  "node: " + getLocation().getNodeNumber() + 
+		" PF: "+ getPathFormula().getSymbolicFormula() + 
+		" Abstraction: " + symbReprAbst +
+		 " Init Formula--> " + (getInitAbstractionSet() != null ? getInitAbstractionSet().getSymbolicFormula() : "null")  + 
+		"\n \n";
 		//+ ">(" + Integer.toString(getId()) + ")"
 	}
 

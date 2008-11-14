@@ -194,13 +194,13 @@ public class BDDMathsatSymbPredAbsAbstractManager extends
 		SymbolicFormula f = null;
 		SSAMap ssa = null;
 		
-		Pair<CFANode, CFANode> key = new Pair<CFANode, CFANode>(
-				e.getLocationNode(), succ.getLocationNode());
-		if (abstractionCache.containsKey(key)) {
-			PathFormula pc = abstractionCache.get(key);
-			f = pc.getSymbolicFormula();
-			ssa = pc.getSsa();
-		} else {
+		Pair<CFANode, CFANode> key = new Pair<CFANode, CFANode>(e.getLocationNode(), succ.getLocationNode());
+		// TODO enable cache later
+//		if (abstractionCache.containsKey(key)) {
+//			PathFormula pc = abstractionCache.get(key);
+//			f = pc.getSymbolicFormula();
+//			ssa = pc.getSsa();
+//		} else {
 //			// take all outgoing edges from e to succ and OR them
 //			Pair<SymbolicFormula, SSAMap> pc = 
 //				buildConcreteFormula(mmgr, e, succ, false);
@@ -219,7 +219,7 @@ public class BDDMathsatSymbPredAbsAbstractManager extends
 			ssa = pf.getSsa();
 			
 			abstractionCache.put(key, new PathFormula((MathsatSymbolicFormula)f, ssa));
-		}
+//		}
 
 		if (CPAMain.cpaConfig.getBooleanValue(
 		"cpas.symbpredabs.useBitwiseAxioms")) {

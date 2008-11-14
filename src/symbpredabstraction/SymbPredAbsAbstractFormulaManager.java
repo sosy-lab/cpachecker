@@ -14,6 +14,13 @@ public interface SymbPredAbsAbstractFormulaManager extends AbstractFormulaManage
 			SymbPredAbsAbstractElement elem, SymbPredAbsAbstractElement newElem, 
 			PredicateMap predicates);
 
+	/**
+	 * Counterexample analysis and predicate discovery.
+	 */
+	// TODO Later
+//	public CounterexampleTraceInfo buildCounterexampleTrace(
+//			SymbPredAbsFormulaManager mgr, 
+//			Deque<SymbPredAbsAbstractElement> abstractTrace);
 	// TODO
 //	/**
 //	 * Counterexample analysis and predicate discovery.

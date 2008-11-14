@@ -49,7 +49,7 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
 		}
 		else{
 			boolean b = ((SymbPredAbsAbstractDomain)getAbstractDomain()).getCPA().isAbstractionLocation(loc1);
-			SymbPredAbsAbstractElement merged = new SymbPredAbsAbstractElement(loc1, elem1.getAbstractionLocation()); 
+			SymbPredAbsAbstractElement merged = new SymbPredAbsAbstractElement(domain, loc1, elem1.getAbstractionLocation()); 
 			if(!b){
 				// TODO check
 				MathsatSymbolicFormula form1 = 

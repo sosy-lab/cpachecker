@@ -94,12 +94,6 @@ public class CPAAlgorithm
 							waitlist.remove(reachedElement);
 							waitlist.add(mergedElement);
 
-							System.out.println("===== removing from waitlist =============");
-							CompositeElement comel = (CompositeElement) reachedElement;
-							SymbPredAbsAbstractElement symbElem = (SymbPredAbsAbstractElement)comel.get(0); 
-							System.out.println("location: " + symbElem.getLocation().getNodeNumber());
-							// System.out.println("formula: " + symbElem.getPathFormula().getSymbolicFormula());
-							System.out.println("===================");
 							toRemove.add(reachedElement);
 							toAdd.add(mergedElement);
 						}

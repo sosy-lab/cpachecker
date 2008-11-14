@@ -23,8 +23,14 @@ import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 
 import symbpredabstraction.AbstractFormula;
+import symbpredabstraction.BDDAbstractFormula;
 import symbpredabstraction.BDDMathsatSymbPredAbsAbstractManager;
+import symbpredabstraction.BDDPredicate;
+import symbpredabstraction.JavaBDD;
 import symbpredabstraction.MathsatSymbPredAbsFormulaManager;
+import symbpredabstraction.MathsatSymbolicFormula;
+import symbpredabstraction.MathsatSymbolicFormulaManager;
+import symbpredabstraction.Pair;
 import symbpredabstraction.ParentsList;
 import symbpredabstraction.PathFormula;
 import symbpredabstraction.Predicate;
@@ -32,6 +38,7 @@ import symbpredabstraction.PredicateMap;
 import symbpredabstraction.SSAMap;
 import symbpredabstraction.SymbPredAbsAbstractFormulaManager;
 import symbpredabstraction.SymbolicFormula;
+import symbpredabstraction.SymbolicFormulaManager;
 import cpaplugin.cfa.objectmodel.BlankEdge;
 import cpaplugin.cfa.objectmodel.CFAEdge;
 import cpaplugin.cfa.objectmodel.CFAErrorNode;
@@ -177,7 +184,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
 		if (!b) {
 			try {
-				newElement = new SymbPredAbsAbstractElement(succLoc, element.getAbstractionLocation());
+				newElement = new SymbPredAbsAbstractElement(domain, succLoc, element.getAbstractionLocation());
 				handleNonAbstractionLocation(element, newElement, edge);
 			} catch (SymbPredAbstTransferException e) {
 				e.printStackTrace();
@@ -185,7 +192,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 		}
 
 		else {
-			newElement = new SymbPredAbsAbstractElement(succLoc, succLoc);
+			newElement = new SymbPredAbsAbstractElement(domain, succLoc, succLoc);
 			handleAbstractionLocation(element, newElement, edge);
 		}
 
@@ -431,7 +438,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 //		}
 	}
 
-	private AbstractFormula computeAbstraction(
+	private AbstractFormula computeBooleanAbstraction(
 			SymbPredAbsAbstractElement element,
 			SymbPredAbsAbstractElement newElement, CFAEdge edge) {
 		SymbPredAbsCPA cpa = ((SymbPredAbsAbstractDomain)getAbstractDomain()).getCPA();
@@ -478,6 +485,291 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 //		}
 		return abstraction;
 	}
+	
+    // cartesian abstraction
+    protected AbstractFormula computeCartesianAbstraction(
+            SymbolicFormulaManager mgr, SymbPredAbsAbstractElement e, 
+            SymbPredAbsAbstractElement succ, CFAEdge edge,
+            Collection<Predicate> predicates) {
+        long startTime = System.currentTimeMillis();
+
+        MathsatSymbolicFormulaManager mmgr = (MathsatSymbolicFormulaManager)mgr;
+        
+        JavaBDD bddManager = bddMathsatMan.getBddManager();
+        
+        long msatEnv = mmgr.getMsatEnv();       
+        long absEnv =  mathsat.api.msat_create_shared_env(msatEnv);
+        //long absEnv = mathsat.api.msat_create_env();
+//        if (absEnv == 0) {
+//            absEnv = mathsat.api.msat_create_shared_env(msatEnv);
+//        }
+        //mathsat.api.msat_reset_env(absEnv);
+        mathsat.api.msat_add_theory(absEnv, mathsat.api.MSAT_UF);
+        if (CPAMain.cpaConfig.getBooleanValue(
+                "cpas.symbpredabs.mathsat.useIntegers")) {
+            mathsat.api.msat_add_theory(absEnv, mathsat.api.MSAT_LIA);
+            int ok = mathsat.api.msat_set_option(
+                    absEnv, "split_eq", "false");
+            assert(ok == 0);
+        } else {
+            mathsat.api.msat_add_theory(absEnv, mathsat.api.MSAT_LRA);
+        }
+        mathsat.api.msat_set_theory_combination(absEnv, 
+                mathsat.api.MSAT_COMB_DTC);
+        // disable static learning. For small problems, this is just overhead
+        mathsat.api.msat_set_option(absEnv, "sl", "0");
+        
+        // TODO
+//        if (isFunctionExit(e)) {
+//            // we have to take the context before the function call 
+//            // into account, otherwise we are not building the right 
+//            // abstraction!
+//            assert(false); // TODO
+////            if (CPAMain.cpaConfig.getBooleanValue(
+////                    "cpas.symbpredabs.refinement.addWellScopedPredicates")) {
+////                // but only if we are adding well-scoped predicates, otherwise 
+////                // this should not be necessary
+////                AbstractFormula ctx = e.topContextAbstraction();
+////                MathsatSymbolicFormula fctx = 
+////                    (MathsatSymbolicFormula)mmgr.instantiate(
+////                            toConcrete(mmgr, ctx), null);
+////                fabs = (MathsatSymbolicFormula)mmgr.makeAnd(fabs, fctx);
+////
+////                LazyLogger.log(LazyLogger.DEBUG_3, 
+////                        "TAKING CALLING CONTEXT INTO ACCOUNT: ", fctx);
+////            } else {
+////                LazyLogger.log(LazyLogger.DEBUG_3, 
+////                        "NOT TAKING CALLING CONTEXT INTO ACCOUNT,",
+////                        "as we are not using well-scoped predicates");
+////            }
+//        }
+        
+        PathFormula pc = buildConcreteFormula(mmgr, e, succ, edge, false);
+        SymbolicFormula f = pc.getSymbolicFormula();
+        SSAMap ssa = pc.getSsa();
+        
+        f = mmgr.replaceAssignments((MathsatSymbolicFormula)pc.getSymbolicFormula());
+        SymbolicFormula fkey = f;
+        
+        byte[] predVals = null;
+        final byte NO_VALUE = -2;
+        // TODO
+//        if (useCache) {
+//            predVals = new byte[predicates.size()];
+//            int predIndex = -1;
+//            for (Predicate p : predicates) {
+//                ++predIndex;
+//                CartesianAbstractionCacheKey key = 
+//                    new CartesianAbstractionCacheKey(f, p);
+//                if (cartesianAbstractionCache.containsKey(key)) {
+//                    predVals[predIndex] = cartesianAbstractionCache.get(key);
+//                } else {
+//                    predVals[predIndex] = NO_VALUE;
+//                }
+//            }
+//        }
+        
+        boolean skipFeasibilityCheck = false;
+        // TODO
+//        if (useCache) {
+////            Pair<AbstractFormula, CFAEdge> key = 
+////                new Pair<AbstractFormula, CFAEdge>(e.getAbstraction(), edge);
+//            FeasibilityCacheKey key = new FeasibilityCacheKey(f);
+//            if (feasibilityCache.containsKey(key)) {
+//                skipFeasibilityCheck = true;
+//                if (!feasibilityCache.get(key)) {
+//                    // abstract post leads to false, we can return immediately
+//                    return new BDDAbstractFormula(bddManager.getZero());
+//                }
+//            }
+//        }        
+
+
+        if (CPAMain.cpaConfig.getBooleanValue(
+                "cpas.symbpredabs.useBitwiseAxioms")) {
+            MathsatSymbolicFormula bitwiseAxioms = mmgr.getBitwiseAxioms(
+                    (MathsatSymbolicFormula)f);
+            f = mmgr.makeAnd(f, bitwiseAxioms);
+
+            LazyLogger.log(LazyLogger.DEBUG_3, "ADDED BITWISE AXIOMS: ", 
+                    bitwiseAxioms);
+        }
+        long term = ((MathsatSymbolicFormula)f).getTerm();
+//        term = mathsat.api.msat_make_copy_from(
+//                absEnv, ((MathsatSymbolicFormula)f).getTerm(), msatEnv);
+        assert(!mathsat.api.MSAT_ERROR_TERM(term));
+        
+        long solveStartTime = System.currentTimeMillis();        
+        mathsat.api.msat_assert_formula(absEnv, term);    
+        
+        if (!skipFeasibilityCheck) {
+        	// TODO
+//            ++stats.abstractionNumMathsatQueries;
+            if (mathsat.api.msat_solve(absEnv) == mathsat.api.MSAT_UNSAT) {
+                mathsat.api.msat_destroy_env(absEnv);
+                // TODO
+//                if (useCache) {
+////                    Pair<AbstractFormula, CFAEdge> key = 
+////                        new Pair<AbstractFormula, CFAEdge>(
+////                                e.getAbstraction(), edge);
+//                    FeasibilityCacheKey key = new FeasibilityCacheKey(fkey);
+//                    if (feasibilityCache.containsKey(key)) {
+//                        assert(feasibilityCache.get(key) == false);
+//                    }
+//                    feasibilityCache.put(key, false);
+//                }
+                return new BDDAbstractFormula(bddManager.getZero());
+            } else {
+            	// TODO
+//                if (useCache) {
+////                    Pair<AbstractFormula, CFAEdge> key = 
+////                        new Pair<AbstractFormula, CFAEdge>(
+////                                e.getAbstraction(), edge);
+//                    FeasibilityCacheKey key = new FeasibilityCacheKey(fkey);
+//                    if (feasibilityCache.containsKey(key)) {
+//                        assert(feasibilityCache.get(key) == true);
+//                    }
+//                    feasibilityCache.put(key, true);
+//                }
+            }
+        } else {
+            ++stats.abstractionNumCachedQueries;
+        }
+        
+        long totBddTime = 0;
+        
+        int absbdd = bddManager.getOne();
+
+        // check whether each of the predicate is implied in the next state...
+        Set<String> predvars = new HashSet<String>();
+        int predIndex = -1;
+        for (Predicate p : predicates) {
+            ++predIndex;
+            BDDPredicate bp = (BDDPredicate)p;
+            // TODO
+            if (false)//useCache && predVals[predIndex] != NO_VALUE) 
+            	{
+//                long startBddTime = System.currentTimeMillis();
+//                int v = bp.getBDD();
+//                if (predVals[predIndex] == -1) { // pred is false
+//                    v = bddManager.not(v);
+//                    absbdd = bddManager.and(absbdd, v);
+//                } else if (predVals[predIndex] == 1) { // pred is true
+//                    absbdd = bddManager.and(absbdd, v);
+//                }
+//                long endBddTime = System.currentTimeMillis();
+//                totBddTime += (endBddTime - startBddTime);
+//                ++stats.abstractionNumCachedQueries;
+            } else {
+                Pair<MathsatSymbolicFormula, MathsatSymbolicFormula> pi = 
+                    getPredicateNameAndDef(bp);
+
+                // update the SSA map, by instantiating all the uninstantiated 
+                // variables that occur in the predicates definitions
+                // (at index 1)
+                predvars.clear();
+                collectVarNames(pi.getSecond().getTerm(), predvars);
+                for (String var : predvars) {
+                    if (ssa.getIndex(var) < 0) {
+                        ssa.setIndex(var, 1);
+                    }
+                }
+
+                LazyLogger.log(LazyLogger.DEBUG_1, 
+                        "CHECKING VALUE OF PREDICATE: ", pi.getFirst());
+
+                // instantiate the definition of the predicate
+                MathsatSymbolicFormula inst = 
+                    (MathsatSymbolicFormula)mmgr.instantiate(
+                            pi.getSecond(), ssa);
+
+                boolean isTrue = false, isFalse = false;
+                // check whether this predicate has a truth value in the next 
+                // state
+                long predTrue = inst.getTerm();
+//                predTrue = mathsat.api.msat_make_copy_from(
+//                        absEnv, inst.getTerm(), msatEnv);
+                long predFalse = mathsat.api.msat_make_not(absEnv, predTrue);
+
+                int ok = mathsat.api.msat_push_backtrack_point(absEnv);
+                assert(ok == 0);
+                mathsat.api.msat_assert_formula(absEnv, predFalse);
+                long res = mathsat.api.msat_solve(absEnv);
+                assert(res != mathsat.api.MSAT_UNKNOWN);
+                // TODO
+                // ++stats.abstractionNumMathsatQueries;            
+                if (res == mathsat.api.MSAT_UNSAT) {
+                    isTrue = true;
+                }
+                mathsat.api.msat_pop_backtrack_point(absEnv);
+
+                if (isTrue) {
+                    long startBddTime = System.currentTimeMillis();
+                    int v = bp.getBDD();
+                    absbdd = bddManager.and(absbdd, v);
+                    long endBddTime = System.currentTimeMillis();
+                    totBddTime += (endBddTime - startBddTime);
+                } else {
+                    // check whether it's false...
+                    ok = mathsat.api.msat_push_backtrack_point(absEnv);
+                    assert(ok == 0);
+                    mathsat.api.msat_assert_formula(absEnv, predTrue);
+                    res = mathsat.api.msat_solve(absEnv);
+                    // TODO
+                    // ++stats.abstractionNumMathsatQueries;                
+                    assert(res != mathsat.api.MSAT_UNKNOWN);
+                    if (res == mathsat.api.MSAT_UNSAT) {
+                        isFalse = true;
+                    }
+                    mathsat.api.msat_pop_backtrack_point(absEnv);
+
+                    if (isFalse) {
+                        long startBddTime = System.currentTimeMillis();
+                        int v = bp.getBDD();
+                        v = bddManager.not(v);
+                        absbdd = bddManager.and(absbdd, v);
+                        long endBddTime = System.currentTimeMillis();
+                        totBddTime += (endBddTime - startBddTime);
+                    }
+                }
+                
+                // TODO
+//                if (useCache) {
+//                    if (predVals[predIndex] != NO_VALUE) {
+//                        assert(isTrue ? predVals[predIndex] == 1 :
+//                            (isFalse ? predVals[predIndex] == -1 : 
+//                                predVals[predIndex] == 0));
+//                    }
+//                    CartesianAbstractionCacheKey key = 
+////                        new CartesianAbstractionCacheKey(
+////                                e.getAbstraction(), edge, p);
+//                        new CartesianAbstractionCacheKey(fkey, p);
+//                    byte val = (byte)(isTrue ? 1 : (isFalse ? -1 : 0));
+//                    cartesianAbstractionCache.put(key, val);
+//                }
+            }
+        }
+        long solveEndTime = System.currentTimeMillis();
+
+        mathsat.api.msat_destroy_env(absEnv);
+        
+        // update statistics
+        long endTime = System.currentTimeMillis();
+        long solveTime = (solveEndTime - solveStartTime) - totBddTime;
+        long msatTime = (endTime - startTime) - totBddTime;
+        // TODO later
+//        stats.abstractionMaxMathsatTime = 
+//            Math.max(msatTime, stats.abstractionMaxMathsatTime);
+//        stats.abstractionMaxBddTime =
+//            Math.max(totBddTime, stats.abstractionMaxBddTime);
+//        stats.abstractionMathsatTime += msatTime;
+//        stats.abstractionBddTime += totBddTime;
+//        stats.abstractionMathsatSolveTime += solveTime;
+//        stats.abstractionMaxMathsatSolveTime = 
+//            Math.max(solveTime, stats.abstractionMaxMathsatSolveTime);
+
+        return new BDDAbstractFormula(absbdd);
+    }
 
 	// TODO implement support for pfParents
 	private void handleNonAbstractionLocation(

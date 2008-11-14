@@ -97,10 +97,6 @@ public class SymbPredAbsStopOperator implements StopOperator {
                 if (ok) {
                     LazyLogger.log(CustomLogLevel.SpecificCPALevel,
                                    "Element: ", element, " COVERED by: ", e2);
-                    System.out.println("/////////////////////////////////////");
-                    System.out.println("Element: " + element + " COVERED by: " + e2);
-                    System.out.println("/////////////////////////////////////");
-                    
                     cpa.setCoveredBy(e1, e2);
                 } else {
                     LazyLogger.log(CustomLogLevel.SpecificCPALevel,

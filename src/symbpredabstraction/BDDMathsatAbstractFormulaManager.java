@@ -344,4 +344,7 @@ public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
         return new BDDAbstractFormula(t);
     }
 
+    public JavaBDD getBddManager(){
+    	return bddManager;
+    }
 }
