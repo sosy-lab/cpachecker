@@ -142,7 +142,7 @@ public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
         return yes;
     }
     
-    protected void collectVarNames(long term, Set<String> vars) {
+    public void collectVarNames(long term, Set<String> vars) {
         Stack<Long> toProcess = new Stack<Long>();
         toProcess.push(term);
         // TODO - this assumes the term is small! There is no memoizing yet!!

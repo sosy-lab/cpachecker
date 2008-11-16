@@ -29,7 +29,6 @@ import symbpredabstraction.BDDPredicate;
 import symbpredabstraction.JavaBDD;
 import symbpredabstraction.MathsatSymbPredAbsFormulaManager;
 import symbpredabstraction.MathsatSymbolicFormula;
-import symbpredabstraction.MathsatSymbolicFormulaManager;
 import symbpredabstraction.Pair;
 import symbpredabstraction.ParentsList;
 import symbpredabstraction.PathFormula;
@@ -125,7 +124,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 	//private BDDMathsatSummaryAbstractManager
 	private BDDMathsatSymbPredAbsAbstractManager bddMathsatMan;
 	// private SymbAbsBDDMathsatAbstractFormulaManager bddMathsatMan;
-
+	
 	// a namespace to have a unique name for each variable in the program.
 	// Whenever we enter a function, we push its name as namespace. Each
 	// variable will be instantiated inside mathsat as namespace::variable
@@ -347,12 +346,18 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 		newElement.setInitAbstractionSet(element.getPathFormula());
 
 		// TODO set predicates
+		// we have to do this before computing abstraction
 		PredicateMap pmap = element.getPredicates();
 		newElement.setPredicates(pmap);
 		
-		// TODO update abstraction
-		// abstraction is set to true
-		AbstractFormula abst = computeAbstraction(element, newElement, edge);
+		AbstractFormula abst;
+		if (CPAMain.cpaConfig.getBooleanValue(
+        "cpas.symbpredabs.abstraction.cartesian")) {
+			abst = computeCartesianAbstraction(element, newElement, edge);
+		}
+		else{
+			abst = computeBooleanAbstraction(element, newElement, edge);
+		}
 		newElement.setAbstraction(abst);
 		
 		// TODO refinement part
@@ -488,16 +493,15 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 	
     // cartesian abstraction
     protected AbstractFormula computeCartesianAbstraction(
-            SymbolicFormulaManager mgr, SymbPredAbsAbstractElement e, 
-            SymbPredAbsAbstractElement succ, CFAEdge edge,
-            Collection<Predicate> predicates) {
+            SymbPredAbsAbstractElement e, 
+            SymbPredAbsAbstractElement succ, CFAEdge edge) {
         long startTime = System.currentTimeMillis();
 
-        MathsatSymbolicFormulaManager mmgr = (MathsatSymbolicFormulaManager)mgr;
-        
         JavaBDD bddManager = bddMathsatMan.getBddManager();
+        // TODO get predicates as collection from succ state
+        Collection<Predicate> predicates = succ.getPredicates().getRelevantPredicates(succ.getLocation());
         
-        long msatEnv = mmgr.getMsatEnv();       
+        long msatEnv = mathsatFormMan.getMsatEnv();       
         long absEnv =  mathsat.api.msat_create_shared_env(msatEnv);
         //long absEnv = mathsat.api.msat_create_env();
 //        if (absEnv == 0) {
@@ -544,11 +548,20 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 ////            }
 //        }
         
-        PathFormula pc = buildConcreteFormula(mmgr, e, succ, edge, false);
+        // TODO changing this
+        // PathFormula pc = buildConcreteFormula(mmgr, e, succ, edge, false);
+
+        AbstractFormula abs = e.getAbstraction();
+        MathsatSymbolicFormula fabs = 
+            (MathsatSymbolicFormula)mathsatFormMan.instantiate(
+            		bddMathsatMan.toConcrete(mathsatFormMan, abs), null);        
+        SSAMap fssa = mathsatFormMan.extractSSA(fabs);
+        PathFormula pc = new PathFormula(fabs, fssa);
+        
         SymbolicFormula f = pc.getSymbolicFormula();
         SSAMap ssa = pc.getSsa();
         
-        f = mmgr.replaceAssignments((MathsatSymbolicFormula)pc.getSymbolicFormula());
+        f = mathsatFormMan.replaceAssignments((MathsatSymbolicFormula)pc.getSymbolicFormula());
         SymbolicFormula fkey = f;
         
         byte[] predVals = null;
@@ -587,9 +600,9 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
         if (CPAMain.cpaConfig.getBooleanValue(
                 "cpas.symbpredabs.useBitwiseAxioms")) {
-            MathsatSymbolicFormula bitwiseAxioms = mmgr.getBitwiseAxioms(
+            MathsatSymbolicFormula bitwiseAxioms = mathsatFormMan.getBitwiseAxioms(
                     (MathsatSymbolicFormula)f);
-            f = mmgr.makeAnd(f, bitwiseAxioms);
+            f = mathsatFormMan.makeAnd(f, bitwiseAxioms);
 
             LazyLogger.log(LazyLogger.DEBUG_3, "ADDED BITWISE AXIOMS: ", 
                     bitwiseAxioms);
@@ -633,7 +646,8 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 //                }
             }
         } else {
-            ++stats.abstractionNumCachedQueries;
+        	// TODO
+            // ++stats.abstractionNumCachedQueries;
         }
         
         long totBddTime = 0;
@@ -662,13 +676,13 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 //                ++stats.abstractionNumCachedQueries;
             } else {
                 Pair<MathsatSymbolicFormula, MathsatSymbolicFormula> pi = 
-                    getPredicateNameAndDef(bp);
+                	bddMathsatMan.getPredicateNameAndDef(bp);
 
                 // update the SSA map, by instantiating all the uninstantiated 
                 // variables that occur in the predicates definitions
                 // (at index 1)
                 predvars.clear();
-                collectVarNames(pi.getSecond().getTerm(), predvars);
+                bddMathsatMan.collectVarNames(pi.getSecond().getTerm(), predvars);
                 for (String var : predvars) {
                     if (ssa.getIndex(var) < 0) {
                         ssa.setIndex(var, 1);
@@ -680,7 +694,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
                 // instantiate the definition of the predicate
                 MathsatSymbolicFormula inst = 
-                    (MathsatSymbolicFormula)mmgr.instantiate(
+                    (MathsatSymbolicFormula)mathsatFormMan.instantiate(
                             pi.getSecond(), ssa);
 
                 boolean isTrue = false, isFalse = false;
