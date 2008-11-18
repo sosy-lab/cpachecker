@@ -15,7 +15,6 @@ import cpaplugin.cpa.common.interfaces.ConfigurableProblemAnalysis;
 import cpaplugin.cpa.common.interfaces.MergeOperator;
 import cpaplugin.cpa.common.interfaces.StopOperator;
 import cpaplugin.cpa.common.interfaces.TransferRelation;
-import cpaplugin.cpa.cpas.symbpredabsCPA.SymbPredAbsAbstractElement;
 import cpaplugin.exceptions.CPAException;
 import cpaplugin.logging.CustomLogLevel;
 import cpaplugin.logging.LazyLogger;

@@ -226,15 +226,17 @@ public class SymbPredAbsCPA implements ConfigurableProblemAnalysis {
 	}
 
 	public boolean isAbstractionLocation(CFANode succLoc) {
-		
-		// useful for test cases
-		String lines[] = CPAMain.cpaConfig.getPropertiesArray("abstraction.extraLocations");
-		for(String line:lines){
-			if(succLoc.getLineNumber() == Integer.valueOf(line)){
-				return true;
-			}
-		}
-		
+
+//		// useful for test cases
+//		String lines[] = CPAMain.cpaConfig.getPropertiesArray("abstraction.extraLocations");
+//		if(lines.length > 0){
+//			for(String line:lines){
+//				if(succLoc.getLineNumber() == Integer.valueOf(line)){
+//					return true;
+//				}
+//			}
+//		}
+
 		if (succLoc.isLoopStart() || succLoc instanceof CFAErrorNode
 				|| succLoc.getNumLeavingEdges() == 0) {
 			return true;

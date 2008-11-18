@@ -218,6 +218,10 @@ public class BDDMathsatSymbPredAbsAbstractManager extends
 			f = pf.getSymbolicFormula();
 			ssa = pf.getSsa();
 			
+			PathFormula pc = mmgr.shift(f, absSsa);
+			f = mmgr.replaceAssignments((MathsatSymbolicFormula)pc.getSymbolicFormula());
+			ssa = pc.getSsa();
+			
 			abstractionCache.put(key, new PathFormula((MathsatSymbolicFormula)f, ssa));
 //		}
 
@@ -235,7 +239,6 @@ public class BDDMathsatSymbPredAbsAbstractManager extends
 //		absEnv, ((MathsatSymbolicFormula)f).getTerm(), msatEnv);
 		long term = ((MathsatSymbolicFormula)f).getTerm();
 		assert(!mathsat.api.MSAT_ERROR_TERM(term));
-
 
 		// build the definition of the predicates, and instantiate them
 		// TODO check
