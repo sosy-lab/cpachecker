@@ -40,16 +40,19 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
 
 		SymbPredAbsAbstractElement elem1 = (SymbPredAbsAbstractElement)element1;
 		SymbPredAbsAbstractElement elem2 = (SymbPredAbsAbstractElement)element2;
-		CFANode loc1 = elem1.getLocation();
-		CFANode loc2 = elem2.getLocation();
+		
+		// TODO removed loc information
+//		CFANode loc1 = elem1.getLocation();
+//		CFANode loc2 = elem2.getLocation();
 
-		if(loc1.getNodeNumber() != loc2.getNodeNumber() || 
-				!(elem1.getParents().equals(elem2.getParents()))){
-			return element2;
-		}
-		else{
-			boolean b = ((SymbPredAbsAbstractDomain)getAbstractDomain()).getCPA().isAbstractionLocation(loc1);
-			SymbPredAbsAbstractElement merged = new SymbPredAbsAbstractElement(domain, loc1, elem1.getAbstractionLocation()); 
+//		if(loc1.getNodeNumber() != loc2.getNodeNumber() || 
+//				!(elem1.getParents().equals(elem2.getParents()))){
+//			return element2;
+//		}
+//		else{
+		//TODO check 
+			boolean b = elem1.isAbstractionNode();
+			SymbPredAbsAbstractElement merged = new SymbPredAbsAbstractElement(domain, null, elem1.getAbstractionLocation()); 
 			if(!b){
 				// TODO check
 				MathsatSymbolicFormula form1 = 
@@ -109,6 +112,6 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
 			}
 
 			return merged;
-		}
+		//}
 	}
 }

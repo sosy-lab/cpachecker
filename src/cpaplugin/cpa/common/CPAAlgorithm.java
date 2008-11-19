@@ -72,7 +72,7 @@ public class CPAAlgorithm
 
 				// AG as an optimization, we allow the mergeOperator to be null,
 				// as a synonym of a trivial operator that never merges
-				
+
 				if (mergeOperator != null) {
 					List<AbstractElement> toRemove =
 						new Vector<AbstractElement>();
@@ -131,7 +131,7 @@ public class CPAAlgorithm
 							"No need to stop ", successor,
 					" is added to queue");
 					// end to the end
-					
+
 					waitlist.add (successor);
 					reached.add(successor);
 				}
@@ -143,44 +143,51 @@ public class CPAAlgorithm
 	}
 
 	private AbstractElement choose(List<AbstractElement> waitlist) {
-		
+
 		AbstractElement e;
-		if(CPAMain.cpaConfig.getBooleanValue("analysis.topSort")){
-			AbstractElement currentElement = waitlist.get(0);
-			CompositeElement compElem = (CompositeElement)currentElement;
-			AbstractElement firstElement = compElem.get(0);
-			// TODO we require the first element to contain the location information
-			if(!(firstElement instanceof AbstractElementWithLocation)){
-				try {
-					throw new CPAException("No Location information available, impossible to continue");
-				} catch (CPAException e1) {
-					e1.printStackTrace();
-				}
-			}
-			
-			AbstractElementWithLocation tempElem = (AbstractElementWithLocation)firstElement;
-			for(int i=1; i<waitlist.size(); i++){
-				AbstractElement currentTempElement = waitlist.get(i);
-				CompositeElement compTempElem = (CompositeElement)currentTempElement;
-				AbstractElement firstTempElement = compTempElem.get(0);
-				AbstractElementWithLocation tempElem2 = (AbstractElementWithLocation)firstTempElement;
-				if(tempElem2.getLocationNode().getTopologicalSortId() > tempElem.getLocationNode().getTopologicalSortId()){
-					currentElement = currentTempElement;
-					tempElem = tempElem2;
-				}
-			}
-			
-			e = (AbstractElement)currentElement;
-			
-			waitlist.remove(e);
+
+		if(waitlist.size() == 1){
+			e = waitlist.remove(0);
 		}
-		
-		else
-			if (CPAMain.cpaConfig.getBooleanValue("analysis.bfs")) {
-				e = waitlist.remove(0);
-			} else {
-				e = waitlist.remove(waitlist.size()-1);
+		else{
+			if(CPAMain.cpaConfig.getBooleanValue("analysis.topSort")){
+				AbstractElement currentElement = waitlist.get(0);
+				CompositeElement compElem = (CompositeElement)currentElement;
+				AbstractElement firstElement = compElem.get(0);
+				// TODO we require the first element to contain the location information
+				if(!(firstElement instanceof AbstractElementWithLocation)){
+					try {
+						throw new CPAException("No Location information available, impossible to continue");
+					} catch (CPAException e1) {
+						e1.printStackTrace();
+					}
+				}
+
+				AbstractElementWithLocation tempElem = (AbstractElementWithLocation)firstElement;
+				for(int i=1; i<waitlist.size(); i++){
+					AbstractElement currentTempElement = waitlist.get(i);
+					CompositeElement compTempElem = (CompositeElement)currentTempElement;
+					AbstractElement firstTempElement = compTempElem.get(0);
+					AbstractElementWithLocation tempElem2 = (AbstractElementWithLocation)firstTempElement;
+					if(tempElem2.getLocationNode().getTopologicalSortId() > tempElem.getLocationNode().getTopologicalSortId()){
+						currentElement = currentTempElement;
+						tempElem = tempElem2;
+					}
+				}
+
+				e = (AbstractElement)currentElement;
+
+				waitlist.remove(e);
 			}
+
+			else{
+				if (CPAMain.cpaConfig.getBooleanValue("analysis.bfs")) {
+					e = waitlist.remove(0);
+				} else {
+					e = waitlist.remove(waitlist.size()-1);
+				}
+			}
+		}
 		return e;
 	}
 

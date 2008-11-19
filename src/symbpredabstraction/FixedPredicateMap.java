@@ -20,6 +20,11 @@ public class FixedPredicateMap implements PredicateMap {
     public Collection<Predicate> getRelevantPredicates(CFANode n) {
         return thePredicates;
     }
+    
+    // TODO check
+    public Collection<Predicate> getRelevantPredicates() {
+        return thePredicates;
+    }
 
     @Override
     public Collection<String> getKnownFunctions() {

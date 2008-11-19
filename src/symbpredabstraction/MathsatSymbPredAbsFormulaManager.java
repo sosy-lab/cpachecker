@@ -207,52 +207,107 @@ public class MathsatSymbPredAbsFormulaManager implements SymbolicFormulaManager 
         return msatEnv;
     }
     
+    // TODO check
+    public boolean equals(SymbolicFormula f1, SymbolicFormula f2) {
+        
+        // TODO enable later
+//       	Pair<SymbolicFormula, SymbolicFormula> key = null;
+//           if (entailsUseCache) {
+//               key = new Pair<SymbolicFormula, SymbolicFormula>(f1, f2);
+//               if (entailsCache.containsKey(key)) {
+//                   return entailsCache.get(key);
+//               }
+//           }
+           
+           MathsatSymbolicFormula m1 = (MathsatSymbolicFormula)f1;
+           MathsatSymbolicFormula m2 = (MathsatSymbolicFormula)f2;
+
+           // create a temporary environment for checking the implication
+           long env = mathsat.api.msat_create_env();
+           mathsat.api.msat_add_theory(env, mathsat.api.MSAT_UF);
+           if (CPAMain.cpaConfig.getBooleanValue(
+                   "cpas.symbpredabs.mathsat.useIntegers")) {
+               mathsat.api.msat_add_theory(env, mathsat.api.MSAT_LIA);
+               int ok = mathsat.api.msat_set_option(env, "split_eq", "true");
+               assert(ok == 0);
+           } else {
+               mathsat.api.msat_add_theory(env, mathsat.api.MSAT_LRA);
+           }
+           mathsat.api.msat_set_theory_combination(env, mathsat.api.MSAT_COMB_DTC);
+
+           long t1 = mathsat.api.msat_make_copy_from(env, m1.getTerm(), msatEnv);
+           long t2 = mathsat.api.msat_make_copy_from(env, m2.getTerm(), msatEnv);
+           long imp1 = mathsat.api.msat_make_implies(env, t1, t2);
+           long imp2 = mathsat.api.msat_make_implies(env, t2, t1);
+           
+           mathsat.api.msat_assert_formula(env, 
+                   mathsat.api.msat_make_not(env, imp1));
+           int res1 = mathsat.api.msat_solve(env);
+
+           mathsat.api.msat_assert_formula(env, 
+                   mathsat.api.msat_make_not(env, imp2));
+           int res2 = mathsat.api.msat_solve(env);
+           
+           mathsat.api.msat_destroy_env(env);
+
+           boolean ret1 = (res1 == mathsat.api.MSAT_UNSAT);
+           boolean ret2 = (res2 == mathsat.api.MSAT_UNSAT);
+           
+        // TODO enable later
+//           if (entailsUseCache) {
+//               assert(key != null);
+//               entailsCache.put(key, ret);
+//           }
+           
+           return ret1 & ret2;
+       }
+    
     public boolean entails(SymbolicFormula f1, SymbolicFormula f2) {
         
-     // TODO enable later
-//    	Pair<SymbolicFormula, SymbolicFormula> key = null;
-//        if (entailsUseCache) {
-//            key = new Pair<SymbolicFormula, SymbolicFormula>(f1, f2);
-//            if (entailsCache.containsKey(key)) {
-//                return entailsCache.get(key);
-//            }
-//        }
-        
-        MathsatSymbolicFormula m1 = (MathsatSymbolicFormula)f1;
-        MathsatSymbolicFormula m2 = (MathsatSymbolicFormula)f2;
+        // TODO enable later
+//       	Pair<SymbolicFormula, SymbolicFormula> key = null;
+//           if (entailsUseCache) {
+//               key = new Pair<SymbolicFormula, SymbolicFormula>(f1, f2);
+//               if (entailsCache.containsKey(key)) {
+//                   return entailsCache.get(key);
+//               }
+//           }
+           
+           MathsatSymbolicFormula m1 = (MathsatSymbolicFormula)f1;
+           MathsatSymbolicFormula m2 = (MathsatSymbolicFormula)f2;
 
-        // create a temporary environment for checking the implication
-        long env = mathsat.api.msat_create_env();
-        mathsat.api.msat_add_theory(env, mathsat.api.MSAT_UF);
-        if (CPAMain.cpaConfig.getBooleanValue(
-                "cpas.symbpredabs.mathsat.useIntegers")) {
-            mathsat.api.msat_add_theory(env, mathsat.api.MSAT_LIA);
-            int ok = mathsat.api.msat_set_option(env, "split_eq", "true");
-            assert(ok == 0);
-        } else {
-            mathsat.api.msat_add_theory(env, mathsat.api.MSAT_LRA);
-        }
-        mathsat.api.msat_set_theory_combination(env, mathsat.api.MSAT_COMB_DTC);
+           // create a temporary environment for checking the implication
+           long env = mathsat.api.msat_create_env();
+           mathsat.api.msat_add_theory(env, mathsat.api.MSAT_UF);
+           if (CPAMain.cpaConfig.getBooleanValue(
+                   "cpas.symbpredabs.mathsat.useIntegers")) {
+               mathsat.api.msat_add_theory(env, mathsat.api.MSAT_LIA);
+               int ok = mathsat.api.msat_set_option(env, "split_eq", "true");
+               assert(ok == 0);
+           } else {
+               mathsat.api.msat_add_theory(env, mathsat.api.MSAT_LRA);
+           }
+           mathsat.api.msat_set_theory_combination(env, mathsat.api.MSAT_COMB_DTC);
 
-        long t1 = mathsat.api.msat_make_copy_from(env, m1.getTerm(), msatEnv);
-        long t2 = mathsat.api.msat_make_copy_from(env, m2.getTerm(), msatEnv);
-        long imp = mathsat.api.msat_make_implies(env, t1, t2);
-        mathsat.api.msat_assert_formula(env, 
-                mathsat.api.msat_make_not(env, imp));
-        int res = mathsat.api.msat_solve(env);
+           long t1 = mathsat.api.msat_make_copy_from(env, m1.getTerm(), msatEnv);
+           long t2 = mathsat.api.msat_make_copy_from(env, m2.getTerm(), msatEnv);
+           long imp = mathsat.api.msat_make_implies(env, t1, t2);
+           mathsat.api.msat_assert_formula(env, 
+                   mathsat.api.msat_make_not(env, imp));
+           int res = mathsat.api.msat_solve(env);
 
-        mathsat.api.msat_destroy_env(env);
+           mathsat.api.msat_destroy_env(env);
 
-        boolean ret = (res == mathsat.api.MSAT_UNSAT);
-        
-     // TODO enable later
-//        if (entailsUseCache) {
-//            assert(key != null);
-//            entailsCache.put(key, ret);
-//        }
-        
-        return ret;
-    }
+           boolean ret = (res == mathsat.api.MSAT_UNSAT);
+           
+        // TODO enable later
+//           if (entailsUseCache) {
+//               assert(key != null);
+//               entailsCache.put(key, ret);
+//           }
+           
+           return ret;
+       }
 
     
     public SymbolicFormula makeAnd(SymbolicFormula f1, SymbolicFormula f2) {

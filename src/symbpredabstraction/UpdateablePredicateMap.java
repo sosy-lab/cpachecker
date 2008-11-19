@@ -99,6 +99,11 @@ public class UpdateablePredicateMap implements PredicateMap {
         }
     }
     
+    // TODO fix
+    public Collection<Predicate> getRelevantPredicates() {
+        return null;
+    }
+    
     public Collection<Predicate> getRelevantPredicates(String fn) {
         if (functionGlobalPreds.containsKey(fn)) {
             return functionGlobalPreds.get(fn);

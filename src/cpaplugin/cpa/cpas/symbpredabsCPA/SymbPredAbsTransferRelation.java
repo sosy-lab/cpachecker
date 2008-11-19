@@ -159,14 +159,15 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 	// isFunctionStart and isFunctionEnd are used for managing the context,
 	// needed for handling function calls
 
-	private boolean isFunctionStart(SymbPredAbsAbstractElement elem) {
-		return (elem.getLocation() instanceof FunctionDefinitionNode);
-	}
-
-	private boolean isFunctionEnd(SymbPredAbsAbstractElement elem) {
-		CFANode n = elem.getLocation();
-		return (n.getNumLeavingEdges() == 1 && n.getLeavingEdge(0) instanceof ReturnEdge);
-	}
+	// TODO function
+//	private boolean isFunctionStart(SymbPredAbsAbstractElement elem) {
+//		return (elem.getLocation() instanceof FunctionDefinitionNode);
+//	}
+//
+//	private boolean isFunctionEnd(SymbPredAbsAbstractElement elem) {
+//		CFANode n = elem.getLocation();
+//		return (n.getNumLeavingEdges() == 1 && n.getLeavingEdge(0) instanceof ReturnEdge);
+//	}
 
 	// abstract post operation
 	private AbstractElement buildSuccessor(SymbPredAbsAbstractElement element,
@@ -180,7 +181,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
 		// check if the successor is an abstraction location
 		boolean b = ((SymbPredAbsAbstractDomain)getAbstractDomain()).getCPA().isAbstractionLocation(succLoc);
-
+		
 		if (!b) {
 			try {
 				newElement = new SymbPredAbsAbstractElement(domain, succLoc, element.getAbstractionLocation());
@@ -192,6 +193,8 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
 		else {
 			newElement = new SymbPredAbsAbstractElement(domain, succLoc, succLoc);
+			// register newElement as an abstraction node
+			newElement.setAbstractionNode();
 			handleAbstractionLocation(element, newElement, edge);
 		}
 
@@ -504,7 +507,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
 		JavaBDD bddManager = bddMathsatMan.getBddManager();
 		// TODO get predicates as collection from succ state
-		Collection<Predicate> predicates = succ.getPredicates().getRelevantPredicates(succ.getLocation());
+		Collection<Predicate> predicates = succ.getPredicates().getRelevantPredicates();
 
 		long msatEnv = mathsatFormMan.getMsatEnv();       
 		long absEnv =  mathsat.api.msat_create_shared_env(msatEnv);
@@ -1460,45 +1463,48 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 		// destination
 
 		SymbPredAbsAbstractElement e = (SymbPredAbsAbstractElement)element;
-		CFANode src = (CFANode)e.getLocation();
+		// TODO removed location
+		//CFANode src = (CFANode)e.getLocation();
 
-		for (int i = 0; i < src.getNumLeavingEdges(); ++i) {
-			CFAEdge edge = src.getLeavingEdge(i);
-			if (edge.equals(cfaEdge)) {
-				AbstractElement ret = buildSuccessor(e, edge);
+		//for (int i = 0; i < src.getNumLeavingEdges(); ++i) {
+		//	CFAEdge edge = src.getLeavingEdge(i);
+		//	if (edge.equals(cfaEdge)) {
+				AbstractElement ret = buildSuccessor(e, cfaEdge);
 				// TODO art
 //				if (ret != domain.getBottomElement()) {
 //				abstractTree.addChild(e, ret);
 //				}
 				return ret;
-			}
-		}
+		//	}
+		//}
 
-		LazyLogger.log(CustomLogLevel.SpecificCPALevel, "Successor is: BOTTOM");
+		//LazyLogger.log(CustomLogLevel.SpecificCPALevel, "Successor is: BOTTOM");
 
-		return domain.getBottomElement();
+		//return domain.getBottomElement();
 	}
 
 	@Override
 	public List<AbstractElement> getAllAbstractSuccessors(
 			AbstractElement element) throws CPAException, CPATransferException {
 
-		List<AbstractElement> allSucc = new Vector<AbstractElement>();
-		SymbPredAbsAbstractElement e = (SymbPredAbsAbstractElement) element;
-		CFANode src = (CFANode) e.getLocation();
-
-		for (int i = 0; i < src.getNumLeavingEdges(); ++i) {
-			AbstractElement newe = getAbstractSuccessor(e, src
-					.getLeavingEdge(i));
-			if (newe != domain.getBottomElement()) {
-				allSucc.add(newe);
-			}
-		}
-
-		LazyLogger.log(CustomLogLevel.SpecificCPALevel, allSucc.size(),
-		" successors found");
-
-		return allSucc;
+		// TODO check later
+//		List<AbstractElement> allSucc = new Vector<AbstractElement>();
+//		SymbPredAbsAbstractElement e = (SymbPredAbsAbstractElement) element;
+//		CFANode src = (CFANode) e.getLocation();
+//
+//		for (int i = 0; i < src.getNumLeavingEdges(); ++i) {
+//			AbstractElement newe = getAbstractSuccessor(e, src
+//					.getLeavingEdge(i));
+//			if (newe != domain.getBottomElement()) {
+//				allSucc.add(newe);
+//			}
+//		}
+//
+//		LazyLogger.log(CustomLogLevel.SpecificCPALevel, allSucc.size(),
+//		" successors found");
+//
+//		return allSucc;
+		return null;
 	}
 
 }

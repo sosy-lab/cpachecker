@@ -46,11 +46,12 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
 			assert(e1.getAbstraction() != null);
 			assert(e2.getAbstraction() != null);
 
-			if (e1.getLocation().equals(e2.getLocation())) {
+			// TODO check later
+			//if (e1.getLocation().equals(e2.getLocation())) {
 				AbstractFormulaManager amgr = cpa.getAbstractFormulaManager();
 				return amgr.entails(e1.getAbstraction(), e2.getAbstraction());
-			}
-			return false;
+			//}
+			// return false;
 		}
 	}
 

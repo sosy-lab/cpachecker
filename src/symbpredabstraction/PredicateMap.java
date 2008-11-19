@@ -18,6 +18,9 @@ public interface PredicateMap {
      */
     public Collection<Predicate> getRelevantPredicates(CFANode n);
 
+    // TODO write javadoc
+    public Collection<Predicate> getRelevantPredicates();
+    
     /**
      * gets the predicates relevant to the given function.
      * This is meaningful only if the option to add predicates globally is set

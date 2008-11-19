@@ -204,10 +204,6 @@ public class CPAMain {
 			Collection<AbstractElement> reached = algo.CPA(cpa, initialElement);
 			cpaStats.stopAnalysisTimer();
 
-			System.out.println("=======================");
-			System.out.println(reached);
-			System.out.println("=======================");
-			
 			LazyLogger.log(Level.INFO, "CPA Algorithm finished ");
 
 			LazyLogger.log(CustomLogLevel.MainApplicationLevel, 

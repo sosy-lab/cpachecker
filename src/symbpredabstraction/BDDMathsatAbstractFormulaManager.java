@@ -141,6 +141,30 @@ public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
         }
         return yes;
     }
+
+    // TODO check later
+    public boolean equals(AbstractFormula f1, AbstractFormula f2) {
+        Pair<AbstractFormula, AbstractFormula> key = null;
+        // TODO Use another cache 
+//        if (entailsUseCache) {
+//            key = new Pair<AbstractFormula, AbstractFormula>(f1, f2);
+//            if (entailsCache.containsKey(key)) {
+//                return entailsCache.get(key);
+//            }
+//        }
+        int imp = bddManager.imp(((BDDAbstractFormula)f1).getBDD(),
+                                 ((BDDAbstractFormula)f2).getBDD());
+        int imp2 = bddManager.imp(((BDDAbstractFormula)f2).getBDD(),
+                                 ((BDDAbstractFormula)f1).getBDD());
+        boolean yes1 = (imp == bddManager.getOne());
+        boolean yes2 = (imp2 == bddManager.getOne()); 
+        // TODO 
+//        if (entailsUseCache) {
+//            assert(key != null);
+//            entailsCache.put(key, yes);
+//        }
+        return yes1 & yes2;
+    }
     
     public void collectVarNames(long term, Set<String> vars) {
         Stack<Long> toProcess = new Stack<Long>();

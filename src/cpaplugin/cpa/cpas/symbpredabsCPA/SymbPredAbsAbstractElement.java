@@ -14,10 +14,13 @@ import symbpredabstraction.ParentsList;
 import symbpredabstraction.PathFormula;
 import symbpredabstraction.PredicateMap;
 import symbpredabstraction.SSAMap;
+import symbpredabstraction.SymbPredAbsAbstractFormulaManager;
 import symbpredabstraction.SymbolicFormula;
 import cpaplugin.cfa.objectmodel.CFANode;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.AbstractElementWithLocation;
+import cpaplugin.logging.CustomLogLevel;
+import cpaplugin.logging.LazyLogger;
 
 /**
  * AbstractElement for symbolic lazy abstraction with summaries
@@ -25,10 +28,13 @@ import cpaplugin.cpa.common.interfaces.AbstractElementWithLocation;
  * @author erkan
  */
 public class SymbPredAbsAbstractElement 
-implements AbstractElement, AbstractElementWithLocation {
+implements AbstractElement {
 
 	/** The location on CFA */
-	private CFANode CFALocation;
+	//private CFANode CFALocation;
+	/** If that element is associated with and abstraction
+	 * node*/
+	private boolean isAbstractionNode = false;
 	/** The abstraction location for this node */
 	private CFANode abstractionLocation;
 	/** the path formula from the abstraction location to this node */
@@ -56,18 +62,26 @@ implements AbstractElement, AbstractElementWithLocation {
 //	private static int nextAvailableId = 1;
 
 //	public int getId() { return elemId; }
-	public CFANode getLocation() { 
-		return CFALocation; 
-	}
+//	public CFANode getLocation() { 
+//		return CFALocation; 
+//	}
 
 	public PathFormula getPathFormula() { 
 		return pathFormula;
 	}
 
-	public void setLocation(CFANode loc){
-		CFALocation = loc;
+//	public void setLocation(CFANode loc){
+//		CFALocation = loc;
+//	}
+	
+	public void setAbstractionNode(){
+		isAbstractionNode = true;
 	}
-
+	
+	public boolean isAbstractionNode(){
+		return isAbstractionNode;
+	}
+	
 	public AbstractFormula getAbstraction() { 
 		return abstraction; 
 	}
@@ -101,7 +115,7 @@ implements AbstractElement, AbstractElementWithLocation {
 	public SymbPredAbsAbstractElement(SymbPredAbsAbstractDomain d, CFANode CFALoc, CFANode abstLoc, 
 			PathFormula pf, AbstractFormula a, 
 			ParentsList p, PathFormula initFormula, PredicateMap pmap) {
-		CFALocation = CFALoc;
+		//CFALocation = CFALoc;
 		abstractionLocation = abstLoc;
 		abstraction = a;
 		pathFormula = pf;
@@ -126,11 +140,68 @@ implements AbstractElement, AbstractElementWithLocation {
 		} else if (!(o instanceof SymbPredAbsAbstractElement)) {
 			return false;
 		} 
-//		else {
-//		return elemId == ((SymbPredAbsAbstractElement)o).elemId;
-//		}
-		// TODO fix this
-		return false;
+		else{
+	    	SymbPredAbsAbstractElement thisElement = (SymbPredAbsAbstractElement)this;
+	    	SymbPredAbsAbstractElement otherElement = (SymbPredAbsAbstractElement)o;
+	        
+	    	// TODO
+//	    	if(e1.getLocation().equals(e2.getLocation())){
+	    	// TODO check
+	    	//	boolean b = cpa.isAbstractionLocation(e1.getLocation());
+	    	boolean b = thisElement.isAbstractionNode();
+	    		// if not an abstraction location
+	    		if(!b){
+	    			if(thisElement.getParents().equals(otherElement.getParents())){
+//	    				MathsatSymbPredAbsFormulaManager mgr = mathsatFormMan;
+//	    				boolean ok = mgr.equals(thisElement.getPathFormula().getSymbolicFormula(), 
+//	    						otherElement.getPathFormula().getSymbolicFormula());
+//	    				// TODO later
+////	    				if (ok) 
+////	    				{
+////	    	                cpa.setCoveredBy(thisElement, otherElement);
+////	    	            } else {
+////	    	                LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+////	    	                               "NO, not covered");
+////	    	            }
+//	    	            return ok;
+//	    			}
+//	    			else{
+//	    				return false;
+	    				return true;
+	    			}
+	    			return false;
+	    		}
+	    		// if abstraction location
+	    		else{
+
+	                SymbPredAbsCPA cpa = domain.getCPA();
+
+	                assert(thisElement.getAbstraction() != null);
+	                assert(otherElement.getAbstraction() != null);
+
+	                boolean ok = bddMathsatMan.equals(thisElement.getAbstraction(), otherElement.getAbstraction());
+
+	                // TODO
+//	                if (ok) {
+//	                    LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+//	                                   "Element: ", element, " COVERED by: ", e2);
+//	                    cpa.setCoveredBy(e1, e2);
+//	                } else {
+//	                    LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+//	                                   "NO, not covered");
+//	                }
+
+	                return ok;
+	    		}
+	    	//}
+	    	// TODO if locations are different
+//	    	else{
+//	    		return false;
+//	    	}
+	    
+			
+			
+		}
 	}
 
 //	public int hashCode() {
@@ -149,7 +220,8 @@ implements AbstractElement, AbstractElementWithLocation {
 	public String toString() {
 		BDDAbstractFormula abst = (BDDAbstractFormula)getAbstraction();
 		SymbolicFormula symbReprAbst = bddMathsatMan.toConcrete(mathsatFormMan, abst);
-		return  "node: " + getLocation().getNodeNumber() + 
+		return  
+		//"node: " + getLocation().getNodeNumber() + 
 		" PF: "+ getPathFormula().getSymbolicFormula() + 
 		" Abstraction: " + symbReprAbst +
 		 " Init Formula--> " + (getInitAbstractionSet() != null ? getInitAbstractionSet().getSymbolicFormula() : "null")  + 
@@ -157,9 +229,9 @@ implements AbstractElement, AbstractElementWithLocation {
 		//+ ">(" + Integer.toString(getId()) + ")"
 	}
 
-	public CFANode getLocationNode() {
-		return CFALocation;
-	}
+//	public CFANode getLocationNode() {
+//		return CFALocation;
+//	}
 
 //	public Collection<CFANode> getLeaves() {
 //	assert(pathFormulas != null);

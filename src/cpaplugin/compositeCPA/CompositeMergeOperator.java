@@ -53,7 +53,14 @@ public class CompositeMergeOperator implements MergeOperator{
 		List<AbstractElement> mergedElements = new ArrayList<AbstractElement> ();
 
 		for(int i=0; i<comp1.getNumberofElements(); i++){
-			mergedElements.add (mergeOperators.get (i).merge (elementsArray1[i], elementsArray2[i]));
+			// TODO check if the first element is not merged just return the entire second element
+			AbstractElement absElem1 = elementsArray1[i];
+			AbstractElement absElem2 = elementsArray2[i];
+			AbstractElement merged = mergeOperators.get (i).merge (absElem1, absElem2);
+			if(merged == absElem2){
+				return comp2;
+			}
+			mergedElements.add (merged);
 		}
 
 		return new CompositeElement (mergedElements);

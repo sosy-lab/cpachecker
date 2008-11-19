@@ -64,8 +64,9 @@ public class BDDMathsatSymbPredAbsAbstractManager extends
 	}
 	private Stats stats;
 
-	private Map<Pair<CFANode, CFANode>, PathFormula> 
-	abstractionCache;
+	// TODO later
+//	private Map<Pair<CFANode, CFANode>, PathFormula> 
+//	abstractionCache;
 
 	//private BDDMathsatSummaryAbstractionPrinter absPrinter = null;
 	private boolean dumpHardAbstractions;
@@ -73,8 +74,9 @@ public class BDDMathsatSymbPredAbsAbstractManager extends
 	public BDDMathsatSymbPredAbsAbstractManager() {
 		super();
 		stats = new Stats();
-		abstractionCache = 
-			new HashMap<Pair<CFANode, CFANode>, PathFormula>();
+		// TODO
+//		abstractionCache = 
+//			new HashMap<Pair<CFANode, CFANode>, PathFormula>();
 		dumpHardAbstractions = CPAMain.cpaConfig.getBooleanValue(
 		"cpas.symbpredabs.mathsat.dumpHardAbstractionQueries");
 	}
@@ -194,7 +196,9 @@ public class BDDMathsatSymbPredAbsAbstractManager extends
 		SymbolicFormula f = null;
 		SSAMap ssa = null;
 		
-		Pair<CFANode, CFANode> key = new Pair<CFANode, CFANode>(e.getLocationNode(), succ.getLocationNode());
+		// TODO later
+		//Pair<CFANode, CFANode> key = new Pair<CFANode, CFANode>(e.getLocationNode(), succ.getLocationNode());
+		
 		// TODO enable cache later
 //		if (abstractionCache.containsKey(key)) {
 //			PathFormula pc = abstractionCache.get(key);
@@ -222,7 +226,8 @@ public class BDDMathsatSymbPredAbsAbstractManager extends
 			f = mmgr.replaceAssignments((MathsatSymbolicFormula)pc.getSymbolicFormula());
 			ssa = pc.getSsa();
 			
-			abstractionCache.put(key, new PathFormula((MathsatSymbolicFormula)f, ssa));
+			// TODO later
+			//abstractionCache.put(key, new PathFormula((MathsatSymbolicFormula)f, ssa));
 //		}
 
 		if (CPAMain.cpaConfig.getBooleanValue(
@@ -242,7 +247,7 @@ public class BDDMathsatSymbPredAbsAbstractManager extends
 
 		// build the definition of the predicates, and instantiate them
 		// TODO check
-		Object[] predinfo = buildPredList(mmgr, predicates.getRelevantPredicates(succ.getLocation()));
+		Object[] predinfo = buildPredList(mmgr, predicates.getRelevantPredicates());
 		long preddef = (Long)predinfo[0];
 		long[] important = (long[])predinfo[1];
 		Collection<String> predvars = (Collection<String>)predinfo[2];

@@ -41,9 +41,6 @@ public class SymbPredAbsStopOperator implements StopOperator {
 //		}
     	// TODO if the element is the bottom element
     	if (domain.getCPA().getBDDMathsatSymbPredAbsAbstractManager().isFalse(symbPredAbsElem.getAbstraction())){
-    		System.out.println("================================================");
-    		System.out.println(symbPredAbsElem.getLocation().getNodeNumber());
-    		System.out.println("================================================");
     		return true;
     	}
 
@@ -70,8 +67,11 @@ public class SymbPredAbsStopOperator implements StopOperator {
     	SymbPredAbsAbstractElement e1 = (SymbPredAbsAbstractElement)element;
     	SymbPredAbsAbstractElement e2 = (SymbPredAbsAbstractElement)reachedElement;
         
-    	if(e1.getLocation().equals(e2.getLocation())){
-    		boolean b = cpa.isAbstractionLocation(e1.getLocation());
+    	// TODO
+//    	if(e1.getLocation().equals(e2.getLocation())){
+    	// TODO check
+    	//	boolean b = cpa.isAbstractionLocation(e1.getLocation());
+    	boolean b = e1.isAbstractionNode();
     		// if not an abstraction location
     		if(!b){
     			if(e1.getParents().equals(e2.getParents())){
@@ -119,10 +119,10 @@ public class SymbPredAbsStopOperator implements StopOperator {
 
                 return ok;
     		}
-    	}
-    	// if locations are different
-    	else{
-    		return false;
-    	}
+    	//}
+    	// TODO if locations are different
+//    	else{
+//    		return false;
+//    	}
     }
 }
