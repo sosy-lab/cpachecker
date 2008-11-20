@@ -25,6 +25,7 @@ import cpaplugin.cfa.objectmodel.c.GlobalDeclarationEdge;
 import cpaplugin.cfa.objectmodel.c.ReturnEdge;
 import cpaplugin.cfa.objectmodel.c.StatementEdge;
 import cpaplugin.cmdline.CPAMain;
+import cpaplugin.logging.CustomLogLevel;
 import cpaplugin.logging.LazyLogger;
 
 /**
@@ -258,6 +259,11 @@ public class SummaryCFABuilder {
         } else if (n.getEnteringSummaryEdge() != null) {
             return DUPLICATE_FORWARD;
         } else {
+            for (int i = 0; i < n.getNumEnteringEdges(); ++i) {
+                if (!(n.getEnteringEdge(i) instanceof BlankEdge)) {
+                    return DUPLICATE_BACKWARD;
+                }
+            }
             return DUPLICATE_NO;
         }
     }
@@ -301,8 +307,17 @@ public class SummaryCFABuilder {
                 "CHECKING isLoopBack, e: ", e.getRawStatement(),
                 ", s: ", s.getNodeNumber() + ", RESULT: " + yes);
         if (!yes) {
-            // also return edges are loopbacks
-            yes = e instanceof ReturnEdge;
+            // self-loops are obviously loopbacks! :-) This happens because
+            // in several Blast benchmarks the error function is defined as:
+            // void errorFn() {
+            //     ERROR: goto ERROR;
+            // }
+            if (e.getSuccessor() == e.getPredecessor()) {
+                yes = true;
+            } else {
+                // also return edges are loopbacks
+                yes = e instanceof ReturnEdge;
+            }
         }
         return yes;
     }
@@ -395,7 +410,12 @@ public class SummaryCFABuilder {
                         assert(!isLoopBack(e));
                         CFANode pred = e.getPredecessor();
                         if (!summaryMap.containsKey(pred)) {
-                            assert(e instanceof BlankEdge);
+                            //assert(e instanceof BlankEdge);
+                            String fn = pred.getFunctionName();
+                            if (fn == null) fn = "<NULL>";
+                            LazyLogger.log(CustomLogLevel.INFO, 
+                                    "WARNING: ignoring edge: ", e,
+                                    ", function: ", fn);
                         } else {
                             if (dup == null) {
                                 dup = duplicateNode(copyNode(n));
@@ -430,7 +450,8 @@ public class SummaryCFABuilder {
                     assert(n.getNumEnteringEdges() == 1);                    
                     CFAEdge e = n.getEnteringEdge(0);
                     if (!isLoopBack(e)) {
-                        System.err.println("ERROR: " + e.getRawStatement());
+                        System.err.println("ERROR: " + n + ": " + 
+                                e.getRawStatement());
                     }
                     assert(isLoopBack(e));
                     CFANode pred = e.getPredecessor();
@@ -497,37 +518,57 @@ public class SummaryCFABuilder {
             CFANode p = e.getPredecessor();
             CFANode s = e.getSuccessor();
             
-            assert(summaryMap.containsKey(p));
-            assert(summaryMap.containsKey(s));
-            
-            SummaryCFANode sp = summaryMap.get(p);
-            SummaryCFANode ss = summaryMap.get(s);
-            linkSummaries(sp, ss);
-            copyEdge(e, copyNode(p), copyNode(s));
+            if (summaryMap.containsKey(p)) {
+                assert(summaryMap.containsKey(p));
+                assert(summaryMap.containsKey(s));
+
+                SummaryCFANode sp = summaryMap.get(p);
+                SummaryCFANode ss = summaryMap.get(s);
+                linkSummaries(sp, ss);
+                copyEdge(e, copyNode(p), copyNode(s));
+            } else {
+                // this can happen for successors of function calls that never
+                // return. As an example, the errorFn() function of ntdrivers
+                // in the Blast test suite never returns, being defined as:
+                // void errorFn() {
+                //   ERROR: goto ERROR;
+                // }
+                // The same case can happen also below
+                LazyLogger.log(CustomLogLevel.INFO, 
+                        "WARNING, not linking loopback, predecessor is: ", p,
+                        " in function: ", p.getFunctionName());
+            }
         }
         for (CFANode n : loopbacksDup) {
             CFAEdge e = n.getEnteringEdge(0);
             CFANode pred = e.getPredecessor();
-            curSummary = summaryMap.get(n);
-            CFANode dup = curSummary.getInnerNode(); //duplicateNode(copyNode(pred));
-            // in this case, the duplicate will be the first node of
-            // the new summary. So, we re-create the summary and
-            // re-set the information on (the copy of) n
-//            curSummary = new SummaryNode(dup);                    
-//            setSummary(dup, curSummary);
-//            setSummary(copyNode(n), curSummary);
-//            summaryMap.put(n, curSummary);
-            // copy the edge from pred to n, but using the duplicate
-            // as predecessor
-            copyEdge(e, dup, copyNode(n));
-            // link the summaries
-            assert(summaryMap.containsKey(pred));
-            SummaryCFANode s = summaryMap.get(pred);
-            linkSummaries(s, curSummary);
-            // now link together pred and the duplicate
-            BlankEdge be = new BlankEdge("");
-            be.setPredecessor(copyNode(pred));
-            be.setSuccessor(dup);
+            if (summaryMap.containsKey(pred)) {
+                curSummary = summaryMap.get(n);
+                CFANode dup = curSummary.getInnerNode(); //duplicateNode(copyNode(pred));
+                // in this case, the duplicate will be the first node of
+                // the new summary. So, we re-create the summary and
+                // re-set the information on (the copy of) n
+                //            curSummary = new SummaryNode(dup);                    
+                //            setSummary(dup, curSummary);
+                //            setSummary(copyNode(n), curSummary);
+                //            summaryMap.put(n, curSummary);
+                // copy the edge from pred to n, but using the duplicate
+                // as predecessor
+                copyEdge(e, dup, copyNode(n));
+                // link the summaries
+                assert(summaryMap.containsKey(pred));
+                SummaryCFANode s = summaryMap.get(pred);
+                linkSummaries(s, curSummary);
+                // now link together pred and the duplicate
+                BlankEdge be = new BlankEdge("");
+                be.setPredecessor(copyNode(pred));
+                be.setSuccessor(dup);
+            } else {
+                // see comment in the previous case
+                LazyLogger.log(CustomLogLevel.INFO, 
+                        "WARNING, not linking loopback, predecessor is: ", pred,
+                        " in function: ", pred.getFunctionName());                
+            }
         }
         
         addGlobalDeclarations(copyNode(cfa));
