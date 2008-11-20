@@ -25,14 +25,20 @@ import cpaplugin.cpa.common.interfaces.StopOperator;
 import cpaplugin.cpa.common.interfaces.TransferRelation;
 import cpaplugin.cpa.cpas.symbpredabs.AbstractFormula;
 import cpaplugin.cpa.cpas.symbpredabs.FixedPredicateMap;
+import cpaplugin.cpa.cpas.symbpredabs.InterpolatingTheoremProver;
 import cpaplugin.cpa.cpas.symbpredabs.Pair;
 import cpaplugin.cpa.cpas.symbpredabs.Predicate;
 import cpaplugin.cpa.cpas.symbpredabs.PredicateMap;
 import cpaplugin.cpa.cpas.symbpredabs.SSAMap;
 import cpaplugin.cpa.cpas.symbpredabs.SymbolicFormula;
+import cpaplugin.cpa.cpas.symbpredabs.TheoremProver;
 import cpaplugin.cpa.cpas.symbpredabs.UnrecognizedCFAEdgeException;
 import cpaplugin.cpa.cpas.symbpredabs.UpdateablePredicateMap;
+import cpaplugin.cpa.cpas.symbpredabs.mathsat.MathsatInterpolatingProver;
 import cpaplugin.cpa.cpas.symbpredabs.mathsat.MathsatPredicateParser;
+import cpaplugin.cpa.cpas.symbpredabs.mathsat.MathsatTheoremProver;
+import cpaplugin.cpa.cpas.symbpredabs.mathsat.SimplifyTheoremProver;
+import cpaplugin.cpa.cpas.symbpredabs.mathsat.YicesTheoremProver;
 import cpaplugin.cpa.cpas.symbpredabs.mathsat.summary.BDDMathsatSummaryAbstractManager;
 import cpaplugin.cpa.cpas.symbpredabs.mathsat.summary.MathsatSummaryFormulaManager;
 import cpaplugin.logging.CustomLogLevel;
@@ -65,7 +71,23 @@ public class SummaryCPA implements ConfigurableProblemAnalysis {
         stop = new SummaryStopOperator(domain);
         trans = new SummaryTransferRelation(domain);
         mgr = new MathsatSummaryFormulaManager();
-        amgr = new BDDMathsatSummaryAbstractManager();
+        TheoremProver thmProver = null;
+        String whichProver = CPAMain.cpaConfig.getProperty(
+                "cpas.symbpredabs.explicit.abstraction.solver", "mathsat");
+        if (whichProver.equals("mathsat")) {
+            thmProver = new MathsatTheoremProver(mgr, false);
+        } else if (whichProver.equals("simplify")) {
+            thmProver = new SimplifyTheoremProver(mgr);
+        } else if (whichProver.equals("yices")) {
+            thmProver = new YicesTheoremProver(mgr);
+        } else {
+            System.out.println("ERROR, Unknown prover: " + whichProver);
+            assert(false);
+            System.exit(1);
+        }
+        InterpolatingTheoremProver itpProver = 
+            new MathsatInterpolatingProver(mgr, false);
+        amgr = new BDDMathsatSummaryAbstractManager(thmProver, itpProver);
         covers = new HashMap<SummaryAbstractElement, 
                              Set<SummaryAbstractElement>>();
 

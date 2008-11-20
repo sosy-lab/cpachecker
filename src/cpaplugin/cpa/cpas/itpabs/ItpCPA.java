@@ -10,16 +10,25 @@ import java.util.TreeSet;
 
 import cpaplugin.cfa.objectmodel.CFAFunctionDefinitionNode;
 import cpaplugin.cfa.objectmodel.CFANode;
+import cpaplugin.cmdline.CPAMain;
 import cpaplugin.cpa.common.interfaces.AbstractDomain;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.ConfigurableProblemAnalysis;
 import cpaplugin.cpa.common.interfaces.MergeOperator;
 import cpaplugin.cpa.common.interfaces.StopOperator;
 import cpaplugin.cpa.common.interfaces.TransferRelation;
+import cpaplugin.cpa.cpas.symbpredabs.InterpolatingTheoremProver;
 import cpaplugin.cpa.cpas.symbpredabs.Pair;
 import cpaplugin.cpa.cpas.symbpredabs.SymbolicFormula;
 import cpaplugin.cpa.cpas.symbpredabs.SymbolicFormulaManager;
+import cpaplugin.cpa.cpas.symbpredabs.TheoremProver;
+import cpaplugin.cpa.cpas.symbpredabs.explicit.BDDMathsatExplicitAbstractManager;
+import cpaplugin.cpa.cpas.symbpredabs.explicit.ExplicitAbstractFormulaManager;
+import cpaplugin.cpa.cpas.symbpredabs.mathsat.MathsatInterpolatingProver;
 import cpaplugin.cpa.cpas.symbpredabs.mathsat.MathsatSymbolicFormulaManager;
+import cpaplugin.cpa.cpas.symbpredabs.mathsat.MathsatTheoremProver;
+import cpaplugin.cpa.cpas.symbpredabs.mathsat.SimplifyTheoremProver;
+import cpaplugin.cpa.cpas.symbpredabs.mathsat.YicesTheoremProver;
 import cpaplugin.logging.CustomLogLevel;
 import cpaplugin.logging.LazyLogger;
 
@@ -46,15 +55,45 @@ public abstract class ItpCPA implements ConfigurableProblemAnalysis {
                 Set<ItpAbstractElement>> covers;
     
     protected ItpCPA() {
+        mgr = new MathsatSymbolicFormulaManager();
+        TheoremProver thmProver = null;
+        String whichProver = CPAMain.cpaConfig.getProperty(
+                "cpas.symbpredabs.explicit.abstraction.solver", "mathsat");
+        if (whichProver.equals("mathsat")) {
+            thmProver = new MathsatTheoremProver(mgr, false);
+        } else if (whichProver.equals("simplify")) {
+            thmProver = new SimplifyTheoremProver(mgr);
+        } else if (whichProver.equals("yices")) {
+            thmProver = new YicesTheoremProver(mgr);
+        } else {
+            System.err.println("Unknown solver: " + whichProver);
+            assert(false);
+            System.exit(1);
+        }
+        InterpolatingTheoremProver itpProver = 
+            new MathsatInterpolatingProver(mgr, true);
+        ExplicitAbstractFormulaManager amgr = 
+            new BDDMathsatExplicitAbstractManager(thmProver, itpProver);        
+
         domain = new ItpAbstractDomain(this);
         merge = new ItpMergeOperator(domain);
-        stop = new ItpStopOperator(domain);
+        stop = new ItpStopOperator(domain, thmProver);
         trans = new ItpTransferRelation(domain);
-        mgr = new MathsatSymbolicFormulaManager();
-        refiner = new ItpCounterexampleRefiner();
+                
+        refiner = new ItpCounterexampleRefiner(amgr, itpProver);
         
         covers = new HashMap<ItpAbstractElement, 
                              Set<ItpAbstractElement>>();
+        
+        if (CPAMain.cpaConfig.getBooleanValue("analysis.bfs")) {
+            // this analysis only works with dfs traversal
+            System.out.println(
+                    "ERROR: Interpolation-based analysis works only with DFS " +
+                    "traversal!");
+            System.out.flush();
+            assert(false);
+            System.exit(1);
+        }
     }
     
     /**

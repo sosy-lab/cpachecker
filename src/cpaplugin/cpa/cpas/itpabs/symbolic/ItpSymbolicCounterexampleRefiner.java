@@ -37,7 +37,7 @@ import cpaplugin.logging.LazyLogger;
 public class ItpSymbolicCounterexampleRefiner extends ItpCounterexampleRefiner {
        
     public ItpSymbolicCounterexampleRefiner() {
-        super();
+        super(null, null); // TODO
     }
     
     @Override
@@ -140,8 +140,8 @@ public class ItpSymbolicCounterexampleRefiner extends ItpCounterexampleRefiner {
         }
         //int ok = mathsat.api.msat_set_option(env, "toplevelprop", "2");
         //assert(ok == 0);
-        int ok = mathsat.api.msat_set_option(env, "la_itp_mode", "new");
-        assert(ok == 0);
+//        int ok = mathsat.api.msat_set_option(env, "la_itp_mode", "new");
+//        assert(ok == 0);
         
         mathsat.api.msat_init_interpolation(env);        
         

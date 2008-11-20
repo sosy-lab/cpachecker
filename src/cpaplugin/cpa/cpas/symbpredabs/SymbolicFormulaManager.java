@@ -80,6 +80,8 @@ public interface SymbolicFormulaManager {
      * @return true if (f1 |= f2), false otherwise
      */
     public boolean entails(SymbolicFormula f1, SymbolicFormula f2);
+    public boolean entails(SymbolicFormula f1, SymbolicFormula f2, 
+                           TheoremProver thmProver);
     
     /**
      * Given a formula that uses "generic" variables, returns the corresponding

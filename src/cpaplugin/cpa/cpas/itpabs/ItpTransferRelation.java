@@ -103,7 +103,6 @@ public class ItpTransferRelation implements TransferRelation {
     private ART abstractTree;
     
     private int numAbstractStates = 0; // for statistics
-    private boolean errorReached = false;
     
     public class ForcedCoverStats {
         public int numForcedCoverChecks = 0;
@@ -195,7 +194,6 @@ public class ItpTransferRelation implements TransferRelation {
     }
     
     public int getNumAbstractStates() { return numAbstractStates; }
-    public boolean hasReachedError() { return errorReached; }
     
     public ART getART() { return abstractTree; }
     
@@ -261,7 +259,7 @@ public class ItpTransferRelation implements TransferRelation {
                 LazyLogger.log(CustomLogLevel.SpecificCPALevel, 
                         "REACHED ERROR LOCATION!: ", e,
                         " RETURNING BOTTOM!");
-                errorReached = true;
+                CPAMain.cpaStats.setErrorReached(true);
                 throw new ErrorReachedException(
                         info.getConcreteTrace().toString());
             }
@@ -428,7 +426,7 @@ public class ItpTransferRelation implements TransferRelation {
         Collection<AbstractElement> toWaitlist = new Vector<AbstractElement>();
         for (AbstractElement e : maybeToWaitlist) {
             if (!toUnreach.contains(e)) {
-                assert(!expanded.contains(e));
+//                assert(!expanded.contains(e));
                 toWaitlist.add(e);
             }
         }
@@ -654,7 +652,8 @@ public class ItpTransferRelation implements TransferRelation {
             for (Iterator<AbstractElement> it = s.descendingIterator(); 
                 it.hasNext() && i < MAX_FORCED_COVER; ++i) {
                 ItpAbstractElement el = (ItpAbstractElement)it.next();
-                if (el != e && el.getId() < e.getId() && 
+                if (el != e && el.getId() < e.getId() &&
+                        !el.getAbstraction().isTrue() &&
                         (double)(e.getId() - el.getId())/(double)e.getId() < 
                         DISTANCE_THRESHOLD) {
                     // get the nearest common ancestor

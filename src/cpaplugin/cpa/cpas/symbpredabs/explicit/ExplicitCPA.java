@@ -26,13 +26,19 @@ import cpaplugin.cpa.common.interfaces.StopOperator;
 import cpaplugin.cpa.common.interfaces.TransferRelation;
 import cpaplugin.cpa.cpas.symbpredabs.AbstractFormula;
 import cpaplugin.cpa.cpas.symbpredabs.FixedPredicateMap;
+import cpaplugin.cpa.cpas.symbpredabs.InterpolatingTheoremProver;
 import cpaplugin.cpa.cpas.symbpredabs.Pair;
 import cpaplugin.cpa.cpas.symbpredabs.Predicate;
 import cpaplugin.cpa.cpas.symbpredabs.PredicateMap;
 import cpaplugin.cpa.cpas.symbpredabs.SymbolicFormulaManager;
+import cpaplugin.cpa.cpas.symbpredabs.TheoremProver;
 import cpaplugin.cpa.cpas.symbpredabs.UpdateablePredicateMap;
+import cpaplugin.cpa.cpas.symbpredabs.mathsat.MathsatInterpolatingProver;
 import cpaplugin.cpa.cpas.symbpredabs.mathsat.MathsatPredicateParser;
 import cpaplugin.cpa.cpas.symbpredabs.mathsat.MathsatSymbolicFormulaManager;
+import cpaplugin.cpa.cpas.symbpredabs.mathsat.MathsatTheoremProver;
+import cpaplugin.cpa.cpas.symbpredabs.mathsat.SimplifyTheoremProver;
+import cpaplugin.cpa.cpas.symbpredabs.mathsat.YicesTheoremProver;
 import cpaplugin.logging.CustomLogLevel;
 import cpaplugin.logging.LazyLogger;
 
@@ -63,18 +69,22 @@ public class ExplicitCPA implements ConfigurableProblemAnalysis {
         stop = new ExplicitStopOperator(domain);
         trans = new ExplicitTransferRelation(domain);
         mgr = new MathsatSymbolicFormulaManager();
-        String whichAmgr = CPAMain.cpaConfig.getProperty(
+        String whichProver = CPAMain.cpaConfig.getProperty(
                 "cpas.symbpredabs.explicit.abstraction.solver", "mathsat");
-        if (whichAmgr.equals("mathsat")) {
-            amgr = new BDDMathsatExplicitAbstractManager();
-        } else if (whichAmgr.equals("yices")) {
-            amgr = new BDDYicesExplicitAbstractManager();
-        } else if (whichAmgr.equals("simplify")) {
-            amgr = new BDDSimplifyExplicitAbstractManager();
+        TheoremProver prover = null;
+        if (whichProver.equals("mathsat")) {
+            prover = new MathsatTheoremProver(mgr, false);
+        } else if (whichProver.equals("simplify")) {
+            prover = new SimplifyTheoremProver(mgr);
+        } else if (whichProver.equals("yices")) {
+            prover = new YicesTheoremProver(mgr);
         } else {
-            System.out.println("ERROR, UNSUPPORTED SOLVER: " + whichAmgr);
+            System.out.println("ERROR, UNSUPPORTED SOLVER: " + whichProver);
             System.exit(1);
         }
+        InterpolatingTheoremProver itpProver = 
+            new MathsatInterpolatingProver(mgr, true);
+        amgr = new BDDMathsatExplicitAbstractManager(prover, itpProver);
         
         covers = new HashMap<ExplicitAbstractElement, 
                              Set<ExplicitAbstractElement>>();

@@ -1,11 +1,17 @@
 package cpaplugin.cpa.cpas.itpabs;
 
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
+import cpaplugin.cmdline.CPAMain;
 import cpaplugin.cpa.common.interfaces.AbstractDomain;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.StopOperator;
+import cpaplugin.cpa.cpas.symbpredabs.Pair;
+import cpaplugin.cpa.cpas.symbpredabs.SymbolicFormula;
 import cpaplugin.cpa.cpas.symbpredabs.SymbolicFormulaManager;
+import cpaplugin.cpa.cpas.symbpredabs.TheoremProver;
 import cpaplugin.exceptions.CPAException;
 import cpaplugin.logging.LazyLogger;
 
@@ -17,16 +23,31 @@ import cpaplugin.logging.LazyLogger;
 public class ItpStopOperator implements StopOperator {
 
     private ItpAbstractDomain domain;
+    private TheoremProver thmProver;
+    // cache for checking entailement. Can be disabled
+    private boolean entailsUseCache;
+    private Map<Pair<SymbolicFormula, SymbolicFormula>, Boolean> entailsCache;
     
     // statistics
     public long coverageCheckTime;
     public int numCoveredStates;
     public int numCoverageChecks;
-    public ItpStopOperator(ItpAbstractDomain d) {
+    public int numCachedCoverageChecks;
+    
+    public ItpStopOperator(ItpAbstractDomain d, TheoremProver prover) {
         domain = d;
         coverageCheckTime = 0;
         numCoveredStates = 0;
         numCoverageChecks = 0;
+        numCachedCoverageChecks = 0;
+        thmProver = prover;
+        
+        entailsUseCache = CPAMain.cpaConfig.getBooleanValue(
+                "cpas.symbpredabs.mathsat.useCache");
+        if (entailsUseCache) {
+            entailsCache = 
+                new HashMap<Pair<SymbolicFormula, SymbolicFormula>, Boolean>();
+        }
     }
 
     
@@ -90,7 +111,28 @@ public class ItpStopOperator implements StopOperator {
             
             ++numCoverageChecks;
             SymbolicFormulaManager mgr = cpa.getFormulaManager();
-            boolean ok = mgr.entails(e1.getAbstraction(), e2.getAbstraction());
+            int res = -1;
+            boolean ok;
+            
+            Pair<SymbolicFormula, SymbolicFormula> key = null;            
+            if (entailsUseCache) {
+                key = new Pair<SymbolicFormula, SymbolicFormula>(
+                        e1.getAbstraction(), e2.getAbstraction());
+                if (entailsCache.containsKey(key)) {
+                    res = entailsCache.get(key) ? 1 : 0;
+                    ++numCachedCoverageChecks;
+                }
+            }
+            if (res != -1) {
+                ok = (res == 1);
+            } else {            
+                ok = mgr.entails(e1.getAbstraction(), e2.getAbstraction(),
+                                 thmProver);
+                if (entailsUseCache) {
+                    assert(key != null);
+                    entailsCache.put(key, ok);
+                }
+            }
             
             if (ok) {
                 ++numCoveredStates;

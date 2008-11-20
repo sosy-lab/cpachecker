@@ -83,8 +83,8 @@ public class SummaryAbstractElement
     
     public String toString() {
         return "SE<" + Integer.toString(
-                summaryLocation.getInnerNode().getNodeNumber()) + ">(" +
-                Integer.toString(getId()) + ")"; 
+                summaryLocation.getInnerNode().getNodeNumber()) + ">";//">(" +
+                //Integer.toString(getId()) + ")"; 
     }
 
     public CFANode getLocationNode() {
