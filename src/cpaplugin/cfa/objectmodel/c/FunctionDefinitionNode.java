@@ -9,6 +9,8 @@ import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTStandardFunctionDeclarator;
 
 import cpaplugin.cfa.objectmodel.CFAFunctionDefinitionNode;
+import cpaplugin.logging.CustomLogLevel;
+import cpaplugin.logging.LazyLogger;
 
 public class FunctionDefinitionNode extends CFAFunctionDefinitionNode
 {
@@ -40,9 +42,16 @@ public class FunctionDefinitionNode extends CFAFunctionDefinitionNode
                 
                 // Get what we need from the declarator
                 String name = param.getDeclarator().getName().toString();
+
+                if (name.isEmpty() && 
+                        param.getDeclarator().getNestedDeclarator() != null) {
+                    name = param.getDeclarator().getNestedDeclarator().
+                                                           getName().toString();
+                }
                 
-                if (!name.isEmpty())
+                if (!name.isEmpty()) {
                     parameterNames.add (name);
+                } 
             }
         }
         
@@ -64,8 +73,15 @@ public class FunctionDefinitionNode extends CFAFunctionDefinitionNode
                 IASTParameterDeclaration param = params[i];
                 String name = param.getDeclarator().getName().toString();
                 
-                if (!name.isEmpty())
+                if (name.isEmpty() && 
+                        param.getDeclarator().getNestedDeclarator() != null) {
+                    name = param.getDeclarator().getNestedDeclarator().
+                                                           getName().toString();
+                }
+                
+                if (!name.isEmpty()) {
                     parameterNames.add (param);
+                }
             }
         }
         return parameterNames;
