@@ -6,7 +6,7 @@ import java.util.List;
 import cpaplugin.cfa.objectmodel.c.CallToReturnEdge;
 
 
-public class CFANode
+public class CFANode implements Comparable<CFANode>
 {
 	private int lineNumber;
     protected List<CFAEdge> leavingEdges;
@@ -166,5 +166,10 @@ public class CFANode
     
     public String toString() {
         return "N" + getNodeNumber();
+    }
+
+    @Override
+    public int compareTo(CFANode o) {
+        return getNodeNumber() - o.getNodeNumber();
     }
 }
