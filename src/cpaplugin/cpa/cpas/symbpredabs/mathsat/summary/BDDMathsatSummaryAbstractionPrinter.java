@@ -33,14 +33,19 @@ public class BDDMathsatSummaryAbstractionPrinter {
                                 long predDef, long[] importantSymbols) {
         String fileName = baseFileName + "." + curNum + ".msat";
         String importantName = fileName + ".important";
-        long term = mathsat.api.msat_make_and(
-                msatEnv, curStateTerm, edgeFormulaTerm);
-        term = mathsat.api.msat_make_and(msatEnv, term, predDef);
-        String repr = mathsat.api.msat_to_msat(msatEnv, term);
+        String curStateRepr = mathsat.api.msat_to_msat(msatEnv, curStateTerm);
+        String edgeFormulaRepr = mathsat.api.msat_to_msat(
+                msatEnv, edgeFormulaTerm);
+        String predDefRepr = mathsat.api.msat_to_msat(msatEnv, predDef);
         
         try {
             PrintWriter out = new PrintWriter(new File(fileName));
-            out.println(repr);
+            out.println("#--- CURRENT STATE");
+            out.println(curStateRepr);
+            out.println("\n#--- SUMMARY EDGE");
+            out.println(edgeFormulaRepr);
+            out.println("\n#--- PRED DEFS");
+            out.println(predDefRepr);
             out.close();
             
             out = new PrintWriter(new File(importantName));

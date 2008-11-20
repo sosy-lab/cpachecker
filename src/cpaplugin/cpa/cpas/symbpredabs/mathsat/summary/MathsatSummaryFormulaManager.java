@@ -6,6 +6,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Stack;
+import java.util.TreeMap;
 import java.util.Vector;
 
 import cpaplugin.cfa.objectmodel.CFAEdge;
@@ -141,7 +142,10 @@ public class MathsatSummaryFormulaManager extends MathsatSymbolicFormulaManager
 
                     LazyLogger.log(LazyLogger.DEBUG_3,
                                    " FORMULA FOR LOCATION ", 
-                                   ((CFANode)succ).getNodeNumber(), ": ", t1);
+                                   ((CFANode)succ).getNodeNumber(), ": ", 
+                                   mathsat.api.msat_term_id(
+                                           ((MathsatSymbolicFormula)
+                                                   t1).getTerm()), " ", t1);
 
                     nodeToSSA.put(succ, ssa1);
                     updateMaxIndex(ssa1);
@@ -156,7 +160,7 @@ public class MathsatSummaryFormulaManager extends MathsatSymbolicFormulaManager
         }
         
         Map<CFANode, Pair<SymbolicFormula, SSAMap>> ret = 
-            new HashMap<CFANode, Pair<SymbolicFormula, SSAMap>>();
+            new TreeMap<CFANode, Pair<SymbolicFormula, SSAMap>>();
         for (InnerCFANode n : leaves) {
             assert(nodeToFormula.containsKey(n));
             assert(nodeToSSA.containsKey(n));

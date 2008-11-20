@@ -18,15 +18,20 @@ import cpaplugin.cfa.objectmodel.c.FunctionDefinitionNode;
 import cpaplugin.cfa.objectmodel.c.ReturnEdge;
 import cpaplugin.cmdline.CPAMain;
 import cpaplugin.cpa.cpas.symbpredabs.AbstractFormula;
+import cpaplugin.cpa.cpas.symbpredabs.ConcreteTraceFunctionCalls;
 import cpaplugin.cpa.cpas.symbpredabs.ConcreteTraceNoInfo;
 import cpaplugin.cpa.cpas.symbpredabs.CounterexampleTraceInfo;
+import cpaplugin.cpa.cpas.symbpredabs.InterpolatingTheoremProver;
 import cpaplugin.cpa.cpas.symbpredabs.Pair;
 import cpaplugin.cpa.cpas.symbpredabs.Predicate;
 import cpaplugin.cpa.cpas.symbpredabs.SSAMap;
 import cpaplugin.cpa.cpas.symbpredabs.SymbolicFormula;
+import cpaplugin.cpa.cpas.symbpredabs.SymbolicFormulaManager;
+import cpaplugin.cpa.cpas.symbpredabs.TheoremProver;
 import cpaplugin.cpa.cpas.symbpredabs.mathsat.BDDAbstractFormula;
 import cpaplugin.cpa.cpas.symbpredabs.mathsat.BDDMathsatAbstractFormulaManager;
 import cpaplugin.cpa.cpas.symbpredabs.mathsat.MathsatSymbolicFormula;
+import cpaplugin.cpa.cpas.symbpredabs.mathsat.MathsatSymbolicFormulaManager;
 import cpaplugin.cpa.cpas.symbpredabs.summary.InnerCFANode;
 import cpaplugin.cpa.cpas.symbpredabs.summary.SummaryAbstractElement;
 import cpaplugin.cpa.cpas.symbpredabs.summary.SummaryAbstractFormulaManager;
@@ -45,11 +50,14 @@ public class BDDMathsatSummaryAbstractManager extends
         BDDMathsatAbstractFormulaManager implements
         SummaryAbstractFormulaManager {
     
-    public class AllSatCallbackStats extends AllSatCallback {
+    public class AllSatCallbackStats extends AllSatCallback 
+            implements TheoremProver.AllSatCallback {
         public long totTime = 0;
+        private long[] curModel;
         
         public AllSatCallbackStats(int bdd, long msatEnv, long absEnv) {
             super(bdd, msatEnv, absEnv);
+            curModel = null;
         }
         
         public void callback(long[] model) {
@@ -57,6 +65,18 @@ public class BDDMathsatSummaryAbstractManager extends
             super.callback(model);
             long end = System.currentTimeMillis();
             totTime += (end - start);
+        }
+
+        @Override
+        public void modelFound(Vector<SymbolicFormula> model) {
+            if (curModel == null || curModel.length != model.size()) {
+                curModel = new long[model.size()];
+            }
+            for (int i = 0; i < curModel.length; ++i) {
+                long t = ((MathsatSymbolicFormula)model.elementAt(i)).getTerm();
+                curModel[i] = t;
+            }
+            callback(curModel);
         }
     }
 
@@ -67,6 +87,7 @@ public class BDDMathsatSummaryAbstractManager extends
         public long abstractionBddTime = 0;
         public long abstractionMaxBddTime = 0;
         public int numCallsAbstraction = 0;
+        public int numCallsAbstractionCached = 0;
         public long cexAnalysisTime = 0;
         public long cexAnalysisMaxTime = 0;
         public int numCallsCexAnalysis = 0;
@@ -74,23 +95,43 @@ public class BDDMathsatSummaryAbstractManager extends
         public long abstractionMaxMathsatSolveTime = 0;
         public long cexAnalysisMathsatTime = 0;
         public long cexAnalysisMaxMathsatTime = 0;
+        public int numCoverageChecks = 0;
+        public long bddCoverageCheckTime = 0;
+        public long bddCoverageCheckMaxTime = 0;
+        public long cexAnalysisGetUsefulBlocksTime = 0;
+        public long cexAnalysisGetUsefulBlocksMaxTime = 0;
     }
     private Stats stats;
     
     private Map<Pair<CFANode, CFANode>, Pair<MathsatSymbolicFormula, SSAMap>> 
+        abstractionTranslationCache;
+    private Map<Pair<SymbolicFormula, Vector<SymbolicFormula>>, AbstractFormula> 
         abstractionCache;
+    boolean useCache;
     
     private BDDMathsatSummaryAbstractionPrinter absPrinter = null;
     private boolean dumpHardAbstractions;
+    
+    private TheoremProver thmProver;
+    private InterpolatingTheoremProver itpProver;
 
-    public BDDMathsatSummaryAbstractManager() {
+    public BDDMathsatSummaryAbstractManager(TheoremProver prover,
+            InterpolatingTheoremProver interpolator) {
         super();
         stats = new Stats();
-        abstractionCache = 
+        abstractionTranslationCache = 
             new HashMap<Pair<CFANode, CFANode>,
                         Pair<MathsatSymbolicFormula, SSAMap>>();
         dumpHardAbstractions = CPAMain.cpaConfig.getBooleanValue(
                 "cpas.symbpredabs.mathsat.dumpHardAbstractionQueries");
+        thmProver = prover;
+        itpProver = interpolator;
+        
+        abstractionCache = 
+            new HashMap<Pair<SymbolicFormula, Vector<SymbolicFormula>>,
+                        AbstractFormula>();
+        useCache = CPAMain.cpaConfig.getBooleanValue(
+                "cpas.symbpredabs.mathsat.useCache");
     }
     
     public Stats getStats() { return stats; }
@@ -114,12 +155,14 @@ public class BDDMathsatSummaryAbstractManager extends
                     // ok, this path is relevant
                     relevantPaths.add(e.getPathFormula(leaf));
 
-                    LazyLogger.log(LazyLogger.DEBUG_1,
+                    LazyLogger.log(LazyLogger.DEBUG_3,
                                    "FOUND RELEVANT PATH, leaf: ", 
                                    leaf.getNodeNumber());
                     LazyLogger.log(LazyLogger.DEBUG_3,
                                    "Formula: ", 
-                                   e.getPathFormula(leaf).getFirst());
+                                   mathsat.api.msat_term_id(
+                                   (((MathsatSymbolicFormula)e.getPathFormula(
+                                           leaf).getFirst())).getTerm()));
                 }
             }
         }
@@ -164,8 +207,6 @@ public class BDDMathsatSummaryAbstractManager extends
         // get the environment from the manager - this is unique, it is the
         // environment in which all terms are created
         long msatEnv = mmgr.getMsatEnv();       
-        //long absEnv = mathsat.api.msat_create_env();
-        long absEnv = mathsat.api.msat_create_shared_env(msatEnv);
         
         // first, build the concrete representation of the abstract formula of e
         // this is an abstract formula - specifically it is a bddabstractformula
@@ -176,6 +217,9 @@ public class BDDMathsatSummaryAbstractManager extends
         MathsatSymbolicFormula fabs = 
             (MathsatSymbolicFormula)mmgr.instantiate(
                     toConcrete(mmgr, abs), null);
+        
+        LazyLogger.log(LazyLogger.DEBUG_3, "Abstraction: ",
+                mathsat.api.msat_term_id(fabs.getTerm()));
                 
         if (isFunctionExit(e)) {
             // we have to take the context before the function call 
@@ -208,8 +252,9 @@ public class BDDMathsatSummaryAbstractManager extends
         
         Pair<CFANode, CFANode> key = new Pair<CFANode, CFANode>(
                 e.getLocationNode(), succ.getLocationNode());
-        if (abstractionCache.containsKey(key)) {
-            Pair<MathsatSymbolicFormula, SSAMap> pc = abstractionCache.get(key);
+        if (abstractionTranslationCache.containsKey(key)) {
+            Pair<MathsatSymbolicFormula, SSAMap> pc = 
+                abstractionTranslationCache.get(key);
             f = pc.getFirst();
             ssa = pc.getSecond();
         } else {
@@ -225,7 +270,7 @@ public class BDDMathsatSummaryAbstractManager extends
             f = mmgr.replaceAssignments((MathsatSymbolicFormula)pc.getFirst());
             ssa = pc.getSecond();
             
-            abstractionCache.put(key,
+            abstractionTranslationCache.put(key,
                     new Pair<MathsatSymbolicFormula, SSAMap>(
                             (MathsatSymbolicFormula)f, ssa));
         }
@@ -240,10 +285,10 @@ public class BDDMathsatSummaryAbstractManager extends
                     bitwiseAxioms);
         }
         
-//        long term = mathsat.api.msat_make_copy_from(
-//                absEnv, ((MathsatSymbolicFormula)f).getTerm(), msatEnv);
         long term = ((MathsatSymbolicFormula)f).getTerm();
         assert(!mathsat.api.MSAT_ERROR_TERM(term));
+        
+        LazyLogger.log(LazyLogger.DEBUG_2, "Term: ", f); 
         
         
         // build the definition of the predicates, and instantiate them
@@ -251,16 +296,22 @@ public class BDDMathsatSummaryAbstractManager extends
         long preddef = (Long)predinfo[0];
         long[] important = (long[])predinfo[1];
         Collection<String> predvars = (Collection<String>)predinfo[2];
-//        for (int i = 0; i < important.length; ++i) {
-//            important[i] = mathsat.api.msat_make_copy_from(
-//                    absEnv, important[i], msatEnv); 
-//        }
-        
+        Collection<Pair<String, SymbolicFormula[]>> predlvals = 
+            (Collection<Pair<String, SymbolicFormula[]>>)predinfo[3];
         // update the SSA map, by instantiating all the uninstantiated 
         // variables that occur in the predicates definitions (at index 1)
         for (String var : predvars) {
             if (ssa.getIndex(var) < 0) {
                 ssa.setIndex(var, 1);
+            }
+        }
+        Map<SymbolicFormula, SymbolicFormula> cache = 
+            new HashMap<SymbolicFormula, SymbolicFormula>(); 
+        for (Pair<String, SymbolicFormula[]> p : predlvals) {
+            SymbolicFormula[] args = 
+                getInstantiatedAt(mmgr, p.getSecond(), ssa, cache);
+            if (ssa.getIndex(p.getFirst(), args) < 0) {
+                ssa.setIndex(p.getFirst(), args, 1);
             }
         }
         
@@ -285,78 +336,79 @@ public class BDDMathsatSummaryAbstractManager extends
         // instantiate the definitions with the right SSA
         MathsatSymbolicFormula inst = (MathsatSymbolicFormula)mmgr.instantiate(
                 new MathsatSymbolicFormula(preddef), ssa);
-//        preddef = mathsat.api.msat_make_copy_from(absEnv, inst.getTerm(), 
-//                                                  msatEnv);
-//        long curstate = mathsat.api.msat_make_copy_from(absEnv, fabs.getTerm(),
-//                                                        msatEnv);
         preddef = inst.getTerm();
         long curstate = fabs.getTerm();
         
         // the formula is (curstate & term & preddef)
         // build the formula and send it to the absEnv
-        long formula = mathsat.api.msat_make_and(absEnv, 
-                mathsat.api.msat_make_and(absEnv, curstate, term), preddef);
-        mathsat.api.msat_add_theory(absEnv, mathsat.api.MSAT_UF);
-        if (CPAMain.cpaConfig.getBooleanValue(
-                "cpas.symbpredabs.mathsat.useIntegers")) {
-            mathsat.api.msat_add_theory(absEnv, mathsat.api.MSAT_LIA);
-            int ok = mathsat.api.msat_set_option(absEnv, "split_eq", "true");
-            assert(ok == 0);
-        } else {
-            mathsat.api.msat_add_theory(absEnv, mathsat.api.MSAT_LRA);
+        long formula = mathsat.api.msat_make_and(msatEnv, 
+                mathsat.api.msat_make_and(msatEnv, curstate, term), preddef);
+        SymbolicFormula fm = new MathsatSymbolicFormula(formula);
+        Vector<SymbolicFormula> imp = new Vector<SymbolicFormula>();
+        imp.ensureCapacity(important.length);
+        for (long p : important) {
+            imp.add(new MathsatSymbolicFormula(p));
         }
-        mathsat.api.msat_set_theory_combination(absEnv, 
-                                                mathsat.api.MSAT_COMB_ACK);
-        int ok = mathsat.api.msat_set_option(absEnv, "toplevelprop", "2");
-        assert(ok == 0);
-        
 
-        LazyLogger.log(LazyLogger.DEBUG_3, "COMPUTING ALL-SMT ON FORMULA: ",
-                       new MathsatSymbolicFormula(formula));
+        LazyLogger.log(LazyLogger.DEBUG_2, 
+                "COMPUTING ALL-SMT ON FORMULA: ", fm);
         
-        int absbdd = bddManager.getZero();
-        AllSatCallbackStats func = 
-            new AllSatCallbackStats(absbdd, msatEnv, absEnv);
-        long msatSolveStartTime = System.currentTimeMillis();
-        mathsat.api.msat_assert_formula(absEnv, formula);
-        int numModels = mathsat.api.msat_all_sat(absEnv, important, func);
-        assert(numModels != -1);
-        long msatSolveEndTime = System.currentTimeMillis();
-        
-        mathsat.api.msat_destroy_env(absEnv);
-        
-        // update statistics
-        long endTime = System.currentTimeMillis();
-        long msatSolveTime = 
-            (msatSolveEndTime - msatSolveStartTime) - func.totTime;
-        long abstractionMsatTime = (endTime - startTime) - func.totTime;
-        stats.abstractionMaxMathsatTime = 
-            Math.max(abstractionMsatTime, stats.abstractionMaxMathsatTime);
-        stats.abstractionMaxBddTime =
-            Math.max(func.totTime, stats.abstractionMaxBddTime);
-        stats.abstractionMathsatTime += abstractionMsatTime;
-        stats.abstractionBddTime += func.totTime;
-        stats.abstractionMathsatSolveTime += msatSolveTime;
-        stats.abstractionMaxMathsatSolveTime = 
-            Math.max(msatSolveTime, stats.abstractionMaxMathsatSolveTime);
+        Pair<SymbolicFormula, Vector<SymbolicFormula>> absKey = 
+            new Pair<SymbolicFormula, Vector<SymbolicFormula>>(fm, imp);
+        AbstractFormula result = null;
+        if (useCache && abstractionCache.containsKey(absKey)) {
+            ++stats.numCallsAbstractionCached;
+            result = abstractionCache.get(absKey);
+        } else {
+            int absbdd = bddManager.getZero();
+            AllSatCallbackStats func = 
+                new AllSatCallbackStats(absbdd, msatEnv, 0);
+            long msatSolveStartTime = System.currentTimeMillis();
+            int numModels = thmProver.allSat(fm, imp, func);
+            assert(numModels != -1);
+            long msatSolveEndTime = System.currentTimeMillis();
             
-        if (abstractionMsatTime > 1000 && dumpHardAbstractions) {
-            // we want to dump "hard" problems...
-            if (absPrinter == null) {
-                absPrinter = new BDDMathsatSummaryAbstractionPrinter(
-                        msatEnv, "abs");
+            // update statistics
+            long endTime = System.currentTimeMillis();
+            long msatSolveTime = 
+                (msatSolveEndTime - msatSolveStartTime) - func.totTime;
+            long abstractionMsatTime = (endTime - startTime) - func.totTime;
+            stats.abstractionMaxMathsatTime = 
+                Math.max(abstractionMsatTime, stats.abstractionMaxMathsatTime);
+            stats.abstractionMaxBddTime =
+                Math.max(func.totTime, stats.abstractionMaxBddTime);
+            stats.abstractionMathsatTime += abstractionMsatTime;
+            stats.abstractionBddTime += func.totTime;
+            stats.abstractionMathsatSolveTime += msatSolveTime;
+            stats.abstractionMaxMathsatSolveTime = 
+                Math.max(msatSolveTime, stats.abstractionMaxMathsatSolveTime);
+                
+            if (abstractionMsatTime > 1000 && dumpHardAbstractions) {
+                // we want to dump "hard" problems...
+                if (absPrinter == null) {
+                    absPrinter = new BDDMathsatSummaryAbstractionPrinter(
+                            msatEnv, "abs");
+                }
+                absPrinter.printMsatFormat(curstate, term, preddef, important);
+                absPrinter.printNusmvFormat(curstate, term, preddef, important);
+                absPrinter.nextNum();            
             }
-            absPrinter.printMsatFormat(curstate, term, preddef, important);
-            absPrinter.printNusmvFormat(curstate, term, preddef, important);
-            absPrinter.nextNum();            
-        }
 
-        if (numModels == -2) {
-            absbdd = bddManager.getOne();
-            return new BDDAbstractFormula(absbdd);
-        } else {
-            return new BDDAbstractFormula(func.getBDD());
+            if (numModels == -2) {
+                absbdd = bddManager.getOne();
+                //return new BDDAbstractFormula(absbdd);
+                result = new BDDAbstractFormula(absbdd);
+            } else {
+                //return new BDDAbstractFormula(func.getBDD());
+                result = new BDDAbstractFormula(func.getBDD());
+            }
+            if (useCache) {
+                abstractionCache.put(absKey, result);
+            }
         }
+        
+        return result;
+        
     }
     
     @Override
@@ -365,7 +417,6 @@ public class BDDMathsatSummaryAbstractManager extends
             Deque<SummaryAbstractElement> abstractTrace) {
         assert(abstractTrace.size() > 1);
         
-//        mathsat.api.msat_set_verbosity(1);
         long startTime = System.currentTimeMillis();
         stats.numCallsCexAnalysis++;
         
@@ -379,10 +430,14 @@ public class BDDMathsatSummaryAbstractManager extends
         LazyLogger.log(LazyLogger.DEBUG_1, "\nBUILDING COUNTEREXAMPLE TRACE\n");
         LazyLogger.log(LazyLogger.DEBUG_1, "ABSTRACT TRACE: ", abstractTrace);
         
+        //printFuncNamesInTrace(abstractTrace);
+        
         Object[] abstarr = abstractTrace.toArray();
         SummaryAbstractElement cur = (SummaryAbstractElement)abstarr[0];
         
         boolean theoryCombinationNeeded = false;
+        boolean noDtc = CPAMain.cpaConfig.getBooleanValue(
+                "cpas.symbpredabs.mathsat.useDtc") == false;
         
         MathsatSymbolicFormula bitwiseAxioms = 
             (MathsatSymbolicFormula)mmgr.makeTrue();
@@ -406,9 +461,12 @@ public class BDDMathsatSummaryAbstractManager extends
                                " SSA: ", p.getSecond());
                 newssa = p.getSecond();
             }
-            boolean hasUf = mmgr.hasUninterpretedFunctions(
-                    (MathsatSymbolicFormula)p.getFirst());
-            theoryCombinationNeeded |= hasUf;
+            boolean hasUf = false;
+            if (!noDtc) {
+                hasUf = mmgr.hasUninterpretedFunctions(
+                        (MathsatSymbolicFormula)p.getFirst());
+                theoryCombinationNeeded |= hasUf;
+            }
             f.add(p.getFirst());
             ssa = newssa;
             cur = e;
@@ -420,6 +478,10 @@ public class BDDMathsatSummaryAbstractManager extends
                 bitwiseAxioms = (MathsatSymbolicFormula)mmgr.makeAnd(
                         bitwiseAxioms, a);
             }
+            
+            LazyLogger.log(LazyLogger.DEBUG_2, "Adding formula: ", p.getFirst());
+//                    mathsat.api.msat_term_id(
+//                            ((MathsatSymbolicFormula)p.getFirst()).getTerm()));
         }
         
         if (CPAMain.cpaConfig.getBooleanValue(
@@ -437,76 +499,76 @@ public class BDDMathsatSummaryAbstractManager extends
         // concrete counterexample
         //
         // create a working environment
-        long env = mathsat.api.msat_create_env();
-        long msatEnv = mmgr.getMsatEnv();
-        long[] terms = new long[f.size()];
-        for (int i = 0; i < terms.length; ++i) {
-            terms[i] = mathsat.api.msat_make_copy_from(
-                        env, ((MathsatSymbolicFormula)f.elementAt(i)).getTerm(),
-                        msatEnv);
-        }
-        // initialize the env and enable interpolation
-        mathsat.api.msat_add_theory(env, mathsat.api.MSAT_UF);
-        mathsat.api.msat_add_theory(env, mathsat.api.MSAT_LRA);
-        if (theoryCombinationNeeded) {
-            mathsat.api.msat_set_theory_combination(env, 
-                    mathsat.api.MSAT_COMB_DTC);
-        } else if (CPAMain.cpaConfig.getBooleanValue(
-                "cpas.symbpredabs.mathsat.useIntegers")) {
-            int ok = mathsat.api.msat_set_option(env, "split_eq", "true");
-            assert(ok == 0);
-        }
-//        int ok = mathsat.api.msat_set_option(env, "toplevelprop", "2");
-//        assert(ok == 0);
-        
-        mathsat.api.msat_init_interpolation(env);        
-        
-        // for each term, create an interpolation group
-        int[] groups = new int[terms.length];
-        for (int i = 0; i < groups.length; ++i) {
-            groups[i] = mathsat.api.msat_create_itp_group(env);
-        }
+        itpProver.init();
         
         boolean shortestTrace = CPAMain.cpaConfig.getBooleanValue(
                 "cpas.symbpredabs.shortestCexTrace");
+        boolean useSuffix = CPAMain.cpaConfig.getBooleanValue(
+                "cpas.symbpredabs.shortestCexTraceUseSuffix");
         
-        // then, assert the formulas
-        long res = mathsat.api.MSAT_UNKNOWN;
         long msatSolveTimeStart = System.currentTimeMillis();
-        for (int i = 0; i < terms.length; ++i) {
-            mathsat.api.msat_set_itp_group(env, groups[i]);
-            mathsat.api.msat_assert_formula(env, terms[i]);
 
-            LazyLogger.log(LazyLogger.DEBUG_3,
-                           "Asserting formula: ", 
-                           new MathsatSymbolicFormula(terms[i]),
-                           " in group: ", groups[i]);
-            
-            if (shortestTrace && mathsat.api.msat_term_is_true(terms[i]) == 0) {
-                res = mathsat.api.msat_solve(env);
-                if (res == mathsat.api.MSAT_UNSAT) {
+        boolean unsat = false;
+        int res = -1;
+        
+        //dumpInterpolationProblem(mmgr, f, "itp");
+        
+        if (shortestTrace && CPAMain.cpaConfig.getBooleanValue(
+                "cpas.symbpredabs.explicit.getUsefulBlocks")) {
+            long gubStart = System.currentTimeMillis();
+            f = getUsefulBlocks(mmgr, f, theoryCombinationNeeded, useSuffix);
+            long gubEnd = System.currentTimeMillis();
+            stats.cexAnalysisGetUsefulBlocksTime += gubEnd - gubStart;
+            stats.cexAnalysisGetUsefulBlocksMaxTime = Math.max(
+                    stats.cexAnalysisGetUsefulBlocksMaxTime, gubEnd - gubStart);
+            // set shortestTrace to false, so we perform only one final call 
+            // to msat_solve
+            shortestTrace = false;
+        }
+        
+        
+        for (int i = useSuffix ? f.size()-1 : 0; 
+             useSuffix ? i >= 0 : i < f.size(); i += useSuffix ? -1 : 1) {
+            SymbolicFormula fm = f.elementAt(i);
+            itpProver.addFormula(fm);
+            if (shortestTrace && !fm.isTrue()) {
+                if (itpProver.isUnsat()) {
+                    res = 0;
+                    // we need to add the other formulas to the itpProver 
+                    // anyway, so it can setup its internal state properly
+                    for (int j = i+(useSuffix ? -1 : 1);
+                         useSuffix ? j >= 0 : j < f.size();
+                         j += useSuffix ? -1 : 1) {
+                        itpProver.addFormula(f.elementAt(j));
+                    }
                     break;
+                } else {
+                    res = 1;
                 }
+            } else {
+                res = -1;
             }
         }
-        // and check satisfiability
-        if (!shortestTrace) {
-            res = mathsat.api.msat_solve(env);
+        if (!shortestTrace || res == -1) {
+            unsat = itpProver.isUnsat();
+        } else {
+            unsat = res == 0;
         }
-        long msatSolveTimeEnd = System.currentTimeMillis();
         
-        assert(res != mathsat.api.MSAT_UNKNOWN);
+        long msatSolveTimeEnd = System.currentTimeMillis();
+        long msatSolveTime = msatSolveTimeEnd - msatSolveTimeStart;
         
         CounterexampleTraceInfo info = null;
         
-        if (res == mathsat.api.MSAT_UNSAT) {
+        long msatEnv = mmgr.getMsatEnv();
+        
+        if (unsat) {
+            //dumpInterpolationProblem(mmgr, f, "itp");
             // the counterexample is spurious. Extract the predicates from
             // the interpolants
             info = new CounterexampleTraceInfo(true); 
             boolean splitItpAtoms = CPAMain.cpaConfig.getBooleanValue(
                     "cpas.symbpredabs.refinement.splitItpAtoms");            
-//            UpdateablePredicateMap pmap = new UpdateablePredicateMap();
-//            info.setPredicateMap(pmap);
             // how to partition the trace into (A, B) depends on whether
             // there are function calls involved or not: in general, A
             // is the trace from the entry point of the current function
@@ -514,7 +576,7 @@ public class BDDMathsatSummaryAbstractManager extends
             // this, we keep track of which function we are currently in.
             Stack<Integer> entryPoints = new Stack<Integer>();
             entryPoints.push(0);
-            for (int i = 1; i < groups.length; ++i) {
+            for (int i = 1; i < f.size(); ++i) {
                 int start_of_a = entryPoints.peek();
                 if (!CPAMain.cpaConfig.getBooleanValue(
                        "cpas.symbpredabs.refinement.addWellScopedPredicates")) {
@@ -523,34 +585,29 @@ public class BDDMathsatSummaryAbstractManager extends
                     start_of_a = 0;
                 }
                 		
-                int[] groups_of_a = new int[i-start_of_a];
-                for (int j = 0; j < groups_of_a.length; ++j) {
-                    groups_of_a[j] = groups[j+start_of_a];
+                int sz = i - start_of_a;
+                Vector<SymbolicFormula> formulasOfA = 
+                    new Vector<SymbolicFormula>();
+                formulasOfA.ensureCapacity(sz);
+                for (int j = 0; j < sz; ++j) {
+                    formulasOfA.add(f.elementAt(j+start_of_a));
                 }
-                long itp = mathsat.api.msat_get_interpolant(env, groups_of_a);
-                assert(!mathsat.api.MSAT_ERROR_TERM(itp));
+                msatSolveTimeStart = System.currentTimeMillis();
+                SymbolicFormula itp = itpProver.getInterpolant(formulasOfA);
+                msatSolveTimeEnd = System.currentTimeMillis();
+                msatSolveTime += msatSolveTimeEnd - msatSolveTimeStart;
                 
-                if (CPACheckerLogger.getLevel() <= 
-                    LazyLogger.DEBUG_3.intValue()) {
-                    StringBuffer buf = new StringBuffer();
-                    for (int g : groups_of_a) {
-                        buf.append(g);
-                        buf.append(" ");
-                    }
-                    LazyLogger.log(LazyLogger.DEBUG_3, "groups_of_a: ", buf);
-                }
-                LazyLogger.log(LazyLogger.DEBUG_3,
-                               "Got interpolant(", i, "): ",
-                               new MathsatSymbolicFormula(itp));
-                
-                long itpc = mathsat.api.msat_make_copy_from(msatEnv, itp, env);
                 Collection<SymbolicFormula> atoms = mmgr.extractAtoms(
-                            new MathsatSymbolicFormula(itpc), true, 
-                            splitItpAtoms, false);
-                Set<Predicate> preds = buildPredicates(env, msatEnv, atoms);
+                            itp, true, splitItpAtoms, false);
+                Set<Predicate> preds = buildPredicates(msatEnv, atoms);
                 SummaryAbstractElement s1 = 
                     (SummaryAbstractElement)abstarr[i];
                 info.addPredicatesForRefinement(s1, preds);
+                
+                LazyLogger.log(LazyLogger.DEBUG_1,
+                        "Got interpolant(", i, "): ", itp, ", location: ", s1);
+                LazyLogger.log(LazyLogger.DEBUG_1, "Preds for ",
+                        (CFANode)s1.getLocation(), ": ", preds);
                 
                 // If we are entering or exiting a function, update the stack 
                 // of entry points
@@ -575,17 +632,22 @@ public class BDDMathsatSummaryAbstractManager extends
         } else {
             // this is a real bug, notify the user
             info = new CounterexampleTraceInfo(false);
-            info.setConcreteTrace(new ConcreteTraceNoInfo());
+            ConcreteTraceFunctionCalls cf = new ConcreteTraceFunctionCalls();
+            for (SummaryAbstractElement e : abstractTrace) {
+                cf.add(e.getLocationNode().getFunctionName());
+            }
+            info.setConcreteTrace(cf);
             // TODO - reconstruct counterexample
             // For now, we dump the asserted formula to a user-specified file
             String cexPath = CPAMain.cpaConfig.getProperty(
                     "cpas.symbpredabs.refinement.msatCexPath");
             if (cexPath != null) {
-                long t = mathsat.api.msat_make_true(env);
-                for (int i = 0; i < terms.length; ++i) {
-                    t = mathsat.api.msat_make_and(env, t, terms[i]);
+                long t = mathsat.api.msat_make_true(msatEnv);
+                for (SymbolicFormula fm : f) {
+                    long term = ((MathsatSymbolicFormula)fm).getTerm();
+                    t = mathsat.api.msat_make_and(msatEnv, t, term);
                 }
-                String msatRepr = mathsat.api.msat_to_msat(env, t);
+                String msatRepr = mathsat.api.msat_to_msat(msatEnv, t);
                 try {
                     PrintWriter pw = new PrintWriter(new File(cexPath));
                     pw.println(msatRepr);
@@ -598,16 +660,13 @@ public class BDDMathsatSummaryAbstractManager extends
             }
         }
         
-        mathsat.api.msat_destroy_env(env);
-        
-//        mathsat.api.msat_set_verbosity(0);
+        itpProver.reset();
         
         // update stats
         long endTime = System.currentTimeMillis();
         long totTime = endTime - startTime;
         stats.cexAnalysisTime += totTime;
         stats.cexAnalysisMaxTime = Math.max(totTime, stats.cexAnalysisMaxTime);
-        long msatSolveTime = msatSolveTimeEnd - msatSolveTimeStart;
         stats.cexAnalysisMathsatTime += msatSolveTime;
         stats.cexAnalysisMaxMathsatTime = 
             Math.max(msatSolveTime, stats.cexAnalysisMaxMathsatTime);
@@ -630,15 +689,11 @@ public class BDDMathsatSummaryAbstractManager extends
 
     // generates the predicates corresponding to the given atoms, which were
     // extracted from the interpolant
-    private Set<Predicate> buildPredicates(long srcenv, long dstenv,
+    private Set<Predicate> buildPredicates(long dstenv,
             Collection<SymbolicFormula> atoms) {
         Set<Predicate> ret = new HashSet<Predicate>();
         for (SymbolicFormula atom : atoms) {
             long tt = ((MathsatSymbolicFormula)atom).getTerm();
-//            String s = mathsat.api.msat_to_msat(srcenv, t);
-//            System.out.println("CREATING PREDICATE:\n" + s + "\n");
-//            long tt = mathsat.api.msat_from_msat(dstenv, s);
-//            long tt = mathsat.api.msat_make_copy_from(dstenv, t, srcenv);
             long d = mathsat.api.msat_declare_variable(dstenv, 
                     "\"PRED" + mathsat.api.msat_term_repr(tt) + "\"",
                     mathsat.api.MSAT_BOOL);
@@ -652,4 +707,146 @@ public class BDDMathsatSummaryAbstractManager extends
         return ret;
     }
     
+    
+    public boolean entails(AbstractFormula f1, AbstractFormula f2) {
+        long start = System.currentTimeMillis();
+        boolean ret = super.entails(f1, f2);
+        long end = System.currentTimeMillis();
+        stats.bddCoverageCheckMaxTime = Math.max(stats.bddCoverageCheckMaxTime,
+                                                (end - start));
+        stats.bddCoverageCheckTime += (end - start);
+        ++stats.numCoverageChecks;
+        return ret;
+    }
+    
+    private void dumpInterpolationProblem(MathsatSymbolicFormulaManager mmgr,
+            Vector<SymbolicFormula> f, String fileNamePattern) {
+        long msatEnv = mmgr.getMsatEnv();
+        for (int i = 0; i < f.size(); ++i) {
+            try {
+                PrintWriter out = 
+                    new PrintWriter(
+                            String.format("%s.%02d.msat", fileNamePattern, i));
+                String repr = mathsat.api.msat_to_msat(msatEnv,
+                        ((MathsatSymbolicFormula)f.elementAt(i)).getTerm());
+                out.println(repr);
+                out.close();
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+                System.exit(1);
+            }
+        }
+    }
+
+    public Vector<SymbolicFormula> getUsefulBlocks(
+        SymbolicFormulaManager mgr, Vector<SymbolicFormula> f,
+        boolean theoryCombinationNeeded, boolean suffixTrace,
+        boolean setAllTrueIfSat) {
+        // try to find a minimal-unsatisfiable-core of the trace (as Blast does)
+        MathsatSymbolicFormulaManager mmgr =
+            (MathsatSymbolicFormulaManager)mgr; 
+  
+        long msatEnv = mmgr.getMsatEnv();
+        thmProver.init(TheoremProver.COUNTEREXAMPLE_ANALYSIS);
+         
+        LazyLogger.log(LazyLogger.DEBUG_1, "Calling getUsefulBlocks on path ",
+                       "of length: ", f.size());
+         
+        MathsatSymbolicFormula trueFormula = new MathsatSymbolicFormula(
+            mathsat.api.msat_make_true(msatEnv));
+        MathsatSymbolicFormula[] needed = new MathsatSymbolicFormula[f.size()];
+        for (int i = 0; i < needed.length; ++i) {
+            needed[i] = trueFormula;
+        }
+        int pos = suffixTrace ? f.size()-1 : 0;
+        int incr = suffixTrace ? -1 : 1;
+        int toPop = 0;
+         
+        while (true) {
+            boolean consistent = true;
+            // 1. assert all the needed constraints
+            for (int i = 0; i < needed.length; ++i) {
+                if (!needed[i].isTrue()) {
+                    thmProver.push(needed[i]);
+                    ++toPop;
+                }
+            }
+            // 2. if needed is inconsistent, then return it
+            if (thmProver.isUnsat(trueFormula)) {
+                f = new Vector<SymbolicFormula>();
+                for (int i = 0; i < needed.length; ++i) {
+                    f.add(needed[i]);
+                }
+                break;
+            }
+            // 3. otherwise, assert one block at a time, until we get an 
+            // inconsistency
+            for (int i = pos; suffixTrace ? i >= 0 : i < f.size(); i += incr){
+                MathsatSymbolicFormula t = 
+                    (MathsatSymbolicFormula)f.elementAt(i);
+                thmProver.push(t);
+                ++toPop;
+                if (thmProver.isUnsat(trueFormula)) {
+                    // add this block to the needed ones, and repeat
+                    needed[i] = t;
+                    LazyLogger.log(LazyLogger.DEBUG_1,
+                                   "Found needed block: ", i, ", term: ", t);
+                    // pop all
+                    while (toPop > 0) {
+                        --toPop;
+                        thmProver.pop();
+                    }
+                    // and go to the next iteration of the while loop
+                    consistent = false;
+                    break;
+                }
+            }
+            if (consistent) {
+                // if we get here, the trace is consistent: 
+                // this is a real counterexample!
+                if (setAllTrueIfSat) {
+                    f = new Vector<SymbolicFormula>();
+                    for (int i = 0; i < needed.length; ++i) {
+                        f.add(trueFormula);
+                    }
+                }
+                break;
+            }
+        }        
+         
+        while (toPop > 0) {
+            --toPop;
+            thmProver.pop();
+        }
+         
+        thmProver.reset();
+         
+        LazyLogger.log(LazyLogger.DEBUG_1, "Done getUsefulBlocks");
+                 
+        return f;
+    }
+ 
+    public Vector<SymbolicFormula> getUsefulBlocks(
+        SymbolicFormulaManager mgr, Vector<SymbolicFormula> trace,
+        boolean theoryCombinationNeeded, boolean suffixTrace) {
+        return getUsefulBlocks(mgr, trace, theoryCombinationNeeded, 
+                               suffixTrace, false);
+    }
+     
+    private void printFuncNamesInTrace(
+        Deque<SummaryAbstractElement> abstractTrace) {
+        if (true) {
+            StringBuffer buf = new StringBuffer();
+            for (SummaryAbstractElement e : abstractTrace) {
+                buf.append(e.getLocationNode().getFunctionName());
+                buf.append("<" + ((CFANode)e.getLocation()).getNodeNumber() + 
+                           ">");
+                buf.append(' ');
+            }
+            buf.deleteCharAt(buf.length()-1);
+            System.out.print("ABSTRACT TRACE: ");
+            System.out.println(buf.toString());
+            System.out.flush();
+        }
+    }    
 }

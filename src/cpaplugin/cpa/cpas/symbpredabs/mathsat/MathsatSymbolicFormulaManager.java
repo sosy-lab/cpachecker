@@ -1,40 +1,42 @@
 package cpaplugin.cpa.cpas.symbpredabs.mathsat;
 
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
+import java.util.TreeSet;
 import java.util.Vector;
 
 import org.eclipse.cdt.core.dom.ast.DOMException;
+import org.eclipse.cdt.core.dom.ast.IASTArraySubscriptExpression;
 import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTCastExpression;
+import org.eclipse.cdt.core.dom.ast.IASTCompositeTypeSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTElaboratedTypeSpecifier;
+import org.eclipse.cdt.core.dom.ast.IASTEnumerationSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
+import org.eclipse.cdt.core.dom.ast.IASTExpressionList;
+import org.eclipse.cdt.core.dom.ast.IASTFieldReference;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression;
 import org.eclipse.cdt.core.dom.ast.IASTIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTInitializer;
 import org.eclipse.cdt.core.dom.ast.IASTInitializerExpression;
 import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
-import org.eclipse.cdt.core.dom.ast.IASTName;
 import org.eclipse.cdt.core.dom.ast.IASTNamedTypeSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
-import org.eclipse.cdt.core.dom.ast.IASTPointerOperator;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclSpecifier;
+import org.eclipse.cdt.core.dom.ast.IASTTypeIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
-import org.eclipse.cdt.core.dom.ast.IBasicType;
 import org.eclipse.cdt.core.dom.ast.IBinding;
-import org.eclipse.cdt.core.dom.ast.ICompositeType;
-import org.eclipse.cdt.core.dom.ast.IField;
 import org.eclipse.cdt.core.dom.ast.IPointerType;
 import org.eclipse.cdt.core.dom.ast.IType;
 import org.eclipse.cdt.core.dom.ast.ITypedef;
-import org.eclipse.cdt.core.dom.ast.IVariable;
 
 import cpaplugin.cfa.objectmodel.CFAEdge;
 import cpaplugin.cfa.objectmodel.CFANode;
@@ -51,6 +53,7 @@ import cpaplugin.cpa.cpas.symbpredabs.Pair;
 import cpaplugin.cpa.cpas.symbpredabs.SSAMap;
 import cpaplugin.cpa.cpas.symbpredabs.SymbolicFormula;
 import cpaplugin.cpa.cpas.symbpredabs.SymbolicFormulaManager;
+import cpaplugin.cpa.cpas.symbpredabs.TheoremProver;
 import cpaplugin.cpa.cpas.symbpredabs.UnrecognizedCFAEdgeException;
 import cpaplugin.logging.LazyLogger;
 
@@ -62,56 +65,9 @@ import cpaplugin.logging.LazyLogger;
  */ 
 public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     
-    // provides information about the type of variables etc.
-    // TODO - This is not used at the moment
-    class DeclarationInfo {
-        // a simple type is one that can be treated as an integer in mathsat
-        static final int TP_SIMPLE = 0; 
-        // this is a C struct
-        static final int TP_COMPOSITE = 1;
-        // this is a C array - unused for now        
-        static final int TP_ARRAY = 2;
-        // an enumerated type - differs from a simple one because it has a
-        // range of possible values. not used yet
-        static final int TP_ENUM = 3; 
-        
-        int type; // the type of this info, one of the above
-        String name; // the name of the declared variable. 
-                     // Can be null for array fields
-        int starsOrRange; // for ENUMs, the range, otherwise the 
-                          // number of pointer operators ('*') in this 
-                          // declaration
-        List<DeclarationInfo> fields; // for COMPOSITE/ARRAY types
-        
-        DeclarationInfo(int type, String name) {
-            this.type = type;
-            this.name = name;
-            if (type == TP_COMPOSITE || type == TP_ARRAY) {
-                fields = new Vector<DeclarationInfo>();
-            } else {
-                fields = null;
-            }
-            starsOrRange = 0;
-        }
-        
-        DeclarationInfo(int type) { 
-            this(type, null);
-        }
-         
-        void addField(DeclarationInfo f) { fields.add(f); }        
-        List<DeclarationInfo> getFields() { return fields; }
-        
-        String getName() { return name; }
-        void setName(String n) { name = n; }
-        
-        int getType() { return type; }
-        
-        int getNumStars() { return starsOrRange; }
-        void setNumStars(int n) { starsOrRange = n; }
-        
-        int getEnumRange() { return starsOrRange; }
-        void setEnumRange(int n) { starsOrRange = n; }
-    }
+    public final static int THEORY_EQ = 1;
+    public final static int THEORY_UF = 2;
+    public final static int THEORY_ARITH = 4;
 
     // the MathSAT environment in which all terms are created
     private long msatEnv;
@@ -131,6 +87,8 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     private long bitwiseNotUfDecl;
     private long leftShiftUfDecl;
     private long rightShiftUfDecl;
+    private long multUfDecl;
+    private long divUfDecl;
     
     // datatype to use for variables, when converting them to mathsat vars
     // can be either MSAT_REAL or MSAT_INT
@@ -145,6 +103,10 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     // names for special variables needed to deal with functions
     private static final String VAR_RETURN_NAME = "<retval>";
     private static final String FUNCTION_PARAM_NAME = "<param>";
+    private static final String OP_ADDRESSOF_NAME = "<ptr_&>";
+    private static final String OP_STAR_NAME = "<ptr_*>";
+    private static final String OP_ARRAY_SUBSCRIPT = "<arr_[]>";
+    private static final String STRING_LIT_FUNCTION = "<string>";
     
     // a namespace to have a unique name for each variable in the program. 
     // Whenever we enter a function, we push its name as namespace. Each
@@ -159,13 +121,26 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     // cache for splitting arithmetic equalities in extractAtoms
     private Map<Long, Boolean> arithCache;
 
-    // cache for checking entailement. Can be disabled
-    private boolean entailsUseCache;
-    private Map<Pair<SymbolicFormula, SymbolicFormula>, Boolean> entailsCache;
-
     // cache for uninstantiating terms (see uninstantiate() below)
     protected Map<Long, Long> uninstantiateGlobalCache;
+    
+    // cache for replacing assignments
+    protected Map<Long, Long> replaceAssignmentsCache;
+    private Map<Long, Integer> neededTheories;
+    
+    private Set<IASTExpression> warnedUnsafeVars = 
+        new HashSet<IASTExpression>();
+    
+    // set of functions that can be lvalues
+    private Set<String> lvalueFunctions;
+    
+    private Map<String, Long> stringLitToMsat;
+    private int nextStringLitIndex;
+    private long stringLitUfDecl;
 
+    // if true, handle lvalues as *x, &x, s.x, etc. using UIFs. If false, just
+    // ue variables
+    private boolean lvalsAsUif;
 
     public MathsatSymbolicFormulaManager() {
         msatEnv = mathsat.api.msat_create_env();
@@ -194,14 +169,24 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
                 msatVarType, 2, argtypes);
         rightShiftUfDecl = mathsat.api.msat_declare_uif(msatEnv, "_>>_",
                 msatVarType, 2, argtypes);
+        stringLitUfDecl = mathsat.api.msat_declare_uif(msatEnv, 
+                STRING_LIT_FUNCTION, msatVarType, 1, new int[]{msatVarType});
+        multUfDecl = mathsat.api.msat_declare_uif(msatEnv, "_*_",
+                msatVarType, 2, argtypes);
+        divUfDecl = mathsat.api.msat_declare_uif(msatEnv, "_/_",
+                msatVarType, 2, argtypes);
         
-        entailsUseCache = CPAMain.cpaConfig.getBooleanValue(
-                "cpas.symbpredabs.mathsat.useCache");
-        if (entailsUseCache) {
-            entailsCache = new HashMap<Pair<SymbolicFormula, SymbolicFormula>,
-                                       Boolean>();
-        }
         uninstantiateGlobalCache = new HashMap<Long, Long>();
+        replaceAssignmentsCache = new HashMap<Long, Long>();
+        neededTheories = new HashMap<Long, Integer>();
+        
+        lvalueFunctions = new HashSet<String>();
+        
+        nextStringLitIndex = 0;
+        stringLitToMsat = new HashMap<String, Long>();
+
+        lvalsAsUif = CPAMain.cpaConfig.getBooleanValue(
+            "cpas.symbpredabs.mathsat.lvalsAsUIFs");
     }
 
     public long getMsatEnv() {
@@ -209,15 +194,6 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     }
     
     public boolean entails(SymbolicFormula f1, SymbolicFormula f2) {
-        Pair<SymbolicFormula, SymbolicFormula> key = null;
-        
-        if (entailsUseCache) {
-            key = new Pair<SymbolicFormula, SymbolicFormula>(f1, f2);
-            if (entailsCache.containsKey(key)) {
-                return entailsCache.get(key);
-            }
-        }
-        
         MathsatSymbolicFormula m1 = (MathsatSymbolicFormula)f1;
         MathsatSymbolicFormula m2 = (MathsatSymbolicFormula)f2;
 
@@ -245,10 +221,22 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
 
         boolean ret = (res == mathsat.api.MSAT_UNSAT);
         
-        if (entailsUseCache) {
-            assert(key != null);
-            entailsCache.put(key, ret);
-        }
+        return ret;
+    }
+    
+    public boolean entails(SymbolicFormula f1, SymbolicFormula f2,
+                           TheoremProver thmProver) {
+        MathsatSymbolicFormula m1 = (MathsatSymbolicFormula)f1;
+        MathsatSymbolicFormula m2 = (MathsatSymbolicFormula)f2;
+        
+        MathsatSymbolicFormula toCheck = new MathsatSymbolicFormula(
+                mathsat.api.msat_make_and(msatEnv,
+                        m1.getTerm(),
+                        mathsat.api.msat_make_not(msatEnv, m2.getTerm())));
+        
+        thmProver.init(TheoremProver.ENTAILMENT_CHECK);
+        boolean ret = thmProver.isUnsat(toCheck);
+        thmProver.reset();
         
         return ret;
     }
@@ -298,7 +286,9 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
 
         MathsatSymbolicFormula m1 = (MathsatSymbolicFormula)f1;
  
-        setNamespace(edge.getPredecessor().getFunctionName());
+        if (edge.getPredecessor() != null) {
+            setNamespace(edge.getPredecessor().getFunctionName());
+        }
         
         if (isStartOfFunction(edge)) {
             Pair<SymbolicFormula, SSAMap> p = makeAndEnterFunction(
@@ -309,7 +299,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
             ssa = p.getSecond();
         }
 
-        switch (edge.getEdgeType ()) {
+        switch (edge.getEdgeType()) {
         case StatementEdge: {
             StatementEdge statementEdge = (StatementEdge)edge;
 
@@ -342,20 +332,63 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
                 ((DeclarationEdge)edge).getDeclarators();
             IASTDeclSpecifier spec = ((DeclarationEdge)edge).getDeclSpecifier();
             
-            if (!(spec instanceof IASTSimpleDeclSpecifier)) {
-                throw new UnrecognizedCFAEdgeException(
-                        "UNSUPPORTED SPECIFIER FOR DECLARATION: " + 
-                        edge.getRawStatement());
+            boolean isGlobal = edge instanceof GlobalDeclarationEdge;
+
+            if (spec instanceof IASTEnumerationSpecifier) {
+                // extract the fields, and add them as global variables
+                assert(isGlobal);
+                IASTEnumerationSpecifier.IASTEnumerator[] enums = 
+                    ((IASTEnumerationSpecifier)spec).getEnumerators();
+                for (IASTEnumerationSpecifier.IASTEnumerator e : enums) {
+                    String var = e.getName().getRawSignature();
+                    globalVars.add(var);
+                    IASTExpression exp = e.getValue();
+                    assert(exp != null);
+
+                    int idx = absoluteSSAIndices ? SSAMap.getNextSSAIndex() : 1;
+                    newssa.setIndex(var, idx);
+
+                    LazyLogger.log(LazyLogger.DEBUG_3, 
+                            "Declared enum field: ", var, ", index: ", idx);
+                    
+                    long minit = buildMsatTerm(exp, newssa, absoluteSSAIndices);
+                    long mvar = buildMsatVariable(var, idx);
+                    long t = makeAssignment(mvar, minit);
+                    t = mathsat.api.msat_make_and(msatEnv, m1.getTerm(), t);
+                    m1 = new MathsatSymbolicFormula(t);
+                }
+                return new Pair<SymbolicFormula, SSAMap>(m1, newssa);
             }
             
-            boolean isGlobal = edge instanceof GlobalDeclarationEdge;
+            
+            if (!(spec instanceof IASTSimpleDeclSpecifier ||
+                    spec instanceof IASTElaboratedTypeSpecifier ||
+                    spec instanceof IASTNamedTypeSpecifier)) {
+                
+                if (spec instanceof IASTCompositeTypeSpecifier) {
+                    // this is the declaration of a struct, just ignore it...
+                    warn("IGNORING declaration: " + edge.getRawStatement());
+                    return new Pair<SymbolicFormula, SSAMap>(m1, newssa);
+                } else {
+                    throw new UnrecognizedCFAEdgeException(
+                            "UNSUPPORTED SPECIFIER FOR DECLARATION: " + 
+                            edge.getRawStatement());
+                }
+            }
+            
+            if (spec.getStorageClass() == IASTDeclSpecifier.sc_typedef) {
+                warn("IGNORING typedef: " + edge.getRawStatement());
+                return new Pair<SymbolicFormula, SSAMap>(m1, newssa);                
+            } 
+            
             for (IASTDeclarator d : decls) {
                 String var = d.getName().getRawSignature();
                 if (isGlobal) {
                     globalVars.add(var);
                 }
                 var = scoped(var);
-                int idx = absoluteSSAIndices ? SSAMap.getNextSSAIndex() : 1;
+                int idx = absoluteSSAIndices ? SSAMap.getNextSSAIndex() : 
+                    getNewIndex(var, newssa)/*1*/;
                 newssa.setIndex(var, idx);
 
                 LazyLogger.log(LazyLogger.DEBUG_3, 
@@ -377,8 +410,11 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
                 if (d.getInitializer() != null) {
                     IASTInitializer init = d.getInitializer();
                     if (!(init instanceof IASTInitializerExpression)) {
-                        throw new UnrecognizedCFAEdgeException(
-                                "BAD INITIALIZER: " + edge.getRawStatement());
+//                        throw new UnrecognizedCFAEdgeException(
+//                                "BAD INITIALIZER: " + edge.getRawStatement());
+                        warn("UNSUPPORTED INITIALIZER: " +
+                                edge.getRawStatement() + ", ignoring it!");
+                        continue;
                     }
                     IASTExpression exp = 
                         ((IASTInitializerExpression)init).getExpression();
@@ -387,6 +423,10 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
                     long t = makeAssignment(mvar, minit);
                     t = mathsat.api.msat_make_and(msatEnv, m1.getTerm(), t);
                     m1 = new MathsatSymbolicFormula(t);
+                } else if (spec.getStorageClass() == 
+                    IASTDeclSpecifier.sc_extern) {
+                    warn("NOT initializing, because extern declaration: " + 
+                            edge.getRawStatement());
                 } else if (isGlobal || 
                             CPAMain.cpaConfig.getBooleanValue(
                                 "cpas.symbpredabs.initAllVars")) {
@@ -484,33 +524,41 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
                         fn.getFunctionDefinition().getRawSignature());
             }
             if (param.getDeclarator().getPointerOperators().length != 0) {
-                throw new UnrecognizedCFAEdgeException("SORRY, POINTERS " +
-                        "NOT HANDLED: " + 
-                        fn.getFunctionDefinition().getRawSignature());
-            } else {
-                String formalParamName = 
-                    scoped(param.getDeclarator().getName().toString());
-                idx = ssa.getIndex(formalParamName);
-                if (idx < 0 || absoluteSSAIndices) {
-                    idx = absoluteSSAIndices ? SSAMap.getNextSSAIndex() : 1;
-                } else {
-                    //idx += 1;
-                    idx = getNewIndex(formalParamName, ssa);
-                }
-                long msatFormalParam = buildMsatVariable(formalParamName, idx);
-                if (mathsat.api.MSAT_ERROR_TERM(msatParam)) {
-                    throw new UnrecognizedCFAEdgeException(
-                            "ERROR HANDLING FUNCTION CALL: " +
-                            fn.getFunctionDefinition().getRawSignature());
-                }
-                ssa.setIndex(formalParamName, idx);
-                long eq = makeAssignment(msatFormalParam, msatParam);
-                term = mathsat.api.msat_make_and(msatEnv, term, eq);
+                warn("Ignoring the semantics of pointer for paramenter: " +
+                        param.getDeclarator().getName().toString() + 
+                        " in function: " + fn.getFunctionName());
+            } 
+            String pn = param.getDeclarator().getName().toString();
+            if (pn.isEmpty()) {
+                assert(param.getDeclarator().getNestedDeclarator() != null);
+                pn = param.getDeclarator().getNestedDeclarator().
+                                                           getName().toString();
             }
+            assert(!pn.isEmpty());
+            String formalParamName = scoped(pn);
+            idx = ssa.getIndex(formalParamName);
+            if (idx < 0 || absoluteSSAIndices) {
+                idx = absoluteSSAIndices ? SSAMap.getNextSSAIndex() : 2;
+            } else {
+                idx = getNewIndex(formalParamName, ssa);
+            }
+            long msatFormalParam = buildMsatVariable(formalParamName, idx);
+            if (mathsat.api.MSAT_ERROR_TERM(msatParam)) {
+                throw new UnrecognizedCFAEdgeException(
+                        "ERROR HANDLING FUNCTION CALL: " +
+                        fn.getFunctionDefinition().getRawSignature());
+            }
+            ssa.setIndex(formalParamName, idx);
+            long eq = makeAssignment(msatFormalParam, msatParam);
+            term = mathsat.api.msat_make_and(msatEnv, term, eq);
         }
         term = mathsat.api.msat_make_and(msatEnv, m1.getTerm(), term);
         return new Pair<SymbolicFormula, SSAMap>(
                 new MathsatSymbolicFormula(term), ssa);
+    }
+
+    private void warn(String msg) {
+        LazyLogger.log(LazyLogger.DEBUG_1, "WARNING: ", msg);
     }
 
     protected boolean isStartOfFunction(CFAEdge edge) {
@@ -530,8 +578,6 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
             IASTBinaryExpression exp = (IASTBinaryExpression)retExp;
             assert(exp.getOperator() == IASTBinaryExpression.op_assign);
             String retvar = scoped(VAR_RETURN_NAME);
-            //assert(ssa.getIndex(retvar) < 0);
-            //popNamespace();
             if (!updateSSA) {
                 SSAMap newssa = new SSAMap();
                 newssa.copyFrom(ssa);
@@ -544,26 +590,8 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
             ssa.setIndex(retvar, retidx);
             long msatretvar = buildMsatVariable(retvar, retidx);
             IASTExpression e = exp.getOperand1();
-            // TODO - we assume this is an assignment to a plain variable. If
-            // we want to handle structs, this might not be the case anymore...
-            assert(e instanceof IASTIdExpression);
             setNamespace(ce.getSuccessor().getFunctionName());
-            String outvar = ((IASTIdExpression)e).getName().getRawSignature();
-            outvar = scoped(outvar);
-            int idx = ssa.getIndex(outvar);
-            if (idx < 0) {
-                idx = autoInstantiateVar(outvar, ssa);
-                if (idx == 1) {
-                    ++idx;
-                    ssa.setIndex(outvar, idx);
-                }
-            } else {
-                //idx = absoluteSSAIndices ? SSAMap.getNextSSAIndex() : idx+1;
-                idx = absoluteSSAIndices ? SSAMap.getNextSSAIndex() : 
-                      getNewIndex(outvar, ssa);
-                ssa.setIndex(outvar, idx);
-            }
-            long msatoutvar = buildMsatVariable(outvar, idx);
+            long msatoutvar = buildMsatLvalueTerm(e, ssa, absoluteSSAIndices);
             long term = makeAssignment(msatoutvar, msatretvar);
             term = mathsat.api.msat_make_and(msatEnv, m1.getTerm(), term);
             return new Pair<SymbolicFormula, SSAMap>(
@@ -612,27 +640,26 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
             for (IASTParameterDeclaration param : formalParams) {
                 long arg = msatActualParams[i++];
                 if (param.getDeclarator().getPointerOperators().length != 0) {
-                    throw new UnrecognizedCFAEdgeException("SORRY, POINTERS " +
-                            "NOT HANDLED: " + edge.getRawStatement());
+                    warn("Ignoring the semantics of pointer for paramenter: " +
+                            param.getDeclarator().getName().toString() + 
+                            " in function: " + fn.getFunctionName());
+                } 
+                String paramName = scoped(FUNCTION_PARAM_NAME + (i-1));
+                int idx = ssa.getIndex(paramName);
+                if (idx < 0 || absoluteSSAIndices) {
+                    idx = absoluteSSAIndices ? SSAMap.getNextSSAIndex() : 2;
                 } else {
-                    String paramName = scoped(FUNCTION_PARAM_NAME + (i-1));
-                    int idx = ssa.getIndex(paramName);
-                    if (idx < 0 || absoluteSSAIndices) {
-                        idx = absoluteSSAIndices ? SSAMap.getNextSSAIndex() : 1;
-                    } else {
-                        //idx += 1;
-                        idx = getNewIndex(paramName, ssa);
-                    }
-                    long msatParam = buildMsatVariable(paramName, idx);
-                    if (mathsat.api.MSAT_ERROR_TERM(msatParam)) {
-                        throw new UnrecognizedCFAEdgeException(
-                                "ERROR HANDLING FUNCTION CALL: " +
-                                edge.getRawStatement());
-                    }
-                    ssa.setIndex(paramName, idx);
-                    long eq = makeAssignment(msatParam, arg);
-                    term = mathsat.api.msat_make_and(msatEnv, term, eq);
+                    idx = getNewIndex(paramName, ssa);
                 }
+                long msatParam = buildMsatVariable(paramName, idx);
+                if (mathsat.api.MSAT_ERROR_TERM(msatParam)) {
+                    throw new UnrecognizedCFAEdgeException(
+                            "ERROR HANDLING FUNCTION CALL: " +
+                            edge.getRawStatement());
+                }
+                ssa.setIndex(paramName, idx);
+                long eq = makeAssignment(msatParam, arg);
+                term = mathsat.api.msat_make_and(msatEnv, term, eq);
             }
             assert(!mathsat.api.MSAT_ERROR_TERM(term));
             term = mathsat.api.msat_make_and(msatEnv, m1.getTerm(), term);
@@ -655,14 +682,20 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
             // a variable. We create a function::<retval> variable
             // that will hold the return value
             String retvalname = scoped(VAR_RETURN_NAME);
-            assert(ssa.getIndex(retvalname) < 0);
-            int idx = absoluteSSAIndices ? SSAMap.getNextSSAIndex() : 2;
-            if (idx == 1) ++idx;
+            int oldidx = ssa.getIndex(retvalname);
+            int idx = 0;
+            if (absoluteSSAIndices) {
+                idx = SSAMap.getNextSSAIndex();
+                if (idx == 1) ++idx;
+            } else if (oldidx < 0) {
+                idx = 2;
+            } else {
+                idx = getNewIndex(retvalname, ssa);
+            }
+            assert(idx > 1);
             if (!updateSSA) {
                 SSAMap ssa2 = new SSAMap();
-                for (String var : ssa.allVariables()) {
-                    ssa2.setIndex(var, ssa.getIndex(var));
-                }
+                ssa2.copyFrom(ssa);
                 ssa = ssa2;
             }
             long retvar = buildMsatVariable(retvalname, idx);
@@ -697,6 +730,23 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
                 msatEnv, var + "@" + idx, msatVarType);
         return mathsat.api.msat_make_variable(msatEnv, decl);
     }
+    
+    private long buildMsatUFLvalue(String name, long[] args, int idx) {
+        int[] tp = new int[args.length];
+        for (int i = 0; i < tp.length; ++i) tp[i] = msatVarType;
+        long decl = mathsat.api.msat_declare_uif(
+                msatEnv, name + "@" + idx, msatVarType, tp.length, tp);
+        return mathsat.api.msat_make_uif(msatEnv, decl, args);
+    }
+    
+    private long buildMsatUFLvalue(
+            String name, SymbolicFormula[] args, int idx) {
+        long[] a = new long[args.length];
+        for (int i = 0; i < a.length; ++i) {
+            a[i] = ((MathsatSymbolicFormula)args[i]).getTerm();
+        }
+        return buildMsatUFLvalue(name, a, idx);
+    }
 
     private int autoInstantiateVar(String var, SSAMap ssa) {
         LazyLogger.log(LazyLogger.DEBUG_3, 
@@ -704,24 +754,52 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         ssa.setIndex(var, 1);
         return 1;
     }
+    
+    private int autoInstantiateLvalue(String name, SymbolicFormula[] args, 
+            SSAMap ssa) {
+        if (args.length == 1) {
+            LazyLogger.log(LazyLogger.DEBUG_3, 
+                    "WARNING: Auto-instantiating lval: ", name, "(", args[0],
+                    ")");
+        } else if (args.length == 2) {
+            LazyLogger.log(LazyLogger.DEBUG_3, 
+                    "WARNING: Auto-instantiating lval: ", name, "(", args[0],
+                    ",", args[1], ")");
+        } else {
+            LazyLogger.log(LazyLogger.DEBUG_3, 
+                    "WARNING: Auto-instantiating lval: ", name, "(", args, ")");
+        }
+        ssa.setIndex(name, args, 1);
+        return 1;
+    }
+    
+
+    private String exprToVarName(IASTExpression e) {
+        return e.getRawSignature().replaceAll("[ \n\t]", "");
+    }
+    
+    private long buildMsatTermVar(String var, SSAMap ssa, 
+            boolean absoluteSSAIndices) {
+        var = scoped(var);
+        int idx = ssa.getIndex(var);
+        if (idx <= 0) {
+            if (absoluteSSAIndices) {
+                // should not happen...
+                return mathsat.api.MSAT_MAKE_ERROR_TERM();
+            } else {
+                // this might happen in this case
+                idx = autoInstantiateVar(var, ssa);
+            }
+        }
+        return buildMsatVariable(var, idx);
+    }
 
     private long buildMsatTerm(IASTExpression exp, SSAMap ssa, 
             boolean absoluteSSAIndices) {
         if (exp instanceof IASTIdExpression) {
             // this is a variable: get the right index for the SSA
             String var = ((IASTIdExpression)exp).getName().getRawSignature();
-            var = scoped(var);
-            int idx = ssa.getIndex(var);
-            if (idx <= 0) {
-                if (absoluteSSAIndices) {
-                    // should not happen...
-                    return mathsat.api.MSAT_MAKE_ERROR_TERM();
-                } else {
-                    // this might happen in this case
-                    idx = autoInstantiateVar(var, ssa);
-                }
-            }
-            return buildMsatVariable(var, idx);
+            return buildMsatTermVar(var, ssa, absoluteSSAIndices);
         } else if (exp instanceof IASTLiteralExpression) {
             // this should be a number...
             IASTLiteralExpression lexp = (IASTLiteralExpression)exp;
@@ -744,10 +822,33 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
                     num = num.substring(0, pos+1);
                 }
                 break;
+            case IASTLiteralExpression.lk_char_constant: {
+                // we convert to a byte, and take the integer value
+                assert(exp.getRawSignature().length() == 3);
+                assert(exp.getRawSignature().charAt(0) == '\'');
+                assert(exp.getRawSignature().charAt(2) == '\'');
+                int n = exp.getRawSignature().charAt(1);
+                num = "" + n;
+            }
+                break;
+            case IASTLiteralExpression.lk_string_literal: {
+                // we create a string constant representing the given
+                // string literal
+                if (stringLitToMsat.containsKey(exp.getRawSignature())) {
+                    return stringLitToMsat.get(exp.getRawSignature());
+                } else {
+                    // generate a new string literal. We generate a new UIf
+                    String n = "" + (nextStringLitIndex++);
+                    long[] arg = {mathsat.api.msat_make_number(msatEnv, n)};
+                    long t = mathsat.api.msat_make_uif(msatEnv,
+                            stringLitUfDecl, arg);
+                    stringLitToMsat.put(exp.getRawSignature(), t);
+                    return t;
+                }
+            }
             default:
                 LazyLogger.log(LazyLogger.DEBUG_1, 
-                        "ERROR, CAN'T HANDLE STRINGS OR CHARS: ",
-                        exp.getRawSignature());
+                        "ERROR, UNKNOWN LITERAL: ", exp.getRawSignature());
                 return mathsat.api.MSAT_MAKE_ERROR_TERM();
             }
             // TODO here we assume 32 bit integers!!! This is because CIL
@@ -779,34 +880,10 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
             case IASTUnaryExpression.op_prefixIncr: 
             case IASTUnaryExpression.op_postFixDecr:
             case IASTUnaryExpression.op_prefixDecr: {
-                String var = operand.getRawSignature();
-                var = scoped(var);
-                // get the latest "SSA instance" of the variable for reading
-                int idx = ssa.getIndex(var);
-                if (idx <= 0) {
-                    if (absoluteSSAIndices) {
-                        return mathsat.api.MSAT_MAKE_ERROR_TERM();
-                    } else {
-                        idx = autoInstantiateVar(var, ssa);
-                    }
-                }
-                long mvar = buildMsatVariable(var, idx);
+                long mvar = buildMsatTerm(operand, ssa, absoluteSSAIndices);
+                long newvar = 
+                    buildMsatLvalueTerm(operand, ssa, absoluteSSAIndices);
                 if (mathsat.api.MSAT_ERROR_TERM(mvar)) return mvar;
-                // create a new "SSA instance" of the variable with 
-                // the new value
-                //int newidx = idx+1;
-                int oldidx = ssa.getIndex(var);
-                int newidx;
-                if (oldidx > 0) {
-                    newidx = getNewIndex(var, ssa);
-                    if (absoluteSSAIndices) {
-                        newidx = SSAMap.getNextSSAIndex();
-                    }
-                } else {
-                    newidx = 2; // AG - IMPORTANT! See below
-                }
-                ssa.setIndex(var, newidx);
-                long newvar = buildMsatVariable(var, newidx);
                 if (mathsat.api.MSAT_ERROR_TERM(newvar)) return newvar;
                 long me;
                 long one = mathsat.api.msat_make_number(msatEnv, "1");
@@ -825,6 +902,40 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
                 if (mathsat.api.MSAT_ERROR_TERM(mop)) return mop;
                 return mathsat.api.msat_make_negate(msatEnv, mop);
             }
+            
+            case IASTUnaryExpression.op_amper:
+            case IASTUnaryExpression.op_star: 
+                if (lvalsAsUif) {
+                    String opname = null;
+                    if (op == IASTUnaryExpression.op_amper) { 
+                        opname = OP_ADDRESSOF_NAME;
+                    } else {
+                        opname = OP_STAR_NAME;
+                    }
+                    long term = buildMsatTerm(operand, ssa, absoluteSSAIndices);
+                    if (mathsat.api.MSAT_ERROR_TERM(term)) return term;
+                    int idx = getNormalIndex(
+                        opname, term, ssa, absoluteSSAIndices);
+                    if (idx <= 0) return mathsat.api.MSAT_MAKE_ERROR_TERM();
+                    // build the  function corresponding to this operation.
+                    long decl = mathsat.api.msat_declare_uif(
+                        msatEnv, opname + "@" + idx, msatVarType, 1, 
+                        new int[]{msatVarType});
+                    return mathsat.api.msat_make_uif(msatEnv, decl, 
+                                                     new long[]{term});         
+                } else {
+                    warnUnsafeVar(exp);
+                    return buildMsatTermVar(exprToVarName(exp), ssa,
+                                            absoluteSSAIndices);
+                }
+            
+            case IASTUnaryExpression.op_sizeof: {
+                // TODO
+                //return mathsat.api.MSAT_MAKE_ERROR_TERM();
+                warnUnsafeVar(exp);
+                return buildMsatTermVar(exprToVarName(exp), ssa,
+                        absoluteSSAIndices);
+            }
 
             default: {
                 // this might be a predicate implicitly cast to an int. Let's
@@ -834,6 +945,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
                 if (ftmp == null) {
                     return mathsat.api.MSAT_MAKE_ERROR_TERM();
                 } else {
+                    assert(false);
                     return mathsat.api.msat_make_ite(msatEnv, ftmp.getTerm(),
                             mathsat.api.msat_make_number(msatEnv, "1"),
                             mathsat.api.msat_make_number(msatEnv, "0"));
@@ -858,26 +970,11 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
             case IASTBinaryExpression.op_shiftRightAssign: {
                 long me2 = buildMsatTerm(e2, ssa, absoluteSSAIndices);
                 if (mathsat.api.MSAT_ERROR_TERM(me2)) return me2;
-                // create a new "SSA instance" for the variable being assigned
-                if (!(e1 instanceof IASTIdExpression)) {
-                    // should not happen...
-                    return mathsat.api.MSAT_MAKE_ERROR_TERM();
-                }
-                String var = e1.getRawSignature();
-                var = scoped(var);
                 if (op != IASTBinaryExpression.op_assign) {
                     // in this case, we have to get the old SSA instance for
                     // reading the value of the variable, and build the 
                     // corresponding expression
-                    int oldidx = ssa.getIndex(var);
-                    if (oldidx <= 0) {
-                        if (absoluteSSAIndices) {
-                            return mathsat.api.MSAT_MAKE_ERROR_TERM();
-                        } else {
-                            oldidx = autoInstantiateVar(var, ssa);
-                        }
-                    }
-                    long oldvar = buildMsatVariable(var, oldidx);
+                    long oldvar = buildMsatTerm(e1, ssa, absoluteSSAIndices);
                     if (mathsat.api.MSAT_ERROR_TERM(oldvar)) return oldvar;
                     switch (op) {
                     case IASTBinaryExpression.op_plusAssign:
@@ -886,8 +983,13 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
                     case IASTBinaryExpression.op_minusAssign:
                         me2 = mathsat.api.msat_make_minus(msatEnv, oldvar, me2);
                         break;
-                    case IASTBinaryExpression.op_multiplyAssign: 
-                        me2 = mathsat.api.msat_make_times(msatEnv, oldvar, me2);
+                    case IASTBinaryExpression.op_multiplyAssign:
+                        if (mathsat.api.msat_term_is_number(me2) != 0) {
+                            me2 = mathsat.api.msat_make_times(
+                                    msatEnv, oldvar, me2);
+                        } else {
+                            me2 = buildMsatUF(op, oldvar, me2);
+                        }
                         break;
                     case IASTBinaryExpression.op_divideAssign:
                         if (mathsat.api.msat_term_is_number(me2) != 0) {
@@ -908,7 +1010,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
                                         msatEnv, oldvar, me2);
                             }
                         } else {
-                            me2 = mathsat.api.MSAT_MAKE_ERROR_TERM();
+                            me2 = buildMsatUF(op, oldvar, me2);
                         }
                         break;
                     case IASTBinaryExpression.op_binaryAndAssign:
@@ -921,25 +1023,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
                     }
                     if (mathsat.api.MSAT_ERROR_TERM(me2)) return me2;
                 }
-                int idx = -1;
-                if (absoluteSSAIndices) {
-                    idx = SSAMap.getNextSSAIndex();
-                } else {
-                    int oldidx = ssa.getIndex(var);
-                    if (oldidx > 0) {
-                        //idx = oldidx + 1;
-                        idx = getNewIndex(var, ssa);
-                    } else {
-                        idx = 2; // AG - IMPORTANT!!! We must start from 2 and 
-                                 // not from 1, because this is an assignment,
-                                 // so the SSA index must be fresh. If we use 1
-                                 // here, we will have troubles later when
-                                 // shifting indices
-                        //else idx = 1;
-                    }
-                }
-                ssa.setIndex(var, idx);
-                long mvar = buildMsatVariable(var, idx);
+                long mvar = buildMsatLvalueTerm(e1, ssa, absoluteSSAIndices);
                 if (mathsat.api.MSAT_ERROR_TERM(mvar)) return mvar;
                 return makeAssignment(mvar, me2);
             }
@@ -958,8 +1042,13 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
                     return mathsat.api.msat_make_plus(msatEnv, me1, me2);
                 case IASTBinaryExpression.op_minus:
                     return mathsat.api.msat_make_minus(msatEnv, me1, me2);
-                case IASTBinaryExpression.op_multiply: 
-                    return mathsat.api.msat_make_times(msatEnv, me1, me2);
+                case IASTBinaryExpression.op_multiply:
+                    if (mathsat.api.msat_term_is_number(me1) != 0 ||
+                            mathsat.api.msat_term_is_number(me2) != 0) {
+                        return mathsat.api.msat_make_times(msatEnv, me1, me2);
+                    } else {
+                        return buildMsatUF(op, me1, me2);
+                    }
                 case IASTBinaryExpression.op_divide:                     
                     if (mathsat.api.msat_term_is_number(me2) != 0) {
                         String n = mathsat.api.msat_term_repr(me2);
@@ -979,7 +1068,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
                                     msatEnv, me1, me2);
                         }
                     } else {
-                        me2 = mathsat.api.MSAT_MAKE_ERROR_TERM();
+                        me2 = buildMsatUF(op, me1, me2);
                     }
                     return me2;
                 }
@@ -997,7 +1086,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
                 if (mathsat.api.MSAT_ERROR_TERM(me2)) return me2;
                 return buildMsatUF(op, me1, me2);
             }
-
+            
             default:
                 // this might be a predicate implicitly cast to an int. Let's
                 // see if this is indeed the case...
@@ -1006,15 +1095,335 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
                 if (ftmp == null) {
                     return mathsat.api.MSAT_MAKE_ERROR_TERM();
                 } else {
+                    assert(false);
                     return mathsat.api.msat_make_ite(msatEnv, ftmp.getTerm(),
                             mathsat.api.msat_make_number(msatEnv, "1"),
                             mathsat.api.msat_make_number(msatEnv, "0"));
                 }                
                 //return mathsat.api.MSAT_MAKE_ERROR_TERM();
             }
+        } else if (exp instanceof IASTFieldReference) {
+            if (lvalsAsUif) {
+                IASTFieldReference fexp = (IASTFieldReference)exp;
+                String field = fexp.getFieldName().getRawSignature();
+                IASTExpression owner = fexp.getFieldOwner();
+                long term = buildMsatTerm(owner, ssa, absoluteSSAIndices);
+            
+                if (mathsat.api.MSAT_ERROR_TERM(term)) return term;
+            
+                String tpname = getTypeName(owner.getExpressionType());
+                String ufname = 
+                    (fexp.isPointerDereference() ? "->{" : ".{") + 
+                    tpname + "," + field + "}";
+                int idx = getNormalIndex(ufname, term, ssa, absoluteSSAIndices);
+                if (idx <= 0) return mathsat.api.MSAT_MAKE_ERROR_TERM();
+                // see above for the case of &x and *x
+                long decl = mathsat.api.msat_declare_uif(
+                    msatEnv, ufname + "@" + idx, msatVarType, 1,
+                    new int[]{msatVarType});
+                return mathsat.api.msat_make_uif(
+                    msatEnv, decl, new long[]{term});
+            } else {
+                warnUnsafeVar(exp);
+                return buildMsatTermVar(exprToVarName(exp), ssa,
+                        absoluteSSAIndices);
+                
+            }
+        } else if (exp instanceof IASTArraySubscriptExpression) {
+            if (lvalsAsUif) {
+                IASTArraySubscriptExpression aexp = 
+                    (IASTArraySubscriptExpression)exp;
+                IASTExpression arrexp = aexp.getArrayExpression();
+                IASTExpression subexp = aexp.getSubscriptExpression();
+                long aterm = buildMsatTerm(arrexp, ssa, absoluteSSAIndices);
+                long sterm = buildMsatTerm(subexp, ssa, absoluteSSAIndices);
+            
+                if (mathsat.api.MSAT_ERROR_TERM(aterm)) return aterm;
+                if (mathsat.api.MSAT_ERROR_TERM(sterm)) return sterm;
+            
+                String ufname = OP_ARRAY_SUBSCRIPT;
+                long[] args = {aterm, sterm};
+                int idx = getNormalIndex(ufname, args, ssa, absoluteSSAIndices);
+                if (idx <= 0) return mathsat.api.MSAT_MAKE_ERROR_TERM();
+            
+                long decl = mathsat.api.msat_declare_uif(
+                    msatEnv, ufname + "@" + idx, msatVarType, 2, 
+                    new int[]{msatVarType, msatVarType});
+                return mathsat.api.msat_make_uif(msatEnv, decl,
+                                                 new long[]{aterm, sterm});
+            } else {
+                warnUnsafeVar(exp);
+                return buildMsatTermVar(exprToVarName(exp), ssa,
+                        absoluteSSAIndices);
+            }
+        } else if (exp instanceof IASTFunctionCallExpression) {
+            // this is an external call. We have to create an UIF.
+            IASTFunctionCallExpression fexp = (IASTFunctionCallExpression)exp;
+            return buildMsatTermExternalFunctionCall(
+                    fexp, ssa, absoluteSSAIndices);
+        } else if (exp instanceof IASTTypeIdExpression) {
+            assert(((IASTTypeIdExpression)exp).getOperator() == 
+                    IASTTypeIdExpression.op_sizeof);
+            warnUnsafeVar(exp);
+            return buildMsatTermVar(exprToVarName(exp), ssa, 
+                    absoluteSSAIndices);
         }
         // unknown expression, caller will raise exception
         return mathsat.api.MSAT_MAKE_ERROR_TERM();
+    }
+    
+    private String getTypeName(IType tp) {
+        try {
+            if (tp instanceof IPointerType) {
+                return getTypeName(((IPointerType)tp).getType());
+            }
+            assert(tp instanceof IBinding);
+            if (tp instanceof ITypedef) {
+                return getTypeName(((ITypedef)tp).getType());
+            }
+            return ((IBinding)tp).getName().toString();
+        } catch (DOMException e) {
+            e.printStackTrace();
+            assert(false);
+        }
+        return null;
+    }
+    
+    private int getLvalIndex(String name, SSAMap ssa, boolean absolute) {
+        int idx = -1;
+        if (absolute) {
+            idx = SSAMap.getNextSSAIndex();
+        } else {
+            int oldidx = ssa.getIndex(name);
+            if (oldidx > 0) {
+                idx = getNewIndex(name, ssa);
+            } else {
+                idx = 2; // AG - IMPORTANT!!! We must start from 2 and 
+                         // not from 1, because this is an assignment,
+                         // so the SSA index must be fresh. If we use 1
+                         // here, we will have troubles later when
+                         // shifting indices
+            }
+        }
+        return idx;
+    }
+    
+    private int getLvalIndex(String name, long[] args, SSAMap ssa, 
+            boolean absolute) {
+        SymbolicFormula[] a = new SymbolicFormula[args.length];
+        for (int i = 0; i < a.length; ++i) {
+            a[i] = new MathsatSymbolicFormula(args[i]);
+        }
+        int idx = -1;
+        if (absolute) {
+            idx = SSAMap.getNextSSAIndex();
+        } else {
+            int oldidx = ssa.getIndex(name, a);
+            if (oldidx > 0) {
+                idx = getNewIndex(name, a, ssa);
+            } else {
+                idx = 2; // AG - IMPORTANT!!! We must start from 2 and 
+                         // not from 1, because this is an assignment,
+                         // so the SSA index must be fresh. If we use 1
+                         // here, we will have troubles later when
+                         // shifting indices
+            }
+        }
+        return idx;
+    }
+    
+    private int getLvalIndex(String name, long arg, SSAMap ssa, 
+            boolean absolute) {
+        long[] args = {arg};
+        return getLvalIndex(name, args, ssa, absolute);
+    }    
+
+    private int getNormalIndex(String name, SSAMap ssa, boolean absolute) {
+        int idx = ssa.getIndex(name);
+        if (idx <= 0) {
+            if (absolute) {
+                return -1;
+            } else {
+                idx = autoInstantiateVar(name, ssa);
+            }
+        }
+        return idx;
+    }
+    
+    private int getNormalIndex(String name, long[] args, SSAMap ssa, 
+            boolean absolute, boolean autoInstantiate) {
+        SymbolicFormula[] a = new SymbolicFormula[args.length];
+        for (int i = 0; i < a.length; ++i) {
+            a[i] = new MathsatSymbolicFormula(args[i]);
+        }
+        int idx = ssa.getIndex(name, a);
+        if (idx <= 0) {
+            if (absolute || !autoInstantiate) {
+                return -1;
+            } else {
+                idx = autoInstantiateLvalue(name, a, ssa);
+            }
+        }
+        return idx;
+    }
+
+    private int getNormalIndex(String name, long[] args, SSAMap ssa, 
+            boolean absolute) {
+        return getNormalIndex(name, args, ssa, absolute, true);
+    }
+    
+    private int getNormalIndex(String name, long arg, SSAMap ssa,
+            boolean absolute) {
+        long[] args = {arg};
+        return getNormalIndex(name, args, ssa, absolute, true);
+    }
+    
+    private long buildMsatLvalueTerm(IASTExpression exp, SSAMap ssa, 
+            boolean absoluteSSAIndices) {
+        if (exp instanceof IASTIdExpression || !lvalsAsUif) {
+            String var = null;
+            if (exp instanceof IASTIdExpression) {
+                var = ((IASTIdExpression)exp).getName().getRawSignature();
+            } else {
+                var = exprToVarName(exp);
+            }
+            var = scoped(var);
+            int idx = getLvalIndex(var, ssa, absoluteSSAIndices);
+            ssa.setIndex(var, idx);
+            long mvar = buildMsatVariable(var, idx);
+            return mvar;
+        } else if (exp instanceof IASTUnaryExpression) {
+            int op = ((IASTUnaryExpression)exp).getOperator();
+            IASTExpression operand = ((IASTUnaryExpression)exp).getOperand();
+            String opname = null;
+            switch (op) {
+            case IASTUnaryExpression.op_amper: 
+                opname = OP_ADDRESSOF_NAME;
+                break;
+            case IASTUnaryExpression.op_star:
+                opname = OP_STAR_NAME;
+                break;
+            default:
+                // invalid lvalue
+                return mathsat.api.MSAT_MAKE_ERROR_TERM();
+            }
+            long term = buildMsatTerm(operand, ssa, absoluteSSAIndices);
+            if (mathsat.api.MSAT_ERROR_TERM(term)) return term;
+            int idx = getLvalIndex(opname, term, ssa, absoluteSSAIndices);
+            ssa.setIndex(opname, new MathsatSymbolicFormula(term), idx);
+            // build the "updated" function corresponding to this operation.
+            // what we do is the following:
+            // C            |     MathSAT
+            // *x = 1       |     <ptr_*>::2(x) = 1
+            // ...
+            // &(*x) = 2    |     <ptr_&>::2(<ptr_*>::1(x)) = 2   
+            long decl = mathsat.api.msat_declare_uif(msatEnv,
+                    opname + "@" + idx, msatVarType, 1, new int[]{msatVarType});
+            return mathsat.api.msat_make_uif(msatEnv, decl, new long[]{term});
+            
+        } else if (exp instanceof IASTFieldReference) {
+            IASTFieldReference fexp = (IASTFieldReference)exp;
+            String field = fexp.getFieldName().getRawSignature();
+            IASTExpression owner = fexp.getFieldOwner();
+            long term = buildMsatTerm(owner, ssa, absoluteSSAIndices);
+            
+            if (mathsat.api.MSAT_ERROR_TERM(term)) return term;
+            
+            String tpname = getTypeName(owner.getExpressionType());
+            String ufname = 
+                (fexp.isPointerDereference() ? "->{" : ".{") + 
+                tpname + "," + field + "}";
+            int idx = getLvalIndex(ufname, term, ssa, absoluteSSAIndices);
+            ssa.setIndex(ufname, new MathsatSymbolicFormula(term), idx);
+            // see above for the case of &x and *x
+            long decl = mathsat.api.msat_declare_uif(msatEnv,
+                    ufname + "@" + idx, msatVarType, 1, new int[]{msatVarType});
+            return mathsat.api.msat_make_uif(msatEnv, decl, new long[]{term});
+            
+        } else if (exp instanceof IASTArraySubscriptExpression) {
+            IASTArraySubscriptExpression aexp = 
+                (IASTArraySubscriptExpression)exp;
+            IASTExpression arrexp = aexp.getArrayExpression();
+            IASTExpression subexp = aexp.getSubscriptExpression();
+            long aterm = buildMsatTerm(arrexp, ssa, absoluteSSAIndices);
+            long sterm = buildMsatTerm(subexp, ssa, absoluteSSAIndices);
+            
+            if (mathsat.api.MSAT_ERROR_TERM(aterm)) return aterm;
+            if (mathsat.api.MSAT_ERROR_TERM(sterm)) return sterm;
+            
+            String ufname = OP_ARRAY_SUBSCRIPT;
+            long[] args = {aterm, sterm};
+            int idx = getLvalIndex(ufname, args, ssa, absoluteSSAIndices);
+            SymbolicFormula[] a = {new MathsatSymbolicFormula(aterm),
+                    new MathsatSymbolicFormula(sterm)};
+            ssa.setIndex(ufname, a, idx);
+            
+            long decl = mathsat.api.msat_declare_uif(msatEnv,
+                    ufname + "@" + idx, msatVarType, 2, 
+                    new int[]{msatVarType, msatVarType});
+            return mathsat.api.msat_make_uif(msatEnv, decl,
+                    new long[]{aterm, sterm});
+        }
+        // unknown lvalue
+        return mathsat.api.MSAT_MAKE_ERROR_TERM();
+    }
+
+    private long buildMsatTermExternalFunctionCall(
+            IASTFunctionCallExpression fexp, SSAMap ssa, 
+            boolean absoluteSSAIndices) {
+        IASTExpression fn = fexp.getFunctionNameExpression();
+        IASTExpression pexp = fexp.getParameterExpression(); 
+        if (pexp == null) {
+            // this is a function of arity 0. We create a fresh global variable
+            // for it
+            String func = ((IASTIdExpression)fn).getName().getRawSignature();
+            globalVars.add(func);
+            long d = mathsat.api.msat_declare_variable(msatEnv, func,
+                    msatVarType);
+            if (mathsat.api.MSAT_ERROR_DECL(d)) {
+                return mathsat.api.MSAT_MAKE_ERROR_TERM();
+            }
+            return mathsat.api.msat_make_variable(msatEnv, d);
+        } else {
+            IASTExpression[] args = null;
+            if (pexp instanceof IASTExpressionList) {
+                args = ((IASTExpressionList)pexp).getExpressions();
+            } else {
+                args = new IASTExpression[]{pexp};
+            }
+            long[] mArgs = new long[args.length];
+            int[] tp = new int[args.length];
+            for (int i = 0; i < args.length; ++i) {
+                mArgs[i] = buildMsatTerm(args[i], ssa, absoluteSSAIndices);
+                tp[i] = msatVarType;
+                if (mathsat.api.MSAT_ERROR_TERM(mArgs[i])) {
+                    return mArgs[i];
+                }
+            }
+            
+            String func = null;
+            if (fn instanceof IASTIdExpression) {
+                func = ((IASTIdExpression)fn).getName().getRawSignature();
+            } else {
+                warn("External call through function pointer!: " +
+                        fexp.getRawSignature());
+                func = "<func>{" + fn.getRawSignature() + "}";
+            }
+            long d = mathsat.api.msat_declare_uif(msatEnv, func, msatVarType,
+                    tp.length, tp);
+            if (mathsat.api.MSAT_ERROR_DECL(d)) {
+                return mathsat.api.MSAT_MAKE_ERROR_TERM();
+            }
+            return mathsat.api.msat_make_uif(msatEnv, d, mArgs);
+        }
+    }
+
+    private void warnUnsafeVar(IASTExpression exp) {
+        if (!warnedUnsafeVars.contains(exp)) {
+            warnedUnsafeVars.add(exp);
+            warn("unhandled expression: " +
+                    exp.getRawSignature() + " - treating as a free variable!");
+        }
     }
 
     // create a binary uninterpreted function for the unsupported operation "op"
@@ -1040,7 +1449,15 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         case IASTBinaryExpression.op_shiftRight:
         case IASTBinaryExpression.op_shiftRightAssign:
             decl = rightShiftUfDecl;
-            break;            
+            break;  
+        case IASTBinaryExpression.op_multiply:
+        case IASTBinaryExpression.op_multiplyAssign:
+            decl = multUfDecl;
+            break;
+        case IASTBinaryExpression.op_divide:
+        case IASTBinaryExpression.op_divideAssign:
+            decl = divUfDecl;
+            break;
         default:
             return mathsat.api.MSAT_MAKE_ERROR_TERM();
         } 
@@ -1111,14 +1528,24 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         IASTExpression expr = stmt.getExpression();
         if (!updateSSA && needsSSAUpdate(expr)) {
             SSAMap ssa2 = new SSAMap();
-            for (String key : ssa.allVariables()) {
-                ssa2.setIndex(key, ssa.getIndex(key));
-            }
+            ssa2.copyFrom(ssa);
             ssa = ssa2;
         }
         long f2 = buildMsatTerm(expr, ssa, absoluteSSAIndices);
 
         if (!mathsat.api.MSAT_ERROR_TERM(f2)) {
+            long d = mathsat.api.msat_term_get_decl(f2);
+            if (mathsat.api.msat_decl_get_return_type(d) !=
+                mathsat.api.MSAT_BOOL) {
+                // in this case, we have something like:
+                // f(x);
+                // i.e. an expression that gets assigned to nothing. Since
+                // we don't handle side-effects, this means that the
+                // expression has no effect, and we can just drop it
+                warn("statment " + stmt.getRawStatement() +
+                        " has no effect, dropping it!");
+                return new Pair<SymbolicFormula, SSAMap>(f1, ssa);
+            }
             long a = mathsat.api.msat_make_and(msatEnv, f1.getTerm(), f2);
             return new Pair<SymbolicFormula, SSAMap>(
                     new MathsatSymbolicFormula(a), ssa);
@@ -1201,6 +1628,10 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
                 MathsatSymbolicFormula r = buildFormulaPredicate(exp1, !isTrue, 
                         ssa, absoluteSSAIndices);
                 return r;
+            } else if (unaryExp.getOperator() == 
+                       IASTUnaryExpression.op_bracketedPrimary) {
+                return buildFormulaPredicate(
+                        unaryExp.getOperand(), isTrue, ssa, absoluteSSAIndices);
             } else {
                 // build the mathsat term. If this is not a predicate, make
                 // it a predicate by adding a "!= 0"
@@ -1295,6 +1726,32 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         }
         return new Pair<Long, Long>(e1, e2);
     }
+    
+    private Pair<Long, Long> makeSSAMerger(String name,
+            SymbolicFormula[] args, int i1, int i2, int newidx) {
+        // retrieve the mathsat terms corresponding to the two variables
+        long v1 = buildMsatUFLvalue(name, args, i1);
+        long v2 = buildMsatUFLvalue(name, args, i2);
+        long e1 = mathsat.api.msat_make_true(msatEnv);
+        long e2 = mathsat.api.msat_make_true(msatEnv);
+        if (i1 < i2) {
+            assert(newidx == i2);
+            for (int i = i1+1; i <= i2; ++i) {
+                long v = buildMsatUFLvalue(name, args, i);
+                long e = mathsat.api.msat_make_equal(msatEnv, v, v1);
+                e1 = mathsat.api.msat_make_and(msatEnv, e1, e);
+            }
+        } else {
+            assert(i2 < i1);
+            assert(newidx == i1);
+            for (int i = i2+1; i <= i1; ++i) {
+                long v = buildMsatUFLvalue(name, args, i);
+                long e = mathsat.api.msat_make_equal(msatEnv, v, v2);
+                e2 = mathsat.api.msat_make_and(msatEnv, e2, e);
+            }
+        }
+        return new Pair<Long, Long>(e1, e2);
+    }    
 
     protected int getNewIndex(String var, SSAMap ssa) {
         int idx = ssa.getIndex(var);
@@ -1302,6 +1759,18 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         else return 1;
     }
     
+    protected int getNewIndex(String f, SymbolicFormula arg, SSAMap ssa) {
+        int idx = ssa.getIndex(f, arg);
+        if (idx > 0) return idx+1;
+        else return 1;
+    }    
+    
+    protected int getNewIndex(String f, SymbolicFormula[] args, SSAMap ssa) {
+        int idx = ssa.getIndex(f, args);
+        if (idx > 0) return idx+1;
+        else return 1;
+    }    
+
     protected int getNewIndex(String var, int i1, int i2) {
         return Math.max(i1, i2) + 1;
     }
@@ -1360,6 +1829,67 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
             }
         }
 
+        for (Pair<String, SymbolicFormula[]> f : ssa1.allFunctions()) {
+            int i1 = ssa1.getIndex(f.getFirst(), f.getSecond());
+            int i2 = ssa2.getIndex(f.getFirst(), f.getSecond());
+            assert(i1 > 0);
+            if (i2 > 0 && i2 != i1) {
+                // we have to merge this lvalue assignment
+                int i3 = Math.max(i1, i2);
+                result.setIndex(f.getFirst(), f.getSecond(), i3);
+                Pair<Long, Long> t = makeSSAMerger(
+                        f.getFirst(), f.getSecond(), i1, i2, i3);
+                mt1 = mathsat.api.msat_make_and(msatEnv, mt1,
+                        t.getFirst());
+                mt2 = mathsat.api.msat_make_and(msatEnv, mt2, 
+                        t.getSecond());
+            } else {
+                if (i2 <= 0) {
+                    // it's not enough to set the SSA index. We *must* also
+                    // generate a formula saying that the var does not change
+                    // in this branch!    
+                    long[] args = new long[f.getSecond().length];
+                    for (int i = 0; i < args.length; ++i) {
+                        args[i] = ((MathsatSymbolicFormula)
+                                f.getSecond()[i]).getTerm();
+                    }
+                    long v1 = buildMsatUFLvalue(f.getFirst(), args, 1);
+                    for (int i = 2; i <= i1; ++i) {
+                        long v = buildMsatUFLvalue(f.getFirst(), args, i);
+                        long e = mathsat.api.msat_make_equal(msatEnv, v, v1);
+                        mt2 = mathsat.api.msat_make_and(msatEnv, mt2, e);
+                    }
+                }
+                result.setIndex(f.getFirst(), f.getSecond(), i1);
+            }
+        }
+        for (Pair<String, SymbolicFormula[]> f : ssa2.allFunctions()) {
+            int i2 = ssa2.getIndex(f.getFirst(), f.getSecond());
+            int i1 = ssa1.getIndex(f.getFirst(), f.getSecond());
+            assert(i2 > 0);
+            if (i1 <= 0) {
+                // it's not enough to set the SSA index. We *must* also
+                // generate a formula saying that the var does not change
+                // in this branch!                
+                long[] args = new long[f.getSecond().length];
+                for (int i = 0; i < args.length; ++i) {
+                    args[i] = ((MathsatSymbolicFormula)
+                            f.getSecond()[i]).getTerm();
+                }
+                long v1 = buildMsatUFLvalue(f.getFirst(), args, 1);
+                for (int i = 2; i <= i2; ++i) {
+                    long v = buildMsatUFLvalue(f.getFirst(), args, i);
+                    long e = mathsat.api.msat_make_equal(msatEnv, v, v1);
+                    mt1 = mathsat.api.msat_make_and(msatEnv, mt1, e);
+                }
+                result.setIndex(f.getFirst(), f.getSecond(), i2);
+            } else {
+                assert(i1 == i2 || 
+                        result.getIndex(f.getFirst(), f.getSecond()) ==
+                            Math.max(i1, i2));
+            }
+        }
+        
         Pair<SymbolicFormula, SymbolicFormula> sp = 
             new Pair<SymbolicFormula, SymbolicFormula>(
                     new MathsatSymbolicFormula(mt1),
@@ -1416,8 +1946,37 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
                         newt = mathsat.api.msat_make_equal(
                                 msatEnv, newargs[0], newargs[1]);
                     } else {
-                        newt = mathsat.api.msat_replace_args(
-                                msatEnv, t, newargs);
+                        String name = null;
+                        if (mathsat.api.msat_term_is_uif(t) != 0) {
+                            long d = mathsat.api.msat_term_get_decl(t);
+                            name = mathsat.api.msat_decl_get_name(d);
+                        }
+                        if (name != null && ufCanBeLvalue(name)) {
+                            int idx = (ssa != null ? 
+                                    getNormalIndex(name, newargs, ssa,
+                                            false, false) : 1);
+                            if (idx > 0) {
+                                int[] tp = new int[newargs.length];
+                                for (int i = 0; i < tp.length; ++i) { 
+                                    tp[i] = msatVarType;
+                                }
+                                long d = mathsat.api.msat_declare_uif(msatEnv,
+                                        name + "@" + idx,
+                                        msatVarType, tp.length, tp);
+                                // ok, the variable has an instance in the SSA, 
+                                // replace it
+                                newt = mathsat.api.msat_make_uif(
+                                        msatEnv, d, newargs);
+                                assert(!mathsat.api.MSAT_ERROR_TERM(newt));
+                                cache.put(t, newt);
+                            } else {
+                                newt = mathsat.api.msat_replace_args(
+                                        msatEnv, t, newargs);
+                            }                            
+                        } else {
+                            newt = mathsat.api.msat_replace_args(
+                                    msatEnv, t, newargs);
+                        }
                     }
                     assert(!mathsat.api.MSAT_ERROR_TERM(newt));
                     cache.put(t, newt);
@@ -1427,6 +1986,11 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
 
         assert(cache.containsKey(term));
         return new MathsatSymbolicFormula(cache.get(term));
+    }
+    
+    public boolean ufCanBeLvalue(String name) {
+        return lvalueFunctions.contains(name) || name.startsWith(".{") ||
+               name.startsWith("->{");
     }
 
     
@@ -1449,48 +2013,54 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
                 toProcess.pop();
                 continue;
             }
-            if (termIsAssignment(t)) {
-                // treat assignments specially. When we shift, we always have to
-                // update the SSA index of the variable being assigned
-                long var = mathsat.api.msat_term_get_arg(t, 0);
-                if (!cache.containsKey(var)) {
-                    String name = mathsat.api.msat_term_repr(var);
-
-                    LazyLogger.log(LazyLogger.DEBUG_3, "SHIFTING ASSIGNMENT: ",
-                            new MathsatSymbolicFormula(t), " VAR: ", name);
-
-                    // check whether this is an instantiated variable
-                    String[] bits = name.split("@");
-                    int idx = -1;
-                    assert(bits.length == 2);
-                    try {
-                        idx = Integer.parseInt(bits[1]);
-                        name = bits[0];
-                    } catch (NumberFormatException e) {
-                        assert(false);
-                    }
-                    int ssaidx = ssa.getIndex(name);
-                    if (ssaidx > 0) {
-                        //if (idx == 1) ++idx;
-                        assert(idx > 1); //TODO!!!
-                        long newvar = buildMsatVariable(name, ssaidx + idx-1);
-                        assert(!mathsat.api.MSAT_ERROR_TERM(newvar));
-                        cache.put(var, newvar);
-                        if (newssa.getIndex(name) < ssaidx + idx-1) {
-                            newssa.setIndex(name, ssaidx + idx-1);
-                        }
-                    } else {
-                        cache.put(var, var);
-                        if (newssa.getIndex(name) < idx) {
-                            newssa.setIndex(name, idx);
-                        }
-                    }
-                    
-                    LazyLogger.log(LazyLogger.DEBUG_3, "SHIFTING ASSIGNMENT, ",
-                            "RESULT: ", //name, "@", newssa.getIndex(name));
-                            mathsat.api.msat_term_repr(cache.get(var)));
-                }
-            } 
+//            if (termIsAssignment(t)) {
+//                // treat assignments specially. When we shift, we always have to
+//                // update the SSA index of the variable being assigned
+//                long var = mathsat.api.msat_term_get_arg(t, 0);
+//                if (!cache.containsKey(var)) {
+//                    String name = mathsat.api.msat_term_repr(var);
+//
+//                    LazyLogger.log(LazyLogger.DEBUG_3, "SHIFTING ASSIGNMENT: ",
+//                            new MathsatSymbolicFormula(t), " VAR: ", name);
+//
+//                    // check whether this is an instantiated variable
+//                    String[] bits = name.split("@");
+//                    int idx = -1;
+//                    assert(bits.length == 2);
+//                    try {
+//                        idx = Integer.parseInt(bits[1]);
+//                        name = bits[0];
+//                    } catch (NumberFormatException e) {
+//                        assert(false);
+//                    }
+//                    int ssaidx = ssa.getIndex(name);
+//                    if (ssaidx > 0) {
+//                        if (idx == 1) {
+//                            System.out.println("ERROR!!!, Shifting: " +
+//                                    mathsat.api.msat_term_repr(t) + ", var: " +
+//                                    name + ", TERM: " +
+//                                    mathsat.api.msat_term_repr(term));
+//                            System.out.flush();
+//                        }
+//                        assert(idx > 1); //TODO!!!
+//                        long newvar = buildMsatVariable(name, ssaidx + idx-1);
+//                        assert(!mathsat.api.MSAT_ERROR_TERM(newvar));
+//                        cache.put(var, newvar);
+//                        if (newssa.getIndex(name) < ssaidx + idx-1) {
+//                            newssa.setIndex(name, ssaidx + idx-1);
+//                        }
+//                    } else {
+//                        cache.put(var, var);
+//                        if (newssa.getIndex(name) < idx) {
+//                            newssa.setIndex(name, idx);
+//                        }
+//                    }
+//                    
+//                    LazyLogger.log(LazyLogger.DEBUG_3, "SHIFTING ASSIGNMENT, ",
+//                            "RESULT: ", //name, "@", newssa.getIndex(name));
+//                            mathsat.api.msat_term_repr(cache.get(var)));
+//                }
+//            } 
             
             if (mathsat.api.msat_term_is_variable(t) != 0) {
                 toProcess.pop();
@@ -1554,8 +2124,75 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
                         newt = mathsat.api.msat_make_equal(
                                 msatEnv, newargs[0], newargs[1]);
                     } else {
-                        newt = mathsat.api.msat_replace_args(
-                                msatEnv, t, newargs);
+                        String name = null;
+                        if (mathsat.api.msat_term_is_uif(t) != 0) {
+                            long d = mathsat.api.msat_term_get_decl(t);
+                            name = mathsat.api.msat_decl_get_name(d);
+                        }
+                        if (name != null && ufCanBeLvalue(name)) {
+                            // we have to shift this uif as well
+                            String[] bits = name.split("@");
+                            int idx = -1;
+                            if (bits.length == 2) {
+                                try {
+                                    idx = Integer.parseInt(bits[1]);
+                                    name = bits[0];
+                                } catch (NumberFormatException e) {
+                                    LazyLogger.log(LazyLogger.DEBUG_1, 
+                                            "Bad UF name!: ", name, 
+                                            ", exception: ", e);
+                                    assert(false); // should not happen
+                                }
+                            }
+                            if (idx > 0) {
+                                // ok, the UF is instantiated in the formula
+                                // retrieve the index in the SSA, and shift
+                                SymbolicFormula[] a = 
+                                    new SymbolicFormula[newargs.length];
+                                for (int i = 0; i < a.length; ++i) {
+                                    a[i] = new MathsatSymbolicFormula(
+                                            newargs[i]);
+                                }
+
+                                int ssaidx = ssa.getIndex(name, a);
+                                if (ssaidx > 0) {
+                                    int[] tp = new int[newargs.length];
+                                    for (int i = 0; i < tp.length; ++i) {
+                                        tp[i] = msatVarType;
+                                    }
+                                    int newidx = ssaidx + idx-1;
+                                    long d = mathsat.api.msat_declare_uif(
+                                            msatEnv,
+                                            name + "@" + newidx,
+                                            msatVarType, tp.length, tp);
+                                    newt = mathsat.api.msat_make_uif(
+                                            msatEnv, d, newargs);
+                                    assert(!mathsat.api.MSAT_ERROR_TERM(newt));
+                                    cache.put(t, newt);
+                                    if (newssa.getIndex(name, a) < newidx) {
+                                        newssa.setIndex(name, a, newidx);
+                                    }
+                                    LazyLogger.log(LazyLogger.DEBUG_3, 
+                                            "SHIFTING UF: ",
+                                            name, "@", ssaidx, ", ",
+                                            "RESULT: ", 
+                                            mathsat.api.msat_term_repr(newt));
+                                } else {
+                                    newt = mathsat.api.msat_replace_args(
+                                            msatEnv, t, newargs);
+                                    if (newssa.getIndex(name, a) < idx) {
+                                        newssa.setIndex(name, a, idx);
+                                    }
+                                }
+                            } else {
+                                // the UF is not instantiated, keep it as is
+                                newt = mathsat.api.msat_replace_args(
+                                        msatEnv, t, newargs);
+                            }
+                        } else { // "normal" non-variable term
+                            newt = mathsat.api.msat_replace_args(
+                                    msatEnv, t, newargs);
+                        }
                     }
                     assert(!mathsat.api.MSAT_ERROR_TERM(newt));
                     
@@ -1603,6 +2240,56 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         }
 
         return false;
+    }
+    
+    private boolean isArithmetic(long t) {
+        return (mathsat.api.msat_term_is_plus(t) != 0 ||
+                mathsat.api.msat_term_is_minus(t) != 0 ||
+                mathsat.api.msat_term_is_negate(t) != 0 ||
+                mathsat.api.msat_term_is_times(t) != 0 ||
+                mathsat.api.msat_term_is_lt(t) != 0 ||
+                mathsat.api.msat_term_is_gt(t) != 0 || 
+                mathsat.api.msat_term_is_leq(t) != 0 ||
+                mathsat.api.msat_term_is_geq(t) != 0);
+    }
+    
+    public int getNeededTheories(MathsatSymbolicFormula f) {
+        long term = f.getTerm();
+        if (neededTheories.containsKey(term)) {
+            return neededTheories.get(term);
+        }
+        Stack<Long> toProcess = new Stack<Long>();
+        toProcess.push(term);
+        while (!toProcess.empty()) {
+            long t = toProcess.peek();
+            if (neededTheories.containsKey(t)) {
+                toProcess.pop();
+                continue;
+            }
+            int needed = 0;
+            boolean childrenDone = true;
+            for (int i = 0; i < mathsat.api.msat_term_arity(t); ++i) {
+                long c = mathsat.api.msat_term_get_arg(t, i);
+                if (neededTheories.containsKey(c)) {
+                    needed |= neededTheories.get(c);
+                } else {
+                    childrenDone = false;
+                    toProcess.push(c);
+                }
+            }
+            if (childrenDone) {
+                toProcess.pop();
+                if (mathsat.api.msat_term_is_equal(t) != 0) {
+                    needed |= THEORY_EQ;
+                } else if (isArithmetic(t)) {
+                    needed |= THEORY_ARITH;
+                } else if (mathsat.api.msat_term_is_uif(t) != 0) {
+                    needed |= THEORY_UF;
+                }
+                neededTheories.put(t, needed);
+            }
+        }
+        return neededTheories.get(term);
     }
     
     // returns a formula with some "static learning" about some bitwise
@@ -1709,8 +2396,28 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
                 }
                 if (childrenDone) {
                     toProcess.pop();
-                    cache.put(t, mathsat.api.msat_replace_args(
-                            msatEnv, t, children));
+                    String name = null;
+                    if (mathsat.api.msat_term_is_uif(t) != 0) {
+                        long d = mathsat.api.msat_term_get_decl(t);
+                        name = mathsat.api.msat_decl_get_name(d);
+                    }
+                    if (name != null && ufCanBeLvalue(name)) {
+                        String[] bits = name.split("@");
+                        assert(bits.length == 2);
+                        name = bits[0];
+                        int[] tp = new int[children.length];
+                        for (int i = 0; i < tp.length; ++i) {
+                            tp[i] = msatVarType;
+                        }
+                        long d = mathsat.api.msat_declare_uif(msatEnv, name, 
+                                msatVarType, tp.length, tp);
+                        long newt = mathsat.api.msat_make_uif(
+                                msatEnv, d, children);
+                        cache.put(t, newt);
+                    } else {
+                        cache.put(t, mathsat.api.msat_replace_args(
+                                msatEnv, t, children));
+                    }
                 }
             }
         }
@@ -1745,8 +2452,15 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
             boolean uninst, boolean splitArithEqualities, 
             boolean conjunctionsOnly) {
         Set<Long> cache = new HashSet<Long>();
-        Set<Long> atoms = new HashSet<Long>();
-        Map<Long, Long> varcache = new HashMap<Long, Long>();
+        //Set<Long> atoms = new HashSet<Long>();
+        Set<Long> atoms = new TreeSet<Long>(
+                new Comparator<Long>() {
+                    public int compare(Long o1, Long o2) {
+                        return mathsat.api.msat_term_id(o1) - 
+                               mathsat.api.msat_term_id(o2);                    
+                    }
+                });
+        Map<Long, Long> varcache = uninstantiateGlobalCache;
         
         Stack<Long> toProcess = new Stack<Long>();
         toProcess.push(((MathsatSymbolicFormula)f).getTerm());
@@ -1836,7 +2550,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
 
     public MathsatSymbolicFormula replaceAssignments(MathsatSymbolicFormula f) {
         Stack<Long> toProcess = new Stack<Long>();
-        Map<Long, Long> cache = new HashMap<Long, Long>();
+        Map<Long, Long> cache = replaceAssignmentsCache;//new HashMap<Long, Long>();
         
         toProcess.push(f.getTerm());
         while (!toProcess.empty()) {
@@ -1917,130 +2631,4 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         return ssa;
     }
 
-    //-------------------------------------------------------------------------
-    // FROM HERE ON ONLY UNUSED STUFF AT THE MOMENT
-    //-------------------------------------------------------------------------
-    
-    // some useful info...
-//    IASTDeclSpecifier tp = param.getDeclSpecifier();
-//    System.out.println("SPECIFIER: " + tp.getRawSignature());
-//    System.out.println("CLASS: " + tp.getClass());
-//    System.out.println("STRUCT?: " + (tp instanceof IASTCompositeTypeSpecifier));
-//    System.out.println("PARAMETER: " +
-//            param.getRawSignature() + ", class: " + 
-//            param.getDeclarator().getClass().getName() + 
-//            ", NAME: " + param.getDeclarator().getName().toString() +
-//            ", BINDING: " + 
-//            param.getDeclarator().getName().resolveBinding() +
-//            ", COMPOSITE?: " +
-//            (param.getDeclarator().getName().resolveBinding() instanceof ICompositeType)        
-//    );
-//    System.exit(1);
-//    // TODO
-    private DeclarationInfo[] getInfo(IASTDeclSpecifier specifier, 
-            IASTDeclarator[] declarators) throws UnrecognizedCFAEdgeException {
-        // first, extract the type information from the specifier
-        IASTName name = null;
-        DeclarationInfo base = null;
-        if (specifier instanceof IASTNamedTypeSpecifier) {
-            // this is a typedef
-            name = ((IASTNamedTypeSpecifier)specifier).getName();
-        } else if (specifier instanceof IASTElaboratedTypeSpecifier) {
-            name = ((IASTElaboratedTypeSpecifier)specifier).getName();
-        } else if (specifier instanceof IASTSimpleDeclSpecifier) {
-            base = new DeclarationInfo(DeclarationInfo.TP_SIMPLE);
-        } else {
-            throw new UnrecognizedCFAEdgeException("UNRECOGNIZED SPECIFIER: " +
-                    specifier.getRawSignature());
-        }
-        if (name != null) {
-            IBinding binding = name.getBinding();
-            assert(binding != null);
-            try {
-                base = getBindingInfo(binding);
-            } catch (Exception e1) {
-                throw new UnrecognizedCFAEdgeException(e1.getMessage());
-            }
-        }
-        assert(base != null);
-        // now we can build the information for all declared variables
-        DeclarationInfo[] ret = new DeclarationInfo[declarators.length];
-        for (int i = 0; i < declarators.length; ++i) {
-            try {
-                ret[i] = getDeclaratorInfo(base, declarators[i]);
-            } catch (Exception e) {
-                throw new UnrecognizedCFAEdgeException(e.getMessage());
-            }
-        }
-        
-        return ret;
-    }
-    
-    private DeclarationInfo getBindingInfo(IBinding binding) throws Exception {
-        IType tp = null;
-        int numPointers = 0;
-        DeclarationInfo ret = null;
-        String name = null;
-        
-        if (binding instanceof IVariable) {
-            name = ((IVariable)binding).getName();
-            tp = ((IVariable)binding).getType();
-        } else if (binding instanceof ITypedef) {
-            try {
-                // TODO the whole typedef thing should probably be done
-                // with a recursive function. But for now we'll live with 
-                // this
-                tp = ((ITypedef)binding).getType();
-                if (tp instanceof IPointerType) {
-                    while (tp instanceof IPointerType) {
-                        numPointers++;
-                        tp = ((IPointerType)tp).getType();
-                    }
-                }
-            } catch (DOMException e) {
-                e.printStackTrace();
-                System.exit(0);
-            }
-        } else if (binding instanceof ICompositeType) {
-            tp = (IType)binding;
-        } else {
-            throw new UnrecognizedCFAEdgeException(
-                    "UNRECOGNIZED BINDING: " + binding.getName());
-        }
-        assert(tp != null);
-        if (tp instanceof IBasicType) {
-            // treat everything as an int
-            ret = new DeclarationInfo(DeclarationInfo.TP_SIMPLE, name);
-            ret.setNumStars(numPointers);
-        } else if (tp instanceof ICompositeType) {
-            ret = new DeclarationInfo(DeclarationInfo.TP_COMPOSITE, name);
-            ret.setNumStars(numPointers);
-            ICompositeType ctp = (ICompositeType)tp;
-            try {
-                for (IField f : ctp.getFields()) {
-                    ret.addField(getBindingInfo(f));
-                }
-            } catch (DOMException e) {
-                e.printStackTrace();
-                System.exit(0);
-            }
-        } else {
-            throw new UnrecognizedCFAEdgeException(
-                    "UNRECOGNIZED TYPE: " + tp.toString());
-        }            
-        
-        return ret;
-    }
-    
-    private DeclarationInfo getDeclaratorInfo(DeclarationInfo base, 
-            IASTDeclarator decl) throws Exception {
-        DeclarationInfo ret = new DeclarationInfo(base.getType());
-        ret.setNumStars(base.getNumStars());
-        ret.setName(decl.getName().toString());
-        IASTPointerOperator[] ptr = decl.getPointerOperators();
-        if (ptr != null) {
-            ret.setNumStars(ret.getNumStars() + ptr.length);
-        }
-        return ret;
-    }
 }

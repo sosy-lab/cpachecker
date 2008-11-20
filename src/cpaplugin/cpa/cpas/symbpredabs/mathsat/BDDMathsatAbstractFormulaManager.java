@@ -1,8 +1,10 @@
 package cpaplugin.cpa.cpas.symbpredabs.mathsat;
 
 import java.util.Collection;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
@@ -29,25 +31,48 @@ public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
         private long msatEnv;
         private long absEnv;
         private int bdd;
+        private Deque<Integer> cubes;
         
         public AllSatCallback(int bdd, long msatEnv, long absEnv) {
             this.bdd = bdd;
             this.msatEnv = msatEnv;
             this.absEnv = absEnv;
+            cubes = new LinkedList<Integer>();
         }
         
-        public int getBDD() { return bdd; }
-
+        public int getBDD() {
+            if (cubes.size() > 0) {
+                buildBalancedOr();
+            }
+            return bdd; 
+        }
+        
+        private void buildBalancedOr() {
+            cubes.add(bdd);
+            while (cubes.size() > 1) {
+                int b1 = cubes.remove();
+                int b2 = cubes.remove();
+                cubes.add(bddManager.or(b1, b2));
+            }
+            assert(cubes.size() == 1);
+            bdd = cubes.remove();
+        }
         
         public void callback(long[] model) {
             // the abstraction is created simply by taking the disjunction
             // of all the models found by msat_all_sat, and storing them 
             // in a BDD
             // first, let's create the BDD corresponding to the model
+            Deque<Integer> curCube = new LinkedList<Integer>();
             int m = bddManager.getOne();
             for (int i = 0; i < model.length; ++i) {
-                long t = mathsat.api.msat_make_copy_from(
-                        msatEnv, model[i], absEnv);
+                long t = 0;
+                if (absEnv != 0) {
+                    t = mathsat.api.msat_make_copy_from(
+                            msatEnv, model[i], absEnv);
+                } else {
+                    t = model[i];
+                }
                 int v;
                 if (mathsat.api.msat_term_is_not(t) != 0) {
                     t = mathsat.api.msat_term_get_arg(t, 0);
@@ -57,19 +82,20 @@ public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
                 } else {
                     v = msatVarToBddPredicate.get(t);
                 }
-                m = bddManager.and(m, v);
+                curCube.add(v);
+                //m = bddManager.and(m, v);
             }
             // now, add the model to the bdd
-            bdd = bddManager.or(bdd, m);
-            
-//            StringBuffer modelStrBuf = new StringBuffer();
-//            for (int i = 0; i < model.length; ++i) {
-//                modelStrBuf.append(mathsat.api.msat_term_repr(model[i]));
-//                modelStrBuf.append(" ");
-//            }
-//            CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel,
-//                    "GOT MODEL: " + modelStrBuf.toString());
-            
+            //bdd = bddManager.or(bdd, m);
+            curCube.add(m);
+            while (curCube.size() > 1) {
+                int v1 = curCube.remove();
+                int v2 = curCube.remove();
+                curCube.add(bddManager.and(v1, v2));
+            }
+            assert(curCube.size() == 1);
+            m = curCube.remove();
+            cubes.add(m);
         }
     }
 
@@ -85,6 +111,7 @@ public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
     
     private boolean entailsUseCache;
     private Map<Pair<AbstractFormula, AbstractFormula>, Boolean> entailsCache;
+    private Map<Integer, Long> toConcreteCache;
     
     
     public BDDMathsatAbstractFormulaManager() {
@@ -98,6 +125,7 @@ public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
         if (entailsUseCache) {
             entailsCache =
                 new HashMap<Pair<AbstractFormula, AbstractFormula>, Boolean>();
+            toConcreteCache = new HashMap<Integer, Long>();
         }
     }
 
@@ -149,7 +177,9 @@ public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
         return yes;
     }
     
-    protected void collectVarNames(long term, Set<String> vars) {
+    protected void collectVarNames(MathsatSymbolicFormulaManager mmgr, 
+            long term, Set<String> vars, 
+            Set<Pair<String, SymbolicFormula[]>> lvals) {
         Stack<Long> toProcess = new Stack<Long>();
         toProcess.push(term);
         // TODO - this assumes the term is small! There is no memoizing yet!!
@@ -160,6 +190,19 @@ public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
             } else {
                 for (int i = 0; i < mathsat.api.msat_term_arity(t); ++i) {
                     toProcess.push(mathsat.api.msat_term_get_arg(t, i));
+                }
+                if (mathsat.api.msat_term_is_uif(t) != 0) {
+                    long d = mathsat.api.msat_term_get_decl(t);
+                    String name = mathsat.api.msat_decl_get_name(d);
+                    if (mmgr.ufCanBeLvalue(name)) {
+                        int n = mathsat.api.msat_term_arity(t);
+                        SymbolicFormula[] a = new SymbolicFormula[n];
+                        for (int i = 0; i < n; ++i) {
+                            a[i] = new MathsatSymbolicFormula(
+                                    mathsat.api.msat_term_get_arg(t, i));
+                        }
+                        lvals.add(new Pair<String, SymbolicFormula[]>(name, a));
+                    }
                 }
             }
         }
@@ -175,6 +218,8 @@ public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
         long msatEnv = mmgr.getMsatEnv();
         long[] important = new long[predicates.size()];
         Set<String> allvars = new HashSet<String>();
+        Set<Pair<String, SymbolicFormula[]>> allfuncs = 
+            new HashSet<Pair<String, SymbolicFormula[]>>();
         long preddef = mathsat.api.msat_make_true(msatEnv);
         int i = 0;
         for (Predicate p : predicates) {
@@ -183,7 +228,7 @@ public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
             int bddvar = bddManager.getVar(idx);
             long var = bddPredicateToMsatAtom.get(bddvar).getFirst();
             long def = bddPredicateToMsatAtom.get(bddvar).getSecond();
-            collectVarNames(def, allvars);
+            collectVarNames(mmgr, def, allvars, allfuncs);
             important[i++] = var;
             // build the mathsat (var <-> def)
             long iff = mathsat.api.msat_make_iff(msatEnv, var, def);
@@ -191,7 +236,7 @@ public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
             // and add it to the list of definitions
             preddef = mathsat.api.msat_make_and(msatEnv, preddef, iff);
         }
-        return new Object[]{preddef, important, allvars};
+        return new Object[]{preddef, important, allvars, allfuncs};
     }
 
     public Pair<MathsatSymbolicFormula, MathsatSymbolicFormula> 
@@ -290,7 +335,12 @@ public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
         int bdd = bddaf.getBDD();
         long msatEnv = mmgr.getMsatEnv();
         
-        Map<Integer, Long> cache = new HashMap<Integer, Long>();
+        Map<Integer, Long> cache;
+        if (entailsUseCache) {
+            cache = toConcreteCache;
+        } else {
+            cache = new HashMap<Integer, Long>();
+        }
         Stack<Integer> toProcess = new Stack<Integer>();
         
         cache.put(bddManager.getOne(), mathsat.api.msat_make_true(msatEnv));
@@ -350,5 +400,67 @@ public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
         int t = bddManager.getOne();
         return new BDDAbstractFormula(t);
     }
-
+    
+    protected SymbolicFormula[] getInstantiatedAt(
+            MathsatSymbolicFormulaManager mmgr, SymbolicFormula[] args,
+            SSAMap ssa, Map<SymbolicFormula, SymbolicFormula> cache) {
+        Stack<Long> toProcess = new Stack<Long>();
+        SymbolicFormula[] ret = new SymbolicFormula[args.length];
+        for (SymbolicFormula f : args) {
+            toProcess.push(((MathsatSymbolicFormula)f).getTerm());
+        }
+        
+        while (!toProcess.empty()) {
+            long t = toProcess.peek();
+            SymbolicFormula tt = new MathsatSymbolicFormula(t);
+            if (cache.containsKey(tt)) {
+                toProcess.pop();
+                continue;
+            }
+            if (mathsat.api.msat_term_is_variable(t) != 0) {
+                toProcess.pop();
+                String name = mathsat.api.msat_term_repr(t);
+                assert(ssa.getIndex(name) > 0);
+                cache.put(tt, mmgr.instantiate(
+                        new MathsatSymbolicFormula(t), ssa));
+            } else if (mathsat.api.msat_term_is_uif(t) != 0) {
+                long d = mathsat.api.msat_term_get_decl(t);
+                String name = mathsat.api.msat_decl_get_name(d);
+                if (mmgr.ufCanBeLvalue(name)) {
+                    SymbolicFormula[] cc = 
+                        new SymbolicFormula[mathsat.api.msat_term_arity(t)];
+                    boolean childrenDone = true;
+                    for (int i = 0; i < cc.length; ++i) {
+                        long c = mathsat.api.msat_term_get_arg(t, i);
+                        SymbolicFormula f = new MathsatSymbolicFormula(c);
+                        if (cache.containsKey(f)) {
+                            cc[i] = cache.get(f);
+                        } else {
+                            toProcess.push(c);
+                            childrenDone = false;
+                        }
+                    }
+                    if (childrenDone) {
+                        toProcess.pop();
+                        if (ssa.getIndex(name, cc) < 0) {
+                            ssa.setIndex(name, cc, 1);
+                        }
+                        cache.put(tt, mmgr.instantiate(tt, ssa));
+                    }
+                } else {
+                    toProcess.pop();
+                    cache.put(tt, tt);
+                }
+            } else {
+                toProcess.pop();
+                cache.put(tt, tt);
+            }
+        }
+        for (int i = 0; i < ret.length; ++i) {
+            assert(cache.containsKey(args[i]));
+            ret[i] = cache.get(args[i]);
+        }
+        return ret;
+    }
+    
 }

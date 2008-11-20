@@ -2,13 +2,18 @@ package cpaplugin.cpa.cpas.symbpredabs.explicit;
 
 import java.util.Collection;
 import java.util.Deque;
+import java.util.Vector;
 
 import cpaplugin.cfa.objectmodel.CFAEdge;
+import cpaplugin.cpa.common.interfaces.AbstractElementWithLocation;
 import cpaplugin.cpa.cpas.symbpredabs.AbstractFormula;
 import cpaplugin.cpa.cpas.symbpredabs.AbstractFormulaManager;
 import cpaplugin.cpa.cpas.symbpredabs.CounterexampleTraceInfo;
 import cpaplugin.cpa.cpas.symbpredabs.Predicate;
+import cpaplugin.cpa.cpas.symbpredabs.SSAMap;
+import cpaplugin.cpa.cpas.symbpredabs.SymbolicFormula;
 import cpaplugin.cpa.cpas.symbpredabs.SymbolicFormulaManager;
+import cpaplugin.cpa.cpas.symbpredabs.UnrecognizedCFAEdgeException;
 
 /**
  * Formula Manager for Explicit-state predicate abstraction.
@@ -35,4 +40,24 @@ public interface ExplicitAbstractFormulaManager extends AbstractFormulaManager {
             SymbolicFormulaManager mgr, 
             Deque<ExplicitAbstractElement> abstractTrace);
 
+
+    public class ConcretePath {
+        public Vector<SymbolicFormula> path;
+        public boolean theoryCombinationNeeded;
+        public SSAMap ssa;
+        
+        public ConcretePath(Vector<SymbolicFormula> p, boolean tc, SSAMap s) {
+            path = p;
+            theoryCombinationNeeded = tc;
+            ssa = s;
+        }
+    }
+    
+    public ConcretePath buildConcretePath(SymbolicFormulaManager mgr,
+            AbstractElementWithLocation[] path) 
+                throws UnrecognizedCFAEdgeException;
+    
+    public Vector<SymbolicFormula> getUsefulBlocks(SymbolicFormulaManager mgr,
+            Vector<SymbolicFormula> trace, boolean theoryCombinationNeeded,
+            boolean suffixTrace, boolean setAllTrueIfSat);
 }
