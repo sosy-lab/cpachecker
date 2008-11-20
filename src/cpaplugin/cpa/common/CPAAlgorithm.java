@@ -21,6 +21,9 @@ import cpaplugin.logging.LazyLogger;
 
 public class CPAAlgorithm
 {
+    private final int GC_PERIOD = 100;
+    private int gcCounter = 0;
+    
 	public Collection<AbstractElement> CPA (ConfigurableProblemAnalysis cpa, AbstractElement initialState) throws CPAException
 	{
 		List<AbstractElement> waitlist = new ArrayList<AbstractElement> ();
@@ -249,6 +252,9 @@ public class CPAAlgorithm
 		LazyLogger.log(CustomLogLevel.SpecificCPALevel, 
 		"Refinement done");
 
-		System.gc();
+        if ((++gcCounter % GC_PERIOD) == 0) {
+            System.gc();
+            gcCounter = 0;
+        }
 	}
 }
