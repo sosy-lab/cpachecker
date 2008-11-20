@@ -22,12 +22,14 @@ import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
 import org.eclipse.cdt.core.dom.ast.IASTGotoStatement;
 import org.eclipse.cdt.core.dom.ast.IASTIfStatement;
 import org.eclipse.cdt.core.dom.ast.IASTLabelStatement;
+import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
 import org.eclipse.cdt.core.dom.ast.IASTNullStatement;
 import org.eclipse.cdt.core.dom.ast.IASTProblem;
 import org.eclipse.cdt.core.dom.ast.IASTReturnStatement;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTStatement;
 import org.eclipse.cdt.core.dom.ast.IASTSwitchStatement;
+import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.cdt.core.dom.ast.IASTWhileStatement;
 
 import cpaplugin.cfa.objectmodel.BlankEdge;
@@ -140,8 +142,10 @@ public class CFABuilder extends ASTVisitor
 
 				locStack.push (nextNode);
 			}
-			else // else we're in the global scope
+			else if (declaration.getParent() 
+			        instanceof IASTTranslationUnit)
 			{
+			        // else we're in the global scope
 				globalDeclarations.add (declaration);
 			}
 		}
@@ -207,10 +211,10 @@ public class CFABuilder extends ASTVisitor
 			CFANode elseNode = elseStack.pop ();
 			if (!prevNode.hasJumpEdgeLeaving ())
 			{
-				CFANode nextNode = locStack.peek ();
+			    CFANode nextNode = locStack.peek ();
 
-				BlankEdge blankEdge = new BlankEdge ("");
-				blankEdge.initialize (prevNode, nextNode);
+			    BlankEdge blankEdge = new BlankEdge ("");
+			    blankEdge.initialize (prevNode, nextNode);
 			}
 
 			//  Push the start of the else clause onto our location stack
@@ -272,39 +276,85 @@ public class CFABuilder extends ASTVisitor
 		locStack.push (nextNode);
 	}
 
+	private final int IF_CONDITION_NORMAL = -1;
+	private final int IF_CONDITION_ALWAYS_FALSE = 0;
+	private final int IF_CONDITION_ALWAYS_TRUE = 1;
+	
+	private int getIfConditionKind(IASTIfStatement ifStatement) {
+	    IASTExpression cond = ifStatement.getConditionExpression();
+	    if (cond instanceof IASTLiteralExpression) {
+	        if (((IASTLiteralExpression)cond).getKind() == 
+	            IASTLiteralExpression.lk_integer_constant) {
+	            int c = Integer.parseInt(cond.getRawSignature());
+	            if (c == 0) return IF_CONDITION_ALWAYS_FALSE;
+	            else return IF_CONDITION_ALWAYS_TRUE;
+	        }	         
+	    } 
+	    return IF_CONDITION_NORMAL;
+	}
+	
 	private void handleIfStatement (IASTIfStatement ifStatement, IASTFileLocation fileloc)
 	{       
 		CFANode prevNode = locStack.pop ();
 		CFANode postIfNode = new CFANode (fileloc.getEndingLineNumber ());
 
 		locStack.push (postIfNode);
-
-		CFANode ifStartTrue = new CFANode (fileloc.getStartingLineNumber ());
-		AssumeEdge assumeEdgeTrue = new AssumeEdge (ifStatement.getConditionExpression ().getRawSignature (), 
-				ifStatement.getConditionExpression (), 
-				true);
-
-		assumeEdgeTrue.initialize (prevNode, ifStartTrue);
-		locStack.push (ifStartTrue);
-
-		if (ifStatement.getElseClause () != null)
-		{
-			CFANode ifStartFalse = new CFANode (fileloc.getStartingLineNumber ());
-			AssumeEdge assumeEdgeFalse = new AssumeEdge ("!(" + ifStatement.getConditionExpression ().getRawSignature () + ")", 
-					ifStatement.getConditionExpression (), 
-					false);
-
-			assumeEdgeFalse.initialize (prevNode, ifStartFalse);
-			elseStack.push (ifStartFalse);
+		
+		int kind = getIfConditionKind(ifStatement);
+		
+		switch (kind) {
+		case IF_CONDITION_ALWAYS_FALSE: {
+		    BlankEdge edge = new BlankEdge("");
+		    if (ifStatement.getElseClause() == null) {
+		        edge.initialize(prevNode, postIfNode);
+		    } else {
+		        CFANode elseNode = 
+		            new CFANode(fileloc.getStartingLineNumber());
+		        edge.initialize(prevNode, elseNode);
+		        elseStack.push(elseNode);
+		        CFANode n = new CFANode(-1);
+		        locStack.push(n);
+		    }
 		}
-		else
-		{
-			AssumeEdge assumeEdgeFalse = new AssumeEdge ("!(" + ifStatement.getConditionExpression ().getRawSignature () + ")", 
-					ifStatement.getConditionExpression (), 
-					false);
-
-			assumeEdgeFalse.initialize (prevNode, postIfNode);
+		    break;
+		case IF_CONDITION_ALWAYS_TRUE: {
+		    BlankEdge edge = new BlankEdge("");
+		    CFANode thenNode = 
+		        new CFANode(fileloc.getStartingLineNumber());
+		    edge.initialize(prevNode, thenNode);
+		    locStack.push(thenNode);
+		    if (ifStatement.getElseClause() != null) {
+		        CFANode n = new CFANode(-1);
+		        elseStack.push(n);
+		    }
 		}
+		    break;
+		case IF_CONDITION_NORMAL: {
+		    CFANode ifStartTrue = new CFANode (fileloc.getStartingLineNumber ());
+		    AssumeEdge assumeEdgeTrue = new AssumeEdge (ifStatement.getConditionExpression ().getRawSignature (), 
+		            ifStatement.getConditionExpression (), 
+		            true);
+
+		    assumeEdgeTrue.initialize (prevNode, ifStartTrue);
+		    locStack.push (ifStartTrue);
+
+		    if (ifStatement.getElseClause () != null) {
+		        CFANode ifStartFalse = new CFANode (fileloc.getStartingLineNumber ());
+		        AssumeEdge assumeEdgeFalse = new AssumeEdge ("!(" + ifStatement.getConditionExpression ().getRawSignature () + ")", 
+		                ifStatement.getConditionExpression (), 
+		                false);
+
+		        assumeEdgeFalse.initialize (prevNode, ifStartFalse);
+		        elseStack.push (ifStartFalse);
+		    } else {
+		        AssumeEdge assumeEdgeFalse = new AssumeEdge ("!(" + ifStatement.getConditionExpression ().getRawSignature () + ")", 
+		                ifStatement.getConditionExpression (), 
+		                false);
+
+		        assumeEdgeFalse.initialize (prevNode, postIfNode);
+		    }
+		} // end of IF_CONDITION_NORMAL case
+		} // end of switch statement
 	}
 
 	private void handleWhileStatement (IASTWhileStatement whileStatement, IASTFileLocation fileloc)
