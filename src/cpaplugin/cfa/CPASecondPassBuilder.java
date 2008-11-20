@@ -34,13 +34,16 @@ import cpaplugin.logging.LazyLogger;
 public class CPASecondPassBuilder {
 
 	private CFAMap cfas;
+	private boolean createCallEdgesForExternalCalls;
 
 	/**
 	 * Class constructor.
 	 * @param map List of all CFA's in the program.
 	 */
-	public CPASecondPassBuilder(CFAMap map){
+	public CPASecondPassBuilder(CFAMap map, 
+	        boolean noCallEdgesForExternalCalls) {
 		cfas = map;
+		createCallEdgesForExternalCalls = !noCallEdgesForExternalCalls;
 	}
 	
 
@@ -78,7 +81,8 @@ public class CPASecondPassBuilder {
 					if(expr instanceof IASTBinaryExpression){
 						IASTExpression operand2 = ((IASTBinaryExpression)expr).getOperand2();
 						// if statement is of the form x = call(a,b);
-						if(operand2 instanceof IASTFunctionCallExpression){
+						if(operand2 instanceof IASTFunctionCallExpression &&
+						        shouldCreateCallEdges((IASTFunctionCallExpression)operand2)){
 							createCallAndReturnEdges(node, successorNode, edge, expr, (IASTFunctionCallExpression)operand2);
 						}
 						// if this is not a function call just set the function name 
@@ -88,7 +92,8 @@ public class CPASecondPassBuilder {
 					}
 					
 					// if expression is function call, e.g. call(a,b);
-					else if(expr instanceof IASTFunctionCallExpression){
+					else if(expr instanceof IASTFunctionCallExpression &&
+					        shouldCreateCallEdges((IASTFunctionCallExpression)expr)){
 						IASTFunctionCallExpression functionCall = (IASTFunctionCallExpression)expr;
 						createCallAndReturnEdges(node, successorNode, edge, expr, functionCall);
 					}
@@ -115,7 +120,14 @@ public class CPASecondPassBuilder {
 		}
 	}
 
-	/**
+        private boolean shouldCreateCallEdges(IASTFunctionCallExpression f) {
+            if (createCallEdgesForExternalCalls) return true;
+            String name = f.getFunctionNameExpression().getRawSignature();
+            CFAFunctionDefinitionNode fDefNode = cfas.getCFA(name);
+            return fDefNode != null;
+        }
+
+    /**
 	 * inserts call, return and summary edges from a node to its successor node.
 	 * @param node The node which is the call site.
 	 * @param successorNode The first node of the called function.
@@ -134,6 +146,8 @@ public class CPASecondPassBuilder {
 		
 		// if the successor node is null, then this is an external call
 		if(fDefNode == null){
+		    assert(createCallEdgesForExternalCalls); // AG
+		    
 			callEdge.setExternalCall();
 			callEdge.initialize (node, edge.getSuccessor());
 			callEdge.getSuccessor().setFunctionName(node.getFunctionName());
