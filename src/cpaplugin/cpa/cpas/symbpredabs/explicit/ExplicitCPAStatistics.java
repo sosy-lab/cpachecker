@@ -11,6 +11,7 @@ import java.util.Set;
 import java.util.Vector;
 
 import cpaplugin.CPAStatistics;
+import cpaplugin.MainCPAStatistics;
 import cpaplugin.cfa.objectmodel.CFAEdge;
 import cpaplugin.cfa.objectmodel.CFANode;
 import cpaplugin.cmdline.CPAMain;
@@ -75,7 +76,8 @@ public class ExplicitCPAStatistics implements CPAStatistics {
         }
         
         // check if/where to dump the predicate map
-        if (!trans.hasReachedError()) {
+        int errorReached = CPAMain.cpaStats.getErrorReached();
+        if (errorReached == MainCPAStatistics.ERROR_NOT_REACHED) {
             String pth = CPAMain.cpaConfig.getProperty(
                     "cpas.symbpredabs.refinement.finalPredMapPath", "");
             if (!pth.equals("")) {
@@ -170,10 +172,46 @@ public class ExplicitCPAStatistics implements CPAStatistics {
         out.println("  Max:                 " + toTime(bs.cexAnalysisMaxTime));
         out.println("  Solving time only:   " + 
                 toTime(bs.cexAnalysisMathsatTime));
+        if (CPAMain.cpaConfig.getBooleanValue(
+                "cpas.symbpredabs.explicit.getUsefulBlocks")) {
+            out.println("  Cex.focusing total:  " + 
+                    toTime(bs.cexAnalysisGetUsefulBlocksTime));
+            out.println("  Cex.focusing max:    " + 
+                toTime(bs.cexAnalysisGetUsefulBlocksMaxTime));
+        }
+        if (CPAMain.cpaConfig.getBooleanValue(
+                "cpas.symbpredabs.explicit.extendedStats")) {
+            out.println("Extended statistics:");
+            out.println("  Cache lookup time:         " + 
+                    toTime(bs.cacheLookupTime));
+            out.println("  Term build time:           " + 
+                    toTime(bs.termBuildTime));
+            out.println("  Msat term copy time:       " + 
+                    toTime(bs.msatTermCopyTime));            
+            out.println("  Predicate extraction time: " + 
+                    toTime(bs.predicateExtractionTime));
+            out.println("  Extra time:                " + toTime(bs.extraTime));
+            out.println("    Sub 1:                   " + 
+                    toTime(bs.extraTimeSub1));
+            out.println("  Calls to makeFormula: " + bs.makeFormulaCalls);
+            out.println("  Cache hits in makeFormula: " + 
+                    bs.makeFormulaCacheHits);
+        }        
         out.println("");
-        out.println("Error location(s) reached? " + 
-                (trans.hasReachedError() ? "YES, there is a BUG!" : 
-                "NO, the system is safe"));
+        out.print("Error location(s) reached? ");
+        switch (errorReached) { 
+        case MainCPAStatistics.ERROR_UNKNOWN:
+            out.println("UNKNOWN, analysis has not completed");
+            break;
+        case MainCPAStatistics.ERROR_REACHED:
+            out.println("YES, there is a BUG!");
+            break;
+        case MainCPAStatistics.ERROR_NOT_REACHED:
+            out.println("NO, the system is safe");            
+        }
+        if (trans.notEnoughPredicates()) {
+            out.println("The analysis is not precise enough for this example!");
+        }
     }
     
     private String toTime(long timeMillis) {

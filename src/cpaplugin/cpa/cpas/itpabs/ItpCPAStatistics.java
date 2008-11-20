@@ -3,6 +3,8 @@ package cpaplugin.cpa.cpas.itpabs;
 import java.io.PrintWriter;
 
 import cpaplugin.CPAStatistics;
+import cpaplugin.MainCPAStatistics;
+import cpaplugin.cmdline.CPAMain;
 
 /**
  * Statistics for interpolation-based lazy abstraction
@@ -39,7 +41,8 @@ public class ItpCPAStatistics implements CPAStatistics {
         out.println("Number of refinement steps: " + bs.numCallsCexAnalysis);
         out.println("");
         out.println("Number of covered states:  " + stop.numCoveredStates);
-        out.println("Number of coverage checks: " + stop.numCoverageChecks);
+        out.println("Number of coverage checks: " + stop.numCoverageChecks + 
+                " (" + stop.numCachedCoverageChecks + " cached)");
         out.println("Number of forced covered states:  " + 
                 trans.forcedCoverStats.numForcedCoveredElements);
         out.println("Number of forced coverage checks: " + 
@@ -59,9 +62,18 @@ public class ItpCPAStatistics implements CPAStatistics {
         out.println("  Solving time only:     " + 
                 toTime(bs.cexAnalysisMathsatTime));
         out.println("");
-        out.println("Error location(s) reached? " + 
-                (trans.hasReachedError() ? "YES, there is a BUG!" : 
-                "NO, the system is safe"));
+        int errorReached = CPAMain.cpaStats.getErrorReached();
+        out.print("Error location(s) reached? ");
+        switch (errorReached) { 
+        case MainCPAStatistics.ERROR_UNKNOWN:
+            out.println("UNKNOWN, analysis has not completed");
+            break;
+        case MainCPAStatistics.ERROR_REACHED:
+            out.println("YES, there is a BUG!");
+            break;
+        case MainCPAStatistics.ERROR_NOT_REACHED:
+            out.println("NO, the system is safe");            
+        }
     }
     
     private String toTime(long timeMillis) {

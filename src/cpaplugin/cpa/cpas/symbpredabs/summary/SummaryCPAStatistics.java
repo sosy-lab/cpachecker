@@ -8,6 +8,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import cpaplugin.CPAStatistics;
+import cpaplugin.MainCPAStatistics;
 import cpaplugin.cfa.objectmodel.CFANode;
 import cpaplugin.cmdline.CPAMain;
 import cpaplugin.cpa.cpas.symbpredabs.Pair;
@@ -71,7 +72,8 @@ public class SummaryCPAStatistics implements CPAStatistics {
         }
         
         // check if/where to dump the predicate map
-        if (!trans.hasReachedError()) {
+        int errorReached = CPAMain.cpaStats.getErrorReached();
+        if (errorReached == MainCPAStatistics.ERROR_NOT_REACHED) {
             String pth = CPAMain.cpaConfig.getProperty(
                     "cpas.symbpredabs.refinement.finalPredMapPath", "");
             if (!pth.equals("")) {
@@ -112,8 +114,10 @@ public class SummaryCPAStatistics implements CPAStatistics {
 
         out.println("Number of abstract states visited: " + 
                 trans.getNumAbstractStates());
-        out.println("Number of abstraction steps: " + bs.numCallsAbstraction);
+        out.println("Number of abstraction steps: " + bs.numCallsAbstraction +
+                " (" + bs.numCallsAbstractionCached + " cached)");
         out.println("Number of refinement steps: " + bs.numCallsCexAnalysis);
+        out.println("Number of coverage checks: " + bs.numCoverageChecks);
         out.println("");
         out.println("Total number of predicates discovered: " + 
                 allPreds.size());
@@ -133,16 +137,36 @@ public class SummaryCPAStatistics implements CPAStatistics {
         out.println("    Total:             " + toTime(bs.abstractionBddTime)); 
         out.println("    Max:               " + 
                 toTime(bs.abstractionMaxBddTime));
+        out.println("  Time for coverage check: ");
+        out.println("    Total:             " + 
+                toTime(bs.bddCoverageCheckTime)); 
+        out.println("    Max:               " + 
+                toTime(bs.bddCoverageCheckMaxTime));
         out.println(
                 "Time for counterexample analysis/abstraction refinement: ");
         out.println("  Total:               " + toTime(bs.cexAnalysisTime)); 
         out.println("  Max:                 " + toTime(bs.cexAnalysisMaxTime));
         out.println("  Solving time only:   " + 
                 toTime(bs.cexAnalysisMathsatTime));
+        if (CPAMain.cpaConfig.getBooleanValue(
+                "cpas.symbpredabs.explicit.getUsefulBlocks")) {
+            out.println("  Cex.focusing total:  " + 
+                    toTime(bs.cexAnalysisGetUsefulBlocksTime));
+            out.println("  Cex.focusing max:    " +
+                    toTime(bs.cexAnalysisGetUsefulBlocksMaxTime));
+        }
         out.println("");
-        out.println("Error location(s) reached? " + 
-                (trans.hasReachedError() ? "YES, there is a BUG!" : 
-                "NO, the system is safe"));
+        out.print("Error location(s) reached? ");
+        switch (errorReached) { 
+        case MainCPAStatistics.ERROR_UNKNOWN:
+            out.println("UNKNOWN, analysis has not completed");
+            break;
+        case MainCPAStatistics.ERROR_REACHED:
+            out.println("YES, there is a BUG!");
+            break;
+        case MainCPAStatistics.ERROR_NOT_REACHED:
+            out.println("NO, the system is safe");            
+        }
     }
     
     private String toTime(long timeMillis) {
