@@ -98,11 +98,13 @@ public class BlockCFABuilder {
 
     private boolean canAddToBlock(CFAEdge e, CFANode n) {
         if (e instanceof AssumeEdge) return false;
+        if (e instanceof ReturnEdge) return false;
         return (n.getNumLeavingEdges() == 1 &&
                 n.getNumEnteringEdges() <= 1 &&
                 n.getLeavingSummaryEdge() == null &&
                 n.getEnteringSummaryEdge() == null &&
-                !(n instanceof CFAErrorNode));
+                !(n instanceof CFAErrorNode) &&
+                !(n instanceof CFAFunctionDefinitionNode));
     }
 
     private void addGlobalDeclarations(CFANode cfa) {
@@ -195,8 +197,17 @@ public class BlockCFABuilder {
                 "CHECKING isLoopBack, e: ", e.getRawStatement(),
                 ", s: ", s.getNodeNumber() + ", RESULT: " + yes);
         if (!yes) {
-            // also return edges are loopbacks
-            yes = e instanceof ReturnEdge;
+            // self-loops are obviously loopbacks! :-) This happens because
+            // in several Blast benchmarks the error function is defined as:
+            // void errorFn() {
+            //     ERROR: goto ERROR;
+            // }
+            if (e.getSuccessor() == e.getPredecessor()) {
+                yes = true;
+            } else {
+                // also return edges are loopbacks
+                yes = e instanceof ReturnEdge;
+            }
         }
         return yes;
     }
