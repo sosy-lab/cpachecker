@@ -1,5 +1,6 @@
 package cpaplugin.cpa.cpas.symbpredabs.summary;
 
+import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
@@ -7,6 +8,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
 import java.util.Stack;
 import java.util.Vector;
@@ -48,12 +50,17 @@ public class SummaryTransferRelation implements TransferRelation {
     // the Abstract Reachability Tree
     class ART {
         Map<AbstractElement, Collection<AbstractElement>> tree;
+        AbstractElement root;
         
         public ART() {
             tree = new HashMap<AbstractElement, Collection<AbstractElement>>();
+            root = null;
         }
         
         public void addChild(AbstractElement parent, AbstractElement child) {
+            if (root == null) {
+                root = parent;
+            }
             if (!tree.containsKey(parent)) {
                 tree.put(parent, new Vector<AbstractElement>()); 
             }
@@ -83,21 +90,68 @@ public class SummaryTransferRelation implements TransferRelation {
             }
             return ret;
         }
+        
+        public AbstractElement findHighest(SummaryCFANode loc) {
+            if (root == null) return null;
+            
+            Queue<AbstractElement> toProcess =
+                new ArrayDeque<AbstractElement>();
+            toProcess.add(root);
+            
+            while (!toProcess.isEmpty()) {
+                SummaryAbstractElement e =
+                    (SummaryAbstractElement)toProcess.remove();
+                if (e.getLocation().equals(loc)) {
+                    return e;
+                }
+                if (tree.containsKey(e)) {
+                    toProcess.addAll(tree.get(e));
+                }
+            }
+            System.out.println("ERROR, NOT FOUND: " + loc);
+            //assert(false);
+            //return null;
+            return root; 
+        }        
     }
+    
+    class Path {
+        Vector<Integer> elemIds;
+        
+        public Path(Deque<SummaryAbstractElement> cex) {
+            elemIds = new Vector<Integer>();
+            elemIds.ensureCapacity(cex.size());
+            for (SummaryAbstractElement e : cex) {
+                elemIds.add(((CFANode)e.getLocation()).getNodeNumber());
+            }
+        }
+        
+        public boolean equals(Object o) {
+            if (o == this) return true;
+            if (o instanceof Path) {
+                return elemIds.equals(((Path)o).elemIds);
+            }
+            return false;
+        }
+        
+        public int hashCode() {
+            return elemIds.hashCode();
+        }
+    }    
 
     private SummaryAbstractDomain domain;
     private ART abstractTree;
+    private Map<Path, Integer> seenAbstractCounterexamples;
     
     private int numAbstractStates = 0; // for statistics
-    private boolean errorReached = false;
     
     public SummaryTransferRelation(SummaryAbstractDomain d) {
         domain = d;
         abstractTree = new ART();
+        seenAbstractCounterexamples = new HashMap<Path, Integer>();
     }
     
     public int getNumAbstractStates() { return numAbstractStates; }
-    public boolean hasReachedError() { return errorReached; }
     
     @Override
     public AbstractDomain getAbstractDomain() {
@@ -181,7 +235,7 @@ public class SummaryTransferRelation implements TransferRelation {
             if (succ.getLocation().getInnerNode() instanceof CFAErrorNode) {
                 if (CPAMain.cpaConfig.getBooleanValue(
                         "cpas.symbpredabs.abstraction.norefinement")) {
-                    errorReached = true;
+                    CPAMain.cpaStats.setErrorReached(true);
                     throw new ErrorReachedException(
                             "Reached error location, but refinement disabled");
                 }
@@ -210,7 +264,7 @@ public class SummaryTransferRelation implements TransferRelation {
                     LazyLogger.log(CustomLogLevel.SpecificCPALevel, 
                             "REACHED ERROR LOCATION!: ", succ, 
                             " RETURNING BOTTOM!");
-                    errorReached = true;
+                    CPAMain.cpaStats.setErrorReached(true);
                     throw new ErrorReachedException(
                             info.getConcreteTrace().toString());
                 }
@@ -259,7 +313,13 @@ public class SummaryTransferRelation implements TransferRelation {
     // abstraction refinement and undoing of (part of) the ART
     private void performRefinement(Deque<SummaryAbstractElement> path, 
             CounterexampleTraceInfo info) throws CPATransferException {
-        // TODO Auto-generated method stub
+        Path pth = new Path(path);
+        int numSeen = 0;
+        if (seenAbstractCounterexamples.containsKey(pth)) {
+            numSeen = seenAbstractCounterexamples.get(pth);
+        }
+        seenAbstractCounterexamples.put(pth, numSeen+1);
+
         UpdateablePredicateMap curpmap =
             (UpdateablePredicateMap)domain.getCPA().getPredicateMap();
         AbstractElement root = null;
@@ -276,8 +336,26 @@ public class SummaryTransferRelation implements TransferRelation {
             }
         }
         if (root == null) {
-            root = firstInterpolant;
+            assert(firstInterpolant != null);
+            if (numSeen > 1) {
+                assert(numSeen == 2);
+            } else {
+                assert(numSeen <= 1);
+            }
+            root = abstractTree.findHighest(
+                    ((SummaryAbstractElement)firstInterpolant).getLocation());
         }
+        assert(root != null);
+        if (CPAMain.cpaConfig.getBooleanValue("analysis.bfs")) {
+            // TODO When using bfs traversal, we would have to traverse the ART
+            // computed so far, and check for each leaf whether to re-add it
+            // to the waiting list or not, similarly to what Blast does
+            // (file psrc/be/modelChecker/lazyModelChecker.ml, function
+            // update_tree_after_refinment). But for now, for simplicity we 
+            // just restart from scratch
+            root = path.getFirst();
+        }
+        
         assert(root != null);
         //root = path.getFirst();
         Collection<AbstractElement> toWaitlist = new HashSet<AbstractElement>();
