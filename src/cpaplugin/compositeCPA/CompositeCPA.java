@@ -163,7 +163,9 @@ public class CompositeCPA implements ConfigurableProblemAnalysis
 		ConfigurableProblemAnalysis cpa = null;
 		// TODO this was for efficiency but I modified the condition for it to work only with
 		// summary nodes
-		if (cpas.size() == 1 && CPAMain.cpaConfig.getBooleanValue("analysis.useSummaryLocations")) {
+		if (cpas.size() == 1 && 
+		        CPAMain.cpaConfig.getBooleanValue(
+		                "analysis.noCompositeCPA")) {
 		    LazyLogger.log(CustomLogLevel.MainApplicationLevel, 
 		            "Only one analyis active, ",
 		            "no need of a composite CPA");
