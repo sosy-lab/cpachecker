@@ -11,11 +11,23 @@ public class MainCPAStatistics implements CPAStatistics {
     private long analysisStartingTime;
     private long analysisEndingTime;
     
+    public final static int ERROR_UNKNOWN = -1;
+    public final static int ERROR_REACHED = 0;
+    public final static int ERROR_NOT_REACHED = 1;
+    private int errorReached;
+    
+    
     public MainCPAStatistics() {
         subStats = new LinkedList<CPAStatistics>();
         programStartingTime = 0;
         analysisStartingTime = 0;
         analysisEndingTime = 0;
+        errorReached = ERROR_UNKNOWN;
+    }
+    
+    public int getErrorReached() { return errorReached; }
+    public void setErrorReached(boolean yes) {
+        errorReached = yes ? ERROR_REACHED : ERROR_NOT_REACHED;
     }
     
     public void startProgramTimer() {
@@ -46,26 +58,9 @@ public class MainCPAStatistics implements CPAStatistics {
         
         out.println("\nCPAChecker general statistics:");
         out.println("------------------------------");
-
-        long hours = totalTimeInMillis / (1000 * 60 * 60);
-        totalTimeInMillis %= (1000 * 60 * 60);
-        long minutes = totalTimeInMillis / (1000 * 60);
-        totalTimeInMillis %= (1000 * 60);
-        out.println("Total Time Elapsed " + 
-                hours + " hr, " +  
-                minutes + " min, " + 
-                totalTimeInMillis / 1000 + " sec, " + 
-                totalTimeInMillis % 1000 + " ms");
-        hours = totalAbsoluteTimeMillis / (1000 * 60 * 60);
-        totalAbsoluteTimeMillis %= (1000 * 60 * 60);
-        minutes = totalAbsoluteTimeMillis / (1000 * 60);
-        totalAbsoluteTimeMillis %= (1000 * 60);
-        out.println(
-                "Total Time Elapsed including CFA construction " + 
-                hours + " hr, " +  
-                minutes + " min, " + 
-                totalAbsoluteTimeMillis / 1000 + " sec, " + 
-                totalAbsoluteTimeMillis % 1000 + " ms");
+        out.println("Total Time Elapsed: " + toTime(totalTimeInMillis)); 
+        out.println("Total Time Elapsed including CFA construction: " +
+                toTime(totalAbsoluteTimeMillis));
         
         if (!subStats.isEmpty()) {
             out.println("\nAnalysis-specific statistics:");
@@ -85,4 +80,7 @@ public class MainCPAStatistics implements CPAStatistics {
         out.flush();
     }
 
+    private String toTime(long timeMillis) {
+        return String.format("% 5d.%03ds", timeMillis/1000, timeMillis%1000);
+    }
 }
