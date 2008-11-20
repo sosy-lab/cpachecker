@@ -65,6 +65,9 @@ public class UpdateablePredicateMap implements PredicateMap {
             if (added) {
                 LazyLogger.log(LazyLogger.DEBUG_1, "UPDATED PREDICATES FOR ", n,
                         ": ", s);
+            } else {
+                LazyLogger.log(LazyLogger.DEBUG_2, "NOT ADDING PREDICATES TO ", 
+                        n, ": ", s, ", preds: ", preds);
             }
         }
         return added;
