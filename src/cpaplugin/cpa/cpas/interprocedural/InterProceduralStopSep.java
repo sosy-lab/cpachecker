@@ -35,8 +35,8 @@ public class InterProceduralStopSep implements StopOperator
 	}
 
 	public boolean isBottomElement(AbstractElement element) {
-		// TODO Auto-generated method stub
-		return false;
+		InterProceduralElement interProcElem = (InterProceduralElement) element;
+		return (interProcElem == ipDomain.getBottomElement());
 	}
 
 	public boolean stop(AbstractElement element, AbstractElement reachedElement)

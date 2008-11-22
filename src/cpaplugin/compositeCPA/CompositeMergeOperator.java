@@ -27,6 +27,8 @@ public class CompositeMergeOperator implements MergeOperator{
 		return compositeDomain;
 	}
 
+	
+	// TODO fix this part
 	public AbstractElement merge (AbstractElement element1, AbstractElement element2)
 	{
 		// Merge Sep Code

@@ -1,26 +1,25 @@
 package cpaplugin.cpa.cpas.interprocedural;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.util.Stack;
 
+import cpaplugin.cfa.objectmodel.CFANode;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 
 public class InterProceduralElement implements AbstractElement
 {
-	private List<CallElement> callStack;
+	private Stack<CallElement> callStack;
 	
 	public InterProceduralElement ()
 	{
-		this.callStack = new ArrayList<CallElement>();
+		this.callStack = new Stack<CallElement>();
 	}
 
-	public InterProceduralElement (List<CallElement> stack)
+	public InterProceduralElement (Stack<CallElement> stack)
 	{
 		this.callStack = stack;
 	}
 
-	public List<CallElement> getCallStack ()
+	public Stack<CallElement> getCallStack ()
 	{
 		return callStack;
 	}
@@ -41,31 +40,28 @@ public class InterProceduralElement implements AbstractElement
 				return false;
 			}
 		}
-			
 		return true;
 	}
 
-	public boolean containsCallElement (CallElement elem){
-		return (this.callStack.contains(elem));
-	}
+//	public boolean containsCallElement (CallElement elem){
+//		return (this.callStack.contains(elem));
+//	}
 
-	public boolean containsCall(String fName){
-		Iterator<CallElement> it = this.callStack.iterator();
-		while(it.hasNext()){
-			CallElement ce = it.next();
-			if(ce.getFunctionName().compareTo(fName) == 0){
-				return true;
-			}
-		}
-		return false;
-	}
+//	public boolean containsCall(String fName){
+//		Iterator<CallElement> it = this.callStack.iterator();
+//		while(it.hasNext()){
+//			CallElement ce = it.next();
+//			if(ce.getFunctionName().compareTo(fName) == 0){
+//				return true;
+//			}
+//		}
+//		return false;
+//	}
 
 	public String toString ()
 	{
 		String s = "Call Stack: \n ============ \n";
-		Iterator<CallElement> it = this.callStack.iterator();
-		while(it.hasNext()){
-			CallElement ce = it.next();
+		for(CallElement ce:callStack){
 			s = s + ce + "\n";
 		}
 		return s;
@@ -76,32 +72,36 @@ public class InterProceduralElement implements AbstractElement
 	}
 	
 	public InterProceduralElement clone(){
-		List<CallElement> list = new ArrayList<CallElement>();
-		Iterator<CallElement> it = callStack.iterator();
-		while(it.hasNext()){
-			CallElement elem = it.next();
-			list.add(elem);
+		Stack<CallElement> stack = new Stack<CallElement>();
+		for(CallElement ce:this.callStack){
+			stack.add(ce);
 		}
-		return new InterProceduralElement(list);
+		return new InterProceduralElement(stack);
 	}
 	
-	public void addCallElement(CallElement ce){
-		this.callStack.add(ce);
+	public void push(CallElement ce){
+		this.callStack.push(ce);
 	}
 	
-	public CallElement getCallElement(String pfName) {
-		Iterator<CallElement> it = callStack.iterator();
-		assert(containsCall(pfName));
-		while(it.hasNext()){
-			CallElement elem = it.next();
-			if(elem.getFunctionName().compareTo(pfName) == 0){
-				return elem;
-			}
-		}
-		return null;
+	public CallElement peek(){
+		return this.callStack.peek();
 	}
+	
+	public CallElement pop(){
+		return this.callStack.pop();
+	}
+	
+//	
+//	public CallElement getCallElement(String pfName) {
+//		for(CallElement ce:callStack){
+//			if(elem.getFunctionName().compareTo(pfName) == 0){
+//				return elem;
+//			}
+//		}
+//		return null;
+//	}
 
-	public void removeCallElement(String pfName) {
-		this.callStack.remove(getCallElement(pfName));
-	}
+//	public void removeCallElement(String pfName) {
+//		this.callStack.remove(getCallElement(pfName));
+//	}
 }

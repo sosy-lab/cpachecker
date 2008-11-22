@@ -39,23 +39,16 @@ public class InterProceduralTransferRelation implements TransferRelation
 		{
 			ipElement = ipElement.clone();
 			FunctionCallEdge functionCallEdge = (FunctionCallEdge) cfaEdge;
-			FunctionDefinitionNode calledNode = ((FunctionDefinitionNode)functionCallEdge.getSuccessor());
-			CFANode callerNode = ((CFANode)functionCallEdge.getPredecessor());
-
-			if(ipElement.containsCall(calledNode.getFunctionName())){
-				handleRecursiveFunctionCall(functionCallEdge);
-			}
-			else{
-				handleFunctionCall(functionCallEdge);
-				CallElement ce = new CallElement(calledNode.getFunctionName(), callerNode.getNodeNumber());
-				ipElement.addCallElement(ce);
-			}
+			CFANode callerNode = functionCallEdge.getPredecessor();
+			CFANode returnNode = callerNode.getLeavingSummaryEdge().getSuccessor();
+			CallElement ce = new CallElement(callerNode, returnNode);
+			ipElement.push(ce);
 			return ipElement;
 		}
 
 //		case StatementEdge:
-//	{
-//	ipElement = ipElement.clone();
+//		{
+//		ipElement = ipElement.clone();
 
 //		StatementEdge statementEdge = (StatementEdge) cfaEdge;
 //		IASTExpression expression = statementEdge.getExpression ();
@@ -71,8 +64,17 @@ public class InterProceduralTransferRelation implements TransferRelation
 
 		case ReturnEdge:
 		{
+			CallElement topElement = ipElement.peek();
 			ipElement = ipElement.clone();
 			ReturnEdge exitEdge = (ReturnEdge) cfaEdge;
+			CFANode returnNode = exitEdge.getSuccessor();
+			
+			
+			if(topElement.equals()){
+				
+			}
+			
+			
 			CFANode predecessorNode = exitEdge.getPredecessor();
 			CFANode successorNode = exitEdge.getSuccessor();
 			String sfName = successorNode.getFunctionName();
