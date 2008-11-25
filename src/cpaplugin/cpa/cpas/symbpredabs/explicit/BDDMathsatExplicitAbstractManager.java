@@ -842,6 +842,8 @@ public class BDDMathsatExplicitAbstractManager extends
             "cpas.symbpredabs.shortestCexTrace");
         boolean suffixTrace = CPAMain.cpaConfig.getBooleanValue(
             "cpas.symbpredabs.shortestCexTraceUseSuffix");
+        boolean useZigZag = CPAMain.cpaConfig.getBooleanValue(
+                "cpas.symbpredabs.shortestCexTraceZigZag");
         
         LazyLogger.log(LazyLogger.DEBUG_3,
                        "Checking feasibility of abstract trace");
@@ -849,7 +851,8 @@ public class BDDMathsatExplicitAbstractManager extends
         if (shortestTrace && CPAMain.cpaConfig.getBooleanValue(
                 "cpas.symbpredabs.explicit.getUsefulBlocks")) {
             long gubStart = System.currentTimeMillis();
-            f = getUsefulBlocks(mmgr, f, theoryCombinationNeeded, suffixTrace);
+            f = getUsefulBlocks(mmgr, f, theoryCombinationNeeded, 
+                                suffixTrace, useZigZag, false);
             long gubEnd = System.currentTimeMillis();
             stats.cexAnalysisGetUsefulBlocksTime += gubEnd - gubStart;
             stats.cexAnalysisGetUsefulBlocksMaxTime = Math.max(
@@ -1115,7 +1118,7 @@ public class BDDMathsatExplicitAbstractManager extends
     @Override
     public Vector<SymbolicFormula> getUsefulBlocks(SymbolicFormulaManager mgr, 
             Vector<SymbolicFormula> f, boolean theoryCombinationNeeded, 
-            boolean suffixTrace, boolean setAllTrueIfSat) {
+            boolean suffixTrace, boolean zigZag, boolean setAllTrueIfSat) {
         // try to find a minimal-unsatisfiable-core of the trace (as Blast does)
         MathsatSymbolicFormulaManager mmgr = (MathsatSymbolicFormulaManager)mgr; 
  
@@ -1154,24 +1157,57 @@ public class BDDMathsatExplicitAbstractManager extends
             }
             // 3. otherwise, assert one block at a time, until we get an 
             // inconsistency
-            for (int i = pos; suffixTrace ? i >= 0 : i < f.size(); i += incr){
-                MathsatSymbolicFormula t = 
-                    (MathsatSymbolicFormula)f.elementAt(i);
-                thmProver.push(t);
-                ++toPop;
-                if (thmProver.isUnsat(trueFormula)) {
-                    // add this block to the needed ones, and repeat
-                    needed[i] = t;
-                    LazyLogger.log(LazyLogger.DEBUG_1,
-                            "Found needed block: ", i, ", term: ", t);
-                    // pop all
-                    while (toPop > 0) {
-                        --toPop;
-                        thmProver.pop();
+            if (zigZag) {
+                int e = f.size()-1;
+                int s = 0;
+                boolean fromStart = false;
+                while (true) {
+                    int i = fromStart ? s : e;
+                    if (fromStart) s++;
+                    else e--;
+                    fromStart = !fromStart;
+                    
+                    MathsatSymbolicFormula t = 
+                        (MathsatSymbolicFormula)f.elementAt(i);
+                    thmProver.push(t);
+                    ++toPop;
+                    if (thmProver.isUnsat(trueFormula)) {
+                        // add this block to the needed ones, and repeat
+                        needed[i] = t;
+                        LazyLogger.log(LazyLogger.DEBUG_1,
+                                "Found needed block: ", i, ", term: ", t);
+                        // pop all
+                        while (toPop > 0) {
+                            --toPop;
+                            thmProver.pop();
+                        }
+                        // and go to the next iteration of the while loop
+                        consistent = false;
+                        break;
                     }
-                    // and go to the next iteration of the while loop
-                    consistent = false;
-                    break;
+                    if (s > e) break;
+                }            
+            } else {
+                for (int i = pos; suffixTrace ? i >= 0 : i < f.size(); 
+                     i += incr) {
+                    MathsatSymbolicFormula t = 
+                        (MathsatSymbolicFormula)f.elementAt(i);
+                    thmProver.push(t);
+                    ++toPop;
+                    if (thmProver.isUnsat(trueFormula)) {
+                        // add this block to the needed ones, and repeat
+                        needed[i] = t;
+                        LazyLogger.log(LazyLogger.DEBUG_1,
+                                "Found needed block: ", i, ", term: ", t);
+                        // pop all
+                        while (toPop > 0) {
+                            --toPop;
+                            thmProver.pop();
+                        }
+                        // and go to the next iteration of the while loop
+                        consistent = false;
+                        break;
+                    }
                 }
             }
             if (consistent) {
@@ -1199,13 +1235,6 @@ public class BDDMathsatExplicitAbstractManager extends
         return f;
     }
 
-    public Vector<SymbolicFormula> getUsefulBlocks(SymbolicFormulaManager mgr,
-            Vector<SymbolicFormula> trace, boolean theoryCombinationNeeded,
-            boolean suffixTrace) {
-        return getUsefulBlocks(mgr, trace, theoryCombinationNeeded, 
-                suffixTrace, false);
-    }
-    
     class ArrayToStringConverter {
         private Object[] arr;
         public ArrayToStringConverter(Object[] a) { arr = a; }

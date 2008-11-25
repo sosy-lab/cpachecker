@@ -383,7 +383,7 @@ public class BDDMathsatSummaryAbstractManager extends
             stats.abstractionMaxMathsatSolveTime = 
                 Math.max(msatSolveTime, stats.abstractionMaxMathsatSolveTime);
                 
-            if (abstractionMsatTime > 1000 && dumpHardAbstractions) {
+            if (abstractionMsatTime > 10000 && dumpHardAbstractions) {
                 // we want to dump "hard" problems...
                 if (absPrinter == null) {
                     absPrinter = new BDDMathsatSummaryAbstractionPrinter(
@@ -505,6 +505,8 @@ public class BDDMathsatSummaryAbstractManager extends
                 "cpas.symbpredabs.shortestCexTrace");
         boolean useSuffix = CPAMain.cpaConfig.getBooleanValue(
                 "cpas.symbpredabs.shortestCexTraceUseSuffix");
+        boolean useZigZag = CPAMain.cpaConfig.getBooleanValue(
+                "cpas.symbpredabs.shortestCexTraceZigZag");
         
         long msatSolveTimeStart = System.currentTimeMillis();
 
@@ -516,7 +518,8 @@ public class BDDMathsatSummaryAbstractManager extends
         if (shortestTrace && CPAMain.cpaConfig.getBooleanValue(
                 "cpas.symbpredabs.explicit.getUsefulBlocks")) {
             long gubStart = System.currentTimeMillis();
-            f = getUsefulBlocks(mmgr, f, theoryCombinationNeeded, useSuffix);
+            f = getUsefulBlocks(mmgr, f, theoryCombinationNeeded, 
+                                useSuffix, useZigZag, false);
             long gubEnd = System.currentTimeMillis();
             stats.cexAnalysisGetUsefulBlocksTime += gubEnd - gubStart;
             stats.cexAnalysisGetUsefulBlocksMaxTime = Math.max(
@@ -527,31 +530,61 @@ public class BDDMathsatSummaryAbstractManager extends
         }
         
         
-        for (int i = useSuffix ? f.size()-1 : 0; 
-             useSuffix ? i >= 0 : i < f.size(); i += useSuffix ? -1 : 1) {
-            SymbolicFormula fm = f.elementAt(i);
-            itpProver.addFormula(fm);
-            if (shortestTrace && !fm.isTrue()) {
-                if (itpProver.isUnsat()) {
-                    res = 0;
-                    // we need to add the other formulas to the itpProver 
-                    // anyway, so it can setup its internal state properly
-                    for (int j = i+(useSuffix ? -1 : 1);
-                         useSuffix ? j >= 0 : j < f.size();
-                         j += useSuffix ? -1 : 1) {
-                        itpProver.addFormula(f.elementAt(j));
+        if (!shortestTrace || !useZigZag) {
+            for (int i = useSuffix ? f.size()-1 : 0; 
+            useSuffix ? i >= 0 : i < f.size(); i += useSuffix ? -1 : 1) {
+                SymbolicFormula fm = f.elementAt(i);
+                itpProver.addFormula(fm);
+                if (shortestTrace && !fm.isTrue()) {
+                    if (itpProver.isUnsat()) {
+                        res = 0;
+                        // we need to add the other formulas to the itpProver 
+                        // anyway, so it can setup its internal state properly
+                        for (int j = i+(useSuffix ? -1 : 1);
+                        useSuffix ? j >= 0 : j < f.size();
+                        j += useSuffix ? -1 : 1) {
+                            itpProver.addFormula(f.elementAt(j));
+                        }
+                        break;
+                    } else {
+                        res = 1;
                     }
-                    break;
                 } else {
-                    res = 1;
+                    res = -1;
                 }
-            } else {
-                res = -1;
             }
-        }
-        if (!shortestTrace || res == -1) {
-            unsat = itpProver.isUnsat();
-        } else {
+            if (!shortestTrace || res == -1) {
+                unsat = itpProver.isUnsat();
+            } else {
+                unsat = res == 0;
+            }
+        } else { // shortestTrace && useZigZag      
+            int e = f.size()-1;
+            int s = 0;
+            boolean fromStart = false;
+            while (true) {
+                int i = fromStart ? s : e;
+                if (fromStart) s++;
+                else e--;
+                fromStart = !fromStart;
+                SymbolicFormula fm = f.elementAt(i);
+                itpProver.addFormula(fm);
+                if (!fm.isTrue()) {
+                    if (itpProver.isUnsat()) {
+                        res = 0;
+                        for (int j = s; j <= e; ++j) {
+                            itpProver.addFormula(f.elementAt(j));
+                        }
+                        break;
+                    } else {
+                        res = 1;
+                    }
+                } else {
+                    res = -1;
+                }
+                if (s > e) break;
+            }            
+            assert(res != -1);
             unsat = res == 0;
         }
         
@@ -741,7 +774,7 @@ public class BDDMathsatSummaryAbstractManager extends
     public Vector<SymbolicFormula> getUsefulBlocks(
         SymbolicFormulaManager mgr, Vector<SymbolicFormula> f,
         boolean theoryCombinationNeeded, boolean suffixTrace,
-        boolean setAllTrueIfSat) {
+        boolean zigZag, boolean setAllTrueIfSat) {
         // try to find a minimal-unsatisfiable-core of the trace (as Blast does)
         MathsatSymbolicFormulaManager mmgr =
             (MathsatSymbolicFormulaManager)mgr; 
@@ -781,24 +814,58 @@ public class BDDMathsatSummaryAbstractManager extends
             }
             // 3. otherwise, assert one block at a time, until we get an 
             // inconsistency
-            for (int i = pos; suffixTrace ? i >= 0 : i < f.size(); i += incr){
-                MathsatSymbolicFormula t = 
-                    (MathsatSymbolicFormula)f.elementAt(i);
-                thmProver.push(t);
-                ++toPop;
-                if (thmProver.isUnsat(trueFormula)) {
-                    // add this block to the needed ones, and repeat
-                    needed[i] = t;
-                    LazyLogger.log(LazyLogger.DEBUG_1,
-                                   "Found needed block: ", i, ", term: ", t);
-                    // pop all
-                    while (toPop > 0) {
-                        --toPop;
-                        thmProver.pop();
+            if (zigZag) {
+                int s = 0;
+                int e = f.size()-1;
+                boolean fromStart = false;
+                while (true) {
+                    int i = fromStart ? s : e;
+                    if (fromStart) ++s;
+                    else --e;
+                    fromStart = !fromStart;
+
+                    MathsatSymbolicFormula t = 
+                        (MathsatSymbolicFormula)f.elementAt(i);
+                    thmProver.push(t);
+                    ++toPop;
+                    if (thmProver.isUnsat(trueFormula)) {
+                        // add this block to the needed ones, and repeat
+                        needed[i] = t;
+                        LazyLogger.log(LazyLogger.DEBUG_1,
+                                "Found needed block: ", i, ", term: ", t);
+                        // pop all
+                        while (toPop > 0) {
+                            --toPop;
+                            thmProver.pop();
+                        }
+                        // and go to the next iteration of the while loop
+                        consistent = false;
+                        break;
                     }
-                    // and go to the next iteration of the while loop
-                    consistent = false;
-                    break;
+                    
+                    if (e < s) break;
+                }
+            } else {
+                for (int i = pos; suffixTrace ? i >= 0 : i < f.size(); 
+                     i += incr) {
+                    MathsatSymbolicFormula t = 
+                        (MathsatSymbolicFormula)f.elementAt(i);
+                    thmProver.push(t);
+                    ++toPop;
+                    if (thmProver.isUnsat(trueFormula)) {
+                        // add this block to the needed ones, and repeat
+                        needed[i] = t;
+                        LazyLogger.log(LazyLogger.DEBUG_1,
+                                "Found needed block: ", i, ", term: ", t);
+                        // pop all
+                        while (toPop > 0) {
+                            --toPop;
+                            thmProver.pop();
+                        }
+                        // and go to the next iteration of the while loop
+                        consistent = false;
+                        break;
+                    }
                 }
             }
             if (consistent) {
@@ -826,13 +893,6 @@ public class BDDMathsatSummaryAbstractManager extends
         return f;
     }
  
-    public Vector<SymbolicFormula> getUsefulBlocks(
-        SymbolicFormulaManager mgr, Vector<SymbolicFormula> trace,
-        boolean theoryCombinationNeeded, boolean suffixTrace) {
-        return getUsefulBlocks(mgr, trace, theoryCombinationNeeded, 
-                               suffixTrace, false);
-    }
-     
     private void printFuncNamesInTrace(
         Deque<SummaryAbstractElement> abstractTrace) {
         if (true) {

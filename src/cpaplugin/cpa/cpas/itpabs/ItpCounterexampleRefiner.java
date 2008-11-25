@@ -119,7 +119,7 @@ public class ItpCounterexampleRefiner {
                 "cpas.symbpredabs.explicit.getUsefulBlocks")) {
 //            long gubStart = System.currentTimeMillis();
             f = amgr.getUsefulBlocks(
-                    mgr, f, theoryCombinationNeeded, false, false);
+                    mgr, f, theoryCombinationNeeded, false, false, false);
 //            long gubEnd = System.currentTimeMillis();
 //            stats.cexAnalysisGetUsefulBlocksTime += gubEnd - gubStart;
 //            stats.cexAnalysisGetUsefulBlocksMaxTime = Math.max(
@@ -358,7 +358,7 @@ public class ItpCounterexampleRefiner {
         if (getUsefulBlocks) {
             //long gubStart = System.currentTimeMillis();
             f = amgr.getUsefulBlocks(
-                    mgr, f, theoryCombinationNeeded, false, true);
+                    mgr, f, theoryCombinationNeeded, false, false, true);
             //long gubEnd = System.currentTimeMillis();
             //          stats.cexAnalysisGetUsefulBlocksTime += gubEnd - gubStart;
             //          stats.cexAnalysisGetUsefulBlocksMaxTime = Math.max(

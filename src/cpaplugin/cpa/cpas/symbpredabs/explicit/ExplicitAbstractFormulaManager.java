@@ -59,5 +59,5 @@ public interface ExplicitAbstractFormulaManager extends AbstractFormulaManager {
     
     public Vector<SymbolicFormula> getUsefulBlocks(SymbolicFormulaManager mgr,
             Vector<SymbolicFormula> trace, boolean theoryCombinationNeeded,
-            boolean suffixTrace, boolean setAllTrueIfSat);
+            boolean suffixTrace, boolean zigZag, boolean setAllTrueIfSat);
 }
