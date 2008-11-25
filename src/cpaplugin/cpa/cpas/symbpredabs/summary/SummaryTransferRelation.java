@@ -338,7 +338,7 @@ public class SummaryTransferRelation implements TransferRelation {
         if (root == null) {
             assert(firstInterpolant != null);
             if (numSeen > 1) {
-                assert(numSeen == 2);
+//                assert(numSeen == 2);
             } else {
                 assert(numSeen <= 1);
             }
