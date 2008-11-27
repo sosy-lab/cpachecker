@@ -46,7 +46,8 @@ public class OctWrapper {
 	/* change of dimensions */
 	public native Octagon J_addDimenensionAndEmbed (Octagon oct, int k, boolean dest);		//oct_t* oct_add_dimensions_and_embed( oct_t* m, var_t dimsup, bool destructive)
 	public native Octagon J_addDimenensionAndProject (Octagon oct, int k, boolean dest);	//oct_t* oct_add_dimensions_and_project( oct_t* m, var_t dimsup, bool destructive)
-	public native Octagon J_removeDimenension (Octagon oct, int k, boolean dest);			//oct_t*  oct_remove_dimensions( oct_t* m, var_t dimsup, bool destructive)
+	public native Octagon J_removeDimension (Octagon oct, int k, boolean dest);			//oct_t*  oct_remove_dimensions( oct_t* m, var_t dimsup, bool destructive)
+	public native Octagon J_removeDimensionAtPosition (Octagon oct, int position, int numOfDims, boolean dest);  //oct_t* oct_remove_dimensions_multi( oct_t* m, const dimsup_t* t,	size_t size_t, bool destructive)
 
 	// TODO implement rest of the functions
 	

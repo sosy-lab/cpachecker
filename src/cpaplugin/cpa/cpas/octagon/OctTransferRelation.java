@@ -1,14 +1,18 @@
 package cpaplugin.cpa.cpas.octagon;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import octagon.LibraryAccess;
 import octagon.Num;
-import octagon.Variable;
+import octagon.Octagon;
 
 import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTCastExpression;
+import org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression;
@@ -16,6 +20,8 @@ import org.eclipse.cdt.core.dom.ast.IASTIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
 import org.eclipse.cdt.core.dom.ast.IASTPointerOperator;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
+
+import sun.awt.GlobalCursorManager;
 
 import cpaplugin.cfa.objectmodel.CFAEdge;
 import cpaplugin.cfa.objectmodel.CFAExitNode;
@@ -25,6 +31,7 @@ import cpaplugin.cfa.objectmodel.c.CallToReturnEdge;
 import cpaplugin.cfa.objectmodel.c.DeclarationEdge;
 import cpaplugin.cfa.objectmodel.c.FunctionCallEdge;
 import cpaplugin.cfa.objectmodel.c.FunctionDefinitionNode;
+import cpaplugin.cfa.objectmodel.c.GlobalDeclarationEdge;
 import cpaplugin.cfa.objectmodel.c.ReturnEdge;
 import cpaplugin.cfa.objectmodel.c.StatementEdge;
 import cpaplugin.cmdline.CPAMain;
@@ -44,6 +51,8 @@ public class OctTransferRelation implements TransferRelation{
 	// the domain of the cpa, this can be used to retrieve the bottom and the
 	// top elements if needed
 	private OctDomain octDomain;
+	// set to set global variables
+	private Set<String> globalVars;
 
 	/**
 	 * Class constructor.
@@ -52,6 +61,7 @@ public class OctTransferRelation implements TransferRelation{
 	public OctTransferRelation (OctDomain octDomain)
 	{
 		this.octDomain = octDomain;
+		globalVars = new HashSet<String>();
 	}
 
 	/* (non-Javadoc)
@@ -89,7 +99,8 @@ public class OctTransferRelation implements TransferRelation{
 			// this is a statement edge which leads the function to the 
 			// last node of its CFA, where return edge is from that last node
 			// to the return site of the caller function
-			if(statementEdge.isJumpEdge()){
+			if(statementEdge.isJumpEdge())
+			{
 				try {
 					handleExitFromFunction(octElement, expression, statementEdge);
 				} catch (OctagonTransferException e) {
@@ -114,8 +125,7 @@ public class OctTransferRelation implements TransferRelation{
 			octElement = octElement.clone ();
 
 			DeclarationEdge declarationEdge = (DeclarationEdge) cfaEdge;
-			IASTDeclarator [] declarators = declarationEdge.getDeclarators ();
-			handleDeclaration (octElement, declarators, cfaEdge);
+			handleDeclaration (octElement, declarationEdge);
 			break;
 		}
 
@@ -146,12 +156,10 @@ public class OctTransferRelation implements TransferRelation{
 			octElement = octElement.clone ();
 			FunctionCallEdge functionCallEdge = (FunctionCallEdge) cfaEdge;
 
-			// this function is already registered on call stack
-			if(functionCallEdge.isRecursive()){
-				handleRecursiveFunctionCall(octElement, functionCallEdge);
-			}
+			// TODO check later
 			// call to an external function
-			else if(functionCallEdge.isExternalCall()){
+			if(functionCallEdge.isExternalCall())
+			{
 				try {
 					handleExternalFunctionCall(octElement, functionCallEdge);
 				} catch (OctagonTransferException e) {
@@ -160,7 +168,12 @@ public class OctTransferRelation implements TransferRelation{
 			}
 			// this function is not on call stack
 			else{
-				handleFunctionCall(octElement, functionCallEdge);
+				try {
+					handleFunctionCall(octElement, functionCallEdge);
+				} catch (OctagonTransferException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 			}
 			break;
 		}
@@ -169,45 +182,43 @@ public class OctTransferRelation implements TransferRelation{
 		// of the function. See case for statement edge for details 
 		case ReturnEdge:
 		{
-			octElement = octElement.clone ();
-			ReturnEdge exitEdge = (ReturnEdge) cfaEdge;
-			CFANode predecessorNode = exitEdge.getPredecessor();
-			CFANode successorNode = exitEdge.getSuccessor();
-			// terminated function's name
-			String returnedFunctionName = predecessorNode.getFunctionName();
-			// name of the function which called that function
-			String callerFunctionName = successorNode.getFunctionName();
+//			octElement = octElement.clone ();
+//			ReturnEdge exitEdge = (ReturnEdge) cfaEdge;
+//			CFANode predecessorNode = exitEdge.getPredecessor();
+//			CFANode successorNode = exitEdge.getSuccessor();
+//			// terminated function's name
+//			String returnedFunctionName = predecessorNode.getFunctionName();
+//			// name of the function which called that function
+//			String callerFunctionName = successorNode.getFunctionName();
 
-			// get the summary edge on the caller function from call site to return site
-			CallToReturnEdge summaryEdge = (CallToReturnEdge)successorNode.getEnteringSummaryEdge();
-			IASTBinaryExpression expression = (IASTBinaryExpression)summaryEdge.getExpression();
-			// varName is the name of the variable which is modified by that function call
-			// e.g. if a = meth(b, c); is called in main(), we are returning to main()
-			// with that edge and variable a will be updated, varName retrieves this
-			// variable from the summaryEdge
-			String varName = ((IASTIdExpression)expression.getOperand1()).getRawSignature();
+//			// get the summary edge on the caller function from call site to return site
+//			CallToReturnEdge summaryEdge = (CallToReturnEdge)successorNode.getEnteringSummaryEdge();
+//			AbstractElement prevElement = summaryEdge.extractAbstractElement("OctElement");
+//			IASTBinaryExpression expression = (IASTBinaryExpression)summaryEdge.getExpression();
+//			// varName is the name of the variable which is modified by that function call
+//			// e.g. if a = meth(b, c); is called in main(), we are returning to main()
+//			// with that edge and variable a will be updated, varName retrieves this
+//			// variable from the summaryEdge
+//			String varName = ((IASTIdExpression)expression.getOperand1()).getRawSignature();
 
-			if(exitEdge.isExitingRecursiveCall()){
-				// TODO recursive return
-				handleSummaryEdge(octElement, varName, returnedFunctionName, callerFunctionName);
-			}
-			// if this is return from the entry function do nothing
-			else if(predecessorNode.getFunctionName().equals(CPAMain.cpaConfig.getProperty("analysis.entryFunction"))){
-				//Do nothing
-			}
-			// this is not a return from a recursive call
-			else{
-				handleSummaryEdge(octElement, varName, returnedFunctionName, callerFunctionName);
-				// get the call site from summary edge
-				CFANode callerNode =  summaryEdge.getPredecessor();
-				assert ((FunctionDefinitionNode)callerNode.getLeavingEdge(0) != null);
-				assert ((FunctionDefinitionNode)callerNode.getLeavingEdge(0) instanceof FunctionDefinitionNode);
-				// the first node of the returned function
-				FunctionDefinitionNode fdefNode = (FunctionDefinitionNode)callerNode.getLeavingEdge(0).getSuccessor();
-				// get parameters of this function
-				List<String> parameters = fdefNode.getFunctionParameterNames();
-				removeFunctionParameters(octElement, parameters, returnedFunctionName);
-			}
+//			// TODO check - if this is return from the entry function do nothing
+//			if(predecessorNode.getFunctionName().equals(CPAMain.cpaConfig.getProperty("analysis.entryFunction")))
+//			{
+//			//Do nothing
+//			}
+//			else{
+////			handleSummaryEdge(octElement, prevElement, varName, returnedFunctionName, callerFunctionName);
+////			// get the call site from summary edge
+////			CFANode callerNode =  summaryEdge.getPredecessor();
+////			asdas
+////			assert ((FunctionDefinitionNode)callerNode.getLeavingEdge(0) != null);
+////			assert ((FunctionDefinitionNode)callerNode.getLeavingEdge(0) instanceof FunctionDefinitionNode);
+////			// the first node of the returned function
+////			FunctionDefinitionNode fdefNode = (FunctionDefinitionNode)callerNode.getLeavingEdge(0).getSuccessor();
+////			// get parameters of this function
+////			List<String> parameters = fdefNode.getFunctionParameterNames();
+////			removeFunctionParameters(octElement, parameters, returnedFunctionName);
+//			}
 			break;
 		}
 
@@ -263,39 +274,48 @@ public class OctTransferRelation implements TransferRelation{
 	}	
 
 	/**
-	 * @param octElement element to be modified
-	 * @param declarators keeps declarations, used to retrieve declared variables
-	 * @param cfaEdge decleration edge
+	 * @param octElement element to be updated possibly by adding new variables
+	 * @param cfaEdge declaration edge
 	 */
 	private void handleDeclaration(OctElement octElement,
-			IASTDeclarator[] declarators, CFAEdge cfaEdge) {
+			DeclarationEdge declarationEdge) {
+
+		IASTDeclarator[] declarators = declarationEdge.getDeclarators();
+		IASTDeclSpecifier specifier = declarationEdge.getDeclSpecifier();
+
 		for (IASTDeclarator declarator : declarators)
 		{
-			if(declarator != null){
+			if(declarator != null)
+			{
 				// get the variable name in the declarator
 				String varName = declarator.getName().toString();
+
+				// TODO check other types of variables later - just handle primitive 
+				// types for the moment
 				// get pointer operators of the declaration
 				IASTPointerOperator[] pointerOps = declarator.getPointerOperators();
 				// don't add pointer variables to the list since we don't track them
-				if(pointerOps.length > 0){
+				if(pointerOps.length > 0)
+				{
 					continue;
 				}
 				// TODO here we assume that the type of the variable is int or double
 				// get the function name, we need this because there is a unique
 				// set of variables saved for each function
-				String functionName = cfaEdge.getPredecessor().getFunctionName();
+				String functionName = declarationEdge.getPredecessor().getFunctionName();
 
-				// if this is the first variable to be created, create a new octagon
-				if(octElement.getMap() == null || octElement.getNumberOfVars() == 0){
-					OctElement temp = new OctElement(LibraryAccess.universe(1), new HashMap<String, Variable>());
-					octElement.update(temp);
-					octElement.addVar(varName, functionName);
+				// if this is a global variable, add to the list of global variables
+				// and set function name to "".
+				if(declarationEdge instanceof GlobalDeclarationEdge)
+				{
+					globalVars.add(varName);
+					functionName = "";
 				}
-				else{
-					if(!octElement.contains(varName)){
-						octElement.update(LibraryAccess.addDimension(octElement, 1));
-						octElement.addVar(varName, functionName);
-					}
+
+				// if the variable is added, update add a new dimension to the octagon
+				if(octElement.addVar(varName, functionName))
+				{
+					octElement.update(LibraryAccess.addDimension(octElement, 1));
 				}
 			}
 		}
@@ -323,19 +343,23 @@ public class OctTransferRelation implements TransferRelation{
 			IASTExpression op1 = binExp.getOperand1();
 			IASTExpression op2 = binExp.getOperand2();
 
-			// a (bOp) ?
-			if(op1 instanceof IASTIdExpression){
+			// a (bop) ?
+			if(op1 instanceof IASTIdExpression)
+			{
 				// a (bop) 9
-				if(op2 instanceof IASTLiteralExpression){
+				if(op2 instanceof IASTLiteralExpression)
+				{
 					IASTIdExpression var = (IASTIdExpression)op1;
 					String varName = var.getRawSignature();
-					int variableId = octElement.getVarId(varName);
+					int variableId = octElement.getVariableId(globalVars, varName, functionName);
 
 					double valueOfLiteral = Double.valueOf(op2.getRawSignature()).doubleValue();
 					// a > 9
-					if(opType == IASTBinaryExpression.op_greaterThan){
+					if(opType == IASTBinaryExpression.op_greaterThan)
+					{
 						// this is the if then edge
-						if(truthValue){
+						if(truthValue)
+						{
 							propagateBooleanExpression(octElement, IASTBinaryExpression.op_greaterThan, variableId, -1, true, true, valueOfLiteral);
 						}
 						else{
@@ -343,9 +367,11 @@ public class OctTransferRelation implements TransferRelation{
 						}
 					}
 					// a >= 9
-					else if(opType == IASTBinaryExpression.op_greaterEqual){
+					else if(opType == IASTBinaryExpression.op_greaterEqual)
+					{
 						// this is the if then edge
-						if(truthValue){
+						if(truthValue)
+						{
 							propagateBooleanExpression(octElement, IASTBinaryExpression.op_greaterEqual, variableId, -1, true, true, valueOfLiteral);
 						}
 						else{
@@ -353,9 +379,11 @@ public class OctTransferRelation implements TransferRelation{
 						}
 					}
 					// a < 9
-					else if(opType == IASTBinaryExpression.op_lessThan){
+					else if(opType == IASTBinaryExpression.op_lessThan)
+					{
 						// this is the if then edge
-						if(truthValue){
+						if(truthValue)
+						{
 							propagateBooleanExpression(octElement, IASTBinaryExpression.op_lessThan, variableId, -1, true, true, valueOfLiteral);
 						}
 						else{
@@ -363,9 +391,11 @@ public class OctTransferRelation implements TransferRelation{
 						}
 					}
 					// a <= 9
-					else if(opType == IASTBinaryExpression.op_lessEqual){
+					else if(opType == IASTBinaryExpression.op_lessEqual)
+					{
 						// this is the if then edge
-						if(truthValue){
+						if(truthValue)
+						{
 							propagateBooleanExpression(octElement, IASTBinaryExpression.op_lessEqual, variableId, -1, true, true, valueOfLiteral);
 						}
 						else{
@@ -373,9 +403,11 @@ public class OctTransferRelation implements TransferRelation{
 						}
 					}
 					// a == 9
-					else if(opType == IASTBinaryExpression.op_equals){
+					else if(opType == IASTBinaryExpression.op_equals)
+					{
 						// this is the if then edge
-						if(truthValue){
+						if(truthValue)
+						{
 							propagateBooleanExpression(octElement, IASTBinaryExpression.op_equals, variableId, -1, true, true, valueOfLiteral);
 						}
 						else{
@@ -383,9 +415,11 @@ public class OctTransferRelation implements TransferRelation{
 						}
 					}
 					// a != 9
-					else if(opType == IASTBinaryExpression.op_notequals){
+					else if(opType == IASTBinaryExpression.op_notequals)
+					{
 						// this is the if then edge
-						if(truthValue){
+						if(truthValue)
+						{
 							propagateBooleanExpression(octElement, IASTBinaryExpression.op_notequals, variableId, -1, true, true, valueOfLiteral);
 						}
 						else{
@@ -397,19 +431,22 @@ public class OctTransferRelation implements TransferRelation{
 					}
 				}
 				// a (bop) b
-				else if(op2 instanceof IASTIdExpression){
+				else if(op2 instanceof IASTIdExpression)
+				{
 					IASTIdExpression leftVar = (IASTIdExpression)op1;
 					String leftVarName = leftVar.getRawSignature();
-					int leftVariableId = octElement.getVarId(leftVarName);
+					int leftVariableId = octElement.getVariableId(globalVars, leftVarName, functionName);
 
 					IASTIdExpression rightVar = (IASTIdExpression)op2;
 					String rightVarName = rightVar.getRawSignature();
-					int rightVariableId = octElement.getVarId(rightVarName);
+					int rightVariableId = octElement.getVariableId(globalVars, rightVarName, functionName);
 
 					// a > b
-					if(opType == IASTBinaryExpression.op_greaterThan){
+					if(opType == IASTBinaryExpression.op_greaterThan)
+					{
 						// this is the if then edge
-						if(truthValue){
+						if(truthValue)
+						{
 							propagateBooleanExpression(octElement, IASTBinaryExpression.op_greaterThan, leftVariableId, rightVariableId, true, true, 0);
 						}
 						else{
@@ -417,9 +454,11 @@ public class OctTransferRelation implements TransferRelation{
 						}
 					}
 					// a >= b
-					else if(opType == IASTBinaryExpression.op_greaterEqual){
+					else if(opType == IASTBinaryExpression.op_greaterEqual)
+					{
 						// this is the if then edge
-						if(truthValue){
+						if(truthValue)
+						{
 							propagateBooleanExpression(octElement, IASTBinaryExpression.op_greaterEqual, leftVariableId, rightVariableId, true, true, 0);
 						}
 						else{
@@ -427,9 +466,11 @@ public class OctTransferRelation implements TransferRelation{
 						}
 					}
 					// a < b
-					else if(opType == IASTBinaryExpression.op_lessThan){
+					else if(opType == IASTBinaryExpression.op_lessThan)
+					{
 						// this is the if then edge
-						if(truthValue){
+						if(truthValue)
+						{
 							propagateBooleanExpression(octElement, IASTBinaryExpression.op_lessThan, leftVariableId, rightVariableId, true, true, 0);
 						}
 						else{
@@ -437,9 +478,11 @@ public class OctTransferRelation implements TransferRelation{
 						}
 					}
 					// a <= b
-					else if(opType == IASTBinaryExpression.op_lessEqual){
+					else if(opType == IASTBinaryExpression.op_lessEqual)
+					{
 						// this is the if then edge
-						if(truthValue){
+						if(truthValue)
+						{
 							propagateBooleanExpression(octElement, IASTBinaryExpression.op_lessEqual, leftVariableId, rightVariableId, true, true, 0);
 						}
 						else{
@@ -447,9 +490,11 @@ public class OctTransferRelation implements TransferRelation{
 						}
 					}
 					// a == b
-					else if(opType == IASTBinaryExpression.op_equals){
+					else if(opType == IASTBinaryExpression.op_equals)
+					{
 						// this is the if then edge
-						if(truthValue){
+						if(truthValue)
+						{
 							propagateBooleanExpression(octElement, IASTBinaryExpression.op_equals, leftVariableId, rightVariableId, true, true, 0);
 						}
 						else{
@@ -457,9 +502,11 @@ public class OctTransferRelation implements TransferRelation{
 						}
 					}
 					// a != b
-					else if(opType == IASTBinaryExpression.op_notequals){
+					else if(opType == IASTBinaryExpression.op_notequals)
+					{
 						// this is the if then edge
-						if(truthValue){
+						if(truthValue)
+						{
 							propagateBooleanExpression(octElement, IASTBinaryExpression.op_notequals, leftVariableId, rightVariableId, true, true, 0);
 						}
 						else{
@@ -480,7 +527,8 @@ public class OctTransferRelation implements TransferRelation{
 		{
 			IASTUnaryExpression unaryExp = ((IASTUnaryExpression)expression);
 			// ! exp
-			if(unaryExp.getOperator() == IASTUnaryExpression.op_not){
+			if(unaryExp.getOperator() == IASTUnaryExpression.op_not)
+			{
 				IASTExpression exp1 = unaryExp.getOperand();
 				// ! unaryExp
 				if(exp1 instanceof IASTUnaryExpression){
@@ -729,7 +777,7 @@ public class OctTransferRelation implements TransferRelation{
 		int operator = unaryExpression.getOperator ();
 
 		String lParam = unaryExpression.getOperand ().getRawSignature ();
-		int variableId = octElement.getVarId(lParam);
+		int variableId = octElement.getVariableId(globalVars, lParam, functionName);
 
 		// a++, ++a
 		if (operator == IASTUnaryExpression.op_postFixIncr || 
@@ -807,7 +855,7 @@ public class OctTransferRelation implements TransferRelation{
 		{
 			IASTIdExpression lvar = ((IASTIdExpression)op1);
 			String nameOfLVar = lvar.getRawSignature();
-			int varLid = octElement.getVarId(nameOfLVar);
+			int varLid = octElement.getVariableId(globalVars, nameOfLVar, functionName);
 			// a op= 2
 			if(op2 instanceof IASTLiteralExpression){
 				double val = Double.valueOf(op2.getRawSignature()).doubleValue();
@@ -842,7 +890,7 @@ public class OctTransferRelation implements TransferRelation{
 
 				IASTIdExpression rvar = ((IASTIdExpression)op2);
 				String nameOfRVar = rvar.getRawSignature();
-				int varRid = octElement.getVarId(nameOfRVar);
+				int varRid = octElement.getVariableId(globalVars, nameOfRVar, functionName);
 				// a += b
 				if(typeOfOperator == IASTBinaryExpression.op_plusAssign){
 					addTwoVariables(octElement, cfaEdge, nameOfLVar, varLid, varRid, true, true);
@@ -939,8 +987,8 @@ public class OctTransferRelation implements TransferRelation{
 		int operatorType = op2.getOperator();
 		// a = -b
 		if(operatorType == IASTUnaryExpression.op_minus){
-			int lvar = octElement.getVarId(lParam);
-			int var2 = octElement.getVarId(nameOfVar);
+			int lvar = octElement.getVariableId(globalVars, lParam, functionName);
+			int var2 = octElement.getVariableId(globalVars, nameOfVar, functionName);
 			Num[] array = new Num[octElement.getNumberOfVars()+1];
 
 			for(int i=0; i<array.length-1; i++){
@@ -980,7 +1028,7 @@ public class OctTransferRelation implements TransferRelation{
 				if( typeOfCastLiteral ==  IASTLiteralExpression.lk_integer_constant || 
 						typeOfCastLiteral == IASTLiteralExpression.lk_float_constant)
 				{
-					int lvar = octElement.getVarId(lParam);
+					int lvar = octElement.getVariableId(globalVars, lParam, functionName);
 					double val = Double.valueOf(castOp.getRawSignature()).doubleValue();
 					Num n = new Num(val);
 					Num[] array = new Num[octElement.getNumberOfVars()+1];
@@ -996,8 +1044,8 @@ public class OctTransferRelation implements TransferRelation{
 			else if(castOp instanceof IASTIdExpression){
 				IASTIdExpression varId = ((IASTIdExpression)castOp);
 				String nameOfVar = varId.getRawSignature();
-				int lvar = octElement.getVarId(lParam);
-				int var2 = octElement.getVarId(nameOfVar);
+				int lvar = octElement.getVariableId(globalVars, lParam, functionName);
+				int var2 = octElement.getVariableId(globalVars, nameOfVar, functionName);
 				Num[] array = new Num[octElement.getNumberOfVars()+1];
 
 				for(int i=0; i<array.length-1; i++){
@@ -1013,7 +1061,7 @@ public class OctTransferRelation implements TransferRelation{
 		}
 		// If we don't cast to double loose all information about the element
 		else{
-			int var = octElement.getVarId(lParam);
+			int var = octElement.getVariableId(globalVars, lParam, functionName);
 			octElement.update(LibraryAccess.forget(octElement, var));
 		}
 	}
@@ -1037,7 +1085,7 @@ public class OctTransferRelation implements TransferRelation{
 		if( typeOfLiteral ==  IASTLiteralExpression.lk_integer_constant || 
 				typeOfLiteral == IASTLiteralExpression.lk_float_constant)
 		{
-			int lvar = octElement.getVarId(lParam);
+			int lvar = octElement.getVariableId(globalVars, lParam, functionName);
 			double val = Double.valueOf(rParam).doubleValue();
 			Num n = new Num(val);
 			Num[] array = new Num[octElement.getNumberOfVars()+1];
@@ -1069,8 +1117,8 @@ public class OctTransferRelation implements TransferRelation{
 		String lParam = op1.getRawSignature ();
 		IASTIdExpression varId = ((IASTIdExpression)op2);
 		String nameOfVar = varId.getRawSignature();
-		int lvar = octElement.getVarId(lParam);
-		int var2 = octElement.getVarId(nameOfVar);
+		int lvar = octElement.getVariableId(globalVars, lParam, functionName);
+		int var2 = octElement.getVariableId(globalVars, nameOfVar, functionName);
 		Num[] array = new Num[octElement.getNumberOfVars()+1];
 
 		for(int i=0; i<array.length-1; i++){
@@ -1119,7 +1167,7 @@ public class OctTransferRelation implements TransferRelation{
 
 						IASTIdExpression rvar = ((IASTIdExpression)rVarInBinaryExp);
 						String nameOfRVar = rvar.getRawSignature();
-						int varRid = octElement.getVarId(nameOfRVar);
+						int varRid = octElement.getVariableId(globalVars, nameOfRVar, functionName);
 						addLiteralToVariable(octElement, cfaEdge, lParam, varRid, true, negVal);
 					}
 					else{
@@ -1135,7 +1183,7 @@ public class OctTransferRelation implements TransferRelation{
 			else if(lVarInBinaryExp instanceof IASTIdExpression){
 				IASTIdExpression lvar = ((IASTIdExpression)lVarInBinaryExp);
 				String nameOfLVar = lvar.getRawSignature();
-				int varLid = octElement.getVarId(nameOfLVar);
+				int varLid = octElement.getVariableId(globalVars, nameOfLVar, functionName);
 
 				// a = b + 2
 				if(rVarInBinaryExp instanceof IASTLiteralExpression){
@@ -1157,7 +1205,7 @@ public class OctTransferRelation implements TransferRelation{
 				else if(rVarInBinaryExp instanceof IASTIdExpression){
 					IASTIdExpression rvar = ((IASTIdExpression)rVarInBinaryExp);
 					String nameOfRVar = rvar.getRawSignature();
-					int varRid = octElement.getVarId(nameOfRVar);
+					int varRid = octElement.getVariableId(globalVars, nameOfRVar, functionName);
 					addTwoVariables(octElement, cfaEdge, lParam, varLid, varRid, true, true);
 				}
 				else{
@@ -1177,7 +1225,7 @@ public class OctTransferRelation implements TransferRelation{
 					if(rVarInBinaryExp instanceof IASTIdExpression){
 						IASTIdExpression rvar = ((IASTIdExpression)rVarInBinaryExp);
 						String nameOfRVar = rvar.getRawSignature();
-						int varRid = octElement.getVarId(nameOfRVar);
+						int varRid = octElement.getVariableId(globalVars, nameOfRVar, functionName);
 						addLiteralToVariable(octElement, cfaEdge, lParam, varRid, true, val);
 					}
 					// a = 8 + 9
@@ -1214,7 +1262,7 @@ public class OctTransferRelation implements TransferRelation{
 
 						IASTIdExpression rvar = ((IASTIdExpression)rVarInBinaryExp);
 						String nameOfRVar = rvar.getRawSignature();
-						int varRid = octElement.getVarId(nameOfRVar);
+						int varRid = octElement.getVariableId(globalVars, nameOfRVar, functionName);
 						addLiteralToVariable(octElement, cfaEdge, lParam, varRid, false, negVal);
 					}
 					else{
@@ -1230,7 +1278,7 @@ public class OctTransferRelation implements TransferRelation{
 			else if(lVarInBinaryExp instanceof IASTIdExpression){
 				IASTIdExpression lvar = ((IASTIdExpression)lVarInBinaryExp);
 				String nameOfLVar = lvar.getRawSignature();
-				int varLid = octElement.getVarId(nameOfLVar);
+				int varLid = octElement.getVariableId(globalVars, nameOfLVar, functionName);
 
 				// a = b - 2
 				if(rVarInBinaryExp instanceof IASTLiteralExpression){
@@ -1252,7 +1300,7 @@ public class OctTransferRelation implements TransferRelation{
 				else if(rVarInBinaryExp instanceof IASTIdExpression){
 					IASTIdExpression rvar = ((IASTIdExpression)rVarInBinaryExp);
 					String nameOfRVar = rvar.getRawSignature();
-					int varRid = octElement.getVarId(nameOfRVar);
+					int varRid = octElement.getVariableId(globalVars, nameOfRVar, functionName);
 					addTwoVariables(octElement, cfaEdge, lParam, varLid, varRid, true, false);
 				}
 				else{
@@ -1272,7 +1320,7 @@ public class OctTransferRelation implements TransferRelation{
 					if(rVarInBinaryExp instanceof IASTIdExpression){
 						IASTIdExpression rvar = ((IASTIdExpression)rVarInBinaryExp);
 						String nameOfRVar = rvar.getRawSignature();
-						int varRid = octElement.getVarId(nameOfRVar);
+						int varRid = octElement.getVariableId(globalVars, nameOfRVar, functionName);
 						addLiteralToVariable(octElement, cfaEdge, lParam, varRid, false, val);
 
 					}
@@ -1308,7 +1356,7 @@ public class OctTransferRelation implements TransferRelation{
 
 						IASTIdExpression rvar = ((IASTIdExpression)rVarInBinaryExp);
 						String nameOfRVar = rvar.getRawSignature();
-						int varRid = octElement.getVarId(nameOfRVar);
+						int varRid = octElement.getVariableId(globalVars, nameOfRVar, functionName);
 
 						multiplyLiteralWithVariable(octElement, cfaEdge, lParam, varRid, true, negVal);
 					}
@@ -1325,7 +1373,7 @@ public class OctTransferRelation implements TransferRelation{
 			else if(lVarInBinaryExp instanceof IASTIdExpression){
 				IASTIdExpression lvar = ((IASTIdExpression)lVarInBinaryExp);
 				String nameOfLVar = lvar.getRawSignature();
-				int varLid = octElement.getVarId(nameOfLVar);
+				int varLid = octElement.getVariableId(globalVars, nameOfLVar, functionName);
 
 				// a = b * 2
 				if(rVarInBinaryExp instanceof IASTLiteralExpression){
@@ -1365,7 +1413,7 @@ public class OctTransferRelation implements TransferRelation{
 
 				// a = b * c
 				else if(rVarInBinaryExp instanceof IASTIdExpression){
-					int var = octElement.getVarId(lParam);
+					int var = octElement.getVariableId(globalVars, lParam, functionName);
 					octElement.update(LibraryAccess.forget(octElement, var));
 				}
 				else{
@@ -1385,7 +1433,7 @@ public class OctTransferRelation implements TransferRelation{
 					if(rVarInBinaryExp instanceof IASTIdExpression){
 						IASTIdExpression rvar = ((IASTIdExpression)rVarInBinaryExp);
 						String nameOfRVar = rvar.getRawSignature();
-						int varRid = octElement.getVarId(nameOfRVar);
+						int varRid = octElement.getVariableId(globalVars, nameOfRVar, functionName);
 						multiplyLiteralWithVariable(octElement, cfaEdge, lParam, varRid, true, val);
 
 					}
@@ -1409,7 +1457,7 @@ public class OctTransferRelation implements TransferRelation{
 		// operand in left hand side of expression is a division
 		case IASTBinaryExpression.op_divide:
 		{
-			int var = octElement.getVarId(lParam);
+			int var = octElement.getVariableId(globalVars, lParam, functionName);
 			octElement.update(LibraryAccess.forget(octElement, var));
 			break;
 		}
@@ -1417,7 +1465,7 @@ public class OctTransferRelation implements TransferRelation{
 		// operand in left hand side of expression is modulo op
 		case IASTBinaryExpression.op_modulo:
 		{
-			int var = octElement.getVarId(lParam);
+			int var = octElement.getVariableId(globalVars, lParam, functionName);
 			octElement.update(LibraryAccess.forget(octElement, var));
 			break;
 		}
@@ -1444,7 +1492,7 @@ public class OctTransferRelation implements TransferRelation{
 		String functionName = cfaEdge.getPredecessor().getFunctionName();
 		Num n = new Num(valueOfLiteral);
 
-		int lvar = octElement.getVarId(leftOperator);
+		int lvar = octElement.getVariableId(globalVars, leftOperator, functionName);
 		Num[] array = new Num[octElement.getNumberOfVars()+1];
 
 		for(int i=0; i<array.length-1; i++){
@@ -1480,7 +1528,7 @@ public class OctTransferRelation implements TransferRelation{
 			boolean isLVariablePositive, boolean isRVariablePositive) {
 
 		String functionName = cfaEdge.getPredecessor().getFunctionName();
-		int lvar = octElement.getVarId(leftOperator);
+		int lvar = octElement.getVariableId(globalVars, leftOperator, functionName);
 		Num[] array = new Num[octElement.getNumberOfVars()+1];
 
 		for(int i=0; i<array.length-1; i++){
@@ -1519,7 +1567,7 @@ public class OctTransferRelation implements TransferRelation{
 			CFAEdge cfaEdge, String leftParam, int variableId, boolean isVariablePositive, double valueOfLiteral) {
 
 		String functionName = cfaEdge.getPredecessor().getFunctionName();
-		int lvar = octElement.getVarId(leftParam);
+		int lvar = octElement.getVariableId(globalVars, leftParam, functionName);
 		Num[] array = new Num[octElement.getNumberOfVars()+1];
 
 		for(int i=0; i<array.length-1; i++){
@@ -1538,85 +1586,144 @@ public class OctTransferRelation implements TransferRelation{
 		octElement.update(LibraryAccess.assignVar(octElement, lvar, array));
 	}
 
-	private void handleFunctionCall(OctElement prevOctElement, FunctionCallEdge callEdge) {
-		OctElement octElement = prevOctElement;
+	private List<Num[]> getConstraintCoefs(OctElement octElement, String iVarName, String jVarName){
+
+		Octagon oct = octElement.getOctagon();
+		int id1 = octElement.getVariableMap().get(iVarName);
+		int id2 = octElement.getVariableMap().get(jVarName);
+
+		List<Num[]> resultsList = new ArrayList<Num[]>(); 
+
+		if(id1 == id2){
+			// TODO
+			if (oct.getMatrix()[oct.matPos(2*id1,2*id1)].f > 0) {
+				assert(false);
+				//s = s + "\n  " + varName + "-" + varName + " <= " + oct.getMatrix()[oct.matPos(2*i, 2*i)].f;
+			}
+			// TODO
+			if (oct.getMatrix()[oct.matPos(2*id1+1,2*id1+1)].f > 0) {
+				assert(false);
+				//s = s + "\n  " + "-"+ varName + "+" + varName + " <= " + oct.getMatrix()[oct.matPos(2*i+1,2*i+1)].f;
+			}
+
+			Num[] array1 = {new Num(-1), new Num(0), new Num((oct.getMatrix()[oct.matPos(2*id1+1,2*id1)].f)/2)};
+			Num[] array2 = {new Num(1), new Num(0), new Num((oct.getMatrix()[oct.matPos(2*id1,2*id1+1)].f)/2)};
+			resultsList.add(array1);
+			resultsList.add(array2);
+		}
+		else{
+			Num[] array1 = {new Num(-1), new Num(1), new Num((oct.getMatrix()[oct.matPos(2*id2,2*id1)].f))};
+			Num[] array2 = {new Num(1), new Num(1), new Num((oct.getMatrix()[oct.matPos(2*id2,2*id1+1)].f))};
+			Num[] array3 = {new Num(-1), new Num(-1), new Num((oct.getMatrix()[oct.matPos(2*id2+1,2*id1)].f))};
+			Num[] array4 = {new Num(1), new Num(-1), new Num((oct.getMatrix()[oct.matPos(2*id2+1,2*id1+1)].f))};
+
+			resultsList.add(array1);
+			resultsList.add(array2);
+			resultsList.add(array3);
+			resultsList.add(array4);
+		}
+		return resultsList;
+	}
+
+	private void handleFunctionCall(OctElement octElement, 
+			FunctionCallEdge callEdge) throws OctagonTransferException {
 		FunctionDefinitionNode functionEntryNode = (FunctionDefinitionNode)callEdge.getSuccessor();
 		String calledFunctionName = functionEntryNode.getFunctionName();
 		String callerFunctionName = callEdge.getPredecessor().getFunctionName();
 
 		List<String> paramNames = functionEntryNode.getFunctionParameterNames();
 		// TODO here we assume that all parameters are type of int or double
-		
-		OctElement temp = new OctElement(LibraryAccess.universe(1), new HashMap<String, Variable>());
-		octElement.update(temp);
-		// TODO fix
-		//octElement.addVar("null");
-		
-		for(int i=0; i<paramNames.size(); i++){
-			octElement.update(LibraryAccess.addDimension(octElement, 1));
-			String paramName = paramNames.get(i);
-			octElement.addVar(paramName, calledFunctionName);
-		}
-
-		octElement.update(LibraryAccess.addDimension(octElement, 1));
-		octElement.addVar("___cpa_temp_result_var_" + functionEntryNode.getFunctionName() + "()", calledFunctionName);
-
 		IASTExpression[] arguments = callEdge.getArguments();
+		HashMap<String, String> replaceVarNamesList = new HashMap<String, String>();
+
 		assert (paramNames.size() == arguments.length);
 
-		// TODO this is case for a = call();
-		// global vairables might be updated, check here
-		if(arguments == null){
-			return;
+		List<String> listOfVarsToKeep = new ArrayList<String>();
+
+		for(String globalVar:globalVars){
+			listOfVarsToKeep.add("::" + globalVar);
 		}
 
 		for(int i=0; i<arguments.length; i++){
-
 			IASTExpression argument = arguments[i];
-			String paramName = paramNames.get(i);
+			if(argument instanceof IASTIdExpression){
+				IASTIdExpression idExp = (IASTIdExpression) argument;
+				String nameOfArg = idExp.getRawSignature();
+				listOfVarsToKeep.add(callerFunctionName + "::" +nameOfArg);
+				replaceVarNamesList.put(nameOfArg, paramNames.get(i));
+			}
+		}
 
+		List<Integer> listOfIdsToKeep = new ArrayList<Integer>();
+
+		for(int i=0; i<octElement.getNumberOfVars(); i++){
+			String varName = octElement.getVarNameForId(i);
+			if(listOfVarsToKeep.contains(varName)){
+				listOfIdsToKeep.add(i);
+			}
+		}
+
+		// TODO remove a block of elements later
+		int numberOfRemovedElements = 0;
+		for(int i=0; i<octElement.getNumberOfVars(); i++){
+			if(!listOfIdsToKeep.contains(i)){
+				octElement.removeVar(i-numberOfRemovedElements, 1);
+				numberOfRemovedElements++;
+			}
+		}
+
+		HashMap<String, Integer> newVariablesMap = new HashMap<String, Integer>();
+		for(int i=0; i<listOfVarsToKeep.size(); i++){
+			String varName = listOfVarsToKeep.get(i);
+			// if this is a global var
+			if(globalVars.contains(varName.replace("::", ""))){
+				newVariablesMap.put(varName, i);
+			}
+			// this is a parameter
+			else{
+				String argName = replaceVarNamesList.get(varName.replace(callerFunctionName + "::", ""));
+				newVariablesMap.put(calledFunctionName + "::" + argName, i);
+			}
+		}
+
+		octElement.setVariableMap(newVariablesMap);
+
+		// add arguments with literal values
+
+		for(int i=0; i<arguments.length; i++){
+			IASTExpression argument = arguments[i];
+			// TODO insert checks later
 			if(argument instanceof IASTLiteralExpression){
-				String argumentValue = argument.getRawSignature ();
+				IASTLiteralExpression literalExp = (IASTLiteralExpression) argument;
+				String stringValOfArg = literalExp.getRawSignature();
 
-				int typeOfLiteral = ((IASTLiteralExpression)argument).getKind();
+				int typeOfLiteral = literalExp.getKind();
 				if( typeOfLiteral ==  IASTLiteralExpression.lk_integer_constant || 
 						typeOfLiteral == IASTLiteralExpression.lk_float_constant)
 				{
-					//TODO fix
-					int lvar = octElement.getVarId(paramName);
-					double val = Double.valueOf(argumentValue).doubleValue();
+					String paramName = paramNames.get(i);
+					octElement.addVar(paramName, calledFunctionName);
+					int lvar = octElement.getVariableId(globalVars, paramName, calledFunctionName);
+					double val = Double.valueOf(stringValOfArg).doubleValue();
 					Num n = new Num(val);
 					Num[] array = new Num[octElement.getNumberOfVars()+1];
 
 					for(int j=0; j<array.length-1; j++){
 						array[j] = new Num(0);
 					}
+
 					array[array.length-1] = n;
 					octElement.update(LibraryAccess.assignVar(octElement, lvar, array));
 				}
-			}
-
-			else if(argument instanceof IASTIdExpression){
-
-				IASTIdExpression varId = ((IASTIdExpression)argument);
-				String nameOfVar = varId.getRawSignature();
-
-				// TODO fix
-				int lvar = octElement.getVarId(paramName);
-				int var2 = octElement.getVarId(nameOfVar);
-				Num[] array = new Num[octElement.getNumberOfVars()+1];
-
-				for(int j=0; j<array.length-1; j++){
-					array[j] = new Num(0);
+				else{
+					throw new OctagonTransferException("Unhandled case");
 				}
-
-				array[array.length-1] = new Num(0);
-				array[var2] = new Num(1);
-				octElement.update(LibraryAccess.assignVar(octElement, lvar, array));
 			}
 		}
+
 	}
 
+//	TODO implement again
 	/**
 	 * Handles calls to external function calls. Basically we drop
 	 * all information about the variable that gets the value of this
@@ -1629,192 +1736,168 @@ public class OctTransferRelation implements TransferRelation{
 	private void handleExternalFunctionCall(OctElement octElement,
 			FunctionCallEdge functionCallEdge) throws OctagonTransferException {
 
-		// get the summary edge from call site to return site
-		IASTExpression expr = functionCallEdge.getSuccessor().getEnteringSummaryEdge().getExpression();
-		String functionName = functionCallEdge.getPredecessor().getFunctionName();
-		if(expr instanceof IASTBinaryExpression){
-			IASTBinaryExpression binaryExpression = (IASTBinaryExpression) expr;
-			IASTExpression leftHandSideExp = binaryExpression.getOperand1();
-			if(leftHandSideExp instanceof IASTIdExpression){
-				IASTIdExpression variable = (IASTIdExpression)leftHandSideExp;
-				String variableName = variable.getRawSignature();
-				// TODO fix
-				int varid = octElement.getVarId(variableName);
-				octElement.update(LibraryAccess.forget(octElement, varid));
-			}
-			else if(leftHandSideExp instanceof IASTUnaryExpression){
-				System.out.println("Unary" + expr.getRawSignature());
-				assert(false);
-			}
-			else {
-				throw new OctagonTransferException("Unhandled case " + functionCallEdge.getPredecessor().getNodeNumber());
-			}
-		}
-		else if(expr instanceof IASTFunctionCallExpression){
-			return;
-		}
-		else{
-			throw new OctagonTransferException("Unhandled case " + functionCallEdge.getPredecessor().getNodeNumber());
-		}
+//		// get the summary edge from call site to return site
+//		IASTExpression expr = functionCallEdge.getSuccessor().getEnteringSummaryEdge().getExpression();
+//		String functionName = functionCallEdge.getPredecessor().getFunctionName();
+//		if(expr instanceof IASTBinaryExpression){
+//		IASTBinaryExpression binaryExpression = (IASTBinaryExpression) expr;
+//		IASTExpression leftHandSideExp = binaryExpression.getOperand1();
+//		if(leftHandSideExp instanceof IASTIdExpression){
+//		IASTIdExpression variable = (IASTIdExpression)leftHandSideExp;
+//		String variableName = variable.getRawSignature();
+//		// TODO fix
+//		int varid = octElement.getVarId(variableName);
+//		octElement.update(LibraryAccess.forget(octElement, varid));
+//		}
+//		else if(leftHandSideExp instanceof IASTUnaryExpression){
+//		System.out.println("Unary" + expr.getRawSignature());
+//		assert(false);
+//		}
+//		else {
+//		throw new OctagonTransferException("Unhandled case " + functionCallEdge.getPredecessor().getNodeNumber());
+//		}
+//		}
+//		else if(expr instanceof IASTFunctionCallExpression){
+//		return;
+//		}
+//		else{
+//		throw new OctagonTransferException("Unhandled case " + functionCallEdge.getPredecessor().getNodeNumber());
+//		}
 	}
 
 	private void handleRecursiveFunctionCall(OctElement octElement, FunctionCallEdge callEdge){
 
-		FunctionDefinitionNode functionEntryNode = (FunctionDefinitionNode)callEdge.getSuccessor();
-		List<String> paramNames = functionEntryNode.getFunctionParameterNames();
-		// TODO here we assume that all parameters are type of int or double
+//		FunctionDefinitionNode functionEntryNode = (FunctionDefinitionNode)callEdge.getSuccessor();
+//		List<String> paramNames = functionEntryNode.getFunctionParameterNames();
+//		// TODO here we assume that all parameters are type of int or double
 
-		IASTExpression[] arguments = callEdge.getArguments();
-		assert (paramNames.size() == arguments.length);
+//		IASTExpression[] arguments = callEdge.getArguments();
+//		assert (paramNames.size() == arguments.length);
 
-		for(int i=0; i<arguments.length; i++){
+//		for(int i=0; i<arguments.length; i++){
 
-			IASTExpression argument = arguments[i];
-			String paramName = paramNames.get(i);
+//		IASTExpression argument = arguments[i];
+//		String paramName = paramNames.get(i);
 
-			if(argument instanceof IASTLiteralExpression){
-				String argumentValue = argument.getRawSignature ();
+//		if(argument instanceof IASTLiteralExpression){
+//		String argumentValue = argument.getRawSignature ();
 
-				int typeOfLiteral = ((IASTLiteralExpression)argument).getKind();
-				if( typeOfLiteral ==  IASTLiteralExpression.lk_integer_constant || 
-						typeOfLiteral == IASTLiteralExpression.lk_float_constant)
-				{
-					// TODO fix
-					int lvar = octElement.getVarId(paramName);
-					double val = Double.valueOf(argumentValue).doubleValue();
-					Num n = new Num(val);
-					Num[] array = new Num[octElement.getNumberOfVars()+1];
+//		int typeOfLiteral = ((IASTLiteralExpression)argument).getKind();
+//		if( typeOfLiteral ==  IASTLiteralExpression.lk_integer_constant || 
+//		typeOfLiteral == IASTLiteralExpression.lk_float_constant)
+//		{
+//		// TODO fix
+//		int lvar = octElement.getVarId(paramName);
+//		double val = Double.valueOf(argumentValue).doubleValue();
+//		Num n = new Num(val);
+//		Num[] array = new Num[octElement.getNumberOfVars()+1];
 
-					for(int j=0; j<array.length-1; j++){
-						array[j] = new Num(0);
-					}
-					array[array.length-1] = n;
-					octElement.update(LibraryAccess.assignVar(octElement, lvar, array));
-				}
-			}
+//		for(int j=0; j<array.length-1; j++){
+//		array[j] = new Num(0);
+//		}
+//		array[array.length-1] = n;
+//		octElement.update(LibraryAccess.assignVar(octElement, lvar, array));
+//		}
+//		}
 
-			else if(argument instanceof IASTIdExpression){
+//		else if(argument instanceof IASTIdExpression){
 
-				IASTIdExpression varId = ((IASTIdExpression)argument);
-				String nameOfVar = varId.getRawSignature();
-				// TODO fix
-				int lvar = octElement.getVarId(paramName);
-				int var2 = octElement.getVarId(nameOfVar);
-				Num[] array = new Num[octElement.getNumberOfVars()+1];
+//		IASTIdExpression varId = ((IASTIdExpression)argument);
+//		String nameOfVar = varId.getRawSignature();
+//		// TODO fix
+//		int lvar = octElement.getVarId(paramName);
+//		int var2 = octElement.getVarId(nameOfVar);
+//		Num[] array = new Num[octElement.getNumberOfVars()+1];
 
-				for(int j=0; j<array.length-1; j++){
-					array[j] = new Num(0);
-				}
+//		for(int j=0; j<array.length-1; j++){
+//		array[j] = new Num(0);
+//		}
 
-				array[array.length-1] = new Num(0);
-				array[var2] = new Num(1);
-				octElement.update(LibraryAccess.assignVar(octElement, lvar, array));
-			}
-		}
+//		array[array.length-1] = new Num(0);
+//		array[var2] = new Num(1);
+//		octElement.update(LibraryAccess.assignVar(octElement, lvar, array));
+//		}
+//		}
 	}
 
 	private void handleExitFromFunction(OctElement octElement,
 			IASTExpression expression, StatementEdge statementEdge) throws OctagonTransferException {
 
-		String returnedFunction = statementEdge.getPredecessor().getFunctionName();
+//		String returnedFunction = statementEdge.getPredecessor().getFunctionName();
 
-		if(expression instanceof IASTUnaryExpression){
-			IASTUnaryExpression unaryExp = (IASTUnaryExpression)expression;
-			if(unaryExp.getOperator() == IASTUnaryExpression.op_bracketedPrimary){
-				IASTExpression exprInParanhesis = unaryExp.getOperand();
-				if(exprInParanhesis instanceof IASTLiteralExpression){
-					IASTLiteralExpression litExpr = (IASTLiteralExpression)exprInParanhesis;
-					String fName = ((CFAExitNode)statementEdge.getSuccessor()).getFunctionName();
-					// TODO fix
-					int resultvarID = octElement.getVarId("___cpa_temp_result_var_" + fName + "()");
-					String literalValue = litExpr.getRawSignature ();
-					int typeOfLiteral = (litExpr.getKind());
-					if( typeOfLiteral ==  IASTLiteralExpression.lk_integer_constant || 
-							typeOfLiteral == IASTLiteralExpression.lk_float_constant)
-					{
-						double val = Double.valueOf(literalValue).doubleValue();
-						Num n = new Num(val);
-						Num[] array = new Num[octElement.getNumberOfVars()+1];
+//		if(expression instanceof IASTUnaryExpression){
+//		IASTUnaryExpression unaryExp = (IASTUnaryExpression)expression;
+//		if(unaryExp.getOperator() == IASTUnaryExpression.op_bracketedPrimary){
+//		IASTExpression exprInParanhesis = unaryExp.getOperand();
+//		if(exprInParanhesis instanceof IASTLiteralExpression){
+//		IASTLiteralExpression litExpr = (IASTLiteralExpression)exprInParanhesis;
+//		String fName = ((CFAExitNode)statementEdge.getSuccessor()).getFunctionName();
+//		// TODO fix
+//		int resultvarID = octElement.getVarId("___cpa_temp_result_var_" + fName + "()");
+//		String literalValue = litExpr.getRawSignature ();
+//		int typeOfLiteral = (litExpr.getKind());
+//		if( typeOfLiteral ==  IASTLiteralExpression.lk_integer_constant || 
+//		typeOfLiteral == IASTLiteralExpression.lk_float_constant)
+//		{
+//		double val = Double.valueOf(literalValue).doubleValue();
+//		Num n = new Num(val);
+//		Num[] array = new Num[octElement.getNumberOfVars()+1];
 
-						for(int j=0; j<array.length-1; j++){
-							array[j] = new Num(0);
-						}
-						array[array.length-1] = n;
-						octElement.update(LibraryAccess.assignVar(octElement, resultvarID, array));
-					}
-				}
+//		for(int j=0; j<array.length-1; j++){
+//		array[j] = new Num(0);
+//		}
+//		array[array.length-1] = n;
+//		octElement.update(LibraryAccess.assignVar(octElement, resultvarID, array));
+//		}
+//		}
 
-				else if(exprInParanhesis instanceof IASTIdExpression){
-					IASTIdExpression idExpr = (IASTIdExpression)exprInParanhesis;
-					String fName = ((CFAExitNode)statementEdge.getSuccessor()).getFunctionName();
-					// TODO fix
-					int lvar = octElement.getVarId("___cpa_temp_result_var_" + fName + "()");
-					String idExpName = idExpr.getRawSignature ();
-					// TODO fix
-					int rvar = octElement.getVarId(idExpName);
-					Num[] array = new Num[octElement.getNumberOfVars()+1];
+//		else if(exprInParanhesis instanceof IASTIdExpression){
+//		IASTIdExpression idExpr = (IASTIdExpression)exprInParanhesis;
+//		String fName = ((CFAExitNode)statementEdge.getSuccessor()).getFunctionName();
+//		// TODO fix
+//		int lvar = octElement.getVarId("___cpa_temp_result_var_" + fName + "()");
+//		String idExpName = idExpr.getRawSignature ();
+//		// TODO fix
+//		int rvar = octElement.getVarId(idExpName);
+//		Num[] array = new Num[octElement.getNumberOfVars()+1];
 
-					for(int i=0; i<array.length-1; i++){
-						array[i] = new Num(0);
-					}
+//		for(int i=0; i<array.length-1; i++){
+//		array[i] = new Num(0);
+//		}
 
-					array[array.length-1] = new Num(0);
-					array[rvar] = new Num(1);
-					octElement.update(LibraryAccess.assignVar(octElement, lvar, array));
-				}
-				else{
-					throw new OctagonTransferException("Unhandled case");
-				}
-			}
-		}
-		else if(expression instanceof IASTBinaryExpression){
-			throw new OctagonTransferException("Unhandled case");
-		}
-		else {
-			throw new OctagonTransferException("Unhandled case");
-		}
+//		array[array.length-1] = new Num(0);
+//		array[rvar] = new Num(1);
+//		octElement.update(LibraryAccess.assignVar(octElement, lvar, array));
+//		}
+//		else{
+//		throw new OctagonTransferException("Unhandled case");
+//		}
+//		}
+//		}
+//		else if(expression instanceof IASTBinaryExpression){
+//		throw new OctagonTransferException("Unhandled case");
+//		}
+//		else {
+//		throw new OctagonTransferException("Unhandled case");
+//		}
 	}
 
-	private void handleSummaryEdge(OctElement octElement, String varName,
+	private void handleSummaryEdge(OctElement octElement, OctElement prevElement, String varName,
 			String functionName, String callerFunctionName) {
-		// TODO fix
-		int lvar = octElement.getVarId(varName);
+//		// TODO fix
+//		int lvar = octElement.getVarId(varName);
 
-		System.out.println("___cpa_temp_result_var_" + functionName + "()");
-		// TODO fix
-		int rvar = octElement.getVarId("___cpa_temp_result_var_" + functionName + "()");
-		Num[] array = new Num[octElement.getNumberOfVars()+1];
+//		System.out.println("___cpa_temp_result_var_" + functionName + "()");
+//		// TODO fix
+//		int rvar = octElement.getVarId("___cpa_temp_result_var_" + functionName + "()");
+//		Num[] array = new Num[octElement.getNumberOfVars()+1];
 
-		for(int i=0; i<array.length-1; i++){
-			array[i] = new Num(0);
-		}
-
-		array[array.length-1] = new Num(0);
-		array[rvar] = new Num(1);
-		octElement.update(LibraryAccess.assignVar(octElement, lvar, array));
-	}
-
-	private void removeFunctionParameters(OctElement octElement,
-			List<String> parameters, String fname) {
-//		int numOfValuesToRemove = parameters.size()+1;
-//		// TODO removing from the end of octagon?
-//		octElement.update(LibraryAccess.removeDimension(octElement, numOfValuesToRemove));
-//		for(int i=0; i<parameters.size(); i++){
-//		octElement.removeVar((String)parameters.get(i));
+//		for(int i=0; i<array.length-1; i++){
+//		array[i] = new Num(0);
 //		}
 
-//		octElement.removeVar("___cpa_temp_result_var_" + fname + "()");
-//		TempVariableCount tempVars = octElement.getTempVarList().get(fname);
-//		Iterator<String> it = tempVars.getIterator();
-//		while(it.hasNext()){
-//		String s = it.next();
-//		octElement.removeVar(s);
-//		octElement.update(LibraryAccess.removeDimension(octElement, 1));
-//		}
-//		octElement.getTempVarList().remove(fname);
-		// TODO fix
-		//int numOfValuesToRemove = octElement.removeVariablesOfFunction(fname);
-		//octElement.update(LibraryAccess.removeDimension(octElement, numOfValuesToRemove));
-
+//		array[array.length-1] = new Num(0);
+//		array[rvar] = new Num(1);
+//		octElement.update(LibraryAccess.assignVar(octElement, lvar, array));
 	}
 }

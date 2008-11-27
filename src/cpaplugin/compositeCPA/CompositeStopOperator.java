@@ -8,6 +8,7 @@ import cpaplugin.cpa.common.CompositeDomain;
 import cpaplugin.cpa.common.CompositeElement;
 import cpaplugin.cpa.common.interfaces.AbstractDomain;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
+import cpaplugin.cpa.common.interfaces.BottomElement;
 import cpaplugin.cpa.common.interfaces.MergeOperator;
 import cpaplugin.cpa.common.interfaces.PreOrder;
 import cpaplugin.cpa.common.interfaces.StopOperator;
@@ -31,16 +32,16 @@ public class CompositeStopOperator implements StopOperator{
 
 	public boolean stop (AbstractElement element, Collection<AbstractElement> reached) throws CPAException
 	{
+		if(isBottomElement(element)){
+			return true;
+		}
+		
 		CompositeElement comp1 = (CompositeElement) element;
 		List<AbstractElement> comp1Elements = comp1.getElements ();
 		
 		if (comp1Elements.size () != stopOperators.size ())
 			throw new CPAException ("Wrong number of stop operator");
 
-		if(isBottomElement(element)){
-			return true;
-		}
-		
 		for(AbstractElement reachedElement:reached){
 			if (stop (element, reachedElement)){
 				return true;
@@ -51,8 +52,12 @@ public class CompositeStopOperator implements StopOperator{
 
 	public boolean isBottomElement(AbstractElement element) {
 
-		CompositeElement compositeElement = (CompositeElement) element;
+		if(element instanceof BottomElement){
+			return true;
+		}
 
+		CompositeElement compositeElement = (CompositeElement) element;
+		
 		List<AbstractElement> compositeElements = compositeElement.getElements ();
 
 		for (int idx = 0; idx < compositeElements.size (); idx++)

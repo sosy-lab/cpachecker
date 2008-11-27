@@ -9,6 +9,8 @@ import java.util.List;
 import cpaplugin.CPAStatistics;
 import cpaplugin.cfa.objectmodel.CFAFunctionDefinitionNode;
 import cpaplugin.cmdline.CPAMain;
+import cpaplugin.cpa.common.CallElement;
+import cpaplugin.cpa.common.CallStack;
 import cpaplugin.cpa.common.CompositeDomain;
 import cpaplugin.cpa.common.CompositeElement;
 import cpaplugin.cpa.common.interfaces.AbstractDomain;
@@ -74,8 +76,13 @@ public class CompositeCPA implements ConfigurableProblemAnalysis
 		CompositeMergeOperator compositeMerge = new CompositeMergeOperator (compositeDomain, mergeOperators);
 		CompositeStopOperator compositeStop = new CompositeStopOperator (compositeDomain, stopOperators);
 		CompositeTransferRelation compositeTransfer = new CompositeTransferRelation (compositeDomain, transferRelations);
-		CompositeElement initialElement = new CompositeElement (initialElements);
-
+		CompositeElement initialElement = new CompositeElement (initialElements, null);
+		// set call stack
+		CallStack initialCallStack = new CallStack();
+		CallElement initialCallElement = new CallElement(node.getFunctionName(), null, initialElement);
+		initialCallStack.push(initialCallElement);
+		initialElement.setCallStack(initialCallStack);
+		
 		return createCompositeCPA(compositeDomain, compositeMerge, compositeStop, compositeTransfer, initialElement);
 
 	}

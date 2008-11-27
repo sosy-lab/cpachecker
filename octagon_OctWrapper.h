@@ -225,11 +225,19 @@ JNIEXPORT jobject JNICALL Java_octagon_OctWrapper_J_1addDimenensionAndProject
 
 /*
  * Class:     octagon_OctWrapper
- * Method:    J_removeDimenension
+ * Method:    J_removeDimension
  * Signature: (Loctagon/Octagon;IZ)Loctagon/Octagon;
  */
-JNIEXPORT jobject JNICALL Java_octagon_OctWrapper_J_1removeDimenension
+JNIEXPORT jobject JNICALL Java_octagon_OctWrapper_J_1removeDimension
   (JNIEnv *, jobject, jobject, jint, jboolean);
+
+/*
+ * Class:     octagon_OctWrapper
+ * Method:    J_removeDimensionAtPosition
+ * Signature: (Loctagon/Octagon;IIZ)Loctagon/Octagon;
+ */
+JNIEXPORT jobject JNICALL Java_octagon_OctWrapper_J_1removeDimensionAtPosition
+  (JNIEnv *, jobject, jobject, jint, jint, jboolean);
 
 /*
  * Class:     octagon_OctWrapper

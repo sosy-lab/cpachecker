@@ -13,7 +13,7 @@ public class LibraryAccess {
 		Octagon oct1 = o1.getOctagon();
 		Octagon oct2 = o2.getOctagon();
 		Octagon res = or.J_widening(oct1, oct2, true, 0);
-		return new OctElement(res, o1.getMap());
+		return new OctElement(res, o1.getVariableMap());
 	}
 	
 	public static int getDim(OctElement octElm){
@@ -28,7 +28,7 @@ public class LibraryAccess {
 		Octagon oct1 = o1.getOctagon();
 		Octagon oct2 = o2.getOctagon();
 		Octagon res = or.J_union(oct1, oct2, true);
-		return new OctElement(res, o1.getMap());
+		return new OctElement(res, o1.getVariableMap());
 	}
 	
 	// creating an empty octagon, considered as the bottom element
@@ -70,35 +70,39 @@ public class LibraryAccess {
 	public static OctElement forget(OctElement elem, int var) {
 		Octagon oct1 = elem.getOctagon();
 		Octagon res = or.J_forget(oct1, var, true);
-		return new OctElement(res, elem.getMap());
+		return new OctElement(res, elem.getVariableMap());
 	}
 
 	public static OctElement assignVar(OctElement octElement, int var,
 			Num[] array) {
 		Octagon oct = octElement.getOctagon();
 		Octagon res = or.J_assingVar(oct, var, array, true);
-		return new OctElement(res, octElement.getMap());
+		return new OctElement(res, octElement.getVariableMap());
 	}
 
 	public static OctElement addDimension(OctElement octElement, int numOfVars) {
 		Octagon oct = octElement.getOctagon();
 		Octagon res = or.J_addDimenensionAndEmbed(oct, numOfVars, true);
-		return new OctElement(res, octElement.getMap());
+		return new OctElement(res, octElement.getVariableMap());
 	}
 	
 	public static OctElement removeDimension(OctElement octElement, int numOfVars) {
 		Octagon oct = octElement.getOctagon();
-		Octagon res = or.J_removeDimenension(oct, numOfVars, true);
-		return new OctElement(res, octElement.getMap());
+		Octagon res = or.J_removeDimension(oct, numOfVars, true);
+		return new OctElement(res, octElement.getVariableMap());
+	}
+	
+	public static OctElement removeDimensionAtPosition(OctElement octElement, int variablePos, int numOfDims){
+		Octagon oct = octElement.getOctagon();
+		Octagon res = or.J_removeDimensionAtPosition(oct, variablePos, numOfDims, true);
+		return new OctElement(res, octElement.getVariableMap());
 	}
 	
 	public static OctElement addConstraint(OctElement octElement,
 			Num[] array) {
 		Octagon oct = octElement.getOctagon();
 		Octagon res = or.J_addConstraint(oct, array, true);
-		//System.out.println(res);
-		return new OctElement(res, octElement.getMap());
+		return new OctElement(res, octElement.getVariableMap());
 	}
-	
 	
 }

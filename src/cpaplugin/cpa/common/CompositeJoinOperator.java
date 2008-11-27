@@ -38,7 +38,8 @@ public class CompositeJoinOperator implements JoinOperator
             results.add (result);
         }
                 
-        return new CompositeElement (results);
+        // TODO do we ever use this function?
+        return new CompositeElement (results, null);
     }
 
 }

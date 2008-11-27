@@ -9,7 +9,6 @@ import cpaplugin.cfa.objectmodel.CFANode;
 public class FunctionCallEdge extends AbstractCFAEdge 
 {
 	private IASTExpression[] functionArguments;
-	private boolean isRecursiveCallEdge = false;
 	private boolean isExternalCall = false;
 	
     public FunctionCallEdge (String rawStatement, IASTExpression arguments)
@@ -29,14 +28,6 @@ public class FunctionCallEdge extends AbstractCFAEdge
     public IASTExpression[] getArguments(){
     	return this.functionArguments;
     }
-
-	public void setRecursive() {
-		this.isRecursiveCallEdge = true;
-	}
-	
-	public boolean isRecursive() {
-		return this.isRecursiveCallEdge;
-	}
 	
 	public void setExternalCall() {
 		this.isExternalCall = true;

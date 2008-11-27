@@ -7,10 +7,12 @@ import cpaplugin.cpa.common.interfaces.AbstractElement;
 public class CompositeElement implements AbstractElement
 {
     private List<AbstractElement> elements;
+    private CallStack callStack;
     
-    public CompositeElement (List<AbstractElement> elements)
+    public CompositeElement (List<AbstractElement> elements, CallStack stack)
     {
         this.elements = elements;
+        this.callStack = stack;
     }
     
     public List<AbstractElement> getElements ()
@@ -33,6 +35,7 @@ public class CompositeElement implements AbstractElement
         CompositeElement otherComposite = (CompositeElement) other;
         List<AbstractElement> otherElements = otherComposite.elements;
         
+        
         if (otherElements.size () != this.elements.size ())
             return false;
         
@@ -43,6 +46,10 @@ public class CompositeElement implements AbstractElement
             
             if (!element1.equals (element2))
                 return false;
+        }
+        
+        if(!otherComposite.getCallStack().equals(this.getCallStack())){
+        	return false;
         }
         
         return true;
@@ -61,5 +68,13 @@ public class CompositeElement implements AbstractElement
 
 	public AbstractElement get(int idx) {
 		return elements.get(idx);
+	}
+
+	public CallStack getCallStack() {
+		return callStack;
+	}
+
+	public void setCallStack(CallStack callStack) {
+		this.callStack = callStack;
 	}
 }

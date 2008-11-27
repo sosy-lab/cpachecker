@@ -4,6 +4,7 @@ import java.util.Collection;
 
 import cpaplugin.cpa.common.interfaces.AbstractDomain;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
+import cpaplugin.cpa.common.interfaces.BottomElement;
 import cpaplugin.cpa.common.interfaces.PreOrder;
 import cpaplugin.cpa.common.interfaces.StopOperator;
 import cpaplugin.exceptions.CPAException;
@@ -38,6 +39,9 @@ public class OctStopSep implements StopOperator{
 
 	//TODO test this
 	public boolean isBottomElement(AbstractElement element) {
+		if(element instanceof BottomElement){
+			return true;
+		}
 		OctElement octElem = (OctElement) element;
 		return octElem.isEmpty();
 	}

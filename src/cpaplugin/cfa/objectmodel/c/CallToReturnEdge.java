@@ -1,7 +1,5 @@
 package cpaplugin.cfa.objectmodel.c;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
@@ -9,20 +7,17 @@ import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import cpaplugin.cfa.objectmodel.AbstractCFAEdge;
 import cpaplugin.cfa.objectmodel.CFAEdgeType;
 import cpaplugin.cfa.objectmodel.CFANode;
+import cpaplugin.cpa.common.CompositeElement;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 
 public class CallToReturnEdge extends AbstractCFAEdge {
 
 	private IASTExpression expression;
-	private HashMap<String, AbstractElement> abstractElements;
-	private List<AliasedPointers> aliasedList;
-	private boolean hasAnyPointerParameters = false;
+	private AbstractElement abstractElement;
 
 	public CallToReturnEdge(String rawStatement, IASTExpression exp) {
 		super(rawStatement);
 		this.expression = exp;
-		abstractElements = new HashMap<String, AbstractElement>();
-		aliasedList = new ArrayList<AliasedPointers>();
 	}
 	
 	public void initializeSummaryEdge(CFANode predecessorNode, CFANode successorNode) {
@@ -42,28 +37,22 @@ public class CallToReturnEdge extends AbstractCFAEdge {
 		return CFAEdgeType.CallToReturnEdge;
 	}
 
-	public void registerElementOnSummaryEdge(String type, AbstractElement element){
-		abstractElements.put(type, element);
+	public AbstractElement getAbstractElement() {
+		return abstractElement;
 	}
 
-	public AbstractElement retrieveAbstractElement(String type){
-		return abstractElements.get(type);
-	}
-
-	public void registerAliasesOnFunctionCalls(String argumentName,
-			String parameterName) {
-			AliasedPointers ap = new AliasedPointers(argumentName, parameterName);
-			aliasedList.add(ap);
+	public void setAbstractElement(AbstractElement abstractElement) {
+		this.abstractElement = abstractElement;
 	}
 	
-	public List<AliasedPointers>getAliasedPointersList(){
-		return aliasedList;
-	}
-
-	public boolean hasAnyPointerParameters() {
-		if(aliasedList.size() > 0){
-			return true;
+	public AbstractElement extractAbstractElement(String elementName){
+		CompositeElement compElem = (CompositeElement) abstractElement;
+		List<AbstractElement> compElems = compElem.getElements();
+		for(AbstractElement item:compElems){
+			if(item.getClass().getName().equals(elementName)){
+				return item;
+			}
 		}
-		return false;
+		return null;
 	}
 }

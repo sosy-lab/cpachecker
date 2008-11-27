@@ -319,7 +319,7 @@ JNIEXPORT jobject JNICALL Java_octagon_OctWrapper_J_1assingVar
     var_t v;
     v = in;
     num_t* ar = convertToCArray(env, obj1, objArr);
-    oct_t* res = oct_assign_variable(oct1, v, ar, b);;
+    oct_t* res = oct_assign_variable(oct1, v, ar, b);
     assert(res != NULL);
     //TODO free ar
     return convertToJOct (env, obj1, res);
@@ -337,7 +337,7 @@ JNIEXPORT jobject JNICALL Java_octagon_OctWrapper_J_1substituteVar
     var_t v;
     v = in;
     num_t* ar = convertToCArray(env, obj1, objArr);
-    oct_t* res = oct_substitute_variable(oct1, v, ar, b);;
+    oct_t* res = oct_substitute_variable(oct1, v, ar, b);
     assert(res != NULL);
     //TODO free ar
     return convertToJOct (env, obj1, res);
@@ -353,7 +353,7 @@ JNIEXPORT jobject JNICALL Java_octagon_OctWrapper_J_1addConstraint
     oct_t* oct1 = convertToCOct(env, obj1, obj2);
     assert(oct1 != NULL);
     num_t* ar = convertToCArray(env, obj1, objArr);
-    oct_t* res = oct_add_constraint(oct1, ar, b);;
+    oct_t* res = oct_add_constraint(oct1, ar, b);
     assert(res != NULL);
     //TODO free ar
     return convertToJOct (env, obj1, res);
@@ -373,7 +373,7 @@ JNIEXPORT jobject JNICALL Java_octagon_OctWrapper_J_1intervAssingVar
     v = in;
     num_t* ar = convertToCArray(env, obj1, objArr);
     assert(ar != NULL);
-    oct_t* res = oct_interv_assign_variable(oct1, v, ar, b);;
+    oct_t* res = oct_interv_assign_variable(oct1, v, ar, b);
     assert(res != NULL);
     //TODO free ar
     return convertToJOct (env, obj1, res);
@@ -393,7 +393,7 @@ JNIEXPORT jobject JNICALL Java_octagon_OctWrapper_J_1intervSubstituteVar
     v = in;
     num_t* ar = convertToCArray(env, obj1, objArr);
     assert(ar != NULL);
-    oct_t* res = oct_interv_substitute_variable(oct1, v, ar, b);;
+    oct_t* res = oct_interv_substitute_variable(oct1, v, ar, b);
     assert(res != NULL);
     //TODO free ar
     return convertToJOct (env, obj1, res);
@@ -410,7 +410,7 @@ JNIEXPORT jobject JNICALL Java_octagon_OctWrapper_J_1intervAddConstraint
     assert(oct1 != NULL);
     num_t* ar = convertToCArray(env, obj1, objArr);
     assert(ar != NULL);
-    oct_t* res =  oct_interv_add_constraint(oct1, ar, b);;
+    oct_t* res =  oct_interv_add_constraint(oct1, ar, b);
     assert(res != NULL);
     //TODO free ar
     return convertToJOct (env, obj1, res);
@@ -427,7 +427,7 @@ JNIEXPORT jobject JNICALL Java_octagon_OctWrapper_J_1addDimenensionAndEmbed
     assert(oct1 != NULL);
     var_t v;
     v = in;
-    oct_t* res =  oct_add_dimensions_and_embed(oct1, v, b);;
+    oct_t* res =  oct_add_dimensions_and_embed(oct1, v, b);
     assert(res != NULL);
     //TODO free ar
     return convertToJOct (env, obj1, res);
@@ -445,7 +445,7 @@ JNIEXPORT jobject JNICALL Java_octagon_OctWrapper_J_1addDimenensionAndProject
     assert(oct1 != NULL);
     var_t v;
     v = in;
-    oct_t* res =   oct_add_dimensions_and_project(oct1, v, b);;
+    oct_t* res =   oct_add_dimensions_and_project(oct1, v, b);
     assert(res != NULL);
     //TODO free ar
     return convertToJOct (env, obj1, res);
@@ -453,16 +453,39 @@ JNIEXPORT jobject JNICALL Java_octagon_OctWrapper_J_1addDimenensionAndProject
 
 /*
  * Class:     OctWrapper
- * Method:    J_removeDimenension
+ * Method:    J_removeDimension
  * Signature: (LOctagon;IZ)LOctagon;
  */
-JNIEXPORT jobject JNICALL Java_octagon_OctWrapper_J_1removeDimenension
+JNIEXPORT jobject JNICALL Java_octagon_OctWrapper_J_1removeDimension
   (JNIEnv *env , jobject obj1, jobject obj2, jint in, jboolean b){
     oct_t* oct1 = convertToCOct(env, obj1, obj2);
     assert(oct1 != NULL);
     var_t v;
     v = in;
-    oct_t* res =    oct_remove_dimensions(oct1, v, b);;
+    oct_t* res =    oct_remove_dimensions(oct1, v, b);
+    assert(res != NULL);
+    //TODO free ar
+    return convertToJOct (env, obj1, res);
+}
+
+/*
+ * Class:     octagon_OctWrapper
+ * Method:    J_removeDimensionAtPosition
+ * Signature: (Loctagon/Octagon;IIZ)Loctagon/Octagon;
+ */
+JNIEXPORT jobject JNICALL Java_octagon_OctWrapper_J_1removeDimensionAtPosition
+  (JNIEnv *env, jobject obj1, jobject obj2, jint pos, jint dimension, jboolean b){
+    oct_t* oct1 = convertToCOct(env, obj1, obj2);
+    assert(oct1 != NULL);
+    var_t vpos;
+    var_t vdim;
+    vpos = pos;
+    vdim = dimension;
+    // TODO, for now we use this method only for one dimsup_t variable, later we can improve this
+    dimsup_t array[1];
+    array[0].pos = vpos;
+    array[0].nbdims = vdim;
+    oct_t* res =  oct_remove_dimensions_multi(oct1, array, 1, b);
     assert(res != NULL);
     //TODO free ar
     return convertToJOct (env, obj1, res);
