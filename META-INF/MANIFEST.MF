@@ -53,7 +53,6 @@ Export-Package: cpaplugin;uses:="org.eclipse.jface.resource,org.eclipse.ui.plugi
  cpaplugin.cpa.common;uses:="cpaplugin.cpa.common.interfaces",
  cpaplugin.cpa.common.interfaces;uses:="cpaplugin.cfa.objectmodel",
  cpaplugin.cpa.cpas.defuse;uses:="cpaplugin.cfa.objectmodel,cpaplugin.cpa.common.interfaces",
- cpaplugin.cpa.cpas.interprocedural;uses:="cpaplugin.cfa.objectmodel,cpaplugin.cpa.common.interfaces",
  cpaplugin.cpa.cpas.location;uses:="cpaplugin.cfa.objectmodel,cpaplugin.cpa.common.interfaces",
  cpaplugin.cpa.cpas.octagon;
   uses:="cpaplugin.cfa.objectmodel,
