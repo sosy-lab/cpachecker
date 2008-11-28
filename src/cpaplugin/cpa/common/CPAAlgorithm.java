@@ -11,7 +11,7 @@ import java.util.Vector;
 import cpaplugin.cmdline.CPAMain;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.AbstractElementWithLocation;
-import cpaplugin.cpa.common.interfaces.ConfigurableProblemAnalysis;
+import cpaplugin.cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpaplugin.cpa.common.interfaces.MergeOperator;
 import cpaplugin.cpa.common.interfaces.StopOperator;
 import cpaplugin.cpa.common.interfaces.TransferRelation;
@@ -24,7 +24,7 @@ public class CPAAlgorithm
     private final int GC_PERIOD = 100;
     private int gcCounter = 0;
     
-	public Collection<AbstractElement> CPA (ConfigurableProblemAnalysis cpa, AbstractElement initialState) throws CPAException
+	public Collection<AbstractElement> CPA (ConfigurableProgramAnalysis cpa, AbstractElement initialState) throws CPAException
 	{
 		List<AbstractElement> waitlist = new ArrayList<AbstractElement> ();
 		Collection<AbstractElement> reached = createReachedSet(cpa);
@@ -196,7 +196,7 @@ public class CPAAlgorithm
 
 	@SuppressWarnings("unchecked")
 	private Collection<AbstractElement> createReachedSet(
-			ConfigurableProblemAnalysis cpa) {
+			ConfigurableProgramAnalysis cpa) {
 		// check whether the cpa provides a method for building a specialized
 		// reached set. If not, just use a HashSet
 		try {

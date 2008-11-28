@@ -4,7 +4,7 @@ import cpaplugin.cpa.common.interfaces.AbstractDomain;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.BottomElement;
 import cpaplugin.cpa.common.interfaces.JoinOperator;
-import cpaplugin.cpa.common.interfaces.PreOrder;
+import cpaplugin.cpa.common.interfaces.PartialOrder;
 import cpaplugin.cpa.common.interfaces.TopElement;
 
 
@@ -25,7 +25,7 @@ public class SymbPredAbstDomain implements AbstractDomain {
     
     private class SymbPredAbstTopElement implements TopElement {}
     
-    private class SymbPredAbstPreOrder implements PreOrder {
+    private class SymbPredAbstPreOrder implements PartialOrder {
         public boolean satisfiesPreOrder(AbstractElement element1, 
                                          AbstractElement element2) {
             if (element1.equals(element2)) {
@@ -87,7 +87,7 @@ public class SymbPredAbstDomain implements AbstractDomain {
         new SymbPredAbstBottomElement();
     private final TopElement topElement = 
         new SymbPredAbstTopElement();
-    private final PreOrder preOrder = new SymbPredAbstPreOrder();
+    private final PartialOrder preOrder = new SymbPredAbstPreOrder();
     private final JoinOperator joinOperator = 
         new SymbPredAbstJoinOperator();
     
@@ -99,7 +99,7 @@ public class SymbPredAbstDomain implements AbstractDomain {
         return joinOperator;
     }
 
-    public PreOrder getPreOrder() {
+    public PartialOrder getPreOrder() {
         return preOrder;
     }
 

@@ -6,7 +6,7 @@ import java.util.List;
 import cpaplugin.cpa.common.interfaces.AbstractDomain;
 import cpaplugin.cpa.common.interfaces.BottomElement;
 import cpaplugin.cpa.common.interfaces.JoinOperator;
-import cpaplugin.cpa.common.interfaces.PreOrder;
+import cpaplugin.cpa.common.interfaces.PartialOrder;
 import cpaplugin.cpa.common.interfaces.TopElement;
 
 public class CompositeDomain implements AbstractDomain
@@ -25,7 +25,7 @@ public class CompositeDomain implements AbstractDomain
         List<BottomElement> bottoms = new ArrayList<BottomElement> ();
         List<TopElement> tops = new ArrayList<TopElement> ();
         List<JoinOperator> joinOperators = new ArrayList<JoinOperator> ();
-        List<PreOrder> preOrders = new ArrayList<PreOrder> ();
+        List<PartialOrder> preOrders = new ArrayList<PartialOrder> ();
         
         for (AbstractDomain domain : domains)
         {
@@ -61,7 +61,7 @@ public class CompositeDomain implements AbstractDomain
         return joinOperator;
     }
 
-    public PreOrder getPreOrder ()
+    public PartialOrder getPreOrder ()
     {
         return preOrder;
     }  

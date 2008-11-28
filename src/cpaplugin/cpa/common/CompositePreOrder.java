@@ -3,14 +3,14 @@ package cpaplugin.cpa.common;
 import java.util.List;
 
 import cpaplugin.cpa.common.interfaces.AbstractElement;
-import cpaplugin.cpa.common.interfaces.PreOrder;
+import cpaplugin.cpa.common.interfaces.PartialOrder;
 import cpaplugin.exceptions.CPAException;
 
-public class CompositePreOrder implements PreOrder
+public class CompositePreOrder implements PartialOrder
 {
-    private List<PreOrder> preOrders;
+    private List<PartialOrder> preOrders;
     
-    public CompositePreOrder (List<PreOrder> preOrders)
+    public CompositePreOrder (List<PartialOrder> preOrders)
     {
         this.preOrders = preOrders;
     }
@@ -30,7 +30,7 @@ public class CompositePreOrder implements PreOrder
                 
         for (int idx = 0; idx < comp1Elements.size (); idx++)
         {
-            PreOrder preOrder = preOrders.get (idx);
+            PartialOrder preOrder = preOrders.get (idx);
             if (!preOrder.satisfiesPreOrder (comp1Elements.get (idx), comp2Elements.get (idx)))
                 return false;
         }

@@ -12,7 +12,7 @@ import cpaplugin.cpa.common.interfaces.AbstractDomain;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.AbstractElementWithLocation;
 import cpaplugin.cpa.common.interfaces.TransferRelation;
-import cpaplugin.cpa.common.interfaces.ConfigurableProblemAnalysis;
+import cpaplugin.cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpaplugin.exceptions.CPAException;
 
 /**
@@ -22,9 +22,9 @@ import cpaplugin.exceptions.CPAException;
 public class DominatorTransferRelation implements TransferRelation {
 
 	private DominatorDomain domain;
-	private ConfigurableProblemAnalysis cpa;
+	private ConfigurableProgramAnalysis cpa;
 	
-	public DominatorTransferRelation(DominatorDomain domain, ConfigurableProblemAnalysis cpa) {
+	public DominatorTransferRelation(DominatorDomain domain, ConfigurableProgramAnalysis cpa) {
 		if (domain == null) {
 			throw new IllegalArgumentException("domain is null!");
 		}

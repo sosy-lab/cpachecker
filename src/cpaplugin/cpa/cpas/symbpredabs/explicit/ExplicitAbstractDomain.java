@@ -4,7 +4,7 @@ import cpaplugin.cpa.common.interfaces.AbstractDomain;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.BottomElement;
 import cpaplugin.cpa.common.interfaces.JoinOperator;
-import cpaplugin.cpa.common.interfaces.PreOrder;
+import cpaplugin.cpa.common.interfaces.PartialOrder;
 import cpaplugin.cpa.common.interfaces.TopElement;
 import cpaplugin.cpa.cpas.symbpredabs.AbstractFormulaManager;
 import cpaplugin.exceptions.CPAException;
@@ -34,7 +34,7 @@ public class ExplicitAbstractDomain implements AbstractDomain {
         }
     }
     
-    private final class ExplicitPreOrder implements PreOrder {
+    private final class ExplicitPreOrder implements PartialOrder {
         public boolean satisfiesPreOrder(AbstractElement element1,
                 AbstractElement element2) throws CPAException {
             ExplicitAbstractElement e1 = (ExplicitAbstractElement)element1;
@@ -54,7 +54,7 @@ public class ExplicitAbstractDomain implements AbstractDomain {
     private final BottomElement bottom = new ExplicitBottomElement();
     private final TopElement top = new ExplicitTopElement();
     private final JoinOperator join = new ExplicitJoinOperator();
-    private final PreOrder pre = new ExplicitPreOrder();
+    private final PartialOrder pre = new ExplicitPreOrder();
 
     public BottomElement getBottomElement() {
         return bottom;
@@ -64,7 +64,7 @@ public class ExplicitAbstractDomain implements AbstractDomain {
         return join;
     }
 
-    public PreOrder getPreOrder() {
+    public PartialOrder getPreOrder() {
         return pre;
     }
 

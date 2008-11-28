@@ -4,7 +4,7 @@ import java.util.Collection;
 
 import cpaplugin.cpa.common.interfaces.AbstractDomain;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
-import cpaplugin.cpa.common.interfaces.PreOrder;
+import cpaplugin.cpa.common.interfaces.PartialOrder;
 import cpaplugin.cpa.common.interfaces.StopOperator;
 import cpaplugin.exceptions.CPAException;
 
@@ -24,7 +24,7 @@ public class LocationStopSep implements StopOperator
 
 	public boolean stop (AbstractElement element, Collection<AbstractElement> reached) throws CPAException
 	{
-		PreOrder preOrder = locationDomain.getPreOrder ();
+		PartialOrder preOrder = locationDomain.getPreOrder ();
 		for (AbstractElement testElement : reached)
 		{
 			if (preOrder.satisfiesPreOrder (element, testElement))
@@ -42,7 +42,7 @@ public class LocationStopSep implements StopOperator
 	public boolean stop(AbstractElement element, AbstractElement reachedElement)
 	throws CPAException {
 
-		PreOrder preOrder = locationDomain.getPreOrder ();
+		PartialOrder preOrder = locationDomain.getPreOrder ();
 		if (preOrder.satisfiesPreOrder (element, reachedElement))
 			return true;
 		return false;

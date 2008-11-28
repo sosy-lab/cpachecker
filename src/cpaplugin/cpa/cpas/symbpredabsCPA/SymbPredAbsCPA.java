@@ -19,7 +19,7 @@ import cpaplugin.cfa.objectmodel.CFANode;
 import cpaplugin.cmdline.CPAMain;
 import cpaplugin.cpa.common.interfaces.AbstractDomain;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
-import cpaplugin.cpa.common.interfaces.ConfigurableProblemAnalysis;
+import cpaplugin.cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpaplugin.cpa.common.interfaces.MergeOperator;
 import cpaplugin.cpa.common.interfaces.StopOperator;
 import cpaplugin.cpa.common.interfaces.TransferRelation;
@@ -32,7 +32,7 @@ import cpaplugin.logging.LazyLogger;
  *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
-public class SymbPredAbsCPA implements ConfigurableProblemAnalysis {
+public class SymbPredAbsCPA implements ConfigurableProgramAnalysis {
 
 	private SymbPredAbsAbstractDomain domain;
 	private SymbPredAbsMergeOperator merge;

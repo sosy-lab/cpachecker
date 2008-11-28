@@ -15,7 +15,7 @@ import cpaplugin.cpa.common.CompositeDomain;
 import cpaplugin.cpa.common.CompositeElement;
 import cpaplugin.cpa.common.interfaces.AbstractDomain;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
-import cpaplugin.cpa.common.interfaces.ConfigurableProblemAnalysis;
+import cpaplugin.cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpaplugin.cpa.common.interfaces.MergeOperator;
 import cpaplugin.cpa.common.interfaces.StopOperator;
 import cpaplugin.cpa.common.interfaces.TransferRelation;
@@ -24,7 +24,7 @@ import cpaplugin.logging.CPACheckerLogger;
 import cpaplugin.logging.CustomLogLevel;
 import cpaplugin.logging.LazyLogger;
 
-public class CompositeCPA implements ConfigurableProblemAnalysis
+public class CompositeCPA implements ConfigurableProgramAnalysis
 {
 	private AbstractDomain abstractDomain;
 	private MergeOperator mergeOperator;
@@ -45,7 +45,7 @@ public class CompositeCPA implements ConfigurableProblemAnalysis
 		this.initialElement = initialElement;
 	}
 
-	private static ConfigurableProblemAnalysis createNewCompositeCPA(List<ConfigurableProblemAnalysis> cpas, CFAFunctionDefinitionNode node) {
+	private static ConfigurableProgramAnalysis createNewCompositeCPA(List<ConfigurableProgramAnalysis> cpas, CFAFunctionDefinitionNode node) {
 
 		int sizeOfCompositeDomain = cpas.size();
 		List<AbstractDomain> domains = new ArrayList<AbstractDomain> ();
@@ -55,7 +55,7 @@ public class CompositeCPA implements ConfigurableProblemAnalysis
 		List<AbstractElement> initialElements = new ArrayList<AbstractElement> ();
 
 		for(int i=0; i<sizeOfCompositeDomain; i++){
-			ConfigurableProblemAnalysis sp = cpas.get(i);
+			ConfigurableProgramAnalysis sp = cpas.get(i);
 			AbstractDomain domain = sp.getAbstractDomain();
 			domains.add(domain);
 
@@ -107,14 +107,14 @@ public class CompositeCPA implements ConfigurableProblemAnalysis
 	}
 
 	@SuppressWarnings("unchecked")
-	public static ConfigurableProblemAnalysis getCompositeCPA (CFAFunctionDefinitionNode node) throws CPAException
+	public static ConfigurableProgramAnalysis getCompositeCPA (CFAFunctionDefinitionNode node) throws CPAException
 	{
 		String[] cpaNamesArray = CPAMain.cpaConfig.getPropertiesArray("analysis.cpas");
 		String[] mergeTypesArray = CPAMain.cpaConfig.getPropertiesArray("analysis.mergeOperators");
 		String[] stopTypesArray = CPAMain.cpaConfig.getPropertiesArray("analysis.stopOperators");
 
 		// The list to keep all cpas
-		List<ConfigurableProblemAnalysis> cpas = new ArrayList<ConfigurableProblemAnalysis> ();
+		List<ConfigurableProgramAnalysis> cpas = new ArrayList<ConfigurableProgramAnalysis> ();
 
 		int sizeOfCompositeCPA = cpaNamesArray.length;
 
@@ -134,7 +134,7 @@ public class CompositeCPA implements ConfigurableProblemAnalysis
 				Object argumentlist[] = {mergeTypesArray[i], stopTypesArray[i]};
 				Object obj = ct.newInstance(argumentlist);
 				// Convert object to CPA
-				ConfigurableProblemAnalysis newCPA = (ConfigurableProblemAnalysis)obj; 
+				ConfigurableProgramAnalysis newCPA = (ConfigurableProgramAnalysis)obj; 
 				cpas.add(newCPA); 
 				
 				// AG - check if this cpa defines its own 
@@ -167,7 +167,7 @@ public class CompositeCPA implements ConfigurableProblemAnalysis
 			}
 		}
 		
-		ConfigurableProblemAnalysis cpa = null;
+		ConfigurableProgramAnalysis cpa = null;
 		// TODO this was for efficiency but I modified the condition for it to work only with
 		// summary nodes
 		if (cpas.size() == 1 && 

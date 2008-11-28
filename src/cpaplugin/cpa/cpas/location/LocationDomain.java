@@ -4,7 +4,7 @@ import cpaplugin.cpa.common.interfaces.AbstractDomain;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.BottomElement;
 import cpaplugin.cpa.common.interfaces.JoinOperator;
-import cpaplugin.cpa.common.interfaces.PreOrder;
+import cpaplugin.cpa.common.interfaces.PartialOrder;
 import cpaplugin.cpa.common.interfaces.TopElement;
 
 public class LocationDomain implements AbstractDomain
@@ -19,7 +19,7 @@ public class LocationDomain implements AbstractDomain
         
     }
     
-    private static class LocationPreOrder implements PreOrder
+    private static class LocationPreOrder implements PartialOrder
     {
         public boolean satisfiesPreOrder (AbstractElement element1, AbstractElement element2)
         {
@@ -55,7 +55,7 @@ public class LocationDomain implements AbstractDomain
     
     private final static BottomElement bottomElement = new LocationBottomElement ();
     private final static TopElement topElement = new LocationTopElement ();
-    private final static PreOrder preOrder = new LocationPreOrder ();
+    private final static PartialOrder preOrder = new LocationPreOrder ();
     private final static JoinOperator joinOperator = new LocationJoinOperator ();
        
     public LocationDomain ()
@@ -78,7 +78,7 @@ public class LocationDomain implements AbstractDomain
         return joinOperator;
     }
 
-    public PreOrder getPreOrder ()
+    public PartialOrder getPreOrder ()
     {
         return preOrder;
     }

@@ -4,22 +4,22 @@ import cpaplugin.cfa.objectmodel.CFAFunctionDefinitionNode;
 import cpaplugin.cpa.common.interfaces.AbstractDomain;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.AbstractElementWithLocation;
-import cpaplugin.cpa.common.interfaces.ConfigurableProblemAnalysis;
+import cpaplugin.cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpaplugin.cpa.common.interfaces.MergeOperator;
 import cpaplugin.cpa.common.interfaces.StopOperator;
 import cpaplugin.cpa.common.interfaces.TransferRelation;
 import cpaplugin.exceptions.CPAException;
 
-public class DominatorCPA implements ConfigurableProblemAnalysis {
+public class DominatorCPA implements ConfigurableProgramAnalysis {
 
 	private DominatorDomain abstractDomain;
 	private DominatorMerge mergeOperator;
 	private DominatorStop stopOperator;
 	private DominatorTransferRelation transferRelation;
 	
-	private ConfigurableProblemAnalysis cpa;
+	private ConfigurableProgramAnalysis cpa;
 	
-	public DominatorCPA(ConfigurableProblemAnalysis cpa) throws CPAException {
+	public DominatorCPA(ConfigurableProgramAnalysis cpa) throws CPAException {
 		this.cpa = cpa;
 		
 		this.abstractDomain = new DominatorDomain(this.cpa);

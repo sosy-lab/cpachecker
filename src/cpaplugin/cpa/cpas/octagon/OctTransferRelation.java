@@ -1658,7 +1658,7 @@ public class OctTransferRelation implements TransferRelation{
 	private void copyConstraintFromOctagon(OctElement octElement,
 			OctElement newOctElement, int val1id, int val2id, int newVal1,
 			int newVal2) {
-		
+
 		Octagon oct = octElement.getOctagon();
 		Num num;
 		Num[] array = new Num[newOctElement.getNumberOfVars()+1];
@@ -1680,7 +1680,7 @@ public class OctTransferRelation implements TransferRelation{
 			array[newVal1] = new Num(-1);
 			array[newOctElement.getNumberOfVars()] = num;
 			newOctElement.update(LibraryAccess.addConstraint(newOctElement, array));
-			
+
 			fillArrayWithZero(array);
 			num = new Num((oct.getMatrix()[oct.matPos(2*val1id,2*val1id+1)].f)/2);
 			array[newVal1] = new Num(1);
@@ -1688,27 +1688,27 @@ public class OctTransferRelation implements TransferRelation{
 			newOctElement.update(LibraryAccess.addConstraint(newOctElement, array));
 		}
 		else{
-			
+
 			num = new Num((oct.getMatrix()[oct.matPos(2*val2id,2*val1id)].f));
 			array[newVal1] = new Num(-1);
 			array[newVal2] = new Num(1);
 			array[newOctElement.getNumberOfVars()] = num;
 			newOctElement.update(LibraryAccess.addConstraint(newOctElement, array));
-			
+
 			fillArrayWithZero(array);
 			num = new Num((oct.getMatrix()[oct.matPos(2*val2id,2*val1id+1)].f));
 			array[newVal1] = new Num(1);
 			array[newVal2] = new Num(1);
 			array[newOctElement.getNumberOfVars()] = num;
 			newOctElement.update(LibraryAccess.addConstraint(newOctElement, array));
-			
+
 			fillArrayWithZero(array);
 			num = new Num((oct.getMatrix()[oct.matPos(2*val2id+1,2*val1id)].f));
 			array[newVal1] = new Num(-1);
 			array[newVal2] = new Num(-1);
 			array[newOctElement.getNumberOfVars()] = num;
 			newOctElement.update(LibraryAccess.addConstraint(newOctElement, array));
-			
+
 			fillArrayWithZero(array);
 			num = new Num((oct.getMatrix()[oct.matPos(2*val2id+1,2*val1id+1)].f));
 			array[newVal1] = new Num(1);
@@ -1833,64 +1833,63 @@ public class OctTransferRelation implements TransferRelation{
 	}
 
 	private void handleFunctionReturn(OctElement octElement,
-			ReturnEdge functionReturnEdge) throws OctagonTransferException 
-			{
+			ReturnEdge functionReturnEdge) throws OctagonTransferException {
 		CallToReturnEdge summaryEdge = 
 			functionReturnEdge.getSuccessor().getEnteringSummaryEdge();
 		IASTExpression exprOnSummary = summaryEdge.getExpression();
 		OctElement prevOctElem = (OctElement)summaryEdge.extractAbstractElement("OctElement");
 		String callerFunctionName = functionReturnEdge.getSuccessor().getFunctionName();
 		String calledFunctionName = functionReturnEdge.getPredecessor().getFunctionName();
-
-		HashMap<Integer, Integer> replaceMap = new HashMap<Integer, Integer>();
-
-		// TODO add previous element a temporary return value
-
-		// expression is a binary operation, e.g. a = g(b);
-		if (exprOnSummary instanceof IASTBinaryExpression) {
-			IASTBinaryExpression binExp = ((IASTBinaryExpression)exprOnSummary);
-			int opType = binExp.getOperator ();
-
-			assert(opType == IASTBinaryExpression.op_assign);
-
-			IASTExpression op1 = binExp.getOperand1();
-
-			// we expect left hand side of the expression to be a variable
-			if(op1 instanceof IASTIdExpression)
-			{
-				IASTIdExpression leftHandSideVar = (IASTIdExpression)op1;
-				String varName = leftHandSideVar.getRawSignature();
-				// TODO
-				int varId1 = prevOctElem.getVariableId(globalVars, varName, callerFunctionName);
-				int varId2 = octElement.getVariableId(globalVars, "___cpa_temp_result_var_", calledFunctionName);
-				replaceMap.put(varId1, varId2);
-			}
-			else{
-				throw new OctagonTransferException("Unhandled case " + functionReturnEdge.getPredecessor().getNodeNumber());
-			}
-		}
-		// expression is a unary operation, e.g. g(b);
-		else if (exprOnSummary instanceof IASTUnaryExpression)
-		{
-			// TODO
-			// do nothing
-		}
-		else{
-			throw new OctagonTransferException("Unhandled case " + functionReturnEdge.getPredecessor().getNodeNumber());
-		}
-
-
-		for(int i=0; i<octElement.getNumberOfVars(); i++)
-		{
-			String varName = octElement.getVarNameForId(i);
-			String tempVarName = varName.replace("::", "");
-			if(globalVars.contains(tempVarName)){
-				int varId1 = prevOctElem.getVariableId(globalVars, tempVarName, "");
-				int varId2 = octElement.getVariableId(globalVars, tempVarName, "");
-				replaceMap.put(varId1, varId2);
-			}
-		}
-		System.out.println(replaceMap);
-			}
+octElement.update(prevOctElem);
+//		HashMap<Integer, Integer> replaceMap = new HashMap<Integer, Integer>();
+//
+//		// TODO add previous element a temporary return value
+//
+//		// expression is a binary operation, e.g. a = g(b);
+//		if (exprOnSummary instanceof IASTBinaryExpression) {
+//			IASTBinaryExpression binExp = ((IASTBinaryExpression)exprOnSummary);
+//			int opType = binExp.getOperator ();
+//
+//			assert(opType == IASTBinaryExpression.op_assign);
+//
+//			IASTExpression op1 = binExp.getOperand1();
+//
+//			// we expect left hand side of the expression to be a variable
+//			if(op1 instanceof IASTIdExpression)
+//			{
+//				IASTIdExpression leftHandSideVar = (IASTIdExpression)op1;
+//				String varName = leftHandSideVar.getRawSignature();
+//				// TODO
+//				int varId1 = prevOctElem.getVariableId(globalVars, varName, callerFunctionName);
+//				int varId2 = octElement.getVariableId(globalVars, "___cpa_temp_result_var_", calledFunctionName);
+//				replaceMap.put(varId1, varId2);
+//			}
+//			else{
+//				throw new OctagonTransferException("Unhandled case " + functionReturnEdge.getPredecessor().getNodeNumber());
+//			}
+//		}
+//		// expression is a unary operation, e.g. g(b);
+//		else if (exprOnSummary instanceof IASTUnaryExpression)
+//		{
+//			// TODO
+//			// do nothing
+//		}
+//		else{
+//			throw new OctagonTransferException("Unhandled case " + functionReturnEdge.getPredecessor().getNodeNumber());
+//		}
+//
+//
+//		for(int i=0; i<octElement.getNumberOfVars(); i++)
+//		{
+//			String varName = octElement.getVarNameForId(i);
+//			String tempVarName = varName.replace("::", "");
+//			if(globalVars.contains(tempVarName)){
+//				int varId1 = prevOctElem.getVariableId(globalVars, tempVarName, "");
+//				int varId2 = octElement.getVariableId(globalVars, tempVarName, "");
+//				replaceMap.put(varId1, varId2);
+//			}
+//		}
+//		System.out.println(replaceMap);
+	}
 
 }

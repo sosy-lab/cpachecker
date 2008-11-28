@@ -18,7 +18,7 @@ import cpaplugin.cpa.cpas.symbpredabs.SymbolicFormula;
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
 public class SummaryAbstractElement 
-        implements AbstractElement, AbstractElementWithLocation {
+        implements AbstractElementWithLocation {
     
     private int elemId;
     private SummaryCFANode summaryLocation;

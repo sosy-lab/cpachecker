@@ -19,7 +19,7 @@ import cpaplugin.cfa.objectmodel.CFANode;
 import cpaplugin.cmdline.CPAMain;
 import cpaplugin.cpa.common.interfaces.AbstractDomain;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
-import cpaplugin.cpa.common.interfaces.ConfigurableProblemAnalysis;
+import cpaplugin.cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpaplugin.cpa.common.interfaces.MergeOperator;
 import cpaplugin.cpa.common.interfaces.StopOperator;
 import cpaplugin.cpa.common.interfaces.TransferRelation;
@@ -50,7 +50,7 @@ import cpaplugin.logging.LazyLogger;
  *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
-public class SummaryCPA implements ConfigurableProblemAnalysis {
+public class SummaryCPA implements ConfigurableProgramAnalysis {
     
     private SummaryAbstractDomain domain;
     private SummaryMergeOperator merge;

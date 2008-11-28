@@ -9,7 +9,7 @@ import cpaplugin.cpa.common.interfaces.AbstractDomain;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.BottomElement;
 import cpaplugin.cpa.common.interfaces.JoinOperator;
-import cpaplugin.cpa.common.interfaces.PreOrder;
+import cpaplugin.cpa.common.interfaces.PartialOrder;
 import cpaplugin.cpa.common.interfaces.TopElement;
 
 public class PredicateAbstractionDomain implements AbstractDomain{
@@ -29,7 +29,7 @@ public class PredicateAbstractionDomain implements AbstractDomain{
         }
     }
     
-    private static class PredicateAbstractionPreOrder implements PreOrder
+    private static class PredicateAbstractionPreOrder implements PartialOrder
     {
     	// returns true if element1 < element2 on lattice
         public boolean satisfiesPreOrder (AbstractElement element1, AbstractElement element2)
@@ -83,7 +83,7 @@ public class PredicateAbstractionDomain implements AbstractDomain{
     
     private final static BottomElement bottomElement = new PredicateAbstractionBottomElement ();
     private final static TopElement topElement = new PredicateAbstractionTopElement ();
-    private final static PreOrder preOrder = new PredicateAbstractionPreOrder ();
+    private final static PartialOrder preOrder = new PredicateAbstractionPreOrder ();
     private final static JoinOperator joinOperator = new PredicateAbstractionJoinOperator ();
        
     public PredicateAbstractionDomain ()
@@ -106,7 +106,7 @@ public class PredicateAbstractionDomain implements AbstractDomain{
         return joinOperator;
     }
 
-    public PreOrder getPreOrder ()
+    public PartialOrder getPreOrder ()
     {
         return preOrder;
     }

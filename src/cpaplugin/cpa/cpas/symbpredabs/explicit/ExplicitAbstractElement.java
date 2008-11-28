@@ -14,7 +14,7 @@ import cpaplugin.cpa.cpas.symbpredabs.Pair;
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */ 
 public class ExplicitAbstractElement 
-        implements AbstractElement, AbstractElementWithLocation {
+        implements AbstractElementWithLocation {
     
     private int elemId;
     private CFANode location;

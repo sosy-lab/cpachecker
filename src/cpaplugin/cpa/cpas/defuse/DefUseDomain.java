@@ -7,7 +7,7 @@ import cpaplugin.cpa.common.interfaces.AbstractDomain;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.BottomElement;
 import cpaplugin.cpa.common.interfaces.JoinOperator;
-import cpaplugin.cpa.common.interfaces.PreOrder;
+import cpaplugin.cpa.common.interfaces.PartialOrder;
 import cpaplugin.cpa.common.interfaces.TopElement;
 
 public class DefUseDomain implements AbstractDomain
@@ -25,7 +25,7 @@ public class DefUseDomain implements AbstractDomain
         
     }
     
-    private static class DefUsePreOrder implements PreOrder
+    private static class DefUsePreOrder implements PartialOrder
     {
         public boolean satisfiesPreOrder (AbstractElement element1, AbstractElement element2)
         {
@@ -69,7 +69,7 @@ public class DefUseDomain implements AbstractDomain
     
     private final static BottomElement bottomElement = new DefUseBottomElement ();
     private final static TopElement topElement = new DefUseTopElement ();
-    private final static PreOrder preOrder = new DefUsePreOrder ();
+    private final static PartialOrder preOrder = new DefUsePreOrder ();
     private final static JoinOperator joinOperator = new DefUseJoinOperator ();
        
     public DefUseDomain ()
@@ -92,7 +92,7 @@ public class DefUseDomain implements AbstractDomain
         return joinOperator;
     }
 
-    public PreOrder getPreOrder ()
+    public PartialOrder getPreOrder ()
     {
         return preOrder;
     }

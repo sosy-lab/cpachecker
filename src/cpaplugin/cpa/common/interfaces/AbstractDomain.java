@@ -4,6 +4,6 @@ public interface AbstractDomain
 {
     public TopElement getTopElement ();
     public BottomElement getBottomElement ();
-    public PreOrder getPreOrder ();
+    public PartialOrder getPreOrder ();
     public JoinOperator getJoinOperator ();
 }

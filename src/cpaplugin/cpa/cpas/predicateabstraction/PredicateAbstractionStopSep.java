@@ -4,7 +4,7 @@ import java.util.Collection;
 
 import cpaplugin.cpa.common.interfaces.AbstractDomain;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
-import cpaplugin.cpa.common.interfaces.PreOrder;
+import cpaplugin.cpa.common.interfaces.PartialOrder;
 import cpaplugin.cpa.common.interfaces.StopOperator;
 import cpaplugin.exceptions.CPAException;
 import cpaplugin.logging.CPACheckerLogger;
@@ -26,7 +26,7 @@ public class PredicateAbstractionStopSep implements StopOperator
 
 	public boolean stop (AbstractElement element, Collection<AbstractElement> reached) throws CPAException
 	{
-		PreOrder preOrder = predicateAbstractionDomain.getPreOrder ();
+		PartialOrder preOrder = predicateAbstractionDomain.getPreOrder ();
 		for (AbstractElement testElement : reached)
 		{
 			CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel, " Preorder check: element:  " + element
@@ -51,7 +51,7 @@ public class PredicateAbstractionStopSep implements StopOperator
 
 	public boolean stop(AbstractElement element, AbstractElement reachedElement)
 	throws CPAException {
-		PreOrder preOrder = predicateAbstractionDomain.getPreOrder ();
+		PartialOrder preOrder = predicateAbstractionDomain.getPreOrder ();
 		CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel, " Preorder check: element:  " + element
 				+ " reached element" + reachedElement + " --> "+ preOrder.satisfiesPreOrder (element, reachedElement));
 		if (preOrder.satisfiesPreOrder (element, reachedElement))

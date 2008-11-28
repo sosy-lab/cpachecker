@@ -10,7 +10,7 @@ import cpaplugin.logging.LazyLogger;
  * TODO. This is currently broken
  */
 public class SymbPredAbstElement 
-        implements AbstractElement, AbstractElementWithLocation {
+        implements AbstractElementWithLocation {
     // unique identifier for each domain element
     private static int nextAvailableElemId = 1;
 

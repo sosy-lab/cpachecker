@@ -4,7 +4,7 @@ import cpaplugin.cfa.objectmodel.CFANode;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.AbstractElementWithLocation;
 
-public class LocationElement implements AbstractElement, AbstractElementWithLocation
+public class LocationElement implements AbstractElementWithLocation
 {
     private final CFANode locationNode;
     

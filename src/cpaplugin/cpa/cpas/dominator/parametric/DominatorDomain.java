@@ -10,9 +10,9 @@ import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.AbstractElementWithLocation;
 import cpaplugin.cpa.common.interfaces.BottomElement;
 import cpaplugin.cpa.common.interfaces.JoinOperator;
-import cpaplugin.cpa.common.interfaces.PreOrder;
+import cpaplugin.cpa.common.interfaces.PartialOrder;
 import cpaplugin.cpa.common.interfaces.TopElement;
-import cpaplugin.cpa.common.interfaces.ConfigurableProblemAnalysis;
+import cpaplugin.cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpaplugin.exceptions.CPAException;
 
 import java.util.Set;
@@ -22,11 +22,11 @@ import java.util.HashSet;
  * @author holzera
  *
  */
-public class DominatorDomain implements AbstractDomain, PreOrder, JoinOperator {
+public class DominatorDomain implements AbstractDomain, PartialOrder, JoinOperator {
 
-	private ConfigurableProblemAnalysis cpa;
+	private ConfigurableProgramAnalysis cpa;
 	
-	public DominatorDomain(ConfigurableProblemAnalysis cpa) {
+	public DominatorDomain(ConfigurableProgramAnalysis cpa) {
 		this.cpa = cpa;
 	}
 	
@@ -189,7 +189,7 @@ public class DominatorDomain implements AbstractDomain, PreOrder, JoinOperator {
 	 * @see cpaplugin.cpa.common.interfaces.AbstractDomain#getPreOrder()
 	 */
 	@Override
-	public PreOrder getPreOrder() {
+	public PartialOrder getPreOrder() {
 		return this;
 	}
 }
