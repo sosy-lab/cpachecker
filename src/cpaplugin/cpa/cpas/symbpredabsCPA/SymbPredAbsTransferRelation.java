@@ -1,25 +1,12 @@
 package cpaplugin.cpa.cpas.symbpredabsCPA;
 
 import java.util.Collection;
-import java.util.Deque;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.Vector;
-import java.util.logging.Level;
 
 import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
-import org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier;
-import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
-import org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression;
-import org.eclipse.cdt.core.dom.ast.IASTIdExpression;
-import org.eclipse.cdt.core.dom.ast.IASTInitializer;
-import org.eclipse.cdt.core.dom.ast.IASTInitializerExpression;
-import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
-import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 
 import symbpredabstraction.AbstractFormula;
@@ -37,32 +24,17 @@ import symbpredabstraction.PredicateMap;
 import symbpredabstraction.SSAMap;
 import symbpredabstraction.SymbPredAbsAbstractFormulaManager;
 import symbpredabstraction.SymbolicFormula;
-import symbpredabstraction.SymbolicFormulaManager;
-import cpaplugin.cfa.objectmodel.BlankEdge;
 import cpaplugin.cfa.objectmodel.CFAEdge;
-import cpaplugin.cfa.objectmodel.CFAErrorNode;
-import cpaplugin.cfa.objectmodel.CFAFunctionDefinitionNode;
 import cpaplugin.cfa.objectmodel.CFANode;
-import cpaplugin.cfa.objectmodel.c.AssumeEdge;
-import cpaplugin.cfa.objectmodel.c.CallToReturnEdge;
-import cpaplugin.cfa.objectmodel.c.DeclarationEdge;
-import cpaplugin.cfa.objectmodel.c.FunctionCallEdge;
-import cpaplugin.cfa.objectmodel.c.FunctionDefinitionNode;
-import cpaplugin.cfa.objectmodel.c.GlobalDeclarationEdge;
 import cpaplugin.cfa.objectmodel.c.ReturnEdge;
-import cpaplugin.cfa.objectmodel.c.StatementEdge;
 import cpaplugin.cmdline.CPAMain;
 import cpaplugin.cpa.common.CPATransferException;
-import cpaplugin.cpa.common.ErrorReachedException;
-import cpaplugin.cpa.common.RefinementNeededException;
 import cpaplugin.cpa.common.interfaces.AbstractDomain;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.TransferRelation;
 import cpaplugin.exceptions.CPAException;
 import cpaplugin.exceptions.SymbPredAbstTransferException;
 import cpaplugin.exceptions.UnrecognizedCFAEdgeException;
-import cpaplugin.logging.CPACheckerLogger;
-import cpaplugin.logging.CustomLogLevel;
 import cpaplugin.logging.LazyLogger;
 
 /**

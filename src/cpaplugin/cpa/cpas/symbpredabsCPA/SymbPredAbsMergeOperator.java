@@ -1,15 +1,11 @@
 package cpaplugin.cpa.cpas.symbpredabsCPA;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import symbpredabstraction.MathsatSymbPredAbsFormulaManager;
 import symbpredabstraction.MathsatSymbolicFormula;
 import symbpredabstraction.Pair;
 import symbpredabstraction.PathFormula;
 import symbpredabstraction.SSAMap;
 import symbpredabstraction.SymbolicFormula;
-import cpaplugin.cfa.objectmodel.CFANode;
 import cpaplugin.cpa.common.interfaces.AbstractDomain;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.MergeOperator;

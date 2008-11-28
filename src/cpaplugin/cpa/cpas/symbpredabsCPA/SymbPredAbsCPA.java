@@ -13,7 +13,6 @@ import java.util.Set;
 import java.util.Vector;
 
 import symbpredabstraction.*;
-import cpaplugin.CPAStatistics;
 import cpaplugin.cfa.objectmodel.CFAErrorNode;
 import cpaplugin.cfa.objectmodel.CFAFunctionDefinitionNode;
 import cpaplugin.cfa.objectmodel.CFANode;

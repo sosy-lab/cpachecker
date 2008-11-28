@@ -1,11 +1,5 @@
 package cpaplugin.cpa.cpas.symbpredabsCPA;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-
-import javax.jws.soap.InitParam;
-
 import symbpredabstraction.AbstractFormula;
 import symbpredabstraction.BDDAbstractFormula;
 import symbpredabstraction.BDDMathsatSymbPredAbsAbstractManager;
@@ -14,13 +8,9 @@ import symbpredabstraction.ParentsList;
 import symbpredabstraction.PathFormula;
 import symbpredabstraction.PredicateMap;
 import symbpredabstraction.SSAMap;
-import symbpredabstraction.SymbPredAbsAbstractFormulaManager;
 import symbpredabstraction.SymbolicFormula;
 import cpaplugin.cfa.objectmodel.CFANode;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
-import cpaplugin.cpa.common.interfaces.AbstractElementWithLocation;
-import cpaplugin.logging.CustomLogLevel;
-import cpaplugin.logging.LazyLogger;
 
 /**
  * AbstractElement for symbolic lazy abstraction with summaries

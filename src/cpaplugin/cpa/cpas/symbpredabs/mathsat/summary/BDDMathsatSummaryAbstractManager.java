@@ -19,7 +19,6 @@ import cpaplugin.cfa.objectmodel.c.ReturnEdge;
 import cpaplugin.cmdline.CPAMain;
 import cpaplugin.cpa.cpas.symbpredabs.AbstractFormula;
 import cpaplugin.cpa.cpas.symbpredabs.ConcreteTraceFunctionCalls;
-import cpaplugin.cpa.cpas.symbpredabs.ConcreteTraceNoInfo;
 import cpaplugin.cpa.cpas.symbpredabs.CounterexampleTraceInfo;
 import cpaplugin.cpa.cpas.symbpredabs.InterpolatingTheoremProver;
 import cpaplugin.cpa.cpas.symbpredabs.Pair;

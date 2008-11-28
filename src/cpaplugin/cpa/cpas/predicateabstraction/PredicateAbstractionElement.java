@@ -9,7 +9,6 @@ import predicateabstraction.Predicate;
 import predicateabstraction.PredicateList;
 import predicateabstraction.PredicateListConstructor;
 import predicateabstraction.SimplifiedInstruction;
-import predicateabstraction.ThreeValuedBoolean;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 
 public class PredicateAbstractionElement implements AbstractElement{

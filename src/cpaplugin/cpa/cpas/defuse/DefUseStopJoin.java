@@ -4,7 +4,6 @@ import java.util.Collection;
 
 import cpaplugin.cpa.common.interfaces.AbstractDomain;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
-import cpaplugin.cpa.common.interfaces.PreOrder;
 import cpaplugin.cpa.common.interfaces.StopOperator;
 import cpaplugin.exceptions.CPAException;
 
