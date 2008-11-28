@@ -6,7 +6,7 @@ import cpaplugin.cpa.common.interfaces.AbstractElementWithLocation;
 
 public class LocationElement implements AbstractElement, AbstractElementWithLocation
 {
-    private CFANode locationNode;
+    private final CFANode locationNode;
     
     public LocationElement (CFANode locationNode)
     {
@@ -18,6 +18,7 @@ public class LocationElement implements AbstractElement, AbstractElementWithLoca
         return locationNode;
     }
     
+    @Override
     public boolean equals (Object other)
     {
         if (!(other instanceof LocationElement))
@@ -26,8 +27,14 @@ public class LocationElement implements AbstractElement, AbstractElementWithLoca
         return locationNode.getNodeNumber () == ((LocationElement)other).locationNode.getNodeNumber ();
     }
     
+    @Override
     public String toString ()
     {
         return Integer.toString (locationNode.getNodeNumber ());
+    }
+    
+    @Override
+    public int hashCode() {
+    	return locationNode.getNodeNumber();
     }
 }
