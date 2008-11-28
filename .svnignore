@@ -1,3 +1,4 @@
+bin
 .hg*
 build.properties
 META-INF/*
