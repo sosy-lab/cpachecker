@@ -34,8 +34,8 @@ public class ItpAbstractDomain implements AbstractDomain {
         }
     }
     
-    private final class ExplicitPreOrder implements PartialOrder {
-        public boolean satisfiesPreOrder(AbstractElement element1,
+    private final class ExplicitPartialOrder implements PartialOrder {
+        public boolean satisfiesPartialOrder(AbstractElement element1,
                 AbstractElement element2) throws CPAException {
             ItpAbstractElement e1 = (ItpAbstractElement)element1;
             ItpAbstractElement e2 = (ItpAbstractElement)element2;

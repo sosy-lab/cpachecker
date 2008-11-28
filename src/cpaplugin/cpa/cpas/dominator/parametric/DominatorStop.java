@@ -25,11 +25,6 @@ public class DominatorStop implements StopOperator {
 	}
 
 	@Override
-	public boolean isBottomElement(AbstractElement element) {
-		return element.equals(this.domain.getBottomElement());
-	}
-
-	@Override
 	public boolean stop(AbstractElement element,
 			Collection<AbstractElement> reached) throws CPAException {
 		// would coverage by union of reached elements make sense here?
@@ -46,7 +41,7 @@ public class DominatorStop implements StopOperator {
 	@Override
 	public boolean stop(AbstractElement element, AbstractElement reachedElement)
 			throws CPAException {
-		boolean result = this.domain.getPreOrder().satisfiesPreOrder(element, reachedElement);
+		boolean result = this.domain.getPartialOrder().satisfiesPartialOrder(element, reachedElement);
 		
 		return result;
 	}

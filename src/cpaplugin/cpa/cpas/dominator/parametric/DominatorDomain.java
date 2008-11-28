@@ -77,7 +77,7 @@ public class DominatorDomain implements AbstractDomain, PartialOrder, JoinOperat
     private final static DominatorBottomElement bottomElement = new DominatorBottomElement();
     private final static DominatorTopElement topElement = new DominatorTopElement();
     
-    public boolean satisfiesPreOrder(AbstractElement element1, AbstractElement element2) throws CPAException
+    public boolean satisfiesPartialOrder(AbstractElement element1, AbstractElement element2) throws CPAException
     {
         if (element1.equals(element2))
             return true;
@@ -89,7 +89,7 @@ public class DominatorDomain implements AbstractDomain, PartialOrder, JoinOperat
         	DominatorElement dominatorElement1 = (DominatorElement)element1;
         	DominatorElement dominatorElement2 = (DominatorElement)element2;
         	
-        	if (this.cpa.getAbstractDomain().getPreOrder().satisfiesPreOrder(dominatorElement1.getDominatedElement(), dominatorElement2.getDominatedElement())) {
+        	if (this.cpa.getAbstractDomain().getPartialOrder().satisfiesPartialOrder(dominatorElement1.getDominatedElement(), dominatorElement2.getDominatedElement())) {
         		Iterator<AbstractElementWithLocation> dominatorIterator = dominatorElement2.getIterator();
         		
         		while (dominatorIterator.hasNext()) {
@@ -169,6 +169,10 @@ public class DominatorDomain implements AbstractDomain, PartialOrder, JoinOperat
 		return bottomElement;
 	}
 	
+	public boolean isBottomElement(AbstractElement element) {
+		return element.equals(bottomElement);
+	}
+	
 	/* (non-Javadoc)
 	 * @see cpaplugin.cpa.common.interfaces.AbstractDomain#getTopElement()
 	 */
@@ -189,7 +193,7 @@ public class DominatorDomain implements AbstractDomain, PartialOrder, JoinOperat
 	 * @see cpaplugin.cpa.common.interfaces.AbstractDomain#getPreOrder()
 	 */
 	@Override
-	public PartialOrder getPreOrder() {
+	public PartialOrder getPartialOrder() {
 		return this;
 	}
 }

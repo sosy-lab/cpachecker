@@ -24,10 +24,10 @@ public class OctStopSep implements StopOperator{
 
 	public boolean stop (AbstractElement element, Collection<AbstractElement> reached) throws CPAException
 	{
-		PartialOrder preOrder = octDomain.getPreOrder ();
+		PartialOrder partialOrder = octDomain.getPartialOrder ();
 		for (AbstractElement testElement : reached)
 		{
-			if (preOrder.satisfiesPreOrder (element, testElement))
+			if (partialOrder.satisfiesPartialOrder (element, testElement))
 			{
 				return true;
 			}

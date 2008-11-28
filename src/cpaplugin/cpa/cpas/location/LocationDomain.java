@@ -19,9 +19,9 @@ public class LocationDomain implements AbstractDomain
         
     }
     
-    private static class LocationPreOrder implements PartialOrder
+    private static class LocationPartialOrder implements PartialOrder
     {
-        public boolean satisfiesPreOrder (AbstractElement element1, AbstractElement element2)
+        public boolean satisfiesPartialOrder (AbstractElement element1, AbstractElement element2)
         {
             if (element1.equals (element2))
                 return true;
@@ -55,7 +55,7 @@ public class LocationDomain implements AbstractDomain
     
     private final static BottomElement bottomElement = new LocationBottomElement ();
     private final static TopElement topElement = new LocationTopElement ();
-    private final static PartialOrder preOrder = new LocationPreOrder ();
+    private final static PartialOrder partialOrder = new LocationPartialOrder ();
     private final static JoinOperator joinOperator = new LocationJoinOperator ();
        
     public LocationDomain ()
@@ -83,8 +83,8 @@ public class LocationDomain implements AbstractDomain
         return joinOperator;
     }
 
-    public PartialOrder getPreOrder ()
+    public PartialOrder getPartialOrder ()
     {
-        return preOrder;
+        return partialOrder;
     }
 }

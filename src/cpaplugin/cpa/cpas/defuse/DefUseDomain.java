@@ -25,9 +25,9 @@ public class DefUseDomain implements AbstractDomain
         
     }
     
-    private static class DefUsePreOrder implements PartialOrder
+    private static class DefUsePartialOrder implements PartialOrder
     {
-        public boolean satisfiesPreOrder (AbstractElement element1, AbstractElement element2)
+        public boolean satisfiesPartialOrder (AbstractElement element1, AbstractElement element2)
         {
             DefUseElement defUseElement1 = (DefUseElement) element1;
             DefUseElement defUseElement2 = (DefUseElement) element2;
@@ -69,7 +69,7 @@ public class DefUseDomain implements AbstractDomain
     
     private final static BottomElement bottomElement = new DefUseBottomElement ();
     private final static TopElement topElement = new DefUseTopElement ();
-    private final static PartialOrder preOrder = new DefUsePreOrder ();
+    private final static PartialOrder partialOrder = new DefUsePartialOrder ();
     private final static JoinOperator joinOperator = new DefUseJoinOperator ();
        
     public DefUseDomain ()
@@ -97,8 +97,8 @@ public class DefUseDomain implements AbstractDomain
         return joinOperator;
     }
 
-    public PartialOrder getPreOrder ()
+    public PartialOrder getPartialOrder ()
     {
-        return preOrder;
+        return partialOrder;
     }
 }

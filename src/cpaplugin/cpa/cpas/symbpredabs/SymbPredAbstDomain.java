@@ -25,8 +25,8 @@ public class SymbPredAbstDomain implements AbstractDomain {
     
     private class SymbPredAbstTopElement implements TopElement {}
     
-    private class SymbPredAbstPreOrder implements PartialOrder {
-        public boolean satisfiesPreOrder(AbstractElement element1, 
+    private class SymbPredAbstPartialOrder implements PartialOrder {
+        public boolean satisfiesPartialOrder(AbstractElement element1, 
                                          AbstractElement element2) {
             if (element1.equals(element2)) {
                 return true;

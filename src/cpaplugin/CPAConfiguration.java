@@ -2,7 +2,6 @@ package cpaplugin;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -11,7 +10,6 @@ import java.util.Vector;
 
 import javax.swing.JOptionPane;
 
-import com.sun.org.apache.xalan.internal.xsltc.compiler.Pattern;
 
 /**
  * CPA Checker properties file. Processes the properties file and save them as strings.

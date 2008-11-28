@@ -29,9 +29,9 @@ public class OctDomain implements AbstractDomain{
         }
     }
     
-    private static class OctPreOrder implements PartialOrder
+    private static class OctPartialOrder implements PartialOrder
     {
-        public boolean satisfiesPreOrder (AbstractElement element1, AbstractElement element2)
+        public boolean satisfiesPartialOrder (AbstractElement element1, AbstractElement element2)
         {
             OctElement octElement1 = (OctElement) element1;
             OctElement octElement2 = (OctElement) element2;
@@ -54,7 +54,7 @@ public class OctDomain implements AbstractDomain{
 	
     private final static BottomElement bottomElement = new OctBottomElement ();
     private final static TopElement topElement = new OctTopElement ();
-    private final static PartialOrder preOrder = new OctPreOrder ();
+    private final static PartialOrder partialOrder = new OctPartialOrder ();
     private final static JoinOperator joinOperator = new OctJoinOperator ();
     
     public OctDomain ()
@@ -83,8 +83,8 @@ public class OctDomain implements AbstractDomain{
         return joinOperator;
     }
 
-    public PartialOrder getPreOrder ()
+    public PartialOrder getPartialOrder ()
     {
-        return preOrder;
+        return partialOrder;
     }
 }

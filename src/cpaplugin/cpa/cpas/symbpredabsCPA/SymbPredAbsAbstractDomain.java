@@ -37,8 +37,8 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
 		}
 	}
 
-	private final class SymbPredAbsPreOrder implements PartialOrder {
-		public boolean satisfiesPreOrder(AbstractElement element1,
+	private final class SymbPredAbsPartialOrder implements PartialOrder {
+		public boolean satisfiesPartialOrder(AbstractElement element1,
 				AbstractElement element2) throws CPAException {
 			SymbPredAbsAbstractElement e1 = (SymbPredAbsAbstractElement)element1;
 			SymbPredAbsAbstractElement e2 = (SymbPredAbsAbstractElement)element2;

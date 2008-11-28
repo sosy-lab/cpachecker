@@ -1,25 +1,10 @@
 package symbpredabstraction;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.PrintWriter;
 import java.util.Collection;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.Stack;
-import java.util.Vector;
 
-import cpaplugin.cfa.objectmodel.CFAEdge;
-import cpaplugin.cfa.objectmodel.CFANode;
-import cpaplugin.cfa.objectmodel.c.FunctionDefinitionNode;
-import cpaplugin.cfa.objectmodel.c.ReturnEdge;
 import cpaplugin.cmdline.CPAMain;
 import cpaplugin.cpa.cpas.symbpredabsCPA.SymbPredAbsAbstractElement;
 import cpaplugin.logging.CPACheckerLogger;
-import cpaplugin.logging.CustomLogLevel;
 import cpaplugin.logging.LazyLogger;
 
 /**

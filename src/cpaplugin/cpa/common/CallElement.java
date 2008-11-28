@@ -1,8 +1,5 @@
 package cpaplugin.cpa.common;
 
-import java.util.List;
-
-import cpaplugin.cfa.objectmodel.CFAEdge;
 import cpaplugin.cfa.objectmodel.CFANode;
 import cpaplugin.cpa.common.CompositeElement;
 import cpaplugin.cpa.common.interfaces.AbstractElement;

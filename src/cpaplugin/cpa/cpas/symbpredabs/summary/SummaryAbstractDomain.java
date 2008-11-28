@@ -35,8 +35,8 @@ public class SummaryAbstractDomain implements AbstractDomain {
         }
     }
     
-    private final class SummaryPreOrder implements PartialOrder {
-        public boolean satisfiesPreOrder(AbstractElement element1,
+    private final class SummaryPartialOrder implements PartialOrder {
+        public boolean satisfiesPartialOrder(AbstractElement element1,
                 AbstractElement element2) throws CPAException {
             SummaryAbstractElement e1 = (SummaryAbstractElement)element1;
             SummaryAbstractElement e2 = (SummaryAbstractElement)element2;

@@ -29,10 +29,10 @@ public class PredicateAbstractionDomain implements AbstractDomain{
         }
     }
     
-    private static class PredicateAbstractionPreOrder implements PartialOrder
+    private static class PredicateAbstractionPartialOrder implements PartialOrder
     {
     	// returns true if element1 < element2 on lattice
-        public boolean satisfiesPreOrder (AbstractElement element1, AbstractElement element2)
+        public boolean satisfiesPartialOrder (AbstractElement element1, AbstractElement element2)
         {
         	PredicateAbstractionElement predicateAbstractionElement1 = (PredicateAbstractionElement) element1;
         	PredicateAbstractionElement predicateAbstractionElement2 = (PredicateAbstractionElement) element2;
@@ -83,7 +83,7 @@ public class PredicateAbstractionDomain implements AbstractDomain{
     
     private final static BottomElement bottomElement = new PredicateAbstractionBottomElement ();
     private final static TopElement topElement = new PredicateAbstractionTopElement ();
-    private final static PartialOrder preOrder = new PredicateAbstractionPreOrder ();
+    private final static PartialOrder partialOrder = new PredicateAbstractionPartialOrder ();
     private final static JoinOperator joinOperator = new PredicateAbstractionJoinOperator ();
        
     public PredicateAbstractionDomain ()
@@ -117,8 +117,8 @@ public class PredicateAbstractionDomain implements AbstractDomain{
         return joinOperator;
     }
 
-    public PartialOrder getPreOrder ()
+    public PartialOrder getPartialOrder ()
     {
-        return preOrder;
+        return partialOrder;
     }
 }
