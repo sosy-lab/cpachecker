@@ -46,7 +46,7 @@ public class SymbPredAbsStopOperator implements StopOperator {
     public boolean stop(AbstractElement element, AbstractElement reachedElement)
             throws CPAException {
     	
-    	// TODO move this into preorder
+    	// TODO move this into partialorder
 
     	SymbPredAbsAbstractElement e1 = (SymbPredAbsAbstractElement)element;
     	SymbPredAbsAbstractElement e2 = (SymbPredAbsAbstractElement)reachedElement;

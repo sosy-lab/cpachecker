@@ -190,7 +190,7 @@ public class DominatorDomain implements AbstractDomain, PartialOrder, JoinOperat
 	}
 
 	/* (non-Javadoc)
-	 * @see cpaplugin.cpa.common.interfaces.AbstractDomain#getPreOrder()
+	 * @see cpaplugin.cpa.common.interfaces.AbstractDomain#getPartialOrder()
 	 */
 	@Override
 	public PartialOrder getPartialOrder() {
