@@ -2,7 +2,7 @@ package cpaplugin.cpa.common.interfaces;
 
 import cpaplugin.cfa.objectmodel.CFAFunctionDefinitionNode;
 
-public interface ConfigurableProblemAnalysis
+public interface ConfigurableProgramAnalysis
 {
 	public AbstractDomain getAbstractDomain();
     public TransferRelation getTransferRelation ();
