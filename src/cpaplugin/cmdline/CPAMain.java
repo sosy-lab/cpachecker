@@ -35,7 +35,7 @@ import cpaplugin.cmdline.stubs.StubFile;
 import cpaplugin.compositeCPA.CompositeCPA;
 import cpaplugin.cpa.common.CPAAlgorithm;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
-import cpaplugin.cpa.common.interfaces.ConfigurableProblemAnalysis;
+import cpaplugin.cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpaplugin.cpa.cpas.symbpredabs.BlockCFABuilder;
 import cpaplugin.cpa.cpas.symbpredabs.summary.ConeOfInfluenceCFAReduction;
 import cpaplugin.cpa.cpas.symbpredabs.summary.SummaryCFABuilder;
@@ -55,7 +55,7 @@ public class CPAMain {
     // interrupted by the user
     private static boolean interrupted = true;
 
-    private static ConfigurableProblemAnalysis getCPA(
+    private static ConfigurableProgramAnalysis getCPA(
             CFAFunctionDefinitionNode node) throws CPAException {
         return CompositeCPA.getCompositeCPA(node);
     }
@@ -197,7 +197,7 @@ public class CPAMain {
             LazyLogger.log(CustomLogLevel.MainApplicationLevel, 
                            "CPA Algorithm Called");
 
-            ConfigurableProblemAnalysis cpa = getCPA(mainFunction);
+            ConfigurableProgramAnalysis cpa = getCPA(mainFunction);
 
             LazyLogger.log(Level.INFO, "CPA Algorithm starting ... ");
             cpaStats.startAnalysisTimer();

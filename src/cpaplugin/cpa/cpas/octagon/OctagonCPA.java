@@ -3,13 +3,13 @@ package cpaplugin.cpa.cpas.octagon;
 import cpaplugin.cfa.objectmodel.CFAFunctionDefinitionNode;
 import cpaplugin.cpa.common.interfaces.AbstractDomain;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
-import cpaplugin.cpa.common.interfaces.ConfigurableProblemAnalysis;
+import cpaplugin.cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpaplugin.cpa.common.interfaces.MergeOperator;
 import cpaplugin.cpa.common.interfaces.StopOperator;
 import cpaplugin.cpa.common.interfaces.TransferRelation;
 import cpaplugin.exceptions.CPAException;
 
-public class OctagonCPA implements ConfigurableProblemAnalysis{
+public class OctagonCPA implements ConfigurableProgramAnalysis{
 
 	private AbstractDomain abstractDomain;
 	private MergeOperator mergeOperator;

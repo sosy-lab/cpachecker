@@ -5,7 +5,7 @@ import cpaplugin.cpa.common.interfaces.AbstractDomain;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.BottomElement;
 import cpaplugin.cpa.common.interfaces.JoinOperator;
-import cpaplugin.cpa.common.interfaces.PreOrder;
+import cpaplugin.cpa.common.interfaces.PartialOrder;
 import cpaplugin.cpa.common.interfaces.TopElement;
 
 public class OctDomain implements AbstractDomain{
@@ -29,7 +29,7 @@ public class OctDomain implements AbstractDomain{
         }
     }
     
-    private static class OctPreOrder implements PreOrder
+    private static class OctPreOrder implements PartialOrder
     {
         public boolean satisfiesPreOrder (AbstractElement element1, AbstractElement element2)
         {
@@ -45,6 +45,7 @@ public class OctDomain implements AbstractDomain{
     {
         public AbstractElement join (AbstractElement element1, AbstractElement element2)
         {
+        	// TODO fix
         	OctElement octEl1 = (OctElement) element1;
     		OctElement octEl2 = (OctElement) element2;
     		return LibraryAccess.widening(octEl1, octEl2);
@@ -53,7 +54,7 @@ public class OctDomain implements AbstractDomain{
 	
     private final static BottomElement bottomElement = new OctBottomElement ();
     private final static TopElement topElement = new OctTopElement ();
-    private final static PreOrder preOrder = new OctPreOrder ();
+    private final static PartialOrder preOrder = new OctPreOrder ();
     private final static JoinOperator joinOperator = new OctJoinOperator ();
     
     public OctDomain ()
@@ -76,7 +77,7 @@ public class OctDomain implements AbstractDomain{
         return joinOperator;
     }
 
-    public PreOrder getPreOrder ()
+    public PartialOrder getPreOrder ()
     {
         return preOrder;
     }

@@ -155,7 +155,8 @@ public class OctElement implements AbstractElement{
 	/**
 	 * Adds a new variable in form of functionName::variableName. For example if a 
 	 * new variable a is declared in function main(), main::a is added to the
-	 * list of variables 
+	 * list of variables. After this operation you have to increse octagon
+	 * dimension manually!
 	 * @param varName Name of the variable.
 	 * @param funcName Name of the function that contains the variable
 	 * @return true if variable is added succesfully
