@@ -4,7 +4,6 @@ import java.util.Collection;
 
 import cpaplugin.cpa.common.interfaces.AbstractDomain;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
-import cpaplugin.cpa.common.interfaces.BottomElement;
 import cpaplugin.cpa.common.interfaces.StopOperator;
 import cpaplugin.exceptions.CPAException;
 import cpaplugin.logging.CustomLogLevel;
@@ -23,10 +22,6 @@ public class SymbPredAbstStop implements StopOperator {
     
     public AbstractDomain getAbstractDomain() {
         return domain;
-    }
-
-    public boolean isBottomElement(AbstractElement element) {
-        return element instanceof BottomElement;
     }
 
     public boolean stop(AbstractElement element,

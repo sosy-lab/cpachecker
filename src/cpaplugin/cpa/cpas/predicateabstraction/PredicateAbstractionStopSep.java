@@ -26,24 +26,13 @@ public class PredicateAbstractionStopSep implements StopOperator
 
 	public boolean stop (AbstractElement element, Collection<AbstractElement> reached) throws CPAException
 	{
-		PartialOrder preOrder = predicateAbstractionDomain.getPreOrder ();
+		PartialOrder preOrder = predicateAbstractionDomain.getPartialOrder ();
 		for (AbstractElement testElement : reached)
 		{
 			CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel, " Preorder check: element:  " + element
-					+ " reached " + reached + " --> "+ preOrder.satisfiesPreOrder (element, testElement));
-			if (preOrder.satisfiesPreOrder (element, testElement))
+					+ " reached " + reached + " --> "+ preOrder.satisfiesPartialOrder (element, testElement));
+			if (preOrder.satisfiesPartialOrder (element, testElement))
 				return true;
-		}
-
-		return false;
-	}
-
-	public boolean isBottomElement(AbstractElement element) {
-
-		PredicateAbstractionElement predAbsElem = (PredicateAbstractionElement) element;
-
-		if(predAbsElem.equals(predicateAbstractionDomain.getBottomElement())){
-			return true;
 		}
 
 		return false;
@@ -51,10 +40,10 @@ public class PredicateAbstractionStopSep implements StopOperator
 
 	public boolean stop(AbstractElement element, AbstractElement reachedElement)
 	throws CPAException {
-		PartialOrder preOrder = predicateAbstractionDomain.getPreOrder ();
+		PartialOrder preOrder = predicateAbstractionDomain.getPartialOrder ();
 		CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel, " Preorder check: element:  " + element
-				+ " reached element" + reachedElement + " --> "+ preOrder.satisfiesPreOrder (element, reachedElement));
-		if (preOrder.satisfiesPreOrder (element, reachedElement))
+				+ " reached element" + reachedElement + " --> "+ preOrder.satisfiesPartialOrder (element, reachedElement));
+		if (preOrder.satisfiesPartialOrder (element, reachedElement))
 			return true;
 		return false;
 	}

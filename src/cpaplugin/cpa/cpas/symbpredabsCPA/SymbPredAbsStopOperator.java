@@ -32,22 +32,6 @@ public class SymbPredAbsStopOperator implements StopOperator {
     }
 
     
-    public boolean isBottomElement(AbstractElement element) {
-    	SymbPredAbsAbstractElement symbPredAbsElem = (SymbPredAbsAbstractElement) element;
-
-//		if(predAbsElem == (domain.getBottomElement())){
-//			System.out.println("==========================");
-//			return true;
-//		}
-    	// TODO if the element is the bottom element
-    	if (domain.getCPA().getBDDMathsatSymbPredAbsAbstractManager().isFalse(symbPredAbsElem.getAbstraction())){
-    		return true;
-    	}
-
-		return false;
-    }
-
-    
     public boolean stop(AbstractElement element,
             Collection<AbstractElement> reached) throws CPAException {
     	

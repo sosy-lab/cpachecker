@@ -54,18 +54,22 @@ public class ItpAbstractDomain implements AbstractDomain {
     private final BottomElement bottom = new ExplicitBottomElement();
     private final TopElement top = new ExplicitTopElement();
     private final JoinOperator join = new ExplicitJoinOperator();
-    private final PartialOrder pre = new ExplicitPreOrder();
+    private final PartialOrder partial = new ExplicitPartialOrder();
 
     public BottomElement getBottomElement() {
         return bottom;
+    }
+    
+    public boolean isBottomElement(AbstractElement element) {
+        return element == bottom;
     }
 
     public JoinOperator getJoinOperator() {
         return join;
     }
 
-    public PartialOrder getPreOrder() {
-        return pre;
+    public PartialOrder getPartialOrder() {
+        return partial;
     }
 
     public TopElement getTopElement() {

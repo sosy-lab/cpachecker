@@ -24,26 +24,21 @@ public class DefUseStopSep implements StopOperator
 
 	public boolean stop (AbstractElement element, Collection<AbstractElement> reached) throws CPAException
 	{
-		PartialOrder preOrder = defUseDomain.getPreOrder ();
+		PartialOrder partialOrder = defUseDomain.getPartialOrder ();
 		for (AbstractElement testElement : reached)
 		{
-			if (preOrder.satisfiesPreOrder (element, testElement))
+			if (partialOrder.satisfiesPartialOrder (element, testElement))
 				return true;
 		}
 
 		return false;
 	}
 
-	public boolean isBottomElement(AbstractElement element) {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
 	public boolean stop(AbstractElement element, AbstractElement reachedElement)
 	throws CPAException {
 		// TODO check
-		PartialOrder preOrder = defUseDomain.getPreOrder ();
-		if (preOrder.satisfiesPreOrder (element, reachedElement))
+		PartialOrder partialOrder = defUseDomain.getPartialOrder ();
+		if (partialOrder.satisfiesPartialOrder (element, reachedElement))
 			return true;
 		return false;
 	}

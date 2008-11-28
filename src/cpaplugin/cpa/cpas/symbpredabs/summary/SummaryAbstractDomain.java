@@ -55,18 +55,22 @@ public class SummaryAbstractDomain implements AbstractDomain {
     private final BottomElement bottom = new SummaryBottomElement();
     private final TopElement top = new SummaryTopElement();
     private final JoinOperator join = new SummaryJoinOperator();
-    private final PartialOrder pre = new SummaryPreOrder();
+    private final PartialOrder partial = new SummaryPartialOrder();
 
     public BottomElement getBottomElement() {
         return bottom;
+    }
+    
+    public boolean isBottomElement(AbstractElement element) {
+        return element == bottom;
     }
 
     public JoinOperator getJoinOperator() {
         return join;
     }
 
-    public PartialOrder getPreOrder() {
-        return pre;
+    public PartialOrder getPartialOrder() {
+        return partial;
     }
 
     public TopElement getTopElement() {

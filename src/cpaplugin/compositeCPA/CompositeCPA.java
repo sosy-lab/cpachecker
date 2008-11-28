@@ -93,15 +93,16 @@ public class CompositeCPA implements ConfigurableProgramAnalysis
 			TransferRelation transferRelation,
 			AbstractElement initialElement)
 	{
+		// TODO Michael: this should throw something
 		if (abstractDomain == null || mergeOperator == null ||
 				stopOperator == null || transferRelation == null ||
 				initialElement == null)
 			return null;
 
-		if (mergeOperator.getAbstractDomain () != abstractDomain ||
+		/*if (mergeOperator.getAbstractDomain () != abstractDomain ||
 				stopOperator.getAbstractDomain () != abstractDomain ||
 				transferRelation.getAbstractDomain () != abstractDomain)
-			return null;
+			return null;*/
 
 		return new CompositeCPA (abstractDomain, mergeOperator, stopOperator, transferRelation, initialElement);
 	}

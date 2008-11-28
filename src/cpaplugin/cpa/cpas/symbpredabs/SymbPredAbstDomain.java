@@ -87,20 +87,24 @@ public class SymbPredAbstDomain implements AbstractDomain {
         new SymbPredAbstBottomElement();
     private final TopElement topElement = 
         new SymbPredAbstTopElement();
-    private final PartialOrder preOrder = new SymbPredAbstPreOrder();
+    private final PartialOrder partialOrder = new SymbPredAbstPartialOrder();
     private final JoinOperator joinOperator = 
         new SymbPredAbstJoinOperator();
     
     public BottomElement getBottomElement() {
         return bottomElement;
     }
+    
+    public boolean isBottomElement(AbstractElement element) {
+        return element instanceof BottomElement;
+    }
 
     public JoinOperator getJoinOperator() {
         return joinOperator;
     }
 
-    public PartialOrder getPreOrder() {
-        return preOrder;
+    public PartialOrder getPartialOrder() {
+        return partialOrder;
     }
 
     public TopElement getTopElement() {

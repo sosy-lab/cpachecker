@@ -4,7 +4,6 @@ import java.util.Collection;
 
 import cpaplugin.cpa.common.interfaces.AbstractDomain;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
-import cpaplugin.cpa.common.interfaces.BottomElement;
 import cpaplugin.cpa.common.interfaces.PartialOrder;
 import cpaplugin.cpa.common.interfaces.StopOperator;
 import cpaplugin.exceptions.CPAException;
@@ -37,19 +36,10 @@ public class OctStopSep implements StopOperator{
 		return false;
 	}
 
-	//TODO test this
-	public boolean isBottomElement(AbstractElement element) {
-		if(element instanceof BottomElement){
-			return true;
-		}
-		OctElement octElem = (OctElement) element;
-		return octElem.isEmpty();
-	}
-
 	public boolean stop(AbstractElement element, AbstractElement reachedElement)
 	throws CPAException {
-		PartialOrder preOrder = octDomain.getPreOrder ();
-		if (preOrder.satisfiesPreOrder (element, reachedElement))
+		PartialOrder partialOrder = octDomain.getPartialOrder ();
+		if (partialOrder.satisfiesPartialOrder (element, reachedElement))
 			return true;
 		return false;
 	}

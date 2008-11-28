@@ -58,18 +58,33 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
 	private final BottomElement bottom = new SymbPredAbsBottomElement();
 	private final TopElement top = new SymbPredAbsTopElement();
 	private final JoinOperator join = new SymbPredAbsJoinOperator();
-	private final PartialOrder pre = new SymbPredAbsPreOrder();
+	private final PartialOrder partial = new SymbPredAbsPartialOrder();
 
 	public BottomElement getBottomElement() {
 		return bottom;
 	}
+	
+    public boolean isBottomElement(AbstractElement element) {
+    	SymbPredAbsAbstractElement symbPredAbsElem = (SymbPredAbsAbstractElement) element;
+
+//		if(predAbsElem == (domain.getBottomElement())){
+//			System.out.println("==========================");
+//			return true;
+//		}
+    	// TODO if the element is the bottom element
+    	if (getCPA().getBDDMathsatSymbPredAbsAbstractManager().isFalse(symbPredAbsElem.getAbstraction())){
+    		return true;
+    	}
+
+		return false;
+    }
 
 	public JoinOperator getJoinOperator() {
 		return join;
 	}
 
-	public PartialOrder getPreOrder() {
-		return pre;
+	public PartialOrder getPartialOrder() {
+		return partial;
 	}
 
 	public TopElement getTopElement() {

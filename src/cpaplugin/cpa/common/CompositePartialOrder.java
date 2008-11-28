@@ -6,16 +6,16 @@ import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.PartialOrder;
 import cpaplugin.exceptions.CPAException;
 
-public class CompositePreOrder implements PartialOrder
+public class CompositePartialOrder implements PartialOrder
 {
-    private List<PartialOrder> preOrders;
+    private List<PartialOrder> partialOrders;
     
-    public CompositePreOrder (List<PartialOrder> preOrders)
+    public CompositePartialOrder (List<PartialOrder> partialOrders)
     {
-        this.preOrders = preOrders;
+        this.partialOrders = partialOrders;
     }
     
-    public boolean satisfiesPreOrder (AbstractElement element1, AbstractElement element2) throws CPAException
+    public boolean satisfiesPartialOrder (AbstractElement element1, AbstractElement element2) throws CPAException
     {
         CompositeElement comp1 = (CompositeElement) element1;
         CompositeElement comp2 = (CompositeElement) element2;
@@ -25,13 +25,13 @@ public class CompositePreOrder implements PartialOrder
         
         if (comp1Elements.size () != comp2Elements.size ())
             throw new CPAException ("Must check pre-order satisfaction of composite elements of the same size");
-        if (comp1Elements.size () != preOrders.size ())
+        if (comp1Elements.size () != partialOrders.size ())
             throw new CPAException ("Wrong number of pre-orders");
                 
         for (int idx = 0; idx < comp1Elements.size (); idx++)
         {
-            PartialOrder preOrder = preOrders.get (idx);
-            if (!preOrder.satisfiesPreOrder (comp1Elements.get (idx), comp2Elements.get (idx)))
+            PartialOrder partialOrder = partialOrders.get (idx);
+            if (!partialOrder.satisfiesPartialOrder (comp1Elements.get (idx), comp2Elements.get (idx)))
                 return false;
         }
         

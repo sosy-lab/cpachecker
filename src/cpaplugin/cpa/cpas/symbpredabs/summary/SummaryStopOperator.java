@@ -27,12 +27,7 @@ public class SummaryStopOperator implements StopOperator {
         return domain;
     }
 
-    
-    public boolean isBottomElement(AbstractElement element) {
-        return element == domain.getBottomElement();
-    }
 
-    
     public boolean stop(AbstractElement element,
             Collection<AbstractElement> reached) throws CPAException {
         for (AbstractElement e : reached) {

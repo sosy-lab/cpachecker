@@ -30,11 +30,6 @@ public class ExplicitStopOperator implements StopOperator {
     }
 
     
-    public boolean isBottomElement(AbstractElement element) {
-        return element == domain.getBottomElement();
-    }
-
-    
     public boolean stop(AbstractElement element,
             Collection<AbstractElement> reached) throws CPAException {
         if (reached instanceof LocationMappedReachedSet) {

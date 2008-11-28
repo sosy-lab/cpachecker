@@ -1,6 +1,5 @@
 package cpaplugin.compositeCPA;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
@@ -8,9 +7,6 @@ import cpaplugin.cpa.common.CompositeDomain;
 import cpaplugin.cpa.common.CompositeElement;
 import cpaplugin.cpa.common.interfaces.AbstractDomain;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
-import cpaplugin.cpa.common.interfaces.BottomElement;
-import cpaplugin.cpa.common.interfaces.MergeOperator;
-import cpaplugin.cpa.common.interfaces.PartialOrder;
 import cpaplugin.cpa.common.interfaces.StopOperator;
 import cpaplugin.exceptions.CPAException;
 
@@ -32,7 +28,7 @@ public class CompositeStopOperator implements StopOperator{
 
 	public boolean stop (AbstractElement element, Collection<AbstractElement> reached) throws CPAException
 	{
-		if(isBottomElement(element)){
+		if(compositeDomain.isBottomElement(element)){
 			return true;
 		}
 		
@@ -47,27 +43,6 @@ public class CompositeStopOperator implements StopOperator{
 				return true;
 			}
 		}
-		return false;
-	}
-
-	public boolean isBottomElement(AbstractElement element) {
-
-		if(element instanceof BottomElement){
-			return true;
-		}
-
-		CompositeElement compositeElement = (CompositeElement) element;
-		
-		List<AbstractElement> compositeElements = compositeElement.getElements ();
-
-		for (int idx = 0; idx < compositeElements.size (); idx++)
-		{
-			StopOperator stopOp = stopOperators.get(idx);
-			AbstractElement absElem = compositeElements.get(idx);
-			if (stopOp.isBottomElement(absElem))
-				return true;
-		}
-
 		return false;
 	}
 

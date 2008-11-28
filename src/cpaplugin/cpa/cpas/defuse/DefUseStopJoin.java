@@ -27,10 +27,6 @@ public class DefUseStopJoin implements StopOperator
     	 return false;
     }
 
-	public boolean isBottomElement(AbstractElement element) {
-		return false;
-	}
-
 	public boolean stop(AbstractElement element, AbstractElement reachedElement)
 			throws CPAException {
 		// TODO Erkan implement

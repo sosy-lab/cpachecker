@@ -11,6 +11,7 @@ import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.BottomElement;
 import cpaplugin.cpa.common.interfaces.MergeOperator;
 import cpaplugin.cpa.cpas.location.LocationElement;
+import cpaplugin.exceptions.CPAException;
 
 public class CompositeMergeOperator implements MergeOperator{
 	
@@ -31,7 +32,7 @@ public class CompositeMergeOperator implements MergeOperator{
 
 	
 	// TODO fix this part
-	public AbstractElement merge (AbstractElement element1, AbstractElement element2)
+	public AbstractElement merge (AbstractElement element1, AbstractElement element2) throws CPAException
 	{
 		// TODO check
 		if(element1 instanceof BottomElement){
