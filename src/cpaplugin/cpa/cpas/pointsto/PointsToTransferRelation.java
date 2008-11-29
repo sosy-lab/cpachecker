@@ -6,12 +6,14 @@ package cpaplugin.cpa.cpas.pointsto;
 import java.util.List;
 
 import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
-import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
+import org.eclipse.cdt.core.dom.ast.IASTInitializerExpression;
 import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTInitializer;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 import org.eclipse.cdt.core.dom.ast.ASTVisitor;
+import org.eclipse.cdt.core.dom.ast.IASTName;
+import org.eclipse.cdt.core.dom.ast.IPointerType;
 
 import cpaplugin.cfa.objectmodel.CFAEdge;
 import cpaplugin.cfa.objectmodel.CFANode;
@@ -49,29 +51,75 @@ public class PointsToTransferRelation implements TransferRelation {
 	
 	private class PointsToVisitor extends ASTVisitor {
 
-		private PointsToElement abstractElement;
-		private CFAEdge cfaEdge;
+		private PointsToElement pointsToElement;
+		private PointsToRelation relation;
+		//private CFAEdge cfaEdge;
 		
-		public PointsToVisitor (PointsToElement abstractElement, CFAEdge cfaEdge) {
-			this.abstractElement = abstractElement;
-			this.cfaEdge = cfaEdge;
+		public PointsToVisitor (PointsToElement pointsToElement, CFAEdge cfaEdge) {
+			this.pointsToElement = pointsToElement;
+			relation = null;
+			//this.cfaEdge = cfaEdge;
+			
+			// just enable everything, even if we don't use it at the moment
+			shouldVisitNames = true;
+			shouldVisitDeclarations = true;
+			shouldVisitInitializers = true;
+			shouldVisitParameterDeclarations = true;
+			shouldVisitDeclarators = true;
+			shouldVisitDeclSpecifiers = true;
+			shouldVisitExpressions = true;
+			shouldVisitStatements = true;
+			shouldVisitTypeIds = true;
+			shouldVisitEnumerators = true;
+			shouldVisitTranslationUnit = true;
+			shouldVisitProblems = true;
+		}
+		
+		@Override
+		public int visit (IASTName name) {
+			System.err.println("Got into IASTName");
+			assert (null == relation);
+			relation = pointsToElement.lookup(name);
+			if (null == relation) {
+				System.err.println("Untracked name: " + name.getRawSignature());
+				return PROCESS_ABORT;
+			}
+
+			return super.visit(name);
+		}
+		
+		@Override
+		public int visit (IASTDeclarator declarator) {
+			System.err.println("Got into IASTDeclarator");
+			if (0 != declarator.getPointerOperators().length) {
+				relation = pointsToElement.addVariable(declarator);
+				IASTInitializer initializer = declarator.getInitializer ();
+				if (initializer != null) initializer.accept(this);
+			}
+			return PROCESS_ABORT;
 		}
 		
 		/* (non-Javadoc)
-		 * @see org.eclipse.cdt.core.dom.ast.ASTVisitor#visit(org.eclipse.cdt.core.dom.ast.IASTDeclaration)
+		 * @see org.eclipse.cdt.core.dom.ast.ASTVisitor#visit(org.eclipse.cdt.core.dom.ast.IASTInitializer)
 		 */
 		@Override
-		public int visit(IASTDeclaration declaration) {
-			/*if (0 == declaration
-					
-					getDgetPointerOperators().length) continue;
-			PointsToRelation r = pointsToElement.addVariable(declarator);
-			IASTInitializer initializer = declarator.getInitializer ();
-			if (initializer != null)
-			{
-				r.pointsTo(initializer.toString() + "=" + cfaEdge.getRawStatement());
-			}*/
-			return 0;
+		public int visit (IASTInitializer initializer) {
+			assert (null != relation);
+			// I love the visitor pattern, if only those guys had provided a complete interface ...
+			if (initializer instanceof IASTInitializerExpression) {
+				IASTExpression e = ((IASTInitializerExpression)initializer).getExpression();
+				if (e.getRawSignature().equals("NULL") || e.toString().equals("0")) {
+					relation.pointsToNull();
+				} else {
+					relation.pointsTo(e.getRawSignature());
+				}
+			} else {
+				System.err.println("No implementation for " + initializer.toString());
+				assert (false);
+			}
+			// no further processing required, but rewrite in terms of moving the above into 
+			// IASTExpression processing may be useful
+			return PROCESS_ABORT;
 		}
 
 		/* (non-Javadoc)
@@ -79,82 +127,79 @@ public class PointsToTransferRelation implements TransferRelation {
 		 */
 		@Override
 		public int visit(IASTExpression expression) {
-			// TODO Auto-generated method stub
+			System.err.println("Got into IASTExpression with " + expression.toString());
+			
+			// happy casting *ARRRGH***
+			if (expression instanceof IASTBinaryExpression)
+			{
+				IASTBinaryExpression binaryExpression = (IASTBinaryExpression) expression;
+
+				IASTExpression lhs = binaryExpression.getOperand1();
+				if (!lhs.accept(this)) return PROCESS_ABORT;
+				assert (null != relation);
+				
+				IASTExpression rhs = binaryExpression.getOperand2();
+
+				switch (binaryExpression.getOperator ())
+				{
+				case IASTBinaryExpression.op_assign:
+				{
+					if (rhs.getRawSignature().equals("NULL") || rhs.toString().equals("0")) {
+						relation.pointsToNull();
+					} else {
+						relation.pointsTo(rhs.getRawSignature());
+					}
+					break;
+				}
+				case IASTBinaryExpression.op_minusAssign:
+				{
+					relation.updateAll("- " + rhs.getRawSignature());
+					break;
+				}
+				case IASTBinaryExpression.op_plusAssign:
+				{
+					relation.updateAll("- " + rhs.getRawSignature());
+					break;
+				}
+				default:
+				{
+					System.err.println("Unhandled expression " + binaryExpression.getRawSignature());
+				}
+				}
+				return PROCESS_ABORT;
+			}
+			else if (expression instanceof IASTUnaryExpression)
+			{
+				IASTUnaryExpression unaryExpression = (IASTUnaryExpression) expression;
+				if (!unaryExpression.getOperand().accept(this)) return PROCESS_ABORT;
+				assert (null != relation);
+				
+				if (!(unaryExpression.getExpressionType() instanceof IPointerType)) return PROCESS_ABORT;
+				
+				switch (unaryExpression.getOperator()) {
+				case IASTUnaryExpression.op_postFixDecr:
+				case IASTUnaryExpression.op_prefixDecr:
+				{
+					relation.updateAll("- 1");
+					break;
+				}
+				case IASTUnaryExpression.op_postFixIncr:
+				case IASTUnaryExpression.op_prefixIncr:
+				{
+					relation.updateAll("+ 1");
+					break;
+				}
+				default:
+				{
+					System.err.println("Unhandled expression " + unaryExpression.getRawSignature());
+				}
+				}
+			}
+			
 			return super.visit(expression);
 		}
 
-		/* (non-Javadoc)
-		 * @see org.eclipse.cdt.core.dom.ast.ASTVisitor#visit(org.eclipse.cdt.core.dom.ast.IASTInitializer)
-		 */
-		@Override
-		public int visit(IASTInitializer initializer) {
-			// TODO Auto-generated method stub
-			return super.visit(initializer);
-		}
 		
-	}
-
-	private void handleExpression (PointsToElement pointsToElement, IASTExpression expression, CFAEdge cfaEdge)
-	{
-		if (expression instanceof IASTBinaryExpression)
-		{
-			IASTBinaryExpression binaryExpression = (IASTBinaryExpression) expression;
-
-			IASTExpression op1 = binaryExpression.getOperand1();
-			IASTExpression op2 = binaryExpression.getOperand2();
-
-			System.out.println("================== " + op1.getRawSignature());
-			System.out.println("================== " + op2.getRawSignature());
-
-			switch (binaryExpression.getOperator ())
-			{
-			case IASTBinaryExpression.op_assign:
-			case IASTBinaryExpression.op_binaryAndAssign:
-			case IASTBinaryExpression.op_binaryOrAssign:
-			case IASTBinaryExpression.op_binaryXorAssign:
-			case IASTBinaryExpression.op_divideAssign:
-			case IASTBinaryExpression.op_minusAssign:
-			case IASTBinaryExpression.op_moduloAssign:
-			case IASTBinaryExpression.op_multiplyAssign:
-			case IASTBinaryExpression.op_plusAssign:
-			case IASTBinaryExpression.op_shiftLeftAssign:
-			case IASTBinaryExpression.op_shiftRightAssign:
-			{
-				System.err.println("op1: " + ((IASTUnaryExpression)binaryExpression.getOperand1()).getOperand().toString());
-				/*
-				String lParam = binaryExpression.getOperand1 ().getExpressionType().
-				
-				getRawSignature ();
-				String lParam2 = binaryExpression.getOperand2 ().getRawSignature ();
-
-				pointsToElement.addVariable(lParam).pointsTo(lParam2);
-				*/
-			}
-			}
-		}
-		else if (expression instanceof IASTUnaryExpression)
-		{
-			IASTUnaryExpression unaryExpression = (IASTUnaryExpression) expression;
-			int operator = unaryExpression.getOperator ();
-			if (operator == IASTUnaryExpression.op_postFixDecr || operator == IASTUnaryExpression.op_postFixIncr
-					|| operator == IASTUnaryExpression.op_prefixDecr || operator == IASTUnaryExpression.op_prefixIncr)
-			{
-				System.err.println("op: " + unaryExpression.getOperand().getExpressionType().toString());
-				/*
-				String lParam = unaryExpression.getOperand ().getRawSignature ();
-
-				pointsToElement.addVariable(lParam).pointsTo(lParam);
-				*/
-			}
-		}
-	}
-
-	private void handleDeclaration (PointsToElement pointsToElement, IASTDeclarator [] declarators, CFAEdge cfaEdge)
-	{
-		for (IASTDeclarator declarator : declarators)
-		{
-			
-		}
 	}
 
 	/* (non-Javadoc)
@@ -163,25 +208,25 @@ public class PointsToTransferRelation implements TransferRelation {
 	public AbstractElement getAbstractSuccessor(AbstractElement element,
 			CFAEdge cfaEdge) throws CPATransferException {
 		PointsToElement pointsToElement = (PointsToElement) element;
-		PointsToVisitor visitor = new PointsToVisitor(pointsToElement, cfaEdge);
+		//System.err.println("Input: " + pointsToElement.toString());
 
 		switch (cfaEdge.getEdgeType ())
 		{
 		case StatementEdge:
 		{
 			pointsToElement = pointsToElement.clone ();
-
+			PointsToVisitor visitor = new PointsToVisitor(pointsToElement, cfaEdge);
 			StatementEdge statementEdge = (StatementEdge) cfaEdge;
 			IASTExpression expression = statementEdge.getExpression ();
-			//System.err.println("Statement Edge = " + expression.getRawSignature());
+			System.err.println("Statement Edge = " + expression.getRawSignature());
 			expression.accept(visitor);
 			break;
 		}
 		case MultiStatementEdge:
 		{
 			pointsToElement = pointsToElement.clone ();
+			PointsToVisitor visitor = new PointsToVisitor(pointsToElement, cfaEdge);
 			MultiStatementEdge multiStatementEdge = (MultiStatementEdge) cfaEdge;
-
 			for (IASTExpression expression : multiStatementEdge.getExpressions ())
 				expression.accept(visitor);
 
@@ -190,10 +235,10 @@ public class PointsToTransferRelation implements TransferRelation {
 		case DeclarationEdge:
 		{
 			pointsToElement = pointsToElement.clone();
-
+			PointsToVisitor visitor = new PointsToVisitor(pointsToElement, cfaEdge);
 			DeclarationEdge declarationEdge = (DeclarationEdge) cfaEdge;
 			IASTDeclarator [] declarators = declarationEdge.getDeclarators ();
-			//System.err.println("Decleration Edge = " + declarationEdge.getRawStatement());
+			System.err.println("Decleration Edge = " + declarationEdge.getRawStatement());
 			for (IASTDeclarator declarator : declarators) {
 				declarator.accept(visitor);
 			}
@@ -210,8 +255,8 @@ public class PointsToTransferRelation implements TransferRelation {
 		case MultiDeclarationEdge:
 		{
 			pointsToElement = pointsToElement.clone ();
+			PointsToVisitor visitor = new PointsToVisitor(pointsToElement, cfaEdge);
 			MultiDeclarationEdge multiDeclarationEdge = (MultiDeclarationEdge) cfaEdge;
-
 			for (IASTDeclarator [] declarators : multiDeclarationEdge.getDeclarators ())
 				for (IASTDeclarator declarator : declarators) {
 					declarator.accept(visitor);
@@ -221,6 +266,7 @@ public class PointsToTransferRelation implements TransferRelation {
 		}
 		}
 
+		//System.err.println("Output: " + pointsToElement.toString());
 		return pointsToElement;
 	}
 

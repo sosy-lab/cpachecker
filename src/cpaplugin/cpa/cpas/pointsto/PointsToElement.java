@@ -10,6 +10,8 @@ import java.util.HashMap;
 
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
+import org.eclipse.cdt.core.dom.ast.IASTName;
+import org.eclipse.cdt.core.dom.ast.IBinding;
 
 /**
  * @author Michael Tautschnig <tautschnig@forsyte.de>
@@ -50,6 +52,18 @@ public class PointsToElement implements AbstractElement {
     	}
     	assert (references.size() == variables.size());
     	return entry;
+    }
+    
+    public PointsToRelation lookup (IASTName name) {
+    	IBinding binding = name.resolveBinding();
+    	for (IASTDeclarator decl : variables.keySet()) {
+    		if (decl.getNestedDeclarator() != null &&
+    				decl.getNestedDeclarator().getName().resolveBinding() == binding) 
+    			return variables.get(decl);
+    		if (decl.getName().resolveBinding() == binding) return variables.get(decl);
+    	}
+    	
+    	return null;
     }
     
     public void join (final PointsToElement other) {

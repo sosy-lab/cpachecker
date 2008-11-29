@@ -4,7 +4,7 @@
 package cpaplugin.cpa.cpas.pointsto;
 
 import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
-
+import org.eclipse.cdt.core.dom.ast.IBinding;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -57,6 +57,19 @@ public class PointsToRelation {
 		if (!pointsToUndef) this.pointsTo.add("null");
 	}
 	
+	public void updateAll (String update) {
+		if (pointsToUndef) return;
+		Iterator<String> iter = pointsTo.iterator();
+		while (iter.hasNext()) {
+			String s = iter.next();
+			if (s.equals("null")) {
+				s = update;
+			} else {
+				s = "(" + s + ") " + update;
+			}
+		}
+	}
+	
 	public boolean subsetOf (final PointsToRelation other) {
 		if (!other.variable.equals(variable)) return false;
 		return other.pointsToUndef || other.pointsTo.containsAll(pointsTo);
@@ -82,13 +95,23 @@ public class PointsToRelation {
 	}
 	
 	public String toString () {
-		String out = new String(variable.toString()) + " -> ";
-		Iterator<String> iter = pointsTo.iterator();
-		while (iter.hasNext()) {
-			out += iter.next();
-			if (iter.hasNext()) out += ",";
+
+		String out = "";
+		IBinding binding = variable.getName().resolveBinding();
+		// out += variable/*.getParent()*/.getRawSignature() + " -> ";
+		out += binding.getName() + " -> ";
+		if (pointsToUndef) {
+			out += "*";
+		} else {
+			Iterator<String> iter = pointsTo.iterator();
+			while (iter.hasNext()) {
+				out += iter.next();
+				if (iter.hasNext()) out += ",";
+			}
 		}
+
 		return out;
+
 	}
 
 }
