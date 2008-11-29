@@ -16,13 +16,13 @@ Requirements for building CPAchecker:
    from StubCodeReaderFactory.java (5.0 and later)
 4. Add eclipse/plugins to your CLASSPATH.
    (Or add many many .jar files.)
+5. Adapt the file .classpath to your directory locations.
 
 For developers:
-5. Install (e.g.) SubClipse - Eclipse SVN-Team Provider
+6. Install (e.g.) SubClipse - Eclipse SVN-Team Provider
    http://subclipse.tigris.org/
    Check out sourse code of CPAchecker from 
    URL: svn+ssh://cs-sel-02.cs.surrey.sfu.ca/localhome/dbeyer/SVN-software/cpachecker
-
 
 Example of working installation (db 2008-11-28):
 1. Java 1.6.0_10
