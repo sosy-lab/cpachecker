@@ -1,11 +1,30 @@
-CPAchecker 2008-11-26
+CPAchecker Installation Requirements
 
-Required build environment:
-- install eclipse >= 3.3
-- get C/C++ develoment kit (platform and sdk) < 5.0 or remove the IMacroScanner
-  argument and import from StubCodeReaderFactory.java (5.0 and later)
-- add eclipse/plugins to your classpath or add many many .jars
-- use 1.6 Java SDK or contact Michael Tautschnig <tautschnig@forsyte.de> to
-  obtain patches to make it work and compile with 1.5 (may show degraded
-  performance, though)
+Requirements for executing CPAchecker:
+  Yet to be identified.
+
+Requirements for building CPAchecker:
+1. Install Java 1.6 SDK or higher.
+   http://java.sun.com/
+   Or contact Michael Tautschnig <tautschnig@forsyte.de> to
+   obtain patches to make it work and compile with 1.5
+   (may show degraded performance, though).
+2. Install Eclipse 3.3 or higher.
+   http://www.eclipse.org/
+3. Install C/C++ Develoment Kit (platform and sdk) 4.0.3 or lower (LOWER).
+   Or remove the IMacroScanner argument and import 
+   from StubCodeReaderFactory.java (5.0 and later)
+4. Add eclipse/plugins to your CLASSPATH.
+   (Or add many many .jar files.)
+
+
+Working example installation (db 2008-11-28):
+1. Java 1.6.0_10
+2. Eclipse 3.4.1 (Ganymede)
+3. CDT 4.0.3
+
+
+For developers:
+- SubClipse - Eclipse SVN-Team Provider
+  http://subclipse.tigris.org/
 
