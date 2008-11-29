@@ -17,14 +17,14 @@ Requirements for building CPAchecker:
 4. Add eclipse/plugins to your CLASSPATH.
    (Or add many many .jar files.)
 
+For developers:
+5. Install (e.g.) SubClipse - Eclipse SVN-Team Provider
+   http://subclipse.tigris.org/
+   Check out sourse code of CPAchecker from 
+   URL: svn+ssh://cs-sel-02.cs.surrey.sfu.ca/localhome/dbeyer/SVN-software/cpachecker
 
-Working example installation (db 2008-11-28):
+
+Example of working installation (db 2008-11-28):
 1. Java 1.6.0_10
 2. Eclipse 3.4.1 (Ganymede)
 3. CDT 4.0.3
-
-
-For developers:
-- SubClipse - Eclipse SVN-Team Provider
-  http://subclipse.tigris.org/
-
