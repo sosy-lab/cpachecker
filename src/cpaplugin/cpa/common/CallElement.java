@@ -53,7 +53,7 @@ public class CallElement {
 		if(!otherCallElement.functionName.equals(otherCallElement.functionName)){
 			return false;
 		}
-
+		
 		if(otherCallElement.callNode.getNodeNumber() != this.callNode.getNodeNumber()){
 			return false;
 		}

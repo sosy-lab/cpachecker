@@ -1,5 +1,6 @@
 package octagon;
 
+
 public class Octagon {
 
 	private int dimension;	/* number of variables, aka dimension */
@@ -34,6 +35,17 @@ public class Octagon {
 
 	public Num[] getMatrix() {
 		return matrix;
+	}
+	
+	/* (non-Javadoc)
+	 * @see java.lang.Object#clone()
+	 */
+	public Octagon clone(){
+		Num[] mat = new Num[this.matrix.length];
+		for(int i=0; i<mat.length; i++){
+			mat[i] = new Num(this.matrix[i].f);
+		}
+		return new Octagon(this.dimension, this.ref, this.state, this.closed, mat); 
 	}
 
 	public String getContents(){

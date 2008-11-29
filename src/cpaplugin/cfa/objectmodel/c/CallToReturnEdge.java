@@ -49,7 +49,7 @@ public class CallToReturnEdge extends AbstractCFAEdge {
 		CompositeElement compElem = (CompositeElement) abstractElement;
 		List<AbstractElement> compElems = compElem.getElements();
 		for(AbstractElement item:compElems){
-			if(item.getClass().getName().equals(elementName)){
+			if(item.getClass().getSimpleName().equals(elementName)){
 				return item;
 			}
 		}

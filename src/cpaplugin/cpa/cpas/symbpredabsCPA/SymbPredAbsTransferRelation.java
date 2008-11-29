@@ -306,6 +306,8 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 	private void handleAbstractionLocation(SymbPredAbsAbstractElement element,
 			SymbPredAbsAbstractElement newElement, CFAEdge edge) {
 		SSAMap maxIndex = new SSAMap();
+		
+		SymbPredAbsAbstractFormulaManager amgr = domain.getCPA().getAbstractFormulaManager();
 
 		ParentsList parents = element.getParents();
 		// TODO check this (false, false is used when constructing pf for
@@ -338,7 +340,16 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 			abst = computeBooleanAbstraction(element, newElement, edge);
 		}
 
+		// TODO move below
 		newElement.setAbstraction(abst);
+		
+		if (amgr.isFalse(abst)) {
+			// TODO later
+            // return domain.getBottomElement();
+        } else {
+        	
+        }
+		
 
 		// TODO refinement part
 //		if (amgr.isFalse(abstraction)) {
@@ -1458,25 +1469,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 	@Override
 	public List<AbstractElement> getAllAbstractSuccessors(
 			AbstractElement element) throws CPAException, CPATransferException {
-
-		// TODO check later
-//		List<AbstractElement> allSucc = new Vector<AbstractElement>();
-//		SymbPredAbsAbstractElement e = (SymbPredAbsAbstractElement) element;
-//		CFANode src = (CFANode) e.getLocation();
-//
-//		for (int i = 0; i < src.getNumLeavingEdges(); ++i) {
-//			AbstractElement newe = getAbstractSuccessor(e, src
-//					.getLeavingEdge(i));
-//			if (newe != domain.getBottomElement()) {
-//				allSucc.add(newe);
-//			}
-//		}
-//
-//		LazyLogger.log(CustomLogLevel.SpecificCPALevel, allSucc.size(),
-//		" successors found");
-//
-//		return allSucc;
-		return null;
+        throw new CPAException ("Cannot get all abstract successors from non-location domain");
 	}
 
 }

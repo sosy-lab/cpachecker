@@ -79,7 +79,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis
 		CompositeElement initialElement = new CompositeElement (initialElements, null);
 		// set call stack
 		CallStack initialCallStack = new CallStack();
-		CallElement initialCallElement = new CallElement(node.getFunctionName(), null, initialElement);
+		CallElement initialCallElement = new CallElement(node.getFunctionName(), node, initialElement);
 		initialCallStack.push(initialCallElement);
 		initialElement.setCallStack(initialCallStack);
 		

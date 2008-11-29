@@ -8,6 +8,7 @@ import cpaplugin.cfa.objectmodel.CFAEdgeType;
 import cpaplugin.cfa.objectmodel.CFAFunctionDefinitionNode;
 import cpaplugin.cfa.objectmodel.CFANode;
 import cpaplugin.cfa.objectmodel.c.CallToReturnEdge;
+import cpaplugin.cmdline.CPAMain;
 import cpaplugin.cpa.common.CPATransferException;
 import cpaplugin.cpa.common.CallElement;
 import cpaplugin.cpa.common.CallStack;
@@ -52,52 +53,53 @@ public class CompositeTransferRelation implements TransferRelation{
 
 		CallStack updatedCallStack = compositeElement.getCallStack();
 
+		// TODO add some check here for unbounded recursive calls
+		if(cfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge)
+		{
+			String functionName = cfaEdge.getSuccessor().getFunctionName();
+			CFANode callNode = cfaEdge.getPredecessor();
+			CallElement ce = new CallElement(functionName, callNode, compositeElement);
+			CallStack cs = compositeElement.getCallStack();
+			updatedCallStack = cs.clone();
+			updatedCallStack.push(ce);
+		}
+
+		// handling the return from a function		
+		else if(cfaEdge.getEdgeType() == CFAEdgeType.ReturnEdge)
+		{
+			CallElement topCallElement = compositeElement.getCallStack().peek();
+			assert(cfaEdge.getPredecessor().getFunctionName().
+					equals(topCallElement.getFunctionName()));
+			CallElement returnElement = compositeElement.getCallStack().getSecondTopElement();
+
+			if(! topCallElement.isConsistent(cfaEdge.getSuccessor()) ||
+					! returnElement.isConsistent(cfaEdge.getSuccessor().getFunctionName()) ){
+				return compositeDomain.getBottomElement();
+			}
+
+			// TODO we are saving the abstract state on summary edge, that works for
+			// now but this is a terrible design practice. Add another method
+			// getAbstractSuccessorOnReturn(subElement, prevElement, cfaEdge)
+			// and implement it for all CPAs later.
+			else{
+				CallStack cs = compositeElement.getCallStack();
+				updatedCallStack = cs.clone();
+				CallElement ce = updatedCallStack.pop();
+				CompositeElement compElemBeforeCall = ce.getState();
+				// TODO use summary edge as a cache later
+				CallToReturnEdge summaryEdge = cfaEdge.getSuccessor().getEnteringSummaryEdge();
+				summaryEdge.setAbstractElement(compElemBeforeCall);
+			}
+		}
+		
 		for (int idx = 0; idx < transferRelations.size (); idx++)
 		{
 			TransferRelation transfer = transferRelations.get (idx);
 			AbstractElement subElement = null;
 			AbstractElement successor = null;
-
-			// handling a call edge
-			if(cfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge)
-			{
-				String functionName = cfaEdge.getSuccessor().getFunctionName();
-				CFANode callNode = cfaEdge.getPredecessor();
-				CallElement ce = new CallElement(functionName, callNode, compositeElement);
-				CallStack cs = compositeElement.getCallStack();
-				updatedCallStack = cs.clone();
-				updatedCallStack.push(ce);
-			}
-
 			subElement = inputElements.get (idx);
-
-			// handling the return from a function		
-			if(cfaEdge.getEdgeType() == CFAEdgeType.ReturnEdge)
-			{
-				CallElement topCallElement = compositeElement.getCallStack().peek();
-				assert(cfaEdge.getPredecessor().getFunctionName().
-						equals(topCallElement.getFunctionName()));
-				CallElement returnElement = compositeElement.getCallStack().getSecondTopElement();
-				
-				if(! topCallElement.isConsistent(cfaEdge.getSuccessor()) ||
-				   ! returnElement.isConsistent(cfaEdge.getSuccessor().getFunctionName()) ){
-					return compositeDomain.getBottomElement();
-				}
-				
-				// TODO we are saving the abstract state on summary edge, that works for
-				// now but this is a terrible design practice. Add another method
-				// getAbstractSuccessorOnReturn(subElement, prevElement, cfaEdge)
-				// and implement it for all CPAs later.
-				else{
-					CallStack cs = compositeElement.getCallStack();
-					updatedCallStack = cs.clone();
-					CallElement ce = updatedCallStack.pop();
-					CompositeElement compElemBeforeCall = ce.getState();
-					// TODO use summary edge as a cache later
-					CallToReturnEdge summaryEdge = cfaEdge.getSuccessor().getEnteringSummaryEdge(); 
-					summaryEdge.setAbstractElement(compElemBeforeCall);
-				}
-			}
+			// handling a call edge
+			
 			successor = transfer.getAbstractSuccessor (subElement, cfaEdge);
 			resultingElements.add (successor);
 		}

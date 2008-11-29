@@ -51,7 +51,7 @@ public class OctElement implements AbstractElement{
 			Integer id = variables.get(key);
 			newMap.put(key, id);
 		}
-		return new OctElement(oct, newMap);
+		return new OctElement(oct.clone(), newMap);
 	}
 
 	/**

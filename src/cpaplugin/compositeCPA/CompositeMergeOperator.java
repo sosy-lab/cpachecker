@@ -57,7 +57,7 @@ public class CompositeMergeOperator implements MergeOperator{
 		
 		if (!locationElement1.equals (locationElement2))
 			return element2;
-
+		
 		// check for call stack
 		CallStack cs1 = comp1.getCallStack();
 		CallStack cs2 = comp2.getCallStack();
