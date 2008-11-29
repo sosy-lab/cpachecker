@@ -164,7 +164,6 @@ public class DominatorDomain implements AbstractDomain, PartialOrder, JoinOperat
 	/* (non-Javadoc)
 	 * @see cpaplugin.cpa.common.interfaces.AbstractDomain#getBottomElement()
 	 */
-	@Override
 	public BottomElement getBottomElement() {
 		return bottomElement;
 	}
@@ -176,7 +175,6 @@ public class DominatorDomain implements AbstractDomain, PartialOrder, JoinOperat
 	/* (non-Javadoc)
 	 * @see cpaplugin.cpa.common.interfaces.AbstractDomain#getTopElement()
 	 */
-	@Override
 	public TopElement getTopElement() {
 		return topElement;
 	}
@@ -184,7 +182,6 @@ public class DominatorDomain implements AbstractDomain, PartialOrder, JoinOperat
 	/* (non-Javadoc)
 	 * @see cpaplugin.cpa.common.interfaces.AbstractDomain#getJoinOperator()
 	 */
-	@Override
 	public JoinOperator getJoinOperator() {
 		return this;
 	}
@@ -192,7 +189,6 @@ public class DominatorDomain implements AbstractDomain, PartialOrder, JoinOperat
 	/* (non-Javadoc)
 	 * @see cpaplugin.cpa.common.interfaces.AbstractDomain#getPartialOrder()
 	 */
-	@Override
 	public PartialOrder getPartialOrder() {
 		return this;
 	}

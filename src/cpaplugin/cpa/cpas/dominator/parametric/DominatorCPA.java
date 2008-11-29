@@ -28,7 +28,6 @@ public class DominatorCPA implements ConfigurableProgramAnalysis {
 		this.transferRelation = new DominatorTransferRelation(this.abstractDomain, this.cpa);
 	}
 	
-	@Override
 	public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
 		AbstractElement dominatedInitialElement_tmp = this.cpa.getInitialElement(node);
 		
@@ -41,22 +40,18 @@ public class DominatorCPA implements ConfigurableProgramAnalysis {
 		return initialElement;
 	}
 
-	@Override
 	public AbstractDomain getAbstractDomain() {
 		return abstractDomain;
 	}
 
-	@Override
 	public MergeOperator getMergeOperator() {
 		return mergeOperator;
 	}
 
-	@Override
 	public StopOperator getStopOperator() {
 		return stopOperator;
 	}
 
-	@Override
 	public TransferRelation getTransferRelation() {
 		return transferRelation;
 	}

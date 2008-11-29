@@ -40,7 +40,6 @@ public class DominatorTransferRelation implements TransferRelation {
 	/* (non-Javadoc)
 	 * @see cpaplugin.cpa.common.interfaces.TransferRelation#getAbstractDomain()
 	 */
-	@Override
 	public AbstractDomain getAbstractDomain() {
 		return this.domain;
 	}
@@ -48,7 +47,6 @@ public class DominatorTransferRelation implements TransferRelation {
 	/* (non-Javadoc)
 	 * @see cpaplugin.cpa.common.interfaces.TransferRelation#getAbstractSuccessor(cpaplugin.cpa.common.interfaces.AbstractElement, cpaplugin.cfa.objectmodel.CFAEdge)
 	 */
-	@Override
 	public AbstractElement getAbstractSuccessor(AbstractElement element, CFAEdge cfaEdge) throws CPATransferException {
 		if (!(element instanceof DominatorElement)) {
 			return this.domain.getBottomElement();
@@ -79,7 +77,6 @@ public class DominatorTransferRelation implements TransferRelation {
 	/* (non-Javadoc)
 	 * @see cpaplugin.cpa.common.interfaces.TransferRelation#getAllAbstractSuccessors(cpaplugin.cpa.common.interfaces.AbstractElement)
 	 */
-	@Override
 	public List<AbstractElement> getAllAbstractSuccessors(
 			AbstractElement element) throws CPAException, CPATransferException {
 		List<AbstractElement> successors = new ArrayList<AbstractElement>();

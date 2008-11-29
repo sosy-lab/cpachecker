@@ -3,7 +3,6 @@
  */
 package cpaplugin.cpa.cpas.dominator.parametric;
 
-import cpaplugin.cpa.common.interfaces.AbstractDomain;
 import cpaplugin.cpa.common.interfaces.AbstractElement;
 import cpaplugin.cpa.common.interfaces.MergeOperator;
 import cpaplugin.exceptions.CPAException;
@@ -22,19 +21,10 @@ public class DominatorMerge implements MergeOperator {
 		
 		this.domain = domain;
 	}
-	
-	/* (non-Javadoc)
-	 * @see cpaplugin.cpa.common.interfaces.MergeOperator#getAbstractDomain()
-	 */
-	@Override
-	public AbstractDomain getAbstractDomain() {
-		return this.domain;
-	}
 
 	/* (non-Javadoc)
 	 * @see cpaplugin.cpa.common.interfaces.MergeOperator#merge(cpaplugin.cpa.common.interfaces.AbstractElement, cpaplugin.cpa.common.interfaces.AbstractElement)
 	 */
-	@Override
 	public AbstractElement merge(AbstractElement element1,
 			AbstractElement element2) {
 		try {
