@@ -22,8 +22,10 @@ public class BlockEdge extends AbstractCFAEdge {
     
     public List<CFAEdge> getEdges() { return edges; }
 
-    //@Override
+    @Override
     public CFAEdgeType getEdgeType() {
+        // TODO db: This does not make sense. 
+        //      This edge type should be called BlockEdge or so.
         // TODO Auto-generated method stub
         return CFAEdgeType.BlankEdge;
     }
