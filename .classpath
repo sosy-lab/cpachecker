@@ -21,5 +21,6 @@
 	<classpathentry kind="lib" path="lib/mathsat.jar"/>
 	<classpathentry kind="lib" path="lib/minijdd_103.jar"/>
 	<classpathentry kind="lib" path="lib/javabdd-1.0b2.jar"/>
+	<classpathentry kind="lib" path="lib/yicesapijava.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
