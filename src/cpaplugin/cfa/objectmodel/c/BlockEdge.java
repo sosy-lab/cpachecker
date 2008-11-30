@@ -22,7 +22,7 @@ public class BlockEdge extends AbstractCFAEdge {
     
     public List<CFAEdge> getEdges() { return edges; }
 
-    @Override
+    //@Override
     public CFAEdgeType getEdgeType() {
         // TODO Auto-generated method stub
         return CFAEdgeType.BlankEdge;

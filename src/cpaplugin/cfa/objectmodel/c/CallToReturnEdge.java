@@ -55,4 +55,22 @@ public class CallToReturnEdge extends AbstractCFAEdge {
 		}
 		return null;
 	}
+
+  /**
+   * @return
+   */
+  public boolean hasAnyPointerParameters() {
+    // db: Not implemented.
+    assert(false);
+    return false;
+  }
+
+  /**
+   * @return
+   */
+  public Object getAliasedPointersList() {
+    // db: Not implemented.
+    assert(false);
+    return null;
+  }
 }
