@@ -8,8 +8,10 @@ import java.util.Collection;
 import java.util.Stack;
 import java.util.Vector;
 
-import cpaplugin.cmdline.CPAMain;
-import cpaplugin.logging.LazyLogger;
+import logging.LazyLogger;
+
+import cmdline.CPAMain;
+
 
 /**
  * Parses a file in msat format to extract a list of predicates. The file

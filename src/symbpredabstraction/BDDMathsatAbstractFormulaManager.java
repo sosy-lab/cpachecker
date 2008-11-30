@@ -7,10 +7,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 
+import cmdline.CPAMain;
+
+import logging.CustomLogLevel;
+import logging.LazyLogger;
 import mathsat.AllSatModelCallback;
-import cpaplugin.cmdline.CPAMain;
-import cpaplugin.logging.CustomLogLevel;
-import cpaplugin.logging.LazyLogger;
 
 public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
     

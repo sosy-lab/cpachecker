@@ -3,7 +3,8 @@ package symbpredabstraction;
 import java.util.Collection;
 import java.util.Collections;
 
-import cpaplugin.cfa.objectmodel.CFANode;
+import cfa.objectmodel.CFANode;
+
 
 /**
  * A predicate map that always returns the same set of predicates for all nodes

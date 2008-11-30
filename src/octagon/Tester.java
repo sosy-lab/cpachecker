@@ -3,7 +3,7 @@ package octagon;
 import java.util.HashSet;
 import java.util.Set;
 
-import cpaplugin.cpa.cpas.octagon.OctElement;
+import cpa.octagon.OctElement;
 
 public class Tester {
 

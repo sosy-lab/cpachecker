@@ -1,7 +1,7 @@
 package octagon;
 
-import cpaplugin.cpa.common.interfaces.AbstractElement;
-import cpaplugin.cpa.cpas.octagon.OctElement;
+import cpa.common.interfaces.AbstractElement;
+import cpa.octagon.OctElement;
 
 public class LibraryAccess {
 	

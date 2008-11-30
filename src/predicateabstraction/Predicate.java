@@ -2,8 +2,9 @@ package predicateabstraction;
 
 import java.io.IOException;
 
-import cpaplugin.logging.CPACheckerLogger;
-import cpaplugin.logging.CustomLogLevel;
+import logging.CPACheckerLogger;
+import logging.CustomLogLevel;
+
 
 
 public class Predicate {

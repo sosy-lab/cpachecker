@@ -7,9 +7,12 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import cpaplugin.cfa.objectmodel.CFANode;
-import cpaplugin.cmdline.CPAMain;
-import cpaplugin.logging.LazyLogger;
+import logging.LazyLogger;
+
+import cmdline.CPAMain;
+
+import cfa.objectmodel.CFANode;
+
 
 
 /**

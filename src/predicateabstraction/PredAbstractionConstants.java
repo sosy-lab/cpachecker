@@ -1,6 +1,6 @@
 package predicateabstraction;
 
-import cpaplugin.cmdline.CPAMain;
+import cmdline.CPAMain;
 
 public class PredAbstractionConstants {
 

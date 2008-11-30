@@ -9,6 +9,8 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.Vector;
 
+import logging.LazyLogger;
+
 import org.eclipse.cdt.core.dom.ast.DOMException;
 import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTCastExpression;
@@ -36,19 +38,20 @@ import org.eclipse.cdt.core.dom.ast.IType;
 import org.eclipse.cdt.core.dom.ast.ITypedef;
 import org.eclipse.cdt.core.dom.ast.IVariable;
 
-import cpaplugin.cfa.objectmodel.CFAEdge;
-import cpaplugin.cfa.objectmodel.CFANode;
-import cpaplugin.cfa.objectmodel.c.AssumeEdge;
-import cpaplugin.cfa.objectmodel.c.BlockEdge;
-import cpaplugin.cfa.objectmodel.c.CallToReturnEdge;
-import cpaplugin.cfa.objectmodel.c.DeclarationEdge;
-import cpaplugin.cfa.objectmodel.c.FunctionCallEdge;
-import cpaplugin.cfa.objectmodel.c.FunctionDefinitionNode;
-import cpaplugin.cfa.objectmodel.c.GlobalDeclarationEdge;
-import cpaplugin.cfa.objectmodel.c.StatementEdge;
-import cpaplugin.cmdline.CPAMain;
-import cpaplugin.exceptions.UnrecognizedCFAEdgeException;
-import cpaplugin.logging.LazyLogger;
+import cmdline.CPAMain;
+
+import cfa.objectmodel.CFAEdge;
+import cfa.objectmodel.CFANode;
+import cfa.objectmodel.c.AssumeEdge;
+import cfa.objectmodel.c.BlockEdge;
+import cfa.objectmodel.c.CallToReturnEdge;
+import cfa.objectmodel.c.DeclarationEdge;
+import cfa.objectmodel.c.FunctionCallEdge;
+import cfa.objectmodel.c.FunctionDefinitionNode;
+import cfa.objectmodel.c.GlobalDeclarationEdge;
+import cfa.objectmodel.c.StatementEdge;
+
+import exceptions.UnrecognizedCFAEdgeException;
 
 
 /**

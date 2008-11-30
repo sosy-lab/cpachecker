@@ -2,8 +2,9 @@ package symbpredabstraction;
 
 import java.util.Collection;
 
-import cpaplugin.cfa.objectmodel.CFAEdge;
-import cpaplugin.exceptions.UnrecognizedCFAEdgeException;
+import cfa.objectmodel.CFAEdge;
+
+import exceptions.UnrecognizedCFAEdgeException;
 
 /**
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>

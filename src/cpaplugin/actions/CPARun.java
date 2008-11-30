@@ -2,6 +2,9 @@ package cpaplugin.actions;
 
 import java.io.PrintStream;
 
+import logging.CPACheckerLogger;
+import logging.CustomLogLevel;
+
 import org.eclipse.cdt.core.dom.CDOM;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.core.resources.IFile;
@@ -24,10 +27,9 @@ import org.eclipse.ui.console.IOConsoleOutputStream;
 import org.eclipse.ui.console.MessageConsole;
 import org.eclipse.swt.widgets.Display;
 
+import cmdline.CPAMain;
+
 import cpaplugin.CPAConfiguration;
-import cpaplugin.cmdline.CPAMain;
-import cpaplugin.logging.CPACheckerLogger;
-import cpaplugin.logging.CustomLogLevel;
 
 public class CPARun implements IWorkbenchWindowActionDelegate
 {

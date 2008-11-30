@@ -2,7 +2,7 @@ package symbpredabstraction;
 
 import java.util.Collection;
 import java.util.Deque;
-import cpaplugin.cpa.cpas.symbpredabsCPA.SymbPredAbsAbstractElement;
+import cpa.symbpredabsCPA.SymbPredAbsAbstractElement;
 
 public interface SymbPredAbsAbstractFormulaManager extends AbstractFormulaManager {
 

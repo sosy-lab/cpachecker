@@ -2,10 +2,12 @@ package symbpredabstraction;
 
 import java.util.Collection;
 
-import cpaplugin.cmdline.CPAMain;
-import cpaplugin.cpa.cpas.symbpredabsCPA.SymbPredAbsAbstractElement;
-import cpaplugin.logging.CPACheckerLogger;
-import cpaplugin.logging.LazyLogger;
+import logging.CPACheckerLogger;
+import logging.LazyLogger;
+
+import cmdline.CPAMain;
+
+import cpa.symbpredabsCPA.SymbPredAbsAbstractElement;
 
 /**
  * Implementation of SummaryAbstractFormulaManager that works with BDDs for

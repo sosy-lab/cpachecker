@@ -2,7 +2,8 @@ package symbpredabstraction;
 
 import java.util.Collection;
 
-import cpaplugin.cfa.objectmodel.CFANode;
+import cfa.objectmodel.CFANode;
+
 
 /**
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
