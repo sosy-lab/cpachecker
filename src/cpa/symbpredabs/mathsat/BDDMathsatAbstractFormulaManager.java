@@ -259,6 +259,7 @@ public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
      * BDDMathsatSummaryFormulaManager for alternatives that are currently
      * used.
      */
+    @SuppressWarnings("unchecked")
     public AbstractFormula toAbstract(SymbolicFormulaManager mgr,
             SymbolicFormula f, SSAMap ssa, Collection<Predicate> predicates) {
         MathsatSymbolicFormulaManager mmgr = (MathsatSymbolicFormulaManager)mgr;
