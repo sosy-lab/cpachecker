@@ -1,7 +1,5 @@
 package cpaplugin.preferences;
 
-import java.io.File;
-
 import org.eclipse.jface.preference.*;
 import org.eclipse.jface.util.PropertyChangeEvent;
 import org.eclipse.ui.IWorkbenchPreferencePage;

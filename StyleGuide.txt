@@ -1,0 +1,20 @@
+Style Guide
+
+Spelling:
+- Names are spelled camel-like, whereEachNewWordStartsWithCapital.
+- Type names start with a capital,
+  and each sub-type name starts with an abbreviation of the type
+  (allows for look-up of type hierarchy via auto completion/listing). 
+- Method names start lower case.
+- Variable names start lower case,
+  where an attribute starts with 'm' and a local variable starts with 'l'.
+
+Formatting:
+- A block is surrounded by parentheses, e.g., if (...) { ...blah-block... }.
+
+Compilation:
+- Warnings are taken serious, and problems should be fixed if possible.
+  (When it becomes to many, we can't see the important ones anymore.)
+- Errors are to be eliminated as soon as possible.
+  (Annoying.)
+

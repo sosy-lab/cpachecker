@@ -16,8 +16,6 @@ import org.eclipse.cdt.core.dom.ast.IASTName;
 import org.eclipse.cdt.core.dom.ast.IPointerType;
 
 import cfa.objectmodel.CFAEdge;
-import cfa.objectmodel.CFANode;
-import cfa.objectmodel.c.AssumeEdge;
 import cfa.objectmodel.c.DeclarationEdge;
 import cfa.objectmodel.c.MultiDeclarationEdge;
 import cfa.objectmodel.c.MultiStatementEdge;

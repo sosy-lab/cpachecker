@@ -55,7 +55,7 @@ import cpa.symbpredabs.mathsat.YicesTheoremProver;
 public class ExplicitCPA implements ConfigurableProgramAnalysis {
     
     private ExplicitAbstractDomain domain;
-    private ExplicitMergeOperator merge;
+    // private ExplicitMergeOperator merge;
     private ExplicitStopOperator stop;
     private ExplicitTransferRelation trans;
     private MathsatSymbolicFormulaManager mgr;
@@ -69,7 +69,7 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
     
     private ExplicitCPA() {
         domain = new ExplicitAbstractDomain(this);
-        merge = new ExplicitMergeOperator(domain);
+        // merge = new ExplicitMergeOperator(domain);
         stop = new ExplicitStopOperator(domain);
         trans = new ExplicitTransferRelation(domain);
         mgr = new MathsatSymbolicFormulaManager();

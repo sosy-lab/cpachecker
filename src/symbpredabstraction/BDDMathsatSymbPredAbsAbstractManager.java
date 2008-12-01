@@ -56,7 +56,7 @@ public class BDDMathsatSymbPredAbsAbstractManager extends
 //	abstractionCache;
 
 	//private BDDMathsatSummaryAbstractionPrinter absPrinter = null;
-	private boolean dumpHardAbstractions;
+	// private boolean dumpHardAbstractions;
 
 	public BDDMathsatSymbPredAbsAbstractManager() {
 		super();
@@ -64,8 +64,8 @@ public class BDDMathsatSymbPredAbsAbstractManager extends
 		// TODO
 //		abstractionCache = 
 //			new HashMap<Pair<CFANode, CFANode>, PathFormula>();
-		dumpHardAbstractions = CPAMain.cpaConfig.getBooleanValue(
-		"cpas.symbpredabs.mathsat.dumpHardAbstractionQueries");
+		// dumpHardAbstractions = CPAMain.cpaConfig.getBooleanValue(
+		//    "cpas.symbpredabs.mathsat.dumpHardAbstractionQueries");
 	}
 
 	public Stats getStats() { return stats; }

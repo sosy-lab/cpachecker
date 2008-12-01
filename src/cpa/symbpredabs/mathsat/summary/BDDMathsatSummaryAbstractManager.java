@@ -754,6 +754,7 @@ public class BDDMathsatSummaryAbstractManager extends
         return ret;
     }
     
+    /*
     private void dumpInterpolationProblem(MathsatSymbolicFormulaManager mmgr,
             Vector<SymbolicFormula> f, String fileNamePattern) {
         long msatEnv = mmgr.getMsatEnv();
@@ -772,6 +773,7 @@ public class BDDMathsatSummaryAbstractManager extends
             }
         }
     }
+    */
 
     public Vector<SymbolicFormula> getUsefulBlocks(
         SymbolicFormulaManager mgr, Vector<SymbolicFormula> f,
@@ -895,6 +897,7 @@ public class BDDMathsatSummaryAbstractManager extends
         return f;
     }
  
+    /*
     private void printFuncNamesInTrace(
         Deque<SummaryAbstractElement> abstractTrace) {
         if (true) {
@@ -910,5 +913,6 @@ public class BDDMathsatSummaryAbstractManager extends
             System.out.println(buf.toString());
             System.out.flush();
         }
-    }    
+    } 
+    */   
 }

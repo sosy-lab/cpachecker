@@ -164,7 +164,7 @@ implements AbstractElement {
 	    		// if abstraction location
 	    		else{
 
-	                SymbPredAbsCPA cpa = domain.getCPA();
+	                // SymbPredAbsCPA cpa = domain.getCPA();
 
 	                assert(thisElement.getAbstraction() != null);
 	                assert(otherElement.getAbstraction() != null);

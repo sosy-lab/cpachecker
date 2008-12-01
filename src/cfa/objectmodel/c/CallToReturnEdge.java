@@ -10,6 +10,7 @@ import cfa.objectmodel.CFANode;
 
 import cpa.common.CompositeElement;
 import cpa.common.interfaces.AbstractElement;
+import cpa.predicateabstraction.PredicateAbstractionElement;
 
 public class CallToReturnEdge extends AbstractCFAEdge {
 
@@ -69,7 +70,38 @@ public class CallToReturnEdge extends AbstractCFAEdge {
   /**
    * @return
    */
-  public Object getAliasedPointersList() {
+  public Iterable<AliasedPointers> getAliasedPointersList() {
+    // db: Not implemented.
+    assert(false);
+    return null;
+  }
+
+  /**
+   * @param pArgumentName
+   * @param pParameterName
+   */
+  public void registerAliasesOnFunctionCalls(String pArgumentName,
+                                             String pParameterName) {
+    // db: Not implemented.
+    assert(false);
+  }
+
+  /**
+   * @param pString
+   * @param pPredAbsElement
+   */
+  public void registerElementOnSummaryEdge(
+                                           String pString,
+                                           PredicateAbstractionElement pPredAbsElement) {
+    // db: Not implemented.
+    assert(false);
+  }
+
+  /**
+   * @param pString
+   * @return
+   */
+  public PredicateAbstractionElement retrieveAbstractElement(String pString) {
     // db: Not implemented.
     assert(false);
     return null;

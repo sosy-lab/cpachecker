@@ -1241,6 +1241,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         return getLvalIndex(name, args, ssa, absolute);
     }    
 
+    /*
     private int getNormalIndex(String name, SSAMap ssa, boolean absolute) {
         int idx = ssa.getIndex(name);
         if (idx <= 0) {
@@ -1252,6 +1253,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         }
         return idx;
     }
+    */
     
     private int getNormalIndex(String name, long[] args, SSAMap ssa, 
             boolean absolute, boolean autoInstantiate) {
@@ -1468,6 +1470,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         return mathsat.api.msat_make_uif(msatEnv, decl, args);
     }
     
+    /*
     private long buildMsatUF(int op, long t) {
         if (op == IASTUnaryExpression.op_tilde) {
             return mathsat.api.msat_make_uif(msatEnv, bitwiseNotUfDecl,
@@ -1476,6 +1479,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
             return mathsat.api.MSAT_MAKE_ERROR_TERM();
         }
     }
+    */
 
     // looks up the variable in the current namespace
     private String scoped(String var) {

@@ -3,11 +3,8 @@ package compositeCPA;
 import java.util.ArrayList;
 import java.util.List;
 
-import cmdline.CPAMain;
-
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAEdgeType;
-import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cfa.objectmodel.CFANode;
 import cfa.objectmodel.c.CallToReturnEdge;
 
@@ -20,7 +17,6 @@ import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.TransferRelation;
-import cpa.location.LocationTransferRelation;
 import exceptions.CPAException;
 
 public class CompositeTransferRelation implements TransferRelation{
@@ -28,18 +24,18 @@ public class CompositeTransferRelation implements TransferRelation{
 	private CompositeDomain compositeDomain;
 	private List<TransferRelation> transferRelations;
 
-	private LocationTransferRelation locationTransferRelation;
+	// private LocationTransferRelation locationTransferRelation;
 
 	public CompositeTransferRelation (CompositeDomain compositeDomain, List<TransferRelation> transferRelations)
 	{
 		this.compositeDomain = compositeDomain;
 		this.transferRelations = transferRelations;
 
-		TransferRelation first = transferRelations.get (0);
-		if (first instanceof LocationTransferRelation)
-		{
-			locationTransferRelation = (LocationTransferRelation) first;
-		}
+		//TransferRelation first = transferRelations.get (0);
+		//if (first instanceof LocationTransferRelation)
+		//{
+		//	locationTransferRelation = (LocationTransferRelation) first;
+		//}
 	}
 
 	public AbstractDomain getAbstractDomain ()

@@ -3,9 +3,6 @@ package cfa.objectmodel.c;
 import java.util.ArrayList;
 import java.util.List;
 
-import logging.CustomLogLevel;
-import logging.LazyLogger;
-
 import org.eclipse.cdt.core.dom.ast.IASTFunctionDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
 import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;

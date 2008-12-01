@@ -1,7 +1,6 @@
 package octagon;
 
 import java.util.HashSet;
-import java.util.Set;
 
 import cpa.octagon.OctElement;
 

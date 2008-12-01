@@ -32,9 +32,10 @@ public class YicesTheoremProver implements TheoremProver {
     
     int curLevel = 0;
     
+    // TODO
     // restart yices every once in a while, otherwise it starts eating too 
     // much memory
-    private final int MAX_NUM_YICES_CALLS = 100;
+    // private final int MAX_NUM_YICES_CALLS = 100;
     
     public YicesTheoremProver(MathsatSymbolicFormulaManager mgr) {
         msatVarToYicesVar = new HashMap<Long, String>();
@@ -178,6 +179,7 @@ public class YicesTheoremProver implements TheoremProver {
         return toYices((MathsatSymbolicFormula)f);
     }
     
+    /*
     private void resetYices() {
         yicesManager.yicesl_del_context(yicesContext);
         yicesContext = yicesManager.yicesl_mk_context();
@@ -186,6 +188,7 @@ public class YicesTheoremProver implements TheoremProver {
         msatVarToYicesVar.clear();
         yicesPredToMsat.clear();
     }
+    */
 
     private int yicesCommand(String cmd, boolean ignoreError) {
         int ret = yicesManager.yicesl_read(yicesContext, cmd);

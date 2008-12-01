@@ -7,15 +7,10 @@ import java.util.Set;
 
 import logging.LazyLogger;
 
-import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
-import org.eclipse.cdt.core.dom.ast.IASTExpression;
-import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
-
 import cmdline.CPAMain;
 
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFANode;
-import cfa.objectmodel.c.ReturnEdge;
 
 import symbpredabstraction.AbstractFormula;
 import symbpredabstraction.BDDAbstractFormula;
@@ -489,7 +484,8 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 	protected AbstractFormula computeCartesianAbstraction(
 			SymbPredAbsAbstractElement e, 
 			SymbPredAbsAbstractElement succ, CFAEdge edge) {
-		long startTime = System.currentTimeMillis();
+    // TODO Use Timer
+	  // long startTime = System.currentTimeMillis();
 
 		JavaBDD bddManager = bddMathsatMan.getBddManager();
 		// TODO get predicates as collection from succ state
@@ -556,10 +552,11 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 		SSAMap ssa = pc.getSsa();
 
 		f = mathsatFormMan.replaceAssignments((MathsatSymbolicFormula)pc.getSymbolicFormula());
-		SymbolicFormula fkey = f;
+		// SymbolicFormula fkey = f;
 
-		byte[] predVals = null;
-		final byte NO_VALUE = -2;
+		// TODO
+		// byte[] predVals = null;
+		// final byte NO_VALUE = -2;
 		// TODO
 //		if (useCache) {
 //		predVals = new byte[predicates.size()];
@@ -606,7 +603,8 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 //		absEnv, ((MathsatSymbolicFormula)f).getTerm(), msatEnv);
 		assert(!mathsat.api.MSAT_ERROR_TERM(term));
 
-		long solveStartTime = System.currentTimeMillis();        
+		// TODO Use Timer
+		// long solveStartTime = System.currentTimeMillis();        
 		mathsat.api.msat_assert_formula(absEnv, term);    
 
 		if (!skipFeasibilityCheck) {
@@ -757,14 +755,15 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 //				}
 			}
 		}
-		long solveEndTime = System.currentTimeMillis();
+		// long solveEndTime = System.currentTimeMillis();
 
 		mathsat.api.msat_destroy_env(absEnv);
 
+		// TODO
 		// update statistics
-		long endTime = System.currentTimeMillis();
-		long solveTime = (solveEndTime - solveStartTime) - totBddTime;
-		long msatTime = (endTime - startTime) - totBddTime;
+		// long endTime = System.currentTimeMillis();
+		// long solveTime = (solveEndTime - solveStartTime) - totBddTime;
+		// long msatTime = (endTime - startTime) - totBddTime;
 		// TODO later
 //		stats.abstractionMaxMathsatTime = 
 //		Math.max(msatTime, stats.abstractionMaxMathsatTime);
@@ -795,7 +794,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 					element.getPathFormula().getSymbolicFormula(), 
 					edge, element.getPathFormula().getSsa(), false, false);
 			// TODO check these 3 lines
-			SymbolicFormula t1 = pf.getSymbolicFormula();
+			// SymbolicFormula t1 = pf.getSymbolicFormula();
 			SSAMap ssa1 = pf.getSsa();
 			assert(pf != null);
 			newElement.setPathFormula(pf);
@@ -810,6 +809,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 		newElement.setPredicates(pmap);
 	}
 
+	/*
 	// looks up the variable in the current namespace
 	private String scoped(String var) {
 		if (globalVars.contains(var)) {
@@ -818,14 +818,17 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 			return getNamespace() + "::" + var;
 		}
 	}
+	*/
 
 	private void setNamespace(String ns) {
 		namespace = ns;
 	}
 
+	/*
 	private String getNamespace() {
 		return namespace;
 	}
+  */
 
 	// TODO for return edge, check later
 	// private PathFormula makeAndExitFunction(
@@ -960,6 +963,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 	 * checks whether the given expression is going to modify the SSAMap. If
 	 * not, we can avoid copying it
 	 */
+	/*
 	private boolean needsSSAUpdate(IASTExpression expr) {
 		if (expr instanceof IASTUnaryExpression) {
 			switch (((IASTUnaryExpression) expr).getOperator()) {
@@ -980,6 +984,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 		}
 		return false;
 	}
+	*/
 
 	// TODO -- return from function
 	// private PathFormula makeAndReturn(SymbPredAbsAbstractElement element,
@@ -1374,6 +1379,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 //	}
 
 
+	/*
 	private boolean isLoopBack(CFAEdge e) {
 		CFANode s = e.getSuccessor();
 		boolean yes = s.isLoopStart() && !e.getRawStatement().equals("while");
@@ -1383,6 +1389,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 		}
 		return yes;
 	}
+	*/
 
 	// abstraction refinement and undoing of (part of) the ART
 //	private void performRefinement(Deque<SymbPredAbsAbstractElement> path,

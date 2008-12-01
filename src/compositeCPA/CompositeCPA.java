@@ -6,7 +6,6 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
-import logging.CPACheckerLogger;
 import logging.CustomLogLevel;
 import logging.LazyLogger;
 

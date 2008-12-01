@@ -156,15 +156,15 @@ public class ExplicitTransferRelation implements TransferRelation {
     private int numAbstractStates = 0; // for statistics
     
     // this is used for deciding how much of the ART to undo after refinement
-    private Deque<ExplicitAbstractElement> lastErrorPath;
-    private int samePathAlready = 0;
+    // private Deque<ExplicitAbstractElement> lastErrorPath;
+    // private int samePathAlready = 0;
     
     private boolean notEnoughPredicatesFlag = false;
     
     public ExplicitTransferRelation(ExplicitAbstractDomain d) {
         domain = d;
         abstractTree = new ART();
-        lastErrorPath = null;
+        // lastErrorPath = null;
         abstractCex = new HashMap<Path, Integer>();
     }
     
@@ -438,6 +438,7 @@ public class ExplicitTransferRelation implements TransferRelation {
         throw new RefinementNeededException(toUnreach, toWaitlist);
     }
 
+    /*
     // checks whether the two paths are the same (in terms of locations)
     private boolean samePath(Deque<ExplicitAbstractElement> path1,
                              Deque<ExplicitAbstractElement> path2) {
@@ -456,6 +457,7 @@ public class ExplicitTransferRelation implements TransferRelation {
             return false;
         }
     }
+    */
 
     @Override
     public AbstractElement getAbstractSuccessor(AbstractElement element,

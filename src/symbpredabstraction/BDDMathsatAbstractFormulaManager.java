@@ -145,7 +145,7 @@ public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
 
     // TODO check later
     public boolean equals(AbstractFormula f1, AbstractFormula f2) {
-        Pair<AbstractFormula, AbstractFormula> key = null;
+        // Pair<AbstractFormula, AbstractFormula> key = null;
         // TODO Use another cache 
 //        if (entailsUseCache) {
 //            key = new Pair<AbstractFormula, AbstractFormula>(f1, f2);

@@ -3,32 +3,23 @@ package cpa.octagon;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import octagon.LibraryAccess;
 import octagon.Num;
-import octagon.OctLibraryTest;
 import octagon.Octagon;
 
 import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTCastExpression;
-import org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
-import org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression;
 import org.eclipse.cdt.core.dom.ast.IASTIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
 import org.eclipse.cdt.core.dom.ast.IASTPointerOperator;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 
-import cmdline.CPAMain;
-
 import cfa.objectmodel.CFAEdge;
-import cfa.objectmodel.CFAExitNode;
-import cfa.objectmodel.CFANode;
 import cfa.objectmodel.c.AssumeEdge;
 import cfa.objectmodel.c.CallToReturnEdge;
 import cfa.objectmodel.c.DeclarationEdge;
@@ -38,9 +29,6 @@ import cfa.objectmodel.c.GlobalDeclarationEdge;
 import cfa.objectmodel.c.ReturnEdge;
 import cfa.objectmodel.c.StatementEdge;
 
-import sun.awt.GlobalCursorManager;
-
-import cpa.common.CompositeElement;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.TransferRelation;
@@ -258,7 +246,7 @@ public class OctTransferRelation implements TransferRelation{
 			DeclarationEdge declarationEdge) {
 
 		IASTDeclarator[] declarators = declarationEdge.getDeclarators();
-		IASTDeclSpecifier specifier = declarationEdge.getDeclSpecifier();
+		// IASTDeclSpecifier specifier = declarationEdge.getDeclSpecifier();
 
 		for (IASTDeclarator declarator : declarators)
 		{

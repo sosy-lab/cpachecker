@@ -2,7 +2,6 @@ package cfa.objectmodel.c;
 
 import cfa.objectmodel.AbstractCFAEdge;
 import cfa.objectmodel.CFAEdgeType;
-import cfa.objectmodel.CFANode;
 
 
 public class ReturnEdge extends AbstractCFAEdge 

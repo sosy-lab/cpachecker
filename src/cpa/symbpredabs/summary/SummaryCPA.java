@@ -56,7 +56,7 @@ import cpa.symbpredabs.mathsat.summary.MathsatSummaryFormulaManager;
 public class SummaryCPA implements ConfigurableProgramAnalysis {
     
     private SummaryAbstractDomain domain;
-    private SummaryMergeOperator merge;
+    // private SummaryMergeOperator merge;
     private SummaryStopOperator stop;
     private SummaryTransferRelation trans;
     private MathsatSummaryFormulaManager mgr;
@@ -70,7 +70,7 @@ public class SummaryCPA implements ConfigurableProgramAnalysis {
     
     private SummaryCPA() {
         domain = new SummaryAbstractDomain(this);
-        merge = new SummaryMergeOperator(domain);
+        // merge = new SummaryMergeOperator(domain);
         stop = new SummaryStopOperator(domain);
         trans = new SummaryTransferRelation(domain);
         mgr = new MathsatSummaryFormulaManager();

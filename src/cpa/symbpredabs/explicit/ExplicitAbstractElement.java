@@ -4,7 +4,6 @@ import java.util.Stack;
 
 import cfa.objectmodel.CFANode;
 
-import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.symbpredabs.AbstractFormula;
 import cpa.symbpredabs.Pair;

@@ -11,32 +11,19 @@ import java.util.Vector;
 
 import logging.LazyLogger;
 
-import org.eclipse.cdt.core.dom.ast.DOMException;
 import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTCastExpression;
 import org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
-import org.eclipse.cdt.core.dom.ast.IASTElaboratedTypeSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression;
 import org.eclipse.cdt.core.dom.ast.IASTIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTInitializer;
 import org.eclipse.cdt.core.dom.ast.IASTInitializerExpression;
 import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
-import org.eclipse.cdt.core.dom.ast.IASTName;
-import org.eclipse.cdt.core.dom.ast.IASTNamedTypeSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
-import org.eclipse.cdt.core.dom.ast.IASTPointerOperator;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
-import org.eclipse.cdt.core.dom.ast.IBasicType;
-import org.eclipse.cdt.core.dom.ast.IBinding;
-import org.eclipse.cdt.core.dom.ast.ICompositeType;
-import org.eclipse.cdt.core.dom.ast.IField;
-import org.eclipse.cdt.core.dom.ast.IPointerType;
-import org.eclipse.cdt.core.dom.ast.IType;
-import org.eclipse.cdt.core.dom.ast.ITypedef;
-import org.eclipse.cdt.core.dom.ast.IVariable;
 
 import cmdline.CPAMain;
 
@@ -1102,6 +1089,7 @@ public class MathsatSymbPredAbsFormulaManager implements SymbolicFormulaManager 
         return mathsat.api.msat_make_uif(msatEnv, decl, args);
     }
     
+    /*
     private long buildMsatUF(int op, long t) {
         if (op == IASTUnaryExpression.op_tilde) {
             return mathsat.api.msat_make_uif(msatEnv, bitwiseNotUfDecl,
@@ -1110,6 +1098,7 @@ public class MathsatSymbPredAbsFormulaManager implements SymbolicFormulaManager 
             return mathsat.api.MSAT_MAKE_ERROR_TERM();
         }
     }
+    */
 
     // looks up the variable in the current namespace
     private String scoped(String var) {
@@ -1976,6 +1965,8 @@ public class MathsatSymbPredAbsFormulaManager implements SymbolicFormulaManager 
     // FROM HERE ON ONLY UNUSED STUFF AT THE MOMENT
     //-------------------------------------------------------------------------
     
+    
+    
     // some useful info...
 //    IASTDeclSpecifier tp = param.getDeclSpecifier();
 //    System.out.println("SPECIFIER: " + tp.getRawSignature());
@@ -1992,6 +1983,8 @@ public class MathsatSymbPredAbsFormulaManager implements SymbolicFormulaManager 
 //    );
 //    System.exit(1);
 //    // TODO
+    
+    /*
     private DeclarationInfo[] getInfo(IASTDeclSpecifier specifier, 
             IASTDeclarator[] declarators) throws UnrecognizedCFAEdgeException {
         // first, extract the type information from the specifier
@@ -2030,7 +2023,9 @@ public class MathsatSymbPredAbsFormulaManager implements SymbolicFormulaManager 
         
         return ret;
     }
+    */
     
+    /*
     private DeclarationInfo getBindingInfo(IBinding binding) throws Exception {
         IType tp = null;
         int numPointers = 0;
@@ -2086,7 +2081,9 @@ public class MathsatSymbPredAbsFormulaManager implements SymbolicFormulaManager 
         
         return ret;
     }
+    */
     
+    /*
     private DeclarationInfo getDeclaratorInfo(DeclarationInfo base, 
             IASTDeclarator decl) throws Exception {
         DeclarationInfo ret = new DeclarationInfo(base.getType());
@@ -2098,4 +2095,5 @@ public class MathsatSymbPredAbsFormulaManager implements SymbolicFormulaManager 
         }
         return ret;
     }
+    */
 }

@@ -1,10 +1,5 @@
 package symbpredabstraction;
 
-import java.util.Map;
-
-import cfa.objectmodel.CFANode;
-import exceptions.UnrecognizedCFAEdgeException;
-
 public interface SymbPredAbsFormulaManager extends SymbolicFormulaManager {
 
 	// TODO we don't need this

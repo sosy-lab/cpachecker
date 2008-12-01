@@ -65,7 +65,7 @@ public class DefUseTransferRelation implements TransferRelation
             case IASTBinaryExpression.op_shiftRightAssign:
             {
                 String lParam = binaryExpression.getOperand1 ().getRawSignature ();
-                String lParam2 = binaryExpression.getOperand2 ().getRawSignature ();
+                // String lParam2 = binaryExpression.getOperand2 ().getRawSignature ();
                 
                 DefUseDefinition definition = new DefUseDefinition (lParam, cfaEdge);
                 defUseElement.update (definition);
