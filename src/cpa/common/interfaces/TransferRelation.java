@@ -5,7 +5,6 @@ import java.util.List;
 import cfa.objectmodel.CFAEdge;
 
 import cpa.common.CPATransferException;
-import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import exceptions.CPAException;
 
@@ -17,12 +16,6 @@ import exceptions.CPAException;
  */
 public interface TransferRelation
 {
-    /**
-     * @return abstract domain associated with the transfer relation, may be useful
-     * if bottom or top elements is accessed by an operation triggered on transfer
-     * relation
-     */
-    public AbstractDomain getAbstractDomain ();
     /**
      * Transfers the state to the next abstract state. For example if the analysis in on node 3 and it
      * will proceed to node 4, there is an edge from node 3 to 4.
