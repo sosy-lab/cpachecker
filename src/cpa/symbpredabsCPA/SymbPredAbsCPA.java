@@ -227,6 +227,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis {
 		return amgr;
 	}
 
+	// TODO fix this
 	public boolean isAbstractionLocation(CFANode succLoc) {
 
 //		// useful for test cases

@@ -75,36 +75,37 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
 				merged.updateMaxIndex(ssa1);
 			}
 			else{
-				// set path formula - it is true
-				PathFormula pf = elem1.getPathFormula();
-				merged.setPathFormula(pf);
-				
-				// update initial formula
-				// TODO check
-				MathsatSymbolicFormula form1 = 
-					(MathsatSymbolicFormula)elem1.getInitAbstractionSet().getSymbolicFormula();
-				MathsatSymbolicFormula form2 = 
-					(MathsatSymbolicFormula)elem2.getInitAbstractionSet().getSymbolicFormula();
-				SSAMap ssa2 = elem2.getInitAbstractionSet().getSsa();
-				SSAMap ssa1 = elem1.getInitAbstractionSet().getSsa();
-				Pair<Pair<SymbolicFormula, SymbolicFormula>,SSAMap> pm = mgr.mergeSSAMaps(ssa2, ssa1, false);
-				MathsatSymbolicFormula old = (MathsatSymbolicFormula)mgr.makeAnd(
-						form2, pm.getFirst().getFirst());
-				SymbolicFormula newFormula = mgr.makeAnd(form1, pm.getFirst().getSecond());
-				newFormula = mgr.makeOr(old, newFormula);
-				ssa1 = pm.getSecond();
-				
-				// TODO these parameters should be cloned (really?)
-				merged.setParents(elem1.getParents());
-				merged.setPredicates(elem1.getPredicates());
-				merged.setPathFormula(new PathFormula(newFormula, ssa1));
-				
-				// TODO compute abstraction here
-				merged.setAbstraction(elem1.getAbstraction());
-				
-				// TODO check, what is that???
-				// merged.setMaxIndex(maxIndex)	
-				merged.updateMaxIndex(ssa1);
+//				// set path formula - it is true
+//				PathFormula pf = elem1.getPathFormula();
+//				merged.setPathFormula(pf);
+//				
+//				// update initial formula
+//				// TODO check
+//				MathsatSymbolicFormula form1 = 
+//					(MathsatSymbolicFormula)elem1.getInitAbstractionSet().getSymbolicFormula();
+//				MathsatSymbolicFormula form2 = 
+//					(MathsatSymbolicFormula)elem2.getInitAbstractionSet().getSymbolicFormula();
+//				SSAMap ssa2 = elem2.getInitAbstractionSet().getSsa();
+//				SSAMap ssa1 = elem1.getInitAbstractionSet().getSsa();
+//				Pair<Pair<SymbolicFormula, SymbolicFormula>,SSAMap> pm = mgr.mergeSSAMaps(ssa2, ssa1, false);
+//				MathsatSymbolicFormula old = (MathsatSymbolicFormula)mgr.makeAnd(
+//						form2, pm.getFirst().getFirst());
+//				SymbolicFormula newFormula = mgr.makeAnd(form1, pm.getFirst().getSecond());
+//				newFormula = mgr.makeOr(old, newFormula);
+//				ssa1 = pm.getSecond();
+//				
+//				// TODO these parameters should be cloned (really?)
+//				merged.setParents(elem1.getParents());
+//				merged.setPredicates(elem1.getPredicates());
+//				merged.setPathFormula(new PathFormula(newFormula, ssa1));
+//				
+//				// TODO compute abstraction here
+//				merged.setAbstraction(elem1.getAbstraction());
+//				
+//				// TODO check, what is that???
+//				// merged.setMaxIndex(maxIndex)	
+//				merged.updateMaxIndex(ssa1);
+				merged = elem2;
 			}
 
 			return merged;
