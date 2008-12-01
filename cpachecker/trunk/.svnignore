@@ -1,0 +1,9 @@
+bin
+.hg*
+build.properties
+META-INF/*
+lib*
+.classpath
+*.jar
+nativeLib*
+.settings*

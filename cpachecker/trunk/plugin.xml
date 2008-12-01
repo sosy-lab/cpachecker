@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.2"?>
+<plugin>
+
+   <extension
+         point="org.eclipse.ui.actionSets">
+      <actionSet
+            label="CPAActionSet"
+            visible="true"
+            id="CPAPlugin.actionSet">
+         <menu
+               label="&amp;CPA"
+               id="CPAMenu">
+            <separator
+                  name="CPAGroup">
+            </separator>
+         </menu>
+         <action
+               label="&amp;Launch CPA"
+               icon="icons/sample.gif"
+               class="cpaplugin.actions.CPARun"
+               tooltip="Configurable Program Analysis"
+               menubarPath="CPAMenu/sampleGroup"
+               toolbarPath="CPAGroup"
+               id="cpaplugin.actions.SampleAction">
+         </action>
+      </actionSet>
+   </extension>
+   <extension
+         point="org.eclipse.ui.preferencePages">
+      <page
+            name="CPAPlugin"
+            class="cpaplugin.preferences.CPAPreferencePage"
+            id="cpaplugin.preferences.CPAPreferencePage">
+      </page>
+   </extension>
+   <extension
+         point="org.eclipse.core.runtime.preferences">
+      <initializer
+            class="cpaplugin.preferences.PreferenceInitializer">
+      </initializer>
+   </extension>
+
+</plugin>
