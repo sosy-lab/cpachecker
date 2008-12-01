@@ -21,3 +21,9 @@ Compilation:
 
 Eclipse:
 - I have added a suggested style into the .settings for Eclipse.
+
+Version Control:
+- In order to avoid EOL problems caused by Unix/Windows/Mac, let's run
+  find ./ -name "*" -exec svn propset svn:eol-style native {} \;
+  from time to time.
+
