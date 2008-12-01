@@ -1,5 +1,5 @@
 /**
- *
+ * 
  */
 package cpa.pointsto;
 
@@ -19,9 +19,9 @@ import cpa.common.interfaces.TopElement;
 public class PointsToDomain implements AbstractDomain {
 
 	private static class PointsToTopElement extends PointsToElement implements TopElement {}
-
+	
 	private static class PointsToBottomElement extends PointsToElement implements BottomElement {}
-
+	
 	private static class PointsToPartialOrder implements PartialOrder {
 		public boolean satisfiesPartialOrder (AbstractElement element1, AbstractElement element2) {
 			PointsToElement pointsToElement1 = (PointsToElement) element1;
@@ -33,7 +33,7 @@ public class PointsToDomain implements AbstractDomain {
 			while (iter.hasNext()) {
 				if(!pointsToElement2.containsRecursive(iter.next())) return false;
 			}
-
+			
 			return true;
 		}
 	}
@@ -45,23 +45,23 @@ public class PointsToDomain implements AbstractDomain {
 			PointsToElement joined = ((PointsToElement) element1).clone();
 			joined.join((PointsToElement) element2);
 			return joined;
-		}
+		}        
 	}
-
+	   
     private final static BottomElement bottomElement = new PointsToBottomElement ();
     private final static TopElement topElement = new PointsToTopElement ();
     private final static PartialOrder partialOrder = new PointsToPartialOrder ();
     private final static JoinOperator joinOperator = new PointsToJoinOperator ();
-
+	
 	public PointsToDomain () {	}
-
+	
 	/* (non-Javadoc)
 	 * @see cpa.common.interfaces.AbstractDomain#getBottomElement()
 	 */
 	public BottomElement getBottomElement() {
 		return bottomElement;
 	}
-
+	
 	public boolean isBottomElement(AbstractElement element) {
 		return element.equals(bottomElement);
 	}

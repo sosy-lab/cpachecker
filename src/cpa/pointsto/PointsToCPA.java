@@ -1,5 +1,5 @@
 /**
- *
+ * 
  */
 package cpa.pointsto;
 
@@ -54,9 +54,9 @@ public class PointsToCPA implements ConfigurableProgramAnalysis {
 			for (IASTParameterDeclaration parameter : parameters) {
 				if (0 != parameter.getDeclarator().getPointerOperators().length) {
 					if (parameter.getDeclarator().getNestedDeclarator() != null) {
-						initial.addVariable(parameter.getDeclarator().getNestedDeclarator());
+						initial.addVariable(parameter.getDeclarator().getNestedDeclarator(), 0);
 					} else {
-						initial.addVariable(parameter.getDeclarator());
+						initial.addVariable(parameter.getDeclarator(), 0);
 					}
 				}
 			}
