@@ -1,4 +1,4 @@
-#Mon Dec 01 13:41:52 PST 2008
+#Mon Dec 01 14:00:04 PST 2008
 eclipse.preferences.version=1
 org.eclipse.jdt.core.codeComplete.argumentPrefixes=p
 org.eclipse.jdt.core.codeComplete.argumentSuffixes=
@@ -36,8 +36,8 @@ org.eclipse.jdt.core.compiler.problem.incompleteEnumSwitch=ignore
 org.eclipse.jdt.core.compiler.problem.indirectStaticAccess=ignore
 org.eclipse.jdt.core.compiler.problem.localVariableHiding=ignore
 org.eclipse.jdt.core.compiler.problem.methodWithConstructorName=warning
-org.eclipse.jdt.core.compiler.problem.missingDeprecatedAnnotation=ignore
-org.eclipse.jdt.core.compiler.problem.missingOverrideAnnotation=ignore
+org.eclipse.jdt.core.compiler.problem.missingDeprecatedAnnotation=warning
+org.eclipse.jdt.core.compiler.problem.missingOverrideAnnotation=warning
 org.eclipse.jdt.core.compiler.problem.missingSerialVersion=warning
 org.eclipse.jdt.core.compiler.problem.noEffectAssignment=warning
 org.eclipse.jdt.core.compiler.problem.noImplicitStringConversion=warning
@@ -59,7 +59,7 @@ org.eclipse.jdt.core.compiler.problem.uncheckedTypeOperation=warning
 org.eclipse.jdt.core.compiler.problem.undocumentedEmptyBlock=ignore
 org.eclipse.jdt.core.compiler.problem.unhandledWarningToken=warning
 org.eclipse.jdt.core.compiler.problem.unnecessaryElse=ignore
-org.eclipse.jdt.core.compiler.problem.unnecessaryTypeCheck=ignore
+org.eclipse.jdt.core.compiler.problem.unnecessaryTypeCheck=warning
 org.eclipse.jdt.core.compiler.problem.unqualifiedFieldAccess=ignore
 org.eclipse.jdt.core.compiler.problem.unusedDeclaredThrownException=ignore
 org.eclipse.jdt.core.compiler.problem.unusedDeclaredThrownExceptionExemptExceptionAndThrowable=enabled
