@@ -42,7 +42,7 @@ public class CPARun implements IWorkbenchWindowActionDelegate
 	 */
 	public CPARun ()
 	{
-		
+
 	}
 	private void init()
 	{
@@ -75,7 +75,7 @@ public class CPARun implements IWorkbenchWindowActionDelegate
 	/**
 	 * The action has been activated. The argument of the method represents the
 	 * 'real' action sitting in the workbench UI.
-	 * 
+	 *
 	 * @see IWorkbenchWindowActionDelegate#run
 	 */
 	public void run (IAction action)
@@ -92,7 +92,7 @@ public class CPARun implements IWorkbenchWindowActionDelegate
 		MessageConsole myConsole = findConsole("CPACHECKER");
 		CPACheckerLogger.log(CustomLogLevel.INFO, "Run #: " + numberOfRuns);
 		CPACheckerLogger.log(CustomLogLevel.INFO, "Program Started");
-		
+
 		MessageDialog.openInformation (window.getShell (), "CPAPlugin Plug-in", "Launching CPAChecker Eclipse Plugin");
 
 		try
@@ -155,16 +155,16 @@ public class CPARun implements IWorkbenchWindowActionDelegate
 			{
 				e.printStackTrace ();
 				e.getMessage ();
-				
+
 				MessageDialog.openInformation (window.getShell (), "CPAPlugin Plug-in", "Eclipse had trouble parsing C");
 				return;
 			}
-			
+
 			//Now grab its attention and display
 		    String id = IConsoleConstants.ID_CONSOLE_VIEW;
 		    IConsoleView view = (IConsoleView) workbenchPage.showView(id);
 		    view.display(myConsole);
-		    
+
 		    //Now run analysis
 			CPAMain.doRunAnalysis(ast);
 		}
@@ -179,7 +179,7 @@ public class CPARun implements IWorkbenchWindowActionDelegate
 	 * Selection in the workbench has been changed. We can change the state of
 	 * the 'real' action here if we want, but this can only happen after the
 	 * delegate has been created.
-	 * 
+	 *
 	 * @see IWorkbenchWindowActionDelegate#selectionChanged
 	 */
 	public void selectionChanged (IAction action, ISelection selection)
@@ -189,7 +189,7 @@ public class CPARun implements IWorkbenchWindowActionDelegate
 	/**
 	 * We can use this method to dispose of any system resources we previously
 	 * allocated.
-	 * 
+	 *
 	 * @see IWorkbenchWindowActionDelegate#dispose
 	 */
 	public void dispose ()
@@ -199,7 +199,7 @@ public class CPARun implements IWorkbenchWindowActionDelegate
 	/**
 	 * We will cache window object in order to be able to provide parent shell
 	 * for the message dialog.
-	 * 
+	 *
 	 * @see IWorkbenchWindowActionDelegate#init
 	 */
 	public void init (IWorkbenchWindow window)

@@ -8,14 +8,14 @@ import cpa.common.interfaces.StopOperator;
 import exceptions.CPAException;
 
 public class OctStopJoin implements StopOperator{
-	
+
 private OctDomain octDomain;
-    
+
     public OctStopJoin (OctDomain octDomain)
     {
         this.octDomain = octDomain;
     }
-    
+
     public AbstractDomain getAbstractDomain ()
     {
         return octDomain;

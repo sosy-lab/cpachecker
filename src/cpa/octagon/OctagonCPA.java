@@ -49,7 +49,7 @@ public class OctagonCPA implements ConfigurableProgramAnalysis{
     {
         return abstractDomain;
     }
-    
+
     public MergeOperator getMergeOperator ()
     {
         return mergeOperator;

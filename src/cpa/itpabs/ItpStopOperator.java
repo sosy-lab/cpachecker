@@ -33,13 +33,13 @@ public class ItpStopOperator implements StopOperator {
     // cache for checking entailement. Can be disabled
     private boolean entailsUseCache;
     private Map<Pair<SymbolicFormula, SymbolicFormula>, Boolean> entailsCache;
-    
+
     // statistics
     public long coverageCheckTime;
     public int numCoveredStates;
     public int numCoverageChecks;
     public int numCachedCoverageChecks;
-    
+
     public ItpStopOperator(ItpAbstractDomain d, TheoremProver prover) {
         domain = d;
         coverageCheckTime = 0;
@@ -47,16 +47,16 @@ public class ItpStopOperator implements StopOperator {
         numCoverageChecks = 0;
         numCachedCoverageChecks = 0;
         thmProver = prover;
-        
+
         entailsUseCache = CPAMain.cpaConfig.getBooleanValue(
                 "cpas.symbpredabs.mathsat.useCache");
         if (entailsUseCache) {
-            entailsCache = 
+            entailsCache =
                 new HashMap<Pair<SymbolicFormula, SymbolicFormula>, Boolean>();
         }
     }
 
-    
+
     public AbstractDomain getAbstractDomain() {
         return domain;
     }
@@ -85,37 +85,37 @@ public class ItpStopOperator implements StopOperator {
         coverageCheckTime += end - start;
         return res;
     }
-    
-    public boolean stopPriv(AbstractElement element, 
+
+    public boolean stopPriv(AbstractElement element,
                             AbstractElement reachedElement)
             throws CPAException {
 
         ItpAbstractElement e1 = (ItpAbstractElement)element;
         ItpAbstractElement e2 =
             (ItpAbstractElement)reachedElement;
-        
+
         if (e1.getLocation().equals(e2.getLocation()) &&
                 e2.getId() < e1.getId()) {
-            LazyLogger.log(LazyLogger.DEBUG_1, 
+            LazyLogger.log(LazyLogger.DEBUG_1,
                     "Checking Coverage of element: ", element);
-            
+
             if (!e1.sameContext(e2)) {
                 LazyLogger.log(LazyLogger.DEBUG_1,
                                "NO, not covered: context differs");
                 return false;
             }
-            
+
             assert(e1.getAbstraction() != null);
             assert(e2.getAbstraction() != null);
 
             ItpCPA cpa = domain.getCPA();
-            
+
             ++numCoverageChecks;
             SymbolicFormulaManager mgr = cpa.getFormulaManager();
             int res = -1;
             boolean ok;
-            
-            Pair<SymbolicFormula, SymbolicFormula> key = null;            
+
+            Pair<SymbolicFormula, SymbolicFormula> key = null;
             if (entailsUseCache) {
                 key = new Pair<SymbolicFormula, SymbolicFormula>(
                         e1.getAbstraction(), e2.getAbstraction());
@@ -126,7 +126,7 @@ public class ItpStopOperator implements StopOperator {
             }
             if (res != -1) {
                 ok = (res == 1);
-            } else {            
+            } else {
                 ok = mgr.entails(e1.getAbstraction(), e2.getAbstraction(),
                                  thmProver);
                 if (entailsUseCache) {
@@ -134,7 +134,7 @@ public class ItpStopOperator implements StopOperator {
                     entailsCache.put(key, ok);
                 }
             }
-            
+
             if (ok) {
                 ++numCoveredStates;
                 LazyLogger.log(LazyLogger.DEBUG_1,
@@ -144,7 +144,7 @@ public class ItpStopOperator implements StopOperator {
                 LazyLogger.log(LazyLogger.DEBUG_1,
                         "Abstraction for ", e2, ": ", e2.getAbstraction());
                 cpa.setCoveredBy(e1, e2);
-                ItpTransferRelation trans = 
+                ItpTransferRelation trans =
                     (ItpTransferRelation)cpa.getTransferRelation();
                 trans.addToProcess(cpa.removeDescendantsFromCovering(e1));
             } else {

@@ -11,6 +11,6 @@ import cfa.objectmodel.CFAFunctionDefinitionNode;
  * @author alb
  */
 public interface DOTBuilderInterface {
-    public void generateDOT(Collection<CFAFunctionDefinitionNode> cfasMapList, 
+    public void generateDOT(Collection<CFAFunctionDefinitionNode> cfasMapList,
             CFAFunctionDefinitionNode cfa, String fileName) throws IOException;
 }

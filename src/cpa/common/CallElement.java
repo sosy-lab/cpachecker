@@ -55,7 +55,7 @@ public class CallElement {
 		if(!otherCallElement.functionName.equals(otherCallElement.functionName)){
 			return false;
 		}
-		
+
 		if(otherCallElement.callNode.getNodeNumber() != this.callNode.getNodeNumber()){
 			return false;
 		}
@@ -63,9 +63,9 @@ public class CallElement {
 		CompositeElement thisCompElement = this.getState();
 		CompositeElement otherCompElement = otherCallElement.getState();
 
-		assert(thisCompElement.getNumberofElements() == 
+		assert(thisCompElement.getNumberofElements() ==
 			otherCompElement.getNumberofElements());
-		
+
 		for (int idx = 0; idx < thisCompElement.getNumberofElements(); idx++)
 		{
 			AbstractElement element1 = thisCompElement.get (idx);
@@ -74,15 +74,15 @@ public class CallElement {
 			if (!element1.equals (element2))
 				return false;
 		}
-		return true;	
+		return true;
 	}
 
 	public boolean isConsistent(String functionName) {
 		return (functionName.equals(this.functionName));
 	}
-	
+
 	public boolean isConsistent(CFANode node) {
-		return(node.getNodeNumber() == 
+		return(node.getNodeNumber() ==
 			this.getCallNode().getLeavingSummaryEdge().getSuccessor().getNodeNumber());
 	}
 

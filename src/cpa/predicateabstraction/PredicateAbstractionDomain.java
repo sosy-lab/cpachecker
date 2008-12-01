@@ -21,14 +21,14 @@ public class PredicateAbstractionDomain implements AbstractDomain{
             super (null, true);
         }
     }
-    
+
     private static class PredicateAbstractionTopElement implements TopElement
     {
     	public PredicateAbstractionTopElement ()
         {
         }
     }
-    
+
     private static class PredicateAbstractionPartialOrder implements PartialOrder
     {
     	// returns true if element1 < element2 on lattice
@@ -36,7 +36,7 @@ public class PredicateAbstractionDomain implements AbstractDomain{
         {
         	PredicateAbstractionElement predicateAbstractionElement1 = (PredicateAbstractionElement) element1;
         	PredicateAbstractionElement predicateAbstractionElement2 = (PredicateAbstractionElement) element2;
-            
+
         	ThreeValuedBoolean tbv = ThreeValuedBoolean.DONTKNOW;
 			try {
 				tbv = MathSatWrapper.implies(predicateAbstractionElement1.getRegion(), predicateAbstractionElement2.getRegion());
@@ -52,7 +52,7 @@ public class PredicateAbstractionDomain implements AbstractDomain{
             }
         }
     }
-    
+
     private static class PredicateAbstractionJoinOperator implements JoinOperator
     {
         public AbstractElement join (AbstractElement element1, AbstractElement element2)
@@ -60,13 +60,13 @@ public class PredicateAbstractionDomain implements AbstractDomain{
             PredicateAbstractionElement predAbstElement1 = (PredicateAbstractionElement) element1;
             PredicateAbstractionElement predAbstElement2 = (PredicateAbstractionElement) element2;
 
-            if(predAbstElement1.getPredicateList().size() != 
+            if(predAbstElement1.getPredicateList().size() !=
             	predAbstElement2.getPredicateList().size()){
             	// TODO handle this case
             }
-            
+
             PredicateAbstractionElement joined = new PredicateAbstractionElement(predAbstElement1.getPredicateList(), false);
-            
+
             for(Predicate pred1:predAbstElement1.getPredicateList().getPredicates()){
             	Predicate pred2 = predAbstElement2.getPredicateList().getPredicate(pred1);
             	Predicate joinedPred = joined.getPredicateList().getPredicate(pred1);
@@ -80,22 +80,22 @@ public class PredicateAbstractionDomain implements AbstractDomain{
             return joined;
         }
     }
-    
+
     private final static BottomElement bottomElement = new PredicateAbstractionBottomElement ();
     private final static TopElement topElement = new PredicateAbstractionTopElement ();
     private final static PartialOrder partialOrder = new PredicateAbstractionPartialOrder ();
     private final static JoinOperator joinOperator = new PredicateAbstractionJoinOperator ();
-       
+
     public PredicateAbstractionDomain ()
     {
 
     }
-    
+
     public BottomElement getBottomElement ()
     {
         return bottomElement;
     }
-    
+
 	public boolean isBottomElement(AbstractElement element) {
 
 		PredicateAbstractionElement predAbsElem = (PredicateAbstractionElement) element;
@@ -106,7 +106,7 @@ public class PredicateAbstractionDomain implements AbstractDomain{
 
 		return false;
 	}
-    
+
     public TopElement getTopElement ()
     {
         return topElement;

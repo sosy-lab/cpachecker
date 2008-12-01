@@ -3,7 +3,7 @@ package exceptions;
 import exceptions.TransferRelationException;
 
 public class SymbPredAbstTransferException extends TransferRelationException{
-	
+
 	private static final long serialVersionUID = 457;
 
 	public SymbPredAbstTransferException(){

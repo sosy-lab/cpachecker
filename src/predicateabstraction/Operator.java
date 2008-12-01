@@ -23,7 +23,7 @@ public enum Operator {
 	}
 
 	public static Operator convertToOperator(String s){
-		
+
 		if(s.compareTo("=") == 0){
 			return equals;
 		}

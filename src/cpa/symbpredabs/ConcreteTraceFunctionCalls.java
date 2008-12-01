@@ -5,18 +5,18 @@ import java.util.Vector;
 
 public class ConcreteTraceFunctionCalls implements ConcreteTrace {
     private Vector<String> functionNames;
-    
+
     public ConcreteTraceFunctionCalls() {
         functionNames = new Vector<String>();
     }
-    
+
     public void add(String fn) {
-        if (functionNames.isEmpty() || 
+        if (functionNames.isEmpty() ||
                 !functionNames.lastElement().equals(fn)) {
             functionNames.add(fn);
         }
     }
-    
+
     @Override
     public String toString() {
         StringBuffer buf = new StringBuffer();

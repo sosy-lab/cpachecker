@@ -1,5 +1,5 @@
 /**
- * 
+ *
  */
 package cpa.pointsto;
 
@@ -23,42 +23,42 @@ public class PointsToRelation {
 	 * TOP is not sensitive to variable names
 	 */
 	private boolean pointsToUndef;
-	
+
 	public PointsToRelation (IASTDeclarator variable) {
 		this.variable = variable;
 		pointsTo = new HashSet<String>();
 		pointsToUndef = true;
 	}
-	
+
 	public IASTDeclarator getVariable() {
 		return variable;
 	}
-	
+
 	public void pointsTo (String pointsTo) {
 		this.pointsTo.clear();
 		pointsToUndef = false;
 		addPointsTo(pointsTo);
 	}
-	
+
 	public void pointsToNull () {
 		this.pointsTo.clear();
 		pointsToUndef = false;
 		addPointsToNull();
 	}
-	
+
 	public void pointsToUndef () {
 		this.pointsTo.clear();
 		pointsToUndef = true;
 	}
-	
+
 	public void addPointsTo (String pointsTo) {
 		if (!pointsToUndef) this.pointsTo.add(pointsTo);
 	}
-	
+
 	public void addPointsToNull () {
 		if (!pointsToUndef) this.pointsTo.add("null");
 	}
-	
+
 	public void updateAll (String update) {
 		if (pointsToUndef) return;
 		Iterator<String> iter = pointsTo.iterator();
@@ -71,12 +71,12 @@ public class PointsToRelation {
 			}
 		}
 	}
-	
+
 	public boolean subsetOf (final PointsToRelation other) {
 		if (!other.variable.equals(variable)) return false;
 		return other.pointsToUndef || other.pointsTo.containsAll(pointsTo);
 	}
-	
+
 	public void join (final PointsToRelation other) {
 		assert (other.variable.equals(variable));
 		pointsToUndef |= other.pointsToUndef;
@@ -86,7 +86,7 @@ public class PointsToRelation {
 			pointsTo.addAll(other.pointsTo);
 		}
 	}
-	
+
 	@Override
 	public PointsToRelation clone() {
 		PointsToRelation result = new PointsToRelation(variable);
@@ -96,7 +96,7 @@ public class PointsToRelation {
 		}
 		return result;
 	}
-	
+
 	@Override
 	public String toString () {
 

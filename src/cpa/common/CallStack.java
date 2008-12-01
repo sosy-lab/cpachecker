@@ -7,13 +7,13 @@ import cpa.common.CallElement;
 import cpa.common.CallStack;
 
 public class CallStack {
-	
+
 	private Stack<CallElement> stack;
-	
+
 	public CallStack(){
 		stack = new Stack<CallElement>();
 	}
-	
+
 	public CallStack(CallStack otherCallStack){
 		stack = otherCallStack.stack;
 	}
@@ -29,15 +29,15 @@ public class CallStack {
 	public CallElement push(CallElement item){
 		return stack.push(item);
 	}
-	
+
 	public CallElement pop(){
 		return stack.pop();
 	}
-	
+
 	public int getSize(){
 		return stack.size();
 	}
-	
+
 	@Override
 	public CallStack clone(){
 		CallStack ret = new CallStack();
@@ -46,7 +46,7 @@ public class CallStack {
 		}
 		return ret;
 	}
-	
+
 	@Override
 	public boolean equals(Object other){
 		CallStack otherCs = (CallStack) other;
@@ -68,7 +68,7 @@ public class CallStack {
 	public CallElement peek() {
 		return stack.peek();
 	}
-	
+
 	public CallElement getSecondTopElement(){
 		assert(getStack().size() >= 2);
 		return stack.get(stack.size()-2);

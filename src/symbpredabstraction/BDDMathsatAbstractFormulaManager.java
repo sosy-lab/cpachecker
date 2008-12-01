@@ -14,7 +14,7 @@ import logging.LazyLogger;
 import mathsat.AllSatModelCallback;
 
 public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
-    
+
     /**
      * callback used to build the predicate abstraction of a formula
      * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
@@ -23,19 +23,19 @@ public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
         private long msatEnv;
         private long absEnv;
         private int bdd;
-        
+
         public AllSatCallback(int bdd, long msatEnv, long absEnv) {
             this.bdd = bdd;
             this.msatEnv = msatEnv;
             this.absEnv = absEnv;
         }
-        
+
         public int getBDD() { return bdd; }
 
-        
+
         public void callback(long[] model) {
             // the abstraction is created simply by taking the disjunction
-            // of all the models found by msat_all_sat, and storing them 
+            // of all the models found by msat_all_sat, and storing them
             // in a BDD
             // first, let's create the BDD corresponding to the model
             int m = bddManager.getOne();
@@ -45,7 +45,7 @@ public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
                 int v;
                 if (mathsat.api.msat_term_is_not(t) != 0) {
                     t = mathsat.api.msat_term_get_arg(t, 0);
-                    assert(msatVarToBddPredicate.containsKey(t));                    
+                    assert(msatVarToBddPredicate.containsKey(t));
                     v = msatVarToBddPredicate.get(t);
                     v = bddManager.not(v);
                 } else {
@@ -55,7 +55,7 @@ public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
             }
             // now, add the model to the bdd
             bdd = bddManager.or(bdd, m);
-            
+
 //            StringBuffer modelStrBuf = new StringBuffer();
 //            for (int i = 0; i < model.length; ++i) {
 //                modelStrBuf.append(mathsat.api.msat_term_repr(model[i]));
@@ -63,7 +63,7 @@ public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
 //            }
 //            CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel,
 //                    "GOT MODEL: " + modelStrBuf.toString());
-            
+
         }
     }
 
@@ -76,11 +76,11 @@ public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
     private Map<Long, Integer> msatVarToBddPredicate;
     // and MathSAT atom -> BDD index
     private Map<Long, Integer> msatAtomToBddPredicate;
-    
+
     private boolean entailsUseCache;
     private Map<Pair<AbstractFormula, AbstractFormula>, Boolean> entailsCache;
-    
-    
+
+
     public BDDMathsatAbstractFormulaManager() {
         //bddManager = new JDD();
         bddManager = new JavaBDD();
@@ -109,12 +109,12 @@ public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
 
             LazyLogger.log(CustomLogLevel.SpecificCPALevel,
                            "CREATED PREDICATE: bddVar: ",
-                           Integer.toString(bddManager.getVar(bddVar)),  
-                           ", msatAtom: ", 
+                           Integer.toString(bddManager.getVar(bddVar)),
+                           ", msatAtom: ",
                            new MathsatSymbolicFormula(msatAtom));
-            
+
             int var = bddManager.getVar(bddVar);
-            bddPredicateToMsatAtom.put(var, 
+            bddPredicateToMsatAtom.put(var,
                     new Pair<Long, Long>(msatVar, msatAtom));
             msatVarToBddPredicate.put(msatVar, bddVar);
             msatAtomToBddPredicate.put(msatAtom, bddVar);
@@ -122,9 +122,9 @@ public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
         }
     }
 
-    
+
     public boolean entails(AbstractFormula f1, AbstractFormula f2) {
-        // check entailment using BDDs: create the BDD representing 
+        // check entailment using BDDs: create the BDD representing
         // the implication, and check that it is the TRUE formula
         Pair<AbstractFormula, AbstractFormula> key = null;
         if (entailsUseCache) {
@@ -146,7 +146,7 @@ public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
     // TODO check later
     public boolean equals(AbstractFormula f1, AbstractFormula f2) {
         // Pair<AbstractFormula, AbstractFormula> key = null;
-        // TODO Use another cache 
+        // TODO Use another cache
 //        if (entailsUseCache) {
 //            key = new Pair<AbstractFormula, AbstractFormula>(f1, f2);
 //            if (entailsCache.containsKey(key)) {
@@ -158,15 +158,15 @@ public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
         int imp2 = bddManager.imp(((BDDAbstractFormula)f2).getBDD(),
                                  ((BDDAbstractFormula)f1).getBDD());
         boolean yes1 = (imp == bddManager.getOne());
-        boolean yes2 = (imp2 == bddManager.getOne()); 
-        // TODO 
+        boolean yes2 = (imp2 == bddManager.getOne());
+        // TODO
 //        if (entailsUseCache) {
 //            assert(key != null);
 //            entailsCache.put(key, yes);
 //        }
         return yes1 & yes2;
     }
-    
+
     public void collectVarNames(long term, Set<String> vars) {
         Stack<Long> toProcess = new Stack<Long>();
         toProcess.push(term);
@@ -182,13 +182,13 @@ public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
             }
         }
     }
-    
+
     // return value is:
     // [mathsat term for \bigwedge_preds (var <-> def),
     //  list of important terms (the names of the preds),
     //   list of variables occurring in the definitions of the preds]
     protected Object[] buildPredList(
-    		MathsatSymbPredAbsFormulaManager mmgr, 
+    		MathsatSymbPredAbsFormulaManager mmgr,
             Collection<Predicate> predicates) {
         long msatEnv = mmgr.getMsatEnv();
         long[] important = new long[predicates.size()];
@@ -212,14 +212,14 @@ public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
         return new Object[]{preddef, important, allvars};
     }
 
-    public Pair<MathsatSymbolicFormula, MathsatSymbolicFormula> 
+    public Pair<MathsatSymbolicFormula, MathsatSymbolicFormula>
       getPredicateNameAndDef(BDDPredicate p) {
         int idx = p.getBDD();
         int bddvar = bddManager.getVar(idx);
         long var = bddPredicateToMsatAtom.get(bddvar).getFirst();
         long def = bddPredicateToMsatAtom.get(bddvar).getSecond();
         return new Pair<MathsatSymbolicFormula, MathsatSymbolicFormula>(
-                new MathsatSymbolicFormula(var), 
+                new MathsatSymbolicFormula(var),
                 new MathsatSymbolicFormula(def));
     }
 
@@ -235,17 +235,17 @@ public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
             SymbolicFormula f, SSAMap ssa, Collection<Predicate> predicates) {
     	MathsatSymbPredAbsFormulaManager mmgr = (MathsatSymbPredAbsFormulaManager)mgr;
         MathsatSymbolicFormula mf = (MathsatSymbolicFormula)f;
-        
+
         long absEnv = mathsat.api.msat_create_env();
-        
+
         //mathsat.api.msat_set_verbosity(10);
-        
+
         long msatEnv = mmgr.getMsatEnv();
-        
-        long term = mathsat.api.msat_make_copy_from(absEnv, mf.getTerm(), 
+
+        long term = mathsat.api.msat_make_copy_from(absEnv, mf.getTerm(),
                                                     msatEnv);
         assert(!mathsat.api.MSAT_ERROR_TERM(term));
-        
+
         // build the definition of the predicates, and instantiate them
         Object[] predinfo = buildPredList(mmgr, predicates);
         long preddef = (Long)predinfo[0];
@@ -253,9 +253,9 @@ public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
         Collection<String> predvars = (Collection<String>)predinfo[2];
         for (int i = 0; i < important.length; ++i) {
             important[i] = mathsat.api.msat_make_copy_from(
-                    absEnv, important[i], msatEnv); 
+                    absEnv, important[i], msatEnv);
         }
-        // update the SSA map, by instantiating all the uninstantiated 
+        // update the SSA map, by instantiating all the uninstantiated
         // variables that occur in the predicates definitions (at index 1)
         for (String var : predvars) {
             if (ssa.getIndex(var) < 0) {
@@ -265,7 +265,7 @@ public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
         // instantiate the definitions with the right SSA
         MathsatSymbolicFormula inst = (MathsatSymbolicFormula)mmgr.instantiate(
                 new MathsatSymbolicFormula(preddef), ssa);
-        preddef = mathsat.api.msat_make_copy_from(absEnv, inst.getTerm(), 
+        preddef = mathsat.api.msat_make_copy_from(absEnv, inst.getTerm(),
                                                   msatEnv);
         // build the formula and send it to the absEnv
         long formula = mathsat.api.msat_make_and(absEnv, term, preddef);
@@ -276,7 +276,7 @@ public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
         } else {
             mathsat.api.msat_add_theory(absEnv, mathsat.api.MSAT_LRA);
         }
-        mathsat.api.msat_set_theory_combination(absEnv, 
+        mathsat.api.msat_set_theory_combination(absEnv,
                                                 mathsat.api.MSAT_COMB_DTC);
         mathsat.api.msat_assert_formula(absEnv, formula);
 
@@ -284,9 +284,9 @@ public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
         AllSatCallback func = new AllSatCallback(abs, msatEnv, absEnv);
         int numModels = mathsat.api.msat_all_sat(absEnv, important, func);
         assert(numModels != -1);
-        
+
         mathsat.api.msat_destroy_env(absEnv);
-        
+
         if (numModels == -2) {
             abs = bddManager.getOne();
             return new BDDAbstractFormula(abs);
@@ -294,7 +294,7 @@ public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
             return new BDDAbstractFormula(func.getBDD());
         }
     }
-    
+
 
     /**
      * Given an abstract formula (which is a BDD over the predicates), build
@@ -307,13 +307,13 @@ public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
         BDDAbstractFormula bddaf = (BDDAbstractFormula)af;
         int bdd = bddaf.getBDD();
         long msatEnv = mmgr.getMsatEnv();
-        
+
         Map<Integer, Long> cache = new HashMap<Integer, Long>();
         Stack<Integer> toProcess = new Stack<Integer>();
-        
+
         cache.put(bddManager.getOne(), mathsat.api.msat_make_true(msatEnv));
         cache.put(bddManager.getZero(), mathsat.api.msat_make_false(msatEnv));
-        
+
         toProcess.push(new Integer(bdd));
         while (!toProcess.empty()) {
             Integer n = toProcess.peek();
@@ -344,26 +344,26 @@ public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
 
                 toProcess.pop();
                 Integer var = bddManager.getVar(n);
-                
+
                 assert(bddPredicateToMsatAtom.containsKey(var));
-                
+
                 long matom = bddPredicateToMsatAtom.get(var).getSecond();
                 long ite = mathsat.api.msat_make_ite(msatEnv, matom, m1, m2);
                 cache.put(n, ite);
             }
         }
-        
+
         assert(cache.containsKey(bdd));
-        
+
         return new MathsatSymbolicFormula(cache.get(bdd));
     }
 
-    
+
     public boolean isFalse(AbstractFormula f) {
         return ((BDDAbstractFormula)f).getBDD() == bddManager.getZero();
     }
 
-    
+
     public AbstractFormula makeTrue() {
         int t = bddManager.getOne();
         return new BDDAbstractFormula(t);

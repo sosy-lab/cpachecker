@@ -30,7 +30,7 @@ public class LocationTransferRelation implements TransferRelation
     {
         LocationElement inputElement = (LocationElement) element;
         CFANode node = inputElement.getLocationNode ();
-        
+
         int numLeavingEdges = node.getNumLeavingEdges ();
         for (int edgeIdx = 0; edgeIdx < numLeavingEdges; edgeIdx++)
         {
@@ -40,7 +40,7 @@ public class LocationTransferRelation implements TransferRelation
                 return new LocationElement (testEdge.getSuccessor ());
             }
         }
-        
+
         if (node.getLeavingSummaryEdge() != null){
         	CallToReturnEdge summaryEdge = node.getLeavingSummaryEdge();
         	return new LocationElement (summaryEdge.getSuccessor());

@@ -27,7 +27,7 @@ public class LocationCPA implements ConfigurableProgramAnalysis{
         }
         StopOperator locationStopOp = new LocationStopSep (locationDomain);
         TransferRelation locationTransferRelation = new LocationTransferRelation (locationDomain);
-		
+
 		this.abstractDomain = locationDomain;
 		this.mergeOperator = locationMergeOp;
 		this.stopOperator = locationStopOp;
@@ -38,7 +38,7 @@ public class LocationCPA implements ConfigurableProgramAnalysis{
     {
         return abstractDomain;
     }
-    
+
     public MergeOperator getMergeOperator ()
     {
         return mergeOperator;

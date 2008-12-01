@@ -14,23 +14,23 @@ import cpa.itpabs.ItpAbstractDomain;
 public class ItpMergeOperator implements MergeOperator {
 
     private ItpAbstractDomain domain;
-    
+
     public ItpMergeOperator(ItpAbstractDomain d) {
         domain = d;
     }
-    
-    
+
+
     public AbstractDomain getAbstractDomain() {
         return domain;
     }
 
-    
+
     public AbstractElement merge(AbstractElement element1,
                                  AbstractElement element2) {
-        LazyLogger.log(LazyLogger.DEBUG_4, 
-                "Trying to merge elements: ", element1, 
+        LazyLogger.log(LazyLogger.DEBUG_4,
+                "Trying to merge elements: ", element1,
                 " and: ", element2);
-        
+
         return element2;
     }
 

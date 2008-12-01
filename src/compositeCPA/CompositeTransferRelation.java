@@ -62,7 +62,7 @@ public class CompositeTransferRelation implements TransferRelation{
 			updatedCallStack.push(ce);
 		}
 
-		// handling the return from a function		
+		// handling the return from a function
 		else if(cfaEdge.getEdgeType() == CFAEdgeType.ReturnEdge)
 		{
 			CallElement topCallElement = compositeElement.getCallStack().peek();
@@ -89,7 +89,7 @@ public class CompositeTransferRelation implements TransferRelation{
 				summaryEdge.setAbstractElement(compElemBeforeCall);
 			}
 		}
-		
+
 		for (int idx = 0; idx < transferRelations.size (); idx++)
 		{
 			TransferRelation transfer = transferRelations.get (idx);
@@ -97,11 +97,11 @@ public class CompositeTransferRelation implements TransferRelation{
 			AbstractElement successor = null;
 			subElement = inputElements.get (idx);
 			// handling a call edge
-			
+
 			successor = transfer.getAbstractSuccessor (subElement, cfaEdge);
 			resultingElements.add (successor);
 		}
-		
+
 		CompositeElement successorState = new CompositeElement (resultingElements, updatedCallStack);
 		return successorState;
 	}
@@ -118,7 +118,7 @@ public class CompositeTransferRelation implements TransferRelation{
 
 		AbstractElement elem = abstractElements.get(0);
 		if (elem instanceof AbstractElementWithLocation) {
-			AbstractElementWithLocation wl = 
+			AbstractElementWithLocation wl =
 				(AbstractElementWithLocation)elem;
 			node = wl.getLocationNode();
 		} else {

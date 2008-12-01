@@ -21,27 +21,27 @@ public class DominatorCPA implements ConfigurableProgramAnalysis {
 	private DominatorMerge mergeOperator;
 	private DominatorStop stopOperator;
 	private DominatorTransferRelation transferRelation;
-	
+
 	private ConfigurableProgramAnalysis cpa;
-	
+
 	public DominatorCPA(ConfigurableProgramAnalysis cpa) throws CPAException {
 		this.cpa = cpa;
-		
+
 		this.abstractDomain = new DominatorDomain(this.cpa);
 		this.mergeOperator = new DominatorMerge(this.abstractDomain);
 		this.stopOperator = new DominatorStop(this.abstractDomain);
 		this.transferRelation = new DominatorTransferRelation(this.abstractDomain, this.cpa);
 	}
-	
+
 	public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
 		AbstractElement dominatedInitialElement_tmp = this.cpa.getInitialElement(node);
-		
+
 		AbstractElementWithLocation dominatedInitialElement = (AbstractElementWithLocation)dominatedInitialElement_tmp;
-		
+
 		DominatorElement initialElement = new DominatorElement(dominatedInitialElement);
-			
+
 		initialElement.update(dominatedInitialElement);
-		
+
 		return initialElement;
 	}
 

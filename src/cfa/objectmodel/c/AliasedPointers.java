@@ -9,11 +9,11 @@ public class AliasedPointers {
 		var1 = s1;
 		var2 = s2;
 	}
-	
+
 	public String getFirstVar(){
 		return var1;
 	}
-	
+
 	public String getSecondVar(){
 		return var2;
 	}

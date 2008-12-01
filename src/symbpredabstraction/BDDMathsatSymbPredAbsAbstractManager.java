@@ -53,7 +53,7 @@ public class BDDMathsatSymbPredAbsAbstractManager extends
 	private Stats stats;
 
 	// TODO later
-//	private Map<Pair<CFANode, CFANode>, PathFormula> 
+//	private Map<Pair<CFANode, CFANode>, PathFormula>
 //	abstractionCache;
 
 	//private BDDMathsatSummaryAbstractionPrinter absPrinter = null;
@@ -63,7 +63,7 @@ public class BDDMathsatSymbPredAbsAbstractManager extends
 		super();
 		stats = new Stats();
 		// TODO
-//		abstractionCache = 
+//		abstractionCache =
 //			new HashMap<Pair<CFANode, CFANode>, PathFormula>();
 		// dumpHardAbstractions = CPAMain.cpaConfig.getBooleanValue(
 		//    "cpas.symbpredabs.mathsat.dumpHardAbstractionQueries");
@@ -75,13 +75,13 @@ public class BDDMathsatSymbPredAbsAbstractManager extends
 	// "succ". In the purely explicit case, this would be just the operation
 	// attached to the edge connecting "e" and "succ", but in our case this is
 	// actually a loop-free subgraph of the original CFA
-	// TODO we don't need this 
+	// TODO we don't need this
 //	private Pair<SymbolicFormula, SSAMap> buildConcreteFormula(
-//			MathsatSummaryFormulaManager mgr, 
+//			MathsatSummaryFormulaManager mgr,
 //			SummaryAbstractElement e, SummaryAbstractElement succ,
 //			boolean replaceAssignments) {
 //		// first, get all the paths in e that lead to succ
-//		Collection<Pair<SymbolicFormula, SSAMap>> relevantPaths = 
+//		Collection<Pair<SymbolicFormula, SSAMap>> relevantPaths =
 //			new Vector<Pair<SymbolicFormula, SSAMap>>();
 //		for (CFANode leaf : e.getLeaves()) {
 //			for (int i = 0; i < leaf.getNumLeavingEdges(); ++i) {
@@ -92,20 +92,20 @@ public class BDDMathsatSymbPredAbsAbstractManager extends
 //					relevantPaths.add(e.getPathFormula(leaf));
 //
 //					LazyLogger.log(LazyLogger.DEBUG_1,
-//							"FOUND RELEVANT PATH, leaf: ", 
+//							"FOUND RELEVANT PATH, leaf: ",
 //							leaf.getNodeNumber());
 //					LazyLogger.log(LazyLogger.DEBUG_3,
-//							"Formula: ", 
+//							"Formula: ",
 //							e.getPathFormula(leaf).getFirst());
 //				}
 //			}
 //		}
-//		// now, we want to create a new formula that is the OR of all the 
+//		// now, we want to create a new formula that is the OR of all the
 //		// possible paths. So we merge the SSA maps and OR the formulas
 //		SSAMap ssa = new SSAMap();
 //		SymbolicFormula f = mgr.makeFalse();
 //		for (Pair<SymbolicFormula, SSAMap> p : relevantPaths) {
-//			Pair<Pair<SymbolicFormula, SymbolicFormula>, SSAMap> mp = 
+//			Pair<Pair<SymbolicFormula, SymbolicFormula>, SSAMap> mp =
 //				mgr.mergeSSAMaps(ssa, p.getSecond(), false);
 //			SymbolicFormula curf = p.getFirst();
 //			if (replaceAssignments) {
@@ -123,7 +123,7 @@ public class BDDMathsatSymbPredAbsAbstractManager extends
 	// computes the abstract post from "e" to "succ"
 	@Override
 	public AbstractFormula buildAbstraction(SymbolicFormulaManager mgr,
-			SymbPredAbsAbstractElement e, SymbPredAbsAbstractElement succ, 
+			SymbPredAbsAbstractElement e, SymbPredAbsAbstractElement succ,
 			PredicateMap predicates) {
 		stats.numCallsAbstraction++;
 		return buildBooleanAbstraction(mgr, e, succ, predicates);
@@ -131,7 +131,7 @@ public class BDDMathsatSymbPredAbsAbstractManager extends
 
 	@SuppressWarnings("unchecked")
 	private AbstractFormula buildBooleanAbstraction(SymbolicFormulaManager mgr,
-			SymbPredAbsAbstractElement e, SymbPredAbsAbstractElement succ, 
+			SymbPredAbsAbstractElement e, SymbPredAbsAbstractElement succ,
 			PredicateMap predicates) {
 		// A SummaryFormulaManager for MathSAT formulas
 		MathsatSymbPredAbsFormulaManager mmgr = (MathsatSymbPredAbsFormulaManager)mgr;
@@ -140,7 +140,7 @@ public class BDDMathsatSymbPredAbsAbstractManager extends
 
 		// get the environment from the manager - this is unique, it is the
 		// environment in which all terms are created
-		long msatEnv = mmgr.getMsatEnv();       
+		long msatEnv = mmgr.getMsatEnv();
 		//long absEnv = mathsat.api.msat_create_env();
 		long absEnv = mathsat.api.msat_create_shared_env(msatEnv);
 
@@ -148,31 +148,31 @@ public class BDDMathsatSymbPredAbsAbstractManager extends
 		// this is an abstract formula - specifically it is a bddabstractformula
 		// which is basically an integer which represents it
 		AbstractFormula abs = e.getAbstraction();
-		// create the concrete form of the abstract formula 
+		// create the concrete form of the abstract formula
 		// (abstract formula is the bdd representation)
-		MathsatSymbolicFormula fabs = 
+		MathsatSymbolicFormula fabs =
 			(MathsatSymbolicFormula)mmgr.instantiate(
 					toConcrete(mmgr, abs), null);
 
 		// TODO function call - handle later
 //		if (isFunctionExit(e)) {
-//			// we have to take the context before the function call 
-//			// into account, otherwise we are not building the right 
+//			// we have to take the context before the function call
+//			// into account, otherwise we are not building the right
 //			// abstraction!
 //			if (CPAMain.cpaConfig.getBooleanValue(
 //			"cpas.symbpredabs.refinement.addWellScopedPredicates")) {
-//				// but only if we are adding well-scoped predicates, otherwise 
+//				// but only if we are adding well-scoped predicates, otherwise
 //				// this should not be necessary
 //				AbstractFormula ctx = e.topContextAbstraction();
-//				MathsatSymbolicFormula fctx = 
+//				MathsatSymbolicFormula fctx =
 //					(MathsatSymbolicFormula)mmgr.instantiate(
 //							toConcrete(mmgr, ctx), null);
 //				fabs = (MathsatSymbolicFormula)mmgr.makeAnd(fabs, fctx);
 //
-//				LazyLogger.log(LazyLogger.DEBUG_3, 
+//				LazyLogger.log(LazyLogger.DEBUG_3,
 //						"TAKING CALLING CONTEXT INTO ACCOUNT: ", fctx);
 //			} else {
-//				LazyLogger.log(LazyLogger.DEBUG_3, 
+//				LazyLogger.log(LazyLogger.DEBUG_3,
 //						"NOT TAKING CALLING CONTEXT INTO ACCOUNT,",
 //				"as we are not using well-scoped predicates");
 //			}
@@ -183,10 +183,10 @@ public class BDDMathsatSymbPredAbsAbstractManager extends
 
 		SymbolicFormula f = null;
 		SSAMap ssa = null;
-		
+
 		// TODO later
 		//Pair<CFANode, CFANode> key = new Pair<CFANode, CFANode>(e.getLocationNode(), succ.getLocationNode());
-		
+
 		// TODO enable cache later
 //		if (abstractionCache.containsKey(key)) {
 //			PathFormula pc = abstractionCache.get(key);
@@ -194,7 +194,7 @@ public class BDDMathsatSymbPredAbsAbstractManager extends
 //			ssa = pc.getSsa();
 //		} else {
 //			// take all outgoing edges from e to succ and OR them
-//			Pair<SymbolicFormula, SSAMap> pc = 
+//			Pair<SymbolicFormula, SSAMap> pc =
 //				buildConcreteFormula(mmgr, e, succ, false);
 ////			SymbolicFormula f = pc.getFirst();
 ////			SSAMap ssa = pc.getSecond();
@@ -209,11 +209,11 @@ public class BDDMathsatSymbPredAbsAbstractManager extends
 			PathFormula pf = succ.getInitAbstractionSet();
 			f = pf.getSymbolicFormula();
 			ssa = pf.getSsa();
-			
+
 			PathFormula pc = mmgr.shift(f, absSsa);
 			f = mmgr.replaceAssignments((MathsatSymbolicFormula)pc.getSymbolicFormula());
 			ssa = pc.getSsa();
-			
+
 			// TODO later
 			//abstractionCache.put(key, new PathFormula((MathsatSymbolicFormula)f, ssa));
 //		}
@@ -224,7 +224,7 @@ public class BDDMathsatSymbPredAbsAbstractManager extends
 					(MathsatSymbolicFormula)f);
 			f = mmgr.makeAnd(f, bitwiseAxioms);
 
-			LazyLogger.log(LazyLogger.DEBUG_3, "ADDED BITWISE AXIOMS: ", 
+			LazyLogger.log(LazyLogger.DEBUG_3, "ADDED BITWISE AXIOMS: ",
 					bitwiseAxioms);
 		}
 
@@ -241,10 +241,10 @@ public class BDDMathsatSymbPredAbsAbstractManager extends
 		Collection<String> predvars = (Collection<String>)predinfo[2];
 //		for (int i = 0; i < important.length; ++i) {
 //		important[i] = mathsat.api.msat_make_copy_from(
-//		absEnv, important[i], msatEnv); 
+//		absEnv, important[i], msatEnv);
 //		}
 
-		// update the SSA map, by instantiating all the uninstantiated 
+		// update the SSA map, by instantiating all the uninstantiated
 		// variables that occur in the predicates definitions (at index 1)
 		for (String var : predvars) {
 			if (ssa.getIndex(var) < 0) {
@@ -259,21 +259,21 @@ public class BDDMathsatSymbPredAbsAbstractManager extends
 				importantStrBuf.append(" ");
 			}
 			LazyLogger.log(LazyLogger.DEBUG_1,
-					"IMPORTANT SYMBOLS (", important.length, "): ", 
+					"IMPORTANT SYMBOLS (", important.length, "): ",
 					importantStrBuf);
 		}
 
-		// first, create the new formula corresponding to 
+		// first, create the new formula corresponding to
 		// (f & edges from e to succ)
 		// TODO - at the moment, we assume that all the edges connecting e and
 		// succ have no statement or assertion attached (i.e. they are just
 		// return edges or gotos). This might need to change in the future!!
-		// (So, for now we don't need to to anything...)         
+		// (So, for now we don't need to to anything...)
 
 		// instantiate the definitions with the right SSA
 		MathsatSymbolicFormula inst = (MathsatSymbolicFormula)mmgr.instantiate(
 				new MathsatSymbolicFormula(preddef), ssa);
-//		preddef = mathsat.api.msat_make_copy_from(absEnv, inst.getTerm(), 
+//		preddef = mathsat.api.msat_make_copy_from(absEnv, inst.getTerm(),
 //		msatEnv);
 //		long curstate = mathsat.api.msat_make_copy_from(absEnv, fabs.getTerm(),
 //		msatEnv);
@@ -282,7 +282,7 @@ public class BDDMathsatSymbPredAbsAbstractManager extends
 
 		// the formula is (curstate & term & preddef)
 		// build the formula and send it to the absEnv
-		long formula = mathsat.api.msat_make_and(absEnv, 
+		long formula = mathsat.api.msat_make_and(absEnv,
 				mathsat.api.msat_make_and(absEnv, curstate, term), preddef);
 		mathsat.api.msat_add_theory(absEnv, mathsat.api.MSAT_UF);
 		if (CPAMain.cpaConfig.getBooleanValue(
@@ -293,7 +293,7 @@ public class BDDMathsatSymbPredAbsAbstractManager extends
 		} else {
 			mathsat.api.msat_add_theory(absEnv, mathsat.api.MSAT_LRA);
 		}
-		mathsat.api.msat_set_theory_combination(absEnv, 
+		mathsat.api.msat_set_theory_combination(absEnv,
 				mathsat.api.MSAT_COMB_ACK);
 		int ok = mathsat.api.msat_set_option(absEnv, "toplevelprop", "2");
 		assert(ok == 0);
@@ -303,7 +303,7 @@ public class BDDMathsatSymbPredAbsAbstractManager extends
 				new MathsatSymbolicFormula(formula));
 
 		int absbdd = bddManager.getZero();
-		AllSatCallbackStats func = 
+		AllSatCallbackStats func =
 			new AllSatCallbackStats(absbdd, msatEnv, absEnv);
 		long msatSolveStartTime = System.currentTimeMillis();
 		mathsat.api.msat_assert_formula(absEnv, formula);
@@ -315,17 +315,17 @@ public class BDDMathsatSymbPredAbsAbstractManager extends
 
 		// update statistics
 		long endTime = System.currentTimeMillis();
-		long msatSolveTime = 
+		long msatSolveTime =
 			(msatSolveEndTime - msatSolveStartTime) - func.totTime;
 		long abstractionMsatTime = (endTime - startTime) - func.totTime;
-		stats.abstractionMaxMathsatTime = 
+		stats.abstractionMaxMathsatTime =
 			Math.max(abstractionMsatTime, stats.abstractionMaxMathsatTime);
 		stats.abstractionMaxBddTime =
 			Math.max(func.totTime, stats.abstractionMaxBddTime);
 		stats.abstractionMathsatTime += abstractionMsatTime;
 		stats.abstractionBddTime += func.totTime;
 		stats.abstractionMathsatSolveTime += msatSolveTime;
-		stats.abstractionMaxMathsatSolveTime = 
+		stats.abstractionMaxMathsatSolveTime =
 			Math.max(msatSolveTime, stats.abstractionMaxMathsatSolveTime);
 
 		// TODO later
@@ -337,7 +337,7 @@ public class BDDMathsatSymbPredAbsAbstractManager extends
 //			}
 //			absPrinter.printMsatFormat(curstate, term, preddef, important);
 //			absPrinter.printNusmvFormat(curstate, term, preddef, important);
-//			absPrinter.nextNum();            
+//			absPrinter.nextNum();
 //		}
 
 		if (numModels == -2) {
@@ -351,7 +351,7 @@ public class BDDMathsatSymbPredAbsAbstractManager extends
 	// TODO enable
 //	@Override
 //	public CounterexampleTraceInfo buildCounterexampleTrace(
-//	SummaryFormulaManager mgr, 
+//	SummaryFormulaManager mgr,
 //	Deque<SummaryAbstractElement> abstractTrace) {
 //	assert(abstractTrace.size() > 1);
 
@@ -361,7 +361,7 @@ public class BDDMathsatSymbPredAbsAbstractManager extends
 
 //	// create the DAG formula corresponding to the abstract trace. We create
 //	// n formulas, one per interpolation group
-//	SSAMap ssa = null;        
+//	SSAMap ssa = null;
 //	MathsatSummaryFormulaManager mmgr = (MathsatSummaryFormulaManager)mgr;
 
 //	Vector<SymbolicFormula> f = new Vector<SymbolicFormula>();
@@ -374,7 +374,7 @@ public class BDDMathsatSymbPredAbsAbstractManager extends
 
 //	boolean theoryCombinationNeeded = false;
 
-//	MathsatSymbolicFormula bitwiseAxioms = 
+//	MathsatSymbolicFormula bitwiseAxioms =
 //	(MathsatSymbolicFormula)mmgr.makeTrue();
 
 //	for (int i = 1; i < abstarr.length; ++i) {
@@ -423,7 +423,7 @@ public class BDDMathsatSymbPredAbsAbstractManager extends
 //	LazyLogger.log(LazyLogger.DEBUG_3,
 //	"Checking feasibility of abstract trace");
 
-//	// now f is the DAG formula which is satisfiable iff there is a 
+//	// now f is the DAG formula which is satisfiable iff there is a
 //	// concrete counterexample
 //	//
 //	// create a working environment
@@ -439,7 +439,7 @@ public class BDDMathsatSymbPredAbsAbstractManager extends
 //	mathsat.api.msat_add_theory(env, mathsat.api.MSAT_UF);
 //	mathsat.api.msat_add_theory(env, mathsat.api.MSAT_LRA);
 //	if (theoryCombinationNeeded) {
-//	mathsat.api.msat_set_theory_combination(env, 
+//	mathsat.api.msat_set_theory_combination(env,
 //	mathsat.api.MSAT_COMB_DTC);
 //	} else if (CPAMain.cpaConfig.getBooleanValue(
 //	"cpas.symbpredabs.mathsat.useIntegers")) {
@@ -449,7 +449,7 @@ public class BDDMathsatSymbPredAbsAbstractManager extends
 ////	int ok = mathsat.api.msat_set_option(env, "toplevelprop", "2");
 ////	assert(ok == 0);
 
-//	mathsat.api.msat_init_interpolation(env);        
+//	mathsat.api.msat_init_interpolation(env);
 
 //	// for each term, create an interpolation group
 //	int[] groups = new int[terms.length];
@@ -468,7 +468,7 @@ public class BDDMathsatSymbPredAbsAbstractManager extends
 //	mathsat.api.msat_assert_formula(env, terms[i]);
 
 //	LazyLogger.log(LazyLogger.DEBUG_3,
-//	"Asserting formula: ", 
+//	"Asserting formula: ",
 //	new MathsatSymbolicFormula(terms[i]),
 //	" in group: ", groups[i]);
 
@@ -492,9 +492,9 @@ public class BDDMathsatSymbPredAbsAbstractManager extends
 //	if (res == mathsat.api.MSAT_UNSAT) {
 //	// the counterexample is spurious. Extract the predicates from
 //	// the interpolants
-//	info = new CounterexampleTraceInfo(true); 
+//	info = new CounterexampleTraceInfo(true);
 //	boolean splitItpAtoms = CPAMain.cpaConfig.getBooleanValue(
-//	"cpas.symbpredabs.refinement.splitItpAtoms");            
+//	"cpas.symbpredabs.refinement.splitItpAtoms");
 ////	UpdateablePredicateMap pmap = new UpdateablePredicateMap();
 ////	info.setPredicateMap(pmap);
 //	// how to partition the trace into (A, B) depends on whether
@@ -520,7 +520,7 @@ public class BDDMathsatSymbPredAbsAbstractManager extends
 //	long itp = mathsat.api.msat_get_interpolant(env, groups_of_a);
 //	assert(!mathsat.api.MSAT_ERROR_TERM(itp));
 
-//	if (CPACheckerLogger.getLevel() <= 
+//	if (CPACheckerLogger.getLevel() <=
 //	LazyLogger.DEBUG_3.intValue()) {
 //	StringBuffer buf = new StringBuffer();
 //	for (int g : groups_of_a) {
@@ -535,14 +535,14 @@ public class BDDMathsatSymbPredAbsAbstractManager extends
 
 //	long itpc = mathsat.api.msat_make_copy_from(msatEnv, itp, env);
 //	Collection<SymbolicFormula> atoms = mmgr.extractAtoms(
-//	new MathsatSymbolicFormula(itpc), true, 
+//	new MathsatSymbolicFormula(itpc), true,
 //	splitItpAtoms, false);
 //	Set<Predicate> preds = buildPredicates(env, msatEnv, atoms);
-//	SummaryAbstractElement s1 = 
+//	SummaryAbstractElement s1 =
 //	(SummaryAbstractElement)abstarr[i];
 //	info.addPredicatesForRefinement(s1, preds);
 
-//	// If we are entering or exiting a function, update the stack 
+//	// If we are entering or exiting a function, update the stack
 //	// of entry points
 //	SummaryAbstractElement e = (SummaryAbstractElement)abstarr[i];
 //	if (isFunctionEntry(e)) {
@@ -550,17 +550,17 @@ public class BDDMathsatSymbPredAbsAbstractManager extends
 //	"Pushing entry point, function: ",
 //	e.getLocation().getInnerNode().getFunctionName());
 //	entryPoints.push(i);
-//	} 
+//	}
 //	if (isFunctionExit(e)) {
 //	LazyLogger.log(LazyLogger.DEBUG_3,
 //	"Popping entry point, returning from function: ",
 //	e.getLocation().getInnerNode().getFunctionName());
 //	entryPoints.pop();
 
-////	SummaryAbstractElement s1 = 
+////	SummaryAbstractElement s1 =
 ////	(SummaryAbstractElement)abstarr[i];
 //	//pmap.update((CFANode)s1.getLocation(), preds);
-//	}                
+//	}
 //	}
 //	} else {
 //	// this is a real bug, notify the user
@@ -581,7 +581,7 @@ public class BDDMathsatSymbPredAbsAbstractManager extends
 //	pw.println(msatRepr);
 //	pw.close();
 //	} catch (FileNotFoundException e) {
-//	LazyLogger.log(CustomLogLevel.INFO, 
+//	LazyLogger.log(CustomLogLevel.INFO,
 //	"Failed to save msat Counterexample to file: ",
 //	cexPath);
 //	}
@@ -599,7 +599,7 @@ public class BDDMathsatSymbPredAbsAbstractManager extends
 //	stats.cexAnalysisMaxTime = Math.max(totTime, stats.cexAnalysisMaxTime);
 //	long msatSolveTime = msatSolveTimeEnd - msatSolveTimeStart;
 //	stats.cexAnalysisMathsatTime += msatSolveTime;
-//	stats.cexAnalysisMaxMathsatTime = 
+//	stats.cexAnalysisMaxMathsatTime =
 //	Math.max(msatSolveTime, stats.cexAnalysisMaxMathsatTime);
 
 //	return info;
@@ -608,14 +608,14 @@ public class BDDMathsatSymbPredAbsAbstractManager extends
 	// TODO functions
 //	private boolean isFunctionExit(SummaryAbstractElement e) {
 //	CFANode inner = e.getLocation().getInnerNode();
-//	return (inner.getNumLeavingEdges() == 1 && 
+//	return (inner.getNumLeavingEdges() == 1 &&
 //	inner.getLeavingEdge(0) instanceof ReturnEdge);
 //	}
 
 //	private boolean isFunctionEntry(SummaryAbstractElement e) {
 //	CFANode inner = e.getLocation().getInnerNode();
 //	return (inner.getNumEnteringEdges() > 0 &&
-//	inner.getEnteringEdge(0).getPredecessor() instanceof 
+//	inner.getEnteringEdge(0).getPredecessor() instanceof
 //	FunctionDefinitionNode);
 //	}
 
@@ -631,7 +631,7 @@ public class BDDMathsatSymbPredAbsAbstractManager extends
 ////	System.out.println("CREATING PREDICATE:\n" + s + "\n");
 ////	long tt = mathsat.api.msat_from_msat(dstenv, s);
 ////	long tt = mathsat.api.msat_make_copy_from(dstenv, t, srcenv);
-//	long d = mathsat.api.msat_declare_variable(dstenv, 
+//	long d = mathsat.api.msat_declare_variable(dstenv,
 //	"\"PRED" + mathsat.api.msat_term_repr(tt) + "\"",
 //	mathsat.api.MSAT_BOOL);
 //	long var = mathsat.api.msat_make_variable(dstenv, d);

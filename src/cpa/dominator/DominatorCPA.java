@@ -12,12 +12,12 @@ import exceptions.CPAException;
 
 public class DominatorCPA implements ConfigurableProgramAnalysis {
 
-	private cpa.dominator.parametric.DominatorCPA parametricDominatorCPA; 
-	
+	private cpa.dominator.parametric.DominatorCPA parametricDominatorCPA;
+
 	public DominatorCPA(String mergeType, String stopType) throws CPAException {
 		this.parametricDominatorCPA = new cpa.dominator.parametric.DominatorCPA(new LocationCPA(mergeType, stopType));
 	}
-	
+
 	public AbstractDomain getAbstractDomain() {
 		return this.parametricDominatorCPA.getAbstractDomain();
 	}

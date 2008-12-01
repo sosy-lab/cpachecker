@@ -4,7 +4,7 @@ public enum ThreeValuedBoolean {
 	TRUE,
 	FALSE,
 	DONTKNOW;
-	
+
 	@Override
 	public String toString() {
 		switch(this) {

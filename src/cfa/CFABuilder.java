@@ -121,7 +121,7 @@ public class CFABuilder extends ASTVisitor
 	{
 		return globalDeclarations;
 	}
-	
+
 	/* (non-Javadoc)
 	 * @see org.eclipse.cdt.core.dom.ast.ASTVisitor#visit(org.eclipse.cdt.core.dom.ast.IASTDeclaration)
 	 */
@@ -145,7 +145,7 @@ public class CFABuilder extends ASTVisitor
 
 				locStack.push (nextNode);
 			}
-			else if (declaration.getParent() 
+			else if (declaration.getParent()
 			        instanceof IASTTranslationUnit)
 			{
 			        // else we're in the global scope
@@ -166,14 +166,14 @@ public class CFABuilder extends ASTVisitor
 			FunctionDefinitionNode newCFA = new FunctionDefinitionNode (fileloc.getStartingLineNumber (), fdef);
 			String nameOfFunction = newCFA.getFunctionName();
 			newCFA.setFunctionName(nameOfFunction);
-			
+
 			locStack.add (newCFA);
 			cfas.addCFA(nameOfFunction, newCFA);
 
 			returnNode = new CFAExitNode (fileloc.getEndingLineNumber (), nameOfFunction);
 			newCFA.setExitNode(returnNode);
 		}
-		
+
 		return PROCESS_CONTINUE;
 	}
 
@@ -284,36 +284,36 @@ public class CFABuilder extends ASTVisitor
 	private final int IF_CONDITION_NORMAL = -1;
 	private final int IF_CONDITION_ALWAYS_FALSE = 0;
 	private final int IF_CONDITION_ALWAYS_TRUE = 1;
-	
+
 	private int getIfConditionKind(IASTIfStatement ifStatement) {
 	    IASTExpression cond = ifStatement.getConditionExpression();
 	    if (cond instanceof IASTLiteralExpression) {
-	        if (((IASTLiteralExpression)cond).getKind() == 
+	        if (((IASTLiteralExpression)cond).getKind() ==
 	            IASTLiteralExpression.lk_integer_constant) {
 	            int c = Integer.parseInt(cond.getRawSignature());
 	            if (c == 0) return IF_CONDITION_ALWAYS_FALSE;
 	            else return IF_CONDITION_ALWAYS_TRUE;
-	        }	         
-	    } 
+	        }
+	    }
 	    return IF_CONDITION_NORMAL;
 	}
-	
+
 	private void handleIfStatement (IASTIfStatement ifStatement, IASTFileLocation fileloc)
-	{       
+	{
 		CFANode prevNode = locStack.pop ();
 		CFANode postIfNode = new CFANode (fileloc.getEndingLineNumber ());
 
 		locStack.push (postIfNode);
-		
+
 		int kind = getIfConditionKind(ifStatement);
-		
+
 		switch (kind) {
 		case IF_CONDITION_ALWAYS_FALSE: {
 		    BlankEdge edge = new BlankEdge("");
 		    if (ifStatement.getElseClause() == null) {
 		        edge.initialize(prevNode, postIfNode);
 		    } else {
-		        CFANode elseNode = 
+		        CFANode elseNode =
 		            new CFANode(fileloc.getStartingLineNumber());
 		        edge.initialize(prevNode, elseNode);
 		        elseStack.push(elseNode);
@@ -324,7 +324,7 @@ public class CFABuilder extends ASTVisitor
 		    break;
 		case IF_CONDITION_ALWAYS_TRUE: {
 		    BlankEdge edge = new BlankEdge("");
-		    CFANode thenNode = 
+		    CFANode thenNode =
 		        new CFANode(fileloc.getStartingLineNumber());
 		    edge.initialize(prevNode, thenNode);
 		    locStack.push(thenNode);
@@ -336,8 +336,8 @@ public class CFABuilder extends ASTVisitor
 		    break;
 		case IF_CONDITION_NORMAL: {
 		    CFANode ifStartTrue = new CFANode (fileloc.getStartingLineNumber ());
-		    AssumeEdge assumeEdgeTrue = new AssumeEdge (ifStatement.getConditionExpression ().getRawSignature (), 
-		            ifStatement.getConditionExpression (), 
+		    AssumeEdge assumeEdgeTrue = new AssumeEdge (ifStatement.getConditionExpression ().getRawSignature (),
+		            ifStatement.getConditionExpression (),
 		            true);
 
 		    assumeEdgeTrue.initialize (prevNode, ifStartTrue);
@@ -345,15 +345,15 @@ public class CFABuilder extends ASTVisitor
 
 		    if (ifStatement.getElseClause () != null) {
 		        CFANode ifStartFalse = new CFANode (fileloc.getStartingLineNumber ());
-		        AssumeEdge assumeEdgeFalse = new AssumeEdge ("!(" + ifStatement.getConditionExpression ().getRawSignature () + ")", 
-		                ifStatement.getConditionExpression (), 
+		        AssumeEdge assumeEdgeFalse = new AssumeEdge ("!(" + ifStatement.getConditionExpression ().getRawSignature () + ")",
+		                ifStatement.getConditionExpression (),
 		                false);
 
 		        assumeEdgeFalse.initialize (prevNode, ifStartFalse);
 		        elseStack.push (ifStartFalse);
 		    } else {
-		        AssumeEdge assumeEdgeFalse = new AssumeEdge ("!(" + ifStatement.getConditionExpression ().getRawSignature () + ")", 
-		                ifStatement.getConditionExpression (), 
+		        AssumeEdge assumeEdgeFalse = new AssumeEdge ("!(" + ifStatement.getConditionExpression ().getRawSignature () + ")",
+		                ifStatement.getConditionExpression (),
 		                false);
 
 		        assumeEdgeFalse.initialize (prevNode, postIfNode);
@@ -463,7 +463,7 @@ public class CFABuilder extends ASTVisitor
 
 	private void handleReturnStatement (IASTReturnStatement returnStatement)
 	{
-		CFANode prevNode = locStack.peek ();            
+		CFANode prevNode = locStack.peek ();
 		CFANode nextNode = returnNode;
 
 		StatementEdge edge = new StatementEdge (returnStatement.getRawSignature (), returnStatement.getReturnValue ());
@@ -514,7 +514,7 @@ public class CFABuilder extends ASTVisitor
 
 		CFANode caseNode = new CFANode (fileloc.getStartingLineNumber ());
 
-		BlankEdge blankEdge1 = new BlankEdge ("default");       
+		BlankEdge blankEdge1 = new BlankEdge ("default");
 		blankEdge1.initialize (switchStart, caseNode);
 
 		if (prevNode != switchStart)

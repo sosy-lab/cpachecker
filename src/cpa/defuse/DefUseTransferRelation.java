@@ -43,13 +43,13 @@ public class DefUseTransferRelation implements TransferRelation
         if (expression instanceof IASTBinaryExpression)
         {
             IASTBinaryExpression binaryExpression = (IASTBinaryExpression) expression;
-            
+
             IASTExpression op1 = binaryExpression.getOperand1();
 			IASTExpression op2 = binaryExpression.getOperand2();
-			
+
 			System.out.println("================== " + op1.getRawSignature());
 			System.out.println("================== " + op2.getRawSignature());
-			
+
             switch (binaryExpression.getOperator ())
             {
             case IASTBinaryExpression.op_assign:
@@ -66,7 +66,7 @@ public class DefUseTransferRelation implements TransferRelation
             {
                 String lParam = binaryExpression.getOperand1 ().getRawSignature ();
                 // String lParam2 = binaryExpression.getOperand2 ().getRawSignature ();
-                
+
                 DefUseDefinition definition = new DefUseDefinition (lParam, cfaEdge);
                 defUseElement.update (definition);
             }
@@ -138,14 +138,14 @@ public class DefUseTransferRelation implements TransferRelation
             handleDeclaration (defUseElement, declarators, cfaEdge);
             break;
         }
-        
+
         case AssumeEdge:
         {
         	AssumeEdge assumeEdge = (AssumeEdge) cfaEdge;
         	System.out.println("Assume Edge = " + assumeEdge.getRawStatement());
         	break;
         }
-        
+
         case MultiDeclarationEdge:
         {
             defUseElement = defUseElement.clone ();

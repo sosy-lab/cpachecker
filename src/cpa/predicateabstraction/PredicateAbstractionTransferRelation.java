@@ -42,7 +42,7 @@ import cpa.common.interfaces.TransferRelation;
 import exceptions.CPAException;
 import exceptions.PredicateAbstractionTransferException;
 
-public class PredicateAbstractionTransferRelation implements TransferRelation 
+public class PredicateAbstractionTransferRelation implements TransferRelation
 {
 	private PredicateAbstractionDomain predAbsDomain;
 
@@ -91,9 +91,9 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 					e.printStackTrace();
 				}
 			}
-			
+
 			predAbsElement = predAbsElement.clone ();
-			
+
 			break;
 		}
 
@@ -129,7 +129,7 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 			break;
 		}
 
-		case FunctionCallEdge: 
+		case FunctionCallEdge:
 		{
 			FunctionCallEdge functionCallEdge = (FunctionCallEdge) cfaEdge;
 			CallToReturnEdge summaryEdge = cfaEdge.getPredecessor().getLeavingSummaryEdge();
@@ -153,7 +153,7 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 //			}
 //			else{
 			try {
-				CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel, "Function Call Edge from node " +  
+				CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel, "Function Call Edge from node " +
 						cfaEdge.getPredecessor().getNodeNumber() + " to " + cfaEdge.getSuccessor().getNodeNumber() );
 				handleFunctionCall(predAbsElement, functionCallEdge, summaryEdge);
 			} catch (IOException e) {
@@ -216,7 +216,7 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 			break;
 		}
 		}
-		
+
 		// long end = System.currentTimeMillis();
 
 		return predAbsElement;
@@ -295,7 +295,7 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 		if(functionName.equals(CPAMain.cpaConfig.getProperty("analysis.entryFunction"))){
 			return;
 		}
-		
+
 		if(expression instanceof IASTUnaryExpression){
 			IASTUnaryExpression unaryExp = (IASTUnaryExpression)expression;
 			if(unaryExp.getOperator() == IASTUnaryExpression.op_bracketedPrimary){
@@ -305,7 +305,7 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 					// String returnSiteFuncName = ((CFAExitNode)statementEdge.getSuccessor()).getFunctionName();
 					String literalValue = litExpr.getRawSignature ();
 					int typeOfLiteral = (litExpr.getKind());
-					if( typeOfLiteral ==  IASTLiteralExpression.lk_integer_constant || 
+					if( typeOfLiteral ==  IASTLiteralExpression.lk_integer_constant ||
 							typeOfLiteral == IASTLiteralExpression.lk_float_constant)
 					{
 						double val = Double.valueOf(literalValue).doubleValue();
@@ -584,13 +584,13 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 						throw new PredicateAbstractionTransferException("Unhandled case " + cfaEdge.getPredecessor().getNodeNumber());
 					}
 				}
-				
+
 				// ! a-> b
 				else if(exp1 instanceof IASTFieldReference){
 					IASTFieldReference fieldRef = (IASTFieldReference)exp1;
 					handleAssumption(predAbsElement, fieldRef, cfaEdge, !truthValue);
 				}
-				
+
 				// ! a
 				else if(exp1 instanceof IASTIdExpression){
 					IASTIdExpression idExpression = (IASTIdExpression)exp1;
@@ -618,11 +618,11 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 				propagateBooleanExpression(predAbsElement, IASTBinaryExpression.op_equals, leftOperator, "0");
 			}
 		}
-		
+
 		else if(expression instanceof IASTFieldReference){
 			IASTFieldReference filedRefExp = (IASTFieldReference)expression;
 			String leftOperator = "\"".concat(filedRefExp.getRawSignature()).concat("\"");
-			
+
 			if(truthValue){
 				propagateBooleanExpression(predAbsElement, IASTBinaryExpression.op_notequals, leftOperator, "0");
 			}
@@ -696,8 +696,8 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 		SimplifiedInstruction simpIns = new SimplifiedInstruction();
 
 		// a++, ++a
-		if (operator == IASTUnaryExpression.op_postFixIncr || 
-				operator == IASTUnaryExpression.op_prefixIncr 
+		if (operator == IASTUnaryExpression.op_postFixIncr ||
+				operator == IASTUnaryExpression.op_prefixIncr
 		)
 		{
 			simpIns = new SimplifiedInstruction(operandName, "+ [ " + operandName + " 1 " + "]", Operator.equals);
@@ -764,7 +764,7 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 			if(op2 instanceof IASTLiteralExpression){
 
 				int typeOfLiteral = ((IASTLiteralExpression)op2).getKind();
-				if( typeOfLiteral ==  IASTLiteralExpression.lk_integer_constant || 
+				if( typeOfLiteral ==  IASTLiteralExpression.lk_integer_constant ||
 						typeOfLiteral == IASTLiteralExpression.lk_float_constant)
 				{
 					// a += 2
@@ -846,7 +846,7 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 				if(operand instanceof IASTIdExpression){
 					IASTIdExpression variable = (IASTIdExpression) operand;
 					String variableName = variable.getRawSignature();
-					if(		op2 instanceof IASTLiteralExpression || 
+					if(		op2 instanceof IASTLiteralExpression ||
 							op2 instanceof IASTIdExpression ||
 							op2 instanceof IASTUnaryExpression)
 					{
@@ -873,7 +873,7 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 		else if (op1 instanceof IASTIdExpression)
 		{
 			// cases for a = 8.2, a = b, a = -b
-			if(		op2 instanceof IASTLiteralExpression || 
+			if(		op2 instanceof IASTLiteralExpression ||
 					op2 instanceof IASTIdExpression)
 			{
 				String leftVariable = op1.getRawSignature();
@@ -897,7 +897,7 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 				int operator = unaryExp.getOperator();
 
 				String leftVariable = "";
-				String rightVariable = ""; 
+				String rightVariable = "";
 				if(operator == IASTUnaryExpression.op_minus){
 					leftVariable = op1.getRawSignature();
 					rightVariable = op2.getRawSignature();
@@ -932,7 +932,7 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 			else if(op2 instanceof IASTFieldReference){
 				String fieldName = ((IASTFieldReference)op2).getRawSignature();
 				String rightvariable = "\"".concat(fieldName).concat("\"");
-				
+
 				String leftVariable = op1.getRawSignature();
 				int binaryOp = binaryExpression.getOperator();
 				if(binaryOp == IASTBinaryExpression.op_assign){
@@ -955,10 +955,10 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 			IASTFieldReference fieldRef = (IASTFieldReference)op1;
 
 			// cases for a = 8.2, a = b, a = -b
-			if(		op2 instanceof IASTLiteralExpression || 
+			if(		op2 instanceof IASTLiteralExpression ||
 					op2 instanceof IASTIdExpression)
 			{
-				
+
 				String leftVariable =  "\"".concat(fieldRef.getRawSignature()).concat("\"");
 				String rightVariable = op2.getRawSignature();
 				int binaryOp = binaryExpression.getOperator();
@@ -980,7 +980,7 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 				int operator = unaryExp.getOperator();
 
 				String leftVariable = "";
-				String rightVariable = ""; 
+				String rightVariable = "";
 				if(operator == IASTUnaryExpression.op_minus){
 					leftVariable =  "\"".concat(fieldRef.getRawSignature()).concat("\"");
 					rightVariable = op2.getRawSignature();
@@ -1018,10 +1018,10 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 
 				int binaryOp = binaryExpression.getOperator();
 				assert(binaryOp == IASTBinaryExpression.op_assign);
-				
+
 				SimplifiedInstruction simpIns =  new SimplifiedInstruction(leftVariable, rightVariable, Operator.equals);
 				handleAssignmetQuery(predAbsElement, simpIns);			}
-			
+
 			else{
 				throw new PredicateAbstractionTransferException("Unhandled case " + cfaEdge.getPredecessor().getNodeNumber());
 			}
@@ -1121,7 +1121,7 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 					rightVariable = "* " + leftVarNameInBinExp + " " + rightVarNameInBinExp;
 					simpIns =  new SimplifiedInstruction(leftVariable, rightVariable, Operator.equals);
 				}
-				// a = b * -2 
+				// a = b * -2
 				else if(rVarInBinaryExp instanceof IASTUnaryExpression){
 					IASTUnaryExpression unaryExpression = (IASTUnaryExpression) rVarInBinaryExp;
 					int operator = unaryExpression.getOperator ();
@@ -1153,7 +1153,7 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 			/** a = 8 * ? */
 			else if(lVarInBinaryExp instanceof IASTLiteralExpression){
 				int typeOfCastLiteral = ((IASTLiteralExpression)lVarInBinaryExp).getKind();
-				if( typeOfCastLiteral ==  IASTLiteralExpression.lk_integer_constant || 
+				if( typeOfCastLiteral ==  IASTLiteralExpression.lk_integer_constant ||
 						typeOfCastLiteral == IASTLiteralExpression.lk_float_constant)
 				{
 					/** a = 8 * b */
@@ -1213,7 +1213,7 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 		/** double a = (double) 7 */
 		if(castOperand instanceof IASTLiteralExpression){
 			// int typeOfCastLiteral = ((IASTLiteralExpression)castOperand).getKind();
-//			if( typeOfCastLiteral ==  IASTLiteralExpression.lk_integer_constant || 
+//			if( typeOfCastLiteral ==  IASTLiteralExpression.lk_integer_constant ||
 //			typeOfCastLiteral == IASTLiteralExpression.lk_float_constant)
 //			{
 			String val = castOperand.getRawSignature();
@@ -1244,14 +1244,14 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 				throw new PredicateAbstractionTransferException("Unhandled case " + cfaEdge.getPredecessor().getNodeNumber());
 			}
 		}
-		
+
 		/** For handling expressions of the form a = (double) b->d */
 		else if(castOperand instanceof IASTFieldReference){
 			IASTFieldReference fieldRef = ((IASTFieldReference)castOperand);
 			String fieldName = fieldRef.getRawSignature();
 			String rightVar = "\"".concat(fieldName).concat("\"");
 
-			
+
 			simpIns = new SimplifiedInstruction(leftVar, rightVar, Operator.equals);
 		}
 

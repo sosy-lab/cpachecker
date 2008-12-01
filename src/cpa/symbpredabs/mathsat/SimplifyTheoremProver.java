@@ -24,7 +24,7 @@ public class SimplifyTheoremProver implements TheoremProver {
 
     private Map<Long, String> msatVarToSimplifyVar;
     private Map<Long, String> msatToSimplifyCache;
-    private Map<String, Long> simplifyPredToMsat;    
+    private Map<String, Long> simplifyPredToMsat;
     private int curVarIndex;
     private Process simplify;
     private BufferedReader simplifyOut;
@@ -91,7 +91,7 @@ public class SimplifyTheoremProver implements TheoremProver {
     public int allSat(SymbolicFormula f, Vector<SymbolicFormula> important,
             AllSatCallback callback) {
         // first, initialize simplify with model generation support
-        PrintWriter savedIn = simplifyIn;            
+        PrintWriter savedIn = simplifyIn;
         BufferedReader savedOut = simplifyOut;
         if (simplifyWithCex == null) {
             Process savedProc = simplify;
@@ -100,22 +100,22 @@ public class SimplifyTheoremProver implements TheoremProver {
             simplify = savedProc;
             simplifyWithCexIn = simplifyIn;
             simplifyWithCexOut = simplifyOut;
-        } 
+        }
         simplifyIn = simplifyWithCexIn;
         simplifyOut = simplifyWithCexOut;
-                
+
         // build the Simplify representation of the formula...
         String simplifyFormula = toSimplify(f);
         // ...and of the important symbols
         Set<String> simplifyPreds = toSimplifyPreds(important);
 
         // remember how many pop commands to issue - one per blocking clause
-        int numPopsNeeded = 0;        
+        int numPopsNeeded = 0;
         // assert the initial formula
         String impl = "(IMPLIES " + simplifyFormula + " FALSE)";
-        int numModels = 0;        
+        int numModels = 0;
         Vector<SymbolicFormula> outModel = null;
-        
+
         while (true) {
             long[] model = simplifyGetCounterexample(impl, mmgr, simplifyPreds);
             if (model == null) {
@@ -124,7 +124,7 @@ public class SimplifyTheoremProver implements TheoremProver {
             if (model.length == 0) {
                 numModels = -2;
                 break;
-            } 
+            }
 
             if (outModel == null) {
                 outModel = new Vector<SymbolicFormula>();
@@ -134,7 +134,7 @@ public class SimplifyTheoremProver implements TheoremProver {
             for (long m : model) {
                 outModel.add(new MathsatSymbolicFormula(m));
             }
-            
+
             ++numModels;
             callback.modelFound(outModel);
             // add the model as a blocking clause
@@ -169,7 +169,7 @@ public class SimplifyTheoremProver implements TheoremProver {
         for (int i = 0; i < numPopsNeeded; ++i) {
             simplifyPop();
         }
-        
+
         // and restore the streams
         simplifyIn = savedIn;
         simplifyOut = savedOut;
@@ -201,7 +201,7 @@ public class SimplifyTheoremProver implements TheoremProver {
                         mathsat.api.msat_term_get_arg(term, 0)) != 0 ||
                         mathsat.api.msat_term_is_term_ite(
                                 mathsat.api.msat_term_get_arg(
-                                        term, 1)) != 0));    
+                                        term, 1)) != 0));
     }
 
     private String toSimplify(SymbolicFormula f) {
@@ -217,7 +217,7 @@ public class SimplifyTheoremProver implements TheoremProver {
                 toProcess.pop();
                 continue;
             }
-            boolean childrenDone = true;            
+            boolean childrenDone = true;
             String[] children = new String[mathsat.api.msat_term_arity(term)];
             if (isTermIteAssignment(term)) {
                 System.out.println("ERROR!!: " + mathsat.api.msat_term_repr(term));
@@ -231,8 +231,8 @@ public class SimplifyTheoremProver implements TheoremProver {
                     c1 = tmp;
                 }
                 assert(mathsat.api.msat_term_is_variable(c1) != 0);
-                long[] args = new long[]{ 
-                        c1, 
+                long[] args = new long[]{
+                        c1,
                         mathsat.api.msat_term_get_arg(c2, 0),
                         mathsat.api.msat_term_get_arg(c2, 1),
                         mathsat.api.msat_term_get_arg(c2, 2)
@@ -268,7 +268,7 @@ public class SimplifyTheoremProver implements TheoremProver {
                     } else {
                         simplifyVar = msatVarToSimplifyVar.get(d);
                     }
-                    msatToSimplifyCache.put(term, simplifyVar); 
+                    msatToSimplifyCache.put(term, simplifyVar);
                 } else if (mathsat.api.msat_term_is_uif(term) != 0) {
                     long d = mathsat.api.msat_term_get_decl(term);
                     String simplifyFun = null;
@@ -292,27 +292,27 @@ public class SimplifyTheoremProver implements TheoremProver {
                     if (idx >= 0) {
                         // Simplify doesn't like fractions, we must write
                         // x/y as (/ x y)
-                        num = "(/ " + num.substring(0, idx) + " " + 
+                        num = "(/ " + num.substring(0, idx) + " " +
                         num.substring(idx+1) + ")";
                     }
                     if (neg) {
                         num = "(- 0 " + num + ")";
                     }
-                    msatToSimplifyCache.put(term, num); 
+                    msatToSimplifyCache.put(term, num);
                 } else if (mathsat.api.msat_term_is_true(term) != 0) {
                     msatToSimplifyCache.put(term, "TRUE");
                 } else if (mathsat.api.msat_term_is_false(term) != 0) {
                     msatToSimplifyCache.put(term, "FALSE");
                 } else if (mathsat.api.msat_term_is_bool_ite(term) != 0) {
-                    String s = "(AND (IMPLIES " + children[0] + " " + 
-                    children[1] + ") (IMPLIES (NOT " + 
+                    String s = "(AND (IMPLIES " + children[0] + " " +
+                    children[1] + ") (IMPLIES (NOT " +
                     children[0] + ") " + children[2] + "))";
                     msatToSimplifyCache.put(term, s);
                 } else if (isTermIteAssignment(term)) {
                     // we have to lift the ite to the boolean level
                     String s = "(AND (IMPLIES " + children[1] + " (EQ " +
                     children[0] + " " + children[2] + ")) (IMPLIES (NOT " +
-                    children[1] + ") (EQ " + children[0] + " " + 
+                    children[1] + ") (EQ " + children[0] + " " +
                     children[3] + ")))";
                     msatToSimplifyCache.put(term, s);
                 } else {
@@ -354,7 +354,7 @@ public class SimplifyTheoremProver implements TheoremProver {
                     }
                     s += ")";
                     msatToSimplifyCache.put(term, s);
-                }                
+                }
             }
         }
         return msatToSimplifyCache.get(f);
@@ -385,7 +385,7 @@ public class SimplifyTheoremProver implements TheoremProver {
         if (dumpQueryWriter != null) {
             dumpQueryWriter.println(formula);
             dumpQueryWriter.flush();
-        }        
+        }
         String status = null;
         try {
             status = simplifyOut.readLine();
@@ -409,7 +409,7 @@ public class SimplifyTheoremProver implements TheoremProver {
         return false;
     }
 
-    private long[] simplifyGetCounterexample(String formula, 
+    private long[] simplifyGetCounterexample(String formula,
             MathsatSymbolicFormulaManager mmgr,
             Set<String> predicates) {
         simplifyIn.println(formula);
@@ -444,7 +444,7 @@ public class SimplifyTheoremProver implements TheoremProver {
         return null;
     }
 
-    private long[] parseCex(MathsatSymbolicFormulaManager mmgr, 
+    private long[] parseCex(MathsatSymbolicFormulaManager mmgr,
             Set<String> predicates) {
         Vector<Long> model = new Vector<Long>();
         long msatEnv = mmgr.getMsatEnv();
@@ -452,7 +452,7 @@ public class SimplifyTheoremProver implements TheoremProver {
             String line = simplifyOut.readLine();
             assert(line.contains("context:") || line.isEmpty());
             if (line.isEmpty()) {
-                return new long[0]; // empty model means that the formula 
+                return new long[0]; // empty model means that the formula
                 // is a tautology
             }
             line = simplifyOut.readLine();

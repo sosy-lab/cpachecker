@@ -34,22 +34,22 @@ public class InverseLocationTransferRelation implements TransferRelation
     {
         LocationElement inputElement = (LocationElement) element;
         CFANode node = inputElement.getLocationNode();
-        
+
         int numEnteringEdges = node.getNumEnteringEdges();
-        
+
         for (int edgeIdx = 0; edgeIdx < numEnteringEdges; edgeIdx++) {
         	CFAEdge testEdge = node.getEnteringEdge(edgeIdx);
-        	
+
         	if (testEdge == cfaEdge) {
         		return new LocationElement(testEdge.getPredecessor());
         	}
         }
-        
+
         if (node.getEnteringSummaryEdge() != null) {
         	CallToReturnEdge summaryEdge = node.getEnteringSummaryEdge();
         	return new LocationElement(summaryEdge.getPredecessor());
         }
-        
+
         return locationDomain.getBottomElement();
     }
 
@@ -57,7 +57,7 @@ public class InverseLocationTransferRelation implements TransferRelation
     {
     	LocationElement inputElement = (LocationElement) element;
         CFANode node = inputElement.getLocationNode();
-        
+
         List<AbstractElement> allSuccessors = new ArrayList<AbstractElement> ();
         int numEnteringEdges = node.getNumEnteringEdges ();
 

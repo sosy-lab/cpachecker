@@ -75,7 +75,7 @@ public class DefUseCPA implements ConfigurableProgramAnalysis{
 	{
 		return transferRelation;
 	}
-	
+
     public AbstractElement getInitialElement (CFAFunctionDefinitionNode node)
     {
         List<DefUseDefinition> defUseDefinitions = null;
@@ -83,7 +83,7 @@ public class DefUseCPA implements ConfigurableProgramAnalysis{
         {
             List<String> parameterNames = ((FunctionDefinitionNode)node).getFunctionParameterNames ();
             defUseDefinitions = new ArrayList<DefUseDefinition> ();
-            
+
             for (String parameterName : parameterNames)
             {
                 DefUseDefinition newDef = new DefUseDefinition (parameterName, null);

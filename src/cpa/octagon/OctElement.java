@@ -9,11 +9,11 @@ import octagon.Octagon;
 import cpa.common.interfaces.AbstractElement;
 
 /**
- * An element of octagon abstract domain. This element contains an {@link Octagon} which 
+ * An element of octagon abstract domain. This element contains an {@link Octagon} which
  * is the concrete representation of the octagon and a map which
- * provides a mapping from variable names to variables. 
+ * provides a mapping from variable names to variables.
  * see {@link Variable}.
- * 
+ *
  * @author erkan
  *
  */
@@ -38,7 +38,7 @@ public class OctElement implements AbstractElement{
 	 */
 	public OctElement(Octagon oct, HashMap<String, Integer> variables){
 		this.oct = oct;
-		this.variables = variables; 
+		this.variables = variables;
 	}
 
 	/* (non-Javadoc)
@@ -111,7 +111,7 @@ public class OctElement implements AbstractElement{
 			}
 			if (oct.getMatrix()[oct.matPos(2*i+1,2*i+1)].f > 0) {
 				s = s + "\n  " + "-"+ varName + "+" + varName + " <= " + oct.getMatrix()[oct.matPos(2*i+1,2*i+1)].f;
-			} 
+			}
 			if ((oct.getMatrix()[oct.matPos(2*i+1,2*i)].f != Double.NEGATIVE_INFINITY) &&
 					(oct.getMatrix()[oct.matPos(2*i+1,2*i)].f != Double.POSITIVE_INFINITY)) {
 				s = s + "\n  " + varName + " <= " + (oct.getMatrix()[oct.matPos(2*i+1,2*i)].f)/2;
@@ -154,7 +154,7 @@ public class OctElement implements AbstractElement{
 	}
 
 	/**
-	 * Adds a new variable in form of functionName::variableName. For example if a 
+	 * Adds a new variable in form of functionName::variableName. For example if a
 	 * new variable a is declared in function main(), main::a is added to the
 	 * list of variables. After this operation you have to increse octagon
 	 * dimension manually!
@@ -241,19 +241,19 @@ public class OctElement implements AbstractElement{
 	public boolean contains(String varName) {
 		return variables.containsKey(varName);
 	}
-	
+
 	public void changeVarId(String varName, int id){
 		variables.remove(varName);
 		variables.put(varName, id);
 	}
-	
+
 	public void changeVarName(String formerName, String newName){
 		//sdf
 	}
 
 	public void setVariableMap(HashMap<String, Integer> newVariablesMap) {
 		variables = newVariablesMap;
-		
+
 	}
 
 	// TODO fix this

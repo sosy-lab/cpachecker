@@ -9,7 +9,7 @@ public interface SymbPredAbsAbstractFormulaManager extends AbstractFormulaManage
 	 */
 
 	public AbstractFormula buildAbstraction(SymbolicFormulaManager symbolicFormulaManager,
-			SymbPredAbsAbstractElement elem, SymbPredAbsAbstractElement newElem, 
+			SymbPredAbsAbstractElement elem, SymbPredAbsAbstractElement newElem,
 			PredicateMap predicates);
 
 	/**
@@ -17,13 +17,13 @@ public interface SymbPredAbsAbstractFormulaManager extends AbstractFormulaManage
 	 */
 	// TODO Later
 //	public CounterexampleTraceInfo buildCounterexampleTrace(
-//			SymbPredAbsFormulaManager mgr, 
+//			SymbPredAbsFormulaManager mgr,
 //			Deque<SymbPredAbsAbstractElement> abstractTrace);
 	// TODO
 //	/**
 //	 * Counterexample analysis and predicate discovery.
 //	 */
 //	public CounterexampleTraceInfo buildCounterexampleTrace(
-//			SymbPredAbsFormulaManager mgr, 
+//			SymbPredAbsFormulaManager mgr,
 //			Deque<SymbPredAbsAbstractElement> abstractTrace);
 }

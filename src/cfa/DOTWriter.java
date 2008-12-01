@@ -12,11 +12,11 @@ public class DOTWriter {
 		name = functionName;
 		entries = new ArrayList<String>();
 	}
-	
+
 	public void add(String s){
 		entries.add(s);
 	}
-	
+
 	public String getSubGraph(){
 		String s = "";
 		for(String line:entries){

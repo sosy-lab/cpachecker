@@ -7,7 +7,7 @@ public class CPAException extends Exception
     {
         super ();
     }
-    
+
     public CPAException (String s)
     {
         super (s);

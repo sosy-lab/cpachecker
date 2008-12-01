@@ -20,7 +20,7 @@ import cpa.symbpredabs.SymbolicFormulaManager;
  * AbstractFormulaManager re-defines them
  *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
- */ 
+ */
 public interface ItpAbstractFormulaManager extends AbstractFormulaManager {
 
     public AbstractFormula buildAbstraction(SymbolicFormulaManager mgr,
@@ -28,7 +28,7 @@ public interface ItpAbstractFormulaManager extends AbstractFormulaManager {
             CFAEdge edge, Collection<Predicate> predicates);
 
     public CounterexampleTraceInfo buildCounterexampleTrace(
-            SymbolicFormulaManager mgr, 
+            SymbolicFormulaManager mgr,
             Deque<ItpAbstractElement> abstractTrace);
 
 }

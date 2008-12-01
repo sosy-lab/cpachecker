@@ -12,6 +12,6 @@ public interface ConfigurableProgramAnalysis
 	public AbstractDomain getAbstractDomain();
     public TransferRelation getTransferRelation ();
     public MergeOperator getMergeOperator ();
-    public StopOperator getStopOperator (); 
+    public StopOperator getStopOperator ();
     public AbstractElement getInitialElement (CFAFunctionDefinitionNode node);
 }

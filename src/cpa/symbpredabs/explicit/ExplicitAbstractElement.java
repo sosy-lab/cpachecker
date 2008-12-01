@@ -12,37 +12,37 @@ import cpa.symbpredabs.Pair;
  * AbstractElement for explicit-state lazy abstraction.
  *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
- */ 
-public class ExplicitAbstractElement 
+ */
+public class ExplicitAbstractElement
         implements AbstractElementWithLocation {
-    
+
     private int elemId;
     private CFANode location;
     private AbstractFormula abstraction;
     private ExplicitAbstractElement parent;
-    
+
     private Stack<Pair<AbstractFormula, CFANode>> context;
     private boolean ownsContext;
-    
+
     private boolean covered;
-    
+
     private static int nextAvailableId = 1;
-    
+
     public int getId() { return elemId; }
     public CFANode getLocation() { return location; }
     public AbstractFormula getAbstraction() { return abstraction; }
-    
-    public void setAbstraction(AbstractFormula a) { 
+
+    public void setAbstraction(AbstractFormula a) {
         abstraction = a;
     }
-    
+
     public ExplicitAbstractElement getParent() { return parent; }
     public void setParent(ExplicitAbstractElement p) { parent = p; }
-    
+
     public boolean isCovered() { return covered; }
     public void setCovered(boolean yes) { covered = yes; }
-    
-    private ExplicitAbstractElement(CFANode loc, AbstractFormula a, 
+
+    private ExplicitAbstractElement(CFANode loc, AbstractFormula a,
             ExplicitAbstractElement p) {
         elemId = nextAvailableId++;
         location = loc;
@@ -52,11 +52,11 @@ public class ExplicitAbstractElement
         ownsContext = true;
         covered = false;
     }
-    
+
     public ExplicitAbstractElement(CFANode loc) {
         this(loc, null, null);
     }
-    
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -67,32 +67,32 @@ public class ExplicitAbstractElement
             return elemId == ((ExplicitAbstractElement)o).elemId;
         }
     }
-    
+
     @Override
     public int hashCode() {
         return elemId;
     }
-    
+
     @Override
     public String toString() {
         return "E<" + Integer.toString(
                 location.getNodeNumber()) + ">(" +
-                Integer.toString(getId()) + ",P=" + 
-                (parent != null ? parent.getId() : "NIL") + ")"; 
+                Integer.toString(getId()) + ",P=" +
+                (parent != null ? parent.getId() : "NIL") + ")";
     }
 
     public CFANode getLocationNode() {
         return location;
     }
-    
-    public Stack<Pair<AbstractFormula, CFANode>> getContext() 
-    { 
-        return context; 
+
+    public Stack<Pair<AbstractFormula, CFANode>> getContext()
+    {
+        return context;
     }
-    
-    public void setContext(Stack<Pair<AbstractFormula, CFANode>> ctx, 
-                           boolean owns) 
-    { 
+
+    public void setContext(Stack<Pair<AbstractFormula, CFANode>> ctx,
+                           boolean owns)
+    {
         context = ctx;
         ownsContext = owns;
     }
@@ -102,17 +102,17 @@ public class ExplicitAbstractElement
         assert(!context.empty());
         return context.peek().getFirst();
     }
-    
+
     public CFANode topContextLocation() {
         assert(context != null);
         assert(!context.empty());
         return context.peek().getSecond();
     }
-    
+
     private void cloneContext() {
         // copy-on-write semantics: just duplicate the context and push
         // in the copy
-        Stack<Pair<AbstractFormula, CFANode>> copy = 
+        Stack<Pair<AbstractFormula, CFANode>> copy =
             new Stack<Pair<AbstractFormula, CFANode>>();
         for (Pair<AbstractFormula, CFANode> a : context) {
             copy.add(a);
@@ -120,24 +120,24 @@ public class ExplicitAbstractElement
         context = copy;
         ownsContext = true;
     }
-    
+
     public void pushContext(AbstractFormula af, CFANode returnLoc) {
         if (!ownsContext) {
             cloneContext();
         }
         context.push(new Pair<AbstractFormula, CFANode>(af, returnLoc));
     }
-    
+
     public void popContext() {
         if (!ownsContext) {
             cloneContext();
         }
         context.pop();
     }
-    
+
     public boolean sameContext(ExplicitAbstractElement e2) {
         assert(context != null && e2.context != null);
-        
+
         if (context == e2.context) {
             return true;
         } else if (context.size() != e2.context.size()) {

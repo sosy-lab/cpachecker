@@ -31,10 +31,10 @@ public class CompositeStopOperator implements StopOperator{
 		if(compositeDomain.isBottomElement(element)){
 			return true;
 		}
-		
+
 		CompositeElement comp1 = (CompositeElement) element;
 		List<AbstractElement> comp1Elements = comp1.getElements ();
-		
+
 		if (comp1Elements.size () != stopOperators.size ())
 			throw new CPAException ("Wrong number of stop operator");
 

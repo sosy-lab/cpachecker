@@ -22,7 +22,7 @@ import cfa.objectmodel.CFANode;
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
 public class UpdateablePredicateMap implements PredicateMap {
-    
+
     private Map<CFANode, Set<Predicate>> repr;
     private Map<String, Set<Predicate>> functionGlobalPreds;
     private Collection<Predicate> initialGlobalPreds;
@@ -32,11 +32,11 @@ public class UpdateablePredicateMap implements PredicateMap {
         functionGlobalPreds = new HashMap<String, Set<Predicate>>();
         initialGlobalPreds = initial;
     }
-    
+
     public UpdateablePredicateMap() {
         this(null);
     }
-    
+
     public boolean update(CFANode n, Collection<Predicate> preds) {
         boolean added = false;
         if (CPAMain.cpaConfig.getBooleanValue(
@@ -53,7 +53,7 @@ public class UpdateablePredicateMap implements PredicateMap {
             Set<Predicate> s = functionGlobalPreds.get(fn);
             added |= s.addAll(preds);
             if (added) {
-                LazyLogger.log(LazyLogger.DEBUG_1, 
+                LazyLogger.log(LazyLogger.DEBUG_1,
                         "UPDATED PREDICATES FOR FUNCTION ", fn, ": ", s);
             }
         } else {
@@ -70,7 +70,7 @@ public class UpdateablePredicateMap implements PredicateMap {
                 LazyLogger.log(LazyLogger.DEBUG_1, "UPDATED PREDICATES FOR ", n,
                         ": ", s);
             } else {
-                LazyLogger.log(LazyLogger.DEBUG_2, "NOT ADDING PREDICATES TO ", 
+                LazyLogger.log(LazyLogger.DEBUG_2, "NOT ADDING PREDICATES TO ",
                         n, ": ", s, ", preds: ", preds);
             }
         }
@@ -105,7 +105,7 @@ public class UpdateablePredicateMap implements PredicateMap {
             }
         }
     }
-    
+
     public Collection<Predicate> getRelevantPredicates(String fn) {
         if (functionGlobalPreds.containsKey(fn)) {
             return functionGlobalPreds.get(fn);
@@ -113,7 +113,7 @@ public class UpdateablePredicateMap implements PredicateMap {
             return Collections.emptySet();
         }
     }
-    
+
     public Collection<CFANode> getKnownLocations() {
         return repr.keySet();
     }

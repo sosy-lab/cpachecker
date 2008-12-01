@@ -45,20 +45,20 @@ public class SymbPredAbstTransfer implements TransferRelation {
 			SymbPredAbstElement e,
 			CFAEdge curEdge) {
 		// Ok, found. What to do here depends on whether we have
-		// computed the abstraction at the previous step or not. 
+		// computed the abstraction at the previous step or not.
 		// If yes, we have to set the right parent pointer
 		SymbPredAbstElement parent = e.getParent();
 		if (e.getConcreteFormula().isTrue()) {
 			parent = e;
-		}        
+		}
 		try {
-			Pair<SymbolicFormula, SSAMap> p = 
-				mgr.makeAnd(e.getConcreteFormula(), curEdge, e.getSSAMap(), false, true); 
+			Pair<SymbolicFormula, SSAMap> p =
+				mgr.makeAnd(e.getConcreteFormula(), curEdge, e.getSSAMap(), false, true);
 			SymbPredAbstElement ret = new SymbPredAbstElement(
-					curEdge.getSuccessor(), 
+					curEdge.getSuccessor(),
 					p.getFirst(), e.getAbstractFormula(),
 					parent, p.getSecond());
-			// if the destination is an error location, we want to check for 
+			// if the destination is an error location, we want to check for
 			// feasibility of the path
 			if (curEdge.getSuccessor() instanceof CFAErrorNode) {
 				CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel,
@@ -69,7 +69,7 @@ public class SymbPredAbstTransfer implements TransferRelation {
 					// if the path is infeasible, we return the bottom element
 					// as successor
 					CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel,
-					"OK, Error Location UNREACHABLE");                    
+					"OK, Error Location UNREACHABLE");
 					return domain.getBottomElement();
 				} else {
 					CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel,
@@ -88,8 +88,8 @@ public class SymbPredAbstTransfer implements TransferRelation {
 			CFAEdge cfaEdge) throws CPATransferException {
 		SymbPredAbstElement e = (SymbPredAbstElement)element;
 
-		CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel, 
-				"Getting Abstract Successor of element: " + e.toString() + 
+		CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel,
+				"Getting Abstract Successor of element: " + e.toString() +
 				" on edge: " + cfaEdge.getRawStatement());
 
 		CFANode node = e.getLocation();
@@ -100,14 +100,14 @@ public class SymbPredAbstTransfer implements TransferRelation {
 			if (curEdge == cfaEdge) {
 				AbstractElement ret = buildSuccessor(mgr, e, curEdge);
 
-				CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel, 
+				CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel,
 						"    Successor is: " + ret.toString());
 
 				return ret;
 			}
 		}
 
-		CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel, 
+		CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel,
 		"    Successor is: BOTTOM");
 
 		return domain.getBottomElement();
@@ -117,7 +117,7 @@ public class SymbPredAbstTransfer implements TransferRelation {
 			AbstractElement element) throws CPAException, CPATransferException {
 		SymbPredAbstElement e = (SymbPredAbstElement)element;
 
-		CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel, 
+		CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel,
 				"Getting ALL Abstract Successors of element: " + e.toString());
 
 		List<AbstractElement> allSucc = new ArrayList<AbstractElement>();
@@ -128,18 +128,18 @@ public class SymbPredAbstTransfer implements TransferRelation {
 			allSucc.add(buildSuccessor(mgr, e, n.getLeavingEdge(i)));
 		}
 
-		CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel, 
-				"    " + Integer.toString(allSucc.size()) + 
+		CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel,
+				"    " + Integer.toString(allSucc.size()) +
 		" successors found");
 
 		return allSucc;
 	}
-	
+
 	private final BottomElement bottomElement =
         new SymbPredAbstBottomElement();
-    private final TopElement topElement = 
+    private final TopElement topElement =
         new SymbPredAbstTopElement();
-	
+
 	public BottomElement getBottomElement() {
         return bottomElement;
     }

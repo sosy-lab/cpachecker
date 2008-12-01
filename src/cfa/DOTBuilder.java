@@ -36,10 +36,10 @@ public class DOTBuilder implements DOTBuilderInterface
 	{
 		Map<String, DOTWriter> subGraphWriters = new HashMap<String, DOTWriter>();
 		DOTNodeShapeWriter nodeWriter = new DOTNodeShapeWriter();
-		
+
 		DOTWriter dw = new DOTWriter("____Main____Diagram__");
 		subGraphWriters.put("____Main____Diagram__", dw);
-		
+
 		for(CFAFunctionDefinitionNode fnode:cfasMapList){
 			dw = new DOTWriter(fnode.getFunctionName());
 			subGraphWriters.put(fnode.getFunctionName(), dw);
@@ -54,7 +54,7 @@ public class DOTBuilder implements DOTBuilderInterface
 		writer.print(nodeWriter.getDot());
 		writer.print("node [shape = circle];");
 		writer.println();
-		
+
 		for(CFAFunctionDefinitionNode fnode:cfasMapList){
 			dw = subGraphWriters.get(fnode.getFunctionName());
 			writer.println ("subgraph cluster_" + fnode.getFunctionName() + " {");
@@ -83,10 +83,10 @@ public class DOTBuilder implements DOTBuilderInterface
 			waitingNodeSet.remove (node);
 
 			visitedNodes.add (node);
-			
+
 			// AG - give a shape also to error nodes
 			if (node instanceof CFAErrorNode) {
-			    nodeWriter.add(node.getNodeNumber(), 
+			    nodeWriter.add(node.getNodeNumber(),
 			            "tripleoctagon");
 			}
 			else if(node.isLoopStart()){
@@ -97,11 +97,11 @@ public class DOTBuilder implements DOTBuilderInterface
 			for (int edgeIdx = 0; edgeIdx < leavingEdgeCount; edgeIdx++)
 			{
 				CFAEdge edge = node.getLeavingEdge (edgeIdx);
-				
+
 				if(edge instanceof AssumeEdge){
 					nodeWriter.add(node.getNodeNumber(), "diamond");
 				}
-				
+
 				CFANode successor = edge.getSuccessor ();
 				String line = "";
 
@@ -120,7 +120,7 @@ public class DOTBuilder implements DOTBuilderInterface
 				line = line + edgeText;
 				line = line + "\"];";
 				DOTWriter dw;
-				if((edge instanceof FunctionCallEdge && !((FunctionCallEdge)edge).isExternalCall()) || 
+				if((edge instanceof FunctionCallEdge && !((FunctionCallEdge)edge).isExternalCall()) ||
 						edge instanceof ReturnEdge){
 					dw = (DOTWriter)subGraphWriters.get("____Main____Diagram__");
 				}
@@ -134,7 +134,7 @@ public class DOTBuilder implements DOTBuilderInterface
 			if(edge != null){
 				CFANode successor = edge.getSuccessor ();
 				String line = "";
-				
+
 				if ((!visitedNodes.contains (successor)) && (!waitingNodeSet.contains (successor)))
 				{
 					waitingNodeList.add (successor);

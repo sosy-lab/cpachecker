@@ -36,7 +36,7 @@ import cpa.symbpredabs.mathsat.MathsatSymbolicFormulaManager;
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
 public class ItpCounterexampleRefiner {
-    
+
     // some statistics. All times are in milliseconds
     public class Stats {
         public long abstractionMathsatTime = 0;
@@ -52,36 +52,36 @@ public class ItpCounterexampleRefiner {
         public long cexAnalysisMathsatTime = 0;
         public long cexAnalysisMaxMathsatTime = 0;
         public int abstractionNumMathsatQueries = 0;
-        
+
         public long forceCoverTime = 0;
         public long forceCoverMaxTime = 0;
         public long forceCoverMathsatTime = 0;
         public long forceCoverMaxMathsatTime = 0;
     }
     protected Stats stats;
-    
+
     protected int cexDumpNum = 0;
     protected boolean dumpCexQueries;
-    
+
     private Map<SymbolicFormula, MathsatSymbolicFormula> instantiateCache;
 
     private ExplicitAbstractFormulaManager amgr;
     private InterpolatingTheoremProver itpProver;
-    
+
     public ItpCounterexampleRefiner(ExplicitAbstractFormulaManager mgr,
             InterpolatingTheoremProver interpolator) {
         super();
         stats = new Stats();
         dumpCexQueries = CPAMain.cpaConfig.getBooleanValue(
                 "cpas.itpabs.mathsat.dumpRefinementQueries");
-        instantiateCache = 
+        instantiateCache =
             new HashMap<SymbolicFormula, MathsatSymbolicFormula>();
-        
+
         amgr = mgr;
 //        assert(amgr != null);
         itpProver = interpolator;
     }
-    
+
     public Stats getStats() { return stats; }
 
     /**
@@ -92,10 +92,10 @@ public class ItpCounterexampleRefiner {
             SymbolicFormulaManager mgr,
             Deque<ItpAbstractElement> abstractTrace) {
         assert(abstractTrace.size() > 1);
-        
+
         long startTime = System.currentTimeMillis();
         stats.numCallsCexAnalysis++;
-        
+
         // create the DAG formula corresponding to the abstract trace. We create
         // n formulas, one per interpolation group
         AbstractElementWithLocation[] abstarr = abstractTrace.toArray(
@@ -109,16 +109,16 @@ public class ItpCounterexampleRefiner {
             System.out.flush();
             System.exit(1);
         }
-        
+
         Vector<SymbolicFormula> f = concPath.path;
         boolean theoryCombinationNeeded = concPath.theoryCombinationNeeded;
-        
+
         LazyLogger.log(LazyLogger.DEBUG_3,
                        "Checking feasibility of abstract trace");
-        
+
         boolean shortestTrace = CPAMain.cpaConfig.getBooleanValue(
                 "cpas.symbpredabs.shortestCexTrace");
-    
+
         if (shortestTrace && CPAMain.cpaConfig.getBooleanValue(
                 "cpas.symbpredabs.explicit.getUsefulBlocks")) {
 //            long gubStart = System.currentTimeMillis();
@@ -128,20 +128,20 @@ public class ItpCounterexampleRefiner {
 //            stats.cexAnalysisGetUsefulBlocksTime += gubEnd - gubStart;
 //            stats.cexAnalysisGetUsefulBlocksMaxTime = Math.max(
 //                    stats.cexAnalysisGetUsefulBlocksMaxTime, gubEnd - gubStart);
-            // set shortestTrace to false, so we perform only one final call 
+            // set shortestTrace to false, so we perform only one final call
             // to msat_solve
             shortestTrace = false;
         }
 
-        // now f is the DAG formula which is satisfiable iff there is a 
+        // now f is the DAG formula which is satisfiable iff there is a
         // concrete counterexample
         //
         // create a working environment
         MathsatSymbolicFormulaManager mmgr = (MathsatSymbolicFormulaManager)mgr;
         long msatEnv = mmgr.getMsatEnv();
-        
+
         itpProver.init();
-        
+
         // then, assert the formulas
         long res = -1;
 
@@ -150,7 +150,7 @@ public class ItpCounterexampleRefiner {
         int n = 0;
         for (SymbolicFormula fm : f) {
             itpProver.addFormula(fm);
-            
+
             dumpMsat(String.format("cex_%02d.%02d.msat", cexDumpNum, n++),
                      msatEnv, ((MathsatSymbolicFormula)fm).getTerm());
 
@@ -177,13 +177,13 @@ public class ItpCounterexampleRefiner {
         }
         long msatSolveTimeEnd = System.currentTimeMillis();
         long msatSolveTime = msatSolveTimeEnd - msatSolveTimeStart;
-               
+
         ItpCounterexampleTraceInfo info = null;
-        
+
         if (unsat) {
             // the counterexample is spurious. Extract the predicates from
             // the interpolants
-            info = new ItpCounterexampleTraceInfo(true);            
+            info = new ItpCounterexampleTraceInfo(true);
             // how to partition the trace into (A, B) depends on whether
             // there are function calls involved or not: in general, A
             // is the trace from the entry point of the current function
@@ -199,9 +199,9 @@ public class ItpCounterexampleRefiner {
                     // cut from the beginning
                     start_of_a = 0;
                 }
-                		
+
                 int sz = i - start_of_a;
-                Vector<SymbolicFormula> formulasOfA = 
+                Vector<SymbolicFormula> formulasOfA =
                     new Vector<SymbolicFormula>();
                 formulasOfA.ensureCapacity(sz);
                 for (int j = 0; j < sz; ++j) {
@@ -211,16 +211,16 @@ public class ItpCounterexampleRefiner {
                 SymbolicFormula itp = itpProver.getInterpolant(formulasOfA);
                 msatSolveTimeEnd = System.currentTimeMillis();
                 msatSolveTime += msatSolveTimeEnd - msatSolveTimeStart;
-                
+
                 LazyLogger.log(LazyLogger.DEBUG_1,
                                "Got interpolant(", i, "): ", itp);
-                
-                ItpAbstractElement s1 = 
+
+                ItpAbstractElement s1 =
                     (ItpAbstractElement)abstarr[i];
                 info.setFormulaForRefinement(
                         s1, mmgr.uninstantiate((MathsatSymbolicFormula)itp));
-                
-                // If we are entering or exiting a function, update the stack 
+
+                // If we are entering or exiting a function, update the stack
                 // of entry points
                 ItpAbstractElement e = (ItpAbstractElement)abstarr[i];
                 if (isFunctionEntry(e)) {
@@ -228,19 +228,19 @@ public class ItpCounterexampleRefiner {
                             "Pushing entry point, function: ",
                             e.getLocation().getFunctionName());
                     entryPoints.push(i);
-                } 
+                }
                 if (isFunctionExit(e)) {
                     LazyLogger.log(LazyLogger.DEBUG_3,
                             "Popping entry point, returning from function: ",
                             e.getLocation().getFunctionName());
                     entryPoints.pop();
-                }                
+                }
             }
-            info.setFormulaForRefinement((ItpAbstractElement)abstarr[0], 
+            info.setFormulaForRefinement((ItpAbstractElement)abstarr[0],
                     mmgr.makeTrue());
             info.setFormulaForRefinement(
-                    (ItpAbstractElement)abstarr[abstarr.length-1], 
-                    mmgr.makeFalse());            
+                    (ItpAbstractElement)abstarr[abstarr.length-1],
+                    mmgr.makeFalse());
         } else {
             // this is a real bug, notify the user
             info = new ItpCounterexampleTraceInfo(false);
@@ -253,18 +253,18 @@ public class ItpCounterexampleRefiner {
                 dumpCounterexample(mmgr, f, cexPath);
             }
         }
-        
+
         itpProver.reset();
-        
+
         // update stats
         long endTime = System.currentTimeMillis();
         long totTime = endTime - startTime;
         stats.cexAnalysisTime += totTime;
         stats.cexAnalysisMaxTime = Math.max(totTime, stats.cexAnalysisMaxTime);
         stats.cexAnalysisMathsatTime += msatSolveTime;
-        stats.cexAnalysisMaxMathsatTime = 
+        stats.cexAnalysisMaxMathsatTime =
             Math.max(msatSolveTime, stats.cexAnalysisMaxMathsatTime);
-        
+
         return info;
     }
 
@@ -282,7 +282,7 @@ public class ItpCounterexampleRefiner {
             }
             pw.close();
         } catch (FileNotFoundException e) {
-            LazyLogger.log(CustomLogLevel.INFO, 
+            LazyLogger.log(CustomLogLevel.INFO,
                     "Failed to save msat Counterexample to file: ",
                     cexPath);
         }
@@ -291,7 +291,7 @@ public class ItpCounterexampleRefiner {
     private boolean isFunctionExit(ItpAbstractElement e) {
         return false; // TODO
 //        CFANode inner = e.getLocation();
-//        return (inner.getNumLeavingEdges() == 1 && 
+//        return (inner.getNumLeavingEdges() == 1 &&
 //                inner.getLeavingEdge(0) instanceof ReturnEdge);
     }
 
@@ -299,13 +299,13 @@ public class ItpCounterexampleRefiner {
         return false; // TODO
 //        CFANode inner = e.getLocation();
 //        return (inner.getNumEnteringEdges() > 0 &&
-//                inner.getEnteringEdge(0).getPredecessor() instanceof 
+//                inner.getEnteringEdge(0).getPredecessor() instanceof
 //                FunctionDefinitionNode);
     }
 
     /**
      * Forced Covering checks (see McMillan's CAV'06 paper)
-     */ 
+     */
     public ItpCounterexampleTraceInfo forceCover(
             SymbolicFormulaManager mgr,
             ItpAbstractElement x,
@@ -343,11 +343,11 @@ public class ItpCounterexampleRefiner {
 
         SymbolicFormula statew = mmgr.instantiate(w.getAbstraction(), ssa);
         SymbolicFormula statew2 = statew;
-        statew = new MathsatSymbolicFormula(mathsat.api.msat_make_not(msatEnv, 
+        statew = new MathsatSymbolicFormula(mathsat.api.msat_make_not(msatEnv,
                 ((MathsatSymbolicFormula)statew).getTerm()));
         if (statew.isFalse()) {
-            System.out.println("ERROR, statew is false!! statew2 is: " + 
-                    statew2 + ", w.getAbstraction() is: " + w.getAbstraction() + 
+            System.out.println("ERROR, statew is false!! statew2 is: " +
+                    statew2 + ", w.getAbstraction() is: " + w.getAbstraction() +
                     ", ssa is: " + ssa);
             System.out.flush();
             assert(false);
@@ -358,7 +358,7 @@ public class ItpCounterexampleRefiner {
                 "Checking feasibility of abstract trace");
 
         boolean getUsefulBlocks = CPAMain.cpaConfig.getBooleanValue(
-                "cpas.symbpredabs.explicit.getUsefulBlocks"); 
+                "cpas.symbpredabs.explicit.getUsefulBlocks");
         if (getUsefulBlocks) {
             //long gubStart = System.currentTimeMillis();
             f = amgr.getUsefulBlocks(
@@ -386,16 +386,16 @@ public class ItpCounterexampleRefiner {
                 itpProver.addFormula(fm);
 
                 LazyLogger.log(LazyLogger.DEBUG_1,
-                        "Asserting formula: ", fm); 
+                        "Asserting formula: ", fm);
             }
             // and check satisfiability
             boolean unsat = itpProver.isUnsat();
             if (!unsat) {
-                // ok, the path is feasible, add the negation 
+                // ok, the path is feasible, add the negation
                 // of the abstract state at w
                 itpProver.addFormula(f.lastElement());
 
-                LazyLogger.log(LazyLogger.DEBUG_1, 
+                LazyLogger.log(LazyLogger.DEBUG_1,
                         "Asserting state formula: ", f.lastElement());
                 unsat = itpProver.isUnsat();
             } else {
@@ -405,31 +405,31 @@ public class ItpCounterexampleRefiner {
 
             if (unsat) {
                 LazyLogger.log(LazyLogger.DEBUG_1, "Forced coverage OK");
-                // the forced coverage check is successful. 
+                // the forced coverage check is successful.
                 // Extract the predicates from the interpolants
-                info = new ItpCounterexampleTraceInfo(true);            
+                info = new ItpCounterexampleTraceInfo(true);
                 for (int k = 0; k < abstarr.length; ++k) {
                     int i = k+1;
                     int start_of_a = 0;
 
                     int sz = i - start_of_a;
-                    Vector<SymbolicFormula> formulasOfA = 
+                    Vector<SymbolicFormula> formulasOfA =
                         new Vector<SymbolicFormula>();
                     formulasOfA.ensureCapacity(sz);
                     for (int j = 0; j < sz; ++j) {
                         formulasOfA.add(f.elementAt(j+start_of_a));
                     }
-                    SymbolicFormula itp = 
+                    SymbolicFormula itp =
                         itpProver.getInterpolant(formulasOfA);
 
                     LazyLogger.log(LazyLogger.DEBUG_1,
                             "Got interpolant(", i, "): ", itp);
 
-                    ItpAbstractElement s1 = 
+                    ItpAbstractElement s1 =
                         (ItpAbstractElement)abstarr[k];
                     info.setFormulaForRefinement(
                             s1, mmgr.uninstantiate(
-                                    (MathsatSymbolicFormula)itp));              
+                                    (MathsatSymbolicFormula)itp));
                 }
             } else {
                 // forced coverage not possible
@@ -446,7 +446,7 @@ public class ItpCounterexampleRefiner {
         stats.forceCoverTime += totTime;
         stats.forceCoverMaxTime = Math.max(totTime, stats.forceCoverMaxTime);
         stats.forceCoverMathsatTime += msatSolveTime;
-        stats.forceCoverMaxMathsatTime = 
+        stats.forceCoverMaxMathsatTime =
             Math.max(msatSolveTime, stats.forceCoverMaxMathsatTime);
 
         return info;
@@ -466,16 +466,16 @@ public class ItpCounterexampleRefiner {
             }
         }
     }
-    
+
     private MathsatSymbolicFormula instantiate(
             MathsatSymbolicFormulaManager mmgr, SymbolicFormula f) {
         if (instantiateCache.containsKey(f)) {
             return instantiateCache.get(f);
         }
-        MathsatSymbolicFormula ret = 
+        MathsatSymbolicFormula ret =
             (MathsatSymbolicFormula)mmgr.instantiate(f, null);
         instantiateCache.put(f, ret);
         return ret;
     }
-    
+
 }

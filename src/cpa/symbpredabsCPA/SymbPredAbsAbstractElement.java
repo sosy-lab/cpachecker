@@ -17,7 +17,7 @@ import cpa.common.interfaces.AbstractElement;
  *
  * @author erkan
  */
-public class SymbPredAbsAbstractElement 
+public class SymbPredAbsAbstractElement
 implements AbstractElement {
 
 	/** The location on CFA */
@@ -38,9 +38,9 @@ implements AbstractElement {
 	/** predicate list for this element*/
 	private PredicateMap predicates;
 
-	// TODO 
+	// TODO
 	SSAMap maxIndex;
-	
+
 	// private SymbPredAbsAbstractDomain domain;
 	private BDDMathsatSymbPredAbsAbstractManager bddMathsatMan;
 	private MathsatSymbPredAbsFormulaManager mathsatFormMan;
@@ -52,42 +52,42 @@ implements AbstractElement {
 //	private static int nextAvailableId = 1;
 
 //	public int getId() { return elemId; }
-//	public CFANode getLocation() { 
-//		return CFALocation; 
+//	public CFANode getLocation() {
+//		return CFALocation;
 //	}
 
-	public PathFormula getPathFormula() { 
+	public PathFormula getPathFormula() {
 		return pathFormula;
 	}
 
 //	public void setLocation(CFANode loc){
 //		CFALocation = loc;
 //	}
-	
+
 	public void setAbstractionNode(){
 		isAbstractionNode = true;
 	}
-	
+
 	public boolean isAbstractionNode(){
 		return isAbstractionNode;
 	}
-	
-	public AbstractFormula getAbstraction() { 
-		return abstraction; 
+
+	public AbstractFormula getAbstraction() {
+		return abstraction;
 	}
 
-	public void setAbstraction(AbstractFormula a) { 
+	public void setAbstraction(AbstractFormula a) {
 		abstraction = a;
 	}
 	public void setPathFormula(PathFormula pf){
 		pathFormula = pf;
 	}
 
-	public ParentsList getParents() { 
-		return parents; 
+	public ParentsList getParents() {
+		return parents;
 	}
 
-	public void addParent(Integer i) { 
+	public void addParent(Integer i) {
 		parents.addToList(i);
 	}
 
@@ -101,9 +101,9 @@ implements AbstractElement {
 
 	// TODO fix these constructors, check all callers later
 	// when an element for abstraction and non-abstraction location
-	// is created call different constructors 
-	public SymbPredAbsAbstractElement(SymbPredAbsAbstractDomain d, CFANode CFALoc, CFANode abstLoc, 
-			PathFormula pf, AbstractFormula a, 
+	// is created call different constructors
+	public SymbPredAbsAbstractElement(SymbPredAbsAbstractDomain d, CFANode CFALoc, CFANode abstLoc,
+			PathFormula pf, AbstractFormula a,
 			ParentsList p, PathFormula initFormula, PredicateMap pmap) {
 		//CFALocation = CFALoc;
 		abstractionLocation = abstLoc;
@@ -130,11 +130,11 @@ implements AbstractElement {
 			return true;
 		} else if (!(o instanceof SymbPredAbsAbstractElement)) {
 			return false;
-		} 
+		}
 		else{
 	    	SymbPredAbsAbstractElement thisElement = (SymbPredAbsAbstractElement)this;
 	    	SymbPredAbsAbstractElement otherElement = (SymbPredAbsAbstractElement)o;
-	        
+
 	    	// TODO
 //	    	if(e1.getLocation().equals(e2.getLocation())){
 	    	// TODO check
@@ -144,10 +144,10 @@ implements AbstractElement {
 	    		if(!b){
 	    			if(thisElement.getParents().equals(otherElement.getParents())){
 //	    				MathsatSymbPredAbsFormulaManager mgr = mathsatFormMan;
-//	    				boolean ok = mgr.equals(thisElement.getPathFormula().getSymbolicFormula(), 
+//	    				boolean ok = mgr.equals(thisElement.getPathFormula().getSymbolicFormula(),
 //	    						otherElement.getPathFormula().getSymbolicFormula());
 //	    				// TODO later
-////	    				if (ok) 
+////	    				if (ok)
 ////	    				{
 ////	    	                cpa.setCoveredBy(thisElement, otherElement);
 ////	    	            } else {
@@ -189,9 +189,9 @@ implements AbstractElement {
 //	    	else{
 //	    		return false;
 //	    	}
-	    
-			
-			
+
+
+
 		}
 	}
 
@@ -212,11 +212,11 @@ implements AbstractElement {
 	public String toString() {
 		BDDAbstractFormula abst = (BDDAbstractFormula)getAbstraction();
 		SymbolicFormula symbReprAbst = bddMathsatMan.toConcrete(mathsatFormMan, abst);
-		return  
-		//"node: " + getLocation().getNodeNumber() + 
-		" PF: "+ getPathFormula().getSymbolicFormula() + 
+		return
+		//"node: " + getLocation().getNodeNumber() +
+		" PF: "+ getPathFormula().getSymbolicFormula() +
 		" Abstraction: " + symbReprAbst +
-		 " Init Formula--> " + (getInitAbstractionSet() != null ? getInitAbstractionSet().getSymbolicFormula() : "null")  + 
+		 " Init Formula--> " + (getInitAbstractionSet() != null ? getInitAbstractionSet().getSymbolicFormula() : "null")  +
 		"\n \n";
 		//+ ">(" + Integer.toString(getId()) + ")"
 	}
@@ -240,14 +240,14 @@ implements AbstractElement {
 	}
 
 	/**
-	public Stack<Pair<AbstractFormula, SymbPredAbsCFANode>> getContext() 
-	{ 
-		return context; 
+	public Stack<Pair<AbstractFormula, SymbPredAbsCFANode>> getContext()
+	{
+		return context;
 	}
 
-	public void setContext(Stack<Pair<AbstractFormula, SymbPredAbsCFANode>> ctx, 
-			boolean owns) 
-	{ 
+	public void setContext(Stack<Pair<AbstractFormula, SymbPredAbsCFANode>> ctx,
+			boolean owns)
+	{
 		context = ctx;
 		ownsContext = owns;
 	}
@@ -267,7 +267,7 @@ implements AbstractElement {
 	private void cloneContext() {
 		// copy-on-write semantics: just duplicate the context and push
 		// in the copy
-		Stack<Pair<AbstractFormula, SymbPredAbsCFANode>> copy = 
+		Stack<Pair<AbstractFormula, SymbPredAbsCFANode>> copy =
 			new Stack<Pair<AbstractFormula, SymbPredAbsCFANode>>();
 		for (Pair<AbstractFormula, SymbPredAbsCFANode> a : context) {
 			copy.add(a);
@@ -328,7 +328,7 @@ implements AbstractElement {
 	public void setInitAbstractionSet(PathFormula initFormula) {
 		this.initAbstractionFormula = initFormula;
 	}
-	
+
 	public SSAMap getMaxIndex() {
 		return maxIndex;
 	}

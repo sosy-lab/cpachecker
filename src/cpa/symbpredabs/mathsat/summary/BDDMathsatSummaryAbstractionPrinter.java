@@ -14,17 +14,17 @@ import java.util.Stack;
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
 public class BDDMathsatSummaryAbstractionPrinter {
-    
+
     private long msatEnv;
     private String baseFileName;
     private int curNum;
-    
+
     public BDDMathsatSummaryAbstractionPrinter(long env, String baseName) {
         msatEnv = env;
         baseFileName = baseName;
         curNum = 0;
     }
-    
+
     public void nextNum() {
         ++curNum;
     }
@@ -37,7 +37,7 @@ public class BDDMathsatSummaryAbstractionPrinter {
         String edgeFormulaRepr = mathsat.api.msat_to_msat(
                 msatEnv, edgeFormulaTerm);
         String predDefRepr = mathsat.api.msat_to_msat(msatEnv, predDef);
-        
+
         try {
             PrintWriter out = new PrintWriter(new File(fileName));
             out.println("#--- CURRENT STATE");
@@ -47,7 +47,7 @@ public class BDDMathsatSummaryAbstractionPrinter {
             out.println("\n#--- PRED DEFS");
             out.println(predDefRepr);
             out.close();
-            
+
             out = new PrintWriter(new File(importantName));
             for (long imp : importantSymbols) {
                 out.println(mathsat.api.msat_term_repr(imp));
@@ -58,7 +58,7 @@ public class BDDMathsatSummaryAbstractionPrinter {
             assert(false);
         }
     }
-    
+
     public void printNusmvFormat(long curStateTerm, long edgeFormulaTerm,
                                  long predDef, long[] importantSymbols) {
         Stack<Long> toProcess = new Stack<Long>();
@@ -67,8 +67,8 @@ public class BDDMathsatSummaryAbstractionPrinter {
         Set<Long> preds = new HashSet<Long>();
 
         long term = mathsat.api.msat_make_and(
-                msatEnv, curStateTerm, edgeFormulaTerm);        
-        
+                msatEnv, curStateTerm, edgeFormulaTerm);
+
 //        toProcess.push(term);
 //        while (!toProcess.empty()) {
 //            long t = toProcess.pop();
@@ -85,7 +85,7 @@ public class BDDMathsatSummaryAbstractionPrinter {
 //                toProcess.push(mathsat.api.msat_term_get_arg(t, i));
 //            }
 //        }
-        
+
         toProcess.push(predDef);
         while (!toProcess.empty()) {
             long t = toProcess.pop();
@@ -112,7 +112,7 @@ public class BDDMathsatSummaryAbstractionPrinter {
                     out.println(line + ";");
                 } else if (line.startsWith("DEFINE")) {
                     String[] bits = line.split(" +", 5);
-                    out.println("DEFINE " + bits[1] + " " + bits[4] + ";"); 
+                    out.println("DEFINE " + bits[1] + " " + bits[4] + ";");
                 } else if (line.startsWith("FORMULA")) {
                     out.println("INIT" + line.substring(7));
                 } else {
@@ -131,6 +131,6 @@ public class BDDMathsatSummaryAbstractionPrinter {
             e.printStackTrace();
             assert(false);
         }
-        
+
     }
 }

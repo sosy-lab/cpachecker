@@ -88,7 +88,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis
 		CallElement initialCallElement = new CallElement(node.getFunctionName(), node, initialElement);
 		initialCallStack.push(initialCallElement);
 		initialElement.setCallStack(initialCallStack);
-		
+
 		return createCompositeCPA(compositeDomain, compositeMerge, compositeStop, compositeTransfer, initialElement);
 
 	}
@@ -129,7 +129,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis
 			// TODO make sure that the first CPA carries location information
 			// otherwise the analysis will have efficiency problems
 
-			// get name of the cpa, we are getting the explicit 
+			// get name of the cpa, we are getting the explicit
 			// path of the representing class of this cpa
 			String cpaName = cpaNamesArray[i];
 
@@ -141,16 +141,16 @@ public class CompositeCPA implements ConfigurableProgramAnalysis
 				Object argumentlist[] = {mergeTypesArray[i], stopTypesArray[i]};
 				Object obj = ct.newInstance(argumentlist);
 				// Convert object to CPA
-				ConfigurableProgramAnalysis newCPA = (ConfigurableProgramAnalysis)obj; 
-				cpas.add(newCPA); 
-				
-				// AG - check if this cpa defines its own 
+				ConfigurableProgramAnalysis newCPA = (ConfigurableProgramAnalysis)obj;
+				cpas.add(newCPA);
+
+				// AG - check if this cpa defines its own
 				// statistics, and if so add them to the
 				// main ones
 				try {
-				    Method meth = 
+				    Method meth =
 				        cls.getDeclaredMethod("getStatistics");
-				    CPAStatistics s = 
+				    CPAStatistics s =
 				        (CPAStatistics)meth.invoke(newCPA);
 				    CPAMain.cpaStats.addSubStatistics(s);
 				} catch (Exception e) {
@@ -173,14 +173,14 @@ public class CompositeCPA implements ConfigurableProgramAnalysis
 				e.printStackTrace();
 			}
 		}
-		
+
 		ConfigurableProgramAnalysis cpa = null;
 		// TODO this was for efficiency but I modified the condition for it to work only with
 		// summary nodes
-		if (cpas.size() == 1 && 
+		if (cpas.size() == 1 &&
 		        CPAMain.cpaConfig.getBooleanValue(
 		                "analysis.noCompositeCPA")) {
-		    LazyLogger.log(CustomLogLevel.MainApplicationLevel, 
+		    LazyLogger.log(CustomLogLevel.MainApplicationLevel,
 		            "Only one analyis active, ",
 		            "no need of a composite CPA");
 		    cpa = cpas.get(0);

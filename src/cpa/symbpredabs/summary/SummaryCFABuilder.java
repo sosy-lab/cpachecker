@@ -35,7 +35,7 @@ import cfa.objectmodel.c.StatementEdge;
 /**
  * Manipulates the original CFA(s) of the program, to build the "summary" CFAs,
  * in which each node summarizes a loop-free subpart of the original program
- * 
+ *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
 public class SummaryCFABuilder {
@@ -49,7 +49,7 @@ public class SummaryCFABuilder {
     // list of global variables. At the moment, we simply initialize them
     // at the beginning of mainFunction
     private List<IASTDeclaration> globalVars;
-    
+
     public SummaryCFABuilder(CFAFunctionDefinitionNode mainFunction,
                              List<IASTDeclaration> globalVars) {
         this.mainFunction = mainFunction;
@@ -58,9 +58,9 @@ public class SummaryCFABuilder {
         nodeMap = new HashMap<CFANode, CFANode>();
         summarySizeMap = new HashMap<SummaryCFANode, Integer>();
     }
-    
+
     public CFAFunctionDefinitionNode buildSummary() {
-//        mainFunction = 
+//        mainFunction =
 //            (CFAFunctionDefinitionNode)removeIrrelevant(mainFunction);
         mainFunction = buildSummary(mainFunction);
         // ensure that the error location has a dummy successor - this is needed
@@ -79,7 +79,7 @@ public class SummaryCFABuilder {
             }
         }
         return mainFunction;
-//        SummaryCFAFunctionDefinitionNode s = 
+//        SummaryCFAFunctionDefinitionNode s =
 //            (SummaryCFAFunctionDefinitionNode)buildSummary(mainFunction);
 //        return removeIrrelevant(s);
     }
@@ -87,7 +87,7 @@ public class SummaryCFABuilder {
     // creates a copy of the "orig" edge to link "src" and "dest"
     private CFAEdge copyEdge(CFAEdge orig, CFANode src, CFANode dest) {
         CFAEdgeType tp = orig.getEdgeType();
-        
+
         CFAEdge ret = null;
         if (tp == CFAEdgeType.AssumeEdge) {
             AssumeEdge a = (AssumeEdge)orig;
@@ -104,7 +104,7 @@ public class SummaryCFABuilder {
         } else if (tp == CFAEdgeType.DeclarationEdge) {
             DeclarationEdge d = (DeclarationEdge)orig;
             ret = new DeclarationEdge(
-                    d.getRawStatement(), d.getDeclarators(), 
+                    d.getRawStatement(), d.getDeclarators(),
                     d.getDeclSpecifier());
         } else if (tp == CFAEdgeType.FunctionCallEdge) {
             FunctionCallEdge fc = (FunctionCallEdge)orig;
@@ -127,20 +127,20 @@ public class SummaryCFABuilder {
         assert(ret != null);
         ret.setPredecessor(src);
         ret.setSuccessor(dest);
-        
+
         LazyLogger.log(LazyLogger.DEBUG_3,
-                "LINKING NODES: " + src.getNodeNumber() + "(", 
-                ((InnerCFANode)src).getSummaryNode(), ") AND " + 
+                "LINKING NODES: " + src.getNodeNumber() + "(",
+                ((InnerCFANode)src).getSummaryNode(), ") AND " +
                  + dest.getNodeNumber() +
                 "(", ((InnerCFANode)dest).getSummaryNode() + ")");
-        LazyLogger.log(LazyLogger.DEBUG_3, 
+        LazyLogger.log(LazyLogger.DEBUG_3,
                 "  ORIGINAL: ", orig.getPredecessor().getNodeNumber(), " AND ",
                 orig.getSuccessor().getNodeNumber());
 
-        
+
         return ret;
     }
-    
+
     // builds a copy of the input node, without any edge connected to it
     private CFANode copyNode(CFANode orig) {
         if (nodeMap.containsKey(orig)) {
@@ -206,7 +206,7 @@ public class SummaryCFABuilder {
                     }
                 }
             }
-            // check if we have only blank incoming edges, and the current 
+            // check if we have only blank incoming edges, and the current
             // summary is already big TODO
             if (CPAMain.cpaConfig.getBooleanValue(
                     "cpas.symbpredabs.smallSummaries")) {
@@ -214,7 +214,7 @@ public class SummaryCFABuilder {
                     for (int i = 0; i < n.getNumEnteringEdges(); ++i) {
                         CFAEdge e = n.getEnteringEdge(i);
                         if (!(e instanceof BlankEdge)) break;
-                        if (e instanceof BlankEdge && 
+                        if (e instanceof BlankEdge &&
                             e.getRawStatement().startsWith(
                                     "Goto: BREAK_SUMMARY")) {
                             return true;
@@ -241,19 +241,19 @@ public class SummaryCFABuilder {
             return false;
         }
     }
-    
+
     private static final int DUPLICATE_NO = 0;
     private static final int DUPLICATE_FORWARD = 1;
     private static final int DUPLICATE_BACKWARD = -1;
-    
+
     /*
      * Duplication of nodes. The idea is that we want to have only blank edges
      * between summary locations, as this simplifies things. But sometimes we
-     * have edges with expressions between two nodes belonging to different 
+     * have edges with expressions between two nodes belonging to different
      * summary locations. In this case, we duplicate one of these nodes, and
      * add a blank edge to link the two copies: this blank edge would be the one
-     * that connects the two macro locations. 
-     * 
+     * that connects the two macro locations.
+     *
      * We can decide whether to duplicate "forward" (meaning that the duplicate
      * node will be the successor of the edge) or "backward"
      */
@@ -277,7 +277,7 @@ public class SummaryCFABuilder {
     private void linkSummaries(SummaryCFANode s1, SummaryCFANode s2) {
         CFANode n1 = (CFANode)s1;
         CFANode n2 = (CFANode)s2;
-        
+
         boolean alreadyLinked = false;
         for (int i = 0; i < n1.getNumLeavingEdges(); ++i) {
             if (n1.getLeavingEdge(i).getSuccessor() == n2) {
@@ -289,12 +289,12 @@ public class SummaryCFABuilder {
             CFAEdge se = new SummaryCFAEdge();
             se.setPredecessor((CFANode)s1);
             se.setSuccessor((CFANode)s2);
-            
+
             LazyLogger.log(LazyLogger.DEBUG_3,
                            "LINKING SUMMARIES: ", s1, " AND ", s2);
         }
     }
-    
+
     private void setSummary(CFANode n, SummaryCFANode s) {
         ((InnerCFANode)n).setSummaryNode(s);
         int count = 0;
@@ -303,7 +303,7 @@ public class SummaryCFABuilder {
         }
         summarySizeMap.put(s, count+1);
     }
-        
+
     private boolean isLoopBack(CFAEdge e) {
         CFANode s = e.getSuccessor();
         boolean yes = s.isLoopStart() && !e.getRawStatement().equals("while");
@@ -332,7 +332,7 @@ public class SummaryCFABuilder {
         LinkedList<CFANode> order = new LinkedList<CFANode>();
         Stack<CFANode> toProcess = new Stack<CFANode>();
         Map<CFANode, Integer> visited = new HashMap<CFANode, Integer>();
-        
+
         toProcess.push(cfa);
         while (!toProcess.empty()) {
             CFANode n = toProcess.peek();
@@ -348,7 +348,7 @@ public class SummaryCFABuilder {
                 CFANode s = e.getSuccessor();
                 // check whether the edge is not a loop-back - we want to
                 // exclude those
-                if (!isLoopBack(e) && 
+                if (!isLoopBack(e) &&
                     (!visited.containsKey(s) || visited.get(s) != 1)) {
                     toProcess.push(s);
                     finished = false;
@@ -371,35 +371,35 @@ public class SummaryCFABuilder {
                 }
             }
         }
-        
+
         return order;
     }
 
-    // implementation of Algorithm 3.1 of the draft paper 
+    // implementation of Algorithm 3.1 of the draft paper
     // "SymbolicProgramAnalysis"
     private CFAFunctionDefinitionNode buildSummary(
             CFAFunctionDefinitionNode cfa) {
         List<CFANode> toProcess = topologicalSort(cfa);
-        
+
         SummaryCFANode curSummary =
             new SummaryCFAFunctionDefinitionNode(copyNode(cfa),
                 cfa.getLineNumber(), cfa.getFunctionName(),
                 ""/* TODO - cfa.getContainingFileName()*/);
         summaryMap.put(cfa, curSummary);
-        setSummary(copyNode(cfa), curSummary);               
-        
-        SummaryCFAFunctionDefinitionNode ret = 
+        setSummary(copyNode(cfa), curSummary);
+
+        SummaryCFAFunctionDefinitionNode ret =
             (SummaryCFAFunctionDefinitionNode)curSummary;
-        
+
         List<CFAEdge> loopbacks = new LinkedList<CFAEdge>();
         List<CFANode> loopbacksDup = new LinkedList<CFANode>();
-        
+
         for (CFANode n : toProcess) {
             assert(!summaryMap.containsKey(n));
-            
+
             LazyLogger.log(LazyLogger.DEBUG_3,
                     "PROCESSING: ", n.getNodeNumber());
-            
+
             if (shouldStartSummary(n)) {
                 curSummary = new SummaryNode(copyNode(n));
                 setSummary(copyNode(n), curSummary);
@@ -417,7 +417,7 @@ public class SummaryCFABuilder {
                             //assert(e instanceof BlankEdge);
                             String fn = pred.getFunctionName();
                             if (fn == null) fn = "<NULL>";
-                            LazyLogger.log(CustomLogLevel.INFO, 
+                            LazyLogger.log(CustomLogLevel.INFO,
                                     "WARNING: ignoring edge: ", e,
                                     ", function: ", fn);
                         } else {
@@ -431,7 +431,7 @@ public class SummaryCFABuilder {
                                 be.setSuccessor(copyNode(n));
                             } else {
                                 SummaryCFANode curs = summaryMap.get(pred);
-                                if (((InnerCFANode)dup).getSummaryNode() != 
+                                if (((InnerCFANode)dup).getSummaryNode() !=
                                     curs) {
                                     dup = duplicateNode(copyNode(n));
                                     s = curs;
@@ -451,10 +451,10 @@ public class SummaryCFABuilder {
 //                    e.setPredecessor(dup);
 //                    e.setSuccessor(copyNode(n));
                 } else if (res == DUPLICATE_FORWARD) {
-                    assert(n.getNumEnteringEdges() == 1);                    
+                    assert(n.getNumEnteringEdges() == 1);
                     CFAEdge e = n.getEnteringEdge(0);
                     if (!isLoopBack(e)) {
-                        System.err.println("ERROR: " + n + ": " + 
+                        System.err.println("ERROR: " + n + ": " +
                                 e.getRawStatement());
                     }
                     assert(isLoopBack(e));
@@ -463,7 +463,7 @@ public class SummaryCFABuilder {
                     // in this case, the duplicate will be the first node of
                     // the new summary. So, we re-create the summary and
                     // re-set the information on (the copy of) n
-                    curSummary = new SummaryNode(dup);                    
+                    curSummary = new SummaryNode(dup);
                     setSummary(dup, curSummary);
                     setSummary(copyNode(n), curSummary);
                     summaryMap.put(n, curSummary);
@@ -521,7 +521,7 @@ public class SummaryCFABuilder {
         for (CFAEdge e : loopbacks) {
             CFANode p = e.getPredecessor();
             CFANode s = e.getSuccessor();
-            
+
             if (summaryMap.containsKey(p)) {
                 assert(summaryMap.containsKey(p));
                 assert(summaryMap.containsKey(s));
@@ -538,7 +538,7 @@ public class SummaryCFABuilder {
                 //   ERROR: goto ERROR;
                 // }
                 // The same case can happen also below
-                LazyLogger.log(CustomLogLevel.INFO, 
+                LazyLogger.log(CustomLogLevel.INFO,
                         "WARNING, not linking loopback, predecessor is: ", p,
                         " in function: ", p.getFunctionName());
             }
@@ -552,7 +552,7 @@ public class SummaryCFABuilder {
                 // in this case, the duplicate will be the first node of
                 // the new summary. So, we re-create the summary and
                 // re-set the information on (the copy of) n
-                //            curSummary = new SummaryNode(dup);                    
+                //            curSummary = new SummaryNode(dup);
                 //            setSummary(dup, curSummary);
                 //            setSummary(copyNode(n), curSummary);
                 //            summaryMap.put(n, curSummary);
@@ -569,14 +569,14 @@ public class SummaryCFABuilder {
                 be.setSuccessor(dup);
             } else {
                 // see comment in the previous case
-                LazyLogger.log(CustomLogLevel.INFO, 
+                LazyLogger.log(CustomLogLevel.INFO,
                         "WARNING, not linking loopback, predecessor is: ", pred,
-                        " in function: ", pred.getFunctionName());                
+                        " in function: ", pred.getFunctionName());
             }
         }
-        
+
         addGlobalDeclarations(copyNode(cfa));
-        
+
         return ret;
     }
 
@@ -591,11 +591,11 @@ public class SummaryCFABuilder {
         cur.setSummaryNode(((InnerCFANode)cfa).getSummaryNode());
         cur.setFunctionName(cfa.getFunctionName());
         decls.add(cur);
-        
+
         for (IASTDeclaration d : globalVars) {
             assert(d instanceof IASTSimpleDeclaration);
             IASTSimpleDeclaration sd = (IASTSimpleDeclaration)d;
-            if (sd.getDeclarators().length == 1 && 
+            if (sd.getDeclarators().length == 1 &&
                     sd.getDeclarators()[0] instanceof IASTFunctionDeclarator) {
                 continue;
             }
@@ -610,7 +610,7 @@ public class SummaryCFABuilder {
             decls.add(n);
             cur = n;
         }
-        
+
         // now update the successors of cfa
         for (int i = 0; i < cfa.getNumLeavingEdges(); ++i) {
             CFAEdge e = cfa.getLeavingEdge(i);
@@ -636,7 +636,7 @@ public class SummaryCFABuilder {
                 CallToReturnEdge ce = orig.getEnteringSummaryEdge();
                 CallToReturnEdge nce = new CallToReturnEdge(
                         ce.getRawStatement(), ce.getExpression());
-                // copy the summary edge 
+                // copy the summary edge
                 nce.initializeSummaryEdge(ce.getPredecessor(), ret);
             }
         }

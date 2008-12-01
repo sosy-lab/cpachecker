@@ -15,6 +15,6 @@ public class TypeNames
     public static final String IntStr = "int";
     public static final String VoidStr = "void";
     public static final String UnknownStr = "unknown";
-    
+
     private TypeNames () {}
 }

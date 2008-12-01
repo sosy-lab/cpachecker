@@ -15,7 +15,7 @@ import cpa.itpabs.ItpAbstractElement;
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
 public class ItpExplicitAbstractElement extends ItpAbstractElement {
-    
+
     public ItpExplicitAbstractElement(CFANode loc) {
         super(loc);
     }
@@ -24,18 +24,18 @@ public class ItpExplicitAbstractElement extends ItpAbstractElement {
     public String toString() {
         return "E<" + Integer.toString(
                 getLocation().getNodeNumber()) + ">(" +
-                Integer.toString(getId()) + ",P=" + 
-                (getParent() != null ? getParent().getId() : "NIL") + ")"; 
+                Integer.toString(getId()) + ",P=" +
+                (getParent() != null ? getParent().getId() : "NIL") + ")";
     }
 
     @Override
     public boolean isErrorLocation() {
         return (getLocation() instanceof CFAErrorNode);
     }
-    
+
     @Override
     public Collection<CFANode> getLeaves() {
         return Collections.singleton(getLocation());
     }
-    
+
 }

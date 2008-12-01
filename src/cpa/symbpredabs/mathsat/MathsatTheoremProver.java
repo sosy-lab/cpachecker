@@ -16,8 +16,8 @@ public class MathsatTheoremProver implements TheoremProver {
     private int incrAbsEnvCount;
     private final int RESET_INCR_ABS_ENV_FREQUENCY = 100;
     private boolean needsTermCopy;
-    
-    public MathsatTheoremProver(MathsatSymbolicFormulaManager mgr, 
+
+    public MathsatTheoremProver(MathsatSymbolicFormulaManager mgr,
             boolean incr) {
         msatEnv = mgr.getMsatEnv();
         mmgr = mgr;
@@ -26,9 +26,9 @@ public class MathsatTheoremProver implements TheoremProver {
         incrAbsEnvCount = 0;
         curEnv = 0;
     }
-    
+
     public boolean isUnsat(SymbolicFormula f) {
-        push(f);            
+        push(f);
         int res = mathsat.api.msat_solve(curEnv);
         pop();
         assert(res != mathsat.api.MSAT_UNKNOWN);
@@ -64,10 +64,10 @@ public class MathsatTheoremProver implements TheoremProver {
             }
             if (CPAMain.cpaConfig.getBooleanValue(
                     "cpas.symbpredabs.mathsat.useDtc")) {
-                mathsat.api.msat_set_theory_combination(absEnv, 
+                mathsat.api.msat_set_theory_combination(absEnv,
                         mathsat.api.MSAT_COMB_DTC);
             }
-            // disable static learning. For small problems, 
+            // disable static learning. For small problems,
             // this is just overhead
             mathsat.api.msat_set_option(absEnv, "sl", "0");
             mathsat.api.msat_set_option(absEnv, "ghost_filter", "true");
@@ -83,11 +83,11 @@ public class MathsatTheoremProver implements TheoremProver {
             } else {
                 mathsat.api.msat_push_backtrack_point(absEnv);
             }
-        }            
+        }
     }
-    
+
     private void initNormal(boolean shared) {
-        if (shared) {            
+        if (shared) {
             curEnv = mathsat.api.msat_create_shared_env(msatEnv);
         } else {
             curEnv = mathsat.api.msat_create_env();
@@ -104,15 +104,15 @@ public class MathsatTheoremProver implements TheoremProver {
         }
         if (CPAMain.cpaConfig.getBooleanValue(
                 "cpas.symbpredabs.mathsat.useDtc")) {
-            mathsat.api.msat_set_theory_combination(curEnv, 
+            mathsat.api.msat_set_theory_combination(curEnv,
                     mathsat.api.MSAT_COMB_DTC);
         }
-        // disable static learning. For small problems, 
+        // disable static learning. For small problems,
         // this is just overhead
         mathsat.api.msat_set_option(curEnv, "sl", "0");
         mathsat.api.msat_set_option(curEnv, "ghost_filter", "true");
     }
-    
+
     public void init(int purpose) {
         switch (purpose) {
         case CARTESIAN_ABSTRACTION:
@@ -137,16 +137,16 @@ public class MathsatTheoremProver implements TheoremProver {
             }
         }
     }
-    
+
     class MathsatAllSatCallback implements mathsat.AllSatModelCallback {
         private Vector<SymbolicFormula> outModel;
         private AllSatCallback toCall;
-        
+
         public MathsatAllSatCallback(AllSatCallback tc) {
             toCall = tc;
             outModel = null;
         }
-        
+
         public void callback(long[] model) {
             if (outModel == null) {
                 outModel = new Vector<SymbolicFormula>();
@@ -156,7 +156,7 @@ public class MathsatTheoremProver implements TheoremProver {
                 }
             } else {
                 for (int i = 0; i < model.length; ++i) {
-                    MathsatSymbolicFormula f = 
+                    MathsatSymbolicFormula f =
                         (MathsatSymbolicFormula)outModel.elementAt(i);
                     f.setTerm(model[i]);
                 }
@@ -166,18 +166,18 @@ public class MathsatTheoremProver implements TheoremProver {
     }
 
     @Override
-    public int allSat(SymbolicFormula f, 
+    public int allSat(SymbolicFormula f,
             Vector<SymbolicFormula> important, AllSatCallback callback) {
         long allsatEnv = mathsat.api.msat_create_shared_env(msatEnv);
-        
+
         int theories = mmgr.getNeededTheories((MathsatSymbolicFormula)f);
-        
+
         mathsat.api.msat_add_theory(allsatEnv, mathsat.api.MSAT_UF);
         if ((theories & MathsatSymbolicFormulaManager.THEORY_ARITH) != 0) {
             if (CPAMain.cpaConfig.getBooleanValue(
                     "cpas.symbpredabs.mathsat.useIntegers")) {
                 mathsat.api.msat_add_theory(allsatEnv, mathsat.api.MSAT_LIA);
-                int ok = mathsat.api.msat_set_option(allsatEnv, "split_eq", 
+                int ok = mathsat.api.msat_set_option(allsatEnv, "split_eq",
                         "true");
                 assert(ok == 0);
             } else {
@@ -185,7 +185,7 @@ public class MathsatTheoremProver implements TheoremProver {
             }
             if (CPAMain.cpaConfig.getBooleanValue(
                     "cpas.symbpredabs.mathsat.useDtc")) {
-                mathsat.api.msat_set_theory_combination(allsatEnv, 
+                mathsat.api.msat_set_theory_combination(allsatEnv,
                         mathsat.api.MSAT_COMB_DTC);
             }
         }
@@ -198,10 +198,10 @@ public class MathsatTheoremProver implements TheoremProver {
         }
         MathsatAllSatCallback func = new MathsatAllSatCallback(callback);
         mathsat.api.msat_assert_formula(allsatEnv, formula);
-        int numModels = mathsat.api.msat_all_sat(allsatEnv, imp, func);        
-        
+        int numModels = mathsat.api.msat_all_sat(allsatEnv, imp, func);
+
         mathsat.api.msat_destroy_env(allsatEnv);
-        
+
         return numModels;
     }
 

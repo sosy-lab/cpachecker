@@ -14,13 +14,13 @@ import cmdline.CPAMain;
 
 
 public class CPACheckerLogger {
-    
+
         public static class ConfigLevel extends Level {
 
             public ConfigLevel(int val) {
                 super("ConfigLevel", val);
             }
-            
+
             public static ConfigLevel create(String configVal) {
                 if (configVal.toLowerCase().equals("off")) {
                     return new ConfigLevel(Level.OFF.intValue());
@@ -49,11 +49,11 @@ public class CPACheckerLogger {
             }
 
             /**
-             * 
+             *
              */
             private static final long serialVersionUID = 3305833981214128835L;
         }
-	
+
 	public static Logger mainLogger = Logger.getLogger(CPAMain.cpaConfig.getProperty("log.path"));
 	private static FileHandler fileHandler = null;
 	public static void init(){
@@ -80,7 +80,7 @@ public class CPACheckerLogger {
 			Formatter formatter = new SimpleFormatter();
 			fileHandler.setFormatter(formatter);
 			mainLogger.addHandler(fileHandler);
-			// TODO read from config file 
+			// TODO read from config file
 			//CPAMain.cpaConfig.getProperty("log.level");
 			//mainLogger.setLevel(Level.OFF);
 			Level cfg = ConfigLevel.create(
@@ -92,11 +92,11 @@ public class CPACheckerLogger {
 			e.printStackTrace();
 		}
 	}
-	
+
 	public static void log(Level level, String msg){
 		mainLogger.log(level, msg);
 	}
-	
+
 	public static int getLevel() {
 	    return mainLogger.getLevel().intValue();
 	}
@@ -106,5 +106,5 @@ public class CPACheckerLogger {
 		if(fileHandler != null)
 			fileHandler.close();
 	}
-	
+
 }

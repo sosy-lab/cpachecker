@@ -59,7 +59,7 @@ public class TheoremProverInterface {
 
 			// TODO we're processing the String in UTF-8
 			// maybe we should know about the character encoding of the system
-			InputStream istream = new ByteArrayInputStream(query.getBytes("UTF-8")); 
+			InputStream istream = new ByteArrayInputStream(query.getBytes("UTF-8"));
 			//new FileInputStream(fileLocation);
 			byte[] buffer = new byte[4096];
 			for (int count = 0; (count = istream.read(buffer)) >= 0;)
@@ -80,7 +80,7 @@ public class TheoremProverInterface {
 			errorHandler.join();
 			outputHandler.join();
 //			fos.flush();
-//			fos.close();  
+//			fos.close();
 
 		} catch (Throwable t)
 		{
@@ -94,7 +94,7 @@ public class TheoremProverInterface {
 		String s;
 		s = "~ | [ " + "~ " + r1 + " " + r2 + " ]";
 //		System.out.println(s);
-		ThreeValuedBoolean res = satisfiability(s); 
+		ThreeValuedBoolean res = satisfiability(s);
 		return negate(res);
 		//return ThreeValuedBoolean.FALSE;
 	}
@@ -152,7 +152,7 @@ public class TheoremProverInterface {
 
 			} catch (IOException ioe)
 			{
-				ioe.printStackTrace();  
+				ioe.printStackTrace();
 			}
 		}
 	}

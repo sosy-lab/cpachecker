@@ -21,7 +21,7 @@ public class CallToReturnEdge extends AbstractCFAEdge {
 		super(rawStatement);
 		this.expression = exp;
 	}
-	
+
 	public void initializeSummaryEdge(CFANode predecessorNode, CFANode successorNode) {
 		predecessorNode.addLeavingSummaryEdge(this);
 		predecessor = predecessorNode;
@@ -46,7 +46,7 @@ public class CallToReturnEdge extends AbstractCFAEdge {
 	public void setAbstractElement(AbstractElement abstractElement) {
 		this.abstractElement = abstractElement;
 	}
-	
+
 	public AbstractElement extractAbstractElement(String elementName){
 		CompositeElement compElem = (CompositeElement) abstractElement;
 		List<AbstractElement> compElems = compElem.getElements();

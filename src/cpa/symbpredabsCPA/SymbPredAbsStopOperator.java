@@ -21,21 +21,21 @@ public class SymbPredAbsStopOperator implements StopOperator {
 
     private SymbPredAbsAbstractDomain domain;
     private SymbPredAbsCPA cpa;
-    
+
     public SymbPredAbsStopOperator(AbstractDomain d) {
         domain = (SymbPredAbsAbstractDomain) d;
         cpa = domain.getCPA();
     }
 
-    
+
     public AbstractDomain getAbstractDomain() {
         return domain;
     }
 
-    
+
     public boolean stop(AbstractElement element,
             Collection<AbstractElement> reached) throws CPAException {
-    	
+
         for (AbstractElement e : reached) {
             if (stop(element, e)) {
                 return true;
@@ -43,15 +43,15 @@ public class SymbPredAbsStopOperator implements StopOperator {
         }
         return false;
     }
-    
+
     public boolean stop(AbstractElement element, AbstractElement reachedElement)
             throws CPAException {
-    	
+
     	// TODO move this into partialorder
 
     	SymbPredAbsAbstractElement e1 = (SymbPredAbsAbstractElement)element;
     	SymbPredAbsAbstractElement e2 = (SymbPredAbsAbstractElement)reachedElement;
-        
+
     	// TODO
 //    	if(e1.getLocation().equals(e2.getLocation())){
     	// TODO check
@@ -76,9 +76,9 @@ public class SymbPredAbsStopOperator implements StopOperator {
     		}
     		// if abstraction location
     		else{
-                LazyLogger.log(LazyLogger.DEBUG_4, 
+                LazyLogger.log(LazyLogger.DEBUG_4,
                         "Checking Coverage of element: ", element);
-                
+
 //                if (!e1.sameContext(e2)) {
 //                    LazyLogger.log(CustomLogLevel.SpecificCPALevel,
 //                                   "NO, not covered: context differs");

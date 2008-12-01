@@ -25,7 +25,7 @@ public class PredicateAbstractionMergeJoin implements MergeOperator{
 		PredicateAbstractionElement predAbstElement1 = (PredicateAbstractionElement) element1;
 		PredicateAbstractionElement predAbstElement2 = (PredicateAbstractionElement) element2;
 
-		if(predAbstElement1.getPredicateList().size() != 
+		if(predAbstElement1.getPredicateList().size() !=
 			predAbstElement2.getPredicateList().size()){
 			// TODO handle this case
 		}
@@ -52,7 +52,7 @@ public class PredicateAbstractionMergeJoin implements MergeOperator{
 				}
 			}
 		}
-		
+
 		return joined;
 	}
 }

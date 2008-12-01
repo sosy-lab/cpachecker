@@ -1,11 +1,11 @@
 package predicateabstraction;
 
 public class SimplifiedInstruction {
-	
+
 	private String leftVariable;
 	private String rightVariable;
 	private Operator operator;
-	
+
 	public SimplifiedInstruction(String leftVariable, String rightVariable,
 			Operator operator) {
 		super();
@@ -13,7 +13,7 @@ public class SimplifiedInstruction {
 		this.rightVariable = rightVariable;
 		this.operator = operator;
 	}
-	
+
 	public SimplifiedInstruction() {
 		// TODO Auto-generated constructor stub
 	}

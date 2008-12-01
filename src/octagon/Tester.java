@@ -85,7 +85,7 @@ public class Tester {
 		octelem.addVar("c", "main");
 		octelem.addVar("d", "main");
 		octelem.addVar("e", "main");
-		
+
 		octelem.update(LibraryAccess.addDimension(octelem, 5));
 
 		Num[] array = new Num[octelem.getNumberOfVars()+1];
@@ -101,7 +101,7 @@ public class Tester {
 		System.out.println(octelem.getOctagon().getDimension());
 		octelem.update(LibraryAccess.assignVar(octelem, lvar, array));
 		System.out.println("==== 1 ==== \n" + octelem);
-		
+
 		for(int i=0; i<array.length-1; i++){
 			array[i] = new Num(0);
 		}
@@ -109,9 +109,9 @@ public class Tester {
 		array[0] = new Num(1);
 		array[2] = new Num(1);
 		octelem.update(LibraryAccess.addConstraint(octelem, array));
-		
+
 		System.out.println("==== 2 ==== \n" + octelem);
-		
+
 
 	}
 

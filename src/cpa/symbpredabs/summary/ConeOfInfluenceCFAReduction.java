@@ -13,13 +13,13 @@ import cfa.objectmodel.CFANode;
 
 
 /**
- * Perform a (very) simple cone-of-influence reduction on the given CFA. 
- * That is, get rid of all the nodes/edges that are not reachable from the 
+ * Perform a (very) simple cone-of-influence reduction on the given CFA.
+ * That is, get rid of all the nodes/edges that are not reachable from the
  * error location(s).
  *
  * In fact, this should probably *not* be called ConeOfInfluenceCFAReduction,
  * since it is *much* more trivial (and less powerful) than that.
- * 
+ *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
 public class ConeOfInfluenceCFAReduction {
@@ -52,7 +52,7 @@ public class ConeOfInfluenceCFAReduction {
         return cfa;
     }
 
-    private void dfs(CFANode start, Map<CFANode, Integer> dfsMarked, 
+    private void dfs(CFANode start, Map<CFANode, Integer> dfsMarked,
             boolean reverse) {
         Stack<CFANode> toProcess = new Stack<CFANode>();
 

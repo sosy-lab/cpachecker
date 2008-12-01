@@ -34,8 +34,8 @@ import cpa.symbpredabs.summary.SummaryCFANode;
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
 public class ItpSymbolicCPA extends ItpCPA {
-    
-    class ItpSymbolicAbstractElementCreator 
+
+    class ItpSymbolicAbstractElementCreator
         implements ItpAbstractElementManager {
         @Override
         public ItpAbstractElement create(CFANode location) {
@@ -46,7 +46,7 @@ public class ItpSymbolicCPA extends ItpCPA {
         }
 
         @Override
-        public boolean isFunctionEnd(ItpAbstractElement e, 
+        public boolean isFunctionEnd(ItpAbstractElement e,
                                      ItpAbstractElement succ) {
             CFANode n = succ.getLocation();
             return (n.getNumLeavingEdges() > 0 &&
@@ -72,12 +72,12 @@ public class ItpSymbolicCPA extends ItpCPA {
             }
             return true;
         }
-        
+
         @Override
         public void pushContextFindRetNode(ItpAbstractElement e,
-                                           ItpAbstractElement succ) {            
+                                           ItpAbstractElement succ) {
             SummaryCFANode retNode = null;
-            for (CFANode l : e.getLeaves()) {  
+            for (CFANode l : e.getLeaves()) {
                 if (l instanceof FunctionDefinitionNode) {
                     assert(l.getNumLeavingEdges() == 1);
 
@@ -100,10 +100,10 @@ public class ItpSymbolicCPA extends ItpCPA {
             }
         }
     }
-    
+
     private ItpSymbolicAbstractElementCreator elemCreator;
     private ItpCPAStatistics stats;
-    private Map<SummaryCFANode, Map<CFANode, Pair<SymbolicFormula, SSAMap>>> 
+    private Map<SummaryCFANode, Map<CFANode, Pair<SymbolicFormula, SSAMap>>>
         summaryToFormulaMap;
 
     private ItpSymbolicCPA() {
@@ -113,11 +113,11 @@ public class ItpSymbolicCPA extends ItpCPA {
                 "Symbolic Interpolation-based Lazy Abstraction with Summaries");
         mgr = new MathsatSummaryFormulaManager();
         refiner = new ItpSymbolicCounterexampleRefiner();
-        summaryToFormulaMap = 
-            new HashMap<SummaryCFANode, 
-                        Map<CFANode, Pair<SymbolicFormula, SSAMap>>>();        
+        summaryToFormulaMap =
+            new HashMap<SummaryCFANode,
+                        Map<CFANode, Pair<SymbolicFormula, SSAMap>>>();
     }
-    
+
     /**
      * Constructor conforming to the "contract" in CompositeCPA. The two
      * arguments are ignored
@@ -127,7 +127,7 @@ public class ItpSymbolicCPA extends ItpCPA {
     public ItpSymbolicCPA(String s1, String s2) {
         this();
     }
-    
+
     public CPAStatistics getStatistics() {
         return stats;
     }
@@ -136,26 +136,26 @@ public class ItpSymbolicCPA extends ItpCPA {
     public ItpAbstractElementManager getElementCreator() {
         return elemCreator;
     }
-    
+
     public Map<CFANode, Pair<SymbolicFormula, SSAMap>> getPathFormulas(
             SummaryCFANode succLoc) {
         try {
             if (!summaryToFormulaMap.containsKey(succLoc)) {
-                Map<CFANode, Pair<SymbolicFormula, SSAMap>> p = 
+                Map<CFANode, Pair<SymbolicFormula, SSAMap>> p =
                     ((MathsatSummaryFormulaManager)mgr).buildPathFormulas(
-                            succLoc); 
+                            succLoc);
                 summaryToFormulaMap.put(succLoc, p);
-                
+
 //                CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel,
-//                        "SYMBOLIC FORMULA FOR " + succLoc.toString() + ": " + 
+//                        "SYMBOLIC FORMULA FOR " + succLoc.toString() + ": " +
 //                        p.getFirst().toString());
-                
+
             }
             return summaryToFormulaMap.get(succLoc);
         } catch (UnrecognizedCFAEdgeException e) {
             e.printStackTrace();
             return null;
         }
-    }    
-    
+    }
+
 }

@@ -18,21 +18,21 @@ import cpa.common.CompositeTopElement;
 public class CompositeDomain implements AbstractDomain
 {
     private List<AbstractDomain> domains;
-    
+
     private CompositeBottomElement bottomElement;
     private CompositeTopElement topElement;
     private CompositeJoinOperator joinOperator;
     private CompositePartialOrder partialOrder;
-       
+
     public CompositeDomain (List<AbstractDomain> domains)
     {
         this.domains = domains;
-        
+
         List<BottomElement> bottoms = new ArrayList<BottomElement> ();
         List<TopElement> tops = new ArrayList<TopElement> ();
         List<JoinOperator> joinOperators = new ArrayList<JoinOperator> ();
         List<PartialOrder> partialOrders = new ArrayList<PartialOrder> ();
-        
+
         for (AbstractDomain domain : domains)
         {
             bottoms.add (domain.getBottomElement ());
@@ -40,23 +40,23 @@ public class CompositeDomain implements AbstractDomain
             joinOperators.add (domain.getJoinOperator ());
             partialOrders.add (domain.getPartialOrder ());
         }
-        
+
         this.bottomElement = new CompositeBottomElement (bottoms);
         this.topElement = new CompositeTopElement (tops);
         this.joinOperator = new CompositeJoinOperator (joinOperators);
         this.partialOrder = new CompositePartialOrder (partialOrders);
     }
-    
+
     public List<AbstractDomain> getDomains ()
     {
         return domains;
     }
-    
+
     public BottomElement getBottomElement ()
     {
         return bottomElement;
     }
-    
+
     public boolean isBottomElement(AbstractElement element) {
 
 		if(element instanceof BottomElement){
@@ -64,7 +64,7 @@ public class CompositeDomain implements AbstractDomain
 		}
 
 		CompositeElement compositeElement = (CompositeElement) element;
-		
+
 		List<AbstractElement> compositeElements = compositeElement.getElements ();
 
 		for (int idx = 0; idx < compositeElements.size (); idx++)
@@ -82,7 +82,7 @@ public class CompositeDomain implements AbstractDomain
     {
         return topElement;
     }
-    
+
     public JoinOperator getJoinOperator ()
     {
         return joinOperator;
@@ -91,5 +91,5 @@ public class CompositeDomain implements AbstractDomain
     public PartialOrder getPartialOrder ()
     {
         return partialOrder;
-    }  
+    }
 }

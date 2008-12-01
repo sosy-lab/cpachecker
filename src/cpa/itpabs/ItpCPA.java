@@ -52,18 +52,18 @@ import cpa.symbpredabs.mathsat.YicesTheoremProver;
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
 public abstract class ItpCPA implements ConfigurableProgramAnalysis {
-    
+
     protected ItpAbstractDomain domain;
     protected ItpMergeOperator merge;
     protected ItpStopOperator stop;
     protected ItpTransferRelation trans;
     protected MathsatSymbolicFormulaManager mgr;
     protected ItpCounterexampleRefiner refiner;
-    
+
     // covering relation
     protected Map<ItpAbstractElement,
                 Set<ItpAbstractElement>> covers;
-    
+
     protected ItpCPA() {
         mgr = new MathsatSymbolicFormulaManager();
         TheoremProver thmProver = null;
@@ -80,21 +80,21 @@ public abstract class ItpCPA implements ConfigurableProgramAnalysis {
             assert(false);
             System.exit(1);
         }
-        InterpolatingTheoremProver itpProver = 
+        InterpolatingTheoremProver itpProver =
             new MathsatInterpolatingProver(mgr, true);
-        ExplicitAbstractFormulaManager amgr = 
-            new BDDMathsatExplicitAbstractManager(thmProver, itpProver);        
+        ExplicitAbstractFormulaManager amgr =
+            new BDDMathsatExplicitAbstractManager(thmProver, itpProver);
 
         domain = new ItpAbstractDomain(this);
         merge = new ItpMergeOperator(domain);
         stop = new ItpStopOperator(domain, thmProver);
         trans = new ItpTransferRelation(domain);
-                
+
         refiner = new ItpCounterexampleRefiner(amgr, itpProver);
-        
-        covers = new HashMap<ItpAbstractElement, 
+
+        covers = new HashMap<ItpAbstractElement,
                              Set<ItpAbstractElement>>();
-        
+
         if (CPAMain.cpaConfig.getBooleanValue("analysis.bfs")) {
             // this analysis only works with dfs traversal
             System.out.println(
@@ -105,7 +105,7 @@ public abstract class ItpCPA implements ConfigurableProgramAnalysis {
             System.exit(1);
         }
     }
-    
+
     /**
      * Constructor conforming to the "contract" in CompositeCPA. The two
      * arguments are ignored
@@ -115,7 +115,7 @@ public abstract class ItpCPA implements ConfigurableProgramAnalysis {
     public ItpCPA(String s1, String s2) {
         this();
     }
-    
+
     @Override
     public AbstractDomain getAbstractDomain() {
         return domain;
@@ -123,9 +123,9 @@ public abstract class ItpCPA implements ConfigurableProgramAnalysis {
 
     @Override
     public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
-        LazyLogger.log(CustomLogLevel.SpecificCPALevel, 
+        LazyLogger.log(CustomLogLevel.SpecificCPALevel,
                        "Getting initial element from node: ", node);
-        
+
         ItpAbstractElement e = getElementCreator().create(node);
         e.setAbstraction(mgr.makeTrue());
         e.setContext(new Stack<Pair<SymbolicFormula, CFANode>>(), true);
@@ -165,7 +165,7 @@ public abstract class ItpCPA implements ConfigurableProgramAnalysis {
         }
     }
 
-    public void setCoveredBy(ItpAbstractElement covered, 
+    public void setCoveredBy(ItpAbstractElement covered,
                              ItpAbstractElement e) {
         Set<ItpAbstractElement> s;
         if (covers.containsKey(e)) {
@@ -199,9 +199,9 @@ public abstract class ItpCPA implements ConfigurableProgramAnalysis {
      */
     public Collection<ItpAbstractElement> removeDescendantsFromCovering(
             ItpAbstractElement e2) {
-        Collection<AbstractElement> sub = 
+        Collection<AbstractElement> sub =
             trans.getART().getSubtree(e2, false, true);
-        Set<ItpAbstractElement> ret = 
+        Set<ItpAbstractElement> ret =
             new TreeSet<ItpAbstractElement>();
         for (AbstractElement ae : sub) {
             ItpAbstractElement e = (ItpAbstractElement)ae;
@@ -224,6 +224,6 @@ public abstract class ItpCPA implements ConfigurableProgramAnalysis {
 //        }
         return false;
     }
-    
+
     public abstract ItpAbstractElementManager getElementCreator();
 }

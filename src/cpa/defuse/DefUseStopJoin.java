@@ -11,12 +11,12 @@ import exceptions.CPAException;
 public class DefUseStopJoin implements StopOperator
 {
     private DefUseDomain defUseDomain;
-    
+
     public DefUseStopJoin (DefUseDomain defUseDomain)
     {
         this.defUseDomain = defUseDomain;
     }
-    
+
     public AbstractDomain getAbstractDomain ()
     {
         return defUseDomain;

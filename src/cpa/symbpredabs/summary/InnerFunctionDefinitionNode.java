@@ -15,13 +15,13 @@ public class InnerFunctionDefinitionNode extends FunctionDefinitionNode
     implements InnerCFANode {
 
     private SummaryCFANode summary;
-    
-    public InnerFunctionDefinitionNode(int lineNumber, 
+
+    public InnerFunctionDefinitionNode(int lineNumber,
                                        IASTFunctionDefinition def) {
         super(lineNumber, def);
         summary = null;
     }
-    
+
     public SummaryCFANode getSummaryNode() { return summary; }
 
     public void setSummaryNode(SummaryCFANode s) {

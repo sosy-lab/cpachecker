@@ -78,7 +78,7 @@ public class PredicateList {
 			}
 		}
 		s = s + " ]";
-		
+
 		if(s.equals("& [  ]"))
 			s = "& [ true ]";
 
@@ -128,7 +128,7 @@ public class PredicateList {
 	public String getRegionWithoutVariable(List<String> modifiedVariables) {
 
 		List<Predicate> toRemoveList = new ArrayList<Predicate>();
-		
+
 		for(String modifiedVariable:modifiedVariables){
 			for(Predicate predicate:predicates){
 				if(predicate.containsVariable(modifiedVariable)){
@@ -136,7 +136,7 @@ public class PredicateList {
 				}
 			}
 		}
-		
+
 		String s = "& [ "; //= S1 1 ~ = S2 0 = S2 0 ]
 		for(Predicate predicate:predicates){
 			if(!toRemoveList.contains(predicate)){

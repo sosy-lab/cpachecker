@@ -141,7 +141,7 @@ public class Predicate {
 		else{
 			s2 = this.secondVariable;
 		}
-		
+
 		if(s1.equals(this.firstVariable) && s2.equals(this.secondVariable)){
 			return "____cpa_same_predicate";
 		}
@@ -201,7 +201,7 @@ public class Predicate {
 
 	public void updateAssumption(String previousState, String instruction) throws IOException{
 
-		String preCondition = "& [ " + previousState + " " + instruction + " ]"; 
+		String preCondition = "& [ " + previousState + " " + instruction + " ]";
 		String postCondition = WPAssumption(false);
 
 		if (MathSatWrapper.implies(preCondition, postCondition) == ThreeValuedBoolean.TRUE){
@@ -222,7 +222,7 @@ public class Predicate {
 	public void updateAssignment(String previousState, String leftVar, String rightVar, Operator op) throws IOException{
 
 		String postCondition = WPAssignment(leftVar, rightVar, op, false);
-		
+
 		if(postCondition.equals("____cpa_same_predicate")){
 			return;
 		}
@@ -254,7 +254,7 @@ public class Predicate {
 		CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel, "Function Call Update on Predicate: " +
 				this.getPredicateAsString());
 
-		String currentState = "& [ " + previousState +  " " + parameterAssignment + " ]"; 
+		String currentState = "& [ " + previousState +  " " + parameterAssignment + " ]";
 
 		if (MathSatWrapper.implies(currentState, getPredicateAsString()) == ThreeValuedBoolean.TRUE){
 			CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel, "Predicate is set to TRUE ");

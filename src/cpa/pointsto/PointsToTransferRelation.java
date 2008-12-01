@@ -1,5 +1,5 @@
 /**
- * 
+ *
  */
 package cpa.pointsto;
 
@@ -41,24 +41,24 @@ public class PointsToTransferRelation implements TransferRelation {
 
 	/* (non-Javadoc)
 	 * @see cpa.common.interfaces.TransferRelation#getAbstractDomain()
-	 * 
+	 *
 	 * TODO Why do we always have that getAbstractDomain stuff?
 	 */
 	public AbstractDomain getAbstractDomain() {
 		return abstractDomain;
 	}
-	
+
 	private class PointsToVisitor extends ASTVisitor {
 
 		private PointsToElement pointsToElement;
 		private PointsToRelation relation;
 		//private CFAEdge cfaEdge;
-		
+
 		public PointsToVisitor (PointsToElement pointsToElement, CFAEdge cfaEdge) {
 			this.pointsToElement = pointsToElement;
 			relation = null;
 			//this.cfaEdge = cfaEdge;
-			
+
 			// just enable everything, even if we don't use it at the moment
 			shouldVisitNames = true;
 			shouldVisitDeclarations = true;
@@ -73,7 +73,7 @@ public class PointsToTransferRelation implements TransferRelation {
 			shouldVisitTranslationUnit = true;
 			shouldVisitProblems = true;
 		}
-		
+
 		@Override
 		public int visit (IASTName name) {
 			System.err.println("Got into IASTName");
@@ -86,7 +86,7 @@ public class PointsToTransferRelation implements TransferRelation {
 
 			return super.visit(name);
 		}
-		
+
 		@Override
 		public int visit (IASTDeclarator declarator) {
 			System.err.println("Got into IASTDeclarator");
@@ -97,7 +97,7 @@ public class PointsToTransferRelation implements TransferRelation {
 			}
 			return PROCESS_ABORT;
 		}
-		
+
 		/* (non-Javadoc)
 		 * @see org.eclipse.cdt.core.dom.ast.ASTVisitor#visit(org.eclipse.cdt.core.dom.ast.IASTInitializer)
 		 */
@@ -116,7 +116,7 @@ public class PointsToTransferRelation implements TransferRelation {
 				System.err.println("No implementation for " + initializer.toString());
 				assert (false);
 			}
-			// no further processing required, but rewrite in terms of moving the above into 
+			// no further processing required, but rewrite in terms of moving the above into
 			// IASTExpression processing may be useful
 			return PROCESS_ABORT;
 		}
@@ -127,7 +127,7 @@ public class PointsToTransferRelation implements TransferRelation {
 		@Override
 		public int visit(IASTExpression expression) {
 			System.err.println("Got into IASTExpression with " + expression.toString());
-			
+
 			// happy casting *ARRRGH***
 			if (expression instanceof IASTBinaryExpression)
 			{
@@ -136,7 +136,7 @@ public class PointsToTransferRelation implements TransferRelation {
 				IASTExpression lhs = binaryExpression.getOperand1();
 				if (!lhs.accept(this)) return PROCESS_ABORT;
 				assert (null != relation);
-				
+
 				IASTExpression rhs = binaryExpression.getOperand2();
 
 				switch (binaryExpression.getOperator ())
@@ -172,9 +172,9 @@ public class PointsToTransferRelation implements TransferRelation {
 				IASTUnaryExpression unaryExpression = (IASTUnaryExpression) expression;
 				if (!unaryExpression.getOperand().accept(this)) return PROCESS_ABORT;
 				assert (null != relation);
-				
+
 				if (!(unaryExpression.getExpressionType() instanceof IPointerType)) return PROCESS_ABORT;
-				
+
 				switch (unaryExpression.getOperator()) {
 				case IASTUnaryExpression.op_postFixDecr:
 				case IASTUnaryExpression.op_prefixDecr:
@@ -194,11 +194,11 @@ public class PointsToTransferRelation implements TransferRelation {
 				}
 				}
 			}
-			
+
 			return super.visit(expression);
 		}
 
-		
+
 	}
 
 	/* (non-Javadoc)

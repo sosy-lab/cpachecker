@@ -9,28 +9,28 @@ import cfa.objectmodel.CFAEdgeType;
 
 
 public class BlockEdge extends AbstractCFAEdge {
-    
+
     private List<CFAEdge> edges;
 
     public BlockEdge() {
         super("BLOCK");
         edges = new Vector<CFAEdge>();
     }
-    
+
     public void addEdge(CFAEdge e) {
         edges.add(e);
     }
-    
+
     public List<CFAEdge> getEdges() { return edges; }
 
     @Override
     public CFAEdgeType getEdgeType() {
-        // TODO db: This does not make sense. 
+        // TODO db: This does not make sense.
         //      This edge type should be called BlockEdge or so.
         // TODO Auto-generated method stub
         return CFAEdgeType.BlankEdge;
     }
-    
+
     @Override
     public String getRawStatement() {
         StringBuffer buf = new StringBuffer();

@@ -7,7 +7,7 @@ import exceptions.TransferRelationException;
  * can not be encoded into a MathSAT formula.
  *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
- */ 
+ */
 public class UnrecognizedCFAEdgeException extends TransferRelationException {
 
     public UnrecognizedCFAEdgeException(String msg) {

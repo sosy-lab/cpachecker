@@ -10,11 +10,11 @@ import exceptions.CPAException;
 import symbpredabstraction.*;
 
 
-/** 
+/**
  * Abstract domain for Symbolic lazy abstraction with summaries.
  *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
- */ 
+ */
 public class SymbPredAbsAbstractDomain implements AbstractDomain {
 
 	private SymbPredAbsCPA cpa;
@@ -25,8 +25,8 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
 
 	private final class SymbPredAbsBottomElement implements BottomElement {
 		@Override
-		public String toString() { 
-			return "<BOTTOM>"; 
+		public String toString() {
+			return "<BOTTOM>";
 		}
 	}
 	private final class SymbPredAbsTopElement implements TopElement {}
@@ -64,7 +64,7 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
 	public BottomElement getBottomElement() {
 		return bottom;
 	}
-	
+
     public boolean isBottomElement(AbstractElement element) {
     	SymbPredAbsAbstractElement symbPredAbsElem = (SymbPredAbsAbstractElement) element;
 

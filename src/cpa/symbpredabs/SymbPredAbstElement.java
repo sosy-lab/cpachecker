@@ -8,14 +8,14 @@ import cpa.common.interfaces.AbstractElementWithLocation;
 /**
  * TODO. This is currently broken
  */
-public class SymbPredAbstElement 
+public class SymbPredAbstElement
         implements AbstractElementWithLocation {
     // unique identifier for each domain element
     private static int nextAvailableElemId = 1;
 
     private CFANode location;
     private int elemId;
-    // symbolic representation of (an over-approximation of) the data region 
+    // symbolic representation of (an over-approximation of) the data region
     // at this location
     private SymbolicFormula concrFormula;
     // symbolic representation of the abstract data region at this location
@@ -28,7 +28,7 @@ public class SymbPredAbstElement
     // that it is meant to replace both elements, not only the second one. This
     // is already possible in the CPA algorithm, since after a merge the first
     // element is checked for coverage by the result of the merge. But in order
-    // to test coverage quickly, we "cheat" here and set the element to be 
+    // to test coverage quickly, we "cheat" here and set the element to be
     // explicitly covered by using the following field
     private SymbPredAbstElement coveredBy;
 
@@ -39,17 +39,17 @@ public class SymbPredAbstElement
     public AbstractFormula getAbstractFormula() { return absFormula; }
     public SymbPredAbstElement getParent() { return parent; }
     public SSAMap getSSAMap() { return ssaMap; }
-    
+
     // default (not public) access, since this is hackish...
     SymbPredAbstElement getCoveredBy() { return coveredBy; }
     void setCoveredBy(SymbPredAbstElement e) { coveredBy = e; }
-    
+
     // returns the AND of concrete and abstract formula
     public SymbolicFormula getFormula() {
         if (absFormula == null) {
             return concrFormula;
         } else {
-            SymbolicFormulaManager mgr = 
+            SymbolicFormulaManager mgr =
                 SymbPredAbstCPA.getInstance().getFormulaManager();
             AbstractFormulaManager amgr =
                 SymbPredAbstCPA.getInstance().getAbstractFormulaManager();
@@ -57,40 +57,40 @@ public class SymbPredAbstElement
             return mgr.makeAnd(concrFormula, mgr.instantiate(f, ssaMap));
         }
     }
-    
+
     public void setConcreteFormula(SymbolicFormula cf) { concrFormula = cf; }
     public void setAbstractFormula(AbstractFormula af) { absFormula = af; }
     public void setParent(SymbPredAbstElement p) { parent = p; }
-    
+
     @Override
     public boolean equals(Object other) {
-        if (!(other instanceof SymbPredAbstElement)) return false;        
+        if (!(other instanceof SymbPredAbstElement)) return false;
         return getId() == ((SymbPredAbstElement)other).getId();
     }
-    
+
     @Override
     public int hashCode() {
         return getId();
     }
-    
+
     @Override
     public String toString() {
-        
+
         if (CPACheckerLogger.getLevel() > LazyLogger.DEBUG_1.intValue()) {
             return "E<" + Integer.toString(location.getNodeNumber()) + ">(" +
-                Integer.toString(elemId) + ", P" + 
+                Integer.toString(elemId) + ", P" +
                 (parent == null ? "0" : Integer.toString(parent.getId())) + ")";
         } else {
             return "E<" + Integer.toString(location.getNodeNumber()) + ">(" +
-               Integer.toString(elemId) + ", P" + 
-               (parent == null ? "0" : Integer.toString(parent.getId())) + ")" + 
-               "[" + concrFormula.toString() + "]{" + 
+               Integer.toString(elemId) + ", P" +
+               (parent == null ? "0" : Integer.toString(parent.getId())) + ")" +
+               "[" + concrFormula.toString() + "]{" +
                (absFormula == null ? "" : absFormula.toString()) + "}";
         }
     }
-    
+
     public SymbPredAbstElement(CFANode locationNode, SymbolicFormula cf,
-                               AbstractFormula af, 
+                               AbstractFormula af,
                                SymbPredAbstElement p, SSAMap ssa) {
         location = locationNode;
         elemId = nextAvailableElemId++;
@@ -105,12 +105,12 @@ public class SymbPredAbstElement
             AbstractFormula af, SymbPredAbstElement p) {
         this(locationNode, cf, af, p, new SSAMap());
     }
-    
+
     public SymbPredAbstElement(CFANode locationNode, SymbolicFormula cf,
             AbstractFormula af) {
         this(locationNode, cf, af, null, new SSAMap());
     }
-    
+
     public CFANode getLocationNode() {
         return location;
     }

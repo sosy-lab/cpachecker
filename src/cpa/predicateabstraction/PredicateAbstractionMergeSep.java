@@ -7,12 +7,12 @@ import cpa.common.interfaces.MergeOperator;
 public class PredicateAbstractionMergeSep implements MergeOperator{
 
 private PredicateAbstractionDomain predicateAbstractionDomain;
-    
+
     public PredicateAbstractionMergeSep (PredicateAbstractionDomain predAbsDomain)
     {
         this.predicateAbstractionDomain = predAbsDomain;
     }
-    
+
     public AbstractDomain getAbstractDomain ()
     {
         return predicateAbstractionDomain;

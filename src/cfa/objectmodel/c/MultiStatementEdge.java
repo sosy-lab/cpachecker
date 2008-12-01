@@ -13,24 +13,24 @@ public class MultiStatementEdge extends AbstractCFAEdge
 {
     private List<IASTExpression> expressions;
     private boolean jumpEdge;
-    
+
     public MultiStatementEdge (String rawStatement,
                               List<IASTExpression> expressions)
     {
         super (rawStatement);
         this.jumpEdge = false;
-        
+
         if (expressions == null)
             this.expressions = new ArrayList<IASTExpression> ();
         else
             this.expressions = expressions;
     }
-    
+
     public void setIsJumpEdge (boolean jumpEdge)
     {
         this.jumpEdge = jumpEdge;
     }
-    
+
     @Override
     public boolean isJumpEdge ()
     {
@@ -41,22 +41,22 @@ public class MultiStatementEdge extends AbstractCFAEdge
     {
         return CFAEdgeType.MultiStatementEdge;
     }
-    
+
     public List<IASTExpression> getExpressions ()
     {
         return expressions;
     }
-    
+
     @Override
     public String getRawStatement ()
     {
         StringBuilder builder = new StringBuilder ();
-        
+
         for (IASTExpression expr : expressions)
         {
             builder.append (expr.getRawSignature ()).append ("\\n");
         }
-        
+
         return builder.toString ();
     }
 }

@@ -27,7 +27,7 @@ public interface AbstractFormulaManager {
      */
     public AbstractFormula toAbstract(SymbolicFormulaManager mgr,
             SymbolicFormula f, SSAMap ssa, Collection<Predicate> predicates);
-    
+
     /**
      * checks whether the data region represented by f1
      * is a subset of that represented by f2
@@ -36,16 +36,16 @@ public interface AbstractFormulaManager {
      * @return true if (f1 => f2), false otherwise
      */
     public boolean entails(AbstractFormula f1, AbstractFormula f2);
-    
+
     /**
      * checks whether f represents "false"
      * @return true if f represents logical falsity, false otherwise
      */
     public boolean isFalse(AbstractFormula f);
-    
+
     /**
      * @return a representation of logical truth
      */
     public AbstractFormula makeTrue();
-    
+
 }

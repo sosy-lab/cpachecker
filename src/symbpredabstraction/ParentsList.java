@@ -4,17 +4,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ParentsList {
-	
+
 	private List<Integer> parents;
-	
+
 	public ParentsList(){
 		parents = new ArrayList<Integer>();
 	}
-	
+
 	public void addToList(int i){
 		parents.add(i);
 	}
-	
+
 	@Override
 	public boolean equals(Object o){
 		ParentsList otherParentsList = (ParentsList) o;

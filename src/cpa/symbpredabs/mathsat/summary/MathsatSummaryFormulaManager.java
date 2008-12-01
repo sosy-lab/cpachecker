@@ -31,7 +31,7 @@ import cpa.symbpredabs.summary.SummaryFormulaManager;
  */
 public class MathsatSummaryFormulaManager extends MathsatSymbolicFormulaManager
         implements SummaryFormulaManager {
-    
+
     private SSAMap maxIndex = null;
 
     // Computes a topological order of the nodes in the subgraph corresponding
@@ -40,7 +40,7 @@ public class MathsatSummaryFormulaManager extends MathsatSymbolicFormulaManager
         LinkedList<InnerCFANode> order = new LinkedList<InnerCFANode>();
         Stack<CFANode> toProcess = new Stack<CFANode>();
         Map<CFANode, Integer> visited = new HashMap<CFANode, Integer>();
-        
+
         toProcess.push(summary.getInnerNode());
         while (!toProcess.empty()) {
             CFANode n = toProcess.peek();
@@ -52,7 +52,7 @@ public class MathsatSummaryFormulaManager extends MathsatSymbolicFormulaManager
                 CFANode s = e.getSuccessor();
                 InnerCFANode succ = (InnerCFANode)s;
                 // Check whether the edge really belongs to the inner graph,
-                // or whether it connects different summary nodes 
+                // or whether it connects different summary nodes
                 // (or is a self-loop in this summary node)
                 if (succ.getSummaryNode().equals(summary) &&
                         !succ.equals(summary.getInnerNode()) &&
@@ -67,7 +67,7 @@ public class MathsatSummaryFormulaManager extends MathsatSymbolicFormulaManager
                 order.addFirst((InnerCFANode)n);
             }
         }
-        
+
         return order;
     }
 
@@ -82,57 +82,57 @@ public class MathsatSummaryFormulaManager extends MathsatSymbolicFormulaManager
             SummaryCFANode summary) throws UnrecognizedCFAEdgeException {
         // here we assume that all variables start with index 1 in the ssa
         // the ssa will be updated with the latest index of the variables
-        
+
         // how we build the formula: we do a BFS traversal of the inner graph,
         // building one formula for each path from the root to a leaf. Then we
         // take the disjunction of the paths
         List<InnerCFANode> toProcess = topologicalSort(summary);
         // maps each node to the formula corresponding to all the paths from
         // the root to the node
-        Map<InnerCFANode, MathsatSymbolicFormula> nodeToFormula = 
+        Map<InnerCFANode, MathsatSymbolicFormula> nodeToFormula =
             new HashMap<InnerCFANode, MathsatSymbolicFormula>();
-        Map<InnerCFANode, SSAMap> nodeToSSA = 
+        Map<InnerCFANode, SSAMap> nodeToSSA =
             new HashMap<InnerCFANode, SSAMap>();
         Collection<InnerCFANode> leaves = new Vector<InnerCFANode>();
-        
+
         LazyLogger.log(LazyLogger.DEBUG_4, "TOPOLOGICAL SORT: ", toProcess);
-        
-        nodeToFormula.put((InnerCFANode)summary.getInnerNode(), 
+
+        nodeToFormula.put((InnerCFANode)summary.getInnerNode(),
                           (MathsatSymbolicFormula)makeTrue());
         nodeToSSA.put((InnerCFANode)summary.getInnerNode(), new SSAMap());
-        
+
         maxIndex = new SSAMap();
 
         for (InnerCFANode in : toProcess) {
             CFANode n = (CFANode)in;
 
             assert(nodeToFormula.containsKey(in));
-            
-            MathsatSymbolicFormula t = 
+
+            MathsatSymbolicFormula t =
                 (MathsatSymbolicFormula)nodeToFormula.get(in);
             SSAMap ssa = nodeToSSA.get(in);
             //updateMaxIndex(ssa);
-            
+
             boolean isLeaf = true;
             for (int i = 0; i < n.getNumLeavingEdges(); ++i) {
                 CFAEdge e = n.getLeavingEdge(i);
                 InnerCFANode succ = (InnerCFANode)e.getSuccessor();
                 // Check whether the edge really belongs to the inner graph,
-                // or whether it connects different summary nodes 
+                // or whether it connects different summary nodes
                 // (or is a self-loop in this summary node)
                 if (succ.getSummaryNode().equals(summary) &&
                         !succ.equals(summary.getInnerNode())) {
                     isLeaf = false;
-                    Pair<SymbolicFormula, SSAMap> p = 
+                    Pair<SymbolicFormula, SSAMap> p =
                         makeAnd(t, e, ssa, false, false);
                     SymbolicFormula t1 = p.getFirst();
                     SSAMap ssa1 = p.getSecond();
                     updateMaxIndex(ssa1);
                     if (nodeToFormula.containsKey(succ)) {
-                        MathsatSymbolicFormula old = 
+                        MathsatSymbolicFormula old =
                             nodeToFormula.get(succ);
                         SSAMap oldssa = nodeToSSA.get(succ);
-                        Pair<Pair<SymbolicFormula, SymbolicFormula>, 
+                        Pair<Pair<SymbolicFormula, SymbolicFormula>,
                              SSAMap> pm = mergeSSAMaps(oldssa, ssa1, false);
                         old = (MathsatSymbolicFormula)makeAnd(
                                 old, pm.getFirst().getFirst());
@@ -143,8 +143,8 @@ public class MathsatSummaryFormulaManager extends MathsatSymbolicFormulaManager
                     nodeToFormula.put(succ, (MathsatSymbolicFormula)t1);
 
                     LazyLogger.log(LazyLogger.DEBUG_3,
-                                   " FORMULA FOR LOCATION ", 
-                                   ((CFANode)succ).getNodeNumber(), ": ", 
+                                   " FORMULA FOR LOCATION ",
+                                   ((CFANode)succ).getNodeNumber(), ": ",
                                    mathsat.api.msat_term_id(
                                            ((MathsatSymbolicFormula)
                                                    t1).getTerm()), " ", t1);
@@ -156,12 +156,12 @@ public class MathsatSummaryFormulaManager extends MathsatSymbolicFormulaManager
             if (isLeaf) {
                 // if this node is a leaf, remember it
                 LazyLogger.log(LazyLogger.DEBUG_4,
-                               "LEAF LOCATION ", n.getNodeNumber()); 
+                               "LEAF LOCATION ", n.getNodeNumber());
                 leaves.add(in);
             }
         }
-        
-        Map<CFANode, Pair<SymbolicFormula, SSAMap>> ret = 
+
+        Map<CFANode, Pair<SymbolicFormula, SSAMap>> ret =
             new TreeMap<CFANode, Pair<SymbolicFormula, SSAMap>>();
         for (InnerCFANode n : leaves) {
             assert(nodeToFormula.containsKey(n));
@@ -173,18 +173,18 @@ public class MathsatSummaryFormulaManager extends MathsatSymbolicFormulaManager
 
             LazyLogger.log(LazyLogger.DEBUG_3,
                     "FORMULA FOR LEAF: ", ((CFANode)n).getNodeNumber(),
-                    " IS: ", f); 
+                    " IS: ", f);
         }
-        
+
         maxIndex = null;
-        
+
         return ret;
     }
 
     //-------------------------------------------------------------------------
     // From here on only unused code, that should be removed
     //-------------------------------------------------------------------------
-    
+
     private void updateMaxIndex(SSAMap ssa) {
         assert(maxIndex != null);
         for (String var : ssa.allVariables()) {
@@ -193,7 +193,7 @@ public class MathsatSummaryFormulaManager extends MathsatSymbolicFormulaManager
             maxIndex.setIndex(var, Math.max(i, i2));
         }
     }
-    
+
     @Override
     protected int getNewIndex(String var, SSAMap ssa) {
 //        if (maxIndex != null) {
@@ -204,7 +204,7 @@ public class MathsatSummaryFormulaManager extends MathsatSymbolicFormulaManager
 //        }
         return super.getNewIndex(var, ssa);
     }
-    
+
     @Override
     protected int getNewIndex(String var, int i1, int i2) {
 //        if (maxIndex != null) {

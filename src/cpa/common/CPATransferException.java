@@ -10,7 +10,7 @@ public abstract class CPATransferException extends Exception {
     public CPATransferException(String msg) {
         super(msg);
     }
-    
+
     public CPATransferException() {
         super();
     }

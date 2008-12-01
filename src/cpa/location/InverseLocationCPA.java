@@ -31,7 +31,7 @@ public class InverseLocationCPA implements ConfigurableProgramAnalysis{
         }
         StopOperator locationStopOp = new LocationStopSep (locationDomain);
         TransferRelation locationTransferRelation = new InverseLocationTransferRelation (locationDomain);
-		
+
 		this.abstractDomain = locationDomain;
 		this.mergeOperator = locationMergeOp;
 		this.stopOperator = locationStopOp;
@@ -42,7 +42,7 @@ public class InverseLocationCPA implements ConfigurableProgramAnalysis{
     {
         return abstractDomain;
     }
-    
+
     public MergeOperator getMergeOperator ()
     {
         return mergeOperator;

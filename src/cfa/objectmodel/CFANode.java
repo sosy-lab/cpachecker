@@ -24,9 +24,9 @@ public class CFANode implements Comparable<CFANode>
     protected CallToReturnEdge enteringSummaryEdge;
     // topological sort id, smaller if it appears later in sorting
     private int topologicalSortId;
-    
+
     private static int nextNodeNumber = 0;
-       
+
     public CFANode (int lineNumber)
     {
         this.lineNumber = lineNumber;
@@ -36,67 +36,67 @@ public class CFANode implements Comparable<CFANode>
         leavingSummaryEdge = null;
         enteringSummaryEdge = null;
     }
-      
+
     public int getLineNumber ()
     {
         return lineNumber;
     }
-    
+
     public int getNodeNumber ()
     {
         return nodeNumber;
     }
-    
+
     public int getTopologicalSortId ()
     {
         return topologicalSortId;
     }
-    
+
     public void setTopologicalSortId (int i)
     {
         topologicalSortId = i;
     }
-        
+
     public void addLeavingEdge (CFAEdge newLeavingEdge)
     {
         leavingEdges.add (newLeavingEdge);
     }
-    
+
     public boolean removeLeavingEdge (CFAEdge edge)
     {
         return leavingEdges.remove (edge);
     }
-    
+
     public int getNumLeavingEdges ()
     {
         return leavingEdges.size ();
     }
-    
+
     public CFAEdge getLeavingEdge (int index)
     {
         return leavingEdges.get (index);
     }
-    
+
     public void addEnteringEdge (CFAEdge enteringEdge)
     {
         enteringEdges.add (enteringEdge);
     }
-    
+
     public boolean removeEnteringEdge (CFAEdge edge)
     {
         return enteringEdges.remove (edge);
     }
-    
+
     public int getNumEnteringEdges ()
     {
         return enteringEdges.size ();
     }
-    
+
     public CFAEdge getEnteringEdge (int index)
     {
         return enteringEdges.get (index);
     }
-    
+
     public boolean hasEdgeTo (CFANode other)
     {
         boolean hasEdge = false;
@@ -108,10 +108,10 @@ public class CFANode implements Comparable<CFANode>
                 break;
             }
         }
-        
+
         return hasEdge;
     }
-    
+
     public boolean hasJumpEdgeLeaving ()
     {
         for (CFAEdge edge : leavingEdges)
@@ -121,54 +121,54 @@ public class CFANode implements Comparable<CFANode>
         }
         return false;
     }
-    
+
     public void setLoopStart(){
     	isLoopStart = true;
     }
-    
+
     public boolean isLoopStart(){
     	return isLoopStart;
     }
-    
+
     public void setFunctionName(String fName){
     	functionName = fName;
     }
-    
+
     public String getFunctionName(){
     	return functionName;
     }
-    
+
     public void addEnteringSummaryEdge(CallToReturnEdge edge){
     	enteringSummaryEdge = edge;
     }
-    
+
     public void addLeavingSummaryEdge(CallToReturnEdge edge){
     	leavingSummaryEdge = edge;
     }
-    
+
     public CallToReturnEdge getEnteringSummaryEdge(){
     	return enteringSummaryEdge;
     }
-    
+
     public CallToReturnEdge getLeavingSummaryEdge(){
     	return leavingSummaryEdge;
     }
-    
+
     @Override
     public boolean equals(Object other) {
         if (!(other instanceof CFANode)) return false;
         return getNodeNumber() == ((CFANode)other).getNodeNumber();
     }
-    
+
     public static int getFinalNumberOfNodes(){
     	return nextNodeNumber;
     }
-    
+
     @Override
     public int hashCode() {
         return getNodeNumber();
     }
-    
+
     @Override
     public String toString() {
         return "N" + getNodeNumber();

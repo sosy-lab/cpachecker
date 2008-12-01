@@ -11,31 +11,31 @@ public abstract class CFAFunctionDefinitionNode extends CFANode
     private String containingFileLocation;
     // Check if call edges are added in the second pass
     private CFAExitNode exitNode;
-    
+
     public CFAFunctionDefinitionNode (int lineNumber, String functionName, String containingFileLocation)
     {
         super (lineNumber);
         this.functionName = functionName;
         this.containingFileLocation = containingFileLocation;
     }
-    
+
     @Override
     public String getFunctionName ()
     {
         return this.functionName;
     }
-    
+
     @Override
     public void setFunctionName (String s)
     {
     	this.functionName = s;
     }
-    
+
     public CFANode getExitNode ()
     {
         return this.exitNode;
     }
-    
+
     public void setExitNode (CFAExitNode en)
     {
     	this.exitNode = en;

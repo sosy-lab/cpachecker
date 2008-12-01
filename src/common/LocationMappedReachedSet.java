@@ -14,31 +14,31 @@ import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 
 /**
- * A class that can be used by CPAs to build specialized versions of 
- * the "reached" set used by CPAAlgorithm. 
- * 
+ * A class that can be used by CPAs to build specialized versions of
+ * the "reached" set used by CPAAlgorithm.
+ *
  * It keeps the AbstractElements grouped by program locations (CFANodes),
  * using a Map for the implementation
- * 
+ *
  * @see CPAAlgorithm.createReachedSet
- * 
+ *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
 public class LocationMappedReachedSet implements Collection<AbstractElement> {
     private Map<CFANode, Set<AbstractElement>> repr;
     private int numElems;
-    
+
     private class Iter implements Iterator<AbstractElement> {
         private Iterator<Map.Entry<CFANode, Set<AbstractElement>>> outer;
         private Iterator<AbstractElement> inner;
-        
+
         Iter(Iterator<Map.Entry<CFANode, Set<AbstractElement>>> it) {
             outer = it;
             advanceInner();
         }
-        
+
         private void advanceInner() {
-            inner = null;                
+            inner = null;
             while (inner == null && outer.hasNext()) {
                 Set<AbstractElement> s = outer.next().getValue();
                 if (!s.isEmpty()) {
@@ -46,7 +46,7 @@ public class LocationMappedReachedSet implements Collection<AbstractElement> {
                 }
             }
         }
-        
+
         @Override
         public boolean hasNext() {
             if (inner == null) return false;
@@ -65,14 +65,14 @@ public class LocationMappedReachedSet implements Collection<AbstractElement> {
             throw new RuntimeException("Remove not supported!");
         }
     }
-    
+
     public LocationMappedReachedSet() {
         repr = new HashMap<CFANode, Set<AbstractElement>>();
         numElems = 0;
     }
-    
+
     public Set<AbstractElement> get(CFANode loc) {
-        if (repr.containsKey(loc)) {            
+        if (repr.containsKey(loc)) {
             return repr.get(loc);
         } else {
             return null;

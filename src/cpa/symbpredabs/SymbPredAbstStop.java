@@ -16,11 +16,11 @@ import exceptions.CPAException;
 public class SymbPredAbstStop implements StopOperator {
 
     private SymbPredAbstDomain domain;
-    
+
     SymbPredAbstStop(SymbPredAbstDomain domain) {
         this.domain = domain;
     }
-    
+
     public AbstractDomain getAbstractDomain() {
         return domain;
     }
@@ -41,17 +41,17 @@ public class SymbPredAbstStop implements StopOperator {
         SymbPredAbstElement e2 = (SymbPredAbstElement)reachedElement;
         SymbPredAbstCPA cpa = domain.getCPA();
         AbstractFormulaManager amgr = cpa.getAbstractFormulaManager();
-        
+
         // coverage test: both elements should refer to the same location,
-        // both should have only an abstract formula, and the data region 
+        // both should have only an abstract formula, and the data region
         // represented by the abstract formula of e should be included
         // in that of e2
         if (e.getLocation().equals(e2.getLocation()) &&
-            e.getConcreteFormula().isTrue() && 
+            e.getConcreteFormula().isTrue() &&
             e2.getConcreteFormula().isTrue() &&
             amgr.entails(e.getAbstractFormula(), e2.getAbstractFormula())) {
 
-            LazyLogger.log(CustomLogLevel.SpecificCPALevel, 
+            LazyLogger.log(CustomLogLevel.SpecificCPALevel,
                            "Element: ", e, " covered by: ", e2);
 
             return true;
@@ -59,9 +59,9 @@ public class SymbPredAbstStop implements StopOperator {
                    e.getCoveredBy() == e2) {
             // TODO Shortcut: basically, when we merge two paths after
             // an if-then-else or a loop, we set the coveredBy of the old one to
-            // the new one, so that we can then detect the coverage here. 
+            // the new one, so that we can then detect the coverage here.
             // This has to change to something nicer in the future!!
-            LazyLogger.log(CustomLogLevel.SpecificCPALevel, 
+            LazyLogger.log(CustomLogLevel.SpecificCPALevel,
                            "Element: ", e, " covered by: ", e2);
 
             return true;

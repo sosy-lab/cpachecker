@@ -1,5 +1,5 @@
 /**
- * 
+ *
  */
 package cpa.pointsto;
 
@@ -19,15 +19,15 @@ import org.eclipse.cdt.core.dom.ast.IBinding;
  *
  */
 public class PointsToElement implements AbstractElement {
-	
+
 	private Set<PointsToRelation> references;
 	private HashMap<IASTDeclarator,PointsToRelation> variables;
-    
+
 	public PointsToElement () {
 		references = new HashSet<PointsToRelation>();
 		variables = new HashMap<IASTDeclarator,PointsToRelation>();
 	}
-	
+
 	@Override
 	public PointsToElement clone () {
 		PointsToElement result = new PointsToElement();
@@ -39,12 +39,12 @@ public class PointsToElement implements AbstractElement {
     	assert (result.references.size() == result.variables.size());
 		return result;
 	}
-	
+
     public Iterator<PointsToRelation> getIterator ()
     {
         return references.iterator ();
     }
-    
+
     public PointsToRelation addVariable (IASTDeclarator variable) {
     	PointsToRelation entry = variables.get(variable);
     	if (null == entry) {
@@ -55,32 +55,32 @@ public class PointsToElement implements AbstractElement {
     	assert (references.size() == variables.size());
     	return entry;
     }
-    
+
     public PointsToRelation lookup (IASTName name) {
     	IBinding binding = name.resolveBinding();
     	for (IASTDeclarator decl : variables.keySet()) {
     		if (decl.getNestedDeclarator() != null &&
-    				decl.getNestedDeclarator().getName().resolveBinding() == binding) 
+    				decl.getNestedDeclarator().getName().resolveBinding() == binding)
     			return variables.get(decl);
     		if (decl.getName().resolveBinding() == binding) return variables.get(decl);
     	}
-    	
+
     	return null;
     }
-    
+
     public void join (final PointsToElement other) {
     	for (PointsToRelation p : other.references) {
     		addVariable(p.getVariable()).join(p);
     	}
     	assert (references.size() == variables.size());
     }
-    
+
     public boolean containsRecursive (final PointsToRelation pointsTo) {
     	PointsToRelation candidate = variables.get(pointsTo.getVariable());
     	if (candidate != null && pointsTo.subsetOf(candidate)) return true;
     	return false;
     }
-    
+
     @Override
     public String toString () {
     	assert (references.size() == variables.size());

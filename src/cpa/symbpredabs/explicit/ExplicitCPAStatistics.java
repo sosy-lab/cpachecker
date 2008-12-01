@@ -30,9 +30,9 @@ import cpa.symbpredabs.mathsat.MathsatSymbolicFormula;
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
 public class ExplicitCPAStatistics implements CPAStatistics {
-    
+
     private ExplicitCPA cpa;
-    
+
     public ExplicitCPAStatistics(ExplicitCPA cpa) {
         this.cpa = cpa;
     }
@@ -44,12 +44,12 @@ public class ExplicitCPAStatistics implements CPAStatistics {
 
     @Override
     public void printStatistics(PrintWriter out) {
-        ExplicitTransferRelation trans = 
+        ExplicitTransferRelation trans =
             (ExplicitTransferRelation)cpa.getTransferRelation();
         PredicateMap pmap = cpa.getPredicateMap();
-        BDDMathsatExplicitAbstractManager amgr = 
+        BDDMathsatExplicitAbstractManager amgr =
             (BDDMathsatExplicitAbstractManager)cpa.getAbstractFormulaManager();
-        
+
         Set<Predicate> allPreds = new HashSet<Predicate>();
         Collection<CFANode> allLocs = null;
         Collection<String> allFuncs = null;
@@ -76,7 +76,7 @@ public class ExplicitCPAStatistics implements CPAStatistics {
             }
             avgPreds = allFuncs.size() > 0 ? totPreds/allFuncs.size() : 0;
         }
-        
+
         // check if/where to dump the predicate map
         int errorReached = CPAMain.cpaStats.getErrorReached();
         if (errorReached == MainCPAStatistics.ERROR_NOT_REACHED) {
@@ -97,7 +97,7 @@ public class ExplicitCPAStatistics implements CPAStatistics {
                         "cpas.symbpredabs.refinement.addPredicatesGlobally")) {
                         pw.println("\nFOR EACH LOCATION:");
                         for (CFANode l : allLocs) {
-                            Collection<Predicate> c = 
+                            Collection<Predicate> c =
                                 pmap.getRelevantPredicates(l);
                             pw.println("LOCATION: " + l);
                             for (Predicate p : c) {
@@ -114,15 +114,15 @@ public class ExplicitCPAStatistics implements CPAStatistics {
                 }
             }
         }
-        
+
         BDDMathsatExplicitAbstractManager.Stats bs = amgr.getStats();
 
-        out.println("Number of abstract states visited: " + 
+        out.println("Number of abstract states visited: " +
                 trans.getNumAbstractStates());
         out.println("Number of abstraction steps: " + bs.numCallsAbstraction);
         if (!bs.edgeAbstCountMap.isEmpty()) {
             out.println("Number of abstraction steps per each edge:");
-            Vector<Pair<Integer, CFAEdge>> v = 
+            Vector<Pair<Integer, CFAEdge>> v =
                 new Vector<Pair<Integer, CFAEdge>>();
             for (CFAEdge e : bs.edgeAbstCountMap.keySet()) {
                 v.add(new Pair<Integer, CFAEdge>(
@@ -134,7 +134,7 @@ public class ExplicitCPAStatistics implements CPAStatistics {
                     int r = (o2.getFirst() - o1.getFirst());
                     if (r == 0) {
                         return o1.getSecond().getPredecessor().getNodeNumber() -
-                               o2.getSecond().getPredecessor().getNodeNumber(); 
+                               o2.getSecond().getPredecessor().getNodeNumber();
                     } else {
                         return r;
                     }
@@ -144,64 +144,64 @@ public class ExplicitCPAStatistics implements CPAStatistics {
                 out.println("  " + p.getSecond() + " : " + p.getFirst());
             }
         }
-        out.println("Number of SMT queries in abstraction: " + 
-                (bs.abstractionNumMathsatQueries + 
-                 bs.abstractionNumCachedQueries) + " total, " + 
+        out.println("Number of SMT queries in abstraction: " +
+                (bs.abstractionNumMathsatQueries +
+                 bs.abstractionNumCachedQueries) + " total, " +
                  bs.abstractionNumCachedQueries + " cached");
         out.println("Number of refinement steps: " + bs.numCallsCexAnalysis);
         out.println("");
-        out.println("Total number of predicates discovered: " + 
+        out.println("Total number of predicates discovered: " +
                 allPreds.size());
         out.println("Average number of predicates per location: " + avgPreds);
         out.println("Max number of predicates per location: " + maxPreds);
         out.println("");
-        out.println("Total time for abstraction computation: " + 
+        out.println("Total time for abstraction computation: " +
                 toTime(bs.abstractionMathsatTime + bs.abstractionBddTime));
         out.println("  Time for All-SMT: ");
-        out.println("    Total:             " + 
-                toTime(bs.abstractionMathsatTime)); 
-        out.println("    Max:               " + 
+        out.println("    Total:             " +
+                toTime(bs.abstractionMathsatTime));
+        out.println("    Max:               " +
                 toTime(bs.abstractionMaxMathsatTime));
-        out.println("    Solving time only: " + 
+        out.println("    Solving time only: " +
                 toTime(bs.abstractionMathsatSolveTime));
         out.println("  Time for BDD construction: ");
-        out.println("    Total:             " + toTime(bs.abstractionBddTime)); 
-        out.println("    Max:               " + 
+        out.println("    Total:             " + toTime(bs.abstractionBddTime));
+        out.println("    Max:               " +
                 toTime(bs.abstractionMaxBddTime));
         out.println(
                 "Time for counterexample analysis/abstraction refinement: ");
-        out.println("  Total:               " + toTime(bs.cexAnalysisTime)); 
+        out.println("  Total:               " + toTime(bs.cexAnalysisTime));
         out.println("  Max:                 " + toTime(bs.cexAnalysisMaxTime));
-        out.println("  Solving time only:   " + 
+        out.println("  Solving time only:   " +
                 toTime(bs.cexAnalysisMathsatTime));
         if (CPAMain.cpaConfig.getBooleanValue(
                 "cpas.symbpredabs.explicit.getUsefulBlocks")) {
-            out.println("  Cex.focusing total:  " + 
+            out.println("  Cex.focusing total:  " +
                     toTime(bs.cexAnalysisGetUsefulBlocksTime));
-            out.println("  Cex.focusing max:    " + 
+            out.println("  Cex.focusing max:    " +
                 toTime(bs.cexAnalysisGetUsefulBlocksMaxTime));
         }
         if (CPAMain.cpaConfig.getBooleanValue(
                 "cpas.symbpredabs.explicit.extendedStats")) {
             out.println("Extended statistics:");
-            out.println("  Cache lookup time:         " + 
+            out.println("  Cache lookup time:         " +
                     toTime(bs.cacheLookupTime));
-            out.println("  Term build time:           " + 
+            out.println("  Term build time:           " +
                     toTime(bs.termBuildTime));
-            out.println("  Msat term copy time:       " + 
-                    toTime(bs.msatTermCopyTime));            
-            out.println("  Predicate extraction time: " + 
+            out.println("  Msat term copy time:       " +
+                    toTime(bs.msatTermCopyTime));
+            out.println("  Predicate extraction time: " +
                     toTime(bs.predicateExtractionTime));
             out.println("  Extra time:                " + toTime(bs.extraTime));
-            out.println("    Sub 1:                   " + 
+            out.println("    Sub 1:                   " +
                     toTime(bs.extraTimeSub1));
             out.println("  Calls to makeFormula: " + bs.makeFormulaCalls);
-            out.println("  Cache hits in makeFormula: " + 
+            out.println("  Cache hits in makeFormula: " +
                     bs.makeFormulaCacheHits);
-        }        
+        }
         out.println("");
         out.print("Error location(s) reached? ");
-        switch (errorReached) { 
+        switch (errorReached) {
         case MainCPAStatistics.ERROR_UNKNOWN:
             out.println("UNKNOWN, analysis has not completed");
             break;
@@ -209,18 +209,18 @@ public class ExplicitCPAStatistics implements CPAStatistics {
             out.println("YES, there is a BUG!");
             break;
         case MainCPAStatistics.ERROR_NOT_REACHED:
-            out.println("NO, the system is safe");            
+            out.println("NO, the system is safe");
         }
         if (trans.notEnoughPredicates()) {
             out.println("The analysis is not precise enough for this example!");
         }
     }
-    
+
     private String toTime(long timeMillis) {
 //        return String.format("%02dh:%02dm:%02d.%03ds",
-//                timeMillis / (1000 * 60 * 60),  
-//                timeMillis / (1000 * 60), 
-//                timeMillis / 1000, 
+//                timeMillis / (1000 * 60 * 60),
+//                timeMillis / (1000 * 60),
+//                timeMillis / 1000,
 //                timeMillis % 1000);
         return String.format("% 5d.%03ds", timeMillis/1000, timeMillis%1000);
     }

@@ -14,7 +14,7 @@ public class PreferencesActivator extends AbstractUIPlugin {
 
 	// The shared instance
 	private static PreferencesActivator plugin;
-	
+
 	/**
 	 * The constructor
 	 */

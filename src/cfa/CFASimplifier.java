@@ -23,7 +23,7 @@ import cfa.objectmodel.c.StatementEdge;
 
 
 /**
- * Used to simplify CPA by removing blank edges and combining block statements 
+ * Used to simplify CPA by removing blank edges and combining block statements
  * @author erkan
  *
  */
@@ -37,7 +37,7 @@ public class CFASimplifier
 
 	}
 
-	/** 
+	/**
 	 * Run the simplification algorithm on a given CFA. Uses BFS approach.
 	 * @param cfa CFA to be simplified
 	 */
@@ -83,13 +83,13 @@ public class CFASimplifier
 		// Remove leading blank edge if useless
 		removeUselessBlankEdge (node);
 
-		if (CPAMain.cpaConfig.getBooleanValue("cfa.combineBlockStatements"))       
+		if (CPAMain.cpaConfig.getBooleanValue("cfa.combineBlockStatements"))
 		{
 			makeMultiStatement (node);
 			makeMultiDeclaration (node);
 		}
 
-		if (CPAMain.cpaConfig.getBooleanValue("cfa.removeDeclarations"))       
+		if (CPAMain.cpaConfig.getBooleanValue("cfa.removeDeclarations"))
 		{
 			removeDeclarations(node);
 		}

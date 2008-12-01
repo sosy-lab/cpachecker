@@ -54,7 +54,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis {
 		merge = new SymbPredAbsMergeOperator(domain);
 		stop = new SymbPredAbsStopOperator(domain);
 		trans = new SymbPredAbsTransferRelation(domain);
-		covers = new HashMap<SymbPredAbsAbstractElement, 
+		covers = new HashMap<SymbPredAbsAbstractElement,
 		Set<SymbPredAbsAbstractElement>>();
 
 		// for testing purposes, it's nice to be able to use a given set of
@@ -78,8 +78,8 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis {
 //		pmap = new UpdateablePredicateMap();
 //		}
 
-//		summaryToFormulaMap = 
-//		new HashMap<SymbPredAbsCFANode, 
+//		summaryToFormulaMap =
+//		new HashMap<SymbPredAbsCFANode,
 //		Map<CFANode, Pair<SymbolicFormula, SSAMap>>>();
 
 		// TODO later
@@ -108,13 +108,13 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis {
 
 	@Override
 	public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
-		LazyLogger.log(CustomLogLevel.SpecificCPALevel, 
+		LazyLogger.log(CustomLogLevel.SpecificCPALevel,
 				"Getting initial element from node: ", node);
 
 		CFANode loc = node;
 		SymbPredAbsAbstractElement e = new SymbPredAbsAbstractElement(domain, loc, loc);
 		ParentsList parents = new ParentsList();
-		PathFormula pf = getNewPathFormula();  
+		PathFormula pf = getNewPathFormula();
 		e.setPathFormula(pf);
 		e.setParents(parents);
 		e.setAbstraction(amgr.makeTrue());
@@ -138,9 +138,9 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis {
 		assert(pmap != null);
 		e.setPredicates(pmap);
 
-		// TODO function 
+		// TODO function
 		//e.setContext(new Stack<Pair<AbstractFormula, SymbPredAbsCFANode>>(), true);
-		// we return an tuple (loc, loc, pf, abst, null), the parent is null since this is the 
+		// we return an tuple (loc, loc, pf, abst, null), the parent is null since this is the
 		// initial element
 		return e;
 	}
@@ -177,12 +177,12 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis {
 
 //		try {
 //		if (!summaryToFormulaMap.containsKey(succLoc)) {
-//		Map<CFANode, Pair<SymbolicFormula, SSAMap>> p = 
-//		mgr.buildPathFormulas(succLoc); 
+//		Map<CFANode, Pair<SymbolicFormula, SSAMap>> p =
+//		mgr.buildPathFormulas(succLoc);
 //		summaryToFormulaMap.put(succLoc, p);
 
 ////		CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel,
-////		"SYMBOLIC FORMULA FOR " + succLoc.toString() + ": " + 
+////		"SYMBOLIC FORMULA FOR " + succLoc.toString() + ": " +
 ////		p.getFirst().toString());
 
 //		}
@@ -201,7 +201,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis {
 		}
 	}
 
-	public void setCoveredBy(SymbPredAbsAbstractElement covered, 
+	public void setCoveredBy(SymbPredAbsAbstractElement covered,
 			SymbPredAbsAbstractElement e) {
 		Set<SymbPredAbsAbstractElement> s;
 		if (covers.containsKey(e)) {

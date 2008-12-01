@@ -8,7 +8,7 @@ import java.util.Map;
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  *
  * Maps a variable name to its latest "SSA index", that should be used when
- * referring to that variable 
+ * referring to that variable
  */
 public class SSAMap {
     private Map<String, Integer> repr = new HashMap<String, Integer>();
@@ -17,7 +17,7 @@ public class SSAMap {
     /**
      * returns the index of the variable in the map
      */
-    public int getIndex(String variable) { 
+    public int getIndex(String variable) {
         if (repr.containsKey(variable)) {
             return repr.get(variable).intValue();
         } else {
@@ -25,7 +25,7 @@ public class SSAMap {
             return -1;
         }
     }
-    
+
     public void setIndex(String variable, int idx) {
         repr.put(variable, new Integer(idx));
     }
@@ -37,11 +37,11 @@ public class SSAMap {
     public static int getNextSSAIndex() {
         return nextSSAIndex++;
     }
-    
+
     public Collection<String> allVariables() {
         return repr.keySet();
     }
-    
+
     @Override
     public String toString() {
         StringBuffer buf = new StringBuffer();

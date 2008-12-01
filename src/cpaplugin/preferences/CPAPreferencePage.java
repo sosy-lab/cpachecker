@@ -8,10 +8,10 @@ import cpaplugin.PreferencesActivator;
 
 /**
  * This class represents a preference page that
- * is contributed to the Preferences dialog. By 
+ * is contributed to the Preferences dialog. By
  * subclassing <samp>FieldEditorPreferencePage</samp>, we
  * can use the field support built into JFace that allows
- * us to create a page that is small and knows how to 
+ * us to create a page that is small and knows how to
  * save, restore and apply itself.
  * <p>
  * This page is used to modify preferences only. They
@@ -29,7 +29,7 @@ public class CPAPreferencePage
 		setPreferenceStore(PreferencesActivator.getDefault().getPreferenceStore());
 		setDescription("Preference Page for CPAPlugin");
 	}
-	
+
 	/**
 	 * Creates the field editors. Field editors are abstractions of
 	 * the common GUI blocks needed to manipulate various types
@@ -38,7 +38,7 @@ public class CPAPreferencePage
 	 */
 	@Override
 	public void createFieldEditors() {
-		fieldEditor = new FileFieldEditor(PreferenceConstants.P_PATH, 
+		fieldEditor = new FileFieldEditor(PreferenceConstants.P_PATH,
 				"&Directory preference:", getFieldEditorParent());
 		String[] ext = {"*.properties"};
 		fieldEditor.setFileExtensions(ext);
@@ -72,5 +72,5 @@ public class CPAPreferencePage
 	 */
 	public void init(IWorkbench workbench) {
 	}
-	
+
 }

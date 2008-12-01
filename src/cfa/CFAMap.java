@@ -13,9 +13,9 @@ import cfa.objectmodel.CFAFunctionDefinitionNode;
  *
  */
 public class CFAMap {
-	
+
 	private HashMap<String, CFAFunctionDefinitionNode> cfaMap;
-	
+
 	/**
 	 * Class constructor. Creates a new {@link HashMap} to map the name of the function
 	 * to the first node of the function.
@@ -23,7 +23,7 @@ public class CFAMap {
 	public CFAMap (){
 		cfaMap = new HashMap<String, CFAFunctionDefinitionNode>();
 	}
-	
+
 	/**
 	 * Add a new CFA to the map.
 	 * @param name name of the function.
@@ -33,7 +33,7 @@ public class CFAMap {
 	public void addCFA (String name, CFAFunctionDefinitionNode initNode){
 		cfaMap.put(name, initNode);
 	}
-	
+
 	/**
 	 * Retrieves the function's definition (the first) node.
 	 * @param name name of the function.
@@ -42,21 +42,21 @@ public class CFAMap {
 	public CFAFunctionDefinitionNode getCFA (String name){
 		return cfaMap.get(name);
 	}
-	
+
 	/**
 	 * @return number of CFAs.
 	 */
 	public int size (){
 		return cfaMap.size();
 	}
-	
+
 	/**
 	 * @return a collection of function nodes on the map.
 	 */
 	public Collection <CFAFunctionDefinitionNode> cfaMapIterator (){
 		return cfaMap.values();
 	}
-	
+
 	/* (non-Javadoc)
 	 * @see java.lang.Object#toString()
 	 */

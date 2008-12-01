@@ -10,7 +10,7 @@ public class Tester {
 
 		String fociFormula = "";
 
-		File fFile = new File("/home/erkan/cpa/mathsatQueries.out");  
+		File fFile = new File("/home/erkan/cpa/mathsatQueries.out");
 		Scanner scanner = null;
 		try {
 			scanner = new Scanner(fFile);

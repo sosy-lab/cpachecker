@@ -1,5 +1,5 @@
 /**
- * 
+ *
  */
 package cpa.dominator.parametric;
 
@@ -27,88 +27,88 @@ import exceptions.CPAException;
 public class DominatorDomain implements AbstractDomain, PartialOrder, JoinOperator {
 
 	private ConfigurableProgramAnalysis cpa;
-	
+
 	public DominatorDomain(ConfigurableProgramAnalysis cpa) {
 		this.cpa = cpa;
 	}
-	
+
 	private static class DominatorBottomElement implements BottomElement
     {
 		private DominatorBottomElement() {
-			
+
 		}
-		
+
         @Override
         public String toString() {
         	return "\\top";
         }
-        
+
         @Override
         public boolean equals(Object o) {
         	return (o instanceof DominatorBottomElement);
         }
-        
+
         @Override
         public int hashCode() {
         	return Integer.MAX_VALUE;
         }
     }
-	
+
 	private static class DominatorTopElement implements TopElement
     {
 		private DominatorTopElement() {
-			
+
 		}
-		
+
         @Override
         public String toString() {
         	return "\\bot";
         }
-        
+
         @Override
         public boolean equals(Object o) {
         	return (o instanceof DominatorTopElement);
         }
-        
+
         @Override
         public int hashCode() {
         	return Integer.MIN_VALUE;
         }
     }
-    
+
     private final static DominatorBottomElement bottomElement = new DominatorBottomElement();
     private final static DominatorTopElement topElement = new DominatorTopElement();
-    
+
     public boolean satisfiesPartialOrder(AbstractElement element1, AbstractElement element2) throws CPAException
     {
         if (element1.equals(element2))
             return true;
-        
+
         if (element1.equals(bottomElement) || element2.equals(topElement))
             return true;
-        
+
         if (element1 instanceof DominatorElement && element2 instanceof DominatorElement) {
         	DominatorElement dominatorElement1 = (DominatorElement)element1;
         	DominatorElement dominatorElement2 = (DominatorElement)element2;
-        	
+
         	if (this.cpa.getAbstractDomain().getPartialOrder().satisfiesPartialOrder(dominatorElement1.getDominatedElement(), dominatorElement2.getDominatedElement())) {
         		Iterator<AbstractElementWithLocation> dominatorIterator = dominatorElement2.getIterator();
-        		
+
         		while (dominatorIterator.hasNext()) {
         			AbstractElementWithLocation dominator = dominatorIterator.next();
-        			
+
         			if (!dominatorElement1.isDominatedBy(dominator)) {
         				return false;
         			}
         		}
-        		
+
         		return true;
         	}
         }
-        
+
         return false;
     }
-    
+
     public AbstractElement join(AbstractElement element1, AbstractElement element2) {
     	if (element1.equals(bottomElement)) {
 			return element2;
@@ -143,7 +143,7 @@ public class DominatorDomain implements AbstractDomain, PartialOrder, JoinOperat
 		if (!dominatorElement1.getDominatedElement().equals(dominatorElement2.getDominatedElement())) {
 			return topElement;
 		}
-		
+
 		Set<AbstractElementWithLocation> intersectingDominators = new HashSet<AbstractElementWithLocation>();
 
 		Iterator<AbstractElementWithLocation> dominatorIterator = dominatorElement1.getIterator();
@@ -155,25 +155,25 @@ public class DominatorDomain implements AbstractDomain, PartialOrder, JoinOperat
 				intersectingDominators.add(dominator);
 			}
 		}
-		
+
 		DominatorElement result = new DominatorElement(dominatorElement1.getDominatedElement(), intersectingDominators);
-		
+
 		result.update(dominatorElement1.getDominatedElement());
-		
+
 		return result;
-	}  
-       
+	}
+
 	/* (non-Javadoc)
 	 * @see cpa.common.interfaces.AbstractDomain#getBottomElement()
 	 */
 	public BottomElement getBottomElement() {
 		return bottomElement;
 	}
-	
+
 	public boolean isBottomElement(AbstractElement element) {
 		return element.equals(bottomElement);
 	}
-	
+
 	/* (non-Javadoc)
 	 * @see cpa.common.interfaces.AbstractDomain#getTopElement()
 	 */

@@ -7,12 +7,12 @@ import cpa.common.interfaces.MergeOperator;
 public class OctMergeSep implements MergeOperator {
 
 	private OctDomain octDomain;
-	
+
 	public OctMergeSep (OctDomain octDomain)
     {
         this.octDomain = octDomain;
     }
-	
+
 	public AbstractDomain getAbstractDomain() {
 		return octDomain;
 	}

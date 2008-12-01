@@ -87,7 +87,7 @@ public class CPAConfiguration extends Properties{
     }
 
     /**
-     * Reads the arguments and process them. If a corresponding key is found, the property 
+     * Reads the arguments and process them. If a corresponding key is found, the property
      * is updated
      * @param args commandline arguments
      * @throws Exception if an option is set but no value for the option is found
@@ -201,9 +201,9 @@ public class CPAConfiguration extends Properties{
 	                load(is);
 	                return true;
 	            }
-        } catch (IOException iex) 
+        } catch (IOException iex)
         {
-        	
+
             return false;
         }
         JOptionPane.showMessageDialog(null, "Could not find default.properties, set path in window>preferences>CPAPlugin", "Missing Default Properties", JOptionPane.ERROR_MESSAGE);
@@ -221,7 +221,7 @@ public class CPAConfiguration extends Properties{
     //	v = v.trim();
     //	if (!v.equals(v0)) {
     //	put(k, v);
-    //	}      
+    //	}
 
     //	if ("true".equalsIgnoreCase(v) || "t".equalsIgnoreCase(v)
     //	|| "yes".equalsIgnoreCase(v) || "y".equalsIgnoreCase(v)) {
@@ -233,7 +233,7 @@ public class CPAConfiguration extends Properties{
     //	}
     //	}
 
-    
+
     /**
      * If there are a number of properties for a given key, this method will split them
      * using {@link CPAConfiguration#DELIMS} and return the array of properties
@@ -253,7 +253,7 @@ public class CPAConfiguration extends Properties{
      * A shortcut for properties which has only true, false value
      * @param key the key for the property
      * @return the boolean value of the property, if the key is not present in
-     * the properties file false 
+     * the properties file false
      */
     public boolean getBooleanValue(String key){
         String s = getProperty(key);

@@ -8,11 +8,11 @@ import cfa.objectmodel.CFAEdgeType;
 
 
 
-public class DeclarationEdge extends AbstractCFAEdge 
+public class DeclarationEdge extends AbstractCFAEdge
 {
     private IASTDeclarator[] declarators;
     private IASTDeclSpecifier specifier;
-    
+
     public DeclarationEdge (String rawStatement,
                             IASTDeclarator[] declarators,
                             IASTDeclSpecifier specifier)
@@ -26,12 +26,12 @@ public class DeclarationEdge extends AbstractCFAEdge
     {
         return CFAEdgeType.DeclarationEdge;
     }
-    
+
     public IASTDeclarator[] getDeclarators ()
     {
         return declarators;
     }
-    
+
     public IASTDeclSpecifier getDeclSpecifier()
     {
         return specifier;

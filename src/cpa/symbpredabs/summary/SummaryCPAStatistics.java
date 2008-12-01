@@ -26,9 +26,9 @@ import cpa.symbpredabs.mathsat.summary.BDDMathsatSummaryAbstractManager;
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
 public class SummaryCPAStatistics implements CPAStatistics {
-    
+
     private SummaryCPA cpa;
-    
+
     public SummaryCPAStatistics(SummaryCPA cpa) {
         this.cpa = cpa;
     }
@@ -40,12 +40,12 @@ public class SummaryCPAStatistics implements CPAStatistics {
 
     @Override
     public void printStatistics(PrintWriter out) {
-        SummaryTransferRelation trans = 
+        SummaryTransferRelation trans =
             (SummaryTransferRelation)cpa.getTransferRelation();
         PredicateMap pmap = cpa.getPredicateMap();
-        BDDMathsatSummaryAbstractManager amgr = 
+        BDDMathsatSummaryAbstractManager amgr =
             (BDDMathsatSummaryAbstractManager)cpa.getAbstractFormulaManager();
-        
+
         Set<Predicate> allPreds = new HashSet<Predicate>();
         Collection<CFANode> allLocs = null;
         Collection<String> allFuncs = null;
@@ -72,7 +72,7 @@ public class SummaryCPAStatistics implements CPAStatistics {
             }
             avgPreds = allFuncs.size() > 0 ? totPreds/allFuncs.size() : 0;
         }
-        
+
         // check if/where to dump the predicate map
         int errorReached = CPAMain.cpaStats.getErrorReached();
         if (errorReached == MainCPAStatistics.ERROR_NOT_REACHED) {
@@ -94,7 +94,7 @@ public class SummaryCPAStatistics implements CPAStatistics {
                             "addPredicatesGlobally")) {
                         pw.println("\nFOR EACH LOCATION:");
                         for (CFANode l : allLocs) {
-                            Collection<Predicate> c = 
+                            Collection<Predicate> c =
                                 pmap.getRelevantPredicates(l);
                             pw.println("LOCATION: " + l);
                             for (Predicate p : c) {
@@ -111,55 +111,55 @@ public class SummaryCPAStatistics implements CPAStatistics {
                 }
             }
         }
-        
+
         BDDMathsatSummaryAbstractManager.Stats bs = amgr.getStats();
 
-        out.println("Number of abstract states visited: " + 
+        out.println("Number of abstract states visited: " +
                 trans.getNumAbstractStates());
         out.println("Number of abstraction steps: " + bs.numCallsAbstraction +
                 " (" + bs.numCallsAbstractionCached + " cached)");
         out.println("Number of refinement steps: " + bs.numCallsCexAnalysis);
         out.println("Number of coverage checks: " + bs.numCoverageChecks);
         out.println("");
-        out.println("Total number of predicates discovered: " + 
+        out.println("Total number of predicates discovered: " +
                 allPreds.size());
         out.println("Average number of predicates per location: " + avgPreds);
         out.println("Max number of predicates per location: " + maxPreds);
         out.println("");
-        out.println("Total time for abstraction computation: " + 
+        out.println("Total time for abstraction computation: " +
                 toTime(bs.abstractionMathsatTime + bs.abstractionBddTime));
         out.println("  Time for All-SMT: ");
-        out.println("    Total:             " + 
-                toTime(bs.abstractionMathsatTime)); 
-        out.println("    Max:               " + 
+        out.println("    Total:             " +
+                toTime(bs.abstractionMathsatTime));
+        out.println("    Max:               " +
                 toTime(bs.abstractionMaxMathsatTime));
-        out.println("    Solving time only: " + 
+        out.println("    Solving time only: " +
                 toTime(bs.abstractionMathsatSolveTime));
         out.println("  Time for BDD construction: ");
-        out.println("    Total:             " + toTime(bs.abstractionBddTime)); 
-        out.println("    Max:               " + 
+        out.println("    Total:             " + toTime(bs.abstractionBddTime));
+        out.println("    Max:               " +
                 toTime(bs.abstractionMaxBddTime));
         out.println("  Time for coverage check: ");
-        out.println("    Total:             " + 
-                toTime(bs.bddCoverageCheckTime)); 
-        out.println("    Max:               " + 
+        out.println("    Total:             " +
+                toTime(bs.bddCoverageCheckTime));
+        out.println("    Max:               " +
                 toTime(bs.bddCoverageCheckMaxTime));
         out.println(
                 "Time for counterexample analysis/abstraction refinement: ");
-        out.println("  Total:               " + toTime(bs.cexAnalysisTime)); 
+        out.println("  Total:               " + toTime(bs.cexAnalysisTime));
         out.println("  Max:                 " + toTime(bs.cexAnalysisMaxTime));
-        out.println("  Solving time only:   " + 
+        out.println("  Solving time only:   " +
                 toTime(bs.cexAnalysisMathsatTime));
         if (CPAMain.cpaConfig.getBooleanValue(
                 "cpas.symbpredabs.explicit.getUsefulBlocks")) {
-            out.println("  Cex.focusing total:  " + 
+            out.println("  Cex.focusing total:  " +
                     toTime(bs.cexAnalysisGetUsefulBlocksTime));
             out.println("  Cex.focusing max:    " +
                     toTime(bs.cexAnalysisGetUsefulBlocksMaxTime));
         }
         out.println("");
         out.print("Error location(s) reached? ");
-        switch (errorReached) { 
+        switch (errorReached) {
         case MainCPAStatistics.ERROR_UNKNOWN:
             out.println("UNKNOWN, analysis has not completed");
             break;
@@ -167,15 +167,15 @@ public class SummaryCPAStatistics implements CPAStatistics {
             out.println("YES, there is a BUG!");
             break;
         case MainCPAStatistics.ERROR_NOT_REACHED:
-            out.println("NO, the system is safe");            
+            out.println("NO, the system is safe");
         }
     }
-    
+
     private String toTime(long timeMillis) {
 //        return String.format("%02dh:%02dm:%02d.%03ds",
-//                timeMillis / (1000 * 60 * 60),  
-//                timeMillis / (1000 * 60), 
-//                timeMillis / 1000, 
+//                timeMillis / (1000 * 60 * 60),
+//                timeMillis / (1000 * 60),
+//                timeMillis / 1000,
 //                timeMillis % 1000);
         return String.format("% 5d.%03ds", timeMillis/1000, timeMillis%1000);
     }

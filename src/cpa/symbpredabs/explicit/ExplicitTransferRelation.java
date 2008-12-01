@@ -53,20 +53,20 @@ public class ExplicitTransferRelation implements TransferRelation {
     class ART {
         Map<AbstractElement, Vector<AbstractElement>> tree;
         AbstractElement root;
-        
+
         public ART() {
             tree = new HashMap<AbstractElement, Vector<AbstractElement>>();
             root = null;
         }
-        
+
         public AbstractElement getRoot() { return root; }
-        
+
         public void addChild(AbstractElement parent, AbstractElement child) {
             if (root == null) {
                 root = parent;
             }
             if (!tree.containsKey(parent)) {
-                tree.put(parent, new Vector<AbstractElement>()); 
+                tree.put(parent, new Vector<AbstractElement>());
             }
             Collection<AbstractElement> c = tree.get(parent);
             c.add(child);
@@ -77,13 +77,13 @@ public class ExplicitTransferRelation implements TransferRelation {
          * is true, remove the elements from the ART (used in refinement). If
          * "includeRoot" is false, don't include "root" itself
          */
-        public Collection<AbstractElement> getSubtree(AbstractElement root, 
+        public Collection<AbstractElement> getSubtree(AbstractElement root,
                 boolean remove, boolean includeRoot) {
             Vector<AbstractElement> ret = new Vector<AbstractElement>();
-            
+
             Stack<AbstractElement> toProcess = new Stack<AbstractElement>();
             toProcess.push(root);
-            
+
             while (!toProcess.empty()) {
                 AbstractElement cur = toProcess.pop();
                 ret.add(cur);
@@ -103,16 +103,16 @@ public class ExplicitTransferRelation implements TransferRelation {
         public boolean contains(AbstractElement n) {
             return tree.containsKey(n);
         }
-        
+
         public ExplicitAbstractElement findHighest(CFANode loc) {
             if (root == null) return null;
-            
+
             Queue<AbstractElement> toProcess =
                 new ArrayDeque<AbstractElement>();
             toProcess.add(root);
-            
+
             while (!toProcess.isEmpty()) {
-                ExplicitAbstractElement e = 
+                ExplicitAbstractElement e =
                     (ExplicitAbstractElement)toProcess.remove();
                 if (e.getLocationNode().equals(loc)) {
                     return e;
@@ -124,10 +124,10 @@ public class ExplicitTransferRelation implements TransferRelation {
             return null;
         }
     }
-    
+
     class Path {
         Vector<Integer> elemIds;
-        
+
         public Path(Deque<ExplicitAbstractElement> cex) {
             elemIds = new Vector<Integer>();
             elemIds.ensureCapacity(cex.size());
@@ -135,7 +135,7 @@ public class ExplicitTransferRelation implements TransferRelation {
                 elemIds.add(e.getLocation().getNodeNumber());
             }
         }
-        
+
         @Override
         public boolean equals(Object o) {
             if (o == this) return true;
@@ -144,7 +144,7 @@ public class ExplicitTransferRelation implements TransferRelation {
             }
             return false;
         }
-        
+
         @Override
         public int hashCode() {
             return elemIds.hashCode();
@@ -154,26 +154,26 @@ public class ExplicitTransferRelation implements TransferRelation {
     private ExplicitAbstractDomain domain;
     private ART abstractTree;
     private Map<Path, Integer> abstractCex;
-    
+
     private int numAbstractStates = 0; // for statistics
-    
+
     // this is used for deciding how much of the ART to undo after refinement
     // private Deque<ExplicitAbstractElement> lastErrorPath;
     // private int samePathAlready = 0;
-    
+
     private boolean notEnoughPredicatesFlag = false;
-    
+
     public ExplicitTransferRelation(ExplicitAbstractDomain d) {
         domain = d;
         abstractTree = new ART();
         // lastErrorPath = null;
         abstractCex = new HashMap<Path, Integer>();
     }
-    
+
     public boolean notEnoughPredicates() { return notEnoughPredicatesFlag; }
-    
+
     public int getNumAbstractStates() { return numAbstractStates; }
-    
+
     @Override
     public AbstractDomain getAbstractDomain() {
         return domain;
@@ -183,7 +183,7 @@ public class ExplicitTransferRelation implements TransferRelation {
     private boolean isFunctionStart(ExplicitAbstractElement elem) {
         return (elem.getLocation() instanceof FunctionDefinitionNode);
     }
-    
+
     private boolean isFunctionEnd(ExplicitAbstractElement elem) {
         CFANode n = elem.getLocation();
         return (n.getNumLeavingEdges() > 0 &&
@@ -195,21 +195,21 @@ public class ExplicitTransferRelation implements TransferRelation {
             CFAEdge edge) throws CPATransferException {
         ExplicitCPA cpa = domain.getCPA();
         CFANode succLoc = edge.getSuccessor();
-        
+
         // check whether the successor is an error location: if so, we want
         // to check for feasibility of the path...
-        
-        Collection<Predicate> predicates = 
+
+        Collection<Predicate> predicates =
             cpa.getPredicateMap().getRelevantPredicates(
                     e.getLocation());
 //        if (predicates.isEmpty() && e.getParent() != null) {
 //            predicates = cpa.getPredicateMap().getRelevantPredicates(
 //                    e.getParent().getLocation());
 //        }
-                
+
         ExplicitAbstractElement succ = new ExplicitAbstractElement(succLoc);
-        
-        // if e is the end of a function, we must find the correct return 
+
+        // if e is the end of a function, we must find the correct return
         // location
         if (isFunctionEnd(e)) {
             CFANode retNode = e.topContextLocation();
@@ -220,25 +220,25 @@ public class ExplicitTransferRelation implements TransferRelation {
                 return domain.getBottomElement();
             }
         }
-        
+
         succ.setContext(e.getContext(), false);
         if (isFunctionEnd(e)) {
             succ.popContext();
         }
-        
+
         ExplicitAbstractFormulaManager amgr = cpa.getAbstractFormulaManager();
         AbstractFormula abstraction = amgr.buildAbstraction(
                 cpa.getFormulaManager(), e, succ, edge, predicates);
         succ.setAbstraction(abstraction);
         succ.setParent(e);
-        
+
         Level lvl = LazyLogger.DEBUG_1;
         if (CPACheckerLogger.getLevel() <= lvl.intValue()) {
             SymbolicFormulaManager mgr = cpa.getFormulaManager();
-            LazyLogger.log(lvl, "COMPUTED ABSTRACTION: ", 
+            LazyLogger.log(lvl, "COMPUTED ABSTRACTION: ",
                            amgr.toConcrete(mgr, abstraction));
         }
-        
+
         if (amgr.isFalse(abstraction)) {
             return domain.getBottomElement();
         } else {
@@ -251,12 +251,12 @@ public class ExplicitTransferRelation implements TransferRelation {
                     throw new ErrorReachedException(
                             "Reached error location, but refinement disabled");
                 }
-                // oh oh, reached error location. Let's check whether the 
+                // oh oh, reached error location. Let's check whether the
                 // trace is feasible or spurious, and in case refine the
                 // abstraction
                 //
                 // first we build the abstract path
-                Deque<ExplicitAbstractElement> path = 
+                Deque<ExplicitAbstractElement> path =
                     new LinkedList<ExplicitAbstractElement>();
                 path.addFirst(succ);
                 ExplicitAbstractElement parent = succ.getParent();
@@ -264,7 +264,7 @@ public class ExplicitTransferRelation implements TransferRelation {
                     path.addFirst(parent);
                     parent = parent.getParent();
                 }
-                CounterexampleTraceInfo info = 
+                CounterexampleTraceInfo info =
                     amgr.buildCounterexampleTrace(
                             cpa.getFormulaManager(), path);
                 if (info.isSpurious()) {
@@ -273,8 +273,8 @@ public class ExplicitTransferRelation implements TransferRelation {
                             "abstraction");
                     performRefinement(path, info);
                 } else {
-                    LazyLogger.log(CustomLogLevel.SpecificCPALevel, 
-                            "REACHED ERROR LOCATION!: ", succ, 
+                    LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+                            "REACHED ERROR LOCATION!: ", succ,
                             " RETURNING BOTTOM!");
                     CPAMain.cpaStats.setErrorReached(true);
                     throw new ErrorReachedException(
@@ -282,20 +282,20 @@ public class ExplicitTransferRelation implements TransferRelation {
                 }
                 return domain.getBottomElement();
             }
-            
+
             if (isFunctionStart(succ)) {
                 // we push into the context the return location, which is
                 // the successor location of the summary edge
                 assert(e.getLocation().getLeavingSummaryEdge() != null);
                 CFANode retNode = null;
-                retNode = 
+                retNode =
                     e.getLocation().getLeavingSummaryEdge().getSuccessor();
                 succ.pushContext(e.getAbstraction(), retNode);
-//                for (CFANode l : e.getLeaves()) {  
+//                for (CFANode l : e.getLeaves()) {
 //                    if (l instanceof FunctionDefinitionNode) {
 //                        assert(l.getNumLeavingEdges() == 1);
 //                        assert(l.getNumEnteringEdges() == 1);
-//                        
+//
 //                        CFAEdge ee = l.getLeavingEdge(0);
 //                        InnerCFANode n = (InnerCFANode)ee.getSuccessor();
 //                        if (n.getSummaryNode().equals(succ.getLocation())) {
@@ -314,19 +314,19 @@ public class ExplicitTransferRelation implements TransferRelation {
                 if (retNode != null) {
 //                LazyLogger.log(LazyLogger.DEBUG_3, "PUSHING CONTEXT TO ", succ,
 //                        ": ", cpa.getAbstractFormulaManager().toConcrete(
-//                                cpa.getFormulaManager(), 
+//                                cpa.getFormulaManager(),
 //                                succ.getAbstraction()));
 //                //succ.getContext().push(succ.getAbstraction());
 //                succ.pushContext(succ.getAbstraction(), retNode);
                 }
-            }            
-            
+            }
+
             return succ;
         }
     }
 
     // abstraction refinement is performed here
-    private void performRefinement(Deque<ExplicitAbstractElement> path, 
+    private void performRefinement(Deque<ExplicitAbstractElement> path,
             CounterexampleTraceInfo info) throws CPATransferException {
         LazyLogger.log(LazyLogger.DEBUG_1, "STARTING REFINEMENT");
         UpdateablePredicateMap curpmap =
@@ -381,7 +381,7 @@ public class ExplicitTransferRelation implements TransferRelation {
                         firstInterpolant.getLocationNode());
                 LazyLogger.log(CustomLogLevel.SpecificCPALevel,
                                "Restarting ART from scratch");
-                //root = (ExplicitAbstractElement)abstractTree.getRoot();                
+                //root = (ExplicitAbstractElement)abstractTree.getRoot();
             }
         } else {
             //samePathAlready  = 0;
@@ -391,7 +391,7 @@ public class ExplicitTransferRelation implements TransferRelation {
             // computed so far, and check for each leaf whether to re-add it
             // to the waiting list or not, similarly to what Blast does
             // (file psrc/be/modelChecker/lazyModelChecker.ml, function
-            // update_tree_after_refinment). But for now, for simplicity we 
+            // update_tree_after_refinment). But for now, for simplicity we
             // just restart from scratch
             root = (ExplicitAbstractElement)abstractTree.getRoot();
         }
@@ -405,9 +405,9 @@ public class ExplicitTransferRelation implements TransferRelation {
 //        if (root.getParent() != null) {
 //            root = root.getParent();
 //        }
-        
+
 //        if (root == null) {
-//            assert(firstInterpolant != null);            
+//            assert(firstInterpolant != null);
 ////            assert(CPAMain.cpaConfig.getBooleanValue(
 ////                    "cpas.symbpredabs.refinement.addPredicatesGlobally"));
 //            //root = abstractTree.getRoot();
@@ -417,7 +417,7 @@ public class ExplicitTransferRelation implements TransferRelation {
         //root = path.getFirst();
         Collection<AbstractElement> toWaitlist = new HashSet<AbstractElement>();
         toWaitlist.add(root);
-        Collection<AbstractElement> toUnreach = 
+        Collection<AbstractElement> toUnreach =
             abstractTree.getSubtree(root, true, false);
         if (cur != null) {
             // we don't want to unreach elements that were covered before
@@ -431,11 +431,11 @@ public class ExplicitTransferRelation implements TransferRelation {
                     it.remove();
                 }
             }
-        }        
-        
-        LazyLogger.log(LazyLogger.DEBUG_1, "REFINEMENT - toWaitlist: ", 
+        }
+
+        LazyLogger.log(LazyLogger.DEBUG_1, "REFINEMENT - toWaitlist: ",
                 toWaitlist);
-        LazyLogger.log(LazyLogger.DEBUG_1, "REFINEMENT - toUnreach: ", 
+        LazyLogger.log(LazyLogger.DEBUG_1, "REFINEMENT - toUnreach: ",
                 toUnreach);
         throw new RefinementNeededException(toUnreach, toWaitlist);
     }
@@ -464,37 +464,37 @@ public class ExplicitTransferRelation implements TransferRelation {
     @Override
     public AbstractElement getAbstractSuccessor(AbstractElement element,
             CFAEdge cfaEdge) throws CPATransferException {
-        LazyLogger.log(CustomLogLevel.SpecificCPALevel, 
-                       "Getting Abstract Successor of element: ", element, 
+        LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+                       "Getting Abstract Successor of element: ", element,
                        " on edge: ", cfaEdge.getRawStatement());
-        
+
         if (!abstractTree.contains(element)) {
             ++numAbstractStates;
         }
 
         // To get the successor, we compute the predicate abstraction of the
-        // formula of element plus all the edges that connect any of the 
-        // inner nodes of the summary of element to any inner node of the  
+        // formula of element plus all the edges that connect any of the
+        // inner nodes of the summary of element to any inner node of the
         // destination
         ExplicitAbstractElement e = (ExplicitAbstractElement)element;
         CFANode src = (CFANode)e.getLocation();
-        
+
         for (int i = 0; i < src.getNumLeavingEdges(); ++i) {
             CFAEdge edge = src.getLeavingEdge(i);
             if (edge.equals(cfaEdge)) {
                 AbstractElement ret = buildSuccessor(e, edge);
 
-                LazyLogger.log(CustomLogLevel.SpecificCPALevel, 
+                LazyLogger.log(CustomLogLevel.SpecificCPALevel,
                                "Successor is: ", ret);
-                
+
                 if (ret != domain.getBottomElement()) {
                     abstractTree.addChild(e, ret);
                 }
-                
+
                 return ret;
             }
         }
-        
+
         LazyLogger.log(CustomLogLevel.SpecificCPALevel, "Successor is: BOTTOM");
 
         return domain.getBottomElement();
@@ -503,26 +503,26 @@ public class ExplicitTransferRelation implements TransferRelation {
     @Override
     public List<AbstractElement> getAllAbstractSuccessors(
             AbstractElement element) throws CPAException, CPATransferException {
-        LazyLogger.log(CustomLogLevel.SpecificCPALevel, 
-                       "Getting ALL Abstract Successors of element: ", 
+        LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+                       "Getting ALL Abstract Successors of element: ",
                        element);
-        
+
         List<AbstractElement> allSucc = new Vector<AbstractElement>();
         ExplicitAbstractElement e = (ExplicitAbstractElement)element;
         CFANode src = (CFANode)e.getLocation();
-        
+
         for (int i = 0; i < src.getNumLeavingEdges(); ++i) {
-            AbstractElement newe = 
+            AbstractElement newe =
                 getAbstractSuccessor(e, src.getLeavingEdge(i));
             if (newe != domain.getBottomElement()) {
                 allSucc.add(newe);
             }
         }
-        
-        LazyLogger.log(CustomLogLevel.SpecificCPALevel, 
+
+        LazyLogger.log(CustomLogLevel.SpecificCPALevel,
                        allSucc.size(), " successors found");
 
         return allSucc;
     }
-    
+
 }

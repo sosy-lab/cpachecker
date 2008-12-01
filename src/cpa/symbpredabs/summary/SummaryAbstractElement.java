@@ -17,12 +17,12 @@ import cpa.symbpredabs.SymbolicFormula;
  *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
-public class SummaryAbstractElement 
+public class SummaryAbstractElement
         implements AbstractElementWithLocation {
-    
+
     private int elemId;
     private SummaryCFANode summaryLocation;
-    // for each "leaf" node in the inner CFA of this summary, we keep the 
+    // for each "leaf" node in the inner CFA of this summary, we keep the
     // symbolic representation of all the paths leading to the leaf
     private Map<CFANode, Pair<SymbolicFormula, SSAMap>> pathFormulas;
     private AbstractFormula abstraction;
@@ -31,27 +31,27 @@ public class SummaryAbstractElement
     // context is used to deal with function calls/returns
     private Stack<Pair<AbstractFormula, SummaryCFANode>> context;
     private boolean ownsContext;
-    
+
     private static int nextAvailableId = 1;
-    
+
     public int getId() { return elemId; }
     public SummaryCFANode getLocation() { return summaryLocation; }
-    public Pair<SymbolicFormula, SSAMap> getPathFormula(CFANode leaf) { 
-        return pathFormulas.get(leaf); 
+    public Pair<SymbolicFormula, SSAMap> getPathFormula(CFANode leaf) {
+        return pathFormulas.get(leaf);
     }
     public AbstractFormula getAbstraction() { return abstraction; }
-    
-    public void setAbstraction(AbstractFormula a) { 
+
+    public void setAbstraction(AbstractFormula a) {
         abstraction = a;
     }
     public void setPathFormulas(Map<CFANode, Pair<SymbolicFormula, SSAMap>> pf){
         pathFormulas = pf;
     }
-    
+
     public SummaryAbstractElement getParent() { return parent; }
     public void setParent(SummaryAbstractElement p) { parent = p; }
-    
-    private SummaryAbstractElement(SummaryCFANode loc, AbstractFormula a, 
+
+    private SummaryAbstractElement(SummaryCFANode loc, AbstractFormula a,
             Map<CFANode, Pair<SymbolicFormula, SSAMap>> pf,
             SummaryAbstractElement p) {
         elemId = nextAvailableId++;
@@ -62,11 +62,11 @@ public class SummaryAbstractElement
         context = null;
         ownsContext = true;
     }
-    
+
     public SummaryAbstractElement(SummaryCFANode loc) {
         this(loc, null, null, null);
     }
-    
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -77,37 +77,37 @@ public class SummaryAbstractElement
             return elemId == ((SummaryAbstractElement)o).elemId;
         }
     }
-    
+
     @Override
     public int hashCode() {
         return elemId;
     }
-    
+
     @Override
     public String toString() {
         return "SE<" + Integer.toString(
                 summaryLocation.getInnerNode().getNodeNumber()) + ">";//">(" +
-                //Integer.toString(getId()) + ")"; 
+                //Integer.toString(getId()) + ")";
     }
 
     public CFANode getLocationNode() {
         return (CFANode)summaryLocation;
     }
-    
+
     public Collection<CFANode> getLeaves() {
         assert(pathFormulas != null);
-        
+
         return pathFormulas.keySet();
     }
 
-    public Stack<Pair<AbstractFormula, SummaryCFANode>> getContext() 
-    { 
-        return context; 
+    public Stack<Pair<AbstractFormula, SummaryCFANode>> getContext()
+    {
+        return context;
     }
-    
-    public void setContext(Stack<Pair<AbstractFormula, SummaryCFANode>> ctx, 
-                           boolean owns) 
-    { 
+
+    public void setContext(Stack<Pair<AbstractFormula, SummaryCFANode>> ctx,
+                           boolean owns)
+    {
         context = ctx;
         ownsContext = owns;
     }
@@ -117,17 +117,17 @@ public class SummaryAbstractElement
         assert(!context.empty());
         return context.peek().getFirst();
     }
-    
+
     public SummaryCFANode topContextLocation() {
         assert(context != null);
         assert(!context.empty());
         return context.peek().getSecond();
     }
-    
+
     private void cloneContext() {
         // copy-on-write semantics: just duplicate the context and push
         // in the copy
-        Stack<Pair<AbstractFormula, SummaryCFANode>> copy = 
+        Stack<Pair<AbstractFormula, SummaryCFANode>> copy =
             new Stack<Pair<AbstractFormula, SummaryCFANode>>();
         for (Pair<AbstractFormula, SummaryCFANode> a : context) {
             copy.add(a);
@@ -135,24 +135,24 @@ public class SummaryAbstractElement
         context = copy;
         ownsContext = true;
     }
-    
+
     public void pushContext(AbstractFormula af, SummaryCFANode returnLoc) {
         if (!ownsContext) {
             cloneContext();
         }
         context.push(new Pair<AbstractFormula, SummaryCFANode>(af, returnLoc));
     }
-    
+
     public void popContext() {
         if (!ownsContext) {
             cloneContext();
         }
         context.pop();
     }
-    
+
     public boolean sameContext(SummaryAbstractElement e2) {
         assert(context != null && e2.context != null);
-        
+
         if (context == e2.context) {
             return true;
         } else if (context.size() != e2.context.size()) {
@@ -166,7 +166,7 @@ public class SummaryAbstractElement
         }
         return true;
     }
-    
+
     public boolean isDescendant(SummaryAbstractElement c) {
         SummaryAbstractElement a = this;
         while (a != null) {
@@ -175,5 +175,5 @@ public class SummaryAbstractElement
         }
         return false;
     }
-    
+
 }

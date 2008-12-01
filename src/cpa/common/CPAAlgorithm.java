@@ -29,7 +29,7 @@ public class CPAAlgorithm
 {
     private final int GC_PERIOD = 100;
     private int gcCounter = 0;
-    
+
 	public Collection<AbstractElement> CPA (ConfigurableProgramAnalysis cpa, AbstractElement initialState) throws CPAException
 	{
 		List<AbstractElement> waitlist = new ArrayList<AbstractElement> ();
@@ -96,7 +96,7 @@ public class CPAAlgorithm
 							LazyLogger.log(
 									CustomLogLevel.CentralCPAAlgorithmLevel,
 									"reached element ", reachedElement,
-									" is removed from queue", 
+									" is removed from queue",
 									" and ", mergedElement,
 							" is added to queue");
 							waitlist.remove(reachedElement);
@@ -125,7 +125,7 @@ public class CPAAlgorithm
 //					{
 //					LazyLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel,
 //					"reached element ", reachedElement,
-//					" is removed from queue", 
+//					" is removed from queue",
 //					" and ", mergedElement,
 //					" is added to queue");
 //					waitlist.remove (reachedElement);
@@ -219,7 +219,7 @@ public class CPAAlgorithm
 			Collection<AbstractElement> reachableToUndo,
 			Collection<AbstractElement> toWaitlist) {
 		LazyLogger.log(CustomLogLevel.SpecificCPALevel,
-		"Performing refinement");        
+		"Performing refinement");
 		// remove from reached all the elements in reachableToUndo
 		Collection<AbstractElement> newreached =
 			new LinkedList<AbstractElement>();
@@ -227,12 +227,12 @@ public class CPAAlgorithm
 			if (!reachableToUndo.contains(e)) {
 				newreached.add(e);
 			} else {
-				LazyLogger.log(CustomLogLevel.SpecificCPALevel, 
+				LazyLogger.log(CustomLogLevel.SpecificCPALevel,
 						"Removing element: ", e, " from reached");
 				if (waitlist.remove(e)) {
-					LazyLogger.log(CustomLogLevel.SpecificCPALevel, 
+					LazyLogger.log(CustomLogLevel.SpecificCPALevel,
 							"Removing element: ", e,
-					" also from waitlist");                    
+					" also from waitlist");
 				}
 			}
 		}
@@ -243,7 +243,7 @@ public class CPAAlgorithm
 		// and add to the wait list all the elements in toWaitlist
 		boolean useBfs = CPAMain.cpaConfig.getBooleanValue("analysis.bfs");
 		for (AbstractElement e : toWaitlist) {
-			LazyLogger.log(CustomLogLevel.SpecificCPALevel, 
+			LazyLogger.log(CustomLogLevel.SpecificCPALevel,
 					"Adding element: ", e, " to waitlist");
 			if (useBfs) {
 				// end to the end
@@ -255,7 +255,7 @@ public class CPAAlgorithm
 		}
 		LazyLogger.log(CustomLogLevel.SpecificCPALevel,
 				"Waitlist now is: ", waitlist);
-		LazyLogger.log(CustomLogLevel.SpecificCPALevel, 
+		LazyLogger.log(CustomLogLevel.SpecificCPALevel,
 		"Refinement done");
 
         if ((++gcCounter % GC_PERIOD) == 0) {

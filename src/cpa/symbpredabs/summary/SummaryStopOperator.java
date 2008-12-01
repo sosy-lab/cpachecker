@@ -18,12 +18,12 @@ import exceptions.CPAException;
 public class SummaryStopOperator implements StopOperator {
 
     private SummaryAbstractDomain domain;
-    
+
     public SummaryStopOperator(SummaryAbstractDomain d) {
         domain = d;
     }
 
-    
+
     public AbstractDomain getAbstractDomain() {
         return domain;
     }
@@ -39,17 +39,17 @@ public class SummaryStopOperator implements StopOperator {
         return false;
     }
 
-    
+
     public boolean stop(AbstractElement element, AbstractElement reachedElement)
             throws CPAException {
 
         SummaryAbstractElement e1 = (SummaryAbstractElement)element;
         SummaryAbstractElement e2 = (SummaryAbstractElement)reachedElement;
-        
+
         if (e1.getLocation().equals(e2.getLocation())) {
-            LazyLogger.log(LazyLogger.DEBUG_4, 
+            LazyLogger.log(LazyLogger.DEBUG_4,
                     "Checking Coverage of element: ", element);
-            
+
             if (!e1.sameContext(e2)) {
                 LazyLogger.log(CustomLogLevel.SpecificCPALevel,
                                "NO, not covered: context differs");

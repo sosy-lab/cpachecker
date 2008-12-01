@@ -33,11 +33,11 @@ public class SymbPredAbstCPA implements ConfigurableProgramAnalysis {
     private MergeOperator mergeOperator;
     private StopOperator stopOperator;
     private TransferRelation transferRelation;
-    
+
     private PredicateMap predicateMap;
     private SymbolicFormulaManager formulaManager;
     private AbstractFormulaManager abstractManager;
-    
+
     private SymbPredAbstCPA() {
         SymbPredAbstDomain domain = new SymbPredAbstDomain(this);
         abstractDomain = domain;
@@ -61,10 +61,10 @@ public class SymbPredAbstCPA implements ConfigurableProgramAnalysis {
         }
         predicateMap = new FixedPredicateMap(preds);
     }
-    
+
     /**
      * Constructor conforming to the signature required by CompositeCPA
-     * WARNING! Every time this is invoked, this sets theInstance to the 
+     * WARNING! Every time this is invoked, this sets theInstance to the
      * created object
      * @param s1
      * @param s2
@@ -74,22 +74,22 @@ public class SymbPredAbstCPA implements ConfigurableProgramAnalysis {
         assert(theInstance == null);
         theInstance = this;
     }
-    
+
     public PredicateMap getPredicateMap() { return predicateMap; }
-    
+
     public SymbolicFormulaManager getFormulaManager() { return formulaManager; }
     public AbstractFormulaManager getAbstractFormulaManager() {
         return abstractManager;
     }
-    
+
     public AbstractDomain getAbstractDomain() {
         return abstractDomain;
     }
 
     public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
-        LazyLogger.log(CustomLogLevel.SpecificCPALevel, 
+        LazyLogger.log(CustomLogLevel.SpecificCPALevel,
                 "Getting initial element from node: ", node.getNodeNumber());
-        
+
         return new SymbPredAbstElement(node, formulaManager.makeTrue(), null);
     }
 
@@ -104,7 +104,7 @@ public class SymbPredAbstCPA implements ConfigurableProgramAnalysis {
     public TransferRelation getTransferRelation() {
         return transferRelation;
     }
-    
+
     private static SymbPredAbstCPA theInstance = null;
 
     public static SymbPredAbstCPA getInstance() {
@@ -112,6 +112,6 @@ public class SymbPredAbstCPA implements ConfigurableProgramAnalysis {
 //            theInstance = new SymbPredAbstCPA();
 //        }
         assert(theInstance != null);
-        return theInstance; 
+        return theInstance;
     }
 }

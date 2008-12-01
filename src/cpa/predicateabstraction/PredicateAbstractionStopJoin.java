@@ -30,11 +30,11 @@ public class PredicateAbstractionStopJoin implements StopOperator
 	public boolean isBottomElement(AbstractElement element) {
 
 		PredicateAbstractionElement predAbsElem = (PredicateAbstractionElement) element;
-		
+
 		if(predAbsElem.equals(predicateAbstractionDomain.getBottomElement())){
 			return true;
 		}
-		
+
 		return false;
 	}
 

@@ -7,12 +7,12 @@ import cpa.common.interfaces.MergeOperator;
 public class LocationMergeSep implements MergeOperator
 {
     private LocationDomain locationDomain;
-    
+
     public LocationMergeSep (LocationDomain locationDomain)
     {
         this.locationDomain = locationDomain;
     }
-    
+
     public AbstractDomain getAbstractDomain ()
     {
         return locationDomain;

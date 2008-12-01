@@ -17,26 +17,26 @@ import exceptions.CPAException;
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
 public class ItpAbstractDomain implements AbstractDomain {
-    
+
     private ItpCPA cpa;
-    
+
     public ItpAbstractDomain(ItpCPA cpa) {
         this.cpa = cpa;
     }
-    
+
     private final class ExplicitBottomElement implements BottomElement {
         @Override
     	public String toString() { return "<BOTTOM>"; }
     }
     private final class ExplicitTopElement implements TopElement {}
-    
+
     private final class ExplicitJoinOperator implements JoinOperator {
         public AbstractElement join(AbstractElement element1,
                 AbstractElement element2) throws CPAException {
             throw new CPAException("Can't join summaries!");
         }
     }
-    
+
     private final class ExplicitPartialOrder implements PartialOrder {
         public boolean satisfiesPartialOrder(AbstractElement element1,
                 AbstractElement element2) throws CPAException {
@@ -45,7 +45,7 @@ public class ItpAbstractDomain implements AbstractDomain {
 
             assert(e1.getAbstraction() != null);
             assert(e2.getAbstraction() != null);
-            
+
             if (e1.getLocation().equals(e2.getLocation())) {
                 SymbolicFormulaManager mgr = cpa.getFormulaManager();
                 return mgr.entails(e1.getAbstraction(), e2.getAbstraction());
@@ -53,7 +53,7 @@ public class ItpAbstractDomain implements AbstractDomain {
             return false;
         }
     }
-    
+
     private final BottomElement bottom = new ExplicitBottomElement();
     private final TopElement top = new ExplicitTopElement();
     private final JoinOperator join = new ExplicitJoinOperator();
@@ -62,7 +62,7 @@ public class ItpAbstractDomain implements AbstractDomain {
     public BottomElement getBottomElement() {
         return bottom;
     }
-    
+
     public boolean isBottomElement(AbstractElement element) {
         return element == bottom;
     }

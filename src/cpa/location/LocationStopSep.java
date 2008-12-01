@@ -33,7 +33,7 @@ public class LocationStopSep implements StopOperator
 
 		return false;
 	}
-	
+
 	public boolean stop(AbstractElement element, AbstractElement reachedElement)
 	throws CPAException {
 

@@ -18,8 +18,8 @@ import cpa.itpabs.explicit.ItpExplicitAbstractElement;
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
 public class ItpExplicitCPA extends ItpCPA {
-    
-    class ItpExplicitAbstractElementCreator 
+
+    class ItpExplicitAbstractElementCreator
         implements ItpAbstractElementManager {
         @Override
         public ItpAbstractElement create(CFANode location) {
@@ -27,7 +27,7 @@ public class ItpExplicitCPA extends ItpCPA {
         }
 
         @Override
-        public boolean isFunctionEnd(ItpAbstractElement e, 
+        public boolean isFunctionEnd(ItpAbstractElement e,
                                      ItpAbstractElement succ) {
             CFANode n = e.getLocation();
             return (n.getNumLeavingEdges() > 0 &&
@@ -47,23 +47,23 @@ public class ItpExplicitCPA extends ItpCPA {
                 if (!succ.getLocation().equals(retNode)) {
                     LazyLogger.log(LazyLogger.DEBUG_1,
                             "Return node for this call is: ", retNode,
-                            ", but edge leads to: ", succ.getLocation());                
+                            ", but edge leads to: ", succ.getLocation());
                     return false;
                 }
             }
             return true;
         }
-        
+
         @Override
         public void pushContextFindRetNode(ItpAbstractElement e,
                 ItpAbstractElement succ) {
             assert(e.getLocation().getLeavingSummaryEdge() != null);
-            CFANode retNode = 
+            CFANode retNode =
                 e.getLocation().getLeavingSummaryEdge().getSuccessor();
-            succ.pushContext(succ.getAbstraction(), retNode);            
+            succ.pushContext(succ.getAbstraction(), retNode);
         }
     }
-    
+
     private ItpExplicitAbstractElementCreator elemCreator;
     private ItpCPAStatistics stats;
 
@@ -73,7 +73,7 @@ public class ItpExplicitCPA extends ItpCPA {
         stats = new ItpCPAStatistics(this,
                 "Explicit-State Interpolation-based Lazy Abstraction");
     }
-    
+
     /**
      * Constructor conforming to the "contract" in CompositeCPA. The two
      * arguments are ignored
@@ -83,7 +83,7 @@ public class ItpExplicitCPA extends ItpCPA {
     public ItpExplicitCPA(String s1, String s2) {
         this();
     }
-    
+
     public CPAStatistics getStatistics() {
         return stats;
     }

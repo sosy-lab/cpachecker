@@ -10,14 +10,14 @@ public class DOTNodeShapeWriter {
 	public DOTNodeShapeWriter() {
 		shapedNodes = new ArrayList<ShapePair>();
 	}
-	
+
 	public void add(int no, String shape){
 		ShapePair sp = new ShapePair(no, shape);
 		if(!shapedNodes.contains(sp)){
 			shapedNodes.add(sp);
 		}
 	}
-	
+
 	public String getDot(){
 		String s = "";
 		for(ShapePair sp:shapedNodes){
@@ -25,7 +25,7 @@ public class DOTNodeShapeWriter {
 		}
 		return s;
 	}
-	
+
 	public class ShapePair {
 		public int nodeNumber;
 		String shape;

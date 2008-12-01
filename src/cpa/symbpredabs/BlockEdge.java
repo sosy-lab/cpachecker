@@ -9,18 +9,18 @@ import cfa.objectmodel.CFAEdgeType;
 
 
 public class BlockEdge extends AbstractCFAEdge {
-    
+
     private List<CFAEdge> edges;
 
     public BlockEdge() {
         super("BLOCK");
         edges = new Vector<CFAEdge>();
     }
-    
+
     public void addEdge(CFAEdge e) {
         edges.add(e);
     }
-    
+
     public List<CFAEdge> getEdges() { return edges; }
 
     @Override

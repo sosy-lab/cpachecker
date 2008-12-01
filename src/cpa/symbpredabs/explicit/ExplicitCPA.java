@@ -53,7 +53,7 @@ import cpa.symbpredabs.mathsat.YicesTheoremProver;
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
 public class ExplicitCPA implements ConfigurableProgramAnalysis {
-    
+
     private ExplicitAbstractDomain domain;
     // private ExplicitMergeOperator merge;
     private ExplicitStopOperator stop;
@@ -61,12 +61,12 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
     private MathsatSymbolicFormulaManager mgr;
     private BDDMathsatExplicitAbstractManager amgr;
     private PredicateMap pmap;
-    
+
     // covering relation
     private Map<ExplicitAbstractElement, Set<ExplicitAbstractElement>> covers;
-    
+
     private ExplicitCPAStatistics stats;
-    
+
     private ExplicitCPA() {
         domain = new ExplicitAbstractDomain(this);
         // merge = new ExplicitMergeOperator(domain);
@@ -86,14 +86,14 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
             System.out.println("ERROR, UNSUPPORTED SOLVER: " + whichProver);
             System.exit(1);
         }
-        InterpolatingTheoremProver itpProver = 
+        InterpolatingTheoremProver itpProver =
             new MathsatInterpolatingProver(mgr, true);
         amgr = new BDDMathsatExplicitAbstractManager(prover, itpProver);
-        
-        covers = new HashMap<ExplicitAbstractElement, 
+
+        covers = new HashMap<ExplicitAbstractElement,
                              Set<ExplicitAbstractElement>>();
-        
-        MathsatPredicateParser p = new MathsatPredicateParser(mgr, amgr);        
+
+        MathsatPredicateParser p = new MathsatPredicateParser(mgr, amgr);
         Collection<Predicate> preds = null;
         try {
             String pth = CPAMain.cpaConfig.getProperty(
@@ -115,10 +115,10 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
         } else {
             pmap = new UpdateablePredicateMap(preds);
         }
-        
+
         stats = new ExplicitCPAStatistics(this);
     }
-    
+
     /**
      * Constructor conforming to the "contract" in CompositeCPA. The two
      * arguments are ignored
@@ -128,15 +128,15 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
     public ExplicitCPA(String s1, String s2) {
         this();
     }
-    
+
     public CPAStatistics getStatistics() {
         return stats;
     }
-    
+
     public Collection<AbstractElement> newReachedSet() {
         return new LocationMappedReachedSet();
     }
-    
+
     @Override
     public AbstractDomain getAbstractDomain() {
         return domain;
@@ -144,9 +144,9 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
 
     @Override
     public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
-        LazyLogger.log(CustomLogLevel.SpecificCPALevel, 
+        LazyLogger.log(CustomLogLevel.SpecificCPALevel,
                        "Getting initial element from node: ", node);
-        
+
         ExplicitAbstractElement e = new ExplicitAbstractElement(node);
         e.setAbstraction(amgr.makeTrue());
         e.setContext(new Stack<Pair<AbstractFormula, CFANode>>(), true);
@@ -180,8 +180,8 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
     public PredicateMap getPredicateMap() {
         return pmap;
     }
-    
-    
+
+
     public Set<ExplicitAbstractElement> getCoveredBy(ExplicitAbstractElement e){
         if (covers.containsKey(e)) {
             return covers.get(e);
@@ -190,7 +190,7 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
         }
     }
 
-    public void setCoveredBy(ExplicitAbstractElement covered, 
+    public void setCoveredBy(ExplicitAbstractElement covered,
                              ExplicitAbstractElement e) {
         Set<ExplicitAbstractElement> s;
         if (covers.containsKey(e)) {
@@ -201,7 +201,7 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
         s.add(covered);
         covers.put(e, s);
     }
-    
+
     public void uncoverAll(ExplicitAbstractElement e) {
         if (covers.containsKey(e)) {
             covers.remove(e);

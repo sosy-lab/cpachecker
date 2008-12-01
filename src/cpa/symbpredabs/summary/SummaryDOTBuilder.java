@@ -26,39 +26,39 @@ public class SummaryDOTBuilder implements DOTBuilderInterface {
     private StringBuffer nodeBuf;
     private StringBuffer out;
     private Stack<CFAEdge> outerEdges;
-    
+
     public SummaryDOTBuilder() {
         nodeBuf = new StringBuffer();
         out = new StringBuffer();
         outerEdges = new Stack<CFAEdge>();
     }
 
-    public void generateDOT(CFAFunctionDefinitionNode mainFunction, 
+    public void generateDOT(CFAFunctionDefinitionNode mainFunction,
                             String fileName) throws IOException {
         PrintWriter pw = new PrintWriter(fileName);
-        
+
         pw.println("digraph CFA {");
-        
+
         generateFunctionDOT((SummaryCFAFunctionDefinitionNode)mainFunction);
-        
+
         pw.println(nodeBuf.toString());
         pw.println(out.toString());
-        
+
         pw.println("}");
         pw.close();
     }
-    
+
     private String escape(String s) {
         return s.replaceAll("\n", " ").replaceAll("\\\"", "\\\\\\\"");
     }
-    
+
     private void generateFunctionDOT(SummaryCFAFunctionDefinitionNode cfa) {
         Set<SummaryCFANode> seen = new HashSet<SummaryCFANode>();
         Stack<SummaryCFANode> toProcess = new Stack<SummaryCFANode>();
-        
+
 //        out.append("subgraph cluster_" + cfa.getFunctionName() + " {\n");
 //        out.append("label = \"" + escape(cfa.getFunctionName()) + "\";\n");
-        
+
         toProcess.push(cfa);
         while (!toProcess.empty()) {
             SummaryCFANode sn = toProcess.pop();
@@ -80,7 +80,7 @@ public class SummaryDOTBuilder implements DOTBuilderInterface {
                 }
             }
         }
-        
+
         // now we can generate the outer edges
         while (!outerEdges.empty()) {
             CFAEdge e = outerEdges.pop();
@@ -92,10 +92,10 @@ public class SummaryDOTBuilder implements DOTBuilderInterface {
             out.append(" [label=\"" + escape(e.getRawStatement()) + "\"");
             out.append(",style=\"dashed\",arrowhead=\"empty\"];\n");
         }
-        
+
 //        out.append("}\n");
     }
-    
+
     private void generateNodeDOT(SummaryCFANode summary) {
         Set<CFANode> seen = new HashSet<CFANode>();
         Stack<CFANode> toProcess = new Stack<CFANode>();
@@ -105,7 +105,7 @@ public class SummaryDOTBuilder implements DOTBuilderInterface {
         out.append(" {\n");
         out.append("label = \"S" + summary.getInnerNode().getNodeNumber() +
                    "\";\n");
-               
+
         toProcess.push(summary.getInnerNode());
         while (!toProcess.empty()) {
             CFANode n = toProcess.pop();
@@ -119,12 +119,12 @@ public class SummaryDOTBuilder implements DOTBuilderInterface {
                 CFANode succ = e.getSuccessor();
                 assert(succ instanceof InnerCFANode);
                 SummaryCFANode s = ((InnerCFANode)n).getSummaryNode();
-                if (s == ((InnerCFANode)succ).getSummaryNode() && 
+                if (s == ((InnerCFANode)succ).getSummaryNode() &&
                     (s.getInnerNode() != succ)) {
                     out.append(n.getNodeNumber());
                     out.append(" -> ");
                     out.append(succ.getNodeNumber());
-                    out.append(" [label=\"" + 
+                    out.append(" [label=\"" +
                             escape(e.getRawStatement()) + "\"];");
                     out.append("\n");
                     if (!seen.contains(succ)) {
@@ -135,10 +135,10 @@ public class SummaryDOTBuilder implements DOTBuilderInterface {
                 }
             }
         }
-        out.append("\n");        
+        out.append("\n");
         out.append("}\n");
     }
-    
+
     private void generateNodeShape(CFANode n) {
         String shape = "circle";
         if (n instanceof CFAErrorNode) {

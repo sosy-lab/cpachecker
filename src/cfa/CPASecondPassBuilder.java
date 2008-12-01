@@ -19,9 +19,9 @@ import cfa.objectmodel.c.StatementEdge;
 import cfa.CFAMap;
 
 /**
- * Used for post processing the CFA. This class provides methods which are used 
- * to modify the CFAs for each function according to user's needs. For example 
- * to handle function calls, call, return and summary edges can be inserted to 
+ * Used for post processing the CFA. This class provides methods which are used
+ * to modify the CFAs for each function according to user's needs. For example
+ * to handle function calls, call, return and summary edges can be inserted to
  * the CFA using methods in this class.
  * @author erkan
  *
@@ -35,15 +35,15 @@ public class CPASecondPassBuilder {
 	 * Class constructor.
 	 * @param map List of all CFA's in the program.
 	 */
-	public CPASecondPassBuilder(CFAMap map, 
+	public CPASecondPassBuilder(CFAMap map,
 	        boolean noCallEdgesForExternalCalls) {
 		cfas = map;
 		createCallEdgesForExternalCalls = !noCallEdgesForExternalCalls;
 	}
-	
+
 
 	/**
-	 * Traverses a CFA with the specified function name and insert call edges 
+	 * Traverses a CFA with the specified function name and insert call edges
 	 * and return edges from the call site and to the return site of the function
 	 * call. Each node carries information about the function they are in and
 	 * this information is also set by this method, see {@link CFANode#setFunctionName(String)}.
@@ -71,7 +71,7 @@ public class CPASecondPassBuilder {
 				if(edge instanceof StatementEdge)
 				{
 					IASTExpression expr = ((StatementEdge)edge).getExpression();
-					
+
 					// if expression is a binary expression
 					if(expr instanceof IASTBinaryExpression){
 						IASTExpression operand2 = ((IASTBinaryExpression)expr).getOperand2();
@@ -80,29 +80,29 @@ public class CPASecondPassBuilder {
 						        shouldCreateCallEdges((IASTFunctionCallExpression)operand2)){
 							createCallAndReturnEdges(node, successorNode, edge, expr, (IASTFunctionCallExpression)operand2);
 						}
-						// if this is not a function call just set the function name 
+						// if this is not a function call just set the function name
 						else{
 							successorNode.setFunctionName(node.getFunctionName());
 						}
 					}
-					
+
 					// if expression is function call, e.g. call(a,b);
 					else if(expr instanceof IASTFunctionCallExpression &&
 					        shouldCreateCallEdges((IASTFunctionCallExpression)expr)){
 						IASTFunctionCallExpression functionCall = (IASTFunctionCallExpression)expr;
 						createCallAndReturnEdges(node, successorNode, edge, expr, functionCall);
 					}
-					
+
 					else{
 						successorNode.setFunctionName(node.getFunctionName());
 					}
 				}
-				
+
 				else if(!((edge instanceof FunctionCallEdge) ||
 						(edge instanceof ReturnEdge))){
 					successorNode.setFunctionName(node.getFunctionName());
 				}
-				
+
 				// if the node is not already processed and if successor node is not
 				// on a different CFA, add successor node to the worklist
 				if(!processedList.contains(successorNode) &&
@@ -135,14 +135,14 @@ public class CPASecondPassBuilder {
 	private void createCallAndReturnEdges(CFANode node, CFANode successorNode, CFAEdge edge, IASTExpression expr, IASTFunctionCallExpression functionCall) {
 		String functionName = functionCall.getFunctionNameExpression().getRawSignature();
 		CFAFunctionDefinitionNode fDefNode = cfas.getCFA(functionName);
-		
+
 		IASTExpression parameters = functionCall.getParameterExpression();
 		FunctionCallEdge callEdge = new FunctionCallEdge(functionCall.getRawSignature(), parameters);
-		
+
 		// if the successor node is null, then this is an external call
 		if(fDefNode == null){
 		    assert(createCallEdgesForExternalCalls); // AG
-		    
+
 			callEdge.setExternalCall();
 			callEdge.initialize (node, edge.getSuccessor());
 			callEdge.getSuccessor().setFunctionName(node.getFunctionName());
@@ -152,7 +152,7 @@ public class CPASecondPassBuilder {
 			successorNode.removeEnteringEdge(edge);
 			return;
 		}
-		
+
 		callEdge.initialize (node, fDefNode);
 		// set name of the function
 		callEdge.getSuccessor().setFunctionName(functionName);
@@ -160,13 +160,13 @@ public class CPASecondPassBuilder {
 		ReturnEdge returnEdge = new ReturnEdge("Return Edge to " + successorNode.getNodeNumber());
 		returnEdge.initialize(cfas.getCFA(functionName).getExitNode(), successorNode);
 		returnEdge.getSuccessor().setFunctionName(node.getFunctionName());
-		
+
 		CallToReturnEdge calltoReturnEdge = new CallToReturnEdge("Summary Edge", expr);
 		calltoReturnEdge.initializeSummaryEdge(node, successorNode);
-		
+
 		node.removeLeavingEdge(edge);
 		successorNode.removeEnteringEdge(edge);
-		
+
 		// set function parameters
 //		if(parameters instanceof IASTIdExpression){
 //			IASTIdExpression variableParam = (IASTIdExpression)parameters;

@@ -66,7 +66,7 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis{
 
 	public AbstractElement getInitialElement (CFAFunctionDefinitionNode node)
 	{
-		String fileName = node.getContainingFileName(); 
+		String fileName = node.getContainingFileName();
 		return new PredicateAbstractionElement (CPAMain.cpaConfig.getProperty("analysis.entryFunction"), fileName);
 	}
 

@@ -7,17 +7,17 @@ import cfa.objectmodel.CFAEdgeType;
 
 
 
-public class AssumeEdge extends AbstractCFAEdge 
+public class AssumeEdge extends AbstractCFAEdge
 {
     private boolean truthAssumption;
     private IASTExpression expression;
-    
-    public AssumeEdge (String rawStatement, 
+
+    public AssumeEdge (String rawStatement,
                            IASTExpression expression,
                            boolean truthAssumption)
     {
         super (rawStatement);
-        
+
         this.truthAssumption = truthAssumption;
         this.expression = expression;
     }
@@ -26,17 +26,17 @@ public class AssumeEdge extends AbstractCFAEdge
     {
         return CFAEdgeType.AssumeEdge;
     }
-    
+
     public boolean getTruthAssumption ()
     {
         return truthAssumption;
     }
-    
+
     public IASTExpression getExpression ()
     {
         return expression;
     }
-    
+
     @Override
     public String getRawStatement ()
     {

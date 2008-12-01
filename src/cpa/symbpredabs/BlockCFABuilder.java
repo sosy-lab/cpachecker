@@ -37,21 +37,21 @@ public class BlockCFABuilder {
     // list of global variables. At the moment, we simply initialize them
     // at the beginning of mainFunction
     private List<IASTDeclaration> globalVars;
-    
+
     private Set<CFANode> marked = new HashSet<CFANode>();
-    
+
     public BlockCFABuilder(CFAFunctionDefinitionNode mainFunction,
                            List<IASTDeclaration> globalVars) {
         this.mainFunction = mainFunction;
         this.globalVars = globalVars;
     }
-    
+
     public CFAFunctionDefinitionNode buildBlocks() {
         mainFunction = buildBlocks(mainFunction);
         addGlobalDeclarations(mainFunction);
         return mainFunction;
     }
-    
+
     public CFAFunctionDefinitionNode buildBlocks(
             CFAFunctionDefinitionNode cfa) {
         List<CFANode> toProcess = topologicalSort(cfa);
@@ -81,7 +81,7 @@ public class BlockCFABuilder {
                     curBlock.addEdge(ee);
                     n.removeLeavingEdge(ee);
                     s.removeEnteringEdge(ee);
-                    s = ee.getSuccessor();                    
+                    s = ee.getSuccessor();
                     n = s;
                     ee = s.getLeavingEdge(0);
                 }
@@ -95,7 +95,7 @@ public class BlockCFABuilder {
                 marked.add(e.getSuccessor());
             }
         }
-        
+
         return cfa;
     }
 
@@ -119,11 +119,11 @@ public class BlockCFABuilder {
         BlockEdge curBlock = new BlockEdge();
         CFANode cur = new CFANode(0);
         cur.setFunctionName(cfa.getFunctionName());
-        
+
         for (IASTDeclaration d : globalVars) {
             assert(d instanceof IASTSimpleDeclaration);
             IASTSimpleDeclaration sd = (IASTSimpleDeclaration)d;
-            if (sd.getDeclarators().length == 1 && 
+            if (sd.getDeclarators().length == 1 &&
                     sd.getDeclarators()[0] instanceof IASTFunctionDeclarator) {
                 continue;
             }
@@ -133,7 +133,7 @@ public class BlockCFABuilder {
                     ((IASTSimpleDeclaration)d).getDeclSpecifier());
             curBlock.addEdge(e);
         }
-        
+
         // now update the successors of cfa
         for (int i = 0; i < cfa.getNumLeavingEdges(); ++i) {
             CFAEdge e = cfa.getLeavingEdge(i);
@@ -150,7 +150,7 @@ public class BlockCFABuilder {
         LinkedList<CFANode> order = new LinkedList<CFANode>();
         Stack<CFANode> toProcess = new Stack<CFANode>();
         Map<CFANode, Integer> visited = new HashMap<CFANode, Integer>();
-        
+
         toProcess.push(cfa);
         while (!toProcess.empty()) {
             CFANode n = toProcess.peek();
@@ -166,7 +166,7 @@ public class BlockCFABuilder {
                 CFANode s = e.getSuccessor();
                 // check whether the edge is not a loop-back - we want to
                 // exclude those
-                if (!isLoopBack(e) && 
+                if (!isLoopBack(e) &&
                     (!visited.containsKey(s) || visited.get(s) != 1)) {
                     toProcess.push(s);
                     finished = false;
@@ -189,7 +189,7 @@ public class BlockCFABuilder {
                 //}
             }
         }
-        
+
         return order;
     }
 
@@ -214,7 +214,7 @@ public class BlockCFABuilder {
         }
         return yes;
     }
-    
-    
+
+
 
 }

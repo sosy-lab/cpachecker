@@ -10,16 +10,16 @@ import java.util.Vector;
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  *
  * Maps a variable name to its latest "SSA index", that should be used when
- * referring to that variable 
+ * referring to that variable
  */
 public class SSAMap {
     private interface Key {}
     private class VarKey implements Key {
         private String name;
-        
+
         public VarKey(String str) { name = str; }
         public String getName() { return name; }
-        
+
         @Override
         public int hashCode() { return name.hashCode(); }
         @Override
@@ -31,23 +31,23 @@ public class SSAMap {
             }
             return false;
         }
-        
+
         @Override
         public String toString() { return name; }
     }
     private class FuncKey implements Key {
         private String name;
         private SymbolicFormula[] args;
-        
+
         public FuncKey(String n, SymbolicFormula[] a) {
             name = n;
             args = a;
         }
         public String getName() { return name; }
         public SymbolicFormula[] getArgs() { return args; }
-        
+
         @Override
-        public int hashCode() { 
+        public int hashCode() {
             int ret = name.hashCode();
             for (SymbolicFormula a : args) ret ^= a.hashCode();
             return ret;
@@ -64,7 +64,7 @@ public class SSAMap {
             }
             return false;
         }
-        
+
         @Override
         public String toString() {
             StringBuffer buf = new StringBuffer();
@@ -85,7 +85,7 @@ public class SSAMap {
     /**
      * returns the index of the variable in the map
      */
-    public int getIndex(String variable) { 
+    public int getIndex(String variable) {
         VarKey k = new VarKey(variable);
         if (repr.containsKey(k)) {
             return repr.get(k);
@@ -94,11 +94,11 @@ public class SSAMap {
             return -1;
         }
     }
-    
+
     public void setIndex(String variable, int idx) {
         repr.put(new VarKey(variable), idx);
     }
-    
+
     public int getIndex(String name, SymbolicFormula[] args) {
         FuncKey k = new FuncKey(name, args);
         if (repr.containsKey(k)) {
@@ -107,16 +107,16 @@ public class SSAMap {
             return -1;
         }
     }
-    
+
     public void setIndex(String name, SymbolicFormula[] args, int idx) {
         repr.put(new FuncKey(name, args), idx);
     }
-    
+
     public int getIndex(String name, SymbolicFormula arg) {
         SymbolicFormula[] args = {arg};
         return getIndex(name, args);
     }
-    
+
     public void setIndex(String name, SymbolicFormula arg, int idx) {
         SymbolicFormula[] args = {arg};
         setIndex(name, args, idx);
@@ -129,7 +129,7 @@ public class SSAMap {
     public static int getNextSSAIndex() {
         return nextSSAIndex++;
     }
-    
+
     public Collection<String> allVariables() {
         Vector<String> ret = new Vector<String>();
         ret.ensureCapacity(repr.size());
@@ -140,15 +140,15 @@ public class SSAMap {
         }
         return ret;
     }
-    
+
     public Collection<Pair<String, SymbolicFormula[]>> allFunctions() {
-        Vector<Pair<String, SymbolicFormula[]>> ret = 
+        Vector<Pair<String, SymbolicFormula[]>> ret =
             new Vector<Pair<String, SymbolicFormula[]>>();
         ret.ensureCapacity(repr.size());
         for (Key k : repr.keySet()) {
             if (k instanceof FuncKey) {
                 FuncKey kk = (FuncKey)k;
-                Pair<String, SymbolicFormula[]> p = 
+                Pair<String, SymbolicFormula[]> p =
                     new Pair<String, SymbolicFormula[]>(
                             kk.getName(), kk.getArgs());
                 ret.add(p);
@@ -156,7 +156,7 @@ public class SSAMap {
         }
         return ret;
     }
-    
+
     @Override
     public String toString() {
         StringBuffer buf = new StringBuffer();

@@ -37,7 +37,7 @@ import exceptions.UnrecognizedCFAEdgeException;
 
 /**
  * Transfer relation for symbolic lazy abstraction with summaries
- * 
+ *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
 public class SymbPredAbsTransferRelation implements TransferRelation {
@@ -151,7 +151,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
 		// check if the successor is an abstraction location
 		boolean b = ((SymbPredAbsAbstractDomain)getAbstractDomain()).getCPA().isAbstractionLocation(succLoc);
-		
+
 		if (!b) {
 			try {
 				newElement = new SymbPredAbsAbstractElement(domain, succLoc, element.getAbstractionLocation());
@@ -171,7 +171,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 //		if (bddMathsatMan.isFalse(newElement.getAbstraction())) {
 //			return domain.getBottomElement();
 //		}
-		
+
 		return newElement;
 
 //		Collection<Predicate> predicates = cpa.getPredicateMap()
@@ -304,7 +304,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 	private void handleAbstractionLocation(SymbPredAbsAbstractElement element,
 			SymbPredAbsAbstractElement newElement, CFAEdge edge) {
 		SSAMap maxIndex = new SSAMap();
-		
+
 		SymbPredAbsAbstractFormulaManager amgr = domain.getCPA().getAbstractFormulaManager();
 
 		ParentsList parents = element.getParents();
@@ -340,14 +340,14 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
 		// TODO move below
 		newElement.setAbstraction(abst);
-		
+
 		if (amgr.isFalse(abst)) {
 			// TODO later
             // return domain.getBottomElement();
         } else {
-        	
+
         }
-		
+
 
 		// TODO refinement part
 //		if (amgr.isFalse(abstraction)) {
@@ -362,12 +362,12 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 //		throw new ErrorReachedException(
 //		"Reached error location, but refinement disabled");
 //		}
-//		// oh oh, reached error location. Let's check whether the 
+//		// oh oh, reached error location. Let's check whether the
 //		// trace is feasible or spurious, and in case refine the
 //		// abstraction
 //		//
 //		// first we build the abstract path
-//		Deque<SummaryAbstractElement> path = 
+//		Deque<SummaryAbstractElement> path =
 //		new LinkedList<SummaryAbstractElement>();
 //		path.addFirst(succ);
 //		SummaryAbstractElement parent = succ.getParent();
@@ -375,7 +375,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 //		path.addFirst(parent);
 //		parent = parent.getParent();
 //		}
-//		CounterexampleTraceInfo info = 
+//		CounterexampleTraceInfo info =
 //		amgr.buildCounterexampleTrace(
 //		cpa.getFormulaManager(), path);
 //		if (info.isSpurious()) {
@@ -384,8 +384,8 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 //		"abstraction");
 //		performRefinement(path, info);
 //		} else {
-//		LazyLogger.log(CustomLogLevel.SpecificCPALevel, 
-//		"REACHED ERROR LOCATION!: ", succ, 
+//		LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+//		"REACHED ERROR LOCATION!: ", succ,
 //		" RETURNING BOTTOM!");
 //		errorReached = true;
 //		throw new ErrorReachedException(
@@ -398,7 +398,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 //		// we push into the context the return location, which is
 //		// the successor location of the summary edge
 //		SummaryCFANode retNode = null;
-//		for (CFANode l : e.getLeaves()) {  
+//		for (CFANode l : e.getLeaves()) {
 //		if (l instanceof FunctionDefinitionNode) {
 //		assert(l.getNumLeavingEdges() == 1);
 //		//assert(l.getNumEnteringEdges() == 1);
@@ -421,12 +421,12 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 //		if (retNode != null) {
 //		LazyLogger.log(LazyLogger.DEBUG_3, "PUSHING CONTEXT TO ", succ,
 //		": ", cpa.getAbstractFormulaManager().toConcrete(
-//		cpa.getFormulaManager(), 
+//		cpa.getFormulaManager(),
 //		succ.getAbstraction()));
 //		//succ.getContext().push(succ.getAbstraction());
 //		succ.pushContext(succ.getAbstraction(), retNode);
 //		}
-//		}            
+//		}
 
 //		return succ;
 //		}
@@ -440,9 +440,9 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 		// to check for feasibility of the path...
 
 		// TODO check - get predicates from the element
-		PredicateMap predicates = newElement.getPredicates(); 
+		PredicateMap predicates = newElement.getPredicates();
 
-		// if e is the end of a function, we must find the correct return 
+		// if e is the end of a function, we must find the correct return
 		// location
 		// TODO later
 //		if (isFunctionEnd(succ)) {
@@ -456,7 +456,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 //		}
 
 		// TODO
-////		Stack<AbstractFormula> context = 
+////		Stack<AbstractFormula> context =
 ////		(Stack<AbstractFormula>)e.getContext().clone();
 ////		if (isFunctionEnd(e)) {
 ////		context.pop();
@@ -474,7 +474,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 //		Level lvl = LazyLogger.DEBUG_1;
 //		if (CPACheckerLogger.getLevel() <= lvl.intValue()) {
 //		SymbPredAbsFormulaManager mgr = cpa.getFormulaManager();
-//		LazyLogger.log(lvl, "COMPUTED ABSTRACTION: ", 
+//		LazyLogger.log(lvl, "COMPUTED ABSTRACTION: ",
 //		amgr.toConcrete(mgr, abstraction));
 //		}
 		return abstraction;
@@ -482,7 +482,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
 	// cartesian abstraction
 	protected AbstractFormula computeCartesianAbstraction(
-			SymbPredAbsAbstractElement e, 
+			SymbPredAbsAbstractElement e,
 			SymbPredAbsAbstractElement succ, CFAEdge edge) {
     // TODO Use Timer
 	  // long startTime = System.currentTimeMillis();
@@ -491,7 +491,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 		// TODO get predicates as collection from succ state
 		Collection<Predicate> predicates = succ.getPredicates().getRelevantPredicates();
 
-		long msatEnv = mathsatFormMan.getMsatEnv();       
+		long msatEnv = mathsatFormMan.getMsatEnv();
 		long absEnv =  mathsat.api.msat_create_shared_env(msatEnv);
 		//long absEnv = mathsat.api.msat_create_env();
 //		if (absEnv == 0) {
@@ -508,31 +508,31 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 		} else {
 			mathsat.api.msat_add_theory(absEnv, mathsat.api.MSAT_LRA);
 		}
-		mathsat.api.msat_set_theory_combination(absEnv, 
+		mathsat.api.msat_set_theory_combination(absEnv,
 				mathsat.api.MSAT_COMB_DTC);
 		// disable static learning. For small problems, this is just overhead
 		mathsat.api.msat_set_option(absEnv, "sl", "0");
 
 		// TODO
 //		if (isFunctionExit(e)) {
-//		// we have to take the context before the function call 
-//		// into account, otherwise we are not building the right 
+//		// we have to take the context before the function call
+//		// into account, otherwise we are not building the right
 //		// abstraction!
 //		assert(false); // TODO
 ////		if (CPAMain.cpaConfig.getBooleanValue(
 ////		"cpas.symbpredabs.refinement.addWellScopedPredicates")) {
-////		// but only if we are adding well-scoped predicates, otherwise 
+////		// but only if we are adding well-scoped predicates, otherwise
 ////		// this should not be necessary
 ////		AbstractFormula ctx = e.topContextAbstraction();
-////		MathsatSymbolicFormula fctx = 
+////		MathsatSymbolicFormula fctx =
 ////		(MathsatSymbolicFormula)mmgr.instantiate(
 ////		toConcrete(mmgr, ctx), null);
 ////		fabs = (MathsatSymbolicFormula)mmgr.makeAnd(fabs, fctx);
 
-////		LazyLogger.log(LazyLogger.DEBUG_3, 
+////		LazyLogger.log(LazyLogger.DEBUG_3,
 ////		"TAKING CALLING CONTEXT INTO ACCOUNT: ", fctx);
 ////		} else {
-////		LazyLogger.log(LazyLogger.DEBUG_3, 
+////		LazyLogger.log(LazyLogger.DEBUG_3,
 ////		"NOT TAKING CALLING CONTEXT INTO ACCOUNT,",
 ////		"as we are not using well-scoped predicates");
 ////		}
@@ -542,9 +542,9 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 		// PathFormula pc = buildConcreteFormula(mmgr, e, succ, edge, false);
 
 		AbstractFormula abs = e.getAbstraction();
-		MathsatSymbolicFormula fabs = 
+		MathsatSymbolicFormula fabs =
 			(MathsatSymbolicFormula)mathsatFormMan.instantiate(
-					bddMathsatMan.toConcrete(mathsatFormMan, abs), null);        
+					bddMathsatMan.toConcrete(mathsatFormMan, abs), null);
 		SSAMap fssa = mathsatFormMan.extractSSA(fabs);
 		PathFormula pc = new PathFormula(fabs, fssa);
 
@@ -563,7 +563,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 //		int predIndex = -1;
 //		for (Predicate p : predicates) {
 //		++predIndex;
-//		CartesianAbstractionCacheKey key = 
+//		CartesianAbstractionCacheKey key =
 //		new CartesianAbstractionCacheKey(f, p);
 //		if (cartesianAbstractionCache.containsKey(key)) {
 //		predVals[predIndex] = cartesianAbstractionCache.get(key);
@@ -576,7 +576,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 		boolean skipFeasibilityCheck = false;
 		// TODO
 //		if (useCache) {
-////		Pair<AbstractFormula, CFAEdge> key = 
+////		Pair<AbstractFormula, CFAEdge> key =
 ////		new Pair<AbstractFormula, CFAEdge>(e.getAbstraction(), edge);
 //		FeasibilityCacheKey key = new FeasibilityCacheKey(f);
 //		if (feasibilityCache.containsKey(key)) {
@@ -586,7 +586,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 //		return new BDDAbstractFormula(bddManager.getZero());
 //		}
 //		}
-//		}        
+//		}
 
 
 		if (CPAMain.cpaConfig.getBooleanValue(
@@ -595,7 +595,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 					(MathsatSymbolicFormula)f);
 			f = mathsatFormMan.makeAnd(f, bitwiseAxioms);
 
-			LazyLogger.log(LazyLogger.DEBUG_3, "ADDED BITWISE AXIOMS: ", 
+			LazyLogger.log(LazyLogger.DEBUG_3, "ADDED BITWISE AXIOMS: ",
 					bitwiseAxioms);
 		}
 		long term = ((MathsatSymbolicFormula)f).getTerm();
@@ -604,8 +604,8 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 		assert(!mathsat.api.MSAT_ERROR_TERM(term));
 
 		// TODO Use Timer
-		// long solveStartTime = System.currentTimeMillis();        
-		mathsat.api.msat_assert_formula(absEnv, term);    
+		// long solveStartTime = System.currentTimeMillis();
+		mathsat.api.msat_assert_formula(absEnv, term);
 
 		if (!skipFeasibilityCheck) {
 			// TODO
@@ -614,7 +614,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 				mathsat.api.msat_destroy_env(absEnv);
 				// TODO
 //				if (useCache) {
-////				Pair<AbstractFormula, CFAEdge> key = 
+////				Pair<AbstractFormula, CFAEdge> key =
 ////				new Pair<AbstractFormula, CFAEdge>(
 ////				e.getAbstraction(), edge);
 //				FeasibilityCacheKey key = new FeasibilityCacheKey(fkey);
@@ -627,7 +627,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 			} else {
 				// TODO
 //				if (useCache) {
-////				Pair<AbstractFormula, CFAEdge> key = 
+////				Pair<AbstractFormula, CFAEdge> key =
 ////				new Pair<AbstractFormula, CFAEdge>(
 ////				e.getAbstraction(), edge);
 //				FeasibilityCacheKey key = new FeasibilityCacheKey(fkey);
@@ -653,7 +653,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 			++predIndex;
 			BDDPredicate bp = (BDDPredicate)p;
 			// TODO
-			if (false)//useCache && predVals[predIndex] != NO_VALUE) 
+			if (false)//useCache && predVals[predIndex] != NO_VALUE)
 			{
 //				long startBddTime = System.currentTimeMillis();
 //				int v = bp.getBDD();
@@ -667,10 +667,10 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 //				totBddTime += (endBddTime - startBddTime);
 //				++stats.abstractionNumCachedQueries;
 			} else {
-				Pair<MathsatSymbolicFormula, MathsatSymbolicFormula> pi = 
+				Pair<MathsatSymbolicFormula, MathsatSymbolicFormula> pi =
 					bddMathsatMan.getPredicateNameAndDef(bp);
 
-				// update the SSA map, by instantiating all the uninstantiated 
+				// update the SSA map, by instantiating all the uninstantiated
 				// variables that occur in the predicates definitions
 				// (at index 1)
 				predvars.clear();
@@ -681,16 +681,16 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 					}
 				}
 
-				LazyLogger.log(LazyLogger.DEBUG_1, 
+				LazyLogger.log(LazyLogger.DEBUG_1,
 						"CHECKING VALUE OF PREDICATE: ", pi.getFirst());
 
 				// instantiate the definition of the predicate
-				MathsatSymbolicFormula inst = 
+				MathsatSymbolicFormula inst =
 					(MathsatSymbolicFormula)mathsatFormMan.instantiate(
 							pi.getSecond(), ssa);
 
 				boolean isTrue = false, isFalse = false;
-				// check whether this predicate has a truth value in the next 
+				// check whether this predicate has a truth value in the next
 				// state
 				long predTrue = inst.getTerm();
 //				predTrue = mathsat.api.msat_make_copy_from(
@@ -703,7 +703,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 				long res = mathsat.api.msat_solve(absEnv);
 				assert(res != mathsat.api.MSAT_UNKNOWN);
 				// TODO
-				// ++stats.abstractionNumMathsatQueries;            
+				// ++stats.abstractionNumMathsatQueries;
 				if (res == mathsat.api.MSAT_UNSAT) {
 					isTrue = true;
 				}
@@ -722,7 +722,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 					mathsat.api.msat_assert_formula(absEnv, predTrue);
 					res = mathsat.api.msat_solve(absEnv);
 					// TODO
-					// ++stats.abstractionNumMathsatQueries;                
+					// ++stats.abstractionNumMathsatQueries;
 					assert(res != mathsat.api.MSAT_UNKNOWN);
 					if (res == mathsat.api.MSAT_UNSAT) {
 						isFalse = true;
@@ -743,10 +743,10 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 //				if (useCache) {
 //				if (predVals[predIndex] != NO_VALUE) {
 //				assert(isTrue ? predVals[predIndex] == 1 :
-//				(isFalse ? predVals[predIndex] == -1 : 
+//				(isFalse ? predVals[predIndex] == -1 :
 //				predVals[predIndex] == 0));
 //				}
-//				CartesianAbstractionCacheKey key = 
+//				CartesianAbstractionCacheKey key =
 ////				new CartesianAbstractionCacheKey(
 ////				e.getAbstraction(), edge, p);
 //				new CartesianAbstractionCacheKey(fkey, p);
@@ -765,14 +765,14 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 		// long solveTime = (solveEndTime - solveStartTime) - totBddTime;
 		// long msatTime = (endTime - startTime) - totBddTime;
 		// TODO later
-//		stats.abstractionMaxMathsatTime = 
+//		stats.abstractionMaxMathsatTime =
 //		Math.max(msatTime, stats.abstractionMaxMathsatTime);
 //		stats.abstractionMaxBddTime =
 //		Math.max(totBddTime, stats.abstractionMaxBddTime);
 //		stats.abstractionMathsatTime += msatTime;
 //		stats.abstractionBddTime += totBddTime;
 //		stats.abstractionMathsatSolveTime += solveTime;
-//		stats.abstractionMaxMathsatSolveTime = 
+//		stats.abstractionMaxMathsatSolveTime =
 //		Math.max(solveTime, stats.abstractionMaxMathsatSolveTime);
 
 		return new BDDAbstractFormula(absbdd);
@@ -791,7 +791,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 		PathFormula pf = null;
 		try {
 			pf = mathsatFormMan.makeAnd(
-					element.getPathFormula().getSymbolicFormula(), 
+					element.getPathFormula().getSymbolicFormula(),
 					edge, element.getPathFormula().getSsa(), false, false);
 			// TODO check these 3 lines
 			// SymbolicFormula t1 = pf.getSymbolicFormula();
@@ -1097,7 +1097,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 //	SymbPredAbsAbstractElement newElement, CFAEdge edge) {
 
 //	// if all nodes are processed go to abstraction phase
-//	// if not 
+//	// if not
 
 //	// update the abstract element
 //	// get the successor node

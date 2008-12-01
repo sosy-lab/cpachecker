@@ -8,11 +8,11 @@ import java.io.PrintWriter;
  */
 public interface CPAStatistics {
     /**
-     * Prints this group of statistics using the given writer 
+     * Prints this group of statistics using the given writer
      * @param out
      */
     public void printStatistics(PrintWriter out);
-    
+
     /**
      * @return The name for this group of statistics
      */

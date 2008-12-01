@@ -13,13 +13,13 @@ import logging.CPACheckerLogger;
  * constructing this string representation if arguments to the log function
  * are evaluated "lazily". This is what this class provides. The logging
  * itself is performed by calling CPACheckerLogger
- * 
+ *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
 public class LazyLogger {
     static class LogLevel extends Level {
         /**
-         * 
+         *
          */
         private static final long serialVersionUID = -2573882076078285905L;
 
@@ -27,15 +27,15 @@ public class LazyLogger {
             super(name, value);
         }
     };
-    public static Level DEBUG_1 = new LogLevel("AG_DEBUG_1", 
+    public static Level DEBUG_1 = new LogLevel("AG_DEBUG_1",
             Level.FINE.intValue()-10);
-    public static Level DEBUG_2 = new LogLevel("AG_DEBUG_2", 
+    public static Level DEBUG_2 = new LogLevel("AG_DEBUG_2",
             Level.FINE.intValue()-20);
-    public static Level DEBUG_3 = new LogLevel("AG_DEBUG_3", 
+    public static Level DEBUG_3 = new LogLevel("AG_DEBUG_3",
             Level.FINE.intValue()-30);
-    public static Level DEBUG_4 = new LogLevel("AG_DEBUG_4", 
+    public static Level DEBUG_4 = new LogLevel("AG_DEBUG_4",
             Level.FINE.intValue()-40);
-    
+
     public static void log(Level lvl, Object... args) {
         if (CPACheckerLogger.getLevel() <= lvl.intValue()) {
             StringBuffer buf = new StringBuffer();

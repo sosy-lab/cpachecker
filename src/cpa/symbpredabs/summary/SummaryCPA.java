@@ -54,7 +54,7 @@ import cpa.symbpredabs.mathsat.summary.MathsatSummaryFormulaManager;
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
 public class SummaryCPA implements ConfigurableProgramAnalysis {
-    
+
     private SummaryAbstractDomain domain;
     // private SummaryMergeOperator merge;
     private SummaryStopOperator stop;
@@ -62,12 +62,12 @@ public class SummaryCPA implements ConfigurableProgramAnalysis {
     private MathsatSummaryFormulaManager mgr;
     private BDDMathsatSummaryAbstractManager amgr;
     private PredicateMap pmap;
-    private Map<SummaryCFANode, Map<CFANode, Pair<SymbolicFormula, SSAMap>>> 
+    private Map<SummaryCFANode, Map<CFANode, Pair<SymbolicFormula, SSAMap>>>
         summaryToFormulaMap;
     private Map<SummaryAbstractElement, Set<SummaryAbstractElement>> covers;
-    
+
     private SummaryCPAStatistics stats;
-    
+
     private SummaryCPA() {
         domain = new SummaryAbstractDomain(this);
         // merge = new SummaryMergeOperator(domain);
@@ -88,10 +88,10 @@ public class SummaryCPA implements ConfigurableProgramAnalysis {
             assert(false);
             System.exit(1);
         }
-        InterpolatingTheoremProver itpProver = 
+        InterpolatingTheoremProver itpProver =
             new MathsatInterpolatingProver(mgr, false);
         amgr = new BDDMathsatSummaryAbstractManager(thmProver, itpProver);
-        covers = new HashMap<SummaryAbstractElement, 
+        covers = new HashMap<SummaryAbstractElement,
                              Set<SummaryAbstractElement>>();
 
         // for testing purposes, it's nice to be able to use a given set of
@@ -113,14 +113,14 @@ public class SummaryCPA implements ConfigurableProgramAnalysis {
         } else {
             pmap = new UpdateablePredicateMap();
         }
-        
-        summaryToFormulaMap = 
-            new HashMap<SummaryCFANode, 
+
+        summaryToFormulaMap =
+            new HashMap<SummaryCFANode,
                         Map<CFANode, Pair<SymbolicFormula, SSAMap>>>();
-        
+
         stats = new SummaryCPAStatistics(this);
     }
-    
+
     /**
      * Constructor conforming to the "contract" in CompositeCPA. The two
      * arguments are ignored
@@ -130,11 +130,11 @@ public class SummaryCPA implements ConfigurableProgramAnalysis {
     public SummaryCPA(String s1, String s2) {
         this();
     }
-    
+
     public CPAStatistics getStatistics() {
         return stats;
     }
-    
+
     @Override
     public AbstractDomain getAbstractDomain() {
         return domain;
@@ -142,12 +142,12 @@ public class SummaryCPA implements ConfigurableProgramAnalysis {
 
     @Override
     public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
-        LazyLogger.log(CustomLogLevel.SpecificCPALevel, 
+        LazyLogger.log(CustomLogLevel.SpecificCPALevel,
                        "Getting initial element from node: ", node);
-        
+
         SummaryCFANode loc = (SummaryCFANode)node;
         SummaryAbstractElement e = new SummaryAbstractElement(loc);
-        Map<CFANode, Pair<SymbolicFormula, SSAMap>> p = getPathFormulas(loc);  
+        Map<CFANode, Pair<SymbolicFormula, SSAMap>> p = getPathFormulas(loc);
         e.setPathFormulas(p);
         e.setAbstraction(amgr.makeTrue());
         e.setContext(new Stack<Pair<AbstractFormula, SummaryCFANode>>(), true);
@@ -188,14 +188,14 @@ public class SummaryCPA implements ConfigurableProgramAnalysis {
             SummaryCFANode succLoc) {
         try {
             if (!summaryToFormulaMap.containsKey(succLoc)) {
-                Map<CFANode, Pair<SymbolicFormula, SSAMap>> p = 
-                    mgr.buildPathFormulas(succLoc); 
+                Map<CFANode, Pair<SymbolicFormula, SSAMap>> p =
+                    mgr.buildPathFormulas(succLoc);
                 summaryToFormulaMap.put(succLoc, p);
-                
+
 //                CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel,
-//                        "SYMBOLIC FORMULA FOR " + succLoc.toString() + ": " + 
+//                        "SYMBOLIC FORMULA FOR " + succLoc.toString() + ": " +
 //                        p.getFirst().toString());
-                
+
             }
             return summaryToFormulaMap.get(succLoc);
         } catch (UnrecognizedCFAEdgeException e) {
@@ -203,7 +203,7 @@ public class SummaryCPA implements ConfigurableProgramAnalysis {
             return null;
         }
     }
-    
+
     public Set<SummaryAbstractElement> getCoveredBy(SummaryAbstractElement e){
         if (covers.containsKey(e)) {
             return covers.get(e);
@@ -212,7 +212,7 @@ public class SummaryCPA implements ConfigurableProgramAnalysis {
         }
     }
 
-    public void setCoveredBy(SummaryAbstractElement covered, 
+    public void setCoveredBy(SummaryAbstractElement covered,
                              SummaryAbstractElement e) {
         Set<SummaryAbstractElement> s;
         if (covers.containsKey(e)) {
@@ -223,12 +223,12 @@ public class SummaryCPA implements ConfigurableProgramAnalysis {
         s.add(covered);
         covers.put(e, s);
     }
-    
+
     public void uncoverAll(SummaryAbstractElement e) {
         if (covers.containsKey(e)) {
             covers.remove(e);
         }
     }
-    
+
 
 }

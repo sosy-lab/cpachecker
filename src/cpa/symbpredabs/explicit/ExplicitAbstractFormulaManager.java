@@ -38,7 +38,7 @@ public interface ExplicitAbstractFormulaManager extends AbstractFormulaManager {
      * execution path leading to the error.
      */
     public CounterexampleTraceInfo buildCounterexampleTrace(
-            SymbolicFormulaManager mgr, 
+            SymbolicFormulaManager mgr,
             Deque<ExplicitAbstractElement> abstractTrace);
 
 
@@ -46,18 +46,18 @@ public interface ExplicitAbstractFormulaManager extends AbstractFormulaManager {
         public Vector<SymbolicFormula> path;
         public boolean theoryCombinationNeeded;
         public SSAMap ssa;
-        
+
         public ConcretePath(Vector<SymbolicFormula> p, boolean tc, SSAMap s) {
             path = p;
             theoryCombinationNeeded = tc;
             ssa = s;
         }
     }
-    
+
     public ConcretePath buildConcretePath(SymbolicFormulaManager mgr,
-            AbstractElementWithLocation[] path) 
+            AbstractElementWithLocation[] path)
                 throws UnrecognizedCFAEdgeException;
-    
+
     public Vector<SymbolicFormula> getUsefulBlocks(SymbolicFormulaManager mgr,
             Vector<SymbolicFormula> trace, boolean theoryCombinationNeeded,
             boolean suffixTrace, boolean zigZag, boolean setAllTrueIfSat);

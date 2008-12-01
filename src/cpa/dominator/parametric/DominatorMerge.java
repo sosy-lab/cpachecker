@@ -1,5 +1,5 @@
 /**
- * 
+ *
  */
 package cpa.dominator.parametric;
 
@@ -14,12 +14,12 @@ import exceptions.CPAException;
  */
 public class DominatorMerge implements MergeOperator {
 	private DominatorDomain domain = null;
-	
+
 	public DominatorMerge(DominatorDomain domain) {
 		if (domain == null) {
 			throw new IllegalArgumentException("domain is null!");
 		}
-		
+
 		this.domain = domain;
 	}
 
@@ -30,7 +30,7 @@ public class DominatorMerge implements MergeOperator {
 			AbstractElement element2) {
 		try {
 			AbstractElement joinedElement = this.domain.getJoinOperator().join(element1, element2);
-			
+
 			if (joinedElement.equals(this.domain.getTopElement())) {
 				return element2;
 			}

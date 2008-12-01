@@ -7,11 +7,11 @@ import cfa.objectmodel.CFAEdgeType;
 
 
 
-public class StatementEdge extends AbstractCFAEdge 
+public class StatementEdge extends AbstractCFAEdge
 {
     private IASTExpression expression;
     private boolean jumpEdge;
-    
+
     public StatementEdge (String rawStatement,
                               IASTExpression expression)
     {
@@ -19,12 +19,12 @@ public class StatementEdge extends AbstractCFAEdge
         this.expression = expression;
         this.jumpEdge = false;
     }
-    
+
     public void setIsJumpEdge (boolean jumpEdge)
     {
         this.jumpEdge = jumpEdge;
     }
-    
+
     @Override
     public boolean isJumpEdge ()
     {
@@ -35,7 +35,7 @@ public class StatementEdge extends AbstractCFAEdge
     {
         return CFAEdgeType.StatementEdge;
     }
-    
+
     public IASTExpression getExpression ()
     {
         return expression;

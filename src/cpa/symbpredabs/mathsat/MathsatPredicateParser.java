@@ -17,19 +17,19 @@ import cpa.symbpredabs.Predicate;
  * should contain a formula that is a conjunction of
  * PREDICATE_NAME <-> PREDICATE_DEF
  * where PREDICATE_NAME is a Boolean variable, and PREDICATE_DEF is an atom
- * 
+ *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
 public class MathsatPredicateParser {
     private MathsatSymbolicFormulaManager mgr;
     private BDDMathsatAbstractFormulaManager amgr;
-    
+
     public MathsatPredicateParser(MathsatSymbolicFormulaManager mgr,
                                   BDDMathsatAbstractFormulaManager amgr) {
         this.mgr = mgr;
         this.amgr = amgr;
     }
-    
+
     public Collection<Predicate> parsePredicates(InputStream in) {
         try {
             BufferedReader r = new BufferedReader(new InputStreamReader(in));
@@ -51,12 +51,12 @@ public class MathsatPredicateParser {
             return null;
         }
     }
-    
+
     private Collection<Predicate> parsePredicates(long formula) {
         Collection<Predicate> ret = new Vector<Predicate>();
         Stack<Long> toProcess = new Stack<Long>();
-        
-        LazyLogger.log(LazyLogger.DEBUG_3, 
+
+        LazyLogger.log(LazyLogger.DEBUG_3,
                        "FORMULA IS: ", new MathsatSymbolicFormula(formula));
 
         // We *ASSUME* that in the original msat file the formula is a
@@ -85,8 +85,8 @@ public class MathsatPredicateParser {
                     def = mathsat.api.msat_term_get_arg(def, 0);
                     ret.add(amgr.makePredicate(var, def));
 
-                    LazyLogger.log(LazyLogger.DEBUG_1, 
-                                   "ADDED PREDICATE, name: ", 
+                    LazyLogger.log(LazyLogger.DEBUG_1,
+                                   "ADDED PREDICATE, name: ",
                                    new MathsatSymbolicFormula(var),
                                    ", atom: ",
                                    new MathsatSymbolicFormula(def));

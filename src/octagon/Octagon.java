@@ -36,7 +36,7 @@ public class Octagon {
 	public Num[] getMatrix() {
 		return matrix;
 	}
-	
+
 	/* (non-Javadoc)
 	 * @see java.lang.Object#clone()
 	 */
@@ -46,13 +46,13 @@ public class Octagon {
 		for(int i=0; i<mat.length; i++){
 			mat[i] = new Num(this.matrix[i].f);
 		}
-		return new Octagon(this.dimension, this.ref, this.state, this.closed, mat); 
+		return new Octagon(this.dimension, this.ref, this.state, this.closed, mat);
 	}
 
 	public String getContents(){
 		String s = "";
 
-		s = s + "Dimension: " + this.dimension + " Ref. Counting: " 
+		s = s + "Dimension: " + this.dimension + " Ref. Counting: "
 		+ this.ref + " State: " + this.state + "\n";
 
 		if(matrix != null){

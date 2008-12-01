@@ -90,7 +90,7 @@ public class OctTransferRelation implements TransferRelation{
 
 			// this statement is a function return, e.g. return (a);
 			// note that this is different from return edge
-			// this is a statement edge which leads the function to the 
+			// this is a statement edge which leads the function to the
 			// last node of its CFA, where return edge is from that last node
 			// to the return site of the caller function
 			if(statementEdge.isJumpEdge())
@@ -145,7 +145,7 @@ public class OctTransferRelation implements TransferRelation{
 			break;
 		}
 
-		case FunctionCallEdge: 
+		case FunctionCallEdge:
 		{
 			octElement = octElement.clone ();
 			FunctionCallEdge functionCallEdge = (FunctionCallEdge) cfaEdge;
@@ -173,7 +173,7 @@ public class OctTransferRelation implements TransferRelation{
 		}
 
 		// this is a return edge from function, this is different from return statement
-		// of the function. See case for statement edge for details 
+		// of the function. See case for statement edge for details
 		case ReturnEdge:
 		{
 			octElement = octElement.clone ();
@@ -187,7 +187,7 @@ public class OctTransferRelation implements TransferRelation{
 			break;
 		}
 
-		// Summary edge, we handle this on function return, do nothing 
+		// Summary edge, we handle this on function return, do nothing
 		case CallToReturnEdge:
 		{
 			assert(false);
@@ -255,7 +255,7 @@ public class OctTransferRelation implements TransferRelation{
 				// get the variable name in the declarator
 				String varName = declarator.getName().toString();
 
-				// TODO check other types of variables later - just handle primitive 
+				// TODO check other types of variables later - just handle primitive
 				// types for the moment
 				// get pointer operators of the declaration
 				IASTPointerOperator[] pointerOps = declarator.getPointerOperators();
@@ -287,7 +287,7 @@ public class OctTransferRelation implements TransferRelation{
 	}
 
 	/**
-	 * Handles the interpretation of the assumption expression and delegate it 
+	 * Handles the interpretation of the assumption expression and delegate it
 	 * to other methods
 	 * @param octElement element to be modified
 	 * @param expression statement expression
@@ -540,7 +540,7 @@ public class OctTransferRelation implements TransferRelation{
 	 * @param octElement element to be modified
 	 * @param opType type of conditional operation, e.g. >, ==, != see <a href="http://help.eclipse.org/help33/topic/org.eclipse.cdt.doc.isv/reference/api/org/eclipse/cdt/core/dom/ast/IASTBinaryExpression.html">Operation types</a>
 	 * @param leftVariableId id of the lefthand side variable of comparison, e.g. if condition is a == b, this is a's id on variable map
-	 * @param rightVariableId id of the righthand side variable of comparison, e.g. if condition is a == b, this i 's id on variable map, -1 if righthand side variable is a single literal 
+	 * @param rightVariableId id of the righthand side variable of comparison, e.g. if condition is a == b, this i 's id on variable map, -1 if righthand side variable is a single literal
 	 * @param isLeftVarPos sign of the left variable, if variable is -a, then false
 	 * @param isRightVarPos sign of the right variable, if variable is -a, then false
 	 * @param valueOfLiteral the value of the second variable if it is a literal, e.g. a < 9, alternatively can be used to represent cases such as a < b + 6, then the value will be 6
@@ -548,7 +548,7 @@ public class OctTransferRelation implements TransferRelation{
 	 * @see octagon.VariableMap
 	 */
 	private void propagateBooleanExpression(OctElement octElement, int opType,
-			int leftVariableId, int rightVariableId, boolean isLeftVarPos, 
+			int leftVariableId, int rightVariableId, boolean isLeftVarPos,
 			boolean isRightVarPos, double valueOfLiteral) throws OctagonTransferException {
 
 		boolean isFirstVarPos = true;
@@ -623,7 +623,7 @@ public class OctTransferRelation implements TransferRelation{
 	 * The element is updated in this method.
 	 * @param octElement element to be modified
 	 * @param FirstVariableId id of the lefthand side variable of comparison, e.g. if condition is a == b, this is a's id on variable map
-	 * @param SecondVariableId id of the righthand side variable of comparison, e.g. if condition is a == b, this i 's id on variable map, -1 if righthand side variable is a single literal 
+	 * @param SecondVariableId id of the righthand side variable of comparison, e.g. if condition is a == b, this i 's id on variable map, -1 if righthand side variable is a single literal
 	 * @param isFirstVarPos sign of the left variable, if variable is -a, then false
 	 * @param isSecondVarPos sign of the right variable, if variable is -a, then false
 	 * @param valueOfLiteral the value of the second variable if it is a literal, e.g. a < 9, alternatively can be used to represent cases such as a < b + 6, then the value will be 6
@@ -631,7 +631,7 @@ public class OctTransferRelation implements TransferRelation{
 	 * @see octagon.LibraryAccess
 	 */
 	private void handleBooleanExpression(OctElement octElement,
-			int FirstVariableId, int SecondVariableId, boolean isFirstVarPos, 
+			int FirstVariableId, int SecondVariableId, boolean isFirstVarPos,
 			boolean isSecondVarPos, double valueOfLiteral) {
 		Num[] array = new Num[octElement.getNumberOfVars()+1];
 
@@ -667,10 +667,10 @@ public class OctTransferRelation implements TransferRelation{
 	/** Handles not equals operation, e.g. a!=b
 	 * Basically, converts uses the fact that a!= can be interpreted as
 	 * (a > b) or (b > a), updates the element based on two facts and finally combine
-	 * them 
+	 * them
 	 * @param octElement element to be modified
 	 * @param FirstVariableId id of the lefthand side variable of comparison, e.g. if condition is a == b, this is a's id on variable map
-	 * @param SecondVariableId id of the righthand side variable of comparison, e.g. if condition is a == b, this i 's id on variable map, -1 if righthand side variable is a single literal 
+	 * @param SecondVariableId id of the righthand side variable of comparison, e.g. if condition is a == b, this i 's id on variable map, -1 if righthand side variable is a single literal
 	 * @param isFirstVarPos sign of the left variable, if variable is -a, then false
 	 * @param isSecondVarPos sign of the right variable, if variable is -a, then false
 	 * @param valueOfLiteral the value of the second variable if it is a literal, e.g. a < 9, alternatively can be used to represent cases such as a < b + 6, then the value will be 6
@@ -678,7 +678,7 @@ public class OctTransferRelation implements TransferRelation{
 	 * @see octagon.LibraryAccess
 	 */
 	private void handleNonEquality(OctElement octElement,
-			int FirstVariableId, int SecondVariableId, boolean isFirstVarPos, 
+			int FirstVariableId, int SecondVariableId, boolean isFirstVarPos,
 			boolean isSecondVarPos, double valueOfLiteral) {
 		Num[] array1 = new Num[octElement.getNumberOfVars()+1];
 		Num[] array2 = new Num[octElement.getNumberOfVars()+1];
@@ -745,8 +745,8 @@ public class OctTransferRelation implements TransferRelation{
 		int variableId = octElement.getVariableId(globalVars, lParam, functionName);
 
 		// a++, ++a
-		if (operator == IASTUnaryExpression.op_postFixIncr || 
-				operator == IASTUnaryExpression.op_prefixIncr 
+		if (operator == IASTUnaryExpression.op_postFixIncr ||
+				operator == IASTUnaryExpression.op_prefixIncr
 		)
 		{
 			addLiteralToVariable(octElement, cfaEdge, lParam, variableId, true, 1.0);
@@ -826,7 +826,7 @@ public class OctTransferRelation implements TransferRelation{
 				double val = Double.valueOf(op2.getRawSignature()).doubleValue();
 				// only if literal is intefer or double
 				int typeOfLiteral = ((IASTLiteralExpression)op2).getKind();
-				if( typeOfLiteral ==  IASTLiteralExpression.lk_integer_constant || 
+				if( typeOfLiteral ==  IASTLiteralExpression.lk_integer_constant ||
 						typeOfLiteral == IASTLiteralExpression.lk_float_constant)
 				{
 					// a += 2
@@ -890,7 +890,7 @@ public class OctTransferRelation implements TransferRelation{
 	 * @param cfaEdge statement edge
 	 * @throws OctagonTransferException
 	 */
-	private void handleAssignment(OctElement octElement, IASTBinaryExpression binaryExpression, 
+	private void handleAssignment(OctElement octElement, IASTBinaryExpression binaryExpression,
 			CFAEdge cfaEdge) throws OctagonTransferException {
 
 		String functionName = cfaEdge.getPredecessor().getFunctionName();
@@ -935,7 +935,7 @@ public class OctTransferRelation implements TransferRelation{
 		}
 	}
 
-	/** 
+	/**
 	 * Final method for delegated unary expression assignment of form a = -b
 	 * @param octElement element to be updated
 	 * @param op1 left hand side of the assignment as {@link IASTExpression}
@@ -968,7 +968,7 @@ public class OctTransferRelation implements TransferRelation{
 		}
 	}
 
-	/** 
+	/**
 	 * Final method for delegated casting expression assignment of form a = (cast) b
 	 * @param octElement element to be updated
 	 * @param op1 left hand side of the assignment as {@link IASTExpression}
@@ -990,7 +990,7 @@ public class OctTransferRelation implements TransferRelation{
 			if(castOp instanceof IASTLiteralExpression){
 				int typeOfCastLiteral = ((IASTLiteralExpression)castOp).getKind();
 				// cast an integer or double
-				if( typeOfCastLiteral ==  IASTLiteralExpression.lk_integer_constant || 
+				if( typeOfCastLiteral ==  IASTLiteralExpression.lk_integer_constant ||
 						typeOfCastLiteral == IASTLiteralExpression.lk_float_constant)
 				{
 					int lvar = octElement.getVariableId(globalVars, lParam, functionName);
@@ -1031,7 +1031,7 @@ public class OctTransferRelation implements TransferRelation{
 		}
 	}
 
-	/** 
+	/**
 	 * Final method for delegated literal expression assignment of form a = 9
 	 * @param octElement element to be updated
 	 * @param op1 left hand side of the assignment as {@link IASTExpression}
@@ -1040,14 +1040,14 @@ public class OctTransferRelation implements TransferRelation{
 	 * for example if a = 9 is handled, which function does a belong?
 	 * @throws OctagonTransferException
 	 */
-	private void handleLiteralAssignment(OctElement octElement, IASTExpression op1, 
+	private void handleLiteralAssignment(OctElement octElement, IASTExpression op1,
 			IASTExpression op2, String functionName) throws OctagonTransferException {
 
 		String lParam = op1.getRawSignature ();
 		String rParam = op2.getRawSignature ();
 
 		int typeOfLiteral = ((IASTLiteralExpression)op2).getKind();
-		if( typeOfLiteral ==  IASTLiteralExpression.lk_integer_constant || 
+		if( typeOfLiteral ==  IASTLiteralExpression.lk_integer_constant ||
 				typeOfLiteral == IASTLiteralExpression.lk_float_constant)
 		{
 			int lvar = octElement.getVariableId(globalVars, lParam, functionName);
@@ -1067,7 +1067,7 @@ public class OctTransferRelation implements TransferRelation{
 		}
 	}
 
-	/** 
+	/**
 	 * Final method for delegated variable expression assignment of form a = b
 	 * @param octElement element to be updated
 	 * @param op1 left hand side of the assignment as {@link IASTExpression}
@@ -1094,7 +1094,7 @@ public class OctTransferRelation implements TransferRelation{
 		octElement.update(LibraryAccess.assignVar(octElement, lvar, array));
 	}
 
-	/** 
+	/**
 	 * Handles and delegates assignment of binary expressions of form a = b + c
 	 * @param octElement element to be updated
 	 * @param op1 left hand side of the assignment as {@link IASTExpression}
@@ -1156,7 +1156,7 @@ public class OctTransferRelation implements TransferRelation{
 
 					// only integers and doubles are handled
 					int typeOfLiteral = ((IASTLiteralExpression)rVarInBinaryExp).getKind();
-					if( typeOfLiteral ==  IASTLiteralExpression.lk_integer_constant || 
+					if( typeOfLiteral ==  IASTLiteralExpression.lk_integer_constant ||
 							typeOfLiteral == IASTLiteralExpression.lk_float_constant)
 					{
 						addLiteralToVariable(octElement, cfaEdge, lParam, varLid, true, val);
@@ -1183,7 +1183,7 @@ public class OctTransferRelation implements TransferRelation{
 				double val = Double.valueOf(lVarInBinaryExp.getRawSignature()).doubleValue();
 				// left variable must be an integer or double value
 				int typeOfLiteral = ((IASTLiteralExpression)lVarInBinaryExp).getKind();
-				if( typeOfLiteral ==  IASTLiteralExpression.lk_integer_constant || 
+				if( typeOfLiteral ==  IASTLiteralExpression.lk_integer_constant ||
 						typeOfLiteral == IASTLiteralExpression.lk_float_constant)
 				{
 					// a = 8 + b
@@ -1251,7 +1251,7 @@ public class OctTransferRelation implements TransferRelation{
 					double negVal = 0 - val;
 					// only integers and doubles are handled
 					int typeOfCastLiteral = ((IASTLiteralExpression)rVarInBinaryExp).getKind();
-					if( typeOfCastLiteral ==  IASTLiteralExpression.lk_integer_constant || 
+					if( typeOfCastLiteral ==  IASTLiteralExpression.lk_integer_constant ||
 							typeOfCastLiteral == IASTLiteralExpression.lk_float_constant)
 					{
 						addLiteralToVariable(octElement, cfaEdge, lParam, varLid, true, negVal);
@@ -1278,7 +1278,7 @@ public class OctTransferRelation implements TransferRelation{
 				double val = Double.valueOf(lVarInBinaryExp.getRawSignature()).doubleValue();
 				int typeOfCastLiteral = ((IASTLiteralExpression)lVarInBinaryExp).getKind();
 				// only integers and doubles are handled
-				if( typeOfCastLiteral ==  IASTLiteralExpression.lk_integer_constant || 
+				if( typeOfCastLiteral ==  IASTLiteralExpression.lk_integer_constant ||
 						typeOfCastLiteral == IASTLiteralExpression.lk_float_constant)
 				{
 					// a = 8 - b
@@ -1344,7 +1344,7 @@ public class OctTransferRelation implements TransferRelation{
 				if(rVarInBinaryExp instanceof IASTLiteralExpression){
 					double val = Double.valueOf(rVarInBinaryExp.getRawSignature()).doubleValue();
 					int typeOfCastLiteral = ((IASTLiteralExpression)rVarInBinaryExp).getKind();
-					if( typeOfCastLiteral ==  IASTLiteralExpression.lk_integer_constant || 
+					if( typeOfCastLiteral ==  IASTLiteralExpression.lk_integer_constant ||
 							typeOfCastLiteral == IASTLiteralExpression.lk_float_constant)
 					{
 						multiplyLiteralWithVariable(octElement, cfaEdge, lParam, varLid, true, val);
@@ -1353,7 +1353,7 @@ public class OctTransferRelation implements TransferRelation{
 						throw new OctagonTransferException("Unhandled case " + cfaEdge.getPredecessor().getNodeNumber());
 					}
 				}
-				// a = b * -2 
+				// a = b * -2
 				else if(rVarInBinaryExp instanceof IASTUnaryExpression){
 					IASTUnaryExpression unaryExpression = (IASTUnaryExpression) rVarInBinaryExp;
 					int operator = unaryExpression.getOperator ();
@@ -1391,7 +1391,7 @@ public class OctTransferRelation implements TransferRelation{
 				double val = Double.valueOf(lVarInBinaryExp.getRawSignature()).doubleValue();
 				//Num n = new Num(val);
 				int typeOfCastLiteral = ((IASTLiteralExpression)lVarInBinaryExp).getKind();
-				if( typeOfCastLiteral ==  IASTLiteralExpression.lk_integer_constant || 
+				if( typeOfCastLiteral ==  IASTLiteralExpression.lk_integer_constant ||
 						typeOfCastLiteral == IASTLiteralExpression.lk_float_constant)
 				{
 					// a = 8 * b
@@ -1445,13 +1445,13 @@ public class OctTransferRelation implements TransferRelation{
 	 * @param leftOperator name of the left hand side variable of the assignment
 	 * e.g. if operation is a = b + 8, leftOperator is a
 	 * @param variableId id of the left hand side variable on the right hand side of assignment, see {@link VariableMap}
-	 * e.g. if operation is a = b + 8, leftOperator is b's id. 
+	 * e.g. if operation is a = b + 8, leftOperator is b's id.
 	 * @param isVariablePositive sign of the the left hand side variable on the right hand side of assignment
 	 * e.g. if operation is a = b + 8, isVariablePositive is the sign of b, positive if true
 	 * @param valueOfLiteral value of the literal, 8 for a = b + 8
 	 */
 	private void addLiteralToVariable(OctElement octElement,
-			CFAEdge cfaEdge, String leftOperator, int variableId, 
+			CFAEdge cfaEdge, String leftOperator, int variableId,
 			boolean isVariablePositive, double valueOfLiteral) {
 
 		String functionName = cfaEdge.getPredecessor().getFunctionName();
@@ -1504,13 +1504,13 @@ public class OctTransferRelation implements TransferRelation{
 		if(isLVariablePositive){
 			array[LvariableId] = new Num(1);
 		}
-		else 
+		else
 			array[LvariableId] = new Num(-1);
 
 		if(isRVariablePositive){
 			array[RvariableId] = new Num(1);
 		}
-		else 
+		else
 			array[RvariableId] = new Num(-1);
 		octElement.update(LibraryAccess.assignVar(octElement, lvar, array));
 	}
@@ -1522,7 +1522,7 @@ public class OctTransferRelation implements TransferRelation{
 	 * @param leftParam name of the left hand side variable of the assignment
 	 * e.g. if operation is a = 8 * b, leftOperator is a
 	 * @param variableId id of the left hand side variable on the right hand side of assignment, see {@link VariableMap}
-	 * e.g. if operation is a = 8 * b, leftOperator is b's id. 
+	 * e.g. if operation is a = 8 * b, leftOperator is b's id.
 	 * @param isVariablePositive sign of the the left hand side variable on the right hand side of assignment
 	 * e.g. if operation is a = 8 * b, isVariablePositive is the sign of b, positive if true
 	 * @param valueOfLiteral value of the literal, 2 for a = 2 * b
@@ -1551,7 +1551,7 @@ public class OctTransferRelation implements TransferRelation{
 		octElement.update(LibraryAccess.assignVar(octElement, lvar, array));
 	}
 
-	private void handleFunctionCall(OctElement octElement, 
+	private void handleFunctionCall(OctElement octElement,
 			FunctionCallEdge callEdge) throws OctagonTransferException {
 		FunctionDefinitionNode functionEntryNode = (FunctionDefinitionNode)callEdge.getSuccessor();
 		String calledFunctionName = functionEntryNode.getFunctionName();
@@ -1621,7 +1621,7 @@ public class OctTransferRelation implements TransferRelation{
 				String stringValOfArg = literalExp.getRawSignature();
 
 				int typeOfLiteral = literalExp.getKind();
-				if( typeOfLiteral ==  IASTLiteralExpression.lk_integer_constant || 
+				if( typeOfLiteral ==  IASTLiteralExpression.lk_integer_constant ||
 						typeOfLiteral == IASTLiteralExpression.lk_float_constant)
 				{
 					String paramName = paramNames.get(i);
@@ -1655,7 +1655,7 @@ public class OctTransferRelation implements TransferRelation{
 				int val2id = replacedValues.get(j);
 				for(int newVal1:replacementMap.get(val1id)){
 					for(int newVal2:replacementMap.get(val2id)){
-						copyConstraintFromOctagon(octElement, newOctElement, val1id, val2id, 
+						copyConstraintFromOctagon(octElement, newOctElement, val1id, val2id,
 								newVal1, newVal2);
 					}
 				}
@@ -1672,7 +1672,7 @@ public class OctTransferRelation implements TransferRelation{
 		Num num;
 		Num[] array = new Num[newOctElement.getNumberOfVars()+1];
 		fillArrayWithZero(array);
-		
+
 		if(val1id == val2id){
 			// TODO
 			if (oct.getMatrix()[oct.matPos(2*val1id,2*val1id)].f > 0) {
@@ -1741,7 +1741,7 @@ public class OctTransferRelation implements TransferRelation{
 	 * should be provided.
 	 * @param octElement Abstract element to be updated.
 	 * @param functionCallEdge Call edge to the external function.
-	 * @throws OctagonTransferException 
+	 * @throws OctagonTransferException
 	 */
 	private void handleExternalFunctionCall(OctElement octElement,
 			FunctionCallEdge functionCallEdge) throws OctagonTransferException {
@@ -1795,7 +1795,7 @@ public class OctTransferRelation implements TransferRelation{
 					int resultvarID = octElement.getVariableId(globalVars, "___cpa_temp_result_var_", functionName);
 					String literalValue = litExpr.getRawSignature ();
 					int typeOfLiteral = (litExpr.getKind());
-					if( typeOfLiteral ==  IASTLiteralExpression.lk_integer_constant || 
+					if( typeOfLiteral ==  IASTLiteralExpression.lk_integer_constant ||
 							typeOfLiteral == IASTLiteralExpression.lk_float_constant)
 					{
 						double val = Double.valueOf(literalValue).doubleValue();
@@ -1842,8 +1842,8 @@ public class OctTransferRelation implements TransferRelation{
 
 	private void handleFunctionReturn(OctElement octElement,
 			ReturnEdge functionReturnEdge) throws OctagonTransferException {
-		
-		CallToReturnEdge summaryEdge = 
+
+		CallToReturnEdge summaryEdge =
 			functionReturnEdge.getSuccessor().getEnteringSummaryEdge();
 		IASTExpression exprOnSummary = summaryEdge.getExpression();
 		OctElement previousOctElem = (OctElement)summaryEdge.extractAbstractElement("OctElement");
@@ -1853,7 +1853,7 @@ public class OctTransferRelation implements TransferRelation{
 
 		HashMap<Integer, ArrayList<Integer>> replacementMap = new HashMap<Integer, ArrayList<Integer>>();
 		List<Integer> forgetList = new ArrayList<Integer>();
-		
+
 		//expression is a binary operation, e.g. a = g(b);
 		if (exprOnSummary instanceof IASTBinaryExpression) {
 			IASTBinaryExpression binExp = ((IASTBinaryExpression)exprOnSummary);
@@ -1944,11 +1944,11 @@ public class OctTransferRelation implements TransferRelation{
 		else{
 			throw new OctagonTransferException("Unhandled case " + functionReturnEdge.getPredecessor().getNodeNumber());
 		}
-		
+
 		for(int forgetId:forgetList){
 			newElement.update(LibraryAccess.forget(newElement, forgetId));
 		}
-		
+
 		List<Integer> replacedValues = new ArrayList<Integer>();
 		replacedValues.addAll(replacementMap.keySet());
 
@@ -1958,13 +1958,13 @@ public class OctTransferRelation implements TransferRelation{
 				int val2id = replacedValues.get(j);
 				for(int newVal1:replacementMap.get(val1id)){
 					for(int newVal2:replacementMap.get(val2id)){
-						copyConstraintFromOctagon(octElement, newElement, val1id, val2id, 
+						copyConstraintFromOctagon(octElement, newElement, val1id, val2id,
 								newVal1, newVal2);
 					}
 				}
 			}
 		}
-		
+
 		octElement.update(newElement);
 	}
 

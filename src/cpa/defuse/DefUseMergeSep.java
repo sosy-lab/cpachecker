@@ -8,12 +8,12 @@ import cpa.defuse.DefUseDomain;
 public class DefUseMergeSep implements MergeOperator
 {
     private DefUseDomain defUseDomain;
-    
+
     public DefUseMergeSep (DefUseDomain defUseDomain)
     {
         this.defUseDomain = defUseDomain;
     }
-    
+
     public AbstractDomain getAbstractDomain ()
     {
         return defUseDomain;

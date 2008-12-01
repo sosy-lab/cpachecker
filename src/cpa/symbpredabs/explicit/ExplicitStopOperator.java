@@ -21,17 +21,17 @@ import exceptions.CPAException;
 public class ExplicitStopOperator implements StopOperator {
 
     private ExplicitAbstractDomain domain;
-    
+
     public ExplicitStopOperator(ExplicitAbstractDomain d) {
         domain = d;
     }
 
-    
+
     public AbstractDomain getAbstractDomain() {
         return domain;
     }
 
-    
+
     public boolean stop(AbstractElement element,
             Collection<AbstractElement> reached) throws CPAException {
         if (reached instanceof LocationMappedReachedSet) {
@@ -39,7 +39,7 @@ public class ExplicitStopOperator implements StopOperator {
             reached = ((LocationMappedReachedSet)reached).get(
                     e.getLocationNode());
             if (reached == null) return false;
-        } 
+        }
         for (AbstractElement e : reached) {
             if (stop(element, e)) {
                 return true;
@@ -48,17 +48,17 @@ public class ExplicitStopOperator implements StopOperator {
         return false;
     }
 
-    
+
     public boolean stop(AbstractElement element, AbstractElement reachedElement)
             throws CPAException {
 
         ExplicitAbstractElement e1 = (ExplicitAbstractElement)element;
         ExplicitAbstractElement e2 = (ExplicitAbstractElement)reachedElement;
-        
+
         if (e1.getLocation().equals(e2.getLocation())) {
-            LazyLogger.log(LazyLogger.DEBUG_4, 
+            LazyLogger.log(LazyLogger.DEBUG_4,
                     "Checking Coverage of element: ", element);
-            
+
             if (!e1.sameContext(e2)) {
                 LazyLogger.log(CustomLogLevel.SpecificCPALevel,
                                "NO, not covered: context differs");
@@ -73,7 +73,7 @@ public class ExplicitStopOperator implements StopOperator {
             assert(e2.getAbstraction() != null);
 
             boolean ok = amgr.entails(e1.getAbstraction(), e2.getAbstraction());
-            
+
             if (ok) {
                 LazyLogger.log(CustomLogLevel.SpecificCPALevel,
                                "Element: ", element, " COVERED by: ", e2);

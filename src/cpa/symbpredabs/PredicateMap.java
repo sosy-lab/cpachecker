@@ -8,7 +8,7 @@ import cfa.objectmodel.CFANode;
 
 /**
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
- * 
+ *
  * A map from domain elements to a collection of predicates
  *
  */
@@ -36,5 +36,5 @@ public interface PredicateMap {
      * returns the list of all functions with some predicates attached to them.
      */
     public Collection<String> getKnownFunctions();
-    
+
 }

@@ -19,13 +19,13 @@ public interface SummaryAbstractFormulaManager extends AbstractFormulaManager {
      * Abstract post operation.
      */
     public AbstractFormula buildAbstraction(SummaryFormulaManager mgr,
-            SummaryAbstractElement e, SummaryAbstractElement succ, 
+            SummaryAbstractElement e, SummaryAbstractElement succ,
             Collection<Predicate> predicates);
 
     /**
      * Counterexample analysis and predicate discovery.
      */
     public CounterexampleTraceInfo buildCounterexampleTrace(
-            SummaryFormulaManager mgr, 
+            SummaryFormulaManager mgr,
             Deque<SummaryAbstractElement> abstractTrace);
 }
