@@ -33,8 +33,9 @@ public class StubProject implements IProject {
 
 	}
 
-	
-	public void build(int arg0, String arg1, Map arg2, IProgressMonitor arg3)
+
+  @SuppressWarnings("unchecked")
+  public void build(int arg0, String arg1, Map arg2, IProgressMonitor arg3)
 			throws CoreException {
 		
 
@@ -444,7 +445,8 @@ public class StubProject implements IProject {
 	}
 
 	
-	public Map getPersistentProperties() throws CoreException {
+	@SuppressWarnings("unchecked")
+  public Map getPersistentProperties() throws CoreException {
 		
 		return null;
 	}
@@ -487,7 +489,8 @@ public class StubProject implements IProject {
 	}
 
 	
-	public Map getSessionProperties() throws CoreException {
+	@SuppressWarnings("unchecked")
+  public Map getSessionProperties() throws CoreException {
 		
 		return null;
 	}
@@ -682,7 +685,8 @@ public class StubProject implements IProject {
 	}
 
 	
-	public Object getAdapter(Class arg0) {
+	@SuppressWarnings("unchecked")
+  public Object getAdapter(Class arg0) {
 		
 		return null;
 	}

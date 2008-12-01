@@ -100,16 +100,16 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 	// variable will be instantiated inside mathsat as namespace::variable
 	// private Stack<String> namespaces;
 	// TODO
-	private String namespace;
+	// private String namespace;
 	// global variables (do not live in any namespace)
-	private Set<String> globalVars;
+	// private Set<String> globalVars;
 
 	public SymbPredAbsTransferRelation(SymbPredAbsAbstractDomain d) {
 		domain = d;
 		mathsatFormMan = d.getCPA().getMathsatSymbPredAbsFormulaManager();
 		bddMathsatMan = d.getCPA().getBDDMathsatSymbPredAbsAbstractManager();
-		setNamespace("");
-		globalVars = new HashSet<String>();
+		// setNamespace("");
+		// globalVars = new HashSet<String>();
 		// abstractTree = new ART();
 	}
 
@@ -820,9 +820,11 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 	}
 	*/
 
+	/*
 	private void setNamespace(String ns) {
 		namespace = ns;
 	}
+	*/
 
 	/*
 	private String getNamespace() {

@@ -360,7 +360,8 @@ public class StubFile implements IFile {
 	}
 
 	
-	public Map getPersistentProperties() throws CoreException {
+	@SuppressWarnings("unchecked")
+  public Map getPersistentProperties() throws CoreException {
 		
 		return null;
 	}
@@ -403,7 +404,8 @@ public class StubFile implements IFile {
 	}
 
 	
-	public Map getSessionProperties() throws CoreException {
+	@SuppressWarnings("unchecked")
+  public Map getSessionProperties() throws CoreException {
 		
 		return null;
 	}
@@ -592,7 +594,8 @@ public class StubFile implements IFile {
 	}
 
 	
-	public Object getAdapter(Class arg0) {
+	@SuppressWarnings("unchecked")
+  public Object getAdapter(Class arg0) {
 		
 		return null;
 	}

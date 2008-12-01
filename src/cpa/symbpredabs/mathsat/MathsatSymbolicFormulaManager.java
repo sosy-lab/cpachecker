@@ -87,7 +87,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     private long bitwiseAndUfDecl;
     private long bitwiseOrUfDecl;
     private long bitwiseXorUfDecl;
-    private long bitwiseNotUfDecl;
+    // private long bitwiseNotUfDecl;
     private long leftShiftUfDecl;
     private long rightShiftUfDecl;
     private long multUfDecl;
@@ -166,8 +166,8 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
                 msatVarType, 2, argtypes);
         bitwiseXorUfDecl = mathsat.api.msat_declare_uif(msatEnv, "_^_",
                 msatVarType, 2, argtypes);
-        bitwiseNotUfDecl = mathsat.api.msat_declare_uif(msatEnv, "_~_",
-                msatVarType, 1, new int[]{msatVarType});
+        // bitwiseNotUfDecl = mathsat.api.msat_declare_uif(msatEnv, "_~_",
+        //         msatVarType, 1, new int[]{msatVarType});
         leftShiftUfDecl = mathsat.api.msat_declare_uif(msatEnv, "_<<_",
                 msatVarType, 2, argtypes);
         rightShiftUfDecl = mathsat.api.msat_declare_uif(msatEnv, "_>>_",

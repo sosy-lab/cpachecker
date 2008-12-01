@@ -41,7 +41,7 @@ implements AbstractElement {
 	// TODO 
 	SSAMap maxIndex;
 	
-	private SymbPredAbsAbstractDomain domain;
+	// private SymbPredAbsAbstractDomain domain;
 	private BDDMathsatSymbPredAbsAbstractManager bddMathsatMan;
 	private MathsatSymbPredAbsFormulaManager mathsatFormMan;
 
@@ -113,7 +113,7 @@ implements AbstractElement {
 		predicates = pmap;
 		initAbstractionFormula = initFormula;
 		maxIndex = new SSAMap();
-		domain = d;
+		// domain = d;
 		bddMathsatMan = d.getCPA().getBDDMathsatSymbPredAbsAbstractManager();
 		mathsatFormMan = d.getCPA().getMathsatSymbPredAbsFormulaManager();
 //		context = null;

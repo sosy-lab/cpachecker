@@ -10,6 +10,7 @@ public class StubConfiguration implements IParserConfiguration {
     class StubScannerInfo implements IScannerInfo {
 
         
+        @SuppressWarnings("unchecked")
         public Map getDefinedSymbols() {
             // TODO Auto-generated method stub
             return null;
