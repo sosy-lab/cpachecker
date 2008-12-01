@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<site>
-   <feature url="features/CPA.feature_1.0.0.jar" id="CPA.feature" version="1.0.0">
-      <category name="CPA"/>
-   </feature>
-   <category-def name="CPA" label="CPA"/>
-</site>
