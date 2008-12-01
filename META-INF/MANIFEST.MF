@@ -4,6 +4,7 @@ Bundle-Name: CPAPlugin Plug-in
 Bundle-SymbolicName: CPAPlugin; singleton:=true
 Bundle-Version: 1.0.0
 Bundle-Activator: cpaplugin.PreferencesActivator
+Bundle-ActivationPolicy: lazy
 Require-Bundle: org.eclipse.ui,
  org.eclipse.core.runtime,
  org.eclipse.core.resources,
@@ -33,7 +34,6 @@ Require-Bundle: org.eclipse.ui,
  org.eclipse.cdt.ui,
  org.eclipse.cdt.core,
  org.eclipse.ui.console
-Eclipse-LazyStart: true
 Export-Package: .,
  cfa;uses:="cfa.objectmodel,org.eclipse.cdt.core.dom.ast",
  cfa.objectmodel;uses:="cfa.objectmodel.c",
