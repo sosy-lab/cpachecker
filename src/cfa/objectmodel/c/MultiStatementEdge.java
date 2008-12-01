@@ -31,6 +31,7 @@ public class MultiStatementEdge extends AbstractCFAEdge
         this.jumpEdge = jumpEdge;
     }
     
+    @Override
     public boolean isJumpEdge ()
     {
         return jumpEdge;
@@ -46,6 +47,7 @@ public class MultiStatementEdge extends AbstractCFAEdge
         return expressions;
     }
     
+    @Override
     public String getRawStatement ()
     {
         StringBuilder builder = new StringBuilder ();

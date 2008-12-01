@@ -17,6 +17,7 @@ public class ConcreteTraceFunctionCalls implements ConcreteTrace {
         }
     }
     
+    @Override
     public String toString() {
         StringBuffer buf = new StringBuffer();
         buf.append("\nSequence of function calls:\n" +

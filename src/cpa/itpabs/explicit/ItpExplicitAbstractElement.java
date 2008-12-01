@@ -20,6 +20,7 @@ public class ItpExplicitAbstractElement extends ItpAbstractElement {
         super(loc);
     }
 
+    @Override
     public String toString() {
         return "E<" + Integer.toString(
                 getLocation().getNodeNumber()) + ">(" +
@@ -27,10 +28,12 @@ public class ItpExplicitAbstractElement extends ItpAbstractElement {
                 (getParent() != null ? getParent().getId() : "NIL") + ")"; 
     }
 
+    @Override
     public boolean isErrorLocation() {
         return (getLocation() instanceof CFAErrorNode);
     }
     
+    @Override
     public Collection<CFANode> getLeaves() {
         return Collections.singleton(getLocation());
     }

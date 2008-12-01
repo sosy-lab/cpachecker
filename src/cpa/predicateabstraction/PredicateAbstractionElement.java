@@ -27,6 +27,7 @@ public class PredicateAbstractionElement implements AbstractElement{
 		isFalsePredicate = isFalse;
 	}
 
+	@Override
 	public PredicateAbstractionElement clone(){
 		if(!isFalsePredicate){
 			PredicateList pl = predicateList.clone();
@@ -35,6 +36,7 @@ public class PredicateAbstractionElement implements AbstractElement{
 		return new PredicateAbstractionElement(null, true);
 	}
 
+	@Override
 	public boolean equals(Object other){
 		if (this == other)
 			return true;
@@ -108,6 +110,7 @@ public class PredicateAbstractionElement implements AbstractElement{
 		}
 	}
 
+	@Override
 	public String toString(){
 		if(isFalsePredicate){
 			return "false";

@@ -12,11 +12,13 @@ public class CFAExitNode extends CFANode{
         this.functionName = functionName;
     }
     
+    @Override
     public String getFunctionName ()
     {
         return functionName;
     }
     
+    @Override
     public void setFunctionName (String s)
     {
     	functionName = s;

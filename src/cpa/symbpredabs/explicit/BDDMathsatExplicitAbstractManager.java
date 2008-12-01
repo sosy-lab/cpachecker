@@ -62,6 +62,7 @@ public class BDDMathsatExplicitAbstractManager extends
             super(bdd, msatEnv, absEnv);
         }
         
+        @Override
         public void callback(long[] model) {
             long start = System.currentTimeMillis();
             super.callback(model);
@@ -135,6 +136,7 @@ public class BDDMathsatExplicitAbstractManager extends
             pred = p;
         }
 
+        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o instanceof CartesianAbstractionCacheKey) {
@@ -146,6 +148,7 @@ public class BDDMathsatExplicitAbstractManager extends
             }
         }
         
+        @Override
         public int hashCode() {
             return formula.hashCode() ^ pred.hashCode();
         }
@@ -175,6 +178,7 @@ public class BDDMathsatExplicitAbstractManager extends
             }
         }
         
+        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o instanceof BooleanAbstractionCacheKey) {
@@ -187,6 +191,7 @@ public class BDDMathsatExplicitAbstractManager extends
             }
         }
         
+        @Override
         public int hashCode() {
             return formula.hashCode() ^ predList.hashCode();
         }
@@ -200,6 +205,7 @@ public class BDDMathsatExplicitAbstractManager extends
             f = fm;
         }
         
+        @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o instanceof FeasibilityCacheKey) {
@@ -208,6 +214,7 @@ public class BDDMathsatExplicitAbstractManager extends
             return false;
         }
         
+        @Override
         public int hashCode() {
             return f.hashCode();
         }       
@@ -1241,6 +1248,7 @@ public class BDDMathsatExplicitAbstractManager extends
     class ArrayToStringConverter {
         private Object[] arr;
         public ArrayToStringConverter(Object[] a) { arr = a; }
+        @Override
         public String toString() {
             StringBuffer buf = new StringBuffer();
             buf.append('[');

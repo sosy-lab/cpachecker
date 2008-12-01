@@ -24,7 +24,8 @@ public class SummaryAbstractDomain implements AbstractDomain {
     }
     
     private final class SummaryBottomElement implements BottomElement {
-        public String toString() { return "<BOTTOM>"; }
+        @Override
+    	public String toString() { return "<BOTTOM>"; }
     }
     private final class SummaryTopElement implements TopElement {}
     

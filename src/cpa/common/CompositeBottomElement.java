@@ -14,6 +14,7 @@ public class CompositeBottomElement implements BottomElement
         this.bottoms = bottoms;
     }
     
+    @Override
     public boolean equals (Object o)
     {
         if (!(o instanceof CompositeBottomElement))

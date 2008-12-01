@@ -26,6 +26,7 @@ public class BDDMathsatSymbPredAbsAbstractManager extends
 			super(bdd, msatEnv, absEnv);
 		}
 
+		@Override
 		public void callback(long[] model) {
 			long start = System.currentTimeMillis();
 			super.callback(model);

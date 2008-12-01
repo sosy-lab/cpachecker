@@ -15,6 +15,7 @@ public class ParentsList {
 		parents.add(i);
 	}
 	
+	@Override
 	public boolean equals(Object o){
 		ParentsList otherParentsList = (ParentsList) o;
 		List<Integer> otherList = otherParentsList.parents;

@@ -28,6 +28,7 @@ public class PointsToElement implements AbstractElement {
 		variables = new HashMap<IASTDeclarator,PointsToRelation>();
 	}
 	
+	@Override
 	public PointsToElement clone () {
 		PointsToElement result = new PointsToElement();
 		for (PointsToRelation p : references) {
@@ -80,6 +81,7 @@ public class PointsToElement implements AbstractElement {
     	return false;
     }
     
+    @Override
     public String toString () {
     	assert (references.size() == variables.size());
     	String out = "{";

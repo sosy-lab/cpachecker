@@ -25,7 +25,8 @@ public class ItpAbstractDomain implements AbstractDomain {
     }
     
     private final class ExplicitBottomElement implements BottomElement {
-        public String toString() { return "<BOTTOM>"; }
+        @Override
+    	public String toString() { return "<BOTTOM>"; }
     }
     private final class ExplicitTopElement implements TopElement {}
     

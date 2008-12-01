@@ -37,6 +37,7 @@ public class AssumeEdge extends AbstractCFAEdge
         return expression;
     }
     
+    @Override
     public String getRawStatement ()
     {
         return "[" + super.getRawStatement () + "]";

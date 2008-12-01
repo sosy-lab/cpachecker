@@ -15,6 +15,7 @@ public class PreferenceInitializer extends AbstractPreferenceInitializer {
 	 * 
 	 * @see org.eclipse.core.runtime.preferences.AbstractPreferenceInitializer#initializeDefaultPreferences()
 	 */
+	@Override
 	public void initializeDefaultPreferences() {
 		IPreferenceStore store = PreferencesActivator.getDefault().getPreferenceStore();
 		store.setDefault(cpaplugin.preferences.PreferenceConstants.P_PATH, getClass().getProtectionDomain().getCodeSource().getLocation().getPath());

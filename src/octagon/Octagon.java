@@ -40,6 +40,7 @@ public class Octagon {
 	/* (non-Javadoc)
 	 * @see java.lang.Object#clone()
 	 */
+	@Override
 	public Octagon clone(){
 		Num[] mat = new Num[this.matrix.length];
 		for(int i=0; i<mat.length; i++){

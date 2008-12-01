@@ -25,6 +25,7 @@ public class StatementEdge extends AbstractCFAEdge
         this.jumpEdge = jumpEdge;
     }
     
+    @Override
     public boolean isJumpEdge ()
     {
         return jumpEdge;

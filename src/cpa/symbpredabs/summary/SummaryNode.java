@@ -19,10 +19,12 @@ public class SummaryNode extends CFANode implements SummaryCFANode {
         return inner;
     }
     
+    @Override
     public String toString() {
         return "S" + Integer.toString(inner.getNodeNumber());
     }
     
+    @Override
     public String getFunctionName() {
         return inner.getFunctionName();
     }

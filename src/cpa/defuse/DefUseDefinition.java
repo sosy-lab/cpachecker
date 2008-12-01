@@ -26,11 +26,13 @@ public class DefUseDefinition implements AbstractElement
         return assigningEdge;
     }
     
+    @Override
     public int hashCode ()
     {
         return variableName.hashCode ();
     }
     
+    @Override
     public boolean equals (Object other) 
     {
         if (!(other instanceof DefUseDefinition))

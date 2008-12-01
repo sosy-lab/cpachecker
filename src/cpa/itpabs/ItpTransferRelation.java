@@ -158,6 +158,7 @@ public class ItpTransferRelation implements TransferRelation {
             path = p;
         }
         
+        @Override
         public boolean equals(Object o) {
             if (o == this) return true;
             if (o instanceof ForcedCoverCacheKey) {
@@ -183,6 +184,7 @@ public class ItpTransferRelation implements TransferRelation {
             return false;
         }
         
+        @Override
         public int hashCode() {
             return start.hashCode() ^ end.hashCode() ^ path.hashCode();
         }

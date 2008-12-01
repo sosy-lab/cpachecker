@@ -19,6 +19,7 @@ public class BlankEdge extends AbstractCFAEdge
         this.jumpEdge = jumpEdge;
     }
     
+    @Override
     public boolean isJumpEdge ()
     {
         return jumpEdge;

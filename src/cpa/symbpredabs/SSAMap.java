@@ -20,7 +20,9 @@ public class SSAMap {
         public VarKey(String str) { name = str; }
         public String getName() { return name; }
         
+        @Override
         public int hashCode() { return name.hashCode(); }
+        @Override
         public boolean equals(Object o) {
             if (o instanceof VarKey) {
                 return name.equals(((VarKey)o).name);
@@ -30,6 +32,7 @@ public class SSAMap {
             return false;
         }
         
+        @Override
         public String toString() { return name; }
     }
     private class FuncKey implements Key {
@@ -43,11 +46,13 @@ public class SSAMap {
         public String getName() { return name; }
         public SymbolicFormula[] getArgs() { return args; }
         
+        @Override
         public int hashCode() { 
             int ret = name.hashCode();
             for (SymbolicFormula a : args) ret ^= a.hashCode();
             return ret;
         }
+        @Override
         public boolean equals(Object o) {
             if (o instanceof FuncKey) {
                 FuncKey f = (FuncKey)o;
@@ -60,6 +65,7 @@ public class SSAMap {
             return false;
         }
         
+        @Override
         public String toString() {
             StringBuffer buf = new StringBuffer();
             buf.append(name);
@@ -151,6 +157,7 @@ public class SSAMap {
         return ret;
     }
     
+    @Override
     public String toString() {
         StringBuffer buf = new StringBuffer();
         buf.append("{ ");

@@ -125,6 +125,7 @@ public class CFABuilder extends ASTVisitor
 	/* (non-Javadoc)
 	 * @see org.eclipse.cdt.core.dom.ast.ASTVisitor#visit(org.eclipse.cdt.core.dom.ast.IASTDeclaration)
 	 */
+	@Override
 	public int visit (IASTDeclaration declaration)
 	{
 		IASTFileLocation fileloc = declaration.getFileLocation ();
@@ -176,6 +177,7 @@ public class CFABuilder extends ASTVisitor
 		return PROCESS_CONTINUE;
 	}
 
+	@Override
 	public int leave (IASTDeclaration declaration)
 	{
 		if (declaration instanceof IASTFunctionDefinition)
@@ -201,6 +203,7 @@ public class CFABuilder extends ASTVisitor
 	/* (non-Javadoc)
 	 * @see org.eclipse.cdt.core.dom.ast.ASTVisitor#visit(org.eclipse.cdt.core.dom.ast.IASTStatement)
 	 */
+	@Override
 	public int visit (IASTStatement statement)
 	{
 		IASTFileLocation fileloc = statement.getFileLocation ();
@@ -526,6 +529,7 @@ public class CFABuilder extends ASTVisitor
 	/* (non-Javadoc)
 	 * @see org.eclipse.cdt.core.dom.ast.ASTVisitor#leave(org.eclipse.cdt.core.dom.ast.IASTStatement)
 	 */
+	@Override
 	public int leave (IASTStatement statement)
 	{
 		if (statement instanceof IASTIfStatement)
@@ -601,6 +605,7 @@ public class CFABuilder extends ASTVisitor
 	/* (non-Javadoc)
 	 * @see org.eclipse.cdt.core.dom.ast.ASTVisitor#visit(org.eclipse.cdt.core.dom.ast.IASTProblem)
 	 */
+	@Override
 	public int visit (IASTProblem problem)
 	{
 		IASTFileLocation fileloc = problem.getFileLocation ();

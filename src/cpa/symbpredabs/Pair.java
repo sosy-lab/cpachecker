@@ -21,6 +21,7 @@ public class Pair<A, B> {
     public A getFirst() { return first; }
     public B getSecond() { return second; }
 
+    @Override
     public String toString() {
         return "(" + first + ", " + second + ")";
     }
@@ -30,6 +31,7 @@ public class Pair<A, B> {
     }
 
     @SuppressWarnings("unchecked")
+    @Override
     public boolean equals(Object other) {
         return
         other instanceof Pair &&
@@ -37,6 +39,7 @@ public class Pair<A, B> {
         equals(second, ((Pair)other).second);
     }
 
+    @Override
     public int hashCode() {
         if (first == null) return (second == null) ? 0 : second.hashCode() + 1;
         else if (second == null) return first.hashCode() + 2;

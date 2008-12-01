@@ -18,6 +18,7 @@ public class SummaryCFAEdge extends AbstractCFAEdge {
         return CFAEdgeType.BlankEdge;
     }
     
+    @Override
     public String toString() {
         return "(" + getPredecessor().toString() + 
             "->" + getSuccessor().toString() + ")";

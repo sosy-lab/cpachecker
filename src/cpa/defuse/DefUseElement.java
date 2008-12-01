@@ -22,6 +22,7 @@ public class DefUseElement implements AbstractElement
             this.definitions = new ArrayList<DefUseDefinition> ();        
     }
     
+    @Override
     public DefUseElement clone ()
     {
         DefUseElement newElement = new DefUseElement (null);
@@ -65,6 +66,7 @@ public class DefUseElement implements AbstractElement
         definitions.add (def);
     }
     
+    @Override
     public boolean equals (Object other)
     {
         if (this == other)
@@ -86,6 +88,7 @@ public class DefUseElement implements AbstractElement
         return true;
     }
     
+    @Override
     public String toString ()
     {       
         StringBuilder builder = new StringBuilder ();

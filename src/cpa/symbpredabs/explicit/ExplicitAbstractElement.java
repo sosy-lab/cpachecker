@@ -57,6 +57,7 @@ public class ExplicitAbstractElement
         this(loc, null, null);
     }
     
+    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;
@@ -67,10 +68,12 @@ public class ExplicitAbstractElement
         }
     }
     
+    @Override
     public int hashCode() {
         return elemId;
     }
     
+    @Override
     public String toString() {
         return "E<" + Integer.toString(
                 location.getNodeNumber()) + ">(" +

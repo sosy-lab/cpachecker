@@ -26,6 +26,7 @@ public class CompositeElement implements AbstractElement
     	return elements.size();
     }
     
+    @Override
     public boolean equals (Object other)
     {
         if (other == this)
@@ -57,6 +58,7 @@ public class CompositeElement implements AbstractElement
         return true;
     }
     
+    @Override
     public String toString ()
     {
         StringBuilder builder = new StringBuilder ();

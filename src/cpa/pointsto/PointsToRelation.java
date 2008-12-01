@@ -87,6 +87,7 @@ public class PointsToRelation {
 		}
 	}
 	
+	@Override
 	public PointsToRelation clone() {
 		PointsToRelation result = new PointsToRelation(variable);
 		result.pointsToUndef = pointsToUndef;
@@ -96,6 +97,7 @@ public class PointsToRelation {
 		return result;
 	}
 	
+	@Override
 	public String toString () {
 
 		String out = "";

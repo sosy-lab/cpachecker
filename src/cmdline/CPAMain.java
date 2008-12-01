@@ -300,6 +300,7 @@ public class CPAMain {
     }
     
     public static class ShutdownHook extends Thread {
+    	@Override
         public void run() {
             printIfInterrupted();
         }

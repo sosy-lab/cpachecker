@@ -194,6 +194,7 @@ public class MathsatSummaryFormulaManager extends MathsatSymbolicFormulaManager
         }
     }
     
+    @Override
     protected int getNewIndex(String var, SSAMap ssa) {
 //        if (maxIndex != null) {
 //            int idx = maxIndex.getIndex(var);
@@ -204,6 +205,7 @@ public class MathsatSummaryFormulaManager extends MathsatSymbolicFormulaManager
         return super.getNewIndex(var, ssa);
     }
     
+    @Override
     protected int getNewIndex(String var, int i1, int i2) {
 //        if (maxIndex != null) {
 //            int idx = maxIndex.getIndex(var);

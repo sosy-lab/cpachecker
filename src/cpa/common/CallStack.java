@@ -38,6 +38,7 @@ public class CallStack {
 		return stack.size();
 	}
 	
+	@Override
 	public CallStack clone(){
 		CallStack ret = new CallStack();
 		for(CallElement item:stack){
@@ -46,6 +47,7 @@ public class CallStack {
 		return ret;
 	}
 	
+	@Override
 	public boolean equals(Object other){
 		CallStack otherCs = (CallStack) other;
 		if(this.getSize() != otherCs.getSize()){

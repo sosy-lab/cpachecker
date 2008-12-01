@@ -48,6 +48,7 @@ public class CallElement {
 		this.state = state;
 	}
 
+	@Override
 	public boolean equals(Object other){
 		CallElement otherCallElement = (CallElement) other;
 

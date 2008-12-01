@@ -154,6 +154,7 @@ public class CFANode implements Comparable<CFANode>
     	return leavingSummaryEdge;
     }
     
+    @Override
     public boolean equals(Object other) {
         if (!(other instanceof CFANode)) return false;
         return getNodeNumber() == ((CFANode)other).getNodeNumber();
@@ -163,10 +164,12 @@ public class CFANode implements Comparable<CFANode>
     	return nextNodeNumber;
     }
     
+    @Override
     public int hashCode() {
         return getNodeNumber();
     }
     
+    @Override
     public String toString() {
         return "N" + getNodeNumber();
     }

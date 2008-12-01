@@ -126,6 +126,7 @@ public class TheoremProverInterface {
 			this.os = redirect;
 		}
 
+		@Override
 		public void run()
 		{
 			try

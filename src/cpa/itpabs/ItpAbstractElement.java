@@ -61,6 +61,7 @@ public abstract class ItpAbstractElement
     public ItpAbstractElement getCoveredBy() { return coveredBy; }
     public void setCoveredBy(ItpAbstractElement e) { coveredBy = e; }
     
+    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;
@@ -71,6 +72,7 @@ public abstract class ItpAbstractElement
         }
     }
     
+    @Override
     public int hashCode() {
         return elemId;
     }

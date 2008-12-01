@@ -67,6 +67,7 @@ public class SummaryAbstractElement
         this(loc, null, null, null);
     }
     
+    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;
@@ -77,10 +78,12 @@ public class SummaryAbstractElement
         }
     }
     
+    @Override
     public int hashCode() {
         return elemId;
     }
     
+    @Override
     public String toString() {
         return "SE<" + Integer.toString(
                 summaryLocation.getInnerNode().getNodeNumber()) + ">";//">(" +

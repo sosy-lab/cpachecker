@@ -22,6 +22,7 @@ public class SummaryCFAFunctionDefinitionNode extends CFAFunctionDefinitionNode
         return inner;
     }
     
+    @Override
     public String toString() {
         return "S" + Integer.toString(inner.getNodeNumber());
     }

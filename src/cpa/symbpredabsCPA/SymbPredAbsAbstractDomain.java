@@ -24,6 +24,7 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
 	}
 
 	private final class SymbPredAbsBottomElement implements BottomElement {
+		@Override
 		public String toString() { 
 			return "<BOTTOM>"; 
 		}

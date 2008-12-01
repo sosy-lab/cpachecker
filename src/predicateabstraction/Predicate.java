@@ -180,6 +180,7 @@ public class Predicate {
 	}
 
 
+	@Override
 	public boolean equals(Object other){
 		Predicate otherPredicate = (Predicate) other;
 		if(this.firstVariable.compareTo(otherPredicate.getFirstVariable())!=0)
@@ -193,6 +194,7 @@ public class Predicate {
 		return true;
 	}
 
+	@Override
 	public String toString(){
 		return firstVariable + " " + operator + " " + secondVariable + ": " + truthValue ;
 	}
@@ -287,6 +289,7 @@ public class Predicate {
 		return firstVariable.equals(modifiedVariableName) || secondVariable.equals(modifiedVariableName);
 	}
 
+	@Override
 	public Predicate clone(){
 		return new Predicate(this);
 	}

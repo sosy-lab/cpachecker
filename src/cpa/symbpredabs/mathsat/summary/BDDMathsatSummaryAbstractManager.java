@@ -62,6 +62,7 @@ public class BDDMathsatSummaryAbstractManager extends
             curModel = null;
         }
         
+        @Override
         public void callback(long[] model) {
             long start = System.currentTimeMillis();
             super.callback(model);
@@ -742,7 +743,7 @@ public class BDDMathsatSummaryAbstractManager extends
         return ret;
     }
     
-    
+    @Override
     public boolean entails(AbstractFormula f1, AbstractFormula f2) {
         long start = System.currentTimeMillis();
         boolean ret = super.entails(f1, f2);

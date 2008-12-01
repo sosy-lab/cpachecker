@@ -19,11 +19,13 @@ public abstract class CFAFunctionDefinitionNode extends CFANode
         this.containingFileLocation = containingFileLocation;
     }
     
+    @Override
     public String getFunctionName ()
     {
         return this.functionName;
     }
     
+    @Override
     public void setFunctionName (String s)
     {
     	this.functionName = s;

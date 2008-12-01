@@ -24,10 +24,12 @@ public class MathsatSymbolicFormula implements SymbolicFormula {
         return mathsat.api.msat_term_is_true(msatTerm) != 0;
     }
     
+    @Override
     public String toString() {
         return mathsat.api.msat_term_repr(msatTerm);
     }
     
+    @Override
     public boolean equals(Object o) {
         if (!(o instanceof MathsatSymbolicFormula)) return false;
         return msatTerm == ((MathsatSymbolicFormula)o).msatTerm;
@@ -37,6 +39,7 @@ public class MathsatSymbolicFormula implements SymbolicFormula {
     
     public void setTerm(long t) { msatTerm = t; }
     
+    @Override
     public int hashCode() {
         return (int)msatTerm;
     }

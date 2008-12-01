@@ -16,6 +16,7 @@ public class BDDAbstractFormula implements AbstractFormula {
         return bddRepr;
     }
     
+    @Override
     public boolean equals(Object o) {
         if (o instanceof BDDAbstractFormula) {
             return bddRepr == ((BDDAbstractFormula)o).bddRepr;

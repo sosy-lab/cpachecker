@@ -27,6 +27,7 @@ public class ItpSymbolicAbstractElement extends ItpAbstractElement {
         super(loc);
     }
 
+    @Override
     public String toString() {
         return "SE<" + Integer.toString(
                 ((SummaryCFANode)getLocation()).getInnerNode().getNodeNumber())
@@ -34,6 +35,7 @@ public class ItpSymbolicAbstractElement extends ItpAbstractElement {
                 (getParent() != null ? getParent().getId() : "NIL") + ")"; 
     }
 
+    @Override
     public boolean isErrorLocation() {
         return (((SummaryCFANode)getLocation()).getInnerNode() instanceof 
                 CFAErrorNode);
@@ -47,6 +49,7 @@ public class ItpSymbolicAbstractElement extends ItpAbstractElement {
         pathFormulas = pf;
     }
 
+    @Override
     public Collection<CFANode> getLeaves() {
         assert(pathFormulas != null);        
         return pathFormulas.keySet();

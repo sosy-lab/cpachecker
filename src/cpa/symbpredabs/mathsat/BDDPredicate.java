@@ -22,6 +22,7 @@ public class BDDPredicate implements Predicate {
         return bdd;
     }
     
+    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;
@@ -32,10 +33,12 @@ public class BDDPredicate implements Predicate {
         }
     }
     
+    @Override
     public int hashCode() {
         return varindex;
     }
     
+    @Override
     public String toString() {
         return "BDD(" + varindex + ")";
     }

@@ -94,6 +94,7 @@ public abstract class AbstractCFAEdge implements CFAEdge
         return false;
     }
     
+    @Override
     public boolean equals (Object other)
     {
         if (!(other instanceof AbstractCFAEdge))
@@ -108,6 +109,7 @@ public abstract class AbstractCFAEdge implements CFAEdge
         return true;
     }
     
+    @Override
     public String toString() {
         return "(" + getPredecessor() + " -{" + 
                 getRawStatement().replaceAll("\n", " ") + 

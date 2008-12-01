@@ -129,6 +129,7 @@ public class SummaryTransferRelation implements TransferRelation {
             }
         }
         
+        @Override
         public boolean equals(Object o) {
             if (o == this) return true;
             if (o instanceof Path) {
@@ -137,6 +138,7 @@ public class SummaryTransferRelation implements TransferRelation {
             return false;
         }
         
+        @Override
         public int hashCode() {
             return elemIds.hashCode();
         }

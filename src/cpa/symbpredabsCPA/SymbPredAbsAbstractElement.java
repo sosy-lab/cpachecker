@@ -124,6 +124,7 @@ implements AbstractElement {
 		this(d, loc, abstLoc, null, null, null, null, null);
 	}
 
+	@Override
 	public boolean equals(Object o) {
 		if (this == o) {
 			return true;
@@ -207,6 +208,7 @@ implements AbstractElement {
 		}
 	}
 
+	@Override
 	public String toString() {
 		BDDAbstractFormula abst = (BDDAbstractFormula)getAbstraction();
 		SymbolicFormula symbReprAbst = bddMathsatMan.toConcrete(mathsatFormMan, abst);

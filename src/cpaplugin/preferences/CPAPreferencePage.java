@@ -36,6 +36,7 @@ public class CPAPreferencePage
 	 * of preferences. Each field editor knows how to save and
 	 * restore itself.
 	 */
+	@Override
 	public void createFieldEditors() {
 		fieldEditor = new FileFieldEditor(PreferenceConstants.P_PATH, 
 				"&Directory preference:", getFieldEditorParent());
@@ -43,6 +44,7 @@ public class CPAPreferencePage
 		fieldEditor.setFileExtensions(ext);
 		addField(fieldEditor);
 	}
+	@Override
 	protected void checkState()
 	{
 		super.checkState();
@@ -56,6 +58,7 @@ public class CPAPreferencePage
 		setErrorMessage(null);
 		setValid(true);
 	}
+	@Override
 	public void propertyChange(PropertyChangeEvent event)
 	{
 		super.propertyChange(event);

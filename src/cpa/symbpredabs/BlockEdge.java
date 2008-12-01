@@ -29,6 +29,7 @@ public class BlockEdge extends AbstractCFAEdge {
         return CFAEdgeType.BlankEdge;
     }
 
+    @Override
     public String getRawStatement() {
         StringBuffer buf = new StringBuffer();
         buf.append("BLOCK{");

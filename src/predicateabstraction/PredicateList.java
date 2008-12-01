@@ -40,6 +40,7 @@ public class PredicateList {
 		return predicates.size();
 	}
 
+	@Override
 	public PredicateList clone(){
 		PredicateList newPl = new PredicateList();
 		for(Predicate predicate: predicates){
@@ -49,6 +50,7 @@ public class PredicateList {
 		return newPl;
 	}
 
+	@Override
 	public boolean equals(Object other){
 		if (this == other)
 			return true;
@@ -110,6 +112,7 @@ public class PredicateList {
 		}
 	}
 
+	@Override
 	public String toString(){
 		String s = "";
 		for(Predicate predicate:predicates){

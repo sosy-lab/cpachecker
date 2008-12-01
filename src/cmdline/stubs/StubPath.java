@@ -15,6 +15,7 @@ public class StubPath implements IPath {
 		pth = p;
 	}
 
+	@Override
 	public Object clone() {
 		return new StubPath(pth);
 	}

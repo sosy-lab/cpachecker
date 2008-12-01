@@ -30,7 +30,8 @@ public class BlockEdge extends AbstractCFAEdge {
         // TODO Auto-generated method stub
         return CFAEdgeType.BlankEdge;
     }
-
+    
+    @Override
     public String getRawStatement() {
         StringBuffer buf = new StringBuffer();
         buf.append("BLOCK{");

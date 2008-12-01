@@ -44,6 +44,7 @@ public class OctElement implements AbstractElement{
 	/* (non-Javadoc)
 	 * @see java.lang.Object#clone()
 	 */
+	@Override
 	public OctElement clone(){
 		HashMap<String, Integer> newMap = new HashMap<String, Integer>();
 		Set<String> keys = variables.keySet();

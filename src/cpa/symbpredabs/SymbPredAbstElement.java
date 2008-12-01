@@ -62,15 +62,18 @@ public class SymbPredAbstElement
     public void setAbstractFormula(AbstractFormula af) { absFormula = af; }
     public void setParent(SymbPredAbstElement p) { parent = p; }
     
+    @Override
     public boolean equals(Object other) {
         if (!(other instanceof SymbPredAbstElement)) return false;        
         return getId() == ((SymbPredAbstElement)other).getId();
     }
     
+    @Override
     public int hashCode() {
         return getId();
     }
     
+    @Override
     public String toString() {
         
         if (CPACheckerLogger.getLevel() > LazyLogger.DEBUG_1.intValue()) {

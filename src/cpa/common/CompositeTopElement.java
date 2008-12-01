@@ -15,6 +15,7 @@ public class CompositeTopElement implements TopElement
         this.tops = tops;
     }
     
+    @Override
     public boolean equals (Object o)
     {
         if (!(o instanceof CompositeBottomElement))
