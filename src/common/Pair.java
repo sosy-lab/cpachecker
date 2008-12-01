@@ -1,4 +1,4 @@
-package cpa.symbpredabs;
+package common;
 
 
 /**

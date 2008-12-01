@@ -1,6 +1,7 @@
 package cpa.symbpredabs;
 
 import java.util.Collection;
+import common.Pair;
 
 import logging.CustomLogLevel;
 import logging.LazyLogger;

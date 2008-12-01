@@ -31,7 +31,7 @@ import cpa.symbpredabs.AbstractFormula;
 import cpa.symbpredabs.ConcreteTraceFunctionCalls;
 import cpa.symbpredabs.CounterexampleTraceInfo;
 import cpa.symbpredabs.InterpolatingTheoremProver;
-import cpa.symbpredabs.Pair;
+import common.Pair;
 import cpa.symbpredabs.Predicate;
 import cpa.symbpredabs.SSAMap;
 import cpa.symbpredabs.SymbolicFormula;

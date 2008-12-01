@@ -13,7 +13,7 @@ import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import cpa.symbpredabs.Pair;
+import common.Pair;
 import cpa.symbpredabs.SymbolicFormula;
 import cpa.symbpredabs.TheoremProver;
 

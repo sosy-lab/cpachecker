@@ -35,7 +35,7 @@ import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.TransferRelation;
 import cpa.symbpredabs.AbstractFormula;
 import cpa.symbpredabs.CounterexampleTraceInfo;
-import cpa.symbpredabs.Pair;
+import common.Pair;
 import cpa.symbpredabs.Predicate;
 import cpa.symbpredabs.SSAMap;
 import cpa.symbpredabs.SymbolicFormula;

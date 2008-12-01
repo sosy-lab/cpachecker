@@ -17,7 +17,7 @@ import cfa.objectmodel.CFANode;
 
 import cpaplugin.CPAStatistics;
 import cpaplugin.MainCPAStatistics;
-import cpa.symbpredabs.Pair;
+import common.Pair;
 import cpa.symbpredabs.Predicate;
 import cpa.symbpredabs.PredicateMap;
 import cpa.symbpredabs.mathsat.BDDPredicate;

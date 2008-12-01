@@ -15,7 +15,7 @@ import cpa.itpabs.ItpAbstractDomain;
 import cpa.itpabs.ItpAbstractElement;
 import cpa.itpabs.ItpCPA;
 import cpa.itpabs.ItpTransferRelation;
-import cpa.symbpredabs.Pair;
+import common.Pair;
 import cpa.symbpredabs.SymbolicFormula;
 import cpa.symbpredabs.SymbolicFormulaManager;
 import cpa.symbpredabs.TheoremProver;

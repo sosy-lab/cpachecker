@@ -16,7 +16,7 @@ import logging.LazyLogger;
 import mathsat.AllSatModelCallback;
 import cpa.symbpredabs.AbstractFormula;
 import cpa.symbpredabs.AbstractFormulaManager;
-import cpa.symbpredabs.Pair;
+import common.Pair;
 import cpa.symbpredabs.Predicate;
 import cpa.symbpredabs.SSAMap;
 import cpa.symbpredabs.SymbolicFormula;

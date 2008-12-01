@@ -22,7 +22,7 @@ import cpa.itpabs.ItpCounterexampleRefiner;
 import cpa.itpabs.ItpCounterexampleTraceInfo;
 import cpa.itpabs.symbolic.ItpSymbolicAbstractElement;
 import cpa.symbpredabs.ConcreteTraceNoInfo;
-import cpa.symbpredabs.Pair;
+import common.Pair;
 import cpa.symbpredabs.SSAMap;
 import cpa.symbpredabs.SymbolicFormula;
 import cpa.symbpredabs.SymbolicFormulaManager;

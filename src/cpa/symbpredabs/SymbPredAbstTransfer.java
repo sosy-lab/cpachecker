@@ -17,6 +17,7 @@ import cpa.common.interfaces.BottomElement;
 import cpa.common.interfaces.TopElement;
 import cpa.common.interfaces.TransferRelation;
 import exceptions.CPAException;
+import common.Pair;
 
 /**
  * TODO. This is currently broken

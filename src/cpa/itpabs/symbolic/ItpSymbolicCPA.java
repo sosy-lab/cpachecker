@@ -18,7 +18,7 @@ import cpa.itpabs.ItpCPAStatistics;
 import cpaplugin.CPAStatistics;
 import cpa.itpabs.symbolic.ItpSymbolicAbstractElement;
 import cpa.itpabs.symbolic.ItpSymbolicCounterexampleRefiner;
-import cpa.symbpredabs.Pair;
+import common.Pair;
 import cpa.symbpredabs.SSAMap;
 import cpa.symbpredabs.SymbolicFormula;
 import cpa.symbpredabs.UnrecognizedCFAEdgeException;

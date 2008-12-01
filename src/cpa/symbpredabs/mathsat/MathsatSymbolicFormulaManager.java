@@ -53,7 +53,7 @@ import cfa.objectmodel.c.GlobalDeclarationEdge;
 import cfa.objectmodel.c.StatementEdge;
 
 import cpa.symbpredabs.BlockEdge;
-import cpa.symbpredabs.Pair;
+import common.Pair;
 import cpa.symbpredabs.SSAMap;
 import cpa.symbpredabs.SymbolicFormula;
 import cpa.symbpredabs.SymbolicFormulaManager;

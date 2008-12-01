@@ -8,7 +8,7 @@ import cfa.objectmodel.CFANode;
 
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.symbpredabs.AbstractFormula;
-import cpa.symbpredabs.Pair;
+import common.Pair;
 import cpa.symbpredabs.SSAMap;
 import cpa.symbpredabs.SymbolicFormula;
 

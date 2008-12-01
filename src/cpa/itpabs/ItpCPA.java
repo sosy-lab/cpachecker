@@ -30,7 +30,7 @@ import cpa.itpabs.ItpMergeOperator;
 import cpa.itpabs.ItpStopOperator;
 import cpa.itpabs.ItpTransferRelation;
 import cpa.symbpredabs.InterpolatingTheoremProver;
-import cpa.symbpredabs.Pair;
+import common.Pair;
 import cpa.symbpredabs.SymbolicFormula;
 import cpa.symbpredabs.SymbolicFormulaManager;
 import cpa.symbpredabs.TheoremProver;

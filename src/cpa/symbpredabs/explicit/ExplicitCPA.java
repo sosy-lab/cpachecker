@@ -33,7 +33,7 @@ import cpaplugin.CPAStatistics;
 import cpa.symbpredabs.AbstractFormula;
 import cpa.symbpredabs.FixedPredicateMap;
 import cpa.symbpredabs.InterpolatingTheoremProver;
-import cpa.symbpredabs.Pair;
+import common.Pair;
 import cpa.symbpredabs.Predicate;
 import cpa.symbpredabs.PredicateMap;
 import cpa.symbpredabs.SymbolicFormulaManager;

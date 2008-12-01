@@ -8,7 +8,7 @@ import cfa.objectmodel.CFANode;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.itpabs.ItpAbstractElement;
-import cpa.symbpredabs.Pair;
+import common.Pair;
 import cpa.symbpredabs.SymbolicFormula;
 
 /**

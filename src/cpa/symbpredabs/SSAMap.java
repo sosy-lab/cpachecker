@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
 
+import common.Pair;
 
 /**
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
