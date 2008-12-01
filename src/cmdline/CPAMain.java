@@ -1,12 +1,18 @@
 package cmdline;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.PrintWriter;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Level;
+
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineFactory;
+import javax.script.ScriptEngineManager;
+import javax.script.ScriptException;
 
 import logging.CPACheckerLogger;
 import logging.CustomLogLevel;
@@ -19,8 +25,6 @@ import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.cdt.internal.core.dom.InternalASTServiceProvider;
 import org.eclipse.core.resources.IFile;
-
-import compositeCPA.CompositeCPA;
 
 import cmdline.stubs.StubCodeReaderFactory;
 import cmdline.stubs.StubConfiguration;
@@ -62,7 +66,30 @@ public class CPAMain {
     private static boolean interrupted = true;
 
     private static ConfigurableProgramAnalysis getCPA(CFAFunctionDefinitionNode node) throws CPAException {
-        return CompositeCPA.getCompositeCPA(node);
+        // Load script engine for Groovy
+        ScriptEngineManager manager = new ScriptEngineManager();
+        
+        ScriptEngine engine = manager.getEngineByName("groovy");
+
+        if (engine == null) {
+        	throw new CPAException("Groovy Script Engine not found!");
+        }
+        
+        System.out.println("Groovy init script: " + cpaConfig.getProperty("groovy.file"));
+        
+        try {
+        	ConfigurableProgramAnalysis cpa = (ConfigurableProgramAnalysis)engine.eval(new FileReader(cpaConfig.getProperty("groovy.file")));
+
+            return cpa;
+        } catch (ScriptException e) {
+        	// TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (FileNotFoundException e) {
+        	// TODO Auto-generated catch block
+        	e.printStackTrace();
+        }
+                
+        throw new CPAException("Creation of CPA failed!");
     }
 
     public static void doRunAnalysis(IASTTranslationUnit ast)
@@ -224,6 +251,10 @@ public class CPAMain {
             else {
             	// depth first traversal
             	reached = algo.dfsCPA(cpa, initialElement);
+            }
+            
+            for (AbstractElement reachedElement : reached) {
+            	System.out.println(reachedElement);
             }
             
             cpaStats.stopAnalysisTimer();
