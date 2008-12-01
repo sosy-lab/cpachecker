@@ -393,7 +393,7 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 		// String callerFunctionName = successorNode.getFunctionName();
 		List<String> modifiedVariables = new ArrayList<String>();
 
-		CallToReturnEdge summaryEdge = (CallToReturnEdge)successorNode.getEnteringSummaryEdge();
+		CallToReturnEdge summaryEdge = successorNode.getEnteringSummaryEdge();
 
 		IASTExpression methodCallExpression = summaryEdge.getExpression();
 
@@ -424,7 +424,7 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 			throw new PredicateAbstractionTransferException("Unhandled case ");
 		}
 
-		PredicateAbstractionElement newElement = (PredicateAbstractionElement)summaryEdge.retrieveAbstractElement("cpa.predicateabstraction.PredicateAbstractionCPA");
+		PredicateAbstractionElement newElement = summaryEdge.retrieveAbstractElement("cpa.predicateabstraction.PredicateAbstractionCPA");
 		CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel, "New element is " + newElement );
 
 		String prevRegion = newElement.getRegionWithoutVariable(modifiedVariables);

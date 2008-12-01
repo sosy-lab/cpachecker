@@ -122,10 +122,10 @@ public class DOTBuilder implements DOTBuilderInterface
 				DOTWriter dw;
 				if((edge instanceof FunctionCallEdge && !((FunctionCallEdge)edge).isExternalCall()) ||
 						edge instanceof ReturnEdge){
-					dw = (DOTWriter)subGraphWriters.get("____Main____Diagram__");
+					dw = subGraphWriters.get("____Main____Diagram__");
 				}
 				else{
-					dw = (DOTWriter)subGraphWriters.get(node.getFunctionName());
+					dw = subGraphWriters.get(node.getFunctionName());
 				}
 				dw.add(line);
 			}
@@ -149,7 +149,7 @@ public class DOTBuilder implements DOTBuilderInterface
 				String edgeText = edge.getRawStatement ().replaceAll ("\\\"", "\\\\\\\"").replaceAll("\n", " ");
 				line = line + edgeText;
 				line = line + "\" style=dotted arrowhead=empty];";
-				DOTWriter dw = (DOTWriter)subGraphWriters.get(node.getFunctionName());
+				DOTWriter dw = subGraphWriters.get(node.getFunctionName());
 				dw.add(line);
 			}
 		}

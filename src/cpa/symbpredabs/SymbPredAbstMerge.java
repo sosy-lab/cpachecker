@@ -96,7 +96,7 @@ public class SymbPredAbstMerge implements MergeOperator {
             // TODO - Shortcut, we set the coveredBy of e1 to be the new created
             // element, so that the stop operator detects that e1 is covered
             // by ret (see SymbPredAbstStop)
-            e1.setCoveredBy((SymbPredAbstElement)ret);
+            e1.setCoveredBy(ret);
 
             LazyLogger.log(CustomLogLevel.SpecificCPALevel, "result is: ", ret);
 

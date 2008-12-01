@@ -643,7 +643,7 @@ public class BDDMathsatSummaryAbstractManager extends
                 LazyLogger.log(LazyLogger.DEBUG_1,
                         "Got interpolant(", i, "): ", itp, ", location: ", s1);
                 LazyLogger.log(LazyLogger.DEBUG_1, "Preds for ",
-                        (CFANode)s1.getLocation(), ": ", preds);
+                        s1.getLocation(), ": ", preds);
 
                 // If we are entering or exiting a function, update the stack
                 // of entry points

@@ -184,7 +184,7 @@ public class CPAAlgorithm
 					}
 				}
 
-				e = (AbstractElement)currentElement;
+				e = currentElement;
 
 				waitlist.remove(e);
 			}

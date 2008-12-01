@@ -661,7 +661,7 @@ public class BDDMathsatExplicitAbstractManager extends
 
         if (!skipFeasibilityCheck) {
             ++stats.abstractionNumMathsatQueries;
-            if (thmProver.isUnsat((MathsatSymbolicFormula)f)) {
+            if (thmProver.isUnsat(f)) {
                 thmProver.reset();
                 if (useCache) {
                     FeasibilityCacheKey key = new FeasibilityCacheKey(fkey);
@@ -684,7 +684,7 @@ public class BDDMathsatExplicitAbstractManager extends
             ++stats.abstractionNumCachedQueries;
         }
 
-        thmProver.push((MathsatSymbolicFormula)f);
+        thmProver.push(f);
 
         long totBddTime = 0;
 
@@ -1280,8 +1280,7 @@ public class BDDMathsatExplicitAbstractManager extends
         boolean theoryCombinationNeeded = false;
 
         for (int i = 1; i < path.length; ++i) {
-            AbstractElementWithLocation e =
-                (AbstractElementWithLocation)path[i];
+            AbstractElementWithLocation e = path[i];
             CFAEdge found = null;
             for (int j = 0; j < e.getLocationNode().getNumEnteringEdges(); ++j){
                 CFAEdge edge = e.getLocationNode().getEnteringEdge(j);

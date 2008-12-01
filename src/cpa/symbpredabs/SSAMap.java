@@ -28,7 +28,7 @@ public class SSAMap {
             if (o instanceof VarKey) {
                 return name.equals(((VarKey)o).name);
             } else if (o instanceof String) {
-                return name.equals((String)o);
+                return name.equals(o);
             }
             return false;
         }

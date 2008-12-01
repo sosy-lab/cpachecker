@@ -132,7 +132,7 @@ implements AbstractElement {
 			return false;
 		}
 		else{
-	    	SymbPredAbsAbstractElement thisElement = (SymbPredAbsAbstractElement)this;
+	    	SymbPredAbsAbstractElement thisElement = this;
 	    	SymbPredAbsAbstractElement otherElement = (SymbPredAbsAbstractElement)o;
 
 	    	// TODO

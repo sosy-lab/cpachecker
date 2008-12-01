@@ -339,7 +339,7 @@ public class ExplicitTransferRelation implements TransferRelation {
             if (firstInterpolant == null && newpreds.size() > 0) {
                 firstInterpolant = e;
             }
-            if (curpmap.update((CFANode)e.getLocation(), newpreds)) {
+            if (curpmap.update(e.getLocation(), newpreds)) {
                 LazyLogger.log(LazyLogger.DEBUG_1, "REFINING LOCATION: ",
                         e.getLocation());
                 if (root == null) {
@@ -477,7 +477,7 @@ public class ExplicitTransferRelation implements TransferRelation {
         // inner nodes of the summary of element to any inner node of the
         // destination
         ExplicitAbstractElement e = (ExplicitAbstractElement)element;
-        CFANode src = (CFANode)e.getLocation();
+        CFANode src = e.getLocation();
 
         for (int i = 0; i < src.getNumLeavingEdges(); ++i) {
             CFAEdge edge = src.getLeavingEdge(i);
@@ -509,7 +509,7 @@ public class ExplicitTransferRelation implements TransferRelation {
 
         List<AbstractElement> allSucc = new Vector<AbstractElement>();
         ExplicitAbstractElement e = (ExplicitAbstractElement)element;
-        CFANode src = (CFANode)e.getLocation();
+        CFANode src = e.getLocation();
 
         for (int i = 0; i < src.getNumLeavingEdges(); ++i) {
             AbstractElement newe =
