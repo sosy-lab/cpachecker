@@ -26,7 +26,7 @@ public class Triple<A, B, C> {
 
     @Override
     public String toString() {
-        return "(" + first + ", " + second + ", " + third ")";
+        return "(" + first + ", " + second + ", " + third + ")";
     }
 
     private static boolean equals(Object x, Object y) {
