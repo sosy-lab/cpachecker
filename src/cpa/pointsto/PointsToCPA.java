@@ -1,21 +1,20 @@
 /**
- * 
+ *
  */
 package cpa.pointsto;
 
 import java.util.List;
 
+import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
+
+import cfa.objectmodel.CFAFunctionDefinitionNode;
+import cfa.objectmodel.c.FunctionDefinitionNode;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
-
-import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
-
-import cfa.objectmodel.CFAFunctionDefinitionNode;
-import cfa.objectmodel.c.FunctionDefinitionNode;
 import exceptions.CPAException;
 
 /**
@@ -24,10 +23,10 @@ import exceptions.CPAException;
  */
 public class PointsToCPA implements ConfigurableProgramAnalysis {
 
-	private AbstractDomain abstractDomain;
-	private MergeOperator mergeOperator;
-	private StopOperator stopOperator;
-	private TransferRelation transferRelation;
+	private final AbstractDomain abstractDomain;
+	private final MergeOperator mergeOperator;
+	private final StopOperator stopOperator;
+	private final TransferRelation transferRelation;
 
 	public PointsToCPA (String mergeType, String stopType) throws CPAException {
 		abstractDomain = new PointsToDomain();
@@ -54,9 +53,9 @@ public class PointsToCPA implements ConfigurableProgramAnalysis {
 			for (IASTParameterDeclaration parameter : parameters) {
 				if (0 != parameter.getDeclarator().getPointerOperators().length) {
 					if (parameter.getDeclarator().getNestedDeclarator() != null) {
-						initial.addVariable(parameter.getDeclarator().getNestedDeclarator(), 0);
+						initial.addVariable(parameter.getDeclarator().getNestedDeclarator());
 					} else {
-						initial.addVariable(parameter.getDeclarator(), 0);
+						initial.addVariable(parameter.getDeclarator());
 					}
 				}
 			}
