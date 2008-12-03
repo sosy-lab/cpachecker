@@ -343,15 +343,15 @@ public class MathsatSymbPredAbsFormulaManager implements SymbolicFormulaManager 
         MathsatSymbolicFormula m1 = (MathsatSymbolicFormula)f1;
 
         setNamespace(edge.getPredecessor().getFunctionName());
-
-        if (isStartOfFunction(edge)) {
-        	PathFormula p = makeAndEnterFunction(
-                    m1, edge.getPredecessor(), ssa, updateSSA,
-                    absoluteSSAIndices);
-            m1 = (MathsatSymbolicFormula)p.getSymbolicFormula();
-            f1 = m1;
-            ssa = p.getSsa();
-        }
+        // TODO check
+//        if (isStartOfFunction(edge)) {
+//        	PathFormula p = makeAndEnterFunction(
+//                    m1, edge.getPredecessor(), ssa, updateSSA,
+//                    absoluteSSAIndices);
+//            m1 = (MathsatSymbolicFormula)p.getSymbolicFormula();
+//            f1 = m1;
+//            ssa = p.getSsa();
+//        }
 
         switch (edge.getEdgeType ()) {
         case StatementEdge: {
@@ -498,7 +498,7 @@ public class MathsatSymbPredAbsFormulaManager implements SymbolicFormulaManager 
         return new PathFormula(f1, ssa);
     }
 
-    private PathFormula makeAndEnterFunction(
+    public PathFormula makeAndEnterFunction(
             MathsatSymbolicFormula m1, CFANode pred, SSAMap ssa,
             boolean updateSSA, boolean absoluteSSAIndices)
           throws UnrecognizedCFAEdgeException {
@@ -560,7 +560,7 @@ public class MathsatSymbPredAbsFormulaManager implements SymbolicFormulaManager 
         return edge.getPredecessor() instanceof FunctionDefinitionNode;
     }
 
-    private PathFormula makeAndExitFunction(
+    public PathFormula makeAndExitFunction(
             MathsatSymbolicFormula m1, CallToReturnEdge ce, SSAMap ssa,
             boolean updateSSA, boolean absoluteSSAIndices)
           throws UnrecognizedCFAEdgeException {
