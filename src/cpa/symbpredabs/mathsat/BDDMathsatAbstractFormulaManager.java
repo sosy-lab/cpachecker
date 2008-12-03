@@ -9,14 +9,15 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 
-import cmdline.CPAMain;
-
 import logging.CustomLogLevel;
 import logging.LazyLogger;
 import mathsat.AllSatModelCallback;
+import cmdline.CPAMain;
+
+import common.Pair;
+
 import cpa.symbpredabs.AbstractFormula;
 import cpa.symbpredabs.AbstractFormulaManager;
-import common.Pair;
 import cpa.symbpredabs.Predicate;
 import cpa.symbpredabs.SSAMap;
 import cpa.symbpredabs.SymbolicFormula;
@@ -213,7 +214,25 @@ public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
     // [mathsat term for \bigwedge_preds (var <-> def),
     //  list of important terms (the names of the preds),
     //   list of variables occurring in the definitions of the preds]
-    protected Object[] buildPredList(
+    protected class PredInfo {
+        public long predDef; // mathsat term for \bigwedge_preds (var <-> def)
+        public long[] important; // list of important terms 
+                                 // (the names of the preds)
+        public Set<String> allVars; // list of variable names occurring 
+                                    // in the definitions of the preds
+        public Set<Pair<String, 
+                        SymbolicFormula[]>> allFuncs; // list of functions
+                                                      // occurring in the 
+                                                      // preds defs
+        public PredInfo(long pd, long[] imp, Set<String> av, 
+                        Set<Pair<String, SymbolicFormula[]>> af) {
+            predDef = pd;
+            important = imp;
+            allVars = av;
+            allFuncs = af;
+        }
+    }
+    protected PredInfo buildPredList(
             MathsatSymbolicFormulaManager mmgr,
             Collection<Predicate> predicates) {
         long msatEnv = mmgr.getMsatEnv();
@@ -237,7 +256,7 @@ public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
             // and add it to the list of definitions
             preddef = mathsat.api.msat_make_and(msatEnv, preddef, iff);
         }
-        return new Object[]{preddef, important, allvars, allfuncs};
+        return new PredInfo(preddef, important, allvars, allfuncs);
     }
 
     public Pair<MathsatSymbolicFormula, MathsatSymbolicFormula>
@@ -259,7 +278,6 @@ public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
      * BDDMathsatSummaryFormulaManager for alternatives that are currently
      * used.
      */
-    @SuppressWarnings("unchecked")
     public AbstractFormula toAbstract(SymbolicFormulaManager mgr,
             SymbolicFormula f, SSAMap ssa, Collection<Predicate> predicates) {
         MathsatSymbolicFormulaManager mmgr = (MathsatSymbolicFormulaManager)mgr;
@@ -276,10 +294,10 @@ public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
         assert(!mathsat.api.MSAT_ERROR_TERM(term));
 
         // build the definition of the predicates, and instantiate them
-        Object[] predinfo = buildPredList(mmgr, predicates);
-        long preddef = (Long)predinfo[0];
-        long[] important = (long[])predinfo[1];
-        Collection<String> predvars = (Collection<String>)predinfo[2];
+        PredInfo predinfo = buildPredList(mmgr, predicates);
+        long preddef = predinfo.predDef;
+        long[] important = predinfo.important;
+        Collection<String> predvars = predinfo.allVars;
         for (int i = 0; i < important.length; ++i) {
             important[i] = mathsat.api.msat_make_copy_from(
                     absEnv, important[i], msatEnv);
