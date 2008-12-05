@@ -7,11 +7,11 @@ package cpa.scoperestrictionautomaton.label;
  * @author holzera
  *
  */
-public class InverseLabel<E> implements Label<E> {
+public class NegationLabel<E> implements Label<E> {
 	
 	private Label<E> mLabel;
 	
-	public InverseLabel(Label<E> pLabel) {
+	public NegationLabel(Label<E> pLabel) {
 		assert(pLabel != null);
 	  
 		mLabel = pLabel;
