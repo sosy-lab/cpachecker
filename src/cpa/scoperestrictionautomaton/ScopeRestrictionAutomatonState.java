@@ -20,9 +20,7 @@ public class ScopeRestrictionAutomatonState implements AbstractElement {
   private ScopeRestrictionAutomatonCPA mCPA;
   
   public ScopeRestrictionAutomatonState(ScopeRestrictionAutomatonCPA pCPA) {
-    if (pCPA == null) {
-      throw new IllegalArgumentException("Given scope-restriction cpa is null!");
-    }
+    assert(pCPA != null);
     
     mOutgoingTransitions = new HashMap<Label<CFAEdge>, ScopeRestrictionAutomatonState>();
     mCPA = pCPA;
@@ -34,21 +32,14 @@ public class ScopeRestrictionAutomatonState implements AbstractElement {
   
   public void addTransition(ScopeRestrictionAutomatonState pQ2,
                             Label<CFAEdge> pLabel) {
-    if (pQ2 == null) {
-      throw new IllegalArgumentException("Given automaton state is null!");
-    }
-    
-    if (pLabel == null) {
-      throw new IllegalArgumentException("Given label is null!");
-    }
+    assert(pQ2 != null);
+    assert(pLabel != null);
     
     mOutgoingTransitions.put(pLabel, pQ2);
   }
   
   public AbstractElement getSuccessor(CFAEdge pEdge) {
-    if (pEdge == null) {
-      throw new IllegalArgumentException("Given CFAEdge is null!");
-    }
+    assert(pEdge != null);
     
     for (Map.Entry<Label<CFAEdge>, ScopeRestrictionAutomatonState> lEntry : mOutgoingTransitions.entrySet()) {
       if (lEntry.getKey().matches(pEdge)) {

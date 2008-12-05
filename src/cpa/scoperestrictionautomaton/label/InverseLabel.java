@@ -12,10 +12,8 @@ public class InverseLabel<E> implements Label<E> {
 	private Label<E> mLabel;
 	
 	public InverseLabel(Label<E> pLabel) {
-		if (pLabel == null) {
-			throw new IllegalArgumentException("Given label is null!");
-		}
-		
+		assert(pLabel != null);
+	  
 		mLabel = pLabel;
 	}
 

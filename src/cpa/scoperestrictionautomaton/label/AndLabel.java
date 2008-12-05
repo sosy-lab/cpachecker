@@ -13,13 +13,8 @@ public class AndLabel<E> implements Label<E> {
   private Label<E> mLabel2;
   
   public AndLabel(Label<E> pLabel1, Label<E> pLabel2) {
-    if (pLabel1 == null) {
-      throw new IllegalArgumentException("First label is null!");
-    }
-    
-    if (pLabel2 == null) {
-      throw new IllegalArgumentException("Second label is null!");
-    }
+    assert(pLabel1 != null);
+    assert(pLabel2 != null);
     
     mLabel1 = pLabel1;
     mLabel2 = pLabel2;
@@ -30,9 +25,7 @@ public class AndLabel<E> implements Label<E> {
    */
   @Override
   public boolean matches(E pE) {
-    if (pE == null) {
-      throw new IllegalArgumentException("pE is null!");
-    }
+    assert(pE != null);
     
     return (mLabel1.matches(pE) && mLabel2.matches(pE));
   }

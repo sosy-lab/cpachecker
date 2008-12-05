@@ -20,9 +20,7 @@ public class LineNumberLabel implements Label<CFAEdge> {
 	private int mLineNumber;
 	
 	public LineNumberLabel(String pFileName, int pLineNumber) {
-	  if (pFileName == null) {
-	    throw new IllegalArgumentException();
-	  }
+	  assert(pFileName != null);
 	  
 	  //mFileName = pFileName;
 		mLineNumber = pLineNumber;

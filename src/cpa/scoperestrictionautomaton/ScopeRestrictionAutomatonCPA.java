@@ -64,9 +64,7 @@ public class ScopeRestrictionAutomatonCPA implements
   }
   
   public void setFinal(ScopeRestrictionAutomatonState pState) {
-    if (pState == null) {
-      throw new IllegalArgumentException("Given state is null!");
-    }
+    assert(pState != null);
     
     mFinalStates.add(pState);
   }
@@ -118,13 +116,8 @@ public class ScopeRestrictionAutomatonCPA implements
   @Override
   public boolean stop(AbstractElement pElement,
                       Collection<AbstractElement> pReached) throws CPAException {
-    if (pElement == null) {
-      throw new IllegalArgumentException("Given element is null!");
-    }
-    
-    if (pReached == null) {
-      throw new IllegalArgumentException("Given set of reached elements is null!");
-    }
+    assert(pElement != null);
+    assert(pReached != null);
     
     for (AbstractElement lElement : pReached) {
       if (stop(pElement, lElement)) {
@@ -138,11 +131,9 @@ public class ScopeRestrictionAutomatonCPA implements
   @Override
   public boolean stop(AbstractElement pElement, AbstractElement pReachedElement)
                                                                                 throws CPAException {
-    if (pElement == null || pReachedElement == null) {
-      throw new IllegalArgumentException("Given element is null!");
-    }
+    assert(pElement != null);
+    assert(pReachedElement != null);
     
-    //return pElement.equals(pReachedElement);
     return getAbstractDomain().getPartialOrder().satisfiesPartialOrder(pElement, pReachedElement);
   }
 
@@ -156,13 +147,8 @@ public class ScopeRestrictionAutomatonCPA implements
   public AbstractElement getAbstractSuccessor(AbstractElement pElement,
                                               CFAEdge pCfaEdge)
                                                                throws CPATransferException {
-    if (pElement == null) {
-      throw new IllegalArgumentException("pElement is null!");
-    }
-    
-    if (!(pElement instanceof ScopeRestrictionAutomatonState)) {
-      throw new IllegalArgumentException("pElement ist not a scope restriction automaton state!");
-    }
+    assert(pElement != null);
+    assert(pElement instanceof ScopeRestrictionAutomatonState);
     
     ScopeRestrictionAutomatonState lState = (ScopeRestrictionAutomatonState)pElement;
     
