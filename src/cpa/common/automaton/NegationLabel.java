@@ -1,7 +1,7 @@
 /**
  * 
  */
-package cpa.scoperestrictionautomaton.label;
+package cpa.common.automaton;
 
 /**
  * @author holzera

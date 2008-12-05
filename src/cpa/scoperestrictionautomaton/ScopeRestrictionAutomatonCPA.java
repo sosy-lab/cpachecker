@@ -22,7 +22,7 @@ import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TopElement;
 import cpa.common.interfaces.TransferRelation;
 
-import cpa.scoperestrictionautomaton.label.Label;
+import cpa.common.automaton.Label;
 import exceptions.CPAException;
 
 /**

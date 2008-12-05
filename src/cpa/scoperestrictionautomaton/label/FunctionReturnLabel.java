@@ -3,6 +3,7 @@
  */
 package cpa.scoperestrictionautomaton.label;
 
+import cpa.common.automaton.Label;
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAEdgeType;
 

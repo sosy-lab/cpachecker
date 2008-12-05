@@ -5,6 +5,7 @@ package cpa.scoperestrictionautomaton.label;
 
 //import org.eclipse.cdt.core.dom.ast.IASTFileLocation;
 
+import cpa.common.automaton.Label;
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFANode;
 //import cfa.objectmodel.c.AssumeEdge;

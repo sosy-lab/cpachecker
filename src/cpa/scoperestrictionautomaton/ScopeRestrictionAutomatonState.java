@@ -8,7 +8,7 @@ import java.util.Map;
 
 import cfa.objectmodel.CFAEdge;
 import cpa.common.interfaces.AbstractElement;
-import cpa.scoperestrictionautomaton.label.Label;
+import cpa.common.automaton.Label;
 
 /**
  * @author holzera
