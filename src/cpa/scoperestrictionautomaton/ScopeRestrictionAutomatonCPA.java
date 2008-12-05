@@ -4,7 +4,9 @@
 package cpa.scoperestrictionautomaton;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cfa.objectmodel.CFAEdge;
@@ -42,8 +44,11 @@ public class ScopeRestrictionAutomatonCPA implements
   private final BottomElementScopeRestrictionAutomatonState mBottom = new BottomElementScopeRestrictionAutomatonState(this);
   private final TopElementScopeRestrictionAutomatonState mTop = new TopElementScopeRestrictionAutomatonState(this);
   
+  private Set<ScopeRestrictionAutomatonState> mFinalStates;
+  
   public ScopeRestrictionAutomatonCPA(String pMergeConfiguration, String pStopConfiguration) {
     mInitialState = new ScopeRestrictionAutomatonState(this);
+    mFinalStates = new HashSet<ScopeRestrictionAutomatonState>();
   }
   
   public ScopeRestrictionAutomatonState createState() {
@@ -56,6 +61,18 @@ public class ScopeRestrictionAutomatonCPA implements
   
   public void addTransition(ScopeRestrictionAutomatonState pQ1, ScopeRestrictionAutomatonState pQ2, Label<CFAEdge> pLabel) {
     pQ1.addTransition(pQ2, pLabel);
+  }
+  
+  public void setFinal(ScopeRestrictionAutomatonState pState) {
+    if (pState == null) {
+      throw new IllegalArgumentException("Given state is null!");
+    }
+    
+    mFinalStates.add(pState);
+  }
+  
+  public boolean isFinal(ScopeRestrictionAutomatonState pState) {
+    return mFinalStates.contains(pState);
   }
   
   /* (non-Javadoc)

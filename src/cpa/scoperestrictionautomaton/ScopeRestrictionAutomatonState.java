@@ -28,6 +28,10 @@ public class ScopeRestrictionAutomatonState implements AbstractElement {
     mCPA = pCPA;
   }
   
+  public boolean isFinal() {
+    return mCPA.isFinal(this);
+  }
+  
   public void addTransition(ScopeRestrictionAutomatonState pQ2,
                             Label<CFAEdge> pLabel) {
     if (pQ2 == null) {
