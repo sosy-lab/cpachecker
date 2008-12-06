@@ -12,5 +12,5 @@ import exceptions.CPAException;
  *
  */
 public interface StopOperatorPlus {
-  public boolean stop (AbstractElement element, Collection<AbstractElement> reached, Precision precision) throws CPAException;
+  public <AE extends AbstractElement> boolean stop (AE element, Collection<AE> reached, Precision precision) throws CPAException;
 }

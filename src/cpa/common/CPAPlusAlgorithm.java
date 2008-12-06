@@ -15,7 +15,6 @@ import cmdline.CPAMain;
 
 import common.Pair;
 
-import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.CPAPlus;
 import cpa.common.interfaces.MergeOperatorPlus;
@@ -31,17 +30,18 @@ import exceptions.CPAException;
  */
 public class CPAPlusAlgorithm {
 
-  public Collection<AbstractElement> CPAPlus (CPAPlus cpaPlus, AbstractElement initialState, Precision initialPrecision) throws CPAException
+  public Collection<AbstractElementWithLocation> CPAPlus (CPAPlus cpaPlus, AbstractElementWithLocation initialState,
+      Precision initialPrecision) throws CPAException
   {
-    List<Pair<AbstractElement,Precision>> waitlist = new ArrayList<Pair<AbstractElement,Precision>>();
-    HashSet<Pair<AbstractElement,Precision>> reached = new HashSet<Pair<AbstractElement,Precision>>();
-    Collection<AbstractElement> simpleReached = new HashSet<AbstractElement>();
+    List<Pair<AbstractElementWithLocation,Precision>> waitlist = new ArrayList<Pair<AbstractElementWithLocation,Precision>>();
+    HashSet<Pair<AbstractElementWithLocation,Precision>> reached = new HashSet<Pair<AbstractElementWithLocation,Precision>>();
+    Collection<AbstractElementWithLocation> simpleReached = new HashSet<AbstractElementWithLocation>();
 
     LazyLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel, initialState,
     " added as initial state to CPAPlus");
 
-    waitlist.add(new Pair<AbstractElement,Precision>(initialState, initialPrecision));
-    reached.add(new Pair<AbstractElement,Precision>(initialState, initialPrecision));
+    waitlist.add(new Pair<AbstractElementWithLocation,Precision>(initialState, initialPrecision));
+    reached.add(new Pair<AbstractElementWithLocation,Precision>(initialState, initialPrecision));
     simpleReached.add(initialState);
 
     TransferRelationPlus transferRelation = cpaPlus.getTransferRelation ();
@@ -51,37 +51,34 @@ public class CPAPlusAlgorithm {
 
     while (!waitlist.isEmpty ())
     {
-      Pair<AbstractElement,Precision> e = choose(waitlist);
+      Pair<AbstractElementWithLocation,Precision> e = choose(waitlist);
       e = precisionAdjustment.prec(e.getFirst(), e.getSecond(), reached);
-      AbstractElement element = e.getFirst();
+      AbstractElementWithLocation element = e.getFirst();
       Precision precision = e.getSecond();
 
       LazyLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel, element,
           " with precision ", precision, " is popped from queue");
-      List<AbstractElement> successors = null;
+      List<AbstractElementWithLocation> successors = null;
       try {
-        if (!(e.getFirst() instanceof AbstractElementWithLocation)) {
-          throw new CPAException("No Location information available, impossible to continue");
-        }
         successors = transferRelation.getAllAbstractSuccessors (element, precision);
-      } catch (Exception e1) {
+      } catch (CPATransferException e1) {
         e1.printStackTrace();
         assert (false);
       }
 
-      for (AbstractElement successor : successors)
+      for (AbstractElementWithLocation successor : successors)
       {
         LazyLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel,
             "successor of ", element, " --> ", successor);
 
-        List<Pair<AbstractElement,Precision>> toRemove = new Vector<Pair<AbstractElement,Precision>>();
-        List<AbstractElement> toRemoveSimple = new Vector<AbstractElement>();
-        List<Pair<AbstractElement,Precision>> toAdd = new Vector<Pair<AbstractElement,Precision>>();
-        List<AbstractElement> toAddSimple = new Vector<AbstractElement>();
+        List<Pair<AbstractElementWithLocation,Precision>> toRemove = new Vector<Pair<AbstractElementWithLocation,Precision>>();
+        List<AbstractElementWithLocation> toRemoveSimple = new Vector<AbstractElementWithLocation>();
+        List<Pair<AbstractElementWithLocation,Precision>> toAdd = new Vector<Pair<AbstractElementWithLocation,Precision>>();
+        List<AbstractElementWithLocation> toAddSimple = new Vector<AbstractElementWithLocation>();
 
-        for (Pair<AbstractElement, Precision> reachedEntry : reached) {
-          AbstractElement reachedElement = reachedEntry.getFirst();
-          AbstractElement mergedElement = mergeOperator.merge(
+        for (Pair<AbstractElementWithLocation, Precision> reachedEntry : reached) {
+          AbstractElementWithLocation reachedElement = reachedEntry.getFirst();
+          AbstractElementWithLocation mergedElement = mergeOperator.merge(
               successor, reachedElement, precision);
           LazyLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel,
               " Merged ", successor, " and ", reachedElement, " --> ", mergedElement);
@@ -91,12 +88,12 @@ public class CPAPlusAlgorithm {
                 "reached element ", reachedElement,
                 " is removed from queue and ", mergedElement,
                 " with precision ", precision, " is added to queue");
-            waitlist.remove(new Pair<AbstractElement,Precision>(reachedElement, reachedEntry.getSecond()));
-            waitlist.add(new Pair<AbstractElement,Precision>(mergedElement, precision));
+            waitlist.remove(new Pair<AbstractElementWithLocation,Precision>(reachedElement, reachedEntry.getSecond()));
+            waitlist.add(new Pair<AbstractElementWithLocation,Precision>(mergedElement, precision));
 
-            toRemove.add(new Pair<AbstractElement,Precision>(reachedElement, reachedEntry.getSecond()));
+            toRemove.add(new Pair<AbstractElementWithLocation,Precision>(reachedElement, reachedEntry.getSecond()));
             toRemoveSimple.add(reachedElement);
-            toAdd.add(new Pair<AbstractElement,Precision>(mergedElement, precision));
+            toAdd.add(new Pair<AbstractElementWithLocation,Precision>(mergedElement, precision));
             toAddSimple.add(mergedElement);
           }
         }
@@ -110,8 +107,8 @@ public class CPAPlusAlgorithm {
           LazyLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel,
               "No need to stop ", successor, " is added to queue");
 
-          waitlist.add(new Pair<AbstractElement,Precision>(successor,precision));
-          reached.add(new Pair<AbstractElement,Precision>(successor,precision));
+          waitlist.add(new Pair<AbstractElementWithLocation,Precision>(successor,precision));
+          reached.add(new Pair<AbstractElementWithLocation,Precision>(successor,precision));
           simpleReached.add(successor);
         }
       }
@@ -120,19 +117,17 @@ public class CPAPlusAlgorithm {
     return simpleReached;
   }
 
-  private Pair<AbstractElement,Precision> choose(List<Pair<AbstractElement,Precision>> waitlist) {
+  private Pair<AbstractElementWithLocation,Precision> choose(List<Pair<AbstractElementWithLocation,Precision>> waitlist) {
 
     if(waitlist.size() == 1 || CPAMain.cpaConfig.getBooleanValue("analysis.bfs")){
       return waitlist.remove(0);
     } else if(CPAMain.cpaConfig.getBooleanValue("analysis.topSort")) {
-      Pair<AbstractElement,Precision> currentElement = waitlist.get(0);
-      CompositeElement compElem = (CompositeElement) currentElement.getFirst();
+      Pair<AbstractElementWithLocation,Precision> currentElement = waitlist.get(0);
       for(int i=1; i<waitlist.size(); i++){
-        Pair<AbstractElement,Precision> currentTempElement = waitlist.get(i);
-        CompositeElement compTempElem = (CompositeElement)currentTempElement.getFirst();
-        if(compTempElem.getLocationNode().getTopologicalSortId() > compElem.getLocationNode().getTopologicalSortId()){
+        Pair<AbstractElementWithLocation,Precision> currentTempElement = waitlist.get(i);
+        if(currentTempElement.getFirst().getLocationNode().getTopologicalSortId() >
+            currentElement.getFirst().getLocationNode().getTopologicalSortId()){
           currentElement = currentTempElement;
-          compElem = compTempElem;
         }
       }
 
