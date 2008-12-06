@@ -17,13 +17,13 @@ import cfa.objectmodel.CFANode;
 public class LineNumberLabel implements Label<CFAEdge> {
 
   // TODO: Use mFileName for matching in Nodes
-  //private String mFileName;
+  private String mFileName;
 	private int mLineNumber;
 	
 	public LineNumberLabel(String pFileName, int pLineNumber) {
 	  assert(pFileName != null);
 	  
-	  //mFileName = pFileName;
+	  mFileName = pFileName;
 		mLineNumber = pLineNumber;
 	}
 	
@@ -58,6 +58,11 @@ public class LineNumberLabel implements Label<CFAEdge> {
 		return (mLineNumber == predecessor.getLineNumber() || mLineNumber == successor.getLineNumber());
 		
 		//return (mLineNumber == successor.getLineNumber() && mLineNumber != predecessor.getLineNumber());
+	}
+	
+	@Override
+	public String toString() {
+	  return "PC = (" + mFileName + "@LINE " + mLineNumber + ")";
 	}
 
 }

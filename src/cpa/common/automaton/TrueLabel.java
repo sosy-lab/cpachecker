@@ -18,4 +18,8 @@ public class TrueLabel<E> implements Label<E> {
     return true;
   }
 
+  @Override
+  public String toString() {
+    return "true";
+  }
 }

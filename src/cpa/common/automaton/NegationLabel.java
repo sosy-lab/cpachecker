@@ -22,4 +22,8 @@ public class NegationLabel<E> implements Label<E> {
 		return !mLabel.matches(pE);
 	}
 
+	@Override
+	public String toString() {
+	  return "NOT(" + mLabel + ")";
+	}
 }

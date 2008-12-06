@@ -30,4 +30,8 @@ public class AndLabel<E> implements Label<E> {
     return (mLabel1.matches(pE) && mLabel2.matches(pE));
   }
 
+  @Override
+  public String toString() {
+    return "(" + mLabel1.toString() + " AND " + mLabel2.toString() + ")";
+  }
 }

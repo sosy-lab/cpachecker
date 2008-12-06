@@ -26,4 +26,9 @@ public class FunctionCallLabel implements Label<CFAEdge> {
 
     return false;
   }
+  
+  @Override
+  public String toString() {
+    return "@CALL(" + mFunctionName + ")";
+  }
 }

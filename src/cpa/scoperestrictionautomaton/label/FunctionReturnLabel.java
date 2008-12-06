@@ -26,4 +26,9 @@ public class FunctionReturnLabel implements Label<CFAEdge> {
 
     return false;
   }
+  
+  @Override
+  public String toString() {
+    return "@RETURN(" + mFunctionName + ")";
+  }
 }

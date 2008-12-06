@@ -157,6 +157,33 @@ public class Automaton<E> {
     public int hashCode() {
       return mIndex;
     }
+    
+    @Override
+    public String toString() {
+      String result = "node [shape=";
+      
+      if (isInitial()) {
+        result += "box";
+      }
+      else if (isFinal()) {
+        result += "doublecircle";
+      }
+      else {
+        result += "circle";
+      }
+      
+      result += ", label=\"q";
+      
+      result += getIndex();
+      
+      result += "\"]; q";
+      
+      result += getIndex();
+      
+      result += ";";
+      
+      return result;
+    }
   }
   
   private State mInitialState;
@@ -455,5 +482,27 @@ public class Automaton<E> {
   
   public Set<State> getFinalStates() {
     return mFinalStates;
+  }
+  
+  @Override
+  public String toString() {
+    String result = "digraph automaton {\n";
+    
+    for (State lState : mStates) {
+      result += lState.toString();
+      result += "\n";
+    }
+    
+    result += "\n";
+    
+    for (State lState : mStates) {
+      for (Map.Entry<Label<E>, State> lEntry : lState.mOutgoingTransitions.entrySet()) {
+        result += "q" + lState.getIndex() + " -> q" + lEntry.getValue().getIndex() + " [label=\"" + lEntry.getKey().toString() + "\"];\n"; 
+      }
+    }
+    
+    result += "}\n";
+    
+    return result;
   }
 }
