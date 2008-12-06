@@ -7,12 +7,18 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.Map.Entry;
 
 import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTName;
 import org.eclipse.cdt.core.dom.ast.IBinding;
 
+import common.Pair;
+
 import cpa.common.interfaces.AbstractElement;
+import cpa.pointsto.PointsToRelation.Address;
+import cpa.pointsto.PointsToRelation.InvalidPointer;
+import cpa.pointsto.PointsToRelation.NullPointer;
 
 /**
  * @author Michael Tautschnig <tautschnig@forsyte.de>
@@ -20,83 +26,187 @@ import cpa.common.interfaces.AbstractElement;
  */
 public class PointsToElement implements AbstractElement {
 
-  private final Set<PointsToRelation> references;
-  private final HashMap<IASTDeclarator,PointsToRelation> variables;
+  public static class InMemoryObject {
+    protected final IASTDeclarator variable;
+    protected final String name;
+
+    public InMemoryObject (IASTDeclarator variable, String name) {
+      this.variable = variable;
+      this.name = name;
+    }
+
+    @Override
+    public int hashCode () {
+      return variable.hashCode() + name.hashCode();
+    }
+
+    @Override
+    public boolean equals (Object o) {
+      if (!(o instanceof InMemoryObject)) {
+        return false;
+      }
+      InMemoryObject other = (InMemoryObject)o;
+
+      if (other.variable != variable || !other.name.equals(name)) {
+        return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public InMemoryObject clone () {
+      return new InMemoryObject(variable, name);
+    }
+
+    public IASTDeclarator getVariable () {
+      return variable;
+    }
+
+    public String getName () {
+      return name;
+    }
+  }
+
+  // TODO implement ArrayOfPointers extends InMemoryObject (Vector<PointsToRelation>)
+
+  private final HashMap<IASTDeclarator,Pair<PointsToRelation,Set<PointsToRelation>>> pointers;
+  private final HashMap<Address,InMemoryObject> memoryMap;
 
   public PointsToElement () {
-    references = new HashSet<PointsToRelation>();
-    variables = new HashMap<IASTDeclarator,PointsToRelation>();
+    pointers = new HashMap<IASTDeclarator,Pair<PointsToRelation,Set<PointsToRelation>>>();
+    memoryMap = new HashMap<Address,InMemoryObject>();
   }
 
   @Override
   public PointsToElement clone () {
+    // TODO I think deep cloning should be ok, all equals methods are overridden
     PointsToElement result = new PointsToElement();
-    for (PointsToRelation p : references) {
-      PointsToRelation r = p.clone();
-      result.variables.put(p.getVariable(), r);
-      result.references.add(r);
+    for (Pair<PointsToRelation,Set<PointsToRelation>> ptr : pointers.values()) {
+      Set<PointsToRelation> s = new HashSet<PointsToRelation>();
+      for (PointsToRelation r : ptr.getSecond()) {
+        s.add(r.clone());
+      }
+      result.pointers.put(ptr.getFirst().getVariable(),
+          new Pair<PointsToRelation,Set<PointsToRelation>>(ptr.getFirst().clone(), s));
     }
-    assert (result.references.size() == result.variables.size());
+    for (Address key : memoryMap.keySet()) {
+      result.memoryMap.put(key.clone(), memoryMap.get(key).clone());
+    }
     return result;
   }
 
   @Override
   public String toString () {
-    assert (references.size() == variables.size());
     String out = "{";
-    Iterator<PointsToRelation> iter = references.iterator();
+    Iterator<Pair<PointsToRelation,Set<PointsToRelation>>> iter = pointers.values().iterator();
     while (iter.hasNext()) {
-      out += "(" + iter.next() + ")";
+      Pair<PointsToRelation,Set<PointsToRelation>> entry = iter.next();
+      out += "(" + entry.getFirst().toString();
+      if (!entry.getSecond().isEmpty()) out += ", ";
+      Iterator<PointsToRelation> iter2 = entry.getSecond().iterator();
+      while (iter2.hasNext()) {
+        out += iter2.next().toString();
+        if (iter2.hasNext()) out += ", ";
+      }
       if (iter.hasNext()) out += ", ";
     }
     out += "}";
     return out;
   }
 
-  public Iterator<PointsToRelation> getIterator ()
-  {
-    return references.iterator ();
-  }
-
   public PointsToRelation addVariable (IASTDeclarator variable) {
-    PointsToRelation entry = variables.get(variable);
-    if (null == entry) {
+    if (null == pointers.get(variable)) {
       IBinding binding = variable.getName().resolveBinding();
       /*for (int i = derefCount; i > 0; --i) {
           out += "*";
         }*/
       // out += variable.getParent().getRawSignature() + " -> ";
-      entry = new PointsToRelation(variable, binding.getName());
-      variables.put(variable, entry);
-      references.add(entry);
+      PointsToRelation entry = new PointsToRelation(variable, binding.getName());
+      pointers.put(variable, new Pair<PointsToRelation,Set<PointsToRelation>>(entry,
+          new HashSet<PointsToRelation>()));
+      return entry;
+    } else {
+      return pointers.get(variable).getFirst();
     }
-    assert (references.size() == variables.size());
-    return entry;
+  }
+
+  public PointsToRelation addPointer (PointsToRelation pointer) {
+    addVariable(pointer.getVariable());
+    for (PointsToRelation entry : pointers.get(pointer.getVariable()).getSecond()) {
+      if (entry.equals(pointer)) return entry;
+    }
+    pointers.get(pointer.getVariable()).getSecond().add(pointer);
+    return pointer;
   }
 
   public PointsToRelation lookup (IASTName name) {
     IBinding binding = name.resolveBinding();
-    for (IASTDeclarator decl : variables.keySet()) {
+    for (IASTDeclarator decl : pointers.keySet()) {
       if (decl.getNestedDeclarator() != null &&
           decl.getNestedDeclarator().getName().resolveBinding() == binding)
-        return variables.get(decl);
+        return pointers.get(decl).getFirst();
       if (decl.getName().resolveBinding() == binding)
-        return variables.get(decl);
+        return pointers.get(decl).getFirst();
     }
 
     return null;
   }
 
-  public void join (final PointsToElement other) {
-    for (PointsToRelation p : other.references) {
-      addVariable(p.getVariable()).join(p);
-    }
-    assert (references.size() == variables.size());
+  public InMemoryObject deref (Address address) {
+    return memoryMap.get(address);
   }
 
-  public boolean containsRecursive (final PointsToRelation pointsTo) {
-    PointsToRelation candidate = variables.get(pointsTo.getVariable());
-    if (candidate != null && pointsTo.subsetOf(candidate)) return true;
+  public Set<Address> addressOf (InMemoryObject obj) {
+    Set<Address> result = new HashSet<Address>();
+    for (Entry<Address,InMemoryObject> ref : memoryMap.entrySet()) {
+      if (ref.getValue().equals(obj)) result.add(ref.getKey());
+    }
+    if (result.isEmpty()) result.add(new InvalidPointer());
+    return result;
+  }
+
+  public void writeToMem (Address address, InMemoryObject entry) {
+    assert (!(address instanceof NullPointer));
+    assert (!(address instanceof InvalidPointer));
+    memoryMap.put(address, entry);
+  }
+
+  public void join (final PointsToElement other) {
+    for (Pair<PointsToRelation,Set<PointsToRelation>> p : other.pointers.values()) {
+      addVariable(p.getFirst().getVariable()).join(p.getFirst());
+      for (PointsToRelation ptr : p.getSecond()) {
+        for (PointsToRelation ptr2 : pointers.get(p.getFirst().getVariable()).getSecond()) {
+          assert (ptr.getVariable().equals(ptr2.getVariable()));
+          if (ptr2.getName().equals(ptr.getName())) {
+            ptr2.join(ptr);
+          } else {
+            pointers.get(p.getFirst().getVariable()).getSecond().add(ptr);
+          }
+        }
+      }
+    }
+    memoryMap.putAll(other.memoryMap);
+  }
+
+  private boolean containsRecursive (final PointsToRelation pointer) {
+    PointsToRelation candidate = pointers.get(pointer.getVariable()).getFirst();
+    if (candidate != null) {
+      if (pointer.subsetOf(candidate)) return true;
+      for (PointsToRelation p : pointers.get(pointer.getVariable()).getSecond()) {
+        if (pointer.subsetOf(p)) return true;
+      }
+    }
     return false;
+  }
+
+  public boolean subsetOf(PointsToElement other) {
+    for (Pair<PointsToRelation,Set<PointsToRelation>> p : pointers.values()) {
+      if (!other.containsRecursive(p.getFirst())) return false;
+      for (PointsToRelation ptr : p.getSecond()) {
+        if (!other.containsRecursive(ptr)) return false;
+      }
+    }
+    return true;
   }
 }

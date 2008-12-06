@@ -5,6 +5,7 @@ package cpa.pointsto;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
 
 import org.eclipse.cdt.core.dom.ast.ASTVisitor;
 import org.eclipse.cdt.core.dom.ast.IASTArraySubscriptExpression;
@@ -24,9 +25,12 @@ import cfa.objectmodel.c.MultiDeclarationEdge;
 import cfa.objectmodel.c.MultiStatementEdge;
 import cfa.objectmodel.c.StatementEdge;
 import cpa.common.CPATransferException;
-import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.TransferRelation;
+import cpa.pointsto.PointsToElement.InMemoryObject;
+import cpa.pointsto.PointsToRelation.Address;
+import cpa.pointsto.PointsToRelation.AddressOfObject;
+import cpa.pointsto.PointsToRelation.InvalidPointer;
 import exceptions.CPAException;
 
 /**
@@ -34,12 +38,6 @@ import exceptions.CPAException;
  *
  */
 public class PointsToTransferRelation implements TransferRelation {
-
-  private final AbstractDomain abstractDomain;
-
-  public PointsToTransferRelation (AbstractDomain abstractDomain) {
-    this.abstractDomain = abstractDomain;
-  }
 
   private class DeclarationVisitor extends ASTVisitor {
 
@@ -63,6 +61,7 @@ public class PointsToTransferRelation implements TransferRelation {
         IASTInitializer initializer = declarator.getInitializer ();
         if (initializer != null) initializer.accept(this);
       }
+      // TODO we need to handle arrays here
       return PROCESS_ABORT;
     }
 
@@ -77,18 +76,20 @@ public class PointsToTransferRelation implements TransferRelation {
       if (expression.getRawSignature().equals("NULL") || expression.toString().equals("0")) {
         relation.makeNull();
       } else {
-        relation.setAddress(expression.getRawSignature());
+        // any other constant is invalid
+        relation.makeInvalid();
       }
       return super.visit(expression);
     }
   }
 
-
-
   private class StatementVisitor extends ASTVisitor {
 
     private final PointsToElement pointsToElement;
     private final HashMap<IASTNode,PointsToRelation> relations;
+
+    // TODO instead of this hack we must properly map IType to ints
+    private final static int MAGIC_SIZE = 4;
 
     public StatementVisitor (PointsToElement pointsToElement) {
       this.pointsToElement = pointsToElement;
@@ -107,7 +108,8 @@ public class PointsToTransferRelation implements TransferRelation {
       // X = Y
       case IASTBinaryExpression.op_assign:
       {
-        PointsToRelation entryLhs = relations.get(binaryExpression.getOperand1());
+        IASTExpression op1 = binaryExpression.getOperand1();
+        PointsToRelation entryLhs = relations.get(op1);
         assert (entryLhs != null);
         IASTExpression rhs = binaryExpression.getOperand2();
         PointsToRelation entryRhs = relations.get(rhs);
@@ -115,10 +117,24 @@ public class PointsToTransferRelation implements TransferRelation {
           if (rhs.getRawSignature().equals("NULL") || rhs.toString().equals("0")) {
             entryLhs.makeNull();
           } else {
-            entryLhs.setAddress(rhs.getRawSignature());
+            // TODO handle malloc here -- hmm, no, malloc should yield an appropriate object
+            // this is likely invalid
+            entryLhs.makeInvalid();
           }
         } else {
           entryLhs.makeAlias(entryRhs);
+        }
+        // if X is *x or x[y] then add an entry to the memory map
+        // TODO, hmm, how does that interfer with the temporaries that we write to mem for *x?
+        if (op1 instanceof IASTUnaryExpression && IASTUnaryExpression.op_star == ((IASTUnaryExpression)op1).getOperator()) {
+          IASTExpression op = ((IASTUnaryExpression)op1).getOperand();
+          PointsToRelation r = relations.get(op);
+          assert (r != null);
+          for (Address a : r.getValues()) {
+            pointsToElement.writeToMem(a, entryRhs);
+          }
+        } else if (op1 instanceof IASTArraySubscriptExpression) {
+          // TODO handle assignments to arrays
         }
         relations.put(binaryExpression, entryLhs);
         break;
@@ -132,9 +148,9 @@ public class PointsToTransferRelation implements TransferRelation {
         try {
           int shift = Integer.valueOf(binaryExpression.getOperand2().getRawSignature());
           if (binaryExpression.getOperator() == IASTBinaryExpression.op_minus) shift *= -1;
-          result.shift(shift);
+          result.shift(shift * MAGIC_SIZE);
         } catch (NumberFormatException e) {
-          result.makeTop();
+          result.makeInvalid();
         }
         relations.put(binaryExpression.getOperand1(), result);
         break;
@@ -151,9 +167,9 @@ public class PointsToTransferRelation implements TransferRelation {
         try {
           int shift = Integer.valueOf(binaryExpression.getOperand2().getRawSignature());
           if (binaryExpression.getOperator() == IASTBinaryExpression.op_minus) shift *= -1;
-          entryLhs.shift(shift);
+          entryLhs.shift(shift * MAGIC_SIZE);
         } catch (NumberFormatException e) {
-          entryLhs.makeTop();
+          entryLhs.makeInvalid();
         }
         relations.put(binaryExpression, entryLhs);
         break;
@@ -180,14 +196,14 @@ public class PointsToTransferRelation implements TransferRelation {
         assert (entry != null);
         // clone before modifying the state
         relations.put(unaryExpression, entry.clone());
-        entry.shift(-1);
+        entry.shift(-1 * MAGIC_SIZE);
         break;
       }
       // --X
       case IASTUnaryExpression.op_prefixDecr:
       {
         assert (entry != null);
-        entry.shift(-1);
+        entry.shift(-1 * MAGIC_SIZE);
         relations.put(unaryExpression, entry);
         break;
       }
@@ -197,14 +213,14 @@ public class PointsToTransferRelation implements TransferRelation {
         assert (entry != null);
         // clone before modifying the state
         relations.put(unaryExpression, entry.clone());
-        entry.shift(1);
+        entry.shift(1 * MAGIC_SIZE);
         break;
       }
       // ++X
       case IASTUnaryExpression.op_prefixIncr:
       {
         assert (entry != null);
-        entry.shift(1);
+        entry.shift(1 * MAGIC_SIZE);
         relations.put(unaryExpression, entry);
         break;
       }
@@ -212,17 +228,60 @@ public class PointsToTransferRelation implements TransferRelation {
       case IASTUnaryExpression.op_star:
       {
         assert (entry != null);
-        //relations.put(unaryExpression, entry.deref());
+        // for all addresses in entry do a lookup in memoryMap
+        PointsToRelation r = new PointsToRelation(entry.getVariable(), new String("*") + entry.getName());
+        for (Address a : entry.getValues()) {
+          // get the objects in memory
+          InMemoryObject deref = pointsToElement.deref(a);
+          // we can only make use of pointers here
+          if (null == deref || !(deref instanceof PointsToRelation)) {
+            r.makeInvalid();
+            break;
+          } else {
+            // ok, it's a pointers, properly update r
+            // TODO update functions in PointsToRelation should get improved, this is a cruel hack
+            if (r.isInvalid()) {
+              r.makeAlias((PointsToRelation)deref);
+            } else {
+              for (Address addr : ((PointsToRelation)deref).getValues()) {
+                r.addAddress(addr);
+              }
+            }
+          }
+        }
+        relations.put(unaryExpression, r);
+        // store the temporary in the memory map
+        for (Address a : entry.getValues()) {
+          pointsToElement.writeToMem(a, r);
+        }
         break;
       }
       // &X
       case IASTUnaryExpression.op_amper:
       {
-        // if X is not a pointer, just take expression as is and do nothing here
-        // otherwise:
         if (null != entry) {
           // X is actually *Y
-          //relations.put(unaryExpression, entry.getAddress());
+          // for all addresses in entry do a _reverse_ lookup in memoryMap
+          Set<Address> addresses = pointsToElement.addressOf(entry);
+          PointsToRelation r = new PointsToRelation(entry.getVariable(),
+              (entry.getName().substring(0,1).equals("*") ? entry.getName().substring(1) : new String("&") + entry.getName()));
+          for (Address a : addresses) {
+            if (a instanceof InvalidPointer) {
+              r.makeInvalid();
+              break;
+            } else {
+              if (r.isInvalid()) {
+                r.setAddress(a);
+              } else {
+                r.addAddress(a);
+              }
+            }
+          }
+          relations.put(unaryExpression, r);
+        } else {
+          PointsToRelation r = new PointsToRelation(null, new String("&") + unaryExpression.getOperand().getRawSignature());
+          r.setAddress(new AddressOfObject(unaryExpression.getOperand()));
+          relations.put(unaryExpression, r);
         }
       }
       default:
@@ -233,10 +292,41 @@ public class PointsToTransferRelation implements TransferRelation {
     }
 
     private void handle(IASTArraySubscriptExpression arrayExpression) {
-
       System.err.println("Got into IASTArraySubscriptExpression with " + arrayExpression.toString());
-
       System.err.println("Is composed of " + arrayExpression.getArrayExpression() + " " + arrayExpression.getSubscriptExpression());
+      PointsToRelation var = relations.get(arrayExpression.getArrayExpression());
+      assert (var != null);
+      PointsToRelation r = new PointsToRelation(var.getVariable(),
+          var.getName() + "[" + arrayExpression.getSubscriptExpression().getRawSignature() + "]");
+      try {
+        int shift = Integer.valueOf(arrayExpression.getSubscriptExpression().getRawSignature());
+        for (Address a : var.getValues()) {
+          InMemoryObject deref = pointsToElement.deref(a);
+          if (null == deref || !(deref instanceof PointsToRelation)) {
+            r.makeInvalid();
+          } else {
+            // ok, it's a pointers, properly update r
+            PointsToRelation ptr = (PointsToRelation)deref;
+            ptr.shift(shift * MAGIC_SIZE);
+            // TODO update functions in PointsToRelation should get improved, this is a cruel hack
+            if (r.isInvalid()) {
+              r.makeAlias(ptr);
+            } else {
+              for (Address addr : ptr.getValues()) {
+                r.addAddress(addr);
+              }
+            }
+          }
+        }
+      } catch (NumberFormatException e) {
+        r.makeInvalid();
+      }
+      relations.put(arrayExpression, r);
+      // store the temporary in the memory map
+      //for (Address a : var.getValues()) {
+        // TODO hmm, not really as easy, we need to handle the involved shift
+        // pointsToElement.writeToMem(a, r);
+      //}
     }
 
     /* (non-Javadoc)
@@ -257,7 +347,6 @@ public class PointsToTransferRelation implements TransferRelation {
       } else if (expression instanceof IASTArraySubscriptExpression) {
         handle((IASTArraySubscriptExpression)expression);
       } else if (expression instanceof IASTIdExpression) {
-      } else if (expression instanceof IASTIdExpression) {
         System.err.println("Got into IASTName");
         relations.put(expression, pointsToElement.lookup(((IASTIdExpression)expression).getName()));
         assert (relations.get(expression) != null);
@@ -269,6 +358,7 @@ public class PointsToTransferRelation implements TransferRelation {
     }
   }
 
+  /*
   private class XVisitor extends ASTVisitor {
 
     private final PointsToElement pointsToElement;
@@ -292,6 +382,7 @@ public class PointsToTransferRelation implements TransferRelation {
       shouldVisitProblems = true;
     }
   }
+  */
 
   /* (non-Javadoc)
    * @see cpaplugin.cpa.common.interfaces.TransferRelation#getAbstractSuccessor(cpaplugin.cpa.common.interfaces.AbstractElement, cpaplugin.cfa.objectmodel.CFAEdge)

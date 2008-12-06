@@ -32,7 +32,7 @@ public class PointsToCPA implements ConfigurableProgramAnalysis {
 		abstractDomain = new PointsToDomain();
 		mergeOperator = new PointsToMerge(abstractDomain);
 		stopOperator = new PointsToStop(abstractDomain);
-		transferRelation = new PointsToTransferRelation(abstractDomain);
+		transferRelation = new PointsToTransferRelation();
 	}
 
 	/* (non-Javadoc)

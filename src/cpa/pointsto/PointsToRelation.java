@@ -6,12 +6,10 @@ package cpa.pointsto;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
-import java.util.Vector;
 
 import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
 
-import common.Pair;
-import common.Triple;
+import cpa.pointsto.PointsToElement.InMemoryObject;
 
 /**
  * this is what a C pointer is; we may have multiple declarations of the same
@@ -21,95 +19,164 @@ import common.Triple;
  * @author Michael Tautschnig <tautschnig@forsyte.de>
  *
  */
-public class PointsToRelation {
+public class PointsToRelation extends InMemoryObject {
 
-  private class Pointer {
-    private final Pair<PointsToRelation,Integer> addressObject;
-    private final String addressString;
-    private Vector<PointsToRelation> children;
+  public interface Address {
+    public Address shift (int offset);
+    public Address clone ();
+  }
 
-    public Pointer (PointsToRelation o, int offset) {
-      this.addressObject = new Pair<PointsToRelation,Integer>(o, offset);
-      this.addressString = null;
-      this.children = null;
-    }
-
-    public Pointer (String address) {
-      this.addressObject = null;
-      this.addressString = new String(address);
-      this.children = null;
+  public static class NullPointer implements Address {
+    @Override
+    public int hashCode () {
+      return 0;
     }
 
     @Override
-    public Pointer clone() {
-      Pointer result = null;
-      if (addressObject != null) {
-        result = new Pointer(addressObject.getFirst(), addressObject.getSecond());
-
-      } else {
-        result = new Pointer(addressString);
-      }
-      if (children != null) {
-        result.children = new Vector<PointsToRelation>();
-        result.children.addAll(children);
-      }
-      return result;
+    public boolean equals (Object o) {
+      return (o instanceof NullPointer);
     }
 
-    public Triple<PointsToRelation,Integer,String> getAddress () {
-      if (addressObject != null) {
-        return new Triple<PointsToRelation,Integer,String>(addressObject.getFirst(),
-            addressObject.getSecond(),null);
-      } else {
-        return new Triple<PointsToRelation,Integer,String>(null, null, addressString);
-      }
+    @Override
+    public NullPointer clone () {
+      return this;
     }
 
-    public PointsToRelation bracketOp (int index) {
-      if (children != null && children.size() > index) {
-        return children.get(index);
-      }
-      return null;
+    @Override
+    public String toString () {
+      return "NULL";
     }
 
-    public PointsToRelation starOp () {
-      return bracketOp(0);
-    }
-
-    public Iterator<PointsToRelation> iterator() {
-      return (children != null ? children.iterator() : null);
-    }
-
-    public PointsToRelation shift (PointsToRelation ptr, int shift) {
-      // we have no idea about how to modify locations represented by strings,
-      // caller should then invalidate itself
-      if (addressObject != null) {
-        int offset = addressObject.getSecond() + shift;
-        if (offset < 0) return null;
-        Pointer parent = addressObject.getFirst().find(ptr, addressObject.getSecond());
-        if (null != parent) return parent.bracketOp(offset);
-      }
-      return null;
+    public Address shift (int offset) {
+      return new InvalidPointer();
     }
   }
 
-	private final IASTDeclarator variable;
-	private final String name;
+  public static class InvalidPointer implements Address {
+    @Override
+    public int hashCode () {
+      return -1;
+    }
 
-	private boolean isTop;
-	private final Set<Pointer> data;
+    @Override
+    public boolean equals (Object o) {
+      return (o instanceof InvalidPointer);
+    }
+
+    @Override
+    public InvalidPointer clone () {
+      return this;
+    }
+
+    @Override
+    public String toString () {
+      return "##INVALID##";
+    }
+
+    public Address shift (int offset) {
+      return this;
+    }
+  }
+
+  public static class Malloc implements Address /*extends NullPointer*/ {
+    private class BaseAddress {}
+
+    private int offset;
+    private int moreBytes;
+    private BaseAddress base;
+
+    public Malloc (int numBytes) {
+      offset = 0;
+      moreBytes = numBytes;
+      base = new BaseAddress();
+    }
+
+    private Malloc () {}
+
+    @Override
+    public int hashCode () {
+      return base.hashCode();
+    }
+
+    @Override
+    public boolean equals (Object o) {
+      if (!(o instanceof Malloc)) return false;
+      Malloc m = (Malloc)o;
+      if (m.base != base) return false;
+      assert (m.offset + m.moreBytes == offset + moreBytes);
+      return (m.offset == offset);
+    }
+
+    @Override
+    public Malloc clone () {
+      Malloc result = new Malloc();
+      result.offset = offset;
+      result.moreBytes = moreBytes;
+      result.base = base;
+      return result;
+    }
+
+    @Override
+    public String toString () {
+      return new String("##MALLOC+") + offset + "##";
+    }
+
+    public Address shift (int offset) {
+      if (this.offset + offset < 0 || offset > moreBytes) return new InvalidPointer();
+      this.offset += offset;
+      this.moreBytes -= offset;
+      return this;
+    }
+  }
+
+  public static class AddressOfObject implements Address {
+    private final Object obj;
+    public AddressOfObject (Object obj) {
+      this.obj = obj;
+    }
+
+    @Override
+    public int hashCode () {
+      return obj.hashCode() + 13;
+    }
+
+    @Override
+    public boolean equals (Object o) {
+      if (!(o instanceof AddressOfObject)) {
+        return false;
+      }
+
+      return ((AddressOfObject)o).obj.equals(this.obj);
+    }
+
+    @Override
+    public AddressOfObject clone () {
+      // safe as long as shift is a no-op
+      return this;
+    }
+
+    @Override
+    public String toString () {
+      return new String("&") + obj.toString();
+    }
+
+    public Address shift (int offset) {
+      // safe, at least
+      return new InvalidPointer ();
+    }
+  }
+
+	private final Set<Address> values;
 
 	public PointsToRelation (IASTDeclarator variable, String name) {
-		this.variable = variable;
-		this.name = name;
-
-		this.isTop = true;
-		this.data = new HashSet<Pointer>();
+		super(variable, name);
+		this.values = new HashSet<Address>();
+		this.values.add(new InvalidPointer());
 	}
 
 	@Override
 	public int hashCode () {
-		return variable.hashCode() + name.hashCode();
+		return super.hashCode() + values.size();
 	}
 
 	@Override
@@ -119,13 +186,9 @@ public class PointsToRelation {
 		}
 		PointsToRelation other = (PointsToRelation)o;
 
-		if (other.variable != variable || other.isTop != isTop) {
-			return false;
-		}
-
-		if (!other.data.equals(data)) {
-		  return false;
-		}
+    if (!super.equals(other) || !other.values.equals(values)) {
+      return false;
+    }
 
 		return true;
 	}
@@ -133,93 +196,71 @@ public class PointsToRelation {
 	@Override
 	public PointsToRelation clone() {
 		PointsToRelation result = new PointsToRelation(variable, name);
-		result.isTop = isTop;
-		for (Pointer p : data) {
-		  result.data.add(p.clone());
+		for (Address a : values) {
+		  result.values.add(a.clone());
 		}
-		assert (result.data.size() == data.size());
 		return result;
 	}
 
 	@Override
 	public String toString () {
 		String out = name + " = ";
-		if (isTop) {
+		if (isInvalid()) {
 			out += "##TOP##";
 		} else {
 		  out += "{";
-		  for (Pointer p : data) {
-		    Triple<PointsToRelation,Integer,String> a = p.getAddress();
-		    if (a.getFirst() != null) {
-		      out += a.getFirst().getName() + "[" + a.getSecond() + "]";
-		    } else {
-		      out += a.getThird();
-		    }
-
-		    Iterator<PointsToRelation> iter = p.iterator();
-		    if (iter != null) {
-		      out += ": ";
-		      while (iter.hasNext()) {
-		        out += iter.next().toString();
-		      }
-		    }
+		  Iterator<Address> iter = values.iterator();
+		  while (iter.hasNext()) {
+		    out += iter.next();
 		  }
 		  out += "}";
 		}
 		return out;
 	}
 
-	public IASTDeclarator getVariable () {
-		return variable;
-	}
-
-  public String getName() {
-    return name;
+  public Set<Address> getValues () {
+    return values;
   }
 
-	public void makeTop () {
-		this.isTop = true;
-		this.data.clear();
-	}
+  public boolean isInvalid () {
+    return (!values.isEmpty() && values.iterator().next() instanceof InvalidPointer);
+  }
 
-	public void setAddress (PointsToRelation obj, int offset) {
-		this.isTop = false;
-		this.data.clear();
-		this.data.add(new Pointer(obj, offset));
-	}
+  public void makeInvalid () {
+    setAddress(new InvalidPointer());
+  }
 
-	public void setAddress (String init) {
-	  this.isTop = false;
-    this.data.clear();
-    this.data.add(new Pointer(init));
-	}
+  public void makeNull () {
+    setAddress(new NullPointer());
+  }
 
-	public void makeNull () {
-		setAddress("null");
-	}
+  public void setAddress (Address address) {
+    this.values.clear();
+    this.values.add(address);
+  }
 
-	public void addAddress (PointsToRelation obj, int offset) {
-		if (!isTop) this.data.add(new Pointer(obj, offset));
-	}
-
-	public void addAddress (String init) {
-	  if (!isTop) this.data.add(new Pointer(init));
+	public void addAddress (Address address) {
+		if (!isInvalid()) {
+		  if (address instanceof InvalidPointer) {
+		    makeInvalid();
+		  } else {
+		    this.values.add(address);
+		  }
+		}
 	}
 
 	public void addNull () {
-		addAddress("null");
+		addAddress(new NullPointer());
 	}
 
 	public void makeAlias (PointsToRelation other) {
 	  if (this == other) return;
-		isTop = other.isTop;
 
-		data.clear();
-		data.addAll(other.data);
-
-		assert (other.data.size() == data.size());
+		values.clear();
+		values.addAll(other.values);
 	}
 
+	/*
 	public Pointer find (PointsToRelation r, int offset) {
 	  for (Pointer p : data) {
 	    if (p.bracketOp(offset) == r) return p;
@@ -227,38 +268,28 @@ public class PointsToRelation {
 
 	  return null;
 	}
+	*/
 
 	public void shift (int offset) {
-		if (isTop) return;
-		PointsToRelation newThis = new PointsToRelation(variable, name);
-
-		for (Pointer p : data) {
-		  PointsToRelation r = p.shift(this, offset);
-		  if (null == r || r.isTop) {
-		    this.isTop = true;
-		    break;
-		  }
-		  newThis.data.addAll(r.data);
-		}
-
-		data.clear();
-		if (isTop) return;
-		data.addAll(newThis.data);
+	  Set<Address> backup = new HashSet<Address>(values);
+	  values.clear();
+	  for (Address a : backup) {
+	    values.add(a.shift(offset));
+	  }
 	}
 
 	public boolean subsetOf (final PointsToRelation other) {
 		if (!other.variable.equals(variable)) return false;
-		return other.isTop || other.data.containsAll(data);
+		return other.isInvalid() || other.values.containsAll(values);
 	}
 
 	public void join (final PointsToRelation other) {
 		assert (other.variable.equals(variable));
 		assert (other.name.equals(name));
-		isTop |= other.isTop;
-		if (isTop) {
-			data.clear();
+		if (other.isInvalid()) {
+			makeInvalid();
 		} else {
-			data.addAll(other.data);
+			values.addAll(other.values);
 		}
 	}
 }
