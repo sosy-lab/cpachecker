@@ -10,7 +10,6 @@ import java.util.List;
 import java.util.logging.Level;
 
 import javax.script.ScriptEngine;
-import javax.script.ScriptEngineFactory;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 
@@ -240,7 +239,7 @@ public class CPAMain {
             
             // TODO: Stuff for creation of special reached sets missing (removed in CPAAlgorithm)
             
-            if (CPAMain.cpaConfig.getBooleanValue("analysis.topSort")) {
+            /*if (CPAMain.cpaConfig.getBooleanValue("analysis.topSort")) {
             	// topological traversal
             	reached = algo.topologicalCPA(cpa, initialElement);
             }
@@ -251,7 +250,9 @@ public class CPAMain {
             else {
             	// depth first traversal
             	reached = algo.dfsCPA(cpa, initialElement);
-            }
+            }*/
+            
+            reached = algo.CPA(cpa, initialElement);
             
             for (AbstractElement reachedElement : reached) {
             	System.out.println(reachedElement);
