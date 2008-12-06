@@ -19,12 +19,6 @@ import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.cdt.internal.core.dom.InternalASTServiceProvider;
 import org.eclipse.core.resources.IFile;
 
-import compositeCPA.CompositeCPA;
-
-import cmdline.stubs.StubCodeReaderFactory;
-import cmdline.stubs.StubConfiguration;
-import cmdline.stubs.StubFile;
-
 import cfa.CFABuilder;
 import cfa.CFAMap;
 import cfa.CFASimplifier;
@@ -37,20 +31,25 @@ import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cfa.objectmodel.CFANode;
 import cfa.objectmodel.c.GlobalDeclarationEdge;
+import cmdline.stubs.StubCodeReaderFactory;
+import cmdline.stubs.StubConfiguration;
+import cmdline.stubs.StubFile;
+
+import compositeCPA.CompositeCPA;
 
 import cpa.common.CPAAlgorithm;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
-import cpaplugin.CPAConfiguration;
-import cpaplugin.MainCPAStatistics;
-import cmdline.CPAMain;
 import cpa.symbpredabs.BlockCFABuilder;
 import cpa.symbpredabs.summary.ConeOfInfluenceCFAReduction;
 import cpa.symbpredabs.summary.SummaryCFABuilder;
 import cpa.symbpredabs.summary.SummaryDOTBuilder;
+import cpaplugin.CPAConfiguration;
+import cpaplugin.MainCPAStatistics;
 import exceptions.CPAException;
 
-@SuppressWarnings("restriction")
+// @SuppressWarnings("restriction")
 public class CPAMain {
 
     public static CPAConfiguration cpaConfig;
@@ -208,9 +207,9 @@ public class CPAMain {
             cpaStats.startAnalysisTimer();
 
             CPAAlgorithm algo = new CPAAlgorithm();
-            AbstractElement initialElement =
+            AbstractElementWithLocation initialElement =
                 cpa.getInitialElement(mainFunction);
-            Collection<AbstractElement> reached = algo.CPA(cpa, initialElement);
+            Collection<AbstractElementWithLocation> reached = algo.CPA(cpa, initialElement);
             cpaStats.stopAnalysisTimer();
 
             LazyLogger.log(Level.INFO, "CPA Algorithm finished ");

@@ -2,8 +2,7 @@ package cpa.common;
 
 import java.util.Collection;
 
-import cpa.common.interfaces.AbstractElement;
-import cpa.common.CPATransferException;
+import cpa.common.interfaces.AbstractElementWithLocation;
 
 public class RefinementNeededException extends CPATransferException {
 
@@ -12,22 +11,22 @@ public class RefinementNeededException extends CPATransferException {
      */
     private static final long serialVersionUID = -141927893977460824L;
 
-    private Collection<AbstractElement> toUnreach;
-    private Collection<AbstractElement> toWaitlist;
+    private final Collection<AbstractElementWithLocation> toUnreach;
+    private final Collection<AbstractElementWithLocation> toWaitlist;
 
     public RefinementNeededException(
-            Collection<AbstractElement> toUnreach,
-            Collection<AbstractElement> toWaitlist) {
+            Collection<AbstractElementWithLocation> toUnreach,
+            Collection<AbstractElementWithLocation> toWaitlist) {
         super();
         this.toUnreach = toUnreach;
         this.toWaitlist = toWaitlist;
     }
 
-    public Collection<AbstractElement> getReachableToUndo() {
+    public Collection<AbstractElementWithLocation> getReachableToUndo() {
         return toUnreach;
     }
 
-    public Collection<AbstractElement> getToWaitlist() {
+    public Collection<AbstractElementWithLocation> getToWaitlist() {
         return toWaitlist;
     }
 

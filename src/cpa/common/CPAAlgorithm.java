@@ -10,19 +10,12 @@ import java.util.Vector;
 
 import logging.CustomLogLevel;
 import logging.LazyLogger;
-
 import cmdline.CPAMain;
-
-import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
-import cpa.common.CPATransferException;
-import cpa.common.CompositeElement;
-import cpa.common.ErrorReachedException;
-import cpa.common.RefinementNeededException;
 import exceptions.CPAException;
 
 public class CPAAlgorithm
@@ -30,10 +23,10 @@ public class CPAAlgorithm
     private final int GC_PERIOD = 100;
     private int gcCounter = 0;
 
-	public Collection<AbstractElement> CPA (ConfigurableProgramAnalysis cpa, AbstractElement initialState) throws CPAException
+	public Collection<AbstractElementWithLocation> CPA (ConfigurableProgramAnalysis cpa, AbstractElementWithLocation initialState) throws CPAException
 	{
-		List<AbstractElement> waitlist = new ArrayList<AbstractElement> ();
-		Collection<AbstractElement> reached = createReachedSet(cpa);
+		List<AbstractElementWithLocation> waitlist = new ArrayList<AbstractElementWithLocation> ();
+		Collection<AbstractElementWithLocation> reached = createReachedSet(cpa);
 
 		LazyLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel, initialState,
 		" added as initial state to CPA");
@@ -47,7 +40,7 @@ public class CPAAlgorithm
 		while (!waitlist.isEmpty ())
 		{
 			// AG - BFS or DFS, according to the configuration
-			AbstractElement e = null;
+		  AbstractElementWithLocation e = null;
 //			if (CPAMain.cpaConfig.getBooleanValue("analysis.bfs")) {
 //			e = waitlist.removeFirst();
 //			} else {
@@ -58,7 +51,7 @@ public class CPAAlgorithm
 
 			LazyLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel, e,
 			" is popped from queue");
-			List<AbstractElement> successors = null;
+			List<AbstractElementWithLocation> successors = null;
 			try {
 				successors = transferRelation.getAllAbstractSuccessors (e);
 			} catch (ErrorReachedException err) {
@@ -74,7 +67,7 @@ public class CPAAlgorithm
 				assert(false); // should not happen
 			}
 
-			for (AbstractElement successor : successors)
+			for (AbstractElementWithLocation successor : successors)
 			{
 				LazyLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel,
 						"successor of ", e, " --> ", successor);
@@ -83,11 +76,11 @@ public class CPAAlgorithm
 				// as a synonym of a trivial operator that never merges
 
 				if (mergeOperator != null) {
-					List<AbstractElement> toRemove =
-						new Vector<AbstractElement>();
-					List<AbstractElement> toAdd = new Vector<AbstractElement>();
-					for (AbstractElement reachedElement : reached) {
-						AbstractElement mergedElement = mergeOperator.merge(
+					List<AbstractElementWithLocation> toRemove =
+						new Vector<AbstractElementWithLocation>();
+					List<AbstractElementWithLocation> toAdd = new Vector<AbstractElementWithLocation>();
+					for (AbstractElementWithLocation reachedElement : reached) {
+					  AbstractElementWithLocation mergedElement = mergeOperator.merge(
 								successor, reachedElement);
 						LazyLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel,
 								" Merged ", successor, " and ",
@@ -151,79 +144,50 @@ public class CPAAlgorithm
 		return reached;
 	}
 
-	private AbstractElement choose(List<AbstractElement> waitlist) {
+	private AbstractElementWithLocation choose(List<AbstractElementWithLocation> waitlist) {
 
-		AbstractElement e;
+    if(waitlist.size() == 1 || CPAMain.cpaConfig.getBooleanValue("analysis.bfs")){
+      return waitlist.remove(0);
+    } else if(CPAMain.cpaConfig.getBooleanValue("analysis.topSort")) {
+      AbstractElementWithLocation currentElement = waitlist.get(0);
+      for(int i=1; i<waitlist.size(); i++){
+        AbstractElementWithLocation currentTempElement = waitlist.get(i);
+        if(currentTempElement.getLocationNode().getTopologicalSortId() >
+            currentElement.getLocationNode().getTopologicalSortId()){
+          currentElement = currentTempElement;
+        }
+      }
 
-		if(waitlist.size() == 1){
-			e = waitlist.remove(0);
-		}
-		else{
-			if(CPAMain.cpaConfig.getBooleanValue("analysis.topSort")){
-				AbstractElement currentElement = waitlist.get(0);
-				CompositeElement compElem = (CompositeElement)currentElement;
-				AbstractElement firstElement = compElem.get(0);
-				// TODO we require the first element to contain the location information
-				if(!(firstElement instanceof AbstractElementWithLocation)){
-					try {
-						throw new CPAException("No Location information available, impossible to continue");
-					} catch (CPAException e1) {
-						e1.printStackTrace();
-					}
-				}
-
-				AbstractElementWithLocation tempElem = (AbstractElementWithLocation)firstElement;
-				for(int i=1; i<waitlist.size(); i++){
-					AbstractElement currentTempElement = waitlist.get(i);
-					CompositeElement compTempElem = (CompositeElement)currentTempElement;
-					AbstractElement firstTempElement = compTempElem.get(0);
-					AbstractElementWithLocation tempElem2 = (AbstractElementWithLocation)firstTempElement;
-					if(tempElem2.getLocationNode().getTopologicalSortId() > tempElem.getLocationNode().getTopologicalSortId()){
-						currentElement = currentTempElement;
-						tempElem = tempElem2;
-					}
-				}
-
-				e = currentElement;
-
-				waitlist.remove(e);
-			}
-
-			else{
-				if (CPAMain.cpaConfig.getBooleanValue("analysis.bfs")) {
-					e = waitlist.remove(0);
-				} else {
-					e = waitlist.remove(waitlist.size()-1);
-				}
-			}
-		}
-		return e;
+      waitlist.remove(currentElement);
+      return currentElement;
+    } else {
+      return waitlist.remove(waitlist.size()-1);
+    }
 	}
 
-	@SuppressWarnings("unchecked")
-	private Collection<AbstractElement> createReachedSet(
+	private Collection<AbstractElementWithLocation> createReachedSet(
 			ConfigurableProgramAnalysis cpa) {
 		// check whether the cpa provides a method for building a specialized
 		// reached set. If not, just use a HashSet
 		try {
 			Method meth = cpa.getClass().getDeclaredMethod("newReachedSet");
-			return (Collection<AbstractElement>)meth.invoke(cpa);
+			return (Collection<AbstractElementWithLocation>)meth.invoke(cpa);
 		} catch (Exception e) {
 			// ignore, this is not an error
 		}
-		return new HashSet<AbstractElement>();
+		return new HashSet<AbstractElementWithLocation>();
 	}
 
-	private void doRefinement(Collection<AbstractElement> reached,
-			List<AbstractElement> waitlist,
-			Collection<AbstractElement> reachableToUndo,
-			Collection<AbstractElement> toWaitlist) {
+	private void doRefinement(Collection<AbstractElementWithLocation> reached,
+			List<AbstractElementWithLocation> waitlist,
+			Collection<AbstractElementWithLocation> reachableToUndo,
+			Collection<AbstractElementWithLocation> toWaitlist) {
 		LazyLogger.log(CustomLogLevel.SpecificCPALevel,
 		"Performing refinement");
 		// remove from reached all the elements in reachableToUndo
-		Collection<AbstractElement> newreached =
-			new LinkedList<AbstractElement>();
-		for (AbstractElement e : reached) {
+		Collection<AbstractElementWithLocation> newreached =
+			new LinkedList<AbstractElementWithLocation>();
+		for (AbstractElementWithLocation e : reached) {
 			if (!reachableToUndo.contains(e)) {
 				newreached.add(e);
 			} else {
@@ -242,7 +206,7 @@ public class CPAAlgorithm
 				"Reached now is: ", newreached);
 		// and add to the wait list all the elements in toWaitlist
 		boolean useBfs = CPAMain.cpaConfig.getBooleanValue("analysis.bfs");
-		for (AbstractElement e : toWaitlist) {
+		for (AbstractElementWithLocation e : toWaitlist) {
 			LazyLogger.log(CustomLogLevel.SpecificCPALevel,
 					"Adding element: ", e, " to waitlist");
 			if (useBfs) {

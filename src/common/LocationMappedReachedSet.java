@@ -8,9 +8,7 @@ import java.util.Map;
 import java.util.Set;
 
 import cfa.objectmodel.CFANode;
-
 import cpa.common.CPAAlgorithm;
-import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 
 /**
@@ -24,15 +22,15 @@ import cpa.common.interfaces.AbstractElementWithLocation;
  *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
-public class LocationMappedReachedSet implements Collection<AbstractElement> {
-    private Map<CFANode, Set<AbstractElement>> repr;
+public class LocationMappedReachedSet implements Collection<AbstractElementWithLocation> {
+    private final Map<CFANode, Set<AbstractElementWithLocation>> repr;
     private int numElems;
 
-    private class Iter implements Iterator<AbstractElement> {
-        private Iterator<Map.Entry<CFANode, Set<AbstractElement>>> outer;
-        private Iterator<AbstractElement> inner;
+    private class Iter implements Iterator<AbstractElementWithLocation> {
+        private final Iterator<Map.Entry<CFANode, Set<AbstractElementWithLocation>>> outer;
+        private Iterator<AbstractElementWithLocation> inner;
 
-        Iter(Iterator<Map.Entry<CFANode, Set<AbstractElement>>> it) {
+        Iter(Iterator<Map.Entry<CFANode, Set<AbstractElementWithLocation>>> it) {
             outer = it;
             advanceInner();
         }
@@ -40,7 +38,7 @@ public class LocationMappedReachedSet implements Collection<AbstractElement> {
         private void advanceInner() {
             inner = null;
             while (inner == null && outer.hasNext()) {
-                Set<AbstractElement> s = outer.next().getValue();
+                Set<AbstractElementWithLocation> s = outer.next().getValue();
                 if (!s.isEmpty()) {
                     inner = s.iterator();
                 }
@@ -56,7 +54,7 @@ public class LocationMappedReachedSet implements Collection<AbstractElement> {
         }
 
         @Override
-        public AbstractElement next() {
+        public AbstractElementWithLocation next() {
             return inner.next();
         }
 
@@ -67,11 +65,11 @@ public class LocationMappedReachedSet implements Collection<AbstractElement> {
     }
 
     public LocationMappedReachedSet() {
-        repr = new HashMap<CFANode, Set<AbstractElement>>();
+        repr = new HashMap<CFANode, Set<AbstractElementWithLocation>>();
         numElems = 0;
     }
 
-    public Set<AbstractElement> get(CFANode loc) {
+    public Set<AbstractElementWithLocation> get(CFANode loc) {
         if (repr.containsKey(loc)) {
             return repr.get(loc);
         } else {
@@ -80,13 +78,13 @@ public class LocationMappedReachedSet implements Collection<AbstractElement> {
     }
 
     @Override
-    public boolean add(AbstractElement elem) {
-        AbstractElementWithLocation e = (AbstractElementWithLocation)elem;
-        CFANode loc = e.getLocationNode();
+    public boolean add(AbstractElementWithLocation elem) {
+        // AbstractElementWithLocation e = (AbstractElementWithLocation)elem;
+        CFANode loc = elem.getLocationNode();
         if (!repr.containsKey(loc)) {
-            repr.put(loc, new HashSet<AbstractElement>());
+            repr.put(loc, new HashSet<AbstractElementWithLocation>());
         }
-        Set<AbstractElement> s = repr.get(loc);
+        Set<AbstractElementWithLocation> s = repr.get(loc);
         boolean added = s.add(elem);
         if (added) {
             ++numElems;
@@ -95,9 +93,9 @@ public class LocationMappedReachedSet implements Collection<AbstractElement> {
     }
 
     @Override
-    public boolean addAll(Collection<? extends AbstractElement> elems) {
+    public boolean addAll(Collection<? extends AbstractElementWithLocation> elems) {
         boolean added = false;
-        for (AbstractElement e : elems) {
+        for (AbstractElementWithLocation e : elems) {
             added |= add(e);
         }
         return added;
@@ -129,14 +127,14 @@ public class LocationMappedReachedSet implements Collection<AbstractElement> {
     @Override
     public boolean isEmpty() {
         if (repr.isEmpty()) return true;
-        for (Set<AbstractElement> s : repr.values()) {
+        for (Set<AbstractElementWithLocation> s : repr.values()) {
             if (!s.isEmpty()) return false;
         }
         return true;
     }
 
     @Override
-    public Iterator<AbstractElement> iterator() {
+    public Iterator<AbstractElementWithLocation> iterator() {
         return new Iter(repr.entrySet().iterator());
     }
 
@@ -146,7 +144,7 @@ public class LocationMappedReachedSet implements Collection<AbstractElement> {
         AbstractElementWithLocation e = (AbstractElementWithLocation)o;
         CFANode loc = e.getLocationNode();
         if (!repr.containsKey(loc)) return false;
-        Set<AbstractElement> s = repr.get(loc);
+        Set<AbstractElementWithLocation> s = repr.get(loc);
         boolean ret = s.remove(o);
         if (ret) {
             --numElems;

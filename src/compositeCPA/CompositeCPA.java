@@ -8,41 +8,35 @@ import java.util.List;
 
 import logging.CustomLogLevel;
 import logging.LazyLogger;
-
-import cmdline.CPAMain;
-
 import cfa.objectmodel.CFAFunctionDefinitionNode;
-
+import cmdline.CPAMain;
 import cpa.common.CallElement;
 import cpa.common.CallStack;
 import cpa.common.CompositeDomain;
 import cpa.common.CompositeElement;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
 import cpaplugin.CPAStatistics;
-import compositeCPA.CompositeCPA;
-import compositeCPA.CompositeMergeOperator;
-import compositeCPA.CompositeStopOperator;
-import compositeCPA.CompositeTransferRelation;
 import exceptions.CPAException;
 
 public class CompositeCPA implements ConfigurableProgramAnalysis
 {
-	private AbstractDomain abstractDomain;
-	private MergeOperator mergeOperator;
-	private StopOperator stopOperator;
-	private TransferRelation transferRelation;
-	private AbstractElement initialElement;
+	private final AbstractDomain abstractDomain;
+	private final MergeOperator mergeOperator;
+	private final StopOperator stopOperator;
+	private final TransferRelation transferRelation;
+	private final AbstractElementWithLocation initialElement;
 
 	private CompositeCPA (AbstractDomain abstractDomain,
 			MergeOperator mergeOperator,
 			StopOperator stopOperator,
 			TransferRelation transferRelation,
-			AbstractElement initialElement)
+			AbstractElementWithLocation initialElement)
 	{
 		this.abstractDomain = abstractDomain;
 		this.mergeOperator = mergeOperator;
@@ -97,7 +91,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis
 			MergeOperator mergeOperator,
 			StopOperator stopOperator,
 			TransferRelation transferRelation,
-			AbstractElement initialElement)
+			AbstractElementWithLocation initialElement)
 	{
 		// TODO Michael: this should throw something
 		if (abstractDomain == null || mergeOperator == null ||

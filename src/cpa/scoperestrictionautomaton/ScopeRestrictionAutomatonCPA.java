@@ -13,6 +13,7 @@ import cfa.objectmodel.CFAEdge;
 import cpa.common.CPATransferException;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.BottomElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.JoinOperator;
@@ -114,8 +115,8 @@ public class ScopeRestrictionAutomatonCPA implements
   }
 
   @Override
-  public boolean stop(AbstractElement pElement,
-                      Collection<AbstractElement> pReached) throws CPAException {
+  public <AE extends AbstractElement> boolean stop(AE pElement,
+                      Collection<AE> pReached) throws CPAException {
     assert(pElement != null);
     assert(pReached != null);
     
@@ -156,14 +157,10 @@ public class ScopeRestrictionAutomatonCPA implements
   }
 
   @Override
-  public List<AbstractElement> getAllAbstractSuccessors(AbstractElement pElement)
+  public List<AbstractElementWithLocation> getAllAbstractSuccessors(AbstractElementWithLocation pElement)
                                                                                  throws CPAException,
                                                                                  CPATransferException {
-    // This should not be called!
-    assert(false);
-    
-    // TODO Auto-generated method stub
-    return null;
+    throw new CPAException ("Cannot get all abstract successors from non-location domain");
   }
 
   @Override
