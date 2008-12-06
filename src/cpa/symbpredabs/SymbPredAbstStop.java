@@ -4,7 +4,6 @@ import java.util.Collection;
 
 import logging.CustomLogLevel;
 import logging.LazyLogger;
-
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.StopOperator;
@@ -15,7 +14,7 @@ import exceptions.CPAException;
  */
 public class SymbPredAbstStop implements StopOperator {
 
-    private SymbPredAbstDomain domain;
+    private final SymbPredAbstDomain domain;
 
     SymbPredAbstStop(SymbPredAbstDomain domain) {
         this.domain = domain;
@@ -25,8 +24,8 @@ public class SymbPredAbstStop implements StopOperator {
         return domain;
     }
 
-    public boolean stop(AbstractElement element,
-            Collection<AbstractElement> reached) throws CPAException {
+    public <AE extends AbstractElement> boolean stop(AE element,
+            Collection<AE> reached) throws CPAException {
         for (AbstractElement e2 : reached) {
             if (stop(element, e2)) {
                 return true;

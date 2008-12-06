@@ -6,12 +6,11 @@ import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.PartialOrder;
 import cpa.common.interfaces.StopOperator;
-import cpa.defuse.DefUseDomain;
 import exceptions.CPAException;
 
 public class DefUseStopSep implements StopOperator
 {
-	private DefUseDomain defUseDomain;
+	private final DefUseDomain defUseDomain;
 
 	public DefUseStopSep (DefUseDomain defUseDomain)
 	{
@@ -23,7 +22,7 @@ public class DefUseStopSep implements StopOperator
 		return defUseDomain;
 	}
 
-	public boolean stop (AbstractElement element, Collection<AbstractElement> reached) throws CPAException
+	public <AE extends AbstractElement> boolean stop (AE element, Collection<AE> reached) throws CPAException
 	{
 		PartialOrder partialOrder = defUseDomain.getPartialOrder ();
 		for (AbstractElement testElement : reached)

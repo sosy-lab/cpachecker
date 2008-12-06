@@ -1,6 +1,7 @@
 package cpa.symbpredabs.explicit;
 
 import java.util.Collection;
+import java.util.Set;
 
 import logging.CustomLogLevel;
 import logging.LazyLogger;
@@ -9,6 +10,7 @@ import common.LocationMappedReachedSet;
 
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.StopOperator;
 import exceptions.CPAException;
 
@@ -20,7 +22,7 @@ import exceptions.CPAException;
  */
 public class ExplicitStopOperator implements StopOperator {
 
-    private ExplicitAbstractDomain domain;
+    private final ExplicitAbstractDomain domain;
 
     public ExplicitStopOperator(ExplicitAbstractDomain d) {
         domain = d;
@@ -32,20 +34,27 @@ public class ExplicitStopOperator implements StopOperator {
     }
 
 
-    public boolean stop(AbstractElement element,
-            Collection<AbstractElement> reached) throws CPAException {
-        if (reached instanceof LocationMappedReachedSet) {
-            ExplicitAbstractElement e = (ExplicitAbstractElement)element;
-            reached = ((LocationMappedReachedSet)reached).get(
-                    e.getLocationNode());
-            if (reached == null) return false;
+    public <AE extends AbstractElement> boolean stop(AE element,
+                                                     Collection<AE> reached) throws CPAException {
+      if (reached instanceof LocationMappedReachedSet) {
+        ExplicitAbstractElement e = (ExplicitAbstractElement)element;
+        Set<AbstractElementWithLocation> effReached =
+          ((LocationMappedReachedSet)reached).get(
+              e.getLocationNode());
+        if (effReached == null) return false;
+        for (AbstractElement e2: effReached) {
+          if (stop(element, e2)) {
+            return true;
+          }
         }
+      } else {
         for (AbstractElement e : reached) {
-            if (stop(element, e)) {
-                return true;
-            }
+          if (stop(element, e)) {
+            return true;
+          }
         }
-        return false;
+      }
+      return false;
     }
 
 

@@ -9,7 +9,7 @@ import exceptions.CPAException;
 
 public class OctStopJoin implements StopOperator{
 
-private OctDomain octDomain;
+private final OctDomain octDomain;
 
     public OctStopJoin (OctDomain octDomain)
     {
@@ -21,7 +21,7 @@ private OctDomain octDomain;
         return octDomain;
     }
 
-    public boolean stop (AbstractElement element, Collection<AbstractElement> reached) throws CPAException
+    public <AE extends AbstractElement> boolean stop (AE element, Collection<AE> reached) throws CPAException
     {
         // TODO implement
         return false;

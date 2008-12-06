@@ -10,7 +10,7 @@ import exceptions.CPAException;
 
 public class OctStopSep implements StopOperator{
 
-	private OctDomain octDomain;
+	private final OctDomain octDomain;
 
 	public OctStopSep (OctDomain octDomain)
 	{
@@ -22,7 +22,7 @@ public class OctStopSep implements StopOperator{
 		return octDomain;
 	}
 
-	public boolean stop (AbstractElement element, Collection<AbstractElement> reached) throws CPAException
+	public <AE extends AbstractElement> boolean stop (AE element, Collection<AE> reached) throws CPAException
 	{
 		PartialOrder partialOrder = octDomain.getPartialOrder ();
 		for (AbstractElement testElement : reached)

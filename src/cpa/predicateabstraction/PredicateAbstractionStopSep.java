@@ -4,7 +4,6 @@ import java.util.Collection;
 
 import logging.CPACheckerLogger;
 import logging.CustomLogLevel;
-
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.PartialOrder;
@@ -13,7 +12,7 @@ import exceptions.CPAException;
 
 public class PredicateAbstractionStopSep implements StopOperator
 {
-	private PredicateAbstractionDomain predicateAbstractionDomain;
+	private final PredicateAbstractionDomain predicateAbstractionDomain;
 
 	public PredicateAbstractionStopSep (PredicateAbstractionDomain predAbsDomain)
 	{
@@ -25,7 +24,7 @@ public class PredicateAbstractionStopSep implements StopOperator
 		return predicateAbstractionDomain;
 	}
 
-	public boolean stop (AbstractElement element, Collection<AbstractElement> reached) throws CPAException
+	public <AE extends AbstractElement> boolean stop (AE element, Collection<AE> reached) throws CPAException
 	{
 		PartialOrder partialOrder = predicateAbstractionDomain.getPartialOrder ();
 		for (AbstractElement testElement : reached)

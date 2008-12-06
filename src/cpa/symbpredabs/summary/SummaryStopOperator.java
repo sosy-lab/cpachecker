@@ -4,7 +4,6 @@ import java.util.Collection;
 
 import logging.CustomLogLevel;
 import logging.LazyLogger;
-
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.StopOperator;
@@ -17,7 +16,7 @@ import exceptions.CPAException;
  */
 public class SummaryStopOperator implements StopOperator {
 
-    private SummaryAbstractDomain domain;
+    private final SummaryAbstractDomain domain;
 
     public SummaryStopOperator(SummaryAbstractDomain d) {
         domain = d;
@@ -29,8 +28,8 @@ public class SummaryStopOperator implements StopOperator {
     }
 
 
-    public boolean stop(AbstractElement element,
-            Collection<AbstractElement> reached) throws CPAException {
+    public <AE extends AbstractElement> boolean stop(AE element,
+            Collection<AE> reached) throws CPAException {
         for (AbstractElement e : reached) {
             if (stop(element, e)) {
                 return true;

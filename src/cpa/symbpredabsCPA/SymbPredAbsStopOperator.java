@@ -4,7 +4,6 @@ import java.util.Collection;
 
 import logging.CustomLogLevel;
 import logging.LazyLogger;
-
 import symbpredabstraction.MathsatSymbPredAbsFormulaManager;
 import symbpredabstraction.SymbPredAbsAbstractFormulaManager;
 import cpa.common.interfaces.AbstractDomain;
@@ -19,8 +18,8 @@ import exceptions.CPAException;
  */
 public class SymbPredAbsStopOperator implements StopOperator {
 
-    private SymbPredAbsAbstractDomain domain;
-    private SymbPredAbsCPA cpa;
+    private final SymbPredAbsAbstractDomain domain;
+    private final SymbPredAbsCPA cpa;
 
     public SymbPredAbsStopOperator(AbstractDomain d) {
         domain = (SymbPredAbsAbstractDomain) d;
@@ -33,8 +32,8 @@ public class SymbPredAbsStopOperator implements StopOperator {
     }
 
 
-    public boolean stop(AbstractElement element,
-            Collection<AbstractElement> reached) throws CPAException {
+    public <AE extends AbstractElement> boolean stop(AE element,
+            Collection<AE> reached) throws CPAException {
 
         for (AbstractElement e : reached) {
             if (stop(element, e)) {
@@ -94,7 +93,7 @@ public class SymbPredAbsStopOperator implements StopOperator {
                 if(!e1.getParents().equals(e2.getParents())){
                   return false;
                 }
-                
+
                 boolean ok = amgr.entails(e1.getAbstraction(), e2.getAbstraction());
 
                 if (ok) {

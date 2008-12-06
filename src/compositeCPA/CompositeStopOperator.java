@@ -12,8 +12,8 @@ import exceptions.CPAException;
 
 public class CompositeStopOperator implements StopOperator{
 
-	private CompositeDomain compositeDomain;
-	private List<StopOperator> stopOperators;
+	private final CompositeDomain compositeDomain;
+	private final List<StopOperator> stopOperators;
 
 	public CompositeStopOperator (CompositeDomain compositeDomain, List<StopOperator> stopOperators)
 	{
@@ -26,7 +26,7 @@ public class CompositeStopOperator implements StopOperator{
 		return compositeDomain;
 	}
 
-	public boolean stop (AbstractElement element, Collection<AbstractElement> reached) throws CPAException
+	public <AE extends AbstractElement> boolean stop (AE element, Collection<AE> reached) throws CPAException
 	{
 		if(compositeDomain.isBottomElement(element)){
 			return true;
