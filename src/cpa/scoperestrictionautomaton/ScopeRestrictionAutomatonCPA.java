@@ -143,6 +143,12 @@ public class ScopeRestrictionAutomatonCPA implements
   }
 
   @Override
+  public AbstractElementWithLocation merge(AbstractElementWithLocation pElement1,
+                                           AbstractElementWithLocation pElement2) throws CPAException {
+    throw new CPAException ("Cannot return element with location information");
+  }
+
+  @Override
   public AbstractElement getAbstractSuccessor(AbstractElement pElement,
                                               CFAEdge pCfaEdge)
                                                                throws CPATransferException {

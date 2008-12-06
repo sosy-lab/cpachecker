@@ -3,8 +3,8 @@ package cpa.itpabs;
 import logging.LazyLogger;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.MergeOperator;
-import cpa.itpabs.ItpAbstractDomain;
 
 /**
  * Trivial merge operator for interpolation-based lazy abstraction
@@ -13,7 +13,7 @@ import cpa.itpabs.ItpAbstractDomain;
  */
 public class ItpMergeOperator implements MergeOperator {
 
-    private ItpAbstractDomain domain;
+    private final ItpAbstractDomain domain;
 
     public ItpMergeOperator(ItpAbstractDomain d) {
         domain = d;
@@ -27,6 +27,15 @@ public class ItpMergeOperator implements MergeOperator {
 
     public AbstractElement merge(AbstractElement element1,
                                  AbstractElement element2) {
+        LazyLogger.log(LazyLogger.DEBUG_4,
+                "Trying to merge elements: ", element1,
+                " and: ", element2);
+
+        return element2;
+    }
+
+    public AbstractElementWithLocation merge(AbstractElementWithLocation element1,
+                                 AbstractElementWithLocation element2) {
         LazyLogger.log(LazyLogger.DEBUG_4,
                 "Trying to merge elements: ", element1,
                 " and: ", element2);

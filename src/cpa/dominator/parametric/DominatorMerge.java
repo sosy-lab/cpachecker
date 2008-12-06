@@ -4,9 +4,8 @@
 package cpa.dominator.parametric;
 
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.MergeOperator;
-import cpa.dominator.parametric.DominatorDomain;
-import exceptions.CPAException;
 
 /**
  * @author holzera
@@ -28,8 +27,7 @@ public class DominatorMerge implements MergeOperator {
 	 */
 	public AbstractElement merge(AbstractElement element1,
 			AbstractElement element2) {
-		try {
-			AbstractElement joinedElement = this.domain.getJoinOperator().join(element1, element2);
+			AbstractElement joinedElement = this.domain.join(element1, element2);
 
 			if (joinedElement.equals(this.domain.getTopElement())) {
 				return element2;
@@ -37,10 +35,18 @@ public class DominatorMerge implements MergeOperator {
 			else {
 				return joinedElement;
 			}
-		}
-		catch (CPAException e) {
-			return this.domain.getTopElement();
-		}
+	}
+
+	public AbstractElementWithLocation merge(AbstractElementWithLocation element1,
+	                             AbstractElementWithLocation element2) {
+	    AbstractElementWithLocation joinedElement = this.domain.join(element1, element2);
+
+	    if (joinedElement.equals(this.domain.getTopElement())) {
+	      return element2;
+	    }
+	    else {
+	      return joinedElement;
+	    }
 	}
 
 }

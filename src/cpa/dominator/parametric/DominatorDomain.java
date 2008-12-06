@@ -117,36 +117,35 @@ public class DominatorDomain implements AbstractDomain, PartialOrder, JoinOperat
         return false;
     }
 
-    public AbstractElement join(AbstractElement element1, AbstractElement element2) {
+    public AbstractElementWithLocation join(AbstractElement element1, AbstractElement element2) {
+      if (!(element1 instanceof DominatorElement)) {
+        throw new IllegalArgumentException(
+            "element1 is not a DominatorElement!");
+      }
+
+      if (!(element2 instanceof DominatorElement)) {
+        throw new IllegalArgumentException(
+            "element2 is not a DominatorElement!");
+      }
+
+      DominatorElement dominatorElement1 = (DominatorElement) element1;
+      DominatorElement dominatorElement2 = (DominatorElement) element2;
+
     	if (element1.equals(bottomElement)) {
-			return element2;
+			return dominatorElement2;
 		}
 
 		if (element1.equals(topElement)) {
-			return element1;
+			return dominatorElement1;
 		}
 
 		if (element2.equals(bottomElement)) {
-			return element1;
+			return dominatorElement1;
 		}
 
 		if (element2.equals(topElement)) {
-			return element2;
+			return dominatorElement2;
 		}
-
-		// neither element1 nor element2 are top or bottom
-		if (!(element1 instanceof DominatorElement)) {
-			throw new IllegalArgumentException(
-					"element1 is not a DominatorElement!");
-		}
-
-		if (!(element2 instanceof DominatorElement)) {
-			throw new IllegalArgumentException(
-					"element2 is not a DominatorElement!");
-		}
-
-		DominatorElement dominatorElement1 = (DominatorElement) element1;
-		DominatorElement dominatorElement2 = (DominatorElement) element2;
 
 		if (!dominatorElement1.getDominatedElement().equals(dominatorElement2.getDominatedElement())) {
 			return topElement;

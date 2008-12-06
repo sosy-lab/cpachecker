@@ -3,11 +3,13 @@ package cpa.octagon;
 import octagon.LibraryAccess;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.MergeOperator;
+import exceptions.CPAException;
 
 public class OctMergeJoin implements MergeOperator{
 
-	private OctDomain octDomain;
+	private final OctDomain octDomain;
 
 	public OctMergeJoin (OctDomain octDomain)
 	{
@@ -41,4 +43,8 @@ public class OctMergeJoin implements MergeOperator{
 		}
 	}
 
+  public AbstractElementWithLocation merge(AbstractElementWithLocation pElement1,
+                                           AbstractElementWithLocation pElement2) throws CPAException {
+    throw new CPAException ("Cannot return element with location information");
+  }
 }

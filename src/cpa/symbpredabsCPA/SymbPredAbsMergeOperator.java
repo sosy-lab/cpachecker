@@ -8,7 +8,9 @@ import symbpredabstraction.SSAMap;
 import symbpredabstraction.SymbolicFormula;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.MergeOperator;
+import exceptions.CPAException;
 
 /**
  * trivial merge operation for symbolic lazy abstraction with summaries
@@ -17,9 +19,9 @@ import cpa.common.interfaces.MergeOperator;
  */
 public class SymbPredAbsMergeOperator implements MergeOperator {
 
-  private SymbPredAbsAbstractDomain domain;
+  private final SymbPredAbsAbstractDomain domain;
 
-  private MathsatSymbPredAbsFormulaManager mgr;
+  private final MathsatSymbPredAbsFormulaManager mgr;
 
   public SymbPredAbsMergeOperator(SymbPredAbsAbstractDomain d) {
     domain = d;
@@ -114,5 +116,10 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
     }
     return merged;
     //}
+  }
+
+  public AbstractElementWithLocation merge(AbstractElementWithLocation pElement1,
+                                           AbstractElementWithLocation pElement2) throws CPAException {
+    throw new CPAException ("Cannot return element with location information");
   }
 }
