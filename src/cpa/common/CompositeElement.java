@@ -2,17 +2,23 @@ package cpa.common;
 
 import java.util.List;
 
+import cfa.objectmodel.CFANode;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.CallStack;
-import cpa.common.CompositeElement;
+import cpa.common.interfaces.AbstractElementWithLocation;
 
-public class CompositeElement implements AbstractElement
+public class CompositeElement implements AbstractElementWithLocation
 {
-    private List<AbstractElement> elements;
+    private AbstractElementWithLocation elementWithLocation;
+    private final List<AbstractElement> elements;
     private CallStack callStack;
 
     public CompositeElement (List<AbstractElement> elements, CallStack stack)
     {
+        this.elementWithLocation = null;
+        if (!elements.isEmpty()) {
+          assert (elements.get(0) instanceof AbstractElementWithLocation);
+          this.elementWithLocation = (AbstractElementWithLocation) elements.get(0);
+        }
         this.elements = elements;
         this.callStack = stack;
     }
@@ -81,4 +87,8 @@ public class CompositeElement implements AbstractElement
 	public void setCallStack(CallStack callStack) {
 		this.callStack = callStack;
 	}
+
+  public CFANode getLocationNode() {
+    return elementWithLocation.getLocationNode();
+  }
 }
