@@ -5,26 +5,27 @@ import java.util.List;
 
 import logging.CPACheckerLogger;
 import logging.CustomLogLevel;
-
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAErrorNode;
 import cfa.objectmodel.CFANode;
 
+import common.Pair;
+
 import cpa.common.CPATransferException;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.BottomElement;
 import cpa.common.interfaces.TopElement;
 import cpa.common.interfaces.TransferRelation;
 import exceptions.CPAException;
-import common.Pair;
 
 /**
  * TODO. This is currently broken
  */
 public class SymbPredAbstTransfer implements TransferRelation {
 
-	private SymbPredAbstDomain domain;
+	private final SymbPredAbstDomain domain;
 
 	public SymbPredAbstTransfer(SymbPredAbstDomain domain) {
 		this.domain = domain;
@@ -114,19 +115,19 @@ public class SymbPredAbstTransfer implements TransferRelation {
 		return domain.getBottomElement();
 	}
 
-	public List<AbstractElement> getAllAbstractSuccessors(
-			AbstractElement element) throws CPAException, CPATransferException {
+	public List<AbstractElementWithLocation> getAllAbstractSuccessors(
+	    AbstractElementWithLocation element) throws CPAException, CPATransferException {
 		SymbPredAbstElement e = (SymbPredAbstElement)element;
 
 		CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel,
 				"Getting ALL Abstract Successors of element: " + e.toString());
 
-		List<AbstractElement> allSucc = new ArrayList<AbstractElement>();
+		List<AbstractElementWithLocation> allSucc = new ArrayList<AbstractElementWithLocation>();
 		CFANode n = e.getLocation();
 		SymbolicFormulaManager mgr = domain.getCPA().getFormulaManager();
 
 		for (int i = 0; i < n.getNumLeavingEdges(); ++i) {
-			allSucc.add(buildSuccessor(mgr, e, n.getLeavingEdge(i)));
+			allSucc.add((SymbPredAbstElement)buildSuccessor(mgr, e, n.getLeavingEdge(i)));
 		}
 
 		CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel,

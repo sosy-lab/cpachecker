@@ -32,6 +32,7 @@ import cpa.common.ErrorReachedException;
 import cpa.common.RefinementNeededException;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.TransferRelation;
 import cpa.symbpredabs.AbstractFormula;
 import cpa.symbpredabs.CounterexampleTraceInfo;
@@ -52,41 +53,41 @@ public class SummaryTransferRelation implements TransferRelation {
 
     // the Abstract Reachability Tree
     class ART {
-        Map<AbstractElement, Collection<AbstractElement>> tree;
-        AbstractElement root;
+        Map<AbstractElementWithLocation, Collection<AbstractElementWithLocation>> tree;
+        AbstractElementWithLocation root;
 
         public ART() {
-            tree = new HashMap<AbstractElement, Collection<AbstractElement>>();
+            tree = new HashMap<AbstractElementWithLocation, Collection<AbstractElementWithLocation>>();
             root = null;
         }
 
-        public void addChild(AbstractElement parent, AbstractElement child) {
+        public void addChild(AbstractElementWithLocation parent, AbstractElementWithLocation child) {
             if (root == null) {
                 root = parent;
             }
             if (!tree.containsKey(parent)) {
-                tree.put(parent, new Vector<AbstractElement>());
+                tree.put(parent, new Vector<AbstractElementWithLocation>());
             }
-            Collection<AbstractElement> c = tree.get(parent);
+            Collection<AbstractElementWithLocation> c = tree.get(parent);
             c.add(child);
         }
 
-        public Collection<AbstractElement> getSubtree(AbstractElement root,
+        public Collection<AbstractElementWithLocation> getSubtree(AbstractElementWithLocation root,
                 boolean remove, boolean includeRoot) {
-            Vector<AbstractElement> ret = new Vector<AbstractElement>();
+            Vector<AbstractElementWithLocation> ret = new Vector<AbstractElementWithLocation>();
 
-            Stack<AbstractElement> toProcess = new Stack<AbstractElement>();
+            Stack<AbstractElementWithLocation> toProcess = new Stack<AbstractElementWithLocation>();
             toProcess.push(root);
 
             while (!toProcess.empty()) {
-                AbstractElement cur = toProcess.pop();
+              AbstractElementWithLocation cur = toProcess.pop();
                 ret.add(cur);
                 if (tree.containsKey(cur)) {
                     toProcess.addAll(remove ? tree.remove(cur) : tree.get(cur));
                 }
             }
             if (!includeRoot) {
-                AbstractElement tmp = ret.lastElement();
+              AbstractElementWithLocation tmp = ret.lastElement();
                 assert(ret.firstElement() == root);
                 ret.setElementAt(tmp, 0);
                 ret.remove(ret.size()-1);
@@ -94,7 +95,7 @@ public class SummaryTransferRelation implements TransferRelation {
             return ret;
         }
 
-        public AbstractElement findHighest(SummaryCFANode loc) {
+        public AbstractElementWithLocation findHighest(SummaryCFANode loc) {
             if (root == null) return null;
 
             Queue<AbstractElement> toProcess =
@@ -180,7 +181,7 @@ public class SummaryTransferRelation implements TransferRelation {
     }
 
     // abstract post operation
-    private AbstractElement buildSuccessor(SummaryAbstractElement e,
+    private SummaryAbstractElement buildSuccessor(SummaryAbstractElement e,
             CFAEdge edge) throws CPATransferException {
         SummaryCPA cpa = domain.getCPA();
         SummaryCFANode succLoc = (SummaryCFANode)edge.getSuccessor();
@@ -327,8 +328,8 @@ public class SummaryTransferRelation implements TransferRelation {
 
         UpdateablePredicateMap curpmap =
             (UpdateablePredicateMap)domain.getCPA().getPredicateMap();
-        AbstractElement root = null;
-        AbstractElement firstInterpolant = null;
+        AbstractElementWithLocation root = null;
+        SummaryAbstractElement firstInterpolant = null;
         for (SummaryAbstractElement e : path) {
             Collection<Predicate> newpreds = info.getPredicatesForRefinement(e);
             if (firstInterpolant == null && newpreds.size() > 0) {
@@ -347,8 +348,7 @@ public class SummaryTransferRelation implements TransferRelation {
             } else {
                 assert(numSeen <= 1);
             }
-            root = abstractTree.findHighest(
-                    ((SummaryAbstractElement)firstInterpolant).getLocation());
+            root = abstractTree.findHighest(firstInterpolant.getLocation());
         }
         assert(root != null);
         if (CPAMain.cpaConfig.getBooleanValue("analysis.bfs")) {
@@ -363,16 +363,16 @@ public class SummaryTransferRelation implements TransferRelation {
 
         assert(root != null);
         //root = path.getFirst();
-        Collection<AbstractElement> toWaitlist = new HashSet<AbstractElement>();
+        Collection<AbstractElementWithLocation> toWaitlist = new HashSet<AbstractElementWithLocation>();
         toWaitlist.add(root);
-        Collection<AbstractElement> toUnreach =
+        Collection<AbstractElementWithLocation> toUnreach =
             abstractTree.getSubtree(root, true, false);
         SummaryCPA cpa = domain.getCPA();
         for (AbstractElement e : toUnreach) {
             Set<SummaryAbstractElement> cov = cpa.getCoveredBy(
                     (SummaryAbstractElement)e);
-            for (AbstractElement c : cov) {
-                if (!((SummaryAbstractElement)c).isDescendant(
+            for (SummaryAbstractElement c : cov) {
+                if (!c.isDescendant(
                         (SummaryAbstractElement)root)) {
                     toWaitlist.add(c);
                 }
@@ -410,7 +410,7 @@ public class SummaryTransferRelation implements TransferRelation {
         for (int i = 0; i < src.getNumLeavingEdges(); ++i) {
             CFAEdge edge = src.getLeavingEdge(i);
             if (edge.equals(cfaEdge)) {
-                AbstractElement ret = buildSuccessor(e, edge);
+              AbstractElementWithLocation ret = buildSuccessor(e, edge);
 
                 LazyLogger.log(CustomLogLevel.SpecificCPALevel,
                                "Successor is: ", ret);
@@ -429,13 +429,13 @@ public class SummaryTransferRelation implements TransferRelation {
     }
 
     @Override
-    public List<AbstractElement> getAllAbstractSuccessors(
-            AbstractElement element) throws CPAException, CPATransferException {
+    public List<AbstractElementWithLocation> getAllAbstractSuccessors(
+        AbstractElementWithLocation element) throws CPAException, CPATransferException {
         LazyLogger.log(CustomLogLevel.SpecificCPALevel,
                        "Getting ALL Abstract Successors of element: ",
                        element);
 
-        List<AbstractElement> allSucc = new Vector<AbstractElement>();
+        List<AbstractElementWithLocation> allSucc = new Vector<AbstractElementWithLocation>();
         SummaryAbstractElement e = (SummaryAbstractElement)element;
         CFANode src = (CFANode)e.getLocation();
 
@@ -443,7 +443,7 @@ public class SummaryTransferRelation implements TransferRelation {
             AbstractElement newe =
                 getAbstractSuccessor(e, src.getLeavingEdge(i));
             if (newe != domain.getBottomElement()) {
-                allSucc.add(newe);
+                allSucc.add((SummaryAbstractElement)newe);
             }
         }
 

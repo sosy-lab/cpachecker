@@ -33,6 +33,7 @@ import symbpredabstraction.SymbolicFormula;
 import cpa.common.CPATransferException;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.TransferRelation;
 import cpa.octagon.OctElement;
 import exceptions.CPAException;
@@ -329,9 +330,9 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 		  PathFormula functionInitFormula = null;
 		  // TODO check
 		  try {
-        functionInitFormula = mathsatFormMan.makeAnd(element.getPathFormula().getSymbolicFormula(), 
+        functionInitFormula = mathsatFormMan.makeAnd(element.getPathFormula().getSymbolicFormula(),
             edge, element.getPathFormula().getSsa(), false, false);
-        
+
         // TODO check
         functionInitFormula = mathsatFormMan.makeAndEnterFunction(
           (MathsatSymbolicFormula)functionInitFormula.getSymbolicFormula(), edge.getSuccessor(),
@@ -350,9 +351,9 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
       PathFormula functionInitFormula = null;
       // TODO check
       try {
-        functionInitFormula = mathsatFormMan.makeAnd(element.getPathFormula().getSymbolicFormula(), 
+        functionInitFormula = mathsatFormMan.makeAnd(element.getPathFormula().getSymbolicFormula(),
             edge, element.getPathFormula().getSsa(), false, false);
-        
+
       } catch (UnrecognizedCFAEdgeException e) {
         // TODO Auto-generated catch block
         e.printStackTrace();
@@ -366,7 +367,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 //      newElement.setParents(previousOctElem.getParents());
 //      previousElem.setParents(element.getParents());
 //      element = previousElem;
-      
+
     }
 		else{
 		  newElement.setInitAbstractionSet(element.getPathFormula());
@@ -1524,8 +1525,8 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 	}
 
 	@Override
-	public List<AbstractElement> getAllAbstractSuccessors(
-			AbstractElement element) throws CPAException, CPATransferException {
+	public List<AbstractElementWithLocation> getAllAbstractSuccessors(
+			AbstractElementWithLocation element) throws CPAException, CPATransferException {
         throw new CPAException ("Cannot get all abstract successors from non-location domain");
 	}
 

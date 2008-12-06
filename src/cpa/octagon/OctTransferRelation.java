@@ -28,9 +28,9 @@ import cfa.objectmodel.c.FunctionDefinitionNode;
 import cfa.objectmodel.c.GlobalDeclarationEdge;
 import cfa.objectmodel.c.ReturnEdge;
 import cfa.objectmodel.c.StatementEdge;
-
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.TransferRelation;
 import exceptions.CPAException;
 import exceptions.OctagonTransferException;
@@ -44,9 +44,9 @@ public class OctTransferRelation implements TransferRelation{
 
 	// the domain of the cpa, this can be used to retrieve the bottom and the
 	// top elements if needed
-	private OctDomain octDomain;
+	private final OctDomain octDomain;
 	// set to set global variables
-	private Set<String> globalVars;
+	private final Set<String> globalVars;
 
 	/**
 	 * Class constructor.
@@ -210,7 +210,7 @@ public class OctTransferRelation implements TransferRelation{
 	/* (non-Javadoc)
 	 * @see cpa.common.interfaces.TransferRelation#getAllAbstractSuccessors(cpa.common.interfaces.AbstractElement)
 	 */
-	public List<AbstractElement> getAllAbstractSuccessors (AbstractElement element) throws CPAException
+	public List<AbstractElementWithLocation> getAllAbstractSuccessors (AbstractElementWithLocation element) throws CPAException
 	{
 		throw new CPAException ("Cannot get all abstract successors from non-location domain");
 	}

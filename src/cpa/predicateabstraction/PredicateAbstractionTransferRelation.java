@@ -18,8 +18,11 @@ import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTPointerOperator;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 
-import cmdline.CPAMain;
-
+import predicateabstraction.Operator;
+import predicateabstraction.PredAbstractionConstants;
+import predicateabstraction.Predicate;
+import predicateabstraction.SimplifiedInstruction;
+import predicateabstraction.ThreeValuedBoolean;
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFANode;
 import cfa.objectmodel.c.AliasedPointers;
@@ -29,22 +32,18 @@ import cfa.objectmodel.c.FunctionCallEdge;
 import cfa.objectmodel.c.FunctionDefinitionNode;
 import cfa.objectmodel.c.ReturnEdge;
 import cfa.objectmodel.c.StatementEdge;
-
-import predicateabstraction.Operator;
-import predicateabstraction.PredAbstractionConstants;
-import predicateabstraction.Predicate;
-import predicateabstraction.SimplifiedInstruction;
-import predicateabstraction.ThreeValuedBoolean;
+import cmdline.CPAMain;
 import cpa.common.CPATransferException;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.TransferRelation;
 import exceptions.CPAException;
 import exceptions.PredicateAbstractionTransferException;
 
 public class PredicateAbstractionTransferRelation implements TransferRelation
 {
-	private PredicateAbstractionDomain predAbsDomain;
+	private final PredicateAbstractionDomain predAbsDomain;
 
 	public PredicateAbstractionTransferRelation (PredicateAbstractionDomain predAbsDomain)
 	{
@@ -222,7 +221,7 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 		return predAbsElement;
 	}
 
-	public List<AbstractElement> getAllAbstractSuccessors (AbstractElement element) throws CPAException, CPATransferException
+	public List<AbstractElementWithLocation> getAllAbstractSuccessors (AbstractElementWithLocation element) throws CPAException, CPATransferException
 	{
 		throw new CPAException ("Cannot get all abstract successors from non-location domain");
 	}

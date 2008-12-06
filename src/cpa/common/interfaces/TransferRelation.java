@@ -3,9 +3,7 @@ package cpa.common.interfaces;
 import java.util.List;
 
 import cfa.objectmodel.CFAEdge;
-
 import cpa.common.CPATransferException;
-import cpa.common.interfaces.AbstractElement;
 import exceptions.CPAException;
 
 /**
@@ -34,6 +32,6 @@ public interface TransferRelation
      * @throws CPAException if the element does not contain any traversal information such as nodes
      * and edges on CFA.
      */
-    public List<AbstractElement> getAllAbstractSuccessors (AbstractElement element)
+    public List<AbstractElementWithLocation> getAllAbstractSuccessors (AbstractElementWithLocation element)
         throws CPAException, CPATransferException;
 }

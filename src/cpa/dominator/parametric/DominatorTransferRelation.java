@@ -7,15 +7,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 import cfa.objectmodel.CFAEdge;
-
 import cpa.common.CPATransferException;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.TransferRelation;
-import cpa.dominator.parametric.DominatorDomain;
-import cpa.dominator.parametric.DominatorElement;
 import exceptions.CPAException;
 
 /**
@@ -24,8 +21,8 @@ import exceptions.CPAException;
  */
 public class DominatorTransferRelation implements TransferRelation {
 
-	private DominatorDomain domain;
-	private ConfigurableProgramAnalysis cpa;
+	private final DominatorDomain domain;
+	private final ConfigurableProgramAnalysis cpa;
 
 	public DominatorTransferRelation(DominatorDomain domain, ConfigurableProgramAnalysis cpa) {
 		if (domain == null) {
@@ -80,18 +77,16 @@ public class DominatorTransferRelation implements TransferRelation {
 	/* (non-Javadoc)
 	 * @see cpa.common.interfaces.TransferRelation#getAllAbstractSuccessors(cpa.common.interfaces.AbstractElement)
 	 */
-	public List<AbstractElement> getAllAbstractSuccessors(
-			AbstractElement element) throws CPAException, CPATransferException {
-		List<AbstractElement> successors = new ArrayList<AbstractElement>();
+	public List<AbstractElementWithLocation> getAllAbstractSuccessors(
+	    AbstractElementWithLocation element) throws CPAException, CPATransferException {
+		List<AbstractElementWithLocation> successors = new ArrayList<AbstractElementWithLocation>();
 
 		if (element instanceof DominatorElement) {
 			DominatorElement dominatorElement = (DominatorElement)element;
 
-			List<AbstractElement> successorsOfDominatedElement = this.cpa.getTransferRelation().getAllAbstractSuccessors(dominatorElement.getDominatedElement());
+			List<AbstractElementWithLocation> successorsOfDominatedElement = this.cpa.getTransferRelation().getAllAbstractSuccessors(dominatorElement.getDominatedElement());
 
-			for (AbstractElement successorOfDominatedElement_tmp : successorsOfDominatedElement) {
-				// TODO: make this nicer
-				AbstractElementWithLocation successorOfDominatedElement = (AbstractElementWithLocation)successorOfDominatedElement_tmp;
+			for (AbstractElementWithLocation successorOfDominatedElement : successorsOfDominatedElement) {
 
 				if (successorOfDominatedElement.equals(this.cpa.getAbstractDomain().getBottomElement())) {
 					successors.add(this.domain.getBottomElement());
