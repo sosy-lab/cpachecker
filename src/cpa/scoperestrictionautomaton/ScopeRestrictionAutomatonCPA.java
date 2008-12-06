@@ -14,13 +14,11 @@ import cpa.common.CPATransferException;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
-import cpa.common.interfaces.BottomElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.JoinOperator;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.PartialOrder;
 import cpa.common.interfaces.StopOperator;
-import cpa.common.interfaces.TopElement;
 import cpa.common.interfaces.TransferRelation;
 
 import cpa.common.automaton.Label;
@@ -164,7 +162,7 @@ public class ScopeRestrictionAutomatonCPA implements
   }
 
   @Override
-  public BottomElement getBottomElement() {
+  public AbstractElement getBottomElement() {
     return mBottom;
   }
 
@@ -179,7 +177,7 @@ public class ScopeRestrictionAutomatonCPA implements
   }
 
   @Override
-  public TopElement getTopElement() {
+  public AbstractElement getTopElement() {
     return mTop;
   }
 

@@ -2,15 +2,14 @@
 
 import java.util.List;
 
+import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.TopElement;
-import cpa.common.CompositeBottomElement;
-import cpa.common.CompositeTopElement;
 
 public class CompositeTopElement implements TopElement
 {
-    private List<TopElement> tops;
+    private final List<AbstractElement> tops;
 
-    public CompositeTopElement (List<TopElement> tops)
+    public CompositeTopElement (List<AbstractElement> tops)
     {
         this.tops = tops;
     }
@@ -27,8 +26,8 @@ public class CompositeTopElement implements TopElement
 
         for (int idx = 0; idx < tops.size (); idx++)
         {
-            TopElement top1 = tops.get (idx);
-            TopElement top2 = otherComposite.tops.get (idx);
+            AbstractElement top1 = tops.get (idx);
+            AbstractElement top2 = otherComposite.tops.get (idx);
 
             if (!top1.equals (top2))
                 return false;

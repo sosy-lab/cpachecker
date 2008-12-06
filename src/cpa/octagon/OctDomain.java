@@ -62,7 +62,7 @@ public class OctDomain implements AbstractDomain{
 
     }
 
-    public BottomElement getBottomElement ()
+    public AbstractElement getBottomElement ()
     {
         return bottomElement;
     }
@@ -73,7 +73,7 @@ public class OctDomain implements AbstractDomain{
 		return octElem.isEmpty();
 	}
 
-    public TopElement getTopElement ()
+    public AbstractElement getTopElement ()
     {
         return topElement;
     }

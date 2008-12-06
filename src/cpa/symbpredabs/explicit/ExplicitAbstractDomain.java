@@ -57,7 +57,7 @@ public class ExplicitAbstractDomain implements AbstractDomain {
     private final JoinOperator join = new ExplicitJoinOperator();
     private final PartialOrder partial = new ExplicitPartialOrder();
 
-    public BottomElement getBottomElement() {
+    public AbstractElement getBottomElement() {
         return bottom;
     }
 
@@ -73,7 +73,7 @@ public class ExplicitAbstractDomain implements AbstractDomain {
         return partial;
     }
 
-    public TopElement getTopElement() {
+    public AbstractElement getTopElement() {
         return top;
     }
 

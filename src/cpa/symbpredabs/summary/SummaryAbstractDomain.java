@@ -17,17 +17,27 @@ import exceptions.CPAException;
  */
 public class SummaryAbstractDomain implements AbstractDomain {
 
-    private SummaryCPA cpa;
+    private final SummaryCPA cpa;
 
     public SummaryAbstractDomain(SummaryCPA cpa) {
         this.cpa = cpa;
     }
 
-    private final class SummaryBottomElement implements BottomElement {
+    private final class SummaryBottomElement extends SummaryAbstractElement implements BottomElement {
+      public SummaryBottomElement() {
+        super(null);
+        // TODO Auto-generated constructor stub
+      }
+
         @Override
     	public String toString() { return "<BOTTOM>"; }
     }
-    private final class SummaryTopElement implements TopElement {}
+    private final class SummaryTopElement extends SummaryAbstractElement implements TopElement {
+      public SummaryTopElement() {
+        super(null);
+        // TODO Auto-generated constructor stub
+      }
+    }
 
     private final class SummaryJoinOperator implements JoinOperator {
         public AbstractElement join(AbstractElement element1,
@@ -53,12 +63,12 @@ public class SummaryAbstractDomain implements AbstractDomain {
         }
     }
 
-    private final BottomElement bottom = new SummaryBottomElement();
-    private final TopElement top = new SummaryTopElement();
+    private final SummaryBottomElement bottom = new SummaryBottomElement();
+    private final SummaryTopElement top = new SummaryTopElement();
     private final JoinOperator join = new SummaryJoinOperator();
     private final PartialOrder partial = new SummaryPartialOrder();
 
-    public BottomElement getBottomElement() {
+    public SummaryAbstractElement getBottomElement() {
         return bottom;
     }
 
@@ -74,7 +84,7 @@ public class SummaryAbstractDomain implements AbstractDomain {
         return partial;
     }
 
-    public TopElement getTopElement() {
+    public SummaryAbstractElement getTopElement() {
         return top;
     }
 

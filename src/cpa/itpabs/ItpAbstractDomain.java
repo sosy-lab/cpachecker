@@ -1,13 +1,14 @@
 package cpa.itpabs;
 
+import java.util.Collection;
+
+import cfa.objectmodel.CFANode;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.BottomElement;
 import cpa.common.interfaces.JoinOperator;
 import cpa.common.interfaces.PartialOrder;
 import cpa.common.interfaces.TopElement;
-import cpa.itpabs.ItpAbstractElement;
-import cpa.itpabs.ItpCPA;
 import cpa.symbpredabs.SymbolicFormulaManager;
 import exceptions.CPAException;
 
@@ -18,17 +19,53 @@ import exceptions.CPAException;
  */
 public class ItpAbstractDomain implements AbstractDomain {
 
-    private ItpCPA cpa;
+    private final ItpCPA cpa;
 
     public ItpAbstractDomain(ItpCPA cpa) {
         this.cpa = cpa;
     }
 
-    private final class ExplicitBottomElement implements BottomElement {
+    private final class ExplicitBottomElement extends ItpAbstractElement implements BottomElement {
+      public ExplicitBottomElement() {
+        super(null);
+        // TODO Auto-generated constructor stub
+      }
+
         @Override
     	public String toString() { return "<BOTTOM>"; }
+
+        @Override
+        public Collection<CFANode> getLeaves() {
+          // TODO Auto-generated method stub
+          return null;
+        }
+
+        @Override
+        public boolean isErrorLocation() {
+          // TODO Auto-generated method stub
+          return false;
+        }
     }
-    private final class ExplicitTopElement implements TopElement {}
+    private final class ExplicitTopElement extends ItpAbstractElement implements TopElement {
+
+      public ExplicitTopElement() {
+        super(null);
+        // TODO Auto-generated constructor stub
+      }
+
+      @Override
+      public Collection<CFANode> getLeaves() {
+        // TODO Auto-generated method stub
+        return null;
+      }
+
+      @Override
+      public boolean isErrorLocation() {
+        // TODO Auto-generated method stub
+        return false;
+      }
+
+    }
 
     private final class ExplicitJoinOperator implements JoinOperator {
         public AbstractElement join(AbstractElement element1,
@@ -54,12 +91,12 @@ public class ItpAbstractDomain implements AbstractDomain {
         }
     }
 
-    private final BottomElement bottom = new ExplicitBottomElement();
-    private final TopElement top = new ExplicitTopElement();
+    private final ExplicitBottomElement bottom = new ExplicitBottomElement();
+    private final ExplicitTopElement top = new ExplicitTopElement();
     private final JoinOperator join = new ExplicitJoinOperator();
     private final PartialOrder partial = new ExplicitPartialOrder();
 
-    public BottomElement getBottomElement() {
+    public ItpAbstractElement getBottomElement() {
         return bottom;
     }
 
@@ -75,7 +112,7 @@ public class ItpAbstractDomain implements AbstractDomain {
         return partial;
     }
 
-    public TopElement getTopElement() {
+    public ItpAbstractElement getTopElement() {
         return top;
     }
 

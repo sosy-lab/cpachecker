@@ -8,28 +8,22 @@ import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.BottomElement;
 import cpa.common.interfaces.JoinOperator;
 import cpa.common.interfaces.PartialOrder;
-import cpa.common.interfaces.TopElement;
-import cpa.common.CompositeBottomElement;
-import cpa.common.CompositeElement;
-import cpa.common.CompositeJoinOperator;
-import cpa.common.CompositePartialOrder;
-import cpa.common.CompositeTopElement;
 
 public class CompositeDomain implements AbstractDomain
 {
-    private List<AbstractDomain> domains;
+    private final List<AbstractDomain> domains;
 
-    private CompositeBottomElement bottomElement;
-    private CompositeTopElement topElement;
-    private CompositeJoinOperator joinOperator;
-    private CompositePartialOrder partialOrder;
+    private final CompositeBottomElement bottomElement;
+    private final CompositeTopElement topElement;
+    private final CompositeJoinOperator joinOperator;
+    private final CompositePartialOrder partialOrder;
 
     public CompositeDomain (List<AbstractDomain> domains)
     {
         this.domains = domains;
 
-        List<BottomElement> bottoms = new ArrayList<BottomElement> ();
-        List<TopElement> tops = new ArrayList<TopElement> ();
+        List<AbstractElement> bottoms = new ArrayList<AbstractElement> ();
+        List<AbstractElement> tops = new ArrayList<AbstractElement> ();
         List<JoinOperator> joinOperators = new ArrayList<JoinOperator> ();
         List<PartialOrder> partialOrders = new ArrayList<PartialOrder> ();
 
@@ -52,7 +46,7 @@ public class CompositeDomain implements AbstractDomain
         return domains;
     }
 
-    public BottomElement getBottomElement ()
+    public AbstractElement getBottomElement ()
     {
         return bottomElement;
     }
@@ -78,7 +72,7 @@ public class CompositeDomain implements AbstractDomain
 		return false;
 	}
 
-    public TopElement getTopElement ()
+    public AbstractElement getTopElement ()
     {
         return topElement;
     }
