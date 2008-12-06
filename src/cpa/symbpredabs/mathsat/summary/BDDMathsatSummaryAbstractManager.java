@@ -198,7 +198,6 @@ public class BDDMathsatSummaryAbstractManager extends
         return buildBooleanAbstraction(mgr, e, succ, predicates);
     }
 
-    @SuppressWarnings("unchecked")
     private AbstractFormula buildBooleanAbstraction(SummaryFormulaManager mgr,
             SummaryAbstractElement e, SummaryAbstractElement succ,
             Collection<Predicate> predicates) {
@@ -295,12 +294,12 @@ public class BDDMathsatSummaryAbstractManager extends
 
 
         // build the definition of the predicates, and instantiate them
-        Object[] predinfo = buildPredList(mmgr, predicates);
-        long preddef = (Long)predinfo[0];
-        long[] important = (long[])predinfo[1];
-        Collection<String> predvars = (Collection<String>)predinfo[2];
+        PredInfo predinfo = buildPredList(mmgr, predicates);
+        long preddef = predinfo.predDef;
+        long[] important = predinfo.important;
+        Collection<String> predvars = predinfo.allVars;
         Collection<Pair<String, SymbolicFormula[]>> predlvals =
-            (Collection<Pair<String, SymbolicFormula[]>>)predinfo[3];
+            predinfo.allFuncs;
         // update the SSA map, by instantiating all the uninstantiated
         // variables that occur in the predicates definitions (at index 1)
         for (String var : predvars) {
@@ -643,7 +642,7 @@ public class BDDMathsatSummaryAbstractManager extends
                 LazyLogger.log(LazyLogger.DEBUG_1,
                         "Got interpolant(", i, "): ", itp, ", location: ", s1);
                 LazyLogger.log(LazyLogger.DEBUG_1, "Preds for ",
-                        (CFANode)s1.getLocation(), ": ", preds);
+                        s1.getLocation(), ": ", preds);
 
                 // If we are entering or exiting a function, update the stack
                 // of entry points

@@ -35,4 +35,14 @@ public class ParentsList {
 	public void copyFromExisting(ParentsList parents2) {
 		parents.addAll(parents2.parents);
 	}
+	
+	@Override
+  public String toString(){
+	  String s = "";
+	  for(int par:parents){
+	    s = s + "-"+ par;
+	  }
+	  return s;
+	}
+	
 }

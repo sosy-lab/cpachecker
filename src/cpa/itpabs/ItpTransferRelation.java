@@ -504,7 +504,7 @@ public class ItpTransferRelation implements TransferRelation {
         // inner nodes of the summary of element to any inner node of the
         // destination
         ItpAbstractElement e = (ItpAbstractElement)element;
-        CFANode src = (CFANode)e.getLocation();
+        CFANode src = e.getLocation();
 
         for (int i = 0; i < src.getNumLeavingEdges(); ++i) {
             CFAEdge edge = src.getLeavingEdge(i);
@@ -560,7 +560,7 @@ public class ItpTransferRelation implements TransferRelation {
 
         List<AbstractElement> allSucc = new Vector<AbstractElement>();
         ItpAbstractElement e = (ItpAbstractElement)element;
-        CFANode src = (CFANode)e.getLocation();
+        CFANode src = e.getLocation();
 
         for (int i = 0; i < src.getNumLeavingEdges(); ++i) {
             AbstractElement newe =

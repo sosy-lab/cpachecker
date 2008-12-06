@@ -18,20 +18,19 @@ import java.util.Vector;
 import logging.CPACheckerLogger;
 import logging.CustomLogLevel;
 import logging.LazyLogger;
-
-import cmdline.CPAMain;
-
 import cfa.objectmodel.BlankEdge;
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAErrorNode;
 import cfa.objectmodel.c.DeclarationEdge;
+import cmdline.CPAMain;
+
+import common.Pair;
 
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.symbpredabs.AbstractFormula;
 import cpa.symbpredabs.ConcreteTraceFunctionCalls;
 import cpa.symbpredabs.CounterexampleTraceInfo;
 import cpa.symbpredabs.InterpolatingTheoremProver;
-import common.Pair;
 import cpa.symbpredabs.Predicate;
 import cpa.symbpredabs.SSAMap;
 import cpa.symbpredabs.SymbolicFormula;
@@ -412,7 +411,6 @@ public class BDDMathsatExplicitAbstractManager extends
     }
 
     // precise predicate abstraction, using All-SMT algorithm
-    @SuppressWarnings("unchecked")
     protected AbstractFormula buildBooleanAbstraction(
             SymbolicFormulaManager mgr, ExplicitAbstractElement e,
             ExplicitAbstractElement succ, CFAEdge edge,
@@ -476,12 +474,12 @@ public class BDDMathsatExplicitAbstractManager extends
         assert(!mathsat.api.MSAT_ERROR_TERM(term));
 
         // build the definition of the predicates, and instantiate them
-        Object[] predinfo = buildPredList(mmgr, predicates);
-        long preddef = (Long)predinfo[0];
-        long[] important = (long[])predinfo[1];
-        Collection<String> predvars = (Collection<String>)predinfo[2];
+        PredInfo predinfo = buildPredList(mmgr, predicates);
+        long preddef = predinfo.predDef;
+        long[] important = predinfo.important;
+        Collection<String> predvars = predinfo.allVars;
         Collection<Pair<String, SymbolicFormula[]>> predlvals =
-            (Collection<Pair<String, SymbolicFormula[]>>)predinfo[3];
+            predinfo.allFuncs;
 
         // update the SSA map, by instantiating all the uninstantiated
         // variables that occur in the predicates definitions (at index 1)
@@ -661,7 +659,7 @@ public class BDDMathsatExplicitAbstractManager extends
 
         if (!skipFeasibilityCheck) {
             ++stats.abstractionNumMathsatQueries;
-            if (thmProver.isUnsat((MathsatSymbolicFormula)f)) {
+            if (thmProver.isUnsat(f)) {
                 thmProver.reset();
                 if (useCache) {
                     FeasibilityCacheKey key = new FeasibilityCacheKey(fkey);
@@ -684,7 +682,7 @@ public class BDDMathsatExplicitAbstractManager extends
             ++stats.abstractionNumCachedQueries;
         }
 
-        thmProver.push((MathsatSymbolicFormula)f);
+        thmProver.push(f);
 
         long totBddTime = 0;
 
@@ -1280,8 +1278,7 @@ public class BDDMathsatExplicitAbstractManager extends
         boolean theoryCombinationNeeded = false;
 
         for (int i = 1; i < path.length; ++i) {
-            AbstractElementWithLocation e =
-                (AbstractElementWithLocation)path[i];
+            AbstractElementWithLocation e = path[i];
             CFAEdge found = null;
             for (int j = 0; j < e.getLocationNode().getNumEnteringEdges(); ++j){
                 CFAEdge edge = e.getLocationNode().getEnteringEdge(j);

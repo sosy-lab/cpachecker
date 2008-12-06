@@ -1,5 +1,5 @@
 /**
- * 
+ *
  */
 package cpa.pointsto;
 
@@ -13,13 +13,13 @@ import exceptions.CPAException;
  *
  */
 public class PointsToMerge implements MergeOperator {
-	
+
 	private final AbstractDomain abstractDomain;
-	
+
 	public PointsToMerge (AbstractDomain abstractDomain) {
 		this.abstractDomain = abstractDomain;
 	}
-	
+
 	/* (non-Javadoc)
 	 * @see cpa.common.interfaces.MergeOperator#merge(cpa.common.interfaces.AbstractElement, cpa.common.interfaces.AbstractElement)
 	 */

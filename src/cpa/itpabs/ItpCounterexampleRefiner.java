@@ -236,10 +236,9 @@ public class ItpCounterexampleRefiner {
                     entryPoints.pop();
                 }
             }
-            info.setFormulaForRefinement((ItpAbstractElement)abstarr[0],
+            info.setFormulaForRefinement(abstarr[0],
                     mmgr.makeTrue());
-            info.setFormulaForRefinement(
-                    (ItpAbstractElement)abstarr[abstarr.length-1],
+            info.setFormulaForRefinement(abstarr[abstarr.length-1],
                     mmgr.makeFalse());
         } else {
             // this is a real bug, notify the user

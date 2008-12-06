@@ -1,5 +1,5 @@
 /**
- * 
+ *
  */
 package cpa.pointsto;
 
@@ -17,11 +17,11 @@ import exceptions.CPAException;
 public class PointsToStop implements StopOperator {
 
 	private final AbstractDomain abstractDomain;
-	
+
 	public PointsToStop (AbstractDomain abstractDomain) {
 		this.abstractDomain = abstractDomain;
 	}
-	
+
 	/* (non-Javadoc)
 	 * @see cpa.common.interfaces.StopOperator#stop(cpa.common.interfaces.AbstractElement, java.util.Collection)
 	 */

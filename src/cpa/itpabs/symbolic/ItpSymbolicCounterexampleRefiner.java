@@ -366,6 +366,7 @@ public class ItpSymbolicCounterexampleRefiner extends ItpCounterexampleRefiner {
         return new Pair<SymbolicFormula, SSAMap>(f, ssa);
     }
 
+    @Override
     public ItpCounterexampleTraceInfo forceCover(
                 SymbolicFormulaManager mgr,
                 ItpAbstractElement x,

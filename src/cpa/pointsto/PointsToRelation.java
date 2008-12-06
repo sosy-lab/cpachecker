@@ -1,188 +1,295 @@
 /**
- * 
+ *
  */
 package cpa.pointsto;
 
-import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
-import org.eclipse.cdt.core.dom.ast.IBinding;
-import java.util.Set;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Set;
+
+import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
+
+import cpa.pointsto.PointsToElement.InMemoryObject;
 
 /**
  * this is what a C pointer is; we may have multiple declarations of the same
  * variable with a different number of deref ops (*) in a PointsToElement, each
  * points to an object of higher deref count
- * 
+ *
  * @author Michael Tautschnig <tautschnig@forsyte.de>
- * 
+ *
  */
-public class PointsToRelation {
-	
-	private final IASTDeclarator variable;
-	private final int derefCount;
-	private boolean isTop;
-	private Set<PointsToRelation> pointsToObject;
-	private Set<String> pointsToString;
-	
-	public PointsToRelation (IASTDeclarator variable, int derefCount) {
-		this.variable = variable;
-		this.derefCount = derefCount;
-		this.isTop = true;
-		this.pointsToObject = new HashSet<PointsToRelation>();
-		this.pointsToString = new HashSet<String>();
+public class PointsToRelation extends InMemoryObject {
+
+  public interface Address {
+    public Address shift (int offset);
+    public Address clone ();
+  }
+
+  public static class NullPointer implements Address {
+    @Override
+    public int hashCode () {
+      return 0;
+    }
+
+    @Override
+    public boolean equals (Object o) {
+      return (o instanceof NullPointer);
+    }
+
+    @Override
+    public NullPointer clone () {
+      return this;
+    }
+
+    @Override
+    public String toString () {
+      return "NULL";
+    }
+
+    public Address shift (int offset) {
+      return new InvalidPointer();
+    }
+  }
+
+  public static class InvalidPointer implements Address {
+    @Override
+    public int hashCode () {
+      return -1;
+    }
+
+    @Override
+    public boolean equals (Object o) {
+      return (o instanceof InvalidPointer);
+    }
+
+    @Override
+    public InvalidPointer clone () {
+      return this;
+    }
+
+    @Override
+    public String toString () {
+      return "##INVALID##";
+    }
+
+    public Address shift (int offset) {
+      return this;
+    }
+  }
+
+  public static class Malloc implements Address /*extends NullPointer*/ {
+    private class BaseAddress {}
+
+    private int offset;
+    private int moreBytes;
+    private BaseAddress base;
+
+    public Malloc (int numBytes) {
+      offset = 0;
+      moreBytes = numBytes;
+      base = new BaseAddress();
+    }
+
+    private Malloc () {}
+
+    @Override
+    public int hashCode () {
+      return base.hashCode();
+    }
+
+    @Override
+    public boolean equals (Object o) {
+      if (!(o instanceof Malloc)) return false;
+      Malloc m = (Malloc)o;
+      if (m.base != base) return false;
+      assert (m.offset + m.moreBytes == offset + moreBytes);
+      return (m.offset == offset);
+    }
+
+    @Override
+    public Malloc clone () {
+      Malloc result = new Malloc();
+      result.offset = offset;
+      result.moreBytes = moreBytes;
+      result.base = base;
+      return result;
+    }
+
+    @Override
+    public String toString () {
+      return new String("##MALLOC+") + offset + "##";
+    }
+
+    public Address shift (int offset) {
+      if (this.offset + offset < 0 || offset > moreBytes) return new InvalidPointer();
+      this.offset += offset;
+      this.moreBytes -= offset;
+      return this;
+    }
+  }
+
+  public static class AddressOfObject implements Address {
+    private final Object obj;
+    public AddressOfObject (Object obj) {
+      this.obj = obj;
+    }
+
+    @Override
+    public int hashCode () {
+      return obj.hashCode() + 13;
+    }
+
+    @Override
+    public boolean equals (Object o) {
+      if (!(o instanceof AddressOfObject)) {
+        return false;
+      }
+
+      return ((AddressOfObject)o).obj.equals(this.obj);
+    }
+
+    @Override
+    public AddressOfObject clone () {
+      // safe as long as shift is a no-op
+      return this;
+    }
+
+    @Override
+    public String toString () {
+      return new String("&") + obj.toString();
+    }
+
+    public Address shift (int offset) {
+      // safe, at least
+      return new InvalidPointer ();
+    }
+  }
+
+	private final Set<Address> values;
+
+	public PointsToRelation (IASTDeclarator variable, String name) {
+		super(variable, name);
+		this.values = new HashSet<Address>();
+		this.values.add(new InvalidPointer());
 	}
-	
+
 	@Override
 	public int hashCode () {
-		return variable.hashCode() + derefCount;
+		return super.hashCode() + values.size();
 	}
-	
+
 	@Override
 	public boolean equals (Object o) {
 		if (!(o instanceof PointsToRelation)) {
 			return false;
 		}
 		PointsToRelation other = (PointsToRelation)o;
-		
-		if (other.variable != variable || other.derefCount != derefCount ||
-				other.isTop != isTop) {
-			return false;
-		}
-		
-		if (!other.pointsToObject.equals(pointsToObject) ||
-				!other.pointsToString.equals(pointsToString)) {
-			return false;
-		}
-		
+
+    if (!super.equals(other) || !other.values.equals(values)) {
+      return false;
+    }
+
 		return true;
 	}
-	
+
 	@Override
 	public PointsToRelation clone() {
-		PointsToRelation result = new PointsToRelation(variable, derefCount);
-		result.isTop = isTop;
-		result.pointsToObject.addAll(pointsToObject);
-		for (String s : pointsToString) {
-			result.pointsToString.add(new String(s));
+		PointsToRelation result = new PointsToRelation(variable, name);
+		for (Address a : values) {
+		  result.values.add(a.clone());
 		}
 		return result;
 	}
-	
-	public String getVariableString () {
-		String out = "";
-		IBinding binding = variable.getName().resolveBinding();
-		for (int i = derefCount; i > 0; --i) {
-			out += "*";
-		}
-		// out += variable/*.getParent()*/.getRawSignature() + " -> ";
-		out += binding.getName();
-		return out;
-	}
-	
+
 	@Override
 	public String toString () {
-		String out = getVariableString();
-		if (isTop) {
+		String out = name + " = ";
+		if (isInvalid()) {
 			out += "##TOP##";
 		} else {
-			Iterator<PointsToRelation> iter1 = pointsToObject.iterator();
-			while (iter1.hasNext()) {
-				out += iter1.next().getVariableString();
-				if (iter1.hasNext() || !pointsToString.isEmpty()) out += ",";
-			}
-			Iterator<String> iter2 = pointsToString.iterator();
-			while (iter2.hasNext()) {
-				out += iter2.next();
-				if (iter2.hasNext()) out += ",";
-			}
+		  out += "{";
+		  Iterator<Address> iter = values.iterator();
+		  while (iter.hasNext()) {
+		    out += iter.next();
+		  }
+		  out += "}";
 		}
 		return out;
 	}
-	
-	public IASTDeclarator getVariable () {
-		return variable;
+
+  public Set<Address> getValues () {
+    return values;
+  }
+
+  public boolean isInvalid () {
+    return (!values.isEmpty() && values.iterator().next() instanceof InvalidPointer);
+  }
+
+  public void makeInvalid () {
+    setAddress(new InvalidPointer());
+  }
+
+  public void makeNull () {
+    setAddress(new NullPointer());
+  }
+
+  public void setAddress (Address address) {
+    this.values.clear();
+    this.values.add(address);
+  }
+
+	public void addAddress (Address address) {
+		if (!isInvalid()) {
+		  if (address instanceof InvalidPointer) {
+		    makeInvalid();
+		  } else {
+		    this.values.add(address);
+		  }
+		}
 	}
-	
-	public int getDerefCount () {
-		return derefCount;
+
+	public void addNull () {
+		addAddress(new NullPointer());
 	}
-	
-	public void makeTop () {
-		this.isTop = true;
-		this.pointsToObject.clear();
-		this.pointsToString.clear();
+
+	public void makeAlias (PointsToRelation other) {
+	  if (this == other) return;
+
+		values.clear();
+		values.addAll(other.values);
 	}
-	
-	public void pointsTo (PointsToRelation obj) {
-		this.isTop = false;
-		this.pointsToObject.clear();
-		this.pointsToObject.add(obj);
-		this.pointsToString.clear();
-	}
-	
-	public void pointsTo (String init) {
-		this.isTop = false;
-		this.pointsToObject.clear();
-		this.pointsToString.clear();
-		this.pointsToString.add(new String(init));
-	}
-	
-	public void pointsToNull () {
-		pointsTo("null");
-	}
-	
-	public void addPointsTo (PointsToRelation obj) {
-		if (!isTop) this.pointsToObject.add(obj);
-	}
-	
-	public void addPointsTo (String init) {
-		if (!isTop) this.pointsToString.add(init);
-	}
-	
-	public void addPointsToNull () {
-		addPointsTo("null");
-	}
-	
+
 	/*
-	public void setPointsTo (PointsToRelation other) {
-		pointsToUndef = other.pointsToUndef;
-		pointsTo.clear();
-		for (String s : other.pointsTo) {
-			pointsTo.add(new String(s));
-		}
-	}
-	
-	public void updateAll (String update) {
-		if (pointsToUndef) return;
-		Iterator<String> iter = pointsTo.iterator();
-		while (iter.hasNext()) {
-			String s = iter.next();
-			if (s.equals("null")) {
-				s = update;
-			} else {
-				s = "(" + s + ") " + update;
-			}
-		}
+	public Pointer find (PointsToRelation r, int offset) {
+	  for (Pointer p : data) {
+	    if (p.bracketOp(offset) == r) return p;
+	  }
+
+	  return null;
 	}
 	*/
-	
-	public boolean subsetOf (final PointsToRelation other) {
-		if (!other.variable.equals(variable) || other.derefCount != derefCount) return false;
-		return other.isTop || (other.pointsToObject.containsAll(pointsToObject) &&
-				other.pointsToString.containsAll(pointsToString));
+
+	public void shift (int offset) {
+	  Set<Address> backup = new HashSet<Address>(values);
+	  values.clear();
+	  for (Address a : backup) {
+	    values.add(a.shift(offset));
+	  }
 	}
-	
+
+	public boolean subsetOf (final PointsToRelation other) {
+		if (!other.variable.equals(variable)) return false;
+		return other.isInvalid() || other.values.containsAll(values);
+	}
+
 	public void join (final PointsToRelation other) {
 		assert (other.variable.equals(variable));
-		assert (other.derefCount == derefCount);
-		isTop |= other.isTop;
-		if (isTop) {
-			pointsToObject.clear();
-			pointsToString.clear();
+		assert (other.name.equals(name));
+		if (other.isInvalid()) {
+			makeInvalid();
 		} else {
-			pointsToObject.addAll(other.pointsToObject);
-			pointsToString.addAll(other.pointsToString);
+			values.addAll(other.values);
 		}
 	}
 }

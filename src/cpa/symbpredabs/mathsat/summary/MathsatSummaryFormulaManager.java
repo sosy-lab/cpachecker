@@ -108,8 +108,7 @@ public class MathsatSummaryFormulaManager extends MathsatSymbolicFormulaManager
 
             assert(nodeToFormula.containsKey(in));
 
-            MathsatSymbolicFormula t =
-                (MathsatSymbolicFormula)nodeToFormula.get(in);
+            MathsatSymbolicFormula t = nodeToFormula.get(in);
             SSAMap ssa = nodeToSSA.get(in);
             //updateMaxIndex(ssa);
 

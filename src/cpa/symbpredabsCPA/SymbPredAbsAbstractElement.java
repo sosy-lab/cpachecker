@@ -128,11 +128,9 @@ implements AbstractElement {
 	public boolean equals(Object o) {
 		if (this == o) {
 			return true;
-		} else if (!(o instanceof SymbPredAbsAbstractElement)) {
-			return false;
 		}
 		else{
-	    	SymbPredAbsAbstractElement thisElement = (SymbPredAbsAbstractElement)this;
+	    	SymbPredAbsAbstractElement thisElement = this;
 	    	SymbPredAbsAbstractElement otherElement = (SymbPredAbsAbstractElement)o;
 
 	    	// TODO
@@ -169,7 +167,9 @@ implements AbstractElement {
 
 	                assert(thisElement.getAbstraction() != null);
 	                assert(otherElement.getAbstraction() != null);
-
+	                if(!thisElement.getParents().equals(otherElement.getParents())){
+	                  return false;
+	                }
 	                boolean ok = bddMathsatMan.equals(thisElement.getAbstraction(), otherElement.getAbstraction());
 
 	                // TODO
@@ -213,10 +213,10 @@ implements AbstractElement {
 		BDDAbstractFormula abst = (BDDAbstractFormula)getAbstraction();
 		SymbolicFormula symbReprAbst = bddMathsatMan.toConcrete(mathsatFormMan, abst);
 		return
-		//"node: " + getLocation().getNodeNumber() +
 		" PF: "+ getPathFormula().getSymbolicFormula() +
 		" Abstraction: " + symbReprAbst +
-		 " Init Formula--> " + (getInitAbstractionSet() != null ? getInitAbstractionSet().getSymbolicFormula() : "null")  +
+		" Init Formula--> " + (getInitAbstractionSet() != null ? getInitAbstractionSet().getSymbolicFormula() : "null")  +
+		" Parents --> " + parents + 
 		"\n \n";
 		//+ ">(" + Integer.toString(getId()) + ")"
 	}

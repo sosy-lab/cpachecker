@@ -11,6 +11,9 @@ import cmdline.CPAMain;
 
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFANode;
+import cfa.objectmodel.c.CallToReturnEdge;
+import cfa.objectmodel.c.FunctionCallEdge;
+import cfa.objectmodel.c.ReturnEdge;
 
 import symbpredabstraction.AbstractFormula;
 import symbpredabstraction.BDDAbstractFormula;
@@ -31,6 +34,7 @@ import cpa.common.CPATransferException;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.TransferRelation;
+import cpa.octagon.OctElement;
 import exceptions.CPAException;
 import exceptions.SymbPredAbstTransferException;
 import exceptions.UnrecognizedCFAEdgeException;
@@ -121,7 +125,6 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 		return errorReached;
 	}
 
-	@Override
 	public AbstractDomain getAbstractDomain() {
 		return domain;
 	}
@@ -322,10 +325,53 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 		newElement.setParents(newParents);
 		newElement.addParent(edge.getSuccessor().getNodeNumber());
 
-		newElement.setInitAbstractionSet(element.getPathFormula());
+		if(edge instanceof FunctionCallEdge){
+		  PathFormula functionInitFormula = null;
+		  // TODO check
+		  try {
+        functionInitFormula = mathsatFormMan.makeAnd(element.getPathFormula().getSymbolicFormula(), 
+            edge, element.getPathFormula().getSsa(), false, false);
+        
+        // TODO check
+        functionInitFormula = mathsatFormMan.makeAndEnterFunction(
+          (MathsatSymbolicFormula)functionInitFormula.getSymbolicFormula(), edge.getSuccessor(),
+          functionInitFormula.getSsa(), false, false);
+//        m1 = (MathsatSymbolicFormula)p.getSymbolicFormula();
+//        f1 = m1;
+//        ssa = p.getSsa();
+      } catch (UnrecognizedCFAEdgeException e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+      }
+      assert(functionInitFormula != null);
+		  newElement.setInitAbstractionSet(functionInitFormula);
+		}
+		else if(edge instanceof ReturnEdge){
+      PathFormula functionInitFormula = null;
+      // TODO check
+      try {
+        functionInitFormula = mathsatFormMan.makeAnd(element.getPathFormula().getSymbolicFormula(), 
+            edge, element.getPathFormula().getSsa(), false, false);
+        
+      } catch (UnrecognizedCFAEdgeException e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+      }
+      assert(functionInitFormula != null);
+      newElement.setInitAbstractionSet(functionInitFormula);
+      // TODO if we don't handle local predicates this is the case
+      // later should be handled according to local predicates
+      CallToReturnEdge summaryEdge = edge.getSuccessor().getEnteringSummaryEdge();
+      SymbPredAbsAbstractElement previousElem = (SymbPredAbsAbstractElement)summaryEdge.extractAbstractElement("SymbPredAbsAbstractElement");
+//      newElement.setParents(previousOctElem.getParents());
+//      previousElem.setParents(element.getParents());
+//      element = previousElem;
+      
+    }
+		else{
+		  newElement.setInitAbstractionSet(element.getPathFormula());
+		}
 
-		// TODO set predicates
-		// we have to do this before computing abstraction
 		PredicateMap pmap = element.getPredicates();
 		newElement.setPredicates(pmap);
 
@@ -347,7 +393,6 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
         } else {
 
         }
-
 
 		// TODO refinement part
 //		if (amgr.isFalse(abstraction)) {

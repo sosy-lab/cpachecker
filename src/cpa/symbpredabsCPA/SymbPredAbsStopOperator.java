@@ -91,6 +91,10 @@ public class SymbPredAbsStopOperator implements StopOperator {
                 assert(e1.getAbstraction() != null);
                 assert(e2.getAbstraction() != null);
 
+                if(!e1.getParents().equals(e2.getParents())){
+                  return false;
+                }
+                
                 boolean ok = amgr.entails(e1.getAbstraction(), e2.getAbstraction());
 
                 if (ok) {
