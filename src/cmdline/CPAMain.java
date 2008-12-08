@@ -2,6 +2,7 @@ package cmdline;
 
 import java.io.File;
 import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
@@ -40,10 +41,13 @@ import compositeCPA.CompositeCPA;
 import cpa.common.CPAAlgorithm;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
+import cpa.location.LocationCPA;
+import cpa.scoperestrictionautomaton.ScopeRestrictionAutomatonCPA;
 import cpa.symbpredabs.BlockCFABuilder;
 import cpa.symbpredabs.summary.ConeOfInfluenceCFAReduction;
 import cpa.symbpredabs.summary.SummaryCFABuilder;
 import cpa.symbpredabs.summary.SummaryDOTBuilder;
+import cpa.symbpredabsCPA.SymbPredAbsCPA;
 import cpaplugin.CPAConfiguration;
 import cpaplugin.MainCPAStatistics;
 import exceptions.CPAException;
@@ -176,6 +180,59 @@ public class CPAMain {
     // all functions separately
 
     if (false) {//!CPAMain.cpaConfig.getBooleanValue("analysis.interprocedural")) {
+    } else if (CPAMain.cpaConfig.getBooleanValue("analysis.queryDrivenProgramTesting")) {
+      if (mainFunction == null) {
+        mainFunction = cfas.getCFA(CPAMain.cpaConfig.getProperty(
+            "analysis.entryFunction"));
+      }
+      // create compositeCPA from automaton CPA and pred abstraction
+      // TODO this must be a CPAPlus actually
+      List<ConfigurableProgramAnalysis> cpas = new ArrayList<ConfigurableProgramAnalysis> ();
+      cpas.add(new LocationCPA("sep", "sep"));
+      ScopeRestrictionAutomatonCPA sraCPA = new ScopeRestrictionAutomatonCPA(null, null);
+      cpas.add(sraCPA);
+      SymbPredAbsCPA predAbsCPA = new SymbPredAbsCPA("sep", "sep");
+      cpas.add(predAbsCPA);
+      ConfigurableProgramAnalysis cpa = CompositeCPA.createNewCompositeCPA(cpas, mainFunction);
+
+      LazyLogger.log(Level.INFO, "CPA Algorithm starting ... ");
+      cpaStats.startAnalysisTimer();
+
+      CPAAlgorithm algo = new CPAAlgorithm();
+      /*
+      Set<AbstractElement> testGoals = new HashSet<AbstractElement>(sraCPA.getTestGoals());
+      while (!testGoals.isEmpty()) {
+        // testGoals to be passed in as precision
+        AbstractElement initialElement =
+          cpa.getInitialElement(mainFunction);
+        Collection<AbstractElement> reached = algo.CPA(cpa, initialElement);
+        removeInfeasibleTestGoals(testGoals, reached);
+
+        Set<String> paths = new HashSet<String>();
+        for (AbstractElement e : reached) {
+          CompositeElement comp = (CompositeElement)e;
+          if (testGoals.isEmpty()) break;
+          if (!satisfiesTestGoal(testGoals, e)) continue;
+          if (predAbsCPA.isReachable(comp.get(2))) {
+            testGoals.remove(e);
+            paths.add(e);
+          } else {
+            // refine predicate precision
+          }
+        }
+
+        runCBMC(paths);
+      }
+      */
+
+      cpaStats.stopAnalysisTimer();
+
+      LazyLogger.log(Level.INFO, "CPA Algorithm finished ");
+
+      if (cpaStats.getErrorReached() == MainCPAStatistics.ERROR_UNKNOWN) {
+        cpaStats.setErrorReached(false);
+      }
+      displayStatistics();
     } else {
 
       if (mainFunction == null) {
