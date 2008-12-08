@@ -1,7 +1,7 @@
 /**
  * 
  */
-package cpa.scoperestrictionautomaton;
+package cpa.scoperestriction;
 
 import cfa.objectmodel.CFAEdge;
 import cpa.common.interfaces.AbstractElement;

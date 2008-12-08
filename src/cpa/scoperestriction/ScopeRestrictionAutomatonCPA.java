@@ -1,7 +1,7 @@
 /**
  * 
  */
-package cpa.scoperestrictionautomaton;
+package cpa.scoperestriction;
 
 import java.util.Collection;
 import java.util.HashSet;
