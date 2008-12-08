@@ -39,27 +39,31 @@ def run_single(benchmark, config, time_limit, mem_limit):
     cmdline = Template('ulimit -t $time_limit -v $mem_limit; '
                        '(./cpa.sh -config $config -nolog $benchmark > '
                        '$benchmark.$cn.log 2>&1)').substitute(locals())
-    p = subprocess.Popen(cmdline, shell=True, cwd=CPACHECKER_DIR)
+    p = subprocess.Popen(['/bin/bash','-c',cmdline], shell=False, cwd=CPACHECKER_DIR)
     retval = p.wait()
-    tot_time, outcome = None, None
-    with open('%s.%s.log' % (benchmark, configname(config))) as f:
-        for line in f:
-            if tot_time is None and line.startswith(
-                'Total Time Elapsed including CFA construction:'):
-                tot_time = line[46:].strip()[:-1]
-            if outcome is None and line.startswith(
-                'Error location(s) reached?'):
-                line = line[26:].strip()
-                if line.startswith('NO'):
-                    outcome = 'SAFE'
-                elif line.startswith('YES'):
-                    outcome = 'UNSAFE'
-                else:
-                    outcome = 'UNKNOWN'
-    if tot_time is None:
-        tot_time = -1
-    if outcome is None:
-        outcome = 'UNKNOWN'
+    if retval != 0:
+      outcome = 'ERROR'
+      tot_time = -1
+    else:
+      tot_time, outcome = None, None
+      with open('%s.%s.log' % (benchmark, configname(config))) as f:
+          for line in f:
+              if tot_time is None and line.startswith(
+                  'Total Time Elapsed including CFA construction:'):
+                  tot_time = line[46:].strip()[:-1]
+              if outcome is None and line.startswith(
+                  'Error location(s) reached?'):
+                  line = line[26:].strip()
+                  if line.startswith('NO'):
+                      outcome = 'SAFE'
+                  elif line.startswith('YES'):
+                      outcome = 'UNSAFE'
+                  else:
+                      outcome = 'UNKNOWN'
+      if tot_time is None:
+          tot_time = -1
+      if outcome is None:
+          outcome = 'UNKNOWN'
     return tot_time, outcome
     
 
@@ -83,7 +87,7 @@ def run_single_blast(benchmark, config, time_limit, mem_limit):
                        '(PATH=$csisatdir:$blastdir:$$PATH '
                        'time -p pblast.opt $flags $benchmark) > '
                        '$logname 2>&1').substitute(locals())
-    p = subprocess.Popen(cmdline, shell=True)
+    p = subprocess.Popen(['/bin/bash','-c',cmdline], shell=False)
     retval = p.wait()
     tot_time, outcome = None, None
     with open(logname) as f:
@@ -133,7 +137,9 @@ def main(which, benchmarks, configs, time_limit, mem_limit, outfile,
                              (b, configname(c)))
             sys.stdout.flush()
         results[configname(c)][b] = run(b, c, t, m)
-        if verbose:
+        if results[configname(c)][b][1] == 'ERROR':
+          sys.stderr.write('ERROR\n')
+        elif verbose:
             sys.stdout.write('DONE\n')
 
     try:
