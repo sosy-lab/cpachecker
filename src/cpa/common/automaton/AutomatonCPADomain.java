@@ -345,6 +345,28 @@ public class AutomatonCPADomain<E> implements AbstractDomain {
     return mInitialElement;
   }
   
+  public boolean contains(AbstractElement pElement) {
+    if (pElement == null) {
+      return false;
+    }
+    
+    if (!(pElement instanceof AutomatonCPADomain<?>.Element)) {
+      return false;
+    }
+    
+    Element lElement = (Element)pElement;
+    
+    return equals(lElement.mDomain);
+  }
+  
+  public Element getSuccessor(AbstractElement pElement, E pEdge) {
+    assert(contains(pElement));
+    
+    Element lElement = (Element)pElement;
+    
+    return lElement.getSuccessor(pEdge);
+  }
+  
   /* (non-Javadoc)
    * @see cpa.common.interfaces.AbstractDomain#getBottomElement()
    */

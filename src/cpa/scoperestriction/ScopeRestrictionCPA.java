@@ -68,15 +68,8 @@ public class ScopeRestrictionCPA implements ConfigurableProgramAnalysis {
     public AutomatonCPADomain<CFAEdge>.Element getAbstractSuccessor(AbstractElement pElement,
                                                 CFAEdge pCfaEdge)
                                                                  throws CPATransferException {
-      assert(pElement != null);
-      assert(pCfaEdge != null);
+      AutomatonCPADomain<CFAEdge>.Element lSuccessor = mDomain.getSuccessor(pElement, pCfaEdge);
       
-      assert(pElement instanceof AutomatonCPADomain<?>.Element);
-      
-      AutomatonCPADomain<CFAEdge>.Element lElement = (AutomatonCPADomain<CFAEdge>.Element)pElement;
-      
-      AutomatonCPADomain<CFAEdge>.Element lSuccessor = lElement.getSuccessor(pCfaEdge);
-
       // we want a deterministic behavior
       assert(lSuccessor.isSingleton() || lSuccessor.equals(mDomain.getBottomElement()) || lSuccessor.equals(mDomain.getTopElement()));
       

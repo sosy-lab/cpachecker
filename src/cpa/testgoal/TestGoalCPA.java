@@ -68,14 +68,7 @@ public class TestGoalCPA implements ConfigurableProgramAnalysis {
     public AbstractElement getAbstractSuccessor(AbstractElement pElement,
                                                 CFAEdge pCfaEdge)
                                                                  throws CPATransferException {
-      assert(pElement != null);
-      assert(pCfaEdge != null);
-      
-      assert(pElement instanceof AutomatonCPADomain<?>.Element);
-      
-      AutomatonCPADomain<CFAEdge>.Element lElement = (AutomatonCPADomain<CFAEdge>.Element)pElement;
-      
-      return lElement.getSuccessor(pCfaEdge);
+      return mDomain.getSuccessor(pElement, pCfaEdge);
     }
 
     @Override
