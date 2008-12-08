@@ -40,6 +40,7 @@ public class AutomatonCPADomain<E> implements AbstractDomain {
     }
     
     public abstract Element getSuccessor(E pEdge);
+    public abstract boolean isSingleton();
   }
   
   public class StateSetElement extends Element {
@@ -149,6 +150,11 @@ public class AutomatonCPADomain<E> implements AbstractDomain {
       
       return new StateSetElement(getDomain(), lSuccessorStates);
     }
+
+    @Override
+    public boolean isSingleton() {
+      return (mStates.size() == 1);
+    }
   }
   
   public class BottomElement extends Element implements cpa.common.interfaces.BottomElement {
@@ -186,6 +192,11 @@ public class AutomatonCPADomain<E> implements AbstractDomain {
     public Element getSuccessor(E pEdge) {
       return this;
     }
+
+    @Override
+    public boolean isSingleton() {
+      return false;
+    }
   }
   
   public class TopElement extends Element implements cpa.common.interfaces.TopElement {
@@ -221,6 +232,12 @@ public class AutomatonCPADomain<E> implements AbstractDomain {
     @Override
     public Element getSuccessor(E pEdge) {
       return this;
+    }
+
+    @Override
+    public boolean isSingleton() {
+      // we define top as not being a singleton element
+      return false;
     }
   }
   

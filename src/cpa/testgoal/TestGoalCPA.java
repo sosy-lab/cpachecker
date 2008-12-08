@@ -105,6 +105,12 @@ public class TestGoalCPA implements ConfigurableProgramAnalysis {
   private TestGoalTransferRelation mTransferRelation;
   
   public TestGoalCPA(Automaton<CFAEdge> pTestGoalAutomaton) {
+    // Check for invariant: Final states will not be left once they are reached.
+    for (Automaton<CFAEdge>.State lState : pTestGoalAutomaton.getFinalStates()) {
+      // we ensure the property by a very strict assumption:
+      assert(lState.hasUnconditionalSelfLoop());
+    }
+    
     mDomain = new AutomatonCPADomain<CFAEdge>(pTestGoalAutomaton);
     
     mMergeOperator = new TestGoalMergeOperator();

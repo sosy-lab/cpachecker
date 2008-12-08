@@ -135,6 +135,18 @@ public class Automaton<E> {
       return lSuccessors;
     }
     
+    // only simple syntactical check
+    public boolean hasUnconditionalSelfLoop() {
+      for (Pair<Label<E>, State> lOutgoingTransition : mOutgoingTransitions) {
+        if (lOutgoingTransition.getFirst().equals(mAutomaton.mTrueLabel) && 
+            lOutgoingTransition.getSecond().equals(this)) {
+          return true;
+        }
+      }
+      
+      return false;
+    }
+    
     @Override
     public boolean equals(Object o) {
       if (o == null) {
