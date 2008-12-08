@@ -1,7 +1,7 @@
 /**
  * 
  */
-package cpa.scoperestrictionautomaton.label;
+package cpa.common.automaton.cfa;
 
 //import org.eclipse.cdt.core.dom.ast.IASTFileLocation;
 

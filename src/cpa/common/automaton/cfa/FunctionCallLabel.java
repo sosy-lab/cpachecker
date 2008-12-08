@@ -1,7 +1,7 @@
 /**
  * 
  */
-package cpa.scoperestrictionautomaton.label;
+package cpa.common.automaton.cfa;
 
 import cpa.common.automaton.Label;
 import cfa.objectmodel.CFAEdge;
@@ -11,17 +11,17 @@ import cfa.objectmodel.CFAEdgeType;
  * @author holzera
  *
  */
-public class FunctionReturnLabel implements Label<CFAEdge> {
+public class FunctionCallLabel implements Label<CFAEdge> {
   private String mFunctionName;
   
-  public FunctionReturnLabel(String pFunctionName) {
+  public FunctionCallLabel(String pFunctionName) {
     mFunctionName = pFunctionName;
   }
 
   @Override
   public boolean matches(CFAEdge pEdge) {
-    if (CFAEdgeType.ReturnEdge == pEdge.getEdgeType()) {
-      return pEdge.getPredecessor().getFunctionName().equals(mFunctionName);
+    if (CFAEdgeType.FunctionCallEdge == pEdge.getEdgeType()) {
+      return pEdge.getSuccessor().getFunctionName().equals(mFunctionName);
     }    
 
     return false;
@@ -29,6 +29,6 @@ public class FunctionReturnLabel implements Label<CFAEdge> {
   
   @Override
   public String toString() {
-    return "@RETURN(" + mFunctionName + ")";
+    return "@CALL(" + mFunctionName + ")";
   }
 }
