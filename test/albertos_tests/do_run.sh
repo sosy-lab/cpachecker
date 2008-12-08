@@ -3,6 +3,7 @@
 # template for the log files. Each log file will be called
 # $outfile.$cfg.log, where $cfg is the configuration used (see below)
 outfile=results/test_`date +%Y-%m-%d`
+mkdir -p results
 
 # the various configurations to test
 configurations="summary explicit itpexplicit"
