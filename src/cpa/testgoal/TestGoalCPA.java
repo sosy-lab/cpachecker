@@ -57,16 +57,7 @@ public class TestGoalCPA implements ConfigurableProgramAnalysis {
     @Override
     public boolean stop(AbstractElement pElement,
                         AbstractElement pReachedElement) throws CPAException {
-      assert(pElement != null);
-      assert(pReachedElement != null);
-      
-      assert(pElement instanceof AutomatonCPADomain<?>.Element);
-      assert(pReachedElement instanceof AutomatonCPADomain<?>.Element);
-      
-      AutomatonCPADomain<CFAEdge>.Element lElement = (AutomatonCPADomain<CFAEdge>.Element)pElement;
-      AutomatonCPADomain<CFAEdge>.Element lReachedElement = (AutomatonCPADomain<CFAEdge>.Element)pReachedElement;
-      
-      return lReachedElement.getDomain().getPartialOrder().satisfiesPartialOrder(lElement, lReachedElement);
+      return mDomain.getPartialOrder().satisfiesPartialOrder(pElement, pReachedElement);
     }
     
   }
