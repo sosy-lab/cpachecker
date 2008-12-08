@@ -22,15 +22,16 @@ public class Automaton<E> {
     private Automaton<E> mAutomaton;
     private int mIndex;
     private Set<Pair<Label<E>, State>> mOutgoingTransitions;
-    //private Map<Label<E>, State> mOutgoingTransitions;
-    
     
     public State(Automaton<E> pAutomaton, int pIndex) {
       mAutomaton = pAutomaton;
       mIndex = pIndex;
       
-      //mOutgoingTransitions = new HashMap<Label<E>, State>();
       mOutgoingTransitions = new HashSet<Pair<Label<E>, State>>();
+    }
+    
+    public Automaton<E> getAutomaton() {
+      return mAutomaton;
     }
     
     public boolean isInitial() {
@@ -57,7 +58,6 @@ public class Automaton<E> {
       assert(pState != null);
       assert(pLabel != null);
       
-      //mOutgoingTransitions.put(pLabel, pState);
       mOutgoingTransitions.add(new Pair<Label<E>, State>(pLabel, pState));
     }
     
@@ -70,7 +70,6 @@ public class Automaton<E> {
     public void addSelfLoop(Label<E> pLabel) {
       assert(pLabel != null);
       
-      //mOutgoingTransitions.put(pLabel, this);
       mOutgoingTransitions.add(new Pair<Label<E>, State>(pLabel, this));
     }
     
@@ -101,9 +100,7 @@ public class Automaton<E> {
         
         State lLocalState = mStates.get(lIndex1);
         
-        //for (Map.Entry<Label<E>, State> lEntry : lState.mOutgoingTransitions.entrySet()) {
         for (Pair<Label<E>, State> lEntry : lState.mOutgoingTransitions) {
-          //State lTmpState = lEntry.getValue();
           State lTmpState = lEntry.getSecond();
           
           int lIndex2;
@@ -115,7 +112,6 @@ public class Automaton<E> {
             lIndex2 = lOffset + lTmpState.getIndex();
           }
           
-          //lLocalState.addTransition(lEntry.getKey(), lIndex2);
           lLocalState.addTransition(lEntry.getFirst(), lIndex2);
         }
         
@@ -130,11 +126,8 @@ public class Automaton<E> {
     public Collection<State> getSuccessors(E pE) {
       Collection<State> lSuccessors = new ArrayList<State>();
       
-      //for (Map.Entry<Label<E>, State> lEntry : mOutgoingTransitions.entrySet()) {
       for (Pair<Label<E>, State> lEntry : mOutgoingTransitions) {
-        //if (lEntry.getKey().matches(pE)) {
         if (lEntry.getFirst().matches(pE)) {
-          //lSuccessors.add(lEntry.getValue());
           lSuccessors.add(lEntry.getSecond());
         }
       }
@@ -244,9 +237,7 @@ public class Automaton<E> {
     for (State lState : pAutomaton.mStates) {
       State lLocalState = mStates.get(lState.getIndex());
       
-      //for (Map.Entry<Label<E>, State> lEntry : lState.mOutgoingTransitions.entrySet()) {
       for (Pair<Label<E>, State> lEntry : lState.mOutgoingTransitions) {
-        //lLocalState.addTransition(lEntry.getKey(), lEntry.getValue().getIndex());
         lLocalState.addTransition(lEntry.getFirst(), lEntry.getSecond().getIndex());
       }
       
@@ -281,9 +272,7 @@ public class Automaton<E> {
       
       State lLocalState = lAutomaton.mStates.get(lIndex1);
       
-      //for (Map.Entry<Label<E>, State> lEntry : lState.mOutgoingTransitions.entrySet()) {
       for (Pair<Label<E>, State> lEntry : lState.mOutgoingTransitions) {
-        //State lTmpState = lEntry.getValue();
         State lTmpState = lEntry.getSecond();
         
         int lIndex2;
@@ -295,7 +284,6 @@ public class Automaton<E> {
           lIndex2 = lOffset + lTmpState.getIndex();
         }
         
-        //lLocalState.addTransition(lEntry.getKey(), lIndex2);
         lLocalState.addTransition(lEntry.getFirst(), lIndex2);
       }
       
@@ -456,9 +444,7 @@ public class Automaton<E> {
           }          
         }
         
-        //for (Map.Entry<Label<E>, State> lEntry : lState.mOutgoingTransitions.entrySet()) {
         for (Pair<Label<E>, State> lEntry : lState.mOutgoingTransitions) {
-          //State lTmpState = lEntry.getValue();
           State lTmpState = lEntry.getSecond();
           
           State lCurrentState;
@@ -476,7 +462,6 @@ public class Automaton<E> {
             }
           }
           
-          //lModifiedAutomatonState.addTransition(lEntry.getKey(), lCurrentState);
           lModifiedAutomatonState.addTransition(lEntry.getFirst(), lCurrentState);
         }
       }
@@ -492,8 +477,6 @@ public class Automaton<E> {
       }
       
       return lAutomatonK;
-      
-      //return lModifiedAutomaton;
     }
   }
   
@@ -503,6 +486,10 @@ public class Automaton<E> {
     mStates.add(lState);
     
     return lState;
+  }
+  
+  public int getNumberOfStates() {
+    return mStates.size();
   }
   
   public State getInitialState() {
@@ -525,9 +512,7 @@ public class Automaton<E> {
     result += "\n";
     
     for (State lState : mStates) {
-      //for (Map.Entry<Label<E>, State> lEntry : lState.mOutgoingTransitions.entrySet()) {
       for (Pair<Label<E>, State> lEntry : lState.mOutgoingTransitions) {
-        //result += "q" + lState.getIndex() + " -> q" + lEntry.getValue().getIndex() + " [label=\"" + lEntry.getKey().toString() + "\"];\n"; 
         result += "q" + lState.getIndex() + " -> q" + lEntry.getSecond().getIndex() + " [label=\"" + lEntry.getFirst().toString() + "\"];\n";
       }
     }
