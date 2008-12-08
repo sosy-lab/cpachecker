@@ -210,7 +210,6 @@ public class ItpTransferRelation implements TransferRelation {
 
     public ART getART() { return abstractTree; }
 
-    @Override
     public AbstractDomain getAbstractDomain() {
         return domain;
     }

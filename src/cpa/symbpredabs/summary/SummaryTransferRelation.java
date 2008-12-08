@@ -158,7 +158,6 @@ public class SummaryTransferRelation implements TransferRelation {
 
     public int getNumAbstractStates() { return numAbstractStates; }
 
-    @Override
     public AbstractDomain getAbstractDomain() {
         return domain;
     }
