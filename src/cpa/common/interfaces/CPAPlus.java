@@ -17,7 +17,7 @@ public interface CPAPlus {
   public TransferRelationPlus getTransferRelation ();
   public MergeOperatorPlus getMergeOperator ();
   public StopOperatorPlus getStopOperator ();
-  public AbstractElement getInitialElement (CFAFunctionDefinitionNode node);
+  public <AE extends AbstractElement> AE getInitialElement (CFAFunctionDefinitionNode node);
   public Precision getInitialPrecision (CFAFunctionDefinitionNode node);
   public PrecisionAdjustment getPrecisionAdjustment ();
 }

@@ -12,6 +12,7 @@ import common.Pair;
  *
  */
 public interface PrecisionAdjustment {
-  public Pair<AbstractElement,Precision> prec (AbstractElement element, Precision precision,
-                                            Collection<Pair<AbstractElement,Precision>> elements);
+  // TODO I think with Java 1.6 it should be possible to say <AE super AbstractElementWithLocation>
+  public <AE extends AbstractElement> Pair<AE,Precision> prec (AbstractElement element, Precision precision,
+                                            Collection<Pair<AE,Precision>> elements);
 }
