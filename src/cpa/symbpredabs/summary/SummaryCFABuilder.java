@@ -342,12 +342,16 @@ public class SummaryCFABuilder {
                 continue;
             }
             boolean finished = true;
-            visited.put(n, -1);
+            //visited.put(n, -1); // AG commented this out for sanity check,
+                                  // avoids loops for "malformed" (for us) 
+                                  // C programs
             for (int i = 0; i < n.getNumLeavingEdges(); ++i) {
                 CFAEdge e = n.getLeavingEdge(i);
                 CFANode s = e.getSuccessor();
                 // check whether the edge is not a loop-back - we want to
-                // exclude those
+                // exclude those. Notice that we consider also return edges
+                // to be "loop backs", even though strictly speaking they are
+                // not
                 if (!isLoopBack(e) &&
                     (!visited.containsKey(s) || visited.get(s) != 1)) {
                     toProcess.push(s);
