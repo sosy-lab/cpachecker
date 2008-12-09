@@ -37,7 +37,8 @@ def run_single(benchmark, config, time_limit, mem_limit):
     """
     cn = configname(config)
     cmdline = Template('ulimit -t $time_limit -v $mem_limit; '
-                       '(./cpa.sh -config $config -nolog $benchmark > '
+                       '(PATH=../../nativeLibs/Simplify/:$$PATH '
+                       './cpa.sh -config $config -nolog $benchmark > '
                        '$benchmark.$cn.log 2>&1)').substitute(locals())
     p = subprocess.Popen(['/bin/bash','-c',cmdline], shell=False, cwd=CPACHECKER_DIR)
     retval = p.wait()
