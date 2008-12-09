@@ -1,7 +1,7 @@
 CPAchecker Installation Requirements
 
 Requirements for executing CPAchecker:
-1. Source have to be preprocessed by CIL.
+1. Sources have to be preprocessed by CIL.
    Necessary flags: 
    --printCilAsIs
 
