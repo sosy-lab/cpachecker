@@ -174,8 +174,8 @@ public class PointsToTransferRelation implements TransferRelation {
         relations.put(binaryExpression, entryLhs);
         break;
       }
-      case IASTBinaryExpression.op_pmarrow:
-      case IASTBinaryExpression.op_pmdot:
+      /*case IASTBinaryExpression.op_pmarrow:
+      case IASTBinaryExpression.op_pmdot:*/
       default:
       {
         System.err.println("Unhandled expression " + binaryExpression.getRawSignature());
