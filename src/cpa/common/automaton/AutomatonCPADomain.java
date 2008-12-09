@@ -155,6 +155,28 @@ public class AutomatonCPADomain<E> implements AbstractDomain {
     public boolean isSingleton() {
       return (mStates.size() == 1);
     }
+    
+    @Override
+    public String toString() {
+      String lString = "[";
+      
+      boolean lFirst = true;
+      
+      for (Automaton<E>.State lState : mStates) {
+        if (!lFirst) {
+          lString += ",";
+        }
+        else {
+          lFirst = false;
+        }
+        
+        lString += "Q" + lState.getIndex();
+      }
+      
+      lString += "]";
+      
+      return lString;
+    }
   }
   
   public class BottomElement extends Element implements cpa.common.interfaces.BottomElement {
@@ -197,6 +219,11 @@ public class AutomatonCPADomain<E> implements AbstractDomain {
     public boolean isSingleton() {
       return false;
     }
+    
+    @Override
+    public String toString() {
+      return "Bottom";
+    }
   }
   
   public class TopElement extends Element implements cpa.common.interfaces.TopElement {
@@ -238,6 +265,11 @@ public class AutomatonCPADomain<E> implements AbstractDomain {
     public boolean isSingleton() {
       // we define top as not being a singleton element
       return false;
+    }
+    
+    @Override
+    public String toString() {
+      return "Top";
     }
   }
   
