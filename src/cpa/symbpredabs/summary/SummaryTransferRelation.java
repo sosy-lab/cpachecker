@@ -1,6 +1,5 @@
 package cpa.symbpredabs.summary;
 
-import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
@@ -8,34 +7,33 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
 import java.util.Set;
-import java.util.Stack;
 import java.util.Vector;
 import java.util.logging.Level;
 
 import logging.CPACheckerLogger;
 import logging.CustomLogLevel;
 import logging.LazyLogger;
-
-import cmdline.CPAMain;
-
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAErrorNode;
 import cfa.objectmodel.CFANode;
 import cfa.objectmodel.c.CallToReturnEdge;
 import cfa.objectmodel.c.FunctionDefinitionNode;
 import cfa.objectmodel.c.ReturnEdge;
+import cmdline.CPAMain;
+
+import common.Pair;
 
 import cpa.common.CPATransferException;
 import cpa.common.ErrorReachedException;
 import cpa.common.RefinementNeededException;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.TransferRelation;
 import cpa.symbpredabs.AbstractFormula;
+import cpa.symbpredabs.AbstractReachabilityTree;
 import cpa.symbpredabs.CounterexampleTraceInfo;
-import common.Pair;
 import cpa.symbpredabs.Predicate;
 import cpa.symbpredabs.SSAMap;
 import cpa.symbpredabs.SymbolicFormula;
@@ -49,74 +47,6 @@ import exceptions.CPAException;
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
 public class SummaryTransferRelation implements TransferRelation {
-
-    // the Abstract Reachability Tree
-    class ART {
-        Map<AbstractElement, Collection<AbstractElement>> tree;
-        AbstractElement root;
-
-        public ART() {
-            tree = new HashMap<AbstractElement, Collection<AbstractElement>>();
-            root = null;
-        }
-
-        public void addChild(AbstractElement parent, AbstractElement child) {
-            if (root == null) {
-                root = parent;
-            }
-            if (!tree.containsKey(parent)) {
-                tree.put(parent, new Vector<AbstractElement>());
-            }
-            Collection<AbstractElement> c = tree.get(parent);
-            c.add(child);
-        }
-
-        public Collection<AbstractElement> getSubtree(AbstractElement root,
-                boolean remove, boolean includeRoot) {
-            Vector<AbstractElement> ret = new Vector<AbstractElement>();
-
-            Stack<AbstractElement> toProcess = new Stack<AbstractElement>();
-            toProcess.push(root);
-
-            while (!toProcess.empty()) {
-                AbstractElement cur = toProcess.pop();
-                ret.add(cur);
-                if (tree.containsKey(cur)) {
-                    toProcess.addAll(remove ? tree.remove(cur) : tree.get(cur));
-                }
-            }
-            if (!includeRoot) {
-                AbstractElement tmp = ret.lastElement();
-                assert(ret.firstElement() == root);
-                ret.setElementAt(tmp, 0);
-                ret.remove(ret.size()-1);
-            }
-            return ret;
-        }
-
-        public AbstractElement findHighest(SummaryCFANode loc) {
-            if (root == null) return null;
-
-            Queue<AbstractElement> toProcess =
-                new ArrayDeque<AbstractElement>();
-            toProcess.add(root);
-
-            while (!toProcess.isEmpty()) {
-                SummaryAbstractElement e =
-                    (SummaryAbstractElement)toProcess.remove();
-                if (e.getLocation().equals(loc)) {
-                    return e;
-                }
-                if (tree.containsKey(e)) {
-                    toProcess.addAll(tree.get(e));
-                }
-            }
-            System.out.println("ERROR, NOT FOUND: " + loc);
-            //assert(false);
-            //return null;
-            return root;
-        }
-    }
 
     class Path {
         Vector<Integer> elemIds;
@@ -145,14 +75,14 @@ public class SummaryTransferRelation implements TransferRelation {
     }
 
     private SummaryAbstractDomain domain;
-    private ART abstractTree;
+    private AbstractReachabilityTree abstractTree;
     private Map<Path, Integer> seenAbstractCounterexamples;
 
     private int numAbstractStates = 0; // for statistics
 
     public SummaryTransferRelation(SummaryAbstractDomain d) {
         domain = d;
-        abstractTree = new ART();
+        abstractTree = new AbstractReachabilityTree();
         seenAbstractCounterexamples = new HashMap<Path, Integer>();
     }
 
@@ -326,8 +256,8 @@ public class SummaryTransferRelation implements TransferRelation {
 
         UpdateablePredicateMap curpmap =
             (UpdateablePredicateMap)domain.getCPA().getPredicateMap();
-        AbstractElement root = null;
-        AbstractElement firstInterpolant = null;
+        AbstractElementWithLocation root = null;
+        AbstractElementWithLocation firstInterpolant = null;
         for (SummaryAbstractElement e : path) {
             Collection<Predicate> newpreds = info.getPredicatesForRefinement(e);
             if (firstInterpolant == null && newpreds.size() > 0) {
@@ -346,8 +276,9 @@ public class SummaryTransferRelation implements TransferRelation {
             } else {
                 assert(numSeen <= 1);
             }
-            root = abstractTree.findHighest(
-                    ((SummaryAbstractElement)firstInterpolant).getLocation());
+            CFANode loc = 
+                ((SummaryAbstractElement)firstInterpolant).getLocationNode(); 
+            root = abstractTree.findHighest(loc);
         }
         assert(root != null);
         if (CPAMain.cpaConfig.getBooleanValue("analysis.bfs")) {
@@ -364,10 +295,13 @@ public class SummaryTransferRelation implements TransferRelation {
         //root = path.getFirst();
         Collection<AbstractElement> toWaitlist = new HashSet<AbstractElement>();
         toWaitlist.add(root);
-        Collection<AbstractElement> toUnreach =
+        Collection<AbstractElementWithLocation> toUnreachTmp =
             abstractTree.getSubtree(root, true, false);
+        Vector<AbstractElement> toUnreach = new Vector<AbstractElement>();
+        toUnreach.ensureCapacity(toUnreachTmp.size());
         SummaryCPA cpa = domain.getCPA();
-        for (AbstractElement e : toUnreach) {
+        for (AbstractElement e : toUnreachTmp) {
+            toUnreach.add(e);
             Set<SummaryAbstractElement> cov = cpa.getCoveredBy(
                     (SummaryAbstractElement)e);
             for (AbstractElement c : cov) {
@@ -415,7 +349,7 @@ public class SummaryTransferRelation implements TransferRelation {
                                "Successor is: ", ret);
 
                 if (ret != domain.getBottomElement()) {
-                    abstractTree.addChild(e, ret);
+                    abstractTree.addChild(e, (AbstractElementWithLocation)ret);
                 }
 
                 return ret;

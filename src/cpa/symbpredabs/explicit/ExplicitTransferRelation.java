@@ -1,6 +1,5 @@
 package cpa.symbpredabs.explicit;
 
-import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
@@ -9,30 +8,27 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
-import java.util.Stack;
 import java.util.Vector;
 import java.util.logging.Level;
 
 import logging.CPACheckerLogger;
 import logging.CustomLogLevel;
 import logging.LazyLogger;
-
-import cmdline.CPAMain;
-
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAErrorNode;
 import cfa.objectmodel.CFANode;
 import cfa.objectmodel.c.FunctionDefinitionNode;
 import cfa.objectmodel.c.ReturnEdge;
-
+import cmdline.CPAMain;
 import cpa.common.CPATransferException;
 import cpa.common.ErrorReachedException;
 import cpa.common.RefinementNeededException;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.TransferRelation;
 import cpa.symbpredabs.AbstractFormula;
+import cpa.symbpredabs.AbstractReachabilityTree;
 import cpa.symbpredabs.CounterexampleTraceInfo;
 import cpa.symbpredabs.Predicate;
 import cpa.symbpredabs.SymbolicFormulaManager;
@@ -48,82 +44,6 @@ import exceptions.CPAException;
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
 public class ExplicitTransferRelation implements TransferRelation {
-
-    // Abstract Reachability Tree of AbstractElements
-    class ART {
-        Map<AbstractElement, Vector<AbstractElement>> tree;
-        AbstractElement root;
-
-        public ART() {
-            tree = new HashMap<AbstractElement, Vector<AbstractElement>>();
-            root = null;
-        }
-
-        public AbstractElement getRoot() { return root; }
-
-        public void addChild(AbstractElement parent, AbstractElement child) {
-            if (root == null) {
-                root = parent;
-            }
-            if (!tree.containsKey(parent)) {
-                tree.put(parent, new Vector<AbstractElement>());
-            }
-            Collection<AbstractElement> c = tree.get(parent);
-            c.add(child);
-        }
-
-        /**
-         * Returns the elements in the subtree rooted at "root". If "remove"
-         * is true, remove the elements from the ART (used in refinement). If
-         * "includeRoot" is false, don't include "root" itself
-         */
-        public Collection<AbstractElement> getSubtree(AbstractElement root,
-                boolean remove, boolean includeRoot) {
-            Vector<AbstractElement> ret = new Vector<AbstractElement>();
-
-            Stack<AbstractElement> toProcess = new Stack<AbstractElement>();
-            toProcess.push(root);
-
-            while (!toProcess.empty()) {
-                AbstractElement cur = toProcess.pop();
-                ret.add(cur);
-                if (tree.containsKey(cur)) {
-                    toProcess.addAll(remove ? tree.remove(cur) : tree.get(cur));
-                }
-            }
-            if (!includeRoot) {
-                AbstractElement tmp = ret.lastElement();
-                assert(ret.firstElement() == root);
-                ret.setElementAt(tmp, 0);
-                ret.remove(ret.size()-1);
-            }
-            return ret;
-        }
-
-        public boolean contains(AbstractElement n) {
-            return tree.containsKey(n);
-        }
-
-        public ExplicitAbstractElement findHighest(CFANode loc) {
-            if (root == null) return null;
-
-            Queue<AbstractElement> toProcess =
-                new ArrayDeque<AbstractElement>();
-            toProcess.add(root);
-
-            while (!toProcess.isEmpty()) {
-                ExplicitAbstractElement e =
-                    (ExplicitAbstractElement)toProcess.remove();
-                if (e.getLocationNode().equals(loc)) {
-                    return e;
-                }
-                if (tree.containsKey(e)) {
-                    toProcess.addAll(tree.get(e));
-                }
-            }
-            return null;
-        }
-    }
 
     class Path {
         Vector<Integer> elemIds;
@@ -152,7 +72,7 @@ public class ExplicitTransferRelation implements TransferRelation {
     }
 
     private ExplicitAbstractDomain domain;
-    private ART abstractTree;
+    private AbstractReachabilityTree abstractTree;
     private Map<Path, Integer> abstractCex;
 
     private int numAbstractStates = 0; // for statistics
@@ -165,7 +85,7 @@ public class ExplicitTransferRelation implements TransferRelation {
 
     public ExplicitTransferRelation(ExplicitAbstractDomain d) {
         domain = d;
-        abstractTree = new ART();
+        abstractTree = new AbstractReachabilityTree();
         // lastErrorPath = null;
         abstractCex = new HashMap<Path, Integer>();
     }
@@ -376,7 +296,7 @@ public class ExplicitTransferRelation implements TransferRelation {
                 }
             } else {
                 assert(firstInterpolant != null);
-                root = abstractTree.findHighest(
+                root = (ExplicitAbstractElement) abstractTree.findHighest(
                         firstInterpolant.getLocationNode());
                 LazyLogger.log(CustomLogLevel.SpecificCPALevel,
                                "Restarting ART from scratch");
@@ -416,8 +336,11 @@ public class ExplicitTransferRelation implements TransferRelation {
         //root = path.getFirst();
         Collection<AbstractElement> toWaitlist = new HashSet<AbstractElement>();
         toWaitlist.add(root);
-        Collection<AbstractElement> toUnreach =
+        Collection<AbstractElementWithLocation> toUnreachTmp =
             abstractTree.getSubtree(root, true, false);
+        Vector<AbstractElement> toUnreach = new Vector<AbstractElement>();
+        toUnreach.ensureCapacity(toUnreachTmp.size());
+        toUnreach.addAll(toUnreachTmp);
         if (cur != null) {
             // we don't want to unreach elements that were covered before
             // reaching the error!
@@ -467,7 +390,7 @@ public class ExplicitTransferRelation implements TransferRelation {
                        "Getting Abstract Successor of element: ", element,
                        " on edge: ", cfaEdge.getRawStatement());
 
-        if (!abstractTree.contains(element)) {
+        if (!abstractTree.contains((AbstractElementWithLocation)element)) {
             ++numAbstractStates;
         }
 
@@ -487,7 +410,7 @@ public class ExplicitTransferRelation implements TransferRelation {
                                "Successor is: ", ret);
 
                 if (ret != domain.getBottomElement()) {
-                    abstractTree.addChild(e, ret);
+                    abstractTree.addChild(e, (AbstractElementWithLocation)ret);
                 }
 
                 return ret;

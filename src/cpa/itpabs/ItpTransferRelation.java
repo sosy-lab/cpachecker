@@ -12,32 +12,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.NavigableSet;
 import java.util.Set;
-import java.util.Stack;
 import java.util.TreeSet;
 import java.util.Vector;
 
 import logging.CustomLogLevel;
 import logging.LazyLogger;
-
-import cmdline.CPAMain;
-
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFANode;
-
+import cmdline.CPAMain;
 import cpa.common.CPATransferException;
 import cpa.common.ErrorReachedException;
 import cpa.common.RefinementNeededException;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.TransferRelation;
-import cpa.itpabs.ItpAbstractDomain;
-import cpa.itpabs.ItpAbstractElement;
-import cpa.itpabs.ItpAbstractElementManager;
-import cpa.itpabs.ItpCPA;
-import cpa.itpabs.ItpCounterexampleRefiner;
-import cpa.itpabs.ItpCounterexampleTraceInfo;
-import cpa.itpabs.ItpStopOperator;
-import cpa.itpabs.ToWaitListException;
+import cpa.symbpredabs.AbstractReachabilityTree;
 import cpa.symbpredabs.SymbolicFormula;
 import cpa.symbpredabs.SymbolicFormulaManager;
 import exceptions.CPAException;
@@ -50,68 +40,8 @@ import exceptions.CPAException;
  */
 public class ItpTransferRelation implements TransferRelation {
 
-    // the Abstract Reachability Tree
-    class ART {
-        Map<AbstractElement, Vector<AbstractElement>> tree;
-        AbstractElement root;
-
-        public ART() {
-            tree = new HashMap<AbstractElement, Vector<AbstractElement>>();
-            root = null;
-        }
-
-        public AbstractElement getRoot() { return root; }
-
-        public void addChild(AbstractElement parent, AbstractElement child) {
-            if (root == null) {
-                root = parent;
-            }
-            if (!tree.containsKey(parent)) {
-                tree.put(parent, new Vector<AbstractElement>());
-            }
-            Collection<AbstractElement> c = tree.get(parent);
-            c.add(child);
-
-            addToReached((ItpAbstractElement)child);
-        }
-
-        public Collection<AbstractElement> getSubtree(AbstractElement root,
-                boolean remove, boolean includeRoot) {
-            Vector<AbstractElement> ret = new Vector<AbstractElement>();
-
-            Stack<AbstractElement> toProcess = new Stack<AbstractElement>();
-            toProcess.push(root);
-
-            while (!toProcess.empty()) {
-                AbstractElement cur = toProcess.pop();
-                ret.add(cur);
-                if (tree.containsKey(cur)) {
-                    Collection<AbstractElement> c =
-                        remove ? tree.remove(cur) : tree.get(cur);
-                    toProcess.addAll(c);
-                    if (remove) {
-                        for (AbstractElement el : c) {
-                            removeFromReached((ItpAbstractElement)el);
-                        }
-                    }
-                }
-            }
-            if (!includeRoot) {
-                AbstractElement tmp = ret.lastElement();
-                assert(ret.firstElement() == root);
-                ret.setElementAt(tmp, 0);
-                ret.remove(ret.size()-1);
-            }
-            return ret;
-        }
-
-        public boolean contains(AbstractElement n) {
-            return tree.containsKey(n);
-        }
-    }
-
     private ItpAbstractDomain domain;
-    private ART abstractTree;
+    private AbstractReachabilityTree abstractTree;
 
     private int numAbstractStates = 0; // for statistics
 
@@ -196,7 +126,7 @@ public class ItpTransferRelation implements TransferRelation {
 
     public ItpTransferRelation(ItpAbstractDomain d) {
         domain = d;
-        abstractTree = new ART();
+        abstractTree = new AbstractReachabilityTree();
         toProcess = new HashSet<AbstractElement>();
         reached = new HashMap<CFANode, Set<AbstractElement>>();
         expanded = new HashSet<AbstractElement>();
@@ -208,7 +138,7 @@ public class ItpTransferRelation implements TransferRelation {
 
     public int getNumAbstractStates() { return numAbstractStates; }
 
-    public ART getART() { return abstractTree; }
+    public AbstractReachabilityTree getART() { return abstractTree; }
 
     public AbstractDomain getAbstractDomain() {
         return domain;
@@ -428,8 +358,8 @@ public class ItpTransferRelation implements TransferRelation {
         assert(falseAbst.size() > 0);
         Collection<AbstractElement> toUnreach = new HashSet<AbstractElement>();
         for (ItpAbstractElement ie : falseAbst) {
-            Collection<AbstractElement> tmp = abstractTree.getSubtree(
-                    ie, true, false);
+            Collection<AbstractElementWithLocation> tmp = 
+                abstractTree.getSubtree(ie, true, false);
             toUnreach.addAll(tmp);
         }
         toProcess.removeAll(toUnreach);
@@ -494,7 +424,7 @@ public class ItpTransferRelation implements TransferRelation {
                        "Getting Abstract Successor of element: ", element,
                        " on edge: ", cfaEdge);
 
-        if (!abstractTree.contains(element)) {
+        if (!abstractTree.contains((AbstractElementWithLocation)element)) {
             ++numAbstractStates;
         }
 
@@ -515,7 +445,8 @@ public class ItpTransferRelation implements TransferRelation {
                             "Successor is: ", ret);
 
                     if (ret != domain.getBottomElement()) {
-                        abstractTree.addChild(e, ret);
+                        abstractTree.addChild(
+                                e, (AbstractElementWithLocation)ret);
                     }
                     return ret;
                 } catch (RefinementNeededException exc) {
@@ -523,7 +454,8 @@ public class ItpTransferRelation implements TransferRelation {
                         AbstractElement e2 =
                             buildSuccessor(e, src.getLeavingEdge(j));
                         if (e2 != domain.getBottomElement()) {
-                            abstractTree.addChild(e, e2);
+                            abstractTree.addChild(
+                                    e, (AbstractElementWithLocation)e2);
                             exc.getToWaitlist().add(e2);
                         }
                     }
