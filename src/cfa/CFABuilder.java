@@ -362,69 +362,21 @@ public class CFABuilder extends ASTVisitor
 		} // end of switch statement
 	}
 
-	enum ConditionKind {
-	  CONDITION_ALWAYS_FALSE,
-	  CONDITION_ALWAYS_TRUE,
-	  CONDITION_NORMAL
-	}
-	
-	private ConditionKind getConditionKind(IASTExpression pCondition) {
-	  assert(pCondition != null);
-	  
-    if (pCondition instanceof IASTLiteralExpression) {
-        if (((IASTLiteralExpression)pCondition).getKind() ==
-            IASTLiteralExpression.lk_integer_constant) {
-            int c = Integer.parseInt(pCondition.getRawSignature());
-            if (c == 0) return ConditionKind.CONDITION_ALWAYS_FALSE;
-            else return ConditionKind.CONDITION_ALWAYS_TRUE;
-        }
-    }
-    return ConditionKind.CONDITION_NORMAL;
-	}
-	
 	private void handleWhileStatement (IASTWhileStatement whileStatement, IASTFileLocation fileloc)
 	{
 		CFANode prevNode = locStack.pop ();
-		prevNode.setLoopStart();
-		loopStartStack.push(prevNode);
-    
-		CFANode loopStart = new CFANode (fileloc.getStartingLineNumber());
-		CFANode postLoopNode = new CFANode (fileloc.getEndingLineNumber());
-		
-		locStack.push(postLoopNode);
-		locStack.push(loopStart);
+		CFANode loopStart = new CFANode (fileloc.getStartingLineNumber ());
+		loopStart.setLoopStart();
 
-		loopNextStack.push(postLoopNode);
+		CFANode postLoopNode = new CFANode (fileloc.getEndingLineNumber ());
+		locStack.push (postLoopNode);
+		locStack.push (loopStart);
 
-		ConditionKind kind = getConditionKind(whileStatement.getCondition());
+		loopStartStack.push (loopStart);
+		loopNextStack.push (postLoopNode);
 
-    switch (kind) {
-    case CONDITION_ALWAYS_FALSE: {
-      BlankEdge edge = new BlankEdge("");
-      edge.initialize(prevNode, postLoopNode);
-    }
-      break;
-    case CONDITION_ALWAYS_TRUE: {
-      BlankEdge edge = new BlankEdge("");
-      edge.initialize(prevNode, loopStart);
-    }
-      break;
-    case CONDITION_NORMAL: {
-      AssumeEdge assumeEdgeTrue =
-                                  new AssumeEdge(whileStatement.getCondition()
-                                      .getRawSignature(), whileStatement
-                                      .getCondition(), true);
-      assumeEdgeTrue.initialize(prevNode, loopStart);
-
-      AssumeEdge assumeEdgeFalse =
-                                   new AssumeEdge("!("
-                                                  + whileStatement
-                                                      .getCondition()
-                                                      .getRawSignature() + ")",
-                                       whileStatement.getCondition(), false);
-      assumeEdgeFalse.initialize(prevNode, postLoopNode);
-    }
-    } // end of switch statement
+		BlankEdge blankEdge = new BlankEdge ("while");
+		blankEdge.initialize (prevNode, loopStart);
 	}
 
 	private void handleBreakStatement (IASTBreakStatement breakStatement)
