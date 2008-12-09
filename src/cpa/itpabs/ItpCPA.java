@@ -18,6 +18,7 @@ import cfa.objectmodel.CFANode;
 
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.StopOperator;
@@ -199,7 +200,7 @@ public abstract class ItpCPA implements ConfigurableProgramAnalysis {
      */
     public Collection<ItpAbstractElement> removeDescendantsFromCovering(
             ItpAbstractElement e2) {
-        Collection<AbstractElement> sub =
+        Collection<AbstractElementWithLocation> sub =
             trans.getART().getSubtree(e2, false, true);
         Set<ItpAbstractElement> ret =
             new TreeSet<ItpAbstractElement>();
