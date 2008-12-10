@@ -15,7 +15,7 @@ import exceptions.CPAException;
  */
 public interface TransferRelationPlus {
   public AbstractElement getAbstractSuccessor (AbstractElement element, CFAEdge cfaEdge, Precision precision)
-    throws CPAException;
+    throws CPATransferException;
   public List<AbstractElementWithLocation> getAllAbstractSuccessors (AbstractElementWithLocation element, Precision precision)
     throws CPAException, CPATransferException;
 }
