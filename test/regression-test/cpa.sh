@@ -34,4 +34,4 @@ export CLASSPATH=$ECLIPSE_CORE_JARS:$CDT_PLUGIN_JARS:$PROJECT_CLASSPATH
 # where to find the native library for mathsat
 export LD_LIBRARY_PATH=$PATH_TO_WORKSPACE/nativeLibs
 
-$JAVA -Xmx500m -ea cmdline.CPAMain $@
+nice -n15 $JAVA -Xmx500m -ea cmdline.CPAMain $@
