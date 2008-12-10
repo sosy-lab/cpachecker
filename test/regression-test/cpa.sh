@@ -5,7 +5,7 @@
 # If not the case, change the variable RELATIVE_PATH_TO_WORKSPACE
 
 # where the eclipse workspace is
-[ -n "$PATH_TO_WORKSPACE" ] || PATH_TO_WORKSPACE=../../
+[ -n "$PATH_TO_WORKSPACE" ] || PATH_TO_WORKSPACE=../../
 
 # the location of the jvm
 JAVA=java
