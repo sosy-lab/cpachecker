@@ -44,12 +44,6 @@ public class DefUseTransferRelation implements TransferRelation
         {
             IASTBinaryExpression binaryExpression = (IASTBinaryExpression) expression;
 
-            IASTExpression op1 = binaryExpression.getOperand1();
-			IASTExpression op2 = binaryExpression.getOperand2();
-
-			System.out.println("================== " + op1.getRawSignature());
-			System.out.println("================== " + op2.getRawSignature());
-
             switch (binaryExpression.getOperator ())
             {
             case IASTBinaryExpression.op_assign:

@@ -1,5 +1,8 @@
 package symbpredabstraction;
 
+import cpa.symbpredabs.SSAMap;
+import cpa.symbpredabs.SymbolicFormula;
+
 public class PathFormula {
 
 	SSAMap ssa;
@@ -25,4 +28,10 @@ public class PathFormula {
 	public void setSymbolicFormula(SymbolicFormula symFormula) {
 		this.symbolicFormula = symFormula;
 	}
+	
+	@Override
+  public String toString(){
+	  return symbolicFormula.toString();
+	}
+	
 }

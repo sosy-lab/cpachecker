@@ -1,339 +1,249 @@
 package cpa.symbpredabsCPA;
 
 import cfa.objectmodel.CFANode;
-import symbpredabstraction.AbstractFormula;
-import symbpredabstraction.BDDAbstractFormula;
-import symbpredabstraction.BDDMathsatSymbPredAbsAbstractManager;
-import symbpredabstraction.MathsatSymbPredAbsFormulaManager;
 import symbpredabstraction.ParentsList;
 import symbpredabstraction.PathFormula;
-import symbpredabstraction.PredicateMap;
-import symbpredabstraction.SSAMap;
-import symbpredabstraction.SymbolicFormula;
+import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
+import cpa.symbpredabs.AbstractFormula;
+import cpa.symbpredabs.PredicateMap;
+import cpa.symbpredabs.SSAMap;
+import cpa.symbpredabs.SymbolicFormula;
+import cpa.symbpredabs.SymbolicFormulaManager;
+import cpa.symbpredabs.mathsat.BDDAbstractFormula;
 
 /**
- * AbstractElement for symbolic lazy abstraction with summaries
+ * AbstractElement for summary cpa
  *
  * @author erkan
  */
 public class SymbPredAbsAbstractElement
 implements AbstractElement {
+  
+  private SymbPredAbsAbstractDomain domain;
 
-	/** The location on CFA */
-	//private CFANode CFALocation;
-	/** If that element is associated with and abstraction
-	 * node*/
-	private boolean isAbstractionNode = false;
-	/** The abstraction location for this node */
-	private CFANode abstractionLocation;
-	/** the path formula from the abstraction location to this node */
-	private PathFormula pathFormula;
-	/** initial abstraction values*/
-	private PathFormula initAbstractionFormula;
-	/** the abstraction which is updated only on abstraction locations */
-	private AbstractFormula abstraction;
-	/** parents of this element */
-	private ParentsList parents;
-	/** predicate list for this element*/
-	private PredicateMap predicates;
+  /** If the element is on an abstraction location */
+  private boolean isAbstractionNode = false;
+  /** The abstraction location for this node */
+  private CFANode abstractionLocation;
+  /** the path formula from the abstraction location to this node */
+  private PathFormula pathFormula;
+  /** initial abstraction values*/
+  private PathFormula initAbstractionFormula;
+  /** the abstraction which is updated only on abstraction locations */
+  private AbstractFormula abstraction;
+  /** parents of this element */
+  private ParentsList parents;
+  /** predicate list for this element*/
+  private PredicateMap predicates;
 
-	// TODO
-	SSAMap maxIndex;
+  // TODO check this
+  SSAMap maxIndex;
 
-	// private SymbPredAbsAbstractDomain domain;
-	private BDDMathsatSymbPredAbsAbstractManager bddMathsatMan;
-	private MathsatSymbPredAbsFormulaManager mathsatFormMan;
+  // private SymbPredAbsAbstractDomain domain;
+  // private BDDMathsatSymbPredAbsAbstractManager bddMathsatMan;
+  // private MathsatSymbPredAbsFormulaManager mathsatFormMan;
 
-	// context is used to deal with function calls/returns
-//	private Stack<Pair<AbstractFormula, SymbPredAbsCFANode>> context;
-//	private boolean ownsContext;
+  //private static int nextAvailableId = 1;
 
-//	private static int nextAvailableId = 1;
+  public PathFormula getPathFormula() {
+    return pathFormula;
+  }
 
-//	public int getId() { return elemId; }
-//	public CFANode getLocation() {
-//		return CFALocation;
-//	}
+  public void setAbstractionNode(){
+    isAbstractionNode = true;
+  }
 
-	public PathFormula getPathFormula() {
-		return pathFormula;
-	}
+  public boolean isAbstractionNode(){
+    return isAbstractionNode;
+  }
 
-//	public void setLocation(CFANode loc){
-//		CFALocation = loc;
-//	}
+  public AbstractFormula getAbstraction() {
+    return abstraction;
+  }
 
-	public void setAbstractionNode(){
-		isAbstractionNode = true;
-	}
+  public void setAbstraction(AbstractFormula a) {
+    abstraction = a;
+  }
+  public void setPathFormula(PathFormula pf){
+    pathFormula = pf;
+  }
 
-	public boolean isAbstractionNode(){
-		return isAbstractionNode;
-	}
+  public ParentsList getParents() {
+    return parents;
+  }
 
-	public AbstractFormula getAbstraction() {
-		return abstraction;
-	}
+  public void addParent(Integer i) {
+    parents.addToList(i);
+  }
 
-	public void setAbstraction(AbstractFormula a) {
-		abstraction = a;
-	}
-	public void setPathFormula(PathFormula pf){
-		pathFormula = pf;
-	}
+  public CFANode getAbstractionLocation(){
+    return abstractionLocation;
+  }
 
-	public ParentsList getParents() {
-		return parents;
-	}
+  public void setAbstractionLocation(CFANode absLoc){
+    abstractionLocation = absLoc;
+  }
 
-	public void addParent(Integer i) {
-		parents.addToList(i);
-	}
+  // TODO fix these constructors, check all callers later
+  // when an element for abstraction and non-abstraction location
+  // is created call different constructors
+  public SymbPredAbsAbstractElement(AbstractDomain d, CFANode abstLoc,
+                                    PathFormula pf, AbstractFormula a,
+                                    ParentsList p, PathFormula initFormula, PredicateMap pmap) {
+    //CFALocation = CFALoc;
+    abstractionLocation = abstLoc;
+    abstraction = a;
+    pathFormula = pf;
+    parents = p;
+    predicates = pmap;
+    initAbstractionFormula = initFormula;
+    maxIndex = new SSAMap();
+    domain = (SymbPredAbsAbstractDomain) d;
+    //bddMathsatMan = d.getCPA().getBDDMathsatSymbPredAbsAbstractManager();
+    //mathsatFormMan = d.getCPA().getMathsatSymbPredAbsFormulaManager();
+//  context = null;
+//  ownsContext = true;
+  }
 
-	public CFANode getAbstractionLocation(){
-		return abstractionLocation;
-	}
+  public SymbPredAbsAbstractElement(AbstractDomain d, CFANode abstLoc) {
+    this(d, abstLoc, null, null, null, null, null);
+  }
 
-	public void setAbstractionLocation(CFANode absLoc){
-		abstractionLocation = absLoc;
-	}
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    else{
+      SymbPredAbsAbstractElement thisElement = this;
+      SymbPredAbsAbstractElement otherElement = (SymbPredAbsAbstractElement)o;
 
-	// TODO fix these constructors, check all callers later
-	// when an element for abstraction and non-abstraction location
-	// is created call different constructors
-	public SymbPredAbsAbstractElement(SymbPredAbsAbstractDomain d, CFANode CFALoc, CFANode abstLoc,
-			PathFormula pf, AbstractFormula a,
-			ParentsList p, PathFormula initFormula, PredicateMap pmap) {
-		//CFALocation = CFALoc;
-		abstractionLocation = abstLoc;
-		abstraction = a;
-		pathFormula = pf;
-		parents = p;
-		predicates = pmap;
-		initAbstractionFormula = initFormula;
-		maxIndex = new SSAMap();
-		// domain = d;
-		bddMathsatMan = d.getCPA().getBDDMathsatSymbPredAbsAbstractManager();
-		mathsatFormMan = d.getCPA().getMathsatSymbPredAbsFormulaManager();
-//		context = null;
-//		ownsContext = true;
-	}
+      // TODO
+//    if(e1.getLocation().equals(e2.getLocation())){
+      // TODO check
+      //	boolean b = cpa.isAbstractionLocation(e1.getLocation());
+      boolean b = thisElement.isAbstractionNode();
+      // if not an abstraction location
+      if(!b){
+        if(thisElement.getParents().equals(otherElement.getParents())){
+        SymbolicFormulaManager mgr = domain.getCPA().getFormulaManager();
+        boolean ok = mgr.entails(thisElement.getPathFormula().getSymbolicFormula(),
+        otherElement.getPathFormula().getSymbolicFormula()) && 
+        mgr.entails(otherElement.getPathFormula().getSymbolicFormula(),
+            thisElement.getPathFormula().getSymbolicFormula());
+//        // TODO later
+////      if (ok)
+////      {
+////      cpa.setCoveredBy(thisElement, otherElement);
+////      } else {
+////      LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+////      "NO, not covered");
+////      }
+//        return ok;
+//        }
+//        else{
+//        return false;
+          return ok;
+        }
+        return false;
+      }
+      // if abstraction location
+      else{
 
-	public SymbPredAbsAbstractElement(SymbPredAbsAbstractDomain d, CFANode loc, CFANode abstLoc) {
-		this(d, loc, abstLoc, null, null, null, null, null);
-	}
+        // SymbPredAbsCPA cpa = domain.getCPA();
 
-	@Override
-	public boolean equals(Object o) {
-		if (this == o) {
-			return true;
-		}
-		else{
-	    	SymbPredAbsAbstractElement thisElement = this;
-	    	SymbPredAbsAbstractElement otherElement = (SymbPredAbsAbstractElement)o;
+        assert(thisElement.getAbstraction() != null);
+        assert(otherElement.getAbstraction() != null);
+        if(!thisElement.getParents().equals(otherElement.getParents())){
+          return false;
+        }
+        // TODO check -- we are calling the equals method of the abstract formula
+        boolean ok = thisElement.getAbstraction().equals(otherElement.getAbstraction());
 
-	    	// TODO
-//	    	if(e1.getLocation().equals(e2.getLocation())){
-	    	// TODO check
-	    	//	boolean b = cpa.isAbstractionLocation(e1.getLocation());
-	    	boolean b = thisElement.isAbstractionNode();
-	    		// if not an abstraction location
-	    		if(!b){
-	    			if(thisElement.getParents().equals(otherElement.getParents())){
-//	    				MathsatSymbPredAbsFormulaManager mgr = mathsatFormMan;
-//	    				boolean ok = mgr.equals(thisElement.getPathFormula().getSymbolicFormula(),
-//	    						otherElement.getPathFormula().getSymbolicFormula());
-//	    				// TODO later
-////	    				if (ok)
-////	    				{
-////	    	                cpa.setCoveredBy(thisElement, otherElement);
-////	    	            } else {
-////	    	                LazyLogger.log(CustomLogLevel.SpecificCPALevel,
-////	    	                               "NO, not covered");
-////	    	            }
-//	    	            return ok;
-//	    			}
-//	    			else{
-//	    				return false;
-	    				return true;
-	    			}
-	    			return false;
-	    		}
-	    		// if abstraction location
-	    		else{
-
-	                // SymbPredAbsCPA cpa = domain.getCPA();
-
-	                assert(thisElement.getAbstraction() != null);
-	                assert(otherElement.getAbstraction() != null);
-	                if(!thisElement.getParents().equals(otherElement.getParents())){
-	                  return false;
-	                }
-	                boolean ok = bddMathsatMan.equals(thisElement.getAbstraction(), otherElement.getAbstraction());
-
-	                // TODO
-//	                if (ok) {
-//	                    LazyLogger.log(CustomLogLevel.SpecificCPALevel,
-//	                                   "Element: ", element, " COVERED by: ", e2);
-//	                    cpa.setCoveredBy(e1, e2);
-//	                } else {
-//	                    LazyLogger.log(CustomLogLevel.SpecificCPALevel,
-//	                                   "NO, not covered");
-//	                }
-
-	                return ok;
-	    		}
-	    	//}
-	    	// TODO if locations are different
-//	    	else{
-//	    		return false;
-//	    	}
+        // TODO
+//      if (ok) {
+//LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+//      "Element: ", element, " COVERED by: ", e2);
+//      cpa.setCoveredBy(e1, e2);
+//      } else {
+//      LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+//      "NO, not covered");
+//      }
+        return ok;
+      }
+      //}
+      // TODO if locations are different
+//    else{
+//    return false;
+//    }
 
 
 
-		}
-	}
+    }
+  }
 
-//	public int hashCode() {
-//	return elemId;
-//	}
+  //public int hashCode() {
+  //return elemId;
+  //}
 
-	public void updateMaxIndex(SSAMap ssa) {
-		assert(maxIndex != null);
-		for (String var : ssa.allVariables()) {
-			int i = ssa.getIndex(var);
-			int i2 = maxIndex.getIndex(var);
-			maxIndex.setIndex(var, Math.max(i, i2));
-		}
-	}
+  public void updateMaxIndex(SSAMap ssa) {
+    assert(maxIndex != null);
+    for (String var : ssa.allVariables()) {
+      int i = ssa.getIndex(var);
+      int i2 = maxIndex.getIndex(var);
+      maxIndex.setIndex(var, Math.max(i, i2));
+    }
+  }
 
-	@Override
-	public String toString() {
-		BDDAbstractFormula abst = (BDDAbstractFormula)getAbstraction();
-		SymbolicFormula symbReprAbst = bddMathsatMan.toConcrete(mathsatFormMan, abst);
-		return
-		" PF: "+ getPathFormula().getSymbolicFormula() +
-		" Abstraction: " + symbReprAbst +
-		" Init Formula--> " + (getInitAbstractionSet() != null ? getInitAbstractionSet().getSymbolicFormula() : "null")  +
-		" Parents --> " + parents + 
-		"\n \n";
-		//+ ">(" + Integer.toString(getId()) + ")"
-	}
+  @Override
+  public String toString() {
+    BDDAbstractFormula abst = (BDDAbstractFormula)getAbstraction();
+    SymbolicFormula symbReprAbst = domain.getCPA().getAbstractFormulaManager().toConcrete(domain.getCPA().getSymbolicFormulaManager(), abst);
+    return
+    " PF: "+ getPathFormula().getSymbolicFormula() +
+    " Abstraction: " + symbReprAbst +
+    " Init Formula--> " + (getInitAbstractionSet() != null ? getInitAbstractionSet().getSymbolicFormula() : "null")  +
+    " Parents --> " + parents + 
+    "\n \n";
+    //+ ">(" + Integer.toString(getId()) + ")"
+  }
 
-//	public CFANode getLocationNode() {
-//		return CFALocation;
-//	}
+  public PredicateMap getPredicates() {
+    return predicates;
+  }
 
-//	public Collection<CFANode> getLeaves() {
-//	assert(pathFormulas != null);
+  public void setPredicates(PredicateMap predicates) {
+    this.predicates = predicates;
+  }
 
-//	return pathFormulas.keySet();
-//	}
+  // TODO enable this later
+//public boolean isDescendant(SymbPredAbsAbstractElement c) {
+//SymbPredAbsAbstractElement a = this;
+//while (a != null) {
+//if (a.equals(c)) return true;
+//a = a.getParent();
+//}
+//return false;
+//}
 
-	public PredicateMap getPredicates() {
-		return predicates;
-	}
+  public void setParents(ParentsList parents2) {
+    parents = parents2;
+  }
 
-	public void setPredicates(PredicateMap predicates) {
-		this.predicates = predicates;
-	}
+  public PathFormula getInitAbstractionSet() {
+    return initAbstractionFormula;
+  }
 
-	/**
-	public Stack<Pair<AbstractFormula, SymbPredAbsCFANode>> getContext()
-	{
-		return context;
-	}
+  public void setInitAbstractionSet(PathFormula initFormula) {
+    this.initAbstractionFormula = initFormula;
+  }
 
-	public void setContext(Stack<Pair<AbstractFormula, SymbPredAbsCFANode>> ctx,
-			boolean owns)
-	{
-		context = ctx;
-		ownsContext = owns;
-	}
+  public SSAMap getMaxIndex() {
+    return maxIndex;
+  }
 
-	public AbstractFormula topContextAbstraction() {
-		assert(context != null);
-		assert(!context.empty());
-		return context.peek().getFirst();
-	}
-
-	public SymbPredAbsCFANode topContextLocation() {
-		assert(context != null);
-		assert(!context.empty());
-		return context.peek().getSecond();
-	}
-
-	private void cloneContext() {
-		// copy-on-write semantics: just duplicate the context and push
-		// in the copy
-		Stack<Pair<AbstractFormula, SymbPredAbsCFANode>> copy =
-			new Stack<Pair<AbstractFormula, SymbPredAbsCFANode>>();
-		for (Pair<AbstractFormula, SymbPredAbsCFANode> a : context) {
-			copy.add(a);
-		}
-		context = copy;
-		ownsContext = true;
-	}
-
-	public void pushContext(AbstractFormula af, SymbPredAbsCFANode returnLoc) {
-		if (!ownsContext) {
-			cloneContext();
-		}
-		context.push(new Pair<AbstractFormula, SymbPredAbsCFANode>(af, returnLoc));
-	}
-
-	public void popContext() {
-		if (!ownsContext) {
-			cloneContext();
-		}
-		context.pop();
-	}
-
-	public boolean sameContext(SymbPredAbsAbstractElement e2) {
-		assert(context != null && e2.context != null);
-
-		if (context == e2.context) {
-			return true;
-		} else if (context.size() != e2.context.size()) {
-			return false;
-		} else {
-			for (int i = 0; i < context.size(); ++i) {
-				if (!context.elementAt(i).equals(e2.context.elementAt(i))) {
-					return false;
-				}
-			}
-		}
-		return true;
-	}
-	 **/
-	// TODO enable this later
-//	public boolean isDescendant(SymbPredAbsAbstractElement c) {
-//	SymbPredAbsAbstractElement a = this;
-//	while (a != null) {
-//	if (a.equals(c)) return true;
-//	a = a.getParent();
-//	}
-//	return false;
-//	}
-
-	public void setParents(ParentsList parents2) {
-		parents = parents2;
-	}
-
-	public PathFormula getInitAbstractionSet() {
-		return initAbstractionFormula;
-	}
-
-	public void setInitAbstractionSet(PathFormula initFormula) {
-		this.initAbstractionFormula = initFormula;
-	}
-
-	public SSAMap getMaxIndex() {
-		return maxIndex;
-	}
-
-	public void setMaxIndex(SSAMap maxIndex) {
-		this.maxIndex = maxIndex;
-	}
+  public void setMaxIndex(SSAMap maxIndex) {
+    this.maxIndex = maxIndex;
+  }
 }

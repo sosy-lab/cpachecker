@@ -5,11 +5,11 @@ import java.util.Collection;
 import logging.CustomLogLevel;
 import logging.LazyLogger;
 
-import symbpredabstraction.MathsatSymbPredAbsFormulaManager;
-import symbpredabstraction.SymbPredAbsAbstractFormulaManager;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.StopOperator;
+import cpa.symbpredabs.AbstractFormulaManager;
+import cpa.symbpredabs.SymbolicFormulaManager;
 import exceptions.CPAException;
 
 /**
@@ -60,7 +60,7 @@ public class SymbPredAbsStopOperator implements StopOperator {
     		// if not an abstraction location
     		if(!b){
     			if(e1.getParents().equals(e2.getParents())){
-    				MathsatSymbPredAbsFormulaManager mgr = cpa.getMathsatSymbPredAbsFormulaManager();
+    			  SymbolicFormulaManager mgr = cpa.getSymbolicFormulaManager();
     				boolean ok = mgr.entails(e1.getPathFormula().getSymbolicFormula(), e1.getPathFormula().getSymbolicFormula());
     				if (ok) {
     	                cpa.setCoveredBy(e1, e2);
@@ -86,7 +86,7 @@ public class SymbPredAbsStopOperator implements StopOperator {
 //                }
 
                 SymbPredAbsCPA cpa = domain.getCPA();
-                SymbPredAbsAbstractFormulaManager amgr = cpa.getAbstractFormulaManager();
+                AbstractFormulaManager amgr = cpa.getAbstractFormulaManager();
 
                 assert(e1.getAbstraction() != null);
                 assert(e2.getAbstraction() != null);

@@ -15,8 +15,6 @@ public class OctDomain implements AbstractDomain{
         public OctBottomElement ()
         {
         	super ();
-        	System.out.println("bottom");
-
         }
     }
 
@@ -25,7 +23,6 @@ public class OctDomain implements AbstractDomain{
     	public OctTopElement ()
         {
             //super (LibraryAccess.universe(Variables.numOfVars));
-            System.out.println("top");
         }
     }
 

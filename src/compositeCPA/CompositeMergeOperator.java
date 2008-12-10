@@ -79,7 +79,7 @@ public class CompositeMergeOperator implements MergeOperator{
 			AbstractElement absElem2 = elementsArray2[i];
 			AbstractElement merged = mergeOperators.get(i).merge(absElem1, absElem2);
 			// if the element is not location and it is not merged we do not need to merge
-			if(i !=0 && merged == absElem2){
+			if(i != 0 && merged == absElem2){
 				return comp2;
 			}
 			mergedElements.add (merged);

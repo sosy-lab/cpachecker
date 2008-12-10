@@ -71,7 +71,7 @@ public class OctTransferRelation implements TransferRelation{
 	 */
 	public AbstractElement getAbstractSuccessor (AbstractElement element, CFAEdge cfaEdge)
 	{
-		System.out.println(" EDGE "+ cfaEdge.getRawStatement());
+		//System.out.println(" EDGE "+ cfaEdge.getRawStatement());
 		// octElement is the region of the current state
 		// this state will be updated using the edge
 		OctElement octElement = (OctElement) element;

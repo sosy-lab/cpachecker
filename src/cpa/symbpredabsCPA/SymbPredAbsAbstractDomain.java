@@ -6,8 +6,8 @@ import cpa.common.interfaces.BottomElement;
 import cpa.common.interfaces.JoinOperator;
 import cpa.common.interfaces.PartialOrder;
 import cpa.common.interfaces.TopElement;
+import cpa.symbpredabs.AbstractFormulaManager;
 import exceptions.CPAException;
-import symbpredabstraction.*;
 
 
 /**
@@ -73,7 +73,7 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
 //			return true;
 //		}
     	// TODO if the element is the bottom element
-    	if (getCPA().getBDDMathsatSymbPredAbsAbstractManager().isFalse(symbPredAbsElem.getAbstraction())){
+    	if (getCPA().getAbstractFormulaManager().isFalse(symbPredAbsElem.getAbstraction())){
     		return true;
     	}
 

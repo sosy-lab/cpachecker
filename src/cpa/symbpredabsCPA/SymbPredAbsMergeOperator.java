@@ -1,14 +1,16 @@
 package cpa.symbpredabsCPA;
 
-import symbpredabstraction.MathsatSymbPredAbsFormulaManager;
-import symbpredabstraction.MathsatSymbolicFormula;
-import symbpredabstraction.Pair;
 import symbpredabstraction.PathFormula;
-import symbpredabstraction.SSAMap;
-import symbpredabstraction.SymbolicFormula;
+
+import common.Pair;
+
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.MergeOperator;
+import cpa.symbpredabs.SSAMap;
+import cpa.symbpredabs.SymbolicFormula;
+import cpa.symbpredabs.SymbolicFormulaManager;
+import cpa.symbpredabs.mathsat.MathsatSymbolicFormula;
 
 /**
  * trivial merge operation for symbolic lazy abstraction with summaries
@@ -19,11 +21,11 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
 
   private SymbPredAbsAbstractDomain domain;
 
-  private MathsatSymbPredAbsFormulaManager mgr;
+  private SymbolicFormulaManager mgr;
 
   public SymbPredAbsMergeOperator(SymbPredAbsAbstractDomain d) {
     domain = d;
-    mgr = d.getCPA().getMathsatSymbPredAbsFormulaManager();
+    mgr = d.getCPA().getSymbolicFormulaManager();
   }
 
 
@@ -48,7 +50,7 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
 //  else{
     //TODO check
     boolean b = elem1.isAbstractionNode();
-    SymbPredAbsAbstractElement merged = new SymbPredAbsAbstractElement(domain, null, elem1.getAbstractionLocation());
+    SymbPredAbsAbstractElement merged = new SymbPredAbsAbstractElement(domain, elem1.getAbstractionLocation());
     if(!b){
       if(!elem1.getParents().equals(elem2.getParents())){
         merged = elem2;

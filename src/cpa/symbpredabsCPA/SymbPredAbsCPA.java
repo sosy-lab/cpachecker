@@ -14,21 +14,33 @@ import java.util.Vector;
 
 import logging.CustomLogLevel;
 import logging.LazyLogger;
-
-import cmdline.CPAMain;
-
-import cfa.objectmodel.CFAErrorNode;
+import symbpredabstraction.BDDMathsatSymbPredAbstractionAbstractManager;
+import symbpredabstraction.ParentsList;
+import symbpredabstraction.PathFormula;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cfa.objectmodel.CFANode;
-
-import symbpredabstraction.*;
+import cmdline.CPAMain;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
-
+import cpa.symbpredabs.AbstractFormulaManager;
+import cpa.symbpredabs.FixedPredicateMap;
+import cpa.symbpredabs.InterpolatingTheoremProver;
+import cpa.symbpredabs.Predicate;
+import cpa.symbpredabs.PredicateMap;
+import cpa.symbpredabs.SSAMap;
+import cpa.symbpredabs.SymbolicFormulaManager;
+import cpa.symbpredabs.TheoremProver;
+import cpa.symbpredabs.UpdateablePredicateMap;
+import cpa.symbpredabs.mathsat.MathsatInterpolatingProver;
+import cpa.symbpredabs.mathsat.MathsatPredicateParser;
+import cpa.symbpredabs.mathsat.MathsatSymbolicFormulaManager;
+import cpa.symbpredabs.mathsat.MathsatTheoremProver;
+import cpa.symbpredabs.mathsat.SimplifyTheoremProver;
+import cpa.symbpredabs.mathsat.YicesTheoremProver;
 
 /**
  * CPA for symbolic lazy abstraction with summaries
@@ -37,221 +49,182 @@ import cpa.common.interfaces.TransferRelation;
  */
 public class SymbPredAbsCPA implements ConfigurableProgramAnalysis {
 
-	private SymbPredAbsAbstractDomain domain;
-	private SymbPredAbsMergeOperator merge;
-	private SymbPredAbsStopOperator stop;
-	private SymbPredAbsTransferRelation trans;
-	private MathsatSymbPredAbsFormulaManager mgr;
-	private BDDMathsatSymbPredAbsAbstractManager amgr;
-	private Map<SymbPredAbsAbstractElement, Set<SymbPredAbsAbstractElement>> covers;
+  private SymbPredAbsAbstractDomain domain;
+  private SymbPredAbsMergeOperator merge;
+  private SymbPredAbsStopOperator stop;
+  private SymbPredAbsTransferRelation trans;
+  private MathsatSymbolicFormulaManager mgr;
+  private BDDMathsatSymbPredAbstractionAbstractManager amgr;
+  private Map<SymbPredAbsAbstractElement, Set<SymbPredAbsAbstractElement>> covers;
+  private PredicateMap pmap;
 
-//	private SymbPredAbsCPAStatistics stats;
+  // TODO later
+  //private SymbPredAbsCPAStatistics stats;
 
-	private SymbPredAbsCPA() {
-		mgr = new MathsatSymbPredAbsFormulaManager();
-		amgr = new BDDMathsatSymbPredAbsAbstractManager();
-		domain = new SymbPredAbsAbstractDomain(this);
-		merge = new SymbPredAbsMergeOperator(domain);
-		stop = new SymbPredAbsStopOperator(domain);
-		trans = new SymbPredAbsTransferRelation(domain);
-		covers = new HashMap<SymbPredAbsAbstractElement,
-		Set<SymbPredAbsAbstractElement>>();
+  private SymbPredAbsCPA() {
+    mgr = new MathsatSymbolicFormulaManager();
+    TheoremProver thmProver = null;
+    String whichProver = CPAMain.cpaConfig.getProperty(
+        "cpas.symbpredabs.explicit.abstraction.solver", "mathsat");
+    if (whichProver.equals("mathsat")) {
+      thmProver = new MathsatTheoremProver(mgr, false);
+    } else if (whichProver.equals("simplify")) {
+      thmProver = new SimplifyTheoremProver(mgr);
+    } else if (whichProver.equals("yices")) {
+      thmProver = new YicesTheoremProver(mgr);
+    } else {
+      System.out.println("ERROR, Unknown prover: " + whichProver);
+      assert(false);
+      System.exit(1);
+    }
+    InterpolatingTheoremProver itpProver =
+      new MathsatInterpolatingProver(mgr, false);
+    amgr = new BDDMathsatSymbPredAbstractionAbstractManager(thmProver, itpProver);
+    covers = new HashMap<SymbPredAbsAbstractElement,
+    Set<SymbPredAbsAbstractElement>>();
+    domain = new SymbPredAbsAbstractDomain(this);
+    merge = new SymbPredAbsMergeOperator(domain);
+    stop = new SymbPredAbsStopOperator(domain);
+    trans = new SymbPredAbsTransferRelation(domain, mgr, amgr);
 
-		// for testing purposes, it's nice to be able to use a given set of
-		// predicates and disable refinement
-		// TODO enable later
-//		if (CPAMain.cpaConfig.getBooleanValue(
-//		"cpas.symbpredabs.abstraction.norefinement")) {
-//		MathsatPredicateParser p = new MathsatPredicateParser(mgr, amgr);
-//		Collection<Predicate> preds = null;
-//		try {
-//		String pth = CPAMain.cpaConfig.getProperty("predicates.path");
-//		File f = new File(pth, "predicates.msat");
-//		InputStream in = new FileInputStream(f);
-//		preds = p.parsePredicates(in);
-//		} catch (IOException e) {
-//		e.printStackTrace();
-//		preds = new Vector<Predicate>();
-//		}
-//		pmap = new FixedPredicateMap(preds);
-//		} else {
-//		pmap = new UpdateablePredicateMap();
-//		}
+    // for testing purposes, it's nice to be able to use a given set of
+    // predicates and disable refinement
+    if (CPAMain.cpaConfig.getBooleanValue(
+    "cpas.symbpredabs.abstraction.norefinement")) {
+      MathsatPredicateParser p = new MathsatPredicateParser(mgr, amgr);
+      Collection<Predicate> preds = null;
+      try {
+        String pth = CPAMain.cpaConfig.getProperty("predicates.path");
+        File f = new File(pth, "predicates.msat");
+        InputStream in = new FileInputStream(f);
+        preds = p.parsePredicates(in);
+      } catch (IOException e) {
+        e.printStackTrace();
+        preds = new Vector<Predicate>();
+      }
+      pmap = new FixedPredicateMap(preds);
+    } else {
+      pmap = new UpdateablePredicateMap();
+    }
 
-//		summaryToFormulaMap =
-//		new HashMap<SymbPredAbsCFANode,
-//		Map<CFANode, Pair<SymbolicFormula, SSAMap>>>();
+    // TODO fix
+    //stats = new SummaryCPAStatistics(this);
+  }
 
-		// TODO later
-//		stats = new SymbPredAbsCPAStatistics(this);
-	}
+  /**
+   * Constructor conforming to the "contract" in CompositeCPA. The two
+   * arguments are ignored
+   * @param s1
+   * @param s2
+   */
+  public SymbPredAbsCPA(String s1, String s2) {
+    this();
+  }
 
-	/**
-	 * Constructor conforming to the "contract" in CompositeCPA. The two
-	 * arguments are ignored
-	 * @param s1
-	 * @param s2
-	 */
-	public SymbPredAbsCPA(String s1, String s2) {
-		this();
-	}
+  // TODO fix
+//public CPAStatistics getStatistics() {
+//return stats;
+//}
 
-	// TODO later
-//	public CPAStatistics getStatistics() {
-//	return stats;
-//	}
+  @Override
+  public AbstractDomain getAbstractDomain() {
+    return domain;
+  }
 
-	@Override
-	public AbstractDomain getAbstractDomain() {
-		return domain;
-	}
+  @Override
+  public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
+    LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+        "Getting initial element from node: ", node);
 
-	@Override
-	public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
-		LazyLogger.log(CustomLogLevel.SpecificCPALevel,
-				"Getting initial element from node: ", node);
+    CFANode loc = node;
+    SymbPredAbsAbstractElement e = new SymbPredAbsAbstractElement(domain, loc);
+    ParentsList parents = new ParentsList();
+    SSAMap ssamap = new SSAMap();
+    PathFormula pf = new PathFormula(mgr.makeTrue(), ssamap);
+    e.setPathFormula(pf);
+    e.setParents(parents);
+    e.setAbstraction(amgr.makeTrue());
+    PredicateMap pmap;
+    if (CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.abstraction.norefinement")) {
+      MathsatPredicateParser p = new MathsatPredicateParser(mgr, amgr);
+      Collection<Predicate> preds = null;
+      try {
+        String pth = CPAMain.cpaConfig.getProperty("predicates.path");
+        File f = new File(pth, "predicates.msat");
+        InputStream in = new FileInputStream(f);
+        preds = p.parsePredicates(in);
+      } catch (IOException er) {
+        er.printStackTrace();
+        preds = new Vector<Predicate>();
+      }
+      pmap = new FixedPredicateMap(preds);
+    } else {
+      pmap = new UpdateablePredicateMap();
+    }
+    assert(pmap != null);
+    e.setPredicates(pmap);
 
-		CFANode loc = node;
-		SymbPredAbsAbstractElement e = new SymbPredAbsAbstractElement(domain, loc, loc);
-		ParentsList parents = new ParentsList();
-		PathFormula pf = getNewPathFormula();
-		e.setPathFormula(pf);
-		e.setParents(parents);
-		e.setAbstraction(amgr.makeTrue());
-		PredicateMap pmap;
-		if (CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.abstraction.norefinement")) {
-			MathsatPredicateParser p = new MathsatPredicateParser(mgr, amgr);
-			Collection<Predicate> preds = null;
-			try {
-				String pth = CPAMain.cpaConfig.getProperty("predicates.path");
-				File f = new File(pth, "predicates.msat");
-				InputStream in = new FileInputStream(f);
-				preds = p.parsePredicates(in);
-			} catch (IOException er) {
-				er.printStackTrace();
-				preds = new Vector<Predicate>();
-			}
-			pmap = new FixedPredicateMap(preds);
-		} else {
-			pmap = new UpdateablePredicateMap();
-		}
-		assert(pmap != null);
-		e.setPredicates(pmap);
+    // TODO function
+    //e.setContext(new Stack<Pair<AbstractFormula, SymbPredAbsCFANode>>(), true);
+    // we return an tuple (loc, loc, pf, abst, null), the parent is null since this is the
+    // initial element
+    return e;
+  }
 
-		// TODO function
-		//e.setContext(new Stack<Pair<AbstractFormula, SymbPredAbsCFANode>>(), true);
-		// we return an tuple (loc, loc, pf, abst, null), the parent is null since this is the
-		// initial element
-		return e;
-	}
+  @Override
+  public MergeOperator getMergeOperator() {
+    return merge;
+  }
 
-	@Override
-	public MergeOperator getMergeOperator() {
-		return merge;
-	}
+  @Override
+  public StopOperator getStopOperator() {
+    return stop;
+  }
 
-	@Override
-	public StopOperator getStopOperator() {
-		return stop;
-	}
+  @Override
+  public TransferRelation getTransferRelation() {
+    return trans;
+  }
 
-	@Override
-	public TransferRelation getTransferRelation() {
-		return trans;
-	}
+  public AbstractFormulaManager getAbstractFormulaManager() {
+    return amgr;
+  }
 
-	public SymbPredAbsAbstractFormulaManager getAbstractFormulaManager() {
-		return amgr;
-	}
+  public SymbolicFormulaManager getFormulaManager() {
+    return mgr;
+  }
 
-	public SymbolicFormulaManager getFormulaManager() {
-		return mgr;
-	}
+  public PredicateMap getPredicateMap() {
+    return pmap;
+  }
 
-	// builds the path formulas corresponding to the leaves of the inner
-	// subgraph of the given summary location
-	public PathFormula getNewPathFormula() {
+  public Set<SymbPredAbsAbstractElement> getCoveredBy(SymbPredAbsAbstractElement e){
+    if (covers.containsKey(e)) {
+      return covers.get(e);
+    } else {
+      return Collections.emptySet();
+    }
+  }
 
-		SSAMap ssamap = new SSAMap();
-		return new PathFormula(mgr.makeTrue(), ssamap);
+  public void setCoveredBy(SymbPredAbsAbstractElement covered,
+                           SymbPredAbsAbstractElement e) {
+    Set<SymbPredAbsAbstractElement> s;
+    if (covers.containsKey(e)) {
+      s = covers.get(e);
+    } else {
+      s = new HashSet<SymbPredAbsAbstractElement>();
+    }
+    s.add(covered);
+    covers.put(e, s);
+  }
 
-//		try {
-//		if (!summaryToFormulaMap.containsKey(succLoc)) {
-//		Map<CFANode, Pair<SymbolicFormula, SSAMap>> p =
-//		mgr.buildPathFormulas(succLoc);
-//		summaryToFormulaMap.put(succLoc, p);
+  public void uncoverAll(SymbPredAbsAbstractElement e) {
+    if (covers.containsKey(e)) {
+      covers.remove(e);
+    }
+  }
 
-////		CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel,
-////		"SYMBOLIC FORMULA FOR " + succLoc.toString() + ": " +
-////		p.getFirst().toString());
-
-//		}
-//		return summaryToFormulaMap.get(succLoc);
-//		} catch (UnrecognizedCFAEdgeException e) {
-//		e.printStackTrace();
-//		return null;
-//		}
-	}
-
-	public Set<SymbPredAbsAbstractElement> getCoveredBy(SymbPredAbsAbstractElement e){
-		if (covers.containsKey(e)) {
-			return covers.get(e);
-		} else {
-			return Collections.emptySet();
-		}
-	}
-
-	public void setCoveredBy(SymbPredAbsAbstractElement covered,
-			SymbPredAbsAbstractElement e) {
-		Set<SymbPredAbsAbstractElement> s;
-		if (covers.containsKey(e)) {
-			s = covers.get(e);
-		} else {
-			s = new HashSet<SymbPredAbsAbstractElement>();
-		}
-		s.add(covered);
-		covers.put(e, s);
-	}
-
-	public void uncoverAll(SymbPredAbsAbstractElement e) {
-		if (covers.containsKey(e)) {
-			covers.remove(e);
-		}
-	}
-
-	public MathsatSymbPredAbsFormulaManager getMathsatSymbPredAbsFormulaManager() {
-		return mgr;
-	}
-
-	public BDDMathsatSymbPredAbsAbstractManager getBDDMathsatSymbPredAbsAbstractManager() {
-		return amgr;
-	}
-
-	// TODO fix this
-	public boolean isAbstractionLocation(CFANode succLoc) {
-
-//		// useful for test cases
-//		String lines[] = CPAMain.cpaConfig.getPropertiesArray("abstraction.extraLocations");
-//		if(lines.length > 0){
-//			for(String line:lines){
-//				if(succLoc.getLineNumber() == Integer.valueOf(line)){
-//					return true;
-//				}
-//			}
-//		}
-
-		if (succLoc.isLoopStart() || succLoc instanceof CFAErrorNode
-				|| succLoc.getNumLeavingEdges() == 0) {
-			return true;
-		} else if (succLoc instanceof CFAFunctionDefinitionNode) {
-			return true;
-		} else if (succLoc.getEnteringSummaryEdge() != null) {
-			return true;
-			// if a node has two or more incoming edges from different
-			// summary nodes, it is a abstraction location
-		} else {
-			return false;
-		}
-	}
-
+  public SymbolicFormulaManager getSymbolicFormulaManager() {
+    return mgr;
+  }
 }

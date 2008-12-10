@@ -20,11 +20,9 @@ public class OctagonCPA implements ConfigurableProgramAnalysis{
 		OctDomain octagonDomain = new OctDomain ();
 		MergeOperator octagonMergeOp = null;
 		if(mergeType.equals("sep")){
-			System.out.println("mergesep");
 			octagonMergeOp = new OctMergeSep (octagonDomain);
 		}
 		else if(mergeType.equals("join")){
-			System.out.println("mergejoin");
 			octagonMergeOp = new OctMergeJoin (octagonDomain);
 		}
 

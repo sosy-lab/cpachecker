@@ -483,4 +483,8 @@ public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
         return ret;
     }
 
+    public JavaBDD getBddManager() {
+      return bddManager;
+    }
+
 }
