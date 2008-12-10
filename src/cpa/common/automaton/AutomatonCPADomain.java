@@ -70,6 +70,10 @@ public class AutomatonCPADomain<E> implements AbstractDomain {
       mStates.add(pState);
     }
     
+    public final Set<Automaton<E>.State> getStates() {
+      return mStates;
+    }
+    
     @Override
     public boolean subsumes(Element pOtherElement) {
       assert(pOtherElement != null);

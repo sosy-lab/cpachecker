@@ -2,6 +2,7 @@ package cmdline;
 
 import java.io.File;
 import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
@@ -39,8 +40,14 @@ import cmdline.stubs.StubFile;
 import compositeCPA.CompositeCPA;
 
 import cpa.common.CPAAlgorithm;
+import cpa.common.automaton.Automaton;
+import cpa.common.automaton.Label;
+import cpa.common.automaton.NegationLabel;
+import cpa.common.automaton.OrLabel;
+import cpa.common.automaton.cfa.FunctionCallLabel;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
+import cpa.scoperestriction.ScopeRestrictionCPA;
 import cpa.symbpredabs.BlockCFABuilder;
 import cpa.symbpredabs.summary.ConeOfInfluenceCFAReduction;
 import cpa.symbpredabs.summary.SummaryCFABuilder;
@@ -183,6 +190,19 @@ public class CPAMain {
             "analysis.entryFunction"));
       }
 
+      if (CPAMain.cpaConfig.getBooleanValue("dot.export")) {
+        DOTBuilderInterface dotBuilder = null;
+        if (CPAMain.cpaConfig.getBooleanValue(
+            "analysis.useSummaryLocations")) {
+          dotBuilder = new SummaryDOTBuilder();
+        } else {
+          dotBuilder = new DOTBuilder();
+        }
+        String dotPath = CPAMain.cpaConfig.getProperty("dot.path");
+        dotBuilder.generateDOT(cfasMapList, mainFunction,
+            new File(dotPath, "dot_main.dot").getPath());
+      }
+      
       LazyLogger.log(Level.INFO, "CPA Algorithm starting ... ");
       cpaStats.startAnalysisTimer();
 
