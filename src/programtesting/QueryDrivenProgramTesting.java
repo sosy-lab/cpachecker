@@ -91,11 +91,12 @@ public class QueryDrivenProgramTesting {
 
     // initialize symbolic predicate abstraction
     // TODO: include predicate abstraction
-    /*SymbPredAbsCPA predAbsCPA = new SymbPredAbsCPA("sep", "sep");
-    cpas.add(predAbsCPA);*/
+    SymbPredAbsCPA predAbsCPA = new SymbPredAbsCPA("sep", "sep");
+    cpas.add(predAbsCPA);
     
     // create composite cpa
     ConfigurableProgramAnalysis cpa = CompositeCPA.createNewCompositeCPA(cpas, pMainFunction);
+       
     CPAAlgorithm algo = new CPAAlgorithm();
 
     // every final state in the test goal automaton represents a 
@@ -112,12 +113,20 @@ public class QueryDrivenProgramTesting {
     while (!lTestGoals.isEmpty()) {
       // TODO: Simplify test goal automaton
       
-      // testGoals to be passed in as precision
+      // TODO: Remove this output
+      System.out.println("a)");
+      
+      // TODO: testGoals to be passed in as precision
       AbstractElement lInitialElement = cpa.getInitialElement(pMainFunction);
+      
+      // TODO: Remove this output
+      System.out.println("b)");
       
       Collection<AbstractElement> lReachedElements = null;
       
       try {
+        // TODO: During ART creation establish an order
+        // that allows efficient querying for test goals
         lReachedElements = algo.CPA(cpa, lInitialElement);
         
         // TODO: Remove this output
@@ -153,11 +162,8 @@ public class QueryDrivenProgramTesting {
           
         AbstractElement lTmpElement = lCompositeElement.get(2);
         
-        if (lTestGoalCPA.getAbstractDomain().isBottomElement(lTmpElement)) {
-          // TODO: This should not happen
-          continue;
-        }
-
+        assert(!lTestGoalCPA.getAbstractDomain().isBottomElement(lTmpElement));
+        
         // TODO: Why is there a isBottomElement but not a isTopElement?
         // is isBottomElement superfluous?
         if (lTestGoalCPA.getAbstractDomain().getTopElement().equals(lTmpElement)) {
@@ -175,6 +181,8 @@ public class QueryDrivenProgramTesting {
         for (Automaton<CFAEdge>.State lState : lStates) {
           // is lState a remaining test goal?
           if (lState.isFinal() && lTestGoals.contains(lState)) {
+            // TODO: Extract path
+            
             // TODO: check feasibility
             boolean isFeasible = true;
             

@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.Stack;
 import java.util.Vector;
 
 import common.Pair;
@@ -22,12 +23,14 @@ public class Automaton<E> {
     private Automaton<E> mAutomaton;
     private int mIndex;
     private Set<Pair<Label<E>, State>> mOutgoingTransitions;
+    private Set<Pair<Label<E>, State>> mIncomingTransitions;
     
     public State(Automaton<E> pAutomaton, int pIndex) {
       mAutomaton = pAutomaton;
       mIndex = pIndex;
       
       mOutgoingTransitions = new HashSet<Pair<Label<E>, State>>();
+      mIncomingTransitions = new HashSet<Pair<Label<E>, State>>();
     }
     
     public Automaton<E> getAutomaton() {
@@ -59,6 +62,7 @@ public class Automaton<E> {
       assert(pLabel != null);
       
       mOutgoingTransitions.add(new Pair<Label<E>, State>(pLabel, pState));
+      pState.mIncomingTransitions.add(new Pair<Label<E>, State>(pLabel, this));
     }
     
     public void addTransition(Label<E> pLabel, int pIndex) {
@@ -68,9 +72,10 @@ public class Automaton<E> {
     }
     
     public void addSelfLoop(Label<E> pLabel) {
-      assert(pLabel != null);
+      //assert(pLabel != null);
       
-      mOutgoingTransitions.add(new Pair<Label<E>, State>(pLabel, this));
+      addTransition(pLabel, this);
+      //mOutgoingTransitions.add(new Pair<Label<E>, State>(pLabel, this));
     }
     
     public void addUnconditionalSelfLoop() {
@@ -532,5 +537,84 @@ public class Automaton<E> {
     result += "}\n";
     
     return result;
+  }
+  
+  public Automaton<E> getSimplifiedAutomaton() {
+    Stack<State> lStack = new Stack<State>();
+    lStack.addAll(getFinalStates());
+    
+    Set<State> lVisitedStates = new HashSet<State>();
+    
+    while (!lStack.isEmpty()) {
+      State lState = lStack.pop();
+      
+      lVisitedStates.add(lState);
+      
+      for (Pair<Label<E>, State> lPair : lState.mIncomingTransitions) {
+        State lSourceState = lPair.getSecond();
+        
+        // this state is already marked as reachable
+        if (lVisitedStates.contains(lSourceState)) {
+          continue;
+        }
+        
+        // this state will be marked as reachable
+        if (lStack.contains(lSourceState)) {
+          continue;
+        }
+        
+        lStack.add(lSourceState);
+      }
+    }
+    
+    if (!lVisitedStates.contains(getInitialState())) {
+      // return dummy automaton since no final state is reachable
+      return new Automaton<E>();
+    }
+    
+    // there is a final state reachable from the initial state
+    // create an automaton based on this that only involves 
+    // states from lVisitedStates
+    Map<State, State> lStateMap = new HashMap<State, State>();
+    
+    Automaton<E> lAutomaton = new Automaton<E>();
+    
+    lStateMap.put(getInitialState(), lAutomaton.getInitialState());
+    
+    for (State lState : lVisitedStates) {
+      State lNewState;
+      
+      if (!lStateMap.containsKey(lState)) {
+        lNewState = lAutomaton.createState();
+        lStateMap.put(lState, lNewState);
+      }
+      else {
+        lNewState = lStateMap.get(lState);
+      }
+      
+      if (lState.isFinal()) {
+        lNewState.setFinal();
+      }
+      
+      for (Pair<Label<E>, State> lTransition : lState.mOutgoingTransitions) {
+        State lTargetState = lTransition.getSecond();
+        
+        if (lVisitedStates.contains(lTargetState)) {
+          State lNewTargetState;
+          
+          if (!lStateMap.containsKey(lTargetState)) {
+            lNewTargetState = lAutomaton.createState();
+            lStateMap.put(lTargetState, lNewTargetState);
+          }
+          else {
+            lNewTargetState = lStateMap.get(lTargetState);
+          }
+          
+          lNewState.addTransition(lTransition.getFirst(), lNewTargetState);
+        }
+      }
+    }
+    
+    return lAutomaton;
   }
 }
