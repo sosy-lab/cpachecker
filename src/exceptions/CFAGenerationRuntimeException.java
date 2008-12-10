@@ -1,5 +1,9 @@
 package exceptions;
 
+/**
+ * Handles runtime exceptions generated during CFA generation
+ * @author erkan
+ */
 public class CFAGenerationRuntimeException extends RuntimeException
 {
     // Exceptions are serializable, and warnings are generated without this.  No importance for now.
