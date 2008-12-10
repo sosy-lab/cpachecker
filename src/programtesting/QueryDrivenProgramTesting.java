@@ -25,7 +25,7 @@ import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.location.LocationCPA;
 import cpa.scoperestriction.ScopeRestrictionCPA;
-import cpa.symbpredabsCPA.SymbPredAbsCPA;
+import cpa.symbpredabs.explicit.ExplicitCPA;
 import cpa.testgoal.TestGoalCPA;
 import exceptions.CPAException;
 
@@ -90,9 +90,8 @@ public class QueryDrivenProgramTesting {
     cpas.add(lTestGoalCPA);
 
     // initialize symbolic predicate abstraction
-    // TODO: include predicate abstraction
-    SymbPredAbsCPA predAbsCPA = new SymbPredAbsCPA("sep", "sep");
-    cpas.add(predAbsCPA);
+    ExplicitCPA lExplicitAbstractionCPA = new ExplicitCPA("sep", "sep");
+    cpas.add(lExplicitAbstractionCPA);
     
     // create composite cpa
     ConfigurableProgramAnalysis cpa = CompositeCPA.createNewCompositeCPA(cpas, pMainFunction);
@@ -107,20 +106,11 @@ public class QueryDrivenProgramTesting {
     // TODO: the resulting set of paths
     Set<ArrayList<CFAEdge>> lPaths = new HashSet<ArrayList<CFAEdge>>();
     
-    // TODO: Remove this output
-    System.out.println("#TestGoals = " + lTestGoals.size());
-    
     while (!lTestGoals.isEmpty()) {
       // TODO: Simplify test goal automaton
       
-      // TODO: Remove this output
-      System.out.println("a)");
-      
       // TODO: testGoals to be passed in as precision
       AbstractElement lInitialElement = cpa.getInitialElement(pMainFunction);
-      
-      // TODO: Remove this output
-      System.out.println("b)");
       
       Collection<AbstractElement> lReachedElements = null;
       
@@ -204,6 +194,8 @@ public class QueryDrivenProgramTesting {
           }
         }
       }
+      
+      break;
       
       // TODO: invoke CBMC
       //runCBMC(paths);
