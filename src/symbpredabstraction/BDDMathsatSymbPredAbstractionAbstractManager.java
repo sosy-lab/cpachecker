@@ -86,9 +86,9 @@ implements SymbPredAbstFormulaManager
   }
   private Stats stats;
 
-  private boolean dumpHardAbstractions;
+  // private boolean dumpHardAbstractions;
   private TheoremProver thmProver;
-  private InterpolatingTheoremProver itpProver;
+  // private InterpolatingTheoremProver itpProver;
 
   // TODO later
 //private Map<Pair<CFANode, CFANode>, Pair<MathsatSymbolicFormula, SSAMap>>
@@ -109,10 +109,9 @@ implements SymbPredAbstFormulaManager
 //  abstractionTranslationCache =
 //  new HashMap<Pair<CFANode, CFANode>,
 //  Pair<MathsatSymbolicFormula, SSAMap>>();
-    dumpHardAbstractions = CPAMain.cpaConfig.getBooleanValue(
-    "cpas.symbpredabs.mathsat.dumpHardAbstractionQueries");
+    // dumpHardAbstractions = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.mathsat.dumpHardAbstractionQueries");
     thmProver = prover;
-    itpProver = interpolator;
+    // itpProver = interpolator;
 
     // TODO cache
 //  abstractionCache =
@@ -284,8 +283,8 @@ implements SymbPredAbstFormulaManager
     LazyLogger.log(LazyLogger.DEBUG_2,
         "COMPUTING ALL-SMT ON FORMULA: ", fm);
 
-    Pair<SymbolicFormula, Vector<SymbolicFormula>> absKey =
-      new Pair<SymbolicFormula, Vector<SymbolicFormula>>(fm, imp);
+    // Pair<SymbolicFormula, Vector<SymbolicFormula>> absKey =
+    //   new Pair<SymbolicFormula, Vector<SymbolicFormula>>(fm, imp);
     AbstractFormula result = null;
     // TODO cache
 //  if (useCache && abstractionCache.containsKey(absKey)) {

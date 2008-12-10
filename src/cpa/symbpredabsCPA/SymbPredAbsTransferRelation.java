@@ -2,7 +2,6 @@ package cpa.symbpredabsCPA;
 
 import java.util.Deque;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -21,7 +20,6 @@ import cmdline.CPAMain;
 import common.Pair;
 
 import cpa.common.CPATransferException;
-import cpa.common.ErrorReachedException;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.TransferRelation;
