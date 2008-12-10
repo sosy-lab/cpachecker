@@ -5,6 +5,7 @@ import java.util.Collection;
 import common.Pair;
 
 import cfa.objectmodel.CFAEdge;
+import exceptions.UnrecognizedCFAEdgeException;
 
 
 /**

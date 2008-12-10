@@ -4,7 +4,7 @@ import java.util.List;
 
 import cfa.objectmodel.CFAEdge;
 
-import cpa.common.CPATransferException;
+import exceptions.CPATransferException;
 import cpa.common.interfaces.AbstractElement;
 import exceptions.CPAException;
 

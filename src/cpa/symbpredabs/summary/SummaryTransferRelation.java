@@ -24,9 +24,9 @@ import cmdline.CPAMain;
 
 import common.Pair;
 
-import cpa.common.CPATransferException;
-import cpa.common.ErrorReachedException;
-import cpa.common.RefinementNeededException;
+import exceptions.CPATransferException;
+import exceptions.ErrorReachedException;
+import exceptions.RefinementNeededException;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;

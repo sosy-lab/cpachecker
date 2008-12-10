@@ -21,7 +21,7 @@ import cfa.objectmodel.c.FunctionDefinitionNode;
 import cfa.objectmodel.c.GlobalDeclarationEdge;
 import cfa.objectmodel.c.ReturnEdge;
 import cfa.objectmodel.c.StatementEdge;
-import cpa.common.CPATransferException;
+import exceptions.CPATransferException;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.TransferRelation;
 import exceptions.CPAException;

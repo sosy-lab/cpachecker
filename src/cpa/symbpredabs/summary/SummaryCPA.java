@@ -37,7 +37,7 @@ import cpa.symbpredabs.PredicateMap;
 import cpa.symbpredabs.SSAMap;
 import cpa.symbpredabs.SymbolicFormula;
 import cpa.symbpredabs.TheoremProver;
-import cpa.symbpredabs.UnrecognizedCFAEdgeException;
+import exceptions.UnrecognizedCFAEdgeException;
 import cpa.symbpredabs.UpdateablePredicateMap;
 import cpa.symbpredabs.mathsat.MathsatInterpolatingProver;
 import cpa.symbpredabs.mathsat.MathsatPredicateParser;

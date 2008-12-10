@@ -8,7 +8,7 @@ import cfa.objectmodel.CFAEdgeType;
 import cfa.objectmodel.CFANode;
 import cfa.objectmodel.c.CallToReturnEdge;
 
-import cpa.common.CPATransferException;
+import exceptions.CPATransferException;
 import cpa.common.CallElement;
 import cpa.common.CallStack;
 import cpa.common.CompositeDomain;

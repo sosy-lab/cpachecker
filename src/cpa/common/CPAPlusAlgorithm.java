@@ -23,6 +23,7 @@ import cpa.common.interfaces.PrecisionAdjustment;
 import cpa.common.interfaces.StopOperatorPlus;
 import cpa.common.interfaces.TransferRelationPlus;
 import exceptions.CPAException;
+import exceptions.CPATransferException;
 
 /**
  * @author Michael Tautschnig <tautschnig@forsyte.de>

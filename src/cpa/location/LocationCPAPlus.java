@@ -11,7 +11,7 @@ import cfa.objectmodel.CFAFunctionDefinitionNode;
 
 import common.Pair;
 
-import cpa.common.CPATransferException;
+import exceptions.CPATransferException;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;

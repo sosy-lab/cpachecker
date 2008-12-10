@@ -8,7 +8,7 @@ import java.util.List;
 
 import cfa.objectmodel.CFAEdge;
 
-import cpa.common.CPATransferException;
+import exceptions.CPATransferException;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;

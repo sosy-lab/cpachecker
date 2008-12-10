@@ -21,7 +21,7 @@ import cpa.itpabs.symbolic.ItpSymbolicCounterexampleRefiner;
 import common.Pair;
 import cpa.symbpredabs.SSAMap;
 import cpa.symbpredabs.SymbolicFormula;
-import cpa.symbpredabs.UnrecognizedCFAEdgeException;
+import exceptions.UnrecognizedCFAEdgeException;
 import cpa.symbpredabs.mathsat.summary.MathsatSummaryFormulaManager;
 import cpa.symbpredabs.summary.InnerCFANode;
 import cpa.symbpredabs.summary.SummaryCFANode;

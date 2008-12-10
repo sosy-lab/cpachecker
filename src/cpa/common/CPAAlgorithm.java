@@ -19,10 +19,10 @@ import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
-import cpa.common.CPATransferException;
+import exceptions.CPATransferException;
 import cpa.common.CompositeElement;
-import cpa.common.ErrorReachedException;
-import cpa.common.RefinementNeededException;
+import exceptions.ErrorReachedException;
+import exceptions.RefinementNeededException;
 import exceptions.CPAException;
 
 public class CPAAlgorithm

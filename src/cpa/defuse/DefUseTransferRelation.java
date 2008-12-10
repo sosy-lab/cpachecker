@@ -15,7 +15,7 @@ import cfa.objectmodel.c.MultiDeclarationEdge;
 import cfa.objectmodel.c.MultiStatementEdge;
 import cfa.objectmodel.c.StatementEdge;
 
-import cpa.common.CPATransferException;
+import exceptions.CPATransferException;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.TransferRelation;

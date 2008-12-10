@@ -1,6 +1,6 @@
-package cpa.common;
+package exceptions;
 
-import cpa.common.CPATransferException;
+import exceptions.CPATransferException;
 
 public class ErrorReachedException extends CPATransferException {
 

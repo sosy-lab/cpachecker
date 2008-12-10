@@ -35,7 +35,7 @@ import predicateabstraction.PredAbstractionConstants;
 import predicateabstraction.Predicate;
 import predicateabstraction.SimplifiedInstruction;
 import predicateabstraction.ThreeValuedBoolean;
-import cpa.common.CPATransferException;
+import exceptions.CPATransferException;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.TransferRelation;

@@ -1,4 +1,4 @@
-package cpa.common;
+package exceptions;
 
 public abstract class CPATransferException extends Exception {
 

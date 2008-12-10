@@ -8,7 +8,7 @@ import common.Pair;
 import cpa.symbpredabs.SSAMap;
 import cpa.symbpredabs.SymbolicFormula;
 import cpa.symbpredabs.SymbolicFormulaManager;
-import cpa.symbpredabs.UnrecognizedCFAEdgeException;
+import exceptions.UnrecognizedCFAEdgeException;
 
 /**
  * Formula manager that understands summary locations

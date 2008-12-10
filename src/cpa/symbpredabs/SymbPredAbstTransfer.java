@@ -10,7 +10,8 @@ import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAErrorNode;
 import cfa.objectmodel.CFANode;
 
-import cpa.common.CPATransferException;
+import exceptions.CPATransferException;
+import exceptions.UnrecognizedCFAEdgeException;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.BottomElement;

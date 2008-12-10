@@ -17,7 +17,7 @@ import cfa.objectmodel.CFANode;
 import common.Pair;
 import cpa.symbpredabs.SSAMap;
 import cpa.symbpredabs.SymbolicFormula;
-import cpa.symbpredabs.UnrecognizedCFAEdgeException;
+import exceptions.UnrecognizedCFAEdgeException;
 import cpa.symbpredabs.mathsat.MathsatSymbolicFormula;
 import cpa.symbpredabs.mathsat.MathsatSymbolicFormulaManager;
 import cpa.symbpredabs.summary.InnerCFANode;

@@ -14,7 +14,7 @@ import cpa.symbpredabs.Predicate;
 import cpa.symbpredabs.SSAMap;
 import cpa.symbpredabs.SymbolicFormula;
 import cpa.symbpredabs.SymbolicFormulaManager;
-import cpa.symbpredabs.UnrecognizedCFAEdgeException;
+import exceptions.UnrecognizedCFAEdgeException;
 
 /**
  * Formula Manager for Explicit-state predicate abstraction.

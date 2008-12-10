@@ -58,7 +58,7 @@ import cpa.symbpredabs.SSAMap;
 import cpa.symbpredabs.SymbolicFormula;
 import cpa.symbpredabs.SymbolicFormulaManager;
 import cpa.symbpredabs.TheoremProver;
-import cpa.symbpredabs.UnrecognizedCFAEdgeException;
+import exceptions.UnrecognizedCFAEdgeException;
 
 
 /**

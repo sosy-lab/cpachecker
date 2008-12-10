@@ -19,7 +19,7 @@ import cmdline.CPAMain;
 
 import common.Pair;
 
-import cpa.common.CPATransferException;
+import exceptions.CPATransferException;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.TransferRelation;
@@ -33,6 +33,7 @@ import cpa.symbpredabs.mathsat.MathsatSymbolicFormula;
 import cpa.symbpredabs.mathsat.MathsatSymbolicFormulaManager;
 import exceptions.CPAException;
 import exceptions.SymbPredAbstTransferException;
+import exceptions.UnrecognizedCFAEdgeException;
 
 /**
  * Transfer relation for symbolic lazy abstraction with summaries
@@ -149,7 +150,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
         try {
           handleNonAbstractionLocation(element, newElement, edge);
           // TODO change this exception later
-        } catch (cpa.symbpredabs.UnrecognizedCFAEdgeException e) {
+        } catch (UnrecognizedCFAEdgeException e) {
           // TODO Auto-generated catch block
           e.printStackTrace();
         }
@@ -165,7 +166,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
       try {
         handleAbstractionLocation(element, newElement, edge);
         // TODO change type of the exception later
-      } catch (cpa.symbpredabs.UnrecognizedCFAEdgeException e) {
+      } catch (UnrecognizedCFAEdgeException e) {
         // TODO Auto-generated catch block
         e.printStackTrace();
       }
@@ -175,7 +176,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   }
 
   private void handleAbstractionLocation(SymbPredAbsAbstractElement element,
-                                         SymbPredAbsAbstractElement newElement, CFAEdge edge) throws cpa.symbpredabs.UnrecognizedCFAEdgeException {
+                                         SymbPredAbsAbstractElement newElement, CFAEdge edge) throws UnrecognizedCFAEdgeException {
     
     BDDMathsatSymbPredAbstractionAbstractManager bddAbstractFormulaManager  = (BDDMathsatSymbPredAbstractionAbstractManager)abstractFormulaManager;
     
@@ -288,7 +289,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   private void handleNonAbstractionLocation(
                                             SymbPredAbsAbstractElement element,
                                             SymbPredAbsAbstractElement newElement, CFAEdge edge)
-  throws SymbPredAbstTransferException, cpa.symbpredabs.UnrecognizedCFAEdgeException {
+  throws SymbPredAbstTransferException, UnrecognizedCFAEdgeException {
     AbstractFormula abst = element.getAbstraction();
     PredicateMap pmap = element.getPredicates();
     ParentsList parents = element.getParents();

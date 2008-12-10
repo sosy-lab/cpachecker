@@ -1,9 +1,9 @@
-package cpa.itpabs;
+package exceptions;
 
 import java.util.Collection;
 import java.util.Collections;
 
-import cpa.common.RefinementNeededException;
+import exceptions.RefinementNeededException;
 import cpa.common.interfaces.AbstractElement;
 
 /**
