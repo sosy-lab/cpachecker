@@ -33,6 +33,7 @@ fi
 # make ourselves log all output
 SCRIPT_HOME=`cd \`dirname $0\` > /dev/null 2>&1 ; pwd`
 LOGDIR="$SCRIPT_HOME/results.r$REV"
+mkdir -p $LOGDIR
 LOGFILE="$LOGDIR/run-log.`date +%F_%T`"
 echo "Logging all output and errors to $LOGFILE"
 exec 1>$LOGFILE 2>&1
@@ -48,10 +49,7 @@ if [ ! -d $STORAGE -o "`svn info $STORAGE | grep ^URL: | awk '{ print $2 }'`" !=
   rm -rf $STORAGE
   svn co -r$REV $REPOS $STORAGE
 else
-  rm -f $STORAGE/nativeLibs/libmathsatj.so
-  svn revert $STORAGE/build.xml
-  svn revert $STORAGE/src/cfa/CFABuilder.java
-  svn revert $STORAGE/src/cmdline/stubs/StubCodeReaderFactory.java
+  rm -f $STORAGE/nativeLibs/libmathsatj.so $STORAGE/build.xml $STORAGE/src/cfa/CFABuilder.java $STORAGE/src/cmdline/stubs/StubCodeReaderFactory.java
   svn up -r$REV $STORAGE
 fi
 
