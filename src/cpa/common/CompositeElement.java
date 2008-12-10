@@ -63,6 +63,21 @@ public class CompositeElement implements AbstractElementWithLocation
 
         return true;
     }
+    
+    @Override
+    public int hashCode() {
+      int hashCode = 0;
+      
+      for (AbstractElement lElement : elements) {
+        if (lElement == null) {
+          continue;
+        }
+        
+        hashCode += lElement.hashCode();
+      }
+      
+      return hashCode;
+    }
 
     @Override
     public String toString ()

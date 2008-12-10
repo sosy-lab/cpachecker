@@ -36,4 +36,9 @@ public class CompositeTopElement implements TopElement
 
         return true;
     }
+    
+    @Override
+    public int hashCode() {
+      return Integer.MAX_VALUE;
+    }
 }

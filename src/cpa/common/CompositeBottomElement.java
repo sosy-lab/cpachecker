@@ -35,4 +35,9 @@ public class CompositeBottomElement implements BottomElement
 
         return true;
     }
+    
+    @Override
+    public int hashCode() {
+      return Integer.MIN_VALUE;
+    }
 }
