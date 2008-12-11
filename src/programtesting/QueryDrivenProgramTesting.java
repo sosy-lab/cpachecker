@@ -11,10 +11,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import logging.CustomLogLevel;
-import logging.LazyLogger;
-import cmdline.CPAMain;
-
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 
@@ -29,16 +25,19 @@ import cpa.common.automaton.NegationLabel;
 import cpa.common.automaton.cfa.FunctionCallLabel;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
+import cpa.common.interfaces.TransferRelation;
 import cpa.location.LocationCPA;
 import cpa.scoperestriction.ScopeRestrictionCPA;
 import cpa.symbpredabs.CounterexampleTraceInfo;
+import cpa.symbpredabs.PredicateMap;
 import cpa.symbpredabs.SymbolicFormulaManager;
 import cpa.symbpredabs.explicit.ExplicitAbstractElement;
 import cpa.symbpredabs.explicit.ExplicitAbstractFormulaManager;
 import cpa.symbpredabs.explicit.ExplicitCPA;
+import cpa.symbpredabs.explicit.ExplicitTransferRelation;
 import cpa.testgoal.TestGoalCPA;
 import exceptions.CPAException;
-import exceptions.ErrorReachedException;
+import exceptions.RefinementNeededException;
 
 /**
  * @author Michael Tautschnig <tautschnig@forsyte.de>
@@ -77,6 +76,29 @@ public class QueryDrivenProgramTesting {
     lInitialState.addTransition(lSpecialCaseLabel, lState);
     
     return lTestGoalAutomaton;
+  }
+  
+  public static Deque<ExplicitAbstractElement> getAbstractPath(ExplicitAbstractElement pElement) {
+    // TODO: Remove this output
+    System.out.println("Abstract Path >>> BEGIN");
+    
+    ExplicitAbstractElement lPathElement = pElement;
+    
+    Deque<ExplicitAbstractElement> lPath = new LinkedList<ExplicitAbstractElement>();
+    
+    while (lPathElement != null) {
+      // TODO: Remove this output
+      System.out.println(lPathElement.toString());
+      
+      lPath.addFirst(lPathElement);
+      
+      lPathElement = lPathElement.getParent();
+    }
+    
+    // TODO: Remove this output
+    System.out.println("Abstract Path >>> BEGIN");    
+    
+    return lPath;
   }
   
   public static Set<Deque<ExplicitAbstractElement>> doIt (CFAFunctionDefinitionNode pMainFunction) {
@@ -152,6 +174,9 @@ public class QueryDrivenProgramTesting {
       // we do not have to iterate through the set of reached elements
       //removeInfeasibleTestGoals(testGoals, reached);
 
+      // TODO: remove this
+      boolean lSomethingCovered = false;
+      
       for (AbstractElement lElement : lReachedElements) {
         // are there any remaining test goals to be covered?
         if (lTestGoals.isEmpty()) {
@@ -186,38 +211,36 @@ public class QueryDrivenProgramTesting {
         for (Automaton<CFAEdge>.State lState : lStates) {
           // is lState a remaining test goal?
           if (lState.isFinal() && lTestGoals.contains(lState)) {
+            lSomethingCovered = true;
+            
             // TODO: Remove this output
             System.out.println("=> " + lElement.toString());
             
-            // TODO: Remove this output
-            System.out.println("Abstract path:");
+            Deque<ExplicitAbstractElement> lPath = getAbstractPath((ExplicitAbstractElement)lCompositeElement.get(3));
             
-            ExplicitAbstractElement lExplicitAbstractElement = (ExplicitAbstractElement)lCompositeElement.get(3);
+            CounterexampleTraceInfo lInfo = lEAFManager.buildCounterexampleTrace(lSFManager, lPath);
             
-            ExplicitAbstractElement lPathElement = lExplicitAbstractElement;
-            
-            Deque<ExplicitAbstractElement> lPath = new LinkedList<ExplicitAbstractElement>();
-            
-            while (lPathElement != null) {
-              // TODO: Remove this output
-              System.out.println(lPathElement);
-              
-              lPath.addFirst(lPathElement);
-              
-              lPathElement = lPathElement.getParent();
-            }
-            
-            // TODO: Remove this output
-            System.out.println("Abstract path finished.");
-            
-            CounterexampleTraceInfo info = lEAFManager.buildCounterexampleTrace(lSFManager, lPath);
-            
-            if (info.isSpurious()) {
+            if (lInfo.isSpurious()) {
               // TODO: Remove this output
               System.out.println("Path is infeasible");
               
               // TODO: Refine abstraction
-              //performRefinement(path, info);
+              TransferRelation lTransferRelation = lExplicitAbstractionCPA.getTransferRelation();
+              
+              ExplicitTransferRelation lExplicitTransferRelation = (ExplicitTransferRelation)lTransferRelation;
+              
+              try {
+                lExplicitTransferRelation.performRefinement(lPath, lInfo);
+              }
+              catch (RefinementNeededException e) {
+                // TODO: Remove this output
+                System.out.println("Refinement done!");
+              }
+              catch (Exception e) {
+                e.printStackTrace();
+                
+                System.exit(1);
+              }
             }
             else {
               // TODO: Remove this output
@@ -238,7 +261,12 @@ public class QueryDrivenProgramTesting {
       
       // TODO: Remove this break as soon as infeasible test goals get removed
       // from lTestGoals (necessary condition for termination of while-loop)
-      break;
+      if (!lSomethingCovered) {
+        break;
+      }
+      else {
+        System.out.println("NEXT LOOP #####################");
+      }
       
       // TODO: invoke CBMC
       //runCBMC(paths);

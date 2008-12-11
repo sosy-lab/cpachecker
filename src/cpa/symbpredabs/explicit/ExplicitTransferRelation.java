@@ -245,7 +245,7 @@ public class ExplicitTransferRelation implements TransferRelation {
     }
 
     // abstraction refinement is performed here
-    private void performRefinement(Deque<ExplicitAbstractElement> path,
+    public void performRefinement(Deque<ExplicitAbstractElement> path,
             CounterexampleTraceInfo info) throws CPATransferException {
         LazyLogger.log(LazyLogger.DEBUG_1, "STARTING REFINEMENT");
         UpdateablePredicateMap curpmap =
