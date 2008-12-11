@@ -7,6 +7,7 @@ import java.util.Set;
 import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
+import org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression;
 import org.eclipse.cdt.core.dom.ast.IASTIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
 import org.eclipse.cdt.core.dom.ast.IASTPointerOperator;
@@ -188,7 +189,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
     ExplicitAnalysisElement newElement = previousElem.clone();
     String callerFunctionName = functionReturnEdge.getSuccessor().getFunctionName();
     String calledFunctionName = functionReturnEdge.getPredecessor().getFunctionName();
-
+    System.out.println(exprOnSummary.getRawSignature());
     //expression is a binary operation, e.g. a = g(b);
     if (exprOnSummary instanceof IASTBinaryExpression) {
       IASTBinaryExpression binExp = ((IASTBinaryExpression)exprOnSummary);
@@ -196,7 +197,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
       IASTExpression op1 = binExp.getOperand1();
 
       assert(opType == IASTBinaryExpression.op_assign);
-
+      
       //we expect left hand side of the expression to be a variable
       if(op1 instanceof IASTIdExpression)
       {
@@ -250,8 +251,21 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
         }
       }
     }
+    // TODO check
+    else if (exprOnSummary instanceof IASTFunctionCallExpression)
+    {
+      // onyl globals
+      for(String globalVar:globalVars){
+        if(expAnalysisElement.contains(globalVar)){
+          newElement.assignConstant(globalVar, expAnalysisElement.getValueFor(globalVar));
+        }
+        else{
+          newElement.forget(globalVar);
+        }
+      }
+    }
     else{
-      throw new ExplicitAnalysisTransferException("Unhandled case " + functionReturnEdge.getPredecessor().getNodeNumber());
+      throw new ExplicitAnalysisTransferException("Unhandled case - return from function" + functionReturnEdge.getPredecessor().getNodeNumber());
     }
 
     expAnalysisElement.update(newElement);
@@ -586,11 +600,16 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
         // a != b
         else if(opType == IASTBinaryExpression.op_notequals)
         {
-          if(expAnalysisElement.contains(getvarName(rightVarName, functionName)) && 
-              expAnalysisElement.contains(getvarName(leftVarName, functionName))){
-            if(expAnalysisElement.getValueFor(getvarName(rightVarName, functionName)) == 
-              expAnalysisElement.getValueFor(getvarName(leftVarName, functionName))){
-              expAnalysisElement.setBottom();
+          if(truthValue){
+            if(expAnalysisElement.contains(getvarName(rightVarName, functionName)) && 
+                expAnalysisElement.contains(getvarName(leftVarName, functionName))){
+              if(expAnalysisElement.getValueFor(getvarName(rightVarName, functionName)) == 
+                expAnalysisElement.getValueFor(getvarName(leftVarName, functionName))){
+                expAnalysisElement.setBottom();
+              }
+            }
+            else{
+
             }
           }
           else{
@@ -600,11 +619,16 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
         // a > b
         else if(opType == IASTBinaryExpression.op_greaterThan)
         {
-          if(expAnalysisElement.contains(getvarName(leftVarName, functionName)) && 
-              expAnalysisElement.contains(getvarName(rightVarName, functionName))){
-            if(expAnalysisElement.getValueFor(getvarName(leftVarName, functionName)) <= 
-              expAnalysisElement.getValueFor(getvarName(rightVarName, functionName))){
-              expAnalysisElement.setBottom();
+          if(truthValue){
+            if(expAnalysisElement.contains(getvarName(leftVarName, functionName)) && 
+                expAnalysisElement.contains(getvarName(rightVarName, functionName))){
+              if(expAnalysisElement.getValueFor(getvarName(leftVarName, functionName)) <= 
+                expAnalysisElement.getValueFor(getvarName(rightVarName, functionName))){
+                expAnalysisElement.setBottom();
+              }
+            }
+            else{
+
             }
           }
           else{
@@ -614,11 +638,16 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
         // a >= b
         else if(opType == IASTBinaryExpression.op_greaterEqual)
         {
-          if(expAnalysisElement.contains(getvarName(leftVarName, functionName)) && 
-              expAnalysisElement.contains(getvarName(rightVarName, functionName))){
-            if(expAnalysisElement.getValueFor(getvarName(leftVarName, functionName)) < 
-                expAnalysisElement.getValueFor(getvarName(rightVarName, functionName))){
-              expAnalysisElement.setBottom();
+          if(truthValue){
+            if(expAnalysisElement.contains(getvarName(leftVarName, functionName)) && 
+                expAnalysisElement.contains(getvarName(rightVarName, functionName))){
+              if(expAnalysisElement.getValueFor(getvarName(leftVarName, functionName)) < 
+                  expAnalysisElement.getValueFor(getvarName(rightVarName, functionName))){
+                expAnalysisElement.setBottom();
+              }
+            }
+            else{
+
             }
           }
           else{
@@ -628,11 +657,16 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
         // a < b
         else if(opType == IASTBinaryExpression.op_lessThan)
         {
-          if(expAnalysisElement.contains(getvarName(leftVarName, functionName)) && 
-              expAnalysisElement.contains(getvarName(rightVarName, functionName))){
-            if(expAnalysisElement.getValueFor(getvarName(leftVarName, functionName)) >= 
-              expAnalysisElement.getValueFor(getvarName(rightVarName, functionName))){
-              expAnalysisElement.setBottom();					
+          if(truthValue){
+            if(expAnalysisElement.contains(getvarName(leftVarName, functionName)) && 
+                expAnalysisElement.contains(getvarName(rightVarName, functionName))){
+              if(expAnalysisElement.getValueFor(getvarName(leftVarName, functionName)) >= 
+                expAnalysisElement.getValueFor(getvarName(rightVarName, functionName))){
+                expAnalysisElement.setBottom();					
+              }
+            }
+            else{
+
             }
           }
           else{
@@ -642,11 +676,16 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
         // a <= b
         else if(opType == IASTBinaryExpression.op_lessEqual)
         {
-          if(expAnalysisElement.contains(getvarName(leftVarName, functionName)) && 
-              expAnalysisElement.contains(getvarName(rightVarName, functionName))){
-            if(expAnalysisElement.getValueFor(getvarName(leftVarName, functionName)) > 
-            expAnalysisElement.getValueFor(getvarName(rightVarName, functionName))){
-              expAnalysisElement.setBottom();			
+          if(truthValue){
+            if(expAnalysisElement.contains(getvarName(leftVarName, functionName)) && 
+                expAnalysisElement.contains(getvarName(rightVarName, functionName))){
+              if(expAnalysisElement.getValueFor(getvarName(leftVarName, functionName)) > 
+              expAnalysisElement.getValueFor(getvarName(rightVarName, functionName))){
+                expAnalysisElement.setBottom();			
+              }
+            }
+            else{
+
             }
           }
           else{

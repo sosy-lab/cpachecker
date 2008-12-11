@@ -144,6 +144,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis {
     e.setPathFormula(pf);
     e.setParents(parents);
     e.setAbstraction(amgr.makeTrue());
+    e.setArtParent(null);
     PredicateMap pmap;
     if (CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.abstraction.norefinement")) {
       MathsatPredicateParser p = new MathsatPredicateParser(mgr, amgr);

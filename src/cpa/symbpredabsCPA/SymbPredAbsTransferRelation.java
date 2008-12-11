@@ -5,6 +5,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import logging.CustomLogLevel;
+import logging.LazyLogger;
+
 import symbpredabstraction.BDDMathsatSymbPredAbstractionAbstractManager;
 import symbpredabstraction.ParentsList;
 import symbpredabstraction.PathFormula;
@@ -25,6 +28,7 @@ import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.TransferRelation;
 import cpa.symbpredabs.AbstractFormula;
 import cpa.symbpredabs.AbstractFormulaManager;
+import cpa.symbpredabs.CounterexampleTraceInfo;
 import cpa.symbpredabs.PredicateMap;
 import cpa.symbpredabs.SSAMap;
 import cpa.symbpredabs.SymbolicFormula;
@@ -195,6 +199,8 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     newParents.copyFromExisting(parents);
     newElement.setParents(newParents);
     newElement.addParent(edge.getSuccessor().getNodeNumber());
+    
+    newElement.setArtParent(element);
 
     PathFormula functionUpdatedFormula;
     AbstractFormula abs = element.getAbstraction();;
@@ -281,7 +287,46 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
       // return domain.getBottomElement();
     }
     else{
-      // TODO refinement part here
+      ++numAbstractStates;
+      // if we reach an error state, we want to log this...
+      if (edge.getSuccessor() instanceof CFAErrorNode) {
+          if (CPAMain.cpaConfig.getBooleanValue(
+                  "cpas.symbpredabs.abstraction.norefinement")) {
+              CPAMain.cpaStats.setErrorReached(true);
+              throw new ErrorReachedException(
+                      "Reached error location, but refinement disabled");
+          }
+          // oh oh, reached error location. Let's check whether the
+          // trace is feasible or spurious, and in case refine the
+          // abstraction
+          //
+          // first we build the abstract path
+          Deque<SymbPredAbsAbstractElement> path = new LinkedList<SymbPredAbsAbstractElement>();
+          path.addFirst(newElement);
+          SymbPredAbsAbstractElement parent = newElement.getArtParent();
+          while (parent != null) {
+              path.addFirst(parent);
+              parent = parent.getArtParent();
+          }
+          // TODO traceInfo is a abstractElement -> PredicateList map
+          CounterexampleTraceInfo info = bddAbstractFormulaManager.buildCounterexampleTrace(
+                      symbolicFormulaManager, path);
+          if (info.isSpurious()) {
+              LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+                      "Found spurious error trace, refining the ",
+                      "abstraction");
+              performRefinement(path, info);
+          } else {
+              LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+                      "REACHED ERROR LOCATION!: ", newElement,
+                      " RETURNING BOTTOM!");
+              CPAMain.cpaStats.setErrorReached(true);
+              throw new ErrorReachedException(
+                      info.getConcreteTrace().toString());
+          }
+          //return domain.getBottomElement();
+      }
+      //return succ;
     }
   }
 

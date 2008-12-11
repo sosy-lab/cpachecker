@@ -34,6 +34,8 @@ implements AbstractElement {
   private AbstractFormula abstraction;
   /** parents of this element */
   private ParentsList parents;
+  /** parent of this element on ART*/
+  private SymbPredAbsAbstractElement artParent;
   /** predicate list for this element*/
   private PredicateMap predicates;
 
@@ -245,5 +247,13 @@ implements AbstractElement {
 
   public void setMaxIndex(SSAMap maxIndex) {
     this.maxIndex = maxIndex;
+  }
+
+  public SymbPredAbsAbstractElement getArtParent() {
+    return this.artParent;
+  }
+
+  public void setArtParent(SymbPredAbsAbstractElement artParent) {
+    this.artParent = artParent;
   }
 }
