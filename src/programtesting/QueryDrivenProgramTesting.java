@@ -5,9 +5,15 @@ package programtesting;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Deque;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+
+import logging.CustomLogLevel;
+import logging.LazyLogger;
+import cmdline.CPAMain;
 
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
@@ -25,9 +31,14 @@ import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.location.LocationCPA;
 import cpa.scoperestriction.ScopeRestrictionCPA;
+import cpa.symbpredabs.CounterexampleTraceInfo;
+import cpa.symbpredabs.SymbolicFormulaManager;
+import cpa.symbpredabs.explicit.ExplicitAbstractElement;
+import cpa.symbpredabs.explicit.ExplicitAbstractFormulaManager;
 import cpa.symbpredabs.explicit.ExplicitCPA;
 import cpa.testgoal.TestGoalCPA;
 import exceptions.CPAException;
+import exceptions.ErrorReachedException;
 
 /**
  * @author Michael Tautschnig <tautschnig@forsyte.de>
@@ -68,7 +79,7 @@ public class QueryDrivenProgramTesting {
     return lTestGoalAutomaton;
   }
   
-  public static Set<ArrayList<CFAEdge>> doIt (CFAFunctionDefinitionNode pMainFunction) {
+  public static Set<Deque<ExplicitAbstractElement>> doIt (CFAFunctionDefinitionNode pMainFunction) {
     // create compositeCPA from automaton CPA and pred abstraction
     // TODO this must be a CPAPlus actually
     List<ConfigurableProgramAnalysis> cpas = new ArrayList<ConfigurableProgramAnalysis> ();
@@ -93,6 +104,10 @@ public class QueryDrivenProgramTesting {
     ExplicitCPA lExplicitAbstractionCPA = new ExplicitCPA("sep", "sep");
     cpas.add(lExplicitAbstractionCPA);
     
+    ExplicitAbstractFormulaManager lEAFManager = lExplicitAbstractionCPA.getAbstractFormulaManager();
+    SymbolicFormulaManager lSFManager = lExplicitAbstractionCPA.getFormulaManager();
+    
+    
     // create composite cpa
     ConfigurableProgramAnalysis cpa = CompositeCPA.createNewCompositeCPA(cpas, pMainFunction);
        
@@ -103,8 +118,8 @@ public class QueryDrivenProgramTesting {
     // of the test goal automaton
     Set<Automaton<CFAEdge>.State> lTestGoals = lTestGoalAutomaton.getFinalStates();
 
-    // TODO: the resulting set of paths
-    Set<ArrayList<CFAEdge>> lPaths = new HashSet<ArrayList<CFAEdge>>();
+    // the resulting set of paths
+    Set<Deque<ExplicitAbstractElement>> lPaths = new HashSet<Deque<ExplicitAbstractElement>>();
     
     while (!lTestGoals.isEmpty()) {
       // TODO: Simplify test goal automaton
@@ -171,30 +186,58 @@ public class QueryDrivenProgramTesting {
         for (Automaton<CFAEdge>.State lState : lStates) {
           // is lState a remaining test goal?
           if (lState.isFinal() && lTestGoals.contains(lState)) {
-            // TODO: Extract path
+            // TODO: Remove this output
+            System.out.println("=> " + lElement.toString());
             
-            // TODO: check feasibility
-            boolean isFeasible = true;
+            // TODO: Remove this output
+            System.out.println("Abstract path:");
             
-            if (isFeasible) {
+            ExplicitAbstractElement lExplicitAbstractElement = (ExplicitAbstractElement)lCompositeElement.get(3);
+            
+            ExplicitAbstractElement lPathElement = lExplicitAbstractElement;
+            
+            Deque<ExplicitAbstractElement> lPath = new LinkedList<ExplicitAbstractElement>();
+            
+            while (lPathElement != null) {
+              // TODO: Remove this output
+              System.out.println(lPathElement);
+              
+              lPath.addFirst(lPathElement);
+              
+              lPathElement = lPathElement.getParent();
+            }
+            
+            // TODO: Remove this output
+            System.out.println("Abstract path finished.");
+            
+            CounterexampleTraceInfo info = lEAFManager.buildCounterexampleTrace(lSFManager, lPath);
+            
+            if (info.isSpurious()) {
+              // TODO: Remove this output
+              System.out.println("Path is infeasible");
+              
+              // TODO: Refine abstraction
+              //performRefinement(path, info);
+            }
+            else {
+              // TODO: Remove this output
+              System.out.println("Path is feasible");
+              
               // remove the test goal from lTestGoals
               lTestGoals.remove(lState);
               
               // remove the test goal from the automaton
               lState.unsetFinal();
               
-              // TODO: add path
-              
-              // TODO: Remove this output
-              System.out.println("=> " + lElement.toString());
-            }
-            else {
-              // TODO: Refine abstraction
+              // add feasible path to set of feasible paths
+              lPaths.add(lPath);
             }
           }
         }
       }
       
+      // TODO: Remove this break as soon as infeasible test goals get removed
+      // from lTestGoals (necessary condition for termination of while-loop)
       break;
       
       // TODO: invoke CBMC
