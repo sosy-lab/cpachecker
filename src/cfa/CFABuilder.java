@@ -167,7 +167,11 @@ public class CFABuilder extends ASTVisitor
 			String nameOfFunction = newCFA.getFunctionName();
 			newCFA.setFunctionName(nameOfFunction);
 
-			locStack.add (newCFA);
+			CFANode functionStartDummyNode = new CFANode(fileloc.getStartingLineNumber ());
+			BlankEdge dummyEdge = new BlankEdge("Function start dummy edge");
+			dummyEdge.initialize(newCFA, functionStartDummyNode);
+			
+			locStack.add (functionStartDummyNode);
 			cfas.addCFA(nameOfFunction, newCFA);
 
 			returnNode = new CFAExitNode (fileloc.getEndingLineNumber (), nameOfFunction);
