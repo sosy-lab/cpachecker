@@ -97,7 +97,12 @@ public class ExplicitAnalysisDomain implements AbstractDomain {
 	}
 
 	public boolean isBottomElement(AbstractElement element) {
-		return ((ExplicitAnalysisElement)element).isBottom();
+		if( ((ExplicitAnalysisElement)element) instanceof BottomElement){
+			return true;
+		}
+		else {
+			return false;
+		}
 	}
 
 	public TopElement getTopElement ()

@@ -4,6 +4,7 @@ import java.util.Collection;
 
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.BottomElement;
 import cpa.common.interfaces.PartialOrder;
 import cpa.common.interfaces.StopOperator;
 import exceptions.CPAException;

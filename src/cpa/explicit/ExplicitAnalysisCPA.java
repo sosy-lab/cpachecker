@@ -1,6 +1,10 @@
 package cpa.explicit;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import cfa.objectmodel.CFAFunctionDefinitionNode;
+import cfa.objectmodel.c.FunctionDefinitionNode;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;

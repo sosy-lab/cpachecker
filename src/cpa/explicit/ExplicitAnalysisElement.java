@@ -2,6 +2,7 @@ package cpa.explicit;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import cpa.common.interfaces.AbstractElement;
 
@@ -9,7 +10,6 @@ public class ExplicitAnalysisElement implements AbstractElement {
 
 	// map that keeps the name of variables and their constant values
 	private Map<String, Integer> constantsMap;
-	private boolean isBottom = false;
 	
 	public ExplicitAnalysisElement() {
 		constantsMap = new HashMap<String, Integer>();
@@ -36,14 +36,6 @@ public class ExplicitAnalysisElement implements AbstractElement {
 		return constantsMap.containsKey(variableName);
 	}
 	
-	public void setBottom(){
-	  isBottom = true;
-	}
-	
-	public boolean isBottom(){
-	  return isBottom;
-	}
-	
 	@Override
     public ExplicitAnalysisElement clone() {
 		ExplicitAnalysisElement newElement = new ExplicitAnalysisElement();
@@ -52,6 +44,11 @@ public class ExplicitAnalysisElement implements AbstractElement {
             newElement.assignConstant(s, val);
         }
         return newElement;
+    }
+	
+	public void update (Map<String, Integer> newConstantsMap)
+    {
+        constantsMap = newConstantsMap;
     }
 	
 	@Override
@@ -96,8 +93,4 @@ public class ExplicitAnalysisElement implements AbstractElement {
 			constantsMap.remove(assignedVar);
 		}
 	}
-
-  public void update(ExplicitAnalysisElement newElement) {
-    constantsMap = newElement.getConstantsMap();
-  }
 }

@@ -477,7 +477,9 @@ implements SymbPredAbstFormulaManager
       useSuffix ? i >= 0 : i < f.size(); i += useSuffix ? -1 : 1) {
         SymbolicFormula fm = f.elementAt(i);
         itpProver.addFormula(fm);
+        System.out.println("added: " + fm);
         if (shortestTrace && !fm.isTrue()) {
+        	System.out.println(" came here");
           if (itpProver.isUnsat()) {
             res = 0;
             // we need to add the other formulas to the itpProver
@@ -497,6 +499,7 @@ implements SymbPredAbstFormulaManager
       }
       if (!shortestTrace || res == -1) {
         unsat = itpProver.isUnsat();
+        System.out.println("what is unsat" + unsat);
       } else {
         unsat = res == 0;
       }
