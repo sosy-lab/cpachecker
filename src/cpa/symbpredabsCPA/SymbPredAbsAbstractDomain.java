@@ -73,8 +73,8 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
 //			return true;
 //		}
     	// TODO if the element is the bottom element
-    	if (getCPA().getAbstractFormulaManager().isFalse(symbPredAbsElem.getAbstraction())){
-    		return true;
+    	if(symbPredAbsElem.isBottomElement){
+    	  return true;
     	}
 
 		return false;

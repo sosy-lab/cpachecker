@@ -18,7 +18,6 @@ import symbpredabstraction.BDDMathsatSymbPredAbstractionAbstractManager;
 import symbpredabstraction.ParentsList;
 import symbpredabstraction.PathFormula;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
-import cfa.objectmodel.CFANode;
 import cmdline.CPAMain;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
@@ -26,6 +25,7 @@ import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
+import cpa.symbpredabs.AbstractFormula;
 import cpa.symbpredabs.AbstractFormulaManager;
 import cpa.symbpredabs.FixedPredicateMap;
 import cpa.symbpredabs.InterpolatingTheoremProver;
@@ -42,11 +42,6 @@ import cpa.symbpredabs.mathsat.MathsatTheoremProver;
 import cpa.symbpredabs.mathsat.SimplifyTheoremProver;
 import cpa.symbpredabs.mathsat.YicesTheoremProver;
 
-/**
- * CPA for symbolic lazy abstraction with summaries
- *
- * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
- */
 public class SymbPredAbsCPA implements ConfigurableProgramAnalysis {
 
   private SymbPredAbsAbstractDomain domain;
@@ -136,15 +131,15 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis {
     LazyLogger.log(CustomLogLevel.SpecificCPALevel,
         "Getting initial element from node: ", node);
 
-    CFANode loc = node;
-    SymbPredAbsAbstractElement e = new SymbPredAbsAbstractElement(domain, loc);
+    //SymbPredAbsAbstractElement e = new SymbPredAbsAbstractElement(domain, loc, null);
+    
     ParentsList parents = new ParentsList();
+    parents.addToList(node.getNodeNumber());
     SSAMap ssamap = new SSAMap();
     PathFormula pf = new PathFormula(mgr.makeTrue(), ssamap);
-    e.setPathFormula(pf);
-    e.setParents(parents);
-    e.setAbstraction(amgr.makeTrue());
-    e.setArtParent(null);
+    PathFormula initPf = new PathFormula(mgr.makeTrue(), ssamap);
+    AbstractFormula initAbstraction = amgr.makeTrue();
+    
     PredicateMap pmap;
     if (CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.abstraction.norefinement")) {
       MathsatPredicateParser p = new MathsatPredicateParser(mgr, amgr);
@@ -163,12 +158,11 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis {
       pmap = new UpdateablePredicateMap();
     }
     assert(pmap != null);
-    e.setPredicates(pmap);
+    
+    SymbPredAbsAbstractElement e = new SymbPredAbsAbstractElement(domain, true, node,
+        pf, initPf, initAbstraction, parents, null, pmap);
+    e.setMaxIndex(new SSAMap());
 
-    // TODO function
-    //e.setContext(new Stack<Pair<AbstractFormula, SymbPredAbsCFANode>>(), true);
-    // we return an tuple (loc, loc, pf, abst, null), the parent is null since this is the
-    // initial element
     return e;
   }
 

@@ -1,13 +1,17 @@
 package cpa.symbpredabsCPA;
 
+import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.Vector;
 
 import logging.CustomLogLevel;
 import logging.LazyLogger;
 
+import symbpredabstraction.AbstractReachabilityTree;
 import symbpredabstraction.BDDMathsatSymbPredAbstractionAbstractManager;
 import symbpredabstraction.ParentsList;
 import symbpredabstraction.PathFormula;
@@ -29,15 +33,15 @@ import cpa.common.interfaces.TransferRelation;
 import cpa.symbpredabs.AbstractFormula;
 import cpa.symbpredabs.AbstractFormulaManager;
 import cpa.symbpredabs.CounterexampleTraceInfo;
+import cpa.symbpredabs.Predicate;
 import cpa.symbpredabs.PredicateMap;
 import cpa.symbpredabs.SSAMap;
 import cpa.symbpredabs.SymbolicFormula;
 import cpa.symbpredabs.SymbolicFormulaManager;
+import cpa.symbpredabs.UpdateablePredicateMap;
 import cpa.symbpredabs.mathsat.MathsatSymbolicFormula;
 import cpa.symbpredabs.mathsat.MathsatSymbolicFormulaManager;
-import exceptions.CPAException;
-import exceptions.SymbPredAbstTransferException;
-import exceptions.UnrecognizedCFAEdgeException;
+import exceptions.*;
 
 /**
  * Transfer relation for symbolic lazy abstraction with summaries
@@ -45,46 +49,6 @@ import exceptions.UnrecognizedCFAEdgeException;
  * @author Erkan
  */
 public class SymbPredAbsTransferRelation implements TransferRelation {
-
-  // // the Abstract Reachability Tree
-  // class ART {
-  // Map<AbstractElement, Collection<AbstractElement>> tree;
-
-  // public ART() {
-  // tree = new HashMap<AbstractElement, Collection<AbstractElement>>();
-  // }
-
-  // public void addChild(AbstractElement parent, AbstractElement child) {
-  // if (!tree.containsKey(parent)) {
-  // tree.put(parent, new Vector<AbstractElement>());
-  // }
-  // Collection<AbstractElement> c = tree.get(parent);
-  // c.add(child);
-  // }
-
-  // public Collection<AbstractElement> getSubtree(AbstractElement root,
-  // boolean remove, boolean includeRoot) {
-  // Vector<AbstractElement> ret = new Vector<AbstractElement>();
-
-  // Stack<AbstractElement> toProcess = new Stack<AbstractElement>();
-  // toProcess.push(root);
-
-  // while (!toProcess.empty()) {
-  // AbstractElement cur = toProcess.pop();
-  // ret.add(cur);
-  // if (tree.containsKey(cur)) {
-  // toProcess.addAll(remove ? tree.remove(cur) : tree.get(cur));
-  // }
-  // }
-  // if (!includeRoot) {
-  // AbstractElement tmp = ret.lastElement();
-  // assert(ret.firstElement() == root);
-  // ret.setElementAt(tmp, 0);
-  // ret.remove(ret.size()-1);
-  // }
-  // return ret;
-  // }
-  // }
 
   private int numAbstractStates = 0; // for statistics
 
@@ -96,6 +60,8 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   private AbstractFormulaManager abstractFormulaManager;
   // private SymbAbsBDDMathsatAbstractFormulaManager bddMathsatMan;
 
+  private AbstractReachabilityTree abstractTree;
+  
   // this is for debugging purposes, also we can use it later when we use
   // mergeJoin for SummaryCPA, keeps line numbers not locations
   public static Set<Integer> extraAbstractionLocations = 
@@ -115,6 +81,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     domain = (SymbPredAbsAbstractDomain) d;
     abstractFormulaManager = abstFormMan;
     symbolicFormulaManager = symFormMan;
+    abstractTree = new AbstractReachabilityTree();
 
     // a set of lines given on property files to mark their successors as 
     // abstraction nodes for debugging purposes
@@ -150,7 +117,9 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
     if (!b) {
       try {
-        newElement = new SymbPredAbsAbstractElement(domain, element.getAbstractionLocation());
+        newElement = new SymbPredAbsAbstractElement(domain, false,element.getAbstractionLocation(), null, 
+            element.getInitAbstractionSet(), element.getAbstraction(), 
+            element.getParents(), element.getArtParent(), element.getPredicates());
         try {
           handleNonAbstractionLocation(element, newElement, edge);
           // TODO change this exception later
@@ -164,7 +133,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     }
 
     else {
-      newElement = new SymbPredAbsAbstractElement(domain, succLoc);
+      newElement = new SymbPredAbsAbstractElement(domain, true, succLoc, null, null, null, null, null, null);
       // register newElement as an abstraction node
       newElement.setAbstractionNode();
       try {
@@ -176,36 +145,35 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
       }
     }
     return newElement;
-    
+
   }
 
   private void handleAbstractionLocation(SymbPredAbsAbstractElement element,
-                                         SymbPredAbsAbstractElement newElement, CFAEdge edge) throws UnrecognizedCFAEdgeException {
-    
+                                         SymbPredAbsAbstractElement newElement, CFAEdge edge) throws UnrecognizedCFAEdgeException, CPATransferException {
+
     BDDMathsatSymbPredAbstractionAbstractManager bddAbstractFormulaManager  = (BDDMathsatSymbPredAbstractionAbstractManager)abstractFormulaManager;
     
+    
     SSAMap maxIndex = new SSAMap();
-    ParentsList parents = element.getParents();
-    // TODO check this (false, false is used when constructing pf for
-    // summary nodes)
-    PathFormula pf = null;
+    newElement.setMaxIndex(maxIndex);
+    
     SSAMap ssamap = new SSAMap();
-    pf = new PathFormula(symbolicFormulaManager.makeTrue(), ssamap);
+    PathFormula pf = new PathFormula(symbolicFormulaManager.makeTrue(), ssamap);
     newElement.setPathFormula(pf);
     newElement.setMaxIndex(maxIndex);
-
+    
+    ParentsList parents = element.getParents();
     // add the parent to the list
     ParentsList newParents = new ParentsList();
     newParents.copyFromExisting(parents);
     newElement.setParents(newParents);
     newElement.addParent(edge.getSuccessor().getNodeNumber());
-    
-    newElement.setArtParent(element);
 
     PathFormula functionUpdatedFormula;
-    AbstractFormula abs = element.getAbstraction();;
-    
-    PredicateMap pmap = element.getPredicates();
+    AbstractFormula abs = element.getAbstraction();
+
+    // TODO updating predicates
+    PredicateMap pmap = domain.getCPA().getPredicateMap();
     newElement.setPredicates(pmap);
 
     AbstractFormula abst;
@@ -241,7 +209,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 //    ssa = p.getSsa();
       assert(functionInitFormula != null);
       newElement.setInitAbstractionSet(functionInitFormula);
-      
+
       abst = bddAbstractFormulaManager.buildAbstraction(symbolicFormulaManager, abs, functionUpdatedFormula, pmap.getRelevantPredicates(edge.getSuccessor()), null);
     }
     else if(edge instanceof ReturnEdge){
@@ -253,7 +221,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
       newElement.setInitAbstractionSet(functionInitFormula);
 
       functionUpdatedFormula = functionInitFormula;
-      
+
       CallToReturnEdge summaryEdge = edge.getSuccessor().getEnteringSummaryEdge();
       SymbPredAbsAbstractElement previousElem = (SymbPredAbsAbstractElement)summaryEdge.extractAbstractElement("SymbPredAbsAbstractElement");
       MathsatSymbolicFormulaManager mmgr = (MathsatSymbolicFormulaManager) symbolicFormulaManager;
@@ -281,65 +249,66 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
     // TODO move below
     newElement.setAbstraction(abst);
+    //System.out.println(abstractFormulaManager.toConcrete(symbolicFormulaManager, newElement.getAbstraction()));
 
     if (abstractFormulaManager.isFalse(abst)) {
-      // TODO later
-      // return domain.getBottomElement();
+      System.out.println("abstraction is set to FALSE");
+      newElement.isBottomElement = true;
+      return;
     }
     else{
+      newElement.setArtParent(element);
       ++numAbstractStates;
       // if we reach an error state, we want to log this...
       if (edge.getSuccessor() instanceof CFAErrorNode) {
-          if (CPAMain.cpaConfig.getBooleanValue(
-                  "cpas.symbpredabs.abstraction.norefinement")) {
-              CPAMain.cpaStats.setErrorReached(true);
-              throw new ErrorReachedException(
-                      "Reached error location, but refinement disabled");
-          }
-          // oh oh, reached error location. Let's check whether the
-          // trace is feasible or spurious, and in case refine the
-          // abstraction
-          //
-          // first we build the abstract path
-          Deque<SymbPredAbsAbstractElement> path = new LinkedList<SymbPredAbsAbstractElement>();
-          path.addFirst(newElement);
-          SymbPredAbsAbstractElement parent = newElement.getArtParent();
-          while (parent != null) {
-              path.addFirst(parent);
-              parent = parent.getArtParent();
-          }
-          // TODO traceInfo is a abstractElement -> PredicateList map
-          CounterexampleTraceInfo info = bddAbstractFormulaManager.buildCounterexampleTrace(
-                      symbolicFormulaManager, path);
-          if (info.isSpurious()) {
-              LazyLogger.log(CustomLogLevel.SpecificCPALevel,
-                      "Found spurious error trace, refining the ",
-                      "abstraction");
-              performRefinement(path, info);
-          } else {
-              LazyLogger.log(CustomLogLevel.SpecificCPALevel,
-                      "REACHED ERROR LOCATION!: ", newElement,
-                      " RETURNING BOTTOM!");
-              CPAMain.cpaStats.setErrorReached(true);
-              throw new ErrorReachedException(
-                      info.getConcreteTrace().toString());
-          }
-          //return domain.getBottomElement();
+        if (CPAMain.cpaConfig.getBooleanValue(
+        "cpas.symbpredabs.abstraction.norefinement")) {
+          CPAMain.cpaStats.setErrorReached(true);
+          throw new ErrorReachedException(
+          "Reached error location, but refinement disabled");
+        }
+        // oh oh, reached error location. Let's check whether the
+        // trace is feasible or spurious, and in case refine the
+        // abstraction
+        //
+        // first we build the abstract path
+        Deque<SymbPredAbsAbstractElement> path = new LinkedList<SymbPredAbsAbstractElement>();
+        path.addFirst(newElement);
+        SymbPredAbsAbstractElement artParent = newElement.getArtParent();
+        while (artParent != null) {
+          path.addFirst(artParent);
+          artParent = artParent.getArtParent();
+        }
+        // TODO traceInfo is a abstractElement -> PredicateList map
+       System.out.println("PATH::::::::::: "+ path);
+        CounterexampleTraceInfo info = bddAbstractFormulaManager.buildCounterexampleTrace(
+            symbolicFormulaManager, path);
+        if (info.isSpurious()) {
+          LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+              "Found spurious error trace, refining the ",
+          "abstraction");
+          performRefinement(path, info);
+        } else {
+          LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+              "REACHED ERROR LOCATION!: ", newElement,
+          " RETURNING BOTTOM!");
+          CPAMain.cpaStats.setErrorReached(true);
+          throw new ErrorReachedException(
+              info.getConcreteTrace().toString());
+        }
+        //return domain.getBottomElement();
       }
       //return succ;
     }
   }
 
-  // TODO implement support for pfParents
   private void handleNonAbstractionLocation(
                                             SymbPredAbsAbstractElement element,
                                             SymbPredAbsAbstractElement newElement, CFAEdge edge)
   throws SymbPredAbstTransferException, UnrecognizedCFAEdgeException {
-    AbstractFormula abst = element.getAbstraction();
-    PredicateMap pmap = element.getPredicates();
-    ParentsList parents = element.getParents();
     // TODO check this (false, false is used when constructing pf for
     // summary nodes)
+    newElement.setMaxIndex(element.getMaxIndex());
     PathFormula pf = null;
     pf = toPathFormula(symbolicFormulaManager.makeAnd(
         element.getPathFormula().getSymbolicFormula(),
@@ -351,30 +320,107 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     newElement.setPathFormula(pf);
     // TODO check
     newElement.updateMaxIndex(ssa1);
-    newElement.setAbstraction(abst);
-    newElement.setParents(parents);
-    newElement.setInitAbstractionSet(null);
-    newElement.setPredicates(pmap);
   }
 
   @Override
   public AbstractElement getAbstractSuccessor(AbstractElement element,
                                               CFAEdge cfaEdge) throws CPATransferException {
-
-    System.out.println(cfaEdge);
+    //System.out.println(cfaEdge);
     SymbPredAbsAbstractElement e = (SymbPredAbsAbstractElement)element;
     AbstractElement ret = buildSuccessor(e, cfaEdge);
 
-    // TODO art
-//  if (ret != domain.getBottomElement()) {
-//  abstractTree.addChild(e, ret);
-//  }
+    if (!((SymbPredAbsAbstractElement)ret).isBottomElement) {
+      abstractTree.addChild(e, (SymbPredAbsAbstractElement)ret);
+    }
 
     return ret;
 
     //LazyLogger.log(CustomLogLevel.SpecificCPALevel, "Successor is: BOTTOM");
 
     //return domain.getBottomElement();
+  }
+
+  private void performRefinement(Deque<SymbPredAbsAbstractElement> path,
+                                 CounterexampleTraceInfo info) throws CPATransferException {
+    // TODO we use Path here, check later
+//  Path pth = new Path(path);
+    int numSeen = 0;
+//  if (seenAbstractCounterexamples.containsKey(pth)) {
+//  numSeen = seenAbstractCounterexamples.get(pth);
+//  }
+//  seenAbstractCounterexamples.put(pth, numSeen+1);
+
+    UpdateablePredicateMap curpmap =
+      (UpdateablePredicateMap)domain.getCPA().getPredicateMap();
+    AbstractElement root = null;
+    AbstractElement firstInterpolant = null;
+    for (SymbPredAbsAbstractElement e : path) {
+      Collection<Predicate> newpreds = info.getPredicatesForRefinement(e);
+      if (firstInterpolant == null && newpreds.size() > 0) {
+        firstInterpolant = e;
+      }
+      if (curpmap.update(e.getAbstractionLocation(), newpreds)) {
+        if (root == null) {
+          root = e.getArtParent();
+        }
+      }
+    }
+    if (root == null) {
+      assert(firstInterpolant != null);
+      if (numSeen > 1) {
+//      assert(numSeen == 2);
+      } else {
+        assert(numSeen <= 1);
+      }
+      CFANode loc = 
+        ((SymbPredAbsAbstractElement)firstInterpolant).getAbstractionLocation(); 
+      root = abstractTree.findHighest(loc);
+    }
+    assert(root != null);
+    if (CPAMain.cpaConfig.getBooleanValue("analysis.bfs")) {
+      // TODO When using bfs traversal, we would have to traverse the ART
+      // computed so far, and check for each leaf whether to re-add it
+      // to the waiting list or not, similarly to what Blast does
+      // (file psrc/be/modelChecker/lazyModelChecker.ml, function
+      // update_tree_after_refinment). But for now, for simplicity we
+      // just restart from scratch
+      root = path.getFirst();
+    }
+
+    assert(root != null);
+    //root = path.getFirst();
+    Collection<AbstractElement> toWaitlist = new HashSet<AbstractElement>();
+    toWaitlist.add(root);
+    Collection<SymbPredAbsAbstractElement> toUnreachTmp =
+      abstractTree.getSubtree(root, true, false);
+    Vector<AbstractElement> toUnreach = new Vector<AbstractElement>();
+    toUnreach.ensureCapacity(toUnreachTmp.size());
+    SymbPredAbsCPA cpa = domain.getCPA();
+    for (AbstractElement e : toUnreachTmp) {
+      toUnreach.add(e);
+      Set<SymbPredAbsAbstractElement> cov = cpa.getCoveredBy(
+          (SymbPredAbsAbstractElement)e);
+      for (AbstractElement c : cov) {
+        if (!((SymbPredAbsAbstractElement)c).isDescendant(
+            (SymbPredAbsAbstractElement)root)) {
+          toWaitlist.add(c);
+        }
+      }
+      cpa.uncoverAll((SymbPredAbsAbstractElement)e);
+    }
+//  Collection<AbstractElement> toUnreach = new Vector<AbstractElement>();
+//  boolean add = false;
+//  for (AbstractElement e : path) {
+//  if (add) {
+//  toUnreach.add(e);
+//  } else if (e == root) {
+//  add = true;
+//  }
+//  }
+    LazyLogger.log(LazyLogger.DEBUG_1, "REFINEMENT - toWaitlist: ", root);
+    LazyLogger.log(LazyLogger.DEBUG_1, "REFINEMENT - toUnreach: ",
+        toUnreach);
+    throw new RefinementNeededException(toUnreach, toWaitlist);
   }
 
   @Override

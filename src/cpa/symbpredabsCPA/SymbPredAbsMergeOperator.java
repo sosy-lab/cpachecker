@@ -50,15 +50,20 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
 //  else{
     //TODO check
     boolean b = elem1.isAbstractionNode();
-    SymbPredAbsAbstractElement merged = new SymbPredAbsAbstractElement(domain, elem1.getAbstractionLocation());
+    SymbPredAbsAbstractElement merged;
     if(!b){
       if(!elem1.getParents().equals(elem2.getParents())){
         merged = elem2;
       }
       else{
+     // we set parent to abstract element 2's parent
+        merged = new SymbPredAbsAbstractElement(domain, false, elem1.getAbstractionLocation(), 
+            null, elem1.getInitAbstractionSet(), elem1.getAbstraction(), 
+            elem1.getParents(), elem1.getArtParent(), elem1.getPredicates());
         // TODO check
         MathsatSymbolicFormula form1 =
           (MathsatSymbolicFormula)elem1.getPathFormula().getSymbolicFormula();
+        elem1.updateMaxIndex(elem1.getPathFormula().getSsa());
         MathsatSymbolicFormula form2 =
           (MathsatSymbolicFormula)elem2.getPathFormula().getSymbolicFormula();
         SSAMap ssa2 = elem2.getPathFormula().getSsa();
@@ -70,10 +75,6 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
         newFormula = mgr.makeOr(old, newFormula);
         ssa1 = pm.getSecond();
 
-        // TODO these parameters should be cloned (really?)
-        merged.setAbstraction(elem1.getAbstraction());
-        merged.setParents(elem1.getParents());
-        merged.setPredicates(elem1.getPredicates());
         merged.setPathFormula(new PathFormula(newFormula, ssa1));
 
         // TODO check, what is that???
