@@ -44,7 +44,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis
 		this.initialElement = initialElement;
 	}
 
-	public static ConfigurableProgramAnalysis createNewCompositeCPA(List<ConfigurableProgramAnalysis> cpas, CFAFunctionDefinitionNode node) {
+	public static CompositeCPA createNewCompositeCPA(List<ConfigurableProgramAnalysis> cpas, CFAFunctionDefinitionNode node) {
 
 		int sizeOfCompositeDomain = cpas.size();
 		List<AbstractDomain> domains = new ArrayList<AbstractDomain> ();

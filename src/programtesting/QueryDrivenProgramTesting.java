@@ -3,12 +3,16 @@
  */
 package programtesting;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.PriorityQueue;
 import java.util.Set;
 
 import cfa.objectmodel.CFAEdge;
@@ -23,13 +27,15 @@ import cpa.common.automaton.AutomatonCPADomain;
 import cpa.common.automaton.Label;
 import cpa.common.automaton.NegationLabel;
 import cpa.common.automaton.cfa.FunctionCallLabel;
+import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
+import cpa.common.interfaces.MergeOperator;
+import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
 import cpa.location.LocationCPA;
 import cpa.scoperestriction.ScopeRestrictionCPA;
 import cpa.symbpredabs.CounterexampleTraceInfo;
-import cpa.symbpredabs.PredicateMap;
 import cpa.symbpredabs.SymbolicFormulaManager;
 import cpa.symbpredabs.explicit.ExplicitAbstractElement;
 import cpa.symbpredabs.explicit.ExplicitAbstractFormulaManager;
@@ -44,7 +50,52 @@ import exceptions.RefinementNeededException;
  *
  */
 public class QueryDrivenProgramTesting {
+  
+  public static class WrapperCPA implements ConfigurableProgramAnalysis {
+    private CompositeCPA mCompositeCPA;
+    
+    public WrapperCPA(CompositeCPA pCompositeCPA) {
+      mCompositeCPA = pCompositeCPA;
+    }
+    
+    @Override
+    public AbstractDomain getAbstractDomain() {
+      return mCompositeCPA.getAbstractDomain();
+    }
 
+    @Override
+    public AbstractElement getInitialElement(CFAFunctionDefinitionNode pNode) {
+      return mCompositeCPA.getInitialElement(pNode);
+    }
+
+    @Override
+    public MergeOperator getMergeOperator() {
+      return mCompositeCPA.getMergeOperator();
+    }
+
+    @Override
+    public StopOperator getStopOperator() {
+      return mCompositeCPA.getStopOperator();
+    }
+
+    @Override
+    public TransferRelation getTransferRelation() {
+      return mCompositeCPA.getTransferRelation();
+    }
+    
+    // TODO: Move newReachedSet into interface of ConfigurableProgramAnalysis and
+    // provide an abstract ConfigurableProgramAnalysisImpl-Class that implements
+    // it by default by creating a hash set?
+    // TODO: During ART creation establish an order
+    // that allows efficient querying for test goals
+    public Collection<AbstractElement> newReachedSet() {
+      
+      
+      return new HashSet<AbstractElement>();
+    }
+    
+  }
+  
   public static Automaton<CFAEdge> getScopeRestrictionAutomaton() {
     // create simple scope restriction automaton that restricts nothing
     Automaton<CFAEdge> lScopeRestrictionAutomaton = new Automaton<CFAEdge>();
@@ -131,8 +182,10 @@ public class QueryDrivenProgramTesting {
     
     
     // create composite cpa
-    ConfigurableProgramAnalysis cpa = CompositeCPA.createNewCompositeCPA(cpas, pMainFunction);
+    CompositeCPA cpa = CompositeCPA.createNewCompositeCPA(cpas, pMainFunction);
        
+    WrapperCPA lWrapperCPA = new WrapperCPA(cpa);
+    
     CPAAlgorithm algo = new CPAAlgorithm();
 
     // every final state in the test goal automaton represents a 
@@ -147,14 +200,12 @@ public class QueryDrivenProgramTesting {
       // TODO: Simplify test goal automaton
       
       // TODO: testGoals to be passed in as precision
-      AbstractElement lInitialElement = cpa.getInitialElement(pMainFunction);
+      AbstractElement lInitialElement = lWrapperCPA.getInitialElement(pMainFunction);
       
       Collection<AbstractElement> lReachedElements = null;
       
       try {
-        // TODO: During ART creation establish an order
-        // that allows efficient querying for test goals
-        lReachedElements = algo.CPA(cpa, lInitialElement);
+        lReachedElements = algo.CPA(lWrapperCPA, lInitialElement);
         
         // TODO: Remove this output
         for (AbstractElement lElement : lReachedElements) {
@@ -184,7 +235,7 @@ public class QueryDrivenProgramTesting {
           break;
         }
         
-        if (cpa.getAbstractDomain().isBottomElement(lElement)) {
+        if (lWrapperCPA.getAbstractDomain().isBottomElement(lElement)) {
           continue;
         }
         
@@ -224,7 +275,6 @@ public class QueryDrivenProgramTesting {
               // TODO: Remove this output
               System.out.println("Path is infeasible");
               
-              // TODO: Refine abstraction
               TransferRelation lTransferRelation = lExplicitAbstractionCPA.getTransferRelation();
               
               ExplicitTransferRelation lExplicitTransferRelation = (ExplicitTransferRelation)lTransferRelation;
@@ -255,6 +305,10 @@ public class QueryDrivenProgramTesting {
               // add feasible path to set of feasible paths
               lPaths.add(lPath);
             }
+          }
+          else {
+            // TODO: Remove this output
+            System.out.println("no");
           }
         }
       }

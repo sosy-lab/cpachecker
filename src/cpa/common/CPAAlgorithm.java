@@ -206,11 +206,18 @@ public class CPAAlgorithm
 		// check whether the cpa provides a method for building a specialized
 		// reached set. If not, just use a HashSet
 		try {
-			Method meth = cpa.getClass().getDeclaredMethod("newReachedSet");
+		  Method meth = cpa.getClass().getDeclaredMethod("newReachedSet");
+			
 			return (Collection<AbstractElement>)meth.invoke(cpa);
-		} catch (Exception e) {
+		} catch (NoSuchMethodException e) {
 			// ignore, this is not an error
+		  
+		} catch (Exception lException) {
+		  lException.printStackTrace();
+		  
+		  System.exit(1);
 		}
+		
 		return new HashSet<AbstractElement>();
 	}
 
