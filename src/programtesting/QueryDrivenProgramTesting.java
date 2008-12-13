@@ -33,7 +33,6 @@ import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.PrecisionAdjustment;
-import cpa.common.interfaces.PrecisionDomain;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
 import cpa.common.interfaces.Precision;

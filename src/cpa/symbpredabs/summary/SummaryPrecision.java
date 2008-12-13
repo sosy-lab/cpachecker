@@ -3,12 +3,12 @@
  */
 package cpa.symbpredabs.summary;
 
-import cpa.common.interfaces.PrecisionDomain;
+import cpa.common.interfaces.Precision;
 
 /**
  * @author Michael Tautschnig <tautschnig@forsyte.de>
  *
  */
-public class SummaryPrecisionDomain implements PrecisionDomain {
+public class SummaryPrecision implements Precision {
 
 }
