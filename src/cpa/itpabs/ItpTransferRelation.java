@@ -27,6 +27,7 @@ import exceptions.ToWaitListException;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
+import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
 import cpa.symbpredabs.AbstractReachabilityTree;
 import cpa.symbpredabs.SymbolicFormula;
@@ -382,7 +383,7 @@ public class ItpTransferRelation implements TransferRelation {
 
     @Override
     public AbstractElement getAbstractSuccessor(AbstractElement element,
-            CFAEdge cfaEdge) throws CPATransferException {
+            CFAEdge cfaEdge, Precision prec) throws CPATransferException {
 
         removeObsoleteToProcess(element);
 
@@ -447,7 +448,7 @@ public class ItpTransferRelation implements TransferRelation {
 
                     if (ret != domain.getBottomElement()) {
                         abstractTree.addChild(
-                                e, (AbstractElementWithLocation)ret);
+                                e, ret);
                     }
                     return ret;
                 } catch (RefinementNeededException exc) {
@@ -456,7 +457,7 @@ public class ItpTransferRelation implements TransferRelation {
                          buildSuccessor(e, src.getLeavingEdge(j));
                         if (e2 != domain.getBottomElement()) {
                             abstractTree.addChild(
-                                    e, (AbstractElementWithLocation)e2);
+                                    e, e2);
                             exc.getToWaitlist().add(e2);
                         }
                     }
@@ -485,7 +486,7 @@ public class ItpTransferRelation implements TransferRelation {
 
     @Override
     public List<AbstractElementWithLocation> getAllAbstractSuccessors(
-        AbstractElementWithLocation element) throws CPAException, CPATransferException {
+        AbstractElementWithLocation element, Precision prec) throws CPAException, CPATransferException {
         LazyLogger.log(CustomLogLevel.SpecificCPALevel,
                        "Getting ALL Abstract Successors of element: ",
                        element);
@@ -496,7 +497,7 @@ public class ItpTransferRelation implements TransferRelation {
 
         for (int i = 0; i < src.getNumLeavingEdges(); ++i) {
             AbstractElement newe =
-                getAbstractSuccessor(e, src.getLeavingEdge(i));
+                getAbstractSuccessor(e, src.getLeavingEdge(i), prec);
             if (newe != domain.getBottomElement()) {
                 allSucc.add((ItpAbstractElement)newe);
             }

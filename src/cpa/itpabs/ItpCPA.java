@@ -21,6 +21,9 @@ import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
+import cpa.common.interfaces.Precision;
+import cpa.common.interfaces.PrecisionAdjustment;
+import cpa.common.interfaces.PrecisionDomain;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
 import cpa.symbpredabs.InterpolatingTheoremProver;
@@ -47,9 +50,11 @@ import cpa.symbpredabs.mathsat.YicesTheoremProver;
 public abstract class ItpCPA implements ConfigurableProgramAnalysis {
 
     protected ItpAbstractDomain domain;
+    protected PrecisionDomain precisionDomain;
+    protected ItpTransferRelation trans;
     protected ItpMergeOperator merge;
     protected ItpStopOperator stop;
-    protected ItpTransferRelation trans;
+    protected PrecisionAdjustment precisionAdjustment;
     protected MathsatSymbolicFormulaManager mgr;
     protected ItpCounterexampleRefiner refiner;
 
@@ -79,9 +84,11 @@ public abstract class ItpCPA implements ConfigurableProgramAnalysis {
             new BDDMathsatExplicitAbstractManager(thmProver, itpProver);
 
         domain = new ItpAbstractDomain(this);
+        precisionDomain = new ItpPrecisionDomain();
+        trans = new ItpTransferRelation(domain);
         merge = new ItpMergeOperator(domain);
         stop = new ItpStopOperator(domain, thmProver);
-        trans = new ItpTransferRelation(domain);
+        precisionAdjustment = new ItpPrecisionAdjustment();
 
         refiner = new ItpCounterexampleRefiner(amgr, itpProver);
 
@@ -113,16 +120,13 @@ public abstract class ItpCPA implements ConfigurableProgramAnalysis {
     public AbstractDomain getAbstractDomain() {
         return domain;
     }
-
-    @Override
-    public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
-        LazyLogger.log(CustomLogLevel.SpecificCPALevel,
-                       "Getting initial element from node: ", node);
-
-        ItpAbstractElement e = getElementCreator().create(node);
-        e.setAbstraction(mgr.makeTrue());
-        e.setContext(new Stack<Pair<SymbolicFormula, CFANode>>(), true);
-        return e;
+    
+    public PrecisionDomain getPrecisionDomain() {
+      return precisionDomain;
+    }
+    
+    public TransferRelation getTransferRelation() {
+        return trans;
     }
 
     @Override
@@ -137,8 +141,23 @@ public abstract class ItpCPA implements ConfigurableProgramAnalysis {
     }
 
     @Override
-    public TransferRelation getTransferRelation() {
-        return trans;
+    public PrecisionAdjustment getPrecisionAdjustment() {
+      return precisionAdjustment;
+    }
+
+    public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
+        LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+                       "Getting initial element from node: ", node);
+
+        ItpAbstractElement e = getElementCreator().create(node);
+        e.setAbstraction(mgr.makeTrue());
+        e.setContext(new Stack<Pair<SymbolicFormula, CFANode>>(), true);
+        return e;
+    }
+
+    public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
+      // TODO Auto-generated method stub
+      return null;
     }
 
     public ItpCounterexampleRefiner getRefiner() {
