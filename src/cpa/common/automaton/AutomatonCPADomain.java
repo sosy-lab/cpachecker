@@ -377,6 +377,10 @@ public class AutomatonCPADomain<E> implements AbstractDomain {
     mInitialElement = new StateSetElement(this, mAutomaton.getInitialState());
   }
   
+  public final Automaton<E> getAutomaton() {
+    return mAutomaton;
+  }
+  
   public Element getInitialElement() {
     return mInitialElement;
   }
