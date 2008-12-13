@@ -16,6 +16,7 @@ import cpa.common.CompositeElement;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
+import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
 import exceptions.CPAException;
 
@@ -43,7 +44,7 @@ public class CompositeTransferRelation implements TransferRelation{
 		return compositeDomain;
 	}
 
-	public AbstractElement getAbstractSuccessor (AbstractElement element, CFAEdge cfaEdge) throws CPATransferException
+	public AbstractElement getAbstractSuccessor (AbstractElement element, CFAEdge cfaEdge, Precision precision) throws CPATransferException
 	{
 		CompositeElement compositeElement = (CompositeElement) element;
 		List<AbstractElement> inputElements = compositeElement.getElements ();
@@ -98,7 +99,7 @@ public class CompositeTransferRelation implements TransferRelation{
 			subElement = inputElements.get (idx);
 			// handling a call edge
 
-			successor = transfer.getAbstractSuccessor (subElement, cfaEdge);
+			successor = transfer.getAbstractSuccessor (subElement, cfaEdge, precision);
 			resultingElements.add (successor);
 		}
 
@@ -106,7 +107,7 @@ public class CompositeTransferRelation implements TransferRelation{
 		return successorState;
 	}
 
-	public List<AbstractElementWithLocation> getAllAbstractSuccessors (AbstractElementWithLocation element) throws CPAException, CPATransferException
+	public List<AbstractElementWithLocation> getAllAbstractSuccessors (AbstractElementWithLocation element, Precision precision) throws CPAException, CPATransferException
 	{
 
 		//TODO CPACheckerStatistics.noOfTransferRelations++;
@@ -119,7 +120,7 @@ public class CompositeTransferRelation implements TransferRelation{
 		for (int edgeIdx = 0; edgeIdx < node.getNumLeavingEdges (); edgeIdx++)
 		{
 			CFAEdge edge = node.getLeavingEdge (edgeIdx);
-			results.add ((CompositeElement) getAbstractSuccessor (element, edge));
+			results.add ((CompositeElement) getAbstractSuccessor (element, edge, precision));
 		}
 
 		return results;

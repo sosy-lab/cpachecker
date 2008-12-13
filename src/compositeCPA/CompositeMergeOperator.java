@@ -1,6 +1,7 @@
 package compositeCPA;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import cpa.common.CallStack;
@@ -11,6 +12,7 @@ import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.BottomElement;
 import cpa.common.interfaces.MergeOperator;
+import cpa.common.interfaces.Precision;
 import exceptions.CPAException;
 
 public class CompositeMergeOperator implements MergeOperator{
@@ -32,27 +34,26 @@ public class CompositeMergeOperator implements MergeOperator{
 
 
 	// TODO fix this part
-	public AbstractElement merge (AbstractElement element1, AbstractElement element2) throws CPAException
+	public AbstractElement merge (AbstractElement element1, AbstractElement element2, Precision precision) throws CPAException
 	{
-	  return merge((AbstractElementWithLocation)element1, (AbstractElementWithLocation)element2);
+	  return merge((AbstractElementWithLocation)element1, (AbstractElementWithLocation)element2, precision);
 	}
 
   public AbstractElementWithLocation merge(AbstractElementWithLocation element1,
-                                           AbstractElementWithLocation element2) throws CPAException {
+                                           AbstractElementWithLocation element2,
+                                           Precision precision) throws CPAException {
 
     // TODO check
-    if(element1 instanceof BottomElement){
+    if (element1 instanceof BottomElement) {
       return element2;
     }
 
     // Merge Sep Code
     CompositeElement comp1 = (CompositeElement) element1;
     CompositeElement comp2 = (CompositeElement) element2;
+    CompositePrecision prec = (CompositePrecision) precision;
 
     assert(comp1.getNumberofElements() == comp2.getNumberofElements());
-
-    AbstractElement elementsArray1[] = new AbstractElement[comp1.getNumberofElements()];
-    AbstractElement elementsArray2[] = new AbstractElement[comp2.getNumberofElements()];
 
     if (!comp1.getElementWithLocation().equals (comp2.getElementWithLocation()))
       return element2;
@@ -66,19 +67,17 @@ public class CompositeMergeOperator implements MergeOperator{
       return element2;
     }
 
-    for(int i=0; i<comp1.getNumberofElements(); i++){
-      elementsArray1[i] = comp1.getElements().get(i);
-      elementsArray2[i] = comp2.getElements().get(i);
-    }
-
     List<AbstractElement> mergedElements = new ArrayList<AbstractElement> ();
-
-    for(int i=0; i<comp1.getNumberofElements(); i++){
-      AbstractElement absElem1 = elementsArray1[i];
-      AbstractElement absElem2 = elementsArray2[i];
-      AbstractElement merged = mergeOperators.get(i).merge(absElem1, absElem2);
+    Iterator<AbstractElement> iter1 = comp1.getElements().iterator();
+    Iterator<AbstractElement> iter2 = comp2.getElements().iterator();
+    Iterator<Precision> precIter = prec.getPrecisions().iterator();
+    
+    for (MergeOperator mergeOp : mergeOperators) {
+      AbstractElement absElem1 = iter1.next();
+      AbstractElement absElem2 = iter2.next();
+      AbstractElement merged = mergeOp.merge(absElem1, absElem2, precIter.next());
       // if the element is not location and it is not merged we do not need to merge
-      if(i != 0 && merged == absElem2){
+      if (comp2.getElementWithLocation() != absElem2 && merged == absElem2) {
         return comp2;
       }
       mergedElements.add (merged);

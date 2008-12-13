@@ -5,7 +5,6 @@ import java.util.List;
 
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.BottomElement;
 import cpa.common.interfaces.JoinOperator;
 import cpa.common.interfaces.PartialOrder;
 
@@ -50,27 +49,6 @@ public class CompositeDomain implements AbstractDomain
     {
         return bottomElement;
     }
-
-    public boolean isBottomElement(AbstractElement element) {
-
-		if(element instanceof BottomElement){
-			return true;
-		}
-
-		CompositeElement compositeElement = (CompositeElement) element;
-
-		List<AbstractElement> compositeElements = compositeElement.getElements ();
-
-		for (int idx = 0; idx < compositeElements.size (); idx++)
-		{
-			AbstractDomain absDom = domains.get(idx);
-			AbstractElement absElem = compositeElements.get(idx);
-			if (absDom.isBottomElement(absElem))
-				return true;
-		}
-
-		return false;
-	}
 
     public AbstractElement getTopElement ()
     {

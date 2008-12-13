@@ -19,6 +19,9 @@ import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
+import cpa.common.interfaces.Precision;
+import cpa.common.interfaces.PrecisionAdjustment;
+import cpa.common.interfaces.PrecisionDomain;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
 import cpaplugin.CPAStatistics;
@@ -27,76 +30,88 @@ import exceptions.CPAException;
 public class CompositeCPA implements ConfigurableProgramAnalysis
 {
 	private final AbstractDomain abstractDomain;
+	private final PrecisionDomain precisionDomain;
+	private final TransferRelation transferRelation;
 	private final MergeOperator mergeOperator;
 	private final StopOperator stopOperator;
-	private final TransferRelation transferRelation;
+	private final PrecisionAdjustment precisionAdjustment;
 	private final AbstractElementWithLocation initialElement;
+	private final Precision initialPrecision;
 
 	private CompositeCPA (AbstractDomain abstractDomain,
+	    PrecisionDomain precisionDomain,
+	    TransferRelation transferRelation,
 			MergeOperator mergeOperator,
 			StopOperator stopOperator,
-			TransferRelation transferRelation,
-			AbstractElementWithLocation initialElement)
+			PrecisionAdjustment precisionAdjustment,
+			AbstractElementWithLocation initialElement,
+			Precision initialPrecision)
 	{
 		this.abstractDomain = abstractDomain;
+    this.precisionDomain = precisionDomain;
+		this.transferRelation = transferRelation;
 		this.mergeOperator = mergeOperator;
 		this.stopOperator = stopOperator;
-		this.transferRelation = transferRelation;
+		this.precisionAdjustment = precisionAdjustment;
 		this.initialElement = initialElement;
+		this.initialPrecision = initialPrecision;
 	}
 
 	public static CompositeCPA createNewCompositeCPA(List<ConfigurableProgramAnalysis> cpas, CFAFunctionDefinitionNode node) {
 
-		int sizeOfCompositeDomain = cpas.size();
 		List<AbstractDomain> domains = new ArrayList<AbstractDomain> ();
+    List<PrecisionDomain> precisionDomains = new ArrayList<PrecisionDomain> ();
+    List<TransferRelation> transferRelations = new ArrayList<TransferRelation> ();
 		List<MergeOperator> mergeOperators = new ArrayList<MergeOperator> ();
 		List<StopOperator> stopOperators = new ArrayList<StopOperator> ();
-		List<TransferRelation> transferRelations = new ArrayList<TransferRelation> ();
+		List<PrecisionAdjustment> precisionAdjustments = new ArrayList<PrecisionAdjustment> ();
 		List<AbstractElement> initialElements = new ArrayList<AbstractElement> ();
+		List<Precision> initialPrecisions = new ArrayList<Precision> ();
 
-		for(int i=0; i<sizeOfCompositeDomain; i++){
-			ConfigurableProgramAnalysis sp = cpas.get(i);
-			AbstractDomain domain = sp.getAbstractDomain();
-			domains.add(domain);
-
-			MergeOperator mergeOperator = sp.getMergeOperator();
-			mergeOperators.add(mergeOperator);
-
-			StopOperator stopOperator = sp.getStopOperator();
-			stopOperators.add(stopOperator);
-
-			TransferRelation transferRelation = sp.getTransferRelation();
-			transferRelations.add(transferRelation);
-
-			AbstractElement initialElement = sp.getInitialElement(node);
-			initialElements.add(initialElement);
+		for(ConfigurableProgramAnalysis sp : cpas) {
+			domains.add(sp.getAbstractDomain());
+	    precisionDomains.add(sp.getPrecisionDomain());
+      transferRelations.add(sp.getTransferRelation());
+			mergeOperators.add(sp.getMergeOperator());
+			stopOperators.add(sp.getStopOperator());
+			precisionAdjustments.add(sp.getPrecisionAdjustment());
+			initialElements.add(sp.getInitialElement(node));
+			initialPrecisions.add(sp.getInitialPrecision(node));
 		}
 
 		CompositeDomain compositeDomain = new CompositeDomain (domains);
+		CompositePrecisionDomain compositePrecisionDomain = new CompositePrecisionDomain (precisionDomains);
+		CompositeTransferRelation compositeTransfer = new CompositeTransferRelation (compositeDomain, transferRelations);
 		CompositeMergeOperator compositeMerge = new CompositeMergeOperator (compositeDomain, mergeOperators);
 		CompositeStopOperator compositeStop = new CompositeStopOperator (compositeDomain, stopOperators);
-		CompositeTransferRelation compositeTransfer = new CompositeTransferRelation (compositeDomain, transferRelations);
+		CompositePrecisionAdjustment compositePrecisionAdjustment = new CompositePrecisionAdjustment (precisionAdjustments);
 		CompositeElement initialElement = new CompositeElement (initialElements, null);
+		CompositePrecision initialPrecision = new CompositePrecision (initialPrecisions);
 		// set call stack
 		CallStack initialCallStack = new CallStack();
 		CallElement initialCallElement = new CallElement(node.getFunctionName(), node, initialElement);
 		initialCallStack.push(initialCallElement);
 		initialElement.setCallStack(initialCallStack);
 
-		return createCompositeCPA(compositeDomain, compositeMerge, compositeStop, compositeTransfer, initialElement);
+		return createCompositeCPA(compositeDomain, compositePrecisionDomain, compositeTransfer, compositeMerge, compositeStop,
+		    compositePrecisionAdjustment, initialElement, initialPrecision);
 
 	}
 
 	public static CompositeCPA createCompositeCPA (AbstractDomain abstractDomain,
+	    PrecisionDomain precisionDomain,
+	    TransferRelation transferRelation,
 			MergeOperator mergeOperator,
 			StopOperator stopOperator,
-			TransferRelation transferRelation,
-			AbstractElementWithLocation initialElement)
+			PrecisionAdjustment precisionAdjustment,
+      AbstractElementWithLocation initialElement,
+      Precision initialPrecision)
 	{
 		// TODO Michael: this should throw something
-		if (abstractDomain == null || mergeOperator == null ||
-				stopOperator == null || transferRelation == null ||
-				initialElement == null)
+		if (abstractDomain == null || precisionDomain == null ||
+		    transferRelation == null || mergeOperator == null ||
+				stopOperator == null || precisionAdjustment == null ||
+				initialElement == null || initialPrecision == null)
 			return null;
 
 		/*if (mergeOperator.getAbstractDomain () != abstractDomain ||
@@ -104,7 +119,8 @@ public class CompositeCPA implements ConfigurableProgramAnalysis
 				transferRelation.getAbstractDomain () != abstractDomain)
 			return null;*/
 
-		return new CompositeCPA (abstractDomain, mergeOperator, stopOperator, transferRelation, initialElement);
+		return new CompositeCPA (abstractDomain, precisionDomain, transferRelation, mergeOperator, stopOperator,
+		    precisionAdjustment, initialElement, initialPrecision);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -118,10 +134,12 @@ public class CompositeCPA implements ConfigurableProgramAnalysis
 		List<ConfigurableProgramAnalysis> cpas = new ArrayList<ConfigurableProgramAnalysis> ();
 
 		int sizeOfCompositeCPA = cpaNamesArray.length;
-
+		if (0 == sizeOfCompositeCPA) throw new CPAException("Configuration option analysis.cpas is not set!");
+		
 		for(int i=0; i<sizeOfCompositeCPA; i++){
 			// TODO make sure that the first CPA carries location information
 			// otherwise the analysis will have efficiency problems
+		  // -- this is currently checked when constructing a CompositeElement
 
 			// get name of the cpa, we are getting the explicit
 			// path of the representing class of this cpa
@@ -183,13 +201,21 @@ public class CompositeCPA implements ConfigurableProgramAnalysis
                                    "CompositeCPA is built using the list " +
                                    "of CPAs");
 		    cpa = CompositeCPA.createNewCompositeCPA (cpas, node);
-		 }
+		}
 		return cpa;
 	}
 
 	public AbstractDomain getAbstractDomain() {
 		return abstractDomain;
 	}
+	
+	public PrecisionDomain getPrecisionDomain () {
+	  return precisionDomain;
+	}
+	
+  public TransferRelation getTransferRelation() {
+    return transferRelation;
+  }
 
 	public MergeOperator getMergeOperator() {
 		return mergeOperator;
@@ -198,14 +224,17 @@ public class CompositeCPA implements ConfigurableProgramAnalysis
 	public StopOperator getStopOperator() {
 		return stopOperator;
 	}
-
-	public TransferRelation getTransferRelation() {
-		return transferRelation;
+	
+	public PrecisionAdjustment getPrecisionAdjustment () {
+	  return precisionAdjustment;
 	}
 
-	public AbstractElement getInitialElement (CFAFunctionDefinitionNode node)
-	{
+	public AbstractElement getInitialElement (CFAFunctionDefinitionNode node) {
 		return initialElement;
+	}
+	
+	public Precision getInitialPrecision (CFAFunctionDefinitionNode node) {
+	  return initialPrecision;
 	}
 }
 
