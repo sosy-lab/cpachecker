@@ -14,7 +14,11 @@ CPA->CPA+ transition (2008-12-12):
 - Instead of the String parameters to set sep or join for merge and stop just
   create multiple CPA classes that fix the operator
 
-- Review itpexplicit logs, they contain unexpected warnings since r170 already
+- Review src/cfa/objectmodel/AbstractCFAEdge.java, because
+  ntdrivers/cdaudio/cdaudio_simpl1.cil.c yields:
+Warning: Should not have multiple jump edges leaving at line: 297
+Warning: Should not have multiple jump edges leaving at line: 771
+Warning: Should not have multiple jump edges leaving at line: 1232
 
 - Use iterators instead of get(i), this is CLEANER, SAFER, and FASTER in general
   (unless impossible, of course)
@@ -36,3 +40,8 @@ CPA->CPA+ transition (2008-12-12):
 - cleanup CPAMain
   * make separate function "preprocess"
   * is there any non-interprocedural analysis
+
+- ntdrivers/cdaudio/cdaudio_simpl1.cil.c yields a wrong result when using
+  cpa.symbpredabs.explicit.ExplicitCPA (delta debugging needed, r308 has a wrong
+  result (UNSAFE), r170 has an assertion violation)
+
