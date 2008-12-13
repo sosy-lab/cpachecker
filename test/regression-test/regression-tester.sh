@@ -121,11 +121,13 @@ for cfg in $configurations; do
     mt="`echo $master_result | cut -f2 -d:`"
     if [ -z "$master_result" ] ; then
       echo "$f WARN_NOT_IN_MASTER" >> $cmp_result
-    elif [ "$mr" = "ERROR" -a "$r" != "ERROR" ] ; then
-      echo "$f WARN_ERROR_IN_MASTER" >> $cmp_result
-    elif [ "$mr" = "ERROR" -a "$r" = "ERROR" ] ; then
-      echo "$f WARN_ERROR_ALL" >> $cmp_result
-    elif [ "$r" = "ERROR" ] ; then
+    elif [ "$mr" = "ERROR" -o "$mr" = "UNKNOWN" ] ; then
+      if [ "$r" != "ERROR" -a "$r" != "UNKNOWN" ] ; then
+        echo "$f WARN_ERROR_IN_MASTER" >> $cmp_result
+      else
+        echo "$f WARN_ERROR_ALL" >> $cmp_result
+      fi
+    elif [ "$r" = "ERROR" -o "$r" = "UNKNOWN" ] ; then
       echo "$f ERR_NEW_ERROR" >> $cmp_result
     elif [ "$r" != "$mr" ] ; then
       echo "$f ERR_WRONG_RESULT" >> $cmp_result
