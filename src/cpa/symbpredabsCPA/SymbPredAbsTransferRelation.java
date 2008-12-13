@@ -30,6 +30,7 @@ import exceptions.CPATransferException;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
+import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
 import cpa.symbpredabs.AbstractFormula;
 import cpa.symbpredabs.AbstractFormulaManager;
@@ -325,7 +326,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
   @Override
   public AbstractElement getAbstractSuccessor(AbstractElement element,
-                                              CFAEdge cfaEdge) throws CPATransferException {
+                                              CFAEdge cfaEdge, Precision prec) throws CPATransferException {
     //System.out.println(cfaEdge);
     SymbPredAbsAbstractElement e = (SymbPredAbsAbstractElement)element;
     AbstractElement ret = buildSuccessor(e, cfaEdge);
@@ -430,7 +431,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
   @Override
   public List<AbstractElementWithLocation> getAllAbstractSuccessors(
-      AbstractElementWithLocation element) throws CPAException, CPATransferException {
+      AbstractElementWithLocation element, Precision prec) throws CPAException, CPATransferException {
     throw new CPAException ("Cannot get all abstract successors from non-location domain");
   }
 

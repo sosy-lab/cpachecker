@@ -23,6 +23,9 @@ import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
+import cpa.common.interfaces.Precision;
+import cpa.common.interfaces.PrecisionAdjustment;
+import cpa.common.interfaces.PrecisionDomain;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
 import cpa.symbpredabs.AbstractFormula;
@@ -45,9 +48,11 @@ import cpa.symbpredabs.mathsat.YicesTheoremProver;
 public class SymbPredAbsCPA implements ConfigurableProgramAnalysis {
 
   private SymbPredAbsAbstractDomain domain;
+  private PrecisionDomain precisionDomain;
+  private SymbPredAbsTransferRelation trans;
   private SymbPredAbsMergeOperator merge;
   private SymbPredAbsStopOperator stop;
-  private SymbPredAbsTransferRelation trans;
+  private PrecisionAdjustment precisionAdjustment;
   private MathsatSymbolicFormulaManager mgr;
   private BDDMathsatSymbPredAbstractionAbstractManager amgr;
   private Map<SymbPredAbsAbstractElement, Set<SymbPredAbsAbstractElement>> covers;
@@ -78,9 +83,11 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis {
     covers = new HashMap<SymbPredAbsAbstractElement,
     Set<SymbPredAbsAbstractElement>>();
     domain = new SymbPredAbsAbstractDomain(this);
+    precisionDomain = new SymbPredAbsPrecisionDomain();
+    trans = new SymbPredAbsTransferRelation(domain, mgr, amgr);
     merge = new SymbPredAbsMergeOperator(domain);
     stop = new SymbPredAbsStopOperator(domain);
-    trans = new SymbPredAbsTransferRelation(domain, mgr, amgr);
+    precisionAdjustment = new SymbPredAbsPrecisionAdjustment();
 
     // for testing purposes, it's nice to be able to use a given set of
     // predicates and disable refinement
@@ -127,46 +134,14 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
-    LazyLogger.log(CustomLogLevel.SpecificCPALevel,
-        "Getting initial element from node: ", node);
-
-    //SymbPredAbsAbstractElement e = new SymbPredAbsAbstractElement(domain, loc, null);
-    
-    ParentsList parents = new ParentsList();
-    parents.addToList(node.getNodeNumber());
-    SSAMap ssamap = new SSAMap();
-    PathFormula pf = new PathFormula(mgr.makeTrue(), ssamap);
-    PathFormula initPf = new PathFormula(mgr.makeTrue(), ssamap);
-    AbstractFormula initAbstraction = amgr.makeTrue();
-    
-    PredicateMap pmap;
-    if (CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.abstraction.norefinement")) {
-      MathsatPredicateParser p = new MathsatPredicateParser(mgr, amgr);
-      Collection<Predicate> preds = null;
-      try {
-        String pth = CPAMain.cpaConfig.getProperty("predicates.path");
-        File f = new File(pth, "predicates.msat");
-        InputStream in = new FileInputStream(f);
-        preds = p.parsePredicates(in);
-      } catch (IOException er) {
-        er.printStackTrace();
-        preds = new Vector<Predicate>();
-      }
-      pmap = new FixedPredicateMap(preds);
-    } else {
-      pmap = new UpdateablePredicateMap();
-    }
-    assert(pmap != null);
-    
-    SymbPredAbsAbstractElement e = new SymbPredAbsAbstractElement(domain, true, node,
-        pf, initPf, initAbstraction, parents, null, pmap);
-    e.setMaxIndex(new SSAMap());
-
-    return e;
+  public PrecisionDomain getPrecisionDomain() {
+    return precisionDomain;
   }
 
-  @Override
+  public TransferRelation getTransferRelation() {
+    return trans;
+  }
+  
   public MergeOperator getMergeOperator() {
     return merge;
   }
@@ -177,8 +152,8 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public TransferRelation getTransferRelation() {
-    return trans;
+  public PrecisionAdjustment getPrecisionAdjustment() {
+    return precisionAdjustment;
   }
 
   public AbstractFormulaManager getAbstractFormulaManager() {
@@ -221,5 +196,49 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis {
 
   public SymbolicFormulaManager getSymbolicFormulaManager() {
     return mgr;
+  }
+
+  public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
+    LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+        "Getting initial element from node: ", node);
+
+    //SymbPredAbsAbstractElement e = new SymbPredAbsAbstractElement(domain, loc, null);
+    
+    ParentsList parents = new ParentsList();
+    parents.addToList(node.getNodeNumber());
+    SSAMap ssamap = new SSAMap();
+    PathFormula pf = new PathFormula(mgr.makeTrue(), ssamap);
+    PathFormula initPf = new PathFormula(mgr.makeTrue(), ssamap);
+    AbstractFormula initAbstraction = amgr.makeTrue();
+    
+    PredicateMap pmap;
+    if (CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.abstraction.norefinement")) {
+      MathsatPredicateParser p = new MathsatPredicateParser(mgr, amgr);
+      Collection<Predicate> preds = null;
+      try {
+        String pth = CPAMain.cpaConfig.getProperty("predicates.path");
+        File f = new File(pth, "predicates.msat");
+        InputStream in = new FileInputStream(f);
+        preds = p.parsePredicates(in);
+      } catch (IOException er) {
+        er.printStackTrace();
+        preds = new Vector<Predicate>();
+      }
+      pmap = new FixedPredicateMap(preds);
+    } else {
+      pmap = new UpdateablePredicateMap();
+    }
+    assert(pmap != null);
+    
+    SymbPredAbsAbstractElement e = new SymbPredAbsAbstractElement(domain, true, node,
+        pf, initPf, initAbstraction, parents, null, pmap);
+    e.setMaxIndex(new SSAMap());
+
+    return e;
+  }
+
+  public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
+    // TODO Auto-generated method stub
+    return null;
   }
 }

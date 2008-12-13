@@ -8,6 +8,7 @@ import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.MergeOperator;
+import cpa.common.interfaces.Precision;
 import cpa.symbpredabs.SSAMap;
 import cpa.symbpredabs.SymbolicFormula;
 import cpa.symbpredabs.SymbolicFormulaManager;
@@ -36,7 +37,8 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
   }
 
   public AbstractElement merge(AbstractElement element1,
-                               AbstractElement element2) {
+                               AbstractElement element2,
+                               Precision prec) {
 
     SymbPredAbsAbstractElement elem1 = (SymbPredAbsAbstractElement)element1;
     SymbPredAbsAbstractElement elem2 = (SymbPredAbsAbstractElement)element2;
@@ -122,7 +124,8 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
   }
 
   public AbstractElementWithLocation merge(AbstractElementWithLocation pElement1,
-                                           AbstractElementWithLocation pElement2) throws CPAException {
+                                           AbstractElementWithLocation pElement2,
+                                           Precision prec) throws CPAException {
     throw new CPAException ("Cannot return element with location information");
   }
 }
