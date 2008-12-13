@@ -93,27 +93,22 @@ ln -sf ../albertos_tests/run_tests.py
 # run the tests
 for cfg in $configurations; do
   ./run_tests.py --config=../albertos_tests/config/$cfg.properties --output=$outfile $instances --timeout=1800 --memlimit=1900000
-done
 
-# cleanup
-rm -f run_tests.py cex.msat CPALog.txt predmap.txt
+  # bring home all the logfiles
+  for i in `find ../albertos_tests/test/ -name "*.log"` ; do
+    name=`echo $i | sed 's#^../albertos_tests/test/##'`
+    dir=`dirname $name`
+    mkdir -p $LOGDIR/$dir
+    mv $i $LOGDIR/$name
+  done
 
-# bring home all the logfiles
-for i in `find ../albertos_tests/test/ -name "*.log"` ; do
-  name=`echo $i | sed 's#^../albertos_tests/test/##'`
-  dir=`dirname $name`
-  mkdir -p $LOGDIR/$dir
-  mv $i $LOGDIR/$name
-done
+  # now compare the results to our master copy
+  # results.master has a single file per configuration stating all the results
+  if [ ! -d results.master ] ; then
+    echo "No definitive results available, can't verify results" 1>&2
+    continue
+  fi
 
-# now compare the results to our master copy
-# results.master has a single file per configuration stating all the results
-if [ ! -d results.master ] ; then
-  echo "No definitive results available, can't verify results" 1>&2
-  exit 1
-fi
-
-for cfg in $configurations ; do
   master=`ls -rt results.master/*$cfg.log | tail -1`
   [ -s "$master" ] || exit 1
   current="$outfile.$cfg.log"
@@ -137,4 +132,7 @@ for cfg in $configurations ; do
     fi
   done
 done
+
+# cleanup
+rm -f run_tests.py cex.msat CPALog.txt predmap.txt
 
