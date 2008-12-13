@@ -7,10 +7,12 @@ import logging.CustomLogLevel;
 import logging.LazyLogger;
 
 import common.LocationMappedReachedSet;
+import common.Pair;
 
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
+import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.StopOperator;
 import exceptions.CPAException;
 
@@ -35,15 +37,15 @@ public class ExplicitStopOperator implements StopOperator {
 
 
     public <AE extends AbstractElement> boolean stop(AE element,
-                                                     Collection<AE> reached) throws CPAException {
+                                                     Collection<AE> reached, Precision prec) throws CPAException {
       if (reached instanceof LocationMappedReachedSet) {
         ExplicitAbstractElement e = (ExplicitAbstractElement)element;
-        Set<AbstractElementWithLocation> effReached =
+        Set<Pair<AbstractElementWithLocation,Precision>> effReached =
           ((LocationMappedReachedSet)reached).get(
               e.getLocationNode());
         if (effReached == null) return false;
-        for (AbstractElement e2: effReached) {
-          if (stop(element, e2)) {
+        for (Pair<AbstractElementWithLocation,Precision> e2: effReached) {
+          if (stop(element, e2.getFirst())) {
             return true;
           }
         }

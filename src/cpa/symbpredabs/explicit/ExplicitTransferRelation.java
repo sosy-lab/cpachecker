@@ -26,6 +26,7 @@ import exceptions.RefinementNeededException;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
+import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
 import cpa.symbpredabs.AbstractFormula;
 import cpa.symbpredabs.AbstractReachabilityTree;
@@ -382,7 +383,7 @@ public class ExplicitTransferRelation implements TransferRelation {
 
     @Override
     public AbstractElement getAbstractSuccessor(AbstractElement element,
-            CFAEdge cfaEdge) throws CPATransferException {
+            CFAEdge cfaEdge, Precision prec) throws CPATransferException {
         LazyLogger.log(CustomLogLevel.SpecificCPALevel,
                        "Getting Abstract Successor of element: ", element,
                        " on edge: ", cfaEdge.getRawStatement());
@@ -407,7 +408,7 @@ public class ExplicitTransferRelation implements TransferRelation {
                                "Successor is: ", ret);
 
                 if (ret != domain.getBottomElement()) {
-                    abstractTree.addChild(e, (AbstractElementWithLocation)ret);
+                    abstractTree.addChild(e, ret);
                 }
 
                 return ret;
@@ -421,7 +422,7 @@ public class ExplicitTransferRelation implements TransferRelation {
 
     @Override
     public List<AbstractElementWithLocation> getAllAbstractSuccessors(
-        AbstractElementWithLocation element) throws CPAException, CPATransferException {
+        AbstractElementWithLocation element, Precision prec) throws CPAException, CPATransferException {
         LazyLogger.log(CustomLogLevel.SpecificCPALevel,
                        "Getting ALL Abstract Successors of element: ",
                        element);
@@ -432,7 +433,7 @@ public class ExplicitTransferRelation implements TransferRelation {
 
         for (int i = 0; i < src.getNumLeavingEdges(); ++i) {
             AbstractElement newe =
-                getAbstractSuccessor(e, src.getLeavingEdge(i));
+                getAbstractSuccessor(e, src.getLeavingEdge(i), prec);
             if (newe != domain.getBottomElement()) {
                 allSucc.add((ExplicitAbstractElement)newe);
             }

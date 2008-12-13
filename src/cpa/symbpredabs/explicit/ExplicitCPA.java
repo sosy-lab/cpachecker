@@ -27,6 +27,9 @@ import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
+import cpa.common.interfaces.Precision;
+import cpa.common.interfaces.PrecisionAdjustment;
+import cpa.common.interfaces.PrecisionDomain;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
 import cpa.symbpredabs.AbstractFormula;
@@ -54,9 +57,11 @@ import cpaplugin.CPAStatistics;
 public class ExplicitCPA implements ConfigurableProgramAnalysis {
 
     private final ExplicitAbstractDomain domain;
+    private final PrecisionDomain precisionDomain;
+    private final ExplicitTransferRelation trans;
     // private ExplicitMergeOperator merge;
     private final ExplicitStopOperator stop;
-    private final ExplicitTransferRelation trans;
+    private final PrecisionAdjustment precisionAdjustment;
     private final MathsatSymbolicFormulaManager mgr;
     private final BDDMathsatExplicitAbstractManager amgr;
     private PredicateMap pmap;
@@ -68,9 +73,11 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
 
     private ExplicitCPA() {
         domain = new ExplicitAbstractDomain(this);
+        precisionDomain = new ExplicitPrecisionDomain();
+        trans = new ExplicitTransferRelation(domain);
         // merge = new ExplicitMergeOperator(domain);
         stop = new ExplicitStopOperator(domain);
-        trans = new ExplicitTransferRelation(domain);
+        precisionAdjustment = new ExplicitPrecisionAdjustment();
         mgr = new MathsatSymbolicFormulaManager();
         String whichProver = CPAMain.cpaConfig.getProperty(
                 "cpas.symbpredabs.explicit.abstraction.solver", "mathsat");
@@ -132,8 +139,7 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
         return stats;
     }
 
-    public Collection<AbstractElementWithLocation> newReachedSet() {
-        TO BE FIXED !!!!
+    public Collection<Pair<AbstractElementWithLocation,Precision>> newReachedSet() {
         return new LocationMappedReachedSet();
     }
 
@@ -141,19 +147,15 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
     public AbstractDomain getAbstractDomain() {
         return domain;
     }
-
-    @Override
-    public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
-        LazyLogger.log(CustomLogLevel.SpecificCPALevel,
-                       "Getting initial element from node: ", node);
-
-        ExplicitAbstractElement e = new ExplicitAbstractElement(node);
-        e.setAbstraction(amgr.makeTrue());
-        e.setContext(new Stack<Pair<AbstractFormula, CFANode>>(), true);
-        return e;
+    
+    public PrecisionDomain getPrecisionDomain() {
+      return precisionDomain;
     }
 
     @Override
+    public TransferRelation getTransferRelation() {
+        return trans;
+
     public MergeOperator getMergeOperator() {
         //return merge;
         return null;
@@ -165,8 +167,23 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
     }
 
     @Override
-    public TransferRelation getTransferRelation() {
-        return trans;
+    public PrecisionAdjustment getPrecisionAdjustment() {
+      return precisionAdjustment;
+    }
+
+    public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
+        LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+                       "Getting initial element from node: ", node);
+
+        ExplicitAbstractElement e = new ExplicitAbstractElement(node);
+        e.setAbstraction(amgr.makeTrue());
+        e.setContext(new Stack<Pair<AbstractFormula, CFANode>>(), true);
+        return e;
+    }
+    
+    public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
+      // TODO Auto-generated method stub
+      return null;
     }
 
     public ExplicitAbstractFormulaManager getAbstractFormulaManager() {
