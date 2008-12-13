@@ -22,7 +22,7 @@ public class ExplicitAnalysisStopSep implements StopOperator {
 		return explicitAnalysisDomain;
 	}
 
-	public boolean stop (AbstractElement element, Collection<AbstractElement> reached) 
+	public <AE extends AbstractElement> boolean stop (AE element, Collection<AE> reached)
 	throws CPAException {
 		PartialOrder partialOrder = explicitAnalysisDomain.getPartialOrder();
 		for (AbstractElement testElement : reached)

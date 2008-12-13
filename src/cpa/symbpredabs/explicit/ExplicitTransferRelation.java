@@ -336,11 +336,8 @@ public class ExplicitTransferRelation implements TransferRelation {
         //root = path.getFirst();
         Collection<AbstractElementWithLocation> toWaitlist = new HashSet<AbstractElementWithLocation>();
         toWaitlist.add(root);
-        Collection<AbstractElementWithLocation> toUnreachTmp =
+        Collection<AbstractElementWithLocation> toUnreach =
             abstractTree.getSubtree(root, true, false);
-        Vector<AbstractElement> toUnreach = new Vector<AbstractElement>();
-        toUnreach.ensureCapacity(toUnreachTmp.size());
-        toUnreach.addAll(toUnreachTmp);
         if (cur != null) {
             // we don't want to unreach elements that were covered before
             // reaching the error!

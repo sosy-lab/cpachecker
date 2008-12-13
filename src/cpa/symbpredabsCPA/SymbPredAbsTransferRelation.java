@@ -429,8 +429,8 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   }
 
   @Override
-  public List<AbstractElement> getAllAbstractSuccessors(
-      AbstractElement element) throws CPAException, CPATransferException {
+  public List<AbstractElementWithLocation> getAllAbstractSuccessors(
+      AbstractElementWithLocation element) throws CPAException, CPATransferException {
     throw new CPAException ("Cannot get all abstract successors from non-location domain");
   }
 

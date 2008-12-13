@@ -12,6 +12,7 @@ import cpa.symbpredabs.SSAMap;
 import cpa.symbpredabs.SymbolicFormula;
 import cpa.symbpredabs.SymbolicFormulaManager;
 import cpa.symbpredabs.mathsat.MathsatSymbolicFormula;
+import exceptions.CPAException;
 
 /**
  * trivial merge operation for symbolic lazy abstraction with summaries

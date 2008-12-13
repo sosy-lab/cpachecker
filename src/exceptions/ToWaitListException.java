@@ -4,7 +4,7 @@ import java.util.Collection;
 import java.util.Collections;
 
 import exceptions.RefinementNeededException;
-import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.AbstractElementWithLocation;
 
 /**
  * Specialized version of the RefinementNeededException used to put some more

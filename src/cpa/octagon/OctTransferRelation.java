@@ -211,7 +211,7 @@ public class OctTransferRelation implements TransferRelation{
   /* (non-Javadoc)
    * @see cpa.common.interfaces.TransferRelation#getAllAbstractSuccessors(cpa.common.interfaces.AbstractElement)
    */
-  public List<AbstractElement> getAllAbstractSuccessors (AbstractElement element) throws CPAException
+  public List<AbstractElementWithLocation> getAllAbstractSuccessors (AbstractElementWithLocation element) throws CPAException
   {
     throw new CPAException ("Cannot get all abstract successors from non-location domain");
   }

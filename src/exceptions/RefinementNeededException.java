@@ -2,7 +2,7 @@ package exceptions;
 
 import java.util.Collection;
 
-import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.AbstractElementWithLocation;
 import exceptions.CPATransferException;
 
 public class RefinementNeededException extends CPATransferException {

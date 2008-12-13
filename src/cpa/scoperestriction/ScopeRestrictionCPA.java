@@ -12,6 +12,7 @@ import exceptions.CPATransferException;
 import cpa.common.automaton.Automaton;
 import cpa.common.automaton.AutomatonCPADomain;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.StopOperator;
@@ -32,14 +33,18 @@ public class ScopeRestrictionCPA implements ConfigurableProgramAnalysis {
       // no join
       return pElement2;
     }
-    
+
+    public AbstractElementWithLocation merge(AbstractElementWithLocation pElement1,
+                                             AbstractElementWithLocation pElement2) throws CPAException {
+      throw new CPAException ("Cannot return element with location information");
+    }
   }
   
   public class ScopeRestrictionStopOperator implements StopOperator {
     
     @Override
-    public boolean stop(AbstractElement pElement,
-                        Collection<AbstractElement> pReached)
+    public <AE extends AbstractElement> boolean stop(AE pElement,
+                        Collection<AE> pReached)
                                                              throws CPAException {
       assert(pElement != null);
       assert(pReached != null);
@@ -77,7 +82,7 @@ public class ScopeRestrictionCPA implements ConfigurableProgramAnalysis {
     }
 
     @Override
-    public List<AbstractElement> getAllAbstractSuccessors(AbstractElement pElement)
+    public List<AbstractElementWithLocation> getAllAbstractSuccessors(AbstractElementWithLocation pElement)
                                                                                    throws CPAException,
                                                                                    CPATransferException {
       // this method may not be called!

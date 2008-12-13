@@ -240,9 +240,9 @@ public class CPAMain {
       cpaStats.startAnalysisTimer();
 
       CPAAlgorithm algo = new CPAAlgorithm();
-      AbstractElement initialElement =
+      AbstractElementWithLocation initialElement =
         cpa.getInitialElement(mainFunction);
-      Collection<AbstractElement> reached = algo.CPA(cpa, initialElement);
+      Collection<AbstractElementWithLocation> reached = algo.CPA(cpa, initialElement);
       cpaStats.stopAnalysisTimer();
 
       LazyLogger.log(Level.INFO, "CPA Algorithm finished ");

@@ -29,6 +29,7 @@ import cpa.common.automaton.NegationLabel;
 import cpa.common.automaton.cfa.FunctionCallLabel;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.StopOperator;
@@ -200,9 +201,9 @@ public class QueryDrivenProgramTesting {
       // TODO: Simplify test goal automaton
       
       // TODO: testGoals to be passed in as precision
-      AbstractElement lInitialElement = lWrapperCPA.getInitialElement(pMainFunction);
+      AbstractElementWithLocation lInitialElement = lWrapperCPA.getInitialElement(pMainFunction);
       
-      Collection<AbstractElement> lReachedElements = null;
+      Collection<AbstractElementWithLocation> lReachedElements = null;
       
       try {
         lReachedElements = algo.CPA(lWrapperCPA, lInitialElement);

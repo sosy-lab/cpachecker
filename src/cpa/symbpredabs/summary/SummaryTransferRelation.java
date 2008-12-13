@@ -295,13 +295,10 @@ public class SummaryTransferRelation implements TransferRelation {
         //root = path.getFirst();
         Collection<AbstractElementWithLocation> toWaitlist = new HashSet<AbstractElementWithLocation>();
         toWaitlist.add(root);
-        Collection<AbstractElementWithLocation> toUnreachTmp =
+        Collection<AbstractElementWithLocation> toUnreach =
             abstractTree.getSubtree(root, true, false);
-        Vector<AbstractElement> toUnreach = new Vector<AbstractElement>();
-        toUnreach.ensureCapacity(toUnreachTmp.size());
         SummaryCPA cpa = domain.getCPA();
-        for (AbstractElement e : toUnreachTmp) {
-            toUnreach.add(e);
+        for (AbstractElement e : toUnreach) {
             Set<SummaryAbstractElement> cov = cpa.getCoveredBy(
                     (SummaryAbstractElement)e);
             for (SummaryAbstractElement c : cov) {
