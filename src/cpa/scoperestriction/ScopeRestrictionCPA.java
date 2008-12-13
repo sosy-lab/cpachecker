@@ -6,6 +6,8 @@ package cpa.scoperestriction;
 import java.util.Collection;
 import java.util.List;
 
+import common.Pair;
+
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import exceptions.CPATransferException;
@@ -15,6 +17,9 @@ import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
+import cpa.common.interfaces.Precision;
+import cpa.common.interfaces.PrecisionAdjustment;
+import cpa.common.interfaces.PrecisionDomain;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
 import exceptions.CPAException;
@@ -25,17 +30,23 @@ import exceptions.CPAException;
  */
 public class ScopeRestrictionCPA implements ConfigurableProgramAnalysis {
   
+  public class ScopeRestrictionPrecisionDomain implements PrecisionDomain {
+    
+  }
+  
   public class ScopeRestrictionMergeOperator implements MergeOperator {
 
     @Override
     public AbstractElement merge(AbstractElement pElement1,
-                                 AbstractElement pElement2) throws CPAException {
+                                 AbstractElement pElement2,
+                                 Precision prec) throws CPAException {
       // no join
       return pElement2;
     }
 
     public AbstractElementWithLocation merge(AbstractElementWithLocation pElement1,
-                                             AbstractElementWithLocation pElement2) throws CPAException {
+                                             AbstractElementWithLocation pElement2,
+                                             Precision prec) throws CPAException {
       throw new CPAException ("Cannot return element with location information");
     }
   }
@@ -44,7 +55,7 @@ public class ScopeRestrictionCPA implements ConfigurableProgramAnalysis {
     
     @Override
     public <AE extends AbstractElement> boolean stop(AE pElement,
-                        Collection<AE> pReached)
+                        Collection<AE> pReached, Precision prec)
                                                              throws CPAException {
       assert(pElement != null);
       assert(pReached != null);
@@ -67,11 +78,22 @@ public class ScopeRestrictionCPA implements ConfigurableProgramAnalysis {
     
   }
   
+  public class ScopeRestrictionPrecisionAdjustment implements PrecisionAdjustment {
+
+    public <AE extends AbstractElement> Pair<AE, Precision> prec(
+                                                                 AE pElement,
+                                                                 Precision pPrecision,
+                                                                 Collection<Pair<AE, Precision>> pElements) {
+      return new Pair<AE,Precision> (pElement, pPrecision);
+    }
+    
+  }
+  
   public class ScopeRestrictionTransferRelation implements TransferRelation {
 
     @Override
     public AutomatonCPADomain<CFAEdge>.Element getAbstractSuccessor(AbstractElement pElement,
-                                                CFAEdge pCfaEdge)
+                                                CFAEdge pCfaEdge, Precision prec)
                                                                  throws CPATransferException {
       AutomatonCPADomain<CFAEdge>.Element lSuccessor = mDomain.getSuccessor(pElement, pCfaEdge);
       
@@ -82,7 +104,7 @@ public class ScopeRestrictionCPA implements ConfigurableProgramAnalysis {
     }
 
     @Override
-    public List<AbstractElementWithLocation> getAllAbstractSuccessors(AbstractElementWithLocation pElement)
+    public List<AbstractElementWithLocation> getAllAbstractSuccessors(AbstractElementWithLocation pElement, Precision prec)
                                                                                    throws CPAException,
                                                                                    CPATransferException {
       // this method may not be called!
@@ -94,19 +116,22 @@ public class ScopeRestrictionCPA implements ConfigurableProgramAnalysis {
   }
   
   private AutomatonCPADomain<CFAEdge> mDomain;
+  private PrecisionDomain mPrecisionDomain;
+  private ScopeRestrictionTransferRelation mTransferRelation;
   private ScopeRestrictionMergeOperator mMergeOperator;
   private ScopeRestrictionStopOperator mStopOperator;
-  private ScopeRestrictionTransferRelation mTransferRelation;
+  private PrecisionAdjustment mPrecisionAdjustment;
   
   public ScopeRestrictionCPA(Automaton<CFAEdge> pTestGoalAutomaton) {
     // Check for invariant: No final states
     assert(pTestGoalAutomaton.getFinalStates().isEmpty());
     
     mDomain = new AutomatonCPADomain<CFAEdge>(pTestGoalAutomaton);
-    
+    mPrecisionDomain = new ScopeRestrictionPrecisionDomain();
+    mTransferRelation = new ScopeRestrictionTransferRelation();
     mMergeOperator = new ScopeRestrictionMergeOperator();
     mStopOperator = new ScopeRestrictionStopOperator();
-    mTransferRelation = new ScopeRestrictionTransferRelation();
+    mPrecisionAdjustment = new ScopeRestrictionPrecisionAdjustment();
   }
   
   /* (non-Javadoc)
@@ -116,13 +141,17 @@ public class ScopeRestrictionCPA implements ConfigurableProgramAnalysis {
   public AutomatonCPADomain<CFAEdge> getAbstractDomain() {
     return mDomain;
   }
-
+  
+  public PrecisionDomain getPrecisionDomain() {
+    return mPrecisionDomain;
+  }
+  
   /* (non-Javadoc)
-   * @see cpa.common.interfaces.ConfigurableProgramAnalysis#getInitialElement(cfa.objectmodel.CFAFunctionDefinitionNode)
+   * @see cpa.common.interfaces.ConfigurableProgramAnalysis#getTransferRelation()
    */
   @Override
-  public AutomatonCPADomain<CFAEdge>.Element getInitialElement(CFAFunctionDefinitionNode pNode) {
-    return mDomain.getInitialElement();
+  public ScopeRestrictionTransferRelation getTransferRelation() {
+    return mTransferRelation;
   }
 
   /* (non-Javadoc)
@@ -140,13 +169,21 @@ public class ScopeRestrictionCPA implements ConfigurableProgramAnalysis {
   public ScopeRestrictionStopOperator getStopOperator() {
     return mStopOperator;
   }
-
+  
+  public PrecisionAdjustment getPrecisionAdjustment() {
+    return mPrecisionAdjustment;
+  }
+  
   /* (non-Javadoc)
-   * @see cpa.common.interfaces.ConfigurableProgramAnalysis#getTransferRelation()
+   * @see cpa.common.interfaces.ConfigurableProgramAnalysis#getInitialElement(cfa.objectmodel.CFAFunctionDefinitionNode)
    */
   @Override
-  public ScopeRestrictionTransferRelation getTransferRelation() {
-    return mTransferRelation;
+  public AutomatonCPADomain<CFAEdge>.Element getInitialElement(CFAFunctionDefinitionNode pNode) {
+    return mDomain.getInitialElement();
   }
 
+  public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
+    // TODO Auto-generated method stub
+    return null;
+  }
 }
