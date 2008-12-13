@@ -62,6 +62,8 @@ git show e1317fc5d07f014471ecd98f533a417ccf977064 > $cdt_patch
 cd $STORAGE
 patch -p1 < $cdt_patch
 rm -f $cdt_patch
+# record the patches that have been applied
+svn diff > $LOGDIR/patches.`date +%F_%T`.diff
 
 # go and build!
 ant clean
@@ -104,26 +106,30 @@ for cfg in $configurations; do
 
   # now compare the results to our master copy
   # results.master has a single file per configuration stating all the results
-  if [ ! -d results.master ] ; then
+  master=`results.master/$cfg.log`
+  if [ ! -s results.master/$cfg.log ] ; then
     echo "No definitive results available, can't verify results" 1>&2
     continue
   fi
 
-  master=`ls -rt results.master/*$cfg.log | tail -1`
-  [ -s "$master" ] || exit 1
   current="$outfile.$cfg.log"
   [ -s "$current" ] || exit 1
   cmp_result="$outfile.$cfg.cmp"
   grep "^/" $current | while read f t r ; do
     master_result="`grep -w "$f" $master | awk '{ print $3 ":" $2 }'`"
+    mr="`echo $master_result | cut -f1 -d:`"
+    mt="`echo $master_result | cut -f2 -d:`"
     if [ -z "$master_result" ] ; then
       echo "$f WARN_NOT_IN_MASTER" >> $cmp_result
-    elif [ "$r" != "`echo $master_result | cut -f1 -d:`" ] ; then
+    elif [ "$mr" = "ERROR" -a "$r" != "ERROR" ] ; then
+      echo "$f WARN_ERROR_IN_MASTER" >> $cmp_result
+    elif [ "$mr" = "ERROR" -a "$r" = "ERROR" ] ; then
+      echo "$f WARN_ERROR_ALL" >> $cmp_result
+    elif [ "$r" = "ERROR" ] ; then
+      echo "$f ERR_NEW_ERROR" >> $cmp_result
+    elif [ "$r" != "$mr" ] ; then
       echo "$f ERR_WRONG_RESULT" >> $cmp_result
-    elif [ "$t" = "-1" ] ; then
-      echo "$f ERR_TIME_ERROR" >> $cmp_result
     else
-      mt="`echo $master_result | cut -f2 -d:`"
       perl -e "
       if ($t - $mt > 10) { print '$f WARN_TOO_SLOW'; }
       elsif ($t - $mt < -10) { print '$f WARN_TOO_FAST'; }
