@@ -14,11 +14,10 @@ import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.c.AssumeEdge;
 import cfa.objectmodel.c.DeclarationEdge;
 import cfa.objectmodel.c.FunctionCallEdge;
-import cfa.objectmodel.c.ReturnEdge;
 import cfa.objectmodel.c.StatementEdge;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
-import cpa.common.interfaces.BottomElement;
+import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
 import exceptions.CPAException;
 import exceptions.CPATransferException;
@@ -44,7 +43,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
 
 	@Override
 	public AbstractElement getAbstractSuccessor(AbstractElement element,
-			CFAEdge cfaEdge) throws CPATransferException {
+			CFAEdge cfaEdge, Precision prec) throws CPATransferException {
 
 		System.out.println( " EDGE: " + cfaEdge);
 		
@@ -158,7 +157,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
 		case ReturnEdge:
 		{
 			expAnalysisElement = expAnalysisElement.clone();
-			ReturnEdge functionReturnEdge = (ReturnEdge) cfaEdge;
+			//ReturnEdge functionReturnEdge = (ReturnEdge) cfaEdge;
 			// TODO
 //			try {
 //				
@@ -668,7 +667,8 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
 					}
 					// a -= 2
 					else if(typeOfOperator == IASTBinaryExpression.op_minusAssign){
-						double negVal = 0 - val;
+						// TODO mt: unused!?
+					  // double negVal = 0 - val;
 						addLiteralToVariable(expAnalysisElement, cfaEdge, varName, varName,  (0 - val));
 					}
 					// a *= 2
@@ -1230,7 +1230,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
 
 	@Override
 	public List<AbstractElementWithLocation> getAllAbstractSuccessors(
-			AbstractElementWithLocation element) throws CPAException, CPATransferException {
+			AbstractElementWithLocation element, Precision prec) throws CPAException, CPATransferException {
 		throw new CPAException ("Cannot get all abstract successors from non-location domain");
 	}
 
