@@ -11,6 +11,7 @@ import exceptions.CPATransferException;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
+import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
 
 public class LocationTransferRelation implements TransferRelation
@@ -27,7 +28,7 @@ public class LocationTransferRelation implements TransferRelation
         return locationDomain;
     }
 
-    public AbstractElement getAbstractSuccessor (AbstractElement element, CFAEdge cfaEdge) throws CPATransferException
+    public AbstractElement getAbstractSuccessor (AbstractElement element, CFAEdge cfaEdge, Precision prec) throws CPATransferException
     {
         LocationElement inputElement = (LocationElement) element;
         CFANode node = inputElement.getLocationNode ();
@@ -50,7 +51,7 @@ public class LocationTransferRelation implements TransferRelation
         return locationDomain.getBottomElement ();
     }
 
-    public List<AbstractElementWithLocation> getAllAbstractSuccessors (AbstractElementWithLocation element) throws CPATransferException
+    public List<AbstractElementWithLocation> getAllAbstractSuccessors (AbstractElementWithLocation element, Precision prec) throws CPATransferException
     {
         CFANode node = element.getLocationNode ();
 
