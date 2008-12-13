@@ -58,7 +58,6 @@ import cpa.symbpredabs.mathsat.summary.MathsatSummaryFormulaManager;
 public class SummaryCPA implements ConfigurableProgramAnalysis {
 
     private SummaryAbstractDomain domain;
-    private PrecisionDomain precisionDomain;
     private SummaryTransferRelation trans;
     // private SummaryMergeOperator merge;
     private SummaryStopOperator stop;
@@ -74,7 +73,6 @@ public class SummaryCPA implements ConfigurableProgramAnalysis {
 
     private SummaryCPA() {
         domain = new SummaryAbstractDomain(this);
-        precisionDomain = new SummaryPrecisionDomain();
         trans = new SummaryTransferRelation(domain);
         // merge = new SummaryMergeOperator(domain);
         stop = new SummaryStopOperator(domain);
@@ -144,11 +142,6 @@ public class SummaryCPA implements ConfigurableProgramAnalysis {
     @Override
     public AbstractDomain getAbstractDomain() {
         return domain;
-    }
-
-    @Override
-    public PrecisionDomain getPrecisionDomain() {
-      return precisionDomain;
     }
 
     public TransferRelation getTransferRelation() {
@@ -244,7 +237,6 @@ public class SummaryCPA implements ConfigurableProgramAnalysis {
     }
 
     public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
-      // TODO Auto-generated method stub
-      return null;
+      return new SummaryPrecision();
     }
 }

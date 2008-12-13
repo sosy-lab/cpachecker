@@ -32,7 +32,6 @@ import cpa.symbpredabs.mathsat.MathsatSymbolicFormulaManager;
 public class SymbPredAbstCPA implements ConfigurableProgramAnalysis {
 
     private AbstractDomain abstractDomain;
-    private PrecisionDomain precisionDomain;
     private TransferRelation transferRelation;
     private MergeOperator mergeOperator;
     private StopOperator stopOperator;
@@ -47,7 +46,6 @@ public class SymbPredAbstCPA implements ConfigurableProgramAnalysis {
     private SymbPredAbstCPA() {
         SymbPredAbstDomain domain = new SymbPredAbstDomain(this);
         abstractDomain = domain;
-        precisionDomain = new SymbPredAbstPrecisionDomain();
         transferRelation = new SymbPredAbstTransfer(domain);
         mergeOperator = new SymbPredAbstMerge(domain);
         stopOperator = new SymbPredAbstStop(domain);
@@ -101,10 +99,6 @@ public class SymbPredAbstCPA implements ConfigurableProgramAnalysis {
     public AbstractDomain getAbstractDomain() {
         return abstractDomain;
     }
-
-    public PrecisionDomain getPrecisionDomain() {
-      return precisionDomain;
-    }
     
     public TransferRelation getTransferRelation() {
         return transferRelation;
@@ -130,7 +124,6 @@ public class SymbPredAbstCPA implements ConfigurableProgramAnalysis {
     }
     
     public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
-      // TODO Auto-generated method stub
-      return null;
+      return new SymbPredAbstPrecision();
     }
 }

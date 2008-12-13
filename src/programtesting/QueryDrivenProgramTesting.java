@@ -106,12 +106,6 @@ public class QueryDrivenProgramTesting {
     public PrecisionAdjustment getPrecisionAdjustment() {
       return mCompositeCPA.getPrecisionAdjustment();
     }
-
-    @Override
-    public PrecisionDomain getPrecisionDomain() {
-      return mCompositeCPA.getPrecisionDomain();
-    }
-    
   }
   
   public static Automaton<CFAEdge> getScopeRestrictionAutomaton() {

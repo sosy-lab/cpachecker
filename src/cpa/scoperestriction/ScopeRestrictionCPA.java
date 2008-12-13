@@ -29,7 +29,7 @@ import exceptions.CPAException;
  */
 public class ScopeRestrictionCPA implements ConfigurableProgramAnalysis {
   
-  public class ScopeRestrictionPrecisionDomain implements PrecisionDomain {
+  public class ScopeRestrictionPrecision implements Precision {
     
   }
   
@@ -115,7 +115,6 @@ public class ScopeRestrictionCPA implements ConfigurableProgramAnalysis {
   }
   
   private AutomatonCPADomain<CFAEdge> mDomain;
-  private PrecisionDomain mPrecisionDomain;
   private ScopeRestrictionTransferRelation mTransferRelation;
   private ScopeRestrictionMergeOperator mMergeOperator;
   private ScopeRestrictionStopOperator mStopOperator;
@@ -126,7 +125,6 @@ public class ScopeRestrictionCPA implements ConfigurableProgramAnalysis {
     assert(pTestGoalAutomaton.getFinalStates().isEmpty());
     
     mDomain = new AutomatonCPADomain<CFAEdge>(pTestGoalAutomaton);
-    mPrecisionDomain = new ScopeRestrictionPrecisionDomain();
     mTransferRelation = new ScopeRestrictionTransferRelation();
     mMergeOperator = new ScopeRestrictionMergeOperator();
     mStopOperator = new ScopeRestrictionStopOperator();
@@ -139,10 +137,6 @@ public class ScopeRestrictionCPA implements ConfigurableProgramAnalysis {
   @Override
   public AutomatonCPADomain<CFAEdge> getAbstractDomain() {
     return mDomain;
-  }
-  
-  public PrecisionDomain getPrecisionDomain() {
-    return mPrecisionDomain;
   }
   
   /* (non-Javadoc)
@@ -182,7 +176,6 @@ public class ScopeRestrictionCPA implements ConfigurableProgramAnalysis {
   }
 
   public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
-    // TODO Auto-generated method stub
-    return null;
+    return new ScopeRestrictionPrecision();
   }
 }

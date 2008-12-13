@@ -56,7 +56,6 @@ import cpaplugin.CPAStatistics;
 public class ExplicitCPA implements ConfigurableProgramAnalysis {
 
     private final ExplicitAbstractDomain domain;
-    private final PrecisionDomain precisionDomain;
     private final ExplicitTransferRelation trans;
     // private ExplicitMergeOperator merge;
     private final ExplicitStopOperator stop;
@@ -72,7 +71,6 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
 
     private ExplicitCPA() {
         domain = new ExplicitAbstractDomain(this);
-        precisionDomain = new ExplicitPrecisionDomain();
         trans = new ExplicitTransferRelation(domain);
         // merge = new ExplicitMergeOperator(domain);
         stop = new ExplicitStopOperator(domain);
@@ -146,10 +144,6 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
     public AbstractDomain getAbstractDomain() {
         return domain;
     }
-    
-    public PrecisionDomain getPrecisionDomain() {
-      return precisionDomain;
-    }
 
     @Override
     public TransferRelation getTransferRelation() {
@@ -182,8 +176,7 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
     }
     
     public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
-      // TODO Auto-generated method stub
-      return null;
+      return new ExplicitPrecision();
     }
 
     public ExplicitAbstractFormulaManager getAbstractFormulaManager() {

@@ -29,7 +29,6 @@ import exceptions.CPAException;
 public class CompositeCPA implements ConfigurableProgramAnalysis
 {
 	private final AbstractDomain abstractDomain;
-	private final PrecisionDomain precisionDomain;
 	private final TransferRelation transferRelation;
 	private final MergeOperator mergeOperator;
 	private final StopOperator stopOperator;
@@ -38,7 +37,6 @@ public class CompositeCPA implements ConfigurableProgramAnalysis
 	private final Precision initialPrecision;
 
 	private CompositeCPA (AbstractDomain abstractDomain,
-	    PrecisionDomain precisionDomain,
 	    TransferRelation transferRelation,
 			MergeOperator mergeOperator,
 			StopOperator stopOperator,
@@ -47,8 +45,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis
 			Precision initialPrecision)
 	{
 		this.abstractDomain = abstractDomain;
-    this.precisionDomain = precisionDomain;
-		this.transferRelation = transferRelation;
+    this.transferRelation = transferRelation;
 		this.mergeOperator = mergeOperator;
 		this.stopOperator = stopOperator;
 		this.precisionAdjustment = precisionAdjustment;
@@ -59,7 +56,6 @@ public class CompositeCPA implements ConfigurableProgramAnalysis
 	public static CompositeCPA createNewCompositeCPA(List<ConfigurableProgramAnalysis> cpas, CFAFunctionDefinitionNode node) {
 
 		List<AbstractDomain> domains = new ArrayList<AbstractDomain> ();
-    List<PrecisionDomain> precisionDomains = new ArrayList<PrecisionDomain> ();
     List<TransferRelation> transferRelations = new ArrayList<TransferRelation> ();
 		List<MergeOperator> mergeOperators = new ArrayList<MergeOperator> ();
 		List<StopOperator> stopOperators = new ArrayList<StopOperator> ();
@@ -69,7 +65,6 @@ public class CompositeCPA implements ConfigurableProgramAnalysis
 
 		for(ConfigurableProgramAnalysis sp : cpas) {
 			domains.add(sp.getAbstractDomain());
-	    precisionDomains.add(sp.getPrecisionDomain());
       transferRelations.add(sp.getTransferRelation());
 			mergeOperators.add(sp.getMergeOperator());
 			stopOperators.add(sp.getStopOperator());
@@ -79,7 +74,6 @@ public class CompositeCPA implements ConfigurableProgramAnalysis
 		}
 
 		CompositeDomain compositeDomain = new CompositeDomain (domains);
-		CompositePrecisionDomain compositePrecisionDomain = new CompositePrecisionDomain (precisionDomains);
 		CompositeTransferRelation compositeTransfer = new CompositeTransferRelation (compositeDomain, transferRelations);
 		CompositeMergeOperator compositeMerge = new CompositeMergeOperator (compositeDomain, mergeOperators);
 		CompositeStopOperator compositeStop = new CompositeStopOperator (compositeDomain, stopOperators);
@@ -92,13 +86,12 @@ public class CompositeCPA implements ConfigurableProgramAnalysis
 		initialCallStack.push(initialCallElement);
 		initialElement.setCallStack(initialCallStack);
 
-		return createCompositeCPA(compositeDomain, compositePrecisionDomain, compositeTransfer, compositeMerge, compositeStop,
+		return createCompositeCPA(compositeDomain, compositeTransfer, compositeMerge, compositeStop,
 		    compositePrecisionAdjustment, initialElement, initialPrecision);
 
 	}
 
 	public static CompositeCPA createCompositeCPA (AbstractDomain abstractDomain,
-	    PrecisionDomain precisionDomain,
 	    TransferRelation transferRelation,
 			MergeOperator mergeOperator,
 			StopOperator stopOperator,
@@ -107,11 +100,10 @@ public class CompositeCPA implements ConfigurableProgramAnalysis
       Precision initialPrecision)
 	{
 		// TODO Michael: this should throw something
-		if (abstractDomain == null || precisionDomain == null ||
+		if (abstractDomain == null || 
 		    transferRelation == null || mergeOperator == null ||
 				stopOperator == null || precisionAdjustment == null ||
-				initialElement == null)
-		  // TODO currently initialPrecision may be null, it is not yet used
+				initialElement == null || initialPrecision == null)
 			return null;
 
 		/*if (mergeOperator.getAbstractDomain () != abstractDomain ||
@@ -119,7 +111,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis
 				transferRelation.getAbstractDomain () != abstractDomain)
 			return null;*/
 
-		return new CompositeCPA (abstractDomain, precisionDomain, transferRelation, mergeOperator, stopOperator,
+		return new CompositeCPA (abstractDomain, transferRelation, mergeOperator, stopOperator,
 		    precisionAdjustment, initialElement, initialPrecision);
 	}
 
@@ -207,10 +199,6 @@ public class CompositeCPA implements ConfigurableProgramAnalysis
 
 	public AbstractDomain getAbstractDomain() {
 		return abstractDomain;
-	}
-	
-	public PrecisionDomain getPrecisionDomain () {
-	  return precisionDomain;
 	}
 	
   public TransferRelation getTransferRelation() {

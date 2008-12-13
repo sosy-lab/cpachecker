@@ -27,7 +27,6 @@ import exceptions.CPAException;
 public class DefUseCPA implements ConfigurableProgramAnalysis{
 
   private AbstractDomain abstractDomain;
-  private PrecisionDomain precisionDomain;
   private TransferRelation transferRelation;
   private MergeOperator mergeOperator;
   private StopOperator stopOperator;
@@ -37,8 +36,6 @@ public class DefUseCPA implements ConfigurableProgramAnalysis{
   public DefUseCPA (String mergeType, String stopType) throws CPAException{
     DefUseDomain defUseDomain = new DefUseDomain ();
     this.abstractDomain = defUseDomain;
-
-    this.precisionDomain = new DefUsePrecisionDomain ();
 
     this.transferRelation = new DefUseTransferRelation (defUseDomain);
 
@@ -62,10 +59,6 @@ public class DefUseCPA implements ConfigurableProgramAnalysis{
   public AbstractDomain getAbstractDomain ()
   {
     return abstractDomain;
-  }
-
-  public PrecisionDomain getPrecisionDomain() {
-    return precisionDomain;
   }
 
   public TransferRelation getTransferRelation ()
@@ -107,7 +100,6 @@ public class DefUseCPA implements ConfigurableProgramAnalysis{
   }
 
   public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
-    // TODO Auto-generated method stub
-    return null;
+    return new DefUsePrecision();
   }
 }

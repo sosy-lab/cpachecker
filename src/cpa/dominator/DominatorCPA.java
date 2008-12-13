@@ -24,10 +24,6 @@ public class DominatorCPA implements ConfigurableProgramAnalysis {
 		return this.parametricDominatorCPA.getAbstractDomain();
 	}
 
-  public PrecisionDomain getPrecisionDomain() {
-    return this.parametricDominatorCPA.getPrecisionDomain();
-  }
-
   public TransferRelation getTransferRelation() {
     return this.parametricDominatorCPA.getTransferRelation();
   }

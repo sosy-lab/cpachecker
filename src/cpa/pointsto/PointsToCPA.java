@@ -26,7 +26,6 @@ import exceptions.CPAException;
 public class PointsToCPA implements ConfigurableProgramAnalysis {
 
   private final AbstractDomain abstractDomain;
-  private final PrecisionDomain precisionDomain;
   private final TransferRelation transferRelation;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
@@ -34,7 +33,6 @@ public class PointsToCPA implements ConfigurableProgramAnalysis {
 
   public PointsToCPA (String mergeType, String stopType) throws CPAException {
     abstractDomain = new PointsToDomain();
-    precisionDomain = new PointsToPrecisionDomain();
     transferRelation = new PointsToTransferRelation();
     mergeOperator = new PointsToMerge(abstractDomain);
     stopOperator = new PointsToStop(abstractDomain);
@@ -46,10 +44,6 @@ public class PointsToCPA implements ConfigurableProgramAnalysis {
    */
   public AbstractDomain getAbstractDomain() {
     return abstractDomain;
-  }
-
-  public PrecisionDomain getPrecisionDomain() {
-    return precisionDomain;
   }
 
   /* (non-Javadoc)
@@ -101,7 +95,6 @@ public class PointsToCPA implements ConfigurableProgramAnalysis {
   }
 
   public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
-    // TODO Auto-generated method stub
-    return null;
+    return new PointsToPrecision();
   }
 }

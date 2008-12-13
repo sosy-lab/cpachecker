@@ -22,7 +22,6 @@ public class DominatorCPA implements ConfigurableProgramAnalysis {
   private ConfigurableProgramAnalysis cpa;
   
   private DominatorDomain abstractDomain;
-  private PrecisionDomain precisionDomain;
   private TransferRelation transferRelation;
   private MergeOperator mergeOperator;
   private StopOperator stopOperator;
@@ -33,8 +32,7 @@ public class DominatorCPA implements ConfigurableProgramAnalysis {
 	  
 		this.abstractDomain = new DominatorDomain(this.cpa);
     this.transferRelation = new DominatorTransferRelation(this.abstractDomain, this.cpa);
-    this.precisionDomain = new DominatorPrecisionDomain();
-		this.mergeOperator = new DominatorMerge(this.abstractDomain);
+    this.mergeOperator = new DominatorMerge(this.abstractDomain);
 		this.stopOperator = new DominatorStop(this.abstractDomain);
 		this.precisionAdjustment = new DominatorPrecisionAdjustment();
 	}
@@ -42,10 +40,6 @@ public class DominatorCPA implements ConfigurableProgramAnalysis {
 	public AbstractDomain getAbstractDomain() {
 		return abstractDomain;
 	}
-	
-  public PrecisionDomain getPrecisionDomain() {
-    return precisionDomain;
-  }
 
   public TransferRelation getTransferRelation() {
     return transferRelation;
@@ -76,7 +70,6 @@ public class DominatorCPA implements ConfigurableProgramAnalysis {
   }
 
   public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
-    // TODO Auto-generated method stub
-    return null;
+    return new DominatorPrecision();
   }
 }

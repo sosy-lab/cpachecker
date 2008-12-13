@@ -14,7 +14,6 @@ import exceptions.CPAException;
 public class LocationCPA implements ConfigurableProgramAnalysis{
 
 	private AbstractDomain abstractDomain;
-	private PrecisionDomain precisionDomain;
 	private TransferRelation transferRelation;
 	private MergeOperator mergeOperator;
 	private StopOperator stopOperator;
@@ -22,7 +21,6 @@ public class LocationCPA implements ConfigurableProgramAnalysis{
 
 	public LocationCPA (String mergeType, String stopType) throws CPAException{
 	  LocationDomain locationDomain = new LocationDomain ();
-	  PrecisionDomain precisionDomain = new LocationPrecisionDomain ();
 	  TransferRelation locationTransferRelation = new LocationTransferRelation (locationDomain);
 	  MergeOperator locationMergeOp = null;
 	  if(mergeType.equals("sep")){
@@ -35,8 +33,7 @@ public class LocationCPA implements ConfigurableProgramAnalysis{
 	  PrecisionAdjustment precisionAdjustment = new LocationPrecisionAdjustment ();
 	  
 		this.abstractDomain = locationDomain;
-		this.precisionDomain = precisionDomain;
-    this.transferRelation = locationTransferRelation;
+		this.transferRelation = locationTransferRelation;
 		this.mergeOperator = locationMergeOp;
 		this.stopOperator = locationStopOp;
 		this.precisionAdjustment = precisionAdjustment;
@@ -46,10 +43,6 @@ public class LocationCPA implements ConfigurableProgramAnalysis{
 	{
 	  return abstractDomain;
 	}
-
-  public PrecisionDomain getPrecisionDomain () {
-    return precisionDomain;
-  }
 
   public TransferRelation getTransferRelation ()
   {
@@ -75,7 +68,6 @@ public class LocationCPA implements ConfigurableProgramAnalysis{
 	}
 
   public Precision getInitialPrecision (CFAFunctionDefinitionNode pNode) {
-    // TODO Auto-generated method stub
-    return null;
+    return new LocationPrecision();
   }
 }

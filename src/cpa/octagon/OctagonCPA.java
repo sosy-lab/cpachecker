@@ -14,7 +14,6 @@ import exceptions.CPAException;
 public class OctagonCPA implements ConfigurableProgramAnalysis{
 
   private AbstractDomain abstractDomain;
-  private PrecisionDomain precisionDomain;
   private TransferRelation transferRelation;
   private MergeOperator mergeOperator;
   private StopOperator stopOperator;
@@ -22,8 +21,6 @@ public class OctagonCPA implements ConfigurableProgramAnalysis{
 
   public OctagonCPA (String mergeType, String stopType) throws CPAException{
     OctDomain octagonDomain = new OctDomain ();
-
-    this.precisionDomain = new OctPrecisionDomain ();
 
     this.transferRelation = new OctTransferRelation (octagonDomain);
 
@@ -62,10 +59,6 @@ public class OctagonCPA implements ConfigurableProgramAnalysis{
     return transferRelation;
   }
 
-  public PrecisionDomain getPrecisionDomain() {
-    return precisionDomain;
-  }
-
   public MergeOperator getMergeOperator ()
   {
     return mergeOperator;
@@ -85,7 +78,6 @@ public class OctagonCPA implements ConfigurableProgramAnalysis{
   }
 
   public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
-    // TODO Auto-generated method stub
-    return null;
+    return new OctPrecision();
   }
 }

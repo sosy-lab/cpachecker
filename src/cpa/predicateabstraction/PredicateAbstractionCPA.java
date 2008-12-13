@@ -15,7 +15,6 @@ import exceptions.CPAException;
 public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis{
 
   private AbstractDomain abstractDomain;
-  private PrecisionDomain precisionDomain;
   private TransferRelation transferRelation;
   private MergeOperator mergeOperator;
   private StopOperator stopOperator;
@@ -23,8 +22,6 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis{
 
   public PredicateAbstractionCPA (String mergeType, String stopType) throws CPAException{
     PredicateAbstractionDomain predicateAbstractionDomain = new PredicateAbstractionDomain ();
-
-    this.precisionDomain = new PredicateAbstractionPrecisionDomain ();
 
     this.transferRelation = new PredicateAbstractionTransferRelation (predicateAbstractionDomain);
 
@@ -57,9 +54,6 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis{
     return abstractDomain;
   }
 
-  public PrecisionDomain getPrecisionDomain() {
-    return precisionDomain;
-  }
   public TransferRelation getTransferRelation ()
   {
     return transferRelation;
@@ -86,7 +80,6 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis{
   }
 
   public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
-    // TODO Auto-generated method stub
-    return null;
+    return new PredicateAbstractionPrecision();
   }
 }

@@ -49,7 +49,6 @@ import cpa.symbpredabs.mathsat.YicesTheoremProver;
 public abstract class ItpCPA implements ConfigurableProgramAnalysis {
 
     protected ItpAbstractDomain domain;
-    protected PrecisionDomain precisionDomain;
     protected ItpTransferRelation trans;
     protected ItpMergeOperator merge;
     protected ItpStopOperator stop;
@@ -83,7 +82,6 @@ public abstract class ItpCPA implements ConfigurableProgramAnalysis {
             new BDDMathsatExplicitAbstractManager(thmProver, itpProver);
 
         domain = new ItpAbstractDomain(this);
-        precisionDomain = new ItpPrecisionDomain();
         trans = new ItpTransferRelation(domain);
         merge = new ItpMergeOperator(domain);
         stop = new ItpStopOperator(domain, thmProver);
@@ -120,10 +118,6 @@ public abstract class ItpCPA implements ConfigurableProgramAnalysis {
         return domain;
     }
     
-    public PrecisionDomain getPrecisionDomain() {
-      return precisionDomain;
-    }
-    
     public TransferRelation getTransferRelation() {
         return trans;
     }
@@ -155,8 +149,7 @@ public abstract class ItpCPA implements ConfigurableProgramAnalysis {
     }
 
     public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
-      // TODO Auto-generated method stub
-      return null;
+      return new ItpPrecision();
     }
 
     public ItpCounterexampleRefiner getRefiner() {

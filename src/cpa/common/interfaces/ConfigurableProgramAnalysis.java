@@ -5,7 +5,6 @@ import cfa.objectmodel.CFAFunctionDefinitionNode;
 public interface ConfigurableProgramAnalysis
 {
   public AbstractDomain getAbstractDomain();
-  public PrecisionDomain getPrecisionDomain ();
   public TransferRelation getTransferRelation ();
   public MergeOperator getMergeOperator ();
   public StopOperator getStopOperator ();

@@ -14,7 +14,6 @@ import exceptions.CPAException;
 public class ExplicitAnalysisCPA implements ConfigurableProgramAnalysis {
 
   private AbstractDomain abstractDomain;
-  private PrecisionDomain precisionDomain;
   private TransferRelation transferRelation;
   private MergeOperator mergeOperator;
   private StopOperator stopOperator;
@@ -22,8 +21,6 @@ public class ExplicitAnalysisCPA implements ConfigurableProgramAnalysis {
 
   public ExplicitAnalysisCPA (String mergeType, String stopType) throws CPAException {
     ExplicitAnalysisDomain explicitAnalysisDomain = new ExplicitAnalysisDomain ();
-
-    this.precisionDomain = new ExplicitAnalysisPrecisionDomain ();
 
     TransferRelation explicitAnalysisTransferRelation = new ExplicitAnalysisTransferRelation (explicitAnalysisDomain);
 
@@ -57,11 +54,6 @@ public class ExplicitAnalysisCPA implements ConfigurableProgramAnalysis {
     return abstractDomain;
   }
 
-  public PrecisionDomain getPrecisionDomain() {
-    return precisionDomain;
-  }
-  
-
   public TransferRelation getTransferRelation ()
   {
     return transferRelation;
@@ -87,8 +79,7 @@ public class ExplicitAnalysisCPA implements ConfigurableProgramAnalysis {
   }
 
   public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
-    // TODO Auto-generated method stub
-    return null;
+    return new ExplicitAnalysisPrecision();
   }
 
 }

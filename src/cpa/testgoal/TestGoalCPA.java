@@ -29,7 +29,7 @@ import exceptions.CPAException;
  */
 public class TestGoalCPA implements ConfigurableProgramAnalysis {
 
-  public class TestGoalPrecisionDomain implements PrecisionDomain {
+  public class TestGoalPrecision implements Precision {
 
   }
 
@@ -110,7 +110,6 @@ public class TestGoalCPA implements ConfigurableProgramAnalysis {
   }
 
   private AutomatonCPADomain<CFAEdge> mDomain;
-  private PrecisionDomain mPrecisionDomain;
   private TestGoalTransferRelation mTransferRelation;
   private TestGoalMergeOperator mMergeOperator;
   private TestGoalStopOperator mStopOperator;
@@ -124,7 +123,6 @@ public class TestGoalCPA implements ConfigurableProgramAnalysis {
     }
 
     mDomain = new AutomatonCPADomain<CFAEdge>(pTestGoalAutomaton);
-    mPrecisionDomain = new TestGoalPrecisionDomain();
     mTransferRelation = new TestGoalTransferRelation();
     mMergeOperator = new TestGoalMergeOperator();
     mStopOperator = new TestGoalStopOperator();
@@ -137,10 +135,6 @@ public class TestGoalCPA implements ConfigurableProgramAnalysis {
   @Override
   public AutomatonCPADomain<CFAEdge> getAbstractDomain() {
     return mDomain;
-  }
-
-  public PrecisionDomain getPrecisionDomain() {
-    return mPrecisionDomain;
   }
 
   /* (non-Javadoc)
@@ -180,7 +174,6 @@ public class TestGoalCPA implements ConfigurableProgramAnalysis {
   }
 
   public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
-    // TODO Auto-generated method stub
-    return null;
+    return new TestGoalPrecision();
   }
 }

@@ -47,7 +47,6 @@ import cpa.symbpredabs.mathsat.YicesTheoremProver;
 public class SymbPredAbsCPA implements ConfigurableProgramAnalysis {
 
   private SymbPredAbsAbstractDomain domain;
-  private PrecisionDomain precisionDomain;
   private SymbPredAbsTransferRelation trans;
   private SymbPredAbsMergeOperator merge;
   private SymbPredAbsStopOperator stop;
@@ -82,7 +81,6 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis {
     covers = new HashMap<SymbPredAbsAbstractElement,
     Set<SymbPredAbsAbstractElement>>();
     domain = new SymbPredAbsAbstractDomain(this);
-    precisionDomain = new SymbPredAbsPrecisionDomain();
     trans = new SymbPredAbsTransferRelation(domain, mgr, amgr);
     merge = new SymbPredAbsMergeOperator(domain);
     stop = new SymbPredAbsStopOperator(domain);
@@ -130,11 +128,6 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis {
   @Override
   public AbstractDomain getAbstractDomain() {
     return domain;
-  }
-
-  @Override
-  public PrecisionDomain getPrecisionDomain() {
-    return precisionDomain;
   }
 
   public TransferRelation getTransferRelation() {
@@ -237,7 +230,6 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis {
   }
 
   public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
-    // TODO Auto-generated method stub
-    return null;
+    return new SymbPredAbsPrecision();
   }
 }
