@@ -6,6 +6,7 @@ import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.MergeOperator;
+import cpa.common.interfaces.Precision;
 import exceptions.CPAException;
 
 public class PredicateAbstractionMergeJoin implements MergeOperator{
@@ -22,7 +23,7 @@ public class PredicateAbstractionMergeJoin implements MergeOperator{
 		return predicateAbstractionDomain;
 	}
 
-	public AbstractElement merge (AbstractElement element1, AbstractElement element2)
+	public AbstractElement merge (AbstractElement element1, AbstractElement element2, Precision prec)
 	{
 		PredicateAbstractionElement predAbstElement1 = (PredicateAbstractionElement) element1;
 		PredicateAbstractionElement predAbstElement2 = (PredicateAbstractionElement) element2;
@@ -59,7 +60,8 @@ public class PredicateAbstractionMergeJoin implements MergeOperator{
 	}
 
   public AbstractElementWithLocation merge(AbstractElementWithLocation pElement1,
-                                           AbstractElementWithLocation pElement2) throws CPAException {
+                                           AbstractElementWithLocation pElement2,
+                                           Precision prec) throws CPAException {
     throw new CPAException ("Cannot return element with location information");
   }
 }

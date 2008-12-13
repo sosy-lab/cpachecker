@@ -39,6 +39,7 @@ import exceptions.CPATransferException;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
+import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
 import exceptions.CPAException;
 import exceptions.PredicateAbstractionTransferException;
@@ -57,7 +58,7 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 		return predAbsDomain;
 	}
 
-	public AbstractElement getAbstractSuccessor (AbstractElement element, CFAEdge cfaEdge) throws CPATransferException
+	public AbstractElement getAbstractSuccessor (AbstractElement element, CFAEdge cfaEdge, Precision prec) throws CPATransferException
 	{
 		System.out.println(cfaEdge.getRawStatement());
 		PredicateAbstractionElement predAbsElement = (PredicateAbstractionElement) element;
@@ -223,7 +224,7 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 		return predAbsElement;
 	}
 
-	public List<AbstractElementWithLocation> getAllAbstractSuccessors (AbstractElementWithLocation element) throws CPAException, CPATransferException
+	public List<AbstractElementWithLocation> getAllAbstractSuccessors (AbstractElementWithLocation element, Precision prec) throws CPAException, CPATransferException
 	{
 		throw new CPAException ("Cannot get all abstract successors from non-location domain");
 	}
