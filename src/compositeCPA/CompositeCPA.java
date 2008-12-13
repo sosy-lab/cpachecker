@@ -111,7 +111,8 @@ public class CompositeCPA implements ConfigurableProgramAnalysis
 		if (abstractDomain == null || precisionDomain == null ||
 		    transferRelation == null || mergeOperator == null ||
 				stopOperator == null || precisionAdjustment == null ||
-				initialElement == null || initialPrecision == null)
+				initialElement == null)
+		  // TODO currently initialPrecision may be null, it is not yet used
 			return null;
 
 		/*if (mergeOperator.getAbstractDomain () != abstractDomain ||

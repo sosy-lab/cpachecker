@@ -426,7 +426,10 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     System.out.println(toUnreach);
     System.out.println(" --- \n "+ toWaitlist);
     System.out.println("================================");
-    throw new RefinementNeededException(toUnreach, toWaitlist);
+    // TODO This cannot work as it would result in replacing values of the waitlist (composite elements)
+    // with objects created in here (of type SymbPredAbsAbstractElement)
+    assert (false);
+    // throw new RefinementNeededException(toUnreach, toWaitlist);
   }
 
   @Override

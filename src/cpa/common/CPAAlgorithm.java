@@ -15,7 +15,6 @@ import logging.LazyLogger;
 
 import cmdline.CPAMain;
 
-import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
@@ -24,7 +23,6 @@ import cpa.common.interfaces.PrecisionAdjustment;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
 import exceptions.CPATransferException;
-import cpa.common.CompositeElement;
 import exceptions.ErrorReachedException;
 import exceptions.RefinementNeededException;
 import exceptions.CPAException;
@@ -234,12 +232,13 @@ public class CPAAlgorithm
 		for (AbstractElementWithLocation e : toWaitlist) {
 			LazyLogger.log(CustomLogLevel.SpecificCPALevel,
 					"Adding element: ", e, " to waitlist");
+			// TODO null is not a proper precision ...
 			if (useBfs) {
 				// end to the end
-				waitlist.add(e);
+				waitlist.add(new Pair<AbstractElementWithLocation, Precision>(e,null));
 			} else {
 				// at to the first index
-				waitlist.add(0, e);
+				waitlist.add(0, new Pair<AbstractElementWithLocation, Precision>(e,null));
 			}
 		}
 		LazyLogger.log(CustomLogLevel.SpecificCPALevel,
