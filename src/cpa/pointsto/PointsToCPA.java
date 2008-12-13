@@ -13,6 +13,9 @@ import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
+import cpa.common.interfaces.Precision;
+import cpa.common.interfaces.PrecisionAdjustment;
+import cpa.common.interfaces.PrecisionDomain;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
 import exceptions.CPAException;
@@ -23,66 +26,83 @@ import exceptions.CPAException;
  */
 public class PointsToCPA implements ConfigurableProgramAnalysis {
 
-	private final AbstractDomain abstractDomain;
-	private final MergeOperator mergeOperator;
-	private final StopOperator stopOperator;
-	private final TransferRelation transferRelation;
+  private final AbstractDomain abstractDomain;
+  private final PrecisionDomain precisionDomain;
+  private final TransferRelation transferRelation;
+  private final MergeOperator mergeOperator;
+  private final StopOperator stopOperator;
+  private final PrecisionAdjustment precisionAdjustment;
 
-	public PointsToCPA (String mergeType, String stopType) throws CPAException {
-		abstractDomain = new PointsToDomain();
-		mergeOperator = new PointsToMerge(abstractDomain);
-		stopOperator = new PointsToStop(abstractDomain);
-		transferRelation = new PointsToTransferRelation();
-	}
+  public PointsToCPA (String mergeType, String stopType) throws CPAException {
+    abstractDomain = new PointsToDomain();
+    precisionDomain = new PointsToPrecisionDomain();
+    transferRelation = new PointsToTransferRelation();
+    mergeOperator = new PointsToMerge(abstractDomain);
+    stopOperator = new PointsToStop(abstractDomain);
+    precisionAdjustment = new PointsToPrecisionAdjustment();
+  }
 
-	/* (non-Javadoc)
-	 * @see cpa.common.interfaces.ConfigurableProblemAnalysis#getAbstractDomain()
-	 */
-	public AbstractDomain getAbstractDomain() {
-		return abstractDomain;
-	}
+  /* (non-Javadoc)
+   * @see cpa.common.interfaces.ConfigurableProblemAnalysis#getAbstractDomain()
+   */
+  public AbstractDomain getAbstractDomain() {
+    return abstractDomain;
+  }
 
-	/* (non-Javadoc)
-	 * @see cpa.common.interfaces.ConfigurableProblemAnalysis#getInitialElement(cfa.objectmodel.CFAFunctionDefinitionNode)
-	 */
-	public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
-		PointsToElement initial = new PointsToElement();
+  public PrecisionDomain getPrecisionDomain() {
+    return precisionDomain;
+  }
 
-		if (node instanceof FunctionDefinitionNode) {
-			List<IASTParameterDeclaration> parameters = ((FunctionDefinitionNode)node).getFunctionParameters ();
-			for (IASTParameterDeclaration parameter : parameters) {
-				if (0 != parameter.getDeclarator().getPointerOperators().length) {
-					if (parameter.getDeclarator().getNestedDeclarator() != null) {
-						initial.addVariable(parameter.getDeclarator().getNestedDeclarator());
-					} else {
-						initial.addVariable(parameter.getDeclarator());
-					}
-				}
-			}
-		}
+  /* (non-Javadoc)
+   * @see cpa.common.interfaces.ConfigurableProblemAnalysis#getTransferRelation()
+   */
+  public TransferRelation getTransferRelation() {
+    return transferRelation;
+  }
 
-		return initial;
-	}
+  /* (non-Javadoc)
+   * @see cpa.common.interfaces.ConfigurableProblemAnalysis#getMergeOperator()
+   */
+  public MergeOperator getMergeOperator() {
+    return mergeOperator;
+  }
 
-	/* (non-Javadoc)
-	 * @see cpa.common.interfaces.ConfigurableProblemAnalysis#getMergeOperator()
-	 */
-	public MergeOperator getMergeOperator() {
-		return mergeOperator;
-	}
+  /* (non-Javadoc)
+   * @see cpa.common.interfaces.ConfigurableProblemAnalysis#getStopOperator()
+   */
+  public StopOperator getStopOperator() {
+    return stopOperator;
+  }
 
-	/* (non-Javadoc)
-	 * @see cpa.common.interfaces.ConfigurableProblemAnalysis#getStopOperator()
-	 */
-	public StopOperator getStopOperator() {
-		return stopOperator;
-	}
 
-	/* (non-Javadoc)
-	 * @see cpa.common.interfaces.ConfigurableProblemAnalysis#getTransferRelation()
-	 */
-	public TransferRelation getTransferRelation() {
-		return transferRelation;
-	}
+  public PrecisionAdjustment getPrecisionAdjustment() {
+    return precisionAdjustment;
+  }
 
+  /* (non-Javadoc)
+   * @see cpa.common.interfaces.ConfigurableProblemAnalysis#getInitialElement(cfa.objectmodel.CFAFunctionDefinitionNode)
+   */
+  public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
+    PointsToElement initial = new PointsToElement();
+
+    if (node instanceof FunctionDefinitionNode) {
+      List<IASTParameterDeclaration> parameters = ((FunctionDefinitionNode)node).getFunctionParameters ();
+      for (IASTParameterDeclaration parameter : parameters) {
+        if (0 != parameter.getDeclarator().getPointerOperators().length) {
+          if (parameter.getDeclarator().getNestedDeclarator() != null) {
+            initial.addVariable(parameter.getDeclarator().getNestedDeclarator());
+          } else {
+            initial.addVariable(parameter.getDeclarator());
+          }
+        }
+      }
+    }
+
+    return initial;
+  }
+
+  public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
+    // TODO Auto-generated method stub
+    return null;
+  }
 }

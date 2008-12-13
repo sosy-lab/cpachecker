@@ -27,6 +27,7 @@ import cfa.objectmodel.c.StatementEdge;
 import exceptions.CPATransferException;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
+import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
 import cpa.pointsto.PointsToElement.InMemoryObject;
 import cpa.pointsto.PointsToRelation.Address;
@@ -389,7 +390,7 @@ public class PointsToTransferRelation implements TransferRelation {
    * @see cpaplugin.cpa.common.interfaces.TransferRelation#getAbstractSuccessor(cpaplugin.cpa.common.interfaces.AbstractElement, cpaplugin.cfa.objectmodel.CFAEdge)
    */
   public AbstractElement getAbstractSuccessor(AbstractElement element,
-                                              CFAEdge cfaEdge) throws CPATransferException {
+                                              CFAEdge cfaEdge, Precision prec) throws CPATransferException {
     PointsToElement pointsToElement = (PointsToElement) element;
     System.err.println("Input: " + pointsToElement.toString());
 
@@ -456,7 +457,7 @@ public class PointsToTransferRelation implements TransferRelation {
    * @see cpaplugin.cpa.common.interfaces.TransferRelation#getAllAbstractSuccessors(cpaplugin.cpa.common.interfaces.AbstractElement)
    */
   public List<AbstractElementWithLocation> getAllAbstractSuccessors(
-      AbstractElementWithLocation element) throws CPAException, CPATransferException {
+      AbstractElementWithLocation element, Precision prec) throws CPAException, CPATransferException {
     throw new CPAException ("Cannot get all abstract successors from non-location domain");
   }
 

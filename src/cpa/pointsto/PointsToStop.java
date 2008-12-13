@@ -7,6 +7,7 @@ import java.util.Collection;
 
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.StopOperator;
 import exceptions.CPAException;
 
@@ -26,7 +27,7 @@ public class PointsToStop implements StopOperator {
 	 * @see cpa.common.interfaces.StopOperator#stop(cpa.common.interfaces.AbstractElement, java.util.Collection)
 	 */
 	public <AE extends AbstractElement> boolean stop(AE element,
-			Collection<AE> reached) throws CPAException {
+			Collection<AE> reached, Precision prec) throws CPAException {
 		for (AbstractElement r : reached) {
 			if (stop(element, r)) return true;
 		}
