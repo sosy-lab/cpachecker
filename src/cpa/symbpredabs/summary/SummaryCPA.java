@@ -25,6 +25,9 @@ import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
+import cpa.common.interfaces.Precision;
+import cpa.common.interfaces.PrecisionAdjustment;
+import cpa.common.interfaces.PrecisionDomain;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
 import cpaplugin.CPAStatistics;
@@ -56,9 +59,11 @@ import cpa.symbpredabs.mathsat.summary.MathsatSummaryFormulaManager;
 public class SummaryCPA implements ConfigurableProgramAnalysis {
 
     private SummaryAbstractDomain domain;
+    private PrecisionDomain precisionDomain;
+    private SummaryTransferRelation trans;
     // private SummaryMergeOperator merge;
     private SummaryStopOperator stop;
-    private SummaryTransferRelation trans;
+    private PrecisionAdjustment precisionAdjustment;
     private MathsatSummaryFormulaManager mgr;
     private BDDMathsatSummaryAbstractManager amgr;
     private PredicateMap pmap;
@@ -70,9 +75,11 @@ public class SummaryCPA implements ConfigurableProgramAnalysis {
 
     private SummaryCPA() {
         domain = new SummaryAbstractDomain(this);
+        precisionDomain = new SummaryPrecisionDomain();
+        trans = new SummaryTransferRelation(domain);
         // merge = new SummaryMergeOperator(domain);
         stop = new SummaryStopOperator(domain);
-        trans = new SummaryTransferRelation(domain);
+        precisionAdjustment = new SummaryPrecisionAdjustment();
         mgr = new MathsatSummaryFormulaManager();
         TheoremProver thmProver = null;
         String whichProver = CPAMain.cpaConfig.getProperty(
@@ -141,20 +148,14 @@ public class SummaryCPA implements ConfigurableProgramAnalysis {
     }
 
     @Override
-    public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
-        LazyLogger.log(CustomLogLevel.SpecificCPALevel,
-                       "Getting initial element from node: ", node);
-
-        SummaryCFANode loc = (SummaryCFANode)node;
-        SummaryAbstractElement e = new SummaryAbstractElement(loc);
-        Map<CFANode, Pair<SymbolicFormula, SSAMap>> p = getPathFormulas(loc);
-        e.setPathFormulas(p);
-        e.setAbstraction(amgr.makeTrue());
-        e.setContext(new Stack<Pair<AbstractFormula, SummaryCFANode>>(), true);
-        return e;
+    public PrecisionDomain getPrecisionDomain() {
+      return precisionDomain;
     }
 
-    @Override
+    public TransferRelation getTransferRelation() {
+        return trans;
+    } 
+
     public MergeOperator getMergeOperator() {
         //return merge;
         return null;
@@ -166,8 +167,8 @@ public class SummaryCPA implements ConfigurableProgramAnalysis {
     }
 
     @Override
-    public TransferRelation getTransferRelation() {
-        return trans;
+    public PrecisionAdjustment getPrecisionAdjustment() {
+      return precisionAdjustment;
     }
 
     public SummaryAbstractFormulaManager getAbstractFormulaManager() {
@@ -229,6 +230,22 @@ public class SummaryCPA implements ConfigurableProgramAnalysis {
             covers.remove(e);
         }
     }
+    
+    public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
+        LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+                       "Getting initial element from node: ", node);
 
+        SummaryCFANode loc = (SummaryCFANode)node;
+        SummaryAbstractElement e = new SummaryAbstractElement(loc);
+        Map<CFANode, Pair<SymbolicFormula, SSAMap>> p = getPathFormulas(loc);
+        e.setPathFormulas(p);
+        e.setAbstraction(amgr.makeTrue());
+        e.setContext(new Stack<Pair<AbstractFormula, SummaryCFANode>>(), true);
+        return e;
+    }
 
+    public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
+      // TODO Auto-generated method stub
+      return null;
+    }
 }
