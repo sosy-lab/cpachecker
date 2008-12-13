@@ -10,6 +10,7 @@ import cfa.objectmodel.c.CallToReturnEdge;
 import exceptions.CPATransferException;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.TransferRelation;
 
 /**
@@ -18,7 +19,7 @@ import cpa.common.interfaces.TransferRelation;
  */
 public class InverseLocationTransferRelation implements TransferRelation
 {
-    private LocationDomain locationDomain;
+    private final LocationDomain locationDomain;
 
     public InverseLocationTransferRelation (LocationDomain locationDomain)
     {
@@ -53,12 +54,11 @@ public class InverseLocationTransferRelation implements TransferRelation
         return locationDomain.getBottomElement();
     }
 
-    public List<AbstractElement> getAllAbstractSuccessors (AbstractElement element) throws CPATransferException
+    public List<AbstractElementWithLocation> getAllAbstractSuccessors (AbstractElementWithLocation element) throws CPATransferException
     {
-    	LocationElement inputElement = (LocationElement) element;
-        CFANode node = inputElement.getLocationNode();
+        CFANode node = element.getLocationNode();
 
-        List<AbstractElement> allSuccessors = new ArrayList<AbstractElement> ();
+        List<AbstractElementWithLocation> allSuccessors = new ArrayList<AbstractElementWithLocation> ();
         int numEnteringEdges = node.getNumEnteringEdges ();
 
         for (int edgeIdx = 0; edgeIdx < numEnteringEdges; edgeIdx++)

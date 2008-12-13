@@ -18,15 +18,13 @@ import cfa.objectmodel.c.StatementEdge;
 import exceptions.CPATransferException;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.TransferRelation;
-import cpa.defuse.DefUseDefinition;
-import cpa.defuse.DefUseDomain;
-import cpa.defuse.DefUseElement;
 import exceptions.CPAException;
 
 public class DefUseTransferRelation implements TransferRelation
 {
-    private DefUseDomain defUseDomain;
+    private final DefUseDomain defUseDomain;
 
     public DefUseTransferRelation (DefUseDomain defUseDomain)
     {
@@ -155,7 +153,7 @@ public class DefUseTransferRelation implements TransferRelation
         return defUseElement;
     }
 
-    public List<AbstractElement> getAllAbstractSuccessors (AbstractElement element) throws CPAException, CPATransferException
+    public List<AbstractElementWithLocation> getAllAbstractSuccessors (AbstractElementWithLocation element) throws CPAException, CPATransferException
     {
         throw new CPAException ("Cannot get all abstract successors from non-location domain");
     }

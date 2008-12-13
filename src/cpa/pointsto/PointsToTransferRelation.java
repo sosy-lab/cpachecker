@@ -26,6 +26,7 @@ import cfa.objectmodel.c.MultiStatementEdge;
 import cfa.objectmodel.c.StatementEdge;
 import exceptions.CPATransferException;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.TransferRelation;
 import cpa.pointsto.PointsToElement.InMemoryObject;
 import cpa.pointsto.PointsToRelation.Address;
@@ -454,10 +455,9 @@ public class PointsToTransferRelation implements TransferRelation {
   /* (non-Javadoc)
    * @see cpaplugin.cpa.common.interfaces.TransferRelation#getAllAbstractSuccessors(cpaplugin.cpa.common.interfaces.AbstractElement)
    */
-  public List<AbstractElement> getAllAbstractSuccessors(
-      AbstractElement element) throws CPAException, CPATransferException {
-    assert (false);
-    return null;
+  public List<AbstractElementWithLocation> getAllAbstractSuccessors(
+      AbstractElementWithLocation element) throws CPAException, CPATransferException {
+    throw new CPAException ("Cannot get all abstract successors from non-location domain");
   }
 
 }

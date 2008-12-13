@@ -334,7 +334,7 @@ public class ExplicitTransferRelation implements TransferRelation {
 //        }
         assert(root != null);
         //root = path.getFirst();
-        Collection<AbstractElement> toWaitlist = new HashSet<AbstractElement>();
+        Collection<AbstractElementWithLocation> toWaitlist = new HashSet<AbstractElementWithLocation>();
         toWaitlist.add(root);
         Collection<AbstractElementWithLocation> toUnreachTmp =
             abstractTree.getSubtree(root, true, false);
@@ -344,7 +344,7 @@ public class ExplicitTransferRelation implements TransferRelation {
         if (cur != null) {
             // we don't want to unreach elements that were covered before
             // reaching the error!
-            for (Iterator<AbstractElement> it = toUnreach.iterator();
+            for (Iterator<AbstractElementWithLocation> it = toUnreach.iterator();
                  it.hasNext(); ) {
                 ExplicitAbstractElement e = (ExplicitAbstractElement)it.next();
                 if (e.isCovered() && e.getId() < cur.getId()) {
@@ -404,7 +404,7 @@ public class ExplicitTransferRelation implements TransferRelation {
         for (int i = 0; i < src.getNumLeavingEdges(); ++i) {
             CFAEdge edge = src.getLeavingEdge(i);
             if (edge.equals(cfaEdge)) {
-                AbstractElement ret = buildSuccessor(e, edge);
+              AbstractElementWithLocation ret = (ExplicitAbstractElement)buildSuccessor(e, edge);
 
                 LazyLogger.log(CustomLogLevel.SpecificCPALevel,
                                "Successor is: ", ret);
@@ -423,13 +423,13 @@ public class ExplicitTransferRelation implements TransferRelation {
     }
 
     @Override
-    public List<AbstractElement> getAllAbstractSuccessors(
-            AbstractElement element) throws CPAException, CPATransferException {
+    public List<AbstractElementWithLocation> getAllAbstractSuccessors(
+        AbstractElementWithLocation element) throws CPAException, CPATransferException {
         LazyLogger.log(CustomLogLevel.SpecificCPALevel,
                        "Getting ALL Abstract Successors of element: ",
                        element);
 
-        List<AbstractElement> allSucc = new Vector<AbstractElement>();
+        List<AbstractElementWithLocation> allSucc = new Vector<AbstractElementWithLocation>();
         ExplicitAbstractElement e = (ExplicitAbstractElement)element;
         CFANode src = e.getLocation();
 
@@ -437,7 +437,7 @@ public class ExplicitTransferRelation implements TransferRelation {
             AbstractElement newe =
                 getAbstractSuccessor(e, src.getLeavingEdge(i));
             if (newe != domain.getBottomElement()) {
-                allSucc.add(newe);
+                allSucc.add((ExplicitAbstractElement)newe);
             }
         }
 

@@ -21,8 +21,8 @@ import exceptions.CPAException;
 
 public class CompositeTransferRelation implements TransferRelation{
 
-	private CompositeDomain compositeDomain;
-	private List<TransferRelation> transferRelations;
+	private final CompositeDomain compositeDomain;
+	private final List<TransferRelation> transferRelations;
 
 	// private LocationTransferRelation locationTransferRelation;
 
@@ -106,31 +106,20 @@ public class CompositeTransferRelation implements TransferRelation{
 		return successorState;
 	}
 
-	public List<AbstractElement> getAllAbstractSuccessors (AbstractElement element) throws CPAException, CPATransferException
+	public List<AbstractElementWithLocation> getAllAbstractSuccessors (AbstractElementWithLocation element) throws CPAException, CPATransferException
 	{
 
 		//TODO CPACheckerStatistics.noOfTransferRelations++;
 
 		CompositeElement compositeElement = (CompositeElement) element;
-		List<AbstractElement> abstractElements = compositeElement.getElements ();
+		CFANode node = compositeElement.getLocationNode();
 
-		CFANode node = null;
-
-		AbstractElement elem = abstractElements.get(0);
-		if (elem instanceof AbstractElementWithLocation) {
-			AbstractElementWithLocation wl =
-				(AbstractElementWithLocation)elem;
-			node = wl.getLocationNode();
-		} else {
-			throw new CPAException("No Location information available, impossible to continue");
-		}
-
-		List<AbstractElement> results = new ArrayList<AbstractElement> ();
+		List<AbstractElementWithLocation> results = new ArrayList<AbstractElementWithLocation> ();
 
 		for (int edgeIdx = 0; edgeIdx < node.getNumLeavingEdges (); edgeIdx++)
 		{
 			CFAEdge edge = node.getLeavingEdge (edgeIdx);
-			results.add (getAbstractSuccessor (element, edge));
+			results.add ((CompositeElement) getAbstractSuccessor (element, edge));
 		}
 
 		return results;

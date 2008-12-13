@@ -38,13 +38,14 @@ import predicateabstraction.ThreeValuedBoolean;
 import exceptions.CPATransferException;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.TransferRelation;
 import exceptions.CPAException;
 import exceptions.PredicateAbstractionTransferException;
 
 public class PredicateAbstractionTransferRelation implements TransferRelation
 {
-	private PredicateAbstractionDomain predAbsDomain;
+	private final PredicateAbstractionDomain predAbsDomain;
 
 	public PredicateAbstractionTransferRelation (PredicateAbstractionDomain predAbsDomain)
 	{
@@ -222,7 +223,7 @@ public class PredicateAbstractionTransferRelation implements TransferRelation
 		return predAbsElement;
 	}
 
-	public List<AbstractElement> getAllAbstractSuccessors (AbstractElement element) throws CPAException, CPATransferException
+	public List<AbstractElementWithLocation> getAllAbstractSuccessors (AbstractElementWithLocation element) throws CPAException, CPATransferException
 	{
 		throw new CPAException ("Cannot get all abstract successors from non-location domain");
 	}

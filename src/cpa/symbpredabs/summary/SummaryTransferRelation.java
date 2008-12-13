@@ -109,7 +109,7 @@ public class SummaryTransferRelation implements TransferRelation {
     }
 
     // abstract post operation
-    private AbstractElement buildSuccessor(SummaryAbstractElement e,
+    private SummaryAbstractElement buildSuccessor(SummaryAbstractElement e,
             CFAEdge edge) throws CPATransferException {
         SummaryCPA cpa = domain.getCPA();
         SummaryCFANode succLoc = (SummaryCFANode)edge.getSuccessor();
@@ -293,7 +293,7 @@ public class SummaryTransferRelation implements TransferRelation {
 
         assert(root != null);
         //root = path.getFirst();
-        Collection<AbstractElement> toWaitlist = new HashSet<AbstractElement>();
+        Collection<AbstractElementWithLocation> toWaitlist = new HashSet<AbstractElementWithLocation>();
         toWaitlist.add(root);
         Collection<AbstractElementWithLocation> toUnreachTmp =
             abstractTree.getSubtree(root, true, false);
@@ -304,8 +304,8 @@ public class SummaryTransferRelation implements TransferRelation {
             toUnreach.add(e);
             Set<SummaryAbstractElement> cov = cpa.getCoveredBy(
                     (SummaryAbstractElement)e);
-            for (AbstractElement c : cov) {
-                if (!((SummaryAbstractElement)c).isDescendant(
+            for (SummaryAbstractElement c : cov) {
+                if (!c.isDescendant(
                         (SummaryAbstractElement)root)) {
                     toWaitlist.add(c);
                 }
@@ -343,7 +343,7 @@ public class SummaryTransferRelation implements TransferRelation {
         for (int i = 0; i < src.getNumLeavingEdges(); ++i) {
             CFAEdge edge = src.getLeavingEdge(i);
             if (edge.equals(cfaEdge)) {
-                AbstractElement ret = buildSuccessor(e, edge);
+              AbstractElementWithLocation ret = buildSuccessor(e, edge);
 
                 LazyLogger.log(CustomLogLevel.SpecificCPALevel,
                                "Successor is: ", ret);
@@ -362,13 +362,13 @@ public class SummaryTransferRelation implements TransferRelation {
     }
 
     @Override
-    public List<AbstractElement> getAllAbstractSuccessors(
-            AbstractElement element) throws CPAException, CPATransferException {
+    public List<AbstractElementWithLocation> getAllAbstractSuccessors(
+        AbstractElementWithLocation element) throws CPAException, CPATransferException {
         LazyLogger.log(CustomLogLevel.SpecificCPALevel,
                        "Getting ALL Abstract Successors of element: ",
                        element);
 
-        List<AbstractElement> allSucc = new Vector<AbstractElement>();
+        List<AbstractElementWithLocation> allSucc = new Vector<AbstractElementWithLocation>();
         SummaryAbstractElement e = (SummaryAbstractElement)element;
         CFANode src = (CFANode)e.getLocation();
 
@@ -376,7 +376,7 @@ public class SummaryTransferRelation implements TransferRelation {
             AbstractElement newe =
                 getAbstractSuccessor(e, src.getLeavingEdge(i));
             if (newe != domain.getBottomElement()) {
-                allSucc.add(newe);
+                allSucc.add((SummaryAbstractElement)newe);
             }
         }
 

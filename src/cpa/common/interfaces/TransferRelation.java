@@ -34,6 +34,6 @@ public interface TransferRelation
      * @throws CPAException if the element does not contain any traversal information such as nodes
      * and edges on CFA.
      */
-    public List<AbstractElement> getAllAbstractSuccessors (AbstractElement element)
+    public List<AbstractElementWithLocation> getAllAbstractSuccessors (AbstractElementWithLocation element)
         throws CPAException, CPATransferException;
 }
