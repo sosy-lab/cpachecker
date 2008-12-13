@@ -6,6 +6,7 @@ import common.Pair;
 
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.MergeOperator;
 import cpa.symbpredabs.SSAMap;
 import cpa.symbpredabs.SymbolicFormula;
@@ -19,7 +20,7 @@ import cpa.symbpredabs.mathsat.MathsatSymbolicFormula;
  */
 public class SymbPredAbsMergeOperator implements MergeOperator {
 
-  private SymbPredAbsAbstractDomain domain;
+  private final SymbPredAbsAbstractDomain domain;
 
   private SymbolicFormulaManager mgr;
 
@@ -117,5 +118,10 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
     }
     return merged;
     //}
+  }
+
+  public AbstractElementWithLocation merge(AbstractElementWithLocation pElement1,
+                                           AbstractElementWithLocation pElement2) throws CPAException {
+    throw new CPAException ("Cannot return element with location information");
   }
 }

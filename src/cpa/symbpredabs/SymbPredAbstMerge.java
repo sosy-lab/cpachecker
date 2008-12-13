@@ -1,24 +1,26 @@
 package cpa.symbpredabs;
 
 import java.util.Collection;
-import common.Pair;
 
 import logging.CustomLogLevel;
 import logging.LazyLogger;
-
 import cfa.objectmodel.CFANode;
+
+import common.Pair;
 
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.BottomElement;
 import cpa.common.interfaces.MergeOperator;
+import exceptions.CPAException;
 
 /**
  * TODO. This is currently broken
  */
 public class SymbPredAbstMerge implements MergeOperator {
 
-    private SymbPredAbstDomain domain;
+    private final SymbPredAbstDomain domain;
 
     public SymbPredAbstMerge(SymbPredAbstDomain domain) {
         this.domain = domain;
@@ -104,5 +106,10 @@ public class SymbPredAbstMerge implements MergeOperator {
         }
 
         return e2;
+    }
+
+    public AbstractElementWithLocation merge(AbstractElementWithLocation pElement1,
+                                             AbstractElementWithLocation pElement2) throws CPAException {
+      throw new CPAException ("Cannot return element with location information");
     }
 }

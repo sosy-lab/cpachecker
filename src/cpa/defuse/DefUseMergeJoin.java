@@ -5,14 +5,13 @@ import java.util.List;
 
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.MergeOperator;
-import cpa.defuse.DefUseDefinition;
-import cpa.defuse.DefUseDomain;
-import cpa.defuse.DefUseElement;
+import exceptions.CPAException;
 
 public class DefUseMergeJoin implements MergeOperator
 {
-    private DefUseDomain defUseDomain;
+    private final DefUseDomain defUseDomain;
 
     public DefUseMergeJoin (DefUseDomain defUseDomain)
     {
@@ -41,5 +40,10 @@ public class DefUseMergeJoin implements MergeOperator
         }
 
         return new DefUseElement (mergedDefinitions);
+    }
+
+    public AbstractElementWithLocation merge(AbstractElementWithLocation pElement1,
+                                             AbstractElementWithLocation pElement2) throws CPAException {
+      throw new CPAException ("Cannot return element with location information");
     }
 }

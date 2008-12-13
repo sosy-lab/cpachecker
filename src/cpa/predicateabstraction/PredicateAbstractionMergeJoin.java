@@ -4,11 +4,13 @@ import predicateabstraction.Predicate;
 import predicateabstraction.ThreeValuedBoolean;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.MergeOperator;
+import exceptions.CPAException;
 
 public class PredicateAbstractionMergeJoin implements MergeOperator{
 
-	private PredicateAbstractionDomain predicateAbstractionDomain;
+	private final PredicateAbstractionDomain predicateAbstractionDomain;
 
 	public PredicateAbstractionMergeJoin (PredicateAbstractionDomain predAbsDomain)
 	{
@@ -55,4 +57,9 @@ public class PredicateAbstractionMergeJoin implements MergeOperator{
 
 		return joined;
 	}
+
+  public AbstractElementWithLocation merge(AbstractElementWithLocation pElement1,
+                                           AbstractElementWithLocation pElement2) throws CPAException {
+    throw new CPAException ("Cannot return element with location information");
+  }
 }

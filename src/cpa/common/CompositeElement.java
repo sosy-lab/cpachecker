@@ -106,4 +106,8 @@ public class CompositeElement implements AbstractElementWithLocation
   public CFANode getLocationNode() {
     return elementWithLocation.getLocationNode();
   }
+
+  public AbstractElementWithLocation getElementWithLocation () {
+    return elementWithLocation;
+  }
 }
