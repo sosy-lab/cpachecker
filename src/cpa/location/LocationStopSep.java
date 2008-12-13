@@ -10,7 +10,7 @@ import exceptions.CPAException;
 
 public class LocationStopSep implements StopOperator
 {
-	private LocationDomain locationDomain;
+	private final LocationDomain locationDomain;
 
 	public LocationStopSep (LocationDomain locationDomain)
 	{
@@ -22,7 +22,7 @@ public class LocationStopSep implements StopOperator
 		return locationDomain;
 	}
 
-	public boolean stop (AbstractElement element, Collection<AbstractElement> reached) throws CPAException
+	public <AE extends AbstractElement> boolean stop (AE element, Collection<AE> reached) throws CPAException
 	{
 		PartialOrder partialOrder = locationDomain.getPartialOrder ();
 		for (AbstractElement testElement : reached)

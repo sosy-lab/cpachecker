@@ -9,7 +9,7 @@ import exceptions.CPAException;
 
 public class PredicateAbstractionStopJoin implements StopOperator
 {
-	private PredicateAbstractionDomain predicateAbstractionDomain;
+	private final PredicateAbstractionDomain predicateAbstractionDomain;
 
 	public PredicateAbstractionStopJoin (PredicateAbstractionDomain predAbsDomain)
 	{
@@ -21,7 +21,7 @@ public class PredicateAbstractionStopJoin implements StopOperator
 		return predicateAbstractionDomain;
 	}
 
-	public boolean stop (AbstractElement element, Collection<AbstractElement> reached) throws CPAException
+	public <AE extends AbstractElement> boolean stop (AE element, Collection<AE> reached) throws CPAException
 	{
 		// TODO Erkan implement
 		return false;

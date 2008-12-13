@@ -5,12 +5,11 @@ import java.util.Collection;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.StopOperator;
-import cpa.defuse.DefUseDomain;
 import exceptions.CPAException;
 
 public class DefUseStopJoin implements StopOperator
 {
-    private DefUseDomain defUseDomain;
+    private final DefUseDomain defUseDomain;
 
     public DefUseStopJoin (DefUseDomain defUseDomain)
     {
@@ -22,7 +21,7 @@ public class DefUseStopJoin implements StopOperator
         return defUseDomain;
     }
 
-    public boolean stop (AbstractElement element, Collection<AbstractElement> reached) throws CPAException
+    public <AE extends AbstractElement> boolean stop (AE element, Collection<AE> reached) throws CPAException
     {
     	// TODO Erkan implement
     	 return false;

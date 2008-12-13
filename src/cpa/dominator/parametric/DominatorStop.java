@@ -4,7 +4,6 @@ import java.util.Collection;
 
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.StopOperator;
-import cpa.dominator.parametric.DominatorDomain;
 import exceptions.CPAException;
 
 public class DominatorStop implements StopOperator {
@@ -19,8 +18,8 @@ public class DominatorStop implements StopOperator {
 		this.domain = domain;
 	}
 
-	public boolean stop(AbstractElement element,
-			Collection<AbstractElement> reached) throws CPAException {
+	public <AE extends AbstractElement> boolean stop(AE element,
+			Collection<AE> reached) throws CPAException {
 		// would coverage by union of reached elements make sense here?
 		for (AbstractElement reachedElement : reached)
 		{

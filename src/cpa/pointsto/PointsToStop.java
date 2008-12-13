@@ -25,8 +25,8 @@ public class PointsToStop implements StopOperator {
 	/* (non-Javadoc)
 	 * @see cpa.common.interfaces.StopOperator#stop(cpa.common.interfaces.AbstractElement, java.util.Collection)
 	 */
-	public boolean stop(AbstractElement element,
-			Collection<AbstractElement> reached) throws CPAException {
+	public <AE extends AbstractElement> boolean stop(AE element,
+			Collection<AE> reached) throws CPAException {
 		for (AbstractElement r : reached) {
 			if (stop(element, r)) return true;
 		}

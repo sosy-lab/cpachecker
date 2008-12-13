@@ -28,8 +28,8 @@ public class SymbPredAbsStopOperator implements StopOperator {
   }
 
 
-  public boolean stop(AbstractElement element,
-                      Collection<AbstractElement> reached) throws CPAException {
+    public <AE extends AbstractElement> boolean stop(AE element,
+            Collection<AE> reached) throws CPAException {
 
     for (AbstractElement e : reached) {
       if (stop(element, e)) {

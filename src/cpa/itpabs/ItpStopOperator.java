@@ -5,17 +5,13 @@ import java.util.HashMap;
 import java.util.Map;
 
 import logging.LazyLogger;
-
 import cmdline.CPAMain;
+
+import common.Pair;
 
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.StopOperator;
-import cpa.itpabs.ItpAbstractDomain;
-import cpa.itpabs.ItpAbstractElement;
-import cpa.itpabs.ItpCPA;
-import cpa.itpabs.ItpTransferRelation;
-import common.Pair;
 import cpa.symbpredabs.SymbolicFormula;
 import cpa.symbpredabs.SymbolicFormulaManager;
 import cpa.symbpredabs.TheoremProver;
@@ -28,10 +24,10 @@ import exceptions.CPAException;
  */
 public class ItpStopOperator implements StopOperator {
 
-    private ItpAbstractDomain domain;
-    private TheoremProver thmProver;
+    private final ItpAbstractDomain domain;
+    private final TheoremProver thmProver;
     // cache for checking entailement. Can be disabled
-    private boolean entailsUseCache;
+    private final boolean entailsUseCache;
     private Map<Pair<SymbolicFormula, SymbolicFormula>, Boolean> entailsCache;
 
     // statistics
@@ -62,8 +58,8 @@ public class ItpStopOperator implements StopOperator {
     }
 
 
-    public boolean stop(AbstractElement element,
-            Collection<AbstractElement> reached) throws CPAException {
+    public <AE extends AbstractElement> boolean stop(AE element,
+            Collection<AE> reached) throws CPAException {
         ItpCPA cpa = domain.getCPA();
         ItpAbstractElement ie = (ItpAbstractElement)element;
         if (cpa.isCovered(ie)) {
