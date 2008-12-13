@@ -155,6 +155,7 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
     @Override
     public TransferRelation getTransferRelation() {
         return trans;
+    }
 
     public MergeOperator getMergeOperator() {
         //return merge;

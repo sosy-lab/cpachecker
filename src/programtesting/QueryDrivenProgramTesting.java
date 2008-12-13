@@ -32,6 +32,8 @@ import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
+import cpa.common.interfaces.PrecisionAdjustment;
+import cpa.common.interfaces.PrecisionDomain;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
 import cpa.common.interfaces.Precision;
@@ -66,8 +68,8 @@ public class QueryDrivenProgramTesting {
     }
 
     @Override
-    public AbstractElement getInitialElement(CFAFunctionDefinitionNode pNode) {
-      return mCompositeCPA.getInitialElement(pNode);
+    public <AE extends AbstractElement> AE getInitialElement(CFAFunctionDefinitionNode pNode) {
+      return (AE) mCompositeCPA.getInitialElement(pNode);
     }
 
     @Override
@@ -94,6 +96,21 @@ public class QueryDrivenProgramTesting {
       
       
       return new HashSet<AbstractElement>();
+    }
+
+    @Override
+    public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
+      return mCompositeCPA.getInitialPrecision(pNode);
+    }
+
+    @Override
+    public PrecisionAdjustment getPrecisionAdjustment() {
+      return mCompositeCPA.getPrecisionAdjustment();
+    }
+
+    @Override
+    public PrecisionDomain getPrecisionDomain() {
+      return mCompositeCPA.getPrecisionDomain();
     }
     
   }
