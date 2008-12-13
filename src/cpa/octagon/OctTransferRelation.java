@@ -32,6 +32,7 @@ import cfa.objectmodel.c.StatementEdge;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
+import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
 import exceptions.CPAException;
 import exceptions.OctagonTransferException;
@@ -70,7 +71,7 @@ public class OctTransferRelation implements TransferRelation{
   /* (non-Javadoc)
    * @see cpa.common.interfaces.TransferRelation#getAbstractSuccessor(cpa.common.interfaces.AbstractElement, cfa.objectmodel.CFAEdge)
    */
-  public AbstractElement getAbstractSuccessor (AbstractElement element, CFAEdge cfaEdge)
+  public AbstractElement getAbstractSuccessor (AbstractElement element, CFAEdge cfaEdge, Precision prec)
   {
     //System.out.println(" EDGE "+ cfaEdge.getRawStatement());
     // octElement is the region of the current state
@@ -211,7 +212,7 @@ public class OctTransferRelation implements TransferRelation{
   /* (non-Javadoc)
    * @see cpa.common.interfaces.TransferRelation#getAllAbstractSuccessors(cpa.common.interfaces.AbstractElement)
    */
-  public List<AbstractElementWithLocation> getAllAbstractSuccessors (AbstractElementWithLocation element) throws CPAException
+  public List<AbstractElementWithLocation> getAllAbstractSuccessors (AbstractElementWithLocation element, Precision prec) throws CPAException
   {
     throw new CPAException ("Cannot get all abstract successors from non-location domain");
   }
