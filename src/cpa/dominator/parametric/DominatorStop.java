@@ -3,6 +3,7 @@ package cpa.dominator.parametric;
 import java.util.Collection;
 
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.StopOperator;
 import exceptions.CPAException;
 
@@ -19,7 +20,7 @@ public class DominatorStop implements StopOperator {
 	}
 
 	public <AE extends AbstractElement> boolean stop(AE element,
-			Collection<AE> reached) throws CPAException {
+			Collection<AE> reached, Precision prec) throws CPAException {
 		// would coverage by union of reached elements make sense here?
 		for (AbstractElement reachedElement : reached)
 		{

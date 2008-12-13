@@ -9,10 +9,10 @@ import java.util.List;
 import cfa.objectmodel.CFAEdge;
 
 import exceptions.CPATransferException;
-import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
+import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
 import exceptions.CPAException;
 
@@ -39,23 +39,16 @@ public class DominatorTransferRelation implements TransferRelation {
 	}
 
 	/* (non-Javadoc)
-	 * @see cpa.common.interfaces.TransferRelation#getAbstractDomain()
-	 */
-	public AbstractDomain getAbstractDomain() {
-		return this.domain;
-	}
-
-	/* (non-Javadoc)
 	 * @see cpa.common.interfaces.TransferRelation#getAbstractSuccessor(cpa.common.interfaces.AbstractElement, cfa.objectmodel.CFAEdge)
 	 */
-	public AbstractElement getAbstractSuccessor(AbstractElement element, CFAEdge cfaEdge) throws CPATransferException {
+	public AbstractElement getAbstractSuccessor(AbstractElement element, CFAEdge cfaEdge, Precision prec) throws CPATransferException {
 		if (!(element instanceof DominatorElement)) {
 			return this.domain.getBottomElement();
 		}
 
 		DominatorElement dominatorElement = (DominatorElement)element;
 
-		AbstractElement successorOfDominatedElement_tmp = this.cpa.getTransferRelation().getAbstractSuccessor(dominatorElement.getDominatedElement(), cfaEdge);
+		AbstractElement successorOfDominatedElement_tmp = this.cpa.getTransferRelation().getAbstractSuccessor(dominatorElement.getDominatedElement(), cfaEdge, prec);
 
 		// TODO: make this nicer
 		AbstractElementWithLocation successorOfDominatedElement = (AbstractElementWithLocation)successorOfDominatedElement_tmp;
@@ -79,13 +72,13 @@ public class DominatorTransferRelation implements TransferRelation {
 	 * @see cpa.common.interfaces.TransferRelation#getAllAbstractSuccessors(cpa.common.interfaces.AbstractElement)
 	 */
 	public List<AbstractElementWithLocation> getAllAbstractSuccessors(
-	    AbstractElementWithLocation element) throws CPAException, CPATransferException {
+	    AbstractElementWithLocation element, Precision prec) throws CPAException, CPATransferException {
 		List<AbstractElementWithLocation> successors = new ArrayList<AbstractElementWithLocation>();
 
 		if (element instanceof DominatorElement) {
 			DominatorElement dominatorElement = (DominatorElement)element;
 
-			List<AbstractElementWithLocation> successorsOfDominatedElement = this.cpa.getTransferRelation().getAllAbstractSuccessors(dominatorElement.getDominatedElement());
+			List<AbstractElementWithLocation> successorsOfDominatedElement = this.cpa.getTransferRelation().getAllAbstractSuccessors(dominatorElement.getDominatedElement(), prec);
 
 			for (AbstractElementWithLocation successorOfDominatedElement : successorsOfDominatedElement) {
 

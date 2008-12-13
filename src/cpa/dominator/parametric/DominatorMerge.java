@@ -6,6 +6,7 @@ package cpa.dominator.parametric;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.MergeOperator;
+import cpa.common.interfaces.Precision;
 
 /**
  * @author holzera
@@ -26,7 +27,7 @@ public class DominatorMerge implements MergeOperator {
 	 * @see cpa.common.interfaces.MergeOperator#merge(cpa.common.interfaces.AbstractElement, cpa.common.interfaces.AbstractElement)
 	 */
 	public AbstractElement merge(AbstractElement element1,
-			AbstractElement element2) {
+			AbstractElement element2, Precision prec) {
 			AbstractElement joinedElement = this.domain.join(element1, element2);
 
 			if (joinedElement.equals(this.domain.getTopElement())) {
@@ -38,7 +39,7 @@ public class DominatorMerge implements MergeOperator {
 	}
 
 	public AbstractElementWithLocation merge(AbstractElementWithLocation element1,
-	                             AbstractElementWithLocation element2) {
+	                             AbstractElementWithLocation element2, Precision prec) {
 	    AbstractElementWithLocation joinedElement = this.domain.join(element1, element2);
 
 	    if (joinedElement.equals(this.domain.getTopElement())) {
