@@ -256,7 +256,7 @@ public class QueryDrivenProgramTesting {
           
         AbstractElement lTmpElement = lCompositeElement.get(2);
         
-        assert(!lTestGoalCPA.getAbstractDomain().isBottomElement(lTmpElement));
+        assert(!lTestGoalCPA.getAbstractDomain().getBottomElement.equals(lTmpElement));
         
         // TODO: Why is there a isBottomElement but not a isTopElement?
         // is isBottomElement superfluous?

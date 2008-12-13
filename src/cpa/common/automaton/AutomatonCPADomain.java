@@ -435,14 +435,6 @@ public class AutomatonCPADomain<E> implements AbstractDomain {
     return mPartialOrder;
   }
 
-  /* (non-Javadoc)
-   * @see cpa.common.interfaces.AbstractDomain#isBottomElement(cpa.common.interfaces.AbstractElement)
-   */
-  @Override
-  public boolean isBottomElement(AbstractElement pElement) {
-    return mBottomElement.equals(pElement);
-  }
-
   @Override
   public boolean equals(Object o) {
     if (o == null) {
