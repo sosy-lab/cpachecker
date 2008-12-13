@@ -45,3 +45,12 @@ Warning: Should not have multiple jump edges leaving at line: 1232
   cpa.symbpredabs.explicit.ExplicitCPA (delta debugging needed, r308 has a wrong
   result (UNSAFE), r170 has an assertion violation)
 
+- ntdrivers/kbfiltr/kbfiltr_simpl1.cil.c results in an assertion violation when
+  using cpa.symbpredabs.explicit.ExplicitCPA (delta debugging needed, r308 has
+  ERROR, r170 is ok)
+
+- The use of LocationMappedReachedSet in
+  cpa.symbpredabs.explicit.ExplicitStopOperator is currently broken because of
+  the disparity of reached vs. simpleReached; this results in a performance
+  penalty of 10-20% according to recent regression testing
+
