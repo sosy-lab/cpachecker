@@ -34,6 +34,7 @@ import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
+import cpa.common.interfaces.Precision;
 import cpa.location.LocationCPA;
 import cpa.scoperestriction.ScopeRestrictionCPA;
 import cpa.symbpredabs.CounterexampleTraceInfo;
@@ -202,11 +203,12 @@ public class QueryDrivenProgramTesting {
       
       // TODO: testGoals to be passed in as precision
       AbstractElementWithLocation lInitialElement = lWrapperCPA.getInitialElement(pMainFunction);
+      Precision lInitialPrecision = lWrapperCPA.getInitialPrecision(pMainFunction);
       
       Collection<AbstractElementWithLocation> lReachedElements = null;
       
       try {
-        lReachedElements = algo.CPA(lWrapperCPA, lInitialElement);
+        lReachedElements = algo.CPA(lWrapperCPA, lInitialElement, lInitialPrecision);
         
         // TODO: Remove this output
         for (AbstractElement lElement : lReachedElements) {

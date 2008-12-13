@@ -42,6 +42,7 @@ import cpa.common.CPAAlgorithm;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
+import cpa.common.interfaces.Precision;
 import cpa.symbpredabs.BlockCFABuilder;
 import cpa.symbpredabs.summary.ConeOfInfluenceCFAReduction;
 import cpa.symbpredabs.summary.SummaryCFABuilder;
@@ -242,7 +243,9 @@ public class CPAMain {
       CPAAlgorithm algo = new CPAAlgorithm();
       AbstractElementWithLocation initialElement =
         cpa.getInitialElement(mainFunction);
-      Collection<AbstractElementWithLocation> reached = algo.CPA(cpa, initialElement);
+      Precision initialPrecision =
+        cpa.getInitialPrecision(mainFunction);
+      Collection<AbstractElementWithLocation> reached = algo.CPA(cpa, initialElement, initialPrecision);
       cpaStats.stopAnalysisTimer();
 
       LazyLogger.log(Level.INFO, "CPA Algorithm finished ");
