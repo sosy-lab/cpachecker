@@ -24,8 +24,7 @@ public class SummaryPrecisionAdjustment implements PrecisionAdjustment {
                                                                AE pElement,
                                                                Precision pPrecision,
                                                                Collection<Pair<AE, Precision>> pElements) {
-    // TODO Auto-generated method stub
-    return null;
+    return new Pair<AE,Precision> (pElement, pPrecision);
   }
 
 }
