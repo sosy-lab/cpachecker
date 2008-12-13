@@ -71,6 +71,10 @@ public class CPAAlgorithm
 			} catch (RefinementNeededException re) {
 				doRefinement(reached, waitlist, re.getReachableToUndo(),
 						re.getToWaitlist());
+				simpleReached.clear();
+				for (Pair<AbstractElementWithLocation,Precision> p : reached) {
+				  simpleReached.add(p.getFirst());
+				}
 				continue;
 			} catch (CPATransferException e1) {
 				e1.printStackTrace();
