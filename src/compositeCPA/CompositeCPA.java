@@ -16,6 +16,7 @@ import cpa.common.CompositeDomain;
 import cpa.common.CompositeElement;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.StopOperator;
@@ -29,13 +30,13 @@ public class CompositeCPA implements ConfigurableProgramAnalysis
 	private final MergeOperator mergeOperator;
 	private final StopOperator stopOperator;
 	private final TransferRelation transferRelation;
-	private final AbstractElement initialElement;
+	private final AbstractElementWithLocation initialElement;
 
 	private CompositeCPA (AbstractDomain abstractDomain,
 			MergeOperator mergeOperator,
 			StopOperator stopOperator,
 			TransferRelation transferRelation,
-			AbstractElement initialElement)
+			AbstractElementWithLocation initialElement)
 	{
 		this.abstractDomain = abstractDomain;
 		this.mergeOperator = mergeOperator;
@@ -90,7 +91,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis
 			MergeOperator mergeOperator,
 			StopOperator stopOperator,
 			TransferRelation transferRelation,
-			AbstractElement initialElement)
+			AbstractElementWithLocation initialElement)
 	{
 		// TODO Michael: this should throw something
 		if (abstractDomain == null || mergeOperator == null ||

@@ -10,11 +10,11 @@ import java.util.TreeSet;
 
 import logging.CustomLogLevel;
 import logging.LazyLogger;
-
-import cmdline.CPAMain;
-
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cfa.objectmodel.CFANode;
+import cmdline.CPAMain;
+
+import common.Pair;
 
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
@@ -23,15 +23,7 @@ import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
-import cpa.itpabs.ItpAbstractDomain;
-import cpa.itpabs.ItpAbstractElement;
-import cpa.itpabs.ItpAbstractElementManager;
-import cpa.itpabs.ItpCounterexampleRefiner;
-import cpa.itpabs.ItpMergeOperator;
-import cpa.itpabs.ItpStopOperator;
-import cpa.itpabs.ItpTransferRelation;
 import cpa.symbpredabs.InterpolatingTheoremProver;
-import common.Pair;
 import cpa.symbpredabs.SymbolicFormula;
 import cpa.symbpredabs.SymbolicFormulaManager;
 import cpa.symbpredabs.TheoremProver;

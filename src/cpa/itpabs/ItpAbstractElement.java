@@ -5,10 +5,9 @@ import java.util.Stack;
 
 import cfa.objectmodel.CFANode;
 
-import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.AbstractElementWithLocation;
-import cpa.itpabs.ItpAbstractElement;
 import common.Pair;
+
+import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.symbpredabs.SymbolicFormula;
 
 /**
@@ -17,11 +16,11 @@ import cpa.symbpredabs.SymbolicFormula;
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
 public abstract class ItpAbstractElement
-        implements AbstractElement, AbstractElementWithLocation,
+        implements AbstractElementWithLocation,
         Comparable<ItpAbstractElement> {
 
-    private int elemId;
-    private CFANode location;
+    private final int elemId;
+    private final CFANode location;
     private SymbolicFormula abstraction;
     private ItpAbstractElement parent;
     private ItpAbstractElement coveredBy;

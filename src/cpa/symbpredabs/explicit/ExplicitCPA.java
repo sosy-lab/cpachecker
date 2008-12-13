@@ -15,25 +15,23 @@ import java.util.Vector;
 
 import logging.CustomLogLevel;
 import logging.LazyLogger;
-
-import common.LocationMappedReachedSet;
-
-import cmdline.CPAMain;
-
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cfa.objectmodel.CFANode;
+import cmdline.CPAMain;
+
+import common.LocationMappedReachedSet;
+import common.Pair;
 
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
-import cpaplugin.CPAStatistics;
 import cpa.symbpredabs.AbstractFormula;
 import cpa.symbpredabs.FixedPredicateMap;
 import cpa.symbpredabs.InterpolatingTheoremProver;
-import common.Pair;
 import cpa.symbpredabs.Predicate;
 import cpa.symbpredabs.PredicateMap;
 import cpa.symbpredabs.SymbolicFormulaManager;
@@ -45,6 +43,7 @@ import cpa.symbpredabs.mathsat.MathsatSymbolicFormulaManager;
 import cpa.symbpredabs.mathsat.MathsatTheoremProver;
 import cpa.symbpredabs.mathsat.SimplifyTheoremProver;
 import cpa.symbpredabs.mathsat.YicesTheoremProver;
+import cpaplugin.CPAStatistics;
 
 
 /**
@@ -54,18 +53,18 @@ import cpa.symbpredabs.mathsat.YicesTheoremProver;
  */
 public class ExplicitCPA implements ConfigurableProgramAnalysis {
 
-    private ExplicitAbstractDomain domain;
+    private final ExplicitAbstractDomain domain;
     // private ExplicitMergeOperator merge;
-    private ExplicitStopOperator stop;
-    private ExplicitTransferRelation trans;
-    private MathsatSymbolicFormulaManager mgr;
-    private BDDMathsatExplicitAbstractManager amgr;
+    private final ExplicitStopOperator stop;
+    private final ExplicitTransferRelation trans;
+    private final MathsatSymbolicFormulaManager mgr;
+    private final BDDMathsatExplicitAbstractManager amgr;
     private PredicateMap pmap;
 
     // covering relation
-    private Map<ExplicitAbstractElement, Set<ExplicitAbstractElement>> covers;
+    private final Map<ExplicitAbstractElement, Set<ExplicitAbstractElement>> covers;
 
-    private ExplicitCPAStatistics stats;
+    private final ExplicitCPAStatistics stats;
 
     private ExplicitCPA() {
         domain = new ExplicitAbstractDomain(this);
@@ -133,7 +132,7 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
         return stats;
     }
 
-    public Collection<AbstractElement> newReachedSet() {
+    public Collection<AbstractElementWithLocation> newReachedSet() {
         return new LocationMappedReachedSet();
     }
 

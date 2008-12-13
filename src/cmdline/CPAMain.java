@@ -40,6 +40,7 @@ import compositeCPA.CompositeCPA;
 
 import cpa.common.CPAAlgorithm;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.symbpredabs.BlockCFABuilder;
 import cpa.symbpredabs.summary.ConeOfInfluenceCFAReduction;

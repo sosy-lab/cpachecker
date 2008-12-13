@@ -15,10 +15,10 @@ import cpa.common.interfaces.AbstractElement;
  */
 public class ToWaitListException extends RefinementNeededException {
 
-    private static Collection<AbstractElement> toUnreach =
+    private static Collection<AbstractElementWithLocation> toUnreach =
         Collections.emptyList();
 
-    public ToWaitListException(Collection<AbstractElement> toWaitlist) {
+    public ToWaitListException(Collection<AbstractElementWithLocation> toWaitlist) {
         super(toUnreach, toWaitlist);
     }
 
