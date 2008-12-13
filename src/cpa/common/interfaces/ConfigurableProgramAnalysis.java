@@ -1,13 +1,11 @@
 package cpa.common.interfaces;
 
-import java.util.Collection;
-
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 
 public interface ConfigurableProgramAnalysis
 {
   public AbstractDomain getAbstractDomain();
-  public Collection<Precision> getPrecisions ();
+  public PrecisionDomain getPrecisionDomain ();
   public TransferRelation getTransferRelation ();
   public MergeOperator getMergeOperator ();
   public StopOperator getStopOperator ();

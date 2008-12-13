@@ -238,7 +238,7 @@ public class QueryDrivenProgramTesting {
           break;
         }
         
-        if (lWrapperCPA.getAbstractDomain().isBottomElement(lElement)) {
+        if (lWrapperCPA.getAbstractDomain().getBottomElement().equals(lElement)) {
           continue;
         }
         
