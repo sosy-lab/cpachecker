@@ -1,0 +1,38 @@
+Notes by Michael Tautschnig <tautschnig@forsyte.de> taken while doing the
+CPA->CPA+ transition (2008-12-12):
+
+* a cleanup and prioritization will follow *
+
+- Remove getAbstractDomain in those cases where it is now not needed anymore
+
+- We have multiple implementations of a class Path
+
+- SymbPredAbstTransfer has its own Top/Bottom element !?
+
+- Whitespace at the end of a line is undesirable for merging tools, do a cleanup
+
+- Instead of the String parameters to set sep or join for merge and stop just
+  create multiple CPA classes that fix the operator
+
+- Review itpexplicit logs, they contain unexpected warnings since r170 already
+
+- Use iterators instead of get(i), this is CLEANER, SAFER, and FASTER in general
+  (unless impossible, of course)
+
+- Cleanup cpa.common and move the composite stuff to compositecpa
+
+- null precision after refinement
+- in createReachedSet use a safe cast instead of reflection+cruel cast
+- compositestop is borked (does not care about precision)
+
+- add basic implementations of stop, mergesep/join, precision stuff
+- review mergeJoin for the use of joinOperator
+
+- cleanup stop operator, rename compositestopsep, compositemergesep
+
+- move getInitialElement to its own class
+  * method makeInitialElement (AE, AEwLoc, must be static)
+
+- cleanup CPAMain
+  * make separate function "preprocess"
+  * is there any non-interprocedural analysis
