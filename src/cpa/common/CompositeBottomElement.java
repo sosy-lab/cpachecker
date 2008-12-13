@@ -2,14 +2,14 @@ package cpa.common;
 
 import java.util.List;
 
+import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.BottomElement;
-import cpa.common.CompositeBottomElement;
 
 public class CompositeBottomElement implements BottomElement
 {
-    private List<BottomElement> bottoms;
+    private final List<AbstractElement> bottoms;
 
-    public CompositeBottomElement (List<BottomElement> bottoms)
+    public CompositeBottomElement (List<AbstractElement> bottoms)
     {
         this.bottoms = bottoms;
     }
@@ -26,8 +26,8 @@ public class CompositeBottomElement implements BottomElement
 
         for (int idx = 0; idx < bottoms.size (); idx++)
         {
-            BottomElement bottom1 = bottoms.get (idx);
-            BottomElement bottom2 = otherComposite.bottoms.get (idx);
+            AbstractElement bottom1 = bottoms.get (idx);
+            AbstractElement bottom2 = otherComposite.bottoms.get (idx);
 
             if (!bottom1.equals (bottom2))
                 return false;

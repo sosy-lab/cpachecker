@@ -61,7 +61,7 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
 	private final JoinOperator join = new SymbPredAbsJoinOperator();
 	private final PartialOrder partial = new SymbPredAbsPartialOrder();
 
-	public BottomElement getBottomElement() {
+	public AbstractElement getBottomElement() {
 		return bottom;
 	}
 
@@ -88,7 +88,7 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
 		return partial;
 	}
 
-	public TopElement getTopElement() {
+	public AbstractElement getTopElement() {
 		return top;
 	}
 

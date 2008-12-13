@@ -63,7 +63,7 @@ public class LocationDomain implements AbstractDomain
 
     }
 
-    public BottomElement getBottomElement ()
+    public AbstractElement getBottomElement ()
     {
         return bottomElement;
     }
@@ -73,7 +73,7 @@ public class LocationDomain implements AbstractDomain
 		return false;
 	}
 
-    public TopElement getTopElement ()
+    public AbstractElement getTopElement ()
     {
         return topElement;
     }

@@ -3,8 +3,11 @@
  */
 package cpa.dominator.parametric;
 
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Set;
 
+import cfa.objectmodel.CFANode;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
@@ -13,11 +16,6 @@ import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.JoinOperator;
 import cpa.common.interfaces.PartialOrder;
 import cpa.common.interfaces.TopElement;
-import cpa.dominator.parametric.DominatorElement;
-
-import java.util.Set;
-import java.util.HashSet;
-
 import exceptions.CPAException;
 
 /**
@@ -26,13 +24,13 @@ import exceptions.CPAException;
  */
 public class DominatorDomain implements AbstractDomain, PartialOrder, JoinOperator {
 
-	private ConfigurableProgramAnalysis cpa;
+	private final ConfigurableProgramAnalysis cpa;
 
 	public DominatorDomain(ConfigurableProgramAnalysis cpa) {
 		this.cpa = cpa;
 	}
 
-	private static class DominatorBottomElement implements BottomElement
+	private static class DominatorBottomElement implements BottomElement, AbstractElementWithLocation
     {
 		private DominatorBottomElement() {
 
@@ -52,9 +50,14 @@ public class DominatorDomain implements AbstractDomain, PartialOrder, JoinOperat
         public int hashCode() {
         	return Integer.MAX_VALUE;
         }
+
+        public CFANode getLocationNode() {
+          // TODO Auto-generated method stub
+          return null;
+        }
     }
 
-	private static class DominatorTopElement implements TopElement
+	private static class DominatorTopElement implements TopElement, AbstractElementWithLocation
     {
 		private DominatorTopElement() {
 
@@ -73,6 +76,11 @@ public class DominatorDomain implements AbstractDomain, PartialOrder, JoinOperat
         @Override
         public int hashCode() {
         	return Integer.MIN_VALUE;
+        }
+
+        public CFANode getLocationNode() {
+          // TODO Auto-generated method stub
+          return null;
         }
     }
 
@@ -166,7 +174,7 @@ public class DominatorDomain implements AbstractDomain, PartialOrder, JoinOperat
 	/* (non-Javadoc)
 	 * @see cpa.common.interfaces.AbstractDomain#getBottomElement()
 	 */
-	public BottomElement getBottomElement() {
+	public DominatorBottomElement getBottomElement() {
 		return bottomElement;
 	}
 
@@ -177,7 +185,7 @@ public class DominatorDomain implements AbstractDomain, PartialOrder, JoinOperat
 	/* (non-Javadoc)
 	 * @see cpa.common.interfaces.AbstractDomain#getTopElement()
 	 */
-	public TopElement getTopElement() {
+	public DominatorTopElement getTopElement() {
 		return topElement;
 	}
 

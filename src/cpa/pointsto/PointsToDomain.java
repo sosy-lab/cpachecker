@@ -51,7 +51,7 @@ public class PointsToDomain implements AbstractDomain {
   /* (non-Javadoc)
    * @see cpa.common.interfaces.AbstractDomain#getBottomElement()
    */
-  public BottomElement getBottomElement() {
+  public AbstractElement getBottomElement() {
     return bottomElement;
   }
 
@@ -76,7 +76,7 @@ public class PointsToDomain implements AbstractDomain {
   /* (non-Javadoc)
    * @see cpa.common.interfaces.AbstractDomain#getTopElement()
    */
-  public TopElement getTopElement() {
+  public AbstractElement getTopElement() {
     return topElement;
   }
 

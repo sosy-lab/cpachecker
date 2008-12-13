@@ -22,11 +22,18 @@ public class ExplicitAbstractDomain implements AbstractDomain {
         this.cpa = cpa;
     }
 
-    private final class ExplicitBottomElement implements BottomElement {
+    private final class ExplicitBottomElement extends ExplicitAbstractElement implements BottomElement {
+      public ExplicitBottomElement () {
+        super(null);
+      }
         @Override
     	public String toString() { return "<BOTTOM>"; }
     }
-    private final class ExplicitTopElement implements TopElement {}
+    private final class ExplicitTopElement extends ExplicitAbstractElement implements TopElement {
+      public ExplicitTopElement () {
+        super(null);
+      }
+    }
 
     private final class ExplicitJoinOperator implements JoinOperator {
         public AbstractElement join(AbstractElement element1,
@@ -57,7 +64,7 @@ public class ExplicitAbstractDomain implements AbstractDomain {
     private final JoinOperator join = new ExplicitJoinOperator();
     private final PartialOrder partial = new ExplicitPartialOrder();
 
-    public BottomElement getBottomElement() {
+    public AbstractElement getBottomElement() {
         return bottom;
     }
 
@@ -73,7 +80,7 @@ public class ExplicitAbstractDomain implements AbstractDomain {
         return partial;
     }
 
-    public TopElement getTopElement() {
+    public AbstractElement getTopElement() {
         return top;
     }
 
