@@ -6,6 +6,7 @@ import logging.CustomLogLevel;
 import logging.LazyLogger;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.StopOperator;
 import exceptions.CPAException;
 
@@ -25,7 +26,7 @@ public class SymbPredAbstStop implements StopOperator {
     }
 
     public <AE extends AbstractElement> boolean stop(AE element,
-            Collection<AE> reached) throws CPAException {
+            Collection<AE> reached, Precision prec) throws CPAException {
         for (AbstractElement e2 : reached) {
             if (stop(element, e2)) {
                 return true;

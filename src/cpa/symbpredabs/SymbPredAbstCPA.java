@@ -18,6 +18,9 @@ import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
+import cpa.common.interfaces.Precision;
+import cpa.common.interfaces.PrecisionAdjustment;
+import cpa.common.interfaces.PrecisionDomain;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
 import cpa.symbpredabs.mathsat.BDDMathsatAbstractFormulaManager;
@@ -30,20 +33,26 @@ import cpa.symbpredabs.mathsat.MathsatSymbolicFormulaManager;
 public class SymbPredAbstCPA implements ConfigurableProgramAnalysis {
 
     private AbstractDomain abstractDomain;
+    private PrecisionDomain precisionDomain;
+    private TransferRelation transferRelation;
     private MergeOperator mergeOperator;
     private StopOperator stopOperator;
-    private TransferRelation transferRelation;
+    private PrecisionAdjustment precisionAdjustment;
 
     private PredicateMap predicateMap;
     private SymbolicFormulaManager formulaManager;
     private AbstractFormulaManager abstractManager;
 
+    private static SymbPredAbstCPA theInstance = null;
+    
     private SymbPredAbstCPA() {
         SymbPredAbstDomain domain = new SymbPredAbstDomain(this);
         abstractDomain = domain;
+        precisionDomain = new SymbPredAbstPrecisionDomain();
+        transferRelation = new SymbPredAbstTransfer(domain);
         mergeOperator = new SymbPredAbstMerge(domain);
         stopOperator = new SymbPredAbstStop(domain);
-        transferRelation = new SymbPredAbstTransfer(domain);
+        precisionAdjustment = new SymbPredAbstPrecisionAdjustment();
         Collection<Predicate> preds = null;
         formulaManager = new MathsatSymbolicFormulaManager();
         abstractManager = new BDDMathsatAbstractFormulaManager();
@@ -75,6 +84,14 @@ public class SymbPredAbstCPA implements ConfigurableProgramAnalysis {
         theInstance = this;
     }
 
+    public static SymbPredAbstCPA getInstance() {
+//        if (theInstance == null) {
+//            theInstance = new SymbPredAbstCPA();
+//        }
+        assert(theInstance != null);
+        return theInstance;
+    }
+
     public PredicateMap getPredicateMap() { return predicateMap; }
 
     public SymbolicFormulaManager getFormulaManager() { return formulaManager; }
@@ -86,11 +103,12 @@ public class SymbPredAbstCPA implements ConfigurableProgramAnalysis {
         return abstractDomain;
     }
 
-    public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
-        LazyLogger.log(CustomLogLevel.SpecificCPALevel,
-                "Getting initial element from node: ", node.getNodeNumber());
-
-        return new SymbPredAbstElement(node, formulaManager.makeTrue(), null);
+    public PrecisionDomain getPrecisionDomain() {
+      return precisionDomain;
+    }
+    
+    public TransferRelation getTransferRelation() {
+        return transferRelation;
     }
 
     public MergeOperator getMergeOperator() {
@@ -101,17 +119,19 @@ public class SymbPredAbstCPA implements ConfigurableProgramAnalysis {
         return stopOperator;
     }
 
-    public TransferRelation getTransferRelation() {
-        return transferRelation;
+    public PrecisionAdjustment getPrecisionAdjustment() {
+      return precisionAdjustment;
     }
 
-    private static SymbPredAbstCPA theInstance = null;
+    public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
+        LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+                "Getting initial element from node: ", node.getNodeNumber());
 
-    public static SymbPredAbstCPA getInstance() {
-//        if (theInstance == null) {
-//            theInstance = new SymbPredAbstCPA();
-//        }
-        assert(theInstance != null);
-        return theInstance;
+        return new SymbPredAbstElement(node, formulaManager.makeTrue(), null);
+    }
+    
+    public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
+      // TODO Auto-generated method stub
+      return null;
     }
 }

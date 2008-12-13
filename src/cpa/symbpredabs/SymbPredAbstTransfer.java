@@ -16,6 +16,7 @@ import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.BottomElement;
+import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TopElement;
 import cpa.common.interfaces.TransferRelation;
 import exceptions.CPAException;
@@ -88,7 +89,7 @@ public class SymbPredAbstTransfer implements TransferRelation {
 	}
 
 	public AbstractElement getAbstractSuccessor(AbstractElement element,
-			CFAEdge cfaEdge) throws CPATransferException {
+			CFAEdge cfaEdge, Precision prec) throws CPATransferException {
 		SymbPredAbstElement e = (SymbPredAbstElement)element;
 
 		CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel,
@@ -117,7 +118,7 @@ public class SymbPredAbstTransfer implements TransferRelation {
 	}
 
 	public List<AbstractElementWithLocation> getAllAbstractSuccessors(
-	    AbstractElementWithLocation element) throws CPAException, CPATransferException {
+	    AbstractElementWithLocation element, Precision prec) throws CPAException, CPATransferException {
 		SymbPredAbstElement e = (SymbPredAbstElement)element;
 
 		CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel,
