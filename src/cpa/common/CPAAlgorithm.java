@@ -65,7 +65,7 @@ public class CPAAlgorithm
           " with precision ", precision, " is popped from queue");
 			List<AbstractElementWithLocation> successors = null;
 			try {
-				successors = transferRelation.getAllAbstractSuccessors (e);
+				successors = transferRelation.getAllAbstractSuccessors (element, precision);
 			} catch (ErrorReachedException err) {
 				System.out.println("Reached error state! Message is:");
 				System.out.println(err.toString());
@@ -203,24 +203,24 @@ public class CPAAlgorithm
 		return new HashSet<Pair<AbstractElementWithLocation,Precision>>();
 	}
 
-	private void doRefinement(Collection<AbstractElementWithLocation> reached,
-			List<AbstractElementWithLocation> waitlist,
+	private void doRefinement(Collection<Pair<AbstractElementWithLocation, Precision>> reached,
+			List<Pair<AbstractElementWithLocation, Precision>> waitlist,
 			Collection<AbstractElementWithLocation> reachableToUndo,
 			Collection<AbstractElementWithLocation> toWaitlist) {
 		LazyLogger.log(CustomLogLevel.SpecificCPALevel,
 		"Performing refinement");
 		// remove from reached all the elements in reachableToUndo
-		Collection<AbstractElementWithLocation> newreached =
-			new LinkedList<AbstractElementWithLocation>();
-		for (AbstractElementWithLocation e : reached) {
-			if (!reachableToUndo.contains(e)) {
+		Collection<Pair<AbstractElementWithLocation, Precision>> newreached =
+			new LinkedList<Pair<AbstractElementWithLocation, Precision>>();
+		for (Pair<AbstractElementWithLocation, Precision> e : reached) {
+			if (!reachableToUndo.contains(e.getFirst())) {
 				newreached.add(e);
 			} else {
 				LazyLogger.log(CustomLogLevel.SpecificCPALevel,
-						"Removing element: ", e, " from reached");
+						"Removing element: ", e.getFirst(), " from reached");
 				if (waitlist.remove(e)) {
 					LazyLogger.log(CustomLogLevel.SpecificCPALevel,
-							"Removing element: ", e,
+							"Removing element: ", e.getFirst(),
 					" also from waitlist");
 				}
 			}
