@@ -20,6 +20,7 @@ import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
+import cpa.common.interfaces.ReachedSet;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
 import exceptions.CPATransferException;
@@ -36,15 +37,13 @@ public class CPAAlgorithm
 	    Precision initialPrecision) throws CPAException
 	{
 	  List<Pair<AbstractElementWithLocation,Precision>> waitlist = new ArrayList<Pair<AbstractElementWithLocation,Precision>>();
-		Collection<Pair<AbstractElementWithLocation,Precision>> reached = createReachedSet(cpa);
-		Collection<AbstractElementWithLocation> simpleReached = new HashSet<AbstractElementWithLocation>();
+		ReachedSet reached = createReachedSet(cpa);
 
 		LazyLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel, initialState,
 		" added as initial state to CPA");
 
 		waitlist.add(new Pair<AbstractElementWithLocation,Precision>(initialState, initialPrecision));
     reached.add(new Pair<AbstractElementWithLocation,Precision>(initialState, initialPrecision));
-    simpleReached.add(initialState);
 
 		TransferRelation transferRelation = cpa.getTransferRelation ();
 		MergeOperator mergeOperator = cpa.getMergeOperator ();
@@ -67,14 +66,10 @@ public class CPAAlgorithm
 			} catch (ErrorReachedException err) {
 				System.out.println("Reached error state! Message is:");
 				System.out.println(err.toString());
-				return simpleReached;
+				return reached.getAbstractElementSet();
 			} catch (RefinementNeededException re) {
 				doRefinement(reached, waitlist, re.getReachableToUndo(),
 						re.getToWaitlist());
-				simpleReached.clear();
-				for (Pair<AbstractElementWithLocation,Precision> p : reached) {
-				  simpleReached.add(p.getFirst());
-				}
 				continue;
 			} catch (CPATransferException e1) {
 				e1.printStackTrace();
@@ -91,9 +86,7 @@ public class CPAAlgorithm
 
 				if (mergeOperator != null) {
 	        List<Pair<AbstractElementWithLocation,Precision>> toRemove = new Vector<Pair<AbstractElementWithLocation,Precision>>();
-	        List<AbstractElementWithLocation> toRemoveSimple = new Vector<AbstractElementWithLocation>();
 	        List<Pair<AbstractElementWithLocation,Precision>> toAdd = new Vector<Pair<AbstractElementWithLocation,Precision>>();
-	        List<AbstractElementWithLocation> toAddSimple = new Vector<AbstractElementWithLocation>();
 	        
 					for (Pair<AbstractElementWithLocation, Precision> reachedEntry : reached) {
 					  AbstractElementWithLocation reachedElement = reachedEntry.getFirst();
@@ -111,15 +104,11 @@ public class CPAAlgorithm
 	            waitlist.add(new Pair<AbstractElementWithLocation,Precision>(mergedElement, precision));
 
 	            toRemove.add(new Pair<AbstractElementWithLocation,Precision>(reachedElement, reachedEntry.getSecond()));
-	            toRemoveSimple.add(reachedElement);
 	            toAdd.add(new Pair<AbstractElementWithLocation,Precision>(mergedElement, precision));
-	            toAddSimple.add(mergedElement);
 	          }
 					}
 					reached.removeAll(toRemove);
-	        simpleReached.removeAll(toRemoveSimple);
 	        reached.addAll(toAdd);
-	        simpleReached.addAll(toAddSimple);
 
 //					int numReached = reached.size (); // Need to iterate this way to avoid concurrent mod exceptions
 
@@ -146,7 +135,7 @@ public class CPAAlgorithm
 //					}
 				}
 
-				if (!stopOperator.stop (successor, simpleReached, precision))
+				if (!stopOperator.stop (successor, reached.getAbstractElementSet(), precision))
 				{
 					LazyLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel,
 							"No need to stop ", successor,
@@ -155,13 +144,12 @@ public class CPAAlgorithm
 
 					waitlist.add(new Pair<AbstractElementWithLocation,Precision>(successor,precision));
           reached.add(new Pair<AbstractElementWithLocation,Precision>(successor,precision));
-          simpleReached.add(successor);
 				}
 			}
 			//CPACheckerStatistics.noOfReachedSet = reached.size();
 		}
 
-		return simpleReached;
+		return reached.getAbstractElementSet();
 	}
 
   private Pair<AbstractElementWithLocation,Precision> choose(List<Pair<AbstractElementWithLocation,Precision>> waitlist) {
@@ -185,14 +173,14 @@ public class CPAAlgorithm
     }
   }
   
-	private Collection<Pair<AbstractElementWithLocation,Precision>> createReachedSet(
+	private ReachedSet createReachedSet(
 			ConfigurableProgramAnalysis cpa) {
 		// check whether the cpa provides a method for building a specialized
 		// reached set. If not, just use a HashSet
 		try {
 		  Method meth = cpa.getClass().getDeclaredMethod("newReachedSet");
 			
-			return (Collection<Pair<AbstractElementWithLocation,Precision>>)meth.invoke(cpa);
+			return (ReachedSet)meth.invoke(cpa);
 		} catch (NoSuchMethodException e) {
 			// ignore, this is not an error
 		  
@@ -202,10 +190,10 @@ public class CPAAlgorithm
 		  System.exit(1);
 		}
 		
-		return new HashSet<Pair<AbstractElementWithLocation,Precision>>();
+		return new BasicReachedSet();
 	}
 
-	private void doRefinement(Collection<Pair<AbstractElementWithLocation, Precision>> reached,
+	private void doRefinement(ReachedSet reached,
 			List<Pair<AbstractElementWithLocation, Precision>> waitlist,
 			Collection<AbstractElementWithLocation> reachableToUndo,
 			Collection<AbstractElementWithLocation> toWaitlist) {

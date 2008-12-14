@@ -50,7 +50,11 @@ Warning: Should not have multiple jump edges leaving at line: 1232
   ERROR, r170 is ok)
 
 - The use of LocationMappedReachedSet in
-  cpa.symbpredabs.explicit.ExplicitStopOperator is currently broken because of
+  icpa.symbpredabs.explicit.ExplicitStopOperator is currently broken because of
   the disparity of reached vs. simpleReached; this results in a performance
   penalty of 10-20% according to recent regression testing
+  -- this has been fixed in r318, but deserves further testing whether it is
+  really fixed
+
+
 

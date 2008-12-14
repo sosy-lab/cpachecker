@@ -8,6 +8,7 @@ import logging.LazyLogger;
 
 import common.LocationMappedReachedSet;
 import common.Pair;
+import common.LocationMappedReachedSet.LocationMappedProjection;
 
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
@@ -38,18 +39,17 @@ public class ExplicitStopOperator implements StopOperator {
 
     public <AE extends AbstractElement> boolean stop(AE element,
                                                      Collection<AE> reached, Precision prec) throws CPAException {
-      // TODO ReachedSet interface must get properly resolved, see also ToDo.txt
-      if (false /*reached instanceof LocationMappedReachedSet*/) {
-        /*ExplicitAbstractElement e = (ExplicitAbstractElement)element;
-        Set<Pair<AbstractElementWithLocation,Precision>> effReached =
-          ((LocationMappedReachedSet)reached).get(
+      if (reached instanceof LocationMappedProjection) {
+        ExplicitAbstractElement e = (ExplicitAbstractElement)element;
+        Set<AbstractElementWithLocation> effReached =
+          ((LocationMappedProjection)reached).get(
               e.getLocationNode());
         if (effReached == null) return false;
-        for (Pair<AbstractElementWithLocation,Precision> e2: effReached) {
-          if (stop(element, e2.getFirst())) {
+        for (AbstractElementWithLocation e2: effReached) {
+          if (stop(element, e2)) {
             return true;
           }
-        }*/
+        }
       } else {
         for (AbstractElement e : reached) {
           if (stop(element, e)) {

@@ -35,6 +35,7 @@ import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.PrecisionAdjustment;
+import cpa.common.interfaces.ReachedSet;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
 import cpa.common.interfaces.Precision;
@@ -57,7 +58,7 @@ import exceptions.RefinementNeededException;
  */
 public class QueryDrivenProgramTesting {
   
-  public static class MyCollection implements Collection<Pair<AbstractElementWithLocation,Precision>> {
+  public static class MyCollection implements ReachedSet {
     class MyIterator implements Iterator<Pair<AbstractElementWithLocation,Precision>> {
       private Iterator<Pair<AbstractElementWithLocation,Precision>> lInnerIterator;
       
@@ -185,7 +186,7 @@ public class QueryDrivenProgramTesting {
     }
 
     @Override
-    public boolean addAll(Collection<? extends Pair<AbstractElementWithLocation,Precision>> pC) {
+    public boolean addAll(Collection<Pair<AbstractElementWithLocation,Precision>> pC) {
       assert(pC != null);
       
       boolean lWasChanged = false;
@@ -329,7 +330,7 @@ public class QueryDrivenProgramTesting {
     }
 
     @Override
-    public boolean removeAll(Collection<?> pC) {
+    public boolean removeAll(Collection<Pair<AbstractElementWithLocation,Precision>> pC) {
       assert(pC != null);
       
       boolean lWasChanged = false;
@@ -460,7 +461,7 @@ public class QueryDrivenProgramTesting {
     // it by default by creating a hash set?
     // TODO: During ART creation establish an order
     // that allows efficient querying for test goals
-    public Collection<Pair<AbstractElementWithLocation,Precision>> newReachedSet() {
+    public ReachedSet newReachedSet() {
       return new MyCollection(mAutomatonDomain);
     }
 
