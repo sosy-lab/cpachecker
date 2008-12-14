@@ -38,8 +38,9 @@ public class ExplicitStopOperator implements StopOperator {
 
     public <AE extends AbstractElement> boolean stop(AE element,
                                                      Collection<AE> reached, Precision prec) throws CPAException {
-      if (reached instanceof LocationMappedReachedSet) {
-        ExplicitAbstractElement e = (ExplicitAbstractElement)element;
+      // TODO ReachedSet interface must get properly resolved, see also ToDo.txt
+      if (false /*reached instanceof LocationMappedReachedSet*/) {
+        /*ExplicitAbstractElement e = (ExplicitAbstractElement)element;
         Set<Pair<AbstractElementWithLocation,Precision>> effReached =
           ((LocationMappedReachedSet)reached).get(
               e.getLocationNode());
@@ -48,7 +49,7 @@ public class ExplicitStopOperator implements StopOperator {
           if (stop(element, e2.getFirst())) {
             return true;
           }
-        }
+        }*/
       } else {
         for (AbstractElement e : reached) {
           if (stop(element, e)) {
