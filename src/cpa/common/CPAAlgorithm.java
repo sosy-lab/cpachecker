@@ -37,15 +37,14 @@ public class CPAAlgorithm
 	{
 	  List<Pair<AbstractElementWithLocation,Precision>> waitlist = new ArrayList<Pair<AbstractElementWithLocation,Precision>>();
 		Collection<Pair<AbstractElementWithLocation,Precision>> reached = createReachedSet(cpa);
-		Collection<AbstractElementWithLocation> simpleReached = new HashSet<AbstractElementWithLocation>();
+		Collection<AbstractElementWithLocation> simpleReached = new ProjectionWrapper(reached);
 
 		LazyLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel, initialState,
 		" added as initial state to CPA");
 
 		waitlist.add(new Pair<AbstractElementWithLocation,Precision>(initialState, initialPrecision));
     reached.add(new Pair<AbstractElementWithLocation,Precision>(initialState, initialPrecision));
-    simpleReached.add(initialState);
-
+    
 		TransferRelation transferRelation = cpa.getTransferRelation ();
 		MergeOperator mergeOperator = cpa.getMergeOperator ();
 		StopOperator stopOperator = cpa.getStopOperator ();
@@ -71,10 +70,6 @@ public class CPAAlgorithm
 			} catch (RefinementNeededException re) {
 				doRefinement(reached, waitlist, re.getReachableToUndo(),
 						re.getToWaitlist());
-				simpleReached.clear();
-				for (Pair<AbstractElementWithLocation,Precision> p : reached) {
-				  simpleReached.add(p.getFirst());
-				}
 				continue;
 			} catch (CPATransferException e1) {
 				e1.printStackTrace();
@@ -91,9 +86,7 @@ public class CPAAlgorithm
 
 				if (mergeOperator != null) {
 	        List<Pair<AbstractElementWithLocation,Precision>> toRemove = new Vector<Pair<AbstractElementWithLocation,Precision>>();
-	        List<AbstractElementWithLocation> toRemoveSimple = new Vector<AbstractElementWithLocation>();
 	        List<Pair<AbstractElementWithLocation,Precision>> toAdd = new Vector<Pair<AbstractElementWithLocation,Precision>>();
-	        List<AbstractElementWithLocation> toAddSimple = new Vector<AbstractElementWithLocation>();
 	        
 					for (Pair<AbstractElementWithLocation, Precision> reachedEntry : reached) {
 					  AbstractElementWithLocation reachedElement = reachedEntry.getFirst();
@@ -111,15 +104,11 @@ public class CPAAlgorithm
 	            waitlist.add(new Pair<AbstractElementWithLocation,Precision>(mergedElement, precision));
 
 	            toRemove.add(new Pair<AbstractElementWithLocation,Precision>(reachedElement, reachedEntry.getSecond()));
-	            toRemoveSimple.add(reachedElement);
 	            toAdd.add(new Pair<AbstractElementWithLocation,Precision>(mergedElement, precision));
-	            toAddSimple.add(mergedElement);
 	          }
 					}
 					reached.removeAll(toRemove);
-	        simpleReached.removeAll(toRemoveSimple);
 	        reached.addAll(toAdd);
-	        simpleReached.addAll(toAddSimple);
 
 //					int numReached = reached.size (); // Need to iterate this way to avoid concurrent mod exceptions
 
@@ -155,7 +144,6 @@ public class CPAAlgorithm
 
 					waitlist.add(new Pair<AbstractElementWithLocation,Precision>(successor,precision));
           reached.add(new Pair<AbstractElementWithLocation,Precision>(successor,precision));
-          simpleReached.add(successor);
 				}
 			}
 			//CPACheckerStatistics.noOfReachedSet = reached.size();

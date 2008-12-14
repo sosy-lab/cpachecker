@@ -55,6 +55,7 @@ Warning: Should not have multiple jump edges leaving at line: 1232
   penalty of 10-20% according to recent regression testing
   -- this has been fixed in r318, but deserves further testing whether it is
   really fixed
+  -- the fix in r318 was reverted in r319
 
 
 
