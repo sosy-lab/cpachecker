@@ -662,57 +662,71 @@ public class QueryDrivenProgramTesting {
         
         final Set<Automaton<CFAEdge>.State> lStates = lTestGoalCPAElement.getStates();
         
+        boolean lHasFinalStates = false;
+        
         // remove all covered test goals
         for (Automaton<CFAEdge>.State lState : lStates) {
           // is lState a remaining test goal?
-          if (lState.isFinal() && lTestGoals.contains(lState)) {
-            // TODO: Remove this output
-            System.out.println("=> " + lElement.toString());
+          if (lState.isFinal()) {
+            lHasFinalStates = true;
             
-            Deque<ExplicitAbstractElement> lPath = getAbstractPath((ExplicitAbstractElement)lCompositeElement.get(3));
-            
-            CounterexampleTraceInfo lInfo = lEAFManager.buildCounterexampleTrace(lSFManager, lPath);
-            
-            if (lInfo.isSpurious()) {
+            if (lTestGoals.contains(lState)) {
               // TODO: Remove this output
-              System.out.println("Path is infeasible");
-              
-              TransferRelation lTransferRelation = lExplicitAbstractionCPA.getTransferRelation();
-              
-              ExplicitTransferRelation lExplicitTransferRelation = (ExplicitTransferRelation)lTransferRelation;
-              
-              try {
-                lExplicitTransferRelation.performRefinement(lPath, lInfo);
-              }
-              catch (RefinementNeededException e) {
+              System.out.println("=> " + lElement.toString());
+
+              Deque<ExplicitAbstractElement> lPath =
+                                                     getAbstractPath((ExplicitAbstractElement) lCompositeElement
+                                                         .get(3));
+
+              CounterexampleTraceInfo lInfo =
+                                              lEAFManager
+                                                  .buildCounterexampleTrace(
+                                                      lSFManager, lPath);
+
+              if (lInfo.isSpurious()) {
                 // TODO: Remove this output
-                System.out.println("Refinement done!");
-              }
-              catch (Exception e) {
-                e.printStackTrace();
-                
-                System.exit(1);
+                System.out.println("Path is infeasible");
+
+                TransferRelation lTransferRelation =
+                                                     lExplicitAbstractionCPA
+                                                         .getTransferRelation();
+
+                ExplicitTransferRelation lExplicitTransferRelation =
+                                                                     (ExplicitTransferRelation) lTransferRelation;
+
+                try {
+                  lExplicitTransferRelation.performRefinement(lPath, lInfo);
+                } catch (RefinementNeededException e) {
+                  // TODO: Remove this output
+                  System.out.println("Refinement done!");
+                } catch (Exception e) {
+                  e.printStackTrace();
+
+                  System.exit(1);
+                }
+              } else {
+                // TODO: Remove this output
+                System.out.println("Path is feasible");
+
+                // remove the test goal from lTestGoals
+                lTestGoals.remove(lState);
+
+                // remove the test goal from the automaton
+                lState.unsetFinal();
+
+                // add feasible path to set of feasible paths
+                lPaths.add(lPath);
               }
             }
-            else {
-              // TODO: Remove this output
-              System.out.println("Path is feasible");
-              
-              // remove the test goal from lTestGoals
-              lTestGoals.remove(lState);
-              
-              // remove the test goal from the automaton
-              lState.unsetFinal();
-              
-              // add feasible path to set of feasible paths
-              lPaths.add(lPath);
-            }
-          }
-          else {
-            // TODO: Remove this output
-            System.out.println("no");
           }
         }
+        
+        if (!lHasFinalStates) {
+          // Because lReached is sorted according to the cardinality of final states
+          // we will not see any final states in lReachedElements and thus can stop.
+          break;
+        }
+        
       }
       
       // TODO: invoke CBMC
