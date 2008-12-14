@@ -46,6 +46,9 @@ public class CompositeTransferRelation implements TransferRelation{
 
 	public AbstractElement getAbstractSuccessor (AbstractElement element, CFAEdge cfaEdge, Precision precision) throws CPATransferException
 	{
+	  assert(precision instanceof CompositePrecision);
+	  CompositePrecision lCompositePrecision = (CompositePrecision)precision;
+	  
 		CompositeElement compositeElement = (CompositeElement) element;
 		List<AbstractElement> inputElements = compositeElement.getElements ();
 		List<AbstractElement> resultingElements = new ArrayList<AbstractElement> ();
@@ -99,7 +102,9 @@ public class CompositeTransferRelation implements TransferRelation{
 			subElement = inputElements.get (idx);
 			// handling a call edge
 
-			successor = transfer.getAbstractSuccessor (subElement, cfaEdge, precision);
+			Precision lPresicion = lCompositePrecision.get(idx);
+			
+			successor = transfer.getAbstractSuccessor (subElement, cfaEdge, lPresicion);
 			resultingElements.add (successor);
 		}
 

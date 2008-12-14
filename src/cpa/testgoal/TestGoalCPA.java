@@ -4,6 +4,7 @@
 package cpa.testgoal;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 
 import common.Pair;
@@ -30,7 +31,49 @@ import exceptions.CPAException;
 public class TestGoalCPA implements ConfigurableProgramAnalysis {
 
   public class TestGoalPrecision implements Precision {
-
+    Collection<Automaton<CFAEdge>.State> mRemainingFinalStates;
+    
+    public TestGoalPrecision(Collection<Automaton<CFAEdge>.State> pFinalStates) {
+      assert(pFinalStates != null);
+      
+      mRemainingFinalStates = new HashSet<Automaton<CFAEdge>.State>();
+      mRemainingFinalStates.addAll(pFinalStates);
+    }
+    
+    // TODO Hack!!!
+    public void setTestGoals(Collection<Automaton<CFAEdge>.State> pFinalStates) {
+      assert(pFinalStates != null);
+      
+      mRemainingFinalStates.clear();
+      mRemainingFinalStates.addAll(pFinalStates);
+    }
+    
+    public boolean allTestGoalsCovered() {
+      return mRemainingFinalStates.isEmpty();
+    }
+    
+    public void removeAllFinalStates(AutomatonCPADomain<CFAEdge>.Element pElement) {
+      assert(pElement != null);
+      
+      if (mDomain.getTopElement().equals(pElement)) {
+        mRemainingFinalStates.clear();
+        
+        return;
+      }
+      
+      if (mDomain.getBottomElement().equals(pElement)) {
+        return;
+      }
+      
+      AutomatonCPADomain<CFAEdge>.StateSetElement lStateSetElement = mDomain.castToStateSetElement(pElement);
+      
+      mRemainingFinalStates.removeAll(lStateSetElement.getStates());
+    }
+    
+    public final Collection<Automaton<CFAEdge>.State> getRemainingFinalStates() {
+      return mRemainingFinalStates;
+    }
+    
   }
 
   public class TestGoalMergeOperator implements MergeOperator {
@@ -83,6 +126,8 @@ public class TestGoalCPA implements ConfigurableProgramAnalysis {
         AE pElement,
         Precision pPrecision,
         Collection<Pair<AE, Precision>> pElements) {
+      // TODO remove all covered test goals from pPrecision
+      // TODO This is a hack for performance reasons
       return new Pair<AE,Precision> (pElement, pPrecision);
     }
 
@@ -94,7 +139,21 @@ public class TestGoalCPA implements ConfigurableProgramAnalysis {
     public AbstractElement getAbstractSuccessor(AbstractElement pElement,
                                                 CFAEdge pCfaEdge, Precision prec)
     throws CPATransferException {
-      return mDomain.getSuccessor(pElement, pCfaEdge);
+      assert(prec != null);
+      assert(prec instanceof TestGoalPrecision);
+      
+      TestGoalPrecision lPrecision = (TestGoalPrecision)prec;
+      
+      if (lPrecision.allTestGoalsCovered()) {
+        return mDomain.getBottomElement();
+      }
+      
+      // TODO This is a hack for performance reasons
+      AutomatonCPADomain<CFAEdge>.Element lElement = mDomain.getSuccessor(pElement, pCfaEdge);
+      
+      lPrecision.removeAllFinalStates(lElement);
+      
+      return lElement;
     }
 
     @Override
@@ -174,6 +233,6 @@ public class TestGoalCPA implements ConfigurableProgramAnalysis {
   }
 
   public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
-    return new TestGoalPrecision();
+    return new TestGoalPrecision(this.mDomain.getAutomaton().getFinalStates());
   }
 }

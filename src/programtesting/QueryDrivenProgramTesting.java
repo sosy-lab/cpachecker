@@ -20,6 +20,7 @@ import cfa.objectmodel.CFAFunctionDefinitionNode;
 
 import common.Pair;
 import compositeCPA.CompositeCPA;
+import compositeCPA.CompositePrecision;
 
 import cpa.common.CPAAlgorithm;
 import cpa.common.CompositeElement;
@@ -46,6 +47,7 @@ import cpa.symbpredabs.explicit.ExplicitAbstractFormulaManager;
 import cpa.symbpredabs.explicit.ExplicitCPA;
 import cpa.symbpredabs.explicit.ExplicitTransferRelation;
 import cpa.testgoal.TestGoalCPA;
+import cpa.testgoal.TestGoalCPA.TestGoalPrecision;
 import exceptions.CPAException;
 import exceptions.RefinementNeededException;
 
@@ -574,11 +576,21 @@ public class QueryDrivenProgramTesting {
     Set<Deque<ExplicitAbstractElement>> lPaths = new HashSet<Deque<ExplicitAbstractElement>>();
     
     while (!lTestGoals.isEmpty()) {
+      // TODO remove this output
+      System.out.println("NEXT LOOP #####################");
+      
       // TODO: Simplify test goal automaton
       
       // TODO: testGoals to be passed in as precision
       AbstractElementWithLocation lInitialElement = lWrapperCPA.getInitialElement(pMainFunction);
       Precision lInitialPrecision = lWrapperCPA.getInitialPrecision(pMainFunction);
+      
+      // TODO This is kind of a hack
+      CompositePrecision lCompositePrecision = (CompositePrecision)lInitialPrecision;
+      TestGoalPrecision lTestGoalPrecision = (TestGoalPrecision)lCompositePrecision.get(2);
+      // reset precision to test goals
+      // TODO Hack
+      lTestGoalPrecision.setTestGoals(lTestGoals);
       
       Collection<AbstractElementWithLocation> lReachedElements = null;
       
@@ -605,9 +617,20 @@ public class QueryDrivenProgramTesting {
       // The infeasible test goals are the test goals that remained in the precision
       // we do not have to iterate through the set of reached elements
       //removeInfeasibleTestGoals(testGoals, reached);
-
-      // TODO: remove this
-      boolean lSomethingCovered = false;
+      
+      // TODO Remove this output
+      System.out.print("Infeasible Test Goals: ");
+      
+      System.out.print("[");
+      
+      for (Automaton<CFAEdge>.State lState : lTestGoalPrecision.getRemainingFinalStates()) {
+        System.out.print(lState);
+        System.out.print(" ");
+      }
+      
+      System.out.println("]");
+      
+      lTestGoals.removeAll(lTestGoalPrecision.getRemainingFinalStates());
       
       for (AbstractElement lElement : lReachedElements) {
         // are there any remaining test goals to be covered?
@@ -643,8 +666,6 @@ public class QueryDrivenProgramTesting {
         for (Automaton<CFAEdge>.State lState : lStates) {
           // is lState a remaining test goal?
           if (lState.isFinal() && lTestGoals.contains(lState)) {
-            lSomethingCovered = true;
-            
             // TODO: Remove this output
             System.out.println("=> " + lElement.toString());
             
@@ -692,15 +713,6 @@ public class QueryDrivenProgramTesting {
             System.out.println("no");
           }
         }
-      }
-      
-      // TODO: Remove this break as soon as infeasible test goals get removed
-      // from lTestGoals (necessary condition for termination of while-loop)
-      if (!lSomethingCovered) {
-        break;
-      }
-      else {
-        System.out.println("NEXT LOOP #####################");
       }
       
       // TODO: invoke CBMC
