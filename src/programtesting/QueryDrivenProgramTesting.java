@@ -163,7 +163,7 @@ public class QueryDrivenProgramTesting {
         return lSet.add(pE);
       }
       
-      AutomatonCPADomain<CFAEdge>.StateSetElement lTestGoalCPAElement = (AutomatonCPADomain<CFAEdge>.StateSetElement)lTmpElement;
+      AutomatonCPADomain<CFAEdge>.StateSetElement lTestGoalCPAElement = mAutomatonDomain.castToStateSetElement(lTmpElement);
       
       final Set<Automaton<CFAEdge>.State> lStates = lTestGoalCPAElement.getStates();
       
@@ -233,7 +233,7 @@ public class QueryDrivenProgramTesting {
         return lSet.contains(pO);
       }
       
-      AutomatonCPADomain<CFAEdge>.StateSetElement lTestGoalCPAElement = (AutomatonCPADomain<CFAEdge>.StateSetElement)lTmpElement;
+      AutomatonCPADomain<CFAEdge>.StateSetElement lTestGoalCPAElement = mAutomatonDomain.castToStateSetElement(lTmpElement);
       
       final Set<Automaton<CFAEdge>.State> lStates = lTestGoalCPAElement.getStates();
       
@@ -307,7 +307,7 @@ public class QueryDrivenProgramTesting {
         return lSet.remove(pO);
       }
       
-      AutomatonCPADomain<CFAEdge>.StateSetElement lTestGoalCPAElement = (AutomatonCPADomain<CFAEdge>.StateSetElement)lTmpElement;
+      AutomatonCPADomain<CFAEdge>.StateSetElement lTestGoalCPAElement = mAutomatonDomain.castToStateSetElement(lTmpElement);
       
       final Set<Automaton<CFAEdge>.State> lStates = lTestGoalCPAElement.getStates();
       
@@ -635,7 +635,7 @@ public class QueryDrivenProgramTesting {
         }
         
         // now, we know it is an StateSetElement
-        AutomatonCPADomain<CFAEdge>.StateSetElement lTestGoalCPAElement = (AutomatonCPADomain<CFAEdge>.StateSetElement)lTmpElement;
+        AutomatonCPADomain<CFAEdge>.StateSetElement lTestGoalCPAElement = lTestGoalCPA.getAbstractDomain().castToStateSetElement(lTmpElement);
         
         final Set<Automaton<CFAEdge>.State> lStates = lTestGoalCPAElement.getStates();
         
