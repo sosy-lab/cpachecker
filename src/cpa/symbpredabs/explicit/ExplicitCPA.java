@@ -24,11 +24,11 @@ import common.Pair;
 
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
-import cpa.common.interfaces.ReachedSet;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
 import cpa.symbpredabs.AbstractFormula;
@@ -136,7 +136,7 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
         return stats;
     }
 
-    public ReachedSet newReachedSet() {
+    public Collection<Pair<AbstractElementWithLocation,Precision>> newReachedSet() {
         return new LocationMappedReachedSet();
     }
 

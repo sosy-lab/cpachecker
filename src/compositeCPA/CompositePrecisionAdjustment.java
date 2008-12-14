@@ -12,10 +12,8 @@ import common.Pair;
 
 import cpa.common.CompositeElement;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
-import cpa.common.interfaces.ReachedSet;
 
 /**
  * @author Michael Tautschnig <tautschnig@forsyte.de>
@@ -35,7 +33,7 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
   public <AE extends AbstractElement> Pair<AE, Precision> prec(
                                                                AE pElement,
                                                                Precision pPrecision,
-                                                               ReachedSet pReached) {
+                                                               Collection<Pair<AE, Precision>> pElements) {
     CompositeElement comp = (CompositeElement) pElement;
     CompositePrecision prec = (CompositePrecision) pPrecision;
     assert (comp.getElements().size() == prec.getPrecisions().size());
@@ -46,7 +44,7 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
     
     for (int i = 0; i < dim; ++i) {
       HashSet<Pair<AbstractElement,Precision>> slice = new HashSet<Pair<AbstractElement,Precision>>();
-      for (Pair<AbstractElementWithLocation,Precision> entry : pReached) {
+      for (Pair<AE,Precision> entry : pElements) {
         slice.add(new Pair<AbstractElement,Precision>(((CompositeElement)entry.getFirst()).get(i),
             ((CompositePrecision)entry.getSecond()).get(i)));
       }

@@ -19,7 +19,6 @@ import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
-import cpa.common.interfaces.ReachedSet;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
 import exceptions.CPAException;
@@ -83,7 +82,7 @@ public class ScopeRestrictionCPA implements ConfigurableProgramAnalysis {
     public <AE extends AbstractElement> Pair<AE, Precision> prec(
                                                                  AE pElement,
                                                                  Precision pPrecision,
-                                                                 ReachedSet pElements) {
+                                                                 Collection<Pair<AE, Precision>> pElements) {
       return new Pair<AE,Precision> (pElement, pPrecision);
     }
     

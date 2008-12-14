@@ -3,13 +3,13 @@
  */
 package cpa.symbpredabs.explicit;
 
+import java.util.Collection;
 
 import common.Pair;
 
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
-import cpa.common.interfaces.ReachedSet;
 
 /**
  * @author Michael Tautschnig <tautschnig@forsyte.de>
@@ -23,7 +23,7 @@ public class ExplicitPrecisionAdjustment implements PrecisionAdjustment {
   public <AE extends AbstractElement> Pair<AE, Precision> prec(
                                                                AE pElement,
                                                                Precision pPrecision,
-                                                               ReachedSet pElements) {
+                                                               Collection<Pair<AE, Precision>> pElements) {
     return new Pair<AE,Precision> (pElement, pPrecision);
   }
 
