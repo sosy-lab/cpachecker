@@ -8,6 +8,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Vector;
 
+import common.LocationMappedReachedSet;
+import common.LocationMappedReachedSetProjectionWrapper;
 import common.Pair;
 
 import logging.CustomLogLevel;
@@ -37,7 +39,16 @@ public class CPAAlgorithm
 	{
 	  List<Pair<AbstractElementWithLocation,Precision>> waitlist = new ArrayList<Pair<AbstractElementWithLocation,Precision>>();
 		Collection<Pair<AbstractElementWithLocation,Precision>> reached = createReachedSet(cpa);
-		Collection<AbstractElementWithLocation> simpleReached = new ProjectionWrapper(reached);
+		
+		Collection<AbstractElementWithLocation> simpleReached;
+		
+		// TODO Remove this hack
+		if (reached instanceof LocationMappedReachedSet) {
+		  simpleReached = new LocationMappedReachedSetProjectionWrapper((LocationMappedReachedSet)reached);
+		}
+		else {
+		  simpleReached = new ProjectionWrapper(reached);
+		}
 
 		LazyLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel, initialState,
 		" added as initial state to CPA");
