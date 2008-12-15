@@ -736,9 +736,13 @@ public class QueryDrivenProgramTesting {
         
       }
       
-      // TODO: invoke CBMC
-      //runCBMC(paths);
     }
+
+    // TODO: invoke CBMC
+    // inside the loop or outside?
+    //runCBMC(paths);
+    
+    AbstractPathToCTranslator.translatePaths(lPaths);
     
     return lPaths;
   }
