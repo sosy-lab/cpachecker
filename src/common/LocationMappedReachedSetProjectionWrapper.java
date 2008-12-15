@@ -4,11 +4,13 @@
 package common;
 
 import java.util.Collection;
+import java.util.Set;
 
 import cfa.objectmodel.CFANode;
 
 import cpa.common.ProjectionWrapper;
 import cpa.common.interfaces.AbstractElementWithLocation;
+import cpa.common.interfaces.Precision;
 
 /**
  * @author holzera
@@ -26,7 +28,13 @@ public class LocationMappedReachedSetProjectionWrapper extends
   }
   
   public Collection<AbstractElementWithLocation> get(CFANode loc) {
-    return new ProjectionWrapper(mSet.get(loc));
+    Set<Pair<AbstractElementWithLocation,Precision>> lSet = mSet.get(loc);
+    
+    if (lSet == null) {
+      return null;
+    }
+    
+    return new ProjectionWrapper(lSet);
   }
 
 }
