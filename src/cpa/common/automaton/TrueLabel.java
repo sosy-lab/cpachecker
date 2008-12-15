@@ -19,6 +19,20 @@ public class TrueLabel<E> implements Label<E> {
   }
 
   @Override
+  public boolean equals(Object pObject) {
+    if (pObject == null) {
+      return false;
+    }
+    
+    return (pObject instanceof TrueLabel<?>);
+  }
+  
+  @Override
+  public int hashCode() {
+    return 1;
+  }
+  
+  @Override
   public String toString() {
     return "true";
   }

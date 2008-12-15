@@ -29,7 +29,32 @@ public class OrLabel<E> implements Label<E> {
     
     return (mLabel1.matches(pE) || mLabel2.matches(pE));
   }
-
+  
+  @Override
+  public boolean equals(Object pObject) {
+    if (pObject == null) {
+      return false;
+    }
+    
+    if (!(pObject instanceof OrLabel<?>)) {
+      return false;
+    }
+    
+    OrLabel<?> lLabel = (OrLabel<?>)pObject;
+    
+    if ((mLabel1.equals(lLabel.mLabel1) && mLabel2.equals(mLabel2))
+        || (mLabel1.equals(lLabel.mLabel2) && mLabel2.equals(mLabel1))) {
+      return true;
+    }
+    
+    return false;
+  }
+  
+  @Override
+  public int hashCode() {
+    return mLabel1.hashCode() + mLabel2.hashCode();
+  }
+  
   @Override
   public String toString() {
     return "(" + mLabel1.toString() + " OR " + mLabel2.toString() + ")";

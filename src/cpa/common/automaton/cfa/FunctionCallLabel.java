@@ -28,6 +28,26 @@ public class FunctionCallLabel implements Label<CFAEdge> {
   }
   
   @Override
+  public boolean equals(Object pObject) {
+    if (pObject == null) {
+      return false;
+    }
+    
+    if (!(pObject instanceof FunctionCallLabel)) {
+      return false;
+    }
+    
+    FunctionCallLabel lLabel = (FunctionCallLabel)pObject;
+    
+    return mFunctionName.equals(lLabel.mFunctionName);
+  }
+  
+  @Override
+  public int hashCode() {
+    return mFunctionName.hashCode();
+  }
+  
+  @Override
   public String toString() {
     return "@CALL(" + mFunctionName + ")";
   }

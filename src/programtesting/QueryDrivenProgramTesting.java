@@ -147,7 +147,7 @@ public class QueryDrivenProgramTesting {
       
       CompositeElement lCompositeElement = (CompositeElement)pE.getFirst();
       
-      AbstractElement lTmpElement = lCompositeElement.get(2);
+      AbstractElement lTmpElement = lCompositeElement.get(mTestGoalCPAIndex);
       
       if (mAutomatonDomain.getBottomElement().equals(lTmpElement)) {
         Set<Pair<AbstractElementWithLocation,Precision>> lSet = mMap.get(TOP_INDEX);
@@ -217,7 +217,7 @@ public class QueryDrivenProgramTesting {
       
       CompositeElement lCompositeElement = (CompositeElement)lPair.getFirst();
       
-      AbstractElement lTmpElement = lCompositeElement.get(2);
+      AbstractElement lTmpElement = lCompositeElement.get(mTestGoalCPAIndex);
       
       if (mAutomatonDomain.getBottomElement().equals(lTmpElement)) {
         Set<Pair<AbstractElementWithLocation,Precision>> lSet = mMap.get(TOP_INDEX);
@@ -291,7 +291,7 @@ public class QueryDrivenProgramTesting {
       
       CompositeElement lCompositeElement = (CompositeElement)pO;
       
-      AbstractElement lTmpElement = lCompositeElement.get(2);
+      AbstractElement lTmpElement = lCompositeElement.get(mTestGoalCPAIndex);
       
       if (mAutomatonDomain.getBottomElement().equals(lTmpElement)) {
         Set<Pair<AbstractElementWithLocation,Precision>> lSet = mMap.get(TOP_INDEX);
@@ -531,6 +531,11 @@ public class QueryDrivenProgramTesting {
     return lPath;
   }
   
+  //private final static int mLocationCPAIndex = 0;
+  //private final static int mScopeRestrictionCPAIndex = 1;
+  private final static int mTestGoalCPAIndex = 3;
+  private final static int mAbstractionCPAIndex = 2;
+  
   public static Set<Deque<ExplicitAbstractElement>> doIt (CFAFunctionDefinitionNode pMainFunction) {
     // create compositeCPA from automaton CPA and pred abstraction
     // TODO this must be a CPAPlus actually
@@ -547,11 +552,6 @@ public class QueryDrivenProgramTesting {
     ScopeRestrictionCPA lScopeRestrictionCPA = new ScopeRestrictionCPA(lScopeRestrictionAutomaton);
     cpas.add(lScopeRestrictionCPA);
 
-    // get test goal automaton
-    Automaton<CFAEdge> lTestGoalAutomaton = getTestGoalAutomaton();
-    TestGoalCPA lTestGoalCPA = new TestGoalCPA(lTestGoalAutomaton);
-    cpas.add(lTestGoalCPA);
-
     // initialize symbolic predicate abstraction
     ExplicitCPA lExplicitAbstractionCPA = new ExplicitCPA("sep", "sep");
     cpas.add(lExplicitAbstractionCPA);
@@ -560,10 +560,11 @@ public class QueryDrivenProgramTesting {
     SymbolicFormulaManager lSFManager = lExplicitAbstractionCPA.getFormulaManager();
     
     
-    // create composite cpa
-    CompositeCPA cpa = CompositeCPA.createNewCompositeCPA(cpas, pMainFunction);
-       
-    WrapperCPA lWrapperCPA = new WrapperCPA(cpa, lTestGoalCPA.getAbstractDomain());
+    // get test goal automaton
+    Automaton<CFAEdge> lTestGoalAutomaton = getTestGoalAutomaton();
+    TestGoalCPA lTestGoalCPA = new TestGoalCPA(lTestGoalAutomaton);
+    cpas.add(lTestGoalCPA);
+    
     
     CPAAlgorithm algo = new CPAAlgorithm();
 
@@ -579,15 +580,27 @@ public class QueryDrivenProgramTesting {
       // TODO remove this output
       System.out.println("NEXT LOOP #####################");
       
-      // TODO: Simplify test goal automaton
       
-      // TODO: testGoals to be passed in as precision
+      cpas.remove(mTestGoalCPAIndex);
+      
+      Automaton<CFAEdge> lSimplifiedAutomaton = lTestGoalCPA.getAbstractDomain().getAutomaton().getSimplifiedAutomaton();
+      lTestGoals = lSimplifiedAutomaton.getFinalStates();
+      
+      lTestGoalCPA = new TestGoalCPA(lSimplifiedAutomaton);
+      cpas.add(lTestGoalCPA);
+      
+      // create composite cpa
+      CompositeCPA cpa = CompositeCPA.createNewCompositeCPA(cpas, pMainFunction);
+      WrapperCPA lWrapperCPA = new WrapperCPA(cpa, lTestGoalCPA.getAbstractDomain());
+      
+      
       AbstractElementWithLocation lInitialElement = lWrapperCPA.getInitialElement(pMainFunction);
       Precision lInitialPrecision = lWrapperCPA.getInitialPrecision(pMainFunction);
       
+      
       // TODO This is kind of a hack
       CompositePrecision lCompositePrecision = (CompositePrecision)lInitialPrecision;
-      TestGoalPrecision lTestGoalPrecision = (TestGoalPrecision)lCompositePrecision.get(2);
+      TestGoalPrecision lTestGoalPrecision = (TestGoalPrecision)lCompositePrecision.get(mTestGoalCPAIndex);
       // reset precision to test goals
       // TODO Hack
       lTestGoalPrecision.setTestGoals(lTestGoals);
@@ -597,26 +610,16 @@ public class QueryDrivenProgramTesting {
       try {
         lReachedElements = algo.CPA(lWrapperCPA, lInitialElement, lInitialPrecision);
         
-        // TODO Remove this output
-        System.out.println(lReachedElements);
-        
         // TODO: Remove this output
         for (AbstractElement lElement : lReachedElements) {
           System.out.println(lElement);
         }
       } catch (CPAException e1) {
-        // TODO Auto-generated catch block
         e1.printStackTrace();
         
         // end test case generation
         break;
       }
-      
-      // TODO: Remove infeasible test goals from lTestGoals
-      // These are the test goals in lTestGoals not occuring in lReachedElements
-      // The infeasible test goals are the test goals that remained in the precision
-      // we do not have to iterate through the set of reached elements
-      //removeInfeasibleTestGoals(testGoals, reached);
       
       // TODO Remove this output
       System.out.print("Infeasible Test Goals: ");
@@ -630,6 +633,10 @@ public class QueryDrivenProgramTesting {
       
       System.out.println("]");
       
+      // Remove the infeasible test goals. If the set of remaining final states is
+      // not empty this means that we have fully traversed an overapproximation
+      // of the reachable state space. This shows that the remaing goals are not
+      // reachable at all.
       lTestGoals.removeAll(lTestGoalPrecision.getRemainingFinalStates());
       
       for (AbstractElement lElement : lReachedElements) {
@@ -645,7 +652,7 @@ public class QueryDrivenProgramTesting {
         
         CompositeElement lCompositeElement = (CompositeElement)lElement;
           
-        AbstractElement lTmpElement = lCompositeElement.get(2);
+        AbstractElement lTmpElement = lCompositeElement.get(mTestGoalCPAIndex);
         
         assert(!lTestGoalCPA.getAbstractDomain().getBottomElement().equals(lTmpElement));
         
@@ -676,7 +683,7 @@ public class QueryDrivenProgramTesting {
 
               Deque<ExplicitAbstractElement> lPath =
                                                      getAbstractPath((ExplicitAbstractElement) lCompositeElement
-                                                         .get(3));
+                                                         .get(mAbstractionCPAIndex));
 
               CounterexampleTraceInfo lInfo =
                                               lEAFManager

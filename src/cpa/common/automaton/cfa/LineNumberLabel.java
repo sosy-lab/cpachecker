@@ -61,6 +61,26 @@ public class LineNumberLabel implements Label<CFAEdge> {
 	}
 	
 	@Override
+	public boolean equals(Object pObject) {
+	  if (pObject == null) {
+	    return false;
+	  }
+	  
+	  if (!(pObject instanceof LineNumberLabel)) {
+	    return false;
+	  }
+	  
+	  LineNumberLabel lLabel = (LineNumberLabel)pObject;
+	  
+	  return (mFileName.equals(lLabel.mFileName) && mLineNumber == lLabel.mLineNumber);
+	}
+	
+	@Override
+	public int hashCode() {
+	  return mFileName.hashCode() + mLineNumber;
+	}
+	
+	@Override
 	public String toString() {
 	  return "PC = (" + mFileName + "@LINE " + mLineNumber + ")";
 	}

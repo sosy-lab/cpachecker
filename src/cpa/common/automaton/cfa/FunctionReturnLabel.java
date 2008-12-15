@@ -28,6 +28,26 @@ public class FunctionReturnLabel implements Label<CFAEdge> {
   }
   
   @Override
+  public boolean equals(Object pObject) {
+    if (pObject == null) {
+      return false;
+    }
+    
+    if (!(pObject instanceof FunctionReturnLabel)) {
+      return false;
+    }
+    
+    FunctionReturnLabel lLabel = (FunctionReturnLabel)pObject;
+    
+    return mFunctionName.equals(lLabel.mFunctionName);
+  }
+  
+  @Override
+  public int hashCode() {
+    return mFunctionName.hashCode();
+  }
+  
+  @Override
   public String toString() {
     return "@RETURN(" + mFunctionName + ")";
   }
