@@ -8,8 +8,9 @@ import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Stack;
 
 import cfa.objectmodel.CFAEdge;
@@ -33,12 +34,12 @@ import cpa.symbpredabs.explicit.ExplicitAbstractElement;
  *
  */
 public class AbstractPathToCTranslator {
-  public static Collection<List<String>> translatePaths(Collection<Deque<ExplicitAbstractElement>> pPaths) {
+  public static Map<Deque<ExplicitAbstractElement>, List<String>> translatePaths(Collection<Deque<ExplicitAbstractElement>> pPaths) {
     assert(pPaths != null);
     
     int i = 0;
     
-    Collection<List<String>> lPathPrograms = new HashSet<List<String>>();
+    Map<Deque<ExplicitAbstractElement>, List<String>> lPathPrograms = new HashMap<Deque<ExplicitAbstractElement>, List<String>>();
     
     for (Deque<ExplicitAbstractElement> lAbstractPath : pPaths) {
       System.out.println("#### PATH " + i + " ####");
@@ -52,7 +53,7 @@ public class AbstractPathToCTranslator {
         System.out.println(lProgramString);
       }
       
-      lPathPrograms.add(lTranslation);
+      lPathPrograms.put(lAbstractPath, lTranslation);
       
       i++;
     }

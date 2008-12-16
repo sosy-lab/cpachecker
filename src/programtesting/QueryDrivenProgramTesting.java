@@ -743,9 +743,9 @@ public class QueryDrivenProgramTesting {
       
     }
     
-    Collection<List<String>> lTranslations = AbstractPathToCTranslator.translatePaths(lPaths);
+    Map<Deque<ExplicitAbstractElement>, List<String>> lTranslations = AbstractPathToCTranslator.translatePaths(lPaths);
     
-    for (List<String> lTranslation : lTranslations) {
+    for (Map.Entry<Deque<ExplicitAbstractElement>, List<String>> lTranslation : lTranslations.entrySet()) {
       try {
         File lFile = File.createTempFile("path", ".c");
         
@@ -753,15 +753,14 @@ public class QueryDrivenProgramTesting {
         
         PrintWriter lWriter = new PrintWriter(lFile);
 
-        for (String lFunctionString : lTranslation) {
+        for (String lFunctionString : lTranslation.getValue()) {
           lWriter.print(lFunctionString);
         }
         
         lWriter.close();
         
-        // TODO change entry function according to investigated path
-        // TODO Therefore, we need a data structure mapping paths to their corresponding translations
-        Process lCBMCProcess = Runtime.getRuntime().exec("cbmc --function foo_0 " + lFile.getAbsolutePath());
+        String lFunctionName = lTranslation.getKey().getFirst().getLocationNode().getFunctionName();
+        Process lCBMCProcess = Runtime.getRuntime().exec("cbmc --function " + lFunctionName + "_0 " + lFile.getAbsolutePath());
 
         // TODO Remove output --- begin
         BufferedReader lReader = new BufferedReader(new InputStreamReader(lCBMCProcess.getInputStream()));
