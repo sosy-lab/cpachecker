@@ -759,6 +759,8 @@ public class QueryDrivenProgramTesting {
         
         lWriter.close();
         
+        // TODO change entry function according to investigated path
+        // TODO Therefore, we need a data structure mapping paths to their corresponding translations
         Process lCBMCProcess = Runtime.getRuntime().exec("cbmc --function foo_0 " + lFile.getAbsolutePath());
 
         // TODO Remove output --- begin
