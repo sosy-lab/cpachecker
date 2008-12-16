@@ -9,10 +9,23 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.List;
+import java.util.Stack;
 
 import cfa.objectmodel.CFAEdge;
+import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cfa.objectmodel.CFANode;
 import cfa.objectmodel.c.AssumeEdge;
+import cfa.objectmodel.c.DeclarationEdge;
+import cfa.objectmodel.c.FunctionCallEdge;
+import cfa.objectmodel.c.FunctionDefinitionNode;
+import cfa.objectmodel.c.MultiDeclarationEdge;
+import cfa.objectmodel.c.MultiStatementEdge;
+import cfa.objectmodel.c.StatementEdge;
+
+import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
+import org.eclipse.cdt.core.dom.ast.IASTExpression;
+import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
+import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
 
 import cpa.symbpredabs.explicit.ExplicitAbstractElement;
 
@@ -38,6 +51,9 @@ public class AbstractPathToCTranslator {
   
   public static void translatePath(Deque<ExplicitAbstractElement> pAbstractPath) {
     assert(pAbstractPath != null);
+    
+    // TODO if pAbstractPath consists of zero or one element we have to cope
+    // it differently
     
     ExplicitAbstractElement lPredecessorElement = pAbstractPath.getFirst();
     
@@ -74,10 +90,78 @@ public class AbstractPathToCTranslator {
     translatePath(lEdges);
   }
   
-  public static void translatePath(List<CFAEdge> pAbstractPath) {
-    StringWriter lProgramTextWriter = new StringWriter();
-    PrintWriter lProgramText = new PrintWriter(lProgramTextWriter);
+  public static void endFunction(Stack<StringWriter> pProgramTextStack, List<String> pProgramTexts) {
+    assert(pProgramTextStack != null);
+
+    StringWriter lStringWriter = pProgramTextStack.pop();
+    PrintWriter pProgramText = new PrintWriter(lStringWriter);
     
+    // finish function
+    pProgramText.println("}");
+    
+    // function program text is finished, add it to set of program texts
+    pProgramTexts.add(lStringWriter.toString());
+  }
+  
+  public static PrintWriter startFunction(int pFunctionIndex, CFANode pNode, Stack<StringWriter> pProgramTextStack) {
+    assert(pNode != null);
+    assert(pNode instanceof FunctionDefinitionNode);
+    assert(pProgramTextStack != null);
+    
+    FunctionDefinitionNode lFunctionDefinitionNode = (FunctionDefinitionNode)pNode;
+    
+    IASTFunctionDefinition lFunctionDefinition = lFunctionDefinitionNode.getFunctionDefinition();
+    
+    List<IASTParameterDeclaration> lFunctionParameters = lFunctionDefinitionNode.getFunctionParameters();
+    
+    String lFunctionHeader = lFunctionDefinition.getDeclSpecifier().getRawSignature() + " " + lFunctionDefinitionNode.getFunctionName() + "_" + pFunctionIndex + "(";
+    
+    boolean lFirstFunctionParameter = true;
+    
+    for (IASTParameterDeclaration lFunctionParameter : lFunctionParameters) {
+      if (lFirstFunctionParameter) {
+        lFirstFunctionParameter = false;
+      }
+      else {
+        lFunctionHeader += ", ";
+      }
+      
+      lFunctionHeader += lFunctionParameter.getRawSignature();
+    }
+    
+    lFunctionHeader += ")";
+    
+    
+    StringWriter lFunctionStringWriter = new StringWriter();
+    
+    pProgramTextStack.add(lFunctionStringWriter);
+    
+    PrintWriter lProgramText = new PrintWriter(lFunctionStringWriter);
+    
+    lProgramText.println(lFunctionHeader);
+    
+    lProgramText.println("{");
+    
+    return lProgramText;
+  }
+  
+  public static void translatePath(List<CFAEdge> pAbstractPath) {
+    int lFunctionIndex = 0;
+    
+    // stack for program texts of different functions
+    Stack<StringWriter> lProgramTextStack = new Stack<StringWriter>();
+    
+    // list of already finished program texts
+    List<String> lProgramTexts = new ArrayList<String>();
+    
+    
+    // program text for start function 
+    PrintWriter lProgramText = startFunction(lFunctionIndex, pAbstractPath.get(0).getPredecessor(), lProgramTextStack);
+    
+    lFunctionIndex++;
+    
+    
+    // process edges
     for (CFAEdge lEdge : pAbstractPath) {
       System.out.println(lEdge.getRawStatement());
       
@@ -105,43 +189,92 @@ public class AbstractPathToCTranslator {
         break;
       }
       case StatementEdge: {
-        // TODO implement
-        assert(false);
+        StatementEdge lStatementEdge = (StatementEdge)lEdge;
+        
+        lProgramText.println(lStatementEdge.getExpression().getRawSignature() + ";");
         
         break;
       }
       case DeclarationEdge: {
-        // TODO implement
-        assert(false);
+        DeclarationEdge lDeclarationEdge = (DeclarationEdge)lEdge;
         
+        lProgramText.println(lDeclarationEdge.getRawStatement());
+        
+        /*IASTDeclarator[] lDeclarators = lDeclarationEdge.getDeclarators();
+        
+        assert(lDeclarators.length == 1);
+        
+        // TODO what about function pointers?
+        lProgramText.println(lDeclarationEdge.getDeclSpecifier().getRawSignature() + " " + lDeclarators[0].getRawSignature() + ";");
+          */      
         break;
       }
       case FunctionCallEdge: {
-        // TODO implement
-        assert(false);
+        FunctionCallEdge lFunctionCallEdge = (FunctionCallEdge)lEdge;
+        
+        String lFunctionName = lFunctionCallEdge.getSuccessor().getFunctionName();
+        
+        
+        String lArgumentString = "(";
+        
+        boolean lFirstArgument = true;
+        
+        for (IASTExpression lArgument : lFunctionCallEdge.getArguments()) {
+          if (lFirstArgument) {
+            lFirstArgument = false;
+          }
+          else {
+            lArgumentString += ", ";
+          }
+          
+          lArgumentString += lArgument.getRawSignature();
+        }
+        
+        lArgumentString += ")";
+        
+        
+        lProgramText.println(lFunctionName + "_" + lFunctionIndex + lArgumentString + ";");
+        
+        
+        lProgramText = startFunction(lFunctionIndex, lFunctionCallEdge.getSuccessor(), lProgramTextStack);
+        
+        lFunctionIndex++;
         
         break;
       }
       case ReturnEdge: {
-        // TODO implement
-        assert(false);
+        endFunction(lProgramTextStack, lProgramTexts);
+        
+        lProgramText = new PrintWriter(lProgramTextStack.peek());
         
         break;
       }
       case MultiStatementEdge: {
-        // TODO implement
-        assert(false);
+        MultiStatementEdge lMultiStatementEdge = (MultiStatementEdge)lEdge;
+        
+        for (IASTExpression lExpression : lMultiStatementEdge.getExpressions()) {
+          lProgramText.println(lExpression.getRawSignature() + ";");
+        }
         
         break;
       }
       case MultiDeclarationEdge: {
-        // TODO implement
-        assert(false);
+        MultiDeclarationEdge lMultiDeclarationEdge = (MultiDeclarationEdge)lEdge;
+        
+        lProgramText.println(lMultiDeclarationEdge.getRawStatement());
+        
+        /*List<IASTDeclarator[]> lDecls = lMultiDeclarationEdge.getDeclarators();
+        
+        lMultiDeclarationEdge.getRawStatement()
+        
+        for (IASTDeclarator[] lDeclarators : lDecls) {
+          
+        }*/
         
         break;
       }
       case CallToReturnEdge: {
-        // TODO implement
+        // this should not have been taken
         assert(false);
         
         break;
@@ -152,6 +285,16 @@ public class AbstractPathToCTranslator {
       }
     }
     
-    System.out.println(lProgramTextWriter.toString());
+    // clean stack and finish functions
+    while (!lProgramTextStack.isEmpty()) {
+      endFunction(lProgramTextStack, lProgramTexts);
+    }
+    
+    // TODO remove output
+    System.out.println("Written program text:");
+    
+    for (String lProgramString : lProgramTexts) {
+      System.out.println(lProgramString);
+    }
   }
 }
