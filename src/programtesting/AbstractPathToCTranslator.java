@@ -8,11 +8,11 @@ import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Stack;
 
 import cfa.objectmodel.CFAEdge;
-import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cfa.objectmodel.CFANode;
 import cfa.objectmodel.c.AssumeEdge;
 import cfa.objectmodel.c.DeclarationEdge;
@@ -22,7 +22,6 @@ import cfa.objectmodel.c.MultiDeclarationEdge;
 import cfa.objectmodel.c.MultiStatementEdge;
 import cfa.objectmodel.c.StatementEdge;
 
-import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
 import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
@@ -34,28 +33,57 @@ import cpa.symbpredabs.explicit.ExplicitAbstractElement;
  *
  */
 public class AbstractPathToCTranslator {
-  public static void translatePaths(Collection<Deque<ExplicitAbstractElement>> pPaths) {
+  public static Collection<List<String>> translatePaths(Collection<Deque<ExplicitAbstractElement>> pPaths) {
     assert(pPaths != null);
     
     int i = 0;
     
+    Collection<List<String>> lPathPrograms = new HashSet<List<String>>();
+    
     for (Deque<ExplicitAbstractElement> lAbstractPath : pPaths) {
       System.out.println("#### PATH " + i + " ####");
       
-      translatePath(lAbstractPath);
+      List<String> lTranslation = translatePath(lAbstractPath);
+      
+      // TODO remove output
+      System.out.println("Written program text:");
+      
+      for (String lProgramString : lTranslation) {
+        System.out.println(lProgramString);
+      }
+      
+      lPathPrograms.add(lTranslation);
       
       i++;
     }
     
+    return lPathPrograms;
   }
   
-  public static void translatePath(Deque<ExplicitAbstractElement> pAbstractPath) {
+  public static List<String> translatePath(Deque<ExplicitAbstractElement> pAbstractPath) {
     assert(pAbstractPath != null);
+    assert(pAbstractPath.size() > 0);
     
-    // TODO if pAbstractPath consists of zero or one element we have to cope
-    // it differently
+    
     
     ExplicitAbstractElement lPredecessorElement = pAbstractPath.getFirst();
+    
+    if (pAbstractPath.size() == 1) {
+      // special case
+      
+      // stack for program texts of different functions
+      Stack<StringWriter> lProgramTextStack = new Stack<StringWriter>();
+      
+      // list of already finished program texts
+      List<String> lProgramTexts = new ArrayList<String>();
+      
+      startFunction(0, lPredecessorElement.getLocationNode(), lProgramTextStack);
+      
+      endFunction(lProgramTextStack, lProgramTexts);
+      
+      return lProgramTexts;
+    }
+    
     
     boolean first = true;
     
@@ -87,7 +115,7 @@ public class AbstractPathToCTranslator {
       lPredecessorElement = lElement;
     }
     
-    translatePath(lEdges);
+    return translatePath(lEdges);
   }
   
   public static void endFunction(Stack<StringWriter> pProgramTextStack, List<String> pProgramTexts) {
@@ -145,7 +173,7 @@ public class AbstractPathToCTranslator {
     return lProgramText;
   }
   
-  public static void translatePath(List<CFAEdge> pAbstractPath) {
+  public static List<String> translatePath(List<CFAEdge> pAbstractPath) {
     int lFunctionIndex = 0;
     
     // stack for program texts of different functions
@@ -290,11 +318,6 @@ public class AbstractPathToCTranslator {
       endFunction(lProgramTextStack, lProgramTexts);
     }
     
-    // TODO remove output
-    System.out.println("Written program text:");
-    
-    for (String lProgramString : lProgramTexts) {
-      System.out.println(lProgramString);
-    }
+    return lProgramTexts;
   }
 }
