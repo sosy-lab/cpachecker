@@ -23,10 +23,15 @@ Warning: Should not have multiple jump edges leaving at line: 1232
 - Use iterators instead of get(i), this is CLEANER, SAFER, and FASTER in general
   (unless impossible, of course)
 
-- Cleanup cpa.common and move the composite stuff to compositecpa
+- Cleanup cpa.common and move the composite stuff to compositecpa,
+  CPAType.java could probably be removed rightaway
 
-- null precision after refinement
+- Whenever doRefinement (of CPAAlgorithm.java) is called it will add null
+  precisions to the waitlist, because RefinementNeededException does not provide
+  sufficient information.
+
 - in createReachedSet use a safe cast instead of reflection+cruel cast
+
 - compositestop is borked (does not care about precision)
 
 - add basic implementations of stop, mergesep/join, precision stuff
@@ -36,6 +41,9 @@ Warning: Should not have multiple jump edges leaving at line: 1232
 
 - move getInitialElement to its own class
   * method makeInitialElement (AE, AEwLoc, must be static)
+  * I'd suggest introducing CPABuilder and *Builder classes that instantiate a
+    CPA, know how to create proper initial elements (with or without location
+    information), and do the initialPrecision stuff
 
 - cleanup CPAMain
   * make separate function "preprocess"
@@ -56,6 +64,17 @@ Warning: Should not have multiple jump edges leaving at line: 1232
   -- this has been fixed in r318, but deserves further testing whether it is
   really fixed
   -- the fix in r318 was reverted in r319
-
+  -- A possible solution introducing a wrapper class was added in
+  r320-r322,r325, benchmarking is ongoing as of 2008-12-15
+  -- Another possible idea is a general implementation of the ReachedSet as a
+  multipmap of AbstractElements -> { Precisions }, with an additional option to
+  specify a Comperator to obtain a "good" sorting of the keys. What is the
+  crucial lessons we learnt while going back and forth so far:
+  * The CPA+ algorithms requires that a projection of
+    AbstractElements(WithLocation) is performed (efficiently)
+  * If an interface "ReachedSet" is introduced somewhere take care that some
+    CPAs only provide AbstractElement, not WithLocation, and if
+    AbstractElementWithLocation becomes a defining part of the ReachedSet
+    interface, ReachedSet cannot be used as part of each and every CPA
 
 
