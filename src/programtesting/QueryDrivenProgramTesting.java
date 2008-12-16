@@ -3,6 +3,11 @@
  */
 package programtesting;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
@@ -737,12 +742,63 @@ public class QueryDrivenProgramTesting {
       }
       
     }
-
-    // TODO: invoke CBMC
-    // inside the loop or outside?
-    //runCBMC(paths);
     
-    AbstractPathToCTranslator.translatePaths(lPaths);
+    Collection<List<String>> lTranslations = AbstractPathToCTranslator.translatePaths(lPaths);
+    
+    for (List<String> lTranslation : lTranslations) {
+      try {
+        File lFile = File.createTempFile("path", ".c");
+        
+        lFile.deleteOnExit();
+        
+        PrintWriter lWriter = new PrintWriter(lFile);
+
+        for (String lFunctionString : lTranslation) {
+          lWriter.print(lFunctionString);
+        }
+        
+        lWriter.close();
+        
+        Process lCBMCProcess = Runtime.getRuntime().exec("cbmc --function foo_0 " + lFile.getAbsolutePath());
+
+        // TODO Remove output --- begin
+        BufferedReader lReader = new BufferedReader(new InputStreamReader(lCBMCProcess.getInputStream()));
+        
+        String lLine = null;
+        
+        while ((lLine = lReader.readLine()) != null) {
+          System.out.println(lLine);
+        }
+        
+        BufferedReader lErrorReader = new BufferedReader(new InputStreamReader(lCBMCProcess.getErrorStream()));
+        
+        String lErrorLine = null;
+        
+        while ((lErrorLine = lErrorReader.readLine()) != null) {
+          System.out.println(lErrorLine);
+        }
+        // TODO Remove output --- end
+        
+        int lCBMCExitValue = lCBMCProcess.waitFor();
+        
+        // lCBMCExitValue == 0 : Verification successful (Path is infeasible)
+        // lCBMCExitValue == 10 : Verification failed (Path is feasible)
+        // lCBMCExitValue == 6 : Start function symbol not found
+        // more error codes?
+        // TODO what to do with feasibility information?
+        assert(lCBMCExitValue == 10);
+      } catch (IOException e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+        
+        System.exit(1);
+      } catch (InterruptedException e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+        
+        System.exit(1);
+      }
+    }
     
     return lPaths;
   }

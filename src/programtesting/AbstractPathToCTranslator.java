@@ -124,6 +124,11 @@ public class AbstractPathToCTranslator {
     StringWriter lStringWriter = pProgramTextStack.pop();
     PrintWriter pProgramText = new PrintWriter(lStringWriter);
     
+    // TODO This is a hack
+    if (pProgramTextStack.isEmpty()) {
+      pProgramText.println("__CPROVER_assert(0, \"path feasible\");");
+    }
+    
     // finish function
     pProgramText.println("}");
     
