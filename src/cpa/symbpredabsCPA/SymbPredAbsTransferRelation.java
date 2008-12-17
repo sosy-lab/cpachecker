@@ -182,56 +182,45 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
     if(edge instanceof FunctionCallEdge){
       // TODO check
-      PathFormula functionInitFormula = new PathFormula(element.getPathFormula().getSymbolicFormula(), 
-          element.getPathFormula().getSsa());
+//    PathFormula functionInitFormula = new PathFormula(element.getPathFormula().getSymbolicFormula(), 
+//    element.getPathFormula().getSsa());
       PathFormula functionUpdatedFormula1 = toPathFormula(symbolicFormulaManager.makeAnd(element.getPathFormula().getSymbolicFormula(), 
           edge, element.getPathFormula().getSsa(), false, false));
 
-      MathsatSymbolicFormulaManager mathsatManager = (MathsatSymbolicFormulaManager) symbolicFormulaManager;
+//    MathsatSymbolicFormulaManager mathsatManager = (MathsatSymbolicFormulaManager) symbolicFormulaManager;
 
-      PathFormula functionUpdatedFormula2 = toPathFormula(mathsatManager.makeAndEnterFunction(
-          ((MathsatSymbolicFormula)mathsatManager.makeTrue()), edge.getSuccessor(),
-          functionUpdatedFormula1.getSsa(), false, false));
+//    PathFormula functionUpdatedFormula2 = toPathFormula(mathsatManager.makeAndEnterFunction(
+//    ((MathsatSymbolicFormula)mathsatManager.makeTrue()), edge.getSuccessor(),
+//    functionUpdatedFormula1.getSsa(), false, false));
 
-      Pair<Pair<SymbolicFormula, SymbolicFormula>,SSAMap> pm = mathsatManager.mergeSSAMaps(functionUpdatedFormula2.getSsa(), functionUpdatedFormula1.getSsa(), false);
-//    MathsatSymbolicFormula old = (MathsatSymbolicFormula)mathsatManager.makeAnd(
-//    functionUpdatedFormula2.getSymbolicFormula(), functionUpdatedFormula1.getSymbolicFormula());
-//    SymbolicFormula newFormula = mathsatManager.makeAnd( functionUpdatedFormula1.getSymbolicFormula(), pm.getFirst().getSecond());
-      SymbolicFormula newFormula = mathsatManager.makeAnd(functionUpdatedFormula1.getSymbolicFormula(), functionUpdatedFormula2.getSymbolicFormula());
-      functionUpdatedFormula = new PathFormula(newFormula, pm.getSecond());
+//    Pair<Pair<SymbolicFormula, SymbolicFormula>,SSAMap> pm = mathsatManager.mergeSSAMaps(functionUpdatedFormula2.getSsa(), functionUpdatedFormula1.getSsa(), false);
+//    SymbolicFormula newFormula = mathsatManager.makeAnd(functionUpdatedFormula1.getSymbolicFormula(), functionUpdatedFormula2.getSymbolicFormula());
+//    functionUpdatedFormula = new PathFormula(newFormula, pm.getSecond());
 
-//    functionInitFormula = toPathFormula(((MathsatSymbolicFormulaManager)symbolicFormulaManager).makeAndEnterFunction(
-//    (MathsatSymbolicFormula)functionInitFormula.getSymbolicFormula(), edge.getSuccessor(),
-//    functionInitFormula.getSsa(), false, false));
-
-      // TODO check
-
-//    m1 = (MathsatSymbolicFormula)p.getSymbolicFormula();
-//    f1 = m1;
-//    ssa = p.getSsa();
-      assert(functionInitFormula != null);
-      newElement.setInitAbstractionSet(functionInitFormula);
-
-      abst = bddAbstractFormulaManager.buildAbstraction(symbolicFormulaManager, abs, functionUpdatedFormula, pmap.getRelevantPredicates(edge.getSuccessor()), null);
+//    assert(functionInitFormula != null);
+      newElement.setInitAbstractionSet(functionUpdatedFormula1);
+      //functionUpdatedFormula = functionInitFormula;
+      abst = bddAbstractFormulaManager.buildAbstraction(symbolicFormulaManager, abs, functionUpdatedFormula1, pmap.getRelevantPredicates(edge.getSuccessor()), null);
     }
     else if(edge instanceof ReturnEdge){
-      // TODO check
-      PathFormula functionInitFormula = toPathFormula(symbolicFormulaManager.makeAnd(element.getPathFormula().getSymbolicFormula(), 
-          edge, element.getPathFormula().getSsa(), false, false));
-
-      assert(functionInitFormula != null);
-      newElement.setInitAbstractionSet(functionInitFormula);
-
-      functionUpdatedFormula = functionInitFormula;
 
       CallToReturnEdge summaryEdge = edge.getSuccessor().getEnteringSummaryEdge();
-      SymbPredAbsAbstractElement previousElem = (SymbPredAbsAbstractElement)summaryEdge.extractAbstractElement("SymbPredAbsAbstractElement");
-      MathsatSymbolicFormulaManager mmgr = (MathsatSymbolicFormulaManager) symbolicFormulaManager;
+      pf = toPathFormula(symbolicFormulaManager.makeAnd(symbolicFormulaManager.makeTrue(), 
+          edge, new SSAMap(), false, false));
+      newElement.setPathFormula(pf);
 
-      AbstractFormula ctx = previousElem.getAbstraction();
-      MathsatSymbolicFormula fctx = (MathsatSymbolicFormula)mmgr.instantiate(abstractFormulaManager.toConcrete(mmgr, ctx), null);
+      PathFormula functionInitFormula = toPathFormula(symbolicFormulaManager.makeAnd(element.getPathFormula().getSymbolicFormula(), 
+          summaryEdge, element.getPathFormula().getSsa(), false, false));
 
-      abst = bddAbstractFormulaManager.buildAbstraction(symbolicFormulaManager, abs, functionUpdatedFormula, pmap.getRelevantPredicates(edge.getSuccessor()), fctx);
+      newElement.setInitAbstractionSet(functionInitFormula);
+
+//    SymbPredAbsAbstractElement previousElem = (SymbPredAbsAbstractElement)summaryEdge.extractAbstractElement("SymbPredAbsAbstractElement");
+//    MathsatSymbolicFormulaManager mmgr = (MathsatSymbolicFormulaManager) symbolicFormulaManager;
+
+//    AbstractFormula ctx = previousElem.getAbstraction();
+//    MathsatSymbolicFormula fctx = (MathsatSymbolicFormula)mmgr.instantiate(abstractFormulaManager.toConcrete(mmgr, ctx), null);
+
+      abst = bddAbstractFormulaManager.buildAbstraction(symbolicFormulaManager, abs, functionInitFormula, pmap.getRelevantPredicates(edge.getSuccessor()), null);
     }
     else{
       newElement.setInitAbstractionSet(element.getPathFormula());
@@ -254,12 +243,15 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     //System.out.println(abstractFormulaManager.toConcrete(symbolicFormulaManager, newElement.getAbstraction()));
 
     if (abstractFormulaManager.isFalse(abst)) {
-      System.out.println("abstraction is set to FALSE");
+      //System.out.println("abstraction is set to FALSE");
       newElement.isBottomElement = true;
       return;
     }
     else{
       newElement.setArtParent(element);
+      if (!newElement.isBottomElement) {
+        abstractTree.addChild(element, newElement);
+      }
       ++numAbstractStates;
       // if we reach an error state, we want to log this...
       if (edge.getSuccessor() instanceof CFAErrorNode) {
@@ -282,7 +274,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
           artParent = artParent.getArtParent();
         }
         // TODO traceInfo is a abstractElement -> PredicateList map
-       System.out.println("PATH::::::::::: "+ path);
+        //System.out.println("PATH::::::::::: "+ path);
         CounterexampleTraceInfo info = bddAbstractFormulaManager.buildCounterexampleTrace(
             symbolicFormulaManager, path);
         if (info.isSpurious()) {
@@ -330,10 +322,6 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     //System.out.println(cfaEdge);
     SymbPredAbsAbstractElement e = (SymbPredAbsAbstractElement)element;
     AbstractElement ret = buildSuccessor(e, cfaEdge);
-
-    if (!((SymbPredAbsAbstractElement)ret).isBottomElement) {
-      abstractTree.addChild(e, (SymbPredAbsAbstractElement)ret);
-    }
 
     return ret;
 
@@ -400,15 +388,15 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     SymbPredAbsCPA cpa = domain.getCPA();
     for (AbstractElement e : toUnreachTmp) {
       toUnreach.add(e);
-      Set<SymbPredAbsAbstractElement> cov = cpa.getCoveredBy(
-          (SymbPredAbsAbstractElement)e);
-      for (AbstractElement c : cov) {
-        if (!((SymbPredAbsAbstractElement)c).isDescendant(
-            (SymbPredAbsAbstractElement)root)) {
-          toWaitlist.add(c);
-        }
-      }
-      cpa.uncoverAll((SymbPredAbsAbstractElement)e);
+//    Set<SymbPredAbsAbstractElement> cov = cpa.getCoveredBy(
+//    (SymbPredAbsAbstractElement)e);
+//    for (AbstractElement c : cov) {
+//    if (!((SymbPredAbsAbstractElement)c).isDescendant(
+//    (SymbPredAbsAbstractElement)root)) {
+//    toWaitlist.add(c);
+//    }
+//    }
+//    cpa.uncoverAll((SymbPredAbsAbstractElement)e);
     }
 //  Collection<AbstractElement> toUnreach = new Vector<AbstractElement>();
 //  boolean add = false;
@@ -422,14 +410,10 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     LazyLogger.log(LazyLogger.DEBUG_1, "REFINEMENT - toWaitlist: ", root);
     LazyLogger.log(LazyLogger.DEBUG_1, "REFINEMENT - toUnreach: ",
         toUnreach);
-    System.out.println("================================");
-    System.out.println(toUnreach);
-    System.out.println(" --- \n "+ toWaitlist);
-    System.out.println("================================");
-    // TODO This cannot work as it would result in replacing values of the waitlist (composite elements)
-    // with objects created in here (of type SymbPredAbsAbstractElement)
-    assert (false);
-    // throw new RefinementNeededException(toUnreach, toWaitlist);
+//  System.out.println("================================");
+//  System.out.println(toUnreach);
+//  System.out.println("================================");
+    throw new RefinementNeededException(toUnreach, toWaitlist);
   }
 
   @Override
