@@ -3,11 +3,6 @@
  */
 package programtesting;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
@@ -19,6 +14,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.Map.Entry;
+
+import predicateabstraction.ThreeValuedBoolean;
 
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
@@ -744,61 +742,21 @@ public class QueryDrivenProgramTesting {
     }
     
     Map<Deque<ExplicitAbstractElement>, List<String>> lTranslations = AbstractPathToCTranslator.translatePaths(lPaths);
-    
-    for (Map.Entry<Deque<ExplicitAbstractElement>, List<String>> lTranslation : lTranslations.entrySet()) {
-      try {
-        File lFile = File.createTempFile("path", ".c");
-        
-        lFile.deleteOnExit();
-        
-        PrintWriter lWriter = new PrintWriter(lFile);
 
-        for (String lFunctionString : lTranslation.getValue()) {
-          lWriter.print(lFunctionString);
-        }
-        
-        lWriter.close();
-        
-        String lFunctionName = lTranslation.getKey().getFirst().getLocationNode().getFunctionName();
-        Process lCBMCProcess = Runtime.getRuntime().exec("cbmc --function " + lFunctionName + "_0 " + lFile.getAbsolutePath());
-
-        // TODO Remove output --- begin
-        BufferedReader lReader = new BufferedReader(new InputStreamReader(lCBMCProcess.getInputStream()));
-        
-        String lLine = null;
-        
-        while ((lLine = lReader.readLine()) != null) {
-          System.out.println(lLine);
-        }
-        
-        BufferedReader lErrorReader = new BufferedReader(new InputStreamReader(lCBMCProcess.getErrorStream()));
-        
-        String lErrorLine = null;
-        
-        while ((lErrorLine = lErrorReader.readLine()) != null) {
-          System.out.println(lErrorLine);
-        }
-        // TODO Remove output --- end
-        
-        int lCBMCExitValue = lCBMCProcess.waitFor();
-        
-        // lCBMCExitValue == 0 : Verification successful (Path is infeasible)
-        // lCBMCExitValue == 10 : Verification failed (Path is feasible)
-        // lCBMCExitValue == 6 : Start function symbol not found
-        // more error codes?
-        // TODO what to do with feasibility information?
-        assert(lCBMCExitValue == 10);
-      } catch (IOException e) {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
-        
-        System.exit(1);
-      } catch (InterruptedException e) {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
-        
-        System.exit(1);
-      }
+    for (Entry<Deque<ExplicitAbstractElement>,ThreeValuedBoolean> lVerified : CProver.checkSat(lTranslations).entrySet()) {
+     switch (lVerified.getValue()) {
+     case TRUE:
+     {
+       // test goal satisfied
+       break;
+     }
+     case DONTKNOW:
+     case FALSE:
+     {
+       // test goal still not matched
+       break;
+     }
+     }
     }
     
     return lPaths;
