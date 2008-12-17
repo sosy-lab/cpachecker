@@ -77,4 +77,6 @@ Warning: Should not have multiple jump edges leaving at line: 1232
     AbstractElementWithLocation becomes a defining part of the ReachedSet
     interface, ReachedSet cannot be used as part of each and every CPA
 
+- Refactor the TheoremProver (and similarly named ones) interfaces and move all
+  the decision procedures related stuff to its own package
 
