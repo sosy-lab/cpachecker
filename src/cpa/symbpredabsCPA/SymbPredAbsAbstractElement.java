@@ -254,21 +254,6 @@ implements AbstractElement {
 	}
 
 	public void setInitAbstractionSet(PathFormula initFormula) {
-		SymbolicFormulaManager mgr = domain.getCPA().getSymbolicFormulaManager();
-		SSAMap ssa = new SSAMap();
-		SymbolicFormula f = mgr.makeFalse();
-		Pair<Pair<SymbolicFormula, SymbolicFormula>, SSAMap> mp =
-			mgr.mergeSSAMaps(ssa, initFormula.getSsa(), false);
-		SymbolicFormula curf = initFormula.getSymbolicFormula();
-		// TODO modified if
-		if (true) {
-			curf = ((MathsatSymbolicFormulaManager)mgr).replaceAssignments((MathsatSymbolicFormula)curf);
-		}
-		f = mgr.makeAnd(f, mp.getFirst().getFirst());
-		curf = mgr.makeAnd(curf, mp.getFirst().getSecond());
-		f = mgr.makeOr(f, curf);
-		ssa = mp.getSecond();
-		initFormula = new PathFormula(f,ssa);
 		this.initAbstractionFormula = initFormula;
 	}
 

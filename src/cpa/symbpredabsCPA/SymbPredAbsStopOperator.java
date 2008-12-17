@@ -29,8 +29,8 @@ public class SymbPredAbsStopOperator implements StopOperator {
   }
 
 
-    public <AE extends AbstractElement> boolean stop(AE element,
-            Collection<AE> reached, Precision prec) throws CPAException {
+  public <AE extends AbstractElement> boolean stop (AE element, Collection<AE> reached, Precision prec) throws CPAException
+  {
 
     for (AbstractElement e : reached) {
       if (stop(element, e)) {
@@ -51,7 +51,7 @@ public class SymbPredAbsStopOperator implements StopOperator {
     // TODO
 //  if(e1.getLocation().equals(e2.getLocation())){
     // TODO check
-    //	boolean b = cpa.isAbstractionLocation(e1.getLocation());
+    //  boolean b = cpa.isAbstractionLocation(e1.getLocation());
     boolean b = e1.isAbstractionNode();
     // if not an abstraction location
     if(!b){
@@ -65,55 +65,55 @@ public class SymbPredAbsStopOperator implements StopOperator {
 //      "NO, not covered");
 //      }
         return ok;
-        //	}
+        //  }
 //      else{
 //      return false;
 //      }
       }
       return false;
     }
-      // if abstraction location
-      else{
-        SymbolicFormulaManager mgr = cpa.getSymbolicFormulaManager();   
-        LazyLogger.log(LazyLogger.DEBUG_4,
-            "Checking Coverage of element: ", element);
+    // if abstraction location
+    else{
+      SymbolicFormulaManager mgr = cpa.getSymbolicFormulaManager();   
+      LazyLogger.log(LazyLogger.DEBUG_4,
+          "Checking Coverage of element: ", element);
 
-//      if (!e1.sameContext(e2)) {
-//      LazyLogger.log(CustomLogLevel.SpecificCPALevel,
-//      "NO, not covered: context differs");
-//      return false;
-//      }
-
-        SymbPredAbsCPA cpa = domain.getCPA();
-        AbstractFormulaManager amgr = cpa.getAbstractFormulaManager();
-
-        assert(e1.getAbstraction() != null);
-        assert(e2.getAbstraction() != null);
-
-        if(!e1.getParents().equals(e2.getParents()) &&
-            !(mgr.entails(e1.getPathFormula().getSymbolicFormula(), e2.getPathFormula().getSymbolicFormula())
-            && mgr.entails(e2.getPathFormula().getSymbolicFormula(), e1.getPathFormula().getSymbolicFormula()))
-            ){
-          return false;
-        }
-
-        boolean ok = amgr.entails(e1.getAbstraction(), e2.getAbstraction());
-
-        if (ok) {
-          LazyLogger.log(CustomLogLevel.SpecificCPALevel,
-              "Element: ", element, " COVERED by: ", e2);
-          cpa.setCoveredBy(e1, e2);
-        } else {
-          LazyLogger.log(CustomLogLevel.SpecificCPALevel,
-              "NO, not covered");
-        }
-
-        return ok;
-      }
-      //}
-      // TODO if locations are different
-//    else{
+//    if (!e1.sameContext(e2)) {
+//    LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+//    "NO, not covered: context differs");
 //    return false;
 //    }
+
+      SymbPredAbsCPA cpa = domain.getCPA();
+      AbstractFormulaManager amgr = cpa.getAbstractFormulaManager();
+
+      assert(e1.getAbstraction() != null);
+      assert(e2.getAbstraction() != null);
+
+      if(!e1.getParents().equals(e2.getParents()) &&
+          !(mgr.entails(e1.getPathFormula().getSymbolicFormula(), e2.getPathFormula().getSymbolicFormula())
+              && mgr.entails(e2.getPathFormula().getSymbolicFormula(), e1.getPathFormula().getSymbolicFormula()))
+      ){
+        return false;
+      }
+
+      boolean ok = amgr.entails(e1.getAbstraction(), e2.getAbstraction());
+
+      if (ok) {
+        LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+            "Element: ", element, " COVERED by: ", e2);
+        // cpa.setCoveredBy(e1, e2);
+      } else {
+        LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+            "NO, not covered");
+      }
+
+      return ok;
     }
+    //}
+    // TODO if locations are different
+//  else{
+//  return false;
+//  }
   }
+}

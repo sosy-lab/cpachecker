@@ -34,6 +34,7 @@ import cpa.symbpredabs.InterpolatingTheoremProver;
 import cpa.symbpredabs.Predicate;
 import cpa.symbpredabs.PredicateMap;
 import cpa.symbpredabs.SSAMap;
+import cpa.symbpredabs.SymbPredAbstPrecision;
 import cpa.symbpredabs.SymbolicFormulaManager;
 import cpa.symbpredabs.TheoremProver;
 import cpa.symbpredabs.UpdateablePredicateMap;
@@ -53,7 +54,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis {
   private PrecisionAdjustment precisionAdjustment;
   private MathsatSymbolicFormulaManager mgr;
   private BDDMathsatSymbPredAbstractionAbstractManager amgr;
-  private Map<SymbPredAbsAbstractElement, Set<SymbPredAbsAbstractElement>> covers;
+  //private Map<SymbPredAbsAbstractElement, Set<SymbPredAbsAbstractElement>> covers;
   private PredicateMap pmap;
 
   // TODO later
@@ -78,8 +79,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis {
     InterpolatingTheoremProver itpProver =
       new MathsatInterpolatingProver(mgr, false);
     amgr = new BDDMathsatSymbPredAbstractionAbstractManager(thmProver, itpProver);
-    covers = new HashMap<SymbPredAbsAbstractElement,
-    Set<SymbPredAbsAbstractElement>>();
+    //covers = new HashMap<SymbPredAbsAbstractElement, Set<SymbPredAbsAbstractElement>>();
     domain = new SymbPredAbsAbstractDomain(this);
     trans = new SymbPredAbsTransferRelation(domain, mgr, amgr);
     merge = new SymbPredAbsMergeOperator(domain);
@@ -143,10 +143,10 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis {
     return stop;
   }
 
-  @Override
-  public PrecisionAdjustment getPrecisionAdjustment() {
-    return precisionAdjustment;
-  }
+//  @Override
+//  public PrecisionAdjustment getPrecisionAdjustment() {
+//    return precisionAdjustment;
+//  }
 
   public AbstractFormulaManager getAbstractFormulaManager() {
     return amgr;
@@ -160,31 +160,31 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis {
     return pmap;
   }
 
-  public Set<SymbPredAbsAbstractElement> getCoveredBy(SymbPredAbsAbstractElement e){
-    if (covers.containsKey(e)) {
-      return covers.get(e);
-    } else {
-      return Collections.emptySet();
-    }
-  }
-
-  public void setCoveredBy(SymbPredAbsAbstractElement covered,
-                           SymbPredAbsAbstractElement e) {
-    Set<SymbPredAbsAbstractElement> s;
-    if (covers.containsKey(e)) {
-      s = covers.get(e);
-    } else {
-      s = new HashSet<SymbPredAbsAbstractElement>();
-    }
-    s.add(covered);
-    covers.put(e, s);
-  }
-
-  public void uncoverAll(SymbPredAbsAbstractElement e) {
-    if (covers.containsKey(e)) {
-      covers.remove(e);
-    }
-  }
+//  public Set<SymbPredAbsAbstractElement> getCoveredBy(SymbPredAbsAbstractElement e){
+//    if (covers.containsKey(e)) {
+//      return covers.get(e);
+//    } else {
+//      return Collections.emptySet();
+//    }
+//  }
+//
+//  public void setCoveredBy(SymbPredAbsAbstractElement covered,
+//                           SymbPredAbsAbstractElement e) {
+//    Set<SymbPredAbsAbstractElement> s;
+//    if (covers.containsKey(e)) {
+//      s = covers.get(e);
+//    } else {
+//      s = new HashSet<SymbPredAbsAbstractElement>();
+//    }
+//    s.add(covered);
+//    covers.put(e, s);
+//  }
+//
+//  public void uncoverAll(SymbPredAbsAbstractElement e) {
+//    if (covers.containsKey(e)) {
+//      covers.remove(e);
+//    }
+//  }
 
   public SymbolicFormulaManager getSymbolicFormulaManager() {
     return mgr;
@@ -203,24 +203,24 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis {
     PathFormula initPf = new PathFormula(mgr.makeTrue(), ssamap);
     AbstractFormula initAbstraction = amgr.makeTrue();
     
-    PredicateMap pmap;
-    if (CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.abstraction.norefinement")) {
-      MathsatPredicateParser p = new MathsatPredicateParser(mgr, amgr);
-      Collection<Predicate> preds = null;
-      try {
-        String pth = CPAMain.cpaConfig.getProperty("predicates.path");
-        File f = new File(pth, "predicates.msat");
-        InputStream in = new FileInputStream(f);
-        preds = p.parsePredicates(in);
-      } catch (IOException er) {
-        er.printStackTrace();
-        preds = new Vector<Predicate>();
-      }
-      pmap = new FixedPredicateMap(preds);
-    } else {
-      pmap = new UpdateablePredicateMap();
-    }
-    assert(pmap != null);
+//    PredicateMap pmap;
+//    if (CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.abstraction.norefinement")) {
+//      MathsatPredicateParser p = new MathsatPredicateParser(mgr, amgr);
+//      Collection<Predicate> preds = null;
+//      try {
+//        String pth = CPAMain.cpaConfig.getProperty("predicates.path");
+//        File f = new File(pth, "predicates.msat");
+//        InputStream in = new FileInputStream(f);
+//        preds = p.parsePredicates(in);
+//      } catch (IOException er) {
+//        er.printStackTrace();
+//        preds = new Vector<Predicate>();
+//      }
+//      pmap = new FixedPredicateMap(preds);
+//    } else {
+//      pmap = new UpdateablePredicateMap();
+//    }
+//    assert(pmap != null);
     
     SymbPredAbsAbstractElement e = new SymbPredAbsAbstractElement(domain, true, node,
         pf, initPf, initAbstraction, parents, null, pmap);
@@ -231,5 +231,10 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis {
 
   public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
     return new SymbPredAbsPrecision();
+  }
+
+  @Override
+  public PrecisionAdjustment getPrecisionAdjustment() {
+    return precisionAdjustment;
   }
 }

@@ -381,14 +381,12 @@ implements SymbPredAbstFormulaManager
 
     MathsatSymbolicFormula bitwiseAxioms =
       (MathsatSymbolicFormula)mmgr.makeTrue();
-
     for (int i = 1; i < abstarr.length; ++i) {
       SymbPredAbsAbstractElement e = (SymbPredAbsAbstractElement)abstarr[i];
       // TODO here we take the formula from the abstract element
 //      Pair<SymbolicFormula, SSAMap> p =
 //        buildConcreteFormula(mmgr, cur, e, (ssa == null));
-      PathFormula p = e.getInitAbstractionSet();
-      System.out.println(" here ---> " + p.getSymbolicFormula());
+      PathFormula p = e.getInitAbstractionSet().getInitSymbolicFormula(mgr, (ssa == null));
       SSAMap newssa = null;
       if (ssa != null) {
         LazyLogger.log(LazyLogger.DEBUG_3, "SHIFTING: ", p.getSymbolicFormula(),
@@ -477,9 +475,7 @@ implements SymbPredAbstFormulaManager
       useSuffix ? i >= 0 : i < f.size(); i += useSuffix ? -1 : 1) {
         SymbolicFormula fm = f.elementAt(i);
         itpProver.addFormula(fm);
-        System.out.println("added: " + fm);
         if (shortestTrace && !fm.isTrue()) {
-        	System.out.println(" came here");
           if (itpProver.isUnsat()) {
             res = 0;
             // we need to add the other formulas to the itpProver
@@ -499,7 +495,6 @@ implements SymbPredAbstFormulaManager
       }
       if (!shortestTrace || res == -1) {
         unsat = itpProver.isUnsat();
-        System.out.println("what is unsat" + unsat);
       } else {
         unsat = res == 0;
       }
@@ -541,7 +536,6 @@ implements SymbPredAbstFormulaManager
     long msatEnv = mmgr.getMsatEnv();
 
     if (unsat) {
-      System.out.println("we are here");
       //dumpInterpolationProblem(mmgr, f, "itp");
       // the counterexample is spurious. Extract the predicates from
       // the interpolants

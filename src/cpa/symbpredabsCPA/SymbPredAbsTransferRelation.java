@@ -413,7 +413,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 //  System.out.println("================================");
 //  System.out.println(toUnreach);
 //  System.out.println("================================");
-    throw new RefinementNeededException(toUnreach, toWaitlist);
+    throw new RefinementNeededException(null, null);
   }
 
   @Override
