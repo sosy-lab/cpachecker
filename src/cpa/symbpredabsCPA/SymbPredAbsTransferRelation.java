@@ -10,7 +10,6 @@ import java.util.Vector;
 
 import logging.CustomLogLevel;
 import logging.LazyLogger;
-
 import symbpredabstraction.AbstractReachabilityTree;
 import symbpredabstraction.BDDMathsatSymbPredAbstractionAbstractManager;
 import symbpredabstraction.ParentsList;
@@ -26,7 +25,6 @@ import cmdline.CPAMain;
 
 import common.Pair;
 
-import exceptions.CPATransferException;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
@@ -41,9 +39,12 @@ import cpa.symbpredabs.SSAMap;
 import cpa.symbpredabs.SymbolicFormula;
 import cpa.symbpredabs.SymbolicFormulaManager;
 import cpa.symbpredabs.UpdateablePredicateMap;
-import cpa.symbpredabs.mathsat.MathsatSymbolicFormula;
-import cpa.symbpredabs.mathsat.MathsatSymbolicFormulaManager;
-import exceptions.*;
+import exceptions.CPAException;
+import exceptions.CPATransferException;
+import exceptions.ErrorReachedException;
+import exceptions.RefinementNeededException;
+import exceptions.SymbPredAbstTransferException;
+import exceptions.UnrecognizedCFAEdgeException;
 
 /**
  * Transfer relation for symbolic lazy abstraction with summaries
@@ -68,15 +69,6 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   // mergeJoin for SummaryCPA, keeps line numbers not locations
   public static Set<Integer> extraAbstractionLocations = 
     new HashSet<Integer>();
-
-  // a namespace to have a unique name for each variable in the program.
-  // Whenever we enter a function, we push its name as namespace. Each
-  // variable will be instantiated inside mathsat as namespace::variable
-  // private Stack<String> namespaces;
-  // TODO
-  // private String namespace;
-  // global variables (do not live in any namespace)
-  // private Set<String> globalVars;
 
   public SymbPredAbsTransferRelation(AbstractDomain d, SymbolicFormulaManager symFormMan, AbstractFormulaManager abstFormMan) {
 
@@ -107,12 +99,8 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   // abstract post operation
   private AbstractElement buildSuccessor (SymbPredAbsAbstractElement element,
                                           CFAEdge edge) throws CPATransferException {
-    // TODO fix later
     SymbPredAbsAbstractElement newElement = null;
-    // SymbPredAbsCPA cpa = domain.getCPA();
     CFANode succLoc = edge.getSuccessor();
-    // TODO check whether the successor is an error location: if so, we want
-    // to check for feasibility of the path...
 
     // check if the successor is an abstraction location
     boolean b = isAbstractionLocation(succLoc);
@@ -124,9 +112,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
             element.getParents(), element.getArtParent(), element.getPredicates());
         try {
           handleNonAbstractionLocation(element, newElement, edge);
-          // TODO change this exception later
         } catch (UnrecognizedCFAEdgeException e) {
-          // TODO Auto-generated catch block
           e.printStackTrace();
         }
       } catch (SymbPredAbstTransferException e) {
@@ -140,9 +126,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
       newElement.setAbstractionNode();
       try {
         handleAbstractionLocation(element, newElement, edge);
-        // TODO change type of the exception later
       } catch (UnrecognizedCFAEdgeException e) {
-        // TODO Auto-generated catch block
         e.printStackTrace();
       }
     }
@@ -174,33 +158,16 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     PathFormula functionUpdatedFormula;
     AbstractFormula abs = element.getAbstraction();
 
-    // TODO updating predicates
     PredicateMap pmap = domain.getCPA().getPredicateMap();
     newElement.setPredicates(pmap);
 
     AbstractFormula abst;
 
     if(edge instanceof FunctionCallEdge){
-      // TODO check
-//    PathFormula functionInitFormula = new PathFormula(element.getPathFormula().getSymbolicFormula(), 
-//    element.getPathFormula().getSsa());
-      PathFormula functionUpdatedFormula1 = toPathFormula(symbolicFormulaManager.makeAnd(element.getPathFormula().getSymbolicFormula(), 
+      PathFormula functionInitFormula = toPathFormula(symbolicFormulaManager.makeAnd(element.getPathFormula().getSymbolicFormula(), 
           edge, element.getPathFormula().getSsa(), false, false));
-
-//    MathsatSymbolicFormulaManager mathsatManager = (MathsatSymbolicFormulaManager) symbolicFormulaManager;
-
-//    PathFormula functionUpdatedFormula2 = toPathFormula(mathsatManager.makeAndEnterFunction(
-//    ((MathsatSymbolicFormula)mathsatManager.makeTrue()), edge.getSuccessor(),
-//    functionUpdatedFormula1.getSsa(), false, false));
-
-//    Pair<Pair<SymbolicFormula, SymbolicFormula>,SSAMap> pm = mathsatManager.mergeSSAMaps(functionUpdatedFormula2.getSsa(), functionUpdatedFormula1.getSsa(), false);
-//    SymbolicFormula newFormula = mathsatManager.makeAnd(functionUpdatedFormula1.getSymbolicFormula(), functionUpdatedFormula2.getSymbolicFormula());
-//    functionUpdatedFormula = new PathFormula(newFormula, pm.getSecond());
-
-//    assert(functionInitFormula != null);
-      newElement.setInitAbstractionSet(functionUpdatedFormula1);
-      //functionUpdatedFormula = functionInitFormula;
-      abst = bddAbstractFormulaManager.buildAbstraction(symbolicFormulaManager, abs, functionUpdatedFormula1, pmap.getRelevantPredicates(edge.getSuccessor()), null);
+      newElement.setInitAbstractionSet(functionInitFormula);
+      abst = bddAbstractFormulaManager.buildAbstraction(symbolicFormulaManager, abs, functionInitFormula, pmap.getRelevantPredicates(edge.getSuccessor()), null);
     }
     else if(edge instanceof ReturnEdge){
 
@@ -214,6 +181,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
       newElement.setInitAbstractionSet(functionInitFormula);
 
+      // TODO fix later for returning from functions
 //    SymbPredAbsAbstractElement previousElem = (SymbPredAbsAbstractElement)summaryEdge.extractAbstractElement("SymbPredAbsAbstractElement");
 //    MathsatSymbolicFormulaManager mmgr = (MathsatSymbolicFormulaManager) symbolicFormulaManager;
 
@@ -238,12 +206,9 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 //  abst = computeBooleanAbstraction(element, newElement, edge);
 //  }
 
-    // TODO move below
     newElement.setAbstraction(abst);
-    //System.out.println(abstractFormulaManager.toConcrete(symbolicFormulaManager, newElement.getAbstraction()));
 
     if (abstractFormulaManager.isFalse(abst)) {
-      //System.out.println("abstraction is set to FALSE");
       newElement.isBottomElement = true;
       return;
     }
@@ -385,7 +350,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
       abstractTree.getSubtree(root, true, false);
     Vector<AbstractElement> toUnreach = new Vector<AbstractElement>();
     toUnreach.ensureCapacity(toUnreachTmp.size());
-    SymbPredAbsCPA cpa = domain.getCPA();
+//    SymbPredAbsCPA cpa = domain.getCPA();
     for (AbstractElement e : toUnreachTmp) {
       toUnreach.add(e);
 //    Set<SymbPredAbsAbstractElement> cov = cpa.getCoveredBy(
@@ -410,9 +375,6 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     LazyLogger.log(LazyLogger.DEBUG_1, "REFINEMENT - toWaitlist: ", root);
     LazyLogger.log(LazyLogger.DEBUG_1, "REFINEMENT - toUnreach: ",
         toUnreach);
-//  System.out.println("================================");
-//  System.out.println(toUnreach);
-//  System.out.println("================================");
     throw new RefinementNeededException(null, null);
   }
 
@@ -442,5 +404,4 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   private PathFormula toPathFormula(Pair<SymbolicFormula, SSAMap> pair) {
     return new PathFormula(pair.getFirst(), pair.getSecond());
   }
-
 }

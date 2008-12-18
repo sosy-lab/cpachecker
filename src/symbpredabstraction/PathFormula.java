@@ -55,5 +55,10 @@ public class PathFormula {
   public String toString(){
     return symbolicFormula.toString();
   }
+  
+  @Override
+  public int hashCode() {
+    return ssa.hashCode() * 17 + symbolicFormula.hashCode();
+  }
 
 }

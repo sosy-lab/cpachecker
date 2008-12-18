@@ -110,10 +110,5 @@ public class SymbPredAbsStopOperator implements StopOperator {
 
       return ok;
     }
-    //}
-    // TODO if locations are different
-//  else{
-//  return false;
-//  }
   }
 }

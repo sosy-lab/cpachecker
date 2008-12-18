@@ -33,6 +33,7 @@ import cpa.symbpredabs.mathsat.BDDAbstractFormula;
 import cpa.symbpredabs.mathsat.BDDMathsatAbstractFormulaManager;
 import cpa.symbpredabs.mathsat.MathsatSymbolicFormula;
 import cpa.symbpredabs.mathsat.MathsatSymbolicFormulaManager;
+import cpa.symbpredabs.mathsat.summary.BDDMathsatSummaryAbstractionPrinter;
 import cpa.symbpredabsCPA.SymbPredAbsAbstractElement;
 
 public class BDDMathsatSymbPredAbstractionAbstractManager 
@@ -93,39 +94,36 @@ implements SymbPredAbstFormulaManager
   }
   private Stats stats;
 
-  // private boolean dumpHardAbstractions;
   private TheoremProver thmProver;
   private InterpolatingTheoremProver itpProver;
 
   // TODO later
-//private Map<Pair<CFANode, CFANode>, Pair<MathsatSymbolicFormula, SSAMap>>
-//abstractionTranslationCache;
-//private Map<Pair<SymbolicFormula, Vector<SymbolicFormula>>, AbstractFormula>
-//abstractionCache;
-//boolean useCache;
+//  private Map<Pair<CFANode, CFANode>, Pair<MathsatSymbolicFormula, SSAMap>>
+//  abstractionTranslationCache;
+  private Map<Pair<SymbolicFormula, Vector<SymbolicFormula>>, AbstractFormula>
+  abstractionCache;
+  boolean useCache;
 
-//private BDDMathsatSummaryAbstractionPrinter absPrinter = null;
-//private boolean dumpHardAbstractions;
+  private BDDMathsatSummaryAbstractionPrinter absPrinter = null;
+  private boolean dumpHardAbstractions;
 
   public BDDMathsatSymbPredAbstractionAbstractManager(TheoremProver prover,
                                                       InterpolatingTheoremProver interpolator) 
   {
     super();
     stats = new Stats();
-    // TODO cache
-//  abstractionTranslationCache =
-//  new HashMap<Pair<CFANode, CFANode>,
-//  Pair<MathsatSymbolicFormula, SSAMap>>();
-    // dumpHardAbstractions = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.mathsat.dumpHardAbstractionQueries");
+//    abstractionTranslationCache =
+//      new HashMap<Pair<CFANode, CFANode>,
+//      Pair<MathsatSymbolicFormula, SSAMap>>();
+    dumpHardAbstractions = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.mathsat.dumpHardAbstractionQueries");
     thmProver = prover;
     itpProver = interpolator;
 
-    // TODO cache
-//  abstractionCache =
-//  new HashMap<Pair<SymbolicFormula, Vector<SymbolicFormula>>,
-//  AbstractFormula>();
-//  useCache = CPAMain.cpaConfig.getBooleanValue(
-//  "cpas.symbpredabs.mathsat.useCache");
+    abstractionCache =
+      new HashMap<Pair<SymbolicFormula, Vector<SymbolicFormula>>,
+      AbstractFormula>();
+    useCache = CPAMain.cpaConfig.getBooleanValue(
+    "cpas.symbpredabs.mathsat.useCache");
   }
 
   public Stats getStats() { return stats; }
@@ -153,7 +151,6 @@ implements SymbPredAbstFormulaManager
     // first, build the concrete representation of the abstract formula of e
     // this is an abstract formula - specifically it is a bddabstractformula
     // which is basically an integer which represents it
-    //AbstractFormula abs = element.getAbstraction();
     // create the concrete form of the abstract formula
     // (abstract formula is the bdd representation)
     MathsatSymbolicFormula fabs =
@@ -290,14 +287,14 @@ implements SymbPredAbstFormulaManager
     LazyLogger.log(LazyLogger.DEBUG_2,
         "COMPUTING ALL-SMT ON FORMULA: ", fm);
 
-    // Pair<SymbolicFormula, Vector<SymbolicFormula>> absKey =
-    //   new Pair<SymbolicFormula, Vector<SymbolicFormula>>(fm, imp);
+     Pair<SymbolicFormula, Vector<SymbolicFormula>> absKey =
+       new Pair<SymbolicFormula, Vector<SymbolicFormula>>(fm, imp);
     AbstractFormula result = null;
     // TODO cache
-//  if (useCache && abstractionCache.containsKey(absKey)) {
-    if(false){
-//    ++stats.numCallsAbstractionCached;
-//    result = abstractionCache.get(absKey);
+  if (useCache && abstractionCache.containsKey(absKey)) {
+//    if(false){
+    ++stats.numCallsAbstractionCached;
+    result = abstractionCache.get(absKey);
     } else {
       int absbdd = bddManager.getZero();
       AllSatCallbackStats func =
@@ -323,16 +320,16 @@ implements SymbPredAbstFormulaManager
         Math.max(msatSolveTime, stats.abstractionMaxMathsatSolveTime);
 
       // TODO dump hard abst
-//    if (abstractionMsatTime > 10000 && dumpHardAbstractions) {
-//    // we want to dump "hard" problems...
-//    if (absPrinter == null) {
-//    absPrinter = new BDDMathsatSummaryAbstractionPrinter(
-//    msatEnv, "abs");
-//    }
-//    absPrinter.printMsatFormat(curstate, term, preddef, important);
-//    absPrinter.printNusmvFormat(curstate, term, preddef, important);
-//    absPrinter.nextNum();
-//    }
+    if (abstractionMsatTime > 10000 && dumpHardAbstractions) {
+    // we want to dump "hard" problems...
+    if (absPrinter == null) {
+    absPrinter = new BDDMathsatSummaryAbstractionPrinter(
+    msatEnv, "abs");
+    }
+    absPrinter.printMsatFormat(curstate, term, preddef, important);
+    absPrinter.printNusmvFormat(curstate, term, preddef, important);
+    absPrinter.nextNum();
+    }
 
       if (numModels == -2) {
         absbdd = bddManager.getOne();
@@ -343,9 +340,9 @@ implements SymbPredAbstFormulaManager
         result = new BDDAbstractFormula(func.getBDD());
       }
       // TODO later
-//    if (useCache) {
-//    abstractionCache.put(absKey, result);
-//    }
+    if (useCache) {
+    abstractionCache.put(absKey, result);
+    }
     }
 
     return result;
@@ -353,8 +350,8 @@ implements SymbPredAbstFormulaManager
 
   @Override
   public CounterexampleTraceInfo buildCounterexampleTrace(
-     SymbolicFormulaManager mgr,
-     Deque<SymbPredAbsAbstractElement> abstractTrace) {
+                                                          SymbolicFormulaManager mgr,
+                                                          Deque<SymbPredAbsAbstractElement> abstractTrace) {
     assert(abstractTrace.size() > 1);
 
     long startTime = System.currentTimeMillis();
@@ -373,7 +370,7 @@ implements SymbPredAbstFormulaManager
     //printFuncNamesInTrace(abstractTrace);
 
     Object[] abstarr = abstractTrace.toArray();
-    SymbPredAbsAbstractElement cur = (SymbPredAbsAbstractElement)abstarr[0];
+    //SymbPredAbsAbstractElement cur = (SymbPredAbsAbstractElement)abstarr[0];
 
     boolean theoryCombinationNeeded = false;
     boolean noDtc = CPAMain.cpaConfig.getBooleanValue(
@@ -384,8 +381,8 @@ implements SymbPredAbstFormulaManager
     for (int i = 1; i < abstarr.length; ++i) {
       SymbPredAbsAbstractElement e = (SymbPredAbsAbstractElement)abstarr[i];
       // TODO here we take the formula from the abstract element
-//      Pair<SymbolicFormula, SSAMap> p =
-//        buildConcreteFormula(mmgr, cur, e, (ssa == null));
+//    Pair<SymbolicFormula, SSAMap> p =
+//    buildConcreteFormula(mmgr, cur, e, (ssa == null));
       PathFormula p = e.getInitAbstractionSet().getInitSymbolicFormula(mgr, (ssa == null));
       SSAMap newssa = null;
       if (ssa != null) {
@@ -409,10 +406,10 @@ implements SymbPredAbstFormulaManager
       }
       f.add(p.getSymbolicFormula());
       ssa = newssa;
-      cur = e;
+      //cur = e;
 
       if (hasUf && CPAMain.cpaConfig.getBooleanValue(
-          "cpas.symbpredabs.useBitwiseAxioms")) {
+      "cpas.symbpredabs.useBitwiseAxioms")) {
         MathsatSymbolicFormula a = mmgr.getBitwiseAxioms(
             (MathsatSymbolicFormula)p.getSymbolicFormula());
         bitwiseAxioms = (MathsatSymbolicFormula)mmgr.makeAnd(
@@ -552,7 +549,7 @@ implements SymbPredAbstFormulaManager
       for (int i = 1; i < f.size(); ++i) {
         int start_of_a = entryPoints.peek();
         if (!CPAMain.cpaConfig.getBooleanValue(
-            "cpas.symbpredabs.refinement.addWellScopedPredicates")) {
+        "cpas.symbpredabs.refinement.addWellScopedPredicates")) {
           // if we don't want "well-scoped" predicates, we always
           // cut from the beginning
           start_of_a = 0;

@@ -1,10 +1,8 @@
 package cpa.symbpredabsCPA;
 
-import common.Pair;
-
-import cfa.objectmodel.CFANode;
 import symbpredabstraction.ParentsList;
 import symbpredabstraction.PathFormula;
+import cfa.objectmodel.CFANode;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.symbpredabs.AbstractFormula;
@@ -13,8 +11,6 @@ import cpa.symbpredabs.SSAMap;
 import cpa.symbpredabs.SymbolicFormula;
 import cpa.symbpredabs.SymbolicFormulaManager;
 import cpa.symbpredabs.mathsat.BDDAbstractFormula;
-import cpa.symbpredabs.mathsat.MathsatSymbolicFormula;
-import cpa.symbpredabs.mathsat.MathsatSymbolicFormulaManager;
 
 /**
  * AbstractElement for summary cpa
@@ -114,34 +110,6 @@ implements AbstractElement {
 		this.maxIndex = new SSAMap();
 	}
 
-
-//	// TODO fix these constructors, check all callers later
-//// when an element for abstraction and non-abstraction location
-//// is created call different constructors
-//	private SymbPredAbsAbstractElement(AbstractDomain d, CFANode abstLoc, SymbPredAbsAbstractElement artParent,
-//	PathFormula pf, AbstractFormula a,
-//	ParentsList p, PathFormula initFormula, PredicateMap pmap) {
-//	//CFALocation = CFALoc;
-//	abstractionLocation = abstLoc;
-//	abstraction = a;
-//	pathFormula = pf;
-//	parents = p;
-//	predicates = pmap;
-//	initAbstractionFormula = initFormula;
-//	this.artParent = artParent;
-//	maxIndex = new SSAMap();
-//	domain = (SymbPredAbsAbstractDomain) d;
-//	elementId = nextAvailableId++;
-//	//bddMathsatMan = d.getCPA().getBDDMathsatSymbPredAbsAbstractManager();
-//	//mathsatFormMan = d.getCPA().getMathsatSymbPredAbsFormulaManager();
-////	context = null;
-////	ownsContext = true;
-//	}
-
-//	public SymbPredAbsAbstractElement(AbstractDomain d, CFANode abstLoc, SymbPredAbsAbstractElement artParent) {
-//	this(d, abstLoc, artParent, null, null, null, null, null);
-//	}
-
 	@Override
 	public boolean equals(Object o) {
 		if (this == o) {
@@ -156,10 +124,6 @@ implements AbstractElement {
 			SymbPredAbsAbstractElement thisElement = this;
 			SymbPredAbsAbstractElement otherElement = (SymbPredAbsAbstractElement)o;
 
-			// TODO
-//			if(e1.getLocation().equals(e2.getLocation())){
-			// TODO check
-			//	boolean b = cpa.isAbstractionLocation(e1.getLocation());
 			boolean b = thisElement.isAbstractionNode();
 			// if not an abstraction location
 			if(!b){
@@ -209,11 +173,6 @@ implements AbstractElement {
 //				}
 				return ok;
 			}
-			//}
-			// TODO if locations are different
-//			else{
-//			return false;
-//			}
 		}
 	}
 

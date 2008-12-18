@@ -42,15 +42,6 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
     SymbPredAbsAbstractElement elem1 = (SymbPredAbsAbstractElement)element1;
     SymbPredAbsAbstractElement elem2 = (SymbPredAbsAbstractElement)element2;
 
-    // TODO removed loc information
-//  CFANode loc1 = elem1.getLocation();
-//  CFANode loc2 = elem2.getLocation();
-
-//  if(loc1.getNodeNumber() != loc2.getNodeNumber() ||
-//  !(elem1.getParents().equals(elem2.getParents()))){
-//  return element2;
-//  }
-//  else{
     //TODO check
     boolean b = elem1.isAbstractionNode();
     SymbPredAbsAbstractElement merged;
@@ -80,12 +71,13 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
 
         merged.setPathFormula(new PathFormula(newFormula, ssa1));
 
-        // TODO check, what is that???
+        // TODO check, what is that?
         // merged.setMaxIndex(maxIndex)
         merged.updateMaxIndex(ssa1);
       }
     }
     else{
+      // TODO we assume there is only one edge entering an abstraction location
 //    // set path formula - it is true
 //    PathFormula pf = elem1.getPathFormula();
 //    merged.setPathFormula(pf);
@@ -113,7 +105,7 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
 //    // TODO compute abstraction here
 //    merged.setAbstraction(elem1.getAbstraction());
 
-//    // TODO check, what is that???
+//    // TODO check, what is that?
 //    // merged.setMaxIndex(maxIndex)
 //    merged.updateMaxIndex(ssa1);
       merged = elem2;

@@ -45,4 +45,8 @@ public class ParentsList {
 	  return s;
 	}
 	
+	@Override
+	public int hashCode() {
+	  return parents.hashCode();
+	}
 }
