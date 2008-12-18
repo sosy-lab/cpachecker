@@ -26,9 +26,12 @@ public class ExplicitAnalysisMergeSep implements MergeOperator
         return element2;
     }
 
-    public AbstractElementWithLocation merge(AbstractElementWithLocation pElement1,
+    @Override
+    public AbstractElementWithLocation merge(
+                                             AbstractElementWithLocation pElement1,
                                              AbstractElementWithLocation pElement2,
-                                             Precision prec) throws CPAException {
+                                             Precision pPrecision)
+                                                                  throws CPAException {
       throw new CPAException ("Cannot return element with location information");
     }
 }

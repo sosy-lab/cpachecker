@@ -23,18 +23,21 @@ public class ExplicitAnalysisMergeJoin implements MergeOperator
 
     public AbstractElement merge (AbstractElement element1, AbstractElement element2, Precision prec)
     {
-    	try {
-			return explicitAnalysisDomain.getJoinOperator().join(element1, element2);
-		} catch (CPAException e) {
-			e.printStackTrace();
-		}
-		// return bottom element if unable to join elements
-		return explicitAnalysisDomain.getBottomElement();
+      try {
+      return explicitAnalysisDomain.getJoinOperator().join(element1, element2);
+    } catch (CPAException e) {
+      e.printStackTrace();
+    }
+    // return bottom element if unable to join elements
+    return explicitAnalysisDomain.getBottomElement();
     }
 
-    public AbstractElementWithLocation merge(AbstractElementWithLocation pElement1,
+    @Override
+    public AbstractElementWithLocation merge(
+                                             AbstractElementWithLocation pElement1,
                                              AbstractElementWithLocation pElement2,
-                                             Precision prec) throws CPAException {
+                                             Precision pPrecision)
+                                                                  throws CPAException {
       throw new CPAException ("Cannot return element with location information");
     }
 }

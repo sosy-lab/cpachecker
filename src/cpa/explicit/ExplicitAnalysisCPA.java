@@ -14,16 +14,13 @@ import exceptions.CPAException;
 public class ExplicitAnalysisCPA implements ConfigurableProgramAnalysis {
 
   private AbstractDomain abstractDomain;
-  private TransferRelation transferRelation;
   private MergeOperator mergeOperator;
   private StopOperator stopOperator;
+  private TransferRelation transferRelation;
   private PrecisionAdjustment precisionAdjustment;
 
   public ExplicitAnalysisCPA (String mergeType, String stopType) throws CPAException {
     ExplicitAnalysisDomain explicitAnalysisDomain = new ExplicitAnalysisDomain ();
-
-    TransferRelation explicitAnalysisTransferRelation = new ExplicitAnalysisTransferRelation (explicitAnalysisDomain);
-
     MergeOperator explicitAnalysisMergeOp = null;
     if(mergeType.equals("sep")){
       explicitAnalysisMergeOp = new ExplicitAnalysisMergeSep (explicitAnalysisDomain);
@@ -41,22 +38,18 @@ public class ExplicitAnalysisCPA implements ConfigurableProgramAnalysis {
       explicitAnalysisStopOp = new ExplicitAnalysisStopJoin (explicitAnalysisDomain);
     }
 
-    this.precisionAdjustment = new ExplicitAnalysisPrecisionAdjustment ();
+    TransferRelation explicitAnalysisTransferRelation = new ExplicitAnalysisTransferRelation (explicitAnalysisDomain);
 
     this.abstractDomain = explicitAnalysisDomain;
     this.mergeOperator = explicitAnalysisMergeOp;
     this.stopOperator = explicitAnalysisStopOp;
     this.transferRelation = explicitAnalysisTransferRelation;
+    this.precisionAdjustment = new ExplicitAnalysisPrecisionAdjustment();
   }
 
   public AbstractDomain getAbstractDomain ()
   {
     return abstractDomain;
-  }
-
-  public TransferRelation getTransferRelation ()
-  {
-    return transferRelation;
   }
 
   public MergeOperator getMergeOperator ()
@@ -69,17 +62,24 @@ public class ExplicitAnalysisCPA implements ConfigurableProgramAnalysis {
     return stopOperator;
   }
 
-  public PrecisionAdjustment getPrecisionAdjustment() {
-    return precisionAdjustment;
-  }
-
-  public AbstractElement getInitialElement (CFAFunctionDefinitionNode node)
+  public TransferRelation getTransferRelation ()
   {
-    return new ExplicitAnalysisElement();
+    return transferRelation;
   }
 
-  public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
-    return new ExplicitAnalysisPrecision();
-  }
+    public AbstractElement getInitialElement (CFAFunctionDefinitionNode node)
+    {
+        return new ExplicitAnalysisElement();
+    }
+
+    @Override
+    public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
+      return new ExplicitAnalysisPrecision();
+    }
+
+    @Override
+    public PrecisionAdjustment getPrecisionAdjustment() {
+      return precisionAdjustment;
+    }
 
 }
