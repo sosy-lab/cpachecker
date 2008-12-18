@@ -16,6 +16,8 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.Map.Entry;
 
+import cmdline.CPAMain;
+
 import predicateabstraction.ThreeValuedBoolean;
 
 import cfa.objectmodel.CFAEdge;
@@ -478,39 +480,6 @@ public class QueryDrivenProgramTesting {
     }
   }
   
-  public static Automaton<CFAEdge> getScopeRestrictionAutomaton() {
-    // create simple scope restriction automaton that restricts nothing
-    Automaton<CFAEdge> lScopeRestrictionAutomaton = new Automaton<CFAEdge>();
-    Automaton<CFAEdge>.State lState = lScopeRestrictionAutomaton.getInitialState();
-    lState.addUnconditionalSelfLoop();
-    
-    return lScopeRestrictionAutomaton;
-  }
-  
-  public static Automaton<CFAEdge> getTestGoalAutomaton() {
-    Automaton<CFAEdge> lTestGoalAutomaton = new Automaton<CFAEdge>();
-    
-    // label that matches the call to function special_case
-    Label<CFAEdge> lSpecialCaseLabel = new FunctionCallLabel("special_case");
-    
-    Automaton<CFAEdge>.State lInitialState = lTestGoalAutomaton.getInitialState();
-    
-    // as long as we do not see a call to special case we stay in the initial state
-    lInitialState.addSelfLoop(new NegationLabel<CFAEdge>(lSpecialCaseLabel));
-    
-    Automaton<CFAEdge>.State lState = lTestGoalAutomaton.createState();
-    
-    // we won't leave lState anymore once reached
-    lState.addUnconditionalSelfLoop();
-    
-    // this state is a test goal
-    lState.setFinal();
-    
-    lInitialState.addTransition(lSpecialCaseLabel, lState);
-    
-    return lTestGoalAutomaton;
-  }
-  
   public static Deque<ExplicitAbstractElement> getAbstractPath(ExplicitAbstractElement pElement) {
     // TODO: Remove this output
     System.out.println("Abstract Path >>> BEGIN");
@@ -551,7 +520,7 @@ public class QueryDrivenProgramTesting {
     }
 
     // get scope restriction automaton
-    Automaton<CFAEdge> lScopeRestrictionAutomaton = getScopeRestrictionAutomaton();
+    Automaton<CFAEdge> lScopeRestrictionAutomaton = AutomatonTestCases.getScopeRestrictionAutomaton();
     ScopeRestrictionCPA lScopeRestrictionCPA = new ScopeRestrictionCPA(lScopeRestrictionAutomaton);
     cpas.add(lScopeRestrictionCPA);
 
@@ -564,7 +533,7 @@ public class QueryDrivenProgramTesting {
     
     
     // get test goal automaton
-    Automaton<CFAEdge> lTestGoalAutomaton = getTestGoalAutomaton();
+    Automaton<CFAEdge> lTestGoalAutomaton = AutomatonTestCases.getTestGoalAutomaton();
     TestGoalCPA lTestGoalCPA = new TestGoalCPA(lTestGoalAutomaton);
     cpas.add(lTestGoalCPA);
     
