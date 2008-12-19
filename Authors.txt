@@ -1,0 +1,11 @@
+Authors/Maintainers:
+  Dirk Beyer
+  Erkan Keremoglu
+
+Contributors:
+  Alberto Griggio (2008)
+  Andreas Holzer (2008)
+  Michael Tautschnig (2008)
+
+Bug reports:
+  Dirk Beyer: firstname.lastname@sfu.ca
