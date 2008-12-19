@@ -39,8 +39,6 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.Map.Entry;
 
-import cmdline.CPAMain;
-
 import predicateabstraction.ThreeValuedBoolean;
 
 import cfa.objectmodel.CFAEdge;
@@ -54,9 +52,6 @@ import cpa.common.CPAAlgorithm;
 import cpa.common.CompositeElement;
 import cpa.common.automaton.Automaton;
 import cpa.common.automaton.AutomatonCPADomain;
-import cpa.common.automaton.Label;
-import cpa.common.automaton.NegationLabel;
-import cpa.common.automaton.cfa.FunctionCallLabel;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
