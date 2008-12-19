@@ -38,9 +38,7 @@ import exceptions.UnrecognizedCFAEdgeException;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
-import cpa.common.interfaces.BottomElement;
 import cpa.common.interfaces.Precision;
-import cpa.common.interfaces.TopElement;
 import cpa.common.interfaces.TransferRelation;
 import exceptions.CPAException;
 import common.Pair;
@@ -58,14 +56,6 @@ public class SymbPredAbstTransfer implements TransferRelation {
 
 	public AbstractDomain getAbstractDomain() {
 		return domain;
-	}
-
-	private class SymbPredAbstBottomElement implements BottomElement {
-
-	}
-
-	private class SymbPredAbstTopElement implements TopElement {
-
 	}
 
 	private AbstractElement buildSuccessor(SymbolicFormulaManager mgr,
@@ -161,18 +151,5 @@ public class SymbPredAbstTransfer implements TransferRelation {
 
 		return allSucc;
 	}
-
-	private final BottomElement bottomElement =
-        new SymbPredAbstBottomElement();
-    private final TopElement topElement =
-        new SymbPredAbstTopElement();
-
-	public BottomElement getBottomElement() {
-        return bottomElement;
-    }
-
-    public TopElement getTopElement() {
-        return topElement;
-    }
 
 }

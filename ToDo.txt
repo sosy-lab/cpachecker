@@ -7,8 +7,6 @@ CPA->CPA+ transition (2008-12-12):
 
 - We have multiple implementations of a class Path
 
-- SymbPredAbstTransfer has its own Top/Bottom element !?
-
 - Whitespace at the end of a line is undesirable for merging tools, do a cleanup
 
 - Instead of the String parameters to set sep or join for merge and stop just

@@ -206,7 +206,7 @@ public class AutomatonCPADomain<E> implements AbstractDomain {
     }
   }
   
-  public class BottomElement extends Element implements cpa.common.interfaces.BottomElement {
+  public class BottomElement extends Element {
     private BottomElement(AutomatonCPADomain<E> pDomain) {
       super(pDomain);
     }
@@ -253,7 +253,7 @@ public class AutomatonCPADomain<E> implements AbstractDomain {
     }
   }
   
-  public class TopElement extends Element implements cpa.common.interfaces.TopElement {
+  public class TopElement extends Element {
     private TopElement(AutomatonCPADomain<E> pDomain) {
       super(pDomain);
     }

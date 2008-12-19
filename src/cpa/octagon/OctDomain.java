@@ -26,14 +26,12 @@ package cpa.octagon;
 import octagon.LibraryAccess;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.BottomElement;
 import cpa.common.interfaces.JoinOperator;
 import cpa.common.interfaces.PartialOrder;
-import cpa.common.interfaces.TopElement;
 
 public class OctDomain implements AbstractDomain{
 
-	private static class OctBottomElement extends OctElement implements BottomElement
+	private static class OctBottomElement extends OctElement
     {
         public OctBottomElement ()
         {
@@ -41,7 +39,7 @@ public class OctDomain implements AbstractDomain{
         }
     }
 
-    private static class OctTopElement extends OctElement implements TopElement
+    private static class OctTopElement extends OctElement
     {
     	public OctTopElement ()
         {
@@ -72,8 +70,8 @@ public class OctDomain implements AbstractDomain{
         }
     }
 
-    private final static BottomElement bottomElement = new OctBottomElement ();
-    private final static TopElement topElement = new OctTopElement ();
+    private final static OctBottomElement bottomElement = new OctBottomElement ();
+    private final static OctTopElement topElement = new OctTopElement ();
     private final static PartialOrder partialOrder = new OctPartialOrder ();
     private final static JoinOperator joinOperator = new OctJoinOperator ();
 

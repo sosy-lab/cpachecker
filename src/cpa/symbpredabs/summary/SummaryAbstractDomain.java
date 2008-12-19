@@ -25,10 +25,8 @@ package cpa.symbpredabs.summary;
 
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.BottomElement;
 import cpa.common.interfaces.JoinOperator;
 import cpa.common.interfaces.PartialOrder;
-import cpa.common.interfaces.TopElement;
 import cpa.symbpredabs.AbstractFormulaManager;
 import exceptions.CPAException;
 
@@ -46,7 +44,7 @@ public class SummaryAbstractDomain implements AbstractDomain {
         this.cpa = cpa;
     }
 
-    private final class SummaryBottomElement extends SummaryAbstractElement implements BottomElement {
+    private final class SummaryBottomElement extends SummaryAbstractElement {
       public SummaryBottomElement() {
         super(null);
         // TODO Auto-generated constructor stub
@@ -55,7 +53,7 @@ public class SummaryAbstractDomain implements AbstractDomain {
         @Override
     	public String toString() { return "<BOTTOM>"; }
     }
-    private final class SummaryTopElement extends SummaryAbstractElement implements TopElement {
+    private final class SummaryTopElement extends SummaryAbstractElement {
       public SummaryTopElement() {
         super(null);
         // TODO Auto-generated constructor stub

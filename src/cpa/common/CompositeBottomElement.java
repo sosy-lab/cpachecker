@@ -23,18 +23,17 @@
  */
 package cpa.common;
 
+import java.util.Iterator;
 import java.util.List;
 
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.BottomElement;
 
-public class CompositeBottomElement implements BottomElement
+public class CompositeBottomElement extends CompositeElement
 {
-    private final List<AbstractElement> bottoms;
 
     public CompositeBottomElement (List<AbstractElement> bottoms)
     {
-        this.bottoms = bottoms;
+        super(bottoms,null);
     }
 
     @Override
@@ -44,16 +43,12 @@ public class CompositeBottomElement implements BottomElement
             return false;
 
         CompositeBottomElement otherComposite = (CompositeBottomElement) o;
-        if (bottoms.size () != otherComposite.bottoms.size ())
+        if (getElements().size () != otherComposite.getElements().size ())
             return false;
 
-        for (int idx = 0; idx < bottoms.size (); idx++)
-        {
-            AbstractElement bottom1 = bottoms.get (idx);
-            AbstractElement bottom2 = otherComposite.bottoms.get (idx);
-
-            if (!bottom1.equals (bottom2))
-                return false;
+        Iterator<AbstractElement> iter = otherComposite.getElements().iterator();
+        for (AbstractElement e : getElements()) {
+          if (!e.equals(iter.next())) return false;
         }
 
         return true;

@@ -28,10 +28,8 @@ import java.util.Collection;
 import cfa.objectmodel.CFANode;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.BottomElement;
 import cpa.common.interfaces.JoinOperator;
 import cpa.common.interfaces.PartialOrder;
-import cpa.common.interfaces.TopElement;
 import cpa.symbpredabs.SymbolicFormulaManager;
 import exceptions.CPAException;
 
@@ -48,7 +46,7 @@ public class ItpAbstractDomain implements AbstractDomain {
         this.cpa = cpa;
     }
 
-    private final class ExplicitBottomElement extends ItpAbstractElement implements BottomElement {
+    private final class ExplicitBottomElement extends ItpAbstractElement {
       public ExplicitBottomElement() {
         super(null);
         // TODO Auto-generated constructor stub
@@ -69,7 +67,7 @@ public class ItpAbstractDomain implements AbstractDomain {
           return false;
         }
     }
-    private final class ExplicitTopElement extends ItpAbstractElement implements TopElement {
+    private final class ExplicitTopElement extends ItpAbstractElement {
 
       public ExplicitTopElement() {
         super(null);

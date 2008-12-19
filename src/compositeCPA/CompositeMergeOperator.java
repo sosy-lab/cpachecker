@@ -33,7 +33,6 @@ import cpa.common.CompositeElement;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
-import cpa.common.interfaces.BottomElement;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
 import exceptions.CPAException;
@@ -67,7 +66,7 @@ public class CompositeMergeOperator implements MergeOperator{
                                            Precision precision) throws CPAException {
 
     // TODO check
-    if (element1 instanceof BottomElement) {
+    if (element1.equals(compositeDomain.getBottomElement())) {
       return element2;
     }
 

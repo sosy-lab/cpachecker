@@ -28,10 +28,8 @@ package cpa.pointsto;
 
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.BottomElement;
 import cpa.common.interfaces.JoinOperator;
 import cpa.common.interfaces.PartialOrder;
-import cpa.common.interfaces.TopElement;
 
 /**
  * @author Michael Tautschnig <tautschnig@forsyte.de>
@@ -39,9 +37,9 @@ import cpa.common.interfaces.TopElement;
  */
 public class PointsToDomain implements AbstractDomain {
 
-  private static class PointsToTopElement extends PointsToElement implements TopElement {}
+  private static class PointsToTopElement extends PointsToElement {}
 
-  private static class PointsToBottomElement extends PointsToElement implements BottomElement {}
+  private static class PointsToBottomElement extends PointsToElement {}
 
   private static class PointsToPartialOrder implements PartialOrder {
     public boolean satisfiesPartialOrder (AbstractElement element1, AbstractElement element2) {
@@ -64,8 +62,8 @@ public class PointsToDomain implements AbstractDomain {
     }
   }
 
-  private final static BottomElement bottomElement = new PointsToBottomElement ();
-  private final static TopElement topElement = new PointsToTopElement ();
+  private final static PointsToBottomElement bottomElement = new PointsToBottomElement ();
+  private final static PointsToTopElement topElement = new PointsToTopElement ();
   private final static PartialOrder partialOrder = new PointsToPartialOrder ();
   private final static JoinOperator joinOperator = new PointsToJoinOperator ();
 

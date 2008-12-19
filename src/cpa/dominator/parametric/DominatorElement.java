@@ -61,6 +61,10 @@ public class DominatorElement implements AbstractElementWithLocation {
 
 		this.dominators.addAll(dominators);
 	}
+	
+	protected DominatorElement() {
+	  dominatedElement = null;
+	}
 
 	public DominatorElement(DominatorElement other) {
 		this(other.dominatedElement, other.dominators);

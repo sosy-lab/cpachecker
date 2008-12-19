@@ -34,7 +34,6 @@ import common.Pair;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
-import cpa.common.interfaces.BottomElement;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
 import exceptions.CPAException;
@@ -58,9 +57,9 @@ public class SymbPredAbstMerge implements MergeOperator {
                                  AbstractElement element2,
                                  Precision prec) {
 
-        if (element1 instanceof BottomElement) {
+        if (element1.equals(domain.getBottomElement())) {
             return element2;
-        } else if (element2 instanceof BottomElement) {
+        } else if (element2.equals(domain.getBottomElement())) {
             return element2;
         }
 

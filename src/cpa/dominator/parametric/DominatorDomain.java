@@ -34,11 +34,9 @@ import cfa.objectmodel.CFANode;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
-import cpa.common.interfaces.BottomElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.JoinOperator;
 import cpa.common.interfaces.PartialOrder;
-import cpa.common.interfaces.TopElement;
 import exceptions.CPAException;
 
 /**
@@ -53,11 +51,8 @@ public class DominatorDomain implements AbstractDomain, PartialOrder, JoinOperat
 		this.cpa = cpa;
 	}
 
-	private static class DominatorBottomElement implements BottomElement, AbstractElementWithLocation
+	private static class DominatorBottomElement extends DominatorElement
     {
-		private DominatorBottomElement() {
-
-		}
 
         @Override
         public String toString() {
@@ -74,17 +69,15 @@ public class DominatorDomain implements AbstractDomain, PartialOrder, JoinOperat
         	return Integer.MAX_VALUE;
         }
 
+        @Override
         public CFANode getLocationNode() {
           // TODO Auto-generated method stub
           return null;
         }
     }
 
-	private static class DominatorTopElement implements TopElement, AbstractElementWithLocation
+	private static class DominatorTopElement extends DominatorElement
     {
-		private DominatorTopElement() {
-
-		}
 
         @Override
         public String toString() {
@@ -101,6 +94,7 @@ public class DominatorDomain implements AbstractDomain, PartialOrder, JoinOperat
         	return Integer.MIN_VALUE;
         }
 
+        @Override
         public CFANode getLocationNode() {
           // TODO Auto-generated method stub
           return null;

@@ -25,10 +25,8 @@ package cpa.symbpredabs.explicit;
 
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.BottomElement;
 import cpa.common.interfaces.JoinOperator;
 import cpa.common.interfaces.PartialOrder;
-import cpa.common.interfaces.TopElement;
 import cpa.symbpredabs.AbstractFormulaManager;
 import exceptions.CPAException;
 
@@ -45,14 +43,14 @@ public class ExplicitAbstractDomain implements AbstractDomain {
         this.cpa = cpa;
     }
 
-    private final class ExplicitBottomElement extends ExplicitAbstractElement implements BottomElement {
+    private final class ExplicitBottomElement extends ExplicitAbstractElement {
       public ExplicitBottomElement () {
         super(null);
       }
         @Override
     	public String toString() { return "<BOTTOM>"; }
     }
-    private final class ExplicitTopElement extends ExplicitAbstractElement implements TopElement {
+    private final class ExplicitTopElement extends ExplicitAbstractElement {
       public ExplicitTopElement () {
         super(null);
       }
@@ -82,8 +80,8 @@ public class ExplicitAbstractDomain implements AbstractDomain {
         }
     }
 
-    private final BottomElement bottom = new ExplicitBottomElement();
-    private final TopElement top = new ExplicitTopElement();
+    private final ExplicitBottomElement bottom = new ExplicitBottomElement();
+    private final ExplicitTopElement top = new ExplicitTopElement();
     private final JoinOperator join = new ExplicitJoinOperator();
     private final PartialOrder partial = new ExplicitPartialOrder();
 

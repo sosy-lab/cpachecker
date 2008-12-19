@@ -28,16 +28,14 @@ import java.util.List;
 
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.BottomElement;
 import cpa.common.interfaces.JoinOperator;
 import cpa.common.interfaces.PartialOrder;
-import cpa.common.interfaces.TopElement;
 import cpa.defuse.DefUseDefinition;
 import cpa.defuse.DefUseElement;
 
 public class DefUseDomain implements AbstractDomain
 {
-    private static class DefUseBottomElement extends DefUseElement implements BottomElement
+    private static class DefUseBottomElement extends DefUseElement
     {
         public DefUseBottomElement ()
         {
@@ -45,9 +43,12 @@ public class DefUseDomain implements AbstractDomain
         }
     }
 
-    private static class DefUseTopElement implements TopElement
+    private static class DefUseTopElement extends DefUseElement
     {
-
+      public DefUseTopElement ()
+      {
+          super (null);
+      }
     }
 
     private static class DefUsePartialOrder implements PartialOrder
@@ -92,8 +93,8 @@ public class DefUseDomain implements AbstractDomain
         }
     }
 
-    private final static BottomElement bottomElement = new DefUseBottomElement ();
-    private final static TopElement topElement = new DefUseTopElement ();
+    private final static DefUseBottomElement bottomElement = new DefUseBottomElement ();
+    private final static DefUseTopElement topElement = new DefUseTopElement ();
     private final static PartialOrder partialOrder = new DefUsePartialOrder ();
     private final static JoinOperator joinOperator = new DefUseJoinOperator ();
 

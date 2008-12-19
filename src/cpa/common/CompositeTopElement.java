@@ -21,42 +21,37 @@
  *  CPAchecker web page:
  *    http://www.cs.sfu.ca/~dbeyer/CPAchecker/
  */
-    package cpa.common;
 
+package cpa.common;
+
+import java.util.Iterator;
 import java.util.List;
 
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.TopElement;
 
-public class CompositeTopElement implements TopElement
+public class CompositeTopElement extends CompositeElement
 {
-    private final List<AbstractElement> tops;
-
     public CompositeTopElement (List<AbstractElement> tops)
     {
-        this.tops = tops;
+        super(tops, null);
     }
 
     @Override
     public boolean equals (Object o)
     {
-        if (!(o instanceof CompositeBottomElement))
-            return false;
+      if (!(o instanceof CompositeTopElement))
+        return false;
 
-        CompositeTopElement otherComposite = (CompositeTopElement) o;
-        if (tops.size () != otherComposite.tops.size ())
-            return false;
+      CompositeBottomElement otherComposite = (CompositeBottomElement) o;
+      if (getElements().size () != otherComposite.getElements().size ())
+        return false;
 
-        for (int idx = 0; idx < tops.size (); idx++)
-        {
-            AbstractElement top1 = tops.get (idx);
-            AbstractElement top2 = otherComposite.tops.get (idx);
+      Iterator<AbstractElement> iter = otherComposite.getElements().iterator();
+      for (AbstractElement e : getElements()) {
+        if (!e.equals(iter.next())) return false;
+      }
 
-            if (!top1.equals (top2))
-                return false;
-        }
-
-        return true;
+      return true;
     }
     
     @Override

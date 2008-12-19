@@ -28,24 +28,17 @@ import java.util.Map;
 
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.BottomElement;
 import cpa.common.interfaces.JoinOperator;
 import cpa.common.interfaces.PartialOrder;
-import cpa.common.interfaces.TopElement;
 
 public class ExplicitAnalysisDomain implements AbstractDomain {
 
-  private static class ExplicitAnalysisBottomElement extends ExplicitAnalysisElement implements BottomElement
+  private static class ExplicitAnalysisBottomElement extends ExplicitAnalysisElement
   {
-    public ExplicitAnalysisBottomElement ()
-    {
-      
-    }
   }
 
-  private static class ExplicitAnalysisTopElement implements TopElement
+  private static class ExplicitAnalysisTopElement extends ExplicitAnalysisElement 
   {
-
   }
 
   private static class ExplicitAnalysisPartialOrder implements PartialOrder
@@ -104,8 +97,8 @@ public class ExplicitAnalysisDomain implements AbstractDomain {
     }
   }
 
-  private final static BottomElement bottomElement = new ExplicitAnalysisBottomElement ();
-  private final static TopElement topElement = new ExplicitAnalysisTopElement ();
+  private final static ExplicitAnalysisBottomElement bottomElement = new ExplicitAnalysisBottomElement ();
+  private final static ExplicitAnalysisTopElement topElement = new ExplicitAnalysisTopElement ();
   private final static PartialOrder partialOrder = new ExplicitAnalysisPartialOrder ();
   private final static JoinOperator joinOperator = new ExplicitAnalysisJoinOperator ();
 
@@ -114,24 +107,12 @@ public class ExplicitAnalysisDomain implements AbstractDomain {
 
   }
 
-  public BottomElement getBottomElement ()
+  public AbstractElement getBottomElement ()
   {
     return bottomElement;
   }
 
-  public boolean isBottomElement(AbstractElement element) {
-    if(((ExplicitAnalysisElement)element).isBottom()){
-      return true;
-    }
-    else if( ((ExplicitAnalysisElement)element) instanceof BottomElement){
-      return true;
-    }
-    else {
-      return false;
-    }
-  }
-
-  public TopElement getTopElement ()
+  public AbstractElement getTopElement ()
   {
     return topElement;
   }

@@ -28,9 +28,7 @@ import java.util.List;
 
 import cpa.common.CompositeDomain;
 import cpa.common.CompositeElement;
-import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.BottomElement;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.StopOperator;
 import exceptions.CPAException;
@@ -46,30 +44,9 @@ public class CompositeStopOperator implements StopOperator{
 		this.stopOperators = stopOperators;
 	}
 
-	private boolean isBottomElement(AbstractElement element) {
-
-	  if(element instanceof BottomElement){
-	    return true;
-	  }
-
-	  CompositeElement compositeElement = (CompositeElement) element;
-
-	  List<AbstractElement> compositeElements = compositeElement.getElements ();
-
-	  for (int idx = 0; idx < compositeElements.size (); idx++)
-	  {
-	    AbstractDomain absDom = compositeDomain.getDomains().get(idx);
-	    AbstractElement absElem = compositeElements.get(idx);
-	    if (absDom.getBottomElement().equals(absElem))
-	      return true;
-	  }
-
-	  return false;
-	}
-
 	public <AE extends AbstractElement> boolean stop (AE element, Collection<AE> reached, Precision precision) throws CPAException
 	{
-		if (isBottomElement(element)) {
+		if (element.equals(compositeDomain.getBottomElement())) {
 			return true;
 		}
 

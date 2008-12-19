@@ -23,13 +23,16 @@
  */
 package cpa.symbpredabsCPA;
 
+import symbpredabstraction.ParentsList;
+import symbpredabstraction.PathFormula;
+import cfa.objectmodel.CFANode;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.BottomElement;
 import cpa.common.interfaces.JoinOperator;
 import cpa.common.interfaces.PartialOrder;
-import cpa.common.interfaces.TopElement;
+import cpa.symbpredabs.AbstractFormula;
 import cpa.symbpredabs.AbstractFormulaManager;
+import cpa.symbpredabs.PredicateMap;
 import exceptions.CPAException;
 
 
@@ -46,13 +49,21 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
     this.cpa = cpa;
   }
 
-  private final class SymbPredAbsBottomElement implements BottomElement {
+  private final class SymbPredAbsBottomElement extends SymbPredAbsAbstractElement {
+    public SymbPredAbsBottomElement() {
+      super(null, true, null, null, null, null, null, null, null);
+    }
+
     @Override
     public String toString() {
       return "<BOTTOM>";
     }
   }
-  private final class SymbPredAbsTopElement implements TopElement {}
+  private final class SymbPredAbsTopElement extends SymbPredAbsAbstractElement {
+    public SymbPredAbsTopElement() {
+      super(null, true, null, null, null, null, null, null, null);
+    }
+  }
 
   private final class SymbPredAbsJoinOperator implements JoinOperator {
     public AbstractElement join(AbstractElement element1,
@@ -79,12 +90,12 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
     }
   }
 
-  private final BottomElement bottom = new SymbPredAbsBottomElement();
-  private final TopElement top = new SymbPredAbsTopElement();
+  private final SymbPredAbsBottomElement bottom = new SymbPredAbsBottomElement();
+  private final SymbPredAbsTopElement top = new SymbPredAbsTopElement();
   private final JoinOperator join = new SymbPredAbsJoinOperator();
   private final PartialOrder partial = new SymbPredAbsPartialOrder();
 
-  public BottomElement getBottomElement() {
+  public AbstractElement getBottomElement() {
     return bottom;
   }
 
@@ -111,7 +122,7 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
     return partial;
   }
 
-  public TopElement getTopElement() {
+  public AbstractElement getTopElement() {
     return top;
   }
 

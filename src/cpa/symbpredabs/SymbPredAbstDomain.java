@@ -25,10 +25,8 @@ package cpa.symbpredabs;
 
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.BottomElement;
 import cpa.common.interfaces.JoinOperator;
 import cpa.common.interfaces.PartialOrder;
-import cpa.common.interfaces.TopElement;
 
 
 /**
@@ -43,10 +41,17 @@ public class SymbPredAbstDomain implements AbstractDomain {
     }
 
     public SymbPredAbstCPA getCPA() { return cpa; }
-
-    private class SymbPredAbstBottomElement implements BottomElement {}
-
-    private class SymbPredAbstTopElement implements TopElement {}
+    
+    private final class SymbPredAbstBottomElement extends SymbPredAbstElement {
+      public SymbPredAbstBottomElement() {
+        super(null, null, null);
+      }
+    }
+    private final class SymbPredAbstTopElement extends SymbPredAbstElement {
+      public SymbPredAbstTopElement() {
+        super(null, null, null);
+      }
+    }
 
     private class SymbPredAbstPartialOrder implements PartialOrder {
         public boolean satisfiesPartialOrder(AbstractElement element1,
@@ -55,7 +60,7 @@ public class SymbPredAbstDomain implements AbstractDomain {
                 return true;
             }
 
-            if (element1 == bottomElement || element2 == topElement) {
+            if (element1.equals(bottomElement) || element2.equals(topElement)) {
                 return true;
             }
 
@@ -84,10 +89,10 @@ public class SymbPredAbstDomain implements AbstractDomain {
                 return e1;
             }
 
-            if (e1 == bottomElement) {
+            if (e1.equals(bottomElement)) {
                 return e2;
             }
-            if (e2 == bottomElement) {
+            if (e2.equals(bottomElement)) {
                 return e1;
             }
 
@@ -106,9 +111,9 @@ public class SymbPredAbstDomain implements AbstractDomain {
         }
     }
 
-    private final BottomElement bottomElement =
+    private final SymbPredAbstBottomElement bottomElement =
         new SymbPredAbstBottomElement();
-    private final TopElement topElement =
+    private final SymbPredAbstTopElement topElement =
         new SymbPredAbstTopElement();
     private final PartialOrder partialOrder = new SymbPredAbstPartialOrder();
     private final JoinOperator joinOperator =
@@ -116,10 +121,6 @@ public class SymbPredAbstDomain implements AbstractDomain {
 
     public AbstractElement getBottomElement() {
         return bottomElement;
-    }
-
-    public boolean isBottomElement(AbstractElement element) {
-        return element instanceof BottomElement;
     }
 
     public JoinOperator getJoinOperator() {

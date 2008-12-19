@@ -23,33 +23,40 @@
  */
 package cpa.location;
 
+import cfa.objectmodel.CFANode;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.BottomElement;
 import cpa.common.interfaces.JoinOperator;
 import cpa.common.interfaces.PartialOrder;
-import cpa.common.interfaces.TopElement;
 
 public class LocationDomain implements AbstractDomain
 {
-    private static class LocationBottomElement implements BottomElement
+    private static class LocationBottomElement extends LocationElement
     {
-
+      public LocationBottomElement() {
+        super(null);
+      }
     }
 
-    private static class LocationTopElement implements TopElement
+    private static class LocationTopElement extends LocationElement
     {
+
+      public LocationTopElement() {
+        super(null);
+      }
 
     }
 
     private static class LocationPartialOrder implements PartialOrder
     {
+      
+      
         public boolean satisfiesPartialOrder (AbstractElement element1, AbstractElement element2)
         {
             if (element1.equals (element2))
                 return true;
 
-            if (element1 == bottomElement || element2 == topElement)
+            if (element1.equals(bottomElement) || element2.equals(topElement))
                 return true;
 
             return false;
@@ -67,17 +74,17 @@ public class LocationDomain implements AbstractDomain
             if (locElement1.equals (locElement2))
                 return locElement1;
 
-            if (locElement1 == bottomElement)
+            if (locElement1.equals(bottomElement))
                 return locElement2;
-            if (locElement2 == bottomElement)
+            if (locElement2.equals(bottomElement))
                 return locElement1;
 
             return topElement;
         }
     }
 
-    private final static BottomElement bottomElement = new LocationBottomElement ();
-    private final static TopElement topElement = new LocationTopElement ();
+    private final static LocationBottomElement bottomElement = new LocationBottomElement ();
+    private final static LocationTopElement topElement = new LocationTopElement ();
     private final static PartialOrder partialOrder = new LocationPartialOrder ();
     private final static JoinOperator joinOperator = new LocationJoinOperator ();
 

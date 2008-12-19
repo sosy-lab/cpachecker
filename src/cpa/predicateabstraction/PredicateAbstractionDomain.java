@@ -30,14 +30,12 @@ import predicateabstraction.Predicate;
 import predicateabstraction.ThreeValuedBoolean;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.BottomElement;
 import cpa.common.interfaces.JoinOperator;
 import cpa.common.interfaces.PartialOrder;
-import cpa.common.interfaces.TopElement;
 
 public class PredicateAbstractionDomain implements AbstractDomain{
 
-    private static class PredicateAbstractionBottomElement extends PredicateAbstractionElement implements BottomElement
+    private static class PredicateAbstractionBottomElement extends PredicateAbstractionElement
     {
         public PredicateAbstractionBottomElement ()
         {
@@ -45,10 +43,11 @@ public class PredicateAbstractionDomain implements AbstractDomain{
         }
     }
 
-    private static class PredicateAbstractionTopElement implements TopElement
+    private static class PredicateAbstractionTopElement extends PredicateAbstractionElement
     {
     	public PredicateAbstractionTopElement ()
         {
+    	  super (null, false);
         }
     }
 
@@ -104,8 +103,8 @@ public class PredicateAbstractionDomain implements AbstractDomain{
         }
     }
 
-    private final static BottomElement bottomElement = new PredicateAbstractionBottomElement ();
-    private final static TopElement topElement = new PredicateAbstractionTopElement ();
+    private final static PredicateAbstractionBottomElement bottomElement = new PredicateAbstractionBottomElement ();
+    private final static PredicateAbstractionTopElement topElement = new PredicateAbstractionTopElement ();
     private final static PartialOrder partialOrder = new PredicateAbstractionPartialOrder ();
     private final static JoinOperator joinOperator = new PredicateAbstractionJoinOperator ();
 
