@@ -471,7 +471,6 @@ public class BDDMathsatSummaryAbstractManager extends
             SummaryAbstractElement e = (SummaryAbstractElement)abstarr[i];
             Pair<SymbolicFormula, SSAMap> p =
                 buildConcreteFormula(mmgr, cur, e, (ssa == null));
-            System.out.println(" here ---> " + p.getFirst());
             SSAMap newssa = null;
             if (ssa != null) {
                 LazyLogger.log(LazyLogger.DEBUG_3, "SHIFTING: ", p.getFirst(),
@@ -508,7 +507,6 @@ public class BDDMathsatSummaryAbstractManager extends
 //                    mathsat.api.msat_term_id(
 //                            ((MathsatSymbolicFormula)p.getFirst()).getTerm()));
         }
-System.out.println(" ---------- end ------------");
         if (CPAMain.cpaConfig.getBooleanValue(
                 "cpas.symbpredabs.useBitwiseAxioms")) {
             LazyLogger.log(LazyLogger.DEBUG_3, "ADDING BITWISE AXIOMS TO THE ",
@@ -560,7 +558,6 @@ System.out.println(" ---------- end ------------");
             useSuffix ? i >= 0 : i < f.size(); i += useSuffix ? -1 : 1) {
                 SymbolicFormula fm = f.elementAt(i);
                 itpProver.addFormula(fm);
-                System.out.println("added: " + fm);
                 if (shortestTrace && !fm.isTrue()) {
                     if (itpProver.isUnsat()) {
                         res = 0;
@@ -579,10 +576,8 @@ System.out.println(" ---------- end ------------");
                     res = -1;
                 }
             }
-            System.out.println(" <<<<<<<<< end >>>>>>>>>>>>");
             if (!shortestTrace || res == -1) {
                 unsat = itpProver.isUnsat();
-                System.out.println("what is unsat" + unsat);
             } else {
                 unsat = res == 0;
             }
@@ -624,7 +619,6 @@ System.out.println(" ---------- end ------------");
         long msatEnv = mmgr.getMsatEnv();
 
         if (unsat) {
-        	System.out.println("we are here");
             //dumpInterpolationProblem(mmgr, f, "itp");
             // the counterexample is spurious. Extract the predicates from
             // the interpolants

@@ -23,7 +23,6 @@
  */
 package cpa.location;
 
-import cfa.objectmodel.CFANode;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.JoinOperator;
@@ -56,7 +55,7 @@ public class LocationDomain implements AbstractDomain
             if (element1.equals (element2))
                 return true;
 
-            if (element1.equals(bottomElement) || element2.equals(topElement))
+            if (element1 instanceof LocationBottomElement || element2 instanceof LocationTopElement)
                 return true;
 
             return false;

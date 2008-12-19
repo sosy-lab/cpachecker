@@ -26,6 +26,7 @@ package compositeCPA;
 import java.util.Collection;
 import java.util.List;
 
+import cpa.common.CompositeBottomElement;
 import cpa.common.CompositeDomain;
 import cpa.common.CompositeElement;
 import cpa.common.interfaces.AbstractElement;
@@ -46,7 +47,7 @@ public class CompositeStopOperator implements StopOperator{
 
 	public <AE extends AbstractElement> boolean stop (AE element, Collection<AE> reached, Precision precision) throws CPAException
 	{
-		if (element.equals(compositeDomain.getBottomElement())) {
+		if (element instanceof CompositeBottomElement) {
 			return true;
 		}
 

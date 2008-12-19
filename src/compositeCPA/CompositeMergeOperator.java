@@ -28,6 +28,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import cpa.common.CallStack;
+import cpa.common.CompositeBottomElement;
 import cpa.common.CompositeDomain;
 import cpa.common.CompositeElement;
 import cpa.common.interfaces.AbstractDomain;
@@ -66,7 +67,7 @@ public class CompositeMergeOperator implements MergeOperator{
                                            Precision precision) throws CPAException {
 
     // TODO check
-    if (element1.equals(compositeDomain.getBottomElement())) {
+    if (element1 instanceof CompositeBottomElement) {
       return element2;
     }
 
