@@ -538,7 +538,7 @@ public class QueryDrivenProgramTesting {
     }
 
     // get scope restriction automaton
-    Automaton<CFAEdge> lScopeRestrictionAutomaton = AutomatonTestCases.getScopeRestrictionAutomaton();
+    Automaton<CFAEdge> lScopeRestrictionAutomaton = AutomatonTestCases.getScopeRestrictionAutomaton(pMainFunction);
     ScopeRestrictionCPA lScopeRestrictionCPA = new ScopeRestrictionCPA(lScopeRestrictionAutomaton);
     cpas.add(lScopeRestrictionCPA);
 
@@ -551,7 +551,7 @@ public class QueryDrivenProgramTesting {
     
     
     // get test goal automaton
-    Automaton<CFAEdge> lTestGoalAutomaton = AutomatonTestCases.getTestGoalAutomaton();
+    Automaton<CFAEdge> lTestGoalAutomaton = AutomatonTestCases.getTestGoalAutomaton(pMainFunction);
     TestGoalCPA lTestGoalCPA = new TestGoalCPA(lTestGoalAutomaton);
     cpas.add(lTestGoalCPA);
     
@@ -644,7 +644,9 @@ public class QueryDrivenProgramTesting {
           
         AbstractElement lTmpElement = lCompositeElement.get(mTestGoalCPAIndex);
         
-        assert(!lTestGoalCPA.getAbstractDomain().getBottomElement().equals(lTmpElement));
+        if (lTestGoalCPA.getAbstractDomain().getBottomElement().equals(lTmpElement)) {
+          continue;
+        }
         
         // TODO: Why is there a isBottomElement but not a isTopElement?
         // is isBottomElement superfluous?

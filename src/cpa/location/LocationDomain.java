@@ -35,6 +35,25 @@ public class LocationDomain implements AbstractDomain
       public LocationBottomElement() {
         super(null);
       }
+      
+      @Override
+      public boolean equals(Object pOther) {
+        if (pOther == null) {
+          return false;
+        }
+        
+        return (pOther instanceof LocationBottomElement);
+      }
+      
+      @Override
+      public int hashCode() {
+        return Integer.MIN_VALUE;
+      }
+      
+      @Override
+      public String toString() {
+        return "LocationBottomElement";
+      }
     }
 
     private static class LocationTopElement extends LocationElement
@@ -44,6 +63,24 @@ public class LocationDomain implements AbstractDomain
         super(null);
       }
 
+      @Override
+      public boolean equals(Object pOther) {
+        if (pOther == null) {
+          return false;
+        }
+        
+        return (pOther instanceof LocationTopElement);
+      }
+      
+      @Override
+      public int hashCode() {
+        return Integer.MAX_VALUE;
+      }
+      
+      @Override
+      public String toString() {
+        return "LoctionTopElement";
+      }
     }
 
     private static class LocationPartialOrder implements PartialOrder

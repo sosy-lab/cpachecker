@@ -67,4 +67,19 @@ public class CFAEdgeLabel implements Label<CFAEdge> {
   public int hashCode() {
     return mEdge.hashCode();
   }
+  
+  @Override
+  public String toString() {
+    String lResult = "(";
+    
+    lResult += mEdge.getPredecessor().toString();
+    
+    lResult += " --[" + mEdge.getRawStatement() + "]-> ";
+    
+    lResult += mEdge.getSuccessor().toString();
+    
+    lResult += ")";
+    
+    return lResult;
+  }
 }

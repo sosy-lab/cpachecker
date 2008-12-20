@@ -28,9 +28,11 @@ package programtesting;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import cmdline.CPAMain;
 import cfa.objectmodel.CFAEdge;
+import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cpa.common.automaton.Automaton;
 import cpa.common.automaton.Label;
 import cpa.common.automaton.NegationLabel;
@@ -41,11 +43,11 @@ import cpa.common.automaton.cfa.FunctionCallLabel;
  *
  */
 public class AutomatonTestCases {
-  public static Automaton<CFAEdge> getScopeRestrictionAutomaton() {
+  public static Automaton<CFAEdge> getScopeRestrictionAutomaton(CFAFunctionDefinitionNode pMainFunction) {
     Map<String, Automaton<CFAEdge>> lMapping =
                                                new HashMap<String, Automaton<CFAEdge>>();
 
-    lMapping.put("001", getScopeRestrictionAutomaton001());
+    lMapping.put("001", getScopeRestrictionAutomaton001(pMainFunction));
 
     Object lKey = CPAMain.cpaConfig.get("testing.scoperestrictionautomaton");
     
@@ -58,11 +60,12 @@ public class AutomatonTestCases {
     throw new RuntimeException("Invalid key for scope restriction automaton given!");
   }
 
-  public static Automaton<CFAEdge> getTestGoalAutomaton() {
+  public static Automaton<CFAEdge> getTestGoalAutomaton(CFAFunctionDefinitionNode pMainFunction) {
     Map<String, Automaton<CFAEdge>> lMapping =
                                                new HashMap<String, Automaton<CFAEdge>>();
 
-    lMapping.put("001", getTestGoalAutomaton001());
+    lMapping.put("001", getTestGoalAutomaton001(pMainFunction));
+    lMapping.put("002", getTestGoalAutomaton002(pMainFunction));
 
     Object lKey = CPAMain.cpaConfig.get("testing.testgoalautomaton");
     
@@ -77,7 +80,7 @@ public class AutomatonTestCases {
 
   /* test cases */
 
-  private static Automaton<CFAEdge> getScopeRestrictionAutomaton001() {
+  private static Automaton<CFAEdge> getScopeRestrictionAutomaton001(CFAFunctionDefinitionNode pMainFunction) {
     // create simple scope restriction automaton that restricts nothing
     Automaton<CFAEdge> lScopeRestrictionAutomaton = new Automaton<CFAEdge>();
     Automaton<CFAEdge>.State lState =
@@ -88,7 +91,7 @@ public class AutomatonTestCases {
     return lScopeRestrictionAutomaton;
   }
 
-  private static Automaton<CFAEdge> getTestGoalAutomaton001() {
+  private static Automaton<CFAEdge> getTestGoalAutomaton001(CFAFunctionDefinitionNode pMainFunction) {
     Automaton<CFAEdge> lTestGoalAutomaton = new Automaton<CFAEdge>();
 
     // label that matches the call to function special_case
@@ -111,6 +114,31 @@ public class AutomatonTestCases {
 
     lInitialState.addTransition(lSpecialCaseLabel, lState);
 
+    return lTestGoalAutomaton;
+  }
+  
+  private static Automaton<CFAEdge> getTestGoalAutomaton002(CFAFunctionDefinitionNode pMainFunction) {
+    Label<CFAEdge> lSpecialCaseLabel = new FunctionCallLabel("special_case");
+    
+    LabelBasedPredicateGenerator lGenerator = new LabelBasedPredicateGenerator(lSpecialCaseLabel);
+    
+    Automaton<CFAEdge> lTestGoalAutomaton = new Automaton<CFAEdge>(lGenerator.getPredicateLabels(pMainFunction));
+    
+    // add self loop to initial state
+    Automaton<CFAEdge>.State lInitialState = lTestGoalAutomaton.getInitialState();
+    
+    // TODO make this deterministic
+    lInitialState.addUnconditionalSelfLoop();
+    
+    //lInitialState.addSelfLoop(new NegationLabel());
+    
+    // add self loops to final states
+    Set<Automaton<CFAEdge>.State> lFinalStates = lTestGoalAutomaton.getFinalStates();
+    
+    for (Automaton<CFAEdge>.State lState : lFinalStates) {
+      lState.addUnconditionalSelfLoop();
+    }
+    
     return lTestGoalAutomaton;
   }
 }
