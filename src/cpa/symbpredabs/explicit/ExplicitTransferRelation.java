@@ -420,6 +420,12 @@ public class ExplicitTransferRelation implements TransferRelation {
         // inner nodes of the summary of element to any inner node of the
         // destination
         ExplicitAbstractElement e = (ExplicitAbstractElement)element;
+        
+        // bottom produces bottom
+        if (domain.getBottomElement().equals(e)) {
+          return e;
+        }
+        
         CFANode src = e.getLocation();
 
         for (int i = 0; i < src.getNumLeavingEdges(); ++i) {

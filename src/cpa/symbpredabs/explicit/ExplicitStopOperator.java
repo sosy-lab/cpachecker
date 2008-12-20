@@ -62,6 +62,17 @@ public class ExplicitStopOperator implements StopOperator {
 
     public <AE extends AbstractElement> boolean stop(AE element,
                                                      Collection<AE> reached, Precision prec) throws CPAException {
+      if (domain.getBottomElement().equals(element)) {
+        // stopping here is only correct if reached is not empty.
+        // correct means there is an element in reached that
+        // covers the bottom element.
+        // if this notion of correct is to strict we can skip the
+        // assert
+        assert(reached.size() > 0);
+        
+        return true;
+      }
+      
       if (reached instanceof LocationMappedReachedSetProjectionWrapper) {
         ExplicitAbstractElement e = (ExplicitAbstractElement)element;
         Collection<AbstractElementWithLocation> effReached =
@@ -90,7 +101,14 @@ public class ExplicitStopOperator implements StopOperator {
 
     public boolean stop(AbstractElement element, AbstractElement reachedElement)
             throws CPAException {
-
+        if (domain.getBottomElement().equals(element)) {
+          return true;
+        }
+        
+        if (domain.getBottomElement().equals(reachedElement)) {
+          return false;
+        }
+      
         ExplicitAbstractElement e1 = (ExplicitAbstractElement)element;
         ExplicitAbstractElement e2 = (ExplicitAbstractElement)reachedElement;
 
