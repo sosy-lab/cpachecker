@@ -34,6 +34,8 @@ import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.StopOperator;
 import cpa.symbpredabs.AbstractFormulaManager;
 import cpa.symbpredabs.SymbolicFormulaManager;
+import cpa.symbpredabs.mathsat.MathsatSymbolicFormula;
+import cpa.symbpredabs.mathsat.MathsatSymbolicFormulaManager;
 import exceptions.CPAException;
 
 public class SymbPredAbsStopOperator implements StopOperator {
@@ -54,7 +56,6 @@ public class SymbPredAbsStopOperator implements StopOperator {
 
   public <AE extends AbstractElement> boolean stop (AE element, Collection<AE> reached, Precision prec) throws CPAException
   {
-
     for (AbstractElement e : reached) {
       if (stop(element, e)) {
         return true;
@@ -80,7 +81,9 @@ public class SymbPredAbsStopOperator implements StopOperator {
     if(!b){
       if(e1.getParents().equals(e2.getParents())){
         SymbolicFormulaManager mgr = cpa.getSymbolicFormulaManager();
-        boolean ok = mgr.entails(e1.getPathFormula().getSymbolicFormula(), e1.getPathFormula().getSymbolicFormula());
+        // TODO check -  we uninstantiate first 
+        boolean ok = mgr.entails(((MathsatSymbolicFormulaManager)mgr).uninstantiate((MathsatSymbolicFormula)e1.getPathFormula().getSymbolicFormula()),
+        		((MathsatSymbolicFormulaManager)mgr).uninstantiate((MathsatSymbolicFormula)e2.getPathFormula().getSymbolicFormula()));
 //      if (ok) {
 //      cpa.setCoveredBy(e1, e2);
 //      } else {

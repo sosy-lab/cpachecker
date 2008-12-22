@@ -43,8 +43,7 @@ public class LocationElement implements AbstractElementWithLocation
     @Override
     public boolean equals (Object other)
     {
-        if (!(other instanceof LocationElement))
-            return false;
+        assert(other instanceof LocationElement);
 
         return locationNode.getNodeNumber () == ((LocationElement)other).locationNode.getNodeNumber ();
     }

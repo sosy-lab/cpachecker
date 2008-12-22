@@ -79,8 +79,9 @@ public class CompositeMergeOperator implements MergeOperator{
     assert(comp1.getNumberofElements() == comp2.getNumberofElements());
 
     if (!comp1.getElementWithLocation().equals (comp2.getElementWithLocation()))
+    {
       return element2;
-
+    }
     // check for call stack
     CallStack cs1 = comp1.getCallStack();
     CallStack cs2 = comp2.getCallStack();

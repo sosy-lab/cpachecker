@@ -77,6 +77,7 @@ import exceptions.UnrecognizedCFAEdgeException;
 public class SymbPredAbsTransferRelation implements TransferRelation {
 
   private int numAbstractStates = 0; // for statistics
+  public static long totalTimeForPFCopmutation = 0;
 
   private SymbPredAbsAbstractDomain domain;
   // TODO maybe we should move these into CPA later
@@ -292,11 +293,14 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     // summary nodes)
     newElement.setMaxIndex(element.getMaxIndex());
     PathFormula pf = null;
+    long start = System.currentTimeMillis();
     pf = toPathFormula(symbolicFormulaManager.makeAnd(
         element.getPathFormula().getSymbolicFormula(),
         edge, element.getPathFormula().getSsa(), false, false));
     // TODO check these 3 lines
     // SymbolicFormula t1 = pf.getSymbolicFormula();
+    long end = System.currentTimeMillis();
+    totalTimeForPFCopmutation = totalTimeForPFCopmutation + (end-start);
     SSAMap ssa1 = pf.getSsa();
     assert(pf != null);
     newElement.setPathFormula(pf);

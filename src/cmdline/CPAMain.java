@@ -60,6 +60,7 @@ import cmdline.stubs.StubConfiguration;
 import cmdline.stubs.StubFile;
 
 import compositeCPA.CompositeCPA;
+import compositeCPA.CompositeStopOperator;
 
 import cpa.common.CPAAlgorithm;
 import cpa.common.interfaces.AbstractElement;
@@ -276,7 +277,8 @@ public class CPAMain {
       LazyLogger.log(CustomLogLevel.MainApplicationLevel,
           numFunctions, " Reached CPA Size: ", reached.size(),
           " for function: ", mainFunction.getFunctionName());
-
+      System.out.println(" size of reached set: " + reached.size());
+      System.out.println(" number of stops " + CompositeStopOperator.noOfOperations);
       if (!cpaConfig.getBooleanValue(
       "analysis.dontPrintReachableStates")) {
         for (AbstractElement element : reached) {

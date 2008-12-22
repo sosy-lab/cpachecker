@@ -211,5 +211,10 @@ public class LocationMappedReachedSet implements Collection<Pair<AbstractElement
     public <T> T[] toArray(T[] arg0) {
         throw new RuntimeException("toArray not implemented!");
     }
+    
+    @Override
+    public String toString() {
+    	return repr.toString();
+    }
 
 }

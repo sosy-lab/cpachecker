@@ -26,18 +26,27 @@ package compositeCPA;
 import java.util.Collection;
 import java.util.List;
 
+import cmdline.CPAMain;
+
+import common.LocationMappedReachedSet;
+import common.LocationMappedReachedSetProjectionWrapper;
+import common.Pair;
+
 import cpa.common.CompositeBottomElement;
 import cpa.common.CompositeDomain;
 import cpa.common.CompositeElement;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.StopOperator;
+import cpa.symbpredabs.explicit.ExplicitAbstractElement;
 import exceptions.CPAException;
 
 public class CompositeStopOperator implements StopOperator{
 
 	private final CompositeDomain compositeDomain;
 	private final List<StopOperator> stopOperators;
+	public static long noOfOperations = 0;
 
 	public CompositeStopOperator (CompositeDomain compositeDomain, List<StopOperator> stopOperators)
 	{
@@ -51,14 +60,8 @@ public class CompositeStopOperator implements StopOperator{
 			return true;
 		}
 
-		CompositeElement comp1 = (CompositeElement) element;
-		List<AbstractElement> comp1Elements = comp1.getElements ();
-
-		if (comp1Elements.size () != stopOperators.size ())
-			throw new CPAException ("Wrong number of stop operator");
-
-		for(AbstractElement reachedElement:reached){
-			if (stop (element, reachedElement)){
+		for (AbstractElement e : reached) {
+			if (stop(element, e)) {
 				return true;
 			}
 		}
@@ -67,19 +70,27 @@ public class CompositeStopOperator implements StopOperator{
 
 	public boolean stop(AbstractElement element, AbstractElement reachedElement)
 	throws CPAException {
+		noOfOperations++;
 		CompositeElement compositeElement1 = (CompositeElement) element;
 		CompositeElement compositeElement2 = (CompositeElement) reachedElement;
 
 		List<AbstractElement> compositeElements1 = compositeElement1.getElements ();
 		List<AbstractElement> compositeElements2 = compositeElement2.getElements ();
 
-		for (int idx = 0; idx < compositeElements1.size (); idx++)
+		int iterationStartFrom = 0;
+		if(CPAMain.cpaConfig.getBooleanValue("cpa.useSpecializedReachedSet")){
+			iterationStartFrom = 0;
+		}
+
+
+		for (int idx = iterationStartFrom; idx < compositeElements1.size (); idx++)
 		{
 			StopOperator stopOp = stopOperators.get(idx);
 			AbstractElement absElem1 = compositeElements1.get(idx);
 			AbstractElement absElem2 = compositeElements2.get(idx);
-			if (!stopOp.stop(absElem1, absElem2))
+			if (!stopOp.stop(absElem1, absElem2)){
 				return false;
+			}
 		}
 		return true;
 	}
