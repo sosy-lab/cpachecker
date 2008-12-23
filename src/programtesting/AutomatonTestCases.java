@@ -66,6 +66,7 @@ public class AutomatonTestCases {
 
     lMapping.put("001", getTestGoalAutomaton001(pMainFunction));
     lMapping.put("002", getTestGoalAutomaton002(pMainFunction));
+    lMapping.put("003", getTestGoalAutomaton003(pMainFunction));
 
     Object lKey = CPAMain.cpaConfig.get("testing.testgoalautomaton");
     
@@ -138,6 +139,31 @@ public class AutomatonTestCases {
     for (Automaton<CFAEdge>.State lState : lFinalStates) {
       lState.addUnconditionalSelfLoop();
     }
+    
+    return lTestGoalAutomaton;
+  }
+  
+  private static Automaton<CFAEdge> getTestGoalAutomaton003(CFAFunctionDefinitionNode pMainFunction) {    
+    PredicateGenerator lGenerator = new BasicBlockPredicateGenerator();
+    
+    Automaton<CFAEdge> lTestGoalAutomaton = new Automaton<CFAEdge>(lGenerator.getPredicateLabels(pMainFunction));
+    
+    // add self loop to initial state
+    Automaton<CFAEdge>.State lInitialState = lTestGoalAutomaton.getInitialState();
+    
+    // TODO make this deterministic
+    lInitialState.addUnconditionalSelfLoop();
+    
+    //lInitialState.addSelfLoop(new NegationLabel());
+    
+    // add self loops to final states
+    Set<Automaton<CFAEdge>.State> lFinalStates = lTestGoalAutomaton.getFinalStates();
+    
+    for (Automaton<CFAEdge>.State lState : lFinalStates) {
+      lState.addUnconditionalSelfLoop();
+    }
+    
+    System.out.println(lTestGoalAutomaton);
     
     return lTestGoalAutomaton;
   }
