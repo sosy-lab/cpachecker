@@ -509,4 +509,9 @@ public class AutomatonCPADomain<E> implements AbstractDomain {
   public int hashCode() {
     return mAutomaton.hashCode();
   }
+
+  @Override
+  public boolean isBottomElement(AbstractElement pElement) {
+    return mBottomElement.equals(pElement);
+  }
 }
