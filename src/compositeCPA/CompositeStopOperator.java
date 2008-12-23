@@ -56,7 +56,7 @@ public class CompositeStopOperator implements StopOperator{
 
 	public <AE extends AbstractElement> boolean stop (AE element, Collection<AE> reached, Precision precision) throws CPAException
 	{
-		if (element instanceof CompositeBottomElement) {
+		if (compositeDomain.isBottomElement(element)) {
 			return true;
 		}
 
@@ -79,7 +79,7 @@ public class CompositeStopOperator implements StopOperator{
 
 		int iterationStartFrom = 0;
 		if(CPAMain.cpaConfig.getBooleanValue("cpa.useSpecializedReachedSet")){
-			iterationStartFrom = 0;
+			iterationStartFrom = 1;
 		}
 
 

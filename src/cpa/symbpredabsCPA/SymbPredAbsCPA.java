@@ -27,10 +27,12 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
@@ -216,11 +218,12 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis {
     parents.addToList(node.getNodeNumber());
     SSAMap ssamap = new SSAMap();
     PathFormula pf = new PathFormula(mgr.makeTrue(), ssamap);
+    List<Integer> pfParents = new ArrayList<Integer>();
     PathFormula initPf = new PathFormula(mgr.makeTrue(), ssamap);
     AbstractFormula initAbstraction = amgr.makeTrue();
 
     SymbPredAbsAbstractElement e = new SymbPredAbsAbstractElement(domain, true, node,
-        pf, initPf, initAbstraction, parents, null, pmap);
+        pf, pfParents, initPf, initAbstraction, parents, null, pmap);
     e.setMaxIndex(new SSAMap());
 
     return e;

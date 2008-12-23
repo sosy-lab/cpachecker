@@ -23,6 +23,9 @@
  */
 package cpa.symbpredabsCPA;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import symbpredabstraction.PathFormula;
 
 import common.Pair;
@@ -75,7 +78,7 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
       else{
      // we set parent to abstract element 2's parent
         merged = new SymbPredAbsAbstractElement(domain, false, elem1.getAbstractionLocation(), 
-            null, elem1.getInitAbstractionSet(), elem1.getAbstraction(), 
+            null, null, elem1.getInitAbstractionSet(), elem1.getAbstraction(), 
             elem1.getParents(), elem1.getArtParent(), elem1.getPredicates());
         // TODO check
         MathsatSymbolicFormula form1 =
@@ -93,7 +96,15 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
         ssa1 = pm.getSecond();
 
         merged.setPathFormula(new PathFormula(newFormula, ssa1));
-
+        
+        List<Integer> pfParents = new ArrayList<Integer>();
+        pfParents.addAll(elem2.getPfParents());
+        // the successor should have only 1 element in its pfParents list
+        assert(elem1.getPfParents().size() == 1);
+        if(!pfParents.contains(elem1.getPfParents().get(0))){
+          pfParents.add(elem1.getPfParents().get(0));
+        }
+        merged.setPfParents(pfParents);
         // TODO check, what is that?
         // merged.setMaxIndex(maxIndex)
         merged.updateMaxIndex(ssa1);

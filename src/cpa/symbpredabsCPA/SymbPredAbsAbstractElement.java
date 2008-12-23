@@ -23,6 +23,8 @@
  */
 package cpa.symbpredabsCPA;
 
+import java.util.List;
+
 import symbpredabstraction.ParentsList;
 import symbpredabstraction.PathFormula;
 import cfa.objectmodel.CFANode;
@@ -63,11 +65,15 @@ implements AbstractElement {
 	private SymbPredAbsAbstractElement artParent;
 	/** predicate list for this element*/
 	private PredicateMap predicates;
-
+	/** parent that we constructed the pf */
+	private List<Integer> pfParents;
+	
 	private SSAMap maxIndex;
 
 	public boolean isBottomElement = false;
 	private static int nextAvailableId = 1;
+	
+	public static long totalTimeSpentForEqualityCheck = 0;
 
 	public PathFormula getPathFormula() {
 		return pathFormula;
@@ -118,13 +124,14 @@ implements AbstractElement {
 	}
 
 	public SymbPredAbsAbstractElement(AbstractDomain d, boolean isAbstractionElement, CFANode abstLoc,
-			PathFormula pf, PathFormula initFormula, AbstractFormula a, 
+			PathFormula pf, List<Integer> pfParentsList, PathFormula initFormula, AbstractFormula a, 
 			ParentsList pl, SymbPredAbsAbstractElement artParent, PredicateMap pmap){
 		this.elementId = nextAvailableId++;
 		this.domain = (SymbPredAbsAbstractDomain)d;
 		this.isAbstractionNode = isAbstractionElement;
 		this.abstractionLocation = abstLoc;
 		this.pathFormula = pf;
+		this.pfParents = pfParentsList;
 		this.initAbstractionFormula = initFormula;
 		this.abstraction = a;
 		this.parents = pl;
@@ -151,24 +158,30 @@ implements AbstractElement {
 			// if not an abstraction location
 			if(!b){
 				if(thisElement.getParents().equals(otherElement.getParents())){
+//				  long startTime = System.currentTimeMillis();
 					SymbolicFormulaManager mgr = domain.getCPA().getFormulaManager();
-					boolean ok = mgr.entails(thisElement.getPathFormula().getSymbolicFormula(),
-							otherElement.getPathFormula().getSymbolicFormula()) && 
-							mgr.entails(otherElement.getPathFormula().getSymbolicFormula(),
-									thisElement.getPathFormula().getSymbolicFormula());
-//					// TODO later
-////if (ok)
-////	{
-////					cpa.setCoveredBy(thisElement, otherElement);
-////					} else {
-////					LazyLogger.log(CustomLogLevel.SpecificCPALevel,
-////					"NO, not covered");
-////					}
+					
+					List<Integer> thisList = thisElement.getPfParents();
+	        List<Integer> otherList = otherElement.getPfParents();
+
+	        if(thisList.size() != otherList.size()){
+	          return false;
+	        }
+	        
+	        for(int par: thisList){
+	          if(!otherList.contains(par)){
+	            return false;
+	          }
+	        }
+	        return true;
+	        
+//					boolean ok = mgr.entails(thisElement.getPathFormula().getSymbolicFormula(),
+//							otherElement.getPathFormula().getSymbolicFormula()) && 
+//							mgr.entails(otherElement.getPathFormula().getSymbolicFormula(),
+//									thisElement.getPathFormula().getSymbolicFormula());
+//					long endTime = System.currentTimeMillis();
+//					totalTimeSpentForEqualityCheck = totalTimeSpentForEqualityCheck + (endTime - startTime);
 //					return ok;
-//					}
-//					else{
-//					return false;
-					return ok;
 				}
 				return false;
 			}
@@ -209,6 +222,7 @@ implements AbstractElement {
 		" Abstraction: " + symbReprAbst +
 		" Init Formula--> " + (getInitAbstractionSet() != null ? getInitAbstractionSet().getSymbolicFormula() : "null")  +
 		" Parents --> " + parents + 
+		" Is BOTTOM -->  " + isBottomElement +
 		//" ART Parent --> " + getArtParent() + 
 		"\n \n";
 		//+ ">(" + Integer.toString(getId()) + ")"
@@ -263,5 +277,13 @@ implements AbstractElement {
 	public void setMaxIndex(SSAMap maxIndex) {
 		this.maxIndex = maxIndex;
 	}
+
+  public List<Integer> getPfParents() {
+    return pfParents;
+  }
+
+  public void setPfParents(List<Integer> pfParents) {
+    this.pfParents = pfParents;
+  }
 
 }

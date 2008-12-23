@@ -31,6 +31,7 @@ public interface AbstractDomain
 {
     public AbstractElement getTopElement ();
     public AbstractElement getBottomElement ();
+    public boolean isBottomElement(AbstractElement element);
     public PartialOrder getPartialOrder ();
     public JoinOperator getJoinOperator ();
 }

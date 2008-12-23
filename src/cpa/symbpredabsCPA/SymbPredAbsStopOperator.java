@@ -23,7 +23,9 @@
  */
 package cpa.symbpredabsCPA;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
 import logging.CustomLogLevel;
 import logging.LazyLogger;
@@ -82,24 +84,25 @@ public class SymbPredAbsStopOperator implements StopOperator {
       if(e1.getParents().equals(e2.getParents())){
         SymbolicFormulaManager mgr = cpa.getSymbolicFormulaManager();
         // TODO check -  we uninstantiate first 
-        boolean ok = mgr.entails(((MathsatSymbolicFormulaManager)mgr).uninstantiate((MathsatSymbolicFormula)e1.getPathFormula().getSymbolicFormula()),
-        		((MathsatSymbolicFormulaManager)mgr).uninstantiate((MathsatSymbolicFormula)e2.getPathFormula().getSymbolicFormula()));
-//      if (ok) {
-//      cpa.setCoveredBy(e1, e2);
-//      } else {
-//      LazyLogger.log(CustomLogLevel.SpecificCPALevel,
-//      "NO, not covered");
-//      }
-        return ok;
-        //  }
-//      else{
-//      return false;
-//      }
+
+        List<Integer> succList = e1.getPfParents();
+        List<Integer> reachedList = e2.getPfParents();
+
+        return reachedList.containsAll(succList);
+        
+//        boolean ok = mgr.entails(((MathsatSymbolicFormulaManager)mgr).uninstantiate((MathsatSymbolicFormula)e1.getPathFormula().getSymbolicFormula()),
+//        		((MathsatSymbolicFormulaManager)mgr).uninstantiate((MathsatSymbolicFormula)e2.getPathFormula().getSymbolicFormula()));
+//        return ok;
       }
       return false;
     }
     // if abstraction location
     else{
+      
+      if(e1.isBottomElement){
+        return true;
+      }
+      
       SymbolicFormulaManager mgr = cpa.getSymbolicFormulaManager();   
       LazyLogger.log(LazyLogger.DEBUG_4,
           "Checking Coverage of element: ", element);

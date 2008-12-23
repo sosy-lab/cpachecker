@@ -30,6 +30,7 @@ import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.JoinOperator;
 import cpa.common.interfaces.PartialOrder;
+import cpa.common.interfaces.StopOperator;
 
 public class CompositeDomain implements AbstractDomain
 {
@@ -61,6 +62,24 @@ public class CompositeDomain implements AbstractDomain
         this.topElement = new CompositeTopElement (tops);
         this.joinOperator = new CompositeJoinOperator (joinOperators);
         this.partialOrder = new CompositePartialOrder (partialOrders);
+    }
+    
+    public boolean isBottomElement(AbstractElement element){
+      CompositeElement compositeElem = (CompositeElement)element;
+      
+      if(compositeElem instanceof CompositeBottomElement){
+        return true;
+      }
+
+      for(int i=0; i<domains.size(); i++){
+        AbstractDomain absDomain = domains.get(i);
+        AbstractElement absElem1 = compositeElem.get(i);
+        if(absDomain.isBottomElement(absElem1)){
+          return true;
+        }
+      }
+      return false;
+      
     }
 
     public List<AbstractDomain> getDomains ()

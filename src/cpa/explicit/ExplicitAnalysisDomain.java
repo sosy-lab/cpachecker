@@ -126,4 +126,9 @@ public class ExplicitAnalysisDomain implements AbstractDomain {
   {
     return partialOrder;
   }
+
+  @Override
+  public boolean isBottomElement(AbstractElement pElement) {
+    return ((ExplicitAnalysisElement)pElement).isBottom();
+  }
 }

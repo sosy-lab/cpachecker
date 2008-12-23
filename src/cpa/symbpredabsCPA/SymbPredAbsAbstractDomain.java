@@ -51,7 +51,7 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
 
   private final class SymbPredAbsBottomElement extends SymbPredAbsAbstractElement {
     public SymbPredAbsBottomElement() {
-      super(null, true, null, null, null, null, null, null, null);
+      super(null, true, null, null, null, null, null, null, null, null);
     }
 
     @Override
@@ -61,7 +61,7 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
   }
   private final class SymbPredAbsTopElement extends SymbPredAbsAbstractElement {
     public SymbPredAbsTopElement() {
-      super(null, true, null, null, null, null, null, null, null);
+      super(null, true, null, null, null, null, null, null, null, null);
     }
   }
 

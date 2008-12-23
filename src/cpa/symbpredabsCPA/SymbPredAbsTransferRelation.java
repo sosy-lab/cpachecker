@@ -23,6 +23,7 @@
  */
 package cpa.symbpredabsCPA;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
@@ -131,7 +132,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
     if (!b) {
       try {
-        newElement = new SymbPredAbsAbstractElement(domain, false,element.getAbstractionLocation(), null, 
+        newElement = new SymbPredAbsAbstractElement(domain, false,element.getAbstractionLocation(), null, null,
             element.getInitAbstractionSet(), element.getAbstraction(), 
             element.getParents(), element.getArtParent(), element.getPredicates());
         try {
@@ -145,7 +146,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     }
 
     else {
-      newElement = new SymbPredAbsAbstractElement(domain, true, succLoc, null, null, null, null, null, null);
+      newElement = new SymbPredAbsAbstractElement(domain, true, succLoc, null, null, null, null, null, null, null);
       // register newElement as an abstraction node
       newElement.setAbstractionNode();
       try {
@@ -304,6 +305,9 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     SSAMap ssa1 = pf.getSsa();
     assert(pf != null);
     newElement.setPathFormula(pf);
+    List<Integer> pfParents = new ArrayList<Integer>();
+    pfParents.add(edge.getPredecessor().getNodeNumber());
+    newElement.setPfParents(pfParents);
     // TODO check
     newElement.updateMaxIndex(ssa1);
   }
