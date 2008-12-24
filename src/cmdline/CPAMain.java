@@ -68,7 +68,7 @@ import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;
 import cpa.symbpredabs.BlockCFABuilder;
-import cpa.symbpredabs.summary.ConeOfInfluenceCFAReduction;
+import cpa.symbpredabs.summary.CFAReduction;
 import cpa.symbpredabs.summary.SummaryCFABuilder;
 import cpa.symbpredabs.summary.SummaryDOTBuilder;
 import cpaplugin.CPAConfiguration;
@@ -151,8 +151,8 @@ public class CPAMain {
       "analysis.entryFunction"));
       if (CPAMain.cpaConfig.getBooleanValue(
       "cfa.removeIrrelevantForErrorLocations")) {
-        ConeOfInfluenceCFAReduction coi =
-          new ConeOfInfluenceCFAReduction();
+        CFAReduction coi =
+          new CFAReduction();
         mainFunction =
           coi.removeIrrelevantForErrorLocations(mainFunction);
       }
@@ -169,8 +169,8 @@ public class CPAMain {
       "analysis.entryFunction"));
       if (CPAMain.cpaConfig.getBooleanValue(
       "cfa.removeIrrelevantForErrorLocations")) {
-        ConeOfInfluenceCFAReduction coi =
-          new ConeOfInfluenceCFAReduction();
+        CFAReduction coi =
+          new CFAReduction();
         mainFunction =
           coi.removeIrrelevantForErrorLocations(mainFunction);
       }
@@ -186,8 +186,8 @@ public class CPAMain {
       "analysis.entryFunction"));
       if (CPAMain.cpaConfig.getBooleanValue(
       "cfa.removeIrrelevantForErrorLocations")) {
-        ConeOfInfluenceCFAReduction coi =
-          new ConeOfInfluenceCFAReduction();
+        CFAReduction coi =
+          new CFAReduction();
         mainFunction =
           coi.removeIrrelevantForErrorLocations(mainFunction);
       }
