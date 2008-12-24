@@ -135,4 +135,11 @@ public class SymbPredAbstDomain implements AbstractDomain {
         return topElement;
     }
 
+    @Override
+    public boolean isBottomElement(AbstractElement pElement) {
+      // never used
+      assert(false);
+      return false;
+    }
+
 }

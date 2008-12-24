@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://www.cs.sfu.ca/~dbeyer/CPAchecker/
  */
-package cpa.symbpredabs.summary;
+package cfa;
 
 import java.util.HashMap;
 import java.util.Map;
