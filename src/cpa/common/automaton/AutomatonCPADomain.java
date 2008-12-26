@@ -197,7 +197,7 @@ public class AutomatonCPADomain<E> implements AbstractDomain {
           lFirst = false;
         }
         
-        lString += "Q" + lState.getIndex();
+        lString += "q" + lState.getIndex();
       }
       
       lString += "]";

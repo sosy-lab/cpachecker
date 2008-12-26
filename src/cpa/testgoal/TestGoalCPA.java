@@ -97,6 +97,33 @@ public class TestGoalCPA implements ConfigurableProgramAnalysis {
       return mRemainingFinalStates;
     }
     
+    @Override
+    public boolean equals(Object pOther) {
+      if (pOther == null) {
+        return false;
+      }
+      
+      if (!(pOther instanceof TestGoalPrecision)) {
+        return false;
+      }
+      
+      TestGoalPrecision lPrecision = (TestGoalPrecision)pOther;
+      
+      return mRemainingFinalStates.equals(lPrecision.mRemainingFinalStates);
+    }
+    
+    @Override
+    public int hashCode() {
+      return mRemainingFinalStates.hashCode();
+    }
+    
+    @Override
+    public String toString() {
+      String lDescription = "Test goal precision: " + mRemainingFinalStates.toString();
+      
+      return lDescription;
+    }
+    
   }
 
   public class TestGoalMergeOperator implements MergeOperator {

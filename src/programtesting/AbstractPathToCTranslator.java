@@ -248,7 +248,11 @@ public class AbstractPathToCTranslator {
       case StatementEdge: {
         StatementEdge lStatementEdge = (StatementEdge)lEdge;
         
-        lProgramText.println(lStatementEdge.getExpression().getRawSignature() + ";");
+        IASTExpression lExpression = lStatementEdge.getExpression();
+        
+        if (lExpression != null) {
+          lProgramText.println(lStatementEdge.getExpression().getRawSignature() + ";");
+        }
         
         break;
       }

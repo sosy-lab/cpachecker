@@ -782,11 +782,30 @@ public class QueryDrivenProgramTesting {
       // TODO remove this output
       System.out.println("NEXT LOOP #####################");
       
-      
       cpas.remove(mTestGoalCPAIndex);
       
       Automaton<CFAEdge> lSimplifiedAutomaton = lTestGoalCPA.getAbstractDomain().getAutomaton().getSimplifiedAutomaton();
       lTestGoals = lSimplifiedAutomaton.getFinalStates();
+      
+      // TODO remove this output
+      System.out.print("Remaining Test Goals: [");
+      
+      boolean lFirstTestGoal = true;
+      
+      for (Automaton<CFAEdge>.State lTestGoal : lTestGoals) {
+        if (lFirstTestGoal) {
+          lFirstTestGoal = false;
+        }
+        else {
+          System.out.print(",");
+        }
+        
+        System.out.print("q" + lTestGoal.getIndex());
+      }
+      
+      System.out.println("]");
+      
+      
       
       lTestGoalCPA = new TestGoalCPA(lSimplifiedAutomaton);
       cpas.add(lTestGoalCPA);
@@ -814,9 +833,13 @@ public class QueryDrivenProgramTesting {
         lReachedElements = algo.CPA(lWrapperCPA, lInitialElement, lInitialPrecision);
         
         // TODO: Remove this output
+        System.out.println("reached elements begin");
+        
         for (AbstractElement lElement : lReachedElements) {
           System.out.println(lElement);
         }
+        
+        System.out.println("reached elements end");
       } catch (CPAException e1) {
         e1.printStackTrace();
         
@@ -933,11 +956,12 @@ public class QueryDrivenProgramTesting {
           }
         }
         
-        if (!lHasFinalStates) {
+        // TODO as soon as newReachedSet is called again in CPAAlgorithm reactivate this part
+        /*if (!lHasFinalStates) {
           // Because lReached is sorted according to the cardinality of final states
           // we will not see any final states in lReachedElements and thus can stop.
           break;
-        }
+        }*/
         
       }
       
