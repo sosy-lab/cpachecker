@@ -47,8 +47,8 @@ import predicateabstraction.ThreeValuedBoolean;
  */
 public class CProver {
 
-  public static Map<Deque<ExplicitAbstractElement>,ThreeValuedBoolean> checkSat (Map<Deque<ExplicitAbstractElement>, List<String>> translations) {
-    Map<Deque<ExplicitAbstractElement>,ThreeValuedBoolean> results = new HashMap<Deque<ExplicitAbstractElement>,ThreeValuedBoolean>();
+  public static Map<Deque<ExplicitAbstractElement>, Boolean> checkSat (Map<Deque<ExplicitAbstractElement>, List<String>> translations) {
+    Map<Deque<ExplicitAbstractElement>, Boolean> results = new HashMap<Deque<ExplicitAbstractElement>, Boolean>();
     
     for (Map.Entry<Deque<ExplicitAbstractElement>,List<String>> lPath : translations.entrySet()) {
       File lFile = null;
@@ -80,7 +80,7 @@ public class CProver {
         Process lCBMCProcess = Runtime.getRuntime().exec("cbmc --function " + lFunctionName + "_0 " + lFile.getAbsolutePath());            
 
         // TODO Remove output --- begin
-        BufferedReader lReader = new BufferedReader(new InputStreamReader(lCBMCProcess.getInputStream()));
+        /*BufferedReader lReader = new BufferedReader(new InputStreamReader(lCBMCProcess.getInputStream()));
 
         String lLine = null;
 
@@ -94,7 +94,7 @@ public class CProver {
 
         while ((lErrorLine = lErrorReader.readLine()) != null) {
           System.out.println(lErrorLine);
-        }
+        }*/
         // TODO Remove output --- end
 
         int lCBMCExitValue;
@@ -106,16 +106,17 @@ public class CProver {
 
         switch (lCBMCExitValue) {
         case 0: // lCBMCExitValue == 0 : Verification successful (Path is infeasible)
-          results.put(lPath.getKey(), ThreeValuedBoolean.FALSE);
+          results.put(lPath.getKey(), true);
           break;
         case 10: // lCBMCExitValue == 10 : Verification failed (Path is feasible)
-          results.put(lPath.getKey(), ThreeValuedBoolean.TRUE);
+          results.put(lPath.getKey(), false);
           break;
         default:
           // lCBMCExitValue == 6 : Start function symbol not found
           // more error codes?
           System.err.println("CBMC had exit code " + lCBMCExitValue);
-        results.put(lPath.getKey(), ThreeValuedBoolean.DONTKNOW);
+          assert(false);
+          break;
         }
       } catch (IOException e) {
         e.printStackTrace();

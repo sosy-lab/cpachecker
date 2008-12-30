@@ -969,20 +969,21 @@ public class QueryDrivenProgramTesting {
     
     Map<Deque<ExplicitAbstractElement>, List<String>> lTranslations = AbstractPathToCTranslator.translatePaths(lPaths);
 
-    for (Entry<Deque<ExplicitAbstractElement>,ThreeValuedBoolean> lVerified : CProver.checkSat(lTranslations).entrySet()) {
-     switch (lVerified.getValue()) {
-     case TRUE:
-     {
-       // test goal satisfied
-       break;
-     }
-     case DONTKNOW:
-     case FALSE:
-     {
-       // test goal still not matched
-       break;
-     }
-     }
+    for (Entry<Deque<ExplicitAbstractElement>, Boolean> lVerified : CProver.checkSat(lTranslations).entrySet()) {
+      if (lVerified.getValue()) {
+        // test goal still not matched
+        // true means the path is not feasible since assert(false) at the end of the C program
+        // is not reachable
+        // TODO implement handling of this case
+        
+        assert(false);
+      }
+      else {
+        // test goal matched
+        // false means the path is feasible since assert(false) at the end of the C program
+        // is reachable
+        
+      }
     }
     
     return lPaths;
