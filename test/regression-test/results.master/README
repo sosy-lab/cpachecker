@@ -1,1 +1,3 @@
 The results have been computed on cs-sel-02.cs.surrey.sfu.ca on 2008-12-10, using r170 of SVN-trunk
+- runtimes were updated on 2008-12-30 (some updates to the JRE probably caused a
+  slowdown of some of the runs)
