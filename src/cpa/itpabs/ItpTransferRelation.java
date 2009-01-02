@@ -385,6 +385,9 @@ public class ItpTransferRelation implements TransferRelation {
         for (ItpAbstractElement ie : falseAbst) {
             Collection<AbstractElementWithLocation> tmp = 
                 abstractTree.getSubtree(ie, true, false);
+            for (AbstractElement el : tmp) {
+              removeFromReached((ItpAbstractElement)el);
+            }
             toUnreach.addAll(tmp);
         }
         toProcess.removeAll(toUnreach);
@@ -472,6 +475,7 @@ public class ItpTransferRelation implements TransferRelation {
                     if (ret != domain.getBottomElement()) {
                         abstractTree.addChild(
                                 e, ret);
+                        addToReached((ItpAbstractElement)ret);
                     }
                     return ret;
                 } catch (RefinementNeededException exc) {
@@ -481,6 +485,7 @@ public class ItpTransferRelation implements TransferRelation {
                         if (e2 != domain.getBottomElement()) {
                             abstractTree.addChild(
                                     e, e2);
+                            addToReached((ItpAbstractElement)e2);
                             exc.getToWaitlist().add(e2);
                         }
                     }
