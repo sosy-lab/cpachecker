@@ -30,9 +30,21 @@ if ! echo $REV | egrep -q '^[[:digit:]]+$' ; then
   exit 1
 fi
 
+# checkout or update from the given SVN URL and the specified revision
+STORAGE=$HOME/cpachecker-regression-test_qdpt
+# variable used by cpa.sh
+export PATH_TO_WORKSPACE=$STORAGE/
+if [ ! -d $STORAGE ] || [ "`svn info $STORAGE | grep ^URL: | awk '{ print $2 }'`" != "$REPOS" ] ; then
+  rm -rf $STORAGE
+  svn co -r$REV $REPOS $STORAGE
+else
+  rm -f $STORAGE/nativeLibs/libmathsatj.so $STORAGE/build.xml $STORAGE/src/cfa/CFABuilder.java $STORAGE/src/cmdline/stubs/StubCodeReaderFactory.java
+  svn up -r$REV $STORAGE
+fi
+
 # make ourselves log all output
 SCRIPT_HOME=`cd \`dirname $0\` > /dev/null 2>&1 ; pwd`
-LOGDIR="$SCRIPT_HOME/testing/results.r$REV"
+LOGDIR="$SCRIPT_HOME/results.r$REV"
 mkdir -p $LOGDIR
 LOGFILE="$LOGDIR/run-log.`date +%F_%T`"
 echo "Logging all output and errors to $LOGFILE"
@@ -41,24 +53,12 @@ exec 1>$LOGFILE 2>&1
 # log all executed commands and exit on error
 set -evx
 
-# checkout or update from the given SVN URL and the specified revision
-STORAGE=$HOME/cpachecker-regression-test
-# variable used by cpa.sh
-export PATH_TO_WORKSPACE=$STORAGE/
-if [ ! -d $STORAGE -o "`svn info $STORAGE | grep ^URL: | awk '{ print $2 }'`" != "$REPOS" ] ; then
-  rm -rf $STORAGE
-  svn co -r$REV $REPOS $STORAGE
-else
-  rm -f $STORAGE/nativeLibs/libmathsatj.so $STORAGE/build.xml $STORAGE/src/cfa/CFABuilder.java $STORAGE/src/cmdline/stubs/StubCodeReaderFactory.java
-  svn up -r$REV $STORAGE
-fi
-
 # install all the files and library for the specific build infrastructure
 cp ../../build.xml $STORAGE
 cp ../../nativeLibs/libmathsatj.so $STORAGE/nativeLibs/
 # the patch for CDT 5
 cdt_patch=`mktemp`
-git show e1317fc5d07f014471ecd98f533a417ccf977064 > $cdt_patch
+git show 155b386a6dd94d6e40285ab47600c5a1dec623b8 > $cdt_patch
 cd $STORAGE
 patch -p1 < $cdt_patch
 rm -f $cdt_patch
