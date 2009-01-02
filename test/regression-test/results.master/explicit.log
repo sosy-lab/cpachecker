@@ -1,7 +1,7 @@
 INSTANCE                                                                                                     TIME OUTCOME
 -------------------------------------------------------------------------------------------------------------------------
-/localhome/tautschnig/cpachecker.git/test/albertos_tests/test/ntdrivers/cdaudio/cdaudio_simpl1.cil.c       63.897 UNKNOWN
-/localhome/tautschnig/cpachecker.git/test/albertos_tests/test/ntdrivers/cdaudio/cdaudio_simpl1_BUG.cil.c   78.866 UNKNOWN
+/localhome/tautschnig/cpachecker.git/test/albertos_tests/test/ntdrivers/cdaudio/cdaudio_simpl1.cil.c      129.714    SAFE
+/localhome/tautschnig/cpachecker.git/test/albertos_tests/test/ntdrivers/cdaudio/cdaudio_simpl1_BUG.cil.c  166.716  UNSAFE
 /localhome/tautschnig/cpachecker.git/test/albertos_tests/test/ntdrivers/diskperf/diskperf_simpl1.cil.c     54.382    SAFE
 /localhome/tautschnig/cpachecker.git/test/albertos_tests/test/ntdrivers/floppy/floppy_simpl3.cil.c         35.724    SAFE
 /localhome/tautschnig/cpachecker.git/test/albertos_tests/test/ntdrivers/floppy/floppy_simpl3_BUG.cil.c     21.476  UNSAFE
