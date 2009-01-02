@@ -44,7 +44,7 @@ fi
 
 # make ourselves log all output
 SCRIPT_HOME=`cd \`dirname $0\` > /dev/null 2>&1 ; pwd`
-LOGDIR="$SCRIPT_HOME/results.r$REV"
+LOGDIR="$SCRIPT_HOME/testing/results.r$REV"
 mkdir -p $LOGDIR
 LOGFILE="$LOGDIR/run-log.`date +%F_%T`"
 echo "Logging all output and errors to $LOGFILE"
