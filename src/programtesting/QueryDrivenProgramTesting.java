@@ -874,6 +874,46 @@ public class QueryDrivenProgramTesting {
         
         final Set<Automaton<CFAEdge>.State> lStates = lTestGoalCPAElement.getStates();
         
+        boolean lHasUncoveredTestGoal = false;
+        
+        for (Automaton<CFAEdge>.State lState : lStates) {
+            if (lState.isFinal() && lTestGoals.contains(lState)) {
+                lHasUncoveredTestGoal = true;
+                break;
+            }
+        }
+        
+        if (lHasUncoveredTestGoal) {
+            // TODO: Remove this output
+            System.out.println("=> " + lElement.toString());
+
+            Deque<ExplicitAbstractElement> lPath = getAbstractPath((ExplicitAbstractElement)lCompositeElement.get(mAbstractionCPAIndex));
+
+            CounterexampleTraceInfo lInfo = lEAFManager.buildCounterexampleTrace(lSFManager, lPath);
+
+            if (lInfo.isSpurious()) {
+                // TODO: Remove this output
+                System.out.println("Path is infeasible");
+
+                lInfeasiblePaths.add(new Pair<Deque<ExplicitAbstractElement>, CounterexampleTraceInfo>(lPath, lInfo));
+            } else {
+                // TODO: Remove this output
+                System.out.println("Path is feasible");
+
+                // remove the test goal from lTestGoals
+                lTestGoals.removeAll(lStates);
+
+                // remove the test goal from the automaton
+                for (Automaton<CFAEdge>.State lState : lStates) {
+                    lState.unsetFinal();
+                }
+                
+                // add feasible path to set of feasible paths
+                lPaths.add(lPath);
+            }
+        }
+        
+        /*
         boolean lHasFinalStates = false;
         
         // remove all covered test goals
@@ -894,20 +934,20 @@ public class QueryDrivenProgramTesting {
                 // TODO: Remove this output
                 System.out.println("Path is infeasible");
 
-                /*TransferRelation lTransferRelation = lExplicitAbstractionCPA.getTransferRelation();
+                //TransferRelation lTransferRelation = lExplicitAbstractionCPA.getTransferRelation();
 
-                ExplicitTransferRelation lExplicitTransferRelation = (ExplicitTransferRelation)lTransferRelation;
+                //ExplicitTransferRelation lExplicitTransferRelation = (ExplicitTransferRelation)lTransferRelation;
 
-                try {
-                  lExplicitTransferRelation.performRefinement(lPath, lInfo);
-                } catch (RefinementNeededException e) {
+                //try {
+                //  lExplicitTransferRelation.performRefinement(lPath, lInfo);
+                //} catch (RefinementNeededException e) {
                   // TODO: Remove this output
-                  System.out.println("Refinement done!");
-                } catch (Exception e) {
-                  e.printStackTrace();
+                //  System.out.println("Refinement done!");
+                //} catch (Exception e) {
+                //  e.printStackTrace();
 
-                  System.exit(1);
-                }*/
+                //  System.exit(1);
+                //}
                 
                 lInfeasiblePaths.add(new Pair<Deque<ExplicitAbstractElement>, CounterexampleTraceInfo>(lPath, lInfo));
               } else {
@@ -926,7 +966,7 @@ public class QueryDrivenProgramTesting {
               }
             }
           }
-        }
+        }*/
         
         // TODO as soon as newReachedSet is called again in CPAAlgorithm reactivate this part
         /*if (!lHasFinalStates) {
