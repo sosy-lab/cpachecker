@@ -29,6 +29,7 @@ package cpa.testgoal;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import common.Pair;
 
@@ -132,6 +133,41 @@ public class TestGoalCPA implements ConfigurableProgramAnalysis {
     public AbstractElement merge(AbstractElement pElement1,
                                  AbstractElement pElement2,
                                  Precision prec) throws CPAException {
+      /*assert(pElement1 != null);
+      assert(pElement2 != null);
+      
+      assert(pElement1 instanceof AutomatonCPADomain<?>.Element);
+      assert(pElement2 instanceof AutomatonCPADomain<?>.Element);
+      
+      // no join if top or bottom element
+      if (!(pElement1 instanceof AutomatonCPADomain<?>.StateSetElement) 
+          || !(pElement2 instanceof AutomatonCPADomain<?>.StateSetElement)) {
+        return pElement2;
+      }
+      
+      AutomatonCPADomain<CFAEdge>.StateSetElement lElement1 = mDomain.castToStateSetElement(pElement1);
+      AutomatonCPADomain<CFAEdge>.StateSetElement lElement2 = mDomain.castToStateSetElement(pElement2);
+      
+      for (Automaton<CFAEdge>.State lState : lElement1.getStates()) {
+        if (!lState.isFinal()) {
+          if (!lElement2.getStates().contains(lState)) {
+            // no join
+            return pElement2;
+          }
+        }
+      }
+      
+      for (Automaton<CFAEdge>.State lState : lElement2.getStates()) {
+        if (!lState.isFinal()) {
+          if (!lElement1.getStates().contains(lState)) {
+            // no join
+            return pElement2;
+          }
+        }
+      }
+      
+      return lElement1.createUnionElement(lElement2.getStates());*/
+      
       // no join
       return pElement2;
     }
@@ -165,7 +201,41 @@ public class TestGoalCPA implements ConfigurableProgramAnalysis {
     @Override
     public boolean stop(AbstractElement pElement,
                         AbstractElement pReachedElement) throws CPAException {
-      return mDomain.getPartialOrder().satisfiesPartialOrder(pElement, pReachedElement);
+        assert(pElement != null);
+        assert(pReachedElement != null);
+        
+        if (mDomain.isBottomElement(pElement)) {
+            return true;
+        }
+        
+        if (mDomain.getTopElement().equals(pReachedElement)) {
+            return true;
+        }
+        
+        if (mDomain.getTopElement().equals(pElement)) {
+            return false;
+        }
+        
+        if (mDomain.isBottomElement(pReachedElement)) {
+            return false;
+        }
+        
+        assert(pElement instanceof AutomatonCPADomain<?>.Element);
+        assert(pReachedElement instanceof AutomatonCPADomain<?>.Element);
+        
+        AutomatonCPADomain<CFAEdge>.StateSetElement lElement = mDomain.castToStateSetElement(pElement);
+        AutomatonCPADomain<CFAEdge>.StateSetElement lReachedElement = mDomain.castToStateSetElement(pReachedElement);
+
+        for (Automaton<CFAEdge>.State lState : lElement.getStates()) {
+            if (!lState.isFinal()) {
+                if (!lReachedElement.getStates().contains(lState)) {
+                    return false;
+                }
+            }
+        }
+        
+        return true;
+      //return mDomain.getPartialOrder().satisfiesPartialOrder(pElement, pReachedElement);
     }
 
   }
@@ -201,7 +271,15 @@ public class TestGoalCPA implements ConfigurableProgramAnalysis {
       // TODO This is a hack for performance reasons
       AutomatonCPADomain<CFAEdge>.Element lElement = mDomain.getSuccessor(pElement, pCfaEdge);
       
+      int lOldSize = lPrecision.getRemainingFinalStates().size();
+      
       lPrecision.removeAllFinalStates(lElement);
+      
+      int lNewSize = lPrecision.getRemainingFinalStates().size();
+      
+      if (lOldSize != lNewSize) {
+        System.out.println("Remaining #states = " + lNewSize);
+      }
       
       return lElement;
     }

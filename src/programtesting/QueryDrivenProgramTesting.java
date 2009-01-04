@@ -712,7 +712,7 @@ public class QueryDrivenProgramTesting {
   
   public static Deque<ExplicitAbstractElement> getAbstractPath(ExplicitAbstractElement pElement) {
     // TODO: Remove this output
-    System.out.println("Abstract Path >>> BEGIN");
+    //System.out.println("Abstract Path >>> BEGIN");
     
     ExplicitAbstractElement lPathElement = pElement;
     
@@ -720,7 +720,7 @@ public class QueryDrivenProgramTesting {
     
     while (lPathElement != null) {
       // TODO: Remove this output
-      System.out.println(lPathElement.toString());
+      //System.out.println(lPathElement.toString());
       
       lPath.addFirst(lPathElement);
       
@@ -728,7 +728,7 @@ public class QueryDrivenProgramTesting {
     }
     
     // TODO: Remove this output
-    System.out.println("Abstract Path >>> BEGIN");    
+    //System.out.println("Abstract Path >>> BEGIN");    
     
     return lPath;
   }
@@ -788,23 +788,7 @@ public class QueryDrivenProgramTesting {
       lTestGoals = lSimplifiedAutomaton.getFinalStates();
       
       // TODO remove this output
-      System.out.print("Remaining Test Goals: [");
-      
-      boolean lFirstTestGoal = true;
-      
-      for (Automaton<CFAEdge>.State lTestGoal : lTestGoals) {
-        if (lFirstTestGoal) {
-          lFirstTestGoal = false;
-        }
-        else {
-          System.out.print(",");
-        }
-        
-        System.out.print("q" + lTestGoal.getIndex());
-      }
-      
-      System.out.println("]");
-      
+      printTestGoals("Remaining Test Goals: ", lTestGoals);
       
       
       lTestGoalCPA = new TestGoalCPA(lSimplifiedAutomaton);
@@ -848,16 +832,9 @@ public class QueryDrivenProgramTesting {
       }
       
       // TODO Remove this output
-      System.out.print("Infeasible Test Goals: ");
+      printTestGoals("Infeasible Test Goals: ", lTestGoalPrecision.getRemainingFinalStates());
       
-      System.out.print("[");
-      
-      for (Automaton<CFAEdge>.State lState : lTestGoalPrecision.getRemainingFinalStates()) {
-        System.out.print(lState);
-        System.out.print(" ");
-      }
-      
-      System.out.println("]");
+      Set<Pair<Deque<ExplicitAbstractElement>, CounterexampleTraceInfo>> lInfeasiblePaths = new HashSet<Pair<Deque<ExplicitAbstractElement>, CounterexampleTraceInfo>>();
       
       // Remove the infeasible test goals. If the set of remaining final states is
       // not empty this means that we have fully traversed an overapproximation
@@ -909,25 +886,17 @@ public class QueryDrivenProgramTesting {
               // TODO: Remove this output
               System.out.println("=> " + lElement.toString());
 
-              Deque<ExplicitAbstractElement> lPath =
-                                                     getAbstractPath((ExplicitAbstractElement) lCompositeElement
-                                                         .get(mAbstractionCPAIndex));
+              Deque<ExplicitAbstractElement> lPath = getAbstractPath((ExplicitAbstractElement)lCompositeElement.get(mAbstractionCPAIndex));
 
-              CounterexampleTraceInfo lInfo =
-                                              lEAFManager
-                                                  .buildCounterexampleTrace(
-                                                      lSFManager, lPath);
+              CounterexampleTraceInfo lInfo = lEAFManager.buildCounterexampleTrace(lSFManager, lPath);
 
               if (lInfo.isSpurious()) {
                 // TODO: Remove this output
                 System.out.println("Path is infeasible");
 
-                TransferRelation lTransferRelation =
-                                                     lExplicitAbstractionCPA
-                                                         .getTransferRelation();
+                /*TransferRelation lTransferRelation = lExplicitAbstractionCPA.getTransferRelation();
 
-                ExplicitTransferRelation lExplicitTransferRelation =
-                                                                     (ExplicitTransferRelation) lTransferRelation;
+                ExplicitTransferRelation lExplicitTransferRelation = (ExplicitTransferRelation)lTransferRelation;
 
                 try {
                   lExplicitTransferRelation.performRefinement(lPath, lInfo);
@@ -938,12 +907,15 @@ public class QueryDrivenProgramTesting {
                   e.printStackTrace();
 
                   System.exit(1);
-                }
+                }*/
+                
+                lInfeasiblePaths.add(new Pair<Deque<ExplicitAbstractElement>, CounterexampleTraceInfo>(lPath, lInfo));
               } else {
                 // TODO: Remove this output
                 System.out.println("Path is feasible");
 
                 // remove the test goal from lTestGoals
+                // TODO: remove all test goals in this element
                 lTestGoals.remove(lState);
 
                 // remove the test goal from the automaton
@@ -965,6 +937,8 @@ public class QueryDrivenProgramTesting {
         
       }
       
+      // TODO: Remove this
+      break;
     }
     
     Map<Deque<ExplicitAbstractElement>, List<String>> lTranslations = AbstractPathToCTranslator.translatePaths(lPaths);
@@ -987,5 +961,29 @@ public class QueryDrivenProgramTesting {
     }
     
     return lPaths;
+  }
+  
+  public static void printTestGoals(String pTitle, Collection<Automaton<CFAEdge>.State> pTestGoals) {
+      System.out.print(pTitle);
+      
+      printTestGoals(pTestGoals);
+  }
+  
+  public static void printTestGoals(Collection<Automaton<CFAEdge>.State> pTestGoals) {
+      boolean lFirstTestGoal = true;
+
+      System.out.print("[");
+      
+      for (Automaton<CFAEdge>.State lTestGoal : pTestGoals) {
+          if (lFirstTestGoal) {
+              lFirstTestGoal = false;
+          } else {
+              System.out.print(",");
+          }
+
+          System.out.print("q" + lTestGoal.getIndex());
+      }
+      
+      System.out.println("]");
   }
 }

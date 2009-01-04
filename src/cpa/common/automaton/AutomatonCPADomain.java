@@ -93,6 +93,14 @@ public class AutomatonCPADomain<E> implements AbstractDomain {
       mStates.add(pState);
     }
     
+    public StateSetElement createUnionElement(Set<Automaton<E>.State> pStates) {
+      StateSetElement lElement = new StateSetElement(this.getDomain(), this.getStates());
+      
+      lElement.mStates.addAll(pStates);
+      
+      return lElement;
+    }
+    
     public final Set<Automaton<E>.State> getStates() {
       return mStates;
     }
