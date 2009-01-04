@@ -977,8 +977,27 @@ public class QueryDrivenProgramTesting {
         
       }
       
-      // TODO: Remove this
-      break;
+      // do abstraction refinement
+      if (!lInfeasiblePaths.isEmpty()) {
+          TransferRelation lTransferRelation = lExplicitAbstractionCPA.getTransferRelation();
+
+          ExplicitTransferRelation lExplicitTransferRelation = (ExplicitTransferRelation)lTransferRelation;
+
+          // TODO choose one for refinement or refine based on all infeasible paths
+          // TODO choose based on not covered test cases?
+          for (Pair<Deque<ExplicitAbstractElement>, CounterexampleTraceInfo> lPair : lInfeasiblePaths) {
+              try {
+                lExplicitTransferRelation.performRefinement(lPair.getFirst(), lPair.getSecond());
+              } catch (RefinementNeededException e) {
+                // TODO: Remove this output
+                System.out.println("Refinement done!");
+              } catch (Exception e) {
+                e.printStackTrace();
+
+                System.exit(1);
+              }
+          }
+      }
     }
     
     Map<Deque<ExplicitAbstractElement>, List<String>> lTranslations = AbstractPathToCTranslator.translatePaths(lPaths);
