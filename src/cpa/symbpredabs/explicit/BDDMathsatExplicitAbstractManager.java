@@ -992,7 +992,7 @@ public class BDDMathsatExplicitAbstractManager extends
                                itp, " LOCATION: ",
                                ((ExplicitAbstractElement)
                                        abstarr[i-1]).getLocation());
-
+                
                 boolean nonAtomic = CPAMain.cpaConfig.getBooleanValue(
                         "cpas.symbpredabs.abstraction.explicit." +
                         "nonAtomicPredicates");
@@ -1040,7 +1040,12 @@ public class BDDMathsatExplicitAbstractManager extends
             }
             if (useBlastWay) {
                 assert(firstIndexBlastWay >= 0);
-                assert(lastIndexBlastWay >= 0);
+                //assert(lastIndexBlastWay >= 0);
+                
+                if (lastIndexBlastWay == -1) {
+                    lastIndexBlastWay = f.size();
+                }
+                
                 for (int i = firstIndexBlastWay; i < lastIndexBlastWay; ++i) {
                     ExplicitAbstractElement s1 =
                         (ExplicitAbstractElement)abstarr[i];
