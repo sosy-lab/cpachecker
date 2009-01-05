@@ -102,8 +102,8 @@ public class CPAAlgorithm
         System.out.println(err.toString());
         return simpleReached;
       } catch (RefinementNeededException re) {
-        //doRefinement(reached, waitlist, re.getReachableToUndo(), re.getToWaitlist());
-        doRefinementForSymbAbst(initialState, initialPrecision, reached, waitlist, re.getReachableToUndo());
+        doRefinement(reached, waitlist, re.getReachableToUndo(), re.getToWaitlist());
+        //doRefinementForSymbAbst(initialState, initialPrecision, reached, waitlist, re.getReachableToUndo());
         continue;
       } catch (CPATransferException e1) {
         e1.printStackTrace();
