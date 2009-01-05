@@ -1,3 +1,4 @@
+[AH]: Andreas Holzer <holzer@forsyte.de>
 [DB]: Dirk Beyer <dirk.beyer@sfu.ca>
 [MT]: Michael Tautschnig <tautschnig@forsyte.de>
 
@@ -9,18 +10,15 @@ Warning: Should not have multiple jump edges leaving at line: 297
 Warning: Should not have multiple jump edges leaving at line: 771
 Warning: Should not have multiple jump edges leaving at line: 1232
 
-- [MT] ntdrivers/cdaudio/cdaudio_simpl1.cil.c yields a wrong result when using
-  cpa.symbpredabs.explicit.ExplicitCPA (delta debugging needed, r308 has a wrong
-  result (UNSAFE), r170 has an assertion violation)
-
 - [MT] ntdrivers/kbfiltr/kbfiltr_simpl1.cil.c results in an assertion violation when
   using cpa.symbpredabs.explicit.ExplicitCPA (delta debugging needed, r308 has
-  ERROR, r170 is ok)
+  ERROR, r170 is ok), applying the above patch yields further assertion
+  violations in r325, checking against r274 in progress
 
 - [MT] compositestop is broken (does not care about precision)
 
 - [MT] The use of LocationMappedReachedSet in
-  icpa.symbpredabs.explicit.ExplicitStopOperator is currently broken because of
+  cpa.symbpredabs.explicit.ExplicitStopOperator is currently broken because of
   the disparity of reached vs. simpleReached; this results in a performance
   penalty of 10-20% according to recent regression testing
   -- this has been fixed in r318, but deserves further testing whether it is
@@ -91,4 +89,20 @@ Warning: Should not have multiple jump edges leaving at line: 1232
 - [MT] CPAAlgorithm is unnecessarily slow because we use sets where lists could
   be used as well (we know when we insert an element that already exists in the
   collection); sets will always check for uniqueness
+
+- [MT] DefUse satisfiesPartialOrder is broken (does not care about
+  top/bottom-element); this may be true for several other CPAs as well
+
+- [AH] stop operator in LocationCPA is very time consuming (must iterate over
+  all elements of reached)
+
+================================================================================
+
+- {DONE} [MT] ntdrivers/cdaudio/cdaudio_simpl1.cil.c yields a wrong result when
+  using cpa.symbpredabs.explicit.ExplicitCPA (delta debugging needed, r308 has a
+  wrong result (UNSAFE), r170 has an assertion violation)
+  -- this is caused by the change introduced in r259 (additional if on
+  analysis.useSummaryLocations in
+  src/cpa/symbpredabs/mathsat/MathsatSymbolicFormulaManager.java)
+  -- change has been reverted in r336
 
