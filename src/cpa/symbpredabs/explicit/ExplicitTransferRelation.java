@@ -474,4 +474,8 @@ public class ExplicitTransferRelation implements TransferRelation {
         return allSucc;
     }
 
+    public void clearART() {
+        this.abstractTree.clear();
+    }
+    
 }

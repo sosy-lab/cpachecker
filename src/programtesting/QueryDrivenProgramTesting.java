@@ -72,7 +72,9 @@ import cpa.common.interfaces.Precision;
 import cpa.location.LocationCPA;
 import cpa.scoperestriction.ScopeRestrictionCPA;
 import cpa.symbpredabs.CounterexampleTraceInfo;
+import cpa.symbpredabs.Predicate;
 import cpa.symbpredabs.SymbolicFormulaManager;
+import cpa.symbpredabs.UpdateablePredicateMap;
 import cpa.symbpredabs.explicit.ExplicitAbstractElement;
 import cpa.symbpredabs.explicit.ExplicitAbstractFormulaManager;
 import cpa.symbpredabs.explicit.ExplicitCPA;
@@ -885,7 +887,7 @@ public class QueryDrivenProgramTesting {
         
         if (lHasUncoveredTestGoal) {
             // TODO: Remove this output
-            System.out.println("=> " + lElement.toString());
+            //System.out.println("=> " + lElement.toString());
 
             Deque<ExplicitAbstractElement> lPath = getAbstractPath((ExplicitAbstractElement)lCompositeElement.get(mAbstractionCPAIndex));
 
@@ -978,7 +980,7 @@ public class QueryDrivenProgramTesting {
       }
       
       // do abstraction refinement
-      if (!lInfeasiblePaths.isEmpty()) {
+      /*if (!lInfeasiblePaths.isEmpty()) {
           TransferRelation lTransferRelation = lExplicitAbstractionCPA.getTransferRelation();
 
           ExplicitTransferRelation lExplicitTransferRelation = (ExplicitTransferRelation)lTransferRelation;
@@ -986,6 +988,9 @@ public class QueryDrivenProgramTesting {
           // TODO choose one for refinement or refine based on all infeasible paths
           // TODO choose based on not covered test cases?
           for (Pair<Deque<ExplicitAbstractElement>, CounterexampleTraceInfo> lPair : lInfeasiblePaths) {
+              // TODO check whether all test goals of this path are covered already
+              // if this is the case then continue with next iteration because
+              // there is no reason for refining
               try {
                 lExplicitTransferRelation.performRefinement(lPair.getFirst(), lPair.getSecond());
               } catch (RefinementNeededException e) {
@@ -997,6 +1002,34 @@ public class QueryDrivenProgramTesting {
                 System.exit(1);
               }
           }
+          
+          lExplicitTransferRelation.clearART();
+      }*/
+      
+      // do abstraction refinement
+      if (!lInfeasiblePaths.isEmpty()) {
+          UpdateablePredicateMap lUpdateablePredicateMap = (UpdateablePredicateMap)lExplicitAbstractionCPA.getPredicateMap();
+          
+          boolean lHasUpdatedPredicates = false;
+          
+          for (Pair<Deque<ExplicitAbstractElement>, CounterexampleTraceInfo> lPair : lInfeasiblePaths) {
+            for (ExplicitAbstractElement e : lPair.getFirst()) {
+                Collection<Predicate> newpreds = lPair.getSecond().getPredicatesForRefinement(e);
+
+                lHasUpdatedPredicates |= lUpdateablePredicateMap.update(e.getLocation(), newpreds);
+            }
+          }
+          
+          assert(lHasUpdatedPredicates);
+          
+          TransferRelation lTransferRelation = lExplicitAbstractionCPA.getTransferRelation();
+
+          ExplicitTransferRelation lExplicitTransferRelation = (ExplicitTransferRelation)lTransferRelation;
+
+          lExplicitTransferRelation.clearART();
+          
+          // TODO: Remove this output
+          System.out.println("Refinement done!");
       }
     }
     

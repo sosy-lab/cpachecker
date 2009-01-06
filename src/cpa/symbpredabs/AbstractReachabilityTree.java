@@ -111,4 +111,8 @@ public class AbstractReachabilityTree {
         return tree.containsKey(n);
     }
     
+    public void clear() {
+        root = null;
+        tree.clear();
+    }
 }
