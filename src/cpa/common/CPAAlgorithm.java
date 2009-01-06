@@ -222,9 +222,10 @@ public class CPAAlgorithm
 
   private Pair<AbstractElementWithLocation,Precision> choose(List<Pair<AbstractElementWithLocation,Precision>> waitlist) {
 
-    if(waitlist.size() == 1 || CPAMain.cpaConfig.getBooleanValue("analysis.bfs")){
+    if(waitlist.size() == 1){
       return waitlist.remove(0);
-    } else if(CPAMain.cpaConfig.getBooleanValue("analysis.topSort")) {
+    } 
+    else if(CPAMain.cpaConfig.getBooleanValue("analysis.topSort")) {
       Pair<AbstractElementWithLocation,Precision> currentElement = waitlist.get(0);
       for(int i=1; i<waitlist.size(); i++){
         Pair<AbstractElementWithLocation,Precision> currentTempElement = waitlist.get(i);
@@ -236,7 +237,11 @@ public class CPAAlgorithm
 
       waitlist.remove(currentElement);
       return currentElement;
-    } else {
+    }
+    else if(CPAMain.cpaConfig.getBooleanValue("analysis.bfs")){
+      return waitlist.remove(0);
+    }
+    else {
       return waitlist.remove(waitlist.size()-1);
     }
   }

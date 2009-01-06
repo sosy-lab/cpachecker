@@ -65,8 +65,12 @@ public class CFAReduction {
         while (n.getNumEnteringEdges() > 0) {
           CFAEdge removedEdge = n.getEnteringEdge(0);
           n.removeEnteringEdge(removedEdge);
+
           CFANode prevNode = removedEdge.getPredecessor();
-          prevNode.removeLeavingEdge(removedEdge);
+          if(!(prevNode instanceof CFAErrorNode)){
+            prevNode.removeLeavingEdge(removedEdge);
+          }
+
         }
         while (n.getNumLeavingEdges() > 0) {
           CFAEdge removedEdge = n.getLeavingEdge(0);
