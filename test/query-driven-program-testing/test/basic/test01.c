@@ -20,3 +20,13 @@ int special_case(int x, int y) {
   return 10;
 }
 
+int main(void) {
+  int __BLAST_NONDET_x;
+  int __BLAST_NONDET_y;
+  int __BLAST_NONDET_z;
+
+  foo(__BLAST_NONDET_x, __BLAST_NONDET_y, __BLAST_NONDET_z);
+
+  return (0);
+}
+
