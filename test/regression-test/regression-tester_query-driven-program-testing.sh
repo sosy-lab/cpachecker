@@ -77,7 +77,7 @@ cd $SCRIPT_HOME
 outfile="$LOGDIR/test_`date +%Y-%m-%d`"
 
 # the various configurations to test
-configurations="basicblock_foo basicblock_main testgoal001_foo testgoal001_main testgoal002_foo"
+configurations="testgoal001 testgoal002 basicblock"
 
 # the benchmark instances
 # this selects the "simplified" instances
