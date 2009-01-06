@@ -39,8 +39,6 @@ import java.util.Deque;
 
 import cpa.symbpredabs.explicit.ExplicitAbstractElement;
 
-import predicateabstraction.ThreeValuedBoolean;
-
 /**
  * @author Michael Tautschnig <tautschnig@forsyte.de>
  *
@@ -112,9 +110,17 @@ public class CProver {
           results.put(lPath.getKey(), false);
           break;
         default:
-          // lCBMCExitValue == 6 : Start function symbol not found
+          // lCBMCExitValue == 6 : Start function symbol not found, but also gcc not found
           // more error codes?
-          System.err.println("CBMC had exit code " + lCBMCExitValue);
+          System.err.println("CBMC had exit code " + lCBMCExitValue + ", output was:");
+          BufferedReader br = new BufferedReader(new InputStreamReader(lCBMCProcess.getErrorStream()));
+          String line = null;
+        
+          while ((line = br.readLine()) != null) {
+            System.err.println(line);
+          }
+
+          br.close();
           assert(false);
           break;
         }
