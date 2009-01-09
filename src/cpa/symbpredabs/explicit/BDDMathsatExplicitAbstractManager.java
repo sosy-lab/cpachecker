@@ -45,6 +45,7 @@ import cfa.objectmodel.BlankEdge;
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAErrorNode;
 import cfa.objectmodel.c.DeclarationEdge;
+import cfa.objectmodel.c.FunctionDefinitionNode;
 import cmdline.CPAMain;
 
 import common.Pair;
@@ -413,7 +414,7 @@ public class BDDMathsatExplicitAbstractManager extends
         }
 
         if (!(succ.getLocation() instanceof CFAErrorNode)) {
-            if (edge instanceof BlankEdge || edge instanceof DeclarationEdge //||
+            if ((edge instanceof BlankEdge && !(edge.getPredecessor() instanceof FunctionDefinitionNode)) || edge instanceof DeclarationEdge //||
 //                    (predicates.size() == 0 &&
 //                            ((BDDAbstractFormula)e.getAbstraction()).getBDD() ==
 //                                bddManager.getOne())) {
