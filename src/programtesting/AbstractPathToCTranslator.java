@@ -280,15 +280,19 @@ public class AbstractPathToCTranslator {
         
         boolean lFirstArgument = true;
         
-        for (IASTExpression lArgument : lFunctionCallEdge.getArguments()) {
-          if (lFirstArgument) {
-            lFirstArgument = false;
+        IASTExpression[] lArguments = lFunctionCallEdge.getArguments();
+        
+        if (lArguments != null) {
+          for (IASTExpression lArgument : lArguments) {
+            if (lFirstArgument) {
+              lFirstArgument = false;
+            }
+            else {
+              lArgumentString += ", ";
+            }
+
+            lArgumentString += lArgument.getRawSignature();
           }
-          else {
-            lArgumentString += ", ";
-          }
-          
-          lArgumentString += lArgument.getRawSignature();
         }
         
         lArgumentString += ")";
