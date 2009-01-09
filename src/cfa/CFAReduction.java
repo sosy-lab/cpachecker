@@ -62,15 +62,16 @@ public class CFAReduction {
     // now detach all the nodes not visited
     for (CFANode n : dfsMap.keySet()) {
       if (!dfsMapFromError.containsKey(n)) {
-        while (n.getNumEnteringEdges() > 0) {
-          CFAEdge removedEdge = n.getEnteringEdge(0);
-          n.removeEnteringEdge(removedEdge);
-
+        int edgeIndex = 0;
+        while (n.getNumEnteringEdges() > edgeIndex) {
+          CFAEdge removedEdge = n.getEnteringEdge(edgeIndex);
           CFANode prevNode = removedEdge.getPredecessor();
           if(!(prevNode instanceof CFAErrorNode)){
             prevNode.removeLeavingEdge(removedEdge);
+            n.removeEnteringEdge(removedEdge);
+          } else {
+            ++edgeIndex;
           }
-
         }
         while (n.getNumLeavingEdges() > 0) {
           CFAEdge removedEdge = n.getLeavingEdge(0);
