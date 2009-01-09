@@ -2091,8 +2091,8 @@ void errorFn(void)
 { 
 
   {
-  ERROR: 
-  goto ERROR;
+  //ERROR: 
+  //goto ERROR;
 }
 }
 NTSTATUS myStatus  ;
