@@ -329,7 +329,12 @@ public class CPAMain {
       IASTSimpleDeclaration sd = (IASTSimpleDeclaration)d;
       if (sd.getDeclarators().length == 1 &&
           sd.getDeclarators()[0] instanceof IASTFunctionDeclarator) {
-        continue;
+	if (cpaConfig.getBooleanValue("analysis.useFunctionDeclarations")) {
+	  // do nothing
+	}
+	else {
+	  continue;
+	}
       }
       GlobalDeclarationEdge e = new GlobalDeclarationEdge(
           d.getRawSignature(),
