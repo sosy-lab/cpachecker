@@ -28,6 +28,7 @@ package programtesting;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
@@ -57,6 +58,8 @@ import cpa.symbpredabs.explicit.ExplicitAbstractElement;
  *
  */
 public class AbstractPathToCTranslator {
+  private static PrintWriter mGlobalThingsWriter = null;
+
   public static Map<Deque<ExplicitAbstractElement>, List<String>> translatePaths(Collection<Deque<ExplicitAbstractElement>> pPaths) {
     assert(pPaths != null);
     
@@ -71,14 +74,28 @@ public class AbstractPathToCTranslator {
       
       // TODO remove output
       System.out.println("Written program text:");
-      
+     
+      //try {
+
+      //PrintWriter lWriter = new PrintWriter(new FileWriter("andi_tmp.c"));
+
       for (String lProgramString : lTranslation) {
         System.out.println(lProgramString);
+	//lWriter.println(lProgramString);
       }
+
+      //lWriter.close();
       
+      //}
+      //catch(Exception e) {
+      //  e.printStackTrace();
+      //}
+
       lPathPrograms.put(lAbstractPath, lTranslation);
       
       i++;
+
+      //System.exit(1);
     }
     
     return lPathPrograms;
@@ -91,7 +108,8 @@ public class AbstractPathToCTranslator {
     
     
     ExplicitAbstractElement lPredecessorElement = pAbstractPath.getFirst();
-    
+   
+    // check for special case (= path of length zero = path with only one element)
     if (pAbstractPath.size() == 1) {
       // special case
       
@@ -204,7 +222,11 @@ public class AbstractPathToCTranslator {
   
   public static List<String> translatePath(List<CFAEdge> pAbstractPath) {
     int lFunctionIndex = 0;
-    
+
+    // create print writer for global typedefs and declarations
+    StringWriter lGlobalThingsStringWriter = new StringWriter();
+    mGlobalThingsWriter = new PrintWriter(lGlobalThingsStringWriter);
+
     // stack for program texts of different functions
     Stack<StringWriter> lProgramTextStack = new Stack<StringWriter>();
     
@@ -259,7 +281,12 @@ public class AbstractPathToCTranslator {
       case DeclarationEdge: {
         DeclarationEdge lDeclarationEdge = (DeclarationEdge)lEdge;
         
-        lProgramText.println(lDeclarationEdge.getRawStatement());
+	if (lDeclarationEdge instanceof cfa.objectmodel.c.GlobalDeclarationEdge) {
+	  mGlobalThingsWriter.println(lDeclarationEdge.getRawStatement());
+	}
+	else {
+          lProgramText.println(lDeclarationEdge.getRawStatement());
+	}
         
         /*IASTDeclarator[] lDeclarators = lDeclarationEdge.getDeclarators();
         
@@ -354,6 +381,8 @@ public class AbstractPathToCTranslator {
     while (!lProgramTextStack.isEmpty()) {
       endFunction(lProgramTextStack, lProgramTexts);
     }
+
+    lProgramTexts.add(0, lGlobalThingsStringWriter.toString());
     
     return lProgramTexts;
   }
