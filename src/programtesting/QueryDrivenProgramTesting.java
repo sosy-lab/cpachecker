@@ -39,8 +39,6 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.Map.Entry;
 
-import predicateabstraction.ThreeValuedBoolean;
-
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAEdgeType;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
@@ -75,6 +73,7 @@ import cpa.symbpredabs.CounterexampleTraceInfo;
 import cpa.symbpredabs.Predicate;
 import cpa.symbpredabs.SymbolicFormulaManager;
 import cpa.symbpredabs.UpdateablePredicateMap;
+import cpa.symbpredabs.explicit.BDDMathsatExplicitAbstractManager;
 import cpa.symbpredabs.explicit.ExplicitAbstractElement;
 import cpa.symbpredabs.explicit.ExplicitAbstractFormulaManager;
 import cpa.symbpredabs.explicit.ExplicitCPA;
@@ -83,7 +82,7 @@ import cpa.testgoal.TestGoalCPA;
 import cpa.testgoal.TestGoalCPA.TestGoalPrecision;
 import exceptions.CPAException;
 import exceptions.CPATransferException;
-import exceptions.RefinementNeededException;
+import java.util.Stack;
 
 /**
  * @author Michael Tautschnig <tautschnig@forsyte.de>
@@ -91,19 +90,93 @@ import exceptions.RefinementNeededException;
  */
 public class QueryDrivenProgramTesting {
   
+  public static class AbstractReachabilityTree<TreeElement> {
+
+    private TreeElement mRoot;
+    private Map<TreeElement, Collection<TreeElement>> mChildren;
+
+    public AbstractReachabilityTree() {
+      mRoot = null;
+      mChildren = new HashMap<TreeElement, Collection<TreeElement>>();
+    }
+
+    public void clear() {
+      mChildren.clear();
+      mRoot = null;
+    }
+
+    public void setRoot(TreeElement pRoot) {
+      assert (pRoot != null);
+      assert (mRoot == null);
+
+      mRoot = pRoot;
+
+      createEntry(mRoot);
+    }
+
+    public TreeElement getRoot() {
+      assert (mRoot != null);
+
+      return mRoot;
+    }
+
+    public boolean hasRoot() {
+      return (mRoot != null);
+    }
+
+    private void createEntry(TreeElement pElement) {
+      assert (pElement != null);
+      assert (!contains(pElement));
+
+      mChildren.put(pElement, new HashSet<TreeElement>());
+    }
+
+    public void add(TreeElement pParent, TreeElement pChild) {
+      assert (pParent != null);
+      assert (pChild != null);
+
+      // pChild has to be a new element in the tree
+      assert (!contains(pChild));
+      // pParent has to be an element in the tree
+      assert (contains(pParent));
+
+      Collection<TreeElement> lParentEntry = getChildren(pParent);
+      lParentEntry.add(pChild);
+
+      createEntry(pChild);
+    }
+
+    public boolean contains(TreeElement pElement) {
+      assert (pElement != null);
+
+      return mChildren.containsKey(pElement);
+    }
+
+    public Collection<TreeElement> getChildren(TreeElement pElement) {
+      assert (pElement != null);
+      assert (contains(pElement));
+
+      return mChildren.get(pElement);
+    }
+  }
+    
   public static class MyCompositeCPA implements ConfigurableProgramAnalysis {
 
     public class CompositeTransferRelation implements TransferRelation{
 
       private final CompositeDomain compositeDomain;
       private final List<TransferRelation> transferRelations;
-
+      
+      private AbstractReachabilityTree<CompositeElement> mAbstractReachabilityTree;
+      
       // private LocationTransferRelation locationTransferRelation;
 
       public CompositeTransferRelation (CompositeDomain compositeDomain, List<TransferRelation> transferRelations)
       {
         this.compositeDomain = compositeDomain;
         this.transferRelations = transferRelations;
+        
+        mAbstractReachabilityTree = new AbstractReachabilityTree<CompositeElement>();
 
         //TransferRelation first = transferRelations.get (0);
         //if (first instanceof LocationTransferRelation)
@@ -116,6 +189,10 @@ public class QueryDrivenProgramTesting {
       {
         return compositeDomain;
       }
+      
+      public AbstractReachabilityTree<CompositeElement> getAbstractReachabilityTree() {
+          return mAbstractReachabilityTree;
+      }
 
       public AbstractElement getAbstractSuccessor (AbstractElement element, CFAEdge cfaEdge, Precision precision) throws CPATransferException
       {
@@ -123,6 +200,12 @@ public class QueryDrivenProgramTesting {
         CompositePrecision lCompositePrecision = (CompositePrecision)precision;
         
         CompositeElement compositeElement = (CompositeElement) element;
+        
+        // initialize root of ART
+        if (!mAbstractReachabilityTree.hasRoot()) {
+            mAbstractReachabilityTree.setRoot(compositeElement);
+        }
+        
         List<AbstractElement> inputElements = compositeElement.getElements ();
         List<AbstractElement> resultingElements = new ArrayList<AbstractElement> ();
 
@@ -188,6 +271,9 @@ public class QueryDrivenProgramTesting {
         }
 
         CompositeElement successorState = new CompositeElement (resultingElements, updatedCallStack);
+        
+        mAbstractReachabilityTree.add(compositeElement, successorState);
+        
         return successorState;
       }
 
@@ -212,12 +298,12 @@ public class QueryDrivenProgramTesting {
     }
     
     private final CompositeDomain mDomain;
-    private final TransferRelation mTransferRelation;
-    private final MergeOperator mMergeOperator;
-    private final StopOperator mStopOperator;
-    private final PrecisionAdjustment mPrecisionAdjustment;
+    private final CompositeTransferRelation mTransferRelation;
+    private final CompositeMergeOperator mMergeOperator;
+    private final CompositeStopOperator mStopOperator;
+    private final CompositePrecisionAdjustment mPrecisionAdjustment;
     private final CompositeElement mInitialElement;
-    private final Precision mInitialPrecision;
+    private final CompositePrecision mInitialPrecision;
     
     public MyCompositeCPA(List<ConfigurableProgramAnalysis> cpas, CFAFunctionDefinitionNode node) {
       List<AbstractDomain> domains = new ArrayList<AbstractDomain> ();
@@ -254,7 +340,7 @@ public class QueryDrivenProgramTesting {
     }
     
     @Override
-    public AbstractDomain getAbstractDomain() {
+    public CompositeDomain getAbstractDomain() {
       return mDomain;
     }
 
@@ -265,27 +351,27 @@ public class QueryDrivenProgramTesting {
     }
 
     @Override
-    public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
+    public CompositePrecision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
       return mInitialPrecision;
     }
 
     @Override
-    public MergeOperator getMergeOperator() {
+    public CompositeMergeOperator getMergeOperator() {
       return mMergeOperator;
     }
 
     @Override
-    public PrecisionAdjustment getPrecisionAdjustment() {
+    public CompositePrecisionAdjustment getPrecisionAdjustment() {
       return mPrecisionAdjustment;
     }
 
     @Override
-    public StopOperator getStopOperator() {
+    public CompositeStopOperator getStopOperator() {
       return mStopOperator;
     }
 
     @Override
-    public TransferRelation getTransferRelation() {
+    public CompositeTransferRelation getTransferRelation() {
       return mTransferRelation;
     }
     
@@ -713,24 +799,15 @@ public class QueryDrivenProgramTesting {
   }
   
   public static Deque<ExplicitAbstractElement> getAbstractPath(ExplicitAbstractElement pElement) {
-    // TODO: Remove this output
-    //System.out.println("Abstract Path >>> BEGIN");
-    
     ExplicitAbstractElement lPathElement = pElement;
     
     Deque<ExplicitAbstractElement> lPath = new LinkedList<ExplicitAbstractElement>();
     
     while (lPathElement != null) {
-      // TODO: Remove this output
-      //System.out.println(lPathElement.toString());
-      
       lPath.addFirst(lPathElement);
       
       lPathElement = lPathElement.getParent();
     }
-    
-    // TODO: Remove this output
-    //System.out.println("Abstract Path >>> BEGIN");    
     
     return lPath;
   }
@@ -790,9 +867,10 @@ public class QueryDrivenProgramTesting {
       lTestGoals = lSimplifiedAutomaton.getFinalStates();
       
       // TODO remove this output
-      printTestGoals("Remaining Test Goals: ", lTestGoals);
+      //printTestGoals("Remaining Test Goals: ", lTestGoals);
+      System.out.println("Number of remaining test goals: " + lTestGoals.size());
       
-      
+      // TODO since lTestCPA is added as last CPA, the remove above should remove the last -> assure index consistency
       lTestGoalCPA = new TestGoalCPA(lSimplifiedAutomaton);
       cpas.add(lTestGoalCPA);
       
@@ -819,13 +897,7 @@ public class QueryDrivenProgramTesting {
         lReachedElements = algo.CPA(lWrapperCPA, lInitialElement, lInitialPrecision);
         
         // TODO: Remove this output
-        System.out.println("reached elements begin");
-        
-        for (AbstractElement lElement : lReachedElements) {
-          System.out.println(lElement);
-        }
-        
-        System.out.println("reached elements end");
+        //printReachedElements(lReachedElements);
       } catch (CPAException e1) {
         e1.printStackTrace();
         
@@ -833,10 +905,9 @@ public class QueryDrivenProgramTesting {
         break;
       }
       
+      
       // TODO Remove this output
       printTestGoals("Infeasible Test Goals: ", lTestGoalPrecision.getRemainingFinalStates());
-      
-      Set<Pair<Deque<ExplicitAbstractElement>, CounterexampleTraceInfo>> lInfeasiblePaths = new HashSet<Pair<Deque<ExplicitAbstractElement>, CounterexampleTraceInfo>>();
       
       // Remove the infeasible test goals. If the set of remaining final states is
       // not empty this means that we have fully traversed an overapproximation
@@ -844,61 +915,128 @@ public class QueryDrivenProgramTesting {
       // reachable at all.
       lTestGoals.removeAll(lTestGoalPrecision.getRemainingFinalStates());
       
-      for (AbstractElement lElement : lReachedElements) {
-        // are there any remaining test goals to be covered?
-        if (lTestGoals.isEmpty()) {
-          // we are done, every test goal is reached
-          break;
-        }
-        
-        if (lWrapperCPA.getAbstractDomain().getBottomElement().equals(lElement)) {
-          continue;
-        }
-        
-        CompositeElement lCompositeElement = (CompositeElement)lElement;
-          
-        AbstractElement lTmpElement = lCompositeElement.get(mTestGoalCPAIndex);
-        
-        if (lTestGoalCPA.getAbstractDomain().getBottomElement().equals(lTmpElement)) {
-          continue;
-        }
-        
-        // TODO: Why is there a isBottomElement but not a isTopElement?
-        // is isBottomElement superfluous?
-        if (lTestGoalCPA.getAbstractDomain().getTopElement().equals(lTmpElement)) {
-          // TODO: How to handle this, this element should never occur?
-          // Should we consider it as covered every test goal?
-          continue;
-        }
-        
-        // now, we know it is an StateSetElement
-        AutomatonCPADomain<CFAEdge>.StateSetElement lTestGoalCPAElement = lTestGoalCPA.getAbstractDomain().castToStateSetElement(lTmpElement);
-        
-        final Set<Automaton<CFAEdge>.State> lStates = lTestGoalCPAElement.getStates();
-        
-        boolean lHasUncoveredTestGoal = false;
-        
-        for (Automaton<CFAEdge>.State lState : lStates) {
-            if (lState.isFinal() && lTestGoals.contains(lState)) {
+      
+      Set<Pair<Deque<ExplicitAbstractElement>, CounterexampleTraceInfo>> lInfeasiblePaths = new HashSet<Pair<Deque<ExplicitAbstractElement>, CounterexampleTraceInfo>>();
+      
+      
+      // process abstract reachability tree
+      AbstractReachabilityTree<CompositeElement> lAbstractReachabilityTree = cpa.getTransferRelation().getAbstractReachabilityTree();
+      
+      assert(lAbstractReachabilityTree.hasRoot());
+      
+      CompositeElement lRoot = lAbstractReachabilityTree.getRoot();
+      
+      Stack<Pair<CompositeElement, Iterator<CompositeElement>>> lStack = new Stack<Pair<CompositeElement, Iterator<CompositeElement>>>();
+      
+      assert(!lAbstractReachabilityTree.getChildren(lRoot).isEmpty());
+      
+      lStack.push(new Pair(lRoot, lAbstractReachabilityTree.getChildren(lRoot).iterator()));
+      
+      
+      while (!lStack.empty() && !lTestGoals.isEmpty()) {
+        Pair<CompositeElement, Iterator<CompositeElement>> lCurrentPair = lStack.peek();
+
+        Iterator<CompositeElement> lIterator = lCurrentPair.getSecond();
+
+        if (lIterator.hasNext()) {
+          CompositeElement lChild = lIterator.next();
+
+          Collection<CompositeElement> lGrandchildren = lAbstractReachabilityTree.getChildren(lChild);
+
+          if (lGrandchildren.isEmpty()) {
+            // we are at a leave
+
+            AbstractElement lTmpElement = lChild.get(mTestGoalCPAIndex);
+
+            // the ART should not contain the bottom element
+            assert (!lTestGoalCPA.getAbstractDomain().isBottomElement(lTmpElement));
+
+            // top element should never occur
+            assert (!lTestGoalCPA.getAbstractDomain().getTopElement().equals(lTmpElement));
+
+            // now, we know it is an StateSetElement
+            AutomatonCPADomain<CFAEdge>.StateSetElement lTestGoalCPAElement = lTestGoalCPA.getAbstractDomain().castToStateSetElement(lTmpElement);
+
+            final Set<Automaton<CFAEdge>.State> lStates = lTestGoalCPAElement.getStates();
+
+            boolean lHasUncoveredTestGoal = false;
+
+            for (Automaton<CFAEdge>.State lState : lStates) {
+              if (lState.isFinal() && lTestGoals.contains(lState)) {
                 lHasUncoveredTestGoal = true;
                 break;
+              }
             }
-        }
-        
-        if (lHasUncoveredTestGoal) {
-            // TODO: Remove this output
-            //System.out.println("=> " + lElement.toString());
 
-            Deque<ExplicitAbstractElement> lPath = getAbstractPath((ExplicitAbstractElement)lCompositeElement.get(mAbstractionCPAIndex));
+            if (lHasUncoveredTestGoal) {
+              // check feasibility
+              Deque<ExplicitAbstractElement> lPath = getAbstractPath((ExplicitAbstractElement) lChild.get(mAbstractionCPAIndex));
 
-            CounterexampleTraceInfo lInfo = lEAFManager.buildCounterexampleTrace(lSFManager, lPath);
+              assert (lEAFManager instanceof BDDMathsatExplicitAbstractManager);
 
-            if (lInfo.isSpurious()) {
+              BDDMathsatExplicitAbstractManager lMathsatManager = (BDDMathsatExplicitAbstractManager) lEAFManager;
+
+              Pair<CounterexampleTraceInfo, Integer> lPair = lMathsatManager.buildCounterexampleTrace2(lSFManager, lPath);
+
+              CounterexampleTraceInfo lInfo = lPair.getFirst();
+
+              if (lInfo.isSpurious()) {
                 // TODO: Remove this output
                 System.out.println("Path is infeasible");
 
+                assert (lPair.getSecond().intValue() != -1);
+
+                //System.out.println("Index: " + lPair.getSecond() + ", " + lPath.size() + ", " + lStack.size());
+
                 lInfeasiblePaths.add(new Pair<Deque<ExplicitAbstractElement>, CounterexampleTraceInfo>(lPath, lInfo));
-            } else {
+
+                // backtrack
+                while (lStack.size() >= lPair.getSecond().intValue() - 1) {
+                  lStack.pop();
+                }
+
+                //System.out.println("performed backtracking");
+
+                // TODO check correctness of the following approach
+
+                CompositeElement lBacktrackElement = lStack.peek().getFirst();
+
+                Deque<ExplicitAbstractElement> lBacktrackPath = getAbstractPath((ExplicitAbstractElement) lBacktrackElement.get(mAbstractionCPAIndex));
+
+                // TODO remove this correctness check in production code
+                Pair<CounterexampleTraceInfo, Integer> lBacktrackPair = lMathsatManager.buildCounterexampleTrace2(lSFManager, lBacktrackPath);
+
+                CounterexampleTraceInfo lBacktrackInfo = lBacktrackPair.getFirst();
+
+                assert (!lBacktrackInfo.isSpurious());
+
+
+                AbstractElement lBacktrackTmpElement = lChild.get(mTestGoalCPAIndex);
+
+                // the ART should not contain the bottom element
+                // TODO move this out of feasibilty check to stack insertion
+                assert (!lTestGoalCPA.getAbstractDomain().isBottomElement(lBacktrackTmpElement));
+
+                // top element should never occur
+                // TODO move this out of feasibilty check to stack insertion
+                assert (!lTestGoalCPA.getAbstractDomain().getTopElement().equals(lBacktrackTmpElement));
+
+                // now, we know it is an StateSetElement
+                AutomatonCPADomain<CFAEdge>.StateSetElement lBacktrackTestGoalCPAElement = lTestGoalCPA.getAbstractDomain().castToStateSetElement(lBacktrackTmpElement);
+
+                final Set<Automaton<CFAEdge>.State> lBacktrackStates = lBacktrackTestGoalCPAElement.getStates();
+
+                // remove the test goal from lTestGoals
+                lTestGoals.removeAll(lBacktrackStates);
+
+                // remove the test goal from the automaton
+                for (Automaton<CFAEdge>.State lState : lBacktrackStates) {
+                  lState.unsetFinal();
+                }
+
+                // add feasible path to set of feasible paths
+                lPaths.add(lBacktrackPath);
+              } else {
                 // TODO: Remove this output
                 System.out.println("Path is feasible");
 
@@ -907,129 +1045,52 @@ public class QueryDrivenProgramTesting {
 
                 // remove the test goal from the automaton
                 for (Automaton<CFAEdge>.State lState : lStates) {
-                    lState.unsetFinal();
+                  lState.unsetFinal();
                 }
-                
-                // add feasible path to set of feasible paths
-                lPaths.add(lPath);
-            }
-        }
-        
-        /*
-        boolean lHasFinalStates = false;
-        
-        // remove all covered test goals
-        for (Automaton<CFAEdge>.State lState : lStates) {
-          // is lState a remaining test goal?
-          if (lState.isFinal()) {
-            lHasFinalStates = true;
-            
-            if (lTestGoals.contains(lState)) {
-              // TODO: Remove this output
-              System.out.println("=> " + lElement.toString());
-
-              Deque<ExplicitAbstractElement> lPath = getAbstractPath((ExplicitAbstractElement)lCompositeElement.get(mAbstractionCPAIndex));
-
-              CounterexampleTraceInfo lInfo = lEAFManager.buildCounterexampleTrace(lSFManager, lPath);
-
-              if (lInfo.isSpurious()) {
-                // TODO: Remove this output
-                System.out.println("Path is infeasible");
-
-                //TransferRelation lTransferRelation = lExplicitAbstractionCPA.getTransferRelation();
-
-                //ExplicitTransferRelation lExplicitTransferRelation = (ExplicitTransferRelation)lTransferRelation;
-
-                //try {
-                //  lExplicitTransferRelation.performRefinement(lPath, lInfo);
-                //} catch (RefinementNeededException e) {
-                  // TODO: Remove this output
-                //  System.out.println("Refinement done!");
-                //} catch (Exception e) {
-                //  e.printStackTrace();
-
-                //  System.exit(1);
-                //}
-                
-                lInfeasiblePaths.add(new Pair<Deque<ExplicitAbstractElement>, CounterexampleTraceInfo>(lPath, lInfo));
-              } else {
-                // TODO: Remove this output
-                System.out.println("Path is feasible");
-
-                // remove the test goal from lTestGoals
-                // TODO: remove all test goals in this element
-                lTestGoals.remove(lState);
-
-                // remove the test goal from the automaton
-                lState.unsetFinal();
 
                 // add feasible path to set of feasible paths
                 lPaths.add(lPath);
               }
             }
+          } else {
+            lStack.push(new Pair<CompositeElement, Iterator<CompositeElement>>(lChild, lAbstractReachabilityTree.getChildren(lChild).iterator()));
           }
-        }*/
-        
-        // TODO as soon as newReachedSet is called again in CPAAlgorithm reactivate this part
-        /*if (!lHasFinalStates) {
-          // Because lReached is sorted according to the cardinality of final states
-          // we will not see any final states in lReachedElements and thus can stop.
-          break;
-        }*/
-        
+        } else {
+          // we are done with all children
+          lStack.pop();
+        }
       }
       
       // do abstraction refinement
-      /*if (!lInfeasiblePaths.isEmpty()) {
-          TransferRelation lTransferRelation = lExplicitAbstractionCPA.getTransferRelation();
-
-          ExplicitTransferRelation lExplicitTransferRelation = (ExplicitTransferRelation)lTransferRelation;
-
-          // TODO choose one for refinement or refine based on all infeasible paths
-          // TODO choose based on not covered test cases?
-          for (Pair<Deque<ExplicitAbstractElement>, CounterexampleTraceInfo> lPair : lInfeasiblePaths) {
-              // TODO check whether all test goals of this path are covered already
-              // if this is the case then continue with next iteration because
-              // there is no reason for refining
-              try {
-                lExplicitTransferRelation.performRefinement(lPair.getFirst(), lPair.getSecond());
-              } catch (RefinementNeededException e) {
-                // TODO: Remove this output
-                System.out.println("Refinement done!");
-              } catch (Exception e) {
-                e.printStackTrace();
-
-                System.exit(1);
-              }
-          }
-          
-          lExplicitTransferRelation.clearART();
-      }*/
-      
-      // do abstraction refinement
       if (!lInfeasiblePaths.isEmpty()) {
-          UpdateablePredicateMap lUpdateablePredicateMap = (UpdateablePredicateMap)lExplicitAbstractionCPA.getPredicateMap();
-          
-          boolean lHasUpdatedPredicates = false;
-          
-          for (Pair<Deque<ExplicitAbstractElement>, CounterexampleTraceInfo> lPair : lInfeasiblePaths) {
-            for (ExplicitAbstractElement e : lPair.getFirst()) {
-                Collection<Predicate> newpreds = lPair.getSecond().getPredicatesForRefinement(e);
+        // TODO: Remove this output
+        System.out.println("Number of infeasible paths: " + lInfeasiblePaths.size());
 
-                lHasUpdatedPredicates |= lUpdateablePredicateMap.update(e.getLocation(), newpreds);
-            }
+        UpdateablePredicateMap lUpdateablePredicateMap = (UpdateablePredicateMap) lExplicitAbstractionCPA.getPredicateMap();
+
+        boolean lHasUpdatedPredicates = false;
+
+        for (Pair<Deque<ExplicitAbstractElement>, CounterexampleTraceInfo> lPair : lInfeasiblePaths) {
+          for (ExplicitAbstractElement e : lPair.getFirst()) {
+            Collection<Predicate> newpreds = lPair.getSecond().getPredicatesForRefinement(e);
+
+            boolean lBoolean = lUpdateablePredicateMap.update(e.getLocation(), newpreds);
+
+            lHasUpdatedPredicates |= lBoolean;
           }
-          
-          assert(lHasUpdatedPredicates);
-          
-          TransferRelation lTransferRelation = lExplicitAbstractionCPA.getTransferRelation();
+        }
 
-          ExplicitTransferRelation lExplicitTransferRelation = (ExplicitTransferRelation)lTransferRelation;
+        // ensure some progress in refinement
+        assert (lHasUpdatedPredicates);
 
-          lExplicitTransferRelation.clearART();
-          
-          // TODO: Remove this output
-          System.out.println("Refinement done!");
+        TransferRelation lTransferRelation = lExplicitAbstractionCPA.getTransferRelation();
+
+        ExplicitTransferRelation lExplicitTransferRelation = (ExplicitTransferRelation) lTransferRelation;
+
+        lExplicitTransferRelation.clearART();
+
+        // TODO: Remove this output
+        System.out.println("Refinement done!");
       }
     }
     
@@ -1056,26 +1117,36 @@ public class QueryDrivenProgramTesting {
   }
   
   public static void printTestGoals(String pTitle, Collection<Automaton<CFAEdge>.State> pTestGoals) {
-      System.out.print(pTitle);
-      
-      printTestGoals(pTestGoals);
+    System.out.print(pTitle);
+
+    printTestGoals(pTestGoals);
   }
   
   public static void printTestGoals(Collection<Automaton<CFAEdge>.State> pTestGoals) {
-      boolean lFirstTestGoal = true;
+    boolean lFirstTestGoal = true;
 
-      System.out.print("[");
-      
-      for (Automaton<CFAEdge>.State lTestGoal : pTestGoals) {
-          if (lFirstTestGoal) {
-              lFirstTestGoal = false;
-          } else {
-              System.out.print(",");
-          }
+    System.out.print("[");
 
-          System.out.print("q" + lTestGoal.getIndex());
+    for (Automaton<CFAEdge>.State lTestGoal : pTestGoals) {
+      if (lFirstTestGoal) {
+        lFirstTestGoal = false;
+      } else {
+        System.out.print(",");
       }
-      
-      System.out.println("]");
+
+      System.out.print("q" + lTestGoal.getIndex());
+    }
+
+    System.out.println("]");
+  }
+
+  public static void printReachedElements(Collection<AbstractElementWithLocation> pReachedElements) {
+    System.out.println("reached elements begin");
+
+    for (AbstractElement lElement : pReachedElements) {
+      System.out.println(lElement);
+    }
+
+    System.out.println("reached elements end");
   }
 }

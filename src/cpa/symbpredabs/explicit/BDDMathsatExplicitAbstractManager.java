@@ -1097,6 +1097,270 @@ public class BDDMathsatExplicitAbstractManager extends
 
         return info;
     }
+    
+    // counterexample analysis
+    // compared to buildCounterexamplTrace2 it also returns the index of the
+    // last reachable element
+    // TODO fix code not to use cpas.symbpredabs.shortestCexTraceUseSuffix (= true)
+    public Pair<CounterexampleTraceInfo, Integer> buildCounterexampleTrace2(
+            SymbolicFormulaManager mgr,
+            Deque<ExplicitAbstractElement> abstractTrace) {
+        assert(abstractTrace.size() > 1);
+        long startTime = System.currentTimeMillis();
+        stats.numCallsCexAnalysis++;
+
+        // create the DAG formula corresponding to the abstract trace. We create
+        // n formulas, one per interpolation group
+        long extTimeStart = System.currentTimeMillis();
+        AbstractElementWithLocation[] abstarr =
+            abstractTrace.toArray(new AbstractElementWithLocation[0]);
+        ConcretePath concPath = null;
+        try {
+            concPath = buildConcretePath(mgr, abstarr);
+        } catch (UnrecognizedCFAEdgeException e1) {
+            e1.printStackTrace();
+            System.exit(1);
+        }
+        long extTimeEnd = System.currentTimeMillis();
+        stats.termBuildTime += extTimeEnd - extTimeStart;
+
+        MathsatSymbolicFormulaManager mmgr = (MathsatSymbolicFormulaManager)mgr;
+        Vector<SymbolicFormula> f = concPath.path;
+        boolean theoryCombinationNeeded = concPath.theoryCombinationNeeded;
+
+        boolean shortestTrace = CPAMain.cpaConfig.getBooleanValue(
+            "cpas.symbpredabs.shortestCexTrace");
+        boolean suffixTrace = CPAMain.cpaConfig.getBooleanValue(
+            "cpas.symbpredabs.shortestCexTraceUseSuffix");
+        boolean useZigZag = CPAMain.cpaConfig.getBooleanValue(
+                "cpas.symbpredabs.shortestCexTraceZigZag");
+
+        LazyLogger.log(LazyLogger.DEBUG_3,
+                       "Checking feasibility of abstract trace");
+
+        if (shortestTrace && CPAMain.cpaConfig.getBooleanValue(
+                "cpas.symbpredabs.explicit.getUsefulBlocks")) {
+            long gubStart = System.currentTimeMillis();
+            f = getUsefulBlocks(mmgr, f, theoryCombinationNeeded,
+                                suffixTrace, useZigZag, false);
+            long gubEnd = System.currentTimeMillis();
+            stats.cexAnalysisGetUsefulBlocksTime += gubEnd - gubStart;
+            stats.cexAnalysisGetUsefulBlocksMaxTime = Math.max(
+                    stats.cexAnalysisGetUsefulBlocksMaxTime, gubEnd - gubStart);
+            // set shortestTrace to false, so we perform only one final call
+            // to msat_solve
+            shortestTrace = false;
+        }
+
+        // now f is the DAG formula which is satisfiable iff there is a
+        // concrete counterexample
+        //
+        // create a working environment
+        long msatEnv = mmgr.getMsatEnv();
+        itpProver.init();
+
+        int res = -1;
+        long msatSolveTimeStart = System.currentTimeMillis();
+        for (int i = suffixTrace ? f.size()-1 : 0;
+             suffixTrace ? i >= 0 : i < f.size();
+             i = (suffixTrace ? i-1 : i+1)) {
+            SymbolicFormula cur = f.elementAt(i);
+            itpProver.addFormula(cur);
+
+            LazyLogger.log(LazyLogger.DEBUG_1,
+                           "Asserting formula: ", cur);
+
+            boolean doCheckHere = !cur.isTrue();
+
+            // if shortestTrace is true, we try to find the minimal infeasible
+            // prefix of the trace
+            if (shortestTrace && doCheckHere) {
+                if (itpProver.isUnsat()) {
+                    res = 0;
+                    LazyLogger.log(LazyLogger.DEBUG_1,
+                                   "TRACE INCONSISTENT AFTER group: ", i);
+                    break;
+                } else {
+                    res = 1;
+                }
+            } else {
+                res = -1;
+            }
+        }
+        // and check satisfiability
+        boolean unsat = false;
+        if (!shortestTrace || res == -1) {
+            unsat = itpProver.isUnsat();
+        } else {
+            unsat = (res == 0);
+        }
+        long msatSolveTimeEnd = System.currentTimeMillis();
+        long msatSolveTime = msatSolveTimeEnd - msatSolveTimeStart;
+
+        CounterexampleTraceInfo info = null;
+
+        Integer lIndex = -1;
+        
+        if (unsat) {
+            boolean useBlastWay = CPAMain.cpaConfig.getBooleanValue(
+                    "cpas.symbpredabs.refinement.useBlastWay");
+            Set<Predicate> allPreds = null;
+            if (useBlastWay) allPreds = new HashSet<Predicate>();
+            int firstIndexBlastWay = -1, lastIndexBlastWay = -1;
+
+            // the counterexample is spurious. Extract the predicates from
+            // the interpolants
+            info = new CounterexampleTraceInfo(true);
+            boolean splitItpAtoms = CPAMain.cpaConfig.getBooleanValue(
+                    "cpas.symbpredabs.refinement.splitItpAtoms");
+            // how to partition the trace into (A, B) depends on whether
+            // there are function calls involved or not: in general, A
+            // is the trace from the entry point of the current function
+            // to the current point, and B is everything else. To implement
+            // this, we keep track of which function we are currently in.
+            Stack<Integer> entryPoints = new Stack<Integer>();
+            entryPoints.push(0);
+            for (int i = 1; i < f.size(); ++i) {
+                int start_of_a = entryPoints.peek();
+                if (!CPAMain.cpaConfig.getBooleanValue(
+                       "cpas.symbpredabs.refinement.addWellScopedPredicates")) {
+                    // if we don't want "well-scoped" predicates, we always
+                    // cut from the beginning
+                    start_of_a = 0;
+                }
+
+                int sz = i - start_of_a;
+                Vector<SymbolicFormula> formulasOfA =
+                    new Vector<SymbolicFormula>();
+                formulasOfA.ensureCapacity(sz);
+                for (int j = 0; j < sz; ++j) {
+                    formulasOfA.add(f.elementAt(j+start_of_a));
+                }
+                msatSolveTimeStart = System.currentTimeMillis();
+                SymbolicFormula itp = itpProver.getInterpolant(formulasOfA);
+                msatSolveTimeEnd = System.currentTimeMillis();
+                msatSolveTime += msatSolveTimeEnd - msatSolveTimeStart;
+
+                if (firstIndexBlastWay < 0 && !itp.isTrue()) {
+                    firstIndexBlastWay = i-1;
+                }
+                if (lastIndexBlastWay < 0 && itp.isFalse()) {
+                    lastIndexBlastWay = i;
+                }
+
+                LazyLogger.log(LazyLogger.DEBUG_1,
+                               "Got interpolant(", i, "): ",
+                               itp, " LOCATION: ",
+                               ((ExplicitAbstractElement)
+                                       abstarr[i-1]).getLocation());
+                
+                boolean nonAtomic = CPAMain.cpaConfig.getBooleanValue(
+                        "cpas.symbpredabs.abstraction.explicit." +
+                        "nonAtomicPredicates");
+                extTimeStart = System.currentTimeMillis();
+                Collection<SymbolicFormula> atoms = mmgr.extractAtoms(
+                            itp, true, splitItpAtoms, nonAtomic);
+                Set<Predicate> preds =
+                    buildPredicates(msatEnv, atoms);
+
+                extTimeEnd = System.currentTimeMillis();
+                stats.predicateExtractionTime += extTimeEnd - extTimeStart;
+
+                if (useBlastWay) {
+                    allPreds.addAll(preds);
+                } else {
+                    if (CPAMain.cpaConfig.getBooleanValue(
+                    "cpas.symbpredabs.refinement.addPredicatesGlobally")) {
+                        for (Object o : abstarr) {
+                            ExplicitAbstractElement s =
+                                (ExplicitAbstractElement)o;
+                            info.addPredicatesForRefinement(s, preds);
+                        }
+                    } else {
+                        ExplicitAbstractElement s1 =
+                            (ExplicitAbstractElement)abstarr[i-1];
+                        info.addPredicatesForRefinement(s1, preds);
+                    }
+                }
+
+                // If we are entering or exiting a function, update the stack
+                // of entry points
+                ExplicitAbstractElement e = (ExplicitAbstractElement)abstarr[i];
+                if (isFunctionEntry(e)) {
+                    LazyLogger.log(LazyLogger.DEBUG_3,
+                            "Pushing entry point, function: ",
+                            e.getLocation().getFunctionName());
+                    entryPoints.push(i);
+                }
+                if (isFunctionExit(e)) {
+                    LazyLogger.log(LazyLogger.DEBUG_3,
+                            "Popping entry point, returning from function: ",
+                            e.getLocation().getFunctionName());
+                    entryPoints.pop();
+                }
+            }
+            if (useBlastWay) {
+                assert(firstIndexBlastWay >= 0);
+                //assert(lastIndexBlastWay >= 0);
+                
+                if (lastIndexBlastWay == -1) {
+                    lastIndexBlastWay = f.size();
+                }
+                
+                lIndex = lastIndexBlastWay;
+                //lIndex = firstIndexBlastWay;
+                
+                for (int i = firstIndexBlastWay; i < lastIndexBlastWay; ++i) {
+                    ExplicitAbstractElement s1 =
+                        (ExplicitAbstractElement)abstarr[i];
+                    info.addPredicatesForRefinement(s1, allPreds);
+                }
+            }
+        } else {
+            // this is a real bug, notify the user
+            info = new CounterexampleTraceInfo(false);
+            ConcreteTraceFunctionCalls cf = new ConcreteTraceFunctionCalls();
+            for (ExplicitAbstractElement e : abstractTrace) {
+                cf.add(e.getLocationNode().getFunctionName());
+            }
+            info.setConcreteTrace(cf);
+            // TODO - reconstruct counterexample
+            // For now, we dump the asserted formula to a user-specified file
+            String cexPath = CPAMain.cpaConfig.getProperty(
+                    "cpas.symbpredabs.refinement.msatCexPath");
+            if (cexPath != null) {
+                long t = mathsat.api.msat_make_true(msatEnv);
+                for (SymbolicFormula fm : f) {
+                    long term = ((MathsatSymbolicFormula)fm).getTerm();
+                    t = mathsat.api.msat_make_and(msatEnv, t, term);
+                }
+                String msatRepr = mathsat.api.msat_to_msat(msatEnv, t);
+                try {
+                    PrintWriter pw = new PrintWriter(new File(cexPath));
+                    pw.println(msatRepr);
+                    pw.close();
+                } catch (FileNotFoundException e) {
+                    LazyLogger.log(CustomLogLevel.INFO,
+                            "Failed to save msat Counterexample to file: ",
+                            cexPath);
+                }
+            }
+        }
+
+        itpProver.reset();
+
+        // update stats
+        long endTime = System.currentTimeMillis();
+        long totTime = endTime - startTime;
+        stats.cexAnalysisTime += totTime;
+        stats.cexAnalysisMaxTime = Math.max(totTime, stats.cexAnalysisMaxTime);
+        stats.cexAnalysisMathsatTime += msatSolveTime;
+        stats.cexAnalysisMaxMathsatTime =
+            Math.max(msatSolveTime, stats.cexAnalysisMaxMathsatTime);
+
+        return new Pair<CounterexampleTraceInfo, Integer>(info, lIndex);
+    }
+
 
     protected boolean isFunctionExit(ExplicitAbstractElement e) {
         return false; // TODO
