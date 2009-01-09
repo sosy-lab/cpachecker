@@ -100,54 +100,54 @@ int main()
 
     // unlock phase
         if (p1 != 0) {
-            if (lk1 != 1) goto ERROR; // assertion failure
+            if (lk1 != 1) goto BAD_LABEL; // assertion failure
             lk1 = 0;
         } else {}
 
         if (p2 != 0) {
-            if (lk2 != 1) goto ERROR; // assertion failure
+            if (lk2 != 1) goto BAD_LABEL; // assertion failure
             lk2 = 0;
         } else {}
 
         if (p3 != 0) {
-            if (lk3 != 1) goto ERROR; // assertion failure
+            if (lk3 != 1) goto BAD_LABEL; // assertion failure
             lk3 = 0;
         } else {}
 
         if (p4 != 0) {
-            if (lk4 != 1) goto ERROR; // assertion failure
+            if (lk4 != 1) goto BAD_LABEL; // assertion failure
             lk4 = 0;
         } else {}
 
         if (p5 != 0) {
-            if (lk5 != 1) goto ERROR; // assertion failure
+            if (lk5 != 1) goto BAD_LABEL; // assertion failure
             lk5 = 0;
         } else {}
 
         if (p6 != 0) {
-            if (lk6 != 1) goto ERROR; // assertion failure
+            if (lk6 != 1) goto BAD_LABEL; // assertion failure
             lk6 = 0;
         } else {}
 
         if (p7 != 0) {
-            if (lk7 != 1) goto ERROR; // assertion failure
+            if (lk7 != 1) goto BAD_LABEL; // assertion failure
             lk7 = 0;
         } else {}
 
         if (p8 != 0) {
-            if (lk8 != 1) goto ERROR; // assertion failure
+            if (lk8 != 1) goto BAD_LABEL; // assertion failure
             lk8 = 0;
         } else {}
 
         if (p9 != 0) {
-            if (lk9 != 1) goto ERROR; // assertion failure
+            if (lk9 != 1) goto BAD_LABEL; // assertion failure
             lk9 = 0;
         } else {}
 
     }
   out:
     return 0;
-  ERROR:
+  BAD_LABEL:
     return 0;  
 }
 
