@@ -44,6 +44,7 @@ import org.eclipse.core.resources.IFile;
 
 import programtesting.QueryDrivenProgramTesting;
 import cfa.CFABuilder;
+import cfa.CFACheck;
 import cfa.CFAMap;
 import cfa.CFAReduction;
 import cfa.CFASimplifier;
@@ -111,6 +112,14 @@ public class CPAMain {
     int numFunctions = cfas.size();
     Collection<CFAFunctionDefinitionNode> cfasMapList =
       cfas.cfaMapIterator();
+    
+    // check the CFA of each function
+    // enable only while debugging/testing
+    if(CPAMain.cpaConfig.getBooleanValue("cfa.check")){
+      for(CFAFunctionDefinitionNode cfa:cfasMapList){
+        CFACheck.check(cfa);
+      }
+    }
 
     if(CPAMain.cpaConfig.getBooleanValue("analysis.topSort")){
       for(CFAFunctionDefinitionNode cfa:cfasMapList){
@@ -193,6 +202,13 @@ public class CPAMain {
       }
       List<IASTDeclaration> globalVars = builder.getGlobalDeclarations();
       mainFunction = addGlobalDeclarations(mainFunction, globalVars);
+    }
+    
+    // check the CFA of each function
+    // enable only while debugging/testing
+    if(CPAMain.cpaConfig.getBooleanValue("cfa.check")){
+      CFACheck.check(cfas.getCFA(CPAMain.cpaConfig.getProperty(
+        "analysis.entryFunction")));
     }
 
     LazyLogger.log(CustomLogLevel.MainApplicationLevel,
