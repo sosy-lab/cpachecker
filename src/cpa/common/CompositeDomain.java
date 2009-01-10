@@ -30,7 +30,6 @@ import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.JoinOperator;
 import cpa.common.interfaces.PartialOrder;
-import cpa.common.interfaces.StopOperator;
 
 public class CompositeDomain implements AbstractDomain
 {

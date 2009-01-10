@@ -23,16 +23,11 @@
  */
 package cpa.symbpredabsCPA;
 
-import symbpredabstraction.ParentsList;
-import symbpredabstraction.PathFormula;
-import cfa.objectmodel.CFANode;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.JoinOperator;
 import cpa.common.interfaces.PartialOrder;
-import cpa.symbpredabs.AbstractFormula;
 import cpa.symbpredabs.AbstractFormulaManager;
-import cpa.symbpredabs.PredicateMap;
 import exceptions.CPAException;
 
 

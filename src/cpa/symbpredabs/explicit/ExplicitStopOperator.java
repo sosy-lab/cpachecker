@@ -24,14 +24,11 @@
 package cpa.symbpredabs.explicit;
 
 import java.util.Collection;
-import java.util.Set;
 
 import logging.CustomLogLevel;
 import logging.LazyLogger;
 
-import common.LocationMappedReachedSet;
 import common.LocationMappedReachedSetProjectionWrapper;
-import common.Pair;
 
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;

@@ -35,36 +35,22 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.Map.Entry;
 
 import cfa.objectmodel.CFAEdge;
-import cfa.objectmodel.CFAEdgeType;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
-import cfa.objectmodel.CFANode;
-import cfa.objectmodel.c.CallToReturnEdge;
 
 import common.Pair;
-import compositeCPA.CompositeMergeOperator;
 import compositeCPA.CompositePrecision;
-import compositeCPA.CompositePrecisionAdjustment;
-import compositeCPA.CompositeStopOperator;
 
 import cpa.common.CPAAlgorithm;
-import cpa.common.CallElement;
-import cpa.common.CallStack;
-import cpa.common.CompositeDomain;
 import cpa.common.CompositeElement;
 import cpa.common.automaton.Automaton;
 import cpa.common.automaton.AutomatonCPADomain;
-import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
-import cpa.common.interfaces.MergeOperator;
-import cpa.common.interfaces.PrecisionAdjustment;
-import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
 import cpa.common.interfaces.Precision;
 import cpa.location.LocationCPA;
@@ -81,7 +67,6 @@ import cpa.symbpredabs.explicit.ExplicitTransferRelation;
 import cpa.testgoal.TestGoalCPA;
 import cpa.testgoal.TestGoalCPA.TestGoalPrecision;
 import exceptions.CPAException;
-import exceptions.CPATransferException;
 import java.util.Stack;
 
 /**

@@ -28,18 +28,11 @@ import java.util.List;
 
 import cmdline.CPAMain;
 
-import common.LocationMappedReachedSet;
-import common.LocationMappedReachedSetProjectionWrapper;
-import common.Pair;
-
-import cpa.common.CompositeBottomElement;
 import cpa.common.CompositeDomain;
 import cpa.common.CompositeElement;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.StopOperator;
-import cpa.symbpredabs.explicit.ExplicitAbstractElement;
 import exceptions.CPAException;
 
 public class CompositeStopOperator implements StopOperator{

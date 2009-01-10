@@ -23,7 +23,6 @@
  */
 package cpa.symbpredabsCPA;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
@@ -36,8 +35,6 @@ import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.StopOperator;
 import cpa.symbpredabs.AbstractFormulaManager;
 import cpa.symbpredabs.SymbolicFormulaManager;
-import cpa.symbpredabs.mathsat.MathsatSymbolicFormula;
-import cpa.symbpredabs.mathsat.MathsatSymbolicFormulaManager;
 import exceptions.CPAException;
 
 public class SymbPredAbsStopOperator implements StopOperator {
