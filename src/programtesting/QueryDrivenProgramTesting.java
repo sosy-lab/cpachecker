@@ -89,77 +89,6 @@ import java.util.Stack;
  *
  */
 public class QueryDrivenProgramTesting {
-  
-  public static class AbstractReachabilityTree<TreeElement> {
-
-    private TreeElement mRoot;
-    private Map<TreeElement, Collection<TreeElement>> mChildren;
-
-    public AbstractReachabilityTree() {
-      mRoot = null;
-      mChildren = new HashMap<TreeElement, Collection<TreeElement>>();
-    }
-
-    public void clear() {
-      mChildren.clear();
-      mRoot = null;
-    }
-
-    public void setRoot(TreeElement pRoot) {
-      assert (pRoot != null);
-      assert (mRoot == null);
-
-      mRoot = pRoot;
-
-      createEntry(mRoot);
-    }
-
-    public TreeElement getRoot() {
-      assert (mRoot != null);
-
-      return mRoot;
-    }
-
-    public boolean hasRoot() {
-      return (mRoot != null);
-    }
-
-    private void createEntry(TreeElement pElement) {
-      assert (pElement != null);
-      assert (!contains(pElement));
-
-      mChildren.put(pElement, new HashSet<TreeElement>());
-    }
-
-    public void add(TreeElement pParent, TreeElement pChild) {
-      assert (pParent != null);
-      assert (pChild != null);
-
-      // pChild has to be a new element in the tree
-      assert (!contains(pChild));
-      // pParent has to be an element in the tree
-      assert (contains(pParent));
-
-      Collection<TreeElement> lParentEntry = getChildren(pParent);
-      lParentEntry.add(pChild);
-
-      createEntry(pChild);
-    }
-
-    public boolean contains(TreeElement pElement) {
-      assert (pElement != null);
-
-      return mChildren.containsKey(pElement);
-    }
-
-    public Collection<TreeElement> getChildren(TreeElement pElement) {
-      assert (pElement != null);
-      assert (contains(pElement));
-
-      return mChildren.get(pElement);
-    }
-  }
-    
   public static class MyCompositeCPA implements ConfigurableProgramAnalysis {
 
     public class CompositeTransferRelation implements TransferRelation{
@@ -167,7 +96,7 @@ public class QueryDrivenProgramTesting {
       private final CompositeDomain compositeDomain;
       private final List<TransferRelation> transferRelations;
       
-      private AbstractReachabilityTree<CompositeElement> mAbstractReachabilityTree;
+      private ParametricAbstractReachabilityTree<CompositeElement> mAbstractReachabilityTree;
       
       // private LocationTransferRelation locationTransferRelation;
 
@@ -176,7 +105,7 @@ public class QueryDrivenProgramTesting {
         this.compositeDomain = compositeDomain;
         this.transferRelations = transferRelations;
         
-        mAbstractReachabilityTree = new AbstractReachabilityTree<CompositeElement>();
+        mAbstractReachabilityTree = new ParametricAbstractReachabilityTree<CompositeElement>();
 
         //TransferRelation first = transferRelations.get (0);
         //if (first instanceof LocationTransferRelation)
@@ -190,7 +119,7 @@ public class QueryDrivenProgramTesting {
         return compositeDomain;
       }
       
-      public AbstractReachabilityTree<CompositeElement> getAbstractReachabilityTree() {
+      public ParametricAbstractReachabilityTree<CompositeElement> getAbstractReachabilityTree() {
           return mAbstractReachabilityTree;
       }
 
@@ -920,7 +849,7 @@ public class QueryDrivenProgramTesting {
       
       
       // process abstract reachability tree
-      AbstractReachabilityTree<CompositeElement> lAbstractReachabilityTree = cpa.getTransferRelation().getAbstractReachabilityTree();
+      ParametricAbstractReachabilityTree<CompositeElement> lAbstractReachabilityTree = cpa.getTransferRelation().getAbstractReachabilityTree();
       
       assert(lAbstractReachabilityTree.hasRoot());
       
