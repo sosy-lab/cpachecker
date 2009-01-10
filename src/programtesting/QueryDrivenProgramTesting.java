@@ -53,7 +53,6 @@ import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.TransferRelation;
 import cpa.common.interfaces.Precision;
-import cpa.location.LocationCPA;
 import cpa.scoperestriction.ScopeRestrictionCPA;
 import cpa.symbpredabs.CounterexampleTraceInfo;
 import cpa.symbpredabs.Predicate;
@@ -89,26 +88,14 @@ public class QueryDrivenProgramTesting {
     return lPath;
   }
   
-  //private final static int mLocationCPAIndex = 0;
   //private final static int mScopeRestrictionCPAIndex = 1;
-  private final static int mTestGoalCPAIndex = 3;
-  private final static int mAbstractionCPAIndex = 2;
+  private final static int mTestGoalCPAIndex = 2;
+  private final static int mAbstractionCPAIndex = 0;
   
   public static Set<Deque<ExplicitAbstractElement>> doIt (CFAFunctionDefinitionNode pMainFunction) {
     // create compositeCPA from automaton CPA and pred abstraction
     // TODO this must be a CPAPlus actually
     List<ConfigurableProgramAnalysis> cpas = new ArrayList<ConfigurableProgramAnalysis> ();
-    try {
-      cpas.add(new LocationCPA("sep", "sep"));
-    } catch (CPAException e) {
-      // for fixed values "sep", "sep" this is actually unreachable
-      e.printStackTrace();
-    }
-
-    // get scope restriction automaton
-    Automaton<CFAEdge> lScopeRestrictionAutomaton = AutomatonTestCases.getScopeRestrictionAutomaton(pMainFunction);
-    ScopeRestrictionCPA lScopeRestrictionCPA = new ScopeRestrictionCPA(lScopeRestrictionAutomaton);
-    cpas.add(lScopeRestrictionCPA);
 
     // initialize symbolic predicate abstraction
     ExplicitCPA lExplicitAbstractionCPA = new ExplicitCPA("sep", "sep");
@@ -116,7 +103,11 @@ public class QueryDrivenProgramTesting {
     
     ExplicitAbstractFormulaManager lEAFManager = lExplicitAbstractionCPA.getAbstractFormulaManager();
     SymbolicFormulaManager lSFManager = lExplicitAbstractionCPA.getFormulaManager();
-    
+
+    // get scope restriction automaton
+    Automaton<CFAEdge> lScopeRestrictionAutomaton = AutomatonTestCases.getScopeRestrictionAutomaton(pMainFunction);
+    ScopeRestrictionCPA lScopeRestrictionCPA = new ScopeRestrictionCPA(lScopeRestrictionAutomaton);
+    cpas.add(lScopeRestrictionCPA);
     
     // get test goal automaton
     Automaton<CFAEdge> lTestGoalAutomaton = AutomatonTestCases.getTestGoalAutomaton(pMainFunction);
