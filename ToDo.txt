@@ -3,15 +3,18 @@
 [MT]: Michael Tautschnig <tautschnig@forsyte.de>
 
 * cleanup and prioritization to be done in telephone conference *
+* probably group them in design/technical/conceptual *
 
 - [MT] ntdrivers/kbfiltr/kbfiltr_simpl1.cil.c results in an assertion violation when
-  using cpa.symbpredabs.explicit.ExplicitCPA (delta debugging needed, r308 has
-  ERROR, r170 is ok), applying the above patch yields further assertion
-  violations in r325, checking against r274 in progress
-  -- This is caused by the change in r267, requires investigation by Alberto and
-  Erkan
+  using cpa.symbpredabs.explicit.ExplicitCPA
+  * commenting out line 46 of the input file avoids this assertion,
+  * adding s = NP; somewhere after line 348 re-adds the assertion,
+  * then commenting out line 348 fixes it again
+  strange. Really strange.
 
-- [MT] compositestop is broken (does not care about precision)
+- [MT] compositestop is broken
+  stop(e,reachedSet,prec) calls stop(e,reachedElement), thus loses info about
+  precision (and never calls stop(e,reachedSet,prec) of the underlying CPA
 
 - [MT] The use of LocationMappedReachedSet in
   cpa.symbpredabs.explicit.ExplicitStopOperator is currently broken because of
@@ -53,8 +56,10 @@
   sufficient information.
 
 - [MT] in createReachedSet use a safe cast instead of reflection+cruel cast
+  * code has been modified along with the LocationMappedReachedSet stuff, review
+    that
 
-- [MT] add basic implementations of stopsep/join, mergesep/join, precision stuff
+- [MT] add default implementations of stopsep/join, mergesep/join, precision stuff
 
 - [MT] review mergeJoin for the use of joinOperator
 
@@ -92,13 +97,9 @@
 - [AH] stop operator in LocationCPA is very time consuming (must iterate over
   all elements of reached)
 
-================================================================================
+- [MT] (well known, but not noted thus far) Using exceptions to perform
+  abstraction refinement is really really cruel
 
-- {DONE} [MT] ntdrivers/cdaudio/cdaudio_simpl1.cil.c yields a wrong result when
-  using cpa.symbpredabs.explicit.ExplicitCPA (delta debugging needed, r308 has a
-  wrong result (UNSAFE), r170 has an assertion violation)
-  -- this is caused by the change introduced in r259 (additional if on
-  analysis.useSummaryLocations in
-  src/cpa/symbpredabs/mathsat/MathsatSymbolicFormulaManager.java)
-  -- change has been reverted in r336
+- [MT] precisionAdjustment is currently not enabled! (code commented out in
+  CPAAlgorithm)
 
