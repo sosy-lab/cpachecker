@@ -99,7 +99,7 @@ public class CFACheck {
       CFAEdge edge = pNode.getEnteringEdge(edgeIdx);
       if (!seen.add(edge)) return false;
       CFANode predecessor = edge.getPredecessor();
-      int predLeavingEdgeCount = predecessor.getNumEnteringEdges();
+      int predLeavingEdgeCount = predecessor.getNumLeavingEdges();
       boolean hasEdge = false;
       for (int predEdgeIdx = 0; predEdgeIdx < predLeavingEdgeCount; ++predEdgeIdx) {
         if (predecessor.getLeavingEdge(predEdgeIdx) == edge) {
