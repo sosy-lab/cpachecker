@@ -81,7 +81,7 @@ configurations="testgoal001 testgoal002 basicblock"
 
 # the benchmark instances
 # this selects the "simplified" instances
-instances=`find ../query-driven-program-testing/test/ -regex ".+[^i]\.cil\.c$"`
+instances=`find ../query-driven-program-testing/test/ -regex ".+\.c$"`
 # this selects the "original" instances. For these, you should replace the
 #"summary" configuration with "summary_cex_suffix", as this works much
 # better. I'm still trying to understand why though
