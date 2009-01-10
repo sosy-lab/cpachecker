@@ -89,12 +89,10 @@ instances=`find ../query-driven-program-testing/test/ -regex ".+\.c$"`
 
 # remove the old log files
 find ../query-driven-program-testing/test/ -name "*.log" -delete
-# get the script to use our cpa.sh
-ln -sf ../albertos_tests/run_tests.py
 
 # run the tests
 for cfg in $configurations; do
-  ./run_tests.py --config=../query-driven-program-testing/config/$cfg.properties --output=$outfile $instances --timeout=1800 --memlimit=1900000
+  ./run_tests_query-driven-program-testing.py --config=../query-driven-program-testing/config/$cfg.properties --output=$outfile $instances --timeout=1800 --memlimit=1900000
 
   # bring home all the logfiles
   for i in `find ../query-driven-program-testing/test/ -name "*.log"` ; do
@@ -142,5 +140,5 @@ for cfg in $configurations; do
 done
 
 # cleanup
-rm -f run_tests.py cex.msat CPALog.txt predmap.txt
+rm -f cex.msat CPALog.txt predmap.txt
 

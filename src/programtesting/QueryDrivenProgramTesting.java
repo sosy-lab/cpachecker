@@ -390,6 +390,8 @@ public class QueryDrivenProgramTesting {
       }
     }
     
+    System.out.println("#Test cases computed: " + lPaths.size());
+    
     return lPaths;
   }
   
