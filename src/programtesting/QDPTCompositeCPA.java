@@ -24,6 +24,7 @@
 package programtesting;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import cfa.objectmodel.CFAEdge;
@@ -32,6 +33,7 @@ import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cfa.objectmodel.CFANode;
 import cfa.objectmodel.c.CallToReturnEdge;
 
+import common.Pair;
 import compositeCPA.CompositeMergeOperator;
 import compositeCPA.CompositePrecision;
 import compositeCPA.CompositePrecisionAdjustment;
@@ -41,6 +43,7 @@ import cpa.common.CallElement;
 import cpa.common.CallStack;
 import cpa.common.CompositeDomain;
 import cpa.common.CompositeElement;
+import cpa.common.automaton.AutomatonCPADomain;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
@@ -201,8 +204,12 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
   private final CompositePrecisionAdjustment mPrecisionAdjustment;
   private final CompositeElement mInitialElement;
   private final CompositePrecision mInitialPrecision;
+  
+  private final AutomatonCPADomain<CFAEdge> mAutomatonDomain;
+  private final int mTestGoalCPAIndex;
 
-  public QDPTCompositeCPA(List<ConfigurableProgramAnalysis> cpas, CFAFunctionDefinitionNode node) {
+  public QDPTCompositeCPA(List<ConfigurableProgramAnalysis> cpas, CFAFunctionDefinitionNode node,
+                          AutomatonCPADomain<CFAEdge> pAutomatonDomain, int pTestGoalCPAIndex) {
     List<AbstractDomain> domains = new ArrayList<AbstractDomain> ();
     List<TransferRelation> transferRelations = new ArrayList<TransferRelation> ();
     List<MergeOperator> mergeOperators = new ArrayList<MergeOperator> ();
@@ -228,6 +235,11 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
     mPrecisionAdjustment = new CompositePrecisionAdjustment(precisionAdjustments);
     mInitialElement = new CompositeElement(initialElements, null);
     mInitialPrecision = new CompositePrecision(initialPrecisions);
+    
+    assert (pAutomatonDomain != null);
+    mAutomatonDomain = pAutomatonDomain;
+    assert (0 <= pTestGoalCPAIndex && pTestGoalCPAIndex < cpas.size());
+    mTestGoalCPAIndex = pTestGoalCPAIndex;
 
     // set call stack
     CallStack initialCallStack = new CallStack();
@@ -236,6 +248,15 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
     mInitialElement.setCallStack(initialCallStack);
   }
 
+  // TODO: Move newReachedSet into interface of ConfigurableProgramAnalysis and
+  // provide an abstract ConfigurableProgramAnalysisImpl-Class that implements
+  // it by default by creating a hash set?
+  // TODO: During ART creation establish an order
+  // that allows efficient querying for test goals
+  public Collection<Pair<AbstractElementWithLocation,Precision>> newReachedSet() {
+    return new QDPTReachedSet(mAutomatonDomain,mTestGoalCPAIndex);
+  }
+  
   @Override
   public CompositeDomain getAbstractDomain() {
     return mDomain;

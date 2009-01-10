@@ -89,63 +89,6 @@ import java.util.Stack;
  *
  */
 public class QueryDrivenProgramTesting {
-
-  public static class WrapperCPA implements ConfigurableProgramAnalysis {
-    private QDPTCompositeCPA mCompositeCPA;
-    private AutomatonCPADomain<CFAEdge> mAutomatonDomain;
-    
-    public WrapperCPA(QDPTCompositeCPA pCompositeCPA, AutomatonCPADomain<CFAEdge> pAutomatonDomain) {
-      assert(pCompositeCPA != null);
-      assert(pAutomatonDomain != null);
-      
-      mCompositeCPA = pCompositeCPA;
-      mAutomatonDomain = pAutomatonDomain;
-    }
-    
-    @Override
-    public AbstractDomain getAbstractDomain() {
-      return mCompositeCPA.getAbstractDomain();
-    }
-
-    @Override
-    public <AE extends AbstractElement> AE getInitialElement(CFAFunctionDefinitionNode pNode) {
-      return (AE) mCompositeCPA.getInitialElement(pNode);
-    }
-
-    @Override
-    public MergeOperator getMergeOperator() {
-      return mCompositeCPA.getMergeOperator();
-    }
-
-    @Override
-    public StopOperator getStopOperator() {
-      return mCompositeCPA.getStopOperator();
-    }
-
-    @Override
-    public TransferRelation getTransferRelation() {
-      return mCompositeCPA.getTransferRelation();
-    }
-    
-    // TODO: Move newReachedSet into interface of ConfigurableProgramAnalysis and
-    // provide an abstract ConfigurableProgramAnalysisImpl-Class that implements
-    // it by default by creating a hash set?
-    // TODO: During ART creation establish an order
-    // that allows efficient querying for test goals
-    public Collection<Pair<AbstractElementWithLocation,Precision>> newReachedSet() {
-      return new QDPTReachedSet(mAutomatonDomain,mTestGoalCPAIndex);
-    }
-
-    @Override
-    public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
-      return mCompositeCPA.getInitialPrecision(pNode);
-    }
-
-    @Override
-    public PrecisionAdjustment getPrecisionAdjustment() {
-      return mCompositeCPA.getPrecisionAdjustment();
-    }
-  }
   
   public static Deque<ExplicitAbstractElement> getAbstractPath(ExplicitAbstractElement pElement) {
     ExplicitAbstractElement lPathElement = pElement;
@@ -225,12 +168,12 @@ public class QueryDrivenProgramTesting {
       
       // create composite cpa
       //CompositeCPA cpa = CompositeCPA.createNewCompositeCPA(cpas, pMainFunction);
-      QDPTCompositeCPA cpa = new QDPTCompositeCPA(cpas, pMainFunction);
-      WrapperCPA lWrapperCPA = new WrapperCPA(cpa, lTestGoalCPA.getAbstractDomain());
+      QDPTCompositeCPA cpa = new QDPTCompositeCPA(cpas, pMainFunction,
+          lTestGoalCPA.getAbstractDomain(), mTestGoalCPAIndex);
       
       
-      AbstractElementWithLocation lInitialElement = lWrapperCPA.getInitialElement(pMainFunction);
-      Precision lInitialPrecision = lWrapperCPA.getInitialPrecision(pMainFunction);
+      AbstractElementWithLocation lInitialElement = cpa.getInitialElement(pMainFunction);
+      Precision lInitialPrecision = cpa.getInitialPrecision(pMainFunction);
       
       
       // TODO This is kind of a hack
@@ -243,7 +186,7 @@ public class QueryDrivenProgramTesting {
       Collection<AbstractElementWithLocation> lReachedElements = null;
       
       try {
-        lReachedElements = algo.CPA(lWrapperCPA, lInitialElement, lInitialPrecision);
+        lReachedElements = algo.CPA(cpa, lInitialElement, lInitialPrecision);
         
         // TODO: Remove this output
         //printReachedElements(lReachedElements);
