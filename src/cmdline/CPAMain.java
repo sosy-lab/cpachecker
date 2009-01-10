@@ -204,7 +204,7 @@ public class CPAMain {
       mainFunction = addGlobalDeclarations(mainFunction, globalVars);
     }
     
-    // check the CFA of each function
+    // check the super CFA starting at the main function
     // enable only while debugging/testing
     if(CPAMain.cpaConfig.getBooleanValue("cfa.check")){
       CFACheck.check(cfas.getCFA(CPAMain.cpaConfig.getProperty(
