@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker. 
  *
- *  Copyright (C) 2007-2008  Dirk Beyer and Erkan Keremoglu.
+ *  Copyright (C) 2007-2009  Dirk Beyer and Erkan Keremoglu.
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -46,8 +46,47 @@ public abstract class AbstractCFAEdge implements CFAEdge
 
     public void initialize (CFANode predecessor, CFANode successor)
     {
-        setPredecessor (predecessor);
-        setSuccessor (successor);
+        // some additional checking is required for jump edges
+        boolean deadEdge = false;
+        if (this.isJumpEdge()) {
+          // a null predecessor doesn't make sense
+          assert (predecessor != null);
+          int numLeavingEdges = predecessor.getNumLeavingEdges ();
+          int numRemoved = 0;
+          for (int idx = 0; idx < numLeavingEdges; ++idx)
+          {
+              CFAEdge edge = predecessor.getLeavingEdge(idx - numRemoved);
+              // if the predecessor already has an edge leaving that is not
+              // us, there must be dead code!
+              if (edge != this) {
+                System.out.print("Dead code detected after line " + predecessor.getLineNumber() + ": ");
+                if (edge.isJumpEdge()) {
+                  // we're dead, there was a jump edge already
+                  System.out.println(this.getRawStatement());
+                  deadEdge = true;
+                } else {
+                  // others are dead, we'll jump first
+                  System.out.println(edge.getRawStatement());
+                  // just remove the edge to dead code (we might also link it to some dummy node)
+                  predecessor.removeLeavingEdge(edge);
+                  edge.getSuccessor().removeEnteringEdge(edge);
+                  ++numRemoved;
+                }
+              }
+          }
+          // if there was a jump edge already (deadEdge == true) then no other
+          // edge must have existed
+          assert (!deadEdge || 1 == numLeavingEdges);
+        } else if (predecessor != null && predecessor.hasJumpEdgeLeaving()) {
+          System.out.println("Dead code detected after line " + predecessor.getLineNumber() + ": " +
+              this.getRawStatement());
+          deadEdge = true;
+        }
+        
+        if (!deadEdge) {
+          setPredecessor (predecessor);
+          setSuccessor (successor);
+        }
     }
 
     public CFANode getPredecessor ()
@@ -62,34 +101,7 @@ public abstract class AbstractCFAEdge implements CFAEdge
 
         this.predecessor = predecessor;
         if (this.predecessor != null)
-        {
-            if (this.isJumpEdge ())
-            {
-                if (predecessor.hasJumpEdgeLeaving ())
-                {
-                    System.out.println ("Warning: Should not have multiple jump edges leaving at line: " + predecessor.getLineNumber ());
-                    return;
-                }
-
-                // This edge is to be the only edge leaving the predecessor
-                int numLeavingEdges = predecessor.getNumLeavingEdges ();
-                for (int idx = numLeavingEdges - 1; idx >= 0; idx--)
-                {
-                    CFAEdge removedEdge = predecessor.getLeavingEdge (idx);
-                    CFANode nullNode = new CFANode (predecessor.getLineNumber ());
-                    removedEdge.setPredecessor (nullNode);
-                }
-            }
-
-            if (predecessor.hasJumpEdgeLeaving ())
-            {
-                // TODO: Do nothing? Or add null node?
-                CFANode nullNode = new CFANode (predecessor.getLineNumber ());
-                this.predecessor = nullNode;
-            }
-
             this.predecessor.addLeavingEdge (this);
-        }
     }
 
     public CFANode getSuccessor ()

@@ -148,8 +148,7 @@ public class SummaryCFABuilder {
             assert(false); // should not happen
         }
         assert(ret != null);
-        ret.setPredecessor(src);
-        ret.setSuccessor(dest);
+        ret.initialize(src,dest);
 
         LazyLogger.log(LazyLogger.DEBUG_3,
                 "LINKING NODES: " + src.getNodeNumber() + "(",
@@ -310,8 +309,7 @@ public class SummaryCFABuilder {
         }
         if (!alreadyLinked) {
             CFAEdge se = new SummaryCFAEdge();
-            se.setPredecessor((CFANode)s1);
-            se.setSuccessor((CFANode)s2);
+            se.initialize((CFANode)s1, (CFANode)s2);
 
             LazyLogger.log(LazyLogger.DEBUG_3,
                            "LINKING SUMMARIES: ", s1, " AND ", s2);
@@ -454,8 +452,7 @@ public class SummaryCFABuilder {
                                 setSummary(dup, s);
                                 // now link together n and the duplicate
                                 BlankEdge be = new BlankEdge("");
-                                be.setPredecessor(dup);
-                                be.setSuccessor(copyNode(n));
+                                be.initialize(dup, copyNode(n));
                             } else {
                                 SummaryCFANode curs = summaryMap.get(pred);
                                 if (((InnerCFANode)dup).getSummaryNode() !=

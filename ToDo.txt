@@ -4,12 +4,6 @@
 
 * cleanup and prioritization to be done in telephone conference *
 
-- [MT] Review src/cfa/objectmodel/AbstractCFAEdge.java, because
-  ntdrivers/cdaudio/cdaudio_simpl1.cil.c yields:
-Warning: Should not have multiple jump edges leaving at line: 297
-Warning: Should not have multiple jump edges leaving at line: 771
-Warning: Should not have multiple jump edges leaving at line: 1232
-
 - [MT] ntdrivers/kbfiltr/kbfiltr_simpl1.cil.c results in an assertion violation when
   using cpa.symbpredabs.explicit.ExplicitCPA (delta debugging needed, r308 has
   ERROR, r170 is ok), applying the above patch yields further assertion
