@@ -7699,22 +7699,7 @@ int main(void)
 }
 }
 char _SLAM_alloc_dummy  ;
-extern int ( /* missing proto */  malloc)() ;
-char *nondet_malloc(int i ) 
-{ int __BLAST_NONDET___0 ;
-  int tmp ;
-
-  {
-  if (__BLAST_NONDET___0) {
-    return ((char *)0);
-  } else {
-    {
-    tmp = malloc(i);
-    }
-    return ((char *)tmp);
-  }
-}
-}
+void * malloc(size_t);
   void ExAcquireFastMutex(PFAST_MUTEX FastMutex ) ;
 void ExAcquireFastMutex(PFAST_MUTEX FastMutex ) 
 { 
@@ -7741,7 +7726,7 @@ PVOID ExAllocatePoolWithTag(POOL_TYPE PoolType , SIZE_T NumberOfBytes ,
 
   {
   {
-  tmp = nondet_malloc(NumberOfBytes);
+  tmp = malloc(NumberOfBytes);
   x = tmp;
   }
   return (x);
@@ -7806,7 +7791,7 @@ PMDL IoAllocateMdl(PVOID VirtualAddress , ULONG Length , BOOLEAN SecondaryBuffer
     if (0) {
       switch_23_0: /* CIL Label */ 
       {
-      tmp = nondet_malloc(sizeof(MDL ));
+      tmp = malloc(sizeof(MDL ));
       }
       return ((void *)tmp);
       switch_23_default: /* CIL Label */ ;
@@ -8029,7 +8014,7 @@ PCONFIGURATION_INFORMATION IoGetConfigurationInformation(void)
 
   {
   {
-  tmp = nondet_malloc(sizeof(CONFIGURATION_INFORMATION ));
+  tmp = malloc(sizeof(CONFIGURATION_INFORMATION ));
   }
   return ((void *)tmp);
 }
