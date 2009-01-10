@@ -74,57 +74,55 @@ public class SymbPredAbsStopOperator implements StopOperator {
     SymbPredAbsAbstractElement e1 = (SymbPredAbsAbstractElement)element;
     SymbPredAbsAbstractElement e2 = (SymbPredAbsAbstractElement)reachedElement;
 
-    // TODO
-//  if(e1.getLocation().equals(e2.getLocation())){
-    // TODO check
-    //  boolean b = cpa.isAbstractionLocation(e1.getLocation());
-    boolean b = e1.isAbstractionNode();
     // if not an abstraction location
-    if(!b){
+    if(!e1.isAbstractionNode()){
       if(e1.getParents().equals(e2.getParents())){
-        SymbolicFormulaManager mgr = cpa.getSymbolicFormulaManager();
-        // TODO check -  we uninstantiate first 
 
         List<Integer> succList = e1.getPfParents();
         List<Integer> reachedList = e2.getPfParents();
 
-        return reachedList.containsAll(succList);
+        assert(succList.size() == 1);
         
-//        boolean ok = mgr.entails(((MathsatSymbolicFormulaManager)mgr).uninstantiate((MathsatSymbolicFormula)e1.getPathFormula().getSymbolicFormula()),
-//        		((MathsatSymbolicFormulaManager)mgr).uninstantiate((MathsatSymbolicFormula)e2.getPathFormula().getSymbolicFormula()));
-//        return ok;
+        return reachedList.containsAll(succList);
       }
       return false;
     }
     // if abstraction location
     else{
-      
+
       if(e1.isBottomElement){
         return true;
       }
-      
+
       SymbolicFormulaManager mgr = cpa.getSymbolicFormulaManager();   
       LazyLogger.log(LazyLogger.DEBUG_4,
           "Checking Coverage of element: ", element);
-
-//    if (!e1.sameContext(e2)) {
-//    LazyLogger.log(CustomLogLevel.SpecificCPALevel,
-//    "NO, not covered: context differs");
-//    return false;
-//    }
 
       SymbPredAbsCPA cpa = domain.getCPA();
       AbstractFormulaManager amgr = cpa.getAbstractFormulaManager();
 
       assert(e1.getAbstraction() != null);
       assert(e2.getAbstraction() != null);
-
-      if(!e1.getParents().equals(e2.getParents()) &&
-          !(mgr.entails(e1.getPathFormula().getSymbolicFormula(), e2.getPathFormula().getSymbolicFormula())
-              && mgr.entails(e2.getPathFormula().getSymbolicFormula(), e1.getPathFormula().getSymbolicFormula()))
-      ){
-        return false;
-      }
+      
+//      assert((MathsatSymbolicFormula)e1.getInitAbstractionSet().getSymbolicFormula() != null);
+//      assert((MathsatSymbolicFormula)e2.getInitAbstractionSet().getSymbolicFormula() != null);
+//      
+//      if(!e1.getParents().equals(e2.getParents()) &&
+////          !(((MathsatSymbolicFormula)e1.getInitAbstractionSet().getSymbolicFormula()).toString().equals
+////              (((MathsatSymbolicFormula)e2.getInitAbstractionSet().getSymbolicFormula()).toString()))
+//        !(mgr.entails(e1.getInitAbstractionSet().getSymbolicFormula(), e2.getInitAbstractionSet().getSymbolicFormula())
+//        && mgr.entails(e2.getInitAbstractionSet().getSymbolicFormula(), e1.getInitAbstractionSet().getSymbolicFormula()))
+//      ){
+//        return false;
+//      }
+      
+//      if(
+//        !(mgr.entails(e1.getInitAbstractionSet().getSymbolicFormula(), e2.getInitAbstractionSet().getSymbolicFormula())
+//        && mgr.entails(e2.getInitAbstractionSet().getSymbolicFormula(), e1.getInitAbstractionSet().getSymbolicFormula()))
+//      ){
+//        System.out.println(" the formulas are not equal ");
+//        assert(false);
+//      }
 
       boolean ok = amgr.entails(e1.getAbstraction(), e2.getAbstraction());
 
@@ -134,7 +132,7 @@ public class SymbPredAbsStopOperator implements StopOperator {
         // cpa.setCoveredBy(e1, e2);
       } else {
         LazyLogger.log(CustomLogLevel.SpecificCPALevel,
-            "NO, not covered");
+        "NO, not covered");
       }
 
       return ok;

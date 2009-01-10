@@ -44,54 +44,58 @@ import exceptions.CPAException;
 
 public class CompositeStopOperator implements StopOperator{
 
-	private final CompositeDomain compositeDomain;
-	private final List<StopOperator> stopOperators;
-	public static long noOfOperations = 0;
+  private final CompositeDomain compositeDomain;
+  private final List<StopOperator> stopOperators;
+  public static long noOfOperations = 0;
 
-	public CompositeStopOperator (CompositeDomain compositeDomain, List<StopOperator> stopOperators)
-	{
-		this.compositeDomain = compositeDomain;
-		this.stopOperators = stopOperators;
-	}
+  public CompositeStopOperator (CompositeDomain compositeDomain, List<StopOperator> stopOperators)
+  {
+    this.compositeDomain = compositeDomain;
+    this.stopOperators = stopOperators;
+  }
 
-	public <AE extends AbstractElement> boolean stop (AE element, Collection<AE> reached, Precision precision) throws CPAException
-	{
-		if (compositeDomain.isBottomElement(element)) {
-			return true;
-		}
+  public <AE extends AbstractElement> boolean stop (AE element, Collection<AE> reached, Precision precision) throws CPAException
+  {
+    if (compositeDomain.isBottomElement(element)) {
+      return true;
+    }
 
-		for (AbstractElement e : reached) {
-			if (stop(element, e)) {
-				return true;
-			}
-		}
-		return false;
-	}
+    for (AbstractElement e : reached) {
+      if (stop(element, e)) {
+        return true;
+      }
+    }
+    return false;
+  }
 
-	public boolean stop(AbstractElement element, AbstractElement reachedElement)
-	throws CPAException {
-		noOfOperations++;
-		CompositeElement compositeElement1 = (CompositeElement) element;
-		CompositeElement compositeElement2 = (CompositeElement) reachedElement;
+  public boolean stop(AbstractElement element, AbstractElement reachedElement)
+  throws CPAException {
+    noOfOperations++;
+    CompositeElement compositeElement1 = (CompositeElement) element;
+    CompositeElement compositeElement2 = (CompositeElement) reachedElement;
 
-		List<AbstractElement> compositeElements1 = compositeElement1.getElements ();
-		List<AbstractElement> compositeElements2 = compositeElement2.getElements ();
+    if(!compositeElement1.getCallStack().equals(compositeElement2.getCallStack())){
+      return false;
+    }
 
-		int iterationStartFrom = 0;
-		if(CPAMain.cpaConfig.getBooleanValue("cpa.useSpecializedReachedSet")){
-			iterationStartFrom = 1;
-		}
+    List<AbstractElement> compositeElements1 = compositeElement1.getElements ();
+    List<AbstractElement> compositeElements2 = compositeElement2.getElements ();
+
+    int iterationStartFrom = 0;
+    if(CPAMain.cpaConfig.getBooleanValue("cpa.useSpecializedReachedSet")){
+      iterationStartFrom = 1;
+    }
 
 
-		for (int idx = iterationStartFrom; idx < compositeElements1.size (); idx++)
-		{
-			StopOperator stopOp = stopOperators.get(idx);
-			AbstractElement absElem1 = compositeElements1.get(idx);
-			AbstractElement absElem2 = compositeElements2.get(idx);
-			if (!stopOp.stop(absElem1, absElem2)){
-				return false;
-			}
-		}
-		return true;
-	}
+    for (int idx = iterationStartFrom; idx < compositeElements1.size (); idx++)
+    {
+      StopOperator stopOp = stopOperators.get(idx);
+      AbstractElement absElem1 = compositeElements1.get(idx);
+      AbstractElement absElem2 = compositeElements2.get(idx);
+      if (!stopOp.stop(absElem1, absElem2)){
+        return false;
+      }
+    }
+    return true;
+  }
 }
