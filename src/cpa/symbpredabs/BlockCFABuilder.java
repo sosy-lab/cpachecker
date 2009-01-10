@@ -104,9 +104,9 @@ public class BlockCFABuilder {
                     curBlock.addEdge(ee);
                     n.removeLeavingEdge(ee);
                     s.removeEnteringEdge(ee);
-                    s = ee.getSuccessor();
-                    n = s;
                     ee = s.getLeavingEdge(0);
+                    n = s;
+                    s = ee.getSuccessor();
                 }
                 if (start != n) {
                     start.removeLeavingEdge(e);
