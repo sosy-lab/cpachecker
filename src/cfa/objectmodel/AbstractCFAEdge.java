@@ -59,15 +59,13 @@ public abstract class AbstractCFAEdge implements CFAEdge
               // if the predecessor already has an edge leaving that is not
               // us, there must be dead code!
               if (edge != this) {
-                System.out.print("Dead code detected after line " + predecessor.getLineNumber() + ": ");
                 if (edge.isJumpEdge()) {
                   // we're dead, there was a jump edge already
-                  System.out.println(this.getRawStatement());
+                  System.out.println("Dead code detected after line " + predecessor.getLineNumber() + ": " + this.getRawStatement());
                   deadEdge = true;
                 } else {
-                  // others are dead, we'll jump first
-                  System.out.println(edge.getRawStatement());
-                  // just remove the edge to dead code (we might also link it to some dummy node)
+                  // just remove the edge to temporarily dead code (we might also link it to some dummy node?)
+                  // this may be a label or the like and be jumped to later on
                   predecessor.removeLeavingEdge(edge);
                   edge.getSuccessor().removeEnteringEdge(edge);
                   ++numRemoved;
@@ -78,8 +76,8 @@ public abstract class AbstractCFAEdge implements CFAEdge
           // edge must have existed
           assert (!deadEdge || 1 == numLeavingEdges);
         } else if (predecessor != null && predecessor.hasJumpEdgeLeaving()) {
-          System.out.println("Dead code detected after line " + predecessor.getLineNumber() + ": " +
-              this.getRawStatement());
+          // there is a jump edge already, no use adding this one
+          // may happen if there is a return in a switch
           deadEdge = true;
         }
         
