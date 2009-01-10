@@ -119,6 +119,12 @@ public class CProver {
           while ((line = br.readLine()) != null) {
             System.err.println(line);
           }
+          br.close();
+          
+          br = new BufferedReader(new InputStreamReader(lCBMCProcess.getInputStream()));
+          while ((line = br.readLine()) != null) {
+            System.err.println(line);
+          }
 
           br.close();
           assert(false);
