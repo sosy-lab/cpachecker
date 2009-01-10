@@ -107,7 +107,7 @@ for cfg in $configurations; do
   # now compare the results to our master copy
   # results.master has a single file per configuration stating all the results
   master="results.master/$cfg.log"
-  if [ ! -s results.master/$cfg.log ] ; then
+  if [ ! -s $master ] ; then
     echo "No definitive results available, can't verify results" 1>&2
     continue
   fi
