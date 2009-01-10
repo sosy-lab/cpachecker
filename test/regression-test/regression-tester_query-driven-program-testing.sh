@@ -92,7 +92,7 @@ find ../query-driven-program-testing/test/ -name "*.log" -delete
 
 # run the tests
 for cfg in $configurations; do
-  ./run_tests_query-driven-program-testing.py --config=../query-driven-program-testing/config/$cfg.properties --output=$outfile $instances --timeout=1800 --memlimit=1900000
+  ./run_tests_query-driven-program-testing.py --config=../query-driven-program-testing/config/$cfg.properties --output=$outfile $instances --timeout=1800 --memlimit=5000000
 
   # bring home all the logfiles
   for i in `find ../query-driven-program-testing/test/ -name "*.log"` ; do
