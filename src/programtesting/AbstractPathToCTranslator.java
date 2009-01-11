@@ -61,6 +61,7 @@ import cpa.symbpredabs.explicit.ExplicitAbstractElement;
  */
 public class AbstractPathToCTranslator {
   private static PrintWriter mGlobalThingsWriter = null;
+  private static List<String> mFunctionDecls = null;
 
   public static Map<Deque<ExplicitAbstractElement>, List<String>> translatePaths(CFAMap pCfas, Collection<Deque<ExplicitAbstractElement>> pPaths) {
     assert(pPaths != null);
@@ -73,7 +74,7 @@ public class AbstractPathToCTranslator {
     // there will be no code for these functions, so they can never be called via the function
     // pointer properly; a real solution requires function pointer support within the CPA
     // providing location/successor information
-    List<String> lFunctionDecls = new ArrayList<String>();
+    mFunctionDecls = new ArrayList<String>();
     for (CFAFunctionDefinitionNode node : pCfas.cfaMapIterator()) {
       FunctionDefinitionNode lFunctionDefinitionNode = (FunctionDefinitionNode)node;
       String lOriginalFunctionDecl = lFunctionDefinitionNode.getFunctionDefinition().getDeclSpecifier().getRawSignature() + " " + node.getFunctionName() + "(";
@@ -93,15 +94,14 @@ public class AbstractPathToCTranslator {
       
       lOriginalFunctionDecl += ");";
       
-      lFunctionDecls.add(lOriginalFunctionDecl);
+      mFunctionDecls.add(lOriginalFunctionDecl);
     }
     
     
     for (Deque<ExplicitAbstractElement> lAbstractPath : pPaths) {
       System.out.println("#### PATH " + i + " ####");
       
-      List<String> lTranslation = new ArrayList<String>(lFunctionDecls);
-      lTranslation.addAll(translatePath(lAbstractPath));
+      List<String> lTranslation = translatePath(lAbstractPath);
       
       // TODO remove output
       System.out.println("Written program text:");
@@ -412,6 +412,11 @@ public class AbstractPathToCTranslator {
       endFunction(lProgramTextStack, lProgramTexts);
     }
 
+    if (mFunctionDecls != null) {
+      for (String decl : mFunctionDecls) {
+        mGlobalThingsWriter.println(decl);
+      }
+    }
     lProgramTexts.add(0, lGlobalThingsStringWriter.toString());
     
     return lProgramTexts;
