@@ -189,7 +189,13 @@ public class AbstractPathToCTranslator {
     
     List<IASTParameterDeclaration> lFunctionParameters = lFunctionDefinitionNode.getFunctionParameters();
     
-    String lFunctionHeader = lFunctionDefinition.getDeclSpecifier().getRawSignature() + " " + lFunctionDefinitionNode.getFunctionName() + "_" + pFunctionIndex + "(";
+    // Add the original function declaration to enable read-only use of function pointers
+    // there will be no code for this function, so it can never be called via its function
+    // pointer properly; a real solution requires function pointer support within the CPA
+    // providing location/successor information
+    String lOriginalFunctionDecl = lFunctionDefinition.getDeclSpecifier().getRawSignature() + " " + lFunctionDefinitionNode.getFunctionName();
+    String lFunctionHeader = lOriginalFunctionDecl + "_" + pFunctionIndex + "(";
+    lOriginalFunctionDecl += "(";
     
     boolean lFirstFunctionParameter = true;
     
@@ -198,14 +204,16 @@ public class AbstractPathToCTranslator {
         lFirstFunctionParameter = false;
       }
       else {
+        lOriginalFunctionDecl += ", ";
         lFunctionHeader += ", ";
       }
       
+      lOriginalFunctionDecl += lFunctionParameter.getRawSignature();
       lFunctionHeader += lFunctionParameter.getRawSignature();
     }
     
+    lOriginalFunctionDecl += ");";
     lFunctionHeader += ")";
-    
     
     StringWriter lFunctionStringWriter = new StringWriter();
     
@@ -213,6 +221,7 @@ public class AbstractPathToCTranslator {
     
     PrintWriter lProgramText = new PrintWriter(lFunctionStringWriter);
     
+    lProgramText.println(lOriginalFunctionDecl);
     lProgramText.println(lFunctionHeader);
     
     lProgramText.println("{");
