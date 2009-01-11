@@ -37,7 +37,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Stack;
 
+import cfa.CFAMap;
 import cfa.objectmodel.CFAEdge;
+import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cfa.objectmodel.CFANode;
 import cfa.objectmodel.c.AssumeEdge;
 import cfa.objectmodel.c.DeclarationEdge;
@@ -60,17 +62,46 @@ import cpa.symbpredabs.explicit.ExplicitAbstractElement;
 public class AbstractPathToCTranslator {
   private static PrintWriter mGlobalThingsWriter = null;
 
-  public static Map<Deque<ExplicitAbstractElement>, List<String>> translatePaths(Collection<Deque<ExplicitAbstractElement>> pPaths) {
+  public static Map<Deque<ExplicitAbstractElement>, List<String>> translatePaths(CFAMap pCfas, Collection<Deque<ExplicitAbstractElement>> pPaths) {
     assert(pPaths != null);
     
     int i = 0;
     
     Map<Deque<ExplicitAbstractElement>, List<String>> lPathPrograms = new HashMap<Deque<ExplicitAbstractElement>, List<String>>();
     
+    // Add the original function declarations to enable read-only use of function pointers;
+    // there will be no code for these functions, so they can never be called via the function
+    // pointer properly; a real solution requires function pointer support within the CPA
+    // providing location/successor information
+    List<String> lFunctionDecls = new ArrayList<String>();
+    for (CFAFunctionDefinitionNode node : pCfas.cfaMapIterator()) {
+      FunctionDefinitionNode lFunctionDefinitionNode = (FunctionDefinitionNode)node;
+      String lOriginalFunctionDecl = lFunctionDefinitionNode.getFunctionDefinition().getDeclSpecifier().getRawSignature() + " " + node.getFunctionName() + "(";
+      
+      boolean lFirstFunctionParameter = true;
+      
+      for (IASTParameterDeclaration lFunctionParameter : lFunctionDefinitionNode.getFunctionParameters()) {
+        if (lFirstFunctionParameter) {
+          lFirstFunctionParameter = false;
+        }
+        else {
+          lOriginalFunctionDecl += ", ";
+        }
+        
+        lOriginalFunctionDecl += lFunctionParameter.getRawSignature();
+      }
+      
+      lOriginalFunctionDecl += ");";
+      
+      lFunctionDecls.add(lOriginalFunctionDecl);
+    }
+    
+    
     for (Deque<ExplicitAbstractElement> lAbstractPath : pPaths) {
       System.out.println("#### PATH " + i + " ####");
       
-      List<String> lTranslation = translatePath(lAbstractPath);
+      List<String> lTranslation = new ArrayList<String>(lFunctionDecls);
+      lTranslation.addAll(translatePath(lAbstractPath));
       
       // TODO remove output
       System.out.println("Written program text:");
@@ -189,13 +220,7 @@ public class AbstractPathToCTranslator {
     
     List<IASTParameterDeclaration> lFunctionParameters = lFunctionDefinitionNode.getFunctionParameters();
     
-    // Add the original function declaration to enable read-only use of function pointers
-    // there will be no code for this function, so it can never be called via its function
-    // pointer properly; a real solution requires function pointer support within the CPA
-    // providing location/successor information
-    String lOriginalFunctionDecl = lFunctionDefinition.getDeclSpecifier().getRawSignature() + " " + lFunctionDefinitionNode.getFunctionName();
-    String lFunctionHeader = lOriginalFunctionDecl + "_" + pFunctionIndex + "(";
-    lOriginalFunctionDecl += "(";
+    String lFunctionHeader = lFunctionDefinition.getDeclSpecifier().getRawSignature() + " " + lFunctionDefinitionNode.getFunctionName() + "_" + pFunctionIndex + "(";
     
     boolean lFirstFunctionParameter = true;
     
@@ -204,15 +229,12 @@ public class AbstractPathToCTranslator {
         lFirstFunctionParameter = false;
       }
       else {
-        lOriginalFunctionDecl += ", ";
         lFunctionHeader += ", ";
       }
       
-      lOriginalFunctionDecl += lFunctionParameter.getRawSignature();
       lFunctionHeader += lFunctionParameter.getRawSignature();
     }
     
-    lOriginalFunctionDecl += ");";
     lFunctionHeader += ")";
     
     StringWriter lFunctionStringWriter = new StringWriter();
@@ -221,7 +243,6 @@ public class AbstractPathToCTranslator {
     
     PrintWriter lProgramText = new PrintWriter(lFunctionStringWriter);
     
-    lProgramText.println(lOriginalFunctionDecl);
     lProgramText.println(lFunctionHeader);
     
     lProgramText.println("{");

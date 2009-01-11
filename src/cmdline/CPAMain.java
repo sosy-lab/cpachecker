@@ -241,7 +241,7 @@ public class CPAMain {
       LazyLogger.log(Level.INFO, "CPA Algorithm starting ... ");
       cpaStats.startAnalysisTimer();
 
-      QueryDrivenProgramTesting.doIt(mainFunction);
+      QueryDrivenProgramTesting.doIt(cfas, mainFunction);
 
       cpaStats.stopAnalysisTimer();
 

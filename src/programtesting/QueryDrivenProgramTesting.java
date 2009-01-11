@@ -38,6 +38,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Map.Entry;
 
+import cfa.CFAMap;
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 
@@ -92,7 +93,7 @@ public class QueryDrivenProgramTesting {
   private final static int mTestGoalCPAIndex = 2;
   private final static int mAbstractionCPAIndex = 0;
   
-  public static Set<Deque<ExplicitAbstractElement>> doIt (CFAFunctionDefinitionNode pMainFunction) {
+  public static Set<Deque<ExplicitAbstractElement>> doIt (CFAMap pCfas, CFAFunctionDefinitionNode pMainFunction) {
     // create compositeCPA from automaton CPA and pred abstraction
     // TODO this must be a CPAPlus actually
     List<ConfigurableProgramAnalysis> cpas = new ArrayList<ConfigurableProgramAnalysis> ();
@@ -362,7 +363,7 @@ public class QueryDrivenProgramTesting {
       }
     }
     
-    Map<Deque<ExplicitAbstractElement>, List<String>> lTranslations = AbstractPathToCTranslator.translatePaths(lPaths);
+    Map<Deque<ExplicitAbstractElement>, List<String>> lTranslations = AbstractPathToCTranslator.translatePaths(pCfas, lPaths);
 
     for (Entry<Deque<ExplicitAbstractElement>, Boolean> lVerified : CProver.checkSat(lTranslations).entrySet()) {
       if (lVerified.getValue()) {
