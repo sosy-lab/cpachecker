@@ -62,6 +62,7 @@ public class CFACheck {
       // The actual checks
       assert(isConsistent(node));
       assert(errorNodeHasSuccessor(node));
+      assert(jumpConsistency(node));
     }
   }
 
@@ -121,6 +122,20 @@ public class CFACheck {
   private static boolean errorNodeHasSuccessor(CFANode pNode) {
     if (pNode instanceof CFAErrorNode) {
       return (pNode.getNumLeavingEdges() > 0);
+    }
+    
+    return true;
+  }
+  
+
+  /**
+   * Check for jump edges and make sure there is only one of them
+   * @param pNode Node to be checked
+   * @return False, if an inconsistency is detected
+   */
+  private static boolean jumpConsistency(CFANode pNode) {
+    if (pNode.hasJumpEdgeLeaving()) {
+      return (pNode.getNumLeavingEdges() == 1);
     }
     
     return true;
