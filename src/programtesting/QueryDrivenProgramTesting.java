@@ -126,6 +126,8 @@ public class QueryDrivenProgramTesting {
     // the resulting set of paths
     Set<Deque<ExplicitAbstractElement>> lPaths = new HashSet<Deque<ExplicitAbstractElement>>();
     
+    FeasiblePathTree<ExplicitAbstractElement> lPathTree = new FeasiblePathTree<ExplicitAbstractElement>();
+    
     while (!lTestGoals.isEmpty()) {
       // TODO remove this output
       System.out.println("NEXT LOOP #####################");
@@ -301,6 +303,7 @@ public class QueryDrivenProgramTesting {
 
                 // add feasible path to set of feasible paths
                 lPaths.add(lBacktrackPath);
+                lPathTree.addPath(lBacktrackPath);
               } else {
                 // TODO: Remove this output
                 System.out.println("Path is feasible");
@@ -315,6 +318,7 @@ public class QueryDrivenProgramTesting {
 
                 // add feasible path to set of feasible paths
                 lPaths.add(lPath);
+                lPathTree.addPath(lPath);
               }
             }
           } else {
@@ -358,6 +362,12 @@ public class QueryDrivenProgramTesting {
         System.out.println("Refinement done!");
       }
     }
+    
+    System.out.println("FEASIBLE PATHS");
+    
+    System.out.println("lPaths: " + lPaths.size());
+    
+    System.out.println("lPathTree: " + lPathTree.getMaximalPaths().size());
     
     Map<Deque<ExplicitAbstractElement>, List<String>> lTranslations = AbstractPathToCTranslator.translatePaths(pCfas, lPaths);
 
