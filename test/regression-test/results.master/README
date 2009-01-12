@@ -3,3 +3,5 @@ The results have been computed on cs-sel-02.cs.surrey.sfu.ca on 2008-12-10, usin
   slowdown of some of the runs)
 - Results of tests with errors in r170 updated using the data from r247 obtained
   on 2008-12-31, where the errors have been fixed meanwhile
+- Runtimes of all tests not yielding errors in r432 were updated using the
+  results computed on 2009-01-11
