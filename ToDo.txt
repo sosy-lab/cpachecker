@@ -5,13 +5,6 @@
 * cleanup and prioritization to be done in telephone conference *
 * probably group them in design/technical/conceptual *
 
-- [MT] ntdrivers/kbfiltr/kbfiltr_simpl1.cil.c results in an assertion violation when
-  using cpa.symbpredabs.explicit.ExplicitCPA
-  * commenting out line 46 of the input file avoids this assertion,
-  * adding s = NP; somewhere after line 348 re-adds the assertion,
-  * then commenting out line 348 fixes it again
-  strange. Really strange.
-
 - [MT] compositestop is broken
   stop(e,reachedSet,prec) calls stop(e,reachedElement), thus loses info about
   precision (and never calls stop(e,reachedSet,prec) of the underlying CPA
