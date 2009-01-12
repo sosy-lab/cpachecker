@@ -160,13 +160,9 @@ public class QueryDrivenProgramTesting {
       // TODO Hack
       lTestGoalPrecision.setTestGoals(lTestGoals);
       
-      Collection<AbstractElementWithLocation> lReachedElements = null;
       
       try {
-        lReachedElements = algo.CPA(cpa, lInitialElement, lInitialPrecision);
-        
-        // TODO: Remove this output
-        //printReachedElements(lReachedElements);
+        algo.CPA(cpa, lInitialElement, lInitialPrecision);
       } catch (CPAException e1) {
         e1.printStackTrace();
         
@@ -409,15 +405,5 @@ public class QueryDrivenProgramTesting {
     }
 
     System.out.println("]");
-  }
-
-  public static void printReachedElements(Collection<AbstractElementWithLocation> pReachedElements) {
-    System.out.println("reached elements begin");
-
-    for (AbstractElement lElement : pReachedElements) {
-      System.out.println(lElement);
-    }
-
-    System.out.println("reached elements end");
   }
 }
