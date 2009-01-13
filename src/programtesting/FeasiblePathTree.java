@@ -8,6 +8,7 @@ package programtesting;
 import cfa.objectmodel.CFANode;
 import cpa.symbpredabs.explicit.ExplicitAbstractElement;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -139,7 +140,9 @@ public class FeasiblePathTree<TreeElement extends ExplicitAbstractElement> {
   public Collection<List<CFANode>> getMaximalPaths() {
     PathCreator lCreator = new PathCreator();
     
-    assert(mRoot != null);
+    if (mRoot == null) {
+      return Collections.emptySet();
+    }
     
     lCreator.visit(mRoot);
     
