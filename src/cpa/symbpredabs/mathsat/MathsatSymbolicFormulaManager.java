@@ -115,6 +115,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     private long rightShiftUfDecl;
     private long multUfDecl;
     private long divUfDecl;
+    private long modUfDecl;
 
     // datatype to use for variables, when converting them to mathsat vars
     // can be either MSAT_REAL or MSAT_INT
@@ -200,6 +201,8 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         multUfDecl = mathsat.api.msat_declare_uif(msatEnv, "_*_",
                 msatVarType, 2, argtypes);
         divUfDecl = mathsat.api.msat_declare_uif(msatEnv, "_/_",
+                msatVarType, 2, argtypes);
+        modUfDecl = mathsat.api.msat_declare_uif(msatEnv, "_%_",
                 msatVarType, 2, argtypes);
 
         uninstantiateGlobalCache = new HashMap<Long, Long>();
@@ -989,6 +992,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
             case IASTBinaryExpression.op_minusAssign:
             case IASTBinaryExpression.op_multiplyAssign:
             case IASTBinaryExpression.op_divideAssign:
+            case IASTBinaryExpression.op_moduloAssign:
             case IASTBinaryExpression.op_binaryAndAssign:
             case IASTBinaryExpression.op_binaryOrAssign:
             case IASTBinaryExpression.op_binaryXorAssign:
@@ -1039,6 +1043,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
                             me2 = buildMsatUF(op, oldvar, me2);
                         }
                         break;
+                    case IASTBinaryExpression.op_moduloAssign:
                     case IASTBinaryExpression.op_binaryAndAssign:
                     case IASTBinaryExpression.op_binaryOrAssign:
                     case IASTBinaryExpression.op_binaryXorAssign:
@@ -1101,6 +1106,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
                 break;
             }
 
+            case IASTBinaryExpression.op_modulo:
             case IASTBinaryExpression.op_binaryAnd:
             case IASTBinaryExpression.op_binaryOr:
             case IASTBinaryExpression.op_binaryXor:
@@ -1485,6 +1491,10 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         case IASTBinaryExpression.op_divide:
         case IASTBinaryExpression.op_divideAssign:
             decl = divUfDecl;
+            break;
+        case IASTBinaryExpression.op_modulo:
+        case IASTBinaryExpression.op_moduloAssign:
+            decl = modUfDecl;
             break;
         default:
             return mathsat.api.MSAT_MAKE_ERROR_TERM();
