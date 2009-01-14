@@ -371,7 +371,7 @@ public class QueryDrivenProgramTesting {
     
     Map<Deque<ExplicitAbstractElement>, List<String>> lTranslations = AbstractPathToCTranslator.translatePaths(pCfas, lPaths);
 
-    for (Entry<Deque<ExplicitAbstractElement>, Boolean> lVerified : CProver.checkSat(lTranslations).entrySet()) {
+    /*for (Entry<Deque<ExplicitAbstractElement>, Boolean> lVerified : CProver.checkSat(lTranslations).entrySet()) {
       if (lVerified.getValue()) {
         // test goal still not matched
         // true means the path is not feasible since assert(false) at the end of the C program
@@ -386,11 +386,15 @@ public class QueryDrivenProgramTesting {
         // is reachable
         
       }
+    }*/
+    
+    for (Entry<Deque<ExplicitAbstractElement>, List<String>> lTranslation : lTranslations.entrySet()) {
+      String lFunctionName = lTranslation.getKey().getFirst().getLocationNode().getFunctionName(); 
+      
+      FShell.isFeasible(lTranslation.getValue(), lFunctionName + "_0");
     }
     
     System.out.println("#Test cases computed: " + lPaths.size());
-    
-    FShell.isFeasible("main");
     
     return lPaths;
   }

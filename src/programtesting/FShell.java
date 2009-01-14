@@ -5,18 +5,23 @@
 
 package programtesting;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.util.List;
 
 /**
  *
  * @author holzera
  */
 public class FShell {
-  //public static void isFeasible(List<String> pPath, String pStartFunctionName) {
-  public static void isFeasible(String pStartFunctionName) {
+  public static void isFeasible(List<String> pPath, String pStartFunctionName) {
+    assert(pPath != null);
+    assert(pStartFunctionName != null);
+    
     // C code file
     File lFile = null;
     
@@ -39,10 +44,10 @@ public class FShell {
       e.printStackTrace();
       assert(false);
     }
-
-    /*for (String lFunctionString : pPath) {
-      lWriter.print(lFunctionString);
-    }*/
+    
+    for (String lSourceLine : pPath) {
+      lWriter.println(lSourceLine);
+    }
 
     lWriter.close();
     
@@ -71,7 +76,13 @@ public class FShell {
       e.printStackTrace();
       assert(false);
     }
+    
+    lQueryWriter.println("add sourcecode \"" + lFile.getAbsolutePath() + "\"");
 
+    lQueryWriter.println("a := path proc " + pStartFunctionName + " to proc " + pStartFunctionName + " exitpoints");
+    
+    //lQueryWriter.println("test a method bmc limit count 1");
+    
     lQueryWriter.println("quit");
 
     lQueryWriter.close();
@@ -80,6 +91,18 @@ public class FShell {
     try {
       // TODO remove reference to local directory
       Process lFShellProcess = Runtime.getRuntime().exec("./fortas_shell --file " + lQueryFile.getAbsolutePath());
+      
+      BufferedReader lOutputReader = new BufferedReader(new InputStreamReader(lFShellProcess.getInputStream()));
+      
+      String lLine = null;
+      
+      System.out.println("******** FSHELL SESSION BEGIN ********");
+      
+      while ((lLine = lOutputReader.readLine()) != null) {
+        System.out.println(lLine);
+      }
+      
+      System.out.println("********* FSHELL SESSION END *********");
       
       
       int lFShellExitValue;
