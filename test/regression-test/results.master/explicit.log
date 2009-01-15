@@ -21,7 +21,7 @@ INSTANCE                                                                        
 /localhome/tautschnig/cpachecker.git/test/albertos_tests/test/ssh/s3_srvr_1.cil.c                          44.249    SAFE
 /localhome/tautschnig/cpachecker.git/test/albertos_tests/test/ssh/s3_srvr_1_BUG.cil.c                          -1   ERROR
 /localhome/tautschnig/cpachecker.git/test/albertos_tests/test/ssh/s3_srvr_2.cil.c                          53.969    SAFE
-/localhome/tautschnig/cpachecker.git/test/albertos_tests/test/ssh/s3_srvr_2_BUG.cil.c                     711.829    SAFE
+/localhome/tautschnig/cpachecker.git/test/albertos_tests/test/ssh/s3_srvr_2_BUG.cil.c                     711.829  UNSAFE
 /localhome/tautschnig/cpachecker.git/test/albertos_tests/test/ssh/s3_srvr_3.cil.c                          53.581    SAFE
 /localhome/tautschnig/cpachecker.git/test/albertos_tests/test/ssh/s3_srvr_4.cil.c                         310.306    SAFE
 /localhome/tautschnig/cpachecker.git/test/albertos_tests/test/ssh/s3_srvr_6.cil.c                         191.316    SAFE
