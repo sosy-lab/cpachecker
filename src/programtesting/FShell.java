@@ -90,7 +90,7 @@ public class FShell {
     
     try {
       // TODO remove reference to local directory
-      Process lFShellProcess = Runtime.getRuntime().exec("./fortas_shell --file " + lQueryFile.getAbsolutePath());
+      Process lFShellProcess = Runtime.getRuntime().exec("fortas_shell --file " + lQueryFile.getAbsolutePath());
       
       BufferedReader lOutputReader = new BufferedReader(new InputStreamReader(lFShellProcess.getInputStream()));
       
