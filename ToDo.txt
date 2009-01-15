@@ -96,3 +96,16 @@
 - [MT] precisionAdjustment is currently not enabled! (code commented out in
   CPAAlgorithm)
 
+- [MT] Setting cpas.symbpredabs.mathsat.useCache to false causes a null pointer
+  exception (with ExplicitCPA, at least)
+
+- [MT] Setting cpas.symbpredabs.explicit.getUsefulBlocks to false results in a
+  failing assertion in getInstance of the mathsat manager code (with
+  ExplicitCPA, at least)
+
+- [MT] Setting cpas.symbpredabs.shortestCexTrace to false causes some error I
+  can't remember right now, easily reproducible with ExplicitCPA
+
+
+
+
