@@ -44,10 +44,6 @@
 - [MT] Cleanup cpa.common and move the composite stuff to compositecpa,
   CPAType.java could probably be removed rightaway
 
-- [MT] Whenever doRefinement (of CPAAlgorithm.java) is called it will add null
-  precisions to the waitlist, because RefinementNeededException does not provide
-  sufficient information.
-
 - [MT] in createReachedSet use a safe cast instead of reflection+cruel cast
   * code has been modified along with the LocationMappedReachedSet stuff, review
     that

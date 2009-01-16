@@ -276,12 +276,20 @@ public class CPAAlgorithm
                             List<Pair<AbstractElementWithLocation, Precision>> waitlist,
                             Collection<AbstractElementWithLocation> reachableToUndo,
                             Collection<AbstractElementWithLocation> toWaitlist) {
+    List<Pair<AbstractElementWithLocation, Precision>> lToWaitlist = new ArrayList<Pair<AbstractElementWithLocation, Precision>>(toWaitlist.size());
+    
+    
     LazyLogger.log(CustomLogLevel.SpecificCPALevel,
     "Performing refinement");
     // remove from reached all the elements in reachableToUndo
     Collection<Pair<AbstractElementWithLocation, Precision>> newreached =
       new LinkedList<Pair<AbstractElementWithLocation, Precision>>();
     for (Pair<AbstractElementWithLocation, Precision> e : reached) {
+      
+      if (toWaitlist.contains(e.getFirst())) {
+        lToWaitlist.add(e);
+      }
+      
       if (!reachableToUndo.contains(e.getFirst())) {
         newreached.add(e);
       } else {
@@ -294,24 +302,27 @@ public class CPAAlgorithm
         }
       }
     }
+    
+
+    assert(lToWaitlist.size() == toWaitlist.size());
+    
+
     reached.clear();
     reached.addAll(newreached);
     LazyLogger.log(CustomLogLevel.SpecificCPALevel,
         "Reached now is: ", newreached);
     // and add to the wait list all the elements in toWaitlist
     boolean useBfs = CPAMain.cpaConfig.getBooleanValue("analysis.bfs");
-    for (AbstractElementWithLocation e : toWaitlist) {
-      LazyLogger.log(CustomLogLevel.SpecificCPALevel,
-          "Adding element: ", e, " to waitlist");
-      // TODO null is not a proper precision ...
-      if (useBfs) {
-        // end to the end
-        waitlist.add(new Pair<AbstractElementWithLocation, Precision>(e,null));
-      } else {
-        // at to the first index
-        waitlist.add(0, new Pair<AbstractElementWithLocation, Precision>(e,null));
-      }
+    
+    LazyLogger.log(CustomLogLevel.SpecificCPALevel, "Adding elements: ", lToWaitlist, " to waitlist");
+    
+    if (useBfs) {
+      waitlist.addAll(lToWaitlist);
     }
+    else {
+      waitlist.addAll(0, lToWaitlist);
+    }
+    
     LazyLogger.log(CustomLogLevel.SpecificCPALevel,
         "Waitlist now is: ", waitlist);
     LazyLogger.log(CustomLogLevel.SpecificCPALevel,
