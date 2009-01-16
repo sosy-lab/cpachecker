@@ -26,9 +26,11 @@ package cpa.common;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 
 import common.LocationMappedReachedSet;
@@ -277,7 +279,7 @@ public class CPAAlgorithm
                             Collection<AbstractElementWithLocation> reachableToUndo,
                             Collection<AbstractElementWithLocation> toWaitlist) {
     List<Pair<AbstractElementWithLocation, Precision>> lToWaitlist = new ArrayList<Pair<AbstractElementWithLocation, Precision>>(toWaitlist.size());
-    
+    Map<AbstractElementWithLocation, Pair<AbstractElementWithLocation, Precision>> lNewWaitToPrecision = new HashMap<AbstractElementWithLocation, Pair<AbstractElementWithLocation, Precision>>();
     
     LazyLogger.log(CustomLogLevel.SpecificCPALevel,
     "Performing refinement");
@@ -287,7 +289,7 @@ public class CPAAlgorithm
     for (Pair<AbstractElementWithLocation, Precision> e : reached) {
       
       if (toWaitlist.contains(e.getFirst())) {
-        lToWaitlist.add(e);
+        lNewWaitToPrecision.put(e.getFirst(), e);
       }
       
       if (!reachableToUndo.contains(e.getFirst())) {
@@ -303,9 +305,16 @@ public class CPAAlgorithm
       }
     }
     
-
-    assert(lToWaitlist.size() == toWaitlist.size());
-    
+    for (AbstractElementWithLocation w : toWaitlist) {
+      if (lNewWaitToPrecision.containsKey(w)) {
+        lToWaitlist.add(lNewWaitToPrecision.get(w));
+      } else {
+        // TODO no precision information from toWaitlist available, setting to null
+        Pair<AbstractElementWithLocation, Precision> e = new Pair<AbstractElementWithLocation, Precision>(w, null);
+        lToWaitlist.add(e);
+        newreached.add(e);
+      }
+    }   
 
     reached.clear();
     reached.addAll(newreached);
