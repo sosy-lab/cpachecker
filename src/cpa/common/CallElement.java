@@ -71,6 +71,18 @@ public class CallElement {
 		this.state = state;
 	}
 
+	public boolean areContextEqual(CallElement other){
+	   if(!other.functionName.equals(other.functionName)){
+	      return false;
+	    }
+
+	    if(other.callNode.getNodeNumber() != this.callNode.getNodeNumber()){
+	      return false;
+	    }
+	    
+	    return true;
+	}
+	
 	@Override
 	public boolean equals(Object other){
 		CallElement otherCallElement = (CallElement) other;

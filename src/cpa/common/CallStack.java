@@ -69,6 +69,23 @@ public class CallStack {
 		}
 		return ret;
 	}
+	
+	public boolean stacksContextEqual(CallStack other){
+    if(this.getSize() != other.getSize()){
+      return false;
+    }
+    Iterator<CallElement> thisStackIt = this.stack.iterator();
+    Iterator<CallElement> otherStackIt = other.stack.iterator();
+    while(thisStackIt.hasNext()){
+      CallElement thisCallElement = thisStackIt.next();
+      CallElement otherCallElement = otherStackIt.next();
+      if(!thisCallElement.areContextEqual(otherCallElement)){
+        return false;
+      }
+    }
+    return true;
+  
+	}
 
 	@Override
 	public boolean equals(Object other){
