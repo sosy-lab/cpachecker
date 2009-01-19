@@ -10,9 +10,10 @@ oct_t* convertToCOct (JNIEnv *env, jobject obj, jobject obj1);
 num_t* convertToCArray(JNIEnv *env, jobject obj, jobject jarray);
 long mylrand();
 double mydrand();
-oct_t*
-random_oct(int n, int m);
+oct_t* random_oct(int n, int m);
 void printContent (oct_t* oct);
+void destructNumT(num_t* array, JNIEnv *env, jobject jarray);
+void freeOctC(oct_t* oct);
 
 //var for random number generator
 unsigned long long seed;
@@ -81,7 +82,8 @@ JNIEXPORT jint JNICALL Java_octagon_OctWrapper_J_1dimension
    oct_t* oct = convertToCOct(env, obj1, obj2);
    assert(oct != NULL);
    int dim = oct_dimension (oct);
-   // TODO oct_free(oct);
+   freeOctC(oct);
+   oct_free(oct);
    return dim;
 }
 
@@ -95,7 +97,8 @@ JNIEXPORT jint JNICALL Java_octagon_OctWrapper_J_1nbconstraints
    oct_t* oct = convertToCOct(env, obj1, obj2);
    assert(oct != NULL);
    int nb = oct_nbconstraints (oct);
-   // TODO oct_free(oct);
+   freeOctC(oct);
+   oct_free(oct);
    return nb;
 }
 
@@ -106,9 +109,13 @@ JNIEXPORT jint JNICALL Java_octagon_OctWrapper_J_1nbconstraints
  */
 JNIEXPORT jboolean JNICALL Java_octagon_OctWrapper_J_1isEmpty
   (JNIEnv *env, jobject obj1, jobject obj2){
+    bool ans;
     oct_t* oct = convertToCOct(env, obj1, obj2);
     assert(oct != NULL);
-    return oct_is_empty(oct);
+    ans = oct_is_empty(oct);
+    freeOctC(oct);
+    oct_free(oct);
+    return ans;
 }
 
 /*
@@ -121,6 +128,8 @@ JNIEXPORT jint JNICALL Java_octagon_OctWrapper_J_1isEmptyLazy
     oct_t* oct = convertToCOct(env, obj1, obj2);
     assert(oct != NULL);
     tbool tb = oct_is_empty_lazy (oct);
+    freeOctC(oct);
+    oct_free(oct);
     if (tb == tbool_true) return 1;
     else if (tb == tbool_false) return 2;
     else if (tb == tbool_bottom) return 0;
@@ -134,9 +143,13 @@ JNIEXPORT jint JNICALL Java_octagon_OctWrapper_J_1isEmptyLazy
  */
 JNIEXPORT jboolean JNICALL Java_octagon_OctWrapper_J_1isUniverse
   (JNIEnv *env, jobject obj1, jobject obj2){
+    bool ans;
     oct_t* oct = convertToCOct(env, obj1, obj2);
     assert(oct != NULL);
-    return oct_is_universe(oct);
+    ans = oct_is_universe(oct);
+    freeOctC(oct);
+    oct_free(oct);
+    return ans;
 }
 
 /*
@@ -146,12 +159,17 @@ JNIEXPORT jboolean JNICALL Java_octagon_OctWrapper_J_1isUniverse
  */
 JNIEXPORT jboolean JNICALL Java_octagon_OctWrapper_J_1isIncludedIn
   (JNIEnv *env, jobject obj1, jobject obj2, jobject obj3){
+    bool ans;
     oct_t* oct1 = convertToCOct(env, obj1, obj2);
     assert(oct1 != NULL);
     oct_t* oct2 = convertToCOct(env, obj1, obj3);
     assert(oct2 != NULL);
-    return  oct_is_included_in(oct1, oct2);
-
+    ans = oct_is_included_in(oct1, oct2);
+    freeOctC(oct1);
+    freeOctC(oct2);
+    oct_free(oct1);
+    oct_free(oct2);
+    return ans;
 }
 
 /*
@@ -167,11 +185,14 @@ JNIEXPORT jint JNICALL Java_octagon_OctWrapper_J_1isIncludedInLazy
     oct_t* oct2 = convertToCOct(env, obj1, obj3);
     assert(oct2 != NULL);
     tbool tb =  oct_is_included_in_lazy (oct1, oct2);
+    freeOctC(oct1);
+    freeOctC(oct2);
+    oct_free(oct1);
+    oct_free(oct2);
     if (tb == tbool_true) return 1;
     else if (tb == tbool_false) return 2;
     else if (tb == tbool_bottom) return 0;
     else if (tb == tbool_top) return 3;
-    
 }
 
 /*
@@ -181,11 +202,17 @@ JNIEXPORT jint JNICALL Java_octagon_OctWrapper_J_1isIncludedInLazy
  */
 JNIEXPORT jboolean JNICALL Java_octagon_OctWrapper_J_1isEqual
   (JNIEnv *env, jobject obj1, jobject obj2, jobject obj3){
+    bool ans;
     oct_t* oct1 = convertToCOct(env, obj1, obj2);
     assert(oct1 != NULL);
     oct_t* oct2 = convertToCOct(env, obj1, obj3);
     assert(oct2 != NULL);
-    return oct_is_equal(oct1, oct2);
+    ans = oct_is_equal(oct1, oct2);
+    freeOctC(oct1);
+    freeOctC(oct2);
+    oct_free(oct1);
+    oct_free(oct2);
+    return ans;
 }
 
 /*
@@ -201,6 +228,10 @@ JNIEXPORT jint JNICALL Java_octagon_OctWrapper_J_1isEqualLazy
     oct_t* oct2 = convertToCOct(env, obj1, obj3);
     assert(oct2 != NULL);
     tbool tb = oct_is_equal_lazy (oct1, oct2);
+    freeOctC(oct1);
+    freeOctC(oct2);
+    oct_free(oct1);
+    oct_free(oct2);
     if (tb == tbool_true) return 1;
     else if (tb == tbool_false) return 2;
     else if (tb == tbool_bottom) return 0;
@@ -226,12 +257,19 @@ JNIEXPORT jboolean JNICALL Java_octagon_OctWrapper_J_1isIn
 
 JNIEXPORT jobject JNICALL Java_octagon_OctWrapper_J_1intersection
   (JNIEnv *env, jobject obj1, jobject obj2, jobject obj3, jboolean b){
+    jobject ret;
     oct_t* oct1 = convertToCOct(env, obj1, obj2);
     assert(oct1 != NULL);
     oct_t* oct2 = convertToCOct(env, obj1, obj3);
     assert(oct2 != NULL);
     oct_t* res = oct_intersection(oct1, oct2, b);
-    return convertToJOct (env, obj1, res);
+    ret = convertToJOct (env, obj1, res);
+    freeOctC(oct1);
+    freeOctC(oct2);
+    oct_free(oct1);
+    oct_free(oct2);
+    oct_free(res);
+    return ret;
 }
 
 /*
@@ -241,14 +279,19 @@ JNIEXPORT jobject JNICALL Java_octagon_OctWrapper_J_1intersection
  */
 JNIEXPORT jobject JNICALL Java_octagon_OctWrapper_J_1union
   (JNIEnv *env, jobject obj1, jobject obj2, jobject obj3, jboolean b){
-
+    jobject ret;
     oct_t* oct1 = convertToCOct(env, obj1, obj2);
     assert(oct1 != NULL);
     oct_t* oct2 = convertToCOct(env, obj1, obj3);
     assert(oct2 != NULL);
     oct_t* res = oct_convex_hull(oct1, oct2, b);
-    return convertToJOct (env, obj1, res);
-
+    ret = convertToJOct (env, obj1, res);
+    freeOctC(oct1);
+    freeOctC(oct2);
+    oct_free(oct1);
+    oct_free(oct2);
+    oct_free(res);
+    return ret;
 }
 
 /*
@@ -258,6 +301,7 @@ JNIEXPORT jobject JNICALL Java_octagon_OctWrapper_J_1union
  */
 JNIEXPORT jobject JNICALL Java_octagon_OctWrapper_J_1widening
   (JNIEnv *env, jobject obj1, jobject obj2, jobject obj3, jboolean b, jint in){
+    jobject ret;
     oct_widening_type type;
     oct_t* oct1 = convertToCOct(env, obj1, obj2);
     assert(oct1 != NULL);
@@ -267,9 +311,13 @@ JNIEXPORT jobject JNICALL Java_octagon_OctWrapper_J_1widening
     else if(in == 1) {type =  OCT_WIDENING_ZERO;}
     else if(in == 2) {type =  OCT_WIDENING_UNIT;}
     oct_t* res = oct_widening(oct1, oct2, b, type);
-    return convertToJOct (env, obj1, res);
-
-
+    ret = convertToJOct (env, obj1, res);
+    freeOctC(oct1);
+    freeOctC(oct2);
+    oct_free(oct1);
+    oct_free(oct2);
+    oct_free(res);
+    return ret;
 }
 
 /*
@@ -279,14 +327,19 @@ JNIEXPORT jobject JNICALL Java_octagon_OctWrapper_J_1widening
  */
 JNIEXPORT jobject JNICALL Java_octagon_OctWrapper_J_1narrowing
   (JNIEnv *env, jobject obj1, jobject obj2, jobject obj3, jboolean b){
-
+    jobject ret;
     oct_t* oct1 = convertToCOct(env, obj1, obj2);
     assert(oct1 != NULL);
     oct_t* oct2 = convertToCOct(env, obj1, obj3);
     assert(oct2 != NULL);
     oct_t* res = oct_narrowing(oct1, oct2, b);
-    return convertToJOct (env, obj1, res);
-
+    ret = convertToJOct (env, obj1, res);
+    freeOctC(oct1);
+    freeOctC(oct2);
+    oct_free(oct1);
+    oct_free(oct2);
+    oct_free(res);
+    return ret;
 }
 
 /*
@@ -296,14 +349,17 @@ JNIEXPORT jobject JNICALL Java_octagon_OctWrapper_J_1narrowing
  */
 JNIEXPORT jobject JNICALL Java_octagon_OctWrapper_J_1forget
   (JNIEnv *env, jobject obj1, jobject obj2, jint in, jboolean b){
-
+    jobject ret;
     oct_t* oct1 = convertToCOct(env, obj1, obj2);
     assert(oct1 != NULL);
     var_t v;
     v = in;
     oct_t* res = oct_forget(oct1, v, b);
-    return convertToJOct (env, obj1, res);
-
+    ret = convertToJOct (env, obj1, res);
+    freeOctC(oct1);
+    oct_free(oct1);
+    oct_free(res);
+    return ret;
 }
 
 /*
@@ -314,6 +370,7 @@ JNIEXPORT jobject JNICALL Java_octagon_OctWrapper_J_1forget
 
 JNIEXPORT jobject JNICALL Java_octagon_OctWrapper_J_1assingVar
   (JNIEnv *env, jobject obj1, jobject obj2, jint in, jobjectArray objArr, jboolean b){
+    jobject ret;
     oct_t* oct1 = convertToCOct(env, obj1, obj2);
     assert(oct1 != NULL);
     var_t v;
@@ -321,8 +378,12 @@ JNIEXPORT jobject JNICALL Java_octagon_OctWrapper_J_1assingVar
     num_t* ar = convertToCArray(env, obj1, objArr);
     oct_t* res = oct_assign_variable(oct1, v, ar, b);
     assert(res != NULL);
-    //TODO free ar
-    return convertToJOct (env, obj1, res);
+    destructNumT(ar, env, objArr);
+    ret = convertToJOct (env, obj1, res);
+    freeOctC(oct1);
+    oct_free(oct1);
+    oct_free(res);
+    return ret;
 }
 
 /*
@@ -332,6 +393,7 @@ JNIEXPORT jobject JNICALL Java_octagon_OctWrapper_J_1assingVar
  */
 JNIEXPORT jobject JNICALL Java_octagon_OctWrapper_J_1substituteVar
   (JNIEnv *env, jobject obj1, jobject obj2, jint in, jobjectArray objArr, jboolean b){
+    jobject ret;
     oct_t* oct1 = convertToCOct(env, obj1, obj2);
     assert(oct1 != NULL);
     var_t v;
@@ -339,8 +401,13 @@ JNIEXPORT jobject JNICALL Java_octagon_OctWrapper_J_1substituteVar
     num_t* ar = convertToCArray(env, obj1, objArr);
     oct_t* res = oct_substitute_variable(oct1, v, ar, b);
     assert(res != NULL);
-    //TODO free ar
-    return convertToJOct (env, obj1, res);
+    ret = convertToJOct (env, obj1, res);
+    destructNumT(ar, env, objArr);
+    ret = convertToJOct (env, obj1, res);
+    freeOctC(oct1);
+    oct_free(oct1);
+    oct_free(res);
+    return ret;
 }
 
 /*
@@ -350,14 +417,19 @@ JNIEXPORT jobject JNICALL Java_octagon_OctWrapper_J_1substituteVar
  */
 JNIEXPORT jobject JNICALL Java_octagon_OctWrapper_J_1addConstraint
   (JNIEnv *env, jobject obj1, jobject obj2, jobjectArray objArr, jboolean b){
+    jobject ret;
     oct_t* oct1 = convertToCOct(env, obj1, obj2);
     assert(oct1 != NULL);
     num_t* ar = convertToCArray(env, obj1, objArr);
     oct_t* res = oct_add_constraint(oct1, ar, b);
     assert(res != NULL);
-    //TODO free ar
-    return convertToJOct (env, obj1, res);
-
+    ret = convertToJOct (env, obj1, res);
+    destructNumT(ar, env, objArr);
+    ret = convertToJOct (env, obj1, res);
+    freeOctC(oct1);
+    oct_free(oct1);
+    oct_free(res);
+    return ret;
 }
 
 /*
@@ -367,6 +439,7 @@ JNIEXPORT jobject JNICALL Java_octagon_OctWrapper_J_1addConstraint
  */
 JNIEXPORT jobject JNICALL Java_octagon_OctWrapper_J_1intervAssingVar
   (JNIEnv *env, jobject obj1, jobject obj2, jint in, jobjectArray objArr, jboolean b){
+    jobject ret;
     oct_t* oct1 = convertToCOct(env, obj1, obj2);
     assert(oct1 != NULL);
     var_t v;
@@ -375,9 +448,13 @@ JNIEXPORT jobject JNICALL Java_octagon_OctWrapper_J_1intervAssingVar
     assert(ar != NULL);
     oct_t* res = oct_interv_assign_variable(oct1, v, ar, b);
     assert(res != NULL);
-    //TODO free ar
-    return convertToJOct (env, obj1, res);
-
+    ret = convertToJOct (env, obj1, res);
+    destructNumT(ar, env, objArr);
+    ret = convertToJOct (env, obj1, res);
+    freeOctC(oct1);
+    oct_free(oct1);
+    oct_free(res);
+    return ret;
 }
 
 /*
@@ -387,6 +464,7 @@ JNIEXPORT jobject JNICALL Java_octagon_OctWrapper_J_1intervAssingVar
  */
 JNIEXPORT jobject JNICALL Java_octagon_OctWrapper_J_1intervSubstituteVar
   (JNIEnv *env, jobject obj1, jobject obj2, jint in, jobjectArray objArr, jboolean b){
+    jobject ret;
     oct_t* oct1 = convertToCOct(env, obj1, obj2);
     assert(oct1 != NULL);
     var_t v;
@@ -395,8 +473,13 @@ JNIEXPORT jobject JNICALL Java_octagon_OctWrapper_J_1intervSubstituteVar
     assert(ar != NULL);
     oct_t* res = oct_interv_substitute_variable(oct1, v, ar, b);
     assert(res != NULL);
-    //TODO free ar
-    return convertToJOct (env, obj1, res);
+    ret = convertToJOct (env, obj1, res);
+    destructNumT(ar, env, objArr);
+    ret = convertToJOct (env, obj1, res);
+    freeOctC(oct1);
+    oct_free(oct1);
+    oct_free(res);
+    return ret;
 }
 
 /*
@@ -406,14 +489,20 @@ JNIEXPORT jobject JNICALL Java_octagon_OctWrapper_J_1intervSubstituteVar
  */
 JNIEXPORT jobject JNICALL Java_octagon_OctWrapper_J_1intervAddConstraint
   (JNIEnv *env, jobject obj1, jobject obj2, jobjectArray objArr, jboolean b){
+    jobject ret;
     oct_t* oct1 = convertToCOct(env, obj1, obj2);
     assert(oct1 != NULL);
     num_t* ar = convertToCArray(env, obj1, objArr);
     assert(ar != NULL);
-    oct_t* res =  oct_interv_add_constraint(oct1, ar, b);
+    oct_t* res = oct_interv_add_constraint(oct1, ar, b);
     assert(res != NULL);
-    //TODO free ar
-    return convertToJOct (env, obj1, res);
+    ret = convertToJOct (env, obj1, res);
+    destructNumT(ar, env, objArr);
+    ret = convertToJOct (env, obj1, res);
+    freeOctC(oct1);
+    oct_free(oct1);
+    oct_free(res);
+    return ret;
 }
 
 /*
@@ -423,14 +512,18 @@ JNIEXPORT jobject JNICALL Java_octagon_OctWrapper_J_1intervAddConstraint
  */
 JNIEXPORT jobject JNICALL Java_octagon_OctWrapper_J_1addDimenensionAndEmbed
   (JNIEnv *env , jobject obj1, jobject obj2, jint in, jboolean b){
+    jobject ret;
     oct_t* oct1 = convertToCOct(env, obj1, obj2);
     assert(oct1 != NULL);
     var_t v;
     v = in;
-    oct_t* res =  oct_add_dimensions_and_embed(oct1, v, b);
+    oct_t* res = oct_add_dimensions_and_embed(oct1, v, b);
     assert(res != NULL);
-    //TODO free ar
-    return convertToJOct (env, obj1, res);
+    ret = convertToJOct (env, obj1, res);
+    freeOctC(oct1);
+    oct_free(oct1);
+    oct_free(res);
+    return ret;
 
 }
 
@@ -441,14 +534,18 @@ JNIEXPORT jobject JNICALL Java_octagon_OctWrapper_J_1addDimenensionAndEmbed
  */
 JNIEXPORT jobject JNICALL Java_octagon_OctWrapper_J_1addDimenensionAndProject
   (JNIEnv *env , jobject obj1, jobject obj2, jint in, jboolean b){
+    jobject ret;
     oct_t* oct1 = convertToCOct(env, obj1, obj2);
     assert(oct1 != NULL);
     var_t v;
     v = in;
-    oct_t* res =   oct_add_dimensions_and_project(oct1, v, b);
+    oct_t* res = oct_add_dimensions_and_project(oct1, v, b);
     assert(res != NULL);
-    //TODO free ar
-    return convertToJOct (env, obj1, res);
+    ret = convertToJOct (env, obj1, res);
+    freeOctC(oct1);
+    oct_free(oct1);
+    oct_free(res);
+    return ret;
 }
 
 /*
@@ -458,14 +555,18 @@ JNIEXPORT jobject JNICALL Java_octagon_OctWrapper_J_1addDimenensionAndProject
  */
 JNIEXPORT jobject JNICALL Java_octagon_OctWrapper_J_1removeDimension
   (JNIEnv *env , jobject obj1, jobject obj2, jint in, jboolean b){
+    jobject ret;
     oct_t* oct1 = convertToCOct(env, obj1, obj2);
     assert(oct1 != NULL);
     var_t v;
     v = in;
-    oct_t* res =    oct_remove_dimensions(oct1, v, b);
+    oct_t* res = oct_remove_dimensions(oct1, v, b);
     assert(res != NULL);
-    //TODO free ar
-    return convertToJOct (env, obj1, res);
+    ret = convertToJOct (env, obj1, res);
+    freeOctC(oct1);
+    oct_free(oct1);
+    oct_free(res);
+    return ret;
 }
 
 /*
@@ -475,6 +576,7 @@ JNIEXPORT jobject JNICALL Java_octagon_OctWrapper_J_1removeDimension
  */
 JNIEXPORT jobject JNICALL Java_octagon_OctWrapper_J_1removeDimensionAtPosition
   (JNIEnv *env, jobject obj1, jobject obj2, jint pos, jint dimension, jboolean b){
+    jobject ret;
     oct_t* oct1 = convertToCOct(env, obj1, obj2);
     assert(oct1 != NULL);
     var_t vpos;
@@ -487,8 +589,11 @@ JNIEXPORT jobject JNICALL Java_octagon_OctWrapper_J_1removeDimensionAtPosition
     array[0].nbdims = vdim;
     oct_t* res =  oct_remove_dimensions_multi(oct1, array, 1, b);
     assert(res != NULL);
-    //TODO free ar
-    return convertToJOct (env, obj1, res);
+    ret = convertToJOct (env, obj1, res);
+    freeOctC(oct1);
+    oct_free(oct1);
+    oct_free(res);
+    return ret;
 }
 
 /*
@@ -500,7 +605,9 @@ JNIEXPORT void JNICALL Java_octagon_OctWrapper_J_1print
   (JNIEnv *env, jobject obj1, jobject obj2){
     oct_t* oct1 = convertToCOct(env, obj1, obj2);
     assert(oct1 != NULL);
+    freeOctC(oct1);
     oct_print (oct1);
+    oct_free(oct1);
 }
 
 /*
@@ -514,6 +621,8 @@ JNIEXPORT jobject JNICALL Java_octagon_OctWrapper_getRandomOct
   assert(oct != NULL);
   jobject res =  convertToJOct(env, obj, oct);
   assert(res != NULL);
+  freeOctC(oct);
+  oct_free(oct);
   return res;
 }
 
@@ -658,6 +767,21 @@ num_t* convertToCArray(JNIEnv *env, jobject obj, jobject jarray){
 	}
 	
 	return matrix;
+}
+
+void destructNumT(num_t* array, JNIEnv *env, jobject jarray){
+      int size;
+      jint len = (*env)->GetArrayLength(env, jarray);
+      size = len;
+      num_clear_n(array,size);
+      oct_mm_free(array);
+}
+
+void freeOctC(oct_t* oct){
+      num_t* matrix = oct->c;
+      int dim = oct->n;
+      num_clear_n(matrix, dim);
+      oct_mm_free(matrix);
 }
 
 
