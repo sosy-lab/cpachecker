@@ -221,8 +221,8 @@ public class AutomatonCPADomain<E> implements AbstractDomain {
     
     @Override
     public boolean subsumes(Element pOtherElement) {
-      // we assume bottom == {}
-      return false;
+      // we assume bottom == {}, so we only subsume bottom.
+      return this.equals(pOtherElement);
     }
     
     @Override
