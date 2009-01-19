@@ -320,11 +320,9 @@ public class ExplicitTransferRelation implements TransferRelation {
                 }
             } else {
                 assert(firstInterpolant != null);
-                root = (ExplicitAbstractElement) abstractTree.findHighest(
-                        firstInterpolant.getLocationNode());
                 LazyLogger.log(CustomLogLevel.SpecificCPALevel,
                                "Restarting ART from scratch");
-                //root = (ExplicitAbstractElement)abstractTree.getRoot();
+                root = (ExplicitAbstractElement)abstractTree.getRoot();
             }
         } else {
             //samePathAlready  = 0;
