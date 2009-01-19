@@ -52,6 +52,7 @@ public class ExplicitAnalysisElement implements AbstractElement {
   }
   
   public int getValueFor(String variableName){
+    System.out.println(variableName);
     return constantsMap.get(variableName);
   }
   

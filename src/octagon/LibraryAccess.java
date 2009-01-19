@@ -29,6 +29,10 @@ import cpa.octagon.OctElement;
 public class LibraryAccess {
 
 	public static OctWrapper or = new OctWrapper();
+	
+	public static boolean initOctEnvironment(){
+	  return or.J_init ();
+	}
 
 	// widening operator, used for joining
 	public static OctElement widening(

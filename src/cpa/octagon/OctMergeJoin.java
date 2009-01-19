@@ -62,7 +62,7 @@ public class OctMergeJoin implements MergeOperator{
 			return LibraryAccess.widening(octEl2, octEl1);
 		}
 		else{
-			System.out.println("Using UNION");
+			//System.out.println("Using UNION");
 			return LibraryAccess.union(octEl2, octEl1);
 		}
 	}

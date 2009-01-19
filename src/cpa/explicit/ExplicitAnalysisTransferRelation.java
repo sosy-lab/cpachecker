@@ -37,6 +37,7 @@ import org.eclipse.cdt.core.dom.ast.IASTPointerOperator;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 
 import cfa.objectmodel.CFAEdge;
+import cfa.objectmodel.CFAErrorNode;
 import cfa.objectmodel.c.AssumeEdge;
 import cfa.objectmodel.c.CallToReturnEdge;
 import cfa.objectmodel.c.DeclarationEdge;
@@ -201,6 +202,11 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
       break;
     }
     }
+    if(!expAnalysisElement.isBottom() && 
+        cfaEdge.getSuccessor() instanceof CFAErrorNode){
+      System.out.println(" Error Node Reached ");
+      System.exit(0);
+    }
     return expAnalysisElement;
   }
 
@@ -214,7 +220,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
     ExplicitAnalysisElement newElement = previousElem.clone();
     String callerFunctionName = functionReturnEdge.getSuccessor().getFunctionName();
     String calledFunctionName = functionReturnEdge.getPredecessor().getFunctionName();
-    System.out.println(exprOnSummary.getRawSignature());
+    //System.out.println(exprOnSummary.getRawSignature());
     //expression is a binary operation, e.g. a = g(b);
     if (exprOnSummary instanceof IASTBinaryExpression) {
       IASTBinaryExpression binExp = ((IASTBinaryExpression)exprOnSummary);
@@ -222,7 +228,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
       IASTExpression op1 = binExp.getOperand1();
 
       assert(opType == IASTBinaryExpression.op_assign);
-      
+
       //we expect left hand side of the expression to be a variable
       if(op1 instanceof IASTIdExpression)
       {
@@ -395,6 +401,9 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
         else{
           throw new ExplicitAnalysisTransferException("Unhandled case");
         }
+      }
+      else{
+        throw new ExplicitAnalysisTransferException("Unhandled case");
       }
     }
     else if(expression instanceof IASTBinaryExpression){
@@ -602,13 +611,13 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
           if(truthValue){
             if(expAnalysisElement.contains(getvarName(leftVarName, functionName)) && 
                 !expAnalysisElement.contains(getvarName(rightVarName, functionName))){
-              expAnalysisElement.assignConstant(getvarName(leftVarName, functionName),
-                  expAnalysisElement.getValueFor(getvarName(rightVarName, functionName)));
+              expAnalysisElement.assignConstant(getvarName(rightVarName, functionName),
+                  expAnalysisElement.getValueFor(getvarName(leftVarName, functionName)));
             }
             else if(expAnalysisElement.contains(getvarName(rightVarName, functionName)) && 
                 !expAnalysisElement.contains(getvarName(leftVarName, functionName))){
-              expAnalysisElement.assignConstant(getvarName(rightVarName, functionName),
-                  expAnalysisElement.getValueFor(getvarName(leftVarName, functionName)));
+              expAnalysisElement.assignConstant(getvarName(leftVarName, functionName),
+                  expAnalysisElement.getValueFor(getvarName(rightVarName, functionName)));
             }
             else if(expAnalysisElement.contains(getvarName(rightVarName, functionName)) && 
                 expAnalysisElement.contains(getvarName(leftVarName, functionName))){
@@ -626,6 +635,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
         else if(opType == IASTBinaryExpression.op_notequals)
         {
           if(truthValue){
+            System.out.println("we are here 1");
             if(expAnalysisElement.contains(getvarName(rightVarName, functionName)) && 
                 expAnalysisElement.contains(getvarName(leftVarName, functionName))){
               if(expAnalysisElement.getValueFor(getvarName(rightVarName, functionName)) == 
@@ -638,6 +648,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
             }
           }
           else{
+            System.out.println("we are here 2");
             propagateBooleanExpression(expAnalysisElement, IASTBinaryExpression.op_equals, op1, op2, functionName, !truthValue);
           }
         }
@@ -715,6 +726,142 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
           }
           else{
             propagateBooleanExpression(expAnalysisElement, IASTBinaryExpression.op_greaterThan, op1, op2, functionName, !truthValue);
+          }
+        }
+        else{
+          throw new ExplicitAnalysisTransferException("Unhandled case ");
+        }
+      }
+      else if(op2 instanceof IASTUnaryExpression){
+
+        IASTIdExpression var = (IASTIdExpression)op1;
+        String varName = var.getRawSignature();
+
+        IASTUnaryExpression unaryExp = (IASTUnaryExpression)op2;
+        IASTExpression unaryExpOp = unaryExp.getOperand();
+
+        int operatorType = unaryExp.getOperator();
+        // a = -8
+        if(operatorType == IASTUnaryExpression.op_minus){
+
+          if(unaryExpOp instanceof IASTLiteralExpression){
+            IASTLiteralExpression literalExp = (IASTLiteralExpression)unaryExpOp;
+            int typeOfLiteral = literalExp.getKind();
+            if( typeOfLiteral ==  IASTLiteralExpression.lk_integer_constant 
+                //  || typeOfLiteral == IASTLiteralExpression.lk_float_constant
+            )
+            {
+              int valueOfLiteral = 0 - Integer.valueOf(op2.getRawSignature()).intValue();
+
+              // a == 9
+              if(opType == IASTBinaryExpression.op_equals) {
+                if(truthValue){
+                  if(expAnalysisElement.contains(getvarName(varName, functionName))){
+                    if(expAnalysisElement.getValueFor(getvarName(varName, functionName)) != valueOfLiteral){
+                      expAnalysisElement.setBottom();
+                    }
+                  }
+                  else{
+                    expAnalysisElement.assignConstant(getvarName(varName, functionName), valueOfLiteral);
+                  }
+                }
+                // ! a == 9
+                else {
+                  propagateBooleanExpression(expAnalysisElement, IASTBinaryExpression.op_notequals, op1, op2, functionName, !truthValue);
+                }
+              }
+              // a != 9
+              else if(opType == IASTBinaryExpression.op_notequals)
+              {
+                if(truthValue){
+                  if(expAnalysisElement.contains(getvarName(varName, functionName))){
+                    if(expAnalysisElement.getValueFor(getvarName(varName, functionName)) == valueOfLiteral){
+                      expAnalysisElement.setBottom();
+                    }
+                  }
+                  else{
+                  }
+                }
+                // ! a != 9
+                else {
+                  propagateBooleanExpression(expAnalysisElement, IASTBinaryExpression.op_equals, op1, op2, functionName, !truthValue);
+                }
+              }
+
+              // a > 9
+              else if(opType == IASTBinaryExpression.op_greaterThan)
+              {
+                if(truthValue){
+                  if(expAnalysisElement.contains(getvarName(varName, functionName))){
+                    if(expAnalysisElement.getValueFor(getvarName(varName, functionName)) <= valueOfLiteral){
+                      expAnalysisElement.setBottom();
+                    }
+                  }
+                  else{
+                  }
+                }
+                else {
+                  propagateBooleanExpression(expAnalysisElement, IASTBinaryExpression.op_lessEqual, op1, op2, functionName, !truthValue);
+                }
+              }
+              // a >= 9
+              else if(opType == IASTBinaryExpression.op_greaterEqual)
+              {
+                if(truthValue){
+                  if(expAnalysisElement.contains(getvarName(varName, functionName))){
+                    if(expAnalysisElement.getValueFor(getvarName(varName, functionName)) < valueOfLiteral){
+                      expAnalysisElement.setBottom();
+                    }
+                  }
+                  else{
+                  }
+                }
+                else {
+                  propagateBooleanExpression(expAnalysisElement, IASTBinaryExpression.op_lessThan, op1, op2, functionName, !truthValue);
+                }
+              }
+              // a < 9
+              else if(opType == IASTBinaryExpression.op_lessThan)
+              {
+                if(truthValue){
+                  if(expAnalysisElement.contains(getvarName(varName, functionName))){
+                    if(expAnalysisElement.getValueFor(getvarName(varName, functionName)) >= valueOfLiteral){
+                      expAnalysisElement.setBottom();
+                    }
+                  }
+                  else{
+                  }
+                }
+                else {
+                  propagateBooleanExpression(expAnalysisElement, IASTBinaryExpression.op_greaterEqual, op1, op2, functionName, !truthValue);
+                }
+              }
+              // a <= 9
+              else if(opType == IASTBinaryExpression.op_lessEqual)
+              {
+                if(truthValue){
+                  if(expAnalysisElement.contains(getvarName(varName, functionName))){
+                    if(expAnalysisElement.getValueFor(getvarName(varName, functionName)) > valueOfLiteral){
+                      expAnalysisElement.setBottom();
+                    }
+                  }
+                  else{
+                  }
+                }
+                else {
+                  propagateBooleanExpression(expAnalysisElement, IASTBinaryExpression.op_greaterThan, op1, op2, functionName, !truthValue);
+                }
+              }
+              else{
+                throw new ExplicitAnalysisTransferException("Unhandled case ");
+              }
+            }
+            else{
+              throw new ExplicitAnalysisTransferException("Unhandled case ");
+            }
+          }
+          else{
+            throw new ExplicitAnalysisTransferException("Unhandled case ");
           }
         }
         else{

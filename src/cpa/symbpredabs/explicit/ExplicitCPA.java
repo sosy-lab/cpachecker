@@ -80,7 +80,7 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
 
     private final ExplicitAbstractDomain domain;
     private final ExplicitTransferRelation trans;
-    // private ExplicitMergeOperator merge;
+    private final ExplicitMergeOperator merge;
     private final ExplicitStopOperator stop;
     private final PrecisionAdjustment precisionAdjustment;
     private final MathsatSymbolicFormulaManager mgr;
@@ -95,7 +95,7 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
     private ExplicitCPA() {
         domain = new ExplicitAbstractDomain(this);
         trans = new ExplicitTransferRelation(domain);
-        // merge = new ExplicitMergeOperator(domain);
+        merge = new ExplicitMergeOperator(domain);
         stop = new ExplicitStopOperator(domain);
         precisionAdjustment = new ExplicitPrecisionAdjustment();
         mgr = new MathsatSymbolicFormulaManager();
@@ -174,8 +174,8 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
     }
 
     public MergeOperator getMergeOperator() {
-        //return merge;
-        return null;
+        return merge;
+        //return null;
     }
 
     @Override

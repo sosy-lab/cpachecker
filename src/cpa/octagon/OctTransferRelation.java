@@ -41,6 +41,7 @@ import org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression;
 import org.eclipse.cdt.core.dom.ast.IASTIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
 import org.eclipse.cdt.core.dom.ast.IASTPointerOperator;
+import org.eclipse.cdt.core.dom.ast.IASTReturnStatement;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 
 import cfa.objectmodel.CFAEdge;
@@ -81,6 +82,7 @@ public class OctTransferRelation implements TransferRelation{
   {
     this.octDomain = octDomain;
     globalVars = new HashSet<String>();
+    LibraryAccess.initOctEnvironment();
   }
 
   /* (non-Javadoc)
@@ -102,7 +104,7 @@ public class OctTransferRelation implements TransferRelation{
 //      System.out.println("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
 //    }
 //    
-//    System.out.println(" EDGE "+ cfaEdge.getRawStatement());
+    System.out.println(" EDGE "+ cfaEdge.getRawStatement());
     // octElement is the region of the current state
     // this state will be updated using the edge
     OctElement octElement = (OctElement) element;
@@ -1934,6 +1936,9 @@ public class OctTransferRelation implements TransferRelation{
         else{
           throw new OctagonTransferException("Unhandled case");
         }
+      }
+      else{
+        throw new OctagonTransferException("Unhandled case");
       }
     }
     else if(expression instanceof IASTBinaryExpression){
