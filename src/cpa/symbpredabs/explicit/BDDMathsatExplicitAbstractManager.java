@@ -414,7 +414,7 @@ public class BDDMathsatExplicitAbstractManager extends
         }
 
         if (!(succ.getLocation() instanceof CFAErrorNode)) {
-            if ((edge instanceof BlankEdge && !(edge.getPredecessor() instanceof FunctionDefinitionNode)) || edge instanceof DeclarationEdge //||
+            if ((edge instanceof BlankEdge && !(edge.getPredecessor() instanceof FunctionDefinitionNode)) //||
 //                    (predicates.size() == 0 &&
 //                            ((BDDAbstractFormula)e.getAbstraction()).getBDD() ==
 //                                bddManager.getOne())) {

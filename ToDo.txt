@@ -102,6 +102,10 @@
 - [MT] Setting cpas.symbpredabs.shortestCexTrace to false causes some error I
   can't remember right now, easily reproducible with ExplicitCPA
 
-
+- [MT] Skipping BlankEdge in
+  src/cpa/symbpredabs/explicit/BDDMathsatExplicitAbstractManager.java is
+  dangerous; however, commenting out that piece of code breaks ExplicitCPA on
+  several examples, which must be due to some other bug in ExplicitCPA (other
+  CPAs relying on that piece of code don't break)
 
 
