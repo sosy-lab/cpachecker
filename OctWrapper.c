@@ -712,12 +712,12 @@ oct_t* convertToCOct (JNIEnv *env, jobject obj, jobject obj1) {
 	closed = (*env)-> GetObjectField(env, obj1, fidclosed);
 	jarr = (*env)-> GetObjectField(env, obj1, fidarray);
 
-        oct = oct_universe(dim);
+        //oct = oct_universe(dim);
 
 	size = matsize(dim);
 
-	//num_t* matrix = new_n(num_t,size);
-	//num_init_n(matrix,size);
+	num_t* matrix = new_n(num_t,size);
+	num_init_n(matrix,size);
 
 	if(jarr != NULL){
           jint len = (*env)->GetArrayLength(env, jarr);
@@ -728,22 +728,22 @@ oct_t* convertToCOct (JNIEnv *env, jobject obj, jobject obj1) {
 	     jclass clsArr = (*env)->GetObjectClass(env, jArrayElem);
 	     jfieldID fidArr = (*env)->GetFieldID(env, clsArr, "f","D");
 	     double elem = (*env)->GetDoubleField(env, jArrayElem, fidArr);
-	     //num_set_float (matrix+i, elem);
-             num_set_float (oct->c+i, elem);
+	     num_set_float (matrix+i, elem);
+             //num_set_float (oct->c+i, elem);
 	     (*env)->DeleteLocalRef(env, jArrayElem);
 	  }
 	}
 
-	//oct = oct_universe(dim);
+	oct = oct_empty(dim);
 	/* Set octagon's fields */
-	//oct->c = matrix;
-	//var_t v = dim;
-	//oct->n = v;
-	//oct->ref = ref;
+	oct->c = matrix;
+	var_t v = dim;
+	oct->n = v;
+	oct->ref = ref;
 	if(state == 0) {oct->state = OCT_EMPTY;}
 	else if(state == 1) {oct->state = OCT_NORMAL;}
 	else if(state == 2) {oct->state = OCT_CLOSED;}
-	//oct->closed = NULL;
+	oct->closed = NULL;
 	//printf("\nConvert TO C \n");
 	//printContent(oct);
 	return oct;

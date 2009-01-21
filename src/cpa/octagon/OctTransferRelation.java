@@ -45,6 +45,7 @@ import org.eclipse.cdt.core.dom.ast.IASTReturnStatement;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 
 import cfa.objectmodel.CFAEdge;
+import cfa.objectmodel.CFAErrorNode;
 import cfa.objectmodel.c.AssumeEdge;
 import cfa.objectmodel.c.CallToReturnEdge;
 import cfa.objectmodel.c.DeclarationEdge;
@@ -104,7 +105,7 @@ public class OctTransferRelation implements TransferRelation{
 //      System.out.println("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
 //    }
 //    
-    System.out.println(" EDGE "+ cfaEdge.getRawStatement());
+    //System.out.println(" EDGE "+ cfaEdge.getRawStatement());
     // octElement is the region of the current state
     // this state will be updated using the edge
     OctElement octElement = (OctElement) element;
@@ -237,6 +238,17 @@ public class OctTransferRelation implements TransferRelation{
       break;
     }
     }
+    
+    if(cfaEdge.getSuccessor() instanceof CFAErrorNode && 
+        !octElement.isEmpty()){
+      System.out.println(" ERROR NODE REACHED ");
+      System.out.println(" ============================= ");
+      System.out.println(octElement);
+      System.exit(0);
+    }
+//    System.out.println(" ====================== " + cfaEdge + " >>>>>>> ");
+//    System.out.println(octElement);
+//    System.out.println();
     return octElement;
   }
 

@@ -57,14 +57,22 @@ public class OctMergeJoin implements MergeOperator{
 
 		assert(dim1 == dim2);
 
-		if(OctConstants.useWidening){
-			OctConstants.useWidening = false;
-			return LibraryAccess.widening(octEl2, octEl1);
-		}
-		else{
+//		if(OctConstants.useWidening){
+//			OctConstants.useWidening = false;
+//			return LibraryAccess.widening(octEl2, octEl1);
+//		}
+//		else{
 			//System.out.println("Using UNION");
-			return LibraryAccess.union(octEl2, octEl1);
-		}
+//		System.out.println(" ============ Merging ================ ");
+//		System.out.println(octEl1);
+//		System.out.println(" ------- ");
+//		System.out.println(octEl2);
+//		System.out.println( ">>>>>>>>>>>>>>> merged <<<<<<<<<<<<<<<< " );
+		OctElement ret =  LibraryAccess.union(octEl2, octEl1);
+//		System.out.println(ret);
+//		System.out.println();
+		return ret;
+		//}
 	}
 
   public AbstractElementWithLocation merge(AbstractElementWithLocation pElement1,
