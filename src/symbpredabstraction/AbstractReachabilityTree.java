@@ -114,5 +114,11 @@ public class AbstractReachabilityTree {
   public boolean contains(SymbPredAbsAbstractElement n) {
     return tree.containsKey(n);
   }
+  
+  
+    public void clear() {
+        root = null;
+        tree.clear();
+    }
 
 }

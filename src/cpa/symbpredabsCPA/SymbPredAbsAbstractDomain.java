@@ -47,16 +47,52 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
   private final class SymbPredAbsBottomElement extends SymbPredAbsAbstractElement {
     public SymbPredAbsBottomElement() {
       super(null, true, null, null, null, null, null, null, null, null);
+      super.isBottomElement = true;
     }
 
     @Override
     public String toString() {
       return "<BOTTOM>";
     }
+    
+    @Override
+    public boolean equals(Object o) {
+      if (o == null) {
+        return false;
+      }
+      
+      // TODO: Is this enough?
+      return (o instanceof SymbPredAbsBottomElement);
+    }
+    
+    @Override
+    public int hashCode() {
+      return Integer.MIN_VALUE;
+    }
   }
   private final class SymbPredAbsTopElement extends SymbPredAbsAbstractElement {
     public SymbPredAbsTopElement() {
       super(null, true, null, null, null, null, null, null, null, null);
+    }
+    
+    @Override
+    public String toString() {
+      return "<TOP>";
+    }
+    
+    @Override
+    public boolean equals(Object o) {
+      if (o == null) {
+        return false;
+      }
+      
+      // TODO: Is this enough
+      return (o instanceof SymbPredAbsTopElement);
+    }
+    
+    @Override
+    public int hashCode() {
+      return Integer.MAX_VALUE;
     }
   }
 

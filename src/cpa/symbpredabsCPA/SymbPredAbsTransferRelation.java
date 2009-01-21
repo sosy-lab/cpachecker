@@ -155,6 +155,11 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
         e.printStackTrace();
       }
     }
+    
+    if (newElement.isBottomElement) {
+      return this.domain.getBottomElement();
+    }
+    
     return newElement;
 
   }
@@ -435,4 +440,9 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   private PathFormula toPathFormula(Pair<SymbolicFormula, SSAMap> pair) {
     return new PathFormula(pair.getFirst(), pair.getSecond());
   }
+  
+  
+    public void clearART() {
+        this.abstractTree.clear();
+    }
 }
