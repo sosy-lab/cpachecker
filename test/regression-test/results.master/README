@@ -5,3 +5,6 @@ The results have been computed on cs-sel-02.cs.surrey.sfu.ca on 2008-12-10, usin
   on 2008-12-31, where the errors have been fixed meanwhile
 - Runtimes of all tests not yielding errors in r432 were updated using the
   results computed on 2009-01-11
+- Runtimes of all tests that do not yield new errors in r448 were updated using
+  the results computed on 2009-01-21; the code had the declaration-edge bugfix
+  which will be committed later on
