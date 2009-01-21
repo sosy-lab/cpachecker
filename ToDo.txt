@@ -108,4 +108,9 @@
   several examples, which must be due to some other bug in ExplicitCPA (other
   CPAs relying on that piece of code don't break)
 
+- [MT] newReachedSet not used anymore, some classes still implement it
+
+- [MT] ExplicitCPA claims that ssh/s3_srvr_2_BUG.cil.c is safe, the filename and
+  other CPAs suggest that it should be UNSAFE instead
+
 
