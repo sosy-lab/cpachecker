@@ -52,7 +52,6 @@ public class ExplicitAnalysisElement implements AbstractElement {
   }
   
   public int getValueFor(String variableName){
-    System.out.println(variableName);
     return constantsMap.get(variableName);
   }
   
@@ -100,6 +99,11 @@ public class ExplicitAnalysisElement implements AbstractElement {
         }
         return true;
     }
+  
+  @Override
+  public int hashCode() {
+    return constantsMap.hashCode();
+  }
   
   @Override
   public String toString() {

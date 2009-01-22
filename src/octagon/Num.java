@@ -35,4 +35,12 @@ public class Num {
 	public String toString() {
 		return ""+ f;
 	}
+	
+	@Override
+	public int hashCode() {
+	  if(f == Double.POSITIVE_INFINITY || f == Double.NEGATIVE_INFINITY){
+	    return 0;
+	  }
+	  return (new Double(f)).hashCode();
+	}
 }

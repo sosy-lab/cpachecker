@@ -31,6 +31,7 @@ import cmdline.CPAMain;
 import cpa.common.CompositeDomain;
 import cpa.common.CompositeElement;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.StopOperator;
 import exceptions.CPAException;
@@ -67,13 +68,18 @@ public class CompositeStopOperator implements StopOperator{
     CompositeElement compositeElement1 = (CompositeElement) element;
     CompositeElement compositeElement2 = (CompositeElement) reachedElement;
 
-    if(!compositeElement1.getCallStack().equals(compositeElement2.getCallStack())){
+    if(!compositeElement1.getCallStack().stacksContextEqual(compositeElement2.getCallStack())){
       return false;
     }
 
     List<AbstractElement> compositeElements1 = compositeElement1.getElements ();
     List<AbstractElement> compositeElements2 = compositeElement2.getElements ();
 
+    AbstractElementWithLocation locElem1 = (AbstractElementWithLocation)compositeElements1.get(0);
+    AbstractElementWithLocation locElem2 = (AbstractElementWithLocation)compositeElements2.get(0);
+    
+    assert(locElem1.getLocationNode().equals(locElem2.getLocationNode()));
+    
     int iterationStartFrom = 0;
     if(CPAMain.cpaConfig.getBooleanValue("cpa.useSpecializedReachedSet")){
       iterationStartFrom = 1;

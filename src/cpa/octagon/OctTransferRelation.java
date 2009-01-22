@@ -99,12 +99,12 @@ public class OctTransferRelation implements TransferRelation{
    */
   public AbstractElement getAbstractSuccessor (AbstractElement element, CFAEdge cfaEdge, Precision prec)
   {
-    
-//    if(cfaEdge.getSuccessor().isLoopStart()){
-//      System.out.println(" looping ");
-//      System.out.println("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
-//    }
-//    
+
+//  if(cfaEdge.getSuccessor().isLoopStart()){
+//  System.out.println(" looping ");
+//  System.out.println("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+//  }
+
     //System.out.println(" EDGE "+ cfaEdge.getRawStatement());
     // octElement is the region of the current state
     // this state will be updated using the edge
@@ -238,17 +238,20 @@ public class OctTransferRelation implements TransferRelation{
       break;
     }
     }
-    
+
     if(cfaEdge.getSuccessor() instanceof CFAErrorNode && 
-        !octElement.isEmpty()){
+        !octElement.isBottom()){
       System.out.println(" ERROR NODE REACHED ");
       System.out.println(" ============================= ");
       System.out.println(octElement);
       System.exit(0);
     }
-//    System.out.println(" ====================== " + cfaEdge + " >>>>>>> ");
-//    System.out.println(octElement);
-//    System.out.println();
+//  System.out.println(" ====================== " + cfaEdge + " >>>>>>> ");
+//  System.out.println(octElement);
+//  System.out.println();
+    if(octElement.isEmpty()){
+      octElement.setBottom();
+    }
     return octElement;
   }
 
@@ -444,7 +447,7 @@ public class OctTransferRelation implements TransferRelation{
               propagateBooleanExpression(octElement, IASTBinaryExpression.op_equals, variableId, -1, true, true, valueOfLiteral);
             }
           }
-          
+
           else if(opType == IASTBinaryExpression.op_plus){
             if(truthValue){
               propagateBooleanExpression(octElement, IASTBinaryExpression.op_notequals, variableId, -1, true, false, valueOfLiteral);
@@ -453,7 +456,7 @@ public class OctTransferRelation implements TransferRelation{
               propagateBooleanExpression(octElement, IASTBinaryExpression.op_equals, variableId, -1, true, false, valueOfLiteral);
             }
           }
-          
+
           else{
             throw new OctagonTransferException("Unhandled case " + cfaEdge.getPredecessor().getNodeNumber());
           }
@@ -554,7 +557,7 @@ public class OctTransferRelation implements TransferRelation{
     else if (expression instanceof IASTUnaryExpression)
     {
       IASTUnaryExpression unaryExp = ((IASTUnaryExpression)expression);
-      
+
       // ! exp
       if(unaryExp.getOperator() == IASTUnaryExpression.op_not)
       {
@@ -578,7 +581,7 @@ public class OctTransferRelation implements TransferRelation{
             throw new OctagonTransferException("Unhandled case " + cfaEdge.getPredecessor().getNodeNumber());
           }
         }
-        
+
         // ! a
         else if(exp1 instanceof IASTIdExpression){
           IASTIdExpression var = (IASTIdExpression)exp1;
@@ -600,7 +603,7 @@ public class OctTransferRelation implements TransferRelation{
         throw new OctagonTransferException("Unhandled case " + cfaEdge.getPredecessor().getNodeNumber());
       }
     }
-    
+
     else if(expression instanceof IASTIdExpression){
       IASTIdExpression var = (IASTIdExpression)expression;
       String varName = var.getRawSignature();
@@ -1075,7 +1078,7 @@ public class OctTransferRelation implements TransferRelation{
         else{
           throw new OctagonTransferException("Unhandled case");
         }
-      
+
       }
       else {
         throw new OctagonTransferException("Unhandled case " + cfaEdge.getPredecessor().getNodeNumber());
@@ -1677,6 +1680,10 @@ public class OctTransferRelation implements TransferRelation{
 
     List<String> paramNames = functionEntryNode.getFunctionParameterNames();
     IASTExpression[] arguments = callEdge.getArguments();
+
+    if (arguments == null) {
+      arguments = new IASTExpression[0];
+    }
 
     assert (paramNames.size() == arguments.length);
 

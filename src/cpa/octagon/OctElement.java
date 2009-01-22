@@ -45,13 +45,17 @@ public class OctElement implements AbstractElement{
 	private Octagon oct;
 	// mapping from variable name to its identifier
 	private HashMap<String, Integer> variables;
-
+	private long elemId;
+  private static long nextAvailableId = 0;
+  private boolean isBottom = false;
+	
 	/**
 	 * Class constructor creating a new octagon and an empty variables list.
 	 */
 	public OctElement(){
 		oct = LibraryAccess.universe(0);
 		this.variables = new HashMap<String, Integer>();
+		elemId = ++nextAvailableId;
 	}
 
 	/**
@@ -62,6 +66,7 @@ public class OctElement implements AbstractElement{
 	public OctElement(Octagon oct, HashMap<String, Integer> variables){
 		this.oct = oct;
 		this.variables = variables;
+		elemId = ++nextAvailableId;
 	}
 
 	/* (non-Javadoc)
@@ -87,20 +92,36 @@ public class OctElement implements AbstractElement{
 		this.oct = ent.oct;
 		this.variables = ent.variables;
 	}
+	
+	@Override
+	public int hashCode() {
+	  if (oct == null) return (variables == null) ? 0 : variables.hashCode() + 1;
+    else if (variables == null) return oct.hashCode() + 2;
+    else return oct.hashCode() * 17 + variables.hashCode();
+	}
 
 	@Override
 	public boolean equals (Object other)
 	{
-		if (this == other)
+	  OctElement otherOctagon = (OctElement) other;
+
+	  if(this.elemId == otherOctagon.elemId){
+	    return true;
+	  }
+	  
+		if (this == other){
 			return true;
+		}
+		
+		if(otherOctagon.hashCode() == this.hashCode()){
+		  return true;
+		}
 
-		if (!(other instanceof OctElement))
-			return false;
-
-		OctElement otherOctagon = (OctElement) other;
 		// we check for equality on native library because it optimizes octagons first and
 		// check for equality
-		return LibraryAccess.isEqual(this, otherOctagon);
+		boolean isEq = LibraryAccess.isEqual(this, otherOctagon);
+		
+		return isEq;
 	}
 
 	public String getVarNameForId(int i){
@@ -278,6 +299,14 @@ public class OctElement implements AbstractElement{
 		variables = newVariablesMap;
 
 	}
+
+  public boolean isBottom() {
+    return isBottom;
+  }
+
+  public void setBottom() {
+    isBottom = true;
+  }
 
 	// TODO fix this
 //	public void addVariablesFrom(OctElement octEl1) {

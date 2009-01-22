@@ -48,6 +48,12 @@ public class OctStopSep implements StopOperator{
 
 	public <AE extends AbstractElement> boolean stop (AE element, Collection<AE> reached, Precision prec) throws CPAException
 	{
+	  OctElement octelem = (OctElement) element;
+	  
+	  if(octelem.isBottom()){
+	    return true;
+	  }
+	  
 		PartialOrder partialOrder = octDomain.getPartialOrder ();
 		for (AbstractElement testElement : reached)
 		{

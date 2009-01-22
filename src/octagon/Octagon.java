@@ -23,6 +23,8 @@
  */
 package octagon;
 
+import java.util.Arrays;
+
 
 public class Octagon {
 
@@ -103,5 +105,21 @@ public class Octagon {
 
 	public int matPos2(int i, int j){
 		return ((i)<(j)?matPos((j^1),(i^1)):matPos(i,j));
+	}
+	
+	@Override
+	public int hashCode() {
+    return Arrays.hashCode(matrix);
+	}
+	
+	@Override
+	public boolean equals(Object pObj) {
+	  Octagon otherOct = (Octagon) pObj;
+	  if(this == pObj){
+	    return true;
+	  }
+	  
+	  return this.hashCode() == otherOct.hashCode();
+	  
 	}
 }

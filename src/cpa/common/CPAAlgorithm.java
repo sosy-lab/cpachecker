@@ -104,8 +104,8 @@ public class CPAAlgorithm
         System.out.println(err.toString());
         return simpleReached;
       } catch (RefinementNeededException re) {
-        doRefinement(reached, waitlist, re.getReachableToUndo(), re.getToWaitlist());
-        //doRefinementForSymbAbst(initialState, initialPrecision, reached, waitlist, re.getReachableToUndo());
+        //doRefinement(reached, waitlist, re.getReachableToUndo(), re.getToWaitlist());
+        doRefinementForSymbAbst(initialState, initialPrecision, reached, waitlist, re.getReachableToUndo());
         continue;
       } catch (CPATransferException e1) {
         e1.printStackTrace();
@@ -127,7 +127,7 @@ public class CPAAlgorithm
           Collection<Pair<AbstractElementWithLocation,Precision>> tempReached;
 
           if (reached instanceof LocationMappedReachedSet) {
-            CompositeElement successorComp = (CompositeElement)successor;
+            AbstractElementWithLocation successorComp = successor;
             tempReached = ((LocationMappedReachedSet)reached).get(successorComp.getLocationNode());
 
             if(tempReached == null){
@@ -189,7 +189,7 @@ public class CPAAlgorithm
         Collection<AbstractElementWithLocation> operatedReached = new HashSet<AbstractElementWithLocation>();
 
         if (reached instanceof LocationMappedReachedSet) {
-          CompositeElement successorComp = (CompositeElement)successor;
+          AbstractElementWithLocation successorComp = successor;
           tempReached = ((LocationMappedReachedSet)reached).get(successorComp.getLocationNode());
 
           if (tempReached == null) {

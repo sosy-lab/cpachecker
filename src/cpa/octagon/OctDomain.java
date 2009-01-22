@@ -23,6 +23,11 @@
  */
 package cpa.octagon;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
 import octagon.LibraryAccess;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
@@ -30,79 +35,118 @@ import cpa.common.interfaces.JoinOperator;
 import cpa.common.interfaces.PartialOrder;
 
 public class OctDomain implements AbstractDomain{
+  
+  public static long totaltime = 0;
 
-	private static class OctBottomElement extends OctElement
+  private static class OctBottomElement extends OctElement
+  {
+    public OctBottomElement ()
     {
-        public OctBottomElement ()
-        {
-        	super ();
+      super ();
+    }
+  }
+
+  private static class OctTopElement extends OctElement
+  {
+    public OctTopElement ()
+    {
+      //super (LibraryAccess.universe(Variables.numOfVars));
+    }
+  }
+
+  private static class OctPartialOrder implements PartialOrder
+  {
+    public boolean satisfiesPartialOrder (AbstractElement element1, AbstractElement element2)
+    {
+      
+      Map<OctElement, Set<OctElement>> covers = new HashMap<OctElement, Set<OctElement>>();
+      
+      long start = System.currentTimeMillis();
+      OctElement octElement1 = (OctElement) element1;
+      OctElement octElement2 = (OctElement) element2;
+
+      if(OctConstants.useLazyIncAlgorithm){
+        int result = LibraryAccess.isInLazy(octElement1, octElement2);
+        if(result == 1) {
+          totaltime = totaltime + (System.currentTimeMillis() - start);
+          return true;
         }
-    }
-
-    private static class OctTopElement extends OctElement
-    {
-    	public OctTopElement ()
-        {
-            //super (LibraryAccess.universe(Variables.numOfVars));
+        else if(result == 2) {
+          totaltime = totaltime + (System.currentTimeMillis() - start);
+          return false;
         }
-    }
-
-    private static class OctPartialOrder implements PartialOrder
-    {
-        public boolean satisfiesPartialOrder (AbstractElement element1, AbstractElement element2)
-        {
-            OctElement octElement1 = (OctElement) element1;
-            OctElement octElement2 = (OctElement) element2;
-
-            boolean b = LibraryAccess.isIn(octElement1, octElement2);
-            return b;
+        else{
+          System.out.println(" Result is--> " + result);
+          assert(false);
+          return false;
         }
-    }
-
-    private static class OctJoinOperator implements JoinOperator
-    {
-        public AbstractElement join (AbstractElement element1, AbstractElement element2)
-        {
-        	// TODO fix
-        	OctElement octEl1 = (OctElement) element1;
-    		OctElement octEl2 = (OctElement) element2;
-    		return LibraryAccess.widening(octEl1, octEl2);
+      }
+      else{
+        if(covers.containsKey(octElement2) && ((HashSet<OctElement>)(covers.get(octElement2))).contains(octElement1)){
+          return true;
         }
+        
+        boolean included = LibraryAccess.isIn(octElement1, octElement2);
+        if(included){
+          Set<OctElement> s;
+          if (covers.containsKey(octElement2)) {
+            s = covers.get(octElement2);
+          } else {
+            s = new HashSet<OctElement>();
+          }
+          s.add(octElement1);
+          covers.put(octElement2, s);
+        }
+        totaltime = totaltime + (System.currentTimeMillis() - start);
+        return included;
+      }
     }
+  }
 
-    private final static OctBottomElement bottomElement = new OctBottomElement ();
-    private final static OctTopElement topElement = new OctTopElement ();
-    private final static PartialOrder partialOrder = new OctPartialOrder ();
-    private final static JoinOperator joinOperator = new OctJoinOperator ();
-
-    public OctDomain ()
+  private static class OctJoinOperator implements JoinOperator
+  {
+    public AbstractElement join (AbstractElement element1, AbstractElement element2)
     {
-
+      // TODO fix
+      OctElement octEl1 = (OctElement) element1;
+      OctElement octEl2 = (OctElement) element2;
+      return LibraryAccess.widening(octEl1, octEl2);
     }
+  }
 
-    public AbstractElement getBottomElement ()
-    {
-        return bottomElement;
-    }
+  private final static OctBottomElement bottomElement = new OctBottomElement ();
+  private final static OctTopElement topElement = new OctTopElement ();
+  private final static PartialOrder partialOrder = new OctPartialOrder ();
+  private final static JoinOperator joinOperator = new OctJoinOperator ();
 
-    //TODO test this
-	public boolean isBottomElement(AbstractElement element) {
-		OctElement octElem = (OctElement) element;
-		return octElem.isEmpty();
-	}
+  public OctDomain ()
+  {
 
-    public AbstractElement getTopElement ()
-    {
-        return topElement;
-    }
+  }
 
-    public JoinOperator getJoinOperator ()
-    {
-        return joinOperator;
-    }
+  public AbstractElement getBottomElement ()
+  {
+    return bottomElement;
+  }
 
-    public PartialOrder getPartialOrder ()
-    {
-        return partialOrder;
-    }
+  //TODO test this
+  public boolean isBottomElement(AbstractElement element) {
+    OctElement octElem = (OctElement) element;
+    return octElem.isBottom();
+  }
+
+  public AbstractElement getTopElement ()
+  {
+    return topElement;
+  }
+
+  public JoinOperator getJoinOperator ()
+  {
+    return joinOperator;
+  }
+
+  public PartialOrder getPartialOrder ()
+  {
+    return partialOrder;
+  }
 }
