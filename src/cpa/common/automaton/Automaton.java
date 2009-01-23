@@ -163,6 +163,26 @@ public class Automaton<E> {
       return lSuccessors;
     }
     
+    public Collection<State> getSuccessors() {
+      Collection<State> lSuccessors = new ArrayList<State>(mOutgoingTransitions.size());
+      
+      for (Pair<Label<E>, State> lEntry : mOutgoingTransitions) {
+        lSuccessors.add(lEntry.getSecond());
+      }
+      
+      return lSuccessors;
+    }
+    
+    public Collection<Label<E>> getOutgoingLabels() {
+      Collection<Label<E>> lLabels = new ArrayList<Label<E>>(mOutgoingTransitions.size());
+      
+      for (Pair<Label<E>, State> lEntry : mOutgoingTransitions) {
+        lLabels.add(lEntry.getFirst());
+      }
+      
+      return lLabels;
+    }
+    
     // only simple syntactical check
     public boolean hasUnconditionalSelfLoop() {
       for (Pair<Label<E>, State> lOutgoingTransition : mOutgoingTransitions) {

@@ -49,6 +49,7 @@ import cfa.objectmodel.c.MultiDeclarationEdge;
 import cfa.objectmodel.c.MultiStatementEdge;
 import cfa.objectmodel.c.StatementEdge;
 
+import cpa.common.interfaces.AbstractElementWithLocation;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
 import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
@@ -191,6 +192,43 @@ public class AbstractPathToCTranslator {
     return translatePath(lEdges);
   }
   
+  public static List<CFAEdge> getPath(List<AbstractElementWithLocation> pPath) {
+    assert(pPath != null);
+    assert(pPath.size() > 1);
+    
+    List<CFAEdge> lPath = new ArrayList<CFAEdge>(pPath.size() - 1);
+    
+    AbstractElementWithLocation lPredecessorElement = null;
+    
+    for (AbstractElementWithLocation lElement : pPath) {
+      if (lPredecessorElement == null) {
+        lPredecessorElement = lElement;
+        continue;
+      }
+      
+      CFANode lPredecessorNode = lPredecessorElement.getLocationNode();
+      CFANode lNode = lElement.getLocationNode();
+      
+      // reconstruct edge
+      int lNumberOfFoundEdges = 0;
+      
+      for (int lIndex = 0; lIndex < lPredecessorNode.getNumLeavingEdges(); lIndex++) {
+        CFAEdge lEdge = lPredecessorNode.getLeavingEdge(lIndex);
+        
+        if (lEdge.getSuccessor().equals(lNode)) {
+          lPath.add(lEdge);
+          lNumberOfFoundEdges++;
+        }
+      }
+      
+      assert(lNumberOfFoundEdges == 1);
+      
+      lPredecessorElement = lElement;
+    }
+    
+    return lPath;
+  }
+  
   public static void endFunction(Stack<StringWriter> pProgramTextStack, List<String> pProgramTexts) {
     assert(pProgramTextStack != null);
 
@@ -198,9 +236,9 @@ public class AbstractPathToCTranslator {
     PrintWriter pProgramText = new PrintWriter(lStringWriter);
     
     // TODO This is a hack
-    /*if (pProgramTextStack.isEmpty()) {
+    if (pProgramTextStack.isEmpty()) {
       pProgramText.println("__CPROVER_assert(0, \"path feasible\");");
-    }*/
+    }
     
     // finish function
     pProgramText.println("}");
@@ -250,6 +288,33 @@ public class AbstractPathToCTranslator {
     return lProgramText;
   }
   
+  public static List<String> translatePath(CFAMap pCfas, List<CFAEdge> pAbstractPath) {
+    mFunctionDecls = new ArrayList<String>();
+    for (CFAFunctionDefinitionNode node : pCfas.cfaMapIterator()) {
+      FunctionDefinitionNode lFunctionDefinitionNode = (FunctionDefinitionNode)node;
+      String lOriginalFunctionDecl = lFunctionDefinitionNode.getFunctionDefinition().getDeclSpecifier().getRawSignature() + " " + node.getFunctionName() + "(";
+      
+      boolean lFirstFunctionParameter = true;
+      
+      for (IASTParameterDeclaration lFunctionParameter : lFunctionDefinitionNode.getFunctionParameters()) {
+        if (lFirstFunctionParameter) {
+          lFirstFunctionParameter = false;
+        }
+        else {
+          lOriginalFunctionDecl += ", ";
+        }
+        
+        lOriginalFunctionDecl += lFunctionParameter.getRawSignature();
+      }
+      
+      lOriginalFunctionDecl += ");";
+      
+      mFunctionDecls.add(lOriginalFunctionDecl);
+    }
+    
+    return translatePath(pAbstractPath);
+  }
+  
   public static List<String> translatePath(List<CFAEdge> pAbstractPath) {
     int lFunctionIndex = 0;
 
@@ -272,7 +337,7 @@ public class AbstractPathToCTranslator {
     
     // process edges
     for (CFAEdge lEdge : pAbstractPath) {
-      System.out.println(lEdge.getRawStatement());
+      //System.out.println(lEdge.getRawStatement());
       
       switch (lEdge.getEdgeType()) {
       case BlankEdge: {

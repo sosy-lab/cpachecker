@@ -62,6 +62,22 @@ import exceptions.CPATransferException;
  */
 public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
 
+  public class QDPTCompositeElement extends CompositeElement {
+    public QDPTCompositeElement(List<AbstractElement> elements, CallStack stack) {
+      super(elements, stack);
+    }
+    
+    @Override
+    public boolean equals(Object o) {
+      return (this == o);
+    }
+    
+    @Override
+    public int hashCode() {
+      return super.hashCode();
+    }
+  }
+  
   public class QDPTCompositeTransferRelation implements TransferRelation{
 
     private final CompositeDomain compositeDomain;
@@ -84,7 +100,7 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
       //  locationTransferRelation = (LocationTransferRelation) first;
       //}
     }
-
+    
     public AbstractDomain getAbstractDomain ()
     {
       return compositeDomain;
@@ -170,7 +186,7 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
         resultingElements.add (successor);
       }
 
-      CompositeElement successorState = new CompositeElement (resultingElements, updatedCallStack);
+      CompositeElement successorState = new QDPTCompositeElement (resultingElements, updatedCallStack);
 
       mAbstractReachabilityTree.add(compositeElement, successorState);
 
@@ -233,7 +249,7 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
     mMergeOperator = new CompositeMergeOperator(mDomain, mergeOperators);
     mStopOperator = new CompositeStopOperator(mDomain, stopOperators);
     mPrecisionAdjustment = new CompositePrecisionAdjustment(precisionAdjustments);
-    mInitialElement = new CompositeElement(initialElements, null);
+    mInitialElement = new QDPTCompositeElement(initialElements, null);
     mInitialPrecision = new CompositePrecision(initialPrecisions);
     
     assert (pAutomatonDomain != null);

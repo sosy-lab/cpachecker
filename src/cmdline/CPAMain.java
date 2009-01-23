@@ -251,6 +251,39 @@ public class CPAMain {
         cpaStats.setErrorReached(false);
       }
       displayStatistics();
+    } else if (CPAMain.cpaConfig.getBooleanValue("analysis.summaryBasedQueryDrivenProgramTesting")) {
+      if (mainFunction == null) {
+        mainFunction = cfas.getCFA(CPAMain.cpaConfig.getProperty(
+            "analysis.entryFunction"));
+      }
+
+      if (CPAMain.cpaConfig.getBooleanValue("dot.export")) {
+        DOTBuilderInterface dotBuilder = null;
+        if (CPAMain.cpaConfig.getBooleanValue(
+            "analysis.useSummaryLocations")) {
+          dotBuilder = new SummaryDOTBuilder();
+        } else {
+          dotBuilder = new DOTBuilder();
+        }
+        String dotPath = CPAMain.cpaConfig.getProperty("dot.path");
+        dotBuilder.generateDOT(cfasMapList, mainFunction,
+            new File(dotPath, "dot_main.dot").getPath());
+      }
+      
+      LazyLogger.log(Level.INFO, "CPA Algorithm starting ... ");
+      cpaStats.startAnalysisTimer();
+
+      //programtesting.summary.QueryDrivenProgramTesting.doIt(cfas, mainFunction);
+      programtesting.simple.QueryDrivenProgramTesting.doIt(cfas, mainFunction);
+
+      cpaStats.stopAnalysisTimer();
+
+      LazyLogger.log(Level.INFO, "CPA Algorithm finished ");
+
+      if (cpaStats.getErrorReached() == MainCPAStatistics.ERROR_UNKNOWN) {
+        cpaStats.setErrorReached(false);
+      }
+      displayStatistics();
     } else {
 
       if (mainFunction == null) {

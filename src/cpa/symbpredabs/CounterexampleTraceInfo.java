@@ -43,7 +43,7 @@ import cpa.common.interfaces.AbstractElement;
  */
 public class CounterexampleTraceInfo {
     private boolean spurious;
-    private Map<AbstractElement, Set<Predicate>> pmap;
+    public Map<AbstractElement, Set<Predicate>> pmap;
     private ConcreteTrace ctrace;
 
     public CounterexampleTraceInfo(boolean spurious) {

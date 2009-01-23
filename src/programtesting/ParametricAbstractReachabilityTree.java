@@ -82,6 +82,8 @@ public class ParametricAbstractReachabilityTree<TreeElement> {
     // pParent has to be an element in the tree
     assert (contains(pParent));
 
+    //System.out.println(pParent + " ---> " + pChild);
+    
     Collection<TreeElement> lParentEntry = getChildren(pParent);
     lParentEntry.add(pChild);
 
@@ -99,5 +101,80 @@ public class ParametricAbstractReachabilityTree<TreeElement> {
     assert (contains(pElement));
 
     return mChildren.get(pElement);
+  }
+  
+  public int size() {
+    return mChildren.keySet().size();
+  }
+  
+  public void removeSubtree(TreeElement lElement) {
+    assert(lElement != null);
+    
+    for (TreeElement lChildElement : getChildren(lElement)) {
+      removeSubtree(lChildElement);
+    }
+    
+    // TODO remove lElement from parent element
+    mChildren.remove(lElement);
+  }
+  
+  public String toDot() {
+    String lResultString = "digraph ART {\n" +
+            "size=\"6,10\";\n";
+    
+    int lUniqueId = 0;
+    
+    Map<TreeElement, Integer> lIdMap = new HashMap<TreeElement, Integer>();
+    
+    for (TreeElement lElement : mChildren.keySet()) {
+      lIdMap.put(lElement, lUniqueId);
+      lResultString += "node [label = \"" + lElement.toString() + "\"]; " + (lUniqueId++) + ";\n";
+    }
+    
+    for (Map.Entry<TreeElement, Collection<TreeElement>> lEntry : mChildren.entrySet()) {
+      for (TreeElement lChild : lEntry.getValue()) {
+        lResultString += lIdMap.get(lEntry.getKey()) + " -> " + lIdMap.get(lChild) + ";\n";
+      }
+    }
+    
+    lResultString += "}";
+    
+    return lResultString;
+  }
+  
+  public String toDot(Collection<TreeElement> lSpecialElements) {
+    assert(lSpecialElements != null);
+    
+    String lResultString = "digraph ART {\n" +
+            "size=\"6,10\";\n";
+    
+    int lUniqueId = 0;
+    
+    Map<TreeElement, Integer> lIdMap = new HashMap<TreeElement, Integer>();
+    
+    for (TreeElement lElement : mChildren.keySet()) {
+      lIdMap.put(lElement, lUniqueId);
+      
+      String lShapeString = "shape=";
+      
+      if (lSpecialElements.contains(lElement)) {
+        lShapeString += "diamond, fillcolor=yellow, style=filled";
+      }
+      else {
+        lShapeString += "box, fillcolor=white";
+      }
+      
+      lResultString += "node [label = \"" + lElement.toString() + "\", " + lShapeString + "]; " + (lUniqueId++) + ";\n";
+    }
+    
+    for (Map.Entry<TreeElement, Collection<TreeElement>> lEntry : mChildren.entrySet()) {
+      for (TreeElement lChild : lEntry.getValue()) {
+        lResultString += lIdMap.get(lEntry.getKey()) + " -> " + lIdMap.get(lChild) + ";\n";
+      }
+    }
+    
+    lResultString += "}\n";
+    
+    return lResultString;
   }
 }

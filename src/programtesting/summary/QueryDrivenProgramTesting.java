@@ -24,19 +24,17 @@
 /**
  *
  */
-package programtesting;
+package programtesting.summary;
 
+import programtesting.*;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.Map.Entry;
 
 import cfa.CFAMap;
 import cfa.objectmodel.CFAEdge;
@@ -49,13 +47,14 @@ import cpa.common.CPAAlgorithm;
 import cpa.common.CompositeElement;
 import cpa.common.automaton.Automaton;
 import cpa.common.automaton.AutomatonCPADomain;
-import cpa.common.automaton.Label;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.TransferRelation;
 import cpa.common.interfaces.Precision;
+import cpa.location.LocationCPA;
 import cpa.scoperestriction.ScopeRestrictionCPA;
+import cpa.symbpredabs.AbstractFormulaManager;
 import cpa.symbpredabs.CounterexampleTraceInfo;
 import cpa.symbpredabs.Predicate;
 import cpa.symbpredabs.SymbolicFormulaManager;
@@ -65,18 +64,36 @@ import cpa.symbpredabs.explicit.ExplicitAbstractElement;
 import cpa.symbpredabs.explicit.ExplicitAbstractFormulaManager;
 import cpa.symbpredabs.explicit.ExplicitCPA;
 import cpa.symbpredabs.explicit.ExplicitTransferRelation;
+import cpa.symbpredabsCPA.SymbPredAbsAbstractElement;
+import cpa.symbpredabsCPA.SymbPredAbsCPA;
+import cpa.symbpredabsCPA.SymbPredAbsTransferRelation;
 import cpa.testgoal.TestGoalCPA;
 import cpa.testgoal.TestGoalCPA.TestGoalPrecision;
 import exceptions.CPAException;
 import java.util.Stack;
+import symbpredabstraction.BDDMathsatSymbPredAbstractionAbstractManager;
 
 /**
- * @author Michael Tautschnig <tautschnig@forsyte.de>
+ * @author Andreas Holzer <holzer@forsyte.de>
  *
  */
 public class QueryDrivenProgramTesting {
   
-  public static Deque<ExplicitAbstractElement> getAbstractPath(ExplicitAbstractElement pElement) {
+  public static Deque<SymbPredAbsAbstractElement> getAbstractPath(SymbPredAbsAbstractElement pElement) {
+    SymbPredAbsAbstractElement lPathElement = pElement;
+    
+    Deque<SymbPredAbsAbstractElement> lPath = new LinkedList<SymbPredAbsAbstractElement>();
+    
+    while (lPathElement != null) {
+      lPath.addFirst(lPathElement);
+      
+      lPathElement = lPathElement.getArtParent();
+    }
+    
+    return lPath;
+  }
+  
+  /*public static Deque<ExplicitAbstractElement> getAbstractPath(ExplicitAbstractElement pElement) {
     ExplicitAbstractElement lPathElement = pElement;
     
     Deque<ExplicitAbstractElement> lPath = new LinkedList<ExplicitAbstractElement>();
@@ -88,24 +105,53 @@ public class QueryDrivenProgramTesting {
     }
     
     return lPath;
-  }
+  }*/
   
-  //private final static int mScopeRestrictionCPAIndex = 1;
-  private final static int mTestGoalCPAIndex = 2;
-  private final static int mAbstractionCPAIndex = 0;
+  //private final static int mScopeRestrictionCPAIndex = 2;
+  private final static int mTestGoalCPAIndex = 3;
+  private final static int mAbstractionCPAIndex = 1;
   
-  public static Set<Deque<ExplicitAbstractElement>> doIt (CFAMap pCfas, CFAFunctionDefinitionNode pMainFunction) {
+  public static Set<Deque<SymbPredAbsAbstractElement>> doIt (CFAMap pCfas, CFAFunctionDefinitionNode pMainFunction) {
+    System.out.println("SummaryCPA based Test Case Generation.");
+    
     // create compositeCPA from automaton CPA and pred abstraction
     // TODO this must be a CPAPlus actually
     List<ConfigurableProgramAnalysis> cpas = new ArrayList<ConfigurableProgramAnalysis> ();
 
-    // initialize symbolic predicate abstraction
-    ExplicitCPA lExplicitAbstractionCPA = new ExplicitCPA("sep", "sep");
-    cpas.add(lExplicitAbstractionCPA);
     
-    ExplicitAbstractFormulaManager lEAFManager = lExplicitAbstractionCPA.getAbstractFormulaManager();
-    SymbolicFormulaManager lSFManager = lExplicitAbstractionCPA.getFormulaManager();
+    LocationCPA lLocationCPA = null;
+    
+    try {
+      lLocationCPA = new LocationCPA("sep", "sep");
+    }
+    catch (Exception e) {
+      e.printStackTrace();
+      assert(false);
+    }
+    
+    cpas.add(lLocationCPA);
+    
+    
+    // initialize summary CPA
+    SymbPredAbsCPA lSummaryCPA = new SymbPredAbsCPA("", "");
+    cpas.add(lSummaryCPA);
+    
+    AbstractFormulaManager lAbstractFormulaManager = lSummaryCPA.getAbstractFormulaManager();
+    SymbolicFormulaManager lSymbolicFormulaManager = lSummaryCPA.getSymbolicFormulaManager();
+    
+    
+    
+    
+    // initialize symbolic predicate abstraction
+    //ExplicitCPA lExplicitAbstractionCPA = new ExplicitCPA("sep", "sep");
+    //cpas.add(lExplicitAbstractionCPA);
+    
+    //ExplicitAbstractFormulaManager lEAFManager = lExplicitAbstractionCPA.getAbstractFormulaManager();
+    //SymbolicFormulaManager lSFManager = lExplicitAbstractionCPA.getFormulaManager();
 
+    
+    
+    
     // get scope restriction automaton
     Automaton<CFAEdge> lScopeRestrictionAutomaton = AutomatonTestCases.getScopeRestrictionAutomaton(pMainFunction);
     ScopeRestrictionCPA lScopeRestrictionCPA = new ScopeRestrictionCPA(lScopeRestrictionAutomaton);
@@ -126,33 +172,25 @@ public class QueryDrivenProgramTesting {
     Set<Automaton<CFAEdge>.State> lInfeasibleTestGoals = new HashSet<Automaton<CFAEdge>.State>();
 
     // the resulting set of paths
-    Set<Deque<ExplicitAbstractElement>> lPaths = new HashSet<Deque<ExplicitAbstractElement>>();
+    Set<Deque<SymbPredAbsAbstractElement>> lPaths = new HashSet<Deque<SymbPredAbsAbstractElement>>();
     
-    FeasiblePathTree<ExplicitAbstractElement> lPathTree = new FeasiblePathTree<ExplicitAbstractElement>();
+    //FeasiblePathTree<ExplicitAbstractElement> lPathTree = new FeasiblePathTree<ExplicitAbstractElement>();
     
     while (!lTestGoals.isEmpty()) {
       // TODO remove this output
       System.out.println("NEXT LOOP #####################");
       
       cpas.remove(mTestGoalCPAIndex);
-       
-      // TODO put this code in again!!!
+      
+      // TODO put this code in again
       //Automaton<CFAEdge> lSimplifiedAutomaton = lTestGoalCPA.getAbstractDomain().getAutomaton().getSimplifiedAutomaton();
       Automaton<CFAEdge> lSimplifiedAutomaton = lTestGoalCPA.getAbstractDomain().getAutomaton();
+      
       lTestGoals = lSimplifiedAutomaton.getFinalStates();
-      
-      // TODO remove this output
-      //printTestGoals("Remaining Test Goals: ", lTestGoals);
-      
-      //System.out.println(lSimplifiedAutomaton);
-      
-      
-      /*for (Label<CFAEdge> lLabel : lSimplifiedAutomaton.getInitialState().getOutgoingLabels()) {
-        System.out.println(lLabel);
-      }*/
       
       
       System.out.println("Number of remaining test goals: " + lTestGoals.size());
+      
       
       // TODO since lTestCPA is added as last CPA, the remove above should remove the last -> assure index consistency
       lTestGoalCPA = new TestGoalCPA(lSimplifiedAutomaton);
@@ -198,7 +236,7 @@ public class QueryDrivenProgramTesting {
       lTestGoals.removeAll(lTestGoalPrecision.getRemainingFinalStates());
       
       
-      Set<Pair<Deque<ExplicitAbstractElement>, CounterexampleTraceInfo>> lInfeasiblePaths = new HashSet<Pair<Deque<ExplicitAbstractElement>, CounterexampleTraceInfo>>();
+      Set<Pair<Deque<SymbPredAbsAbstractElement>, CounterexampleTraceInfo>> lInfeasiblePaths = new HashSet<Pair<Deque<SymbPredAbsAbstractElement>, CounterexampleTraceInfo>>();
       
       
       // process abstract reachability tree
@@ -221,8 +259,14 @@ public class QueryDrivenProgramTesting {
       while (!lStack.empty() && !lTestGoals.isEmpty()) {
         Pair<CompositeElement, Iterator<CompositeElement>> lCurrentPair = lStack.peek();
 
+        CompositeElement lCurrentElement = lCurrentPair.getFirst();
+        
+        SymbPredAbsAbstractElement lSymbElement = (SymbPredAbsAbstractElement)lCurrentElement.get(QueryDrivenProgramTesting.mAbstractionCPAIndex);
+        
+        System.out.println(lSymbElement);
+        
         Iterator<CompositeElement> lIterator = lCurrentPair.getSecond();
-
+        
         if (lIterator.hasNext()) {
           CompositeElement lChild = lIterator.next();
 
@@ -261,49 +305,62 @@ public class QueryDrivenProgramTesting {
 
             if (lHasUncoveredTestGoal) {
               // check feasibility
-              Deque<ExplicitAbstractElement> lPath = getAbstractPath((ExplicitAbstractElement) lChild.get(mAbstractionCPAIndex));
+              Deque<SymbPredAbsAbstractElement> lPath = getAbstractPath((SymbPredAbsAbstractElement)lChild.get(mAbstractionCPAIndex));
 
-              assert (lEAFManager instanceof BDDMathsatExplicitAbstractManager);
+              
+              
+              assert(lAbstractFormulaManager instanceof BDDMathsatSymbPredAbstractionAbstractManager);
 
-              BDDMathsatExplicitAbstractManager lMathsatManager = (BDDMathsatExplicitAbstractManager) lEAFManager;
+              BDDMathsatSymbPredAbstractionAbstractManager lMathsatManager = (BDDMathsatSymbPredAbstractionAbstractManager)lAbstractFormulaManager;
 
-              Pair<CounterexampleTraceInfo, Integer> lPair = lMathsatManager.buildCounterexampleTrace2(lSFManager, lPath);
-
-              CounterexampleTraceInfo lInfo = lPair.getFirst();
+              
+              
+              // TODO add in backtracking again
+              //Pair<CounterexampleTraceInfo, Integer> lPair = lMathsatManager.buildCounterexampleTrace2(lSymbolicFormulaManager, lPath);
+              
+              CounterexampleTraceInfo lInfo = lMathsatManager.buildCounterexampleTrace(lSymbolicFormulaManager, lPath);
+               
+              // TODO add in backtracking again
+              //CounterexampleTraceInfo lInfo = lPair.getFirst();
 
               if (lInfo.isSpurious()) {
                 // TODO: Remove this output
                 System.out.println("Path is infeasible");
 
-                assert (lPair.getSecond().intValue() != -1);
+                // TODO add in backtracking again
+                /*assert (lPair.getSecond().intValue() != -1);
 
-                System.out.println("Index: " + lPair.getSecond() + ", Path Size: " + lStack.size());
+                System.out.println("Index: " + lPair.getSecond() + ", Path Size: " + lStack.size());*/
 
-                lInfeasiblePaths.add(new Pair<Deque<ExplicitAbstractElement>, CounterexampleTraceInfo>(lPath, lInfo));
+                lInfeasiblePaths.add(new Pair<Deque<SymbPredAbsAbstractElement>, CounterexampleTraceInfo>(lPath, lInfo));
 
-                
+                // TODO add in backtracking again
                 // backtrack
-                while (lStack.size() >= lPair.getSecond().intValue() - 1) {
+                /*while (lStack.size() >= lPair.getSecond().intValue() - 1) {
                   lStack.pop();
-                }
-
-                //System.out.println("performed backtracking");
+                }*/
 
                 // TODO check correctness of the following approach
 
                 CompositeElement lBacktrackElement = lStack.peek().getFirst();
 
-                Deque<ExplicitAbstractElement> lBacktrackPath = getAbstractPath((ExplicitAbstractElement) lBacktrackElement.get(mAbstractionCPAIndex));
+                Deque<SymbPredAbsAbstractElement> lBacktrackPath = getAbstractPath((SymbPredAbsAbstractElement)lBacktrackElement.get(mAbstractionCPAIndex));
 
+                // TODO add in backtracking again
                 // TODO remove this correctness check in production code
-                Pair<CounterexampleTraceInfo, Integer> lBacktrackPair = lMathsatManager.buildCounterexampleTrace2(lSFManager, lBacktrackPath);
+                /*Pair<CounterexampleTraceInfo, Integer> lBacktrackPair = lMathsatManager.buildCounterexampleTrace2(lSymbolicFormulaManager, lBacktrackPath);
 
-                CounterexampleTraceInfo lBacktrackInfo = lBacktrackPair.getFirst();
+                CounterexampleTraceInfo lBacktrackInfo = lBacktrackPair.getFirst();*/
+                
+                
+                // TODO reenable this part of the code
+                /*
+                CounterexampleTraceInfo lBacktrackInfo = lMathsatManager.buildCounterexampleTrace(lSymbolicFormulaManager, lBacktrackPath);
 
                 assert (!lBacktrackInfo.isSpurious());
 
 
-                AbstractElement lBacktrackTmpElement = lBacktrackElement.get(mTestGoalCPAIndex);
+                AbstractElement lBacktrackTmpElement = lChild.get(mTestGoalCPAIndex);
 
                 // the ART should not contain the bottom element
                 // TODO move this out of feasibilty check to stack insertion
@@ -328,7 +385,8 @@ public class QueryDrivenProgramTesting {
 
                 // add feasible path to set of feasible paths
                 lPaths.add(lBacktrackPath);
-                lPathTree.addPath(lBacktrackPath);
+                //lPathTree.addPath(lBacktrackPath);
+                 */
               } else {
                 // TODO: Remove this output
                 System.out.println("Path is feasible");
@@ -343,7 +401,7 @@ public class QueryDrivenProgramTesting {
 
                 // add feasible path to set of feasible paths
                 lPaths.add(lPath);
-                lPathTree.addPath(lPath);
+                //lPathTree.addPath(lPath);
               }
             }
           } else {
@@ -363,9 +421,9 @@ public class QueryDrivenProgramTesting {
         // TODO: Remove this output
         System.out.println("Number of infeasible paths: " + lInfeasiblePaths.size());
 
-        UpdateablePredicateMap lUpdateablePredicateMap = (UpdateablePredicateMap) lExplicitAbstractionCPA.getPredicateMap();
-
         boolean lHasUpdatedPredicates = false;
+
+        /*UpdateablePredicateMap lUpdateablePredicateMap = (UpdateablePredicateMap) lExplicitAbstractionCPA.getPredicateMap();
 
         for (Pair<Deque<ExplicitAbstractElement>, CounterexampleTraceInfo> lPair : lInfeasiblePaths) {
           for (ExplicitAbstractElement e : lPair.getFirst()) {
@@ -375,16 +433,36 @@ public class QueryDrivenProgramTesting {
 
             lHasUpdatedPredicates |= lBoolean;
           }
+        }*/
+        
+        
+        UpdateablePredicateMap lUpdateablePredicateMap = (UpdateablePredicateMap)lSummaryCPA.getPredicateMap();
+        
+        for (Pair<Deque<SymbPredAbsAbstractElement>, CounterexampleTraceInfo> lPair : lInfeasiblePaths) {
+          for (SymbPredAbsAbstractElement lElement : lPair.getFirst()) {
+            Collection<Predicate> lNewPredicates = lPair.getSecond().getPredicatesForRefinement(lElement);
+            
+            boolean lBoolean = lUpdateablePredicateMap.update(lElement.getAbstractionLocation(), lNewPredicates);
+            
+            lHasUpdatedPredicates |= lBoolean;
+          }
         }
+        
 
         // ensure some progress in refinement
         assert (lHasUpdatedPredicates);
 
-        TransferRelation lTransferRelation = lExplicitAbstractionCPA.getTransferRelation();
+        TransferRelation lTransferRelation = lSummaryCPA.getTransferRelation();
+        
+        SymbPredAbsTransferRelation lSummaryTransferRelation = (SymbPredAbsTransferRelation)lTransferRelation;
+        
+        lSummaryTransferRelation.clearART();
+        
+        /*TransferRelation lTransferRelation = lExplicitAbstractionCPA.getTransferRelation();
 
         ExplicitTransferRelation lExplicitTransferRelation = (ExplicitTransferRelation) lTransferRelation;
 
-        lExplicitTransferRelation.clearART();
+        lExplicitTransferRelation.clearART();*/
 
         // TODO: Remove this output
         System.out.println("Refinement done!");
@@ -395,11 +473,9 @@ public class QueryDrivenProgramTesting {
     
     System.out.println("lPaths: " + lPaths.size());
     
-    System.out.println("lPathTree: " + lPathTree.getMaximalPaths().size());
-    
-    
     System.out.println("Infeasible test goals (#" + lInfeasibleTestGoals.size() + ") = " + lInfeasibleTestGoals);
     
+    //System.out.println("lPathTree: " + lPathTree.getMaximalPaths().size());
     
     /*Map<Deque<ExplicitAbstractElement>, List<String>> lTranslations = AbstractPathToCTranslator.translatePaths(pCfas, lPaths);
 

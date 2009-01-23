@@ -53,6 +53,7 @@ import exceptions.CPATransferException;
 import exceptions.ErrorReachedException;
 import exceptions.RefinementNeededException;
 import exceptions.CPAException;
+import programtesting.QDPTCompositeCPA;
 
 public class CPAAlgorithm
 {
@@ -107,6 +108,173 @@ public class CPAAlgorithm
         //doRefinement(reached, waitlist, re.getReachableToUndo(), re.getToWaitlist());
         doRefinementForSymbAbst(initialState, initialPrecision, reached, waitlist, re.getReachableToUndo());
         continue;
+      } catch (CPATransferException e1) {
+        e1.printStackTrace();
+        assert(false); // should not happen
+      }
+
+      for (AbstractElementWithLocation successor : successors)
+      {
+        LazyLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel,
+            "successor of ", element, " --> ", successor);
+
+        // AG as an optimization, we allow the mergeOperator to be null,
+        // as a synonym of a trivial operator that never merges
+
+        if (mergeOperator != null) {
+          List<Pair<AbstractElementWithLocation,Precision>> toRemove = new Vector<Pair<AbstractElementWithLocation,Precision>>();
+          List<Pair<AbstractElementWithLocation,Precision>> toAdd = new Vector<Pair<AbstractElementWithLocation,Precision>>();
+
+          Collection<Pair<AbstractElementWithLocation,Precision>> tempReached;
+
+          if (reached instanceof LocationMappedReachedSet) {
+            AbstractElementWithLocation successorComp = successor;
+            tempReached = ((LocationMappedReachedSet)reached).get(successorComp.getLocationNode());
+
+            if(tempReached == null){
+              tempReached = new HashSet<Pair<AbstractElementWithLocation,Precision>>();
+            }
+
+          }
+          else{
+            tempReached = reached;
+          }
+
+          for (Pair<AbstractElementWithLocation, Precision> reachedEntry : tempReached) {
+            AbstractElementWithLocation reachedElement = reachedEntry.getFirst();
+            AbstractElementWithLocation mergedElement = mergeOperator.merge( successor, reachedElement, precision);
+            LazyLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel,
+                " Merged ", successor, " and ", reachedElement, " --> ", mergedElement);
+            if (!mergedElement.equals(reachedElement)) {
+              LazyLogger.log(
+                  CustomLogLevel.CentralCPAAlgorithmLevel,
+                  "reached element ", reachedElement,
+                  " is removed from queue and ", mergedElement,
+                  " with precision ", precision, " is added to queue");
+              waitlist.remove(new Pair<AbstractElementWithLocation,Precision>(reachedElement, reachedEntry.getSecond()));
+              waitlist.add(new Pair<AbstractElementWithLocation,Precision>(mergedElement, precision));
+
+              toRemove.add(new Pair<AbstractElementWithLocation,Precision>(reachedElement, reachedEntry.getSecond()));
+              toAdd.add(new Pair<AbstractElementWithLocation,Precision>(mergedElement, precision));
+            }
+          }
+          reached.removeAll(toRemove);
+          reached.addAll(toAdd);
+
+//        int numReached = reached.size (); // Need to iterate this way to avoid concurrent mod exceptions
+
+//        for (int reachedIdx = 0; reachedIdx < numReached; reachedIdx++)
+//        {
+//        AbstractElement reachedElement = reached.pollFirst ();
+//        AbstractElement mergedElement = mergeOperator.merge (successor, reachedElement);
+//        reached.addLast (mergedElement);
+
+//        LazyLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel,
+//        " Merged ", successor, " and ",
+//        reachedElement, " --> ", mergedElement);
+
+//        if (!mergedElement.equals (reachedElement))
+//        {
+//        LazyLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel,
+//        "reached element ", reachedElement,
+//        " is removed from queue",
+//        " and ", mergedElement,
+//        " is added to queue");
+//        waitlist.remove (reachedElement);
+//        waitlist.add (mergedElement);
+//        }
+//        }
+        }
+
+        Collection<Pair<AbstractElementWithLocation,Precision>> tempReached;
+        Collection<AbstractElementWithLocation> operatedReached = new HashSet<AbstractElementWithLocation>();
+
+        if (reached instanceof LocationMappedReachedSet) {
+          AbstractElementWithLocation successorComp = successor;
+          tempReached = ((LocationMappedReachedSet)reached).get(successorComp.getLocationNode());
+
+          if (tempReached == null) {
+
+          }
+          else{
+            for (Pair<AbstractElementWithLocation,Precision> p: tempReached) {
+              AbstractElementWithLocation e2 = p.getFirst();
+              operatedReached.add(e2);
+            }
+          }
+        }
+        else{
+          operatedReached = simpleReached;
+        }
+
+        if (!stopOperator.stop (successor, operatedReached, precision))
+        {
+          LazyLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel,
+              "No need to stop ", successor,
+          " is added to queue");
+          // end to the end
+          waitlist.add(new Pair<AbstractElementWithLocation,Precision>(successor,precision));
+          reached.add(new Pair<AbstractElementWithLocation,Precision>(successor,precision));
+        }
+      }
+      //CPACheckerStatistics.noOfReachedSet = reached.size();
+    }
+
+    return simpleReached;
+      }
+  
+  //public Collection<AbstractElementWithLocation> CPAWithInitialSet (ConfigurableProgramAnalysis cpa, Collection<AbstractElementWithLocation> pInitialStates,
+  public Collection<AbstractElementWithLocation> CPAWithInitialSet (QDPTCompositeCPA cpa, Collection<CompositeElement> pInitialStates,
+      Precision initialPrecision) throws CPAException
+      {
+    List<Pair<AbstractElementWithLocation,Precision>> waitlist = new ArrayList<Pair<AbstractElementWithLocation,Precision>>();
+    Collection<Pair<AbstractElementWithLocation,Precision>> reached = createReachedSet(cpa);
+
+    Collection<AbstractElementWithLocation> simpleReached;
+
+    // TODO Remove this hack
+    if (reached instanceof LocationMappedReachedSet) {
+      simpleReached = new LocationMappedReachedSetProjectionWrapper((LocationMappedReachedSet)reached);
+    }
+    else {
+      simpleReached = new ProjectionWrapper(reached);
+    }
+
+    LazyLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel, pInitialStates,
+    " added as initial state to CPA");
+
+    for (AbstractElementWithLocation lInitialState : pInitialStates) {
+      waitlist.add(new Pair<AbstractElementWithLocation,Precision>(lInitialState, initialPrecision));
+      reached.add(new Pair<AbstractElementWithLocation,Precision>(lInitialState, initialPrecision));
+    }
+    
+    TransferRelation transferRelation = cpa.getTransferRelation ();
+    MergeOperator mergeOperator = cpa.getMergeOperator ();
+    StopOperator stopOperator = cpa.getStopOperator ();
+    PrecisionAdjustment precisionAdjustment = cpa.getPrecisionAdjustment();
+
+    while (!waitlist.isEmpty ())
+    {
+      // AG - BFS or DFS, according to the configuration
+      Pair<AbstractElementWithLocation,Precision> e = choose(waitlist);
+      //e = precisionAdjustment.prec(e.getFirst(), e.getSecond(), reached);
+      AbstractElementWithLocation element = e.getFirst();
+      Precision precision = e.getSecond();
+
+      LazyLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel, element,
+          " with precision ", precision, " is popped from queue");
+      List<AbstractElementWithLocation> successors = null;
+      try {
+        successors = transferRelation.getAllAbstractSuccessors (element, precision);
+      } catch (ErrorReachedException err) {
+        System.out.println("Reached error state! Message is:");
+        System.out.println(err.toString());
+        return simpleReached;
+      } catch (RefinementNeededException re) {
+        //doRefinement(reached, waitlist, re.getReachableToUndo(), re.getToWaitlist());
+        //doRefinementForSymbAbst(initialState, initialPrecision, reached, waitlist, re.getReachableToUndo());
+        //continue;
+        assert(false);
       } catch (CPATransferException e1) {
         e1.printStackTrace();
         assert(false); // should not happen

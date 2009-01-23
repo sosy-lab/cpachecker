@@ -413,7 +413,7 @@ public class BDDMathsatExplicitAbstractManager extends
             stats.edgeAbstCountMap.put(edge, n+1);
         }
 
-        if (!(succ.getLocation() instanceof CFAErrorNode)) {
+        /*if (!(succ.getLocation() instanceof CFAErrorNode)) {
             if ((edge instanceof BlankEdge && !(edge.getPredecessor() instanceof FunctionDefinitionNode)) //||
 //                    (predicates.size() == 0 &&
 //                            ((BDDAbstractFormula)e.getAbstraction()).getBDD() ==
@@ -424,7 +424,7 @@ public class BDDMathsatExplicitAbstractManager extends
                         ", edge: ", edge);
                 return e.getAbstraction();
             }
-        }
+        }*/
 
         if (CPAMain.cpaConfig.getBooleanValue(
                 "cpas.symbpredabs.abstraction.cartesian")) {
@@ -1439,7 +1439,7 @@ public class BDDMathsatExplicitAbstractManager extends
         int incr = suffixTrace ? -1 : 1;
         int toPop = 0;
 
-        while (true) {
+        while (true) {     
             boolean consistent = true;
             // 1. assert all the needed constraints
             for (int i = 0; i < needed.length; ++i) {

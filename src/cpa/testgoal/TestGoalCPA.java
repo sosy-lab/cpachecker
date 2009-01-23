@@ -253,7 +253,7 @@ public class TestGoalCPA implements ConfigurableProgramAnalysis {
   }
 
   public class TestGoalTransferRelation implements TransferRelation {
-
+    
     @Override
     public AbstractElement getAbstractSuccessor(AbstractElement pElement,
                                                 CFAEdge pCfaEdge, Precision prec)
@@ -263,9 +263,10 @@ public class TestGoalCPA implements ConfigurableProgramAnalysis {
       
       TestGoalPrecision lPrecision = (TestGoalPrecision)prec;
       
-      if (lPrecision.allTestGoalsCovered()) {
+      // TODO turn this back on?
+      /*if (lPrecision.allTestGoalsCovered()) {
         return mDomain.getBottomElement();
-      }
+      }*/
       
       // TODO This is a hack for performance reasons
       AutomatonCPADomain<CFAEdge>.Element lElement = mDomain.getSuccessor(pElement, pCfaEdge);
@@ -277,7 +278,15 @@ public class TestGoalCPA implements ConfigurableProgramAnalysis {
       int lNewSize = lPrecision.getRemainingFinalStates().size();
       
       if (lOldSize != lNewSize) {
-        System.out.println("Remaining #states = " + lNewSize);
+        System.out.println("Remaining #states = " + lNewSize + " [" + mCounter + "]");
+        mCounter = 0;
+      }
+      else {
+        mCounter++;
+        
+        if (mCounter % 100 == 0) {
+          System.out.println("[" + mCounter + "]");
+        }
       }
       
       return lElement;
@@ -294,6 +303,10 @@ public class TestGoalCPA implements ConfigurableProgramAnalysis {
     }
 
   }
+  
+  private static int mCounter = 0;
+
+    
 
   private AutomatonCPADomain<CFAEdge> mDomain;
   private TestGoalTransferRelation mTransferRelation;

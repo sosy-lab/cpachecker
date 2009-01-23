@@ -57,7 +57,11 @@ import cpa.symbpredabs.CounterexampleTraceInfo;
 import cpa.symbpredabs.Predicate;
 import cpa.symbpredabs.SymbolicFormulaManager;
 import cpa.symbpredabs.UpdateablePredicateMap;
+import cpa.symbpredabs.mathsat.BDDMathsatAbstractFormulaManager;
+import cpa.symbpredabs.mathsat.BDDPredicate;
 import exceptions.CPAException;
+import java.util.Map.Entry;
+import java.util.Set;
 
 
 /**
@@ -282,13 +286,27 @@ public class ExplicitTransferRelation implements TransferRelation {
             if (firstInterpolant == null && newpreds.size() > 0) {
                 firstInterpolant = e;
             }
+            
+            System.out.print("DOING " + e.toString());
+            
+            System.out.println(" " + (newpreds.size() > 0));
+            
+            if (newpreds.size() > 0 && root == null) {
+              cur = e;
+              root = e;
+              
+              System.out.println("SETTING ROOT " + root.toString());
+            }
+            
             if (curpmap.update(e.getLocation(), newpreds)) {
                 LazyLogger.log(LazyLogger.DEBUG_1, "REFINING LOCATION: ",
                         e.getLocation());
-                if (root == null) {
+                /*if (root == null) {
                     cur = e;
                     root = e;//.getParent();
-                }
+                    
+                    System.out.println("SETTING ROOT " + root.toString());
+                }*/
 //                else if (root.getLocation().equals(e.getLocation())) {
 //                    root = e;
 //                }
@@ -300,6 +318,34 @@ public class ExplicitTransferRelation implements TransferRelation {
             alreadySeen = abstractCex.get(pth);
         }
         abstractCex.put(pth, alreadySeen+1);
+        
+        
+        System.out.println("CEX INFO");
+        
+        for (ExplicitAbstractElement lElement : path) {
+          System.out.println(lElement);
+        }
+        
+        System.out.println("---------------------");
+        
+        for (Entry<AbstractElement, Set<Predicate>> lEntry : info.pmap.entrySet()) {
+          Predicate lPredicate = null;
+          
+          for (Predicate lP : lEntry.getValue()) {
+            lPredicate = lP;
+          }
+          
+          BDDPredicate bp = (BDDPredicate)lPredicate;
+          
+          assert(this.domain.getCPA().getAbstractFormulaManager() instanceof BDDMathsatAbstractFormulaManager);
+          
+          BDDMathsatAbstractFormulaManager m = (BDDMathsatAbstractFormulaManager)this.domain.getCPA().getAbstractFormulaManager();
+          
+          System.out.println(lEntry.getKey().toString() + ": "+ m.getPredicateNameAndDef(bp).toString());
+        }
+        
+        System.out.println("CEX INFO END");
+        
         //root = (ExplicitAbstractElement)abstractTree.getRoot();
         if (root == null) {
             //root = firstInterpolant;//(ExplicitAbstractElement)abstractTree.getRoot();
@@ -308,8 +354,14 @@ public class ExplicitTransferRelation implements TransferRelation {
                     // we have not enough predicates to rule out this path, and
                     // we can't find any new, we are forced to exit :-(
                     notEnoughPredicatesFlag = true;
+                    
+                    
+                    
                     assert(false);
                     System.exit(1);
+                  
+                    //root = firstInterpolant;
+                  
 //                } else if (samePathAlready == 1) {
 //                    root = (ExplicitAbstractElement)abstractTree.getRoot();
 //                    samePathAlready = 2;
@@ -358,8 +410,13 @@ public class ExplicitTransferRelation implements TransferRelation {
         //root = path.getFirst();
         Collection<AbstractElementWithLocation> toWaitlist = new HashSet<AbstractElementWithLocation>();
         toWaitlist.add(root);
+        
+        System.out.println("toWaitlist = " + toWaitlist.toString());
+        
         Collection<AbstractElementWithLocation> toUnreach =
             abstractTree.getSubtree(root, true, false);
+        
+        System.out.println("toUnreach = " + toUnreach.toString());
         if (cur != null) {
             // we don't want to unreach elements that were covered before
             // reaching the error!
@@ -370,6 +427,7 @@ public class ExplicitTransferRelation implements TransferRelation {
                     LazyLogger.log(LazyLogger.DEBUG_1, "NOT unreaching ", e,
                             " because it was covered before ", cur);
                     it.remove();
+                    System.out.println("$$$$ " + e.getId() + "/" + e.getLocationNode().getNodeNumber());
                 }
             }
         }

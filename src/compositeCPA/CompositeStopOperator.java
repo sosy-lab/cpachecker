@@ -75,10 +75,10 @@ public class CompositeStopOperator implements StopOperator{
     List<AbstractElement> compositeElements1 = compositeElement1.getElements ();
     List<AbstractElement> compositeElements2 = compositeElement2.getElements ();
 
-    AbstractElementWithLocation locElem1 = (AbstractElementWithLocation)compositeElements1.get(0);
+    /*AbstractElementWithLocation locElem1 = (AbstractElementWithLocation)compositeElements1.get(0);
     AbstractElementWithLocation locElem2 = (AbstractElementWithLocation)compositeElements2.get(0);
     
-    assert(locElem1.getLocationNode().equals(locElem2.getLocationNode()));
+    assert(locElem1.getLocationNode().equals(locElem2.getLocationNode()));*/
     
     int iterationStartFrom = 0;
     if(CPAMain.cpaConfig.getBooleanValue("cpa.useSpecializedReachedSet")){
