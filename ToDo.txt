@@ -113,4 +113,19 @@
 - [MT] ExplicitCPA claims that ssh/s3_srvr_2_BUG.cil.c is safe, the filename and
   other CPAs suggest that it should be UNSAFE instead
 
+- [MT] performRefinement in ExplicitCPA is most likely broken:
+  * the root must always be set to the first interpolant, otherwise we keep
+    reasoning about a subtree that is infeasible anyway
+  * Elements that were covered before and won't be after removing a subtree must
+    get added to the waitlist (see SummaryCPA)
+
+- [MT] The statistics classes should provide some simple support for adding
+  timers, the current statistics interface is really too stupid
+
+- [MT] setPredecessor/setSuccessor (of CFAEdge) should really not be used in
+  non-private contexts, all uses (there are some) are likely just useless,
+  because CFACheck did not yield errors and there use would otherwise be buggy.
+
+- [MT] Properties of the CFA (like function entry points) should not be
+  evaluated in each CPA again and again, this info must be built into the CFA
 
