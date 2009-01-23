@@ -73,7 +73,7 @@ public class CProver {
     lWriter.close();
 
     try {
-      Process lCBMCProcess = Runtime.getRuntime().exec("cbmc --function " + pFunctionName + "_0 " + lFile.getAbsolutePath());
+      Process lCBMCProcess = Runtime.getRuntime().exec("cbmc --no-pointer-check --no-bounds-check --no-div-by-zero-check --function " + pFunctionName + "_0 " + lFile.getAbsolutePath());
       
       int lCBMCExitValue;
       try {
