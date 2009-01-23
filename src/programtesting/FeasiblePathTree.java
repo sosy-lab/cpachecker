@@ -6,10 +6,9 @@
 package programtesting;
 
 import cfa.objectmodel.CFANode;
-import cpa.symbpredabs.explicit.ExplicitAbstractElement;
+import cpa.common.interfaces.AbstractElementWithLocation;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -19,7 +18,7 @@ import java.util.List;
  *
  * @author holzera
  */
-public class FeasiblePathTree<TreeElement extends ExplicitAbstractElement> {
+public class FeasiblePathTree<TreeElement extends AbstractElementWithLocation> {
   public static class TreeNode {
     private CFANode mNode;
     private TreeNode mParent;
@@ -65,7 +64,7 @@ public class FeasiblePathTree<TreeElement extends ExplicitAbstractElement> {
   }
   
   public static class PathInserter {
-    public static <TreeElement extends ExplicitAbstractElement> void visit(TreeNode pNode, Iterator<TreeElement> pElement) {
+    public static <TreeElement extends AbstractElementWithLocation> void visit(TreeNode pNode, Iterator<TreeElement> pElement) {
       assert(pNode != null);
       assert(pElement != null);
       
@@ -101,7 +100,7 @@ public class FeasiblePathTree<TreeElement extends ExplicitAbstractElement> {
       mPaths = new HashSet<List<CFANode>>();
     }
     
-    public <TreeElement extends ExplicitAbstractElement> void visit(TreeNode pNode) {
+    public <TreeElement extends AbstractElementWithLocation> void visit(TreeNode pNode) {
       Collection<TreeNode> lChildren = pNode.getChildren();
       
       if (lChildren.size() == 0) {
@@ -149,9 +148,9 @@ public class FeasiblePathTree<TreeElement extends ExplicitAbstractElement> {
     return lCreator.getMaximalPaths();
   }
   
-  public void addPath(Deque<TreeElement> pPath) {
+  public void addPath(Iterable<TreeElement> pPath) {
     assert(pPath != null);
-    assert(pPath.size() > 0);
+    assert(pPath.iterator().hasNext());
     
     Iterator<TreeElement> lIterator = pPath.iterator();
     
@@ -161,7 +160,7 @@ public class FeasiblePathTree<TreeElement extends ExplicitAbstractElement> {
       mRoot = new TreeNode(lElement.getLocationNode());
     }
     
-    assert(mRoot.getNode().equals(pPath.getFirst().getLocationNode()));
+    assert(mRoot.getNode().equals(lElement.getLocationNode()));
     
     PathInserter.visit(mRoot, lIterator);
   }
