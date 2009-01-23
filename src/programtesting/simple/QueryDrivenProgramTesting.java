@@ -127,6 +127,10 @@ public class QueryDrivenProgramTesting {
     
     lInitialElements.add(cpa.getInitialElement(pMainFunction));
     
+    // the resulting set of paths
+    Set<List<AbstractElementWithLocation>> lPaths = new HashSet<List<AbstractElementWithLocation>>();
+    
+    FeasiblePathTree<AbstractElementWithLocation> lPathTree = new FeasiblePathTree<AbstractElementWithLocation>();
     
     while (!lTestGoals.isEmpty()) {
       // TODO remove this output
@@ -312,7 +316,10 @@ public class QueryDrivenProgramTesting {
 
               if (!lFeasible) {
                 lInfeasibleElement = (CompositeElement) lPath.remove(lPath.size() - 1);
-              }
+                } else {
+                  lPaths.add(lPath);
+                  lPathTree.addPath(lPath);
+                }
               
               lCallsToCBMCCounter++;
             } while (!lFeasible);
@@ -366,11 +373,26 @@ public class QueryDrivenProgramTesting {
       }
            
       System.out.println();
+      System.out.println("lStack.empty() = " + lStack.empty());
+      System.out.println("lTestGoals.isEmpty() = " + lTestGoals.isEmpty());
       System.out.println("lPathCounter = " + lPathCounter);
       System.out.println("lPathMaxLength = " + lPathMaxLength);
     }
     
-    printTestGoals("Infeasible test goals: ", lInfeasibleTestGoals);
+    System.out.println("FEASIBLE PATHS");
+    System.out.println("lPaths: " + lPaths.size());
+    System.out.println("lPathTree: " + lPathTree.getMaximalPaths().size());
+    System.out.println("Infeasible test goals (#" + lInfeasibleTestGoals.size() + ") = " + lInfeasibleTestGoals);
+    
+   
+    for (List<AbstractElementWithLocation> p : lPaths) {
+      List<String> strpath = AbstractPathToCTranslator.translatePath(pCfas, AbstractPathToCTranslator.getPath(p));
+      String lFunctionName = p.get(0).getLocationNode().getFunctionName(); 
+      //assert(CProver.isFeasible(p.get(0).getLocationNode().getFunctionName(), strpath));
+      FShell.isFeasible(strpath, lFunctionName + "_0");
+    }
+    
+    System.out.println("#Test cases computed: " + lPaths.size());
     
     return null;
   }
