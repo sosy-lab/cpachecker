@@ -34,12 +34,17 @@ public class ExplicitAnalysisElement implements AbstractElement {
   private Map<String, Integer> constantsMap;
   private boolean isBottom = false;
   
+  private Map<String, Integer> noOfReferences;
+  
   public ExplicitAnalysisElement() {
     constantsMap = new HashMap<String, Integer>();
+    noOfReferences = new HashMap<String, Integer>();
   }
   
-  public ExplicitAnalysisElement(Map<String, Integer> constantsMap) {
+  public ExplicitAnalysisElement(Map<String, Integer> constantsMap,
+                                 Map<String, Integer> referencesMap) {
     this.constantsMap = constantsMap;
+    this.noOfReferences = referencesMap;
   }
   
   /**
@@ -48,6 +53,25 @@ public class ExplicitAnalysisElement implements AbstractElement {
    * @param value value to be assigned.
    */
   public void assignConstant(String nameOfVar, int value){
+
+    if(constantsMap.containsKey(nameOfVar) && 
+        constantsMap.get(nameOfVar) == value){
+      return;
+    }
+    
+    if(noOfReferences.containsKey(nameOfVar)){
+      int currentVal = noOfReferences.get(nameOfVar).intValue();
+      if(currentVal >= ExplicitAnalysisConstants.threshold){
+        forget(nameOfVar);
+        return;
+      }
+      int newVal = currentVal + 1;
+      noOfReferences.put(nameOfVar, newVal);
+    }
+    else{
+      noOfReferences.put(nameOfVar, 1);
+    }
+    
     constantsMap.put(nameOfVar, value);
   }
   
@@ -72,7 +96,11 @@ public class ExplicitAnalysisElement implements AbstractElement {
     ExplicitAnalysisElement newElement = new ExplicitAnalysisElement();
         for (String s: constantsMap.keySet()){
             int val = constantsMap.get(s);
-            newElement.assignConstant(s, val);
+            newElement.constantsMap.put(s, val);
+        }
+        for (String s: noOfReferences.keySet()){
+          int val = noOfReferences.get(s);
+          newElement.noOfReferences.put(s, val);
         }
         return newElement;
     }
@@ -110,7 +138,8 @@ public class ExplicitAnalysisElement implements AbstractElement {
     String s = "[";
     for (String key: constantsMap.keySet()){
             int val = constantsMap.get(key);
-            s = s  + " <" +key + " = " + val + "> ";
+            int refCount = noOfReferences.get(key);
+            s = s  + " <" +key + " = " + val + " :: " + refCount + "> ";
         }
     return s + "]";
   }
@@ -127,5 +156,10 @@ public class ExplicitAnalysisElement implements AbstractElement {
 
   public void update(ExplicitAnalysisElement newElement) {
     constantsMap = newElement.getConstantsMap();
+    noOfReferences = newElement.getNoOfReferences();
+  }
+
+  public Map<String, Integer> getNoOfReferences() {
+    return noOfReferences;
   }
 }

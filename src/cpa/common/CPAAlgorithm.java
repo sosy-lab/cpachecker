@@ -42,6 +42,7 @@ import logging.LazyLogger;
 
 import cmdline.CPAMain;
 
+import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;

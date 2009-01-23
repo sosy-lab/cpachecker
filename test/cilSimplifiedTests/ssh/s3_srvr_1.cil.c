@@ -717,7 +717,7 @@ __BLAST_NONDET = random();
                                                                             } else {
 #line 544
                                                                               if (blastFlag == 5) {
-                                                                                goto ERROR;
+                                                                                ERR();
                                                                               }
                                                                             }
 #line 550
@@ -840,10 +840,16 @@ __BLAST_NONDET = random();
   }
 #line 661
   return (ret);
-  ERROR: 
+  //ERROR: 
 #line 663
-  return (-1);
+  //return (-1);
 }
+}
+
+void ERR(){
+   ERROR:
+   printf("error");
+   return (-1);
 }
 #line 666 "s3_srvr_1.cil.c"
 int main(void) 

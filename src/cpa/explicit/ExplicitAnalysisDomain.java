@@ -32,7 +32,7 @@ import cpa.common.interfaces.JoinOperator;
 import cpa.common.interfaces.PartialOrder;
 
 public class ExplicitAnalysisDomain implements AbstractDomain {
-
+  
   private static class ExplicitAnalysisBottomElement extends ExplicitAnalysisElement
   {
   }
@@ -93,7 +93,8 @@ public class ExplicitAnalysisDomain implements AbstractDomain {
           newMap.put(key, constantsMap2.get(key));
         }
       }
-      return new ExplicitAnalysisElement(newMap);
+      // TODO fix later
+      return new ExplicitAnalysisElement(newMap, null);
     }
   }
 
@@ -104,7 +105,7 @@ public class ExplicitAnalysisDomain implements AbstractDomain {
 
   public ExplicitAnalysisDomain ()
   {
-
+    
   }
 
   public AbstractElement getBottomElement ()
