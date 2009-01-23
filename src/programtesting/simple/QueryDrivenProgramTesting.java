@@ -131,13 +131,7 @@ public class QueryDrivenProgramTesting {
     while (!lTestGoals.isEmpty()) {
       // TODO remove this output
       System.out.println("NEXT LOOP (" + (lLoopCounter++) + ") #####################");
-      
-
-      // Automaton simplification prevents exponentational blow up with respect
-      // to stop operator!
-      // TODO simplify automaton
-      
-      
+            
       // print information about remaining test goals
       System.out.println("Number of remaining test goals: " + lTestGoals.size());
       
@@ -281,8 +275,6 @@ public class QueryDrivenProgramTesting {
 
             lPathCounter++;
             
-            System.out.println(lPathCounter);
-            System.out.flush();
             
             if (lStack.size() > lPathMaxLength) {
               lPathMaxLength = lStack.size();
@@ -296,96 +288,73 @@ public class QueryDrivenProgramTesting {
             // top element should never occur
             assert (!lTestGoalCPA.getAbstractDomain().getTopElement().equals(lTmpElement));
 
-            // now, we know it is an StateSetElement
-            //AutomatonCPADomain<CFAEdge>.StateSetElement lTestGoalCPAElement = lTestGoalCPA.getAbstractDomain().castToStateSetElement(lTmpElement);
+            List<AbstractElementWithLocation> lPath = new ArrayList<AbstractElementWithLocation>(lStack.size() + 1);
 
-            //final Set<Automaton<CFAEdge>.State> lStates = lTestGoalCPAElement.getStates();
+            for (Pair<CompositeElement, Iterator<CompositeElement>> lStackElement : lStack) {
+              lPath.add(lStackElement.getFirst());
+            }
 
-            /*boolean lHasUncoveredTestGoal = false;
+            lPath.add(lChild);
 
-            for (Automaton<CFAEdge>.State lState : lStates) {
-              if (lState.isFinal() && lTestGoals.contains(lState)) {
-                lHasUncoveredTestGoal = true;
-                break;
-              }
-            }*/
+
+            boolean lFeasible = false;
+
+            CompositeElement lInfeasibleElement = null;
+
+            int lCallsToCBMCCounter = 0;
             
-            boolean lHasUncoveredTestGoal = true;
+            do {
+              List<CFAEdge> lCFAPath = AbstractPathToCTranslator.getPath(lPath);
 
-            if (lHasUncoveredTestGoal) {
-              
-              List<AbstractElementWithLocation> lPath = new ArrayList<AbstractElementWithLocation>(lStack.size() + 1);
-              
-              for (Pair<CompositeElement, Iterator<CompositeElement>> lStackElement : lStack) {
-                lPath.add(lStackElement.getFirst());
+              List<String> lPathStringRepresentation = AbstractPathToCTranslator.translatePath(pCfas, lCFAPath);
+
+              lFeasible = CProver.isFeasible(lPath.get(0).getLocationNode().getFunctionName(), lPathStringRepresentation);
+
+              if (!lFeasible) {
+                lInfeasibleElement = (CompositeElement) lPath.remove(lPath.size() - 1);
               }
               
-              lPath.add(lChild);
-              
-              
-              boolean lFeasible = false;
-              
-              CompositeElement lInfeasibleElement = null;
-              
-              do {
-                List<CFAEdge> lCFAPath = AbstractPathToCTranslator.getPath(lPath);
-              
-                List<String> lPathStringRepresentation = AbstractPathToCTranslator.translatePath(pCfas, lCFAPath);
-                
-                lFeasible = CProver.isFeasible(lPath.get(0).getLocationNode().getFunctionName(), lPathStringRepresentation);
-                
-                if (!lFeasible) {
-                  lInfeasibleElement = (CompositeElement)lPath.remove(lPath.size() - 1);
-                }
-              }
-              while (!lFeasible);
-              
-              assert(lPath.size() > 0);
-              
-              CompositeElement lLastFeasibleElement = (CompositeElement)lPath.get(lPath.size() - 1);
-              
-              // + 1 comes from lChild that is NOT on the stack!
-              if (lPath.size() == lStack.size() + 1) {
-                //System.out.println("===> " + lLastFeasibleElement);
-                
-                lInitialElements.add(lLastFeasibleElement);
-              }
-              
-              AbstractElement lBacktrackTmpElement = lLastFeasibleElement.get(mTestGoalCPAIndex);
+              lCallsToCBMCCounter++;
+            } while (!lFeasible);
 
-              // the ART should not contain the bottom element
-              // TODO move this out of feasibilty check to stack insertion
-              assert (!lTestGoalCPA.getAbstractDomain().isBottomElement(lBacktrackTmpElement));
+            System.out.println(lPathCounter + "[" + lCallsToCBMCCounter + "]");
+            
+            assert (lPath.size() > 0);
 
-              // top element should never occur
-              // TODO move this out of feasibilty check to stack insertion
-              assert (!lTestGoalCPA.getAbstractDomain().getTopElement().equals(lBacktrackTmpElement));
+            CompositeElement lLastFeasibleElement = (CompositeElement) lPath.get(lPath.size() - 1);
 
-              // now, we know it is an StateSetElement
-              AutomatonCPADomain<CFAEdge>.StateSetElement lBacktrackTestGoalCPAElement = lTestGoalCPA.getAbstractDomain().castToStateSetElement(lBacktrackTmpElement);
+            // + 1 comes from lChild that is NOT on the stack!
+            if (lPath.size() == lStack.size() + 1) {
+              lInitialElements.add(lLastFeasibleElement);
+            }
 
-              final Set<Automaton<CFAEdge>.State> lBacktrackStates = lBacktrackTestGoalCPAElement.getStates();
+            AbstractElement lBacktrackTmpElement = lLastFeasibleElement.get(mTestGoalCPAIndex);
 
-              // remove the test goal from lTestGoals
-              lTestGoals.removeAll(lBacktrackStates);
+            // the ART should not contain the bottom element
+            // TODO move this out of feasibilty check to stack insertion
+            assert (!lTestGoalCPA.getAbstractDomain().isBottomElement(lBacktrackTmpElement));
 
-              // remove the test goal from the automaton
-              // BY DOING THIS WE GET AN EXPONENTIAL BLOW-UP
-              /*for (Automaton<CFAEdge>.State lState : lBacktrackStates) {
-                lState.unsetFinal();
-              }*/
-              
-              // backtrack
-              while (lStack.size() > lPath.size()) {
-                lStack.pop();
-              }
-              
-              // cleanup ART
-              if (lInfeasibleElement != null) {
-                lAbstractReachabilityTree.removeSubtree(lInfeasibleElement);
-                
-                //lAbstractReachabilityTree.getChildren((CompositeElement)lPath.get(lPath.size() - 1)).remove(lInfeasibleElement);
-              }
+            // top element should never occur
+            // TODO move this out of feasibilty check to stack insertion
+            assert (!lTestGoalCPA.getAbstractDomain().getTopElement().equals(lBacktrackTmpElement));
+
+            // now, we know it is an StateSetElement
+            AutomatonCPADomain<CFAEdge>.StateSetElement lBacktrackTestGoalCPAElement = lTestGoalCPA.getAbstractDomain().castToStateSetElement(lBacktrackTmpElement);
+
+            final Set<Automaton<CFAEdge>.State> lBacktrackStates = lBacktrackTestGoalCPAElement.getStates();
+
+            // remove the test goal from lTestGoals
+            lTestGoals.removeAll(lBacktrackStates);
+
+
+            // backtrack
+            while (lStack.size() > lPath.size()) {
+              lStack.pop();
+            }
+
+            // cleanup ART
+            if (lInfeasibleElement != null) {
+              lAbstractReachabilityTree.removeSubtree(lInfeasibleElement);
             }
           } else {
             lStack.push(new Pair<CompositeElement, Iterator<CompositeElement>>(lChild, lAbstractReachabilityTree.getChildren(lChild).iterator()));
@@ -395,17 +364,7 @@ public class QueryDrivenProgramTesting {
           lStack.pop();
         }
       }
-      
-      /*for (CompositeElement lStoppedElement : cpa.getStopOperator().getStoppedElements()) {
-        if (!cpa.getAbstractDomain().isBottomElement(lStoppedElement)) {
-          if (lAbstractReachabilityTree.contains(lStoppedElement)) {
-            lInitialElements.add(lStoppedElement);
-          }
-        }
-      }*/
-      
-      //System.out.println(lInitialElements.size() + " initial elements");
-      
+           
       System.out.println();
       System.out.println("lPathCounter = " + lPathCounter);
       System.out.println("lPathMaxLength = " + lPathMaxLength);
