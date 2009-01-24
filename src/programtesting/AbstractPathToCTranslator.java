@@ -192,16 +192,18 @@ public class AbstractPathToCTranslator {
     return translatePath(lEdges);
   }
   
-  public static List<CFAEdge> getPath(List<AbstractElementWithLocation> pPath) {
+  public static List<CFAEdge> getPath(List<AbstractElementWithLocation> pPath, AbstractElementWithLocation pBoundary) {
     assert(pPath != null);
     assert(pPath.size() > 1);
     
     List<CFAEdge> lPath = new ArrayList<CFAEdge>(pPath.size() - 1);
     
     AbstractElementWithLocation lPredecessorElement = null;
-    
+    boolean lDoStop = false;
+
     for (AbstractElementWithLocation lElement : pPath) {
       if (lPredecessorElement == null) {
+        if (!lDoStop && lElement == pBoundary) lDoStop = true; // intentional reference comparison
         lPredecessorElement = lElement;
         continue;
       }
@@ -222,6 +224,13 @@ public class AbstractPathToCTranslator {
       }
       
       assert(lNumberOfFoundEdges == 1);
+      
+      if (lDoStop && !(lPath.get(lPath.size() - 1) instanceof DeclarationEdge)) {
+        lPath.remove(lPath.size() - 1);
+        break;
+      }
+
+      if (!lDoStop && lElement == pBoundary) lDoStop = true; // intentional reference comparison
       
       lPredecessorElement = lElement;
     }

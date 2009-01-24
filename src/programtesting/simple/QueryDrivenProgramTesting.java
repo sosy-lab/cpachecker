@@ -274,7 +274,7 @@ public class QueryDrivenProgramTesting {
           Collection<CompositeElement> lGrandchildren = lAbstractReachabilityTree.getChildren(lChild);
           
           if (lGrandchildren.isEmpty()) {
-            // we are at a leave
+            // we are at a leaf
             
 
             lPathCounter++;
@@ -306,27 +306,62 @@ public class QueryDrivenProgramTesting {
             CompositeElement lInfeasibleElement = null;
 
             int lCallsToCBMCCounter = 0;
-            
-            do {
-              List<CFAEdge> lCFAPath = AbstractPathToCTranslator.getPath(lPath);
+            int lKnownFeasible = -1;
+            int lCurrentBoundary = lPath.size() - 1;
+            int lUpperBound = lPath.size() - 1;
+
+            while (true) {
+              System.err.println("K C U: " + lKnownFeasible + " " + lCurrentBoundary + " " + lUpperBound);
+              assert(lKnownFeasible < lCurrentBoundary);
+
+              List<CFAEdge> lCFAPath = AbstractPathToCTranslator.getPath(lPath, lPath.get(lCurrentBoundary));
 
               List<String> lPathStringRepresentation = AbstractPathToCTranslator.translatePath(pCfas, lCFAPath);
 
-              lFeasible = CProver.isFeasible(lPath.get(0).getLocationNode().getFunctionName(), lPathStringRepresentation);
-
-              if (!lFeasible) {
-                lInfeasibleElement = (CompositeElement) lPath.remove(lPath.size() - 1);
-                } else {
-                  lPaths.add(lPath);
-                  lPathTree.addPath(lPath);
-                }
-              
               lCallsToCBMCCounter++;
-            } while (!lFeasible);
+              lFeasible = CProver.isFeasible(lPath.get(0).getLocationNode().getFunctionName(), lPathStringRepresentation);
+                
+              /*if (!lFeasible) {
+                --lCurrentBoundary;
+              } else {
+                lKnownFeasible = lCurrentBoundary;
+                break;
+              }*/
+              // binary search
+              if (!lFeasible) {
+                if ((lKnownFeasible + 1) == lCurrentBoundary) { // we have found the last usable element
+                  break;
+                } else {
+                  lUpperBound = lCurrentBoundary;
+                  lCurrentBoundary = (lKnownFeasible + lCurrentBoundary) / 2;
+                }
+              } else { 
+                if (lCurrentBoundary == (lPath.size() - 1)) { // path is ok in full
+                  lKnownFeasible = lCurrentBoundary;
+                  break;
+                } else if ((lCurrentBoundary + 1) == lUpperBound) { // we have found the last usable element
+                  ++lKnownFeasible;
+                  break;
+                } else {
+                  lKnownFeasible = lCurrentBoundary;
+                  lCurrentBoundary = (lUpperBound + lCurrentBoundary) / 2;
+                }
+              }
+            }
+            System.err.println("final K C U: " + lKnownFeasible + " " + lCurrentBoundary + " " + lUpperBound);
+            
+            assert (lKnownFeasible >= 0);
+            assert (lKnownFeasible < lPath.size());
+            if (lKnownFeasible < (lPath.size() - 1)) {
+              lInfeasibleElement = (CompositeElement) lPath.get(lKnownFeasible + 1);
+              lPath = lPath.subList(0, lKnownFeasible + 1); // removeRange is a protected member only, would be nicer...
+            }
+                  
+            lPaths.add(lPath);
+            lPathTree.addPath(lPath);
 
             System.out.println(lPathCounter + "[" + lCallsToCBMCCounter + "]");
             
-            assert (lPath.size() > 0);
 
             CompositeElement lLastFeasibleElement = (CompositeElement) lPath.get(lPath.size() - 1);
 
@@ -361,6 +396,7 @@ public class QueryDrivenProgramTesting {
 
             // cleanup ART
             if (lInfeasibleElement != null) {
+              System.err.println("Searching: " + lInfeasibleElement);
               lAbstractReachabilityTree.removeSubtree(lInfeasibleElement);
             }
           } else {
@@ -386,7 +422,7 @@ public class QueryDrivenProgramTesting {
     
    
     for (List<AbstractElementWithLocation> p : lPaths) {
-      List<String> strpath = AbstractPathToCTranslator.translatePath(pCfas, AbstractPathToCTranslator.getPath(p));
+      List<String> strpath = AbstractPathToCTranslator.translatePath(pCfas, AbstractPathToCTranslator.getPath(p, null));
       String lFunctionName = p.get(0).getLocationNode().getFunctionName(); 
       //assert(CProver.isFeasible(p.get(0).getLocationNode().getFunctionName(), strpath));
       FShell.isFeasible(strpath, lFunctionName + "_0");
