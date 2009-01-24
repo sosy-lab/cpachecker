@@ -38,6 +38,8 @@ import org.eclipse.cdt.core.dom.ast.IASTPointerOperator;
 import org.eclipse.cdt.core.dom.ast.IASTReturnStatement;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 
+import cmdline.CPAMain;
+
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAErrorNode;
 import cfa.objectmodel.c.AssumeEdge;
@@ -205,14 +207,16 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
       break;
     }
     }
-    
-//    if(!expAnalysisElement.isBottom() && 
-//        cfaEdge.getSuccessor() instanceof CFAErrorNode){
-//      System.out.println(" Error Node Reached ");
-//      System.out.println(" ======================= ");
-//      System.out.println(expAnalysisElement);
-//      System.exit(0);
-//    }
+
+    if(CPAMain.cpaConfig.getPropertiesArray("analysis.cpas").length == 2){
+      if(!expAnalysisElement.isBottom() && 
+          cfaEdge.getSuccessor() instanceof CFAErrorNode){
+        System.out.println(" Error Node Reached ");
+        System.out.println(" ======================= ");
+        System.out.println(expAnalysisElement);
+        System.exit(0);
+      }
+    }
     return expAnalysisElement;
   }
 
@@ -360,12 +364,12 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
         {
           String paramName = paramNames.get(i);
           String formalParamName = getvarName(paramName, calledFunctionName);
-          
+
           if(stringValOfArg.contains("L") || stringValOfArg.contains("U")){
             stringValOfArg = stringValOfArg.replace("L", "");
             stringValOfArg = stringValOfArg.replace("U", "");
           }
-          
+
           int value = Integer.valueOf(stringValOfArg).intValue();
 
           newElement.assignConstant(formalParamName, value);
@@ -874,7 +878,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
                 literalValue = literalValue.replace("L", "");
                 literalValue = literalValue.replace("U", "");
               }
-              
+
               int valueOfLiteral = Integer.valueOf(literalValue).intValue();
 
               // a == 9
@@ -1321,7 +1325,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
     String functionName = cfaEdge.getPredecessor().getFunctionName();
     String lParam = idExp.getRawSignature ();
     String assignedVar = getvarName(lParam , functionName);
-    
+
     IASTExpression castOperand = castExp.getOperand();
     String castType = castExp.getTypeId().getRawSignature();
     if(castOperand instanceof IASTIdExpression){
@@ -1334,7 +1338,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
         expAnalysisElement.forget(assignedVar);
       }
     }
-    
+
     else if(castOperand instanceof IASTLiteralExpression){
       if(castType.contains("int") || castType.contains("long")){
         handleLiteralAssignment(expAnalysisElement, idExp, castOperand, functionName);
@@ -1343,7 +1347,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
         expAnalysisElement.forget(assignedVar);
       }
     }
-    
+
     else{
       throw new ExplicitAnalysisTransferException("Unhandled case " + cfaEdge.getPredecessor().getNodeNumber());
     }

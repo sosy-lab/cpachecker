@@ -1,7 +1,10 @@
 package cpa.explicit;
 
+import cmdline.CPAMain;
+
 public class ExplicitAnalysisConstants {
 
-  public static final int threshold = 1;
+  public static int threshold = 
+    Integer.parseInt(CPAMain.cpaConfig.getProperty("explicitAnalysis.threshold"));
   
 }
