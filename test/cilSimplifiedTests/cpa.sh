@@ -8,13 +8,13 @@
 RELATIVE_PATH_TO_WORKSPACE=../../..
 
 # the location of the jvm
-JAVA=/localhome/erkan/jdk1.6.0_07/bin/java
+JAVA=/usr/lib/jvm/java-6-sun/bin/java
 
 # installation dir for eclipse
-ECLIPSE_DIR=/localhome/erkan/eclipse
+ECLIPSE_DIR=/opt/eclipse
 
 # installation dir for CDT
-CDT_PLUGIN_DIR=/localhome/erkan/eclipse/plugins
+CDT_PLUGIN_DIR=/opt/eclipse/plugins
 
 #------------------------------------------------------------------------------
 # From here on you should not need to change anything
@@ -29,12 +29,12 @@ ECLIPSE_CORE_JARS=`ls --color=no $ECLIPSE_DIR/plugins/org.eclipse.core*jar $ECLI
 # the jar files of the CDT plugin
 CDT_PLUGIN_JARS=`ls --color=no $CDT_PLUGIN_DIR/org.eclipse.cdt*jar | tr "[:space:]" ":"`
 
-PROJECT_CLASSPATH=$MYDIR/$RELATIVE_PATH_TO_WORKSPACE/CPAchecker/bin:$MYDIR/$RELATIVE_PATH_TO_WORKSPACE/CPAchecker/lib/mathsat.jar:$MYDIR/$RELATIVE_PATH_TO_WORKSPACE/CPAchecker/lib/minijdd_103.jar:$MYDIR/$RELATIVE_PATH_TO_WORKSPACE/CPAchecker/lib/javabdd-1.0b2.jar
+PROJECT_CLASSPATH=$MYDIR/$RELATIVE_PATH_TO_WORKSPACE/CPAChecker/bin:$MYDIR/$RELATIVE_PATH_TO_WORKSPACE/CPAChecker/lib/mathsat.jar:$MYDIR/$RELATIVE_PATH_TO_WORKSPACE/CPAChecker/lib/minijdd_103.jar:$MYDIR/$RELATIVE_PATH_TO_WORKSPACE/CPAChecker/lib/javabdd-1.0b2.jar:$MYDIR/$RELATIVE_PATH_TO_WORKSPACE/CPAChecker/lib/yikesapijava.jar:$MYDIR/shiftone-jrat.jar
 
 # the classpath is just the concatenation of the above
 export CLASSPATH=$ECLIPSE_CORE_JARS:$CDT_PLUGIN_JARS:$PROJECT_CLASSPATH
 
 # where to find the native library for mathsat
-export LD_LIBRARY_PATH=$MYDIR/$RELATIVE_PATH_TO_WORKSPACE/CPAchecker/nativeLibs
+export LD_LIBRARY_PATH=$MYDIR/$RELATIVE_PATH_TO_WORKSPACE/CPAChecker/nativeLibs
 
-$JAVA -Xmx2000m -ea cmdline.CPAMain $@
+$JAVA -Xmx500m -ea cmdline.CPAMain $@

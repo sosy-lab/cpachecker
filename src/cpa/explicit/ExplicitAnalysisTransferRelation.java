@@ -208,21 +208,21 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
     }
     }
 
-    //if(CPAMain.cpaConfig.getPropertiesArray("analysis.cpas").length == 2){
+    if(CPAMain.cpaConfig.getPropertiesArray("analysis.cpas").length == 2){
       if(!expAnalysisElement.isBottom() && 
           cfaEdge.getSuccessor() instanceof CFAErrorNode){
-        System.out.println(" Error Node Reached ");
+        System.out.println("Error location(s) reached? YES, there is a BUG!");
         System.out.println(" ======================= ");
         System.out.println(expAnalysisElement);
-        //System.exit(0);
+        System.exit(0);
       }
-    //}
-    
+    }
     return expAnalysisElement;
   }
 
   private void handleFunctionReturn( ExplicitAnalysisElement expAnalysisElement,
                                      ReturnEdge functionReturnEdge) throws ExplicitAnalysisTransferException{
+
     CallToReturnEdge summaryEdge =
       functionReturnEdge.getSuccessor().getEnteringSummaryEdge();
     IASTExpression exprOnSummary = summaryEdge.getExpression();
@@ -248,20 +248,34 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
 
         for(String globalVar:globalVars){
           if(globalVar.equals(varName)){
-            if(expAnalysisElement.contains(returnVarName)){
-              newElement.assignConstant(varName, expAnalysisElement.getValueFor(returnVarName));
-            }
-            else{
-              newElement.forget(varName);
-            }
-          }
-          else{
-            if(expAnalysisElement.contains(globalVar)){
-              newElement.assignConstant(globalVar, expAnalysisElement.getValueFor(globalVar));
+            if(expAnalysisElement.getNoOfReferences().containsKey(globalVar) &&
+                expAnalysisElement.getNoOfReferences().get(globalVar).intValue() >= ExplicitAnalysisConstants.threshold){
+              newElement.forget(globalVar);
               newElement.getNoOfReferences().put(globalVar, expAnalysisElement.getNoOfReferences().get(globalVar));
             }
             else{
-              newElement.forget(varName);
+              if(expAnalysisElement.contains(returnVarName)){
+                newElement.assignConstant(varName, expAnalysisElement.getValueFor(returnVarName));
+              }
+              else{
+                newElement.forget(varName);
+              }
+            }
+          }
+          else{
+            if(expAnalysisElement.getNoOfReferences().containsKey(globalVar) &&
+                expAnalysisElement.getNoOfReferences().get(globalVar).intValue() >= ExplicitAnalysisConstants.threshold){
+              newElement.forget(globalVar);
+              newElement.getNoOfReferences().put(globalVar, expAnalysisElement.getNoOfReferences().get(globalVar));
+            }
+            else{
+              if(expAnalysisElement.contains(globalVar)){
+                newElement.assignConstant(globalVar, expAnalysisElement.getValueFor(globalVar));
+                newElement.getNoOfReferences().put(globalVar, expAnalysisElement.getNoOfReferences().get(globalVar));
+              }
+              else{
+                newElement.forget(varName);
+              }
             }
           }
         }
@@ -280,37 +294,52 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
         throw new ExplicitAnalysisTransferException("Unhandled case " + functionReturnEdge.getPredecessor().getNodeNumber());
       }
     }
-    // expression is a unary operation, e.g. g(b);
+    // TODO this is not called -- expression is a unary operation, e.g. g(b);
     else if (exprOnSummary instanceof IASTUnaryExpression)
     {
       // onyl globals
       for(String globalVar:globalVars){
-        if(expAnalysisElement.contains(globalVar)){
-          newElement.assignConstant(globalVar, expAnalysisElement.getValueFor(globalVar));
+        if(expAnalysisElement.getNoOfReferences().containsKey(globalVar) &&
+            expAnalysisElement.getNoOfReferences().get(globalVar).intValue() >= ExplicitAnalysisConstants.threshold){
+          newElement.forget(globalVar);
           newElement.getNoOfReferences().put(globalVar, expAnalysisElement.getNoOfReferences().get(globalVar));
         }
         else{
-          newElement.forget(globalVar);
+          if(expAnalysisElement.contains(globalVar)){
+            newElement.assignConstant(globalVar, expAnalysisElement.getValueFor(globalVar));
+            newElement.getNoOfReferences().put(globalVar, expAnalysisElement.getNoOfReferences().get(globalVar));
+          }
+          else{
+            newElement.forget(globalVar);
+          }
         }
       }
     }
-    // TODO check
+    // g(b)
     else if (exprOnSummary instanceof IASTFunctionCallExpression)
     {
       // onyl globals
       for(String globalVar:globalVars){
-        if(expAnalysisElement.contains(globalVar)){
-          newElement.assignConstant(globalVar, expAnalysisElement.getValueFor(globalVar));
+        if(expAnalysisElement.getNoOfReferences().containsKey(globalVar) && 
+            expAnalysisElement.getNoOfReferences().get(globalVar).intValue() >= ExplicitAnalysisConstants.threshold){
+          newElement.forget(globalVar);
           newElement.getNoOfReferences().put(globalVar, expAnalysisElement.getNoOfReferences().get(globalVar));
         }
         else{
-          newElement.forget(globalVar);
+          if(expAnalysisElement.contains(globalVar)){
+            newElement.assignConstant(globalVar, expAnalysisElement.getValueFor(globalVar));
+            newElement.getNoOfReferences().put(globalVar, expAnalysisElement.getNoOfReferences().get(globalVar));
+          }
+          else{
+            newElement.forget(globalVar);
+          }
         }
       }
     }
     else{
       throw new ExplicitAnalysisTransferException("Unhandled case - return from function" + functionReturnEdge.getPredecessor().getNodeNumber());
     }
+
     expAnalysisElement.update(newElement);
   }
 
@@ -333,7 +362,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
 
     for(String globalVar:globalVars){
       if(expAnalysisElement.contains(globalVar)){
-        newElement.assignConstant(globalVar, expAnalysisElement.getValueFor(globalVar));
+        newElement.getConstantsMap().put(globalVar, expAnalysisElement.getValueFor(globalVar));
         newElement.getNoOfReferences().put(globalVar, expAnalysisElement.getNoOfReferences().get(globalVar));
       }
     }

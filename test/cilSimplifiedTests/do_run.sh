@@ -6,8 +6,8 @@ outfile=results/test_`date +%Y-%m-%d`
 mkdir -p results
 
 # the various configurations to test
-configurations="explicitAnalysis explicitAndPredAbs2 explicitAndPredAbs3 explicitAndPredAbs5 explicitPredicateAbs"
-
+#configurations="explicitAnalysis2 explicitAnalysis3 explicitAnalysis5 explicitAnalysisInf explicitAndPredAbs2 explicitAndPredAbs3 explicitAndPredAbs5 explicitPredicateAbs"
+configurations="explicitAnalysis2 explicitAnalysis3 explicitAnalysis5 explicitAnalysisInf"
 # the benchmark instances
 #
 # this selects the "simplified" instances
@@ -20,5 +20,5 @@ instances=`find ntdrivers/ -regex ".+[^i]\.cil\.c$"`
 
 # run the tests
 for cfg in $configurations; do 
-     ./run_tests.py --config=config/$cfg.properties --output=$outfile $instances --timeout=1200 --memlimit=2500000
+     ./run_tests.py --config=config/$cfg.properties --output=$outfile $instances --timeout=1200 --memlimit=1000000
 done

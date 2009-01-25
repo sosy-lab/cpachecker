@@ -146,7 +146,7 @@ public class ExplicitAnalysisElement implements AbstractElement {
             int refCount = noOfReferences.get(key);
             s = s  + " <" +key + " = " + val + " :: " + refCount + "> ";
         }
-    return s + " size-> " + constantsMap.size() + "]";
+    return s + " size-> " + constantsMap.size() + " .. "+ isBottom + "]";
   }
   
   public Map<String, Integer> getConstantsMap(){
