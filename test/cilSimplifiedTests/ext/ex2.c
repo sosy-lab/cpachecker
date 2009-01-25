@@ -93,7 +93,3 @@ int main() {
   ERROR: 
   return (-1);
 }
-
-int readcmd(){
-  return (-99);
-}

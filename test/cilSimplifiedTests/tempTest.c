@@ -7,9 +7,22 @@ int main(void){
   int c;
   c = random();
   a = 5;
-  b = 6;
+  b = 0;
+  c = 4;
   
-  if(b == 6){
+
+  while(1){
+   if(c > 20){
+     goto loopend;
+   }
+   else{ 
+     //b++;
+     c++;
+   }
+  }
+  loopend:
+
+  if(a != 5){
   errorFn();
   }
   return (0);

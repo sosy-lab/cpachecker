@@ -32,7 +32,7 @@ import cpa.common.interfaces.JoinOperator;
 import cpa.common.interfaces.PartialOrder;
 
 public class ExplicitAnalysisDomain implements AbstractDomain {
-  
+
   private static class ExplicitAnalysisBottomElement extends ExplicitAnalysisElement
   {
   }
@@ -44,25 +44,43 @@ public class ExplicitAnalysisDomain implements AbstractDomain {
   private static class ExplicitAnalysisPartialOrder implements PartialOrder
   {
     // returns true if element1 < element2 on lattice
-    public boolean satisfiesPartialOrder(AbstractElement element1, AbstractElement element2)
+    public boolean satisfiesPartialOrder(AbstractElement newElement, AbstractElement reachedElement)
     {
-      ExplicitAnalysisElement explicitAnalysisElement1 = (ExplicitAnalysisElement) element1;
-      ExplicitAnalysisElement explicitAnalysisElement2 = (ExplicitAnalysisElement) element2;
+      ExplicitAnalysisElement explicitAnalysisElementNew = (ExplicitAnalysisElement) newElement;
+      ExplicitAnalysisElement explicitAnalysisElementReached = (ExplicitAnalysisElement) reachedElement;
 
-      Map<String, Integer> constantsMap1 = explicitAnalysisElement1.getConstantsMap();
-      Map<String, Integer> constantsMap2 = explicitAnalysisElement2.getConstantsMap();
+      Map<String, Integer> constantsMapNew = explicitAnalysisElementNew.getConstantsMap();
+      Map<String, Integer> constantsMapReached = explicitAnalysisElementReached.getConstantsMap();
 
-      if(constantsMap1.size() > constantsMap2.size()){
+      if(constantsMapNew.size() < constantsMapReached.size()){
+//      System.out.println(" 1st cond");
         return false;
       }
 
-      for(String key:constantsMap2.keySet()){
-        if(!constantsMap1.containsKey(key) | 
-            constantsMap1.get(key) != constantsMap2.get(key)){
+      for(String key:constantsMapReached.keySet()){
+//      System.out.println(key + " : " + constantsMapNew.get(key));
+//      System.out.println(key + " : " + constantsMapReached.get(key));
+        if(!constantsMapNew.containsKey(key)){
+//        System.out.println(" 2nd cond");
+          return false;
+        }
+        int val1 = constantsMapNew.get(key).intValue();
+        int val2 = constantsMapReached.get(key).intValue();
+        if(val1 != val2){
+//        System.out.println("------------");
+//        System.out.println(key + ".. " + constantsMapNew.get(key) + " .. " + constantsMapReached.get(key));
+//        System.out.println(" 3rd cond");
           return false;
         }
       }
-
+//      if(explicitAnalysisElementReached.hashCode() != explicitAnalysisElementNew.hashCode()){
+//        System.out.println(" ============= REACHED ============= ");
+//        System.out.println(explicitAnalysisElementReached);
+//        System.out.println(" =============== NEW =============== ");
+//        System.out.println(explicitAnalysisElementNew);
+//        System.out.println(" ----------------------------------- ");
+//        System.out.println();
+//      }
       return true;
     }
   }
@@ -105,7 +123,7 @@ public class ExplicitAnalysisDomain implements AbstractDomain {
 
   public ExplicitAnalysisDomain ()
   {
-    
+
   }
 
   public AbstractElement getBottomElement ()

@@ -14,7 +14,7 @@ int main(void)
 #line 8
   ok = 0;
 #line 10
-  cmd = readcmd();
+  //cmd = readcmd();
   }
   {
 #line 12
@@ -59,7 +59,7 @@ int main(void)
 #line 24
                   st = 3;
 #line 25
-                  cmd = readcmd();
+                  //cmd = readcmd();
                   }
                 } else {
 #line 28
@@ -110,13 +110,13 @@ int main(void)
 #line 59
                   st = 0;
 #line 60
-                  cmd = readcmd();
+                  //cmd = readcmd();
                   }
                 }
                 goto switch_1_break;
                 switch_1_4: /* CIL Label */ 
 #line 64
-                if (ok) {
+                if (ok != 0) {
 #line 65
                   if (cmd != 78) {
                     goto ERROR;
@@ -164,6 +164,7 @@ int main(void)
 #line 92
   return (0);
   ERROR: 
+  printf("error");
 #line 94
   return (-1);
 }

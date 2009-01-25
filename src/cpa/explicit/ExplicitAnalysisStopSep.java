@@ -60,8 +60,9 @@ public class ExplicitAnalysisStopSep implements StopOperator {
   public boolean stop(AbstractElement element, AbstractElement reachedElement)
   throws CPAException {
     PartialOrder partialOrder = explicitAnalysisDomain.getPartialOrder ();
-    if (partialOrder.satisfiesPartialOrder (element, reachedElement))
+    if (partialOrder.satisfiesPartialOrder (element, reachedElement)){
       return true;
+    }
     return false;
   }
 }
