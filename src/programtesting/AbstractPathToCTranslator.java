@@ -192,6 +192,10 @@ public class AbstractPathToCTranslator {
     return translatePath(lEdges);
   }
   
+  public static List<CFAEdge> getPath(List<AbstractElementWithLocation> pPath) {
+    return getPath(pPath, null);
+  }
+  
   public static List<CFAEdge> getPath(List<AbstractElementWithLocation> pPath, AbstractElementWithLocation pBoundary) {
     assert(pPath != null);
     assert(pPath.size() > 1);

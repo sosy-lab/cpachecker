@@ -38,8 +38,10 @@ import java.util.Set;
 
 import cfa.CFAMap;
 import cfa.objectmodel.CFAEdge;
+import cfa.objectmodel.CFAEdgeType;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 
+import cfa.objectmodel.CFANode;
 import cmdline.CPAMain;
 import common.Pair;
 import compositeCPA.CompositePrecision;
@@ -127,6 +129,8 @@ public class QueryDrivenProgramTesting {
     
     lInitialElements.add(cpa.getInitialElement(pMainFunction));
     
+
+    ParametricAbstractReachabilityTree<CompositeElement> lAbstractReachabilityTree = cpa.getTransferRelation().getAbstractReachabilityTree();
     // the resulting set of paths
     Set<List<AbstractElementWithLocation>> lPaths = new HashSet<List<AbstractElementWithLocation>>();
     
@@ -160,6 +164,8 @@ public class QueryDrivenProgramTesting {
       
       
       Set<CompositeElement> lOldInitialElements = new HashSet<CompositeElement>(lInitialElements);
+
+      lAbstractReachabilityTree.unsetUpdatedFlag();
       
       try {
         algo.CPAWithInitialSet(cpa, lInitialElements, lInitialPrecision);
@@ -170,74 +176,36 @@ public class QueryDrivenProgramTesting {
         assert(false);
       }
       
+      if (lAbstractReachabilityTree.hasBeenUpdated()) {
       
       
+      
+      // TODO Think about infeasible test goal handling
+      // PROBLEM: Recursive calls and stop-Operator of call-stack analysis
       // TODO Remove this output
-      printTestGoals("Infeasible Test Goals: ", lTestGoalPrecision.getRemainingFinalStates());
+      //printTestGoals("Infeasible Test Goals: ", lTestGoalPrecision.getRemainingFinalStates());
       
-      lInfeasibleTestGoals.addAll(lTestGoalPrecision.getRemainingFinalStates());
+      //lInfeasibleTestGoals.addAll(lTestGoalPrecision.getRemainingFinalStates());
       
       // Remove the infeasible test goals. If the set of remaining final states is
       // not empty this means that we have fully traversed an overapproximation
       // of the reachable state space. This shows that the remaing goals are not
       // reachable at all.
-      lTestGoals.removeAll(lTestGoalPrecision.getRemainingFinalStates());
+      //lTestGoals.removeAll(lTestGoalPrecision.getRemainingFinalStates());
       
       
       
       // process abstract reachability tree
-      ParametricAbstractReachabilityTree<CompositeElement> lAbstractReachabilityTree = cpa.getTransferRelation().getAbstractReachabilityTree();
+      //ParametricAbstractReachabilityTree<CompositeElement> lAbstractReachabilityTree = cpa.getTransferRelation().getAbstractReachabilityTree();
+      
       
       System.out.println("Size of ART: " + lAbstractReachabilityTree.size());
       
       
       
-      if (CPAMain.cpaConfig.getBooleanValue("art.visualize")) {      
-        File lFile = null;
-
-        try {
-          lFile = File.createTempFile("art_" + lLoopCounter + "_", ".dot");
-        } catch (IOException e) {
-          e.printStackTrace();
-          assert (false);
-        }
-
-        lFile.deleteOnExit();
-
-        PrintWriter lWriter = null;
-
-        try {
-          lWriter = new PrintWriter(lFile);
-        } catch (FileNotFoundException e) {
-          e.printStackTrace();
-          assert (false);
-        }
-
-        lWriter.println(lAbstractReachabilityTree.toDot(lOldInitialElements));
-
-        lWriter.close();
-
-        try {
-          File lPostscriptFile = File.createTempFile("art_" + lLoopCounter + "_", ".ps");
-
-          lPostscriptFile.deleteOnExit();
-
-          Process lDotProcess = Runtime.getRuntime().exec("dot -Tps -o" + lPostscriptFile.getAbsolutePath() + " " + lFile.getAbsolutePath());
-
-          lDotProcess.waitFor();
-
-          File lPDFFile = File.createTempFile("art_" + lLoopCounter + "_", ".pdf");
-
-          Process lPs2PdfProcess = Runtime.getRuntime().exec("ps2pdf " + lPostscriptFile.getAbsolutePath() + " " + lPDFFile.getAbsolutePath());
-
-          lPs2PdfProcess.waitFor();
-        }
-        catch (Exception e) {
-          e.printStackTrace();
-          assert(false);
-        }
+      if (CPAMain.cpaConfig.getBooleanValue("art.visualize")) {
+        outputAbstractReachabilityTree("art_" + lLoopCounter + "_", lOldInitialElements, lAbstractReachabilityTree);
       }
-      
       
       
       assert(lAbstractReachabilityTree.hasRoot());
@@ -256,6 +224,8 @@ public class QueryDrivenProgramTesting {
       
       int lPathCounter = 0;
       int lPathMaxLength = 0;
+      
+      HashSet<CompositeElement> lElementsToBeRemovedFromART = new HashSet<CompositeElement>();
 
       while (!lStack.empty() && !lTestGoals.isEmpty()) {
         Pair<CompositeElement, Iterator<CompositeElement>> lCurrentPair = lStack.peek();
@@ -306,60 +276,96 @@ public class QueryDrivenProgramTesting {
             CompositeElement lInfeasibleElement = null;
 
             int lCallsToCBMCCounter = 0;
-            int lKnownFeasible = -1;
-            int lCurrentBoundary = lPath.size() - 1;
-            int lUpperBound = lPath.size() - 1;
+            
+            if (true) {
+              do {
+                // TODO getPath has to be only called once, afterwards we can
+                // directly manipulate lCFAPath
+                List<CFAEdge> lCFAPath = AbstractPathToCTranslator.getPath(lPath);
 
-            while (true) {
-              System.err.println("K C U: " + lKnownFeasible + " " + lCurrentBoundary + " " + lUpperBound);
-              assert(lKnownFeasible < lCurrentBoundary);
+                List<String> lPathStringRepresentation = AbstractPathToCTranslator.translatePath(pCfas, lCFAPath);
 
-              List<CFAEdge> lCFAPath = AbstractPathToCTranslator.getPath(lPath, lPath.get(lCurrentBoundary));
+                lCallsToCBMCCounter++;
+                lFeasible = CProver.isFeasible(lPath.get(0).getLocationNode().getFunctionName(), lPathStringRepresentation);
+              
+                if (!lFeasible) {
+                  // what's about function pointers?
+                  while (lCFAPath.get(lCFAPath.size() - 1).getEdgeType() != CFAEdgeType.AssumeEdge) {
+                    lPath.remove(lPath.size() - 1);
+                    lCFAPath.remove(lCFAPath.size() - 1);
+                  }
 
-              List<String> lPathStringRepresentation = AbstractPathToCTranslator.translatePath(pCfas, lCFAPath);
+                  List<String> lTmpPathStringRepresentation = AbstractPathToCTranslator.translatePath(pCfas, lCFAPath);
 
-              lCallsToCBMCCounter++;
-              lFeasible = CProver.isFeasible(lPath.get(0).getLocationNode().getFunctionName(), lPathStringRepresentation);
-                
-              /*if (!lFeasible) {
-                --lCurrentBoundary;
-              } else {
-                lKnownFeasible = lCurrentBoundary;
-                break;
-              }*/
-              // binary search
-              if (!lFeasible) {
-                if ((lKnownFeasible + 1) == lCurrentBoundary) { // we have found the last usable element
-                  break;
-                } else {
-                  lUpperBound = lCurrentBoundary;
-                  lCurrentBoundary = (lKnownFeasible + lCurrentBoundary) / 2;
+                  // TODO remove this from production code -> lTmpFeasible stuff
+                  //lCallsToCBMCCounter++;
+                  boolean lTmpFeasible = CProver.isFeasible(lPath.get(0).getLocationNode().getFunctionName(), lTmpPathStringRepresentation);
+
+                  assert(!lTmpFeasible);
+
+                  lInfeasibleElement = (CompositeElement)lPath.remove(lPath.size() - 1);
                 }
-              } else { 
-                if (lCurrentBoundary == (lPath.size() - 1)) { // path is ok in full
-                  lKnownFeasible = lCurrentBoundary;
-                  break;
-                } else if ((lCurrentBoundary + 1) == lUpperBound) { // we have found the last usable element
-                  ++lKnownFeasible;
-                  break;
+              } while (!lFeasible);
+            }
+            else {
+              int lKnownFeasible = -1;
+              int lCurrentBoundary = lPath.size() - 1;
+              int lUpperBound = lPath.size() - 1;
+              
+              
+              while (true) {
+                System.err.println("K C U: " + lKnownFeasible + " " + lCurrentBoundary + " " + lUpperBound);
+                assert(lKnownFeasible < lCurrentBoundary);
+
+                List<CFAEdge> lCFAPath = AbstractPathToCTranslator.getPath(lPath, lPath.get(lCurrentBoundary));
+
+                List<String> lPathStringRepresentation = AbstractPathToCTranslator.translatePath(pCfas, lCFAPath);
+
+                lCallsToCBMCCounter++;
+                lFeasible = CProver.isFeasible(lPath.get(0).getLocationNode().getFunctionName(), lPathStringRepresentation);
+
+                /*if (!lFeasible) {
+                  --lCurrentBoundary;
                 } else {
                   lKnownFeasible = lCurrentBoundary;
-                  lCurrentBoundary = (lUpperBound + lCurrentBoundary) / 2;
+                  break;
+                }*/
+                
+                // binary search
+                if (!lFeasible) {
+                  if ((lKnownFeasible + 1) == lCurrentBoundary) { // we have found the last usable element
+                    break;
+                  } else {
+                    lUpperBound = lCurrentBoundary;
+                    lCurrentBoundary = (lKnownFeasible + lCurrentBoundary) / 2;
+                  }
+                } else { 
+                  if (lCurrentBoundary == (lPath.size() - 1)) { // path is ok in full
+                    lKnownFeasible = lCurrentBoundary;
+                    break;
+                  } else if ((lCurrentBoundary + 1) == lUpperBound) { // we have found the last usable element
+                    ++lKnownFeasible;
+                    break;
+                  } else {
+                    lKnownFeasible = lCurrentBoundary;
+                    lCurrentBoundary = (lUpperBound + lCurrentBoundary) / 2;
+                  }
                 }
               }
-            }
-            System.err.println("final K C U: " + lKnownFeasible + " " + lCurrentBoundary + " " + lUpperBound);
-            
-            assert (lKnownFeasible >= 0);
-            assert (lKnownFeasible < lPath.size());
-            if (lKnownFeasible < (lPath.size() - 1)) {
-              lInfeasibleElement = (CompositeElement) lPath.get(lKnownFeasible + 1);
-              lPath = lPath.subList(0, lKnownFeasible + 1); // removeRange is a protected member only, would be nicer...
-            }
-                  
-            lPaths.add(lPath);
-            lPathTree.addPath(lPath);
+              
+              System.err.println("final K C U: " + lKnownFeasible + " " + lCurrentBoundary + " " + lUpperBound);
 
+              assert (lKnownFeasible >= 0);
+              assert (lKnownFeasible < lPath.size());
+              if (lKnownFeasible < (lPath.size() - 1)) {
+                lInfeasibleElement = (CompositeElement) lPath.get(lKnownFeasible + 1);
+                lPath = lPath.subList(0, lKnownFeasible + 1); // removeRange is a protected member only, would be nicer...
+              }
+
+              lPaths.add(lPath);
+              lPathTree.addPath(lPath);
+            }
+            
             System.out.println(lPathCounter + "[" + lCallsToCBMCCounter + "]");
             
 
@@ -396,8 +402,7 @@ public class QueryDrivenProgramTesting {
 
             // cleanup ART
             if (lInfeasibleElement != null) {
-              System.err.println("Searching: " + lInfeasibleElement);
-              lAbstractReachabilityTree.removeSubtree(lInfeasibleElement);
+              lElementsToBeRemovedFromART.add(lInfeasibleElement);
             }
           } else {
             lStack.push(new Pair<CompositeElement, Iterator<CompositeElement>>(lChild, lAbstractReachabilityTree.getChildren(lChild).iterator()));
@@ -408,11 +413,28 @@ public class QueryDrivenProgramTesting {
         }
       }
            
+      for (CompositeElement lElement : lElementsToBeRemovedFromART) {
+        lAbstractReachabilityTree.removeSubtree(lElement);
+      }
+      
       System.out.println();
       System.out.println("lStack.empty() = " + lStack.empty());
       System.out.println("lTestGoals.isEmpty() = " + lTestGoals.isEmpty());
       System.out.println("lPathCounter = " + lPathCounter);
       System.out.println("lPathMaxLength = " + lPathMaxLength);
+      
+      }
+      else {
+        // ART has reached a fixpoint, no remaining test goal is reachable
+        lInfeasibleTestGoals.addAll(lTestGoals);
+        lTestGoals.clear();
+      }
+      
+      if (lTestGoals.isEmpty()) {
+        if (CPAMain.cpaConfig.getBooleanValue("art.visualize")) {
+          outputAbstractReachabilityTree("art_final_", lInitialElements, lAbstractReachabilityTree);
+        }
+      }
     }
     
     System.out.println("FEASIBLE PATHS");
@@ -431,6 +453,55 @@ public class QueryDrivenProgramTesting {
     System.out.println("#Test cases computed: " + lPaths.size());
     
     return null;
+  }
+  
+  public static void outputAbstractReachabilityTree(String pFileId, Collection<CompositeElement> pSpecialElements, ParametricAbstractReachabilityTree<CompositeElement> pAbstractReachabilityTree) {
+    assert(pAbstractReachabilityTree != null);
+    assert(pFileId != null);
+    assert(pSpecialElements != null);
+    
+    File lFile = null;
+
+    try {
+      lFile = File.createTempFile(pFileId, ".dot");
+    } catch (IOException e) {
+      e.printStackTrace();
+      assert (false);
+    }
+
+    lFile.deleteOnExit();
+
+    PrintWriter lWriter = null;
+
+    try {
+      lWriter = new PrintWriter(lFile);
+    } catch (FileNotFoundException e) {
+      e.printStackTrace();
+      assert (false);
+    }
+
+    lWriter.println(pAbstractReachabilityTree.toDot(pSpecialElements));
+
+    lWriter.close();
+
+    try {
+      File lPostscriptFile = File.createTempFile(pFileId, ".ps");
+
+      lPostscriptFile.deleteOnExit();
+
+      Process lDotProcess = Runtime.getRuntime().exec("dot -Tps -o" + lPostscriptFile.getAbsolutePath() + " " + lFile.getAbsolutePath());
+
+      lDotProcess.waitFor();
+
+      File lPDFFile = File.createTempFile(pFileId, ".pdf");
+
+      Process lPs2PdfProcess = Runtime.getRuntime().exec("ps2pdf " + lPostscriptFile.getAbsolutePath() + " " + lPDFFile.getAbsolutePath());
+
+      lPs2PdfProcess.waitFor();
+    } catch (Exception e) {
+      e.printStackTrace();
+      assert (false);
+    }
   }
   
   public static void printTestGoals(String pTitle, Collection<Automaton<CFAEdge>.State> pTestGoals) {

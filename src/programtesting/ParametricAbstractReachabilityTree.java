@@ -36,15 +36,28 @@ public class ParametricAbstractReachabilityTree<TreeElement> {
 
   private TreeElement mRoot;
   private Map<TreeElement, Collection<TreeElement>> mChildren;
+  private Map<TreeElement, TreeElement> mParents;
+  private boolean mUpdatedFlag;
 
   public ParametricAbstractReachabilityTree() {
     mRoot = null;
     mChildren = new HashMap<TreeElement, Collection<TreeElement>>();
+    mParents = new HashMap<TreeElement, TreeElement>();
+    unsetUpdatedFlag();
+  }
+  
+  public void unsetUpdatedFlag() {
+    mUpdatedFlag = false;
+  }
+  
+  public boolean hasBeenUpdated() {
+    return mUpdatedFlag;
   }
 
   public void clear() {
     mChildren.clear();
     mRoot = null;
+    mUpdatedFlag = true;
   }
 
   public void setRoot(TreeElement pRoot) {
@@ -71,6 +84,8 @@ public class ParametricAbstractReachabilityTree<TreeElement> {
     assert (!contains(pElement));
 
     mChildren.put(pElement, new HashSet<TreeElement>());
+    
+    mUpdatedFlag = true;
   }
 
   public void add(TreeElement pParent, TreeElement pChild) {
@@ -88,6 +103,20 @@ public class ParametricAbstractReachabilityTree<TreeElement> {
     lParentEntry.add(pChild);
 
     createEntry(pChild);
+    
+    mParents.put(pChild, pParent);
+  }
+  
+  public boolean hasParent(TreeElement pElement) {
+    assert(pElement != null);
+    
+    return mParents.containsKey(pElement);
+  }
+  
+  public TreeElement getParent(TreeElement pElement) {
+    assert(pElement != null);
+    
+    return mParents.get(pElement);
   }
 
   public boolean contains(TreeElement pElement) {
@@ -109,13 +138,26 @@ public class ParametricAbstractReachabilityTree<TreeElement> {
   
   public void removeSubtree(TreeElement lElement) {
     assert(lElement != null);
+
+    Collection<TreeElement> lChildren = new HashSet<TreeElement>(getChildren(lElement));
     
-    for (TreeElement lChildElement : getChildren(lElement)) {
+    //for (TreeElement lChildElement : getChildren(lElement)) {
+    for (TreeElement lChildElement : lChildren) {
       removeSubtree(lChildElement);
     }
     
     // TODO remove lElement from parent element
     mChildren.remove(lElement);
+    
+    if (hasParent(lElement)) {
+      TreeElement lParent = getParent(lElement);
+      
+      Collection<TreeElement> lParentsChildren = getChildren(lParent);
+      
+      lParentsChildren.remove(lElement);
+    }
+    
+    mUpdatedFlag = true;
   }
   
   public String toDot() {
