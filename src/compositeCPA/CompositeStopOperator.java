@@ -28,6 +28,8 @@ import java.util.List;
 
 import cmdline.CPAMain;
 
+import cpa.common.CallElement;
+import cpa.common.CallStack;
 import cpa.common.CompositeDomain;
 import cpa.common.CompositeElement;
 import cpa.common.interfaces.AbstractElement;
@@ -35,6 +37,7 @@ import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.StopOperator;
 import exceptions.CPAException;
+import java.util.Stack;
 
 public class CompositeStopOperator implements StopOperator{
 
@@ -68,9 +71,27 @@ public class CompositeStopOperator implements StopOperator{
     CompositeElement compositeElement1 = (CompositeElement) element;
     CompositeElement compositeElement2 = (CompositeElement) reachedElement;
 
-    if(!compositeElement1.getCallStack().stacksContextEqual(compositeElement2.getCallStack())){
+    CallStack lCallStack1 = compositeElement1.getCallStack();
+    CallStack lCallStack2 = compositeElement2.getCallStack();
+    
+    Stack<CallElement> lStack1 = lCallStack1.getStack();
+    Stack<CallElement> lStack2 = lCallStack2.getStack();
+    
+    // is lStack2 a prefix of lStack1?
+    if (lStack2.size() > lStack1.size()) {
       return false;
     }
+    
+    for (int lStackIndex = 0; lStackIndex < lStack2.size(); lStackIndex++) {
+      if (!lStack2.get(lStackIndex).equals(lStack1.get(lStackIndex))) {
+        return false;
+      }
+    }
+    
+    
+    /*if(!compositeElement1.getCallStack().stacksContextEqual(compositeElement2.getCallStack())){
+      return false;
+    }*/
 
     List<AbstractElement> compositeElements1 = compositeElement1.getElements ();
     List<AbstractElement> compositeElements2 = compositeElement2.getElements ();
