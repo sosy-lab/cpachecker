@@ -440,8 +440,8 @@ public class QueryDrivenProgramTesting {
     System.out.println("FEASIBLE PATHS");
     System.out.println("lPaths: " + lPaths.size());
     System.out.println("lPathTree: " + lPathTree.getMaximalPaths().size());
-    System.out.println("Infeasible test goals (#" + lInfeasibleTestGoals.size() + ") = " + lInfeasibleTestGoals);
     
+    printTestGoals("Infeasible test goals (#" + lInfeasibleTestGoals.size() + ") = ", lInfeasibleTestGoals);
    
     for (List<AbstractElementWithLocation> p : lPaths) {
       List<String> strpath = AbstractPathToCTranslator.translatePath(pCfas, AbstractPathToCTranslator.getPath(p, null));
