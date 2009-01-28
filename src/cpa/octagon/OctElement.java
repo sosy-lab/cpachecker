@@ -24,6 +24,7 @@
 package cpa.octagon;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Set;
 
 import octagon.LibraryAccess;
@@ -200,7 +201,7 @@ public class OctElement implements AbstractElement{
 	/**
 	 * Adds a new variable in form of functionName::variableName. For example if a
 	 * new variable a is declared in function main(), main::a is added to the
-	 * list of variables. After this operation you have to increse octagon
+	 * list of variables. After this operation you have to increase octagon
 	 * dimension manually!
 	 * @param varName Name of the variable.
 	 * @param funcName Name of the function that contains the variable
@@ -234,7 +235,7 @@ public class OctElement implements AbstractElement{
 	 * @param functionName Name of the function.
 	 * @return id of the variable
 	 */
-	public int getVariableId(Set<String> globalVars, String varName, String functionName){
+	public int getVariableId(List<String> globalVars, String varName, String functionName){
 		String variableName = "";
 		if(globalVars.contains(varName)){
 			variableName = "::" + varName;

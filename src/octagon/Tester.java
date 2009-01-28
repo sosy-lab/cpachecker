@@ -23,6 +23,7 @@
  */
 package octagon;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 
 import cpa.octagon.OctElement;
@@ -120,7 +121,7 @@ public class Tester {
 		array[array.length-1] = new Num(44);
 		//array[variableId] = new Num(1);
 
-		int lvar = octelem.getVariableId(new HashSet<String>(), "c", "main");
+		int lvar = octelem.getVariableId(new ArrayList<String>(), "c", "main");
 		System.out.println(octelem.getOctagon().getDimension());
 		octelem.update(LibraryAccess.assignVar(octelem, lvar, array));
 		System.out.println("==== 1 ==== \n" + octelem);

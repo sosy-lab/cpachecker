@@ -73,7 +73,7 @@ public class OctTransferRelation implements TransferRelation{
   // top elements if needed
   private OctDomain octDomain;
   // set to set global variables
-  private Set<String> globalVars;
+  private List<String> globalVars;
 
   /**
    * Class constructor.
@@ -82,7 +82,7 @@ public class OctTransferRelation implements TransferRelation{
   public OctTransferRelation (OctDomain octDomain)
   {
     this.octDomain = octDomain;
-    globalVars = new HashSet<String>();
+    globalVars = new ArrayList<String>();
     LibraryAccess.initOctEnvironment();
   }
 
@@ -105,7 +105,7 @@ public class OctTransferRelation implements TransferRelation{
 //  System.out.println("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
 //  }
 
-    //System.out.println(" EDGE "+ cfaEdge.getRawStatement());
+    //System.out.println(cfaEdge);
     // octElement is the region of the current state
     // this state will be updated using the edge
     OctElement octElement = (OctElement) element;
@@ -194,7 +194,6 @@ public class OctTransferRelation implements TransferRelation{
           e.printStackTrace();
         }
       }
-      // this function is not on call stack
       else{
         try {
           handleFunctionCall(octElement, functionCallEdge);
@@ -230,13 +229,19 @@ public class OctTransferRelation implements TransferRelation{
 
     case MultiStatementEdge:
     {
+      assert(false);
       break;
     }
 
     case MultiDeclarationEdge:
     {
+      assert(false);
       break;
     }
+    }
+
+    if(octElement.isEmpty()){
+      octElement.setBottom();
     }
 
     if(cfaEdge.getSuccessor() instanceof CFAErrorNode && 
@@ -244,14 +249,12 @@ public class OctTransferRelation implements TransferRelation{
       System.out.println(" ERROR NODE REACHED ");
       System.out.println(" ============================= ");
       System.out.println(octElement);
+      System.out.println("Error location(s) reached? YES, there is a BUG!");
       System.exit(0);
     }
 //  System.out.println(" ====================== " + cfaEdge + " >>>>>>> ");
 //  System.out.println(octElement);
 //  System.out.println();
-    if(octElement.isEmpty()){
-      octElement.setBottom();
-    }
     return octElement;
   }
 
@@ -548,6 +551,111 @@ public class OctTransferRelation implements TransferRelation{
             throw new OctagonTransferException("Unhandled case " + cfaEdge.getPredecessor().getNodeNumber());
           }
         }
+
+        else if(op2 instanceof IASTUnaryExpression){
+          IASTIdExpression var = (IASTIdExpression)op1;
+          String varName = var.getRawSignature();
+          int variableId = octElement.getVariableId(globalVars, varName, functionName);
+          IASTUnaryExpression unaryExp = (IASTUnaryExpression) op2;
+          if(unaryExp.getOperator() != IASTUnaryExpression.op_minus){
+            throw new OctagonTransferException("Unhandled case " + cfaEdge.getPredecessor().getNodeNumber());
+          }
+          double valueOfLiteral = Double.valueOf(op2.getRawSignature()).doubleValue();
+          // a > 9
+          if(opType == IASTBinaryExpression.op_greaterThan)
+          {
+            // this is the if then edge
+            if(truthValue)
+            {
+              propagateBooleanExpression(octElement, IASTBinaryExpression.op_greaterThan, variableId, -1, true, true, valueOfLiteral);
+            }
+            else{
+              propagateBooleanExpression(octElement, IASTBinaryExpression.op_lessEqual, variableId, -1, true, true, valueOfLiteral);
+            }
+          }
+          // a >= 9
+          else if(opType == IASTBinaryExpression.op_greaterEqual)
+          {
+            // this is the if then edge
+            if(truthValue)
+            {
+              propagateBooleanExpression(octElement, IASTBinaryExpression.op_greaterEqual, variableId, -1, true, true, valueOfLiteral);
+            }
+            else{
+              propagateBooleanExpression(octElement, IASTBinaryExpression.op_lessThan, variableId, -1, true, true, valueOfLiteral);
+            }
+          }
+          // a < 9
+          else if(opType == IASTBinaryExpression.op_lessThan)
+          {
+            // this is the if then edge
+            if(truthValue)
+            {
+              propagateBooleanExpression(octElement, IASTBinaryExpression.op_lessThan, variableId, -1, true, true, valueOfLiteral);
+            }
+            else{
+              propagateBooleanExpression(octElement, IASTBinaryExpression.op_greaterEqual, variableId, -1, true, true, valueOfLiteral);
+            }
+          }
+          // a <= 9
+          else if(opType == IASTBinaryExpression.op_lessEqual)
+          {
+            // this is the if then edge
+            if(truthValue)
+            {
+              propagateBooleanExpression(octElement, IASTBinaryExpression.op_lessEqual, variableId, -1, true, true, valueOfLiteral);
+            }
+            else{
+              propagateBooleanExpression(octElement, IASTBinaryExpression.op_greaterThan, variableId, -1, true, true, valueOfLiteral);
+            }
+          }
+          // a == 9
+          else if(opType == IASTBinaryExpression.op_equals)
+          {
+            // this is the if then edge
+            if(truthValue)
+            {
+              propagateBooleanExpression(octElement, IASTBinaryExpression.op_equals, variableId, -1, true, true, valueOfLiteral);
+            }
+            else{
+              propagateBooleanExpression(octElement, IASTBinaryExpression.op_notequals, variableId, -1, true, true, valueOfLiteral);
+            }
+          }
+          // a != 9
+          else if(opType == IASTBinaryExpression.op_notequals)
+          {
+            // this is the if then edge
+            if(truthValue)
+            {
+              propagateBooleanExpression(octElement, IASTBinaryExpression.op_notequals, variableId, -1, true, true, valueOfLiteral);
+            }
+            else{
+              propagateBooleanExpression(octElement, IASTBinaryExpression.op_equals, variableId, -1, true, true, valueOfLiteral);
+            }
+          }
+          else if(opType == IASTBinaryExpression.op_minus){
+            if(truthValue){
+              propagateBooleanExpression(octElement, IASTBinaryExpression.op_notequals, variableId, -1, true, true, valueOfLiteral);
+            }
+            else{
+              propagateBooleanExpression(octElement, IASTBinaryExpression.op_equals, variableId, -1, true, true, valueOfLiteral);
+            }
+          }
+
+          else if(opType == IASTBinaryExpression.op_plus){
+            if(truthValue){
+              propagateBooleanExpression(octElement, IASTBinaryExpression.op_notequals, variableId, -1, true, false, valueOfLiteral);
+            }
+            else{
+              propagateBooleanExpression(octElement, IASTBinaryExpression.op_equals, variableId, -1, true, false, valueOfLiteral);
+            }
+          }
+
+          else{
+            throw new OctagonTransferException("Unhandled case " + cfaEdge.getPredecessor().getNodeNumber());
+          }
+        }
+
         else{
           throw new OctagonTransferException("Unhandled case " + cfaEdge.getPredecessor().getNodeNumber());
         }
@@ -1017,6 +1125,12 @@ public class OctTransferRelation implements TransferRelation{
       else if(op2 instanceof IASTUnaryExpression){
         IASTUnaryExpression unaryExp = (IASTUnaryExpression)op2;
         handleUnaryExpAssignment(octElement, op1, unaryExp, cfaEdge);
+      }
+      else if(op2 instanceof IASTFunctionCallExpression){
+        IASTIdExpression lvar = ((IASTIdExpression)op1);
+        String nameOfLVar = lvar.getRawSignature();
+        int varLid = octElement.getVariableId(globalVars, nameOfLVar, functionName);
+        octElement.update(LibraryAccess.forget(octElement, varLid));
       }
       else{
         throw new OctagonTransferException("Unhandled case " + cfaEdge.getPredecessor().getNodeNumber());
@@ -1690,13 +1804,15 @@ public class OctTransferRelation implements TransferRelation{
     OctElement newOctElement = new OctElement();
 
     int noOfAddedVars = 0;
-    for(String globalVar:globalVars){
+    for(int i = 0; i<globalVars.size(); i++){
+      String globalVar = globalVars.get(i);
       if(newOctElement.addVar(globalVar, "")){
         noOfAddedVars++;
       }
     }
-    if(noOfAddedVars > 0)
+    if(noOfAddedVars > 0){
       newOctElement.update(LibraryAccess.addDimension(newOctElement, noOfAddedVars));
+    }
 
     noOfAddedVars = 0;
     for(String paramName:paramNames){
@@ -1704,9 +1820,9 @@ public class OctTransferRelation implements TransferRelation{
         noOfAddedVars++;
       }
     }
-    if(noOfAddedVars > 0)
+    if(noOfAddedVars > 0){
       newOctElement.update(LibraryAccess.addDimension(newOctElement, noOfAddedVars));
-
+    }
     HashMap<Integer, ArrayList<Integer>> replacementMap = new HashMap<Integer, ArrayList<Integer>>();
 
     for(String globalVar:globalVars){
@@ -1787,6 +1903,7 @@ public class OctTransferRelation implements TransferRelation{
       }
     }
     octElement.update(newOctElement);
+    //System.out.println(octElement);
   }
 
   private void copyConstraintFromOctagon(OctElement octElement,
@@ -1952,6 +2069,31 @@ public class OctTransferRelation implements TransferRelation{
           array[rvar] = new Num(1);
           octElement.update(LibraryAccess.assignVar(octElement, lvar, array));
         }
+
+        else if(exprInParanhesis instanceof IASTUnaryExpression){
+          IASTUnaryExpression unExp = (IASTUnaryExpression)exprInParanhesis;
+          if(unExp.getOperator() == IASTUnaryExpression.op_minus){
+            int resultvarID = octElement.getVariableId(globalVars, "___cpa_temp_result_var_", functionName);
+            String literalValue = unExp.getRawSignature ();
+            // TODO
+//            int typeOfLiteral = (unExp.getKind());
+//            if( typeOfLiteral ==  IASTLiteralExpression.lk_integer_constant ||
+//                typeOfLiteral == IASTLiteralExpression.lk_float_constant)
+//            {
+              double val = Double.valueOf(literalValue).doubleValue();
+              Num n = new Num(val);
+              Num[] array = new Num[octElement.getNumberOfVars()+1];
+
+              for(int j=0; j<array.length-1; j++){
+                array[j] = new Num(0);
+              }
+              array[array.length-1] = n;
+              octElement.update(LibraryAccess.assignVar(octElement, resultvarID, array));
+            //}
+          }
+        }
+
+
         else{
           throw new OctagonTransferException("Unhandled case");
         }
@@ -1962,6 +2104,9 @@ public class OctTransferRelation implements TransferRelation{
     }
     else if(expression instanceof IASTBinaryExpression){
       throw new OctagonTransferException("Unhandled case");
+    }
+    else if(expression == null){
+      // do nothing
     }
     else {
       throw new OctagonTransferException("Unhandled case");
@@ -2049,9 +2194,10 @@ public class OctTransferRelation implements TransferRelation{
         throw new OctagonTransferException("Unhandled case " + functionReturnEdge.getPredecessor().getNodeNumber());
       }
     }
-    // expression is a unary operation, e.g. g(b);
+    // TODO
     else if (exprOnSummary instanceof IASTUnaryExpression)
     {
+      assert(false);
       // onyl globals
       for(String globalVar:globalVars){
         int id1 = octElement.getVariableId(globalVars, globalVar, calledFunctionName);
@@ -2069,7 +2215,7 @@ public class OctTransferRelation implements TransferRelation{
         }
       }
     }
-    // TODO check
+    // expression is a funct. call, e.g. g(b);
     else if (exprOnSummary instanceof IASTFunctionCallExpression){
       // onyl globals
       for(String globalVar:globalVars){
@@ -2107,12 +2253,16 @@ public class OctTransferRelation implements TransferRelation{
           for(int newVal2:replacementMap.get(val2id)){
             copyConstraintFromOctagon(octElement, newElement, val1id, val2id,
                 newVal1, newVal2);
+//          System.out.println(" ------------ ");
+//          System.out.println(newElement);
+//          System.out.println(" ------------ ");
           }
         }
       }
     }
 
     octElement.update(newElement);
+    //System.out.println(octElement);
   }
 
 }

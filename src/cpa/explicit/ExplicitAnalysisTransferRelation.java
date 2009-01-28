@@ -78,7 +78,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
   @Override
   public AbstractElement getAbstractSuccessor(AbstractElement element,
                                               CFAEdge cfaEdge, Precision precision) throws CPATransferException {
-    //System.out.println(cfaEdge);
+    System.out.println(cfaEdge);
     ExplicitAnalysisElement expAnalysisElement = (ExplicitAnalysisElement) element;
 
     // check the type of the edge

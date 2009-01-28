@@ -31,14 +31,17 @@ public class OctagonTransferException extends TransferRelationException
 
 	public OctagonTransferException(){
 		super();
+		System.exit(0);
 	}
 
 	public OctagonTransferException(String s){
 		super(s);
+		System.exit(0);
 	}
 
 	public OctagonTransferException(String s, int i){
 		super(s + " @ line " + i);
+		System.exit(0);
 	}
 
 }
