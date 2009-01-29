@@ -587,7 +587,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     }
 
     private void warn(String msg) {
-        LazyLogger.log(LazyLogger.DEBUG_1, "WARNING: ", msg);
+        LazyLogger.log(LazyLogger.DEBUG_2, "WARNING: ", msg);
     }
 
     protected boolean isStartOfFunction(CFAEdge edge) {

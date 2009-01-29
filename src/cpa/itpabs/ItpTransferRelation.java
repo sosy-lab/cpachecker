@@ -348,14 +348,14 @@ public class ItpTransferRelation implements TransferRelation {
             SymbolicFormula newabs = info.getFormulaForRefinement(e);
             if (newabs.isFalse()) {
                 falseAbst.add(e);
-                LazyLogger.log(LazyLogger.DEBUG_2,
+                LazyLogger.log(LazyLogger.DEBUG_1,
                         "REFINING1 ", e, ", new abstraction: ", newabs);
                 e.setAbstraction(newabs);
                 for (AbstractElementWithLocation el : domain.getCPA().uncoverAll(e)) {
                     maybeToWaitlist.add(el);
                 }
             } else if (e.getAbstraction().isTrue() && !newabs.isTrue()) {
-                LazyLogger.log(LazyLogger.DEBUG_2,
+                LazyLogger.log(LazyLogger.DEBUG_1,
                         "REFINING2 ", e, ", new abstraction: ", newabs);
                 e.setAbstraction(newabs);
                 for (AbstractElementWithLocation el : domain.getCPA().uncoverAll(e)) {
@@ -367,11 +367,11 @@ public class ItpTransferRelation implements TransferRelation {
                     for (AbstractElementWithLocation el : domain.getCPA().uncoverAll(e)) {
                         maybeToWaitlist.add(el);
                     }
-                    LazyLogger.log(LazyLogger.DEBUG_2,
+                    LazyLogger.log(LazyLogger.DEBUG_1,
                             "REFINING3 ", e, ", new abstraction: ",
                             e.getAbstraction());
                 } else {
-                    LazyLogger.log(LazyLogger.DEBUG_2,
+                    LazyLogger.log(LazyLogger.DEBUG_1,
                             "NOT REFINING ", e,
                             " because new abstraction is entailed by old one! ",
                             "OLD: ", e.getAbstraction(), ", NEW: ", newabs);
