@@ -297,6 +297,12 @@ public class SummaryTransferRelation implements TransferRelation {
             assert(firstInterpolant != null);
             if (numSeen > 1) {
 //                assert(numSeen == 2);
+                if (CPAMain.cpaConfig.getBooleanValue(
+                        "cpas.symbpredabs.abstraction.cartesian")) {
+		    // not enough predicates
+		    assert(false);
+		    System.exit(1);
+		}
             } else {
                 assert(numSeen <= 1);
             }
