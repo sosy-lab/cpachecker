@@ -23,6 +23,9 @@
  */
 package cpa.symbpredabs;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Collections;
@@ -33,6 +36,9 @@ import java.util.Stack;
 import java.util.Vector;
 
 import cfa.objectmodel.CFANode;
+
+import common.Pair;
+
 import cpa.common.interfaces.AbstractElementWithLocation;
 
 public class AbstractReachabilityTree {
@@ -142,8 +148,48 @@ public class AbstractReachabilityTree {
         return tree.containsKey(n);
     }
     
+    public boolean inTree(AbstractElementWithLocation n) {
+        Stack<AbstractElementWithLocation> toProcess = 
+            new Stack<AbstractElementWithLocation>();
+        toProcess.push(root);
+        while (!toProcess.empty()) {
+            AbstractElementWithLocation e = toProcess.pop();
+            if (e == n) return true;
+            toProcess.addAll(getChildren(e));
+        }
+        return false;
+    }
+    
     public void clear() {
         root = null;
         tree.clear();
+    }
+    
+    public void dump(String outfile) throws IOException {
+        PrintWriter out = new PrintWriter(new File(outfile));
+        out.println("digraph ART {");
+        Stack<Pair<AbstractElementWithLocation, Integer>> toProcess = 
+            new Stack<Pair<AbstractElementWithLocation, Integer>>();
+        int i = 0;
+        if (root != null) {
+            toProcess.push(
+                    new Pair<AbstractElementWithLocation, Integer>(root, i));
+            out.println("" + (i++) + " [label=\"" + root + "\"];");
+        }
+
+        while (!toProcess.empty()) {
+            Pair<AbstractElementWithLocation, Integer> e = toProcess.pop();
+            for (AbstractElementWithLocation c : getChildren(e.getFirst())) {
+                int cur = i;
+                out.println("" + cur + " [label=\"" + c + "\"];");
+                out.println("" + e.getSecond() + " -> " + cur);
+                toProcess.push(
+                        new Pair<AbstractElementWithLocation, Integer>(c, i));
+                ++i;
+            }
+        }
+        out.println("}");
+        out.flush();
+        out.close();
     }
 }
