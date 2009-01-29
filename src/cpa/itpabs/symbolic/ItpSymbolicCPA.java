@@ -71,6 +71,7 @@ public class ItpSymbolicCPA extends ItpCPA {
         @Override
         public boolean isFunctionEnd(ItpAbstractElement e,
                                      ItpAbstractElement succ) {
+            if (succ == null) succ = e;
             CFANode n = succ.getLocation();
             return (n.getNumLeavingEdges() > 0 &&
                     n.getLeavingEdge(0) instanceof ReturnEdge);
