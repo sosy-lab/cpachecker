@@ -43,6 +43,7 @@ import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
 import org.eclipse.cdt.core.dom.ast.IASTPointerOperator;
 import org.eclipse.cdt.core.dom.ast.IASTReturnStatement;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
+import org.omg.CORBA.portable.ValueInputStream;
 
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAErrorNode;
@@ -109,7 +110,8 @@ public class OctTransferRelation implements TransferRelation{
     // octElement is the region of the current state
     // this state will be updated using the edge
     OctElement octElement = (OctElement) element;
-
+    OctElement octElement1 = octElement;
+    
     // check the type of the edge
     switch (cfaEdge.getEdgeType ())
     {
@@ -252,6 +254,7 @@ public class OctTransferRelation implements TransferRelation{
       System.out.println("Error location(s) reached? YES, there is a BUG!");
       System.exit(0);
     }
+    
 //  System.out.println(" ====================== " + cfaEdge + " >>>>>>> ");
 //  System.out.println(octElement);
 //  System.out.println();
@@ -453,10 +456,10 @@ public class OctTransferRelation implements TransferRelation{
 
           else if(opType == IASTBinaryExpression.op_plus){
             if(truthValue){
-              propagateBooleanExpression(octElement, IASTBinaryExpression.op_notequals, variableId, -1, true, false, valueOfLiteral);
+              propagateBooleanExpression(octElement, IASTBinaryExpression.op_notequals, variableId, -1, true, false, 0 - valueOfLiteral);
             }
             else{
-              propagateBooleanExpression(octElement, IASTBinaryExpression.op_equals, variableId, -1, true, false, valueOfLiteral);
+              propagateBooleanExpression(octElement, IASTBinaryExpression.op_equals, variableId, -1, true, false,  0 - valueOfLiteral);
             }
           }
 
@@ -680,6 +683,8 @@ public class OctTransferRelation implements TransferRelation{
             if(exp2 instanceof IASTBinaryExpression){
               IASTBinaryExpression binExp2 = (IASTBinaryExpression)exp2;
               handleAssumption(octElement, binExp2, cfaEdge, !truthValue);
+              // TODO check
+              return;
             }
             else {
               throw new OctagonTransferException("Unhandled case " + cfaEdge.getPredecessor().getNodeNumber());
@@ -754,7 +759,6 @@ public class OctTransferRelation implements TransferRelation{
     boolean isFirstVarPos = true;
     boolean isSecondVarPos = false;
     double value = 0;
-
     if(opType == IASTBinaryExpression.op_greaterEqual){
       isFirstVarPos = isLeftVarPos;
       if(rightVariableId >=0){
@@ -799,6 +803,7 @@ public class OctTransferRelation implements TransferRelation{
     else if(opType == IASTBinaryExpression.op_equals){
       propagateBooleanExpression(octElement, IASTBinaryExpression.op_lessEqual, leftVariableId, rightVariableId, isLeftVarPos, isRightVarPos, valueOfLiteral);
       propagateBooleanExpression(octElement, IASTBinaryExpression.op_greaterEqual, leftVariableId, rightVariableId, isLeftVarPos, isRightVarPos, valueOfLiteral);
+      return;
     }
 
     else if(opType == IASTBinaryExpression.op_notequals){
@@ -813,7 +818,6 @@ public class OctTransferRelation implements TransferRelation{
     else{
       throw new OctagonTransferException("Unhandled case");
     }
-
     handleBooleanExpression(octElement, leftVariableId, rightVariableId, isFirstVarPos, isSecondVarPos, value);
   }
 
