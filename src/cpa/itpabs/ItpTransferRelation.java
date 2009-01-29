@@ -23,6 +23,7 @@
  */
 package cpa.itpabs;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -338,6 +339,12 @@ public class ItpTransferRelation implements TransferRelation {
     private void performRefinement(Deque<ItpAbstractElement> path,
             ItpCounterexampleTraceInfo info) throws CPATransferException {
         SymbolicFormulaManager mgr = domain.getCPA().getFormulaManager();
+        // try {
+        //     abstractTree.dump("/home/alb/tmp/art.dot");
+        // } catch (IOException e1) {
+        //     // TODO Auto-generated catch block
+        //     e1.printStackTrace();
+        // }
         Collection<AbstractElementWithLocation> maybeToWaitlist =
             new HashSet<AbstractElementWithLocation>();
         Collection<ItpAbstractElement> falseAbst =
@@ -358,12 +365,14 @@ public class ItpTransferRelation implements TransferRelation {
                 LazyLogger.log(LazyLogger.DEBUG_1,
                         "REFINING2 ", e, ", new abstraction: ", newabs);
                 e.setAbstraction(newabs);
+                //maybeToWaitlist.add(e);
                 for (AbstractElementWithLocation el : domain.getCPA().uncoverAll(e)) {
                     maybeToWaitlist.add(el);
                 }
             } else if (!e.getAbstraction().isTrue() && !newabs.isTrue()) {
                 if (!mgr.entails(e.getAbstraction(), newabs)) {
                     e.setAbstraction(mgr.makeAnd(e.getAbstraction(), newabs));
+                    //maybeToWaitlist.add(e);
                     for (AbstractElementWithLocation el : domain.getCPA().uncoverAll(e)) {
                         maybeToWaitlist.add(el);
                     }
@@ -381,8 +390,10 @@ public class ItpTransferRelation implements TransferRelation {
             close(e);
         }
         assert(falseAbst.size() > 0);
+        ItpCPA cpa = domain.getCPA();
         Collection<AbstractElementWithLocation> toUnreach = new HashSet<AbstractElementWithLocation>();
         for (ItpAbstractElement ie : falseAbst) {
+//            maybeToWaitlist.addAll(cpa.removeDescendantsFromCovering(ie));
             Collection<AbstractElementWithLocation> tmp = 
                 abstractTree.getSubtree(ie, true, false);
             for (AbstractElement el : tmp) {
@@ -395,7 +406,7 @@ public class ItpTransferRelation implements TransferRelation {
         // uncovered as a consequence of refinement
         Collection<AbstractElementWithLocation> toWaitlist = new Vector<AbstractElementWithLocation>();
         for (AbstractElementWithLocation e : maybeToWaitlist) {
-            if (!toUnreach.contains(e)) {
+            if (((ItpAbstractElement)e).getParent() != null && !toUnreach.contains(e)) {
 //                assert(!expanded.contains(e));
                 toWaitlist.add(e);
             }
@@ -413,39 +424,39 @@ public class ItpTransferRelation implements TransferRelation {
 
         removeObsoleteToProcess(element);
 
-        if (!toProcess.isEmpty()) {
-            // this is when an element is covered and uncovers others, which
-            // need to be re-processed...
-            // this is really a HACK!!
-            LazyLogger.log(LazyLogger.DEBUG_1,
-                    "RE-ADDING uncovered to waitlist: ", toProcess);
-            Vector<AbstractElementWithLocation> toWaitlist =
-                new Vector<AbstractElementWithLocation>();
-            Collection<AbstractElement> tmp = toProcess;
-            toProcess = new HashSet<AbstractElement>();
-            for (AbstractElement e : tmp) {
-                ItpAbstractElement ie = (ItpAbstractElement)e;
-//                close(ie);
-//                if (!domain.getCPA().isCovered(ie)) {
-                    toWaitlist.add(ie);
-//                }
-            }
-            if (!toWaitlist.isEmpty()) {
-                Collections.sort(toWaitlist, new Comparator<AbstractElement>() {
-                    @Override
-                    public int compare(AbstractElement arg0,
-                                       AbstractElement arg1) {
-                        ItpAbstractElement a =
-                            (ItpAbstractElement)arg0;
-                        ItpAbstractElement b =
-                            (ItpAbstractElement)arg1;
-                        return b.getId() - a.getId();
-                    }
-                });
-                toWaitlist.add((ItpAbstractElement)element);
-                throw new ToWaitListException(toWaitlist);
-            }
-        }
+//        if (!toProcess.isEmpty()) {
+//            // this is when an element is covered and uncovers others, which
+//            // need to be re-processed...
+//            // this is really a HACK!!
+//            LazyLogger.log(LazyLogger.DEBUG_1,
+//                    "RE-ADDING uncovered to waitlist: ", toProcess);
+//            Vector<AbstractElementWithLocation> toWaitlist =
+//                new Vector<AbstractElementWithLocation>();
+//            Collection<AbstractElement> tmp = toProcess;
+//            toProcess = new HashSet<AbstractElement>();
+//            for (AbstractElement e : tmp) {
+//                ItpAbstractElement ie = (ItpAbstractElement)e;
+////                close(ie);
+////                if (!domain.getCPA().isCovered(ie)) {
+//                    toWaitlist.add(ie);
+////                }
+//            }
+//            if (!toWaitlist.isEmpty()) {
+//                Collections.sort(toWaitlist, new Comparator<AbstractElement>() {
+//                    @Override
+//                    public int compare(AbstractElement arg0,
+//                                       AbstractElement arg1) {
+//                        ItpAbstractElement a =
+//                            (ItpAbstractElement)arg0;
+//                        ItpAbstractElement b =
+//                            (ItpAbstractElement)arg1;
+//                        return b.getId() - a.getId();
+//                    }
+//                });
+//                toWaitlist.add((ItpAbstractElement)element);
+//                throw new ToWaitListException(toWaitlist);
+//            }
+//        }
 
 
         LazyLogger.log(CustomLogLevel.SpecificCPALevel,
@@ -504,8 +515,9 @@ public class ItpTransferRelation implements TransferRelation {
         Collection<AbstractElement> toRemove = new Vector<AbstractElement>();
         for (AbstractElement el : toProcess) {
             ItpAbstractElement iel = (ItpAbstractElement)el;
-            if (e.getLocation().equals(iel.getLocation()) &&
-                    e.getAbstraction().equals(iel.getAbstraction())) {
+//            if (e.getLocation().equals(iel.getLocation()) &&
+//                    e.getAbstraction().equals(iel.getAbstraction())) {
+            if (iel.getParent() == null) {
                 toRemove.add(iel);
             }
         }
@@ -522,17 +534,64 @@ public class ItpTransferRelation implements TransferRelation {
         List<AbstractElementWithLocation> allSucc = new Vector<AbstractElementWithLocation>();
         ItpAbstractElement e = (ItpAbstractElement)element;
         CFANode src = e.getLocation();
+        
+        AbstractElementWithLocation r = abstractTree.getRoot();
+        if (r == null || !(e != r && e.getParent() == null)) {            
+            assert(abstractTree.getRoot() == null ||
+                    abstractTree.inTree(e));
 
-        for (int i = 0; i < src.getNumLeavingEdges(); ++i) {
-            AbstractElement newe =
-                getAbstractSuccessor(e, src.getLeavingEdge(i), prec);
-            if (newe != domain.getBottomElement()) {
-                allSucc.add((ItpAbstractElement)newe);
+            if (!e.isCovered()) {
+                closeAncestors(e);
+
+                for (int i = 0; i < src.getNumLeavingEdges(); ++i) {
+                    AbstractElement newe =
+                        getAbstractSuccessor(e, src.getLeavingEdge(i), prec);
+                    if (newe != domain.getBottomElement()) {
+                        allSucc.add((ItpAbstractElement)newe);
+                    }
+                }
+            }
+            LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+                    allSucc.size(), " successors found");
+        }
+        
+        if (!toProcess.isEmpty()) {
+            // this is when an element is covered and uncovers others, which
+            // need to be re-processed...
+            // this is really a HACK!!
+            LazyLogger.log(LazyLogger.DEBUG_1,
+                    "RE-ADDING uncovered to waitlist: ", toProcess);
+            Vector<AbstractElementWithLocation> toWaitlist =
+                new Vector<AbstractElementWithLocation>();
+            Collection<AbstractElement> tmp = toProcess;
+            toProcess = new HashSet<AbstractElement>();
+            for (AbstractElement el : tmp) {
+                ItpAbstractElement ie = (ItpAbstractElement)el;
+//                close(ie);
+//                if (!domain.getCPA().isCovered(ie)) {
+                if (ie.getParent() != null) {
+                    toWaitlist.add(ie);
+                }
+//                }
+            }
+            if (!toWaitlist.isEmpty()) {
+                Collections.sort(toWaitlist, new Comparator<AbstractElement>() {
+                    @Override
+                    public int compare(AbstractElement arg0,
+                                       AbstractElement arg1) {
+                        ItpAbstractElement a =
+                            (ItpAbstractElement)arg0;
+                        ItpAbstractElement b =
+                            (ItpAbstractElement)arg1;
+                        return b.getId() - a.getId();
+                    }
+                });
+//                toWaitlist.add((ItpAbstractElement)element);
+//                throw new ToWaitListException(toWaitlist);
+                allSucc.addAll(toWaitlist);
             }
         }
-
-        LazyLogger.log(CustomLogLevel.SpecificCPALevel,
-                       allSucc.size(), " successors found");
+        
 
         return allSucc;
     }
@@ -557,6 +616,10 @@ public class ItpTransferRelation implements TransferRelation {
         CFANode n = e.getLocation();
         assert(reached.containsKey(n));
         reached.get(n).remove(e);
+        e.setParent(null);
+        if (e.isCovered()) {
+            domain.getCPA().uncover(e);
+        }
     }
 
     /*
@@ -585,6 +648,14 @@ public class ItpTransferRelation implements TransferRelation {
                     System.exit(1);
                 }
             }
+        }
+    }
+    
+    private void closeAncestors(ItpAbstractElement e) {
+        ItpAbstractElement p = e.getParent();
+        while (p != null) {
+            close(p);
+            p = p.getParent();
         }
     }
 
@@ -649,17 +720,18 @@ public class ItpTransferRelation implements TransferRelation {
 
                     if (nca.getAbstraction().isFalse()) {
                         // this might happen because of other forced covers
-                        for (ItpAbstractElement e2 : path2) {
-                            if (!e2.getAbstraction().isFalse()) {
-                                toProcess.addAll(cpa.uncoverAll(e2));
-                                e2.setAbstraction(nca.getAbstraction());
-                            }
-                        }
-                        cpa.setCoveredBy(e, el);
-                        LazyLogger.log(LazyLogger.DEBUG_1,
-                                "YES, Forcing coverage of: ", e, " by: ", el);
-                        ++forcedCoverStats.numForcedCoveredElements;
-                        return true;
+//                        for (ItpAbstractElement e2 : path2) {
+//                            if (!e2.getAbstraction().isFalse()) {
+//                                toProcess.addAll(cpa.uncoverAll(e2));
+//                                e2.setAbstraction(nca.getAbstraction());
+//                            }
+//                        }
+//                        cpa.setCoveredBy(e, el);
+//                        LazyLogger.log(LazyLogger.DEBUG_1,
+//                                "YES, Forcing coverage of: ", e, " by: ", el);
+//                        ++forcedCoverStats.numForcedCoveredElements;
+//                        return true;
+                        continue;
                     }
 
                     ItpCounterexampleTraceInfo info = null;

@@ -220,6 +220,14 @@ public abstract class ItpCPA implements ConfigurableProgramAnalysis {
             return Collections.emptySet();
         }
     }
+    
+    public void uncover(ItpAbstractElement e) {
+        ItpAbstractElement c = e.getCoveredBy();
+        assert(c != null);
+        e.setCoveredBy(null);
+        assert (covers.containsKey(c));
+        covers.get(c).remove(e);
+    }
 
     /**
      * uncovers all the descendants of the given element

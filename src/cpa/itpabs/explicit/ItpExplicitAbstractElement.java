@@ -48,7 +48,9 @@ public class ItpExplicitAbstractElement extends ItpAbstractElement {
         return "E<" + Integer.toString(
                 getLocation().getNodeNumber()) + ">(" +
                 Integer.toString(getId()) + ",P=" +
-                (getParent() != null ? getParent().getId() : "NIL") + ")";
+                (getParent() != null ? getParent().getId() : "NIL") + ")" + 
+                (isCovered() ? "[C " + getCoveredBy() + "]" : "") + "\\n" +
+                getAbstraction();
     }
 
     @Override

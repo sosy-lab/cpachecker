@@ -115,7 +115,7 @@ public class ItpStopOperator implements StopOperator {
             (ItpAbstractElement)reachedElement;
 
         if (e1.getLocation().equals(e2.getLocation()) &&
-                e2.getId() < e1.getId()) {
+                e2.getId() < e1.getId() && !e2.isCovered()) {
             LazyLogger.log(LazyLogger.DEBUG_1,
                     "Checking Coverage of element: ", element);
 
