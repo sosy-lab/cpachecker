@@ -51,6 +51,8 @@ import cpa.symbpredabs.mathsat.MathsatSymbolicFormula;
 import cpa.symbpredabs.mathsat.MathsatSymbolicFormulaManager;
 
 /**
+ * STILL ON-GOING, NOT FINISHED, AND CURRENTLY BROKEN
+ * 
  * An ItpCounterexampleRefiner is an object that is used to perform refinement
  * in interpolation-based lazy abstraction. It is also used for "forced
  * coverings" (see the CAV'06 paper by McMillan on "Lazy Abstraction with

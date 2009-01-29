@@ -34,6 +34,8 @@ import cpa.symbpredabs.SymbolicFormula;
 
 
 /**
+ * STILL ON-GOING, NOT FINISHED, AND CURRENTLY BROKEN
+ * 
  * An class that stores information about a counterexample trace. For
  * real counterexamples, this stores the actual execution trace leading to
  * the error. For spurious counterexamples, this stores a predicate map

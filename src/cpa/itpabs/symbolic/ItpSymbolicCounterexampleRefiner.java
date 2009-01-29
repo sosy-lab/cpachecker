@@ -59,6 +59,8 @@ import cpa.symbpredabs.summary.SummaryCFANode;
  * Specialized ItpSymbolicCounterexampleRefiner for the symbolic version with
  * summary locations
  *
+ * STILL ON-GOING, NOT FINISHED, AND CURRENTLY BROKEN
+ * 
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
 public class ItpSymbolicCounterexampleRefiner extends ItpCounterexampleRefiner {

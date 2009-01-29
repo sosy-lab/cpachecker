@@ -37,6 +37,7 @@ import cpa.symbpredabs.SymbolicFormulaManager;
 
 /**
  * An abstract formula manager for interpolation-based lazy abstraction.
+ * STILL ON-GOING, NOT FINISHED, AND CURRENTLY BROKEN  
  *
  * TODO - probably these two methods here should be moved to
  * AbstractFormulaManager, since pretty much every analysis that uses

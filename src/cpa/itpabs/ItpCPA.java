@@ -63,6 +63,7 @@ import cpa.symbpredabs.mathsat.YicesTheoremProver;
 
 /**
  * CPA for interpolation-based lazy abstraction.
+ * STILL ON-GOING, NOT FINISHED, AND CURRENTLY BROKEN
  *
  * This is an abstract class. See in the 'explicit/' and 'symbolic/'
  * subpackages for implementations.

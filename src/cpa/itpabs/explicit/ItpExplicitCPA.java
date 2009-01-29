@@ -37,6 +37,7 @@ import cpa.itpabs.explicit.ItpExplicitAbstractElement;
 
 /**
  * Explicit-state version of the interpolation-based lazy abstraction
+ * STILL ON-GOING, NOT FINISHED, AND CURRENTLY BROKEN
  *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */

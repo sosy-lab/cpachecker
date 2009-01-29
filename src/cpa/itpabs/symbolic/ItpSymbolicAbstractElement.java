@@ -38,6 +38,8 @@ import cpa.symbpredabs.summary.SummaryCFANode;
 /**
  * AbstractElement for the symbolic version (with summary locations) of the
  * interpolation-based lazy abstraction analysis
+ * 
+ * STILL ON-GOING, NOT FINISHED, AND CURRENTLY BROKEN 
  *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */

@@ -33,6 +33,8 @@ import cfa.objectmodel.CFANode;
  * differences between explicit-state and symbolic (with summaries) versions
  * of the analysis.
  *
+ * STILL ON-GOING, NOT FINISHED, AND CURRENTLY BROKEN
+ *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
 public interface ItpAbstractElementManager {
