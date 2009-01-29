@@ -25,6 +25,7 @@ package cpa.symbpredabs;
 
 import java.util.ArrayDeque;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Queue;
@@ -55,6 +56,14 @@ public class AbstractReachabilityTree {
         }
         Collection<AbstractElementWithLocation> c = tree.get(parent);
         c.add(child);
+    }
+    
+    public Collection<AbstractElementWithLocation> getChildren(
+            AbstractElementWithLocation e) {
+        if (tree.containsKey(e)) {
+            return tree.get(e);
+        }
+        return Collections.emptySet();
     }
 
     public Collection<AbstractElementWithLocation> getSubtree(
@@ -103,6 +112,28 @@ public class AbstractReachabilityTree {
         //assert(false);
         //return null;
         return root;
+    }
+    
+    public Collection<AbstractElementWithLocation> findAll(CFANode loc) {
+        if (root == null) return null;
+
+        Queue<AbstractElementWithLocation> toProcess =
+            new ArrayDeque<AbstractElementWithLocation>();
+        toProcess.add(root);
+        
+        Collection<AbstractElementWithLocation> ret = 
+            new Vector<AbstractElementWithLocation>();
+
+        while (!toProcess.isEmpty()) {
+            AbstractElementWithLocation e = toProcess.remove();
+            if (e.getLocationNode().equals(loc)) {
+                ret.add(e);
+            }
+            if (tree.containsKey(e)) {
+                toProcess.addAll(tree.get(e));
+            }
+        }
+        return ret;        
     }
     
     public AbstractElementWithLocation getRoot() { return root; }
