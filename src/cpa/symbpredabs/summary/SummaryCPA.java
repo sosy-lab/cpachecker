@@ -28,7 +28,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -38,11 +37,11 @@ import java.util.Vector;
 
 import logging.CustomLogLevel;
 import logging.LazyLogger;
-
-import cmdline.CPAMain;
-
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cfa.objectmodel.CFANode;
+import cmdline.CPAMain;
+
+import common.Pair;
 
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
@@ -52,17 +51,14 @@ import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
-import cpaplugin.CPAStatistics;
 import cpa.symbpredabs.AbstractFormula;
 import cpa.symbpredabs.FixedPredicateMap;
 import cpa.symbpredabs.InterpolatingTheoremProver;
-import common.Pair;
 import cpa.symbpredabs.Predicate;
 import cpa.symbpredabs.PredicateMap;
 import cpa.symbpredabs.SSAMap;
 import cpa.symbpredabs.SymbolicFormula;
 import cpa.symbpredabs.TheoremProver;
-import exceptions.UnrecognizedCFAEdgeException;
 import cpa.symbpredabs.UpdateablePredicateMap;
 import cpa.symbpredabs.mathsat.MathsatInterpolatingProver;
 import cpa.symbpredabs.mathsat.MathsatPredicateParser;
@@ -71,6 +67,8 @@ import cpa.symbpredabs.mathsat.SimplifyTheoremProver;
 import cpa.symbpredabs.mathsat.YicesTheoremProver;
 import cpa.symbpredabs.mathsat.summary.BDDMathsatSummaryAbstractManager;
 import cpa.symbpredabs.mathsat.summary.MathsatSummaryFormulaManager;
+import cpaplugin.CPAStatistics;
+import exceptions.UnrecognizedCFAEdgeException;
 
 
 /**
@@ -90,7 +88,7 @@ public class SummaryCPA implements ConfigurableProgramAnalysis {
     private PredicateMap pmap;
     private Map<SummaryCFANode, Map<CFANode, Pair<SymbolicFormula, SSAMap>>>
         summaryToFormulaMap;
-    private Map<SummaryAbstractElement, Set<SummaryAbstractElement>> covers;
+    private Set<SummaryAbstractElement> covered;
 
     private SummaryCPAStatistics stats;
 
@@ -118,8 +116,7 @@ public class SummaryCPA implements ConfigurableProgramAnalysis {
         InterpolatingTheoremProver itpProver =
             new MathsatInterpolatingProver(mgr, false);
         amgr = new BDDMathsatSummaryAbstractManager(thmProver, itpProver);
-        covers = new HashMap<SummaryAbstractElement,
-                             Set<SummaryAbstractElement>>();
+        covered = new HashSet<SummaryAbstractElement>();
 
         // for testing purposes, it's nice to be able to use a given set of
         // predicates and disable refinement
@@ -220,30 +217,16 @@ public class SummaryCPA implements ConfigurableProgramAnalysis {
         }
     }
 
-    public Set<SummaryAbstractElement> getCoveredBy(SummaryAbstractElement e){
-        if (covers.containsKey(e)) {
-            return covers.get(e);
-        } else {
-            return Collections.emptySet();
-        }
+    public void setCovered(SummaryAbstractElement e1) {
+        covered.add(e1);        
     }
-
-    public void setCoveredBy(SummaryAbstractElement covered,
-                             SummaryAbstractElement e) {
-        Set<SummaryAbstractElement> s;
-        if (covers.containsKey(e)) {
-            s = covers.get(e);
-        } else {
-            s = new HashSet<SummaryAbstractElement>();
-        }
-        s.add(covered);
-        covers.put(e, s);
+    
+    public Collection<SummaryAbstractElement> getCovered() {
+        return covered;
     }
-
-    public void uncoverAll(SummaryAbstractElement e) {
-        if (covers.containsKey(e)) {
-            covers.remove(e);
-        }
+    
+    public void setUncovered(SummaryAbstractElement e1) {
+        covered.remove(e1);
     }
     
     public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {

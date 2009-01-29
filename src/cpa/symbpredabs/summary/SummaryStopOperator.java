@@ -90,7 +90,8 @@ public class SummaryStopOperator implements StopOperator {
             if (ok) {
                 LazyLogger.log(CustomLogLevel.SpecificCPALevel,
                                "Element: ", element, " COVERED by: ", e2);
-                cpa.setCoveredBy(e1, e2);
+                cpa.setCovered(e1);
+                e1.setCovered(true);
             } else {
                 LazyLogger.log(CustomLogLevel.SpecificCPALevel,
                                "NO, not covered");

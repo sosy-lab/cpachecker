@@ -48,6 +48,7 @@ public class ExplicitAbstractElement
     private boolean ownsContext;
 
     private boolean covered;
+    private int mark;
 
     private static int nextAvailableId = 1;
 
@@ -63,9 +64,13 @@ public class ExplicitAbstractElement
     public void setParent(ExplicitAbstractElement p) { parent = p; }
 
     public boolean isCovered() { return covered; }
-    public void setCovered(boolean yes) { covered = yes; }
+    public void setCovered(boolean yes) { covered = yes; setMark(); }
+    
+    public boolean isMarked() { return mark > 0; }
+    public void setMark() { mark = nextAvailableId++; }
+    public int getMark() { return mark; }
 
-    private ExplicitAbstractElement(CFANode loc, AbstractFormula a,
+    ExplicitAbstractElement(CFANode loc, AbstractFormula a,
             ExplicitAbstractElement p) {
         elemId = nextAvailableId++;
         location = loc;
@@ -74,6 +79,7 @@ public class ExplicitAbstractElement
         context = null;
         ownsContext = true;
         covered = false;
+        mark = 0;
     }
 
     public ExplicitAbstractElement(CFANode loc) {
@@ -100,7 +106,7 @@ public class ExplicitAbstractElement
     public String toString() {
         return "E<" + Integer.toString(
                 location.getNodeNumber()) + ">(" +
-                Integer.toString(getId()) + ",P=" +
+                (isMarked() ? mark : getId()) + ",P=" +
                 (parent != null ? parent.getId() : "NIL") + ")";
     }
 

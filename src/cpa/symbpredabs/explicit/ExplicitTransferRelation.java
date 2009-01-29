@@ -43,9 +43,6 @@ import cfa.objectmodel.CFANode;
 import cfa.objectmodel.c.FunctionDefinitionNode;
 import cfa.objectmodel.c.ReturnEdge;
 import cmdline.CPAMain;
-import exceptions.CPATransferException;
-import exceptions.ErrorReachedException;
-import exceptions.RefinementNeededException;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
@@ -58,6 +55,9 @@ import cpa.symbpredabs.Predicate;
 import cpa.symbpredabs.SymbolicFormulaManager;
 import cpa.symbpredabs.UpdateablePredicateMap;
 import exceptions.CPAException;
+import exceptions.CPATransferException;
+import exceptions.ErrorReachedException;
+import exceptions.RefinementNeededException;
 
 
 /**
@@ -341,7 +341,8 @@ public class ExplicitTransferRelation implements TransferRelation {
         //root = firstInterpolant;
         //root = (ExplicitAbstractElement)abstractTree.getRoot();
 
-//        root = abstractTree.findHighest(root.getLocationNode());
+//        Collection<AbstractElementWithLocation> roots = 
+//            abstractTree.findAll(root.getLocationNode());
 //        assert(root != null);
 //        if (root.getParent() != null) {
 //            root = root.getParent();
@@ -357,6 +358,14 @@ public class ExplicitTransferRelation implements TransferRelation {
         assert(root != null);
         //root = path.getFirst();
         Collection<AbstractElementWithLocation> toWaitlist = new HashSet<AbstractElementWithLocation>();
+//        Collection<AbstractElementWithLocation> toUnreach = null;
+//        for (AbstractElementWithLocation e : roots) {
+//            toWaitlist.add(e);
+//            Collection<AbstractElementWithLocation> t =
+//                abstractTree.getSubtree(e, true, false);
+//            if (toUnreach == null) toUnreach = t;
+//            else toUnreach.addAll(t);
+//        }
         toWaitlist.add(root);
         Collection<AbstractElementWithLocation> toUnreach =
             abstractTree.getSubtree(root, true, false);
@@ -366,10 +375,35 @@ public class ExplicitTransferRelation implements TransferRelation {
             for (Iterator<AbstractElementWithLocation> it = toUnreach.iterator();
                  it.hasNext(); ) {
                 ExplicitAbstractElement e = (ExplicitAbstractElement)it.next();
-                if (e.isCovered() && e.getId() < cur.getId()) {
+                if (e.isCovered() && e.getMark() < cur.getMark()) {
                     LazyLogger.log(LazyLogger.DEBUG_1, "NOT unreaching ", e,
                             " because it was covered before ", cur);
                     it.remove();
+                }
+            }
+        }
+        
+        ExplicitCPA cpa = domain.getCPA();
+        for (AbstractElementWithLocation ae : toUnreach) {
+            ExplicitAbstractElement e = (ExplicitAbstractElement)ae;
+            if (e.isCovered()) {
+                e.setCovered(false);
+                cpa.setUncovered(e);
+            }
+        }
+        if (root != abstractTree.getRoot()) {
+            // then, we have to unmark some nodes
+            Collection<ExplicitAbstractElement> tmp =
+                cpa.getCovered();
+            for (Iterator<ExplicitAbstractElement> i = tmp.iterator(); 
+                 i.hasNext(); ) {
+                ExplicitAbstractElement e = i.next();
+                assert(e.isCovered());
+                if (e.getMark() > root.getMark()) {
+                    e.setCovered(false);
+                    i.remove();
+                    toWaitlist.add(e.getParent());
+                    toUnreach.add(e);
                 }
             }
         }
@@ -379,7 +413,7 @@ public class ExplicitTransferRelation implements TransferRelation {
         LazyLogger.log(LazyLogger.DEBUG_1, "REFINEMENT - toUnreach: ",
                 toUnreach);
         throw new RefinementNeededException(toUnreach, toWaitlist);
-    }
+    }    
 
     /*
     // checks whether the two paths are the same (in terms of locations)
@@ -456,6 +490,9 @@ public class ExplicitTransferRelation implements TransferRelation {
 
         List<AbstractElementWithLocation> allSucc = new Vector<AbstractElementWithLocation>();
         ExplicitAbstractElement e = (ExplicitAbstractElement)element;
+        
+
+        assert(!e.isCovered());
         CFANode src = e.getLocation();
 
         for (int i = 0; i < src.getNumLeavingEdges(); ++i) {
@@ -466,6 +503,8 @@ public class ExplicitTransferRelation implements TransferRelation {
             }
         }
 
+        e.setMark();
+        
         LazyLogger.log(CustomLogLevel.SpecificCPALevel,
                        allSucc.size(), " successors found");
 

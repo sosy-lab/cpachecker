@@ -28,10 +28,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 import java.util.Vector;
@@ -88,7 +85,8 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
     private PredicateMap pmap;
 
     // covering relation
-    private final Map<ExplicitAbstractElement, Set<ExplicitAbstractElement>> covers;
+    //private final Map<ExplicitAbstractElement, Set<ExplicitAbstractElement>> covers;
+    private Set<ExplicitAbstractElement> covered;
 
     private final ExplicitCPAStatistics stats;
 
@@ -116,8 +114,9 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
             new MathsatInterpolatingProver(mgr, true);
         amgr = new BDDMathsatExplicitAbstractManager(prover, itpProver);
 
-        covers = new HashMap<ExplicitAbstractElement,
-                             Set<ExplicitAbstractElement>>();
+//        covers = new HashMap<ExplicitAbstractElement,
+//                             Set<ExplicitAbstractElement>>();
+        covered = new HashSet<ExplicitAbstractElement>();
 
         MathsatPredicateParser p = new MathsatPredicateParser(mgr, amgr);
         Collection<Predicate> preds = null;
@@ -214,30 +213,43 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
         return pmap;
     }
 
-
-    public Set<ExplicitAbstractElement> getCoveredBy(ExplicitAbstractElement e){
-        if (covers.containsKey(e)) {
-            return covers.get(e);
-        } else {
-            return Collections.emptySet();
-        }
+    public void setCovered(ExplicitAbstractElement e1) {
+        covered.add(e1);        
+    }
+    
+    public Collection<ExplicitAbstractElement> getCovered() {
+        return covered;
+    }
+    
+    public void setUncovered(ExplicitAbstractElement e1) {
+        covered.remove(e1);
     }
 
-    public void setCoveredBy(ExplicitAbstractElement covered,
-                             ExplicitAbstractElement e) {
-        Set<ExplicitAbstractElement> s;
-        if (covers.containsKey(e)) {
-            s = covers.get(e);
-        } else {
-            s = new HashSet<ExplicitAbstractElement>();
-        }
-        s.add(covered);
-        covers.put(e, s);
-    }
 
-    public void uncoverAll(ExplicitAbstractElement e) {
-        if (covers.containsKey(e)) {
-            covers.remove(e);
-        }
-    }
+//    public Set<ExplicitAbstractElement> getCoveredBy(ExplicitAbstractElement e){
+//        if (covers.containsKey(e)) {
+//            return covers.get(e);
+//        } else {
+//            return Collections.emptySet();
+//        }
+//    }
+//
+//    public void setCoveredBy(ExplicitAbstractElement covered,
+//                             ExplicitAbstractElement e) {
+//        Set<ExplicitAbstractElement> s;
+//        if (covers.containsKey(e)) {
+//            s = covers.get(e);
+//        } else {
+//            s = new HashSet<ExplicitAbstractElement>();
+//        }
+//        s.add(covered);
+//        covers.put(e, s);
+//    }
+//
+//    public void uncoverAll(ExplicitAbstractElement e) {
+//        if (covers.containsKey(e)) {
+//            covers.remove(e);
+//        }
+//    }
+
 }

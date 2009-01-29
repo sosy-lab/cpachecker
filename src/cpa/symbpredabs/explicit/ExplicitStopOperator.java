@@ -109,6 +109,10 @@ public class ExplicitStopOperator implements StopOperator {
         ExplicitAbstractElement e1 = (ExplicitAbstractElement)element;
         ExplicitAbstractElement e2 = (ExplicitAbstractElement)reachedElement;
 
+        if (!e2.isMarked()) {
+            return false;
+        }
+
         if (e1.getLocation().equals(e2.getLocation())) {
             LazyLogger.log(LazyLogger.DEBUG_4,
                     "Checking Coverage of element: ", element);
@@ -131,7 +135,7 @@ public class ExplicitStopOperator implements StopOperator {
             if (ok) {
                 LazyLogger.log(CustomLogLevel.SpecificCPALevel,
                                "Element: ", element, " COVERED by: ", e2);
-                cpa.setCoveredBy(e1, e2);
+                cpa.setCovered(e1);
                 e1.setCovered(true);
             } else {
                 LazyLogger.log(CustomLogLevel.SpecificCPALevel,

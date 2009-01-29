@@ -27,10 +27,10 @@ import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Vector;
 import java.util.logging.Level;
 
@@ -47,9 +47,6 @@ import cmdline.CPAMain;
 
 import common.Pair;
 
-import exceptions.CPATransferException;
-import exceptions.ErrorReachedException;
-import exceptions.RefinementNeededException;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
@@ -63,6 +60,9 @@ import cpa.symbpredabs.SSAMap;
 import cpa.symbpredabs.SymbolicFormula;
 import cpa.symbpredabs.UpdateablePredicateMap;
 import exceptions.CPAException;
+import exceptions.CPATransferException;
+import exceptions.ErrorReachedException;
+import exceptions.RefinementNeededException;
 
 
 /**
@@ -321,32 +321,39 @@ public class SummaryTransferRelation implements TransferRelation {
         toWaitlist.add(root);
         Collection<AbstractElementWithLocation> toUnreach =
             abstractTree.getSubtree(root, true, false);
+
         SummaryCPA cpa = domain.getCPA();
-        for (AbstractElement e : toUnreach) {
-            Set<SummaryAbstractElement> cov = cpa.getCoveredBy(
-                    (SummaryAbstractElement)e);
-            for (SummaryAbstractElement c : cov) {
-                if (!c.isDescendant(
-                        (SummaryAbstractElement)root)) {
-                    toWaitlist.add(c);
+        for (AbstractElementWithLocation ae : toUnreach) {
+            SummaryAbstractElement e = (SummaryAbstractElement)ae;
+            if (e.isCovered()) {
+                e.setCovered(false);
+                cpa.setUncovered(e);
+            }
+        }
+        if (root != abstractTree.getRoot()) {
+            // then, we have to unmark some nodes
+            Collection<SummaryAbstractElement> tmp =
+                cpa.getCovered();
+            int m = ((SummaryAbstractElement)root).getMark();
+            for (Iterator<SummaryAbstractElement> i = tmp.iterator(); 
+                 i.hasNext(); ) {
+                SummaryAbstractElement e = i.next();
+                assert(e.isCovered());
+                if (e.getMark() > m) {
+                    e.setCovered(false);
+                    i.remove();
+                    toWaitlist.add(e.getParent());
+                    toUnreach.add(e);
                 }
             }
-            cpa.uncoverAll((SummaryAbstractElement)e);
         }
-//        Collection<AbstractElement> toUnreach = new Vector<AbstractElement>();
-//        boolean add = false;
-//        for (AbstractElement e : path) {
-//            if (add) {
-//                toUnreach.add(e);
-//            } else if (e == root) {
-//                add = true;
-//            }
-//        }
+        
         LazyLogger.log(LazyLogger.DEBUG_1, "REFINEMENT - toWaitlist: ", root);
         LazyLogger.log(LazyLogger.DEBUG_1, "REFINEMENT - toUnreach: ",
                 toUnreach);
         throw new RefinementNeededException(toUnreach, toWaitlist);
     }
+        
 
     @Override
     public AbstractElement getAbstractSuccessor(AbstractElement element,
@@ -400,6 +407,8 @@ public class SummaryTransferRelation implements TransferRelation {
                 allSucc.add((SummaryAbstractElement)newe);
             }
         }
+        
+        e.setMark();
 
         LazyLogger.log(CustomLogLevel.SpecificCPALevel,
                        allSucc.size(), " successors found");

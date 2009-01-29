@@ -55,6 +55,9 @@ public class SummaryAbstractElement
     private Stack<Pair<AbstractFormula, SummaryCFANode>> context;
     private boolean ownsContext;
 
+    private boolean covered;
+    private int mark;    
+    
     private static int nextAvailableId = 1;
 
     public int getId() { return elemId; }
@@ -70,6 +73,13 @@ public class SummaryAbstractElement
     public void setPathFormulas(Map<CFANode, Pair<SymbolicFormula, SSAMap>> pf){
         pathFormulas = pf;
     }
+    
+    public boolean isCovered() { return covered; }
+    public void setCovered(boolean yes) { covered = yes; setMark(); }
+    
+    public boolean isMarked() { return mark > 0; }
+    public void setMark() { mark = nextAvailableId++; }
+    public int getMark() { return mark; }    
 
     public SummaryAbstractElement getParent() { return parent; }
     public void setParent(SummaryAbstractElement p) { parent = p; }
@@ -84,6 +94,8 @@ public class SummaryAbstractElement
         parent = p;
         context = null;
         ownsContext = true;
+        covered = false;
+        mark = 0;
     }
 
     public SummaryAbstractElement(SummaryCFANode loc) {
