@@ -92,7 +92,7 @@ public class ItpAbstractDomain implements AbstractDomain {
     private final static class ExplicitJoinOperator implements JoinOperator {
         public AbstractElement join(AbstractElement element1,
                 AbstractElement element2) throws CPAException {
-            throw new CPAException("Can't join summaries!");
+            return top;
         }
     }
 
