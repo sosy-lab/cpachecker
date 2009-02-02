@@ -101,6 +101,16 @@ public class ItpAbstractDomain implements AbstractDomain {
                 AbstractElement element2) throws CPAException {
             ItpAbstractElement e1 = (ItpAbstractElement)element1;
             ItpAbstractElement e2 = (ItpAbstractElement)element2;
+            
+            if (e1 == bottom) {
+              return true;
+            } else if (e2 == top) {
+              return true;
+            } else if (e2 == bottom) {
+              return false;
+            } else if (e1 == top) {
+              return false;
+            }
 
             assert(e1.getAbstraction() != null);
             assert(e2.getAbstraction() != null);

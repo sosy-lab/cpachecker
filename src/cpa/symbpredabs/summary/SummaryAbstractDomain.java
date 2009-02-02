@@ -44,7 +44,7 @@ public class SummaryAbstractDomain implements AbstractDomain {
         this.cpa = cpa;
     }
 
-    private final class SummaryBottomElement extends SummaryAbstractElement {
+    private final static class SummaryBottomElement extends SummaryAbstractElement {
       public SummaryBottomElement() {
         super(null);
         // TODO Auto-generated constructor stub
@@ -53,14 +53,14 @@ public class SummaryAbstractDomain implements AbstractDomain {
         @Override
     	public String toString() { return "<BOTTOM>"; }
     }
-    private final class SummaryTopElement extends SummaryAbstractElement {
+    private final static class SummaryTopElement extends SummaryAbstractElement {
       public SummaryTopElement() {
         super(null);
         // TODO Auto-generated constructor stub
       }
     }
 
-    private final class SummaryJoinOperator implements JoinOperator {
+    private final static class SummaryJoinOperator implements JoinOperator {
         public AbstractElement join(AbstractElement element1,
                 AbstractElement element2) throws CPAException {
             throw new CPAException("Can't join summaries!");
@@ -72,6 +72,16 @@ public class SummaryAbstractDomain implements AbstractDomain {
                 AbstractElement element2) throws CPAException {
             SummaryAbstractElement e1 = (SummaryAbstractElement)element1;
             SummaryAbstractElement e2 = (SummaryAbstractElement)element2;
+            
+            if (e1 == bottom) {
+              return true;
+            } else if (e2 == top) {
+              return true;
+            } else if (e2 == bottom) {
+              return false;
+            } else if (e1 == top) {
+              return false;
+            }
 
             assert(e1.getAbstraction() != null);
             assert(e2.getAbstraction() != null);
@@ -84,9 +94,9 @@ public class SummaryAbstractDomain implements AbstractDomain {
         }
     }
 
-    private final SummaryBottomElement bottom = new SummaryBottomElement();
-    private final SummaryTopElement top = new SummaryTopElement();
-    private final JoinOperator join = new SummaryJoinOperator();
+    private final static SummaryBottomElement bottom = new SummaryBottomElement();
+    private final static SummaryTopElement top = new SummaryTopElement();
+    private final static JoinOperator join = new SummaryJoinOperator();
     private final PartialOrder partial = new SummaryPartialOrder();
 
     public SummaryAbstractElement getBottomElement() {
