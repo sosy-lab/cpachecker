@@ -13,7 +13,7 @@ Requirements for building CPAchecker:
    (may show degraded performance, though).
 2. Install Eclipse 3.3 or higher.
    http://www.eclipse.org/
-3. Install C/C++ Develoment Kit (platform and sdk) 4.0.3 or lower (LOWER).
+3. Install C/C++ Development Kit (platform and sdk) 4.0.3 or lower (LOWER).
    Or contact Michael Tautschnig <tautschnig@forsyte.de> to
    obtain patches to make it work with CDT 5
 4. Add eclipse/plugins to your CLASSPATH.

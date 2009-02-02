@@ -26,4 +26,11 @@ Version Control:
 - In order to avoid EOL problems caused by Unix/Windows/Mac, let's run
   find ./ -name "*" -exec svn propset svn:eol-style native {} \;
   from time to time.
+- Commit early, commit often, and 
+  split the commits into reasonable changesets.
+  If possible (this will definitely not always be the case) 
+  commit in a way that the project compiles after each commit.
+  This will ease automatic regression testing a lot... 
+- For large chunks of whitespace/indentation changes,
+  commit the whitespace changes and the code changes via separate commits.
 
