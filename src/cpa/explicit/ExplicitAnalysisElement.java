@@ -51,21 +51,22 @@ public class ExplicitAnalysisElement implements AbstractElement {
    * Assigns a value to the variable and puts it in the map
    * @param nameOfVar name of the variable.
    * @param value value to be assigned.
+   * @param pThreshold threshold from property explicitAnalysis.threshold
    */
-  public void assignConstant(String nameOfVar, int value){
+  public void assignConstant(String nameOfVar, int value, int pThreshold){
 
     if(constantsMap.containsKey(nameOfVar) && 
         constantsMap.get(nameOfVar).intValue() == value){
       return;
     }
     
-    if(ExplicitAnalysisConstants.threshold == 0){
+    if(pThreshold == 0){
       return;
     }
     
     if(noOfReferences.containsKey(nameOfVar)){
       int currentVal = noOfReferences.get(nameOfVar).intValue();
-      if(currentVal >= ExplicitAnalysisConstants.threshold){
+      if(currentVal >= pThreshold){
         forget(nameOfVar);
         return;
       }

@@ -63,11 +63,14 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
   private ExplicitAnalysisDomain explicitAnalysisDomain;
 
   private Set<String> globalVars;
+  
+  private int threshold;
 
   public ExplicitAnalysisTransferRelation (ExplicitAnalysisDomain explicitAnalysisfUseDomain)
   {
     this.explicitAnalysisDomain = explicitAnalysisfUseDomain;
     globalVars = new HashSet<String>();
+    threshold = Integer.parseInt(CPAMain.cpaConfig.getProperty("explicitAnalysis.threshold"));
   }
 
   public ExplicitAnalysisDomain getAbstractDomain ()
@@ -249,13 +252,13 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
         for(String globalVar:globalVars){
           if(globalVar.equals(varName)){
             if(expAnalysisElement.getNoOfReferences().containsKey(globalVar) &&
-                expAnalysisElement.getNoOfReferences().get(globalVar).intValue() >= ExplicitAnalysisConstants.threshold){
+                expAnalysisElement.getNoOfReferences().get(globalVar).intValue() >= this.threshold){
               newElement.forget(globalVar);
               newElement.getNoOfReferences().put(globalVar, expAnalysisElement.getNoOfReferences().get(globalVar));
             }
             else{
               if(expAnalysisElement.contains(returnVarName)){
-                newElement.assignConstant(varName, expAnalysisElement.getValueFor(returnVarName));
+                newElement.assignConstant(varName, expAnalysisElement.getValueFor(returnVarName), this.threshold);
               }
               else{
                 newElement.forget(varName);
@@ -264,13 +267,13 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
           }
           else{
             if(expAnalysisElement.getNoOfReferences().containsKey(globalVar) &&
-                expAnalysisElement.getNoOfReferences().get(globalVar).intValue() >= ExplicitAnalysisConstants.threshold){
+                expAnalysisElement.getNoOfReferences().get(globalVar).intValue() >= this.threshold){
               newElement.forget(globalVar);
               newElement.getNoOfReferences().put(globalVar, expAnalysisElement.getNoOfReferences().get(globalVar));
             }
             else{
               if(expAnalysisElement.contains(globalVar)){
-                newElement.assignConstant(globalVar, expAnalysisElement.getValueFor(globalVar));
+                newElement.assignConstant(globalVar, expAnalysisElement.getValueFor(globalVar), this.threshold);
                 newElement.getNoOfReferences().put(globalVar, expAnalysisElement.getNoOfReferences().get(globalVar));
               }
               else{
@@ -283,7 +286,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
         if(!globalVars.contains(varName)){
           String assignedVarName = getvarName(varName, callerFunctionName);
           if(expAnalysisElement.contains(returnVarName)){
-            newElement.assignConstant(assignedVarName, expAnalysisElement.getValueFor(returnVarName));
+            newElement.assignConstant(assignedVarName, expAnalysisElement.getValueFor(returnVarName), this.threshold);
           }
           else{
             newElement.forget(assignedVarName);
@@ -300,13 +303,13 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
       // onyl globals
       for(String globalVar:globalVars){
         if(expAnalysisElement.getNoOfReferences().containsKey(globalVar) &&
-            expAnalysisElement.getNoOfReferences().get(globalVar).intValue() >= ExplicitAnalysisConstants.threshold){
+            expAnalysisElement.getNoOfReferences().get(globalVar).intValue() >= this.threshold){
           newElement.forget(globalVar);
           newElement.getNoOfReferences().put(globalVar, expAnalysisElement.getNoOfReferences().get(globalVar));
         }
         else{
           if(expAnalysisElement.contains(globalVar)){
-            newElement.assignConstant(globalVar, expAnalysisElement.getValueFor(globalVar));
+            newElement.assignConstant(globalVar, expAnalysisElement.getValueFor(globalVar), this.threshold);
             newElement.getNoOfReferences().put(globalVar, expAnalysisElement.getNoOfReferences().get(globalVar));
           }
           else{
@@ -321,13 +324,13 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
       // onyl globals
       for(String globalVar:globalVars){
         if(expAnalysisElement.getNoOfReferences().containsKey(globalVar) && 
-            expAnalysisElement.getNoOfReferences().get(globalVar).intValue() >= ExplicitAnalysisConstants.threshold){
+            expAnalysisElement.getNoOfReferences().get(globalVar).intValue() >= this.threshold){
           newElement.forget(globalVar);
           newElement.getNoOfReferences().put(globalVar, expAnalysisElement.getNoOfReferences().get(globalVar));
         }
         else{
           if(expAnalysisElement.contains(globalVar)){
-            newElement.assignConstant(globalVar, expAnalysisElement.getValueFor(globalVar));
+            newElement.assignConstant(globalVar, expAnalysisElement.getValueFor(globalVar), this.threshold);
             newElement.getNoOfReferences().put(globalVar, expAnalysisElement.getNoOfReferences().get(globalVar));
           }
           else{
@@ -379,7 +382,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
         String actualParamName = getvarName(nameOfArg, callerFunctionName);
 
         if(expAnalysisElement.contains(actualParamName)){
-          newElement.assignConstant(formalParamName, expAnalysisElement.getValueFor(actualParamName));
+          newElement.assignConstant(formalParamName, expAnalysisElement.getValueFor(actualParamName), this.threshold);
         }
       }
 
@@ -402,7 +405,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
 
           int value = Integer.valueOf(stringValOfArg).intValue();
 
-          newElement.assignConstant(formalParamName, value);
+          newElement.assignConstant(formalParamName, value, this.threshold);
         }
         else{
           throw new ExplicitAnalysisTransferException("Unhandled case");
@@ -441,7 +444,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
               literalValue = literalValue.replace("U", "");
             }
             int value = Integer.valueOf(literalValue).intValue();
-            expAnalysisElement.assignConstant(returnVarName, value);
+            expAnalysisElement.assignConstant(returnVarName, value, this.threshold);
           }
           else{
             throw new ExplicitAnalysisTransferException("Unhandled case");
@@ -465,7 +468,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
               literalValue = literalValue.replace("U", "");
             }
             int value = Integer.valueOf(literalValue).intValue();
-            expAnalysisElement.assignConstant(returnVarName, value);
+            expAnalysisElement.assignConstant(returnVarName, value, this.threshold);
           }
         }
         else{
@@ -579,7 +582,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
             }
           }
           else{
-            expAnalysisElement.assignConstant(getvarName(varName, functionName), 0);
+            expAnalysisElement.assignConstant(getvarName(varName, functionName), 0, this.threshold);
           }
         }
       }
@@ -609,7 +612,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
                 }
               }
               else{
-                expAnalysisElement.assignConstant(getvarName(varName, functionName), valueOfLiteral);
+                expAnalysisElement.assignConstant(getvarName(varName, functionName), valueOfLiteral, this.threshold);
               }
             }
             // ! a == 9
@@ -737,7 +740,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
                 }
               }
               else{
-                expAnalysisElement.assignConstant(getvarName(varName, functionName), (0 - valueOfLiteral));
+                expAnalysisElement.assignConstant(getvarName(varName, functionName), (0 - valueOfLiteral), this.threshold);
               }
             }
           }
@@ -766,12 +769,12 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
             if(expAnalysisElement.contains(getvarName(leftVarName, functionName)) && 
                 !expAnalysisElement.contains(getvarName(rightVarName, functionName))){
               expAnalysisElement.assignConstant(getvarName(rightVarName, functionName),
-                  expAnalysisElement.getValueFor(getvarName(leftVarName, functionName)));
+                  expAnalysisElement.getValueFor(getvarName(leftVarName, functionName)), this.threshold);
             }
             else if(expAnalysisElement.contains(getvarName(rightVarName, functionName)) && 
                 !expAnalysisElement.contains(getvarName(leftVarName, functionName))){
               expAnalysisElement.assignConstant(getvarName(leftVarName, functionName),
-                  expAnalysisElement.getValueFor(getvarName(rightVarName, functionName)));
+                  expAnalysisElement.getValueFor(getvarName(rightVarName, functionName)), this.threshold);
             }
             else if(expAnalysisElement.contains(getvarName(rightVarName, functionName)) && 
                 expAnalysisElement.contains(getvarName(leftVarName, functionName))){
@@ -920,7 +923,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
                     }
                   }
                   else{
-                    expAnalysisElement.assignConstant(getvarName(varName, functionName), valueOfLiteral);
+                    expAnalysisElement.assignConstant(getvarName(varName, functionName), valueOfLiteral, this.threshold);
                   }
                 }
                 // ! a == 9
@@ -1118,7 +1121,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
                                     ExplicitAnalysisElement expAnalysisElement, CFAEdge cfaEdge,
                                     String assignedVar, String varName, int val) {
     if(expAnalysisElement.contains(varName)){
-      expAnalysisElement.assignConstant(assignedVar, expAnalysisElement.getValueFor(varName) + val);
+      expAnalysisElement.assignConstant(assignedVar, expAnalysisElement.getValueFor(varName) + val, this.threshold);
     }
     else{
       expAnalysisElement.forget(assignedVar);
@@ -1129,7 +1132,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
                                            ExplicitAnalysisElement expAnalysisElement, CFAEdge cfaEdge,
                                            String assignedVar, String varName, int val) {
     if(expAnalysisElement.contains(varName)){
-      expAnalysisElement.assignConstant(assignedVar, val - expAnalysisElement.getValueFor(varName));
+      expAnalysisElement.assignConstant(assignedVar, val - expAnalysisElement.getValueFor(varName), this.threshold);
     }
     else{
       expAnalysisElement.forget(assignedVar);
@@ -1140,7 +1143,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
                                            ExplicitAnalysisElement expAnalysisElement, CFAEdge cfaEdge,
                                            String assignedVar, String varName, int val) {
     if(expAnalysisElement.contains(varName)){
-      expAnalysisElement.assignConstant(assignedVar, expAnalysisElement.getValueFor(varName) * val);
+      expAnalysisElement.assignConstant(assignedVar, expAnalysisElement.getValueFor(varName) * val, this.threshold);
     }
     else{
       expAnalysisElement.forget(assignedVar);
@@ -1266,7 +1269,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
     if(expAnalysisElement.contains(leftVar) && expAnalysisElement.contains(rightVar)){
       expAnalysisElement.assignConstant(assignedVar, 
           (expAnalysisElement.getValueFor(leftVar) * 
-              expAnalysisElement.getValueFor(rightVar)));
+              expAnalysisElement.getValueFor(rightVar)), this.threshold);
     }
     else{
       expAnalysisElement.forget(assignedVar);
@@ -1278,7 +1281,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
     if(expAnalysisElement.contains(leftVar) && expAnalysisElement.contains(leftVar)){
       expAnalysisElement.assignConstant(assignedVar, 
           (expAnalysisElement.getValueFor(leftVar) - 
-              expAnalysisElement.getValueFor(rightVar)));
+              expAnalysisElement.getValueFor(rightVar)), this.threshold);
     }
     else{
       expAnalysisElement.forget(assignedVar);
@@ -1290,7 +1293,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
     if(expAnalysisElement.contains(leftVar) && expAnalysisElement.contains(leftVar)){
       expAnalysisElement.assignConstant(assignedVar, 
           (expAnalysisElement.getValueFor(leftVar) + 
-              expAnalysisElement.getValueFor(rightVar)));
+              expAnalysisElement.getValueFor(rightVar)), this.threshold);
     }
     else{
       expAnalysisElement.forget(assignedVar);
@@ -1407,7 +1410,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
             nameOfVar = nameOfVar.replace("U", "");
           }
           int val = Integer.valueOf(nameOfVar).intValue();
-          expAnalysisElement.assignConstant(assignedVar, (0 - val));
+          expAnalysisElement.assignConstant(assignedVar, (0 - val), this.threshold);
         }
         else{
           throw new ExplicitAnalysisTransferException("Unhandled case");
@@ -1416,7 +1419,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
       else if(unaryOperand instanceof IASTIdExpression){
         String varName = getvarName(nameOfVar, functionName);
         if(expAnalysisElement.contains(varName)){
-          expAnalysisElement.assignConstant(assignedVar, (0 - expAnalysisElement.getValueFor(varName)));
+          expAnalysisElement.assignConstant(assignedVar, (0 - expAnalysisElement.getValueFor(varName)), this.threshold);
         }
         else{
           expAnalysisElement.forget(assignedVar);
@@ -1866,7 +1869,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
                                            String assignedVarName,
                                            String varName) {
     if(expAnalysisElement.contains(varName)){
-      expAnalysisElement.assignConstant(assignedVarName, expAnalysisElement.getValueFor(varName));
+      expAnalysisElement.assignConstant(assignedVarName, expAnalysisElement.getValueFor(varName), this.threshold);
     }
     else{
       expAnalysisElement.forget(assignedVarName);
@@ -1892,7 +1895,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
         rParam = rParam.replace("U", "");
       }
       int val = Integer.valueOf(rParam).intValue();
-      expAnalysisElement.assignConstant(varName, val);
+      expAnalysisElement.assignConstant(varName, val, this.threshold);
     }
     else{
       throw new ExplicitAnalysisTransferException("Unhandled case");
