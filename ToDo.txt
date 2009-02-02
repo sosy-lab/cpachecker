@@ -5,6 +5,38 @@
 * cleanup and prioritization to be done in telephone conference *
 * probably group them in design/technical/conceptual *
 
+- [MT] move getInitialElement to its own class
+  * method makeInitialElement (AE, AEwLoc, must be static)
+  * I'd suggest introducing CPABuilder and *Builder classes that instantiate a
+    CPA, know how to create proper initial elements (with or without location
+    information), and do the initialPrecision stuff
+  * also pass the configuration object to the Builder instead of referring to
+    CPAMain in all the classes
+
+- [MT] Instead of the String parameters to set sep or join for merge and stop just
+  create multiple CPA classes that fix the operator
+
+- [MT] Cleanup cpa.common and move the composite stuff to compositecpa,
+  CPAType.java could probably be removed rightaway
+
+- [MT] add default implementations of stopsep/join, mergesep/join, precision stuff
+
+- [MT] review mergeJoin for the use of joinOperator
+
+- [MT] cleanup stop operator, rename compositestopsep, compositemergesep
+
+- [MT] cleanup CPAMain
+  * make separate function "preprocess"
+  * is there any non-interprocedural analysis
+
+- [MT] Remove isBottomElement(x) and replace by call to satisfiesPartialOrder(x,
+  domain.getBottomElement())
+
+- [DB] Maybe rename satisfiesPartialOrder to isLessOrEqual
+
+- [MT] (well known, but not noted thus far) Using exceptions to perform
+  abstraction refinement is really really cruel
+
 - [MT] compositestop is broken
   stop(e,reachedSet,prec) calls stop(e,reachedElement), thus loses info about
   precision (and never calls stop(e,reachedSet,prec) of the underlying CPA
@@ -35,42 +67,15 @@
 
 - [MT] Whitespace at the end of a line is undesirable for merging tools, do a cleanup
 
-- [MT] Instead of the String parameters to set sep or join for merge and stop just
-  create multiple CPA classes that fix the operator
-
 - [MT] Use iterators instead of get(i), this is CLEANER, SAFER, and FASTER in general
   (unless impossible, of course)
-
-- [MT] Cleanup cpa.common and move the composite stuff to compositecpa,
-  CPAType.java could probably be removed rightaway
 
 - [MT] in createReachedSet use a safe cast instead of reflection+cruel cast
   * code has been modified along with the LocationMappedReachedSet stuff, review
     that
 
-- [MT] add default implementations of stopsep/join, mergesep/join, precision stuff
-
-- [MT] review mergeJoin for the use of joinOperator
-
-- [MT] cleanup stop operator, rename compositestopsep, compositemergesep
-
-- [MT] move getInitialElement to its own class
-  * method makeInitialElement (AE, AEwLoc, must be static)
-  * I'd suggest introducing CPABuilder and *Builder classes that instantiate a
-    CPA, know how to create proper initial elements (with or without location
-    information), and do the initialPrecision stuff
-
-- [MT] cleanup CPAMain
-  * make separate function "preprocess"
-  * is there any non-interprocedural analysis
-
 - [MT] Refactor the TheoremProver (and similarly named ones) interfaces and move all
   the decision procedures related stuff to its own package
-
-- [MT] Remove isBottomElement(x) and replace by call to satisfiesPartialOrder(x,
-  domain.getBottomElement())
-
-- [DB] Maybe rename satisfiesPartialOrder to isLessOrEqual
 
 - [MT] Overriding equals (and possibly also hashCode) is a design flaw in almost
   all cases, apply proper design patterns (Singleton and Factory); I'd expect a
@@ -85,9 +90,6 @@
 
 - [AH] stop operator in LocationCPA is very time consuming (must iterate over
   all elements of reached)
-
-- [MT] (well known, but not noted thus far) Using exceptions to perform
-  abstraction refinement is really really cruel
 
 - [MT] precisionAdjustment is currently not enabled! (code commented out in
   CPAAlgorithm)
