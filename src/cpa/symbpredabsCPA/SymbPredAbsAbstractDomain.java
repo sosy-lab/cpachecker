@@ -44,7 +44,7 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
     this.cpa = cpa;
   }
 
-  private final class SymbPredAbsBottomElement extends SymbPredAbsAbstractElement {
+  private final static class SymbPredAbsBottomElement extends SymbPredAbsAbstractElement {
     public SymbPredAbsBottomElement() {
       super(null, true, null, null, null, null, null, null, null, null);
       super.isBottomElement = true;
@@ -70,7 +70,7 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
       return Integer.MIN_VALUE;
     }
   }
-  private final class SymbPredAbsTopElement extends SymbPredAbsAbstractElement {
+  private final static class SymbPredAbsTopElement extends SymbPredAbsAbstractElement {
     public SymbPredAbsTopElement() {
       super(null, true, null, null, null, null, null, null, null, null);
     }
@@ -96,7 +96,7 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
     }
   }
 
-  private final class SymbPredAbsJoinOperator implements JoinOperator {
+  private final static class SymbPredAbsJoinOperator implements JoinOperator {
     public AbstractElement join(AbstractElement element1,
         AbstractElement element2) throws CPAException {
       throw new CPAException("Can't join summaries!");
@@ -108,6 +108,16 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
         AbstractElement element2) throws CPAException {
       SymbPredAbsAbstractElement e1 = (SymbPredAbsAbstractElement)element1;
       SymbPredAbsAbstractElement e2 = (SymbPredAbsAbstractElement)element2;
+
+      if (e1 == bottom) {
+        return true;
+      } else if (e2 == top) {
+        return true;
+      } else if (e2 == bottom) {
+        return false;
+      } else if (e1 == top) {
+        return false;
+      }
 
       assert(e1.getAbstraction() != null);
       assert(e2.getAbstraction() != null);
@@ -121,9 +131,9 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
     }
   }
 
-  private final SymbPredAbsBottomElement bottom = new SymbPredAbsBottomElement();
-  private final SymbPredAbsTopElement top = new SymbPredAbsTopElement();
-  private final JoinOperator join = new SymbPredAbsJoinOperator();
+  private final static SymbPredAbsBottomElement bottom = new SymbPredAbsBottomElement();
+  private final static SymbPredAbsTopElement top = new SymbPredAbsTopElement();
+  private final static JoinOperator join = new SymbPredAbsJoinOperator();
   private final PartialOrder partial = new SymbPredAbsPartialOrder();
 
   public AbstractElement getBottomElement() {
