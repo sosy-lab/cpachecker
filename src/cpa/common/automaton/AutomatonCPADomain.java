@@ -408,6 +408,10 @@ public class AutomatonCPADomain<E> implements AbstractDomain {
     mInitialElement = new StateSetElement(this, mAutomaton.getInitialState());
   }
   
+  public StateSetElement createStateSetElement(AutomatonCPADomain<E> pDomain, Set<Automaton<E>.State> pStates) {
+    return new StateSetElement(pDomain, pStates);
+  }
+  
   public StateSetElement castToStateSetElement(AbstractElement pElement) {
     assert(pElement != null);
     assert(pElement instanceof AutomatonCPADomain<?>.StateSetElement);
