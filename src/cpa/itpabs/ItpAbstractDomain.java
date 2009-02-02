@@ -47,7 +47,7 @@ public class ItpAbstractDomain implements AbstractDomain {
         this.cpa = cpa;
     }
 
-    private final class ExplicitBottomElement extends ItpAbstractElement {
+    private final static class ExplicitBottomElement extends ItpAbstractElement {
       public ExplicitBottomElement() {
         super(null);
         // TODO Auto-generated constructor stub
@@ -68,7 +68,7 @@ public class ItpAbstractDomain implements AbstractDomain {
           return false;
         }
     }
-    private final class ExplicitTopElement extends ItpAbstractElement {
+    private final static class ExplicitTopElement extends ItpAbstractElement {
 
       public ExplicitTopElement() {
         super(null);
@@ -89,7 +89,7 @@ public class ItpAbstractDomain implements AbstractDomain {
 
     }
 
-    private final class ExplicitJoinOperator implements JoinOperator {
+    private final static class ExplicitJoinOperator implements JoinOperator {
         public AbstractElement join(AbstractElement element1,
                 AbstractElement element2) throws CPAException {
             throw new CPAException("Can't join summaries!");
@@ -113,9 +113,9 @@ public class ItpAbstractDomain implements AbstractDomain {
         }
     }
 
-    private final ExplicitBottomElement bottom = new ExplicitBottomElement();
-    private final ExplicitTopElement top = new ExplicitTopElement();
-    private final JoinOperator join = new ExplicitJoinOperator();
+    private final static ExplicitBottomElement bottom = new ExplicitBottomElement();
+    private final static ExplicitTopElement top = new ExplicitTopElement();
+    private final static JoinOperator join = new ExplicitJoinOperator();
     private final PartialOrder partial = new ExplicitPartialOrder();
 
     public ItpAbstractElement getBottomElement() {
