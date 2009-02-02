@@ -41,11 +41,6 @@ public class ExplicitAnalysisStopSep implements StopOperator {
     this.explicitAnalysisDomain = explicitAnalysisDomain;
   }
 
-  public AbstractDomain getAbstractDomain ()
-  {
-    return explicitAnalysisDomain;
-  }
-
   public <AE extends AbstractElement> boolean stop (AE element, Collection<AE> reached, Precision prec) 
   throws CPAException {
     PartialOrder partialOrder = explicitAnalysisDomain.getPartialOrder();

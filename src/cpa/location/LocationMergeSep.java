@@ -32,26 +32,21 @@ import exceptions.CPAException;
 
 public class LocationMergeSep implements MergeOperator
 {
-    private final LocationDomain locationDomain;
+  private final LocationDomain locationDomain;
 
-    public LocationMergeSep (LocationDomain locationDomain)
-    {
-        this.locationDomain = locationDomain;
-    }
+  public LocationMergeSep (LocationDomain locationDomain)
+  {
+    this.locationDomain = locationDomain;
+  }
 
-    public AbstractDomain getAbstractDomain ()
-    {
-        return locationDomain;
-    }
+  public AbstractElement merge (AbstractElement element1, AbstractElement element2, Precision prec)
+  {
+    return element2;
+  }
 
-    public AbstractElement merge (AbstractElement element1, AbstractElement element2, Precision prec)
-    {
-        return element2;
-    }
-
-    public AbstractElementWithLocation merge(AbstractElementWithLocation pElement1,
-                                             AbstractElementWithLocation pElement2,
-                                             Precision prec) throws CPAException {
-        return pElement2;
-    }
+  public AbstractElementWithLocation merge(AbstractElementWithLocation pElement1,
+                                           AbstractElementWithLocation pElement2,
+                                           Precision prec) throws CPAException {
+    return pElement2;
+  }
 }

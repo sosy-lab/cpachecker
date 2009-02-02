@@ -34,44 +34,39 @@ import exceptions.CPAException;
 
 public class OctStopSep implements StopOperator{
 
-	private final OctDomain octDomain;
+  private final OctDomain octDomain;
 
-	public OctStopSep (OctDomain octDomain)
-	{
-		this.octDomain = octDomain;
-	}
+  public OctStopSep (OctDomain octDomain)
+  {
+    this.octDomain = octDomain;
+  }
 
-	public AbstractDomain getAbstractDomain ()
-	{
-		return octDomain;
-	}
+  public <AE extends AbstractElement> boolean stop (AE element, Collection<AE> reached, Precision prec) throws CPAException
+  {
+    OctElement octelem = (OctElement) element;
 
-	public <AE extends AbstractElement> boolean stop (AE element, Collection<AE> reached, Precision prec) throws CPAException
-	{
-	  OctElement octelem = (OctElement) element;
-	  
-	  if(octelem.isBottom()){
-	    return true;
-	  }
-	  
-		PartialOrder partialOrder = octDomain.getPartialOrder ();
-		for (AbstractElement testElement : reached)
-		{
-			if (partialOrder.satisfiesPartialOrder (element, testElement))
-			{
-				return true;
-			}
-		}
+    if(octelem.isBottom()){
+      return true;
+    }
 
-		return false;
-	}
+    PartialOrder partialOrder = octDomain.getPartialOrder ();
+    for (AbstractElement testElement : reached)
+    {
+      if (partialOrder.satisfiesPartialOrder (element, testElement))
+      {
+        return true;
+      }
+    }
 
-	public boolean stop(AbstractElement element, AbstractElement reachedElement)
-	throws CPAException {
-		PartialOrder partialOrder = octDomain.getPartialOrder ();
-		if (partialOrder.satisfiesPartialOrder (element, reachedElement))
-			return true;
-		return false;
-	}
+    return false;
+  }
+
+  public boolean stop(AbstractElement element, AbstractElement reachedElement)
+  throws CPAException {
+    PartialOrder partialOrder = octDomain.getPartialOrder ();
+    if (partialOrder.satisfiesPartialOrder (element, reachedElement))
+      return true;
+    return false;
+  }
 
 }

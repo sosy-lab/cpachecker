@@ -33,27 +33,22 @@ import exceptions.CPAException;
 
 public class DefUseStopJoin implements StopOperator
 {
-    private final DefUseDomain defUseDomain;
+  private final DefUseDomain defUseDomain;
 
-    public DefUseStopJoin (DefUseDomain defUseDomain)
-    {
-        this.defUseDomain = defUseDomain;
-    }
+  public DefUseStopJoin (DefUseDomain defUseDomain)
+  {
+    this.defUseDomain = defUseDomain;
+  }
 
-    public AbstractDomain getAbstractDomain ()
-    {
-        return defUseDomain;
-    }
+  public <AE extends AbstractElement> boolean stop (AE element, Collection<AE> reached, Precision prec) throws CPAException
+  {
+    // TODO Erkan implement
+    return false;
+  }
 
-    public <AE extends AbstractElement> boolean stop (AE element, Collection<AE> reached, Precision prec) throws CPAException
-    {
-    	// TODO Erkan implement
-    	 return false;
-    }
-
-	public boolean stop(AbstractElement element, AbstractElement reachedElement)
-			throws CPAException {
-		// TODO Erkan implement
-   	 return false;
-	}
+  public boolean stop(AbstractElement element, AbstractElement reachedElement)
+  throws CPAException {
+    // TODO Erkan implement
+    return false;
+  }
 }

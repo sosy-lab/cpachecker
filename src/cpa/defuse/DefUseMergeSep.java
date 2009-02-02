@@ -32,26 +32,21 @@ import exceptions.CPAException;
 
 public class DefUseMergeSep implements MergeOperator
 {
-    private final DefUseDomain defUseDomain;
+  private final DefUseDomain defUseDomain;
 
-    public DefUseMergeSep (DefUseDomain defUseDomain)
-    {
-        this.defUseDomain = defUseDomain;
-    }
+  public DefUseMergeSep (DefUseDomain defUseDomain)
+  {
+    this.defUseDomain = defUseDomain;
+  }
 
-    public AbstractDomain getAbstractDomain ()
-    {
-        return defUseDomain;
-    }
+  public AbstractElement merge (AbstractElement element1, AbstractElement element2, Precision prec)
+  {
+    return element2;
+  }
 
-    public AbstractElement merge (AbstractElement element1, AbstractElement element2, Precision prec)
-    {
-        return element2;
-    }
-
-    public AbstractElementWithLocation merge(AbstractElementWithLocation pElement1,
-                                             AbstractElementWithLocation pElement2,
-                                             Precision prec) throws CPAException {
-      throw new CPAException ("Cannot return element with location information");
-    }
+  public AbstractElementWithLocation merge(AbstractElementWithLocation pElement1,
+                                           AbstractElementWithLocation pElement2,
+                                           Precision prec) throws CPAException {
+    throw new CPAException ("Cannot return element with location information");
+  }
 }

@@ -41,26 +41,20 @@ import exceptions.CPAException;
 public class CompositeMergeOperator implements MergeOperator{
 
 
-	private final CompositeDomain compositeDomain;
-	private final List<MergeOperator> mergeOperators;
+  private final CompositeDomain compositeDomain;
+  private final List<MergeOperator> mergeOperators;
 
-	public CompositeMergeOperator (CompositeDomain compositeDomain, List<MergeOperator> mergeOperators)
-	{
-		this.compositeDomain = compositeDomain;
-		this.mergeOperators = mergeOperators;
-	}
+  public CompositeMergeOperator (CompositeDomain compositeDomain, List<MergeOperator> mergeOperators)
+  {
+    this.compositeDomain = compositeDomain;
+    this.mergeOperators = mergeOperators;
+  }
 
-	public AbstractDomain getAbstractDomain ()
-	{
-		return compositeDomain;
-	}
-
-
-	// TODO fix this part
-	public AbstractElement merge (AbstractElement element1, AbstractElement element2, Precision precision) throws CPAException
-	{
-	  return merge((AbstractElementWithLocation)element1, (AbstractElementWithLocation)element2, precision);
-	}
+  // TODO fix this part
+  public AbstractElement merge (AbstractElement element1, AbstractElement element2, Precision precision) throws CPAException
+  {
+    return merge((AbstractElementWithLocation)element1, (AbstractElementWithLocation)element2, precision);
+  }
 
   public AbstractElementWithLocation merge(AbstractElementWithLocation element1,
                                            AbstractElementWithLocation element2,
@@ -95,7 +89,7 @@ public class CompositeMergeOperator implements MergeOperator{
     Iterator<AbstractElement> iter1 = comp1.getElements().iterator();
     Iterator<AbstractElement> iter2 = comp2.getElements().iterator();
     Iterator<Precision> precIter = prec.getPrecisions().iterator();
-    
+
     for (MergeOperator mergeOp : mergeOperators) {
       AbstractElement absElem1 = iter1.next();
       AbstractElement absElem2 = iter2.next();

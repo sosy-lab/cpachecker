@@ -45,107 +45,101 @@ import exceptions.CPAException;
  */
 public class ExplicitStopOperator implements StopOperator {
 
-    private final ExplicitAbstractDomain domain;
+  private final ExplicitAbstractDomain domain;
 
-    public ExplicitStopOperator(ExplicitAbstractDomain d) {
-        domain = d;
+  public ExplicitStopOperator(ExplicitAbstractDomain d) {
+    domain = d;
+  }
+
+  public <AE extends AbstractElement> boolean stop(AE element,
+                                                   Collection<AE> reached, Precision prec) throws CPAException {
+    if (domain.getBottomElement().equals(element)) {
+      // stopping here is only correct if reached is not empty.
+      // correct means there is an element in reached that
+      // covers the bottom element.
+      // if this notion of correct is to strict we can skip the
+      // assert
+      assert(reached.size() > 0);
+
+      return true;
     }
 
+    if (reached instanceof LocationMappedReachedSetProjectionWrapper) {
+      ExplicitAbstractElement e = (ExplicitAbstractElement)element;
+      Collection<AbstractElementWithLocation> effReached =
+        ((LocationMappedReachedSetProjectionWrapper)reached).get(
+            e.getLocationNode());
 
-    public AbstractDomain getAbstractDomain() {
-        return domain;
+      if (effReached == null) {
+        return false;
+      }
+
+      for (AbstractElementWithLocation e2: effReached) {
+        if (stop(element, e2)) {
+          return true;
+        }
+      }
+    } else {
+      for (AbstractElement e : reached) {
+        if (stop(element, e)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+
+  public boolean stop(AbstractElement element, AbstractElement reachedElement)
+  throws CPAException {
+    if (domain.getBottomElement().equals(element)) {
+      return true;
     }
 
-
-    public <AE extends AbstractElement> boolean stop(AE element,
-                                                     Collection<AE> reached, Precision prec) throws CPAException {
-      if (domain.getBottomElement().equals(element)) {
-        // stopping here is only correct if reached is not empty.
-        // correct means there is an element in reached that
-        // covers the bottom element.
-        // if this notion of correct is to strict we can skip the
-        // assert
-        assert(reached.size() > 0);
-        
-        return true;
-      }
-      
-      if (reached instanceof LocationMappedReachedSetProjectionWrapper) {
-        ExplicitAbstractElement e = (ExplicitAbstractElement)element;
-        Collection<AbstractElementWithLocation> effReached =
-          ((LocationMappedReachedSetProjectionWrapper)reached).get(
-              e.getLocationNode());
-        
-        if (effReached == null) {
-          return false;
-        }
-        
-        for (AbstractElementWithLocation e2: effReached) {
-          if (stop(element, e2)) {
-            return true;
-          }
-        }
-      } else {
-        for (AbstractElement e : reached) {
-          if (stop(element, e)) {
-            return true;
-          }
-        }
-      }
+    if (domain.getBottomElement().equals(reachedElement)) {
       return false;
     }
 
+    ExplicitAbstractElement e1 = (ExplicitAbstractElement)element;
+    ExplicitAbstractElement e2 = (ExplicitAbstractElement)reachedElement;
 
-    public boolean stop(AbstractElement element, AbstractElement reachedElement)
-            throws CPAException {
-        if (domain.getBottomElement().equals(element)) {
-          return true;
-        }
-        
-        if (domain.getBottomElement().equals(reachedElement)) {
-          return false;
-        }
-      
-        ExplicitAbstractElement e1 = (ExplicitAbstractElement)element;
-        ExplicitAbstractElement e2 = (ExplicitAbstractElement)reachedElement;
-
-        if (!e2.isMarked()) {
-            return false;
-        }
-
-        if (e1.getLocation().equals(e2.getLocation())) {
-            LazyLogger.log(LazyLogger.DEBUG_4,
-                    "Checking Coverage of element: ", element);
-
-            if (!e1.sameContext(e2)) {
-                LazyLogger.log(CustomLogLevel.SpecificCPALevel,
-                               "NO, not covered: context differs");
-                return false;
-            }
-
-            ExplicitCPA cpa = domain.getCPA();
-            ExplicitAbstractFormulaManager amgr =
-                cpa.getAbstractFormulaManager();
-
-            assert(e1.getAbstraction() != null);
-            assert(e2.getAbstraction() != null);
-
-            boolean ok = amgr.entails(e1.getAbstraction(), e2.getAbstraction());
-
-            if (ok) {
-                LazyLogger.log(CustomLogLevel.SpecificCPALevel,
-                               "Element: ", element, " COVERED by: ", e2);
-                cpa.setCovered(e1);
-                e1.setCovered(true);
-            } else {
-                LazyLogger.log(CustomLogLevel.SpecificCPALevel,
-                               "NO, not covered");
-            }
-
-            return ok;
-        } else {
-            return false;
-        }
+    if (!e2.isMarked()) {
+      return false;
     }
+
+    if (e1.getLocation().equals(e2.getLocation())) {
+      LazyLogger.log(LazyLogger.DEBUG_4,
+          "Checking Coverage of element: ", element);
+
+      if (!e1.sameContext(e2)) {
+        LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+            "NO, not covered: context differs");
+        return false;
+      }
+
+      ExplicitCPA cpa = domain.getCPA();
+      ExplicitAbstractFormulaManager amgr =
+        cpa.getAbstractFormulaManager();
+
+      assert(e1.getAbstraction() != null);
+      assert(e2.getAbstraction() != null);
+
+      boolean ok = amgr.entails(e1.getAbstraction(), e2.getAbstraction());
+
+      if (ok) {
+        LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+            "Element: ", element, " COVERED by: ", e2);
+        cpa.setCovered(e1);
+        e1.setCovered(true);
+      } else {
+        LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+            "NO, not covered");
+      }
+
+      return ok;
+    } else {
+      return false;
+    }
+  }
 
 }

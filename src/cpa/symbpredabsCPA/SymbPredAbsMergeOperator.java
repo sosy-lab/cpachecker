@@ -57,11 +57,6 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
     mgr = d.getCPA().getSymbolicFormulaManager();
   }
 
-
-  public AbstractDomain getAbstractDomain() {
-    return domain;
-  }
-
   public AbstractElement merge(AbstractElement element1,
                                AbstractElement element2, Precision precision) {
 
@@ -76,7 +71,7 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
         merged = elem2;
       }
       else{
-     // we set parent to abstract element 2's parent
+        // we set parent to abstract element 2's parent
         merged = new SymbPredAbsAbstractElement(domain, false, elem1.getAbstractionLocation(), 
             null, null, elem1.getInitAbstractionSet(), elem1.getAbstraction(), 
             elem1.getParents(), elem1.getArtParent(), elem1.getPredicates());
@@ -96,7 +91,7 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
         ssa1 = pm.getSecond();
 
         merged.setPathFormula(new PathFormula(newFormula, ssa1));
-        
+
         List<Integer> pfParents = new ArrayList<Integer>();
         pfParents.addAll(elem2.getPfParents());
         // the successor should have only 1 element in its pfParents list
@@ -153,7 +148,7 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
                                            AbstractElementWithLocation pElement1,
                                            AbstractElementWithLocation pElement2,
                                            Precision pPrecision)
-                                                                throws CPAException {
+  throws CPAException {
     throw new CPAException ("Cannot return element with location information");
   }
 }

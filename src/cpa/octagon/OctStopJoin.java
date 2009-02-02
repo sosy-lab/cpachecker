@@ -33,28 +33,23 @@ import exceptions.CPAException;
 
 public class OctStopJoin implements StopOperator{
 
-private final OctDomain octDomain;
+  private final OctDomain octDomain;
 
-    public OctStopJoin (OctDomain octDomain)
-    {
-        this.octDomain = octDomain;
-    }
+  public OctStopJoin (OctDomain octDomain)
+  {
+    this.octDomain = octDomain;
+  }
 
-    public AbstractDomain getAbstractDomain ()
-    {
-        return octDomain;
-    }
+  public <AE extends AbstractElement> boolean stop (AE element, Collection<AE> reached, Precision prec) throws CPAException
+  {
+    // TODO implement
+    return false;
+  }
 
-    public <AE extends AbstractElement> boolean stop (AE element, Collection<AE> reached, Precision prec) throws CPAException
-    {
-        // TODO implement
-        return false;
-    }
-
-	public boolean stop(AbstractElement element, AbstractElement reachedElement)
-			throws CPAException {
-        // TODO implement
-        return false;
-    }
+  public boolean stop(AbstractElement element, AbstractElement reachedElement)
+  throws CPAException {
+    // TODO implement
+    return false;
+  }
 
 }

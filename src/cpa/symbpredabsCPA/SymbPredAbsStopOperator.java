@@ -47,12 +47,6 @@ public class SymbPredAbsStopOperator implements StopOperator {
     cpa = domain.getCPA();
   }
 
-
-  public AbstractDomain getAbstractDomain() {
-    return domain;
-  }
-
-
   public <AE extends AbstractElement> boolean stop (AE element, Collection<AE> reached, Precision prec) throws CPAException
   {
     for (AbstractElement e : reached) {
@@ -79,7 +73,7 @@ public class SymbPredAbsStopOperator implements StopOperator {
         List<Integer> reachedList = e2.getPfParents();
 
         assert(succList.size() == 1);
-        
+
         return reachedList.containsAll(succList);
       }
       return false;
@@ -100,26 +94,26 @@ public class SymbPredAbsStopOperator implements StopOperator {
 
       assert(e1.getAbstraction() != null);
       assert(e2.getAbstraction() != null);
-      
-//      assert((MathsatSymbolicFormula)e1.getInitAbstractionSet().getSymbolicFormula() != null);
-//      assert((MathsatSymbolicFormula)e2.getInitAbstractionSet().getSymbolicFormula() != null);
-//      
-//      if(!e1.getParents().equals(e2.getParents()) &&
-////          !(((MathsatSymbolicFormula)e1.getInitAbstractionSet().getSymbolicFormula()).toString().equals
-////              (((MathsatSymbolicFormula)e2.getInitAbstractionSet().getSymbolicFormula()).toString()))
-//        !(mgr.entails(e1.getInitAbstractionSet().getSymbolicFormula(), e2.getInitAbstractionSet().getSymbolicFormula())
-//        && mgr.entails(e2.getInitAbstractionSet().getSymbolicFormula(), e1.getInitAbstractionSet().getSymbolicFormula()))
-//      ){
-//        return false;
-//      }
-      
-//      if(
-//        !(mgr.entails(e1.getInitAbstractionSet().getSymbolicFormula(), e2.getInitAbstractionSet().getSymbolicFormula())
-//        && mgr.entails(e2.getInitAbstractionSet().getSymbolicFormula(), e1.getInitAbstractionSet().getSymbolicFormula()))
-//      ){
-//        System.out.println(" the formulas are not equal ");
-//        assert(false);
-//      }
+
+//    assert((MathsatSymbolicFormula)e1.getInitAbstractionSet().getSymbolicFormula() != null);
+//    assert((MathsatSymbolicFormula)e2.getInitAbstractionSet().getSymbolicFormula() != null);
+
+//    if(!e1.getParents().equals(e2.getParents()) &&
+////  !(((MathsatSymbolicFormula)e1.getInitAbstractionSet().getSymbolicFormula()).toString().equals
+////  (((MathsatSymbolicFormula)e2.getInitAbstractionSet().getSymbolicFormula()).toString()))
+//    !(mgr.entails(e1.getInitAbstractionSet().getSymbolicFormula(), e2.getInitAbstractionSet().getSymbolicFormula())
+//    && mgr.entails(e2.getInitAbstractionSet().getSymbolicFormula(), e1.getInitAbstractionSet().getSymbolicFormula()))
+//    ){
+//    return false;
+//    }
+
+//    if(
+//    !(mgr.entails(e1.getInitAbstractionSet().getSymbolicFormula(), e2.getInitAbstractionSet().getSymbolicFormula())
+//    && mgr.entails(e2.getInitAbstractionSet().getSymbolicFormula(), e1.getInitAbstractionSet().getSymbolicFormula()))
+//    ){
+//    System.out.println(" the formulas are not equal ");
+//    assert(false);
+//    }
 
       boolean ok = amgr.entails(e1.getAbstraction(), e2.getAbstraction());
 

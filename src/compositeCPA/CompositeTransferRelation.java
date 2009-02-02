@@ -45,112 +45,107 @@ import exceptions.CPAException;
 
 public class CompositeTransferRelation implements TransferRelation{
 
-	private final CompositeDomain compositeDomain;
-	private final List<TransferRelation> transferRelations;
+  private final CompositeDomain compositeDomain;
+  private final List<TransferRelation> transferRelations;
 
-	// private LocationTransferRelation locationTransferRelation;
+  // private LocationTransferRelation locationTransferRelation;
 
-	public CompositeTransferRelation (CompositeDomain compositeDomain, List<TransferRelation> transferRelations)
-	{
-		this.compositeDomain = compositeDomain;
-		this.transferRelations = transferRelations;
+  public CompositeTransferRelation (CompositeDomain compositeDomain, List<TransferRelation> transferRelations)
+  {
+    this.compositeDomain = compositeDomain;
+    this.transferRelations = transferRelations;
 
-		//TransferRelation first = transferRelations.get (0);
-		//if (first instanceof LocationTransferRelation)
-		//{
-		//	locationTransferRelation = (LocationTransferRelation) first;
-		//}
-	}
+    //TransferRelation first = transferRelations.get (0);
+    //if (first instanceof LocationTransferRelation)
+    //{
+    //	locationTransferRelation = (LocationTransferRelation) first;
+    //}
+  }
 
-	public AbstractDomain getAbstractDomain ()
-	{
-		return compositeDomain;
-	}
+  public AbstractElement getAbstractSuccessor (AbstractElement element, CFAEdge cfaEdge, Precision precision) throws CPATransferException
+  {
+    assert(precision instanceof CompositePrecision);
+    CompositePrecision lCompositePrecision = (CompositePrecision)precision;
 
-	public AbstractElement getAbstractSuccessor (AbstractElement element, CFAEdge cfaEdge, Precision precision) throws CPATransferException
-	{
-	  assert(precision instanceof CompositePrecision);
-	  CompositePrecision lCompositePrecision = (CompositePrecision)precision;
-	  
-		CompositeElement compositeElement = (CompositeElement) element;
-		List<AbstractElement> inputElements = compositeElement.getElements ();
-		List<AbstractElement> resultingElements = new ArrayList<AbstractElement> ();
+    CompositeElement compositeElement = (CompositeElement) element;
+    List<AbstractElement> inputElements = compositeElement.getElements ();
+    List<AbstractElement> resultingElements = new ArrayList<AbstractElement> ();
 
-		CallStack updatedCallStack = compositeElement.getCallStack();
+    CallStack updatedCallStack = compositeElement.getCallStack();
 
-		// TODO add some check here for unbounded recursive calls
-		if(cfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge)
-		{
-			String functionName = cfaEdge.getSuccessor().getFunctionName();
-			CFANode callNode = cfaEdge.getPredecessor();
-			CallElement ce = new CallElement(functionName, callNode, compositeElement);
-			CallStack cs = compositeElement.getCallStack();
-			updatedCallStack = cs.clone();
-			updatedCallStack.push(ce);
-		}
+    // TODO add some check here for unbounded recursive calls
+    if(cfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge)
+    {
+      String functionName = cfaEdge.getSuccessor().getFunctionName();
+      CFANode callNode = cfaEdge.getPredecessor();
+      CallElement ce = new CallElement(functionName, callNode, compositeElement);
+      CallStack cs = compositeElement.getCallStack();
+      updatedCallStack = cs.clone();
+      updatedCallStack.push(ce);
+    }
 
-		// handling the return from a function
-		else if(cfaEdge.getEdgeType() == CFAEdgeType.ReturnEdge)
-		{
-			CallElement topCallElement = compositeElement.getCallStack().peek();
-			assert(cfaEdge.getPredecessor().getFunctionName().
-					equals(topCallElement.getFunctionName()));
-			CallElement returnElement = compositeElement.getCallStack().getSecondTopElement();
+    // handling the return from a function
+    else if(cfaEdge.getEdgeType() == CFAEdgeType.ReturnEdge)
+    {
+      CallElement topCallElement = compositeElement.getCallStack().peek();
+      assert(cfaEdge.getPredecessor().getFunctionName().
+          equals(topCallElement.getFunctionName()));
+      CallElement returnElement = compositeElement.getCallStack().getSecondTopElement();
 
-			if(! topCallElement.isConsistent(cfaEdge.getSuccessor()) ||
-					! returnElement.isConsistent(cfaEdge.getSuccessor().getFunctionName()) ){
-				return compositeDomain.getBottomElement();
-			}
+      if(! topCallElement.isConsistent(cfaEdge.getSuccessor()) ||
+          ! returnElement.isConsistent(cfaEdge.getSuccessor().getFunctionName()) ){
+        return compositeDomain.getBottomElement();
+      }
 
-			// TODO we are saving the abstract state on summary edge, that works for
-			// now but this is a terrible design practice. Add another method
-			// getAbstractSuccessorOnReturn(subElement, prevElement, cfaEdge)
-			// and implement it for all CPAs later.
-			else{
-				CallStack cs = compositeElement.getCallStack();
-				updatedCallStack = cs.clone();
-				CallElement ce = updatedCallStack.pop();
-				CompositeElement compElemBeforeCall = ce.getState();
-				// TODO use summary edge as a cache later
-				CallToReturnEdge summaryEdge = cfaEdge.getSuccessor().getEnteringSummaryEdge();
-				summaryEdge.setAbstractElement(compElemBeforeCall);
-			}
-		}
+      // TODO we are saving the abstract state on summary edge, that works for
+      // now but this is a terrible design practice. Add another method
+      // getAbstractSuccessorOnReturn(subElement, prevElement, cfaEdge)
+      // and implement it for all CPAs later.
+      else{
+        CallStack cs = compositeElement.getCallStack();
+        updatedCallStack = cs.clone();
+        CallElement ce = updatedCallStack.pop();
+        CompositeElement compElemBeforeCall = ce.getState();
+        // TODO use summary edge as a cache later
+        CallToReturnEdge summaryEdge = cfaEdge.getSuccessor().getEnteringSummaryEdge();
+        summaryEdge.setAbstractElement(compElemBeforeCall);
+      }
+    }
 
-		for (int idx = 0; idx < transferRelations.size (); idx++)
-		{
-			TransferRelation transfer = transferRelations.get (idx);
-			AbstractElement subElement = null;
-			AbstractElement successor = null;
-			subElement = inputElements.get (idx);
-			// handling a call edge
+    for (int idx = 0; idx < transferRelations.size (); idx++)
+    {
+      TransferRelation transfer = transferRelations.get (idx);
+      AbstractElement subElement = null;
+      AbstractElement successor = null;
+      subElement = inputElements.get (idx);
+      // handling a call edge
 
-			Precision lPresicion = lCompositePrecision.get(idx);
-			
-			successor = transfer.getAbstractSuccessor (subElement, cfaEdge, lPresicion);
-			resultingElements.add (successor);
-		}
+      Precision lPresicion = lCompositePrecision.get(idx);
 
-		CompositeElement successorState = new CompositeElement (resultingElements, updatedCallStack);
-		return successorState;
-	}
+      successor = transfer.getAbstractSuccessor (subElement, cfaEdge, lPresicion);
+      resultingElements.add (successor);
+    }
 
-	public List<AbstractElementWithLocation> getAllAbstractSuccessors (AbstractElementWithLocation element, Precision precision) throws CPAException, CPATransferException
-	{
+    CompositeElement successorState = new CompositeElement (resultingElements, updatedCallStack);
+    return successorState;
+  }
 
-		//TODO CPACheckerStatistics.noOfTransferRelations++;
+  public List<AbstractElementWithLocation> getAllAbstractSuccessors (AbstractElementWithLocation element, Precision precision) throws CPAException, CPATransferException
+  {
 
-		CompositeElement compositeElement = (CompositeElement) element;
-		CFANode node = compositeElement.getLocationNode();
+    //TODO CPACheckerStatistics.noOfTransferRelations++;
 
-		List<AbstractElementWithLocation> results = new ArrayList<AbstractElementWithLocation> ();
+    CompositeElement compositeElement = (CompositeElement) element;
+    CFANode node = compositeElement.getLocationNode();
 
-		for (int edgeIdx = 0; edgeIdx < node.getNumLeavingEdges (); edgeIdx++)
-		{
-			CFAEdge edge = node.getLeavingEdge (edgeIdx);
-			results.add ((CompositeElement) getAbstractSuccessor (element, edge, precision));
-		}
+    List<AbstractElementWithLocation> results = new ArrayList<AbstractElementWithLocation> ();
 
-		return results;
-	}
+    for (int edgeIdx = 0; edgeIdx < node.getNumLeavingEdges (); edgeIdx++)
+    {
+      CFAEdge edge = node.getLeavingEdge (edgeIdx);
+      results.add ((CompositeElement) getAbstractSuccessor (element, edge, precision));
+    }
+
+    return results;
+  }
 }

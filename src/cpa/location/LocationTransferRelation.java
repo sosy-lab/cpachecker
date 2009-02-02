@@ -39,54 +39,49 @@ import cpa.common.interfaces.TransferRelation;
 
 public class LocationTransferRelation implements TransferRelation
 {
-    private final LocationDomain locationDomain;
+  private final LocationDomain locationDomain;
 
-    public LocationTransferRelation (LocationDomain locationDomain)
+  public LocationTransferRelation (LocationDomain locationDomain)
+  {
+    this.locationDomain = locationDomain;
+  }
+
+  public AbstractElement getAbstractSuccessor (AbstractElement element, CFAEdge cfaEdge, Precision prec) throws CPATransferException
+  {
+    LocationElement inputElement = (LocationElement) element;
+    CFANode node = inputElement.getLocationNode ();
+
+    int numLeavingEdges = node.getNumLeavingEdges ();
+    for (int edgeIdx = 0; edgeIdx < numLeavingEdges; edgeIdx++)
     {
-        this.locationDomain = locationDomain;
+      CFAEdge testEdge = node.getLeavingEdge (edgeIdx);
+      if (testEdge == cfaEdge)
+      {
+        return new LocationElement (testEdge.getSuccessor ());
+      }
     }
 
-    public AbstractDomain getAbstractDomain ()
-    {
-        return locationDomain;
+    if (node.getLeavingSummaryEdge() != null){
+      CallToReturnEdge summaryEdge = node.getLeavingSummaryEdge();
+      return new LocationElement (summaryEdge.getSuccessor());
     }
 
-    public AbstractElement getAbstractSuccessor (AbstractElement element, CFAEdge cfaEdge, Precision prec) throws CPATransferException
+    return locationDomain.getBottomElement ();
+  }
+
+  public List<AbstractElementWithLocation> getAllAbstractSuccessors (AbstractElementWithLocation element, Precision prec) throws CPATransferException
+  {
+    CFANode node = element.getLocationNode ();
+
+    List<AbstractElementWithLocation> allSuccessors = new ArrayList<AbstractElementWithLocation> ();
+    int numLeavingEdges = node.getNumLeavingEdges ();
+
+    for (int edgeIdx = 0; edgeIdx < numLeavingEdges; edgeIdx++)
     {
-        LocationElement inputElement = (LocationElement) element;
-        CFANode node = inputElement.getLocationNode ();
-
-        int numLeavingEdges = node.getNumLeavingEdges ();
-        for (int edgeIdx = 0; edgeIdx < numLeavingEdges; edgeIdx++)
-        {
-            CFAEdge testEdge = node.getLeavingEdge (edgeIdx);
-            if (testEdge == cfaEdge)
-            {
-                return new LocationElement (testEdge.getSuccessor ());
-            }
-        }
-
-        if (node.getLeavingSummaryEdge() != null){
-        	CallToReturnEdge summaryEdge = node.getLeavingSummaryEdge();
-        	return new LocationElement (summaryEdge.getSuccessor());
-        }
-
-        return locationDomain.getBottomElement ();
+      CFAEdge tempEdge = node.getLeavingEdge (edgeIdx);
+      allSuccessors.add (new LocationElement (tempEdge.getSuccessor ()));
     }
 
-    public List<AbstractElementWithLocation> getAllAbstractSuccessors (AbstractElementWithLocation element, Precision prec) throws CPATransferException
-    {
-        CFANode node = element.getLocationNode ();
-
-        List<AbstractElementWithLocation> allSuccessors = new ArrayList<AbstractElementWithLocation> ();
-        int numLeavingEdges = node.getNumLeavingEdges ();
-
-        for (int edgeIdx = 0; edgeIdx < numLeavingEdges; edgeIdx++)
-        {
-            CFAEdge tempEdge = node.getLeavingEdge (edgeIdx);
-            allSuccessors.add (new LocationElement (tempEdge.getSuccessor ()));
-        }
-
-        return allSuccessors;
-    }
+    return allSuccessors;
+  }
 }

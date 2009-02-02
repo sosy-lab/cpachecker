@@ -63,7 +63,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
   private ExplicitAnalysisDomain explicitAnalysisDomain;
 
   private Set<String> globalVars;
-  
+
   private int threshold;
 
   public ExplicitAnalysisTransferRelation (ExplicitAnalysisDomain explicitAnalysisfUseDomain)
@@ -71,11 +71,6 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
     this.explicitAnalysisDomain = explicitAnalysisfUseDomain;
     globalVars = new HashSet<String>();
     threshold = Integer.parseInt(CPAMain.cpaConfig.getProperty("explicitAnalysis.threshold"));
-  }
-
-  public ExplicitAnalysisDomain getAbstractDomain ()
-  {
-    return explicitAnalysisDomain;
   }
 
   @Override

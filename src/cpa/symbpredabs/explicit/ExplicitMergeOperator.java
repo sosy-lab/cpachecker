@@ -38,34 +38,29 @@ import exceptions.CPAException;
  */
 public class ExplicitMergeOperator implements MergeOperator {
 
-    private final ExplicitAbstractDomain domain;
+  private final ExplicitAbstractDomain domain;
 
-    public ExplicitMergeOperator(ExplicitAbstractDomain d) {
-        domain = d;
-    }
+  public ExplicitMergeOperator(ExplicitAbstractDomain d) {
+    domain = d;
+  }
 
+  public AbstractElement merge(AbstractElement element1,
+                               AbstractElement element2,
+                               Precision prec) {
+    LazyLogger.log(LazyLogger.DEBUG_4,
+        "Trying to merge elements: ", element1,
+        " and: ", element2);
 
-    public AbstractDomain getAbstractDomain() {
-        return domain;
-    }
+    return element2;
+  }
 
-    public AbstractElement merge(AbstractElement element1,
-                                 AbstractElement element2,
-                                 Precision prec) {
-        LazyLogger.log(LazyLogger.DEBUG_4,
-                "Trying to merge elements: ", element1,
-                " and: ", element2);
+  public AbstractElementWithLocation merge(AbstractElementWithLocation pElement1,
+                                           AbstractElementWithLocation pElement2,
+                                           Precision prec) throws CPAException {
+    LazyLogger.log(LazyLogger.DEBUG_4,
+        "Trying to merge elements: ", pElement1,
+        " and: ", pElement2);
 
-        return element2;
-    }
-
-    public AbstractElementWithLocation merge(AbstractElementWithLocation pElement1,
-                                             AbstractElementWithLocation pElement2,
-                                             Precision prec) throws CPAException {
-      LazyLogger.log(LazyLogger.DEBUG_4,
-          "Trying to merge elements: ", pElement1,
-          " and: ", pElement2);
-
-      return pElement2;
-    }
+    return pElement2;
+  }
 }

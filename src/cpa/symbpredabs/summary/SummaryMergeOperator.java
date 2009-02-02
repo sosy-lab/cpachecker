@@ -37,36 +37,30 @@ import cpa.common.interfaces.Precision;
  */
 public class SummaryMergeOperator implements MergeOperator {
 
-    private final SummaryAbstractDomain domain;
+  private final SummaryAbstractDomain domain;
 
-    public SummaryMergeOperator(SummaryAbstractDomain d) {
-        domain = d;
-    }
+  public SummaryMergeOperator(SummaryAbstractDomain d) {
+    domain = d;
+  }
 
+  public AbstractElement merge(AbstractElement element1,
+                               AbstractElement element2,
+                               Precision prec) {
+    LazyLogger.log(LazyLogger.DEBUG_4,
+        "Trying to merge elements: ", element1,
+        " and: ", element2);
 
-    public AbstractDomain getAbstractDomain() {
-        return domain;
-    }
-
-
-    public AbstractElement merge(AbstractElement element1,
-                                 AbstractElement element2,
-                                 Precision prec) {
-        LazyLogger.log(LazyLogger.DEBUG_4,
-                "Trying to merge elements: ", element1,
-                " and: ", element2);
-
-        return element2;
-    }
+    return element2;
+  }
 
 
-    public AbstractElementWithLocation merge(AbstractElementWithLocation element1,
-                                 AbstractElementWithLocation element2,
-                                 Precision prec) {
-        LazyLogger.log(LazyLogger.DEBUG_4,
-                "Trying to merge elements: ", element1,
-                " and: ", element2);
+  public AbstractElementWithLocation merge(AbstractElementWithLocation element1,
+                                           AbstractElementWithLocation element2,
+                                           Precision prec) {
+    LazyLogger.log(LazyLogger.DEBUG_4,
+        "Trying to merge elements: ", element1,
+        " and: ", element2);
 
-        return element2;
-    }
+    return element2;
+  }
 }

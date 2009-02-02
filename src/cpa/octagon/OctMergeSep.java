@@ -32,21 +32,17 @@ import exceptions.CPAException;
 
 public class OctMergeSep implements MergeOperator {
 
-	private final OctDomain octDomain;
+  private final OctDomain octDomain;
 
-	public OctMergeSep (OctDomain octDomain)
-    {
-        this.octDomain = octDomain;
-    }
+  public OctMergeSep (OctDomain octDomain)
+  {
+    this.octDomain = octDomain;
+  }
 
-	public AbstractDomain getAbstractDomain() {
-		return octDomain;
-	}
-
-	public AbstractElement merge(AbstractElement element1,
-			AbstractElement element2, Precision prec) {
-		return element2;
-	}
+  public AbstractElement merge(AbstractElement element1,
+                               AbstractElement element2, Precision prec) {
+    return element2;
+  }
 
   public AbstractElementWithLocation merge(AbstractElementWithLocation pElement1,
                                            AbstractElementWithLocation pElement2,

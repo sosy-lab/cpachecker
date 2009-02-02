@@ -39,36 +39,30 @@ import cpa.common.interfaces.Precision;
  */
 public class ItpMergeOperator implements MergeOperator {
 
-    private final ItpAbstractDomain domain;
+  private final ItpAbstractDomain domain;
 
-    public ItpMergeOperator(ItpAbstractDomain d) {
-        domain = d;
-    }
+  public ItpMergeOperator(ItpAbstractDomain d) {
+    domain = d;
+  }
 
+  public AbstractElement merge(AbstractElement element1,
+                               AbstractElement element2,
+                               Precision prec) {
+    LazyLogger.log(LazyLogger.DEBUG_4,
+        "Trying to merge elements: ", element1,
+        " and: ", element2);
 
-    public AbstractDomain getAbstractDomain() {
-        return domain;
-    }
+    return element2;
+  }
 
+  public AbstractElementWithLocation merge(AbstractElementWithLocation element1,
+                                           AbstractElementWithLocation element2,
+                                           Precision prec) {
+    LazyLogger.log(LazyLogger.DEBUG_4,
+        "Trying to merge elements: ", element1,
+        " and: ", element2);
 
-    public AbstractElement merge(AbstractElement element1,
-                                 AbstractElement element2,
-                                 Precision prec) {
-        LazyLogger.log(LazyLogger.DEBUG_4,
-                "Trying to merge elements: ", element1,
-                " and: ", element2);
-
-        return element2;
-    }
-
-    public AbstractElementWithLocation merge(AbstractElementWithLocation element1,
-                                 AbstractElementWithLocation element2,
-                                 Precision prec) {
-        LazyLogger.log(LazyLogger.DEBUG_4,
-                "Trying to merge elements: ", element1,
-                " and: ", element2);
-
-        return element2;
-    }
+    return element2;
+  }
 
 }

@@ -32,29 +32,24 @@ import exceptions.CPAException;
 
 public class ExplicitAnalysisMergeSep implements MergeOperator
 {
-    private ExplicitAnalysisDomain explicitAnalysisDomain;
+  private ExplicitAnalysisDomain explicitAnalysisDomain;
 
-    public ExplicitAnalysisMergeSep (ExplicitAnalysisDomain explicitAnalysisDomain)
-    {
-        this.explicitAnalysisDomain = explicitAnalysisDomain;
-    }
+  public ExplicitAnalysisMergeSep (ExplicitAnalysisDomain explicitAnalysisDomain)
+  {
+    this.explicitAnalysisDomain = explicitAnalysisDomain;
+  }
 
-    public AbstractDomain getAbstractDomain ()
-    {
-        return explicitAnalysisDomain;
-    }
+  public AbstractElement merge (AbstractElement element1, AbstractElement element2, Precision prec)
+  {
+    return element2;
+  }
 
-    public AbstractElement merge (AbstractElement element1, AbstractElement element2, Precision prec)
-    {
-        return element2;
-    }
-
-    @Override
-    public AbstractElementWithLocation merge(
-                                             AbstractElementWithLocation pElement1,
-                                             AbstractElementWithLocation pElement2,
-                                             Precision pPrecision)
-                                                                  throws CPAException {
-      throw new CPAException ("Cannot return element with location information");
-    }
+  @Override
+  public AbstractElementWithLocation merge(
+                                           AbstractElementWithLocation pElement1,
+                                           AbstractElementWithLocation pElement2,
+                                           Precision pPrecision)
+  throws CPAException {
+    throw new CPAException ("Cannot return element with location information");
+  }
 }

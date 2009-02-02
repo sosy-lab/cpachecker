@@ -88,14 +88,6 @@ public class OctTransferRelation implements TransferRelation{
   }
 
   /* (non-Javadoc)
-   * @see cpa.common.interfaces.TransferRelation#getAbstractDomain()
-   */
-  public AbstractDomain getAbstractDomain ()
-  {
-    return octDomain;
-  }
-
-  /* (non-Javadoc)
    * @see cpa.common.interfaces.TransferRelation#getAbstractSuccessor(cpa.common.interfaces.AbstractElement, cfa.objectmodel.CFAEdge)
    */
   public AbstractElement getAbstractSuccessor (AbstractElement element, CFAEdge cfaEdge, Precision prec)
@@ -111,7 +103,7 @@ public class OctTransferRelation implements TransferRelation{
     // this state will be updated using the edge
     OctElement octElement = (OctElement) element;
     OctElement octElement1 = octElement;
-    
+
     // check the type of the edge
     switch (cfaEdge.getEdgeType ())
     {
@@ -254,7 +246,7 @@ public class OctTransferRelation implements TransferRelation{
       System.out.println("Error location(s) reached? YES, there is a BUG!");
       System.exit(0);
     }
-    
+
 //  System.out.println(" ====================== " + cfaEdge + " >>>>>>> ");
 //  System.out.println(octElement);
 //  System.out.println();
@@ -2080,19 +2072,19 @@ public class OctTransferRelation implements TransferRelation{
             int resultvarID = octElement.getVariableId(globalVars, "___cpa_temp_result_var_", functionName);
             String literalValue = unExp.getRawSignature ();
             // TODO
-//            int typeOfLiteral = (unExp.getKind());
-//            if( typeOfLiteral ==  IASTLiteralExpression.lk_integer_constant ||
-//                typeOfLiteral == IASTLiteralExpression.lk_float_constant)
-//            {
-              double val = Double.valueOf(literalValue).doubleValue();
-              Num n = new Num(val);
-              Num[] array = new Num[octElement.getNumberOfVars()+1];
+//          int typeOfLiteral = (unExp.getKind());
+//          if( typeOfLiteral ==  IASTLiteralExpression.lk_integer_constant ||
+//          typeOfLiteral == IASTLiteralExpression.lk_float_constant)
+//          {
+            double val = Double.valueOf(literalValue).doubleValue();
+            Num n = new Num(val);
+            Num[] array = new Num[octElement.getNumberOfVars()+1];
 
-              for(int j=0; j<array.length-1; j++){
-                array[j] = new Num(0);
-              }
-              array[array.length-1] = n;
-              octElement.update(LibraryAccess.assignVar(octElement, resultvarID, array));
+            for(int j=0; j<array.length-1; j++){
+              array[j] = new Num(0);
+            }
+            array[array.length-1] = n;
+            octElement.update(LibraryAccess.assignVar(octElement, resultvarID, array));
             //}
           }
         }

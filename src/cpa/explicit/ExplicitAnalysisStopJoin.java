@@ -32,28 +32,23 @@ import cpa.common.interfaces.StopOperator;
 import exceptions.CPAException;
 
 public class ExplicitAnalysisStopJoin implements StopOperator {
-	
-    private ExplicitAnalysisDomain explicitAnalysisDomain;
 
-    public ExplicitAnalysisStopJoin (ExplicitAnalysisDomain explicitAnalysisDomain)
-    {
-        this.explicitAnalysisDomain = explicitAnalysisDomain;
-    }
+  private ExplicitAnalysisDomain explicitAnalysisDomain;
 
-    public AbstractDomain getAbstractDomain ()
-    {
-        return explicitAnalysisDomain;
-    }
+  public ExplicitAnalysisStopJoin (ExplicitAnalysisDomain explicitAnalysisDomain)
+  {
+    this.explicitAnalysisDomain = explicitAnalysisDomain;
+  }
 
-    public <AE extends AbstractElement> boolean stop (AE element, Collection<AE> reached, Precision prec)
-    		throws CPAException {
-    	// TODO
-    	return false;
-    }
+  public <AE extends AbstractElement> boolean stop (AE element, Collection<AE> reached, Precision prec)
+  throws CPAException {
+    // TODO
+    return false;
+  }
 
-	public boolean stop(AbstractElement element, AbstractElement reachedElement)
-			throws CPAException {
-		// TODO
-		return false;
-	}
+  public boolean stop(AbstractElement element, AbstractElement reachedElement)
+  throws CPAException {
+    // TODO
+    return false;
+  }
 }

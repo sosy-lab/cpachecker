@@ -33,47 +33,43 @@ import exceptions.CPAException;
 
 public class OctMergeJoin implements MergeOperator{
 
-	private final OctDomain octDomain;
+  private final OctDomain octDomain;
 
-	public OctMergeJoin (OctDomain octDomain)
-	{
-		this.octDomain = octDomain;
-	}
+  public OctMergeJoin (OctDomain octDomain)
+  {
+    this.octDomain = octDomain;
+  }
 
-	public AbstractDomain getAbstractDomain() {
-		return octDomain;
-	}
+  public AbstractElement merge(AbstractElement element1, AbstractElement element2, Precision prec) {
+    OctElement octEl1 = (OctElement) element1;
+    OctElement octEl2 = (OctElement) element2;
 
-	public AbstractElement merge(AbstractElement element1, AbstractElement element2, Precision prec) {
-		OctElement octEl1 = (OctElement) element1;
-		OctElement octEl2 = (OctElement) element2;
+    int dim1 = LibraryAccess.getDim(octEl1);
+    int dim2 = LibraryAccess.getDim(octEl2);
 
-		int dim1 = LibraryAccess.getDim(octEl1);
-		int dim2 = LibraryAccess.getDim(octEl2);
+    // TODO recursive join should be handled gracefully here
+    //octEl2.addVariablesFrom(octEl1);
+    //System.out.println(octEl1.getNumberOfVars() + "{ }" + octEl2.getNumberOfVars());
 
-		// TODO recursive join should be handled gracefully here
-		//octEl2.addVariablesFrom(octEl1);
-		//System.out.println(octEl1.getNumberOfVars() + "{ }" + octEl2.getNumberOfVars());
+    assert(dim1 == dim2);
 
-		assert(dim1 == dim2);
-
-//		if(OctConstants.useWidening){
-//			OctConstants.useWidening = false;
-//			return LibraryAccess.widening(octEl2, octEl1);
-//		}
-//		else{
-			//System.out.println("Using UNION");
-//		System.out.println(" ============ Merging ================ ");
-//		System.out.println(octEl1);
-//		System.out.println(" ------- ");
-//		System.out.println(octEl2);
-//		System.out.println( ">>>>>>>>>>>>>>> merged <<<<<<<<<<<<<<<< " );
-		OctElement ret =  LibraryAccess.union(octEl2, octEl1);
-//		System.out.println(ret);
-//		System.out.println();
-		return ret;
-		//}
-	}
+//  if(OctConstants.useWidening){
+//  OctConstants.useWidening = false;
+//  return LibraryAccess.widening(octEl2, octEl1);
+//  }
+//  else{
+    //System.out.println("Using UNION");
+//  System.out.println(" ============ Merging ================ ");
+//  System.out.println(octEl1);
+//  System.out.println(" ------- ");
+//  System.out.println(octEl2);
+//  System.out.println( ">>>>>>>>>>>>>>> merged <<<<<<<<<<<<<<<< " );
+    OctElement ret =  LibraryAccess.union(octEl2, octEl1);
+//  System.out.println(ret);
+//  System.out.println();
+    return ret;
+    //}
+  }
 
   public AbstractElementWithLocation merge(AbstractElementWithLocation pElement1,
                                            AbstractElementWithLocation pElement2,

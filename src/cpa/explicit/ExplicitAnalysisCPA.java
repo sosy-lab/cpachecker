@@ -90,19 +90,19 @@ public class ExplicitAnalysisCPA implements ConfigurableProgramAnalysis {
     return transferRelation;
   }
 
-    public AbstractElement getInitialElement (CFAFunctionDefinitionNode node)
-    {
-        return new ExplicitAnalysisElement();
-    }
+  public AbstractElement getInitialElement (CFAFunctionDefinitionNode node)
+  {
+    return new ExplicitAnalysisElement();
+  }
 
-    @Override
-    public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
-      return new ExplicitAnalysisPrecision();
-    }
+  @Override
+  public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
+    return new ExplicitAnalysisPrecision();
+  }
 
-    @Override
-    public PrecisionAdjustment getPrecisionAdjustment() {
-      return precisionAdjustment;
-    }
+  @Override
+  public PrecisionAdjustment getPrecisionAdjustment() {
+    return precisionAdjustment;
+  }
 
 }

@@ -34,38 +34,33 @@ import exceptions.CPAException;
 
 public class LocationStopSep implements StopOperator
 {
-	private final LocationDomain locationDomain;
+  private final LocationDomain locationDomain;
 
-	public LocationStopSep (LocationDomain locationDomain)
-	{
-		this.locationDomain = locationDomain;
-	}
+  public LocationStopSep (LocationDomain locationDomain)
+  {
+    this.locationDomain = locationDomain;
+  }
 
-	public AbstractDomain getAbstractDomain ()
-	{
-		return locationDomain;
-	}
+  public <AE extends AbstractElement> boolean stop (AE element, Collection<AE> reached, Precision prec) throws CPAException
+  {
+//  PartialOrder partialOrder = locationDomain.getPartialOrder ();
+//  for (AbstractElement testElement : reached)
+//  {
+//  if (partialOrder.satisfiesPartialOrder (element, testElement))
+//  return true;
+//  }
 
-	public <AE extends AbstractElement> boolean stop (AE element, Collection<AE> reached, Precision prec) throws CPAException
-	{
-//		PartialOrder partialOrder = locationDomain.getPartialOrder ();
-//		for (AbstractElement testElement : reached)
-//		{
-//			if (partialOrder.satisfiesPartialOrder (element, testElement))
-//				return true;
-//		}
-//
-		// TODO where do we call this?
-		assert(false);
-		return true;
-	}
+    // TODO where do we call this?
+    assert(false);
+    return true;
+  }
 
-	public boolean stop(AbstractElement element, AbstractElement reachedElement)
-	throws CPAException {
+  public boolean stop(AbstractElement element, AbstractElement reachedElement)
+  throws CPAException {
 
-		PartialOrder partialOrder = locationDomain.getPartialOrder ();
-		if (partialOrder.satisfiesPartialOrder (element, reachedElement))
-			return true;
-		return false;
-	}
+    PartialOrder partialOrder = locationDomain.getPartialOrder ();
+    if (partialOrder.satisfiesPartialOrder (element, reachedElement))
+      return true;
+    return false;
+  }
 }
