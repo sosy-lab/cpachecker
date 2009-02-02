@@ -131,3 +131,6 @@
 - [MT] Properties of the CFA (like function entry points) should not be
   evaluated in each CPA again and again, this info must be built into the CFA
 
+- [AH] Provide configuration to every CPA via its constructor instead of having
+  a global static variable in order to improve decoupling and reusability.
+
