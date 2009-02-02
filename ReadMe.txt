@@ -26,7 +26,17 @@ For developers:
    Check out sourse code of CPAchecker from 
    URL: svn+ssh://cs-sel-02.cs.surrey.sfu.ca/localhome/dbeyer/SVN-software/cpachecker
 
+Sources of binaries provided with the distribution/SVN:
+- libJOct.so: Use steps similar to compileOctLib.sh after downloading and
+  installing the why software verification tool (http://www.lri.fr/~filliatr/)
+- javabdd-1.0b2.jar, libbuddy.so libcal.so libcudd.so: See
+  http://javabdd.sourceforge.net/compiling.html
+- Simplify: http://kind.ucd.ie/products/opensource/Simplify/
+- mathsat.jar: Source code provided with the archive
+- others: Unknown (MT)
+
 Example of working installation (db 2008-11-28):
+0. x86 32bit
 1. Java 1.6.0_10
 2. Eclipse 3.4.1 (Ganymede)
 3. CDT 4.0.3
