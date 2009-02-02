@@ -38,17 +38,15 @@ import java.util.Map;
 public class JavaBDD {
     private Map<Integer, net.sf.javabdd.BDD> index2bdd;
     private Map<net.sf.javabdd.BDD, Integer> bdd2index;
-    private net.sf.javabdd.BDDFactory factory;
+    private static final String BDD_PACKAGE = "cudd";
+    private static final net.sf.javabdd.BDDFactory factory = net.sf.javabdd.BDDFactory.init(BDD_PACKAGE, 10000, 1000);
     private int nextvar;
     private int varnum;
     private int nextindex;
 
-    private static final String BDD_PACKAGE = "cudd";
-
     public JavaBDD() {
         index2bdd = new HashMap<Integer, net.sf.javabdd.BDD>();
         bdd2index = new HashMap<net.sf.javabdd.BDD, Integer>();
-        factory = net.sf.javabdd.BDDFactory.init(BDD_PACKAGE, 10000, 1000);
         varnum = 100;
         factory.setVarNum(varnum);
         nextvar = 0;
