@@ -53,19 +53,20 @@ implements AbstractElement {
 	private boolean isAbstractionNode = false;
 	/** The abstraction location for this node */
 	private CFANode abstractionLocation;
-	/** the path formula from the abstraction location to this node */
+	/** the path formula for the path from the last abstraction node to this node */
 	private PathFormula pathFormula;
-	/** initial abstraction values*/
+	/** if this node is not abstraction node, then this is invalid; 
+            if this node is abstraction node, then this is the 'pathFormula' before abstraction step */
 	private PathFormula initAbstractionFormula;
 	/** the abstraction which is updated only on abstraction locations */
 	private AbstractFormula abstraction;
 	/** parents of this element */
 	private ParentsList parents;
-	/** parent of this element on ART*/
+	/** parent of this element in the ART*/
 	private SymbPredAbsAbstractElement artParent;
-	/** predicate list for this element*/
+	/** current predicate abstraction (map) */
 	private PredicateMap predicates;
-	/** parent that we constructed the pf */
+	/** list of CFA location ids that we constructed the 'pathFormula' */
 	private List<Integer> pfParents;
 	
 	private SSAMap maxIndex;
