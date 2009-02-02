@@ -40,7 +40,7 @@ import cpa.dominator.parametric.DominatorStop;
 import cpa.dominator.parametric.DominatorTransferRelation;
 import exceptions.CPAException;
 
-public class DominatorCPA implements ConfigurableProgramAnalysis {
+public class DominatorCPA {
   
   private ConfigurableProgramAnalysis cpa;
   
