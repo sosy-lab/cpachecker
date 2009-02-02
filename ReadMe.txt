@@ -28,7 +28,9 @@ For developers:
 
 Sources of binaries provided with the distribution/SVN:
 - libJOct.so: Use steps similar to compileOctLib.sh after downloading and
-  installing the why software verification tool (http://www.lri.fr/~filliatr/)
+  installing the why software verification tool (version <= 2.04, get it from
+  http://www.lri.fr/~filliatr/ftp/why/why-2.04.tar.gz newer versions don't ship
+  the octagon library anymore)
 - javabdd-1.0b2.jar, libbuddy.so libcal.so libcudd.so: See
   http://javabdd.sourceforge.net/compiling.html
 - Simplify: http://kind.ucd.ie/products/opensource/Simplify/
