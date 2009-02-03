@@ -43,16 +43,12 @@ public class LocationStopSep implements StopOperator
 
   public <AE extends AbstractElement> boolean stop (AE element, Collection<AE> reached, Precision prec) throws CPAException
   {
-//  PartialOrder partialOrder = locationDomain.getPartialOrder ();
-//  for (AbstractElement testElement : reached)
-//  {
-//  if (partialOrder.satisfiesPartialOrder (element, testElement))
-//  return true;
-//  }
-
-    // TODO where do we call this?
-    assert(false);
-    return true;
+    for (AbstractElement testElement : reached) {
+      if (stop(element, testElement)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   public boolean stop(AbstractElement element, AbstractElement reachedElement)
