@@ -44,12 +44,12 @@ public class SymbPredAbstDomain implements AbstractDomain {
     
     private final class SymbPredAbstBottomElement extends SymbPredAbstElement {
       public SymbPredAbstBottomElement() {
-        super(null, null, null);
+        super(null, null, null, null);
       }
     }
     private final class SymbPredAbstTopElement extends SymbPredAbstElement {
       public SymbPredAbstTopElement() {
-        super(null, null, null);
+        super(null, null, null, null);
       }
     }
 
@@ -104,7 +104,7 @@ public class SymbPredAbstDomain implements AbstractDomain {
                 SymbolicFormula f2 = e2.getFormula();
                 SymbolicFormulaManager mgr = cpa.getFormulaManager();
                 return new SymbPredAbstElement(e1.getLocation(),
-                        mgr.makeOr(f1, f2), null);
+                        mgr.makeOr(f1, f2), null, cpa);
             }
 
             return topElement;

@@ -63,8 +63,6 @@ public class SymbPredAbstCPA implements ConfigurableProgramAnalysis {
     private PredicateMap predicateMap;
     private SymbolicFormulaManager formulaManager;
     private AbstractFormulaManager abstractManager;
-
-    private static SymbPredAbstCPA theInstance = null;
     
     private SymbPredAbstCPA() {
         SymbPredAbstDomain domain = new SymbPredAbstDomain(this);
@@ -91,25 +89,8 @@ public class SymbPredAbstCPA implements ConfigurableProgramAnalysis {
         predicateMap = new FixedPredicateMap(preds);
     }
 
-    /**
-     * Constructor conforming to the signature required by CompositeCPA
-     * WARNING! Every time this is invoked, this sets theInstance to the
-     * created object
-     * @param s1
-     * @param s2
-     */
     public SymbPredAbstCPA(String s1, String s2) {
         this();
-        assert(theInstance == null);
-        theInstance = this;
-    }
-
-    public static SymbPredAbstCPA getInstance() {
-//        if (theInstance == null) {
-//            theInstance = new SymbPredAbstCPA();
-//        }
-        assert(theInstance != null);
-        return theInstance;
     }
 
     public PredicateMap getPredicateMap() { return predicateMap; }
@@ -143,7 +124,7 @@ public class SymbPredAbstCPA implements ConfigurableProgramAnalysis {
         LazyLogger.log(CustomLogLevel.SpecificCPALevel,
                 "Getting initial element from node: ", node.getNodeNumber());
 
-        return new SymbPredAbstElement(node, formulaManager.makeTrue(), null);
+        return new SymbPredAbstElement(node, formulaManager.makeTrue(), abstractManager.makeTrue(), this);
     }
     
     public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {

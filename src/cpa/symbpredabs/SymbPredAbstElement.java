@@ -54,6 +54,8 @@ public class SymbPredAbstElement
     // to test coverage quickly, we "cheat" here and set the element to be
     // explicitly covered by using the following field
     private SymbPredAbstElement coveredBy;
+    // CPA provides access to formula managers
+    private final SymbPredAbstCPA cpa;
 
     // access to members
     public CFANode getLocation() { return location; }
@@ -72,10 +74,8 @@ public class SymbPredAbstElement
         if (absFormula == null) {
             return concrFormula;
         } else {
-            SymbolicFormulaManager mgr =
-                SymbPredAbstCPA.getInstance().getFormulaManager();
-            AbstractFormulaManager amgr =
-                SymbPredAbstCPA.getInstance().getAbstractFormulaManager();
+            SymbolicFormulaManager mgr = cpa.getFormulaManager();
+            AbstractFormulaManager amgr = cpa.getAbstractFormulaManager();
             SymbolicFormula f = amgr.toConcrete(mgr, absFormula);
             return mgr.makeAnd(concrFormula, mgr.instantiate(f, ssaMap));
         }
@@ -114,7 +114,7 @@ public class SymbPredAbstElement
 
     public SymbPredAbstElement(CFANode locationNode, SymbolicFormula cf,
                                AbstractFormula af,
-                               SymbPredAbstElement p, SSAMap ssa) {
+                               SymbPredAbstElement p, SSAMap ssa, SymbPredAbstCPA cpa) {
         location = locationNode;
         elemId = nextAvailableElemId++;
         parent = p;
@@ -122,16 +122,17 @@ public class SymbPredAbstElement
         absFormula = af;
         ssaMap = ssa;
         coveredBy = null;
+        this.cpa = cpa;
     }
 
     public SymbPredAbstElement(CFANode locationNode, SymbolicFormula cf,
-            AbstractFormula af, SymbPredAbstElement p) {
-        this(locationNode, cf, af, p, new SSAMap());
+            AbstractFormula af, SymbPredAbstElement p, SymbPredAbstCPA cpa) {
+        this(locationNode, cf, af, p, new SSAMap(), cpa);
     }
 
     public SymbPredAbstElement(CFANode locationNode, SymbolicFormula cf,
-            AbstractFormula af) {
-        this(locationNode, cf, af, null, new SSAMap());
+            AbstractFormula af, SymbPredAbstCPA cpa) {
+        this(locationNode, cf, af, null, new SSAMap(), cpa);
     }
 
     public CFANode getLocationNode() {

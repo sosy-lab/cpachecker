@@ -74,7 +74,7 @@ public class SymbPredAbstTransfer implements TransferRelation {
 			SymbPredAbstElement ret = new SymbPredAbstElement(
 					curEdge.getSuccessor(),
 					p.getFirst(), e.getAbstractFormula(),
-					parent, p.getSecond());
+					parent, p.getSecond(), domain.getCPA());
 			// if the destination is an error location, we want to check for
 			// feasibility of the path
 			if (curEdge.getSuccessor() instanceof CFAErrorNode) {

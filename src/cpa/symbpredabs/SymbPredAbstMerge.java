@@ -94,7 +94,7 @@ public class SymbPredAbstMerge implements MergeOperator {
                 mgr,
                 mgr.makeOr(mgr.makeAnd(f1, mf.getFirst()),
                     mgr.makeAnd(f2, mf.getSecond())),
-                    newssa, predicates), e2.getParent(), newssa);
+                    newssa, predicates), e2.getParent(), newssa, cpa);
         if (e2.getConcreteFormula().isTrue()) {
           LazyLogger.log(CustomLogLevel.SpecificCPALevel,
               "CHECKING coverage of 'ret' by 'e2'");
@@ -113,7 +113,7 @@ public class SymbPredAbstMerge implements MergeOperator {
             n,
             mgr.makeOr(mgr.makeAnd(f1, mf.getFirst()),
                 mgr.makeAnd(f2, mf.getSecond())),
-                null, e2.getParent(), newssa);
+                null, e2.getParent(), newssa, cpa);
       }
       // TODO - Shortcut, we set the coveredBy of e1 to be the new created
       // element, so that the stop operator detects that e1 is covered
