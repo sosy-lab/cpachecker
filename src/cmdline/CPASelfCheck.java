@@ -44,6 +44,7 @@ import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.cdt.internal.core.dom.InternalASTServiceProvider;
 import org.eclipse.core.resources.IFile;
 
+import cmdline.CPAMain;
 import cmdline.stubs.StubCodeReaderFactory;
 import cmdline.stubs.StubConfiguration;
 import cmdline.stubs.StubFile;
@@ -61,6 +62,10 @@ import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.StopOperator;
 import exceptions.CPAException;
 
+import cpaplugin.CPAConfiguration;
+
+import logging.CPACheckerLogger;
+
 /**
  * @author Michael Tautschnig <tautschnig@forsyte.de>
  *
@@ -74,8 +79,14 @@ public class CPASelfCheck {
     try {
       System.out.println("Searching for CPAs");
       LinkedList<Class<ConfigurableProgramAnalysis>> cpas = getCPAs();
+      
+      CPAMain.cpaConfig = new CPAConfiguration(args);
+      /// TODO oh my god, that code and the one in LazyLogger does some bad
+      /// not-so-static static abuse, fix that !!!
+      CPACheckerLogger.init();
 
       for (Class<ConfigurableProgramAnalysis> cpa : cpas) {
+        System.out.println();
         System.out.print("Checking " + cpa.getCanonicalName() + " ...");
         System.out.flush();
         ConfigurableProgramAnalysis cpaInst = null;
@@ -83,7 +94,7 @@ public class CPASelfCheck {
           cpaInst = tryToInstantiate(cpa);
         } catch (InvocationTargetException e) {
           System.out.println(" Instantiating " + cpa.getCanonicalName() + " failed!");
-          //e.printStackTrace();
+          e.printStackTrace();
           continue;
         } catch (NoSuchMethodException e) {
           System.out.print(" Instantiating " + cpa.getCanonicalName() + " failed: ");
@@ -93,10 +104,18 @@ public class CPASelfCheck {
         assert(cpaInst != null);
         
         CFAFunctionDefinitionNode main = createCFA();
-        
+       
+        try {
+          cpaInst.getInitialElement(main);
+        } catch (Exception e) {
+          System.out.println(" Getting initial element failed!");
+          e.printStackTrace();
+          continue;
+        }
+
         boolean ok = true;
         // check domain and lattice
-        ok &= checkUniqueBottomTop(cpa, cpaInst, main);
+        ok &= checkSingletonBottomTop(cpa, cpaInst, main);
         ok &= checkBottomLessThanTop(cpa, cpaInst, main);
         ok &= checkInitialElementInLattice(cpa, cpaInst, main);
         ok &= checkJoin(cpa, cpaInst, main);
@@ -161,7 +180,7 @@ public class CPASelfCheck {
     return true;
   }
   
-  private static boolean checkUniqueBottomTop(Class<ConfigurableProgramAnalysis> pCpa, ConfigurableProgramAnalysis pCpaInst, CFAFunctionDefinitionNode pMain) throws NoSuchMethodException, IllegalArgumentException, InstantiationException, IllegalAccessException, InvocationTargetException {
+  private static boolean checkSingletonBottomTop(Class<ConfigurableProgramAnalysis> pCpa, ConfigurableProgramAnalysis pCpaInst, CFAFunctionDefinitionNode pMain) throws NoSuchMethodException, IllegalArgumentException, InstantiationException, IllegalAccessException, InvocationTargetException {
     Constructor<ConfigurableProgramAnalysis> ct = pCpa.getConstructor(String.class, String.class);
     Object argumentlist[] = {"sep", "sep"};
     ConfigurableProgramAnalysis inst2 = ct.newInstance(argumentlist);
@@ -223,6 +242,8 @@ public class CPASelfCheck {
     Precision initialPrec = pCpaInst.getInitialPrecision(pMain);
     
     boolean ok = true;
+    ok &= ensure(merge != null, "Merge-hack: mergeOperator is null!");
+    if (!ok) return false;
     ok &= ensure(le.satisfiesPartialOrder(initial, merge.merge(initial,initial,initialPrec)),
         "Merging same elements was unsound!");
     return ok;
