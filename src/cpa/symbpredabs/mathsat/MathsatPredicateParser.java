@@ -63,6 +63,10 @@ public class MathsatPredicateParser {
                 data.append("\n");
                 line = r.readLine();
             }
+            if (data.toString().trim().isEmpty()) {
+              return null;
+            }
+            
             long msatEnv = mgr.getMsatEnv();
             long formula = mathsat.api.msat_from_msat(msatEnv, data.toString());
             if (mathsat.api.MSAT_ERROR_TERM(formula)) {
