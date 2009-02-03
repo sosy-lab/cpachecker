@@ -45,6 +45,80 @@ import cpa.symbpredabs.explicit.ExplicitAbstractElement;
  */
 public class CProver {
 
+    public static boolean isFeasible(String pFunctionName, String pProgram) {
+    File lFile = null;
+    
+    try {
+      lFile = File.createTempFile("path", ".i");
+    } catch (IOException e) {
+      e.printStackTrace();
+      assert (false);
+    }
+    
+    lFile.deleteOnExit();
+
+    PrintWriter lWriter = null;
+
+    try {
+      lWriter = new PrintWriter(lFile);
+    } catch (FileNotFoundException e) {
+      e.printStackTrace();
+      assert (false);
+    }
+
+    lWriter.print(pProgram);
+    
+    lWriter.close();
+
+    try {
+      Process lCBMCProcess = Runtime.getRuntime().exec("cbmc --no-pointer-check --no-bounds-check --no-div-by-zero-check --function " + pFunctionName + "_0 " + lFile.getAbsolutePath());
+      
+      int lCBMCExitValue;
+      try {
+        lCBMCExitValue = lCBMCProcess.waitFor();
+      } catch (InterruptedException e) {
+        lCBMCExitValue = -1;
+      }
+
+      switch (lCBMCExitValue) {
+        case 0: // lCBMCExitValue == 0 : Verification successful (Path is infeasible)
+          return false;
+
+        case 10: // lCBMCExitValue == 10 : Verification failed (Path is feasible)
+          return true;
+
+        default:
+          // lCBMCExitValue == 6 : Start function symbol not found, but also gcc not found
+          // more error codes?
+          System.err.println("CBMC had exit code " + lCBMCExitValue + ", output was:");
+          BufferedReader br = new BufferedReader(new InputStreamReader(lCBMCProcess.getErrorStream()));
+          String line = null;
+
+          while ((line = br.readLine()) != null) {
+            System.err.println(line);
+          }
+          br.close();
+
+          br = new BufferedReader(new InputStreamReader(lCBMCProcess.getInputStream()));
+          while ((line = br.readLine()) != null) {
+            System.err.println(line);
+          }
+
+          br.close();
+          assert (false);
+          break;
+        }
+    } catch (IOException e) {
+      e.printStackTrace();
+      assert (false);
+    }
+
+    // should be dead code
+    assert(false);
+    
+    return true;
+  }
+  
   public static boolean isFeasible(String pFunctionName, List<String> pProgram) {
     File lFile = null;
     

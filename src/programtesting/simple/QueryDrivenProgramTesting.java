@@ -143,6 +143,8 @@ public class QueryDrivenProgramTesting {
     
     FeasiblePathTree<AbstractElementWithLocation> lPathTree = new FeasiblePathTree<AbstractElementWithLocation>();
     
+    Translator lTranslator = new Translator(pCfas);
+    
     while (!lTestGoals.isEmpty()) {
       // TODO remove this output
       System.out.println("NEXT LOOP (" + (lLoopCounter++) + ") #####################");
@@ -181,22 +183,6 @@ public class QueryDrivenProgramTesting {
         assert(false);
       }
        
-      
-      // TODO Think about infeasible test goal handling
-      // PROBLEM: Recursive calls and stop-Operator of call-stack analysis
-      // TODO Remove this output
-      //printTestGoals("Infeasible Test Goals: ", lTestGoalPrecision.getRemainingFinalStates());
-      
-      //lInfeasibleTestGoals.addAll(lTestGoalPrecision.getRemainingFinalStates());
-      
-      // Remove the infeasible test goals. If the set of remaining final states is
-      // not empty this means that we have fully traversed an overapproximation
-      // of the reachable state space. This shows that the remaing goals are not
-      // reachable at all.
-      //lTestGoals.removeAll(lTestGoalPrecision.getRemainingFinalStates());
-      
-      
-      
       assert(cpa.getTransferRelation().hasRoot());
       
       QDPTCompositeElement lRoot = cpa.getTransferRelation().getRoot();
@@ -255,13 +241,13 @@ public class QueryDrivenProgramTesting {
           
           // temporary hack
           // TODO reimplement feasiblity check
-          LinkedList<CFAEdge> lPath = new LinkedList<CFAEdge>();
+          /*LinkedList<CFAEdge> lPath = new LinkedList<CFAEdge>();
           
           for (Edge lEdge : lPathToRoot) {
             assert(!lEdge.hasSubpaths());
             
             lPath.add(lEdge.getCFAEdge());
-          }
+          }*/
           
           boolean lFeasible = false;
 
@@ -274,12 +260,21 @@ public class QueryDrivenProgramTesting {
           HashSet<Edge> lBacktrackingSet = new HashSet<Edge>();
           
           do {
+            //System.out.println(lPathToRoot);
+              
+            //System.out.println(lTranslator.translate(lPathToRoot));
+              
+            //assert(false);
+            
             // TODO getPath has to be only called once, afterwards we can
             // directly manipulate lCFAPath
-            List<String> lPathStringRepresentation = AbstractPathToCTranslator.translatePath(pCfas, lPath);
+            //List<String> lPathStringRepresentation = AbstractPathToCTranslator.translatePath(pCfas, lPath);
 
+            String lPathCSource = lTranslator.translate(lPathToRoot);
+            
             lCallsToCBMCCounter++;
-            lFeasible = CProver.isFeasible(lPath.get(0).getPredecessor().getFunctionName(), lPathStringRepresentation);
+            //lFeasible = CProver.isFeasible(lPath.get(0).getPredecessor().getFunctionName(), lPathStringRepresentation);
+            lFeasible = CProver.isFeasible(lRoot.getLocationNode().getFunctionName(), lPathCSource);
 
             if (!lFeasible) {
               // what's about function pointers?
@@ -296,7 +291,7 @@ public class QueryDrivenProgramTesting {
               
               while (lRemoveEdge.getCFAEdge().getEdgeType() != CFAEdgeType.AssumeEdge) {
                 lPathToRoot.remove(lRemoveIndex);
-                lPath.remove(lRemoveIndex);
+                //lPath.remove(lRemoveIndex);
                 
                 // If parent has not more than one child then this edge is no
                 // longer in the worklist because it was processed already.
@@ -311,18 +306,21 @@ public class QueryDrivenProgramTesting {
                 lRemoveIndex--;
                 lRemoveEdge = lPathToRoot.get(lRemoveIndex);
               }
+              
+              //List<String> lTmpPathStringRepresentation = AbstractPathToCTranslator.translatePath(pCfas, lPath);
 
-              List<String> lTmpPathStringRepresentation = AbstractPathToCTranslator.translatePath(pCfas, lPath);
-
+              lPathCSource = lTranslator.translate(lPathToRoot);
+              
               // TODO remove this from production code -> lTmpFeasible stuff
               //lCallsToCBMCCounter++;
-              boolean lTmpFeasible = CProver.isFeasible(lPath.get(0).getPredecessor().getFunctionName(), lTmpPathStringRepresentation);
+              //boolean lTmpFeasible = CProver.isFeasible(lPath.get(0).getPredecessor().getFunctionName(), lTmpPathStringRepresentation);
+              boolean lTmpFeasible = CProver.isFeasible(lRoot.getLocationNode().getFunctionName(), lPathCSource);
 
               assert (!lTmpFeasible);
 
               // remove assume edge
               lInfeasibilityCause = lPathToRoot.remove(lPathToRoot.size() - 1);
-              lPath.remove(lPath.size() - 1);
+              //lPath.remove(lPath.size() - 1);
               
               lLastFeasibleElement = lInfeasibilityCause.getParent();
             }
@@ -360,9 +358,6 @@ public class QueryDrivenProgramTesting {
           else {
             lInfeasibilityCause.getChild().remove();
           }
-          
-          //System.out.println(lPathToRoot);
-          //System.out.println(lPath);
         }
       }
       
