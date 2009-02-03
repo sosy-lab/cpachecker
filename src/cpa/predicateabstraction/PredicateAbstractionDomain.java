@@ -27,6 +27,7 @@ import java.io.IOException;
 
 import predicateabstraction.MathSatWrapper;
 import predicateabstraction.Predicate;
+import predicateabstraction.PredicateList;
 import predicateabstraction.ThreeValuedBoolean;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
@@ -39,7 +40,7 @@ public class PredicateAbstractionDomain implements AbstractDomain{
     {
         public PredicateAbstractionBottomElement ()
         {
-            super (null, true);
+            super (new PredicateList(), true);
         }
     }
 
@@ -47,7 +48,7 @@ public class PredicateAbstractionDomain implements AbstractDomain{
     {
     	public PredicateAbstractionTopElement ()
         {
-    	  super (null, false);
+    	  super (new PredicateList(), false);
         }
     }
 
