@@ -406,7 +406,7 @@ implements SymbPredAbstFormulaManager
       // TODO here we take the formula from the abstract element
 //    Pair<SymbolicFormula, SSAMap> p =
 //    buildConcreteFormula(mmgr, cur, e, (ssa == null));
-      PathFormula p = e.getInitAbstractionSet().getInitSymbolicFormula(mgr, (ssa == null));
+      PathFormula p = e.getInitAbstractionFormula().getInitSymbolicFormula(mgr, (ssa == null));
       SSAMap newssa = null;
       if (ssa != null) {
         LazyLogger.log(LazyLogger.DEBUG_3, "SHIFTING: ", p.getSymbolicFormula(),

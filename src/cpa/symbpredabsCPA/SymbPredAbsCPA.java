@@ -39,8 +39,8 @@ import java.util.Vector;
 
 import logging.CustomLogLevel;
 import logging.LazyLogger;
+import symbpredabstraction.AbstractionPathList;
 import symbpredabstraction.BDDMathsatSymbPredAbstractionAbstractManager;
-import symbpredabstraction.ParentsList;
 import symbpredabstraction.PathFormula;
 import symbpredabstraction.SymbPredAbsCPAStatistics;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
@@ -71,42 +71,46 @@ import cpa.symbpredabs.mathsat.SimplifyTheoremProver;
 import cpa.symbpredabs.mathsat.YicesTheoremProver;
 import cpaplugin.CPAStatistics;
 
+/**
+ * CPA that defines symbolic predicate abstraction.
+ * @author erkan
+ *
+ */
 public class SymbPredAbsCPA implements ConfigurableProgramAnalysis {
 
   private SymbPredAbsAbstractDomain domain;
-  private SymbPredAbsTransferRelation trans;
+  private SymbPredAbsTransferRelation transfer;
   private SymbPredAbsMergeOperator merge;
   private SymbPredAbsStopOperator stop;
   private PrecisionAdjustment precisionAdjustment;
-  private MathsatSymbolicFormulaManager mgr;
-  private BDDMathsatSymbPredAbstractionAbstractManager amgr;
+  private MathsatSymbolicFormulaManager symbolicFormulaManager;
+  private BDDMathsatSymbPredAbstractionAbstractManager abstractFormulaManager;
   private Map<SymbPredAbsAbstractElement, Set<SymbPredAbsAbstractElement>> covers;
-  private PredicateMap pmap;
-
+  private PredicateMap predicateMap;
   private SymbPredAbsCPAStatistics stats;
 
   private SymbPredAbsCPA() {
-    mgr = new MathsatSymbolicFormulaManager();
+    symbolicFormulaManager = new MathsatSymbolicFormulaManager();
     TheoremProver thmProver = null;
     String whichProver = CPAMain.cpaConfig.getProperty(
         "cpas.symbpredabs.explicit.abstraction.solver", "mathsat");
     if (whichProver.equals("mathsat")) {
-      thmProver = new MathsatTheoremProver(mgr, false);
+      thmProver = new MathsatTheoremProver(symbolicFormulaManager, false);
     } else if (whichProver.equals("simplify")) {
-      thmProver = new SimplifyTheoremProver(mgr);
+      thmProver = new SimplifyTheoremProver(symbolicFormulaManager);
     } else if (whichProver.equals("yices")) {
-      thmProver = new YicesTheoremProver(mgr);
+      thmProver = new YicesTheoremProver(symbolicFormulaManager);
     } else {
       System.out.println("ERROR, Unknown prover: " + whichProver);
       assert(false);
       System.exit(1);
     }
     InterpolatingTheoremProver itpProver =
-      new MathsatInterpolatingProver(mgr, false);
-    amgr = new BDDMathsatSymbPredAbstractionAbstractManager(thmProver, itpProver);
+      new MathsatInterpolatingProver(symbolicFormulaManager, false);
+    abstractFormulaManager = new BDDMathsatSymbPredAbstractionAbstractManager(thmProver, itpProver);
     covers = new HashMap<SymbPredAbsAbstractElement, Set<SymbPredAbsAbstractElement>>();
     domain = new SymbPredAbsAbstractDomain(this);
-    trans = new SymbPredAbsTransferRelation(domain, mgr, amgr);
+    transfer = new SymbPredAbsTransferRelation(domain, symbolicFormulaManager, abstractFormulaManager);
     merge = new SymbPredAbsMergeOperator(domain);
     stop = new SymbPredAbsStopOperator(domain);
     precisionAdjustment = new SymbPredAbsPrecisionAdjustment();
@@ -115,7 +119,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis {
     // predicates and disable refinement
     if (CPAMain.cpaConfig.getBooleanValue(
     "cpas.symbpredabs.abstraction.norefinement")) {
-      MathsatPredicateParser p = new MathsatPredicateParser(mgr, amgr);
+      MathsatPredicateParser p = new MathsatPredicateParser(symbolicFormulaManager, abstractFormulaManager);
       Collection<Predicate> preds = null;
       try {
         String pth = CPAMain.cpaConfig.getProperty("predicates.path");
@@ -126,9 +130,9 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis {
         e.printStackTrace();
         preds = new Vector<Predicate>();
       }
-      pmap = new FixedPredicateMap(preds);
+      predicateMap = new FixedPredicateMap(preds);
     } else {
-      pmap = new UpdateablePredicateMap();
+      predicateMap = new UpdateablePredicateMap();
     }
 
     stats = new SymbPredAbsCPAStatistics(this);
@@ -154,7 +158,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis {
   }
 
   public TransferRelation getTransferRelation() {
-    return trans;
+    return transfer;
   }
 
   public MergeOperator getMergeOperator() {
@@ -167,15 +171,15 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis {
   }
 
   public AbstractFormulaManager getAbstractFormulaManager() {
-    return amgr;
+    return abstractFormulaManager;
   }
 
   public SymbolicFormulaManager getFormulaManager() {
-    return mgr;
+    return symbolicFormulaManager;
   }
 
   public PredicateMap getPredicateMap() {
-    return pmap;
+    return predicateMap;
   }
 
   public Set<SymbPredAbsAbstractElement> getCoveredBy(SymbPredAbsAbstractElement e){
@@ -205,25 +209,28 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis {
   }
 
   public SymbolicFormulaManager getSymbolicFormulaManager() {
-    return mgr;
+    return symbolicFormulaManager;
   }
 
+  /* (non-Javadoc)
+   * @see cpa.common.interfaces.ConfigurableProgramAnalysis#getInitialElement(cfa.objectmodel.CFAFunctionDefinitionNode)
+   */
   public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
     LazyLogger.log(CustomLogLevel.SpecificCPALevel,
         "Getting initial element from node: ", node);
 
     //SymbPredAbsAbstractElement e = new SymbPredAbsAbstractElement(domain, loc, null);
 
-    ParentsList parents = new ParentsList();
+    AbstractionPathList parents = new AbstractionPathList();
     parents.addToList(node.getNodeNumber());
     SSAMap ssamap = new SSAMap();
-    PathFormula pf = new PathFormula(mgr.makeTrue(), ssamap);
+    PathFormula pf = new PathFormula(symbolicFormulaManager.makeTrue(), ssamap);
     List<Integer> pfParents = new ArrayList<Integer>();
-    PathFormula initPf = new PathFormula(mgr.makeTrue(), ssamap);
-    AbstractFormula initAbstraction = amgr.makeTrue();
+    PathFormula initPf = new PathFormula(symbolicFormulaManager.makeTrue(), ssamap);
+    AbstractFormula initAbstraction = abstractFormulaManager.makeTrue();
 
     SymbPredAbsAbstractElement e = new SymbPredAbsAbstractElement(domain, true, node,
-        pf, pfParents, initPf, initAbstraction, parents, null, pmap);
+        pf, pfParents, initPf, initAbstraction, parents, null, predicateMap);
     e.setMaxIndex(new SSAMap());
 
     return e;

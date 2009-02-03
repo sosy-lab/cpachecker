@@ -37,6 +37,13 @@ import cpa.symbpredabs.AbstractFormulaManager;
 import cpa.symbpredabs.SymbolicFormulaManager;
 import exceptions.CPAException;
 
+/**
+ * Stop operator for symbolic predicate abstraction.
+ * It delegates the work to {@link SymbPredAbsAbstractDomain} to check
+ * the partial order.
+ * @author erkan
+ *
+ */
 public class SymbPredAbsStopOperator implements StopOperator {
 
   private SymbPredAbsAbstractDomain domain;
@@ -67,7 +74,7 @@ public class SymbPredAbsStopOperator implements StopOperator {
 
     // if not an abstraction location
     if(!e1.isAbstractionNode()){
-      if(e1.getParents().equals(e2.getParents())){
+      if(e1.getAbstractionPathList().equals(e2.getAbstractionPathList())){
 
         List<Integer> succList = e1.getPfParents();
         List<Integer> reachedList = e2.getPfParents();
@@ -94,26 +101,6 @@ public class SymbPredAbsStopOperator implements StopOperator {
 
       assert(e1.getAbstraction() != null);
       assert(e2.getAbstraction() != null);
-
-//    assert((MathsatSymbolicFormula)e1.getInitAbstractionSet().getSymbolicFormula() != null);
-//    assert((MathsatSymbolicFormula)e2.getInitAbstractionSet().getSymbolicFormula() != null);
-
-//    if(!e1.getParents().equals(e2.getParents()) &&
-////  !(((MathsatSymbolicFormula)e1.getInitAbstractionSet().getSymbolicFormula()).toString().equals
-////  (((MathsatSymbolicFormula)e2.getInitAbstractionSet().getSymbolicFormula()).toString()))
-//    !(mgr.entails(e1.getInitAbstractionSet().getSymbolicFormula(), e2.getInitAbstractionSet().getSymbolicFormula())
-//    && mgr.entails(e2.getInitAbstractionSet().getSymbolicFormula(), e1.getInitAbstractionSet().getSymbolicFormula()))
-//    ){
-//    return false;
-//    }
-
-//    if(
-//    !(mgr.entails(e1.getInitAbstractionSet().getSymbolicFormula(), e2.getInitAbstractionSet().getSymbolicFormula())
-//    && mgr.entails(e2.getInitAbstractionSet().getSymbolicFormula(), e1.getInitAbstractionSet().getSymbolicFormula()))
-//    ){
-//    System.out.println(" the formulas are not equal ");
-//    assert(false);
-//    }
 
       boolean ok = amgr.entails(e1.getAbstraction(), e2.getAbstraction());
 

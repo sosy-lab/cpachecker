@@ -36,7 +36,7 @@ import logging.CustomLogLevel;
 import logging.LazyLogger;
 import symbpredabstraction.AbstractReachabilityTree;
 import symbpredabstraction.BDDMathsatSymbPredAbstractionAbstractManager;
-import symbpredabstraction.ParentsList;
+import symbpredabstraction.AbstractionPathList;
 import symbpredabstraction.PathFormula;
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAErrorNode;
@@ -132,9 +132,9 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
     if (!b) {
       try {
-        newElement = new SymbPredAbsAbstractElement(domain, false,element.getAbstractionLocation(), null, null,
-            element.getInitAbstractionSet(), element.getAbstraction(), 
-            element.getParents(), element.getArtParent(), element.getPredicates());
+        newElement = new SymbPredAbsAbstractElement(domain, false, element.getAbstractionLocation(), null, null,
+            element.getInitAbstractionFormula(), element.getAbstraction(), 
+            element.getAbstractionPathList(), element.getArtParent(), element.getPredicates());
         try {
           handleNonAbstractionLocation(element, newElement, edge);
         } catch (UnrecognizedCFAEdgeException e) {
@@ -178,12 +178,12 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     newElement.setPathFormula(pf);
     newElement.setMaxIndex(maxIndex);
     
-    ParentsList parents = element.getParents();
+    AbstractionPathList parents = element.getAbstractionPathList();
     // add the parent to the list
-    ParentsList newParents = new ParentsList();
+    AbstractionPathList newParents = new AbstractionPathList();
     newParents.copyFromExisting(parents);
     newElement.setParents(newParents);
-    newElement.addParent(edge.getSuccessor().getNodeNumber());
+    newElement.addToAbstractionPath(edge.getSuccessor().getNodeNumber());
 
     PathFormula functionUpdatedFormula;
     AbstractFormula abs = element.getAbstraction();
@@ -196,7 +196,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     if(edge instanceof FunctionCallEdge){
       PathFormula functionInitFormula = toPathFormula(symbolicFormulaManager.makeAnd(element.getPathFormula().getSymbolicFormula(), 
           edge, element.getPathFormula().getSsa(), false, false));
-      newElement.setInitAbstractionSet(functionInitFormula);
+      newElement.setInitAbstractionFormula(functionInitFormula);
       abst = bddAbstractFormulaManager.buildAbstraction(symbolicFormulaManager, abs, functionInitFormula, pmap.getRelevantPredicates(edge.getSuccessor()), null);
     }
     else if(edge instanceof ReturnEdge){
@@ -209,7 +209,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
       PathFormula functionInitFormula = toPathFormula(symbolicFormulaManager.makeAnd(element.getPathFormula().getSymbolicFormula(), 
           summaryEdge, element.getPathFormula().getSsa(), false, false));
 
-      newElement.setInitAbstractionSet(functionInitFormula);
+      newElement.setInitAbstractionFormula(functionInitFormula);
 
       // TODO fix later for returning from functions
 //    SymbPredAbsAbstractElement previousElem = (SymbPredAbsAbstractElement)summaryEdge.extractAbstractElement("SymbPredAbsAbstractElement");
@@ -221,8 +221,8 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
       abst = bddAbstractFormulaManager.buildAbstraction(symbolicFormulaManager, abs, functionInitFormula, pmap.getRelevantPredicates(edge.getSuccessor()), null);
     }
     else{
-      newElement.setInitAbstractionSet(element.getPathFormula());
-      functionUpdatedFormula = newElement.getInitAbstractionSet();
+      newElement.setInitAbstractionFormula(element.getPathFormula());
+      functionUpdatedFormula = newElement.getInitAbstractionFormula();
       abst = bddAbstractFormulaManager.buildAbstraction(symbolicFormulaManager, abs, functionUpdatedFormula, pmap.getRelevantPredicates(edge.getSuccessor()), null);
     }
 

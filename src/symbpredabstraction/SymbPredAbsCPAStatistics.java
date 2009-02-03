@@ -135,7 +135,6 @@ public class SymbPredAbsCPAStatistics implements CPAStatistics {
       BDDMathsatSymbPredAbstractionAbstractManager.Stats bs = amgr.getStats();
 
       out.println("Time spent for computing PF " + toTime(SymbPredAbsTransferRelation.totalTimeForPFCopmutation));
-      out.println(" Time spent for equality check " + toTime(SymbPredAbsAbstractElement.totalTimeSpentForEqualityCheck));
       out.println("Number of abstract states visited: " +
           trans.getNumAbstractStates());
       out.println("Number of abstraction steps: " + bs.numCallsAbstraction +

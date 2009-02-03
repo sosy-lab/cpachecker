@@ -30,7 +30,6 @@ import symbpredabstraction.PathFormula;
 
 import common.Pair;
 
-import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.MergeOperator;
@@ -42,19 +41,22 @@ import cpa.symbpredabs.mathsat.MathsatSymbolicFormula;
 import exceptions.CPAException;
 
 /**
- * trivial merge operation for symbolic lazy abstraction with summaries
+ * Merge operator for symbolic predicate abstraction.
+ * This is not a trivial merge operator in the sense that it implements
+ * mergeSep and mergeJoin together. If the abstract element is on an 
+ * abstraction location we don't merge, otherwise we merge two elements
+ * and update the {@link SymbPredAbsAbstractElement}'s pathFormula.
  *
- * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
+ * @author erkan
  */
 public class SymbPredAbsMergeOperator implements MergeOperator {
 
   private SymbPredAbsAbstractDomain domain;
+  private SymbolicFormulaManager symbolicFormulaManager;
 
-  private SymbolicFormulaManager mgr;
-
-  public SymbPredAbsMergeOperator(SymbPredAbsAbstractDomain d) {
-    domain = d;
-    mgr = d.getCPA().getSymbolicFormulaManager();
+  public SymbPredAbsMergeOperator(SymbPredAbsAbstractDomain pDomain) {
+    domain = pDomain;
+    symbolicFormulaManager = domain.getCPA().getSymbolicFormulaManager();
   }
 
   public AbstractElement merge(AbstractElement element1,
@@ -63,84 +65,63 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
     SymbPredAbsAbstractElement elem1 = (SymbPredAbsAbstractElement)element1;
     SymbPredAbsAbstractElement elem2 = (SymbPredAbsAbstractElement)element2;
 
-    //TODO check
-    boolean b = elem1.isAbstractionNode();
+    // this will be the merged element
     SymbPredAbsAbstractElement merged;
-    if(!b){
-      if(!elem1.getParents().equals(elem2.getParents())){
+    // if not abstraction node
+    if(!elem1.isAbstractionNode()){
+      // if two elements have different abstraction paths, do not merge
+      if(!elem1.getAbstractionPathList().equals(elem2.getAbstractionPathList())){
         merged = elem2;
       }
+      // if they have the same abstraction paths, we will take the disjunction 
+      // of two path formulas from two merged elements
       else{
-        // we set parent to abstract element 2's parent
+        // create a new element, note that their abstraction formulas, initAbstractionFormula,
+        // abstraction locations, artParents are same because they have the same
+        // abstraction path
         merged = new SymbPredAbsAbstractElement(domain, false, elem1.getAbstractionLocation(), 
-            null, null, elem1.getInitAbstractionSet(), elem1.getAbstraction(), 
-            elem1.getParents(), elem1.getArtParent(), elem1.getPredicates());
-        // TODO check
-        MathsatSymbolicFormula form1 =
+            null, null, elem1.getInitAbstractionFormula(), elem1.getAbstraction(), 
+            elem1.getAbstractionPathList(), elem1.getArtParent(), elem1.getPredicates());
+
+        MathsatSymbolicFormula formula1 =
           (MathsatSymbolicFormula)elem1.getPathFormula().getSymbolicFormula();
         elem1.updateMaxIndex(elem1.getPathFormula().getSsa());
-        MathsatSymbolicFormula form2 =
+        MathsatSymbolicFormula formula2 =
           (MathsatSymbolicFormula)elem2.getPathFormula().getSymbolicFormula();
-        SSAMap ssa2 = elem2.getPathFormula().getSsa();
         SSAMap ssa1 = elem1.getPathFormula().getSsa();
-        Pair<Pair<SymbolicFormula, SymbolicFormula>,SSAMap> pm = mgr.mergeSSAMaps(ssa2, ssa1, false);
-        MathsatSymbolicFormula old = (MathsatSymbolicFormula)mgr.makeAnd(
-            form2, pm.getFirst().getFirst());
-        SymbolicFormula newFormula = mgr.makeAnd(form1, pm.getFirst().getSecond());
-        newFormula = mgr.makeOr(old, newFormula);
+        SSAMap ssa2 = elem2.getPathFormula().getSsa();
+        Pair<Pair<SymbolicFormula, SymbolicFormula>,SSAMap> pm = symbolicFormulaManager.mergeSSAMaps(ssa2, ssa1, false);
+        MathsatSymbolicFormula old = (MathsatSymbolicFormula)symbolicFormulaManager.makeAnd(
+            formula2, pm.getFirst().getFirst());
+        SymbolicFormula newFormula = symbolicFormulaManager.makeAnd(formula1, pm.getFirst().getSecond());
+        newFormula = symbolicFormulaManager.makeOr(old, newFormula);
         ssa1 = pm.getSecond();
 
+        // set the pathFormula of the merged element
         merged.setPathFormula(new PathFormula(newFormula, ssa1));
 
+        // now we update the pfParents,
         List<Integer> pfParents = new ArrayList<Integer>();
         pfParents.addAll(elem2.getPfParents());
-        // the successor should have only 1 element in its pfParents list
+        // elem1 is the successor element and elem2 is the reached element from
+        // the reached set the successor (elem1) should have only 1 element in 
+        // its pfParents list
         assert(elem1.getPfParents().size() == 1);
+        // now we merge elem1 and elem2's pfParents and set it as merged element's
+        // pfParents
         if(!pfParents.contains(elem1.getPfParents().get(0))){
           pfParents.add(elem1.getPfParents().get(0));
         }
         merged.setPfParents(pfParents);
-        // TODO check, what is that?
-        // merged.setMaxIndex(maxIndex)
         merged.updateMaxIndex(ssa1);
       }
     }
+    // we don't merge if this is an abstraction location
     else{
-      // TODO we assume there is only one edge entering an abstraction location
-//    // set path formula - it is true
-//    PathFormula pf = elem1.getPathFormula();
-//    merged.setPathFormula(pf);
-
-//    // update initial formula
-//    // TODO check
-//    MathsatSymbolicFormula form1 =
-//    (MathsatSymbolicFormula)elem1.getInitAbstractionSet().getSymbolicFormula();
-//    MathsatSymbolicFormula form2 =
-//    (MathsatSymbolicFormula)elem2.getInitAbstractionSet().getSymbolicFormula();
-//    SSAMap ssa2 = elem2.getInitAbstractionSet().getSsa();
-//    SSAMap ssa1 = elem1.getInitAbstractionSet().getSsa();
-//    Pair<Pair<SymbolicFormula, SymbolicFormula>,SSAMap> pm = mgr.mergeSSAMaps(ssa2, ssa1, false);
-//    MathsatSymbolicFormula old = (MathsatSymbolicFormula)mgr.makeAnd(
-//    form2, pm.getFirst().getFirst());
-//    SymbolicFormula newFormula = mgr.makeAnd(form1, pm.getFirst().getSecond());
-//    newFormula = mgr.makeOr(old, newFormula);
-//    ssa1 = pm.getSecond();
-
-//    // TODO these parameters should be cloned (really?)
-//    merged.setParents(elem1.getParents());
-//    merged.setPredicates(elem1.getPredicates());
-//    merged.setPathFormula(new PathFormula(newFormula, ssa1));
-
-//    // TODO compute abstraction here
-//    merged.setAbstraction(elem1.getAbstraction());
-
-//    // TODO check, what is that?
-//    // merged.setMaxIndex(maxIndex)
-//    merged.updateMaxIndex(ssa1);
       merged = elem2;
     }
+    
     return merged;
-    //}
   }
 
   @Override
