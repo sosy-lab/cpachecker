@@ -134,3 +134,9 @@
 - [AH] Provide configuration to every CPA via its constructor instead of having
   a global static variable in order to improve decoupling and reusability.
 
+- [MT] CFAFunctionDefinitionNode.getContainingFileName is used only 2 times in a
+  not-so-well maintained CPA and refers to property analysis.programs, which is
+  not defined in any of the current config files. Even when I added the
+  property, I couldn't make the corresponding code work. Please get rid of that
+  piece of code.
+
