@@ -34,3 +34,12 @@ Version Control:
 - For large chunks of whitespace/indentation changes,
   commit the whitespace changes and the code changes via separate commits.
 
+Directory Structure:
+- lib/        libraries and executables
+- libNative/  libraries and executables, architecture-specific
+
+File and Class Names:
+- For a set of names of concepts (e.g., of files, classes),
+  the prefix order induced by the names should
+  represent the semantic relation and structure of the concepts.
+
