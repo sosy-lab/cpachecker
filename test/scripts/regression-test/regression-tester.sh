@@ -122,7 +122,7 @@ for cfg in $CONFIGURATIONS; do
     name=`echo $i | sed "s#^$BENCHMARK_SUITE/working-set/##"`
     dir=`dirname $name`
     mkdir -p $LOGDIR/$dir
-    mv $i.log $LOGDIR/$name
+    mv $i.$cfg.log $LOGDIR/$name.$cfg.log
   done
 
   # now compare the results to the master copy
