@@ -42,13 +42,13 @@ arch="`uname -m`"
 platform="`uname -s`"
 case "$arch-$platform" in
   i686-Linux)
-    $arch_platform="x86-linux"
+    arch_platform="x86-linux"
     ;;
   x86_64-Linux)
-    $arch_platform="x86_64-linux"
+    arch_platform="x86_64-linux"
     ;;
   "Power Macintosh-Darwin")
-    $arch_platform="ppc-macosx"
+    arch_platform="ppc-macosx"
     ;;
 esac
 if [ "$arch_platform" = "unknown" ] ; then
@@ -70,9 +70,8 @@ CLASSPATH="$CLASSPATH:`ls --color=no $PATH_TO_CPACHECKER/lib/*.jar | tr "[:space
 
 export CLASSPATH
 
-# where to find the native libraries and binaries
-export LD_LIBRARY_PATH="$arch_platform_path"
+# where to find the native binaries
 export PATH="$PATH:$arch_platform_path"
 
-$JAVA -Xmx1200m -ea cmdline.CPAMain $@
+$JAVA -Djava.library.path=$arch_platform_path -Xmx1200m -ea cmdline.CPAMain $@
 
