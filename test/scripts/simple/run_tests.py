@@ -10,6 +10,7 @@ import glob
 import subprocess
 from string import Template
 import optparse
+import re
 
 # memory limit in bytes (can be overriden on the command line)
 MEMORY_LIMIT = 2000000
@@ -37,8 +38,7 @@ def run_single(benchmark, config, time_limit, mem_limit):
     """
     cn = configname(config)
     cmdline = Template('ulimit -t $time_limit -v $mem_limit; '
-                       '(PATH=../../nativeLibs/Simplify/:$$PATH '
-                       './cpa.sh -config $config -nolog $benchmark > '
+                       '(./cpa.sh -config $config -nolog $benchmark > '
                        '$benchmark.$cn.log 2>&1)').substitute(locals())
     p = subprocess.Popen(['/bin/bash', '-c', cmdline], shell=False,
                          cwd=CPACHECKER_DIR)
@@ -138,8 +138,10 @@ def main(which, benchmarks, configs, time_limit, mem_limit, outfile,
             sys.stdout.write('Running: %s with config: %s...' %
                              (b, configname(c)))
             sys.stdout.flush()
-        results[configname(c)][b] = run(b, c, t, m)
-        if results[configname(c)][b][1] == 'ERROR':
+        subst = re.compile('.*/(benchmarks-[^/]*/)')
+        bs = subst.sub(r'\1', b)
+        results[configname(c)][bs] = run(b, c, t, m)
+        if results[configname(c)][bs][1] == 'ERROR':
             sys.stderr.write('ERROR\n')
         elif verbose:
             sys.stdout.write('DONE\n')

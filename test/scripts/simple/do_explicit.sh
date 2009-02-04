@@ -11,14 +11,9 @@ configurations="explicitAnalysis2 explicitAnalysis3 explicitAnalysis5 explicitAn
 # the benchmark instances
 #
 # this selects the "simplified" instances
-instances=`find ntdrivers/ -regex ".+[^i]\.cil\.c$"`
-
-# this selects the "original" instances. For these, you should replace the
-#"summary" configuration with "summary_cex_suffix", as this works much
-# better. I'm still trying to understand why though
-#instances=`find test -name"*.i.cil.c"`
+instances=`find ../../benchmarks-explicit/working-set/ -name "*.c"`
 
 # run the tests
 for cfg in $configurations; do 
-     ./run_tests.py --config=config/$cfg.properties --output=$outfile $instances --timeout=1200 --memlimit=1000000
+     ./run_tests.py --config=../../benchmarks-explicit/config/$cfg.properties --output=$outfile $instances --timeout=1200 --memlimit=1000000
 done

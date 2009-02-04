@@ -11,7 +11,7 @@ configurations="summary explicit itpexplicit"
 # the benchmark instances
 #
 # this selects the "simplified" instances
-instances=`find test/ -regex ".+[^i]\.cil\.c$"`
+instances=`find ../../benchmarks-lbe/working-set/ -name "*.c"`
 
 # this selects the "original" instances. For these, you should replace the
 #"summary" configuration with "summary_cex_suffix", as this works much
@@ -20,5 +20,5 @@ instances=`find test/ -regex ".+[^i]\.cil\.c$"`
 
 # run the tests
 for cfg in $configurations; do 
-     ./run_tests.py --config=config/$cfg.properties --output=$outfile $instances --timeout=1800 --memlimit=1900000
+     ./run_tests.py --config=../../benchmarks-lbe/config/$cfg.properties --output=$outfile $instances --timeout=1800 --memlimit=1900000
 done
