@@ -30,7 +30,7 @@ Sources of binaries provided with the distribution/SVN:
 - libJOct.so: Use steps similar to compileOctLib.sh after downloading and
   installing the octagon library (http://www.di.ens.fr/~mine/oct/ merged into
   APRON with different interfaces)
-- javabdd-1.0b2.jar, libbuddy.so libcal.so libcudd.so: See
+- javabdd-1.0b2.jar, libcudd.so: See
   http://javabdd.sourceforge.net/compiling.html
 - Simplify: http://kind.ucd.ie/products/opensource/Simplify/
 - mathsat.jar: Source code provided with the archive
