@@ -171,6 +171,37 @@ public class QueryDrivenProgramTesting {
       lTestGoalPrecision.setTestGoals(lTestGoals);
       
       
+      // simple optimization
+      Set<QDPTCompositeElement> lRemoveInitialElements = new HashSet<QDPTCompositeElement>();
+      
+      for (QDPTCompositeElement lElement : lInitialElements) {
+        for (QDPTCompositeElement lOtherElement : lInitialElements) {
+          if (lElement.isSuccessor(lOtherElement)) {
+            lRemoveInitialElements.add(lElement);
+          }
+        }
+      }
+      
+      lInitialElements.removeAll(lRemoveInitialElements);
+      
+      //System.out.println(lInitialElements);
+      
+      // remove children from initial elements
+      /*for (QDPTCompositeElement lElement : lInitialElements) {
+        Iterator<Edge> lChildren = lElement.getChildren();
+        
+        while (lChildren.hasNext()) {
+          Edge lEdge = lChildren.next();
+          
+          lEdge.getChild().remove();
+          
+          System.out.println(lEdge);
+        }
+      }*/
+      
+      
+      
+      
       
       Set<QDPTCompositeElement> lOldInitialElements = new HashSet<QDPTCompositeElement>(lInitialElements);
 
@@ -600,11 +631,15 @@ public class QueryDrivenProgramTesting {
         }
       }
       
-      for (Edge lEdge : lEdgeSet) {
-        lEdge.changeParent(lMergeElement);
-      }
+      lWasUpdated = true;
       
-      lWasUpdated |= rearrangeAbstractReachabilityTree(pCPA, pTestGoalCPA, lMergeElement, pInitialElements);
+      //if (!pInitialElements.contains(lMergeElement)) {
+        for (Edge lEdge : lEdgeSet) {
+          lEdge.changeParent(lMergeElement);
+        }
+      
+        lWasUpdated |= rearrangeAbstractReachabilityTree(pCPA, pTestGoalCPA, lMergeElement, pInitialElements);
+      //}
     }
     else {
       for (LinkedList<Edge> lPath : lPaths) {

@@ -32,6 +32,7 @@ import cfa.CFAMap;
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAEdgeType;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
+import cfa.objectmodel.CFANode;
 import cfa.objectmodel.c.AssumeEdge;
 import cfa.objectmodel.c.DeclarationEdge;
 import cfa.objectmodel.c.FunctionCallEdge;
@@ -328,7 +329,16 @@ public class Translator {
     List<StringWriter> lFunctionDefinitions = new LinkedList<StringWriter>();
     
     // program text for start function 
-    PrintWriter lProgramText = startFunction((FunctionDefinitionNode)pPath.get(0).getParent().getElementWithLocation().getLocationNode(), lFunctionDefinitions);
+    CFANode lStartNode = pPath.get(0).getParent().getElementWithLocation().getLocationNode();
+    
+    if (!(lStartNode instanceof FunctionDefinitionNode)) {
+      System.out.println(pPath.get(0).getParent().getDepth());
+      System.out.println(lStartNode);
+    }
+    
+    assert(lStartNode instanceof FunctionDefinitionNode);
+    
+    PrintWriter lProgramText = startFunction((FunctionDefinitionNode)lStartNode, lFunctionDefinitions);
     
     List<Edge> lPath = translate(lGlobalTextPrintWriter, lProgramText, lFunctionDefinitions, pPath);
     

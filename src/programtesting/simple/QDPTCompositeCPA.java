@@ -347,7 +347,21 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
       }
       
       return lPath;
-    }    
+    }
+    
+    public boolean isSuccessor(QDPTCompositeElement lOtherElement) {
+      assert(lOtherElement != null);
+      
+      List<Edge> lPath = getPathToRoot();
+      
+      for (Edge lEdge : lPath) {
+        if (lEdge.getParent().equals(lOtherElement)) {
+          return true;
+        }
+      }
+      
+      return false;
+    }
   }
   
   public class QDPTCompositeTransferRelation implements TransferRelation{
