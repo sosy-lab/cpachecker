@@ -8,5 +8,5 @@ if ps aux | grep regression-tester.sh | grep -q cpachecker ; then
   echo "Regression test already running"
   exit 1
 fi
-./regression-tester.sh file://$rep_dir/trunk $rev > /dev/null
+./regression-tester.sh file://$rep_dir/trunk $rev lbe summary explicit itpexplicit > /dev/null
 

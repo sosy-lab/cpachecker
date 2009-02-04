@@ -6,24 +6,21 @@
 # project (like ../albertos_tests/do_run.sh) and
 # http://code.google.com/p/crocopat/source/browse/trunk/test/regrtest.sh
 #
-# In various places specifics of the account of
-# tautschnig@cs-sel-02.cs.surrey.sfu.ca are assumed; this includes
-# - use from within a git repository that has the CDT 5 patch
-# - use from within a location that has a proper build.xml and the MathSAT
-#   library
-# - proper cpa.sh with all the paths set for eclipse and stuff
 
-if [ $# -ne 2 ] ; then
-  echo "Usage: $0 <SVN-Repo> <Revision>" 1>&2
+if [ $# -lt 4 ] ; then
+  echo "Usage: $0 <SVN-Repo> <Revision> <Suite> <Configs...>" 1>&2
   exit 1
 fi
 
 REPOS=$1
 REV=$2
+SUITE=$3
+shift ; shift ; shift
+CONFIGURATIONS=$@
 # revision must be numeric to make all log output got to appropriate locations
 # (name-based revisioning like HEAD will change from time to time ...)
 if ! echo $REV | egrep -q '^[[:digit:]]+$' ; then
-  echo "<Revision> must numeric for consistency reasons" 1>&2
+  echo "<Revision> must be numeric for consistency reasons" 1>&2
   if [ "$REV" = "HEAD" ] ; then
     echo "Use svnlook youngest to resolve HEAD" 1>&2
   fi
@@ -33,18 +30,50 @@ fi
 # checkout or update from the given SVN URL and the specified revision
 STORAGE=$HOME/cpachecker-regression-test
 # variable used by cpa.sh
-export PATH_TO_WORKSPACE=$STORAGE/
+export PATH_TO_CPACHECKER=$STORAGE/
 if [ ! -d $STORAGE ] || [ "`svn info $STORAGE | grep ^URL: | awk '{ print $2 }'`" != "$REPOS" ] ; then
   rm -rf $STORAGE
   svn co -r$REV $REPOS $STORAGE
 else
-  rm -f $STORAGE/nativeLibs/libmathsatj.so $STORAGE/build.xml $STORAGE/src/cfa/CFABuilder.java $STORAGE/src/cmdline/stubs/StubCodeReaderFactory.java
+  rm -f $STORAGE/build.xml $STORAGE/src/cfa/CFABuilder.java $STORAGE/src/cmdline/stubs/StubCodeReaderFactory.java
   svn up -r$REV $STORAGE
 fi
 
+# go home
+cd `dirname $0`
+
+if [ ! -d ../../benchmarks-$SUITE/ ] ; then
+  echo "Suite $SUITE not found as ../../benchmarks-$SUITE" 1>&2
+  exit 1
+else
+  BENCHMARK_SUITE="`pwd`/../../benchmarks-$SUITE"
+  for c in $CONFIGURATIONS ; do
+    if [ ! -s $BENCHMARK_SUITE/config/$c.properties ] ; then
+      echo "Configuration $c unknown in $SUITE" 1>&2
+      exit 1
+    fi
+  done
+fi
+
+# installation of eclipse
+ECLIPSE_SEARCH_PATH="$HOME/eclipse /opt/eclipse $HOME/Desktop/eclipse"
+
+for d in $ECLIPSE_SEARCH_PATH ; do
+  if [ -d $d/plugins ] ; then
+    export ECLIPSE_HOME="$d"
+    break
+  fi
+done
+if [ -z "$ECLIPSE_HOME" ] ; then
+  echo "Eclipse plugin directory not found" 1>&2
+  exit 1
+fi
+CDT_VERSION="`basename $ECLIPSE_HOME/plugins/plugins/org.eclipse.cdt.core_*`"
+CDT_VERSION="`echo $CDT_VERSION | cut -f2 -d_ | cut -b1`"
+
 # make ourselves log all output
-SCRIPT_HOME=`cd \`dirname $0\` > /dev/null 2>&1 ; pwd`
-LOGDIR="$SCRIPT_HOME/results.r$REV"
+SCRIPT_HOME=`pwd`
+LOGDIR="$SCRIPT_HOME/results.$SUITE.r$REV"
 mkdir -p $LOGDIR
 LOGFILE="$LOGDIR/run-log.`date +%F_%T`"
 echo "Logging all output and errors to $LOGFILE"
@@ -53,16 +82,18 @@ exec 1>$LOGFILE 2>&1
 # log all executed commands and exit on error
 set -evx
 
-# install all the files and library for the specific build infrastructure
-cp ../../build.xml $STORAGE
-cp ../../nativeLibs/libmathsatj.so $STORAGE/nativeLibs/
-# the patch for CDT 5
-cdt_patch=`mktemp`
-git show 155b386a6dd94d6e40285ab47600c5a1dec623b8 > $cdt_patch
-cd $STORAGE
-patch -p1 < $cdt_patch
-rm -f $cdt_patch
+if [ $CDT_VERSION -gt 4 ] ; then
+  # This will only work for tautschnig@cs-sel-02.cs.surrey.sfu.ca
+  # the patch for CDT 5
+  cdt_patch=`mktemp`
+  git show 155b386a6dd94d6e40285ab47600c5a1dec623b8 > $cdt_patch
+  cd $STORAGE
+  patch -p1 < $cdt_patch
+  rm -f $cdt_patch
+fi
+
 # record the patches that have been applied
+cd $STORAGE
 svn diff > $LOGDIR/patches.`date +%F_%T`.diff
 
 # go and build!
@@ -76,37 +107,26 @@ cd $SCRIPT_HOME
 # $outfile.$cfg.log, where $cfg is the configuration used (see below)
 outfile="$LOGDIR/test_`date +%Y-%m-%d`"
 
-# the various configurations to test
-configurations="summary explicit itpexplicit"
-
 # the benchmark instances
-# this selects the "simplified" instances
-instances=`find ../albertos_tests/test/ -regex ".+[^i]\.cil\.c$"`
-# this selects the "original" instances. For these, you should replace the
-#"summary" configuration with "summary_cex_suffix", as this works much
-# better. I'm still trying to understand why though
-#instances=`find test -name"*.i.cil.c"`
+instances=`find $BENCHMARK_SUITE/working-set/ -name "*.c"`
 
 # remove the old log files
-find ../albertos_tests/test/ -name "*.log" -delete
-# get the script to use our cpa.sh
-ln -sf ../albertos_tests/run_tests.py
+find $BENCHMARK_SUITE/working-set/ -name "*.log" -delete
 
 # run the tests
-for cfg in $configurations; do
-  ./run_tests.py --config=../albertos_tests/config/$cfg.properties --output=$outfile $instances --timeout=1800 --memlimit=1900000
+for cfg in $CONFIGURATIONS; do
+  ../simple/run_tests.py --config=$BENCHMARK_SUITE/config/$cfg.properties --output=$outfile $instances --timeout=1800 --memlimit=1900000
 
   # bring home all the logfiles
-  for i in `find ../albertos_tests/test/ -name "*.log"` ; do
-    name=`echo $i | sed 's#^../albertos_tests/test/##'`
+  for i in $instances ; do
+    name=`echo $i | sed "s#^$BENCHMARK_SUITE/working-set/##"`
     dir=`dirname $name`
     mkdir -p $LOGDIR/$dir
-    mv $i $LOGDIR/$name
+    mv $i.log $LOGDIR/$name
   done
 
-  # now compare the results to our master copy
-  # results.master has a single file per configuration stating all the results
-  master="results.master/$cfg.log"
+  # now compare the results to the master copy
+  master="$BENCHMARK_SUITE/expected-results/$cfg.log"
   if [ ! -s $master ] ; then
     echo "No definitive results available, can't verify results" 1>&2
     continue
@@ -142,5 +162,5 @@ for cfg in $configurations; do
 done
 
 # cleanup
-rm -f run_tests.py cex.msat CPALog.txt predmap.txt
+rm -f cex.msat CPALog.txt predmap.txt
 

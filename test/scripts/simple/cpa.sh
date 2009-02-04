@@ -2,7 +2,7 @@
 
 # where the eclipse project directory is, relative to the location of this
 # script
-[ -n "$RELATIVE_PATH_TO_CPACHECKER" ] || RELATIVE_PATH_TO_CPACHECKER=../../..
+[ -n "$PATH_TO_CPACHECKER" ] || PATH_TO_CPACHECKER="`dirname $0`/../../.."
 
 # the location of the java command
 JAVA=java
@@ -14,11 +14,7 @@ ECLIPSE_SEARCH_PATH="$HOME/eclipse /opt/eclipse $HOME/Desktop/eclipse"
 # From here on you should not need to change anything
 #------------------------------------------------------------------------------
 
-cd `dirname $0`
-scriptdir="`pwd`"
-cd -
-
-if [ ! -e $scriptdir/$RELATIVE_PATH_TO_CPACHECKER/bin/cmdline/CPAMain.class ] ; then
+if [ ! -e $PATH_TO_CPACHECKER/bin/cmdline/CPAMain.class ] ; then
   echo "bin/cmdline/CPAMain.class not found, please check path to project directory" 1>&2
   exit 1
 fi
@@ -59,7 +55,7 @@ if [ "$arch_platform" = "unknown" ] ; then
   echo "Failed to determine system type" 1>&2
   exit 1
 fi
-arch_platform_path="$scriptdir/$RELATIVE_PATH_TO_CPACHECKER/lib/native/$arch_platform/"
+arch_platform_path="$PATH_TO_CPACHECKER/lib/native/$arch_platform/"
 
 # the core jar files for eclipse
 CLASSPATH="`ls --color=no $eclipse_plugins/org.eclipse.core*jar $eclipse_plugins/org.eclipse.equinox*jar $eclipse_plugins/org.eclipse.osgi*jar | tr "[:space:]" ":"`"
@@ -67,10 +63,10 @@ CLASSPATH="`ls --color=no $eclipse_plugins/org.eclipse.core*jar $eclipse_plugins
 CLASSPATH="$CLASSPATH:`ls --color=no $eclipse_plugins/org.eclipse.cdt*jar | tr "[:space:]" ":"`"
 
 # project files
-CLASSPATH="$CLASSPATH:$scriptdir/$RELATIVE_PATH_TO_CPACHECKER/bin"
+CLASSPATH="$CLASSPATH:$PATH_TO_CPACHECKER/bin"
 
 # external jars shipped with the project
-CLASSPATH="$CLASSPATH:`ls --color=no $scriptdir/$RELATIVE_PATH_TO_CPACHECKER/lib/*.jar | tr "[:space:]" ":"`"
+CLASSPATH="$CLASSPATH:`ls --color=no $PATH_TO_CPACHECKER/lib/*.jar | tr "[:space:]" ":"`"
 
 export CLASSPATH
 
