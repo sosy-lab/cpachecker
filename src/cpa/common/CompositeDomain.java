@@ -62,24 +62,6 @@ public class CompositeDomain implements AbstractDomain
         this.joinOperator = new CompositeJoinOperator (joinOperators);
         this.partialOrder = new CompositePartialOrder (partialOrders);
     }
-    
-    public boolean isBottomElement(AbstractElement element){
-      CompositeElement compositeElem = (CompositeElement)element;
-      
-      if(compositeElem instanceof CompositeBottomElement){
-        return true;
-      }
-
-      for(int i=0; i<domains.size(); i++){
-        AbstractDomain absDomain = domains.get(i);
-        AbstractElement absElem1 = compositeElem.get(i);
-        if(absDomain.isBottomElement(absElem1)){
-          return true;
-        }
-      }
-      return false;
-      
-    }
 
     public List<AbstractDomain> getDomains ()
     {

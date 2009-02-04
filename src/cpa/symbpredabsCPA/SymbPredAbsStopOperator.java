@@ -24,17 +24,11 @@
 package cpa.symbpredabsCPA;
 
 import java.util.Collection;
-import java.util.List;
-
-import logging.CustomLogLevel;
-import logging.LazyLogger;
 
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.StopOperator;
-import cpa.symbpredabs.AbstractFormulaManager;
-import cpa.symbpredabs.SymbolicFormulaManager;
 import exceptions.CPAException;
 
 /**
@@ -47,11 +41,9 @@ import exceptions.CPAException;
 public class SymbPredAbsStopOperator implements StopOperator {
 
   private SymbPredAbsAbstractDomain domain;
-  private SymbPredAbsCPA cpa;
 
   public SymbPredAbsStopOperator(AbstractDomain d) {
     domain = (SymbPredAbsAbstractDomain) d;
-    cpa = domain.getCPA();
   }
 
   public <AE extends AbstractElement> boolean stop (AE element, Collection<AE> reached, Precision prec) throws CPAException
@@ -66,54 +58,6 @@ public class SymbPredAbsStopOperator implements StopOperator {
 
   public boolean stop(AbstractElement element, AbstractElement reachedElement)
   throws CPAException {
-
-    // TODO move this into partialorder
-
-    SymbPredAbsAbstractElement e1 = (SymbPredAbsAbstractElement)element;
-    SymbPredAbsAbstractElement e2 = (SymbPredAbsAbstractElement)reachedElement;
-
-    // if not an abstraction location
-    if(!e1.isAbstractionNode()){
-      if(e1.getAbstractionPathList().equals(e2.getAbstractionPathList())){
-
-        List<Integer> succList = e1.getPfParents();
-        List<Integer> reachedList = e2.getPfParents();
-
-        assert(succList.size() == 1);
-
-        return reachedList.containsAll(succList);
-      }
-      return false;
-    }
-    // if abstraction location
-    else{
-
-      if(e1.isBottomElement){
-        return true;
-      }
-
-      SymbolicFormulaManager mgr = cpa.getSymbolicFormulaManager();   
-      LazyLogger.log(LazyLogger.DEBUG_4,
-          "Checking Coverage of element: ", element);
-
-      SymbPredAbsCPA cpa = domain.getCPA();
-      AbstractFormulaManager amgr = cpa.getAbstractFormulaManager();
-
-      assert(e1.getAbstraction() != null);
-      assert(e2.getAbstraction() != null);
-
-      boolean ok = amgr.entails(e1.getAbstraction(), e2.getAbstraction());
-
-      if (ok) {
-        LazyLogger.log(CustomLogLevel.SpecificCPALevel,
-            "Element: ", element, " COVERED by: ", e2);
-        // cpa.setCoveredBy(e1, e2);
-      } else {
-        LazyLogger.log(CustomLogLevel.SpecificCPALevel,
-        "NO, not covered");
-      }
-
-      return ok;
-    }
+    return domain.getPartialOrder().satisfiesPartialOrder(element, reachedElement);
   }
 }

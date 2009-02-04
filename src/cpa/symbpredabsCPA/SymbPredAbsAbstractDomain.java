@@ -23,6 +23,10 @@
  */
 package cpa.symbpredabsCPA;
 
+import java.util.List;
+
+import logging.CustomLogLevel;
+import logging.LazyLogger;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.JoinOperator;
@@ -34,7 +38,7 @@ import exceptions.CPAException;
 /**
  * Abstract domain for Symbolic lazy abstraction with summaries.
  *
- * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
+ * @author erkan
  */
 public class SymbPredAbsAbstractDomain implements AbstractDomain {
 
@@ -45,67 +49,28 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
   }
 
   private final static class SymbPredAbsBottomElement extends SymbPredAbsAbstractElement {
-    public SymbPredAbsBottomElement() {
-      super(null, true, null, null, null, null, null, null, null, null);
-      super.isBottomElement = true;
-    }
-
     @Override
     public String toString() {
       return "<BOTTOM>";
     }
-    
-    @Override
-    public boolean equals(Object o) {
-      if (o == null) {
-        return false;
-      }
-      
-      // TODO: Is this enough?
-      return (o instanceof SymbPredAbsBottomElement);
-    }
-    
-    @Override
-    public int hashCode() {
-      return Integer.MIN_VALUE;
-    }
   }
   private final static class SymbPredAbsTopElement extends SymbPredAbsAbstractElement {
-    public SymbPredAbsTopElement() {
-      super(null, true, null, null, null, null, null, null, null, null);
-    }
-    
     @Override
     public String toString() {
       return "<TOP>";
-    }
-    
-    @Override
-    public boolean equals(Object o) {
-      if (o == null) {
-        return false;
-      }
-      
-      // TODO: Is this enough
-      return (o instanceof SymbPredAbsTopElement);
-    }
-    
-    @Override
-    public int hashCode() {
-      return Integer.MAX_VALUE;
     }
   }
 
   private final static class SymbPredAbsJoinOperator implements JoinOperator {
     public AbstractElement join(AbstractElement element1,
-        AbstractElement element2) throws CPAException {
+                                AbstractElement element2) throws CPAException {
       return top;
     }
   }
 
   private final class SymbPredAbsPartialOrder implements PartialOrder {
     public boolean satisfiesPartialOrder(AbstractElement element1,
-        AbstractElement element2) throws CPAException {
+                                         AbstractElement element2) throws CPAException {
       SymbPredAbsAbstractElement e1 = (SymbPredAbsAbstractElement)element1;
       SymbPredAbsAbstractElement e2 = (SymbPredAbsAbstractElement)element2;
 
@@ -114,6 +79,8 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
       } else if (e2 == top) {
         return true;
       } else if (e2 == bottom) {
+        // we should not put this in the reached set
+        assert(false);
         return false;
       } else if (e1 == top) {
         return false;
@@ -122,10 +89,45 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
       assert(e1.getAbstraction() != null);
       assert(e2.getAbstraction() != null);
 
+      // if not an abstraction location
+      if(!e1.isAbstractionNode()){
+        if(e1.getAbstractionPathList().equals(e2.getAbstractionPathList())){
+
+          List<Integer> succList = e1.getPfParents();
+          List<Integer> reachedList = e2.getPfParents();
+
+          assert(succList.size() == 1);
+
+          return reachedList.containsAll(succList);
+        }
+        return false;
+      }
+      // if abstraction location
+      else{
+
+        LazyLogger.log(LazyLogger.DEBUG_4,
+            "Checking Coverage of element: ", e1);
+
+        AbstractFormulaManager amgr = cpa.getAbstractFormulaManager();
+
+        boolean ok = amgr.entails(e1.getAbstraction(), e2.getAbstraction());
+
+        if (ok) {
+          LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+              "Element: ", e1, " COVERED by: ", e2);
+          // cpa.setCoveredBy(e1, e2);
+        } else {
+          LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+          "NO, not covered");
+        }
+
+        return ok;
+      }
+
       // TODO check later
       //if (e1.getLocation().equals(e2.getLocation())) {
-        AbstractFormulaManager amgr = cpa.getAbstractFormulaManager();
-        return amgr.entails(e1.getAbstraction(), e2.getAbstraction());
+//    AbstractFormulaManager amgr = cpa.getAbstractFormulaManager();
+//    return amgr.entails(e1.getAbstraction(), e2.getAbstraction());
       //}
       // return false;
     }
@@ -139,21 +141,6 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
   public AbstractElement getBottomElement() {
     return bottom;
   }
-
-    public boolean isBottomElement(AbstractElement element) {
-      SymbPredAbsAbstractElement symbPredAbsElem = (SymbPredAbsAbstractElement) element;
-
-//    if(predAbsElem == (domain.getBottomElement())){
-//      System.out.println("==========================");
-//      return true;
-//    }
-      // TODO if the element is the bottom element
-      if(symbPredAbsElem.isBottomElement){
-        return true;
-      }
-
-    return false;
-    }
 
   public JoinOperator getJoinOperator() {
     return join;

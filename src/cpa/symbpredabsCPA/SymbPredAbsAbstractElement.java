@@ -82,16 +82,10 @@ implements AbstractElement {
 
   private SSAMap maxIndex;
 
-  // TODO this will be removed
-  public boolean isBottomElement = false;
   private static int nextAvailableId = 1;
 
   public PathFormula getPathFormula() {
     return pathFormula;
-  }
-
-  public void setAbstractionNode(){
-    isAbstractionNode = true;
   }
 
   public boolean isAbstractionNode(){
@@ -113,10 +107,6 @@ implements AbstractElement {
     return abstractionPathList;
   }
 
-  public void addToAbstractionPath(Integer i) {
-    abstractionPathList.addToList(i);
-  }
-
   /**
    * @param otherElement
    * @return true if otherElement is descendant of this on ART
@@ -136,6 +126,10 @@ implements AbstractElement {
 
   public void setAbstractionLocation(CFANode absLoc){
     abstractionLocation = absLoc;
+  }
+
+  public SymbPredAbsAbstractElement(){
+
   }
 
   public SymbPredAbsAbstractElement(AbstractDomain d, boolean isAbstractionElement, CFANode abstLoc,
@@ -222,14 +216,14 @@ implements AbstractElement {
     BDDAbstractFormula abst = (BDDAbstractFormula)getAbstraction();
     SymbolicFormula symbReprAbst = domain.getCPA().getAbstractFormulaManager().toConcrete(domain.getCPA().getSymbolicFormulaManager(), abst);
     return
-    " Abstraction LOCATION: " + getAbstractionLocation() +
-    " PF: "+ getPathFormula().getSymbolicFormula() +
-    " Abstraction: " + symbReprAbst +
-    " Init Formula--> " + (getInitAbstractionFormula() != null ? getInitAbstractionFormula().getSymbolicFormula() : "null")  +
-    " Parents --> " + abstractionPathList + 
-    " Is BOTTOM -->  " + isBottomElement +
+    //" Abstraction LOCATION: " + getAbstractionLocation() +
+    //" PF: "+ getPathFormula().getSymbolicFormula() +
+    //" Abstraction: " + symbReprAbst +
+    //" Init Formula--> " + (getInitAbstractionFormula() != null ? getInitAbstractionFormula().getSymbolicFormula() : "null")  +
+    //" Parents --> " + abstractionPathList + 
     //" ART Parent --> " + getArtParent() + 
-    "\n \n";
+    //"\n \n" +
+    "";
     //+ ">(" + Integer.toString(getId()) + ")"
   }
 

@@ -70,7 +70,10 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
     // if not abstraction node
     if(!elem1.isAbstractionNode()){
       // if two elements have different abstraction paths, do not merge
-      if(!elem1.getAbstractionPathList().equals(elem2.getAbstractionPathList())){
+      if(elem1 == domain.getBottomElement()){
+        merged = elem2;
+      }
+      else if(!elem1.getAbstractionPathList().equals(elem2.getAbstractionPathList())){
         merged = elem2;
       }
       // if they have the same abstraction paths, we will take the disjunction 
@@ -120,7 +123,7 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
     else{
       merged = elem2;
     }
-    
+
     return merged;
   }
 

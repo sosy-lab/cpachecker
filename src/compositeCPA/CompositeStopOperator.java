@@ -30,6 +30,7 @@ import cmdline.CPAMain;
 
 import cpa.common.CompositeDomain;
 import cpa.common.CompositeElement;
+import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.Precision;
@@ -50,10 +51,28 @@ public class CompositeStopOperator implements StopOperator{
 
   public <AE extends AbstractElement> boolean stop (AE element, Collection<AE> reached, Precision precision) throws CPAException
   {
-    if (compositeDomain.isBottomElement(element)) {
+    
+    if (element == compositeDomain.getBottomElement()) {
       return true;
     }
 
+    CompositeElement compositeElement = (CompositeElement) element;
+    List<AbstractElement> components = compositeElement.getElements ();
+    
+    int iterationStartFrom = 0;
+    if(CPAMain.cpaConfig.getBooleanValue("cpa.useSpecializedReachedSet")){
+      iterationStartFrom = 1;
+    }
+    
+    for (int idx = iterationStartFrom; idx < components.size(); idx++)
+    {
+      AbstractElement abstElem = components.get(idx);
+      AbstractDomain abstDomain = compositeDomain.getDomains().get(idx);
+      if(abstElem == abstDomain.getBottomElement()){
+        return true;
+      }
+    }
+    
     for (AbstractElement e : reached) {
       if (stop(element, e)) {
         return true;
@@ -67,7 +86,6 @@ public class CompositeStopOperator implements StopOperator{
     noOfOperations++;
     CompositeElement compositeElement1 = (CompositeElement) element;
     CompositeElement compositeElement2 = (CompositeElement) reachedElement;
-
     if(!compositeElement1.getCallStack().stacksContextEqual(compositeElement2.getCallStack())){
       return false;
     }
@@ -77,14 +95,13 @@ public class CompositeStopOperator implements StopOperator{
 
     AbstractElementWithLocation locElem1 = (AbstractElementWithLocation)compositeElements1.get(0);
     AbstractElementWithLocation locElem2 = (AbstractElementWithLocation)compositeElements2.get(0);
-    
+
     assert(locElem1.getLocationNode().equals(locElem2.getLocationNode()));
-    
+
     int iterationStartFrom = 0;
     if(CPAMain.cpaConfig.getBooleanValue("cpa.useSpecializedReachedSet")){
       iterationStartFrom = 1;
     }
-
 
     for (int idx = iterationStartFrom; idx < compositeElements1.size (); idx++)
     {
