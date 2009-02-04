@@ -208,6 +208,8 @@ public class QueryDrivenProgramTesting {
       int lPathCounter = 0;
       int lPathMaxLength = 0;
       
+      int lAllCallsToCBMC = 0;
+      
       while (!lWorklist.isEmpty() && !lTestGoals.isEmpty()) {
         Edge lCurrentEdge = lWorklist.removeFirst();
         
@@ -239,16 +241,6 @@ public class QueryDrivenProgramTesting {
           // check feasibility
           List<Edge> lPathToRoot = lCurrentElement.getPathToRoot();
           
-          // temporary hack
-          // TODO reimplement feasiblity check
-          /*LinkedList<CFAEdge> lPath = new LinkedList<CFAEdge>();
-          
-          for (Edge lEdge : lPathToRoot) {
-            assert(!lEdge.hasSubpaths());
-            
-            lPath.add(lEdge.getCFAEdge());
-          }*/
-          
           boolean lFeasible = false;
 
           Edge lInfeasibilityCause = null;
@@ -260,20 +252,9 @@ public class QueryDrivenProgramTesting {
           HashSet<Edge> lBacktrackingSet = new HashSet<Edge>();
           
           do {
-            //System.out.println(lPathToRoot);
-              
-            //System.out.println(lTranslator.translate(lPathToRoot));
-              
-            //assert(false);
-            
-            // TODO getPath has to be only called once, afterwards we can
-            // directly manipulate lCFAPath
-            //List<String> lPathStringRepresentation = AbstractPathToCTranslator.translatePath(pCfas, lPath);
-
             String lPathCSource = lTranslator.translate(lPathToRoot);
             
             lCallsToCBMCCounter++;
-            //lFeasible = CProver.isFeasible(lPath.get(0).getPredecessor().getFunctionName(), lPathStringRepresentation);
             lFeasible = CProver.isFeasible(lRoot.getLocationNode().getFunctionName(), lPathCSource);
 
             if (!lFeasible) {
@@ -291,7 +272,6 @@ public class QueryDrivenProgramTesting {
               
               while (lRemoveEdge.getCFAEdge().getEdgeType() != CFAEdgeType.AssumeEdge) {
                 lPathToRoot.remove(lRemoveIndex);
-                //lPath.remove(lRemoveIndex);
                 
                 // If parent has not more than one child then this edge is no
                 // longer in the worklist because it was processed already.
@@ -307,25 +287,22 @@ public class QueryDrivenProgramTesting {
                 lRemoveEdge = lPathToRoot.get(lRemoveIndex);
               }
               
-              //List<String> lTmpPathStringRepresentation = AbstractPathToCTranslator.translatePath(pCfas, lPath);
-
               lPathCSource = lTranslator.translate(lPathToRoot);
               
               // TODO remove this from production code -> lTmpFeasible stuff
               //lCallsToCBMCCounter++;
-              //boolean lTmpFeasible = CProver.isFeasible(lPath.get(0).getPredecessor().getFunctionName(), lTmpPathStringRepresentation);
               boolean lTmpFeasible = CProver.isFeasible(lRoot.getLocationNode().getFunctionName(), lPathCSource);
 
               assert (!lTmpFeasible);
 
               // remove assume edge
               lInfeasibilityCause = lPathToRoot.remove(lPathToRoot.size() - 1);
-              //lPath.remove(lPath.size() - 1);
               
               lLastFeasibleElement = lInfeasibilityCause.getParent();
             }
           } while (!lFeasible);
           
+          lAllCallsToCBMC += lCallsToCBMCCounter;
           
           // backtrack
           lWorklist.removeAll(lBacktrackingSet);
@@ -360,6 +337,8 @@ public class QueryDrivenProgramTesting {
           }
         }
       }
+      
+      System.out.println("Calls to CBMC: " + lAllCallsToCBMC);
       
       if (CPAMain.cpaConfig.getBooleanValue("art.visualize")) {
         outputAbstractReachabilityTree("art_" + lLoopCounter + "_b_", lRoot, lInitialElements);
@@ -423,13 +402,8 @@ public class QueryDrivenProgramTesting {
       return rearrangeAbstractReachabilityTree(pCPA, pTestGoalCPA, lChildren.next().getChild(), pInitialElements);
     }
     
-    
     // we have more than one successor
-    
-    System.out.println("ROOT: " + pRoot);
-    
-    
-    
+
     Vector<LinkedList<Edge>> lPaths = new Vector<LinkedList<Edge>>();
     
     Iterator<Edge> lChildren = pRoot.getChildren();
@@ -601,9 +575,9 @@ public class QueryDrivenProgramTesting {
       AutomatonCPADomain<CFAEdge>.StateSetElement lStateSetElement = pTestGoalCPA.getAbstractDomain().createStateSetElement(pTestGoalCPA.getAbstractDomain(), lNonAcceptingStates);
       lAbstractElements.add(lStateSetElement);
       
-      System.out.println(lMergePaths);
+      //System.out.println(lMergePaths);
       
-      System.out.println(lMergePaths.size());
+      //System.out.println(lMergePaths.size());
       
       pRoot.hideChildren();
       

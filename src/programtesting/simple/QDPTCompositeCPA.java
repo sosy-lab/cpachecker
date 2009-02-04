@@ -72,6 +72,8 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
     private HashSet<List<Edge>> mSubpaths;
     private CFAEdge mCFAEdge;
     
+    private int mHashCode;
+    
     private Edge(QDPTCompositeElement pParent, QDPTCompositeElement pChild, CFAEdge pCFAEdge) {
       assert(pParent != null);
       assert(pChild != null);
@@ -81,6 +83,8 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
       mChild = pChild;
       mSubpaths = null;
       mCFAEdge = pCFAEdge;
+      
+      mHashCode = mParent.hashCode() + mChild.hashCode();
     }
     
     private Edge(Collection<List<Edge>> pEdgeSet, QDPTCompositeElement pChild) {
@@ -100,6 +104,8 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
       // TODO add consistency check
       
       mSubpaths = new HashSet<List<Edge>>(pEdgeSet);
+      
+      mHashCode = mSubpaths.hashCode();
     }
     
     public QDPTCompositeElement getParent() {
@@ -178,12 +184,14 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
     
     @Override
     public int hashCode() {
-      if (hasSubpaths()) {
+      /*if (hasSubpaths()) {
         return mSubpaths.hashCode();
       }
       else {
         return mParent.hashCode() + mChild.hashCode();
-      }
+      }*/
+      
+      return mHashCode;
     }
     
     @Override
@@ -205,6 +213,13 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
       mParent = pParent;
       
       mParent.mChildren.add(this);
+      
+      if (hasSubpaths()) {
+        mHashCode = mSubpaths.hashCode();
+      }
+      else {
+        mHashCode = mParent.hashCode() + mChild.hashCode();
+      }
     }
   }
   
