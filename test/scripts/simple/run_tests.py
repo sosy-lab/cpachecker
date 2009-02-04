@@ -62,6 +62,9 @@ def run_single(benchmark, config, time_limit, mem_limit):
                         outcome = 'UNSAFE'
                     else:
                         outcome = 'UNKNOWN'
+                if outcome is None and line.startswith(
+                        '#Test cases computed:'):
+                    outcome = 'OK'
         if tot_time is None:
             tot_time = -1
         if outcome is None:

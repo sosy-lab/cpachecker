@@ -2,7 +2,7 @@
 
 # where the eclipse project directory is, relative to the location of this
 # script
-RELATIVE_PATH_TO_CPACHECKER=../../..
+[ -n "$RELATIVE_PATH_TO_CPACHECKER" ] || RELATIVE_PATH_TO_CPACHECKER=../../..
 
 # the location of the java command
 JAVA=java
