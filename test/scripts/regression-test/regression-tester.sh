@@ -55,6 +55,17 @@ else
   done
 fi
 
+# make ourselves log all output
+SCRIPT_HOME=`pwd`
+LOGDIR="$SCRIPT_HOME/results.$SUITE.r$REV"
+mkdir -p $LOGDIR
+LOGFILE="$LOGDIR/run-log.`date +%F_%T`"
+echo "Logging all output and errors to $LOGFILE"
+exec 1>$LOGFILE 2>&1
+
+# log all executed commands and exit on error
+set -evx
+
 # installation of eclipse
 ECLIPSE_SEARCH_PATH="$HOME/eclipse /opt/eclipse $HOME/Desktop/eclipse"
 
@@ -68,19 +79,8 @@ if [ -z "$ECLIPSE_HOME" ] ; then
   echo "Eclipse plugin directory not found" 1>&2
   exit 1
 fi
-CDT_VERSION="`basename $ECLIPSE_HOME/plugins/plugins/org.eclipse.cdt.core_*`"
+CDT_VERSION="`basename $ECLIPSE_HOME/plugins/org.eclipse.cdt.core_*`"
 CDT_VERSION="`echo $CDT_VERSION | cut -f2 -d_ | cut -b1`"
-
-# make ourselves log all output
-SCRIPT_HOME=`pwd`
-LOGDIR="$SCRIPT_HOME/results.$SUITE.r$REV"
-mkdir -p $LOGDIR
-LOGFILE="$LOGDIR/run-log.`date +%F_%T`"
-echo "Logging all output and errors to $LOGFILE"
-exec 1>$LOGFILE 2>&1
-
-# log all executed commands and exit on error
-set -evx
 
 if [ $CDT_VERSION -gt 4 ] ; then
   # This will only work for tautschnig@cs-sel-02.cs.surrey.sfu.ca
