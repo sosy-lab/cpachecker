@@ -169,43 +169,11 @@ public class QueryDrivenProgramTesting {
       // reset precision to test goals
       // TODO Hack
       lTestGoalPrecision.setTestGoals(lTestGoals);
-      
-      
-      // simple optimization
-      Set<QDPTCompositeElement> lRemoveInitialElements = new HashSet<QDPTCompositeElement>();
-      
-      for (QDPTCompositeElement lElement : lInitialElements) {
-        for (QDPTCompositeElement lOtherElement : lInitialElements) {
-          if (lElement.isSuccessor(lOtherElement)) {
-            lRemoveInitialElements.add(lElement);
-          }
-        }
-      }
-      
-      lInitialElements.removeAll(lRemoveInitialElements);
-      
-      //System.out.println(lInitialElements);
-      
-      // remove children from initial elements
-      /*for (QDPTCompositeElement lElement : lInitialElements) {
-        Iterator<Edge> lChildren = lElement.getChildren();
-        
-        while (lChildren.hasNext()) {
-          Edge lEdge = lChildren.next();
-          
-          lEdge.getChild().remove();
-          
-          System.out.println(lEdge);
-        }
-      }*/
-      
-      
-      
-      
-      
+            
       Set<QDPTCompositeElement> lOldInitialElements = new HashSet<QDPTCompositeElement>(lInitialElements);
 
       try {
+        // perform cfa exploration
         algo.CPAWithInitialSet(cpa, lInitialElements, lInitialPrecision);
         
         lInitialElements.clear();
@@ -383,7 +351,11 @@ public class QueryDrivenProgramTesting {
       }
       else {
         if (!lTestGoals.isEmpty()) {
-          rearrangeAbstractReachabilityTree(cpa, lTestGoalCPA, lRoot, lInitialElements);
+          if (rearrangeAbstractReachabilityTree(cpa, lTestGoalCPA, lRoot, lInitialElements)) {
+            if (CPAMain.cpaConfig.getBooleanValue("art.visualize")) {
+              outputAbstractReachabilityTree("art_" + lLoopCounter + "_c_", lRoot, lInitialElements);
+            }
+          }
         }
       }
       
@@ -586,6 +558,22 @@ public class QueryDrivenProgramTesting {
       }
       
       
+      boolean lPathsHaveLengthOne = true;
+      
+      for (List<Edge> lPath : lMergePaths) {
+        if (lPath.size() > 1) {
+          lPathsHaveLengthOne = false;
+        }
+      }
+      
+      if (lPathsHaveLengthOne) {
+        for (List<Edge> lPath : lMergePaths) {
+          System.out.println(lPath);
+        }
+      }
+      
+      assert(!lPathsHaveLengthOne);
+      
       
       // create merge element
       List<AbstractElement> lAbstractElements = new LinkedList<AbstractElement>();
@@ -605,10 +593,6 @@ public class QueryDrivenProgramTesting {
       
       AutomatonCPADomain<CFAEdge>.StateSetElement lStateSetElement = pTestGoalCPA.getAbstractDomain().createStateSetElement(pTestGoalCPA.getAbstractDomain(), lNonAcceptingStates);
       lAbstractElements.add(lStateSetElement);
-      
-      //System.out.println(lMergePaths);
-      
-      //System.out.println(lMergePaths.size());
       
       pRoot.hideChildren();
       
@@ -633,13 +617,13 @@ public class QueryDrivenProgramTesting {
       
       lWasUpdated = true;
       
-      //if (!pInitialElements.contains(lMergeElement)) {
-        for (Edge lEdge : lEdgeSet) {
-          lEdge.changeParent(lMergeElement);
-        }
-      
-        lWasUpdated |= rearrangeAbstractReachabilityTree(pCPA, pTestGoalCPA, lMergeElement, pInitialElements);
-      //}
+      for (Edge lEdge : lEdgeSet) {
+        lEdge.changeParent(lMergeElement);
+      }
+
+      propagateInitialElements(lMergeElement, pInitialElements);
+
+      rearrangeAbstractReachabilityTree(pCPA, pTestGoalCPA, lMergeElement, pInitialElements);
     }
     else {
       for (LinkedList<Edge> lPath : lPaths) {
@@ -648,6 +632,82 @@ public class QueryDrivenProgramTesting {
     }
     
     return lWasUpdated;
+  }
+  
+  public static void propagateInitialElements(QDPTCompositeElement pRoot, Set<QDPTCompositeElement> pInitialElements) {
+    assert(pRoot != null);
+    assert(pInitialElements != null);
+    
+    if (pInitialElements.contains(pRoot)) {
+      // check whether all successors are enumerated
+      Set<CFAEdge> lLeavingEdges = new HashSet<CFAEdge>();
+
+      Iterator<Edge> lChildrenIterator = pRoot.getChildren();
+
+      while (lChildrenIterator.hasNext()) {
+        Edge lEdge = lChildrenIterator.next();
+
+        assert(!lEdge.hasSubpaths());
+        
+        CFAEdge lCFAEdge = lEdge.getCFAEdge();
+
+        lLeavingEdges.add(lCFAEdge);
+      }
+
+      CFANode lCFANode = pRoot.getElementWithLocation().getLocationNode();
+
+      // is this check enough for ensuring correct exploration of successors?
+      if (lLeavingEdges.size() == lCFANode.getNumLeavingEdges()) {
+        pInitialElements.remove(pRoot);
+        
+        lChildrenIterator = pRoot.getChildren();
+        
+        while (lChildrenIterator.hasNext()) {
+          Edge lEdge = lChildrenIterator.next();
+
+          assert(!lEdge.hasSubpaths());
+
+          pInitialElements.add(lEdge.getChild());
+          
+          propagateInitialElements(lEdge.getChild(), pInitialElements);
+        }
+      }
+      else {
+        // remove all children from ART
+        Set<QDPTCompositeElement> lChildren = new HashSet<QDPTCompositeElement>();
+        
+        lChildrenIterator = pRoot.getChildren();
+        
+        while (lChildrenIterator.hasNext()) {
+          Edge lEdge = lChildrenIterator.next();
+
+          assert(!lEdge.hasSubpaths());
+
+          lChildren.add(lEdge.getChild());
+        }
+        
+        for (QDPTCompositeElement lChild : lChildren) {
+          removeFromInitialElements(lChild, pInitialElements);
+        }
+      }
+    }
+  }
+  
+  public static void removeFromInitialElements(QDPTCompositeElement pRoot, Set<QDPTCompositeElement> pInitialElements) {
+    assert(pRoot != null);
+    assert(pInitialElements != null);
+    
+    pInitialElements.remove(pRoot);
+    
+    Iterator<Edge> lChildrenIterator = pRoot.getChildren();
+
+    while (lChildrenIterator.hasNext()) {
+      Edge lEdge = lChildrenIterator.next();
+
+      assert (!lEdge.hasSubpaths());
+
+      removeFromInitialElements(lEdge.getChild(), pInitialElements);
+    }
   }
   
   public static void outputAbstractReachabilityTree(String pFileId, QDPTCompositeElement pRoot, Collection<QDPTCompositeElement> pSpecialElements) {

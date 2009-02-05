@@ -219,6 +219,19 @@ public class Translator {
           pProgramText.println("{");
           
           lSubpath = translate(pGlobalText, pProgramText, pFunctionDefinitions, lSubpath);
+          
+          if (!lSubpath.isEmpty()) {
+            System.out.println("----");
+            
+            Iterator<List<Edge>> lSubpathIterator2 = lEdge.getSubpaths();
+            
+            while (lSubpathIterator2.hasNext()) {
+              List<Edge> lSubpath2 = lSubpathIterator2.next();
+              
+              System.out.println(lSubpath2);
+            }
+          }
+          
           assert(lSubpath.isEmpty());
           
           pProgramText.println("break;");
@@ -267,7 +280,10 @@ public class Translator {
 
             PrintWriter lProgramText = startFunction((FunctionDefinitionNode)lFunctionCallEdge.getSuccessor(), pFunctionDefinitions);
             
-            lPath = translate(pGlobalText, lProgramText, pFunctionDefinitions, lPath);
+            // TODO check again!!!
+            if (lPath.size() > 0) {
+              lPath = translate(pGlobalText, lProgramText, pFunctionDefinitions, lPath);
+            }
 
             if (lPath.size() > 0) {
               Edge lLastEdge = lPath.get(0);
@@ -349,11 +365,13 @@ public class Translator {
     lProgramText.println("}");
     
     
-    String lSource = mFunctionDeclarations;
+    String lSource = "";
+    
+    lSource += lGlobalText.toString();
     
     lSource += "\n";
     
-    lSource += lGlobalText.toString();
+    lSource += mFunctionDeclarations;
     
     lSource += "\n";
     
@@ -362,6 +380,8 @@ public class Translator {
       
       lSource += "\n";
     }
+    
+    lSource += "\n";
     
     return lSource;
   }
