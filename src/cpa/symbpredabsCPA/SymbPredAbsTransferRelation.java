@@ -76,7 +76,7 @@ import exceptions.UnrecognizedCFAEdgeException;
  * on the given set of predicates, otherwise we just update the path formula
  * and do not compute the abstraction.
  *
- * @author Erkan
+ * @author Alberto Griggio <alberto.griggio@disi.unitn.it> and Erkan
  */
 public class SymbPredAbsTransferRelation implements TransferRelation {
 

@@ -47,7 +47,7 @@ import exceptions.CPAException;
  * abstraction location we don't merge, otherwise we merge two elements
  * and update the {@link SymbPredAbsAbstractElement}'s pathFormula.
  *
- * @author erkan
+ * @author Erkan
  */
 public class SymbPredAbsMergeOperator implements MergeOperator {
 

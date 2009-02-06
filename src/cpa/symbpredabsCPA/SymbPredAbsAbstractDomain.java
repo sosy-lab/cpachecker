@@ -25,8 +25,6 @@ package cpa.symbpredabsCPA;
 
 import java.util.List;
 
-import logging.CustomLogLevel;
-import logging.LazyLogger;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.JoinOperator;
@@ -38,7 +36,7 @@ import exceptions.CPAException;
 /**
  * Abstract domain for Symbolic lazy abstraction with summaries.
  *
- * @author erkan
+ * @author Erkan
  */
 public class SymbPredAbsAbstractDomain implements AbstractDomain {
 
@@ -91,45 +89,28 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
 
       // if not an abstraction location
       if(!e1.isAbstractionNode()){
+        // if abstraction paths are same
         if(e1.getAbstractionPathList().equals(e2.getAbstractionPathList())){
 
           List<Integer> succList = e1.getPfParents();
           List<Integer> reachedList = e2.getPfParents();
 
           assert(succList.size() == 1);
-
+          // and if pfParents of e1 is included in e2's pfParents
+          // we don't need to add again, return true
+          // this is useful after merging two elements which are not
+          // abstraction locations and stop not to add the same
+          // element again
           return reachedList.containsAll(succList);
         }
         return false;
       }
       // if abstraction location
       else{
-
-        LazyLogger.log(LazyLogger.DEBUG_4,
-            "Checking Coverage of element: ", e1);
-
         AbstractFormulaManager amgr = cpa.getAbstractFormulaManager();
-
-        boolean ok = amgr.entails(e1.getAbstraction(), e2.getAbstraction());
-
-        if (ok) {
-          LazyLogger.log(CustomLogLevel.SpecificCPALevel,
-              "Element: ", e1, " COVERED by: ", e2);
-          // cpa.setCoveredBy(e1, e2);
-        } else {
-          LazyLogger.log(CustomLogLevel.SpecificCPALevel,
-          "NO, not covered");
-        }
-
-        return ok;
+        // if e1's predicate abstraction entails e2's pred. abst.
+        return amgr.entails(e1.getAbstraction(), e2.getAbstraction());
       }
-
-      // TODO check later
-      //if (e1.getLocation().equals(e2.getLocation())) {
-//    AbstractFormulaManager amgr = cpa.getAbstractFormulaManager();
-//    return amgr.entails(e1.getAbstraction(), e2.getAbstraction());
-      //}
-      // return false;
     }
   }
 

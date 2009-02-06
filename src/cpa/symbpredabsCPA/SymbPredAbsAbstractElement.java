@@ -39,7 +39,7 @@ import cpa.symbpredabs.mathsat.BDDAbstractFormula;
 /**
  * AbstractElement for Symbolic Predicate Abstraction CPA
  *
- * @author erkan
+ * @author Erkan
  */
 public class SymbPredAbsAbstractElement
 implements AbstractElement {

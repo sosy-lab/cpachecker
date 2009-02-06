@@ -73,7 +73,7 @@ import cpaplugin.CPAStatistics;
 
 /**
  * CPA that defines symbolic predicate abstraction.
- * @author erkan
+ * @author Erkan
  *
  */
 public class SymbPredAbsCPA implements ConfigurableProgramAnalysis {
@@ -138,12 +138,6 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis {
     stats = new SymbPredAbsCPAStatistics(this);
   }
 
-  /**
-   * Constructor conforming to the "contract" in CompositeCPA. The two
-   * arguments are ignored
-   * @param s1
-   * @param s2
-   */
   public SymbPredAbsCPA(String s1, String s2) {
     this();
   }
