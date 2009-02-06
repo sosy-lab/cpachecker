@@ -259,7 +259,7 @@ public class QueryDrivenProgramTesting {
             if (!lFeasible) {
               // what's about function pointers?
               int lRemoveIndex = lPathToRoot.size() - 1;
-              Edge lRemoveEdge = lPathToRoot.get(lPathToRoot.size() - 1);
+              Edge lRemoveEdgeTmp = lPathToRoot.get(lPathToRoot.size() - 1);
               
               if (lInfeasibilityCause != null) {
                 Iterator<Edge> lBacktrackChildren = lInfeasibilityCause.getParent().getChildren();
@@ -268,6 +268,10 @@ public class QueryDrivenProgramTesting {
                   lBacktrackingSet.add(lBacktrackChildren.next());
                 }
               }
+              
+              assert(lRemoveEdgeTmp instanceof QDPTCompositeCPA.CFAEdgeEdge);
+              
+              QDPTCompositeCPA.CFAEdgeEdge lRemoveEdge = (QDPTCompositeCPA.CFAEdgeEdge)lRemoveEdgeTmp;
               
               while (lRemoveEdge.getCFAEdge().getEdgeType() != CFAEdgeType.AssumeEdge) {
                 lPathToRoot.remove(lRemoveIndex);
@@ -283,7 +287,11 @@ public class QueryDrivenProgramTesting {
                 }
                 
                 lRemoveIndex--;
-                lRemoveEdge = lPathToRoot.get(lRemoveIndex);
+                lRemoveEdgeTmp = lPathToRoot.get(lRemoveIndex);
+                
+                assert(lRemoveEdgeTmp instanceof QDPTCompositeCPA.CFAEdgeEdge);
+              
+                lRemoveEdge = (QDPTCompositeCPA.CFAEdgeEdge)lRemoveEdgeTmp;
               }
               
               lPathCSource = lTranslator.translate(lPathToRoot);
@@ -572,7 +580,7 @@ public class QueryDrivenProgramTesting {
         }
       }
       
-      assert(!lPathsHaveLengthOne);
+      //assert(!lPathsHaveLengthOne);
       
       
       // create merge element
@@ -618,7 +626,7 @@ public class QueryDrivenProgramTesting {
       lWasUpdated = true;
       
       for (Edge lEdge : lEdgeSet) {
-        lEdge.changeParent(lMergeElement);
+        lEdge.setParent(lMergeElement);
       }
 
       propagateInitialElements(lMergeElement, pInitialElements);
@@ -647,9 +655,11 @@ public class QueryDrivenProgramTesting {
       while (lChildrenIterator.hasNext()) {
         Edge lEdge = lChildrenIterator.next();
 
-        assert(!lEdge.hasSubpaths());
+        //assert(!lEdge.hasSubpaths());
         
-        CFAEdge lCFAEdge = lEdge.getCFAEdge();
+        assert(!(lEdge instanceof QDPTCompositeCPA.HasSubpaths));
+        
+        CFAEdge lCFAEdge = ((QDPTCompositeCPA.CFAEdgeEdge)lEdge).getCFAEdge();
 
         lLeavingEdges.add(lCFAEdge);
       }
@@ -665,7 +675,9 @@ public class QueryDrivenProgramTesting {
         while (lChildrenIterator.hasNext()) {
           Edge lEdge = lChildrenIterator.next();
 
-          assert(!lEdge.hasSubpaths());
+          //assert(!lEdge.hasSubpaths());
+          
+          assert(!(lEdge instanceof QDPTCompositeCPA.HasSubpaths));
 
           pInitialElements.add(lEdge.getChild());
           
@@ -681,7 +693,9 @@ public class QueryDrivenProgramTesting {
         while (lChildrenIterator.hasNext()) {
           Edge lEdge = lChildrenIterator.next();
 
-          assert(!lEdge.hasSubpaths());
+          //assert(!lEdge.hasSubpaths());
+          
+          assert(!(lEdge instanceof QDPTCompositeCPA.HasSubpaths));
 
           lChildren.add(lEdge.getChild());
         }
@@ -704,7 +718,9 @@ public class QueryDrivenProgramTesting {
     while (lChildrenIterator.hasNext()) {
       Edge lEdge = lChildrenIterator.next();
 
-      assert (!lEdge.hasSubpaths());
+      //assert (!lEdge.hasSubpaths());
+      
+      assert(!(lEdge instanceof QDPTCompositeCPA.HasSubpaths));
 
       removeFromInitialElements(lEdge.getChild(), pInitialElements);
     }

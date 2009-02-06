@@ -66,7 +66,307 @@ import java.util.LinkedList;
  */
 public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
 
-  public class Edge {
+  public interface HasSubpaths {
+    public Iterable<List<Edge>> getSubpaths();
+  }
+  
+  public abstract class Edge {
+    private QDPTCompositeElement mParent;
+    private QDPTCompositeElement mChild;
+    private String mStringRepresentation;
+    
+    private int mHashCode;
+    
+    public Edge(QDPTCompositeElement pParent, QDPTCompositeElement pChild) {
+      assert(pParent != null);
+      assert(pChild != null);
+      
+      mParent = pParent;
+      mChild = pChild;
+      
+      recalculateHashCode();
+      recalculateStringRepresentation();
+    }
+    
+    private void recalculateHashCode() {
+      mHashCode = mParent.hashCode() + mChild.hashCode();
+    }
+    
+    private void recalculateStringRepresentation() {
+      mStringRepresentation = mParent + " -> " + mChild;
+    }
+    
+    public QDPTCompositeElement getParent() {
+      return mParent;
+    }
+    
+    public QDPTCompositeElement getChild() {
+      return mChild;
+    }
+    
+    public void setParent(QDPTCompositeElement pParent) {
+      assert(pParent != null);
+      
+      mParent.mChildren.remove(this);
+      
+      mChild.mParent = pParent;
+      mParent = pParent;
+      
+      mParent.mChildren.add(this);
+      
+      recalculateHashCode();
+      recalculateStringRepresentation();
+    }
+    
+    @Override
+    public boolean equals(Object pOther) {
+      if (pOther == null) {
+        return false;
+      }
+      
+      if (!(pOther instanceof Edge)) {
+        return false;
+      }
+      
+      Edge lOther = (Edge)pOther;
+      
+      if (mParent.equals(lOther.mParent) && mChild.equals(lOther.mChild)) {
+        return true;
+      }
+      
+      return false;
+    }
+    
+    @Override
+    public int hashCode() {
+      return mHashCode;
+    }
+    
+    @Override
+    public String toString() {
+      return mStringRepresentation;
+    }
+  }
+  
+  public class CFAEdgeEdge extends Edge {
+    private CFAEdge mEdge;
+    private int mHashCode;
+    private String mStringRepresentation;
+    
+    public CFAEdgeEdge(QDPTCompositeElement pParent, QDPTCompositeElement pChild, CFAEdge pEdge) {
+      super(pParent, pChild);
+      
+      assert(pEdge != null);
+      
+      assert(pEdge.getPredecessor().equals(pParent.getElementWithLocation().getLocationNode()));
+      assert(pEdge.getSuccessor().equals(pChild.getElementWithLocation().getLocationNode()));
+      
+      mEdge = pEdge;
+
+      recalculateHashCode();
+      recalculateStringRepresentation();
+    }
+    
+    private void recalculateHashCode() {
+      mHashCode = super.hashCode() + mEdge.hashCode();
+    }
+    
+    private void recalculateStringRepresentation() {
+      mStringRepresentation = getParent() + " -[" + mEdge.toString() + "]> " + getChild();
+    }
+    
+    public CFAEdge getCFAEdge() {
+      return mEdge;
+    }
+    
+    @Override
+    public void setParent(QDPTCompositeElement pParent) {
+      assert(pParent != null);
+
+      assert(mEdge.getPredecessor().equals(pParent.getElementWithLocation().getLocationNode()));
+      
+      super.setParent(pParent);
+      
+      recalculateHashCode();
+      recalculateStringRepresentation();
+    }
+    
+    @Override
+    public boolean equals(Object pOther) {
+      if (!super.equals(pOther)) {
+        return false;
+      }
+      
+      if (!(pOther instanceof CFAEdgeEdge)) {
+        return false;
+      }
+      
+      CFAEdgeEdge lOther = (CFAEdgeEdge)pOther;
+      
+      return lOther.mEdge.equals(mEdge);
+    }
+
+    @Override
+    public int hashCode() {
+      return mHashCode;
+    }
+    
+    @Override
+    public String toString() {
+      return mStringRepresentation;
+    }
+  }
+  
+  public class CFAEdgeAndSubpathsEdge extends CFAEdgeEdge implements HasSubpaths {
+    private HashSet<List<Edge>> mSubpaths;
+    private int mHashCode;
+    private String mStringRepresentation;
+    
+    public CFAEdgeAndSubpathsEdge(QDPTCompositeElement pParent, QDPTCompositeElement pChild, CFAEdge pEdge, Collection<List<Edge>> pSubpaths) {
+      super(pParent, pChild, pEdge);
+      
+      for (List<Edge> lSubpath : pSubpaths) {
+        assert(lSubpath != null);
+        assert(lSubpath.size() == 1);
+        
+        Edge lEdge = lSubpath.get(0);
+        
+        assert(lEdge != null);
+        assert(lEdge instanceof CFAEdgeEdge);
+        
+        CFAEdgeEdge lCFAEdgeEdge = (CFAEdgeEdge)lEdge;
+        
+        assert(getCFAEdge().equals(lCFAEdgeEdge.getCFAEdge()));
+      }
+      
+      mSubpaths = new HashSet<List<Edge>>(pSubpaths);
+      
+      recalculateHashCode();
+      recalculateStringRepresentation();
+    }
+    
+    private void recalculateHashCode() {
+      mHashCode = super.hashCode() + mSubpaths.hashCode();
+    }
+    
+    private void recalculateStringRepresentation() {
+      mStringRepresentation = super.toString();
+    }
+    
+    public Iterable<List<QDPTCompositeCPA.Edge>> getSubpaths() {
+      return mSubpaths;
+    }
+    
+    @Override
+    public void setParent(QDPTCompositeElement pParent) {
+      super.setParent(pParent);
+      
+      recalculateHashCode();
+      recalculateStringRepresentation();
+    }
+    
+    @Override
+    public boolean equals(Object pOther) {
+      if (!super.equals(pOther)) {
+        return false;
+      }
+      
+      if (!(pOther instanceof CFAEdgeAndSubpathsEdge)) {
+        return false;
+      }
+      
+      CFAEdgeAndSubpathsEdge lOther = (CFAEdgeAndSubpathsEdge)pOther;
+      
+      // TODO is this correct?
+      return lOther.getSubpaths().equals(getSubpaths());
+    }
+    
+    @Override
+    public int hashCode() {
+      return mHashCode;
+    }
+    
+    @Override
+    public String toString() {
+      return mStringRepresentation;
+    }
+  }
+  
+  public class SubpathsEdge extends Edge implements HasSubpaths {
+    private HashSet<List<Edge>> mSubpaths;
+    private int mHashCode;
+    private String mStringRepresentation;
+    
+    public SubpathsEdge(QDPTCompositeElement pParent, QDPTCompositeElement pChild, Collection<List<Edge>> pSubpaths) {
+      super(pParent, pChild);
+      
+      assert(pSubpaths != null);
+      
+      for (List<Edge> lSubpath : pSubpaths) {
+        assert(lSubpath != null);
+        assert(lSubpath.size() > 0);
+      }
+      
+      // TODO more consistency checks
+      
+      mSubpaths = new HashSet<List<Edge>>(pSubpaths);
+      
+      recalculateHashCode();
+      recalculateStringRepresentation();
+    }
+    
+    private void recalculateHashCode() {
+      mHashCode = super.hashCode() + mSubpaths.hashCode();
+    }
+    
+    private void recalculateStringRepresentation() {
+      mStringRepresentation = super.toString();
+    }
+    
+    public Iterable<List<Edge>> getSubpaths() {
+      return mSubpaths;
+    }
+    
+    @Override
+    public void setParent(QDPTCompositeElement pParent) {
+      assert(pParent != null);
+
+      // TODO add consistency checks
+      
+      super.setParent(pParent);
+      
+      recalculateHashCode();
+      recalculateStringRepresentation();
+    }
+    
+    @Override
+    public boolean equals(Object pOther) {
+      if (!super.equals(pOther)) {
+        return false;
+      }
+      
+      if (!(pOther instanceof SubpathsEdge)) {
+        return false;
+      }
+      
+      SubpathsEdge lOther = (SubpathsEdge)pOther;
+      
+      // TODO is this correct?
+      return lOther.getSubpaths().equals(getSubpaths());
+    }
+    
+    @Override
+    public int hashCode() {
+      return mHashCode;
+    }
+    
+    @Override
+    public String toString() {
+      return mStringRepresentation;
+    }
+  }
+  
+  /*public class Edge {
     private QDPTCompositeElement mParent;
     private QDPTCompositeElement mChild;
     private HashSet<List<Edge>> mSubpaths;
@@ -184,12 +484,12 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
     
     @Override
     public int hashCode() {
-      /*if (hasSubpaths()) {
-        return mSubpaths.hashCode();
-      }
-      else {
-        return mParent.hashCode() + mChild.hashCode();
-      }*/
+      //if (hasSubpaths()) {
+      //  return mSubpaths.hashCode();
+      //}
+      //else {
+      //  return mParent.hashCode() + mChild.hashCode();
+      //}
       
       return mHashCode;
     }
@@ -221,7 +521,7 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
         mHashCode = mParent.hashCode() + mChild.hashCode();
       }
     }
-  }
+  }*/
   
   public class QDPTCompositeElement extends CompositeElement {
     private QDPTCompositeElement mParent;
@@ -235,7 +535,8 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
       
       mChildren = new HashSet<Edge>();
       
-      mEdge = new Edge(mParent, this, pCFAEdge);
+      //mEdge = new Edge(mParent, this, pCFAEdge);
+      mEdge = new CFAEdgeEdge(mParent, this, pCFAEdge);
       mParent.mChildren.add(mEdge);
     }
     
@@ -245,7 +546,8 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
       assert(pEdgeSet != null);
       assert(pEdgeSet.size() > 1);
       
-      mEdge = new Edge(pEdgeSet, this);
+      //mEdge = new Edge(pEdgeSet, this);
+      mEdge = new SubpathsEdge(pParent, this, pEdgeSet);
       mParent.mChildren.add(mEdge);
     }
     

@@ -197,8 +197,9 @@ public class Translator {
     while (!lPath.isEmpty()) {
       Edge lEdge = lPath.remove(0);
       
-      if (lEdge.hasSubpaths()) {
-        Iterator<List<Edge>> lSubpathIterator = lEdge.getSubpaths();
+      //if (lEdge.hasSubpaths()) {
+      if (lEdge instanceof QDPTCompositeCPA.SubpathsEdge) {
+        Iterator<List<Edge>> lSubpathIterator = ((QDPTCompositeCPA.SubpathsEdge)lEdge).getSubpaths().iterator();
         
         pProgramText.println("switch (nondet()) {");
 
@@ -223,7 +224,7 @@ public class Translator {
           if (!lSubpath.isEmpty()) {
             System.out.println("----");
             
-            Iterator<List<Edge>> lSubpathIterator2 = lEdge.getSubpaths();
+            Iterator<List<Edge>> lSubpathIterator2 = ((QDPTCompositeCPA.SubpathsEdge)lEdge).getSubpaths().iterator();
             
             while (lSubpathIterator2.hasNext()) {
               List<Edge> lSubpath2 = lSubpathIterator2.next();
@@ -242,7 +243,9 @@ public class Translator {
         pProgramText.println("}");
       }
       else {
-        CFAEdge lCFAEdge = lEdge.getCFAEdge();
+        assert(lEdge instanceof QDPTCompositeCPA.CFAEdgeEdge);
+        
+        CFAEdge lCFAEdge = ((QDPTCompositeCPA.CFAEdgeEdge)lEdge).getCFAEdge();
         
         switch (lCFAEdge.getEdgeType()) {
           case BlankEdge: {
@@ -288,9 +291,11 @@ public class Translator {
             if (lPath.size() > 0) {
               Edge lLastEdge = lPath.get(0);
               
-              assert(!lLastEdge.hasSubpaths());
+              //assert(!lLastEdge.hasSubpaths());
               
-              CFAEdge lLastCFAEdge = lLastEdge.getCFAEdge();
+              assert(!(lLastEdge instanceof QDPTCompositeCPA.HasSubpaths));
+              
+              CFAEdge lLastCFAEdge = ((QDPTCompositeCPA.CFAEdgeEdge)lLastEdge).getCFAEdge();
               
               assert(lLastCFAEdge.getEdgeType() == CFAEdgeType.ReturnEdge);
               
