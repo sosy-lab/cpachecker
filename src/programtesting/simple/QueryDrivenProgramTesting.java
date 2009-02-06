@@ -43,7 +43,6 @@ import cfa.objectmodel.CFAFunctionDefinitionNode;
 
 import cfa.objectmodel.CFANode;
 import cmdline.CPAMain;
-import common.Pair;
 import compositeCPA.CompositePrecision;
 
 import cpa.common.CPAAlgorithm;
@@ -195,11 +194,7 @@ public class QueryDrivenProgramTesting {
       for (CompositeElement lInitialElement : lOldInitialElements) {
         QDPTCompositeElement lElement = (QDPTCompositeElement)lInitialElement;
         
-        Iterator<Edge> lChildrenIterator = lElement.getChildren();
-        
-        while (lChildrenIterator.hasNext()) {
-          Edge lEdge = lChildrenIterator.next();
-          
+        for (Edge lEdge : lElement.getChildren()) {
           lWorklist.add(lEdge);
         }
       }
@@ -217,12 +212,7 @@ public class QueryDrivenProgramTesting {
         if (lCurrentElement.hasChildren()) {
           // we are at an intermediate node
           
-          Iterator<Edge> lChildrenIterator = lCurrentElement.getChildren();
-          
-          while (lChildrenIterator.hasNext()) {
-            Edge lEdge = lChildrenIterator.next();
-            
-            // we do a depth first traversal
+          for (Edge lEdge : lCurrentElement.getChildren()) {
             lWorklist.addFirst(lEdge);
           }
         }
@@ -262,10 +252,8 @@ public class QueryDrivenProgramTesting {
               Edge lRemoveEdgeTmp = lPathToRoot.get(lPathToRoot.size() - 1);
               
               if (lInfeasibilityCause != null) {
-                Iterator<Edge> lBacktrackChildren = lInfeasibilityCause.getParent().getChildren();
-
-                while (lBacktrackChildren.hasNext()) {
-                  lBacktrackingSet.add(lBacktrackChildren.next());
+                for (Edge lChildEdge : lInfeasibilityCause.getParent().getChildren()) {
+                  lBacktrackingSet.add(lChildEdge);
                 }
               }
               
@@ -279,10 +267,8 @@ public class QueryDrivenProgramTesting {
                 // If parent has not more than one child then this edge is no
                 // longer in the worklist because it was processed already.
                 if (lRemoveEdge.getParent().getNumberOfChildren() > 1) {
-                  Iterator<Edge> lBacktrackChildren = lRemoveEdge.getParent().getChildren();
-
-                  while (lBacktrackChildren.hasNext()) {
-                    lBacktrackingSet.add(lBacktrackChildren.next());
+                  for (Edge lChildEdge : lRemoveEdge.getParent().getChildren()) {
+                    lBacktrackingSet.add(lChildEdge);
                   }
                 }
                 
@@ -408,7 +394,7 @@ public class QueryDrivenProgramTesting {
     
     if (pRoot.getNumberOfChildren() == 1) {
       // we have exactly one successor
-      Iterator<Edge> lChildren = pRoot.getChildren();
+      Iterator<Edge> lChildren = pRoot.getChildren().iterator();
       
       return rearrangeAbstractReachabilityTree(pCPA, pTestGoalCPA, lChildren.next().getChild(), pInitialElements);
     }
@@ -417,7 +403,7 @@ public class QueryDrivenProgramTesting {
 
     Vector<LinkedList<Edge>> lPaths = new Vector<LinkedList<Edge>>();
     
-    Iterator<Edge> lChildren = pRoot.getChildren();
+    Iterator<Edge> lChildren = pRoot.getChildren().iterator();
     
     while (lChildren.hasNext()) {
       LinkedList<Edge> lPath = new LinkedList<Edge>();
@@ -429,7 +415,7 @@ public class QueryDrivenProgramTesting {
       QDPTCompositeElement lChild = lCurrentEdge.getChild();
       
       while (lChild.getNumberOfChildren() == 1) {
-        lCurrentEdge = lChild.getChildren().next();
+        lCurrentEdge = lChild.getChildren().iterator().next();
         
         lPath.addLast(lCurrentEdge);
         
@@ -566,23 +552,6 @@ public class QueryDrivenProgramTesting {
       }
       
       
-      boolean lPathsHaveLengthOne = true;
-      
-      for (List<Edge> lPath : lMergePaths) {
-        if (lPath.size() > 1) {
-          lPathsHaveLengthOne = false;
-        }
-      }
-      
-      if (lPathsHaveLengthOne) {
-        for (List<Edge> lPath : lMergePaths) {
-          System.out.println(lPath);
-        }
-      }
-      
-      //assert(!lPathsHaveLengthOne);
-      
-      
       // create merge element
       List<AbstractElement> lAbstractElements = new LinkedList<AbstractElement>();
       // location cpa
@@ -609,11 +578,7 @@ public class QueryDrivenProgramTesting {
       Set<Edge> lEdgeSet = new HashSet<Edge>();
       
       for (QDPTCompositeElement lElement : lFinalTuple) {
-        Iterator<Edge> lIterator = lElement.getChildren();
-        
-        while (lIterator.hasNext()) {
-          Edge lEdge = lIterator.next();
-          
+        for (Edge lEdge : lElement.getChildren()) {
           lEdgeSet.add(lEdge);
         }
         
@@ -650,35 +615,21 @@ public class QueryDrivenProgramTesting {
       // check whether all successors are enumerated
       Set<CFAEdge> lLeavingEdges = new HashSet<CFAEdge>();
 
-      Iterator<Edge> lChildrenIterator = pRoot.getChildren();
-
-      while (lChildrenIterator.hasNext()) {
-        Edge lEdge = lChildrenIterator.next();
-
-        //assert(!lEdge.hasSubpaths());
-        
-        assert(!(lEdge instanceof QDPTCompositeCPA.HasSubpaths));
+      for (Edge lEdge : pRoot.getChildren()) {
+        assert(lEdge instanceof QDPTCompositeCPA.CFAEdgeEdge);
         
         CFAEdge lCFAEdge = ((QDPTCompositeCPA.CFAEdgeEdge)lEdge).getCFAEdge();
 
         lLeavingEdges.add(lCFAEdge);
       }
-
+      
       CFANode lCFANode = pRoot.getElementWithLocation().getLocationNode();
 
       // is this check enough for ensuring correct exploration of successors?
       if (lLeavingEdges.size() == lCFANode.getNumLeavingEdges()) {
         pInitialElements.remove(pRoot);
         
-        lChildrenIterator = pRoot.getChildren();
-        
-        while (lChildrenIterator.hasNext()) {
-          Edge lEdge = lChildrenIterator.next();
-
-          //assert(!lEdge.hasSubpaths());
-          
-          assert(!(lEdge instanceof QDPTCompositeCPA.HasSubpaths));
-
+        for (Edge lEdge : pRoot.getChildren()) {
           pInitialElements.add(lEdge.getChild());
           
           propagateInitialElements(lEdge.getChild(), pInitialElements);
@@ -688,15 +639,7 @@ public class QueryDrivenProgramTesting {
         // remove all children from ART
         Set<QDPTCompositeElement> lChildren = new HashSet<QDPTCompositeElement>();
         
-        lChildrenIterator = pRoot.getChildren();
-        
-        while (lChildrenIterator.hasNext()) {
-          Edge lEdge = lChildrenIterator.next();
-
-          //assert(!lEdge.hasSubpaths());
-          
-          assert(!(lEdge instanceof QDPTCompositeCPA.HasSubpaths));
-
+        for (Edge lEdge : pRoot.getChildren()) {
           lChildren.add(lEdge.getChild());
         }
         
@@ -713,15 +656,7 @@ public class QueryDrivenProgramTesting {
     
     pInitialElements.remove(pRoot);
     
-    Iterator<Edge> lChildrenIterator = pRoot.getChildren();
-
-    while (lChildrenIterator.hasNext()) {
-      Edge lEdge = lChildrenIterator.next();
-
-      //assert (!lEdge.hasSubpaths());
-      
-      assert(!(lEdge instanceof QDPTCompositeCPA.HasSubpaths));
-
+    for (Edge lEdge : pRoot.getChildren()) {
       removeFromInitialElements(lEdge.getChild(), pInitialElements);
     }
   }
@@ -740,7 +675,7 @@ public class QueryDrivenProgramTesting {
       assert (false);
     }
 
-    lFile.deleteOnExit();
+    //lFile.deleteOnExit();
 
     List<String> lNodeDefinitions = new LinkedList<String>();
     
@@ -759,10 +694,8 @@ public class QueryDrivenProgramTesting {
       
       lIdMap.put(lCurrentElement, lUniqueId);
       
-      Iterator<Edge> lIterator = lCurrentElement.getChildren();
-      
-      while (lIterator.hasNext()) {
-        lWorklist.push(lIterator.next().getChild());
+      for (Edge lEdge : lCurrentElement.getChildren()) {
+        lWorklist.push(lEdge.getChild());
       }
       
       if (pSpecialElements.contains(lCurrentElement)) {
@@ -781,15 +714,23 @@ public class QueryDrivenProgramTesting {
       Integer lId = lIdMap.get(lCurrentElement);
       
       lNodeDefinitions.add("node [label = \"" + lCurrentElement + "\", shape=box]; " + lId + ";");
-      
-      Iterator<Edge> lIterator = lCurrentElement.getChildren();
-      
-      while (lIterator.hasNext()) {
-        QDPTCompositeElement lChildElement = lIterator.next().getChild();
+
+      for (Edge lEdge : lCurrentElement.getChildren()) {
+        QDPTCompositeElement lChildElement = lEdge.getChild();
         
         lWorklist.push(lChildElement);
         
-        lEdgeDefinitions.add(lId + " -> " + lIdMap.get(lChildElement));
+        if (lEdge instanceof QDPTCompositeCPA.HasSubpaths) {
+          if (lEdge instanceof QDPTCompositeCPA.CFAEdgeAndSubpathsEdge) {
+            lEdgeDefinitions.add(lId + " -> " + lIdMap.get(lChildElement) + " [style=bold, color=green];");
+          }
+          else {
+            lEdgeDefinitions.add(lId + " -> " + lIdMap.get(lChildElement) + " [style=bold, color=blue];");
+          }
+        }
+        else {
+          lEdgeDefinitions.add(lId + " -> " + lIdMap.get(lChildElement) + ";");
+        }
       }
     }
     
@@ -798,7 +739,7 @@ public class QueryDrivenProgramTesting {
       
       lWriter.println("digraph ART {");
       
-      lWriter.println("size=\"6,10\";");
+      //lWriter.println("size=\"6,10\";");
       
       for (String lString : lNodeDefinitions) {
         lWriter.println(lString);
@@ -818,7 +759,7 @@ public class QueryDrivenProgramTesting {
     
     
 
-    try {
+    /*try {
       File lPostscriptFile = File.createTempFile(pFileId, ".ps");
 
       lPostscriptFile.deleteOnExit();
@@ -835,7 +776,7 @@ public class QueryDrivenProgramTesting {
     } catch (Exception e) {
       e.printStackTrace();
       assert (false);
-    }
+    }*/
   }
   
   public static void outputAbstractReachabilityTree(String pFileId, Collection<CompositeElement> pSpecialElements, ParametricAbstractReachabilityTree<CompositeElement> pAbstractReachabilityTree) {

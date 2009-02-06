@@ -366,163 +366,6 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
     }
   }
   
-  /*public class Edge {
-    private QDPTCompositeElement mParent;
-    private QDPTCompositeElement mChild;
-    private HashSet<List<Edge>> mSubpaths;
-    private CFAEdge mCFAEdge;
-    
-    private int mHashCode;
-    
-    private Edge(QDPTCompositeElement pParent, QDPTCompositeElement pChild, CFAEdge pCFAEdge) {
-      assert(pParent != null);
-      assert(pChild != null);
-      assert(pCFAEdge != null);
-      
-      mParent = pParent;
-      mChild = pChild;
-      mSubpaths = null;
-      mCFAEdge = pCFAEdge;
-      
-      mHashCode = mParent.hashCode() + mChild.hashCode();
-    }
-    
-    private Edge(Collection<List<Edge>> pEdgeSet, QDPTCompositeElement pChild) {
-      assert(pEdgeSet != null);
-      assert(pEdgeSet.size() > 0);
-      assert(pChild != null);
-      
-      //mParent = null;
-      mChild = pChild;
-      
-      List<Edge> lPath = pEdgeSet.iterator().next();
-      
-      assert(lPath.size() > 0);
-      
-      mParent = lPath.get(0).getParent();
-      
-      // TODO add consistency check
-      
-      mSubpaths = new HashSet<List<Edge>>(pEdgeSet);
-      
-      mHashCode = mSubpaths.hashCode();
-    }
-    
-    public QDPTCompositeElement getParent() {
-      return mParent;
-    }
-    
-    public QDPTCompositeElement getChild() {
-      return mChild;
-    }
-    
-    public boolean hasSubpaths() {
-      return (mSubpaths != null);
-    }
-    
-    public Iterator<List<Edge>> getSubpaths() {
-      assert(mSubpaths != null);
-      
-      return mSubpaths.iterator();
-    }
-    
-    public CFAEdge getCFAEdge() {
-      assert(mCFAEdge != null);
-      
-      return mCFAEdge;
-    }
-    
-    @Override
-    public boolean equals(Object pOther) {
-      if (pOther == null) {
-        return false;
-      }
-      
-      try {
-        Edge lOtherEdge = (Edge)pOther;
-        
-        if (!getParent().equals(lOtherEdge.getParent())) {
-          return false;
-        }
-        
-        if (!getChild().equals(lOtherEdge.getChild())) {
-          return false;
-        }
-        
-        if ((lOtherEdge.hasSubpaths() && !hasSubpaths()) || (hasSubpaths() && !lOtherEdge.hasSubpaths())) {
-          return false;
-        }
-        
-        Iterator<List<Edge>> lIterator = getSubpaths();
-        
-        while (lIterator.hasNext()) {
-          List<Edge> lEdgeList = lIterator.next();
-          
-          Iterator<List<Edge>> lOtherIterator = lOtherEdge.getSubpaths();
-          
-          boolean lHasMatchingList = false;
-          
-          while (lOtherIterator.hasNext()) {
-            List<Edge> lOtherEdgeList = lOtherIterator.next();
-            
-            if (lOtherEdgeList.equals(lEdgeList)) {
-              lHasMatchingList = true;
-            }
-          }
-          
-          if (!lHasMatchingList) {
-            return false;
-          }
-        }
-        
-        return true;
-      } 
-      catch (ClassCastException lException) {
-        return false;
-      }
-    }
-    
-    @Override
-    public int hashCode() {
-      //if (hasSubpaths()) {
-      //  return mSubpaths.hashCode();
-      //}
-      //else {
-      //  return mParent.hashCode() + mChild.hashCode();
-      //}
-      
-      return mHashCode;
-    }
-    
-    @Override
-    public String toString() {
-      if (hasSubpaths()) {
-        return mParent + " -[" + mSubpaths.toString() + "]> " + mChild;
-      }
-      else {
-        return mParent + " -> " + mChild;
-      }
-    }
-    
-    public void changeParent(QDPTCompositeElement pParent) {
-      assert(pParent != null);
-      
-      mParent.mChildren.remove(this);
-      
-      mChild.mParent = pParent;
-      mParent = pParent;
-      
-      mParent.mChildren.add(this);
-      
-      if (hasSubpaths()) {
-        mHashCode = mSubpaths.hashCode();
-      }
-      else {
-        mHashCode = mParent.hashCode() + mChild.hashCode();
-      }
-    }
-  }*/
-  
   public class QDPTCompositeElement extends CompositeElement {
     private QDPTCompositeElement mParent;
     private HashSet<Edge> mChildren;
@@ -535,7 +378,6 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
       
       mChildren = new HashSet<Edge>();
       
-      //mEdge = new Edge(mParent, this, pCFAEdge);
       mEdge = new CFAEdgeEdge(mParent, this, pCFAEdge);
       mParent.mChildren.add(mEdge);
     }
@@ -546,8 +388,58 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
       assert(pEdgeSet != null);
       assert(pEdgeSet.size() > 1);
       
-      //mEdge = new Edge(pEdgeSet, this);
-      mEdge = new SubpathsEdge(pParent, this, pEdgeSet);
+      // do all paths have length one?
+      
+      boolean lIsCFAEdgeEdge = true;
+      
+      CFAEdge lCFAEdge = null;
+      
+      for (List<Edge> lSubpath : pEdgeSet) {
+        assert(lSubpath != null);
+        assert(lSubpath.size() > 0);
+        
+        if (lSubpath.size() > 1) {
+          lIsCFAEdgeEdge = false;
+          
+          break;
+        }
+        else {
+          Edge lEdge = lSubpath.get(0);
+          
+          if (lEdge instanceof CFAEdgeEdge) {
+            CFAEdgeEdge lCFAEdgeEdge = (CFAEdgeEdge)lEdge;
+            
+            CFAEdge lCurrentCFAEdge = lCFAEdgeEdge.getCFAEdge();
+            
+            if (lCFAEdge == null) {
+              lCFAEdge = lCurrentCFAEdge;
+            }
+            else {
+              if (!lCFAEdge.equals(lCurrentCFAEdge)) {
+                lIsCFAEdgeEdge = false;
+                
+                break;
+              }
+            }
+          }
+          else {
+            lIsCFAEdgeEdge = false;
+            
+            break;
+          }
+        }
+      }
+      
+      if (lIsCFAEdgeEdge) {
+        // do all paths have the same cfa edge?
+        assert(lCFAEdge != null);
+        
+        mEdge = new CFAEdgeAndSubpathsEdge(pParent, this, lCFAEdge, pEdgeSet);
+      }
+      else {
+        mEdge = new SubpathsEdge(pParent, this, pEdgeSet);        
+      }
+      
       mParent.mChildren.add(mEdge);
     }
     
@@ -604,8 +496,8 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
       return (mChildren.size() > 0);
     }
     
-    public Iterator<Edge> getChildren() {
-      return mChildren.iterator();
+    public Iterable<Edge> getChildren() {
+      return mChildren;
     }
     
     public int getNumberOfChildren() {

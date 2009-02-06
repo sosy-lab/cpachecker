@@ -293,7 +293,9 @@ public class Translator {
               
               //assert(!lLastEdge.hasSubpaths());
               
-              assert(!(lLastEdge instanceof QDPTCompositeCPA.HasSubpaths));
+              //assert(!(lLastEdge instanceof QDPTCompositeCPA.HasSubpaths));
+              
+              assert(lLastEdge instanceof QDPTCompositeCPA.CFAEdgeEdge);
               
               CFAEdge lLastCFAEdge = ((QDPTCompositeCPA.CFAEdgeEdge)lLastEdge).getCFAEdge();
               
