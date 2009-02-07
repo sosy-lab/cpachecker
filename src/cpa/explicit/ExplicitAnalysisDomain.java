@@ -35,10 +35,18 @@ public class ExplicitAnalysisDomain implements AbstractDomain {
 
   private static class ExplicitAnalysisBottomElement extends ExplicitAnalysisElement
   {
+    @Override
+    public String toString() {
+      return "<ExplicitAnalysis BOTTOM>";
+    }
   }
 
   private static class ExplicitAnalysisTopElement extends ExplicitAnalysisElement 
   {
+    @Override
+    public String toString() {
+      return "<ExplicitAnalysis TOP>";
+    }
   }
 
   private static class ExplicitAnalysisPartialOrder implements PartialOrder
@@ -49,38 +57,35 @@ public class ExplicitAnalysisDomain implements AbstractDomain {
       ExplicitAnalysisElement explicitAnalysisElementNew = (ExplicitAnalysisElement) newElement;
       ExplicitAnalysisElement explicitAnalysisElementReached = (ExplicitAnalysisElement) reachedElement;
 
+      if (explicitAnalysisElementNew == bottomElement) {
+        return true;
+      } else if (explicitAnalysisElementReached == topElement) {
+        return true;
+      } else if (explicitAnalysisElementReached == bottomElement) {
+        // we should not put this in the reached set
+        assert(false);
+        return false;
+      } else if (explicitAnalysisElementNew == bottomElement) {
+        return false;
+      }
+
       Map<String, Integer> constantsMapNew = explicitAnalysisElementNew.getConstantsMap();
       Map<String, Integer> constantsMapReached = explicitAnalysisElementReached.getConstantsMap();
 
       if(constantsMapNew.size() < constantsMapReached.size()){
-//      System.out.println(" 1st cond");
         return false;
       }
 
       for(String key:constantsMapReached.keySet()){
-//      System.out.println(key + " : " + constantsMapNew.get(key));
-//      System.out.println(key + " : " + constantsMapReached.get(key));
         if(!constantsMapNew.containsKey(key)){
-//        System.out.println(" 2nd cond");
           return false;
         }
         int val1 = constantsMapNew.get(key).intValue();
         int val2 = constantsMapReached.get(key).intValue();
         if(val1 != val2){
-//        System.out.println("------------");
-//        System.out.println(key + ".. " + constantsMapNew.get(key) + " .. " + constantsMapReached.get(key));
-//        System.out.println(" 3rd cond");
           return false;
         }
       }
-//      if(explicitAnalysisElementReached.hashCode() != explicitAnalysisElementNew.hashCode()){
-//        System.out.println(" ============= REACHED ============= ");
-//        System.out.println(explicitAnalysisElementReached);
-//        System.out.println(" =============== NEW =============== ");
-//        System.out.println(explicitAnalysisElementNew);
-//        System.out.println(" ----------------------------------- ");
-//        System.out.println();
-//      }
       return true;
     }
   }
@@ -144,9 +149,5 @@ public class ExplicitAnalysisDomain implements AbstractDomain {
   public PartialOrder getPartialOrder ()
   {
     return partialOrder;
-  }
-
-  public boolean isBottomElement(AbstractElement pElement) {
-    return ((ExplicitAnalysisElement)pElement).isBottom();
   }
 }

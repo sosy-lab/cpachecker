@@ -25,7 +25,6 @@ package cpa.explicit;
 
 import java.util.Collection;
 
-import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.StopOperator;

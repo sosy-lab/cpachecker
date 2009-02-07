@@ -276,7 +276,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
     SymbPredAbsAbstractElement newElement = new SymbPredAbsAbstractElement(
         // set 'domain' to domain
-        // set 'isAbstractionNode' to trur, this is an abstraction node
+        // set 'isAbstractionNode' to true, this is an abstraction node
         // set 'abstractionLocation' to edge.getSuccessor()
         // set 'pathFormula' to pf which computed above
         domain, true, edge.getSuccessor(), pf, 
@@ -404,6 +404,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 //  SymbPredAbsCPA cpa = domain.getCPA();
     for (AbstractElement e : toUnreachTmp) {
       toUnreach.add(e);
+      // TODO handle later
 //    Set<SymbPredAbsAbstractElement> cov = cpa.getCoveredBy(
 //    (SymbPredAbsAbstractElement)e);
 //    for (AbstractElement c : cov) {

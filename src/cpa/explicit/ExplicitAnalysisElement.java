@@ -32,21 +32,20 @@ public class ExplicitAnalysisElement implements AbstractElement {
 
   // map that keeps the name of variables and their constant values
   private Map<String, Integer> constantsMap;
-  private boolean isBottom = false;
-  
+
   private Map<String, Integer> noOfReferences;
-  
+
   public ExplicitAnalysisElement() {
     constantsMap = new HashMap<String, Integer>();
     noOfReferences = new HashMap<String, Integer>();
   }
-  
+
   public ExplicitAnalysisElement(Map<String, Integer> constantsMap,
                                  Map<String, Integer> referencesMap) {
     this.constantsMap = constantsMap;
     this.noOfReferences = referencesMap;
   }
-  
+
   /**
    * Assigns a value to the variable and puts it in the map
    * @param nameOfVar name of the variable.
@@ -59,11 +58,11 @@ public class ExplicitAnalysisElement implements AbstractElement {
         constantsMap.get(nameOfVar).intValue() == value){
       return;
     }
-    
+
     if(pThreshold == 0){
       return;
     }
-    
+
     if(noOfReferences.containsKey(nameOfVar)){
       int currentVal = noOfReferences.get(nameOfVar).intValue();
       if(currentVal >= pThreshold){
@@ -76,80 +75,72 @@ public class ExplicitAnalysisElement implements AbstractElement {
     else{
       noOfReferences.put(nameOfVar, 1);
     }
-    
+
     constantsMap.put(nameOfVar, value);
   }
-  
+
   public int getValueFor(String variableName){
     return constantsMap.get(variableName).intValue();
   }
-  
+
   public boolean contains(String variableName){
     return constantsMap.containsKey(variableName);
   }
-  
-  public void setBottom(){
-    isBottom = true;
-  }
-  
-  public boolean isBottom(){
-    return isBottom;
-  }
-  
+
   @Override
-    public ExplicitAnalysisElement clone() {
+  public ExplicitAnalysisElement clone() {
     ExplicitAnalysisElement newElement = new ExplicitAnalysisElement();
-        for (String s: constantsMap.keySet()){
-            int val = constantsMap.get(s).intValue();
-            newElement.constantsMap.put(s, val);
-        }
-        for (String s: noOfReferences.keySet()){
-          int val = noOfReferences.get(s).intValue();
-          newElement.noOfReferences.put(s, val);
-        }
-        return newElement;
+    for (String s: constantsMap.keySet()){
+      int val = constantsMap.get(s).intValue();
+      newElement.constantsMap.put(s, val);
     }
-  
+    for (String s: noOfReferences.keySet()){
+      int val = noOfReferences.get(s).intValue();
+      newElement.noOfReferences.put(s, val);
+    }
+    return newElement;
+  }
+
   @Override
-    public boolean equals (Object other) {
-        if (this == other)
-            return true;
+  public boolean equals (Object other) {
+    if (this == other)
+      return true;
 
-        assert (other instanceof ExplicitAnalysisElement);   
+    assert (other instanceof ExplicitAnalysisElement);   
 
-        ExplicitAnalysisElement otherElement = (ExplicitAnalysisElement) other;
-        if (otherElement.constantsMap.size() != constantsMap.size()){
-            return false;
-        }
-
-        for (String s: constantsMap.keySet()){
-            if(!otherElement.constantsMap.containsKey(s)){
-              return false;
-            }
-            if(otherElement.constantsMap.get(s).intValue() != 
-              constantsMap.get(s)){
-              return false;
-            }
-        }
-        return true;
+    ExplicitAnalysisElement otherElement = (ExplicitAnalysisElement) other;
+    if (otherElement.constantsMap.size() != constantsMap.size()){
+      return false;
     }
-  
+
+    for (String s: constantsMap.keySet()){
+      if(!otherElement.constantsMap.containsKey(s)){
+        return false;
+      }
+      if(otherElement.constantsMap.get(s).intValue() != 
+        constantsMap.get(s)){
+        return false;
+      }
+    }
+    return true;
+  }
+
   @Override
   public int hashCode() {
     return constantsMap.hashCode();
   }
-  
+
   @Override
   public String toString() {
     String s = "[";
     for (String key: constantsMap.keySet()){
-            int val = constantsMap.get(key);
-            int refCount = noOfReferences.get(key);
-            s = s  + " <" +key + " = " + val + " :: " + refCount + "> ";
-        }
-    return s + " size-> " + constantsMap.size() + " .. "+ isBottom + "]";
+      int val = constantsMap.get(key);
+      int refCount = noOfReferences.get(key);
+      s = s  + " <" +key + " = " + val + " :: " + refCount + "> ";
+    }
+    return s + "] size->  " + constantsMap.size();
   }
-  
+
   public Map<String, Integer> getConstantsMap(){
     return constantsMap;
   }
@@ -158,11 +149,6 @@ public class ExplicitAnalysisElement implements AbstractElement {
     if(constantsMap.containsKey(assignedVar)){
       constantsMap.remove(assignedVar);
     }
-  }
-
-  public void update(ExplicitAnalysisElement newElement) {
-    constantsMap = newElement.getConstantsMap();
-    noOfReferences = newElement.getNoOfReferences();
   }
 
   public Map<String, Integer> getNoOfReferences() {
