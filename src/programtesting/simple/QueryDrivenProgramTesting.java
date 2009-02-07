@@ -64,6 +64,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -345,11 +346,19 @@ public class QueryDrivenProgramTesting {
       }
       else {
         if (!lTestGoals.isEmpty()) {
-          if (rearrangeAbstractReachabilityTree(cpa, lTestGoalCPA, lRoot, lInitialElements)) {
+          /*if (rearrangeAbstractReachabilityTree(cpa, lTestGoalCPA, lRoot, lInitialElements)) {
             if (CPAMain.cpaConfig.getBooleanValue("art.visualize")) {
               outputAbstractReachabilityTree("art_" + lLoopCounter + "_c_", lRoot, lInitialElements);
             }
+          }*/
+          
+          mergePaths(cpa, lTestGoalCPA, lRoot);
+          
+          if (CPAMain.cpaConfig.getBooleanValue("art.visualize")) {
+            outputAbstractReachabilityTree("art_" + lLoopCounter + "_c_", lRoot, lInitialElements);
           }
+          
+          assert(false);
         }
       }
       
@@ -376,6 +385,304 @@ public class QueryDrivenProgramTesting {
     System.out.println("#Test cases computed: " + lPaths.size());
     
     return null;
+  }
+  
+  
+  public static boolean mergePaths(QDPTCompositeCPA pCPA, TestGoalCPA pTestGoalCPA, QDPTCompositeElement pElement) {
+    assert(pCPA != null);
+    assert(pTestGoalCPA != null);
+    assert(pElement != null);
+    
+    
+    boolean lARTHasBeenUpdated = false;
+    
+    for (Edge lEdge : pElement.getChildren()) {
+      // merge paths in subtrees
+      lARTHasBeenUpdated |= mergePaths(pCPA, pTestGoalCPA, lEdge.getChild());
+    }
+    
+    
+    QDPTCompositeElement lMergeElement = null;
+    
+    if (pElement.getNumberOfChildren() > 1) {
+      // pElement is a candidate for a merging point
+      
+      Vector<LinkedList<Edge>> lPaths = getSubpaths(pElement);
+      
+      if (lPaths.size() > 1) {
+        Set<List<Edge>> lMergeSubpaths = getMergeSubpaths(pTestGoalCPA, lPaths);
+        
+        if (lMergeSubpaths.size() > 1) {
+          lMergeElement = merge(pCPA, pTestGoalCPA, pElement, lMergeSubpaths);
+          
+          lARTHasBeenUpdated = true;
+        }
+      }
+    }
+    
+    
+    if (lMergeElement != null) {
+      // we have merged and now this could be a new starting point for
+      // merging paths
+      
+      if (lMergeElement.getNumberOfChildren() > 1) {
+        // we don't need lARTHasBeenUpdated |= here, since merging was done
+        // and thus lARTHasBeenUpdated is true anyway
+        mergePaths(pCPA, pTestGoalCPA, lMergeElement);
+      }
+    }
+    
+    
+    return lARTHasBeenUpdated;
+  }
+  
+  public static QDPTCompositeElement merge(QDPTCompositeCPA pCPA, TestGoalCPA pTestGoalCPA, QDPTCompositeElement pElement, Set<List<Edge>> pSubpaths) {
+    assert(pCPA != null);
+    assert(pTestGoalCPA != null);
+    assert(pElement != null);
+    assert(pSubpaths != null);
+    assert(pSubpaths.size() > 1);
+    
+    List<Edge> lFirstSubpath = pSubpaths.iterator().next();
+    
+    assert(lFirstSubpath != null);
+    
+    Edge lLastEdge = lFirstSubpath.get(lFirstSubpath.size() - 1);
+    
+    QDPTCompositeElement lLastElement = lLastEdge.getChild();
+    
+    
+    
+    // create merge element
+    List<AbstractElement> lAbstractElements = new LinkedList<AbstractElement>();
+    // location cpa
+    lAbstractElements.add(lLastElement.get(mLocationCPAIndex));
+    // scope restriction cpa
+    // TODO this has to be changed to handle scope restriction analysis correctly!
+    lAbstractElements.add(lLastElement.get(mScopeRestrictionCPAIndex));
+    // test goal cpa
+    Set<Automaton<CFAEdge>.State> lNonAcceptingStates = new HashSet<Automaton<CFAEdge>.State>();
+
+    for (Automaton<CFAEdge>.State lState : pTestGoalCPA.getAbstractDomain().castToStateSetElement(lLastElement.get(mTestGoalCPAIndex)).getStates()) {
+      if (!lState.isFinal()) {
+        lNonAcceptingStates.add(lState);
+      }
+    }
+
+    AutomatonCPADomain<CFAEdge>.StateSetElement lStateSetElement = pTestGoalCPA.getAbstractDomain().createStateSetElement(pTestGoalCPA.getAbstractDomain(), lNonAcceptingStates);
+    lAbstractElements.add(lStateSetElement);
+
+    pElement.hideChildren();
+
+    QDPTCompositeElement lMergeElement = pCPA.createElement(lAbstractElements, pElement.getCallStack(), pElement, pSubpaths);
+
+    Set<Edge> lEdgeSet = new HashSet<Edge>();
+
+    
+    for (List<Edge> lSubpath : pSubpaths) {
+      Edge lEdge = lSubpath.get(lSubpath.size() - 1);
+      
+      for (Edge lChildEdge : lEdge.getChild().getChildren()) {
+        lEdgeSet.add(lChildEdge);
+      }
+      
+      // handle initial elements
+/*      if (pInitialElements.contains(lElement)) {
+              pInitialElements.remove(lElement);
+              pInitialElements.add(lMergeElement);
+            }*/
+    }
+          
+    for (Edge lEdge : lEdgeSet) {
+      lEdge.setParent(lMergeElement);
+    }
+    
+    return lMergeElement;
+  }
+  
+  public static Vector<LinkedList<Edge>> getSubpaths(QDPTCompositeElement pElement) {
+    assert(pElement != null);
+    
+    Vector<LinkedList<Edge>> lPaths = new Vector<LinkedList<Edge>>();
+    
+    for (Edge lCurrentEdge : pElement.getChildren()) {
+      LinkedList<Edge> lPath = new LinkedList<Edge>();
+      
+      do {
+        QDPTCompositeElement lParent = lCurrentEdge.getParent();
+        QDPTCompositeElement lChild = lCurrentEdge.getChild();
+        
+        // we do only intraprocedural merging
+        // TODO allow interprocedural merging
+        if (!lParent.getCallStack().equals(lChild.getCallStack())) {
+          break;
+        }
+        
+        lPath.add(lCurrentEdge);
+        
+        // since we do bottom up merging we can stop here, otherwise merging
+        // would have happened
+        if (lChild.getNumberOfChildren() != 1) {
+          break;
+        }
+        
+        // this is a possible new initial element
+        // TODO put in some reasoning here to prevent from unnecessary cutting
+        // of paths
+        // TODO in cases all cfa edges are explored and lCurrentEdge is already
+        // merged, we don't have to stop here
+        if (lChild.getElementWithLocation().getLocationNode().getNumLeavingEdges() > 1) {
+          break;
+        }
+        
+        // we know there is only one successor edge
+        lCurrentEdge = lChild.getChildren().iterator().next();
+      } while (true);
+      
+      if (lPath.size() > 0) {
+        lPaths.add(lPath);
+      }
+    }
+    
+    return lPaths;
+  }
+  
+  public static boolean areElementsMergeable(TestGoalCPA pTestGoalCPA, QDPTCompositeElement pElement1, QDPTCompositeElement pElement2) {
+    assert(pElement1 != null);
+    assert(pElement2 != null);
+    
+    // TODO include equivalence test for scope restriction automaton
+    
+    if (!(pElement1.get(mLocationCPAIndex).equals(pElement2.get(mLocationCPAIndex)))) {
+      return false;
+    }
+    
+    if (!pElement1.getCallStack().equals(pElement2.getCallStack())) {
+      return false;
+    }
+
+    
+    AutomatonCPADomain<CFAEdge>.StateSetElement lCurrentStateSetElement = pTestGoalCPA.getAbstractDomain().castToStateSetElement(pElement1.get(mTestGoalCPAIndex));
+    Set<Automaton<CFAEdge>.State> lCurrentStates = lCurrentStateSetElement.getStates();
+    // TODO: provide this sets by automaton or test goal cpa element
+    Set<Automaton<CFAEdge>.State> lCurrentNonAcceptingStates = new HashSet<Automaton<CFAEdge>.State>();
+
+    for (Automaton<CFAEdge>.State lState : lCurrentStates) {
+      if (!lState.isFinal()) {
+        lCurrentNonAcceptingStates.add(lState);
+      }
+    }
+
+    
+    AutomatonCPADomain<CFAEdge>.StateSetElement lCandidateStateSetElement = pTestGoalCPA.getAbstractDomain().castToStateSetElement(pElement2.get(mTestGoalCPAIndex));
+    Set<Automaton<CFAEdge>.State> lCandidateStates = lCandidateStateSetElement.getStates();
+    Set<Automaton<CFAEdge>.State> lCandidateNonAcceptingStates = new HashSet<Automaton<CFAEdge>.State>();
+
+    for (Automaton<CFAEdge>.State lState : lCandidateStates) {
+      if (!lState.isFinal()) {
+        lCandidateNonAcceptingStates.add(lState);
+      }
+    }
+    
+          
+    return lCurrentNonAcceptingStates.equals(lCandidateNonAcceptingStates);
+  }
+  
+  public static Set<List<Edge>> getMergeSubpaths(TestGoalCPA pTestGoalCPA, Vector<LinkedList<Edge>> pPaths) {
+    assert(pTestGoalCPA != null);
+    assert(pPaths != null);
+    
+    
+    // detect merging points
+    LinkedList<QDPTCompositeElement[]>  lMatchingElementsTuples = new LinkedList<QDPTCompositeElement[]>();
+    
+    LinkedList<Edge> lFirstPath = pPaths.get(0);
+    
+    for (Edge lCurrentEdge : lFirstPath) {
+      QDPTCompositeElement lCurrentElement = lCurrentEdge.getChild();
+      
+      QDPTCompositeElement[] lMatchingElementsTuple = new QDPTCompositeElement[pPaths.size()];
+      
+      lMatchingElementsTuple[0] = lCurrentElement;
+      
+      boolean lOk = true;
+      
+      for (int lPathIndex = 1; lPathIndex < pPaths.size(); lPathIndex++) {
+        LinkedList<Edge> lCurrentPath = pPaths.get(lPathIndex);
+        
+        for (Edge lCandidateEdge : lCurrentPath) {
+          QDPTCompositeElement lCandidateElement = lCandidateEdge.getChild();
+          
+          if (areElementsMergeable(pTestGoalCPA, lCurrentElement, lCandidateElement)) {
+            lMatchingElementsTuple[lPathIndex] = lCandidateElement;
+            
+            break;
+          }
+        }
+        
+        if (lMatchingElementsTuple[lPathIndex] == null) {
+          lOk = false;
+          
+          break;
+        }
+      }
+      
+      if (lOk) {
+        lMatchingElementsTuples.add(lMatchingElementsTuple);
+      }
+    }
+    
+    
+    if (lMatchingElementsTuples.size() <= 0) {
+      // nothing to merge so return
+      return Collections.EMPTY_SET;
+    }
+    
+    
+    int lMinDepth = Integer.MAX_VALUE;
+
+    QDPTCompositeElement[] lFinalTuple = null;
+
+    for (QDPTCompositeElement[] lTuple : lMatchingElementsTuples) {
+      int lCurrentMinDepth = Integer.MAX_VALUE;
+
+      for (QDPTCompositeElement lElement : lTuple) {
+        int lTmpDepth = lElement.getDepth();
+
+        if (lElement.getDepth() < lCurrentMinDepth) {
+          lCurrentMinDepth = lTmpDepth;
+        }
+      }
+
+      if (lMinDepth > lCurrentMinDepth) {
+        lFinalTuple = lTuple;
+        lMinDepth = lCurrentMinDepth;
+      }
+    }
+
+    assert (lFinalTuple != null);
+            
+    
+    // determine paths
+    HashSet<List<Edge>> lMergePaths = new HashSet<List<Edge>>();    
+
+    for (int lMergePathIndex = 0; lMergePathIndex < pPaths.size(); lMergePathIndex++) {
+      LinkedList<Edge> lTmpPath = new LinkedList<Edge>();
+
+      for (Edge lMergeEdge : pPaths.get(lMergePathIndex)) {
+        if (lMergeEdge.getChild().equals(lFinalTuple[lMergePathIndex])) {
+          lTmpPath.add(lMergeEdge);
+
+          break;
+        }
+
+        lTmpPath.addLast(lMergeEdge);
+      }
+
+      lMergePaths.add(lTmpPath);
+    }
+    
+    return lMergePaths;
   }
   
   /*
