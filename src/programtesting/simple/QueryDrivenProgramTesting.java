@@ -357,13 +357,15 @@ public class QueryDrivenProgramTesting {
           HashMap<QDPTCompositeElement, Set<CFAEdge>> lInitialElementsMap = new HashMap<QDPTCompositeElement, Set<CFAEdge>>();
           
           for (QDPTCompositeElement lInitialElement : lInitialElements) {
-            CFANode lCFANode = lInitialElement.getElementWithLocation().getLocationNode();
+            //CFANode lCFANode = lInitialElement.getElementWithLocation().getLocationNode();
             
-            HashSet<CFAEdge> lOutgoingEdges = new HashSet<CFAEdge>();
+            /*HashSet<CFAEdge> lOutgoingEdges = new HashSet<CFAEdge>();
             
             for (int lIndex = 0; lIndex < lCFANode.getNumLeavingEdges(); lIndex++) {
               lOutgoingEdges.add(lCFANode.getLeavingEdge(lIndex));
-            }
+            }*/
+            
+            Set<CFAEdge> lOutgoingEdges = getOutgoingCFAEdges(lInitialElement);
             
             // we can rule out exit
             if (lOutgoingEdges.size() > 0) {
@@ -376,6 +378,18 @@ public class QueryDrivenProgramTesting {
           mergePaths(cpa, lTestGoalCPA, lRoot, lInitialElementsMap);
           
           System.out.println(lInitialElementsMap);
+          
+          HashSet<QDPTCompositeElement> lPropagateableInitialElements = new HashSet<QDPTCompositeElement>();
+          
+          for (QDPTCompositeElement lInitialElement : lInitialElementsMap.keySet()) {
+            if (isPropagateable(lInitialElement)) {
+              lPropagateableInitialElements.add(lInitialElement);
+            }
+          }
+          
+          for (QDPTCompositeElement lInitialElement : lPropagateableInitialElements) {
+            propagate(lInitialElement, lInitialElementsMap);
+          }
           
           // TODO temporary hack
           lInitialElements.clear();
@@ -414,6 +428,89 @@ public class QueryDrivenProgramTesting {
     return null;
   }
   
+  public static void propagate(QDPTCompositeElement pElement, Map<QDPTCompositeElement, Set<CFAEdge>> pInitialElementsMap) {
+    if (isPropagateable(pElement)) {
+      // pElement will be no initial element anymore
+      pInitialElementsMap.remove(pElement);
+      
+      for (Edge lEdge : pElement.getChildren()) {
+        propagate(lEdge.getChild(), pInitialElementsMap);
+      }
+    }
+    else {
+      if (!pInitialElementsMap.containsKey(pElement)) {
+        // set as initial element
+      
+        Set<CFAEdge> lEdges = getOutgoingCFAEdges(pElement);
+        
+        lEdges.removeAll(getVisitedCFAEdges(pElement));
+        
+        pInitialElementsMap.put(pElement, lEdges);
+      }
+    }
+  }
+  
+  public static boolean isPropagateable(QDPTCompositeElement pElement) {
+    assert(pElement != null);
+
+    if (pElement.getNumberOfChildren() == 0) {
+      return false;
+    }
+    
+    CFANode lCFANode = pElement.getLocationNode();
+    
+    return (lCFANode.getNumLeavingEdges() == getVisitedCFAEdges(pElement).size());
+  }
+
+  public static Set<CFAEdge> getOutgoingCFAEdges(QDPTCompositeElement pElement) {
+    assert(pElement != null);
+    
+    return getOutgoingCFAEdges(pElement.getLocationNode());
+  }
+  
+  public static Set<CFAEdge> getOutgoingCFAEdges(CFANode pCFANode) {
+    assert(pCFANode != null);
+    
+    HashSet<CFAEdge> lOutgoingEdges = new HashSet<CFAEdge>();
+
+    for (int lIndex = 0; lIndex < pCFANode.getNumLeavingEdges(); lIndex++) {
+      lOutgoingEdges.add(pCFANode.getLeavingEdge(lIndex));
+    }
+
+    return lOutgoingEdges;
+  }
+  
+  public static Set<CFAEdge> getVisitedCFAEdges(QDPTCompositeElement pElement) {
+    assert(pElement != null);
+    
+    HashSet<CFAEdge> lVisitedCFAEdges = new HashSet<CFAEdge>();
+    
+    for (Edge lEdge : pElement.getChildren()) {
+      addVisitedCFAEdges(lEdge, lVisitedCFAEdges);
+    }
+    
+    return lVisitedCFAEdges;
+  }
+  
+  private static void addVisitedCFAEdges(Edge pEdge, Set<CFAEdge> pVisitedCFAEdges) {
+    assert(pEdge != null);
+    assert(pVisitedCFAEdges != null);
+    
+    if (pEdge instanceof QDPTCompositeCPA.CFAEdgeEdge) {
+      pVisitedCFAEdges.add(((QDPTCompositeCPA.CFAEdgeEdge) pEdge).getCFAEdge());
+    } 
+    else {
+      assert (pEdge instanceof QDPTCompositeCPA.SubpathsEdge);
+
+      QDPTCompositeCPA.SubpathsEdge lSubpathsEdge = (QDPTCompositeCPA.SubpathsEdge) pEdge;
+
+      for (List<Edge> lSubpath : lSubpathsEdge.getSubpaths()) {
+        Edge lFirstEdge = lSubpath.get(0);
+        
+        addVisitedCFAEdges(lFirstEdge, pVisitedCFAEdges);
+      }
+    }
+  }
   
   public static boolean mergePaths(QDPTCompositeCPA pCPA, TestGoalCPA pTestGoalCPA, QDPTCompositeElement pElement, Map<QDPTCompositeElement, Set<CFAEdge>> pInitialElementsMap) {
     assert(pCPA != null);
