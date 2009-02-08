@@ -352,13 +352,40 @@ public class QueryDrivenProgramTesting {
             }
           }*/
           
-          mergePaths(cpa, lTestGoalCPA, lRoot);
+          
+          // calculate initial edges
+          HashMap<QDPTCompositeElement, Set<CFAEdge>> lInitialElementsMap = new HashMap<QDPTCompositeElement, Set<CFAEdge>>();
+          
+          for (QDPTCompositeElement lInitialElement : lInitialElements) {
+            CFANode lCFANode = lInitialElement.getElementWithLocation().getLocationNode();
+            
+            HashSet<CFAEdge> lOutgoingEdges = new HashSet<CFAEdge>();
+            
+            for (int lIndex = 0; lIndex < lCFANode.getNumLeavingEdges(); lIndex++) {
+              lOutgoingEdges.add(lCFANode.getLeavingEdge(lIndex));
+            }
+            
+            // we can rule out exit
+            if (lOutgoingEdges.size() > 0) {
+              lInitialElementsMap.put(lInitialElement, lOutgoingEdges);
+            }
+          }
+          
+          System.out.println(lInitialElementsMap);
+          
+          mergePaths(cpa, lTestGoalCPA, lRoot, lInitialElementsMap);
+          
+          System.out.println(lInitialElementsMap);
+          
+          // TODO temporary hack
+          lInitialElements.clear();
+          lInitialElements.addAll(lInitialElementsMap.keySet());
           
           if (CPAMain.cpaConfig.getBooleanValue("art.visualize")) {
             outputAbstractReachabilityTree("art_" + lLoopCounter + "_c_", lRoot, lInitialElements);
           }
           
-          assert(false);
+          //assert(false);
         }
       }
       
@@ -388,7 +415,7 @@ public class QueryDrivenProgramTesting {
   }
   
   
-  public static boolean mergePaths(QDPTCompositeCPA pCPA, TestGoalCPA pTestGoalCPA, QDPTCompositeElement pElement) {
+  public static boolean mergePaths(QDPTCompositeCPA pCPA, TestGoalCPA pTestGoalCPA, QDPTCompositeElement pElement, Map<QDPTCompositeElement, Set<CFAEdge>> pInitialElementsMap) {
     assert(pCPA != null);
     assert(pTestGoalCPA != null);
     assert(pElement != null);
@@ -398,7 +425,7 @@ public class QueryDrivenProgramTesting {
     
     for (Edge lEdge : pElement.getChildren()) {
       // merge paths in subtrees
-      lARTHasBeenUpdated |= mergePaths(pCPA, pTestGoalCPA, lEdge.getChild());
+      lARTHasBeenUpdated |= mergePaths(pCPA, pTestGoalCPA, lEdge.getChild(), pInitialElementsMap);
     }
     
     
@@ -413,7 +440,7 @@ public class QueryDrivenProgramTesting {
         Set<List<Edge>> lMergeSubpaths = getMergeSubpaths(pTestGoalCPA, lPaths);
         
         if (lMergeSubpaths.size() > 1) {
-          lMergeElement = merge(pCPA, pTestGoalCPA, pElement, lMergeSubpaths);
+          lMergeElement = merge(pCPA, pTestGoalCPA, pElement, lMergeSubpaths, pInitialElementsMap);
           
           lARTHasBeenUpdated = true;
         }
@@ -428,7 +455,7 @@ public class QueryDrivenProgramTesting {
       if (lMergeElement.getNumberOfChildren() > 1) {
         // we don't need lARTHasBeenUpdated |= here, since merging was done
         // and thus lARTHasBeenUpdated is true anyway
-        mergePaths(pCPA, pTestGoalCPA, lMergeElement);
+        mergePaths(pCPA, pTestGoalCPA, lMergeElement, pInitialElementsMap);
       }
     }
     
@@ -436,12 +463,13 @@ public class QueryDrivenProgramTesting {
     return lARTHasBeenUpdated;
   }
   
-  public static QDPTCompositeElement merge(QDPTCompositeCPA pCPA, TestGoalCPA pTestGoalCPA, QDPTCompositeElement pElement, Set<List<Edge>> pSubpaths) {
+  public static QDPTCompositeElement merge(QDPTCompositeCPA pCPA, TestGoalCPA pTestGoalCPA, QDPTCompositeElement pElement, Set<List<Edge>> pSubpaths, Map<QDPTCompositeElement, Set<CFAEdge>> pInitialElementsMap) {
     assert(pCPA != null);
     assert(pTestGoalCPA != null);
     assert(pElement != null);
     assert(pSubpaths != null);
     assert(pSubpaths.size() > 1);
+    assert(pInitialElementsMap != null);
     
     List<Edge> lFirstSubpath = pSubpaths.iterator().next();
     
@@ -482,15 +510,27 @@ public class QueryDrivenProgramTesting {
     for (List<Edge> lSubpath : pSubpaths) {
       Edge lEdge = lSubpath.get(lSubpath.size() - 1);
       
-      for (Edge lChildEdge : lEdge.getChild().getChildren()) {
+      QDPTCompositeElement lLastSubpathElement = lEdge.getChild();
+      
+      for (Edge lChildEdge : lLastSubpathElement.getChildren()) {
         lEdgeSet.add(lChildEdge);
       }
       
       // handle initial elements
-/*      if (pInitialElements.contains(lElement)) {
-              pInitialElements.remove(lElement);
-              pInitialElements.add(lMergeElement);
-            }*/
+      if (pInitialElementsMap.containsKey(lLastSubpathElement)) {
+        Set<CFAEdge> lCFAEdges = pInitialElementsMap.get(lLastSubpathElement);
+        
+        pInitialElementsMap.remove(lLastSubpathElement);
+        
+        if (pInitialElementsMap.containsKey(lMergeElement)) {
+          Set<CFAEdge> lCurrentCFAEdges = pInitialElementsMap.get(lMergeElement);
+          
+          lCurrentCFAEdges.addAll(lCFAEdges);
+        }
+        else {
+          pInitialElementsMap.put(lMergeElement, lCFAEdges);
+        }
+      }
     }
           
     for (Edge lEdge : lEdgeSet) {
@@ -589,7 +629,6 @@ public class QueryDrivenProgramTesting {
   }
   
   public static Set<List<Edge>> getMergeSubpaths(TestGoalCPA pTestGoalCPA, Vector<LinkedList<Edge>> pPaths) {
-    assert(pTestGoalCPA != null);
     assert(pPaths != null);
     
     
