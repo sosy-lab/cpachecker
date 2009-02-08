@@ -29,9 +29,7 @@ import java.util.List;
 
 import cpa.common.CallStack;
 import cpa.common.CompositeBottomElement;
-import cpa.common.CompositeDomain;
 import cpa.common.CompositeElement;
-import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.MergeOperator;
@@ -39,14 +37,10 @@ import cpa.common.interfaces.Precision;
 import exceptions.CPAException;
 
 public class CompositeMergeOperator implements MergeOperator{
-
-
-  private final CompositeDomain compositeDomain;
   private final List<MergeOperator> mergeOperators;
 
-  public CompositeMergeOperator (CompositeDomain compositeDomain, List<MergeOperator> mergeOperators)
+  public CompositeMergeOperator (List<MergeOperator> mergeOperators)
   {
-    this.compositeDomain = compositeDomain;
     this.mergeOperators = mergeOperators;
   }
 

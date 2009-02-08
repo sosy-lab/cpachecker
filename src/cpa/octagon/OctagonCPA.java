@@ -45,14 +45,14 @@ public class OctagonCPA implements ConfigurableProgramAnalysis{
   public OctagonCPA (String mergeType, String stopType) throws CPAException{
     OctDomain octagonDomain = new OctDomain ();
 
-    this.transferRelation = new OctTransferRelation (octagonDomain);
+    this.transferRelation = new OctTransferRelation ();
 
     MergeOperator octagonMergeOp = null;
     if(mergeType.equals("sep")){
-      octagonMergeOp = new OctMergeSep (octagonDomain);
+      octagonMergeOp = new OctMergeSep ();
     }
     else if(mergeType.equals("join")){
-      octagonMergeOp = new OctMergeJoin (octagonDomain);
+      octagonMergeOp = new OctMergeJoin ();
     }
 
     StopOperator octagonStopOp = null;
@@ -61,7 +61,7 @@ public class OctagonCPA implements ConfigurableProgramAnalysis{
       octagonStopOp = new OctStopSep (octagonDomain);
     }
     else if(stopType.equals("join")){
-      octagonStopOp = new OctStopJoin (octagonDomain);
+      octagonStopOp = new OctStopJoin ();
     }
 
     this.abstractDomain = octagonDomain;

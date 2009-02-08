@@ -30,7 +30,6 @@ import logging.LazyLogger;
 
 import common.LocationMappedReachedSetProjectionWrapper;
 
-import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.Precision;

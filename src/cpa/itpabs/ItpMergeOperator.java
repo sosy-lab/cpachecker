@@ -24,7 +24,6 @@
 package cpa.itpabs;
 
 import logging.LazyLogger;
-import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.MergeOperator;
@@ -38,12 +37,6 @@ import cpa.common.interfaces.Precision;
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
 public class ItpMergeOperator implements MergeOperator {
-
-  private final ItpAbstractDomain domain;
-
-  public ItpMergeOperator(ItpAbstractDomain d) {
-    domain = d;
-  }
 
   public AbstractElement merge(AbstractElement element1,
                                AbstractElement element2,

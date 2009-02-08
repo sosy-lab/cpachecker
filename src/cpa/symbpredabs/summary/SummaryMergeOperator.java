@@ -24,7 +24,6 @@
 package cpa.symbpredabs.summary;
 
 import logging.LazyLogger;
-import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.MergeOperator;
@@ -36,12 +35,6 @@ import cpa.common.interfaces.Precision;
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
 public class SummaryMergeOperator implements MergeOperator {
-
-  private final SummaryAbstractDomain domain;
-
-  public SummaryMergeOperator(SummaryAbstractDomain d) {
-    domain = d;
-  }
 
   public AbstractElement merge(AbstractElement element1,
                                AbstractElement element2,

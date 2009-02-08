@@ -60,20 +60,20 @@ public class DefUseCPA implements ConfigurableProgramAnalysis{
     DefUseDomain defUseDomain = new DefUseDomain ();
     this.abstractDomain = defUseDomain;
 
-    this.transferRelation = new DefUseTransferRelation (defUseDomain);
+    this.transferRelation = new DefUseTransferRelation ();
 
     this.mergeOperator = null;
     if(mergeType.equals("sep")){
-      this.mergeOperator = new DefUseMergeSep (defUseDomain);
+      this.mergeOperator = new DefUseMergeSep ();
     } else if(mergeType.equals("join")){
-      this.mergeOperator = new DefUseMergeJoin (defUseDomain);
+      this.mergeOperator = new DefUseMergeJoin ();
     }
 
     this.stopOperator = null;
     if(stopType.equals("sep")){
       this.stopOperator = new DefUseStopSep (defUseDomain);
     } else if(stopType.equals("join")){
-      this.stopOperator = new DefUseStopJoin (defUseDomain);
+      this.stopOperator = new DefUseStopJoin ();
     }
 
     this.precisionAdjustment = new DefUsePrecisionAdjustment ();

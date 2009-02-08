@@ -55,7 +55,6 @@ import cfa.objectmodel.c.FunctionDefinitionNode;
 import cfa.objectmodel.c.GlobalDeclarationEdge;
 import cfa.objectmodel.c.ReturnEdge;
 import cfa.objectmodel.c.StatementEdge;
-import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.Precision;
@@ -70,19 +69,14 @@ import exceptions.OctagonTransferException;
  */
 public class OctTransferRelation implements TransferRelation{
 
-  // the domain of the cpa, this can be used to retrieve the bottom and the
-  // top elements if needed
-  private OctDomain octDomain;
   // set to set global variables
   private List<String> globalVars;
 
   /**
    * Class constructor.
-   * @param octDomain the domain of the Octagon library
    */
-  public OctTransferRelation (OctDomain octDomain)
+  public OctTransferRelation ()
   {
-    this.octDomain = octDomain;
     globalVars = new ArrayList<String>();
     LibraryAccess.initOctEnvironment();
   }

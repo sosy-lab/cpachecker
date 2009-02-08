@@ -26,7 +26,6 @@ package cpa.defuse;
 import java.util.ArrayList;
 import java.util.List;
 
-import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.MergeOperator;
@@ -35,13 +34,6 @@ import exceptions.CPAException;
 
 public class DefUseMergeJoin implements MergeOperator
 {
-  private final DefUseDomain defUseDomain;
-
-  public DefUseMergeJoin (DefUseDomain defUseDomain)
-  {
-    this.defUseDomain = defUseDomain;
-  }
-
   public AbstractElement merge (AbstractElement element1, AbstractElement element2, Precision prec)
   {
     DefUseElement defUseElement1 = (DefUseElement) element1;

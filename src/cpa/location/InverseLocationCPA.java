@@ -51,7 +51,7 @@ public class InverseLocationCPA implements ConfigurableProgramAnalysis{
     TransferRelation locationTransferRelation = new InverseLocationTransferRelation (locationDomain);
     MergeOperator locationMergeOp = null;
     if(mergeType.equals("sep")){
-      locationMergeOp = new LocationMergeSep (locationDomain);
+      locationMergeOp = new LocationMergeSep ();
     }
     if(mergeType.equals("join")){
       throw new CPAException("Location domain elements cannot be joined");

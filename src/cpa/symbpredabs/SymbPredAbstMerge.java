@@ -31,7 +31,6 @@ import cfa.objectmodel.CFANode;
 
 import common.Pair;
 
-import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.MergeOperator;

@@ -39,7 +39,6 @@ import cfa.objectmodel.c.MultiStatementEdge;
 import cfa.objectmodel.c.StatementEdge;
 
 import exceptions.CPATransferException;
-import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.Precision;
@@ -48,13 +47,6 @@ import exceptions.CPAException;
 
 public class DefUseTransferRelation implements TransferRelation
 {
-  private final DefUseDomain defUseDomain;
-
-  public DefUseTransferRelation (DefUseDomain defUseDomain)
-  {
-    this.defUseDomain = defUseDomain;
-  }
-
   private void handleExpression (DefUseElement defUseElement, IASTExpression expression, CFAEdge cfaEdge)
   {
     if (expression instanceof IASTBinaryExpression)

@@ -31,13 +31,6 @@ import exceptions.CPAException;
 
 public class ExplicitAnalysisMergeSep implements MergeOperator
 {
-  private ExplicitAnalysisDomain explicitAnalysisDomain;
-
-  public ExplicitAnalysisMergeSep (ExplicitAnalysisDomain explicitAnalysisDomain)
-  {
-    this.explicitAnalysisDomain = explicitAnalysisDomain;
-  }
-
   public AbstractElement merge (AbstractElement element1, AbstractElement element2, Precision prec)
   {
     return element2;

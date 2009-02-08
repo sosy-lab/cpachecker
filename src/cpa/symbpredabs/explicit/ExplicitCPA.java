@@ -93,7 +93,7 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
     private ExplicitCPA() {
         domain = new ExplicitAbstractDomain(this);
         trans = new ExplicitTransferRelation(domain);
-        merge = new ExplicitMergeOperator(domain);
+        merge = new ExplicitMergeOperator();
         stop = new ExplicitStopOperator(domain);
         precisionAdjustment = new ExplicitPrecisionAdjustment();
         mgr = new MathsatSymbolicFormulaManager();

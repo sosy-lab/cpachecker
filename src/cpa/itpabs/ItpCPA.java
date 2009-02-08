@@ -107,7 +107,7 @@ public abstract class ItpCPA implements ConfigurableProgramAnalysis {
 
         domain = new ItpAbstractDomain(this);
         trans = new ItpTransferRelation(domain);
-        merge = new ItpMergeOperator(domain);
+        merge = new ItpMergeOperator();
         stop = new ItpStopOperator(domain, thmProver);
         precisionAdjustment = new ItpPrecisionAdjustment();
 

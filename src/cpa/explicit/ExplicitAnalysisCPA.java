@@ -46,7 +46,7 @@ public class ExplicitAnalysisCPA implements ConfigurableProgramAnalysis {
     ExplicitAnalysisDomain explicitAnalysisDomain = new ExplicitAnalysisDomain ();
     MergeOperator explicitAnalysisMergeOp = null;
     if(mergeType.equals("sep")){
-      explicitAnalysisMergeOp = new ExplicitAnalysisMergeSep (explicitAnalysisDomain);
+      explicitAnalysisMergeOp = new ExplicitAnalysisMergeSep ();
     }
     if(mergeType.equals("join")){
       explicitAnalysisMergeOp = new ExplicitAnalysisMergeJoin (explicitAnalysisDomain);
@@ -58,7 +58,7 @@ public class ExplicitAnalysisCPA implements ConfigurableProgramAnalysis {
       explicitAnalysisStopOp = new ExplicitAnalysisStopSep (explicitAnalysisDomain);
     }
     if(stopType.equals("join")){
-      explicitAnalysisStopOp = new ExplicitAnalysisStopJoin (explicitAnalysisDomain);
+      explicitAnalysisStopOp = new ExplicitAnalysisStopJoin ();
     }
 
     TransferRelation explicitAnalysisTransferRelation = new ExplicitAnalysisTransferRelation (explicitAnalysisDomain);

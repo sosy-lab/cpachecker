@@ -48,7 +48,6 @@ import exceptions.CPATransferException;
 import exceptions.ErrorReachedException;
 import exceptions.RefinementNeededException;
 import exceptions.ToWaitListException;
-import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.Precision;

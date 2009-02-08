@@ -23,7 +23,6 @@
  */
 package cpa.octagon;
 
-import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.MergeOperator;
@@ -31,13 +30,6 @@ import cpa.common.interfaces.Precision;
 import exceptions.CPAException;
 
 public class OctMergeSep implements MergeOperator {
-
-  private final OctDomain octDomain;
-
-  public OctMergeSep (OctDomain octDomain)
-  {
-    this.octDomain = octDomain;
-  }
 
   public AbstractElement merge(AbstractElement element1,
                                AbstractElement element2, Precision prec) {

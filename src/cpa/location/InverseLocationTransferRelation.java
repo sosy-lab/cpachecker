@@ -31,7 +31,6 @@ import cfa.objectmodel.CFANode;
 import cfa.objectmodel.c.CallToReturnEdge;
 
 import exceptions.CPATransferException;
-import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.Precision;

@@ -27,7 +27,6 @@ import java.util.Collection;
 
 import logging.CustomLogLevel;
 import logging.LazyLogger;
-import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.StopOperator;
