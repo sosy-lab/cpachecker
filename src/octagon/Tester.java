@@ -24,7 +24,6 @@
 package octagon;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 
 import cpa.octagon.OctElement;
 

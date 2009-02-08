@@ -44,7 +44,6 @@ import logging.LazyLogger;
 import cfa.objectmodel.BlankEdge;
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAErrorNode;
-import cfa.objectmodel.c.DeclarationEdge;
 import cfa.objectmodel.c.FunctionDefinitionNode;
 import cmdline.CPAMain;
 

@@ -39,7 +39,6 @@ import cpa.symbpredabs.Predicate;
 import cpa.symbpredabs.PredicateMap;
 import cpa.symbpredabs.mathsat.BDDPredicate;
 import cpa.symbpredabs.mathsat.MathsatSymbolicFormula;
-import cpa.symbpredabsCPA.SymbPredAbsAbstractElement;
 import cpa.symbpredabsCPA.SymbPredAbsCPA;
 import cpa.symbpredabsCPA.SymbPredAbsTransferRelation;
 import cpaplugin.CPAStatistics;

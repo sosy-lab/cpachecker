@@ -54,7 +54,6 @@ import cfa.DOTBuilder;
 import cfa.DOTBuilderInterface;
 import cfa.objectmodel.BlankEdge;
 import cfa.objectmodel.CFAEdge;
-import cfa.objectmodel.CFAErrorNode;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cfa.objectmodel.CFANode;
 import cfa.objectmodel.c.GlobalDeclarationEdge;
