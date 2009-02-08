@@ -99,10 +99,6 @@ public class ExplicitAbstractDomain implements AbstractDomain {
         return bottom;
     }
 
-    public boolean isBottomElement(AbstractElement element) {
-        return element == bottom;
-    }
-
     public JoinOperator getJoinOperator() {
         return join;
     }

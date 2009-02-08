@@ -119,17 +119,6 @@ public class PredicateAbstractionDomain implements AbstractDomain{
         return bottomElement;
     }
 
-	public boolean isBottomElement(AbstractElement element) {
-
-		PredicateAbstractionElement predAbsElem = (PredicateAbstractionElement) element;
-
-		if(predAbsElem.equals(bottomElement)){
-			return true;
-		}
-
-		return false;
-	}
-
     public AbstractElement getTopElement ()
     {
         return topElement;

@@ -203,7 +203,7 @@ public class TestGoalCPA implements ConfigurableProgramAnalysis {
         assert(pElement != null);
         assert(pReachedElement != null);
         
-        if (mDomain.isBottomElement(pElement)) {
+        if (mDomain.getBottomElement().equals(pElement)) {
             return true;
         }
         
@@ -215,7 +215,7 @@ public class TestGoalCPA implements ConfigurableProgramAnalysis {
             return false;
         }
         
-        if (mDomain.isBottomElement(pReachedElement)) {
+        if (mDomain.getBottomElement().equals(pReachedElement)) {
             return false;
         }
         

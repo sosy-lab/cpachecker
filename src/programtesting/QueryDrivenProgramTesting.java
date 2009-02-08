@@ -215,7 +215,7 @@ public class QueryDrivenProgramTesting {
             AbstractElement lTmpElement = lChild.get(mTestGoalCPAIndex);
 
             // the ART should not contain the bottom element
-            assert (!lTestGoalCPA.getAbstractDomain().isBottomElement(lTmpElement));
+            assert (!lTestGoalCPA.getAbstractDomain().getBottomElement().equals(lTmpElement));
 
             // top element should never occur
             assert (!lTestGoalCPA.getAbstractDomain().getTopElement().equals(lTmpElement));
@@ -281,7 +281,7 @@ public class QueryDrivenProgramTesting {
 
                 // the ART should not contain the bottom element
                 // TODO move this out of feasibilty check to stack insertion
-                assert (!lTestGoalCPA.getAbstractDomain().isBottomElement(lBacktrackTmpElement));
+                assert (!lTestGoalCPA.getAbstractDomain().getBottomElement().equals(lBacktrackTmpElement));
 
                 // top element should never occur
                 // TODO move this out of feasibilty check to stack insertion

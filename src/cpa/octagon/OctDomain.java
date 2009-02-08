@@ -129,12 +129,6 @@ public class OctDomain implements AbstractDomain{
     return bottomElement;
   }
 
-  //TODO test this
-  public boolean isBottomElement(AbstractElement element) {
-    OctElement octElem = (OctElement) element;
-    return octElem.isBottom();
-  }
-
   public AbstractElement getTopElement ()
   {
     return topElement;

@@ -103,10 +103,6 @@ public class SummaryAbstractDomain implements AbstractDomain {
         return bottom;
     }
 
-    public boolean isBottomElement(AbstractElement element) {
-        return element == bottom;
-    }
-
     public JoinOperator getJoinOperator() {
         return join;
     }

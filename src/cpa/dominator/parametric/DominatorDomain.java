@@ -194,10 +194,6 @@ public class DominatorDomain implements AbstractDomain, PartialOrder, JoinOperat
 		return bottomElement;
 	}
 
-	public boolean isBottomElement(AbstractElement element) {
-		return element.equals(bottomElement);
-	}
-
 	/* (non-Javadoc)
 	 * @see cpa.common.interfaces.AbstractDomain#getTopElement()
 	 */

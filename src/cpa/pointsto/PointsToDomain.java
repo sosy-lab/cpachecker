@@ -76,10 +76,6 @@ public class PointsToDomain implements AbstractDomain {
     return bottomElement;
   }
 
-  public boolean isBottomElement(AbstractElement element) {
-    return element.equals(bottomElement);
-  }
-
   /* (non-Javadoc)
    * @see cpa.common.interfaces.AbstractDomain#getJoinOperator()
    */

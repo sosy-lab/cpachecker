@@ -134,11 +134,6 @@ public class LocationDomain implements AbstractDomain
         return bottomElement;
     }
 
-	public boolean isBottomElement(AbstractElement element) {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
     public AbstractElement getTopElement ()
     {
         return topElement;
