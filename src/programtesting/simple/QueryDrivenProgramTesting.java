@@ -217,7 +217,8 @@ public class QueryDrivenProgramTesting {
         }
                 
         // perform cfa exploration
-        algo.CPAWithInitialSet(cpa, lInitialElements, lInitialPrecision);
+        //algo.CPAWithInitialSet(cpa, lInitialElements, lInitialPrecision);
+        algo.CPAWithInitialSet(cpa, lInitialElements, lInitialPrecision, getReachedElements(lInitialElementsMap));
         
         lInitialElementsMap.clear();
       } catch (CPAException e1) {
@@ -437,6 +438,27 @@ public class QueryDrivenProgramTesting {
     System.out.println("#Test cases computed: " + lPaths.size());
     
     return null;
+  }
+  
+  public static Set<QDPTCompositeElement> getReachedElements(Map<QDPTCompositeElement, Set<CFAEdge>> pInitialElementsMap) {
+    HashSet<QDPTCompositeElement> lReachedElements = new HashSet<QDPTCompositeElement>();
+    
+    for (QDPTCompositeElement lInitialElement : pInitialElementsMap.keySet()) {
+      accumulateReachedElements(lInitialElement, lReachedElements);
+    }
+    
+    return lReachedElements;
+  }
+  
+  public static void accumulateReachedElements(QDPTCompositeElement pElement, Set<QDPTCompositeElement> pReachedElements) {
+    assert(pElement != null);
+    assert(pReachedElements != null);
+    
+    pReachedElements.add(pElement);
+    
+    for (Edge lEdge : pElement.getChildren()) {
+      accumulateReachedElements(lEdge.getChild(), pReachedElements);
+    }
   }
   
   public static void propagate(QDPTCompositeElement pElement, Map<QDPTCompositeElement, Set<CFAEdge>> pInitialElementsMap) {
