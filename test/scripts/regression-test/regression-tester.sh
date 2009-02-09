@@ -135,7 +135,7 @@ for cfg in $CONFIGURATIONS; do
   current="$outfile.$cfg.log"
   [ -s "$current" ] || exit 1
   cmp_result="$outfile.$cfg.cmp"
-  grep "^/" $current | while read f t r ; do
+  grep '\.c' $current | while read f t r ; do
     master_result="`grep -w "$f" $master | awk '{ print $3 ":" $2 }'`"
     mr="`echo $master_result | cut -f1 -d:`"
     mt="`echo $master_result | cut -f2 -d:`"
