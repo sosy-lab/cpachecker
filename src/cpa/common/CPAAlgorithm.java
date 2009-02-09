@@ -23,7 +23,6 @@
  */
 package cpa.common;
 
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -53,7 +52,6 @@ import exceptions.CPATransferException;
 import exceptions.ErrorReachedException;
 import exceptions.RefinementNeededException;
 import exceptions.CPAException;
-import programtesting.QDPTCompositeCPA;
 
 public class CPAAlgorithm
 {
@@ -223,8 +221,7 @@ public class CPAAlgorithm
     return simpleReached;
       }
   
-  //public Collection<AbstractElementWithLocation> CPAWithInitialSet (ConfigurableProgramAnalysis cpa, Collection<AbstractElementWithLocation> pInitialStates,
-  public Collection<AbstractElementWithLocation> CPAWithInitialSet (QDPTCompositeCPA cpa, Collection<CompositeElement> pInitialStates,
+  public Collection<AbstractElementWithLocation> CPAWithInitialSet (ConfigurableProgramAnalysis cpa, Collection<AbstractElementWithLocation> pInitialStates,
       Precision initialPrecision) throws CPAException
       {
     List<Pair<AbstractElementWithLocation,Precision>> waitlist = new ArrayList<Pair<AbstractElementWithLocation,Precision>>();
@@ -390,9 +387,7 @@ public class CPAAlgorithm
     return simpleReached;
       }
   
-  public Collection<AbstractElementWithLocation> CPAWithInitialSet (programtesting.simple.QDPTCompositeCPA cpa, Collection<programtesting.simple.QDPTCompositeCPA.QDPTCompositeElement> pInitialStates,
-      Precision initialPrecision) throws CPAException
-      {
+  public Collection<AbstractElementWithLocation> CPAWithInitialSet (programtesting.simple.QDPTCompositeCPA cpa, Collection<programtesting.simple.QDPTCompositeCPA.QDPTCompositeElement> pInitialStates, Precision initialPrecision) throws CPAException {
     List<Pair<AbstractElementWithLocation,Precision>> waitlist = new ArrayList<Pair<AbstractElementWithLocation,Precision>>();
     Collection<Pair<AbstractElementWithLocation,Precision>> reached = createReachedSet(cpa);
 
