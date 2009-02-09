@@ -135,12 +135,7 @@ public class QueryDrivenProgramTesting {
     
     int lLoopCounter = 0;
           
-    
-    /*Set<QDPTCompositeElement> lInitialElements = new HashSet<QDPTCompositeElement>();
-    
-    lInitialElements.add(cpa.getInitialElement(pMainFunction));*/
-    
-    
+        
     // calculate initial edges
     QDPTCompositeElement lFirstInitialElement = cpa.getInitialElement(pMainFunction);
     
@@ -185,9 +180,8 @@ public class QueryDrivenProgramTesting {
       // reset precision to test goals
       // TODO Hack
       lTestGoalPrecision.setTestGoals(lTestGoals);
-            
-      //Set<QDPTCompositeElement> lOldInitialElements = new HashSet<QDPTCompositeElement>(lInitialElements);
 
+      
       HashMap<QDPTCompositeElement, Set<CFAEdge>> lOldInitialElementsMap = new HashMap<QDPTCompositeElement, Set<CFAEdge>>(lInitialElementsMap);
       
       Set<Edge> lInitialEdges = new HashSet<Edge>();
@@ -221,14 +215,10 @@ public class QueryDrivenProgramTesting {
             }
           }
         }
-        
-        
-        // create list of initial states
-        
+                
         // perform cfa exploration
         algo.CPAWithInitialSet(cpa, lInitialElements, lInitialPrecision);
         
-        //lInitialElements.clear();
         lInitialElementsMap.clear();
       } catch (CPAException e1) {
         e1.printStackTrace();
@@ -240,24 +230,11 @@ public class QueryDrivenProgramTesting {
       QDPTCompositeElement lRoot = cpa.getTransferRelation().getRoot();
   
       if (CPAMain.cpaConfig.getBooleanValue("art.visualize")) {
-        //outputAbstractReachabilityTree("art_" + lLoopCounter + "_a_", lRoot, lOldInitialElements);
         outputAbstractReachabilityTree("art_" + lLoopCounter + "_a_", lRoot, lOldInitialElementsMap.keySet());
       }
       
       LinkedList<Edge> lWorklist = new LinkedList<Edge>(lInitialEdges);
-      
-      /*LinkedList<Edge> lWorklist = new LinkedList<Edge>();
-      
-      // TODO this has to be changed!!!!!
-      //for (CompositeElement lInitialElement : lOldInitialElements) {
-      for (CompositeElement lInitialElement : lOldInitialElementsMap.keySet()) {
-        QDPTCompositeElement lElement = (QDPTCompositeElement)lInitialElement;
-        
-        for (Edge lEdge : lElement.getChildren()) {
-          lWorklist.add(lEdge);
-        }
-      }*/
-      
+            
       int lPathCounter = 0;
       int lPathMaxLength = 0;
       
@@ -382,8 +359,6 @@ public class QueryDrivenProgramTesting {
           
           // reachable leaf node
           if (lInfeasibilityCause == null) {
-            //lInitialElements.add(lCurrentElement);
-            
             Set<CFAEdge> lTmpOutgoingEdges = getOutgoingCFAEdges(lCurrentElement);
 
             // we can rule out exit
@@ -400,11 +375,9 @@ public class QueryDrivenProgramTesting {
       System.out.println("Calls to CBMC: " + lAllCallsToCBMC);
       
       if (CPAMain.cpaConfig.getBooleanValue("art.visualize")) {
-        //outputAbstractReachabilityTree("art_" + lLoopCounter + "_b_", lRoot, lInitialElements);
         outputAbstractReachabilityTree("art_" + lLoopCounter + "_b_", lRoot, lInitialElementsMap.keySet());
       }
       
-      //if (lInitialElements.isEmpty()) {
       if (lInitialElementsMap.isEmpty()) {
         // we have nothing to explore anymore, so all remaining test goals
         // are infeasible
@@ -413,13 +386,6 @@ public class QueryDrivenProgramTesting {
       }
       else {
         if (!lTestGoals.isEmpty()) {
-          /*if (rearrangeAbstractReachabilityTree(cpa, lTestGoalCPA, lRoot, lInitialElements)) {
-            if (CPAMain.cpaConfig.getBooleanValue("art.visualize")) {
-              outputAbstractReachabilityTree("art_" + lLoopCounter + "_c_", lRoot, lInitialElements);
-            }
-          }*/
-          
-          
           System.out.println(lInitialElementsMap);
           
           mergePaths(cpa, lTestGoalCPA, lRoot, lInitialElementsMap);
@@ -440,20 +406,11 @@ public class QueryDrivenProgramTesting {
           }
           
           System.out.println(lInitialElementsMap);
-          
-          
-          
-          // TODO temporary hack
-          //lInitialElements.clear();
-          //lInitialElements.addAll(lInitialElementsMap.keySet());
-          
+                    
           
           if (CPAMain.cpaConfig.getBooleanValue("art.visualize")) {
-            //outputAbstractReachabilityTree("art_" + lLoopCounter + "_c_", lRoot, lInitialElements);
             outputAbstractReachabilityTree("art_" + lLoopCounter + "_c_", lRoot, lInitialElementsMap.keySet());
           }
-          
-          //assert(false);
         }
       }
       
