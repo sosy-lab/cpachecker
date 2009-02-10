@@ -217,7 +217,6 @@ public class QueryDrivenProgramTesting {
         }
                 
         // perform cfa exploration
-        //algo.CPAWithInitialSet(cpa, lInitialElements, lInitialPrecision);
         algo.CPAWithInitialSet(cpa, lInitialElements, lInitialPrecision, getReachedElements(lInitialElementsMap));
         
         lInitialElementsMap.clear();
@@ -389,7 +388,8 @@ public class QueryDrivenProgramTesting {
         if (!lTestGoals.isEmpty()) {
           System.out.println(lInitialElementsMap);
           
-          mergePaths(cpa, lTestGoalCPA, lRoot, lInitialElementsMap);
+          //mergePaths(cpa, lTestGoalCPA, lRoot, lInitialElementsMap);
+          mergePathsTopDown(cpa, lTestGoalCPA, lRoot, lInitialElementsMap);
           
           System.out.println(lInitialElementsMap);
           
@@ -543,6 +543,148 @@ public class QueryDrivenProgramTesting {
         addVisitedCFAEdges(lFirstEdge, pVisitedCFAEdges);
       }
     }
+  }
+  
+  public static boolean mergePathsTopDown(QDPTCompositeCPA pCPA, TestGoalCPA pTestGoalCPA, QDPTCompositeElement pElement, Map<QDPTCompositeElement, Set<CFAEdge>> pInitialElementsMap) {
+    assert(pCPA != null);
+    assert(pTestGoalCPA != null);
+    assert(pElement != null);
+    
+    
+    boolean lARTHasBeenUpdated = false;
+    
+    QDPTCompositeElement lMergeElement = null;
+    
+    if (pElement.getNumberOfChildren() > 1) {
+      // pElement is a candidate for a merging point
+      
+      Vector<LinkedList<Edge>> lPaths = getSubpathsTopDown(pElement, pInitialElementsMap);
+      
+      if (lPaths.size() > 1) {
+        Set<List<Edge>> lMergeSubpaths = getMergeSubpaths(pTestGoalCPA, lPaths);
+        
+        if (lMergeSubpaths.size() > 1) {
+          lMergeElement = merge(pCPA, pTestGoalCPA, pElement, lMergeSubpaths, pInitialElementsMap);
+          
+          if (pInitialElementsMap.containsKey(lMergeElement)) {
+            propagate(lMergeElement, pInitialElementsMap);
+          }
+          
+          lARTHasBeenUpdated = true;
+        }
+      }
+    }
+    
+    
+    if (lMergeElement != null) {
+      // we have merged and now this could be a new starting point for
+      // merging paths
+      
+      /*if (lMergeElement.getNumberOfChildren() > 1) {
+        // we don't need lARTHasBeenUpdated |= here, since merging was done
+        // and thus lARTHasBeenUpdated is true anyway
+        mergePathsTopDown(pCPA, pTestGoalCPA, lMergeElement, pInitialElementsMap);
+      }
+      else {*/
+        mergePathsTopDown(pCPA, pTestGoalCPA, getBacktrackElement(pElement, pInitialElementsMap), pInitialElementsMap);
+      //}
+    }
+    else {
+      /* we have not merged anything, so continue at children */
+      Set<QDPTCompositeElement> lChildren = new HashSet<QDPTCompositeElement>(pElement.getNumberOfChildren());
+      
+      for (Edge lEdge : pElement.getChildren()) {
+        lChildren.add(lEdge.getChild());
+      }
+      
+      for (QDPTCompositeElement lChild : lChildren) {
+        // merge paths in subtrees
+        lARTHasBeenUpdated |= mergePathsTopDown(pCPA, pTestGoalCPA, lChild, pInitialElementsMap);
+      }
+    }
+    
+    
+    return lARTHasBeenUpdated;
+  }
+  
+  public static QDPTCompositeElement getBacktrackElement(QDPTCompositeElement pElement, Map<QDPTCompositeElement, Set<CFAEdge>> pInitialElementsMap) {
+    assert(pElement != null);
+    assert(pInitialElementsMap != null);
+    
+    /* root ? */
+    if (!pElement.hasParent()) {
+      return pElement;
+    }
+    
+    /* initial element ? */
+    if (pInitialElementsMap.containsKey(pElement)) {
+      return pElement;
+    }
+    
+    /* branching in ART ? */
+    if (pElement.getNumberOfChildren() > 1) {
+      return pElement;
+    }
+    
+    /* we know there is a parent */
+    QDPTCompositeElement lParent = pElement.getParent();
+    
+    /* change in callstack ? */
+    if (!pElement.getCallStack().equals(lParent.getCallStack())) {
+      return pElement;
+    }
+    
+    return getBacktrackElement(lParent, pInitialElementsMap);
+  }
+  
+  public static Vector<LinkedList<Edge>> getSubpathsTopDown(QDPTCompositeElement pElement, Map<QDPTCompositeElement, Set<CFAEdge>> pInitialElementsMap) {
+    assert(pElement != null);
+    
+    Vector<LinkedList<Edge>> lPaths = new Vector<LinkedList<Edge>>();
+    
+    for (Edge lCurrentEdge : pElement.getChildren()) {
+      LinkedList<Edge> lPath = new LinkedList<Edge>();
+      
+      do {
+        QDPTCompositeElement lParent = lCurrentEdge.getParent();
+        QDPTCompositeElement lChild = lCurrentEdge.getChild();
+        
+        // we do only intraprocedural merging
+        // TODO allow interprocedural merging
+        if (!lParent.getCallStack().equals(lChild.getCallStack())) {
+          break;
+        }
+        
+        lPath.add(lCurrentEdge);
+        
+        // new merge candidate
+        if (lChild.getNumberOfChildren() != 1) {
+          break;
+        }
+        
+        // this is a possible new initial element
+        // TODO put in some reasoning here to prevent from unnecessary cutting
+        // of paths
+        // TODO in cases all cfa edges are explored and lCurrentEdge is already
+        // merged, we don't have to stop here
+        /*if (lChild.getElementWithLocation().getLocationNode().getNumLeavingEdges() > 1) {
+          break;
+        }*/
+        
+        if (pInitialElementsMap.containsKey(lChild)) {
+          break;
+        }
+        
+        // we know there is only one successor edge
+        lCurrentEdge = lChild.getChildren().iterator().next();
+      } while (true);
+      
+      if (lPath.size() > 0) {
+        lPaths.add(lPath);
+      }
+    }
+    
+    return lPaths;
   }
   
   public static boolean mergePaths(QDPTCompositeCPA pCPA, TestGoalCPA pTestGoalCPA, QDPTCompositeElement pElement, Map<QDPTCompositeElement, Set<CFAEdge>> pInitialElementsMap) {

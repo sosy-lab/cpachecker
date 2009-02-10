@@ -387,7 +387,6 @@ public class CPAAlgorithm
     return simpleReached;
       }
   
-  //public Collection<AbstractElementWithLocation> CPAWithInitialSet (programtesting.simple.QDPTCompositeCPA cpa, Collection<programtesting.simple.QDPTCompositeCPA.QDPTCompositeElement> pInitialStates, Precision initialPrecision) throws CPAException {
   public Collection<AbstractElementWithLocation> CPAWithInitialSet (programtesting.simple.QDPTCompositeCPA cpa, Collection<programtesting.simple.QDPTCompositeCPA.QDPTCompositeElement> pInitialStates, Precision initialPrecision, Collection<programtesting.simple.QDPTCompositeCPA.QDPTCompositeElement> pAlreadyReachedStates) throws CPAException {
     List<Pair<AbstractElementWithLocation,Precision>> waitlist = new ArrayList<Pair<AbstractElementWithLocation,Precision>>();
     Collection<Pair<AbstractElementWithLocation,Precision>> reached = createReachedSet(cpa);
