@@ -387,9 +387,10 @@ public class QueryDrivenProgramTesting {
       else {
         if (!lTestGoals.isEmpty()) {
           System.out.println(lInitialElementsMap);
-          
+
           //mergePaths(cpa, lTestGoalCPA, lRoot, lInitialElementsMap);
-          mergePathsTopDown(cpa, lTestGoalCPA, lRoot, lInitialElementsMap);
+          //mergePathsTopDown(cpa, lTestGoalCPA, lRoot, lInitialElementsMap);
+          mergePathsTopDown2(cpa, lTestGoalCPA, lRoot, lInitialElementsMap);
           
           System.out.println(lInitialElementsMap);
           
@@ -545,6 +546,110 @@ public class QueryDrivenProgramTesting {
     }
   }
   
+  public static boolean mergePathsTopDown2(QDPTCompositeCPA pCPA, TestGoalCPA pTestGoalCPA, QDPTCompositeElement pElement, Map<QDPTCompositeElement, Set<CFAEdge>> pInitialElementsMap) {
+    assert(pCPA != null);
+    assert(pTestGoalCPA != null);
+    assert(pElement != null);
+    
+    
+    boolean lARTHasBeenUpdated = false;
+    
+    if (pElement.getNumberOfChildren() > 1) {
+      // pElement is a candidate for a merging point
+      
+      ArrayList<Edge> lChildren = new ArrayList<Edge>();
+      
+      for (Edge lEdge : pElement.getChildren()) {
+        lChildren.add(lEdge);
+      }
+      
+      for (int lOuterPathIndex = 0; lOuterPathIndex < lChildren.size() - 1; lOuterPathIndex++) {
+        Edge lOuterPathEdge = lChildren.get(lOuterPathIndex);
+        
+        LinkedList<Edge> lOuterPath = getSubpath(lOuterPathEdge, pInitialElementsMap);
+        
+        if (lOuterPath.size() > 1) {
+          for (int lInnerPathIndex = lOuterPathIndex + 1; lInnerPathIndex < lChildren.size(); lInnerPathIndex++) {
+            Edge lInnerPathEdge = lChildren.get(lInnerPathIndex);
+
+            // TODO this can be precalculated
+            LinkedList<Edge> lInnerPath = getSubpath(lInnerPathEdge, pInitialElementsMap);
+
+            if (lInnerPath.size() > 1) {
+              // TODO use different data structure
+              Vector<LinkedList<Edge>> lPaths = new Vector<LinkedList<Edge>>(2);
+              
+              lPaths.add(lOuterPath);
+              lPaths.add(lInnerPath);
+              
+              System.out.println("OUTER PATH: " + lOuterPath);
+              System.out.println("INNER PATH: " + lInnerPath);
+              
+              Set<List<Edge>> lMergeSubpaths = getMergeSubpaths(pTestGoalCPA, lPaths);
+        
+              if (lMergeSubpaths.size() > 1) {
+                QDPTCompositeElement lMergeElement = merge2(pCPA, pTestGoalCPA, pElement, lMergeSubpaths, pInitialElementsMap);
+
+                if (pInitialElementsMap.containsKey(lMergeElement)) {
+                  propagate(lMergeElement, pInitialElementsMap);
+                }
+
+                lARTHasBeenUpdated = true;
+                
+                int lOldSize = lChildren.size();
+                
+                // TODO optimize this
+                System.out.println(lChildren);
+                
+                lChildren.clear();
+                
+                for (Edge lEdge : pElement.getChildren()) {
+                  lChildren.add(lEdge);
+                }
+                
+                System.out.println(lChildren);
+                
+                System.out.println("---");
+                System.out.println(lOldSize);
+                System.out.println(lChildren.size());
+                
+                assert(lOldSize - 1 == lChildren.size());
+                        
+                lOuterPathIndex = 0;
+                
+                break;
+              }
+            }
+          }
+        }        
+      }
+    }
+    
+    
+    if (lARTHasBeenUpdated) {
+      // we have merged and maybe we are able to merge at a higher point again,
+      // so let's try backtracking
+      
+      mergePathsTopDown2(pCPA, pTestGoalCPA, getBacktrackElement(pElement, pInitialElementsMap), pInitialElementsMap);
+    }
+    else {
+      /* we have not merged anything, so continue at children */
+      Set<QDPTCompositeElement> lChildren = new HashSet<QDPTCompositeElement>(pElement.getNumberOfChildren());
+      
+      for (Edge lEdge : pElement.getChildren()) {
+        lChildren.add(lEdge.getChild());
+      }
+      
+      for (QDPTCompositeElement lChild : lChildren) {
+        // merge paths in subtrees
+        lARTHasBeenUpdated |= mergePathsTopDown2(pCPA, pTestGoalCPA, lChild, pInitialElementsMap);
+      }
+    }
+    
+    
+    return lARTHasBeenUpdated;
+  }
+  
   public static boolean mergePathsTopDown(QDPTCompositeCPA pCPA, TestGoalCPA pTestGoalCPA, QDPTCompositeElement pElement, Map<QDPTCompositeElement, Set<CFAEdge>> pInitialElementsMap) {
     assert(pCPA != null);
     assert(pTestGoalCPA != null);
@@ -637,8 +742,45 @@ public class QueryDrivenProgramTesting {
     return getBacktrackElement(lParent, pInitialElementsMap);
   }
   
+  public static LinkedList<Edge> getSubpath(Edge pEdge, Map<QDPTCompositeElement, Set<CFAEdge>> pInitialElementsMap) {
+    assert(pEdge != null);
+    assert(pInitialElementsMap != null);
+    
+    LinkedList<Edge> lPath = new LinkedList<Edge>();
+    
+    Edge lCurrentEdge = pEdge;
+    
+    do {
+      QDPTCompositeElement lParent = lCurrentEdge.getParent();
+      QDPTCompositeElement lChild = lCurrentEdge.getChild();
+
+      // we do only intraprocedural merging
+      // TODO allow interprocedural merging
+      if (!lParent.getCallStack().equals(lChild.getCallStack())) {
+        break;
+      }
+
+      lPath.add(lCurrentEdge);
+
+      // new merge candidate
+      if (lChild.getNumberOfChildren() != 1) {
+        break;
+      }
+
+      if (pInitialElementsMap.containsKey(lChild)) {
+        break;
+      }
+
+      // we know there is only one successor edge
+      lCurrentEdge = lChild.getChildren().iterator().next();
+    } while (true);
+    
+    return lPath;
+  }
+  
   public static Vector<LinkedList<Edge>> getSubpathsTopDown(QDPTCompositeElement pElement, Map<QDPTCompositeElement, Set<CFAEdge>> pInitialElementsMap) {
     assert(pElement != null);
+    assert(pInitialElementsMap != null);
     
     Vector<LinkedList<Edge>> lPaths = new Vector<LinkedList<Edge>>();
     
@@ -733,6 +875,103 @@ public class QueryDrivenProgramTesting {
     
     
     return lARTHasBeenUpdated;
+  }
+  
+    public static QDPTCompositeElement merge2(QDPTCompositeCPA pCPA, TestGoalCPA pTestGoalCPA, QDPTCompositeElement pElement, Set<List<Edge>> pSubpaths, Map<QDPTCompositeElement, Set<CFAEdge>> pInitialElementsMap) {
+    assert(pCPA != null);
+    assert(pTestGoalCPA != null);
+    assert(pElement != null);
+    assert(pSubpaths != null);
+    assert(pSubpaths.size() > 1);
+    assert(pInitialElementsMap != null);
+    
+    List<Edge> lFirstSubpath = pSubpaths.iterator().next();
+    
+    assert(lFirstSubpath != null);
+    
+    Edge lLastEdge = lFirstSubpath.get(lFirstSubpath.size() - 1);
+    
+    QDPTCompositeElement lLastElement = lLastEdge.getChild();
+    
+    
+    
+    // create merge element
+    List<AbstractElement> lAbstractElements = new LinkedList<AbstractElement>();
+    // location cpa
+    lAbstractElements.add(lLastElement.get(mLocationCPAIndex));
+    // scope restriction cpa
+    // TODO this has to be changed to handle scope restriction analysis correctly!
+    lAbstractElements.add(lLastElement.get(mScopeRestrictionCPAIndex));
+    // test goal cpa
+    Set<Automaton<CFAEdge>.State> lNonAcceptingStates = new HashSet<Automaton<CFAEdge>.State>();
+
+    for (Automaton<CFAEdge>.State lState : pTestGoalCPA.getAbstractDomain().castToStateSetElement(lLastElement.get(mTestGoalCPAIndex)).getStates()) {
+      if (!lState.isFinal()) {
+        lNonAcceptingStates.add(lState);
+      }
+    }
+
+    AutomatonCPADomain<CFAEdge>.StateSetElement lStateSetElement = pTestGoalCPA.getAbstractDomain().createStateSetElement(pTestGoalCPA.getAbstractDomain(), lNonAcceptingStates);
+    lAbstractElements.add(lStateSetElement);
+
+    //pElement.hideChildren();
+    // TODO problem here
+    // we know we have only two children that we merge here
+    for (List<Edge> lSubpath : pSubpaths) {
+      Edge lEdge = lSubpath.get(0);
+      
+      pElement.hideChild(lEdge);
+    }
+    
+    QDPTCompositeElement lMergeElement = pCPA.createElement(lAbstractElements, pElement.getCallStack(), pElement, pSubpaths);
+
+    Set<Edge> lEdgeSet = new HashSet<Edge>();
+
+    
+    for (List<Edge> lSubpath : pSubpaths) {
+      Edge lEdge = lSubpath.get(lSubpath.size() - 1);
+      
+      QDPTCompositeElement lLastSubpathElement = lEdge.getChild();
+      
+      for (Edge lChildEdge : lLastSubpathElement.getChildren()) {
+        lEdgeSet.add(lChildEdge);
+      }
+      
+      // handle initial elements
+      if (pInitialElementsMap.containsKey(lLastSubpathElement)) {
+        Set<CFAEdge> lCFAEdges = pInitialElementsMap.get(lLastSubpathElement);
+        
+        pInitialElementsMap.remove(lLastSubpathElement);
+        
+        if (pInitialElementsMap.containsKey(lMergeElement)) {
+          Set<CFAEdge> lCurrentCFAEdges = pInitialElementsMap.get(lMergeElement);
+          
+          lCurrentCFAEdges.addAll(lCFAEdges);
+        }
+        else {
+          pInitialElementsMap.put(lMergeElement, lCFAEdges);
+        }
+      }
+    }
+          
+    for (Edge lEdge : lEdgeSet) {
+      lEdge.setParent(lMergeElement);
+    }
+    
+    // merging could invalidate our minimality invariant for inital elements
+    if (pInitialElementsMap.containsKey(lMergeElement)) {
+      // we have to ensure that we will only visit previously unvisited edges
+      Set<CFAEdge> lCFAEdges = pInitialElementsMap.get(lMergeElement);
+      
+      Set<CFAEdge> lVisitedCFAEdges = getVisitedCFAEdges(lMergeElement);
+      
+      lCFAEdges.removeAll(lVisitedCFAEdges);
+      
+      // NOTE: If there is no edge remaining we still need to have lMergeElements
+      // in pInitialElementsMap for later propagation of initial elements status.
+    }
+    
+    return lMergeElement;
   }
   
   public static QDPTCompositeElement merge(QDPTCompositeCPA pCPA, TestGoalCPA pTestGoalCPA, QDPTCompositeElement pElement, Set<List<Edge>> pSubpaths, Map<QDPTCompositeElement, Set<CFAEdge>> pInitialElementsMap) {

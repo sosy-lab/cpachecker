@@ -74,8 +74,6 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
     private QDPTCompositeElement mChild;
     private String mStringRepresentation;
     
-    private int mHashCode;
-    
     public Edge(QDPTCompositeElement pParent, QDPTCompositeElement pChild) {
       assert(pParent != null);
       assert(pChild != null);
@@ -83,15 +81,6 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
       mParent = pParent;
       mChild = pChild;
       
-      recalculateHashCode();
-      recalculateStringRepresentation();
-    }
-    
-    private void recalculateHashCode() {
-      mHashCode = mParent.hashCode() + mChild.hashCode();
-    }
-    
-    private void recalculateStringRepresentation() {
       mStringRepresentation = mParent + " -> " + mChild;
     }
     
@@ -112,33 +101,6 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
       mParent = pParent;
       
       mParent.mChildren.add(this);
-      
-      recalculateHashCode();
-      recalculateStringRepresentation();
-    }
-    
-    @Override
-    public boolean equals(Object pOther) {
-      if (pOther == null) {
-        return false;
-      }
-      
-      if (!(pOther instanceof Edge)) {
-        return false;
-      }
-      
-      Edge lOther = (Edge)pOther;
-      
-      if (mParent.equals(lOther.mParent) && mChild.equals(lOther.mChild)) {
-        return true;
-      }
-      
-      return false;
-    }
-    
-    @Override
-    public int hashCode() {
-      return mHashCode;
     }
     
     @Override
@@ -149,7 +111,6 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
   
   public class CFAEdgeEdge extends Edge {
     private CFAEdge mEdge;
-    private int mHashCode;
     private String mStringRepresentation;
     
     public CFAEdgeEdge(QDPTCompositeElement pParent, QDPTCompositeElement pChild, CFAEdge pEdge) {
@@ -161,16 +122,7 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
       assert(pEdge.getSuccessor().equals(pChild.getElementWithLocation().getLocationNode()));
       
       mEdge = pEdge;
-
-      recalculateHashCode();
-      recalculateStringRepresentation();
-    }
-    
-    private void recalculateHashCode() {
-      mHashCode = super.hashCode() + mEdge.hashCode();
-    }
-    
-    private void recalculateStringRepresentation() {
+      
       mStringRepresentation = getParent() + " -[" + mEdge.toString() + "]> " + getChild();
     }
     
@@ -185,29 +137,6 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
       assert(mEdge.getPredecessor().equals(pParent.getElementWithLocation().getLocationNode()));
       
       super.setParent(pParent);
-      
-      recalculateHashCode();
-      recalculateStringRepresentation();
-    }
-    
-    @Override
-    public boolean equals(Object pOther) {
-      if (!super.equals(pOther)) {
-        return false;
-      }
-      
-      if (!(pOther instanceof CFAEdgeEdge)) {
-        return false;
-      }
-      
-      CFAEdgeEdge lOther = (CFAEdgeEdge)pOther;
-      
-      return lOther.mEdge.equals(mEdge);
-    }
-
-    @Override
-    public int hashCode() {
-      return mHashCode;
     }
     
     @Override
@@ -218,8 +147,6 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
   
   public class CFAEdgeAndSubpathsEdge extends CFAEdgeEdge implements HasSubpaths {
     private HashSet<List<Edge>> mSubpaths;
-    private int mHashCode;
-    private String mStringRepresentation;
     
     public CFAEdgeAndSubpathsEdge(QDPTCompositeElement pParent, QDPTCompositeElement pChild, CFAEdge pEdge, Collection<List<Edge>> pSubpaths) {
       super(pParent, pChild, pEdge);
@@ -239,17 +166,6 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
       }
       
       mSubpaths = new HashSet<List<Edge>>(pSubpaths);
-      
-      recalculateHashCode();
-      recalculateStringRepresentation();
-    }
-    
-    private void recalculateHashCode() {
-      mHashCode = super.hashCode() + mSubpaths.hashCode();
-    }
-    
-    private void recalculateStringRepresentation() {
-      mStringRepresentation = super.toString();
     }
     
     public Iterable<List<QDPTCompositeCPA.Edge>> getSubpaths() {
@@ -259,42 +175,11 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
     @Override
     public void setParent(QDPTCompositeElement pParent) {
       super.setParent(pParent);
-      
-      recalculateHashCode();
-      recalculateStringRepresentation();
-    }
-    
-    @Override
-    public boolean equals(Object pOther) {
-      if (!super.equals(pOther)) {
-        return false;
-      }
-      
-      if (!(pOther instanceof CFAEdgeAndSubpathsEdge)) {
-        return false;
-      }
-      
-      CFAEdgeAndSubpathsEdge lOther = (CFAEdgeAndSubpathsEdge)pOther;
-      
-      // TODO is this correct?
-      return lOther.getSubpaths().equals(getSubpaths());
-    }
-    
-    @Override
-    public int hashCode() {
-      return mHashCode;
-    }
-    
-    @Override
-    public String toString() {
-      return mStringRepresentation;
     }
   }
   
   public class SubpathsEdge extends Edge implements HasSubpaths {
     private HashSet<List<Edge>> mSubpaths;
-    private int mHashCode;
-    private String mStringRepresentation;
     
     public SubpathsEdge(QDPTCompositeElement pParent, QDPTCompositeElement pChild, Collection<List<Edge>> pSubpaths) {
       super(pParent, pChild);
@@ -309,17 +194,6 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
       // TODO more consistency checks
       
       mSubpaths = new HashSet<List<Edge>>(pSubpaths);
-      
-      recalculateHashCode();
-      recalculateStringRepresentation();
-    }
-    
-    private void recalculateHashCode() {
-      mHashCode = super.hashCode() + mSubpaths.hashCode();
-    }
-    
-    private void recalculateStringRepresentation() {
-      mStringRepresentation = super.toString();
     }
     
     public Iterable<List<Edge>> getSubpaths() {
@@ -333,35 +207,6 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
       // TODO add consistency checks
       
       super.setParent(pParent);
-      
-      recalculateHashCode();
-      recalculateStringRepresentation();
-    }
-    
-    @Override
-    public boolean equals(Object pOther) {
-      if (!super.equals(pOther)) {
-        return false;
-      }
-      
-      if (!(pOther instanceof SubpathsEdge)) {
-        return false;
-      }
-      
-      SubpathsEdge lOther = (SubpathsEdge)pOther;
-      
-      // TODO is this correct?
-      return lOther.getSubpaths().equals(getSubpaths());
-    }
-    
-    @Override
-    public int hashCode() {
-      return mHashCode;
-    }
-    
-    @Override
-    public String toString() {
-      return mStringRepresentation;
     }
   }
   
@@ -517,6 +362,10 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
     
     public void hideChildren() {
       mChildren.clear();
+    }
+    
+    public void hideChild(Edge pEdge) {
+      assert(mChildren.remove(pEdge));
     }
     
     public int getDepth() {
