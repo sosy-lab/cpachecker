@@ -23,8 +23,12 @@
  */
 package symbpredabstraction;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayDeque;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Queue;
@@ -32,6 +36,8 @@ import java.util.Stack;
 import java.util.Vector;
 
 import cfa.objectmodel.CFANode;
+
+import common.Pair;
 
 import cpa.common.interfaces.AbstractElement;
 import cpa.symbpredabsCPA.SymbPredAbsAbstractElement;
@@ -60,10 +66,17 @@ public class AbstractReachabilityTree {
     c.add(child);
   }
 
+  public Collection<SymbPredAbsAbstractElement> getChildren(SymbPredAbsAbstractElement e) {
+    if (tree.containsKey(e)) {
+      return tree.get(e);
+    }
+    return Collections.emptySet();
+  }
+
   public Collection<SymbPredAbsAbstractElement> getSubtree(
       AbstractElement root,
       boolean remove, boolean includeRoot) {
-    
+
     Vector<SymbPredAbsAbstractElement> ret = 
       new Vector<SymbPredAbsAbstractElement>();
 
@@ -109,16 +122,55 @@ public class AbstractReachabilityTree {
     return root;
   }
 
+  public boolean inTree(SymbPredAbsAbstractElement n) {
+    Stack<SymbPredAbsAbstractElement> toProcess = 
+      new Stack<SymbPredAbsAbstractElement>();
+    toProcess.push(root);
+    while (!toProcess.empty()) {
+      SymbPredAbsAbstractElement e = toProcess.pop();
+      if (e == n) return true;
+      toProcess.addAll(getChildren(e));
+    }
+    return false;
+  }
+
   public SymbPredAbsAbstractElement getRoot() { return root; }
 
   public boolean contains(SymbPredAbsAbstractElement n) {
     return tree.containsKey(n);
   }
-  
-  
-    public void clear() {
-        root = null;
-        tree.clear();
+
+  public void dump(String outfile) throws IOException {
+    PrintWriter out = new PrintWriter(new File(outfile));
+    out.println("digraph ART {");
+    Stack<Pair<SymbPredAbsAbstractElement, Integer>> toProcess = 
+      new Stack<Pair<SymbPredAbsAbstractElement, Integer>>();
+    int i = 0;
+    if (root != null) {
+      toProcess.push(
+          new Pair<SymbPredAbsAbstractElement, Integer>(root, i));
+      out.println("" + (i++) + " [label=\"" + root + "\"];");
     }
+
+    while (!toProcess.empty()) {
+      Pair<SymbPredAbsAbstractElement, Integer> e = toProcess.pop();
+      for (SymbPredAbsAbstractElement c : getChildren(e.getFirst())) {
+        int cur = i;
+        out.println("" + cur + " [label=\"" + c + "\"];");
+        out.println("" + e.getSecond() + " -> " + cur);
+        toProcess.push(
+            new Pair<SymbPredAbsAbstractElement, Integer>(c, i));
+        ++i;
+      }
+    }
+    out.println("}");
+    out.flush();
+    out.close();
+  }
+
+  public void clear() {
+    root = null;
+    tree.clear();
+  }
 
 }

@@ -103,7 +103,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
       AbstractElementWithLocation element, Precision prec) throws CPAException, CPATransferException {
     throw new CPAException ("Cannot get all abstract successors from non-location domain");
   }
-  
+
   @Override
   public AbstractElement getAbstractSuccessor(AbstractElement element,
                                               CFAEdge cfaEdge, Precision prec) throws CPATransferException {
@@ -374,12 +374,18 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     if (root == null) {
       assert(firstInterpolant != null);
       if (numSeen > 1) {
-      } 
-      else {
+//      assert(numSeen == 2);
+        if (CPAMain.cpaConfig.getBooleanValue(
+        "cpas.symbpredabs.abstraction.cartesian")) {
+          // not enough predicates
+          assert(false);
+          System.exit(1);
+        }
+      } else {
         assert(numSeen <= 1);
       }
-      CFANode loc = 
-        ((SymbPredAbsAbstractElement)firstInterpolant).getAbstractionLocation(); 
+      
+      CFANode loc = ((SymbPredAbsAbstractElement)firstInterpolant).getAbstractionLocation(); 
       root = abstractTree.findHighest(loc);
     }
     assert(root != null);
@@ -460,7 +466,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   private PathFormula toPathFormula(Pair<SymbolicFormula, SSAMap> pair) {
     return new PathFormula(pair.getFirst(), pair.getSecond());
   }
-  
+
   public int getNumAbstractStates() {
     return numAbstractStates;
   }

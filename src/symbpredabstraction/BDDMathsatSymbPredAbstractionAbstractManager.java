@@ -26,7 +26,9 @@ package symbpredabstraction;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -59,8 +61,14 @@ import cpa.symbpredabs.mathsat.MathsatSymbolicFormulaManager;
 import cpa.symbpredabs.mathsat.summary.BDDMathsatSummaryAbstractionPrinter;
 import cpa.symbpredabsCPA.SymbPredAbsAbstractElement;
 
-public class BDDMathsatSymbPredAbstractionAbstractManager 
-extends BDDMathsatAbstractFormulaManager 
+/**
+ * Implementation of SummaryAbstractFormulaManager that works with BDDs for
+ * abstraction and MathSAT terms for concrete formulas
+ *
+ * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
+ */
+
+public class BDDMathsatSymbPredAbstractionAbstractManager extends BDDMathsatAbstractFormulaManager 
 implements SymbPredAbstFormulaManager
 {
 
@@ -121,11 +129,133 @@ implements SymbPredAbstFormulaManager
   private InterpolatingTheoremProver itpProver;
 
   // TODO later
-//  private Map<Pair<CFANode, CFANode>, Pair<MathsatSymbolicFormula, SSAMap>>
-//  abstractionTranslationCache;
+//private Map<Pair<CFANode, CFANode>, Pair<MathsatSymbolicFormula, SSAMap>>
+//abstractionTranslationCache;
   private Map<Pair<SymbolicFormula, Vector<SymbolicFormula>>, AbstractFormula>
   abstractionCache;
   boolean useCache;
+
+  abstract class KeyWithTimeStamp {
+    public long timeStamp;
+
+    public KeyWithTimeStamp() {
+      updateTimeStamp();
+    }
+
+    public void updateTimeStamp() {
+      timeStamp = System.currentTimeMillis();
+    }
+  }
+
+  class CartesianAbstractionCacheKey extends KeyWithTimeStamp {
+    SymbolicFormula formula;
+    Predicate pred;
+
+    public CartesianAbstractionCacheKey(SymbolicFormula f, Predicate p) {
+      super();
+      formula = f;
+      pred = p;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) return true;
+      if (o instanceof CartesianAbstractionCacheKey) {
+        CartesianAbstractionCacheKey c =
+          (CartesianAbstractionCacheKey)o;
+        return formula.equals(c.formula) && pred.equals(c.pred);
+      } else {
+        return false;
+      }
+    }
+
+    @Override
+    public int hashCode() {
+      return formula.hashCode() ^ pred.hashCode();
+    }
+  }
+
+  class FeasibilityCacheKey extends KeyWithTimeStamp {
+    SymbolicFormula f;
+
+    public FeasibilityCacheKey(SymbolicFormula fm) {
+      super();
+      f = fm;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) return true;
+      if (o instanceof FeasibilityCacheKey) {
+        return f.equals(((FeasibilityCacheKey)o).f);
+      }
+      return false;
+    }
+
+    @Override
+    public int hashCode() {
+      return f.hashCode();
+    }
+  }
+
+  class TimeStampCache<Key extends KeyWithTimeStamp, Value>
+  extends HashMap<Key, Value> {
+    /**
+     * default value
+     */
+    private static final long serialVersionUID = 1L;
+    private int maxSize;
+
+    class TimeStampComparator implements Comparator<KeyWithTimeStamp> {
+      @Override
+      public int compare(KeyWithTimeStamp arg0, KeyWithTimeStamp arg1) {
+        long r = arg0.timeStamp - arg1.timeStamp;
+        return r < 0 ? -1 : (r > 0 ? 1 : 0);
+      }
+    }
+
+    private TimeStampComparator cmp;
+
+    public TimeStampCache(int maxSize) {
+      super();
+      this.maxSize = maxSize;
+      cmp = new TimeStampComparator();
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public Value get(Object o) {
+      Key key = (Key)o;
+      key.updateTimeStamp();
+      return super.get(key);
+    }
+
+    @Override
+    public Value put(Key key, Value value) {
+      key.updateTimeStamp();
+      compact();
+      return super.put(key, value);
+    }
+
+    private void compact() {
+      if (size() > maxSize) {
+        // find the half oldest entries, and get rid of them...
+        KeyWithTimeStamp[] keys = keySet().toArray(
+            new KeyWithTimeStamp[0]);
+        Arrays.sort(keys, cmp);
+        for (int i = 0; i < keys.length/2; ++i) {
+          remove(keys[i]);
+        }
+      }
+    }
+  }  
+
+  //cache for cartesian abstraction queries. For each predicate, the values
+  // are -1: predicate is false, 0: predicate is don't care,
+  // 1: predicate is true
+  protected TimeStampCache<CartesianAbstractionCacheKey, Byte>
+  cartesianAbstractionCache;
+  protected TimeStampCache<FeasibilityCacheKey, Boolean> feasibilityCache;
 
   private BDDMathsatSummaryAbstractionPrinter absPrinter = null;
   private boolean dumpHardAbstractions;
@@ -135,9 +265,9 @@ implements SymbPredAbstFormulaManager
   {
     super();
     stats = new Stats();
-//    abstractionTranslationCache =
-//      new HashMap<Pair<CFANode, CFANode>,
-//      Pair<MathsatSymbolicFormula, SSAMap>>();
+//  abstractionTranslationCache =
+//  new HashMap<Pair<CFANode, CFANode>,
+//  Pair<MathsatSymbolicFormula, SSAMap>>();
     dumpHardAbstractions = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.mathsat.dumpHardAbstractionQueries");
     thmProver = prover;
     itpProver = interpolator;
@@ -145,8 +275,13 @@ implements SymbPredAbstFormulaManager
     abstractionCache =
       new HashMap<Pair<SymbolicFormula, Vector<SymbolicFormula>>,
       AbstractFormula>();
-    useCache = CPAMain.cpaConfig.getBooleanValue(
-    "cpas.symbpredabs.mathsat.useCache");
+    useCache = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.mathsat.useCache");
+
+    final int MAX_CACHE_SIZE = 100000;
+    cartesianAbstractionCache =
+      new TimeStampCache<CartesianAbstractionCacheKey, Byte>(MAX_CACHE_SIZE);
+    feasibilityCache =
+      new TimeStampCache<FeasibilityCacheKey, Boolean>(MAX_CACHE_SIZE);
   }
 
   public Stats getStats() { return stats; }
@@ -156,7 +291,24 @@ implements SymbPredAbstFormulaManager
                                           AbstractFormula abs, PathFormula pathFormula,
                                           Collection<Predicate> predicates, MathsatSymbolicFormula functionExitFormula) {
     stats.numCallsAbstraction++;
-    return buildBooleanAbstraction(mgr, abs, pathFormula, predicates, functionExitFormula);
+    if (CPAMain.cpaConfig.getBooleanValue(
+    "cpas.symbpredabs.abstraction.cartesian")) {
+      return buildCartesianAbstraction(mgr, abs, pathFormula, predicates, functionExitFormula);
+    } else {
+      return buildBooleanAbstraction(mgr, abs, pathFormula, predicates, functionExitFormula);
+    }
+    //return buildBooleanAbstraction(mgr, abs, pathFormula, predicates, functionExitFormula);
+  }
+
+  private AbstractFormula buildCartesianAbstraction(
+                                                    SymbolicFormulaManager pMgr,
+                                                    AbstractFormula pAbs,
+                                                    PathFormula pPathFormula,
+                                                    Collection<Predicate> pPredicates,
+                                                    MathsatSymbolicFormula pFunctionExitFormula) {
+    // TODO put impl. later, or maybe not, we don't really use
+    assert(false);
+    return null;
   }
 
   private AbstractFormula buildBooleanAbstraction(SymbolicFormulaManager mgr,
@@ -310,14 +462,12 @@ implements SymbPredAbstFormulaManager
     LazyLogger.log(LazyLogger.DEBUG_2,
         "COMPUTING ALL-SMT ON FORMULA: ", fm);
 
-     Pair<SymbolicFormula, Vector<SymbolicFormula>> absKey =
-       new Pair<SymbolicFormula, Vector<SymbolicFormula>>(fm, imp);
+    Pair<SymbolicFormula, Vector<SymbolicFormula>> absKey =
+      new Pair<SymbolicFormula, Vector<SymbolicFormula>>(fm, imp);
     AbstractFormula result = null;
-    // TODO cache
-  if (useCache && abstractionCache.containsKey(absKey)) {
-//    if(false){
-    ++stats.numCallsAbstractionCached;
-    result = abstractionCache.get(absKey);
+    if (useCache && abstractionCache.containsKey(absKey)) {
+      ++stats.numCallsAbstractionCached;
+      result = abstractionCache.get(absKey);
     } else {
       int absbdd = bddManager.getZero();
       AllSatCallbackStats func =
@@ -343,16 +493,16 @@ implements SymbPredAbstFormulaManager
         Math.max(msatSolveTime, stats.abstractionMaxMathsatSolveTime);
 
       // TODO dump hard abst
-    if (abstractionMsatTime > 10000 && dumpHardAbstractions) {
-    // we want to dump "hard" problems...
-    if (absPrinter == null) {
-    absPrinter = new BDDMathsatSummaryAbstractionPrinter(
-    msatEnv, "abs");
-    }
-    absPrinter.printMsatFormat(curstate, term, preddef, important);
-    absPrinter.printNusmvFormat(curstate, term, preddef, important);
-    absPrinter.nextNum();
-    }
+      if (abstractionMsatTime > 10000 && dumpHardAbstractions) {
+        // we want to dump "hard" problems...
+        if (absPrinter == null) {
+          absPrinter = new BDDMathsatSummaryAbstractionPrinter(
+              msatEnv, "abs");
+        }
+        absPrinter.printMsatFormat(curstate, term, preddef, important);
+        absPrinter.printNusmvFormat(curstate, term, preddef, important);
+        absPrinter.nextNum();
+      }
 
       if (numModels == -2) {
         absbdd = bddManager.getOne();
@@ -363,9 +513,9 @@ implements SymbPredAbstFormulaManager
         result = new BDDAbstractFormula(func.getBDD());
       }
       // TODO later
-    if (useCache) {
-    abstractionCache.put(absKey, result);
-    }
+      if (useCache) {
+        abstractionCache.put(absKey, result);
+      }
     }
 
     return result;

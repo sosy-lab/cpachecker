@@ -305,9 +305,6 @@ public class CPAMain {
         cpaStats.setErrorReached(false);
       }
       displayStatistics();
-      if(CPAMain.cpaConfig.getPropertiesArray("analysis.cpas").length == 2){
-        System.out.println("Error location(s) reached? NO, the system is safe");
-      }
     }
   }
 
