@@ -582,9 +582,6 @@ public class QueryDrivenProgramTesting {
               lPaths.add(lOuterPath);
               lPaths.add(lInnerPath);
               
-              System.out.println("OUTER PATH: " + lOuterPath);
-              System.out.println("INNER PATH: " + lInnerPath);
-              
               Set<List<Edge>> lMergeSubpaths = getMergeSubpaths(pTestGoalCPA, lPaths);
         
               if (lMergeSubpaths.size() > 1) {
@@ -599,19 +596,11 @@ public class QueryDrivenProgramTesting {
                 int lOldSize = lChildren.size();
                 
                 // TODO optimize this
-                System.out.println(lChildren);
-                
                 lChildren.clear();
                 
                 for (Edge lEdge : pElement.getChildren()) {
                   lChildren.add(lEdge);
                 }
-                
-                System.out.println(lChildren);
-                
-                System.out.println("---");
-                System.out.println(lOldSize);
-                System.out.println(lChildren.size());
                 
                 assert(lOldSize - 1 == lChildren.size());
                         
@@ -630,7 +619,9 @@ public class QueryDrivenProgramTesting {
       // we have merged and maybe we are able to merge at a higher point again,
       // so let's try backtracking
       
-      mergePathsTopDown2(pCPA, pTestGoalCPA, getBacktrackElement(pElement, pInitialElementsMap), pInitialElementsMap);
+      QDPTCompositeElement lBacktrackElement = getBacktrackElement(pElement, pInitialElementsMap);
+      
+      mergePathsTopDown2(pCPA, pTestGoalCPA, lBacktrackElement, pInitialElementsMap);
     }
     else {
       /* we have not merged anything, so continue at children */
@@ -643,6 +634,8 @@ public class QueryDrivenProgramTesting {
       for (QDPTCompositeElement lChild : lChildren) {
         // merge paths in subtrees
         lARTHasBeenUpdated |= mergePathsTopDown2(pCPA, pTestGoalCPA, lChild, pInitialElementsMap);
+        
+        assert(lChildren.size() == pElement.getNumberOfChildren());
       }
     }
     
