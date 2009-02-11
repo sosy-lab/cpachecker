@@ -54,8 +54,6 @@ public class CProver {
       e.printStackTrace();
       assert (false);
     }
-    
-    lFile.deleteOnExit();
 
     PrintWriter lWriter = null;
 
@@ -82,9 +80,11 @@ public class CProver {
 
       switch (lCBMCExitValue) {
         case 0: // lCBMCExitValue == 0 : Verification successful (Path is infeasible)
+          lFile.delete();
           return false;
 
         case 10: // lCBMCExitValue == 10 : Verification failed (Path is feasible)
+          lFile.delete();
           return true;
 
         default:
@@ -128,8 +128,6 @@ public class CProver {
       e.printStackTrace();
       assert (false);
     }
-    
-    lFile.deleteOnExit();
 
     PrintWriter lWriter = null;
 
@@ -158,9 +156,11 @@ public class CProver {
 
       switch (lCBMCExitValue) {
         case 0: // lCBMCExitValue == 0 : Verification successful (Path is infeasible)
+          lFile.delete();
           return false;
 
         case 10: // lCBMCExitValue == 10 : Verification failed (Path is feasible)
+          lFile.delete();
           return true;
 
         default:
@@ -207,7 +207,6 @@ public class CProver {
         e.printStackTrace();
         System.exit(1);
       }
-      lFile.deleteOnExit();
          
       PrintWriter lWriter = null;
       try {
@@ -284,6 +283,8 @@ public class CProver {
         e.printStackTrace();
         System.exit(1);
       } 
+      
+      lFile.delete();
     }
     
     return results;
