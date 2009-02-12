@@ -29,7 +29,6 @@ package programtesting.simple;
 import programtesting.summary.*;
 import programtesting.*;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -46,7 +45,6 @@ import cmdline.CPAMain;
 import compositeCPA.CompositePrecision;
 
 import cpa.common.CPAAlgorithm;
-import cpa.common.CompositeElement;
 import cpa.common.automaton.Automaton;
 import cpa.common.automaton.AutomatonCPADomain;
 import cpa.common.interfaces.AbstractElement;
@@ -60,17 +58,12 @@ import cpa.symbpredabsCPA.SymbPredAbsAbstractElement;
 import cpa.testgoal.TestGoalCPA;
 import cpa.testgoal.TestGoalCPA.TestGoalPrecision;
 import exceptions.CPAException;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Stack;
 import java.util.Vector;
 import programtesting.simple.QDPTCompositeCPA.Edge;
 import programtesting.simple.QDPTCompositeCPA.QDPTCompositeElement;
@@ -163,7 +156,7 @@ public class QueryDrivenProgramTesting {
       // print information about remaining test goals
       System.out.println("Number of remaining test goals: " + lTestGoals.size());
       
-      printTestGoals("Remaining Test Goals: ", lTestGoals);
+      OutputUtilities.printTestGoals("Remaining Test Goals: ", lTestGoals);
       
       
       System.out.println(lNumberOfOriginalTestGoals + "/" + lTestGoalAutomaton.getFinalStates().size() + "/" + lTestGoalAutomaton.getNumberOfStates());
@@ -230,7 +223,7 @@ public class QueryDrivenProgramTesting {
       QDPTCompositeElement lRoot = cpa.getTransferRelation().getRoot();
   
       if (CPAMain.cpaConfig.getBooleanValue("art.visualize")) {
-        outputAbstractReachabilityTree("art_" + lLoopCounter + "_a_", lRoot, lOldInitialElementsMap.keySet());
+        OutputUtilities.outputAbstractReachabilityTree("art_" + lLoopCounter + "_a_", lRoot, lOldInitialElementsMap.keySet());
       }
       
       LinkedList<Edge> lWorklist = new LinkedList<Edge>(lInitialEdges);
@@ -375,7 +368,7 @@ public class QueryDrivenProgramTesting {
       System.out.println("Calls to CBMC: " + lAllCallsToCBMC);
       
       if (CPAMain.cpaConfig.getBooleanValue("art.visualize")) {
-        outputAbstractReachabilityTree("art_" + lLoopCounter + "_b_", lRoot, lInitialElementsMap.keySet());
+        OutputUtilities.outputAbstractReachabilityTree("art_" + lLoopCounter + "_b_", lRoot, lInitialElementsMap.keySet());
       }
       
       if (lInitialElementsMap.isEmpty()) {
@@ -411,7 +404,7 @@ public class QueryDrivenProgramTesting {
                     
           
           if (CPAMain.cpaConfig.getBooleanValue("art.visualize")) {
-            outputAbstractReachabilityTree("art_" + lLoopCounter + "_c_", lRoot, lInitialElementsMap.keySet());
+            OutputUtilities.outputAbstractReachabilityTree("art_" + lLoopCounter + "_c_", lRoot, lInitialElementsMap.keySet());
           }
         }
       }
@@ -427,7 +420,7 @@ public class QueryDrivenProgramTesting {
     System.out.println("lPaths: " + lPaths.size());
     System.out.println("lPathTree: " + lPathTree.getMaximalPaths().size());
     
-    printTestGoals("Infeasible test goals (#" + lInfeasibleTestGoals.size() + ") = ", lInfeasibleTestGoals);
+    OutputUtilities.printTestGoals("Infeasible test goals (#" + lInfeasibleTestGoals.size() + ") = ", lInfeasibleTestGoals);
    
     for (List<AbstractElementWithLocation> p : lPaths) {
       List<String> strpath = AbstractPathToCTranslator.translatePath(pCfas, AbstractPathToCTranslator.getPath(p, null));
@@ -870,7 +863,7 @@ public class QueryDrivenProgramTesting {
     return lARTHasBeenUpdated;
   }
   
-    public static QDPTCompositeElement merge2(QDPTCompositeCPA pCPA, TestGoalCPA pTestGoalCPA, QDPTCompositeElement pElement, Set<List<Edge>> pSubpaths, Map<QDPTCompositeElement, Set<CFAEdge>> pInitialElementsMap) {
+  public static QDPTCompositeElement merge2(QDPTCompositeCPA pCPA, TestGoalCPA pTestGoalCPA, QDPTCompositeElement pElement, Set<List<Edge>> pSubpaths, Map<QDPTCompositeElement, Set<CFAEdge>> pInitialElementsMap) {
     assert(pCPA != null);
     assert(pTestGoalCPA != null);
     assert(pElement != null);
@@ -1524,194 +1517,5 @@ public class QueryDrivenProgramTesting {
     }
   }
   
-  public static void outputAbstractReachabilityTree(String pFileId, QDPTCompositeElement pRoot, Collection<QDPTCompositeElement> pSpecialElements) {
-    assert(pFileId != null);
-    assert(pRoot != null);
-    assert(pSpecialElements != null);
-    
-    File lFile = null;
-
-    try {
-      lFile = File.createTempFile(pFileId, ".dot");
-    } catch (IOException e) {
-      e.printStackTrace();
-      assert (false);
-    }
-
-    //lFile.deleteOnExit();
-
-    List<String> lNodeDefinitions = new LinkedList<String>();
-    
-    List<String> lEdgeDefinitions = new LinkedList<String>();
-    
-    Stack<QDPTCompositeElement> lWorklist = new Stack<QDPTCompositeElement>();
-    lWorklist.push(pRoot);
-    
-    int lUniqueId = 0;
-    
-    Map<QDPTCompositeElement, Integer> lIdMap = new HashMap<QDPTCompositeElement, Integer>();
-    
-    // putting ids into map
-    while (!lWorklist.empty()) {
-      QDPTCompositeElement lCurrentElement = lWorklist.pop();
-      
-      lIdMap.put(lCurrentElement, lUniqueId);
-      
-      for (Edge lEdge : lCurrentElement.getChildren()) {
-        lWorklist.push(lEdge.getChild());
-      }
-      
-      if (pSpecialElements.contains(lCurrentElement)) {
-        lNodeDefinitions.add("node [label = \"<" + lCurrentElement + ", " + lCurrentElement.getDepth() + ">\", shape=diamond, fillcolor=yellow, style=filled]; " + (lUniqueId++) + ";");
-      }
-      else {
-        lNodeDefinitions.add("node [label = \"<" + lCurrentElement + ", " + lCurrentElement.getDepth() + ">\", shape=box, fillcolor=white]; " + (lUniqueId++) + ";");
-      }
-    }
-    
-    
-    lWorklist.push(pRoot);
-    while (!lWorklist.empty()) {
-      QDPTCompositeElement lCurrentElement = lWorklist.pop();
-      
-      Integer lId = lIdMap.get(lCurrentElement);
-      
-      lNodeDefinitions.add("node [label = \"" + lCurrentElement + "\", shape=box]; " + lId + ";");
-
-      for (Edge lEdge : lCurrentElement.getChildren()) {
-        QDPTCompositeElement lChildElement = lEdge.getChild();
-        
-        lWorklist.push(lChildElement);
-        
-        if (lEdge instanceof QDPTCompositeCPA.HasSubpaths) {
-          if (lEdge instanceof QDPTCompositeCPA.CFAEdgeAndSubpathsEdge) {
-            lEdgeDefinitions.add(lId + " -> " + lIdMap.get(lChildElement) + " [style=bold, color=green];");
-          }
-          else {
-            lEdgeDefinitions.add(lId + " -> " + lIdMap.get(lChildElement) + " [style=bold, color=blue];");
-          }
-        }
-        else {
-          lEdgeDefinitions.add(lId + " -> " + lIdMap.get(lChildElement) + ";");
-        }
-      }
-    }
-    
-    try {
-      PrintWriter lWriter = new PrintWriter(lFile);
-      
-      lWriter.println("digraph ART {");
-      
-      //lWriter.println("size=\"6,10\";");
-      
-      for (String lString : lNodeDefinitions) {
-        lWriter.println(lString);
-      }
-      
-      for (String lString : lEdgeDefinitions) {
-        lWriter.println(lString);
-      }
-      
-      lWriter.print("}");
-
-      lWriter.close();
-    } catch (FileNotFoundException e) {
-      e.printStackTrace();
-      assert (false);
-    }
-    
-    
-
-    /*try {
-      File lPostscriptFile = File.createTempFile(pFileId, ".ps");
-
-      lPostscriptFile.deleteOnExit();
-
-      Process lDotProcess = Runtime.getRuntime().exec("dot -Tps -o" + lPostscriptFile.getAbsolutePath() + " " + lFile.getAbsolutePath());
-
-      lDotProcess.waitFor();
-
-      File lPDFFile = File.createTempFile(pFileId, ".pdf");
-
-      Process lPs2PdfProcess = Runtime.getRuntime().exec("ps2pdf " + lPostscriptFile.getAbsolutePath() + " " + lPDFFile.getAbsolutePath());
-
-      lPs2PdfProcess.waitFor();
-    } catch (Exception e) {
-      e.printStackTrace();
-      assert (false);
-    }*/
-  }
   
-  public static void outputAbstractReachabilityTree(String pFileId, Collection<CompositeElement> pSpecialElements, ParametricAbstractReachabilityTree<CompositeElement> pAbstractReachabilityTree) {
-    assert(pAbstractReachabilityTree != null);
-    assert(pFileId != null);
-    assert(pSpecialElements != null);
-    
-    File lFile = null;
-
-    try {
-      lFile = File.createTempFile(pFileId, ".dot");
-    } catch (IOException e) {
-      e.printStackTrace();
-      assert (false);
-    }
-
-    lFile.deleteOnExit();
-
-    PrintWriter lWriter = null;
-
-    try {
-      lWriter = new PrintWriter(lFile);
-    } catch (FileNotFoundException e) {
-      e.printStackTrace();
-      assert (false);
-    }
-
-    lWriter.println(pAbstractReachabilityTree.toDot(pSpecialElements));
-
-    lWriter.close();
-
-    try {
-      File lPostscriptFile = File.createTempFile(pFileId, ".ps");
-
-      lPostscriptFile.deleteOnExit();
-
-      Process lDotProcess = Runtime.getRuntime().exec("dot -Tps -o" + lPostscriptFile.getAbsolutePath() + " " + lFile.getAbsolutePath());
-
-      lDotProcess.waitFor();
-
-      File lPDFFile = File.createTempFile(pFileId, ".pdf");
-
-      Process lPs2PdfProcess = Runtime.getRuntime().exec("ps2pdf " + lPostscriptFile.getAbsolutePath() + " " + lPDFFile.getAbsolutePath());
-
-      lPs2PdfProcess.waitFor();
-    } catch (Exception e) {
-      e.printStackTrace();
-      assert (false);
-    }
-  }
-  
-  public static void printTestGoals(String pTitle, Collection<Automaton<CFAEdge>.State> pTestGoals) {
-    System.out.print(pTitle);
-
-    printTestGoals(pTestGoals);
-  }
-  
-  public static void printTestGoals(Collection<Automaton<CFAEdge>.State> pTestGoals) {
-    boolean lFirstTestGoal = true;
-
-    System.out.print("{");
-
-    for (Automaton<CFAEdge>.State lTestGoal : pTestGoals) {
-      if (lFirstTestGoal) {
-        lFirstTestGoal = false;
-      } else {
-        System.out.print(",");
-      }
-
-      System.out.print("q" + lTestGoal.getIndex());
-    }
-
-    System.out.println("}");
-  }
 }
