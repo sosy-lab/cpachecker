@@ -365,7 +365,9 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
     }
     
     public void hideChild(Edge pEdge) {
-      assert(mChildren.remove(pEdge));
+      boolean lWasContained = mChildren.remove(pEdge);
+      
+      assert(lWasContained);
     }
     
     public int getDepth() {
