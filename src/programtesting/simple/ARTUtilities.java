@@ -325,36 +325,6 @@ public class ARTUtilities {
     return false;
   }
   
-  public static QDPTCompositeElement getBacktrackElement(QDPTCompositeElement pElement, Map<QDPTCompositeElement, Set<CFAEdge>> pInitialElementsMap) {
-    assert(pElement != null);
-    assert(pInitialElementsMap != null);
-    
-    /* root ? */
-    if (!pElement.hasParent()) {
-      return pElement;
-    }
-    
-    /* initial element ? */
-    if (pInitialElementsMap.containsKey(pElement)) {
-      return pElement;
-    }
-    
-    /* branching in ART ? */
-    if (pElement.getNumberOfChildren() > 1) {
-      return pElement;
-    }
-    
-    /* we know there is a parent */
-    QDPTCompositeElement lParent = pElement.getParent();
-    
-    /* change in callstack ? */
-    if (!pElement.getCallStack().equals(lParent.getCallStack())) {
-      return pElement;
-    }
-    
-    return getBacktrackElement(lParent, pInitialElementsMap);
-  }
-  
   public static LinkedList<Edge> getSubpath(Edge pEdge, Map<QDPTCompositeElement, Set<CFAEdge>> pInitialElementsMap) {
     assert(pEdge != null);
     assert(pInitialElementsMap != null);
