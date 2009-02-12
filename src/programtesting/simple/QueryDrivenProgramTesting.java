@@ -43,6 +43,7 @@ import cmdline.CPAMain;
 import compositeCPA.CompositePrecision;
 
 import cpa.common.CPAAlgorithm;
+import cpa.common.CallElement;
 import cpa.common.automaton.Automaton;
 import cpa.common.automaton.AutomatonCPADomain;
 import cpa.common.interfaces.AbstractElement;
@@ -184,16 +185,12 @@ public class QueryDrivenProgramTesting {
             try {
               AbstractElement lSuccessor = cpa.getTransferRelation().getAbstractSuccessor(lCurrentElement, lCFAEdge, lInitialPrecision);
               
-              // hack
-              assert(lSuccessor instanceof QDPTCompositeElement);
-              
+              // NOTE: bottom can be produced because of not matching call stacks
               if (!cpa.getAbstractDomain().isBottomElement(lSuccessor)) {
+                assert(lSuccessor instanceof QDPTCompositeElement);
+              
                 lInitialElements.add((QDPTCompositeElement)lSuccessor);
                 lInitialEdges.add(((QDPTCompositeElement)lSuccessor).getEdgeToParent());
-              }
-              else {
-                // TODO remove assert(false)
-                assert(false);
               }
             }
             catch (Exception e) {
