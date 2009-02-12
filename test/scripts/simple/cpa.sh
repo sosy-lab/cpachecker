@@ -56,6 +56,11 @@ if [ "$arch_platform" = "unknown" ] ; then
   exit 1
 fi
 arch_platform_path="$PATH_TO_CPACHECKER/lib/native/$arch_platform/"
+# in regression tests we might run old revision in a different directory without
+# the arch_platform stuff
+if [ "$PATH_TO_CPACHECKER" != "`dirname $0`/../../.." ] ; then
+  arch_platform_path="$arch_platform_path:`dirname $0`/../../../lib/native/$arch_platform"
+fi
 
 # the core jar files for eclipse
 CLASSPATH="`ls --color=no $eclipse_plugins/org.eclipse.core*jar $eclipse_plugins/org.eclipse.equinox*jar $eclipse_plugins/org.eclipse.osgi*jar | tr "[:space:]" ":"`"

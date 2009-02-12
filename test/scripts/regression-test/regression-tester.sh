@@ -35,7 +35,7 @@ if [ ! -d $STORAGE ] || [ "`svn info $STORAGE | grep ^URL: | awk '{ print $2 }'`
   rm -rf $STORAGE
   svn co -r$REV $REPOS $STORAGE
 else
-  rm -f $STORAGE/build.xml $STORAGE/src/cfa/CFABuilder.java $STORAGE/src/cmdline/stubs/StubCodeReaderFactory.java
+  rm -f $STORAGE/src/cfa/CFABuilder.java $STORAGE/src/cmdline/stubs/StubCodeReaderFactory.java
   svn up -r$REV $STORAGE
 fi
 
@@ -92,13 +92,21 @@ if [ $CDT_VERSION -gt 4 ] ; then
   rm -f $cdt_patch
 fi
 
-# record the patches that have been applied
-cd $STORAGE
-svn diff > $LOGDIR/patches.`date +%F_%T`.diff
-
 # go and build!
-ant clean
-ant
+cd $STORAGE
+if test -e build.xml && grep -q 'env\.ECLIPSE_HOME' build.xml ; then
+  ant clean
+  # record the patches that have been applied
+  svn diff > $LOGDIR/patches.`date +%F_%T`.diff
+  ant
+else
+  cp $SCRIPT_HOME/../../../build.xml .
+  ant clean
+  # record the patches that have been applied
+  svn diff > $LOGDIR/patches.`date +%F_%T`.diff
+  ant
+  rm -f build.xml
+fi
 
 # build is fine, let's run the test suite
 cd $SCRIPT_HOME
