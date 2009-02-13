@@ -199,48 +199,61 @@ public class Translator {
       
       //if (lEdge.hasSubpaths()) {
       if (lEdge instanceof QDPTCompositeCPA.SubpathsEdge) {
-        Iterator<List<Edge>> lSubpathIterator = ((QDPTCompositeCPA.SubpathsEdge)lEdge).getSubpaths().iterator();
+        QDPTCompositeCPA.SubpathsEdge lSubpathsEdge = (QDPTCompositeCPA.SubpathsEdge)lEdge;
         
-        pProgramText.println("switch (nondet()) {");
+        if (lSubpathsEdge.getNumberOfSubpaths() > 1) {
+          Iterator<List<Edge>> lSubpathIterator = lSubpathsEdge.getSubpaths().iterator();
 
-        int lCaseIndex = 0;
-        
-        while (lSubpathIterator.hasNext()) {
-          List<Edge> lSubpath = lSubpathIterator.next();
-          
-          if (lSubpathIterator.hasNext()) {
-            pProgramText.println("case " + lCaseIndex + ":");
-            
-            lCaseIndex++;
+          pProgramText.println("switch (nondet()) {");
+
+          int lCaseIndex = 0;
+
+          while (lSubpathIterator.hasNext()) {
+            List<Edge> lSubpath = lSubpathIterator.next();
+
+            if (lSubpathIterator.hasNext()) {
+              pProgramText.println("case " + lCaseIndex + ":");
+
+              lCaseIndex++;
+            }
+            else {
+              pProgramText.println("default:");
+            }
+
+            pProgramText.println("{");
+
+            lSubpath = translate(pGlobalText, pProgramText, pFunctionDefinitions, lSubpath);
+
+            if (!lSubpath.isEmpty()) {
+              System.out.println("----");
+
+              Iterator<List<Edge>> lSubpathIterator2 = ((QDPTCompositeCPA.SubpathsEdge)lEdge).getSubpaths().iterator();
+
+              while (lSubpathIterator2.hasNext()) {
+                List<Edge> lSubpath2 = lSubpathIterator2.next();
+
+                System.out.println(lSubpath2);
+              }
+            }
+
+            assert(lSubpath.isEmpty());
+
+            pProgramText.println("break;");
+
+            pProgramText.println("}");
           }
-          else {
-            pProgramText.println("default:");
-          }
+
+          pProgramText.println("}");
+        }
+        else {
+          assert(lSubpathsEdge.getNumberOfSubpaths() == 1);
           
-          pProgramText.println("{");
+          List<Edge> lSubpath = lSubpathsEdge.getSubpaths().iterator().next();
           
           lSubpath = translate(pGlobalText, pProgramText, pFunctionDefinitions, lSubpath);
           
-          if (!lSubpath.isEmpty()) {
-            System.out.println("----");
-            
-            Iterator<List<Edge>> lSubpathIterator2 = ((QDPTCompositeCPA.SubpathsEdge)lEdge).getSubpaths().iterator();
-            
-            while (lSubpathIterator2.hasNext()) {
-              List<Edge> lSubpath2 = lSubpathIterator2.next();
-              
-              System.out.println(lSubpath2);
-            }
-          }
-          
           assert(lSubpath.isEmpty());
-          
-          pProgramText.println("break;");
-          
-          pProgramText.println("}");
         }
-        
-        pProgramText.println("}");
       }
       else {
         assert(lEdge instanceof QDPTCompositeCPA.CFAEdgeEdge);

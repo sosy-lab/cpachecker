@@ -6,7 +6,9 @@
 package programtesting.simple;
 
 import cfa.objectmodel.CFAEdge;
+import cfa.objectmodel.CFAEdgeType;
 import cfa.objectmodel.CFANode;
+import cpa.common.CallStack;
 import cpa.common.automaton.Automaton;
 import cpa.common.automaton.AutomatonCPADomain;
 import cpa.common.interfaces.AbstractElement;
@@ -238,14 +240,75 @@ public class ARTUtilities {
         
         System.out.println(lWorklist);
       } else if (lCurrentElement.getNumberOfChildren() == 1) {
-        assert(lElementBeforeBacktracking == null);
+        Edge lEdge = lCurrentElement.getChildren().iterator().next();
         
-        lWorklist.removeFirst();
+        QDPTCompositeElement lSuccessor = lEdge.getChild();
         
-        lWorklist.addFirst(lCurrentElement.getChildren().iterator().next().getChild());
+        if (lCurrentElement.getCallStack().equals(lSuccessor.getCallStack())) {
+          assert(lElementBeforeBacktracking == null);
+        
+          lWorklist.removeFirst();
+        
+          lWorklist.addFirst(lSuccessor);
+        }
+        else {
+          assert(lEdge instanceof QDPTCompositeCPA.CFAEdgeEdge);
+          
+          QDPTCompositeCPA.CFAEdgeEdge lCFAEdgeEdge = (QDPTCompositeCPA.CFAEdgeEdge)lEdge;
+          
+          CFAEdge lCFAEdge = lCFAEdgeEdge.getCFAEdge();
+          
+          if (lCFAEdge.getEdgeType().equals(CFAEdgeType.FunctionCallEdge)) {
+            // lCurrentElement is a candidate for a merging point
+
+            List<Edge> lPath = getSubpath2(lEdge, pInitialElementsMap);
+            
+            if (lPath.size() > 1) {
+              // do merge
+            
+              Edge lLastEdge = lPath.get(lPath.size() - 1);
+              QDPTCompositeElement lLastElement = lLastEdge.getChild();
+
+              lCurrentElement.hideChild(lEdge);
+              
+              HashSet<List<Edge>> lPathSet = new HashSet<List<Edge>>();
+              lPathSet.add(lPath);
+              
+              QDPTCompositeElement lMergeElement = pCPA.createElement(lLastElement.getElements(), lLastElement.getCallStack(), lCurrentElement, lPathSet);
+              
+              HashSet<Edge> lChildren = new HashSet<Edge>();
+              
+              for (Edge lChildEdge : lLastElement.getChildren()) {
+                lChildren.add(lChildEdge);
+              }
+              
+              for (Edge lChildEdge : lChildren) {
+                lChildEdge.setParent(lMergeElement);
+              }
+              
+              if (pInitialElementsMap.containsKey(lLastElement)) {
+                pInitialElementsMap.put(lMergeElement, pInitialElementsMap.get(lLastElement));
+              }
+            }
+            else {
+              assert(lElementBeforeBacktracking == null);
+        
+              lWorklist.removeFirst();
+        
+              lWorklist.addFirst(lSuccessor);
+            }
+          }
+          else {
+            assert(lElementBeforeBacktracking == null);
+        
+            lWorklist.removeFirst();
+        
+            lWorklist.addFirst(lSuccessor);
+          }
+        }
       }
       else if (lCurrentElement.getNumberOfChildren() > 1) {
-        //lCurrentElement is a candidate for a merging point
+        // lCurrentElement is a candidate for a merging point
 
         if (mergeAtElement(pCPA, pTestGoalCPA, lCurrentElement, pInitialElementsMap)) {
           // we merged something
@@ -357,6 +420,65 @@ public class ARTUtilities {
       // we know there is only one successor edge
       lCurrentEdge = lChild.getChildren().iterator().next();
     } while (true);
+    
+    return lPath;
+  }
+  
+  public static LinkedList<Edge> getSubpath2(Edge pEdge, Map<QDPTCompositeElement, Set<CFAEdge>> pInitialElementsMap) {
+    assert(pEdge != null);
+    assert(pInitialElementsMap != null);
+    
+    LinkedList<Edge> lPath = new LinkedList<Edge>();
+    
+    if (pEdge.getChild().getNumberOfChildren() != 1) {
+      return lPath;
+    }
+    
+    // we try to reach the end of the function without branching etc.
+    
+    lPath.add(pEdge);
+    
+    CallStack lCallStack = pEdge.getParent().getCallStack();
+    
+    // we know there is exactly one successor
+    Edge lCurrentEdge = pEdge.getChild().getChildren().iterator().next();
+    
+    do {
+      QDPTCompositeElement lParent = lCurrentEdge.getParent();
+      QDPTCompositeElement lChild = lCurrentEdge.getChild();
+
+      lPath.add(lCurrentEdge);
+
+      if (!lParent.getCallStack().equals(lChild.getCallStack())) {
+        if (lChild.getCallStack().equals(lCallStack)) {
+          assert(lCurrentEdge instanceof QDPTCompositeCPA.CFAEdgeEdge);
+          
+          QDPTCompositeCPA.CFAEdgeEdge lEdge = (QDPTCompositeCPA.CFAEdgeEdge)lCurrentEdge;
+          
+          CFAEdge lCFAEdge = lEdge.getCFAEdge();
+          
+          assert(lCFAEdge.getEdgeType().equals(CFAEdgeType.ReturnEdge));
+          
+          return lPath;
+        }
+        
+        break;
+      }
+
+      // new merge candidate
+      if (lChild.getNumberOfChildren() != 1) {
+        break;
+      }
+
+      if (pInitialElementsMap.containsKey(lChild)) {
+        break;
+      }
+
+      // we know there is exactly one successor edge
+      lCurrentEdge = lChild.getChildren().iterator().next();
+    } while (true);
+    
+    lPath.clear();
     
     return lPath;
   }

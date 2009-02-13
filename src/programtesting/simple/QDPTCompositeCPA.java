@@ -196,6 +196,10 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
       mSubpaths = new HashSet<List<Edge>>(pSubpaths);
     }
     
+    public int getNumberOfSubpaths() {
+      return mSubpaths.size();
+    }
+    
     public Iterable<List<Edge>> getSubpaths() {
       return mSubpaths;
     }
@@ -230,7 +234,8 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
       this(pElements, pStack, pParent);
       
       assert(pEdgeSet != null);
-      assert(pEdgeSet.size() > 1);
+      // the following assertion does not hold anymore
+      //assert(pEdgeSet.size() > 1);
       
       // do all paths have length one?
       
