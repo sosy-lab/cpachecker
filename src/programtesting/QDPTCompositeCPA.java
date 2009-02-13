@@ -34,6 +34,8 @@ import cfa.objectmodel.CFANode;
 import cfa.objectmodel.c.CallToReturnEdge;
 
 import common.Pair;
+import compositeCPA.CompositeDomain;
+import compositeCPA.CompositeElement;
 import compositeCPA.CompositeMergeOperator;
 import compositeCPA.CompositePrecision;
 import compositeCPA.CompositePrecisionAdjustment;
@@ -41,8 +43,6 @@ import compositeCPA.CompositeStopOperator;
 
 import cpa.common.CallElement;
 import cpa.common.CallStack;
-import cpa.common.CompositeDomain;
-import cpa.common.CompositeElement;
 import cpa.common.automaton.AutomatonCPADomain;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;

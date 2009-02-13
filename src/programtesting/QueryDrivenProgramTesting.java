@@ -35,6 +35,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Stack;
 import java.util.Map.Entry;
 
 import cfa.CFAMap;
@@ -42,17 +43,17 @@ import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 
 import common.Pair;
+import compositeCPA.CompositeElement;
 import compositeCPA.CompositePrecision;
 
 import cpa.common.CPAAlgorithm;
-import cpa.common.CompositeElement;
 import cpa.common.automaton.Automaton;
 import cpa.common.automaton.AutomatonCPADomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
-import cpa.common.interfaces.TransferRelation;
 import cpa.common.interfaces.Precision;
+import cpa.common.interfaces.TransferRelation;
 import cpa.scoperestriction.ScopeRestrictionCPA;
 import cpa.symbpredabs.CounterexampleTraceInfo;
 import cpa.symbpredabs.Predicate;
@@ -66,7 +67,6 @@ import cpa.symbpredabs.explicit.ExplicitTransferRelation;
 import cpa.testgoal.TestGoalCPA;
 import cpa.testgoal.TestGoalCPA.TestGoalPrecision;
 import exceptions.CPAException;
-import java.util.Stack;
 
 /**
  * @author Michael Tautschnig <tautschnig@forsyte.de>

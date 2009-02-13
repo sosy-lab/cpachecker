@@ -34,8 +34,8 @@ import java.util.Set;
 import cfa.objectmodel.CFAEdge;
 
 import common.Pair;
+import compositeCPA.CompositeElement;
 
-import cpa.common.CompositeElement;
 import cpa.common.automaton.Automaton;
 import cpa.common.automaton.AutomatonCPADomain;
 import cpa.common.interfaces.AbstractElement;
