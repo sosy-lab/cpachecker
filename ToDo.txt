@@ -14,10 +14,7 @@
     CPAMain in all the classes
 
 - [MT] Instead of the String parameters to set sep or join for merge and stop just
-  create multiple CPA classes that fix the operator
-
-- [MT] Cleanup cpa.common and move the composite stuff to compositecpa,
-  CPAType.java could probably be removed rightaway
+  create multiple CPA classes that fix the operator ** did not understand this, erkan **
 
 - [MT] add default implementations of stopsep/join, mergesep/join, precision stuff
 
@@ -28,9 +25,6 @@
 - [MT] cleanup CPAMain
   * make separate function "preprocess"
   * is there any non-interprocedural analysis
-
-- [MT] Remove isBottomElement(x) and replace by call to satisfiesPartialOrder(x,
-  domain.getBottomElement())
 
 - [DB] Maybe rename satisfiesPartialOrder to isLessOrEqual
 
@@ -61,8 +55,6 @@
     AbstractElementWithLocation becomes a defining part of the ReachedSet
     interface, ReachedSet cannot be used as part of each and every CPA
 
-- [MT] Remove getAbstractDomain in those cases where it is now not needed anymore
-
 - [MT] We have multiple implementations of a class Path
 
 - [MT] Whitespace at the end of a line is undesirable for merging tools, do a cleanup
@@ -85,11 +77,7 @@
   be used as well (we know when we insert an element that already exists in the
   collection); sets will always check for uniqueness
 
-- [MT] DefUse satisfiesPartialOrder is broken (does not care about
-  top/bottom-element); this may be true for several other CPAs as well
-
-- [AH] stop operator in LocationCPA is very time consuming (must iterate over
-  all elements of reached)
+- [MT] DefUse became useless after not updating for a long time. Fix some time.
 
 - [MT] precisionAdjustment is currently not enabled! (code commented out in
   CPAAlgorithm)
@@ -133,10 +121,28 @@
 
 - [AH] Provide configuration to every CPA via its constructor instead of having
   a global static variable in order to improve decoupling and reusability.
+ 
+- [Erkan] Get rid of obsolete packages and classes
 
+- [Erkan] cpa.common.CallElement and cpa.common.CallStack might move to their own
+  packages
+
+Handled Jobs
+================================
+
+- [MT] Remove isBottomElement(x) and replace by call to satisfiesPartialOrder(x,
+  domain.getBottomElement()) -- [Erkan]
+  
+- [MT] Remove getAbstractDomain in those cases where it is now not needed anymore -- [Erkan]
+
+- [AH] stop operator in LocationCPA is very time consuming (must iterate over
+  all elements of reached) -- [Erkan] Fixed by introducing LocationMappedReachedSet
+  
 - [MT] CFAFunctionDefinitionNode.getContainingFileName is used only 2 times in a
   not-so-well maintained CPA and refers to property analysis.programs, which is
   not defined in any of the current config files. Even when I added the
   property, I couldn't make the corresponding code work. Please get rid of that
-  piece of code.
+  piece of code -- [Erkan]
 
+- [MT] Cleanup cpa.common and move the composite stuff to compositecpa,
+  CPAType.java could probably be removed rightaway -- [Erkan]

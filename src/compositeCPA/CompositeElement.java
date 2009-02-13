@@ -21,11 +21,12 @@
  *  CPAchecker web page:
  *    http://www.cs.sfu.ca/~dbeyer/CPAchecker/
  */
-package cpa.common;
+package compositeCPA;
 
 import java.util.List;
 
 import cfa.objectmodel.CFANode;
+import cpa.common.CallStack;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 

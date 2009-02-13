@@ -35,8 +35,6 @@ import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cmdline.CPAMain;
 import cpa.common.CallElement;
 import cpa.common.CallStack;
-import cpa.common.CompositeDomain;
-import cpa.common.CompositeElement;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;

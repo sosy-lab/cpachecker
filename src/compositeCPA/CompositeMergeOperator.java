@@ -28,8 +28,6 @@ import java.util.Iterator;
 import java.util.List;
 
 import cpa.common.CallStack;
-import cpa.common.CompositeBottomElement;
-import cpa.common.CompositeElement;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.MergeOperator;

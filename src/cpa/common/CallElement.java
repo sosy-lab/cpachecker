@@ -23,8 +23,9 @@
  */
 package cpa.common;
 
+import compositeCPA.CompositeElement;
+
 import cfa.objectmodel.CFANode;
-import cpa.common.CompositeElement;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.CallElement;
 

@@ -34,8 +34,6 @@ import cfa.objectmodel.c.CallToReturnEdge;
 import exceptions.CPATransferException;
 import cpa.common.CallElement;
 import cpa.common.CallStack;
-import cpa.common.CompositeDomain;
-import cpa.common.CompositeElement;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.Precision;

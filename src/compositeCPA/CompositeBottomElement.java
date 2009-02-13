@@ -21,41 +21,41 @@
  *  CPAchecker web page:
  *    http://www.cs.sfu.ca/~dbeyer/CPAchecker/
  */
-
-package cpa.common;
+package compositeCPA;
 
 import java.util.Iterator;
 import java.util.List;
 
 import cpa.common.interfaces.AbstractElement;
 
-public class CompositeTopElement extends CompositeElement
+public class CompositeBottomElement extends CompositeElement
 {
-    public CompositeTopElement (List<AbstractElement> tops)
+
+    public CompositeBottomElement (List<AbstractElement> bottoms)
     {
-        super(tops, null);
+        super(bottoms,null);
     }
 
     @Override
     public boolean equals (Object o)
     {
-      if (!(o instanceof CompositeTopElement))
-        return false;
+        if (!(o instanceof CompositeBottomElement))
+            return false;
 
-      CompositeBottomElement otherComposite = (CompositeBottomElement) o;
-      if (getElements().size () != otherComposite.getElements().size ())
-        return false;
+        CompositeBottomElement otherComposite = (CompositeBottomElement) o;
+        if (getElements().size () != otherComposite.getElements().size ())
+            return false;
 
-      Iterator<AbstractElement> iter = otherComposite.getElements().iterator();
-      for (AbstractElement e : getElements()) {
-        if (!e.equals(iter.next())) return false;
-      }
+        Iterator<AbstractElement> iter = otherComposite.getElements().iterator();
+        for (AbstractElement e : getElements()) {
+          if (!e.equals(iter.next())) return false;
+        }
 
-      return true;
+        return true;
     }
     
     @Override
     public int hashCode() {
-      return Integer.MAX_VALUE;
+      return Integer.MIN_VALUE;
     }
 }

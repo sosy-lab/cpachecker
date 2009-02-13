@@ -33,7 +33,6 @@ import java.util.List;
 
 import common.Pair;
 
-import cpa.common.CompositeElement;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;

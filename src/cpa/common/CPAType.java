@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://www.cs.sfu.ca/~dbeyer/CPAchecker/
  */
-package compositeCPA;
+package cpa.common;
 
 public enum CPAType
 {

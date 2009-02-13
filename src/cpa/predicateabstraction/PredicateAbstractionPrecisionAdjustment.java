@@ -48,7 +48,7 @@ public class PredicateAbstractionPrecisionAdjustment implements
                                                                AE pElement,
                                                                Precision pPrecision,
                                                                Collection<Pair<AE, Precision>> pElements) {
-    return new Pair<AE,Precision> (pElement, pPrecision);
+    return new Pair<AE, Precision>(pElement, pPrecision);
   }
 
 }

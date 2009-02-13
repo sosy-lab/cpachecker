@@ -28,8 +28,6 @@ import java.util.List;
 
 import cmdline.CPAMain;
 
-import cpa.common.CompositeDomain;
-import cpa.common.CompositeElement;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;

@@ -21,13 +21,14 @@
  *  CPAchecker web page:
  *    http://www.cs.sfu.ca/~dbeyer/CPAchecker/
  */
-package cpa.common;
+package compositeCPA;
 
 import java.util.List;
 
+import compositeCPA.CompositeElement;
+
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.PartialOrder;
-import cpa.common.CompositeElement;
 import exceptions.CPAException;
 
 public class CompositePartialOrder implements PartialOrder

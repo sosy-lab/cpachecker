@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://www.cs.sfu.ca/~dbeyer/CPAchecker/
  */
-package cpa.common;
+package compositeCPA;
 
 import java.util.ArrayList;
 import java.util.List;

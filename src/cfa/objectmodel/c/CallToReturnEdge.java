@@ -27,11 +27,12 @@ import java.util.List;
 
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
 
+import compositeCPA.CompositeElement;
+
 import cfa.objectmodel.AbstractCFAEdge;
 import cfa.objectmodel.CFAEdgeType;
 import cfa.objectmodel.CFANode;
 
-import cpa.common.CompositeElement;
 import cpa.common.interfaces.AbstractElement;
 import cpa.predicateabstraction.PredicateAbstractionElement;
 

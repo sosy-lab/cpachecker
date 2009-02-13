@@ -35,60 +35,71 @@ import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
 import exceptions.CPAException;
 
-public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis{
+/**
+ * @author erkan
+ *
+ *  BROKEN
+ */
+public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis {
 
-  private AbstractDomain abstractDomain;
-  private TransferRelation transferRelation;
-  private MergeOperator mergeOperator;
-  private StopOperator stopOperator;
+  private AbstractDomain      abstractDomain;
+  private TransferRelation    transferRelation;
+  private MergeOperator       mergeOperator;
+  private StopOperator        stopOperator;
   private PrecisionAdjustment precisionAdjustment;
 
-  public PredicateAbstractionCPA (String mergeType, String stopType) throws CPAException{
-    PredicateAbstractionDomain predicateAbstractionDomain = new PredicateAbstractionDomain ();
+  public PredicateAbstractionCPA(String mergeType, String stopType)
+                                                                   throws CPAException {
+    PredicateAbstractionDomain predicateAbstractionDomain =
+                                                            new PredicateAbstractionDomain();
 
-    this.transferRelation = new PredicateAbstractionTransferRelation (predicateAbstractionDomain);
+    this.transferRelation =
+                            new PredicateAbstractionTransferRelation(
+                                predicateAbstractionDomain);
 
     MergeOperator predicateAbstractionMergeOp = null;
-    if(mergeType.equals("sep")){
-      predicateAbstractionMergeOp = new PredicateAbstractionMergeSep (predicateAbstractionDomain);
-    }
-    else if(mergeType.equals("join")){
-      predicateAbstractionMergeOp = new PredicateAbstractionMergeJoin (predicateAbstractionDomain);
+    if (mergeType.equals("sep")) {
+      predicateAbstractionMergeOp =
+                                    new PredicateAbstractionMergeSep(
+                                        predicateAbstractionDomain);
+    } else if (mergeType.equals("join")) {
+      predicateAbstractionMergeOp =
+                                    new PredicateAbstractionMergeJoin(
+                                        predicateAbstractionDomain);
     }
 
     StopOperator predicateAbstractionStopOp = null;
 
-    if(stopType.equals("sep")){
-      predicateAbstractionStopOp = new PredicateAbstractionStopSep (predicateAbstractionDomain);
-    }
-    else if(stopType.equals("join")){
-      predicateAbstractionStopOp = new PredicateAbstractionStopJoin (predicateAbstractionDomain);
+    if (stopType.equals("sep")) {
+      predicateAbstractionStopOp =
+                                   new PredicateAbstractionStopSep(
+                                       predicateAbstractionDomain);
+    } else if (stopType.equals("join")) {
+      predicateAbstractionStopOp =
+                                   new PredicateAbstractionStopJoin(
+                                       predicateAbstractionDomain);
     }
 
-    this.precisionAdjustment = new PredicateAbstractionPrecisionAdjustment ();
+    this.precisionAdjustment = new PredicateAbstractionPrecisionAdjustment();
 
     this.abstractDomain = predicateAbstractionDomain;
     this.mergeOperator = predicateAbstractionMergeOp;
     this.stopOperator = predicateAbstractionStopOp;
   }
 
-  public AbstractDomain getAbstractDomain ()
-  {
+  public AbstractDomain getAbstractDomain() {
     return abstractDomain;
   }
 
-  public TransferRelation getTransferRelation ()
-  {
+  public TransferRelation getTransferRelation() {
     return transferRelation;
   }
 
-  public MergeOperator getMergeOperator ()
-  {
+  public MergeOperator getMergeOperator() {
     return mergeOperator;
   }
 
-  public StopOperator getStopOperator ()
-  {
+  public StopOperator getStopOperator() {
     return stopOperator;
   }
 
@@ -96,10 +107,9 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis{
     return precisionAdjustment;
   }
 
-  public AbstractElement getInitialElement (CFAFunctionDefinitionNode node)
-  {
-    String fileName = node.getContainingFileName();
-    return new PredicateAbstractionElement (CPAMain.cpaConfig.getProperty("analysis.entryFunction"), fileName);
+  public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
+    return new PredicateAbstractionElement(CPAMain.cpaConfig
+        .getProperty("analysis.entryFunction"));
   }
 
   public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {

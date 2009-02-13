@@ -30,28 +30,27 @@ import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
 import exceptions.CPAException;
 
-public class PredicateAbstractionMergeSep implements MergeOperator{
+public class PredicateAbstractionMergeSep implements MergeOperator {
 
-private final PredicateAbstractionDomain predicateAbstractionDomain;
+  private final PredicateAbstractionDomain predicateAbstractionDomain;
 
-    public PredicateAbstractionMergeSep (PredicateAbstractionDomain predAbsDomain)
-    {
-        this.predicateAbstractionDomain = predAbsDomain;
-    }
+  public PredicateAbstractionMergeSep(PredicateAbstractionDomain predAbsDomain) {
+    this.predicateAbstractionDomain = predAbsDomain;
+  }
 
-    public AbstractDomain getAbstractDomain ()
-    {
-        return predicateAbstractionDomain;
-    }
+  public AbstractDomain getAbstractDomain() {
+    return predicateAbstractionDomain;
+  }
 
-    public AbstractElement merge (AbstractElement element1, AbstractElement element2, Precision prec)
-    {
-        return element2;
-    }
+  public AbstractElement merge(AbstractElement element1,
+                               AbstractElement element2, Precision prec) {
+    return element2;
+  }
 
-    public AbstractElementWithLocation merge(AbstractElementWithLocation pElement1,
-                                             AbstractElementWithLocation pElement2,
-                                             Precision prec) throws CPAException {
-      throw new CPAException ("Cannot return element with location information");
-    }
+  public AbstractElementWithLocation merge(
+                                           AbstractElementWithLocation pElement1,
+                                           AbstractElementWithLocation pElement2,
+                                           Precision prec) throws CPAException {
+    throw new CPAException("Cannot return element with location information");
+  }
 }
