@@ -36,8 +36,8 @@ public class SummaryCFAFunctionDefinitionNode extends CFAFunctionDefinitionNode
     private CFANode inner;
 
     public SummaryCFAFunctionDefinitionNode(CFANode innerNode, int lineNumber,
-            String functionName, String containingFileLocation) {
-        super(lineNumber, functionName, containingFileLocation);
+            String functionName) {
+        super(lineNumber, functionName);
         inner = innerNode;
     }
 

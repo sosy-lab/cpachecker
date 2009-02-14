@@ -408,8 +408,7 @@ public class SummaryCFABuilder {
 
         SummaryCFANode curSummary =
             new SummaryCFAFunctionDefinitionNode(copyNode(cfa),
-                cfa.getLineNumber(), cfa.getFunctionName(),
-                ""/* TODO - cfa.getContainingFileName()*/);
+                cfa.getLineNumber(), cfa.getFunctionName());
         summaryMap.put(cfa, curSummary);
         setSummary(copyNode(cfa), curSummary);
 
