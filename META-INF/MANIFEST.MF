@@ -1,55 +1,11 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
-Bundle-Name: CPAPlugin Plug-in
+Bundle-Name: CPAchecker Plug-in
 Bundle-SymbolicName: CPAPlugin; singleton:=true
 Bundle-Version: 1.0.0
 Bundle-Activator: cpaplugin.PreferencesActivator
 Bundle-ActivationPolicy: lazy
-Export-Package: .,
- cfa;uses:="cfa.objectmodel,org.eclipse.cdt.core.dom.ast",
- cfa.objectmodel;uses:="cfa.objectmodel.c",
- cfa.objectmodel.c;uses:="cfa.objectmodel,org.eclipse.cdt.core.dom.ast,cpa.common.interfaces",
- cmdline;uses:="cpaplugin,org.eclipse.cdt.core.dom.ast",
- cmdline.stubs;
-  uses:="org.eclipse.core.runtime,
-   org.eclipse.cdt.core.model,
-   org.eclipse.core.runtime.jobs,
-   org.eclipse.cdt.core.dom,
-   org.eclipse.cdt.core.parser,
-   org.eclipse.core.resources,
-   org.eclipse.core.runtime.content",
- common,
- compositeCPA;uses:="cfa.objectmodel,cpa.common,cpa.common.interfaces",
- cpa.common;uses:="cpa.common.interfaces",
- cpa.common.interfaces;uses:="cfa.objectmodel",
- cpa.defuse;uses:="cfa.objectmodel,cpa.common.interfaces",
- cpa.location;uses:="cfa.objectmodel,cpa.common.interfaces",
- cpa.octagon;
-  uses:="cfa.objectmodel,
-   octagon,
-   cpa.location,
-   cpa.common.interfaces",
- cpa.predicateabstraction;uses:="cfa.objectmodel,predicateabstraction,cpa.common.interfaces",
- cpa.symbpredabs;uses:="cfa.objectmodel,cpaplugin.exceptions,cpaplugin.cpa.common.interfaces",
- cpa.symbpredabs.mathsat;uses:="cfa.objectmodel,mathsat,cpaplugin.cpa.symbpredabs",
- cpa.symbpredabs.mathsat.summary;uses:="cpa.symbpredabs.mathsat,cpa.symbpredabs,cpa.symbpredabs.summary",
- cpa.symbpredabs.summary;
-  uses:="cfa.objectmodel,
-   cfa,
-   org.eclipse.cdt.core.dom.ast,
-   cpa.symbpredabs,
-   cfa.objectmodel.c,
-   cpa.common.interfaces",
- cpaplugin;uses:="org.eclipse.jface.resource,org.eclipse.ui.plugin,org.osgi.framework",
- cpaplugin.actions;uses:="org.eclipse.jface.action,org.eclipse.ui,org.eclipse.jface.viewers",
- cpaplugin.preferences,
- exceptions,
- logging,
- mathsat,
- net.sf.javabdd;uses:="new net.sf.javabdd",
- octagon;uses:="cpaplugin.cpa.octagon,cpaplugin.cpa.common.interfaces",
- predicateabstraction
 Bundle-ClassPath: bin/,
  lib/javabdd-1.0b2.jar,
  lib/mathsat.jar
-Bundle-RequiredExecutionEnvironment: J2SE-1.5
+Bundle-RequiredExecutionEnvironment: J2SE-1.6
