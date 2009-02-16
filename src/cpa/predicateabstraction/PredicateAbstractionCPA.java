@@ -25,6 +25,7 @@ package cpa.predicateabstraction;
 
 import cmdline.CPAMain;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
+import cfa.objectmodel.c.FunctionDefinitionNode;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
@@ -109,7 +110,8 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis {
 
   public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
     return new PredicateAbstractionElement(CPAMain.cpaConfig
-        .getProperty("analysis.entryFunction"));
+        .getProperty("analysis.entryFunction"),
+        ((FunctionDefinitionNode)node).getFunctionDefinition().getContainingFilename());
   }
 
   public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {

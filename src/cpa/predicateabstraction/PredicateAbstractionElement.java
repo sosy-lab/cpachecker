@@ -43,10 +43,10 @@ public class PredicateAbstractionElement implements AbstractElement {
   private PredicateList predicateList;
   private boolean       isFalsePredicate;
 
-  public PredicateAbstractionElement(String functionName) {
+  public PredicateAbstractionElement(String functionName, String fileName) {
     isFalsePredicate = false;
     predicateList = new PredicateList();
-    PredicateListConstructor.constructList(predicateList, functionName);
+    PredicateListConstructor.constructList(predicateList, functionName, fileName);
   }
 
   public PredicateAbstractionElement(PredicateList pl, boolean isFalse) {

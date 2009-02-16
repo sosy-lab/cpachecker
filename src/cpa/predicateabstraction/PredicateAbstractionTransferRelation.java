@@ -271,8 +271,8 @@ public class PredicateAbstractionTransferRelation implements TransferRelation {
     PredicateAbstractionElement newElement =
                                              new PredicateAbstractionElement(
                                                  calledFunctionName,
-                                                 functionEntryNode
-                                                     .getContainingFileName());
+                                                 functionEntryNode.
+                                                   getFunctionDefinition().getContainingFilename());
 
     List<IASTParameterDeclaration> parameters =
                                                 functionEntryNode
