@@ -144,6 +144,10 @@ public class QueryDrivenProgramTesting {
     
     Translator lTranslator = new Translator(pCfas);
     
+    
+    ReachabilityMap<QDPTCompositeElement> lReachabilityMap = new ReachabilityMap<QDPTCompositeElement>();
+    
+    
     while (!lTestGoals.isEmpty()) {
       // TODO remove this output
       System.out.println("NEXT LOOP (" + (lLoopCounter++) + ") #####################");
@@ -261,10 +265,15 @@ public class QueryDrivenProgramTesting {
           HashSet<Edge> lBacktrackingSet = new HashSet<Edge>();
           
           do {
-            String lPathCSource = lTranslator.translate(lPathToRoot);
-            
-            lCallsToCBMCCounter++;
-            lFeasible = CProver.isFeasible(lRoot.getLocationNode().getFunctionName(), lPathCSource);
+            if (lReachabilityMap.isReachable(lPathToRoot.get(lPathToRoot.size() - 1).getChild()) != ReachabilityMap.ReachabilityStatus.REACHABLE) {
+              String lPathCSource = lTranslator.translate(lPathToRoot);
+
+              lCallsToCBMCCounter++;
+              lFeasible = CProver.isFeasible(lRoot.getLocationNode().getFunctionName(), lPathCSource);
+            }
+            else {
+              lFeasible = true;
+            }
 
             if (!lFeasible) {
               // what's about function pointers?
@@ -300,13 +309,13 @@ public class QueryDrivenProgramTesting {
                 lRemoveEdge = (QDPTCompositeCPA.CFAEdgeEdge)lRemoveEdgeTmp;
               }
               
-              lPathCSource = lTranslator.translate(lPathToRoot);
+              //lPathCSource = lTranslator.translate(lPathToRoot);
               
               // TODO remove this from production code -> lTmpFeasible stuff
               //lCallsToCBMCCounter++;
-              boolean lTmpFeasible = CProver.isFeasible(lRoot.getLocationNode().getFunctionName(), lPathCSource);
+              /*boolean lTmpFeasible = CProver.isFeasible(lRoot.getLocationNode().getFunctionName(), lPathCSource);
 
-              assert (!lTmpFeasible);
+              assert (!lTmpFeasible);*/
 
               // remove assume edge
               lInfeasibilityCause = lPathToRoot.remove(lPathToRoot.size() - 1);
@@ -314,6 +323,19 @@ public class QueryDrivenProgramTesting {
               lLastFeasibleElement = lInfeasibilityCause.getParent();
             }
           } while (!lFeasible);
+          
+          
+          // cache feasibility information
+          QDPTCompositeElement lFeasibleElement = lLastFeasibleElement;
+          
+          lReachabilityMap.setReachable(lLastFeasibleElement);
+          
+          while (lFeasibleElement.hasParent()) {
+            lFeasibleElement = lFeasibleElement.getParent();
+            
+            lReachabilityMap.setReachable(lFeasibleElement);
+          }
+          
           
           lAllCallsToCBMC += lCallsToCBMCCounter;
           

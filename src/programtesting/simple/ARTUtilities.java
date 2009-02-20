@@ -308,8 +308,14 @@ public class ARTUtilities {
         }
       }
       else if (lCurrentElement.getNumberOfChildren() > 1) {
+        // merge redundant edges
+        
+        if (mergeRedundantEdges(pCPA, pTestGoalCPA, lCurrentElement, pInitialElementsMap)) {
+          continue;
+        }
+        
         // lCurrentElement is a candidate for a merging point
-
+        
         if (mergeAtElement(pCPA, pTestGoalCPA, lCurrentElement, pInitialElementsMap)) {
           // we merged something
           
@@ -453,11 +459,20 @@ public class ARTUtilities {
         if (lChild.getCallStack().equals(lCallStack)) {
           assert(lCurrentEdge instanceof QDPTCompositeCPA.CFAEdgeEdge);
           
-          QDPTCompositeCPA.CFAEdgeEdge lEdge = (QDPTCompositeCPA.CFAEdgeEdge)lCurrentEdge;
+          //QDPTCompositeCPA.CFAEdgeEdge lEdge = (QDPTCompositeCPA.CFAEdgeEdge)lCurrentEdge;
           
-          CFAEdge lCFAEdge = lEdge.getCFAEdge();
+          //CFAEdge lCFAEdge = lEdge.getCFAEdge();
           
-          assert(lCFAEdge.getEdgeType().equals(CFAEdgeType.ReturnEdge));
+          /*if (!lCFAEdge.getEdgeType().equals(CFAEdgeType.ReturnEdge)) {
+            System.out.println(lCFAEdge.getEdgeType());
+            System.out.println(lCFAEdge);
+            System.out.println(lParent);
+            System.out.println(lParent.getCallStack().getStack());
+            System.out.println(lChild);
+            System.out.println(lChild.getCallStack().getStack());
+          }
+          
+          assert(lCFAEdge.getEdgeType().equals(CFAEdgeType.ReturnEdge));*/
           
           return lPath;
         }
@@ -715,5 +730,69 @@ public class ARTUtilities {
     }
     
     return lMergePaths;
+  }
+
+  private static boolean mergeRedundantEdges(QDPTCompositeCPA pCPA, TestGoalCPA pTestGoalCPA, QDPTCompositeCPA.QDPTCompositeElement pElement, Map<QDPTCompositeCPA.QDPTCompositeElement, Set<CFAEdge>> pInitialElementsMap) {
+    assert(pCPA != null);
+    assert(pTestGoalCPA != null);
+    assert(pElement != null);
+    assert(pInitialElementsMap != null);
+    
+    // ensure that pElement is really a candidate for merging
+    assert(pElement.getNumberOfChildren() > 1);
+    
+    boolean lMergeDone = false;
+    
+    ArrayList<Edge> lChildren = new ArrayList<Edge>();
+
+    for (Edge lEdge : pElement.getChildren()) {
+      lChildren.add(lEdge);
+    }
+
+    for (int lOuterPathIndex = 0; lOuterPathIndex < lChildren.size() - 1; lOuterPathIndex++) {
+      Edge lOuterPathEdge = lChildren.get(lOuterPathIndex);
+
+      LinkedList<Edge> lOuterPath = new LinkedList<Edge>();
+      lOuterPath.add(lOuterPathEdge);
+      
+      for (int lInnerPathIndex = lOuterPathIndex + 1; lInnerPathIndex < lChildren.size(); lInnerPathIndex++) {
+        Edge lInnerPathEdge = lChildren.get(lInnerPathIndex);
+        
+        LinkedList<Edge> lInnerPath = new LinkedList<Edge>();
+        lInnerPath.add(lInnerPathEdge);
+
+        Set<List<Edge>> lPaths = new HashSet<List<Edge>>(2);
+
+        lPaths.add(lOuterPath);
+        lPaths.add(lInnerPath);
+        
+        if (areElementsMergeable(pTestGoalCPA, lOuterPathEdge.getChild(), lInnerPathEdge.getChild())) {
+          QDPTCompositeElement lMergeElement = merge(pCPA, pTestGoalCPA, pElement, lPaths, pInitialElementsMap);
+          
+          if (pInitialElementsMap.containsKey(lMergeElement)) {
+            propagate(lMergeElement, pInitialElementsMap);
+          }
+
+          lMergeDone = true;
+
+          int lOldSize = lChildren.size();
+
+          // TODO optimize this
+          lChildren.clear();
+
+          for (Edge lEdge : pElement.getChildren()) {
+            lChildren.add(lEdge);
+          }
+
+          assert (lOldSize - 1 == lChildren.size());
+
+          lOuterPathIndex = 0;
+
+          break;
+        }
+      }
+    }
+    
+    return lMergeDone;
   }
 }
