@@ -136,7 +136,7 @@ public class CProver {
       // TODO not sure about the negation here, so make sure we don't use this
       // function before checking again
       assert(false);
-      results.put(lPath.getKey(), !isFeasible(lFile, lFunctionName + "_0"));
+      results.put(lPath.getKey(), !isFeasible(lFile, lPath.getKey().getFirst().getLocationNode().getFunctionName() + "_0"));
 
       lFile.delete();
     }
