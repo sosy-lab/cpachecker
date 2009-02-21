@@ -36,6 +36,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Deque;
+import java.lang.ProcessBuilder;
 
 import cpa.symbpredabs.explicit.ExplicitAbstractElement;
 
@@ -68,55 +69,10 @@ public class CProver {
     
     lWriter.close();
 
-    try {
-      Process lCBMCProcess = Runtime.getRuntime().exec("cbmc --no-pointer-check --no-bounds-check --no-div-by-zero-check --function " + pFunctionName + "_0 " + lFile.getAbsolutePath());
-      
-      int lCBMCExitValue;
-      try {
-        lCBMCExitValue = lCBMCProcess.waitFor();
-      } catch (InterruptedException e) {
-        lCBMCExitValue = -1;
-      }
+    boolean retval = isFeasible(lFile, pFunctionName + "_0");
+    lFile.delete();
 
-      switch (lCBMCExitValue) {
-        case 0: // lCBMCExitValue == 0 : Verification successful (Path is infeasible)
-          lFile.delete();
-          return false;
-
-        case 10: // lCBMCExitValue == 10 : Verification failed (Path is feasible)
-          lFile.delete();
-          return true;
-
-        default:
-          // lCBMCExitValue == 6 : Start function symbol not found, but also gcc not found
-          // more error codes?
-          System.err.println("CBMC had exit code " + lCBMCExitValue + ", output was:");
-          BufferedReader br = new BufferedReader(new InputStreamReader(lCBMCProcess.getErrorStream()));
-          String line = null;
-
-          while ((line = br.readLine()) != null) {
-            System.err.println(line);
-          }
-          br.close();
-
-          br = new BufferedReader(new InputStreamReader(lCBMCProcess.getInputStream()));
-          while ((line = br.readLine()) != null) {
-            System.err.println(line);
-          }
-
-          br.close();
-          assert (false);
-          break;
-        }
-    } catch (IOException e) {
-      e.printStackTrace();
-      assert (false);
-    }
-
-    // should be dead code
-    assert(false);
-    
-    return true;
+    return retval;
   }
   
   public static boolean isFeasible(String pFunctionName, List<String> pProgram) {
@@ -144,55 +100,10 @@ public class CProver {
 
     lWriter.close();
 
-    try {
-      Process lCBMCProcess = Runtime.getRuntime().exec("cbmc --no-pointer-check --no-bounds-check --no-div-by-zero-check --function " + pFunctionName + "_0 " + lFile.getAbsolutePath());
-      
-      int lCBMCExitValue;
-      try {
-        lCBMCExitValue = lCBMCProcess.waitFor();
-      } catch (InterruptedException e) {
-        lCBMCExitValue = -1;
-      }
+    boolean retval = isFeasible(lFile, pFunctionName + "_0");
+    lFile.delete();
 
-      switch (lCBMCExitValue) {
-        case 0: // lCBMCExitValue == 0 : Verification successful (Path is infeasible)
-          lFile.delete();
-          return false;
-
-        case 10: // lCBMCExitValue == 10 : Verification failed (Path is feasible)
-          lFile.delete();
-          return true;
-
-        default:
-          // lCBMCExitValue == 6 : Start function symbol not found, but also gcc not found
-          // more error codes?
-          System.err.println("CBMC had exit code " + lCBMCExitValue + ", output was:");
-          BufferedReader br = new BufferedReader(new InputStreamReader(lCBMCProcess.getErrorStream()));
-          String line = null;
-
-          while ((line = br.readLine()) != null) {
-            System.err.println(line);
-          }
-          br.close();
-
-          br = new BufferedReader(new InputStreamReader(lCBMCProcess.getInputStream()));
-          while ((line = br.readLine()) != null) {
-            System.err.println(line);
-          }
-
-          br.close();
-          assert (false);
-          break;
-        }
-    } catch (IOException e) {
-      e.printStackTrace();
-      assert (false);
-    }
-
-    // should be dead code
-    assert(false);
-    
-    return true;
+    return retval;
   }
   
   public static Map<Deque<ExplicitAbstractElement>, Boolean> checkSat (Map<Deque<ExplicitAbstractElement>, List<String>> translations) {
@@ -222,71 +133,64 @@ public class CProver {
 
       lWriter.close();
 
-      try {
-        String lFunctionName = lPath.getKey().getFirst().getLocationNode().getFunctionName();                                       
-        Process lCBMCProcess = Runtime.getRuntime().exec("cbmc --function " + lFunctionName + "_0 " + lFile.getAbsolutePath());            
+      // TODO not sure about the negation here, so make sure we don't use this
+      // function before checking again
+      assert(false);
+      results.put(lPath.getKey(), !isFeasible(lFile, lFunctionName + "_0"));
 
-        // TODO Remove output --- begin
-        /*BufferedReader lReader = new BufferedReader(new InputStreamReader(lCBMCProcess.getInputStream()));
-
-        String lLine = null;
-
-        while ((lLine = lReader.readLine()) != null) {
-          System.out.println(lLine);
-        }
-
-        BufferedReader lErrorReader = new BufferedReader(new InputStreamReader(lCBMCProcess.getErrorStream()));
-
-        String lErrorLine = null;
-
-        while ((lErrorLine = lErrorReader.readLine()) != null) {
-          System.out.println(lErrorLine);
-        }*/
-        // TODO Remove output --- end
-
-        int lCBMCExitValue;
-        try {
-          lCBMCExitValue = lCBMCProcess.waitFor();
-        } catch (InterruptedException e) {
-          lCBMCExitValue = -1;
-        }
-
-        switch (lCBMCExitValue) {
-        case 0: // lCBMCExitValue == 0 : Verification successful (Path is infeasible)
-          results.put(lPath.getKey(), true);
-          break;
-        case 10: // lCBMCExitValue == 10 : Verification failed (Path is feasible)
-          results.put(lPath.getKey(), false);
-          break;
-        default:
-          // lCBMCExitValue == 6 : Start function symbol not found, but also gcc not found
-          // more error codes?
-          System.err.println("CBMC had exit code " + lCBMCExitValue + ", output was:");
-          BufferedReader br = new BufferedReader(new InputStreamReader(lCBMCProcess.getErrorStream()));
-          String line = null;
-        
-          while ((line = br.readLine()) != null) {
-            System.err.println(line);
-          }
-          br.close();
-          
-          br = new BufferedReader(new InputStreamReader(lCBMCProcess.getInputStream()));
-          while ((line = br.readLine()) != null) {
-            System.err.println(line);
-          }
-
-          br.close();
-          assert(false);
-          break;
-        }
-      } catch (IOException e) {
-        e.printStackTrace();
-        System.exit(1);
-      } 
-      
       lFile.delete();
     }
     
     return results;
+  }
+
+  private static boolean isFeasible(File pFile, String pFunctionName) {
+    try {
+      ProcessBuilder pb = new ProcessBuilder("cbmc", "--no-pointer-check --no-bounds-check --no-div-by-zero-check --function " + pFunctionName + " " + pFile.getAbsolutePath());
+      pb.redirectErrorStream(true);
+      Process lCBMCProcess = pb.start();
+      
+      int lCBMCExitValue;
+      try {
+        lCBMCExitValue = lCBMCProcess.waitFor();
+      } catch (InterruptedException e) {
+        lCBMCExitValue = -1;
+      }
+      // we need to read the output of CBMC, otherwise it will block at some
+      // point in time when the buffer is full (OS-dependent)
+      BufferedReader br = new BufferedReader(new InputStreamReader(lCBMCProcess.getInputStream()));
+
+      switch (lCBMCExitValue) {
+        case 0: // lCBMCExitValue == 0 : Verification successful (Path is infeasible)
+          while (br.readLine() != null); // discard the output
+          br.close();
+          return false;
+
+        case 10: // lCBMCExitValue == 10 : Verification failed (Path is feasible)
+          while (br.readLine() != null); // discard the output
+          br.close();
+          return true;
+
+        default:
+          // lCBMCExitValue == 6 : Start function symbol not found, but also gcc not found
+          // more error codes?
+          System.err.println("CBMC had exit code " + lCBMCExitValue + ", output was:");
+
+          String line = null;
+          while ((line = br.readLine()) != null) {
+            System.err.println(line);
+          }
+          br.close();
+
+          assert (false);
+          break;
+        }
+    } catch (IOException e) {
+      e.printStackTrace();
+      assert (false);
+    }
+
+    assert(false); // we don't reach here, and if we ever do: think again about the return value
+    return false;
   }
 }
