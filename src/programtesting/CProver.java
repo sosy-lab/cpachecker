@@ -146,7 +146,7 @@ public class CProver {
 
   private static boolean isFeasible(File pFile, String pFunctionName) {
     try {
-      ProcessBuilder pb = new ProcessBuilder("cbmc", "--no-pointer-check --no-bounds-check --no-div-by-zero-check --function " + pFunctionName + " " + pFile.getAbsolutePath());
+      ProcessBuilder pb = new ProcessBuilder("cbmc", "--no-pointer-check",  "--no-bounds-check",  "--no-div-by-zero-check",  "--function", pFunctionName, pFile.getAbsolutePath());
       pb.redirectErrorStream(true);
       Process lCBMCProcess = pb.start();
       
