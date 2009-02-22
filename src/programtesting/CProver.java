@@ -31,6 +31,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.InputStream;
 import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.List;
@@ -45,6 +46,37 @@ import cpa.symbpredabs.explicit.ExplicitAbstractElement;
  *
  */
 public class CProver {
+
+    // based on the code from
+    // http://www.velocityreviews.com/forums/t130884-process-runtimeexec-causes-subprocess-hang.html
+    public static class StreamGobbler implements Runnable {
+      private final InputStream is;
+      private StringBuilder stream;
+
+      public StreamGobbler (InputStream is) {
+        this.is = is;
+        stream = new StringBuilder();
+      }
+
+      public void run () {
+        BufferedReader br = new BufferedReader (new InputStreamReader (is));
+        String line;
+
+        try {
+          while ((line = br.readLine()) != null) {
+            stream.append(line + "\n");
+          }
+          is.close();
+        } catch (IOException e) {
+          e.printStackTrace();
+          assert(false);
+        }
+      }
+
+      public String getStream() {
+        return stream.toString();
+      }
+    }
 
     public static boolean isFeasible(String pFunctionName, String pProgram) {
     File lFile = null;
@@ -149,6 +181,9 @@ public class CProver {
       ProcessBuilder pb = new ProcessBuilder("cbmc", "--no-pointer-check",  "--no-bounds-check",  "--no-div-by-zero-check",  "--function", pFunctionName, pFile.getAbsolutePath());
       pb.redirectErrorStream(true);
       Process lCBMCProcess = pb.start();
+      // we need to read the output of CBMC, otherwise it will block at some
+      // point in time when the buffer is full (OS-dependent)
+      StreamGobbler lGobbler = new StreamGobbler (lCBMCProcess.getInputStream ());
       
       int lCBMCExitValue;
       try {
@@ -156,31 +191,19 @@ public class CProver {
       } catch (InterruptedException e) {
         lCBMCExitValue = -1;
       }
-      // we need to read the output of CBMC, otherwise it will block at some
-      // point in time when the buffer is full (OS-dependent)
-      BufferedReader br = new BufferedReader(new InputStreamReader(lCBMCProcess.getInputStream()));
 
       switch (lCBMCExitValue) {
         case 0: // lCBMCExitValue == 0 : Verification successful (Path is infeasible)
-          while (br.readLine() != null); // discard the output
-          br.close();
           return false;
 
         case 10: // lCBMCExitValue == 10 : Verification failed (Path is feasible)
-          while (br.readLine() != null); // discard the output
-          br.close();
           return true;
 
         default:
           // lCBMCExitValue == 6 : Start function symbol not found, but also gcc not found
           // more error codes?
           System.err.println("CBMC had exit code " + lCBMCExitValue + ", output was:");
-
-          String line = null;
-          while ((line = br.readLine()) != null) {
-            System.err.println(line);
-          }
-          br.close();
+          System.err.println(lGobbler.getStream());
 
           assert (false);
           break;
