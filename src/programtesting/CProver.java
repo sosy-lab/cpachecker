@@ -56,6 +56,7 @@ public class CProver {
       public StreamGobbler (InputStream is) {
         this.is = is;
         stream = new StringBuilder();
+        (new Thread(this)).start();
       }
 
       public void run () {
