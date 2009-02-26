@@ -40,6 +40,7 @@ import cfa.objectmodel.CFAEdgeType;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 
 import cmdline.CPAMain;
+import common.Pair;
 import compositeCPA.CompositePrecision;
 
 import cpa.common.CPAAlgorithm;
@@ -173,34 +174,13 @@ public class QueryDrivenProgramTesting {
       
       HashMap<QDPTCompositeElement, Set<CFAEdge>> lOldInitialElementsMap = new HashMap<QDPTCompositeElement, Set<CFAEdge>>(lInitialElementsMap);
       
-      Set<Edge> lInitialEdges = new HashSet<Edge>();
       
-      try {
-        // create list of initial edges and initial states
-        Set<QDPTCompositeElement> lInitialElements = new HashSet<QDPTCompositeElement>();
-        
-        for (Entry<QDPTCompositeElement, Set<CFAEdge>> lEntry : lInitialElementsMap.entrySet()) {
-          QDPTCompositeElement lCurrentElement = lEntry.getKey();
-          
-          for (CFAEdge lCFAEdge : lEntry.getValue()) {
-            try {
-              AbstractElement lSuccessor = cpa.getTransferRelation().getAbstractSuccessor(lCurrentElement, lCFAEdge, lInitialPrecision);
-              
-              // NOTE: bottom can be produced because of not matching call stacks
-              if (!cpa.getAbstractDomain().isBottomElement(lSuccessor)) {
-                assert(lSuccessor instanceof QDPTCompositeElement);
-              
-                lInitialElements.add((QDPTCompositeElement)lSuccessor);
-                lInitialEdges.add(((QDPTCompositeElement)lSuccessor).getEdgeToParent());
-              }
-            }
-            catch (Exception e) {
-              e.printStackTrace();
-              assert(false);
-            }
-          }
-        }
-                
+      Pair<Set<Edge>, Set<QDPTCompositeElement>> lInitialization = ARTUtilities.getInitialization(lInitialElementsMap, lInitialPrecision, cpa);
+      
+      Set<Edge> lInitialEdges = lInitialization.getFirst();
+      Set<QDPTCompositeElement> lInitialElements = lInitialization.getSecond();
+      
+      try {                
         // perform cfa exploration
         CPAAlgorithm.CPAWithInitialSet(cpa, lInitialElements, lInitialPrecision, ARTUtilities.getReachedElements(lInitialElementsMap));
         

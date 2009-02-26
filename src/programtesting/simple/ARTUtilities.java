@@ -8,10 +8,13 @@ package programtesting.simple;
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAEdgeType;
 import cfa.objectmodel.CFANode;
+import common.Pair;
 import cpa.common.CallStack;
 import cpa.common.automaton.Automaton;
 import cpa.common.automaton.AutomatonCPADomain;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.ConfigurableProgramAnalysis;
+import cpa.common.interfaces.Precision;
 import cpa.testgoal.TestGoalCPA;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -21,6 +24,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.Vector;
 import programtesting.simple.QDPTCompositeCPA.Edge;
@@ -794,5 +798,38 @@ public class ARTUtilities {
     }
     
     return lMergeDone;
+  }
+  
+  public static Pair<Set<Edge>, Set<QDPTCompositeElement>> getInitialization(Map<QDPTCompositeElement, Set<CFAEdge>> pInitialElementsMap, Precision pInitialPrecision, ConfigurableProgramAnalysis pCPA) {
+    assert(pInitialElementsMap != null);
+    assert(pInitialPrecision != null);
+    assert(pCPA != null);
+    
+    Set<Edge> lInitialEdges = new HashSet<Edge>();
+    
+    Set<QDPTCompositeElement> lInitialElements = new HashSet<QDPTCompositeElement>();
+        
+    for (Entry<QDPTCompositeElement, Set<CFAEdge>> lEntry : pInitialElementsMap.entrySet()) {
+      QDPTCompositeElement lCurrentElement = lEntry.getKey();
+
+      for (CFAEdge lCFAEdge : lEntry.getValue()) {
+        try {
+          AbstractElement lSuccessor = pCPA.getTransferRelation().getAbstractSuccessor(lCurrentElement, lCFAEdge, pInitialPrecision);
+
+          // NOTE: bottom can be produced because of not matching call stacks
+          if (!pCPA.getAbstractDomain().isBottomElement(lSuccessor)) {
+            assert (lSuccessor instanceof QDPTCompositeElement);
+
+            lInitialElements.add((QDPTCompositeElement) lSuccessor);
+            lInitialEdges.add(((QDPTCompositeElement) lSuccessor).getEdgeToParent());
+          }
+        } catch (Exception e) {
+          e.printStackTrace();
+          assert (false);
+        }
+      }
+    }
+
+    return new Pair<Set<Edge>, Set<QDPTCompositeElement>>(lInitialEdges, lInitialElements);
   }
 }
