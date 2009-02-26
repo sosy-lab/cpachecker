@@ -44,7 +44,6 @@ import common.Pair;
 import compositeCPA.CompositePrecision;
 
 import cpa.common.CPAAlgorithm;
-import cpa.common.CallElement;
 import cpa.common.automaton.Automaton;
 import cpa.common.automaton.AutomatonCPADomain;
 import cpa.common.interfaces.AbstractElement;
@@ -60,7 +59,6 @@ import exceptions.CPAException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
-import java.util.Map.Entry;
 import programtesting.simple.QDPTCompositeCPA.Edge;
 import programtesting.simple.QDPTCompositeCPA.QDPTCompositeElement;
 
@@ -203,7 +201,7 @@ public class QueryDrivenProgramTesting {
       int lPathCounter = 0;
       int lPathMaxLength = 0;
       
-      int lAllCallsToCBMC = 0;
+      int lNumberOfCallsToCBMCOld = CProver.getNumberOfCallsToCBMC();
       
       while (!lWorklist.isEmpty() && !lTestGoals.isEmpty()) {
         Edge lCurrentEdge = lWorklist.removeFirst();
@@ -235,8 +233,6 @@ public class QueryDrivenProgramTesting {
 
           Edge lInfeasibilityCause = null;
 
-          int lCallsToCBMCCounter = 0;
-          
           QDPTCompositeElement lLastFeasibleElement = lCurrentElement;
           
           HashSet<Edge> lBacktrackingSet = new HashSet<Edge>();
@@ -245,7 +241,6 @@ public class QueryDrivenProgramTesting {
             if (lReachabilityMap.isReachable(lPathToRoot.get(lPathToRoot.size() - 1).getChild()) != ReachabilityMap.ReachabilityStatus.REACHABLE) {
               String lPathCSource = lTranslator.translate(lPathToRoot);
 
-              lCallsToCBMCCounter++;
               lFeasible = CProver.isFeasible(lRoot.getLocationNode().getFunctionName(), lPathCSource);
             }
             else {
@@ -314,8 +309,6 @@ public class QueryDrivenProgramTesting {
           }
           
           
-          lAllCallsToCBMC += lCallsToCBMCCounter;
-          
           // backtrack
           lWorklist.removeAll(lBacktrackingSet);
           
@@ -355,7 +348,7 @@ public class QueryDrivenProgramTesting {
         }
       }
       
-      System.out.println("Calls to CBMC: " + lAllCallsToCBMC);
+      System.out.println("Calls to CBMC: " + (CProver.getNumberOfCallsToCBMC() - lNumberOfCallsToCBMCOld));
       
       if (CPAMain.cpaConfig.getBooleanValue("art.visualize")) {
         OutputUtilities.outputAbstractReachabilityTree("art_" + lLoopCounter + "_b_", lRoot, lInitialElementsMap.keySet());

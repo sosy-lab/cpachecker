@@ -37,7 +37,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Deque;
-import java.lang.ProcessBuilder;
 
 import cpa.symbpredabs.explicit.ExplicitAbstractElement;
 
@@ -46,13 +45,14 @@ import cpa.symbpredabs.explicit.ExplicitAbstractElement;
  *
  */
 public class CProver {
+  private static int mNumberOfCallsToCBMC = 0;
 
     // based on the code from
     // http://www.velocityreviews.com/forums/t130884-process-runtimeexec-causes-subprocess-hang.html
     public static class StreamGobbler implements Runnable {
       private final InputStream is;
       private StringBuilder stream;
-
+      
       public StreamGobbler (InputStream is) {
         this.is = is;
         stream = new StringBuilder();
@@ -179,6 +179,8 @@ public class CProver {
 
   private static boolean isFeasible(File pFile, String pFunctionName) {
     try {
+      mNumberOfCallsToCBMC++;
+
       ProcessBuilder pb = new ProcessBuilder("cbmc", "--no-pointer-check",  "--no-bounds-check",  "--no-div-by-zero-check",  "--function", pFunctionName, pFile.getAbsolutePath());
       pb.redirectErrorStream(true);
       Process lCBMCProcess = pb.start();
@@ -216,5 +218,9 @@ public class CProver {
 
     assert(false); // we don't reach here, and if we ever do: think again about the return value
     return false;
+  }
+  
+  public static int getNumberOfCallsToCBMC() {
+    return mNumberOfCallsToCBMC;
   }
 }
