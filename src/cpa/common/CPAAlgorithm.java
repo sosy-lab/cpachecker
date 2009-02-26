@@ -387,7 +387,7 @@ public class CPAAlgorithm
     return simpleReached;
       }
   
-  public Collection<AbstractElementWithLocation> CPAWithInitialSet (programtesting.simple.QDPTCompositeCPA cpa, Collection<programtesting.simple.QDPTCompositeCPA.QDPTCompositeElement> pInitialStates, Precision initialPrecision, Collection<programtesting.simple.QDPTCompositeCPA.QDPTCompositeElement> pAlreadyReachedStates) throws CPAException {
+  public static Collection<AbstractElementWithLocation> CPAWithInitialSet (programtesting.simple.QDPTCompositeCPA cpa, Collection<programtesting.simple.QDPTCompositeCPA.QDPTCompositeElement> pInitialStates, Precision initialPrecision, Collection<programtesting.simple.QDPTCompositeCPA.QDPTCompositeElement> pAlreadyReachedStates) throws CPAException {
     List<Pair<AbstractElementWithLocation,Precision>> waitlist = new ArrayList<Pair<AbstractElementWithLocation,Precision>>();
     Collection<Pair<AbstractElementWithLocation,Precision>> reached = createReachedSet(cpa);
 
@@ -526,7 +526,7 @@ public class CPAAlgorithm
     return simpleReached;
   }
 
-  private Pair<AbstractElementWithLocation,Precision> choose(List<Pair<AbstractElementWithLocation,Precision>> waitlist) {
+  private static Pair<AbstractElementWithLocation,Precision> choose(List<Pair<AbstractElementWithLocation,Precision>> waitlist) {
 
     if(waitlist.size() == 1){
       return waitlist.remove(0);
@@ -552,7 +552,7 @@ public class CPAAlgorithm
     }
   }
 
-  private Collection<Pair<AbstractElementWithLocation,Precision>> createReachedSet(
+  private static Collection<Pair<AbstractElementWithLocation,Precision>> createReachedSet(
       ConfigurableProgramAnalysis cpa) {
     // check whether the cpa provides a method for building a specialized
     // reached set. If not, just use a HashSet

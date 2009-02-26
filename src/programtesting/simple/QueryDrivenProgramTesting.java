@@ -106,9 +106,6 @@ public class QueryDrivenProgramTesting {
       
     QDPTCompositeCPA cpa = new QDPTCompositeCPA(cpas, pMainFunction, lTestGoalCPA.getAbstractDomain(), mTestGoalCPAIndex);
     
-    
-    
-    CPAAlgorithm algo = new CPAAlgorithm();
 
     
     
@@ -205,7 +202,7 @@ public class QueryDrivenProgramTesting {
         }
                 
         // perform cfa exploration
-        algo.CPAWithInitialSet(cpa, lInitialElements, lInitialPrecision, ARTUtilities.getReachedElements(lInitialElementsMap));
+        CPAAlgorithm.CPAWithInitialSet(cpa, lInitialElements, lInitialPrecision, ARTUtilities.getReachedElements(lInitialElementsMap));
         
         lInitialElementsMap.clear();
       } catch (CPAException e1) {
