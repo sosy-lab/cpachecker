@@ -105,6 +105,26 @@ public class AutomatonCPADomain<E> implements AbstractDomain {
       return mStates;
     }
     
+    public Element projectToNonacceptingStates() {
+      Set<Automaton<E>.State> lNonacceptingStates = new HashSet<Automaton<E>.State>();
+      
+      for (Automaton<E>.State lState : mStates) {
+        if (!lState.isFinal()) {
+          lNonacceptingStates.add(lState);
+        }
+      }
+      
+      if (lNonacceptingStates.size() == 0) {
+        return new BottomElement(getDomain());
+      }
+      
+      if (lNonacceptingStates.size() == mStates.size()) {
+        return this;
+      }
+      
+      return new StateSetElement(getDomain(), lNonacceptingStates);
+    }
+    
     @Override
     public boolean subsumes(Element pOtherElement) {
       assert(pOtherElement != null);

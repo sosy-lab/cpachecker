@@ -140,9 +140,8 @@ public class ARTUtilities {
     }
   }
   
-  public static boolean mergeAtElement(QDPTCompositeCPA pCPA, TestGoalCPA pTestGoalCPA, QDPTCompositeElement pElement, Map<QDPTCompositeElement, Set<CFAEdge>> pInitialElementsMap) {
+  public static boolean mergeAtElement(QDPTCompositeCPA pCPA, QDPTCompositeElement pElement, Map<QDPTCompositeElement, Set<CFAEdge>> pInitialElementsMap) {
     assert(pCPA != null);
-    assert(pTestGoalCPA != null);
     assert(pElement != null);
     assert(pInitialElementsMap != null);
     
@@ -176,10 +175,10 @@ public class ARTUtilities {
             lPaths.add(lOuterPath);
             lPaths.add(lInnerPath);
 
-            Set<List<Edge>> lMergeSubpaths = getMergeSubpaths(pTestGoalCPA, lPaths);
+            Set<List<Edge>> lMergeSubpaths = getMergeSubpaths(lPaths);
 
             if (lMergeSubpaths.size() > 1) {
-              QDPTCompositeElement lMergeElement = merge(pCPA, pTestGoalCPA, pElement, lMergeSubpaths, pInitialElementsMap);
+              QDPTCompositeElement lMergeElement = merge(pCPA, pElement, lMergeSubpaths, pInitialElementsMap);
 
               if (pInitialElementsMap.containsKey(lMergeElement)) {
                 propagate(lMergeElement, pInitialElementsMap);
@@ -210,9 +209,8 @@ public class ARTUtilities {
     return lMergeDone;
   }
   
-  public static void mergePaths(QDPTCompositeCPA pCPA, TestGoalCPA pTestGoalCPA, QDPTCompositeElement pElement, Map<QDPTCompositeElement, Set<CFAEdge>> pInitialElementsMap) {
+  public static void mergePaths(QDPTCompositeCPA pCPA, QDPTCompositeElement pElement, Map<QDPTCompositeElement, Set<CFAEdge>> pInitialElementsMap) {
     assert(pCPA != null);
-    assert(pTestGoalCPA != null);
     assert(pElement != null);
     assert(pInitialElementsMap != null);
     
@@ -314,13 +312,13 @@ public class ARTUtilities {
       else if (lCurrentElement.getNumberOfChildren() > 1) {
         // merge redundant edges
         
-        if (mergeRedundantEdges(pCPA, pTestGoalCPA, lCurrentElement, pInitialElementsMap)) {
+        if (mergeRedundantEdges(pCPA, lCurrentElement, pInitialElementsMap)) {
           continue;
         }
         
         // lCurrentElement is a candidate for a merging point
         
-        if (mergeAtElement(pCPA, pTestGoalCPA, lCurrentElement, pInitialElementsMap)) {
+        if (mergeAtElement(pCPA, lCurrentElement, pInitialElementsMap)) {
           // we merged something
           
           if (lElementBeforeBacktracking != null) {
@@ -502,9 +500,8 @@ public class ARTUtilities {
     return lPath;
   }
   
-  public static QDPTCompositeElement merge(QDPTCompositeCPA pCPA, TestGoalCPA pTestGoalCPA, QDPTCompositeElement pElement, Set<List<Edge>> pSubpaths, Map<QDPTCompositeElement, Set<CFAEdge>> pInitialElementsMap) {
+  public static QDPTCompositeElement merge(QDPTCompositeCPA pCPA, QDPTCompositeElement pElement, Set<List<Edge>> pSubpaths, Map<QDPTCompositeElement, Set<CFAEdge>> pInitialElementsMap) {
     assert(pCPA != null);
-    assert(pTestGoalCPA != null);
     assert(pElement != null);
     assert(pSubpaths != null);
     assert(pSubpaths.size() > 1);
@@ -522,23 +519,20 @@ public class ARTUtilities {
     
     // create merge element
     List<AbstractElement> lAbstractElements = new LinkedList<AbstractElement>();
+    
     // location cpa
     lAbstractElements.add(lLastElement.get(QueryDrivenProgramTesting.mLocationCPAIndex));
+    
     // scope restriction cpa
     // TODO this has to be changed to handle scope restriction analysis correctly!
     lAbstractElements.add(lLastElement.get(QueryDrivenProgramTesting.mScopeRestrictionCPAIndex));
+    
     // test goal cpa
-    Set<Automaton<CFAEdge>.State> lNonAcceptingStates = new HashSet<Automaton<CFAEdge>.State>();
-
     AutomatonCPADomain<CFAEdge>.StateSetElement lLastStateSetElement = lLastElement.projectTo(QueryDrivenProgramTesting.mTestGoalCPAIndex);
-            
-    for (Automaton<CFAEdge>.State lState : lLastStateSetElement.getStates()) {
-      if (!lState.isFinal()) {
-        lNonAcceptingStates.add(lState);
-      }
-    }
-
-    AutomatonCPADomain<CFAEdge>.StateSetElement lStateSetElement = pTestGoalCPA.getAbstractDomain().createStateSetElement(pTestGoalCPA.getAbstractDomain(), lNonAcceptingStates);
+    
+    //TODO what to do in case we get bottom element back?
+    AutomatonCPADomain<CFAEdge>.Element lStateSetElement = lLastStateSetElement.projectToNonacceptingStates();
+    
     lAbstractElements.add(lStateSetElement);
 
     //pElement.hideChildren();
@@ -642,7 +636,7 @@ public class ARTUtilities {
     return lCurrentNonAcceptingStates.equals(lCandidateNonAcceptingStates);
   }
   
-  public static Set<List<Edge>> getMergeSubpaths(TestGoalCPA pTestGoalCPA, Vector<LinkedList<Edge>> pPaths) {
+  public static Set<List<Edge>> getMergeSubpaths(Vector<LinkedList<Edge>> pPaths) {
     assert(pPaths != null);
     
     
@@ -738,9 +732,8 @@ public class ARTUtilities {
     return lMergePaths;
   }
 
-  private static boolean mergeRedundantEdges(QDPTCompositeCPA pCPA, TestGoalCPA pTestGoalCPA, QDPTCompositeCPA.QDPTCompositeElement pElement, Map<QDPTCompositeCPA.QDPTCompositeElement, Set<CFAEdge>> pInitialElementsMap) {
+  private static boolean mergeRedundantEdges(QDPTCompositeCPA pCPA, QDPTCompositeCPA.QDPTCompositeElement pElement, Map<QDPTCompositeCPA.QDPTCompositeElement, Set<CFAEdge>> pInitialElementsMap) {
     assert(pCPA != null);
-    assert(pTestGoalCPA != null);
     assert(pElement != null);
     assert(pInitialElementsMap != null);
     
@@ -773,7 +766,7 @@ public class ARTUtilities {
         lPaths.add(lInnerPath);
         
         if (areElementsMergeable(lOuterPathEdge.getChild(), lInnerPathEdge.getChild())) {
-          QDPTCompositeElement lMergeElement = merge(pCPA, pTestGoalCPA, pElement, lPaths, pInitialElementsMap);
+          QDPTCompositeElement lMergeElement = merge(pCPA, pElement, lPaths, pInitialElementsMap);
           
           if (pInitialElementsMap.containsKey(lMergeElement)) {
             propagate(lMergeElement, pInitialElementsMap);

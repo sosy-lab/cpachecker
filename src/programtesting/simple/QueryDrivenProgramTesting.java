@@ -348,7 +348,7 @@ public class QueryDrivenProgramTesting {
         if (!lTestGoals.isEmpty()) {
           System.out.println(lInitialElementsMap);
 
-          ARTUtilities.mergePaths(cpa, lTestGoalCPA, lRoot, lInitialElementsMap);
+          ARTUtilities.mergePaths(cpa, lRoot, lInitialElementsMap);
           
           System.out.println(lInitialElementsMap);
           
