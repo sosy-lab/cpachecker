@@ -530,7 +530,9 @@ public class ARTUtilities {
     // test goal cpa
     Set<Automaton<CFAEdge>.State> lNonAcceptingStates = new HashSet<Automaton<CFAEdge>.State>();
 
-    for (Automaton<CFAEdge>.State lState : pTestGoalCPA.getAbstractDomain().castToStateSetElement(lLastElement.get(QueryDrivenProgramTesting.mTestGoalCPAIndex)).getStates()) {
+    AutomatonCPADomain<CFAEdge>.StateSetElement lLastStateSetElement = lLastElement.projectTo(QueryDrivenProgramTesting.mTestGoalCPAIndex);
+            
+    for (Automaton<CFAEdge>.State lState : lLastStateSetElement.getStates()) {
       if (!lState.isFinal()) {
         lNonAcceptingStates.add(lState);
       }
@@ -599,7 +601,7 @@ public class ARTUtilities {
     return lMergeElement;
   }
 
-  public static boolean areElementsMergeable(TestGoalCPA pTestGoalCPA, QDPTCompositeElement pElement1, QDPTCompositeElement pElement2) {
+  public static boolean areElementsMergeable(QDPTCompositeElement pElement1, QDPTCompositeElement pElement2) {
     assert(pElement1 != null);
     assert(pElement2 != null);
     
@@ -614,7 +616,7 @@ public class ARTUtilities {
     }
 
     
-    AutomatonCPADomain<CFAEdge>.StateSetElement lCurrentStateSetElement = pTestGoalCPA.getAbstractDomain().castToStateSetElement(pElement1.get(QueryDrivenProgramTesting.mTestGoalCPAIndex));
+    AutomatonCPADomain<CFAEdge>.StateSetElement lCurrentStateSetElement = pElement1.projectTo(QueryDrivenProgramTesting.mTestGoalCPAIndex);
     Set<Automaton<CFAEdge>.State> lCurrentStates = lCurrentStateSetElement.getStates();
     // TODO: provide this sets by automaton or test goal cpa element
     Set<Automaton<CFAEdge>.State> lCurrentNonAcceptingStates = new HashSet<Automaton<CFAEdge>.State>();
@@ -626,7 +628,7 @@ public class ARTUtilities {
     }
 
     
-    AutomatonCPADomain<CFAEdge>.StateSetElement lCandidateStateSetElement = pTestGoalCPA.getAbstractDomain().castToStateSetElement(pElement2.get(QueryDrivenProgramTesting.mTestGoalCPAIndex));
+    AutomatonCPADomain<CFAEdge>.StateSetElement lCandidateStateSetElement = pElement2.projectTo(QueryDrivenProgramTesting.mTestGoalCPAIndex);
     Set<Automaton<CFAEdge>.State> lCandidateStates = lCandidateStateSetElement.getStates();
     Set<Automaton<CFAEdge>.State> lCandidateNonAcceptingStates = new HashSet<Automaton<CFAEdge>.State>();
 
@@ -664,7 +666,7 @@ public class ARTUtilities {
         for (Edge lCandidateEdge : lCurrentPath) {
           QDPTCompositeElement lCandidateElement = lCandidateEdge.getChild();
           
-          if (areElementsMergeable(pTestGoalCPA, lCurrentElement, lCandidateElement)) {
+          if (areElementsMergeable(lCurrentElement, lCandidateElement)) {
             lMatchingElementsTuple[lPathIndex] = lCandidateElement;
             
             break;
@@ -770,7 +772,7 @@ public class ARTUtilities {
         lPaths.add(lOuterPath);
         lPaths.add(lInnerPath);
         
-        if (areElementsMergeable(pTestGoalCPA, lOuterPathEdge.getChild(), lInnerPathEdge.getChild())) {
+        if (areElementsMergeable(lOuterPathEdge.getChild(), lInnerPathEdge.getChild())) {
           QDPTCompositeElement lMergeElement = merge(pCPA, pTestGoalCPA, pElement, lPaths, pInitialElementsMap);
           
           if (pInitialElementsMap.containsKey(lMergeElement)) {

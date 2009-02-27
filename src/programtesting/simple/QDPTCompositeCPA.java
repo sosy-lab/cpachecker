@@ -411,6 +411,12 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
       
       return false;
     }
+    
+    public <T> T projectTo(int pIndex) {
+      AbstractElement lElementAtIndex = super.get(pIndex);
+      
+      return (T)lElementAtIndex;
+    }
   }
   
   public class QDPTCompositeTransferRelation implements TransferRelation{

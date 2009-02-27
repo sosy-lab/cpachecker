@@ -160,11 +160,8 @@ public class QueryDrivenProgramTesting {
       
       
       // initialize precision
-      Precision lInitialPrecision = cpa.getInitialPrecision(pMainFunction);
-      
-      // TODO This is kind of a hack
-      CompositePrecision lCompositePrecision = (CompositePrecision)lInitialPrecision;
-      TestGoalPrecision lTestGoalPrecision = (TestGoalPrecision)lCompositePrecision.get(mTestGoalCPAIndex);
+      CompositePrecision lInitialPrecision = cpa.getInitialPrecision(pMainFunction);
+      TestGoalPrecision lTestGoalPrecision = (TestGoalPrecision)lInitialPrecision.get(mTestGoalCPAIndex);
       // reset precision to test goals
       // TODO Hack
       lTestGoalPrecision.setTestGoals(lTestGoals);
@@ -314,19 +311,8 @@ public class QueryDrivenProgramTesting {
           
           
           // remove covered test goals
-          AbstractElement lTestGoalElement = lLastFeasibleElement.get(mTestGoalCPAIndex);
-
-          // the ART should not contain the bottom element
-          // TODO move this out of feasibilty check to stack insertion
-          assert (!lTestGoalCPA.getAbstractDomain().isBottomElement(lTestGoalElement));
-
-          // top element should never occur
-          // TODO move this out of feasibilty check to stack insertion
-          assert (!lTestGoalCPA.getAbstractDomain().getTopElement().equals(lTestGoalElement));
-
-          // now, we know it is an StateSetElement
-          AutomatonCPADomain<CFAEdge>.StateSetElement lStateSetElement = lTestGoalCPA.getAbstractDomain().castToStateSetElement(lTestGoalElement);
-
+          AutomatonCPADomain<CFAEdge>.StateSetElement lStateSetElement = lLastFeasibleElement.projectTo(mTestGoalCPAIndex);
+          
           final Set<Automaton<CFAEdge>.State> lStates = lStateSetElement.getStates();
 
           // remove the test goal from lTestGoals
