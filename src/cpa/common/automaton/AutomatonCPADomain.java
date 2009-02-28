@@ -29,8 +29,6 @@ package cpa.common.automaton;
 import java.util.HashSet;
 import java.util.Set;
 
-import cpa.common.automaton.Automaton;
-//import cfa.objectmodel.CFAEdge;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import exceptions.CPAException;
