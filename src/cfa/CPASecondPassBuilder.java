@@ -184,7 +184,7 @@ public class CPASecondPassBuilder {
 		returnEdge.initialize(cfas.getCFA(functionName).getExitNode(), successorNode);
 		returnEdge.getSuccessor().setFunctionName(node.getFunctionName());
 
-		CallToReturnEdge calltoReturnEdge = new CallToReturnEdge("Summary Edge", expr);
+		CallToReturnEdge calltoReturnEdge = new CallToReturnEdge(expr.getRawSignature(), expr);
 		calltoReturnEdge.initializeSummaryEdge(node, successorNode);
 
 		node.removeLeavingEdge(edge);
