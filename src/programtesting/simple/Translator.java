@@ -40,16 +40,23 @@ import cfa.objectmodel.c.FunctionDefinitionNode;
 
 import cfa.objectmodel.c.MultiDeclarationEdge;
 import cfa.objectmodel.c.MultiStatementEdge;
+import cfa.objectmodel.c.ReturnEdge;
 import cfa.objectmodel.c.StatementEdge;
+import common.Pair;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
 import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
 
+import programtesting.simple.QDPTCompositeCPA.CFAEdgeEdge;
 import programtesting.simple.QDPTCompositeCPA.Edge;
+import programtesting.simple.QDPTCompositeCPA.QDPTCompositeElement;
 
 /**
  * @author holzera
@@ -81,20 +88,34 @@ public class Translator {
   /*
    * returns the function declaration (C code) for the given node
    */
-  public String getFunctionDeclaration(FunctionDefinitionNode pFunctionDefinitionNode) {
+  public static String getFunctionDeclaration(FunctionDefinitionNode pFunctionDefinitionNode) {
     return getFunctionSignature(pFunctionDefinitionNode.getFunctionName(), pFunctionDefinitionNode) + ";";
   }
-  
-  public String getFunctionSignature(String pFunctionName, FunctionDefinitionNode pFunctionDefinitionNode) {
+
+  public static String getFunctionSignature(FunctionDefinitionNode pFunctionDefinitionNode) {
+    return getFunctionSignature(pFunctionDefinitionNode.getFunctionName(), pFunctionDefinitionNode);
+  }
+
+  public static String getFunctionSignature(String pFunctionName, FunctionDefinitionNode pFunctionDefinitionNode) {
     assert(pFunctionName != null);
     assert(pFunctionDefinitionNode != null);
     
     IASTFunctionDefinition lFunctionDefinition = pFunctionDefinitionNode.getFunctionDefinition();
-    
-    List<IASTParameterDeclaration> lFunctionParameters = pFunctionDefinitionNode.getFunctionParameters();
-    
-    String lFunctionSignature = lFunctionDefinition.getDeclSpecifier().getRawSignature() + " " + pFunctionName + "(";
-    
+
+    //List<IASTParameterDeclaration> lFunctionParameters = pFunctionDefinitionNode.getFunctionParameters();
+
+    String lFunctionSignature = lFunctionDefinition.getDeclSpecifier().getRawSignature() + " " + lFunctionDefinition.getDeclarator().getRawSignature();
+
+    /*String lFunctionSignature = lFunctionDefinition.getDeclSpecifier().getRawSignature() + " " + pFunctionName + "(";
+
+    if (pFunctionName.equals("malloc")) {
+      System.out.println(lFunctionDefinition.getDeclarator().getRawSignature());
+
+      System.out.println(lFunctionSignature);
+
+      assert(false);
+    }
+
     boolean lFirstFunctionParameter = true;
     
     for (IASTParameterDeclaration lFunctionParameter : lFunctionParameters) {
@@ -108,7 +129,7 @@ public class Translator {
       lFunctionSignature += lFunctionParameter.getRawSignature();
     }
     
-    lFunctionSignature += ")";
+    lFunctionSignature += ")";*/
     
     return lFunctionSignature;
   }
@@ -132,20 +153,26 @@ public class Translator {
   public String translate(StatementEdge pEdge) {
     assert(pEdge != null);
     
-    IASTExpression lExpression = pEdge.getExpression();
+    assert(false);
+    
+    /*IASTExpression lExpression = pEdge.getExpression();
     
     if (lExpression != null) {
       return lExpression.getRawSignature() + ";";
-    }
+    }*/
     
-    return ";";
+    return pEdge.getRawStatement();
+    
+    //return ";";
   }
   
   public String translate(MultiStatementEdge pEdge) {
     assert(pEdge != null);
     
-    String lProgramText = "";
+    assert(false);
     
+    String lProgramText = "";
+   
     for (IASTExpression lExpression : pEdge.getExpressions()) {
       lProgramText += lExpression.getRawSignature() + ";\n";
     }
@@ -426,5 +453,310 @@ public class Translator {
     
     
     return lProgramText;
+  }
+  
+  public Pair<String, String> translate(BasicBlock pBasicBlock, Graph<BasicBlock, Graph<QDPTCompositeElement, CFAEdgeEdge>.Edge> pBasicBlocks, TreeSet<BasicBlock> pFunctionBlocks) {
+    assert(pBasicBlock != null);
+    assert(pBasicBlocks != null);
+    
+    StringWriter lGlobalProgramTextStringWriter = new StringWriter();
+    //PrintWriter lGlobalProgramTextPrintWriter = new PrintWriter(lGlobalProgramTextStringWriter);
+    
+    StringWriter lLocalProgramTextStringWriter = new StringWriter();
+    PrintWriter lLocalProgramTextPrintWriter = new PrintWriter(lLocalProgramTextStringWriter);
+    
+    lLocalProgramTextPrintWriter.println("__QDPT_basic_block_" + pBasicBlock.getId() + ":");
+
+    if (pBasicBlock.getEdges().size() == 0) {
+      lLocalProgramTextPrintWriter.println("  ;");
+    }
+    
+    for (Graph<QDPTCompositeElement, CFAEdgeEdge>.Edge lEdge : pBasicBlock.getEdges()) {
+      CFAEdgeEdge lAnnotation = lEdge.getAnnotation();
+
+      CFAEdge lCFAEdge = lAnnotation.getCFAEdge();
+
+      switch (lCFAEdge.getEdgeType()) {
+        case BlankEdge: {
+          // nothing to do
+
+          break;
+        }
+        case AssumeEdge: {
+          lLocalProgramTextPrintWriter.println(translate((AssumeEdge) lCFAEdge));
+
+          break;
+        }
+        case StatementEdge: {
+          // returns are not allowed inside a basic block
+          assert(!lCFAEdge.isJumpEdge());
+
+          lLocalProgramTextPrintWriter.println("  " + lCFAEdge.getRawStatement());
+
+          break;
+        }
+        case MultiStatementEdge: {
+          // TODO:
+          // currently, we do not support multi statement edges
+          assert(false);
+
+          break;
+        }
+        case MultiDeclarationEdge: {
+          // we do not output declarations since they are handled separately
+
+          break;
+        }
+        case DeclarationEdge: {
+          // we do not output declarations since they are handled separately
+          
+          break;
+        }
+        case FunctionCallEdge:
+        case ReturnEdge:
+        case CallToReturnEdge:
+        default: {
+          assert (false);
+        }
+      }
+    }
+    
+    // translate transition relation between current basic block and successor blocks
+    
+    Set<Graph<BasicBlock, Graph<QDPTCompositeElement, CFAEdgeEdge>.Edge>.Edge> lBasicBlockTransitions = pBasicBlocks.getOutgoingEdges(pBasicBlock);
+
+    if (lBasicBlockTransitions.size() == 0) {
+      // last basic block
+      lLocalProgramTextPrintWriter.println("  __CPROVER_assert(0, \"path feasible\");");
+    }
+
+
+    int lLastIndex = lBasicBlockTransitions.size() - 1;
+
+    int lIndex = 0;
+
+    for (Graph<BasicBlock, Graph<QDPTCompositeElement, CFAEdgeEdge>.Edge>.Edge lEdge : lBasicBlockTransitions) {
+      lLocalProgramTextPrintWriter.print("  ");
+
+      if (lIndex > 0) {
+        lLocalProgramTextPrintWriter.print("else ");
+      }
+
+      if (lIndex < lLastIndex) {
+        // not last edge
+        lLocalProgramTextPrintWriter.print("if (__QDPT_nondet()) ");
+      }
+
+      lLocalProgramTextPrintWriter.println();
+
+      if (lLastIndex > 0) {
+        lLocalProgramTextPrintWriter.println("  {");
+        lLocalProgramTextPrintWriter.print("  ");
+      }
+
+      // encode next basic block
+
+      lLocalProgramTextPrintWriter.println("  __QDPT_next_basic_block = " + lEdge.getTarget().getId() + ";");
+
+      // translate edge
+
+      CFAEdge lCFAEdge = lEdge.getAnnotation().getAnnotation().getCFAEdge();
+
+      boolean lPrintGoto = true;
+
+      switch (lCFAEdge.getEdgeType()) {
+        case BlankEdge: {
+          // nothing to do
+
+          break;
+        }
+        case AssumeEdge: {
+          lLocalProgramTextPrintWriter.println("  " + translate((AssumeEdge) lCFAEdge));
+
+          break;
+        }
+        case StatementEdge: {
+          if (lCFAEdge.isJumpEdge()) {
+            lPrintGoto = false;
+
+            BasicBlock lTargetBlock = lEdge.getTarget();
+
+            assert(lTargetBlock.isEmpty());
+
+            Set<Graph<BasicBlock, Graph<QDPTCompositeElement, CFAEdgeEdge>.Edge>.Edge> lTargetTransitions = pBasicBlocks.getOutgoingEdges(lTargetBlock);
+
+            if (lTargetTransitions.size() == 1) {
+              lLocalProgramTextPrintWriter.println("  __QDPT_next_basic_block = " + lTargetTransitions.iterator().next().getTarget().getId() + ";");
+            }
+            else if (lTargetTransitions.size() > 1) {
+              int lTargetIndex = 0;
+
+              lLocalProgramTextPrintWriter.println("  switch (__QDPT_nondet())");
+              lLocalProgramTextPrintWriter.println("  {");
+
+              for (Graph<BasicBlock, Graph<QDPTCompositeElement, CFAEdgeEdge>.Edge>.Edge lTargetTransition : lTargetTransitions) {
+                assert(lTargetTransition.getAnnotation().getAnnotation().getCFAEdge().getEdgeType() == CFAEdgeType.ReturnEdge);
+
+                if (lTargetIndex == 0) {
+                  lLocalProgramTextPrintWriter.println("    default:");
+                }
+                else {
+                  lLocalProgramTextPrintWriter.println("    case " + lTargetIndex + ":");
+                }
+
+                lLocalProgramTextPrintWriter.println("      __QDPT_next_basic_block = " + lTargetTransition.getTarget().getId() + ";");
+
+                lLocalProgramTextPrintWriter.println("      break;");
+
+                lTargetIndex++;
+              }
+
+              lLocalProgramTextPrintWriter.println("  }");
+            }
+            else {
+              // last basic block
+              lLocalProgramTextPrintWriter.println("  __CPROVER_assert(0, \"path feasible\");");
+            }
+          }
+
+          lLocalProgramTextPrintWriter.println("  " + lCFAEdge.getRawStatement());
+
+          break;
+        }
+        case MultiStatementEdge: {
+          // TODO:
+          // currently, we do not support multi statement edges
+          assert(false);
+
+          break;
+        }
+        case MultiDeclarationEdge: {
+          // we do not output declarations since they are handled separately
+
+          break;
+        }
+        case DeclarationEdge: {
+          // we do not output declarations since they are handled separately
+
+          break;
+        }
+        case FunctionCallEdge: {
+          FunctionCallEdge lFunctionCallEdge = (FunctionCallEdge) lCFAEdge;
+
+          lLocalProgramTextPrintWriter.println("  " + lFunctionCallEdge.getPredecessor().getLeavingSummaryEdge().getRawStatement() + ";");
+
+          lLocalProgramTextPrintWriter.println("  // local jump table - begin");
+
+          SortedSet<BasicBlock> lTailSet = pFunctionBlocks.tailSet(pBasicBlock, false);
+
+          if (lTailSet.size() == 1) {
+            lLocalProgramTextPrintWriter.println("  goto __QDPT_basic_block_" + lTailSet.first().getId() + ";");
+          }
+          else {
+            boolean lFirst = true;
+
+            for (BasicBlock lBasicBlock : lTailSet) {
+
+              if (!lBasicBlock.getFirstElement().getLocationNode().equals(lCFAEdge.getPredecessor().getLeavingSummaryEdge().getSuccessor())) {
+                continue;
+              }
+
+              lLocalProgramTextPrintWriter.print("  ");
+
+              if (lFirst) {
+                lFirst = false;
+              }
+              else {
+                lLocalProgramTextPrintWriter.print("else ");
+              }
+
+              lLocalProgramTextPrintWriter.println("if (__QDPT_next_basic_block == " + lBasicBlock.getId() + ")");
+              lLocalProgramTextPrintWriter.println("  {");
+              lLocalProgramTextPrintWriter.println("    goto __QDPT_basic_block_" + lBasicBlock.getId() + ";");
+              lLocalProgramTextPrintWriter.println("  }");  
+            }
+
+            lLocalProgramTextPrintWriter.println();
+          }
+
+          lLocalProgramTextPrintWriter.println("  // local jump table - end");
+          lLocalProgramTextPrintWriter.println();
+          
+          lPrintGoto = false;
+
+          break;
+        }
+        case ReturnEdge: {
+          lPrintGoto = false;
+
+          break;
+        }
+        case CallToReturnEdge: {
+
+          break;
+        }
+        default: {
+          // TODO implement
+          assert (false);
+        }
+      }
+
+      if (lPrintGoto) {
+        if (lLastIndex > 0) {
+          lLocalProgramTextPrintWriter.print("  ");
+        }
+
+        lLocalProgramTextPrintWriter.println("  goto __QDPT_basic_block_" + lEdge.getTarget().getId() + ";");
+      }
+      
+      if (lLastIndex > 0) {
+        lLocalProgramTextPrintWriter.println("  }");
+      }
+
+      lIndex++;
+    }
+    
+    return new Pair<String, String>(lLocalProgramTextStringWriter.toString(), lGlobalProgramTextStringWriter.toString());
+  }
+  
+  public String getInitialFunctionCall(String pFunctionName, List<IASTParameterDeclaration> pFunctionParameters) {
+    assert(pFunctionName != null);
+    assert(pFunctionParameters != null);
+    
+    StringWriter lProgramTextStringWriter = new StringWriter();
+    
+    PrintWriter lProgramTextPrintWriter = new PrintWriter(lProgramTextStringWriter);
+    
+    
+    lProgramTextPrintWriter.println("void __QDPT_feasibility_check(void) {");
+    
+    int lIndex = 0;
+    
+    for (IASTParameterDeclaration lParameterDeclaration : pFunctionParameters) {
+      // TODO there is more to do to handle all possible cases (?)
+      lProgramTextPrintWriter.println("  " + lParameterDeclaration.getDeclSpecifier().getRawSignature() + " parameter_" + lIndex + ";");
+      
+      lIndex++;
+    }
+    
+    
+    lProgramTextPrintWriter.print("  " + pFunctionName + "(");
+    
+    for (int lSecondIndex = 0; lSecondIndex < lIndex; lSecondIndex++) {
+      if (lSecondIndex > 0) {
+        lProgramTextPrintWriter.print(", ");
+      }
+      
+      lProgramTextPrintWriter.print("parameter_" + lSecondIndex);
+    }
+    
+    lProgramTextPrintWriter.println(");");
+    
+    
+    lProgramTextPrintWriter.println("  __CPROVER_assert(0, \"path feasible\");");
+    
+    lProgramTextPrintWriter.println("}");    
+    
+    return lProgramTextStringWriter.toString();
   }
 }

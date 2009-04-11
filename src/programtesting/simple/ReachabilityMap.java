@@ -24,7 +24,7 @@ public class ReachabilityMap<E> {
     mReachabilityMap = new HashMap<E, Boolean>();
   }
   
-  public ReachabilityStatus isReachable(E pElement) {
+  public ReachabilityStatus getReachabilityStatus(E pElement) {
     assert(pElement != null);
     
     if (mReachabilityMap.containsKey(pElement)) {

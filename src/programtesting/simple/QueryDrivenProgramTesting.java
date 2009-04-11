@@ -26,17 +26,13 @@
  */
 package programtesting.simple;
 
-import programtesting.summary.*;
 import programtesting.*;
 import java.util.ArrayList;
-import java.util.Deque;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 import cfa.CFAMap;
 import cfa.objectmodel.CFAEdge;
-import cfa.objectmodel.CFAEdgeType;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 
 import cmdline.CPAMain;
@@ -44,20 +40,36 @@ import common.Pair;
 import compositeCPA.CompositePrecision;
 
 import cpa.common.CPAAlgorithm;
-import cpa.common.automaton.Automaton;
-import cpa.common.automaton.AutomatonCPADomain;
-import cpa.common.interfaces.AbstractElementWithLocation;
+import cpa.common.automaton.Automaton2;
+import cpa.common.automaton.AutomatonCPADomain2;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
+import cpa.common.interfaces.Precision;
+import cpa.common.interfaces.TransferRelation;
 import cpa.location.LocationCPA;
-import cpa.scoperestriction.ScopeRestrictionCPA;
-import cpa.symbpredabsCPA.SymbPredAbsAbstractElement;
-import cpa.testgoal.TestGoalCPA;
-import cpa.testgoal.TestGoalCPA.TestGoalPrecision;
+import cpa.symbpredabs.CounterexampleTraceInfo;
+import cpa.symbpredabs.Predicate;
+import cpa.symbpredabs.SymbolicFormulaManager;
+import cpa.symbpredabs.UpdateablePredicateMap;
+import cpa.symbpredabs.explicit.BDDMathsatExplicitAbstractManager;
+import cpa.symbpredabs.explicit.ExplicitAbstractElement;
+import cpa.symbpredabs.explicit.ExplicitAbstractFormulaManager;
+import cpa.symbpredabs.explicit.ExplicitCPA;
+import cpa.symbpredabs.explicit.ExplicitTransferRelation;
+import cpa.testgoal.TestGoalCPA2;
+import cpa.testgoal.TestGoalCPA2.TestGoalPrecision;
 import exceptions.CPAException;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
-import programtesting.simple.QDPTCompositeCPA.Edge;
+import java.util.Map;
+import java.util.PriorityQueue;
+import java.util.TreeSet;
+import programtesting.simple.AcyclicPathProgramExtractor.AcyclicPathProgram;
+import programtesting.simple.QDPTCompositeCPA.CFAEdgeEdge;
 import programtesting.simple.QDPTCompositeCPA.QDPTCompositeElement;
 
 /**
@@ -65,18 +77,29 @@ import programtesting.simple.QDPTCompositeCPA.QDPTCompositeElement;
  *
  */
 public class QueryDrivenProgramTesting {
-  
+
+  public static Deque<ExplicitAbstractElement> getAbstractPath(ExplicitAbstractElement pElement) {
+    ExplicitAbstractElement lPathElement = pElement;
+
+    Deque<ExplicitAbstractElement> lPath = new LinkedList<ExplicitAbstractElement>();
+
+    while (lPathElement != null) {
+      lPath.addFirst(lPathElement);
+
+      lPathElement = lPathElement.getParent();
+    }
+
+    return lPath;
+  }
+
   public final static int mLocationCPAIndex = 0;
-  public final static int mScopeRestrictionCPAIndex = 1;
-  public final static int mTestGoalCPAIndex = 2;
-  //public final static int mAbstractionCPAIndex = 1;
+  public final static int mTestGoalCPAIndex = 1;
+  public final static int mExplicitAbstractionCPAIndex = 2;
   
-  public static Set<Deque<SymbPredAbsAbstractElement>> doIt (CFAMap pCfas, CFAFunctionDefinitionNode pMainFunction) {
-    System.out.println("SummaryCPA based Test Case Generation.");
-    
+  public static void doIt(CFAMap pCfas, CFAFunctionDefinitionNode pMainFunction) {
     // create compositeCPA from automaton CPA and pred abstraction
     // TODO this must be a CPAPlus actually
-    List<ConfigurableProgramAnalysis> cpas = new ArrayList<ConfigurableProgramAnalysis> ();
+    ArrayList<ConfigurableProgramAnalysis> cpas = new ArrayList<ConfigurableProgramAnalysis>();
 
     
     LocationCPA lLocationCPA = null;
@@ -90,94 +113,118 @@ public class QueryDrivenProgramTesting {
     }
     
     cpas.add(lLocationCPA);
-    
-    // get scope restriction automaton
-    Automaton<CFAEdge> lScopeRestrictionAutomaton = AutomatonTestCases.getScopeRestrictionAutomaton(pMainFunction);
-    ScopeRestrictionCPA lScopeRestrictionCPA = new ScopeRestrictionCPA(lScopeRestrictionAutomaton);
-    cpas.add(lScopeRestrictionCPA);
-    
+
+
+
     // get test goal automaton
-    Automaton<CFAEdge> lTestGoalAutomaton = AutomatonTestCases.getTestGoalAutomaton(pMainFunction);
-    TestGoalCPA lTestGoalCPA = new TestGoalCPA(lTestGoalAutomaton);
+    Automaton2<CFAEdge> lTestGoalAutomaton = AutomatonTestCases.getTestGoalAutomaton(pMainFunction);
+    TestGoalCPA2 lTestGoalCPA = new TestGoalCPA2(lTestGoalAutomaton);
     cpas.add(lTestGoalCPA);
-      
+    
+    Automaton2<CFAEdge> lOriginalTestGoalAutomaton = lTestGoalAutomaton;
+
+    int lNumberOfOriginalTestGoals = lOriginalTestGoalAutomaton.getFinalStates().size();
+    
+    Set<Integer> lInfeasibleTestGoals = new HashSet<Integer>();
+
+
+
+    // initialize symbolic predicate abstraction
+    ExplicitCPA lExplicitAbstractionCPA = new ExplicitCPA("sep", "sep");
+    cpas.add(lExplicitAbstractionCPA);
+
+    ExplicitAbstractFormulaManager lEAFManager = lExplicitAbstractionCPA.getAbstractFormulaManager();
+    SymbolicFormulaManager lSFManager = lExplicitAbstractionCPA.getFormulaManager();
+
+    assert (lEAFManager instanceof BDDMathsatExplicitAbstractManager);
+
+    BDDMathsatExplicitAbstractManager lMathsatManager = (BDDMathsatExplicitAbstractManager) lEAFManager;
+
+
     QDPTCompositeCPA cpa = new QDPTCompositeCPA(cpas, pMainFunction, lTestGoalCPA.getAbstractDomain(), mTestGoalCPAIndex);
-    
 
-    
-    
-    // every final state in the test goal automaton represents a 
-    // test goal, so initialize test goals with the final states
-    // of the test goal automaton
-    Set<Automaton<CFAEdge>.State> lTestGoals = new HashSet<Automaton<CFAEdge>.State>(lTestGoalAutomaton.getFinalStates());
-    int lNumberOfOriginalTestGoals = lTestGoals.size();
-    
-    Set<Automaton<CFAEdge>.State> lInfeasibleTestGoals = new HashSet<Automaton<CFAEdge>.State>();
 
-    
-    int lLoopCounter = 0;
-          
-        
-    // calculate initial edges
+    // initialize set of initial elements -- begin
+
     QDPTCompositeElement lFirstInitialElement = cpa.getInitialElement(pMainFunction);
-    
-    HashMap<QDPTCompositeElement, Set<CFAEdge>> lInitialElementsMap = new HashMap<QDPTCompositeElement, Set<CFAEdge>>();
 
-    Set<CFAEdge> lOutgoingEdges = ARTUtilities.getOutgoingCFAEdges(lFirstInitialElement);
+    Comparator<QDPTCompositeElement> lDepthComparator = new Comparator<QDPTCompositeElement>() {
 
-    // we can rule out exit
-    if (lOutgoingEdges.size() > 0) {
-      lInitialElementsMap.put(lFirstInitialElement, lOutgoingEdges);
-    }
-        
+      @Override
+      public int compare(QDPTCompositeElement pElement1, QDPTCompositeElement pElement2) {
+        assert(pElement1 != null);
+        assert(pElement2 != null);
 
-    // the resulting set of paths
-    Set<List<AbstractElementWithLocation>> lPaths = new HashSet<List<AbstractElementWithLocation>>();
+        return (pElement1.getDepth() - pElement2.getDepth());
+      }
+
+    };
+
+    Set<QDPTCompositeElement> lInitialElements = new TreeSet<QDPTCompositeElement>(lDepthComparator);
+
+    lInitialElements.add(lFirstInitialElement);
     
-    FeasiblePathTree<AbstractElementWithLocation> lPathTree = new FeasiblePathTree<AbstractElementWithLocation>();
-    
-    Translator lTranslator = new Translator(pCfas);
-    
-    
-    ReachabilityMap<QDPTCompositeElement> lReachabilityMap = new ReachabilityMap<QDPTCompositeElement>();
-    
-    
-    while (!lTestGoals.isEmpty()) {
+    // initialize set of initial elements -- end
+
+
+    int lLoopCounter = 0;
+
+    while (lTestGoalAutomaton.hasFinalStates()) {
       // TODO remove this output
       System.out.println("NEXT LOOP (" + (lLoopCounter++) + ") #####################");
-            
+
+
+      lTestGoalAutomaton = lTestGoalAutomaton.getSimplifiedAutomaton();
+
+      
       // print information about remaining test goals
-      System.out.println("Number of remaining test goals: " + lTestGoals.size());
-      
-      OutputUtilities.printTestGoals("Remaining Test Goals: ", lTestGoals);
-      
-      
+      System.out.println("Number of remaining test goals: " + lTestGoalAutomaton.getFinalStates().size());
+
+      OutputUtilities.printTestGoals2("Remaining Test Goals: ", lTestGoalAutomaton.getFinalStates());
+
       System.out.println(lNumberOfOriginalTestGoals + "/" + lTestGoalAutomaton.getFinalStates().size() + "/" + lTestGoalAutomaton.getNumberOfStates());
       
-      assert(lNumberOfOriginalTestGoals == lTestGoalAutomaton.getFinalStates().size());
-      
-      
+
       // initialize precision
       CompositePrecision lInitialPrecision = cpa.getInitialPrecision(pMainFunction);
       TestGoalPrecision lTestGoalPrecision = (TestGoalPrecision)lInitialPrecision.get(mTestGoalCPAIndex);
-      // reset precision to test goals
-      // TODO Hack
-      lTestGoalPrecision.setTestGoals(lTestGoals);
 
+      // TODO maybe we should just modify lOriginalTestGoalAutomaton
+      TestGoalPrecision lNewTestGoalPrecision = lTestGoalPrecision.getIntersection(lTestGoalAutomaton.getReachableStates(lTestGoalAutomaton.getInitialState()));
+
+      LinkedList<Precision> lPrecisions = new LinkedList<Precision>(lInitialPrecision.getPrecisions());
+
+      lPrecisions.set(mTestGoalCPAIndex, lNewTestGoalPrecision);
+
+      System.out.println(lNewTestGoalPrecision);
+
+      CompositePrecision lNewInitialPrecision = new CompositePrecision(lPrecisions);
+
+
+      if (lLoopCounter > 1) {
+        System.out.println(lTestGoalAutomaton);
+
+        //assert(false);
+
+        cpa = new QDPTCompositeCPA(cpas, pMainFunction, lTestGoalCPA.getAbstractDomain(), mTestGoalCPAIndex);
+
+        lFirstInitialElement = cpa.getInitialElement(pMainFunction);
+
+        lInitialElements.clear();
+
+        lInitialElements.add(lFirstInitialElement);
+
+        TransferRelation lTransferRelation = lExplicitAbstractionCPA.getTransferRelation();
+
+        ExplicitTransferRelation lExplicitTransferRelation = (ExplicitTransferRelation) lTransferRelation;
+
+        lExplicitTransferRelation.clearART();
+      }
       
-      HashMap<QDPTCompositeElement, Set<CFAEdge>> lOldInitialElementsMap = new HashMap<QDPTCompositeElement, Set<CFAEdge>>(lInitialElementsMap);
-      
-      
-      Pair<Set<Edge>, Set<QDPTCompositeElement>> lInitialization = ARTUtilities.getInitialization(lInitialElementsMap, lInitialPrecision, cpa);
-      
-      Set<Edge> lInitialEdges = lInitialization.getFirst();
-      Set<QDPTCompositeElement> lInitialElements = lInitialization.getSecond();
-      
-      try {                
+
+      try {
         // perform cfa exploration
-        CPAAlgorithm.CPAWithInitialSet(cpa, lInitialElements, lInitialPrecision, ARTUtilities.getReachedElements(lInitialElementsMap));
-        
-        lInitialElementsMap.clear();
+        CPAAlgorithm.CPAWithInitialSet(cpa, lInitialElements, lNewInitialPrecision, Collections.EMPTY_SET);
       } catch (CPAException e1) {
         e1.printStackTrace();
         assert(false);
@@ -188,214 +235,290 @@ public class QueryDrivenProgramTesting {
       QDPTCompositeElement lRoot = cpa.getTransferRelation().getRoot();
   
       if (CPAMain.cpaConfig.getBooleanValue("art.visualize")) {
-        OutputUtilities.outputAbstractReachabilityTree("art_" + lLoopCounter + "_a_", lRoot, lOldInitialElementsMap.keySet());
+        OutputUtilities.outputAbstractReachabilityTree("art_" + lLoopCounter + "_a_", lRoot, lInitialElements);
       }
       
-      LinkedList<Edge> lWorklist = new LinkedList<Edge>(lInitialEdges);
+      
+      
+      Set<QDPTCompositeElement> lReachedElements = ARTUtilities.getReachedElements(lInitialElements);
+      
+      Comparator lMaxDepthComparator = new Comparator<QDPTCompositeElement>() {
+
+        @Override
+        public int compare(QDPTCompositeElement pElement1, QDPTCompositeElement pElement2) {
+          assert(pElement1 != null);
+          assert(pElement2 != null);
+
+          return (pElement2.getMaxDepth() - pElement1.getMaxDepth());
+        }
+
+      };
+
+      PriorityQueue<QDPTCompositeElement> lReachabilityTasks = new PriorityQueue<QDPTCompositeElement>(lReachedElements.size(), lMaxDepthComparator);
+      
+      lReachabilityTasks.addAll(lReachedElements);
+      
+      
             
-      int lPathCounter = 0;
-      int lPathMaxLength = 0;
+      /*
+       * TODO OPTIMIZATION if two art elements are really equivalent, we can 
+       * skip the rechability check for one of them -> if one is contained in
+       * another path we may be able to get the necessary information from the
+       * longer reachability query.
+       */
       
       int lNumberOfCallsToCBMCOld = CProver.getNumberOfCallsToCBMC();
       
-      while (!lWorklist.isEmpty() && !lTestGoals.isEmpty()) {
-        Edge lCurrentEdge = lWorklist.removeFirst();
-        
-        QDPTCompositeElement lCurrentElement = lCurrentEdge.getChild();
-        
-        if (lCurrentElement.hasChildren()) {
-          // we are at an intermediate node
-          
-          for (Edge lEdge : lCurrentElement.getChildren()) {
-            lWorklist.addFirst(lEdge);
+      String lFunctionName = lRoot.getLocationNode().getFunctionName();
+
+      int lTaskId = -1;
+
+      if (CPAMain.cpaConfig.getBooleanValue("art.visualize")) {
+        Map<QDPTCompositeElement, String> lFormating = new HashMap<QDPTCompositeElement, String>();
+
+        for (QDPTCompositeElement lElement : lReachabilityTasks) {
+          lFormating.put(lElement, "style=filled, shape=ellipse, fillcolor=dimgrey, color=black");
+        }
+
+        OutputUtilities.outputAbstractReachabilityTree("art_" + lLoopCounter + "_reachability_tasks_", lRoot, lFormating);
+      }
+
+      Set<QDPTCompositeElement> lInfeasibleElements = new HashSet<QDPTCompositeElement>();
+
+      Map<QDPTCompositeElement, String> lReachabilityFormating = new HashMap<QDPTCompositeElement, String>();
+
+      System.out.println(">>>>");
+
+      for (QDPTCompositeElement lCurrentElement : lReachabilityTasks) {
+        ExplicitAbstractElement lExplicitAbstractElement = lCurrentElement.projectTo(mExplicitAbstractionCPAIndex);
+
+        System.out.println(lMathsatManager.toConcrete(lSFManager, lExplicitAbstractElement.getAbstraction()));
+      }
+
+      System.out.println("<<<<");
+
+      while (!lReachabilityTasks.isEmpty()) {
+        QDPTCompositeElement lCurrentElement = lReachabilityTasks.poll();
+
+        // check whether lCurrentElement contains an unseen test goal -- begin
+        AutomatonCPADomain2<CFAEdge>.StateSetElement lCurrentStateSetElement = lCurrentElement.projectTo(mTestGoalCPAIndex);
+
+        boolean lContainsRemainingTestGoal = false;
+
+        for (Integer lTestGoal : lTestGoalAutomaton.getFinalStates()) {
+          Set<Integer> lCurrentTestGoals = lCurrentStateSetElement.getAcceptingStates();
+
+          if (lCurrentTestGoals.contains(lTestGoal)) {
+            lContainsRemainingTestGoal = true;
+
+            break;
           }
+        }
+        // check whether lCurrentElement contains an unseen test goal -- end
+        
+        if (!lContainsRemainingTestGoal) {
+          // lCurrentElement contains no unseen test goal, so, we skip it.
+          continue;
+        }
+
+        lTaskId++;
+
+        System.out.println("REACHABILITY TASK [" + (lTaskId + 1) + "]: " + lCurrentElement + "  (" + lCurrentElement.getDepth() + ")");
+
+        // create a dag that represents the program to lCurrentElement
+        
+        AcyclicPathProgram lAcyclicPathProgram = AcyclicPathProgramExtractor.extract(lRoot, lCurrentElement, pCfas);
+        
+        Graph<QDPTCompositeElement, CFAEdgeEdge> lDAG = lAcyclicPathProgram.getDAG();
+
+        Graph<BasicBlock, Graph<QDPTCompositeElement, CFAEdgeEdge>.Edge> lBasicBlocks = lAcyclicPathProgram.getBasicBlockGraph();
+
+        if (CPAMain.cpaConfig.getBooleanValue("art.visualize")) {
+          OutputUtilities.outputAbstractReachabilityTree("art_" + lLoopCounter + "_a_test_", lRoot, lDAG.getNodes());
+          lBasicBlocks.printDotToFile("basicblocks_" + lLoopCounter + "_a_task" + lTaskId + "_");
+        }
+
+
+        // translate acyclic path program to C program
+        String lProgram = AcyclicPathProgramTranslator.translate(lAcyclicPathProgram);
+
+        System.out.println("Starting feasibility check ...");
+
+        // check feasibility and get output of CBMC
+        Pair<Boolean, String> lFeasibilityAndOutput = CProver.getFeasibilityAndOutput(lFunctionName, lProgram);
+        
+        if (lFeasibilityAndOutput.getFirst()) {
+          // evaluate counter example to extract feasibility information
+          
+          List<CFAEdgeEdge> lFeasiblePath = AcyclicPathProgramTranslator.extractFeasiblePath(lFeasibilityAndOutput.getSecond(), lAcyclicPathProgram);
+
+          assert(lFeasiblePath.size() > 0);
+
+          QDPTCompositeElement lRootOfPath = lFeasiblePath.get(0).getParent();
+
+          lReachabilityFormating.put(lRootOfPath, "shape=ellipse, color=black, fillcolor=greenyellow, style=filled");
+
+          Set<Integer> lTestGoalsAlongPath = new HashSet<Integer>();
+
+          AutomatonCPADomain2<CFAEdge>.StateSetElement lRootStateSetElement = lRootOfPath.projectTo(mTestGoalCPAIndex);
+
+          lTestGoalsAlongPath.addAll(lRootStateSetElement.getAcceptingStates());
+
+          for (CFAEdgeEdge lEdge : lFeasiblePath) {
+            lReachabilityFormating.put(lEdge.getChild(), "shape=ellipse, color=black, fillcolor=greenyellow, style=filled");
+
+            AutomatonCPADomain2<CFAEdge>.StateSetElement lStateSetElement = lEdge.getChild().projectTo(mTestGoalCPAIndex);
+
+            lTestGoalsAlongPath.addAll(lStateSetElement.getAcceptingStates());
+          }
+
+          lTestGoalAutomaton.unsetFinal(lTestGoalsAlongPath);
+
+          System.out.println(lTestGoalsAlongPath);
+          
+          System.out.println(true);
         }
         else {
-          // we are at a leaf
-          
-          lPathCounter++;
-         
-          int lDepth = lCurrentElement.getDepth();
-          
-          if (lDepth > lPathMaxLength) {
-            lPathMaxLength = lDepth;
+          lInfeasibleElements.add(lCurrentElement);
+
+          lReachabilityFormating.put(lCurrentElement, "shape=ellipse, color=black, fillcolor=orangered, style=filled");
+          System.out.println(false);
+        }
+        
+        if (CPAMain.cpaConfig.getBooleanValue("art.visualize")) {
+          OutputUtilities.outputAbstractReachabilityTree("art_" + lLoopCounter + "_reachability_results_task_" + (lTaskId + 1) + "_", lRoot, lReachabilityFormating);
+        }
+      }
+
+      if (CPAMain.cpaConfig.getBooleanValue("art.visualize")) {
+        OutputUtilities.outputAbstractReachabilityTree("art_" + lLoopCounter + "_reachability_results_", lRoot, lReachabilityFormating);
+      }
+
+      System.out.println("Remaining test goals: " + lTestGoalAutomaton.getFinalStates());
+
+
+      System.out.println("Infeasible elements: " + lInfeasibleElements);
+
+
+      lInitialElements.clear();
+
+
+      // determine infeasible test goals -- begin
+
+      Set<Integer> lRemainingTestGoals = new HashSet<Integer>();
+
+      for (QDPTCompositeElement lInfeasibleElement : lInfeasibleElements) {
+        AutomatonCPADomain2<CFAEdge>.StateSetElement lStateSetElement = lInfeasibleElement.projectTo(mTestGoalCPAIndex);
+
+        lRemainingTestGoals.addAll(lStateSetElement.getAcceptingStates());
+      }
+
+      Set<Integer> lLocalInfeasibleTestGoals = new HashSet<Integer>(lTestGoalAutomaton.getFinalStates());
+
+      lLocalInfeasibleTestGoals.removeAll(lRemainingTestGoals);
+
+      lInfeasibleTestGoals.addAll(lLocalInfeasibleTestGoals);
+
+      lTestGoalAutomaton.unsetFinal(lLocalInfeasibleTestGoals);
+
+      // determine infeasible test goals -- end
+
+
+      for (QDPTCompositeElement lInfeasibleElement : lInfeasibleElements) {
+        AutomatonCPADomain2<CFAEdge>.StateSetElement lStateSetElement = lInfeasibleElement.projectTo(mTestGoalCPAIndex);
+
+        Set<Integer> lStates = lStateSetElement.getStates();
+
+        boolean lNeedsProcessing = false;
+
+        for (Integer lState : lStates) {
+          if (lTestGoalAutomaton.isFinalState(lState)) {
+            lNeedsProcessing = true;
+
+            break;
           }
-          
-          // check feasibility
-          List<Edge> lPathToRoot = lCurrentElement.getPathToRoot();
-          
-          boolean lFeasible = false;
+        }
 
-          Edge lInfeasibilityCause = null;
+        if (lNeedsProcessing) {
+          // element contains unreached test goals
+          System.out.println("to be processed: " + lInfeasibleElement);
 
-          QDPTCompositeElement lLastFeasibleElement = lCurrentElement;
-          
-          HashSet<Edge> lBacktrackingSet = new HashSet<Edge>();
-          
-          do {
-            if (lReachabilityMap.isReachable(lPathToRoot.get(lPathToRoot.size() - 1).getChild()) != ReachabilityMap.ReachabilityStatus.REACHABLE) {
-              String lPathCSource = lTranslator.translate(lPathToRoot);
+          ExplicitAbstractElement lExplicitAbstractElement = lInfeasibleElement.projectTo(mExplicitAbstractionCPAIndex);
 
-              lFeasible = CProver.isFeasible(lRoot.getLocationNode().getFunctionName(), lPathCSource);
-            }
-            else {
-              lFeasible = true;
-            }
+          Deque<ExplicitAbstractElement> lExplicitAbstractionPath = getAbstractPath(lExplicitAbstractElement);
 
-            if (!lFeasible) {
-              // what's about function pointers?
-              int lRemoveIndex = lPathToRoot.size() - 1;
-              Edge lRemoveEdgeTmp = lPathToRoot.get(lPathToRoot.size() - 1);
-              
-              if (lInfeasibilityCause != null) {
-                for (Edge lChildEdge : lInfeasibilityCause.getParent().getChildren()) {
-                  lBacktrackingSet.add(lChildEdge);
-                }
-              }
-              
-              assert(lRemoveEdgeTmp instanceof QDPTCompositeCPA.CFAEdgeEdge);
-              
-              QDPTCompositeCPA.CFAEdgeEdge lRemoveEdge = (QDPTCompositeCPA.CFAEdgeEdge)lRemoveEdgeTmp;
-              
-              while (lRemoveEdge.getCFAEdge().getEdgeType() != CFAEdgeType.AssumeEdge) {
-                lPathToRoot.remove(lRemoveIndex);
-                
-                // If parent has not more than one child then this edge is no
-                // longer in the worklist because it was processed already.
-                if (lRemoveEdge.getParent().getNumberOfChildren() > 1) {
-                  for (Edge lChildEdge : lRemoveEdge.getParent().getChildren()) {
-                    lBacktrackingSet.add(lChildEdge);
-                  }
-                }
-                
-                lRemoveIndex--;
-                lRemoveEdgeTmp = lPathToRoot.get(lRemoveIndex);
-                
-                assert(lRemoveEdgeTmp instanceof QDPTCompositeCPA.CFAEdgeEdge);
-              
-                lRemoveEdge = (QDPTCompositeCPA.CFAEdgeEdge)lRemoveEdgeTmp;
-              }
-              
-              //lPathCSource = lTranslator.translate(lPathToRoot);
-              
-              // TODO remove this from production code -> lTmpFeasible stuff
-              //lCallsToCBMCCounter++;
-              /*boolean lTmpFeasible = CProver.isFeasible(lRoot.getLocationNode().getFunctionName(), lPathCSource);
+          System.out.println(lExplicitAbstractionPath);
 
-              assert (!lTmpFeasible);*/
+          // TODO currently do not enable cpas.symbpredabs.shortestCexTrace
+          Pair<CounterexampleTraceInfo, Integer> lPair = lMathsatManager.buildCounterexampleTrace2(lSFManager, lExplicitAbstractionPath);
 
-              // remove assume edge
-              lInfeasibilityCause = lPathToRoot.remove(lPathToRoot.size() - 1);
-              
-              lLastFeasibleElement = lInfeasibilityCause.getParent();
-            }
-          } while (!lFeasible);
-          
-          
-          // cache feasibility information
-          QDPTCompositeElement lFeasibleElement = lLastFeasibleElement;
-          
-          lReachabilityMap.setReachable(lLastFeasibleElement);
-          
-          while (lFeasibleElement.hasParent()) {
-            lFeasibleElement = lFeasibleElement.getParent();
-            
-            lReachabilityMap.setReachable(lFeasibleElement);
-          }
-          
-          
-          // backtrack
-          lWorklist.removeAll(lBacktrackingSet);
-          
-          
-          // remove covered test goals
-          AutomatonCPADomain<CFAEdge>.StateSetElement lStateSetElement = lLastFeasibleElement.projectTo(mTestGoalCPAIndex);
-          
-          final Set<Automaton<CFAEdge>.State> lStates = lStateSetElement.getStates();
+          CounterexampleTraceInfo lInfo = lPair.getFirst();
 
-          // remove the test goal from lTestGoals
-          lTestGoals.removeAll(lStates);
+          assert(lInfo.isSpurious());
 
+          // copied from old cold
+          // TODO check what this assertion means
+          assert (lPair.getSecond().intValue() != -1);
+
+          // lPair.getSecond().intValue() is the last feasible edge, but in
+          // this context we should not need it.
+
+          //System.out.println("Index: " + lPair.getSecond());
+
+
+
+          // PREDICATE REFINEMENT
+
+          // perform update of predicates -- begin
           
-          // reachable leaf node
-          if (lInfeasibilityCause == null) {
-            Set<CFAEdge> lTmpOutgoingEdges = ARTUtilities.getOutgoingCFAEdges(lCurrentElement);
+          UpdateablePredicateMap lUpdateablePredicateMap = (UpdateablePredicateMap) lExplicitAbstractionCPA.getPredicateMap();
 
-            // we can rule out exit
-            if (lTmpOutgoingEdges.size() > 0) {
-              lInitialElementsMap.put(lCurrentElement, lTmpOutgoingEdges);
+          LinkedList<QDPTCompositeCPA.Edge> lPathToRoot = lInfeasibleElement.getPathToRoot();
+
+          QDPTCompositeElement lFirstUpdatedElement = null;
+
+          for (QDPTCompositeCPA.Edge lPathEdge : lPathToRoot) {
+            QDPTCompositeElement lChild = lPathEdge.getChild();
+
+            ExplicitAbstractElement lElement = lChild.projectTo(mExplicitAbstractionCPAIndex);
+
+            Collection<Predicate> newpreds = lInfo.getPredicatesForRefinement(lElement);
+
+            boolean lUpdated = lUpdateablePredicateMap.update(lElement.getLocation(), newpreds);
+
+            if (lUpdated && lFirstUpdatedElement == null) {
+              lFirstUpdatedElement = lChild;
             }
           }
-          else {
-            lInfeasibilityCause.getChild().remove();
+
+          ExplicitAbstractElement lElement = lInfeasibleElement.projectTo(mExplicitAbstractionCPAIndex);
+
+          Collection<Predicate> newpreds = lInfo.getPredicatesForRefinement(lElement);
+
+          boolean lUpdated = lUpdateablePredicateMap.update(lElement.getLocation(), newpreds);
+
+          if (lUpdated && lFirstUpdatedElement == null) {
+            lFirstUpdatedElement = lInfeasibleElement;
+          }
+
+          // perform update of predicates -- end
+
+          // lFirstUpdatedElement could be null if we process a prefix of an
+          // already processed path
+          if (lFirstUpdatedElement != null) {
+            lInitialElements.add(lFirstUpdatedElement);
           }
         }
       }
-      
+
       System.out.println("Calls to CBMC: " + (CProver.getNumberOfCallsToCBMC() - lNumberOfCallsToCBMCOld));
       
+      
       if (CPAMain.cpaConfig.getBooleanValue("art.visualize")) {
-        OutputUtilities.outputAbstractReachabilityTree("art_" + lLoopCounter + "_b_", lRoot, lInitialElementsMap.keySet());
+        OutputUtilities.outputAbstractReachabilityTree("art_" + lLoopCounter + "_b_", lRoot, lInitialElements);
       }
-      
-      if (lInitialElementsMap.isEmpty()) {
-        // we have nothing to explore anymore, so all remaining test goals
-        // are infeasible
-        lInfeasibleTestGoals.addAll(lTestGoals);
-        lTestGoals.clear();
-      }
-      else {
-        if (!lTestGoals.isEmpty()) {
-          System.out.println(lInitialElementsMap);
-
-          ARTUtilities.mergePaths(cpa, lRoot, lInitialElementsMap);
-          
-          System.out.println(lInitialElementsMap);
-          
-          
-          HashSet<QDPTCompositeElement> lPropagateableInitialElements = new HashSet<QDPTCompositeElement>();
-          
-          for (QDPTCompositeElement lInitialElement : lInitialElementsMap.keySet()) {
-            if (ARTUtilities.isPropagateable(lInitialElement)) {
-              lPropagateableInitialElements.add(lInitialElement);
-            }
-          }
-          
-          for (QDPTCompositeElement lInitialElement : lPropagateableInitialElements) {
-            ARTUtilities.propagate(lInitialElement, lInitialElementsMap);
-          }
-          
-          System.out.println(lInitialElementsMap);
-                    
-          
-          if (CPAMain.cpaConfig.getBooleanValue("art.visualize")) {
-            OutputUtilities.outputAbstractReachabilityTree("art_" + lLoopCounter + "_c_", lRoot, lInitialElementsMap.keySet());
-          }
-        }
-      }
-      
-      System.out.println();
-      System.out.println("lWorklist.isEmpty() = " + lWorklist.isEmpty());
-      System.out.println("lTestGoals.isEmpty() = " + lTestGoals.isEmpty());
-      System.out.println("lPathCounter = " + lPathCounter);
-      System.out.println("lPathMaxLength = " + lPathMaxLength);
     }
     
-    System.out.println("FEASIBLE PATHS");
-    System.out.println("lPaths: " + lPaths.size());
-    System.out.println("lPathTree: " + lPathTree.getMaximalPaths().size());
-    
-    OutputUtilities.printTestGoals("Infeasible test goals (#" + lInfeasibleTestGoals.size() + ") = ", lInfeasibleTestGoals);
-   
-    for (List<AbstractElementWithLocation> p : lPaths) {
-      List<String> strpath = AbstractPathToCTranslator.translatePath(pCfas, AbstractPathToCTranslator.getPath(p, null));
-      String lFunctionName = p.get(0).getLocationNode().getFunctionName(); 
-      //assert(CProver.isFeasible(p.get(0).getLocationNode().getFunctionName(), strpath));
-      FShell.isFeasible(strpath, lFunctionName + "_0");
-    }
-    
-    System.out.println("#Test cases computed: " + lPaths.size());
-    
-    return null;
+    OutputUtilities.printTestGoals2("Infeasible test goals (#" + lInfeasibleTestGoals.size() + ") = ", lInfeasibleTestGoals);
   }
 }

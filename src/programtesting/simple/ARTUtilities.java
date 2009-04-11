@@ -15,7 +15,6 @@ import cpa.common.automaton.AutomatonCPADomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;
-import cpa.testgoal.TestGoalCPA;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -27,6 +26,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.Vector;
+import programtesting.CProver;
 import programtesting.simple.QDPTCompositeCPA.Edge;
 import programtesting.simple.QDPTCompositeCPA.QDPTCompositeElement;
 
@@ -37,11 +37,21 @@ import programtesting.simple.QDPTCompositeCPA.QDPTCompositeElement;
 public class ARTUtilities {
   public static Set<QDPTCompositeElement> getReachedElements(Map<QDPTCompositeElement, Set<CFAEdge>> pInitialElementsMap) {
     HashSet<QDPTCompositeElement> lReachedElements = new HashSet<QDPTCompositeElement>();
-    
+
     for (QDPTCompositeElement lInitialElement : pInitialElementsMap.keySet()) {
       accumulateReachedElements(lInitialElement, lReachedElements);
     }
     
+    return lReachedElements;
+  }
+
+  public static Set<QDPTCompositeElement> getReachedElements(Set<QDPTCompositeElement> pInitialElements) {
+    HashSet<QDPTCompositeElement> lReachedElements = new HashSet<QDPTCompositeElement>();
+
+    for (QDPTCompositeElement lInitialElement : pInitialElements) {
+      accumulateReachedElements(lInitialElement, lReachedElements);
+    }
+
     return lReachedElements;
   }
   
@@ -179,7 +189,9 @@ public class ARTUtilities {
 
             if (lMergeSubpaths.size() > 1) {
               QDPTCompositeElement lMergeElement = merge(pCPA, pElement, lMergeSubpaths, pInitialElementsMap);
-
+              // TODO this has to be generalized
+              lMergeElement.setReachable();
+              
               if (pInitialElementsMap.containsKey(lMergeElement)) {
                 propagate(lMergeElement, pInitialElementsMap);
               }
@@ -277,6 +289,9 @@ public class ARTUtilities {
               lPathSet.add(lPath);
               
               QDPTCompositeElement lMergeElement = pCPA.createElement(lLastElement.getElements(), lLastElement.getCallStack(), lCurrentElement, lPathSet);
+              
+              // TODO this has to be generalized
+              lMergeElement.setReachable();
               
               HashSet<Edge> lChildren = new HashSet<Edge>();
               
@@ -525,7 +540,7 @@ public class ARTUtilities {
     
     // scope restriction cpa
     // TODO this has to be changed to handle scope restriction analysis correctly!
-    lAbstractElements.add(lLastElement.get(QueryDrivenProgramTesting.mScopeRestrictionCPAIndex));
+    //lAbstractElements.add(lLastElement.get(QueryDrivenProgramTesting.mScopeRestrictionCPAIndex));
     
     // test goal cpa
     AutomatonCPADomain<CFAEdge>.StateSetElement lLastStateSetElement = lLastElement.projectTo(QueryDrivenProgramTesting.mTestGoalCPAIndex);
@@ -546,6 +561,10 @@ public class ARTUtilities {
     
     QDPTCompositeElement lMergeElement = pCPA.createElement(lAbstractElements, pElement.getCallStack(), pElement, pSubpaths);
 
+    // TODO this has to be generalized
+    lMergeElement.setReachable();
+              
+    
     Set<Edge> lEdgeSet = new HashSet<Edge>();
 
     
@@ -795,6 +814,10 @@ public class ARTUtilities {
     return lMergeDone;
   }
   
+  public static Set<QDPTCompositeElement> getInitialElements(Map<QDPTCompositeElement, Set<CFAEdge>> pInitialElementsMap, Precision pInitialPrecision, ConfigurableProgramAnalysis pCPA) {
+    return getInitialization(pInitialElementsMap, pInitialPrecision, pCPA).getSecond();
+  }
+  
   public static Pair<Set<Edge>, Set<QDPTCompositeElement>> getInitialization(Map<QDPTCompositeElement, Set<CFAEdge>> pInitialElementsMap, Precision pInitialPrecision, ConfigurableProgramAnalysis pCPA) {
     assert(pInitialElementsMap != null);
     assert(pInitialPrecision != null);
@@ -826,5 +849,119 @@ public class ARTUtilities {
     }
 
     return new Pair<Set<Edge>, Set<QDPTCompositeElement>>(lInitialEdges, lInitialElements);
+  }
+  
+  public static Set<QDPTCompositeElement> getLeafs(QDPTCompositeElement pRoot) {
+    assert(pRoot != null);
+    
+    HashSet<QDPTCompositeElement> lLeafs = new HashSet<QDPTCompositeElement>();
+    
+    LinkedList<QDPTCompositeElement> lWorklist = new LinkedList<QDPTCompositeElement>();
+    
+    lWorklist.add(pRoot);
+    
+    while (!lWorklist.isEmpty()) {
+      QDPTCompositeElement lCurrentElement = lWorklist.removeLast();
+      
+      if (lCurrentElement.hasChildren()) {
+        for (Edge lEdge : lCurrentElement.getChildren()) {
+          lWorklist.add(lEdge.getChild());
+        }
+      }
+      else {
+        lLeafs.add(lCurrentElement);
+      }
+    }
+    
+    return lLeafs;
+  }
+  
+  public static Set<QDPTCompositeElement> getLeafs(Set<QDPTCompositeElement> pRootElements) {
+    assert(pRootElements != null);
+    assert(pRootElements.size() > 0);
+    
+    HashSet<QDPTCompositeElement> lLeafs = new HashSet<QDPTCompositeElement>();
+    
+    for (QDPTCompositeElement lRoot : pRootElements) {
+      lLeafs.addAll(getLeafs(lRoot));
+    }
+    
+    return lLeafs;
+  }
+  
+  public static LinkedList<Edge> getFeasibleSubpath(LinkedList<Edge> pPath, ReachabilityMap pReachabilityMap, Translator pTranslator) {
+    assert(pPath != null);
+    assert(pPath.size() > 0);
+    assert(pReachabilityMap != null);
+    assert(pTranslator != null);
+    
+    LinkedList<Edge> lFeasibleSubpath = new LinkedList<Edge>(pPath);
+    
+    Edge lCurrentEdge = lFeasibleSubpath.getLast();
+    
+    QDPTCompositeElement lCurrentElement = lCurrentEdge.getChild();
+    
+    ReachabilityMap.ReachabilityStatus lReachabilityStatus = pReachabilityMap.getReachabilityStatus(lCurrentElement);
+    
+    while (lReachabilityStatus == ReachabilityMap.ReachabilityStatus.UNREACHABLE) {
+      lFeasibleSubpath.removeLast();
+      
+      if (lFeasibleSubpath.size() == 0) {
+        return lFeasibleSubpath;
+      }
+      
+      lCurrentEdge = lFeasibleSubpath.getLast();
+      
+      lCurrentElement = lCurrentEdge.getChild();
+      
+      lReachabilityStatus = pReachabilityMap.getReachabilityStatus(lCurrentElement);
+    }
+
+    QDPTCompositeElement lRoot = lFeasibleSubpath.getFirst().getParent();
+    
+    while (lReachabilityStatus == ReachabilityMap.ReachabilityStatus.UNKNOWN) {
+      String lPathCSource = pTranslator.translate(lFeasibleSubpath);
+      
+      if (CProver.isFeasible(lRoot.getLocationNode().getFunctionName(), lPathCSource)) {
+        for (Edge lEdge : lFeasibleSubpath) {
+          QDPTCompositeElement lTmpElement = lEdge.getParent();
+
+          pReachabilityMap.setReachable(lTmpElement);
+        }
+
+        pReachabilityMap.setReachable(lCurrentElement);
+
+        lReachabilityStatus = ReachabilityMap.ReachabilityStatus.REACHABLE;
+      }
+      else {
+        assert(lCurrentEdge instanceof QDPTCompositeCPA.CFAEdgeEdge);
+        
+        QDPTCompositeCPA.CFAEdgeEdge lRemoveEdge = (QDPTCompositeCPA.CFAEdgeEdge)lCurrentEdge;
+        
+        while (lRemoveEdge.getCFAEdge().getEdgeType() != CFAEdgeType.AssumeEdge) {
+          lFeasibleSubpath.removeLast();
+          
+          Edge lRemoveEdgeTmp = lFeasibleSubpath.getLast();
+          
+          assert(lRemoveEdgeTmp instanceof QDPTCompositeCPA.CFAEdgeEdge);
+              
+          lRemoveEdge = (QDPTCompositeCPA.CFAEdgeEdge)lRemoveEdgeTmp;
+        }
+        
+        lFeasibleSubpath.removeLast();
+        
+        lCurrentEdge = lFeasibleSubpath.getLast();
+      
+        lCurrentElement = lCurrentEdge.getChild();
+
+        lReachabilityStatus = pReachabilityMap.getReachabilityStatus(lCurrentElement);
+      }
+    }
+    
+    // assumption is, that there are no unreachable parts in between, but this is
+    // not ensured by this method
+    assert(lReachabilityStatus == ReachabilityMap.ReachabilityStatus.REACHABLE);
+    
+    return lFeasibleSubpath;
   }
 }

@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Stack;
 import programtesting.ParametricAbstractReachabilityTree;
 import programtesting.simple.QDPTCompositeCPA.Edge;
+import programtesting.simple.QDPTCompositeCPA.HasSubpaths;
 import programtesting.simple.QDPTCompositeCPA.QDPTCompositeElement;
 
 /**
@@ -77,14 +78,14 @@ public class OutputUtilities {
       
       Integer lId = lIdMap.get(lCurrentElement);
       
-      lNodeDefinitions.add("node [label = \"" + lCurrentElement + "\", shape=box]; " + lId + ";");
+      //lNodeDefinitions.add("node [label = \"" + lCurrentElement + "\", shape=box]; " + lId + ";");
 
       for (Edge lEdge : lCurrentElement.getChildren()) {
         QDPTCompositeElement lChildElement = lEdge.getChild();
         
         lWorklist.push(lChildElement);
         
-        if (lEdge instanceof QDPTCompositeCPA.HasSubpaths) {
+        if (lEdge instanceof HasSubpaths) {
           if (lEdge instanceof QDPTCompositeCPA.CFAEdgeAndSubpathsEdge) {
             lEdgeDefinitions.add(lId + " -> " + lIdMap.get(lChildElement) + " [style=bold, color=green];");
           }
@@ -95,6 +96,11 @@ public class OutputUtilities {
         else {
           lEdgeDefinitions.add(lId + " -> " + lIdMap.get(lChildElement) + ";");
         }
+      }
+      
+      // visualize coverage information
+      for (QDPTCompositeElement lCoveredElement : lCurrentElement.getCoveredElements()) {
+        lEdgeDefinitions.add(lId + " -> " + lIdMap.get(lCoveredElement) + " [style=dashed, color=orange];");
       }
     }
     
@@ -119,7 +125,106 @@ public class OutputUtilities {
       assert (false);
     }
   }
-  
+
+  public static void outputAbstractReachabilityTree(String pFileId, QDPTCompositeElement pRoot, Map<QDPTCompositeElement, String> pFormating) {
+    assert(pFileId != null);
+    assert(pRoot != null);
+    assert(pFormating != null);
+
+    File lFile = null;
+
+    try {
+      lFile = File.createTempFile(pFileId, ".dot");
+    } catch (IOException e) {
+      e.printStackTrace();
+      assert (false);
+    }
+
+    List<String> lNodeDefinitions = new LinkedList<String>();
+
+    List<String> lEdgeDefinitions = new LinkedList<String>();
+
+    Stack<QDPTCompositeElement> lWorklist = new Stack<QDPTCompositeElement>();
+    lWorklist.push(pRoot);
+
+    int lUniqueId = 0;
+
+    Map<QDPTCompositeElement, Integer> lIdMap = new HashMap<QDPTCompositeElement, Integer>();
+
+    // putting ids into map
+    while (!lWorklist.empty()) {
+      QDPTCompositeElement lCurrentElement = lWorklist.pop();
+
+      lIdMap.put(lCurrentElement, lUniqueId);
+
+      for (Edge lEdge : lCurrentElement.getChildren()) {
+        lWorklist.push(lEdge.getChild());
+      }
+
+      if (pFormating.containsKey(lCurrentElement)) {
+        //lNodeDefinitions.add("node [label = \"<" + lCurrentElement.projectTo(QueryDrivenProgramTesting.mLocationCPAIndex) + ", " + lCurrentElement.getDepth() + ">\", " + pFormating.get(lCurrentElement) + "]; " + (lUniqueId++) + ";");
+        lNodeDefinitions.add("node [label = \"<" + lCurrentElement + ", " + lCurrentElement.getDepth() + ">\", " + pFormating.get(lCurrentElement) + "]; " + (lUniqueId++) + ";");
+      }
+      else {
+        //lNodeDefinitions.add("node [label = \"<" + lCurrentElement.projectTo(QueryDrivenProgramTesting.mLocationCPAIndex) + ", " + lCurrentElement.getDepth() + ">\", shape=box, color=black, fillcolor=white]; " + (lUniqueId++) + ";");
+        lNodeDefinitions.add("node [label = \"<" + lCurrentElement + ", " + lCurrentElement.getDepth() + ">\", shape=box, color=black, fillcolor=white]; " + (lUniqueId++) + ";");
+      }
+    }
+
+    lWorklist.push(pRoot);
+    while (!lWorklist.empty()) {
+      QDPTCompositeElement lCurrentElement = lWorklist.pop();
+
+      Integer lId = lIdMap.get(lCurrentElement);
+
+      //lNodeDefinitions.add("node [label = \"" + lCurrentElement + "\", shape=box]; " + lId + ";");
+
+      for (Edge lEdge : lCurrentElement.getChildren()) {
+        QDPTCompositeElement lChildElement = lEdge.getChild();
+
+        lWorklist.push(lChildElement);
+
+        if (lEdge instanceof HasSubpaths) {
+          if (lEdge instanceof QDPTCompositeCPA.CFAEdgeAndSubpathsEdge) {
+            lEdgeDefinitions.add(lId + " -> " + lIdMap.get(lChildElement) + " [style=bold, color=green];");
+          }
+          else {
+            lEdgeDefinitions.add(lId + " -> " + lIdMap.get(lChildElement) + " [style=bold, color=blue];");
+          }
+        }
+        else {
+          lEdgeDefinitions.add(lId + " -> " + lIdMap.get(lChildElement) + ";");
+        }
+      }
+
+      // visualize coverage information
+      for (QDPTCompositeElement lCoveredElement : lCurrentElement.getCoveredElements()) {
+        lEdgeDefinitions.add(lId + " -> " + lIdMap.get(lCoveredElement) + " [style=dashed, color=orange];");
+      }
+    }
+
+    try {
+      PrintWriter lWriter = new PrintWriter(lFile);
+
+      lWriter.println("digraph ART {");
+
+      for (String lString : lNodeDefinitions) {
+        lWriter.println(lString);
+      }
+
+      for (String lString : lEdgeDefinitions) {
+        lWriter.println(lString);
+      }
+
+      lWriter.print("}");
+
+      lWriter.close();
+    } catch (FileNotFoundException e) {
+      e.printStackTrace();
+      assert (false);
+    }
+  }
+
   public static void outputAbstractReachabilityTreePDF(String pFileId, QDPTCompositeElement pRoot, Collection<QDPTCompositeElement> pSpecialElements) {
     assert(pFileId != null);
     assert(pRoot != null);
@@ -179,7 +284,7 @@ public class OutputUtilities {
         
         lWorklist.push(lChildElement);
         
-        if (lEdge instanceof QDPTCompositeCPA.HasSubpaths) {
+        if (lEdge instanceof HasSubpaths) {
           if (lEdge instanceof QDPTCompositeCPA.CFAEdgeAndSubpathsEdge) {
             lEdgeDefinitions.add(lId + " -> " + lIdMap.get(lChildElement) + " [style=bold, color=green];");
           }
@@ -285,13 +390,46 @@ public class OutputUtilities {
       assert (false);
     }
   }
-  
+
+  /**
+   *
+   * @param pTitle
+   * @param pTestGoals
+   */
+  public static void printTestGoals2(String pTitle, Collection<Integer> pTestGoals) {
+    System.out.print(pTitle);
+
+    printTestGoals2(pTestGoals);
+  }
+
+  /**
+   *
+   * @param pTestGoals
+   */
+  public static void printTestGoals2(Collection<Integer> pTestGoals) {
+    boolean lFirstTestGoal = true;
+
+    System.out.print("{");
+
+    for (Integer lTestGoal : pTestGoals) {
+      if (lFirstTestGoal) {
+        lFirstTestGoal = false;
+      } else {
+        System.out.print(",");
+      }
+
+      System.out.print("q" + lTestGoal);
+    }
+
+    System.out.println("}");
+  }
+
   public static void printTestGoals(String pTitle, Collection<Automaton<CFAEdge>.State> pTestGoals) {
     System.out.print(pTitle);
 
     printTestGoals(pTestGoals);
   }
-  
+
   public static void printTestGoals(Collection<Automaton<CFAEdge>.State> pTestGoals) {
     boolean lFirstTestGoal = true;
 

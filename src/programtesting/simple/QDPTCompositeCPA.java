@@ -23,7 +23,6 @@
  */
 package programtesting.simple;
 
-import programtesting.*;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -44,7 +43,7 @@ import cpa.common.CallElement;
 import cpa.common.CallStack;
 import cpa.common.CompositeDomain;
 import cpa.common.CompositeElement;
-import cpa.common.automaton.AutomatonCPADomain;
+import cpa.common.automaton.AutomatonCPADomain2;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
@@ -58,6 +57,7 @@ import exceptions.CPAException;
 import exceptions.CPATransferException;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.Set;
 
 /**
  * @author Andreas Holzer <holzer@forsyte.de>
@@ -168,6 +168,7 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
       mSubpaths = new HashSet<List<Edge>>(pSubpaths);
     }
     
+    @Override
     public Iterable<List<QDPTCompositeCPA.Edge>> getSubpaths() {
       return mSubpaths;
     }
@@ -200,6 +201,7 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
       return mSubpaths.size();
     }
     
+    @Override
     public Iterable<List<Edge>> getSubpaths() {
       return mSubpaths;
     }
@@ -218,13 +220,20 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
     private QDPTCompositeElement mParent;
     private HashSet<Edge> mChildren;
     private Edge mEdge;
+    private boolean mReachabilityKnown = false;
+    
+    private HashSet<QDPTCompositeElement> mCoveredElements;
+    private QDPTCompositeElement mCoveringElement;
+
+    private int mDepth;
+    private int mMaxDepth;
     
     public QDPTCompositeElement(List<AbstractElement> pElements, CallStack pStack, QDPTCompositeElement pParent, CFAEdge pCFAEdge) {
       this(pElements, pStack, pParent);
       
       assert(pCFAEdge != null);
       
-      mChildren = new HashSet<Edge>();
+      //mChildren = new HashSet<Edge>();
       
       mEdge = new CFAEdgeEdge(mParent, this, pCFAEdge);
       mParent.mChildren.add(mEdge);
@@ -298,6 +307,9 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
       assert(pParent != null);
       
       mParent = pParent;
+      
+      mDepth = pParent.getDepth() + 1;
+      mMaxDepth = pParent.getMaxDepth() + 1;
     }
     
     public QDPTCompositeElement(List<AbstractElement> pElements, CallStack pStack) {
@@ -306,6 +318,48 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
       mParent = null;
       mChildren = new HashSet<Edge>();
       mEdge = null;
+      
+      mCoveredElements = new HashSet<QDPTCompositeElement>();
+      mCoveringElement = null;
+
+      mDepth = 0;
+      mMaxDepth = 0;
+    }
+    
+    
+    public void addCoveredElement(QDPTCompositeElement pElement) {
+      assert(pElement != null);
+      
+      mCoveredElements.add(pElement);
+      pElement.mCoveringElement = this;
+
+      if (mMaxDepth < pElement.mMaxDepth) {
+        mMaxDepth = pElement.mMaxDepth;
+      }
+      else if (mMaxDepth > pElement.mMaxDepth) {
+        pElement.mMaxDepth = mMaxDepth;
+      }
+    }
+    
+    public Set<QDPTCompositeElement> getCoveredElements() {
+      return mCoveredElements;
+    }
+    
+    public QDPTCompositeElement getCoveringElement() {
+      return mCoveringElement;
+    }
+    
+    public boolean hasCoveringElement() {
+      return (mCoveringElement != null);
+    }
+    
+    
+    public boolean isReachabilityKnown() {
+      return mReachabilityKnown;
+    }
+    
+    public void setReachable() {
+      mReachabilityKnown = true;
     }
     
     @Override
@@ -376,15 +430,21 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
     }
     
     public int getDepth() {
-      if (isRoot()) {
+      /*if (isRoot()) {
         return 0;
       }
       else {
         return getParent().getDepth() + 1;
-      }
+      }*/
+
+      return mDepth;
+    }
+
+    public int getMaxDepth() {
+      return mMaxDepth;
     }
     
-    public List<Edge> getPathToRoot() {
+    public LinkedList<Edge> getPathToRoot() {
       LinkedList<Edge> lPath = new LinkedList<Edge>();
       
       QDPTCompositeElement lElement = this;
@@ -416,6 +476,31 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
       AbstractElement lElementAtIndex = super.get(pIndex);
       
       return (T)lElementAtIndex;
+    }
+  }
+  
+  public class QDPTCompositeStopOperator extends CompositeStopOperator {
+    public QDPTCompositeStopOperator(CompositeDomain compositeDomain, List<StopOperator> stopOperators) {
+      super(compositeDomain, stopOperators);
+    }
+    
+    @Override
+    public boolean stop(AbstractElement pElement, AbstractElement pReachedElement) throws CPAException {
+      if (super.stop(pElement, pReachedElement)) {
+        assert(pElement instanceof QDPTCompositeElement);
+        assert(pReachedElement instanceof QDPTCompositeElement);
+        
+        QDPTCompositeElement lElement = (QDPTCompositeElement)pElement;
+        QDPTCompositeElement lReachedElement = (QDPTCompositeElement)pReachedElement;
+        
+        assert(lElement.mCoveringElement == null);
+        
+        lReachedElement.addCoveredElement(lElement);
+        
+        return true;
+      }
+      
+      return false;
     }
   }
   
@@ -551,16 +636,16 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
   private final CompositeDomain mDomain;
   private final QDPTCompositeTransferRelation mTransferRelation;
   private final CompositeMergeOperator mMergeOperator;
-  private final CompositeStopOperator mStopOperator;
+  private final QDPTCompositeStopOperator mStopOperator;
   private final CompositePrecisionAdjustment mPrecisionAdjustment;
   private final QDPTCompositeElement mInitialElement;
   private final CompositePrecision mInitialPrecision;
   
-  private final AutomatonCPADomain<CFAEdge> mAutomatonDomain;
+  private final AutomatonCPADomain2<CFAEdge> mAutomatonDomain;
   private final int mTestGoalCPAIndex;
 
   public QDPTCompositeCPA(List<ConfigurableProgramAnalysis> cpas, CFAFunctionDefinitionNode node,
-                          AutomatonCPADomain<CFAEdge> pAutomatonDomain, int pTestGoalCPAIndex) {
+                          AutomatonCPADomain2<CFAEdge> pAutomatonDomain, int pTestGoalCPAIndex) {
     List<AbstractDomain> domains = new ArrayList<AbstractDomain> ();
     List<TransferRelation> transferRelations = new ArrayList<TransferRelation> ();
     List<MergeOperator> mergeOperators = new ArrayList<MergeOperator> ();
@@ -582,7 +667,7 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
     mDomain = new CompositeDomain(domains);
     mTransferRelation = new QDPTCompositeTransferRelation(mDomain, transferRelations);
     mMergeOperator = new CompositeMergeOperator(mDomain, mergeOperators);
-    mStopOperator = new CompositeStopOperator(mDomain, stopOperators);
+    mStopOperator = new QDPTCompositeStopOperator(mDomain, stopOperators);
     mPrecisionAdjustment = new CompositePrecisionAdjustment(precisionAdjustments);
     mInitialElement = new QDPTCompositeElement(initialElements, null);
     mInitialPrecision = new CompositePrecision(initialPrecisions);
@@ -605,7 +690,9 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
   // TODO: During ART creation establish an order
   // that allows efficient querying for test goals
   public Collection<Pair<AbstractElementWithLocation,Precision>> newReachedSet() {
-    return new QDPTReachedSet(mAutomatonDomain,mTestGoalCPAIndex);
+    throw new RuntimeException("Not implemented!");
+    
+    //return new QDPTReachedSet(mAutomatonDomain,mTestGoalCPAIndex);
   }
   
   @Override
@@ -635,7 +722,7 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public CompositeStopOperator getStopOperator() {
+  public QDPTCompositeStopOperator getStopOperator() {
     return mStopOperator;
   }
 
