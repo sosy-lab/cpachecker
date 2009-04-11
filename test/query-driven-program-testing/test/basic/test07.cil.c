@@ -11,13 +11,26 @@ int foo(void)
 }
 }
 #line 5 "test07.c"
+int foo2(int x ) 
+{ 
+
+  {
+#line 6
+  x += 1;
+#line 6
+  return (x + 10);
+}
+}
+#line 9 "test07.c"
 int main(void) 
 { int x ;
 
   {
-#line 8
+#line 12
   x = foo();
-#line 10
+#line 14
+  x = foo2(100);
+#line 16
   return (x);
 }
 }

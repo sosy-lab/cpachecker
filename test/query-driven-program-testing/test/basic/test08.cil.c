@@ -3,19 +3,22 @@
 
 #line 1 "test08.c"
 int main(void) 
-{ int x ;
+{ int y ;
+  int x ;
 
   {
-#line 4
+#line 2
+  y = 100;
+#line 5
   if (x == 0) {
     goto END;
   } else {
 
   }
-#line 8
+#line 9
   x = 10;
   END: 
-#line 12
+#line 13
   return (0);
 }
 }

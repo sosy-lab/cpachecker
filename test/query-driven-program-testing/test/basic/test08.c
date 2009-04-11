@@ -1,4 +1,5 @@
 int main(void) {
+  const int y = 100;
   int x;
 
   if (x == 0) {
