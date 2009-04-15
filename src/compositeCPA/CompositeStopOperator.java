@@ -49,7 +49,19 @@ public class CompositeStopOperator implements StopOperator{
 
   public <AE extends AbstractElement> boolean stop (AE element, Collection<AE> reached, Precision precision) throws CPAException
   {
+    if(containsBottomElement(element)){
+      return true;
+    }
     
+    for (AbstractElement e : reached) {
+      if (stop(element, e)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  public boolean containsBottomElement(AbstractElement element) {
     if (element == compositeDomain.getBottomElement()) {
       return true;
     }
@@ -67,12 +79,6 @@ public class CompositeStopOperator implements StopOperator{
       AbstractElement abstElem = components.get(idx);
       AbstractDomain abstDomain = compositeDomain.getDomains().get(idx);
       if(abstElem == abstDomain.getBottomElement()){
-        return true;
-      }
-    }
-    
-    for (AbstractElement e : reached) {
-      if (stop(element, e)) {
         return true;
       }
     }

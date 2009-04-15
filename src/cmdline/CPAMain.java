@@ -64,6 +64,7 @@ import cmdline.stubs.StubFile;
 import compositeCPA.CompositeCPA;
 import compositeCPA.CompositeStopOperator;
 
+import cpa.art.ArtCPA;
 import cpa.common.CPAAlgorithm;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
@@ -86,9 +87,11 @@ public class CPAMain {
   // interrupted by the user
   private static boolean interrupted = true;
 
-  private static ConfigurableProgramAnalysis getCPA(
-                                                    CFAFunctionDefinitionNode node) throws CPAException {
-    return CompositeCPA.getCompositeCPA(node);
+  private static ConfigurableProgramAnalysis getCPA
+  (CFAFunctionDefinitionNode node) throws CPAException {
+    // TODO check if we want to use composite and/or other wrapper analysis
+    ConfigurableProgramAnalysis compCpa = CompositeCPA.getCompositeCPA(node);
+    return ArtCPA.getCompositeCPA(node, compCpa);
   }
 
   public static void doRunAnalysis(IASTTranslationUnit ast)

@@ -65,7 +65,7 @@ public class ExplicitAnalysisDomain implements AbstractDomain {
         // we should not put this in the reached set
         assert(false);
         return false;
-      } else if (explicitAnalysisElementNew == bottomElement) {
+      } else if (explicitAnalysisElementNew == topElement) {
         return false;
       }
 
