@@ -4,20 +4,20 @@ import cfa.objectmodel.CFANode;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 
-public class ArtElement implements AbstractElementWithLocation {
+public class ARTElement implements AbstractElementWithLocation {
 
   private AbstractElementWithLocation element;
-  private ArtElement parentElement;
+  private ARTElement parentElement;
   private int elementId;
   private static int nextArtElementId= 0;
 
-  public ArtElement(AbstractElementWithLocation pAbstractElement, ArtElement pParentElement) {
+  public ARTElement(AbstractElementWithLocation pAbstractElement, ARTElement pParentElement) {
     element = pAbstractElement;
     parentElement = pParentElement;
     elementId = ++nextArtElementId;
   }
 
-  public ArtElement getParent(){
+  public ARTElement getParent(){
     return parentElement;
   }
 
@@ -27,7 +27,7 @@ public class ArtElement implements AbstractElementWithLocation {
 
   @Override
   public boolean equals(Object pObj) {
-    return ((ArtElement)pObj).elementId == this.elementId;
+    return ((ARTElement)pObj).elementId == this.elementId;
   }
 
   @Override

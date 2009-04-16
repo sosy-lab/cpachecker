@@ -42,6 +42,7 @@ import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
+import cpa.common.interfaces.RefinementManager;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
 import cpaplugin.CPAStatistics;
@@ -56,6 +57,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis
 	private final PrecisionAdjustment precisionAdjustment;
 	private final AbstractElementWithLocation initialElement;
 	private final Precision initialPrecision;
+	private final RefinementManager refinementManager;
 
 	private CompositeCPA (AbstractDomain abstractDomain,
 	    TransferRelation transferRelation,
@@ -63,7 +65,8 @@ public class CompositeCPA implements ConfigurableProgramAnalysis
 			StopOperator stopOperator,
 			PrecisionAdjustment precisionAdjustment,
 			AbstractElementWithLocation initialElement,
-			Precision initialPrecision)
+			Precision initialPrecision,
+			RefinementManager refManager)
 	{
 		this.abstractDomain = abstractDomain;
     this.transferRelation = transferRelation;
@@ -72,6 +75,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis
 		this.precisionAdjustment = precisionAdjustment;
 		this.initialElement = initialElement;
 		this.initialPrecision = initialPrecision;
+		this.refinementManager = refManager;
 	}
 
 	public static CompositeCPA createNewCompositeCPA(List<ConfigurableProgramAnalysis> cpas, CFAFunctionDefinitionNode node) {
@@ -83,6 +87,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis
 		List<PrecisionAdjustment> precisionAdjustments = new ArrayList<PrecisionAdjustment> ();
 		List<AbstractElement> initialElements = new ArrayList<AbstractElement> ();
 		List<Precision> initialPrecisions = new ArrayList<Precision> ();
+		List<RefinementManager> refinementManagers = new ArrayList<RefinementManager>();
 
 		for(ConfigurableProgramAnalysis sp : cpas) {
 			domains.add(sp.getAbstractDomain());
@@ -90,6 +95,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis
 			mergeOperators.add(sp.getMergeOperator());
 			stopOperators.add(sp.getStopOperator());
 			precisionAdjustments.add(sp.getPrecisionAdjustment());
+			refinementManagers.add(sp.getRefinementManager());
 			initialElements.add(sp.getInitialElement(node));
 			initialPrecisions.add(sp.getInitialPrecision(node));
 		}
@@ -101,6 +107,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis
 		CompositePrecisionAdjustment compositePrecisionAdjustment = new CompositePrecisionAdjustment (precisionAdjustments);
 		CompositeElement initialElement = new CompositeElement (initialElements, null);
 		CompositePrecision initialPrecision = new CompositePrecision (initialPrecisions);
+		CompositeRefinementManager refinementMan = new CompositeRefinementManager(refinementManagers);
 		// set call stack
 		CallStack initialCallStack = new CallStack();
 		CallElement initialCallElement = new CallElement(node.getFunctionName(), node, initialElement);
@@ -108,7 +115,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis
 		initialElement.setCallStack(initialCallStack);
 
 		return createCompositeCPA(compositeDomain, compositeTransfer, compositeMerge, compositeStop,
-		    compositePrecisionAdjustment, initialElement, initialPrecision);
+		    compositePrecisionAdjustment, initialElement, initialPrecision, refinementMan);
 
 	}
 
@@ -118,13 +125,15 @@ public class CompositeCPA implements ConfigurableProgramAnalysis
 			StopOperator stopOperator,
 			PrecisionAdjustment precisionAdjustment,
       AbstractElementWithLocation initialElement,
-      Precision initialPrecision)
+      Precision initialPrecision,
+      RefinementManager refinementManager)
 	{
 		// TODO Michael: this should throw something
 		if (abstractDomain == null || 
 		    transferRelation == null || mergeOperator == null ||
 				stopOperator == null || precisionAdjustment == null ||
-				initialElement == null || initialPrecision == null)
+				initialElement == null || initialPrecision == null ||
+				refinementManager == null)
 			return null;
 
 		/*if (mergeOperator.getAbstractDomain () != abstractDomain ||
@@ -133,7 +142,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis
 			return null;*/
 
 		return new CompositeCPA (abstractDomain, transferRelation, mergeOperator, stopOperator,
-		    precisionAdjustment, initialElement, initialPrecision);
+		    precisionAdjustment, initialElement, initialPrecision, refinementManager);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -237,7 +246,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis
 	public PrecisionAdjustment getPrecisionAdjustment () {
 	  return precisionAdjustment;
 	}
-
+	@Override
 	public AbstractElement getInitialElement (CFAFunctionDefinitionNode node) {
 		return initialElement;
 	}
@@ -245,5 +254,10 @@ public class CompositeCPA implements ConfigurableProgramAnalysis
 	public Precision getInitialPrecision (CFAFunctionDefinitionNode node) {
 	  return initialPrecision;
 	}
+
+	@Override
+  public RefinementManager getRefinementManager() {
+    return refinementManager;
+  }
 }
 

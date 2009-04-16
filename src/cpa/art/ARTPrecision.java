@@ -2,11 +2,11 @@ package cpa.art;
 
 import cpa.common.interfaces.Precision;
 
-public class ArtPrecision implements Precision {
+public class ARTPrecision implements Precision {
   
   private Precision prec;
   
-  public ArtPrecision(Precision precision) {
+  public ARTPrecision(Precision precision) {
     prec = precision;
   }
   

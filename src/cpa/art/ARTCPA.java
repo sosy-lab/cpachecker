@@ -8,33 +8,36 @@ import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
+import cpa.common.interfaces.RefinementManager;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
 import exceptions.CPAException;
 
-public class ArtCPA implements ConfigurableProgramAnalysis {
+public class ARTCPA implements ConfigurableProgramAnalysis {
 
   private AbstractDomain abstractDomain;
   private TransferRelation transferRelation;
   private MergeOperator mergeOperator;
   private StopOperator stopOperator;
   private PrecisionAdjustment precisionAdjustment;
+  private RefinementManager refinementManager; 
 
   private ConfigurableProgramAnalysis wrappedCPA;
 
-  public ArtCPA(String mergeType, String stopType, ConfigurableProgramAnalysis cpa) throws CPAException {
+  public ARTCPA(String mergeType, String stopType, ConfigurableProgramAnalysis cpa) throws CPAException {
     wrappedCPA = cpa;
-    abstractDomain = new ArtDomain();
-    transferRelation = new ArtTransferRelation(cpa.getTransferRelation());
-    precisionAdjustment = new ArtPrecisionAdjustment();
+    abstractDomain = new ARTDomain();
+    transferRelation = new ARTTransferRelation(cpa.getTransferRelation());
+    precisionAdjustment = new ARTPrecisionAdjustment();
+    refinementManager = new ARTRefinementManager(wrappedCPA);
     if(mergeType.equals("sep")){
-      mergeOperator = new ArtMergeSep();
+      mergeOperator = new ARTMergeSep();
     }
     else if(mergeType.equals("join")){
       throw new CPAException("Location domain elements cannot be joined");
     }
     if(stopType.equals("sep")){
-      stopOperator = new ArtStopSep(abstractDomain, wrappedCPA);
+      stopOperator = new ARTStopSep(abstractDomain, wrappedCPA);
     }
     else if(stopType.equals("join")){
       throw new CPAException("Location domain elements cannot be joined");
@@ -65,19 +68,25 @@ public class ArtCPA implements ConfigurableProgramAnalysis {
     return precisionAdjustment;
   }
 
+  @Override
   public AbstractElement getInitialElement (CFAFunctionDefinitionNode pNode) {
-    return new ArtElement((AbstractElementWithLocation)wrappedCPA.getInitialElement(pNode), 
+    return new ARTElement((AbstractElementWithLocation)wrappedCPA.getInitialElement(pNode), 
         null);
   }
 
   public Precision getInitialPrecision 
   (CFAFunctionDefinitionNode pNode) {
-    return new ArtPrecision(wrappedCPA.getInitialPrecision(pNode));
+    return new ARTPrecision(wrappedCPA.getInitialPrecision(pNode));
   }
 
   public static ConfigurableProgramAnalysis getCompositeCPA 
   (CFAFunctionDefinitionNode node, ConfigurableProgramAnalysis cpa) throws CPAException{
     // TODO we assume that we always use sep-sep for merge and join
-    return new ArtCPA("sep", "sep", cpa);
+    return new ARTCPA("sep", "sep", cpa);
+  }
+
+  @Override
+  public RefinementManager getRefinementManager() {
+    return refinementManager;
   }
 }

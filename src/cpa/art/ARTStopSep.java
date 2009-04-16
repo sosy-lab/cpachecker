@@ -12,13 +12,13 @@ import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.StopOperator;
 import exceptions.CPAException;
 
-public class ArtStopSep implements StopOperator {
+public class ARTStopSep implements StopOperator {
 
-  private final ArtDomain domain;
+  private final ARTDomain domain;
   private final ConfigurableProgramAnalysis cpa;
   
-  public ArtStopSep(AbstractDomain pArtDomain, ConfigurableProgramAnalysis cpa) {
-    this.domain = (ArtDomain)pArtDomain;
+  public ARTStopSep(AbstractDomain pArtDomain, ConfigurableProgramAnalysis cpa) {
+    this.domain = (ARTDomain)pArtDomain;
     this.cpa = cpa;
   }
   
@@ -26,7 +26,7 @@ public class ArtStopSep implements StopOperator {
   public <AE extends AbstractElement> boolean stop(AE pElement,
       Collection<AE> pReached, Precision pPrecision) throws CPAException {
 
-    ArtElement artElement = (ArtElement)pElement;
+    ARTElement artElement = (ARTElement)pElement;
     AbstractElement wrappedElement = artElement.getAbstractElementOnArtNode();
     StopOperator stopOp = cpa.getStopOperator();
     
@@ -49,9 +49,9 @@ public class ArtStopSep implements StopOperator {
   @Override
   public boolean stop(AbstractElement pElement, AbstractElement pReachedElement)
       throws CPAException {
-    ArtElement artElement = (ArtElement)pElement;
+    ARTElement artElement = (ARTElement)pElement;
     AbstractElement wrappedElement = artElement.getAbstractElementOnArtNode();
-    ArtElement reachedArtElement = (ArtElement)pReachedElement;
+    ARTElement reachedArtElement = (ARTElement)pReachedElement;
     AbstractElement wrappedReachedElement = reachedArtElement.getAbstractElementOnArtNode();
     StopOperator stopOp = cpa.getStopOperator();
     return stopOp.stop(wrappedElement, wrappedReachedElement);

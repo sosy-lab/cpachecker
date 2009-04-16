@@ -6,7 +6,7 @@ import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
 import exceptions.CPAException;
 
-public class ArtMergeSep implements MergeOperator {
+public class ARTMergeSep implements MergeOperator {
   
   @Override
   public AbstractElementWithLocation merge(

@@ -12,11 +12,11 @@ import cpa.common.interfaces.TransferRelation;
 import exceptions.CPAException;
 import exceptions.CPATransferException;
 
-public class ArtTransferRelation implements TransferRelation {
+public class ARTTransferRelation implements TransferRelation {
   
   private final TransferRelation transferRelation;
   
-  public ArtTransferRelation(TransferRelation tr) {
+  public ARTTransferRelation(TransferRelation tr) {
     transferRelation = tr;
   }
   
@@ -36,13 +36,13 @@ public class ArtTransferRelation implements TransferRelation {
   public List<AbstractElementWithLocation> getAllAbstractSuccessors(
       AbstractElementWithLocation pElement, Precision pPrecision)
       throws CPAException, CPATransferException {
-    ArtElement element = (ArtElement)pElement;
+    ARTElement element = (ARTElement)pElement;
     AbstractElementWithLocation wrappedElement = element.getAbstractElementOnArtNode();
-    Precision wrappedPrecision = ((ArtPrecision)pPrecision).getPrecision();
+    Precision wrappedPrecision = ((ARTPrecision)pPrecision).getPrecision();
     List<AbstractElementWithLocation> successors = transferRelation.getAllAbstractSuccessors(wrappedElement, wrappedPrecision);
     List<AbstractElementWithLocation> wrappedSuccessors = new ArrayList<AbstractElementWithLocation>();
     for(AbstractElementWithLocation absElement:successors){
-      ArtElement successorElem = new ArtElement(absElement, element); 
+      ARTElement successorElem = new ARTElement(absElement, element); 
       wrappedSuccessors.add(successorElem);
     }
     return wrappedSuccessors;

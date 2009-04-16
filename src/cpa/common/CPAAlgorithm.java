@@ -39,6 +39,8 @@ import common.Pair;
 import logging.CustomLogLevel;
 import logging.LazyLogger;
 
+import cfa.objectmodel.CFAErrorNode;
+import cfa.objectmodel.CFANode;
 import cmdline.CPAMain;
 
 import cpa.common.interfaces.AbstractElementWithLocation;
@@ -46,6 +48,7 @@ import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
+import cpa.common.interfaces.RefinementManager;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
 import exceptions.CPATransferException;
@@ -80,10 +83,11 @@ public class CPAAlgorithm
     waitlist.add(new Pair<AbstractElementWithLocation,Precision>(initialState, initialPrecision));
     reached.add(new Pair<AbstractElementWithLocation,Precision>(initialState, initialPrecision));
 
-    TransferRelation transferRelation = cpa.getTransferRelation ();
-    MergeOperator mergeOperator = cpa.getMergeOperator ();
-    StopOperator stopOperator = cpa.getStopOperator ();
+    TransferRelation transferRelation = cpa.getTransferRelation();
+    MergeOperator mergeOperator = cpa.getMergeOperator();
+    StopOperator stopOperator = cpa.getStopOperator();
     PrecisionAdjustment precisionAdjustment = cpa.getPrecisionAdjustment();
+    RefinementManager refinementManager = cpa.getRefinementManager();
 
     while (!waitlist.isEmpty ())
     {
@@ -210,6 +214,16 @@ public class CPAAlgorithm
           LazyLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel,
               "No need to stop ", successor,
           " is added to queue");
+          
+          CFANode succNode = successor.getLocationNode();
+          boolean useART = CPAMain.cpaConfig.getBooleanValue("cpa.useART");
+          if(useART && succNode instanceof CFAErrorNode){
+            // TODO refinement Manager
+            boolean errorFound = refinementManager.performRefinement(successor);
+            if(errorFound){
+              
+            }
+          }
           // end to the end
           waitlist.add(new Pair<AbstractElementWithLocation,Precision>(successor,precision));
           reached.add(new Pair<AbstractElementWithLocation,Precision>(successor,precision));

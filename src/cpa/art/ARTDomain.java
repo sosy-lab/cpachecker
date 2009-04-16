@@ -5,9 +5,9 @@ import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.JoinOperator;
 import cpa.common.interfaces.PartialOrder;
 
-public class ArtDomain implements AbstractDomain {
+public class ARTDomain implements AbstractDomain {
 
-  private static class ArtBottomElement extends ArtElement
+  private static class ArtBottomElement extends ARTElement
   {
     public ArtBottomElement() {
       super(null, null);
@@ -34,7 +34,7 @@ public class ArtDomain implements AbstractDomain {
     }
   }
 
-  private static class ArtTopElement extends ArtElement
+  private static class ArtTopElement extends ARTElement
   {
     public ArtTopElement() {
       super(null, null);
@@ -82,8 +82,8 @@ public class ArtDomain implements AbstractDomain {
     public AbstractElement join (AbstractElement element1, AbstractElement element2)
     {
       // Useless code, but helps to catch bugs by causing cast exceptions
-      ArtElement artElement1 = (ArtElement) element1;
-      ArtElement artElement2 = (ArtElement) element2;
+      ARTElement artElement1 = (ARTElement) element1;
+      ARTElement artElement2 = (ARTElement) element2;
 
       if (artElement1.equals (artElement2))
         return artElement1;
@@ -102,7 +102,7 @@ public class ArtDomain implements AbstractDomain {
   private final static PartialOrder partialOrder = new ArtPartialOrder ();
   private final static JoinOperator joinOperator = new ArtJoinOperator ();
 
-  public ArtDomain()
+  public ARTDomain()
   {
 
   }
