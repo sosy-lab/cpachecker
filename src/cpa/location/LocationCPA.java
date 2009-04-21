@@ -30,6 +30,7 @@ import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
+import cpa.common.interfaces.RefinementManager;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
 import exceptions.CPAException;
@@ -41,6 +42,7 @@ public class LocationCPA implements ConfigurableProgramAnalysis{
 	private MergeOperator mergeOperator;
 	private StopOperator stopOperator;
 	private PrecisionAdjustment precisionAdjustment;
+	private RefinementManager refinementManager;
 
 	public LocationCPA (String mergeType, String stopType) throws CPAException{
 	  LocationDomain locationDomain = new LocationDomain ();
@@ -52,14 +54,16 @@ public class LocationCPA implements ConfigurableProgramAnalysis{
 	  if(mergeType.equals("join")){
 	    throw new CPAException("Location domain elements cannot be joined");
 	  }
-	  StopOperator locationStopOp = new LocationStopSep (locationDomain);
-	  PrecisionAdjustment precisionAdjustment = new LocationPrecisionAdjustment ();
+	  StopOperator locationStopOp = new LocationStopSep(locationDomain);
+	  PrecisionAdjustment precisionAdjustment = new LocationPrecisionAdjustment();
+	  RefinementManager refinementManager = new LocationRefinementManager();
 	  
 		this.abstractDomain = locationDomain;
 		this.transferRelation = locationTransferRelation;
 		this.mergeOperator = locationMergeOp;
 		this.stopOperator = locationStopOp;
 		this.precisionAdjustment = precisionAdjustment;
+		this.refinementManager = refinementManager;
 	}
 
 	public AbstractDomain getAbstractDomain ()
@@ -85,12 +89,18 @@ public class LocationCPA implements ConfigurableProgramAnalysis{
   public PrecisionAdjustment getPrecisionAdjustment () {
     return precisionAdjustment;
   }
-
+  
+  @Override
 	public AbstractElement getInitialElement (CFAFunctionDefinitionNode node) {
 	  return new LocationElement (node);
 	}
 
   public Precision getInitialPrecision (CFAFunctionDefinitionNode pNode) {
     return new LocationPrecision();
+  }
+
+  @Override
+  public RefinementManager getRefinementManager() {
+    return refinementManager;
   }
 }

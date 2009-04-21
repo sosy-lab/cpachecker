@@ -23,34 +23,37 @@
  */
 package cpa.predicateabstraction;
 
-import cpa.common.interfaces.AbstractDomain;
+import logging.LazyLogger;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
 import exceptions.CPAException;
 
-public class PredicateAbstractionMergeSep implements MergeOperator {
-
-  private final PredicateAbstractionDomain predicateAbstractionDomain;
-
-  public PredicateAbstractionMergeSep(PredicateAbstractionDomain predAbsDomain) {
-    this.predicateAbstractionDomain = predAbsDomain;
-  }
-
-  public AbstractDomain getAbstractDomain() {
-    return predicateAbstractionDomain;
-  }
+/**
+ * Trivial merge operator for Explicit-state lazy abstraction.
+ *
+ * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
+ */
+public class PredicateAbstractionMergeOperator implements MergeOperator {
 
   public AbstractElement merge(AbstractElement element1,
-                               AbstractElement element2, Precision prec) {
+                               AbstractElement element2,
+                               Precision prec) {
+    LazyLogger.log(LazyLogger.DEBUG_4,
+        "Trying to merge elements: ", element1,
+        " and: ", element2);
+
     return element2;
   }
 
-  public AbstractElementWithLocation merge(
-                                           AbstractElementWithLocation pElement1,
+  public AbstractElementWithLocation merge(AbstractElementWithLocation pElement1,
                                            AbstractElementWithLocation pElement2,
                                            Precision prec) throws CPAException {
-    throw new CPAException("Cannot return element with location information");
+    LazyLogger.log(LazyLogger.DEBUG_4,
+        "Trying to merge elements: ", pElement1,
+        " and: ", pElement2);
+
+    return pElement2;
   }
 }

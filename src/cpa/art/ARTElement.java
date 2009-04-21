@@ -1,7 +1,9 @@
 package cpa.art;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import cfa.objectmodel.CFANode;
-import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 
 public class ARTElement implements AbstractElementWithLocation {
@@ -53,5 +55,28 @@ public class ARTElement implements AbstractElementWithLocation {
   public CFANode getLocationNode() {
     return element.getLocationNode();
   }
+  
+  public List<CFANode> getPath(){
+    List<CFANode> path = new ArrayList<CFANode>();
+    CFANode firstNode = element.getLocationNode();
+    path.add(firstNode);
+    ARTElement parent = parentElement;
+    CFANode nextNode = null;
+    while(parent != null){
+      nextNode = parent.getLocationNode();
+      path.add(nextNode);
+      parent = parent.getParent();
+    }
+    return path;
+  }
 
+  public String pathToString(){
+    String s = "";
+    List<CFANode> path = getPath();
+    for(CFANode node:path){
+      s = s + node.toString() + "\n";
+    }
+    return s;
+  }
+  
 }

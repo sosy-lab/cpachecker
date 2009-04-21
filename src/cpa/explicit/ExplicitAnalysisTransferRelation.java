@@ -203,18 +203,6 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
         e.printStackTrace();
       }
     }
-
-    if(CPAMain.cpaConfig.getPropertiesArray("analysis.cpas").length == 2){
-      if( cfaEdge.getSuccessor() instanceof CFAErrorNode &&
-          successor != explicitAnalysisDomain.getBottomElement()
-      ){
-        System.out.println(" ======================= ");
-        System.out.println( successor );
-        System.out.println(" ======================= ");
-        System.out.println("Error location(s) reached? YES, there is a BUG!");
-        System.exit(0);
-      }
-    }
     return successor;
   }
 

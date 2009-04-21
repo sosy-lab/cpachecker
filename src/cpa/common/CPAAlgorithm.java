@@ -221,7 +221,7 @@ public class CPAAlgorithm
             // TODO refinement Manager
             boolean errorFound = refinementManager.performRefinement(successor);
             if(errorFound){
-              
+              return simpleReached;
             }
           }
           // end to the end

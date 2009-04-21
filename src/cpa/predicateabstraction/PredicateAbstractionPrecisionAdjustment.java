@@ -38,8 +38,7 @@ import cpa.common.interfaces.PrecisionAdjustment;
  * @author Michael Tautschnig <tautschnig@forsyte.de>
  *
  */
-public class PredicateAbstractionPrecisionAdjustment implements
-                                                    PrecisionAdjustment {
+public class PredicateAbstractionPrecisionAdjustment implements PrecisionAdjustment {
 
   /* (non-Javadoc)
    * @see cpa.common.interfaces.PrecisionAdjustment#prec(cpa.common.interfaces.AbstractElement, cpa.common.interfaces.Precision, java.util.Collection)
@@ -48,7 +47,7 @@ public class PredicateAbstractionPrecisionAdjustment implements
                                                                AE pElement,
                                                                Precision pPrecision,
                                                                Collection<Pair<AE, Precision>> pElements) {
-    return new Pair<AE, Precision>(pElement, pPrecision);
+    return new Pair<AE,Precision> (pElement, pPrecision);
   }
 
 }

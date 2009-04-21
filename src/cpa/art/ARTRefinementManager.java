@@ -15,7 +15,7 @@ public class ARTRefinementManager implements RefinementManager {
   @Override
   public boolean performRefinement(AbstractElement element) {
     ARTElement artElement = (ARTElement) element;
-    return performRefinement(artElement);
+    return performRefinement(element, artElement);
   }
 
   @Override

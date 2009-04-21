@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://www.cs.sfu.ca/~dbeyer/CPAchecker/
  */
-package cpa.predicateabstraction;
+package cpa.predicateabs;
 
 public class PredicateAbstractionConstants {
 

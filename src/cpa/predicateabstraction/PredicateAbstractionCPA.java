@@ -23,98 +23,241 @@
  */
 package cpa.predicateabstraction;
 
-import cmdline.CPAMain;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.Vector;
+
+import logging.CustomLogLevel;
+import logging.LazyLogger;
+import predicateabstraction.BDDMathsatPredicateAbstractionAbstractManager;
+import predicateabstraction.PredicateAbstractionAbstractFormulaManager;
+import predicateabstraction.PredicateAbstractionCPAStatistics;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
-import cfa.objectmodel.c.FunctionDefinitionNode;
+import cmdline.CPAMain;
+
+import common.LocationMappedReachedSet;
+import common.Pair;
+
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
+import cpa.common.interfaces.RefinementManager;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
-import exceptions.CPAException;
+import cpa.symbpredabs.FixedPredicateMap;
+import cpa.symbpredabs.InterpolatingTheoremProver;
+import cpa.symbpredabs.Predicate;
+import cpa.symbpredabs.PredicateMap;
+import cpa.symbpredabs.SymbolicFormulaManager;
+import cpa.symbpredabs.TheoremProver;
+import cpa.symbpredabs.UpdateablePredicateMap;
+import cpa.symbpredabs.mathsat.MathsatInterpolatingProver;
+import cpa.symbpredabs.mathsat.MathsatPredicateParser;
+import cpa.symbpredabs.mathsat.MathsatSymbolicFormulaManager;
+import cpa.symbpredabs.mathsat.MathsatTheoremProver;
+import cpa.symbpredabs.mathsat.SimplifyTheoremProver;
+import cpa.symbpredabs.mathsat.YicesTheoremProver;
+import cpaplugin.CPAStatistics;
+
 
 /**
- * @author erkan
+ * CPA for Explicit-state lazy abstraction.
  *
- *  BROKEN
+ * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
 public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis {
 
-  private AbstractDomain      abstractDomain;
-  private TransferRelation    transferRelation;
-  private MergeOperator       mergeOperator;
-  private StopOperator        stopOperator;
-  private PrecisionAdjustment precisionAdjustment;
+    private final PredicateAbstractionAbstractDomain domain;
+    private final PredicateAbstractionTransferRelation trans;
+    private final PredicateAbstractionMergeOperator merge;
+    private final PredicateAbstractionStopOperator stop;
+    private final PrecisionAdjustment precisionAdjustment;
+    private final MathsatSymbolicFormulaManager mgr;
+    private final BDDMathsatPredicateAbstractionAbstractManager amgr;
+    private final PredicateAbstractionRefinementManager refinementManager;
+    private PredicateMap pmap;
 
-  public PredicateAbstractionCPA(String mergeType, String stopType)
-                                                                   throws CPAException {
-    PredicateAbstractionDomain predicateAbstractionDomain =
-                                                            new PredicateAbstractionDomain();
+    // covering relation
+    //private final Map<ExplicitAbstractElement, Set<ExplicitAbstractElement>> covers;
+    private Set<PredicateAbstractionAbstractElement> covered;
 
-    this.transferRelation =
-                            new PredicateAbstractionTransferRelation(
-                                predicateAbstractionDomain);
+    private final PredicateAbstractionCPAStatistics stats;
 
-    MergeOperator predicateAbstractionMergeOp = null;
-    if (mergeType.equals("sep")) {
-      predicateAbstractionMergeOp =
-                                    new PredicateAbstractionMergeSep(
-                                        predicateAbstractionDomain);
-    } else if (mergeType.equals("join")) {
-      predicateAbstractionMergeOp =
-                                    new PredicateAbstractionMergeJoin(
-                                        predicateAbstractionDomain);
+    private PredicateAbstractionCPA() {
+        domain = new PredicateAbstractionAbstractDomain(this);
+        trans = new PredicateAbstractionTransferRelation(domain);
+        merge = new PredicateAbstractionMergeOperator();
+        stop = new PredicateAbstractionStopOperator(domain);
+        precisionAdjustment = new PredicateAbstractionPrecisionAdjustment();
+        refinementManager = new PredicateAbstractionRefinementManager();
+        mgr = new MathsatSymbolicFormulaManager();
+        String whichProver = CPAMain.cpaConfig.getProperty(
+                "cpas.symbpredabs.explicit.abstraction.solver", "mathsat");
+        TheoremProver prover = null;
+        if (whichProver.equals("mathsat")) {
+            prover = new MathsatTheoremProver(mgr, false);
+        } else if (whichProver.equals("simplify")) {
+            prover = new SimplifyTheoremProver(mgr);
+        } else if (whichProver.equals("yices")) {
+            prover = new YicesTheoremProver(mgr);
+        } else {
+            System.out.println("ERROR, UNSUPPORTED SOLVER: " + whichProver);
+            System.exit(1);
+        }
+        InterpolatingTheoremProver itpProver =
+            new MathsatInterpolatingProver(mgr, true);
+        amgr = new BDDMathsatPredicateAbstractionAbstractManager(prover, itpProver);
+
+//        covers = new HashMap<ExplicitAbstractElement,
+//                             Set<ExplicitAbstractElement>>();
+        covered = new HashSet<PredicateAbstractionAbstractElement>();
+
+        MathsatPredicateParser p = new MathsatPredicateParser(mgr, amgr);
+        Collection<Predicate> preds = null;
+        try {
+            String pth = CPAMain.cpaConfig.getProperty(
+                    "cpas.symbpredabs.abstraction.fixedPredMap", null);
+            if (pth != null) {
+                File f = new File(pth);
+                InputStream in = new FileInputStream(f);
+                preds = p.parsePredicates(in);
+            } else {
+                preds = null;
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            preds = new Vector<Predicate>();
+        }
+        if (CPAMain.cpaConfig.getBooleanValue(
+                "cpas.symbpredabs.abstraction.norefinement")) {
+            pmap = new FixedPredicateMap(preds);
+        } else {
+            pmap = new UpdateablePredicateMap(preds);
+        }
+
+        stats = new PredicateAbstractionCPAStatistics(this);
     }
 
-    StopOperator predicateAbstractionStopOp = null;
-
-    if (stopType.equals("sep")) {
-      predicateAbstractionStopOp =
-                                   new PredicateAbstractionStopSep(
-                                       predicateAbstractionDomain);
-    } else if (stopType.equals("join")) {
-      predicateAbstractionStopOp =
-                                   new PredicateAbstractionStopJoin(
-                                       predicateAbstractionDomain);
+    /**
+     * Constructor conforming to the "contract" in CompositeCPA. The two
+     * arguments are ignored
+     * @param s1
+     * @param s2
+     */
+    public PredicateAbstractionCPA(String s1, String s2) {
+        this();
     }
 
-    this.precisionAdjustment = new PredicateAbstractionPrecisionAdjustment();
+    public CPAStatistics getStatistics() {
+        return stats;
+    }
 
-    this.abstractDomain = predicateAbstractionDomain;
-    this.mergeOperator = predicateAbstractionMergeOp;
-    this.stopOperator = predicateAbstractionStopOp;
-  }
+    public Collection<Pair<AbstractElementWithLocation,Precision>> newReachedSet() {
+        return new LocationMappedReachedSet();
+    }
 
-  public AbstractDomain getAbstractDomain() {
-    return abstractDomain;
-  }
+    @Override
+    public AbstractDomain getAbstractDomain() {
+        return domain;
+    }
 
-  public TransferRelation getTransferRelation() {
-    return transferRelation;
-  }
+    @Override
+    public TransferRelation getTransferRelation() {
+        return trans;
+    }
 
-  public MergeOperator getMergeOperator() {
-    return mergeOperator;
-  }
+    public MergeOperator getMergeOperator() {
+        return merge;
+        //return null;
+    }
 
-  public StopOperator getStopOperator() {
-    return stopOperator;
-  }
+    @Override
+    public StopOperator getStopOperator() {
+        return stop;
+    }
 
-  public PrecisionAdjustment getPrecisionAdjustment() {
-    return precisionAdjustment;
-  }
+    @Override
+    public PrecisionAdjustment getPrecisionAdjustment() {
+      return precisionAdjustment;
+    }
 
-  public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
-    return new PredicateAbstractionElement(CPAMain.cpaConfig
-        .getProperty("analysis.entryFunction"),
-        ((FunctionDefinitionNode)node).getFunctionDefinition().getContainingFilename());
-  }
+    @Override
+    public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
+        LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+                       "Getting initial element from node: ", node);
 
-  public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
-    return new PredicateAbstractionPrecision();
-  }
+        PredicateAbstractionAbstractElement e = new PredicateAbstractionAbstractElement();
+        e.setAbstraction(amgr.makeTrue());
+        return e;
+    }
+    
+    public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
+      return new PredicateAbstractionPrecision();
+    }
+
+    public PredicateAbstractionAbstractFormulaManager getAbstractFormulaManager() {
+        return amgr;
+    }
+
+    public SymbolicFormulaManager getFormulaManager() {
+        return mgr;
+    }
+
+    public PredicateMap getPredicateMap() {
+        return pmap;
+    }
+
+    public void setCovered(PredicateAbstractionAbstractElement e1) {
+        covered.add(e1);        
+    }
+    
+    public Collection<PredicateAbstractionAbstractElement> getCovered() {
+        return covered;
+    }
+    
+    public void setUncovered(PredicateAbstractionAbstractElement e1) {
+        covered.remove(e1);
+    }
+
+    @Override
+    public RefinementManager getRefinementManager() {
+      return refinementManager;
+    }
+
+
+//    public Set<ExplicitAbstractElement> getCoveredBy(ExplicitAbstractElement e){
+//        if (covers.containsKey(e)) {
+//            return covers.get(e);
+//        } else {
+//            return Collections.emptySet();
+//        }
+//    }
+//
+//    public void setCoveredBy(ExplicitAbstractElement covered,
+//                             ExplicitAbstractElement e) {
+//        Set<ExplicitAbstractElement> s;
+//        if (covers.containsKey(e)) {
+//            s = covers.get(e);
+//        } else {
+//            s = new HashSet<ExplicitAbstractElement>();
+//        }
+//        s.add(covered);
+//        covers.put(e, s);
+//    }
+//
+//    public void uncoverAll(ExplicitAbstractElement e) {
+//        if (covers.containsKey(e)) {
+//            covers.remove(e);
+//        }
+//    }
+
 }
