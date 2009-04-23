@@ -265,7 +265,7 @@ public class CProver {
     try {
       mNumberOfCallsToCBMC++;
 
-      ProcessBuilder pb = new ProcessBuilder("cbmc", "--no-pointer-check",  "--no-bounds-check",  "--no-div-by-zero-check",  "--function", pFunctionName, pFile.getAbsolutePath());
+      ProcessBuilder pb = new ProcessBuilder("./cbmc", "--no-pointer-check",  "--no-bounds-check",  "--no-div-by-zero-check",  "--function", pFunctionName, pFile.getAbsolutePath());
       pb.redirectErrorStream(true);
       Process lCBMCProcess = pb.start();
       // we need to read the output of CBMC, otherwise it will block at some
