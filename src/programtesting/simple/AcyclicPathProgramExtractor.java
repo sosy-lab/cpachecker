@@ -333,9 +333,31 @@ public class AcyclicPathProgramExtractor {
     return lAcyclicPathProgram;
   }
 
+  /*
+   * For every element lBasicBlock in pBasicBlocks we assume that
+   * lBasicBlock.getId() returns the topological index of lBasicBlock.
+   *
+   */
   private static Map<FunctionDefinitionNode, TreeSet<BasicBlock>> createFunctionSeparatedBasicBlocks(Set<BasicBlock> pBasicBlocks, CFAMap pCFAs) {
     Map<FunctionDefinitionNode, TreeSet<BasicBlock>> lFunctionSeparatedBasicBlocks = new HashMap<FunctionDefinitionNode, TreeSet<BasicBlock>>();
 
+    Comparator<BasicBlock> lTopologicalComparator = new Comparator<BasicBlock>() {
+
+      @Override
+      public int compare(BasicBlock pBlock0, BasicBlock pBlock1) {
+        assert (pBlock0 != null);
+        assert (pBlock1 != null);
+
+        // do topological sorting
+        return (pBlock0.getId() - pBlock1.getId());
+      }
+    };
+
+    
+    // Add every basic block in pBasicBlocks to the set of basic blocks
+    // corresponding to the same function definition node. These sets are
+    // sorted topological.
+    //
     for (BasicBlock lBasicBlock : pBasicBlocks) {
       CFAFunctionDefinitionNode lCFAFunctionDefinitionNode = pCFAs.getCFA(lBasicBlock.getFirstElement().getLocationNode().getFunctionName());
 
@@ -344,17 +366,7 @@ public class AcyclicPathProgramExtractor {
       FunctionDefinitionNode lFunctionDefinitionNode = (FunctionDefinitionNode) lCFAFunctionDefinitionNode;
 
       if (!lFunctionSeparatedBasicBlocks.containsKey(lFunctionDefinitionNode)) {
-        lFunctionSeparatedBasicBlocks.put(lFunctionDefinitionNode, new TreeSet<BasicBlock>(new Comparator<BasicBlock>() {
-
-          @Override
-          public int compare(BasicBlock pBlock0, BasicBlock pBlock1) {
-            assert (pBlock0 != null);
-            assert (pBlock1 != null);
-
-            // do topological sorting
-            return (pBlock0.getId() - pBlock1.getId());
-          }
-        }));
+        lFunctionSeparatedBasicBlocks.put(lFunctionDefinitionNode, new TreeSet<BasicBlock>(lTopologicalComparator));
       }
 
       Set<BasicBlock> lBlocks = lFunctionSeparatedBasicBlocks.get(lFunctionDefinitionNode);
@@ -367,6 +379,12 @@ public class AcyclicPathProgramExtractor {
     return lFunctionSeparatedBasicBlocks;
   }
 
+  /*
+   * This method performs
+   * 1) a topological sorting of the basic blocks (the method getId() of a basic
+   *    block returns after applying this method the topological id of the block), and
+   * 2) creates a map that maps ids to basic blocks.
+   */
   private static Map<Integer, BasicBlock> createIdToBasicBlockMap(Graph<BasicBlock, Graph<QDPTCompositeElement, CFAEdgeEdge>.Edge> pBasicBlocks, BasicBlock pInitialBasicBlock) {
     assert(pBasicBlocks != null);
     assert(pInitialBasicBlock != null);
