@@ -99,8 +99,8 @@ public class LocationCPA implements ConfigurableProgramAnalysis{
     return new LocationPrecision();
   }
 
-  @Override
-  public RefinementManager getRefinementManager() {
-    return refinementManager;
-  }
+//  @Override
+//  public RefinementManager getRefinementManager() {
+//    return refinementManager;
+//  }
 }

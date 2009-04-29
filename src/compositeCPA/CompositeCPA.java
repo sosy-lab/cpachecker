@@ -95,7 +95,8 @@ public class CompositeCPA implements ConfigurableProgramAnalysis
 			mergeOperators.add(sp.getMergeOperator());
 			stopOperators.add(sp.getStopOperator());
 			precisionAdjustments.add(sp.getPrecisionAdjustment());
-			refinementManagers.add(sp.getRefinementManager());
+			// TODO fix later - not used for now
+			//refinementManagers.add(sp.getRefinementManager());
 			initialElements.add(sp.getInitialElement(node));
 			initialPrecisions.add(sp.getInitialPrecision(node));
 		}
@@ -255,9 +256,10 @@ public class CompositeCPA implements ConfigurableProgramAnalysis
 	  return initialPrecision;
 	}
 
-	@Override
-  public RefinementManager getRefinementManager() {
-    return refinementManager;
-  }
+	// TODO enable later
+//	@Override
+//  public RefinementManager getRefinementManager() {
+//    return refinementManager;
+//  }
 }
 

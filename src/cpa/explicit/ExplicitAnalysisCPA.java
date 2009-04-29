@@ -110,9 +110,4 @@ public class ExplicitAnalysisCPA implements ConfigurableProgramAnalysis {
     return precisionAdjustment;
   }
 
-  @Override
-  public RefinementManager getRefinementManager() {
-    return refinementManager;
-  }
-
 }

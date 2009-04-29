@@ -2,8 +2,10 @@ package cpa.predicateabstraction;
 
 import java.util.Collection;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Map;
 
 import logging.LazyLogger;
 import cmdline.CPAMain;
@@ -11,27 +13,34 @@ import cpa.art.ARTElement;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.RefinementManager;
-import cpa.predicateabstraction.PredicateAbstractionTransferRelation.Path;
+import cpa.symbpredabs.CounterexampleTraceInfo;
 import cpa.symbpredabs.Predicate;
-import exceptions.CPATransferException;
-import exceptions.RefinementNeededException;
+import cpa.symbpredabs.UpdateablePredicateMap;
 
 public class PredicateAbstractionRefinementManager implements RefinementManager {
 
+  Map<Path, Integer> abstractCex = new HashMap<Path, Integer>();
+  boolean notEnoughPredicatesFlag = false;
+  
+  PredicateAbstractionAbstractDomain domain;
+  
+  public PredicateAbstractionRefinementManager(PredicateAbstractionAbstractDomain dom) {
+    domain = dom;
+  }
+  
   @Override
   public boolean performRefinement(AbstractElement pElement) {
     // TODO Auto-generated method stub
     return false;
   }
-
+  
   @Override
   public boolean performRefinement(AbstractElement pElement,
       ARTElement pARTElement) {
-  }
-
-  // abstraction refinement is performed here
-  public void performRefinement(Deque<PredicateAbstractionAbstractElement> path,
-      CounterexampleTraceInfo info) throws CPATransferException {
+    
+    Deque<PredicateAbstractionAbstractElement> path;
+    CounterexampleTraceInfo info;
+    
     LazyLogger.log(LazyLogger.DEBUG_1, "STARTING REFINEMENT");
     UpdateablePredicateMap curpmap =
       (UpdateablePredicateMap)domain.getCPA().getPredicateMap();
@@ -174,27 +183,8 @@ public class PredicateAbstractionRefinementManager implements RefinementManager 
     LazyLogger.log(LazyLogger.DEBUG_1, "REFINEMENT - toUnreach: ",
         toUnreach);
     throw new RefinementNeededException(toUnreach, toWaitlist);
-  }    
-
-  /*
-      // checks whether the two paths are the same (in terms of locations)
-      private boolean samePath(Deque<ExplicitAbstractElement> path1,
-                               Deque<ExplicitAbstractElement> path2) {
-          if (path1.size() == path2.size()) {
-              Iterator<ExplicitAbstractElement> it1 = path1.iterator();
-              Iterator<ExplicitAbstractElement> it2 = path2.iterator();
-              while (it1.hasNext()) {
-                  ExplicitAbstractElement e1 = it1.next();
-                  ExplicitAbstractElement e2 = it2.next();
-                  if (!e1.getLocationNode().equals(e2.getLocationNode())) {
-                      return false;
-                  }
-              }
-              return true;
-          } else {
-              return false;
-          }
-      }
-   */
+  
+    
+  }
 
 }
