@@ -37,8 +37,31 @@ public class AcyclicPathProgramExtractor {
     private Map<Integer, Graph<BasicBlock, Graph<QDPTCompositeElement, CFAEdgeEdge>.Edge>.Edge> mIdToEdgesBetweenBasicBlocksMap;
     private CFAMap mCFAMap;
 
+    private QDPTCompositeElement mRootElement;
+    private QDPTCompositeElement mFinalElement;
+
     private AcyclicPathProgram() {
       
+    }
+
+    private void setRootElement(QDPTCompositeElement pRootElement) {
+      assert(pRootElement != null);
+
+      mRootElement = pRootElement;
+    }
+
+    public QDPTCompositeElement getRootElement() {
+      return mRootElement;
+    }
+
+    private void setFinalElement(QDPTCompositeElement pFinalElement) {
+      assert(pFinalElement != null);
+
+      mFinalElement = pFinalElement;
+    }
+
+    public QDPTCompositeElement getFinalElement() {
+      return mFinalElement;
     }
 
     private void setDAG(Graph<QDPTCompositeElement, CFAEdgeEdge> pDAG) {
@@ -169,6 +192,11 @@ public class AcyclicPathProgramExtractor {
 
 
     AcyclicPathProgram lAcyclicPathProgram = new AcyclicPathProgram();
+
+    
+    // 0) set root and final element
+    lAcyclicPathProgram.setRootElement(pRootOfART);
+    lAcyclicPathProgram.setFinalElement(pTargetElement);
 
 
     // I) extract DAG
@@ -452,66 +480,75 @@ public class AcyclicPathProgramExtractor {
     while (!lWorklist.isEmpty()) {
       QDPTCompositeElement lElement = lWorklist.poll();
 
-      if (!lVisitedElements.contains(lElement)) {
-        lVisitedElements.add(lElement);
+      // do not further process already visited elements
+      if (lVisitedElements.contains(lElement)) {
+        continue;
+      }
 
-        if (lElement.hasParent()) {
-          QDPTCompositeElement lParent = lElement.getParent();
+      // now element is visited
+      lVisitedElements.add(lElement);
 
-          Edge lEdgeToParent = lElement.getEdgeToParent();
+      // add parent to worklist
+      if (lElement.hasParent()) {
+        QDPTCompositeElement lParent = lElement.getParent();
+
+        Edge lEdgeToParent = lElement.getEdgeToParent();
+
+        assert (lEdgeToParent instanceof CFAEdgeEdge);
+
+        lDAG.addEdge(lParent, lElement, (CFAEdgeEdge) lEdgeToParent);
+
+        lWorklist.add(lParent);
+      }
+
+      /*if (lElement.equals(pTargetElement)) {
+        // we have to ensure reachability of this element, not of a
+        // similar one (see coverage)
+        // TODO improve this
+        continue;
+      }*/
+
+      if (lElement.hasCoveringElement()) {
+        QDPTCompositeElement lCoveringElement = lElement.getCoveringElement();
+
+        if (lCoveringElement.hasParent()) {
+          QDPTCompositeElement lParent = lCoveringElement.getParent();
+
+          Edge lEdgeToParent = lCoveringElement.getEdgeToParent();
 
           assert (lEdgeToParent instanceof CFAEdgeEdge);
 
           lDAG.addEdge(lParent, lElement, (CFAEdgeEdge) lEdgeToParent);
 
+          System.out.println(lElement + " |-> " + lCoveringElement);
+
           lWorklist.add(lParent);
         }
+      }
 
-        if (lElement.equals(pTargetElement)) {
-          // we have to ensure reachability of this element, not of a
-          // similar one (see coverage)
-          // TODO improve this
+      for (QDPTCompositeElement lCoveredElement : lElement.getCoveredElements()) {
+        if (lCoveredElement.isSuccessor(lElement)) {
+          // otherwise we would create a loop
           continue;
         }
 
-        if (lElement.hasCoveringElement()) {
-          QDPTCompositeElement lCoveringElement = lElement.getCoveringElement();
+        if (lCoveredElement.hasParent()) {
+          // TODO: An additional stop test is missing,
+          // currently this is not an issue because of
+          // basic block coverage, but, for more
+          // complex criteria this will be an issue!
 
-          if (lCoveringElement.hasParent()) {
-            QDPTCompositeElement lParent = lCoveringElement.getParent();
+          QDPTCompositeElement lParent = lCoveredElement.getParent();
 
-            Edge lEdgeToParent = lCoveringElement.getEdgeToParent();
+          Edge lEdgeToParent = lCoveredElement.getEdgeToParent();
 
-            assert (lEdgeToParent instanceof CFAEdgeEdge);
+          assert (lEdgeToParent instanceof CFAEdgeEdge);
 
-            lDAG.addEdge(lParent, lElement, (CFAEdgeEdge) lEdgeToParent);
+          lDAG.addEdge(lParent, lElement, (CFAEdgeEdge) lEdgeToParent);
 
-            lWorklist.add(lParent);
-          }
-        }
+          System.out.println(lElement + " |-> " + lCoveredElement);
 
-        for (QDPTCompositeElement lCoveredElement : lElement.getCoveredElements()) {
-          if (lCoveredElement.isSuccessor(lElement)) {
-            // otherwise we would create a loop
-            continue;
-          }
-
-          if (lCoveredElement.hasParent()) {
-            // TODO: An additional stop test is missing,
-            // currently this is not an issue because of
-            // basic block coverage, but, for more
-            // complex criteria this will be an issue!
-
-            QDPTCompositeElement lParent = lCoveredElement.getParent();
-
-            Edge lEdgeToParent = lCoveredElement.getEdgeToParent();
-
-            assert (lEdgeToParent instanceof CFAEdgeEdge);
-
-            lDAG.addEdge(lParent, lElement, (CFAEdgeEdge) lEdgeToParent);
-
-            lWorklist.add(lParent);
-          }
+          lWorklist.add(lParent);
         }
       }
     }

@@ -121,10 +121,14 @@ public class CProver {
   }
 
   public static Pair<Boolean, String> getFeasibilityAndOutput(String pFunctionName, String pProgram) {
+    return getFeasibilityAndOutput(pFunctionName, pProgram, "");
+  }
+
+  public static Pair<Boolean, String> getFeasibilityAndOutput(String pFunctionName, String pProgram, String pTag) {
     File lFile = null;
 
     try {
-      lFile = File.createTempFile("path", ".i");
+      lFile = File.createTempFile("path" + pTag, ".i");
     } catch (IOException e) {
       e.printStackTrace();
       assert (false);

@@ -58,6 +58,10 @@ import cpa.symbpredabs.explicit.ExplicitTransferRelation;
 import cpa.testgoal.TestGoalCPA2;
 import cpa.testgoal.TestGoalCPA2.TestGoalPrecision;
 import exceptions.CPAException;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -287,7 +291,7 @@ public class QueryDrivenProgramTesting {
 
       Map<QDPTCompositeElement, String> lReachabilityFormating = new HashMap<QDPTCompositeElement, String>();
 
-      System.out.println(">>>>");
+      /*System.out.println(">>>>");
 
       for (QDPTCompositeElement lCurrentElement : lReachabilityTasks) {
         ExplicitAbstractElement lExplicitAbstractElement = lCurrentElement.projectTo(mExplicitAbstractionCPAIndex);
@@ -295,7 +299,7 @@ public class QueryDrivenProgramTesting {
         System.out.println(lMathsatManager.toConcrete(lSFManager, lExplicitAbstractElement.getAbstraction()));
       }
 
-      System.out.println("<<<<");
+      System.out.println("<<<<");*/
 
       while (!lReachabilityTasks.isEmpty()) {
         QDPTCompositeElement lCurrentElement = lReachabilityTasks.poll();
@@ -323,7 +327,9 @@ public class QueryDrivenProgramTesting {
 
         lTaskId++;
 
-        System.out.println("REACHABILITY TASK [" + (lTaskId + 1) + "]: " + lCurrentElement + "  (" + lCurrentElement.getDepth() + ")");
+        //System.out.println("REACHABILITY TASK [" + (lTaskId + 1) + "]: " + lCurrentElement + "  (" + lCurrentElement.getDepth() + ")");
+
+        System.out.println("REACHABILITY TASK [" + lTaskId + "]: " + lCurrentElement + "  (depth=" + lCurrentElement.getDepth() + ")");
 
         // create a dag that represents the program to lCurrentElement
         
@@ -345,7 +351,7 @@ public class QueryDrivenProgramTesting {
         System.out.println("Starting feasibility check ...");
 
         // check feasibility and get output of CBMC
-        Pair<Boolean, String> lFeasibilityAndOutput = CProver.getFeasibilityAndOutput(lFunctionName, lProgram);
+        Pair<Boolean, String> lFeasibilityAndOutput = CProver.getFeasibilityAndOutput(lFunctionName, lProgram, "_" + lTaskId + "_");
         
         if (lFeasibilityAndOutput.getFirst()) {
           // evaluate counter example to extract feasibility information
@@ -379,7 +385,13 @@ public class QueryDrivenProgramTesting {
           System.out.println(true);
         }
         else {
-          lInfeasibleElements.add(lCurrentElement);
+          //lInfeasibleElements.add(lCurrentElement);
+
+          Set<QDPTCompositeElement> lCurrentInfeasibleElements = InfeasibleElementsUtility.getInfeasibleElements(lAcyclicPathProgram);
+
+          lInfeasibleElements.addAll(lCurrentInfeasibleElements);
+
+          lReachabilityTasks.removeAll(lCurrentInfeasibleElements);
 
           lReachabilityFormating.put(lCurrentElement, "shape=ellipse, color=black, fillcolor=orangered, style=filled");
           System.out.println(false);
@@ -453,6 +465,23 @@ public class QueryDrivenProgramTesting {
           Pair<CounterexampleTraceInfo, Integer> lPair = lMathsatManager.buildCounterexampleTrace2(lSFManager, lExplicitAbstractionPath);
 
           CounterexampleTraceInfo lInfo = lPair.getFirst();
+
+          if (!lInfo.isSpurious()) {
+            System.out.println(">>>> Non-Spurious Path");
+
+            int i = 1;
+
+            for (ExplicitAbstractElement lPathElement : lExplicitAbstractionPath) {
+              System.out.print(i + ": ");
+              System.out.println(lPathElement);
+
+              i++;
+            }
+
+            System.out.println("<<<< End of Non-Spurious Path");
+
+            assert(false);
+          }
 
           assert(lInfo.isSpurious());
 
