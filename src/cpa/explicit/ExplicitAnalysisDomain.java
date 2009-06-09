@@ -24,7 +24,9 @@
 package cpa.explicit;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
@@ -100,24 +102,42 @@ public class ExplicitAnalysisDomain implements AbstractDomain {
       Map<String, Integer> constantsMap1 = explicitAnalysisElement1.getConstantsMap();
       Map<String, Integer> constantsMap2 = explicitAnalysisElement2.getConstantsMap();
 
-      Map<String, Integer> newMap = new HashMap<String, Integer>();
+      Map<String, Integer> noOfReferencesMap1 = explicitAnalysisElement1.getNoOfReferences();
+      Map<String, Integer> noOfReferencesMap2 = explicitAnalysisElement2.getNoOfReferences();
 
-      for(String key:constantsMap1.keySet()){
-        newMap.put(key, constantsMap1.get(key));
-      }
+      Set<String> forgottenVariables1 = explicitAnalysisElement1.getForgottenVariables();
+      Set<String> forgottenVariables2 = explicitAnalysisElement2.getForgottenVariables();
+
+      Map<String, Integer> newConstantsMap = new HashMap<String, Integer>(constantsMap1);
+      Map<String, Integer> newNoOfReferencesMap = new HashMap<String, Integer>(noOfReferencesMap1);
+      Set<String> newForgottenVariables = new HashSet<String>(forgottenVariables1);
 
       for(String key:constantsMap2.keySet()){
-        if(newMap.containsKey(key)){
-          if(newMap.get(key) != constantsMap2.get(key)){
-            newMap.remove(key);
+        if(newConstantsMap.containsKey(key)){
+          if(newConstantsMap.get(key) != constantsMap2.get(key)){
+            newConstantsMap.remove(key);
+            newNoOfReferencesMap.remove(key);
+            newForgottenVariables.add(key);
+          } else {
+            // this number is probably not correct, but we don't know better
+            newNoOfReferencesMap.put(key, Math.max(noOfReferencesMap1.get(key), noOfReferencesMap2.get(key)));
           }
         }
         else {
-          newMap.put(key, constantsMap2.get(key));
+          if (!forgottenVariables1.contains(key)) {
+            newConstantsMap.put(key, constantsMap2.get(key));
+            newNoOfReferencesMap.put(key, noOfReferencesMap2.get(key));
+          }
         }
       }
-      // TODO fix later
-      return new ExplicitAnalysisElement(newMap, null);
+      for (String key:forgottenVariables2) {
+        if (newConstantsMap.containsKey(key)) {
+          newConstantsMap.remove(key);
+          newNoOfReferencesMap.remove(key);
+        }
+        newForgottenVariables.add(key);
+      }
+      return new ExplicitAnalysisElement(newConstantsMap, newNoOfReferencesMap, newForgottenVariables);
     }
   }
 
