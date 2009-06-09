@@ -13,18 +13,32 @@ Requirements for building CPAchecker:
    (may show degraded performance, though).
 2. Install Eclipse 3.3 or higher.
    http://www.eclipse.org/
+   You need the JDT and the "Eclipse Plug-in Development Environment" package (PDE).
 3. Install C/C++ Development Kit (platform and sdk) 4.0.3 or lower (LOWER).
    Or contact Michael Tautschnig <tautschnig@forsyte.de> to
    obtain patches to make it work with CDT 5
-4. Add eclipse/plugins to your CLASSPATH.
-   (Or add many many .jar files.)
-5. Adapt the file .classpath to your directory locations.
+   You need only the "Eclipse C/C++ Development Tools SDK" package.
 
-For developers:
-6. Install (e.g.) SubClipse - Eclipse SVN-Team Provider
+For building in Eclipse:
+4. Install (e.g.) SubClipse - Eclipse SVN-Team Provider
    http://subclipse.tigris.org/
-   Check out sourse code of CPAchecker from 
-   URL: svn+ssh://cs-sel-02.cs.surrey.sfu.ca/localhome/dbeyer/SVN-software/cpachecker
+5. Create new project from SVN repository
+   URL: svn+ssh://svn.sosy-lab.org/repos/RC-software/cpachecker/trunk
+
+Running it:
+6. Choose a configuration file and a source code file
+   Example: benchmarks-explicit/config/explicitAnalysisInf.properties
+            benchmarks-explicit/working-set/ext/loop1.c
+   Check that the configuration file does not contain any non-existent paths 
+7. Running it from Eclipse:
+   Create a run configuration with main class "cmdline.CPAMain" and program
+   arguments "-config <CONFIG_FILE> <SOURCE_FILE>"
+Or:
+7. Running it from command line:
+   Execute "test/scripts/simple/cpa.sh -config <CONFIG_FILE> <SOURCE_FILE>"
+   You need to edit this script, if your Eclipse is not in ~/eclipse,
+   /opt/eclipse or ~/Desktop/eclipse
+
 
 Sources of binaries provided with the distribution/SVN:
 - libJOct.so: Use steps similar to compileOctLib.sh after downloading and
