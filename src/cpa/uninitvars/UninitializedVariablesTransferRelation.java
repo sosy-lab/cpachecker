@@ -158,7 +158,8 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       Pair<Integer, String> warningIndex = new Pair<Integer, String>(lineNumber, variable);
       if (!warnings.contains(warningIndex)) {
         warnings.add(warningIndex);
-        System.out.println("uninitialized variable " + variable + " used in line " + lineNumber + ": " + edge.getRawStatement());
+        System.out.println("uninitialized variable " + variable + " used in line "
+            + lineNumber + ": " + edge.getRawStatement());
       }
     }
   }
@@ -223,11 +224,6 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       // expression is a binary operation, e.g. a = b or a += b;
       
       IASTBinaryExpression binExpression = (IASTBinaryExpression)expression;
-      
-      /*if (!(binExpression.getOperand1() instanceof IASTIdExpression)) {
-        // op1 is not a variable
-        throw new TransferRelationException("Unhandled case " + cfaEdge.getRawStatement());
-      }*/
       
       int typeOfOperator = binExpression.getOperator();
       if (typeOfOperator == IASTBinaryExpression.op_assign) {
@@ -328,8 +324,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       return false;
       
     } else if (expression instanceof IASTFieldReference) {
-      //return isExpressionUninitialized(element, ((IASTFieldReference)expression).getFieldOwner(), cfaEdge);
-      // TODO: field access
+      // TODO: field access (needs types)
       return false;
     
     } else if (expression instanceof IASTArraySubscriptExpression) {

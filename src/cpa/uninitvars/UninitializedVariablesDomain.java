@@ -65,7 +65,7 @@ public class UninitializedVariablesDomain implements AbstractDomain {
       newElement.getGlobalVariables().addAll(uninitVarsElement2.getGlobalVariables());
       newElement.getLocalVariables().addAll(uninitVarsElement2.getLocalVariables());
       // only the local variables of the current context need to be joined,
-      // the others are alread identical (were joined before calling the last function)
+      // the others are already identical (were joined before calling the last function)
 
       return newElement;
     }

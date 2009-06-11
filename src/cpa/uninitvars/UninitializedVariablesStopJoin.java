@@ -24,8 +24,11 @@
 package cpa.uninitvars;
 
 import java.util.Collection;
+import java.util.Iterator;
 
+import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.JoinOperator;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.StopOperator;
 import exceptions.CPAException;
@@ -35,18 +38,30 @@ import exceptions.CPAException;
  */
 public class UninitializedVariablesStopJoin implements StopOperator {
 
+ private final AbstractDomain domain;
+  
+  public UninitializedVariablesStopJoin(UninitializedVariablesDomain domain) {
+    this.domain = domain;
+  }
+  
   @Override
   public <AE extends AbstractElement> boolean stop(AE element,
                                                    Collection<AE> reached,
                                                    Precision precision)
                                                    throws CPAException {
-    // TODO implement stop-join
-    return false;
+    JoinOperator join = domain.getJoinOperator();
+    Iterator<AE> it = reached.iterator();
+    AbstractElement joinedElement = it.next();
+    while (it.hasNext()) {
+      joinedElement = join.join(it.next(), joinedElement);
+    }
+    
+    return domain.getPartialOrder().satisfiesPartialOrder(element, joinedElement);
   }
 
   @Override
   public boolean stop(AbstractElement element, AbstractElement reachedElement)
                       throws CPAException {
-    throw new CPAException ("Cannot return element with location information");
+    return domain.getPartialOrder().satisfiesPartialOrder(element, reachedElement);
   }
 }

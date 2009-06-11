@@ -106,7 +106,7 @@ public class UninitializedVariablesElement implements AbstractElement {
   
   @Override
   public int hashCode() {
-    return globalVars.hashCode();
+    return localVars.hashCode();
   }
   
   @Override

@@ -61,7 +61,7 @@ public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis {
       stopOp = new UninitializedVariablesStopSep(domain);
     }
     if(stopType.equals("join")){
-      stopOp = new UninitializedVariablesStopJoin ();
+      stopOp = new UninitializedVariablesStopJoin(domain);
     }
 
     this.abstractDomain = domain;
