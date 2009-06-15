@@ -195,6 +195,12 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
 
       return results;
     }
+
+    @Override
+    public void strengthen(AbstractElement element,
+                           List<AbstractElement> otherElements, CFAEdge cfaEdge,
+                           Precision precision) {    
+    }
   }
 
   private final CompositeDomain mDomain;

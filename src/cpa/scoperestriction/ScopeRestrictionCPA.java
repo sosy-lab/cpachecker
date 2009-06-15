@@ -134,7 +134,12 @@ public class ScopeRestrictionCPA implements ConfigurableProgramAnalysis {
       
       return null;
     }
-    
+
+    @Override
+    public void strengthen(AbstractElement element,
+                           List<AbstractElement> otherElements, CFAEdge cfaEdge,
+                           Precision precision) {    
+    }
   }
   
   private AutomatonCPADomain<CFAEdge> mDomain;

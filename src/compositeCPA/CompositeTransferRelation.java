@@ -24,21 +24,24 @@
 package compositeCPA;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAEdgeType;
 import cfa.objectmodel.CFANode;
 import cfa.objectmodel.c.CallToReturnEdge;
-
-import exceptions.CPATransferException;
 import cpa.common.CallElement;
 import cpa.common.CallStack;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
+import cpa.explicit.ExplicitAnalysisElement;
+import cpa.pointeranalysis.PointerAnalysisElement;
+import cpa.pointeranalysis.Memory.MemoryAddress;
 import exceptions.CPAException;
+import exceptions.CPATransferException;
 
 public class CompositeTransferRelation implements TransferRelation{
 
@@ -123,6 +126,13 @@ public class CompositeTransferRelation implements TransferRelation{
       resultingElements.add (successor);
     }
 
+    List<AbstractElement> resultingElementsRO = Collections.unmodifiableList(resultingElements);
+    for (int idx = 0; idx < transferRelations.size(); idx++) {
+      transferRelations.get(idx).strengthen(resultingElements.get(idx),
+                                            resultingElementsRO, cfaEdge,
+                                            lCompositePrecision.get(idx));
+    }
+    
     CompositeElement successorState = new CompositeElement (resultingElements, updatedCallStack);
     return successorState;
   }
@@ -144,5 +154,12 @@ public class CompositeTransferRelation implements TransferRelation{
     }
 
     return results;
+  }
+
+  @Override
+  public void strengthen(AbstractElement element,
+                         List<AbstractElement> otherElements, CFAEdge cfaEdge,
+                         Precision precision) {
+    // strengthen is only called by the composite CPA on its component CPAs
   }
 }

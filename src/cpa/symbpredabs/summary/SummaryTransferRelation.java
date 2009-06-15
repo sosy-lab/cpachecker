@@ -417,4 +417,9 @@ if (CPAMain.cpaConfig.getBooleanValue(
     return allSucc;
   }
 
+  @Override
+  public void strengthen(AbstractElement element,
+                         List<AbstractElement> otherElements, CFAEdge cfaEdge,
+                         Precision precision) {    
+  }
 }

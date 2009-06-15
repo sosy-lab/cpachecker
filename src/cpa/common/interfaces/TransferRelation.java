@@ -60,4 +60,18 @@ public interface TransferRelation
    */
   public List<AbstractElementWithLocation> getAllAbstractSuccessors (AbstractElementWithLocation element, Precision precision)
     throws CPAException, CPATransferException;
+  
+  /**
+   * Updates an abstract element with information from the abstract elements of
+   * other CPAs. An implementation of this method should only modify the
+   * abstract element of the domain it belongs to. 
+   * @param element abstract element of the current domain
+   * @param otherElements list of abstract elements of all domains
+   * @param cfaEdge the current edge of the CFA 
+   * @param precision
+   */
+  public void strengthen (AbstractElement element,
+                          List<AbstractElement> otherElements,
+                          CFAEdge cfaEdge,
+                          Precision precision);
 }

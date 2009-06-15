@@ -470,4 +470,10 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   public int getNumAbstractStates() {
     return numAbstractStates;
   }
+
+  @Override
+  public void strengthen(AbstractElement element,
+                         List<AbstractElement> otherElements, CFAEdge cfaEdge,
+                         Precision precision) {    
+  }
 }

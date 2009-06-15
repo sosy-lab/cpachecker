@@ -2251,4 +2251,9 @@ public class OctTransferRelation implements TransferRelation{
     //System.out.println(octElement);
   }
 
+  @Override
+  public void strengthen(AbstractElement element,
+                         List<AbstractElement> otherElements, CFAEdge cfaEdge,
+                         Precision precision) {    
+  }
 }

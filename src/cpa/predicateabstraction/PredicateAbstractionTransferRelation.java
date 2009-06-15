@@ -326,4 +326,9 @@ public class PredicateAbstractionTransferRelation implements TransferRelation {
 //    this.abstractTree.clear();
 //  }
 
+  @Override
+  public void strengthen(AbstractElement element,
+                         List<AbstractElement> otherElements, CFAEdge cfaEdge,
+                         Precision precision) {    
+  }
 }

@@ -1848,7 +1848,17 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
           // a = 8 * 9
           else if(rVarInBinaryExp instanceof IASTLiteralExpression){
             //Cil eliminates this case
-            throw new ExplicitAnalysisTransferException("Unhandled case " + cfaEdge.getRawStatement());
+            //PW: it does not, if one of the operands was a sizeof()
+            literalValue = lVarInBinaryExp.getRawSignature();
+            if(literalValue.contains("L") || literalValue.contains("U")){
+              literalValue = literalValue.replace("L", "");
+              literalValue = literalValue.replace("U", "");
+            }
+            val = val * Integer.valueOf(literalValue).intValue();
+
+            ExplicitAnalysisElement newElement = ((ExplicitAnalysisElement)element).clone();
+            newElement.assignConstant(assignedVar, val, this.threshold);
+            return newElement;
           }
         }
         else {
@@ -1946,5 +1956,11 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
       return variableName;
     }
     return functionName + "::" + variableName;
+  }
+
+  @Override
+  public void strengthen(AbstractElement element,
+                         List<AbstractElement> otherElements, CFAEdge cfaEdge,
+                         Precision precision) {    
   }
 }

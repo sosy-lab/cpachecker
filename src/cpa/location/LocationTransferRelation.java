@@ -83,4 +83,10 @@ public class LocationTransferRelation implements TransferRelation
 
     return allSuccessors;
   }
+
+  @Override
+  public void strengthen(AbstractElement element,
+                         List<AbstractElement> otherElements, CFAEdge cfaEdge,
+                         Precision precision) {    
+  }
 }

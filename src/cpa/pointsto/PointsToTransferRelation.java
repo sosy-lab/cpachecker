@@ -484,4 +484,9 @@ public class PointsToTransferRelation implements TransferRelation {
     throw new CPAException ("Cannot get all abstract successors from non-location domain");
   }
 
+  @Override
+  public void strengthen(AbstractElement element,
+                         List<AbstractElement> otherElements, CFAEdge cfaEdge,
+                         Precision precision) {    
+  }
 }

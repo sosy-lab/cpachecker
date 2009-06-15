@@ -383,4 +383,10 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
                        throws CPAException, CPATransferException {
     throw new CPAException ("Cannot get all abstract successors from non-location domain");
   }
+
+  @Override
+  public void strengthen(AbstractElement element,
+                         List<AbstractElement> otherElements, CFAEdge cfaEdge,
+                         Precision precision) {    
+  }
 }

@@ -1544,4 +1544,9 @@ public class PredicateAbstractionTransferRelation implements TransferRelation {
     }
   }
 
+  @Override
+  public void strengthen(AbstractElement element,
+                         List<AbstractElement> otherElements, CFAEdge cfaEdge,
+                         Precision precision) {    
+  }
 }

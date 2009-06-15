@@ -128,4 +128,9 @@ public class DominatorTransferRelation implements TransferRelation {
 		return successors;
 	}
 
+  @Override
+  public void strengthen(AbstractElement element,
+                         List<AbstractElement> otherElements, CFAEdge cfaEdge,
+                         Precision precision) {    
+  }
 }

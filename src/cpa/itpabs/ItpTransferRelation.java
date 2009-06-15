@@ -764,4 +764,10 @@ public class ItpTransferRelation implements TransferRelation {
     }
     return false;
   }
+
+  @Override
+  public void strengthen(AbstractElement element,
+                         List<AbstractElement> otherElements, CFAEdge cfaEdge,
+                         Precision precision) {    
+  }
 }

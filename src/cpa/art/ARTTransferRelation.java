@@ -48,4 +48,9 @@ public class ARTTransferRelation implements TransferRelation {
     return wrappedSuccessors;
   }
 
+  @Override
+  public void strengthen(AbstractElement element,
+                         List<AbstractElement> otherElements, CFAEdge cfaEdge,
+                         Precision precision) {    
+  }
 }
