@@ -198,7 +198,7 @@ public interface Memory {
     
     @Override
     public MemoryAddress addOffset(int shiftBytes) throws InvalidPointerException {
-      if (offset == -1 || offset == 0) {
+      if (offset == -1 || shiftBytes == 0) {
         return this;
       }
       return new MemoryAddress(region, offset+shiftBytes);

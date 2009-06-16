@@ -23,6 +23,7 @@
  */
 package cpa.pointeranalysis;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -43,6 +44,8 @@ import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.c.CallToReturnEdge;
 import cfa.objectmodel.c.DeclarationEdge;
+import cfa.objectmodel.c.FunctionCallEdge;
+import cfa.objectmodel.c.FunctionDefinitionNode;
 import cfa.objectmodel.c.GlobalDeclarationEdge;
 import cfa.objectmodel.c.ReturnEdge;
 import cfa.objectmodel.c.StatementEdge;
@@ -126,8 +129,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       break;
       
     case FunctionCallEdge:
-      successor.callFunction(cfaEdge.getRawStatement());
-      successor.addNewLocalPointer(RETURN_VALUE_VARIABLE, new Pointer());
+      handleFunctionCall(successor, cfaEdge);
       break;
       
     case ReturnEdge:
@@ -226,6 +228,67 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
     }
   }
   
+  private void handleFunctionCall(PointerAnalysisElement element,
+                                  CFAEdge cfaEdge) {
+    
+    FunctionDefinitionNode funcDefNode = (FunctionDefinitionNode)cfaEdge.getSuccessor();
+    String funcName = funcDefNode.getFunctionName();
+    
+    List<String> formalParameters = funcDefNode.getFunctionParameterNames();
+    IASTExpression[] actualParameters = ((FunctionCallEdge)cfaEdge).getArguments();
+    
+    if (formalParameters != null && formalParameters.size() > 0
+        && actualParameters != null && actualParameters.length > 0) {
+    
+      ArrayList<Pointer> actualValues = new ArrayList<Pointer>();
+      
+      assert formalParameters.size() == actualParameters.length;
+                     
+      for (int i = 0; i < actualParameters.length; i++) {
+        IASTExpression parameter = actualParameters[i];
+        
+        if (parameter instanceof IASTIdExpression) {
+          Pointer p = element.getPointer(parameter.getRawSignature());
+          actualValues.add(p); // either null or a pointer
+        
+        } else if (parameter instanceof IASTLiteralExpression
+                  && Integer.valueOf(0).equals(parseIntegerLiteral((IASTLiteralExpression)parameter))) {
+          actualValues.add(new Pointer()); // null pointer
+        
+        } else {
+          // probably not a pointer
+          actualValues.add(null);
+        }
+      }
+      
+      element.callFunction(funcName);
+      
+      for (int i = 0; i < actualValues.size(); i++) {
+        if (actualValues.get(i) != null) {
+          element.addNewLocalPointer(formalParameters.get(i), actualValues.get(i));
+        }
+      }
+
+    } else {
+      element.callFunction(funcName);
+    }
+    
+    element.addNewLocalPointer(RETURN_VALUE_VARIABLE, new Pointer());
+  }
+  
+  private Integer parseIntegerLiteral(IASTLiteralExpression expression) {
+    try {
+      String s = expression.getRawSignature();
+      if (s.endsWith("U")) {
+        s = s.substring(0, s.length()-1);
+      }
+      return Integer.parseInt(s);
+    } catch (NumberFormatException e) {
+      e.printStackTrace();
+      return null;
+    }
+  }
+
   private void handleReturnFromFunction(PointerAnalysisElement element,
                                         IASTExpression expression,
                                         CFAEdge cfaEdge)
