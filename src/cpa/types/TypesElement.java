@@ -1,0 +1,173 @@
+/*
+ *  CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker. 
+ *
+ *  Copyright (C) 2007-2008  Dirk Beyer and Erkan Keremoglu.
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://www.cs.sfu.ca/~dbeyer/CPAchecker/
+ */
+package cpa.types;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+
+import cpa.common.interfaces.AbstractElement;
+import cpa.types.Type.FunctionType;
+import cpa.types.Type.PrimitiveType;
+
+/**
+ * @author Philipp Wendler
+ */
+public class TypesElement implements AbstractElement {
+
+  private final Map<String, Type> variables;
+  
+  private final Map<String, Type> typedefs;
+  
+  private final Map<String, FunctionType> functions;
+ 
+  public TypesElement() {
+    this.variables = new HashMap<String, Type>();
+    this.typedefs = new HashMap<String, Type>();
+    this.functions = new HashMap<String, FunctionType>();
+    
+    functions.put("main", new FunctionType("main", PrimitiveType.LONG));
+  }
+  
+  public TypesElement(Map<String, Type> variables, Map<String, Type> typedefs,
+                      Map<String, FunctionType> functions) {
+    this.variables = new HashMap<String, Type>(variables);
+    this.typedefs  = new HashMap<String, Type>(typedefs);
+    this.functions  = new HashMap<String, FunctionType>(functions);
+  }
+  
+  public Map<String, Type> getTypedefs() {
+    return Collections.unmodifiableMap(typedefs);
+  }
+
+  public Map<String, Type> getVariableTypes() {
+    return Collections.unmodifiableMap(variables);
+  }
+  
+  public Map<String, FunctionType> getFunctions() {
+    return Collections.unmodifiableMap(functions);
+  }
+  
+  public void addVariable(String function, String name, Type type) {
+    variables.put(getFullVariableName(function, name), type);
+  }
+  
+  public void addTypedef(String name, Type type) {
+    typedefs.put(name, type);
+  }
+  
+  public void addFunction(String name, FunctionType type) {
+    functions.put(name, type);
+  }
+  
+  public Type getVariableType(String function, String name) {
+    Type result = variables.get(getFullVariableName(function, name));
+    if (result == null && function != null) {
+      // try parameter instead of local variable
+      result = functions.get(function).getParameterType(name);
+    }
+    return result;
+  }
+  
+  public Type getTypedef(String name) {
+    return typedefs.get(name);
+  }
+  
+  public FunctionType getFunction(String name) {
+    return functions.get(name);
+  }
+   
+  public void join(TypesElement other) {
+    if (other == null) {
+      throw new IllegalArgumentException();
+    }
+    if (other != this) {
+      this.variables.putAll(other.variables);
+      this.typedefs.putAll(other.typedefs);
+    }
+  }
+  
+  public boolean isSubsetOf(TypesElement other) {
+    if (other == null) {
+      throw new IllegalArgumentException();
+    }
+    if (variables.size() > other.variables.size()
+        || typedefs.size() > other.typedefs.size()
+        || functions.size() > other.functions.size()) {
+      return false;
+    }
+    
+    for (String var : variables.keySet()) {
+      if (!variables.get(var).equals(other.variables.get(var))) {
+        return false;
+      }
+    }
+    for (String type : typedefs.keySet()) {
+      if (!typedefs.get(type).equals(other.typedefs.get(type))) {
+        return false;
+      }
+    }
+    for (String function : functions.keySet()) {
+      if (!functions.get(function).equals(other.functions.get(function))) {
+        return false;
+      }
+    }
+    return true;
+  }
+  
+  private String getFullVariableName(String function, String variable) {
+    if (function == null) {
+      return variable;
+    } else {
+      return function + "::" + variable;
+    }
+  }
+  
+  @Override
+  public boolean equals(Object obj) {
+    if (obj == null || !(obj instanceof TypesElement)) {
+      return false;
+    }
+    TypesElement other = (TypesElement)obj;
+    return variables.equals(other.variables)
+        && typedefs.equals(other.typedefs)
+        && functions.equals(other.functions);
+  }
+  
+  @Override
+  public int hashCode() {
+    return variables.hashCode() * typedefs.hashCode() * functions.hashCode();
+  }
+  
+  @Override
+  protected TypesElement clone() {
+    // return new TypesElement(variables, typedefs, functions);
+    return this;
+  }
+  
+  @Override
+  public String toString() {
+    return variables.toString() + " " + functions.toString(); 
+  }
+}
