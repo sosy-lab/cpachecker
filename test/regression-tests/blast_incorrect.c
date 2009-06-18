@@ -1,5 +1,7 @@
 #include <assert.h>
 
+// Contributed by Pavel Shved and Vadim Mutilin.
+//
 // This program is unsafe, but BLAST reports a `No new predicates' error.
 // 
 // BLAST was run with the following arguments:

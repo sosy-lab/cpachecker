@@ -1,5 +1,7 @@
 #include <assert.h>
 
+// Contributed by Pavel Shved and Vadim Mutilin.
+//
 // This program is unsafe, and, unlike with equivalent blast_incorrect.c, BLAST detects it.
 // 
 // BLAST was run with the following arguments:
