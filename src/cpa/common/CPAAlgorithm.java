@@ -88,8 +88,8 @@ public class CPAAlgorithm
     StopOperator stopOperator = cpa.getStopOperator();
     PrecisionAdjustment precisionAdjustment = cpa.getPrecisionAdjustment();
     // TODO fix later - not used for now
-    RefinementManager refinementManager = null; 
-      //cpa.getRefinementManager();
+    //RefinementManager refinementManager = null; 
+    //cpa.getRefinementManager();
 
     while (!waitlist.isEmpty ())
     {
@@ -216,16 +216,16 @@ public class CPAAlgorithm
           LazyLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel,
               "No need to stop ", successor,
           " is added to queue");
-          
+
           CFANode succNode = successor.getLocationNode();
           boolean useART = CPAMain.cpaConfig.getBooleanValue("cpa.useART");
-          if(useART && succNode instanceof CFAErrorNode){
-            // TODO refinement Manager
-            boolean errorFound = refinementManager.performRefinement(successor);
-            if(errorFound){
-              return simpleReached;
-            }
-          }
+//          if(useART && succNode instanceof CFAErrorNode){
+//            // TODO refinement Manager
+////            boolean errorFound = refinementManager.performRefinement(successor);
+////            if(errorFound){
+////              return simpleReached;
+////            }
+//          }
           // end to the end
           waitlist.add(new Pair<AbstractElementWithLocation,Precision>(successor,precision));
           reached.add(new Pair<AbstractElementWithLocation,Precision>(successor,precision));
@@ -265,48 +265,30 @@ public class CPAAlgorithm
 
   private Collection<Pair<AbstractElementWithLocation,Precision>> createReachedSet(
       ConfigurableProgramAnalysis cpa) {
-    // check whether the cpa provides a method for building a specialized
-    // reached set. If not, just use a HashSet
-
-    // TODO handle this part gracefully later
-//  try {
-//  Method meth = cpa.getClass().getDeclaredMethod("newReachedSet");
-
-//  return (Collection<Pair<AbstractElementWithLocation,Precision>>)meth.invoke(cpa);
-//  } catch (NoSuchMethodException e) {
-//  // ignore, this is not an error
-
-//  } catch (Exception lException) {
-//  lException.printStackTrace();
-
-//  System.exit(1);
-//  }
-
     if(CPAMain.cpaConfig.getBooleanValue("cpa.useSpecializedReachedSet")){
       return new LocationMappedReachedSet();
     }
-
     return new HashSet<Pair<AbstractElementWithLocation,Precision>>();
   }
 
   private void doRefinement(Collection<Pair<AbstractElementWithLocation, Precision>> reached,
-                            List<Pair<AbstractElementWithLocation, Precision>> waitlist,
-                            Collection<AbstractElementWithLocation> reachableToUndo,
-                            Collection<AbstractElementWithLocation> toWaitlist) {
+      List<Pair<AbstractElementWithLocation, Precision>> waitlist,
+      Collection<AbstractElementWithLocation> reachableToUndo,
+      Collection<AbstractElementWithLocation> toWaitlist) {
     List<Pair<AbstractElementWithLocation, Precision>> lToWaitlist = new ArrayList<Pair<AbstractElementWithLocation, Precision>>(toWaitlist.size());
     Map<AbstractElementWithLocation, Pair<AbstractElementWithLocation, Precision>> lNewWaitToPrecision = new HashMap<AbstractElementWithLocation, Pair<AbstractElementWithLocation, Precision>>();
-    
+
     LazyLogger.log(CustomLogLevel.SpecificCPALevel,
-    "Performing refinement");
+        "Performing refinement");
     // remove from reached all the elements in reachableToUndo
     Collection<Pair<AbstractElementWithLocation, Precision>> newreached =
       new LinkedList<Pair<AbstractElementWithLocation, Precision>>();
     for (Pair<AbstractElementWithLocation, Precision> e : reached) {
-      
+
       if (toWaitlist.contains(e.getFirst())) {
         lNewWaitToPrecision.put(e.getFirst(), e);
       }
-      
+
       if (!reachableToUndo.contains(e.getFirst())) {
         newreached.add(e);
       } else {
@@ -319,7 +301,7 @@ public class CPAAlgorithm
         }
       }
     }
-    
+
     for (AbstractElementWithLocation w : toWaitlist) {
       if (lNewWaitToPrecision.containsKey(w)) {
         lToWaitlist.add(lNewWaitToPrecision.get(w));
@@ -337,16 +319,16 @@ public class CPAAlgorithm
         "Reached now is: ", newreached);
     // and add to the wait list all the elements in toWaitlist
     boolean useBfs = CPAMain.cpaConfig.getBooleanValue("analysis.bfs");
-    
+
     LazyLogger.log(CustomLogLevel.SpecificCPALevel, "Adding elements: ", lToWaitlist, " to waitlist");
-    
+
     if (useBfs) {
       waitlist.addAll(lToWaitlist);
     }
     else {
       waitlist.addAll(0, lToWaitlist);
     }
-    
+
     LazyLogger.log(CustomLogLevel.SpecificCPALevel,
         "Waitlist now is: ", waitlist);
     LazyLogger.log(CustomLogLevel.SpecificCPALevel,
@@ -359,9 +341,9 @@ public class CPAAlgorithm
   }
 
   private void doRefinementForSymbAbst(AbstractElementWithLocation initialElement, Precision initialPrecision, 
-                                       Collection<Pair<AbstractElementWithLocation, Precision>> reached,
-                                       List<Pair<AbstractElementWithLocation, Precision>> waitlist,
-                                       Collection<AbstractElementWithLocation> reachableToUndo) {
+      Collection<Pair<AbstractElementWithLocation, Precision>> reached,
+      List<Pair<AbstractElementWithLocation, Precision>> waitlist,
+      Collection<AbstractElementWithLocation> reachableToUndo) {
     LazyLogger.log(CustomLogLevel.SpecificCPALevel,
     "Performing refinement");
     // remove from reached all the elements in reachableToUndo

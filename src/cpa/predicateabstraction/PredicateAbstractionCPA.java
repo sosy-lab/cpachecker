@@ -83,7 +83,7 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis {
     private final PrecisionAdjustment precisionAdjustment;
     private final MathsatSymbolicFormulaManager mgr;
     private final BDDMathsatPredicateAbstractionAbstractManager amgr;
-    private final PredicateAbstractionRefinementManager refinementManager;
+    //private final PredicateAbstractionRefinementManager refinementManager;
     private PredicateMap pmap;
 
     // covering relation
@@ -98,7 +98,7 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis {
         merge = new PredicateAbstractionMergeOperator();
         stop = new PredicateAbstractionStopOperator(domain);
         precisionAdjustment = new PredicateAbstractionPrecisionAdjustment();
-        refinementManager = new PredicateAbstractionRefinementManager();
+        //refinementManager = new PredicateAbstractionRefinementManager();
         mgr = new MathsatSymbolicFormulaManager();
         String whichProver = CPAMain.cpaConfig.getProperty(
                 "cpas.symbpredabs.explicit.abstraction.solver", "mathsat");
@@ -227,12 +227,6 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis {
     public void setUncovered(PredicateAbstractionAbstractElement e1) {
         covered.remove(e1);
     }
-
-    @Override
-    public RefinementManager getRefinementManager() {
-      return refinementManager;
-    }
-
 
 //    public Set<ExplicitAbstractElement> getCoveredBy(ExplicitAbstractElement e){
 //        if (covers.containsKey(e)) {

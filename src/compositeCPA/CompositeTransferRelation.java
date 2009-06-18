@@ -37,9 +37,6 @@ import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
-import cpa.explicit.ExplicitAnalysisElement;
-import cpa.pointeranalysis.PointerAnalysisElement;
-import cpa.pointeranalysis.Memory.MemoryAddress;
 import exceptions.CPAException;
 import exceptions.CPATransferException;
 
@@ -98,7 +95,7 @@ public class CompositeTransferRelation implements TransferRelation{
       }
 
       // TODO we are saving the abstract state on summary edge, that works for
-      // now but this is a terrible design practice. Add another method
+      // now but this is a bad design practice. Add another method
       // getAbstractSuccessorOnReturn(subElement, prevElement, cfaEdge)
       // and implement it for all CPAs later.
       else{
@@ -139,8 +136,6 @@ public class CompositeTransferRelation implements TransferRelation{
 
   public List<AbstractElementWithLocation> getAllAbstractSuccessors (AbstractElementWithLocation element, Precision precision) throws CPAException, CPATransferException
   {
-
-    //TODO CPACheckerStatistics.noOfTransferRelations++;
 
     CompositeElement compositeElement = (CompositeElement) element;
     CFANode node = compositeElement.getLocationNode();

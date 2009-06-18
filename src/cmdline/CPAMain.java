@@ -89,9 +89,12 @@ public class CPAMain {
 
   private static ConfigurableProgramAnalysis getCPA
   (CFAFunctionDefinitionNode node) throws CPAException {
-    // TODO check if we want to use composite and/or other wrapper analysis
     ConfigurableProgramAnalysis compCpa = CompositeCPA.getCompositeCPA(node);
-    return ARTCPA.getCompositeCPA(node, compCpa);
+
+    if(CPAMain.cpaConfig.getBooleanValue("analysis.useARTCPA")){
+      return ARTCPA.getARTCPA(node, compCpa);
+    }
+    return compCpa; 
   }
 
   public static void doRunAnalysis(IASTTranslationUnit ast)
@@ -115,7 +118,7 @@ public class CPAMain {
     int numFunctions = cfas.size();
     Collection<CFAFunctionDefinitionNode> cfasMapList =
       cfas.cfaMapIterator();
-    
+
     // check the CFA of each function
     // enable only while debugging/testing
     if(CPAMain.cpaConfig.getBooleanValue("cfa.check")){
@@ -206,12 +209,12 @@ public class CPAMain {
       List<IASTDeclaration> globalVars = builder.getGlobalDeclarations();
       mainFunction = addGlobalDeclarations(mainFunction, globalVars);
     }
-    
+
     // check the super CFA starting at the main function
     // enable only while debugging/testing
     if(CPAMain.cpaConfig.getBooleanValue("cfa.check")){
       CFACheck.check(cfas.getCFA(CPAMain.cpaConfig.getProperty(
-        "analysis.entryFunction")));
+      "analysis.entryFunction")));
     }
 
     LazyLogger.log(CustomLogLevel.MainApplicationLevel,
@@ -225,13 +228,13 @@ public class CPAMain {
     } else if (CPAMain.cpaConfig.getBooleanValue("analysis.queryDrivenProgramTesting")) {
       if (mainFunction == null) {
         mainFunction = cfas.getCFA(CPAMain.cpaConfig.getProperty(
-            "analysis.entryFunction"));
+        "analysis.entryFunction"));
       }
 
       if (CPAMain.cpaConfig.getBooleanValue("dot.export")) {
         DOTBuilderInterface dotBuilder = null;
         if (CPAMain.cpaConfig.getBooleanValue(
-            "analysis.useSummaryLocations")) {
+        "analysis.useSummaryLocations")) {
           dotBuilder = new SummaryDOTBuilder();
         } else {
           dotBuilder = new DOTBuilder();
@@ -240,7 +243,7 @@ public class CPAMain {
         dotBuilder.generateDOT(cfasMapList, mainFunction,
             new File(dotPath, "dot_main.dot").getPath());
       }
-      
+
       LazyLogger.log(Level.INFO, "CPA Algorithm starting ... ");
       cpaStats.startAnalysisTimer();
 
@@ -258,13 +261,13 @@ public class CPAMain {
 
       if (mainFunction == null) {
         mainFunction = cfas.getCFA(CPAMain.cpaConfig.getProperty(
-            "analysis.entryFunction"));
+        "analysis.entryFunction"));
       }
 
       if (CPAMain.cpaConfig.getBooleanValue("dot.export")) {
         DOTBuilderInterface dotBuilder = null;
         if (CPAMain.cpaConfig.getBooleanValue(
-            "analysis.useSummaryLocations")) {
+        "analysis.useSummaryLocations")) {
           dotBuilder = new SummaryDOTBuilder();
         } else {
           dotBuilder = new DOTBuilder();
@@ -316,7 +319,7 @@ public class CPAMain {
   }
 
   private static CFAFunctionDefinitionNode addGlobalDeclarations(
-                                                                 CFAFunctionDefinitionNode cfa, List<IASTDeclaration> globalVars) {
+      CFAFunctionDefinitionNode cfa, List<IASTDeclaration> globalVars) {
     if (globalVars.isEmpty()) {
       return cfa;
     }
@@ -332,12 +335,12 @@ public class CPAMain {
       IASTSimpleDeclaration sd = (IASTSimpleDeclaration)d;
       if (sd.getDeclarators().length == 1 &&
           sd.getDeclarators()[0] instanceof IASTFunctionDeclarator) {
-	if (cpaConfig.getBooleanValue("analysis.useFunctionDeclarations")) {
-	  // do nothing
-	}
-	else {
-	  continue;
-	}
+        if (cpaConfig.getBooleanValue("analysis.useFunctionDeclarations")) {
+          // do nothing
+        }
+        else {
+          continue;
+        }
       }
       GlobalDeclarationEdge e = new GlobalDeclarationEdge(
           d.getRawSignature(),
@@ -397,7 +400,7 @@ public class CPAMain {
         cpaConfig.getPropertiesArray("analysis.programNames");
       if (names == null || names.length != 1) {
         throw new Exception(
-            "One non-option argument expected (filename)!");
+        "One non-option argument expected (filename)!");
       }
       IFile currentFile = new StubFile(names[0]);
 

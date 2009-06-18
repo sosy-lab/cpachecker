@@ -1,28 +1,28 @@
 package cpa.art;
 
+import java.util.Collection;
+
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.RefinementManager;
 
 public class ARTRefinementManager implements RefinementManager {
   
-  ConfigurableProgramAnalysis cpa;
+  ConfigurableProgramAnalysis wrappedCpa;
 
   public ARTRefinementManager(ConfigurableProgramAnalysis pWrappedCPA) {
-    cpa = pWrappedCPA;
+    wrappedCpa = pWrappedCPA;
   }
 
   @Override
-  public boolean performRefinement(AbstractElement element) {
-    ARTElement artElement = (ARTElement) element;
-    return performRefinement(element, artElement);
+  public boolean performRefinement(
+      Collection<AbstractElementWithLocation> pReached) {
+    AbstractElement lastElementAdded = ....;
+    ARTElement lastArtElement = (ARTElement)lastElementAdded;
+    
   }
 
-  @Override
-  public boolean performRefinement(AbstractElement pElement, ARTElement pARTElement) {
-    AbstractElement wrappedElement = pARTElement.getAbstractElementOnArtNode();
-    RefinementManager wrappedRefinementMan = cpa.getRefinementManager();
-    return wrappedRefinementMan.performRefinement(wrappedElement, pARTElement);
-  }
-
+  
+  
 }

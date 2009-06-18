@@ -1,10 +1,9 @@
 package cpa.common.interfaces;
 
-import cpa.art.ARTElement;
+import java.util.Collection;
 
 public interface RefinementManager {
   
-  boolean performRefinement(AbstractElement pElement);
-  boolean performRefinement(AbstractElement pElement, ARTElement pARTElement);
+  boolean performRefinement(Collection<AbstractElementWithLocation> pReached);
 
 }

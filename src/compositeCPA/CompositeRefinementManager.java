@@ -1,9 +1,11 @@
 package compositeCPA;
 
+import java.util.Collection;
 import java.util.List;
 
 import cpa.art.ARTElement;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.RefinementManager;
 
 public class CompositeRefinementManager implements RefinementManager{
@@ -15,21 +17,10 @@ public class CompositeRefinementManager implements RefinementManager{
   }
 
   @Override
-  public boolean performRefinement(AbstractElement pElement) {
-    // TODO throw an exception here
+  public boolean performRefinement(
+      Collection<AbstractElementWithLocation> pReached) {
+    // TODO Auto-generated method stub
     return false;
   }
-
-  @Override
-  public boolean performRefinement(AbstractElement pElement,
-      ARTElement pARTElement) {
-    CompositeElement compositeElement = (CompositeElement) pElement;
-    boolean stopAnalysis = true;
-    for(int i=0; i<refinementManagers.size(); i++){
-      RefinementManager refMan = refinementManagers.get(i);
-      AbstractElement abstElem = compositeElement.get(i);
-      stopAnalysis = stopAnalysis && refMan.performRefinement(abstElem, pARTElement);
-    }
-    return stopAnalysis;
-  }
+  
 }

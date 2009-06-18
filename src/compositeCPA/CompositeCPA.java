@@ -42,224 +42,227 @@ import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
+import cpa.common.interfaces.RefinableCPA;
 import cpa.common.interfaces.RefinementManager;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
 import cpaplugin.CPAStatistics;
 import exceptions.CPAException;
 
-public class CompositeCPA implements ConfigurableProgramAnalysis
+public class CompositeCPA implements RefinableCPA
 {
-	private final AbstractDomain abstractDomain;
-	private final TransferRelation transferRelation;
-	private final MergeOperator mergeOperator;
-	private final StopOperator stopOperator;
-	private final PrecisionAdjustment precisionAdjustment;
-	private final AbstractElementWithLocation initialElement;
-	private final Precision initialPrecision;
-	private final RefinementManager refinementManager;
+  private final AbstractDomain abstractDomain;
+  private final TransferRelation transferRelation;
+  private final MergeOperator mergeOperator;
+  private final StopOperator stopOperator;
+  private final PrecisionAdjustment precisionAdjustment;
+  private final AbstractElementWithLocation initialElement;
+  private final Precision initialPrecision;
+  private final RefinementManager refinementManager;
 
-	private CompositeCPA (AbstractDomain abstractDomain,
-	    TransferRelation transferRelation,
-			MergeOperator mergeOperator,
-			StopOperator stopOperator,
-			PrecisionAdjustment precisionAdjustment,
-			AbstractElementWithLocation initialElement,
-			Precision initialPrecision,
-			RefinementManager refManager)
-	{
-		this.abstractDomain = abstractDomain;
+  private CompositeCPA (AbstractDomain abstractDomain,
+      TransferRelation transferRelation,
+      MergeOperator mergeOperator,
+      StopOperator stopOperator,
+      PrecisionAdjustment precisionAdjustment,
+      AbstractElementWithLocation initialElement,
+      Precision initialPrecision,
+      RefinementManager refManager)
+  {
+    this.abstractDomain = abstractDomain;
     this.transferRelation = transferRelation;
-		this.mergeOperator = mergeOperator;
-		this.stopOperator = stopOperator;
-		this.precisionAdjustment = precisionAdjustment;
-		this.initialElement = initialElement;
-		this.initialPrecision = initialPrecision;
-		this.refinementManager = refManager;
-	}
+    this.mergeOperator = mergeOperator;
+    this.stopOperator = stopOperator;
+    this.precisionAdjustment = precisionAdjustment;
+    this.initialElement = initialElement;
+    this.initialPrecision = initialPrecision;
+    this.refinementManager = refManager;
+  }
 
-	public static CompositeCPA createNewCompositeCPA(List<ConfigurableProgramAnalysis> cpas, CFAFunctionDefinitionNode node) {
+  public static CompositeCPA createNewCompositeCPA(List<ConfigurableProgramAnalysis> cpas, CFAFunctionDefinitionNode node) {
 
-		List<AbstractDomain> domains = new ArrayList<AbstractDomain> ();
+    List<AbstractDomain> domains = new ArrayList<AbstractDomain> ();
     List<TransferRelation> transferRelations = new ArrayList<TransferRelation> ();
-		List<MergeOperator> mergeOperators = new ArrayList<MergeOperator> ();
-		List<StopOperator> stopOperators = new ArrayList<StopOperator> ();
-		List<PrecisionAdjustment> precisionAdjustments = new ArrayList<PrecisionAdjustment> ();
-		List<AbstractElement> initialElements = new ArrayList<AbstractElement> ();
-		List<Precision> initialPrecisions = new ArrayList<Precision> ();
-		List<RefinementManager> refinementManagers = new ArrayList<RefinementManager>();
+    List<MergeOperator> mergeOperators = new ArrayList<MergeOperator> ();
+    List<StopOperator> stopOperators = new ArrayList<StopOperator> ();
+    List<PrecisionAdjustment> precisionAdjustments = new ArrayList<PrecisionAdjustment> ();
+    List<AbstractElement> initialElements = new ArrayList<AbstractElement> ();
+    List<Precision> initialPrecisions = new ArrayList<Precision> ();
+    List<RefinementManager> refinementManagers = new ArrayList<RefinementManager>();
 
-		for(ConfigurableProgramAnalysis sp : cpas) {
-			domains.add(sp.getAbstractDomain());
+    for(ConfigurableProgramAnalysis sp : cpas) {
+      domains.add(sp.getAbstractDomain());
       transferRelations.add(sp.getTransferRelation());
-			mergeOperators.add(sp.getMergeOperator());
-			stopOperators.add(sp.getStopOperator());
-			precisionAdjustments.add(sp.getPrecisionAdjustment());
-			// TODO fix later - not used for now
-			//refinementManagers.add(sp.getRefinementManager());
-			initialElements.add(sp.getInitialElement(node));
-			initialPrecisions.add(sp.getInitialPrecision(node));
-		}
+      mergeOperators.add(sp.getMergeOperator());
+      stopOperators.add(sp.getStopOperator());
+      precisionAdjustments.add(sp.getPrecisionAdjustment());
+      // if there are no CPAs which implements refinable interface
+      // then refinementManagers will be empty
+      if(sp instanceof RefinableCPA){
+        refinementManagers.add(((RefinableCPA)sp).getRefinementManager());
+      }
+      initialElements.add(sp.getInitialElement(node));
+      initialPrecisions.add(sp.getInitialPrecision(node));
+    }
 
-		CompositeDomain compositeDomain = new CompositeDomain (domains);
-		CompositeTransferRelation compositeTransfer = new CompositeTransferRelation (compositeDomain, transferRelations);
-		CompositeMergeOperator compositeMerge = new CompositeMergeOperator (mergeOperators);
-		CompositeStopOperator compositeStop = new CompositeStopOperator (compositeDomain, stopOperators);
-		CompositePrecisionAdjustment compositePrecisionAdjustment = new CompositePrecisionAdjustment (precisionAdjustments);
-		CompositeElement initialElement = new CompositeElement (initialElements, null);
-		CompositePrecision initialPrecision = new CompositePrecision (initialPrecisions);
-		CompositeRefinementManager refinementMan = new CompositeRefinementManager(refinementManagers);
-		// set call stack
-		CallStack initialCallStack = new CallStack();
-		CallElement initialCallElement = new CallElement(node.getFunctionName(), node, initialElement);
-		initialCallStack.push(initialCallElement);
-		initialElement.setCallStack(initialCallStack);
+    CompositeDomain compositeDomain = new CompositeDomain (domains);
+    CompositeTransferRelation compositeTransfer = new CompositeTransferRelation (compositeDomain, transferRelations);
+    CompositeMergeOperator compositeMerge = new CompositeMergeOperator (mergeOperators);
+    CompositeStopOperator compositeStop = new CompositeStopOperator (compositeDomain, stopOperators);
+    CompositePrecisionAdjustment compositePrecisionAdjustment = new CompositePrecisionAdjustment (precisionAdjustments);
+    CompositeElement initialElement = new CompositeElement (initialElements, null);
+    CompositePrecision initialPrecision = new CompositePrecision (initialPrecisions);
+    CompositeRefinementManager refinementMan = new CompositeRefinementManager(refinementManagers);
+    // set call stack
+    CallStack initialCallStack = new CallStack();
+    CallElement initialCallElement = new CallElement(node.getFunctionName(), node, initialElement);
+    initialCallStack.push(initialCallElement);
+    initialElement.setCallStack(initialCallStack);
 
-		return createCompositeCPA(compositeDomain, compositeTransfer, compositeMerge, compositeStop,
-		    compositePrecisionAdjustment, initialElement, initialPrecision, refinementMan);
+    return createCompositeCPA(compositeDomain, compositeTransfer, compositeMerge, compositeStop,
+        compositePrecisionAdjustment, initialElement, initialPrecision, refinementMan);
 
-	}
+  }
 
-	public static CompositeCPA createCompositeCPA (AbstractDomain abstractDomain,
-	    TransferRelation transferRelation,
-			MergeOperator mergeOperator,
-			StopOperator stopOperator,
-			PrecisionAdjustment precisionAdjustment,
+  public static CompositeCPA createCompositeCPA (AbstractDomain abstractDomain,
+      TransferRelation transferRelation,
+      MergeOperator mergeOperator,
+      StopOperator stopOperator,
+      PrecisionAdjustment precisionAdjustment,
       AbstractElementWithLocation initialElement,
       Precision initialPrecision,
       RefinementManager refinementManager)
-	{
-		// TODO Michael: this should throw something
-		if (abstractDomain == null || 
-		    transferRelation == null || mergeOperator == null ||
-				stopOperator == null || precisionAdjustment == null ||
-				initialElement == null || initialPrecision == null ||
-				refinementManager == null)
-			return null;
+  {
+    // TODO Michael: this should throw something
+    if (abstractDomain == null || 
+        transferRelation == null || mergeOperator == null ||
+        stopOperator == null || precisionAdjustment == null ||
+        initialElement == null || initialPrecision == null ||
+        refinementManager == null)
+      return null;
 
-		/*if (mergeOperator.getAbstractDomain () != abstractDomain ||
+    /*if (mergeOperator.getAbstractDomain () != abstractDomain ||
 				stopOperator.getAbstractDomain () != abstractDomain ||
 				transferRelation.getAbstractDomain () != abstractDomain)
 			return null;*/
 
-		return new CompositeCPA (abstractDomain, transferRelation, mergeOperator, stopOperator,
-		    precisionAdjustment, initialElement, initialPrecision, refinementManager);
-	}
+    return new CompositeCPA (abstractDomain, transferRelation, mergeOperator, stopOperator,
+        precisionAdjustment, initialElement, initialPrecision, refinementManager);
+  }
 
-	@SuppressWarnings("unchecked")
-	public static ConfigurableProgramAnalysis getCompositeCPA (CFAFunctionDefinitionNode node) throws CPAException
-	{
-		String[] cpaNamesArray = CPAMain.cpaConfig.getPropertiesArray("analysis.cpas");
-		String[] mergeTypesArray = CPAMain.cpaConfig.getPropertiesArray("analysis.mergeOperators");
-		String[] stopTypesArray = CPAMain.cpaConfig.getPropertiesArray("analysis.stopOperators");
+  @SuppressWarnings("unchecked")
+  public static ConfigurableProgramAnalysis getCompositeCPA (CFAFunctionDefinitionNode node) throws CPAException
+  {
+    String[] cpaNamesArray = CPAMain.cpaConfig.getPropertiesArray("analysis.cpas");
+    String[] mergeTypesArray = CPAMain.cpaConfig.getPropertiesArray("analysis.mergeOperators");
+    String[] stopTypesArray = CPAMain.cpaConfig.getPropertiesArray("analysis.stopOperators");
 
-		// The list to keep all cpas
-		List<ConfigurableProgramAnalysis> cpas = new ArrayList<ConfigurableProgramAnalysis> ();
+    // The list to keep all cpas
+    List<ConfigurableProgramAnalysis> cpas = new ArrayList<ConfigurableProgramAnalysis> ();
 
-		int sizeOfCompositeCPA = cpaNamesArray.length;
-		if (0 == sizeOfCompositeCPA) throw new CPAException("Configuration option analysis.cpas is not set!");
-		
-		for(int i=0; i<sizeOfCompositeCPA; i++){
-			// TODO make sure that the first CPA carries location information
-			// otherwise the analysis will have efficiency problems
-		  // -- this is currently checked when constructing a CompositeElement
+    int sizeOfCompositeCPA = cpaNamesArray.length;
+    if (0 == sizeOfCompositeCPA) throw new CPAException("Configuration option analysis.cpas is not set!");
 
-			// get name of the cpa, we are getting the explicit
-			// path of the representing class of this cpa
-			String cpaName = cpaNamesArray[i];
+    for(int i=0; i<sizeOfCompositeCPA; i++){
+      // TODO make sure that the first CPA carries location information
+      // otherwise the analysis will have efficiency problems
+      // -- this is currently checked when constructing a CompositeElement
 
-			Class cls;
-			try {
-				cls = Class.forName(cpaName);
-				Class parameterTypes[] = {String.class, String.class};
-				Constructor ct = cls.getConstructor(parameterTypes);
-				Object argumentlist[] = {mergeTypesArray[i], stopTypesArray[i]};
-				Object obj = ct.newInstance(argumentlist);
-				// Convert object to CPA
-				ConfigurableProgramAnalysis newCPA = (ConfigurableProgramAnalysis)obj;
-				cpas.add(newCPA);
+      // get name of the cpa, we are getting the explicit
+      // path of the representing class of this cpa
+      String cpaName = cpaNamesArray[i];
 
-				// AG - check if this cpa defines its own
-				// statistics, and if so add them to the
-				// main ones
-				try {
-				    Method meth =
-				        cls.getDeclaredMethod("getStatistics");
-				    CPAStatistics s =
-				        (CPAStatistics)meth.invoke(newCPA);
-				    CPAMain.cpaStats.addSubStatistics(s);
-				} catch (Exception e) {
-				    // ignore, this is not an error
-				}
+      Class cls;
+      try {
+        cls = Class.forName(cpaName);
+        Class parameterTypes[] = {String.class, String.class};
+        Constructor ct = cls.getConstructor(parameterTypes);
+        Object argumentlist[] = {mergeTypesArray[i], stopTypesArray[i]};
+        Object obj = ct.newInstance(argumentlist);
+        // Convert object to CPA
+        ConfigurableProgramAnalysis newCPA = (ConfigurableProgramAnalysis)obj;
+        cpas.add(newCPA);
 
-			} catch (ClassNotFoundException e) {
-				e.printStackTrace();
-			} catch (SecurityException e) {
-				e.printStackTrace();
-			} catch (NoSuchMethodException e) {
-				e.printStackTrace();
-			} catch (IllegalArgumentException e) {
-				e.printStackTrace();
-			} catch (InstantiationException e) {
-				e.printStackTrace();
-			} catch (IllegalAccessException e) {
-				e.printStackTrace();
-			} catch (InvocationTargetException e) {
-				e.printStackTrace();
-			}
-		}
+        // AG - check if this cpa defines its own
+        // statistics, and if so add them to the
+        // main ones
+        try {
+          Method meth =
+            cls.getDeclaredMethod("getStatistics");
+          CPAStatistics s =
+            (CPAStatistics)meth.invoke(newCPA);
+          CPAMain.cpaStats.addSubStatistics(s);
+        } catch (Exception e) {
+          // ignore, this is not an error
+        }
 
-		ConfigurableProgramAnalysis cpa = null;
-		// TODO this was for efficiency but I modified the condition for it to work only with
-		// summary nodes
-		if (cpas.size() == 1 &&
-		        CPAMain.cpaConfig.getBooleanValue(
-		                "analysis.noCompositeCPA")) {
-		    LazyLogger.log(CustomLogLevel.MainApplicationLevel,
-		            "Only one analyis active, ",
-		            "no need of a composite CPA");
-		    cpa = cpas.get(0);
-		} else {
-		    LazyLogger.log(CustomLogLevel.MainApplicationLevel,
-                                   "CompositeCPA is built using the list " +
-                                   "of CPAs");
-		    cpa = CompositeCPA.createNewCompositeCPA (cpas, node);
-		}
-		return cpa;
-	}
+      } catch (ClassNotFoundException e) {
+        e.printStackTrace();
+      } catch (SecurityException e) {
+        e.printStackTrace();
+      } catch (NoSuchMethodException e) {
+        e.printStackTrace();
+      } catch (IllegalArgumentException e) {
+        e.printStackTrace();
+      } catch (InstantiationException e) {
+        e.printStackTrace();
+      } catch (IllegalAccessException e) {
+        e.printStackTrace();
+      } catch (InvocationTargetException e) {
+        e.printStackTrace();
+      }
+    }
 
-	public AbstractDomain getAbstractDomain() {
-		return abstractDomain;
-	}
-	
+    ConfigurableProgramAnalysis cpa = null;
+    // TODO this was for efficiency but I modified the condition for it to work only with
+    // summary nodes
+    if (cpas.size() == 1 &&
+        CPAMain.cpaConfig.getBooleanValue(
+            "analysis.noCompositeCPA")) {
+      LazyLogger.log(CustomLogLevel.MainApplicationLevel,
+          "Only one analyis active, ",
+      "no need of a composite CPA");
+      cpa = cpas.get(0);
+    } else {
+      LazyLogger.log(CustomLogLevel.MainApplicationLevel,
+          "CompositeCPA is built using the list " +
+      "of CPAs");
+      cpa = CompositeCPA.createNewCompositeCPA (cpas, node);
+    }
+    return cpa;
+  }
+
+  public AbstractDomain getAbstractDomain() {
+    return abstractDomain;
+  }
+
   public TransferRelation getTransferRelation() {
     return transferRelation;
   }
 
-	public MergeOperator getMergeOperator() {
-		return mergeOperator;
-	}
+  public MergeOperator getMergeOperator() {
+    return mergeOperator;
+  }
 
-	public StopOperator getStopOperator() {
-		return stopOperator;
-	}
-	
-	public PrecisionAdjustment getPrecisionAdjustment () {
-	  return precisionAdjustment;
-	}
-	@Override
-	public AbstractElement getInitialElement (CFAFunctionDefinitionNode node) {
-		return initialElement;
-	}
-	
-	public Precision getInitialPrecision (CFAFunctionDefinitionNode node) {
-	  return initialPrecision;
-	}
+  public StopOperator getStopOperator() {
+    return stopOperator;
+  }
 
-	// TODO enable later
-//	@Override
-//  public RefinementManager getRefinementManager() {
-//    return refinementManager;
-//  }
+  public PrecisionAdjustment getPrecisionAdjustment () {
+    return precisionAdjustment;
+  }
+  @Override
+  public AbstractElement getInitialElement (CFAFunctionDefinitionNode node) {
+    return initialElement;
+  }
+
+  public Precision getInitialPrecision (CFAFunctionDefinitionNode node) {
+    return initialPrecision;
+  }
+
+  @Override
+  public RefinementManager getRefinementManager() {
+    return refinementManager;
+  }
 }
 

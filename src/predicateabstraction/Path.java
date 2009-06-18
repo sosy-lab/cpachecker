@@ -3,13 +3,15 @@ package predicateabstraction;
 import java.util.Deque;
 import java.util.Vector;
 
+import cpa.predicateabstraction.PredicateAbstractionAbstractElement;
+
 class Path {
   Vector<Integer> elemIds;
 
-  public Path(Deque<ExplicitAbstractElement> cex) {
+  public Path(Deque<PredicateAbstractionAbstractElement> cex) {
     elemIds = new Vector<Integer>();
     elemIds.ensureCapacity(cex.size());
-    for (ExplicitAbstractElement e : cex) {
+    for (PredicateAbstractionAbstractElement e : cex) {
       elemIds.add(e.getLocation().getNodeNumber());
     }
   }

@@ -34,5 +34,4 @@ public interface ConfigurableProgramAnalysis
   public PrecisionAdjustment getPrecisionAdjustment();
   public <AE extends AbstractElement> AE getInitialElement(CFAFunctionDefinitionNode node);
   public Precision getInitialPrecision(CFAFunctionDefinitionNode node);
-  //public RefinementManager getRefinementManager();
 }

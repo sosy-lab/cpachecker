@@ -7,18 +7,20 @@ import cpa.common.interfaces.Precision;
 import exceptions.CPAException;
 
 public class ARTMergeSep implements MergeOperator {
-  
+
   @Override
   public AbstractElementWithLocation merge(
       AbstractElementWithLocation pElement1,
       AbstractElementWithLocation pElement2, Precision pPrecision)
-      throws CPAException {
+  throws CPAException {
+    // TODO for now we only use ARTCPA when we do not join
     return pElement2;
   }
 
   @Override
   public AbstractElement merge(AbstractElement pElement1,
       AbstractElement pElement2, Precision pPrecision) throws CPAException {
+    // TODO for now we only use ARTCPA when we do not join
     return pElement2;
   }
 

@@ -116,7 +116,7 @@ public class PredicateAbstractionTransferRelation implements TransferRelation {
   private AbstractElement buildSuccessor(PredicateAbstractionAbstractElement e,
       CFAEdge edge) throws CPATransferException {
     PredicateAbstractionCPA cpa = domain.getCPA();
-    CFANode succLoc = edge.getSuccessor();
+//    CFANode succLoc = edge.getSuccessor();
 
     // check whether the successor is an error location: if so, we want
     // to check for feasibility of the path...
