@@ -48,6 +48,7 @@ import org.eclipse.cdt.core.dom.ast.IASTLabelStatement;
 import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
 import org.eclipse.cdt.core.dom.ast.IASTNullStatement;
 import org.eclipse.cdt.core.dom.ast.IASTProblem;
+import org.eclipse.cdt.core.dom.ast.IASTProblemDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTReturnStatement;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTStatement;
@@ -199,6 +200,16 @@ public class CFABuilder extends ASTVisitor
 
 			returnNode = new CFAExitNode (fileloc.getEndingLineNumber (), nameOfFunction);
 			newCFA.setExitNode(returnNode);
+		
+		} else if (declaration instanceof IASTProblemDeclaration) {
+		  // TODO CDT parser struggles on GCC's __attribute__((something)) constructs
+		  // For now, insert the following macro before compiling with CIL:
+		  // #define  __attribute__(x)  /*NOTHING*/
+	    System.out.println ("IASTProblemDeclaration Raw Signature: " + declaration.getRawSignature ());
+	    System.out.println ("    File Loc: " + fileloc);
+		
+		} else {
+      throw new CFAGenerationRuntimeException ("Type: " + declaration.getClass().getName() + " support not implemented", fileloc.getStartingLineNumber ());
 		}
 
 		return PROCESS_CONTINUE;
