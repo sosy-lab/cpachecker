@@ -6,18 +6,50 @@ import java.util.Map;
 import java.util.Set;
 
 public interface Type {
+
+  /**
+   * Get an instance of the enum TypeClass that describes this type.
+   */
+  public TypeClass getTypeClass();
   
- public static enum TypeClass {
+  /**
+   * If the type was declared with modifier const;
+   */
+  public boolean isConst();
+  
+  /**
+   * Get the size of an element of the type, just like the sizeof-Operator in C.
+   */
+  public int sizeOf(); 
+
+  
+
+  /**
+   * List of all possible classes of types in C.
+   */
+  public static enum TypeClass {
+    /**
+     * All primitive types like char, int, float, double and void.
+     */
     PRIMITIVE,
-    POINTER,
+    
+    POINTER,    
+    
     ARRAY,
+    
     ENUM,
+    
     STRUCT,
+    
     UNION,
+    
+    /**
+     * A function like "int main()", NOT a pointer to a function!
+     */
     FUNCTION,
   }
 
-  public static enum PrimitiveType implements Type {
+  public static enum Primitive {
     
     VOID(1, "void"),
         
@@ -34,19 +66,13 @@ public interface Type {
     private final int sizeOf;
     private final String name;
     
-    private PrimitiveType(int sizeOf, String name) {
+    private Primitive(int sizeOf, String name) {
       this.sizeOf = sizeOf;
       this.name = name;
     }
     
-    @Override
     public int sizeOf() {
       return sizeOf;
-    }
-    
-    @Override
-    public TypeClass getTypeClass() {
-      return TypeClass.PRIMITIVE;
     }
     
     @Override
@@ -54,19 +80,106 @@ public interface Type {
       return name;
     }
   }
-
-  public static final class PointerType implements Type {
+  
+  public static final class PrimitiveType extends AbstractType {
     
-    private final Type type; // target type
+    private final Primitive primitiveType;
+    private final boolean signed;
+    
+    /**
+     * 
+     * @param primitiveType
+     * @param signed  ignored if not an integral type
+     * @param constant
+     */
+    public PrimitiveType(Primitive primitiveType, boolean signed, boolean constant) {
+      super(constant);
+      this.primitiveType = primitiveType;
+      
+      switch (primitiveType) {
+      case VOID:
+        this.signed = false;
+        break;
+        
+      case CHAR:
+      case SHORT:
+      case LONG:
+      case LONGLONG:
+        this.signed = signed;
+        break;
+        
+      case FLOAT:
+      case DOUBLE:
+      case LONGDOUBLE:
+        this.signed = true;
+        break;
+        
+      default: 
+        throw new RuntimeException("Missing case clause");
+      }
+    }
+    
+    @Override
+    public int sizeOf() {
+      return primitiveType.sizeOf;
+    }
+    
+    @Override
+    public TypeClass getTypeClass() {
+      return TypeClass.PRIMITIVE;
+    }
+    
+    public boolean isSigned() {
+      return signed;
+    }
+    
+    @Override
+    public boolean equals(Object obj) {
+      if (obj == null || !(obj instanceof PointerType)) {
+        return false;
+      }
+      PrimitiveType other = (PrimitiveType)obj;
+      return (this == other)
+          || (   (primitiveType == other.primitiveType)
+              && (signed == other.signed)
+              && (super.equals(other)));
+    }
+    
+    @Override
+    public int hashCode() {
+      return primitiveType.hashCode();
+    }
+    
+    @Override
+    public String toString() {
+      String signedString = "";
+      if (   primitiveType == Primitive.CHAR
+          || primitiveType == Primitive.SHORT
+          || primitiveType == Primitive.LONG
+          || primitiveType == Primitive.LONGLONG) {
+        
+        signedString = (signed ? "signed " : "unsigned "); 
+      }
+        
+      return (isConst() ? "const "  : "")
+           + signedString 
+           + primitiveType.toString();
+    }
+  }
+
+  public static final class PointerType extends AbstractType {
+    
+    private final Type targetType; // target type
     private final int levelOfIndirection;
     
-    public PointerType(Type type) {
-      if (type == null) {
+    public PointerType(Type targetType, boolean constant) {
+      super(constant);
+      if (targetType == null) {
         throw new IllegalArgumentException();
       }
-      this.type = type;
-      if (type instanceof PointerType) {
-        this.levelOfIndirection = ((PointerType)type).levelOfIndirection + 1;
+      this.targetType = targetType;
+      if (targetType instanceof PointerType) {
+        this.levelOfIndirection = ((PointerType)targetType).levelOfIndirection + 1;
       } else {
         this.levelOfIndirection = 1;
       }
@@ -82,8 +195,8 @@ public interface Type {
       return TypeClass.POINTER;
     }
     
-    public Type getType() {
-      return type;
+    public Type getTargetType() {
+      return targetType;
     }
     
     public int getLevelOfIndirection() {
@@ -95,26 +208,32 @@ public interface Type {
       if (obj == null || !(obj instanceof PointerType)) {
         return false;
       }
-      return type.equals(((PointerType)obj).type);
+      PointerType other = (PointerType)obj;
+      return (this == obj)
+          || (   super.equals(other))
+              && targetType.equals(other.targetType);
     }
     
     @Override
     public int hashCode() {
-      return 254 * type.hashCode();
+      return 254 * targetType.hashCode();
     }
     
     @Override
     public String toString() {
-      return type.toString() + "*";
+      return targetType.toString()
+           + (isConst() ? " const " : "")
+           + "*";
     }
   }
   
-public static final class ArrayType implements Type {
+public static final class ArrayType extends AbstractType {
     
     private final Type type; // target type
     private final int length;
     
     public ArrayType(Type type, int length) {
+      super(false);
       if (type == null) {
         throw new IllegalArgumentException();
       }
@@ -144,8 +263,12 @@ public static final class ArrayType implements Type {
       if (obj == null || !(obj instanceof ArrayType)) {
         return false;
       }
-      return type.equals(((ArrayType)obj).type);
+      ArrayType other = (ArrayType)obj;
+      return (this == other)
+          || (   super.equals(other)
+              && type.equals(other.type));
     }
+    
     
     @Override
     public int hashCode() {
@@ -154,16 +277,19 @@ public static final class ArrayType implements Type {
     
     @Override
     public String toString() {
-      return type.toString() + "[" + (length > 0 ? length : "") + "]";
+      return type.toString()
+           + (isConst() ? " const " : "")
+           + "[" + (length > 0 ? length : "") + "]";
     }
   }
 
-  public static abstract class CompositeType implements Type {
+  public static abstract class CompositeType extends AbstractType {
     
     protected final LinkedHashMap<String, Type> members;
     protected final String name;
     
-    public CompositeType(String name) {
+    public CompositeType(String name, boolean constant) {
+      super(constant);
       this.members = new LinkedHashMap<String, Type>();
       this.name = name;
     }
@@ -199,7 +325,8 @@ public static final class ArrayType implements Type {
       CompositeType other = (CompositeType)obj;
       
       return (obj == this)
-        || (   name.equals(other.name)
+        || (   super.equals(other)
+            && name.equals(other.name)
             && members.equals(other.members));
     }
     
@@ -227,8 +354,8 @@ public static final class ArrayType implements Type {
 
   public static final class StructType extends CompositeType {
   
-    public StructType(String name) {
-      super(name);
+    public StructType(String name, boolean constant) {
+      super(name, constant);
     }
     
     @Override
@@ -267,14 +394,16 @@ public static final class ArrayType implements Type {
     
     @Override
     public String toString() {
-      return "struct" + super.toString();
+      return (isConst() ? "const " : "")
+           + "struct"
+           + super.toString();
     }
   }
 
   public static final class UnionType extends CompositeType {
   
-    public UnionType(String name) {
-      super(name);
+    public UnionType(String name, boolean constant) {
+      super(name, constant);
     }
   
     @Override
@@ -303,16 +432,19 @@ public static final class ArrayType implements Type {
     
     @Override
     public String toString() {
-      return "union" + super.toString();
+      return (isConst() ? "const " : "")
+           + "union"
+           + super.toString();
     }
   }
 
-  public static final class EnumType implements Type {
+  public static final class EnumType extends AbstractType {
   
     private final Map<String, Integer> enumerators;
     private final String name;
     
-    public EnumType(String name) {
+    public EnumType(String name, boolean constant) {
+      super(constant);
       this.enumerators = new HashMap<String, Integer>();
       this.name = name;
     }
@@ -356,7 +488,8 @@ public static final class ArrayType implements Type {
       EnumType other = (EnumType)obj;
       
       return (obj == this)
-        || (   name.equals(other.name)
+        || (   super.equals(other)
+            && name.equals(other.name)
             && enumerators.equals(other.enumerators));
     }
     
@@ -368,6 +501,9 @@ public static final class ArrayType implements Type {
     @Override
     public String toString() {
       StringBuffer sb = new StringBuffer();
+      if (isConst()) {
+        sb.append("const ");
+      }
       sb.append("enum ");
       sb.append(name);
       sb.append(" { ");
@@ -388,16 +524,21 @@ public static final class ArrayType implements Type {
     }
   }
   
-  public final static class FunctionType implements Type {
+  public final static class FunctionType extends AbstractType {
+    
+    private static int uniqueNameId = 0;
     
     private final String name;
     private final Type returnType;
     private final LinkedHashMap<String, Type> parameters;
+    private boolean hasVarArgs;
     
-    public FunctionType(String name, Type returnType) {
+    public FunctionType(String name, Type returnType, boolean hasVarArgs) {
+      super(false);
       this.name = name;
       this.returnType = returnType;
       this.parameters = new LinkedHashMap<String, Type>();
+      this.hasVarArgs = hasVarArgs;
     }
     
     public Type getReturnType() {
@@ -405,8 +546,13 @@ public static final class ArrayType implements Type {
     }
     
     protected void addParameter(String name, Type type) {
-      if (name == null || type == null) {
+      if (type == null) {
         throw new IllegalArgumentException();
+      }
+      if (name ==  null) {
+        synchronized (this.getClass()) {
+          name = "__cpa_anon_param_" + uniqueNameId++;
+        }
       }
       if (parameters.containsKey(name)) {
         throw new IllegalArgumentException("Parameter " + name + " already exists");
@@ -423,6 +569,10 @@ public static final class ArrayType implements Type {
     
     public Set<String> getParameters() {
       return parameters.keySet();
+    }
+    
+    public boolean hasVarArgs() {
+      return hasVarArgs;
     }
     
     @Override
@@ -445,7 +595,8 @@ public static final class ArrayType implements Type {
       return (obj == this)
         || (   name.equals(other.name)
             && returnType.equals(other.returnType)
-            && parameters.equals(other.returnType));
+            && parameters.equals(other.returnType)
+            && hasVarArgs == other.hasVarArgs);
     }
     
     @Override
@@ -473,9 +624,31 @@ public static final class ArrayType implements Type {
       return sb.toString();
     }
   }
-
-public int sizeOf(); 
-
- public TypeClass getTypeClass();
   
+  abstract static class AbstractType implements Type {
+ 
+    private final boolean constant;
+    
+    public AbstractType(boolean constant) {
+      this.constant = constant;
+    }
+    
+    @Override
+    public boolean isConst() {
+      return constant;
+    }
+    
+    @Override
+    public boolean equals(Object obj) {
+      if (obj == null || !(obj instanceof Type)) {
+        return false;
+      } else {
+        return equals((Type)obj);
+      }
+    }
+    
+    public boolean equals(Type other) {
+      return (other != null) && (isConst() == other.isConst());
+    }
+  }
 }

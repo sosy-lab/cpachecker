@@ -29,6 +29,7 @@ import java.util.Map;
 
 import cpa.common.interfaces.AbstractElement;
 import cpa.types.Type.FunctionType;
+import cpa.types.Type.Primitive;
 import cpa.types.Type.PrimitiveType;
 
 /**
@@ -47,7 +48,8 @@ public class TypesElement implements AbstractElement {
     this.typedefs = new HashMap<String, Type>();
     this.functions = new HashMap<String, FunctionType>();
     
-    functions.put("main", new FunctionType("main", PrimitiveType.LONG));
+    PrimitiveType mainReturnType = new PrimitiveType(Primitive.LONG, true, false);
+    functions.put("main", new FunctionType("main", mainReturnType, false));
   }
   
   public TypesElement(Map<String, Type> variables, Map<String, Type> typedefs,
@@ -70,14 +72,24 @@ public class TypesElement implements AbstractElement {
   }
   
   public void addVariable(String function, String name, Type type) {
+    String fullName = getFullVariableName(function, name);
+    if (variables.containsKey(fullName)) {
+      throw new IllegalArgumentException("Redeclared variable " + fullName);
+    }
     variables.put(getFullVariableName(function, name), type);
   }
   
   public void addTypedef(String name, Type type) {
+    if (variables.containsKey(name)) {
+      throw new IllegalArgumentException("Redeclared type " + name);
+    }
     typedefs.put(name, type);
   }
   
   public void addFunction(String name, FunctionType type) {
+    if (variables.containsKey(name)) {
+      throw new IllegalArgumentException("Redeclared function " + name);
+    }
     functions.put(name, type);
   }
   

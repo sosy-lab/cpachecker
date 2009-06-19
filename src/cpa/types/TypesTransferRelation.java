@@ -38,6 +38,7 @@ import org.eclipse.cdt.core.dom.ast.IASTFunctionDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
 import org.eclipse.cdt.core.dom.ast.IASTNamedTypeSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
+import org.eclipse.cdt.core.dom.ast.IASTPointer;
 import org.eclipse.cdt.core.dom.ast.IASTPointerOperator;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
@@ -58,6 +59,7 @@ import cpa.types.Type.CompositeType;
 import cpa.types.Type.EnumType;
 import cpa.types.Type.FunctionType;
 import cpa.types.Type.PointerType;
+import cpa.types.Type.Primitive;
 import cpa.types.Type.PrimitiveType;
 import cpa.types.Type.StructType;
 import exceptions.CPAException;
@@ -98,7 +100,7 @@ public class TypesTransferRelation implements TransferRelation {
 
           IASTFunctionDefinition funcDef = funcDefNode.getFunctionDefinition();
           try {
-            handleFunctionDefinition(successor,
+            handleFunctionDeclaration(successor,
                 funcDef.getDeclarator(), funcDef.getDeclSpecifier());
           } catch (TransferRelationException e1) {
             e1.printStackTrace();
@@ -137,7 +139,7 @@ public class TypesTransferRelation implements TransferRelation {
 
     if ((declarators.length == 1)
         && (declarators[0] instanceof IASTFunctionDeclarator)) {
-      handleFunctionDefinition(element, (IASTFunctionDeclarator)declarators[0], specifier);
+      handleFunctionDeclaration(element, (IASTFunctionDeclarator)declarators[0], specifier);
     
     } else {
     
@@ -161,7 +163,7 @@ public class TypesTransferRelation implements TransferRelation {
     }
   }
 
-  private void handleFunctionDefinition(TypesElement element,
+  private void handleFunctionDeclaration(TypesElement element,
                                         IASTFunctionDeclarator funcDeclarator,
                                         IASTDeclSpecifier funcDeclSpecifier)
                                         throws TransferRelationException {
@@ -177,62 +179,73 @@ public class TypesTransferRelation implements TransferRelation {
     Type returnType = getType(element, funcDeclSpecifier);
     returnType = getPointerType(returnType, standardFuncDeclarator);
     
-    FunctionType function = new FunctionType(name, returnType);
+    FunctionType function = new FunctionType(name, returnType, standardFuncDeclarator.takesVarArgs());
+    
+    boolean external = (funcDeclSpecifier.getStorageClass() == IASTDeclSpecifier.sc_extern);
     
     for (IASTParameterDeclaration parameter : standardFuncDeclarator.getParameters()) {
       IASTDeclarator paramDeclarator = parameter.getDeclarator();
       
       Type parameterType = getType(element, parameter.getDeclSpecifier());
       parameterType = getPointerType(parameterType, paramDeclarator);
+    
+      String parameterName = (external ? null : paramDeclarator.getName().getRawSignature());
       
-      function.addParameter(paramDeclarator.getName().getRawSignature(), parameterType);
+      function.addParameter(parameterName, parameterType);
     }
-    // TODO: varArgs
     element.addFunction(name, function);
   }
   
   private Type getType(TypesElement element, IASTDeclSpecifier declSpecifier)
                        throws TransferRelationException {
     Type type;
-    
+    boolean constant = declSpecifier.isConst();
+
     if (declSpecifier instanceof IASTSimpleDeclSpecifier) {
+      // primitive type
       IASTSimpleDeclSpecifier simpleSpecifier = (IASTSimpleDeclSpecifier)declSpecifier;
+      Primitive primitiveType;
+      
       switch (simpleSpecifier.getType()) {
       
       case IASTSimpleDeclSpecifier.t_char:
-        type = PrimitiveType.CHAR;
+        primitiveType = Primitive.CHAR;
         break;
         
       case IASTSimpleDeclSpecifier.t_int:
       case IASTSimpleDeclSpecifier.t_unspecified:
         if (simpleSpecifier.isShort()) {
-          type = PrimitiveType.SHORT;
+          primitiveType = Primitive.SHORT;
         } else if (simpleSpecifier.isLong()) {
-          type = PrimitiveType.LONGLONG;
+          primitiveType = Primitive.LONGLONG;
         } else {
-          type = PrimitiveType.LONG;
+          primitiveType = Primitive.LONG;
         }
         break;
         
       case IASTSimpleDeclSpecifier.t_float:
-        type = PrimitiveType.SHORT;
+        primitiveType = Primitive.SHORT;
         break;
         
       case IASTSimpleDeclSpecifier.t_double:
         if (simpleSpecifier.isLong()) {
-          type = PrimitiveType.LONGDOUBLE;
+          primitiveType = Primitive.LONGDOUBLE;
         } else {
-          type = PrimitiveType.DOUBLE;
+          primitiveType = Primitive.DOUBLE;
         }
         break;
         
       case IASTSimpleDeclSpecifier.t_void:
-        type = PrimitiveType.VOID;
+        primitiveType = Primitive.VOID;
         break;
         
       default:
         throw new TransferRelationException("Unhandled case: " + declSpecifier.getRawSignature());
       }
+      
+      boolean signed = (simpleSpecifier.isUnsigned() ? false : true);
+      
+      type = new PrimitiveType(primitiveType, signed, constant);
       
     } else if (declSpecifier instanceof IASTCompositeTypeSpecifier) {
       // struct & union
@@ -242,12 +255,12 @@ public class TypesTransferRelation implements TransferRelation {
       
       switch (compositeSpecifier.getKey()) {
       case IASTCompositeTypeSpecifier.k_struct:
-        compType = new StructType(name);
+        compType = new StructType(name, constant);
         name = "struct " + name;
         break;
 
       case IASTCompositeTypeSpecifier.k_union:
-        compType = new StructType(name);
+        compType = new StructType(name, constant);
         name = "union " + name;
         break;
         
@@ -298,9 +311,10 @@ public class TypesTransferRelation implements TransferRelation {
       type = element.getTypedef(name);
       
     } else if (declSpecifier instanceof IASTEnumerationSpecifier) {
+      // enum
       IASTEnumerationSpecifier enumSpecifier = (IASTEnumerationSpecifier)declSpecifier;
       String name = enumSpecifier.getName().getRawSignature();
-      EnumType enumType = new EnumType(name);
+      EnumType enumType = new EnumType(name, constant);
 
       
       for (IASTEnumerator enumerator : enumSpecifier.getEnumerators()) {
@@ -317,6 +331,7 @@ public class TypesTransferRelation implements TransferRelation {
       element.addTypedef("enum " + name, type); // add type "enum a"
       
     } else if (declSpecifier instanceof IASTNamedTypeSpecifier) {
+      // type reference to type declared with typedef
       IASTNamedTypeSpecifier namedTypeSpecifier = (IASTNamedTypeSpecifier)declSpecifier;
       
       type = element.getTypedef(namedTypeSpecifier.getName().getRawSignature());
@@ -330,7 +345,7 @@ public class TypesTransferRelation implements TransferRelation {
   private Type getPointerType(Type original, IASTDeclarator declarator)
                               throws TransferRelationException {
     Type result = original;
-    
+
     if (declarator instanceof IASTArrayDeclarator) {
       IASTArrayModifier[] arrayOps = ((IASTArrayDeclarator)declarator).getArrayModifiers();
       for (IASTArrayModifier arrayOp : arrayOps) {
@@ -350,8 +365,12 @@ public class TypesTransferRelation implements TransferRelation {
     
     IASTPointerOperator[] pointerOps = declarator.getPointerOperators();
     if (pointerOps != null) {
-      for (int i = 0; i < pointerOps.length; i++) {
-        result = new PointerType(result);
+      for (IASTPointerOperator pointerOp : pointerOps) {
+        boolean constant = false;
+        if (pointerOp instanceof IASTPointer) {
+          constant = ((IASTPointer)pointerOp).isConst();
+        }
+        result = new PointerType(result, constant);
       }
     }
     return result;
