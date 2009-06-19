@@ -65,6 +65,9 @@ import cpa.pointeranalysis.Memory.LocalVariable;
 import cpa.pointeranalysis.Memory.MemoryAddress;
 import cpa.pointeranalysis.Memory.MemoryRegion;
 import cpa.pointeranalysis.Memory.PointerTarget;
+import cpa.types.Type;
+import cpa.types.TypesElement;
+import cpa.types.Type.PointerType;
 import exceptions.CPAException;
 import exceptions.CPATransferException;
 import exceptions.TransferRelationException;
@@ -80,9 +83,10 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
   // here some information about the last action is stored;
   // the strengthen operator can use this to find out what information could be
   // updated
+  private IASTNode      lastActionASTNode = null;
+  private CFAEdge       lastActionEdge = null;
   private MemoryAddress lastActionMalloc = null;
   private Pointer       lastActionPointer = null;
-  private IASTNode      lastActionASTNode = null;
   private Pointer       lastActionPointerBackup = null;
   private boolean       lastActionOffsetNegative = false;
   
@@ -194,7 +198,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
     
     IASTDeclarator[] declarators = declaration.getDeclarators();
     if (declarators == null || declarators.length != 1) {
-      throw new TransferRelationException("Unhandled case " + declaration.getRawStatement());  
+      throw new TransferRelationException("Not exptected in CIL: " + declaration.getRawStatement());  
     }
   
     String varName = declarators[0].getName().toString();
@@ -213,7 +217,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       // store the pointer so the type analysis CPA can update its
       // type information
       lastActionPointer = p;
-      lastActionASTNode = declaration.getDeclSpecifier();
+      lastActionEdge = declaration;
       
       // initializers do not need to be considered, because they have to be
       // constant and constant pointers are considered null
@@ -712,12 +716,20 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
     PointerAnalysisElement pointerElement = (PointerAnalysisElement)element;
     
     for (AbstractElement ae : elements) {
-      if (ae instanceof ExplicitAnalysisElement) {
-        strengthen(pointerElement, (ExplicitAnalysisElement)ae, cfaEdge, precision);
+      try {
+        if (ae instanceof ExplicitAnalysisElement) {
+          strengthen(pointerElement, (ExplicitAnalysisElement)ae, cfaEdge, precision);
+        
+        } else if (ae instanceof TypesElement) {
+          strengthen(pointerElement, (TypesElement)ae, cfaEdge, precision);
+        }
+      } catch (TransferRelationException e) {
+        e.printStackTrace();
       }
     }
 
     lastActionASTNode = null;
+    lastActionEdge = null;
     lastActionMalloc = null;
     lastActionOffsetNegative = false;
     lastActionPointer = null;
@@ -765,6 +777,36 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       return explicitElement.getValueFor(varName);
     } else {
       return null;
+    }
+  }
+  
+  private void strengthen(PointerAnalysisElement pointerElement, 
+                          TypesElement typesElement,
+                          CFAEdge cfaEdge, Precision precision)
+                          throws TransferRelationException {
+
+    if (lastActionEdge instanceof DeclarationEdge) {
+      // pointer variable declaration
+      DeclarationEdge declaration = (DeclarationEdge)lastActionEdge;
+      String functionName = cfaEdge.getSuccessor().getFunctionName();
+      if (declaration instanceof GlobalDeclarationEdge) {
+        functionName = null;
+      }
+      
+      IASTDeclarator[] declarators = declaration.getDeclarators();
+      if (declarators == null || declarators.length != 1) {
+         throw new TransferRelationException("Not expected in CIL: " + declaration.getRawStatement());
+      }
+      
+      String name = declarators[0].getName().getRawSignature();
+      Type type = typesElement.getVariableType(functionName, name);
+      
+      if (!(type instanceof PointerType)) {
+        throw new TransferRelationException("Types determined by TypesCPA und PointerAnalysisCPA differ!");
+      }
+
+      int sizeOfTarget = ((PointerType)type).getTargetType().sizeOf();
+      lastActionPointer.setSizeOfTarget(sizeOfTarget);
     }
   }
 }

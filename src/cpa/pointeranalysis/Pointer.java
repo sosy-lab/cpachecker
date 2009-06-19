@@ -18,7 +18,7 @@ import cpa.pointeranalysis.Memory.Variable;
  */
 public class Pointer {
   
-  private int sizeOfTarget = 4; // TODO: set to -1 as soon as we have a type CPA 
+  private int sizeOfTarget; 
   
   private Set<PointerTarget> targets;
   
@@ -29,17 +29,14 @@ public class Pointer {
   }
   
   public Pointer(int levelOfIndirection) {
-    this (levelOfIndirection, new HashSet<PointerTarget>());
+    this (-1, levelOfIndirection, new HashSet<PointerTarget>());
     
     // if uninitialized, pointer is null
     targets.add(NULL_POINTER);
   }
   
-  private Pointer(int levelOfIndirection, Set<PointerTarget> targets) {
-    if (levelOfIndirection < 0 || targets == null) {
-      throw new IllegalArgumentException();
-    }
-    
+  private Pointer(int sizeOfTarget, int levelOfIndirection, Set<PointerTarget> targets) {
+    this.sizeOfTarget = sizeOfTarget;
     this.levelOfIndirection = levelOfIndirection;
     this.targets = new HashSet<PointerTarget>(targets);
   }
@@ -84,7 +81,7 @@ public class Pointer {
    * int*, shift==1 will shift 4 bytes). 
    */
   public void addOffset(int shift) throws InvalidPointerException {
-    if (sizeOfTarget == 0) {
+    if (!hasSizeOfTarget()) {
       addUnknownOffset();
     
     } else {
@@ -207,7 +204,7 @@ public class Pointer {
   
   @Override
   public Pointer clone() {
-    return new Pointer(levelOfIndirection, targets);
+    return new Pointer(sizeOfTarget, levelOfIndirection, targets);
   }
   
   @Override
