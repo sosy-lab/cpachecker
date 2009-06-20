@@ -27,6 +27,11 @@ public class Pointer {
   public Pointer() {
     this(0);
   }
+
+  public Pointer(PointerTarget target) {
+    this();
+    assign(target);
+  }
   
   public Pointer(int levelOfIndirection) {
     this (-1, levelOfIndirection, new HashSet<PointerTarget>());
@@ -41,15 +46,89 @@ public class Pointer {
     this.targets = new HashSet<PointerTarget>(targets);
   }
   
-  public void makeAlias(Pointer alias) {
-    if (alias == null) {
+  private Pointer deref(PointerTarget target, Memory memory)
+                        throws InvalidPointerException {
+    Pointer p;
+    
+    if (target instanceof Variable) {
+      String varName = ((Variable)target).getVarName();
+      p = memory.getPointer(varName);
+      if (p == null) {
+        // type error
+        // (pointers with levelOfIndirection > 1 should always point to other pointers)
+        throw new InvalidPointerException("The target of this pointer is not a pointer, but this is a pointer of pointer");
+      }
+    
+    } else if (target instanceof MemoryAddress) {
+      p = memory.getHeapPointer((MemoryAddress)target);
+      if (p == null) {
+        // assume, the heap is full of NULL_POINTERs where nothing has been
+        // written
+        // as this is a pointer of pointer, this is ok
+        p = new Pointer(levelOfIndirection-1);
+        memory.writeOnHeap((MemoryAddress)target, p);
+      }
+      
+    } else if (target == NULL_POINTER || target == INVALID_POINTER) {
+      // warning is printed elsewhere
+      p = null;
+      
+    } else if (target == UNKNOWN_POINTER) {
+      p = null;
+      
+    } else {
+      throw new InvalidPointerException("Pointer to " + target + " cannot be dereferenced");
+    }
+    return p;
+  }
+
+  
+  public void assign(Pointer rightHandSide, boolean dereferenceFirst, Memory memory)
+                     throws InvalidPointerException {
+    if (rightHandSide == null) {
+      throw new IllegalArgumentException();
+    }
+    
+    if (dereferenceFirst) {
+      // calculate *this = rightHandSide
+      for (PointerTarget target : targets) {
+        Pointer p = deref(target, memory);
+        
+        if (p != null) {
+          if (targets.size() == 1) {
+            p.assign(rightHandSide);
+          } else {
+            p.join(rightHandSide);
+          }
+        } else {
+          // p == null means the target was something like NULL or UNKNOWN
+          // we cannot do more than ignore (warning will be printed elsewhere)
+        }
+      }
+
+    } else {
+      assign(rightHandSide);
+    }
+  }
+  
+  public void assign(Pointer rightHandSide) {
+    if (rightHandSide == null) {
       throw new IllegalArgumentException();
     }
     // this adds all possible targets from the other pointer to this pointer
     targets.clear();
-    targets.addAll(alias.targets);
+    targets.addAll(rightHandSide.targets);
+  }
+
+  public void assign(PointerTarget target) {
+    if (target == null) {
+      throw new IllegalArgumentException();
+    }
+    targets.clear();
+    targets.add(target);
   }
   
+
   public void join(Pointer p) {
     if (p == null) {
       throw new IllegalArgumentException();
@@ -58,6 +137,29 @@ public class Pointer {
     targets.addAll(p.targets);
   }
   
+  public void addTarget(PointerTarget target) {
+    if (target == null) {
+      throw new IllegalArgumentException();
+    }
+    targets.add(target);
+  }
+  
+  
+  public void removeTarget(PointerTarget target) {
+    if (target == null) {
+      throw new IllegalArgumentException();
+    }
+    targets.remove(target);
+  }
+  
+  public void removeAllTargets(Pointer other) {
+    if (other == null) {
+      throw new IllegalArgumentException();
+    }
+    targets.removeAll(other.targets);
+  }
+  
+
   public boolean isUnsafe() {
     return targets.contains(NULL_POINTER) || targets.contains(INVALID_POINTER);
   }
@@ -75,22 +177,65 @@ public class Pointer {
     return (this == other) || other.targets.containsAll(targets);
   }
   
+  public boolean contains(PointerTarget target) {
+    return targets.contains(target);
+  }
+  
   /**
    * This shifts the targets of the pointer.
    * The shift is given in elements, not in bytes (e.g. if this pointer is an
    * int*, shift==1 will shift 4 bytes). 
    */
-  public void addOffset(int shift) throws InvalidPointerException {
+  public void addOffset(int shift, boolean dereferenceFirst, Memory memory) throws InvalidPointerException {
     if (!hasSizeOfTarget()) {
-      addUnknownOffset();
-    
-    } else {
-      Set<PointerTarget> newTargets = new HashSet<PointerTarget>();
+      addUnknownOffset(dereferenceFirst, memory);
       
-      for (PointerTarget target : targets) {
-        newTargets.add(target.addOffset(shift*sizeOfTarget));
+    } else {      
+      if (dereferenceFirst) {
+        // calculate (*this) += shift
+        for (PointerTarget target : targets) {
+          Pointer p = deref(target, memory);
+          
+          if (p != null) {
+            p.addOffset(shift);
+          } else {
+            // p == null means the target was something like NULL or UNKNOWN
+            // we cannot do more than ignore (warning will be printed elsewhere)
+          }
+        }
+        
+      } else {
+        addOffset(shift);
       }
-      targets = newTargets;
+    }
+  }
+  
+  public void addOffset(int shift) throws InvalidPointerException {
+    Set<PointerTarget> newTargets = new HashSet<PointerTarget>();
+    
+    for (PointerTarget target : targets) {
+      newTargets.add(target.addOffset(shift*sizeOfTarget));
+    }
+    targets = newTargets;
+  }
+  
+  public void addUnknownOffset(boolean dereferenceFirst, Memory memory)
+                               throws InvalidPointerException {
+    if (dereferenceFirst) {
+      // calculate (*this) += shift
+      for (PointerTarget target : targets) {
+        Pointer p = deref(target, memory);
+        
+        if (p != null) {
+          p.addUnknownOffset();
+        } else {
+          // p == null means the target was something like NULL or UNKNOWN
+          // we cannot do more than ignore (warning will be printed elsewhere)
+        }
+      }
+      
+    } else {
+      addUnknownOffset();
     }
   }
   
@@ -110,14 +255,14 @@ public class Pointer {
     if (levelOfIndirection == 1) {
       throw new InvalidPointerException("The target of this pointer is not a pointer");
     }
-    assert targets.size() == 1;
     
+    Pointer p = new Pointer(levelOfIndirection-1);
+    p.targets.clear();
     for (PointerTarget target : targets) {
-      Pointer p;
       
       if (target instanceof Variable) {
         String varName = ((Variable)target).getVarName();
-        p = memory.getPointer(varName);
+        p.join(memory.getPointer(varName));
         if (p == null) {
           // type error
           // (pointers with levelOfIndirection > 1 should always point to other pointers)
@@ -125,7 +270,7 @@ public class Pointer {
         }
         
       } else if (target instanceof MemoryAddress) {
-        p = memory.getHeapPointer((MemoryAddress)target);
+        p.join(memory.getHeapPointer((MemoryAddress)target));
         if (p == null) {
           // assume, the heap is full of NULL_POINTERs where nothing has been
           // written
@@ -133,23 +278,24 @@ public class Pointer {
           p = new Pointer(levelOfIndirection-1);
           memory.writeOnHeap((MemoryAddress)target, p);
         }
+      
+      } else if (target == NULL_POINTER || target == INVALID_POINTER) {
+        // warning is printed elsewhere
+        p.addTarget(INVALID_POINTER);
+        
+      } else if (target == UNKNOWN_POINTER) {
+        p.addTarget(UNKNOWN_POINTER);
         
       } else {
         throw new InvalidPointerException("Pointer to " + target + " cannot be dereferenced");
       }
       
-      assert levelOfIndirection - p.levelOfIndirection == 1;
-      return p;
     }
-    return null;
+    return p;
   }
   
-  public void setTarget(PointerTarget target) {
-    if (target == null) {
-      throw new IllegalArgumentException();
-    }
-    targets.clear();
-    targets.add(target);
+  public int getNumberOfTargets() {
+    return targets.size();
   }
   
   /**

@@ -98,8 +98,8 @@ public class PointerAnalysisDomain implements AbstractDomain {
   
   private static final JoinOperator joinOperator = new PointerAnalysisJoinOperator();
   private static final PartialOrder partialOrder = new PointerAnalysisPartialOrder();
-  private static final AbstractElement bottomElement = new PointerAnalysisBottomElement();
-  private static final AbstractElement topElement = new PointerAnalysisTopElement();
+  private static final PointerAnalysisElement bottomElement = new PointerAnalysisBottomElement();
+  private static final PointerAnalysisElement topElement = new PointerAnalysisTopElement();
   
   @Override
   public JoinOperator getJoinOperator() {
@@ -112,12 +112,12 @@ public class PointerAnalysisDomain implements AbstractDomain {
   }
 
   @Override
-  public AbstractElement getBottomElement() {
+  public PointerAnalysisElement getBottomElement() {
     return bottomElement;
   }
 
   @Override
-  public AbstractElement getTopElement() {
+  public PointerAnalysisElement getTopElement() {
     return topElement;
   }
 }

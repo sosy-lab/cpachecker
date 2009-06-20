@@ -133,7 +133,7 @@ public class PointerAnalysisElement implements AbstractElement, Memory {
   }
    
   @Override
-  public PointerTarget malloc(int length) throws InvalidPointerException {
+  public Pointer malloc(int length) throws InvalidPointerException {
     if (length < 0) {
       throw new InvalidPointerException("Malloc with negative length");
     
@@ -141,15 +141,23 @@ public class PointerAnalysisElement implements AbstractElement, Memory {
       MemoryRegion mem = new MemoryRegion();
       mem.setLength(length);
       mallocs.add(mem);
-      return new MemoryAddress(mem, 0);
+      
+      Pointer result =  new Pointer();
+      result.addTarget(new MemoryAddress(mem, 0));
+      // result contains NULL_POINTER
+      return result;
     }
   }
   
   @Override
-  public MemoryAddress malloc() throws InvalidPointerException {
+  public Pointer malloc() throws InvalidPointerException {
     MemoryRegion mem = new MemoryRegion();
     mallocs.add(mem);
-    return new MemoryAddress(mem, 0);
+    
+    Pointer result =  new Pointer();
+    result.addTarget(new MemoryAddress(mem, 0));
+    // result contains NULL_POINTER
+    return result;
   }
   
   @Override
@@ -161,7 +169,7 @@ public class PointerAnalysisElement implements AbstractElement, Memory {
         throw new InvalidPointerException("Cannot free pointer to " + target.getClass().getSimpleName());
       }
     }
-    p.setTarget(INVALID_POINTER);
+    p.assign(INVALID_POINTER);
   }
   
   @Override

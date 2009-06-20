@@ -94,12 +94,12 @@ public interface Memory {
   public static final PointerTarget NULL_POINTER = new PointerTarget() {
     @Override
     public PointerTarget addOffset(int shift) throws InvalidPointerException {
-      throw new InvalidPointerException();
+      return (shift == 0) ? this : INVALID_POINTER;
     }
     
     @Override
     public PointerTarget addUnknownOffset() throws InvalidPointerException {
-      throw new InvalidPointerException();
+      return INVALID_POINTER;
     }
     
     @Override
@@ -116,12 +116,12 @@ public interface Memory {
   public static final PointerTarget INVALID_POINTER = new PointerTarget() {
     @Override
     public PointerTarget addOffset(int shift) throws InvalidPointerException {
-      throw new InvalidPointerException();
+      return this;
     }
     
     @Override
     public PointerTarget addUnknownOffset() throws InvalidPointerException {
-      throw new InvalidPointerException();
+      return this;
     }
     
     @Override
@@ -323,9 +323,9 @@ public interface Memory {
 
   public Map<String, Pointer> getLocalPointers();
 
-  public PointerTarget malloc(int length) throws InvalidPointerException;
+  public Pointer malloc(int length) throws InvalidPointerException;
   
-  public PointerTarget malloc() throws InvalidPointerException;
+  public Pointer malloc() throws InvalidPointerException;
 
   public void free(Pointer p) throws InvalidPointerException;
   
