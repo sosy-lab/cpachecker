@@ -109,6 +109,7 @@ public class TypesTransferRelation implements TransferRelation {
       }
       break;
       
+    case AssumeEdge:
     case StatementEdge:
     case ReturnEdge:
     case BlankEdge:
@@ -122,7 +123,7 @@ public class TypesTransferRelation implements TransferRelation {
     
     default:
       try {
-        throw new UnrecognizedCFAEdgeException("Unknown edge type");
+        throw new UnrecognizedCFAEdgeException("Unknown edge type: " + cfaEdge.getEdgeType());
       } catch (UnrecognizedCFAEdgeException e) {
         e.printStackTrace();
       }
