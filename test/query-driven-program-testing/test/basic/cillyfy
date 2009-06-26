@@ -1,2 +1,2 @@
-~/cil/cil/bin/cilly --printCilAsIs --out=$1il.c $1 
+~/cil/cil/bin/cilly --printCilAsIs --domakeCFG --out=$1il.c $1 
 rm -f a.out

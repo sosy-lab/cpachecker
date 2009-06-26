@@ -25,10 +25,12 @@ int main(void)
 { int s1 ;
 
   {
+  {
 #line 17
   s1 = 10;
 #line 19
   foo(s1);
+  }
 #line 21
   return (0);
 }

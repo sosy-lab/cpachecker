@@ -5509,7 +5509,7 @@ int main(void)
 #line 3344 "/home/holzera/cpachecker/cpachecker/branches/qdpt-hacking/test/albertos_tests/test/ntdrivers/diskperf/diskperf.i.cil.c"
 char _SLAM_alloc_dummy  ;
 #line 3345 "/home/holzera/cpachecker/cpachecker/branches/qdpt-hacking/test/albertos_tests/test/ntdrivers/diskperf/diskperf.i.cil.c"
-char *malloc(int i ) 
+char *qdpt_malloc(int i ) 
 { int __BLAST_NONDET___0 ;
 
   {
@@ -5549,7 +5549,7 @@ PVOID ExAllocatePoolWithTag(POOL_TYPE PoolType , SIZE_T NumberOfBytes , ULONG Ta
   {
   {
 #line 3382
-  tmp = malloc((int )NumberOfBytes);
+  tmp = qdpt_malloc((int )NumberOfBytes);
 #line 3383
   x = (void *)tmp;
   }
@@ -5612,7 +5612,7 @@ PMDL IoAllocateMdl(PVOID VirtualAddress , ULONG Length , BOOLEAN SecondaryBuffer
       switch_5_0: 
       {
 #line 3447
-      tmp = malloc((int )sizeof(MDL ));
+      tmp = qdpt_malloc((int )sizeof(MDL ));
       }
 #line 3449
       return ((struct _MDL *)((void *)tmp));
@@ -5669,7 +5669,7 @@ PIRP IoBuildAsynchronousFsdRequest(ULONG MajorFunction , PDEVICE_OBJECT DeviceOb
       switch_7_0: 
       {
 #line 3504
-      tmp = malloc((int )sizeof(IRP ));
+      tmp = qdpt_malloc((int )sizeof(IRP ));
       }
 #line 3506
       return ((struct _IRP *)((void *)tmp));
@@ -5703,7 +5703,7 @@ PIRP IoBuildDeviceIoControlRequest(ULONG IoControlCode , PDEVICE_OBJECT DeviceOb
       switch_8_0: 
       {
 #line 3542
-      tmp = malloc((int )sizeof(IRP ));
+      tmp = qdpt_malloc((int )sizeof(IRP ));
       }
 #line 3544
       return ((struct _IRP *)((void *)tmp));
@@ -5734,7 +5734,7 @@ NTSTATUS IoCreateDevice(PDRIVER_OBJECT DriverObject , ULONG DeviceExtensionSize 
       switch_9_0: 
       {
 #line 3574
-      tmp = malloc((int )sizeof(DEVICE_OBJECT ));
+      tmp = qdpt_malloc((int )sizeof(DEVICE_OBJECT ));
 #line 3575
       *DeviceObject = (struct _DEVICE_OBJECT *)((void *)tmp);
       }
@@ -5840,7 +5840,7 @@ PCONFIGURATION_INFORMATION IoGetConfigurationInformation(void)
   {
   {
 #line 3670
-  tmp = malloc((int )sizeof(CONFIGURATION_INFORMATION ));
+  tmp = qdpt_malloc((int )sizeof(CONFIGURATION_INFORMATION ));
   }
 #line 3672
   return ((struct _CONFIGURATION_INFORMATION *)((void *)tmp));
@@ -6263,7 +6263,7 @@ PVOID MmAllocateContiguousMemory(SIZE_T NumberOfBytes , PHYSICAL_ADDRESS Highest
         switch_18_0: 
         {
 #line 4059
-        tmp = malloc((int )NumberOfBytes);
+        tmp = qdpt_malloc((int )NumberOfBytes);
         }
 #line 4061
         return ((void *)tmp);

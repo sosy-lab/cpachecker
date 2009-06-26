@@ -158,8 +158,12 @@ typedef UCHAR KIRQL;
 struct _KTHREAD;
 #line 100
 struct _KTHREAD;
+#line 100
+struct _KTHREAD;
 #line 101 "kbfiltr.c"
 typedef struct _KTHREAD *PKTHREAD;
+#line 102
+struct _ETHREAD;
 #line 102
 struct _ETHREAD;
 #line 102
@@ -170,8 +174,12 @@ typedef struct _ETHREAD *PETHREAD;
 struct _EPROCESS;
 #line 104
 struct _EPROCESS;
+#line 104
+struct _EPROCESS;
 #line 105 "kbfiltr.c"
 typedef struct _EPROCESS *PEPROCESS;
+#line 106
+struct _IO_TIMER;
 #line 106
 struct _IO_TIMER;
 #line 106
@@ -182,10 +190,14 @@ typedef struct _IO_TIMER *PIO_TIMER;
 struct _OBJECT_TYPE;
 #line 108
 struct _OBJECT_TYPE;
+#line 108
+struct _OBJECT_TYPE;
 #line 109 "kbfiltr.c"
 typedef struct _OBJECT_TYPE *POBJECT_TYPE;
 #line 110 "kbfiltr.c"
 typedef CCHAR KPROCESSOR_MODE;
+#line 111
+struct _KAPC;
 #line 111
 struct _KAPC;
 #line 111
@@ -214,6 +226,8 @@ struct _KAPC {
 };
 #line 131 "kbfiltr.c"
 typedef struct _KAPC KAPC;
+#line 132
+struct _KDPC;
 #line 132
 struct _KDPC;
 #line 132
@@ -937,6 +951,8 @@ typedef enum _MM_PAGE_PRIORITY MM_PAGE_PRIORITY;
 struct _DRIVER_OBJECT;
 #line 734
 struct _DRIVER_OBJECT;
+#line 734
+struct _DRIVER_OBJECT;
 #line 735
 struct _DRIVER_OBJECT;
 #line 736 "kbfiltr.c"
@@ -986,10 +1002,14 @@ typedef struct _ACCESS_STATE *PACCESS_STATE;
 struct _DEVICE_OBJECT;
 #line 772
 struct _DEVICE_OBJECT;
+#line 772
+struct _DEVICE_OBJECT;
 #line 773
 struct _DEVICE_OBJECT;
 #line 774
 struct _DRIVER_OBJECT;
+#line 775
+struct _FILE_OBJECT;
 #line 775
 struct _FILE_OBJECT;
 #line 775
@@ -1000,8 +1020,12 @@ struct _FILE_OBJECT;
 struct _IRP;
 #line 777
 struct _IRP;
+#line 777
+struct _IRP;
 #line 778
 struct _IRP;
+#line 779
+struct _SCSI_REQUEST_BLOCK;
 #line 779
 struct _SCSI_REQUEST_BLOCK;
 #line 779
@@ -1010,6 +1034,8 @@ struct _SCSI_REQUEST_BLOCK;
 struct _SCSI_REQUEST_BLOCK;
 #line 781 "kbfiltr.c"
 typedef NTSTATUS (*PDRIVER_DISPATCH)(struct _DEVICE_OBJECT *DeviceObject , struct _IRP *Irp );
+#line 782
+struct _COMPRESSED_DATA_INFO;
 #line 782
 struct _COMPRESSED_DATA_INFO;
 #line 782
@@ -1135,6 +1161,8 @@ union __anonunion_Queue_43 {
    LIST_ENTRY ListEntry ;
    WAIT_CONTEXT_BLOCK Wcb ;
 };
+#line 893
+struct _DEVOBJ_EXTENSION;
 #line 893
 struct _DEVOBJ_EXTENSION;
 #line 893
@@ -1282,6 +1310,8 @@ union __anonunion____missing_field_name_49 {
    KDEVICE_QUEUE_ENTRY DeviceQueueEntry ;
    struct __anonstruct____missing_field_name_50 __annonCompField14 ;
 };
+#line 1017
+struct _IO_STACK_LOCATION;
 #line 1017
 struct _IO_STACK_LOCATION;
 #line 1017
@@ -2144,11 +2174,13 @@ NTSTATUS KbFilter_AddDevice(PDRIVER_OBJECT Driver , PDEVICE_OBJECT PDO )
   NTSTATUS status ;
 
   {
+  {
 #line 1701
   status = 0L;
 #line 1702
   status = IoCreateDevice(Driver, (unsigned long )sizeof(DEVICE_EXTENSION ), (UNICODE_STRING *)((void *)0),
                           11UL, 0UL, (unsigned char)0, & device);
+  }
 #line 1705
   if (! (status >= 0L)) {
 #line 1706
@@ -2156,6 +2188,7 @@ NTSTATUS KbFilter_AddDevice(PDRIVER_OBJECT Driver , PDEVICE_OBJECT PDO )
   } else {
 
   }
+  {
 #line 1711
   memset(device->DeviceExtension, 0, sizeof(DEVICE_EXTENSION ));
 #line 1712
@@ -2178,6 +2211,7 @@ NTSTATUS KbFilter_AddDevice(PDRIVER_OBJECT Driver , PDEVICE_OBJECT PDO )
   device->Flags |= 8196UL;
 #line 1721
   device->Flags &= 4294967167UL;
+  }
 #line 1723
   return (status);
 }
@@ -2187,10 +2221,12 @@ NTSTATUS KbFilter_Complete(PDEVICE_OBJECT DeviceObject , PIRP Irp , PVOID Contex
 { PKEVENT event ;
 
   {
+  {
 #line 1731
   event = (struct _KEVENT *)Context;
 #line 1732
   KeSetEvent(event, 0L, (unsigned char)0);
+  }
 #line 1734
   return (-1073741802L);
 }
@@ -2229,8 +2265,10 @@ NTSTATUS KbFilter_CreateClose(PDEVICE_OBJECT DeviceObject , PIRP Irp )
 #line 1759
           status = -1073741436L;
         } else {
+          {
 #line 1762
           tmp = InterlockedIncrement(& devExt->EnableCount);
+          }
 #line 1764
           if (1L == tmp) {
 
@@ -2240,8 +2278,10 @@ NTSTATUS KbFilter_CreateClose(PDEVICE_OBJECT DeviceObject , PIRP Irp )
         }
         goto switch_0_break;
         switch_0_2: 
+        {
 #line 1773
         tmp___0 = InterlockedDecrement(& devExt->EnableCount);
+        }
 #line 1775
         if (0L == tmp___0) {
 
@@ -2254,12 +2294,14 @@ NTSTATUS KbFilter_CreateClose(PDEVICE_OBJECT DeviceObject , PIRP Irp )
       }
     }
   }
+  {
 #line 1787
   Irp->IoStatus.__annonCompField4.Status = status;
 #line 1788
   myStatus = (int )status;
 #line 1789
   tmp___1 = KbFilter_DispatchPassThrough(DeviceObject, Irp);
+  }
 #line 1791
   return (tmp___1);
 }
@@ -2277,9 +2319,12 @@ NTSTATUS KbFilter_DispatchPassThrough(PDEVICE_OBJECT DeviceObject , PIRP Irp )
 #line 1801
     s = SKIP1;
   } else {
+    {
 #line 1804
     errorFn();
+    }
   }
+  {
 #line 1808
   Irp->CurrentLocation = (char )((int )Irp->CurrentLocation + 1);
 #line 1809
@@ -2287,6 +2332,7 @@ NTSTATUS KbFilter_DispatchPassThrough(PDEVICE_OBJECT DeviceObject , PIRP Irp )
 #line 1810
   tmp = IofCallDriver(((struct _DEVICE_EXTENSION *)DeviceObject->DeviceExtension)->TopOfStack,
                       Irp);
+  }
 #line 1813
   return (tmp);
 }
@@ -2310,39 +2356,39 @@ NTSTATUS KbFilter_InternIoCtl(PDEVICE_OBJECT DeviceObject , PIRP Irp )
 #line 1828
   irpStack = Irp->Tail.Overlay.__annonCompField17.__annonCompField16.CurrentStackLocation;
 #line 1829
-  if (irpStack->Parameters.DeviceIoControl.IoControlCode == (ULONG )(((11 << 16) | (128 << 2)) | 3)) {
+  if (irpStack->Parameters.DeviceIoControl.IoControlCode == (unsigned long )(((11 << 16) | (128 << 2)) | 3)) {
     goto switch_1_exp_0;
   } else {
 #line 1832
-    if (irpStack->Parameters.DeviceIoControl.IoControlCode == (ULONG )(((11 << 16) | (256 << 2)) | 3)) {
+    if (irpStack->Parameters.DeviceIoControl.IoControlCode == (unsigned long )(((11 << 16) | (256 << 2)) | 3)) {
       goto switch_1_exp_1;
     } else {
 #line 1835
-      if (irpStack->Parameters.DeviceIoControl.IoControlCode == (ULONG )(((11 << 16) | (4080 << 2)) | 3)) {
+      if (irpStack->Parameters.DeviceIoControl.IoControlCode == (unsigned long )(((11 << 16) | (4080 << 2)) | 3)) {
         goto switch_1_exp_2;
       } else {
 #line 1838
-        if (irpStack->Parameters.DeviceIoControl.IoControlCode == (ULONG )(11 << 16)) {
+        if (irpStack->Parameters.DeviceIoControl.IoControlCode == (unsigned long )(11 << 16)) {
           goto switch_1_exp_3;
         } else {
 #line 1841
-          if (irpStack->Parameters.DeviceIoControl.IoControlCode == (ULONG )((11 << 16) | (32 << 2))) {
+          if (irpStack->Parameters.DeviceIoControl.IoControlCode == (unsigned long )((11 << 16) | (32 << 2))) {
             goto switch_1_exp_4;
           } else {
 #line 1844
-            if (irpStack->Parameters.DeviceIoControl.IoControlCode == (ULONG )((11 << 16) | (16 << 2))) {
+            if (irpStack->Parameters.DeviceIoControl.IoControlCode == (unsigned long )((11 << 16) | (16 << 2))) {
               goto switch_1_exp_5;
             } else {
 #line 1847
-              if (irpStack->Parameters.DeviceIoControl.IoControlCode == (ULONG )((11 << 16) | (2 << 2))) {
+              if (irpStack->Parameters.DeviceIoControl.IoControlCode == (unsigned long )((11 << 16) | (2 << 2))) {
                 goto switch_1_exp_6;
               } else {
 #line 1850
-                if (irpStack->Parameters.DeviceIoControl.IoControlCode == (ULONG )((11 << 16) | (8 << 2))) {
+                if (irpStack->Parameters.DeviceIoControl.IoControlCode == (unsigned long )((11 << 16) | (8 << 2))) {
                   goto switch_1_exp_7;
                 } else {
 #line 1853
-                  if (irpStack->Parameters.DeviceIoControl.IoControlCode == (ULONG )((11 << 16) | (1 << 2))) {
+                  if (irpStack->Parameters.DeviceIoControl.IoControlCode == (unsigned long )((11 << 16) | (1 << 2))) {
                     goto switch_1_exp_8;
                   } else {
 #line 1856
@@ -2451,19 +2497,23 @@ NTSTATUS KbFilter_InternIoCtl(PDEVICE_OBJECT DeviceObject , PIRP Irp )
   }
 #line 1935
   if (! (status >= 0L)) {
+    {
 #line 1937
     Irp->IoStatus.__annonCompField4.Status = status;
 #line 1938
     myStatus = (int )status;
 #line 1939
     IofCompleteRequest(Irp, (char)0);
+    }
 #line 1941
     return (status);
   } else {
 
   }
+  {
 #line 1946
   tmp = KbFilter_DispatchPassThrough(DeviceObject, Irp);
+  }
 #line 1948
   return (tmp);
 }
@@ -2573,6 +2623,7 @@ NTSTATUS KbFilter_PnP(PDEVICE_OBJECT DeviceObject , PIRP Irp )
 #line 2029
                                             if (0) {
                                               switch_2_0: 
+                                              {
 #line 2032
                                               irpSp = Irp->Tail.Overlay.__annonCompField17.__annonCompField16.CurrentStackLocation;
 #line 2033
@@ -2582,15 +2633,20 @@ NTSTATUS KbFilter_PnP(PDEVICE_OBJECT DeviceObject , PIRP Irp )
                                                      (unsigned int )((long )(& ((IO_STACK_LOCATION *)0)->CompletionRoutine)));
 #line 2035
                                               nextIrpSp->Control = (unsigned char)0;
+                                              }
 #line 2038
                                               if (s != NP) {
+                                                {
 #line 2040
                                                 errorFn();
+                                                }
                                               } else {
 #line 2043
                                                 if (compRegistered != 0) {
+                                                  {
 #line 2045
                                                   errorFn();
+                                                  }
                                                 } else {
 #line 2048
                                                   compRegistered = 1;
@@ -2598,6 +2654,7 @@ NTSTATUS KbFilter_PnP(PDEVICE_OBJECT DeviceObject , PIRP Irp )
                                                   compFptr = & KbFilter_Complete;
                                                 }
                                               }
+                                              {
 #line 2053
                                               irpSp___0 = Irp->Tail.Overlay.__annonCompField17.__annonCompField16.CurrentStackLocation - 1;
 #line 2054
@@ -2615,13 +2672,16 @@ NTSTATUS KbFilter_PnP(PDEVICE_OBJECT DeviceObject , PIRP Irp )
 #line 2060
                                               status = IofCallDriver(devExt->TopOfStack,
                                                                      Irp);
+                                              }
 #line 2063
                                               if (259L == status) {
+                                                {
 #line 2065
                                                 KeWaitForSingleObject((void *)(& event),
                                                                       (enum _KWAIT_REASON )0,
                                                                       (char)0, (unsigned char)0,
                                                                       (LARGE_INTEGER *)((void *)0));
+                                                }
                                               } else {
 
                                               }
@@ -2641,6 +2701,7 @@ NTSTATUS KbFilter_PnP(PDEVICE_OBJECT DeviceObject , PIRP Irp )
                                               } else {
 
                                               }
+                                              {
 #line 2083
                                               Irp->IoStatus.__annonCompField4.Status = status;
 #line 2084
@@ -2649,6 +2710,7 @@ NTSTATUS KbFilter_PnP(PDEVICE_OBJECT DeviceObject , PIRP Irp )
                                               Irp->IoStatus.Information = 0UL;
 #line 2086
                                               IofCompleteRequest(Irp, (char)0);
+                                              }
                                               goto switch_2_break;
                                               switch_2_23: 
 #line 2090
@@ -2658,9 +2720,12 @@ NTSTATUS KbFilter_PnP(PDEVICE_OBJECT DeviceObject , PIRP Irp )
 #line 2092
                                                 s = SKIP1;
                                               } else {
+                                                {
 #line 2095
                                                 errorFn();
+                                                }
                                               }
+                                              {
 #line 2099
                                               Irp->CurrentLocation = (char )((int )Irp->CurrentLocation + 1);
 #line 2100
@@ -2668,6 +2733,7 @@ NTSTATUS KbFilter_PnP(PDEVICE_OBJECT DeviceObject , PIRP Irp )
 #line 2101
                                               status = IofCallDriver(devExt->TopOfStack,
                                                                      Irp);
+                                              }
                                               goto switch_2_break;
                                               switch_2_2: 
 #line 2106
@@ -2677,9 +2743,12 @@ NTSTATUS KbFilter_PnP(PDEVICE_OBJECT DeviceObject , PIRP Irp )
 #line 2108
                                                 s = SKIP1;
                                               } else {
+                                                {
 #line 2111
                                                 errorFn();
+                                                }
                                               }
+                                              {
 #line 2115
                                               Irp->CurrentLocation = (char )((int )Irp->CurrentLocation + 1);
 #line 2116
@@ -2688,6 +2757,7 @@ NTSTATUS KbFilter_PnP(PDEVICE_OBJECT DeviceObject , PIRP Irp )
                                               IofCallDriver(devExt->TopOfStack, Irp);
 #line 2120
                                               status = 0L;
+                                              }
                                               goto switch_2_break;
                                               switch_2_1: ;
                                               switch_2_5: ;
@@ -2713,9 +2783,12 @@ NTSTATUS KbFilter_PnP(PDEVICE_OBJECT DeviceObject , PIRP Irp )
 #line 2143
                                                 s = SKIP1;
                                               } else {
+                                                {
 #line 2146
                                                 errorFn();
+                                                }
                                               }
+                                              {
 #line 2150
                                               Irp->CurrentLocation = (char )((int )Irp->CurrentLocation + 1);
 #line 2151
@@ -2723,6 +2796,7 @@ NTSTATUS KbFilter_PnP(PDEVICE_OBJECT DeviceObject , PIRP Irp )
 #line 2152
                                               status = IofCallDriver(devExt->TopOfStack,
                                                                      Irp);
+                                              }
                                               goto switch_2_break;
                                             } else {
                                               switch_2_break: ;
@@ -2813,15 +2887,19 @@ NTSTATUS KbFilter_Power(PDEVICE_OBJECT DeviceObject , PIRP Irp )
 #line 2234
     s = SKIP1;
   } else {
+    {
 #line 2237
     errorFn();
+    }
   }
+  {
 #line 2241
   Irp->CurrentLocation = (char )((int )Irp->CurrentLocation + 1);
 #line 2242
   Irp->Tail.Overlay.__annonCompField17.__annonCompField16.CurrentStackLocation += 1;
 #line 2243
   tmp = PoCallDriver(devExt->TopOfStack, Irp);
+  }
 #line 2245
   return (tmp);
 }
@@ -2843,9 +2921,11 @@ NTSTATUS KbFilter_InitializationRoutine(PDEVICE_OBJECT DeviceObject , PVOID Sync
   devExt = (struct _DEVICE_EXTENSION *)DeviceObject->DeviceExtension;
 #line 2260
   if (devExt->UpperInitializationRoutine) {
+    {
 #line 2262
     status = (*(devExt->UpperInitializationRoutine))(devExt->UpperContext, SynchFuncContext,
                                                      ReadPort, WritePort, TurnTranslationOn);
+    }
 #line 2265
     if (! (status >= 0L)) {
 #line 2266
@@ -2876,9 +2956,11 @@ BOOLEAN KbFilter_IsrHook(PDEVICE_OBJECT DeviceObject , PKEYBOARD_INPUT_DATA Curr
   devExt = (struct _DEVICE_EXTENSION *)DeviceObject->DeviceExtension;
 #line 2286
   if (devExt->UpperIsrHook) {
+    {
 #line 2288
     retVal = (*(devExt->UpperIsrHook))(devExt->UpperContext, CurrentInput, CurrentOutput,
                                        StatusByte, DataByte, ContinueProcessing, ScanState);
+    }
 #line 2291
     if (! retVal) {
 #line 2292
@@ -2907,6 +2989,7 @@ void KbFilter_ServiceCallback(PDEVICE_OBJECT DeviceObject , PKEYBOARD_INPUT_DATA
 { PDEVICE_EXTENSION devExt ;
 
   {
+  {
 #line 2313
   devExt = (struct _DEVICE_EXTENSION *)DeviceObject->DeviceExtension;
 #line 2314
@@ -2915,6 +2998,7 @@ void KbFilter_ServiceCallback(PDEVICE_OBJECT DeviceObject , PKEYBOARD_INPUT_DATA
                                                                                (void *)InputDataStart,
                                                                                (void *)InputDataEnd,
                                                                                (void *)InputDataConsumed);
+  }
 #line 2320
   return;
 }
@@ -3009,12 +3093,14 @@ int main(void)
   DEVICE_OBJECT devobj ;
 
   {
+  {
 #line 2384
   pirp = (IRP *)(& irp);
 #line 2385
   _BLAST_init();
 #line 2386
   status = DriverEntry(& d, & u);
+  }
 #line 2388
   if (status >= 0L) {
 #line 2389
@@ -3044,10 +3130,12 @@ int main(void)
     } else {
 
     }
+    {
 #line 2405
     status = KbFilter_AddDevice(& d, & devobj);
 #line 2406
     stub_driver_init();
+    }
 #line 2408
     if (! (status >= 0L)) {
 #line 2409
@@ -3083,28 +3171,40 @@ int main(void)
 #line 2433
                 if (0) {
                   switch_4_0: 
+                  {
 #line 2436
                   status = KbFilter_CreateClose(& devobj, pirp);
+                  }
                   goto switch_4_break;
                   switch_4_1: 
+                  {
 #line 2441
                   status = KbFilter_CreateClose(& devobj, pirp);
+                  }
                   goto switch_4_break;
                   switch_4_2: 
+                  {
 #line 2446
                   status = KbFilter_IoCtl(& devobj, pirp);
+                  }
                   goto switch_4_break;
                   switch_4_3: 
+                  {
 #line 2451
                   status = KbFilter_PnP(& devobj, pirp);
+                  }
                   goto switch_4_break;
                   switch_4_4: 
+                  {
 #line 2456
                   status = KbFilter_Power(& devobj, pirp);
+                  }
                   goto switch_4_break;
                   switch_4_8: 
+                  {
 #line 2461
                   status = KbFilter_InternIoCtl(& devobj, pirp);
+                  }
                   goto switch_4_break;
                   switch_4_default: ;
 #line 2465
@@ -3176,8 +3276,10 @@ int main(void)
             if (pended == 1) {
 #line 2521
               if (status != 259L) {
+                {
 #line 2523
                 errorFn();
+                }
               } else {
 
               }
@@ -3249,10 +3351,12 @@ PVOID ExAllocatePoolWithTag(POOL_TYPE PoolType , SIZE_T NumberOfBytes , ULONG Ta
   char *tmp ;
 
   {
+  {
 #line 2589
   tmp = qdpt_malloc((int )NumberOfBytes);
 #line 2590
   x = (void *)tmp;
+  }
 #line 2592
   return (x);
 }
@@ -3310,8 +3414,10 @@ PMDL IoAllocateMdl(PVOID VirtualAddress , ULONG Length , BOOLEAN SecondaryBuffer
 #line 2651
     if (0) {
       switch_5_0: 
+      {
 #line 2654
       tmp = qdpt_malloc((int )sizeof(MDL ));
+      }
 #line 2656
       return ((struct _MDL *)((void *)tmp));
       switch_5_default: ;
@@ -3365,8 +3471,10 @@ PIRP IoBuildAsynchronousFsdRequest(ULONG MajorFunction , PDEVICE_OBJECT DeviceOb
 #line 2708
     if (0) {
       switch_7_0: 
+      {
 #line 2711
       tmp = qdpt_malloc((int )sizeof(IRP ));
+      }
 #line 2713
       return ((struct _IRP *)((void *)tmp));
       switch_7_default: ;
@@ -3397,8 +3505,10 @@ PIRP IoBuildDeviceIoControlRequest(ULONG IoControlCode , PDEVICE_OBJECT DeviceOb
 #line 2746
     if (0) {
       switch_8_0: 
+      {
 #line 2749
       tmp = qdpt_malloc((int )sizeof(IRP ));
+      }
 #line 2751
       return ((struct _IRP *)((void *)tmp));
       switch_8_default: ;
@@ -3426,10 +3536,12 @@ NTSTATUS IoCreateDevice(PDRIVER_OBJECT DriverObject , ULONG DeviceExtensionSize 
 #line 2778
     if (0) {
       switch_9_0: 
+      {
 #line 2781
       tmp = qdpt_malloc((int )sizeof(DEVICE_OBJECT ));
 #line 2782
       *DeviceObject = (struct _DEVICE_OBJECT *)((void *)tmp);
+      }
 #line 2784
       return (0L);
       switch_9_default: ;
@@ -3530,8 +3642,10 @@ PCONFIGURATION_INFORMATION IoGetConfigurationInformation(void)
 { char *tmp ;
 
   {
+  {
 #line 2877
   tmp = qdpt_malloc((int )sizeof(CONFIGURATION_INFORMATION ));
+  }
 #line 2879
   return ((struct _CONFIGURATION_INFORMATION *)((void *)tmp));
 }
@@ -3650,8 +3764,10 @@ void stubMoreProcessingRequired(void)
 #line 3006
     s = MPR1;
   } else {
+    {
 #line 3009
     errorFn();
+    }
   }
 #line 3012
   return;
@@ -3668,14 +3784,18 @@ NTSTATUS IofCallDriver(PDEVICE_OBJECT DeviceObject , PIRP Irp )
   {
 #line 3026
   if (compRegistered) {
+    {
 #line 3028
     tmp = KbFilter_Complete(DeviceObject, Irp, lcontext);
 #line 3029
     compRetStatus = (int )tmp;
+    }
 #line 3031
     if ((long )compRetStatus == -1073741802L) {
+      {
 #line 3033
       stubMoreProcessingRequired();
+      }
     } else {
 
     }
@@ -3739,8 +3859,10 @@ NTSTATUS IofCallDriver(PDEVICE_OBJECT DeviceObject , PIRP Irp )
 #line 3080
         lowerDriverReturn = (int )returnVal2;
       } else {
+        {
 #line 3083
         errorFn();
+        }
       }
     }
   }
@@ -3758,8 +3880,10 @@ void IofCompleteRequest(PIRP Irp , CCHAR PriorityBoost )
 #line 3098
     s = DC;
   } else {
+    {
 #line 3101
     errorFn();
+    }
   }
 #line 3104
   return;
@@ -3885,8 +4009,10 @@ NTSTATUS KeWaitForSingleObject(PVOID Object , KWAIT_REASON WaitReason , KPROCESS
     } else {
 #line 3216
       if (s == MPR3) {
+        {
 #line 3218
         errorFn();
+        }
       } else {
 
       }
@@ -3928,8 +4054,10 @@ PVOID MmAllocateContiguousMemory(SIZE_T NumberOfBytes , PHYSICAL_ADDRESS Highest
 #line 3255
       if (0) {
         switch_18_0: 
+        {
 #line 3258
         tmp = qdpt_malloc((int )NumberOfBytes);
+        }
 #line 3260
         return ((void *)tmp);
         switch_18_1: ;
@@ -4036,14 +4164,18 @@ NTSTATUS PoCallDriver(PDEVICE_OBJECT DeviceObject , PIRP Irp )
   {
 #line 3364
   if (compRegistered) {
+    {
 #line 3366
     tmp = KbFilter_Complete(DeviceObject, Irp, lcontext);
 #line 3367
     compRetStatus = (int )tmp;
+    }
 #line 3369
     if ((long )compRetStatus == -1073741802L) {
+      {
 #line 3371
       stubMoreProcessingRequired();
+      }
     } else {
 
     }
@@ -4107,8 +4239,10 @@ NTSTATUS PoCallDriver(PDEVICE_OBJECT DeviceObject , PIRP Irp )
 #line 3418
         lowerDriverReturn = (int )returnVal;
       } else {
+        {
 #line 3421
         errorFn();
+        }
       }
     }
   }

@@ -9078,7 +9078,7 @@ int main(void)
 #line 7210 "/home/holzera/cpachecker/cpachecker/branches/qdpt-hacking/test/albertos_tests/test/ntdrivers/floppy/floppy.i.cil.c"
 char _SLAM_alloc_dummy  ;
 #line 7211 "/home/holzera/cpachecker/cpachecker/branches/qdpt-hacking/test/albertos_tests/test/ntdrivers/floppy/floppy.i.cil.c"
-char *malloc(int i ) 
+char *qdpt_malloc(int i ) 
 { 
 
   {

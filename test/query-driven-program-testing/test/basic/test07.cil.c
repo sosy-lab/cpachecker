@@ -26,10 +26,12 @@ int main(void)
 { int x ;
 
   {
+  {
 #line 12
   x = foo();
 #line 14
   x = foo2(100);
+  }
 #line 16
   return (x);
 }

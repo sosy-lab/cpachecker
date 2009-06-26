@@ -10254,7 +10254,7 @@ int main(void)
 #line 7703 "/home/holzera/cpachecker/cpachecker/branches/qdpt-hacking/test/albertos_tests/test/ntdrivers/cdaudio/cdaudio.i.cil.c"
 char _SLAM_alloc_dummy  ;
 #line 7704
-extern int malloc() ;
+extern int qdpt_malloc() ;
 #line 7705 "/home/holzera/cpachecker/cpachecker/branches/qdpt-hacking/test/albertos_tests/test/ntdrivers/cdaudio/cdaudio.i.cil.c"
 char *nondet_malloc(int i ) 
 { int __BLAST_NONDET___0 ;
@@ -10268,7 +10268,7 @@ char *nondet_malloc(int i )
   } else {
     {
 #line 7714
-    tmp = malloc(i);
+    tmp = qdpt_malloc(i);
     }
 #line 7716
     return ((char *)tmp);
@@ -10421,7 +10421,7 @@ PIRP IoBuildAsynchronousFsdRequest(ULONG MajorFunction , PDEVICE_OBJECT DeviceOb
       switch_25_0: 
       {
 #line 7868
-      tmp = malloc(sizeof(IRP ));
+      tmp = qdpt_malloc(sizeof(IRP ));
       }
 #line 7870
       return ((struct _IRP *)((void *)tmp));
@@ -10455,7 +10455,7 @@ PIRP IoBuildDeviceIoControlRequest(ULONG IoControlCode , PDEVICE_OBJECT DeviceOb
       switch_26_0: 
       {
 #line 7906
-      tmp = malloc(sizeof(IRP ));
+      tmp = qdpt_malloc(sizeof(IRP ));
       }
 #line 7908
       return ((struct _IRP *)((void *)tmp));
@@ -10486,7 +10486,7 @@ NTSTATUS IoCreateDevice(PDRIVER_OBJECT DriverObject , ULONG DeviceExtensionSize 
       switch_27_0: 
       {
 #line 7938
-      tmp = malloc(sizeof(DEVICE_OBJECT ));
+      tmp = qdpt_malloc(sizeof(DEVICE_OBJECT ));
 #line 7939
       *DeviceObject = (struct _DEVICE_OBJECT *)((void *)tmp);
       }
@@ -11026,7 +11026,7 @@ PVOID MmAllocateContiguousMemory(SIZE_T NumberOfBytes , PHYSICAL_ADDRESS Highest
         switch_36_0: 
         {
 #line 8431
-        tmp = malloc(NumberOfBytes);
+        tmp = qdpt_malloc(NumberOfBytes);
         }
 #line 8433
         return ((void *)tmp);
