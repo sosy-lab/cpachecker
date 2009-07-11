@@ -22,10 +22,9 @@ public class ARTCPA implements RefinableCPA {
   private StopOperator stopOperator;
   private PrecisionAdjustment precisionAdjustment;
   private RefinementManager refinementManager; 
+  private RefinableCPA wrappedCPA;
 
-  private ConfigurableProgramAnalysis wrappedCPA;
-
-  public ARTCPA(String mergeType, String stopType, ConfigurableProgramAnalysis cpa) throws CPAException {
+  public ARTCPA(String mergeType, String stopType, RefinableCPA cpa) throws CPAException {
     wrappedCPA = cpa;
     abstractDomain = new ARTDomain();
     transferRelation = new ARTTransferRelation(cpa.getTransferRelation());
@@ -83,7 +82,9 @@ public class ARTCPA implements RefinableCPA {
   public static ConfigurableProgramAnalysis getARTCPA 
   (CFAFunctionDefinitionNode node, ConfigurableProgramAnalysis cpa) throws CPAException{
     // TODO we assume that we always use sep-sep for merge and join
-    return new ARTCPA("sep", "sep", cpa);
+    // and wrapped CPA is refinable
+    assert(cpa instanceof RefinableCPA);
+    return new ARTCPA("sep", "sep", (RefinableCPA)cpa);
   }
 
   @Override

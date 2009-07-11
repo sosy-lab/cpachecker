@@ -1,9 +1,11 @@
 package cpa.common.interfaces;
 
-import java.util.Collection;
+import cpa.art.Path;
+import cpa.common.ReachedElements;
 
 public interface RefinementManager {
   
-  boolean performRefinement(Collection<AbstractElementWithLocation> pReached);
+  boolean performRefinement(ReachedElements pReached);
+  boolean performRefinement(Path path);
 
 }

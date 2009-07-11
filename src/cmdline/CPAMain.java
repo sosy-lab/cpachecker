@@ -66,6 +66,8 @@ import compositeCPA.CompositeStopOperator;
 
 import cpa.art.ARTCPA;
 import cpa.common.CPAAlgorithm;
+import cpa.common.CPAWithRefinement;
+import cpa.common.ReachedElements;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
@@ -291,7 +293,14 @@ public class CPAMain {
         cpa.getInitialElement(mainFunction);
       Precision initialPrecision =
         cpa.getInitialPrecision(mainFunction);
-      Collection<AbstractElementWithLocation> reached = algo.CPA(cpa, initialElement, initialPrecision);
+      ReachedElements reached;
+      if(CPAMain.cpaConfig.getBooleanValue("analysis.useARTCPA")){
+        CPAWithRefinement cpaWRef = new CPAWithRefinement();
+        reached = cpaWRef.CPAWithRefinementAlgorithm(cpa, initialElement, initialPrecision);
+      }
+      else{
+        reached = algo.CPA(cpa, initialElement, initialPrecision);
+      }
       cpaStats.stopAnalysisTimer();
 
       LazyLogger.log(Level.INFO, "CPA Algorithm finished ");
@@ -303,9 +312,7 @@ public class CPAMain {
       System.out.println(" number of stops " + CompositeStopOperator.noOfOperations);
       if (!cpaConfig.getBooleanValue(
       "analysis.dontPrintReachableStates")) {
-        for (AbstractElement element : reached) {
-          System.out.println(element.toString ());
-        }
+        reached.printStates();
       }
       if (cpaStats.getErrorReached() == MainCPAStatistics.ERROR_UNKNOWN) {
         cpaStats.setErrorReached(false);

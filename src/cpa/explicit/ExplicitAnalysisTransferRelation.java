@@ -48,6 +48,8 @@ import cfa.objectmodel.c.GlobalDeclarationEdge;
 import cfa.objectmodel.c.ReturnEdge;
 import cfa.objectmodel.c.StatementEdge;
 import cmdline.CPAMain;
+import cpa.common.CPAAlgorithm;
+import cpa.common.ErrorElement;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.Precision;
@@ -80,6 +82,11 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
     //System.out.println(cfaEdge);
     AbstractElement successor = explicitAnalysisDomain.getBottomElement();
 
+    if(cfaEdge.getSuccessor() instanceof CFAErrorNode){
+      CPAAlgorithm.errorFound = true;
+      return new ErrorElement(cfaEdge.getSuccessor());
+    }
+    
     // check the type of the edge
     switch (cfaEdge.getEdgeType ())
     {

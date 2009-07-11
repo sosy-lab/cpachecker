@@ -24,12 +24,14 @@
 package predicateabstraction;
 
 import java.util.Collection;
-import java.util.Deque;
 import java.util.Vector;
 
 import cfa.objectmodel.CFAEdge;
 
-import cpa.common.interfaces.AbstractElementWithLocation;
+import common.Pair;
+
+import cpa.art.ARTElement;
+import cpa.predicateabstraction.PredicateAbstractionAbstractElement;
 import cpa.symbpredabs.AbstractFormula;
 import cpa.symbpredabs.AbstractFormulaManager;
 import cpa.symbpredabs.CounterexampleTraceInfo;
@@ -38,7 +40,6 @@ import cpa.symbpredabs.SSAMap;
 import cpa.symbpredabs.SymbolicFormula;
 import cpa.symbpredabs.SymbolicFormulaManager;
 import exceptions.UnrecognizedCFAEdgeException;
-import cpa.predicateabstraction.PredicateAbstractionAbstractElement;
 
 /**
  * Formula Manager for Explicit-state predicate abstraction.
@@ -63,7 +64,7 @@ public interface PredicateAbstractionAbstractFormulaManager extends AbstractForm
      */
     public CounterexampleTraceInfo buildCounterexampleTrace(
             SymbolicFormulaManager mgr,
-            Deque<PredicateAbstractionAbstractElement> abstractTrace);
+            Pair<ARTElement, CFAEdge>[] pathArray);
 
 
     public class ConcretePath {
@@ -79,7 +80,7 @@ public interface PredicateAbstractionAbstractFormulaManager extends AbstractForm
     }
 
     public ConcretePath buildConcretePath(SymbolicFormulaManager mgr,
-            AbstractElementWithLocation[] path)
+        Pair<ARTElement, CFAEdge>[] pathArray)
                 throws UnrecognizedCFAEdgeException;
 
     public Vector<SymbolicFormula> getUsefulBlocks(SymbolicFormulaManager mgr,

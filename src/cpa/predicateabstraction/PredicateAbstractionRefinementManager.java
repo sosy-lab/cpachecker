@@ -1,78 +1,125 @@
 package cpa.predicateabstraction;
 
 import java.util.Collection;
-import java.util.Deque;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Map;
+import java.util.Vector;
 
+import org.eclipse.cdt.make.internal.ui.properties.PathAndSymbolPage;
+
+import com.sun.org.apache.xml.internal.utils.Hashtree2Node;
+
+import logging.CustomLogLevel;
 import logging.LazyLogger;
+import predicateabstraction.PredicateAbstractionAbstractFormulaManager;
+import cfa.objectmodel.CFAEdge;
 import cmdline.CPAMain;
+
+import common.Pair;
+import compositeCPA.CompositeElement;
+
 import cpa.art.ARTElement;
+import cpa.art.Path;
+import cpa.common.ReachedElements;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.RefinementManager;
 import cpa.symbpredabs.CounterexampleTraceInfo;
 import cpa.symbpredabs.Predicate;
 import cpa.symbpredabs.UpdateablePredicateMap;
+import exceptions.CPATransferException;
+import exceptions.ErrorReachedException;
 
 public class PredicateAbstractionRefinementManager implements RefinementManager {
 
-  Map<Path, Integer> abstractCex = new HashMap<Path, Integer>();
-  boolean notEnoughPredicatesFlag = false;
-  
-  PredicateAbstractionAbstractDomain domain;
-  
-  public PredicateAbstractionRefinementManager(PredicateAbstractionAbstractDomain dom) {
-    domain = dom;
+  private PredicateAbstractionCPA cpa;
+  private PredicateAbstractionAbstractFormulaManager amgr;
+  private Map<Vector<Integer>, Integer> abstractCex;
+
+  private int numAbstractStates = 0; // for statistics
+
+  // this is used for deciding how much of the ART to undo after refinement
+  // private Deque<ExplicitAbstractElement> lastErrorPath;
+  // private int samePathAlready = 0;
+
+  private boolean notEnoughPredicatesFlag = false;
+
+  public PredicateAbstractionRefinementManager(PredicateAbstractionCPA pCpa) {
+    cpa = pCpa;
+    amgr = cpa.getAbstractFormulaManager();
+    abstractCex = new HashMap<Vector<Integer>, Integer>();
   }
-  
+
   @Override
-  public boolean performRefinement(AbstractElement pElement) {
-    // TODO Auto-generated method stub
+  public boolean performRefinement(ReachedElements pReached) {
+    // TODO exception
+    assert(false);
     return false;
   }
-  
+
   @Override
-  public boolean performRefinement(AbstractElement pElement,
-      ARTElement pARTElement) {
-    
-    Deque<PredicateAbstractionAbstractElement> path;
-    CounterexampleTraceInfo info;
-    
+  public boolean performRefinement(Path pPath) {
+
+    Pair<ARTElement, CFAEdge>[] pathArray;
+
+    pathArray = getPathArray(pPath);
+
+    CounterexampleTraceInfo info =
+      amgr.buildCounterexampleTrace(
+          cpa.getFormulaManager(), pathArray);
+    if (info.isSpurious()) {
+      LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+          "Found spurious error trace, refining the ",
+      "abstraction");
+      try {
+        performRefinement(pPath, pathArray, info);
+      } catch (CPATransferException e) {
+        e.printStackTrace();
+      }
+      return true;
+    } else {
+//    LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+//    "REACHED ERROR LOCATION!: ", succ,
+//    " RETURNING BOTTOM!");
+      CPAMain.cpaStats.setErrorReached(true);
+      return false;
+    }
+  }
+
+
+  public void performRefinement(Path pPath,
+      Pair<ARTElement, CFAEdge>[] pPathArray,
+      CounterexampleTraceInfo pInfo) throws CPATransferException {
+
     LazyLogger.log(LazyLogger.DEBUG_1, "STARTING REFINEMENT");
     UpdateablePredicateMap curpmap =
-      (UpdateablePredicateMap)domain.getCPA().getPredicateMap();
-    PredicateAbstractionAbstractElement root = null;
-    PredicateAbstractionAbstractElement cur = null;
-    PredicateAbstractionAbstractElement firstInterpolant = null;
-    for (PredicateAbstractionAbstractElement e : path) {
-      Collection<Predicate> newpreds = info.getPredicatesForRefinement(e);
+      (UpdateablePredicateMap)cpa.getPredicateMap();
+    ARTElement root = null;
+    ARTElement cur = null;
+    ARTElement firstInterpolant = null;
+    for (Pair<ARTElement, CFAEdge> p : pPathArray) {
+      ARTElement e = p.getFirst();
+      CFAEdge edge = p.getSecond();
+      Collection<Predicate> newpreds = pInfo.getPredicatesForRefinement(e);
       if (firstInterpolant == null && newpreds.size() > 0) {
         firstInterpolant = e;
       }
-      if (curpmap.update(e.getLocation(), newpreds)) {
-        LazyLogger.log(LazyLogger.DEBUG_1, "REFINING LOCATION: ",
-            e.getLocation());
+      // TODO check
+      if (curpmap.update(edge.getSuccessor(), newpreds)) {
         if (root == null) {
           cur = e;
-          root = e;//.getParent();
+          root = e;
         }
-//      else if (root.getLocation().equals(e.getLocation())) {
-//      root = e;
-//      }
       }
     }
-    Path pth = new Path(path);
+    // TODO fix here
+//    Path pth = new Path(path);
+    Vector<Integer> pth = arrayToVector(pPathArray);
     int alreadySeen = 0;
     if (abstractCex.containsKey(pth)) {
       alreadySeen = abstractCex.get(pth);
     }
     abstractCex.put(pth, alreadySeen+1);
-    //root = (ExplicitAbstractElement)abstractTree.getRoot();
     if (root == null) {
-      //root = firstInterpolant;//(ExplicitAbstractElement)abstractTree.getRoot();
       if (alreadySeen != 0) {//samePath(path, lastErrorPath)) {
         if (alreadySeen > 1) {//samePathAlready == 1) {
           // we have not enough predicates to rule out this path, and
@@ -80,19 +127,14 @@ public class PredicateAbstractionRefinementManager implements RefinementManager 
           notEnoughPredicatesFlag = true;
           assert(false);
           System.exit(1);
-//        } else if (samePathAlready == 1) {
-//        root = (ExplicitAbstractElement)abstractTree.getRoot();
-//        samePathAlready = 2;
         } else {
-          //samePathAlready = 1;
           root = firstInterpolant;
-          //root = (ExplicitAbstractElement)abstractTree.getRoot();
         }
       } else {
         assert(firstInterpolant != null);
         LazyLogger.log(CustomLogLevel.SpecificCPALevel,
-            "Restarting ART from scratch");
-        root = (PredicateAbstractionAbstractElement)abstractTree.getRoot();
+        "Restarting ART from scratch");
+        root = (ARTElement)abstractTree.getRoot();
       }
     } else {
       //samePathAlready  = 0;
@@ -104,38 +146,10 @@ public class PredicateAbstractionRefinementManager implements RefinementManager 
       // (file psrc/be/modelChecker/lazyModelChecker.ml, function
       // update_tree_after_refinment). But for now, for simplicity we
       // just restart from scratch
-      root = (PredicateAbstractionAbstractElement)abstractTree.getRoot();
+      root = (ARTElement)abstractTree.getRoot();
     }
-    assert(root != null);// || firstInterpolant == path.getFirst());
-    //lastErrorPath = path;
-    //root = firstInterpolant;
-    //root = (ExplicitAbstractElement)abstractTree.getRoot();
-
-//  Collection<AbstractElementWithLocation> roots = 
-//  abstractTree.findAll(root.getLocationNode());
-//  assert(root != null);
-//  if (root.getParent() != null) {
-//  root = root.getParent();
-//  }
-
-//  if (root == null) {
-//  assert(firstInterpolant != null);
-    ////assert(CPAMain.cpaConfig.getBooleanValue(
-    ////"cpas.symbpredabs.refinement.addPredicatesGlobally"));
-//  //root = abstractTree.getRoot();
-//  root = firstInterpolant;
-//  }
     assert(root != null);
-    //root = path.getFirst();
     Collection<AbstractElementWithLocation> toWaitlist = new HashSet<AbstractElementWithLocation>();
-//  Collection<AbstractElementWithLocation> toUnreach = null;
-//  for (AbstractElementWithLocation e : roots) {
-//  toWaitlist.add(e);
-//  Collection<AbstractElementWithLocation> t =
-//  abstractTree.getSubtree(e, true, false);
-//  if (toUnreach == null) toUnreach = t;
-//  else toUnreach.addAll(t);
-//  }
     toWaitlist.add(root);
     Collection<AbstractElementWithLocation> toUnreach =
       abstractTree.getSubtree(root, true, false);
@@ -144,7 +158,7 @@ public class PredicateAbstractionRefinementManager implements RefinementManager 
       // reaching the error!
       for (Iterator<AbstractElementWithLocation> it = toUnreach.iterator();
       it.hasNext(); ) {
-        PredicateAbstractionAbstractElement e = (PredicateAbstractionAbstractElement)it.next();
+        ExplicitAbstractElement e = (ExplicitAbstractElement)it.next();
         if (e.isCovered() && e.getMark() < cur.getMark()) {
           LazyLogger.log(LazyLogger.DEBUG_1, "NOT unreaching ", e,
               " because it was covered before ", cur);
@@ -153,9 +167,9 @@ public class PredicateAbstractionRefinementManager implements RefinementManager 
       }
     }
 
-    PredicateAbstractionCPA cpa = domain.getCPA();
+    ExplicitCPA cpa = domain.getCPA();
     for (AbstractElementWithLocation ae : toUnreach) {
-      PredicateAbstractionAbstractElement e = (PredicateAbstractionAbstractElement)ae;
+      ExplicitAbstractElement e = (ExplicitAbstractElement)ae;
       if (e.isCovered()) {
         e.setCovered(false);
         cpa.setUncovered(e);
@@ -163,11 +177,11 @@ public class PredicateAbstractionRefinementManager implements RefinementManager 
     }
     if (root != abstractTree.getRoot()) {
       // then, we have to unmark some nodes
-      Collection<PredicateAbstractionAbstractElement> tmp =
+      Collection<ExplicitAbstractElement> tmp =
         cpa.getCovered();
-      for (Iterator<PredicateAbstractionAbstractElement> i = tmp.iterator(); 
+      for (Iterator<ExplicitAbstractElement> i = tmp.iterator(); 
       i.hasNext(); ) {
-        PredicateAbstractionAbstractElement e = i.next();
+        ExplicitAbstractElement e = i.next();
         assert(e.isCovered());
         if (e.getMark() > root.getMark()) {
           e.setCovered(false);
@@ -183,8 +197,79 @@ public class PredicateAbstractionRefinementManager implements RefinementManager 
     LazyLogger.log(LazyLogger.DEBUG_1, "REFINEMENT - toUnreach: ",
         toUnreach);
     throw new RefinementNeededException(toUnreach, toWaitlist);
-  
+  }
+
+
+  private Vector<Integer> arrayToVector(
+      Pair<ARTElement, CFAEdge>[] pPathArray) {
     
+    Vector<Integer> r = new Vector<Integer>();
+    
+    for(Pair<ARTElement, CFAEdge> p: pPathArray){
+      int i = p.getSecond().getSuccessor().getNodeNumber();
+      r.add(i);
+    }
+    
+    return r;
+    
+  }
+
+  private Pair<ARTElement, CFAEdge>[] getPathArray(
+      Path pPath) {
+
+    Pair<ARTElement, CFAEdge>[] array = 
+      new Pair[pPath.size()];
+
+    Pair<AbstractElement, CFAEdge> pathElement = pPath.getElementAt(0);
+    assert(pathElement != null);
+    AbstractElement absElement = pathElement.getFirst();
+
+    assert(absElement instanceof ARTElement);
+    ARTElement artElement = (ARTElement)absElement;
+    
+    for(int i=0; i<pPath.size(); i++){
+      Pair<AbstractElement, CFAEdge> p = pPath.getElementAt(i);
+      array[i] = new Pair<ARTElement, CFAEdge>((ARTElement) p.getFirst(), p.getSecond());
+    }
+
+    return array;
+    
+//    AbstractElement wrappedElement = artElement.getAbstractElementOnArtNode();
+//    int idxOfPredAbsElem = -1;
+//
+//    if(wrappedElement instanceof CompositeElement){
+//      CompositeElement compositeElement = (CompositeElement) wrappedElement;
+//      for(int i=0; i<compositeElement.getNumberofElements(); i++){
+//        AbstractElement abstElement = compositeElement.get(i);
+//        if(abstElement instanceof PredicateAbstractionAbstractElement){
+//          idxOfPredAbsElem = i;
+//          break;
+//        }
+//      }
+//
+//      assert(idxOfPredAbsElem != -1);
+//
+//      for(int i=0; i<pPath.size(); i++){
+//        Pair<AbstractElement, CFAEdge> p = pPath.getElementAt(i);
+//        CompositeElement compElement = (CompositeElement)p.getFirst();
+//        CFAEdge edge = p.getSecond();
+//        PredicateAbstractionAbstractElement predAbsElem = (PredicateAbstractionAbstractElement)compElement.get(idxOfPredAbsElem);
+//        array[i] = new Pair<PredicateAbstractionAbstractElement, CFAEdge>(predAbsElem, edge);
+//      }
+//
+//    }
+//    else{
+//      assert(wrappedElement instanceof PredicateAbstractionAbstractElement);
+//      for(int i=0; i<pPath.size(); i++){
+//        Pair<AbstractElement, CFAEdge> p = pPath.getElementAt(i);
+//        PredicateAbstractionAbstractElement predAbsElem = (PredicateAbstractionAbstractElement)p.getFirst();
+//        CFAEdge edge = p.getSecond();
+//        array[i] = new Pair<PredicateAbstractionAbstractElement, CFAEdge>(predAbsElem, edge);
+//      }
+//    }
+//
+//    return array;
+
   }
 
 }

@@ -78,5 +78,4 @@ public class ARTElement implements AbstractElementWithLocation {
     }
     return s;
   }
-  
 }

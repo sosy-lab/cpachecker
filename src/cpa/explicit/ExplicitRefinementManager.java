@@ -1,22 +1,26 @@
 package cpa.explicit;
 
-import cpa.art.ARTElement;
-import cpa.common.interfaces.AbstractElement;
+import cpa.art.Path;
+import cpa.common.CPAAlgorithm;
+import cpa.common.ReachedElements;
 import cpa.common.interfaces.RefinementManager;
 
 public class ExplicitRefinementManager implements RefinementManager {
 
   @Override
-  public boolean performRefinement(AbstractElement pElement) {
-    // TODO Auto-generated method stub
+  public boolean performRefinement(ReachedElements pReached) {
+    // TODO exception
+    assert(false);
     return false;
   }
 
   @Override
-  public boolean performRefinement(AbstractElement pElement,
-      ARTElement pARTElement) {
-    System.out.println(pARTElement.pathToString());
-    return true;
+  public boolean performRefinement(Path pPath) {
+    // we do not perform refinement
+    // we just report an error
+    CPAAlgorithm.errorFound = true;
+    System.out.println(pPath);
+    return false;
   }
-
+  
 }

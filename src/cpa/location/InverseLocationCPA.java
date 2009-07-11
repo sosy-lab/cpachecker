@@ -46,7 +46,6 @@ public class InverseLocationCPA implements ConfigurableProgramAnalysis{
   private MergeOperator mergeOperator;
   private StopOperator stopOperator;
   private PrecisionAdjustment precisionAdjustment;
-  private RefinementManager refinementManager;
 
   public InverseLocationCPA (String mergeType, String stopType) throws CPAException{
     LocationDomain locationDomain = new LocationDomain ();
@@ -60,14 +59,11 @@ public class InverseLocationCPA implements ConfigurableProgramAnalysis{
     }
     StopOperator locationStopOp = new LocationStopSep (locationDomain);
     PrecisionAdjustment precisionAdjustment = new LocationPrecisionAdjustment ();
-    // TODO InverseLocationRefinementManager
-    RefinementManager refinementManager = new LocationRefinementManager();
     this.abstractDomain = locationDomain;
     this.transferRelation = locationTransferRelation;
     this.mergeOperator = locationMergeOp;
     this.stopOperator = locationStopOp;
     this.precisionAdjustment = precisionAdjustment;
-    this.refinementManager = refinementManager;
   }
 
   public AbstractDomain getAbstractDomain ()

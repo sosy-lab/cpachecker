@@ -42,7 +42,6 @@ public class LocationCPA implements ConfigurableProgramAnalysis{
 	private MergeOperator mergeOperator;
 	private StopOperator stopOperator;
 	private PrecisionAdjustment precisionAdjustment;
-	private RefinementManager refinementManager;
 
 	public LocationCPA (String mergeType, String stopType) throws CPAException{
 	  LocationDomain locationDomain = new LocationDomain ();
@@ -56,14 +55,12 @@ public class LocationCPA implements ConfigurableProgramAnalysis{
 	  }
 	  StopOperator locationStopOp = new LocationStopSep(locationDomain);
 	  PrecisionAdjustment precisionAdjustment = new LocationPrecisionAdjustment();
-	  RefinementManager refinementManager = new LocationRefinementManager();
 	  
 		this.abstractDomain = locationDomain;
 		this.transferRelation = locationTransferRelation;
 		this.mergeOperator = locationMergeOp;
 		this.stopOperator = locationStopOp;
 		this.precisionAdjustment = precisionAdjustment;
-		this.refinementManager = refinementManager;
 	}
 
 	public AbstractDomain getAbstractDomain ()
