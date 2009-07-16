@@ -88,7 +88,6 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis {
 
     // covering relation
     //private final Map<ExplicitAbstractElement, Set<ExplicitAbstractElement>> covers;
-    private Set<PredicateAbstractionAbstractElement> covered;
 
     private final PredicateAbstractionCPAStatistics stats;
 
@@ -119,7 +118,7 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis {
 
 //        covers = new HashMap<ExplicitAbstractElement,
 //                             Set<ExplicitAbstractElement>>();
-        covered = new HashSet<PredicateAbstractionAbstractElement>();
+//        covered = new HashSet<PredicateAbstractionAbstractElement>();
 
         MathsatPredicateParser p = new MathsatPredicateParser(mgr, amgr);
         Collection<Predicate> preds = null;
@@ -216,17 +215,17 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis {
         return pmap;
     }
 
-    public void setCovered(PredicateAbstractionAbstractElement e1) {
-        covered.add(e1);        
-    }
-    
-    public Collection<PredicateAbstractionAbstractElement> getCovered() {
-        return covered;
-    }
-    
-    public void setUncovered(PredicateAbstractionAbstractElement e1) {
-        covered.remove(e1);
-    }
+//    public void setCovered(PredicateAbstractionAbstractElement e1) {
+//        covered.add(e1);        
+//    }
+//    
+//    public Collection<PredicateAbstractionAbstractElement> getCovered() {
+//        return covered;
+//    }
+//    
+//    public void setUncovered(PredicateAbstractionAbstractElement e1) {
+//        covered.remove(e1);
+//    }
 
 //    public Set<ExplicitAbstractElement> getCoveredBy(ExplicitAbstractElement e){
 //        if (covers.containsKey(e)) {

@@ -1,5 +1,9 @@
 package cpa.art;
 
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
+
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
@@ -23,11 +27,14 @@ public class ARTCPA implements RefinableCPA {
   private PrecisionAdjustment precisionAdjustment;
   private RefinementManager refinementManager; 
   private RefinableCPA wrappedCPA;
+  
+  private Set<ARTElement> covered;
+  private ARTElement root;
 
   public ARTCPA(String mergeType, String stopType, RefinableCPA cpa) throws CPAException {
     wrappedCPA = cpa;
-    abstractDomain = new ARTDomain();
-    transferRelation = new ARTTransferRelation(cpa.getTransferRelation());
+    abstractDomain = new ARTDomain(this);
+    transferRelation = new ARTTransferRelation(abstractDomain, cpa.getTransferRelation());
     precisionAdjustment = new ARTPrecisionAdjustment();
     refinementManager = new ARTRefinementManager(wrappedCPA);
     if(mergeType.equals("sep")){
@@ -42,6 +49,8 @@ public class ARTCPA implements RefinableCPA {
     else if(stopType.equals("join")){
       throw new CPAException("Location domain elements cannot be joined");
     }
+    covered = new HashSet<ARTElement>();
+    root = null;
   }
 
   public AbstractDomain getAbstractDomain ()
@@ -67,10 +76,22 @@ public class ARTCPA implements RefinableCPA {
   public PrecisionAdjustment getPrecisionAdjustment () {
     return precisionAdjustment;
   }
+  
+  public void setCovered(ARTElement e1) {
+    covered.add(e1);        
+  }
+
+  public Collection<ARTElement> getCovered() {
+    return covered;
+  }
+
+  public void setUncovered(ARTElement e1) {
+    covered.remove(e1);
+  }  
 
   @Override
   public AbstractElement getInitialElement (CFAFunctionDefinitionNode pNode) {
-    return new ARTElement((AbstractElementWithLocation)wrappedCPA.getInitialElement(pNode), 
+    return new ARTElement(abstractDomain, (AbstractElementWithLocation)wrappedCPA.getInitialElement(pNode), 
         null);
   }
 
@@ -90,6 +111,14 @@ public class ARTCPA implements RefinableCPA {
   @Override
   public RefinementManager getRefinementManager() {
     return refinementManager;
+  }
+
+  public ARTElement getRoot() {
+    return root;
+  }
+  
+  public void setRoot(ARTElement pRoot){
+    root = pRoot;
   }
 
 }

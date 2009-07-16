@@ -2,15 +2,18 @@ package cpa.art;
 
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.JoinOperator;
 import cpa.common.interfaces.PartialOrder;
 
 public class ARTDomain implements AbstractDomain {
+  
+  private ConfigurableProgramAnalysis cpa;
 
   private static class ArtBottomElement extends ARTElement
   {
     public ArtBottomElement() {
-      super(null, null);
+      super(null, null, null);
     }
 
     @Override
@@ -37,7 +40,7 @@ public class ARTDomain implements AbstractDomain {
   private static class ArtTopElement extends ARTElement
   {
     public ArtTopElement() {
-      super(null, null);
+      super(null, null, null);
     }
 
     @Override
@@ -102,9 +105,9 @@ public class ARTDomain implements AbstractDomain {
   private final static PartialOrder partialOrder = new ArtPartialOrder ();
   private final static JoinOperator joinOperator = new ArtJoinOperator ();
 
-  public ARTDomain()
+  public ARTDomain(ConfigurableProgramAnalysis pCpa)
   {
-
+    cpa = pCpa;
   }
 
   public AbstractElement getBottomElement ()
@@ -127,4 +130,8 @@ public class ARTDomain implements AbstractDomain {
       return partialOrder;
   }
 
+  public ConfigurableProgramAnalysis getCpa(){
+    return cpa;
+  }
+  
 }

@@ -11,7 +11,7 @@ import cpa.common.interfaces.RefinementManager;
 public class ARTRefinementManager implements RefinementManager {
 
   private RefinableCPA wrappedCpa;
-  private RefinementManager wrappedRefinementManager; 
+  private RefinementManager wrappedRefinementManager;
 
   public ARTRefinementManager(RefinableCPA pWrappedCPA) {
     wrappedCpa = pWrappedCPA;
@@ -19,7 +19,7 @@ public class ARTRefinementManager implements RefinementManager {
   }
 
   @Override
-  public boolean performRefinement(ReachedElements pReached) {
+  public boolean performRefinement(ReachedElements pReached, Path pPath) {
     
     AbstractElement lastElement = pReached.getLastElement();
     
@@ -62,15 +62,7 @@ public class ARTRefinementManager implements RefinementManager {
       System.out.println(currentARTElement);
     }
 
-    return wrappedRefinementManager.performRefinement(path);
-  }
-
-  @Override
-  public boolean performRefinement(Path pPath) {
-    // TODO exception
-    // should not be performed
-    assert(false);
-    return false;
+    return wrappedRefinementManager.performRefinement(pReached, path);
   }
 
 }

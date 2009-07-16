@@ -5,7 +5,6 @@ import cpa.common.ReachedElements;
 
 public interface RefinementManager {
   
-  boolean performRefinement(ReachedElements pReached);
-  boolean performRefinement(Path path);
+  boolean performRefinement(ReachedElements pReached, Path pPath);
 
 }

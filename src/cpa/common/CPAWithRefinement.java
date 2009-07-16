@@ -33,7 +33,7 @@ public class CPAWithRefinement {
         RefinementManager refinementManager = refinableCpa.getRefinementManager();
 
         assert(reached != null);
-        stopAnalysis = !refinementManager.performRefinement(reached);
+        stopAnalysis = !refinementManager.performRefinement(reached, null);
         if(stopAnalysis){
           System.out.println("ERROR FOUND");
         }

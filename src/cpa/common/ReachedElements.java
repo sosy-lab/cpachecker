@@ -3,12 +3,14 @@ package cpa.common;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Set;
 
 import cmdline.CPAMain;
 
 import common.LocationMappedReachedSet;
 import common.Pair;
 
+import cpa.art.ARTElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;
@@ -29,6 +31,7 @@ public class ReachedElements {
 //    else {
 //      reachedSet = new ProjectionWrapper(reached);
 //    }
+    
   }
   
   private Collection<Pair<AbstractElementWithLocation,Precision>> createReachedSet(
@@ -64,10 +67,8 @@ public class ReachedElements {
     return simpleReached;
     
   }
-
+  
   public Object size() {
-    // TODO need to check whether we use a simple set or
-    // location mapped set
     return reached.size();
   }
 

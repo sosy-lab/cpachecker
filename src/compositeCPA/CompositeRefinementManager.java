@@ -15,18 +15,10 @@ public class CompositeRefinementManager implements RefinementManager{
   }
 
   @Override
-  public boolean performRefinement(ReachedElements pReached) {
-    // TODO exception
-    // this method is used by ARTCPA
-    assert(false);
-    return false;
-  }
-
-  @Override
-  public boolean performRefinement(Path pPath) {
+  public boolean performRefinement(ReachedElements pReached, Path pPath) {
     
     for(RefinementManager rm: refinementManagers){
-      if(rm.performRefinement(pPath)){
+      if(rm.performRefinement(pReached, pPath)){
         return true;
       }
     }

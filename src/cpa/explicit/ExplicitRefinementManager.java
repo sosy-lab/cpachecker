@@ -8,14 +8,7 @@ import cpa.common.interfaces.RefinementManager;
 public class ExplicitRefinementManager implements RefinementManager {
 
   @Override
-  public boolean performRefinement(ReachedElements pReached) {
-    // TODO exception
-    assert(false);
-    return false;
-  }
-
-  @Override
-  public boolean performRefinement(Path pPath) {
+  public boolean performRefinement(ReachedElements pReached, Path pPath) {
     // we do not perform refinement
     // we just report an error
     CPAAlgorithm.errorFound = true;

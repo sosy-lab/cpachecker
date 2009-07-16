@@ -73,9 +73,6 @@ public class CPAAlgorithm
     MergeOperator mergeOperator = cpa.getMergeOperator();
     StopOperator stopOperator = cpa.getStopOperator();
     PrecisionAdjustment precisionAdjustment = cpa.getPrecisionAdjustment();
-    // TODO fix later - not used for now
-    //RefinementManager refinementManager = null; 
-    //cpa.getRefinementManager();
 
     while (!waitlist.isEmpty ())
     {

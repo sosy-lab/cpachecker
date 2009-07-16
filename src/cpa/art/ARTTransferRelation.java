@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import cfa.objectmodel.CFAEdge;
-import cfa.objectmodel.CFANode;
+import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.Precision;
@@ -15,9 +15,11 @@ import exceptions.CPATransferException;
 public class ARTTransferRelation implements TransferRelation {
   
   private final TransferRelation transferRelation;
+  private AbstractDomain domain;
   
-  public ARTTransferRelation(TransferRelation tr) {
+  public ARTTransferRelation(AbstractDomain pDomain, TransferRelation tr) {
     transferRelation = tr;
+    domain = pDomain;
   }
   
 
@@ -37,14 +39,21 @@ public class ARTTransferRelation implements TransferRelation {
       AbstractElementWithLocation pElement, Precision pPrecision)
       throws CPAException, CPATransferException {
     ARTElement element = (ARTElement)pElement;
+    ARTCPA artCpa = (ARTCPA)((ARTDomain)domain).getCpa();
+    
+    if(artCpa.getRoot() == null){
+      artCpa.setRoot(element);
+    }
+    
     AbstractElementWithLocation wrappedElement = element.getAbstractElementOnArtNode();
     Precision wrappedPrecision = ((ARTPrecision)pPrecision).getPrecision();
     List<AbstractElementWithLocation> successors = transferRelation.getAllAbstractSuccessors(wrappedElement, wrappedPrecision);
     List<AbstractElementWithLocation> wrappedSuccessors = new ArrayList<AbstractElementWithLocation>();
     for(AbstractElementWithLocation absElement:successors){
-      ARTElement successorElem = new ARTElement(absElement, element); 
+      ARTElement successorElem = new ARTElement(domain, absElement, element); 
       wrappedSuccessors.add(successorElem);
     }
+    element.setMark();
     return wrappedSuccessors;
   }
 

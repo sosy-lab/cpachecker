@@ -15,11 +15,11 @@ import exceptions.CPAException;
 public class ARTStopSep implements StopOperator {
 
   private final ARTDomain domain;
-  private final ConfigurableProgramAnalysis cpa;
+  private final ConfigurableProgramAnalysis wrappedCpa;
   
   public ARTStopSep(AbstractDomain pArtDomain, ConfigurableProgramAnalysis cpa) {
     this.domain = (ARTDomain)pArtDomain;
-    this.cpa = cpa;
+    this.wrappedCpa = cpa;
   }
   
   @Override
@@ -28,7 +28,7 @@ public class ARTStopSep implements StopOperator {
 
     ARTElement artElement = (ARTElement)pElement;
     AbstractElement wrappedElement = artElement.getAbstractElementOnArtNode();
-    StopOperator stopOp = cpa.getStopOperator();
+    StopOperator stopOp = wrappedCpa.getStopOperator();
     
     if(stopOp instanceof CompositeStopOperator){
       CompositeStopOperator compStopOp = (CompositeStopOperator) stopOp;
@@ -39,6 +39,8 @@ public class ARTStopSep implements StopOperator {
     
     for (AbstractElement e : pReached) {
       if (stop(pElement, e)) {
+        artElement.setCovered(true);
+        ((ARTCPA)domain.getCpa()).setCovered(artElement);
         return true;
       }
     }
@@ -52,8 +54,13 @@ public class ARTStopSep implements StopOperator {
     ARTElement artElement = (ARTElement)pElement;
     AbstractElement wrappedElement = artElement.getAbstractElementOnArtNode();
     ARTElement reachedArtElement = (ARTElement)pReachedElement;
+    
+    if (!reachedArtElement.isMarked()) {
+      return false;
+    }
+    
     AbstractElement wrappedReachedElement = reachedArtElement.getAbstractElementOnArtNode();
-    StopOperator stopOp = cpa.getStopOperator();
+    StopOperator stopOp = wrappedCpa.getStopOperator();
     return stopOp.stop(wrappedElement, wrappedReachedElement);
   }
 }
