@@ -43,7 +43,6 @@ import cpa.predicateabstraction.PredicateAbstractionCPA;
 import cpa.predicateabstraction.PredicateAbstractionTransferRelation;
 import cpa.symbpredabs.Predicate;
 import cpa.symbpredabs.PredicateMap;
-import cpa.symbpredabs.explicit.BDDMathsatExplicitAbstractManager;
 import cpa.symbpredabs.mathsat.BDDPredicate;
 import cpa.symbpredabs.mathsat.MathsatSymbolicFormula;
 import cpaplugin.CPAStatistics;
@@ -73,8 +72,8 @@ public class PredicateAbstractionCPAStatistics implements CPAStatistics {
       PredicateAbstractionTransferRelation trans =
             (PredicateAbstractionTransferRelation)cpa.getTransferRelation();
         PredicateMap pmap = cpa.getPredicateMap();
-        BDDMathsatExplicitAbstractManager amgr =
-            (BDDMathsatExplicitAbstractManager)cpa.getAbstractFormulaManager();
+        BDDMathsatPredicateAbstractionAbstractManager amgr =
+            (BDDMathsatPredicateAbstractionAbstractManager)cpa.getAbstractFormulaManager();
 
         Set<Predicate> allPreds = new HashSet<Predicate>();
         Collection<CFANode> allLocs = null;
@@ -141,7 +140,7 @@ public class PredicateAbstractionCPAStatistics implements CPAStatistics {
             }
         }
 
-        BDDMathsatExplicitAbstractManager.Stats bs = amgr.getStats();
+        BDDMathsatPredicateAbstractionAbstractManager.Stats bs = amgr.getStats();
 
         out.println("Number of abstract states visited: " +
                 trans.getNumAbstractStates());

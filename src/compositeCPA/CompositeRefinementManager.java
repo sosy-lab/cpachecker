@@ -4,6 +4,7 @@ import java.util.List;
 
 import cpa.art.Path;
 import cpa.common.ReachedElements;
+import cpa.common.RefinementOutcome;
 import cpa.common.interfaces.RefinementManager;
 
 public class CompositeRefinementManager implements RefinementManager{
@@ -15,14 +16,14 @@ public class CompositeRefinementManager implements RefinementManager{
   }
 
   @Override
-  public boolean performRefinement(ReachedElements pReached, Path pPath) {
+  public RefinementOutcome performRefinement(ReachedElements pReached, Path pPath) {
     
     for(RefinementManager rm: refinementManagers){
-      if(rm.performRefinement(pReached, pPath)){
-        return true;
+      RefinementOutcome output = rm.performRefinement(pReached, pPath); 
+      if(output.refinementPerformed()){
+        return output;
       }
     }
-    return false;
+    return new RefinementOutcome();
   }
-  
 }

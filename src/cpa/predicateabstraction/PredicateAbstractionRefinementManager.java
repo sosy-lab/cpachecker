@@ -22,6 +22,7 @@ import cpa.art.ARTDomain;
 import cpa.art.ARTElement;
 import cpa.art.Path;
 import cpa.common.ReachedElements;
+import cpa.common.RefinementOutcome;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.RefinementManager;
 import cpa.symbpredabs.CounterexampleTraceInfo;
@@ -50,7 +51,7 @@ public class PredicateAbstractionRefinementManager implements RefinementManager 
   }
 
   @Override
-  public boolean performRefinement(ReachedElements pReached, Path pPath) {
+  public RefinementOutcome performRefinement(ReachedElements pReached, Path pPath) {
 
     Pair<ARTElement, CFAEdge>[] pathArray;
 
@@ -59,40 +60,44 @@ public class PredicateAbstractionRefinementManager implements RefinementManager 
     CounterexampleTraceInfo info =
       amgr.buildCounterexampleTrace(
           cpa.getFormulaManager(), pathArray);
+
+    assert(info != null);
+
     if (info.isSpurious()) {
       LazyLogger.log(CustomLogLevel.SpecificCPALevel,
           "Found spurious error trace, refining the ",
       "abstraction");
       try {
-        performRefinement(pReached, pPath, pathArray, info);
+        return performRefinement(pReached, pPath, pathArray, info);
       } catch (CPATransferException e) {
         e.printStackTrace();
       }
-      return true;
+      return null;
     } else {
 //    LazyLogger.log(CustomLogLevel.SpecificCPALevel,
 //    "REACHED ERROR LOCATION!: ", succ,
 //    " RETURNING BOTTOM!");
       CPAMain.cpaStats.setErrorReached(true);
-      return false;
+      return new RefinementOutcome();
     }
   }
 
 
-  public void performRefinement(ReachedElements pReached, Path pPath,
+  public RefinementOutcome performRefinement(ReachedElements pReached, Path pPath,
       Pair<ARTElement, CFAEdge>[] pPathArray,
       CounterexampleTraceInfo pInfo) throws CPATransferException {
     LazyLogger.log(LazyLogger.DEBUG_1, "STARTING REFINEMENT");
     UpdateablePredicateMap curpmap =
       (UpdateablePredicateMap)cpa.getPredicateMap();
-    
+
     assert(pReached.getLastElement() instanceof ARTElement);
     ARTElement lastElem = (ARTElement)pReached.getLastElement();
     ARTCPA artCpa = (ARTCPA)((ARTDomain)lastElem.getDomain()).getCpa();
-    
+
     ARTElement root = null;
     ARTElement cur = null;
     ARTElement firstInterpolant = null;
+
     for (Pair<ARTElement, CFAEdge> p : pPathArray) {
       ARTElement e = p.getFirst();
       CFAEdge edge = p.getSecond();
@@ -101,6 +106,7 @@ public class PredicateAbstractionRefinementManager implements RefinementManager 
         firstInterpolant = e;
       }
       // TODO check
+      assert(edge != null);
       if (curpmap.update(edge.getSuccessor(), newpreds)) {
         if (root == null) {
           cur = e;
@@ -109,7 +115,7 @@ public class PredicateAbstractionRefinementManager implements RefinementManager 
       }
     }
     // TODO fix here
-//    Path pth = new Path(path);
+//  Path pth = new Path(path);
     Vector<Integer> pth = arrayToVector(pPathArray);
     int alreadySeen = 0;
     if (abstractCex.containsKey(pth)) {
@@ -163,8 +169,8 @@ public class PredicateAbstractionRefinementManager implements RefinementManager 
         }
       }
     }
-    
-//    ARTCPA cpa = domain.getCPA();
+
+//  ARTCPA cpa = domain.getCPA();
     // TODO move to art refinement manager
     for (ARTElement ae : toUnreach) {
       if (ae.isCovered()) {
@@ -189,20 +195,21 @@ public class PredicateAbstractionRefinementManager implements RefinementManager 
       }
     }
 
-//    LazyLogger.log(LazyLogger.DEBUG_1, "REFINEMENT - toWaitlist: ",
-//        toWaitlist);
-//    LazyLogger.log(LazyLogger.DEBUG_1, "REFINEMENT - toUnreach: ",
-//        toUnreach);
-//    throw new RefinementNeededException(toUnreach, toWaitlist);
-  }
+    return new RefinementOutcome(true, toUnreach, toWaitlist);
 
+//  LazyLogger.log(LazyLogger.DEBUG_1, "REFINEMENT - toWaitlist: ",
+//  toWaitlist);
+//  LazyLogger.log(LazyLogger.DEBUG_1, "REFINEMENT - toUnreach: ",
+//  toUnreach);
+//  throw new RefinementNeededException(toUnreach, toWaitlist);
+  }
 
   private Collection<ARTElement> getSubtree(ReachedElements pReached,
       ARTElement pRoot) {
 
     List<ARTElement> ret = new ArrayList<ARTElement>();
     List<ARTElement> workList = new ArrayList<ARTElement>();
-    
+
     workList.add(pRoot);
 
     while(workList.size() > 0){
@@ -211,23 +218,23 @@ public class PredicateAbstractionRefinementManager implements RefinementManager 
       List<ARTElement> childrenOfCurrentElement = currentElement.getChildren();
       workList.addAll(childrenOfCurrentElement);
     }
-    
+
     return ret;
-    
+
   }
 
   private Vector<Integer> arrayToVector(
       Pair<ARTElement, CFAEdge>[] pPathArray) {
-    
+
     Vector<Integer> r = new Vector<Integer>();
-    
+
     for(Pair<ARTElement, CFAEdge> p: pPathArray){
       int i = p.getSecond().getSuccessor().getNodeNumber();
       r.add(i);
     }
-    
+
     return r;
-    
+
   }
 
   private Pair<ARTElement, CFAEdge>[] getPathArray(
@@ -248,42 +255,42 @@ public class PredicateAbstractionRefinementManager implements RefinementManager 
     }
 
     return array;
-    
-//    AbstractElement wrappedElement = artElement.getAbstractElementOnArtNode();
-//    int idxOfPredAbsElem = -1;
-//
-//    if(wrappedElement instanceof CompositeElement){
-//      CompositeElement compositeElement = (CompositeElement) wrappedElement;
-//      for(int i=0; i<compositeElement.getNumberofElements(); i++){
-//        AbstractElement abstElement = compositeElement.get(i);
-//        if(abstElement instanceof PredicateAbstractionAbstractElement){
-//          idxOfPredAbsElem = i;
-//          break;
-//        }
-//      }
-//
-//      assert(idxOfPredAbsElem != -1);
-//
-//      for(int i=0; i<pPath.size(); i++){
-//        Pair<AbstractElement, CFAEdge> p = pPath.getElementAt(i);
-//        CompositeElement compElement = (CompositeElement)p.getFirst();
-//        CFAEdge edge = p.getSecond();
-//        PredicateAbstractionAbstractElement predAbsElem = (PredicateAbstractionAbstractElement)compElement.get(idxOfPredAbsElem);
-//        array[i] = new Pair<PredicateAbstractionAbstractElement, CFAEdge>(predAbsElem, edge);
-//      }
-//
-//    }
-//    else{
-//      assert(wrappedElement instanceof PredicateAbstractionAbstractElement);
-//      for(int i=0; i<pPath.size(); i++){
-//        Pair<AbstractElement, CFAEdge> p = pPath.getElementAt(i);
-//        PredicateAbstractionAbstractElement predAbsElem = (PredicateAbstractionAbstractElement)p.getFirst();
-//        CFAEdge edge = p.getSecond();
-//        array[i] = new Pair<PredicateAbstractionAbstractElement, CFAEdge>(predAbsElem, edge);
-//      }
-//    }
-//
-//    return array;
+
+//  AbstractElement wrappedElement = artElement.getAbstractElementOnArtNode();
+//  int idxOfPredAbsElem = -1;
+
+//  if(wrappedElement instanceof CompositeElement){
+//  CompositeElement compositeElement = (CompositeElement) wrappedElement;
+//  for(int i=0; i<compositeElement.getNumberofElements(); i++){
+//  AbstractElement abstElement = compositeElement.get(i);
+//  if(abstElement instanceof PredicateAbstractionAbstractElement){
+//  idxOfPredAbsElem = i;
+//  break;
+//  }
+//  }
+
+//  assert(idxOfPredAbsElem != -1);
+
+//  for(int i=0; i<pPath.size(); i++){
+//  Pair<AbstractElement, CFAEdge> p = pPath.getElementAt(i);
+//  CompositeElement compElement = (CompositeElement)p.getFirst();
+//  CFAEdge edge = p.getSecond();
+//  PredicateAbstractionAbstractElement predAbsElem = (PredicateAbstractionAbstractElement)compElement.get(idxOfPredAbsElem);
+//  array[i] = new Pair<PredicateAbstractionAbstractElement, CFAEdge>(predAbsElem, edge);
+//  }
+
+//  }
+//  else{
+//  assert(wrappedElement instanceof PredicateAbstractionAbstractElement);
+//  for(int i=0; i<pPath.size(); i++){
+//  Pair<AbstractElement, CFAEdge> p = pPath.getElementAt(i);
+//  PredicateAbstractionAbstractElement predAbsElem = (PredicateAbstractionAbstractElement)p.getFirst();
+//  CFAEdge edge = p.getSecond();
+//  array[i] = new Pair<PredicateAbstractionAbstractElement, CFAEdge>(predAbsElem, edge);
+//  }
+//  }
+
+//  return array;
 
   }
 

@@ -23,6 +23,9 @@
  */
 package predicateabstraction;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -35,6 +38,7 @@ import java.util.Stack;
 import java.util.Vector;
 
 import logging.CPACheckerLogger;
+import logging.CustomLogLevel;
 import logging.LazyLogger;
 import cfa.objectmodel.BlankEdge;
 import cfa.objectmodel.CFAEdge;
@@ -1041,34 +1045,35 @@ implements PredicateAbstractionAbstractFormulaManager {
         }
       }
     } else {
-//      // this is a real bug, notify the user
-//      info = new CounterexampleTraceInfo(false);
+
+      // this is a real bug, notify the user
+      info = new CounterexampleTraceInfo(false);
 //      ConcreteTraceFunctionCalls cf = new ConcreteTraceFunctionCalls();
 //      for (PredicateAbstractionAbstractElement e : abstractTrace) {
 //        cf.add(e.getLocationNode().getFunctionName());
 //      }
 //      info.setConcreteTrace(cf);
-//      // TODO - reconstruct counterexample
-//      // For now, we dump the asserted formula to a user-specified file
-//      String cexPath = CPAMain.cpaConfig.getProperty(
-//      "cpas.symbpredabs.refinement.msatCexPath");
-//      if (cexPath != null) {
-//        long t = mathsat.api.msat_make_true(msatEnv);
-//        for (SymbolicFormula fm : f) {
-//          long term = ((MathsatSymbolicFormula)fm).getTerm();
-//          t = mathsat.api.msat_make_and(msatEnv, t, term);
-//        }
-//        String msatRepr = mathsat.api.msat_to_msat(msatEnv, t);
-//        try {
-//          PrintWriter pw = new PrintWriter(new File(cexPath));
-//          pw.println(msatRepr);
-//          pw.close();
-//        } catch (FileNotFoundException e) {
-//          LazyLogger.log(CustomLogLevel.INFO,
-//              "Failed to save msat Counterexample to file: ",
-//              cexPath);
-//        }
-//      }
+      // TODO - reconstruct counterexample
+      // For now, we dump the asserted formula to a user-specified file
+      String cexPath = CPAMain.cpaConfig.getProperty(
+      "cpas.symbpredabs.refinement.msatCexPath");
+      if (cexPath != null) {
+        long t = mathsat.api.msat_make_true(msatEnv);
+        for (SymbolicFormula fm : f) {
+          long term = ((MathsatSymbolicFormula)fm).getTerm();
+          t = mathsat.api.msat_make_and(msatEnv, t, term);
+        }
+        String msatRepr = mathsat.api.msat_to_msat(msatEnv, t);
+        try {
+          PrintWriter pw = new PrintWriter(new File(cexPath));
+          pw.println(msatRepr);
+          pw.close();
+        } catch (FileNotFoundException e) {
+          LazyLogger.log(CustomLogLevel.INFO,
+              "Failed to save msat Counterexample to file: ",
+              cexPath);
+        }
+      }
     }
 
     itpProver.reset();

@@ -93,7 +93,7 @@ public class CPAMain {
   (CFAFunctionDefinitionNode node) throws CPAException {
     ConfigurableProgramAnalysis compCpa = CompositeCPA.getCompositeCPA(node);
 
-    if(CPAMain.cpaConfig.getBooleanValue("analysis.useARTCPA")){
+    if(CPAMain.cpaConfig.getBooleanValue("cpa.useART")){
       return ARTCPA.getARTCPA(node, compCpa);
     }
     return compCpa; 
@@ -288,18 +288,18 @@ public class CPAMain {
       LazyLogger.log(Level.INFO, "CPA Algorithm starting ... ");
       cpaStats.startAnalysisTimer();
 
-      CPAAlgorithm algo = new CPAAlgorithm();
       AbstractElementWithLocation initialElement =
         cpa.getInitialElement(mainFunction);
       Precision initialPrecision =
         cpa.getInitialPrecision(mainFunction);
       ReachedElements reached;
-      if(CPAMain.cpaConfig.getBooleanValue("analysis.useARTCPA")){
+      CPAAlgorithm algo = new CPAAlgorithm(cpa, initialElement, initialPrecision);
+      if(CPAMain.cpaConfig.getBooleanValue("cpa.useART")){
         CPAWithRefinement cpaWRef = new CPAWithRefinement();
         reached = cpaWRef.CPAWithRefinementAlgorithm(cpa, initialElement, initialPrecision);
       }
       else{
-        reached = algo.CPA(cpa, initialElement, initialPrecision);
+        reached = algo.CPA();
       }
       cpaStats.stopAnalysisTimer();
 

@@ -32,7 +32,10 @@ import logging.CustomLogLevel;
 import logging.LazyLogger;
 import predicateabstraction.PredicateAbstractionAbstractFormulaManager;
 import cfa.objectmodel.CFAEdge;
+import cfa.objectmodel.CFAErrorNode;
 import cfa.objectmodel.CFANode;
+import cpa.common.CPAAlgorithm;
+import cpa.common.ErrorElement;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.Precision;
@@ -254,6 +257,15 @@ public class PredicateAbstractionTransferRelation implements TransferRelation {
         "Getting Abstract Successor of element: ", element,
         " on edge: ", cfaEdge.getRawStatement());
 
+//    System.out.println("---------------------------");
+//    System.out.println(cfaEdge);
+//    System.out.println("___________________________");
+    
+    if(cfaEdge.getSuccessor() instanceof CFAErrorNode){
+      CPAAlgorithm.errorFound = true;
+      return new ErrorElement(cfaEdge.getSuccessor());
+    }
+    
 //  if (!abstractTree.contains((AbstractElementWithLocation)element)) {
 //  ++numAbstractStates;
 //  }

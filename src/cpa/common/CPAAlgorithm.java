@@ -25,11 +25,8 @@ package cpa.common;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Vector;
 
 import logging.CustomLogLevel;
@@ -51,24 +48,30 @@ import exceptions.CPATransferException;
 
 public class CPAAlgorithm
 {
-  private final int GC_PERIOD = 100;
-  private int gcCounter = 0;
   private boolean useART = CPAMain.cpaConfig.getBooleanValue("cpa.useART");
   public static boolean errorFound;
 
-  public ReachedElements CPA (ConfigurableProgramAnalysis cpa, AbstractElementWithLocation initialState,
-      Precision initialPrecision) throws CPAException
-      {
-    errorFound = false;
-    List<Pair<AbstractElementWithLocation,Precision>> waitlist = new ArrayList<Pair<AbstractElementWithLocation,Precision>>();
-    ReachedElements reachedElements = new ReachedElements(cpa);
+  private List<Pair<AbstractElementWithLocation,Precision>> waitlist;
+  private ReachedElements reachedElements;
+  private AbstractElementWithLocation initialState;
+  private Precision initialPrecision;
 
-    LazyLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel, initialState,
-    " added as initial state to CPA");
+  private ConfigurableProgramAnalysis cpa;
 
+  public CPAAlgorithm(ConfigurableProgramAnalysis pCpa, AbstractElementWithLocation pInitialState,
+      Precision pInitialPrecision) {
+    cpa = pCpa;
+    waitlist = new ArrayList<Pair<AbstractElementWithLocation,Precision>>();
+    reachedElements = new ReachedElements(cpa);
+    initialState = pInitialState;
+    initialPrecision = pInitialPrecision;
     waitlist.add(new Pair<AbstractElementWithLocation,Precision>(initialState, initialPrecision));
     reachedElements.add(new Pair<AbstractElementWithLocation,Precision>(initialState, initialPrecision));
+  }
 
+  public ReachedElements CPA () throws CPAException
+  {
+    errorFound = false;
     TransferRelation transferRelation = cpa.getTransferRelation();
     MergeOperator mergeOperator = cpa.getMergeOperator();
     StopOperator stopOperator = cpa.getStopOperator();
@@ -90,14 +93,6 @@ public class CPAAlgorithm
       List<AbstractElementWithLocation> successors = null;
       try {
         successors = transferRelation.getAllAbstractSuccessors (element, precision);
-//      } catch (ErrorReachedException err) {
-//      System.out.println("Reached error state! Message is:");
-//      System.out.println(err.toString());
-//      return simpleReached;
-//      } catch (RefinementNeededException re) {
-//      doRefinement(reached, waitlist, re.getReachableToUndo(), re.getToWaitlist());
-//      //doRefinementForSymbAbst(initialState, initialPrecision, reached, waitlist, re.getReachableToUndo());
-//      continue;
       } catch (CPATransferException e1) {
         e1.printStackTrace();
         assert(false); // should not happen
@@ -183,18 +178,16 @@ public class CPAAlgorithm
 
           waitlist.add(new Pair<AbstractElementWithLocation,Precision>(successor,precision));
           reachedElements.add(new Pair<AbstractElementWithLocation,Precision>(successor,precision));
-          
+
           if(useART && errorFound){
             return reachedElements;
           }
-
         }
       }
-      //CPACheckerStatistics.noOfReachedSet = reached.size();
     }
 
     return reachedElements;
-      }
+  }
 
   private Pair<AbstractElementWithLocation,Precision> choose(List<Pair<AbstractElementWithLocation,Precision>> waitlist) {
 
@@ -222,124 +215,11 @@ public class CPAAlgorithm
     }
   }
 
-  private void doRefinement(Collection<Pair<AbstractElementWithLocation, Precision>> reached,
-      List<Pair<AbstractElementWithLocation, Precision>> waitlist,
-      Collection<AbstractElementWithLocation> reachableToUndo,
-      Collection<AbstractElementWithLocation> toWaitlist) {
-    List<Pair<AbstractElementWithLocation, Precision>> lToWaitlist = new ArrayList<Pair<AbstractElementWithLocation, Precision>>(toWaitlist.size());
-    Map<AbstractElementWithLocation, Pair<AbstractElementWithLocation, Precision>> lNewWaitToPrecision = new HashMap<AbstractElementWithLocation, Pair<AbstractElementWithLocation, Precision>>();
-
-    LazyLogger.log(CustomLogLevel.SpecificCPALevel,
-    "Performing refinement");
-    // remove from reached all the elements in reachableToUndo
-    Collection<Pair<AbstractElementWithLocation, Precision>> newreached =
-      new LinkedList<Pair<AbstractElementWithLocation, Precision>>();
-    for (Pair<AbstractElementWithLocation, Precision> e : reached) {
-
-      if (toWaitlist.contains(e.getFirst())) {
-        lNewWaitToPrecision.put(e.getFirst(), e);
-      }
-
-      if (!reachableToUndo.contains(e.getFirst())) {
-        newreached.add(e);
-      } else {
-        LazyLogger.log(CustomLogLevel.SpecificCPALevel,
-            "Removing element: ", e.getFirst(), " from reached");
-        if (waitlist.remove(e)) {
-          LazyLogger.log(CustomLogLevel.SpecificCPALevel,
-              "Removing element: ", e.getFirst(),
-          " also from waitlist");
-        }
-      }
-    }
-
-    for (AbstractElementWithLocation w : toWaitlist) {
-      if (lNewWaitToPrecision.containsKey(w)) {
-        lToWaitlist.add(lNewWaitToPrecision.get(w));
-      } else {
-        // TODO no precision information from toWaitlist available, setting to null
-        Pair<AbstractElementWithLocation, Precision> e = new Pair<AbstractElementWithLocation, Precision>(w, null);
-        lToWaitlist.add(e);
-        newreached.add(e);
-      }
-    }   
-
-    reached.clear();
-    reached.addAll(newreached);
-    LazyLogger.log(CustomLogLevel.SpecificCPALevel,
-        "Reached now is: ", newreached);
-    // and add to the wait list all the elements in toWaitlist
-    boolean useBfs = CPAMain.cpaConfig.getBooleanValue("analysis.bfs");
-
-    LazyLogger.log(CustomLogLevel.SpecificCPALevel, "Adding elements: ", lToWaitlist, " to waitlist");
-
-    if (useBfs) {
-      waitlist.addAll(lToWaitlist);
-    }
-    else {
-      waitlist.addAll(0, lToWaitlist);
-    }
-
-    LazyLogger.log(CustomLogLevel.SpecificCPALevel,
-        "Waitlist now is: ", waitlist);
-    LazyLogger.log(CustomLogLevel.SpecificCPALevel,
-    "Refinement done");
-
-    if ((++gcCounter % GC_PERIOD) == 0) {
-      System.gc();
-      gcCounter = 0;
-    }
+  public List<Pair<AbstractElementWithLocation, Precision>> getWaitlist() {
+    return waitlist;
   }
 
-  private void doRefinementForSymbAbst(AbstractElementWithLocation initialElement, Precision initialPrecision, 
-      Collection<Pair<AbstractElementWithLocation, Precision>> reached,
-      List<Pair<AbstractElementWithLocation, Precision>> waitlist,
-      Collection<AbstractElementWithLocation> reachableToUndo) {
-    LazyLogger.log(CustomLogLevel.SpecificCPALevel,
-    "Performing refinement");
-    // remove from reached all the elements in reachableToUndo
-//  Collection<AbstractElement> newreached =
-//  new LinkedList<AbstractElement>();
-//  for (AbstractElement e : reached) {
-//  CompositeElement compElem = (CompositeElement)e;
-//  if (!reachableToUndo.contains(compElem)) {
-//  newreached.add(compElem);
-//  } else {
-//  LazyLogger.log(CustomLogLevel.SpecificCPALevel,
-//  "Removing element: ", compElem, " from reached");
-//  if (waitlist.remove(compElem)) {
-//  LazyLogger.log(CustomLogLevel.SpecificCPALevel,
-//  "Removing element: ", compElem,
-//  " also from waitlist");
-//  }
-//  }
-//  }
-    reached.clear();
-//  reached.addAll(newreached);
-//  LazyLogger.log(CustomLogLevel.SpecificCPALevel,
-//  "Reached now is: ", newreached);
-    // and add to the wait list all the elements in toWaitlist
-//  boolean useBfs = CPAMain.cpaConfig.getBooleanValue("analysis.bfs");
-    //for (AbstractElement e : toWaitlist) {
-//  LazyLogger.log(CustomLogLevel.SpecificCPALevel,
-//  "Adding element: ", e, " to waitlist");
-//  if (useBfs) {
-//  // end to the end
-//  waitlist.add(e);
-//  } else {
-    // at to the first index
-    waitlist.clear();
-    waitlist.add(0, new Pair<AbstractElementWithLocation, Precision>(initialElement, initialPrecision));
-//  }
-    //}
-    LazyLogger.log(CustomLogLevel.SpecificCPALevel,
-        "Waitlist now is: ", waitlist);
-    LazyLogger.log(CustomLogLevel.SpecificCPALevel,
-    "Refinement done");
-
-    if ((++gcCounter % GC_PERIOD) == 0) {
-      System.gc();
-      gcCounter = 0;
-    }
+  public ReachedElements getReachedElements() {
+    return reachedElements;
   }
 }

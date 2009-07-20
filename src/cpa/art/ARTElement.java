@@ -93,7 +93,7 @@ public class ARTElement implements AbstractElementWithLocation {
   @Override
   public String toString() {
     String s = "";
-    s = s + "ART Element Id: " + elementId + "\n";
+    s = s + "ART Element Id: " + elementId + ", ";
     if(parentElement != null){
       s = s + "Parent Element's Id: " + getParent().elementId + "\n";
     }

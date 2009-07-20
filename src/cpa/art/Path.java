@@ -26,12 +26,12 @@ public class Path implements Iterable<Pair<AbstractElement, CFAEdge>>{
     String s = "";
 
     CFAEdge currentEdge = path.lastElement().getSecond();
-    int i = path.size();
-    while(currentEdge != null){
+    int i = path.size()-1;
+    do{
       s = s + currentEdge + "\n";
       i--;
       currentEdge = path.get(i).getSecond(); 
-    }
+    } while(currentEdge != null);
     return s;
   }
 

@@ -28,8 +28,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.Vector;
 
 import logging.CustomLogLevel;
@@ -46,10 +44,10 @@ import common.Pair;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
-import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
+import cpa.common.interfaces.RefinableCPA;
 import cpa.common.interfaces.RefinementManager;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
@@ -74,7 +72,7 @@ import cpaplugin.CPAStatistics;
  *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
-public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis {
+public class PredicateAbstractionCPA implements RefinableCPA {
 
     private final PredicateAbstractionAbstractDomain domain;
     private final PredicateAbstractionTransferRelation trans;
@@ -83,11 +81,8 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis {
     private final PrecisionAdjustment precisionAdjustment;
     private final MathsatSymbolicFormulaManager mgr;
     private final BDDMathsatPredicateAbstractionAbstractManager amgr;
-    //private final PredicateAbstractionRefinementManager refinementManager;
+    private final PredicateAbstractionRefinementManager refinementManager;
     private PredicateMap pmap;
-
-    // covering relation
-    //private final Map<ExplicitAbstractElement, Set<ExplicitAbstractElement>> covers;
 
     private final PredicateAbstractionCPAStatistics stats;
 
@@ -97,7 +92,6 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis {
         merge = new PredicateAbstractionMergeOperator();
         stop = new PredicateAbstractionStopOperator(domain);
         precisionAdjustment = new PredicateAbstractionPrecisionAdjustment();
-        //refinementManager = new PredicateAbstractionRefinementManager();
         mgr = new MathsatSymbolicFormulaManager();
         String whichProver = CPAMain.cpaConfig.getProperty(
                 "cpas.symbpredabs.explicit.abstraction.solver", "mathsat");
@@ -143,6 +137,7 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis {
             pmap = new UpdateablePredicateMap(preds);
         }
 
+        refinementManager = new PredicateAbstractionRefinementManager(this);
         stats = new PredicateAbstractionCPAStatistics(this);
     }
 
@@ -213,6 +208,11 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis {
 
     public PredicateMap getPredicateMap() {
         return pmap;
+    }
+
+    @Override
+    public RefinementManager getRefinementManager() {
+      return refinementManager;
     }
 
 //    public void setCovered(PredicateAbstractionAbstractElement e1) {

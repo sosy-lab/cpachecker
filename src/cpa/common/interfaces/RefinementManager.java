@@ -2,9 +2,10 @@ package cpa.common.interfaces;
 
 import cpa.art.Path;
 import cpa.common.ReachedElements;
+import cpa.common.RefinementOutcome;
 
 public interface RefinementManager {
   
-  boolean performRefinement(ReachedElements pReached, Path pPath);
+  RefinementOutcome performRefinement(ReachedElements pReached, Path pPath);
 
 }

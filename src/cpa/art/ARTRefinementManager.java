@@ -1,8 +1,11 @@
 package cpa.art;
 
+import common.Pair;
+
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFANode;
 import cpa.common.ReachedElements;
+import cpa.common.RefinementOutcome;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.RefinableCPA;
@@ -19,7 +22,7 @@ public class ARTRefinementManager implements RefinementManager {
   }
 
   @Override
-  public boolean performRefinement(ReachedElements pReached, Path pPath) {
+  public RefinementOutcome performRefinement(ReachedElements pReached, Path pPath) {
     
     AbstractElement lastElement = pReached.getLastElement();
     
@@ -34,15 +37,17 @@ public class ARTRefinementManager implements RefinementManager {
     Path path = new Path();
 
     ARTElement currentARTElement = lastARTElement;
+    // add the error node and its -first- outgoing edge
+    // that edge is not important so we pick the first even
+    // if there are more outgoing edges
+    CFAEdge lastEdge = lastARTElement.getLocationNode().getLeavingEdge(0);
+    path.addToPathAsFirstElem(currentARTElement, lastEdge);
     while(currentARTElement != null){
-      AbstractElementWithLocation currentWrappedElement = currentARTElement.getAbstractElementOnArtNode();
-      CFANode currentNode = currentWrappedElement.getLocationNode();
+      CFANode currentNode = currentARTElement.getLocationNode();
       ARTElement parentElement = currentARTElement.getParent();
-      AbstractElementWithLocation parentWrappedElement;
       CFANode parentNode = null;
       if(parentElement != null){
-        parentWrappedElement = parentElement.getAbstractElementOnArtNode();
-        parentNode = parentWrappedElement.getLocationNode();
+        parentNode = parentElement.getLocationNode();
       }
       else{
         parentElement = null;
@@ -53,13 +58,11 @@ public class ARTRefinementManager implements RefinementManager {
         CFAEdge edge = currentNode.getEnteringEdge(i);
         if(edge.getPredecessor().equals(parentNode)){
           foundEdge = edge;
+          path.addToPathAsFirstElem(currentARTElement, foundEdge);
           break;
         }
       }
-
-      path.addToPathAsFirstElem(currentWrappedElement, foundEdge);
       currentARTElement = parentElement;
-      System.out.println(currentARTElement);
     }
 
     return wrappedRefinementManager.performRefinement(pReached, path);

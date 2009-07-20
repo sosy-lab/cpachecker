@@ -14,7 +14,7 @@ int main(void){
   c = b;
   a = c - 1;
   
-  if(a == 5){
+  if(a == 4){
   errorFn();
   }
   return (0);
