@@ -68,7 +68,6 @@ import cpa.art.ARTCPA;
 import cpa.common.CPAAlgorithm;
 import cpa.common.CPAWithRefinement;
 import cpa.common.ReachedElements;
-import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;

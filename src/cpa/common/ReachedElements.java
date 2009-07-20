@@ -3,14 +3,12 @@ package cpa.common;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Set;
 
 import cmdline.CPAMain;
 
 import common.LocationMappedReachedSet;
 import common.Pair;
 
-import cpa.art.ARTElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;

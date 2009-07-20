@@ -216,13 +216,13 @@ implements AbstractElement {
     BDDAbstractFormula abst = (BDDAbstractFormula)getAbstraction();
     SymbolicFormula symbReprAbst = domain.getCPA().getAbstractFormulaManager().toConcrete(domain.getCPA().getSymbolicFormulaManager(), abst);
     return
-    //" Abstraction LOCATION: " + getAbstractionLocation() +
-    //" PF: "+ getPathFormula().getSymbolicFormula() +
-    //" Abstraction: " + symbReprAbst +
-    //" Init Formula--> " + (getInitAbstractionFormula() != null ? getInitAbstractionFormula().getSymbolicFormula() : "null")  +
-    //" Parents --> " + abstractionPathList + 
-    //" ART Parent --> " + getArtParent() + 
-    //"\n \n" +
+    " Abstraction LOCATION: " + getAbstractionLocation() +
+    " PF: "+ getPathFormula().getSymbolicFormula() +
+    " Abstraction: " + symbReprAbst +
+    " Init Formula--> " + (getInitAbstractionFormula() != null ? getInitAbstractionFormula().getSymbolicFormula() : "null")  +
+    " Parents --> " + abstractionPathList + 
+    " ART Parent --> " + getArtParent() + 
+    "\n \n" +
     "";
     //+ ">(" + Integer.toString(getId()) + ")"
   }

@@ -33,7 +33,6 @@ import logging.LazyLogger;
 import predicateabstraction.PredicateAbstractionAbstractFormulaManager;
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAErrorNode;
-import cfa.objectmodel.CFANode;
 import cpa.common.CPAAlgorithm;
 import cpa.common.ErrorElement;
 import cpa.common.interfaces.AbstractElement;

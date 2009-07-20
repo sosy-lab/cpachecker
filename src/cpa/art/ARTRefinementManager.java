@@ -1,13 +1,10 @@
 package cpa.art;
 
-import common.Pair;
-
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFANode;
 import cpa.common.ReachedElements;
 import cpa.common.RefinementOutcome;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.RefinableCPA;
 import cpa.common.interfaces.RefinementManager;
 
