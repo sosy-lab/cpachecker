@@ -1,11 +1,9 @@
 package cpa.predicateabstraction;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
@@ -114,7 +112,7 @@ public class PredicateAbstractionRefinementManager implements RefinementManager 
         }
       }
     }
-    // TODO fix here
+    // TODO check
 //  Path pth = new Path(path);
     Vector<Integer> pth = arrayToVector(pPathArray);
     int alreadySeen = 0;
@@ -154,8 +152,7 @@ public class PredicateAbstractionRefinementManager implements RefinementManager 
     assert(root != null);
     Collection<ARTElement> toWaitlist = new HashSet<ARTElement>();
     toWaitlist.add(root);
-    Collection<ARTElement> toUnreach =
-      getSubtree(pReached, root);
+    Collection<ARTElement> toUnreach = root.getSubtree();
     if (cur != null) {
       // we don't want to unreach elements that were covered before
       // reaching the error!
@@ -171,7 +168,6 @@ public class PredicateAbstractionRefinementManager implements RefinementManager 
     }
 
 //  ARTCPA cpa = domain.getCPA();
-    // TODO move to art refinement manager
     for (ARTElement ae : toUnreach) {
       if (ae.isCovered()) {
         ae.setCovered(false);
@@ -202,25 +198,6 @@ public class PredicateAbstractionRefinementManager implements RefinementManager 
 //  LazyLogger.log(LazyLogger.DEBUG_1, "REFINEMENT - toUnreach: ",
 //  toUnreach);
 //  throw new RefinementNeededException(toUnreach, toWaitlist);
-  }
-
-  private Collection<ARTElement> getSubtree(ReachedElements pReached,
-      ARTElement pRoot) {
-
-    List<ARTElement> ret = new ArrayList<ARTElement>();
-    List<ARTElement> workList = new ArrayList<ARTElement>();
-
-    workList.add(pRoot);
-
-    while(workList.size() > 0){
-      ARTElement currentElement = workList.remove(0);
-      ret.add(currentElement);
-      List<ARTElement> childrenOfCurrentElement = currentElement.getChildren();
-      workList.addAll(childrenOfCurrentElement);
-    }
-
-    return ret;
-
   }
 
   private Vector<Integer> arrayToVector(

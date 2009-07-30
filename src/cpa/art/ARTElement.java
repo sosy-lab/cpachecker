@@ -1,18 +1,24 @@
 package cpa.art;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import cfa.objectmodel.CFANode;
 import cpa.common.interfaces.AbstractDomain;
+import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
+import cpa.common.interfaces.AbstractWrapperElement;
 
-public class ARTElement implements AbstractElementWithLocation {
+public class ARTElement implements AbstractElementWithLocation, AbstractWrapperElement{
 
   private AbstractElementWithLocation element;
   private ARTElement parentElement;
   private List<ARTElement> children;
 
+  // second parent is used for joining elements
+  private ARTElement secondParent = null;
+  
   private int elementId;
   private static int nextArtElementId= 0;
 
@@ -38,6 +44,14 @@ public class ARTElement implements AbstractElementWithLocation {
 
   public ARTElement getParent(){
     return parentElement;
+  }
+  
+  public ARTElement getSecondParent(){
+    return secondParent;
+  }
+  
+  public void addSecondParent(ARTElement pSecondParent){
+    secondParent = pSecondParent;
   }
   
   public List<ARTElement> getChildren(){
@@ -130,5 +144,31 @@ public class ARTElement implements AbstractElementWithLocation {
       s = s + node.toString() + "\n";
     }
     return s;
+  }
+
+  @Override
+  public AbstractElement retrieveElementOfType(String pElementClass) {
+    if(element.getClass().getSimpleName().equals(pElementClass)){
+      return element;
+    }
+    else{
+      return ((AbstractWrapperElement)element).retrieveElementOfType(pElementClass);
+    }
+  }
+
+  // TODO check
+  public Collection<ARTElement> getSubtree() {
+      List<ARTElement> ret = new ArrayList<ARTElement>();
+      List<ARTElement> workList = new ArrayList<ARTElement>();
+
+      workList.add(this);
+
+      while(workList.size() > 0){
+        ARTElement currentElement = workList.remove(0);
+        ret.add(currentElement);
+        List<ARTElement> childrenOfCurrentElement = currentElement.getChildren();
+        workList.addAll(childrenOfCurrentElement);
+      }
+      return ret;
   }
 }

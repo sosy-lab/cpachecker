@@ -887,7 +887,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
             } catch (NumberFormatException nfe) {
                 long l = Long.parseLong(num);
                 if (l < 0) {
-                    num = Long.toString((long)Integer.MAX_VALUE + l);
+                    num = Long.toString(Integer.MAX_VALUE + l);
                 } else {
                     num = Long.toString(l - ((long)Integer.MAX_VALUE + 1)*2);
                 }

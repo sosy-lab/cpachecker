@@ -27,6 +27,7 @@ import java.util.List;
 
 import symbpredabstraction.AbstractionPathList;
 import symbpredabstraction.PathFormula;
+import cfa.objectmodel.CFAErrorNode;
 import cfa.objectmodel.CFANode;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
@@ -133,8 +134,8 @@ implements AbstractElement {
   }
 
   public SymbPredAbsAbstractElement(AbstractDomain d, boolean isAbstractionElement, CFANode abstLoc,
-                                    PathFormula pf, List<Integer> pfParentsList, PathFormula initFormula, AbstractFormula a, 
-                                    AbstractionPathList pl, SymbPredAbsAbstractElement artParent, PredicateMap pmap){
+      PathFormula pf, List<Integer> pfParentsList, PathFormula initFormula, AbstractFormula a, 
+      AbstractionPathList pl, SymbPredAbsAbstractElement artParent, PredicateMap pmap){
     this.elementId = nextAvailableId++;
     this.domain = (SymbPredAbsAbstractDomain)d;
     this.isAbstractionNode = isAbstractionElement;
@@ -214,15 +215,17 @@ implements AbstractElement {
   @Override
   public String toString() {
     BDDAbstractFormula abst = (BDDAbstractFormula)getAbstraction();
-    SymbolicFormula symbReprAbst = domain.getCPA().getAbstractFormulaManager().toConcrete(domain.getCPA().getSymbolicFormulaManager(), abst);
+    SymbolicFormula  symbReprAbst = null;
+    if(abst != null){
+      symbReprAbst = domain.getCPA().getAbstractFormulaManager().toConcrete(domain.getCPA().getSymbolicFormulaManager(), abst);
+    }
     return
-    " Abstraction LOCATION: " + getAbstractionLocation() +
-    " PF: "+ getPathFormula().getSymbolicFormula() +
-    " Abstraction: " + symbReprAbst +
-    " Init Formula--> " + (getInitAbstractionFormula() != null ? getInitAbstractionFormula().getSymbolicFormula() : "null")  +
-    " Parents --> " + abstractionPathList + 
-    " ART Parent --> " + getArtParent() + 
-    "\n \n" +
+    " Abstraction LOCATION: " + getAbstractionLocation() + ((getAbstractionLocation() instanceof CFAErrorNode) ? " {ERROR NODE}" : "") +
+//  " PF: "+ getPathFormula().getSymbolicFormula() +
+//  " Abstraction: " + symbReprAbst  +
+//  " Init Formula--> " + (getInitAbstractionFormula() != null ? getInitAbstractionFormula().getSymbolicFormula() : "null")  +
+//  " Parents --> " + abstractionPathList + 
+    " ART Parent --> " + (getArtParent() != null ? getArtParent().getAbstractionLocation().toString() : "NULL")+ 
     "";
     //+ ">(" + Integer.toString(getId()) + ")"
   }

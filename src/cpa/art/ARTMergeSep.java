@@ -13,14 +13,13 @@ public class ARTMergeSep implements MergeOperator {
       AbstractElementWithLocation pElement1,
       AbstractElementWithLocation pElement2, Precision pPrecision)
   throws CPAException {
-    // TODO for now we only use ARTCPA when we do not join
     return pElement2;
   }
 
   @Override
   public AbstractElement merge(AbstractElement pElement1,
       AbstractElement pElement2, Precision pPrecision) throws CPAException {
-    // TODO for now we only use ARTCPA when we do not join
+    assert(false);
     return pElement2;
   }
 

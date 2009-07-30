@@ -47,10 +47,11 @@ import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cmdline.CPAMain;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
+import cpa.common.interfaces.RefinableCPA;
+import cpa.common.interfaces.RefinementManager;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
 import cpa.symbpredabs.AbstractFormula;
@@ -76,13 +77,14 @@ import cpaplugin.CPAStatistics;
  * @author Erkan
  *
  */
-public class SymbPredAbsCPA implements ConfigurableProgramAnalysis {
+public class SymbPredAbsCPA implements RefinableCPA {
 
   private SymbPredAbsAbstractDomain domain;
   private SymbPredAbsTransferRelation transfer;
   private SymbPredAbsMergeOperator merge;
   private SymbPredAbsStopOperator stop;
   private PrecisionAdjustment precisionAdjustment;
+  private SymbPredAbsRefinementManager refinementManager;
   private MathsatSymbolicFormulaManager symbolicFormulaManager;
   private BDDMathsatSymbPredAbstractionAbstractManager abstractFormulaManager;
   private Map<SymbPredAbsAbstractElement, Set<SymbPredAbsAbstractElement>> covers;
@@ -136,6 +138,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis {
     }
 
     stats = new SymbPredAbsCPAStatistics(this);
+    refinementManager = new SymbPredAbsRefinementManager(this);
   }
 
   public SymbPredAbsCPA(String s1, String s2) {
@@ -237,5 +240,10 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis {
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
     return precisionAdjustment;
+  }
+
+  @Override
+  public RefinementManager getRefinementManager() {
+    return refinementManager;
   }
 }

@@ -24,9 +24,7 @@
 package cpa.explicit;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
@@ -59,6 +57,13 @@ public class ExplicitAnalysisDomain implements AbstractDomain {
       ExplicitAnalysisElement explicitAnalysisElementNew = (ExplicitAnalysisElement) newElement;
       ExplicitAnalysisElement explicitAnalysisElementReached = (ExplicitAnalysisElement) reachedElement;
 
+      System.out.println("===============");
+      System.out.println(explicitAnalysisElementNew);
+      System.out.println("---------------");
+      System.out.println(explicitAnalysisElementReached);
+      System.out.println("===============");
+      System.exit(0);
+      
       if (explicitAnalysisElementNew == bottomElement) {
         return true;
       } else if (explicitAnalysisElementReached == topElement) {
@@ -102,42 +107,32 @@ public class ExplicitAnalysisDomain implements AbstractDomain {
       Map<String, Integer> constantsMap1 = explicitAnalysisElement1.getConstantsMap();
       Map<String, Integer> constantsMap2 = explicitAnalysisElement2.getConstantsMap();
 
-      Map<String, Integer> noOfReferencesMap1 = explicitAnalysisElement1.getNoOfReferences();
-      Map<String, Integer> noOfReferencesMap2 = explicitAnalysisElement2.getNoOfReferences();
-
-      Set<String> forgottenVariables1 = explicitAnalysisElement1.getForgottenVariables();
-      Set<String> forgottenVariables2 = explicitAnalysisElement2.getForgottenVariables();
-
-      Map<String, Integer> newConstantsMap = new HashMap<String, Integer>(constantsMap1);
-      Map<String, Integer> newNoOfReferencesMap = new HashMap<String, Integer>(noOfReferencesMap1);
-      Set<String> newForgottenVariables = new HashSet<String>(forgottenVariables1);
-
+      Map<String, Integer> referencesMap1 = explicitAnalysisElement1.getNoOfReferences();
+      Map<String, Integer> referencesMap2 = explicitAnalysisElement2.getNoOfReferences();
+      
+      Map<String, Integer> newConstantsMap = new HashMap<String, Integer>();
+      Map<String, Integer> newReferencesMap = new HashMap<String, Integer>();
+      
       for(String key:constantsMap2.keySet()){
-        if(newConstantsMap.containsKey(key)){
-          if(newConstantsMap.get(key) != constantsMap2.get(key)){
-            newConstantsMap.remove(key);
-            newNoOfReferencesMap.remove(key);
-            newForgottenVariables.add(key);
-          } else {
-            // this number is probably not correct, but we don't know better
-            newNoOfReferencesMap.put(key, Math.max(noOfReferencesMap1.get(key), noOfReferencesMap2.get(key)));
+        // if there is the same variable
+        if(constantsMap1.containsKey(key)){
+          // if they have different values
+          if(constantsMap1.get(key) != constantsMap2.get(key)){
+            newReferencesMap.put(key, Math.max(referencesMap1.get(key), referencesMap2.get(key)));
+          }
+          // if values are the same
+          else{
+            newConstantsMap.put(key, constantsMap1.get(key));
+           newReferencesMap.put(key, Math.max(referencesMap1.get(key), referencesMap2.get(key)));
           }
         }
+        // if there first map does not contain the variable
         else {
-          if (!forgottenVariables1.contains(key)) {
-            newConstantsMap.put(key, constantsMap2.get(key));
-            newNoOfReferencesMap.put(key, noOfReferencesMap2.get(key));
-          }
+          newReferencesMap.put(key, referencesMap2.get(key));
         }
       }
-      for (String key:forgottenVariables2) {
-        if (newConstantsMap.containsKey(key)) {
-          newConstantsMap.remove(key);
-          newNoOfReferencesMap.remove(key);
-        }
-        newForgottenVariables.add(key);
-      }
-      return new ExplicitAnalysisElement(newConstantsMap, newNoOfReferencesMap, newForgottenVariables);
+
+      return new ExplicitAnalysisElement(newConstantsMap, newReferencesMap);
     }
   }
 

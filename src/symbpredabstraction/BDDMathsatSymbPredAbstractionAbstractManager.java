@@ -261,12 +261,12 @@ implements SymbPredAbstFormulaManager
   private boolean dumpHardAbstractions;
 
   public BDDMathsatSymbPredAbstractionAbstractManager(TheoremProver prover,
-                                                      InterpolatingTheoremProver interpolator) 
+      InterpolatingTheoremProver interpolator) 
   {
     super();
     stats = new Stats();
 //  abstractionTranslationCache =
-//  new HashMap<Pair<CFANode, CFANode>,
+//new HashMap<Pair<CFANode, CFANode>,
 //  Pair<MathsatSymbolicFormula, SSAMap>>();
     dumpHardAbstractions = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.mathsat.dumpHardAbstractionQueries");
     thmProver = prover;
@@ -288,11 +288,11 @@ implements SymbPredAbstFormulaManager
 
   @Override
   public AbstractFormula buildAbstraction(SymbolicFormulaManager mgr,
-                                          AbstractFormula abs, PathFormula pathFormula,
-                                          Collection<Predicate> predicates, MathsatSymbolicFormula functionExitFormula) {
+      AbstractFormula abs, PathFormula pathFormula,
+      Collection<Predicate> predicates, MathsatSymbolicFormula functionExitFormula) {
     stats.numCallsAbstraction++;
     if (CPAMain.cpaConfig.getBooleanValue(
-    "cpas.symbpredabs.abstraction.cartesian")) {
+        "cpas.symbpredabs.abstraction.cartesian")) {
       return buildCartesianAbstraction(mgr, abs, pathFormula, predicates, functionExitFormula);
     } else {
       return buildBooleanAbstraction(mgr, abs, pathFormula, predicates, functionExitFormula);
@@ -301,19 +301,19 @@ implements SymbPredAbstFormulaManager
   }
 
   private AbstractFormula buildCartesianAbstraction(
-                                                    SymbolicFormulaManager pMgr,
-                                                    AbstractFormula pAbs,
-                                                    PathFormula pPathFormula,
-                                                    Collection<Predicate> pPredicates,
-                                                    MathsatSymbolicFormula pFunctionExitFormula) {
+      SymbolicFormulaManager pMgr,
+      AbstractFormula pAbs,
+      PathFormula pPathFormula,
+      Collection<Predicate> pPredicates,
+      MathsatSymbolicFormula pFunctionExitFormula) {
     // TODO put impl. later, or maybe not, we don't really use
     assert(false);
     return null;
   }
 
   private AbstractFormula buildBooleanAbstraction(SymbolicFormulaManager mgr,
-                                                  AbstractFormula abs, PathFormula pathFormula,
-                                                  Collection<Predicate> predicates, MathsatSymbolicFormula functionExitFormula) {
+      AbstractFormula abs, PathFormula pathFormula,
+      Collection<Predicate> predicates, MathsatSymbolicFormula functionExitFormula) {
     // A SummaryFormulaManager for MathSAT formulas
     MathsatSymbolicFormulaManager mmgr = (MathsatSymbolicFormulaManager)mgr;
 
@@ -522,9 +522,8 @@ implements SymbPredAbstFormulaManager
   }
 
   @Override
-  public CounterexampleTraceInfo buildCounterexampleTrace(
-                                                          SymbolicFormulaManager mgr,
-                                                          Deque<SymbPredAbsAbstractElement> abstractTrace) {
+  public CounterexampleTraceInfo buildCounterexampleTrace(SymbolicFormulaManager mgr,
+      Deque<SymbPredAbsAbstractElement> abstractTrace) {
     assert(abstractTrace.size() > 1);
 
     long startTime = System.currentTimeMillis();

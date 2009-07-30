@@ -34,7 +34,6 @@ import predicateabstraction.PredicateAbstractionAbstractFormulaManager;
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAErrorNode;
 import cpa.common.CPAAlgorithm;
-import cpa.common.ErrorElement;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.Precision;
@@ -262,7 +261,7 @@ public class PredicateAbstractionTransferRelation implements TransferRelation {
     
     if(cfaEdge.getSuccessor() instanceof CFAErrorNode){
       CPAAlgorithm.errorFound = true;
-      return new ErrorElement(cfaEdge.getSuccessor());
+      return new PredicateAbstractionAbstractElement();
     }
     
 //  if (!abstractTree.contains((AbstractElementWithLocation)element)) {

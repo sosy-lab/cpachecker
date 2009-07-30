@@ -55,6 +55,7 @@ public class CPAWithRefinement {
 
         if(stopAnalysis){
           System.out.println("ERROR FOUND");
+          System.out.println("_______________________");
         }
         else{
           modifySets(algo, refout.getToUnreach(), refout.getToWaitlist());

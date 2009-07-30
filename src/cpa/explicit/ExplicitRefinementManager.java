@@ -13,7 +13,6 @@ public class ExplicitRefinementManager implements RefinementManager {
     // we do not perform refinement
     // we just report an error
     CPAAlgorithm.errorFound = true;
-    System.out.println(pPath);
     return new RefinementOutcome();
   }
   

@@ -23,17 +23,16 @@
  */
 package cfa.objectmodel.c;
 
-import java.util.List;
-
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
-
-import compositeCPA.CompositeElement;
 
 import cfa.objectmodel.AbstractCFAEdge;
 import cfa.objectmodel.CFAEdgeType;
 import cfa.objectmodel.CFANode;
 
+import compositeCPA.CompositeElement;
+
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.AbstractWrapperElement;
 
 public class CallToReturnEdge extends AbstractCFAEdge {
 
@@ -71,14 +70,8 @@ public class CallToReturnEdge extends AbstractCFAEdge {
 	}
 
 	public AbstractElement extractAbstractElement(String elementName){
-		CompositeElement compElem = (CompositeElement) abstractElement;
-		List<AbstractElement> compElems = compElem.getElements();
-		for(AbstractElement item:compElems){
-			if(item.getClass().getSimpleName().equals(elementName)){
-				return item;
-			}
-		}
-		return null;
+		AbstractWrapperElement wrappedElem = (CompositeElement) abstractElement;
+		return wrappedElem.retrieveElementOfType(elementName);
 	}
 
   /**

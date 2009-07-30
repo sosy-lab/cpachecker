@@ -4,14 +4,14 @@ import cpa.common.interfaces.Precision;
 
 public class ARTPrecision implements Precision {
   
-  private Precision prec;
+  private Precision wrappedPrec;
   
-  public ARTPrecision(Precision precision) {
-    prec = precision;
+  public ARTPrecision(Precision pWrappedPrec) {
+    wrappedPrec = pWrappedPrec;
   }
   
   public Precision getPrecision(){
-    return prec;
+    return wrappedPrec;
   }
 
 }

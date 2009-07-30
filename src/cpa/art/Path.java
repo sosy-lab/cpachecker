@@ -48,4 +48,11 @@ public class Path implements Iterable<Pair<AbstractElement, CFAEdge>>{
     return path.iterator();
   }
   
+  public Pair<AbstractElement, CFAEdge> firstElement(){
+    return path.firstElement();
+  }
+
+  public Pair<AbstractElement, CFAEdge> lastElement() {
+    return path.lastElement();
+  }
 }

@@ -1,10 +1,16 @@
 package cpa.art;
 
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Queue;
 import java.util.Set;
 
 import cfa.objectmodel.CFAFunctionDefinitionNode;
+import cfa.objectmodel.CFANode;
+import cmdline.CPAMain;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
@@ -27,7 +33,7 @@ public class ARTCPA implements RefinableCPA {
   private PrecisionAdjustment precisionAdjustment;
   private RefinementManager refinementManager; 
   private RefinableCPA wrappedCPA;
-  
+
   private Set<ARTElement> covered;
   private ARTElement root;
 
@@ -41,7 +47,7 @@ public class ARTCPA implements RefinableCPA {
       mergeOperator = new ARTMergeSep();
     }
     else if(mergeType.equals("join")){
-      throw new CPAException("Location domain elements cannot be joined");
+      mergeOperator = new ARTMergeJoin(wrappedCPA);
     }
     if(stopType.equals("sep")){
       stopOperator = new ARTStopSep(abstractDomain, wrappedCPA);
@@ -76,7 +82,7 @@ public class ARTCPA implements RefinableCPA {
   public PrecisionAdjustment getPrecisionAdjustment () {
     return precisionAdjustment;
   }
-  
+
   public void setCovered(ARTElement e1) {
     covered.add(e1);        
   }
@@ -100,12 +106,21 @@ public class ARTCPA implements RefinableCPA {
     return new ARTPrecision(wrappedCPA.getInitialPrecision(pNode));
   }
 
+  public RefinableCPA getWrappedCPA(){
+    return wrappedCPA;
+  }
+
   public static ConfigurableProgramAnalysis getARTCPA 
   (CFAFunctionDefinitionNode node, ConfigurableProgramAnalysis cpa) throws CPAException{
-    // TODO we assume that we always use sep-sep for merge and join
-    // and wrapped CPA is refinable
     assert(cpa instanceof RefinableCPA);
-    return new ARTCPA("sep", "sep", (RefinableCPA)cpa);
+    String[] mergeTypesArray = CPAMain.cpaConfig.getPropertiesArray("analysis.mergeOperators");
+    ArrayList<String> mergeTypes = new ArrayList<String>(Arrays.asList(mergeTypesArray));
+    if(mergeTypes.contains("join")){
+      return new ARTCPA("join", "sep", (RefinableCPA)cpa);
+    }
+    else{
+      return new ARTCPA("sep", "sep", (RefinableCPA)cpa);
+    }
   }
 
   @Override
@@ -116,9 +131,29 @@ public class ARTCPA implements RefinableCPA {
   public ARTElement getRoot() {
     return root;
   }
-  
+
   public void setRoot(ARTElement pRoot){
     root = pRoot;
+  }
+
+  public ARTElement findHighest(CFANode pLoc) {
+    if (root == null) return null;
+
+    Queue<ARTElement> toProcess =
+        new ArrayDeque<ARTElement>();
+    toProcess.add(root);
+
+    while (!toProcess.isEmpty()) {
+      ARTElement e = toProcess.remove();
+        if (e.getLocationNode().equals(pLoc)) {
+            return e;
+        }
+        if (e.getChildren().size() > 0) {
+            toProcess.addAll(e.getChildren());
+        }
+    }
+    System.out.println("ERROR, NOT FOUND: " + pLoc);
+    return root;
   }
 
 }
