@@ -1,0 +1,83 @@
+Index: src/cmdline/stubs/StubCodeReaderFactory.java
+===================================================================
+--- src/cmdline/stubs/StubCodeReaderFactory.java	(revision 667)
++++ src/cmdline/stubs/StubCodeReaderFactory.java	(working copy)
+@@ -27,7 +27,6 @@
+ 
+ import org.eclipse.cdt.core.dom.CDOM;
+ import org.eclipse.cdt.core.dom.ICodeReaderFactory;
+-import org.eclipse.cdt.core.dom.IMacroCollector;
+ import org.eclipse.cdt.core.model.ITranslationUnit;
+ import org.eclipse.cdt.core.parser.CodeReader;
+ import org.eclipse.cdt.core.parser.ICodeReaderCache;
+@@ -80,9 +79,11 @@
+     /* (non-Javadoc)
+      * @see org.eclipse.cdt.core.dom.ICodeReaderFactory#createCodeReaderForInclusion(org.eclipse.cdt.core.dom.ICodeReaderFactoryCallback, java.lang.String)
+      */
++/* Commented out because CDT 6.0 has no IMacroCollector
+     public CodeReader createCodeReaderForInclusion(IMacroCollector scanner, String path) {
+         return cache.get(path);
+     }
++*/
+ 
+     /* (non-Javadoc)
+      * @see org.eclipse.cdt.core.dom.ICodeReaderFactory#createCodeReaderForInclusion(java.lang.String)
+Index: src/cmdline/stubs/StubFile.java
+===================================================================
+--- src/cmdline/stubs/StubFile.java	(revision 667)
++++ src/cmdline/stubs/StubFile.java	(working copy)
+@@ -635,4 +635,16 @@
+ 		return false;
+ 	}
+ 
++
++  public boolean isHidden(int pArg0) {
++    // TODO added for CDT 6.0 compatibility
++    return false;
++  }
++
++
++  public boolean isTeamPrivateMember(int pArg0) {
++    // TODO added for CDT 6.0 compatibility
++    return false;
++  }
++
+ }
+Index: src/cmdline/stubs/StubPath.java
+===================================================================
+--- src/cmdline/stubs/StubPath.java	(revision 667)
++++ src/cmdline/stubs/StubPath.java	(working copy)
+@@ -229,4 +229,10 @@
+ 		return null;
+ 	}
+ 
++  @Override
++  public IPath makeRelativeTo(IPath pArg0) {
++    // TODO added for CDT 6.0 compatibility
++    return null;
++  }
++
+ }
+Index: src/cmdline/stubs/StubProject.java
+===================================================================
+--- src/cmdline/stubs/StubProject.java	(revision 667)
++++ src/cmdline/stubs/StubProject.java	(working copy)
+@@ -726,4 +726,18 @@
+ 		return false;
+ 	}
+ 
++
++  @Override
++  public boolean isHidden(int pArg0) {
++    // TODO added for CDT 6.0 compatibility
++    return false;
++  }
++
++
++  @Override
++  public boolean isTeamPrivateMember(int pArg0) {
++    // TODO added for CDT 6.0 compatibility
++    return false;
++  }
++
+ }
