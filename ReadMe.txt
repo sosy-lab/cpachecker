@@ -1,7 +1,7 @@
 CPAchecker Installation Requirements
 
 Requirements for executing CPAchecker:
-1. Sources have to be preprocessed by CIL.
+0. Sources have to be preprocessed by CIL.
    Necessary flags: 
    --printCilAsIs
 
@@ -11,15 +11,14 @@ Requirements for building CPAchecker:
    Or contact Michael Tautschnig <tautschnig@forsyte.de> to
    obtain patches to make it work and compile with 1.5
    (may show degraded performance, though).
-2. Install Eclipse 3.3 or 3.4
+2. Install Eclipse 3.3, 3.4 or 3.5
    http://www.eclipse.org/
    You need the JDT and the "Eclipse Plug-in Development Environment" package (PDE).
-3. Install C/C++ Development Kit (platform and sdk) 4.0.3 or lower (LOWER).
+3. Install the C/C++ Development Kit for your Eclipse version
+   (tested with CDT 4.0 and CDT 6.0).   
    Or contact Michael Tautschnig <tautschnig@forsyte.de> to
    obtain patches to make it work with CDT 5
-   You need only the "Eclipse C/C++ Development Tools SDK" package.
-4. Or install Eclipse 3.5 and CDT 6.0 (CDT 4.0 won't install on Eclipse 3.5)
-   and apply the cdt-6-compatibility patch found in the project root. 
+   You need to install only the "Eclipse C/C++ Development Tools SDK" package.
 
 For building in Eclipse:
 4. Install (e.g.) SubClipse - Eclipse SVN-Team Provider
@@ -30,15 +29,15 @@ For building in Eclipse:
    native libraries in the .classpath file
 
 Running it:
-6. Choose a configuration file and a source code file
+7. Choose a configuration file and a source code file
    Example: benchmarks-explicit/config/explicitAnalysisInf.properties
             benchmarks-explicit/working-set/ext/loop1.c
    Check that the configuration file does not contain any non-existent paths 
-7. Running it from Eclipse:
+8. Running it from Eclipse:
    Create a run configuration with main class "cmdline.CPAMain" and program
    arguments "-config <CONFIG_FILE> <SOURCE_FILE>"
 Or:
-7. Running it from command line:
+8. Running it from command line:
    Execute "test/scripts/simple/cpa.sh -config <CONFIG_FILE> <SOURCE_FILE>"
    You need to edit this script, if your Eclipse is not in ~/eclipse,
    /opt/eclipse or ~/Desktop/eclipse
