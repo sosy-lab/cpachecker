@@ -69,9 +69,10 @@ public interface TransferRelation
    * @param otherElements list of abstract elements of all domains
    * @param cfaEdge the current edge of the CFA 
    * @param precision
+   * @return A new abstract element which should replace the old one, or null for no change.
    */
-  public void strengthen (AbstractElement element,
-                          List<AbstractElement> otherElements,
-                          CFAEdge cfaEdge,
-                          Precision precision);
+  public AbstractElement strengthen (AbstractElement element,
+                                     List<AbstractElement> otherElements,
+                                     CFAEdge cfaEdge,
+                                     Precision precision);
 }

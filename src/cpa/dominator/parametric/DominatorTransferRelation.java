@@ -129,8 +129,9 @@ public class DominatorTransferRelation implements TransferRelation {
 	}
 
   @Override
-  public void strengthen(AbstractElement element,
+  public AbstractElement strengthen(AbstractElement element,
                          List<AbstractElement> otherElements, CFAEdge cfaEdge,
                          Precision precision) {    
+    return null;
   }
 }

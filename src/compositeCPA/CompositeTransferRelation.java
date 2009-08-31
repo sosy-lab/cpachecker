@@ -125,9 +125,13 @@ public class CompositeTransferRelation implements TransferRelation{
 
     List<AbstractElement> resultingElementsRO = Collections.unmodifiableList(resultingElements);
     for (int idx = 0; idx < transferRelations.size(); idx++) {
-      transferRelations.get(idx).strengthen(resultingElements.get(idx),
+      AbstractElement result = transferRelations.get(idx).strengthen(
+                                            resultingElements.get(idx),
                                             resultingElementsRO, cfaEdge,
                                             lCompositePrecision.get(idx));
+      if (result != null) {
+        resultingElements.set(idx, result);
+      }
     }
     
     CompositeElement successorState = new CompositeElement (resultingElements, updatedCallStack);
@@ -152,9 +156,10 @@ public class CompositeTransferRelation implements TransferRelation{
   }
 
   @Override
-  public void strengthen(AbstractElement element,
+  public AbstractElement strengthen(AbstractElement element,
                          List<AbstractElement> otherElements, CFAEdge cfaEdge,
                          Precision precision) {
     // strengthen is only called by the composite CPA on its component CPAs
+    return null;
   }
 }

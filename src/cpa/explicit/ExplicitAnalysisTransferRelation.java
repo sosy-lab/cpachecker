@@ -304,7 +304,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
     // TODO this is not called -- expression is a unary operation, e.g. g(b);
     else if (exprOnSummary instanceof IASTUnaryExpression)
     {
-      // onyl globals
+      // only globals
       for(String globalVar:globalVars){
         if(expAnalysisElement.getNoOfReferences().containsKey(globalVar) &&
             expAnalysisElement.getNoOfReferences().get(globalVar).intValue() >= this.threshold){
@@ -435,6 +435,8 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
     String functionName = statementEdge.getPredecessor().getFunctionName();
     String returnVarName = functionName + "::" + "___cpa_temp_result_var_";
 
+    // TODO handle return a+1; und return (a+1);
+    
     if(expression instanceof IASTUnaryExpression){
       IASTUnaryExpression unaryExp = (IASTUnaryExpression)expression;
       if(unaryExp.getOperator() == IASTUnaryExpression.op_bracketedPrimary){
@@ -1978,8 +1980,9 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
   }
 
   @Override
-  public void strengthen(AbstractElement element,
+  public AbstractElement strengthen(AbstractElement element,
                          List<AbstractElement> otherElements, CFAEdge cfaEdge,
                          Precision precision) {    
+    return null;
   }
 }

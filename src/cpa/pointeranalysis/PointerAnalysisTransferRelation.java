@@ -868,10 +868,10 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
 
   
   @Override
-  public void strengthen(AbstractElement element, List<AbstractElement> elements,
+  public AbstractElement strengthen(AbstractElement element, List<AbstractElement> elements,
                          CFAEdge cfaEdge, Precision precision) {
     if (missing == null) {
-      return;
+      return null;
     }
     PointerAnalysisElement pointerElement = (PointerAnalysisElement)element;
     
@@ -885,6 +885,9 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
         }
       } catch (TransferRelationException e) {
         e.printStackTrace();
+      } catch (InvalidPointerException e) {
+        e.printStackTrace();
+        return domain.getBottomElement();
       }
     }
     
@@ -899,15 +902,21 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       } else {
         op = new PointerOperation.AddUnknownOffset();
       }
-      pointerElement.pointerOp(op, missing.actionLeftPointer, missing.actionDereferenceFirst);
+      try {
+        pointerElement.pointerOp(op, missing.actionLeftPointer, missing.actionDereferenceFirst);
+      } catch (InvalidPointerException e) {
+        e.printStackTrace();
+        return domain.getBottomElement();
+      }
     }
 
     missing = null;
+    return null;
   }
   
   private void strengthen(PointerAnalysisElement pointerElement, 
                           ExplicitAnalysisElement explicitElement,
-                          CFAEdge cfaEdge, Precision precision) {
+                          CFAEdge cfaEdge, Precision precision) throws InvalidPointerException {
     
     if (missing.mallocSizeMemory != null) {
       Integer value = getVariableContent(missing.mallocSizeASTNode, explicitElement, cfaEdge);
