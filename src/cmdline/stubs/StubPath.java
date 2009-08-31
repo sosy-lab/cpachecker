@@ -229,4 +229,9 @@ public class StubPath implements IPath {
 		return null;
 	}
 
+  public IPath makeRelativeTo(IPath pArg0) {
+    // added for CDT 6.0 compatibility
+    return null;
+  }
+
 }

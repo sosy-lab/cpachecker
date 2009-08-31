@@ -35,6 +35,7 @@ import logging.CustomLogLevel;
 import logging.LazyLogger;
 
 import org.eclipse.cdt.core.dom.IASTServiceProvider;
+import org.eclipse.cdt.core.dom.ICodeReaderFactory;
 import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
@@ -57,7 +58,6 @@ import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cfa.objectmodel.CFANode;
 import cfa.objectmodel.c.GlobalDeclarationEdge;
-import cmdline.stubs.StubCodeReaderFactory;
 import cmdline.stubs.StubConfiguration;
 import cmdline.stubs.StubFile;
 
@@ -415,7 +415,7 @@ public class CPAMain {
       try {
         IASTServiceProvider p = new InternalASTServiceProvider();
         ast = p.getTranslationUnit(currentFile,
-            StubCodeReaderFactory.getInstance(),
+            createCodeReaderFactory(),
             new StubConfiguration());
       } catch (Exception e) {
         e.printStackTrace();
@@ -438,6 +438,41 @@ public class CPAMain {
       e.printStackTrace();
       System.out.flush();
       System.err.flush();
+    }
+  }
+  
+  /**
+   * Get the right StubCodeReaderFactory depending on the current CDT version.
+   * @return
+   * @throws ClassNotFoundException If no matching factory is found.
+   */
+  private static ICodeReaderFactory createCodeReaderFactory() throws ClassNotFoundException {
+    ClassLoader classLoader = ClassLoader.getSystemClassLoader();
+    
+    String factoryClassName;
+    // determine CDT version by trying to load the IMacroCollector class which
+    // only exists in CDT 4
+    try {
+      classLoader.loadClass("org.eclipse.cdt.core.dom.IMacroCollector");
+      
+      // CDT 4.0
+      factoryClassName = "cmdline.stubs.StubCodeReaderFactoryCDT4";
+    } catch (ClassNotFoundException e) {
+      // not CDT 4.0
+      factoryClassName = "cmdline.stubs.StubCodeReaderFactory";
+    }
+
+    // try to load factory class and execute the static getInstance() method
+    try {
+      Class<?> factoryClass = classLoader.loadClass(factoryClassName);
+      Object factoryObject = factoryClass.getMethod("getInstance", (Class<?>[]) null)
+                                                                  .invoke(null);
+      
+      return (ICodeReaderFactory) factoryObject;
+    } catch (Exception e) {
+      // simply wrap all possible exceptions in a ClassNotFoundException
+      // this will terminate the program
+      throw new ClassNotFoundException("Exception while instantiating " + factoryClassName, e);
     }
   }
 }

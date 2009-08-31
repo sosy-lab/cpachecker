@@ -726,4 +726,16 @@ public class StubProject implements IProject {
 		return false;
 	}
 
+	
+  public boolean isHidden(int pArg0) {
+    // added for CDT 6.0 compatibility
+    return false;
+  }
+
+  
+  public boolean isTeamPrivateMember(int pArg0) {
+    // added for CDT 6.0 compatibility
+    return false;
+  }
+
 }

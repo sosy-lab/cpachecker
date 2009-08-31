@@ -27,29 +27,30 @@ import java.io.IOException;
 
 import org.eclipse.cdt.core.dom.CDOM;
 import org.eclipse.cdt.core.dom.ICodeReaderFactory;
+import org.eclipse.cdt.core.dom.IMacroCollector;
 import org.eclipse.cdt.core.model.ITranslationUnit;
 import org.eclipse.cdt.core.parser.CodeReader;
 import org.eclipse.cdt.core.parser.ICodeReaderCache;
 
-import cmdline.stubs.StubCodeReaderFactory;
+import cmdline.stubs.StubCodeReaderFactoryCDT4;
 
 /**
- * This class is necessary in order to use others than version 4 of CDT. Do not
- * delete it or change because of errors referencing to a missing method
- * createCodeReaderForInclusion, this method exists only in CDT 4!
+ * This class is necessary in order to use version 4 of CDT. Do not delete it or
+ * change because of errors referencing to IMacroCollector, this class exists in
+ * CDT 4!
  */
-public class StubCodeReaderFactory implements ICodeReaderFactory {
+public class StubCodeReaderFactoryCDT4 implements ICodeReaderFactory {
 
     private ICodeReaderCache cache = null;
 
-    public static StubCodeReaderFactory getInstance()
+    public static StubCodeReaderFactoryCDT4 getInstance()
     {
         return instance;
     }
 
-    private static StubCodeReaderFactory instance = new StubCodeReaderFactory();
+    private static StubCodeReaderFactoryCDT4 instance = new StubCodeReaderFactoryCDT4();
 
-    private StubCodeReaderFactory()
+    private StubCodeReaderFactoryCDT4()
     {
 //        int size=0;
 //        size = CodeReaderCache.DEFAULT_CACHE_SIZE_IN_MB;
@@ -78,6 +79,13 @@ public class StubCodeReaderFactory implements ICodeReaderFactory {
 
     public CodeReader createCodeReaderForTranslationUnit(ITranslationUnit tu) {
         return new CodeReader(tu.getResource().getLocation().toOSString(), tu.getContents());
+    }
+
+    /* (non-Javadoc)
+     * @see org.eclipse.cdt.core.dom.ICodeReaderFactory#createCodeReaderForInclusion(org.eclipse.cdt.core.dom.ICodeReaderFactoryCallback, java.lang.String)
+     */
+    public CodeReader createCodeReaderForInclusion(IMacroCollector scanner, String path) {
+        return cache.get(path);
     }
 
     /* (non-Javadoc)
