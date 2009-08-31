@@ -9,9 +9,8 @@ import java.util.HashSet;
 import java.util.Set;
 
 import cpa.pointeranalysis.Memory.InvalidPointerException;
-import cpa.pointeranalysis.Memory.MemoryAddress;
+import cpa.pointeranalysis.Memory.PointerLocation;
 import cpa.pointeranalysis.Memory.PointerTarget;
-import cpa.pointeranalysis.Memory.Variable;
 
 /**
  * A pointer is a set of possible targets.
@@ -24,6 +23,8 @@ public class Pointer {
   
   private int levelOfIndirection; // how many stars does this pointer have?
   
+  private PointerLocation location;
+  
   public Pointer() {
     this(0);
   }
@@ -34,81 +35,17 @@ public class Pointer {
   }
   
   public Pointer(int levelOfIndirection) {
-    this (-1, levelOfIndirection, new HashSet<PointerTarget>());
+    this (-1, levelOfIndirection, new HashSet<PointerTarget>(), null);
     
     // if uninitialized, pointer is null
     targets.add(NULL_POINTER);
   }
   
-  private Pointer(int sizeOfTarget, int levelOfIndirection, Set<PointerTarget> targets) {
+  private Pointer(int sizeOfTarget, int levelOfIndirection, Set<PointerTarget> targets, PointerLocation location) {
     this.sizeOfTarget = sizeOfTarget;
     this.levelOfIndirection = levelOfIndirection;
     this.targets = new HashSet<PointerTarget>(targets);
-  }
-  
-  private Pointer deref(PointerTarget target, Memory memory)
-                        throws InvalidPointerException {
-    Pointer p;
-    
-    if (target instanceof Variable) {
-      String varName = ((Variable)target).getVarName();
-      p = memory.getPointer(varName);
-      if (p == null) {
-        // type error
-        // (pointers with levelOfIndirection > 1 should always point to other pointers)
-        throw new InvalidPointerException("The target of this pointer is not a pointer, but this is a pointer of pointer");
-      }
-    
-    } else if (target instanceof MemoryAddress) {
-      p = memory.getHeapPointer((MemoryAddress)target);
-      if (p == null) {
-        // assume, the heap is full of NULL_POINTERs where nothing has been
-        // written
-        // as this is a pointer of pointer, this is ok
-        p = new Pointer(levelOfIndirection-1);
-        memory.writeOnHeap((MemoryAddress)target, p);
-      }
-      
-    } else if (target == NULL_POINTER || target == INVALID_POINTER) {
-      // warning is printed elsewhere
-      p = null;
-      
-    } else if (target == UNKNOWN_POINTER) {
-      p = null;
-      
-    } else {
-      throw new InvalidPointerException("Pointer to " + target + " cannot be dereferenced");
-    }
-    return p;
-  }
-
-  
-  public void assign(Pointer rightHandSide, boolean dereferenceFirst, Memory memory)
-                     throws InvalidPointerException {
-    if (rightHandSide == null) {
-      throw new IllegalArgumentException();
-    }
-    
-    if (dereferenceFirst) {
-      // calculate *this = rightHandSide
-      for (PointerTarget target : targets) {
-        Pointer p = deref(target, memory);
-        
-        if (p != null) {
-          if (targets.size() == 1) {
-            p.assign(rightHandSide);
-          } else {
-            p.join(rightHandSide);
-          }
-        } else {
-          // p == null means the target was something like NULL or UNKNOWN
-          // we cannot do more than ignore (warning will be printed elsewhere)
-        }
-      }
-
-    } else {
-      assign(rightHandSide);
-    }
+    this.location = location;
   }
   
   public void assign(Pointer rightHandSide) {
@@ -120,6 +57,13 @@ public class Pointer {
     targets.addAll(rightHandSide.targets);
   }
 
+  /**
+   * Assign a single target to the pointer and remove all others. This method
+   * does not change the list of aliases of this pointer, the caller has to
+   * ensure that this list is still correct.
+   * 
+   * @param target
+   */
   public void assign(PointerTarget target) {
     if (target == null) {
       throw new IllegalArgumentException();
@@ -159,7 +103,10 @@ public class Pointer {
     targets.removeAll(other.targets);
   }
   
-
+  public void removeAllTargets() {
+    targets.clear();
+  }
+  
   public boolean isUnsafe() {
     return targets.contains(NULL_POINTER) || targets.contains(INVALID_POINTER);
   }
@@ -176,135 +123,67 @@ public class Pointer {
     }
     return (this == other) || other.targets.containsAll(targets);
   }
+
+  public boolean isDifferentFrom(Pointer other) {
+    return !this.isSubsetOf(other)
+        && !other.isSubsetOf(this)
+        && !targets.contains(INVALID_POINTER)
+        && !targets.contains(UNKNOWN_POINTER)
+        && !other.targets.contains(INVALID_POINTER)
+        && !other.targets.contains(UNKNOWN_POINTER);
+  }
   
   public boolean contains(PointerTarget target) {
     return targets.contains(target);
   }
   
-  /**
-   * This shifts the targets of the pointer.
-   * The shift is given in elements, not in bytes (e.g. if this pointer is an
-   * int*, shift==1 will shift 4 bytes). 
-   */
-  public void addOffset(int shift, boolean dereferenceFirst, Memory memory) throws InvalidPointerException {
-    if (!hasSizeOfTarget()) {
-      addUnknownOffset(dereferenceFirst, memory);
-      
-    } else {      
-      if (dereferenceFirst) {
-        // calculate (*this) += shift
-        for (PointerTarget target : targets) {
-          Pointer p = deref(target, memory);
-          
-          if (p != null) {
-            p.addOffset(shift);
-          } else {
-            // p == null means the target was something like NULL or UNKNOWN
-            // we cannot do more than ignore (warning will be printed elsewhere)
-          }
-        }
-        
-      } else {
-        addOffset(shift);
-      }
-    }
-  }
-  
-  public void addOffset(int shift) throws InvalidPointerException {
+  public void addOffset(int shift, boolean keepOldTargets) throws InvalidPointerException {
     Set<PointerTarget> newTargets = new HashSet<PointerTarget>();
     
     for (PointerTarget target : targets) {
       newTargets.add(target.addOffset(shift*sizeOfTarget));
     }
-    targets = newTargets;
-  }
-  
-  public void addUnknownOffset(boolean dereferenceFirst, Memory memory)
-                               throws InvalidPointerException {
-    if (dereferenceFirst) {
-      // calculate (*this) += shift
-      for (PointerTarget target : targets) {
-        Pointer p = deref(target, memory);
-        
-        if (p != null) {
-          p.addUnknownOffset();
-        } else {
-          // p == null means the target was something like NULL or UNKNOWN
-          // we cannot do more than ignore (warning will be printed elsewhere)
-        }
-      }
-      
+    
+    if (keepOldTargets) {
+      targets.addAll(newTargets);
     } else {
-      addUnknownOffset();
+      targets = newTargets;
     }
   }
-  
-  public void addUnknownOffset() throws InvalidPointerException {
+
+  public void addUnknownOffset(boolean keepOldTargets) throws InvalidPointerException {
     Set<PointerTarget> newTargets = new HashSet<PointerTarget>();
     
     for (PointerTarget target : targets) {
       newTargets.add(target.addUnknownOffset());
     }
-    targets = newTargets;
-  }
-
-  public Pointer deref(Memory memory) throws InvalidPointerException {
-    if (memory == null) {
-      throw new IllegalArgumentException();
-    }
-    if (levelOfIndirection == 1) {
-      throw new InvalidPointerException("The target of this pointer is not a pointer");
-    }
     
-    Pointer p = new Pointer(levelOfIndirection-1);
-    p.targets.clear();
-    for (PointerTarget target : targets) {
-      
-      if (target instanceof Variable) {
-        String varName = ((Variable)target).getVarName();
-        p.join(memory.getPointer(varName));
-        if (p == null) {
-          // type error
-          // (pointers with levelOfIndirection > 1 should always point to other pointers)
-          throw new InvalidPointerException("The target of this pointer is not a pointer, but this is a pointer of pointer");
-        }
-        
-      } else if (target instanceof MemoryAddress) {
-        p.join(memory.getHeapPointer((MemoryAddress)target));
-        if (p == null) {
-          // assume, the heap is full of NULL_POINTERs where nothing has been
-          // written
-          // as this is a pointer of pointer, this is ok
-          p = new Pointer(levelOfIndirection-1);
-          memory.writeOnHeap((MemoryAddress)target, p);
-        }
-      
-      } else if (target == NULL_POINTER || target == INVALID_POINTER) {
-        // warning is printed elsewhere
-        p.addTarget(INVALID_POINTER);
-        
-      } else if (target == UNKNOWN_POINTER) {
-        p.addTarget(UNKNOWN_POINTER);
-        
-      } else {
-        throw new InvalidPointerException("Pointer to " + target + " cannot be dereferenced");
-      }
-      
+    if (keepOldTargets) {
+      targets.addAll(newTargets);
+    } else {
+      targets = newTargets;
     }
-    return p;
   }
   
   public int getNumberOfTargets() {
     return targets.size();
   }
-  
-  /**
-   * Checks if the size of the target of the pointer is known. 
-   */
+
   public Set<PointerTarget> getTargets() {
     return Collections.unmodifiableSet(targets);
   }
   
+  public PointerTarget getFirstTarget() {
+    if (getNumberOfTargets() >= 1) {
+      return targets.iterator().next();
+    } else {
+      return null;
+    }
+  }
+  
+  /**
+   * Checks if the size of the target of the pointer is known. 
+   */
   public boolean hasSizeOfTarget() {
     return sizeOfTarget != -1;
   }
@@ -335,12 +214,29 @@ public class Pointer {
     return levelOfIndirection > 1;
   }
 
+  public int getLevelOfIndirection() {
+    return levelOfIndirection;
+  }
+
+  public PointerLocation getLocation() {
+    return location;
+  }
+
+  public void setLocation(PointerLocation location) {
+    if (this.location != null) {
+      throw new IllegalStateException("May not overwrite pointer location!");
+    }
+    this.location = location;
+  }
+
   @Override
   public boolean equals(Object other) {
     if (!(other instanceof Pointer)) {
       return false;
     }
-    return (other != null) && targets.equals(((Pointer)other).targets);
+    return (other != null)
+        && location.equals(((Pointer)other).location)
+        && targets.equals(((Pointer)other).targets);
   }
   
   @Override
@@ -350,7 +246,7 @@ public class Pointer {
   
   @Override
   public Pointer clone() {
-    return new Pointer(sizeOfTarget, levelOfIndirection, targets);
+    return new Pointer(sizeOfTarget, levelOfIndirection, targets, location);
   }
   
   @Override
@@ -366,4 +262,5 @@ public class Pointer {
     sb.append(")");
     return sb.toString();
   }
+
 }

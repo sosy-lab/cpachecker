@@ -2,6 +2,7 @@ package cpa.pointeranalysis;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.Set;
 
 public interface Memory {
 
@@ -162,7 +163,7 @@ public interface Memory {
   /**
    * A heap address, consisting of a MemoryRegion and an offset
    */
-  public final static class MemoryAddress implements PointerTarget {
+  public final static class MemoryAddress implements PointerTarget, PointerLocation {
   
     private final MemoryRegion region;
     private final int offset; // offset in bytes from the start of the region
@@ -213,6 +214,11 @@ public interface Memory {
     }
     
     @Override
+    public Pointer getPointer(Memory memory) {
+      return memory.getHeapPointer(this);
+    }
+    
+    @Override
     public boolean equals(Object other) {
       if ((other == null) || !(other instanceof MemoryAddress)) {
         return false;
@@ -243,7 +249,7 @@ public interface Memory {
   /**
    * A simple variable, local or global.
    */
-  abstract static class Variable implements PointerTarget {
+  abstract static class Variable implements PointerTarget, PointerLocation {
     
     private final String name;
     
@@ -294,8 +300,21 @@ public interface Memory {
    * A simple local variable.
    */
   public final static class LocalVariable extends Variable {
-    public LocalVariable(String name) {
+    
+    private String function;
+    
+    public LocalVariable(String function, String name) {
       super(name);
+      this.function = function;
+    }
+    
+    @Override
+    public Pointer getPointer(Memory memory) {
+      return memory.getLocalPointers().get(getVarName());
+    }
+    
+    public String getFunctionName() {
+      return function;
     }
   }
   
@@ -304,9 +323,21 @@ public interface Memory {
    * A simple global variable.
    */
   public final static class GlobalVariable extends Variable {
+    
     public GlobalVariable(String name) {
       super(name);
     }
+    
+    @Override
+    public Pointer getPointer(Memory memory) {
+      return memory.getGlobalPointers().get(getVarName());
+    }
+  }
+  
+  public static interface PointerLocation {
+    
+    public Pointer getPointer(Memory memory);
+    
   }
   
   public void addNewGlobalPointer(String name, Pointer p);
@@ -322,16 +353,59 @@ public interface Memory {
   public Map<String, Pointer> getGlobalPointers();
 
   public Map<String, Pointer> getLocalPointers();
-
-  public Pointer malloc(int length) throws InvalidPointerException;
   
-  public Pointer malloc() throws InvalidPointerException;
+  public Set<PointerLocation> getReversePointers(PointerTarget target);
 
+  //public void addReverseRelation(PointerTarget target, PointerLocation location);
+  
+  //public void removeAllReverseRelations(PointerLocation location);
+  
+  /**
+   * Get all aliases of a pointer. An alias of a pointer is another pointer which points
+   * to the same target in all cases.
+   * 
+   * @param pointer The pointer for which the aliases should be returned.
+   * @return  An unmodifiable set with all aliases including the original pointer. Is never null.
+   */
+  public Set<PointerLocation> getAliases(PointerLocation pointer);
+  
+  public Set<PointerLocation> getAliases(Pointer pointer);
+  
+  public boolean areAliases(Pointer p1, Pointer p2);
+  
+  /**
+   * Register the fact, that secondPointer is now an alias of firstPointer.
+   * This means that in all cases secondPointer points to the same target as
+   * firstPointer. The current aliases of secondPointer are not touched.
+   * This method does not change the actual list of targets of secondPointer.
+   * 
+   * @param firstPointer  The location of the first pointer.
+   * @param secondPointer The location of the second pointer.
+   */
+  public void makeAlias(PointerLocation firstPointer, PointerLocation secondPointer);
+  
+  //public void findAndMergePossibleAliases(Pointer p);
+  
+  //public void removeAllAliases(PointerLocation pointer);
+  
+  public MemoryAddress malloc() throws InvalidPointerException;
+  
   public void free(Pointer p) throws InvalidPointerException;
   
   public void free(MemoryAddress mem) throws InvalidPointerException;
   
   public void free(MemoryRegion mem) throws InvalidPointerException;
 
+  /**
+   * Tries to dereference a pointer target and returns the referenced value.
+   * 
+   * @param target  The target to dereference.
+   * @param levelOfIndirection The level of indirection of the pointer the target belongs to.
+   * @return  The reference value or null if the target could not be dereferenced (e.g. NULL or UNKNOWN pointer).
+   * @throws InvalidPointerException  If the target points to a non-pointer value.
+   */
+  public Pointer deref(PointerTarget target, int levelOfIndirection) throws InvalidPointerException;
+  
   public Collection<MemoryRegion> checkMemoryLeak();
+
 }

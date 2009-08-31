@@ -79,18 +79,32 @@ import exceptions.UnrecognizedCFAEdgeException;
  */
 public class PointerAnalysisTransferRelation implements TransferRelation {
 
-  private static final String RETURN_VALUE_VARIABLE = "___cpa_temp_result_var_";
+  /**
+   * Here some information about the last action is stored;
+   * the strengthen operator can use this to find out what information could be
+   * updated.
+   * 
+   * This information is stored in a separate object which can be garbage
+   * collected after it was used, this reduces the memory footprint of a
+   * PoitnerAnalysisElement.
+   */
+  private static class MissingInformation {
+    private Pointer         typeInformationPointer = null;
+    private DeclarationEdge typeInformationEdge = null;
+    
+    private Pointer         actionLeftPointer = null;
+    private Pointer         actionRightPointer = null;
+    private boolean         actionDereferenceFirst = false;
+    private boolean         actionOffsetNegative = false;
+    private IASTNode        actionASTNode = null;
+    
+    private MemoryAddress   mallocSizeMemory = null;
+    private IASTNode        mallocSizeASTNode = null;
+  }
   
-  // here some information about the last action is stored;
-  // the strengthen operator can use this to find out what information could be
-  // updated
-  private IASTNode      lastActionASTNode = null;
-  private CFAEdge       lastActionEdge = null;
-  private MemoryAddress lastActionMalloc = null;
-  private Pointer       lastActionPointer = null;
-  private Pointer       lastActionPointerBackup = null;
-  private boolean       lastActionOffsetNegative = false;
-  private boolean       lastActionDereferenceFirst = false;
+  private static final String RETURN_VALUE_VARIABLE = "___cpa_temp_result_var_";
+
+  private MissingInformation missing = null;
   
   private final PointerAnalysisDomain domain;
   
@@ -209,7 +223,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
     
     IASTDeclarator[] declarators = declaration.getDeclarators();
     if (declarators == null || declarators.length != 1) {
-      throw new TransferRelationException("Not exptected in CIL: " + declaration.getRawStatement());  
+      throw new TransferRelationException("Not expected in CIL: " + declaration.getRawStatement());  
     }
   
     String varName = declarators[0].getName().toString();
@@ -223,12 +237,13 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
         element.addNewGlobalPointer(varName, p);
       } else {
         element.addNewLocalPointer(varName, p);
-        p.assign(Memory.INVALID_POINTER);
+        element.pointerOp(new PointerOperation.Assign(Memory.INVALID_POINTER), p);
       }
       // store the pointer so the type analysis CPA can update its
       // type information
-      lastActionPointer = p;
-      lastActionEdge = declaration;
+      missing = new MissingInformation();
+      missing.typeInformationPointer = p;
+      missing.typeInformationEdge    = declaration;
       
       // initializers do not need to be considered, because they have to be
       // constant and constant pointers are considered null
@@ -299,10 +314,11 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       
       if (isTrueBranch) {
         // p holds, i.e. p != 0 holds, i.e. p cannot point to null
-        p.removeTarget(Memory.NULL_POINTER);
+        element.pointerOpAssumeInequality(p, Memory.NULL_POINTER);
+        
       } else {
         // !p holds, i.e. p == 0 holds, i.e. p points to null
-        p.assign(Memory.NULL_POINTER); // this removes all other targets        
+        element.pointerOpAssumeEquality(p, Memory.NULL_POINTER);
       }
     }
     return element;
@@ -321,43 +337,32 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
     
     if (leftPointer != null && rightPointer != null) {
       
-      if (leftPointer.getNumberOfTargets() == 1 && leftPointer.isSubsetOf(rightPointer)) {
-        // potentially equal
+      if (element.areAliases(leftPointer, rightPointer)) {
+        // surely equal
         
-        if (rightPointer.getNumberOfTargets() == 1) {
-          // surely equal
-          
-          if (!isTrueBranch) {
-            // op1 != op2 is never true
-            return domain.getBottomElement();
-          }
-        
-        } else {
-          // leftPointer is strict subset of rightPointer
-          
-          if (isTrueBranch) {
-            // of the several targets of rightPointer, it has to be the one which leftPointer has
-            rightPointer.assign(leftPointer);
-          } else {
-            // remove target of leftPointer from rightPointer (which has other targets)
-            rightPointer.removeAllTargets(leftPointer);
-          }
-          
+        if (!isTrueBranch) {
+          // op1 != op2 is never true
+          return domain.getBottomElement();
         }
-      } else if (rightPointer.getNumberOfTargets() == 1 && rightPointer.isSubsetOf(leftPointer)) {
-        // note that leftPointer.getNumberOfTargets() != 1
-        // rightPointer is strict subset of leftPointer
-
-        if (isTrueBranch) {
-          leftPointer.assign(rightPointer);
-          
-        } else {
-          leftPointer.removeAllTargets(rightPointer);
-        }
-      }
       
+      } else if (leftPointer.isDifferentFrom(rightPointer)) {
+        // never equal
+        
+        if (isTrueBranch) {
+          // op1 == op2 is never true
+          return domain.getBottomElement();
+        }
+        
+      } else {
+        
+        if (isTrueBranch) {
+          element.pointerOpAssumeEquality(leftPointer, rightPointer);
+        } else {
+          element.pointerOpAssumeInequality(leftPointer, rightPointer);
+        }
+       
+      }
     }
-    
     return element;
   }
   
@@ -382,7 +387,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
         
         if (parameter instanceof IASTIdExpression) {
           Pointer p = element.getPointer(parameter.getRawSignature());
-          actualValues.add(p); // either null or a pointer
+          actualValues.add(p); // either a pointer or null
         
         } else if (parameter instanceof IASTLiteralExpression
                   && Integer.valueOf(0).equals(parseIntegerLiteral((IASTLiteralExpression)parameter))) {
@@ -397,8 +402,11 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       element.callFunction(funcName);
       
       for (int i = 0; i < actualValues.size(); i++) {
-        if (actualValues.get(i) != null) {
-          element.addNewLocalPointer(formalParameters.get(i), actualValues.get(i));
+        Pointer value = actualValues.get(i);
+        if (value != null) {
+          Pointer parameter = new Pointer();
+          element.addNewLocalPointer(formalParameters.get(i), parameter); // sets location
+          element.pointerOp(new PointerOperation.Assign(value), parameter);
         }
       }
 
@@ -432,7 +440,15 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
     // E.g., without a type information CPA, return 0 will lead to a pointer result
     // even if the function returns an int
     
-    element.returnFromFunction(); // throw away local context
+    for (PointerTarget resultTarget : resultPointer.getTargets()) {
+      if (resultTarget instanceof LocalVariable) {
+        if (element.getCurrentFunctionName().equals(((LocalVariable)resultTarget).getFunctionName())) {
+          // function returns a reference to a local variable
+          System.out.println("WARNING: function " + element.getCurrentFunctionName()
+              + " returns reference to local variable " + resultTarget);
+        }
+      }
+    }
     
     // use function result
     if (expression instanceof IASTBinaryExpression) {
@@ -444,18 +460,18 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
         Pointer leftPointer = element.getPointer(leftOperand.getRawSignature());
       
         if (leftPointer != null) {
-          leftPointer.assign(Memory.UNKNOWN_POINTER); // invalidate old pointer
-
           if (binExpression.getOperator() == IASTBinaryExpression.op_assign) {
             if (resultPointer != null) {
-              leftPointer.assign(resultPointer);
+              element.pointerOp(new PointerOperation.Assign(resultPointer), leftPointer);
             } else {
               throw new TransferRelationException("Assigning non-pointer value to pointer variable: " + cfaEdge.getRawStatement());
             }
+        
           } else {
             // a += func()
             throw new TransferRelationException("This code is not expected in CIL: " + cfaEdge.getRawStatement());
           }
+
         } else {
           // function result is not assigned to a pointer, ignore
         }
@@ -471,6 +487,10 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
     } else {
       throw new TransferRelationException("Invalid C code: " + cfaEdge.getRawStatement());  
     }
+    
+    
+    element.returnFromFunction(); // throw away local context
+    
 
     // check for memory leaks
     // TODO better location for calling checkMemoryLeak()? regularly? at end of analysis?
@@ -514,12 +534,14 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
           int typeOfOperator = unaryExpression.getOperator();
           if (   typeOfOperator == IASTUnaryExpression.op_postFixIncr
               || typeOfOperator == IASTUnaryExpression.op_prefixIncr) {
-            p.addOffset(1);
+            
+            element.pointerOp(new PointerOperation.AddOffset(1), p);
           
           } else if (
                  typeOfOperator == IASTUnaryExpression.op_postFixIncr
               || typeOfOperator == IASTUnaryExpression.op_prefixIncr) {
-            p.addOffset(-1);
+            
+            element.pointerOp(new PointerOperation.AddOffset(-1), p);
           
           } else {
             throw new TransferRelationException("Invalid C code: " + cfaEdge.getRawStatement());  
@@ -531,20 +553,25 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       // this is a mere function call (func(a))
       IASTFunctionCallExpression funcExpression = (IASTFunctionCallExpression)expression;
       String functionName = funcExpression.getFunctionNameExpression().getRawSignature();
-      IASTExpression parameter = funcExpression.getParameterExpression();
 
       if (functionName.equals("free")) {
         
-        Pointer p = extractPointer(element, parameter, cfaEdge);
-        if (p == null) {
-          addWarning("Freeing unknown pointer " + parameter.getRawSignature(), cfaEdge, parameter.getRawSignature());
+        IASTExpression parameter = funcExpression.getParameterExpression();
+        if (parameter instanceof IASTIdExpression) {
+          Pointer p = element.getPointer(parameter.getRawSignature());
+        
+          if (p == null) {
+            addWarning("Freeing unknown pointer " + parameter.getRawSignature(), cfaEdge, parameter.getRawSignature());
+          } else {
+            element.free(p);
+          }
         } else {
-          element.free(p);
+          throw new TransferRelationException("This code is not expected in CIL: " + cfaEdge.getRawStatement());
         }
-      
+              
       } else if (functionName.equals("malloc")) {
-        // malloc without assignment (will lead to memory leak) 
-        handleMalloc(element, null, false, parameter);
+        // malloc without assignment (will lead to memory leak)
+        addWarning("Memory leak because of calling malloc without using the return value!", cfaEdge, "");
       }      
     
     } else if (expression instanceof IASTBinaryExpression) {
@@ -555,77 +582,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       throw new TransferRelationException("Invalid C code: " + cfaEdge.getRawStatement());
     }
   }
-  
-  /*private Pointer handleFunctionCall(PointerAnalysisElement element,
-                                  IASTFunctionCallExpression expression,
-                                  CFAEdge cfaEdge)
-                                  throws InvalidPointerException,
-                                         TransferRelationException {
-    
-    String functionName = expression.getFunctionNameExpression().getRawSignature();
-    IASTExpression parameter = expression.getParameterExpression();
 
-    if (functionName.equals("free")) {
-      
-      Pointer p = extractPointer(element, parameter, cfaEdge);
-      if (p == null) {
-        addWarning("Freeing unknown pointer " + parameter.getRawSignature(), cfaEdge, parameter.getRawSignature());
-      } else {
-        element.free(p);
-      }
-    
-    } else if (functionName.equals("malloc")) {
-      // malloc without assignment (will lead to memory leak) 
-      return handleMalloc(element, null, parameter);
-    }
-    
-    return null;
-  }*/
-
-  /**
-   * This function extracts a pointer from everything, what can appear on the
-   * left-hand side of an assignment in CIL (which is variables and
-   * pointer dereferences)
-   */
-  private Pointer extractPointer(PointerAnalysisElement element,
-                                 IASTExpression expression, CFAEdge cfaEdge)
-                                 throws InvalidPointerException, TransferRelationException {
-   
-    if (expression instanceof IASTIdExpression) {
-      // a
-      return element.getPointer(expression.getRawSignature());
-      
-    } else if (expression instanceof IASTUnaryExpression) {
-      IASTUnaryExpression unaryExpression = (IASTUnaryExpression)expression;
-      if (unaryExpression.getOperator() == IASTUnaryExpression.op_star) {
-        // *a
-        Pointer pointer = element.getPointer(unaryExpression.getOperand().getRawSignature());
-        
-        if (pointer == null) {
-          throw new InvalidPointerException("Dereferencing a non-pointer: " + cfaEdge.getRawStatement());
-        }
-        
-        if (!pointer.isSafe()) {
-          addWarning("Unsafe deref of pointer " + unaryExpression.getRawSignature(), cfaEdge, unaryExpression.getRawSignature());
-        }
-        
-        if (pointer.isPointerToPointer()) {
-          return pointer.deref(element);
-        } else {
-          // other pointers are not of interest to us
-          return null;
-        }
-        
-      } else {
-        throw new TransferRelationException("This code is not expected in CIL: " + cfaEdge.getRawStatement());
-      }
-    } else {
-      // TODO fields, arrays
-      throw new TransferRelationException("This code is not expected in CIL: " + cfaEdge.getRawStatement());
-    }
-  }
-  
-  
   private void handleBinaryStatement(PointerAnalysisElement element,
                                      IASTBinaryExpression expression,
                                      CFAEdge cfaEdge)
@@ -695,17 +652,15 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
         if (typeOfOperator == IASTBinaryExpression.op_minusAssign) {
           offset = -offset;
         }
-        leftPointer.addOffset(offset, leftDereference, element);
+        element.pointerOp(new PointerOperation.AddOffset(offset), leftPointer, leftDereference);
       
       } else if (op2 instanceof IASTIdExpression) {
         // a += b
-        Pointer backup = leftPointer.clone();
-        leftPointer.addUnknownOffset(leftDereference, element);
-
-        lastActionPointerBackup = backup;
-        lastActionPointer = leftPointer;
-        lastActionASTNode = op2;
-        lastActionOffsetNegative = (typeOfOperator == IASTBinaryExpression.op_minusAssign);
+        missing = new MissingInformation();
+        missing.actionLeftPointer = leftPointer;
+        missing.actionDereferenceFirst = leftDereference;
+        missing.actionASTNode = op2;
+        missing.actionOffsetNegative = (typeOfOperator == IASTBinaryExpression.op_minusAssign);
       
       } else {
         throw new TransferRelationException("This code is not expected in CIL: " + cfaEdge.getRawStatement());
@@ -726,7 +681,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
     
     if (expression instanceof IASTLiteralExpression) {
       // a = 0
-      leftPointer.assign(new Pointer(), leftDereference, element);
+      element.pointerOp(new PointerOperation.Assign(Memory.NULL_POINTER), leftPointer, leftDereference);
 
     } else if (expression instanceof IASTCastExpression) {
       // a = (int*)b
@@ -746,8 +701,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
         // if it's an internal call, it's handled in handleReturnFromFunction()
         // it it's an external call and we do not know the function, we cannot
         // do more than set the pointer to unknown
-        // (which is already done at the beginning of this method)
-        leftPointer.assign(new Pointer(Memory.UNKNOWN_POINTER), leftDereference, element);
+        element.pointerOp(new PointerOperation.Assign(Memory.UNKNOWN_POINTER), leftPointer, leftDereference);
       }
     
     } else if (expression instanceof IASTBinaryExpression) {
@@ -759,7 +713,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
 
       if (!(op1 instanceof IASTIdExpression)) {
         // in p1 = p2 + x, CIL makes p2 always the left operand of the addition 
-        leftPointer.assign(new Pointer(Memory.UNKNOWN_POINTER), leftDereference, element);
+        element.pointerOp(new PointerOperation.Assign(Memory.UNKNOWN_POINTER), leftPointer, leftDereference);
         throw new TransferRelationException("This code is not expected in CIL: " + cfaEdge.getRawStatement()); 
       }
       Pointer rightPointer = element.getPointer(op1.getRawSignature());
@@ -767,7 +721,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
         
         if (!(typeOfOperator == IASTBinaryExpression.op_plus
             || typeOfOperator == IASTBinaryExpression.op_minus)) {
-          leftPointer.assign(new Pointer(Memory.UNKNOWN_POINTER), leftDereference, element);
+          element.pointerOp(new PointerOperation.Assign(Memory.UNKNOWN_POINTER), leftPointer, leftDereference);
           throw new TransferRelationException("Invalid C code: " + cfaEdge.getRawStatement());
         }
 
@@ -781,67 +735,81 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
             offset = -offset;
           }
           
-          // theoretically, we would have to shift first, and then assign (shift
-          // depends on type of pointer, which could change during assign
-          // but CIL introduces explicit casts and temporary variables, so this
-          // does not happen in CIL
-          Pointer rightHandSide = rightPointer.clone();
-          rightHandSide.addOffset(offset);
-          
-          leftPointer.assign(rightHandSide, leftDereference, element);
+          element.pointerOp(new PointerOperation.AddOffsetAndAssign(rightPointer, offset), leftPointer);
 
         } else if (op2 instanceof IASTIdExpression) {
-          Pointer rightHandSide = rightPointer.clone();
-          rightHandSide.addUnknownOffset();
-          
-          leftPointer.assign(rightHandSide, leftDereference, element);
-
-          lastActionPointerBackup = rightPointer;
-          lastActionPointer = leftPointer;
-          lastActionASTNode = op2;
-          lastActionOffsetNegative = (typeOfOperator == IASTBinaryExpression.op_minus);
-          lastActionDereferenceFirst = leftDereference;
+          missing = new MissingInformation();
+          missing.actionLeftPointer  = leftPointer;
+          missing.actionRightPointer = rightPointer;
+          missing.actionDereferenceFirst = leftDereference;
+          missing.actionOffsetNegative = (typeOfOperator == IASTBinaryExpression.op_minus);
+          missing.actionASTNode = op2;
           
         } else { 
-          leftPointer.assign(new Pointer(Memory.UNKNOWN_POINTER), leftDereference, element);
+          element.pointerOp(new PointerOperation.Assign(Memory.UNKNOWN_POINTER), leftPointer, leftDereference);
           throw new TransferRelationException("This code is not expected in CIL: " + cfaEdge.getRawStatement());
         }
       
       } else {
         // probably assigning a non-pointer value to a pointer
         // set pointer to unknown and ignore otherwise
-        leftPointer.assign(new Pointer(Memory.UNKNOWN_POINTER), leftDereference, element);
+        element.pointerOp(new PointerOperation.Assign(Memory.UNKNOWN_POINTER), leftPointer, leftDereference);
       }
       
-    } else if (expression instanceof IASTUnaryExpression
-        && ((IASTUnaryExpression)expression).getOperator() == IASTUnaryExpression.op_bracketedPrimary) {
-      // a = (x)
-      handleAssignment(element, leftPointer, leftDereference, ((IASTUnaryExpression)expression).getOperand(), cfaEdge);      
+    } else if (expression instanceof IASTUnaryExpression) {
+      IASTUnaryExpression unaryExpression = (IASTUnaryExpression)expression;
+      int op = unaryExpression.getOperator();
+      IASTExpression operand = unaryExpression.getOperand();
       
-    } else if (expression instanceof IASTUnaryExpression
-         && ((IASTUnaryExpression)expression).getOperator() == IASTUnaryExpression.op_amper) {
-      // a = &b
+      if (op == IASTUnaryExpression.op_bracketedPrimary) {
+        // a = (x)
+        handleAssignment(element, leftPointer, leftDereference, operand, cfaEdge);      
+     
+      } else if (op == IASTUnaryExpression.op_amper) {
+        // a = &b
 
-      String varName = ((IASTUnaryExpression)expression).getOperand().getRawSignature();
+        String varName = operand.getRawSignature();
 
-      Variable var;
-      if (element.getGlobalPointers().containsKey(varName)) {
-        var = new GlobalVariable(varName);
+        Variable var;
+        if (element.getGlobalPointers().containsKey(varName)) {
+          var = new GlobalVariable(varName);
+        } else {
+          var = new LocalVariable(element.getCurrentFunctionName(), varName);
+        }
+        
+        element.pointerOp(new PointerOperation.Assign(var), leftPointer, leftDereference);
+        
+      } else if (op == IASTUnaryExpression.op_star) {
+        // a = *b
+        
+        Pointer rightPointer = element.getPointer(operand.getRawSignature());
+        
+        if (rightPointer != null) {
+          element.pointerOp(new PointerOperation.DerefAndAssign(rightPointer), leftPointer, leftDereference);
+        } else {
+          addWarning("Dereferencing a non-pointer variable " + expression.getRawSignature(), cfaEdge, operand.getRawSignature());
+          element.pointerOp(new PointerOperation.Assign(Memory.UNKNOWN_POINTER), leftPointer, leftDereference);
+        }
+      
       } else {
-        var = new LocalVariable(varName);
+        element.pointerOp(new PointerOperation.Assign(Memory.UNKNOWN_POINTER), leftPointer, leftDereference);
+        throw new TransferRelationException("This code is not expected in CIL: " + cfaEdge.getRawStatement());
       }
       
-      leftPointer.assign(new Pointer(var), leftDereference, element);
-       
-    } else {
-      // this handles a = b and a = *b, throws an Exception if code is unknown
-      Pointer rightPointer = extractPointer(element, expression, cfaEdge);
+    } else if (expression instanceof IASTIdExpression) {
+      // a = b
+      Pointer rightPointer = element.getPointer(expression.getRawSignature());
       
       if (rightPointer != null) {
-        leftPointer.assign(rightPointer, leftDereference, element);
+        element.pointerOp(new PointerOperation.Assign(rightPointer), leftPointer, leftDereference);
       } else {
-        leftPointer.assign(new Pointer(Memory.UNKNOWN_POINTER), leftDereference, element);
+        addWarning("Assigning non-pointer variable " + expression.getRawSignature() + " to pointer", cfaEdge, expression.getRawSignature());
+        element.pointerOp(new PointerOperation.Assign(Memory.UNKNOWN_POINTER), leftPointer, leftDereference);
       }
+      
+    } else {
+      element.pointerOp(new PointerOperation.Assign(Memory.UNKNOWN_POINTER), leftPointer, leftDereference);
+      throw new TransferRelationException("This code is not expected in CIL: " + cfaEdge.getRawStatement());
     }
   }
 
@@ -859,7 +827,10 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
                             IASTExpression parameter)
                             throws InvalidPointerException,
                                    TransferRelationException {
-    Pointer malloc;
+
+    PointerOperation.MallocAndAssign op = new PointerOperation.MallocAndAssign();
+    element.pointerOp(op, pointer, leftDereference);
+    MemoryAddress memAddress = op.getMallocResult();
     
     if (parameter instanceof IASTLiteralExpression) {
       String s = parameter.getRawSignature();
@@ -867,31 +838,22 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
         s = s.substring(0, s.length()-1);
       }
       try {
-        malloc = element.malloc(Integer.parseInt(s));
+        // TODO replace with parseIntegerLiteral()
+        memAddress.getRegion().setLength(Integer.parseInt(s));
       } catch (NumberFormatException e) {
         throw new TransferRelationException("Invalid C code: malloc(" + parameter.getRawSignature() + ")");
       }
       
     } else if (parameter instanceof IASTIdExpression) {
-      // allocate now with unknown length, store variable name so the
-      // strengthen operator can update the length information if he knows
-      // it
-      malloc = element.malloc();
+      // store variable name so the strengthen operator can update the length
+      // information if he knows it
       
-      for (PointerTarget target : malloc.getTargets()) {
-        if (target instanceof MemoryAddress) {
-          lastActionMalloc = (MemoryAddress)target;
-          lastActionASTNode = parameter;
-          break;
-        }
-      }
+      missing = new MissingInformation();
+      missing.mallocSizeMemory = memAddress;
+      missing.mallocSizeASTNode = parameter;
     
     } else {
       throw new TransferRelationException("Not expected in CIL: malloc(" + parameter.getRawSignature() + ")");
-    }
-    
-    if (pointer != null) {
-      pointer.assign(malloc, leftDereference, element);
     }
   }
   
@@ -908,6 +870,9 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
   @Override
   public void strengthen(AbstractElement element, List<AbstractElement> elements,
                          CFAEdge cfaEdge, Precision precision) {
+    if (missing == null) {
+      return;
+    }
     PointerAnalysisElement pointerElement = (PointerAnalysisElement)element;
     
     for (AbstractElement ae : elements) {
@@ -922,49 +887,69 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
         e.printStackTrace();
       }
     }
+    
+    if (missing != null && missing.actionLeftPointer != null) {
+      // strengthen operator did not get the necessary information
+      // necessary do to the backup operation with unknown offset
+      // this has to be here so it gets executed if there is no ExplicitAnalysis
+      
+      PointerOperation<InvalidPointerException> op;
+      if (missing.actionRightPointer != null) {
+        op = new PointerOperation.AddUnknownOffsetAndAssign(missing.actionRightPointer);
+      } else {
+        op = new PointerOperation.AddUnknownOffset();
+      }
+      pointerElement.pointerOp(op, missing.actionLeftPointer, missing.actionDereferenceFirst);
+    }
 
-    lastActionASTNode = null;
-    lastActionEdge = null;
-    lastActionMalloc = null;
-    lastActionOffsetNegative = false;
-    lastActionPointer = null;
-    lastActionPointerBackup = null;
+    missing = null;
   }
   
   private void strengthen(PointerAnalysisElement pointerElement, 
                           ExplicitAnalysisElement explicitElement,
                           CFAEdge cfaEdge, Precision precision) {
     
-    if (lastActionMalloc != null) {
-      Integer value = getVariableContent(lastActionASTNode, explicitElement, cfaEdge);
+    if (missing.mallocSizeMemory != null) {
+      Integer value = getVariableContent(missing.mallocSizeASTNode, explicitElement, cfaEdge);
       if (value != null) {
-        lastActionMalloc.getRegion().setLength(value);
+        missing.mallocSizeMemory.getRegion().setLength(value);
       }
+    }
     
-    } else if (lastActionPointerBackup != null) {
-      Integer value = getVariableContent(lastActionASTNode, explicitElement, cfaEdge);
+    if (missing.actionLeftPointer != null) {
+      Integer value = getVariableContent(missing.actionASTNode, explicitElement, cfaEdge);
       if (value != null) {
         int val = value.intValue();
-        if (lastActionOffsetNegative) {
+        if (missing.actionOffsetNegative) {
           val = -val;
         }
-        try {
-          Pointer p = lastActionPointerBackup.clone();
-          p.addOffset(val);
-          lastActionPointer.assign(p, lastActionDereferenceFirst, pointerElement);
-        } catch (InvalidPointerException e) {
-          e.printStackTrace();
+      
+        PointerOperation<InvalidPointerException> op;
+        if (missing.actionRightPointer != null) {
+          op = new PointerOperation.AddOffsetAndAssign(missing.actionRightPointer, val);
+        
+        } else {
+          op = new PointerOperation.AddOffset(val);
         }
+        pointerElement.pointerOp(op, missing.actionLeftPointer, missing.actionDereferenceFirst);
+
+        // mark operation as completed successfully
+        missing.actionLeftPointer  = null;
+        
+      } else {
+        // getting variable content failed
+        // backup action (adding unknown offset) will be done by caller as if
+        // there was no ExplicitAnalysis
       }
     }
     
   }
   
   private Integer getVariableContent(IASTNode variable,
-                                 ExplicitAnalysisElement explicitElement,
-                                 CFAEdge cfaEdge) {
+                                     ExplicitAnalysisElement explicitElement,
+                                     CFAEdge cfaEdge) {
     
-    String varName = lastActionASTNode.getRawSignature();
+    String varName = variable.getRawSignature();
     if (!explicitElement.contains(varName)) {
       varName = cfaEdge.getPredecessor().getFunctionName() + "::" + varName;
     }
@@ -981,28 +966,25 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
                           CFAEdge cfaEdge, Precision precision)
                           throws TransferRelationException {
 
-    if (lastActionEdge instanceof DeclarationEdge) {
-      // pointer variable declaration
-      DeclarationEdge declaration = (DeclarationEdge)lastActionEdge;
-      String functionName = cfaEdge.getSuccessor().getFunctionName();
-      if (declaration instanceof GlobalDeclarationEdge) {
-        functionName = null;
-      }
-      
-      IASTDeclarator[] declarators = declaration.getDeclarators();
-      if (declarators == null || declarators.length != 1) {
-         throw new TransferRelationException("Not expected in CIL: " + declaration.getRawStatement());
-      }
-      
-      String name = declarators[0].getName().getRawSignature();
-      Type type = typesElement.getVariableType(functionName, name);
-      
-      if (!(type instanceof PointerType)) {
-        throw new TransferRelationException("Types determined by TypesCPA und PointerAnalysisCPA differ!");
-      }
-
-      int sizeOfTarget = ((PointerType)type).getTargetType().sizeOf();
-      lastActionPointer.setSizeOfTarget(sizeOfTarget);
+    // pointer variable declaration
+    String functionName = cfaEdge.getSuccessor().getFunctionName();
+    if (missing.typeInformationEdge instanceof GlobalDeclarationEdge) {
+      functionName = null;
     }
+    
+    IASTDeclarator[] declarators = missing.typeInformationEdge.getDeclarators();
+    if (declarators == null || declarators.length != 1) {
+       throw new TransferRelationException("Not expected in CIL: " + missing.typeInformationEdge.getRawStatement());
+    }
+    
+    String name = declarators[0].getName().getRawSignature();
+    Type type = typesElement.getVariableType(functionName, name);
+    
+    if (!(type instanceof PointerType)) {
+      throw new TransferRelationException("Types determined by TypesCPA und PointerAnalysisCPA differ!");
+    }
+
+    int sizeOfTarget = ((PointerType)type).getTargetType().sizeOf();
+    missing.typeInformationPointer.setSizeOfTarget(sizeOfTarget);
   }
 }
