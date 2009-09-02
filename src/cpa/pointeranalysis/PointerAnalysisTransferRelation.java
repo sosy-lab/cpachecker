@@ -66,6 +66,7 @@ import cpa.pointeranalysis.Memory.MemoryAddress;
 import cpa.pointeranalysis.Memory.MemoryRegion;
 import cpa.pointeranalysis.Memory.PointerTarget;
 import cpa.pointeranalysis.Memory.Variable;
+import cpa.pointeranalysis.PointerAnalysisDomain.IPointerAnalysisElement;
 import cpa.types.Type;
 import cpa.types.TypesElement;
 import cpa.types.Type.PointerType;
@@ -78,6 +79,8 @@ import exceptions.UnrecognizedCFAEdgeException;
  * @author Philipp Wendler
  */
 public class PointerAnalysisTransferRelation implements TransferRelation {
+
+  private static final String RETURN_VALUE_VARIABLE = "___cpa_temp_result_var_";
 
   /**
    * Here some information about the last action is stored;
@@ -102,31 +105,55 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
     private IASTNode        mallocSizeASTNode = null;
   }
   
-  private static final String RETURN_VALUE_VARIABLE = "___cpa_temp_result_var_";
-
   private MissingInformation missing = null;
   
   private final PointerAnalysisDomain domain;
   
-  private boolean printWarnings;
-  private Set<Pair<Integer, String>> warnings;
+  private static boolean printWarnings = Boolean.parseBoolean(CPAMain.cpaConfig.getProperty("pointerAnalysis.printWarnings", "false"));
+  private static Set<Pair<Integer, String>> warnings
+                  = printWarnings ? new HashSet<Pair<Integer, String>>() : null;
 
+  public static void addWarning(String message, CFAEdge edge, String variable) {
+    addMessage("Warning: " + message, edge, variable);
+  }
   
+  public static void addError(String message, CFAEdge edge, String variable) {
+    addMessage("ERROR: " + message, edge, variable);
+  }
+  
+  private static void addMessage(String message, CFAEdge edge, String variable) {
+    if (printWarnings) {
+      Integer lineNumber = null;
+      if (edge != null) {
+        lineNumber = edge.getSuccessor().getLineNumber();
+      }
+      
+      Pair<Integer, String> warningIndex = new Pair<Integer, String>(lineNumber, variable);
+      if (!warnings.contains(warningIndex)) {
+        warnings.add(warningIndex);
+        if (lineNumber != null) {
+          System.err.println(message + " in line " + lineNumber+": "
+              + edge.getRawStatement());
+        } else {
+          System.err.println(message);
+        }
+      }
+    }
+  }
+
+                  
   public PointerAnalysisTransferRelation(PointerAnalysisDomain domain) {
     this.domain = domain;
-    printWarnings = Boolean.parseBoolean(CPAMain.cpaConfig.getProperty("pointerAnalysis.printWarnings", "false"));
-    if (printWarnings) {
-      warnings = new HashSet<Pair<Integer, String>>();
-    }
   }
   
   @Override
-  public AbstractElement getAbstractSuccessor(AbstractElement element,
+  public IPointerAnalysisElement getAbstractSuccessor(AbstractElement element,
                                               CFAEdge cfaEdge,
                                               Precision precision)
                                               throws CPATransferException {
-    
     PointerAnalysisElement successor = ((PointerAnalysisElement)element).clone();
+    successor.setCurrentEdge(cfaEdge);
+    IPointerAnalysisElement result = successor;
     
     switch (cfaEdge.getEdgeType()) {
 
@@ -140,7 +167,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
     
     case StatementEdge:
       try {
-        handleStatement(successor, ((StatementEdge)cfaEdge).getExpression(), cfaEdge);
+        result = handleStatement(successor, ((StatementEdge)cfaEdge).getExpression(), cfaEdge);
       } catch (TransferRelationException e) {
         e.printStackTrace();
       } catch (InvalidPointerException e) {
@@ -151,7 +178,9 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       
     case AssumeEdge:
       try {
-        successor = handleAssume(successor, (AssumeEdge)cfaEdge);
+        AssumeEdge assumeEdge = (AssumeEdge)cfaEdge;
+        result = handleAssume(successor, assumeEdge.getExpression(),
+                              assumeEdge.getTruthAssumption(), assumeEdge);
       } catch (TransferRelationException e) {
         e.printStackTrace();
       }
@@ -190,27 +219,10 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
         e.printStackTrace();
       }
     }
-    return successor;
-  }
-
-  private void addWarning(String message, CFAEdge edge, String variable) {
-    if (printWarnings) {
-      Integer lineNumber = null;
-      if (edge != null) {
-        lineNumber = edge.getSuccessor().getLineNumber();
-      }
-      
-      Pair<Integer, String> warningIndex = new Pair<Integer, String>(lineNumber, variable);
-      if (!warnings.contains(warningIndex)) {
-        warnings.add(warningIndex);
-        if (lineNumber != null) {
-          System.out.println("Warning: " + message + " in line " + lineNumber+": "
-              + edge.getRawStatement());
-        } else {
-          System.out.println("Warning: " + message);
-        }
-      }
+    if (result == domain.getBottomElement()) {
+      System.out.println("Stopping pointer analysis on line " + cfaEdge);
     }
+    return result;
   }
 
   private void handleDeclaration(PointerAnalysisElement element,
@@ -258,17 +270,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
     }
   }
   
-  private PointerAnalysisElement handleAssume(PointerAnalysisElement element,
-                                              AssumeEdge assumeEdge)
-                                              throws TransferRelationException {
-    
-    IASTExpression expression = assumeEdge.getExpression();
-    boolean isTrueBranch = assumeEdge.getTruthAssumption();
-    
-    return handleAssume(element, expression, isTrueBranch, assumeEdge);
-  }
-  
-  private PointerAnalysisElement handleAssume(PointerAnalysisElement element,
+  private IPointerAnalysisElement handleAssume(PointerAnalysisElement element,
                                               IASTExpression expression,
                                               boolean isTrueBranch,
                                               AssumeEdge assumeEdge)
@@ -324,7 +326,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
     return element;
   }
   
-  private PointerAnalysisElement handleBinaryAssume(PointerAnalysisElement element,
+  private IPointerAnalysisElement handleBinaryAssume(PointerAnalysisElement element,
                                                     IASTBinaryExpression expression,
                                                     boolean isTrueBranch,
                                                     AssumeEdge assumeEdge)
@@ -403,6 +405,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       
       for (int i = 0; i < actualValues.size(); i++) {
         Pointer value = actualValues.get(i);
+        System.out.println("Calling function " + element.getCurrentFunctionName() + " with parameter " + formalParameters.get(i) + "=" + value);
         if (value != null) {
           Pointer parameter = new Pointer();
           element.addNewLocalPointer(formalParameters.get(i), parameter); // sets location
@@ -439,17 +442,25 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
     // resultPointer does not reliably indicate if the function returns a pointer!
     // E.g., without a type information CPA, return 0 will lead to a pointer result
     // even if the function returns an int
+    System.out.println(element.getCurrentFunctionName() + " returns " + resultPointer);
     
+    // check for references to stack variables in result pointer
     for (PointerTarget resultTarget : resultPointer.getTargets()) {
       if (resultTarget instanceof LocalVariable) {
-        if (element.getCurrentFunctionName().equals(((LocalVariable)resultTarget).getFunctionName())) {
+        LocalVariable var = (LocalVariable)resultTarget;
+        String function = element.getCurrentFunctionName();
+        if (function.equals(var.getFunctionName())) {
           // function returns a reference to a local variable
-          System.out.println("WARNING: function " + element.getCurrentFunctionName()
-              + " returns reference to local variable " + resultTarget);
+          addWarning("Function " + function + " returns reference to local variable "
+                     + resultTarget, cfaEdge, resultTarget.toString());
         }
       }
     }
+
     
+    element.returnFromFunction(); // throw away local context
+    
+
     // use function result
     if (expression instanceof IASTBinaryExpression) {
       // a = func()
@@ -488,16 +499,13 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       throw new TransferRelationException("Invalid C code: " + cfaEdge.getRawStatement());  
     }
     
-    
-    element.returnFromFunction(); // throw away local context
-    
-
     // check for memory leaks
     // TODO better location for calling checkMemoryLeak()? regularly? at end of analysis?
     Collection<MemoryRegion> lostRegions = element.checkMemoryLeak();
     try {
       for (MemoryRegion lostRegion : lostRegions) {
-        addWarning("Memory leak: " + lostRegion + " is not freed and has no known pointer towards it, found", cfaEdge, lostRegion.toString());
+        addWarning("Memory leak: " + lostRegion + " is not freed and has no known pointer towards it",
+                   cfaEdge, lostRegion.toString());
         element.free(lostRegion);
       }
     } catch (InvalidPointerException e) {
@@ -507,7 +515,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
         
   }
   
-  private void handleStatement(PointerAnalysisElement element,
+  private IPointerAnalysisElement handleStatement(PointerAnalysisElement element,
                                IASTExpression expression, CFAEdge cfaEdge)
                                throws TransferRelationException,
                                       InvalidPointerException {
@@ -561,29 +569,33 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
           Pointer p = element.getPointer(parameter.getRawSignature());
         
           if (p == null) {
-            addWarning("Freeing unknown pointer " + parameter.getRawSignature(), cfaEdge, parameter.getRawSignature());
+            addWarning("Freeing unknown pointer " + parameter.getRawSignature(),
+                       cfaEdge, parameter.getRawSignature());
           } else {
             element.free(p);
           }
         } else {
-          throw new TransferRelationException("This code is not expected in CIL: " + cfaEdge.getRawStatement());
+          throw new TransferRelationException("This code is not expected in CIL: "
+              + cfaEdge.getRawStatement());
         }
               
       } else if (functionName.equals("malloc")) {
         // malloc without assignment (will lead to memory leak)
-        addWarning("Memory leak because of calling malloc without using the return value!", cfaEdge, "");
+        addWarning("Memory leak because of calling malloc without using the return value!",
+                   cfaEdge, "");
       }      
     
     } else if (expression instanceof IASTBinaryExpression) {
       // statement is a binary expression, e.g. a = b or a += b;
-      handleBinaryStatement(element, (IASTBinaryExpression)expression, cfaEdge);
+      return handleBinaryStatement(element, (IASTBinaryExpression)expression, cfaEdge);
       
     } else {
       throw new TransferRelationException("Invalid C code: " + cfaEdge.getRawStatement());
     }
+    return element;
   }
 
-  private void handleBinaryStatement(PointerAnalysisElement element,
+  private IPointerAnalysisElement handleBinaryStatement(PointerAnalysisElement element,
                                      IASTBinaryExpression expression,
                                      CFAEdge cfaEdge)
                                      throws TransferRelationException,
@@ -611,8 +623,15 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
           throw new InvalidPointerException("Dereferencing a non-pointer: " + cfaEdge.getRawStatement());
         }
         
+        if (!leftPointer.isDereferencable()) {
+          addError("Unsafe deref of pointer " + unaryExpression.getOperand().getRawSignature()
+                    + " = " + leftPointer, cfaEdge, unaryExpression.getRawSignature());
+          return domain.getBottomElement();
+        }
+        
         if (!leftPointer.isSafe()) {
-          addWarning("Unsafe deref of pointer " + unaryExpression.getRawSignature(), cfaEdge, unaryExpression.getRawSignature());
+          addWarning("Potentially unsafe deref of pointer " + unaryExpression.getOperand().getRawSignature()
+                     + " = " + leftPointer, cfaEdge, unaryExpression.getRawSignature());
         }
         
         if (!leftPointer.isPointerToPointer()) {
@@ -630,7 +649,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
     
     if (leftPointer == null) {
       // writing to a non-pointer variable -- ignore
-      return;
+      return element;
     }
     
     int typeOfOperator = expression.getOperator();
@@ -666,6 +685,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
         throw new TransferRelationException("This code is not expected in CIL: " + cfaEdge.getRawStatement());
       }
     }
+    return element;
   }
 
   /**
@@ -787,7 +807,8 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
         if (rightPointer != null) {
           element.pointerOp(new PointerOperation.DerefAndAssign(rightPointer), leftPointer, leftDereference);
         } else {
-          addWarning("Dereferencing a non-pointer variable " + expression.getRawSignature(), cfaEdge, operand.getRawSignature());
+          addWarning("Dereferencing a non-pointer variable " + expression.getRawSignature(),
+                     cfaEdge, operand.getRawSignature());
           element.pointerOp(new PointerOperation.Assign(Memory.UNKNOWN_POINTER), leftPointer, leftDereference);
         }
       
@@ -803,7 +824,8 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       if (rightPointer != null) {
         element.pointerOp(new PointerOperation.Assign(rightPointer), leftPointer, leftDereference);
       } else {
-        addWarning("Assigning non-pointer variable " + expression.getRawSignature() + " to pointer", cfaEdge, expression.getRawSignature());
+        addWarning("Assigning non-pointer variable " + expression.getRawSignature()
+                   + " to pointer", cfaEdge, expression.getRawSignature());
         element.pointerOp(new PointerOperation.Assign(Memory.UNKNOWN_POINTER), leftPointer, leftDereference);
       }
       
@@ -871,6 +893,9 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
   public AbstractElement strengthen(AbstractElement element, List<AbstractElement> elements,
                          CFAEdge cfaEdge, Precision precision) {
     if (missing == null) {
+      return null;
+    }
+    if (!(element instanceof PointerAnalysisElement)) {
       return null;
     }
     PointerAnalysisElement pointerElement = (PointerAnalysisElement)element;
@@ -975,6 +1000,10 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
                           CFAEdge cfaEdge, Precision precision)
                           throws TransferRelationException {
 
+    if (missing.typeInformationPointer == null) {
+      return;
+    }
+    
     // pointer variable declaration
     String functionName = cfaEdge.getSuccessor().getFunctionName();
     if (missing.typeInformationEdge instanceof GlobalDeclarationEdge) {

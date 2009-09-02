@@ -35,15 +35,24 @@ import exceptions.CPAException;
  * @author Philipp Wendler
  */
 public class PointerAnalysisDomain implements AbstractDomain {
+  
+  /**
+   * Super interface for PointerAnalysisElement, BottomElement and TopElement,
+   * so the latter two do not have to extend the former one and carry all it's
+   * local variables.
+   */
+  static interface IPointerAnalysisElement extends AbstractElement {
+    
+  }
 
-  private static class PointerAnalysisBottomElement extends PointerAnalysisElement {
+  private static class PointerAnalysisBottomElement implements IPointerAnalysisElement {
     @Override
     public String toString() {
       return "<PointerAnalysis BOTTOM>";
     }
   }
   
-  private static class PointerAnalysisTopElement extends PointerAnalysisElement {
+  private static class PointerAnalysisTopElement implements IPointerAnalysisElement {
     @Override
     public String toString() {
       return "<PointerAnalysis TOP>";
@@ -88,9 +97,20 @@ public class PointerAnalysisDomain implements AbstractDomain {
   
   private static class PointerAnalysisPartialOrder implements PartialOrder {
     @Override
-    public boolean satisfiesPartialOrder(AbstractElement pElement1,
-                                         AbstractElement pElement2)
+    public boolean satisfiesPartialOrder(AbstractElement newElement,
+                                         AbstractElement reachedElement)
                                          throws CPAException {
+      if (newElement == bottomElement) {
+        return true;
+      } else if (reachedElement == topElement) {
+        return true;
+      } else if (reachedElement == bottomElement) {
+        assert false : "Bottom element should never be in the reached set";
+        return false;
+      } else if (newElement == topElement) {
+        return false;
+      }
+      
       // TODO partial Order
       return false;
     }
@@ -98,8 +118,8 @@ public class PointerAnalysisDomain implements AbstractDomain {
   
   private static final JoinOperator joinOperator = new PointerAnalysisJoinOperator();
   private static final PartialOrder partialOrder = new PointerAnalysisPartialOrder();
-  private static final PointerAnalysisElement bottomElement = new PointerAnalysisBottomElement();
-  private static final PointerAnalysisElement topElement = new PointerAnalysisTopElement();
+  private static final IPointerAnalysisElement bottomElement = new PointerAnalysisBottomElement();
+  private static final IPointerAnalysisElement topElement = new PointerAnalysisTopElement();
   
   @Override
   public JoinOperator getJoinOperator() {
@@ -112,12 +132,12 @@ public class PointerAnalysisDomain implements AbstractDomain {
   }
 
   @Override
-  public PointerAnalysisElement getBottomElement() {
+  public IPointerAnalysisElement getBottomElement() {
     return bottomElement;
   }
 
   @Override
-  public PointerAnalysisElement getTopElement() {
+  public IPointerAnalysisElement getTopElement() {
     return topElement;
   }
 }

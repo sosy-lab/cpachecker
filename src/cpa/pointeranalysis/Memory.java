@@ -254,6 +254,7 @@ public interface Memory {
     private final String name;
     
     public Variable(String name) {
+      assert name != null;
       this.name = name;
     }
     
@@ -292,7 +293,7 @@ public interface Memory {
     
     @Override
     public String toString() {
-      return "&" + name;
+      return name;
     }
   }
    
@@ -305,6 +306,7 @@ public interface Memory {
     
     public LocalVariable(String function, String name) {
       super(name);
+      assert function != null;
       this.function = function;
     }
     
@@ -315,6 +317,18 @@ public interface Memory {
     
     public String getFunctionName() {
       return function;
+    }
+    
+    @Override
+    public String toString() {
+      return function + ":" + super.toString();
+    }
+    
+    @Override
+    public boolean equals(Object other) {
+      return (other instanceof LocalVariable)
+              && super.equals(other) 
+              && function.equals(((LocalVariable)other).function);
     }
   }
   
@@ -331,6 +345,11 @@ public interface Memory {
     @Override
     public Pointer getPointer(Memory memory) {
       return memory.getGlobalPointers().get(getVarName());
+    }
+    
+    @Override
+    public boolean equals(Object other) {
+      return (other instanceof GlobalVariable) && super.equals(other);
     }
   }
   

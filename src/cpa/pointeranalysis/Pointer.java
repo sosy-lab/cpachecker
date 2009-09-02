@@ -9,8 +9,10 @@ import java.util.HashSet;
 import java.util.Set;
 
 import cpa.pointeranalysis.Memory.InvalidPointerException;
+import cpa.pointeranalysis.Memory.MemoryAddress;
 import cpa.pointeranalysis.Memory.PointerLocation;
 import cpa.pointeranalysis.Memory.PointerTarget;
+import cpa.pointeranalysis.Memory.Variable;
 
 /**
  * A pointer is a set of possible targets.
@@ -49,9 +51,8 @@ public class Pointer {
   }
   
   public void assign(Pointer rightHandSide) {
-    if (rightHandSide == null) {
-      throw new IllegalArgumentException();
-    }
+    assert rightHandSide != null;
+
     // this adds all possible targets from the other pointer to this pointer
     targets.clear();
     targets.addAll(rightHandSide.targets);
@@ -65,41 +66,31 @@ public class Pointer {
    * @param target
    */
   public void assign(PointerTarget target) {
-    if (target == null) {
-      throw new IllegalArgumentException();
-    }
+    assert target != null;
     targets.clear();
     targets.add(target);
   }
   
 
   public void join(Pointer p) {
-    if (p == null) {
-      throw new IllegalArgumentException();
-    }
+    assert p != null;
     // this adds all targets from p to this pointer
     targets.addAll(p.targets);
   }
   
   public void addTarget(PointerTarget target) {
-    if (target == null) {
-      throw new IllegalArgumentException();
-    }
+    assert target != null;
     targets.add(target);
   }
   
   
   public void removeTarget(PointerTarget target) {
-    if (target == null) {
-      throw new IllegalArgumentException();
-    }
+    assert target != null;
     targets.remove(target);
   }
   
   public void removeAllTargets(Pointer other) {
-    if (other == null) {
-      throw new IllegalArgumentException();
-    }
+    assert other != null;
     targets.removeAll(other.targets);
   }
   
@@ -107,8 +98,19 @@ public class Pointer {
     targets.clear();
   }
   
-  public boolean isUnsafe() {
+  /*public boolean isUnsafe() {
     return targets.contains(NULL_POINTER) || targets.contains(INVALID_POINTER);
+  }*/
+  
+  public boolean isDereferencable() {
+    for (PointerTarget target : targets) {
+      if (target == UNKNOWN_POINTER
+          || target instanceof Variable
+          || target instanceof MemoryAddress) {
+        return true;
+      }
+    }
+    return false;
   }
   
   public boolean isSafe() {
@@ -118,13 +120,12 @@ public class Pointer {
   }
   
   public boolean isSubsetOf(Pointer other) {
-    if (other == null) {
-      throw new IllegalArgumentException();
-    }
+    assert other != null;
     return (this == other) || other.targets.containsAll(targets);
   }
 
   public boolean isDifferentFrom(Pointer other) {
+    assert other != null;
     return !this.isSubsetOf(other)
         && !other.isSubsetOf(this)
         && !targets.contains(INVALID_POINTER)
@@ -134,20 +135,26 @@ public class Pointer {
   }
   
   public boolean contains(PointerTarget target) {
+    assert target != null;
     return targets.contains(target);
   }
   
   public void addOffset(int shift, boolean keepOldTargets) throws InvalidPointerException {
-    Set<PointerTarget> newTargets = new HashSet<PointerTarget>();
-    
-    for (PointerTarget target : targets) {
-      newTargets.add(target.addOffset(shift*sizeOfTarget));
-    }
-    
-    if (keepOldTargets) {
-      targets.addAll(newTargets);
+    if (!hasSizeOfTarget()) {
+      addUnknownOffset(keepOldTargets);
+      
     } else {
-      targets = newTargets;
+      Set<PointerTarget> newTargets = new HashSet<PointerTarget>();
+      
+      for (PointerTarget target : targets) {
+        newTargets.add(target.addOffset(shift*sizeOfTarget));
+      }
+      
+      if (keepOldTargets) {
+        targets.addAll(newTargets);
+      } else {
+        targets = newTargets;
+      }
     }
   }
 
@@ -253,13 +260,18 @@ public class Pointer {
   public String toString() {
     StringBuffer sb = new StringBuffer();
     for (int i = 0; i < levelOfIndirection; i++) {
-      sb.append("*");
+      sb.append('*');
     }
-    sb.append("(");
+    sb.append('(');
     for (PointerTarget target : targets) {
-      sb.append(" " + target + " ");
+      sb.append(' ');
+      if (target instanceof Variable) {
+        sb.append('&');
+      }
+      sb.append(target);
+      sb.append(' ');
     }
-    sb.append(")");
+    sb.append(')');
     return sb.toString();
   }
 

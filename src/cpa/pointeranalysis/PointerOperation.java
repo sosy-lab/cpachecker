@@ -129,6 +129,10 @@ interface PointerOperation<E extends Throwable> {
         
         if (actualAssignValue != null) {
           pointer.join(actualAssignValue);
+          
+          if (!keepOldTargets && assignValue.getNumberOfTargets() == 1) {
+            memory.makeAlias(actualAssignValue.getLocation(), pointer.getLocation());
+          }
         }
       }
     }
@@ -140,7 +144,7 @@ interface PointerOperation<E extends Throwable> {
     
     @Override
     public void doOperation(Memory memory, Pointer pointer, boolean keepOldTargets) throws InvalidPointerException {
-      if (memAddress != null) {
+      if (memAddress == null) {
         memAddress = memory.malloc();
       }
       
