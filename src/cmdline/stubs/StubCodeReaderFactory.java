@@ -27,6 +27,7 @@ import java.io.IOException;
 
 import org.eclipse.cdt.core.dom.CDOM;
 import org.eclipse.cdt.core.dom.ICodeReaderFactory;
+import org.eclipse.cdt.core.dom.IMacroCollector;
 import org.eclipse.cdt.core.model.ITranslationUnit;
 import org.eclipse.cdt.core.parser.CodeReader;
 import org.eclipse.cdt.core.parser.ICodeReaderCache;
@@ -89,5 +90,11 @@ public class StubCodeReaderFactory implements ICodeReaderFactory {
     public CodeReader createCodeReaderForInclusion(String arg0) {
         // TODO Auto-generated method stub
         return null;
+    }
+    @Override
+    public CodeReader createCodeReaderForInclusion(IMacroCollector pCallback,
+        String pPath) {
+      // TODO Auto-generated method stub
+      return null;
     }
 }

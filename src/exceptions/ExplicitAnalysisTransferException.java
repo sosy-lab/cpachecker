@@ -32,17 +32,14 @@ public class ExplicitAnalysisTransferException extends TransferRelationException
 
 	public ExplicitAnalysisTransferException(){
 		super();
-		System.exit(0);
 	}
 
 	public ExplicitAnalysisTransferException(String s){
 		super(s);
-		System.exit(0);
 	}
 
 	public ExplicitAnalysisTransferException(String s, int i){
 		super(s + " @ line " + i);
-		System.exit(0);
 	}
 
 }

@@ -54,6 +54,8 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
   private SymbPredAbsAbstractDomain domain;
   private SymbolicFormulaManager symbolicFormulaManager;
 
+  public static long totalMergeTime = 0;
+  
   public SymbPredAbsMergeOperator(SymbPredAbsAbstractDomain pDomain) {
     domain = pDomain;
     symbolicFormulaManager = domain.getCPA().getSymbolicFormulaManager();
@@ -79,6 +81,7 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
       // if they have the same abstraction paths, we will take the disjunction 
       // of two path formulas from two merged elements
       else{
+        long start = System.currentTimeMillis();
         // create a new element, note that their abstraction formulas, initAbstractionFormula,
         // abstraction locations, artParents are same because they have the same
         // abstraction path
@@ -88,7 +91,8 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
 
         MathsatSymbolicFormula formula1 =
           (MathsatSymbolicFormula)elem1.getPathFormula().getSymbolicFormula();
-        elem1.updateMaxIndex(elem1.getPathFormula().getSsa());
+        // TODO check
+//        elem1.updateMaxIndex(elem1.getPathFormula().getSsa());
         MathsatSymbolicFormula formula2 =
           (MathsatSymbolicFormula)elem2.getPathFormula().getSymbolicFormula();
         SSAMap ssa1 = elem1.getPathFormula().getSsa();
@@ -116,7 +120,10 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
           pfParents.add(elem1.getPfParents().get(0));
         }
         merged.setPfParents(pfParents);
-        merged.updateMaxIndex(ssa1);
+        // TODO check
+//        merged.updateMaxIndex(ssa1);
+        long end = System.currentTimeMillis();
+        totalMergeTime = totalMergeTime + (end - start);
       }
     }
     // we don't merge if this is an abstraction location

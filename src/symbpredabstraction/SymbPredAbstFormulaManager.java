@@ -26,6 +26,8 @@ package symbpredabstraction;
 import java.util.Collection;
 import java.util.Deque;
 
+import cfa.objectmodel.CFANode;
+
 import cpa.symbpredabs.AbstractFormula;
 import cpa.symbpredabs.AbstractFormulaManager;
 import cpa.symbpredabs.CounterexampleTraceInfo;
@@ -46,7 +48,8 @@ public interface SymbPredAbstFormulaManager extends AbstractFormulaManager {
      */
     public AbstractFormula buildAbstraction(SymbolicFormulaManager mgr,
             AbstractFormula abs, PathFormula pathFormula,
-            Collection<Predicate> predicates, MathsatSymbolicFormula functionExitFormula);
+            Collection<Predicate> predicates, MathsatSymbolicFormula functionExitFormula, 
+            CFANode pSucc, AbstractionPathList pPathList);
 
     /**
      * Counterexample analysis and predicate discovery.

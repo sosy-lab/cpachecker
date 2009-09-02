@@ -41,6 +41,7 @@ import logging.CPACheckerLogger;
 import logging.CustomLogLevel;
 import logging.LazyLogger;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
+import cfa.objectmodel.CFANode;
 import cmdline.CPAMain;
 
 import common.Pair;
@@ -71,6 +72,7 @@ import cpa.symbpredabsCPA.SymbPredAbsAbstractElement;
 public class BDDMathsatSymbPredAbstractionAbstractManager extends BDDMathsatAbstractFormulaManager 
 implements SymbPredAbstFormulaManager
 {
+  public static long replacing = 0;
 
   public class AllSatCallbackStats extends AllSatCallback
   implements TheoremProver.AllSatCallback {
@@ -128,9 +130,7 @@ implements SymbPredAbstFormulaManager
   private TheoremProver thmProver;
   private InterpolatingTheoremProver itpProver;
 
-  // TODO later
-//private Map<Pair<CFANode, CFANode>, Pair<MathsatSymbolicFormula, SSAMap>>
-//abstractionTranslationCache;
+  private Map<Pair<CFANode, AbstractionPathList>, PathFormula> abstractionTranslationCache;
   private Map<Pair<SymbolicFormula, Vector<SymbolicFormula>>, AbstractFormula>
   abstractionCache;
   boolean useCache;
@@ -265,9 +265,7 @@ implements SymbPredAbstFormulaManager
   {
     super();
     stats = new Stats();
-//  abstractionTranslationCache =
-//new HashMap<Pair<CFANode, CFANode>,
-//  Pair<MathsatSymbolicFormula, SSAMap>>();
+    abstractionTranslationCache = new HashMap<Pair<CFANode, AbstractionPathList>, PathFormula>();
     dumpHardAbstractions = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.mathsat.dumpHardAbstractionQueries");
     thmProver = prover;
     itpProver = interpolator;
@@ -289,13 +287,14 @@ implements SymbPredAbstFormulaManager
   @Override
   public AbstractFormula buildAbstraction(SymbolicFormulaManager mgr,
       AbstractFormula abs, PathFormula pathFormula,
-      Collection<Predicate> predicates, MathsatSymbolicFormula functionExitFormula) {
+      Collection<Predicate> predicates, MathsatSymbolicFormula functionExitFormula,
+      CFANode pSucc, AbstractionPathList pPathList) {
     stats.numCallsAbstraction++;
     if (CPAMain.cpaConfig.getBooleanValue(
-        "cpas.symbpredabs.abstraction.cartesian")) {
+    "cpas.symbpredabs.abstraction.cartesian")) {
       return buildCartesianAbstraction(mgr, abs, pathFormula, predicates, functionExitFormula);
     } else {
-      return buildBooleanAbstraction(mgr, abs, pathFormula, predicates, functionExitFormula);
+      return buildBooleanAbstraction(mgr, abs, pathFormula, predicates, functionExitFormula, pSucc, pPathList);
     }
     //return buildBooleanAbstraction(mgr, abs, pathFormula, predicates, functionExitFormula);
   }
@@ -313,7 +312,7 @@ implements SymbPredAbstFormulaManager
 
   private AbstractFormula buildBooleanAbstraction(SymbolicFormulaManager mgr,
       AbstractFormula abs, PathFormula pathFormula,
-      Collection<Predicate> predicates, MathsatSymbolicFormula functionExitFormula) {
+      Collection<Predicate> predicates, MathsatSymbolicFormula functionExitFormula, CFANode pSucc, AbstractionPathList pPathList) {
     // A SummaryFormulaManager for MathSAT formulas
     MathsatSymbolicFormulaManager mmgr = (MathsatSymbolicFormulaManager)mgr;
 
@@ -356,36 +355,32 @@ implements SymbPredAbstFormulaManager
 
     SymbolicFormula f = null;
     SSAMap ssa = null;
+    long start = System.currentTimeMillis();
 
-    // TODO cache operations
-//  Pair<CFANode, CFANode> key = new Pair<CFANode, CFANode>(
-//  e.getLocationNode(), succ.getLocationNode());
-//  if (abstractionTranslationCache.containsKey(key)) {
-//  Pair<MathsatSymbolicFormula, SSAMap> pc =
-//  abstractionTranslationCache.get(key);
-//  f = pc.getFirst();
-//  ssa = pc.getSecond();
-//  } else {
-//  // take all outgoing edges from e to succ and OR them
-//  Pair<SymbolicFormula, SSAMap> pc =
-//  buildConcreteFormula(mmgr, e, succ, false);
-////SymbolicFormula f = pc.getFirst();
-////SSAMap ssa = pc.getSecond();
-    f = pathFormula.getSymbolicFormula();
-    ssa = pathFormula.getSsa();
+    Pair<CFANode, AbstractionPathList> key = new Pair<CFANode, AbstractionPathList>(pSucc, pPathList);
 
-    pathFormula = toPathFormula(mmgr.shift(f, absSsa));
-    f = mmgr.replaceAssignments((MathsatSymbolicFormula)pathFormula.getSymbolicFormula());
-    ssa = pathFormula.getSsa();
+//    if (abstractionTranslationCache.containsKey(key)) {
+//      PathFormula pc = abstractionTranslationCache.get(key);
+//      f = pc.getSymbolicFormula();
+//      ssa = pc.getSsa();
+//    } else {
+      f = pathFormula.getSymbolicFormula();
+      ssa = pathFormula.getSsa();
 
-    // TODO cache
-//  abstractionTranslationCache.put(key,
-//  new Pair<MathsatSymbolicFormula, SSAMap>(
-//  (MathsatSymbolicFormula)f, ssa));
-//  }
+      pathFormula = toPathFormula(mmgr.shift(f, absSsa));
+      f = mmgr.replaceAssignments((MathsatSymbolicFormula)pathFormula.getSymbolicFormula());
+      ssa = pathFormula.getSsa();
 
+//      abstractionTranslationCache.put(key, new PathFormula(f, ssa));
+//    }
+    
+    assert(f != null);
+    assert(ssa != null);
+
+    long end = System.currentTimeMillis();
+    replacing = replacing + (end - start);
     if (CPAMain.cpaConfig.getBooleanValue(
-    "cpas.symbpredabs.useBitwiseAxioms")) {
+        "cpas.symbpredabs.useBitwiseAxioms")) {
       MathsatSymbolicFormula bitwiseAxioms = mmgr.getBitwiseAxioms(
           (MathsatSymbolicFormula)f);
       f = mmgr.makeAnd(f, bitwiseAxioms);

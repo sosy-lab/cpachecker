@@ -37,6 +37,9 @@ import common.Pair;
  * referring to that variable
  */
 public class SSAMap {
+  public static long ssaMapEqualsTime = 0;
+  public static long ssaMapHashTime = 0;
+  public static long ssaGetIndexTime = 0;
     private interface Key {}
     private class VarKey implements Key {
         private String name;
@@ -45,15 +48,25 @@ public class SSAMap {
         public String getName() { return name; }
 
         @Override
-        public int hashCode() { return name.hashCode(); }
+        public int hashCode() {
+          long start = System.currentTimeMillis();
+          int i = name.hashCode();
+          long end = System.currentTimeMillis();
+          ssaMapHashTime = ssaMapHashTime + (end - start);
+          return i;
+          }
         @Override
         public boolean equals(Object o) {
+          boolean b = false;
+          long start = System.currentTimeMillis();
             if (o instanceof VarKey) {
-                return name.equals(((VarKey)o).name);
+                b = name.equals(((VarKey)o).name);
             } else if (o instanceof String) {
-                return name.equals(o);
+                b = name.equals(o);
             }
-            return false;
+            long end = System.currentTimeMillis();
+            ssaMapEqualsTime = ssaMapEqualsTime + (end - start);
+            return b;
         }
 
         @Override
@@ -110,13 +123,18 @@ public class SSAMap {
      * returns the index of the variable in the map
      */
     public int getIndex(String variable) {
+      int i;
+      long start = System.currentTimeMillis();
         VarKey k = new VarKey(variable);
         if (repr.containsKey(k)) {
-            return repr.get(k);
+            i = repr.get(k);
         } else {
             // no index found, return -1
-            return -1;
+            i = -1;
         }
+        long end = System.currentTimeMillis();
+        ssaGetIndexTime = ssaGetIndexTime + (end - start);
+        return i;
     }
 
     public void setIndex(String variable, int idx) {

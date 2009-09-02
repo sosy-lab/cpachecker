@@ -50,7 +50,7 @@ public class CPAAlgorithm
 {
   private boolean useART = CPAMain.cpaConfig.getBooleanValue("cpa.useART");
   public static boolean errorFound;
-
+public static long chooseTime = 0;
   private List<Pair<AbstractElementWithLocation,Precision>> waitlist;
   private ReachedElements reachedElements;
   private AbstractElementWithLocation initialState;
@@ -81,7 +81,10 @@ public class CPAAlgorithm
     {
       // Pick next element using strategy
       // BFS, DFS or top sort according to the configuration
+      long start = System.currentTimeMillis();
       Pair<AbstractElementWithLocation,Precision> e = choose(waitlist);
+      long end = System.currentTimeMillis();
+      chooseTime = chooseTime + (end - start); 
       // TODO enable this
       //e = precisionAdjustment.prec(e.getFirst(), e.getSecond(), reached);
       AbstractElementWithLocation element = e.getFirst();
@@ -178,7 +181,7 @@ public class CPAAlgorithm
 
           waitlist.add(new Pair<AbstractElementWithLocation,Precision>(successor,precision));
           reachedElements.add(new Pair<AbstractElementWithLocation,Precision>(successor,precision));
-
+          
           if(useART && errorFound){
             return reachedElements;
           }

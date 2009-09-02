@@ -228,7 +228,8 @@ public class SymbPredAbsCPA implements RefinableCPA {
 
     SymbPredAbsAbstractElement e = new SymbPredAbsAbstractElement(domain, true, node,
         pf, pfParents, initPf, initAbstraction, parents, null, predicateMap);
-    e.setMaxIndex(new SSAMap());
+    // TODO check
+//    e.setMaxIndex(new SSAMap());
 
     return e;
   }

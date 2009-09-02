@@ -27,14 +27,17 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.eclipse.cdt.core.dom.ast.IASTArraySubscriptExpression;
 import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTCastExpression;
 import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
+import org.eclipse.cdt.core.dom.ast.IASTFieldReference;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression;
 import org.eclipse.cdt.core.dom.ast.IASTIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
 import org.eclipse.cdt.core.dom.ast.IASTPointerOperator;
+import org.eclipse.cdt.core.dom.ast.IASTTypeIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 
 import cfa.objectmodel.CFAEdge;
@@ -75,18 +78,18 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
 
   @Override
   public AbstractElement getAbstractSuccessor(AbstractElement element,
-                                              CFAEdge cfaEdge, Precision precision) 
+      CFAEdge cfaEdge, Precision precision) 
   throws CPATransferException
   {
-    System.out.println(cfaEdge);
-    System.out.println("_______________________");
+//  System.out.println(cfaEdge);
+//  System.out.println("_______________________");
     AbstractElement successor = explicitAnalysisDomain.getBottomElement();
 
     if(cfaEdge.getSuccessor() instanceof CFAErrorNode){
       CPAAlgorithm.errorFound = true;
       return new ExplicitAnalysisElement();
     }
-    
+
     // check the type of the edge
     switch (cfaEdge.getEdgeType ())
     {
@@ -210,9 +213,9 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
         e.printStackTrace();
       }
     }
-    
-    System.out.println(successor);
-    System.out.println("-----------------------");
+
+//  System.out.println(successor);
+//  System.out.println("-----------------------");
     return successor;
   }
 
@@ -224,7 +227,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
    * @throws ExplicitAnalysisTransferException the operation on the edge cannot be handled.
    */
   private ExplicitAnalysisElement handleFunctionReturn(AbstractElement element,
-                                                       ReturnEdge functionReturnEdge) 
+      ReturnEdge functionReturnEdge) 
   throws ExplicitAnalysisTransferException{
 
     ExplicitAnalysisElement expAnalysisElement = (ExplicitAnalysisElement)element;
@@ -247,10 +250,11 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
       assert(opType == IASTBinaryExpression.op_assign);
 
       //we expect left hand side of the expression to be a variable
-      if(op1 instanceof IASTIdExpression)
+      if(op1 instanceof IASTIdExpression ||
+          op1 instanceof IASTFieldReference)
       {
-        IASTIdExpression leftHandSideVar = (IASTIdExpression)op1;
-        String varName = leftHandSideVar.getRawSignature();
+//      IASExpression leftHandSideVar = op1;
+        String varName = op1.getRawSignature();
         String returnVarName = calledFunctionName + "::" + "___cpa_temp_result_var_";
 
         for(String globalVar:globalVars){
@@ -351,7 +355,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
   }
 
   private ExplicitAnalysisElement handleFunctionCall(AbstractElement element,
-                                                     FunctionCallEdge callEdge)  
+      FunctionCallEdge callEdge)  
   throws ExplicitAnalysisTransferException {
 
     ExplicitAnalysisElement expAnalysisElement = (ExplicitAnalysisElement)element;
@@ -379,13 +383,11 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
 
     for(int i=0; i<arguments.length; i++){
       IASTExpression arg = arguments[i];
-
+      String nameOfParam = paramNames.get(i);
+      String formalParamName = getvarName(nameOfParam, calledFunctionName);
       if(arg instanceof IASTIdExpression){
         IASTIdExpression idExp = (IASTIdExpression) arg;
         String nameOfArg = idExp.getRawSignature();
-        String nameOfParam = paramNames.get(i);
-
-        String formalParamName = getvarName(nameOfParam, calledFunctionName);
         String actualParamName = getvarName(nameOfArg, callerFunctionName);
 
         if(expAnalysisElement.contains(actualParamName)){
@@ -402,8 +404,8 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
 //          || typeOfLiteral == IASTLiteralExpression.lk_float_constant
         )
         {
-          String paramName = paramNames.get(i);
-          String formalParamName = getvarName(paramName, calledFunctionName);
+//        String paramName = paramNames.get(i);
+//        String formalParamName = getvarName(paramName, calledFunctionName);
 
           if(stringValOfArg.contains("L") || stringValOfArg.contains("U")){
             stringValOfArg = stringValOfArg.replace("L", "");
@@ -418,6 +420,77 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
           throw new ExplicitAnalysisTransferException("Unhandled case");
         }
       }
+
+      else if(arg instanceof IASTCastExpression){
+        IASTCastExpression castExp = (IASTCastExpression) arg;
+
+        IASTExpression castOperand = castExp.getOperand();
+        String castType = castExp.getTypeId().getRawSignature();
+        if(castOperand instanceof IASTIdExpression){
+          if(castType.contains("int") || castType.contains("long")){
+            String nameOfVar = castOperand.getRawSignature();
+            String actualParamName = getvarName(nameOfVar, calledFunctionName);
+
+            return propagateVariableAssignment(element, formalParamName, actualParamName);
+          }
+          else{
+            newElement.forget(formalParamName);
+          }
+        }
+
+        else if(castOperand instanceof IASTLiteralExpression){
+          if(castType.contains("int") || castType.contains("long")){
+            IASTLiteralExpression literalExp = (IASTLiteralExpression) castOperand;
+            String stringValOfArg = literalExp.getRawSignature();
+
+            int typeOfLiteral = literalExp.getKind();
+            if( typeOfLiteral ==  IASTLiteralExpression.lk_integer_constant 
+//              || typeOfLiteral == IASTLiteralExpression.lk_float_constant
+            )
+            {
+//            String paramName = paramNames.get(i);
+//            String formalParamName = getvarName(paramName, calledFunctionName);
+
+              if(stringValOfArg.contains("L") || stringValOfArg.contains("U")){
+                stringValOfArg = stringValOfArg.replace("L", "");
+                stringValOfArg = stringValOfArg.replace("U", "");
+              }
+
+              int value = Integer.valueOf(stringValOfArg).intValue();
+
+              newElement.assignConstant(formalParamName, value, this.threshold);
+            }
+            else{
+              throw new ExplicitAnalysisTransferException("Unhandled case");
+            }
+          }
+          else{
+            newElement.forget(formalParamName);
+          }
+        }
+        else{
+          throw new ExplicitAnalysisTransferException("Unhandled case ");
+        }
+        return newElement;
+      }
+
+      else if(arg instanceof IASTTypeIdExpression){
+        newElement.forget(formalParamName);
+      }
+
+      else if(arg instanceof IASTUnaryExpression){
+        IASTUnaryExpression unaryExp = (IASTUnaryExpression) arg;
+        assert(unaryExp.getOperator() == IASTUnaryExpression.op_star || unaryExp.getOperator() == IASTUnaryExpression.op_amper);
+      }
+
+      else if(arg instanceof IASTFunctionCallExpression){
+        assert(false);
+      }
+
+      else if(arg instanceof IASTFieldReference){
+        newElement.forget(formalParamName);
+      }
+
       else{
         throw new ExplicitAnalysisTransferException("Unhandled case");
       }
@@ -427,8 +500,8 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
   }
 
   private ExplicitAnalysisElement handleExitFromFunction(AbstractElement element,
-                                                         IASTExpression expression,
-                                                         StatementEdge statementEdge) 
+      IASTExpression expression,
+      StatementEdge statementEdge) 
   throws ExplicitAnalysisTransferException {
 
     ExplicitAnalysisElement newElement = ((ExplicitAnalysisElement)element).clone();
@@ -436,7 +509,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
     String returnVarName = functionName + "::" + "___cpa_temp_result_var_";
 
     // TODO handle return a+1; und return (a+1);
-    
+
     if(expression instanceof IASTUnaryExpression){
       IASTUnaryExpression unaryExp = (IASTUnaryExpression)expression;
       if(unaryExp.getOperator() == IASTUnaryExpression.op_bracketedPrimary){
@@ -502,7 +575,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
   }
 
   private AbstractElement handleAssumption(AbstractElement element,
-                                           IASTExpression expression, CFAEdge cfaEdge, boolean truthValue)
+      IASTExpression expression, CFAEdge cfaEdge, boolean truthValue)
   throws ExplicitAnalysisTransferException 
   {
 
@@ -568,19 +641,19 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
   }
 
   private AbstractElement propagateBooleanExpression(AbstractElement element, 
-                                                     int opType,IASTExpression op1, 
-                                                     IASTExpression op2, String functionName, boolean truthValue) 
+      int opType,IASTExpression op1, 
+      IASTExpression op2, String functionName, boolean truthValue) 
   throws ExplicitAnalysisTransferException {
 
     ExplicitAnalysisElement newElement = ((ExplicitAnalysisElement)element).clone();
 
     // a (bop) ?
-    if(op1 instanceof IASTIdExpression)
+    if(op1 instanceof IASTIdExpression || 
+        op1 instanceof IASTFieldReference)
     {
       // [literal]
       if(op2 == null && opType == -999){
-        IASTIdExpression var = (IASTIdExpression)op1;
-        String varName = var.getRawSignature();
+        String varName = op1.getRawSignature();
         if(truthValue){
           if(newElement.contains(getvarName(varName, functionName))){
             if(newElement.getValueFor(getvarName(varName, functionName)) == 0){
@@ -605,8 +678,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
       // a (bop) 9
       else if(op2 instanceof IASTLiteralExpression)
       {
-        IASTIdExpression var = (IASTIdExpression)op1;
-        String varName = var.getRawSignature();
+        String varName = op1.getRawSignature();
         int typeOfLiteral = ((IASTLiteralExpression)op2).getKind();
         if( typeOfLiteral ==  IASTLiteralExpression.lk_integer_constant 
             //  || typeOfLiteral == IASTLiteralExpression.lk_float_constant
@@ -772,9 +844,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
       // a (bop) b
       else if(op2 instanceof IASTIdExpression)
       {
-        IASTIdExpression leftVar = (IASTIdExpression)op1;
-        String leftVarName = leftVar.getRawSignature();
-
+        String leftVarName = op1.getRawSignature();
         IASTIdExpression rightVar = (IASTIdExpression)op2;
         String rightVarName = rightVar.getRawSignature();
 
@@ -905,8 +975,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
       }
       else if(op2 instanceof IASTUnaryExpression)
       {
-        IASTIdExpression var = (IASTIdExpression)op1;
-        String varName = var.getRawSignature();
+        String varName = op1.getRawSignature();
 
         IASTUnaryExpression unaryExp = (IASTUnaryExpression)op2;
         IASTExpression unaryExpOp = unaryExp.getOperand();
@@ -1041,6 +1110,11 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
             throw new ExplicitAnalysisTransferException("Unhandled case ");
           }
         }
+        else if(operatorType == IASTUnaryExpression.op_bracketedPrimary){
+          IASTUnaryExpression unaryExprInPar = (IASTUnaryExpression)op2;
+          IASTExpression exprInParanhesis = unaryExprInPar.getOperand();
+          return propagateBooleanExpression(element, opType, op1, exprInParanhesis, functionName, truthValue);
+        }
         else{
           throw new ExplicitAnalysisTransferException("Unhandled case ");
         }
@@ -1056,7 +1130,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
   }
 
   private ExplicitAnalysisElement handleDeclaration(AbstractElement element,
-                                                    DeclarationEdge declarationEdge) {
+      DeclarationEdge declarationEdge) {
 
     ExplicitAnalysisElement newElement = ((ExplicitAnalysisElement)element).clone();
     IASTDeclarator[] declarators = declarationEdge.getDeclarators();
@@ -1089,7 +1163,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
   }
 
   private ExplicitAnalysisElement handleStatement(AbstractElement element,
-                                                  IASTExpression expression, CFAEdge cfaEdge) 
+      IASTExpression expression, CFAEdge cfaEdge) 
   throws ExplicitAnalysisTransferException {
     // expression is a binary operation, e.g. a = b;
     if (expression instanceof IASTBinaryExpression) {
@@ -1100,13 +1174,22 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
     {
       return handleUnaryExpression(element, expression, cfaEdge);
     }
+    // external function call
+    else if(expression instanceof IASTFunctionCallExpression){
+      // do nothing
+      return ((ExplicitAnalysisElement)element).clone();
+    }
+    // there is such a case
+    else if(expression instanceof IASTIdExpression){
+      return ((ExplicitAnalysisElement)element).clone();
+    }
     else{
       throw new ExplicitAnalysisTransferException("Unhandled case " + cfaEdge.getRawStatement());
     }
   }
 
   private ExplicitAnalysisElement handleUnaryExpression(AbstractElement element,
-                                                        IASTExpression expression, CFAEdge cfaEdge) 
+      IASTExpression expression, CFAEdge cfaEdge) 
   throws ExplicitAnalysisTransferException {
 
     String functionName = cfaEdge.getPredecessor().getFunctionName();
@@ -1138,7 +1221,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
   }
 
   private ExplicitAnalysisElement addLiteralToVariable(AbstractElement element, CFAEdge cfaEdge,
-                                                       String assignedVar, String varName, int val) 
+      String assignedVar, String varName, long val) 
   {
     ExplicitAnalysisElement newElement = ((ExplicitAnalysisElement)element).clone();
     if(newElement.contains(varName)){
@@ -1151,7 +1234,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
   }
 
   private ExplicitAnalysisElement subtractVariableFromLiteral(AbstractElement element, CFAEdge cfaEdge,
-                                                              String assignedVar, String varName, int val) 
+      String assignedVar, String varName, int val) 
   {
     ExplicitAnalysisElement newElement = ((ExplicitAnalysisElement)element).clone();
     if(newElement.contains(varName)){
@@ -1164,7 +1247,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
   }
 
   private ExplicitAnalysisElement multiplyLiteralWithVariable(AbstractElement element, CFAEdge cfaEdge,
-                                                              String assignedVar, String varName, int val)
+      String assignedVar, String varName, long val)
   {
     ExplicitAnalysisElement newElement = ((ExplicitAnalysisElement)element).clone();
     if(newElement.contains(varName)){
@@ -1177,7 +1260,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
   }
 
   private ExplicitAnalysisElement handleBinaryExpression(AbstractElement element,
-                                                         IASTExpression expression, CFAEdge cfaEdge)
+      IASTExpression expression, CFAEdge cfaEdge)
   throws ExplicitAnalysisTransferException 
   {
     IASTBinaryExpression binaryExpression = (IASTBinaryExpression) expression;
@@ -1192,15 +1275,21 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
     case IASTBinaryExpression.op_plusAssign:
     case IASTBinaryExpression.op_minusAssign:
     case IASTBinaryExpression.op_multiplyAssign:
+    case IASTBinaryExpression.op_shiftLeftAssign:
+    case IASTBinaryExpression.op_shiftRightAssign:
+    case IASTBinaryExpression.op_binaryAndAssign:
+    case IASTBinaryExpression.op_binaryXorAssign:
+    case IASTBinaryExpression.op_binaryOrAssign:
     {
       return handleOperationAndAssign(element, binaryExpression, cfaEdge);
     }
-    default: throw new ExplicitAnalysisTransferException("Unhandled case ");
+    default: 
+      throw new ExplicitAnalysisTransferException("Unhandled case " + binaryExpression.getRawSignature());
     }
   }
 
   private ExplicitAnalysisElement handleOperationAndAssign(AbstractElement element,
-                                                           IASTBinaryExpression binaryExpression, CFAEdge cfaEdge) 
+      IASTBinaryExpression binaryExpression, CFAEdge cfaEdge) 
   throws ExplicitAnalysisTransferException 
   {
     String functionName = cfaEdge.getPredecessor().getFunctionName();
@@ -1209,16 +1298,17 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
     int typeOfOperator = binaryExpression.getOperator();
 
     // First operand is not an id expression
-    if (!(op1 instanceof IASTIdExpression))
+    if (!(op1 instanceof IASTIdExpression ||
+        op1 instanceof IASTFieldReference))
     {
       System.out.println("First operand is not a proper variable");
       throw new ExplicitAnalysisTransferException("Unhandled case " + cfaEdge.getRawStatement());
     }
-    // If first operand is an id expression
-    else if(op1 instanceof IASTIdExpression)
+    // If first operand is an id expression or field reference
+    else if(op1 instanceof IASTIdExpression ||
+        op1 instanceof IASTFieldReference)
     {
-      IASTIdExpression lvar = ((IASTIdExpression)op1);
-      String nameOfLVar = lvar.getRawSignature();
+      String nameOfLVar = op1.getRawSignature();
       String varName = getvarName(nameOfLVar, functionName);
       // a op= 2
       if(op2 instanceof IASTLiteralExpression){
@@ -1227,7 +1317,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
           literalValue = literalValue.replace("L", "");
           literalValue = literalValue.replace("U", ""); 
         }
-        int val = Integer.valueOf(literalValue).intValue();
+        long val = Long.valueOf(literalValue).longValue();
         // only if literal is integer or double
         int typeOfLiteral = ((IASTLiteralExpression)op2).getKind();
         if( typeOfLiteral ==  IASTLiteralExpression.lk_integer_constant 
@@ -1240,12 +1330,19 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
           }
           // a -= 2
           else if(typeOfOperator == IASTBinaryExpression.op_minusAssign){
-            int negVal = 0 - val;
+            long negVal = 0 - val;
             return addLiteralToVariable(element, cfaEdge, varName, varName,  negVal);
           }
           // a *= 2
           else if(typeOfOperator == IASTBinaryExpression.op_multiplyAssign){
             return multiplyLiteralWithVariable(element, cfaEdge, varName, varName, val);
+          }
+          // a |= 3, binary ops
+          else if(IASTBinaryExpression.op_shiftLeftAssign <= typeOfOperator &&
+              IASTBinaryExpression.op_binaryOrAssign >= typeOfOperator){
+            ExplicitAnalysisElement newElement = ((ExplicitAnalysisElement)element).clone();
+            newElement.forget(varName);
+            return newElement;
           }
           else{
             throw new ExplicitAnalysisTransferException("Unhandled case " + cfaEdge.getRawStatement());
@@ -1274,7 +1371,13 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
         else if(typeOfOperator == IASTBinaryExpression.op_multiplyAssign){
           return multiplyTwoVariables(element, cfaEdge, varName, varName, rightVar);
         }
-
+        // a |= b, binary ops
+        else if(IASTBinaryExpression.op_shiftLeftAssign <= typeOfOperator &&
+            IASTBinaryExpression.op_binaryOrAssign >= typeOfOperator){
+          ExplicitAnalysisElement newElement = ((ExplicitAnalysisElement)element).clone();
+          newElement.forget(varName);
+          return newElement;
+        }
         else{
           throw new ExplicitAnalysisTransferException("Unhandled case " + cfaEdge.getRawStatement());
         }
@@ -1289,7 +1392,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
   }
 
   private ExplicitAnalysisElement multiplyTwoVariables(AbstractElement element,
-                                                       CFAEdge cfaEdge, String assignedVar, String leftVar, String rightVar) 
+      CFAEdge cfaEdge, String assignedVar, String leftVar, String rightVar) 
   {
     ExplicitAnalysisElement newElement = ((ExplicitAnalysisElement)element).clone();
     if(newElement.contains(leftVar) && newElement.contains(rightVar)){
@@ -1304,7 +1407,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
   }
 
   private ExplicitAnalysisElement subtractOneVariable(AbstractElement element,
-                                                      CFAEdge cfaEdge, String assignedVar, String leftVar, String rightVar)
+      CFAEdge cfaEdge, String assignedVar, String leftVar, String rightVar)
   {
     ExplicitAnalysisElement newElement = ((ExplicitAnalysisElement)element).clone();
     if(newElement.contains(leftVar) && newElement.contains(leftVar)){
@@ -1319,7 +1422,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
   }
 
   private ExplicitAnalysisElement addTwoVariables(AbstractElement element,
-                                                  CFAEdge cfaEdge, String assignedVar, String leftVar, String rightVar)
+      CFAEdge cfaEdge, String assignedVar, String leftVar, String rightVar)
   {
     ExplicitAnalysisElement newElement = ((ExplicitAnalysisElement)element).clone();
     if(newElement.contains(leftVar) && newElement.contains(leftVar)){
@@ -1334,7 +1437,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
   }
 
   private ExplicitAnalysisElement handleAssignment(AbstractElement element,
-                                                   IASTBinaryExpression binaryExpression, CFAEdge cfaEdge) 
+      IASTBinaryExpression binaryExpression, CFAEdge cfaEdge) 
   throws ExplicitAnalysisTransferException
   {
     String functionName = cfaEdge.getPredecessor().getFunctionName();
@@ -1373,17 +1476,38 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
         newElement.forget(lvarName);
         return newElement;
       }
+      // a = b->c
+      else if(op2 instanceof IASTFieldReference){
+        ExplicitAnalysisElement newElement = ((ExplicitAnalysisElement)element).clone();
+        IASTIdExpression leftHandSideVar = (IASTIdExpression)op1;
+        String varName = leftHandSideVar.getRawSignature();
+        String lvarName = getvarName(varName, functionName);
+        newElement.forget(lvarName);
+        return newElement;
+      }
       else{
         throw new ExplicitAnalysisTransferException("Unhandled case " + cfaEdge.getRawStatement());
       }
     }
-    // *a = ...
+    // *a = ... & a = ...
     else if ((op1 instanceof IASTUnaryExpression)
-          && (((IASTUnaryExpression)op1).getOperator() == IASTUnaryExpression.op_star)) {
+        && (((IASTUnaryExpression)op1).getOperator() == IASTUnaryExpression.op_star || 
+            ((IASTUnaryExpression)op1).getOperator() == IASTUnaryExpression.op_amper)) {
+      // TODO do nothing
       ExplicitAnalysisElement newElement = ((ExplicitAnalysisElement)element).clone();
-      IASTExpression leftHandSideVar = ((IASTUnaryExpression)op1).getOperand();
-      String lvarName = getvarName(leftHandSideVar.getRawSignature(), functionName);
-      newElement.forget(lvarName);
+//    IASTExpression leftHandSideVar = ((IASTUnaryExpression)op1).getOperand();
+//    String lvarName = getvarName(leftHandSideVar.getRawSignature(), functionName);
+//    newElement.forget(lvarName);
+      return newElement;
+    }
+    else if (op1 instanceof IASTFieldReference) {
+      // TODO do nothing
+      ExplicitAnalysisElement newElement = ((ExplicitAnalysisElement)element).clone();
+      return newElement;
+    }
+    else if (op1 instanceof IASTArraySubscriptExpression) {
+      // TODO do nothing
+      ExplicitAnalysisElement newElement = ((ExplicitAnalysisElement)element).clone();
       return newElement;
     }
     else {
@@ -1392,8 +1516,8 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
   }
 
   private ExplicitAnalysisElement handleCasting(AbstractElement element,
-                                                IASTIdExpression idExp, IASTCastExpression castExp,
-                                                CFAEdge cfaEdge) 
+      IASTIdExpression idExp, IASTCastExpression castExp,
+      CFAEdge cfaEdge) 
   throws ExplicitAnalysisTransferException 
   {
     ExplicitAnalysisElement newElement = ((ExplicitAnalysisElement)element).clone();
@@ -1423,6 +1547,15 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
       }
     }
 
+    else if(castOperand instanceof IASTFieldReference){
+      newElement.forget(assignedVar);
+    }
+
+    // TODO check different cases later
+    else if(castOperand instanceof IASTUnaryExpression){
+      newElement.forget(assignedVar);
+    }
+
     else{
       throw new ExplicitAnalysisTransferException("Unhandled case " + cfaEdge.getRawStatement());
     }
@@ -1430,7 +1563,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
   }
 
   private ExplicitAnalysisElement handleUnaryExpAssignment(AbstractElement element, IASTExpression op1,
-                                                           IASTUnaryExpression unaryExp, CFAEdge cfaEdge) 
+      IASTUnaryExpression unaryExp, CFAEdge cfaEdge) 
   throws ExplicitAnalysisTransferException 
   {
     ExplicitAnalysisElement newElement = ((ExplicitAnalysisElement)element).clone();
@@ -1474,7 +1607,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
       }
     }
     else if(operatorType == IASTUnaryExpression.op_amper
-         || operatorType == IASTUnaryExpression.op_star) {
+        || operatorType == IASTUnaryExpression.op_star) {
       // a = & b and a = * b
       // ignore pointer operations
       newElement.forget(assignedVar);
@@ -1486,7 +1619,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
   }
 
   private ExplicitAnalysisElement handleAssignmentOfBinaryExp(AbstractElement element, IASTExpression op1,
-                                                              IASTExpression op2, CFAEdge cfaEdge) 
+      IASTExpression op2, CFAEdge cfaEdge) 
   throws ExplicitAnalysisTransferException 
   {
     String functionName = cfaEdge.getPredecessor().getFunctionName();
@@ -1894,27 +2027,24 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
       break;
     }
     // operand in left hand side of expression is a division
+    // operand in left hand side of expression is modulo op
     case IASTBinaryExpression.op_divide:
+    case IASTBinaryExpression.op_modulo:
+    case IASTBinaryExpression.op_lessEqual:
+    case IASTBinaryExpression.op_greaterEqual:
     {
       ExplicitAnalysisElement newElement = ((ExplicitAnalysisElement)element).clone();
       newElement.forget(assignedVar);
       return newElement;
     }
 
-    // operand in left hand side of expression is modulo op
-    case IASTBinaryExpression.op_modulo:
-    {
-      ExplicitAnalysisElement newElement = ((ExplicitAnalysisElement)element).clone();
-      newElement.forget(assignedVar);
-      return newElement;
-    }
     default: throw new ExplicitAnalysisTransferException("Unhandled case " + cfaEdge.getRawStatement());
     }
     throw new ExplicitAnalysisTransferException("Unhandled case " + cfaEdge.getRawStatement());
   }
 
   private ExplicitAnalysisElement handleVariableAssignment(AbstractElement element, IASTExpression op1,
-                                                           IASTExpression op2, String functionName)
+      IASTExpression op2, String functionName)
   {
     String lParam = op1.getRawSignature ();
     String rParam = op2.getRawSignature();
@@ -1926,8 +2056,8 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
   }
 
   private ExplicitAnalysisElement propagateVariableAssignment(AbstractElement element,
-                                                              String assignedVarName,
-                                                              String varName)
+      String assignedVarName,
+      String varName)
   {
     ExplicitAnalysisElement newElement = ((ExplicitAnalysisElement)element).clone();
     if(newElement.contains(varName)){
@@ -1940,7 +2070,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
   }
 
   private ExplicitAnalysisElement handleLiteralAssignment(AbstractElement element, IASTExpression op1,
-                                                          IASTExpression op2, String functionName)
+      IASTExpression op2, String functionName)
   throws ExplicitAnalysisTransferException
   {
     ExplicitAnalysisElement newElement = ((ExplicitAnalysisElement)element).clone();
@@ -1981,8 +2111,8 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
 
   @Override
   public AbstractElement strengthen(AbstractElement element,
-                         List<AbstractElement> otherElements, CFAEdge cfaEdge,
-                         Precision precision) {    
+      List<AbstractElement> otherElements, CFAEdge cfaEdge,
+      Precision precision) {    
     return null;
   }
 }

@@ -23,6 +23,7 @@ import cpa.art.ARTCPA;
 import cpa.art.ARTDomain;
 import cpa.art.ARTElement;
 import cpa.art.Path;
+import cpa.common.CPAWithRefinement;
 import cpa.common.ReachedElements;
 import cpa.common.RefinementOutcome;
 import cpa.common.interfaces.AbstractElement;
@@ -143,8 +144,12 @@ public class SymbPredAbsRefinementManager implements RefinementManager{
       CFANode loc = ((SymbPredAbsAbstractElement)firstInterpolant).getAbstractionLocation(); 
       root = artCpa.findHighest(loc);
     }
-    root = findARTElementof(symbPredRootElement, pArtPath.lastElement());
-
+    else{
+      long start = System.currentTimeMillis();
+      root = findARTElementof(symbPredRootElement, pArtPath.lastElement());
+      long end = System.currentTimeMillis();
+      CPAWithRefinement.totalfindArtTime= CPAWithRefinement.totalfindArtTime + (end - start);
+    }
     if (CPAMain.cpaConfig.getBooleanValue("analysis.bfs")) {
       // TODO When using bfs traversal, we would have to traverse the ART
       // computed so far, and check for each leaf whether to re-add it
@@ -181,7 +186,6 @@ public class SymbPredAbsRefinementManager implements RefinementManager{
         }
       }
     }
-
     return new RefinementOutcome(true, toUnreach, toWaitlist);
 
 //  LazyLogger.log(LazyLogger.DEBUG_1, "REFINEMENT - toWaitlist: ", root);
@@ -212,11 +216,11 @@ public class SymbPredAbsRefinementManager implements RefinementManager{
         workList.add(currentElement.getParent());
       }
 
-      if(currentElement.getSecondParent() != null){
-        if(!workList.contains(currentElement.getSecondParent())){
-          workList.add(currentElement.getSecondParent());
-        }
-      }
+//    if(currentElement.getSecondParent() != null){
+//    if(!workList.contains(currentElement.getSecondParent())){
+//    workList.add(currentElement.getSecondParent());
+//    }
+//    }
     }
     // no such element
     return null;

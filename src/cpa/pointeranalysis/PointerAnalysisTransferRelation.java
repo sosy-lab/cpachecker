@@ -919,14 +919,14 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
                           CFAEdge cfaEdge, Precision precision) throws InvalidPointerException {
     
     if (missing.mallocSizeMemory != null) {
-      Integer value = getVariableContent(missing.mallocSizeASTNode, explicitElement, cfaEdge);
+      Long value = getVariableContent(missing.mallocSizeASTNode, explicitElement, cfaEdge);
       if (value != null) {
         missing.mallocSizeMemory.getRegion().setLength(value);
       }
     }
     
     if (missing.actionLeftPointer != null) {
-      Integer value = getVariableContent(missing.actionASTNode, explicitElement, cfaEdge);
+      Long value = getVariableContent(missing.actionASTNode, explicitElement, cfaEdge);
       if (value != null) {
         int val = value.intValue();
         if (missing.actionOffsetNegative) {
@@ -954,7 +954,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
     
   }
   
-  private Integer getVariableContent(IASTNode variable,
+  private Long getVariableContent(IASTNode variable,
                                      ExplicitAnalysisElement explicitElement,
                                      CFAEdge cfaEdge) {
     

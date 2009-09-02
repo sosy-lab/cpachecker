@@ -57,12 +57,12 @@ public class ExplicitAnalysisDomain implements AbstractDomain {
       ExplicitAnalysisElement explicitAnalysisElementNew = (ExplicitAnalysisElement) newElement;
       ExplicitAnalysisElement explicitAnalysisElementReached = (ExplicitAnalysisElement) reachedElement;
 
-      System.out.println("===============");
-      System.out.println(explicitAnalysisElementNew);
-      System.out.println("---------------");
-      System.out.println(explicitAnalysisElementReached);
-      System.out.println("===============");
-      System.exit(0);
+//      ("===============");
+//      System.out.println(explicitAnalysisElementNew);
+//      System.out.println("---------------");
+//      SystemSystem.out.println.out.println(explicitAnalysisElementReached);
+//      System.out.println("===============");
+//      System.exit(0);
       
       if (explicitAnalysisElementNew == bottomElement) {
         return true;
@@ -76,8 +76,8 @@ public class ExplicitAnalysisDomain implements AbstractDomain {
         return false;
       }
 
-      Map<String, Integer> constantsMapNew = explicitAnalysisElementNew.getConstantsMap();
-      Map<String, Integer> constantsMapReached = explicitAnalysisElementReached.getConstantsMap();
+      Map<String, Long> constantsMapNew = explicitAnalysisElementNew.getConstantsMap();
+      Map<String, Long> constantsMapReached = explicitAnalysisElementReached.getConstantsMap();
 
       if(constantsMapNew.size() < constantsMapReached.size()){
         return false;
@@ -87,8 +87,8 @@ public class ExplicitAnalysisDomain implements AbstractDomain {
         if(!constantsMapNew.containsKey(key)){
           return false;
         }
-        int val1 = constantsMapNew.get(key).intValue();
-        int val2 = constantsMapReached.get(key).intValue();
+        long val1 = constantsMapNew.get(key).longValue();
+        long val2 = constantsMapReached.get(key).longValue();
         if(val1 != val2){
           return false;
         }
@@ -104,34 +104,32 @@ public class ExplicitAnalysisDomain implements AbstractDomain {
       ExplicitAnalysisElement explicitAnalysisElement1 = (ExplicitAnalysisElement) element1;
       ExplicitAnalysisElement explicitAnalysisElement2 = (ExplicitAnalysisElement) element2;
 
-      Map<String, Integer> constantsMap1 = explicitAnalysisElement1.getConstantsMap();
-      Map<String, Integer> constantsMap2 = explicitAnalysisElement2.getConstantsMap();
+      Map<String, Long> constantsMap1 = explicitAnalysisElement1.getConstantsMap();
+      Map<String, Long> constantsMap2 = explicitAnalysisElement2.getConstantsMap();
 
       Map<String, Integer> referencesMap1 = explicitAnalysisElement1.getNoOfReferences();
       Map<String, Integer> referencesMap2 = explicitAnalysisElement2.getNoOfReferences();
       
-      Map<String, Integer> newConstantsMap = new HashMap<String, Integer>();
+      Map<String, Long> newConstantsMap = new HashMap<String, Long>();
       Map<String, Integer> newReferencesMap = new HashMap<String, Integer>();
+      
+      newReferencesMap.putAll(referencesMap1);
       
       for(String key:constantsMap2.keySet()){
         // if there is the same variable
         if(constantsMap1.containsKey(key)){
-          // if they have different values
-          if(constantsMap1.get(key) != constantsMap2.get(key)){
-            newReferencesMap.put(key, Math.max(referencesMap1.get(key), referencesMap2.get(key)));
-          }
-          // if values are the same
-          else{
+          // if they have same values, set the value to it
+          if(constantsMap1.get(key) == constantsMap2.get(key)){
             newConstantsMap.put(key, constantsMap1.get(key));
-           newReferencesMap.put(key, Math.max(referencesMap1.get(key), referencesMap2.get(key)));
           }
+          // update references map
+          newReferencesMap.put(key, Math.max(referencesMap1.get(key), referencesMap2.get(key)));
         }
-        // if there first map does not contain the variable
+        // if the first map does not contain the variable
         else {
           newReferencesMap.put(key, referencesMap2.get(key));
         }
       }
-
       return new ExplicitAnalysisElement(newConstantsMap, newReferencesMap);
     }
   }

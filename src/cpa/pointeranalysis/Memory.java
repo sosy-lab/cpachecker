@@ -26,7 +26,7 @@ public interface Memory {
     private static int idCounter = 0;
   
     private final int id;
-    private int length = -1; // length of region in bytes, -1 if unknown
+    private long length = -1; // length of region in bytes, -1 if unknown
         
     public MemoryRegion() {
       synchronized (this.getClass()) {
@@ -45,7 +45,7 @@ public interface Memory {
      * Returns the length of this memory region in bytes. The return value is
      * undefined, if the length is not known (i.e., if hasLength() returns false). 
      */
-    public int getLength() {
+    public long getLength() {
       return length;
     }
     
@@ -54,7 +54,7 @@ public interface Memory {
      * As objects of this type are considered constant, this method should be
      * called as soon as possible after the constructor.
      */
-    public void setLength(int length) {
+    public void setLength(long length) {
       // allow setting this value only once
       if (hasLength() && this.length != length) {
         throw new IllegalArgumentException();

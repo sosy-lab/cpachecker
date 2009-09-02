@@ -15,7 +15,7 @@ public class ARTElement implements AbstractElementWithLocation, AbstractWrapperE
   private AbstractElementWithLocation element;
   private ARTElement parentElement;
   private List<ARTElement> children;
-
+public static long artElementEqualsTime = 0; 
   // second parent is used for joining elements
   private ARTElement secondParent = null;
   
@@ -94,10 +94,14 @@ public class ARTElement implements AbstractElementWithLocation, AbstractWrapperE
     return domain;
   }
 
-  @Override
-  public boolean equals(Object pObj) {
-    return ((ARTElement)pObj).elementId == this.elementId;
-  }
+//  @Override
+//  public boolean equals(Object pObj) {
+//    long start = System.currentTimeMillis();
+//    boolean b = ((ARTElement)pObj).elementId == this.elementId;
+//    long end = System.currentTimeMillis();
+//    artElementEqualsTime = artElementEqualsTime + (end - start);
+//    return b;
+//  }
 
   @Override
   public int hashCode() {

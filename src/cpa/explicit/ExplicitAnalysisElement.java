@@ -24,33 +24,26 @@
 package cpa.explicit;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 import cpa.common.interfaces.AbstractElement;
 
 public class ExplicitAnalysisElement implements AbstractElement {
 
   // map that keeps the name of variables and their constant values
-  private Map<String, Integer> constantsMap;
+  private Map<String, Long> constantsMap;
 
   private Map<String, Integer> noOfReferences;
   
-  private Set<String> forgottenVariables;
-
   public ExplicitAnalysisElement() {
-    constantsMap = new HashMap<String, Integer>();
+    constantsMap = new HashMap<String, Long>();
     noOfReferences = new HashMap<String, Integer>();
-    forgottenVariables = new HashSet<String>();
   }
 
-  public ExplicitAnalysisElement(Map<String, Integer> constantsMap,
-                                 Map<String, Integer> referencesMap,
-                                 Set<String> forgottenVariables) {
+  public ExplicitAnalysisElement(Map<String, Long> constantsMap,
+                                 Map<String, Integer> referencesMap) {
     this.constantsMap = constantsMap;
     this.noOfReferences = referencesMap;
-    this.forgottenVariables = forgottenVariables;
   }
 
   /**
@@ -59,7 +52,7 @@ public class ExplicitAnalysisElement implements AbstractElement {
    * @param value value to be assigned.
    * @param pThreshold threshold from property explicitAnalysis.threshold
    */
-  public void assignConstant(String nameOfVar, int value, int pThreshold){
+  public void assignConstant(String nameOfVar, long value, int pThreshold){
 
     if(constantsMap.containsKey(nameOfVar) && 
         constantsMap.get(nameOfVar).intValue() == value){
@@ -70,10 +63,6 @@ public class ExplicitAnalysisElement implements AbstractElement {
       return;
     }
 
-    if (forgottenVariables.contains(nameOfVar)) {
-      return;
-    }
-    
     if(noOfReferences.containsKey(nameOfVar)){
       int currentVal = noOfReferences.get(nameOfVar).intValue();
       if(currentVal >= pThreshold){
@@ -90,8 +79,8 @@ public class ExplicitAnalysisElement implements AbstractElement {
     constantsMap.put(nameOfVar, value);
   }
 
-  public int getValueFor(String variableName){
-    return constantsMap.get(variableName).intValue();
+  public long getValueFor(String variableName){
+    return constantsMap.get(variableName).longValue();
   }
 
   public boolean contains(String variableName){
@@ -102,15 +91,12 @@ public class ExplicitAnalysisElement implements AbstractElement {
   public ExplicitAnalysisElement clone() {
     ExplicitAnalysisElement newElement = new ExplicitAnalysisElement();
     for (String s: constantsMap.keySet()){
-      int val = constantsMap.get(s).intValue();
+      long val = constantsMap.get(s).longValue();
       newElement.constantsMap.put(s, val);
     }
     for (String s: noOfReferences.keySet()){
       int val = noOfReferences.get(s).intValue();
       newElement.noOfReferences.put(s, val);
-    }
-    for (String s: forgottenVariables){
-      newElement.forgottenVariables.add(s);
     }
     return newElement;
   }
@@ -131,18 +117,8 @@ public class ExplicitAnalysisElement implements AbstractElement {
       if(!otherElement.constantsMap.containsKey(s)){
         return false;
       }
-      if(otherElement.constantsMap.get(s).intValue() != 
+      if(otherElement.constantsMap.get(s).longValue() != 
         constantsMap.get(s)){
-        return false;
-      }
-    }
-    
-    if (otherElement.forgottenVariables.size() != forgottenVariables.size()) {
-      return false;
-    }
-    
-    for (String s: forgottenVariables) {
-      if (!otherElement.forgottenVariables.contains(s)) {
         return false;
       }
     }
@@ -158,17 +134,14 @@ public class ExplicitAnalysisElement implements AbstractElement {
   public String toString() {
     String s = "[";
     for (String key: constantsMap.keySet()){
-      int val = constantsMap.get(key);
+      long val = constantsMap.get(key);
       int refCount = noOfReferences.get(key);
       s = s  + " <" +key + " = " + val + " :: " + refCount + "> ";
-    }
-    for (String key: forgottenVariables) {
-      s = s + " <" +key + " = unknown> "; 
     }
     return s + "] size->  " + constantsMap.size();
   }
 
-  public Map<String, Integer> getConstantsMap(){
+  public Map<String, Long> getConstantsMap(){
     return constantsMap;
   }
 
@@ -176,14 +149,9 @@ public class ExplicitAnalysisElement implements AbstractElement {
     if(constantsMap.containsKey(assignedVar)){
       constantsMap.remove(assignedVar);
     }
-    forgottenVariables.add(assignedVar);
   }
 
   public Map<String, Integer> getNoOfReferences() {
     return noOfReferences;
-  }
-  
-  public Set<String> getForgottenVariables() {
-    return forgottenVariables;
   }
 }

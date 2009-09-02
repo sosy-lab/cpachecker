@@ -81,7 +81,8 @@ implements AbstractElement {
    * equality of formula*/
   private List<Integer> pfParents;
 
-  private SSAMap maxIndex;
+  // TODO check again
+//  private SSAMap maxIndex;
 
   private static int nextAvailableId = 1;
 
@@ -147,7 +148,7 @@ implements AbstractElement {
     this.abstractionPathList = pl;
     this.artParent = artParent;
     this.predicates = pmap;
-    this.maxIndex = new SSAMap();
+//    this.maxIndex = new SSAMap();
   }
 
   @Override
@@ -221,11 +222,11 @@ implements AbstractElement {
     }
     return
     " Abstraction LOCATION: " + getAbstractionLocation() + ((getAbstractionLocation() instanceof CFAErrorNode) ? " {ERROR NODE}" : "") +
-//  " PF: "+ getPathFormula().getSymbolicFormula() +
-//  " Abstraction: " + symbReprAbst  +
-//  " Init Formula--> " + (getInitAbstractionFormula() != null ? getInitAbstractionFormula().getSymbolicFormula() : "null")  +
-//  " Parents --> " + abstractionPathList + 
-    " ART Parent --> " + (getArtParent() != null ? getArtParent().getAbstractionLocation().toString() : "NULL")+ 
+  //" PF: "+ getPathFormula().getSymbolicFormula() +
+  " Abstraction: " + symbReprAbst  +
+  //" Init Formula--> " + (getInitAbstractionFormula() != null ? getInitAbstractionFormula().getSymbolicFormula() : "null")  +
+  //" Parents --> " + abstractionPathList + 
+  //  " ART Parent --> " + (getArtParent() != null ? getArtParent().getAbstractionLocation().toString() : "NULL")+ 
     "";
     //+ ">(" + Integer.toString(getId()) + ")"
   }
@@ -263,22 +264,23 @@ implements AbstractElement {
     this.artParent = artParent;
   }
 
-  public void updateMaxIndex(SSAMap ssa) {
-    assert(maxIndex != null);
-    for (String var : ssa.allVariables()) {
-      int i = ssa.getIndex(var);
-      int i2 = maxIndex.getIndex(var);
-      maxIndex.setIndex(var, Math.max(i, i2));
-    }
-  }
-
-  public SSAMap getMaxIndex() {
-    return maxIndex;
-  }
-
-  public void setMaxIndex(SSAMap maxIndex) {
-    this.maxIndex = maxIndex;
-  }
+  // TODO disabled
+//  public void updateMaxIndex(SSAMap ssa) {
+//    assert(maxIndex != null);
+//    for (String var : ssa.allVariables()) {
+//      int i = ssa.getIndex(var);
+//      int i2 = maxIndex.getIndex(var);
+//      maxIndex.setIndex(var, Math.max(i, i2));
+//    }
+//  }
+//
+//  public SSAMap getMaxIndex() {
+//    return maxIndex;
+//  }
+//
+//  public void setMaxIndex(SSAMap maxIndex) {
+//    this.maxIndex = maxIndex;
+//  }
 
   public List<Integer> getPfParents() {
     return pfParents;

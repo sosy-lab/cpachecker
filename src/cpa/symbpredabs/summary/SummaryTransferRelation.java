@@ -129,7 +129,7 @@ public class SummaryTransferRelation implements TransferRelation {
 
   // abstract post operation
   private SummaryAbstractElement buildSuccessor(SummaryAbstractElement e,
-                                                CFAEdge edge) throws CPATransferException {
+      CFAEdge edge) throws CPATransferException {
     SummaryCPA cpa = domain.getCPA();
     SummaryCFANode succLoc = (SummaryCFANode)edge.getSuccessor();
     // check whether the successor is an error location: if so, we want
@@ -187,10 +187,10 @@ public class SummaryTransferRelation implements TransferRelation {
       // if we reach an error state, we want to log this...
       if (succ.getLocation().getInnerNode() instanceof CFAErrorNode) {
         if (CPAMain.cpaConfig.getBooleanValue(
-            "cpas.symbpredabs.abstraction.norefinement")) {
+        "cpas.symbpredabs.abstraction.norefinement")) {
           CPAMain.cpaStats.setErrorReached(true);
           throw new ErrorReachedException(
-              "Reached error location, but refinement disabled");
+          "Reached error location, but refinement disabled");
         }
         // oh oh, reached error location. Let's check whether the
         // trace is feasible or spurious, and in case refine the
@@ -211,7 +211,7 @@ public class SummaryTransferRelation implements TransferRelation {
         if (info.isSpurious()) {
           LazyLogger.log(CustomLogLevel.SpecificCPALevel,
               "Found spurious error trace, refining the ",
-              "abstraction");
+          "abstraction");
           performRefinement(path, info);
         } else {
           LazyLogger.log(CustomLogLevel.SpecificCPALevel,
@@ -265,7 +265,7 @@ public class SummaryTransferRelation implements TransferRelation {
 
   // abstraction refinement and undoing of (part of) the ART
   private void performRefinement(Deque<SummaryAbstractElement> path,
-                                 CounterexampleTraceInfo info) throws CPATransferException {
+      CounterexampleTraceInfo info) throws CPATransferException {
     Path pth = new Path(path);
     int numSeen = 0;
     if (seenAbstractCounterexamples.containsKey(pth)) {
@@ -292,12 +292,12 @@ public class SummaryTransferRelation implements TransferRelation {
       assert(firstInterpolant != null);
       if (numSeen > 1) {
 //      assert(numSeen == 2);
-if (CPAMain.cpaConfig.getBooleanValue(
-    "cpas.symbpredabs.abstraction.cartesian")) {
-  // not enough predicates
-  assert(false);
-  System.exit(1);
-}
+        if (CPAMain.cpaConfig.getBooleanValue(
+        "cpas.symbpredabs.abstraction.cartesian")) {
+          // not enough predicates
+          assert(false);
+          System.exit(1);
+        }
       } else {
         assert(numSeen <= 1);
       }
@@ -358,7 +358,7 @@ if (CPAMain.cpaConfig.getBooleanValue(
 
   @Override
   public AbstractElement getAbstractSuccessor(AbstractElement element,
-                                              CFAEdge cfaEdge, Precision prec) throws CPATransferException {
+      CFAEdge cfaEdge, Precision prec) throws CPATransferException {
     LazyLogger.log(CustomLogLevel.SpecificCPALevel,
         "Getting Abstract Successor of element: ", element,
         " on edge: ", cfaEdge);
@@ -419,8 +419,8 @@ if (CPAMain.cpaConfig.getBooleanValue(
 
   @Override
   public AbstractElement strengthen(AbstractElement element,
-                         List<AbstractElement> otherElements, CFAEdge cfaEdge,
-                         Precision precision) {    
+      List<AbstractElement> otherElements, CFAEdge cfaEdge,
+      Precision precision) {    
     return null;
   }
 }
