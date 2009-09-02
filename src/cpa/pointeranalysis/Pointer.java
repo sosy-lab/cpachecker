@@ -4,6 +4,7 @@ import static cpa.pointeranalysis.Memory.INVALID_POINTER;
 import static cpa.pointeranalysis.Memory.NULL_POINTER;
 import static cpa.pointeranalysis.Memory.UNKNOWN_POINTER;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -31,11 +32,6 @@ public class Pointer {
     this(0);
   }
 
-  public Pointer(PointerTarget target) {
-    this();
-    assign(target);
-  }
-  
   public Pointer(int levelOfIndirection) {
     this (-1, levelOfIndirection, new HashSet<PointerTarget>(), null);
     
@@ -48,56 +44,14 @@ public class Pointer {
     this.levelOfIndirection = levelOfIndirection;
     this.targets = new HashSet<PointerTarget>(targets);
     this.location = location;
-  }
-  
-  public void assign(Pointer rightHandSide) {
-    assert rightHandSide != null;
+  }  
 
-    // this adds all possible targets from the other pointer to this pointer
-    targets.clear();
-    targets.addAll(rightHandSide.targets);
-  }
-
-  /**
-   * Assign a single target to the pointer and remove all others. This method
-   * does not change the list of aliases of this pointer, the caller has to
-   * ensure that this list is still correct.
-   * 
-   * @param target
-   */
-  public void assign(PointerTarget target) {
-    assert target != null;
-    targets.clear();
-    targets.add(target);
-  }
-  
-
-  public void join(Pointer p) {
+  private void join(Pointer p) {
     assert p != null;
     // this adds all targets from p to this pointer
     targets.addAll(p.targets);
   }
-  
-  public void addTarget(PointerTarget target) {
-    assert target != null;
-    targets.add(target);
-  }
-  
-  
-  public void removeTarget(PointerTarget target) {
-    assert target != null;
-    targets.remove(target);
-  }
-  
-  public void removeAllTargets(Pointer other) {
-    assert other != null;
-    targets.removeAll(other.targets);
-  }
-  
-  public void removeAllTargets() {
-    targets.clear();
-  }
-  
+
   /*public boolean isUnsafe() {
     return targets.contains(NULL_POINTER) || targets.contains(INVALID_POINTER);
   }*/
@@ -139,7 +93,7 @@ public class Pointer {
     return targets.contains(target);
   }
   
-  public void addOffset(int shift, boolean keepOldTargets) throws InvalidPointerException {
+  private void addOffset(int shift, boolean keepOldTargets) throws InvalidPointerException {
     if (!hasSizeOfTarget()) {
       addUnknownOffset(keepOldTargets);
       
@@ -158,7 +112,7 @@ public class Pointer {
     }
   }
 
-  public void addUnknownOffset(boolean keepOldTargets) throws InvalidPointerException {
+  private void addUnknownOffset(boolean keepOldTargets) throws InvalidPointerException {
     Set<PointerTarget> newTargets = new HashSet<PointerTarget>();
     
     for (PointerTarget target : targets) {
@@ -275,4 +229,201 @@ public class Pointer {
     return sb.toString();
   }
 
+  public static interface PointerOperation<E extends Exception> {
+
+    public void doOperation(Memory memory, Pointer pointer, boolean keepOldTargets) throws E;
+    
+  }
+  
+  public static class AddOffset implements PointerOperation<InvalidPointerException> {
+    
+    private final int shift;
+    
+    public AddOffset(int shift) {
+      this.shift = shift;
+    }
+    
+    @Override
+    public void doOperation(Memory memory, Pointer pointer, boolean keepOldTargets) throws InvalidPointerException {
+      pointer.addOffset(shift, keepOldTargets);      
+    }
+  }
+  
+  public static class AddUnknownOffset implements PointerOperation<InvalidPointerException> {
+
+    @Override
+    public void doOperation(Memory memory, Pointer pointer, boolean keepOldTargets) throws InvalidPointerException {
+      pointer.addUnknownOffset(keepOldTargets);      
+    }
+  }
+
+  public static class Assign implements PointerOperation<RuntimeException> {
+    
+    private final PointerTarget assignValueTarget;
+    private final Pointer assignValuePointer;
+    
+    public Assign(PointerTarget assignValue) {
+      this.assignValueTarget  = assignValue;
+      this.assignValuePointer = null;
+    }
+    
+    public Assign(Pointer assignValue) {
+      this.assignValueTarget  = null;
+      this.assignValuePointer = assignValue;
+    }
+    
+    @Override
+    public void doOperation(Memory memory, Pointer pointer,
+        boolean keepOldTargets) {
+      
+      if (!keepOldTargets) {
+        pointer.targets.clear();
+      }
+      
+      if (assignValueTarget != null) {
+        pointer.targets.add(assignValueTarget);
+      } else {
+        pointer.join(assignValuePointer);
+        
+        if (!keepOldTargets) {
+          memory.makeAlias(assignValuePointer.getLocation(), pointer.getLocation());
+        }
+      }
+    }
+  }
+  
+  public static class AssignListOfTargets implements PointerOperation<RuntimeException> {
+    
+    private final Collection<PointerTarget> assignValues;
+    
+    public AssignListOfTargets(Collection<PointerTarget> assignValues) {
+      this.assignValues = assignValues;
+    }
+    
+    @Override
+    public void doOperation(Memory memory, Pointer pointer, boolean keepOldTargets) {
+      if (!keepOldTargets) {
+        pointer.targets.clear();
+      }
+      
+      pointer.targets.addAll(assignValues);
+    }
+  }
+  
+  public static class AddOffsetAndAssign implements PointerOperation<InvalidPointerException> {
+
+    private final Pointer assignValue;
+    private final int shift;
+
+    public AddOffsetAndAssign(Pointer assignValue, int shift) {
+      this.assignValue = assignValue;
+      this.shift = shift;
+    }
+    
+    @Override
+    public void doOperation(Memory memory, Pointer pointer, boolean keepOldTargets) throws InvalidPointerException {
+      if (!keepOldTargets) {
+        pointer.targets.clear();
+      }
+      
+      Pointer shiftedAssignValue = assignValue.clone();
+      shiftedAssignValue.addOffset(shift, false);
+      
+      pointer.join(shiftedAssignValue);
+    }
+  }
+    
+  // TODO: let AddUnknownOffsetAndAssign inherit from AddUnknownOffset
+  public static class AddUnknownOffsetAndAssign implements PointerOperation<InvalidPointerException> {
+
+    private final Pointer assignValue;
+
+    public AddUnknownOffsetAndAssign(Pointer assignValue) {
+      this.assignValue = assignValue;
+    }
+    
+    @Override
+    public void doOperation(Memory memory, Pointer pointer, boolean keepOldTargets) throws InvalidPointerException {
+      if (!keepOldTargets) {
+        pointer.targets.clear();
+      }
+      
+      Pointer shiftedAssignValue = assignValue.clone();
+      shiftedAssignValue.addUnknownOffset(false);
+      
+      pointer.join(shiftedAssignValue);
+    }
+  }
+    
+  public static class DerefAndAssign implements PointerOperation<InvalidPointerException> {
+    
+    private final Pointer assignValue;
+
+    public DerefAndAssign(Pointer assignValue) {
+      this.assignValue = assignValue;
+    }
+    
+    @Override
+    public void doOperation(Memory memory, Pointer pointer, boolean keepOldTargets) throws InvalidPointerException {
+      if (!keepOldTargets) {
+        pointer.targets.clear();
+      }
+      
+      for (PointerTarget target : assignValue.getTargets()) {
+        Pointer actualAssignValue = memory.deref(target, assignValue.getLevelOfIndirection());
+        
+        if (actualAssignValue != null) {
+          pointer.join(actualAssignValue);
+          
+          if (!keepOldTargets && assignValue.getNumberOfTargets() == 1) {
+            memory.makeAlias(actualAssignValue.getLocation(), pointer.getLocation());
+          }
+        }
+      }
+    }
+  }
+  
+  public static class MallocAndAssign implements PointerOperation<InvalidPointerException> {
+
+    private MemoryAddress memAddress = null;
+    
+    @Override
+    public void doOperation(Memory memory, Pointer pointer, boolean keepOldTargets) throws InvalidPointerException {
+      if (!keepOldTargets) {
+        pointer.targets.clear();
+      }
+
+      if (memAddress == null) {
+        memAddress = memory.malloc();
+      }
+      
+      pointer.targets.add(Memory.NULL_POINTER);
+      pointer.targets.add(memAddress);
+    }
+    
+    public MemoryAddress getMallocResult() {
+      return memAddress;
+    }
+  }
+  
+  public static class AssumeInequality implements PointerOperation<InvalidPointerException> {
+    
+    private final PointerTarget removeTarget;
+    
+    public AssumeInequality(PointerTarget removeTarget) {
+      this.removeTarget = removeTarget;
+    }
+    
+    /**
+     * @param keepOldTargets ignored
+     */
+    @Override
+    public void doOperation(Memory memory, Pointer pointer, boolean keepOldTargets) throws InvalidPointerException {
+      
+      pointer.targets.remove(removeTarget);
+      if (pointer.getNumberOfTargets() == 0) {
+        throw new InvalidPointerException("Pointer without target must not exist!");
+      }
+    }
+  }
 }

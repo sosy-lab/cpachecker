@@ -23,6 +23,7 @@
  */
 package cpa.pointeranalysis;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
@@ -37,6 +38,7 @@ import cfa.objectmodel.CFAEdge;
 import common.Pair;
 
 import cpa.common.interfaces.AbstractElement;
+import cpa.pointeranalysis.Pointer.PointerOperation;
 import cpa.pointeranalysis.PointerAnalysisDomain.IPointerAnalysisElement;
 
 /**
@@ -165,7 +167,8 @@ public class PointerAnalysisElement implements AbstractElement, Memory, IPointer
     for (PointerTarget target : reverseRelation.keySet()) {
       for (PointerLocation loc : reverseRelation.get(target)) {
         if (!getPointer(loc).contains(target)) {
-          throw new IllegalStateException("Reverse relation without forward relation");
+          throw new IllegalStateException("Reverse relation " + loc + " <- "
+                                        + target + " without forward relation!");
         }
       }
     }
@@ -178,7 +181,7 @@ public class PointerAnalysisElement implements AbstractElement, Memory, IPointer
           }
           if (!reverseRelation.get(target).contains(p.getLocation())) {
             throw new IllegalStateException("Forward relation " + p.getLocation()
-                            + " -> " + target + " without reverse relation");
+                            + " -> " + target + " without reverse relation!");
           }
         }
       }
@@ -193,17 +196,17 @@ public class PointerAnalysisElement implements AbstractElement, Memory, IPointer
         for (PointerTarget target : p.getTargets()) {
           if (target != UNKNOWN_POINTER && target != INVALID_POINTER) {
             if (reverseRelation.get(target) == null) {
-              throw new IllegalStateException("Target " + target + " without reverse relations");
+              throw new IllegalStateException("Target " + target + " without reverse relations!");
             }
             if (!reverseRelation.get(target).contains(p.getLocation())) {
               throw new IllegalStateException("Forward relation " + p.getLocation()
-                            + " -> " + target + " without reverse relation");
+                            + " -> " + target + " without reverse relation!");
             }
           }
         }
         PointerLocation loc = p.getLocation();
         if (!(loc instanceof LocalVariable) && !(getPointer(loc) == p) ) {
-          throw new IllegalStateException("Pointer in invalid location");
+          throw new IllegalStateException("Pointer in invalid location!");
         }
       }
     }
@@ -215,14 +218,14 @@ public class PointerAnalysisElement implements AbstractElement, Memory, IPointer
           }
           if (!reverseRelation.get(target).contains(p.getLocation())) {
             throw new IllegalStateException("Forward relation " + p.getLocation()
-                            + " -> " + target + " without reverse relation");
+                            + " -> " + target + " without reverse relation!");
           }
         }
       }
       
       PointerLocation loc = p.getLocation();
       if (!(loc instanceof MemoryAddress) && !(getPointer(loc) == p) ) {
-        throw new IllegalStateException("Pointer in invalid location");
+        throw new IllegalStateException("Pointer in invalid location!");
       }
     }
   }
@@ -230,9 +233,8 @@ public class PointerAnalysisElement implements AbstractElement, Memory, IPointer
   private void registerPointer(Pointer p, PointerLocation loc) {
     assert p != null && loc != null;
     p.setLocation(loc);
-    for (PointerTarget t : p.getTargets()) {
-      addReverseRelation(t, loc);
-    } 
+    addAllReverseRelations(p);
+    findAndMergePossibleAliases(p);
   }
   
   @Override
@@ -258,7 +260,7 @@ public class PointerAnalysisElement implements AbstractElement, Memory, IPointer
     return result;
   }
   
-  public Pointer getPointer(PointerLocation location) {
+  private Pointer getPointer(PointerLocation location) {
     assert location != null;
     if (location instanceof MemoryAddress) {
       return heap.get(location);
@@ -295,48 +297,41 @@ public class PointerAnalysisElement implements AbstractElement, Memory, IPointer
     heap.put(memAddress, p);
     registerPointer(p, memAddress);
   }
-   
+
   
-  private void addReverseRelation(PointerTarget target, PointerLocation location) {
-    if (target == INVALID_POINTER || target == UNKNOWN_POINTER) {
-      return;
-    }
+  private void addAllReverseRelations(Pointer pointer) {
+    PointerLocation location = pointer.getLocation();
     
-    Set<PointerLocation> locs = reverseRelation.get(target);
-    if (locs == null) {
-      locs = new HashSet<PointerLocation>();
-      reverseRelation.put(target, locs);
+    for (PointerTarget target : pointer.getTargets()) {
+      
+      if (target != INVALID_POINTER && target != UNKNOWN_POINTER) {
+        
+        Set<PointerLocation> locs = reverseRelation.get(target);
+        if (locs == null) {
+          locs = new HashSet<PointerLocation>();
+          reverseRelation.put(target, locs);
+        }
+        
+        locs.add(location);
+      }
     }
-    
-    locs.add(location);
   }
   
-  @Override
-  public Set<PointerLocation> getReversePointers(PointerTarget target) {
-    Set<PointerLocation> locs = reverseRelation.get(target);
-    if (locs == null) {
-      throw new IllegalStateException("Target " + target + " has no set of locations");
-    }
-    
-    return locs;
-  }
-  
-  private void removeReverseRelation(PointerTarget target, PointerLocation location) {
-    if (target == INVALID_POINTER || target == UNKNOWN_POINTER) {
-      return;
-    }
-    Set<PointerLocation> locs = reverseRelation.get(target);
-    if (locs == null || !locs.contains(location)) {
-      throw new IllegalStateException("Trying to remove reverse reference to location "
-              + location + " from target " + target + ", but it's not there");
-    }
-    
-    locs.remove(location);
-  }
-  
-  private void removeAllReverseRelations(PointerLocation location) {
-    for (PointerTarget target : getPointer(location).getTargets()) {
-      removeReverseRelation(target, location);
+  private void removeAllReverseRelations(Pointer pointer) {
+    PointerLocation location = pointer.getLocation();
+
+    for (PointerTarget target : pointer.getTargets()) {
+      
+      if (target != INVALID_POINTER && target != UNKNOWN_POINTER) {
+        
+        Set<PointerLocation> locs = reverseRelation.get(target);
+        if (locs == null || !locs.contains(location)) {
+          throw new IllegalStateException("Trying to remove reverse reference to location "
+                  + location + " from target " + target + ", but it's not there");
+        }
+        
+        locs.remove(location);
+      }
     }
   }
   
@@ -436,6 +431,7 @@ public class PointerAnalysisElement implements AbstractElement, Memory, IPointer
           && target != INVALID_POINTER && target != UNKNOWN_POINTER) {
         
         mergeAliases(p1.getLocation(), p2.getLocation());
+        System.out.println("INFO: Found pointer aliases which were not already aliased.");
         return true;
       }
     }
@@ -457,6 +453,9 @@ public class PointerAnalysisElement implements AbstractElement, Memory, IPointer
     }
     
     Set<PointerLocation> aliasesOfP = getAliases(loc);
+    if (!reverseRelation.containsKey(target)) {
+      throw new IllegalStateException("Target " + target + " has no set of locations!");
+    }
         
     for (PointerLocation candidateLoc : reverseRelation.get(target)) {
       if (!aliasesOfP.contains(candidateLoc)) {
@@ -572,204 +571,93 @@ public class PointerAnalysisElement implements AbstractElement, Memory, IPointer
       boolean keepOldTargets) throws E {
     PointerLocation location = pointer.getLocation();
     
+    removeAllReverseRelations(pointer);
     removeAllAliases(location);
-    if (!keepOldTargets) {
-      removeAllReverseRelations(location);
-    }
 
     op.doOperation(this, pointer, keepOldTargets);
     
-    for (PointerTarget target : pointer.getTargets()) {
-      addReverseRelation(target, location);
-    }
+    addAllReverseRelations(pointer);
     findAndMergePossibleAliases(pointer);
   }
   
-  /*public MemoryAddress pointerOpMalloc(Pointer targetPointer, boolean dereferenceFirst) throws InvalidPointerException {
+  private <E extends Exception> void pointerOpForAllAliases(PointerOperation<E> op,
+      Pointer pointer, boolean keepOldTargets) throws E {
     
-    MemoryRegion mem = new MemoryRegion();
-    mallocs.add(mem);
-    MemoryAddress memAddress = new MemoryAddress(mem, 0);
-    
-    if (dereferenceFirst) {
-      for (PointerTarget target : targetPointer.getTargets()) {
-        Pointer actualTargetPointer = deref(target, targetPointer.getLevelOfIndirection());
-        
-        if (actualTargetPointer != null) {
-          PointerLocation actualTargetLocation = actualTargetPointer.getLocation();
-          removeAllAliases(actualTargetLocation);
-
-          if (targetPointer.getNumberOfTargets() == 1) {
-            // in this case, the actualTargetPointer is always overwritten
-            removeAllReverseRelations(actualTargetLocation);
-            actualTargetPointer.removeAllTargets();     
-          }            
-
-          actualTargetPointer.addTarget(NULL_POINTER);
-          actualTargetPointer.addTarget(memAddress);
-
-          addReverseRelation(NULL_POINTER, actualTargetLocation);
-          addReverseRelation(memAddress, actualTargetLocation);
-
-        } else {
-          // p == null means the target was something like NULL or UNKNOWN
-          // we cannot do more than ignore (warning will be printed elsewhere)
-        }
-      }
-      
-    } else {
-      PointerLocation targetLoc = targetPointer.getLocation();
-      removeAllAliases(targetLoc);
-      removeAllReverseRelations(targetLoc);
-      targetPointer.removeAllTargets();     
-      
-      targetPointer.addTarget(NULL_POINTER);
-      targetPointer.addTarget(memAddress);
-
-      addReverseRelation(NULL_POINTER, targetLoc);
-      addReverseRelation(memAddress, targetLoc);
-    }
-    
-    return memAddress;
-  }*/
-  
-  /*public void pointerOpAddOffset(Pointer pointer, int shift, boolean dereferenceFirst) throws InvalidPointerException {
-    if (dereferenceFirst) {
-      boolean keepOldTargets = (pointer.getNumberOfTargets() != 1);
-
-      for (PointerTarget target : pointer.getTargets()) {
-        Pointer actualPointer = deref(target, pointer.getLevelOfIndirection());
-        
-        if (actualPointer != null) {
-          pointerOpAddOffsetNoDereference(actualPointer, shift, keepOldTargets);
-        }
-      }
-            
-    } else {
-      pointerOpAddOffsetNoDereference(pointer, shift, false);
-    }
-  }
-  
-  private void pointerOpAddOffsetNoDereference(Pointer pointer, int shift, boolean keepOldTargets) throws InvalidPointerException {
-    PointerLocation location = pointer.getLocation();
-    removeAllAliases(location);
-    removeAllReverseRelations(location);
-    
-    pointer.addOffset(shift, keepOldTargets);
-    
-    for (PointerTarget target : pointer.getTargets()) {
-      addReverseRelation(target, location);
-    }
-    findAndMergePossibleAliases(pointer);
-  }
-  
-  public void pointerOpAddUnknownOffset(Pointer pointer, boolean dereferenceFirst) throws InvalidPointerException {
-    pointerOpAddOffset(pointer, Integer.MAX_VALUE, dereferenceFirst);
-  }*/
-  
-  /**
-   * This method does everything necessary to handle the code
-   * leftPointer = rightPointer;
-   * where both variables are pointer.
-   * 
-   * @param leftPointer The target of the assignment.
-   * @param rightPointer The source of the assignment.
-   */
-  /*public void pointerOpAssign(Pointer leftPointer, Pointer rightPointer) {
-    PointerLocation leftLocation = leftPointer.getLocation();
-    
-    removeAllAliases(leftLocation);
-    removeAllReverseRelations(leftLocation);
-    leftPointer.removeAllTargets();
-    
-    leftPointer.assign(rightPointer);
-    makeAlias(rightPointer.getLocation(), leftLocation);
-    
-    for (PointerTarget target : leftPointer.getTargets()) {
-      addReverseRelation(target, leftLocation);
-    }
-  }
-  
-  public void pointerOpAssign(Pointer leftPointer, PointerTarget rightTarget) {
-    removeAllAliases(leftPointer.getLocation());
-    pointerOpAssignIgnoreAliases(leftPointer, rightTarget);
-    findAndMergePossibleAliases(leftPointer);
-  }*/
-  
-  private void pointerOpAssignIgnoreAliases(Pointer leftPointer, PointerTarget rightTarget) {
-    PointerLocation leftLocation = leftPointer.getLocation();
-    removeAllReverseRelations(leftLocation);
-    
-    leftPointer.assign(rightTarget); // this removes all other targets
-    addReverseRelation(rightTarget, leftLocation);
-  }
-  
-  private void pointerOpRemoveTargetFromAllAliases(Pointer pointer, PointerTarget target) {
     for (PointerLocation aliasLoc : getAliases(pointer)) {
-      getPointer(aliasLoc).removeTarget(target);
-      removeReverseRelation(target, aliasLoc);
+      Pointer aliasPointer = getPointer(aliasLoc);
+      removeAllReverseRelations(aliasPointer);
+      
+      op.doOperation(this, aliasPointer, keepOldTargets);
+      
+      addAllReverseRelations(aliasPointer);
     }
+    // do not call findAndMergePossibleAliases here because this method should
+    // leave the alias set untouched
   }
-  
-  public void pointerOpAssumeEquality(Pointer firstPointer, Pointer secondPointer) {
+    
+  public void pointerOpAssumeEquality(Pointer firstPointer, Pointer secondPointer) throws InvalidPointerException {
     if (areAliases(firstPointer, secondPointer)) {
       return;
     }
     
-    if (firstPointer.getTargets().equals(secondPointer.getTargets())) {
-      mergeAliases(firstPointer.getLocation(), secondPointer.getLocation());
-      return;
+    ArrayList<PointerTarget> intersection = new ArrayList<PointerTarget>();
+    Set<PointerTarget> firstTargets = firstPointer.getTargets();
+    Set<PointerTarget> secondTargets = secondPointer.getTargets();
+
+    for (PointerTarget target : firstTargets) {
+      if (secondTargets.contains(target)) {
+        intersection.add(target);
+      }
     }
     
-    PointerTarget[] tempArray = new PointerTarget[firstPointer.getNumberOfTargets()];
-    // remove impossible targets from firstPointer
-    for (PointerTarget possibleTarget : firstPointer.getTargets().toArray(tempArray)) {
-      if (!secondPointer.contains(possibleTarget)) {
-        pointerOpRemoveTargetFromAllAliases(firstPointer, possibleTarget);
-      }
+    if (intersection.size() != firstTargets.size()) {
+      pointerOpForAllAliases(new Pointer.AssignListOfTargets(intersection), firstPointer, false);
     }
-    // remove impossible targets from secondPointer    
-    for (PointerTarget possibleTarget : secondPointer.getTargets().toArray(tempArray)) {
-      if (!secondPointer.contains(possibleTarget)) {
-        pointerOpRemoveTargetFromAllAliases(firstPointer, possibleTarget);
-      }
+    
+    if (intersection.size() != secondTargets.size()) {
+      pointerOpForAllAliases(new Pointer.AssignListOfTargets(intersection), secondPointer, false);
     }
+    
     // now first and second pointer have the same set of targets
     
     mergeAliases(firstPointer.getLocation(), secondPointer.getLocation());
   }
   
   public void pointerOpAssumeEquality(Pointer pointer, PointerTarget target) {
-    if (pointer.getNumberOfTargets() > 1 || !pointer.contains(target)) {
-      for (PointerLocation aliasLoc : getAliases(pointer)) {
-        pointerOpAssignIgnoreAliases(getPointer(aliasLoc), target); // this removes all other targets
-      }
+    if (!(pointer.getNumberOfTargets() == 1 && pointer.contains(target))) {
+      
+      pointerOpForAllAliases(new Pointer.Assign(target), pointer, false);
+      
+      findAndMergePossibleAliases(pointer);
+    } else {
+      // it is already equal like it should be 
     }
-    findAndMergePossibleAliases(pointer);
   }
   
-  public void pointerOpAssumeInequality(Pointer firstPointer, Pointer secondPointer) {
+  public void pointerOpAssumeInequality(Pointer firstPointer, Pointer secondPointer) throws InvalidPointerException {
+    if (areAliases(firstPointer, secondPointer)) {
+      throw new InvalidPointerException("Aliased pointers cannot be inequal.");
+    }
+    
     if (firstPointer.getNumberOfTargets() == 1) {
       pointerOpAssumeInequality(secondPointer, firstPointer.getFirstTarget());
     
     } else if (secondPointer.getNumberOfTargets() == 1) {
       pointerOpAssumeInequality(firstPointer, secondPointer.getFirstTarget());
-    
+      
     } else {
       // can't do anything
     }
   }
 
-  public void pointerOpAssumeInequality(Pointer pointer, PointerTarget target) {
+  public void pointerOpAssumeInequality(Pointer pointer, PointerTarget target) throws InvalidPointerException {
     if (target != INVALID_POINTER && target != UNKNOWN_POINTER) { 
       
       if (pointer.contains(target)) {
-        for (PointerLocation aliasLoc : getAliases(pointer)) {
-          getPointer(aliasLoc).removeTarget(target);
-          removeReverseRelation(target, aliasLoc);
-        }
+        pointerOpForAllAliases(new Pointer.AssumeInequality(target), pointer, true);
+
+        findAndMergePossibleAliases(pointer);
       }
-      findAndMergePossibleAliases(pointer);
     }
   }
   
@@ -885,8 +773,7 @@ public class PointerAnalysisElement implements AbstractElement, Memory, IPointer
             // all local locations have already been removed, there has to be a global one!
             // TODO report warning about this
             Pointer p = getPointer(((LocalVariable)target).getVarName());
-            p.removeTarget(target);
-            p.addTarget(INVALID_POINTER);
+            pointerOp(new Pointer.Assign(INVALID_POINTER), p);
             // No need to handle aliases here, as there will be one iteration of the while loop 
             // for them as well
           }

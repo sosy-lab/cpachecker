@@ -372,8 +372,6 @@ public interface Memory {
   public Map<String, Pointer> getGlobalPointers();
 
   public Map<String, Pointer> getLocalPointers();
-  
-  public Set<PointerLocation> getReversePointers(PointerTarget target);
 
   //public void addReverseRelation(PointerTarget target, PointerLocation location);
   
