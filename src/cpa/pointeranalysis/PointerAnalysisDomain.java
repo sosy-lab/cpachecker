@@ -23,8 +23,6 @@
  */
 package cpa.pointeranalysis;
 
-import java.util.Map;
-
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.JoinOperator;
@@ -35,24 +33,15 @@ import exceptions.CPAException;
  * @author Philipp Wendler
  */
 public class PointerAnalysisDomain implements AbstractDomain {
-  
-  /**
-   * Super interface for PointerAnalysisElement, BottomElement and TopElement,
-   * so the latter two do not have to extend the former one and carry all it's
-   * local variables.
-   */
-  static interface IPointerAnalysisElement extends AbstractElement {
-    
-  }
 
-  private static class PointerAnalysisBottomElement implements IPointerAnalysisElement {
+  private static class PointerAnalysisBottomElement implements AbstractElement {
     @Override
     public String toString() {
       return "<PointerAnalysis BOTTOM>";
     }
   }
   
-  private static class PointerAnalysisTopElement implements IPointerAnalysisElement {
+  private static class PointerAnalysisTopElement implements AbstractElement {
     @Override
     public String toString() {
       return "<PointerAnalysis TOP>";
@@ -65,10 +54,12 @@ public class PointerAnalysisDomain implements AbstractDomain {
                                 AbstractElement element2) throws CPAException {
       
       PointerAnalysisElement pointerElement1 = (PointerAnalysisElement)element1;
-      PointerAnalysisElement pointerElement2 = (PointerAnalysisElement)element2;
+      //PointerAnalysisElement pointerElement2 = (PointerAnalysisElement)element2;
       
       PointerAnalysisElement pointerElementNew = pointerElement1.clone();
       
+      // TODO: Join Operator
+      /*
       Map<String, Pointer> pointers2   = pointerElement2.getGlobalPointers();
       Map<String, Pointer> pointersNew = pointerElementNew.getGlobalPointers();
       for (String name : pointers2.keySet()) {
@@ -90,7 +81,7 @@ public class PointerAnalysisDomain implements AbstractDomain {
       }
       // only the local variables of the current context need to be joined,
       // the others are already identical (were joined before calling the last function)
-
+      */
       return pointerElementNew;
     }
   }
@@ -118,8 +109,8 @@ public class PointerAnalysisDomain implements AbstractDomain {
   
   private static final JoinOperator joinOperator = new PointerAnalysisJoinOperator();
   private static final PartialOrder partialOrder = new PointerAnalysisPartialOrder();
-  private static final IPointerAnalysisElement bottomElement = new PointerAnalysisBottomElement();
-  private static final IPointerAnalysisElement topElement = new PointerAnalysisTopElement();
+  private static final AbstractElement bottomElement = new PointerAnalysisBottomElement();
+  private static final AbstractElement topElement = new PointerAnalysisTopElement();
   
   @Override
   public JoinOperator getJoinOperator() {
@@ -132,12 +123,12 @@ public class PointerAnalysisDomain implements AbstractDomain {
   }
 
   @Override
-  public IPointerAnalysisElement getBottomElement() {
+  public AbstractElement getBottomElement() {
     return bottomElement;
   }
 
   @Override
-  public IPointerAnalysisElement getTopElement() {
+  public AbstractElement getTopElement() {
     return topElement;
   }
 }

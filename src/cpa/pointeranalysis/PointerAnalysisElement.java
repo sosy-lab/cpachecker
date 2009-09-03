@@ -39,7 +39,6 @@ import common.Pair;
 
 import cpa.common.interfaces.AbstractElement;
 import cpa.pointeranalysis.Pointer.PointerOperation;
-import cpa.pointeranalysis.PointerAnalysisDomain.IPointerAnalysisElement;
 
 /**
  * This class is the abstraction of the memory of the program (global variables,
@@ -47,7 +46,7 @@ import cpa.pointeranalysis.PointerAnalysisDomain.IPointerAnalysisElement;
  * 
  * @author Philipp Wendler
  */
-public class PointerAnalysisElement implements AbstractElement, Memory, IPointerAnalysisElement {
+public class PointerAnalysisElement implements AbstractElement, Memory {
 
   private static final char FUNCTION_NAME_SEPARATOR = ':';
 
@@ -252,7 +251,7 @@ public class PointerAnalysisElement implements AbstractElement, Memory, IPointer
   }
   
   @Override
-  public Pointer getPointer(String name) {
+  public Pointer lookupPointer(String name) {
     Pointer result = globalPointers.get(name);
     if (result == null) {
       result = localPointers.peekLast().getSecond().get(name);
@@ -260,35 +259,36 @@ public class PointerAnalysisElement implements AbstractElement, Memory, IPointer
     return result;
   }
   
-  private Pointer getPointer(PointerLocation location) {
-    assert location != null;
-    if (location instanceof MemoryAddress) {
-      return heap.get(location);
+  @Override
+  public Variable lookupVariable(String name) {
+    if (globalPointers.containsKey(name)) {
+      return new GlobalVariable(name);
     
-    } else if (location instanceof LocalVariable) {
-      LocalVariable var = (LocalVariable)location;
-      /*if (!var.getFunctionName().equals(getCurrentFunctionName())) {
-        throw new IllegalArgumentException("Variable " + var + " out of scope (" + getCurrentFunctionName() + ")!");
-      }
-      return localPointers.peekLast().getSecond().get(var.getVarName());*/
-      Map<String, Pointer> stackframe = allLocalPointers.get(var.getFunctionName());
-      if (stackframe == null) {
-        throw new IllegalStateException("No variables found for function context " + var.getFunctionName());
-      }
-      assert stackframe != null;
-      return stackframe.get(var.getVarName());
-      
-    } else if (location instanceof GlobalVariable) {
-      return globalPointers.get(((GlobalVariable)location).getVarName());
+    } else if (localPointers.peekLast().getSecond().containsKey(name)) {
+      return new LocalVariable(getCurrentFunctionName(), name);
     
     } else {
-      throw new IllegalArgumentException("Unknown type of PointerLocation");
+      throw new IllegalArgumentException("Variable " + name + " unknown in current context"); 
     }
   }
   
+  public Pointer getPointer(LocalVariable var) {
+    Map<String, Pointer> stackframe = allLocalPointers.get(var.getFunctionName());
+    assert stackframe != null;
+    return stackframe.get(var.getVarName());
+  }
+  
+  public Pointer getPointer(GlobalVariable var) {
+    return globalPointers.get(var.getVarName());
+  }
+
   @Override
-  public Pointer getHeapPointer(MemoryAddress memAddress) {
+  public Pointer getPointer(MemoryAddress memAddress) {
     return heap.get(memAddress);
+  }
+    
+  private Pointer getPointer(PointerLocation location) {
+    return location.getPointer(this);
   }
   
   @Override
@@ -392,8 +392,7 @@ public class PointerAnalysisElement implements AbstractElement, Memory, IPointer
     }
   }
   
-  @Override
-  public Set<PointerLocation> getAliases(PointerLocation pointer) {
+  private Set<PointerLocation> getAliases(PointerLocation pointer) {
     Set<PointerLocation> pointerAliases = aliases.get(pointer);
 
     if (pointerAliases == null) {
@@ -413,13 +412,8 @@ public class PointerAnalysisElement implements AbstractElement, Memory, IPointer
   }
   
   @Override
-  public Set<PointerLocation> getAliases(Pointer pointer) {
-    return getAliases(pointer.getLocation());
-  }
-  
-  @Override
   public boolean areAliases(Pointer p1, Pointer p2) {
-    if (getAliases(p1).contains(p2.getLocation())) {
+    if (getAliases(p1.getLocation()).contains(p2.getLocation())) {
       return true;
     }
     
@@ -472,10 +466,10 @@ public class PointerAnalysisElement implements AbstractElement, Memory, IPointer
   }
       
   @Override
-  public MemoryAddress malloc() throws InvalidPointerException {
+  public MemoryAddress malloc() {
     MemoryRegion mem = new MemoryRegion();
     mallocs.add(mem);
-    return new MemoryAddress(mem, 0);
+    return new MemoryAddress(mem);
   }
   
   @Override
@@ -509,57 +503,66 @@ public class PointerAnalysisElement implements AbstractElement, Memory, IPointer
   }
   
   @Override
-  public Pointer deref(PointerTarget target, int levelOfIndirection) throws InvalidPointerException {
+  public Pointer deref(Pointer pointer, PointerTarget target) {
+    assert pointer.isPointerToPointer();
+    assert pointer.contains(target);
+    
     Pointer result;
     
-    if (target instanceof Variable) {
-      String varName = ((Variable)target).getVarName();
-      result = getPointer(varName);
-      if (result == null) {
-        // type error
-        // (pointers with levelOfIndirection > 1 should always point to other pointers)
-        throw new InvalidPointerException("The target of this pointer is not a pointer, but this is a pointer of pointer");
-      }
-      
-    } else if (target instanceof MemoryAddress) {
-      result = getHeapPointer((MemoryAddress)target);
-      if (result == null) {
-      // assume, the heap is full of NULL_POINTERs where nothing has been
-      // written
-      // as this is a pointer of pointer, this is ok
-      result = new Pointer(levelOfIndirection-1);
-      writeOnHeap((MemoryAddress)target, result);
-    }
+    if (target instanceof PointerLocation) {
+      result = ((PointerLocation)target).getPointer(this);
     
+      if (result == null) {
+        if (target instanceof MemoryAddress) {
+          // result == null is OK because heap is initialized lazily
+          // assume, the heap is full of NULL_POINTERs where nothing has been
+          // written
+          result = new Pointer(pointer.getLevelOfIndirection()-1);
+          writeOnHeap((MemoryAddress)target, result);
+        
+        } else {
+          // result == null is not OK, because source pointer is a pointer to pointer
+          throw new IllegalStateException("Trying to dereference target " + target + ", but it does not contain a pointer!");
+        }
+      }
+      return result;
+      
     } else if (target == NULL_POINTER || target == INVALID_POINTER) {
       // warning is printed elsewhere
-      result = null;
+      return null;
     
     } else if (target == UNKNOWN_POINTER) {
-      result = null;
+      return null;
     
     } else {
-      throw new InvalidPointerException("Pointer to " + target + " cannot be dereferenced");
+      throw new UnsupportedOperationException("Missing implementation to dereference the target " + target);
     }
-    return result;
   }
   
-  public <E extends Exception> void pointerOp(PointerOperation<E> op, Pointer pointer) throws E {
+  public void pointerOp(PointerOperation op, Pointer pointer) {
     pointerOpNoDereference(op, pointer, false);
   }
   
-  public <E extends Exception> void pointerOp(PointerOperation<E> op, Pointer pointer, boolean dereferenceFirst) throws E, InvalidPointerException {
+  public void pointerOp(PointerOperation op, Pointer pointer, boolean dereferenceFirst) {
+    if (pointer == null) {
+      return;
+    }
+    
     if (dereferenceFirst) {
       boolean keepOldTargets = (pointer.getNumberOfTargets() != 1);
-
+      
+      if (!pointer.isPointerToPointer()) {
+        throw new IllegalArgumentException("Pointers which do not point to other pointers cannot be dereferenced in this analysis!");
+      }
+      
+      if (!pointer.isDereferencable()) {
+        throw new IllegalArgumentException("Unsafe deref of pointer " + pointer.getLocation() + " = " + pointer);
+      }
+      
       for (PointerTarget target : pointer.getTargets()) {
-        Pointer actualPointer = deref(target, pointer.getLevelOfIndirection());
+        Pointer actualPointer = deref(pointer, target);
         
-        if (actualPointer != null) {
-          pointerOpNoDereference(op, actualPointer, keepOldTargets);
-        } else {
-          // was not able to dereference target, have to ignore operation
-        }
+        pointerOpNoDereference(op, actualPointer, keepOldTargets);
       }
       
     } else {
@@ -567,8 +570,11 @@ public class PointerAnalysisElement implements AbstractElement, Memory, IPointer
     }
   }
 
-  private <E extends Exception> void pointerOpNoDereference(PointerOperation<E> op, Pointer pointer,
-      boolean keepOldTargets) throws E {
+  private void pointerOpNoDereference(PointerOperation op, Pointer pointer, boolean keepOldTargets) {
+    if (pointer == null) {
+      return;
+    }
+    
     PointerLocation location = pointer.getLocation();
     
     removeAllReverseRelations(pointer);
@@ -580,10 +586,9 @@ public class PointerAnalysisElement implements AbstractElement, Memory, IPointer
     findAndMergePossibleAliases(pointer);
   }
   
-  private <E extends Exception> void pointerOpForAllAliases(PointerOperation<E> op,
-      Pointer pointer, boolean keepOldTargets) throws E {
+  private void pointerOpForAllAliases(PointerOperation op, Pointer pointer, boolean keepOldTargets) {
     
-    for (PointerLocation aliasLoc : getAliases(pointer)) {
+    for (PointerLocation aliasLoc : getAliases(pointer.getLocation())) {
       Pointer aliasPointer = getPointer(aliasLoc);
       removeAllReverseRelations(aliasPointer);
       
@@ -595,7 +600,7 @@ public class PointerAnalysisElement implements AbstractElement, Memory, IPointer
     // leave the alias set untouched
   }
     
-  public void pointerOpAssumeEquality(Pointer firstPointer, Pointer secondPointer) throws InvalidPointerException {
+  public void pointerOpAssumeEquality(Pointer firstPointer, Pointer secondPointer) {
     if (areAliases(firstPointer, secondPointer)) {
       return;
     }
@@ -634,9 +639,9 @@ public class PointerAnalysisElement implements AbstractElement, Memory, IPointer
     }
   }
   
-  public void pointerOpAssumeInequality(Pointer firstPointer, Pointer secondPointer) throws InvalidPointerException {
+  public void pointerOpAssumeInequality(Pointer firstPointer, Pointer secondPointer) {
     if (areAliases(firstPointer, secondPointer)) {
-      throw new InvalidPointerException("Aliased pointers cannot be inequal.");
+      throw new IllegalStateException("Aliased pointers cannot be inequal.");
     }
     
     if (firstPointer.getNumberOfTargets() == 1) {
@@ -650,7 +655,7 @@ public class PointerAnalysisElement implements AbstractElement, Memory, IPointer
     }
   }
 
-  public void pointerOpAssumeInequality(Pointer pointer, PointerTarget target) throws InvalidPointerException {
+  public void pointerOpAssumeInequality(Pointer pointer, PointerTarget target) {
     if (target != INVALID_POINTER && target != UNKNOWN_POINTER) { 
       
       if (pointer.contains(target)) {
@@ -772,7 +777,7 @@ public class PointerAnalysisElement implements AbstractElement, Memory, IPointer
           if (!locations.isEmpty()) {
             // all local locations have already been removed, there has to be a global one!
             // TODO report warning about this
-            Pointer p = getPointer(((LocalVariable)target).getVarName());
+            Pointer p = getPointer((LocalVariable)target);
             pointerOp(new Pointer.Assign(INVALID_POINTER), p);
             // No need to handle aliases here, as there will be one iteration of the while loop 
             // for them as well
@@ -785,16 +790,6 @@ public class PointerAnalysisElement implements AbstractElement, Memory, IPointer
   
   public String getCurrentFunctionName() {
     return currentFunctionName;
-  }
-  
-  @Override
-  public Map<String, Pointer> getGlobalPointers() {
-    return globalPointers;
-  }
-  
-  @Override
-  public Map<String, Pointer> getLocalPointers() {
-    return localPointers.peek().getSecond();
   }
   
   public void setCurrentEdge(CFAEdge currentEdge) {

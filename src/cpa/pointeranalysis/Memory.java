@@ -1,15 +1,13 @@
 package cpa.pointeranalysis;
 
 import java.util.Collection;
-import java.util.Map;
-import java.util.Set;
+
+import cfa.objectmodel.CFAEdge;
 
 public interface Memory {
 
   public static class InvalidPointerException extends Exception {
-    
-    public InvalidPointerException() { }
-    
+        
     public InvalidPointerException(String msg)  {
       super(msg);
     }
@@ -18,7 +16,7 @@ public interface Memory {
   }
   
   /**
-   * A contigous block of heap memory returned by a single malloc
+   * A contiguous block of heap memory returned by a single malloc
    */
   public final static class MemoryRegion {
     
@@ -53,14 +51,15 @@ public interface Memory {
      * Set the length of this memory region in bytes, if it was unknown before.
      * As objects of this type are considered constant, this method should be
      * called as soon as possible after the constructor.
+     * @throws InvalidPointerException If length is negative.
      */
     public void setLength(long length) {
       // allow setting this value only once
       if (hasLength() && this.length != length) {
-        throw new IllegalArgumentException();
+        throw new IllegalArgumentException("Trying to alter size of memory region " + this);
       }
       if (length < 0) {
-        throw new IllegalArgumentException();
+        throw new IllegalArgumentException("Invalid size " + length + " for memory region " + this);
       }
       this.length = length;
     }
@@ -95,12 +94,16 @@ public interface Memory {
   public static final PointerTarget NULL_POINTER = new PointerTarget() {
     @Override
     public PointerTarget addOffset(int shift) throws InvalidPointerException {
-      return (shift == 0) ? this : INVALID_POINTER;
+      if (shift == 0) {
+        return this;
+      } else {
+        throw new InvalidPointerException("Pointer arithmetics on null pointer!");
+      }
     }
     
     @Override
     public PointerTarget addUnknownOffset() throws InvalidPointerException {
-      return INVALID_POINTER;
+      throw new InvalidPointerException("Pointer arithmetics on null pointer!");
     }
     
     @Override
@@ -117,12 +120,12 @@ public interface Memory {
   public static final PointerTarget INVALID_POINTER = new PointerTarget() {
     @Override
     public PointerTarget addOffset(int shift) throws InvalidPointerException {
-      return this;
+      return this; // silently ignore
     }
     
     @Override
     public PointerTarget addUnknownOffset() throws InvalidPointerException {
-      return this;
+      return this; // silently ignore
     }
     
     @Override
@@ -139,14 +142,12 @@ public interface Memory {
   public static final PointerTarget UNKNOWN_POINTER = new PointerTarget() {
     @Override
     public PointerTarget addOffset(int shift) throws InvalidPointerException {
-      // ignore
-      return this;
+      return this; // silently ignore
     }
     
     @Override
     public PointerTarget addUnknownOffset() throws InvalidPointerException {
-      // ignore
-      return this;
+      return this; // silently ignore
     }
     
     @Override
@@ -169,24 +170,30 @@ public interface Memory {
     private final int offset; // offset in bytes from the start of the region
                               // -1 if unknown
     
-    public MemoryAddress(MemoryRegion region) {
-      if (region == null) {
-        throw new IllegalArgumentException("MemoryAddress needs a MemoryRegion");
-      }
+    private MemoryAddress(MemoryRegion region, boolean unknownOffset) {
+      assert region != null;
       this.region = region;
-      this.offset = -1;
+      
+      if (unknownOffset) {
+        this.offset = -1;
+      } else {
+        throw new IllegalArgumentException("Only use this constructor with unknownOffset = true");
+      }
     }
     
-    MemoryAddress(MemoryRegion region, int offset) throws InvalidPointerException {
+    public MemoryAddress(MemoryRegion region) {
+      assert region != null;
+      this.region = region;
+      this.offset = 0;
+    }
+    
+    private MemoryAddress(MemoryRegion region, int offset) throws InvalidPointerException {
       if (region == null) {
         throw new IllegalArgumentException("MemoryAddress needs a MemoryRegion");
       }
-      if (offset < 0) {
-        throw new IllegalArgumentException("Negative offset");
-      }
-      if (region.hasLength() && (offset >= region.getLength())) {
+      if ((offset < 0) || region.hasLength() && (offset >= region.getLength())) {
         throw new InvalidPointerException("Invalid offset " + offset
-            + " (length " + region.getLength() + ")");
+                                        + " for memory region " + region + "!");
       }
       this.region = region;
       this.offset = offset;
@@ -199,23 +206,29 @@ public interface Memory {
     
     @Override
     public MemoryAddress addOffset(int shiftBytes) throws InvalidPointerException {
-      if (offset == -1 || shiftBytes == 0) {
+      if (offset == -1) {
+        if (region.hasLength() && (Math.abs(shiftBytes) >= region.getLength())) {
+          // current offset is unknown, but this shift is too large for sure
+          throw new InvalidPointerException("Invalid shift " + shiftBytes
+              + " for memory address " + this);
+        }
         return this;
       }
-      return new MemoryAddress(region, offset+shiftBytes);
+      
+      return (shiftBytes == 0) ? this : new MemoryAddress(region, offset+shiftBytes);
     }
     
     @Override
-    public MemoryAddress addUnknownOffset() throws InvalidPointerException {
+    public MemoryAddress addUnknownOffset() {
       if (offset == -1) {
         return this;
       }
-      return new MemoryAddress(region);
+      return new MemoryAddress(region, true);
     }
     
     @Override
     public Pointer getPointer(Memory memory) {
-      return memory.getHeapPointer(this);
+      return memory.getPointer(this);
     }
     
     @Override
@@ -228,7 +241,7 @@ public interface Memory {
       
       // if offset is unknown, we do not know (return false)
       return (offset != -1)
-          && (this.region == otherAddress.region)
+          && (this.region.equals(otherAddress.region))
           && (this.offset == otherAddress.offset);
     }
     
@@ -260,12 +273,12 @@ public interface Memory {
     
     @Override
     public PointerTarget addOffset(int shiftBytes) throws InvalidPointerException {
-      throw new InvalidPointerException("No pointer calculcations for simple variables");
+      throw new InvalidPointerException("No pointer calculcations for simple variable " + this);
     }
 
     @Override
     public PointerTarget addUnknownOffset() throws InvalidPointerException {
-      throw new InvalidPointerException("No pointer calculcations for simple variables");
+      throw new InvalidPointerException("No pointer calculcations for simple variable" + this);
     }
     
     @Override
@@ -312,7 +325,7 @@ public interface Memory {
     
     @Override
     public Pointer getPointer(Memory memory) {
-      return memory.getLocalPointers().get(getVarName());
+      return memory.getPointer(this);
     }
     
     public String getFunctionName() {
@@ -344,7 +357,7 @@ public interface Memory {
     
     @Override
     public Pointer getPointer(Memory memory) {
-      return memory.getGlobalPointers().get(getVarName());
+      return memory.getPointer(this);
     }
     
     @Override
@@ -363,20 +376,25 @@ public interface Memory {
 
   public void addNewLocalPointer(String name, Pointer p);
 
-  public Pointer getPointer(String name);
+  public Pointer lookupPointer(String name);
 
-  public Pointer getHeapPointer(MemoryAddress memAddress);
-
+  /**
+   * Look up a variable name in the current context.
+   *  
+   * @param name  The name of the variable. 
+   * @return An object of type Variable which represents the variable.
+   * @throws IllegalArgumentException If there is no variable with this name in the current context.
+   */
+  public Variable lookupVariable(String name) throws IllegalArgumentException;
+  
   public void writeOnHeap(MemoryAddress memAddress, Pointer p);
 
-  public Map<String, Pointer> getGlobalPointers();
-
-  public Map<String, Pointer> getLocalPointers();
-
-  //public void addReverseRelation(PointerTarget target, PointerLocation location);
+  public Pointer getPointer(LocalVariable var);
   
-  //public void removeAllReverseRelations(PointerLocation location);
+  public Pointer getPointer(GlobalVariable var);
   
+  public Pointer getPointer(MemoryAddress memAddress);
+
   /**
    * Get all aliases of a pointer. An alias of a pointer is another pointer which points
    * to the same target in all cases.
@@ -384,9 +402,9 @@ public interface Memory {
    * @param pointer The pointer for which the aliases should be returned.
    * @return  An unmodifiable set with all aliases including the original pointer. Is never null.
    */
-  public Set<PointerLocation> getAliases(PointerLocation pointer);
+  //public Set<PointerLocation> getAliases(PointerLocation pointer);
   
-  public Set<PointerLocation> getAliases(Pointer pointer);
+  //public Set<PointerLocation> getAliases(Pointer pointer);
   
   public boolean areAliases(Pointer p1, Pointer p2);
   
@@ -400,12 +418,8 @@ public interface Memory {
    * @param secondPointer The location of the second pointer.
    */
   public void makeAlias(PointerLocation firstPointer, PointerLocation secondPointer);
-  
-  //public void findAndMergePossibleAliases(Pointer p);
-  
-  //public void removeAllAliases(PointerLocation pointer);
-  
-  public MemoryAddress malloc() throws InvalidPointerException;
+    
+  public MemoryAddress malloc();
   
   public void free(Pointer p) throws InvalidPointerException;
   
@@ -414,15 +428,18 @@ public interface Memory {
   public void free(MemoryRegion mem) throws InvalidPointerException;
 
   /**
-   * Tries to dereference a pointer target and returns the referenced value.
+   * Try to dereference a single target of a pointer and returns the referenced value.
+   * If the target is NULL, UNKNOWN or INVALID, the method returns null.
+   * This method may be only called for pointers to other pointers, otherwise the
+   * behavior is undefined.
    * 
+   * @param pointer The pointer to which the target belongs.
    * @param target  The target to dereference.
-   * @param levelOfIndirection The level of indirection of the pointer the target belongs to.
    * @return  The reference value or null if the target could not be dereferenced (e.g. NULL or UNKNOWN pointer).
-   * @throws InvalidPointerException  If the target points to a non-pointer value.
    */
-  public Pointer deref(PointerTarget target, int levelOfIndirection) throws InvalidPointerException;
-  
+  public Pointer deref(Pointer pointer, PointerTarget target);
+    
   public Collection<MemoryRegion> checkMemoryLeak();
 
+  public CFAEdge getCurrentEdge();
 }
