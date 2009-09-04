@@ -68,8 +68,6 @@ public class PointerAnalysisElement implements AbstractElement, Memory {
   private final HashMap<PointerTarget, Set<PointerLocation>> reverseRelation; // reverse mapping from pointer targets to pointer locations
   
   private final HashMap<PointerLocation, Set<PointerLocation>> aliases; // mapping from pointer location to locations of all aliases
-    
-  // TODO: enforce only single reference to Pointer objects
   
   /*
    * Following possibilities exist:
@@ -173,6 +171,9 @@ public class PointerAnalysisElement implements AbstractElement, Memory {
     }
     
     for (Pointer p : globalPointers.values()) {
+      if (p.getNumberOfTargets() == 0) {
+        throw new IllegalStateException("Pointer " + p.getLocation() + " has no targets!");
+      }
       for (PointerTarget target : p.getTargets()) {
         if (target != UNKNOWN_POINTER && target != INVALID_POINTER) {
           if (reverseRelation.get(target) == null) {
@@ -192,6 +193,9 @@ public class PointerAnalysisElement implements AbstractElement, Memory {
     }
     for (Map<String, Pointer> pointers : allLocalPointers.values()) {
       for (Pointer p : pointers.values()) {
+        if (p.getNumberOfTargets() == 0) {
+          throw new IllegalStateException("Pointer " + p.getLocation() + " has no targets!");
+        }
         for (PointerTarget target : p.getTargets()) {
           if (target != UNKNOWN_POINTER && target != INVALID_POINTER) {
             if (reverseRelation.get(target) == null) {
@@ -210,6 +214,9 @@ public class PointerAnalysisElement implements AbstractElement, Memory {
       }
     }
     for (Pointer p : heap.values()) {
+      if (p.getNumberOfTargets() == 0) {
+        throw new IllegalStateException("Pointer " + p.getLocation() + " has no targets!");
+      }
       for (PointerTarget target : p.getTargets()) {
         if (target != UNKNOWN_POINTER && target != INVALID_POINTER) {
           if (reverseRelation.get(target) == null) {
@@ -261,14 +268,16 @@ public class PointerAnalysisElement implements AbstractElement, Memory {
   
   @Override
   public Variable lookupVariable(String name) {
-    if (globalPointers.containsKey(name)) {
+    if (localPointers.peekLast().getSecond().containsKey(name)) {
+      return new LocalVariable(getCurrentFunctionName(), name);
+      
+    } else if (globalPointers.containsKey(name)) {
       return new GlobalVariable(name);
     
-    } else if (localPointers.peekLast().getSecond().containsKey(name)) {
-      return new LocalVariable(getCurrentFunctionName(), name);
-    
     } else {
-      throw new IllegalArgumentException("Variable " + name + " unknown in current context"); 
+      // unknown variable has to be a local variable, as we store all global
+      // variables (not just global pointer variables) in the globalPointers map 
+      return new LocalVariable(getCurrentFunctionName(), name);
     }
   }
   
@@ -277,7 +286,7 @@ public class PointerAnalysisElement implements AbstractElement, Memory {
     assert stackframe != null;
     return stackframe.get(var.getVarName());
   }
-  
+
   public Pointer getPointer(GlobalVariable var) {
     return globalPointers.get(var.getVarName());
   }
@@ -473,30 +482,9 @@ public class PointerAnalysisElement implements AbstractElement, Memory {
   }
   
   @Override
-  public void free(Pointer p) throws InvalidPointerException {
-    // TODO: What if there are multiple targets?
-    for (PointerTarget target : p.getTargets()) {
-      if (target instanceof MemoryAddress) {
-        free((MemoryAddress)target);
-      } else {
-        throw new InvalidPointerException("Cannot free pointer to " + target.getClass().getSimpleName());
-      }
-    }
-    //p.assign(INVALID_POINTER);
-  }
-  
-  @Override
-  public void free(MemoryAddress mem) throws InvalidPointerException {
-    if (mem.getOffset() != 0) {
-      throw new InvalidPointerException("Cannot free pointer with offset != 0!");
-    }
-    free(mem.getRegion());
-  }
-  
-  @Override
   public void free(MemoryRegion mem) throws InvalidPointerException {
     if (!mallocs.contains(mem)) {
-      throw new InvalidPointerException("Double free!");
+      throw new InvalidPointerException("Double free of region " + mem);
     }
     mallocs.remove(mem);
     // TODO: assign INVALID_POINTER to all pointers pointing to this region?
@@ -737,10 +725,10 @@ public class PointerAnalysisElement implements AbstractElement, Memory {
     assert currentFunctionName != "" && currentFunctionName.contains(":")
         : "Cannot return from global context or main function!";
     localPointers.pollLast();
-    allLocalPointers.remove(currentFunctionName);
     String oldFunctionName = currentFunctionName;
     currentFunctionName = currentFunctionName.substring(0, currentFunctionName.lastIndexOf(FUNCTION_NAME_SEPARATOR));
 
+    // remove all pointers in local variables from aliases
     Iterator<PointerLocation> aliasIt = aliases.keySet().iterator();
     while (aliasIt.hasNext()) {
       PointerLocation loc = aliasIt.next();
@@ -759,6 +747,7 @@ public class PointerAnalysisElement implements AbstractElement, Memory {
     while (reverseIt.hasNext()) {
       PointerTarget target = reverseIt.next();
       
+      // remove all pointers in local variables from reverse relation
       Set<PointerLocation> locations = reverseRelation.get(target);
       Iterator<PointerLocation> itLocations = locations.iterator();
       while (itLocations.hasNext()) {
@@ -771,21 +760,30 @@ public class PointerAnalysisElement implements AbstractElement, Memory {
         }
       }
       
+      // remove all pointers to local variables from reverse relation 
       if (target instanceof LocalVariable) {
         if (oldFunctionName.equals(((LocalVariable)target).getFunctionName())) {
           // this target is a local variable, there may be no remaining reference to this target!
-          if (!locations.isEmpty()) {
+          while (!locations.isEmpty()) {
+            PointerLocation loc = locations.toArray(new PointerLocation[0])[0];
+            Pointer p = loc.getPointer(this);
+
             // all local locations have already been removed, there has to be a global one!
-            // TODO report warning about this
-            Pointer p = getPointer((LocalVariable)target);
-            pointerOp(new Pointer.Assign(INVALID_POINTER), p);
-            // No need to handle aliases here, as there will be one iteration of the while loop 
-            // for them as well
+            PointerAnalysisTransferRelation.addWarning("After returning from "
+                + oldFunctionName + ", a reference to a local variable remains in the pointers "
+                + getAliases(loc) + " = " + p, getCurrentEdge(), loc.toString());
+            
+            // add INVALID_POINTER and remove this target
+            pointerOpForAllAliases(new Pointer.Assign(INVALID_POINTER), p, true);
+            pointerOpAssumeInequality(p, target);
           }
           reverseIt.remove();
         }
       }
     }
+    
+    // do this at the end of this method to make getPointer(LocalVariable) still work
+    allLocalPointers.remove(oldFunctionName); 
   }
   
   public String getCurrentFunctionName() {

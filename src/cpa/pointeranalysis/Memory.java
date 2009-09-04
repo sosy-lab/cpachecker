@@ -78,7 +78,7 @@ public interface Memory {
     /**
      * Shift this pointer target. The offset is given in Bytes!
      */
-    public PointerTarget addOffset(int shiftBytes) throws InvalidPointerException;    
+    public PointerTarget addOffset(long shiftBytes) throws InvalidPointerException;    
     
     /**
      * Shift this pointer target by an unknown offset.
@@ -93,7 +93,7 @@ public interface Memory {
 
   public static final PointerTarget NULL_POINTER = new PointerTarget() {
     @Override
-    public PointerTarget addOffset(int shift) throws InvalidPointerException {
+    public PointerTarget addOffset(long shift) throws InvalidPointerException {
       if (shift == 0) {
         return this;
       } else {
@@ -119,7 +119,7 @@ public interface Memory {
   
   public static final PointerTarget INVALID_POINTER = new PointerTarget() {
     @Override
-    public PointerTarget addOffset(int shift) throws InvalidPointerException {
+    public PointerTarget addOffset(long shift) throws InvalidPointerException {
       return this; // silently ignore
     }
     
@@ -141,7 +141,7 @@ public interface Memory {
   
   public static final PointerTarget UNKNOWN_POINTER = new PointerTarget() {
     @Override
-    public PointerTarget addOffset(int shift) throws InvalidPointerException {
+    public PointerTarget addOffset(long shift) throws InvalidPointerException {
       return this; // silently ignore
     }
     
@@ -167,7 +167,7 @@ public interface Memory {
   public final static class MemoryAddress implements PointerTarget, PointerLocation {
   
     private final MemoryRegion region;
-    private final int offset; // offset in bytes from the start of the region
+    private final long offset; // offset in bytes from the start of the region
                               // -1 if unknown
     
     private MemoryAddress(MemoryRegion region, boolean unknownOffset) {
@@ -187,7 +187,7 @@ public interface Memory {
       this.offset = 0;
     }
     
-    private MemoryAddress(MemoryRegion region, int offset) throws InvalidPointerException {
+    private MemoryAddress(MemoryRegion region, long offset) throws InvalidPointerException {
       if (region == null) {
         throw new IllegalArgumentException("MemoryAddress needs a MemoryRegion");
       }
@@ -205,7 +205,7 @@ public interface Memory {
     }
     
     @Override
-    public MemoryAddress addOffset(int shiftBytes) throws InvalidPointerException {
+    public MemoryAddress addOffset(long shiftBytes) throws InvalidPointerException {
       if (offset == -1) {
         if (region.hasLength() && (Math.abs(shiftBytes) >= region.getLength())) {
           // current offset is unknown, but this shift is too large for sure
@@ -254,7 +254,7 @@ public interface Memory {
       return region;
     }
 
-    public int getOffset() {
+    public long getOffset() {
       return offset;
     }
   }
@@ -272,7 +272,7 @@ public interface Memory {
     }
     
     @Override
-    public PointerTarget addOffset(int shiftBytes) throws InvalidPointerException {
+    public PointerTarget addOffset(long shiftBytes) throws InvalidPointerException {
       throw new InvalidPointerException("No pointer calculcations for simple variable " + this);
     }
 
@@ -379,13 +379,13 @@ public interface Memory {
   public Pointer lookupPointer(String name);
 
   /**
-   * Look up a variable name in the current context.
+   * Look up a variable name in the current context. If the variable does not
+   * exist in the program, the result is undefined.
    *  
    * @param name  The name of the variable. 
    * @return An object of type Variable which represents the variable.
-   * @throws IllegalArgumentException If there is no variable with this name in the current context.
    */
-  public Variable lookupVariable(String name) throws IllegalArgumentException;
+  public Variable lookupVariable(String name);
   
   public void writeOnHeap(MemoryAddress memAddress, Pointer p);
 
@@ -395,17 +395,6 @@ public interface Memory {
   
   public Pointer getPointer(MemoryAddress memAddress);
 
-  /**
-   * Get all aliases of a pointer. An alias of a pointer is another pointer which points
-   * to the same target in all cases.
-   * 
-   * @param pointer The pointer for which the aliases should be returned.
-   * @return  An unmodifiable set with all aliases including the original pointer. Is never null.
-   */
-  //public Set<PointerLocation> getAliases(PointerLocation pointer);
-  
-  //public Set<PointerLocation> getAliases(Pointer pointer);
-  
   public boolean areAliases(Pointer p1, Pointer p2);
   
   /**
@@ -420,10 +409,6 @@ public interface Memory {
   public void makeAlias(PointerLocation firstPointer, PointerLocation secondPointer);
     
   public MemoryAddress malloc();
-  
-  public void free(Pointer p) throws InvalidPointerException;
-  
-  public void free(MemoryAddress mem) throws InvalidPointerException;
   
   public void free(MemoryRegion mem) throws InvalidPointerException;
 

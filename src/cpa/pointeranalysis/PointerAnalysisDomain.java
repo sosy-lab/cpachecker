@@ -58,7 +58,7 @@ public class PointerAnalysisDomain implements AbstractDomain {
       
       PointerAnalysisElement pointerElementNew = pointerElement1.clone();
       
-      // TODO: Join Operator
+      // TODO Join Operator
       /*
       Map<String, Pointer> pointers2   = pointerElement2.getGlobalPointers();
       Map<String, Pointer> pointersNew = pointerElementNew.getGlobalPointers();

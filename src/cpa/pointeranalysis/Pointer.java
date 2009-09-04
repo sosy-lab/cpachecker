@@ -93,13 +93,13 @@ public class Pointer {
     return targets.contains(target);
   }
   
-  private void addOffset(int shift, boolean keepOldTargets, Memory memory) {
+  private void addOffset(long shift, boolean keepOldTargets, Memory memory) {
     if (!hasSizeOfTarget()) {
       addUnknownOffset(keepOldTargets, memory);
       
     } else {
       Set<PointerTarget> newTargets = new HashSet<PointerTarget>();
-      int byteShift = shift * sizeOfTarget;
+      long byteShift = shift * sizeOfTarget;
       
       for (PointerTarget target : targets) {
         try {
@@ -112,6 +112,7 @@ public class Pointer {
           newTargets.add(INVALID_POINTER);
         }
       }
+      assert newTargets.size() >= 1;
       
       if (keepOldTargets) {
         targets.addAll(newTargets);
@@ -134,7 +135,8 @@ public class Pointer {
         newTargets.add(INVALID_POINTER);
       }
     }
-    
+    assert newTargets.size() >= 1;
+
     if (keepOldTargets) {
       targets.addAll(newTargets);
     } else {
@@ -253,9 +255,9 @@ public class Pointer {
   
   public static class AddOffset implements PointerOperation {
     
-    private final int shift;
+    private final long shift;
     
-    public AddOffset(int shift) {
+    public AddOffset(long shift) {
       this.shift = shift;
     }
     
@@ -331,20 +333,21 @@ public class Pointer {
   public static class AddOffsetAndAssign implements PointerOperation {
 
     private final Pointer assignValue;
-    private final int shift;
+    private final long shift;
 
-    public AddOffsetAndAssign(Pointer assignValue, int shift) {
+    public AddOffsetAndAssign(Pointer assignValue, long shift) {
       this.assignValue = assignValue;
       this.shift = shift;
     }
     
     @Override
     public void doOperation(Memory memory, Pointer pointer, boolean keepOldTargets) {
+      Pointer shiftedAssignValue = assignValue.clone(); // clone first!
+
       if (!keepOldTargets) {
         pointer.targets.clear();
       }
       
-      Pointer shiftedAssignValue = assignValue.clone();
       shiftedAssignValue.addOffset(shift, false, memory);
       
       pointer.join(shiftedAssignValue);
@@ -361,11 +364,12 @@ public class Pointer {
     
     @Override
     public void doOperation(Memory memory, Pointer pointer, boolean keepOldTargets) {
+      Pointer shiftedAssignValue = assignValue.clone(); // clone first!
+
       if (!keepOldTargets) {
         pointer.targets.clear();
       }
       
-      Pointer shiftedAssignValue = assignValue.clone();
       shiftedAssignValue.addUnknownOffset(false, memory);
       
       pointer.join(shiftedAssignValue);
