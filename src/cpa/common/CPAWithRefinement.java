@@ -7,25 +7,23 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import symbpredabstraction.BDDMathsatSymbPredAbstractionAbstractManager;
-
-import cmdline.CPAMain;
-
 import logging.CustomLogLevel;
 import logging.LazyLogger;
+import cfa.CFAMap;
+import cfa.objectmodel.CFAEdge;
+import cfa.objectmodel.CFANode;
+import cfa.objectmodel.c.FunctionDefinitionNode;
+import cmdline.CPAMain;
 
 import common.Pair;
 
 import cpa.art.ARTElement;
+import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.RefinableCPA;
 import cpa.common.interfaces.RefinementManager;
-import cpa.symbpredabs.SSAMap;
-import cpa.symbpredabsCPA.SymbPredAbsMergeOperator;
-import cpa.symbpredabsCPA.SymbPredAbsRefinementManager;
-import cpa.symbpredabsCPA.SymbPredAbsTransferRelation;
 import exceptions.CPAException;
 
 public class CPAWithRefinement {
@@ -39,7 +37,7 @@ private static long part1 = 0;
 private static long part2 = 0;
 private static long part3 = 0;
 private static long part4 = 0;
-  public ReachedElements CPAWithRefinementAlgorithm(ConfigurableProgramAnalysis cpa, 
+  public ReachedElements CPAWithRefinementAlgorithm(CFAMap pCfas, ConfigurableProgramAnalysis cpa, 
       AbstractElementWithLocation initialElement,
       Precision initialPrecision) throws CPAException{
     ReachedElements reached = null;
@@ -69,7 +67,17 @@ private static long part4 = 0;
 
         if(stopAnalysis){
           System.out.println("ERROR FOUND");
-          System.out.println("_______________________");
+          List<CFAEdge> errorPath = buildErrorPath(reached);
+          System.out.println("________ ERROR PATH ____________");
+          // TODO make this optional
+          int cbmcRes = CProver.checkSat(AbstractPathToCTranslator.translatePaths(pCfas, errorPath));
+          if(cbmcRes == 10){
+            System.out.println("CMBC comfirms the bug");
+          }
+          else if(cbmcRes == 0){
+            System.out.println("CMBC thinks this path contains no bug");
+          }
+          System.out.println("________________________________");
         }
         else{
           long start = System.currentTimeMillis();
@@ -87,38 +95,77 @@ private static long part4 = 0;
       }
 
     }
-    System.out.println("total art find time .. " + totalfindArtTime);
-    System.out.println("modify sets .. " + modifySetsTime);
-    System.out.println("art element equals .. " + ARTElement.artElementEqualsTime);
-    System.out.println("ssamap equals .. " + SSAMap.ssaMapEqualsTime );
-    System.out.println("ssamap hash .. " + SSAMap.ssaMapHashTime);
-    System.out.println("ssamap get index .. " + SSAMap.ssaGetIndexTime);
-    System.out.println("findArtElement .. " + totalfindArtTime);
-    System.out.println("choose .. " + CPAAlgorithm.chooseTime);
-    System.out.println();
-    System.out.println("modify sets");
-    System.out.println("part 1 .. " + part1);
-    System.out.println("part 2 .. " + part2);
-    System.out.println("part 3 .. " + part3);
-    System.out.println("part 4 .. " + part4);
-    System.out.println("replacing .. " + BDDMathsatSymbPredAbstractionAbstractManager.replacing);
-    System.out.println();
-    System.out.println("abstraction time .. " + SymbPredAbsTransferRelation.abstractionTime);
-    System.out.println("abst time 1: .. " + SymbPredAbsTransferRelation.abstTime1);
-    System.out.println("abst time 2: .. " + SymbPredAbsTransferRelation.abstTime2);
-    System.out.println("abst time 3: .. " + SymbPredAbsTransferRelation.abstTime3);
-    System.out.println();
-    System.out.println("non abstract time .. " + SymbPredAbsTransferRelation.nonAbstractionTime);
-    System.out.println("time for pf .." + SymbPredAbsTransferRelation.totalTimeForPFCopmutation);
-    System.out.println("time for actual pf .. " + SymbPredAbsTransferRelation.totalTimeForActualPfComputation );
-    System.out.println("time spent for updating ssamap .. " + SymbPredAbsTransferRelation.updateSSATime);
-    System.out.println("time spent for creating new elements .. " + SymbPredAbsTransferRelation.newElementCreationTime);
-    System.out.println("refinement time .. " + refinementTime);
-    System.out.println("total merge time .. " + SymbPredAbsMergeOperator.totalMergeTime);
+//    System.out.println("total art find time .. " + totalfindArtTime);
+//    System.out.println("modify sets .. " + modifySetsTime);
+//    System.out.println("art element equals .. " + ARTElement.artElementEqualsTime);
+//    System.out.println("ssamap equals .. " + SSAMap.ssaMapEqualsTime );
+//    System.out.println("ssamap hash .. " + SSAMap.ssaMapHashTime);
+//    System.out.println("ssamap get index .. " + SSAMap.ssaGetIndexTime);
+//    System.out.println("findArtElement .. " + totalfindArtTime);
+//    System.out.println("choose .. " + CPAAlgorithm.chooseTime);
+//    System.out.println();
+//    System.out.println("modify sets");
+//    System.out.println("part 1 .. " + part1);
+//    System.out.println("part 2 .. " + part2);
+//    System.out.println("part 3 .. " + part3);
+//    System.out.println("part 4 .. " + part4);
+//    System.out.println("replacing .. " + BDDMathsatSymbPredAbstractionAbstractManager.replacing);
+//    System.out.println();
+//    System.out.println("abstraction time .. " + SymbPredAbsTransferRelation.abstractionTime);
+//    System.out.println("abst time 1: .. " + SymbPredAbsTransferRelation.abstTime1);
+//    System.out.println("abst time 2: .. " + SymbPredAbsTransferRelation.abstTime2);
+//    System.out.println("abst time 3: .. " + SymbPredAbsTransferRelation.abstTime3);
+//    System.out.println();
+//    System.out.println("non abstract time .. " + SymbPredAbsTransferRelation.nonAbstractionTime);
+//    System.out.println("time for pf .." + SymbPredAbsTransferRelation.totalTimeForPFCopmutation);
+//    System.out.println("time for actual pf .. " + SymbPredAbsTransferRelation.totalTimeForActualPfComputation );
+//    System.out.println("time spent for updating ssamap .. " + SymbPredAbsTransferRelation.updateSSATime);
+//    System.out.println("time spent for creating new elements .. " + SymbPredAbsTransferRelation.newElementCreationTime);
+//    System.out.println("refinement time .. " + refinementTime);
+//    System.out.println("total merge time .. " + SymbPredAbsMergeOperator.totalMergeTime);
     System.out.println();
     return reached;
   }
   
+  private List<CFAEdge> buildErrorPath(ReachedElements pReached) {
+    AbstractElement lastElement = pReached.getLastElement();
+    ARTElement lastArtElement = (ARTElement)lastElement;
+    
+    List<CFAEdge> path = new ArrayList<CFAEdge>();
+    ARTElement currentArtElement = lastArtElement;
+    
+    while(currentArtElement.getParent() != null){
+      ARTElement parentElement = currentArtElement.getParent();
+      CFANode currentNode = currentArtElement.getLocationNode();
+      for(int i=0; i<currentNode.getNumEnteringEdges(); i++){
+        CFAEdge edge = currentNode.getEnteringEdge(i);
+        if(parentElement.getLocationNode().getNodeNumber() == edge.getPredecessor().getNodeNumber()){
+          path.add(0, edge);
+        }
+      }
+      currentArtElement = parentElement;
+    }
+    return path;
+  }
+  
+  private List<String> buildFunctionCallsToError(ReachedElements pReached) {
+    AbstractElement lastElement = pReached.getLastElement();
+    ARTElement lastArtElement = (ARTElement)lastElement;
+    
+    List<String> path = new ArrayList<String>();
+    ARTElement currentArtElement = lastArtElement;
+    
+    while(currentArtElement.getParent() != null){
+      ARTElement parentElement = currentArtElement.getParent();
+      CFANode currentNode = currentArtElement.getLocationNode();
+      if(currentNode instanceof FunctionDefinitionNode){
+        path.add(0, currentNode.getFunctionName());
+      }
+      currentArtElement = parentElement;
+    }
+    return path;
+  }
+
   private void modifySets(CPAAlgorithm pAlgorithm,
       Collection<ARTElement> reachableToUndo,
       Collection<ARTElement> toWaitlist) {

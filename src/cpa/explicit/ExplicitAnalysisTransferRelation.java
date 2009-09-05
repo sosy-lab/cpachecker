@@ -417,7 +417,9 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
           newElement.assignConstant(formalParamName, value, this.threshold);
         }
         else{
-          throw new ExplicitAnalysisTransferException("Unhandled case");
+          // TODO forgetting
+          newElement.forget(formalParamName);
+//          throw new ExplicitAnalysisTransferException("Unhandled case");
         }
       }
 
@@ -465,11 +467,14 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
             }
           }
           else{
+            // TODO forgetting
             newElement.forget(formalParamName);
           }
         }
         else{
-          throw new ExplicitAnalysisTransferException("Unhandled case ");
+          // TODO forgetting
+          newElement.forget(formalParamName);
+          // throw new ExplicitAnalysisTransferException("Unhandled case ");
         }
         return newElement;
       }
@@ -492,7 +497,9 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
       }
 
       else{
-        throw new ExplicitAnalysisTransferException("Unhandled case");
+        // TODO forgetting
+        newElement.forget(formalParamName);
+//        throw new ExplicitAnalysisTransferException("Unhandled case");
       }
     }
 
@@ -618,20 +625,24 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
           }
         }
 
-        if(exp1 instanceof IASTIdExpression){
-          IASTIdExpression idExp = (IASTIdExpression)exp1;
-          return handleAssumption(element, idExp, cfaEdge, !truthValue);
+        if(exp1 instanceof IASTIdExpression ||
+            exp1 instanceof IASTFieldReference){
+          return handleAssumption(element, exp1, cfaEdge, !truthValue);
         }
         else {
           throw new ExplicitAnalysisTransferException("Unhandled case " + cfaEdge.getRawStatement());
         }
+      }
+      else if(unaryExp instanceof IASTCastExpression){
+        return handleAssumption(element, ((IASTCastExpression)expression).getOperand(), cfaEdge, truthValue);
       }
       else {
         throw new ExplicitAnalysisTransferException("Unhandled case " + cfaEdge.getRawStatement());
       }
     }
 
-    else if(expression instanceof IASTIdExpression){
+    else if(expression instanceof IASTIdExpression
+        || expression instanceof IASTFieldReference){
       return propagateBooleanExpression(element, -999, expression, null, functionName, truthValue);
     }
 
@@ -834,6 +845,8 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
           }
 
           else{
+            System.out.println(op1.getRawSignature() + " " + op2.getRawSignature());
+            System.exit(0);
             throw new ExplicitAnalysisTransferException("Unhandled case ");
           }
         }
@@ -1116,15 +1129,23 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
           return propagateBooleanExpression(element, opType, op1, exprInParanhesis, functionName, truthValue);
         }
         else{
-          throw new ExplicitAnalysisTransferException("Unhandled case ");
+          // TODO forgetting
+          newElement.forget(varName);
+          //throw new ExplicitAnalysisTransferException("Unhandled case ");
         }
       }
       else{
-        throw new ExplicitAnalysisTransferException("Unhandled case ");
+        String varName = op1.getRawSignature();
+        // TODO forgetting
+        newElement.forget(varName);
+        //throw new ExplicitAnalysisTransferException("Unhandled case ");
       }
     }
     else{
-      throw new ExplicitAnalysisTransferException("Unhandled case ");
+      String varName = op1.getRawSignature();
+      // TODO forgetting
+      newElement.forget(varName);
+//    throw new ExplicitAnalysisTransferException("Unhandled case ");
     }
     return newElement;
   }
@@ -1793,9 +1814,9 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
 
       }
       // a = b - ? left variable in right hand side of the expression is a variable
-      else if(lVarInBinaryExp instanceof IASTIdExpression){
-        IASTIdExpression lvar = ((IASTIdExpression)lVarInBinaryExp);
-        String nameOfLVar = lvar.getRawSignature();
+      else if(lVarInBinaryExp instanceof IASTIdExpression
+          || lVarInBinaryExp instanceof IASTFieldReference){
+        String nameOfLVar = lVarInBinaryExp.getRawSignature();
         String nameOfLeftVar = getvarName(nameOfLVar, functionName);
         // a = b - 2
         if(rVarInBinaryExp instanceof IASTLiteralExpression){

@@ -295,7 +295,7 @@ public class CPAMain {
       CPAAlgorithm algo = new CPAAlgorithm(cpa, initialElement, initialPrecision);
       if(CPAMain.cpaConfig.getBooleanValue("cpa.useART")){
         CPAWithRefinement cpaWRef = new CPAWithRefinement();
-        reached = cpaWRef.CPAWithRefinementAlgorithm(cpa, initialElement, initialPrecision);
+        reached = cpaWRef.CPAWithRefinementAlgorithm(cfas, cpa, initialElement, initialPrecision);
       }
       else{
         reached = algo.CPA();
@@ -339,15 +339,17 @@ public class CPAMain {
     for (IASTDeclaration d : globalVars) {
       assert(d instanceof IASTSimpleDeclaration);
       IASTSimpleDeclaration sd = (IASTSimpleDeclaration)d;
-      if (sd.getDeclarators().length == 1 &&
-          sd.getDeclarators()[0] instanceof IASTFunctionDeclarator) {
-        if (cpaConfig.getBooleanValue("analysis.useFunctionDeclarations")) {
-          // do nothing
-        }
-        else {
-          continue;
-        }
-      }
+      // TODO refactor this
+//      if (sd.getDeclarators().length == 1 &&
+//          sd.getDeclarators()[0] instanceof IASTFunctionDeclarator) {
+//        if (cpaConfig.getBooleanValue("analysis.useFunctionDeclarations")) {
+//          // do nothing
+//        }
+//        else {
+//          System.out.println(d.getRawSignature());
+//          continue;
+//        }
+//      }
       GlobalDeclarationEdge e = new GlobalDeclarationEdge(
           d.getRawSignature(),
           ((IASTSimpleDeclaration)d).getDeclarators(),
