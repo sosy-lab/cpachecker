@@ -658,24 +658,37 @@ public class PointerAnalysisElement implements AbstractElement, Memory {
   public Set<MemoryRegion> checkMemoryLeak() {
     Set<MemoryRegion> unmarkedRegions = new HashSet<MemoryRegion>(mallocs);
     
+    boolean unknown;
     for (Pointer p: globalPointers.values()) {
       if (p != null) {
-        checkMemoryLeak(unmarkedRegions, p);
+        unknown = checkMemoryLeak(unmarkedRegions, p);
+        if (unknown) {
+          unmarkedRegions.clear();
+          return unmarkedRegions;
+        }
       }
     }
     
-    for (Pair<String, HashMap<String, Pointer>> stackframe : localPointers) {
-      for (Pointer p: stackframe.getSecond().values()) {
-        checkMemoryLeak(unmarkedRegions, p);
+    for (Map<String, Pointer> stackframe : allLocalPointers.values()) {
+      for (Pointer p: stackframe.values()) {
+        unknown = checkMemoryLeak(unmarkedRegions, p);
+        if (unknown) {
+          unmarkedRegions.clear();
+          return unmarkedRegions;
+        }
       }
     }
     
     return unmarkedRegions;
   }
   
-  private void checkMemoryLeak(Set<MemoryRegion> unmarkedRegions, Pointer p) {
+  private boolean checkMemoryLeak(Set<MemoryRegion> unmarkedRegions, Pointer p) {
     for (PointerTarget target : p.getTargets()) {
-      if (target instanceof MemoryAddress) {
+      if (target == Memory.UNKNOWN_POINTER) {
+        // if there is one unknown pointer, we cannot say anything about memory leaks
+        return true;  
+      
+      } else if (target instanceof MemoryAddress) {
         MemoryRegion memRegion = ((MemoryAddress)target).getRegion();
         boolean unmarked = unmarkedRegions.contains(memRegion);
         if (unmarked) {
@@ -693,6 +706,7 @@ public class PointerAnalysisElement implements AbstractElement, Memory {
         }
       }
     }
+    return false;
   }
   
   @Override

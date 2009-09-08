@@ -581,52 +581,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
 
       if (functionName.equals("free")) {
         
-        IASTExpression parameter = funcExpression.getParameterExpression();
-        if (parameter instanceof IASTIdExpression) {
-          Pointer p = element.lookupPointer(parameter.getRawSignature());
-        
-          if (p == null) {
-            throw new TransferRelationException("Freeing non-pointer pointer "
-                + parameter.getRawSignature());
-          }
-          
-          boolean success = false;
-          MemoryAddress mem = null;
-          for (PointerTarget target : p.getTargets()) {
-            if (target instanceof MemoryAddress) {
-              mem = (MemoryAddress)target;
-              if (mem.getOffset() != 0) {
-                addWarning("Possibly freeing pointer " + p.getLocation() + " to "
-                    + mem + " with offset != 0", cfaEdge, mem.toString());
-              
-              } else {
-                success = true;
-              }
-            
-            } else if (target.isNull()) {
-              // free(null) is allowed and does nothing!
-              success = true;
-            } else {
-              addWarning("Possibly freeing pointer " + p.getLocation() + " to "
-                  + target, cfaEdge, target.toString());
-            }
-          }
-          if (success) {
-            if ((p.getNumberOfTargets() == 1) && (mem != null)) {
-              // free only if there is exactly one target and it is the beginning
-              // of a memory region
-              element.free(mem.getRegion());
-            }
-          } else {
-            // elevate the above warnings to an error
-            throw new InvalidPointerException("Free of pointer " + p.getLocation()
-                + " = " + p + " is impossible to succeed");
-          }
-          
-        } else {
-          throw new TransferRelationException("This code is not expected in CIL: "
-              + cfaEdge.getRawStatement());
-        }
+        handleFree(element, funcExpression, cfaEdge);
               
       } else if (functionName.equals("malloc")) {
         // malloc without assignment (will lead to memory leak)
@@ -640,6 +595,60 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       
     } else {
       throw new TransferRelationException("Invalid C code: " + cfaEdge.getRawStatement());
+    }
+  }
+
+  private void handleFree(PointerAnalysisElement element,
+                          IASTFunctionCallExpression expression, CFAEdge cfaEdge)
+                          throws TransferRelationException, InvalidPointerException {
+    
+    IASTExpression parameter = expression.getParameterExpression();
+    if (parameter instanceof IASTIdExpression) {
+      Pointer p = element.lookupPointer(parameter.getRawSignature());
+    
+      if (p == null) {
+        throw new TransferRelationException("Freeing non-pointer pointer "
+            + parameter.getRawSignature());
+      }
+      
+      boolean success = false;
+      MemoryAddress mem = null;
+      for (PointerTarget target : p.getTargets()) {
+        if (target instanceof MemoryAddress) {
+          mem = (MemoryAddress)target;
+          if (mem.getOffset() != 0) {
+            addWarning("Possibly freeing pointer " + p.getLocation() + " to "
+                + mem + " with offset != 0", cfaEdge, mem.toString());
+          
+          } else {
+            success = true;
+          }
+        
+        } else if (target.isNull()) {
+          // free(null) is allowed and does nothing!
+          success = true;
+        } else if (target == Memory.UNKNOWN_POINTER) {
+          success = true;
+        } else {
+          addWarning("Possibly freeing pointer " + p.getLocation() + " to "
+              + target, cfaEdge, target.toString());
+        }
+      }
+      if (success) {
+        if ((p.getNumberOfTargets() == 1) && (mem != null)) {
+          // free only if there is exactly one target and it is the beginning
+          // of a memory region
+          element.free(mem.getRegion());
+        }
+      } else {
+        // elevate the above warnings to an error
+        throw new InvalidPointerException("Free of pointer " + p.getLocation()
+            + " = " + p + " is impossible to succeed");
+      }
+      
+    } else {
+      throw new TransferRelationException("This code is not expected in CIL: "
+          + cfaEdge.getRawStatement());
     }
   }
 
@@ -858,7 +867,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
         Pointer rightPointer = element.lookupPointer(operand.getRawSignature());
         
         if (rightPointer == null) {
-          throw new TransferRelationException("Derferencing a non-pointer: " + cfaEdge.getRawStatement());
+          throw new TransferRelationException("Dereferencing a non-pointer: " + cfaEdge.getRawStatement());
         }
         
         if (!rightPointer.isDereferencable()) {
@@ -980,11 +989,13 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
         } else if (ae instanceof TypesElement) {
           strengthen(pointerElement, (TypesElement)ae, cfaEdge, precision);
         }
+        
       } catch (TransferRelationException e) {
         addError(e.getMessage(), cfaEdge);
         throw new ErrorReachedException(e.getMessage());
+      
       } catch (InvalidPointerException e) {
-        e.printStackTrace();
+        addError(e.getMessage(), cfaEdge);
         return domain.getBottomElement();
       }
     }
