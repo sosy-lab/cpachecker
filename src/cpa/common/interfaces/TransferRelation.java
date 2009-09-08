@@ -74,5 +74,5 @@ public interface TransferRelation
   public AbstractElement strengthen (AbstractElement element,
                                      List<AbstractElement> otherElements,
                                      CFAEdge cfaEdge,
-                                     Precision precision);
+                                     Precision precision) throws CPATransferException;
 }
