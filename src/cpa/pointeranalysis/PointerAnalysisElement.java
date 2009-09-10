@@ -171,6 +171,9 @@ public class PointerAnalysisElement implements AbstractElement, Memory {
     }
     
     for (Pointer p : globalPointers.values()) {
+      if (p == null) {
+        continue; // a global non-pointer variable
+      }
       if (p.getNumberOfTargets() == 0) {
         throw new IllegalStateException("Pointer " + p.getLocation() + " has no targets!");
       }
@@ -245,9 +248,12 @@ public class PointerAnalysisElement implements AbstractElement, Memory {
   
   @Override
   public void addNewGlobalPointer(String name, Pointer p) {
-    assert name != null && p != null;
+    // p may be null, then name is a global non-pointer variable
+    assert name != null;
     globalPointers.put(name, p);
-    registerPointer(p, new GlobalVariable(name));
+    if (p != null) {
+      registerPointer(p, new GlobalVariable(name));
+    }
   }
 
   @Override
@@ -597,19 +603,22 @@ public class PointerAnalysisElement implements AbstractElement, Memory {
     Set<PointerTarget> firstTargets = firstPointer.getTargets();
     Set<PointerTarget> secondTargets = secondPointer.getTargets();
 
+    if (firstTargets.contains(Memory.UNKNOWN_POINTER)) {
+      intersection.addAll(secondTargets);
+    }
+    if (secondTargets.contains(Memory.UNKNOWN_POINTER)) {
+      intersection.addAll(firstTargets);
+    }
+    
     for (PointerTarget target : firstTargets) {
       if (secondTargets.contains(target)) {
         intersection.add(target);
       }
     }
-    
-    if (intersection.size() != firstTargets.size()) {
-      pointerOpForAllAliases(new Pointer.AssignListOfTargets(intersection), firstPointer, false);
-    }
-    
-    if (intersection.size() != secondTargets.size()) {
-      pointerOpForAllAliases(new Pointer.AssignListOfTargets(intersection), secondPointer, false);
-    }
+
+    PointerOperation op = new Pointer.AssignListOfTargets(intersection);
+    pointerOpForAllAliases(op, firstPointer, false);
+    pointerOpForAllAliases(op, secondPointer, false);
     
     // now first and second pointer have the same set of targets
     

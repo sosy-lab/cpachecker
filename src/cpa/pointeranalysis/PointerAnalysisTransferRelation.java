@@ -35,6 +35,7 @@ import org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression;
+import org.eclipse.cdt.core.dom.ast.IASTFunctionDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
 import org.eclipse.cdt.core.dom.ast.IASTNode;
@@ -253,6 +254,10 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       throw new TransferRelationException("Not expected in CIL: " + declaration.getRawStatement());  
     }
   
+    if (declarators[0] instanceof IASTFunctionDeclarator) {
+      return;
+    }
+    
     String varName = declarators[0].getName().toString();
 
     IASTPointerOperator[] operators = declarators[0].getPointerOperators();
@@ -345,7 +350,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
                                   boolean isTrueBranch,
                                   AssumeEdge assumeEdge)
                                   throws TransferRelationException, UnreachableStateException {
-  
+   
     IASTExpression leftOp = expression.getOperand1();
     IASTExpression rightOp = expression.getOperand2();
     Pointer leftPointer = element.lookupPointer(leftOp.getRawSignature());
@@ -543,9 +548,12 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       // Normally, the resultPointer is there, but if we know through a type
       // information CPA that this function does not return a pointer, it's not.
       
-      Pointer resultPointer = element.lookupPointer(RETURN_VALUE_VARIABLE);
-      if (resultPointer != null) {
-        handleAssignment(element, resultPointer, false, expression, cfaEdge);
+      if (expression != null) {
+        // non-void function
+        Pointer resultPointer = element.lookupPointer(RETURN_VALUE_VARIABLE);
+        if (resultPointer != null) {
+          handleAssignment(element, resultPointer, false, expression, cfaEdge);
+        }
       }
       
     } else if (expression instanceof IASTUnaryExpression) {
@@ -673,25 +681,50 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       if (unaryExpression.getOperator() == IASTUnaryExpression.op_star) {
         // *a
         leftDereference = true;
-        leftPointer = element.lookupPointer(unaryExpression.getOperand().getRawSignature());
         
+        leftExpression = unaryExpression.getOperand();
+        if (leftExpression instanceof IASTUnaryExpression
+            && ((IASTUnaryExpression)leftExpression).getOperator() == IASTUnaryExpression.op_bracketedPrimary) {
+          
+          leftExpression = ((IASTUnaryExpression)leftExpression).getOperand();
+        }
+        
+        boolean leftCast = false;
+        if (leftExpression instanceof IASTCastExpression) {
+          leftCast = true;
+          leftExpression = ((IASTCastExpression)leftExpression).getOperand();
+        }
+        
+        if (!(leftExpression instanceof IASTIdExpression)) {
+          // not a variable at left hand side
+          throw new TransferRelationException("This code is not expected in CIL: " + cfaEdge.getRawStatement());
+        }
+        
+        leftPointer = element.lookupPointer(leftExpression.getRawSignature());
         if (leftPointer == null) {
-          throw new TransferRelationException("Dereferencing a non-pointer: " + cfaEdge.getRawStatement());
-        }
+          
+          if (!leftCast) {
+            throw new TransferRelationException("Dereferencing a non-pointer: " + cfaEdge.getRawStatement());
+          } else {
+            addWarning("Casting non-pointer value " + leftExpression.getRawSignature() + " to pointer and dereferencing it", cfaEdge, leftExpression.getRawSignature());
+          }
         
-        if (!leftPointer.isDereferencable()) {
-          throw new InvalidPointerException("Unsafe deref of pointer "
-                    + leftPointer.getLocation() + " = " + leftPointer);
-        }
+        } else {
         
-        if (!leftPointer.isSafe()) {
-          addWarning("Potentially unsafe deref of pointer " + leftPointer.getLocation()
-                     + " = " + leftPointer, cfaEdge, unaryExpression.getRawSignature());
-        }
-        
-        if (!leftPointer.isPointerToPointer()) {
-          // other pointers are not of interest to us
-          leftPointer = null;
+          if (!leftPointer.isDereferencable()) {
+            throw new InvalidPointerException("Unsafe deref of pointer "
+                      + leftPointer.getLocation() + " = " + leftPointer);
+          }
+          
+          if (!leftPointer.isSafe()) {
+            addWarning("Potentially unsafe deref of pointer " + leftPointer.getLocation()
+                       + " = " + leftPointer, cfaEdge, unaryExpression.getRawSignature());
+          }
+          
+          if (!leftPointer.isPointerToPointer()) {
+            // other pointers are not of interest to us
+            leftPointer = null;
+          }
         }
         
       } else {
@@ -849,45 +882,74 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
     } else if (expression instanceof IASTUnaryExpression) {
       IASTUnaryExpression unaryExpression = (IASTUnaryExpression)expression;
       int op = unaryExpression.getOperator();
-      IASTExpression operand = unaryExpression.getOperand();
       
       if (op == IASTUnaryExpression.op_bracketedPrimary) {
         // a = (x)
-        handleAssignment(element, leftPointer, leftDereference, operand, cfaEdge);      
+        handleAssignment(element, leftPointer, leftDereference, unaryExpression.getOperand(), cfaEdge);      
      
       } else if (op == IASTUnaryExpression.op_amper) {
         // a = &b
-        Variable var = element.lookupVariable(operand.getRawSignature());
+        Variable var = element.lookupVariable(unaryExpression.getOperand().getRawSignature());
         
         element.pointerOp(new Pointer.Assign(var), leftPointer, leftDereference);
         
       } else if (op == IASTUnaryExpression.op_star) {
         // a = *b
         
-        Pointer rightPointer = element.lookupPointer(operand.getRawSignature());
+        expression = unaryExpression.getOperand();
+        if (expression instanceof IASTUnaryExpression
+            && ((IASTUnaryExpression)expression).getOperator() == IASTUnaryExpression.op_bracketedPrimary) {
+          
+          expression = ((IASTUnaryExpression)expression).getOperand();
+        }
+        
+        boolean rightCast = false;
+        if (expression instanceof IASTCastExpression) {
+          rightCast = true;
+          expression = ((IASTCastExpression)expression).getOperand();
+        }
+        
+        if (!(expression instanceof IASTIdExpression)) {
+          // not a variable at left hand side
+          throw new TransferRelationException("This code is not expected in CIL: " + cfaEdge.getRawStatement());
+        }
+        
+        Pointer rightPointer = element.lookupPointer(expression.getRawSignature());
         
         if (rightPointer == null) {
-          throw new TransferRelationException("Dereferencing a non-pointer: " + cfaEdge.getRawStatement());
-        }
-        
-        if (!rightPointer.isDereferencable()) {
-          throw new InvalidPointerException("Unsafe deref of pointer "
-                      + rightPointer.getLocation() + " = " + rightPointer);
-        }
-        
-        if (!rightPointer.isSafe()) {
-          addWarning("Potentially unsafe deref of pointer "  + rightPointer.getLocation()
-                     + " = " + rightPointer, cfaEdge, unaryExpression.getRawSignature());
-        }
-        
-        if (!rightPointer.isPointerToPointer() && leftPointer != null) {
-          addWarning("Assigning non-pointer value " + unaryExpression.getRawSignature()
-                     + " to pointer " + leftPointer.getLocation(), cfaEdge, operand.getRawSignature());
           
-          element.pointerOp(new Pointer.Assign(Memory.UNKNOWN_POINTER), leftPointer, leftDereference);
-
+          if (!rightCast) {
+            throw new TransferRelationException("Dereferencing a non-pointer: " + cfaEdge.getRawStatement());
+          } else {
+            addWarning("Casting non-pointer value " + expression.getRawSignature() + " to pointer and dereferencing it", cfaEdge, expression.getRawSignature());
+          }  
+        
         } else {
-          element.pointerOp(new Pointer.DerefAndAssign(rightPointer), leftPointer, leftDereference);
+        
+          if (!rightPointer.isDereferencable()) {
+            throw new InvalidPointerException("Unsafe deref of pointer "
+                        + rightPointer.getLocation() + " = " + rightPointer);
+          }
+          
+          if (!rightPointer.isSafe()) {
+            addWarning("Potentially unsafe deref of pointer "  + rightPointer.getLocation()
+                       + " = " + rightPointer, cfaEdge, unaryExpression.getRawSignature());
+          }
+          
+          if (leftPointer != null) {
+            if (!rightPointer.isPointerToPointer()) {
+              addWarning("Assigning non-pointer value " + unaryExpression.getRawSignature()
+                  + " to pointer " + leftPointer.getLocation(), cfaEdge, expression.getRawSignature());
+       
+              element.pointerOp(new Pointer.Assign(Memory.UNKNOWN_POINTER), leftPointer, leftDereference);
+        
+            } else {
+              element.pointerOp(new Pointer.DerefAndAssign(rightPointer), leftPointer, leftDereference);
+            }
+            
+          } else {
+            // ignore assignment to non-pointer variable
+          }
         }
         
       } else {
