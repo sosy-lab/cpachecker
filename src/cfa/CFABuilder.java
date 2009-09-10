@@ -601,6 +601,8 @@ public class CFABuilder extends ASTVisitor
 		}
 		else if (statement instanceof IASTWhileStatement) // Code never hit due to bug in Eclipse CDT
 		{
+			/* Commented out, because with CDT 6, the branch above _and_ this branch
+			 * are hit, which would result in an exception.
 			CFANode prevNode = locStack.pop ();
 
 			if (!prevNode.hasJumpEdgeLeaving ())
@@ -616,6 +618,7 @@ public class CFABuilder extends ASTVisitor
 
 			loopStartStack.pop ();
 			loopNextStack.pop ();
+			*/
 		}
 		else if (statement instanceof IASTSwitchStatement)
 		{
