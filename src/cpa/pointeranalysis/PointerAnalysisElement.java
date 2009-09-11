@@ -25,18 +25,13 @@ package cpa.pointeranalysis;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
 
 import cfa.objectmodel.CFAEdge;
-
-import common.Pair;
-
 import cpa.common.interfaces.AbstractElement;
 import cpa.pointeranalysis.Pointer.PointerOperation;
 
@@ -52,13 +47,10 @@ public class PointerAnalysisElement implements AbstractElement, Memory {
 
   private CFAEdge currentEdge = null;
   
-  private final HashMap<String, Pointer> globalPointers; // tracks all global pointers
-    // contains global non-pointer variables, too (mapped to null)
-  
-  private final Deque<Pair<String, HashMap<String, Pointer>>> localPointers;
-  
-  private final Map<String, Map<String, Pointer>> allLocalPointers;
-  
+  private final Map<String, Map<String, Pointer>> stack;
+  // global variables are stored here with function name ""
+  // non-pointer variables are tracked too, (mapped to null)
+
   private String currentFunctionName = "";
   
   private final HashMap<MemoryAddress, Pointer> heap;
@@ -68,6 +60,8 @@ public class PointerAnalysisElement implements AbstractElement, Memory {
   private final HashMap<PointerTarget, Set<PointerLocation>> reverseRelation; // reverse mapping from pointer targets to pointer locations
   
   private final HashMap<PointerLocation, Set<PointerLocation>> aliases; // mapping from pointer location to locations of all aliases
+  
+  private final HashSet<PointerLocation> tempTracked; // non-pointer variables temporarily containing pointer values
   
   /*
    * Following possibilities exist:
@@ -81,57 +75,41 @@ public class PointerAnalysisElement implements AbstractElement, Memory {
    */
   
   public PointerAnalysisElement() {
-    globalPointers = new HashMap<String, Pointer>();
-    localPointers = new LinkedList<Pair<String, HashMap<String, Pointer>>>();
-    allLocalPointers = new HashMap<String, Map<String, Pointer>>();
+    stack = new HashMap<String, Map<String, Pointer>>();
     heap = new HashMap<MemoryAddress, Pointer>();
     mallocs = new HashSet<MemoryRegion>();
     reverseRelation = new HashMap<PointerTarget, Set<PointerLocation>>();
     aliases = new HashMap<PointerLocation, Set<PointerLocation>>();
+    tempTracked = new HashSet<PointerLocation>();
+    
+    stack.put("", new HashMap<String, Pointer>());
     callFunction("main");
   }
   
-  private PointerAnalysisElement(final Map<String, Pointer> globalPointers,
-                                 final Deque<Pair<String, HashMap<String, Pointer>>> localPointers,
+  private PointerAnalysisElement(final Map<String, Map<String, Pointer>> stack,
                                  final Map<MemoryAddress, Pointer> heap,
                                  final Set<MemoryRegion> mallocs,
                                  final Map<PointerTarget, Set<PointerLocation>> reverseRelation,
                                  final Map<PointerLocation, Set<PointerLocation>> aliases,
+                                 final Set<PointerLocation> tempTracked,
                                  final String currentFunctionName) {
-    this.globalPointers = new HashMap<String, Pointer>();
-    this.localPointers = new LinkedList<Pair<String, HashMap<String, Pointer>>>();
-    this.allLocalPointers = new HashMap<String, Map<String, Pointer>>();
+    this.stack = new HashMap<String, Map<String, Pointer>>();
     this.heap = new HashMap<MemoryAddress, Pointer>();
     this.mallocs = new HashSet<MemoryRegion>(mallocs);
     this.reverseRelation = new HashMap<PointerTarget, Set<PointerLocation>>();
     this.aliases = new HashMap<PointerLocation, Set<PointerLocation>>();
     this.currentFunctionName = currentFunctionName;
-    
-    for (String name : globalPointers.keySet()) {
-      Pointer p = globalPointers.get(name);
-      if (p != null) {
-        this.globalPointers.put(name, p.clone());
-      } else {
-        this.globalPointers.put(name, null);
-      }
-    }
-    
-    String function = "";
-    for (Pair<String, HashMap<String, Pointer>> stackframe : localPointers) {
-      HashMap<String, Pointer> newLocalPointers = new HashMap<String, Pointer>();
+    this.tempTracked = new HashSet<PointerLocation>(tempTracked);
+
+    for (String function : stack.keySet()) {
+      Map<String, Pointer> oldPointers = stack.get(function);
+      Map<String, Pointer> newPointers = new HashMap<String, Pointer>();
       
-      for (String name : stackframe.getSecond().keySet()) {
-        newLocalPointers.put(name, stackframe.getSecond().get(name).clone());
+      for (String var : oldPointers.keySet()) {
+        Pointer oldPointer = oldPointers.get(var);
+        newPointers.put(var, oldPointer == null ? null : oldPointer.clone());
       }
-      
-      this.localPointers.add(new Pair<String, HashMap<String, Pointer>>(stackframe.getFirst(), newLocalPointers));
-      
-      if (function.equals("")) {
-        function = stackframe.getFirst();
-      } else {
-        function = function + FUNCTION_NAME_SEPARATOR + stackframe.getFirst();
-      }
-      allLocalPointers.put(function, newLocalPointers);
+      this.stack.put(function, newPointers);
     }
     
     for (MemoryAddress memAddress : heap.keySet()) {
@@ -163,39 +141,23 @@ public class PointerAnalysisElement implements AbstractElement, Memory {
     
     for (PointerTarget target : reverseRelation.keySet()) {
       for (PointerLocation loc : reverseRelation.get(target)) {
-        if (!getPointer(loc).contains(target)) {
+        Pointer p = getPointer(loc);
+        if (p == null) {
+          throw new IllegalStateException("Reverse relation " + loc + " <- "
+                                          + target + " but there is no pointer!");
+        }
+        if (!p.contains(target)) {
           throw new IllegalStateException("Reverse relation " + loc + " <- "
                                         + target + " without forward relation!");
         }
       }
     }
     
-    for (Pointer p : globalPointers.values()) {
-      if (p == null) {
-        continue; // a global non-pointer variable
-      }
-      if (p.getNumberOfTargets() == 0) {
-        throw new IllegalStateException("Pointer " + p.getLocation() + " has no targets!");
-      }
-      for (PointerTarget target : p.getTargets()) {
-        if (target != UNKNOWN_POINTER && target != INVALID_POINTER) {
-          if (reverseRelation.get(target) == null) {
-            throw new IllegalStateException("Target without reverse relations");
-          }
-          if (!reverseRelation.get(target).contains(p.getLocation())) {
-            throw new IllegalStateException("Forward relation " + p.getLocation()
-                            + " -> " + target + " without reverse relation!");
-          }
-        }
-      }
-      
-      PointerLocation loc = p.getLocation();
-      if (!(loc instanceof GlobalVariable) && !(getPointer(loc) == p) ) {
-        throw new IllegalStateException("Pointer in invalid location");
-      }
-    }
-    for (Map<String, Pointer> pointers : allLocalPointers.values()) {
+    for (Map<String, Pointer> pointers : stack.values()) {
       for (Pointer p : pointers.values()) {
+        if (p == null) {
+          continue; // a non-pointer variable
+        }
         if (p.getNumberOfTargets() == 0) {
           throw new IllegalStateException("Pointer " + p.getLocation() + " has no targets!");
         }
@@ -237,6 +199,21 @@ public class PointerAnalysisElement implements AbstractElement, Memory {
         throw new IllegalStateException("Pointer in invalid location!");
       }
     }
+    
+    for (PointerLocation loc : tempTracked) {
+      if (loc.getPointer(this) == null) {
+        throw new IllegalStateException("Temporarily tracked non-pointer variable "
+                                        + loc + " without content!");
+      }
+    }
+  }
+  
+  private Map<String, Pointer> getGlobalPointers() {
+    return stack.get("");
+  }
+  
+  private Map<String, Pointer> getLocalPointers() {
+    return stack.get(currentFunctionName);
   }
   
   private void registerPointer(Pointer p, PointerLocation loc) {
@@ -248,9 +225,9 @@ public class PointerAnalysisElement implements AbstractElement, Memory {
   
   @Override
   public void addNewGlobalPointer(String name, Pointer p) {
-    // p may be null, then name is a global non-pointer variable
+    // p may be null, then name is a non-pointer variable
     assert name != null;
-    globalPointers.put(name, p);
+    getGlobalPointers().put(name, p);
     if (p != null) {
       registerPointer(p, new GlobalVariable(name));
     }
@@ -258,45 +235,100 @@ public class PointerAnalysisElement implements AbstractElement, Memory {
 
   @Override
   public void addNewLocalPointer(String name, Pointer p) {
-    assert name != null && p != null;
-    localPointers.peekLast().getSecond().put(name, p);
-    registerPointer(p, new LocalVariable(getCurrentFunctionName(), name));
+    // p may be null, then name is a non-pointer variable
+    assert name != null;
+    getLocalPointers().put(name, p);
+    if (p != null) {
+      registerPointer(p, new LocalVariable(getCurrentFunctionName(), name));
+    }
+  }
+  
+  public void addTemporaryTracking(String var, Pointer content) {
+    PointerLocation loc = lookupVariable(var);
+    if (loc == null) {
+      throw new IllegalStateException("Unknown variable " + var);
+    }
+    
+    if (tempTracked.contains(loc)) {
+      pointerOp(new Pointer.Assign(content), getPointer(loc));
+
+    } else {
+      tempTracked.add(loc);
+      Pointer p = new Pointer(content.getLevelOfIndirection());
+      if (loc instanceof LocalVariable) {
+        getLocalPointers().put(var, p);
+      } else if (loc instanceof GlobalVariable) {
+        getGlobalPointers().put(var, p);
+      } else {
+        throw new IllegalStateException();
+      }
+      
+      p.setLocation(loc);
+      addAllReverseRelations(p); // necessary, else assign will throw exception
+      pointerOp(new Pointer.Assign(content), p);
+    }
+  }
+  
+  public void removeTemporaryTracking(PointerLocation loc) {
+    if (!tempTracked.contains(loc)) {
+      throw new IllegalStateException("Variable " + loc + " does not contain a pointer!");
+    }
+    
+    tempTracked.remove(loc);
+    Pointer p = getPointer(loc);
+    removeAllAliases(loc);
+    removeAllReverseRelations(p);
+    
+    if (loc instanceof LocalVariable) {
+      getLocalPointers().remove(((LocalVariable)loc).getVarName());
+    } else if (loc instanceof GlobalVariable) {
+      getGlobalPointers().remove(((GlobalVariable)loc).getVarName());
+    } else {
+      throw new IllegalStateException();
+    }
+  }
+  
+  public boolean isPointerVariable(PointerLocation loc) {
+    return (!tempTracked.contains(loc) && getPointer(loc) != null);
   }
   
   @Override
   public Pointer lookupPointer(String name) {
-    Pointer result = globalPointers.get(name);
+    Pointer result = getGlobalPointers().get(name);
     if (result == null) {
-      result = localPointers.peekLast().getSecond().get(name);
+      result = getLocalPointers().get(name);
     }
     return result;
   }
   
   @Override
   public Variable lookupVariable(String name) {
-    if (localPointers.peekLast().getSecond().containsKey(name)) {
+    if (getLocalPointers().containsKey(name)) {
       return new LocalVariable(getCurrentFunctionName(), name);
       
-    } else if (globalPointers.containsKey(name)) {
+    } else if (getGlobalPointers().containsKey(name)) {
       return new GlobalVariable(name);
     
     } else {
+      throw new IllegalStateException("Unknown variable " + name);
       // unknown variable has to be a local variable, as we store all global
       // variables (not just global pointer variables) in the globalPointers map 
-      return new LocalVariable(getCurrentFunctionName(), name);
+      //return new LocalVariable(getCurrentFunctionName(), name);
     }
   }
   
+  @Override
   public Pointer getPointer(LocalVariable var) {
-    Map<String, Pointer> stackframe = allLocalPointers.get(var.getFunctionName());
+    Map<String, Pointer> stackframe = stack.get(var.getFunctionName());
     assert stackframe != null;
     return stackframe.get(var.getVarName());
   }
 
+  @Override
   public Pointer getPointer(GlobalVariable var) {
-    return globalPointers.get(var.getVarName());
+    return getGlobalPointers().get(var.getVarName());
   }
-
+  
   @Override
   public Pointer getPointer(MemoryAddress memAddress) {
     return heap.get(memAddress);
@@ -419,9 +451,9 @@ public class PointerAnalysisElement implements AbstractElement, Memory {
       assert pointerAliases.contains(pointer);
     } 
 
-    if (getPointer(pointer).getNumberOfTargets() == 1) {
+    //if (getPointer(pointer).getNumberOfTargets() == 1) {
       // TODO: there could be other pointers with the same target -> they are aliases, too
-    }
+    //}
     
     return Collections.unmodifiableSet(pointerAliases);
   }
@@ -668,17 +700,7 @@ public class PointerAnalysisElement implements AbstractElement, Memory {
     Set<MemoryRegion> unmarkedRegions = new HashSet<MemoryRegion>(mallocs);
     
     boolean unknown;
-    for (Pointer p: globalPointers.values()) {
-      if (p != null) {
-        unknown = checkMemoryLeak(unmarkedRegions, p);
-        if (unknown) {
-          unmarkedRegions.clear();
-          return unmarkedRegions;
-        }
-      }
-    }
-    
-    for (Map<String, Pointer> stackframe : allLocalPointers.values()) {
+    for (Map<String, Pointer> stackframe : stack.values()) {
       for (Pointer p: stackframe.values()) {
         unknown = checkMemoryLeak(unmarkedRegions, p);
         if (unknown) {
@@ -726,31 +748,39 @@ public class PointerAnalysisElement implements AbstractElement, Memory {
     
     PointerAnalysisElement otherElement = (PointerAnalysisElement)other;
     
-    return globalPointers.equals(otherElement.globalPointers)
-        && localPointers.equals(otherElement.localPointers)
+    return stack.equals(otherElement.stack)
         && reverseRelation.equals(otherElement.reverseRelation)
         && aliases.equals(otherElement.aliases);
   }
   
   public void callFunction(String functionName) {
-    HashMap<String, Pointer> newLocalPointers = new HashMap<String, Pointer>();
-    localPointers.addLast(new Pair<String, HashMap<String, Pointer>>(functionName, newLocalPointers));
+    //HashMap<String, Pointer> newLocalPointers = ;
+    //localPointers.addLast(new Pair<String, HashMap<String, Pointer>>(functionName, newLocalPointers));
     
     if (currentFunctionName.equals("")) {
       currentFunctionName = functionName;
     } else {
       currentFunctionName = currentFunctionName + FUNCTION_NAME_SEPARATOR + functionName;
     }
-    allLocalPointers.put(currentFunctionName, newLocalPointers);
+    stack.put(currentFunctionName, new HashMap<String, Pointer>());
   }
   
   public void returnFromFunction() {
     assert currentFunctionName != "" && currentFunctionName.contains(":")
         : "Cannot return from global context or main function!";
-    localPointers.pollLast();
+    //localPointers.pollLast();
     String oldFunctionName = currentFunctionName;
     currentFunctionName = currentFunctionName.substring(0, currentFunctionName.lastIndexOf(FUNCTION_NAME_SEPARATOR));
 
+    Iterator<PointerLocation> tempIt = tempTracked.iterator();
+    while (tempIt.hasNext()) {
+      PointerLocation loc = tempIt.next();
+      
+      if (oldFunctionName.equals(((LocalVariable)loc).getFunctionName())) {
+        tempIt.remove(); // instead of tempTracked.remove(loc);
+      }
+    }
+    
     // remove all pointers in local variables from aliases
     Iterator<PointerLocation> aliasIt = aliases.keySet().iterator();
     while (aliasIt.hasNext()) {
@@ -806,7 +836,7 @@ public class PointerAnalysisElement implements AbstractElement, Memory {
     }
     
     // do this at the end of this method to make getPointer(LocalVariable) still work
-    allLocalPointers.remove(oldFunctionName); 
+    stack.remove(oldFunctionName); 
   }
   
   public String getCurrentFunctionName() {
@@ -823,27 +853,29 @@ public class PointerAnalysisElement implements AbstractElement, Memory {
 
   @Override
   public int hashCode() {
-    return localPointers.hashCode();
+    return stack.hashCode();
   }
   
   @Override
   public PointerAnalysisElement clone() {
-    return new PointerAnalysisElement(globalPointers, localPointers, heap,
-                        mallocs, reverseRelation, aliases, currentFunctionName); 
+    return new PointerAnalysisElement(stack, heap, mallocs, reverseRelation,
+                                      aliases, tempTracked, currentFunctionName); 
   }
   
   @Override
   public String toString() {
     StringBuffer sb = new StringBuffer();
     sb.append("[<global:");
-    for (String var : globalPointers.keySet()) {
-      sb.append(" " + var + "=" + globalPointers.get(var) + " ");
+    for (String var : getGlobalPointers().keySet()) {
+      sb.append(" " + var + "=" + getGlobalPointers().get(var) + " ");
     }
-    for (Pair<String, HashMap<String, Pointer>> stackframe: localPointers) {
-      sb.append("> <" + stackframe.getFirst() + ":");
-      Map<String, Pointer> pointers = stackframe.getSecond();
-      for (String var : pointers.keySet()) {
-        sb.append(" " + var + "=" + pointers.get(var) + " ");
+    for (String function : stack.keySet()) {
+      if (!function.equals("")) {
+        sb.append("> <" + function + ":");
+        Map<String, Pointer> pointers = stack.get(function);
+        for (String var : pointers.keySet()) {
+          sb.append(" " + var + "=" + pointers.get(var) + " ");
+        }
       }
     }
     sb.append("> <heap:");

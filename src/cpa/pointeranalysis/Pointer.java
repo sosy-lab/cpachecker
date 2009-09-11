@@ -82,9 +82,8 @@ public class Pointer {
     assert other != null;
     return !this.isSubsetOf(other)
         && !other.isSubsetOf(this)
-        && !targets.contains(INVALID_POINTER)
+        && !(targets.contains(INVALID_POINTER) && other.targets.contains(INVALID_POINTER))
         && !targets.contains(UNKNOWN_POINTER)
-        && !other.targets.contains(INVALID_POINTER)
         && !other.targets.contains(UNKNOWN_POINTER);
   }
   

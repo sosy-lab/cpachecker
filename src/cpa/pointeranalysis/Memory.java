@@ -273,12 +273,16 @@ public interface Memory {
     
     @Override
     public PointerTarget addOffset(long shiftBytes) throws InvalidPointerException {
-      throw new InvalidPointerException("No pointer calculcations for simple variable " + this);
+      if (shiftBytes != 0) {
+        throw new InvalidPointerException("Pointer calculcations for simple variable " + this);
+      } else {
+        return this;
+      }
     }
 
     @Override
     public PointerTarget addUnknownOffset() throws InvalidPointerException {
-      throw new InvalidPointerException("No pointer calculcations for simple variable" + this);
+      throw new InvalidPointerException("Pointer calculcations for simple variable " + this);
     }
     
     @Override
@@ -313,7 +317,7 @@ public interface Memory {
   /**
    * A simple local variable.
    */
-  public final static class LocalVariable extends Variable {
+  public static class LocalVariable extends Variable {
     
     private String function;
     
@@ -349,7 +353,7 @@ public interface Memory {
   /**
    * A simple global variable.
    */
-  public final static class GlobalVariable extends Variable {
+  public static class GlobalVariable extends Variable {
     
     public GlobalVariable(String name) {
       super(name);
@@ -363,6 +367,124 @@ public interface Memory {
     @Override
     public boolean equals(Object other) {
       return (other instanceof GlobalVariable) && super.equals(other);
+    }
+  }
+  
+  public final static class StackArray {
+    
+    private final String name;
+    private final long length;
+    
+    public StackArray(String name, long length) {
+      if (name == null || length < 0) {
+        throw new IllegalArgumentException();
+      }
+      this.name = name;
+      this.length = length;
+    }
+    
+    public long getLength() {
+      return length;
+    }
+    
+    @Override
+    public String toString() {
+      return name + "(" + length + ")";
+    }
+  }
+  
+  public static class StackArrayCell extends LocalVariable {
+    
+    private final StackArray array;
+    private final long offset;
+    
+    private StackArrayCell(String function, StackArray array, boolean unknownOffset) {
+      super(function, array.name);
+      assert array != null;
+      this.array = array;
+      
+      if (unknownOffset) {
+        this.offset = -1;
+      } else {
+        throw new IllegalArgumentException("Only use this constructor with unknownOffset = true");
+      }
+    }
+    
+    public StackArrayCell(String function, StackArray array) {
+      super(function, array.name);
+      if (array == null) {
+        throw new IllegalArgumentException("StackArrayCell needs a StackArray");
+      }
+      
+      this.array = array;
+      this.offset = 0;
+    }
+    
+    private StackArrayCell(String function, StackArray array, long offset) throws InvalidPointerException {
+      super(function, array.name);
+      assert array != null;
+
+      if ((offset < 0) || (offset >= array.getLength())) {
+        throw new InvalidPointerException("Invalid offset " + offset
+                                        + " for stack array " + array + "!");
+      }   
+      this.array = array;
+      this.offset = offset;
+    }
+    
+    @Override
+    public StackArrayCell addOffset(long shiftBytes) throws InvalidPointerException {
+      if (offset == -1) {
+        if (Math.abs(shiftBytes) >= array.getLength()) {
+          // current offset is unknown, but this shift is too large for sure
+          throw new InvalidPointerException("Invalid shift " + shiftBytes
+              + " for stack array " + array + "!");
+        }
+        return this;
+      }
+      
+      return (shiftBytes == 0) ? this : new StackArrayCell(getFunctionName(), array, offset+shiftBytes);
+    }
+    
+    @Override
+    public StackArrayCell addUnknownOffset() {
+      if (offset == -1) {
+        return this;
+      }
+      return new StackArrayCell(getFunctionName(), array, true);
+    }
+    
+    @Override
+    public Pointer getPointer(Memory memory) {
+      if (offset != -1) {
+        return null;
+      } else {
+        return super.getPointer(memory);
+      }
+    }
+    
+    @Override
+    public String getVarName() {
+      return "__cpa_stack_array__" + super.getVarName() + "__" + offset;
+    }
+    
+    @Override
+    public boolean equals(Object other) {
+      if ((other == null) || !(other instanceof StackArrayCell)) {
+        return false;
+      }
+      
+      StackArrayCell otherCell = (StackArrayCell)other;
+      
+      // if offset is unknown, we do not know (return false)
+      return (offset != -1)
+          && (this.array.equals(otherCell.array))
+          && (this.offset == otherCell.offset);
+    }
+    
+    @Override
+    public String toString() {
+      return array + (offset == -1 ? "[?]" : "[" + offset + "]");
     }
   }
   
@@ -392,7 +514,7 @@ public interface Memory {
   public Pointer getPointer(LocalVariable var);
   
   public Pointer getPointer(GlobalVariable var);
-  
+    
   public Pointer getPointer(MemoryAddress memAddress);
 
   public boolean areAliases(Pointer p1, Pointer p2);

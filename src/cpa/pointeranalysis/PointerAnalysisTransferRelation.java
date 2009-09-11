@@ -29,6 +29,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.eclipse.cdt.core.dom.ast.IASTArrayDeclarator;
+import org.eclipse.cdt.core.dom.ast.IASTArrayModifier;
 import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTCastExpression;
 import org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier;
@@ -65,15 +67,19 @@ import cpa.pointeranalysis.Memory.LocalVariable;
 import cpa.pointeranalysis.Memory.MemoryAddress;
 import cpa.pointeranalysis.Memory.MemoryRegion;
 import cpa.pointeranalysis.Memory.PointerTarget;
+import cpa.pointeranalysis.Memory.StackArray;
+import cpa.pointeranalysis.Memory.StackArrayCell;
 import cpa.pointeranalysis.Memory.Variable;
 import cpa.pointeranalysis.Pointer.PointerOperation;
 import cpa.types.Type;
 import cpa.types.TypesElement;
+import cpa.types.Type.ArrayType;
 import cpa.types.Type.PointerType;
 import exceptions.CPAException;
 import exceptions.CPATransferException;
 import exceptions.ErrorReachedException;
 import exceptions.TransferRelationException;
+
 /**
  * @author Philipp Wendler
  */
@@ -145,7 +151,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
   private static Set<Pair<Integer, String>> warnings
                   = printWarnings ? new HashSet<Pair<Integer, String>>() : null;
 
-  // TODO: do this methods need to be thread-safe? 
+  // TODO: does this methods need to be thread-safe? 
   public static void addWarning(String message, CFAEdge edge, String variable) {
     if (printWarnings) {
       Integer lineNumber = null;
@@ -260,32 +266,67 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
     
     String varName = declarators[0].getName().toString();
 
-    IASTPointerOperator[] operators = declarators[0].getPointerOperators();
-    if (operators != null && operators.length > 0) {
-    
-      Pointer p = new Pointer(operators.length);
-      
+    if (declarators[0] instanceof IASTArrayDeclarator) {
+      Pointer p = new Pointer(1);
       if (declaration instanceof GlobalDeclarationEdge) {
         element.addNewGlobalPointer(varName, p);
       } else {
         element.addNewLocalPointer(varName, p);
-        element.pointerOp(new Pointer.Assign(Memory.INVALID_POINTER), p);
       }
+            
+      //long length = parseIntegerLiteral(((IASTArrayDeclarator)declarators[0]).)
+      IASTArrayModifier[] modifiers = ((IASTArrayDeclarator)(declarators[0])).getArrayModifiers();
+      if (modifiers.length != 1 || modifiers[0] == null) {
+        throw new TransferRelationException("Unsupported array declaration " + declaration.getRawStatement());
+      }
+      
+      IASTExpression lengthExpression = modifiers[0].getConstantExpression();
+      if (!(lengthExpression instanceof IASTLiteralExpression)) {
+        throw new TransferRelationException("Variable sized stack arrays are not supported: " + declaration.getRawStatement());
+      }
+      
+      long length = parseIntegerLiteral((IASTLiteralExpression)lengthExpression);
+      StackArrayCell array = new StackArrayCell(element.getCurrentFunctionName(), new StackArray(varName, length));
+            
+      element.pointerOp(new Pointer.Assign(array), p);
+      
       // store the pointer so the type analysis CPA can update its
       // type information
       missing = new MissingInformation();
       missing.typeInformationPointer = p;
       missing.typeInformationEdge    = declaration;
       
-      // initializers do not need to be considered, because they have to be
-      // constant and constant pointers are considered null
-      // local variables do not have initializers in CIL
-    
     } else {
-      // store all global variables, so we know whether a variable is global or
-      // local
-      if (declaration instanceof GlobalDeclarationEdge) {
-        element.addNewGlobalPointer(varName, null);
+      
+      IASTPointerOperator[] operators = declarators[0].getPointerOperators();
+      if (operators != null && operators.length > 0) {
+      
+        Pointer p = new Pointer(operators.length);
+        
+        if (declaration instanceof GlobalDeclarationEdge) {
+          element.addNewGlobalPointer(varName, p);
+        } else {
+          element.addNewLocalPointer(varName, p);
+          element.pointerOp(new Pointer.Assign(Memory.INVALID_POINTER), p);
+        }
+        // store the pointer so the type analysis CPA can update its
+        // type information
+        missing = new MissingInformation();
+        missing.typeInformationPointer = p;
+        missing.typeInformationEdge    = declaration;
+        
+        // initializers do not need to be considered, because they have to be
+        // constant and constant pointers are considered null
+        // local variables do not have initializers in CIL
+      
+      } else {
+        // store all global variables, so we know whether a variable is global or
+        // local
+        if (declaration instanceof GlobalDeclarationEdge) {
+          element.addNewGlobalPointer(varName, null);
+        } else {
+          element.addNewLocalPointer(varName, null);
+        }
       }
     }
   }
@@ -552,7 +593,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
         // non-void function
         Pointer resultPointer = element.lookupPointer(RETURN_VALUE_VARIABLE);
         if (resultPointer != null) {
-          handleAssignment(element, resultPointer, false, expression, cfaEdge);
+          handleAssignment(element, RETURN_VALUE_VARIABLE, resultPointer, false, expression, cfaEdge);
         }
       }
       
@@ -667,13 +708,15 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
     
     // left hand side    
     IASTExpression leftExpression = expression.getOperand1();
+    String leftVarName = null;
     Pointer leftPointer;
     boolean leftDereference;
     
     if (leftExpression instanceof IASTIdExpression) {
       // a
       leftDereference = false;
-      leftPointer = element.lookupPointer(leftExpression.getRawSignature());
+      leftVarName = leftExpression.getRawSignature();
+      leftPointer = element.lookupPointer(leftVarName);
       
     } else if (leftExpression instanceof IASTUnaryExpression) {
       
@@ -742,7 +785,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
     
     if (typeOfOperator == IASTBinaryExpression.op_assign) {
       // handles *a = x and a = x
-      handleAssignment(element, leftPointer, leftDereference, op2, cfaEdge);
+      handleAssignment(element, leftVarName, leftPointer, leftDereference, op2, cfaEdge);
     
     } else if (
            typeOfOperator == IASTBinaryExpression.op_minusAssign
@@ -782,7 +825,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
    * If the right-hand side seems to not evaluate to a pointer, the left pointer
    * is just set to unknown (no warning / error etc. is produced). 
    */
-  private void handleAssignment(PointerAnalysisElement element,
+  private void handleAssignment(PointerAnalysisElement element, String leftVarName,
                                 Pointer leftPointer, boolean leftDereference,
                                 IASTExpression expression, CFAEdge cfaEdge)
                                 throws TransferRelationException, InvalidPointerException {
@@ -794,7 +837,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
     } else if (expression instanceof IASTCastExpression) {
       // a = (int*)b
       // ignore cast, we do no type-checking
-      handleAssignment(element, leftPointer, leftDereference, ((IASTCastExpression)expression).getOperand(), cfaEdge);
+      handleAssignment(element, leftVarName, leftPointer, leftDereference, ((IASTCastExpression)expression).getOperand(), cfaEdge);
       
     } else if (expression instanceof IASTFunctionCallExpression) {
       // a = func()
@@ -816,26 +859,46 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
     } else if (expression instanceof IASTBinaryExpression) {
       // a = b + c
       
-      if (leftPointer == null) {
-        // only interesting if assigned to a pointer
-        return;
-      }
-      
       IASTBinaryExpression binExpression = (IASTBinaryExpression)expression;
       int typeOfOperator = binExpression.getOperator();
       IASTExpression op1 = binExpression.getOperand1();
       IASTExpression op2 = binExpression.getOperand2();
 
+      if (op1 instanceof IASTCastExpression) {
+        op1 = ((IASTCastExpression)op1).getOperand();
+      }
+      if (op1 instanceof IASTUnaryExpression
+          && ((IASTUnaryExpression)op1).getOperator() == IASTUnaryExpression.op_bracketedPrimary) {
+        op1 = ((IASTUnaryExpression)op1).getOperand();
+      }
+      
       if (op1 instanceof IASTIdExpression) {
         Pointer rightPointer = element.lookupPointer(op1.getRawSignature());
         
         if (rightPointer == null) {
-          addWarning("Assigning non-pointer value " + binExpression.getRawSignature()
-              + " to pointer " + leftPointer.getLocation(), cfaEdge, binExpression.getRawSignature());
+          if (leftPointer != null) {
+            if (element.isPointerVariable(leftPointer.getLocation())) {
+              addWarning("Assigning non-pointer value " + binExpression.getRawSignature()
+                  + " to pointer " + leftPointer.getLocation(), cfaEdge, binExpression.getRawSignature());
 
-          element.pointerOp(new Pointer.Assign(Memory.UNKNOWN_POINTER), leftPointer, leftDereference);
-   
-        } else { 
+              element.pointerOp(new Pointer.Assign(Memory.UNKNOWN_POINTER), leftPointer, leftDereference);
+              
+            } else {
+              // left hand side is a non-pointer variable which temporarily stored a pointer value
+              element.removeTemporaryTracking(leftPointer.getLocation());
+            }
+          }
+            
+        } else {
+          if (leftPointer == null) {
+            // start tracking left hand side
+            // assigning rightPointer is wrong, but at least it sets the correct
+            // target size etc. and it will be overwritten anyway 
+            element.addTemporaryTracking(leftVarName, rightPointer);
+            leftPointer = element.lookupPointer(leftVarName);
+            assert leftPointer != null;
+          }
+          
           if (!(typeOfOperator == IASTBinaryExpression.op_plus
               || typeOfOperator == IASTBinaryExpression.op_minus)) {
 
@@ -865,6 +928,10 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
         
       } else if (op1 instanceof IASTLiteralExpression) {
         
+        if (leftPointer == null) {
+          return;
+        }
+        
         if (op2 instanceof IASTLiteralExpression) {
           addWarning("Assigning non-pointer value " + binExpression.getRawSignature()
               + " to pointer " + leftPointer.getLocation(), cfaEdge, binExpression.getRawSignature());
@@ -885,7 +952,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       
       if (op == IASTUnaryExpression.op_bracketedPrimary) {
         // a = (x)
-        handleAssignment(element, leftPointer, leftDereference, unaryExpression.getOperand(), cfaEdge);      
+        handleAssignment(element, leftVarName, leftPointer, leftDereference, unaryExpression.getOperand(), cfaEdge);      
      
       } else if (op == IASTUnaryExpression.op_amper) {
         // a = &b
@@ -938,11 +1005,17 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
           
           if (leftPointer != null) {
             if (!rightPointer.isPointerToPointer()) {
-              addWarning("Assigning non-pointer value " + unaryExpression.getRawSignature()
-                  + " to pointer " + leftPointer.getLocation(), cfaEdge, expression.getRawSignature());
-       
-              element.pointerOp(new Pointer.Assign(Memory.UNKNOWN_POINTER), leftPointer, leftDereference);
-        
+              if (element.isPointerVariable(leftPointer.getLocation())) {
+                addWarning("Assigning non-pointer value " + unaryExpression.getRawSignature()
+                    + " to pointer " + leftPointer.getLocation(), cfaEdge, expression.getRawSignature());
+         
+                element.pointerOp(new Pointer.Assign(Memory.UNKNOWN_POINTER), leftPointer, leftDereference);
+          
+              } else {
+                // left hand side is a non-pointer variable which temporarily stored a pointer value
+                element.removeTemporaryTracking(leftPointer.getLocation());
+              }
+
             } else {
               element.pointerOp(new Pointer.DerefAndAssign(rightPointer), leftPointer, leftDereference);
             }
@@ -962,16 +1035,23 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       
       if (leftPointer != null) {
         if (rightPointer == null) {
-          addWarning("Assigning non-pointer value " + expression.getRawSignature()
-              + " to pointer " + leftPointer.getLocation(), cfaEdge, expression.getRawSignature());
-   
-          element.pointerOp(new Pointer.Assign(Memory.UNKNOWN_POINTER), leftPointer, leftDereference);
+          if (element.isPointerVariable(leftPointer.getLocation())) {
+            addWarning("Assigning non-pointer value " + expression.getRawSignature()
+                + " to pointer " + leftPointer.getLocation(), cfaEdge, expression.getRawSignature());
+     
+            element.pointerOp(new Pointer.Assign(Memory.UNKNOWN_POINTER), leftPointer, leftDereference);
 
+          } else {
+            // left hand side is a non-pointer variable which temporarily stored a pointer value
+            element.removeTemporaryTracking(leftPointer.getLocation());
+          }
+          
         } else {
           element.pointerOp(new Pointer.Assign(rightPointer), leftPointer, leftDereference);
         }
       } else {
-        if (rightPointer != null) {
+        if (rightPointer != null && leftVarName != null) {
+          element.addTemporaryTracking(leftVarName, rightPointer);
           // TODO: assigning pointer variable to non-pointer variable, start tracking this variable 
         }
       }
@@ -1165,11 +1245,20 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
     String name = declarators[0].getName().getRawSignature();
     Type type = typesElement.getVariableType(functionName, name);
     
-    if (!(type instanceof PointerType)) {
+    int sizeOfTarget;
+    switch (type.getTypeClass()) {
+    case POINTER:
+      sizeOfTarget = ((PointerType)type).getTargetType().sizeOf();
+      break;
+      
+    case ARRAY:
+      sizeOfTarget = ((ArrayType)type).getType().sizeOf();
+      break;
+      
+    default: 
       throw new TransferRelationException("Types determined by TypesCPA und PointerAnalysisCPA differ!");
     }
 
-    int sizeOfTarget = ((PointerType)type).getTargetType().sizeOf();
     missing.typeInformationPointer.setSizeOfTarget(sizeOfTarget);
   }
 }
