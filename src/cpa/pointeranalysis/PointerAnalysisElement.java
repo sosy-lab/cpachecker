@@ -740,19 +740,6 @@ public class PointerAnalysisElement implements AbstractElement, Memory {
     return false;
   }
   
-  @Override
-  public boolean equals(Object other) {
-    if (!(other instanceof PointerAnalysisElement)) {
-      return false;
-    }
-    
-    PointerAnalysisElement otherElement = (PointerAnalysisElement)other;
-    
-    return stack.equals(otherElement.stack)
-        && reverseRelation.equals(otherElement.reverseRelation)
-        && aliases.equals(otherElement.aliases);
-  }
-  
   public void callFunction(String functionName) {
     //HashMap<String, Pointer> newLocalPointers = ;
     //localPointers.addLast(new Pair<String, HashMap<String, Pointer>>(functionName, newLocalPointers));
@@ -839,6 +826,36 @@ public class PointerAnalysisElement implements AbstractElement, Memory {
     stack.remove(oldFunctionName); 
   }
   
+
+  public boolean isSubsetOf(PointerAnalysisElement other) {
+    assert other.currentFunctionName.matches("^" + currentFunctionName
+                                     + "(" + FUNCTION_NAME_SEPARATOR + ".*)?$");
+    
+    for (Map<String, Pointer> stackframe : stack.values()) {
+      for (Pointer p : stackframe.values()) {
+        if (p != null) {
+          Pointer otherPointer = other.getPointer(p.getLocation());
+          if (otherPointer == null || !p.isSubsetOf(otherPointer)) {
+            return false;
+          }
+        }
+      }
+    }
+    
+    for (Pointer p : heap.values()) {
+      if (p != null) {
+        Pointer otherPointer = other.getPointer(p.getLocation());
+        if (otherPointer == null || !p.isSubsetOf(otherPointer)) {
+          return false;
+        }
+      }
+    }
+    
+    // aliases & reverse relation are ignored here
+    
+    return true;
+  }
+  
   public String getCurrentFunctionName() {
     return currentFunctionName;
   }
@@ -850,7 +867,26 @@ public class PointerAnalysisElement implements AbstractElement, Memory {
   public CFAEdge getCurrentEdge() {
     return currentEdge;
   }
+  
+  @Override
+  public boolean equals(Object other) {
+    if (other == this) {
+      return true;
+    }
+    if (other == null || !(other instanceof PointerAnalysisElement)) {
+      return false;
+    }
 
+    PointerAnalysisElement otherElement = (PointerAnalysisElement)other;
+    
+    return currentFunctionName.equals(otherElement.currentFunctionName)
+        && stack.equals(otherElement.stack)
+        && heap.equals(otherElement.heap)
+        && reverseRelation.equals(otherElement.reverseRelation)
+        && aliases.equals(otherElement.aliases)
+        && tempTracked.equals(otherElement.tempTracked);
+  }
+  
   @Override
   public int hashCode() {
     return stack.hashCode();

@@ -102,8 +102,10 @@ public class PointerAnalysisDomain implements AbstractDomain {
         return false;
       }
       
-      // TODO partial Order
-      return false;
+      PointerAnalysisElement newPointerElement = (PointerAnalysisElement)newElement;
+      PointerAnalysisElement reachedPointerElement = (PointerAnalysisElement)reachedElement;
+      
+      return reachedPointerElement.isSubsetOf(newPointerElement);
     }
   }
   
