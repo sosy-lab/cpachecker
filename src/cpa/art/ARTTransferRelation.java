@@ -46,7 +46,10 @@ public class ARTTransferRelation implements TransferRelation {
     }
     
     AbstractElementWithLocation wrappedElement = element.getAbstractElementOnArtNode();
-    Precision wrappedPrecision = ((ARTPrecision)pPrecision).getPrecision();
+    Precision wrappedPrecision = null;
+    if(pPrecision != null){
+      wrappedPrecision = ((ARTPrecision)pPrecision).getPrecision();
+    }
     List<AbstractElementWithLocation> successors = transferRelation.getAllAbstractSuccessors(wrappedElement, wrappedPrecision);
     List<AbstractElementWithLocation> wrappedSuccessors = new ArrayList<AbstractElementWithLocation>();
     for(AbstractElementWithLocation absElement:successors){

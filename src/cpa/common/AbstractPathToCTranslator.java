@@ -41,6 +41,7 @@ import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
 
 import cfa.CFAMap;
 import cfa.objectmodel.CFAEdge;
+import cfa.objectmodel.CFAErrorNode;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cfa.objectmodel.CFANode;
 import cfa.objectmodel.c.AssumeEdge;
@@ -95,7 +96,7 @@ public class AbstractPathToCTranslator {
     List<String> lTranslation = translatePath(pPath);
 
     // TODO remove output
-//    System.out.println("Written program text:");
+//  System.out.println("Written program text:");
 
     //try {
 
@@ -254,6 +255,10 @@ public class AbstractPathToCTranslator {
 
     // process edges
     for (CFAEdge lEdge : pAbstractPath) {
+      if(lEdge.getSuccessor() instanceof CFAErrorNode){
+        lProgramText.println("assert(0);");
+        continue;
+      }
       switch (lEdge.getEdgeType()) {
       case BlankEdge: {
         // nothing to do
@@ -283,6 +288,9 @@ public class AbstractPathToCTranslator {
         IASTExpression lExpression = lStatementEdge.getExpression();
 
         if (lExpression != null) {
+          if(lStatementEdge.isJumpEdge()){
+            lProgramText.print("return ");
+          }
           lProgramText.println(lStatementEdge.getExpression().getRawSignature() + ";");
         }
 

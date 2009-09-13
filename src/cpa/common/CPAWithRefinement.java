@@ -1,11 +1,15 @@
 package cpa.common;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Stack;
 
 import logging.CustomLogLevel;
 import logging.LazyLogger;
@@ -41,9 +45,11 @@ private static long part4 = 0;
       AbstractElementWithLocation initialElement,
       Precision initialPrecision) throws CPAException{
     ReachedElements reached = null;
+    CPAAlgorithm algo = new CPAAlgorithm(cpa, initialElement, initialPrecision);
     boolean stopAnalysis = false;
     while(!stopAnalysis){
-      CPAAlgorithm algo = new CPAAlgorithm(cpa, initialElement, initialPrecision);
+      // TODO if we want to restart
+//      CPAAlgorithm algo = new CPAAlgorithm(cpa, initialElement, initialPrecision);
       try {
         reached = algo.CPA();
       } catch (CPAException e) {
@@ -72,11 +78,16 @@ private static long part4 = 0;
           // TODO make this optional
           int cbmcRes = CProver.checkSat(AbstractPathToCTranslator.translatePaths(pCfas, errorPath));
           if(cbmcRes == 10){
-            System.out.println("CMBC comfirms the bug");
+            System.out.println("CBMC comfirms the bug");
           }
           else if(cbmcRes == 0){
-            System.out.println("CMBC thinks this path contains no bug");
+            System.out.println("CBMC thinks this path contains no bug");
+//            reached.setLastElementToFalse();
+//            CPAAlgorithm.errorFound = false;
+//            stopAnalysis = false;
           }
+          // TODO make this optional too
+          dumpErrorPathToDotFile(reached, "/localhome/erkan/errorpath.dot");
           System.out.println("________________________________");
         }
         else{
@@ -127,6 +138,47 @@ private static long part4 = 0;
     return reached;
   }
   
+  private void dumpErrorPathToDotFile(ReachedElements pReached, String outfile) {
+    ARTElement lastElement = (ARTElement)pReached.getLastElement();
+
+    PrintWriter out = null;
+    try {
+      out = new PrintWriter(new File(outfile));
+    } catch (FileNotFoundException e) {
+      e.printStackTrace();
+    }
+    out.println("digraph ART {");
+    
+    ARTElement currentArtElement = lastElement;
+    
+    while(currentArtElement.getParent() != null){
+      ARTElement parentElement = currentArtElement.getParent();
+      out.println("node [shape = diamond]; " + currentArtElement.hashCode() + ";");
+      currentArtElement = parentElement;
+    }
+    
+    lastElement = (ARTElement)pReached.getLastElement();
+    currentArtElement = lastElement;
+    while(currentArtElement.getParent() != null){
+      ARTElement parentElement = currentArtElement.getParent();
+      CFANode currentNode = currentArtElement.getLocationNode();
+      for(int i=0; i<currentNode.getNumEnteringEdges(); i++){
+        CFAEdge edge = currentNode.getEnteringEdge(i);
+        if(parentElement.getLocationNode().getNodeNumber() == edge.getPredecessor().getNodeNumber()){
+          out.println(parentElement.hashCode() + " -> " + currentArtElement.hashCode()
+              + " [label=\"" + edge + "\"];");
+        }
+      }
+      currentArtElement = parentElement;
+    }
+    
+    out.println("}");
+    out.flush();
+    out.close();
+
+    
+  }
+
   private List<CFAEdge> buildErrorPath(ReachedElements pReached) {
     AbstractElement lastElement = pReached.getLastElement();
     ARTElement lastArtElement = (ARTElement)lastElement;
@@ -169,11 +221,15 @@ private static long part4 = 0;
   private void modifySets(CPAAlgorithm pAlgorithm,
       Collection<ARTElement> reachableToUndo,
       Collection<ARTElement> toWaitlist) {
+    
+    System.out.println("reach " + reachableToUndo.size());
+    System.out.println("wait " + toWaitlist.size());
+    
+    // TODO if starting from nothing, do not bother
     Collection<Pair<AbstractElementWithLocation, Precision>> reachedSet = 
       pAlgorithm.getReachedElements().getReached();
-    
-    List<Pair<AbstractElementWithLocation, Precision>> waitlist = 
-      pAlgorithm.getWaitlist();
+//    List<Pair<AbstractElementWithLocation, Precision>> waitlist = 
+//      pAlgorithm.getWaitlist();
     
     List<Pair<AbstractElementWithLocation, Precision>> lToWaitlist = new ArrayList<Pair<AbstractElementWithLocation, Precision>>(toWaitlist.size());
     Map<AbstractElementWithLocation, Pair<AbstractElementWithLocation, Precision>> lNewWaitToPrecision = new HashMap<AbstractElementWithLocation, Pair<AbstractElementWithLocation, Precision>>();
@@ -196,7 +252,7 @@ private static long part4 = 0;
       } else {
         LazyLogger.log(CustomLogLevel.SpecificCPALevel,
             "Removing element: ", e.getFirst(), " from reached");
-        if (waitlist.remove(e)) {
+        if (pAlgorithm.removeFromWaitlist(e)) {
           LazyLogger.log(CustomLogLevel.SpecificCPALevel,
               "Removing element: ", e.getFirst(),
           " also from waitlist");
@@ -213,10 +269,9 @@ private static long part4 = 0;
         lToWaitlist.add(e);
         newreached.add(e);
       }
-    }   
+    }
 
-    reachedSet.clear();
-    reachedSet.addAll(newreached);
+    pAlgorithm.buildNewReachedSet(newreached);
     LazyLogger.log(CustomLogLevel.SpecificCPALevel,
         "Reached now is: ", newreached);
     // and add to the wait list all the elements in toWaitlist
@@ -225,17 +280,16 @@ private static long part4 = 0;
     LazyLogger.log(CustomLogLevel.SpecificCPALevel, "Adding elements: ", lToWaitlist, " to waitlist");
 
     if (useBfs) {
-      waitlist.addAll(lToWaitlist);
+      pAlgorithm.addAllToWaitlist(lToWaitlist);
     }
     else {
-      waitlist.addAll(0, lToWaitlist);
+      pAlgorithm.addAllToWaitlistAt(0, lToWaitlist);
     }
 
     LazyLogger.log(CustomLogLevel.SpecificCPALevel,
-        "Waitlist now is: ", waitlist);
+        "Waitlist now is: ", pAlgorithm.getWaitlist());
     LazyLogger.log(CustomLogLevel.SpecificCPALevel,
     "Refinement done");
-
     if ((++gcCounter % GC_PERIOD) == 0) {
       System.gc();
       gcCounter = 0;

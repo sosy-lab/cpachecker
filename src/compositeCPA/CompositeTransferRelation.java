@@ -61,8 +61,11 @@ public class CompositeTransferRelation implements TransferRelation{
 
   public AbstractElement getAbstractSuccessor (AbstractElement element, CFAEdge cfaEdge, Precision precision) throws CPATransferException
   {
-    assert(precision instanceof CompositePrecision);
-    CompositePrecision lCompositePrecision = (CompositePrecision)precision;
+    CompositePrecision lCompositePrecision = null;
+    if(precision != null){
+      assert(precision instanceof CompositePrecision);
+      lCompositePrecision = (CompositePrecision)precision;
+    }
 
     CompositeElement compositeElement = (CompositeElement) element;
     List<AbstractElement> inputElements = compositeElement.getElements ();
@@ -117,7 +120,10 @@ public class CompositeTransferRelation implements TransferRelation{
       subElement = inputElements.get (idx);
       // handling a call edge
 
-      Precision lPresicion = lCompositePrecision.get(idx);
+      Precision lPresicion = null;
+      if(lCompositePrecision != null){
+        lPresicion = lCompositePrecision.get(idx);
+      }
 
       successor = transfer.getAbstractSuccessor (subElement, cfaEdge, lPresicion);
       resultingElements.add (successor);
@@ -126,14 +132,14 @@ public class CompositeTransferRelation implements TransferRelation{
     List<AbstractElement> resultingElementsRO = Collections.unmodifiableList(resultingElements);
     for (int idx = 0; idx < transferRelations.size(); idx++) {
       AbstractElement result = transferRelations.get(idx).strengthen(
-                                            resultingElements.get(idx),
-                                            resultingElementsRO, cfaEdge,
-                                            lCompositePrecision.get(idx));
+          resultingElements.get(idx),
+          resultingElementsRO, cfaEdge,
+          (lCompositePrecision == null) ? null : lCompositePrecision.get(idx));
       if (result != null) {
         resultingElements.set(idx, result);
       }
     }
-    
+
     CompositeElement successorState = new CompositeElement (resultingElements, updatedCallStack);
     return successorState;
   }
@@ -157,8 +163,8 @@ public class CompositeTransferRelation implements TransferRelation{
 
   @Override
   public AbstractElement strengthen(AbstractElement element,
-                         List<AbstractElement> otherElements, CFAEdge cfaEdge,
-                         Precision precision) {
+      List<AbstractElement> otherElements, CFAEdge cfaEdge,
+      Precision precision) {
     // strengthen is only called by the composite CPA on its component CPAs
     return null;
   }

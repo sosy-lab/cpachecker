@@ -77,6 +77,9 @@ public static long chooseTime = 0;
     StopOperator stopOperator = cpa.getStopOperator();
     PrecisionAdjustment precisionAdjustment = cpa.getPrecisionAdjustment();
 
+    System.out.println("reached size " + reachedElements.size());
+    System.out.println("waitlist size " + waitlist.size());
+    
     while (!waitlist.isEmpty ())
     {
       // Pick next element using strategy
@@ -108,7 +111,8 @@ public static long chooseTime = 0;
 
         // AG as an optimization, we allow the mergeOperator to be null,
         // as a synonym of a trivial operator that never merges
-
+//System.out.println("here 1");
+//System.out.println(reachedElements.size());
         if (mergeOperator != null) {
           List<Pair<AbstractElementWithLocation,Precision>> toRemove = new Vector<Pair<AbstractElementWithLocation,Precision>>();
           List<Pair<AbstractElementWithLocation,Precision>> toAdd = new Vector<Pair<AbstractElementWithLocation,Precision>>();
@@ -127,13 +131,15 @@ public static long chooseTime = 0;
           else{
             tempReached = reached;
           }
-
+//          System.out.println("here2");
           for (Pair<AbstractElementWithLocation, Precision> reachedEntry : tempReached) {
             AbstractElementWithLocation reachedElement = reachedEntry.getFirst();
             AbstractElementWithLocation mergedElement = mergeOperator.merge( successor, reachedElement, precision);
+//            System.out.println("here3");
             LazyLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel,
                 " Merged ", successor, " and ", reachedElement, " --> ", mergedElement);
             if (!mergedElement.equals(reachedElement)) {
+//              System.out.println("here4");
               LazyLogger.log(
                   CustomLogLevel.CentralCPAAlgorithmLevel,
                   "reached element ", reachedElement,
@@ -146,9 +152,10 @@ public static long chooseTime = 0;
               toAdd.add(new Pair<AbstractElementWithLocation,Precision>(mergedElement, precision));
             }
           }
+//          System.out.println("here5");
           reached.removeAll(toRemove);
           reached.addAll(toAdd);
-
+//          System.out.println("here6");
         }
 
         Collection<Pair<AbstractElementWithLocation,Precision>> tempReached;
@@ -224,5 +231,23 @@ public static long chooseTime = 0;
 
   public ReachedElements getReachedElements() {
     return reachedElements;
+  }
+
+  public void buildNewReachedSet(
+      Collection<Pair<AbstractElementWithLocation, Precision>> pNewreached) {
+    reachedElements.buildNewReachedSet(pNewreached);
+  }
+  
+  public boolean removeFromWaitlist(Pair<AbstractElementWithLocation, Precision> pElement){
+    return waitlist.remove(pElement);
+  }
+  
+  public void addAllToWaitlist(List<Pair<AbstractElementWithLocation, Precision>> pToWaitlist){
+    waitlist.addAll(pToWaitlist);
+  }
+
+  public void addAllToWaitlistAt(int pIndex,
+      List<Pair<AbstractElementWithLocation, Precision>> pToWaitlist) {
+    waitlist.addAll(pIndex, pToWaitlist);
   }
 }

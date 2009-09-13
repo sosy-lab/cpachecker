@@ -42,10 +42,14 @@ public class CProver {
   public static int checkSat (String pTranslatedProgram) {
 
     File lFile = null;
-    // TODO shouldn't it be ".i"?
     lFile = new File("/localhome/erkan/path.c");
-    //lFile = File.createTempFile("path", ".c");
-//    System.out.println(lFile.getAbsolutePath());
+//    try {
+//      lFile = File.createTempFile("path", ".c");
+//    } catch (IOException e1) {
+//      // TODO Auto-generated catch block
+//      e1.printStackTrace();
+//    }
+//    lFile.deleteOnExit();
 
     PrintWriter lWriter = null;
     try {
@@ -63,8 +67,10 @@ public class CProver {
 
     try {
       // TODO function name
-      String lFunctionName = "main";                                       
-      Process lCBMCProcess = Runtime.getRuntime().exec("cbmc --function " + lFunctionName + "_0 " + lFile.getAbsolutePath());            
+      String lFunctionName = "main";
+      // TODO we check for assertion errors
+      Process lCBMCProcess = Runtime.getRuntime().exec("cbmc --function " + 
+          lFunctionName + "_0 --no-bounds-check --no-div-by-zero-check --no-pointer-check " + lFile.getAbsolutePath());            
 
       // TODO Remove output --- begin
       /*BufferedReader lReader = new BufferedReader(new InputStreamReader(lCBMCProcess.getInputStream()));
