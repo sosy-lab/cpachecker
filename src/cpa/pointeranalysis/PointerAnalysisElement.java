@@ -702,10 +702,12 @@ public class PointerAnalysisElement implements AbstractElement, Memory {
     boolean unknown;
     for (Map<String, Pointer> stackframe : stack.values()) {
       for (Pointer p: stackframe.values()) {
-        unknown = checkMemoryLeak(unmarkedRegions, p);
-        if (unknown) {
-          unmarkedRegions.clear();
-          return unmarkedRegions;
+        if (p != null) {
+          unknown = checkMemoryLeak(unmarkedRegions, p);
+          if (unknown) {
+            unmarkedRegions.clear();
+            return unmarkedRegions;
+          }
         }
       }
     }

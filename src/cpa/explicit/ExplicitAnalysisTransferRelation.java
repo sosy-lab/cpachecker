@@ -56,6 +56,9 @@ import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
+import cpa.pointeranalysis.Memory;
+import cpa.pointeranalysis.Pointer;
+import cpa.pointeranalysis.PointerAnalysisElement;
 import exceptions.CPAException;
 import exceptions.CPATransferException;
 import exceptions.ExplicitAnalysisTransferException;
@@ -68,6 +71,11 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
   private Set<String> globalVars;
 
   private int threshold;
+
+  private String missingInformationLeftVariable = null;
+  private String missingInformationRightPointer = null;
+  private String missingInformationLeftPointer  = null;
+  private IASTExpression missingInformationRightExpression = null;
 
   public ExplicitAnalysisTransferRelation (ExplicitAnalysisDomain explicitAnalysisfUseDomain)
   {
@@ -521,9 +529,9 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
     if(expression instanceof IASTUnaryExpression){
       IASTUnaryExpression unaryExp = (IASTUnaryExpression)expression;
       if(unaryExp.getOperator() == IASTUnaryExpression.op_bracketedPrimary){
-        IASTExpression exprInParanhesis = unaryExp.getOperand();
-        if(exprInParanhesis instanceof IASTLiteralExpression){
-          IASTLiteralExpression litExpr = (IASTLiteralExpression)exprInParanhesis;
+        IASTExpression exprInParanthesis = unaryExp.getOperand();
+        if(exprInParanthesis instanceof IASTLiteralExpression){
+          IASTLiteralExpression litExpr = (IASTLiteralExpression)exprInParanthesis;
           String literalValue = litExpr.getRawSignature ();
           int typeOfLiteral = (litExpr.getKind());
           if( typeOfLiteral ==  IASTLiteralExpression.lk_integer_constant 
@@ -542,16 +550,16 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
           }
         }
 
-        else if(exprInParanhesis instanceof IASTIdExpression){
-          IASTIdExpression idExpr = (IASTIdExpression)exprInParanhesis;
+        else if(exprInParanthesis instanceof IASTIdExpression){
+          IASTIdExpression idExpr = (IASTIdExpression)exprInParanthesis;
 
           String idExpName = idExpr.getRawSignature ();
           String rVarName = getvarName(idExpName, functionName);
 
           return propagateVariableAssignment(newElement, returnVarName, rVarName);
         }
-        else if(exprInParanhesis instanceof IASTUnaryExpression){
-          IASTUnaryExpression unExp = (IASTUnaryExpression)exprInParanhesis;
+        else if(exprInParanthesis instanceof IASTUnaryExpression){
+          IASTUnaryExpression unExp = (IASTUnaryExpression)exprInParanthesis;
           if(unExp.getOperator() == IASTUnaryExpression.op_minus){
             String literalValue = unExp.getRawSignature();
             if(literalValue.contains("L") || literalValue.contains("U")){
@@ -561,8 +569,8 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
             int value = Integer.valueOf(literalValue).intValue();
             newElement.assignConstant(returnVarName, value, this.threshold);
           }
-          else if(exprInParanhesis instanceof IASTCastExpression){
-            return handleExitFromFunction(element, ((IASTCastExpression)exprInParanhesis).getOperand(), statementEdge);
+          else if(exprInParanthesis instanceof IASTCastExpression){
+            return handleExitFromFunction(element, ((IASTCastExpression)exprInParanthesis).getOperand(), statementEdge);
           }
           else{
             throw new ExplicitAnalysisTransferException("Unhandled case");
@@ -1601,16 +1609,29 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
 //        throw new ExplicitAnalysisTransferException("Unhandled case " + cfaEdge.getRawStatement());
       }
     }
-    // *a = ... & a = ...
-    else if ((op1 instanceof IASTUnaryExpression)
-        && (((IASTUnaryExpression)op1).getOperator() == IASTUnaryExpression.op_star || 
-            ((IASTUnaryExpression)op1).getOperator() == IASTUnaryExpression.op_amper)) {
-      // TODO do nothing
+    else if (op1 instanceof IASTUnaryExpression) {
+      IASTUnaryExpression unaryExpression = (IASTUnaryExpression)op1;
       ExplicitAnalysisElement newElement = ((ExplicitAnalysisElement)element).clone();
-//    IASTExpression leftHandSideVar = ((IASTUnaryExpression)op1).getOperand();
-//    String lvarName = getvarName(leftHandSideVar.getRawSignature(), functionName);
-//    newElement.forget(lvarName);
-      return newElement;
+ 
+      if (unaryExpression.getOperator() == IASTUnaryExpression.op_star) {
+        // *a = ...
+        if (unaryExpression.getOperand() instanceof IASTIdExpression) {
+          missingInformationLeftPointer = unaryExpression.getOperand().getRawSignature();
+          missingInformationRightExpression = binaryExpression.getOperand2();
+        }
+        return newElement;
+      }
+      else if (unaryExpression.getOperator() == IASTUnaryExpression.op_amper) {
+        // & a = ...
+        // TODO do nothing
+//      IASTExpression leftHandSideVar = ((IASTUnaryExpression)op1).getOperand();
+//      String lvarName = getvarName(leftHandSideVar.getRawSignature(), functionName);
+//      newElement.forget(lvarName);
+        return newElement;
+      }
+      else {
+        throw new ExplicitAnalysisTransferException("Unhandled case " + cfaEdge.getRawStatement());
+      }
     }
     else if (op1 instanceof IASTFieldReference) {
       // TODO do nothing
@@ -1721,9 +1742,30 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
         throw new ExplicitAnalysisTransferException("Unhandled case " + cfaEdge.getRawStatement());
       }
     }
-    else if(operatorType == IASTUnaryExpression.op_amper
-        || operatorType == IASTUnaryExpression.op_star) {
-      // a = & b and a = * b
+    else if (operatorType == IASTUnaryExpression.op_star) {
+      // a = * b
+      newElement.forget(assignedVar);
+      
+      // Cil produces code like
+      // __cil_tmp8 = *((int *)__cil_tmp7);
+      // so remove parentheses and cast
+      if (unaryOperand instanceof IASTUnaryExpression
+          && ((IASTUnaryExpression)unaryOperand).getOperator() == IASTUnaryExpression.op_bracketedPrimary) {
+        unaryOperand = ((IASTUnaryExpression)unaryOperand).getOperand();
+      }
+      if (unaryOperand instanceof IASTCastExpression) {
+        unaryOperand = ((IASTCastExpression)unaryOperand).getOperand();
+      }
+
+      if (unaryOperand instanceof IASTIdExpression) {
+        missingInformationLeftVariable = assignedVar;
+        missingInformationRightPointer = unaryOperand.getRawSignature();
+      } else{
+        throw new ExplicitAnalysisTransferException("Unhandled case " + cfaEdge.getRawStatement());
+      }
+    }
+    else if(operatorType == IASTUnaryExpression.op_amper) {
+      // a = & b
       // ignore pointer operations
       newElement.forget(assignedVar);
     }
@@ -2305,8 +2347,76 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
 
   @Override
   public AbstractElement strengthen(AbstractElement element,
-      List<AbstractElement> otherElements, CFAEdge cfaEdge,
-      Precision precision) {    
+                                    List<AbstractElement> elements,
+                                    CFAEdge cfaEdge, Precision precision) {    
+    
+    if (!(element instanceof ExplicitAnalysisElement) || element == explicitAnalysisDomain.getBottomElement()) {
+      return null;
+    }
+    ExplicitAnalysisElement explicitElement = (ExplicitAnalysisElement)element;
+    
+    for (AbstractElement ae : elements) {
+      try {
+        if (ae instanceof PointerAnalysisElement) {
+          return strengthen(explicitElement, (PointerAnalysisElement)ae, cfaEdge, precision);
+        }
+      } catch (ExplicitAnalysisTransferException e) {
+        e.printStackTrace();
+      }
+    }
+    return null;
+  }
+
+  private ExplicitAnalysisElement strengthen(ExplicitAnalysisElement explicitElement,
+      PointerAnalysisElement pointerElement, CFAEdge cfaEdge, Precision precision) throws ExplicitAnalysisTransferException {
+    
+    if (missingInformationLeftVariable != null && missingInformationRightPointer != null) {
+      
+      String rightVar = derefPointerToVariable(pointerElement, missingInformationRightPointer);
+      if (rightVar != null) {
+        if (explicitElement.contains(rightVar)) {
+          explicitElement.assignConstant(missingInformationLeftVariable,
+              explicitElement.getValueFor(rightVar), this.threshold);
+        }
+      }
+      missingInformationLeftVariable = null;
+      missingInformationRightPointer = null;
+      
+    } else if (missingInformationLeftPointer != null && missingInformationRightExpression != null) {
+      
+      String leftVar = derefPointerToVariable(pointerElement, missingInformationLeftPointer);
+      if (leftVar != null) {
+        String functionName = cfaEdge.getPredecessor().getFunctionName();
+        IASTExpression op2 = missingInformationRightExpression;
+
+        if(missingInformationRightExpression instanceof IASTLiteralExpression){
+          return handleLiteralAssignment(explicitElement, leftVar, op2, functionName);
+        }
+        // a = b
+        else if (missingInformationRightExpression instanceof IASTIdExpression){
+          String rightVar = getvarName(op2.getRawSignature(), functionName);
+          return propagateVariableAssignment(explicitElement, leftVar, rightVar);
+        }
+        else {
+          throw new ExplicitAnalysisTransferException("Unhandled case");
+        } 
+      }
+      
+      missingInformationLeftPointer = null;
+      missingInformationRightExpression = null;
+    }
+    return null;
+  }
+      
+  private String derefPointerToVariable(PointerAnalysisElement pointerElement,
+                                        String pointer) {
+    Pointer p = pointerElement.lookupPointer(pointer);
+    if (p != null && p.getNumberOfTargets() == 1) {
+      Memory.PointerTarget target = p.getFirstTarget();
+      if (target instanceof Memory.Variable) {
+        return ((Memory.Variable)target).getVarName();
+      }
+    }
     return null;
   }
 }
