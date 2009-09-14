@@ -1,9 +1,9 @@
 CPAchecker Installation Requirements
 
 Requirements for executing CPAchecker:
-0. Sources have to be preprocessed by CIL.
+0. Sources have to be preprocessed by CIL (http://hal.cs.berkeley.edu/cil/).
    Necessary flags: 
-   --printCilAsIs
+   --dosimplify --printCilAsIs --save-temps
 
 Requirements for building CPAchecker:
 1. Install Java 1.6 SDK or higher.

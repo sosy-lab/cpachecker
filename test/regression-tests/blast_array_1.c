@@ -1,3 +1,6 @@
+#define  __attribute__(x) /*NOTHING*/
+#include <assert.h>
+
 void f1() {
     int x;
     int *p= &x;

@@ -1,3 +1,4 @@
+#define  __attribute__(x) /*NOTHING*/
 #include <assert.h>
 
 // Contributed by Pavel Shved and Vadim Mutilin.
