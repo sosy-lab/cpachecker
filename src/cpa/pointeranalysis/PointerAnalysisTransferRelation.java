@@ -33,6 +33,7 @@ import org.eclipse.cdt.core.dom.ast.IASTArrayDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTArrayModifier;
 import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTCastExpression;
+import org.eclipse.cdt.core.dom.ast.IASTCompositeTypeSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
@@ -254,6 +255,10 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       // ignore, this is a type definition, not a variable declaration
       return;
     }
+    if (declaration.getDeclSpecifier() instanceof IASTCompositeTypeSpecifier) {
+      // TODO handle fields
+      return;
+    }
     
     IASTDeclarator[] declarators = declaration.getDeclarators();
     if (declarators == null || declarators.length != 1) {
@@ -461,6 +466,19 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
              actualValues.add(null); // probably not a pointer
            }
           
+        } else if (parameter instanceof IASTUnaryExpression) {
+          IASTUnaryExpression unaryExpression = (IASTUnaryExpression)parameter;
+          
+          if (unaryExpression.getOperator() == IASTUnaryExpression.op_amper
+              && unaryExpression.getOperand() instanceof IASTIdExpression) {
+            
+            String varName = unaryExpression.getOperand().getRawSignature();
+            Variable var = element.lookupVariable(varName);
+            actualValues.add(new Pointer(var));
+          
+          } else {
+            throw new TransferRelationException("Not expected in CIL: " + cfaEdge.getRawStatement());
+          }
         } else {
           throw new TransferRelationException("Not expected in CIL: " + cfaEdge.getRawStatement());
         }

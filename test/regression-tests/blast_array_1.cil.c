@@ -4,7 +4,7 @@
 #line 71 "/usr/include/assert.h"
 extern void __assert_fail(char const   *__assertion , char const   *__file , unsigned int __line ,
                           char const   *__function ) ;
-#line 4 "regression-tests/blast_array_1.c"
+#line 6 "blast_array_1.c"
 void f1(void) 
 { int x ;
   int *p ;
@@ -13,28 +13,28 @@ void f1(void)
   unsigned int __cil_tmp5 ;
 
   {
-#line 6
+#line 8
   p = & x;
   {
-#line 7
+#line 9
   __cil_tmp3 = (int *)0;
-#line 7
+#line 9
   __cil_tmp4 = (unsigned int )__cil_tmp3;
-#line 7
+#line 9
   __cil_tmp5 = (unsigned int )p;
-#line 7
+#line 9
   if (__cil_tmp5 != __cil_tmp4) {
 
   } else {
-#line 7
-    __assert_fail("p != 0", "regression-tests/blast_array_1.c", 7U, "f1");
+#line 9
+    __assert_fail("p != 0", "blast_array_1.c", 9U, "f1");
   }
   }
-#line 8
+#line 10
   return;
 }
 }
-#line 10 "regression-tests/blast_array_1.c"
+#line 12 "blast_array_1.c"
 void f(void) 
 { int array[1] ;
   int *p ;
@@ -45,32 +45,32 @@ void f(void)
   unsigned int __cil_tmp7 ;
 
   {
-#line 12
+#line 14
   __cil_tmp3 = 0 * 4U;
-#line 12
+#line 14
   __cil_tmp4 = (unsigned int )(array) + __cil_tmp3;
-#line 12
+#line 14
   p = (int *)__cil_tmp4;
   {
-#line 13
+#line 15
   __cil_tmp5 = (int *)0;
-#line 13
+#line 15
   __cil_tmp6 = (unsigned int )__cil_tmp5;
-#line 13
+#line 15
   __cil_tmp7 = (unsigned int )p;
-#line 13
+#line 15
   if (__cil_tmp7 != __cil_tmp6) {
 
   } else {
-#line 13
-    __assert_fail("p != 0", "regression-tests/blast_array_1.c", 13U, "f");
+#line 15
+    __assert_fail("p != 0", "blast_array_1.c", 15U, "f");
   }
   }
-#line 14
+#line 16
   return;
 }
 }
-#line 16 "regression-tests/blast_array_1.c"
+#line 18 "blast_array_1.c"
 void g(void) 
 { int array[1] ;
   int i ;
@@ -82,47 +82,101 @@ void g(void)
   int __cil_tmp8 ;
 
   {
-#line 18
+#line 20
   i = 0;
-#line 18
+#line 20
   __cil_tmp4 = i * 4U;
-#line 18
+#line 20
   __cil_tmp5 = (unsigned int )(array) + __cil_tmp4;
-#line 18
+#line 20
   *((int *)__cil_tmp5) = 1;
-#line 19
+#line 21
   j = 0;
   {
-#line 19
+#line 21
   __cil_tmp6 = j * 4U;
-#line 19
+#line 21
   __cil_tmp7 = (unsigned int )(array) + __cil_tmp6;
-#line 19
+#line 21
   __cil_tmp8 = *((int *)__cil_tmp7);
-#line 19
+#line 21
   if (__cil_tmp8 == 1) {
 
   } else {
-#line 19
-    __assert_fail("array[j]==1", "regression-tests/blast_array_1.c", 19U, "g");
+#line 21
+    __assert_fail("array[j]==1", "blast_array_1.c", 21U, "g");
   }
   }
-#line 20
+#line 22
   return;
 }
 }
-#line 22 "regression-tests/blast_array_1.c"
+#line 24 "blast_array_1.c"
+void r(void) 
+{ char pCh[1] ;
+  int *pInt ;
+  unsigned int __cil_tmp3 ;
+  unsigned int __cil_tmp4 ;
+  unsigned int __cil_tmp5 ;
+  unsigned int __cil_tmp6 ;
+  char *__cil_tmp7 ;
+  unsigned int __cil_tmp8 ;
+  unsigned int __cil_tmp9 ;
+  char __cil_tmp10 ;
+  int __cil_tmp11 ;
+
+  {
+#line 25
+  __cil_tmp3 = 0 * 1U;
+#line 25
+  __cil_tmp4 = (unsigned int )(pCh) + __cil_tmp3;
+#line 25
+  *((char *)__cil_tmp4) = (char)0;
+#line 26
+  __cil_tmp5 = 0 * 1U;
+#line 26
+  __cil_tmp6 = (unsigned int )(pCh) + __cil_tmp5;
+#line 26
+  __cil_tmp7 = (char *)__cil_tmp6;
+#line 26
+  pInt = (int *)__cil_tmp7;
+#line 27
+  *pInt = -1;
+  {
+#line 28
+  __cil_tmp8 = 0 * 1U;
+#line 28
+  __cil_tmp9 = (unsigned int )(pCh) + __cil_tmp8;
+#line 28
+  __cil_tmp10 = *((char *)__cil_tmp9);
+#line 28
+  __cil_tmp11 = (int )__cil_tmp10;
+#line 28
+  if (__cil_tmp11 == 0) {
+
+  } else {
+#line 28
+    __assert_fail("pCh[0]==0", "blast_array_1.c", 28U, "r");
+  }
+  }
+#line 29
+  return;
+}
+}
+#line 31 "blast_array_1.c"
 void main(void) 
 { 
 
   {
-#line 23
+#line 32
   f1();
-#line 24
+#line 33
   f();
-#line 25
+#line 34
   g();
-#line 26
+#line 35
+  r();
+#line 36
   return;
 }
 }

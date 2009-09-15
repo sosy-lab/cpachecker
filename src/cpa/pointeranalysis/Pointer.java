@@ -32,6 +32,16 @@ public class Pointer {
     this(0);
   }
 
+  public Pointer(PointerTarget target) {
+    this();
+    if (target == null) {
+      throw new IllegalArgumentException("Pointer must have a target!");
+    }
+    
+    targets.clear();
+    targets.add(target);
+  }
+  
   public Pointer(int levelOfIndirection) {
     this (-1, levelOfIndirection, new HashSet<PointerTarget>(), null);
     
@@ -301,7 +311,7 @@ public class Pointer {
       } else {
         pointer.join(assignValuePointer);
         
-        if (!keepOldTargets) {
+        if (!keepOldTargets && assignValuePointer.getLocation() != null) {
           memory.makeAlias(assignValuePointer.getLocation(), pointer.getLocation());
         }
       }
