@@ -1,3 +1,5 @@
+// Contributed by Moonzoo Kim.
+
 #define  __attribute__(x) /*NOTHING*/
 #include <assert.h>
 
@@ -9,7 +11,7 @@ void f1() {
 
 void f() {
   int array[1];
-  int *p= &array[0]; /* Blast considers that p can have NULL value*/
+  int *p= &array[0]; /* Blast considers that p can be NULL */
   assert(p != 0); /* Blast says "Error" */
 }
 
@@ -19,9 +21,17 @@ void g() {
   j=0; assert(array[j]==1);/* Blast says "Error"*/
 }
 
+void r(){
+  char pCh[1] = {0};
+  int *pInt = (int *)pCh;
+  *pInt = 0xFFFFFFFF;
+  assert(pCh[0]==0); /* Blast says "safe" */
+}
+
 void main(void) {
   f1();
   f();
   g();
+  r();
 }
 
