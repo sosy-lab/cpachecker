@@ -525,7 +525,44 @@ public class PointerAnalysisElement implements AbstractElement, Memory {
       throw new InvalidPointerException("Double free of region " + mem);
     }
     mallocs.remove(mem);
-    // TODO: assign INVALID_POINTER to all pointers pointing to this region?
+    
+    // remove all pointers stored in region mem on heap
+    Iterator<MemoryAddress> heapIt = heap.keySet().iterator();
+    while (heapIt.hasNext()) {
+      MemoryAddress memAddress = heapIt.next();
+      if (memAddress.getRegion().equals(mem)) {
+        Pointer p = heap.get(memAddress);
+        removeAllAliases(memAddress);
+        removeAllReverseRelations(p);
+        heapIt.remove();
+      }
+    }
+    
+    PointerOperation opInvalid = new Pointer.Assign(INVALID_POINTER);
+    
+    // set all pointers pointing to mem to INVALID
+    Iterator<PointerTarget> reverseIt = reverseRelation.keySet().iterator();
+    while (reverseIt.hasNext()) {
+      PointerTarget target = reverseIt.next();
+      if (target instanceof MemoryAddress
+          && ((MemoryAddress)target).getRegion().equals(mem)) {
+        
+        PointerOperation opRemove = new Pointer.AssumeInequality(target);
+        
+        Set<PointerLocation> pointers = reverseRelation.get(target);
+
+        for (PointerLocation loc : pointers) {
+          Pointer p = getPointer(loc);
+          // aliases stay unchanged, reverse relation is handled later on
+          // therefore directly execute the operations without calling pointerOp*()
+          opInvalid.doOperation(this, p, true);
+          opRemove.doOperation(this, p, true);
+        }
+        
+        // now handle the reverse relation, remove the target for all pointers at once
+        reverseIt.remove();
+      }
+    }
   }
   
   @Override

@@ -206,7 +206,7 @@ public interface Memory {
     
     @Override
     public MemoryAddress addOffset(long shiftBytes) throws InvalidPointerException {
-      if (offset == -1) {
+      if (!hasOffset()) {
         if (region.hasLength() && (Math.abs(shiftBytes) >= region.getLength())) {
           // current offset is unknown, but this shift is too large for sure
           throw new InvalidPointerException("Invalid shift " + shiftBytes
@@ -220,10 +220,11 @@ public interface Memory {
     
     @Override
     public MemoryAddress addUnknownOffset() {
-      if (offset == -1) {
-        return this;
-      }
-      return new MemoryAddress(region, true);
+      return hasOffset() ? new MemoryAddress(region, true) : this;
+    }
+    
+    public boolean hasOffset() {
+      return (offset != -1);
     }
     
     @Override
@@ -240,14 +241,14 @@ public interface Memory {
       MemoryAddress otherAddress = (MemoryAddress)other;
       
       // if offset is unknown, we do not know (return false)
-      return (offset != -1)
+      return (hasOffset())
           && (this.region.equals(otherAddress.region))
           && (this.offset == otherAddress.offset);
     }
     
     @Override
     public String toString() {
-      return region + (offset == -1 ? "[?]" : "[" + offset + "]");
+      return region + (hasOffset() ? "[" + offset + "]" : "[?]" );
     }
 
     public MemoryRegion getRegion() {

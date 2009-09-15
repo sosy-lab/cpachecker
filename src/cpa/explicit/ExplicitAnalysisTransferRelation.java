@@ -1090,6 +1090,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
       
       String rightVar = derefPointerToVariable(pointerElement, missingInformationRightPointer);
       if (rightVar != null) {
+        rightVar = getvarName(rightVar, cfaEdge.getPredecessor().getFunctionName());
         if (explicitElement.contains(rightVar)) {
           explicitElement.assignConstant(missingInformationLeftVariable,
               explicitElement.getValueFor(rightVar), this.threshold);
@@ -1102,6 +1103,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
       
       String leftVar = derefPointerToVariable(pointerElement, missingInformationLeftPointer);
       if (leftVar != null) {
+        leftVar = getvarName(leftVar, cfaEdge.getPredecessor().getFunctionName());
         return handleAssignmentToVariable(explicitElement, leftVar, missingInformationRightExpression, cfaEdge);
       }
       
@@ -1118,6 +1120,8 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
       Memory.PointerTarget target = p.getFirstTarget();
       if (target instanceof Memory.Variable) {
         return ((Memory.Variable)target).getVarName();
+      } else if (target instanceof Memory.StackArrayCell) {
+        return ((Memory.StackArrayCell)target).getVarName();
       }
     }
     return null;

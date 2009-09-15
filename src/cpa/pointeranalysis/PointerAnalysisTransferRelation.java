@@ -665,7 +665,14 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       for (PointerTarget target : p.getTargets()) {
         if (target instanceof MemoryAddress) {
           mem = (MemoryAddress)target;
-          if (mem.getOffset() != 0) {
+          if (!mem.hasOffset()) {
+            addWarning("Possibly freeing pointer " + p.getLocation() + " to "
+                + mem + " with unknown offset", cfaEdge, mem.toString());
+            
+            success = true; // it may succeed
+            mem = null;     // but we cannot free it
+            
+          } else if (mem.getOffset() != 0) {
             addWarning("Possibly freeing pointer " + p.getLocation() + " to "
                 + mem + " with offset != 0", cfaEdge, mem.toString());
           
@@ -688,6 +695,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
           // free only if there is exactly one target and it is the beginning
           // of a memory region
           element.free(mem.getRegion());
+          element.pointerOpAssumeEquality(p, Memory.INVALID_POINTER);
         }
       } else {
         // elevate the above warnings to an error
@@ -936,7 +944,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
           addWarning("Assigning non-pointer value " + binExpression.getRawSignature()
               + " to pointer " + leftPointer.getLocation(), cfaEdge, binExpression.getRawSignature());
 
-          element.pointerOp(new Pointer.Assign(Memory.UNKNOWN_POINTER), leftPointer, leftDereference);
+          element.pointerOp(new Pointer.Assign(Memory.INVALID_POINTER), leftPointer, leftDereference);
         
         } else {
           throw new TransferRelationException("This code is not expected in CIL: " + cfaEdge.getRawStatement());
@@ -959,6 +967,15 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
         Variable var = element.lookupVariable(unaryExpression.getOperand().getRawSignature());
         
         element.pointerOp(new Pointer.Assign(var), leftPointer, leftDereference);
+        
+      } else if (op == IASTUnaryExpression.op_minus) {
+        if (leftPointer != null) {
+          addWarning("Assigning non-pointer value " + unaryExpression.getRawSignature()
+              + " to pointer " + leftPointer.getLocation(), cfaEdge, unaryExpression.getRawSignature());
+
+          element.pointerOp(new Pointer.Assign(Memory.INVALID_POINTER), leftPointer, leftDereference);
+        
+        }
         
       } else if (op == IASTUnaryExpression.op_star) {
         // a = *b
