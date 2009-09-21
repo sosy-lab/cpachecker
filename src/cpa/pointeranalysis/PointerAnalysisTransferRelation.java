@@ -75,6 +75,7 @@ import cpa.pointeranalysis.Pointer.PointerOperation;
 import cpa.types.Type;
 import cpa.types.TypesElement;
 import cpa.types.Type.ArrayType;
+import cpa.types.Type.FunctionType;
 import cpa.types.Type.PointerType;
 import exceptions.CPAException;
 import exceptions.CPATransferException;
@@ -486,13 +487,20 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       
       element.callFunction(funcName);
       
+      boolean missingInformation = false;
       for (int i = 0; i < actualValues.size(); i++) {
         Pointer value = actualValues.get(i);
         if (value != null) {
           Pointer parameter = new Pointer();
           element.addNewLocalPointer(formalParameters.get(i), parameter); // sets location
           element.pointerOp(new Pointer.Assign(value), parameter);
+          missingInformation = true;
         }
+      }
+      
+      if (missingInformation) {
+        // there are pointer parameters, so we miss information about their sizeOfTarget
+        missing = new MissingInformation();
       }
 
     } else {
@@ -678,48 +686,62 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
             + parameter.getRawSignature());
       }
       
+      List<PointerTarget> newTargets = new ArrayList<PointerTarget>();
       boolean success = false;
-      MemoryAddress mem = null;
+      MemoryAddress freeMem = null;
+      
       for (PointerTarget target : p.getTargets()) {
+        
         if (target instanceof MemoryAddress) {
-          mem = (MemoryAddress)target;
-          if (!mem.hasOffset()) {
+          freeMem = (MemoryAddress)target;
+          if (!freeMem.hasOffset()) {
             addWarning("Possibly freeing pointer " + p.getLocation() + " to "
-                + mem + " with unknown offset", cfaEdge, mem.toString());
+                + freeMem + " with unknown offset", cfaEdge, freeMem.toString());
             
-            success = true; // it may succeed
-            mem = null;     // but we cannot free it
+            newTargets.add(Memory.INVALID_POINTER);
+            success = true;     // it may succeed
+            freeMem = null;     // but we cannot free it
             
-          } else if (mem.getOffset() != 0) {
+          } else if (freeMem.getOffset() != 0) {
             addWarning("Possibly freeing pointer " + p.getLocation() + " to "
-                + mem + " with offset != 0", cfaEdge, mem.toString());
+                + freeMem + " with offset != 0", cfaEdge, freeMem.toString());
           
           } else {
+            newTargets.add(Memory.INVALID_POINTER);
             success = true;
           }
         
         } else if (target.isNull()) {
           // free(null) is allowed and does nothing!
           success = true;
+          newTargets.add(Memory.NULL_POINTER);
+        
         } else if (target == Memory.UNKNOWN_POINTER) {
           success = true;
+          newTargets.add(Memory.UNKNOWN_POINTER);
+          
         } else {
           addWarning("Possibly freeing pointer " + p.getLocation() + " to "
               + target, cfaEdge, target.toString());
         }
       }
-      if (success) {
-        if ((p.getNumberOfTargets() == 1) && (mem != null)) {
-          // free only if there is exactly one target and it is the beginning
-          // of a memory region
-          element.free(mem.getRegion());
-          element.pointerOpAssumeEquality(p, Memory.INVALID_POINTER);
-        }
-      } else {
+      
+      if (!success) {
+        // all targets fail
         // elevate the above warnings to an error
         throw new InvalidPointerException("Free of pointer " + p.getLocation()
-            + " = " + p + " is impossible to succeed");
+            + " = " + p + " is impossible to succeed (all targets lead to errors)");
       }
+      
+      if ((p.getNumberOfTargets() == 1) && (freeMem != null)) {
+        // free only if there is exactly one target and it is the beginning
+        // of a memory region
+        element.free(freeMem.getRegion());
+      } 
+      
+      // when the program continues after free(p), p can only contain INVALID, NULL or UNKNOWN targets,
+      // depending on what it contained before (MemoryAddress, NULL or UNKNOWN respectively)
+      element.pointerOpForAllAliases(new Pointer.AssignListOfTargets(newTargets), p, false);
       
     } else {
       throw new TransferRelationException("This code is not expected in CIL: "
@@ -788,6 +810,10 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
           if (!leftPointer.isSafe()) {
             addWarning("Potentially unsafe deref of pointer " + leftPointer.getLocation()
                        + " = " + leftPointer, cfaEdge, unaryExpression.getRawSignature());
+
+            // if program continues after deref, pointer did not contain NULL or INVALID
+            element.pointerOpAssumeInequality(leftPointer, Memory.NULL_POINTER);
+            element.pointerOpAssumeInequality(leftPointer, Memory.INVALID_POINTER);
           }
           
           if (!leftPointer.isPointerToPointer()) {
@@ -962,7 +988,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
           addWarning("Assigning non-pointer value " + binExpression.getRawSignature()
               + " to pointer " + leftPointer.getLocation(), cfaEdge, binExpression.getRawSignature());
 
-          element.pointerOp(new Pointer.Assign(Memory.INVALID_POINTER), leftPointer, leftDereference);
+          element.pointerOp(new Pointer.Assign(Memory.UNKNOWN_POINTER), leftPointer, leftDereference);
         
         } else {
           throw new TransferRelationException("This code is not expected in CIL: " + cfaEdge.getRawStatement());
@@ -991,7 +1017,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
           addWarning("Assigning non-pointer value " + unaryExpression.getRawSignature()
               + " to pointer " + leftPointer.getLocation(), cfaEdge, unaryExpression.getRawSignature());
 
-          element.pointerOp(new Pointer.Assign(Memory.INVALID_POINTER), leftPointer, leftDereference);
+          element.pointerOp(new Pointer.Assign(Memory.UNKNOWN_POINTER), leftPointer, leftDereference);
         
         }
         
@@ -1036,6 +1062,10 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
           if (!rightPointer.isSafe()) {
             addWarning("Potentially unsafe deref of pointer "  + rightPointer.getLocation()
                        + " = " + rightPointer, cfaEdge, unaryExpression.getRawSignature());
+
+            // if program continues after deref, pointer did not contain NULL or INVALID
+            element.pointerOpAssumeInequality(rightPointer, Memory.NULL_POINTER);
+            element.pointerOpAssumeInequality(rightPointer, Memory.INVALID_POINTER);
           }
           
           if (leftPointer != null) {
@@ -1262,24 +1292,47 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
                           CFAEdge cfaEdge, Precision precision)
                           throws TransferRelationException {
 
-    if (missing.typeInformationPointer == null) {
-      return;
+    if (cfaEdge instanceof FunctionCallEdge) {
+      // function call, adjust sizeOfTarget of parameters
+      
+      FunctionDefinitionNode funcDefNode = (FunctionDefinitionNode)cfaEdge.getSuccessor();
+      String funcName = funcDefNode.getFunctionName();
+      
+      FunctionType function = typesElement.getFunction(funcName);
+      for (String paramName : function.getParameters()) {
+        Pointer pointer = pointerElement.lookupPointer(paramName);
+        if (pointer != null) {
+          Type type = function.getParameterType(paramName);
+          
+          setSizeOfTarget(pointer, type);
+        }
+      }
+      
+    } else {
+    
+      if (missing.typeInformationPointer == null) {
+        return;
+      }
+      
+      // pointer variable declaration
+      String functionName = cfaEdge.getSuccessor().getFunctionName();
+      if (missing.typeInformationEdge instanceof GlobalDeclarationEdge) {
+        functionName = null;
+      }
+      
+      IASTDeclarator[] declarators = missing.typeInformationEdge.getDeclarators();
+      if (declarators == null || declarators.length != 1) {
+         throw new TransferRelationException("Not expected in CIL: " + missing.typeInformationEdge.getRawStatement());
+      }
+      
+      String varName = declarators[0].getName().getRawSignature();
+      Type type = typesElement.getVariableType(functionName, varName);
+
+      setSizeOfTarget(missing.typeInformationPointer, type);
     }
-    
-    // pointer variable declaration
-    String functionName = cfaEdge.getSuccessor().getFunctionName();
-    if (missing.typeInformationEdge instanceof GlobalDeclarationEdge) {
-      functionName = null;
-    }
-    
-    IASTDeclarator[] declarators = missing.typeInformationEdge.getDeclarators();
-    if (declarators == null || declarators.length != 1) {
-       throw new TransferRelationException("Not expected in CIL: " + missing.typeInformationEdge.getRawStatement());
-    }
-    
-    String name = declarators[0].getName().getRawSignature();
-    Type type = typesElement.getVariableType(functionName, name);
-    
+  }
+  
+  private void setSizeOfTarget(Pointer pointer, Type type) throws TransferRelationException {
     int sizeOfTarget;
     switch (type.getTypeClass()) {
     case POINTER:
@@ -1294,6 +1347,6 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       throw new TransferRelationException("Types determined by TypesCPA und PointerAnalysisCPA differ!");
     }
 
-    missing.typeInformationPointer.setSizeOfTarget(sizeOfTarget);
+    pointer.setSizeOfTarget(sizeOfTarget);
   }
 }

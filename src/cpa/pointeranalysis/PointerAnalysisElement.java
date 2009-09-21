@@ -649,7 +649,7 @@ public class PointerAnalysisElement implements AbstractElement, Memory {
     findAndMergePossibleAliases(pointer);
   }
   
-  private void pointerOpForAllAliases(PointerOperation op, Pointer pointer, boolean keepOldTargets) {
+  public void pointerOpForAllAliases(PointerOperation op, Pointer pointer, boolean keepOldTargets) {
     
     for (PointerLocation aliasLoc : getAliases(pointer.getLocation())) {
       Pointer aliasPointer = getPointer(aliasLoc);
