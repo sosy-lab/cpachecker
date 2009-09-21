@@ -202,9 +202,10 @@ public class CFABuilder extends ASTVisitor
 			newCFA.setExitNode(returnNode);
 		
 		} else if (declaration instanceof IASTProblemDeclaration) {
-		  // TODO CDT parser struggles on GCC's __attribute__((something)) constructs
-		  // For now, insert the following macro before compiling with CIL:
+		  // CDT parser struggles on GCC's __attribute__((something)) constructs because we use C99 as default
+		  // Either insert the following macro before compiling with CIL:
 		  // #define  __attribute__(x)  /*NOTHING*/
+		  // or insert "parser.dialect = GNUC" into properties file
 	    System.out.println ("IASTProblemDeclaration Raw Signature: " + declaration.getRawSignature ());
 	    System.out.println ("    File Loc: " + fileloc);
 		

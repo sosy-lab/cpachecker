@@ -28,34 +28,28 @@ import java.util.Map;
 import org.eclipse.cdt.core.dom.IParserConfiguration;
 import org.eclipse.cdt.core.parser.IScannerInfo;
 
+import cmdline.CPAMain;
+
 public class StubConfiguration implements IParserConfiguration {
 
     class StubScannerInfo implements IScannerInfo {
 
-
         @SuppressWarnings("unchecked")
         public Map getDefinedSymbols() {
-            // TODO Auto-generated method stub
+            // the externally defined pre-processor macros  
             return null;
         }
-
 
         public String[] getIncludePaths() {
-            // TODO Auto-generated method stub
             return null;
         }
     }
 
-
     public String getParserDialect() {
-        // TODO Auto-generated method stub
-        return "C99";
+      return CPAMain.cpaConfig.getProperty("parser.dialect", "C99");
     }
-
 
     public IScannerInfo getScannerInfo() {
-        // TODO Auto-generated method stub
         return new StubScannerInfo();
     }
-
 }
