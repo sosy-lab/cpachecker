@@ -77,6 +77,10 @@ public static long artElementEqualsTime = 0;
   public void setMark() { 
     mark = nextArtElementId++; 
   }
+  
+  public void setMark(int pMark) { 
+    mark = pMark; 
+  }
 
   public int getMark() { 
     return mark; 
@@ -111,7 +115,7 @@ public static long artElementEqualsTime = 0;
   @Override
   public String toString() {
     String s = "";
-    s = s + "ART Element Id: " + elementId + ", ";
+    s = s + "ART Element Id: " + elementId + " : Mark: "+ mark +", ";
     if(parentElement != null){
       s = s + "Parent Element's Id: " + getParent().elementId + "\n";
     }
@@ -174,5 +178,9 @@ public static long artElementEqualsTime = 0;
         workList.addAll(childrenOfCurrentElement);
       }
       return ret;
+  }
+
+  public void clearChildren() {
+    children.clear();
   }
 }

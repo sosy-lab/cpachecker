@@ -5,10 +5,13 @@ import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Stack;
 
 import logging.CustomLogLevel;
@@ -45,11 +48,11 @@ private static long part4 = 0;
       AbstractElementWithLocation initialElement,
       Precision initialPrecision) throws CPAException{
     ReachedElements reached = null;
-    CPAAlgorithm algo = new CPAAlgorithm(cpa, initialElement, initialPrecision);
+//    CPAAlgorithm algo = new CPAAlgorithm(cpa, initialElement, initialPrecision);
     boolean stopAnalysis = false;
     while(!stopAnalysis){
       // TODO if we want to restart
-//      CPAAlgorithm algo = new CPAAlgorithm(cpa, initialElement, initialPrecision);
+      CPAAlgorithm algo = new CPAAlgorithm(cpa, initialElement, initialPrecision);
       try {
         reached = algo.CPA();
       } catch (CPAException e) {
@@ -102,6 +105,7 @@ private static long part4 = 0;
         // TODO safe -- print reached elements
         System.out.println("ERROR label NOT reached");
         System.out.println("_______________________");
+        dumpErrorPathToDotFile(reached, "/localhome/erkan/safepath.dot");
         stopAnalysis = true;
       }
 
@@ -139,7 +143,10 @@ private static long part4 = 0;
   }
   
   private void dumpErrorPathToDotFile(ReachedElements pReached, String outfile) {
-    ARTElement lastElement = (ARTElement)pReached.getLastElement();
+    ARTElement firstElement = (ARTElement)pReached.getFirstElement();
+
+    Deque<ARTElement> worklist = new LinkedList<ARTElement>();
+    Set<ARTElement> nodesList = new HashSet<ARTElement>();
 
     PrintWriter out = null;
     try {
@@ -148,44 +155,48 @@ private static long part4 = 0;
       e.printStackTrace();
     }
     out.println("digraph ART {");
-    
-    ARTElement currentArtElement = lastElement;
-    
-    while(currentArtElement.getParent() != null){
-      ARTElement parentElement = currentArtElement.getParent();
-      out.println("node [shape = diamond]; " + currentArtElement.hashCode() + ";");
-      currentArtElement = parentElement;
-    }
-    
-    lastElement = (ARTElement)pReached.getLastElement();
-    currentArtElement = lastElement;
-    while(currentArtElement.getParent() != null){
-      ARTElement parentElement = currentArtElement.getParent();
-      CFANode currentNode = currentArtElement.getLocationNode();
-      for(int i=0; i<currentNode.getNumEnteringEdges(); i++){
-        CFAEdge edge = currentNode.getEnteringEdge(i);
-        if(parentElement.getLocationNode().getNodeNumber() == edge.getPredecessor().getNodeNumber()){
-          out.println(parentElement.hashCode() + " -> " + currentArtElement.hashCode()
-              + " [label=\"" + edge + "\"];");
-        }
+
+    worklist.add(firstElement);
+
+    while(worklist.size() != 0){
+      ARTElement currentElement = worklist.removeLast();
+      if(!nodesList.contains(currentElement)){
+        out.println("node [shape = diamond]; " + currentElement.hashCode() + ";");
+        nodesList.add(currentElement);
       }
-      currentArtElement = parentElement;
+      for(ARTElement child : currentElement.getChildren()){
+        CFAEdge edge = getEdgeBetween(currentElement, child);
+        out.println(currentElement.hashCode() + " -> " + child.hashCode()
+            + " [label=\"" + edge + "\"];");
+        worklist.add(child);
+      }
     }
-    
+
     out.println("}");
     out.flush();
     out.close();
-
-    
+  }
+  
+  private static CFAEdge getEdgeBetween(ARTElement pCurrentElement,
+      ARTElement pChild) {
+    CFAEdge writeEdge = null;
+    CFANode childNode = pChild.getLocationNode();
+    for(int i=0; i<childNode.getNumEnteringEdges(); i++){
+      CFAEdge edge = childNode.getEnteringEdge(i);
+      if(pCurrentElement.getLocationNode().getNodeNumber() == edge.getPredecessor().getNodeNumber()){
+        writeEdge = edge;
+      }
+    }
+    return writeEdge;
   }
 
   private List<CFAEdge> buildErrorPath(ReachedElements pReached) {
     AbstractElement lastElement = pReached.getLastElement();
     ARTElement lastArtElement = (ARTElement)lastElement;
-    
+
     List<CFAEdge> path = new ArrayList<CFAEdge>();
     ARTElement currentArtElement = lastArtElement;
-    
+
     while(currentArtElement.getParent() != null){
       ARTElement parentElement = currentArtElement.getParent();
       CFANode currentNode = currentArtElement.getLocationNode();
@@ -221,9 +232,6 @@ private static long part4 = 0;
   private void modifySets(CPAAlgorithm pAlgorithm,
       Collection<ARTElement> reachableToUndo,
       Collection<ARTElement> toWaitlist) {
-    
-    System.out.println("reach " + reachableToUndo.size());
-    System.out.println("wait " + toWaitlist.size());
     
     // TODO if starting from nothing, do not bother
     Collection<Pair<AbstractElementWithLocation, Precision>> reachedSet = 

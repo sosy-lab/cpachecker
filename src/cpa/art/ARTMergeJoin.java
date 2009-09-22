@@ -11,7 +11,7 @@ import exceptions.CPAException;
 public class ARTMergeJoin implements MergeOperator {
 
   private RefinableCPA wrappedCpa;
-  
+
   public ARTMergeJoin(RefinableCPA pWrappedCPA) {
     wrappedCpa = pWrappedCPA;
   }
@@ -27,20 +27,28 @@ public class ARTMergeJoin implements MergeOperator {
   public AbstractElementWithLocation merge(
       AbstractElementWithLocation pElement1,
       AbstractElementWithLocation pElement2, Precision pPrecision)
-      throws CPAException {
+  throws CPAException {
     MergeOperator mergeOperator = wrappedCpa.getMergeOperator();
     AbstractElementWithLocation wrappedElement1 = ((ARTElement)pElement1).getAbstractElementOnArtNode();
     AbstractElementWithLocation wrappedElement2 = ((ARTElement)pElement2).getAbstractElementOnArtNode();
     Precision wrappedPrecision = (pPrecision == null) ? null : ((ARTPrecision)pPrecision).getPrecision();
     AbstractElementWithLocation retElement = mergeOperator.merge(wrappedElement1, wrappedElement2, wrappedPrecision);
-    if(retElement == wrappedElement2){
+    if(retElement.equals(wrappedElement2)){
       return pElement2;
     }
+    ARTElement parent1 = ((ARTElement)pElement1).getParent();
+    ARTElement parent2 = ((ARTElement)pElement2).getParent();
+    parent1.clearChildren();
+    parent2.clearChildren();
+
     AbstractDomain domain = ((ARTElement)pElement1).getDomain();
-    ARTElement newElement = new ARTElement(domain, retElement, (ARTElement)pElement1);
-    newElement.addSecondParent((ARTElement)pElement2);
+    ARTElement newElement = new ARTElement(domain, retElement, parent1);
+    if(!parent1.equals(parent2)){
+      newElement.addSecondParent(parent2);
+    }
     // TODO new mark or max mark of two elements?
-    newElement.setMark();
+//    newElement.setMark();
+  newElement.setMark(Math.max(((ARTElement)pElement1).getMark(), ((ARTElement)pElement2).getMark()));
     return newElement;
   }
 }

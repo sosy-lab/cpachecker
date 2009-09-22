@@ -21,6 +21,7 @@ public class ReachedElements {
 //  private Collection<AbstractElementWithLocation> reachedSet;
   private Collection<Pair<AbstractElementWithLocation,Precision>> reached;
   private AbstractElementWithLocation lastElement;
+  private AbstractElementWithLocation firstElement;
   ConfigurableProgramAnalysis cpa;
   
   public ReachedElements(
@@ -46,6 +47,9 @@ public class ReachedElements {
   }
 
   public void add(Pair<AbstractElementWithLocation, Precision> pPair) {
+    if(reached.size() == 0){
+      firstElement = pPair.getFirst();
+    }
     reached.add(pPair);
     lastElement = pPair.getFirst();
   }
@@ -100,5 +104,9 @@ public class ReachedElements {
     reached.clear();
     reached.addAll(pNewreached);
     lastElement = null;
+  }
+
+  public AbstractElementWithLocation getFirstElement() {
+    return firstElement;
   }
 }
