@@ -33,7 +33,7 @@ public class ARTMergeJoin implements MergeOperator {
     AbstractElementWithLocation wrappedElement2 = ((ARTElement)pElement2).getAbstractElementOnArtNode();
     Precision wrappedPrecision = (pPrecision == null) ? null : ((ARTPrecision)pPrecision).getPrecision();
     AbstractElementWithLocation retElement = mergeOperator.merge(wrappedElement1, wrappedElement2, wrappedPrecision);
-    if(retElement.equals(wrappedElement2)){
+    if(retElement == wrappedElement2){
       return pElement2;
     }
     ARTElement parent1 = ((ARTElement)pElement1).getParent();

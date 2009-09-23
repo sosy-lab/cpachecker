@@ -52,6 +52,7 @@ public static long artElementEqualsTime = 0;
   
   public void addSecondParent(ARTElement pSecondParent){
     secondParent = pSecondParent;
+    secondParent.addToChildrenList(this);
   }
   
   public List<ARTElement> getChildren(){
@@ -66,7 +67,7 @@ public static long artElementEqualsTime = 0;
     return element;
   }
 
-  public void addToChildrenList(ARTElement child){
+  private void addToChildrenList(ARTElement child){
     children.add(child);
   }
 
@@ -101,7 +102,7 @@ public static long artElementEqualsTime = 0;
 //  @Override
 //  public boolean equals(Object pObj) {
 //    long start = System.currentTimeMillis();
-//    boolean b = ((ARTElement)pObj).elementId == this.elementId;
+//    boolean b = ((ARTElement)pObj).getAbstractElementOnArtNode().equals(getAbstractElementOnArtNode());
 //    long end = System.currentTimeMillis();
 //    artElementEqualsTime = artElementEqualsTime + (end - start);
 //    return b;
@@ -118,6 +119,9 @@ public static long artElementEqualsTime = 0;
     s = s + "ART Element Id: " + elementId + " : Mark: "+ mark +", ";
     if(parentElement != null){
       s = s + "Parent Element's Id: " + getParent().elementId + "\n";
+      if(secondParent != null){
+        s = s + "2nd Parent's Id: " + secondParent.elementId + "\n";
+      }
     }
     else{
       s = s + "parent is null" + "\n";

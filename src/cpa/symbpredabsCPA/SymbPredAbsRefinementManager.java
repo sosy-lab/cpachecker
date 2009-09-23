@@ -186,7 +186,7 @@ public class SymbPredAbsRefinementManager implements RefinementManager{
         }
       }
     }
-    return new RefinementOutcome(true, toUnreach, toWaitlist);
+    return new RefinementOutcome(true, toUnreach, toWaitlist, root);
 
 //  LazyLogger.log(LazyLogger.DEBUG_1, "REFINEMENT - toWaitlist: ", root);
 //  LazyLogger.log(LazyLogger.DEBUG_1, "REFINEMENT - toUnreach: ",

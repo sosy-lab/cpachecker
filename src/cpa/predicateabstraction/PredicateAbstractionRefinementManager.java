@@ -191,7 +191,7 @@ public class PredicateAbstractionRefinementManager implements RefinementManager 
       }
     }
 
-    return new RefinementOutcome(true, toUnreach, toWaitlist);
+    return new RefinementOutcome(true, toUnreach, toWaitlist, root);
 
 //  LazyLogger.log(LazyLogger.DEBUG_1, "REFINEMENT - toWaitlist: ",
 //  toWaitlist);

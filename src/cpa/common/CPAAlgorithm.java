@@ -132,6 +132,8 @@ public static long chooseTime = 0;
             LazyLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel,
                 " Merged ", successor, " and ", reachedElement, " --> ", mergedElement);
             if (!mergedElement.equals(reachedElement)) {
+              System.out.println("reached element " + reachedElement +
+                  " is removed from queue and " + mergedElement + " is added\n");
               LazyLogger.log(
                   CustomLogLevel.CentralCPAAlgorithmLevel,
                   "reached element ", reachedElement,

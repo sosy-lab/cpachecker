@@ -221,11 +221,12 @@ implements AbstractElement {
       symbReprAbst = domain.getCPA().getAbstractFormulaManager().toConcrete(domain.getCPA().getSymbolicFormulaManager(), abst);
     }
     return
-    " Abstraction LOCATION: " + getAbstractionLocation() + ((getAbstractionLocation() instanceof CFAErrorNode) ? " {ERROR NODE}" : "") +
+    "Is abst loc? " + isAbstractionNode +
+//    " Abstraction LOCATION: " + getAbstractionLocation() + ((getAbstractionLocation() instanceof CFAErrorNode) ? " {ERROR NODE}" : "") +
   //" PF: "+ getPathFormula().getSymbolicFormula() +
   " Abstraction: " + symbReprAbst  +
   //" Init Formula--> " + (getInitAbstractionFormula() != null ? getInitAbstractionFormula().getSymbolicFormula() : "null")  +
-  //" Parents --> " + abstractionPathList + 
+  " Parents --> " + abstractionPathList + 
   //  " ART Parent --> " + (getArtParent() != null ? getArtParent().getAbstractionLocation().toString() : "NULL")+ 
     "";
     //+ ">(" + Integer.toString(getId()) + ")"

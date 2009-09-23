@@ -42,7 +42,7 @@ public class CProver {
   public static int checkSat (String pTranslatedProgram) {
 
     File lFile = null;
-    lFile = new File("/localhome/erkan/path.c");
+    lFile = new File("/home/erkan/path.c");
 //    try {
 //      lFile = File.createTempFile("path", ".c");
 //    } catch (IOException e1) {
