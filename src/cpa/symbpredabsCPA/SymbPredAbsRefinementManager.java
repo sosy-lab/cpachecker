@@ -73,7 +73,6 @@ public class SymbPredAbsRefinementManager implements RefinementManager{
       path.addFirst(artParent);
       artParent = artParent.getArtParent();
     }
-
     BDDMathsatSymbPredAbstractionAbstractManager bddAbstractFormulaManager  = (BDDMathsatSymbPredAbstractionAbstractManager)abstractFormulaManager;
     // build the counterexample
     CounterexampleTraceInfo info = bddAbstractFormulaManager.buildCounterexampleTrace(
@@ -110,7 +109,6 @@ public class SymbPredAbsRefinementManager implements RefinementManager{
       numSeen = seenAbstractCounterexamples.get(pPath);
     }
     seenAbstractCounterexamples.put(pPath, numSeen+1);
-
     UpdateablePredicateMap curpmap =
       (UpdateablePredicateMap)cpa.getPredicateMap();
     ARTElement root = null;
@@ -163,7 +161,6 @@ public class SymbPredAbsRefinementManager implements RefinementManager{
     Collection<ARTElement> toWaitlist = new HashSet<ARTElement>();
     toWaitlist.add(root);
     Collection<ARTElement> toUnreach = root.getSubtree();
-
 //  SummaryCPA cpa = domain.getCPA();
     for (ARTElement ae : toUnreach) {
       if (ae.isCovered()) {

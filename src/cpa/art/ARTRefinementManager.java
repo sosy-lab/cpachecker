@@ -61,7 +61,6 @@ public class ARTRefinementManager implements RefinementManager {
       }
       currentARTElement = parentElement;
     }
-
     return wrappedRefinementManager.performRefinement(pReached, path);
   }
 

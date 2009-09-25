@@ -105,7 +105,6 @@ public static long chooseTime = 0;
       {
         LazyLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel,
             "successor of ", element, " --> ", successor);
-
         // AG as an optimization, we allow the mergeOperator to be null,
         // as a synonym of a trivial operator that never merges
         if (mergeOperator != null) {
@@ -132,8 +131,8 @@ public static long chooseTime = 0;
             LazyLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel,
                 " Merged ", successor, " and ", reachedElement, " --> ", mergedElement);
             if (!mergedElement.equals(reachedElement)) {
-              System.out.println("reached element " + reachedElement +
-                  " is removed from queue and " + mergedElement + " is added\n");
+//              System.out.println("successor: " + successor + " >>>> reached element " + reachedElement +
+//                  " is removed from queue and " + mergedElement + " is added\n");
               LazyLogger.log(
                   CustomLogLevel.CentralCPAAlgorithmLevel,
                   "reached element ", reachedElement,
@@ -180,6 +179,9 @@ public static long chooseTime = 0;
 
           waitlist.add(new Pair<AbstractElementWithLocation,Precision>(successor,precision));
           reachedElements.add(new Pair<AbstractElementWithLocation,Precision>(successor,precision));
+//          System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+//          System.out.println(successor + " is added TO REACHED");
+//          System.out.println("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
           
           if(useART && errorFound){
             return reachedElements;

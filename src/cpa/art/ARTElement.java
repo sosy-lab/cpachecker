@@ -2,7 +2,9 @@ package cpa.art;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import cfa.objectmodel.CFANode;
 import cpa.common.interfaces.AbstractDomain;
@@ -14,7 +16,7 @@ public class ARTElement implements AbstractElementWithLocation, AbstractWrapperE
 
   private AbstractElementWithLocation element;
   private ARTElement parentElement;
-  private List<ARTElement> children;
+  private Set<ARTElement> children;
 public static long artElementEqualsTime = 0; 
   // second parent is used for joining elements
   private ARTElement secondParent = null;
@@ -30,7 +32,7 @@ public static long artElementEqualsTime = 0;
     domain = pDomain;
     element = pAbstractElement;
     setParent(pParentElement);
-    children = new ArrayList<ARTElement>();
+    children = new HashSet<ARTElement>();
     elementId = ++nextArtElementId;
     mark = 0;
     covered = false;
@@ -51,11 +53,14 @@ public static long artElementEqualsTime = 0;
   }
   
   public void addSecondParent(ARTElement pSecondParent){
+    if(pSecondParent == parentElement){
+      return;
+    }
     secondParent = pSecondParent;
     secondParent.addToChildrenList(this);
   }
   
-  public List<ARTElement> getChildren(){
+  public Set<ARTElement> getChildren(){
     return children;
   }
   
@@ -170,15 +175,18 @@ public static long artElementEqualsTime = 0;
 
   // TODO check
   public Collection<ARTElement> getSubtree() {
-      List<ARTElement> ret = new ArrayList<ARTElement>();
+      Set<ARTElement> ret = new HashSet<ARTElement>();
       List<ARTElement> workList = new ArrayList<ARTElement>();
-
+      
       workList.add(this);
 
       while(workList.size() > 0){
         ARTElement currentElement = workList.remove(0);
+        if(ret.contains(currentElement)){
+          continue;
+        }
         ret.add(currentElement);
-        List<ARTElement> childrenOfCurrentElement = currentElement.getChildren();
+        Set<ARTElement> childrenOfCurrentElement = currentElement.getChildren();
         workList.addAll(childrenOfCurrentElement);
       }
       return ret;

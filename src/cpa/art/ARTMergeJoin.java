@@ -47,8 +47,8 @@ public class ARTMergeJoin implements MergeOperator {
       newElement.addSecondParent(parent2);
     }
     // TODO new mark or max mark of two elements?
-//    newElement.setMark();
-  newElement.setMark(Math.max(((ARTElement)pElement1).getMark(), ((ARTElement)pElement2).getMark()));
+    newElement.setMark();
+//  newElement.setMark(Math.max(((ARTElement)pElement1).getMark(), ((ARTElement)pElement2).getMark()));
     return newElement;
   }
 }

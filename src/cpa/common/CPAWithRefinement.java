@@ -71,6 +71,7 @@ public class CPAWithRefinement {
 
         assert(reached != null);
         long startRef = System.currentTimeMillis();
+//        System.out.println(" =========================== REFINEMENT =============================== ");
         RefinementOutcome refout = refinementManager.performRefinement(reached, null);
         long endRef = System.currentTimeMillis();
         refinementTime = refinementTime + (endRef  - startRef);
@@ -92,7 +93,7 @@ public class CPAWithRefinement {
 //          stopAnalysis = false;
           }
           // TODO make this optional too
-          dumpErrorPathToDotFile(reached, "/home/erkan/errorpath.dot");
+          dumpErrorPathToDotFile(reached, "/localhome/erkan/errorpath.dot");
           System.out.println("________________________________");
         }
         else{
@@ -107,7 +108,7 @@ public class CPAWithRefinement {
         // TODO safe -- print reached elements
         System.out.println("ERROR label NOT reached");
         System.out.println("_______________________");
-        dumpErrorPathToDotFile(reached, "/home/erkan/safepath.dot");
+//        dumpErrorPathToDotFile(reached, "/localhome/erkan/safepath.dot");
         stopAnalysis = true;
       }
 
@@ -148,7 +149,8 @@ public class CPAWithRefinement {
     ARTElement firstElement = (ARTElement)pReached.getFirstElement();
 
     Deque<ARTElement> worklist = new LinkedList<ARTElement>();
-    Set<ARTElement> nodesList = new HashSet<ARTElement>();
+    Set<Integer> nodesList = new HashSet<Integer>();
+    Set<ARTElement> processed = new HashSet<ARTElement>();
     String s = "";
     PrintWriter out = null;
     try {
@@ -163,29 +165,46 @@ public class CPAWithRefinement {
 
     while(worklist.size() != 0){
       ARTElement currentElement = worklist.removeLast();
-      if(!nodesList.contains(currentElement)){
+      if(processed.contains(currentElement)){
+        continue;
+      }
+      processed.add(currentElement);
+      if(!nodesList.contains(currentElement.hashCode())){
         SymbPredAbsAbstractElement symbpredabselem = (SymbPredAbsAbstractElement)currentElement.retrieveElementOfType("SymbPredAbsAbstractElement");
         if(symbpredabselem == null){
-          out.println("node [shape = diamond, color = blue, style = filled, label=" +  currentElement.getLocationNode().getNodeNumber() +"] " + currentElement.hashCode() + ";");
+          out.println("node [shape = diamond, color = blue, style = filled, label=" +  
+              (currentElement.getLocationNode()==null ? 0 : currentElement.getLocationNode().getNodeNumber()) + "000" + currentElement.hashCode() +"] " + currentElement.hashCode() + ";");
         }
         else{
           if(symbpredabselem.isAbstractionNode()){
-            out.println("node [shape = diamond, color = red, style = filled, label=" +  currentElement.getLocationNode().getNodeNumber() +"] " + currentElement.hashCode() + ";");
+            if(currentElement.isCovered()){
+              out.println("node [shape = diamond, color = green, style = filled, label=" +  currentElement.getLocationNode().getNodeNumber() + "000" + currentElement.hashCode() +"] " + currentElement.hashCode() + ";");
+            }
+            else{
+              out.println("node [shape = diamond, color = red, style = filled, label=" +  currentElement.getLocationNode().getNodeNumber() + "000" + currentElement.hashCode() +"] " + currentElement.hashCode() + ";");
+            }
           }
           else{
-            out.println("node [shape = diamond, color = white, style = filled, label=" +  currentElement.getLocationNode().getNodeNumber() +"] " + currentElement.hashCode() + ";");
+            if(currentElement.isCovered()){
+              out.println("node [shape = diamond, color = green, style = filled, label=" +  currentElement.getLocationNode().getNodeNumber() + "000" + currentElement.hashCode() +"] " + currentElement.hashCode() + ";");
+            }
+            else{
+              out.println("node [shape = diamond, color = white, style = filled, label=" +  currentElement.getLocationNode().getNodeNumber() + "000" + currentElement.hashCode() +"] " + currentElement.hashCode() + ";");
+            }
           }
         }
-        nodesList.add(currentElement);
+        nodesList.add(currentElement.hashCode());
       }
       for(ARTElement child : currentElement.getChildren()){
         CFAEdge edge = getEdgeBetween(currentElement, child);
         s = s + (currentElement.hashCode() + " -> " + child.hashCode()
             + " [label=\"" + edge + "\"];\n");
-        worklist.add(child);
+        if(!worklist.contains(child)){
+          worklist.add(child);
+        }
       }
     }
-    
+
     out.println(s);
     out.println("}");
     out.flush();
@@ -196,10 +215,12 @@ public class CPAWithRefinement {
       ARTElement pChild) {
     CFAEdge writeEdge = null;
     CFANode childNode = pChild.getLocationNode();
-    for(int i=0; i<childNode.getNumEnteringEdges(); i++){
-      CFAEdge edge = childNode.getEnteringEdge(i);
-      if(pCurrentElement.getLocationNode().getNodeNumber() == edge.getPredecessor().getNodeNumber()){
-        writeEdge = edge;
+    if(childNode != null){
+      for(int i=0; i<childNode.getNumEnteringEdges(); i++){
+        CFAEdge edge = childNode.getEnteringEdge(i);
+        if(pCurrentElement.getLocationNode().getNodeNumber() == edge.getPredecessor().getNodeNumber()){
+          writeEdge = edge;
+        }
       }
     }
     return writeEdge;
