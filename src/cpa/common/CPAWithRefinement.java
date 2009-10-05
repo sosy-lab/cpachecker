@@ -49,12 +49,13 @@ public class CPAWithRefinement {
       AbstractElementWithLocation initialElement,
       Precision initialPrecision) throws CPAException{
     ReachedElements reached = null;
-//  CPAAlgorithm algo = new CPAAlgorithm(cpa, initialElement, initialPrecision);
+  CPAAlgorithm algo = new CPAAlgorithm(cpa, initialElement, initialPrecision);
     boolean stopAnalysis = false;
     while(!stopAnalysis){
       // TODO if we want to restart
-      ((ARTElement)initialElement).clearChildren();
-      CPAAlgorithm algo = new CPAAlgorithm(cpa, initialElement, initialPrecision);
+//      CPAAlgorithm algo = new CPAAlgorithm(cpa, initialElement, initialPrecision);
+//      ((ARTElement)initialElement).clearChildren();
+//      System.out.println("initial element has " + ((ARTElement)initialElement).getChildren().size());
       try {
         reached = algo.CPA();
       } catch (CPAException e) {
@@ -72,6 +73,7 @@ public class CPAWithRefinement {
         assert(reached != null);
         long startRef = System.currentTimeMillis();
 //        System.out.println(" =========================== REFINEMENT =============================== ");
+//        dumpErrorPathToDotFile(reached, "/localhome/erkan/refpath.dot");
         RefinementOutcome refout = refinementManager.performRefinement(reached, null);
         long endRef = System.currentTimeMillis();
         refinementTime = refinementTime + (endRef  - startRef);
@@ -108,7 +110,7 @@ public class CPAWithRefinement {
         // TODO safe -- print reached elements
         System.out.println("ERROR label NOT reached");
         System.out.println("_______________________");
-//        dumpErrorPathToDotFile(reached, "/localhome/erkan/safepath.dot");
+        dumpErrorPathToDotFile(reached, "/localhome/erkan/safepath.dot");
         stopAnalysis = true;
       }
 

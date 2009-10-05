@@ -38,13 +38,19 @@ public class ARTMergeJoin implements MergeOperator {
     }
     ARTElement parent1 = ((ARTElement)pElement1).getParent();
     ARTElement parent2 = ((ARTElement)pElement2).getParent();
+//    System.out.println("parent1 clearing");
     parent1.clearChildren();
+    if(parent2 == null){
+      System.out.println("element 2 is " + ((ARTElement)pElement2));
+      assert(false);
+    }
+//    System.out.println("parent2 clearing");
     parent2.clearChildren();
 
     AbstractDomain domain = ((ARTElement)pElement1).getDomain();
     ARTElement newElement = new ARTElement(domain, retElement, parent1);
     if(!parent1.equals(parent2)){
-      newElement.addSecondParent(parent2);
+      newElement.addAdditionalParent(parent2);
     }
     // TODO new mark or max mark of two elements?
     newElement.setMark();

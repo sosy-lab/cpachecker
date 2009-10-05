@@ -17,10 +17,10 @@ public class ARTElement implements AbstractElementWithLocation, AbstractWrapperE
   private AbstractElementWithLocation element;
   private ARTElement parentElement;
   private Set<ARTElement> children;
-public static long artElementEqualsTime = 0; 
-  // second parent is used for joining elements
-  private ARTElement secondParent = null;
-  
+  public static long artElementEqualsTime = 0; 
+  // additional parents - used for joining elements
+  private Set<ARTElement> additionalParents;
+
   private int elementId;
   private static int nextArtElementId= 0;
 
@@ -36,34 +36,41 @@ public static long artElementEqualsTime = 0;
     elementId = ++nextArtElementId;
     mark = 0;
     covered = false;
+    additionalParents = new HashSet<ARTElement>();
   }
 
   private void setParent(ARTElement pParentElement) {
-    if(pParentElement == null) return;
+//  if(pParentElement == null) {
+//  assert(false);
+//  return;
+//  }
     parentElement = pParentElement;
-    parentElement.addToChildrenList(this);
+    if(parentElement != null){
+      parentElement.addToChildrenList(this);
+    }
   }
 
   public ARTElement getParent(){
     return parentElement;
   }
-  
-  public ARTElement getSecondParent(){
-    return secondParent;
+
+  public Set<ARTElement> getAdditionalParents(){
+    return additionalParents;
   }
-  
-  public void addSecondParent(ARTElement pSecondParent){
-    if(pSecondParent == parentElement){
-      return;
+
+  public void addAdditionalParent(ARTElement pOtherParent){
+//  if(pOtherParent == parentElement){
+//  return;
+//  }
+    if(additionalParents.add(pOtherParent)){
+      pOtherParent.addToChildrenList(this);
     }
-    secondParent = pSecondParent;
-    secondParent.addToChildrenList(this);
   }
-  
+
   public Set<ARTElement> getChildren(){
     return children;
   }
-  
+
   public int numberOfChildren(){
     return children.size();
   }
@@ -83,7 +90,7 @@ public static long artElementEqualsTime = 0;
   public void setMark() { 
     mark = nextArtElementId++; 
   }
-  
+
   public void setMark(int pMark) { 
     mark = pMark; 
   }
@@ -97,21 +104,23 @@ public static long artElementEqualsTime = 0;
   }
 
   public void setCovered(boolean yes) { 
-    covered = yes; setMark(); 
+    covered = yes; 
+    // TODO check
+    //setMark(); 
   }
-  
+
   public AbstractDomain getDomain(){
     return domain;
   }
 
-//  @Override
-//  public boolean equals(Object pObj) {
-//    long start = System.currentTimeMillis();
-//    boolean b = ((ARTElement)pObj).getAbstractElementOnArtNode().equals(getAbstractElementOnArtNode());
-//    long end = System.currentTimeMillis();
-//    artElementEqualsTime = artElementEqualsTime + (end - start);
-//    return b;
-//  }
+//@Override
+//public boolean equals(Object pObj) {
+//long start = System.currentTimeMillis();
+//boolean b = ((ARTElement)pObj).getAbstractElementOnArtNode().equals(getAbstractElementOnArtNode());
+//long end = System.currentTimeMillis();
+//artElementEqualsTime = artElementEqualsTime + (end - start);
+//return b;
+//}
 
   @Override
   public int hashCode() {
@@ -124,14 +133,14 @@ public static long artElementEqualsTime = 0;
     s = s + "ART Element Id: " + elementId + " : Mark: "+ mark +", ";
     if(parentElement != null){
       s = s + "Parent Element's Id: " + getParent().elementId + "\n";
-      if(secondParent != null){
-        s = s + "2nd Parent's Id: " + secondParent.elementId + "\n";
+      for(ARTElement additionalParent: additionalParents){
+        s = s + "Add. Parent's Id: " + additionalParent.elementId + "\n";
       }
     }
     else{
       s = s + "parent is null" + "\n";
     }
-    s = s + element;
+    s = s + element + " OBJ> " + super.toString();
     return s;
   }
 
@@ -175,24 +184,32 @@ public static long artElementEqualsTime = 0;
 
   // TODO check
   public Collection<ARTElement> getSubtree() {
-      Set<ARTElement> ret = new HashSet<ARTElement>();
-      List<ARTElement> workList = new ArrayList<ARTElement>();
-      
-      workList.add(this);
+    Set<ARTElement> ret = new HashSet<ARTElement>();
+    List<ARTElement> workList = new ArrayList<ARTElement>();
 
-      while(workList.size() > 0){
-        ARTElement currentElement = workList.remove(0);
-        if(ret.contains(currentElement)){
-          continue;
-        }
-        ret.add(currentElement);
-        Set<ARTElement> childrenOfCurrentElement = currentElement.getChildren();
-        workList.addAll(childrenOfCurrentElement);
+    workList.add(this);
+
+    while(workList.size() > 0){
+      ARTElement currentElement = workList.remove(0);
+      if(ret.contains(currentElement)){
+        continue;
       }
-      return ret;
+      ret.add(currentElement);
+      Set<ARTElement> childrenOfCurrentElement = currentElement.getChildren();
+      workList.addAll(childrenOfCurrentElement);
+    }
+    return ret;
   }
 
   public void clearChildren() {
+//    for(ARTElement child: children){
+//      System.out.println("<<<<<<<<<<<<<<<<<<<<");
+//      System.out.println("NULL 1 > " + child.parentElement);
+//      child.parentElement = null;
+//      System.out.println("NULL 2 > " + child.additionalParents);
+//      System.out.println(">>>>>>>>>>>>>>>>>>>>");
+//      child.additionalParents.clear();
+//    }
     children.clear();
   }
 }

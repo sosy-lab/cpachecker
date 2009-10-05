@@ -133,9 +133,9 @@ public class LocationMappedReachedSet implements Collection<Pair<AbstractElement
 
     @Override
     public boolean contains(Object o) {
-        if (!(o instanceof Pair)) return false;
-        if (!(((Pair)o).getFirst() instanceof AbstractElementWithLocation)) return false;
-        if (!(((Pair)o).getSecond() instanceof Precision)) return false;
+//        if (!(o instanceof Pair)) return false;
+//        if (!(((Pair)o).getFirst() instanceof AbstractElementWithLocation)) return false;
+//        if (!(((Pair)o).getSecond() instanceof Precision)) return false;
         Pair<AbstractElementWithLocation,Precision> e = (Pair<AbstractElementWithLocation,Precision>)o;
         CFANode loc = e.getFirst().getLocationNode();
         if (!repr.containsKey(loc)) return false;
@@ -166,9 +166,9 @@ public class LocationMappedReachedSet implements Collection<Pair<AbstractElement
 
     @Override
     public boolean remove(Object o) {
-      if (!(o instanceof Pair)) return false;
-      if (!(((Pair)o).getFirst() instanceof AbstractElementWithLocation)) return false;
-      if (!(((Pair)o).getSecond() instanceof Precision)) return false;
+//      if (!(o instanceof Pair)) return false;
+//      if (!(((Pair)o).getFirst() instanceof AbstractElementWithLocation)) return false;
+//      if (!(((Pair)o).getSecond() instanceof Precision)) return false;
       Pair<AbstractElementWithLocation,Precision> e = (Pair<AbstractElementWithLocation,Precision>)o;
         CFANode loc = e.getFirst().getLocationNode();
         if (!repr.containsKey(loc)) return false;

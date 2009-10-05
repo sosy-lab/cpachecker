@@ -145,8 +145,8 @@ public static long chooseTime = 0;
               toAdd.add(new Pair<AbstractElementWithLocation,Precision>(mergedElement, precision));
             }
           }
-          reached.removeAll(toRemove);
-          reached.addAll(toAdd);
+          reachedElements.removeAll(toRemove);
+          reachedElements.addAll(toAdd);
         }
 
         Collection<Pair<AbstractElementWithLocation,Precision>> tempReached;

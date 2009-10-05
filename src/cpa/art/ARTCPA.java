@@ -140,17 +140,23 @@ public class ARTCPA implements RefinableCPA {
     if (root == null) return null;
 
     Queue<ARTElement> toProcess =
-        new ArrayDeque<ARTElement>();
+      new ArrayDeque<ARTElement>();
     toProcess.add(root);
 
     while (!toProcess.isEmpty()) {
       ARTElement e = toProcess.remove();
+      // TODO check - bottom element
+      if(e.getLocationNode() == null){
+        continue;
+      }
+      else{
         if (e.getLocationNode().equals(pLoc)) {
-            return e;
+          return e;
         }
         if (e.getChildren().size() > 0) {
-            toProcess.addAll(e.getChildren());
+          toProcess.addAll(e.getChildren());
         }
+      }
     }
     System.out.println("ERROR, NOT FOUND: " + pLoc);
     return root;

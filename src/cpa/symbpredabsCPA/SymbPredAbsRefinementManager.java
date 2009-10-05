@@ -178,8 +178,12 @@ public class SymbPredAbsRefinementManager implements RefinementManager{
         if (e.getMark() > m) {
           e.setCovered(false);
           i.remove();
-          toWaitlist.add(e.getParent());
-          toUnreach.add(e);
+          SymbPredAbsAbstractElement elem = (SymbPredAbsAbstractElement)e.retrieveElementOfType("SymbPredAbsAbstractElement");
+          if(elem.isAbstractionNode()){
+            // TODO check
+//            toWaitlist.add(e.getParent());
+//            toUnreach.add(e);
+          }
         }
       }
     }

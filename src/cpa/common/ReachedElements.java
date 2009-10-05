@@ -3,6 +3,7 @@ package cpa.common;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 
 import cmdline.CPAMain;
 
@@ -75,7 +76,7 @@ public class ReachedElements {
     
   }
   
-  public Object size() {
+  public int size() {
     return reached.size();
   }
 
@@ -108,5 +109,14 @@ public class ReachedElements {
 
   public AbstractElementWithLocation getFirstElement() {
     return firstElement;
+  }
+
+  public boolean removeAll(
+      List<Pair<AbstractElementWithLocation, Precision>> pToRemove) {
+    return reached.removeAll(pToRemove);
+  }
+
+  public boolean addAll(List<Pair<AbstractElementWithLocation, Precision>> pToAdd) {
+    return reached.addAll(pToAdd);
   }
 }
