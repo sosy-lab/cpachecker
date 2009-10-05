@@ -49,12 +49,12 @@ public class CPAWithRefinement {
       AbstractElementWithLocation initialElement,
       Precision initialPrecision) throws CPAException{
     ReachedElements reached = null;
-  CPAAlgorithm algo = new CPAAlgorithm(cpa, initialElement, initialPrecision);
+//  CPAAlgorithm algo = new CPAAlgorithm(cpa, initialElement, initialPrecision);
     boolean stopAnalysis = false;
     while(!stopAnalysis){
       // TODO if we want to restart
-//      CPAAlgorithm algo = new CPAAlgorithm(cpa, initialElement, initialPrecision);
-//      ((ARTElement)initialElement).clearChildren();
+      CPAAlgorithm algo = new CPAAlgorithm(cpa, initialElement, initialPrecision);
+      ((ARTElement)initialElement).clearChildren();
 //      System.out.println("initial element has " + ((ARTElement)initialElement).getChildren().size());
       try {
         reached = algo.CPA();
