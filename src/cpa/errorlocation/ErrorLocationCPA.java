@@ -23,6 +23,11 @@ public class ErrorLocationCPA implements ConfigurableProgramAnalysis {
     public String toString() {
       return "[]";
     }
+    
+    @Override
+    public boolean isError() {
+      return false;
+    }
   }
   
   private static final ErrorLocationElement initialElement = new ErrorLocationElement();
@@ -31,17 +36,31 @@ public class ErrorLocationCPA implements ConfigurableProgramAnalysis {
     
     @Override
     public String toString() {
-      return "<PointerAnalysis BOTTOM>";
+      return "<ErrorLocation BOTTOM>";
     }
   };
   
-private static final ErrorLocationElement topElement = new ErrorLocationElement() {
+  private static final ErrorLocationElement topElement = new ErrorLocationElement() {
     
     @Override
     public String toString() {
-      return "<PointerAnalysis TOP>";
+      return "<ErrorLocation TOP>";
     }
   };
+  
+  private static final ErrorLocationElement errorElement = new ErrorLocationElement() {
+    
+    @Override
+    public String toString() {
+      return "<ErrorLocation ERROR>";
+    }
+    
+    @Override
+    public boolean isError() {
+      return true;
+    }
+  };
+  
   
   private static final MergeOperator mergeOperator = new MergeOperator() {
 
@@ -104,15 +123,19 @@ private static final ErrorLocationElement topElement = new ErrorLocationElement(
       } else if (newElement == topElement) {
         return false;
       }
-      return false;
+      return newElement == reachedElement;
     }
   };
   
-  private static final AbstractDomain domain = new AbstractDomain() {
+  public static class ErrorLocationDomain implements AbstractDomain {
     
     @Override
     public AbstractElement getBottomElement() {
       return bottomElement;
+    }
+    
+    public AbstractElement getErrorElement() {
+      return errorElement;
     }
     
     @Override
@@ -131,6 +154,8 @@ private static final ErrorLocationElement topElement = new ErrorLocationElement(
     }
   };
   
+  private static final ErrorLocationDomain domain = new ErrorLocationDomain();
+  
   private final TransferRelation transferRelation = new ErrorLocationTransferRelation(domain);
   
   public ErrorLocationCPA(String mergeType, String stopType) { }
@@ -141,8 +166,7 @@ private static final ErrorLocationElement topElement = new ErrorLocationElement(
   }
 
   @Override
-  public AbstractElement getInitialElement(
-      CFAFunctionDefinitionNode node) {
+  public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
     return initialElement;
   }
 

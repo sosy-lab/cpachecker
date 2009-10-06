@@ -144,12 +144,12 @@ public class ExplicitAnalysisDomain implements AbstractDomain {
 
   }
 
-  public AbstractElement getBottomElement ()
+  public ExplicitAnalysisElement getBottomElement ()
   {
     return bottomElement;
   }
 
-  public AbstractElement getTopElement ()
+  public ExplicitAnalysisElement getTopElement ()
   {
     return topElement;
   }

@@ -56,7 +56,7 @@ public class ItpExplicitAbstractElement extends ItpAbstractElement {
     }
 
     @Override
-    public boolean isErrorLocation() {
+    public boolean isError() {
         return (getLocation() instanceof CFAErrorNode);
     }
 

@@ -154,4 +154,9 @@ public class ExplicitAnalysisElement implements AbstractElement {
   public Map<String, Integer> getNoOfReferences() {
     return noOfReferences;
   }
+  
+  @Override
+  public boolean isError() {
+    return false;
+  }
 }

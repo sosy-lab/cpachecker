@@ -35,6 +35,12 @@ import exceptions.CPAException;
 public class PointerAnalysisDomain implements AbstractDomain {
 
   private static class PointerAnalysisBottomElement implements AbstractElement {
+    
+    @Override
+    public boolean isError() {
+      return false;
+    }
+    
     @Override
     public String toString() {
       return "<PointerAnalysis BOTTOM>";
@@ -42,6 +48,12 @@ public class PointerAnalysisDomain implements AbstractDomain {
   }
   
   private static class PointerAnalysisTopElement implements AbstractElement {
+    
+    @Override
+    public boolean isError() {
+      return false;
+    }
+    
     @Override
     public String toString() {
       return "<PointerAnalysis TOP>";

@@ -189,4 +189,9 @@ public class ExplicitAbstractElement
         }
         return false;
     }
+    
+    @Override
+    public boolean isError() {
+      return false;
+    }
 }

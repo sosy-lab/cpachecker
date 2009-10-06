@@ -88,6 +88,11 @@ public class DefUseElement implements AbstractElement
 
         definitions.add (def);
     }
+    
+    @Override
+    public boolean isError() {
+      return false;
+    }
 
     @Override
     public boolean equals (Object other)

@@ -27,13 +27,11 @@ import java.util.List;
 
 import symbpredabstraction.AbstractionPathList;
 import symbpredabstraction.PathFormula;
-import cfa.objectmodel.CFAErrorNode;
 import cfa.objectmodel.CFANode;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.symbpredabs.AbstractFormula;
 import cpa.symbpredabs.PredicateMap;
-import cpa.symbpredabs.SSAMap;
 import cpa.symbpredabs.SymbolicFormula;
 import cpa.symbpredabs.mathsat.BDDAbstractFormula;
 
@@ -289,5 +287,10 @@ implements AbstractElement {
 
   public void setPfParents(List<Integer> pfParents) {
     this.pfParents = pfParents;
+  }
+  
+  @Override
+  public boolean isError() {
+    return false;
   }
 }

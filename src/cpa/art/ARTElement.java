@@ -212,4 +212,9 @@ public class ARTElement implements AbstractElementWithLocation, AbstractWrapperE
 //    }
     children.clear();
   }
+  
+  @Override
+  public boolean isError() {
+    return element.isError();
+  }
 }

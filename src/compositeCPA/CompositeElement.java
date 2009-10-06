@@ -57,6 +57,20 @@ public class CompositeElement implements AbstractElementWithLocation, AbstractWr
   }
 
   @Override
+  public boolean isError() {
+    if (elementWithLocation.isError()) {
+      return true;
+    }
+  
+    for (AbstractElement element : elements) {
+      if (element.isError()) {
+        return true;
+      }
+    }
+    return false;
+  }
+  
+  @Override
   public boolean equals (Object other)
   {
     if (other == this)
@@ -108,8 +122,12 @@ public class CompositeElement implements AbstractElementWithLocation, AbstractWr
   {
     StringBuilder builder = new StringBuilder ();
     builder.append ('(');
-    for (AbstractElement element : elements)
-      builder.append (element.toString ()).append (',');
+    for (AbstractElement element : elements) {
+      builder.append(element.getClass().getSimpleName());
+      builder.append(": ");
+      builder.append(element.toString ());
+      builder.append ("\n ");
+    }
     builder.replace (builder.length () - 1, builder.length (), ")");
 
     return builder.toString ();

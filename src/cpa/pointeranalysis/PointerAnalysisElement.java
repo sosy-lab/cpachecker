@@ -908,6 +908,11 @@ public class PointerAnalysisElement implements AbstractElement, Memory {
   }
   
   @Override
+  public boolean isError() {
+    return false;
+  }
+  
+  @Override
   public boolean equals(Object other) {
     if (other == this) {
       return true;

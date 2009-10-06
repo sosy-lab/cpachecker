@@ -40,7 +40,6 @@ import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
-import cpa.common.interfaces.PrecisionAdjustment;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
 import exceptions.CPAException;
@@ -48,8 +47,7 @@ import exceptions.CPATransferException;
 
 public class CPAAlgorithm
 {
-  private boolean useART = CPAMain.cpaConfig.getBooleanValue("cpa.useART");
-  public static boolean errorFound;
+  private boolean useRefinement = CPAMain.cpaConfig.getBooleanValue("analysis.useRefinement");
 public static long chooseTime = 0;
   private List<Pair<AbstractElementWithLocation,Precision>> waitlist;
   private ReachedElements reachedElements;
@@ -71,11 +69,9 @@ public static long chooseTime = 0;
 
   public ReachedElements CPA () throws CPAException
   {
-    errorFound = false;
     TransferRelation transferRelation = cpa.getTransferRelation();
     MergeOperator mergeOperator = cpa.getMergeOperator();
     StopOperator stopOperator = cpa.getStopOperator();
-    PrecisionAdjustment precisionAdjustment = cpa.getPrecisionAdjustment();
 
     while (!waitlist.isEmpty ())
     {
@@ -101,6 +97,15 @@ public static long chooseTime = 0;
         assert(false); // should not happen
       }
 
+      boolean errorFound = false;
+      for (AbstractElementWithLocation succ : successors) {
+        if (succ.isError()) {
+          errorFound = true;
+        }
+      }
+      if (errorFound)
+      System.out.println(errorFound);
+      
       for (AbstractElementWithLocation successor : successors)
       {
         LazyLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel,
@@ -183,7 +188,7 @@ public static long chooseTime = 0;
 //          System.out.println(successor + " is added TO REACHED");
 //          System.out.println("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
           
-          if(useART && errorFound){
+          if(useRefinement && successor.isError()){
             return reachedElements;
           }
         }

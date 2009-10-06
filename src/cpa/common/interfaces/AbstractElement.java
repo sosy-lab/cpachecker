@@ -23,7 +23,7 @@
  */
 package cpa.common.interfaces;
 
-public interface AbstractElement
-{
-
+public interface AbstractElement {
+  
+  public boolean isError();
 }

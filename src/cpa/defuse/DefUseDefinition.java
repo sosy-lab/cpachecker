@@ -78,4 +78,9 @@ public class DefUseDefinition implements AbstractElement
 
         return true;
     }
+    
+    @Override
+    public boolean isError() {
+      return false;
+    }
 }

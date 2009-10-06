@@ -211,4 +211,8 @@ public class SummaryAbstractElement
         return false;
     }
 
+    @Override
+    public boolean isError() {
+      return false;
+    }
 }

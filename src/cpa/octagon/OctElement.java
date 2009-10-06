@@ -95,6 +95,11 @@ public class OctElement implements AbstractElement{
 	}
 	
 	@Override
+	public boolean isError() {
+	  return false;
+	}
+	
+	@Override
 	public int hashCode() {
 	  if (oct == null) return (variables == null) ? 0 : variables.hashCode() + 1;
     else if (variables == null) return oct.hashCode() + 2;

@@ -32,8 +32,6 @@ import logging.CustomLogLevel;
 import logging.LazyLogger;
 import predicateabstraction.PredicateAbstractionAbstractFormulaManager;
 import cfa.objectmodel.CFAEdge;
-import cfa.objectmodel.CFAErrorNode;
-import cpa.common.CPAAlgorithm;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.Precision;
@@ -258,11 +256,6 @@ public class PredicateAbstractionTransferRelation implements TransferRelation {
 //    System.out.println("---------------------------");
 //    System.out.println(cfaEdge);
 //    System.out.println("___________________________");
-    
-    if(cfaEdge.getSuccessor() instanceof CFAErrorNode){
-      CPAAlgorithm.errorFound = true;
-      return new PredicateAbstractionAbstractElement();
-    }
     
 //  if (!abstractTree.contains((AbstractElementWithLocation)element)) {
 //  ++numAbstractStates;

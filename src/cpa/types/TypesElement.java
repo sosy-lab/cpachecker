@@ -157,6 +157,11 @@ public class TypesElement implements AbstractElement {
   }
   
   @Override
+  public boolean isError() {
+    return false;
+  }
+  
+  @Override
   public boolean equals(Object obj) {
     if (obj == null || !(obj instanceof TypesElement)) {
       return false;

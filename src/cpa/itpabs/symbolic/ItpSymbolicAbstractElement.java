@@ -61,7 +61,7 @@ public class ItpSymbolicAbstractElement extends ItpAbstractElement {
     }
 
     @Override
-    public boolean isErrorLocation() {
+    public boolean isError() {
         return (((SummaryCFANode)getLocation()).getInnerNode() instanceof
                 CFAErrorNode);
     }

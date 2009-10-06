@@ -137,6 +137,11 @@ public class PointsToElement implements AbstractElement {
     out += "}";
     return out;
   }
+  
+  @Override
+  public boolean isError() {
+    return false;
+  }
 
   public PointsToRelation addVariable (IASTDeclarator variable) {
     if (null == pointers.get(variable)) {

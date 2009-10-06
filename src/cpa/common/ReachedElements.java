@@ -10,8 +10,6 @@ import cmdline.CPAMain;
 import common.LocationMappedReachedSet;
 import common.Pair;
 
-import cpa.art.ARTDomain;
-import cpa.art.ARTElement;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;

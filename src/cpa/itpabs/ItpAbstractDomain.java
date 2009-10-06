@@ -63,7 +63,7 @@ public class ItpAbstractDomain implements AbstractDomain {
         }
 
         @Override
-        public boolean isErrorLocation() {
+        public boolean isError() {
           // TODO Auto-generated method stub
           return false;
         }
@@ -82,7 +82,7 @@ public class ItpAbstractDomain implements AbstractDomain {
       }
 
       @Override
-      public boolean isErrorLocation() {
+      public boolean isError() {
         // TODO Auto-generated method stub
         return false;
       }

@@ -137,6 +137,11 @@ public class AutomatonCPADomain<E> implements AbstractDomain {
     }
     
     @Override
+    public boolean isError() {
+      return false;
+    }
+    
+    @Override
     public boolean equals(Object o) {
       if (o == null) {
         return false;
@@ -256,6 +261,11 @@ public class AutomatonCPADomain<E> implements AbstractDomain {
     }
     
     @Override
+    public boolean isError() {
+      return false;
+    }
+    
+    @Override
     public String toString() {
       return "Bottom";
     }
@@ -296,6 +306,11 @@ public class AutomatonCPADomain<E> implements AbstractDomain {
       return this;
     }
 
+    @Override
+    public boolean isError() {
+      return false;
+    }
+    
     @Override
     public boolean isSingleton() {
       // we define top as not being a singleton element

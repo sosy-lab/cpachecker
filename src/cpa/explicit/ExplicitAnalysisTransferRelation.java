@@ -41,7 +41,6 @@ import org.eclipse.cdt.core.dom.ast.IASTTypeIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 
 import cfa.objectmodel.CFAEdge;
-import cfa.objectmodel.CFAErrorNode;
 import cfa.objectmodel.c.AssumeEdge;
 import cfa.objectmodel.c.CallToReturnEdge;
 import cfa.objectmodel.c.DeclarationEdge;
@@ -51,7 +50,6 @@ import cfa.objectmodel.c.GlobalDeclarationEdge;
 import cfa.objectmodel.c.ReturnEdge;
 import cfa.objectmodel.c.StatementEdge;
 import cmdline.CPAMain;
-import cpa.common.CPAAlgorithm;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.Precision;
@@ -91,11 +89,6 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
   {
     AbstractElement successor = explicitAnalysisDomain.getBottomElement();
     ExplicitAnalysisElement explicitElement = (ExplicitAnalysisElement)element;
-
-    if(cfaEdge.getSuccessor() instanceof CFAErrorNode){
-      CPAAlgorithm.errorFound = true;
-      return new ExplicitAnalysisElement();
-    }
 
     // check the type of the edge
     switch (cfaEdge.getEdgeType ())

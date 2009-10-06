@@ -343,12 +343,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 //    abstractTree.addChild(element, newElement);
 //    }
       ++numAbstractStates;
-      // we reach error state
-      if (edge.getSuccessor() instanceof CFAErrorNode) {
-        CPAAlgorithm.errorFound = true;
-        return newElement;
-      }
-      // if this is not an error location, return newElement
+
       return newElement;
     }
   }

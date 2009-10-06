@@ -185,8 +185,6 @@ public abstract class ItpAbstractElement
         return getId() - o.getId();
     }
 
-    public abstract boolean isErrorLocation();
-
     public abstract Collection<CFANode> getLeaves();
 
 }

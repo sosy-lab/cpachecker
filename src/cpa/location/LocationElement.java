@@ -41,6 +41,11 @@ public class LocationElement implements AbstractElementWithLocation
     }
 
     @Override
+    public boolean isError() {
+      return false;
+    }
+    
+    @Override
     public boolean equals (Object other)
     {
       if (other == null) {
