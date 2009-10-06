@@ -65,3 +65,42 @@ pwendler 2009-08-25:
 1. Sun Java 1.6.0_14
 2. Eclipse 3.5.0 (Galileo)
 4. CDT 6.0.0
+
+
+CONFIGURATION OPTIONS:
+Name				possible values		default		recommended	explanation			
+-------------------------------------------------------------------------------------------------------------------------------------
+log.path			path+filename		<ERROR>		CPALog.txt	name of logfile
+log.level			0-1000, on, off, ...	<ERROR>		<DEPENDS>	verbosity level (higher is less verbose)
+dot.export			true/false		false		<DEPENDS>	write CFA to file
+dot.path			path			"."		<DEPENDS>	CFA graph output file
+reachedPath.export		true/false		false		false		write ART to file (needs cpa.useART)
+reachedPath.file		path+filename				<DEPENDS>	ART graph output file
+cfa.simplify			true/false		false		true		run simplifications below
+cfa.check			true/false		false		true		run consistency checks on CFA
+cfa.combineBlockStatements	true/false		false		false		combine statements and declarations into MultiStatement and MultiDeclaration edges respectively
+cfa.removeIrrelevantForErrorLocations	true/false	false		true		remove all paths not leading to error location
+cfa.removeDeclarations		true/false		false		false		remove all DeclarationEdges from CFA
+parser.dialect			C99, GNUC		C99		GNUC		C dialect which Eclipse CDT parser uses
+analysis.interprocedural	true/false		false		true		combine function CFAs to global CFA
+analysis.useRefinement		true/false		false		<DEPENDS>	use refinement algorithm (needs cpa.useART)
+anaylsis.useART			true/false		false		false		wrap CPA in ART CPA
+analysis.useCBMC		true/false		false		false		use CBMC to check counter examples (currently only if analysis.useRefinement)
+analysis.useSummaryLocations	true/false		false		false		use summary edges for loop-free parts of the program		
+analysis.useBlockEdges		true/false		false		false		use block edges for branch-free parts of the program (not if useSummaryLocations)
+analysis.useGlobalVars		true/false		false		true		include global variable declarations (not if useSummaryLocations or useBlockEdges)
+analysis.noExternalCalls	true/false		false		true		don't create call/return edges for external function calls
+analysis.noCompositeCPA		true/false		false		true		don't use composite CPA if there is only one CPA
+predicates.path
+analysis.entryFunction		function name		<ERROR>		main		name of function where analysis should start
+analysis.bfs			true/false		false		false		use BFS or DFS as strategy for visiting states
+analysis.programs		path							for running CPAchecker as eclipse plugin
+analysis.cpas			list of class names	<ERROR>		<DEPENDS>	comma-separated list of CPAs to use
+analysis.mergeOperators		list of Strings				<DEPENDS>	comma-separated list of Strings passed to the above CPAs as name of the merge operator
+analysis.stopOperators		list of Strings				<DEPENDS>	comma-separated list of Strings passed to the above CPAs as name of the stop operator
+analysis.dontPrintReachableStates true/false		false		true		don't print set of reached abstract states after analysis
+analysis.topsort
+analysis.useGlobalVars		true/false		false		true		
+analysis.queryDrivenProgramTesting	true/false	false		false		use QueryDrivenProgramTesting instead of normal algorithm
+analysis.useFunctionDeclarations	true/false	false		true		include declarations of external functions in CFA
+analysis.programNames		path+filename		<CMDLINE>	<CMDLINE>	the file to analyze

@@ -1,18 +1,11 @@
 package cpa.common;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Deque;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.Stack;
 
 import logging.CustomLogLevel;
 import logging.LazyLogger;
@@ -31,7 +24,6 @@ import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.RefinableCPA;
 import cpa.common.interfaces.RefinementManager;
-import cpa.symbpredabsCPA.SymbPredAbsAbstractElement;
 import exceptions.CPAException;
 
 public class CPAWithRefinement {
@@ -48,6 +40,10 @@ public class CPAWithRefinement {
   public ReachedElements CPAWithRefinementAlgorithm(CFAMap pCfas, ConfigurableProgramAnalysis cpa, 
       AbstractElementWithLocation initialElement,
       Precision initialPrecision) throws CPAException{
+    if(!(cpa instanceof RefinableCPA)) {
+      throw new CPAException("Need refinable CPA for refinement algorithm");
+    }
+
     ReachedElements reached = null;
 //  CPAAlgorithm algo = new CPAAlgorithm(cpa, initialElement, initialPrecision);
     boolean stopAnalysis = false;
@@ -61,10 +57,7 @@ public class CPAWithRefinement {
       } catch (CPAException e) {
         e.printStackTrace();
       }
-      if(!(cpa instanceof RefinableCPA)) {
-        throw new CPAException();
-      }
-
+      
       // if the element is an error element
       if(CPAAlgorithm.errorFound){
         RefinableCPA refinableCpa = (RefinableCPA)cpa;
@@ -82,21 +75,21 @@ public class CPAWithRefinement {
         if(stopAnalysis){
           System.out.println("ERROR FOUND");
           List<CFAEdge> errorPath = buildErrorPath(reached);
-          System.out.println("________ ERROR PATH ____________");
           // TODO make this optional
-          int cbmcRes = CProver.checkSat(AbstractPathToCTranslator.translatePaths(pCfas, errorPath));
-          if(cbmcRes == 10){
-            System.out.println("CBMC comfirms the bug");
+          if (CPAMain.cpaConfig.getBooleanValue("analysis.useCBMC")) {
+            System.out.println("________ ERROR PATH ____________");
+            int cbmcRes = CProver.checkSat(AbstractPathToCTranslator.translatePaths(pCfas, errorPath));
+            if(cbmcRes == 10){
+              System.out.println("CBMC comfirms the bug");
+            }
+            else if(cbmcRes == 0){
+              System.out.println("CBMC thinks this path contains no bug");
+  //          reached.setLastElementToFalse();
+  //          CPAAlgorithm.errorFound = false;
+  //          stopAnalysis = false;
+            }
+            System.out.println("________________________________");
           }
-          else if(cbmcRes == 0){
-            System.out.println("CBMC thinks this path contains no bug");
-//          reached.setLastElementToFalse();
-//          CPAAlgorithm.errorFound = false;
-//          stopAnalysis = false;
-          }
-          // TODO make this optional too
-          dumpErrorPathToDotFile(reached, "/localhome/erkan/errorpath.dot");
-          System.out.println("________________________________");
         }
         else{
           long start = System.currentTimeMillis();
@@ -109,8 +102,6 @@ public class CPAWithRefinement {
       else {
         // TODO safe -- print reached elements
         System.out.println("ERROR label NOT reached");
-        System.out.println("_______________________");
-        dumpErrorPathToDotFile(reached, "/localhome/erkan/safepath.dot");
         stopAnalysis = true;
       }
 
@@ -145,87 +136,6 @@ public class CPAWithRefinement {
 //  System.out.println("total merge time .. " + SymbPredAbsMergeOperator.totalMergeTime);
     System.out.println();
     return reached;
-  }
-
-  private void dumpErrorPathToDotFile(ReachedElements pReached, String outfile) {
-    ARTElement firstElement = (ARTElement)pReached.getFirstElement();
-
-    Deque<ARTElement> worklist = new LinkedList<ARTElement>();
-    Set<Integer> nodesList = new HashSet<Integer>();
-    Set<ARTElement> processed = new HashSet<ARTElement>();
-    String s = "";
-    PrintWriter out = null;
-    try {
-      out = new PrintWriter(new File(outfile));
-    } catch (FileNotFoundException e) {
-      e.printStackTrace();
-    }
-    out.println("digraph ART {");
-    out.println("style=filled; color=lightgrey; ");
-
-    worklist.add(firstElement);
-
-    while(worklist.size() != 0){
-      ARTElement currentElement = worklist.removeLast();
-      if(processed.contains(currentElement)){
-        continue;
-      }
-      processed.add(currentElement);
-      if(!nodesList.contains(currentElement.hashCode())){
-        SymbPredAbsAbstractElement symbpredabselem = (SymbPredAbsAbstractElement)currentElement.retrieveElementOfType("SymbPredAbsAbstractElement");
-        if(symbpredabselem == null){
-          out.println("node [shape = diamond, color = blue, style = filled, label=" +  
-              (currentElement.getLocationNode()==null ? 0 : currentElement.getLocationNode().getNodeNumber()) + "000" + currentElement.hashCode() +"] " + currentElement.hashCode() + ";");
-        }
-        else{
-          if(symbpredabselem.isAbstractionNode()){
-            if(currentElement.isCovered()){
-              out.println("node [shape = diamond, color = green, style = filled, label=" +  currentElement.getLocationNode().getNodeNumber() + "000" + currentElement.hashCode() +"] " + currentElement.hashCode() + ";");
-            }
-            else{
-              out.println("node [shape = diamond, color = red, style = filled, label=" +  currentElement.getLocationNode().getNodeNumber() + "000" + currentElement.hashCode() +"] " + currentElement.hashCode() + ";");
-            }
-          }
-          else{
-            if(currentElement.isCovered()){
-              out.println("node [shape = diamond, color = green, style = filled, label=" +  currentElement.getLocationNode().getNodeNumber() + "000" + currentElement.hashCode() +"] " + currentElement.hashCode() + ";");
-            }
-            else{
-              out.println("node [shape = diamond, color = white, style = filled, label=" +  currentElement.getLocationNode().getNodeNumber() + "000" + currentElement.hashCode() +"] " + currentElement.hashCode() + ";");
-            }
-          }
-        }
-        nodesList.add(currentElement.hashCode());
-      }
-      for(ARTElement child : currentElement.getChildren()){
-        CFAEdge edge = getEdgeBetween(currentElement, child);
-        s = s + (currentElement.hashCode() + " -> " + child.hashCode()
-            + " [label=\"" + edge + "\"];\n");
-        if(!worklist.contains(child)){
-          worklist.add(child);
-        }
-      }
-    }
-
-    out.println(s);
-    out.println("}");
-    out.flush();
-    out.close();
-  }
-
-  private static CFAEdge getEdgeBetween(ARTElement pCurrentElement,
-      ARTElement pChild) {
-    CFAEdge writeEdge = null;
-    CFANode childNode = pChild.getLocationNode();
-    if(childNode != null){
-      for(int i=0; i<childNode.getNumEnteringEdges(); i++){
-        CFAEdge edge = childNode.getEnteringEdge(i);
-        if(pCurrentElement.getLocationNode().getNodeNumber() == edge.getPredecessor().getNodeNumber()){
-          writeEdge = edge;
-        }
-      }
-    }
-    return writeEdge;
   }
 
   private List<CFAEdge> buildErrorPath(ReachedElements pReached) {

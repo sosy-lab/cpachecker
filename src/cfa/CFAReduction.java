@@ -49,8 +49,7 @@ public class CFAReduction {
 
   public CFAReduction() {}
 
-  public CFAFunctionDefinitionNode removeIrrelevantForErrorLocations(
-                                                                     CFAFunctionDefinitionNode cfa) {
+  public void removeIrrelevantForErrorLocations(final CFAFunctionDefinitionNode cfa) {
     Map<CFANode, Integer> dfsMap = new HashMap<CFANode, Integer>();
     Map<CFANode, Integer> dfsMapFromError = new HashMap<CFANode, Integer>();
     dfs(cfa, dfsMap, false);
@@ -83,7 +82,6 @@ public class CFAReduction {
         n.addLeavingSummaryEdge(null);
       }
     }
-    return cfa;
   }
 
   private void dfs(CFANode start, Map<CFANode, Integer> dfsMarked,

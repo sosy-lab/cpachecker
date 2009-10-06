@@ -28,12 +28,11 @@ import java.io.PrintStream;
 import logging.CPACheckerLogger;
 import logging.CustomLogLevel;
 
-import org.eclipse.cdt.core.dom.CDOM;
-import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.jface.action.IAction;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.viewers.ISelection;
+import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.IEditorInput;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.IWorkbench;
@@ -48,10 +47,8 @@ import org.eclipse.ui.console.IConsoleManager;
 import org.eclipse.ui.console.IConsoleView;
 import org.eclipse.ui.console.IOConsoleOutputStream;
 import org.eclipse.ui.console.MessageConsole;
-import org.eclipse.swt.widgets.Display;
 
 import cmdline.CPAMain;
-
 import cpaplugin.CPAConfiguration;
 
 public class CPARun implements IWorkbenchWindowActionDelegate
@@ -168,28 +165,14 @@ public class CPARun implements IWorkbenchWindowActionDelegate
 				MessageDialog.openInformation (window.getShell (), "CPAPlugin Plug-in", "Cannot parse non-c file");
 				return;
 			}
-			// Get Eclipse to parse the C in the current file
-			IASTTranslationUnit ast = null;
-			try
-			{
-				ast = CDOM.getInstance ().getTranslationUnit (currentFile);
-			}
-			catch (Exception e)
-			{
-				e.printStackTrace ();
-				e.getMessage ();
-
-				MessageDialog.openInformation (window.getShell (), "CPAPlugin Plug-in", "Eclipse had trouble parsing C");
-				return;
-			}
-
+			
 			//Now grab its attention and display
-		    String id = IConsoleConstants.ID_CONSOLE_VIEW;
-		    IConsoleView view = (IConsoleView) workbenchPage.showView(id);
-		    view.display(myConsole);
-
-		    //Now run analysis
-			CPAMain.doRunAnalysis(ast);
+      String id = IConsoleConstants.ID_CONSOLE_VIEW;
+      IConsoleView view = (IConsoleView) workbenchPage.showView(id);
+      view.display(myConsole);
+			
+      //Now run analysis
+      CPAMain.CPAchecker(currentFile);
 		}
 		catch (Exception e)
 		{

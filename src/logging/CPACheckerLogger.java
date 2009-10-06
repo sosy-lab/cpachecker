@@ -79,6 +79,7 @@ public class CPACheckerLogger {
 
 	public static Logger mainLogger = Logger.getLogger(CPAMain.cpaConfig.getProperty("log.path"));
 	private static FileHandler fileHandler = null;
+	
 	public static void init(){
 		// TODO read from config // Array that includes levels to include
 		ArrayList<String> levelList = new ArrayList<String>();
@@ -123,11 +124,11 @@ public class CPACheckerLogger {
 	public static int getLevel() {
 	    return mainLogger.getLevel().intValue();
 	}
-	public static void clear()
-	{
+	
+	public static void clear(){
 		mainLogger.removeHandler(fileHandler);
-		if(fileHandler != null)
+		if(fileHandler != null) {
 			fileHandler.close();
+		}
 	}
-
 }

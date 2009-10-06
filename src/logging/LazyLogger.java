@@ -40,16 +40,17 @@ import logging.CPACheckerLogger;
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
 public class LazyLogger {
-    static class LogLevel extends Level {
-        /**
-         *
-         */
+    
+    // TODO: move to CPACheckerLogger or CustomLogLevel
+    private static class LogLevel extends Level {
+        
         private static final long serialVersionUID = -2573882076078285905L;
 
         public LogLevel(String name, int value) {
             super(name, value);
         }
-    };
+    }
+    
     public static Level DEBUG_1 = new LogLevel("AG_DEBUG_1",
             Level.FINE.intValue()-10);
     public static Level DEBUG_2 = new LogLevel("AG_DEBUG_2",
@@ -61,11 +62,16 @@ public class LazyLogger {
 
     public static void log(Level lvl, Object... args) {
         if (CPACheckerLogger.getLevel() <= lvl.intValue()) {
-            StringBuffer buf = new StringBuffer();
-            for (Object o : args) {
-                buf.append(o.toString());
+            if (args.length == 1) {
+              CPACheckerLogger.log(lvl, args[0].toString());
+              
+            } else {
+              StringBuffer buf = new StringBuffer();
+              for (Object o : args) {
+                  buf.append(o.toString());
+              }
+              CPACheckerLogger.log(lvl, buf.toString());
             }
-            CPACheckerLogger.log(lvl, buf.toString());
         }
     }
 }
