@@ -68,19 +68,12 @@ int main(void)
 #line 20
   c = i2o_iop_alloc();
 #line 21
-  if (! c) {
-#line 21
-    return (1);
-  } else {
-
-  }
-#line 22
   i2o_iop_free(c);
-#line 23
+#line 22
   __cil_tmp2 = *((int *)c);
-#line 23
+#line 22
   put_device(__cil_tmp2);
-#line 24
+#line 23
   return (0);
 }
 }

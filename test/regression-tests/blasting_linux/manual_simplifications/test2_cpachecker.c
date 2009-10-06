@@ -1,5 +1,4 @@
 // simplified version of pci.c for the I2O User-After-Free Error
-// added lines necessary for CPAchecker to find error
 #define  __attribute__(x) /*NOTHING*/
 #include "test2.h"
 
@@ -18,7 +17,6 @@ void put_device(int i) { }
 int main(void) {
   i2o_controller *c;
   c = i2o_iop_alloc();
-  if (!c) return (1);
   i2o_iop_free(c);
   put_device(c->device.parent);
   return (0);
