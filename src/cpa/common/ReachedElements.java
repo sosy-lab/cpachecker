@@ -17,28 +17,17 @@ import cpa.common.interfaces.Precision;
 
 public class ReachedElements {
   
-//  private Collection<AbstractElementWithLocation> reachedSet;
   private Collection<Pair<AbstractElementWithLocation,Precision>> reached;
   private AbstractElementWithLocation lastElement;
   private AbstractElementWithLocation firstElement;
-  ConfigurableProgramAnalysis cpa;
+  private ConfigurableProgramAnalysis cpa;
   
-  public ReachedElements(
-      ConfigurableProgramAnalysis cpa) {
+  public ReachedElements(ConfigurableProgramAnalysis cpa) {
     this.cpa = cpa;
-    reached = createReachedSet(cpa);
-//    // TODO Remove this hack
-//    if (reached instanceof LocationMappedReachedSet) {
-//      reachedSet = new LocationMappedReachedSetProjectionWrapper((LocationMappedReachedSet)reached);
-//    }
-//    else {
-//      reachedSet = new ProjectionWrapper(reached);
-//    }
-    
+    reached = createReachedSet();
   }
   
-  private Collection<Pair<AbstractElementWithLocation,Precision>> createReachedSet(
-      ConfigurableProgramAnalysis cpa) {
+  private Collection<Pair<AbstractElementWithLocation,Precision>> createReachedSet() {
     if(CPAMain.cpaConfig.getBooleanValue("cpa.useSpecializedReachedSet")){
       return new LocationMappedReachedSet();
     }

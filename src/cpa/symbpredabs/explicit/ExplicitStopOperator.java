@@ -28,10 +28,7 @@ import java.util.Collection;
 import logging.CustomLogLevel;
 import logging.LazyLogger;
 
-import common.LocationMappedReachedSetProjectionWrapper;
-
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.StopOperator;
 import exceptions.CPAException;
@@ -62,27 +59,10 @@ public class ExplicitStopOperator implements StopOperator {
 
       return true;
     }
-
-    if (reached instanceof LocationMappedReachedSetProjectionWrapper) {
-      ExplicitAbstractElement e = (ExplicitAbstractElement)element;
-      Collection<AbstractElementWithLocation> effReached =
-        ((LocationMappedReachedSetProjectionWrapper)reached).get(
-            e.getLocationNode());
-
-      if (effReached == null) {
-        return false;
-      }
-
-      for (AbstractElementWithLocation e2: effReached) {
-        if (stop(element, e2)) {
-          return true;
-        }
-      }
-    } else {
-      for (AbstractElement e : reached) {
-        if (stop(element, e)) {
-          return true;
-        }
+  
+    for (AbstractElement e : reached) {
+      if (stop(element, e)) {
+        return true;
       }
     }
     return false;
