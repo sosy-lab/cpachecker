@@ -1,6 +1,8 @@
 package cpa.errorlocation;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression;
@@ -18,20 +20,31 @@ import exceptions.CPATransferException;
 
 public class ErrorLocationTransferRelation implements TransferRelation {
 
+  private static Set<Integer> messages = new HashSet<Integer>();
+
   private final ErrorLocationDomain domain;
   
   public ErrorLocationTransferRelation(ErrorLocationDomain domain) {
     this.domain = domain;
   }
   
+
+  public static void addError(String message, CFAEdge edge) {
+    Integer lineNumber = edge.getSuccessor().getLineNumber();
+    
+    if (!messages.contains(lineNumber)) {
+      messages.add(lineNumber);
+      System.err.println("ERROR: " + message + " in line " + lineNumber + "!");
+    }
+  }
+  
   @Override
   public AbstractElement getAbstractSuccessor(AbstractElement element,
                                               CFAEdge cfaEdge, Precision precision)
                                               throws CPATransferException {
-    int lineNumber = cfaEdge.getSuccessor().getLineNumber();
     
     if (cfaEdge.getSuccessor() instanceof CFAErrorNode) {
-      System.err.println("ERROR: Reaching error node with edge " + cfaEdge.getRawStatement() + " in line " + lineNumber + "!");
+      addError("Reaching error node with edge " + cfaEdge.getRawStatement(), cfaEdge);
       return domain.getErrorElement();
     }
     
@@ -44,7 +57,7 @@ public class ErrorLocationTransferRelation implements TransferRelation {
           String functionName = funcExpression.getFunctionNameExpression().getRawSignature();
           if (functionName.equals("__assert_fail")) {
 
-            System.err.println("ERROR: Hit assertion " + expression.getRawSignature() + " in line " + lineNumber + "!");
+            addError("Hit assertion " + expression.getRawSignature(), cfaEdge);
             return domain.getErrorElement();
           }
         }
@@ -57,7 +70,7 @@ public class ErrorLocationTransferRelation implements TransferRelation {
           // handling for error labels is removed from the CFA generation
           // (where it doesn't belong IMHO)
           
-          System.err.println("ERROR: Reaching error node with edge " + cfaEdge.getRawStatement() + " in line " + lineNumber + "!");
+          addError("Reaching error node with edge " + cfaEdge.getRawStatement(), cfaEdge);
           return domain.getErrorElement();
         }
         break;

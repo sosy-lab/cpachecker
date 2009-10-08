@@ -96,15 +96,6 @@ public static long chooseTime = 0;
         e1.printStackTrace();
         assert(false); // should not happen
       }
-
-      boolean errorFound = false;
-      for (AbstractElementWithLocation succ : successors) {
-        if (succ.isError()) {
-          errorFound = true;
-        }
-      }
-      if (errorFound)
-      System.out.println(errorFound);
       
       for (AbstractElementWithLocation successor : successors)
       {
