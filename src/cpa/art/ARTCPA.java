@@ -136,13 +136,15 @@ public class ARTCPA implements RefinableCPA {
     root = pRoot;
   }
 
-  public ARTElement findHighest(CFANode pLoc) {
+  public ARTElement findHighest(ARTElement pLastElem, CFANode pLoc) {
     if (root == null) return null;
+
+    ARTElement tempRetVal = null;
 
     Queue<ARTElement> toProcess =
       new ArrayDeque<ARTElement>();
-    toProcess.add(root);
-
+    toProcess.add(pLastElem);
+//  System.out.println("root is " + root);
     while (!toProcess.isEmpty()) {
       ARTElement e = toProcess.remove();
       // TODO check - bottom element
@@ -151,15 +153,20 @@ public class ARTCPA implements RefinableCPA {
       }
       else{
         if (e.getLocationNode().equals(pLoc)) {
-          return e;
+          tempRetVal = e;
         }
-        if (e.getChildren().size() > 0) {
-          toProcess.addAll(e.getChildren());
+        if (e.getParent() != null) {
+          toProcess.add(e.getParent());
         }
       }
     }
-    System.out.println("ERROR, NOT FOUND: " + pLoc);
-    return root;
+
+    if(tempRetVal == null){
+      System.out.println("ERROR, NOT FOUND: " + pLoc);
+      assert(false);
+    }
+    return tempRetVal;
+
   }
 
 }

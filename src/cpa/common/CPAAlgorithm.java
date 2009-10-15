@@ -40,6 +40,7 @@ import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
+import cpa.common.interfaces.PrecisionAdjustment;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
 import exceptions.CPAException;
@@ -47,7 +48,8 @@ import exceptions.CPATransferException;
 
 public class CPAAlgorithm
 {
-  private boolean useRefinement = CPAMain.cpaConfig.getBooleanValue("analysis.useRefinement");
+  private boolean useART = CPAMain.cpaConfig.getBooleanValue("cpa.useART");
+  public static boolean errorFound;
 public static long chooseTime = 0;
   private List<Pair<AbstractElementWithLocation,Precision>> waitlist;
   private ReachedElements reachedElements;
@@ -69,9 +71,11 @@ public static long chooseTime = 0;
 
   public ReachedElements CPA () throws CPAException
   {
+    errorFound = false;
     TransferRelation transferRelation = cpa.getTransferRelation();
     MergeOperator mergeOperator = cpa.getMergeOperator();
     StopOperator stopOperator = cpa.getStopOperator();
+    PrecisionAdjustment precisionAdjustment = cpa.getPrecisionAdjustment();
 
     while (!waitlist.isEmpty ())
     {
@@ -96,7 +100,7 @@ public static long chooseTime = 0;
         e1.printStackTrace();
         assert(false); // should not happen
       }
-      
+
       for (AbstractElementWithLocation successor : successors)
       {
         LazyLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel,
@@ -127,8 +131,6 @@ public static long chooseTime = 0;
             LazyLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel,
                 " Merged ", successor, " and ", reachedElement, " --> ", mergedElement);
             if (!mergedElement.equals(reachedElement)) {
-//              System.out.println("successor: " + successor + " >>>> reached element " + reachedElement +
-//                  " is removed from queue and " + mergedElement + " is added\n");
               LazyLogger.log(
                   CustomLogLevel.CentralCPAAlgorithmLevel,
                   "reached element ", reachedElement,
@@ -175,11 +177,8 @@ public static long chooseTime = 0;
 
           waitlist.add(new Pair<AbstractElementWithLocation,Precision>(successor,precision));
           reachedElements.add(new Pair<AbstractElementWithLocation,Precision>(successor,precision));
-//          System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-//          System.out.println(successor + " is added TO REACHED");
-//          System.out.println("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
           
-          if(useRefinement && successor.isError()){
+          if(useART && errorFound){
             return reachedElements;
           }
         }
@@ -232,6 +231,10 @@ public static long chooseTime = 0;
     return waitlist.remove(pElement);
   }
   
+  public boolean removeAllFromWaitlist(Collection<Pair<AbstractElementWithLocation, Precision>> pElements){
+    return waitlist.removeAll(pElements);
+  }
+  
   public void addAllToWaitlist(List<Pair<AbstractElementWithLocation, Precision>> pToWaitlist){
     waitlist.addAll(pToWaitlist);
   }
@@ -239,5 +242,9 @@ public static long chooseTime = 0;
   public void addAllToWaitlistAt(int pIndex,
       List<Pair<AbstractElementWithLocation, Precision>> pToWaitlist) {
     waitlist.addAll(pIndex, pToWaitlist);
+  }
+
+  public void clearWaitlist() {
+    waitlist.clear();
   }
 }

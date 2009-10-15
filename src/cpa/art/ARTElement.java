@@ -40,10 +40,6 @@ public class ARTElement implements AbstractElementWithLocation, AbstractWrapperE
   }
 
   private void setParent(ARTElement pParentElement) {
-//  if(pParentElement == null) {
-//  assert(false);
-//  return;
-//  }
     parentElement = pParentElement;
     if(parentElement != null){
       parentElement.addToChildrenList(this);
@@ -59,9 +55,6 @@ public class ARTElement implements AbstractElementWithLocation, AbstractWrapperE
   }
 
   public void addAdditionalParent(ARTElement pOtherParent){
-//  if(pOtherParent == parentElement){
-//  return;
-//  }
     if(additionalParents.add(pOtherParent)){
       pOtherParent.addToChildrenList(this);
     }
@@ -122,25 +115,36 @@ public class ARTElement implements AbstractElementWithLocation, AbstractWrapperE
 //return b;
 //}
 
-  @Override
-  public int hashCode() {
-    return this.elementId;
-  }
+//  @Override
+//  public boolean equals(Object pObj) {
+//    if (this == pObj) {
+//      return true;
+//    }
+//    boolean b = (this.elementId == ((ARTElement)pObj).elementId);
+//    return b;
+//  }
+//
+//  @Override
+//  public int hashCode() {
+//    System.out.println(elementId + "testing hash code " + this.elementId );
+//    return this.elementId;
+//  }
 
   @Override
   public String toString() {
-    String s = "";
+    String s = "\n";
     s = s + "ART Element Id: " + elementId + " : Mark: "+ mark +", ";
     if(parentElement != null){
-      s = s + "Parent Element's Id: " + getParent().elementId + "\n";
+      s = s + "Parent Element's Id: " + getParent().elementId + ", ";
       for(ARTElement additionalParent: additionalParents){
-        s = s + "Add. Parent's Id: " + additionalParent.elementId + "\n";
+        s = s + "Add. Parent's Id: " + additionalParent.elementId + ", ";
       }
     }
     else{
-      s = s + "parent is null" + "\n";
+      s = s + "parent is null" + ", ";
     }
-    s = s + element + " OBJ> " + super.toString();
+    s = s + " CHILDS > " + children.size() + ", ";
+    s = s + element;
     return s;
   }
 
@@ -202,19 +206,14 @@ public class ARTElement implements AbstractElementWithLocation, AbstractWrapperE
   }
 
   public void clearChildren() {
-//    for(ARTElement child: children){
-//      System.out.println("<<<<<<<<<<<<<<<<<<<<");
-//      System.out.println("NULL 1 > " + child.parentElement);
-//      child.parentElement = null;
-//      System.out.println("NULL 2 > " + child.additionalParents);
-//      System.out.println(">>>>>>>>>>>>>>>>>>>>");
-//      child.additionalParents.clear();
-//    }
     children.clear();
   }
+
+  public boolean removeFromChildren(ARTElement pElement) {
+    return children.remove(pElement);
+  }
   
-  @Override
-  public boolean isError() {
-    return element.isError();
+  public int getElementId(){
+    return elementId;
   }
 }

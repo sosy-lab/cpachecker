@@ -1,11 +1,18 @@
 package cpa.common;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.Stack;
 
 import logging.CustomLogLevel;
 import logging.LazyLogger;
@@ -24,6 +31,7 @@ import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.RefinableCPA;
 import cpa.common.interfaces.RefinementManager;
+import cpa.symbpredabsCPA.SymbPredAbsAbstractElement;
 import exceptions.CPAException;
 
 public class CPAWithRefinement {
@@ -37,36 +45,34 @@ public class CPAWithRefinement {
   private static long part2 = 0;
   private static long part3 = 0;
   private static long part4 = 0;
+
   public ReachedElements CPAWithRefinementAlgorithm(CFAMap pCfas, ConfigurableProgramAnalysis cpa, 
       AbstractElementWithLocation initialElement,
       Precision initialPrecision) throws CPAException{
-    if(!(cpa instanceof RefinableCPA)) {
-      throw new CPAException("Need refinable CPA for refinement algorithm");
-    }
-
     ReachedElements reached = null;
-//  CPAAlgorithm algo = new CPAAlgorithm(cpa, initialElement, initialPrecision);
+    CPAAlgorithm algo = new CPAAlgorithm(cpa, initialElement, initialPrecision);
     boolean stopAnalysis = false;
     while(!stopAnalysis){
       // TODO if we want to restart
-      CPAAlgorithm algo = new CPAAlgorithm(cpa, initialElement, initialPrecision);
-      ((ARTElement)initialElement).clearChildren();
-//      System.out.println("initial element has " + ((ARTElement)initialElement).getChildren().size());
+//    CPAAlgorithm algo = new CPAAlgorithm(cpa, initialElement, initialPrecision);
+//    ((ARTElement)initialElement).clearChildren();
       try {
         reached = algo.CPA();
       } catch (CPAException e) {
         e.printStackTrace();
       }
-      
+      if(!(cpa instanceof RefinableCPA)) {
+        throw new CPAException();
+      }
+
       // if the element is an error element
-      if (reached.getLastElement().isError()) {
+      if(CPAAlgorithm.errorFound){
         RefinableCPA refinableCpa = (RefinableCPA)cpa;
         RefinementManager refinementManager = refinableCpa.getRefinementManager();
 
         assert(reached != null);
         long startRef = System.currentTimeMillis();
-//        System.out.println(" =========================== REFINEMENT =============================== ");
-//        dumpErrorPathToDotFile(reached, "/localhome/erkan/refpath.dot");
+
         RefinementOutcome refout = refinementManager.performRefinement(reached, null);
         long endRef = System.currentTimeMillis();
         refinementTime = refinementTime + (endRef  - startRef);
@@ -75,21 +81,23 @@ public class CPAWithRefinement {
         if(stopAnalysis){
           System.out.println("ERROR FOUND");
           List<CFAEdge> errorPath = buildErrorPath(reached);
+          System.out.println("________ ERROR PATH ____________");
           // TODO make this optional
-          if (CPAMain.cpaConfig.getBooleanValue("analysis.useCBMC")) {
-            System.out.println("________ ERROR PATH ____________");
-            int cbmcRes = CProver.checkSat(AbstractPathToCTranslator.translatePaths(pCfas, errorPath));
-            if(cbmcRes == 10){
-              System.out.println("CBMC comfirms the bug");
-            }
-            else if(cbmcRes == 0){
-              System.out.println("CBMC thinks this path contains no bug");
-  //          reached.setLastElementToFalse();
-  //          CPAAlgorithm.errorFound = false;
-  //          stopAnalysis = false;
-            }
-            System.out.println("________________________________");
+          int cbmcRes = CProver.checkSat(AbstractPathToCTranslator.translatePaths(pCfas, errorPath));
+          if(cbmcRes == 10){
+            System.out.println("CBMC comfirms the bug");
           }
+          else if(cbmcRes == 0){
+            System.out.println("CBMC thinks this path contains no bug");
+//          reached.setLastElementToFalse();
+//          CPAAlgorithm.errorFound = false;
+//          stopAnalysis = false;
+          }
+          // TODO make this optional too
+//        System.out.println("element");
+//        System.out.println(reached.getLastElement());
+//        dumpErrorPathToDotFile(reached, "/localhome/erkan/errorpath.dot", null);
+          System.out.println("________________________________");
         }
         else{
           long start = System.currentTimeMillis();
@@ -102,6 +110,9 @@ public class CPAWithRefinement {
       else {
         // TODO safe -- print reached elements
         System.out.println("ERROR label NOT reached");
+        System.out.println("_______________________");
+        // TODO optional
+//      dumpErrorPathToDotFile(reached, "/localhome/erkan/safepath.dot");
         stopAnalysis = true;
       }
 
@@ -136,6 +147,88 @@ public class CPAWithRefinement {
 //  System.out.println("total merge time .. " + SymbPredAbsMergeOperator.totalMergeTime);
     System.out.println();
     return reached;
+  }
+
+  private void dumpErrorPathToDotFile(ReachedElements pReached, String outfile, ARTElement firstElement) {
+    if(firstElement == null){
+      firstElement = (ARTElement)pReached.getFirstElement();
+    }
+    Deque<ARTElement> worklist = new LinkedList<ARTElement>();
+    Set<Integer> nodesList = new HashSet<Integer>();
+    Set<ARTElement> processed = new HashSet<ARTElement>();
+    String s = "";
+    PrintWriter out = null;
+    try {
+      out = new PrintWriter(new File(outfile));
+    } catch (FileNotFoundException e) {
+      e.printStackTrace();
+    }
+    out.println("digraph ART {");
+    out.println("style=filled; color=lightgrey; ");
+
+    worklist.add(firstElement);
+
+    while(worklist.size() != 0){
+      ARTElement currentElement = worklist.removeLast();
+      if(processed.contains(currentElement)){
+        continue;
+      }
+      processed.add(currentElement);
+      if(!nodesList.contains(currentElement.getElementId())){
+        SymbPredAbsAbstractElement symbpredabselem = (SymbPredAbsAbstractElement)currentElement.retrieveElementOfType("SymbPredAbsAbstractElement");
+        if(symbpredabselem == null){
+          out.println("node [shape = diamond, color = blue, style = filled, label=" +  
+              (currentElement.getLocationNode()==null ? 0 : currentElement.getLocationNode().getNodeNumber()) + "000" + currentElement.getElementId() +"] " + currentElement.getElementId() + ";");
+        }
+        else{
+          if(symbpredabselem.isAbstractionNode()){
+            if(currentElement.isCovered()){
+              out.println("node [shape = diamond, color = green, style = filled, label=" +  currentElement.getLocationNode().getNodeNumber() + "000" + currentElement.getElementId() +"] " + currentElement.getElementId() + ";");
+            }
+            else{
+              out.println("node [shape = diamond, color = red, style = filled, label=" +  currentElement.getLocationNode().getNodeNumber() + "000" + currentElement.getElementId() +"] " + currentElement.getElementId() + ";");
+            }
+          }
+          else{
+            if(currentElement.isCovered()){
+              out.println("node [shape = diamond, color = green, style = filled, label=" +  currentElement.getLocationNode().getNodeNumber() + "000" + currentElement.getElementId() +"] " + currentElement.getElementId() + ";");
+            }
+            else{
+              out.println("node [shape = diamond, color = white, style = filled, label=" +  currentElement.getLocationNode().getNodeNumber() + "000" + currentElement.getElementId() +"] " + currentElement.getElementId() + ";");
+            }
+          }
+        }
+        nodesList.add(currentElement.getElementId());
+      }
+      for(ARTElement child : currentElement.getChildren()){
+        CFAEdge edge = getEdgeBetween(currentElement, child);
+        s = s + (currentElement.getElementId() + " -> " + child.getElementId()
+            + " [label=\"" + edge + "\"];\n");
+        if(!worklist.contains(child)){
+          worklist.add(child);
+        }
+      }
+    }
+
+    out.println(s);
+    out.println("}");
+    out.flush();
+    out.close();
+  }
+
+  private static CFAEdge getEdgeBetween(ARTElement pCurrentElement,
+      ARTElement pChild) {
+    CFAEdge writeEdge = null;
+    CFANode childNode = pChild.getLocationNode();
+    if(childNode != null){
+      for(int i=0; i<childNode.getNumEnteringEdges(); i++){
+        CFAEdge edge = childNode.getEnteringEdge(i);
+        if(pCurrentElement.getLocationNode().getNodeNumber() == edge.getPredecessor().getNodeNumber()){
+          writeEdge = edge;
+        }
+      }
+    }
+    return writeEdge;
   }
 
   private List<CFAEdge> buildErrorPath(ReachedElements pReached) {
@@ -181,11 +274,11 @@ public class CPAWithRefinement {
       Collection<ARTElement> reachableToUndo,
       Collection<ARTElement> toWaitlist, AbstractElementWithLocation pRoot) {
 
-    // TODO if starting from nothing, do not bother
+    // TODO if starting from nothing, do not bother calling this
     Collection<Pair<AbstractElementWithLocation, Precision>> reachedSet = 
       pAlgorithm.getReachedElements().getReached();
-//  List<Pair<AbstractElementWithLocation, Precision>> waitlist = 
-//  pAlgorithm.getWaitlist();
+    Collection<Pair<AbstractElementWithLocation, Precision>> waitList = 
+      pAlgorithm.getWaitlist();
 
     List<Pair<AbstractElementWithLocation, Precision>> lToWaitlist = new ArrayList<Pair<AbstractElementWithLocation, Precision>>(toWaitlist.size());
     Map<AbstractElementWithLocation, Pair<AbstractElementWithLocation, Precision>> lNewWaitToPrecision = new HashMap<AbstractElementWithLocation, Pair<AbstractElementWithLocation, Precision>>();
@@ -219,6 +312,7 @@ public class CPAWithRefinement {
     for (AbstractElementWithLocation w : toWaitlist) {
       if (lNewWaitToPrecision.containsKey(w)) {
         lToWaitlist.add(lNewWaitToPrecision.get(w));
+        newreached.add(lNewWaitToPrecision.get(w));
       } else {
         // TODO no precision information from toWaitlist available, setting to null
         Pair<AbstractElementWithLocation, Precision> e = new Pair<AbstractElementWithLocation, Precision>(w, null);
@@ -235,6 +329,17 @@ public class CPAWithRefinement {
 
     LazyLogger.log(CustomLogLevel.SpecificCPALevel, "Adding elements: ", lToWaitlist, " to waitlist");
 
+    List<Pair<AbstractElementWithLocation, Precision>> removeFromWaitlist = new LinkedList<Pair<AbstractElementWithLocation,Precision>>();
+
+    for(Pair<AbstractElementWithLocation, Precision> p: waitList){
+      AbstractElementWithLocation elem = p.getFirst();
+      if(reachableToUndo.contains(elem)){
+        removeFromWaitlist.add(p);
+      }
+    }
+
+    pAlgorithm.removeAllFromWaitlist(removeFromWaitlist);
+
     if (useBfs) {
       pAlgorithm.addAllToWaitlist(lToWaitlist);
     }
@@ -250,6 +355,8 @@ public class CPAWithRefinement {
       System.gc();
       gcCounter = 0;
     }
+    // we can get rid of children of root because we're clearing them from the
+    // reached set
     ((ARTElement)pRoot).clearChildren();
   }
 }

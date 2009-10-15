@@ -140,7 +140,7 @@ public class SymbPredAbsRefinementManager implements RefinementManager{
       }
 
       CFANode loc = ((SymbPredAbsAbstractElement)firstInterpolant).getAbstractionLocation(); 
-      root = artCpa.findHighest(loc);
+      root = artCpa.findHighest(lastElem, loc);
     }
     else{
       long start = System.currentTimeMillis();
@@ -161,7 +161,7 @@ public class SymbPredAbsRefinementManager implements RefinementManager{
     Collection<ARTElement> toWaitlist = new HashSet<ARTElement>();
     toWaitlist.add(root);
     Collection<ARTElement> toUnreach = root.getSubtree();
-//  SummaryCPA cpa = domain.getCPA();
+
     for (ARTElement ae : toUnreach) {
       if (ae.isCovered()) {
         ae.setCovered(false);
@@ -180,19 +180,17 @@ public class SymbPredAbsRefinementManager implements RefinementManager{
           i.remove();
           SymbPredAbsAbstractElement elem = (SymbPredAbsAbstractElement)e.retrieveElementOfType("SymbPredAbsAbstractElement");
           if(elem.isAbstractionNode()){
-            // TODO check
-//            toWaitlist.add(e.getParent());
+//            // TODO check
+            toWaitlist.add(e.getParent());
+            // we add to unreach in modifySets, no need to add here
+//            System.out.println("adding " + e.getParent());
 //            toUnreach.add(e);
           }
         }
       }
     }
+    
     return new RefinementOutcome(true, toUnreach, toWaitlist, root);
-
-//  LazyLogger.log(LazyLogger.DEBUG_1, "REFINEMENT - toWaitlist: ", root);
-//  LazyLogger.log(LazyLogger.DEBUG_1, "REFINEMENT - toUnreach: ",
-//  toUnreach);
-//  throw new RefinementNeededException(toUnreach, toWaitlist);
   }
 
   private ARTElement findARTElementof(
@@ -216,12 +214,6 @@ public class SymbPredAbsRefinementManager implements RefinementManager{
       if(!workList.contains(currentElement.getParent())){
         workList.add(currentElement.getParent());
       }
-
-//    if(currentElement.getSecondParent() != null){
-//    if(!workList.contains(currentElement.getSecondParent())){
-//    workList.add(currentElement.getSecondParent());
-//    }
-//    }
     }
     // no such element
     return null;

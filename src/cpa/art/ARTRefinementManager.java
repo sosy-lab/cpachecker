@@ -31,6 +31,7 @@ public class ARTRefinementManager implements RefinementManager {
 
     // build the path here
     ARTElement lastARTElement = (ARTElement) lastElement;
+    
     Path path = new Path();
 
     ARTElement currentARTElement = lastARTElement;

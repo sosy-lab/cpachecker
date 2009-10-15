@@ -1,5 +1,8 @@
 package cpa.art;
 
+import java.util.List;
+import java.util.Set;
+
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
@@ -38,20 +41,29 @@ public class ARTMergeJoin implements MergeOperator {
     }
     ARTElement parent1 = ((ARTElement)pElement1).getParent();
     ARTElement parent2 = ((ARTElement)pElement2).getParent();
-//    System.out.println("parent1 clearing");
-    parent1.clearChildren();
-    if(parent2 == null){
-      System.out.println("element 2 is " + ((ARTElement)pElement2));
-      assert(false);
-    }
-//    System.out.println("parent2 clearing");
-    parent2.clearChildren();
+
+    assert(parent1.removeFromChildren(((ARTElement)pElement1)));
+    assert(parent2.removeFromChildren(((ARTElement)pElement2)));
 
     AbstractDomain domain = ((ARTElement)pElement1).getDomain();
     ARTElement newElement = new ARTElement(domain, retElement, parent1);
     if(!parent1.equals(parent2)){
       newElement.addAdditionalParent(parent2);
     }
+    
+    Set<ARTElement> otherParents1 = ((ARTElement)pElement1).getAdditionalParents();
+    Set<ARTElement> otherParents2 = ((ARTElement)pElement2).getAdditionalParents();
+    
+    for(ARTElement otherParent: otherParents1){
+      assert(otherParent.removeFromChildren(((ARTElement)pElement1)));
+      newElement.addAdditionalParent(otherParent);
+    }
+    
+    for(ARTElement otherParent: otherParents2){
+      assert(otherParent.removeFromChildren(((ARTElement)pElement2)));
+      newElement.addAdditionalParent(otherParent);
+    }
+    
     // TODO new mark or max mark of two elements?
     newElement.setMark();
 //  newElement.setMark(Math.max(((ARTElement)pElement1).getMark(), ((ARTElement)pElement2).getMark()));
