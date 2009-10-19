@@ -18,49 +18,29 @@ import exceptions.CPAException;
 
 public class ErrorLocationCPA implements ConfigurableProgramAnalysis {
 
-  private static class ErrorLocationElement implements AbstractElement {
+  private static enum ErrorLocationElement implements AbstractElement {
+    
+    NORMAL(false),
+    ERROR(true),
+    TOP(true),
+    BOTTOM(false);
+    
+    private final boolean isError;
+    
+    private ErrorLocationElement(boolean isError) {
+      this.isError = isError;
+    }
+    
     @Override
     public String toString() {
-      return "[]";
+      return "<" + super.toString() + ">";
     }
     
     @Override
     public boolean isError() {
-      return false;
+      return isError;
     }
   }
-  
-  private static final ErrorLocationElement initialElement = new ErrorLocationElement();
-  
-  private static final ErrorLocationElement bottomElement = new ErrorLocationElement() {
-    
-    @Override
-    public String toString() {
-      return "<ErrorLocation BOTTOM>";
-    }
-  };
-  
-  private static final ErrorLocationElement topElement = new ErrorLocationElement() {
-    
-    @Override
-    public String toString() {
-      return "<ErrorLocation TOP>";
-    }
-  };
-  
-  private static final ErrorLocationElement errorElement = new ErrorLocationElement() {
-    
-    @Override
-    public String toString() {
-      return "<ErrorLocation ERROR>";
-    }
-    
-    @Override
-    public boolean isError() {
-      return true;
-    }
-  };
-  
   
   private static final MergeOperator mergeOperator = new MergeOperator() {
 
@@ -106,7 +86,11 @@ public class ErrorLocationCPA implements ConfigurableProgramAnalysis {
     @Override
     public AbstractElement join(AbstractElement element1,
                                 AbstractElement element2) throws CPAException {
-      return element1;
+      if (element1 == element2) {
+        return element1;
+      } else {
+        return ErrorLocationElement.TOP;
+      }
     }
   };
   
@@ -115,15 +99,13 @@ public class ErrorLocationCPA implements ConfigurableProgramAnalysis {
     @Override
     public boolean satisfiesPartialOrder(AbstractElement newElement,
                                          AbstractElement reachedElement) throws CPAException {
-      if (newElement == bottomElement || reachedElement == topElement) {
+      if (newElement == reachedElement) {
         return true;
-      } else if (reachedElement == bottomElement) {
-        assert false : "Bottom element should never be in the reached set";
-        return false;
-      } else if (newElement == topElement) {
+      } else if (newElement == ErrorLocationElement.BOTTOM || reachedElement == ErrorLocationElement.TOP) {
+        return true;
+      } else {
         return false;
       }
-      return newElement == reachedElement;
     }
   };
   
@@ -131,11 +113,11 @@ public class ErrorLocationCPA implements ConfigurableProgramAnalysis {
     
     @Override
     public AbstractElement getBottomElement() {
-      return bottomElement;
+      return ErrorLocationCPA.ErrorLocationElement.BOTTOM;
     }
     
     public AbstractElement getErrorElement() {
-      return errorElement;
+      return ErrorLocationCPA.ErrorLocationElement.ERROR;
     }
     
     @Override
@@ -150,7 +132,7 @@ public class ErrorLocationCPA implements ConfigurableProgramAnalysis {
         
     @Override
     public AbstractElement getTopElement() {
-      return topElement;
+      return ErrorLocationCPA.ErrorLocationElement.TOP;
     }
   };
   
@@ -167,7 +149,7 @@ public class ErrorLocationCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
-    return initialElement;
+    return ErrorLocationElement.NORMAL;
   }
 
   @Override
