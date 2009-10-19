@@ -31,7 +31,7 @@ import java.util.Map;
 import java.util.Set;
 
 import cfa.objectmodel.CFANode;
-import cpa.common.CPAAlgorithm;
+import cpa.common.algorithm.CPAAlgorithm;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.Precision;
 

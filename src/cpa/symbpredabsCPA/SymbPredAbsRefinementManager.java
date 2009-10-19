@@ -23,9 +23,9 @@ import cpa.art.ARTCPA;
 import cpa.art.ARTDomain;
 import cpa.art.ARTElement;
 import cpa.art.Path;
-import cpa.common.CPAWithRefinement;
 import cpa.common.ReachedElements;
 import cpa.common.RefinementOutcome;
+import cpa.common.algorithm.CEGARAlgorithm;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.RefinementManager;
 import cpa.symbpredabs.AbstractFormulaManager;
@@ -146,7 +146,7 @@ public class SymbPredAbsRefinementManager implements RefinementManager{
       long start = System.currentTimeMillis();
       root = findARTElementof(symbPredRootElement, pArtPath.lastElement());
       long end = System.currentTimeMillis();
-      CPAWithRefinement.totalfindArtTime= CPAWithRefinement.totalfindArtTime + (end - start);
+      CEGARAlgorithm.totalfindArtTime= CEGARAlgorithm.totalfindArtTime + (end - start);
     }
     if (CPAMain.cpaConfig.getBooleanValue("analysis.bfs")) {
       // TODO When using bfs traversal, we would have to traverse the ART

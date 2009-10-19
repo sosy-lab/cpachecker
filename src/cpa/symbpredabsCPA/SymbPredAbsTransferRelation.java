@@ -42,7 +42,6 @@ import cfa.objectmodel.c.ReturnEdge;
 import common.Pair;
 import common.Triple;
 
-import cpa.common.CPAAlgorithm;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;

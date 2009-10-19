@@ -1,8 +1,8 @@
 package cpa.common;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 
 import cmdline.CPAMain;
@@ -10,21 +10,19 @@ import cmdline.CPAMain;
 import common.LocationMappedReachedSet;
 import common.Pair;
 
-import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElementWithLocation;
-import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;
 
 public class ReachedElements {
   
-  private Collection<Pair<AbstractElementWithLocation,Precision>> reached;
-  private AbstractElementWithLocation lastElement;
-  private AbstractElementWithLocation firstElement;
-  private ConfigurableProgramAnalysis cpa;
+  private Collection<Pair<AbstractElementWithLocation, Precision>> reached;
+  private AbstractElementWithLocation lastElement = null;
+  private AbstractElementWithLocation firstElement = null;
+  private List<Pair<AbstractElementWithLocation, Precision>> waitlist;
   
-  public ReachedElements(ConfigurableProgramAnalysis cpa) {
-    this.cpa = cpa;
+  public ReachedElements() {
     reached = createReachedSet();
+    waitlist = new LinkedList<Pair<AbstractElementWithLocation, Precision>>();
   }
   
   private Collection<Pair<AbstractElementWithLocation,Precision>> createReachedSet() {
@@ -34,33 +32,87 @@ public class ReachedElements {
     return new HashSet<Pair<AbstractElementWithLocation,Precision>>();
   }
 
-  public void add(Pair<AbstractElementWithLocation, Precision> pPair) {
-    if(reached.size() == 0){
-      firstElement = pPair.getFirst();
+  public void add(Pair<AbstractElementWithLocation, Precision> pair) {
+    if (reached.size() == 0) {
+      firstElement = pair.getFirst();
     }
-    reached.add(pPair);
-    lastElement = pPair.getFirst();
+    reached.add(pair);
+    lastElement = pair.getFirst();
+    waitlist.add(pair);
   }
 
+
+  public boolean addAll(List<Pair<AbstractElementWithLocation, Precision>> toAdd) {
+//    if (CPAMain.cpaConfig.getBooleanValue("analysis.bfs")) {
+    waitlist.addAll(toAdd);
+//    } else {
+//      waitlist.addAll(0, toAdd);
+//    }
+    return reached.addAll(toAdd);
+
+  }
+  
+  private boolean remove(Pair<AbstractElementWithLocation, Precision> toRemove) {
+    int hc = toRemove.hashCode();
+    if (hc == firstElement.hashCode() && toRemove.equals(firstElement)) {
+      firstElement = null;
+    }
+    if (hc == lastElement.hashCode() && toRemove.equals(lastElement)) {
+      lastElement = null;
+    }
+    waitlist.remove(toRemove);
+    return reached.remove(toRemove);
+  }
+  
+  public void removeAll(Collection<Pair<AbstractElementWithLocation, Precision>> toRemove) {
+    for (Pair<AbstractElementWithLocation, Precision> pair : toRemove) {
+      remove(pair);
+    }
+  }
+  
+  public void clear() {
+    firstElement = null;
+    lastElement = null;
+    waitlist.clear();
+    reached.clear();
+  }
+  
   public Collection<Pair<AbstractElementWithLocation, Precision>> getReached() {
     return reached;
+  }
+
+  public AbstractElementWithLocation getFirstElement() {
+    return firstElement;
   }
 
   public AbstractElementWithLocation getLastElement() {
     return lastElement;
   }
+  
+  public boolean hasWaitingElement() {
+    return !waitlist.isEmpty();
+  }
+  
+  public Pair<AbstractElementWithLocation,Precision> popFromWaitlist() {
+    Pair<AbstractElementWithLocation,Precision> result = null;
 
-  public Collection<AbstractElementWithLocation> getReachedWithElements(){
-    ArrayList<AbstractElementWithLocation> simpleReached = 
-      new ArrayList<AbstractElementWithLocation>();
+    if(CPAMain.cpaConfig.getBooleanValue("analysis.topSort")) {
+      for (Pair<AbstractElementWithLocation,Precision> currentElement : waitlist) {
+        if ((result == null) 
+            || (currentElement.getFirst().getLocationNode().getTopologicalSortId() >
+                      result.getFirst().getLocationNode().getTopologicalSortId())) {
+          result = currentElement;
+        }
+      }
     
-    for(Pair<AbstractElementWithLocation,Precision> p:reached){
-      AbstractElementWithLocation absEl = p.getFirst();
-      simpleReached.add(absEl);
+    } else if (CPAMain.cpaConfig.getBooleanValue("analysis.bfs")) {
+      result = waitlist.get(0);
+      
+    } else {
+      result = waitlist.get(waitlist.size()-1);
     }
-    
-    return simpleReached;
-    
+    waitlist.remove(result);
+    return result;
   }
   
   public int size() {
@@ -72,38 +124,10 @@ public class ReachedElements {
       AbstractElementWithLocation absEl = p.getFirst();
       System.out.println(absEl);
     }
-    
   }
   
   @Override
-  public String toString() {
-    
+  public String toString() {   
     return reached.toString();
-    
-  }
-  
-  public void setLastElementToFalse(){
-    AbstractDomain domain = this.cpa.getAbstractDomain();
-    lastElement = (AbstractElementWithLocation)domain.getBottomElement(); 
-  }
-
-  public void buildNewReachedSet(
-      Collection<Pair<AbstractElementWithLocation, Precision>> pNewreached) {
-    reached.clear();
-    reached.addAll(pNewreached);
-    lastElement = null;
-  }
-
-  public AbstractElementWithLocation getFirstElement() {
-    return firstElement;
-  }
-
-  public boolean removeAll(
-      List<Pair<AbstractElementWithLocation, Precision>> pToRemove) {
-    return reached.removeAll(pToRemove);
-  }
-
-  public boolean addAll(List<Pair<AbstractElementWithLocation, Precision>> pToAdd) {
-    return reached.addAll(pToAdd);
   }
 }

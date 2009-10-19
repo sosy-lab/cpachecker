@@ -73,9 +73,11 @@ import compositeCPA.CompositeStopOperator;
 
 import cpa.art.ARTCPA;
 import cpa.art.ARTElement;
-import cpa.common.CPAAlgorithm;
-import cpa.common.CPAWithRefinement;
 import cpa.common.ReachedElements;
+import cpa.common.algorithm.Algorithm;
+import cpa.common.algorithm.CBMCAlgorithm;
+import cpa.common.algorithm.CEGARAlgorithm;
+import cpa.common.algorithm.CPAAlgorithm;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;
@@ -429,20 +431,28 @@ public class CPAMain {
         cpa = ARTCPA.getARTCPA(mainFunction, cpa);  // wrap CPA with ARTCPA
       }
       
+      // create algorithm
+      Algorithm algorithm = new CPAAlgorithm(cpa);
+      
+      if (CPAMain.cpaConfig.getBooleanValue("analysis.useRefinement")) {
+        algorithm = new CEGARAlgorithm(algorithm);
+      }
+      
+      if (CPAMain.cpaConfig.getBooleanValue("analysis.useCBMC")) {
+        algorithm = new CBMCAlgorithm(cfas, algorithm);
+      }
+      
       AbstractElementWithLocation initialElement = cpa.getInitialElement(mainFunction);
       Precision initialPrecision = cpa.getInitialPrecision(mainFunction);
-      ReachedElements reached;
+      Pair<AbstractElementWithLocation, Precision> initialPair
+          = new Pair<AbstractElementWithLocation, Precision>(initialElement, initialPrecision);
+      ReachedElements reached = new ReachedElements();
+      reached.add(initialPair);
 
       LazyLogger.log(CustomLogLevel.MainApplicationLevel, "CPA Algorithm starting ... ");
       cpaStats.startAnalysisTimer();
       
-      if (CPAMain.cpaConfig.getBooleanValue("analysis.useRefinement")){
-        CPAWithRefinement cpaWRef = new CPAWithRefinement();
-        reached = cpaWRef.CPAWithRefinementAlgorithm(cfas, cpa, initialElement, initialPrecision);
-      } else{
-        CPAAlgorithm algo = new CPAAlgorithm(cpa, initialElement, initialPrecision);
-        reached = algo.CPA();
-      }
+      algorithm.run(reached, false);
       
       cpaStats.stopAnalysisTimer();
       LazyLogger.log(CustomLogLevel.MainApplicationLevel, "CPA Algorithm finished ");
