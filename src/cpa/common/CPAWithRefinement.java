@@ -61,7 +61,7 @@ public class CPAWithRefinement {
       }
 
       // if the element is an error element
-      if(CPAAlgorithm.errorFound){
+      if (reached.getLastElement().isError()) {
         RefinableCPA refinableCpa = (RefinableCPA)cpa;
         RefinementManager refinementManager = refinableCpa.getRefinementManager();
 

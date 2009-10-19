@@ -48,7 +48,6 @@ import exceptions.CPATransferException;
 public class CPAAlgorithm
 {
   private boolean stopAfterError = CPAMain.cpaConfig.getBooleanValue("analysis.useRefinement");
-  public static boolean errorFound;
 public static long chooseTime = 0;
   private List<Pair<AbstractElementWithLocation,Precision>> waitlist;
   private ReachedElements reachedElements;
@@ -70,7 +69,6 @@ public static long chooseTime = 0;
 
   public ReachedElements CPA () throws CPAException
   {
-    errorFound = false;
     TransferRelation transferRelation = cpa.getTransferRelation();
     MergeOperator mergeOperator = cpa.getMergeOperator();
     StopOperator stopOperator = cpa.getStopOperator();
@@ -176,7 +174,7 @@ public static long chooseTime = 0;
           waitlist.add(new Pair<AbstractElementWithLocation,Precision>(successor,precision));
           reachedElements.add(new Pair<AbstractElementWithLocation,Precision>(successor,precision));
           
-          if(stopAfterError && errorFound){
+          if(stopAfterError && successor.isError()){
             return reachedElements;
           }
         }
