@@ -12,7 +12,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Stack;
 
 import logging.CustomLogLevel;
 import logging.LazyLogger;
@@ -41,10 +40,6 @@ public class CPAWithRefinement {
   private static long modifySetsTime=0;
   public static long totalfindArtTime =0;
   private static long refinementTime = 0;
-  private static long part1 = 0;
-  private static long part2 = 0;
-  private static long part3 = 0;
-  private static long part4 = 0;
 
   public ReachedElements CPAWithRefinementAlgorithm(CFAMap pCfas, ConfigurableProgramAnalysis cpa, 
       AbstractElementWithLocation initialElement,
@@ -80,39 +75,37 @@ public class CPAWithRefinement {
 
         if(stopAnalysis){
           System.out.println("ERROR FOUND");
-          List<CFAEdge> errorPath = buildErrorPath(reached);
-          System.out.println("________ ERROR PATH ____________");
-          // TODO make this optional
-          int cbmcRes = CProver.checkSat(AbstractPathToCTranslator.translatePaths(pCfas, errorPath));
-          if(cbmcRes == 10){
-            System.out.println("CBMC comfirms the bug");
+          if (CPAMain.cpaConfig.getBooleanValue("analysis.useCBMC")) {
+            List<CFAEdge> errorPath = buildErrorPath(reached);
+            System.out.println("________ ERROR PATH ____________");
+            int cbmcRes = CProver.checkSat(AbstractPathToCTranslator.translatePaths(pCfas, errorPath));
+            if(cbmcRes == 10){
+              System.out.println("CBMC comfirms the bug");
+            }
+            else if(cbmcRes == 0){
+              System.out.println("CBMC thinks this path contains no bug");
+  //          reached.setLastElementToFalse();
+  //          CPAAlgorithm.errorFound = false;
+  //          stopAnalysis = false;
+            }
+            if (CPAMain.cpaConfig.getBooleanValue("reachedPath.export")) {
+              dumpErrorPathToDotFile(reached, CPAMain.cpaConfig.getProperty("reachedPath.file"), null);
+            }
+            System.out.println("________________________________");
           }
-          else if(cbmcRes == 0){
-            System.out.println("CBMC thinks this path contains no bug");
-//          reached.setLastElementToFalse();
-//          CPAAlgorithm.errorFound = false;
-//          stopAnalysis = false;
-          }
-          // TODO make this optional too
-//        System.out.println("element");
-//        System.out.println(reached.getLastElement());
-//        dumpErrorPathToDotFile(reached, "/localhome/erkan/errorpath.dot", null);
-          System.out.println("________________________________");
-        }
-        else{
+        } else {
           long start = System.currentTimeMillis();
           modifySets(algo, refout.getToUnreach(), refout.getToWaitlist(), refout.getRoot());
           long end = System.currentTimeMillis();
           modifySetsTime = modifySetsTime + (end - start);
         }
-      }
-
-      else {
+        
+      } else {
         // TODO safe -- print reached elements
         System.out.println("ERROR label NOT reached");
-        System.out.println("_______________________");
-        // TODO optional
-//      dumpErrorPathToDotFile(reached, "/localhome/erkan/safepath.dot");
+        if (CPAMain.cpaConfig.getBooleanValue("reachedPath.export")) {
+          dumpErrorPathToDotFile(reached, CPAMain.cpaConfig.getProperty("reachedPath.file"), null);
+        }
         stopAnalysis = true;
       }
 
@@ -252,6 +245,8 @@ public class CPAWithRefinement {
     return path;
   }
 
+  @SuppressWarnings("unused")
+  // TODO for what is this method?
   private List<String> buildFunctionCallsToError(ReachedElements pReached) {
     AbstractElement lastElement = pReached.getLastElement();
     ARTElement lastArtElement = (ARTElement)lastElement;
@@ -293,10 +288,7 @@ public class CPAWithRefinement {
       if (toWaitlist.contains(e.getFirst())) {
         lNewWaitToPrecision.put(e.getFirst(), e);
       }
-      long start1 = System.currentTimeMillis();
       if (!reachableToUndo.contains(e.getFirst())) {
-        long start2 = System.currentTimeMillis();
-        part1 = part1 +(start2 - start1);
         newreached.add(e);
       } else {
         LazyLogger.log(CustomLogLevel.SpecificCPALevel,

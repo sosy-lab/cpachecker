@@ -40,7 +40,6 @@ import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
-import cpa.common.interfaces.PrecisionAdjustment;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
 import exceptions.CPAException;
@@ -48,7 +47,7 @@ import exceptions.CPATransferException;
 
 public class CPAAlgorithm
 {
-  private boolean useART = CPAMain.cpaConfig.getBooleanValue("cpa.useART");
+  private boolean stopAfterError = CPAMain.cpaConfig.getBooleanValue("analysis.useRefinement");
   public static boolean errorFound;
 public static long chooseTime = 0;
   private List<Pair<AbstractElementWithLocation,Precision>> waitlist;
@@ -75,7 +74,6 @@ public static long chooseTime = 0;
     TransferRelation transferRelation = cpa.getTransferRelation();
     MergeOperator mergeOperator = cpa.getMergeOperator();
     StopOperator stopOperator = cpa.getStopOperator();
-    PrecisionAdjustment precisionAdjustment = cpa.getPrecisionAdjustment();
 
     while (!waitlist.isEmpty ())
     {
@@ -178,7 +176,7 @@ public static long chooseTime = 0;
           waitlist.add(new Pair<AbstractElementWithLocation,Precision>(successor,precision));
           reachedElements.add(new Pair<AbstractElementWithLocation,Precision>(successor,precision));
           
-          if(useART && errorFound){
+          if(stopAfterError && errorFound){
             return reachedElements;
           }
         }

@@ -1,6 +1,5 @@
 package cpa.art;
 
-import java.util.List;
 import java.util.Set;
 
 import cpa.common.interfaces.AbstractDomain;

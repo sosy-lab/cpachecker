@@ -216,4 +216,9 @@ public class ARTElement implements AbstractElementWithLocation, AbstractWrapperE
   public int getElementId(){
     return elementId;
   }
+
+  @Override
+  public boolean isError() {
+    return element.isError();
+  }
 }

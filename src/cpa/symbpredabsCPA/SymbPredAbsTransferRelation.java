@@ -205,7 +205,6 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     List<Integer> newPfParents = new ArrayList<Integer>();
     newPfParents.add(currentNodeId);
 
-    long newElementStart = System.currentTimeMillis();
     // create the new abstract element for non-abstraction location
     SymbPredAbsAbstractElement newElement = new SymbPredAbsAbstractElement(
         // set 'domain' to domain
