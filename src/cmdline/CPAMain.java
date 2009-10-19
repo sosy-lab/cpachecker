@@ -485,35 +485,35 @@ public class CPAMain {
         continue;
       }
       processed.add(currentElement);
-      if(!nodesList.contains(currentElement.hashCode())){
+      if(!nodesList.contains(currentElement.getElementId())){
         SymbPredAbsAbstractElement symbpredabselem = (SymbPredAbsAbstractElement)currentElement.retrieveElementOfType("SymbPredAbsAbstractElement");
         if(symbpredabselem == null){
           out.println("node [shape = diamond, color = blue, style = filled, label=" +  
-              (currentElement.getLocationNode()==null ? 0 : currentElement.getLocationNode().getNodeNumber()) + "000" + currentElement.hashCode() +"] " + currentElement.hashCode() + ";");
+              (currentElement.getLocationNode()==null ? 0 : currentElement.getLocationNode().getNodeNumber()) + "000" + currentElement.getElementId() +"] " + currentElement.getElementId() + ";");
         }
         else{
           if(symbpredabselem.isAbstractionNode()){
             if(currentElement.isCovered()){
-              out.println("node [shape = diamond, color = green, style = filled, label=" +  currentElement.getLocationNode().getNodeNumber() + "000" + currentElement.hashCode() +"] " + currentElement.hashCode() + ";");
+              out.println("node [shape = diamond, color = green, style = filled, label=" +  currentElement.getLocationNode().getNodeNumber() + "000" + currentElement.getElementId() +"] " + currentElement.getElementId() + ";");
             }
             else{
-              out.println("node [shape = diamond, color = red, style = filled, label=" +  currentElement.getLocationNode().getNodeNumber() + "000" + currentElement.hashCode() +"] " + currentElement.hashCode() + ";");
+              out.println("node [shape = diamond, color = red, style = filled, label=" +  currentElement.getLocationNode().getNodeNumber() + "000" + currentElement.getElementId() +"] " + currentElement.getElementId() + ";");
             }
           }
           else{
             if(currentElement.isCovered()){
-              out.println("node [shape = diamond, color = green, style = filled, label=" +  currentElement.getLocationNode().getNodeNumber() + "000" + currentElement.hashCode() +"] " + currentElement.hashCode() + ";");
+              out.println("node [shape = diamond, color = green, style = filled, label=" +  currentElement.getLocationNode().getNodeNumber() + "000" + currentElement.getElementId() +"] " + currentElement.getElementId() + ";");
             }
             else{
-              out.println("node [shape = diamond, color = white, style = filled, label=" +  currentElement.getLocationNode().getNodeNumber() + "000" + currentElement.hashCode() +"] " + currentElement.hashCode() + ";");
+              out.println("node [shape = diamond, color = white, style = filled, label=" +  currentElement.getLocationNode().getNodeNumber() + "000" + currentElement.getElementId() +"] " + currentElement.getElementId() + ";");
             }
           }
         }
-        nodesList.add(currentElement.hashCode());
+        nodesList.add(currentElement.getElementId());
       }
       for(ARTElement child : currentElement.getChildren()){
         CFAEdge edge = getEdgeBetween(currentElement, child);
-        s = s + (currentElement.hashCode() + " -> " + child.hashCode()
+        s = s + (currentElement.getElementId() + " -> " + child.getElementId()
             + " [label=\"" + edge + "\"];\n");
         if(!worklist.contains(child)){
           worklist.add(child);

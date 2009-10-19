@@ -1,17 +1,11 @@
 package cpa.common;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Deque;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import logging.CustomLogLevel;
 import logging.LazyLogger;
@@ -30,7 +24,6 @@ import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.RefinableCPA;
 import cpa.common.interfaces.RefinementManager;
-import cpa.symbpredabsCPA.SymbPredAbsAbstractElement;
 import exceptions.CPAException;
 
 public class CPAWithRefinement {
@@ -88,9 +81,6 @@ public class CPAWithRefinement {
   //          CPAAlgorithm.errorFound = false;
   //          stopAnalysis = false;
             }
-            if (CPAMain.cpaConfig.getBooleanValue("reachedPath.export")) {
-              dumpErrorPathToDotFile(reached, CPAMain.cpaConfig.getProperty("reachedPath.file"), null);
-            }
             System.out.println("________________________________");
           }
         } else {
@@ -103,125 +93,10 @@ public class CPAWithRefinement {
       } else {
         // TODO safe -- print reached elements
         System.out.println("ERROR label NOT reached");
-        if (CPAMain.cpaConfig.getBooleanValue("reachedPath.export")) {
-          dumpErrorPathToDotFile(reached, CPAMain.cpaConfig.getProperty("reachedPath.file"), null);
-        }
         stopAnalysis = true;
       }
-
     }
-//  System.out.println("total art find time .. " + totalfindArtTime);
-//  System.out.println("modify sets .. " + modifySetsTime);
-//  System.out.println("art element equals .. " + ARTElement.artElementEqualsTime);
-//  System.out.println("ssamap equals .. " + SSAMap.ssaMapEqualsTime );
-//  System.out.println("ssamap hash .. " + SSAMap.ssaMapHashTime);
-//  System.out.println("ssamap get index .. " + SSAMap.ssaGetIndexTime);
-//  System.out.println("findArtElement .. " + totalfindArtTime);
-//  System.out.println("choose .. " + CPAAlgorithm.chooseTime);
-//  System.out.println();
-//  System.out.println("modify sets");
-//  System.out.println("part 1 .. " + part1);
-//  System.out.println("part 2 .. " + part2);
-//  System.out.println("part 3 .. " + part3);
-//  System.out.println("part 4 .. " + part4);
-//  System.out.println("replacing .. " + BDDMathsatSymbPredAbstractionAbstractManager.replacing);
-//  System.out.println();
-//  System.out.println("abstraction time .. " + SymbPredAbsTransferRelation.abstractionTime);
-//  System.out.println("abst time 1: .. " + SymbPredAbsTransferRelation.abstTime1);
-//  System.out.println("abst time 2: .. " + SymbPredAbsTransferRelation.abstTime2);
-//  System.out.println("abst time 3: .. " + SymbPredAbsTransferRelation.abstTime3);
-//  System.out.println();
-//  System.out.println("non abstract time .. " + SymbPredAbsTransferRelation.nonAbstractionTime);
-//  System.out.println("time for pf .." + SymbPredAbsTransferRelation.totalTimeForPFCopmutation);
-//  System.out.println("time for actual pf .. " + SymbPredAbsTransferRelation.totalTimeForActualPfComputation );
-//  System.out.println("time spent for updating ssamap .. " + SymbPredAbsTransferRelation.updateSSATime);
-//  System.out.println("time spent for creating new elements .. " + SymbPredAbsTransferRelation.newElementCreationTime);
-//  System.out.println("refinement time .. " + refinementTime);
-//  System.out.println("total merge time .. " + SymbPredAbsMergeOperator.totalMergeTime);
-    System.out.println();
     return reached;
-  }
-
-  private void dumpErrorPathToDotFile(ReachedElements pReached, String outfile, ARTElement firstElement) {
-    if(firstElement == null){
-      firstElement = (ARTElement)pReached.getFirstElement();
-    }
-    Deque<ARTElement> worklist = new LinkedList<ARTElement>();
-    Set<Integer> nodesList = new HashSet<Integer>();
-    Set<ARTElement> processed = new HashSet<ARTElement>();
-    String s = "";
-    PrintWriter out = null;
-    try {
-      out = new PrintWriter(new File(outfile));
-    } catch (FileNotFoundException e) {
-      e.printStackTrace();
-    }
-    out.println("digraph ART {");
-    out.println("style=filled; color=lightgrey; ");
-
-    worklist.add(firstElement);
-
-    while(worklist.size() != 0){
-      ARTElement currentElement = worklist.removeLast();
-      if(processed.contains(currentElement)){
-        continue;
-      }
-      processed.add(currentElement);
-      if(!nodesList.contains(currentElement.getElementId())){
-        SymbPredAbsAbstractElement symbpredabselem = (SymbPredAbsAbstractElement)currentElement.retrieveElementOfType("SymbPredAbsAbstractElement");
-        if(symbpredabselem == null){
-          out.println("node [shape = diamond, color = blue, style = filled, label=" +  
-              (currentElement.getLocationNode()==null ? 0 : currentElement.getLocationNode().getNodeNumber()) + "000" + currentElement.getElementId() +"] " + currentElement.getElementId() + ";");
-        }
-        else{
-          if(symbpredabselem.isAbstractionNode()){
-            if(currentElement.isCovered()){
-              out.println("node [shape = diamond, color = green, style = filled, label=" +  currentElement.getLocationNode().getNodeNumber() + "000" + currentElement.getElementId() +"] " + currentElement.getElementId() + ";");
-            }
-            else{
-              out.println("node [shape = diamond, color = red, style = filled, label=" +  currentElement.getLocationNode().getNodeNumber() + "000" + currentElement.getElementId() +"] " + currentElement.getElementId() + ";");
-            }
-          }
-          else{
-            if(currentElement.isCovered()){
-              out.println("node [shape = diamond, color = green, style = filled, label=" +  currentElement.getLocationNode().getNodeNumber() + "000" + currentElement.getElementId() +"] " + currentElement.getElementId() + ";");
-            }
-            else{
-              out.println("node [shape = diamond, color = white, style = filled, label=" +  currentElement.getLocationNode().getNodeNumber() + "000" + currentElement.getElementId() +"] " + currentElement.getElementId() + ";");
-            }
-          }
-        }
-        nodesList.add(currentElement.getElementId());
-      }
-      for(ARTElement child : currentElement.getChildren()){
-        CFAEdge edge = getEdgeBetween(currentElement, child);
-        s = s + (currentElement.getElementId() + " -> " + child.getElementId()
-            + " [label=\"" + edge + "\"];\n");
-        if(!worklist.contains(child)){
-          worklist.add(child);
-        }
-      }
-    }
-
-    out.println(s);
-    out.println("}");
-    out.flush();
-    out.close();
-  }
-
-  private static CFAEdge getEdgeBetween(ARTElement pCurrentElement,
-      ARTElement pChild) {
-    CFAEdge writeEdge = null;
-    CFANode childNode = pChild.getLocationNode();
-    if(childNode != null){
-      for(int i=0; i<childNode.getNumEnteringEdges(); i++){
-        CFAEdge edge = childNode.getEnteringEdge(i);
-        if(pCurrentElement.getLocationNode().getNodeNumber() == edge.getPredecessor().getNodeNumber()){
-          writeEdge = edge;
-        }
-      }
-    }
-    return writeEdge;
   }
 
   private List<CFAEdge> buildErrorPath(ReachedElements pReached) {
