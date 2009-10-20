@@ -537,7 +537,7 @@ public class CPAMain {
     out.close();
   }
 
-  private static CFAEdge getEdgeBetween(ARTElement pCurrentElement,
+  public static CFAEdge getEdgeBetween(ARTElement pCurrentElement,
       ARTElement pChild) {
     CFAEdge writeEdge = null;
     CFANode childNode = pChild.getLocationNode();

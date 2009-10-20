@@ -98,26 +98,6 @@ public class CEGARAlgorithm implements Algorithm {
     return;
   }
 
-  @SuppressWarnings("unused")
-  // TODO for what is this method?
-  private List<String> buildFunctionCallsToError(ReachedElements pReached) {
-    AbstractElement lastElement = pReached.getLastElement();
-    ARTElement lastArtElement = (ARTElement)lastElement;
-
-    List<String> path = new ArrayList<String>();
-    ARTElement currentArtElement = lastArtElement;
-
-    while(currentArtElement.getParent() != null){
-      ARTElement parentElement = currentArtElement.getParent();
-      CFANode currentNode = currentArtElement.getLocationNode();
-      if(currentNode instanceof FunctionDefinitionNode){
-        path.add(0, currentNode.getFunctionName());
-      }
-      currentArtElement = parentElement;
-    }
-    return path;
-  }
-
   private void modifySets(Algorithm pAlgorithm,
       ReachedElements reached,
       Collection<ARTElement> reachableToUndo,

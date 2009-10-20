@@ -42,7 +42,7 @@ public class ARTRefinementManager implements RefinementManager {
     path.addToPathAsFirstElem(currentARTElement, lastEdge);
     while(currentARTElement != null){
       CFANode currentNode = currentARTElement.getLocationNode();
-      ARTElement parentElement = currentARTElement.getParent();
+      ARTElement parentElement = currentARTElement.getFirstParent();
       CFANode parentNode = null;
       if(parentElement != null){
         parentNode = parentElement.getLocationNode();

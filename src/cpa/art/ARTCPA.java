@@ -155,8 +155,8 @@ public class ARTCPA implements RefinableCPA {
         if (e.getLocationNode().equals(pLoc)) {
           tempRetVal = e;
         }
-        if (e.getParent() != null) {
-          toProcess.add(e.getParent());
+        if (e.getParents().size() > 0) {
+          toProcess.add(e.getFirstParent());
         }
       }
     }

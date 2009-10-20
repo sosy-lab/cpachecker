@@ -3,6 +3,7 @@ package cpa.art;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -15,11 +16,11 @@ import cpa.common.interfaces.AbstractWrapperElement;
 public class ARTElement implements AbstractElementWithLocation, AbstractWrapperElement{
 
   private AbstractElementWithLocation element;
-  private ARTElement parentElement;
+//  private ARTElement parentElement;
   private Set<ARTElement> children;
   public static long artElementEqualsTime = 0; 
   // additional parents - used for joining elements
-  private Set<ARTElement> additionalParents;
+  private Set<ARTElement> parents;
 
   private int elementId;
   private static int nextArtElementId= 0;
@@ -31,31 +32,31 @@ public class ARTElement implements AbstractElementWithLocation, AbstractWrapperE
   public ARTElement(AbstractDomain pDomain, AbstractElementWithLocation pAbstractElement, ARTElement pParentElement) {
     domain = pDomain;
     element = pAbstractElement;
+    parents = new HashSet<ARTElement>();
     setParent(pParentElement);
     children = new HashSet<ARTElement>();
     elementId = ++nextArtElementId;
     mark = 0;
     covered = false;
-    additionalParents = new HashSet<ARTElement>();
   }
 
   private void setParent(ARTElement pParentElement) {
-    parentElement = pParentElement;
-    if(parentElement != null){
-      parentElement.addToChildrenList(this);
+    if(pParentElement != null){
+      parents.add(pParentElement);
+      pParentElement.addToChildrenList(this);
     }
   }
 
-  public ARTElement getParent(){
-    return parentElement;
+//  public ARTElement getParent(){
+//    return parentElement;
+//  }
+
+  public Set<ARTElement> getParents(){
+    return parents;
   }
 
-  public Set<ARTElement> getAdditionalParents(){
-    return additionalParents;
-  }
-
-  public void addAdditionalParent(ARTElement pOtherParent){
-    if(additionalParents.add(pOtherParent)){
+  public void addParent(ARTElement pOtherParent){
+    if(parents.add(pOtherParent)){
       pOtherParent.addToChildrenList(this);
     }
   }
@@ -134,15 +135,15 @@ public class ARTElement implements AbstractElementWithLocation, AbstractWrapperE
   public String toString() {
     String s = "\n";
     s = s + "ART Element Id: " + elementId + " : Mark: "+ mark +", ";
-    if(parentElement != null){
-      s = s + "Parent Element's Id: " + getParent().elementId + ", ";
-      for(ARTElement additionalParent: additionalParents){
-        s = s + "Add. Parent's Id: " + additionalParent.elementId + ", ";
-      }
-    }
-    else{
-      s = s + "parent is null" + ", ";
-    }
+//    if(parentElement != null){
+//      s = s + "Parent Element's Id: " + getParent().elementId + ", ";
+//      for(ARTElement additionalParent: additionalParents){
+//        s = s + "Add. Parent's Id: " + additionalParent.elementId + ", ";
+//      }
+//    }
+//    else{
+//      s = s + "parent is null" + ", ";
+//    }
     s = s + " CHILDS > " + children.size() + ", ";
     s = s + element;
     return s;
@@ -151,29 +152,6 @@ public class ARTElement implements AbstractElementWithLocation, AbstractWrapperE
   @Override
   public CFANode getLocationNode() {
     return element.getLocationNode();
-  }
-
-  public List<CFANode> getPath(){
-    List<CFANode> path = new ArrayList<CFANode>();
-    CFANode firstNode = element.getLocationNode();
-    path.add(firstNode);
-    ARTElement parent = parentElement;
-    CFANode nextNode = null;
-    while(parent != null){
-      nextNode = parent.getLocationNode();
-      path.add(nextNode);
-      parent = parent.getParent();
-    }
-    return path;
-  }
-
-  public String pathToString(){
-    String s = "";
-    List<CFANode> path = getPath();
-    for(CFANode node:path){
-      s = s + node.toString() + "\n";
-    }
-    return s;
   }
 
   @Override
@@ -220,5 +198,13 @@ public class ARTElement implements AbstractElementWithLocation, AbstractWrapperE
   @Override
   public boolean isError() {
     return element.isError();
+  }
+
+  public ARTElement getFirstParent() {
+    if(parents.size() == 0){
+      return null;
+    }
+    Iterator<ARTElement> it = parents.iterator();
+    return it.next();
   }
 }

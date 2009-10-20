@@ -185,7 +185,8 @@ public class PredicateAbstractionRefinementManager implements RefinementManager 
         if (e.getMark() > root.getMark()) {
           e.setCovered(false);
           i.remove();
-          toWaitlist.add(e.getParent());
+          // TODO adding all parents? check this
+          toWaitlist.addAll(e.getParents());
           toUnreach.add(e);
         }
       }

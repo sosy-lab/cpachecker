@@ -180,16 +180,16 @@ public class SymbPredAbsRefinementManager implements RefinementManager{
           i.remove();
           SymbPredAbsAbstractElement elem = (SymbPredAbsAbstractElement)e.retrieveElementOfType("SymbPredAbsAbstractElement");
           if(elem.isAbstractionNode()){
-//            // TODO check
-            toWaitlist.add(e.getParent());
+            // TODO adding all parents? check this
+            toWaitlist.addAll(e.getParents());
             // we add to unreach in modifySets, no need to add here
-//            System.out.println("adding " + e.getParent());
-//            toUnreach.add(e);
+//          System.out.println("adding " + e.getParent());
+//          toUnreach.add(e);
           }
         }
       }
     }
-    
+
     return new RefinementOutcome(true, toUnreach, toWaitlist, root);
   }
 
@@ -201,7 +201,7 @@ public class SymbPredAbsRefinementManager implements RefinementManager{
 
     ARTElement currentElement = null;
     // get the error element
-    workList.add(((ARTElement)pLastElement.getFirst()).getParent());
+    workList.add(((ARTElement)pLastElement.getFirst()).getFirstParent());
 
     // go backwards
     while(workList.size() > 0){
@@ -211,8 +211,8 @@ public class SymbPredAbsRefinementManager implements RefinementManager{
       if(currentSymbPredElement == pSymbPredRootElement){
         return currentElement;
       }
-      if(!workList.contains(currentElement.getParent())){
-        workList.add(currentElement.getParent());
+      if(!workList.contains(currentElement.getFirstParent())){
+        workList.add(currentElement.getFirstParent());
       }
     }
     // no such element

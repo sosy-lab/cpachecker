@@ -24,7 +24,7 @@
 /**
  * 
  */
-package cpa.common;
+package cpa.common.algorithm.cbmctools;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -52,6 +52,7 @@ import cfa.objectmodel.c.FunctionDefinitionNode;
 import cfa.objectmodel.c.MultiDeclarationEdge;
 import cfa.objectmodel.c.MultiStatementEdge;
 import cfa.objectmodel.c.StatementEdge;
+import cpa.art.ARTElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 
 /**
@@ -62,9 +63,9 @@ public class AbstractPathToCTranslator {
   private static PrintWriter mGlobalThingsWriter = null;
   private static List<String> mFunctionDecls = null;
 
-  public static String translatePaths(CFAMap pCfas, List<CFAEdge> pPath) {
-    assert(pPath != null);
+  public static String translatePaths(CFAMap pCfas, List<ARTElement> elementsOnErrorPath) {
 
+    
     String ret = "";
     // Add the original function declarations to enable read-only use of function pointers;
     // there will be no code for these functions, so they can never be called via the function

@@ -24,7 +24,7 @@
 /**
  * 
  */
-package cpa.common;
+package cpa.common.algorithm.cbmctools;
 
 import java.io.BufferedReader;
 import java.io.File;

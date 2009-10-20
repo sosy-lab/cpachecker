@@ -24,16 +24,18 @@
 package cpa.common.algorithm;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import cfa.CFAMap;
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFANode;
 import cpa.art.ARTCPA;
 import cpa.art.ARTElement;
-import cpa.common.AbstractPathToCTranslator;
-import cpa.common.CProver;
 import cpa.common.ReachedElements;
+import cpa.common.algorithm.cbmctools.AbstractPathToCTranslator;
+import cpa.common.algorithm.cbmctools.CProver;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import exceptions.CPAException;
@@ -46,57 +48,60 @@ public class CBMCAlgorithm implements Algorithm {
   public CBMCAlgorithm(CFAMap cfa, Algorithm algorithm) throws CPAException {
     this.cfa = cfa;
     this.algorithm = algorithm;
-    
+
     if (!(algorithm.getCPA() instanceof ARTCPA)) {
       throw new CPAException("Need ART CPA for CBMC check");
     }
   }
-  
+
   @Override
   public void run(ReachedElements reached, boolean stopAfterError) throws CPAException {
-    
+
     algorithm.run(reached, true);
-    
+
     if (reached.getLastElement().isError()) {
       System.out.println("________ ERROR PATH ____________");
-      
-      List<CFAEdge> errorPath = buildErrorPath(reached);
-      int cbmcRes = CProver.checkSat(AbstractPathToCTranslator.translatePaths(cfa, errorPath));
+
+      List<ARTElement> elementsOnErrorPath = getElementsToErrorPath(reached);
+      int cbmcRes = CProver.checkSat(AbstractPathToCTranslator.translatePaths(cfa, elementsOnErrorPath));
       if(cbmcRes == 10) {
         System.out.println("CBMC comfirms the bug");
         // TODO: if stopAfterError != true, continue analysis
-        
+
       } else if(cbmcRes == 0) {
         System.out.println("CBMC thinks this path contains no bug");
         // TODO: continue analysis
-//          reached.setLastElementToFalse();
-//          CPAAlgorithm.errorFound = false;
-//          stopAnalysis = false;
+//      reached.setLastElementToFalse();
+//      CPAAlgorithm.errorFound = false;
+//      stopAnalysis = false;
       }
       System.out.println("________________________________");
     }
     return;
   }
-  
-  private List<CFAEdge> buildErrorPath(ReachedElements pReached) {
+
+  private List<ARTElement> getElementsToErrorPath(ReachedElements pReached) {
     AbstractElement lastElement = pReached.getLastElement();
     ARTElement lastArtElement = (ARTElement)lastElement;
 
-    List<CFAEdge> path = new ArrayList<CFAEdge>();
-    ARTElement currentArtElement = lastArtElement;
+    List<ARTElement> waitlist = new ArrayList<ARTElement>();
+    List<ARTElement> elements = new ArrayList<ARTElement>();
+    Set<ARTElement> processed = new HashSet<ARTElement>();
 
-    while(currentArtElement.getParent() != null){
-      ARTElement parentElement = currentArtElement.getParent();
-      CFANode currentNode = currentArtElement.getLocationNode();
-      for(int i=0; i<currentNode.getNumEnteringEdges(); i++){
-        CFAEdge edge = currentNode.getEnteringEdge(i);
-        if(parentElement.getLocationNode().getNodeNumber() == edge.getPredecessor().getNodeNumber()){
-          path.add(0, edge);
+    waitlist.add(lastArtElement);
+
+    while(waitlist.size() > 0){
+      ARTElement currentElement = waitlist.remove(0);
+      processed.add(currentElement);
+      elements.add(currentElement);
+
+      for(ARTElement parent: currentElement.getParents()){
+        if(!processed.contains(parent)){
+          waitlist.add(parent);
         }
       }
-      currentArtElement = parentElement;
     }
-    return path;
+    return elements;
   }
 
   @Override
