@@ -29,8 +29,6 @@ import java.util.List;
 import java.util.Set;
 
 import cfa.CFAMap;
-import cfa.objectmodel.CFAEdge;
-import cfa.objectmodel.CFANode;
 import cpa.art.ARTCPA;
 import cpa.art.ARTElement;
 import cpa.common.ReachedElements;

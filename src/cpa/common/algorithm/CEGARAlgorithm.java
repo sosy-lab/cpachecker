@@ -1,3 +1,26 @@
+/*
+ *  CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker. 
+ *
+ *  Copyright (C) 2007-2008  Dirk Beyer and Erkan Keremoglu.
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://www.cs.sfu.ca/~dbeyer/CPAchecker/
+ */
 package cpa.common.algorithm;
 
 import java.util.ArrayList;
@@ -8,8 +31,6 @@ import java.util.Map;
 
 import logging.CustomLogLevel;
 import logging.LazyLogger;
-import cfa.objectmodel.CFANode;
-import cfa.objectmodel.c.FunctionDefinitionNode;
 import cmdline.CPAMain;
 
 import common.Pair;
@@ -17,7 +38,6 @@ import common.Pair;
 import cpa.art.ARTElement;
 import cpa.common.ReachedElements;
 import cpa.common.RefinementOutcome;
-import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.RefinableCPA;
@@ -26,13 +46,14 @@ import exceptions.CPAException;
 
 public class CEGARAlgorithm implements Algorithm {
 
-  private final int GC_PERIOD = 100;
+  private static final int GC_PERIOD = 100;
   private int gcCounter = 0;
+
   private static long modifySetsTime=0;
   public static long totalfindArtTime =0;
   private static long refinementTime = 0;
 
-  private Algorithm algorithm;
+  private final Algorithm algorithm;
   private final RefinableCPA cpa;
   
   public CEGARAlgorithm(Algorithm algorithm) throws CPAException {
@@ -49,7 +70,7 @@ public class CEGARAlgorithm implements Algorithm {
 
     boolean stopAnalysis = false;
     
-    while(!stopAnalysis){
+    while (!stopAnalysis) {
       // run algorithm
       algorithm.run(reached, true);
 
@@ -146,7 +167,6 @@ public class CEGARAlgorithm implements Algorithm {
     // reached set
     ((ARTElement)pRoot).clearChildren();
   }
-
 
   private void runGC() {
     if ((++gcCounter % GC_PERIOD) == 0) {
