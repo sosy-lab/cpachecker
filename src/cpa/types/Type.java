@@ -21,7 +21,11 @@ public interface Type {
    * Get the size of an element of the type, just like the sizeof-Operator in C.
    */
   public int sizeOf(); 
-
+  
+  /**
+   * Get a String representation of the full definition of the type.
+   */
+  public String getDefinition();
   
 
   /**
@@ -337,9 +341,17 @@ public static final class ArrayType extends AbstractType {
     
     @Override
     public String toString() {
+      if (isConst()) {
+        return "const " + name;
+      } else {
+        return name;
+      }
+    }
+    
+    @Override
+    public String getDefinition() {
       StringBuffer sb = new StringBuffer();
-      sb.append(" ");
-      sb.append(name);
+      sb.append(toString());
       sb.append(" { ");
       for (String member : members.keySet()) {
         sb.append(members.get(member));
@@ -348,8 +360,7 @@ public static final class ArrayType extends AbstractType {
         sb.append("; ");
       }
       sb.append("}");
-      return sb.toString();
-    }
+      return sb.toString();    }
   }
 
   public static final class StructType extends CompositeType {
@@ -391,13 +402,6 @@ public static final class ArrayType extends AbstractType {
     public boolean equals(Object obj) {
       return (obj instanceof StructType) && super.equals(obj);
     }
-    
-    @Override
-    public String toString() {
-      return (isConst() ? "const " : "")
-           + "struct"
-           + super.toString();
-    }
   }
 
   public static final class UnionType extends CompositeType {
@@ -428,13 +432,6 @@ public static final class ArrayType extends AbstractType {
     @Override
     public boolean equals(Object obj) {
       return (obj instanceof UnionType) && super.equals(obj);
-    }
-    
-    @Override
-    public String toString() {
-      return (isConst() ? "const " : "")
-           + "union"
-           + super.toString();
     }
   }
 
@@ -500,12 +497,17 @@ public static final class ArrayType extends AbstractType {
     
     @Override
     public String toString() {
-      StringBuffer sb = new StringBuffer();
       if (isConst()) {
-        sb.append("const ");
-      }
-      sb.append("enum ");
-      sb.append(name);
+        return "const " + name;
+      } else {
+        return name;
+      }      
+    }
+    
+    @Override
+    public String getDefinition() {
+      StringBuffer sb = new StringBuffer();
+      sb.append(toString());
       sb.append(" { ");
       int lastValue = -1;
       for (String enumerator : enumerators.keySet()) {
@@ -606,6 +608,11 @@ public static final class ArrayType extends AbstractType {
     
     @Override
     public String toString() {
+      return name + "()";
+    }
+    
+    @Override
+    public String getDefinition() {
       StringBuffer sb = new StringBuffer();
       sb.append(returnType);
       sb.append(" ");
@@ -649,6 +656,11 @@ public static final class ArrayType extends AbstractType {
     
     public boolean equals(Type other) {
       return (other != null) && (isConst() == other.isConst());
+    }
+    
+    @Override
+    public String getDefinition() {
+      return toString();
     }
   }
 }

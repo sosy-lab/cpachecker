@@ -269,6 +269,17 @@ public class TypesTransferRelation implements TransferRelation {
         throw new TransferRelationException("Unhandled case: " + declSpecifier.getRawSignature());
       }
       
+      if (element.getTypedefs().containsKey(name)) {
+        // previous forward declaration exists
+        compType = (CompositeType)element.getTypedef(name);
+        if (!compType.getMembers().isEmpty()) {
+          throw new IllegalStateException("Redeclaration of type " + name);
+        }
+      
+      } else {
+        element.addTypedef(name, compType); // add type "struct a"
+      }
+      
       for (IASTDeclaration subDeclaration : compositeSpecifier.getMembers()) {
         if (subDeclaration instanceof IASTSimpleDeclaration) {
           IASTSimpleDeclaration simpleSubDeclaration = (IASTSimpleDeclaration)subDeclaration;
@@ -287,7 +298,6 @@ public class TypesTransferRelation implements TransferRelation {
       }
       
       type = compType;
-      element.addTypedef(name, type); // add type "struct a"
       
     } else if (declSpecifier instanceof IASTElaboratedTypeSpecifier) {
       // type reference like "struct a"
@@ -311,12 +321,41 @@ public class TypesTransferRelation implements TransferRelation {
       
       type = element.getTypedef(name);
       
+      if (type == null) {
+        // forward declaration
+
+        switch (elaboratedTypeSpecifier.getKind()) {
+        case IASTElaboratedTypeSpecifier.k_enum:
+          type = new EnumType(name, constant);
+          break;
+        case IASTElaboratedTypeSpecifier.k_struct:
+          type = new StructType(name, constant);
+          break;
+        case IASTElaboratedTypeSpecifier.k_union:
+          type = new StructType(name, constant);
+          break;
+        }
+      
+        element.addTypedef(name, type);
+      }
+      
     } else if (declSpecifier instanceof IASTEnumerationSpecifier) {
       // enum
       IASTEnumerationSpecifier enumSpecifier = (IASTEnumerationSpecifier)declSpecifier;
       String name = enumSpecifier.getName().getRawSignature();
-      EnumType enumType = new EnumType(name, constant);
-
+      EnumType enumType;
+      
+      if (element.getTypedefs().containsKey(name)) {
+        // previous forward declaration exists
+        enumType = (EnumType)element.getTypedef(name);
+        if (!enumType.getEnumerators().isEmpty()) {
+          throw new IllegalStateException("Redeclaration of type " + name);
+        }
+      
+      } else {
+        enumType = new EnumType(name, constant);
+        element.addTypedef(name, enumType); // add type "enum a"
+      }
       
       for (IASTEnumerator enumerator : enumSpecifier.getEnumerators()) {
         int value;
@@ -329,7 +368,6 @@ public class TypesTransferRelation implements TransferRelation {
       }
       
       type = enumType;
-      element.addTypedef("enum " + name, type); // add type "enum a"
       
     } else if (declSpecifier instanceof IASTNamedTypeSpecifier) {
       // type reference to type declared with typedef
@@ -340,6 +378,8 @@ public class TypesTransferRelation implements TransferRelation {
     } else {
       throw new TransferRelationException("Unhandled case: " + declSpecifier.getRawSignature());
     }
+    
+    assert type != null;
     return type;
   }
 
