@@ -24,9 +24,7 @@
 package cpa.common.algorithm;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import cfa.CFAMap;
 import cpa.art.ARTCPA;
@@ -34,7 +32,6 @@ import cpa.art.ARTElement;
 import cpa.common.ReachedElements;
 import cpa.common.algorithm.cbmctools.AbstractPathToCTranslator;
 import cpa.common.algorithm.cbmctools.CProver;
-import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import exceptions.CPAException;
 
@@ -60,7 +57,9 @@ public class CBMCAlgorithm implements Algorithm {
     if (reached.getLastElement().isError()) {
       System.out.println("________ ERROR PATH ____________");
 
-      List<ARTElement> elementsOnErrorPath = getElementsToErrorPath(reached);
+      List<ARTElement> elementsOnErrorPath = new ArrayList<ARTElement>();
+      elementsOnErrorPath = getElementsToErrorPath((ARTElement)reached.getLastElement());
+      
       int cbmcRes = CProver.checkSat(AbstractPathToCTranslator.translatePaths(cfa, elementsOnErrorPath));
       if(cbmcRes == 10) {
         System.out.println("CBMC comfirms the bug");
@@ -78,28 +77,24 @@ public class CBMCAlgorithm implements Algorithm {
     return;
   }
 
-  private List<ARTElement> getElementsToErrorPath(ReachedElements pReached) {
-    AbstractElement lastElement = pReached.getLastElement();
-    ARTElement lastArtElement = (ARTElement)lastElement;
-
-    List<ARTElement> waitlist = new ArrayList<ARTElement>();
-    List<ARTElement> elements = new ArrayList<ARTElement>();
-    Set<ARTElement> processed = new HashSet<ARTElement>();
-
-    waitlist.add(lastArtElement);
-
-    while(waitlist.size() > 0){
-      ARTElement currentElement = waitlist.remove(0);
-      processed.add(currentElement);
-      elements.add(currentElement);
-
+  private List<ARTElement> getElementsToErrorPath(ARTElement pElement) {
+    
+    List<ARTElement> waitList = new ArrayList<ARTElement>();
+    List<ARTElement> ret = new ArrayList<ARTElement>();
+    
+    waitList.add(pElement);
+    
+    while(waitList.size() > 0){
+      ARTElement currentElement = waitList.remove(0);
+      ret.add(currentElement);
       for(ARTElement parent: currentElement.getParents()){
-        if(!processed.contains(parent)){
-          waitlist.add(parent);
+        if(!ret.contains(parent)){
+          waitList.add(parent);
         }
       }
     }
-    return elements;
+    
+    return ret;
   }
 
   @Override

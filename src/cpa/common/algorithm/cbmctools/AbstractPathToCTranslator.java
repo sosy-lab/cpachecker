@@ -29,6 +29,7 @@ package cpa.common.algorithm.cbmctools;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Deque;
 import java.util.List;
 import java.util.Stack;
@@ -38,6 +39,8 @@ import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
 import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
+
+import cmdline.CPAMain;
 
 import cfa.CFAMap;
 import cfa.objectmodel.CFAEdge;
@@ -62,10 +65,11 @@ import cpa.common.interfaces.AbstractElementWithLocation;
 public class AbstractPathToCTranslator {
   private static PrintWriter mGlobalThingsWriter = null;
   private static List<String> mFunctionDecls = null;
-
+  private static int mFunctionIndex = 0;
+  private static List<String> mProgramTexts;
+  
   public static String translatePaths(CFAMap pCfas, List<ARTElement> elementsOnErrorPath) {
 
-    
     String ret = "";
     // Add the original function declarations to enable read-only use of function pointers;
     // there will be no code for these functions, so they can never be called via the function
@@ -94,7 +98,7 @@ public class AbstractPathToCTranslator {
       mFunctionDecls.add(lOriginalFunctionDecl);
     }
 
-    List<String> lTranslation = translatePath(pPath);
+    List<String> lTranslation = translatePath(elementsOnErrorPath);
 
     // TODO remove output
 //  System.out.println("Written program text:");
@@ -117,66 +121,66 @@ public class AbstractPathToCTranslator {
     return ret;
   }
 
-  public static List<String> translatePath(Deque<AbstractElementWithLocation> pAbstractPath) {
-    assert(pAbstractPath != null);
-    assert(pAbstractPath.size() > 0);
+//  public static List<String> translatePath(Deque<AbstractElementWithLocation> pAbstractPath) {
+//    assert(pAbstractPath != null);
+//    assert(pAbstractPath.size() > 0);
+//
+//
+//
+//    AbstractElementWithLocation lPredecessorElement = pAbstractPath.getFirst();
+//
+//    // check for special case (= path of length zero = path with only one element)
+//    if (pAbstractPath.size() == 1) {
+//      // special case
+//
+//      // stack for program texts of different functions
+//      Stack<StringWriter> lProgramTextStack = new Stack<StringWriter>();
+//
+//      // list of already finished program texts
+//      mProgramTexts = new ArrayList<String>();
+//
+//      startFunction(0, lPredecessorElement.getLocationNode(), lProgramTextStack);
+//
+//      endFunction(lProgramTextStack);
+//
+//      return mProgramTexts;
+//    }
+//
+//
+//    boolean first = true;
+//
+//    List<CFAEdge> lEdges = new ArrayList<CFAEdge>();
+//
+//    for (AbstractElementWithLocation lElement : pAbstractPath) {
+//      if (first) {
+//        first = false;
+//        continue;
+//      }
+//
+//      CFANode lPredecessorNode = lPredecessorElement.getLocationNode();
+//      CFANode lNode = lElement.getLocationNode();
+//
+//      // reconstruct edge
+//      int lNumberOfFoundEdges = 0;
+//
+//      for (int lIndex = 0; lIndex < lPredecessorNode.getNumLeavingEdges(); lIndex++) {
+//        CFAEdge lEdge = lPredecessorNode.getLeavingEdge(lIndex);
+//
+//        if (lEdge.getSuccessor().equals(lNode)) {
+//          lEdges.add(lEdge);
+//          lNumberOfFoundEdges++;
+//        }
+//      }
+//
+//      assert(lNumberOfFoundEdges == 1);
+//
+//      lPredecessorElement = lElement;
+//    }
+//
+//    return translatePath(lEdges);
+//  }
 
-
-
-    AbstractElementWithLocation lPredecessorElement = pAbstractPath.getFirst();
-
-    // check for special case (= path of length zero = path with only one element)
-    if (pAbstractPath.size() == 1) {
-      // special case
-
-      // stack for program texts of different functions
-      Stack<StringWriter> lProgramTextStack = new Stack<StringWriter>();
-
-      // list of already finished program texts
-      List<String> lProgramTexts = new ArrayList<String>();
-
-      startFunction(0, lPredecessorElement.getLocationNode(), lProgramTextStack);
-
-      endFunction(lProgramTextStack, lProgramTexts);
-
-      return lProgramTexts;
-    }
-
-
-    boolean first = true;
-
-    List<CFAEdge> lEdges = new ArrayList<CFAEdge>();
-
-    for (AbstractElementWithLocation lElement : pAbstractPath) {
-      if (first) {
-        first = false;
-        continue;
-      }
-
-      CFANode lPredecessorNode = lPredecessorElement.getLocationNode();
-      CFANode lNode = lElement.getLocationNode();
-
-      // reconstruct edge
-      int lNumberOfFoundEdges = 0;
-
-      for (int lIndex = 0; lIndex < lPredecessorNode.getNumLeavingEdges(); lIndex++) {
-        CFAEdge lEdge = lPredecessorNode.getLeavingEdge(lIndex);
-
-        if (lEdge.getSuccessor().equals(lNode)) {
-          lEdges.add(lEdge);
-          lNumberOfFoundEdges++;
-        }
-      }
-
-      assert(lNumberOfFoundEdges == 1);
-
-      lPredecessorElement = lElement;
-    }
-
-    return translatePath(lEdges);
-  }
-
-  public static void endFunction(Stack<StringWriter> pProgramTextStack, List<String> pProgramTexts) {
+  public static void endFunction(Stack<StringWriter> pProgramTextStack) {
     assert(pProgramTextStack != null);
 
     StringWriter lStringWriter = pProgramTextStack.pop();
@@ -191,7 +195,7 @@ public class AbstractPathToCTranslator {
     pProgramText.println("}");
 
     // function program text is finished, add it to set of program texts
-    pProgramTexts.add(lStringWriter.toString());
+    mProgramTexts.add(lStringWriter.toString());
   }
 
   public static PrintWriter startFunction(int pFunctionIndex, CFANode pNode, Stack<StringWriter> pProgramTextStack) {
@@ -235,9 +239,196 @@ public class AbstractPathToCTranslator {
     return lProgramText;
   }
 
-  public static List<String> translatePath(List<CFAEdge> pAbstractPath) {
-    int lFunctionIndex = 0;
+//  public static List<String> translatePath(List<CFAEdge> pAbstractPath) {
+//    int lFunctionIndex = 0;
+//
+//    // create print writer for global typedefs and declarations
+//    StringWriter lGlobalThingsStringWriter = new StringWriter();
+//    mGlobalThingsWriter = new PrintWriter(lGlobalThingsStringWriter);
+//
+//    // stack for program texts of different functions
+//    Stack<StringWriter> lProgramTextStack = new Stack<StringWriter>();
+//
+//    // list of already finished program texts
+//    List<String> lProgramTexts = new ArrayList<String>();
+//
+//    // program text for start function 
+//    PrintWriter lProgramText = startFunction(lFunctionIndex, pAbstractPath.get(0).getPredecessor(), lProgramTextStack);
+//
+//    lFunctionIndex++;
+//
+//
+//    // process edges
+//    for (CFAEdge lEdge : pAbstractPath) {
+//      if(lEdge.getSuccessor() instanceof CFAErrorNode){
+//        lProgramText.println("assert(0);");
+//        continue;
+//      }
+//      switch (lEdge.getEdgeType()) {
+//      case BlankEdge: {
+//        // nothing to do
+//        break;
+//      }
+//      case AssumeEdge: {
+//        AssumeEdge lAssumeEdge = (AssumeEdge)lEdge;
+//
+//        String lExpressionString = lAssumeEdge.getExpression().getRawSignature();
+//
+//        String lAssumptionString;
+//
+//        if (lAssumeEdge.getTruthAssumption()) {
+//          lAssumptionString = lExpressionString;
+//        }
+//        else {
+//          lAssumptionString = "!(" + lExpressionString + ")";
+//        }
+//
+//        lProgramText.println("__CPROVER_assume(" + lAssumptionString + ");");
+//
+//        break;
+//      }
+//      case StatementEdge: {
+//        StatementEdge lStatementEdge = (StatementEdge)lEdge;
+//
+//        IASTExpression lExpression = lStatementEdge.getExpression();
+//
+//        if (lExpression != null) {
+//          if(lStatementEdge.isJumpEdge()){
+//            lProgramText.print("return ");
+//          }
+//          lProgramText.println(lStatementEdge.getExpression().getRawSignature() + ";");
+//        }
+//
+//        break;
+//      }
+//      case DeclarationEdge: {
+//        DeclarationEdge lDeclarationEdge = (DeclarationEdge)lEdge;
+//        if (lDeclarationEdge instanceof cfa.objectmodel.c.GlobalDeclarationEdge) {
+//          mGlobalThingsWriter.println(lDeclarationEdge.getRawStatement());
+//        }
+//        else {
+//          lProgramText.println(lDeclarationEdge.getRawStatement());
+//        }
+//
+//        /*IASTDeclarator[] lDeclarators = lDeclarationEdge.getDeclarators();
+//
+//        assert(lDeclarators.length == 1);
+//
+//        // TODO what about function pointers?
+//        lProgramText.println(lDeclarationEdge.getDeclSpecifier().getRawSignature() + " " + lDeclarators[0].getRawSignature() + ";");
+//         */      
+//        break;
+//      }
+//      case FunctionCallEdge: {
+//        FunctionCallEdge lFunctionCallEdge = (FunctionCallEdge)lEdge;
+//
+//        String lFunctionName = lFunctionCallEdge.getSuccessor().getFunctionName();
+//
+//
+//        String lArgumentString = "(";
+//
+//        boolean lFirstArgument = true;
+//
+//        IASTExpression[] lArguments = lFunctionCallEdge.getArguments();
+//
+//        if (lArguments != null) {
+//          for (IASTExpression lArgument : lArguments) {
+//            if (lFirstArgument) {
+//              lFirstArgument = false;
+//            }
+//            else {
+//              lArgumentString += ", ";
+//            }
+//
+//            lArgumentString += lArgument.getRawSignature();
+//          }
+//        }
+//
+//        lArgumentString += ")";
+//
+//        CFAEdge summaryEdge = lFunctionCallEdge.getPredecessor().getLeavingSummaryEdge();
+//        IASTExpression expressionOnSummaryEdge = ((CallToReturnEdge)summaryEdge).getExpression();
+//        if(expressionOnSummaryEdge instanceof IASTBinaryExpression){
+//          IASTBinaryExpression binaryExp = (IASTBinaryExpression) expressionOnSummaryEdge;
+//          assert(binaryExp.getOperator() == IASTBinaryExpression.op_assign);
+//          String assignedVarName = binaryExp.getOperand1().getRawSignature();
+//          lProgramText.println(assignedVarName + " = " + lFunctionName + "_" + lFunctionIndex + lArgumentString + ";");
+//
+//        }
+//        else{
+//          assert(expressionOnSummaryEdge instanceof IASTFunctionCallExpression);
+//          lProgramText.println(lFunctionName + "_" + lFunctionIndex + lArgumentString + ";");
+//        }
+//
+//
+//        lProgramText = startFunction(lFunctionIndex, lFunctionCallEdge.getSuccessor(), lProgramTextStack);
+//
+//        lFunctionIndex++;
+//
+//        break;
+//      }
+//      case ReturnEdge: {
+//        endFunction(lProgramTextStack, lProgramTexts);
+//
+//        lProgramText = new PrintWriter(lProgramTextStack.peek());
+//
+//        break;
+//      }
+//      case MultiStatementEdge: {
+//        MultiStatementEdge lMultiStatementEdge = (MultiStatementEdge)lEdge;
+//
+//        for (IASTExpression lExpression : lMultiStatementEdge.getExpressions()) {
+//          lProgramText.println(lExpression.getRawSignature() + ";");
+//        }
+//
+//        break;
+//      }
+//      case MultiDeclarationEdge: {
+//        MultiDeclarationEdge lMultiDeclarationEdge = (MultiDeclarationEdge)lEdge;
+//
+//        lProgramText.println(lMultiDeclarationEdge.getRawStatement());
+//
+//        /*List<IASTDeclarator[]> lDecls = lMultiDeclarationEdge.getDeclarators();
+//
+//        lMultiDeclarationEdge.getRawStatement()
+//
+//        for (IASTDeclarator[] lDeclarators : lDecls) {
+//
+//        }*/
+//
+//        break;
+//      }
+//      case CallToReturnEdge: {
+//        // this should not have been taken
+//        assert(false);
+//
+//        break;
+//      }
+//      default: {
+//        assert(false);
+//      }
+//      }
+//    }
+//
+//    // clean stack and finish functions
+//    while (!lProgramTextStack.isEmpty()) {
+//      endFunction(lProgramTextStack, lProgramTexts);
+//    }
+//
+//    if (mFunctionDecls != null) {
+//      for (String decl : mFunctionDecls) {
+//        mGlobalThingsWriter.println(decl);
+//      }
+//    }
+//    lProgramTexts.add(0, lGlobalThingsStringWriter.toString());
+//
+//    return lProgramTexts;
+//  }
 
+  public static List<String> translatePath(List<ARTElement> pElementsOnErrorPath){
+
+    ARTElement firstElement = pElementsOnErrorPath.get(pElementsOnErrorPath.size()-1);
+    
     // create print writer for global typedefs and declarations
     StringWriter lGlobalThingsStringWriter = new StringWriter();
     mGlobalThingsWriter = new PrintWriter(lGlobalThingsStringWriter);
@@ -246,169 +437,18 @@ public class AbstractPathToCTranslator {
     Stack<StringWriter> lProgramTextStack = new Stack<StringWriter>();
 
     // list of already finished program texts
-    List<String> lProgramTexts = new ArrayList<String>();
+    mProgramTexts = new ArrayList<String>();
 
     // program text for start function 
-    PrintWriter lProgramText = startFunction(lFunctionIndex, pAbstractPath.get(0).getPredecessor(), lProgramTextStack);
+    PrintWriter lProgramText = startFunction(mFunctionIndex, firstElement.getLocationNode(), lProgramTextStack);
 
-    lFunctionIndex++;
+    mFunctionIndex++;
 
-
-    // process edges
-    for (CFAEdge lEdge : pAbstractPath) {
-      if(lEdge.getSuccessor() instanceof CFAErrorNode){
-        lProgramText.println("assert(0);");
-        continue;
-      }
-      switch (lEdge.getEdgeType()) {
-      case BlankEdge: {
-        // nothing to do
-        break;
-      }
-      case AssumeEdge: {
-        AssumeEdge lAssumeEdge = (AssumeEdge)lEdge;
-
-        String lExpressionString = lAssumeEdge.getExpression().getRawSignature();
-
-        String lAssumptionString;
-
-        if (lAssumeEdge.getTruthAssumption()) {
-          lAssumptionString = lExpressionString;
-        }
-        else {
-          lAssumptionString = "!(" + lExpressionString + ")";
-        }
-
-        lProgramText.println("__CPROVER_assume(" + lAssumptionString + ");");
-
-        break;
-      }
-      case StatementEdge: {
-        StatementEdge lStatementEdge = (StatementEdge)lEdge;
-
-        IASTExpression lExpression = lStatementEdge.getExpression();
-
-        if (lExpression != null) {
-          if(lStatementEdge.isJumpEdge()){
-            lProgramText.print("return ");
-          }
-          lProgramText.println(lStatementEdge.getExpression().getRawSignature() + ";");
-        }
-
-        break;
-      }
-      case DeclarationEdge: {
-        DeclarationEdge lDeclarationEdge = (DeclarationEdge)lEdge;
-        if (lDeclarationEdge instanceof cfa.objectmodel.c.GlobalDeclarationEdge) {
-          mGlobalThingsWriter.println(lDeclarationEdge.getRawStatement());
-        }
-        else {
-          lProgramText.println(lDeclarationEdge.getRawStatement());
-        }
-
-        /*IASTDeclarator[] lDeclarators = lDeclarationEdge.getDeclarators();
-
-        assert(lDeclarators.length == 1);
-
-        // TODO what about function pointers?
-        lProgramText.println(lDeclarationEdge.getDeclSpecifier().getRawSignature() + " " + lDeclarators[0].getRawSignature() + ";");
-         */      
-        break;
-      }
-      case FunctionCallEdge: {
-        FunctionCallEdge lFunctionCallEdge = (FunctionCallEdge)lEdge;
-
-        String lFunctionName = lFunctionCallEdge.getSuccessor().getFunctionName();
-
-
-        String lArgumentString = "(";
-
-        boolean lFirstArgument = true;
-
-        IASTExpression[] lArguments = lFunctionCallEdge.getArguments();
-
-        if (lArguments != null) {
-          for (IASTExpression lArgument : lArguments) {
-            if (lFirstArgument) {
-              lFirstArgument = false;
-            }
-            else {
-              lArgumentString += ", ";
-            }
-
-            lArgumentString += lArgument.getRawSignature();
-          }
-        }
-
-        lArgumentString += ")";
-
-        CFAEdge summaryEdge = lFunctionCallEdge.getPredecessor().getLeavingSummaryEdge();
-        IASTExpression expressionOnSummaryEdge = ((CallToReturnEdge)summaryEdge).getExpression();
-        if(expressionOnSummaryEdge instanceof IASTBinaryExpression){
-          IASTBinaryExpression binaryExp = (IASTBinaryExpression) expressionOnSummaryEdge;
-          assert(binaryExp.getOperator() == IASTBinaryExpression.op_assign);
-          String assignedVarName = binaryExp.getOperand1().getRawSignature();
-          lProgramText.println(assignedVarName + " = " + lFunctionName + "_" + lFunctionIndex + lArgumentString + ";");
-
-        }
-        else{
-          assert(expressionOnSummaryEdge instanceof IASTFunctionCallExpression);
-          lProgramText.println(lFunctionName + "_" + lFunctionIndex + lArgumentString + ";");
-        }
-
-
-        lProgramText = startFunction(lFunctionIndex, lFunctionCallEdge.getSuccessor(), lProgramTextStack);
-
-        lFunctionIndex++;
-
-        break;
-      }
-      case ReturnEdge: {
-        endFunction(lProgramTextStack, lProgramTexts);
-
-        lProgramText = new PrintWriter(lProgramTextStack.peek());
-
-        break;
-      }
-      case MultiStatementEdge: {
-        MultiStatementEdge lMultiStatementEdge = (MultiStatementEdge)lEdge;
-
-        for (IASTExpression lExpression : lMultiStatementEdge.getExpressions()) {
-          lProgramText.println(lExpression.getRawSignature() + ";");
-        }
-
-        break;
-      }
-      case MultiDeclarationEdge: {
-        MultiDeclarationEdge lMultiDeclarationEdge = (MultiDeclarationEdge)lEdge;
-
-        lProgramText.println(lMultiDeclarationEdge.getRawStatement());
-
-        /*List<IASTDeclarator[]> lDecls = lMultiDeclarationEdge.getDeclarators();
-
-        lMultiDeclarationEdge.getRawStatement()
-
-        for (IASTDeclarator[] lDeclarators : lDecls) {
-
-        }*/
-
-        break;
-      }
-      case CallToReturnEdge: {
-        // this should not have been taken
-        assert(false);
-
-        break;
-      }
-      default: {
-        assert(false);
-      }
-      }
-    }
-
+    translatePath(pElementsOnErrorPath, firstElement, lProgramText, lProgramTextStack);
+    
     // clean stack and finish functions
     while (!lProgramTextStack.isEmpty()) {
-      endFunction(lProgramTextStack, lProgramTexts);
+      endFunction(lProgramTextStack);
     }
 
     if (mFunctionDecls != null) {
@@ -416,8 +456,212 @@ public class AbstractPathToCTranslator {
         mGlobalThingsWriter.println(decl);
       }
     }
-    lProgramTexts.add(0, lGlobalThingsStringWriter.toString());
+    mProgramTexts.add(0, lGlobalThingsStringWriter.toString());
 
-    return lProgramTexts;
+    return mProgramTexts;
+
+  }
+
+  public static void translatePath(Collection<ARTElement> pElementsOnPath,
+      ARTElement pElement, PrintWriter pProgramText, Stack<StringWriter> pProgramTextStack) {
+
+    PrintWriter lProgramText = pProgramText;
+    Stack<StringWriter> lProgramTextStack = pProgramTextStack;
+    
+    List<ARTElement> relevantChildrenOfElement = new ArrayList<ARTElement>();
+
+    for(ARTElement child: pElement.getChildren()){
+      if(pElementsOnPath.contains(child)){
+        relevantChildrenOfElement.add(child);
+      }
+    }
+
+    if(relevantChildrenOfElement.size() == 0){
+      return;
+    }
+
+    else if(relevantChildrenOfElement.size() == 1){
+
+      ARTElement spoiledChild = relevantChildrenOfElement.get(0);
+      assert(spoiledChild != null);
+
+      CFAEdge lEdge = CPAMain.getEdgeBetween(pElement, spoiledChild);
+      assert(lEdge != null);
+
+      // process edges
+      if(lEdge.getSuccessor() instanceof CFAErrorNode){
+        lProgramText.println("assert(0);");
+      }
+      else{
+        switch (lEdge.getEdgeType()) {
+        case BlankEdge: {
+          // nothing to do
+          break;
+        }
+        case AssumeEdge: {
+          AssumeEdge lAssumeEdge = (AssumeEdge)lEdge;
+
+          String lExpressionString = lAssumeEdge.getExpression().getRawSignature();
+
+          String lAssumptionString;
+
+          if (lAssumeEdge.getTruthAssumption()) {
+            lAssumptionString = lExpressionString;
+          }
+          else {
+            lAssumptionString = "!(" + lExpressionString + ")";
+          }
+
+          lProgramText.println("__CPROVER_assume(" + lAssumptionString + ");");
+
+          break;
+        }
+        case StatementEdge: {
+          StatementEdge lStatementEdge = (StatementEdge)lEdge;
+
+          IASTExpression lExpression = lStatementEdge.getExpression();
+
+          if (lExpression != null) {
+            if(lStatementEdge.isJumpEdge()){
+              lProgramText.print("return ");
+            }
+            lProgramText.println(lStatementEdge.getExpression().getRawSignature() + ";");
+          }
+
+          break;
+        }
+        case DeclarationEdge: {
+          DeclarationEdge lDeclarationEdge = (DeclarationEdge)lEdge;
+          if (lDeclarationEdge instanceof cfa.objectmodel.c.GlobalDeclarationEdge) {
+            mGlobalThingsWriter.println(lDeclarationEdge.getRawStatement());
+          }
+          else {
+            lProgramText.println(lDeclarationEdge.getRawStatement());
+          }
+
+          /*IASTDeclarator[] lDeclarators = lDeclarationEdge.getDeclarators();
+
+        assert(lDeclarators.length == 1);
+
+        // TODO what about function pointers?
+        lProgramText.println(lDeclarationEdge.getDeclSpecifier().getRawSignature() + " " + lDeclarators[0].getRawSignature() + ";");
+           */      
+          break;
+        }
+        case FunctionCallEdge: {
+          FunctionCallEdge lFunctionCallEdge = (FunctionCallEdge)lEdge;
+
+          String lFunctionName = lFunctionCallEdge.getSuccessor().getFunctionName();
+
+
+          String lArgumentString = "(";
+
+          boolean lFirstArgument = true;
+
+          IASTExpression[] lArguments = lFunctionCallEdge.getArguments();
+
+          if (lArguments != null) {
+            for (IASTExpression lArgument : lArguments) {
+              if (lFirstArgument) {
+                lFirstArgument = false;
+              }
+              else {
+                lArgumentString += ", ";
+              }
+
+              lArgumentString += lArgument.getRawSignature();
+            }
+          }
+
+          lArgumentString += ")";
+
+          CFAEdge summaryEdge = lFunctionCallEdge.getPredecessor().getLeavingSummaryEdge();
+          IASTExpression expressionOnSummaryEdge = ((CallToReturnEdge)summaryEdge).getExpression();
+          if(expressionOnSummaryEdge instanceof IASTBinaryExpression){
+            IASTBinaryExpression binaryExp = (IASTBinaryExpression) expressionOnSummaryEdge;
+            assert(binaryExp.getOperator() == IASTBinaryExpression.op_assign);
+            String assignedVarName = binaryExp.getOperand1().getRawSignature();
+            lProgramText.println(assignedVarName + " = " + lFunctionName + "_" + mFunctionIndex + lArgumentString + ";");
+
+          }
+          else{
+            assert(expressionOnSummaryEdge instanceof IASTFunctionCallExpression);
+            lProgramText.println(lFunctionName + "_" + mFunctionIndex + lArgumentString + ";");
+          }
+
+
+          lProgramText = startFunction(mFunctionIndex, lFunctionCallEdge.getSuccessor(), lProgramTextStack);
+
+          mFunctionIndex++;
+
+          break;
+        }
+        case ReturnEdge: {
+          endFunction(lProgramTextStack);
+
+          lProgramText = new PrintWriter(lProgramTextStack.peek());
+
+          break;
+        }
+        case MultiStatementEdge: {
+          MultiStatementEdge lMultiStatementEdge = (MultiStatementEdge)lEdge;
+
+          for (IASTExpression lExpression : lMultiStatementEdge.getExpressions()) {
+            lProgramText.println(lExpression.getRawSignature() + ";");
+          }
+
+          break;
+        }
+        case MultiDeclarationEdge: {
+          MultiDeclarationEdge lMultiDeclarationEdge = (MultiDeclarationEdge)lEdge;
+
+          lProgramText.println(lMultiDeclarationEdge.getRawStatement());
+
+          /*List<IASTDeclarator[]> lDecls = lMultiDeclarationEdge.getDeclarators();
+
+        lMultiDeclarationEdge.getRawStatement()
+
+        for (IASTDeclarator[] lDeclarators : lDecls) {
+
+        }*/
+
+          break;
+        }
+        case CallToReturnEdge: {
+          // this should not have been taken
+          assert(false);
+
+          break;
+        }
+        default: {
+          assert(false);
+        }
+        }
+      }
+      
+      // this is a join point, close branches
+      if(spoiledChild.getParents().size() > 1){
+        lProgramText.println("}");
+      }
+      
+      translatePath(pElementsOnPath, spoiledChild, lProgramText, lProgramTextStack);
+      
+    }
+
+    else if(relevantChildrenOfElement.size() > 1){
+      String s = "";
+      
+      for(int i=0; i<relevantChildrenOfElement.size(); i++){
+        ARTElement sister = relevantChildrenOfElement.get(i);
+          CFAEdge assumeEdge = CPAMain.getEdgeBetween(pElement, sister);
+          assert(assumeEdge != null);
+          assert(assumeEdge instanceof AssumeEdge);
+          AssumeEdge lAssumeEdge = (AssumeEdge)assumeEdge;
+          s = (i == 0 ? "if(" : "else if("); 
+          s = s + lAssumeEdge.getExpression().getRawSignature() + ") {";
+          lProgramText.println(s);
+          translatePath(pElementsOnPath, sister, lProgramText, lProgramTextStack);
+      }
+    }
   }
 }
