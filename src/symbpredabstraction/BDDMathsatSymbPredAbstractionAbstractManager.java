@@ -57,6 +57,7 @@ import cpa.symbpredabs.SymbolicFormulaManager;
 import cpa.symbpredabs.TheoremProver;
 import cpa.symbpredabs.mathsat.BDDAbstractFormula;
 import cpa.symbpredabs.mathsat.BDDMathsatAbstractFormulaManager;
+import cpa.symbpredabs.mathsat.BDDPredicate;
 import cpa.symbpredabs.mathsat.MathsatSymbolicFormula;
 import cpa.symbpredabs.mathsat.MathsatSymbolicFormulaManager;
 import cpa.symbpredabs.mathsat.summary.BDDMathsatSummaryAbstractionPrinter;
@@ -287,32 +288,276 @@ implements SymbPredAbstFormulaManager
   @Override
   public AbstractFormula buildAbstraction(SymbolicFormulaManager mgr,
       AbstractFormula abs, PathFormula pathFormula,
-      Collection<Predicate> predicates, MathsatSymbolicFormula functionExitFormula,
-      CFANode pSucc, AbstractionPathList pPathList) {
+      Collection<Predicate> predicates, MathsatSymbolicFormula functionExitFormula/*,
+      CFANode pSucc, AbstractionPathList pPathList*/) {
     stats.numCallsAbstraction++;
     if (CPAMain.cpaConfig.getBooleanValue(
     "cpas.symbpredabs.abstraction.cartesian")) {
       return buildCartesianAbstraction(mgr, abs, pathFormula, predicates, functionExitFormula);
     } else {
-      return buildBooleanAbstraction(mgr, abs, pathFormula, predicates, functionExitFormula, pSucc, pPathList);
+      return buildBooleanAbstraction(mgr, abs, pathFormula, predicates, functionExitFormula/*, pSucc, pPathList*/);
     }
-    //return buildBooleanAbstraction(mgr, abs, pathFormula, predicates, functionExitFormula);
   }
 
   private AbstractFormula buildCartesianAbstraction(
-      SymbolicFormulaManager pMgr,
-      AbstractFormula pAbs,
-      PathFormula pPathFormula,
-      Collection<Predicate> pPredicates,
-      MathsatSymbolicFormula pFunctionExitFormula) {
-    // TODO put impl. later, or maybe not, we don't really use
-    assert(false);
-    return null;
+      SymbolicFormulaManager mgr,
+      AbstractFormula abs,
+      PathFormula pathFormula,
+      Collection<Predicate> predicates,
+      MathsatSymbolicFormula functionExitFormula) {
+    
+
+    
+    long startTime = System.currentTimeMillis();
+
+    MathsatSymbolicFormulaManager mmgr = (MathsatSymbolicFormulaManager)mgr;
+
+    long msatEnv = mmgr.getMsatEnv();
+
+    thmProver.init(TheoremProver.CARTESIAN_ABSTRACTION);
+
+//    if (isFunctionExit(e)) {
+    if (functionExitFormula != null) {
+        // we have to take the context before the function call
+        // into account, otherwise we are not building the right
+        // abstraction!
+        assert(false); // TODO
+//        if (CPAMain.cpaConfig.getBooleanValue(
+//                "cpas.symbpredabs.refinement.addWellScopedPredicates")) {
+//            // but only if we are adding well-scoped predicates, otherwise
+//            // this should not be necessary
+//            AbstractFormula ctx = e.topContextAbstraction();
+//            MathsatSymbolicFormula fctx =
+//                (MathsatSymbolicFormula)mmgr.instantiate(
+//                        toConcrete(mmgr, ctx), null);
+//            fabs = (MathsatSymbolicFormula)mmgr.makeAnd(fabs, fctx);
+//
+//            LazyLogger.log(LazyLogger.DEBUG_3,
+//                    "TAKING CALLING CONTEXT INTO ACCOUNT: ", fctx);
+//        } else {
+//            LazyLogger.log(LazyLogger.DEBUG_3,
+//                    "NOT TAKING CALLING CONTEXT INTO ACCOUNT,",
+//                    "as we are not using well-scoped predicates");
+//        }
+    }
+
+//    Pair<SymbolicFormula, SSAMap> pc =
+//        buildConcreteFormula(mmgr, e, succ, edge, false);
+//    SymbolicFormula f = pc.getFirst();
+//    SSAMap ssa = pc.getSecond();
+    SymbolicFormula f = pathFormula.getSymbolicFormula();
+    SSAMap ssa = pathFormula.getSsa();
+
+    f = mmgr.replaceAssignments((MathsatSymbolicFormula)f);
+    SymbolicFormula fkey = f;
+
+    byte[] predVals = null;
+    final byte NO_VALUE = -2;
+    if (useCache) {
+        predVals = new byte[predicates.size()];
+        int predIndex = -1;
+        for (Predicate p : predicates) {
+            ++predIndex;
+            CartesianAbstractionCacheKey key =
+                new CartesianAbstractionCacheKey(f, p);
+            if (cartesianAbstractionCache.containsKey(key)) {
+                predVals[predIndex] = cartesianAbstractionCache.get(key);
+            } else {
+                predVals[predIndex] = NO_VALUE;
+            }
+        }
+    }
+
+    boolean skipFeasibilityCheck = false;
+    if (useCache) {
+        FeasibilityCacheKey key = new FeasibilityCacheKey(f);
+        if (feasibilityCache.containsKey(key)) {
+            skipFeasibilityCheck = true;
+            if (!feasibilityCache.get(key)) {
+                thmProver.reset();
+                // abstract post leads to false, we can return immediately
+                return new BDDAbstractFormula(bddManager.getZero());
+            }
+        }
+    }
+
+    if (CPAMain.cpaConfig.getBooleanValue(
+            "cpas.symbpredabs.useBitwiseAxioms")) {
+        MathsatSymbolicFormula bitwiseAxioms = mmgr.getBitwiseAxioms(
+                (MathsatSymbolicFormula)f);
+        f = mmgr.makeAnd(f, bitwiseAxioms);
+
+        LazyLogger.log(LazyLogger.DEBUG_3, "ADDED BITWISE AXIOMS: ",
+                bitwiseAxioms);
+    }
+
+    long solveStartTime = System.currentTimeMillis();
+
+    if (!skipFeasibilityCheck) {
+        //++stats.abstractionNumMathsatQueries;
+        if (thmProver.isUnsat(f)) {
+            thmProver.reset();
+            if (useCache) {
+                FeasibilityCacheKey key = new FeasibilityCacheKey(fkey);
+                if (feasibilityCache.containsKey(key)) {
+                    assert(feasibilityCache.get(key) == false);
+                }
+                feasibilityCache.put(key, false);
+            }
+            return new BDDAbstractFormula(bddManager.getZero());
+        } else {
+            if (useCache) {
+                FeasibilityCacheKey key = new FeasibilityCacheKey(fkey);
+                if (feasibilityCache.containsKey(key)) {
+                    assert(feasibilityCache.get(key) == true);
+                }
+                feasibilityCache.put(key, true);
+            }
+        }
+    } else {
+        //++stats.abstractionNumCachedQueries;
+    }
+
+    thmProver.push(f);
+
+    long totBddTime = 0;
+
+    int absbdd = bddManager.getOne();
+
+    // check whether each of the predicate is implied in the next state...
+    Set<String> predvars = new HashSet<String>();
+    Set<Pair<String, SymbolicFormula[]>> predlvals =
+        new HashSet<Pair<String, SymbolicFormula[]>>();
+    Map<SymbolicFormula, SymbolicFormula> predLvalsCache =
+        new HashMap<SymbolicFormula, SymbolicFormula>();
+
+    int predIndex = -1;
+    for (Predicate p : predicates) {
+        ++predIndex;
+        BDDPredicate bp = (BDDPredicate)p;
+        if (useCache && predVals[predIndex] != NO_VALUE) {
+            long startBddTime = System.currentTimeMillis();
+            int v = bp.getBDD();
+            if (predVals[predIndex] == -1) { // pred is false
+                v = bddManager.not(v);
+                absbdd = bddManager.and(absbdd, v);
+            } else if (predVals[predIndex] == 1) { // pred is true
+                absbdd = bddManager.and(absbdd, v);
+            }
+            long endBddTime = System.currentTimeMillis();
+            totBddTime += (endBddTime - startBddTime);
+            //++stats.abstractionNumCachedQueries;
+        } else {
+            Pair<MathsatSymbolicFormula, MathsatSymbolicFormula> pi =
+                getPredicateNameAndDef(bp);
+
+            // update the SSA map, by instantiating all the uninstantiated
+            // variables that occur in the predicates definitions
+            // (at index 1)
+            predvars.clear();
+            predlvals.clear();
+            collectVarNames(mmgr, pi.getSecond().getTerm(),
+                    predvars, predlvals);
+            for (String var : predvars) {
+                if (ssa.getIndex(var) < 0) {
+                    ssa.setIndex(var, 1);
+                }
+            }
+            for (Pair<String, SymbolicFormula[]> pp : predlvals) {
+                SymbolicFormula[] args =
+                    getInstantiatedAt(mmgr, pp.getSecond(), ssa,
+                            predLvalsCache);
+                if (ssa.getIndex(pp.getFirst(), args) < 0) {
+                    ssa.setIndex(pp.getFirst(), args, 1);
+                }
+            }
+
+
+            LazyLogger.log(LazyLogger.DEBUG_1,
+                    "CHECKING VALUE OF PREDICATE: ", pi.getFirst());
+
+            // instantiate the definition of the predicate
+            MathsatSymbolicFormula inst =
+                (MathsatSymbolicFormula)mmgr.instantiate(
+                        pi.getSecond(), ssa);
+
+            boolean isTrue = false, isFalse = false;
+            // check whether this predicate has a truth value in the next
+            // state
+            long predTrue = inst.getTerm();
+//            predTrue = mathsat.api.msat_make_copy_from(
+//                    absEnv, inst.getTerm(), msatEnv);
+            long predFalse = mathsat.api.msat_make_not(msatEnv, predTrue);
+
+            //++stats.abstractionNumMathsatQueries;
+            if (thmProver.isUnsat(
+                    new MathsatSymbolicFormula(predFalse))) {
+                isTrue = true;
+            }
+
+            if (isTrue) {
+                long startBddTime = System.currentTimeMillis();
+                int v = bp.getBDD();
+                absbdd = bddManager.and(absbdd, v);
+                long endBddTime = System.currentTimeMillis();
+                totBddTime += (endBddTime - startBddTime);
+            } else {
+                // check whether it's false...
+                //++stats.abstractionNumMathsatQueries;
+                if (thmProver.isUnsat(
+                        new MathsatSymbolicFormula(predTrue))) {
+                    isFalse = true;
+                }
+
+                if (isFalse) {
+                    long startBddTime = System.currentTimeMillis();
+                    int v = bp.getBDD();
+                    v = bddManager.not(v);
+                    absbdd = bddManager.and(absbdd, v);
+                    long endBddTime = System.currentTimeMillis();
+                    totBddTime += (endBddTime - startBddTime);
+                }
+            }
+
+            if (useCache) {
+                if (predVals[predIndex] != NO_VALUE) {
+                    assert(isTrue ? predVals[predIndex] == 1 :
+                        (isFalse ? predVals[predIndex] == -1 :
+                            predVals[predIndex] == 0));
+                }
+                CartesianAbstractionCacheKey key =
+                    new CartesianAbstractionCacheKey(fkey, p);
+                byte val = (byte)(isTrue ? 1 : (isFalse ? -1 : 0));
+                cartesianAbstractionCache.put(key, val);
+            }
+        }
+    }
+    long solveEndTime = System.currentTimeMillis();
+
+    thmProver.pop();
+    thmProver.reset();
+
+    // update statistics
+    long endTime = System.currentTimeMillis();
+    long solveTime = (solveEndTime - solveStartTime) - totBddTime;
+    long msatTime = (endTime - startTime) - totBddTime;
+    stats.abstractionMaxMathsatTime =
+        Math.max(msatTime, stats.abstractionMaxMathsatTime);
+    stats.abstractionMaxBddTime =
+        Math.max(totBddTime, stats.abstractionMaxBddTime);
+    stats.abstractionMathsatTime += msatTime;
+    stats.abstractionBddTime += totBddTime;
+    stats.abstractionMathsatSolveTime += solveTime;
+    stats.abstractionMaxMathsatSolveTime =
+        Math.max(solveTime, stats.abstractionMaxMathsatSolveTime);
+
+    return new BDDAbstractFormula(absbdd);
+    
   }
 
   private AbstractFormula buildBooleanAbstraction(SymbolicFormulaManager mgr,
       AbstractFormula abs, PathFormula pathFormula,
-      Collection<Predicate> predicates, MathsatSymbolicFormula functionExitFormula, CFANode pSucc, AbstractionPathList pPathList) {
+      Collection<Predicate> predicates, MathsatSymbolicFormula functionExitFormula/*, CFANode pSucc, AbstractionPathList pPathList*/) {
     // A SummaryFormulaManager for MathSAT formulas
     MathsatSymbolicFormulaManager mmgr = (MathsatSymbolicFormulaManager)mgr;
 
@@ -357,7 +602,7 @@ implements SymbPredAbstFormulaManager
     SSAMap ssa = null;
     long start = System.currentTimeMillis();
 
-    Pair<CFANode, AbstractionPathList> key = new Pair<CFANode, AbstractionPathList>(pSucc, pPathList);
+//    Pair<CFANode, AbstractionPathList> key = new Pair<CFANode, AbstractionPathList>(pSucc, pPathList);
 
 //    if (abstractionTranslationCache.containsKey(key)) {
 //      PathFormula pc = abstractionTranslationCache.get(key);
