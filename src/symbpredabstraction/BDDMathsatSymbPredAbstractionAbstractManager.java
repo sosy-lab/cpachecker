@@ -288,14 +288,14 @@ implements SymbPredAbstFormulaManager
   @Override
   public AbstractFormula buildAbstraction(SymbolicFormulaManager mgr,
       AbstractFormula abs, PathFormula pathFormula,
-      Collection<Predicate> predicates, MathsatSymbolicFormula functionExitFormula/*,
-      CFANode pSucc, AbstractionPathList pPathList*/) {
+      Collection<Predicate> predicates, MathsatSymbolicFormula functionExitFormula,
+      CFANode pSucc, AbstractionPathList pPathList) {
     stats.numCallsAbstraction++;
     if (CPAMain.cpaConfig.getBooleanValue(
     "cpas.symbpredabs.abstraction.cartesian")) {
       return buildCartesianAbstraction(mgr, abs, pathFormula, predicates, functionExitFormula);
     } else {
-      return buildBooleanAbstraction(mgr, abs, pathFormula, predicates, functionExitFormula/*, pSucc, pPathList*/);
+      return buildBooleanAbstraction(mgr, abs, pathFormula, predicates, functionExitFormula);
     }
   }
 
@@ -305,8 +305,6 @@ implements SymbPredAbstFormulaManager
       PathFormula pathFormula,
       Collection<Predicate> predicates,
       MathsatSymbolicFormula functionExitFormula) {
-    
-
     
     long startTime = System.currentTimeMillis();
 
@@ -557,7 +555,7 @@ implements SymbPredAbstFormulaManager
 
   private AbstractFormula buildBooleanAbstraction(SymbolicFormulaManager mgr,
       AbstractFormula abs, PathFormula pathFormula,
-      Collection<Predicate> predicates, MathsatSymbolicFormula functionExitFormula/*, CFANode pSucc, AbstractionPathList pPathList*/) {
+      Collection<Predicate> predicates, MathsatSymbolicFormula functionExitFormula) {
     // A SummaryFormulaManager for MathSAT formulas
     MathsatSymbolicFormulaManager mmgr = (MathsatSymbolicFormulaManager)mgr;
 
