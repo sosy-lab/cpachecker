@@ -30,8 +30,8 @@ For building in Eclipse:
 
 Running it:
 7. Choose a configuration file and a source code file
-   Example: benchmarks-explicit/config/explicitAnalysisInf.properties
-            benchmarks-explicit/working-set/ext/loop1.c
+   Example: test/benchmarks-explicit/config/explicitAnalysisInf.properties
+            test/benchmarks-explicit/working-set/ext/loop1.c
    Check that the configuration file does not contain any non-existent paths 
 8. Running it from Eclipse:
    Create a run configuration with main class "cmdline.CPAMain" and program
@@ -43,6 +43,12 @@ Or:
    /opt/eclipse or ~/Desktop/eclipse
 
 
+Troubleshooting:
+- Imports starting with org.eclipse are not recognized.
+  Solution: Do not insert the respective .jar files manually, 
+			but instead double-check PDE is installed (see step 2).
+
+ 
 Sources of binaries provided with the distribution/SVN:
 - libJOct.so: Use steps similar to compileOctLib.sh after downloading and
   installing the octagon library (http://www.di.ens.fr/~mine/oct/ merged into
