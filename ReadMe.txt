@@ -30,8 +30,8 @@ For building in Eclipse:
 
 Running it:
 7. Choose a configuration file and a source code file
-   Example: test/benchmarks-explicit/config/explicitAnalysisInf.properties
-            test/benchmarks-explicit/working-set/ext/loop1.c
+   Example: test/config/explicitAnalysisInf.properties
+            test/tests/single/loop1.c
    Check that the configuration file does not contain any non-existent paths 
 8. Running it from Eclipse:
    Create a run configuration with main class "cmdline.CPAMain" and program

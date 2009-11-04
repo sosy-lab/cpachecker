@@ -38,10 +38,9 @@ def run_single(benchmark, config, time_limit, mem_limit):
     """
     cn = configname(config)
     cmdline = Template('ulimit -t $time_limit -v $mem_limit; '
-                       '(./cpa.sh -config $config -nolog $benchmark > '
+                       '(test/scripts/simple/cpa.sh -config $config -nolog $benchmark > '
                        '$benchmark.$cn.log 2>&1)').substitute(locals())
-    p = subprocess.Popen(['/bin/bash', '-c', cmdline], shell=False,
-                         cwd=CPACHECKER_DIR)
+    p = subprocess.Popen(['/bin/bash', '-c', cmdline], shell=False)
     retval = p.wait()
     if retval != 0:
         outcome = 'ERROR'
@@ -138,7 +137,7 @@ def main(which, benchmarks, configs, time_limit, mem_limit, outfile,
 
     def go(b, c, t, m):
         if verbose:
-            sys.stdout.write('Running: %s with config: %s...' %
+            sys.stdout.write('Running: %s with config: %s... ' %
                              (b, configname(c)))
             sys.stdout.flush()
         subst = re.compile('.*/(benchmarks-[^/]*/)')

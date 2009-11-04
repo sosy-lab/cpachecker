@@ -1,0 +1,5 @@
+test/tests/ntdrivers/*.cil.c
+test/tests/ssh/*.cil.c
+test/tests/single/global_vars.cil.c
+test/tests/single/modulo.cil.c
+test/tests/single/path_duplication.cil.c
