@@ -853,11 +853,20 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         break;
       case IASTLiteralExpression.lk_char_constant: {
         // we convert to a byte, and take the integer value
-        assert(exp.getRawSignature().length() == 3);
-        assert(exp.getRawSignature().charAt(0) == '\'');
-        assert(exp.getRawSignature().charAt(2) == '\'');
-        int n = exp.getRawSignature().charAt(1);
+        String s = exp.getRawSignature();
+        int length = s.length();
+        assert(s.charAt(0) == '\'');
+        assert(s.charAt(length-1) == '\'');
+        int n;
+        
+        if (s.charAt(1) == '\\') {
+          n = Integer.parseInt(s.substring(2, length-1));
+        } else {
+          assert (exp.getRawSignature().length() == 3);
+          n = exp.getRawSignature().charAt(1);
+        }
         num = "" + n;
+
       }
       break;
       case IASTLiteralExpression.lk_string_literal: {
