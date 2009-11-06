@@ -58,4 +58,5 @@ Export-Package: .,
 Bundle-ClassPath: bin/,
  lib/javabdd-1.0b2.jar,
  lib/mathsat.jar,
- lib/minijdd_103.jar
+ lib/minijdd_103.jar,
+ lib/StubCodeReaderFactory.jar

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<jardesc>
+    <jar path="CPAcheckerHEAD/lib/StubCodeReaderFactory.jar"/>
+    <options buildIfNeeded="true" compress="true" descriptionLocation="/CPAcheckerHEAD/lib/StubCodeReaderFactory.jar.jardesc" exportErrors="true" exportWarnings="true" includeDirectoryEntries="false" overwrite="false" saveDescription="true" storeRefactorings="false" useSourceFolders="false"/>
+    <storedRefactorings deprecationInfo="true" structuralOnly="false"/>
+    <selectedProjects/>
+    <manifest generateManifest="true" manifestLocation="" manifestVersion="1.0" reuseManifest="false" saveManifest="false" usesManifest="true">
+        <sealing sealJar="false">
+            <packagesToSeal/>
+            <packagesToUnSeal/>
+        </sealing>
+    </manifest>
+    <selectedElements exportClassFiles="true" exportJavaFiles="true" exportOutputFolder="false">
+        <javaElement handleIdentifier="=CPAcheckerHEAD/src&lt;cmdline.stubs{StubCodeReaderFactoryCDT4.java"/>
+        <javaElement handleIdentifier="=CPAcheckerHEAD/src&lt;cmdline.stubs{StubCodeReaderFactory.java"/>
+    </selectedElements>
+</jardesc>

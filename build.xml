@@ -16,6 +16,7 @@
         <pathelement location="lib/mathsat.jar"/>
         <pathelement location="lib/javabdd-1.0b2.jar"/>
         <pathelement location="lib/yicesapijava.jar"/>
+        <pathelement location="lib/StubCodeReaderFactory.jar"/>
         <!-- Your eclipse plugin directory: do export ECLIPSE_HOME=<where eclipse is> -->
         <fileset dir="${env.ECLIPSE_HOME}/plugins" includes="*.jar"/>
     </path>
