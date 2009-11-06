@@ -1,11 +1,12 @@
 package cpa.errorlocation;
 
-import java.util.Collection;
-
 import cfa.objectmodel.CFAFunctionDefinitionNode;
+import cpa.common.defaults.EqualityPartialOrder;
+import cpa.common.defaults.MergeSepOperator;
+import cpa.common.defaults.StaticPrecisisonAdjustment;
+import cpa.common.defaults.StopSepOperator;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.JoinOperator;
 import cpa.common.interfaces.MergeOperator;
@@ -42,45 +43,6 @@ public class ErrorLocationCPA implements ConfigurableProgramAnalysis {
     }
   }
   
-  private static final MergeOperator mergeOperator = new MergeOperator() {
-
-    @Override
-    public AbstractElement merge(AbstractElement element1,
-                                 AbstractElement element2, Precision precision)
-                                 throws CPAException {
-      return element2;
-    }
-
-    @Override
-    public AbstractElementWithLocation merge(AbstractElementWithLocation element1,
-                                             AbstractElementWithLocation element2,
-                                             Precision precision)
-                                             throws CPAException {
-      throw new CPAException ("Cannot return element with location information");
-    }
-  };
-  
-  private static final StopOperator stopOperator = new StopOperator() {
-
-    @Override
-    public <AE extends AbstractElement> boolean stop(AE element,
-                                                     Collection<AE> reached,
-                                                     Precision precision) throws CPAException {
-      for (AbstractElement reachedElement : reached) {
-        if (partialOrder.satisfiesPartialOrder (element, reachedElement)) {
-          return true;
-        }
-      }
-      return false;
-    }
-
-    @Override
-    public boolean stop(AbstractElement element, AbstractElement reachedElement)
-        throws CPAException {
-      return partialOrder.satisfiesPartialOrder(element, reachedElement);
-    }
-  };
-  
   private static final JoinOperator joinOperator = new JoinOperator() {
     
     @Override
@@ -90,21 +52,6 @@ public class ErrorLocationCPA implements ConfigurableProgramAnalysis {
         return element1;
       } else {
         return ErrorLocationElement.TOP;
-      }
-    }
-  };
-  
-  private static final PartialOrder partialOrder = new PartialOrder() {
-    
-    @Override
-    public boolean satisfiesPartialOrder(AbstractElement newElement,
-                                         AbstractElement reachedElement) throws CPAException {
-      if (newElement == reachedElement) {
-        return true;
-      } else if (newElement == ErrorLocationElement.BOTTOM || reachedElement == ErrorLocationElement.TOP) {
-        return true;
-      } else {
-        return false;
       }
     }
   };
@@ -138,7 +85,11 @@ public class ErrorLocationCPA implements ConfigurableProgramAnalysis {
   
   private static final ErrorLocationDomain domain = new ErrorLocationDomain();
   
-  private final TransferRelation transferRelation = new ErrorLocationTransferRelation(domain);
+  private static final PartialOrder partialOrder = new EqualityPartialOrder(domain);
+  
+  private static final StopOperator stopOperator = new StopSepOperator(partialOrder);
+  
+  private static final TransferRelation transferRelation = new ErrorLocationTransferRelation(domain);
   
   public ErrorLocationCPA(String mergeType, String stopType) { }
   
@@ -159,12 +110,12 @@ public class ErrorLocationCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public MergeOperator getMergeOperator() {
-    return mergeOperator;
+    return MergeSepOperator.getInstance();
   }
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return null;
+    return StaticPrecisisonAdjustment.getInstance();
   }
 
   @Override

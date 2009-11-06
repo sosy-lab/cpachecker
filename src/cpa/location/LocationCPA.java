@@ -24,6 +24,9 @@
 package cpa.location;
 
 import cfa.objectmodel.CFAFunctionDefinitionNode;
+import cpa.common.defaults.MergeSepOperator;
+import cpa.common.defaults.StaticPrecisisonAdjustment;
+import cpa.common.defaults.StopSepOperator;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
@@ -36,67 +39,39 @@ import exceptions.CPAException;
 
 public class LocationCPA implements ConfigurableProgramAnalysis{
 
-	private AbstractDomain abstractDomain;
-	private TransferRelation transferRelation;
-	private MergeOperator mergeOperator;
-	private StopOperator stopOperator;
-	private PrecisionAdjustment precisionAdjustment;
+	private static final LocationDomain abstractDomain = new LocationDomain();
+	private static final TransferRelation transferRelation = new LocationTransferRelation(abstractDomain);
+	private static final StopOperator stopOperator = new StopSepOperator(abstractDomain.getPartialOrder());
 
 	public LocationCPA (String mergeType, String stopType) throws CPAException{
-	  LocationDomain locationDomain = new LocationDomain ();
-	  TransferRelation locationTransferRelation = new LocationTransferRelation (locationDomain);
-	  MergeOperator locationMergeOp = null;
-	  if(mergeType.equals("sep")){
-	    locationMergeOp = new LocationMergeSep ();
-	  }
-	  if(mergeType.equals("join")){
-	    throw new CPAException("Location domain elements cannot be joined");
-	  }
-	  StopOperator locationStopOp = new LocationStopSep(locationDomain);
-	  PrecisionAdjustment precisionAdjustment = new LocationPrecisionAdjustment();
-	  
-		this.abstractDomain = locationDomain;
-		this.transferRelation = locationTransferRelation;
-		this.mergeOperator = locationMergeOp;
-		this.stopOperator = locationStopOp;
-		this.precisionAdjustment = precisionAdjustment;
 	}
 
-	public AbstractDomain getAbstractDomain ()
-	{
+	public AbstractDomain getAbstractDomain() {
 	  return abstractDomain;
 	}
 
-  public TransferRelation getTransferRelation ()
-  {
+  public TransferRelation getTransferRelation() {
     return transferRelation;
   }
 
-	public MergeOperator getMergeOperator ()
-	{
-	  return mergeOperator;
+	public MergeOperator getMergeOperator() {
+	  return MergeSepOperator.getInstance();
 	}
 
-	public StopOperator getStopOperator ()
-	{
+	public StopOperator getStopOperator() {
 	  return stopOperator;
 	}
 
   public PrecisionAdjustment getPrecisionAdjustment () {
-    return precisionAdjustment;
+    return StaticPrecisisonAdjustment.getInstance();
   }
   
   @Override
-	public AbstractElement getInitialElement (CFAFunctionDefinitionNode node) {
+	public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
 	  return new LocationElement (node);
 	}
 
-  public Precision getInitialPrecision (CFAFunctionDefinitionNode pNode) {
-    return new LocationPrecision();
+  public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
+    return null;
   }
-
-//  @Override
-//  public RefinementManager getRefinementManager() {
-//    return refinementManager;
-//  }
 }

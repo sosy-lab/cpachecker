@@ -21,17 +21,35 @@
  *  CPAchecker web page:
  *    http://www.cs.sfu.ca/~dbeyer/CPAchecker/
  */
-/**
- * 
- */
-package cpa.location;
+package cpa.common.defaults;
 
+import java.util.Collection;
+
+import common.Pair;
+
+import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.Precision;
+import cpa.common.interfaces.PrecisionAdjustment;
 
 /**
- * @author Michael Tautschnig <tautschnig@forsyte.de>
- *
+ * This class implements the PrecisionAdjustment operator for a CPA, where the
+ * precision never changes. It does not make any assumptions about the precision,
+ * even not that the precision is non-null.
+ *  
+ * @author wendler
  */
-public class LocationPrecision implements Precision {
+public class StaticPrecisisonAdjustment implements PrecisionAdjustment {
 
+  @Override
+  public <AE extends AbstractElement> Pair<AE, Precision> prec(AE element,
+        Precision precision, Collection<Pair<AE, Precision>> elements) {
+    
+    return new Pair<AE, Precision>(element, precision);
+  }
+  
+  private static final PrecisionAdjustment instance = new StaticPrecisisonAdjustment();
+  
+  public static PrecisionAdjustment getInstance() {
+    return instance;
+  }
 }

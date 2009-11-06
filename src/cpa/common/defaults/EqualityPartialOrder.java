@@ -23,38 +23,33 @@
  */
 package cpa.common.defaults;
 
+import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.AbstractElementWithLocation;
-import cpa.common.interfaces.MergeOperator;
-import cpa.common.interfaces.Precision;
-import exceptions.CPAException;
+import cpa.common.interfaces.PartialOrder;
 
 /**
- * Standard merge-sep operator
- * @author g.theoduloz
+ * This class implements a partial order for CPAs, where the partial order is
+ * identical to the equality relation, if both of the two operands are neither
+ * bottom nor top. The resulting lattice is a layered graph with three layers
+ * (one for top, one for bottom and one for all other elements) and edges only
+ * between different layers. 
+ * 
+ * @author wendler
  */
-public class MergeSepOperator implements MergeOperator {
+public class EqualityPartialOrder implements PartialOrder {
 
-  @Override
-  public AbstractElement merge(AbstractElement el1, AbstractElement el2, Precision p)
-    throws CPAException
-  {
-    return el2;
-  }
-
-  @Override
-  public AbstractElementWithLocation merge(
-      AbstractElementWithLocation el1,
-      AbstractElementWithLocation el2, Precision p)
-    throws CPAException
-  {
-    return el2;
-  }
-
-  private static final MergeOperator instance = new MergeSepOperator();
+  private final AbstractDomain domain;
   
-  public static MergeOperator getInstance() {
-    return instance;
+  public EqualityPartialOrder(AbstractDomain domain) {
+    this.domain = domain;
   }
-  
+ 
+  @Override
+  public boolean satisfiesPartialOrder(AbstractElement newElement,
+                                       AbstractElement reachedElement) {
+   
+    return(domain.getBottomElement().equals(newElement)
+        || domain.getTopElement().equals(reachedElement)
+        || newElement.equals(reachedElement));
+  }
 }

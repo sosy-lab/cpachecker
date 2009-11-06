@@ -48,5 +48,10 @@ public class StopNeverOperator implements StopOperator {
     return false;
   }
 
+  private static final StopOperator instance = new StopNeverOperator();
+  
+  public static StopOperator getInstance() {
+    return instance;
+  }
 
 }

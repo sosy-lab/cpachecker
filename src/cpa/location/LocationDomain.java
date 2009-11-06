@@ -23,6 +23,7 @@
  */
 package cpa.location;
 
+import cpa.common.defaults.EqualityPartialOrder;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.JoinOperator;
@@ -83,22 +84,6 @@ public class LocationDomain implements AbstractDomain
       }
     }
 
-    private static class LocationPartialOrder implements PartialOrder
-    {
-      
-      
-        public boolean satisfiesPartialOrder (AbstractElement element1, AbstractElement element2)
-        {
-            if (element1.equals (element2))
-                return true;
-
-            if (element1 instanceof LocationBottomElement || element2 instanceof LocationTopElement)
-                return true;
-
-            return false;
-        }
-    }
-
     private static class LocationJoinOperator implements JoinOperator
     {
         public AbstractElement join (AbstractElement element1, AbstractElement element2)
@@ -121,7 +106,7 @@ public class LocationDomain implements AbstractDomain
 
     private final static LocationBottomElement bottomElement = new LocationBottomElement ();
     private final static LocationTopElement topElement = new LocationTopElement ();
-    private final static PartialOrder partialOrder = new LocationPartialOrder ();
+    private final        PartialOrder partialOrder = new EqualityPartialOrder(this);
     private final static JoinOperator joinOperator = new LocationJoinOperator ();
 
     public LocationDomain ()
