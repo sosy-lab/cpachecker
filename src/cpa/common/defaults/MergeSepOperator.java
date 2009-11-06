@@ -21,16 +21,34 @@
  *  CPAchecker web page:
  *    http://www.cs.sfu.ca/~dbeyer/CPAchecker/
  */
-package cpa.common;
+package cpa.common.defaults;
 
-public enum CPAType
-{
-    LocationCPA,
-    InterProceduralCPA,
-    DefUseCPA,
-    OctagonCPA,
-    PredicateAbstractionCPA,
-    SymbolicPredAbstCPA, // AG
-    SummarySymbolicPredAbstCPA, // AG
-    AssumptionCollectorCPA // GT
+import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.AbstractElementWithLocation;
+import cpa.common.interfaces.MergeOperator;
+import cpa.common.interfaces.Precision;
+import exceptions.CPAException;
+
+/**
+ * Standard merge-sep operator
+ * @author g.theoduloz
+ */
+public class MergeSepOperator implements MergeOperator {
+
+  @Override
+  public AbstractElement merge(AbstractElement el1, AbstractElement el2, Precision p)
+    throws CPAException
+  {
+    return el2;
+  }
+
+  @Override
+  public AbstractElementWithLocation merge(
+      AbstractElementWithLocation el1,
+      AbstractElementWithLocation el2, Precision p)
+    throws CPAException
+  {
+    return el2;
+  }
+
 }

@@ -21,16 +21,32 @@
  *  CPAchecker web page:
  *    http://www.cs.sfu.ca/~dbeyer/CPAchecker/
  */
-package cpa.common;
+package cpa.common.defaults;
 
-public enum CPAType
-{
-    LocationCPA,
-    InterProceduralCPA,
-    DefUseCPA,
-    OctagonCPA,
-    PredicateAbstractionCPA,
-    SymbolicPredAbstCPA, // AG
-    SummarySymbolicPredAbstCPA, // AG
-    AssumptionCollectorCPA // GT
+import java.util.Collection;
+
+import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.Precision;
+import cpa.common.interfaces.StopOperator;
+import exceptions.CPAException;
+
+/**
+ * Standard stop operator, which always return false
+ */
+public class StopNeverOperator implements StopOperator {
+
+  @Override
+  public <AE extends AbstractElement> boolean stop(AE el, Collection<AE> reached, Precision precision)
+    throws CPAException
+  {
+    return false;
+  }
+
+  @Override
+  public boolean stop(AbstractElement el, AbstractElement reachedElement)
+      throws CPAException {
+    return false;
+  }
+
+
 }
