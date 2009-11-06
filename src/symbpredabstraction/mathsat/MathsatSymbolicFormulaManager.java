@@ -1608,7 +1608,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     }
   }
 
-  private MathsatSymbolicFormula buildFormulaPredicate(
+  protected MathsatSymbolicFormula buildFormulaPredicate(
       IASTExpression exp, boolean isTrue, SSAMap ssa,
       boolean absoluteSSAIndices) {
     if (exp instanceof IASTBinaryExpression) {
