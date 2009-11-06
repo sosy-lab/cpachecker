@@ -49,15 +49,6 @@ public class AnalysisControllerTransferRelation implements TransferRelation {
     domain = d;
   }
   
-  /**
-   * @return true iff we should stop exploring because the threshold for
-   *         this node is exceeded
-   */
-  protected boolean isThresholdExceeded(CFANode node, Context context)
-  {
-    return false;
-  }
-  
   @Override
   public AbstractElement getAbstractSuccessor(AbstractElement el, CFAEdge edge, Precision p)
     throws CPATransferException
