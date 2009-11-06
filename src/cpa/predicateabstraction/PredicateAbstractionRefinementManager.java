@@ -9,7 +9,9 @@ import java.util.Vector;
 
 import logging.CustomLogLevel;
 import logging.LazyLogger;
-import predicateabstraction.PredicateAbstractionAbstractFormulaManager;
+import symbpredabstraction.UpdateablePredicateMap;
+import symbpredabstraction.interfaces.Predicate;
+import symbpredabstraction.trace.CounterexampleTraceInfo;
 import cfa.objectmodel.CFAEdge;
 import cmdline.CPAMain;
 
@@ -23,9 +25,6 @@ import cpa.common.ReachedElements;
 import cpa.common.RefinementOutcome;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.RefinementManager;
-import cpa.symbpredabs.CounterexampleTraceInfo;
-import cpa.symbpredabs.Predicate;
-import cpa.symbpredabs.UpdateablePredicateMap;
 import exceptions.CPATransferException;
 
 public class PredicateAbstractionRefinementManager implements RefinementManager {

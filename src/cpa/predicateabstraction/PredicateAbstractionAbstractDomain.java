@@ -23,11 +23,11 @@
  */
 package cpa.predicateabstraction;
 
+import symbpredabstraction.interfaces.AbstractFormulaManager;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.JoinOperator;
 import cpa.common.interfaces.PartialOrder;
-import cpa.symbpredabs.AbstractFormulaManager;
 import exceptions.CPAException;
 
 /**

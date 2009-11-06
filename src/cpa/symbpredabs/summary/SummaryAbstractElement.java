@@ -27,13 +27,14 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Stack;
 
+import symbpredabstraction.SSAMap;
+import symbpredabstraction.interfaces.AbstractFormula;
+import symbpredabstraction.interfaces.SymbolicFormula;
+
 import cfa.objectmodel.CFANode;
 
 import cpa.common.interfaces.AbstractElementWithLocation;
-import cpa.symbpredabs.AbstractFormula;
 import common.Pair;
-import cpa.symbpredabs.SSAMap;
-import cpa.symbpredabs.SymbolicFormula;
 
 /**
  * AbstractElement for symbolic lazy abstraction with summaries

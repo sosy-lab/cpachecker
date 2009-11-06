@@ -31,6 +31,16 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.TreeSet;
 
+import symbpredabstraction.interfaces.InterpolatingTheoremProver;
+import symbpredabstraction.interfaces.SymbolicFormula;
+import symbpredabstraction.interfaces.SymbolicFormulaManager;
+import symbpredabstraction.interfaces.TheoremProver;
+import symbpredabstraction.mathsat.MathsatInterpolatingProver;
+import symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
+import symbpredabstraction.mathsat.MathsatTheoremProver;
+import symbpredabstraction.mathsat.SimplifyTheoremProver;
+import symbpredabstraction.mathsat.YicesTheoremProver;
+
 import logging.CustomLogLevel;
 import logging.LazyLogger;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
@@ -48,17 +58,8 @@ import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
-import cpa.symbpredabs.InterpolatingTheoremProver;
-import cpa.symbpredabs.SymbolicFormula;
-import cpa.symbpredabs.SymbolicFormulaManager;
-import cpa.symbpredabs.TheoremProver;
 import cpa.symbpredabs.explicit.BDDMathsatExplicitAbstractManager;
 import cpa.symbpredabs.explicit.ExplicitAbstractFormulaManager;
-import cpa.symbpredabs.mathsat.MathsatInterpolatingProver;
-import cpa.symbpredabs.mathsat.MathsatSymbolicFormulaManager;
-import cpa.symbpredabs.mathsat.MathsatTheoremProver;
-import cpa.symbpredabs.mathsat.SimplifyTheoremProver;
-import cpa.symbpredabs.mathsat.YicesTheoremProver;
 
 
 /**

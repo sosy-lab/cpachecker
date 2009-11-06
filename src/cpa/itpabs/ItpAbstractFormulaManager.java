@@ -26,14 +26,15 @@ package cpa.itpabs;
 import java.util.Collection;
 import java.util.Deque;
 
+import symbpredabstraction.interfaces.AbstractFormula;
+import symbpredabstraction.interfaces.AbstractFormulaManager;
+import symbpredabstraction.interfaces.Predicate;
+import symbpredabstraction.interfaces.SymbolicFormulaManager;
+import symbpredabstraction.trace.CounterexampleTraceInfo;
+
 import cfa.objectmodel.CFAEdge;
 
 import cpa.itpabs.ItpAbstractElement;
-import cpa.symbpredabs.AbstractFormula;
-import cpa.symbpredabs.AbstractFormulaManager;
-import cpa.symbpredabs.CounterexampleTraceInfo;
-import cpa.symbpredabs.Predicate;
-import cpa.symbpredabs.SymbolicFormulaManager;
 
 /**
  * An abstract formula manager for interpolation-based lazy abstraction.

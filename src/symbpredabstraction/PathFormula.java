@@ -23,18 +23,17 @@
  */
 package symbpredabstraction;
 
+import symbpredabstraction.interfaces.SymbolicFormula;
+import symbpredabstraction.interfaces.SymbolicFormulaManager;
+import symbpredabstraction.mathsat.MathsatSymbolicFormula;
+import symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
 import common.Pair;
 
-import cpa.symbpredabs.SSAMap;
-import cpa.symbpredabs.SymbolicFormula;
-import cpa.symbpredabs.SymbolicFormulaManager;
-import cpa.symbpredabs.mathsat.MathsatSymbolicFormula;
-import cpa.symbpredabs.mathsat.MathsatSymbolicFormulaManager;
 
 public class PathFormula {
 
-  SSAMap ssa;
-  SymbolicFormula symbolicFormula;
+  private SSAMap ssa;
+  private SymbolicFormula symbolicFormula;
 
   public PathFormula(SymbolicFormula pf, SSAMap newssa){
     ssa = newssa;

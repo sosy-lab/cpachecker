@@ -26,6 +26,9 @@ package cpa.itpabs.symbolic;
 import java.util.HashMap;
 import java.util.Map;
 
+import symbpredabstraction.SSAMap;
+import symbpredabstraction.interfaces.SymbolicFormula;
+
 import logging.LazyLogger;
 
 import cfa.objectmodel.CFAEdge;
@@ -42,11 +45,9 @@ import cpaplugin.CPAStatistics;
 import cpa.itpabs.symbolic.ItpSymbolicAbstractElement;
 import cpa.itpabs.symbolic.ItpSymbolicCounterexampleRefiner;
 import common.Pair;
-import cpa.symbpredabs.SSAMap;
-import cpa.symbpredabs.SymbolicFormula;
 import exceptions.UnrecognizedCFAEdgeException;
-import cpa.symbpredabs.mathsat.summary.MathsatSummaryFormulaManager;
 import cpa.symbpredabs.summary.InnerCFANode;
+import cpa.symbpredabs.summary.MathsatSummaryFormulaManager;
 import cpa.symbpredabs.summary.SummaryCFANode;
 
 

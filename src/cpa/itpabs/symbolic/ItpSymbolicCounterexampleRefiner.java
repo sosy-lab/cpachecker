@@ -31,6 +31,12 @@ import java.util.Deque;
 import java.util.Stack;
 import java.util.Vector;
 
+import symbpredabstraction.SSAMap;
+import symbpredabstraction.interfaces.SymbolicFormula;
+import symbpredabstraction.interfaces.SymbolicFormulaManager;
+import symbpredabstraction.mathsat.MathsatSymbolicFormula;
+import symbpredabstraction.trace.ConcreteTraceNoInfo;
+
 import logging.CPACheckerLogger;
 import logging.CustomLogLevel;
 import logging.LazyLogger;
@@ -44,14 +50,9 @@ import cpa.itpabs.ItpAbstractElement;
 import cpa.itpabs.ItpCounterexampleRefiner;
 import cpa.itpabs.ItpCounterexampleTraceInfo;
 import cpa.itpabs.symbolic.ItpSymbolicAbstractElement;
-import cpa.symbpredabs.ConcreteTraceNoInfo;
 import common.Pair;
-import cpa.symbpredabs.SSAMap;
-import cpa.symbpredabs.SymbolicFormula;
-import cpa.symbpredabs.SymbolicFormulaManager;
-import cpa.symbpredabs.mathsat.MathsatSymbolicFormula;
-import cpa.symbpredabs.mathsat.summary.MathsatSummaryFormulaManager;
 import cpa.symbpredabs.summary.InnerCFANode;
+import cpa.symbpredabs.summary.MathsatSummaryFormulaManager;
 import cpa.symbpredabs.summary.SummaryCFANode;
 
 

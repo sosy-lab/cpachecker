@@ -27,6 +27,10 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
+import symbpredabstraction.interfaces.SymbolicFormula;
+import symbpredabstraction.interfaces.SymbolicFormulaManager;
+import symbpredabstraction.interfaces.TheoremProver;
+
 import logging.LazyLogger;
 import cmdline.CPAMain;
 
@@ -35,9 +39,6 @@ import common.Pair;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.StopOperator;
-import cpa.symbpredabs.SymbolicFormula;
-import cpa.symbpredabs.SymbolicFormulaManager;
-import cpa.symbpredabs.TheoremProver;
 import exceptions.CPAException;
 
 /**

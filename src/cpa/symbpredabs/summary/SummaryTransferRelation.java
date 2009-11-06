@@ -34,6 +34,13 @@ import java.util.Map;
 import java.util.Vector;
 import java.util.logging.Level;
 
+import symbpredabstraction.SSAMap;
+import symbpredabstraction.UpdateablePredicateMap;
+import symbpredabstraction.interfaces.AbstractFormula;
+import symbpredabstraction.interfaces.Predicate;
+import symbpredabstraction.interfaces.SymbolicFormula;
+import symbpredabstraction.trace.CounterexampleTraceInfo;
+
 import logging.CPACheckerLogger;
 import logging.CustomLogLevel;
 import logging.LazyLogger;
@@ -51,13 +58,7 @@ import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
-import cpa.symbpredabs.AbstractFormula;
 import cpa.symbpredabs.AbstractReachabilityTree;
-import cpa.symbpredabs.CounterexampleTraceInfo;
-import cpa.symbpredabs.Predicate;
-import cpa.symbpredabs.SSAMap;
-import cpa.symbpredabs.SymbolicFormula;
-import cpa.symbpredabs.UpdateablePredicateMap;
 import exceptions.CPAException;
 import exceptions.CPATransferException;
 import exceptions.ErrorReachedException;

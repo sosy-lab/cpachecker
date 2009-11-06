@@ -26,13 +26,14 @@ package cpa.itpabs.symbolic;
 import java.util.Collection;
 import java.util.Map;
 
+import symbpredabstraction.SSAMap;
+import symbpredabstraction.interfaces.SymbolicFormula;
+
 import cfa.objectmodel.CFAErrorNode;
 import cfa.objectmodel.CFANode;
 
 import cpa.itpabs.ItpAbstractElement;
 import common.Pair;
-import cpa.symbpredabs.SSAMap;
-import cpa.symbpredabs.SymbolicFormula;
 import cpa.symbpredabs.summary.SummaryCFANode;
 
 /**

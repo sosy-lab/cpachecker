@@ -26,11 +26,12 @@ package cpa.itpabs;
 import java.util.HashMap;
 import java.util.Map;
 
+import symbpredabstraction.interfaces.SymbolicFormula;
+import symbpredabstraction.trace.ConcreteTrace;
+
 import logging.LazyLogger;
 
 import cpa.common.interfaces.AbstractElement;
-import cpa.symbpredabs.ConcreteTrace;
-import cpa.symbpredabs.SymbolicFormula;
 
 
 /**

@@ -27,16 +27,17 @@ import java.util.Collection;
 import java.util.Deque;
 import java.util.Vector;
 
+import symbpredabstraction.SSAMap;
+import symbpredabstraction.interfaces.AbstractFormula;
+import symbpredabstraction.interfaces.AbstractFormulaManager;
+import symbpredabstraction.interfaces.Predicate;
+import symbpredabstraction.interfaces.SymbolicFormula;
+import symbpredabstraction.interfaces.SymbolicFormulaManager;
+import symbpredabstraction.trace.CounterexampleTraceInfo;
+
 import cfa.objectmodel.CFAEdge;
 
 import cpa.common.interfaces.AbstractElementWithLocation;
-import cpa.symbpredabs.AbstractFormula;
-import cpa.symbpredabs.AbstractFormulaManager;
-import cpa.symbpredabs.CounterexampleTraceInfo;
-import cpa.symbpredabs.Predicate;
-import cpa.symbpredabs.SSAMap;
-import cpa.symbpredabs.SymbolicFormula;
-import cpa.symbpredabs.SymbolicFormulaManager;
 import exceptions.UnrecognizedCFAEdgeException;
 
 /**

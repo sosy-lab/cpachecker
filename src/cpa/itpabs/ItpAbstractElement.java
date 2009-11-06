@@ -26,12 +26,13 @@ package cpa.itpabs;
 import java.util.Collection;
 import java.util.Stack;
 
+import symbpredabstraction.interfaces.SymbolicFormula;
+
 import cfa.objectmodel.CFANode;
 
 import common.Pair;
 
 import cpa.common.interfaces.AbstractElementWithLocation;
-import cpa.symbpredabs.SymbolicFormula;
 
 /**
  * Abstract element for interpolation-based lazy abstraction

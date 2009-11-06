@@ -25,15 +25,14 @@ package cpa.symbpredabsCPA;
 
 import java.util.List;
 
-import symbpredabstraction.AbstractionPathList;
 import symbpredabstraction.PathFormula;
+import symbpredabstraction.bdd.BDDAbstractFormula;
+import symbpredabstraction.interfaces.AbstractFormula;
+import symbpredabstraction.interfaces.PredicateMap;
+import symbpredabstraction.interfaces.SymbolicFormula;
 import cfa.objectmodel.CFANode;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
-import cpa.symbpredabs.AbstractFormula;
-import cpa.symbpredabs.PredicateMap;
-import cpa.symbpredabs.SymbolicFormula;
-import cpa.symbpredabs.mathsat.BDDAbstractFormula;
 
 /**
  * AbstractElement for Symbolic Predicate Abstraction CPA

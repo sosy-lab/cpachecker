@@ -30,6 +30,11 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
+import symbpredabstraction.bdd.BDDPredicate;
+import symbpredabstraction.interfaces.Predicate;
+import symbpredabstraction.interfaces.PredicateMap;
+import symbpredabstraction.mathsat.MathsatSymbolicFormula;
+
 import cmdline.CPAMain;
 
 import cfa.objectmodel.CFANode;
@@ -37,11 +42,6 @@ import cfa.objectmodel.CFANode;
 import cpaplugin.CPAStatistics;
 import cpaplugin.MainCPAStatistics;
 import common.Pair;
-import cpa.symbpredabs.Predicate;
-import cpa.symbpredabs.PredicateMap;
-import cpa.symbpredabs.mathsat.BDDPredicate;
-import cpa.symbpredabs.mathsat.MathsatSymbolicFormula;
-import cpa.symbpredabs.mathsat.summary.BDDMathsatSummaryAbstractManager;
 
 /**
  * Statistics for symbolic lazy abstraction with summaries

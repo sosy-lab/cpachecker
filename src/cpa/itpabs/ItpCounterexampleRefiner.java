@@ -32,6 +32,14 @@ import java.util.Map;
 import java.util.Stack;
 import java.util.Vector;
 
+import symbpredabstraction.SSAMap;
+import symbpredabstraction.interfaces.InterpolatingTheoremProver;
+import symbpredabstraction.interfaces.SymbolicFormula;
+import symbpredabstraction.interfaces.SymbolicFormulaManager;
+import symbpredabstraction.mathsat.MathsatSymbolicFormula;
+import symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
+import symbpredabstraction.trace.ConcreteTraceNoInfo;
+
 import logging.CustomLogLevel;
 import logging.LazyLogger;
 
@@ -40,15 +48,8 @@ import cmdline.CPAMain;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.itpabs.ItpAbstractElement;
 import cpa.itpabs.ItpCounterexampleTraceInfo;
-import cpa.symbpredabs.ConcreteTraceNoInfo;
-import cpa.symbpredabs.InterpolatingTheoremProver;
-import cpa.symbpredabs.SSAMap;
-import cpa.symbpredabs.SymbolicFormula;
-import cpa.symbpredabs.SymbolicFormulaManager;
 import exceptions.UnrecognizedCFAEdgeException;
 import cpa.symbpredabs.explicit.ExplicitAbstractFormulaManager;
-import cpa.symbpredabs.mathsat.MathsatSymbolicFormula;
-import cpa.symbpredabs.mathsat.MathsatSymbolicFormulaManager;
 
 /**
  * STILL ON-GOING, NOT FINISHED, AND CURRENTLY BROKEN

@@ -37,8 +37,6 @@ Export-Package: .,
    cpa.common.interfaces",
  cpa.predicateabstraction;uses:="cfa.objectmodel,predicateabstraction,cpa.common.interfaces",
  cpa.symbpredabs;uses:="cfa.objectmodel,cpaplugin.exceptions,cpaplugin.cpa.common.interfaces",
- cpa.symbpredabs.mathsat;uses:="cfa.objectmodel,mathsat,cpaplugin.cpa.symbpredabs",
- cpa.symbpredabs.mathsat.summary;uses:="cpa.symbpredabs.mathsat,cpa.symbpredabs,cpa.symbpredabs.summary",
  cpa.symbpredabs.summary;
   uses:="cfa.objectmodel,
    cfa,
@@ -53,8 +51,7 @@ Export-Package: .,
  logging,
  mathsat,
  net.sf.javabdd;uses:="jdd.bdd,new net.sf.javabdd",
- octagon;uses:="cpaplugin.cpa.octagon,cpaplugin.cpa.common.interfaces",
- predicateabstraction
+ octagon;uses:="cpaplugin.cpa.octagon,cpaplugin.cpa.common.interfaces"
 Bundle-ClassPath: bin/,
  lib/javabdd-1.0b2.jar,
  lib/mathsat.jar,

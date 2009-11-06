@@ -25,12 +25,13 @@ package cpa.symbpredabs.summary;
 
 import java.util.Map;
 
+import symbpredabstraction.SSAMap;
+import symbpredabstraction.interfaces.SymbolicFormula;
+import symbpredabstraction.interfaces.SymbolicFormulaManager;
+
 import cfa.objectmodel.CFANode;
 
 import common.Pair;
-import cpa.symbpredabs.SSAMap;
-import cpa.symbpredabs.SymbolicFormula;
-import cpa.symbpredabs.SymbolicFormulaManager;
 import exceptions.UnrecognizedCFAEdgeException;
 
 /**

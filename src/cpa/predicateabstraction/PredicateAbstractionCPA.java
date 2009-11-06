@@ -32,9 +32,19 @@ import java.util.Vector;
 
 import logging.CustomLogLevel;
 import logging.LazyLogger;
-import predicateabstraction.BDDMathsatPredicateAbstractionAbstractManager;
-import predicateabstraction.PredicateAbstractionAbstractFormulaManager;
-import predicateabstraction.PredicateAbstractionCPAStatistics;
+import symbpredabstraction.FixedPredicateMap;
+import symbpredabstraction.UpdateablePredicateMap;
+import symbpredabstraction.interfaces.InterpolatingTheoremProver;
+import symbpredabstraction.interfaces.Predicate;
+import symbpredabstraction.interfaces.PredicateMap;
+import symbpredabstraction.interfaces.SymbolicFormulaManager;
+import symbpredabstraction.interfaces.TheoremProver;
+import symbpredabstraction.mathsat.MathsatInterpolatingProver;
+import symbpredabstraction.mathsat.MathsatPredicateParser;
+import symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
+import symbpredabstraction.mathsat.MathsatTheoremProver;
+import symbpredabstraction.mathsat.SimplifyTheoremProver;
+import symbpredabstraction.mathsat.YicesTheoremProver;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cmdline.CPAMain;
 
@@ -51,19 +61,6 @@ import cpa.common.interfaces.RefinableCPA;
 import cpa.common.interfaces.RefinementManager;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
-import cpa.symbpredabs.FixedPredicateMap;
-import cpa.symbpredabs.InterpolatingTheoremProver;
-import cpa.symbpredabs.Predicate;
-import cpa.symbpredabs.PredicateMap;
-import cpa.symbpredabs.SymbolicFormulaManager;
-import cpa.symbpredabs.TheoremProver;
-import cpa.symbpredabs.UpdateablePredicateMap;
-import cpa.symbpredabs.mathsat.MathsatInterpolatingProver;
-import cpa.symbpredabs.mathsat.MathsatPredicateParser;
-import cpa.symbpredabs.mathsat.MathsatSymbolicFormulaManager;
-import cpa.symbpredabs.mathsat.MathsatTheoremProver;
-import cpa.symbpredabs.mathsat.SimplifyTheoremProver;
-import cpa.symbpredabs.mathsat.YicesTheoremProver;
 import cpaplugin.CPAStatistics;
 
 

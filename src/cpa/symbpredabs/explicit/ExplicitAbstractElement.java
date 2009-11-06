@@ -25,10 +25,11 @@ package cpa.symbpredabs.explicit;
 
 import java.util.Stack;
 
+import symbpredabstraction.interfaces.AbstractFormula;
+
 import cfa.objectmodel.CFANode;
 
 import cpa.common.interfaces.AbstractElementWithLocation;
-import cpa.symbpredabs.AbstractFormula;
 import common.Pair;
 
 /**

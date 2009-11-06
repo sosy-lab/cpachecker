@@ -25,7 +25,6 @@ package cpa.predicateabstraction;
 
 import java.util.Collection;
 
-import predicateabstraction.PredicateAbstractionAbstractFormulaManager;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.StopOperator;

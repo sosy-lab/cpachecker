@@ -38,6 +38,11 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.Map.Entry;
 
+import symbpredabstraction.UpdateablePredicateMap;
+import symbpredabstraction.interfaces.Predicate;
+import symbpredabstraction.interfaces.SymbolicFormulaManager;
+import symbpredabstraction.trace.CounterexampleTraceInfo;
+
 import cfa.CFAMap;
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
@@ -55,10 +60,6 @@ import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
 import cpa.scoperestriction.ScopeRestrictionCPA;
-import cpa.symbpredabs.CounterexampleTraceInfo;
-import cpa.symbpredabs.Predicate;
-import cpa.symbpredabs.SymbolicFormulaManager;
-import cpa.symbpredabs.UpdateablePredicateMap;
 import cpa.symbpredabs.explicit.BDDMathsatExplicitAbstractManager;
 import cpa.symbpredabs.explicit.ExplicitAbstractElement;
 import cpa.symbpredabs.explicit.ExplicitAbstractFormulaManager;

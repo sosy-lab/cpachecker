@@ -30,15 +30,14 @@ import java.util.logging.Level;
 import logging.CPACheckerLogger;
 import logging.CustomLogLevel;
 import logging.LazyLogger;
-import predicateabstraction.PredicateAbstractionAbstractFormulaManager;
+import symbpredabstraction.interfaces.AbstractFormula;
+import symbpredabstraction.interfaces.Predicate;
+import symbpredabstraction.interfaces.SymbolicFormulaManager;
 import cfa.objectmodel.CFAEdge;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
-import cpa.symbpredabs.AbstractFormula;
-import cpa.symbpredabs.Predicate;
-import cpa.symbpredabs.SymbolicFormulaManager;
 import exceptions.CPAException;
 import exceptions.CPATransferException;
 

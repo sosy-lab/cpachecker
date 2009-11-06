@@ -26,10 +26,11 @@ package cpa.symbpredabs.summary;
 import java.util.Collection;
 import java.util.Deque;
 
-import cpa.symbpredabs.AbstractFormula;
-import cpa.symbpredabs.AbstractFormulaManager;
-import cpa.symbpredabs.CounterexampleTraceInfo;
-import cpa.symbpredabs.Predicate;
+import symbpredabstraction.interfaces.AbstractFormula;
+import symbpredabstraction.interfaces.AbstractFormulaManager;
+import symbpredabstraction.interfaces.Predicate;
+import symbpredabstraction.trace.CounterexampleTraceInfo;
+
 
 /**
  * An AbstractFormulaManager that knows about Summary locations.

@@ -10,9 +10,14 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import symbpredabstraction.UpdateablePredicateMap;
+import symbpredabstraction.interfaces.AbstractFormulaManager;
+import symbpredabstraction.interfaces.Predicate;
+import symbpredabstraction.interfaces.SymbolicFormulaManager;
+import symbpredabstraction.trace.CounterexampleTraceInfo;
+
 import logging.CustomLogLevel;
 import logging.LazyLogger;
-import symbpredabstraction.BDDMathsatSymbPredAbstractionAbstractManager;
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFANode;
 import cmdline.CPAMain;
@@ -28,11 +33,6 @@ import cpa.common.RefinementOutcome;
 import cpa.common.algorithm.CEGARAlgorithm;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.RefinementManager;
-import cpa.symbpredabs.AbstractFormulaManager;
-import cpa.symbpredabs.CounterexampleTraceInfo;
-import cpa.symbpredabs.Predicate;
-import cpa.symbpredabs.SymbolicFormulaManager;
-import cpa.symbpredabs.UpdateablePredicateMap;
 import exceptions.CPATransferException;
 
 public class SymbPredAbsRefinementManager implements RefinementManager{

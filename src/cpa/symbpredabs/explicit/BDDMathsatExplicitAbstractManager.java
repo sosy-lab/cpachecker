@@ -38,6 +38,21 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.Vector;
 
+import symbpredabstraction.SSAMap;
+import symbpredabstraction.bdd.BDDAbstractFormula;
+import symbpredabstraction.bdd.BDDPredicate;
+import symbpredabstraction.interfaces.AbstractFormula;
+import symbpredabstraction.interfaces.InterpolatingTheoremProver;
+import symbpredabstraction.interfaces.Predicate;
+import symbpredabstraction.interfaces.SymbolicFormula;
+import symbpredabstraction.interfaces.SymbolicFormulaManager;
+import symbpredabstraction.interfaces.TheoremProver;
+import symbpredabstraction.mathsat.BDDMathsatAbstractFormulaManager;
+import symbpredabstraction.mathsat.MathsatSymbolicFormula;
+import symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
+import symbpredabstraction.trace.ConcreteTraceFunctionCalls;
+import symbpredabstraction.trace.CounterexampleTraceInfo;
+
 import logging.CPACheckerLogger;
 import logging.CustomLogLevel;
 import logging.LazyLogger;
@@ -50,21 +65,7 @@ import cmdline.CPAMain;
 import common.Pair;
 
 import cpa.common.interfaces.AbstractElementWithLocation;
-import cpa.symbpredabs.AbstractFormula;
-import cpa.symbpredabs.ConcreteTraceFunctionCalls;
-import cpa.symbpredabs.CounterexampleTraceInfo;
-import cpa.symbpredabs.InterpolatingTheoremProver;
-import cpa.symbpredabs.Predicate;
-import cpa.symbpredabs.SSAMap;
-import cpa.symbpredabs.SymbolicFormula;
-import cpa.symbpredabs.SymbolicFormulaManager;
-import cpa.symbpredabs.TheoremProver;
 import exceptions.UnrecognizedCFAEdgeException;
-import cpa.symbpredabs.mathsat.BDDAbstractFormula;
-import cpa.symbpredabs.mathsat.BDDMathsatAbstractFormulaManager;
-import cpa.symbpredabs.mathsat.BDDPredicate;
-import cpa.symbpredabs.mathsat.MathsatSymbolicFormula;
-import cpa.symbpredabs.mathsat.MathsatSymbolicFormulaManager;
 
 /**
  * Implementation of ExplicitAbstractFormulaManager that uses BDDs for

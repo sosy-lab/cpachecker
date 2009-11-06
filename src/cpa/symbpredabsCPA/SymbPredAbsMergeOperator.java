@@ -27,6 +27,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 import symbpredabstraction.PathFormula;
+import symbpredabstraction.SSAMap;
+import symbpredabstraction.interfaces.SymbolicFormula;
+import symbpredabstraction.interfaces.SymbolicFormulaManager;
+import symbpredabstraction.mathsat.MathsatSymbolicFormula;
 
 import common.Pair;
 
@@ -34,10 +38,6 @@ import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
-import cpa.symbpredabs.SSAMap;
-import cpa.symbpredabs.SymbolicFormula;
-import cpa.symbpredabs.SymbolicFormulaManager;
-import cpa.symbpredabs.mathsat.MathsatSymbolicFormula;
 import exceptions.CPAException;
 
 /**

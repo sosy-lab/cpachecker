@@ -25,12 +25,13 @@ package cpa.itpabs;
 
 import java.util.Collection;
 
+import symbpredabstraction.interfaces.SymbolicFormulaManager;
+
 import cfa.objectmodel.CFANode;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.JoinOperator;
 import cpa.common.interfaces.PartialOrder;
-import cpa.symbpredabs.SymbolicFormulaManager;
 import exceptions.CPAException;
 
 /**

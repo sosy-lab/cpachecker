@@ -38,6 +38,9 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.Vector;
 
+import symbpredabstraction.interfaces.SymbolicFormula;
+import symbpredabstraction.interfaces.SymbolicFormulaManager;
+
 import logging.CustomLogLevel;
 import logging.LazyLogger;
 import cfa.objectmodel.CFAEdge;
@@ -51,8 +54,6 @@ import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
 import cpa.symbpredabs.AbstractReachabilityTree;
-import cpa.symbpredabs.SymbolicFormula;
-import cpa.symbpredabs.SymbolicFormulaManager;
 import exceptions.CPAException;
 
 
