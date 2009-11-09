@@ -107,7 +107,7 @@ public class CompositeCPA implements RefinableCPA
 
     CompositeDomain compositeDomain = new CompositeDomain (domains);
     CompositeTransferRelation compositeTransfer = new CompositeTransferRelation (compositeDomain, transferRelations);
-    CompositeMergeOperator compositeMerge = new CompositeMergeOperator (mergeOperators);
+    CompositeMergeOperator compositeMerge = new CompositeMergeOperator (compositeDomain, mergeOperators);
     CompositeStopOperator compositeStop = new CompositeStopOperator (compositeDomain, stopOperators);
     CompositePrecisionAdjustment compositePrecisionAdjustment = new CompositePrecisionAdjustment (precisionAdjustments);
     CompositeElement initialElement = new CompositeElement (initialElements, null);

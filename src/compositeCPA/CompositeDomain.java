@@ -35,8 +35,8 @@ public class CompositeDomain implements AbstractDomain
 {
     private final List<AbstractDomain> domains;
 
-    private final CompositeBottomElement bottomElement;
-    private final CompositeTopElement topElement;
+    private final CompositeElement bottomElement;
+    private final CompositeElement topElement;
     private final CompositeJoinOperator joinOperator;
     private final CompositePartialOrder partialOrder;
 
@@ -57,8 +57,8 @@ public class CompositeDomain implements AbstractDomain
             partialOrders.add (domain.getPartialOrder ());
         }
 
-        this.bottomElement = new CompositeBottomElement (bottoms);
-        this.topElement = new CompositeTopElement (tops);
+        this.bottomElement = new CompositeElement(bottoms, null);
+        this.topElement = new CompositeElement(tops, null);
         this.joinOperator = new CompositeJoinOperator (joinOperators);
         this.partialOrder = new CompositePartialOrder (partialOrders);
     }
