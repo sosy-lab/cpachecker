@@ -38,21 +38,16 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.eclipse.cdt.core.dom.IASTServiceProvider;
+import logging.CPACheckerLogger;
+
 import org.eclipse.cdt.core.dom.IASTServiceProvider.UnsupportedDialectException;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
-import org.eclipse.cdt.internal.core.dom.InternalASTServiceProvider;
 import org.eclipse.core.resources.IFile;
-
-import cmdline.CPAMain;
-import cmdline.stubs.StubCodeReaderFactory;
-import cmdline.stubs.StubConfiguration;
-import cmdline.stubs.StubFile;
 
 import cfa.CFABuilder;
 import cfa.CFAMap;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
-
+import cmdline.stubs.StubFile;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.JoinOperator;
@@ -60,11 +55,8 @@ import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.PartialOrder;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.StopOperator;
-import exceptions.CPAException;
-
 import cpaplugin.CPAConfiguration;
-
-import logging.CPACheckerLogger;
+import exceptions.CPAException;
 
 /**
  * @author Michael Tautschnig <tautschnig@forsyte.de>
@@ -152,11 +144,9 @@ public class CPASelfCheck {
     IFile currentFile = new StubFile(lFile.getCanonicalPath());
 
     // Get Eclipse to parse the C in the current file
-    IASTServiceProvider p = new InternalASTServiceProvider();
-    IASTTranslationUnit ast = p.getTranslationUnit(currentFile,
-        StubCodeReaderFactory.getInstance(),
-        new StubConfiguration());
+    IASTTranslationUnit ast = CPAMain.parse(currentFile);
 
+    // TODO use the methods from CPAMain for this?
     CFABuilder builder = new CFABuilder();
     ast.accept(builder);
     CFAMap cfas = builder.getCFAs();

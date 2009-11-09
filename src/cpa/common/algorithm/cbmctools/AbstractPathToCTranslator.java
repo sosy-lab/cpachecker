@@ -29,11 +29,7 @@ package cpa.common.algorithm.cbmctools;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Deque;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Stack;
 
 import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
@@ -41,10 +37,6 @@ import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
 import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
-
-import common.Pair;
-
-import cmdline.CPAMain;
 
 import cfa.CFAMap;
 import cfa.objectmodel.CFAEdge;
@@ -59,8 +51,11 @@ import cfa.objectmodel.c.FunctionDefinitionNode;
 import cfa.objectmodel.c.MultiDeclarationEdge;
 import cfa.objectmodel.c.MultiStatementEdge;
 import cfa.objectmodel.c.StatementEdge;
+import cmdline.CPAMain;
+
+import common.Pair;
+
 import cpa.art.ARTElement;
-import cpa.common.interfaces.AbstractElementWithLocation;
 
 /**
  * @author holzera

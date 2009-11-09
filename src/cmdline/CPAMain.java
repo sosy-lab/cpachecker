@@ -192,7 +192,7 @@ public class CPAMain {
    * @param fileName  The file to parse.
    * @return The AST.
    */
-  private static IASTTranslationUnit parse(IFile file) {
+  public static IASTTranslationUnit parse(IFile file) {
     IASTServiceProvider p = new InternalASTServiceProvider();
     
     ICodeReaderFactory codeReaderFactory = null;

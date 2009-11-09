@@ -48,6 +48,7 @@ import org.eclipse.core.runtime.content.IContentTypeMatcher;
 import org.eclipse.core.runtime.jobs.ISchedulingRule;
 
 
+@SuppressWarnings("deprecation")
 public class StubProject implements IProject {
 
 
@@ -128,7 +129,7 @@ public class StubProject implements IProject {
 	}
 
 
-	public IPath getPluginWorkingLocation(IPluginDescriptor arg0) {
+  public IPath getPluginWorkingLocation(IPluginDescriptor arg0) {
 
 		return null;
 	}
