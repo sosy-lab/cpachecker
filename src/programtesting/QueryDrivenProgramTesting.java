@@ -42,7 +42,6 @@ import symbpredabstraction.UpdateablePredicateMap;
 import symbpredabstraction.interfaces.Predicate;
 import symbpredabstraction.interfaces.SymbolicFormulaManager;
 import symbpredabstraction.trace.CounterexampleTraceInfo;
-
 import cfa.CFAMap;
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
@@ -51,7 +50,7 @@ import common.Pair;
 import compositeCPA.CompositeElement;
 import compositeCPA.CompositePrecision;
 
-import cpa.common.CPAAlgorithm;
+import cpa.common.algorithm.CPAAlgorithm;
 import cpa.common.automaton.Automaton;
 import cpa.common.automaton.AutomatonCPADomain;
 import cpa.common.interfaces.AbstractElement;
@@ -115,8 +114,11 @@ public class QueryDrivenProgramTesting {
     TestGoalCPA lTestGoalCPA = new TestGoalCPA(lTestGoalAutomaton);
     cpas.add(lTestGoalCPA);
     
-    
-    CPAAlgorithm algo = new CPAAlgorithm();
+//  FIXME This code was not adapted when the CPAAlgorithm class changed.
+//  I commented it out to remove the compiler error. (Philipp)
+    System.err.println("This is currently not working, fix the code.");
+    System.exit(1);
+//    CPAAlgorithm algo = new CPAAlgorithm();
 
     // every final state in the test goal automaton represents a 
     // test goal, so initialize test goals with the final states
@@ -163,14 +165,15 @@ public class QueryDrivenProgramTesting {
       lTestGoalPrecision.setTestGoals(lTestGoals);
       
       
-      try {
-        algo.CPA(cpa, lInitialElement, lInitialPrecision);
-      } catch (CPAException e1) {
-        e1.printStackTrace();
-        
-        // end test case generation
-        break;
-      }
+      // commented out by Philipp, too
+//      try {
+//         algo.CPA(cpa, lInitialElement, lInitialPrecision);
+//      } catch (CPAException e1) {
+//        e1.printStackTrace();
+//        
+//        // end test case generation
+//        break;
+//      }
       
       
       // TODO Remove this output
