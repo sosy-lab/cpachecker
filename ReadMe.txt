@@ -34,8 +34,13 @@ Running it:
             test/tests/single/loop1.c
    Check that the configuration file does not contain any non-existent paths 
 8. Running it from Eclipse:
-   Create a run configuration with main class "cmdline.CPAMain" and program
-   arguments "-config <CONFIG_FILE> <SOURCE_FILE>"
+   Create a run configuration with main class "cmdline.CPAMain", 
+   program arguments "-config <CONFIG_FILE> <SOURCE_FILE>", and
+   VM arguments "-Djava.library.path=lib/native/<ENVIRONMENT>" 
+   specifying your environment for the library path. 
+   Settings for <ENVIRONMENT>: 
+   		ppc-macosx, x86_64-linux, x86-linux, x86-macosx,  x86-win32
+
 Or:
 8. Running it from command line:
    Execute "test/scripts/simple/cpa.sh -config <CONFIG_FILE> <SOURCE_FILE>"
@@ -45,8 +50,8 @@ Or:
 
 Troubleshooting:
 - Imports starting with org.eclipse are not recognized.
-  Solution: Do not insert the respective .jar files manually, 
-			but instead double-check PDE is installed (see step 2).
+  Solution: Double-check PDE is installed (see step 2).
+  			This renders manually inserting the respective .jar files unnecessary.
 
  
 Sources of binaries provided with the distribution/SVN:
