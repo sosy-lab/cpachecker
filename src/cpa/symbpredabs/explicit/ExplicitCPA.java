@@ -33,6 +33,8 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.Vector;
 
+import logging.CustomLogLevel;
+import logging.LazyLogger;
 import symbpredabstraction.FixedPredicateMap;
 import symbpredabstraction.UpdateablePredicateMap;
 import symbpredabstraction.interfaces.AbstractFormula;
@@ -47,19 +49,14 @@ import symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
 import symbpredabstraction.mathsat.MathsatTheoremProver;
 import symbpredabstraction.mathsat.SimplifyTheoremProver;
 import symbpredabstraction.mathsat.YicesTheoremProver;
-
-import logging.CustomLogLevel;
-import logging.LazyLogger;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cfa.objectmodel.CFANode;
 import cmdline.CPAMain;
 
-import common.LocationMappedReachedSet;
 import common.Pair;
 
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
@@ -158,11 +155,7 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
     public CPAStatistics getStatistics() {
         return stats;
     }
-
-    public Collection<Pair<AbstractElementWithLocation,Precision>> newReachedSet() {
-        return new LocationMappedReachedSet();
-    }
-
+    
     @Override
     public AbstractDomain getAbstractDomain() {
         return domain;

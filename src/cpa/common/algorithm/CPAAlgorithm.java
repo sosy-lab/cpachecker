@@ -31,7 +31,6 @@ import java.util.Vector;
 import logging.CustomLogLevel;
 import logging.LazyLogger;
 
-import common.LocationMappedReachedSet;
 import common.Pair;
 
 import cpa.common.ReachedElements;
@@ -42,11 +41,14 @@ import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
 import exceptions.CPAException;
-import exceptions.CPATransferException;
 
 public class CPAAlgorithm implements Algorithm {
 
-  private static long chooseTime = 0;
+  private long chooseTime = 0;
+  private long transferTime = 0;
+  private long mergeTime = 0;
+  private long stopTime = 0;
+  
   private final ConfigurableProgramAnalysis cpa;
 
   public CPAAlgorithm(ConfigurableProgramAnalysis cpa) {
@@ -54,10 +56,10 @@ public class CPAAlgorithm implements Algorithm {
   }
 
   @Override
-  public void run(ReachedElements reachedElements, boolean stopAfterError) throws CPAException {
-    TransferRelation transferRelation = cpa.getTransferRelation();
-    MergeOperator mergeOperator = cpa.getMergeOperator();
-    StopOperator stopOperator = cpa.getStopOperator();
+  public void run(final ReachedElements reachedElements, boolean stopAfterError) throws CPAException {
+    final TransferRelation transferRelation = cpa.getTransferRelation();
+    final MergeOperator mergeOperator = cpa.getMergeOperator();
+    final StopOperator stopOperator = cpa.getStopOperator();
 
     while (reachedElements.hasWaitingElement()) {
       
@@ -66,7 +68,7 @@ public class CPAAlgorithm implements Algorithm {
       long start = System.currentTimeMillis();
       Pair<AbstractElementWithLocation,Precision> e = reachedElements.popFromWaitlist();
       long end = System.currentTimeMillis();
-      chooseTime = chooseTime + (end - start); 
+      chooseTime += (end - start); 
       // TODO enable this
       //e = precisionAdjustment.prec(e.getFirst(), e.getSecond(), reached);
       AbstractElementWithLocation element = e.getFirst();
@@ -75,34 +77,26 @@ public class CPAAlgorithm implements Algorithm {
       LazyLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel, element,
           " with precision ", precision, " is popped from queue");
 
-      List<AbstractElementWithLocation> successors = null;
-      try {
-        successors = transferRelation.getAllAbstractSuccessors (element, precision);
-      } catch (CPATransferException e1) {
-        e1.printStackTrace();
-        assert(false); // should not happen
-      }
-
-      for (AbstractElementWithLocation successor : successors)
-      {
+      start = System.currentTimeMillis();
+      List<AbstractElementWithLocation> successors = transferRelation.getAllAbstractSuccessors (element, precision);
+      end = System.currentTimeMillis();
+      transferTime += (end - start);
+      // TODO When we have a nice way to mark the analysis result as incomplete, we could continue analysis on a CPATransferException with the next element from waitlist.
+      
+      for (AbstractElementWithLocation successor : successors) {
         LazyLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel,
             "successor of ", element, " --> ", successor);
+        
+        Collection<Pair<AbstractElementWithLocation,Precision>> reached = reachedElements.getReached(successor.getLocationNode());
+
         // AG as an optimization, we allow the mergeOperator to be null,
         // as a synonym of a trivial operator that never merges
-        if (mergeOperator != null) {
+        if (mergeOperator != null && reached != null && !reached.isEmpty()) {
+          start = System.currentTimeMillis();
+
           List<Pair<AbstractElementWithLocation,Precision>> toRemove = new Vector<Pair<AbstractElementWithLocation,Precision>>();
           List<Pair<AbstractElementWithLocation,Precision>> toAdd = new Vector<Pair<AbstractElementWithLocation,Precision>>();
-
-          Collection<Pair<AbstractElementWithLocation,Precision>> reached = reachedElements.getReached();
-          if (reached instanceof LocationMappedReachedSet) {
-            AbstractElementWithLocation successorComp = successor;
-            reached = ((LocationMappedReachedSet)reached).get(successorComp.getLocationNode());
-
-            if(reached == null){
-              reached = new HashSet<Pair<AbstractElementWithLocation,Precision>>();
-            }
-          }
-
+          
           for (Pair<AbstractElementWithLocation, Precision> reachedEntry : reached) {
             AbstractElementWithLocation reachedElement = reachedEntry.getFirst();
             AbstractElementWithLocation mergedElement = mergeOperator.merge( successor, reachedElement, precision);
@@ -121,16 +115,15 @@ public class CPAAlgorithm implements Algorithm {
           }
           reachedElements.removeAll(toRemove);
           reachedElements.addAll(toAdd);
+          
+          end = System.currentTimeMillis();
+          mergeTime += (end - start);
         }
 
+        
+        start = System.currentTimeMillis();
         Collection<AbstractElementWithLocation> simpleReached = new HashSet<AbstractElementWithLocation>();
-        Collection<Pair<AbstractElementWithLocation,Precision>> reached = reachedElements.getReached();
-
-        if (reached instanceof LocationMappedReachedSet) {
-          AbstractElementWithLocation successorComp = successor;
-          reached = ((LocationMappedReachedSet)reached).get(successorComp.getLocationNode());
-        }
-
+        
         if (reached != null) {
           for (Pair<AbstractElementWithLocation,Precision> p: reached) {
             AbstractElementWithLocation e2 = p.getFirst();
@@ -141,19 +134,20 @@ public class CPAAlgorithm implements Algorithm {
 
         if (!stopOperator.stop(successor, simpleReached, precision)) {
           LazyLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel,
-              "No need to stop ", successor,
-          " is added to queue");
+              "No need to stop ", successor, " is added to queue");
 
           reachedElements.add(new Pair<AbstractElementWithLocation,Precision>(successor,precision));
           
           if(stopAfterError && successor.isError()) {
+            end = System.currentTimeMillis();
+            stopTime += (end - start);
             return;
           }
         }
+        end = System.currentTimeMillis();
+        stopTime += (end - start);
       }
     }
-
-    return;
   }
 
   @Override

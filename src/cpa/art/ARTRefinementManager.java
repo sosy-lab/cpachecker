@@ -2,6 +2,7 @@ package cpa.art;
 
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFANode;
+import cpa.common.Path;
 import cpa.common.ReachedElements;
 import cpa.common.RefinementOutcome;
 import cpa.common.interfaces.AbstractElement;
@@ -10,8 +11,8 @@ import cpa.common.interfaces.RefinementManager;
 
 public class ARTRefinementManager implements RefinementManager {
 
-  private RefinableCPA wrappedCpa;
-  private RefinementManager wrappedRefinementManager;
+  private final RefinableCPA wrappedCpa;
+  private final RefinementManager wrappedRefinementManager;
 
   public ARTRefinementManager(RefinableCPA pWrappedCPA) {
     wrappedCpa = pWrappedCPA;

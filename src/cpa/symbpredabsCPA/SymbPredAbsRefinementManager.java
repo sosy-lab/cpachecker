@@ -27,7 +27,7 @@ import common.Pair;
 import cpa.art.ARTCPA;
 import cpa.art.ARTDomain;
 import cpa.art.ARTElement;
-import cpa.art.Path;
+import cpa.common.Path;
 import cpa.common.ReachedElements;
 import cpa.common.RefinementOutcome;
 import cpa.common.algorithm.CEGARAlgorithm;

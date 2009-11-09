@@ -1,13 +1,15 @@
 package cpa.common;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
+import cfa.objectmodel.CFANode;
 import cmdline.CPAMain;
 
-import common.LocationMappedReachedSet;
 import common.Pair;
 
 import cpa.common.interfaces.AbstractElementWithLocation;
@@ -15,7 +17,7 @@ import cpa.common.interfaces.Precision;
 
 public class ReachedElements {
   
-  private Collection<Pair<AbstractElementWithLocation, Precision>> reached;
+  private Set<Pair<AbstractElementWithLocation, Precision>> reached;
   private AbstractElementWithLocation lastElement = null;
   private AbstractElementWithLocation firstElement = null;
   private List<Pair<AbstractElementWithLocation, Precision>> waitlist;
@@ -25,7 +27,7 @@ public class ReachedElements {
     waitlist = new LinkedList<Pair<AbstractElementWithLocation, Precision>>();
   }
   
-  private Collection<Pair<AbstractElementWithLocation,Precision>> createReachedSet() {
+  private Set<Pair<AbstractElementWithLocation,Precision>> createReachedSet() {
     if(CPAMain.cpaConfig.getBooleanValue("cpa.useSpecializedReachedSet")){
       return new LocationMappedReachedSet();
     }
@@ -77,10 +79,32 @@ public class ReachedElements {
     reached.clear();
   }
   
-  public Collection<Pair<AbstractElementWithLocation, Precision>> getReached() {
+  public Set<Pair<AbstractElementWithLocation, Precision>> getReached() {
     return reached;
   }
 
+  /**
+   * Returns a subset of the reached set, which contains at least all abstract
+   * elements belonging to a given CFANode. Note that it may return up to all
+   * abstract states. It may return null instead of an empty set if there are no
+   * states belonging to the CFANode.
+   * 
+   * The returned set is a view of the actual data, so it might change if nodes
+   * are added to the reached set. The returned set is unmodifiable.
+   * 
+   * @param loc A CFANode for which the abstract states should be retrieved.
+   * @return Null or a subset of the reached set.
+   */
+  public Set<Pair<AbstractElementWithLocation,Precision>> getReached(CFANode loc) {
+    Set<Pair<AbstractElementWithLocation,Precision>> result;
+    if (reached instanceof LocationMappedReachedSet) {
+      result = ((LocationMappedReachedSet)reached).getReached(loc);
+    } else {
+      result = reached;
+    }
+    return Collections.unmodifiableSet(result);
+  }
+  
   public AbstractElementWithLocation getFirstElement() {
     return firstElement;
   }

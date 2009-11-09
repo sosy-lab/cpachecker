@@ -237,7 +237,7 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
 
     mDomain = new CompositeDomain(domains);
     mTransferRelation = new QDPTCompositeTransferRelation(mDomain, transferRelations);
-    mMergeOperator = new CompositeMergeOperator(mergeOperators);
+    mMergeOperator = new CompositeMergeOperator(mDomain, mergeOperators);
     mStopOperator = new CompositeStopOperator(mDomain, stopOperators);
     mPrecisionAdjustment = new CompositePrecisionAdjustment(precisionAdjustments);
     mInitialElement = new CompositeElement(initialElements, null);

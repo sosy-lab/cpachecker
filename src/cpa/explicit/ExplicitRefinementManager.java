@@ -1,6 +1,6 @@
 package cpa.explicit;
 
-import cpa.art.Path;
+import cpa.common.Path;
 import cpa.common.ReachedElements;
 import cpa.common.RefinementOutcome;
 import cpa.common.interfaces.RefinementManager;

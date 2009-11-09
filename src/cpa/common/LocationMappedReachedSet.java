@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://www.cs.sfu.ca/~dbeyer/CPAchecker/
  */
-package common;
+package cpa.common;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -29,6 +29,8 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+
+import common.Pair;
 
 import cfa.objectmodel.CFANode;
 import cpa.common.algorithm.CPAAlgorithm;
@@ -46,7 +48,7 @@ import cpa.common.interfaces.Precision;
  *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
-public class LocationMappedReachedSet implements Collection<Pair<AbstractElementWithLocation,Precision>> {
+class LocationMappedReachedSet implements Set<Pair<AbstractElementWithLocation,Precision>> {
     private final Map<CFANode, Set<Pair<AbstractElementWithLocation,Precision>>> repr;
     private int numElems;
 
@@ -93,7 +95,7 @@ public class LocationMappedReachedSet implements Collection<Pair<AbstractElement
         numElems = 0;
     }
 
-    public Set<Pair<AbstractElementWithLocation,Precision>> get(CFANode loc) {
+    public Set<Pair<AbstractElementWithLocation,Precision>> getReached(CFANode loc) {
         if (repr.containsKey(loc)) {
             return repr.get(loc);
         } else {

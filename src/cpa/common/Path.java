@@ -1,4 +1,4 @@
-package cpa.art;
+package cpa.common;
 
 import java.util.Iterator;
 import java.util.Vector;

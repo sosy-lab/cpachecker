@@ -47,13 +47,8 @@ import symbpredabstraction.mathsat.SimplifyTheoremProver;
 import symbpredabstraction.mathsat.YicesTheoremProver;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cmdline.CPAMain;
-
-import common.LocationMappedReachedSet;
-import common.Pair;
-
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
@@ -150,10 +145,6 @@ public class PredicateAbstractionCPA implements RefinableCPA {
 
     public CPAStatistics getStatistics() {
         return stats;
-    }
-
-    public Collection<Pair<AbstractElementWithLocation,Precision>> newReachedSet() {
-        return new LocationMappedReachedSet();
     }
 
     @Override

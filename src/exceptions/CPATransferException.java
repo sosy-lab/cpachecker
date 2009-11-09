@@ -23,7 +23,7 @@
  */
 package exceptions;
 
-public abstract class CPATransferException extends Exception {
+public abstract class CPATransferException extends CPAException {
 
     /**
      * auto generated
