@@ -21,10 +21,12 @@
  *  CPAchecker web page:
  *    http://www.cs.sfu.ca/~dbeyer/CPAchecker/
  */
-package cpa.invariant.controller;
+package cpa.invariant.dump;
 
-import java.util.ArrayList;
 import java.util.List;
+
+import symbpredabstraction.interfaces.SymbolicFormula;
+import symbpredabstraction.interfaces.SymbolicFormulaManager;
 
 import cfa.objectmodel.CFAEdge;
 import cpa.common.interfaces.AbstractElement;
@@ -35,36 +37,24 @@ import exceptions.CPAException;
 import exceptions.CPATransferException;
 
 /**
- * Transfer relation for the analysis controller. Note that we
- * use side-effects (related to the hashtable) to improve performance.
+ * Transfer relation and strengthening for the DumpInvariant CPA
  * @author g.theoduloz
  */
-public class AnalysisControllerTransferRelation implements TransferRelation {
+public class DumpInvariantTransferRelation implements TransferRelation {
+
+  private final SymbolicFormulaManager symbolicFormulaManager;
   
-  private final AnalysisControllerDomain domain;
-  
-  public AnalysisControllerTransferRelation(AnalysisControllerDomain d)
+  public DumpInvariantTransferRelation(DumpInvariantCPA cpa)
   {
-    domain = d;
+    symbolicFormulaManager = cpa.getSymbolicFormulaManager();
   }
   
   @Override
   public AbstractElement getAbstractSuccessor(AbstractElement el, CFAEdge edge, Precision p)
     throws CPATransferException
   {
-    AnalysisControllerElement pre = (AnalysisControllerElement)el;
-    List<StopHeuristicsData> preData = pre.getComponents();
-    List<StopHeuristicsData> postData = new ArrayList<StopHeuristicsData>(preData.size());
-
-    for (StopHeuristicsData d : preData) {
-      StopHeuristicsData postD = d.processEdge(edge);
-      if (postD.isBottom())
-        // 'squash' to bottom
-        return domain.getBottomElement();
-      else
-        postData.add(postD);
-    }
-    return new AnalysisControllerElement(postData);
+    // always return top
+    return DumpInvariantElement.TOP;
   }
 
   @Override
@@ -75,10 +65,25 @@ public class AnalysisControllerTransferRelation implements TransferRelation {
   }
 
   @Override
-  public AbstractElement strengthen(AbstractElement pElement,
-      List<AbstractElement> pOtherElements, CFAEdge pCfaEdge,
-      Precision pPrecision) throws CPATransferException {
-    return null;
+  public AbstractElement strengthen(AbstractElement el, List<AbstractElement> others, CFAEdge edge, Precision p)
+    throws CPATransferException
+  {
+    SymbolicFormula result = null;
+    for (AbstractElement other : others) {
+      if (other instanceof DumpableAbstractElement) {
+        SymbolicFormula otherInv = ((DumpableAbstractElement)other).getInvariant();
+        if (otherInv != null) {
+          if (result == null)
+            result = otherInv;
+          else
+            result = symbolicFormulaManager.makeAnd(result, otherInv);
+        }
+      }
+    }
+    if (result != null)
+      return new DumpInvariantElement(result);
+    else
+      return null;
   }
 
 }

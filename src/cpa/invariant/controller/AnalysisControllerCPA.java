@@ -79,8 +79,8 @@ public class AnalysisControllerCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public <AE extends AbstractElement> AE getInitialElement(CFAFunctionDefinitionNode pNode) {
-    return (AE) AnalysisControllerElement.getInitial(this);
+  public <AE extends AbstractElement> AE getInitialElement(CFAFunctionDefinitionNode node) {
+    return (AE) AnalysisControllerElement.getInitial(this, node);
   }
 
   @Override

@@ -80,7 +80,7 @@ public class EdgeCountHeuristicsData
    */
   private int getThreshold(CFAEdge edge)
   {
-    return 1;
+    return 100;
   }
   
   /**

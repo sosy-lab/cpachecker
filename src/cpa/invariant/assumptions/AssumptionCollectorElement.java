@@ -24,7 +24,7 @@
 package cpa.invariant.assumptions;
 
 import symbpredabstraction.interfaces.SymbolicFormula;
-import cpa.common.interfaces.AbstractElement;
+import cpa.invariant.dump.DumpableAbstractElement;
 import cpa.invariant.util.InvariantSymbolicFormulaManager;
 
 /**
@@ -34,7 +34,7 @@ import cpa.invariant.util.InvariantSymbolicFormulaManager;
  * 
  * @author g.theoduloz
  */
-public class AssumptionCollectorElement implements AbstractElement {
+public class AssumptionCollectorElement implements DumpableAbstractElement {
 
   // The inner representation is a formula.
   private SymbolicFormula formula;
@@ -49,6 +49,12 @@ public class AssumptionCollectorElement implements AbstractElement {
   }
 
   public SymbolicFormula getFormula()
+  {
+    return formula;
+  }
+  
+  @Override
+  public SymbolicFormula getInvariant()
   {
     return formula;
   }
@@ -82,4 +88,5 @@ public class AssumptionCollectorElement implements AbstractElement {
   public String toString() {
     return formula.toString();
   }
+
 }

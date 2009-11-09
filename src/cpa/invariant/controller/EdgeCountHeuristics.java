@@ -23,6 +23,8 @@
  */
 package cpa.invariant.controller;
 
+import cfa.objectmodel.CFANode;
+
 /**
  * @author g.theoduloz
  */
@@ -34,8 +36,8 @@ public class EdgeCountHeuristics extends StopHeuristics<EdgeCountHeuristicsData>
   }
 
   @Override
-  public EdgeCountHeuristicsData getInitialData() {
-    return EdgeCountHeuristicsData.TOP;
+  public EdgeCountHeuristicsData getInitialData(CFANode node) {
+    return new EdgeCountHeuristicsData(node);
   }
 
   @Override

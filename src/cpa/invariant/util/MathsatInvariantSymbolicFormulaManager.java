@@ -34,7 +34,7 @@ import symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
 
 /**
  * Implementation of InvariantSymbolicFormulaManager based on
- * MathsatSymbolicFormulaManager.
+ * MathsatSymbolicFormulaManager. This is a singleton class.
  * 
  * @author g.theoduloz
  */
@@ -68,8 +68,23 @@ public class MathsatInvariantSymbolicFormulaManager
     public void setIndex(String pVariable, int pIdx) {
     }
   }
+  
+  private static MathsatInvariantSymbolicFormulaManager instance = null;
+  
+  /**
+   * Return the singleton instance for this class
+   */
+  public static MathsatInvariantSymbolicFormulaManager getInstance()
+  {
+    if (instance == null)
+      instance = new MathsatInvariantSymbolicFormulaManager();
+    return instance;
+  }
 
-  public MathsatInvariantSymbolicFormulaManager() {
+  /**
+   * Private constructor. To get instance, call getInstance()
+   */
+  private MathsatInvariantSymbolicFormulaManager() {
     super();
   }
   

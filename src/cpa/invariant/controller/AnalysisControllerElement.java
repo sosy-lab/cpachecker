@@ -27,6 +27,8 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import cfa.objectmodel.CFANode;
+
 import cpa.common.interfaces.AbstractElement;
 
 /**
@@ -58,9 +60,9 @@ public class AnalysisControllerElement implements AbstractElement {
   }
   
   /** Initial */
-  public static final AnalysisControllerElement getInitial(AnalysisControllerCPA cpa)
+  public static final AnalysisControllerElement getInitial(AnalysisControllerCPA cpa, CFANode node)
   {
-    return new AnalysisControllerElement(cpa);
+    return new AnalysisControllerElement(cpa, node);
   }
   
   @Override
@@ -68,12 +70,12 @@ public class AnalysisControllerElement implements AbstractElement {
     return false;
   }
 
-  public AnalysisControllerElement(AnalysisControllerCPA a)
+  public AnalysisControllerElement(AnalysisControllerCPA a, CFANode node)
   {
     this(new ArrayList<StopHeuristicsData>(a.getEnabledHeuristics().size()));
     
     for (StopHeuristics<? extends StopHeuristicsData> h : a.getEnabledHeuristics()) {
-      data.add(h.getInitialData());
+      data.add(h.getInitialData(node));
     }
   }
   
@@ -150,8 +152,14 @@ public class AnalysisControllerElement implements AbstractElement {
   @Override
   public String toString() {
     StringBuffer buffer = new StringBuffer();
-    for (StopHeuristicsData d : data)
-      buffer.append(d.toString()).append('\n');
+    boolean first = true;
+    for (StopHeuristicsData d : data) {
+      if (first)
+        first = false;
+      else
+        buffer.append('\n');
+      buffer.append(d.getClass().getSimpleName()).append(": ").append(d.toString());
+    }
     return buffer.toString();
   }
  

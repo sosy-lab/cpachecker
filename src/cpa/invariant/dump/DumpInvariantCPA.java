@@ -21,16 +21,13 @@
  *  CPAchecker web page:
  *    http://www.cs.sfu.ca/~dbeyer/CPAchecker/
  */
-package cpa.invariant.assumptions;
-
-import java.util.Collection;
+package cpa.invariant.dump;
 
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cpa.common.defaults.MergeSepOperator;
 import cpa.common.defaults.StopNeverOperator;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
@@ -39,28 +36,33 @@ import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
 import cpa.invariant.util.InvariantSymbolicFormulaManager;
 import cpa.invariant.util.MathsatInvariantSymbolicFormulaManager;
-import exceptions.CPAException;
 
-public class AssumptionCollectorCPA implements ConfigurableProgramAnalysis {
+/**
+ * CPA used to capture the invariants that ought to be dumped.
+ * The CPA does not do anything but to serve as a way to collect
+ * invariants via strengthening from the other CPAs in cpa.invariant.
+ * 
+ * Note that once the CPA algorithm has finished running, a call
+ * to dumpInvariants() is needed to process the reachable states
+ * and produce the actual invariants.
+ *  
+ * @author g.theoduloz
+ */
+public class DumpInvariantCPA implements ConfigurableProgramAnalysis {
 
-  private AssumptionCollectorDomain abstractDomain;
-  private MergeOperator mergeOperator;
-  private StopOperator stopOperator;
-  private TransferRelation transferRelation;
+  private final DumpInvariantDomain abstractDomain;
+  private final MergeOperator mergeOperator;
+  private final StopOperator stopOperator;
+  private final TransferRelation transferRelation;
+  private final InvariantSymbolicFormulaManager symbolicFormulaManager;
   
-  // Symbolic Formula Manager used to represent build invariant formulas
-  private InvariantSymbolicFormulaManager symbolicFormulaManager;
-  
-  public AssumptionCollectorCPA(String mergeOp, String stopOp)
+  public DumpInvariantCPA(String merge, String stop)
   {
     symbolicFormulaManager = MathsatInvariantSymbolicFormulaManager.getInstance();
-    
-    abstractDomain = new AssumptionCollectorDomain(this);
-    
+    abstractDomain = new DumpInvariantDomain();
     mergeOperator = new MergeSepOperator();
     stopOperator = new StopNeverOperator();
-    
-    transferRelation = new AssumptionCollectorTransferRelation(this);
+    transferRelation = new DumpInvariantTransferRelation(this);
   }
   
   public InvariantSymbolicFormulaManager getSymbolicFormulaManager()
@@ -74,12 +76,13 @@ public class AssumptionCollectorCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public <AE extends AbstractElement> AE getInitialElement(CFAFunctionDefinitionNode pNode) {
+  public <AE extends AbstractElement> AE getInitialElement(CFAFunctionDefinitionNode node) {
     return (AE) abstractDomain.getTopElement();
   }
 
   @Override
   public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
+    // TODO Auto-generated method stub
     return null;
   }
 

@@ -21,21 +21,26 @@
  *  CPAchecker web page:
  *    http://www.cs.sfu.ca/~dbeyer/CPAchecker/
  */
-package cpa.invariant.controller;
+package cpa.invariant.dump;
 
-import cfa.objectmodel.CFANode;
+import symbpredabstraction.interfaces.SymbolicFormula;
+import cpa.common.interfaces.AbstractElement;
 
 /**
- * A stopping heuristics for the controller CPA
+ * Interface to implement in order for a given abstract element
+ * to be able to contribute to the invariant construction.
+ * 
  * @author g.theoduloz
  */
-public abstract class StopHeuristics <D extends StopHeuristicsData> {
-  /** Get the initial data */
-  public abstract D getInitialData(CFANode node);
+public interface DumpableAbstractElement extends AbstractElement {
+
+  /**
+   * Get the invariant that the given abstract element
+   * wants to report.
+   * 
+   * @return a symbolic formula representing the invariant
+   *         or the value null representing the invariant true. 
+   */
+  public SymbolicFormula getInvariant();
   
-  /** Get top */
-  public abstract D getTop();
-  
-  /** Get bottom */
-  public abstract D getBottom();
 }
