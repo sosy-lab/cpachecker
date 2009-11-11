@@ -26,23 +26,21 @@ package cpa.explicit;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
-import cpa.common.interfaces.RefinableCPA;
-import cpa.common.interfaces.RefinementManager;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
 import exceptions.CPAException;
 
-public class ExplicitAnalysisCPA implements RefinableCPA {
+public class ExplicitAnalysisCPA implements ConfigurableProgramAnalysis {
 
   private AbstractDomain abstractDomain;
   private MergeOperator mergeOperator;
   private StopOperator stopOperator;
   private TransferRelation transferRelation;
   private PrecisionAdjustment precisionAdjustment;
-  private RefinementManager refinementManager;
 
   public ExplicitAnalysisCPA (String mergeType, String stopType) throws CPAException {
     ExplicitAnalysisDomain explicitAnalysisDomain = new ExplicitAnalysisDomain ();
@@ -64,14 +62,12 @@ public class ExplicitAnalysisCPA implements RefinableCPA {
     }
 
     TransferRelation explicitAnalysisTransferRelation = new ExplicitAnalysisTransferRelation (explicitAnalysisDomain);
-    RefinementManager refinementManager = new ExplicitRefinementManager();
     
     this.abstractDomain = explicitAnalysisDomain;
     this.mergeOperator = explicitAnalysisMergeOp;
     this.stopOperator = explicitAnalysisStopOp;
     this.transferRelation = explicitAnalysisTransferRelation;
     this.precisionAdjustment = new ExplicitAnalysisPrecisionAdjustment();
-    this.refinementManager = refinementManager;
   }
 
   public AbstractDomain getAbstractDomain ()
@@ -108,11 +104,6 @@ public class ExplicitAnalysisCPA implements RefinableCPA {
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
     return precisionAdjustment;
-  }
-
-  @Override
-  public RefinementManager getRefinementManager() {
-    return refinementManager;
   }
 
 }
