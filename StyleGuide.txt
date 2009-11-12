@@ -12,6 +12,8 @@ Spelling:
 
 Formatting:
 - A block is surrounded by braces, e.g., if (...) { ...block... }.
+- A function call has no whitespace between function name and parenthesis,
+  e.g. func()...
 
 Compilation:
 - Warnings are taken serious, and problems should be fixed if possible.

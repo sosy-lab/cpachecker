@@ -32,22 +32,16 @@ import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.AbstractWrapperElement;
 
 public class CompositeElement implements AbstractElementWithLocation, AbstractWrapperElement {
-  private AbstractElementWithLocation elementWithLocation;
   private final List<AbstractElement> elements;
   private CallStack callStack;
 
-  public CompositeElement (List<AbstractElement> elements, CallStack stack)
+  public CompositeElement(List<AbstractElement> elements, CallStack stack)
   {
-    this.elementWithLocation = null;
-    if (!elements.isEmpty()) {
-      assert (elements.get(0) instanceof AbstractElementWithLocation);
-      this.elementWithLocation = (AbstractElementWithLocation) elements.get(0);
-    }
     this.elements = elements;
     this.callStack = stack;
   }
 
-  public List<AbstractElement> getElements ()
+  public List<AbstractElement> getElements()
   {
     return elements;
   }
@@ -58,10 +52,6 @@ public class CompositeElement implements AbstractElementWithLocation, AbstractWr
 
   @Override
   public boolean isError() {
-    if (elementWithLocation.isError()) {
-      return true;
-    }
-  
     for (AbstractElement element : elements) {
       if (element.isError()) {
         return true;
@@ -71,7 +61,7 @@ public class CompositeElement implements AbstractElementWithLocation, AbstractWr
   }
   
   @Override
-  public boolean equals (Object other)
+  public boolean equals(Object other)
   {
     if (other == this)
       return true;
@@ -83,15 +73,15 @@ public class CompositeElement implements AbstractElementWithLocation, AbstractWr
     List<AbstractElement> otherElements = otherComposite.elements;
 
 
-    if (otherElements.size () != this.elements.size ())
+    if (otherElements.size() != this.elements.size())
       return false;
 
-    for (int idx = 0; idx < elements.size (); idx++)
+    for (int idx = 0; idx < elements.size(); idx++)
     {
-      AbstractElement element1 = otherElements.get (idx);
-      AbstractElement element2 = this.elements.get (idx);
+      AbstractElement element1 = otherElements.get(idx);
+      AbstractElement element2 = this.elements.get(idx);
 
-      if (!element1.equals (element2))
+      if (!element1.equals(element2))
         return false;
     }
 
@@ -118,19 +108,19 @@ public class CompositeElement implements AbstractElementWithLocation, AbstractWr
   }
 
   @Override
-  public String toString ()
+  public String toString()
   {
-    StringBuilder builder = new StringBuilder ();
-    builder.append ('(');
+    StringBuilder builder = new StringBuilder();
+    builder.append('(');
     for (AbstractElement element : elements) {
       builder.append(element.getClass().getSimpleName());
       builder.append(": ");
-      builder.append(element.toString ());
-      builder.append ("\n ");
+      builder.append(element.toString());
+      builder.append("\n ");
     }
-    builder.replace (builder.length () - 1, builder.length (), ")");
+    builder.replace(builder.length() - 1, builder.length(), ")");
 
-    return builder.toString ();
+    return builder.toString();
   }
 
   public AbstractElement get(int idx) {
@@ -146,16 +136,17 @@ public class CompositeElement implements AbstractElementWithLocation, AbstractWr
   }
 
   public CFANode getLocationNode() {
-    return elementWithLocation.getLocationNode();
+    return getElementWithLocation().getLocationNode();
   }
 
-  public AbstractElementWithLocation getElementWithLocation () {
-    return elementWithLocation;
+  public AbstractElementWithLocation getElementWithLocation() {
+    assert (elements.get(0) instanceof AbstractElementWithLocation);
+    return (AbstractElementWithLocation)elements.get(0);
   }
 
   @Override
   public AbstractElement retrieveElementOfType(String pElementClass){
-    for(AbstractElement item:elements){
+    for(AbstractElement item:elements) {
       if(item.getClass().getSimpleName().equals(pElementClass)){
         return item;
       }
