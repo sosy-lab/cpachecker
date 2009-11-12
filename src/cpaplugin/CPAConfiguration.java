@@ -152,10 +152,10 @@ public class CPAConfiguration extends Properties{
                 this.setProperty("analysis.traversal", "dfs");
                 ++i;
             } else if (arg.equals("-bfs")) {
-                this.setProperty("analysis.traversals", "bfs");
+                this.setProperty("analysis.traversal", "bfs");
                 ++i;
             } else if (arg.equals("-topsort")) {
-              this.setProperty("analysis.traversals", "topsort");
+              this.setProperty("analysis.traversal", "topsort");
               ++i;
             } else if (arg.equals("-nolog")) {
                 this.setProperty("log.level", "off");
