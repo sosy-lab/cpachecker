@@ -273,14 +273,6 @@ public class CPAMain {
       }
     }
 
-    // sort CFAs topologically
-    if(CPAMain.cpaConfig.getBooleanValue("analysis.topSort")){
-      for(CFAFunctionDefinitionNode cfa : cfasList){
-        CFATopologicalSort topSort = new CFATopologicalSort();
-        topSort.topologicalSort(cfa);
-      }
-    }
-
     // simplify CFA
     if (CPAMain.cpaConfig.getBooleanValue("cfa.simplify")) {
       // TODO Erkan Simplify each CFA
@@ -446,9 +438,24 @@ public class CPAMain {
       Precision initialPrecision = cpa.getInitialPrecision(mainFunction);
       Pair<AbstractElementWithLocation, Precision> initialPair
           = new Pair<AbstractElementWithLocation, Precision>(initialElement, initialPrecision);
-      ReachedElements reached = new ReachedElements();
+      ReachedElements reached = null;
+      try {
+        reached = new ReachedElements(CPAMain.cpaConfig.getProperty("analysis.traversal"));
+      } catch (IllegalArgumentException e) {
+        System.err.println("ERROR, unknown traversal option");
+        System.exit(1);
+      }
       reached.add(initialPair);
 
+      // annotate CFA nodes with topological information for later use
+      if(CPAMain.cpaConfig.getBooleanValue("analysis.topSort")){
+        Collection<CFAFunctionDefinitionNode> cfasList = cfas.cfaMapIterator();
+        for(CFAFunctionDefinitionNode cfa : cfasList){
+          CFATopologicalSort topSort = new CFATopologicalSort();
+          topSort.topologicalSort(cfa);
+        }
+      }
+      
       LazyLogger.log(CustomLogLevel.MainApplicationLevel, "CPA Algorithm starting ... ");
       cpaStats.startAnalysisTimer();
       

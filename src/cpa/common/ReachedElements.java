@@ -21,10 +21,19 @@ public class ReachedElements {
   private AbstractElementWithLocation lastElement = null;
   private AbstractElementWithLocation firstElement = null;
   private List<Pair<AbstractElementWithLocation, Precision>> waitlist;
+  private traversalMethod traversal;
   
-  public ReachedElements() {
+  public ReachedElements(String traversal) {
     reached = createReachedSet();
     waitlist = new LinkedList<Pair<AbstractElementWithLocation, Precision>>();
+    //set traversal method given in config file; 
+    //throws IllegalArgumentException if anything other than dfs, bfs, or topsort is passed
+      this.traversal = traversalMethod.valueOf(traversal.toUpperCase());
+  }
+  
+  //enumerator for traversal methods
+  public enum traversalMethod {
+    DFS, BFS, TOPSORT
   }
   
   private Set<Pair<AbstractElementWithLocation,Precision>> createReachedSet() {
@@ -45,7 +54,7 @@ public class ReachedElements {
 
 
   public boolean addAll(List<Pair<AbstractElementWithLocation, Precision>> toAdd) {
-//    if (CPAMain.cpaConfig.getBooleanValue("analysis.bfs")) {
+//    if (traversal == traversalMethod.BFS) {
     waitlist.addAll(toAdd);
 //    } else {
 //      waitlist.addAll(0, toAdd);
@@ -102,7 +111,10 @@ public class ReachedElements {
     } else {
       result = reached;
     }
-    return Collections.unmodifiableSet(result);
+    if (result != null) {
+      return Collections.unmodifiableSet(result);
+    }
+    return null;
   }
   
   public AbstractElementWithLocation getFirstElement() {
@@ -120,7 +132,8 @@ public class ReachedElements {
   public Pair<AbstractElementWithLocation,Precision> popFromWaitlist() {
     Pair<AbstractElementWithLocation,Precision> result = null;
 
-    if(CPAMain.cpaConfig.getBooleanValue("analysis.topSort")) {
+    switch(traversal) {
+    case TOPSORT: 
       for (Pair<AbstractElementWithLocation,Precision> currentElement : waitlist) {
         if ((result == null) 
             || (currentElement.getFirst().getLocationNode().getTopologicalSortId() >
@@ -129,12 +142,14 @@ public class ReachedElements {
         }
       }
     
-    } else if (CPAMain.cpaConfig.getBooleanValue("analysis.bfs")) {
+    case BFS:
       result = waitlist.get(0);
       
-    } else {
+    case DFS:
       result = waitlist.get(waitlist.size()-1);
     }
+    
+    
     waitlist.remove(result);
     return result;
   }

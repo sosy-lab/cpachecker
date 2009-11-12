@@ -116,8 +116,10 @@ public abstract class ItpCPA implements ConfigurableProgramAnalysis {
 
         covers = new HashMap<ItpAbstractElement,
                              Set<ItpAbstractElement>>();
-
-        if (CPAMain.cpaConfig.getBooleanValue("analysis.bfs")) {
+        
+        // TODO analysis.traversal is actually a property of ReachedElements now
+        // the solution below is possible, but ignores the new enumerator for traversal method 
+        if (!CPAMain.cpaConfig.getProperty("analysis.traversal").toUpperCase().equals("DFS")) {
             // this analysis only works with dfs traversal
             System.out.println(
                     "ERROR: Interpolation-based analysis works only with DFS " +

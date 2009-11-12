@@ -149,11 +149,14 @@ public class CPAConfiguration extends Properties{
                     throw new Exception("-entryfunction argument missing!");
                 }
             } else if (arg.equals("-dfs")) {
-                this.setProperty("analysis.bfs", "false");
+                this.setProperty("analysis.traversal", "dfs");
                 ++i;
             } else if (arg.equals("-bfs")) {
-                this.setProperty("analysis.bfs", "true");
+                this.setProperty("analysis.traversals", "bfs");
                 ++i;
+            } else if (arg.equals("-topsort")) {
+              this.setProperty("analysis.traversals", "topsort");
+              ++i;
             } else if (arg.equals("-nolog")) {
                 this.setProperty("log.level", "off");
                 ++i;
