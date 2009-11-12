@@ -448,7 +448,7 @@ public class CPAMain {
       reached.add(initialPair);
 
       // annotate CFA nodes with topological information for later use
-      if(CPAMain.cpaConfig.getBooleanValue("analysis.topSort")){
+      if(reached.getTraversalMethod() == ReachedElements.TraversalMethod.TOPSORT){
         Collection<CFAFunctionDefinitionNode> cfasList = cfas.cfaMapIterator();
         for(CFAFunctionDefinitionNode cfa : cfasList){
           CFATopologicalSort topSort = new CFATopologicalSort();

@@ -21,18 +21,18 @@ public class ReachedElements {
   private AbstractElementWithLocation lastElement = null;
   private AbstractElementWithLocation firstElement = null;
   private List<Pair<AbstractElementWithLocation, Precision>> waitlist;
-  private traversalMethod traversal;
+  private TraversalMethod traversal;
   
   public ReachedElements(String traversal) {
     reached = createReachedSet();
     waitlist = new LinkedList<Pair<AbstractElementWithLocation, Precision>>();
     //set traversal method given in config file; 
     //throws IllegalArgumentException if anything other than dfs, bfs, or topsort is passed
-      this.traversal = traversalMethod.valueOf(traversal.toUpperCase());
+      this.traversal = TraversalMethod.valueOf(traversal.toUpperCase());
   }
   
   //enumerator for traversal methods
-  public enum traversalMethod {
+  public enum TraversalMethod {
     DFS, BFS, TOPSORT
   }
   
@@ -123,6 +123,10 @@ public class ReachedElements {
 
   public AbstractElementWithLocation getLastElement() {
     return lastElement;
+  }
+  
+  public TraversalMethod getTraversalMethod() {
+    return traversal;
   }
   
   public boolean hasWaitingElement() {
