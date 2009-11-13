@@ -2,8 +2,6 @@ package cpa.predicateabstraction;
 
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Vector;
 
@@ -16,20 +14,19 @@ import cfa.objectmodel.CFAEdge;
 import cmdline.CPAMain;
 
 import common.Pair;
+import compositeCPA.CompositeCPA;
 
-import cpa.art.ARTCPA;
-import cpa.art.ARTDomain;
 import cpa.art.ARTElement;
+import cpa.art.AbstractARTBasedRefiner;
 import cpa.common.Path;
 import cpa.common.ReachedElements;
-import cpa.common.RefinementOutcome;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.RefinementManager;
-import exceptions.CPATransferException;
+import cpa.common.interfaces.ConfigurableProgramAnalysis;
+import exceptions.CPAException;
 
-public class PredicateAbstractionRefinementManager implements RefinementManager {
+public class PredicateAbstractionRefiner extends AbstractARTBasedRefiner {
 
-  private PredicateAbstractionCPA cpa;
+  private PredicateAbstractionCPA mCpa;
   private PredicateAbstractionAbstractFormulaManager amgr;
   private Map<Vector<Integer>, Integer> abstractCex;
 
@@ -41,14 +38,35 @@ public class PredicateAbstractionRefinementManager implements RefinementManager 
 
   private boolean notEnoughPredicatesFlag = false;
 
-  public PredicateAbstractionRefinementManager(PredicateAbstractionCPA pCpa) {
-    cpa = pCpa;
-    amgr = cpa.getAbstractFormulaManager();
+  public PredicateAbstractionRefiner(final ConfigurableProgramAnalysis pCpa) throws CPAException {
+    super(pCpa);
+    
+    ConfigurableProgramAnalysis cpa = this.getArtCpa().getWrappedCPA();
+    
+    if (cpa instanceof PredicateAbstractionCPA) {
+      mCpa = (PredicateAbstractionCPA)cpa;
+    
+    } else {
+      PredicateAbstractionCPA predabsCPA = null;
+      if (pCpa instanceof CompositeCPA) {
+        for (ConfigurableProgramAnalysis compCPA : ((CompositeCPA)cpa).getComponentCPAs()) {
+          if (compCPA instanceof PredicateAbstractionCPA) {
+            predabsCPA = (PredicateAbstractionCPA)cpa;
+            break;
+          }
+        }
+      }
+      if (predabsCPA == null) {
+        throw new CPAException(getClass().getSimpleName() + " needs a PredicateAbstractionCPA");
+      }
+    }
+    
+    amgr = mCpa.getAbstractFormulaManager();
     abstractCex = new HashMap<Vector<Integer>, Integer>();
   }
 
   @Override
-  public RefinementOutcome performRefinement(ReachedElements pReached, Path pPath) {
+  public ARTElement performRefinement(ReachedElements pReached, Path pPath) {
 
     Pair<ARTElement, CFAEdge>[] pathArray;
 
@@ -56,40 +74,31 @@ public class PredicateAbstractionRefinementManager implements RefinementManager 
 
     CounterexampleTraceInfo info =
       amgr.buildCounterexampleTrace(
-          cpa.getFormulaManager(), pathArray);
+          mCpa.getFormulaManager(), pathArray);
 
     assert(info != null);
 
     if (info.isSpurious()) {
       LazyLogger.log(CustomLogLevel.SpecificCPALevel,
-          "Found spurious error trace, refining the ",
-      "abstraction");
-      try {
-        return performRefinement(pReached, pPath, pathArray, info);
-      } catch (CPATransferException e) {
-        e.printStackTrace();
-      }
-      return null;
+          "Found spurious error trace, refining the abstraction");
+      return performRefinement(pReached, pPath, pathArray, info);
+
     } else {
-//    LazyLogger.log(CustomLogLevel.SpecificCPALevel,
-//    "REACHED ERROR LOCATION!: ", succ,
-//    " RETURNING BOTTOM!");
       CPAMain.cpaStats.setErrorReached(true);
-      return new RefinementOutcome();
+      return null;
     }
   }
 
 
-  public RefinementOutcome performRefinement(ReachedElements pReached, Path pPath,
+  private ARTElement performRefinement(ReachedElements pReached, Path pPath,
       Pair<ARTElement, CFAEdge>[] pPathArray,
-      CounterexampleTraceInfo pInfo) throws CPATransferException {
+      CounterexampleTraceInfo pInfo) {
     LazyLogger.log(LazyLogger.DEBUG_1, "STARTING REFINEMENT");
     UpdateablePredicateMap curpmap =
-      (UpdateablePredicateMap)cpa.getPredicateMap();
+      (UpdateablePredicateMap)mCpa.getPredicateMap();
 
     assert(pReached.getLastElement() instanceof ARTElement);
     ARTElement lastElem = (ARTElement)pReached.getLastElement();
-    ARTCPA artCpa = (ARTCPA)((ARTDomain)lastElem.getDomain()).getCpa();
 
     ARTElement root = null;
     ARTElement cur = null;
@@ -134,70 +143,13 @@ public class PredicateAbstractionRefinementManager implements RefinementManager 
         assert(firstInterpolant != null);
         LazyLogger.log(CustomLogLevel.SpecificCPALevel,
         "Restarting ART from scratch");
-        root = artCpa.getRoot();
+        root = this.getArtCpa().getRoot();
       }
     } else {
       //samePathAlready  = 0;
     }
-    if (CPAMain.cpaConfig.getBooleanValue("analysis.bfs")) {
-      // TODO When using bfs traversal, we would have to traverse the ART
-      // computed so far, and check for each leaf whether to re-add it
-      // to the waiting list or not, similarly to what Blast does
-      // (file psrc/be/modelChecker/lazyModelChecker.ml, function
-      // update_tree_after_refinment). But for now, for simplicity we
-      // just restart from scratch
-      root = artCpa.getRoot();
-    }
-    assert(root != null);
-    Collection<ARTElement> toWaitlist = new HashSet<ARTElement>();
-    toWaitlist.add(root);
-    Collection<ARTElement> toUnreach = root.getSubtree();
-    if (cur != null) {
-      // we don't want to unreach elements that were covered before
-      // reaching the error!
-      for (Iterator<ARTElement> it = toUnreach.iterator();
-      it.hasNext(); ) {
-        ARTElement e = it.next();
-        if (e.isCovered() && e.getMark() < cur.getMark()) {
-          LazyLogger.log(LazyLogger.DEBUG_1, "NOT unreaching ", e,
-              " because it was covered before ", cur);
-          it.remove();
-        }
-      }
-    }
 
-//  ARTCPA cpa = domain.getCPA();
-    for (ARTElement ae : toUnreach) {
-      if (ae.isCovered()) {
-        ae.setCovered(false);
-        artCpa.setUncovered(ae);
-      }
-    }
-    if (root != artCpa.getRoot()) {
-      // then, we have to unmark some nodes
-      Collection<ARTElement> tmp =
-        artCpa.getCovered();
-      for (Iterator<ARTElement> i = tmp.iterator(); 
-      i.hasNext(); ) {
-        ARTElement e = i.next();
-        assert(e.isCovered());
-        if (e.getMark() > root.getMark()) {
-          e.setCovered(false);
-          i.remove();
-          // TODO adding all parents? check this
-          toWaitlist.addAll(e.getParents());
-          toUnreach.add(e);
-        }
-      }
-    }
-
-    return new RefinementOutcome(true, toUnreach, toWaitlist, root);
-
-//  LazyLogger.log(LazyLogger.DEBUG_1, "REFINEMENT - toWaitlist: ",
-//  toWaitlist);
-//  LazyLogger.log(LazyLogger.DEBUG_1, "REFINEMENT - toUnreach: ",
-//  toUnreach);
-//  throw new RefinementNeededException(toUnreach, toWaitlist);
+    return root;
   }
 
   private Vector<Integer> arrayToVector(

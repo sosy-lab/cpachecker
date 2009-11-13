@@ -23,6 +23,7 @@
  */
 package cpa.common.algorithm;
 
+import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -39,9 +40,9 @@ import cpa.art.ARTElement;
 import cpa.common.ReachedElements;
 import cpa.common.RefinementOutcome;
 import cpa.common.interfaces.AbstractElementWithLocation;
+import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;
-import cpa.common.interfaces.RefinableCPA;
-import cpa.common.interfaces.RefinementManager;
+import cpa.common.interfaces.Refiner;
 import exceptions.CPAException;
 
 public class CEGARAlgorithm implements Algorithm {
@@ -54,15 +55,23 @@ public class CEGARAlgorithm implements Algorithm {
   private static long refinementTime = 0;
 
   private final Algorithm algorithm;
-  private final RefinableCPA cpa;
+  private final Refiner mRefiner;
   
   public CEGARAlgorithm(Algorithm algorithm) throws CPAException {
     this.algorithm = algorithm;
     
-    if (!(algorithm.getCPA() instanceof RefinableCPA)) {
-      throw new CPAException("Need refinable CPA for CEGAR");
+    String refManagerName = CPAMain.cpaConfig.getProperty("cegar.refiner");
+
+    try {
+      Class<?> cls = Class.forName(refManagerName);
+      Class<?> parameterTypes[] = {ConfigurableProgramAnalysis.class};
+      Constructor<?> ct = cls.getConstructor(parameterTypes);
+      Object argumentlist[] = {algorithm.getCPA()};
+      Object obj = ct.newInstance(argumentlist);
+      mRefiner = (Refiner)obj;
+    } catch (Exception e) {
+      throw new CPAException("Could not instantiate " + refManagerName + ": " + e.getMessage());
     }
-    this.cpa = (RefinableCPA)algorithm.getCPA();
   }
   
   @Override
@@ -76,12 +85,11 @@ public class CEGARAlgorithm implements Algorithm {
 
       // if the element is an error element
       if (reached.getLastElement().isError()) {
-        RefinementManager refinementManager = cpa.getRefinementManager();
 
         assert(reached != null);
         long startRef = System.currentTimeMillis();
 
-        RefinementOutcome refout = refinementManager.performRefinement(reached, null);
+        RefinementOutcome refout = mRefiner.performRefinement(reached);
         long endRef = System.currentTimeMillis();
         refinementTime = refinementTime + (endRef  - startRef);
         stopAnalysis = !refout.refinementPerformed();
@@ -176,7 +184,7 @@ public class CEGARAlgorithm implements Algorithm {
   }
   
   @Override
-  public RefinableCPA getCPA() {
-    return cpa;
+  public ConfigurableProgramAnalysis getCPA() {
+    return algorithm.getCPA();
   }
 }

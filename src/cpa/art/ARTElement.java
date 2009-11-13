@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.Set;
 
 import cfa.objectmodel.CFANode;
-import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.AbstractWrapperElement;
@@ -25,12 +24,10 @@ public class ARTElement implements AbstractElementWithLocation, AbstractWrapperE
   private int elementId;
   private static int nextArtElementId= 0;
 
-  private AbstractDomain domain;
   private boolean covered;
   private int mark;
 
-  public ARTElement(AbstractDomain pDomain, AbstractElementWithLocation pAbstractElement, ARTElement pParentElement) {
-    domain = pDomain;
+  public ARTElement(AbstractElementWithLocation pAbstractElement, ARTElement pParentElement) {
     element = pAbstractElement;
     parents = new HashSet<ARTElement>();
     setParent(pParentElement);
@@ -101,10 +98,6 @@ public class ARTElement implements AbstractElementWithLocation, AbstractWrapperE
     covered = yes; 
     // TODO check
     //setMark(); 
-  }
-
-  public AbstractDomain getDomain(){
-    return domain;
   }
 
 //@Override
@@ -187,6 +180,18 @@ public class ARTElement implements AbstractElementWithLocation, AbstractWrapperE
     children.clear();
   }
 
+  /**
+   * This method removes this element from the ART by removing it from its
+   * parents' children list.
+   */
+  public void removeFromART() {
+    for (ARTElement parent : parents) {
+      assert (parent.children.contains(this));
+      parent.children.remove(this);
+    }
+    parents.clear();
+  }
+  
   public boolean removeFromChildren(ARTElement pElement) {
     return children.remove(pElement);
   }

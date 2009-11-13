@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Queue;
 import java.util.Set;
 
@@ -18,43 +19,35 @@ import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
-import cpa.common.interfaces.RefinableCPA;
-import cpa.common.interfaces.RefinementManager;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
 import exceptions.CPAException;
 
-public class ARTCPA implements RefinableCPA {
+public class ARTCPA implements ConfigurableProgramAnalysis {
 
-  private AbstractDomain abstractDomain;
-  private TransferRelation transferRelation;
-  private MergeOperator mergeOperator;
-  private StopOperator stopOperator;
-  private PrecisionAdjustment precisionAdjustment;
-  private RefinementManager refinementManager; 
-  private RefinableCPA wrappedCPA;
+  private final ARTDomain abstractDomain;
+  private final TransferRelation transferRelation;
+  private final MergeOperator mergeOperator;
+  private final StopOperator stopOperator;
+  private final PrecisionAdjustment precisionAdjustment;
+  private final ConfigurableProgramAnalysis wrappedCPA;
 
-  private Set<ARTElement> covered;
+  private final Set<ARTElement> covered;
   private ARTElement root;
 
-  public ARTCPA(String mergeType, String stopType, RefinableCPA cpa) throws CPAException {
+  private ARTCPA(String mergeType, ConfigurableProgramAnalysis cpa) throws CPAException {
     wrappedCPA = cpa;
     abstractDomain = new ARTDomain(this);
     transferRelation = new ARTTransferRelation(abstractDomain, cpa.getTransferRelation());
     precisionAdjustment = new ARTPrecisionAdjustment();
-    refinementManager = new ARTRefinementManager(wrappedCPA);
     if(mergeType.equals("sep")){
       mergeOperator = new ARTMergeSep();
-    }
-    else if(mergeType.equals("join")){
+    } else if(mergeType.equals("join")){
       mergeOperator = new ARTMergeJoin(wrappedCPA);
+    } else {
+      throw new IllegalArgumentException();
     }
-    if(stopType.equals("sep")){
-      stopOperator = new ARTStopSep(abstractDomain, wrappedCPA);
-    }
-    else if(stopType.equals("join")){
-      throw new CPAException("Location domain elements cannot be joined");
-    }
+    stopOperator = new ARTStopSep(abstractDomain, wrappedCPA);  
     covered = new HashSet<ARTElement>();
     root = null;
   }
@@ -97,7 +90,7 @@ public class ARTCPA implements RefinableCPA {
 
   @Override
   public AbstractElement getInitialElement (CFAFunctionDefinitionNode pNode) {
-    return new ARTElement(abstractDomain, (AbstractElementWithLocation)wrappedCPA.getInitialElement(pNode), 
+    return new ARTElement((AbstractElementWithLocation)wrappedCPA.getInitialElement(pNode), 
         null);
   }
 
@@ -106,26 +99,20 @@ public class ARTCPA implements RefinableCPA {
     return new ARTPrecision(wrappedCPA.getInitialPrecision(pNode));
   }
 
-  public RefinableCPA getWrappedCPA(){
+  public ConfigurableProgramAnalysis getWrappedCPA(){
     return wrappedCPA;
   }
 
   public static ConfigurableProgramAnalysis getARTCPA 
   (CFAFunctionDefinitionNode node, ConfigurableProgramAnalysis cpa) throws CPAException{
-    assert(cpa instanceof RefinableCPA);
     String[] mergeTypesArray = CPAMain.cpaConfig.getPropertiesArray("analysis.mergeOperators");
     ArrayList<String> mergeTypes = new ArrayList<String>(Arrays.asList(mergeTypesArray));
     if(mergeTypes.contains("join")){
-      return new ARTCPA("join", "sep", (RefinableCPA)cpa);
+      return new ARTCPA("join", cpa);
     }
     else{
-      return new ARTCPA("sep", "sep", (RefinableCPA)cpa);
+      return new ARTCPA("sep", cpa);
     }
-  }
-
-  @Override
-  public RefinementManager getRefinementManager() {
-    return refinementManager;
   }
 
   public ARTElement getRoot() {

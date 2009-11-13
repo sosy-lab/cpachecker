@@ -39,7 +39,7 @@ public class ARTStopSep implements StopOperator {
     for (AbstractElement e : pReached) {
       if (stop(pElement, e)) {
         artElement.setCovered(true);
-        ((ARTCPA)domain.getCpa()).setCovered(artElement);
+        domain.getCpa().setCovered(artElement);
         return true;
       }
     }

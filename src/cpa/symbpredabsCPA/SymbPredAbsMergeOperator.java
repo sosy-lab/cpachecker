@@ -85,6 +85,10 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
         // create a new element, note that their abstraction formulas, initAbstractionFormula,
         // abstraction locations, artParents are same because they have the same
         // abstraction path
+        /*assert (elem1.getAbstraction().equals(elem2.getAbstraction()));
+        assert (elem1.getInitAbstractionFormula() == elem2.getInitAbstractionFormula());
+        assert (elem1.getAbstractionLocation() == elem2.getAbstractionLocation());
+        assert (elem1.getArtParent() == elem2.getArtParent());*/
         merged = new SymbPredAbsAbstractElement(domain, false, elem1.getAbstractionLocation(), 
             null, null, elem1.getInitAbstractionFormula(), elem1.getAbstraction(), 
             elem1.getAbstractionPathList(), elem1.getArtParent(), elem1.getPredicates());

@@ -49,11 +49,10 @@ import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cmdline.CPAMain;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
-import cpa.common.interfaces.RefinableCPA;
-import cpa.common.interfaces.RefinementManager;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
 import cpaplugin.CPAStatistics;
@@ -64,7 +63,7 @@ import cpaplugin.CPAStatistics;
  *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
-public class PredicateAbstractionCPA implements RefinableCPA {
+public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis {
 
     private final PredicateAbstractionAbstractDomain domain;
     private final PredicateAbstractionTransferRelation trans;
@@ -73,7 +72,6 @@ public class PredicateAbstractionCPA implements RefinableCPA {
     private final PrecisionAdjustment precisionAdjustment;
     private final MathsatSymbolicFormulaManager mgr;
     private final BDDMathsatPredicateAbstractionAbstractManager amgr;
-    private final PredicateAbstractionRefinementManager refinementManager;
     private PredicateMap pmap;
 
     private final PredicateAbstractionCPAStatistics stats;
@@ -129,7 +127,6 @@ public class PredicateAbstractionCPA implements RefinableCPA {
             pmap = new UpdateablePredicateMap(preds);
         }
 
-        refinementManager = new PredicateAbstractionRefinementManager(this);
         stats = new PredicateAbstractionCPAStatistics(this);
     }
 
@@ -196,11 +193,6 @@ public class PredicateAbstractionCPA implements RefinableCPA {
 
     public PredicateMap getPredicateMap() {
         return pmap;
-    }
-
-    @Override
-    public RefinementManager getRefinementManager() {
-      return refinementManager;
     }
 
 //    public void setCovered(PredicateAbstractionAbstractElement e1) {

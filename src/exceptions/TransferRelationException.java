@@ -23,7 +23,7 @@
  */
 package exceptions;
 
-public class TransferRelationException extends Exception
+public class TransferRelationException extends CPATransferException
 {
 	private static final long serialVersionUID = 2;
 
