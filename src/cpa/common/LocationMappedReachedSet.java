@@ -86,7 +86,7 @@ class LocationMappedReachedSet implements Set<Pair<AbstractElementWithLocation,P
 
         @Override
         public void remove() {
-            throw new RuntimeException("Remove not supported!");
+            throw new UnsupportedOperationException("Remove not supported!");
         }
     }
 
@@ -96,26 +96,23 @@ class LocationMappedReachedSet implements Set<Pair<AbstractElementWithLocation,P
     }
 
     public Set<Pair<AbstractElementWithLocation,Precision>> getReached(CFANode loc) {
-        if (repr.containsKey(loc)) {
-            return repr.get(loc);
-        } else {
-            return null;
-        }
+      Set<Pair<AbstractElementWithLocation, Precision>> result = repr.get(loc);
+      if (result == null) {
+        result = new HashSet<Pair<AbstractElementWithLocation,Precision>>();
+        repr.put(loc, result);
+      }
+      return result;
     }
 
     @Override
-    public boolean add(Pair<AbstractElementWithLocation,Precision> elem) {
-        // AbstractElementWithLocation e = (AbstractElementWithLocation)elem;
-        CFANode loc = elem.getFirst().getLocationNode();
-        if (!repr.containsKey(loc)) {
-            repr.put(loc, new HashSet<Pair<AbstractElementWithLocation,Precision>>());
-        }
-        Set<Pair<AbstractElementWithLocation,Precision>> s = repr.get(loc);
-        boolean added = s.add(elem);
-        if (added) {
-            ++numElems;
-        }
-        return added;
+    public boolean add(Pair<AbstractElementWithLocation, Precision> elem) {
+      CFANode loc = elem.getFirst().getLocationNode();
+      Set<Pair<AbstractElementWithLocation, Precision>> s = getReached(loc);
+      boolean added = s.add(elem);
+      if (added) {
+        ++numElems;
+      }
+      return added;
     }
 
     @Override
@@ -181,9 +178,6 @@ class LocationMappedReachedSet implements Set<Pair<AbstractElementWithLocation,P
         boolean ret = s.remove(o);
         if (ret) {
             --numElems;
-        }
-        if (s.isEmpty()) {
-            repr.remove(loc);
         }
         return ret;
     }

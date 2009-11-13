@@ -17,11 +17,11 @@ import cpa.common.interfaces.Precision;
 
 public class ReachedElements {
   
-  private Set<Pair<AbstractElementWithLocation, Precision>> reached;
+  private final Set<Pair<AbstractElementWithLocation, Precision>> reached;
   private AbstractElementWithLocation lastElement = null;
   private AbstractElementWithLocation firstElement = null;
-  private List<Pair<AbstractElementWithLocation, Precision>> waitlist;
-  private TraversalMethod traversal;
+  private final List<Pair<AbstractElementWithLocation, Precision>> waitlist;
+  private final TraversalMethod traversal;
   
   public ReachedElements(String traversal) {
     reached = createReachedSet();
@@ -94,15 +94,18 @@ public class ReachedElements {
 
   /**
    * Returns a subset of the reached set, which contains at least all abstract
-   * elements belonging to a given CFANode. Note that it may return up to all
-   * abstract states. It may return null instead of an empty set if there are no
-   * states belonging to the CFANode.
+   * elements belonging to a given CFANode. It may even return an empty set if
+   * there are no states belonging to the CFANode. Note that it may return up to
+   * all abstract states. 
    * 
    * The returned set is a view of the actual data, so it might change if nodes
-   * are added to the reached set. The returned set is unmodifiable.
+   * are added to the reached set. Subsequent calls to this method with the same
+   * parameter value will always return the same object.
+   * 
+   * The returned set is unmodifiable.
    * 
    * @param loc A CFANode for which the abstract states should be retrieved.
-   * @return Null or a subset of the reached set.
+   * @return A subset of the reached set.
    */
   public Set<Pair<AbstractElementWithLocation,Precision>> getReached(CFANode loc) {
     Set<Pair<AbstractElementWithLocation,Precision>> result;
@@ -111,10 +114,7 @@ public class ReachedElements {
     } else {
       result = reached;
     }
-    if (result != null) {
-      return Collections.unmodifiableSet(result);
-    }
-    return null;
+    return Collections.unmodifiableSet(result);
   }
   
   public AbstractElementWithLocation getFirstElement() {
@@ -145,14 +145,16 @@ public class ReachedElements {
           result = currentElement;
         }
       }
+      break;
     
     case BFS:
       result = waitlist.get(0);
+      break;
       
     case DFS:
       result = waitlist.get(waitlist.size()-1);
+      break;
     }
-    
     
     waitlist.remove(result);
     return result;

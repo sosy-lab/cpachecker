@@ -91,7 +91,7 @@ public class CPAAlgorithm implements Algorithm {
 
         // AG as an optimization, we allow the mergeOperator to be null,
         // as a synonym of a trivial operator that never merges
-        if (mergeOperator != null && reached != null && !reached.isEmpty()) {
+        if (mergeOperator != null && !reached.isEmpty()) {
           start = System.currentTimeMillis();
 
           List<Pair<AbstractElementWithLocation,Precision>> toRemove = new Vector<Pair<AbstractElementWithLocation,Precision>>();
@@ -119,18 +119,14 @@ public class CPAAlgorithm implements Algorithm {
           end = System.currentTimeMillis();
           mergeTime += (end - start);
         }
-
         
         start = System.currentTimeMillis();
         Collection<AbstractElementWithLocation> simpleReached = new HashSet<AbstractElementWithLocation>();
         
-        if (reached != null) {
-          for (Pair<AbstractElementWithLocation,Precision> p: reached) {
-            AbstractElementWithLocation e2 = p.getFirst();
-            simpleReached.add(e2);
-          }
+        for (Pair<AbstractElementWithLocation,Precision> p: reached) {
+          AbstractElementWithLocation e2 = p.getFirst();
+          simpleReached.add(e2);
         }
-        
 
         if (!stopOperator.stop(successor, simpleReached, precision)) {
           LazyLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel,
