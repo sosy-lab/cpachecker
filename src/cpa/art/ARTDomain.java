@@ -12,7 +12,7 @@ public class ARTDomain implements AbstractDomain {
   private static class ArtBottomElement extends ARTElement
   {
     public ArtBottomElement() {
-      super(null, null);
+      super(null, null, null);
     }
 
     @Override
@@ -39,7 +39,7 @@ public class ARTDomain implements AbstractDomain {
   private static class ArtTopElement extends ARTElement
   {
     public ArtTopElement() {
-      super(null, null);
+      super(null, null, null);
     }
 
     @Override

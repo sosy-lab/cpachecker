@@ -4,7 +4,6 @@ import java.util.Collection;
 
 import compositeCPA.CompositeStopOperator;
 
-import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;
@@ -13,11 +12,9 @@ import exceptions.CPAException;
 
 public class ARTStopSep implements StopOperator {
 
-  private final ARTDomain domain;
   private final ConfigurableProgramAnalysis wrappedCpa;
 
-  public ARTStopSep(AbstractDomain pArtDomain, ConfigurableProgramAnalysis cpa) {
-    this.domain = (ARTDomain)pArtDomain;
+  public ARTStopSep(ConfigurableProgramAnalysis cpa) {
     this.wrappedCpa = cpa;
   }
 
@@ -39,7 +36,6 @@ public class ARTStopSep implements StopOperator {
     for (AbstractElement e : pReached) {
       if (stop(pElement, e)) {
         artElement.setCovered(true);
-        domain.getCpa().setCovered(artElement);
         return true;
       }
     }

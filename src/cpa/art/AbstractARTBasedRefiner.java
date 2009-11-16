@@ -1,8 +1,9 @@
 package cpa.art;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Iterator;
+import java.util.List;
 
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFANode;
@@ -30,7 +31,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
   }
   
   @Override
-  public final RefinementOutcome performRefinement(ReachedElements pReached) {
+  public final RefinementOutcome performRefinement(ReachedElements pReached) throws CPAException {
     AbstractElement lastElement = pReached.getLastElement();
     assert lastElement instanceof ARTElement;
     Path path = buildPath((ARTElement)lastElement);
@@ -46,7 +47,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
 
 
   protected abstract ARTElement performRefinement(ReachedElements pReached,
-                                                  Path pPath);
+                                                  Path pPath) throws CPAException ;
 
   /**
    * Create a path in the ART from root to the given element.
@@ -94,29 +95,32 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
     toWaitlist.add(root);
     Collection<ARTElement> toUnreach = root.getSubtree();
     
+    // clear everything below root
+    root.clearChildren();
     for (ARTElement ae : toUnreach) {
-      if (ae.isCovered()) {
-        ae.setCovered(false);
-        mArtCpa.setUncovered(ae);
-      }
+      ae.setCovered(false);
     }
+    
+    // re-add those elements to the waitlist, which could have been covered by
+    // elements which were removed now
     if (root != mArtCpa.getRoot()) {
-      // then, we have to unmark some nodes
-      Collection<ARTElement> tmp = mArtCpa.getCovered();
+      List<ARTElement> toUncover = new ArrayList<ARTElement>();
+      
       int m = root.getMark();
-      for (Iterator<ARTElement> i = tmp.iterator(); i.hasNext(); ) {
-        ARTElement e = i.next();
-        assert(e.isCovered());
-        if (e.getMark() > m) {
-          e.setCovered(false);
-          i.remove();
-          // TODO adding all parents? check this
-          toWaitlist.addAll(e.getParents());
-//          toUnreach.add(e);
-          // TODO instead: remove from ART
+      for (ARTElement ae : mArtCpa.getCovered()) {
+        if (ae.getMark() > m) {
+          toUncover.add(ae);
         }
       }
+      
+      for (ARTElement ae : toUncover) {
+        ae.setCovered(false);
+        // TODO adding all parents? check this
+        toWaitlist.addAll(ae.getParents());
+        ae.removeFromART();
+      }
     }
+    
     return new RefinementOutcome(true, toUnreach, toWaitlist, root);
   }
 }

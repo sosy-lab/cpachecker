@@ -1,12 +1,13 @@
 package cpa.symbpredabsCPA;
 
-import java.util.ArrayList;
+import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import logging.CustomLogLevel;
 import logging.LazyLogger;
@@ -70,7 +71,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
 
   @Override
   public ARTElement performRefinement(ReachedElements pReached,
-      Path pPath) {
+      Path pPath) throws CPAException {
 
     // error element is the second last at the array 
     Pair<AbstractElement, CFAEdge> errorElementPair = 
@@ -108,7 +109,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
   }
 
   private ARTElement performRefinement(ReachedElements pReached,
-      Deque<SymbPredAbsAbstractElement> pPath, Path pArtPath, CounterexampleTraceInfo pInfo) {
+      Deque<SymbPredAbsAbstractElement> pPath, Path pArtPath, CounterexampleTraceInfo pInfo) throws CPAException {
 
     assert(pReached.getLastElement() instanceof ARTElement);
     ARTElement lastElem = (ARTElement)pReached.getLastElement();
@@ -139,14 +140,9 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
       assert(firstInterpolant != null);
       if (numSeen > 1) {
 //      assert(numSeen == 2);
-        if (CPAMain.cpaConfig.getBooleanValue(
-        "cpas.symbpredabs.abstraction.cartesian")) {
-          // not enough predicates
-          assert(false);
-          System.exit(1);
+        if (CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.abstraction.cartesian")) {
+          throw new CPAException("not enough predicates");
         }
-      } else {
-        assert(numSeen <= 1);
       }
 
       CFANode loc = ((SymbPredAbsAbstractElement)firstInterpolant).getAbstractionLocation(); 
@@ -162,29 +158,31 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
     return root;
   }
 
-  private ARTElement findARTElementof(
-      SymbPredAbsAbstractElement pSymbPredRootElement,
-      Pair<AbstractElement, CFAEdge> pLastElement) {
+  private ARTElement findARTElementof(SymbPredAbsAbstractElement pSymbPredRootElement,
+      Pair<AbstractElement, CFAEdge> pLastElement) throws CPAException {
 
-    List<ARTElement> workList = new ArrayList<ARTElement>();
+    Deque<ARTElement> workList = new ArrayDeque<ARTElement>();
+    Set<ARTElement> handled = new HashSet<ARTElement>();
 
-    ARTElement currentElement = null;
     // get the error element
-    workList.add(((ARTElement)pLastElement.getFirst()).getFirstParent());
+    workList.add((ARTElement)pLastElement.getFirst());
 
     // go backwards
-    while(workList.size() > 0){
-      currentElement = workList.remove(0);
-      SymbPredAbsAbstractElement currentSymbPredElement = (SymbPredAbsAbstractElement)
-      currentElement.retrieveElementOfType("SymbPredAbsAbstractElement");
-      if(currentSymbPredElement == pSymbPredRootElement){
+    while (!workList.isEmpty()) {
+      ARTElement currentElement = workList.removeFirst();
+      if (!handled.add(currentElement)) {
+        // currentElement was already handled
+        continue;
+      }
+      
+      AbstractElement currentSymbPredElement = 
+                currentElement.retrieveElementOfType("SymbPredAbsAbstractElement");
+      if (currentSymbPredElement == pSymbPredRootElement){
         return currentElement;
       }
-      if(!workList.contains(currentElement.getFirstParent())){
-        workList.add(currentElement.getFirstParent());
-      }
+      workList.addAll(currentElement.getParents());
     }
-    // no such element
-    return null;
+
+    throw new CPAException("Inconsistent ART");
   }
 }

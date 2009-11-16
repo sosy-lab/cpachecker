@@ -1,10 +1,10 @@
 package cpa.art;
 
-import java.util.ArrayList;
+import java.util.ArrayDeque;
 import java.util.Collection;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Set;
 
 import cfa.objectmodel.CFANode;
@@ -14,47 +14,36 @@ import cpa.common.interfaces.AbstractWrapperElement;
 
 public class ARTElement implements AbstractElementWithLocation, AbstractWrapperElement{
 
-  private AbstractElementWithLocation element;
-//  private ARTElement parentElement;
-  private Set<ARTElement> children;
+  private final ARTCPA mCpa;
+  private final AbstractElementWithLocation element;
+  private final Set<ARTElement> children;
   public static long artElementEqualsTime = 0; 
-  // additional parents - used for joining elements
-  private Set<ARTElement> parents;
+  private final Set<ARTElement> parents; // more than one parent if joining elements
 
   private int elementId;
   private static int nextArtElementId= 0;
 
-  private boolean covered;
   private int mark;
 
-  public ARTElement(AbstractElementWithLocation pAbstractElement, ARTElement pParentElement) {
+  protected ARTElement(ARTCPA pCpa, AbstractElementWithLocation pAbstractElement, ARTElement pParentElement) {
+    mCpa = pCpa;
     element = pAbstractElement;
     parents = new HashSet<ARTElement>();
-    setParent(pParentElement);
+    if(pParentElement != null){
+      addParent(pParentElement);
+    }
     children = new HashSet<ARTElement>();
     elementId = ++nextArtElementId;
     mark = 0;
-    covered = false;
   }
-
-  private void setParent(ARTElement pParentElement) {
-    if(pParentElement != null){
-      parents.add(pParentElement);
-      pParentElement.addToChildrenList(this);
-    }
-  }
-
-//  public ARTElement getParent(){
-//    return parentElement;
-//  }
 
   public Set<ARTElement> getParents(){
     return parents;
   }
 
-  public void addParent(ARTElement pOtherParent){
+  protected void addParent(ARTElement pOtherParent){
     if(parents.add(pOtherParent)){
-      pOtherParent.addToChildrenList(this);
+      pOtherParent.children.add(this);
     }
   }
 
@@ -62,27 +51,19 @@ public class ARTElement implements AbstractElementWithLocation, AbstractWrapperE
     return children;
   }
 
-  public int numberOfChildren(){
-    return children.size();
-  }
-
   public AbstractElementWithLocation getAbstractElementOnArtNode(){
     return element;
-  }
-
-  private void addToChildrenList(ARTElement child){
-    children.add(child);
   }
 
   public boolean isMarked() { 
     return mark > 0; 
   }
 
-  public void setMark() { 
+  protected void setMark() { 
     mark = nextArtElementId++; 
   }
 
-  public void setMark(int pMark) { 
+  protected void setMark(int pMark) { 
     mark = pMark; 
   }
 
@@ -90,40 +71,18 @@ public class ARTElement implements AbstractElementWithLocation, AbstractWrapperE
     return mark; 
   }
 
-  public boolean isCovered() { 
-    return covered; 
+  protected void setCovered(boolean pCovered) {
+    mCpa.setCovered(this, pCovered);
   }
-
-  public void setCovered(boolean yes) { 
-    covered = yes; 
-    // TODO check
-    //setMark(); 
+  
+  public boolean isCovered() {
+    return mCpa.isCovered(this);
   }
-
-//@Override
-//public boolean equals(Object pObj) {
-//long start = System.currentTimeMillis();
-//boolean b = ((ARTElement)pObj).getAbstractElementOnArtNode().equals(getAbstractElementOnArtNode());
-//long end = System.currentTimeMillis();
-//artElementEqualsTime = artElementEqualsTime + (end - start);
-//return b;
-//}
-
-//  @Override
-//  public boolean equals(Object pObj) {
-//    if (this == pObj) {
-//      return true;
-//    }
-//    boolean b = (this.elementId == ((ARTElement)pObj).elementId);
-//    return b;
-//  }
-//
-//  @Override
-//  public int hashCode() {
-//    System.out.println(elementId + "testing hash code " + this.elementId );
-//    return this.elementId;
-//  }
-
+  
+  public ARTCPA getCpa() {
+    return mCpa;
+  }
+  
   @Override
   public String toString() {
     String s = "\n";
@@ -159,44 +118,52 @@ public class ARTElement implements AbstractElementWithLocation, AbstractWrapperE
 
   // TODO check
   public Collection<ARTElement> getSubtree() {
-    Set<ARTElement> ret = new HashSet<ARTElement>();
-    List<ARTElement> workList = new ArrayList<ARTElement>();
+    Set<ARTElement> result = new HashSet<ARTElement>();
+    Deque<ARTElement> workList = new ArrayDeque<ARTElement>();
 
     workList.add(this);
 
-    while(workList.size() > 0){
-      ARTElement currentElement = workList.remove(0);
-      if(ret.contains(currentElement)){
-        continue;
+    while (!workList.isEmpty()) {
+      ARTElement currentElement = workList.removeFirst();
+      if (result.add(currentElement)) {
+        // currentElement was not in result
+        workList.addAll(currentElement.children);
       }
-      ret.add(currentElement);
-      Set<ARTElement> childrenOfCurrentElement = currentElement.getChildren();
-      workList.addAll(childrenOfCurrentElement);
     }
-    return ret;
+    return result;
   }
 
-  public void clearChildren() {
+  /**
+   * This method removes all children of this element from the ART.
+   * 
+   * Note that it does not remove any elements from the covered set, this has to
+   * be done by the caller.
+   */
+  protected void clearChildren() {
+    for (ARTElement child : children) {
+      assert (child.parents.contains(this));
+      child.parents.remove(this);
+    }
     children.clear();
   }
+
 
   /**
    * This method removes this element from the ART by removing it from its
    * parents' children list.
+   * 
+   * Note that it does not remove any elements from the covered set, this has to
+   * be done by the caller.
    */
-  public void removeFromART() {
+  protected void removeFromART() {
     for (ARTElement parent : parents) {
       assert (parent.children.contains(this));
       parent.children.remove(this);
     }
     parents.clear();
   }
-  
-  public boolean removeFromChildren(ARTElement pElement) {
-    return children.remove(pElement);
-  }
-  
-  public int getElementId(){
+    
+  public int getElementId() {
     return elementId;
   }
 
@@ -205,8 +172,12 @@ public class ARTElement implements AbstractElementWithLocation, AbstractWrapperE
     return element.isError();
   }
 
+  /**
+   * This method returns a random element from the list of parents.
+   * @return A parent of this element.
+   */
   public ARTElement getFirstParent() {
-    if(parents.size() == 0){
+    if (parents.isEmpty()) {
       return null;
     }
     Iterator<ARTElement> it = parents.iterator();

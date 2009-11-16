@@ -169,11 +169,6 @@ public class CEGARAlgorithm implements Algorithm {
       }
       reached.add(p);
     }
-    
-    // TODO this should be done in ARTCPA
-    // we can get rid of children of root because we're clearing them from the
-    // reached set
-    ((ARTElement)pRoot).clearChildren();
   }
 
   private void runGC() {

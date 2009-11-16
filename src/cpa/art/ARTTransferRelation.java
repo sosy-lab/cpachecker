@@ -48,7 +48,7 @@ public class ARTTransferRelation implements TransferRelation {
     List<AbstractElementWithLocation> successors = transferRelation.getAllAbstractSuccessors(wrappedElement, wrappedPrecision);
     List<AbstractElementWithLocation> wrappedSuccessors = new ArrayList<AbstractElementWithLocation>();
     for(AbstractElementWithLocation absElement:successors){
-      ARTElement successorElem = new ARTElement(absElement, element);
+      ARTElement successorElem = new ARTElement(mCpa, absElement, element);
       successorElem.setMark();
       wrappedSuccessors.add(successorElem);
     }

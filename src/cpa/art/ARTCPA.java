@@ -4,9 +4,9 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Deque;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.Queue;
 import java.util.Set;
 
 import cfa.objectmodel.CFAFunctionDefinitionNode;
@@ -47,7 +47,7 @@ public class ARTCPA implements ConfigurableProgramAnalysis {
     } else {
       throw new IllegalArgumentException();
     }
-    stopOperator = new ARTStopSep(abstractDomain, wrappedCPA);  
+    stopOperator = new ARTStopSep(wrappedCPA);  
     covered = new HashSet<ARTElement>();
     root = null;
   }
@@ -76,21 +76,25 @@ public class ARTCPA implements ConfigurableProgramAnalysis {
     return precisionAdjustment;
   }
 
-  public void setCovered(ARTElement e1) {
-    covered.add(e1);        
+  protected void setCovered(ARTElement pElement, boolean pCovered) {
+    if (pCovered) {
+      covered.add(pElement);
+    } else {
+      covered.remove(pElement);
+    }
   }
-
+  
   public Collection<ARTElement> getCovered() {
-    return covered;
+    return Collections.unmodifiableCollection(covered);
   }
 
-  public void setUncovered(ARTElement e1) {
-    covered.remove(e1);
-  }  
-
+  public boolean isCovered(ARTElement pElement) {
+    return covered.contains(pElement);
+  }
+  
   @Override
   public AbstractElement getInitialElement (CFAFunctionDefinitionNode pNode) {
-    return new ARTElement((AbstractElementWithLocation)wrappedCPA.getInitialElement(pNode), 
+    return new ARTElement(this, (AbstractElementWithLocation)wrappedCPA.getInitialElement(pNode), 
         null);
   }
 
@@ -123,34 +127,36 @@ public class ARTCPA implements ConfigurableProgramAnalysis {
     root = pRoot;
   }
 
-  public ARTElement findHighest(ARTElement pLastElem, CFANode pLoc) {
+  public ARTElement findHighest(ARTElement pLastElem, CFANode pLoc) throws CPAException {
     if (root == null) return null;
 
     ARTElement tempRetVal = null;
+    
+    Deque<ARTElement> workList = new ArrayDeque<ARTElement>();
+    Set<ARTElement> handled = new HashSet<ARTElement>();
 
-    Queue<ARTElement> toProcess =
-      new ArrayDeque<ARTElement>();
-    toProcess.add(pLastElem);
-//  System.out.println("root is " + root);
-    while (!toProcess.isEmpty()) {
-      ARTElement e = toProcess.remove();
-      // TODO check - bottom element
-      if(e.getLocationNode() == null){
+    workList.add(pLastElem);
+
+    while (!workList.isEmpty()) {
+      ARTElement currentElement = workList.removeFirst();
+      if (!handled.add(currentElement)) {
+        // currentElement was already handled
         continue;
       }
-      else{
-        if (e.getLocationNode().equals(pLoc)) {
-          tempRetVal = e;
+      // TODO check - bottom element
+      if(currentElement.getLocationNode() == null) {
+        assert false;
+        continue;
+      } else{
+        if (currentElement.getLocationNode().equals(pLoc)) {
+          tempRetVal = currentElement;
         }
-        if (e.getParents().size() > 0) {
-          toProcess.add(e.getFirstParent());
-        }
+        workList.addAll(currentElement.getParents());
       }
     }
 
-    if(tempRetVal == null){
-      System.out.println("ERROR, NOT FOUND: " + pLoc);
-      assert(false);
+    if (tempRetVal == null) {
+      throw new CPAException("Inconsistent ART, did not find element for " + pLoc);
     }
     return tempRetVal;
 
