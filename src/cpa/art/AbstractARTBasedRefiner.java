@@ -39,7 +39,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
     ARTElement root = performRefinement(pReached, path);
     
     if (root != null) {
-      return cleanART(root);
+      return cleanART(pReached, root);
     } else {
       return new RefinementOutcome();
     }
@@ -88,7 +88,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
     return path;
   }
   
-  private RefinementOutcome cleanART(ARTElement root) {
+  private RefinementOutcome cleanART(ReachedElements pReached, ARTElement root) {
     assert(root != null);
     
     Collection<ARTElement> toWaitlist = new HashSet<ARTElement>();
@@ -103,7 +103,8 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
     
     // re-add those elements to the waitlist, which could have been covered by
     // elements which were removed now
-    if (root != mArtCpa.getRoot()) {
+    // only necessary if we do not throw away the whole ART
+    if (root != pReached.getFirstElement()) {
       List<ARTElement> toUncover = new ArrayList<ARTElement>();
       
       int m = root.getMark();

@@ -25,20 +25,20 @@ import exceptions.CPAException;
 
 public class ARTCPA implements ConfigurableProgramAnalysis {
 
-  private final ARTDomain abstractDomain;
+  private final AbstractDomain abstractDomain;
   private final TransferRelation transferRelation;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
   private final PrecisionAdjustment precisionAdjustment;
   private final ConfigurableProgramAnalysis wrappedCPA;
 
+  // TODO state in the CPA, possibly dangerous with multiple ARTs
   private final Set<ARTElement> covered;
-  private ARTElement root;
 
   private ARTCPA(String mergeType, ConfigurableProgramAnalysis cpa) throws CPAException {
     wrappedCPA = cpa;
     abstractDomain = new ARTDomain(this);
-    transferRelation = new ARTTransferRelation(abstractDomain, cpa.getTransferRelation());
+    transferRelation = new ARTTransferRelation(cpa.getTransferRelation());
     precisionAdjustment = new ARTPrecisionAdjustment();
     if(mergeType.equals("sep")){
       mergeOperator = new ARTMergeSep();
@@ -49,7 +49,6 @@ public class ARTCPA implements ConfigurableProgramAnalysis {
     }
     stopOperator = new ARTStopSep(wrappedCPA);  
     covered = new HashSet<ARTElement>();
-    root = null;
   }
 
   public AbstractDomain getAbstractDomain ()
@@ -94,6 +93,7 @@ public class ARTCPA implements ConfigurableProgramAnalysis {
   
   @Override
   public AbstractElement getInitialElement (CFAFunctionDefinitionNode pNode) {
+    // TODO some code relies on the fact that this method is called only one and the result is the root of the ART
     return new ARTElement(this, (AbstractElementWithLocation)wrappedCPA.getInitialElement(pNode), 
         null);
   }
@@ -119,17 +119,7 @@ public class ARTCPA implements ConfigurableProgramAnalysis {
     }
   }
 
-  public ARTElement getRoot() {
-    return root;
-  }
-
-  public void setRoot(ARTElement pRoot){
-    root = pRoot;
-  }
-
   public ARTElement findHighest(ARTElement pLastElem, CFANode pLoc) throws CPAException {
-    if (root == null) return null;
-
     ARTElement tempRetVal = null;
     
     Deque<ARTElement> workList = new ArrayDeque<ARTElement>();

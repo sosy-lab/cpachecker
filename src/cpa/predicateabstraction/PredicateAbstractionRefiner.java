@@ -143,7 +143,7 @@ public class PredicateAbstractionRefiner extends AbstractARTBasedRefiner {
         assert(firstInterpolant != null);
         LazyLogger.log(CustomLogLevel.SpecificCPALevel,
         "Restarting ART from scratch");
-        root = this.getArtCpa().getRoot();
+        root = (ARTElement)pReached.getFirstElement();
       }
     } else {
       //samePathAlready  = 0;

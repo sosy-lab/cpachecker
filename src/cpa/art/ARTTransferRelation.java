@@ -15,11 +15,9 @@ import exceptions.TransferRelationException;
 public class ARTTransferRelation implements TransferRelation {
   
   private final TransferRelation transferRelation;
-  private final ARTCPA mCpa;
   
-  public ARTTransferRelation(ARTDomain pDomain, TransferRelation tr) {
+  public ARTTransferRelation(TransferRelation tr) {
     transferRelation = tr;
-    mCpa = pDomain.getCpa();
   }
   
 
@@ -36,10 +34,6 @@ public class ARTTransferRelation implements TransferRelation {
       throws CPAException, CPATransferException {
     ARTElement element = (ARTElement)pElement;
     
-    if(mCpa.getRoot() == null){
-      mCpa.setRoot(element);
-    }
-    
     AbstractElementWithLocation wrappedElement = element.getAbstractElementOnArtNode();
     Precision wrappedPrecision = null;
     if(pPrecision != null){
@@ -48,7 +42,7 @@ public class ARTTransferRelation implements TransferRelation {
     List<AbstractElementWithLocation> successors = transferRelation.getAllAbstractSuccessors(wrappedElement, wrappedPrecision);
     List<AbstractElementWithLocation> wrappedSuccessors = new ArrayList<AbstractElementWithLocation>();
     for(AbstractElementWithLocation absElement:successors){
-      ARTElement successorElem = new ARTElement(mCpa, absElement, element);
+      ARTElement successorElem = new ARTElement(element.getCpa(), absElement, element);
       successorElem.setMark();
       wrappedSuccessors.add(successorElem);
     }
