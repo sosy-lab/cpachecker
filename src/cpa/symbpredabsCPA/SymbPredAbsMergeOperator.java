@@ -90,10 +90,6 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
         assert (elem1.getAbstractionLocation() == elem2.getAbstractionLocation());
         assert (elem1.getArtParent() == elem2.getArtParent());
 
-        merged = new SymbPredAbsAbstractElement(domain, false, elem1.getAbstractionLocation(), 
-            null, null, elem1.getInitAbstractionFormula(), elem1.getAbstraction(), 
-            elem1.getAbstractionPathList(), elem1.getArtParent(), elem1.getPredicates());
-
         MathsatSymbolicFormula formula1 =
           (MathsatSymbolicFormula)elem1.getPathFormula().getSymbolicFormula();
         // TODO check
@@ -109,9 +105,8 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
         newFormula = symbolicFormulaManager.makeOr(old, newFormula);
         ssa1 = pm.getSecond();
 
-        // set the pathFormula of the merged element
-        merged.setPathFormula(new PathFormula(newFormula, ssa1));
-
+        PathFormula pathFormula = new PathFormula(newFormula, ssa1);
+        
         // now we update the pfParents,
         List<Integer> pfParents = new ArrayList<Integer>();
         pfParents.addAll(elem2.getPfParents());
@@ -124,7 +119,11 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
         if(!pfParents.contains(elem1.getPfParents().get(0))){
           pfParents.add(elem1.getPfParents().get(0));
         }
-        merged.setPfParents(pfParents);
+        
+        merged = new SymbPredAbsAbstractElement(domain, false, elem1.getAbstractionLocation(), 
+            pathFormula, pfParents, elem1.getInitAbstractionFormula(), elem1.getAbstraction(), 
+            elem1.getAbstractionPathList(), elem1.getArtParent(), elem1.getPredicates());
+
         // TODO check
 //        merged.updateMaxIndex(ssa1);
         long end = System.currentTimeMillis();

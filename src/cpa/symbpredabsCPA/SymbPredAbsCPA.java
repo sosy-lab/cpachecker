@@ -29,12 +29,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.Vector;
 
 import logging.CustomLogLevel;
@@ -44,7 +39,6 @@ import symbpredabstraction.PathFormula;
 import symbpredabstraction.SSAMap;
 import symbpredabstraction.UpdateablePredicateMap;
 import symbpredabstraction.interfaces.AbstractFormula;
-import symbpredabstraction.interfaces.AbstractFormulaManager;
 import symbpredabstraction.interfaces.InterpolatingTheoremProver;
 import symbpredabstraction.interfaces.Predicate;
 import symbpredabstraction.interfaces.PredicateMap;
@@ -58,6 +52,7 @@ import symbpredabstraction.mathsat.SimplifyTheoremProver;
 import symbpredabstraction.mathsat.YicesTheoremProver;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cmdline.CPAMain;
+import cpa.common.defaults.StaticPrecisisonAdjustment;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
@@ -79,10 +74,8 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis {
   private SymbPredAbsTransferRelation transfer;
   private SymbPredAbsMergeOperator merge;
   private SymbPredAbsStopOperator stop;
-  private PrecisionAdjustment precisionAdjustment;
   private MathsatSymbolicFormulaManager symbolicFormulaManager;
   private BDDMathsatSymbPredAbstractionAbstractManager abstractFormulaManager;
-  private Map<SymbPredAbsAbstractElement, Set<SymbPredAbsAbstractElement>> covers;
   private PredicateMap predicateMap;
   private SymbPredAbsCPAStatistics stats;
 
@@ -105,12 +98,10 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis {
     InterpolatingTheoremProver itpProver =
       new MathsatInterpolatingProver(symbolicFormulaManager, false);
     abstractFormulaManager = new BDDMathsatSymbPredAbstractionAbstractManager(thmProver, itpProver);
-    covers = new HashMap<SymbPredAbsAbstractElement, Set<SymbPredAbsAbstractElement>>();
     domain = new SymbPredAbsAbstractDomain(this);
     transfer = new SymbPredAbsTransferRelation(domain, symbolicFormulaManager, abstractFormulaManager);
     merge = new SymbPredAbsMergeOperator(domain);
     stop = new SymbPredAbsStopOperator(domain);
-    precisionAdjustment = new SymbPredAbsPrecisionAdjustment();
 
     // for testing purposes, it's nice to be able to use a given set of
     // predicates and disable refinement
@@ -161,7 +152,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis {
     return stop;
   }
 
-  public AbstractFormulaManager getAbstractFormulaManager() {
+  public SymbPredAbstFormulaManager getAbstractFormulaManager() {
     return abstractFormulaManager;
   }
 
@@ -171,32 +162,6 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis {
 
   public PredicateMap getPredicateMap() {
     return predicateMap;
-  }
-
-  public Set<SymbPredAbsAbstractElement> getCoveredBy(SymbPredAbsAbstractElement e){
-    if (covers.containsKey(e)) {
-      return covers.get(e);
-    } else {
-      return Collections.emptySet();
-    }
-  }
-
-  public void setCoveredBy(SymbPredAbsAbstractElement covered,
-                           SymbPredAbsAbstractElement e) {
-    Set<SymbPredAbsAbstractElement> s;
-    if (covers.containsKey(e)) {
-      s = covers.get(e);
-    } else {
-      s = new HashSet<SymbPredAbsAbstractElement>();
-    }
-    s.add(covered);
-    covers.put(e, s);
-  }
-
-  public void uncoverAll(SymbPredAbsAbstractElement e) {
-    if (covers.containsKey(e)) {
-      covers.remove(e);
-    }
   }
 
   public SymbolicFormulaManager getSymbolicFormulaManager() {
@@ -229,11 +194,11 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis {
   }
 
   public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
-    return new SymbPredAbsPrecision();
+    return null;
   }
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return precisionAdjustment;
+    return StaticPrecisisonAdjustment.getInstance();
   }
 }

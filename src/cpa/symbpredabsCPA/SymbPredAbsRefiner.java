@@ -12,7 +12,6 @@ import java.util.Set;
 import logging.CustomLogLevel;
 import logging.LazyLogger;
 import symbpredabstraction.UpdateablePredicateMap;
-import symbpredabstraction.interfaces.AbstractFormulaManager;
 import symbpredabstraction.interfaces.Predicate;
 import symbpredabstraction.interfaces.SymbolicFormulaManager;
 import symbpredabstraction.trace.CounterexampleTraceInfo;
@@ -36,7 +35,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
 
   private final SymbPredAbsCPA mCpa;
   private final SymbolicFormulaManager symbolicFormulaManager;
-  private final AbstractFormulaManager abstractFormulaManager;
+  private final SymbPredAbstFormulaManager abstractFormulaManager;
 
   private final Map<Deque<SymbPredAbsAbstractElement>, Integer> seenAbstractCounterexamples;
 
@@ -90,19 +89,18 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
       path.addFirst(artParent);
       artParent = artParent.getArtParent();
     }
-    BDDMathsatSymbPredAbstractionAbstractManager bddAbstractFormulaManager  = (BDDMathsatSymbPredAbstractionAbstractManager)abstractFormulaManager;
+    
     // build the counterexample
-    CounterexampleTraceInfo info = bddAbstractFormulaManager.buildCounterexampleTrace(
+    CounterexampleTraceInfo info = abstractFormulaManager.buildCounterexampleTrace(
         symbolicFormulaManager, path);
+    
     // if error is spurious refine
     if (info.isSpurious()) {
       LazyLogger.log(CustomLogLevel.SpecificCPALevel,
-          "Found spurious error trace, refining the ",
-      "abstraction");
+            "Found spurious error trace, refining the abstraction");
       return performRefinement(pReached, path, pPath, info);
-    }
-    // we have a real error
-    else {
+    } else {
+      // we have a real error
       CPAMain.cpaStats.setErrorReached(true);
       return null;
     }

@@ -45,38 +45,38 @@ implements AbstractElement {
   private SymbPredAbsAbstractDomain domain;
 
   /** Unique state id */
-  private int elementId;
+  private final int elementId;
   /** If the element is on an abstraction location */
-  private boolean isAbstractionNode = false;
+  private final boolean isAbstractionNode;
   /** This is a pointer to the last abstraction node, when the computed abstract element
    * is an abstraction node, this node is set to the new abstraction node, otherwise it is
    * the same node with the last element's abstraction node  */
-  private CFANode abstractionLocation;
+  private final CFANode abstractionLocation;
   /** The path formula for the path from the last abstraction node to this node. 
    * it is set to true on a new abstraction location and updated with a new 
    * non-abstraction location */
-  private PathFormula pathFormula;
+  private final PathFormula pathFormula;
   /** If this node is not and abstraction node, then this is invalid; 
    * otherwise this is the {@link PathFormula} of the last element before the 
    * abstraction is computed. This formula is used by the refinement procedure 
    * to build the formula to the error location */
-  private PathFormula initAbstractionFormula;
+  private final PathFormula initAbstractionFormula;
   /** The abstraction which is updated only on abstraction locations */
-  private AbstractFormula abstraction;
+  private final AbstractFormula abstraction;
   /** List of abstraction locations with the order of their computation
    * up to that point. We use this list in {@link SymbPredAbsMergeOperator#merge(AbstractElement, AbstractElement, cpa.common.interfaces.Precision)} and
    * for partial order operator*/
-  private AbstractionPathList abstractionPathList;
+  private final AbstractionPathList abstractionPathList;
   /** Parent of this element in the ART */
-  private SymbPredAbsAbstractElement artParent;
+  private final SymbPredAbsAbstractElement artParent;
   /** Current predicates used to compute abstraction on this location */
-  private PredicateMap predicates;
+  private final PredicateMap predicates;
   /** List of {@link CFANode} ids that we constructed the {@link PathFormula}. This is
    * updated if {@link SymbPredAbsMergeOperator#merge(AbstractElement, AbstractElement, cpa.common.interfaces.Precision)}
    * is called and the {@link PathFormula} is updated. This list is also used by 
    * {@link SymbPredAbsAbstractElement#equals(Object)} to make a fast, syntactic check on 
    * equality of formula*/
-  private List<Integer> pfParents;
+  private final List<Integer> pfParents;
 
   // TODO check again
 //  private SSAMap maxIndex;
@@ -93,13 +93,6 @@ implements AbstractElement {
 
   public AbstractFormula getAbstraction() {
     return abstraction;
-  }
-
-  public void setAbstraction(AbstractFormula abs) {
-    abstraction = abs;
-  }
-  public void setPathFormula(PathFormula pf){
-    pathFormula = pf;
   }
 
   public AbstractionPathList getAbstractionPathList() {
@@ -123,12 +116,18 @@ implements AbstractElement {
     return abstractionLocation;
   }
 
-  public void setAbstractionLocation(CFANode absLoc){
-    abstractionLocation = absLoc;
-  }
-
-  public SymbPredAbsAbstractElement(){
-
+  public SymbPredAbsAbstractElement() {
+    this.elementId = nextAvailableId++;
+    this.domain = null;
+    this.isAbstractionNode = false;
+    this.abstractionLocation = null;
+    this.pathFormula = null;
+    this.pfParents = null;
+    this.initAbstractionFormula = null;
+    this.abstraction = null;
+    this.abstractionPathList = null;
+    this.artParent = null;
+    this.predicates = null;
   }
 
   public SymbPredAbsAbstractElement(AbstractDomain d, boolean isAbstractionElement, CFANode abstLoc,
@@ -238,28 +237,12 @@ implements AbstractElement {
     return predicates;
   }
 
-  public void setPredicates(PredicateMap predicates) {
-    this.predicates = predicates;
-  }
-
-  public void setParents(AbstractionPathList parents2) {
-    abstractionPathList = parents2;
-  }
-
   public PathFormula getInitAbstractionFormula() {
     return initAbstractionFormula;
   }
 
-  public void setInitAbstractionFormula(PathFormula initFormula) {
-    this.initAbstractionFormula = initFormula;
-  }
-
   public SymbPredAbsAbstractElement getArtParent() {
     return this.artParent;
-  }
-
-  public void setArtParent(SymbPredAbsAbstractElement artParent) {
-    this.artParent = artParent;
   }
 
   // TODO disabled
@@ -284,10 +267,6 @@ implements AbstractElement {
     return pfParents;
   }
 
-  public void setPfParents(List<Integer> pfParents) {
-    this.pfParents = pfParents;
-  }
-  
   @Override
   public boolean isError() {
     return false;
