@@ -1,17 +1,25 @@
 package cpa.art;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFANode;
+
+import common.Pair;
+
 import cpa.common.Path;
 import cpa.common.ReachedElements;
 import cpa.common.RefinementOutcome;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
+import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.Refiner;
 import exceptions.CPAException;
 
@@ -32,6 +40,8 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
   
   @Override
   public final RefinementOutcome performRefinement(ReachedElements pReached) throws CPAException {
+    //assert checkART(pReached);
+    
     AbstractElement lastElement = pReached.getLastElement();
     assert lastElement instanceof ARTElement;
     Path path = buildPath((ARTElement)lastElement);
@@ -94,7 +104,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
     Collection<ARTElement> toWaitlist = new HashSet<ARTElement>();
     toWaitlist.add(root);
     Collection<ARTElement> toUnreach = root.getSubtree();
-    
+        
     // clear everything below root
     root.clearChildren();
     for (ARTElement ae : toUnreach) {
@@ -123,5 +133,42 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
     }
     
     return new RefinementOutcome(true, toUnreach, toWaitlist, root);
+  }
+  
+  @SuppressWarnings("unused")
+  private boolean checkART(ReachedElements pReached) {
+    Set<AbstractElement> reached = new HashSet<AbstractElement>();
+    for (Pair<AbstractElementWithLocation, Precision> currentPair : pReached.getReached()) {
+      reached.add(currentPair.getFirst());
+    }
+    
+    Deque<AbstractElement> workList = new ArrayDeque<AbstractElement>();
+    Set<ARTElement> art = new HashSet<ARTElement>();
+    
+    workList.add(pReached.getFirstElement());
+    while (!workList.isEmpty()) {
+      ARTElement currentElement = (ARTElement)workList.removeFirst();
+      for (ARTElement parent : currentElement.getParents()) {
+        assert parent.getChildren().contains(currentElement);
+      }
+      for (ARTElement child : currentElement.getChildren()) {
+        assert child.getParents().contains(currentElement);
+      }
+      
+      // check if (e \in ART) => ((e \in Reached ^ e.isCovered()) ^ (e == Bottom))
+      // TODO how to check for Bottom here?
+      assert !(reached.contains(currentElement) && currentElement.isCovered());
+      
+      if (art.add(currentElement)) {
+        workList.addAll(currentElement.getChildren());
+      }
+    }
+    
+    for (AbstractElement currentElement : reached) {
+      // check if (e \in Reached) => (e \in ART)
+      assert art.contains(currentElement);
+    }
+
+    return true;
   }
 }
