@@ -103,29 +103,28 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
     
     Collection<ARTElement> toWaitlist = new HashSet<ARTElement>();
     toWaitlist.add(root);
-    Collection<ARTElement> toUnreach = root.getSubtree();
+    Set<ARTElement> toUnreach = root.getSubtree();
         
     // clear everything below root
     root.clearChildren();
     for (ARTElement ae : toUnreach) {
-      ae.setCovered(false);
+      ae.setUncovered();
     }
     
-    // re-add those elements to the waitlist, which could have been covered by
-    // elements which were removed now
+    // re-add those elements to the waitlist, which were covered by
+    // elements which are removed now
     // only necessary if we do not throw away the whole ART
     if (root != pReached.getFirstElement()) {
       List<ARTElement> toUncover = new ArrayList<ARTElement>();
       
-      int m = root.getMark();
       for (ARTElement ae : mArtCpa.getCovered()) {
-        if (ae.getMark() > m) {
+        if (toUnreach.contains(ae.getCoveredBy())) {
           toUncover.add(ae);
         }
       }
       
       for (ARTElement ae : toUncover) {
-        ae.setCovered(false);
+        ae.setUncovered();
         // TODO adding all parents? check this
         toWaitlist.addAll(ae.getParents());
         ae.removeFromART();

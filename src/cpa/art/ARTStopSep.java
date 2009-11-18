@@ -24,8 +24,9 @@ public class ARTStopSep implements StopOperator {
 
     ARTElement artElement = (ARTElement)pElement;
     AbstractElement wrappedElement = artElement.getAbstractElementOnArtNode();
+    
+    // TODO this is ugly, perhaps introduce AbstractElement.isBottom() instead?
     StopOperator stopOp = wrappedCpa.getStopOperator();
-
     if(stopOp instanceof CompositeStopOperator){
       CompositeStopOperator compStopOp = (CompositeStopOperator) stopOp;
       if(compStopOp.containsBottomElement(wrappedElement)){
@@ -33,9 +34,10 @@ public class ARTStopSep implements StopOperator {
       }
     }
 
-    for (AbstractElement e : pReached) {
-      if (stop(pElement, e)) {
-        artElement.setCovered(true);
+    for (AbstractElement reachedElement : pReached) {
+      ARTElement artReachedElement = (ARTElement)reachedElement;
+      if (stop(artElement, artReachedElement)) {
+        artElement.setCovered(artReachedElement);
         return true;
       }
     }
@@ -43,19 +45,26 @@ public class ARTStopSep implements StopOperator {
 
   }
 
-  @Override
-  public boolean stop(AbstractElement pElement, AbstractElement pReachedElement)
-  throws CPAException {
-    ARTElement artElement = (ARTElement)pElement;
-    AbstractElement wrappedElement = artElement.getAbstractElementOnArtNode();
-    ARTElement reachedArtElement = (ARTElement)pReachedElement;
+  public boolean stop(ARTElement pElement, ARTElement pReachedElement)
+                                                      throws CPAException {
 
+    /* TODO PW Why is this code here? replaced by assertion to see if its relevant
     if (!reachedArtElement.isMarked()) {
       return false;
     }
+    */
+    assert pReachedElement.isMarked();
 
-    AbstractElement wrappedReachedElement = reachedArtElement.getAbstractElementOnArtNode();
+    AbstractElement wrappedElement = pElement.getAbstractElementOnArtNode();
+    AbstractElement wrappedReachedElement = pReachedElement.getAbstractElementOnArtNode();
+
     StopOperator stopOp = wrappedCpa.getStopOperator();
     return stopOp.stop(wrappedElement, wrappedReachedElement);
+  }
+
+  @Override
+  public boolean stop(AbstractElement pElement, AbstractElement pReachedElement)
+      throws CPAException {
+    return stop((ARTElement)pElement, (ARTElement)pReachedElement);
   }
 }

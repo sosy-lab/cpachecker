@@ -19,6 +19,7 @@ public class ARTElement implements AbstractElementWithLocation, AbstractWrapperE
   private final Set<ARTElement> children;
   public static long artElementEqualsTime = 0; 
   private final Set<ARTElement> parents; // more than one parent if joining elements
+  private ARTElement mCoveredBy = null;
 
   private int elementId;
   private static int nextArtElementId= 0;
@@ -71,12 +72,23 @@ public class ARTElement implements AbstractElementWithLocation, AbstractWrapperE
     return mark; 
   }
 
-  protected void setCovered(boolean pCovered) {
-    mCpa.setCovered(this, pCovered);
+  protected void setCovered(ARTElement pCoveredBy) {
+    assert pCoveredBy != null;
+    mCoveredBy = pCoveredBy;
+    mCpa.setCovered(this, true);
+  }
+  
+  protected void setUncovered() {
+    mCoveredBy = null;
+    mCpa.setCovered(this, false);
   }
   
   public boolean isCovered() {
     return mCpa.isCovered(this);
+  }
+  
+  public ARTElement getCoveredBy() {
+    return mCoveredBy;
   }
   
   public ARTCPA getCpa() {
@@ -117,7 +129,7 @@ public class ARTElement implements AbstractElementWithLocation, AbstractWrapperE
   }
 
   // TODO check
-  public Collection<ARTElement> getSubtree() {
+  public Set<ARTElement> getSubtree() {
     Set<ARTElement> result = new HashSet<ARTElement>();
     Deque<ARTElement> workList = new ArrayDeque<ARTElement>();
 
