@@ -114,7 +114,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
     // re-add those elements to the waitlist, which were covered by
     // elements which are removed now
     // only necessary if we do not throw away the whole ART
-    if (root != pReached.getFirstElement()) {
+    if (!root.getParents().isEmpty()) { // not the root element
       List<ARTElement> toUncover = new ArrayList<ARTElement>();
       
       for (ARTElement ae : mArtCpa.getCovered()) {
@@ -124,10 +124,9 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
       }
       
       for (ARTElement ae : toUncover) {
-        ae.setUncovered();
         // TODO adding all parents? check this
         toWaitlist.addAll(ae.getParents());
-        ae.removeFromART();
+        ae.removeFromART(); // removes are from parents and covered set
       }
     }
     

@@ -1,7 +1,6 @@
 package cpa.art;
 
 import java.util.ArrayDeque;
-import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -162,17 +161,25 @@ public class ARTElement implements AbstractElementWithLocation, AbstractWrapperE
 
   /**
    * This method removes this element from the ART by removing it from its
-   * parents' children list.
+   * parents' children list and from its children's parents list.
    * 
-   * Note that it does not remove any elements from the covered set, this has to
-   * be done by the caller.
+   * This method also removes the element from the set of covered elements.
+   * 
+   * This means, if its children do not have any other parents, they will be not
+   * reachable any more, i.e. they do not belong to the ART any more. But those
+   * elements will not be removed from the covered set.
    */
   protected void removeFromART() {
+    clearChildren();
+    
+    // clearParents
     for (ARTElement parent : parents) {
       assert (parent.children.contains(this));
       parent.children.remove(this);
     }
     parents.clear();
+
+    setUncovered();
   }
     
   public int getElementId() {
