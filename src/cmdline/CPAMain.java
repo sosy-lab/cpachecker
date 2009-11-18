@@ -262,8 +262,8 @@ public class CPAMain {
     final Collection<CFAFunctionDefinitionNode> cfasList = cfas.cfaMapIterator();
     final int numFunctions = cfas.size();
 
-    CFAFunctionDefinitionNode mainFunction = cfas.getCFA(
-                      CPAMain.cpaConfig.getProperty("analysis.entryFunction"));
+    String mainFunctionName = CPAMain.cpaConfig.getProperty("analysis.entryFunction"); 
+    CFAFunctionDefinitionNode mainFunction = cfas.getCFA(mainFunctionName);
     
     // check the CFA of each function
     // enable only while debugging/testing
@@ -302,6 +302,12 @@ public class CPAMain {
     if (CPAMain.cpaConfig.getBooleanValue("cfa.removeIrrelevantForErrorLocations")) {
       CFAReduction coi =  new CFAReduction();
       coi.removeIrrelevantForErrorLocations(mainFunction);
+
+      if (mainFunction.getNumLeavingEdges() == 0) {
+        System.out.println("No error locations reachable from " + mainFunctionName
+              + ", analysis not necessary.");
+        System.exit(0);
+      }
     }
     
     // optionally combine several edges into summary edges
