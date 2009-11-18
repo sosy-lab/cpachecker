@@ -489,7 +489,8 @@ public class AbstractPathToCTranslator {
 
       else if(relevantChildrenOfElement.size() > 1){
 
-        for(ARTElement otherChild: relevantChildrenOfElement){
+        for(int i=relevantChildrenOfElement.size()-1; i>=0; i--){
+          ARTElement otherChild = relevantChildrenOfElement.get(i);
           elementsStack.push(new Pair<ARTElement, ARTElement>(parentElement, otherChild));
         }
 
@@ -497,6 +498,7 @@ public class AbstractPathToCTranslator {
         ARTElement parent = elementPair.getFirst();
         child = elementPair.getSecond();
 
+        assert(parentElement == parent);
         CFAEdge edge = CPAMain.getEdgeBetween(parent, child);
 
         assert(edge instanceof AssumeEdge);
@@ -508,7 +510,16 @@ public class AbstractPathToCTranslator {
         else{
           lProgramText.println("if(!(" + assumeEdge.getExpression().getRawSignature() + ")) {");
         }
+
+//      parentElement = child;
+//      continue;
       }
+
+      System.out.println("==========");
+      System.out.println("parent >>> " + parentElement);
+      System.out.println("<<<<<<<<<<<");
+      System.out.println("child >>> " + child);
+      System.out.println("......................");
 
       assert(child != null);
 
@@ -519,7 +530,8 @@ public class AbstractPathToCTranslator {
 
 //      process edges
         if(lEdge.getSuccessor() instanceof CFAErrorNode){
-          lProgramText.println("assert(0);");
+//          assert(elementsStack.size() == 0);
+          lProgramText.println("assert(0); // " +elementsStack.size() );
         }
         else{
           switch (lEdge.getEdgeType()) {
@@ -664,39 +676,51 @@ public class AbstractPathToCTranslator {
         parentElement = child;
       }
 
-      else if(child.getParents().size() > 1){
+      while(true){
+        if(child.getParents().size() > 1){
 
-        lProgramText.println("}");
+          System.out.println();
+          System.out.println(" here             ---------------- ");
+          System.out.println();
 
-        assert(elementsStack.size() > 0);
+          lProgramText.println("}");
 
-        Pair<ARTElement, ARTElement> lastPairInStack = elementsStack.pop();
-        ARTElement lastElementsParentInStack = lastPairInStack.getFirst();
+          assert(elementsStack.size() > 0);
 
-        if(elementsStack.size() > 0){
-          Pair<ARTElement, ARTElement> secondLastPairParentInStack = elementsStack.peek();
-          ARTElement secondLastElementsParentInStack = secondLastPairParentInStack.getFirst();
-          
-          if(lastElementsParentInStack == secondLastElementsParentInStack){
-            parentElement = secondLastPairParentInStack.getFirst();
-            child = secondLastPairParentInStack.getSecond();
+          Pair<ARTElement, ARTElement> lastPairInStack = elementsStack.pop();
+          ARTElement lastElementsParentInStack = lastPairInStack.getFirst();
 
-            CFAEdge edge = CPAMain.getEdgeBetween(parentElement, child);
+          if(elementsStack.size() > 0){
+            Pair<ARTElement, ARTElement> secondLastPairInStack = elementsStack.peek();
+            ARTElement secondLastElementsParentInStack = secondLastPairInStack.getFirst();
 
-            assert(edge instanceof AssumeEdge);
-            AssumeEdge assumeEdge = (AssumeEdge) edge;
+            if(lastElementsParentInStack == secondLastElementsParentInStack){
+              parentElement = secondLastPairInStack.getFirst();
+              child = secondLastPairInStack.getSecond();
 
-            if(assumeEdge.getTruthAssumption()){
-              lProgramText.println("else if(" + assumeEdge.getExpression().getRawSignature() + ") {");
+              CFAEdge edge = CPAMain.getEdgeBetween(parentElement, child);
+
+              assert(edge instanceof AssumeEdge);
+              AssumeEdge assumeEdge = (AssumeEdge) edge;
+
+              System.out.println("writing if ///////////////////////// ");
+              if(assumeEdge.getTruthAssumption()){
+                lProgramText.println("else if(" + assumeEdge.getExpression().getRawSignature() + ") {");
+              }
+              else{
+                lProgramText.println("else if(!(" + assumeEdge.getExpression().getRawSignature() + ")) {");
+              }
             }
-            else{
-              lProgramText.println("else if(!(" + assumeEdge.getExpression().getRawSignature() + ")) {");
+
+            if(parentElement.getParents().size() > 1){
+              continue;
             }
+
           }
         }
-
+        parentElement = child;
+        break;
       }
-      parentElement = child;
     }
   }
 }
