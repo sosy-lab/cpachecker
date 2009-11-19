@@ -30,17 +30,11 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import logging.LazyLogger;
 import symbpredabstraction.interfaces.Predicate;
 import symbpredabstraction.interfaces.PredicateMap;
-
-
-import logging.LazyLogger;
-
-import cmdline.CPAMain;
-
 import cfa.objectmodel.CFANode;
-
-
+import cmdline.CPAMain;
 
 /**
  * A predicate map which can be updated (refined) during execution
@@ -49,9 +43,9 @@ import cfa.objectmodel.CFANode;
  */
 public class UpdateablePredicateMap implements PredicateMap {
 
-    private Map<CFANode, Set<Predicate>> repr;
-    private Map<String, Set<Predicate>> functionGlobalPreds;
-    private Collection<Predicate> initialGlobalPreds;
+    private final Map<CFANode, Set<Predicate>> repr;
+    private final Map<String, Set<Predicate>> functionGlobalPreds;
+    private final Collection<Predicate> initialGlobalPreds;
 
     public UpdateablePredicateMap(Collection<Predicate> initial) {
         repr = new HashMap<CFANode, Set<Predicate>>();

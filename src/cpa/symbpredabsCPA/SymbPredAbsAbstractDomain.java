@@ -41,10 +41,10 @@ import exceptions.CPAException;
  */
 public class SymbPredAbsAbstractDomain implements AbstractDomain {
 
-  private SymbPredAbsCPA cpa;
+  private final AbstractFormulaManager mAbstractFormulaManager;
 
-  public SymbPredAbsAbstractDomain(SymbPredAbsCPA cpa) {
-    this.cpa = cpa;
+  public SymbPredAbsAbstractDomain(AbstractFormulaManager pAbstractFormulaManager) {
+    mAbstractFormulaManager = pAbstractFormulaManager;
   }
 
   private final static class SymbPredAbsBottomElement extends SymbPredAbsAbstractElement {
@@ -108,9 +108,8 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
       }
       // if abstraction location
       else{
-        AbstractFormulaManager amgr = cpa.getAbstractFormulaManager();
         // if e1's predicate abstraction entails e2's pred. abst.
-        return amgr.entails(e1.getAbstraction(), e2.getAbstraction());
+        return mAbstractFormulaManager.entails(e1.getAbstraction(), e2.getAbstraction());
       }
     }
   }
@@ -120,7 +119,7 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
   private final static JoinOperator join = new SymbPredAbsJoinOperator();
   private final PartialOrder partial = new SymbPredAbsPartialOrder();
 
-  public AbstractElement getBottomElement() {
+  public SymbPredAbsAbstractElement getBottomElement() {
     return bottom;
   }
 
@@ -134,9 +133,5 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
 
   public AbstractElement getTopElement() {
     return top;
-  }
-
-  public SymbPredAbsCPA getCPA() {
-    return cpa;
   }
 }

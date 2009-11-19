@@ -31,7 +31,7 @@ import symbpredabstraction.interfaces.AbstractFormula;
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
 public class BDDAbstractFormula implements AbstractFormula {
-    private int bddRepr;
+    private final int bddRepr;
 
     public BDDAbstractFormula(int r) {
         bddRepr = r;

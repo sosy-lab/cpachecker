@@ -64,18 +64,18 @@ import exceptions.UnrecognizedCFAEdgeException;
  */
 public class SymbPredAbsTransferRelation implements TransferRelation {
 
-  public static long nonAbstractionTime = 0;
-  public static long abstractionTime = 0;
-  public static long abstTime1 = 0;
-  public static long abstTime2 = 0;
-  public static long abstTime3 = 0;
-  
+  // statistics
+  public long abstractionTime = 0;
+  public long nonAbstractionTime = 0;
+  public long pathFormulaTime = 0;
+  public long pathFormulaComputationTime = 0;
+  public long initAbstractionFormulaTime = 0;
+  public long computingAbstractionTime = 0;
   
   private int numAbstractStates = 0; // for statistics
-  public static long totalTimeForPFCopmutation = 0;
-  public static long totalTimeForActualPfComputation = 0;
 
-  private final SymbPredAbsAbstractDomain domain;
+  private final AbstractDomain domain;
+  private final PredicateMap predicateMap;
   // formula managers
   private final SymbolicFormulaManager symbolicFormulaManager;
   private final SymbPredAbstFormulaManager abstractFormulaManager;
@@ -88,10 +88,11 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   private final Map<Triple<Integer, Integer, Integer>, PathFormula> pathFormulaMapHash =
     new HashMap<Triple<Integer,Integer,Integer>, PathFormula>();
 
-  public SymbPredAbsTransferRelation(AbstractDomain d, SymbolicFormulaManager symFormMan, SymbPredAbstFormulaManager abstFormMan) {
-    domain = (SymbPredAbsAbstractDomain) d;
-    abstractFormulaManager = abstFormMan;
-    symbolicFormulaManager = symFormMan;
+  public SymbPredAbsTransferRelation(SymbPredAbsCPA pCpa) {
+    domain = pCpa.getAbstractDomain();
+    predicateMap = pCpa.getPredicateMap();
+    abstractFormulaManager = pCpa.getAbstractFormulaManager();
+    symbolicFormulaManager = pCpa.getSymbolicFormulaManager();
   }
 
   @Override
@@ -104,23 +105,26 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   public AbstractElement getAbstractSuccessor(AbstractElement pElement,
       CFAEdge edge, Precision prec) throws UnrecognizedCFAEdgeException {
 
+    long time = System.currentTimeMillis();
     SymbPredAbsAbstractElement element = (SymbPredAbsAbstractElement) pElement;
-    AbstractElement newElement;
-
-    if (isAbstractionLocation(edge.getSuccessor())) {
-      long start = System.currentTimeMillis();
-      newElement = handleAbstractionLocation(element, edge);
-      long end = System.currentTimeMillis();
-      abstractionTime = abstractionTime + (end - start); 
-      
-    } else {
-      long start = System.currentTimeMillis();
-      newElement = handleNonAbstractionLocation(element, edge);
-      long end = System.currentTimeMillis();
-      nonAbstractionTime = nonAbstractionTime + (end - start);
-    }
+    boolean abstractionLocation = isAbstractionLocation(edge.getSuccessor());
     
-    return newElement;
+    try {
+      if (abstractionLocation) {
+        return handleAbstractionLocation(element, edge);
+      } else {
+        return handleNonAbstractionLocation(element, edge);
+      }
+      
+    } finally {
+      time = System.currentTimeMillis() - time;
+      if (abstractionLocation) {
+        abstractionTime += time;
+      } else {
+        nonAbstractionTime += time;
+      }
+    }    
+    
   }
 
   /**
@@ -155,28 +159,26 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
       pf = toPathFormula(symbolicFormulaManager.makeAnd(
           element.getPathFormula().getSymbolicFormula(),
           edge, element.getPathFormula().getSsa(), false, false));
+      pathFormulaComputationTime += System.currentTimeMillis() - startComp;
       pathFormulaMapHash.put(formulaCacheKey, pf);
-      long endComp = System.currentTimeMillis();
-      totalTimeForActualPfComputation = totalTimeForActualPfComputation + (endComp-startComp);
     }
-    long end = System.currentTimeMillis();
-    totalTimeForPFCopmutation = totalTimeForPFCopmutation + (end-start);
+    pathFormulaTime += System.currentTimeMillis() - start;
     // update pfParents list
     List<Integer> newPfParents = new ArrayList<Integer>();
     newPfParents.add(currentNodeId);
 
     // create the new abstract element for non-abstraction location
     return new SymbPredAbsAbstractElement(
-        // set 'domain' to domain
+        // set 'cpa' to elements CPA
         // set 'isAbstractionLocation' to false
         // set 'abstractionLocation' to last element's abstractionLocation since they are same
         // set 'pathFormula' to pf - the updated pathFormula -
         // set 'pfParents' to newPfParents - the updated list of nodes that constructed the pathFormula -
-        domain, false, element.getAbstractionLocation(), pf, newPfParents,
+        element.getCpa(), false, element.getAbstractionLocation(), pf, newPfParents,
         // set 'initAbstractionFormula' and 'abstraction' to last element's values, they don't change
         element.getInitAbstractionFormula(), element.getAbstraction(),
         // set 'abstractionPathList', 'artParent', and 'predicates' to last element's values, they don't change
-        element.getAbstractionPathList(), element.getArtParent(),  element.getPredicates());
+        element.getAbstractionPathList(), element.getArtParent());
 
     // set and update maxIndex for ssa
     // TODO check
@@ -203,15 +205,23 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   private AbstractElement handleAbstractionLocation(SymbPredAbsAbstractElement element, CFAEdge edge) 
   throws UnrecognizedCFAEdgeException {
 
-    long start1 = System.currentTimeMillis();
-
-    // set a new path formula and initialize it as true 
-    PathFormula pf = new PathFormula(symbolicFormulaManager.makeTrue(), new SSAMap());
-
-    // add the new abstaction location to the abstractionPath
+    // add the new abstraction location to the abstractionPath
     AbstractionPathList newAbstractionPath = new AbstractionPathList();
     newAbstractionPath.copyFromExisting(element.getAbstractionPathList());
     newAbstractionPath.addToList(edge.getSuccessor().getNodeNumber());
+    
+    // create path formula for current edge (mostly true) 
+    long time1 = System.currentTimeMillis();
+    PathFormula pf;
+    if (edge instanceof ReturnEdge) {
+      pf = toPathFormula(symbolicFormulaManager.makeAnd(symbolicFormulaManager.makeTrue(), 
+          edge, new SSAMap(), false, false));
+
+    } else {
+      pf = new PathFormula(symbolicFormulaManager.makeTrue(), new SSAMap());
+    }
+    long time2 = System.currentTimeMillis();
+    pathFormulaComputationTime += time2 - time1;
     
     // this will be the initial abstraction formula that we will use 
     // to compute the abstraction. Say this formula is pf, and the abstraction
@@ -219,10 +229,6 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     // abstraction
     PathFormula initAbstractionFormula;
 
-    // get predicate map
-    PredicateMap pmap = domain.getCPA().getPredicateMap();
-    long start2 = System.currentTimeMillis();
-    abstTime1 = abstTime1 + (start2 - start1);
     // we do a case split here because initAbstractionFormula and pathFormula for a function call
     // node, function return node and other nodes might be different
     if(edge instanceof FunctionCallEdge){
@@ -234,9 +240,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     else if(edge instanceof ReturnEdge){
       // compute the initAbstractionFormula for return edges
       CallToReturnEdge summaryEdge = edge.getSuccessor().getEnteringSummaryEdge();
-      pf = toPathFormula(symbolicFormulaManager.makeAnd(symbolicFormulaManager.makeTrue(), 
-          edge, new SSAMap(), false, false));
-
+      
       initAbstractionFormula = toPathFormula(symbolicFormulaManager.makeAnd(
           element.getPathFormula().getSymbolicFormula(), 
           summaryEdge, element.getPathFormula().getSsa(), false, false));
@@ -250,15 +254,15 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     else{
       initAbstractionFormula = element.getPathFormula();
     }
-    long start3 = System.currentTimeMillis();
-    abstTime2 = abstTime2 + (start3 - start2);
+    long time3 = System.currentTimeMillis();
+    initAbstractionFormulaTime += time3 - time2;
 
     // compute new abstraction
     AbstractFormula newAbstraction = abstractFormulaManager.buildAbstraction(
         symbolicFormulaManager, element.getAbstraction(), initAbstractionFormula, 
-        pmap.getRelevantPredicates(edge.getSuccessor()), null, edge.getSuccessor(), element.getAbstractionPathList());
-    long start4 = System.currentTimeMillis();
-    abstTime3 = abstTime3 + (start4 - start3);
+        predicateMap.getRelevantPredicates(edge.getSuccessor()), null, edge.getSuccessor(), element.getAbstractionPathList());
+    long time4 = System.currentTimeMillis();
+    computingAbstractionTime += time4 - time3; 
     
     // if the abstraction is false, return bottom element
     if (abstractFormulaManager.isFalse(newAbstraction)) {
@@ -268,19 +272,18 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     ++numAbstractStates;
 
     return new SymbPredAbsAbstractElement(
-        // set 'domain' to domain
+        // set 'cpa' to elements CPA
         // set 'isAbstractionNode' to true, this is an abstraction node
         // set 'abstractionLocation' to edge.getSuccessor()
         // set 'pathFormula' to pf which computed above
-        domain, true, edge.getSuccessor(), pf, 
+        element.getCpa(), true, edge.getSuccessor(), pf, 
         // 'pfParents' is not instantiated for abstraction locations
         // set 'initAbstractionFormula' to  initAbstractionFormula computed above
         // set 'abstraction' to newly computed abstraction
         // set 'abstractionPathList' to updated pathList
         null, initAbstractionFormula, newAbstraction, newAbstractionPath,
         // set 'artParent' to the current element
-        // set 'pmap' to the global predicate map to get local predicates
-        element, pmap);
+        element);
 
 //    SSAMap maxIndex = new SSAMap();
 //    newElement.setMaxIndex(maxIndex);
@@ -293,7 +296,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
    * an error node, if it is the start node of a function or if it is the call
    * site from a function call.
    */
-  public boolean isAbstractionLocation(CFANode succLoc) {
+  private boolean isAbstractionLocation(CFANode succLoc) {
     if (succLoc.isLoopStart() || succLoc instanceof CFAErrorNode
         || succLoc.getNumLeavingEdges() == 0) {
       return true;

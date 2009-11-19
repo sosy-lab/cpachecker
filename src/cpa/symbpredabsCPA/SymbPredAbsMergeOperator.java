@@ -34,6 +34,7 @@ import symbpredabstraction.mathsat.MathsatSymbolicFormula;
 
 import common.Pair;
 
+import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.MergeOperator;
@@ -51,14 +52,14 @@ import exceptions.CPAException;
  */
 public class SymbPredAbsMergeOperator implements MergeOperator {
 
-  private SymbPredAbsAbstractDomain domain;
-  private SymbolicFormulaManager symbolicFormulaManager;
+  private final AbstractDomain domain;
+  private final SymbolicFormulaManager symbolicFormulaManager;
 
-  public static long totalMergeTime = 0;
+  public long totalMergeTime = 0;
   
-  public SymbPredAbsMergeOperator(SymbPredAbsAbstractDomain pDomain) {
-    domain = pDomain;
-    symbolicFormulaManager = domain.getCPA().getSymbolicFormulaManager();
+  public SymbPredAbsMergeOperator(SymbPredAbsCPA pCpa) {
+    domain = pCpa.getAbstractDomain();
+    symbolicFormulaManager = pCpa.getSymbolicFormulaManager();
   }
 
   public AbstractElement merge(AbstractElement element1,
@@ -120,9 +121,9 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
           pfParents.add(elem1.getPfParents().get(0));
         }
         
-        merged = new SymbPredAbsAbstractElement(domain, false, elem1.getAbstractionLocation(), 
+        merged = new SymbPredAbsAbstractElement(elem1.getCpa(), false, elem1.getAbstractionLocation(), 
             pathFormula, pfParents, elem1.getInitAbstractionFormula(), elem1.getAbstraction(), 
-            elem1.getAbstractionPathList(), elem1.getArtParent(), elem1.getPredicates());
+            elem1.getAbstractionPathList(), elem1.getArtParent());
 
         // TODO check
 //        merged.updateMaxIndex(ssa1);

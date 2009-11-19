@@ -26,12 +26,9 @@ package cpa.symbpredabsCPA;
 import java.util.List;
 
 import symbpredabstraction.PathFormula;
-import symbpredabstraction.bdd.BDDAbstractFormula;
 import symbpredabstraction.interfaces.AbstractFormula;
-import symbpredabstraction.interfaces.PredicateMap;
 import symbpredabstraction.interfaces.SymbolicFormula;
 import cfa.objectmodel.CFANode;
-import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 
 /**
@@ -39,10 +36,9 @@ import cpa.common.interfaces.AbstractElement;
  *
  * @author Erkan
  */
-public class SymbPredAbsAbstractElement
-implements AbstractElement {
+public class SymbPredAbsAbstractElement implements AbstractElement {
 
-  private SymbPredAbsAbstractDomain domain;
+  private final SymbPredAbsCPA mCpa;
 
   /** Unique state id */
   private final int elementId;
@@ -69,8 +65,6 @@ implements AbstractElement {
   private final AbstractionPathList abstractionPathList;
   /** Parent of this element in the ART */
   private final SymbPredAbsAbstractElement artParent;
-  /** Current predicates used to compute abstraction on this location */
-  private final PredicateMap predicates;
   /** List of {@link CFANode} ids that we constructed the {@link PathFormula}. This is
    * updated if {@link SymbPredAbsMergeOperator#merge(AbstractElement, AbstractElement, cpa.common.interfaces.Precision)}
    * is called and the {@link PathFormula} is updated. This list is also used by 
@@ -99,26 +93,13 @@ implements AbstractElement {
     return abstractionPathList;
   }
 
-  /**
-   * @param otherElement
-   * @return true if otherElement is descendant of this on ART
-   */
-  public boolean isDescendant(SymbPredAbsAbstractElement otherElement) {
-    SymbPredAbsAbstractElement a = this;
-    while (a != null) {
-      if (a.equals(otherElement)) return true;
-      a = a.getArtParent();
-    }
-    return false;
-  }
-
-  public CFANode getAbstractionLocation(){
+  public CFANode getAbstractionLocation() {
     return abstractionLocation;
   }
 
   public SymbPredAbsAbstractElement() {
     this.elementId = nextAvailableId++;
-    this.domain = null;
+    this.mCpa = null;
     this.isAbstractionNode = false;
     this.abstractionLocation = null;
     this.pathFormula = null;
@@ -127,14 +108,13 @@ implements AbstractElement {
     this.abstraction = null;
     this.abstractionPathList = null;
     this.artParent = null;
-    this.predicates = null;
   }
 
-  public SymbPredAbsAbstractElement(AbstractDomain d, boolean isAbstractionElement, CFANode abstLoc,
+  public SymbPredAbsAbstractElement(SymbPredAbsCPA pCpa, boolean isAbstractionElement, CFANode abstLoc,
       PathFormula pf, List<Integer> pfParentsList, PathFormula initFormula, AbstractFormula a, 
-      AbstractionPathList pl, SymbPredAbsAbstractElement artParent, PredicateMap pmap){
+      AbstractionPathList pl, SymbPredAbsAbstractElement artParent){
     this.elementId = nextAvailableId++;
-    this.domain = (SymbPredAbsAbstractDomain)d;
+    this.mCpa = pCpa;
     this.isAbstractionNode = isAbstractionElement;
     this.abstractionLocation = abstLoc;
     this.pathFormula = pf;
@@ -143,7 +123,6 @@ implements AbstractElement {
     this.abstraction = a;
     this.abstractionPathList = pl;
     this.artParent = artParent;
-    this.predicates = pmap;
 //    this.maxIndex = new SSAMap();
   }
 
@@ -211,10 +190,10 @@ implements AbstractElement {
 
   @Override
   public String toString() {
-    BDDAbstractFormula abst = (BDDAbstractFormula)getAbstraction();
+    
     SymbolicFormula  symbReprAbst = null;
-    if(abst != null){
-      symbReprAbst = domain.getCPA().getAbstractFormulaManager().toConcrete(domain.getCPA().getSymbolicFormulaManager(), abst);
+    if(abstraction != null){
+      symbReprAbst = mCpa.getAbstractFormulaManager().toConcrete(mCpa.getSymbolicFormulaManager(), abstraction);
     }
     return
     "Is abst loc? " + isAbstractionNode +
@@ -233,16 +212,12 @@ implements AbstractElement {
     return elementId;
   }
 
-  public PredicateMap getPredicates() {
-    return predicates;
-  }
-
   public PathFormula getInitAbstractionFormula() {
     return initAbstractionFormula;
   }
 
   public SymbPredAbsAbstractElement getArtParent() {
-    return this.artParent;
+    return artParent;
   }
 
   // TODO disabled
@@ -263,6 +238,10 @@ implements AbstractElement {
 //    this.maxIndex = maxIndex;
 //  }
 
+  public SymbPredAbsCPA getCpa() {
+    return mCpa;
+  }
+  
   public List<Integer> getPfParents() {
     return pfParents;
   }
