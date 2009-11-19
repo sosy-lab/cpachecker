@@ -25,14 +25,8 @@ package cpa.itpabs;
 
 import java.io.PrintWriter;
 
-import cmdline.CPAMain;
-
+import cmdline.CPAMain.Result;
 import cpaplugin.CPAStatistics;
-import cpaplugin.MainCPAStatistics;
-import cpa.itpabs.ItpCPA;
-import cpa.itpabs.ItpCounterexampleRefiner;
-import cpa.itpabs.ItpStopOperator;
-import cpa.itpabs.ItpTransferRelation;
 
 /**
  * Statistics for interpolation-based lazy abstraction
@@ -57,7 +51,7 @@ public class ItpCPAStatistics implements CPAStatistics {
     }
 
     @Override
-    public void printStatistics(PrintWriter out) {
+    public void printStatistics(PrintWriter out, Result result) {
         ItpTransferRelation trans =
             (ItpTransferRelation)cpa.getTransferRelation();
 
@@ -91,19 +85,6 @@ public class ItpCPAStatistics implements CPAStatistics {
                 toTime(bs.cexAnalysisMaxTime));
         out.println("  Solving time only:     " +
                 toTime(bs.cexAnalysisMathsatTime));
-        out.println("");
-        int errorReached = CPAMain.cpaStats.getErrorReached();
-        out.print("Error location(s) reached? ");
-        switch (errorReached) {
-        case MainCPAStatistics.ERROR_UNKNOWN:
-            out.println("UNKNOWN, analysis has not completed");
-            break;
-        case MainCPAStatistics.ERROR_REACHED:
-            out.println("YES, there is a BUG!");
-            break;
-        case MainCPAStatistics.ERROR_NOT_REACHED:
-            out.println("NO, the system is safe");
-        }
     }
 
     private String toTime(long timeMillis) {

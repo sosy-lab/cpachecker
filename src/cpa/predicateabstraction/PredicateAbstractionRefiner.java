@@ -84,7 +84,7 @@ public class PredicateAbstractionRefiner extends AbstractARTBasedRefiner {
       return performRefinement(pReached, pPath, pathArray, info);
 
     } else {
-      CPAMain.cpaStats.setErrorReached(true);
+      CPAMain.setErrorReached();
       return null;
     }
   }

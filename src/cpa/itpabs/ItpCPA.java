@@ -52,6 +52,7 @@ import common.Pair;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
+import cpa.common.interfaces.CPAWithStatistics;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
@@ -71,7 +72,7 @@ import cpa.symbpredabs.explicit.ExplicitAbstractFormulaManager;
  *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
-public abstract class ItpCPA implements ConfigurableProgramAnalysis {
+public abstract class ItpCPA implements ConfigurableProgramAnalysis, CPAWithStatistics {
 
     protected ItpAbstractDomain domain;
     protected ItpTransferRelation trans;

@@ -28,29 +28,19 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedList;
 
+import cmdline.CPAMain.Result;
+
 public class MainCPAStatistics implements CPAStatistics {
     private Collection<CPAStatistics> subStats;
     private long programStartingTime;
     private long analysisStartingTime;
     private long analysisEndingTime;
 
-    public final static int ERROR_UNKNOWN = -1;
-    public final static int ERROR_REACHED = 0;
-    public final static int ERROR_NOT_REACHED = 1;
-    private int errorReached;
-
-
     public MainCPAStatistics() {
         subStats = new LinkedList<CPAStatistics>();
         programStartingTime = 0;
         analysisStartingTime = 0;
         analysisEndingTime = 0;
-        errorReached = ERROR_UNKNOWN;
-    }
-
-    public int getErrorReached() { return errorReached; }
-    public void setErrorReached(boolean yes) {
-        errorReached = yes ? ERROR_REACHED : ERROR_NOT_REACHED;
     }
 
     public void startProgramTimer() {
@@ -68,6 +58,10 @@ public class MainCPAStatistics implements CPAStatistics {
     public void addSubStatistics(CPAStatistics s) {
         subStats.add(s);
     }
+    
+    public Collection<CPAStatistics> getSubStatistics() {
+      return subStats;
+  }
 
     @Override
     public String getName() {
@@ -75,7 +69,7 @@ public class MainCPAStatistics implements CPAStatistics {
     }
 
     @Override
-    public void printStatistics(PrintWriter out) {
+    public void printStatistics(PrintWriter out, Result result) {
         long totalTimeInMillis = analysisEndingTime - analysisStartingTime;
         long totalAbsoluteTimeMillis = analysisEndingTime - programStartingTime;
 
@@ -94,11 +88,22 @@ public class MainCPAStatistics implements CPAStatistics {
                 char[] c = new char[name.length()];
                 Arrays.fill(c, '-');
                 out.println(String.copyValueOf(c));
-                s.printStatistics(out);
+                s.printStatistics(out, result);
                 out.println("");
             }
         } else {
             out.println("");
+        }
+        out.print("Error location(s) reached? ");
+        switch (result) {
+        case UNKNOWN:
+          out.println("UNKNOWN, analysis has not completed");
+          break;
+        case UNSAFE:
+          out.println("YES, there is a BUG!");
+          break;
+        case SAFE:
+          out.println("NO, the system is safe");
         }
         out.flush();
     }

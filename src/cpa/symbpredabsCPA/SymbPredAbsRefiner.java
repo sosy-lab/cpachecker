@@ -101,7 +101,6 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
       return performRefinement(pReached, path, pPath, info);
     } else {
       // we have a real error
-      CPAMain.cpaStats.setErrorReached(true);
       return null;
     }
   }

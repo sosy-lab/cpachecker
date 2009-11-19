@@ -27,6 +27,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -39,6 +40,7 @@ import cpa.common.CallStack;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
+import cpa.common.interfaces.CPAWithStatistics;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
@@ -48,7 +50,7 @@ import cpa.common.interfaces.TransferRelation;
 import cpaplugin.CPAStatistics;
 import exceptions.CPAException;
 
-public class CompositeCPA implements ConfigurableProgramAnalysis
+public class CompositeCPA implements ConfigurableProgramAnalysis, CPAWithStatistics
 {
   private final AbstractDomain abstractDomain;
   private final TransferRelation transferRelation;
@@ -148,19 +150,6 @@ public class CompositeCPA implements ConfigurableProgramAnalysis
         ConfigurableProgramAnalysis newCPA = (ConfigurableProgramAnalysis)obj;
         cpas.add(newCPA);
 
-        // AG - check if this cpa defines its own
-        // statistics, and if so add them to the
-        // main ones
-        try {
-          Method meth =
-            cls.getDeclaredMethod("getStatistics");
-          CPAStatistics s =
-            (CPAStatistics)meth.invoke(newCPA);
-          CPAMain.cpaStats.addSubStatistics(s);
-        } catch (Exception e) {
-          // ignore, this is not an error
-        }
-
       } catch (ClassNotFoundException e) {
         e.printStackTrace();
       } catch (SecurityException e) {
@@ -224,5 +213,14 @@ public class CompositeCPA implements ConfigurableProgramAnalysis
   
   public List<ConfigurableProgramAnalysis> getComponentCPAs() {
     return cpas;
+  }
+
+  @Override
+  public void collectStatistics(Collection<CPAStatistics> pStatsCollection) {
+    for (ConfigurableProgramAnalysis cpa: cpas) {
+      if (cpa instanceof CPAWithStatistics) {
+        ((CPAWithStatistics)cpa).collectStatistics(pStatsCollection);
+      }
+    }
   }
 }

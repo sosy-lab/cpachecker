@@ -79,6 +79,7 @@ import cpa.common.algorithm.CBMCAlgorithm;
 import cpa.common.algorithm.CEGARAlgorithm;
 import cpa.common.algorithm.CPAAlgorithm;
 import cpa.common.interfaces.AbstractElementWithLocation;
+import cpa.common.interfaces.CPAWithStatistics;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;
 import cpa.symbpredabs.BlockCFABuilder;
@@ -93,41 +94,47 @@ import exceptions.CPAException;
 public class CPAMain {
 
   public static CPAConfiguration cpaConfig;
-  public final static MainCPAStatistics cpaStats = new MainCPAStatistics();
+  private final static MainCPAStatistics cpaStats = new MainCPAStatistics();
 
   // used in the ShutdownHook to check whether the analysis has been
   // interrupted by the user
   private static boolean interrupted = true;
 
-  private static synchronized void displayStatistics() {
-    cpaStats.printStatistics(new PrintWriter(System.out));
+  /**
+   * Sets the marker that an error was found.
+   * @deprecated AbstractElement.isError() should be used to signal an error.
+   */
+  @Deprecated
+  public static void setErrorReached() {
+    result = Result.UNSAFE;
   }
-
-  private static void printIfInterrupted() {
-    if (interrupted) {
-      cpaStats.stopAnalysisTimer();
-    }
-     
-    System.out.flush();
-    System.err.flush();
-    displayStatistics();
-    
-    if (interrupted) {
-      System.out.println("\n" +
-          "***************************************************" +
-          "****************************\n" +
-          "* WARNING:  Analysis interrupted!! The statistics " +
-          "might be unreliable!        *\n" +
-          "***************************************************" +
-          "****************************\n"
-      );
-    }
-  }
+  
+  public static enum Result { UNKNOWN, UNSAFE, SAFE };   
+  
+  private static Result result = Result.UNKNOWN;
 
   public static class ShutdownHook extends Thread {
     @Override
     public void run() {
-      printIfInterrupted();
+      if (interrupted) {
+        cpaStats.stopAnalysisTimer();
+        result = Result.UNKNOWN;
+      }
+       
+      System.out.flush();
+      System.err.flush();
+      cpaStats.printStatistics(new PrintWriter(System.out), result);
+      
+      if (interrupted) {
+        System.out.println("\n" +
+            "***************************************************" +
+            "****************************\n" +
+            "* WARNING:  Analysis interrupted!! The statistics " +
+            "might be unreliable!        *\n" +
+            "***************************************************" +
+            "****************************\n"
+        );
+      }
     }
   }
 
@@ -178,10 +185,6 @@ public class CPAMain {
     } catch (CPAException e) {
       System.err.println(e.getMessage());
       e.printStackTrace();
-    }
-    
-    if (cpaStats.getErrorReached() == MainCPAStatistics.ERROR_UNKNOWN) {
-      cpaStats.setErrorReached(false);
     }
   }
   
@@ -435,6 +438,10 @@ public class CPAMain {
         cpa = ARTCPA.getARTCPA(mainFunction, cpa);  // wrap CPA with ARTCPA
       }
       
+      if (cpa instanceof CPAWithStatistics) {
+        ((CPAWithStatistics)cpa).collectStatistics(cpaStats.getSubStatistics());
+      }
+      
       // create algorithm
       Algorithm algorithm = new CPAAlgorithm(cpa);
       
@@ -467,6 +474,20 @@ public class CPAMain {
       cpaStats.stopAnalysisTimer();
       LazyLogger.log(CustomLogLevel.MainApplicationLevel, "CPA Algorithm finished ");
 
+      if (result == Result.UNKNOWN) {
+        boolean errorFound = false;
+        for (Pair<AbstractElementWithLocation, Precision> reachedElement : reached.getReached()) {
+          if (reachedElement.getFirst().isError()) {
+            errorFound = true;
+            result = Result.UNSAFE;
+            break;
+          }
+        }
+        if (!errorFound) {
+          result = Result.SAFE;
+        }
+      }
+      
       if (useART && CPAMain.cpaConfig.getBooleanValue("reachedPath.export")) {
         dumpPathToDotFile(reached, CPAMain.cpaConfig.getProperty("reachedPath.file"));
       }

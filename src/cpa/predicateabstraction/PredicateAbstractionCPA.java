@@ -49,6 +49,7 @@ import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cmdline.CPAMain;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.CPAWithStatistics;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
@@ -63,7 +64,7 @@ import cpaplugin.CPAStatistics;
  *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
-public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis {
+public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis, CPAWithStatistics {
 
     private final PredicateAbstractionAbstractDomain domain;
     private final PredicateAbstractionTransferRelation trans;
@@ -140,10 +141,6 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis {
         this();
     }
 
-    public CPAStatistics getStatistics() {
-        return stats;
-    }
-
     @Override
     public AbstractDomain getAbstractDomain() {
         return domain;
@@ -195,6 +192,11 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis {
         return pmap;
     }
 
+    @Override
+    public void collectStatistics(Collection<CPAStatistics> pStatsCollection) {
+      pStatsCollection.add(stats);
+    }
+    
 //    public void setCovered(PredicateAbstractionAbstractElement e1) {
 //        covered.add(e1);        
 //    }

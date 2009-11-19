@@ -23,6 +23,8 @@
  */
 package cpa.itpabs.explicit;
 
+import java.util.Collection;
+
 import logging.LazyLogger;
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFANode;
@@ -33,7 +35,6 @@ import cpa.itpabs.ItpAbstractElementManager;
 import cpa.itpabs.ItpCPA;
 import cpa.itpabs.ItpCPAStatistics;
 import cpaplugin.CPAStatistics;
-import cpa.itpabs.explicit.ItpExplicitAbstractElement;
 
 /**
  * Explicit-state version of the interpolation-based lazy abstraction
@@ -108,12 +109,13 @@ public class ItpExplicitCPA extends ItpCPA {
         this();
     }
 
-    public CPAStatistics getStatistics() {
-        return stats;
-    }
-
     @Override
     public ItpAbstractElementManager getElementCreator() {
         return elemCreator;
+    }
+    
+    @Override
+    public void collectStatistics(Collection<CPAStatistics> pStatsCollection) {
+      pStatsCollection.add(stats);
     }
 }

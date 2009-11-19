@@ -25,6 +25,8 @@ package cpaplugin;
 
 import java.io.PrintWriter;
 
+import static cmdline.CPAMain.Result;
+
 /**
  * A class to hold statistics of the analysis
  * @author alb
@@ -34,7 +36,7 @@ public interface CPAStatistics {
      * Prints this group of statistics using the given writer
      * @param out
      */
-    public void printStatistics(PrintWriter out);
+    public void printStatistics(PrintWriter out, Result result);
 
     /**
      * @return The name for this group of statistics

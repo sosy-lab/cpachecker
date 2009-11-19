@@ -57,6 +57,7 @@ import common.Pair;
 
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.CPAWithStatistics;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
@@ -71,7 +72,7 @@ import cpaplugin.CPAStatistics;
  *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
-public class ExplicitCPA implements ConfigurableProgramAnalysis {
+public class ExplicitCPA implements ConfigurableProgramAnalysis, CPAWithStatistics {
 
     private final ExplicitAbstractDomain domain;
     private final ExplicitTransferRelation trans;
@@ -151,10 +152,6 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
     public ExplicitCPA(String s1, String s2) {
         this();
     }
-
-    public CPAStatistics getStatistics() {
-        return stats;
-    }
     
     @Override
     public AbstractDomain getAbstractDomain() {
@@ -218,7 +215,11 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis {
     public void setUncovered(ExplicitAbstractElement e1) {
         covered.remove(e1);
     }
-
+    
+    @Override
+    public void collectStatistics(Collection<CPAStatistics> pStatsCollection) {
+      pStatsCollection.add(stats);
+    }
 
 //    public Set<ExplicitAbstractElement> getCoveredBy(ExplicitAbstractElement e){
 //        if (covers.containsKey(e)) {

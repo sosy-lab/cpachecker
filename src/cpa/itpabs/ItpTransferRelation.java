@@ -222,7 +222,7 @@ public class ItpTransferRelation implements TransferRelation {
         LazyLogger.log(CustomLogLevel.SpecificCPALevel,
             "REACHED ERROR LOCATION!: ", e,
         " RETURNING BOTTOM!");
-        CPAMain.cpaStats.setErrorReached(true);
+        CPAMain.setErrorReached();
         throw new ErrorReachedException(
             info.getConcreteTrace().toString());
       }

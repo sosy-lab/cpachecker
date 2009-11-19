@@ -37,10 +37,10 @@ import symbpredabstraction.bdd.BDDPredicate;
 import symbpredabstraction.interfaces.Predicate;
 import symbpredabstraction.interfaces.PredicateMap;
 import symbpredabstraction.mathsat.MathsatSymbolicFormula;
-
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFANode;
 import cmdline.CPAMain;
+import cmdline.CPAMain.Result;
 
 import common.Pair;
 
@@ -67,7 +67,7 @@ public class PredicateAbstractionCPAStatistics implements CPAStatistics {
     }
 
     @Override
-    public void printStatistics(PrintWriter out) {
+    public void printStatistics(PrintWriter out, Result result) {
       PredicateAbstractionTransferRelation trans =
             (PredicateAbstractionTransferRelation)cpa.getTransferRelation();
         PredicateMap pmap = cpa.getPredicateMap();
@@ -102,8 +102,7 @@ public class PredicateAbstractionCPAStatistics implements CPAStatistics {
         }
 
         // check if/where to dump the predicate map
-        int errorReached = CPAMain.cpaStats.getErrorReached();
-        if (errorReached == MainCPAStatistics.ERROR_NOT_REACHED) {
+        if (result == Result.SAFE) {
             String pth = CPAMain.cpaConfig.getProperty(
                     "cpas.symbpredabs.refinement.finalPredMapPath", "");
             if (!pth.equals("")) {
@@ -224,17 +223,6 @@ public class PredicateAbstractionCPAStatistics implements CPAStatistics {
                     bs.makeFormulaCacheHits);
         }
         out.println("");
-        out.print("Error location(s) reached? ");
-        switch (errorReached) {
-        case MainCPAStatistics.ERROR_UNKNOWN:
-            out.println("UNKNOWN, analysis has not completed");
-            break;
-        case MainCPAStatistics.ERROR_REACHED:
-            out.println("YES, there is a BUG!");
-            break;
-        case MainCPAStatistics.ERROR_NOT_REACHED:
-            out.println("NO, the system is safe");
-        }
         if (trans.notEnoughPredicates()) {
             out.println("The analysis is not precise enough for this example!");
         }

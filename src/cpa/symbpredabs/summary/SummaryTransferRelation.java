@@ -189,7 +189,7 @@ public class SummaryTransferRelation implements TransferRelation {
       if (succ.getLocation().getInnerNode() instanceof CFAErrorNode) {
         if (CPAMain.cpaConfig.getBooleanValue(
         "cpas.symbpredabs.abstraction.norefinement")) {
-          CPAMain.cpaStats.setErrorReached(true);
+          CPAMain.setErrorReached();
           throw new ErrorReachedException(
           "Reached error location, but refinement disabled");
         }
@@ -218,7 +218,7 @@ public class SummaryTransferRelation implements TransferRelation {
           LazyLogger.log(CustomLogLevel.SpecificCPALevel,
               "REACHED ERROR LOCATION!: ", succ,
           " RETURNING BOTTOM!");
-          CPAMain.cpaStats.setErrorReached(true);
+          CPAMain.setErrorReached();
           throw new ErrorReachedException(
               info.getConcreteTrace().toString());
         }

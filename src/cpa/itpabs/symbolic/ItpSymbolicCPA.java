@@ -23,32 +23,30 @@
  */
 package cpa.itpabs.symbolic;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
+import logging.LazyLogger;
 import symbpredabstraction.SSAMap;
 import symbpredabstraction.interfaces.SymbolicFormula;
-
-import logging.LazyLogger;
-
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFANode;
 import cfa.objectmodel.c.CallToReturnEdge;
 import cfa.objectmodel.c.FunctionDefinitionNode;
 import cfa.objectmodel.c.ReturnEdge;
 
+import common.Pair;
+
 import cpa.itpabs.ItpAbstractElement;
 import cpa.itpabs.ItpAbstractElementManager;
 import cpa.itpabs.ItpCPA;
 import cpa.itpabs.ItpCPAStatistics;
-import cpaplugin.CPAStatistics;
-import cpa.itpabs.symbolic.ItpSymbolicAbstractElement;
-import cpa.itpabs.symbolic.ItpSymbolicCounterexampleRefiner;
-import common.Pair;
-import exceptions.UnrecognizedCFAEdgeException;
 import cpa.symbpredabs.summary.InnerCFANode;
 import cpa.symbpredabs.summary.MathsatSummaryFormulaManager;
 import cpa.symbpredabs.summary.SummaryCFANode;
+import cpaplugin.CPAStatistics;
+import exceptions.UnrecognizedCFAEdgeException;
 
 
 /**
@@ -155,10 +153,6 @@ public class ItpSymbolicCPA extends ItpCPA {
         this();
     }
 
-    public CPAStatistics getStatistics() {
-        return stats;
-    }
-
     @Override
     public ItpAbstractElementManager getElementCreator() {
         return elemCreator;
@@ -184,5 +178,9 @@ public class ItpSymbolicCPA extends ItpCPA {
             return null;
         }
     }
-
+    
+    @Override
+    public void collectStatistics(Collection<CPAStatistics> pStatsCollection) {
+      pStatsCollection.add(stats);
+    }
 }

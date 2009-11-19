@@ -55,6 +55,7 @@ import cmdline.CPAMain;
 import cpa.common.defaults.StaticPrecisisonAdjustment;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.CPAWithStatistics;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
@@ -68,7 +69,7 @@ import cpaplugin.CPAStatistics;
  * @author Erkan
  *
  */
-public class SymbPredAbsCPA implements ConfigurableProgramAnalysis {
+public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, CPAWithStatistics {
 
   private SymbPredAbsAbstractDomain domain;
   private SymbPredAbsTransferRelation transfer;
@@ -128,10 +129,6 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis {
 
   public SymbPredAbsCPA(String s1, String s2) {
     this();
-  }
-
-  public CPAStatistics getStatistics() {
-    return stats;
   }
 
   @Override
@@ -200,5 +197,10 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis {
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
     return StaticPrecisisonAdjustment.getInstance();
+  }
+  
+  @Override
+  public void collectStatistics(Collection<CPAStatistics> pStatsCollection) {
+    pStatsCollection.add(stats);
   }
 }

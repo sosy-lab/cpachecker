@@ -34,14 +34,13 @@ import symbpredabstraction.bdd.BDDPredicate;
 import symbpredabstraction.interfaces.Predicate;
 import symbpredabstraction.interfaces.PredicateMap;
 import symbpredabstraction.mathsat.MathsatSymbolicFormula;
-
-import cmdline.CPAMain;
-
 import cfa.objectmodel.CFANode;
+import cmdline.CPAMain;
+import cmdline.CPAMain.Result;
+
+import common.Pair;
 
 import cpaplugin.CPAStatistics;
-import cpaplugin.MainCPAStatistics;
-import common.Pair;
 
 /**
  * Statistics for symbolic lazy abstraction with summaries
@@ -62,7 +61,7 @@ public class SummaryCPAStatistics implements CPAStatistics {
     }
 
     @Override
-    public void printStatistics(PrintWriter out) {
+    public void printStatistics(PrintWriter out, Result result) {
         SummaryTransferRelation trans =
             (SummaryTransferRelation)cpa.getTransferRelation();
         PredicateMap pmap = cpa.getPredicateMap();
@@ -97,8 +96,7 @@ public class SummaryCPAStatistics implements CPAStatistics {
         }
 
         // check if/where to dump the predicate map
-        int errorReached = CPAMain.cpaStats.getErrorReached();
-        if (errorReached == MainCPAStatistics.ERROR_NOT_REACHED) {
+        if (result == Result.SAFE) {
             String pth = CPAMain.cpaConfig.getProperty(
                     "cpas.symbpredabs.refinement.finalPredMapPath", "");
             if (!pth.equals("")) {
@@ -179,18 +177,6 @@ public class SummaryCPAStatistics implements CPAStatistics {
                     toTime(bs.cexAnalysisGetUsefulBlocksTime));
             out.println("  Cex.focusing max:    " +
                     toTime(bs.cexAnalysisGetUsefulBlocksMaxTime));
-        }
-        out.println("");
-        out.print("Error location(s) reached? ");
-        switch (errorReached) {
-        case MainCPAStatistics.ERROR_UNKNOWN:
-            out.println("UNKNOWN, analysis has not completed");
-            break;
-        case MainCPAStatistics.ERROR_REACHED:
-            out.println("YES, there is a BUG!");
-            break;
-        case MainCPAStatistics.ERROR_NOT_REACHED:
-            out.println("NO, the system is safe");
         }
     }
 
