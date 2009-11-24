@@ -181,7 +181,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, CPAWithStati
     PathFormula initPf = new PathFormula(symbolicFormulaManager.makeTrue(), ssamap);
     AbstractFormula initAbstraction = abstractFormulaManager.makeTrue();
 
-    SymbPredAbsAbstractElement e = new SymbPredAbsAbstractElement(this, true, node,
+    SymbPredAbsAbstractElement e = new SymbPredAbsAbstractElement(true, node,
         pf, pfParents, initPf, initAbstraction, parents, null);
     // TODO check
 //    e.setMaxIndex(new SSAMap());

@@ -151,12 +151,11 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
     // create the new abstract element for non-abstraction location
     return new SymbPredAbsAbstractElement(
-        // set 'cpa' to elements CPA
         // set 'isAbstractionLocation' to false
         // set 'abstractionLocation' to last element's abstractionLocation since they are same
         // set 'pathFormula' to pf - the updated pathFormula -
         // set 'pfParents' to newPfParents - the updated list of nodes that constructed the pathFormula -
-        element.getCpa(), false, element.getAbstractionLocation(), pf, newPfParents,
+        false, element.getAbstractionLocation(), pf, newPfParents,
         // set 'initAbstractionFormula' and 'abstraction' to last element's values, they don't change
         element.getInitAbstractionFormula(), element.getAbstraction(),
         // set 'abstractionPathList', and 'artParent' to last element's values, they don't change
@@ -243,11 +242,10 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     newAbstractionPath.addToList(edge.getSuccessor().getNodeNumber());
 
     return new SymbPredAbsAbstractElement(
-        // set 'cpa' to elements CPA
         // set 'isAbstractionNode' to true, this is an abstraction node
         // set 'abstractionLocation' to edge.getSuccessor()
         // set 'pathFormula' to newPathFormula computed above
-        element.getCpa(), true, edge.getSuccessor(), newPathFormula, 
+        true, edge.getSuccessor(), newPathFormula, 
         // 'pfParents' is not instantiated for abstraction locations
         // set 'initAbstractionFormula' to  pathFormula computed above
         // set 'abstraction' to newly computed abstraction

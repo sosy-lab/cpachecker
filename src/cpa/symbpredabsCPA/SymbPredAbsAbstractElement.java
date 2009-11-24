@@ -27,7 +27,6 @@ import java.util.List;
 
 import symbpredabstraction.PathFormula;
 import symbpredabstraction.interfaces.AbstractFormula;
-import symbpredabstraction.interfaces.SymbolicFormula;
 import cfa.objectmodel.CFANode;
 import cpa.common.interfaces.AbstractElement;
 
@@ -37,8 +36,6 @@ import cpa.common.interfaces.AbstractElement;
  * @author Erkan
  */
 public class SymbPredAbsAbstractElement implements AbstractElement {
-
-  private final SymbPredAbsCPA mCpa;
 
   /** Unique state id */
   private final int elementId;
@@ -99,7 +96,6 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
 
   public SymbPredAbsAbstractElement() {
     this.elementId = nextAvailableId++;
-    this.mCpa = null;
     this.isAbstractionNode = false;
     this.abstractionLocation = null;
     this.pathFormula = null;
@@ -110,11 +106,10 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
     this.artParent = null;
   }
 
-  public SymbPredAbsAbstractElement(SymbPredAbsCPA pCpa, boolean isAbstractionElement, CFANode abstLoc,
+  public SymbPredAbsAbstractElement(boolean isAbstractionElement, CFANode abstLoc,
       PathFormula pf, List<Integer> pfParentsList, PathFormula initFormula, AbstractFormula a, 
       AbstractionPathList pl, SymbPredAbsAbstractElement artParent){
     this.elementId = nextAvailableId++;
-    this.mCpa = pCpa;
     this.isAbstractionNode = isAbstractionElement;
     this.abstractionLocation = abstLoc;
     this.pathFormula = pf;
@@ -190,21 +185,8 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
 
   @Override
   public String toString() {
-    
-    SymbolicFormula  symbReprAbst = null;
-    if(abstraction != null){
-      symbReprAbst = mCpa.getAbstractFormulaManager().toConcrete(mCpa.getSymbolicFormulaManager(), abstraction);
-    }
-    return
-    "Is abst loc? " + isAbstractionNode +
-//    " Abstraction LOCATION: " + getAbstractionLocation() + ((getAbstractionLocation() instanceof CFAErrorNode) ? " {ERROR NODE}" : "") +
-  //" PF: "+ getPathFormula().getSymbolicFormula() +
-  " Abstraction: " + symbReprAbst  +
-  //" Init Formula--> " + (getInitAbstractionFormula() != null ? getInitAbstractionFormula().getSymbolicFormula() : "null")  +
-  " Parents --> " + abstractionPathList + 
-  //  " ART Parent --> " + (getArtParent() != null ? getArtParent().getAbstractionLocation().toString() : "NULL")+ 
-    "";
-    //+ ">(" + Integer.toString(getId()) + ")"
+    return "Abstraction location: " + isAbstractionNode
+        + " Abstraction parents: " + abstractionPathList;
   }
 
   @Override
@@ -237,10 +219,6 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
 //  public void setMaxIndex(SSAMap maxIndex) {
 //    this.maxIndex = maxIndex;
 //  }
-
-  public SymbPredAbsCPA getCpa() {
-    return mCpa;
-  }
   
   public List<Integer> getPfParents() {
     return pfParents;

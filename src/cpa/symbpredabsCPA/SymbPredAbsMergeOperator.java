@@ -120,7 +120,7 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
           pfParents.add(elem1Parent);
         }
         
-        merged = new SymbPredAbsAbstractElement(elem1.getCpa(), false, elem1.getAbstractionLocation(), 
+        merged = new SymbPredAbsAbstractElement(false, elem1.getAbstractionLocation(), 
             pathFormula, pfParents, elem1.getInitAbstractionFormula(), elem1.getAbstraction(), 
             elem1.getAbstractionPathList(), elem1.getArtParent());
 
