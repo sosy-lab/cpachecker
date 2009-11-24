@@ -63,11 +63,11 @@ import org.eclipse.cdt.core.dom.ast.IPointerType;
 import org.eclipse.cdt.core.dom.ast.IType;
 import org.eclipse.cdt.core.dom.ast.ITypedef;
 
+import symbpredabstraction.PathFormula;
 import symbpredabstraction.SSAMap;
 import symbpredabstraction.interfaces.SymbolicFormula;
 import symbpredabstraction.interfaces.SymbolicFormulaManager;
 import symbpredabstraction.interfaces.TheoremProver;
-
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFANode;
 import cfa.objectmodel.c.AssumeEdge;
@@ -295,7 +295,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
   }
 
 
-  public Pair<SymbolicFormula, SSAMap> makeAnd(
+  public PathFormula makeAnd(
       SymbolicFormula f1, CFAEdge edge, SSAMap ssa,
       boolean updateSSA, boolean absoluteSSAIndices)
       throws UnrecognizedCFAEdgeException {
@@ -305,7 +305,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     // TODO this should be in MathsatSummaryFormulaManager
     if (edge instanceof BlockEdge) {
       BlockEdge block = (BlockEdge)edge;
-      Pair<SymbolicFormula, SSAMap> ret = null;
+      PathFormula ret = null;
       for (CFAEdge e : block.getEdges()) {
         ret = makeAnd(f1, e, ssa, updateSSA, absoluteSSAIndices);
         f1 = ret.getFirst();
@@ -388,7 +388,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
           t = mathsat.api.msat_make_and(msatEnv, m1.getTerm(), t);
           m1 = new MathsatSymbolicFormula(t);
         }
-        return new Pair<SymbolicFormula, SSAMap>(m1, newssa);
+        return new PathFormula(m1, newssa);
       }
 
 
@@ -399,7 +399,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         if (spec instanceof IASTCompositeTypeSpecifier) {
           // this is the declaration of a struct, just ignore it...
           warn("IGNORING declaration: " + edge.getRawStatement());
-          return new Pair<SymbolicFormula, SSAMap>(m1, newssa);
+          return new PathFormula(m1, newssa);
         } else {
           throw new UnrecognizedCFAEdgeException(
               "UNSUPPORTED SPECIFIER FOR DECLARATION: " +
@@ -409,7 +409,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
 
       if (spec.getStorageClass() == IASTDeclSpecifier.sc_typedef) {
         warn("IGNORING typedef: " + edge.getRawStatement());
-        return new Pair<SymbolicFormula, SSAMap>(m1, newssa);
+        return new PathFormula(m1, newssa);
       }
 
       for (IASTDeclarator d : decls) {
@@ -481,7 +481,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
           }
         }
       }
-      return new Pair<SymbolicFormula, SSAMap>(m1, newssa);
+      return new PathFormula(m1, newssa);
     }
 
     case AssumeEdge: {
@@ -507,7 +507,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       // get the expression from the summary edge
       CFANode succ = edge.getSuccessor();
       CallToReturnEdge ce = succ.getEnteringSummaryEdge();
-      Pair<SymbolicFormula, SSAMap> ret =
+      PathFormula ret =
         makeAndExitFunction(m1, ce, ssa, updateSSA, absoluteSSAIndices);
       //popNamespace(); - done inside makeAndExitFunction
       return ret;
@@ -523,7 +523,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     }
     }
 
-    return new Pair<SymbolicFormula, SSAMap>(f1, ssa);
+    return new PathFormula(f1, ssa);
   }
 
   private Pair<SymbolicFormula, SSAMap> makeAndEnterFunction(
@@ -596,7 +596,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     return edge.getPredecessor() instanceof FunctionDefinitionNode;
   }
 
-  private Pair<SymbolicFormula, SSAMap> makeAndExitFunction(
+  private PathFormula makeAndExitFunction(
       MathsatSymbolicFormula m1, CallToReturnEdge ce, SSAMap ssa,
       boolean updateSSA, boolean absoluteSSAIndices)
       throws UnrecognizedCFAEdgeException {
@@ -604,7 +604,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     if (retExp instanceof IASTFunctionCallExpression) {
       // this should be a void return, just do nothing...
       //popNamespace();
-      return new Pair<SymbolicFormula, SSAMap>(m1, ssa);
+      return new PathFormula(m1, ssa);
     } else if (retExp instanceof IASTBinaryExpression) {
       IASTBinaryExpression exp = (IASTBinaryExpression)retExp;
       assert(exp.getOperator() == IASTBinaryExpression.op_assign);
@@ -625,7 +625,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       long msatoutvar = buildMsatLvalueTerm(e, ssa, absoluteSSAIndices);
       long term = makeAssignment(msatoutvar, msatretvar);
       term = mathsat.api.msat_make_and(msatEnv, m1.getTerm(), term);
-      return new Pair<SymbolicFormula, SSAMap>(
+      return new PathFormula(
           new MathsatSymbolicFormula(term), ssa);
     } else {
       throw new UnrecognizedCFAEdgeException(
@@ -634,7 +634,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     }
   }
 
-  private Pair<SymbolicFormula, SSAMap> makeAndFunctionCall(
+  private PathFormula makeAndFunctionCall(
       MathsatSymbolicFormula m1, FunctionCallEdge edge, SSAMap ssa,
       boolean absoluteSSAIndices) throws UnrecognizedCFAEdgeException {
     if (edge.isExternalCall()) {
@@ -694,19 +694,19 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       }
       assert(!mathsat.api.MSAT_ERROR_TERM(term));
       term = mathsat.api.msat_make_and(msatEnv, m1.getTerm(), term);
-      return new Pair<SymbolicFormula, SSAMap>(
+      return new PathFormula(
           new MathsatSymbolicFormula(term), ssa);
     }
   }
 
-  private Pair<SymbolicFormula, SSAMap> makeAndReturn(
+  private PathFormula makeAndReturn(
       MathsatSymbolicFormula m1, StatementEdge edge, SSAMap ssa,
       boolean updateSSA, boolean absoluteSSAIndices)
       throws UnrecognizedCFAEdgeException {
     IASTExpression exp = edge.getExpression();
     if (exp == null) {
       // this is a return from a void function, do nothing
-      return new Pair<SymbolicFormula, SSAMap>(m1, ssa);
+      return new PathFormula(m1, ssa);
     } else if (exp instanceof IASTUnaryExpression) {
       // we have to save the information about the return value,
       // so that we can use it later on, if it is assigned to
@@ -738,7 +738,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
           term = mathsat.api.msat_make_and(
               msatEnv, m1.getTerm(), term);
           assert(!mathsat.api.MSAT_ERROR_TERM(term));
-          return new Pair<SymbolicFormula, SSAMap>(
+          return new PathFormula(
               new MathsatSymbolicFormula(term), ssa);
         }
       }
@@ -1574,7 +1574,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         new long[]{t1, t2});
   }
 
-  private Pair<SymbolicFormula, SSAMap> makeAndStatement(
+  private PathFormula makeAndStatement(
       MathsatSymbolicFormula f1, StatementEdge stmt, SSAMap ssa,
       boolean updateSSA, boolean absoluteSSAIndices)
       throws UnrecognizedCFAEdgeException {
@@ -1597,10 +1597,10 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         // expression has no effect, and we can just drop it
         warn("statment " + stmt.getRawStatement() +
         " has no effect, dropping it!");
-        return new Pair<SymbolicFormula, SSAMap>(f1, ssa);
+        return new PathFormula(f1, ssa);
       }
       long a = mathsat.api.msat_make_and(msatEnv, f1.getTerm(), f2);
-      return new Pair<SymbolicFormula, SSAMap>(
+      return new PathFormula(
           new MathsatSymbolicFormula(a), ssa);
     } else {
       throw new UnrecognizedCFAEdgeException("STATEMENT: " +
@@ -1729,7 +1729,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     }
   }
 
-  private Pair<SymbolicFormula, SSAMap> makeAndAssume(
+  private PathFormula makeAndAssume(
       MathsatSymbolicFormula f1, AssumeEdge assume, SSAMap ssa,
       boolean absoluteSSAIndices) throws UnrecognizedCFAEdgeException {
     MathsatSymbolicFormula f2 = buildFormulaPredicate(
@@ -1741,7 +1741,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     } else {
       long res = mathsat.api.msat_make_and(msatEnv, f1.getTerm(),
           f2.getTerm());
-      return new Pair<SymbolicFormula, SSAMap>(
+      return new PathFormula(
           new MathsatSymbolicFormula(res), ssa);
     }
   }
@@ -1953,6 +1953,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
 
   // ssa can be null. In this case, all the variables are instantiated
   // at index 1
+  @Override
   public SymbolicFormula instantiate(SymbolicFormula f, SSAMap ssa) {
     Stack<Long> toProcess = new Stack<Long>();
     Map<Long, Long> cache = new HashMap<Long, Long>();
@@ -2052,7 +2053,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
   }
 
 
-  public Pair<SymbolicFormula, SSAMap> shift(SymbolicFormula f, SSAMap ssa) {
+  public PathFormula shift(SymbolicFormula f, SSAMap ssa) {
     Stack<Long> toProcess = new Stack<Long>();
     Map<Long, Long> cache = new HashMap<Long, Long>();
 
@@ -2259,7 +2260,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     }
 
     assert(cache.containsKey(term));
-    return new Pair<SymbolicFormula, SSAMap>(
+    return new PathFormula(
         new MathsatSymbolicFormula(cache.get(term)), newssa);
   }
 

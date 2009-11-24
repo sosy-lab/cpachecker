@@ -25,11 +25,12 @@ package symbpredabstraction.interfaces;
 
 import java.util.Collection;
 
+import symbpredabstraction.PathFormula;
 import symbpredabstraction.SSAMap;
+import cfa.objectmodel.CFAEdge;
 
 import common.Pair;
 
-import cfa.objectmodel.CFAEdge;
 import exceptions.UnrecognizedCFAEdgeException;
 
 
@@ -68,7 +69,7 @@ public interface SymbolicFormulaManager {
      *                           for each var
      * @return The formula (f1 & e), and the new/updated SSAMap
      */
-    public Pair<SymbolicFormula, SSAMap> makeAnd(SymbolicFormula f1, CFAEdge e,
+    public PathFormula makeAnd(SymbolicFormula f1, CFAEdge e,
                                                  SSAMap ssa, boolean updateSSA,
                                                  boolean absoluteSSAIndices)
         throws UnrecognizedCFAEdgeException;
@@ -135,7 +136,7 @@ public interface SymbolicFormulaManager {
      * @param ssa the SSAMap to use for shifting
      * @return the shifted formula and the new SSA map
      */
-    public Pair<SymbolicFormula, SSAMap> shift(SymbolicFormula f, SSAMap ssa);
+    public PathFormula shift(SymbolicFormula f, SSAMap ssa);
 
     /**
      * Extracts the atoms from the given formula. If uninstantiate is true,

@@ -31,10 +31,7 @@ import symbpredabstraction.interfaces.AbstractFormula;
 import symbpredabstraction.interfaces.AbstractFormulaManager;
 import symbpredabstraction.interfaces.Predicate;
 import symbpredabstraction.interfaces.SymbolicFormulaManager;
-import symbpredabstraction.mathsat.MathsatSymbolicFormula;
 import symbpredabstraction.trace.CounterexampleTraceInfo;
-
-import cfa.objectmodel.CFANode;
 
 
 /**
@@ -49,8 +46,7 @@ public interface SymbPredAbstFormulaManager extends AbstractFormulaManager {
      */
     public AbstractFormula buildAbstraction(SymbolicFormulaManager mgr,
             AbstractFormula abs, PathFormula pathFormula,
-            Collection<Predicate> predicates, MathsatSymbolicFormula functionExitFormula, 
-            CFANode pSucc, AbstractionPathList pPathList);
+            Collection<Predicate> predicates);
 
     /**
      * Counterexample analysis and predicate discovery.

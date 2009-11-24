@@ -60,7 +60,7 @@ public class MathsatSymbolicFormula implements SymbolicFormula {
 
     public long getTerm() { return msatTerm; }
 
-    public void setTerm(long t) { msatTerm = t; }
+    void setTerm(long t) { msatTerm = t; }
 
     @Override
     public int hashCode() {

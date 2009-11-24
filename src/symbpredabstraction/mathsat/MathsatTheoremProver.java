@@ -182,6 +182,7 @@ public class MathsatTheoremProver implements TheoremProver {
                 for (int i = 0; i < model.length; ++i) {
                     MathsatSymbolicFormula f =
                         (MathsatSymbolicFormula)outModel.elementAt(i);
+                    // TODO this prevents MathsatSymbolicFormula from being unmodifiable
                     f.setTerm(model[i]);
                 }
             }

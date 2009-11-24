@@ -29,6 +29,9 @@ import java.io.PrintWriter;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.Stack;
+import java.util.Vector;
+
+import symbpredabstraction.interfaces.SymbolicFormula;
 
 /**
  * Class used to dump "hard" abstraction problems in MathSAT and NuSMV
@@ -52,6 +55,20 @@ public class BDDMathsatAbstractionPrinter {
         ++curNum;
     }
 
+    public void printMsatFormat(SymbolicFormula curState, SymbolicFormula edgeFormula,
+                                SymbolicFormula predDef, Vector<SymbolicFormula> important) {
+      long[] imp = new long[important.size()];
+      for (int i = 0; i < imp.length; ++i) {
+          imp[i] = ((MathsatSymbolicFormula)important.elementAt(i)).getTerm();
+      }
+      printMsatFormat(
+          ((MathsatSymbolicFormula)curState).getTerm(),
+          ((MathsatSymbolicFormula)edgeFormula).getTerm(),
+          ((MathsatSymbolicFormula)predDef).getTerm(),
+          imp);
+    }
+    
+    
     public void printMsatFormat(long curStateTerm, long edgeFormulaTerm,
                                 long predDef, long[] importantSymbols) {
         String fileName = baseFileName + "." + curNum + ".msat";
@@ -82,6 +99,20 @@ public class BDDMathsatAbstractionPrinter {
         }
     }
 
+
+    public void printNusmvFormat(SymbolicFormula curState, SymbolicFormula edgeFormula,
+                                SymbolicFormula predDef, Vector<SymbolicFormula> important) {
+      long[] imp = new long[important.size()];
+      for (int i = 0; i < imp.length; ++i) {
+          imp[i] = ((MathsatSymbolicFormula)important.elementAt(i)).getTerm();
+      }
+      printNusmvFormat(
+          ((MathsatSymbolicFormula)curState).getTerm(),
+          ((MathsatSymbolicFormula)edgeFormula).getTerm(),
+          ((MathsatSymbolicFormula)predDef).getTerm(),
+          imp);
+    }
+    
     public void printNusmvFormat(long curStateTerm, long edgeFormulaTerm,
                                  long predDef, long[] importantSymbols) {
         Stack<Long> toProcess = new Stack<Long>();

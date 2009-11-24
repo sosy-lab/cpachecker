@@ -126,7 +126,7 @@ public class SymbPredAbsCPAStatistics implements CPAStatistics {
         }
       }
 
-      BDDMathsatSymbPredAbstractionAbstractManager.Stats bs = amgr.getStats();
+      BDDMathsatSymbPredAbstractionAbstractManager.Stats bs = amgr.stats;
       SymbPredAbsTransferRelation trans = cpa.getTransferRelation();
 
       out.println("Number of abstract states visited: " + trans.getNumAbstractStates());

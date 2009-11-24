@@ -26,9 +26,7 @@ package cpa.symbpredabsCPA;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -37,8 +35,14 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.Vector;
 
+import logging.CPACheckerLogger;
+import logging.CustomLogLevel;
+import logging.LazyLogger;
 import symbpredabstraction.PathFormula;
 import symbpredabstraction.SSAMap;
+import symbpredabstraction.Cache.CartesianAbstractionCacheKey;
+import symbpredabstraction.Cache.FeasibilityCacheKey;
+import symbpredabstraction.Cache.TimeStampCache;
 import symbpredabstraction.bdd.BDDAbstractFormula;
 import symbpredabstraction.bdd.BDDPredicate;
 import symbpredabstraction.interfaces.AbstractFormula;
@@ -53,12 +57,7 @@ import symbpredabstraction.mathsat.MathsatSymbolicFormula;
 import symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
 import symbpredabstraction.trace.ConcreteTraceFunctionCalls;
 import symbpredabstraction.trace.CounterexampleTraceInfo;
-
-import logging.CPACheckerLogger;
-import logging.CustomLogLevel;
-import logging.LazyLogger;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
-import cfa.objectmodel.CFANode;
 import cmdline.CPAMain;
 
 import common.Pair;
@@ -74,7 +73,6 @@ import common.Pair;
 class BDDMathsatSymbPredAbstractionAbstractManager extends BDDMathsatAbstractFormulaManager 
 implements SymbPredAbstFormulaManager
 {
-  private static long replacing = 0;
 
   private class AllSatCallbackStats extends AllSatCallback
   implements TheoremProver.AllSatCallback {
@@ -126,175 +124,56 @@ implements SymbPredAbstFormulaManager
     public long bddCoverageCheckMaxTime = 0;
     public long cexAnalysisGetUsefulBlocksTime = 0;
     public long cexAnalysisGetUsefulBlocksMaxTime = 0;
+    public long replacing = 0;
   }
-  private Stats stats;
+  final Stats stats;
 
-  private TheoremProver thmProver;
-  private InterpolatingTheoremProver itpProver;
+  private final TheoremProver thmProver;
+  private final InterpolatingTheoremProver itpProver;
 
-  private Map<Pair<SymbolicFormula, Vector<SymbolicFormula>>, AbstractFormula>
-  abstractionCache;
-  private boolean useCache;
+  private static final int MAX_CACHE_SIZE = 100000;
 
-  private static abstract class KeyWithTimeStamp {
-    public long timeStamp;
-
-    public KeyWithTimeStamp() {
-      updateTimeStamp();
-    }
-
-    public void updateTimeStamp() {
-      timeStamp = System.currentTimeMillis();
-    }
-  }
-
-  private static class CartesianAbstractionCacheKey extends KeyWithTimeStamp {
-    SymbolicFormula formula;
-    Predicate pred;
-
-    public CartesianAbstractionCacheKey(SymbolicFormula f, Predicate p) {
-      super();
-      formula = f;
-      pred = p;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (this == o) return true;
-      if (o instanceof CartesianAbstractionCacheKey) {
-        CartesianAbstractionCacheKey c =
-          (CartesianAbstractionCacheKey)o;
-        return formula.equals(c.formula) && pred.equals(c.pred);
-      } else {
-        return false;
-      }
-    }
-
-    @Override
-    public int hashCode() {
-      return formula.hashCode() ^ pred.hashCode();
-    }
-  }
-
-  private static class FeasibilityCacheKey extends KeyWithTimeStamp {
-    SymbolicFormula f;
-
-    public FeasibilityCacheKey(SymbolicFormula fm) {
-      super();
-      f = fm;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (this == o) return true;
-      if (o instanceof FeasibilityCacheKey) {
-        return f.equals(((FeasibilityCacheKey)o).f);
-      }
-      return false;
-    }
-
-    @Override
-    public int hashCode() {
-      return f.hashCode();
-    }
-  }
-
-  private static class TimeStampCache<Key extends KeyWithTimeStamp, Value>
-  extends HashMap<Key, Value> {
-    /**
-     * default value
-     */
-    private static final long serialVersionUID = 1L;
-    private int maxSize;
-
-    class TimeStampComparator implements Comparator<KeyWithTimeStamp> {
-      @Override
-      public int compare(KeyWithTimeStamp arg0, KeyWithTimeStamp arg1) {
-        long r = arg0.timeStamp - arg1.timeStamp;
-        return r < 0 ? -1 : (r > 0 ? 1 : 0);
-      }
-    }
-
-    private TimeStampComparator cmp;
-
-    public TimeStampCache(int maxSize) {
-      super();
-      this.maxSize = maxSize;
-      cmp = new TimeStampComparator();
-    }
-
-    @SuppressWarnings("unchecked")
-    @Override
-    public Value get(Object o) {
-      Key key = (Key)o;
-      key.updateTimeStamp();
-      return super.get(key);
-    }
-
-    @Override
-    public Value put(Key key, Value value) {
-      key.updateTimeStamp();
-      compact();
-      return super.put(key, value);
-    }
-
-    private void compact() {
-      if (size() > maxSize) {
-        // find the half oldest entries, and get rid of them...
-        KeyWithTimeStamp[] keys = keySet().toArray(
-            new KeyWithTimeStamp[0]);
-        Arrays.sort(keys, cmp);
-        for (int i = 0; i < keys.length/2; ++i) {
-          remove(keys[i]);
-        }
-      }
-    }
-  }  
-
+  private final boolean useCache;
+  private final Map<Pair<SymbolicFormula, Vector<SymbolicFormula>>, AbstractFormula> abstractionCache;
   //cache for cartesian abstraction queries. For each predicate, the values
   // are -1: predicate is false, 0: predicate is don't care,
   // 1: predicate is true
-  private TimeStampCache<CartesianAbstractionCacheKey, Byte>
-  cartesianAbstractionCache;
-  private TimeStampCache<FeasibilityCacheKey, Boolean> feasibilityCache;
+  private final TimeStampCache<CartesianAbstractionCacheKey, Byte> cartesianAbstractionCache;
+  private final TimeStampCache<FeasibilityCacheKey, Boolean> feasibilityCache;
 
-  private BDDMathsatAbstractionPrinter absPrinter = null;
-  private boolean dumpHardAbstractions;
+  private final boolean dumpHardAbstractions;
 
   public BDDMathsatSymbPredAbstractionAbstractManager(TheoremProver prover,
-      InterpolatingTheoremProver interpolator) 
-  {
+      InterpolatingTheoremProver interpolator) {
     super();
     stats = new Stats();
-    dumpHardAbstractions = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.mathsat.dumpHardAbstractionQueries");
     thmProver = prover;
     itpProver = interpolator;
 
-    abstractionCache =
-      new HashMap<Pair<SymbolicFormula, Vector<SymbolicFormula>>,
-      AbstractFormula>();
+    dumpHardAbstractions = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.mathsat.dumpHardAbstractionQueries");
     useCache = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.mathsat.useCache");
 
-    final int MAX_CACHE_SIZE = 100000;
-    cartesianAbstractionCache =
-      new TimeStampCache<CartesianAbstractionCacheKey, Byte>(MAX_CACHE_SIZE);
-    feasibilityCache =
-      new TimeStampCache<FeasibilityCacheKey, Boolean>(MAX_CACHE_SIZE);
+    if (useCache) {
+      abstractionCache = new HashMap<Pair<SymbolicFormula, Vector<SymbolicFormula>>, AbstractFormula>();
+      cartesianAbstractionCache = new TimeStampCache<CartesianAbstractionCacheKey, Byte>(MAX_CACHE_SIZE);
+      feasibilityCache = new TimeStampCache<FeasibilityCacheKey, Boolean>(MAX_CACHE_SIZE);
+    } else {
+      abstractionCache = null;
+      cartesianAbstractionCache = null;
+      feasibilityCache = null;
+    }
   }
-
-  public Stats getStats() { return stats; }
 
   @Override
   public AbstractFormula buildAbstraction(SymbolicFormulaManager mgr,
       AbstractFormula abs, PathFormula pathFormula,
-      Collection<Predicate> predicates, MathsatSymbolicFormula functionExitFormula,
-      CFANode pSucc, AbstractionPathList pPathList) {
+      Collection<Predicate> predicates/*, SymbolicFormula functionExitFormula*/) {
     stats.numCallsAbstraction++;
     if (CPAMain.cpaConfig.getBooleanValue(
     "cpas.symbpredabs.abstraction.cartesian")) {
-      return buildCartesianAbstraction(mgr, abs, pathFormula, predicates, functionExitFormula);
+      return buildCartesianAbstraction(mgr, abs, pathFormula, predicates/*, functionExitFormula*/);
     } else {
-      return buildBooleanAbstraction(mgr, abs, pathFormula, predicates, functionExitFormula);
+      return buildBooleanAbstraction(mgr, abs, pathFormula, predicates/*, functionExitFormula*/);
     }
   }
 
@@ -302,8 +181,8 @@ implements SymbPredAbstFormulaManager
       SymbolicFormulaManager mgr,
       AbstractFormula abs,
       PathFormula pathFormula,
-      Collection<Predicate> predicates,
-      MathsatSymbolicFormula functionExitFormula) {
+      Collection<Predicate> predicates/*,
+      SymbolicFormula functionExitFormula*/) {
     
     long startTime = System.currentTimeMillis();
 
@@ -312,31 +191,6 @@ implements SymbPredAbstFormulaManager
     long msatEnv = mmgr.getMsatEnv();
 
     thmProver.init(TheoremProver.CARTESIAN_ABSTRACTION);
-
-//    if (isFunctionExit(e)) {
-    if (functionExitFormula != null) {
-        // we have to take the context before the function call
-        // into account, otherwise we are not building the right
-        // abstraction!
-        assert(false); // TODO
-//        if (CPAMain.cpaConfig.getBooleanValue(
-//                "cpas.symbpredabs.refinement.addWellScopedPredicates")) {
-//            // but only if we are adding well-scoped predicates, otherwise
-//            // this should not be necessary
-//            AbstractFormula ctx = e.topContextAbstraction();
-//            MathsatSymbolicFormula fctx =
-//                (MathsatSymbolicFormula)mmgr.instantiate(
-//                        toConcrete(mmgr, ctx), null);
-//            fabs = (MathsatSymbolicFormula)mmgr.makeAnd(fabs, fctx);
-//
-//            LazyLogger.log(LazyLogger.DEBUG_3,
-//                    "TAKING CALLING CONTEXT INTO ACCOUNT: ", fctx);
-//        } else {
-//            LazyLogger.log(LazyLogger.DEBUG_3,
-//                    "NOT TAKING CALLING CONTEXT INTO ACCOUNT,",
-//                    "as we are not using well-scoped predicates");
-//        }
-    }
 
 //    Pair<SymbolicFormula, SSAMap> pc =
 //        buildConcreteFormula(mmgr, e, succ, edge, false);
@@ -553,208 +407,169 @@ implements SymbPredAbstFormulaManager
   }
 
   private AbstractFormula buildBooleanAbstraction(SymbolicFormulaManager mgr,
-      AbstractFormula abs, PathFormula pathFormula,
-      Collection<Predicate> predicates, MathsatSymbolicFormula functionExitFormula) {
+      AbstractFormula abstractionFormula, PathFormula pathFormula,
+      Collection<Predicate> predicates/*, SymbolicFormula functionExitFormula*/) {
     // A SummaryFormulaManager for MathSAT formulas
     MathsatSymbolicFormulaManager mmgr = (MathsatSymbolicFormulaManager)mgr;
 
     long startTime = System.currentTimeMillis();
 
-    // get the environment from the manager - this is unique, it is the
-    // environment in which all terms are created
-    long msatEnv = mmgr.getMsatEnv();
-
-    // first, build the concrete representation of the abstract formula of e
+    // build the concrete representation of the abstract formula of e
     // this is an abstract formula - specifically it is a bddabstractformula
     // which is basically an integer which represents it
     // create the concrete form of the abstract formula
     // (abstract formula is the bdd representation)
-    MathsatSymbolicFormula fabs =
-      (MathsatSymbolicFormula)mmgr.instantiate(
-          toConcrete(mmgr, abs), null);
-
-    LazyLogger.log(LazyLogger.DEBUG_3, "Abstraction: ",
-        mathsat.api.msat_term_id(fabs.getTerm()));
-
-    if (functionExitFormula != null) {
-      if (CPAMain.cpaConfig.getBooleanValue(
-      "cpas.symbpredabs.refinement.addWellScopedPredicates")) {
-        // but only if we are adding well-scoped predicates, otherwise
-        // this should not be necessary
-        fabs = (MathsatSymbolicFormula)mmgr.makeAnd(fabs, functionExitFormula);
-
-        LazyLogger.log(LazyLogger.DEBUG_3,
-            "TAKING CALLING CONTEXT INTO ACCOUNT: ", functionExitFormula);
-      } else {
-        LazyLogger.log(LazyLogger.DEBUG_3,
-            "NOT TAKING CALLING CONTEXT INTO ACCOUNT,",
-        "as we are not using well-scoped predicates");
-      }
-    }
+    final SymbolicFormula absFormula = mgr.instantiate(toConcrete(mgr, abstractionFormula), null);
 
     // create an ssamap from concrete formula
-    SSAMap absSsa = mmgr.extractSSA(fabs);
+    SSAMap absSsa = mmgr.extractSSA((MathsatSymbolicFormula)absFormula);
 
-    SymbolicFormula f = null;
-    SSAMap ssa = null;
+    // shift pathFormula indices by the offsets in absSsa
     long start = System.currentTimeMillis();
 
-//    Pair<CFANode, AbstractionPathList> key = new Pair<CFANode, AbstractionPathList>(pSucc, pPathList);
-
-//    if (abstractionTranslationCache.containsKey(key)) {
-//      PathFormula pc = abstractionTranslationCache.get(key);
-//      f = pc.getSymbolicFormula();
-//      ssa = pc.getSsa();
-//    } else {
-      f = pathFormula.getSymbolicFormula();
-      ssa = pathFormula.getSsa();
-
-      pathFormula = toPathFormula(mmgr.shift(f, absSsa));
-      f = mmgr.replaceAssignments((MathsatSymbolicFormula)pathFormula.getSymbolicFormula());
-      ssa = pathFormula.getSsa();
-
-//      abstractionTranslationCache.put(key, new PathFormula(f, ssa));
-//    }
-    
-    assert(f != null);
-    assert(ssa != null);
+    pathFormula = mgr.shift(pathFormula.getSymbolicFormula(), absSsa);
+    SymbolicFormula symbFormula = mmgr.replaceAssignments((MathsatSymbolicFormula)pathFormula.getSymbolicFormula());
+    final SSAMap symbSsa = pathFormula.getSsa();
 
     long end = System.currentTimeMillis();
-    replacing = replacing + (end - start);
-    if (CPAMain.cpaConfig.getBooleanValue(
-        "cpas.symbpredabs.useBitwiseAxioms")) {
+    stats.replacing += (end - start);
+    
+    // from now on, abstractionFormula, pathFormula and functionExitFormula should not be used,
+    // only absFormula, absSsa, symbFormula, symbSsa
+    
+    if (CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.useBitwiseAxioms")) {
       MathsatSymbolicFormula bitwiseAxioms = mmgr.getBitwiseAxioms(
-          (MathsatSymbolicFormula)f);
-      f = mmgr.makeAnd(f, bitwiseAxioms);
+          (MathsatSymbolicFormula)symbFormula);
+      symbFormula = mmgr.makeAnd(symbFormula, bitwiseAxioms);
 
       LazyLogger.log(LazyLogger.DEBUG_3, "ADDED BITWISE AXIOMS: ",
           bitwiseAxioms);
     }
 
-    long term = ((MathsatSymbolicFormula)f).getTerm();
-    assert(!mathsat.api.MSAT_ERROR_TERM(term));
-
-    LazyLogger.log(LazyLogger.DEBUG_2, "Term: ", f);
-
-
-    // build the definition of the predicates, and instantiate them
-    PredInfo predinfo = buildPredList(mmgr, predicates);
-    long preddef = predinfo.predDef;
-    long[] important = predinfo.important;
-    Collection<String> predvars = predinfo.allVars;
-    Collection<Pair<String, SymbolicFormula[]>> predlvals =
-      predinfo.allFuncs;
-    // update the SSA map, by instantiating all the uninstantiated
-    // variables that occur in the predicates definitions (at index 1)
-    for (String var : predvars) {
-      if (ssa.getIndex(var) < 0) {
-        ssa.setIndex(var, 1);
-      }
-    }
-    Map<SymbolicFormula, SymbolicFormula> cache =
-      new HashMap<SymbolicFormula, SymbolicFormula>();
-    for (Pair<String, SymbolicFormula[]> p : predlvals) {
-      SymbolicFormula[] args =
-        getInstantiatedAt(mmgr, p.getSecond(), ssa, cache);
-      if (ssa.getIndex(p.getFirst(), args) < 0) {
-        ssa.setIndex(p.getFirst(), args, 1);
-      }
-    }
-
-    if (CPACheckerLogger.getLevel() <= LazyLogger.DEBUG_1.intValue()) {
-      StringBuffer importantStrBuf = new StringBuffer();
-      for (long t : important) {
-        importantStrBuf.append(mathsat.api.msat_term_repr(t));
-        importantStrBuf.append(" ");
-      }
-      LazyLogger.log(LazyLogger.DEBUG_1,
-          "IMPORTANT SYMBOLS (", important.length, "): ",
-          importantStrBuf);
-    }
 
     // first, create the new formula corresponding to
-    // (f & edges from e to succ)
+    // (symbFormula & edges from e to succ)
     // TODO - at the moment, we assume that all the edges connecting e and
     // succ have no statement or assertion attached (i.e. they are just
     // return edges or gotos). This might need to change in the future!!
     // (So, for now we don't need to to anything...)
 
-    // instantiate the definitions with the right SSA
-    MathsatSymbolicFormula inst = (MathsatSymbolicFormula)mmgr.instantiate(
-        new MathsatSymbolicFormula(preddef), ssa);
-    preddef = inst.getTerm();
-    long curstate = fabs.getTerm();
 
-    // the formula is (curstate & term & preddef)
-    // build the formula and send it to the absEnv
-    long formula = mathsat.api.msat_make_and(msatEnv,
-        mathsat.api.msat_make_and(msatEnv, curstate, term), preddef);
-    SymbolicFormula fm = new MathsatSymbolicFormula(formula);
-    Vector<SymbolicFormula> imp = new Vector<SymbolicFormula>();
-    imp.ensureCapacity(important.length);
-    for (long p : important) {
-      imp.add(new MathsatSymbolicFormula(p));
+    // build the definition of the predicates, and instantiate them
+    PredInfo predinfo = buildPredList(mmgr, predicates);
+    {
+      Collection<String> predvars = predinfo.allVars;
+      Collection<Pair<String, SymbolicFormula[]>> predlvals =
+        predinfo.allFuncs;
+      // update the SSA map, by instantiating all the uninstantiated
+      // variables that occur in the predicates definitions (at index 1)
+      for (String var : predvars) {
+        if (symbSsa.getIndex(var) < 0) {
+          symbSsa.setIndex(var, 1);
+        }
+      }
+      Map<SymbolicFormula, SymbolicFormula> cache =
+        new HashMap<SymbolicFormula, SymbolicFormula>();
+      for (Pair<String, SymbolicFormula[]> p : predlvals) {
+        SymbolicFormula[] args =
+          getInstantiatedAt(mmgr, p.getSecond(), symbSsa, cache);
+        if (symbSsa.getIndex(p.getFirst(), args) < 0) {
+          symbSsa.setIndex(p.getFirst(), args, 1);
+        }
+      }
+    }
+  
+    Vector<SymbolicFormula> importantPreds = new Vector<SymbolicFormula>();
+    {
+      final long[] important = predinfo.important;
+      importantPreds.ensureCapacity(important.length);
+      for (long p : important) {
+        importantPreds.add(new MathsatSymbolicFormula(p));
+      }
+    }
+    
+    if (CPACheckerLogger.getLevel() <= LazyLogger.DEBUG_1.intValue()) {
+      StringBuffer importantStrBuf = new StringBuffer();
+      for (SymbolicFormula impFormula : importantPreds) {
+        importantStrBuf.append(impFormula.toString());
+        importantStrBuf.append(" ");
+      }
+      LazyLogger.log(LazyLogger.DEBUG_1,
+          "IMPORTANT SYMBOLS (", importantPreds.size(), "): ",
+          importantStrBuf);
     }
 
+    
+    // instantiate the definitions with the right SSA
+    SymbolicFormula predDef = mgr.instantiate(
+        new MathsatSymbolicFormula(predinfo.predDef), symbSsa);
+
+    // the formula is (absFormula & symbFormula & predDef)
+    final SymbolicFormula fm = mgr.makeAnd( 
+        mgr.makeAnd(absFormula, symbFormula), predDef);
+    
     LazyLogger.log(LazyLogger.DEBUG_2,
         "COMPUTING ALL-SMT ON FORMULA: ", fm);
 
     Pair<SymbolicFormula, Vector<SymbolicFormula>> absKey =
-      new Pair<SymbolicFormula, Vector<SymbolicFormula>>(fm, imp);
-    AbstractFormula result = null;
+      new Pair<SymbolicFormula, Vector<SymbolicFormula>>(fm, importantPreds);
+    AbstractFormula result;
     if (useCache && abstractionCache.containsKey(absKey)) {
       ++stats.numCallsAbstractionCached;
       result = abstractionCache.get(absKey);
     } else {
-      int absbdd = bddManager.getZero();
-      AllSatCallbackStats func =
-        new AllSatCallbackStats(absbdd, msatEnv, 0);
+      // get the environment from the manager - this is unique, it is the
+      // environment in which all terms are created
+      final long msatEnv = mmgr.getMsatEnv();
+   
+      AllSatCallbackStats allSatCallback = new AllSatCallbackStats(bddManager.getZero(), msatEnv, 0);
       long msatSolveStartTime = System.currentTimeMillis();
-      int numModels = thmProver.allSat(fm, imp, func);
-      assert(numModels != -1);
+      final int numModels = thmProver.allSat(fm, importantPreds, allSatCallback);
       long msatSolveEndTime = System.currentTimeMillis();
 
+      assert(numModels != -1);  // msat_all_sat returns -1 on error
+
+      if (numModels == -2) {
+        // formula has infinite number of models
+        result = new BDDAbstractFormula(bddManager.getOne());
+      } else {
+        result = new BDDAbstractFormula(allSatCallback.getBDD());
+      }
+
+      if (useCache) {
+        abstractionCache.put(absKey, result);
+      }
+      
       // update statistics
-      long endTime = System.currentTimeMillis();
-      long msatSolveTime =
-        (msatSolveEndTime - msatSolveStartTime) - func.totTime;
-      long abstractionMsatTime = (endTime - startTime) - func.totTime;
-      stats.abstractionMaxMathsatTime =
-        Math.max(abstractionMsatTime, stats.abstractionMaxMathsatTime);
-      stats.abstractionMaxBddTime =
-        Math.max(func.totTime, stats.abstractionMaxBddTime);
-      stats.abstractionMathsatTime += abstractionMsatTime;
-      stats.abstractionBddTime += func.totTime;
+      long bddTime       = allSatCallback.totTime;
+      long msatSolveTime = (msatSolveEndTime - msatSolveStartTime) - bddTime;
+
       stats.abstractionMathsatSolveTime += msatSolveTime;
+      stats.abstractionBddTime          += bddTime;
+      startTime += bddTime; // do not count BDD creation time
+
+      stats.abstractionMaxBddTime =
+        Math.max(bddTime, stats.abstractionMaxBddTime);
       stats.abstractionMaxMathsatSolveTime =
         Math.max(msatSolveTime, stats.abstractionMaxMathsatSolveTime);
 
       // TODO dump hard abst
-      if (abstractionMsatTime > 10000 && dumpHardAbstractions) {
+      if (msatSolveTime > 10000 && dumpHardAbstractions) {
         // we want to dump "hard" problems...
-        if (absPrinter == null) {
-          absPrinter = new BDDMathsatAbstractionPrinter(
-              msatEnv, "abs");
-        }
-        absPrinter.printMsatFormat(curstate, term, preddef, important);
-        absPrinter.printNusmvFormat(curstate, term, preddef, important);
+        BDDMathsatAbstractionPrinter absPrinter = new BDDMathsatAbstractionPrinter(msatEnv, "abs");
+        absPrinter.printMsatFormat(absFormula, symbFormula, predDef, importantPreds);
+        absPrinter.printNusmvFormat(absFormula, symbFormula, predDef, importantPreds);
         absPrinter.nextNum();
-      }
-
-      if (numModels == -2) {
-        absbdd = bddManager.getOne();
-        //return new BDDAbstractFormula(absbdd);
-        result = new BDDAbstractFormula(absbdd);
-      } else {
-        //return new BDDAbstractFormula(func.getBDD());
-        result = new BDDAbstractFormula(func.getBDD());
-      }
-      // TODO later
-      if (useCache) {
-        abstractionCache.put(absKey, result);
       }
     }
 
+    // update statistics
+    long endTime = System.currentTimeMillis();
+    long abstractionMsatTime = (endTime - startTime);
+    stats.abstractionMathsatTime += abstractionMsatTime;
+    stats.abstractionMaxMathsatTime =
+      Math.max(abstractionMsatTime, stats.abstractionMaxMathsatTime);
+    
     return result;
   }
 
@@ -792,12 +607,12 @@ implements SymbPredAbstFormulaManager
       // TODO here we take the formula from the abstract element
 //    Pair<SymbolicFormula, SSAMap> p =
 //    buildConcreteFormula(mmgr, cur, e, (ssa == null));
-      PathFormula p = e.getInitAbstractionFormula().getInitSymbolicFormula(mgr, (ssa == null));
+      PathFormula p = getInitSymbolicFormula(e.getInitAbstractionFormula(), mgr, (ssa == null));
       SSAMap newssa = null;
       if (ssa != null) {
         LazyLogger.log(LazyLogger.DEBUG_3, "SHIFTING: ", p.getSymbolicFormula(),
             " WITH SSA: ", ssa);
-        p = toPathFormula(mmgr.shift(p.getSymbolicFormula(), ssa));
+        p = mmgr.shift(p.getSymbolicFormula(), ssa);
         newssa = p.getSsa();
         LazyLogger.log(LazyLogger.DEBUG_3, "RESULT: ", p.getSymbolicFormula(),
             " SSA: ", newssa);
@@ -1055,6 +870,24 @@ implements SymbPredAbstFormulaManager
     return info;
   }
 
+  private PathFormula getInitSymbolicFormula(PathFormula pf, SymbolicFormulaManager mgr, boolean replace) {
+    SSAMap ssa = new SSAMap();
+    SymbolicFormula f = mgr.makeFalse();
+    Pair<Pair<SymbolicFormula, SymbolicFormula>, SSAMap> mp =
+      mgr.mergeSSAMaps(ssa, pf.getSsa(), false);
+    SymbolicFormula curf = pf.getSymbolicFormula();
+    // TODO modified if
+    if (replace) {
+      curf = ((MathsatSymbolicFormulaManager)mgr).replaceAssignments((MathsatSymbolicFormula)curf);
+    }
+    f = mgr.makeAnd(f, mp.getFirst().getFirst());
+    curf = mgr.makeAnd(curf, mp.getFirst().getSecond());
+    f = mgr.makeOr(f, curf);
+    ssa = mp.getSecond();
+    return new PathFormula(f,ssa);
+  }
+
+  
   // generates the predicates corresponding to the given atoms, which were
   // extracted from the interpolant
   private Set<Predicate> buildPredicates(long dstenv,
@@ -1087,7 +920,7 @@ implements SymbPredAbstFormulaManager
     return ret;
   }
 
-  public Vector<SymbolicFormula> getUsefulBlocks(
+  private Vector<SymbolicFormula> getUsefulBlocks(
       SymbolicFormulaManager mgr, Vector<SymbolicFormula> f,
       boolean theoryCombinationNeeded, boolean suffixTrace,
       boolean zigZag, boolean setAllTrueIfSat) {
@@ -1207,10 +1040,6 @@ implements SymbPredAbstFormulaManager
     LazyLogger.log(LazyLogger.DEBUG_1, "Done getUsefulBlocks");
 
     return f;
-  }
-
-  private PathFormula toPathFormula(Pair<SymbolicFormula, SSAMap> pair) {
-    return new PathFormula(pair.getFirst(), pair.getSecond());
   }
 
 }

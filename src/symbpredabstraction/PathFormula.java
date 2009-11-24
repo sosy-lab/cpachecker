@@ -23,64 +23,28 @@
  */
 package symbpredabstraction;
 
-import symbpredabstraction.interfaces.SymbolicFormula;
-import symbpredabstraction.interfaces.SymbolicFormulaManager;
-import symbpredabstraction.mathsat.MathsatSymbolicFormula;
-import symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
 import common.Pair;
 
+import symbpredabstraction.interfaces.SymbolicFormula;
 
-public class PathFormula {
 
-  private SSAMap ssa;
-  private SymbolicFormula symbolicFormula;
+public class PathFormula extends Pair<SymbolicFormula, SSAMap> {
 
-  public PathFormula(SymbolicFormula pf, SSAMap newssa){
-    ssa = newssa;
-    symbolicFormula = pf;
-  }
-
-  public SSAMap getSsa() {
-    return ssa;
-  }
-
-  public void setSsa(SSAMap ssa) {
-    this.ssa = ssa;
+  public PathFormula(SymbolicFormula pf, SSAMap newssa) {
+    super(pf, newssa);
   }
 
   public SymbolicFormula getSymbolicFormula() {
-    return symbolicFormula;
+    return getFirst();
   }
 
-  public PathFormula getInitSymbolicFormula(SymbolicFormulaManager mgr, boolean replace) {
-    SSAMap ssa = new SSAMap();
-    SymbolicFormula f = mgr.makeFalse();
-    Pair<Pair<SymbolicFormula, SymbolicFormula>, SSAMap> mp =
-      mgr.mergeSSAMaps(ssa, this.getSsa(), false);
-    SymbolicFormula curf = this.getSymbolicFormula();
-    // TODO modified if
-    if (replace) {
-      curf = ((MathsatSymbolicFormulaManager)mgr).replaceAssignments((MathsatSymbolicFormula)curf);
-    }
-    f = mgr.makeAnd(f, mp.getFirst().getFirst());
-    curf = mgr.makeAnd(curf, mp.getFirst().getSecond());
-    f = mgr.makeOr(f, curf);
-    ssa = mp.getSecond();
-    return new PathFormula(f,ssa);
-  }
-
-  public void setSymbolicFormula(SymbolicFormula symFormula) {
-    this.symbolicFormula = symFormula;
+  public SSAMap getSsa() {
+    return getSecond();
   }
 
   @Override
   public String toString(){
-    return symbolicFormula.toString();
+    return getSymbolicFormula().toString();
   }
   
-  @Override
-  public int hashCode() {
-    return ssa.hashCode() * 17 + symbolicFormula.hashCode();
-  }
-
 }

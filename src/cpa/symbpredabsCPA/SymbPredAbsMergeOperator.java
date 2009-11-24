@@ -30,7 +30,6 @@ import symbpredabstraction.PathFormula;
 import symbpredabstraction.SSAMap;
 import symbpredabstraction.interfaces.SymbolicFormula;
 import symbpredabstraction.interfaces.SymbolicFormulaManager;
-import symbpredabstraction.mathsat.MathsatSymbolicFormula;
 
 import common.Pair;
 
@@ -91,16 +90,15 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
         assert (elem1.getAbstractionLocation() == elem2.getAbstractionLocation());
         assert (elem1.getArtParent() == elem2.getArtParent());
 
-        MathsatSymbolicFormula formula1 =
-          (MathsatSymbolicFormula)elem1.getPathFormula().getSymbolicFormula();
         // TODO check
-//        elem1.updateMaxIndex(elem1.getPathFormula().getSsa());
-        MathsatSymbolicFormula formula2 =
-          (MathsatSymbolicFormula)elem2.getPathFormula().getSymbolicFormula();
+//      elem1.updateMaxIndex(elem1.getPathFormula().getSsa());
+
+        SymbolicFormula formula1 = elem1.getPathFormula().getSymbolicFormula();
+        SymbolicFormula formula2 = elem2.getPathFormula().getSymbolicFormula();
         SSAMap ssa1 = elem1.getPathFormula().getSsa();
         SSAMap ssa2 = elem2.getPathFormula().getSsa();
         Pair<Pair<SymbolicFormula, SymbolicFormula>,SSAMap> pm = symbolicFormulaManager.mergeSSAMaps(ssa2, ssa1, false);
-        MathsatSymbolicFormula old = (MathsatSymbolicFormula)symbolicFormulaManager.makeAnd(
+        SymbolicFormula old = symbolicFormulaManager.makeAnd(
             formula2, pm.getFirst().getFirst());
         SymbolicFormula newFormula = symbolicFormulaManager.makeAnd(formula1, pm.getFirst().getSecond());
         newFormula = symbolicFormulaManager.makeOr(old, newFormula);
@@ -117,8 +115,9 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
         assert(elem1.getPfParents().size() == 1);
         // now we merge elem1 and elem2's pfParents and set it as merged element's
         // pfParents
-        if(!pfParents.contains(elem1.getPfParents().get(0))){
-          pfParents.add(elem1.getPfParents().get(0));
+        Integer elem1Parent = elem1.getPfParents().get(0);
+        if(!pfParents.contains(elem1Parent)){
+          pfParents.add(elem1Parent);
         }
         
         merged = new SymbPredAbsAbstractElement(elem1.getCpa(), false, elem1.getAbstractionLocation(), 
