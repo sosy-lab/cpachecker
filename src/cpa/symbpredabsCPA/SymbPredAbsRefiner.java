@@ -72,24 +72,23 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
   public ARTElement performRefinement(ReachedElements pReached,
       Path pPath) throws CPAException {
 
-    // error element is the second last at the array 
-    Pair<AbstractElement, CFAEdge> errorElementPair = 
-      pPath.getElementAt(pPath.size()-2);
-    ARTElement errorARTElement =  (ARTElement)errorElementPair.getFirst();
-    assert (errorARTElement.isError());
-
-    SymbPredAbsAbstractElement symbPredAbstElement =
-        (SymbPredAbsAbstractElement) errorARTElement.retrieveElementOfType("SymbPredAbsAbstractElement");
-    assert(symbPredAbstElement != null);
-
+    // create path with all elements directly before an abstraction location,
+    // last element is the element corresponding to the error location
+    // (which is twice in pPath)
     Deque<SymbPredAbsAbstractElement> path = new LinkedList<SymbPredAbsAbstractElement>();
-    path.addFirst(symbPredAbstElement);
-    SymbPredAbsAbstractElement artParent = symbPredAbstElement.getArtParent();
-    while (artParent != null) {
-      path.addFirst(artParent);
-      artParent = artParent.getArtParent();
+    SymbPredAbsAbstractElement lastElement = null;
+    for (Pair<ARTElement,CFAEdge> artPair : pPath) {
+      SymbPredAbsAbstractElement symbElement = (SymbPredAbsAbstractElement)
+        artPair.getFirst().retrieveElementOfType("SymbPredAbsAbstractElement");
+      
+      if (symbElement.isAbstractionNode()) {
+        path.addLast(lastElement);
+      }
+      lastElement = symbElement;
     }
     
+    // TODO PW I can't imagine why this path has to be like this, is it correct?
+        
     // build the counterexample
     CounterexampleTraceInfo info = abstractFormulaManager.buildCounterexampleTrace(
         symbolicFormulaManager, path);
@@ -147,7 +146,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
     }
     else{
       long start = System.currentTimeMillis();
-      root = findARTElementof(symbPredRootElement, pArtPath.lastElement());
+      root = findARTElementof(symbPredRootElement, pArtPath.getLast());
       long end = System.currentTimeMillis();
       CEGARAlgorithm.totalfindArtTime= CEGARAlgorithm.totalfindArtTime + (end - start);
     }
@@ -156,13 +155,13 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
   }
 
   private ARTElement findARTElementof(SymbPredAbsAbstractElement pSymbPredRootElement,
-      Pair<AbstractElement, CFAEdge> pLastElement) throws CPAException {
+      Pair<ARTElement, CFAEdge> pLastElement) throws CPAException {
 
     Deque<ARTElement> workList = new ArrayDeque<ARTElement>();
     Set<ARTElement> handled = new HashSet<ARTElement>();
 
     // get the error element
-    workList.add((ARTElement)pLastElement.getFirst());
+    workList.add(pLastElement.getFirst());
 
     // go backwards
     while (!workList.isEmpty()) {

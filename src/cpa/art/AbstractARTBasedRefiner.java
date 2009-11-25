@@ -67,32 +67,38 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
   private Path buildPath(ARTElement pLastElement) { 
     Path path = new Path();
 
+    // each element of the path consists of the abstract element and the incoming
+    // edge from its predecessor
+    // an exception is the last element: it is contained two times in the path,
+    // first with the incoming edge and second with the outgoing edge
+    
     ARTElement currentARTElement = pLastElement;
+    assert pLastElement.isError();
     // add the error node and its -first- outgoing edge
     // that edge is not important so we pick the first even
     // if there are more outgoing edges
     CFAEdge lastEdge = pLastElement.getLocationNode().getLeavingEdge(0);
-    path.addToPathAsFirstElem(currentARTElement, lastEdge);
+    path.addFirst(new Pair<ARTElement, CFAEdge>(currentARTElement, lastEdge));
+    
     while(currentARTElement != null){
       CFANode currentNode = currentARTElement.getLocationNode();
       ARTElement parentElement = currentARTElement.getFirstParent();
+      
       CFANode parentNode = null;
-      if(parentElement != null){
+      if(parentElement != null) {
         parentNode = parentElement.getLocationNode();
       }
-      else{
-        parentElement = null;
-      }
 
-      CFAEdge foundEdge = null;
+      boolean foundEdge = false;
       for(int i=0; i<currentNode.getNumEnteringEdges(); i++){
         CFAEdge edge = currentNode.getEnteringEdge(i);
         if(edge.getPredecessor().equals(parentNode)){
-          foundEdge = edge;
-          path.addToPathAsFirstElem(currentARTElement, foundEdge);
+          foundEdge = true;
+          path.addFirst(new Pair<ARTElement, CFAEdge>(currentARTElement, edge));
           break;
         }
       }
+      assert (parentElement == null) || foundEdge;
       currentARTElement = parentElement;
     }
     return path;

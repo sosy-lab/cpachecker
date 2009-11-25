@@ -20,7 +20,6 @@ import cpa.art.ARTElement;
 import cpa.art.AbstractARTBasedRefiner;
 import cpa.common.Path;
 import cpa.common.ReachedElements;
-import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import exceptions.CPAException;
 
@@ -166,10 +165,13 @@ public class PredicateAbstractionRefiner extends AbstractARTBasedRefiner {
 
   }
 
+  @SuppressWarnings("unchecked")
   private Pair<ARTElement, CFAEdge>[] getPathArray(
       Path pPath) {
 
-    Pair<ARTElement, CFAEdge>[] array = 
+    Pair<ARTElement, CFAEdge>[] array = (Pair<ARTElement, CFAEdge>[])pPath.toArray();
+    /*
+    Pair<ARTElement, CFAEdge>[] array =
       new Pair[pPath.size()];
 
     Pair<AbstractElement, CFAEdge> pathElement = pPath.getElementAt(0);
@@ -182,6 +184,7 @@ public class PredicateAbstractionRefiner extends AbstractARTBasedRefiner {
       Pair<AbstractElement, CFAEdge> p = pPath.getElementAt(i);
       array[i] = new Pair<ARTElement, CFAEdge>((ARTElement) p.getFirst(), p.getSecond());
     }
+    */
 
     return array;
 
