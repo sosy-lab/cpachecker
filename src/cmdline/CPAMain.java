@@ -35,10 +35,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
-import logging.CPACheckerLogger;
-import logging.CustomLogLevel;
-import logging.LazyLogger;
-
 import org.eclipse.cdt.core.dom.IASTServiceProvider;
 import org.eclipse.cdt.core.dom.ICodeReaderFactory;
 import org.eclipse.cdt.core.dom.IASTServiceProvider.UnsupportedDialectException;
@@ -74,6 +70,7 @@ import compositeCPA.CompositeStopOperator;
 import cpa.art.ARTCPA;
 import cpa.art.ARTElement;
 import cpa.common.ReachedElements;
+import cpa.common.LogManager;
 import cpa.common.algorithm.Algorithm;
 import cpa.common.algorithm.CBMCAlgorithm;
 import cpa.common.algorithm.CEGARAlgorithm;
@@ -94,6 +91,7 @@ import exceptions.CPAException;
 public class CPAMain {
 
   public static CPAConfiguration cpaConfig;
+  public static LogManager logManager;
   private final static MainCPAStatistics cpaStats = new MainCPAStatistics();
 
   // used in the ShutdownHook to check whether the analysis has been
@@ -141,17 +139,18 @@ public class CPAMain {
   public static void main(String[] args) {
     // initialize various components
     cpaConfig = new CPAConfiguration(args);
-    CPACheckerLogger.init();
+    logManager = LogManager.getInstance();
     
     // get code file name
     String[] names = cpaConfig.getPropertiesArray("analysis.programNames");
     if (names == null) {
-      LazyLogger.log(Level.SEVERE, "No code file given!");
+      logManager.log(Level.SEVERE, "No code file given!");
       System.exit(1);
     }
     
     if (names.length != 1) {
-      LazyLogger.log(Level.SEVERE, "Support for multiple code files is currently not implemented!");
+      logManager.log(Level.SEVERE, 
+              "Support for multiple code files is currently not implemented!");
       System.exit(1);
     }
     
@@ -163,11 +162,13 @@ public class CPAMain {
     // run analysis
     CPAchecker(new StubFile(names[0]));
     
+    //ensure all logs are written to the outfile
+    logManager.flush();
     // statistics are displayed by shutdown hook
   }
   
   public static void CPAchecker(IFile file) {
-    LazyLogger.log(CustomLogLevel.MainApplicationLevel, "Analysis Started");
+    logManager.log(Level.FINE, "Analysis Started");
     
     // parse code file
     IASTTranslationUnit ast = parse(file);
@@ -183,7 +184,7 @@ public class CPAMain {
       interrupted = false;
 
     } catch (CPAException e) {
-      System.err.println(e.getMessage());
+      logManager.logException(Level.SEVERE, e, "CPAException");
       e.printStackTrace();
     }
   }
@@ -202,8 +203,8 @@ public class CPAMain {
     try {
        codeReaderFactory = createCodeReaderFactory();
     } catch (ClassNotFoundException e) {
-      LazyLogger.log(Level.SEVERE, "Missing implementation of ICodeReaderFactory, check your CDT version!");
-      e.printStackTrace();
+      logManager.logException(Level.SEVERE, e, "ClassNotFoundException:" +
+      		"Missing implementation of ICodeReaderFactory, check your CDT version!");
       System.exit(1);
     }
     
@@ -211,12 +212,12 @@ public class CPAMain {
     try {
       ast = p.getTranslationUnit(file, codeReaderFactory, new StubConfiguration());
     } catch (UnsupportedDialectException e) {
-      LazyLogger.log(Level.SEVERE, "Unsupported dialect for parser, check parser.dialect option!");
-      e.printStackTrace();
+      logManager.logException(Level.SEVERE, e, "UnsupportedDialectException:" +
+      		"Unsupported dialect for parser, check parser.dialect option!");
       System.exit(1);
     }
 
-    LazyLogger.log(CustomLogLevel.MainApplicationLevel, "Parser Finished");
+    logManager.log(Level.FINE, "Parser Finished");
 
     return ast;
   }
@@ -291,7 +292,7 @@ public class CPAMain {
 
     // Insert call and return edges and build the supergraph
     if (CPAMain.cpaConfig.getBooleanValue("analysis.interprocedural")) {
-      LazyLogger.log(CustomLogLevel.MainApplicationLevel, "Analysis is interprocedural, adding super edges");
+      logManager.log(Level.FINE, "Analysis is interprocedural, adding super edges");
       
       boolean noExtCalls = CPAMain.cpaConfig.getBooleanValue("analysis.noExternalCalls");
       CPASecondPassBuilder spbuilder = new CPASecondPassBuilder(cfas, noExtCalls);
@@ -315,14 +316,14 @@ public class CPAMain {
     
     // optionally combine several edges into summary edges
     if (CPAMain.cpaConfig.getBooleanValue( "analysis.useSummaryLocations")) {
-      LazyLogger.log(CustomLogLevel.MainApplicationLevel, "Building Summary CFAs");
+      logManager.log(Level.FINE, "Building Summary CFAs");
    
       SummaryCFABuilder summaryBuilder = new SummaryCFABuilder(mainFunction,
                                               builder.getGlobalDeclarations());
       mainFunction = summaryBuilder.buildSummary();
 
     } else if (CPAMain.cpaConfig.getBooleanValue("analysis.useBlockEdges")){
-      CPACheckerLogger.log(CustomLogLevel.MainApplicationLevel, "Building Block CFAs");
+      logManager.log(Level.FINE, "Building Block CFAs");
       
       BlockCFABuilder summaryBuilder =   new BlockCFABuilder(mainFunction,
                                               builder.getGlobalDeclarations());
@@ -354,12 +355,13 @@ public class CPAMain {
         dotBuilder.generateDOT(cfasList, mainFunction,
             new File(dotPath, "dot_main.dot").getPath());
       } catch (IOException e) {
-        LazyLogger.log(Level.WARNING, "Could not write CFA to dot file, check configuration option dot.path! (Message was ", e.getMessage(), ")");
+        logManager.logException(Level.WARNING, e,
+          "Could not write CFA to dot file, check configuration option dot.path!");
         // continue with analysis
       }
     }
     
-    LazyLogger.log(CustomLogLevel.MainApplicationLevel, "DONE, CFA for ", numFunctions, " functions created");
+    logManager.log(Level.FINE, "DONE, CFA for", numFunctions, "functions created");
 
     return new Pair<CFAMap, CFAFunctionDefinitionNode>(cfas, mainFunction);
   }
@@ -419,17 +421,17 @@ public class CPAMain {
 
     if (CPAMain.cpaConfig.getBooleanValue("analysis.queryDrivenProgramTesting")) {
       
-      LazyLogger.log(CustomLogLevel.MainApplicationLevel, "CPA Algorithm starting ... ");
+      logManager.log(Level.FINE, "CPA Algorithm starting ...");
       cpaStats.startAnalysisTimer();
 
       QueryDrivenProgramTesting.doIt(cfas, mainFunction);
 
       cpaStats.stopAnalysisTimer();
-      LazyLogger.log(CustomLogLevel.MainApplicationLevel, "CPA Algorithm finished ");
+      logManager.log(Level.FINE, "CPA Algorithm finished");
 
     } else {
  
-      LazyLogger.log(CustomLogLevel.MainApplicationLevel, "Creating CPAs");
+      logManager.log(Level.FINE, "Creating CPAs");
       ConfigurableProgramAnalysis cpa = CompositeCPA.getCompositeCPA(mainFunction);
 
       boolean useART = CPAMain.cpaConfig.getBooleanValue("analysis.useART"); 
@@ -466,13 +468,13 @@ public class CPAMain {
       }
       reached.add(initialPair);
 
-      LazyLogger.log(CustomLogLevel.MainApplicationLevel, "CPA Algorithm starting ... ");
+      logManager.log(Level.FINE, "CPA Algorithm starting ...");
       cpaStats.startAnalysisTimer();
       
       algorithm.run(reached, false);
       
       cpaStats.stopAnalysisTimer();
-      LazyLogger.log(CustomLogLevel.MainApplicationLevel, "CPA Algorithm finished ");
+      logManager.log(Level.FINE, "CPA Algorithm finished");
 
       if (result == Result.UNKNOWN) {
         boolean errorFound = false;

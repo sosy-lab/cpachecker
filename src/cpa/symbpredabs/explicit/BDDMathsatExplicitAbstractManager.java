@@ -37,6 +37,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 import java.util.Vector;
+import java.util.logging.Level;
 
 import symbpredabstraction.SSAMap;
 import symbpredabstraction.bdd.BDDAbstractFormula;
@@ -53,9 +54,6 @@ import symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
 import symbpredabstraction.trace.ConcreteTraceFunctionCalls;
 import symbpredabstraction.trace.CounterexampleTraceInfo;
 
-import logging.CPACheckerLogger;
-import logging.CustomLogLevel;
-import logging.LazyLogger;
 import cfa.objectmodel.BlankEdge;
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAErrorNode;
@@ -419,7 +417,7 @@ public class BDDMathsatExplicitAbstractManager extends
 //                            ((BDDAbstractFormula)e.getAbstraction()).getBDD() ==
 //                                bddManager.getOne())) {
                     ) {
-                LazyLogger.log(LazyLogger.DEBUG_1,
+              CPAMain.logManager.log(Level.ALL, "DEBUG_1",
                         "SKIPPING ABSTRACTION CHECK, e: ", e, ", SUCC:", succ,
                         ", edge: ", edge);
                 return e.getAbstraction();
@@ -460,10 +458,10 @@ public class BDDMathsatExplicitAbstractManager extends
             //                            toConcrete(mmgr, ctx), null);
             //                fabs = (MathsatSymbolicFormula)mmgr.makeAnd(fabs, fctx);
             //
-            //                LazyLogger.log(LazyLogger.DEBUG_3,
+            //                CPAMain.logManager.log(Level.ALL, "DEBUG_3",
             //                        "TAKING CALLING CONTEXT INTO ACCOUNT: ", fctx);
             //            } else {
-            //                LazyLogger.log(LazyLogger.DEBUG_3,
+            //                CPAMain.logManager.log(Level.ALL, "DEBUG_3",
             //                        "NOT TAKING CALLING CONTEXT INTO ACCOUNT,",
             //                        "as we are not using well-scoped predicates");
             //            }
@@ -491,7 +489,7 @@ public class BDDMathsatExplicitAbstractManager extends
                     (MathsatSymbolicFormula)f);
             f = mmgr.makeAnd(f, bitwiseAxioms);
 
-            LazyLogger.log(LazyLogger.DEBUG_3, "ADDED BITWISE AXIOMS: ",
+            CPAMain.logManager.log(Level.ALL, "DEBUG_3", "ADDED BITWISE AXIOMS:",
                     bitwiseAxioms);
         }
         long term = ((MathsatSymbolicFormula)f).getTerm();
@@ -522,13 +520,13 @@ public class BDDMathsatExplicitAbstractManager extends
             }
         }
 
-        if (CPACheckerLogger.getLevel() <= LazyLogger.DEBUG_1.intValue()) {
+        if (CPAMain.logManager.getLogLevel().intValue() <= Level.ALL.intValue()) {
             StringBuffer importantStrBuf = new StringBuffer();
             for (long t : important) {
                 importantStrBuf.append(mathsat.api.msat_term_repr(t));
                 importantStrBuf.append(" ");
             }
-            LazyLogger.log(LazyLogger.DEBUG_1,
+            CPAMain.logManager.log(Level.ALL, "DEBUG_1",
                     "IMPORTANT SYMBOLS (", important.length, "): ",
                     importantStrBuf);
         }
@@ -549,7 +547,7 @@ public class BDDMathsatExplicitAbstractManager extends
         // build the formula and send it to the absEnv
         long formula = mathsat.api.msat_make_and(msatEnv, term, preddef);
 
-        LazyLogger.log(LazyLogger.DEBUG_1, "COMPUTING ALL-SMT ON FORMULA: ",
+        CPAMain.logManager.log(Level.ALL, "DEBUG_1", "COMPUTING ALL-SMT ON FORMULA:",
                 new MathsatSymbolicFormula(formula));
 
         ++stats.abstractionNumMathsatQueries;
@@ -622,10 +620,10 @@ public class BDDMathsatExplicitAbstractManager extends
 //                            toConcrete(mmgr, ctx), null);
 //                fabs = (MathsatSymbolicFormula)mmgr.makeAnd(fabs, fctx);
 //
-//                LazyLogger.log(LazyLogger.DEBUG_3,
+//                CPAMain.logManager.log(Level.ALL, "DEBUG_3",
 //                        "TAKING CALLING CONTEXT INTO ACCOUNT: ", fctx);
 //            } else {
-//                LazyLogger.log(LazyLogger.DEBUG_3,
+//                CPAMain.logManager.log(Level.ALL, "DEBUG_3",
 //                        "NOT TAKING CALLING CONTEXT INTO ACCOUNT,",
 //                        "as we are not using well-scoped predicates");
 //            }
@@ -675,7 +673,7 @@ public class BDDMathsatExplicitAbstractManager extends
                     (MathsatSymbolicFormula)f);
             f = mmgr.makeAnd(f, bitwiseAxioms);
 
-            LazyLogger.log(LazyLogger.DEBUG_3, "ADDED BITWISE AXIOMS: ",
+            CPAMain.logManager.log(Level.ALL, "DEBUG_3", "ADDED BITWISE AXIOMS:",
                     bitwiseAxioms);
         }
 
@@ -761,7 +759,7 @@ public class BDDMathsatExplicitAbstractManager extends
                 }
 
 
-                LazyLogger.log(LazyLogger.DEBUG_1,
+                CPAMain.logManager.log(Level.ALL, "DEBUG_1",
                         "CHECKING VALUE OF PREDICATE: ", pi.getFirst());
 
                 // instantiate the definition of the predicate
@@ -877,7 +875,7 @@ public class BDDMathsatExplicitAbstractManager extends
         boolean useZigZag = CPAMain.cpaConfig.getBooleanValue(
                 "cpas.symbpredabs.shortestCexTraceZigZag");
 
-        LazyLogger.log(LazyLogger.DEBUG_3,
+        CPAMain.logManager.log(Level.ALL, "DEBUG_3",
                        "Checking feasibility of abstract trace");
 
         if (shortestTrace && CPAMain.cpaConfig.getBooleanValue(
@@ -909,7 +907,7 @@ public class BDDMathsatExplicitAbstractManager extends
             SymbolicFormula cur = f.elementAt(i);
             itpProver.addFormula(cur);
 
-            LazyLogger.log(LazyLogger.DEBUG_1,
+            CPAMain.logManager.log(Level.ALL, "DEBUG_1",
                            "Asserting formula: ", cur);
 
             boolean doCheckHere = !cur.isTrue();
@@ -919,7 +917,7 @@ public class BDDMathsatExplicitAbstractManager extends
             if (shortestTrace && doCheckHere) {
                 if (itpProver.isUnsat()) {
                     res = 0;
-                    LazyLogger.log(LazyLogger.DEBUG_1,
+                    CPAMain.logManager.log(Level.ALL, "DEBUG_1",
                                    "TRACE INCONSISTENT AFTER group: ", i);
                     break;
                 } else {
@@ -988,7 +986,7 @@ public class BDDMathsatExplicitAbstractManager extends
                     lastIndexBlastWay = i;
                 }
 
-                LazyLogger.log(LazyLogger.DEBUG_1,
+                CPAMain.logManager.log(Level.ALL, "DEBUG_1",
                                "Got interpolant(", i, "): ",
                                itp, " LOCATION: ",
                                ((ExplicitAbstractElement)
@@ -1027,13 +1025,13 @@ public class BDDMathsatExplicitAbstractManager extends
                 // of entry points
                 ExplicitAbstractElement e = (ExplicitAbstractElement)abstarr[i];
                 if (isFunctionEntry(e)) {
-                    LazyLogger.log(LazyLogger.DEBUG_3,
+                  CPAMain.logManager.log(Level.ALL, "DEBUG_3",
                             "Pushing entry point, function: ",
                             e.getLocation().getFunctionName());
                     entryPoints.push(i);
                 }
                 if (isFunctionExit(e)) {
-                    LazyLogger.log(LazyLogger.DEBUG_3,
+                  CPAMain.logManager.log(Level.ALL, "DEBUG_3",
                             "Popping entry point, returning from function: ",
                             e.getLocation().getFunctionName());
                     entryPoints.pop();
@@ -1077,7 +1075,7 @@ public class BDDMathsatExplicitAbstractManager extends
                     pw.println(msatRepr);
                     pw.close();
                 } catch (FileNotFoundException e) {
-                    LazyLogger.log(CustomLogLevel.INFO,
+                  CPAMain.logManager.log(Level.INFO,
                             "Failed to save msat Counterexample to file: ",
                             cexPath);
                 }
@@ -1135,7 +1133,7 @@ public class BDDMathsatExplicitAbstractManager extends
         boolean useZigZag = CPAMain.cpaConfig.getBooleanValue(
                 "cpas.symbpredabs.shortestCexTraceZigZag");
 
-        LazyLogger.log(LazyLogger.DEBUG_3,
+        CPAMain.logManager.log(Level.ALL, "DEBUG_3",
                        "Checking feasibility of abstract trace");
 
         if (shortestTrace && CPAMain.cpaConfig.getBooleanValue(
@@ -1167,7 +1165,7 @@ public class BDDMathsatExplicitAbstractManager extends
             SymbolicFormula cur = f.elementAt(i);
             itpProver.addFormula(cur);
 
-            LazyLogger.log(LazyLogger.DEBUG_1,
+            CPAMain.logManager.log(Level.ALL, "DEBUG_1",
                            "Asserting formula: ", cur);
 
             boolean doCheckHere = !cur.isTrue();
@@ -1177,7 +1175,7 @@ public class BDDMathsatExplicitAbstractManager extends
             if (shortestTrace && doCheckHere) {
                 if (itpProver.isUnsat()) {
                     res = 0;
-                    LazyLogger.log(LazyLogger.DEBUG_1,
+                    CPAMain.logManager.log(Level.ALL, "DEBUG_1",
                                    "TRACE INCONSISTENT AFTER group: ", i);
                     break;
                 } else {
@@ -1248,7 +1246,7 @@ public class BDDMathsatExplicitAbstractManager extends
                     lastIndexBlastWay = i;
                 }
 
-                LazyLogger.log(LazyLogger.DEBUG_1,
+                CPAMain.logManager.log(Level.ALL, "DEBUG_1",
                                "Got interpolant(", i, "): ",
                                itp, " LOCATION: ",
                                ((ExplicitAbstractElement)
@@ -1287,13 +1285,13 @@ public class BDDMathsatExplicitAbstractManager extends
                 // of entry points
                 ExplicitAbstractElement e = (ExplicitAbstractElement)abstarr[i];
                 if (isFunctionEntry(e)) {
-                    LazyLogger.log(LazyLogger.DEBUG_3,
+                  CPAMain.logManager.log(Level.ALL, "DEBUG_3",
                             "Pushing entry point, function: ",
                             e.getLocation().getFunctionName());
                     entryPoints.push(i);
                 }
                 if (isFunctionExit(e)) {
-                    LazyLogger.log(LazyLogger.DEBUG_3,
+                  CPAMain.logManager.log(Level.ALL, "DEBUG_3",
                             "Popping entry point, returning from function: ",
                             e.getLocation().getFunctionName());
                     entryPoints.pop();
@@ -1340,7 +1338,7 @@ public class BDDMathsatExplicitAbstractManager extends
                     pw.println(msatRepr);
                     pw.close();
                 } catch (FileNotFoundException e) {
-                    LazyLogger.log(CustomLogLevel.INFO,
+                  CPAMain.logManager.log(Level.INFO,
                             "Failed to save msat Counterexample to file: ",
                             cexPath);
                 }
@@ -1426,7 +1424,7 @@ public class BDDMathsatExplicitAbstractManager extends
         long msatEnv = mmgr.getMsatEnv();
         thmProver.init(TheoremProver.COUNTEREXAMPLE_ANALYSIS);
 
-        LazyLogger.log(LazyLogger.DEBUG_1, "Calling getUsefulBlocks on path ",
+        CPAMain.logManager.log(Level.ALL, "DEBUG_1", "Calling getUsefulBlocks on path",
                         "of length: ", f.size());
 
         MathsatSymbolicFormula trueFormula = new MathsatSymbolicFormula(
@@ -1475,7 +1473,7 @@ public class BDDMathsatExplicitAbstractManager extends
                     if (thmProver.isUnsat(trueFormula)) {
                         // add this block to the needed ones, and repeat
                         needed[i] = t;
-                        LazyLogger.log(LazyLogger.DEBUG_1,
+                        CPAMain.logManager.log(Level.ALL, "DEBUG_1",
                                 "Found needed block: ", i, ", term: ", t);
                         // pop all
                         while (toPop > 0) {
@@ -1498,7 +1496,7 @@ public class BDDMathsatExplicitAbstractManager extends
                     if (thmProver.isUnsat(trueFormula)) {
                         // add this block to the needed ones, and repeat
                         needed[i] = t;
-                        LazyLogger.log(LazyLogger.DEBUG_1,
+                        CPAMain.logManager.log(Level.ALL, "DEBUG_1",
                                 "Found needed block: ", i, ", term: ", t);
                         // pop all
                         while (toPop > 0) {
@@ -1531,7 +1529,7 @@ public class BDDMathsatExplicitAbstractManager extends
 
         thmProver.reset();
 
-        LazyLogger.log(LazyLogger.DEBUG_1, "Done getUsefulBlocks");
+        CPAMain.logManager.log(Level.ALL, "DEBUG_1", "Done getUsefulBlocks");
 
         return f;
     }
@@ -1562,8 +1560,8 @@ public class BDDMathsatExplicitAbstractManager extends
 
         Vector<SymbolicFormula> f = new Vector<SymbolicFormula>();
 
-        LazyLogger.log(LazyLogger.DEBUG_1, "\nBUILDING COUNTEREXAMPLE TRACE\n");
-        LazyLogger.log(LazyLogger.DEBUG_1, "ABSTRACT TRACE: ",
+        CPAMain.logManager.log(Level.ALL, "DEBUG_1", "BUILDING COUNTEREXAMPLE TRACE");
+        CPAMain.logManager.log(Level.ALL, "DEBUG_1", "ABSTRACT TRACE:",
                 new ArrayToStringConverter(path));
 
         AbstractElementWithLocation cur = path[0];
@@ -1590,7 +1588,7 @@ public class BDDMathsatExplicitAbstractManager extends
             SymbolicFormula fm = null;
             fm = mmgr.replaceAssignments(
                     (MathsatSymbolicFormula)p.getFirst());
-            LazyLogger.log(LazyLogger.DEBUG_3, "INITIAL: ", fm,
+            CPAMain.logManager.log(Level.ALL, "DEBUG_3", "INITIAL: ", fm,
                     " SSA: ", p.getSecond());
             newssa = p.getSecond();
             boolean hasUf = mmgr.hasUninterpretedFunctions(

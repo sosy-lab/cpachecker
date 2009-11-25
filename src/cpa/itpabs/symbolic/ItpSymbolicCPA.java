@@ -26,8 +26,10 @@ package cpa.itpabs.symbolic;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
 
-import logging.LazyLogger;
+import cmdline.CPAMain;
+
 import symbpredabstraction.SSAMap;
 import symbpredabstraction.interfaces.SymbolicFormula;
 import cfa.objectmodel.CFAEdge;
@@ -89,7 +91,7 @@ public class ItpSymbolicCPA extends ItpCPA {
             if (isFunctionEnd(e, succ)) {
                 CFANode retNode = e.topContextLocation();
                 if (!succ.getLocation().equals(retNode)) {
-                    LazyLogger.log(LazyLogger.DEBUG_1,
+                  CPAMain.logManager.log(Level.ALL, "DEBUG_1",
                             "Return node for this call is: ", retNode,
                             ", but edge leads to: ", succ.getLocation());
                     return false;
@@ -120,7 +122,7 @@ public class ItpSymbolicCPA extends ItpCPA {
                 }
             }
             if (retNode != null) {
-                LazyLogger.log(LazyLogger.DEBUG_3, "PUSHING CONTEXT TO ", succ);
+              CPAMain.logManager.log(Level.ALL, "DEBUG_3", "PUSHING CONTEXT TO", succ);
                 succ.pushContext(succ.getAbstraction(), (CFANode)retNode);
             }
         }
@@ -167,7 +169,7 @@ public class ItpSymbolicCPA extends ItpCPA {
                             succLoc);
                 summaryToFormulaMap.put(succLoc, p);
 
-//                CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel,
+//                CPAMain.logManager.log(Level.FINEST, 
 //                        "SYMBOLIC FORMULA FOR " + succLoc.toString() + ": " +
 //                        p.getFirst().toString());
 

@@ -31,8 +31,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import logging.CustomLogLevel;
-import logging.LazyLogger;
+import java.util.logging.Level;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cmdline.CPAMain;
 import cpa.common.CallElement;
@@ -172,12 +171,10 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, CPAWithStatist
     // summary nodes
     if (cpas.size() == 1 &&
         CPAMain.cpaConfig.getBooleanValue("analysis.noCompositeCPA")) {
-      LazyLogger.log(CustomLogLevel.MainApplicationLevel,
-          "Only one analyis active, no need of a composite CPA");
+      CPAMain.logManager.log(Level.FINE, "Only one analyis active, no need of a composite CPA");
       cpa = cpas.get(0);
     } else {
-      LazyLogger.log(CustomLogLevel.MainApplicationLevel,
-          "CompositeCPA is built using the list of CPAs");
+      CPAMain.logManager.log(Level.FINE, "CompositeCPA is built using the list of CPAs");
       cpa = CompositeCPA.createNewCompositeCPA(cpas, node);
     }
     return cpa;

@@ -24,8 +24,10 @@
 package cpa.itpabs.explicit;
 
 import java.util.Collection;
+import java.util.logging.Level;
 
-import logging.LazyLogger;
+import cmdline.CPAMain;
+
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFANode;
 import cfa.objectmodel.c.FunctionDefinitionNode;
@@ -70,9 +72,9 @@ public class ItpExplicitCPA extends ItpCPA {
             if (isFunctionEnd(e, succ)) {
                 CFANode retNode = e.topContextLocation();
                 if (!succ.getLocation().equals(retNode)) {
-                    LazyLogger.log(LazyLogger.DEBUG_1,
-                            "Return node for this call is: ", retNode,
-                            ", but edge leads to: ", succ.getLocation());
+                  CPAMain.logManager.log(Level.ALL, "DEBUG_1",
+                            "Return node for this call is:", retNode,
+                            ", but edge leads to:", succ.getLocation());
                     return false;
                 }
             }

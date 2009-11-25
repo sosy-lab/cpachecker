@@ -29,9 +29,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import logging.CustomLogLevel;
-import logging.LazyLogger;
+import java.util.logging.Level;
 import cmdline.CPAMain;
 
 import common.Pair;
@@ -108,7 +106,7 @@ public class CEGARAlgorithm implements Algorithm {
           long end = System.currentTimeMillis();
           modifySetsTime = modifySetsTime + (end - start);
         
-          LazyLogger.log(CustomLogLevel.SpecificCPALevel, "Refinement done");
+          CPAMain.logManager.log(Level.FINEST, "Refinement done");
           
           runGC();
           
@@ -144,7 +142,7 @@ public class CEGARAlgorithm implements Algorithm {
       AbstractElementWithLocation e = p.getFirst();
       
       if (reachableToUndo.contains(e)) {
-        LazyLogger.log(CustomLogLevel.SpecificCPALevel, "Removing element: ", e, " from reached");
+        CPAMain.logManager.log(Level.FINEST, "Removing element:", e, "from reached");
         toRemove.add(p);
       }
       
@@ -155,9 +153,9 @@ public class CEGARAlgorithm implements Algorithm {
     
     reached.removeAll(toRemove);
     
-    LazyLogger.log(CustomLogLevel.SpecificCPALevel, "Reached now is: ", reached.getReached());
+    CPAMain.logManager.log(Level.FINEST, "Reached now is:", reached.getReached());
     
-    LazyLogger.log(CustomLogLevel.SpecificCPALevel, "Adding elements: ", toWaitlist, " to waitlist");
+    CPAMain.logManager.log(Level.FINEST, "Adding elements:", toWaitlist, "to waitlist");
     
     for (AbstractElementWithLocation e : toWaitlist) {
       Pair<AbstractElementWithLocation, Precision> p;

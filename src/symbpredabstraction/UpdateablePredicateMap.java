@@ -29,12 +29,16 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
 
-import logging.LazyLogger;
 import symbpredabstraction.interfaces.Predicate;
 import symbpredabstraction.interfaces.PredicateMap;
-import cfa.objectmodel.CFANode;
+
 import cmdline.CPAMain;
+
+import cfa.objectmodel.CFANode;
+
+
 
 /**
  * A predicate map which can be updated (refined) during execution
@@ -43,9 +47,9 @@ import cmdline.CPAMain;
  */
 public class UpdateablePredicateMap implements PredicateMap {
 
-    private final Map<CFANode, Set<Predicate>> repr;
-    private final Map<String, Set<Predicate>> functionGlobalPreds;
-    private final Collection<Predicate> initialGlobalPreds;
+    private Map<CFANode, Set<Predicate>> repr;
+    private Map<String, Set<Predicate>> functionGlobalPreds;
+    private Collection<Predicate> initialGlobalPreds;
 
     public UpdateablePredicateMap(Collection<Predicate> initial) {
         repr = new HashMap<CFANode, Set<Predicate>>();
@@ -73,7 +77,7 @@ public class UpdateablePredicateMap implements PredicateMap {
             Set<Predicate> s = functionGlobalPreds.get(fn);
             added |= s.addAll(preds);
             if (added) {
-                LazyLogger.log(LazyLogger.DEBUG_1,
+              CPAMain.logManager.log(Level.ALL, "DEBUG_1",
                         "UPDATED PREDICATES FOR FUNCTION ", fn, ": ", s);
             }
         } else {
@@ -87,10 +91,10 @@ public class UpdateablePredicateMap implements PredicateMap {
             Set<Predicate> s = repr.get(n);
             added |= s.addAll(preds);
             if (added) {
-                LazyLogger.log(LazyLogger.DEBUG_1, "UPDATED PREDICATES FOR ", n,
+              CPAMain.logManager.log(Level.ALL, "DEBUG_1", "UPDATED PREDICATES FOR", n,
                         ": ", s);
             } else {
-                LazyLogger.log(LazyLogger.DEBUG_2, "NOT ADDING PREDICATES TO ",
+              CPAMain.logManager.log(Level.ALL, "DEBUG_2", "NOT ADDING PREDICATES TO",
                         n, ": ", s, ", preds: ", preds);
             }
         }

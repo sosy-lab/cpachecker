@@ -31,13 +31,14 @@ import java.util.Map;
 import java.util.Stack;
 import java.util.TreeMap;
 import java.util.Vector;
+import java.util.logging.Level;
+
+import cmdline.CPAMain;
 
 import symbpredabstraction.SSAMap;
 import symbpredabstraction.interfaces.SymbolicFormula;
 import symbpredabstraction.mathsat.MathsatSymbolicFormula;
 import symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
-
-import logging.LazyLogger;
 
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFANode;
@@ -116,7 +117,7 @@ public class MathsatSummaryFormulaManager extends MathsatSymbolicFormulaManager
             new HashMap<InnerCFANode, SSAMap>();
         Collection<InnerCFANode> leaves = new Vector<InnerCFANode>();
 
-        LazyLogger.log(LazyLogger.DEBUG_4, "TOPOLOGICAL SORT: ", toProcess);
+        CPAMain.logManager.log(Level.ALL, "DEBUG_4", "TOPOLOGICAL SORT:", toProcess);
 
         nodeToFormula.put((InnerCFANode)summary.getInnerNode(),
                           (MathsatSymbolicFormula)makeTrue());
@@ -162,7 +163,7 @@ public class MathsatSummaryFormulaManager extends MathsatSymbolicFormulaManager
                     }
                     nodeToFormula.put(succ, (MathsatSymbolicFormula)t1);
 
-                    LazyLogger.log(LazyLogger.DEBUG_3,
+                    CPAMain.logManager.log(Level.ALL, "DEBUG_3",
                                    " FORMULA FOR LOCATION ",
                                    ((CFANode)succ).getNodeNumber(), ": ",
                                    mathsat.api.msat_term_id(
@@ -175,7 +176,7 @@ public class MathsatSummaryFormulaManager extends MathsatSymbolicFormulaManager
             }
             if (isLeaf) {
                 // if this node is a leaf, remember it
-                LazyLogger.log(LazyLogger.DEBUG_4,
+              CPAMain.logManager.log(Level.ALL, "DEBUG_4",
                                "LEAF LOCATION ", n.getNodeNumber());
                 leaves.add(in);
             }
@@ -191,7 +192,7 @@ public class MathsatSummaryFormulaManager extends MathsatSymbolicFormulaManager
             SSAMap s = nodeToSSA.get(n);
             ret.put((CFANode)n, new Pair<SymbolicFormula, SSAMap>(f, s));
 
-            LazyLogger.log(LazyLogger.DEBUG_3,
+            CPAMain.logManager.log(Level.ALL, "DEBUG_3",
                     "FORMULA FOR LEAF: ", ((CFANode)n).getNodeNumber(),
                     " IS: ", f);
         }

@@ -27,9 +27,9 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Vector;
+import java.util.logging.Level;
 
-import logging.CustomLogLevel;
-import logging.LazyLogger;
+import cmdline.CPAMain;
 
 import common.Pair;
 
@@ -74,8 +74,8 @@ public class CPAAlgorithm implements Algorithm {
       AbstractElementWithLocation element = e.getFirst();
       Precision precision = e.getSecond();
 
-      LazyLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel, element,
-          " with precision ", precision, " is popped from queue");
+      CPAMain.logManager.log(Level.FINER, element,
+          "with precision", precision, "is popped from queue");
 
       start = System.currentTimeMillis();
       List<AbstractElementWithLocation> successors = transferRelation.getAllAbstractSuccessors (element, precision);
@@ -84,8 +84,7 @@ public class CPAAlgorithm implements Algorithm {
       // TODO When we have a nice way to mark the analysis result as incomplete, we could continue analysis on a CPATransferException with the next element from waitlist.
       
       for (AbstractElementWithLocation successor : successors) {
-        LazyLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel,
-            "successor of ", element, " --> ", successor);
+        CPAMain.logManager.log(Level.FINER, "successor of", element, "-->", successor);
         
         Collection<Pair<AbstractElementWithLocation,Precision>> reached = reachedElements.getReached(successor.getLocationNode());
 
@@ -100,14 +99,13 @@ public class CPAAlgorithm implements Algorithm {
           for (Pair<AbstractElementWithLocation, Precision> reachedEntry : reached) {
             AbstractElementWithLocation reachedElement = reachedEntry.getFirst();
             AbstractElementWithLocation mergedElement = mergeOperator.merge( successor, reachedElement, precision);
-            LazyLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel,
-                " Merged ", successor, " and ", reachedElement, " --> ", mergedElement);
+            CPAMain.logManager.log(Level.FINER,
+                "Merged", successor, "and", reachedElement, "-->", mergedElement);
             if (!mergedElement.equals(reachedElement)) {
-              LazyLogger.log(
-                  CustomLogLevel.CentralCPAAlgorithmLevel,
-                  "reached element ", reachedElement,
-                  " is removed from queue and ", mergedElement,
-                  " with precision ", precision, " is added to queue");
+              CPAMain.logManager.log(Level.FINER,
+                  "reached element", reachedElement,
+                  "is removed from queue and", mergedElement,
+                  "with precision", precision, "is added to queue");
 
               toRemove.add(reachedEntry);
               toAdd.add(new Pair<AbstractElementWithLocation,Precision>(mergedElement, precision));
@@ -129,8 +127,8 @@ public class CPAAlgorithm implements Algorithm {
         }
 
         if (!stopOperator.stop(successor, simpleReached, precision)) {
-          LazyLogger.log(CustomLogLevel.CentralCPAAlgorithmLevel,
-              "No need to stop ", successor, " is added to queue");
+          CPAMain.logManager.log(Level.FINER,
+              "No need to stop", successor, "is added to queue");
 
           reachedElements.add(new Pair<AbstractElementWithLocation,Precision>(successor,precision));
           

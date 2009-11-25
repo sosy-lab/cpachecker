@@ -27,7 +27,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Stack;
 
-import logging.LazyLogger;
+import cmdline.CPAMain;
+
+import java.util.logging.Level;
 
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAErrorNode;
@@ -132,7 +134,7 @@ public class CFAReduction {
       }
       if (finished) {
         toProcess.pop();
-        LazyLogger.log(LazyLogger.DEBUG_3,
+        CPAMain.logManager.log(Level.ALL, "DEBUG_3",
             "FINISHED: ", n.getNodeNumber());
         dfsMarked.put(n, 1);
       }

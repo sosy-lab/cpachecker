@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 import java.util.TreeSet;
+import java.util.logging.Level;
 
 import symbpredabstraction.interfaces.InterpolatingTheoremProver;
 import symbpredabstraction.interfaces.SymbolicFormula;
@@ -41,8 +42,6 @@ import symbpredabstraction.mathsat.MathsatTheoremProver;
 import symbpredabstraction.mathsat.SimplifyTheoremProver;
 import symbpredabstraction.mathsat.YicesTheoremProver;
 
-import logging.CustomLogLevel;
-import logging.LazyLogger;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cfa.objectmodel.CFANode;
 import cmdline.CPAMain;
@@ -167,7 +166,7 @@ public abstract class ItpCPA implements ConfigurableProgramAnalysis, CPAWithStat
     }
 
     public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
-        LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+      CPAMain.logManager.log(Level.FINEST,
                        "Getting initial element from node: ", node);
 
         ItpAbstractElement e = getElementCreator().create(node);

@@ -38,8 +38,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import logging.CPACheckerLogger;
-
 import org.eclipse.cdt.core.dom.IASTServiceProvider.UnsupportedDialectException;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.core.resources.IFile;
@@ -48,6 +46,7 @@ import cfa.CFABuilder;
 import cfa.CFAMap;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cmdline.stubs.StubFile;
+import cpa.common.LogManager;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.JoinOperator;
@@ -73,9 +72,7 @@ public class CPASelfCheck {
       LinkedList<Class<ConfigurableProgramAnalysis>> cpas = getCPAs();
       
       CPAMain.cpaConfig = new CPAConfiguration(args);
-      /// TODO oh my god, that code and the one in LazyLogger does some bad
-      /// not-so-static static abuse, fix that !!!
-      CPACheckerLogger.init();
+      CPAMain.logManager = LogManager.getInstance();
 
       for (Class<ConfigurableProgramAnalysis> cpa : cpas) {
         System.out.println();

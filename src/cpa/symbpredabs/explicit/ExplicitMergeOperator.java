@@ -23,7 +23,8 @@
  */
 package cpa.symbpredabs.explicit;
 
-import logging.LazyLogger;
+import java.util.logging.Level;
+import cmdline.CPAMain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.MergeOperator;
@@ -40,7 +41,7 @@ public class ExplicitMergeOperator implements MergeOperator {
   public AbstractElement merge(AbstractElement element1,
                                AbstractElement element2,
                                Precision prec) {
-    LazyLogger.log(LazyLogger.DEBUG_4,
+    CPAMain.logManager.log(Level.ALL, "DEBUG_4",
         "Trying to merge elements: ", element1,
         " and: ", element2);
 
@@ -50,7 +51,7 @@ public class ExplicitMergeOperator implements MergeOperator {
   public AbstractElementWithLocation merge(AbstractElementWithLocation pElement1,
                                            AbstractElementWithLocation pElement2,
                                            Precision prec) throws CPAException {
-    LazyLogger.log(LazyLogger.DEBUG_4,
+    CPAMain.logManager.log(Level.ALL, "DEBUG_4",
         "Trying to merge elements: ", pElement1,
         " and: ", pElement2);
 

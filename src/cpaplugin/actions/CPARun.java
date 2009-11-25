@@ -24,9 +24,7 @@
 package cpaplugin.actions;
 
 import java.io.PrintStream;
-
-import logging.CPACheckerLogger;
-import logging.CustomLogLevel;
+import java.util.logging.Level;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.jface.action.IAction;
@@ -49,6 +47,7 @@ import org.eclipse.ui.console.IOConsoleOutputStream;
 import org.eclipse.ui.console.MessageConsole;
 
 import cmdline.CPAMain;
+import cpa.common.LogManager;
 import cpaplugin.CPAConfiguration;
 
 public class CPARun implements IWorkbenchWindowActionDelegate
@@ -76,8 +75,6 @@ public class CPARun implements IWorkbenchWindowActionDelegate
 			System.setErr(new PrintStream(errStream));
 			init = true;
 		}
-		CPACheckerLogger.clear();
-		CPACheckerLogger.init();
 		return;
 	}
 	private MessageConsole findConsole(String name) {
@@ -103,6 +100,8 @@ public class CPARun implements IWorkbenchWindowActionDelegate
 		numberOfRuns++;
 	    String s[] = {};
 	    CPAMain.cpaConfig = new CPAConfiguration(s);
+	    CPAMain.logManager = LogManager.getInstance();
+	    
 	    if(!CPAMain.cpaConfig.validConfig)
 	    {
 	    	return;
@@ -110,8 +109,8 @@ public class CPARun implements IWorkbenchWindowActionDelegate
 	    //Lets set up a console to write to
 	    init();
 		MessageConsole myConsole = findConsole("CPACHECKER");
-		CPACheckerLogger.log(CustomLogLevel.INFO, "Run #: " + numberOfRuns);
-		CPACheckerLogger.log(CustomLogLevel.INFO, "Program Started");
+		CPAMain.logManager.log(Level.INFO, "Run #:" + numberOfRuns);
+		CPAMain.logManager.log(Level.INFO, "Program Started");
 
 		MessageDialog.openInformation (window.getShell (), "CPAPlugin Plug-in", "Launching CPAChecker Eclipse Plugin");
 

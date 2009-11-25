@@ -31,6 +31,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Stack;
 import java.util.Vector;
+import java.util.logging.Level;
 
 import symbpredabstraction.SSAMap;
 import symbpredabstraction.interfaces.InterpolatingTheoremProver;
@@ -39,9 +40,6 @@ import symbpredabstraction.interfaces.SymbolicFormulaManager;
 import symbpredabstraction.mathsat.MathsatSymbolicFormula;
 import symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
 import symbpredabstraction.trace.ConcreteTraceNoInfo;
-
-import logging.CustomLogLevel;
-import logging.LazyLogger;
 
 import cmdline.CPAMain;
 
@@ -139,7 +137,7 @@ public class ItpCounterexampleRefiner {
         Vector<SymbolicFormula> f = concPath.path;
         boolean theoryCombinationNeeded = concPath.theoryCombinationNeeded;
 
-        LazyLogger.log(LazyLogger.DEBUG_3,
+        CPAMain.logManager.log(Level.ALL, "DEBUG_3",
                        "Checking feasibility of abstract trace");
 
         boolean shortestTrace = CPAMain.cpaConfig.getBooleanValue(
@@ -180,7 +178,7 @@ public class ItpCounterexampleRefiner {
             dumpMsat(String.format("cex_%02d.%02d.msat", cexDumpNum, n++),
                      msatEnv, ((MathsatSymbolicFormula)fm).getTerm());
 
-            LazyLogger.log(LazyLogger.DEBUG_1,
+            CPAMain.logManager.log(Level.ALL, "DEBUG_1",
                            "Asserting formula: ", fm);
 
             if (shortestTrace && !fm.isTrue()) {
@@ -238,7 +236,7 @@ public class ItpCounterexampleRefiner {
                 msatSolveTimeEnd = System.currentTimeMillis();
                 msatSolveTime += msatSolveTimeEnd - msatSolveTimeStart;
 
-                LazyLogger.log(LazyLogger.DEBUG_1,
+                CPAMain.logManager.log(Level.ALL, "DEBUG_1",
                                "Got interpolant(", i, "): ", itp);
 
                 ItpAbstractElement s1 =
@@ -250,13 +248,13 @@ public class ItpCounterexampleRefiner {
                 // of entry points
                 ItpAbstractElement e = (ItpAbstractElement)abstarr[i];
                 if (isFunctionEntry(e)) {
-                    LazyLogger.log(LazyLogger.DEBUG_3,
+                  CPAMain.logManager.log(Level.ALL, "DEBUG_3",
                             "Pushing entry point, function: ",
                             e.getLocation().getFunctionName());
                     entryPoints.push(i);
                 }
                 if (isFunctionExit(e)) {
-                    LazyLogger.log(LazyLogger.DEBUG_3,
+                  CPAMain.logManager.log(Level.ALL, "DEBUG_3",
                             "Popping entry point, returning from function: ",
                             e.getLocation().getFunctionName());
                     entryPoints.pop();
@@ -307,7 +305,7 @@ public class ItpCounterexampleRefiner {
             }
             pw.close();
         } catch (FileNotFoundException e) {
-            LazyLogger.log(CustomLogLevel.INFO,
+          CPAMain.logManager.log(Level.INFO,
                     "Failed to save msat Counterexample to file: ",
                     cexPath);
         }
@@ -379,7 +377,7 @@ public class ItpCounterexampleRefiner {
         }
         f.add(statew);
 
-        LazyLogger.log(LazyLogger.DEBUG_3,
+        CPAMain.logManager.log(Level.ALL, "DEBUG_3",
                 "Checking feasibility of abstract trace");
 
         boolean getUsefulBlocks = CPAMain.cpaConfig.getBooleanValue(
@@ -410,7 +408,7 @@ public class ItpCounterexampleRefiner {
                 SymbolicFormula fm = f.elementAt(i);
                 itpProver.addFormula(fm);
 
-                LazyLogger.log(LazyLogger.DEBUG_1,
+                CPAMain.logManager.log(Level.ALL, "DEBUG_1",
                         "Asserting formula: ", fm);
             }
             // and check satisfiability
@@ -420,7 +418,7 @@ public class ItpCounterexampleRefiner {
                 // of the abstract state at w
                 itpProver.addFormula(f.lastElement());
 
-                LazyLogger.log(LazyLogger.DEBUG_1,
+                CPAMain.logManager.log(Level.ALL, "DEBUG_1",
                         "Asserting state formula: ", f.lastElement());
                 unsat = itpProver.isUnsat();
             } else {
@@ -429,7 +427,7 @@ public class ItpCounterexampleRefiner {
             long msatSolveTimeEnd = System.currentTimeMillis();
 
             if (unsat) {
-                LazyLogger.log(LazyLogger.DEBUG_1, "Forced coverage OK");
+              CPAMain.logManager.log(Level.ALL, "DEBUG_1", "Forced coverage OK");
                 // the forced coverage check is successful.
                 // Extract the predicates from the interpolants
                 info = new ItpCounterexampleTraceInfo(true);
@@ -447,7 +445,7 @@ public class ItpCounterexampleRefiner {
                     SymbolicFormula itp =
                         itpProver.getInterpolant(formulasOfA);
 
-                    LazyLogger.log(LazyLogger.DEBUG_1,
+                    CPAMain.logManager.log(Level.ALL, "DEBUG_1",
                             "Got interpolant(", i, "): ", itp);
 
                     ItpAbstractElement s1 =

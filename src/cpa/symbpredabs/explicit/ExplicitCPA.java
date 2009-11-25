@@ -32,9 +32,8 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.Stack;
 import java.util.Vector;
+import java.util.logging.Level;
 
-import logging.CustomLogLevel;
-import logging.LazyLogger;
 import symbpredabstraction.FixedPredicateMap;
 import symbpredabstraction.UpdateablePredicateMap;
 import symbpredabstraction.interfaces.AbstractFormula;
@@ -179,7 +178,7 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis, CPAWithStatisti
     }
 
     public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
-        LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+      CPAMain.logManager.log(Level.FINEST, 
                        "Getting initial element from node: ", node);
 
         ExplicitAbstractElement e = new ExplicitAbstractElement(node);

@@ -30,16 +30,13 @@ import java.util.Collection;
 import java.util.Deque;
 import java.util.Stack;
 import java.util.Vector;
+import java.util.logging.Level;
 
 import symbpredabstraction.SSAMap;
 import symbpredabstraction.interfaces.SymbolicFormula;
 import symbpredabstraction.interfaces.SymbolicFormulaManager;
 import symbpredabstraction.mathsat.MathsatSymbolicFormula;
 import symbpredabstraction.trace.ConcreteTraceNoInfo;
-
-import logging.CPACheckerLogger;
-import logging.CustomLogLevel;
-import logging.LazyLogger;
 
 import cmdline.CPAMain;
 
@@ -87,8 +84,8 @@ public class ItpSymbolicCounterexampleRefiner extends ItpCounterexampleRefiner {
 
         Vector<SymbolicFormula> f = new Vector<SymbolicFormula>();
 
-        LazyLogger.log(LazyLogger.DEBUG_1, "\nBUILDING COUNTEREXAMPLE TRACE\n");
-        LazyLogger.log(LazyLogger.DEBUG_1, "ABSTRACT TRACE: ", abstractTrace);
+        CPAMain.logManager.log(Level.ALL, "DEBUG_1","BUILDING COUNTEREXAMPLE TRACE");
+        CPAMain.logManager.log(Level.ALL, "DEBUG_1","ABSTRACT TRACE:", abstractTrace);
 
         Object[] abstarr = abstractTrace.toArray();
         ItpSymbolicAbstractElement cur = (ItpSymbolicAbstractElement)abstarr[0];
@@ -106,15 +103,15 @@ public class ItpSymbolicCounterexampleRefiner extends ItpCounterexampleRefiner {
 
             SSAMap newssa = null;
             if (ssa != null) {
-                LazyLogger.log(LazyLogger.DEBUG_3, "SHIFTING: ", p.getFirst(),
+              CPAMain.logManager.log(Level.ALL, "DEBUG_3", "SHIFTING:", p.getFirst(),
                         " WITH SSA: ", ssa);
                 p = mmgr.shift(p.getFirst(), ssa);
                 newssa = p.getSecond();
-                LazyLogger.log(LazyLogger.DEBUG_3, "RESULT: ", p.getFirst(),
+                CPAMain.logManager.log(Level.ALL, "DEBUG_3", "RESULT:", p.getFirst(),
                                " SSA: ", newssa);
                 newssa.update(ssa);
             } else {
-                LazyLogger.log(LazyLogger.DEBUG_3, "INITIAL: ", p.getFirst(),
+              CPAMain.logManager.log(Level.ALL, "DEBUG_3", "INITIAL:", p.getFirst(),
                                " SSA: ", p.getSecond());
                 newssa = p.getSecond();
             }
@@ -134,16 +131,15 @@ public class ItpSymbolicCounterexampleRefiner extends ItpCounterexampleRefiner {
             }
         }
 
-        if (CPAMain.cpaConfig.getBooleanValue(
-                "cpas.symbpredabs.useBitwiseAxioms")) {
-            LazyLogger.log(LazyLogger.DEBUG_3, "ADDING BITWISE AXIOMS TO THE ",
-                    "LAST GROUP: ", bitwiseAxioms);
-            f.setElementAt(mmgr.makeAnd(f.elementAt(f.size()-1), bitwiseAxioms),
-                    f.size()-1);
+        if (CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.useBitwiseAxioms")) {
+          CPAMain.logManager.log(Level.ALL, "DEBUG_3", "ADDING BITWISE AXIOMS TO THE",
+              "LAST GROUP:", bitwiseAxioms);
+          f.setElementAt(mmgr.makeAnd(f.elementAt(f.size()-1), bitwiseAxioms),
+              f.size()-1);
         }
 
-        LazyLogger.log(LazyLogger.DEBUG_3,
-                       "Checking feasibility of abstract trace");
+        CPAMain.logManager.log(Level.ALL, "DEBUG_3", 
+            "Checking feasibility of abstract trace");
 
         // now f is the DAG formula which is satisfiable iff there is a
         // concrete counterexample
@@ -195,7 +191,7 @@ public class ItpSymbolicCounterexampleRefiner extends ItpCounterexampleRefiner {
             dumpMsat(String.format("cex_%02d.%02d.msat", cexDumpNum, i),
                     env, terms[i]);
 
-            LazyLogger.log(LazyLogger.DEBUG_2,
+            CPAMain.logManager.log(Level.ALL, "DEBUG_2",
                            "Asserting formula: ",
                            new MathsatSymbolicFormula(terms[i]),
                            " in group: ", groups[i]);
@@ -247,17 +243,16 @@ public class ItpSymbolicCounterexampleRefiner extends ItpCounterexampleRefiner {
                 long itp = mathsat.api.msat_get_interpolant(env, groups_of_a);
                 assert(!mathsat.api.MSAT_ERROR_TERM(itp));
 
-                if (CPACheckerLogger.getLevel() <=
-                    LazyLogger.DEBUG_2.intValue()) {
+                if (CPAMain.logManager.getLogLevel().intValue() <= Level.ALL.intValue()) {
                     StringBuffer buf = new StringBuffer();
                     for (int g : groups_of_a) {
                         buf.append(g);
                         buf.append(" ");
                     }
-                    LazyLogger.log(LazyLogger.DEBUG_2, "groups_of_a: ", buf);
+                    CPAMain.logManager.log(Level.ALL, "DEBUG_2", "groups_of_a:", buf);
                 }
-                LazyLogger.log(LazyLogger.DEBUG_3,
-                               "Got interpolant(", i, "): ",
+                CPAMain.logManager.log(Level.ALL, "DEBUG_3",
+                               "Got interpolant(", i, "):",
                                new MathsatSymbolicFormula(itp));
 
                 long itpc = mathsat.api.msat_make_copy_from(msatEnv, itp, env);
@@ -271,14 +266,14 @@ public class ItpSymbolicCounterexampleRefiner extends ItpCounterexampleRefiner {
                 // of entry points
                 ItpSymbolicAbstractElement e = (ItpSymbolicAbstractElement)abstarr[i];
                 if (isFunctionEntry(e)) {
-                    LazyLogger.log(LazyLogger.DEBUG_3,
+                  CPAMain.logManager.log(Level.ALL, "DEBUG_3",
                             "Pushing entry point, function: ",
                             ((SummaryCFANode)e.getLocation()).getInnerNode().
                                 getFunctionName());
                     entryPoints.push(i);
                 }
                 if (isFunctionExit(e)) {
-                    LazyLogger.log(LazyLogger.DEBUG_3,
+                  CPAMain.logManager.log(Level.ALL, "DEBUG_3",
                             "Popping entry point, returning from function: ",
                             ((SummaryCFANode)e.getLocation()).getInnerNode().
                                 getFunctionName());
@@ -309,7 +304,7 @@ public class ItpSymbolicCounterexampleRefiner extends ItpCounterexampleRefiner {
                     pw.println(msatRepr);
                     pw.close();
                 } catch (FileNotFoundException e) {
-                    LazyLogger.log(CustomLogLevel.INFO,
+                  CPAMain.logManager.log(Level.INFO,
                             "Failed to save msat Counterexample to file: ",
                             cexPath);
                 }
@@ -363,10 +358,10 @@ public class ItpSymbolicCounterexampleRefiner extends ItpCounterexampleRefiner {
                     // ok, this path is relevant
                     relevantPaths.add(e.getPathFormula(leaf));
 
-                    LazyLogger.log(LazyLogger.DEBUG_3,
+                    CPAMain.logManager.log(Level.ALL, "DEBUG_3",
                                    "FOUND RELEVANT PATH, leaf: ",
                                    leaf.getNodeNumber());
-                    LazyLogger.log(LazyLogger.DEBUG_3,
+                    CPAMain.logManager.log(Level.ALL, "DEBUG_3",
                                    "Formula: ",
                                    e.getPathFormula(leaf).getFirst());
                 }
@@ -410,8 +405,8 @@ public class ItpSymbolicCounterexampleRefiner extends ItpCounterexampleRefiner {
 
         Vector<SymbolicFormula> f = new Vector<SymbolicFormula>();
 
-        LazyLogger.log(LazyLogger.DEBUG_1, "\nCHECKING FORCED COVERAGE\n");
-        LazyLogger.log(LazyLogger.DEBUG_1, "PATH: ", path);
+        CPAMain.logManager.log(Level.ALL, "DEBUG_1", "CHECKING FORCED COVERAGE");
+        CPAMain.logManager.log(Level.ALL, "DEBUG_1", "PATH:", path);
 
         Object[] abstarr = path.toArray();
         ItpSymbolicAbstractElement cur = (ItpSymbolicAbstractElement)abstarr[0];
@@ -432,15 +427,15 @@ public class ItpSymbolicCounterexampleRefiner extends ItpCounterexampleRefiner {
 
             SSAMap newssa = null;
             if (ssa != null) {
-                LazyLogger.log(LazyLogger.DEBUG_3, "SHIFTING: ", p.getFirst(),
+              CPAMain.logManager.log(Level.ALL, "DEBUG_3", "SHIFTING:", p.getFirst(),
                         " WITH SSA: ", ssa);
                 p = mmgr.shift(p.getFirst(), ssa);
                 newssa = p.getSecond();
-                LazyLogger.log(LazyLogger.DEBUG_3, "RESULT: ", p.getFirst(),
+                CPAMain.logManager.log(Level.ALL, "DEBUG_3", "RESULT:", p.getFirst(),
                         " SSA: ", newssa);
                 newssa.update(ssa);
             } else {
-                LazyLogger.log(LazyLogger.DEBUG_3, "INITIAL: ", p.getFirst(),
+              CPAMain.logManager.log(Level.ALL, "DEBUG_3", "INITIAL:", p.getFirst(),
                         " SSA: ", p.getSecond());
                 newssa = p.getSecond();
             }
@@ -469,13 +464,13 @@ public class ItpSymbolicCounterexampleRefiner extends ItpCounterexampleRefiner {
 
         if (CPAMain.cpaConfig.getBooleanValue(
                 "cpas.symbpredabs.useBitwiseAxioms")) {
-            LazyLogger.log(LazyLogger.DEBUG_3, "ADDING BITWISE AXIOMS TO THE ",
-                    "LAST GROUP: ", bitwiseAxioms);
+          CPAMain.logManager.log(Level.ALL, "DEBUG_3", "ADDING BITWISE AXIOMS TO THE",
+                    "LAST GROUP:", bitwiseAxioms);
             f.setElementAt(mmgr.makeAnd(f.elementAt(f.size()-1), bitwiseAxioms),
                     f.size()-1);
         }
 
-        LazyLogger.log(LazyLogger.DEBUG_3,
+        CPAMain.logManager.log(Level.ALL, "DEBUG_3",
         "Checking feasibility of abstract trace");
 
         // now f is the DAG formula which is satisfiable iff there is a
@@ -518,7 +513,7 @@ public class ItpSymbolicCounterexampleRefiner extends ItpCounterexampleRefiner {
             mathsat.api.msat_set_itp_group(env, groups[i]);
             mathsat.api.msat_assert_formula(env, terms[i]);
 
-            LazyLogger.log(LazyLogger.DEBUG_2,
+            CPAMain.logManager.log(Level.ALL, "DEBUG_2",
                     "Asserting formula: ",
                     new MathsatSymbolicFormula(terms[i]),
                     " in group: ", groups[i]);
@@ -546,16 +541,15 @@ public class ItpSymbolicCounterexampleRefiner extends ItpCounterexampleRefiner {
                 long itp = mathsat.api.msat_get_interpolant(env, groups_of_a);
                 assert(!mathsat.api.MSAT_ERROR_TERM(itp));
 
-                if (CPACheckerLogger.getLevel() <=
-                    LazyLogger.DEBUG_2.intValue()) {
+                if (CPAMain.logManager.getLogLevel().intValue() <= Level.ALL.intValue()) {
                     StringBuffer buf = new StringBuffer();
                     for (int g : groups_of_a) {
                         buf.append(g);
                         buf.append(" ");
                     }
-                    LazyLogger.log(LazyLogger.DEBUG_2, "groups_of_a: ", buf);
+                    CPAMain.logManager.log(Level.ALL, "DEBUG_2", "groups_of_a:", buf);
                 }
-                LazyLogger.log(LazyLogger.DEBUG_2,
+                CPAMain.logManager.log(Level.ALL, "DEBUG_2",
                         "Got interpolant(", i, "): ",
                         new MathsatSymbolicFormula(itp));
 

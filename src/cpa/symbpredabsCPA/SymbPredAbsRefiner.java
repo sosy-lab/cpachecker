@@ -8,9 +8,8 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
 
-import logging.CustomLogLevel;
-import logging.LazyLogger;
 import symbpredabstraction.UpdateablePredicateMap;
 import symbpredabstraction.interfaces.Predicate;
 import symbpredabstraction.interfaces.SymbolicFormulaManager;
@@ -95,7 +94,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
     
     // if error is spurious refine
     if (info.isSpurious()) {
-      LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+      CPAMain.logManager.log(Level.FINEST,
             "Found spurious error trace, refining the abstraction");
       return performRefinement(pReached, path, pPath, info);
     } else {

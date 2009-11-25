@@ -93,12 +93,12 @@ public class PredicateAbstractionStopOperator implements StopOperator {
     boolean ok = amgr.entails(e1.getAbstraction(), e2.getAbstraction());
 
 //    if (ok) {
-//      LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+//      CPAMain.logManager.log(Level.FINEST,
 //          "Element: ", element, " COVERED by: ", e2);
 //      cpa.setCovered(e1);
 //      e1.setCovered(true);
 //    } else {
-//      LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+//      CPAMain.logManager.log(Level.FINEST,
 //          "NO, not covered");
 //    }
 

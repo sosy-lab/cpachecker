@@ -26,12 +26,12 @@ package cpa.itpabs;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
 
 import symbpredabstraction.interfaces.SymbolicFormula;
 import symbpredabstraction.interfaces.SymbolicFormulaManager;
 import symbpredabstraction.interfaces.TheoremProver;
 
-import logging.LazyLogger;
 import cmdline.CPAMain;
 
 import common.Pair;
@@ -111,11 +111,11 @@ public class ItpStopOperator implements StopOperator {
 
     if (e1.getLocation().equals(e2.getLocation()) &&
         e2.getId() < e1.getId() && !e2.isCovered()) {
-      LazyLogger.log(LazyLogger.DEBUG_1,
+      CPAMain.logManager.log(Level.ALL, "DEBUG_1",
           "Checking Coverage of element: ", element);
 
       if (!e1.sameContext(e2)) {
-        LazyLogger.log(LazyLogger.DEBUG_1,
+        CPAMain.logManager.log(Level.ALL, "DEBUG_1",
             "NO, not covered: context differs");
         return false;
       }
@@ -152,18 +152,18 @@ public class ItpStopOperator implements StopOperator {
 
       if (ok) {
         ++numCoveredStates;
-        LazyLogger.log(LazyLogger.DEBUG_1,
+        CPAMain.logManager.log(Level.ALL, "DEBUG_1",
             "Element: ", e1, " COVERED by: ", e2);
-        LazyLogger.log(LazyLogger.DEBUG_1,
+        CPAMain.logManager.log(Level.ALL, "DEBUG_1",
             "Abstraction for ", e1, ": ", e1.getAbstraction());
-        LazyLogger.log(LazyLogger.DEBUG_1,
+        CPAMain.logManager.log(Level.ALL, "DEBUG_1",
             "Abstraction for ", e2, ": ", e2.getAbstraction());
         cpa.setCoveredBy(e1, e2);
         ItpTransferRelation trans =
           (ItpTransferRelation)cpa.getTransferRelation();
         trans.addToProcess(cpa.removeDescendantsFromCovering(e1));
       } else {
-        LazyLogger.log(LazyLogger.DEBUG_1,
+        CPAMain.logManager.log(Level.ALL, "DEBUG_1",
             "NO, not covered");
       }
 

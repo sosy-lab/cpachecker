@@ -31,6 +31,7 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
+import java.util.logging.Level;
 
 import symbpredabstraction.SSAMap;
 import symbpredabstraction.bdd.BDDAbstractFormula;
@@ -42,9 +43,8 @@ import symbpredabstraction.interfaces.Predicate;
 import symbpredabstraction.interfaces.SymbolicFormula;
 import symbpredabstraction.interfaces.SymbolicFormulaManager;
 
-import logging.CustomLogLevel;
-import logging.LazyLogger;
 import mathsat.AllSatModelCallback;
+
 import cmdline.CPAMain;
 
 import common.Pair;
@@ -173,7 +173,7 @@ public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
         } else {
             int bddVar = bddManager.createVar();
 
-            LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+            CPAMain.logManager.log(Level.FINEST,
                            "CREATED PREDICATE: bddVar: ",
                            Integer.toString(bddManager.getVar(bddVar)),
                            ", msatAtom: ",

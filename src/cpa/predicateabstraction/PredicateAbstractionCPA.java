@@ -29,9 +29,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
 import java.util.Vector;
+import java.util.logging.Level;
 
-import logging.CustomLogLevel;
-import logging.LazyLogger;
 import symbpredabstraction.FixedPredicateMap;
 import symbpredabstraction.UpdateablePredicateMap;
 import symbpredabstraction.interfaces.InterpolatingTheoremProver;
@@ -168,7 +167,7 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis, CPA
 
     @Override
     public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
-        LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+      CPAMain.logManager.log(Level.FINEST, 
                        "Getting initial element from node: ", node);
 
         PredicateAbstractionAbstractElement e = new PredicateAbstractionAbstractElement();

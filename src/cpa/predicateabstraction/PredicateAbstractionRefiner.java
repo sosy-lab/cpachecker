@@ -4,9 +4,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
+import java.util.logging.Level;
 
-import logging.CustomLogLevel;
-import logging.LazyLogger;
 import symbpredabstraction.UpdateablePredicateMap;
 import symbpredabstraction.interfaces.Predicate;
 import symbpredabstraction.trace.CounterexampleTraceInfo;
@@ -78,7 +77,7 @@ public class PredicateAbstractionRefiner extends AbstractARTBasedRefiner {
     assert(info != null);
 
     if (info.isSpurious()) {
-      LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+      CPAMain.logManager.log(Level.FINEST,
           "Found spurious error trace, refining the abstraction");
       return performRefinement(pReached, pPath, pathArray, info);
 
@@ -92,7 +91,7 @@ public class PredicateAbstractionRefiner extends AbstractARTBasedRefiner {
   private ARTElement performRefinement(ReachedElements pReached, Path pPath,
       Pair<ARTElement, CFAEdge>[] pPathArray,
       CounterexampleTraceInfo pInfo) {
-    LazyLogger.log(LazyLogger.DEBUG_1, "STARTING REFINEMENT");
+    CPAMain.logManager.log(Level.ALL, "DEBUG_1", "STARTING REFINEMENT");
     UpdateablePredicateMap curpmap =
       (UpdateablePredicateMap)mCpa.getPredicateMap();
 
@@ -140,7 +139,7 @@ public class PredicateAbstractionRefiner extends AbstractARTBasedRefiner {
         }
       } else {
         assert(firstInterpolant != null);
-        LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+        CPAMain.logManager.log(Level.FINEST,
         "Restarting ART from scratch");
         root = (ARTElement)pReached.getFirstElement();
       }

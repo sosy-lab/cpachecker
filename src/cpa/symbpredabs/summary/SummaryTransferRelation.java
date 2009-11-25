@@ -41,9 +41,6 @@ import symbpredabstraction.interfaces.Predicate;
 import symbpredabstraction.interfaces.SymbolicFormula;
 import symbpredabstraction.trace.CounterexampleTraceInfo;
 
-import logging.CPACheckerLogger;
-import logging.CustomLogLevel;
-import logging.LazyLogger;
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAErrorNode;
 import cfa.objectmodel.CFANode;
@@ -150,7 +147,7 @@ public class SummaryTransferRelation implements TransferRelation {
     if (isFunctionEnd(succ)) {
       SummaryCFANode retNode = e.topContextLocation();
       if (!succLoc.equals(retNode)) {
-        LazyLogger.log(LazyLogger.DEBUG_1,
+        CPAMain.logManager.log(Level.ALL, "DEBUG_1",
             "Return node for this call is: ", retNode,
             ", but edge leads to: ", succLoc, ", returning BOTTOM");
         return domain.getBottomElement();
@@ -174,10 +171,9 @@ public class SummaryTransferRelation implements TransferRelation {
     succ.setAbstraction(abstraction);
     succ.setParent(e);
 
-    Level lvl = LazyLogger.DEBUG_1;
-    if (CPACheckerLogger.getLevel() <= lvl.intValue()) {
+    if (CPAMain.logManager.getLogLevel().intValue() <= Level.ALL.intValue()) {
       SummaryFormulaManager mgr = cpa.getFormulaManager();
-      LazyLogger.log(lvl, "COMPUTED ABSTRACTION: ",
+      CPAMain.logManager.log(Level.ALL, "DEBUG_1", "COMPUTED ABSTRACTION:",
           amgr.toConcrete(mgr, abstraction));
     }
 
@@ -210,12 +206,12 @@ public class SummaryTransferRelation implements TransferRelation {
           amgr.buildCounterexampleTrace(
               cpa.getFormulaManager(), path);
         if (info.isSpurious()) {
-          LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+          CPAMain.logManager.log(Level.FINEST,
               "Found spurious error trace, refining the ",
           "abstraction");
           performRefinement(path, info);
         } else {
-          LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+          CPAMain.logManager.log(Level.FINEST,
               "REACHED ERROR LOCATION!: ", succ,
           " RETURNING BOTTOM!");
           CPAMain.setErrorReached();
@@ -250,7 +246,7 @@ public class SummaryTransferRelation implements TransferRelation {
         }
         //assert(retNode != null);
         if (retNode != null) {
-          LazyLogger.log(LazyLogger.DEBUG_3, "PUSHING CONTEXT TO ", succ,
+          CPAMain.logManager.log(Level.ALL, "DEBUG_3", "PUSHING CONTEXT TO", succ,
               ": ", cpa.getAbstractFormulaManager().toConcrete(
                   cpa.getFormulaManager(),
                   succ.getAbstraction()));
@@ -350,8 +346,8 @@ public class SummaryTransferRelation implements TransferRelation {
       }
     }
 
-    LazyLogger.log(LazyLogger.DEBUG_1, "REFINEMENT - toWaitlist: ", root);
-    LazyLogger.log(LazyLogger.DEBUG_1, "REFINEMENT - toUnreach: ",
+    CPAMain.logManager.log(Level.ALL, "DEBUG_1", "REFINEMENT - toWaitlist:", root);
+    CPAMain.logManager.log(Level.ALL, "DEBUG_1", "REFINEMENT - toUnreach:",
         toUnreach);
     throw new RefinementNeededException(toUnreach, toWaitlist);
   }
@@ -360,7 +356,7 @@ public class SummaryTransferRelation implements TransferRelation {
   @Override
   public AbstractElement getAbstractSuccessor(AbstractElement element,
       CFAEdge cfaEdge, Precision prec) throws CPATransferException {
-    LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+    CPAMain.logManager.log(Level.FINEST,
         "Getting Abstract Successor of element: ", element,
         " on edge: ", cfaEdge);
     // To get the successor, we compute the predicate abstraction of the
@@ -375,7 +371,7 @@ public class SummaryTransferRelation implements TransferRelation {
       if (edge.equals(cfaEdge)) {
         AbstractElementWithLocation ret = buildSuccessor(e, edge);
 
-        LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+        CPAMain.logManager.log(Level.FINEST,
             "Successor is: ", ret);
 
         if (ret != domain.getBottomElement()) {
@@ -386,7 +382,7 @@ public class SummaryTransferRelation implements TransferRelation {
       }
     }
 
-    LazyLogger.log(CustomLogLevel.SpecificCPALevel, "Successor is: BOTTOM");
+    CPAMain.logManager.log(Level.FINEST, "Successor is: BOTTOM");
 
     return domain.getBottomElement();
   }
@@ -394,7 +390,7 @@ public class SummaryTransferRelation implements TransferRelation {
   @Override
   public List<AbstractElementWithLocation> getAllAbstractSuccessors(
       AbstractElementWithLocation element, Precision prec) throws CPAException, CPATransferException {
-    LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+    CPAMain.logManager.log(Level.FINEST,
         "Getting ALL Abstract Successors of element: ",
         element);
 
@@ -412,7 +408,7 @@ public class SummaryTransferRelation implements TransferRelation {
 
     e.setMark();
 
-    LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+    CPAMain.logManager.log(Level.FINEST,
         allSucc.size(), " successors found");
 
     return allSucc;

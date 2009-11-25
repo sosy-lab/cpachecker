@@ -31,9 +31,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Vector;
+import java.util.logging.Level;
 
-import logging.CustomLogLevel;
-import logging.LazyLogger;
 import symbpredabstraction.FixedPredicateMap;
 import symbpredabstraction.PathFormula;
 import symbpredabstraction.SSAMap;
@@ -168,7 +167,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, CPAWithStati
    * @see cpa.common.interfaces.ConfigurableProgramAnalysis#getInitialElement(cfa.objectmodel.CFAFunctionDefinitionNode)
    */
   public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
-    LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+    CPAMain.logManager.log(Level.FINEST,
         "Getting initial element from node: ", node);
 
     //SymbPredAbsAbstractElement e = new SymbPredAbsAbstractElement(domain, loc, null);

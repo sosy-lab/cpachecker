@@ -28,9 +28,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Stack;
-
-import logging.CustomLogLevel;
-import logging.LazyLogger;
+import java.util.logging.Level;
 
 import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionDeclarator;
@@ -150,12 +148,12 @@ public class SummaryCFABuilder {
         assert(ret != null);
         ret.initialize(src,dest);
 
-        LazyLogger.log(LazyLogger.DEBUG_3,
+        CPAMain.logManager.log(Level.ALL, "DEBUG_3",
                 "LINKING NODES: " + src.getNodeNumber() + "(",
                 ((InnerCFANode)src).getSummaryNode(), ") AND " +
                  + dest.getNodeNumber() +
                 "(", ((InnerCFANode)dest).getSummaryNode() + ")");
-        LazyLogger.log(LazyLogger.DEBUG_3,
+        CPAMain.logManager.log(Level.ALL, "DEBUG_3",
                 "  ORIGINAL: ", orig.getPredecessor().getNodeNumber(), " AND ",
                 orig.getSuccessor().getNodeNumber());
 
@@ -311,7 +309,7 @@ public class SummaryCFABuilder {
             CFAEdge se = new SummaryCFAEdge();
             se.initialize((CFANode)s1, (CFANode)s2);
 
-            LazyLogger.log(LazyLogger.DEBUG_3,
+            CPAMain.logManager.log(Level.ALL, "DEBUG_3",
                            "LINKING SUMMARIES: ", s1, " AND ", s2);
         }
     }
@@ -328,7 +326,7 @@ public class SummaryCFABuilder {
     private boolean isLoopBack(CFAEdge e) {
         CFANode s = e.getSuccessor();
         boolean yes = s.isLoopStart() && !e.getRawStatement().equals("while");
-        LazyLogger.log(LazyLogger.DEBUG_3,
+        CPAMain.logManager.log(Level.ALL, "DEBUG_3",
                 "CHECKING isLoopBack, e: ", e.getRawStatement(),
                 ", s: ", s.getNodeNumber() + ", RESULT: " + yes);
         if (!yes) {
@@ -388,7 +386,7 @@ public class SummaryCFABuilder {
             }
             if (finished) {
                 toProcess.pop();
-                LazyLogger.log(LazyLogger.DEBUG_3,
+                CPAMain.logManager.log(Level.ALL, "DEBUG_3",
                                "FINISHED: ", n.getNodeNumber());
                 visited.put(n, 1);
                 if (n != cfa) {
@@ -421,7 +419,7 @@ public class SummaryCFABuilder {
         for (CFANode n : toProcess) {
             assert(!summaryMap.containsKey(n));
 
-            LazyLogger.log(LazyLogger.DEBUG_3,
+            CPAMain.logManager.log(Level.ALL, "DEBUG_3",
                     "PROCESSING: ", n.getNodeNumber());
 
             if (shouldStartSummary(n)) {
@@ -441,7 +439,7 @@ public class SummaryCFABuilder {
                             //assert(e instanceof BlankEdge);
                             String fn = pred.getFunctionName();
                             if (fn == null) fn = "<NULL>";
-                            LazyLogger.log(CustomLogLevel.INFO,
+                            CPAMain.logManager.log(Level.INFO,
                                     "WARNING: ignoring edge: ", e,
                                     ", function: ", fn);
                         } else {
@@ -540,7 +538,7 @@ public class SummaryCFABuilder {
                 }
             }
         }
-        LazyLogger.log(LazyLogger.DEBUG_3, "NOW LINKING LOOPBACKS");
+        CPAMain.logManager.log(Level.ALL, "DEBUG_3", "NOW LINKING LOOPBACKS");
         for (CFAEdge e : loopbacks) {
             CFANode p = e.getPredecessor();
             CFANode s = e.getSuccessor();
@@ -561,7 +559,7 @@ public class SummaryCFABuilder {
                 //   ERROR: goto ERROR;
                 // }
                 // The same case can happen also below
-                LazyLogger.log(CustomLogLevel.INFO,
+              CPAMain.logManager.log(Level.INFO,
                         "WARNING, not linking loopback, predecessor is: ", p,
                         " in function: ", p.getFunctionName());
             }
@@ -592,7 +590,7 @@ public class SummaryCFABuilder {
                 be.setSuccessor(dup);
             } else {
                 // see comment in the previous case
-                LazyLogger.log(CustomLogLevel.INFO,
+              CPAMain.logManager.log(Level.INFO,
                         "WARNING, not linking loopback, predecessor is: ", pred,
                         " in function: ", pred.getFunctionName());
             }

@@ -37,12 +37,11 @@ import java.util.NavigableSet;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.Vector;
+import java.util.logging.Level;
 
 import symbpredabstraction.interfaces.SymbolicFormula;
 import symbpredabstraction.interfaces.SymbolicFormulaManager;
 
-import logging.CustomLogLevel;
-import logging.LazyLogger;
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFANode;
 import cmdline.CPAMain;
@@ -200,7 +199,7 @@ public class ItpTransferRelation implements TransferRelation {
         refiner.buildCounterexampleTrace(
             cpa.getFormulaManager(), path);
       if (info.isSpurious()) {
-        LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+        CPAMain.logManager.log(Level.FINEST, 
             "Found spurious error trace, refining the ",
             "abstraction");
         performRefinement(path, info);
@@ -219,7 +218,7 @@ public class ItpTransferRelation implements TransferRelation {
             System.out.println("RETURNING TO: " + elem);
           }
         }
-        LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+        CPAMain.logManager.log(Level.FINEST, 
             "REACHED ERROR LOCATION!: ", e,
         " RETURNING BOTTOM!");
         CPAMain.setErrorReached();
@@ -256,7 +255,7 @@ public class ItpTransferRelation implements TransferRelation {
       //if (isFunctionEnd(succ)) {
 //    CFANode retNode = e.topContextLocation();
 //    if (!succLoc.equals(retNode)) {
-//    LazyLogger.log(LazyLogger.DEBUG_1,
+//    CPAMain.logManager.log(Level.ALL, "DEBUG_1",
 //    "Return node for this call is: ", retNode,
 //    ", but edge leads to: ", succLoc, ", returning BOTTOM");
       return domain.getBottomElement();
@@ -288,7 +287,7 @@ public class ItpTransferRelation implements TransferRelation {
 //  refiner.buildCounterexampleTrace(
 //  cpa.getFormulaManager(), path);
 //  if (info.isSpurious()) {
-//  LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+//  CPAMain.logManager.log(Level.FINEST, 
 //  "Found spurious error trace, refining the ",
 //  "abstraction");
 //  performRefinement(path, info);
@@ -307,7 +306,7 @@ public class ItpTransferRelation implements TransferRelation {
 //  System.out.println("RETURNING TO: " + elem);
 //  }
 //  }
-//  LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+//  CPAMain.logManager.log(Level.FINEST, 
 //  "REACHED ERROR LOCATION!: ", succ,
 //  " RETURNING BOTTOM!");
 //  errorReached = true;
@@ -350,14 +349,14 @@ public class ItpTransferRelation implements TransferRelation {
       SymbolicFormula newabs = info.getFormulaForRefinement(e);
       if (newabs.isFalse()) {
         falseAbst.add(e);
-        LazyLogger.log(LazyLogger.DEBUG_1,
+        CPAMain.logManager.log(Level.ALL, "DEBUG_1",
             "REFINING1 ", e, ", new abstraction: ", newabs);
         e.setAbstraction(newabs);
         for (AbstractElementWithLocation el : domain.getCPA().uncoverAll(e)) {
           maybeToWaitlist.add(el);
         }
       } else if (e.getAbstraction().isTrue() && !newabs.isTrue()) {
-        LazyLogger.log(LazyLogger.DEBUG_1,
+        CPAMain.logManager.log(Level.ALL, "DEBUG_1",
             "REFINING2 ", e, ", new abstraction: ", newabs);
         e.setAbstraction(newabs);
         //maybeToWaitlist.add(e);
@@ -371,11 +370,11 @@ public class ItpTransferRelation implements TransferRelation {
           for (AbstractElementWithLocation el : domain.getCPA().uncoverAll(e)) {
             maybeToWaitlist.add(el);
           }
-          LazyLogger.log(LazyLogger.DEBUG_1,
+          CPAMain.logManager.log(Level.ALL, "DEBUG_1",
               "REFINING3 ", e, ", new abstraction: ",
               e.getAbstraction());
         } else {
-          LazyLogger.log(LazyLogger.DEBUG_1,
+          CPAMain.logManager.log(Level.ALL, "DEBUG_1",
               "NOT REFINING ", e,
               " because new abstraction is entailed by old one! ",
               "OLD: ", e.getAbstraction(), ", NEW: ", newabs);
@@ -406,9 +405,9 @@ public class ItpTransferRelation implements TransferRelation {
         toWaitlist.add(e);
       }
     }
-    LazyLogger.log(LazyLogger.DEBUG_1, "REFINEMENT - toWaitlist: ",
+    CPAMain.logManager.log(Level.ALL, "DEBUG_1", "REFINEMENT - toWaitlist:",
         toWaitlist);
-    LazyLogger.log(LazyLogger.DEBUG_1, "REFINEMENT - toUnreach: ",
+    CPAMain.logManager.log(Level.ALL, "DEBUG_1", "REFINEMENT - toUnreach:",
         toUnreach);
     throw new RefinementNeededException(toUnreach, toWaitlist);
   }
@@ -423,7 +422,7 @@ public class ItpTransferRelation implements TransferRelation {
 //  // this is when an element is covered and uncovers others, which
 //  // need to be re-processed...
 //  // this is really a HACK!!
-//  LazyLogger.log(LazyLogger.DEBUG_1,
+//  CPAMain.logManager.log(Level.ALL, "DEBUG_1",
 //  "RE-ADDING uncovered to waitlist: ", toProcess);
 //  Vector<AbstractElementWithLocation> toWaitlist =
 //  new Vector<AbstractElementWithLocation>();
@@ -454,7 +453,7 @@ public class ItpTransferRelation implements TransferRelation {
 //  }
 
 
-    LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+    CPAMain.logManager.log(Level.FINEST, 
         "Getting Abstract Successor of element: ", element,
         " on edge: ", cfaEdge);
 
@@ -475,7 +474,7 @@ public class ItpTransferRelation implements TransferRelation {
         try {
           AbstractElementWithLocation ret = buildSuccessor(e, edge);
 
-          LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+          CPAMain.logManager.log(Level.FINEST, 
               "Successor is: ", ret);
 
           if (ret != domain.getBottomElement()) {
@@ -500,7 +499,7 @@ public class ItpTransferRelation implements TransferRelation {
       }
     }
 
-    LazyLogger.log(CustomLogLevel.SpecificCPALevel, "Successor is: BOTTOM");
+    CPAMain.logManager.log(Level.FINEST,  "Successor is: BOTTOM");
 
     return domain.getBottomElement();
   }
@@ -522,7 +521,7 @@ public class ItpTransferRelation implements TransferRelation {
   @Override
   public List<AbstractElementWithLocation> getAllAbstractSuccessors(
       AbstractElementWithLocation element, Precision prec) throws CPAException, CPATransferException {
-    LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+    CPAMain.logManager.log(Level.FINEST, 
         "Getting ALL Abstract Successors of element: ",
         element);
 
@@ -546,7 +545,7 @@ public class ItpTransferRelation implements TransferRelation {
           }
         }
       }
-      LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+      CPAMain.logManager.log(Level.FINEST, 
           allSucc.size(), " successors found");
     }
 
@@ -554,7 +553,7 @@ public class ItpTransferRelation implements TransferRelation {
       // this is when an element is covered and uncovers others, which
       // need to be re-processed...
       // this is really a HACK!!
-      LazyLogger.log(LazyLogger.DEBUG_1,
+      CPAMain.logManager.log(Level.ALL, "DEBUG_1",
           "RE-ADDING uncovered to waitlist: ", toProcess);
       Vector<AbstractElementWithLocation> toWaitlist =
         new Vector<AbstractElementWithLocation>();
@@ -676,7 +675,7 @@ public class ItpTransferRelation implements TransferRelation {
 
     if (reached.containsKey(e.getLocation())) {
 
-      LazyLogger.log(LazyLogger.DEBUG_1, "Checking Forced Coverage of: ",
+      CPAMain.logManager.log(Level.ALL, "DEBUG_1", "Checking Forced Coverage of:",
           e);
 
       Set<AbstractElement> path = new HashSet<AbstractElement>();
@@ -722,7 +721,7 @@ public class ItpTransferRelation implements TransferRelation {
 //          }
 //          }
 //          cpa.setCoveredBy(e, el);
-//          LazyLogger.log(LazyLogger.DEBUG_1,
+//          CPAMain.logManager.log(Level.ALL, "DEBUG_1",
 //          "YES, Forcing coverage of: ", e, " by: ", el);
 //          ++forcedCoverStats.numForcedCoveredElements;
 //          return true;
@@ -755,7 +754,7 @@ public class ItpTransferRelation implements TransferRelation {
               }
             }
             cpa.setCoveredBy(e, el);
-            LazyLogger.log(LazyLogger.DEBUG_1,
+            CPAMain.logManager.log(Level.ALL, "DEBUG_1",
                 "YES, Forcing coverage of: ", e, " by: ", el);
             ++forcedCoverStats.numForcedCoveredElements;
             return true;

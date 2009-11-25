@@ -24,9 +24,10 @@
 package cpa.symbpredabs.summary;
 
 import java.util.Collection;
+import java.util.logging.Level;
 
-import logging.CustomLogLevel;
-import logging.LazyLogger;
+import cmdline.CPAMain;
+
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.StopOperator;
@@ -63,11 +64,11 @@ public class SummaryStopOperator implements StopOperator {
     SummaryAbstractElement e2 = (SummaryAbstractElement)reachedElement;
 
     if (e1.getLocation().equals(e2.getLocation())) {
-      LazyLogger.log(LazyLogger.DEBUG_4,
+      CPAMain.logManager.log(Level.ALL, "DEBUG_4",
           "Checking Coverage of element: ", element);
 
       if (!e1.sameContext(e2)) {
-        LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+        CPAMain.logManager.log(Level.FINEST,
             "NO, not covered: context differs");
         return false;
       }
@@ -81,12 +82,12 @@ public class SummaryStopOperator implements StopOperator {
       boolean ok = amgr.entails(e1.getAbstraction(), e2.getAbstraction());
 
       if (ok) {
-        LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+        CPAMain.logManager.log(Level.FINEST,
             "Element: ", element, " COVERED by: ", e2);
         cpa.setCovered(e1);
         e1.setCovered(true);
       } else {
-        LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+        CPAMain.logManager.log(Level.FINEST,
             "NO, not covered");
       }
 

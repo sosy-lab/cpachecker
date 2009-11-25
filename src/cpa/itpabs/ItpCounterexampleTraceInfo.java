@@ -25,11 +25,12 @@ package cpa.itpabs;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
+
+import cmdline.CPAMain;
 
 import symbpredabstraction.interfaces.SymbolicFormula;
 import symbpredabstraction.trace.ConcreteTrace;
-
-import logging.LazyLogger;
 
 import cpa.common.interfaces.AbstractElement;
 
@@ -70,7 +71,7 @@ public class ItpCounterexampleTraceInfo {
     }
 
     public void setFormulaForRefinement(AbstractElement e, SymbolicFormula f) {
-        LazyLogger.log(LazyLogger.DEBUG_3, "SETTING REFINEMENT FOR ", e,
+      CPAMain.logManager.log(Level.ALL, "DEBUG_3", "SETTING REFINEMENT FOR", e,
                 ": ", f);
         refmap.put(e, f);
     }

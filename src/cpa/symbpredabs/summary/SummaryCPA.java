@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 import java.util.Vector;
+import java.util.logging.Level;
 
 import symbpredabstraction.FixedPredicateMap;
 import symbpredabstraction.SSAMap;
@@ -50,8 +51,6 @@ import symbpredabstraction.mathsat.MathsatTheoremProver;
 import symbpredabstraction.mathsat.SimplifyTheoremProver;
 import symbpredabstraction.mathsat.YicesTheoremProver;
 
-import logging.CustomLogLevel;
-import logging.LazyLogger;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cfa.objectmodel.CFANode;
 import cmdline.CPAMain;
@@ -201,7 +200,7 @@ public class SummaryCPA implements ConfigurableProgramAnalysis, CPAWithStatistic
                     mgr.buildPathFormulas(succLoc);
                 summaryToFormulaMap.put(succLoc, p);
 
-//                CPACheckerLogger.log(CustomLogLevel.SpecificCPALevel,
+//                CPAMain.logManager.log(Level.FINEST,
 //                        "SYMBOLIC FORMULA FOR " + succLoc.toString() + ": " +
 //                        p.getFirst().toString());
 
@@ -226,7 +225,7 @@ public class SummaryCPA implements ConfigurableProgramAnalysis, CPAWithStatistic
     }
     
     public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
-        LazyLogger.log(CustomLogLevel.SpecificCPALevel,
+      CPAMain.logManager.log(Level.FINEST,
                        "Getting initial element from node: ", node);
 
         SummaryCFANode loc = (SummaryCFANode)node;

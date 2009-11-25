@@ -31,13 +31,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 import java.util.Vector;
-
-import logging.LazyLogger;
+import java.util.logging.Level;
 
 import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 
+import cmdline.CPAMain;
 
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAErrorNode;
@@ -80,14 +80,14 @@ public class BlockCFABuilder {
         List<CFANode> toProcess = topologicalSort(cfa);
         Set<CFANode> cache = new HashSet<CFANode>();
         marked.add(cfa);
-        LazyLogger.log(LazyLogger.DEBUG_3, "MARKING: ", cfa.getNodeNumber());
+        CPAMain.logManager.log(Level.ALL, "DEBUG_3", "MARKING:", cfa.getNodeNumber());
         for (CFANode n : toProcess) {
             if (cache.contains(n) || !marked.contains(n)) {
                 continue;
             }
             cache.add(n);
             CFANode start = n;
-            LazyLogger.log(LazyLogger.DEBUG_3, "PROCESSING: ",
+            CPAMain.logManager.log(Level.ALL, "DEBUG_3", "PROCESSING:",
                     n.getNodeNumber());
             Vector<CFAEdge> orig = new Vector<CFAEdge>();
             for (int i = 0; i < start.getNumLeavingEdges(); ++i) {
@@ -95,7 +95,7 @@ public class BlockCFABuilder {
                 orig.add(e);
             }
             for (CFAEdge e : orig) {
-                LazyLogger.log(LazyLogger.DEBUG_3, "  EDGE: ",
+              CPAMain.logManager.log(Level.ALL, "DEBUG_3", "  EDGE:",
                         e.getRawStatement());
                 BlockEdge curBlock = new BlockEdge();
                 CFANode s = e.getSuccessor();
@@ -204,7 +204,7 @@ public class BlockCFABuilder {
             }
             if (finished) {
                 toProcess.pop();
-                LazyLogger.log(LazyLogger.DEBUG_3,
+                CPAMain.logManager.log(Level.ALL, "DEBUG_3",
                                "FINISHED: ", n.getNodeNumber());
                 visited.put(n, 1);
                 //if (n != cfa) {
@@ -219,7 +219,7 @@ public class BlockCFABuilder {
     private boolean isLoopBack(CFAEdge e) {
         CFANode s = e.getSuccessor();
         boolean yes = s.isLoopStart() && !e.getRawStatement().equals("while");
-        LazyLogger.log(LazyLogger.DEBUG_3,
+        CPAMain.logManager.log(Level.ALL, "DEBUG_3",
                 "CHECKING isLoopBack, e: ", e.getRawStatement(),
                 ", s: ", s.getNodeNumber() + ", RESULT: " + yes);
         if (!yes) {

@@ -30,10 +30,11 @@ import java.io.InputStreamReader;
 import java.util.Collection;
 import java.util.Stack;
 import java.util.Vector;
+import java.util.logging.Level;
+
+import cmdline.CPAMain;
 
 import symbpredabstraction.interfaces.Predicate;
-
-import logging.LazyLogger;
 
 
 /**
@@ -84,7 +85,7 @@ public class MathsatPredicateParser {
         Collection<Predicate> ret = new Vector<Predicate>();
         Stack<Long> toProcess = new Stack<Long>();
 
-        LazyLogger.log(LazyLogger.DEBUG_3,
+        CPAMain.logManager.log(Level.ALL, "DEBUG_3",
                        "FORMULA IS: ", new MathsatSymbolicFormula(formula));
 
         // We *ASSUME* that in the original msat file the formula is a
@@ -113,7 +114,7 @@ public class MathsatPredicateParser {
                     def = mathsat.api.msat_term_get_arg(def, 0);
                     ret.add(amgr.makePredicate(var, def));
 
-                    LazyLogger.log(LazyLogger.DEBUG_1,
+                    CPAMain.logManager.log(Level.ALL, "DEBUG_1",
                                    "ADDED PREDICATE, name: ",
                                    new MathsatSymbolicFormula(var),
                                    ", atom: ",

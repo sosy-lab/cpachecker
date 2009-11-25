@@ -34,10 +34,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 import java.util.Vector;
+import java.util.logging.Level;
 
-import logging.CPACheckerLogger;
-import logging.CustomLogLevel;
-import logging.LazyLogger;
 import symbpredabstraction.PathFormula;
 import symbpredabstraction.SSAMap;
 import symbpredabstraction.Cache.CartesianAbstractionCacheKey;
@@ -238,7 +236,7 @@ implements SymbPredAbstFormulaManager
                 (MathsatSymbolicFormula)f);
         f = mmgr.makeAnd(f, bitwiseAxioms);
 
-        LazyLogger.log(LazyLogger.DEBUG_3, "ADDED BITWISE AXIOMS: ",
+        CPAMain.logManager.log(Level.ALL, "DEBUG_3", "ADDED BITWISE AXIOMS:",
                 bitwiseAxioms);
     }
 
@@ -324,7 +322,7 @@ implements SymbPredAbstFormulaManager
             }
 
 
-            LazyLogger.log(LazyLogger.DEBUG_1,
+            CPAMain.logManager.log(Level.ALL, "DEBUG_1",
                     "CHECKING VALUE OF PREDICATE: ", pi.getFirst());
 
             // instantiate the definition of the predicate
@@ -442,7 +440,7 @@ implements SymbPredAbstFormulaManager
           (MathsatSymbolicFormula)symbFormula);
       symbFormula = mmgr.makeAnd(symbFormula, bitwiseAxioms);
 
-      LazyLogger.log(LazyLogger.DEBUG_3, "ADDED BITWISE AXIOMS: ",
+      CPAMain.logManager.log(Level.ALL, "DEBUG_3", "ADDED BITWISE AXIOMS:",
           bitwiseAxioms);
     }
 
@@ -488,13 +486,13 @@ implements SymbPredAbstFormulaManager
       }
     }
     
-    if (CPACheckerLogger.getLevel() <= LazyLogger.DEBUG_1.intValue()) {
+    if (CPAMain.logManager.getLogLevel().intValue() <= Level.ALL.intValue()) {
       StringBuffer importantStrBuf = new StringBuffer();
       for (SymbolicFormula impFormula : importantPreds) {
         importantStrBuf.append(impFormula.toString());
         importantStrBuf.append(" ");
       }
-      LazyLogger.log(LazyLogger.DEBUG_1,
+      CPAMain.logManager.log(Level.ALL, "DEBUG_1",
           "IMPORTANT SYMBOLS (", importantPreds.size(), "): ",
           importantStrBuf);
     }
@@ -508,7 +506,7 @@ implements SymbPredAbstFormulaManager
     final SymbolicFormula fm = mgr.makeAnd( 
         mgr.makeAnd(absFormula, symbFormula), predDef);
     
-    LazyLogger.log(LazyLogger.DEBUG_2,
+    CPAMain.logManager.log(Level.ALL, "DEBUG_2",
         "COMPUTING ALL-SMT ON FORMULA: ", fm);
 
     Pair<SymbolicFormula, Vector<SymbolicFormula>> absKey =
@@ -588,8 +586,8 @@ implements SymbPredAbstFormulaManager
 
     Vector<SymbolicFormula> f = new Vector<SymbolicFormula>();
 
-    LazyLogger.log(LazyLogger.DEBUG_1, "\nBUILDING COUNTEREXAMPLE TRACE\n");
-    LazyLogger.log(LazyLogger.DEBUG_1, "ABSTRACT TRACE: ", abstractTrace);
+    CPAMain.logManager.log(Level.ALL, "DEBUG_1", "BUILDING COUNTEREXAMPLE TRACE");
+    CPAMain.logManager.log(Level.ALL, "DEBUG_1", "ABSTRACT TRACE:", abstractTrace);
 
     //printFuncNamesInTrace(abstractTrace);
 
@@ -610,15 +608,15 @@ implements SymbPredAbstFormulaManager
       PathFormula p = getInitSymbolicFormula(e.getInitAbstractionFormula(), mgr, (ssa == null));
       SSAMap newssa = null;
       if (ssa != null) {
-        LazyLogger.log(LazyLogger.DEBUG_3, "SHIFTING: ", p.getSymbolicFormula(),
+        CPAMain.logManager.log(Level.ALL, "DEBUG_3", "SHIFTING:", p.getSymbolicFormula(),
             " WITH SSA: ", ssa);
         p = mmgr.shift(p.getSymbolicFormula(), ssa);
         newssa = p.getSsa();
-        LazyLogger.log(LazyLogger.DEBUG_3, "RESULT: ", p.getSymbolicFormula(),
+        CPAMain.logManager.log(Level.ALL, "DEBUG_3", "RESULT:", p.getSymbolicFormula(),
             " SSA: ", newssa);
         newssa.update(ssa);
       } else {
-        LazyLogger.log(LazyLogger.DEBUG_3, "INITIAL: ", p.getSymbolicFormula(),
+        CPAMain.logManager.log(Level.ALL, "DEBUG_3", "INITIAL:", p.getSymbolicFormula(),
             " SSA: ", p.getSsa());
         newssa = p.getSsa();
       }
@@ -640,20 +638,20 @@ implements SymbPredAbstFormulaManager
             bitwiseAxioms, a);
       }
 
-      LazyLogger.log(LazyLogger.DEBUG_2, "Adding formula: ", p.getSymbolicFormula());
+      CPAMain.logManager.log(Level.ALL, "DEBUG_2", "Adding formula:", p.getSymbolicFormula());
 //    mathsat.api.msat_term_id(
 //    ((MathsatSymbolicFormula)p.getFirst()).getTerm()));
     }
 
     if (CPAMain.cpaConfig.getBooleanValue(
     "cpas.symbpredabs.useBitwiseAxioms")) {
-      LazyLogger.log(LazyLogger.DEBUG_3, "ADDING BITWISE AXIOMS TO THE ",
+      CPAMain.logManager.log(Level.ALL, "DEBUG_3", "ADDING BITWISE AXIOMS TO THE",
           "LAST GROUP: ", bitwiseAxioms);
       f.setElementAt(mmgr.makeAnd(f.elementAt(f.size()-1), bitwiseAxioms),
           f.size()-1);
     }
 
-    LazyLogger.log(LazyLogger.DEBUG_3,
+    CPAMain.logManager.log(Level.ALL, "DEBUG_3",
     "Checking feasibility of abstract trace");
 
     // now f is the DAG formula which is satisfiable iff there is a
@@ -798,24 +796,24 @@ implements SymbPredAbstFormulaManager
           (SymbPredAbsAbstractElement)abstarr[i];
         info.addPredicatesForRefinement(s1, preds);
 
-        LazyLogger.log(LazyLogger.DEBUG_1,
+        CPAMain.logManager.log(Level.ALL, "DEBUG_1",
             "Got interpolant(", i, "): ", itp, ", location: ", s1);
-        LazyLogger.log(LazyLogger.DEBUG_1, "Preds for ",
-            s1.getAbstractionLocation(), ": ", preds);
+        CPAMain.logManager.log(Level.ALL, "DEBUG_1", "Preds for",
+            s1.getAbstractionLocation(), ":", preds);
 
         // If we are entering or exiting a function, update the stack
         // of entry points
         SymbPredAbsAbstractElement e = (SymbPredAbsAbstractElement)abstarr[i];
         // TODO checking if the abstraction node is a new function
         if (e.getAbstractionLocation() instanceof CFAFunctionDefinitionNode) {
-          LazyLogger.log(LazyLogger.DEBUG_3,
+          CPAMain.logManager.log(Level.ALL, "DEBUG_3",
               "Pushing entry point, function: ",
               e.getAbstractionLocation().getFunctionName());
           entryPoints.push(i);
         }
         // TODO check we are returning from a function
         if (e.getAbstractionLocation().getEnteringSummaryEdge() != null) {
-          LazyLogger.log(LazyLogger.DEBUG_3,
+          CPAMain.logManager.log(Level.ALL, "DEBUG_3",
               "Popping entry point, returning from function: ",
               e.getAbstractionLocation().getEnteringEdge(0).getPredecessor().getFunctionName());
           entryPoints.pop();
@@ -849,7 +847,7 @@ implements SymbPredAbstFormulaManager
           pw.println(msatRepr);
           pw.close();
         } catch (FileNotFoundException e) {
-          LazyLogger.log(CustomLogLevel.INFO,
+          CPAMain.logManager.log(Level.INFO,
               "Failed to save msat Counterexample to file: ",
               cexPath);
         }
@@ -931,8 +929,8 @@ implements SymbPredAbstFormulaManager
     long msatEnv = mmgr.getMsatEnv();
     thmProver.init(TheoremProver.COUNTEREXAMPLE_ANALYSIS);
 
-    LazyLogger.log(LazyLogger.DEBUG_1, "Calling getUsefulBlocks on path ",
-        "of length: ", f.size());
+    CPAMain.logManager.log(Level.ALL, "DEBUG_1", "Calling getUsefulBlocks on path",
+        "of length:", f.size());
 
     MathsatSymbolicFormula trueFormula = new MathsatSymbolicFormula(
         mathsat.api.msat_make_true(msatEnv));
@@ -980,7 +978,7 @@ implements SymbPredAbstFormulaManager
           if (thmProver.isUnsat(trueFormula)) {
             // add this block to the needed ones, and repeat
             needed[i] = t;
-            LazyLogger.log(LazyLogger.DEBUG_1,
+            CPAMain.logManager.log(Level.ALL, "DEBUG_1",
                 "Found needed block: ", i, ", term: ", t);
             // pop all
             while (toPop > 0) {
@@ -1004,7 +1002,7 @@ implements SymbPredAbstFormulaManager
           if (thmProver.isUnsat(trueFormula)) {
             // add this block to the needed ones, and repeat
             needed[i] = t;
-            LazyLogger.log(LazyLogger.DEBUG_1,
+            CPAMain.logManager.log(Level.ALL, "DEBUG_1",
                 "Found needed block: ", i, ", term: ", t);
             // pop all
             while (toPop > 0) {
@@ -1037,7 +1035,7 @@ implements SymbPredAbstFormulaManager
 
     thmProver.reset();
 
-    LazyLogger.log(LazyLogger.DEBUG_1, "Done getUsefulBlocks");
+    CPAMain.logManager.log(Level.ALL, "DEBUG_1", "Done getUsefulBlocks");
 
     return f;
   }
