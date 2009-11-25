@@ -271,6 +271,14 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
   }
 
 
+  public SymbolicFormula makeNot(SymbolicFormula f) {
+    MathsatSymbolicFormula m = (MathsatSymbolicFormula)f;
+
+    long a = mathsat.api.msat_make_not(msatEnv, m.getTerm());
+    return new MathsatSymbolicFormula(a);
+  }
+  
+  
   public SymbolicFormula makeAnd(SymbolicFormula f1, SymbolicFormula f2) {
     MathsatSymbolicFormula m1 = (MathsatSymbolicFormula)f1;
     MathsatSymbolicFormula m2 = (MathsatSymbolicFormula)f2;

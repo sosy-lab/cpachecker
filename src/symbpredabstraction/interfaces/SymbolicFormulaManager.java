@@ -41,6 +41,14 @@ import exceptions.UnrecognizedCFAEdgeException;
  * SymbolicFormulas
  */
 public interface SymbolicFormulaManager {
+  
+    /**
+     * Creates a formula representing a negation of the argument
+     * @param f a SymbolicFormula
+     * @return (!f1)
+     */
+    public SymbolicFormula makeNot(SymbolicFormula f);
+  
     /**
      * Creates a formula representing an AND of the two argument
      * @param f1 a SymbolicFormula
