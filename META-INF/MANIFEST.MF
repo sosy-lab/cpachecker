@@ -48,7 +48,6 @@ Export-Package: .,
  cpaplugin.actions;uses:="org.eclipse.jface.action,org.eclipse.ui,org.eclipse.jface.viewers",
  cpaplugin.preferences,
  exceptions,
- logging,
  mathsat,
  net.sf.javabdd;uses:="jdd.bdd,new net.sf.javabdd",
  octagon;uses:="cpaplugin.cpa.octagon,cpaplugin.cpa.common.interfaces"
