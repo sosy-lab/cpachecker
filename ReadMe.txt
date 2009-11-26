@@ -13,27 +13,27 @@ Requirements for building CPAchecker:
    (may show degraded performance, though).
 2. Install Eclipse 3.3, 3.4 or 3.5
    http://www.eclipse.org/
-   You need the JDT and the "Eclipse Plug-in Development Environment" package (PDE).
-3. Install the C/C++ Development Kit for your Eclipse version
+3. You need the JDT and the "Eclipse Plug-in Development Environment" package (PDE).
+4. Install the C/C++ Development Kit for your Eclipse version
    (tested with CDT 4.0 and CDT 6.0).   
    Or contact Michael Tautschnig <tautschnig@forsyte.de> to
    obtain patches to make it work with CDT 5
    You need to install only the "Eclipse C/C++ Development Tools SDK" package.
 
 For building in Eclipse:
-4. Install (e.g.) SubClipse - Eclipse SVN-Team Provider
+5. Install (e.g.) SubClipse - Eclipse SVN-Team Provider
    http://subclipse.tigris.org/
-5. Create new project from SVN repository
+6. Create new project from SVN repository
    URL: svn+ssh://svn.sosy-lab.org/repos/RC-software/cpachecker/trunk
-6. If your system is not 32bit Linux, you will have to change the paths to the
+7. If your system is not 32bit Linux, you will have to change the paths to the
    native libraries in the .classpath file
 
 Running it:
-7. Choose a configuration file and a source code file
+8. Choose a configuration file and a source code file
    Example: test/config/explicitAnalysisInf.properties
             test/tests/single/loop1.c
    Check that the configuration file does not contain any non-existent paths 
-8. Running it from Eclipse:
+9. Running it from Eclipse:
    Create a run configuration with main class "cmdline.CPAMain", 
    program arguments "-config <CONFIG_FILE> <SOURCE_FILE>", and
    VM arguments "-Djava.library.path=lib/native/<ENVIRONMENT>" 
@@ -42,7 +42,7 @@ Running it:
    		ppc-macosx, x86_64-linux, x86-linux, x86-macosx,  x86-win32
 
 Or:
-8. Running it from command line:
+9. Running it from command line:
    Execute "test/scripts/simple/cpa.sh -config <CONFIG_FILE> <SOURCE_FILE>"
    You need to edit this script, if your Eclipse is not in ~/eclipse,
    /opt/eclipse or ~/Desktop/eclipse
@@ -50,6 +50,8 @@ Or:
 
 Troubleshooting:
 - Imports starting with org.eclipse are not recognized.
+  Errors "Project 'CPAChecker (svn trunk)' is missing required library: 'bin/'" and
+  		 "The Project cannot be built until build path errors are resolved" occur.
   Solution: Double-check PDE is installed (see step 2).
   			This renders manually inserting the respective .jar files unnecessary.
 
@@ -82,7 +84,8 @@ CONFIGURATION OPTIONS:
 Name				possible values		default		recommended	explanation			
 -------------------------------------------------------------------------------------------------------------------------------------
 log.path			path+filename		<ERROR>		CPALog.txt	name of logfile
-log.level			0-1000, on, off, ...	<ERROR>		<DEPENDS>	verbosity level (higher is less verbose)
+log.level			off, severe, warning...	<ERROR>		<DEPENDS>	verbosity level (higher is less verbose)
+log.consoleLevel	off, severe, warning... <ERROR>		<DEPENDS>	verbosity level of console output
 dot.export			true/false		false		<DEPENDS>	write CFA to file
 dot.path			path			"."		<DEPENDS>	CFA graph output file
 reachedPath.export		true/false		false		false		write ART to file (needs cpa.useART)
