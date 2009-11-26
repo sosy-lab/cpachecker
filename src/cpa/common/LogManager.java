@@ -46,8 +46,8 @@ public class LogManager {
   private static LogManager instance = null;
   private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS");
   private String outfilePath = CPAMain.cpaConfig.getProperty("log.path");
-  private Level logLevel = Level.parse(CPAMain.cpaConfig.getProperty("log.level"));
-  private Level logConsoleLevel = Level.parse(CPAMain.cpaConfig.getProperty("log.consoleLevel"));
+  private Level logLevel = Level.parse(CPAMain.cpaConfig.getProperty("log.level").toUpperCase());
+  private Level logConsoleLevel = Level.parse(CPAMain.cpaConfig.getProperty("log.consoleLevel").toUpperCase());
   private FileHandler outfileHandler;
   private Logger fileLogger;
   private Logger consoleLogger;
@@ -67,6 +67,8 @@ public class LogManager {
   }
   
   private LogManager() throws SecurityException, IOException {
+    
+    if(logLevel != Level.OFF) {
     
     //create or fetch loggers
     fileLogger = Logger.getLogger("resMan.fileLogger");
@@ -88,6 +90,7 @@ public class LogManager {
     //need to set the level for both the logger and its handler
     consoleLogger.getParent().getHandlers()[0].setLevel(logConsoleLevel);
     consoleLogger.setLevel(logConsoleLevel);
+    }
   }
   
   public static LogManager getInstance() {
@@ -107,8 +110,9 @@ public class LogManager {
   public void log(Level priority, Object... args) {
     
     //Since some toString() methods may be rather costly, only log if the level is 
-    //sufficiently high.
-    if (priority.intValue() >= logLevel.intValue()) {
+    //sufficiently high. Ensure priority != OFF (since it is possible to abuse the logging 
+    //system by publishing logs with Level OFF).
+    if (priority.intValue() >= logLevel.intValue() && priority != Level.OFF) {
 
       StringBuffer buf = new StringBuffer();
 
@@ -164,7 +168,9 @@ public class LogManager {
   }
   
   public void flush() {
+    if(outfileHandler != null) {
       outfileHandler.flush();
+    }
   }
   
   public Level getLogLevel() {
