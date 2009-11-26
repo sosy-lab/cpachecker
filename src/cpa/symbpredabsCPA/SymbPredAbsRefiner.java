@@ -135,9 +135,9 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
       assert(firstInterpolant != null);
       if (numSeen > 1) {
 //      assert(numSeen == 2);
-        if (CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.abstraction.cartesian")) {
+//        if (CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.abstraction.cartesian")) {
           throw new CPAException("not enough predicates");
-        }
+//        }
       }
 
       CFANode loc = firstInterpolant.getAbstractionLocation(); 
