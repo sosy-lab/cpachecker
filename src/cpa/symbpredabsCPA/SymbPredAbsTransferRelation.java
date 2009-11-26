@@ -156,10 +156,9 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
         // set 'pathFormula' to pf - the updated pathFormula -
         // set 'pfParents' to newPfParents - the updated list of nodes that constructed the pathFormula -
         false, element.getAbstractionLocation(), pf, newPfParents,
-        // set 'initAbstractionFormula' and 'abstraction' to last element's values, they don't change
+        // set 'initAbstractionFormula', 'abstraction' and 'abstractionPathList' to last element's values, they don't change
         element.getInitAbstractionFormula(), element.getAbstraction(),
-        // set 'abstractionPathList', and 'artParent' to last element's values, they don't change
-        element.getAbstractionPathList(), element.getArtParent());
+        element.getAbstractionPathList());
 
     // set and update maxIndex for ssa
     // TODO check
@@ -237,9 +236,8 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     ++numAbstractStates;
 
     // add the new abstraction location to the abstractionPath
-    AbstractionPathList newAbstractionPath = new AbstractionPathList();
-    newAbstractionPath.copyFromExisting(element.getAbstractionPathList());
-    newAbstractionPath.addToList(edge.getSuccessor().getNodeNumber());
+    List<Integer> newAbstractionPath = new ArrayList<Integer>(element.getAbstractionPathList());
+    newAbstractionPath.add(edge.getSuccessor().getNodeNumber());
 
     return new SymbPredAbsAbstractElement(
         // set 'isAbstractionNode' to true, this is an abstraction node
@@ -250,9 +248,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
         // set 'initAbstractionFormula' to  pathFormula computed above
         // set 'abstraction' to newly computed abstraction
         // set 'abstractionPathList' to updated pathList
-        null, pathFormula, newAbstraction, newAbstractionPath,
-        // set 'artParent' to the current element
-        element);
+        null, pathFormula, newAbstraction, newAbstractionPath);
 
 //    SSAMap maxIndex = new SSAMap();
 //    newElement.setMaxIndex(maxIndex);

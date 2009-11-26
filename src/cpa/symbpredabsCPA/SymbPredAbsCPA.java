@@ -172,8 +172,8 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, CPAWithStati
 
     //SymbPredAbsAbstractElement e = new SymbPredAbsAbstractElement(domain, loc, null);
 
-    AbstractionPathList parents = new AbstractionPathList();
-    parents.addToList(node.getNodeNumber());
+    List<Integer> parents = new ArrayList<Integer>();
+    parents.add(node.getNodeNumber());
     SSAMap ssamap = new SSAMap();
     PathFormula pf = new PathFormula(symbolicFormulaManager.makeTrue(), ssamap);
     List<Integer> pfParents = new ArrayList<Integer>();
@@ -181,7 +181,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, CPAWithStati
     AbstractFormula initAbstraction = abstractFormulaManager.makeTrue();
 
     SymbPredAbsAbstractElement e = new SymbPredAbsAbstractElement(true, node,
-        pf, pfParents, initPf, initAbstraction, parents, null);
+        pf, pfParents, initPf, initAbstraction, parents);
     // TODO check
 //    e.setMaxIndex(new SSAMap());
 

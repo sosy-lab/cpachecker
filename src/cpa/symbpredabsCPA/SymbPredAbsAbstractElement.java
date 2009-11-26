@@ -59,9 +59,7 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
   /** List of abstraction locations with the order of their computation
    * up to that point. We use this list in {@link SymbPredAbsMergeOperator#merge(AbstractElement, AbstractElement, cpa.common.interfaces.Precision)} and
    * for partial order operator*/
-  private final AbstractionPathList abstractionPathList;
-  /** Parent of this element in the ART */
-  private final SymbPredAbsAbstractElement artParent;
+  private final List<Integer> abstractionPathList;
   /** List of {@link CFANode} ids that we constructed the {@link PathFormula}. This is
    * updated if {@link SymbPredAbsMergeOperator#merge(AbstractElement, AbstractElement, cpa.common.interfaces.Precision)}
    * is called and the {@link PathFormula} is updated. This list is also used by 
@@ -86,7 +84,7 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
     return abstraction;
   }
 
-  public AbstractionPathList getAbstractionPathList() {
+  public List<Integer> getAbstractionPathList() {
     return abstractionPathList;
   }
 
@@ -103,12 +101,11 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
     this.initAbstractionFormula = null;
     this.abstraction = null;
     this.abstractionPathList = null;
-    this.artParent = null;
   }
 
   public SymbPredAbsAbstractElement(boolean isAbstractionElement, CFANode abstLoc,
       PathFormula pf, List<Integer> pfParentsList, PathFormula initFormula, AbstractFormula a, 
-      AbstractionPathList pl, SymbPredAbsAbstractElement artParent){
+      List<Integer> pl){
     this.elementId = nextAvailableId++;
     this.isAbstractionNode = isAbstractionElement;
     this.abstractionLocation = abstLoc;
@@ -117,7 +114,6 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
     this.initAbstractionFormula = initFormula;
     this.abstraction = a;
     this.abstractionPathList = pl;
-    this.artParent = artParent;
 //    this.maxIndex = new SSAMap();
   }
 
@@ -198,10 +194,6 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
 
   public PathFormula getInitAbstractionFormula() {
     return initAbstractionFormula;
-  }
-
-  public SymbPredAbsAbstractElement getArtParent() {
-    return artParent;
   }
 
   // TODO disabled

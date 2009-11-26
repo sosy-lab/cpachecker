@@ -106,9 +106,6 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
   private ARTElement performRefinement(ReachedElements pReached,
       ArrayList<SymbPredAbsAbstractElement> pPath, Path pArtPath, CounterexampleTraceInfo pInfo) throws CPAException {
 
-    assert(pReached.getLastElement() instanceof ARTElement);
-    ARTElement lastElem = (ARTElement)pReached.getLastElement();
-
     // TODO check
     int numSeen = 0;
     if (seenAbstractCounterexamples.containsKey(pPath)) {
@@ -119,7 +116,8 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
       (UpdateablePredicateMap)mCpa.getPredicateMap();
     ARTElement root = null;
     SymbPredAbsAbstractElement symbPredRootElement = null;
-    AbstractElement firstInterpolant = null;
+    SymbPredAbsAbstractElement firstInterpolant = null;
+    SymbPredAbsAbstractElement previous = null;
     for (SymbPredAbsAbstractElement e : pPath) {
       Collection<Predicate> newpreds = pInfo.getPredicatesForRefinement(e);
       if (firstInterpolant == null && newpreds.size() > 0) {
@@ -127,9 +125,11 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
       }
       if (curpmap.update(e.getAbstractionLocation(), newpreds)) {
         if (symbPredRootElement == null) {
-          symbPredRootElement = e.getArtParent();
+          assert previous != null;
+          symbPredRootElement = previous;
         }
       }
+      previous = e;
     }
     if (symbPredRootElement == null) {
       assert(firstInterpolant != null);
@@ -140,8 +140,8 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
         }
       }
 
-      CFANode loc = ((SymbPredAbsAbstractElement)firstInterpolant).getAbstractionLocation(); 
-      root = this.getArtCpa().findHighest(lastElem, loc);
+      CFANode loc = firstInterpolant.getAbstractionLocation(); 
+      root = this.getArtCpa().findHighest(pArtPath.getLast().getFirst(), loc);
     }
     else{
       long start = System.currentTimeMillis();

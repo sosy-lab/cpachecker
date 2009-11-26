@@ -636,7 +636,7 @@ implements SymbPredAbstFormulaManager
       Stack<Integer> entryPoints = new Stack<Integer>();
       entryPoints.push(0);
       
-      for (int i = 1; i < f.size(); ++i) {
+      for (int i = 0; i < f.size(); ++i) {
         int start_of_a;
         if (CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.refinement.addWellScopedPredicates")) {
           start_of_a = entryPoints.peek();
