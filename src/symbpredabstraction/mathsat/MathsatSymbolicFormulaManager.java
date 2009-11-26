@@ -966,8 +966,12 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
           }
           long term = buildMsatTerm(operand, ssa, absoluteSSAIndices);
           if (mathsat.api.MSAT_ERROR_TERM(term)) return term;
-          int idx = getNormalIndex(
-              opname, term, ssa, absoluteSSAIndices);
+          
+          // PW make SSA index of * independent from argument
+          int idx = getLvalIndex(opname, ssa, absoluteSSAIndices);
+          //int idx = getNormalIndex(
+          //    opname, term, ssa, absoluteSSAIndices);
+          
           if (idx <= 0) return mathsat.api.MSAT_MAKE_ERROR_TERM();
           // build the  function corresponding to this operation.
           long decl = mathsat.api.msat_declare_uif(
@@ -1368,8 +1372,12 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       }
       long term = buildMsatTerm(operand, ssa, absoluteSSAIndices);
       if (mathsat.api.MSAT_ERROR_TERM(term)) return term;
-      int idx = getLvalIndex(opname, term, ssa, absoluteSSAIndices);
-      ssa.setIndex(opname, new MathsatSymbolicFormula(term), idx);
+
+      // PW make SSA index of * independent from argument
+      int idx = getLvalIndex(opname, ssa, absoluteSSAIndices);
+      //int idx = getLvalIndex(opname, term, ssa, absoluteSSAIndices);
+      //ssa.setIndex(opname, new MathsatSymbolicFormula(term), idx);
+      
       // build the "updated" function corresponding to this operation.
       // what we do is the following:
       // C            |     MathSAT
