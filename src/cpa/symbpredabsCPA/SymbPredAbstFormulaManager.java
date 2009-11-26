@@ -23,8 +23,8 @@
  */
 package cpa.symbpredabsCPA;
 
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Deque;
 
 import symbpredabstraction.PathFormula;
 import symbpredabstraction.interfaces.AbstractFormula;
@@ -53,5 +53,5 @@ public interface SymbPredAbstFormulaManager extends AbstractFormulaManager {
      */
     public CounterexampleTraceInfo buildCounterexampleTrace(
             SymbolicFormulaManager mgr,
-            Deque<SymbPredAbsAbstractElement> abstractTrace);
+            ArrayList<SymbPredAbsAbstractElement> abstractTrace);
 }

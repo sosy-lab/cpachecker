@@ -26,8 +26,8 @@ package cpa.symbpredabsCPA;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -573,194 +573,61 @@ implements SymbPredAbstFormulaManager
 
   @Override
   public CounterexampleTraceInfo buildCounterexampleTrace(SymbolicFormulaManager mgr,
-      Deque<SymbPredAbsAbstractElement> abstractTrace) {
+      ArrayList<SymbPredAbsAbstractElement> abstractTrace) {
     assert(abstractTrace.size() > 1);
+    MathsatSymbolicFormulaManager mmgr = (MathsatSymbolicFormulaManager)mgr;
 
     long startTime = System.currentTimeMillis();
     stats.numCallsCexAnalysis++;
 
-    // create the DAG formula corresponding to the abstract trace. We create
-    // n formulas, one per interpolation group
-    SSAMap ssa = null;
-    MathsatSymbolicFormulaManager mmgr = (MathsatSymbolicFormulaManager)mgr;
-
-    Vector<SymbolicFormula> f = new Vector<SymbolicFormula>();
-
     CPAMain.logManager.log(Level.ALL, "DEBUG_1", "BUILDING COUNTEREXAMPLE TRACE");
     CPAMain.logManager.log(Level.ALL, "DEBUG_1", "ABSTRACT TRACE:", abstractTrace);
 
-    //printFuncNamesInTrace(abstractTrace);
-
-    Object[] abstarr = abstractTrace.toArray();
-    //SymbPredAbsAbstractElement cur = (SymbPredAbsAbstractElement)abstarr[0];
+    Vector<SymbolicFormula> f = getFormulasForTrace(mgr, abstractTrace);
 
     boolean theoryCombinationNeeded = false;
-    boolean noDtc = CPAMain.cpaConfig.getBooleanValue(
-    "cpas.symbpredabs.mathsat.useDtc") == false;
+    boolean useDtc = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.mathsat.useDtc");
 
-    MathsatSymbolicFormula bitwiseAxioms =
-      (MathsatSymbolicFormula)mmgr.makeTrue();
-    for (int i = 1; i < abstarr.length; ++i) {
-      SymbPredAbsAbstractElement e = (SymbPredAbsAbstractElement)abstarr[i];
-      // TODO here we take the formula from the abstract element
-//    Pair<SymbolicFormula, SSAMap> p =
-//    buildConcreteFormula(mmgr, cur, e, (ssa == null));
-      PathFormula p = getInitSymbolicFormula(e.getInitAbstractionFormula(), mgr, (ssa == null));
-      SSAMap newssa = null;
-      if (ssa != null) {
-        CPAMain.logManager.log(Level.ALL, "DEBUG_3", "SHIFTING:", p.getSymbolicFormula(),
-            " WITH SSA: ", ssa);
-        p = mmgr.shift(p.getSymbolicFormula(), ssa);
-        newssa = p.getSsa();
-        CPAMain.logManager.log(Level.ALL, "DEBUG_3", "RESULT:", p.getSymbolicFormula(),
-            " SSA: ", newssa);
-        newssa.update(ssa);
-      } else {
-        CPAMain.logManager.log(Level.ALL, "DEBUG_3", "INITIAL:", p.getSymbolicFormula(),
-            " SSA: ", p.getSsa());
-        newssa = p.getSsa();
-      }
-      boolean hasUf = false;
-      if (!noDtc) {
-        hasUf = mmgr.hasUninterpretedFunctions(
-            (MathsatSymbolicFormula)p.getSymbolicFormula());
-        theoryCombinationNeeded |= hasUf;
-      }
-      f.add(p.getSymbolicFormula());
-      ssa = newssa;
-      //cur = e;
-
-      if (hasUf && CPAMain.cpaConfig.getBooleanValue(
-      "cpas.symbpredabs.useBitwiseAxioms")) {
-        MathsatSymbolicFormula a = mmgr.getBitwiseAxioms(
-            (MathsatSymbolicFormula)p.getSymbolicFormula());
-        bitwiseAxioms = (MathsatSymbolicFormula)mmgr.makeAnd(
-            bitwiseAxioms, a);
-      }
-
-      CPAMain.logManager.log(Level.ALL, "DEBUG_2", "Adding formula:", p.getSymbolicFormula());
-//    mathsat.api.msat_term_id(
-//    ((MathsatSymbolicFormula)p.getFirst()).getTerm()));
+    if (useDtc) {
+      theoryCombinationNeeded = addBitwiseAxioms(mgr, f);
     }
-
-    if (CPAMain.cpaConfig.getBooleanValue(
-    "cpas.symbpredabs.useBitwiseAxioms")) {
-      CPAMain.logManager.log(Level.ALL, "DEBUG_3", "ADDING BITWISE AXIOMS TO THE",
-          "LAST GROUP: ", bitwiseAxioms);
-      f.setElementAt(mmgr.makeAnd(f.elementAt(f.size()-1), bitwiseAxioms),
-          f.size()-1);
-    }
-
-    CPAMain.logManager.log(Level.ALL, "DEBUG_3",
-    "Checking feasibility of abstract trace");
+    
+    CPAMain.logManager.log(Level.ALL, "DEBUG_3", "Checking feasibility of abstract trace");
 
     // now f is the DAG formula which is satisfiable iff there is a
     // concrete counterexample
-    //
+
     // create a working environment
     itpProver.init();
 
-    boolean shortestTrace = CPAMain.cpaConfig.getBooleanValue(
-    "cpas.symbpredabs.shortestCexTrace");
-    boolean useSuffix = CPAMain.cpaConfig.getBooleanValue(
-    "cpas.symbpredabs.shortestCexTraceUseSuffix");
-    boolean useZigZag = CPAMain.cpaConfig.getBooleanValue(
-    "cpas.symbpredabs.shortestCexTraceZigZag");
+    boolean shortestTrace = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.shortestCexTrace");
+    boolean useSuffix = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.shortestCexTraceUseSuffix");
+    boolean useZigZag = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.shortestCexTraceZigZag");
 
     long msatSolveTimeStart = System.currentTimeMillis();
 
-    boolean unsat = false;
-    int res = -1;
-
-    //dumpInterpolationProblem(mmgr, f, "itp");
-
-    if (shortestTrace && CPAMain.cpaConfig.getBooleanValue(
-    "cpas.symbpredabs.explicit.getUsefulBlocks")) {
-      long gubStart = System.currentTimeMillis();
-      f = getUsefulBlocks(mmgr, f, theoryCombinationNeeded,
-          useSuffix, useZigZag, false);
-      long gubEnd = System.currentTimeMillis();
-      stats.cexAnalysisGetUsefulBlocksTime += gubEnd - gubStart;
-      stats.cexAnalysisGetUsefulBlocksMaxTime = Math.max(
-          stats.cexAnalysisGetUsefulBlocksMaxTime, gubEnd - gubStart);
+    if (shortestTrace && CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.explicit.getUsefulBlocks")) {
+      f = getUsefulBlocks(mmgr, f, theoryCombinationNeeded, useSuffix, useZigZag);
+     
       // set shortestTrace to false, so we perform only one final call
       // to msat_solve
       shortestTrace = false;
     }
 
-
-    if (!shortestTrace || !useZigZag) {
-      for (int i = useSuffix ? f.size()-1 : 0;
-      useSuffix ? i >= 0 : i < f.size(); i += useSuffix ? -1 : 1) {
-        SymbolicFormula fm = f.elementAt(i);
-        itpProver.addFormula(fm);
-        if (shortestTrace && !fm.isTrue()) {
-          if (itpProver.isUnsat()) {
-            res = 0;
-            // we need to add the other formulas to the itpProver
-            // anyway, so it can setup its internal state properly
-            for (int j = i+(useSuffix ? -1 : 1);
-            useSuffix ? j >= 0 : j < f.size();
-            j += useSuffix ? -1 : 1) {
-              itpProver.addFormula(f.elementAt(j));
-            }
-            break;
-          } else {
-            res = 1;
-          }
-        } else {
-          res = -1;
-        }
-      }
-      if (!shortestTrace || res == -1) {
-        unsat = itpProver.isUnsat();
-      } else {
-        unsat = res == 0;
-      }
-    } else { // shortestTrace && useZigZag
-      int e = f.size()-1;
-      int s = 0;
-      boolean fromStart = false;
-      while (true) {
-        int i = fromStart ? s : e;
-        if (fromStart) s++;
-        else e--;
-        fromStart = !fromStart;
-        SymbolicFormula fm = f.elementAt(i);
-        itpProver.addFormula(fm);
-        if (!fm.isTrue()) {
-          if (itpProver.isUnsat()) {
-            res = 0;
-            for (int j = s; j <= e; ++j) {
-              itpProver.addFormula(f.elementAt(j));
-            }
-            break;
-          } else {
-            res = 1;
-          }
-        } else {
-          res = -1;
-        }
-        if (s > e) break;
-      }
-      assert(res != -1);
-      unsat = res == 0;
-    }
+    boolean spurious = checkInfeasabilityOfTrace(f, shortestTrace, useSuffix, useZigZag);
 
     long msatSolveTimeEnd = System.currentTimeMillis();
     long msatSolveTime = msatSolveTimeEnd - msatSolveTimeStart;
 
-    CounterexampleTraceInfo info = null;
+    CounterexampleTraceInfo info = new CounterexampleTraceInfo(spurious);
 
     long msatEnv = mmgr.getMsatEnv();
 
-    if (unsat) {
-      //dumpInterpolationProblem(mmgr, f, "itp");
+    if (spurious) {
       // the counterexample is spurious. Extract the predicates from
       // the interpolants
-      info = new CounterexampleTraceInfo(true);
-      boolean splitItpAtoms = CPAMain.cpaConfig.getBooleanValue(
-      "cpas.symbpredabs.refinement.splitItpAtoms");
+      boolean splitItpAtoms = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.refinement.splitItpAtoms");
+      
       // how to partition the trace into (A, B) depends on whether
       // there are function calls involved or not: in general, A
       // is the trace from the entry point of the current function
@@ -768,13 +635,15 @@ implements SymbPredAbstFormulaManager
       // this, we keep track of which function we are currently in.
       Stack<Integer> entryPoints = new Stack<Integer>();
       entryPoints.push(0);
+      
       for (int i = 1; i < f.size(); ++i) {
-        int start_of_a = entryPoints.peek();
-        if (!CPAMain.cpaConfig.getBooleanValue(
-        "cpas.symbpredabs.refinement.addWellScopedPredicates")) {
+        int start_of_a;
+        if (CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.refinement.addWellScopedPredicates")) {
+          start_of_a = entryPoints.peek();
+        } else {
           // if we don't want "well-scoped" predicates, we always
           // cut from the beginning
-          start_of_a = 0;
+          start_of_a = 0;          
         }
 
         int sz = i - start_of_a;
@@ -792,64 +661,53 @@ implements SymbPredAbstFormulaManager
         Collection<SymbolicFormula> atoms = mmgr.extractAtoms(
             itp, true, splitItpAtoms, false);
         Set<Predicate> preds = buildPredicates(msatEnv, atoms);
-        SymbPredAbsAbstractElement s1 =
-          (SymbPredAbsAbstractElement)abstarr[i];
-        info.addPredicatesForRefinement(s1, preds);
+        SymbPredAbsAbstractElement e = abstractTrace.get(i);
+        info.addPredicatesForRefinement(e, preds);
 
         CPAMain.logManager.log(Level.ALL, "DEBUG_1",
-            "Got interpolant(", i, "): ", itp, ", location: ", s1);
+            "Got interpolant(", i, "): ", itp, ", location: ", e);
         CPAMain.logManager.log(Level.ALL, "DEBUG_1", "Preds for",
-            s1.getAbstractionLocation(), ":", preds);
+            e.getAbstractionLocation(), ":", preds);
 
         // If we are entering or exiting a function, update the stack
         // of entry points
-        SymbPredAbsAbstractElement e = (SymbPredAbsAbstractElement)abstarr[i];
         // TODO checking if the abstraction node is a new function
         if (e.getAbstractionLocation() instanceof CFAFunctionDefinitionNode) {
-          CPAMain.logManager.log(Level.ALL, "DEBUG_3",
-              "Pushing entry point, function: ",
-              e.getAbstractionLocation().getFunctionName());
           entryPoints.push(i);
         }
         // TODO check we are returning from a function
         if (e.getAbstractionLocation().getEnteringSummaryEdge() != null) {
-          CPAMain.logManager.log(Level.ALL, "DEBUG_3",
-              "Popping entry point, returning from function: ",
-              e.getAbstractionLocation().getEnteringEdge(0).getPredecessor().getFunctionName());
           entryPoints.pop();
 
-//        SummaryAbstractElement s1 =
-//        (SummaryAbstractElement)abstarr[i];
-          //pmap.update((CFANode)s1.getLocation(), preds);
+          //pmap.update((CFANode)e.getLocation(), preds);
         }
       }
     } else {
       // this is a real bug, notify the user
-      info = new CounterexampleTraceInfo(false);
       ConcreteTraceFunctionCalls cf = new ConcreteTraceFunctionCalls();
       for (SymbPredAbsAbstractElement e : abstractTrace) {
         cf.add(e.getAbstractionLocation().getFunctionName());
       }
       info.setConcreteTrace(cf);
+      
       // TODO - reconstruct counterexample
       // For now, we dump the asserted formula to a user-specified file
-      String cexPath = CPAMain.cpaConfig.getProperty(
-      "cpas.symbpredabs.refinement.msatCexPath");
+      String cexPath = CPAMain.cpaConfig.getProperty("cpas.symbpredabs.refinement.msatCexPath");
       if (cexPath != null) {
-        long t = mathsat.api.msat_make_true(msatEnv);
-        for (SymbolicFormula fm : f) {
-          long term = ((MathsatSymbolicFormula)fm).getTerm();
-          t = mathsat.api.msat_make_and(msatEnv, t, term);
-        }
-        String msatRepr = mathsat.api.msat_to_msat(msatEnv, t);
         try {
+          SymbolicFormula t = mgr.makeTrue();
+          for (SymbolicFormula fm : f) {
+            t = mgr.makeAnd(t, fm);
+          }
+          String msatRepr = mmgr.dumpFormula(t);
+
           PrintWriter pw = new PrintWriter(new File(cexPath));
           pw.println(msatRepr);
           pw.close();
         } catch (FileNotFoundException e) {
           CPAMain.logManager.log(Level.INFO,
-              "Failed to save msat Counterexample to file: ",
-              cexPath);
+              "Failed to save msat Counterexample to file ", cexPath,
+              " (", e.getMessage(), ")");
         }
       }
     }
@@ -866,6 +724,159 @@ implements SymbPredAbstFormulaManager
       Math.max(msatSolveTime, stats.cexAnalysisMaxMathsatTime);
 
     return info;
+  }
+
+  private Vector<SymbolicFormula> getFormulasForTrace(
+      SymbolicFormulaManager mgr,
+      ArrayList<SymbPredAbsAbstractElement> abstractTrace) {
+    MathsatSymbolicFormulaManager mmgr = (MathsatSymbolicFormulaManager)mgr;
+
+    // create the DAG formula corresponding to the abstract trace. We create
+    // n formulas, one per interpolation group
+    SSAMap ssa = null;
+
+    Vector<SymbolicFormula> f = new Vector<SymbolicFormula>();
+
+    for (int i = 1; i < abstractTrace.size(); ++i) {
+      SymbPredAbsAbstractElement e = abstractTrace.get(i);
+      // TODO here we take the formula from the abstract element
+      PathFormula p = getInitSymbolicFormula(e.getInitAbstractionFormula(), mgr, (ssa == null));
+      SSAMap newSsa;
+      
+      if (ssa != null) {
+        CPAMain.logManager.log(Level.ALL, "DEBUG_3", "SHIFTING:", p.getSymbolicFormula(), " WITH SSA: ", ssa);
+        p = mmgr.shift(p.getSymbolicFormula(), ssa);
+        newSsa = p.getSsa();
+        CPAMain.logManager.log(Level.ALL, "DEBUG_3", "RESULT:", p.getSymbolicFormula(), " SSA: ", newSsa);
+        newSsa.update(ssa);
+      } else {
+        newSsa = p.getSsa();
+        CPAMain.logManager.log(Level.ALL, "DEBUG_3", "INITIAL:", p.getSymbolicFormula(), " SSA: ", newSsa);
+      }
+      f.add(p.getSymbolicFormula());
+      ssa = newSsa;
+
+      CPAMain.logManager.log(Level.ALL, "DEBUG_2", "Adding formula:", p.getSymbolicFormula());
+    }
+    return f;
+  }
+
+  /**
+   * Looks for uninterpreted functions in the trace formulas and adds bitwise
+   * axioms for them to the last trace formula. Returns true if an UF was found.
+   * @param mgr
+   * @param traceFormulas
+   * @return
+   */
+  private boolean addBitwiseAxioms(SymbolicFormulaManager mgr,
+      Vector<SymbolicFormula> traceFormulas) {
+    MathsatSymbolicFormulaManager mmgr = (MathsatSymbolicFormulaManager)mgr;
+
+    boolean foundUninterpretedFunction = false;
+    
+    SymbolicFormula bitwiseAxioms = mgr.makeTrue();
+    boolean useBitwiseAxioms = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.useBitwiseAxioms");
+    
+    for (SymbolicFormula fm : traceFormulas) {
+      boolean hasUf = mmgr.hasUninterpretedFunctions((MathsatSymbolicFormula)fm);
+      if (hasUf) {
+        foundUninterpretedFunction = true;  
+
+        if (useBitwiseAxioms) {
+          SymbolicFormula a = mmgr.getBitwiseAxioms((MathsatSymbolicFormula)fm);
+          bitwiseAxioms = mgr.makeAnd(bitwiseAxioms, a);
+        } else {
+          // do not need to check all formulas, one with UF is enough
+          break;
+        }
+      }
+    }
+    
+    if (useBitwiseAxioms && foundUninterpretedFunction) {
+      CPAMain.logManager.log(Level.ALL, "DEBUG_3", "ADDING BITWISE AXIOMS TO THE",
+          "LAST GROUP: ", bitwiseAxioms);
+      traceFormulas.setElementAt(mmgr.makeAnd(traceFormulas.elementAt(traceFormulas.size()-1), bitwiseAxioms),
+          traceFormulas.size()-1);
+    }
+    return foundUninterpretedFunction;
+  }
+  
+  private boolean checkInfeasabilityOfTrace(
+      Vector<SymbolicFormula> traceFormulas, boolean shortestTrace,
+      boolean useSuffix, boolean useZigZag) {
+    boolean spurious;
+    if (shortestTrace) {
+      Boolean tmpSpurious = null;
+      
+      if (useZigZag) {
+        int e = traceFormulas.size()-1;
+        int s = 0;
+        boolean fromStart = false;
+        while (s <= e) {
+          int i = fromStart ? s : e;
+          if (fromStart) s++;
+          else e--;
+          fromStart = !fromStart;
+          
+          tmpSpurious = null;
+          SymbolicFormula fm = traceFormulas.elementAt(i);
+          itpProver.addFormula(fm);
+          if (!fm.isTrue()) {
+            if (itpProver.isUnsat()) {
+              tmpSpurious = Boolean.TRUE;
+              for (int j = s; j <= e; ++j) {
+                itpProver.addFormula(traceFormulas.elementAt(j));
+              }
+              break;
+            } else {
+              tmpSpurious = Boolean.FALSE;
+            }
+          }
+        }
+        
+      } else {
+        for (int i = useSuffix ? traceFormulas.size()-1 : 0;
+              useSuffix ? i >= 0 : i < traceFormulas.size(); i += useSuffix ? -1 : 1) {
+          
+          tmpSpurious = null;
+          SymbolicFormula fm = traceFormulas.elementAt(i);
+          itpProver.addFormula(fm);
+          if (!fm.isTrue()) {
+            if (itpProver.isUnsat()) {
+              tmpSpurious = Boolean.TRUE;
+              // we need to add the other formulas to the itpProver
+              // anyway, so it can setup its internal state properly
+              for (int j = i+(useSuffix ? -1 : 1);
+                  useSuffix ? j >= 0 : j < traceFormulas.size();
+                  j += useSuffix ? -1 : 1) {
+                itpProver.addFormula(traceFormulas.elementAt(j));
+              }
+              break;
+            } else {
+              tmpSpurious = Boolean.FALSE;
+            }
+          }
+        }
+      }
+      
+      if (tmpSpurious == null) {
+        spurious = itpProver.isUnsat();
+      } else {
+        spurious = tmpSpurious.booleanValue();
+      }
+      
+    } else {
+      // ZigZag makes no sense here
+      
+      for (int i = useSuffix ? traceFormulas.size()-1 : 0;
+        useSuffix ? i >= 0 : i < traceFormulas.size(); i += useSuffix ? -1 : 1) {
+        
+        SymbolicFormula fm = traceFormulas.elementAt(i);
+        itpProver.addFormula(fm); 
+      }
+      spurious = itpProver.isUnsat();
+    }
+    return spurious;
   }
 
   private PathFormula getInitSymbolicFormula(PathFormula pf, SymbolicFormulaManager mgr, boolean replace) {
@@ -921,7 +932,9 @@ implements SymbPredAbstFormulaManager
   private Vector<SymbolicFormula> getUsefulBlocks(
       SymbolicFormulaManager mgr, Vector<SymbolicFormula> f,
       boolean theoryCombinationNeeded, boolean suffixTrace,
-      boolean zigZag, boolean setAllTrueIfSat) {
+      boolean zigZag) {
+    long gubStart = System.currentTimeMillis();
+    
     // try to find a minimal-unsatisfiable-core of the trace (as Blast does)
     MathsatSymbolicFormulaManager mmgr =
       (MathsatSymbolicFormulaManager)mgr;
@@ -1018,12 +1031,6 @@ implements SymbPredAbstFormulaManager
       if (consistent) {
         // if we get here, the trace is consistent:
         // this is a real counterexample!
-        if (setAllTrueIfSat) {
-          f = new Vector<SymbolicFormula>();
-          for (int i = 0; i < needed.length; ++i) {
-            f.add(trueFormula);
-          }
-        }
         break;
       }
     }
@@ -1037,6 +1044,11 @@ implements SymbPredAbstFormulaManager
 
     CPAMain.logManager.log(Level.ALL, "DEBUG_1", "Done getUsefulBlocks");
 
+    long gubEnd = System.currentTimeMillis();
+    stats.cexAnalysisGetUsefulBlocksTime += gubEnd - gubStart;
+    stats.cexAnalysisGetUsefulBlocksMaxTime = Math.max(
+        stats.cexAnalysisGetUsefulBlocksMaxTime, gubEnd - gubStart);
+    
     return f;
   }
 

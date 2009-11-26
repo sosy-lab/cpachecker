@@ -1,11 +1,11 @@
 package cpa.symbpredabsCPA;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -36,7 +36,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
   private final SymbolicFormulaManager symbolicFormulaManager;
   private final SymbPredAbstFormulaManager abstractFormulaManager;
 
-  private final Map<Deque<SymbPredAbsAbstractElement>, Integer> seenAbstractCounterexamples;
+  private final Map<ArrayList<SymbPredAbsAbstractElement>, Integer> seenAbstractCounterexamples;
 
   public SymbPredAbsRefiner(final ConfigurableProgramAnalysis pCpa) throws CPAException {
     super(pCpa);
@@ -64,7 +64,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
 
     symbolicFormulaManager = mCpa.getSymbolicFormulaManager();
     abstractFormulaManager = mCpa.getAbstractFormulaManager();
-    seenAbstractCounterexamples = new HashMap<Deque<SymbPredAbsAbstractElement>, Integer>();
+    seenAbstractCounterexamples = new HashMap<ArrayList<SymbPredAbsAbstractElement>, Integer>();
   }
 
   @Override
@@ -74,14 +74,14 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
     // create path with all elements directly before an abstraction location,
     // last element is the element corresponding to the error location
     // (which is twice in pPath)
-    Deque<SymbPredAbsAbstractElement> path = new LinkedList<SymbPredAbsAbstractElement>();
+    ArrayList<SymbPredAbsAbstractElement> path = new ArrayList<SymbPredAbsAbstractElement>();
     SymbPredAbsAbstractElement lastElement = null;
     for (Pair<ARTElement,CFAEdge> artPair : pPath) {
       SymbPredAbsAbstractElement symbElement = (SymbPredAbsAbstractElement)
         artPair.getFirst().retrieveElementOfType("SymbPredAbsAbstractElement");
       
       if (symbElement.isAbstractionNode()) {
-        path.addLast(lastElement);
+        path.add(lastElement);
       }
       lastElement = symbElement;
     }
@@ -104,7 +104,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
   }
 
   private ARTElement performRefinement(ReachedElements pReached,
-      Deque<SymbPredAbsAbstractElement> pPath, Path pArtPath, CounterexampleTraceInfo pInfo) throws CPAException {
+      ArrayList<SymbPredAbsAbstractElement> pPath, Path pArtPath, CounterexampleTraceInfo pInfo) throws CPAException {
 
     assert(pReached.getLastElement() instanceof ARTElement);
     ARTElement lastElem = (ARTElement)pReached.getLastElement();

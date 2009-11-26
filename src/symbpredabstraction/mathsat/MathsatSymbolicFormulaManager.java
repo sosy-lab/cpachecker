@@ -222,6 +222,12 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     return msatEnv;
   }
 
+  public String dumpFormula(SymbolicFormula f) {
+    MathsatSymbolicFormula m = (MathsatSymbolicFormula)f;
+    
+    return mathsat.api.msat_to_msat(msatEnv, m.getTerm());
+  }
+  
   public boolean entails(SymbolicFormula f1, SymbolicFormula f2) {
     MathsatSymbolicFormula m1 = (MathsatSymbolicFormula)f1;
     MathsatSymbolicFormula m2 = (MathsatSymbolicFormula)f2;
