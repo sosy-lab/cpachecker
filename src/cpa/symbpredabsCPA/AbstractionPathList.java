@@ -47,7 +47,10 @@ class AbstractionPathList {
 
   @Override
   public boolean equals(Object o){
-    if (o == null) {
+    if (o == this) {
+      return true;
+    }
+    if (o == null || !(o instanceof AbstractionPathList)) {
       return false;
     }
 
@@ -72,11 +75,12 @@ class AbstractionPathList {
 
   @Override
   public String toString(){
-    String s = "";
+    StringBuffer sb = new StringBuffer();
     for(int par:parents){
-      s = s + "-"+ par;
+      sb.append('-');
+      sb.append(par);
     }
-    return s;
+    return sb.toString();
   }
 
   @Override

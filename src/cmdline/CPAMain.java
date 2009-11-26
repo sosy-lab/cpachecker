@@ -510,12 +510,14 @@ public class CPAMain {
     Deque<ARTElement> worklist = new LinkedList<ARTElement>();
     Set<Integer> nodesList = new HashSet<Integer>();
     Set<ARTElement> processed = new HashSet<ARTElement>();
-    String s = "";
+    StringBuffer sb = new StringBuffer();
     PrintWriter out = null;
     try {
       out = new PrintWriter(new File(outfile));
     } catch (FileNotFoundException e) {
-      e.printStackTrace();
+      logManager.log(Level.WARNING,
+          "Could not write CFA to file ", outfile, ", (", e.getMessage(), ")");
+      return;
     }
     out.println("digraph ART {");
     out.println("style=filled; color=lightgrey; ");
@@ -556,15 +558,19 @@ public class CPAMain {
       }
       for(ARTElement child : currentElement.getChildren()){
         CFAEdge edge = getEdgeBetween(currentElement, child);
-        s = s + (currentElement.getElementId() + " -> " + child.getElementId()
-            + " [label=\"" + edge + "\"];\n");
+        sb.append(currentElement.getElementId());
+        sb.append(" -> ");
+        sb.append(child.getElementId());
+        sb.append(" [label=\"");
+        sb.append(edge);
+        sb.append("\"];\n");
         if(!worklist.contains(child)){
           worklist.add(child);
         }
       }
     }
 
-    out.println(s);
+    out.println(sb.toString());
     out.println("}");
     out.flush();
     out.close();

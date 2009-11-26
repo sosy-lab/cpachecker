@@ -52,7 +52,7 @@ class LocationMappedReachedSet implements Set<Pair<AbstractElementWithLocation,P
     private final Map<CFANode, Set<Pair<AbstractElementWithLocation,Precision>>> repr;
     private int numElems;
 
-    private class Iter implements Iterator<Pair<AbstractElementWithLocation,Precision>> {
+    private static class Iter implements Iterator<Pair<AbstractElementWithLocation,Precision>> {
         private final Iterator<Map.Entry<CFANode, Set<Pair<AbstractElementWithLocation,Precision>>>> outer;
         private Iterator<Pair<AbstractElementWithLocation,Precision>> inner;
 

@@ -244,7 +244,7 @@ public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
     // [mathsat term for \bigwedge_preds (var <-> def),
     //  list of important terms (the names of the preds),
     //   list of variables occurring in the definitions of the preds]
-    protected class PredInfo {
+    protected static class PredInfo {
         public long predDef; // mathsat term for \bigwedge_preds (var <-> def)
         public long[] important; // list of important terms 
                                  // (the names of the preds)
@@ -324,7 +324,7 @@ public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
         cache.put(bddManager.getOne(), mathsat.api.msat_make_true(msatEnv));
         cache.put(bddManager.getZero(), mathsat.api.msat_make_false(msatEnv));
 
-        toProcess.push(new Integer(bdd));
+        toProcess.push(Integer.valueOf(bdd));
         while (!toProcess.empty()) {
             Integer n = toProcess.peek();
             if (cache.containsKey(n)) {

@@ -51,6 +51,12 @@ public class Cache {
       long r = this.timeStamp - p1.timeStamp;
       return r < 0 ? -1 : (r > 0 ? 1 : 0);
     }
+    
+    @Override
+    public abstract boolean equals(Object pObj);
+    
+    @Override
+    public abstract int hashCode();
   }
 
   public static class CartesianAbstractionCacheKey extends KeyWithTimeStamp {
@@ -133,8 +139,7 @@ public class Cache {
     private void compact() {
       if (size() > maxSize) {
         // find the half oldest entries, and get rid of them...
-        KeyWithTimeStamp[] keys = keySet().toArray(
-            new KeyWithTimeStamp[0]);
+        KeyWithTimeStamp[] keys = keySet().toArray(new KeyWithTimeStamp[size()]);
         Arrays.sort(keys);
         for (int i = 0; i < keys.length/2; ++i) {
           remove(keys[i]);

@@ -90,7 +90,7 @@ public class CompositeStopOperator implements StopOperator{
     noOfOperations++;
     CompositeElement compositeElement1 = (CompositeElement) element;
     CompositeElement compositeElement2 = (CompositeElement) reachedElement;
-    if(!compositeElement1.getCallStack().stacksContextEqual(compositeElement2.getCallStack())){
+    if(!compositeElement1.getCallStack().equals(compositeElement2.getCallStack())){
       return false;
     }
 

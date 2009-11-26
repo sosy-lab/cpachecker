@@ -39,11 +39,11 @@ import common.Pair;
  * referring to that variable
  */
 public class SSAMap {
-  public static long ssaMapEqualsTime = 0;
-  public static long ssaMapHashTime = 0;
-  public static long ssaGetIndexTime = 0;
+  static long ssaMapEqualsTime = 0;
+  static long ssaMapHashTime = 0;
+  static long ssaGetIndexTime = 0;
     private interface Key {}
-    private class VarKey implements Key {
+    private static class VarKey implements Key {
         private String name;
 
         public VarKey(String str) { name = str; }
@@ -74,7 +74,7 @@ public class SSAMap {
         @Override
         public String toString() { return name; }
     }
-    private class FuncKey implements Key {
+    private static class FuncKey implements Key {
         private String name;
         private SymbolicFormula[] args;
 

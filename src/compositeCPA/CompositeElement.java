@@ -61,50 +61,24 @@ public class CompositeElement implements AbstractElementWithLocation, AbstractWr
   }
   
   @Override
-  public boolean equals(Object other)
-  {
-    if (other == this)
+  public boolean equals(Object other) {
+    if (other == this) {
       return true;
+    }
 
-    if (!(other instanceof CompositeElement))
+    if (other == null || !(other instanceof CompositeElement)) {
       return false;
+    }
 
     CompositeElement otherComposite = (CompositeElement) other;
-    List<AbstractElement> otherElements = otherComposite.elements;
-
-
-    if (otherElements.size() != this.elements.size())
-      return false;
-
-    for (int idx = 0; idx < elements.size(); idx++)
-    {
-      AbstractElement element1 = otherElements.get(idx);
-      AbstractElement element2 = this.elements.get(idx);
-
-      if (!element1.equals(element2))
-        return false;
-    }
-
-    if(!otherComposite.getCallStack().equals(this.getCallStack())){
-      return false;
-    }
-
-    return true;
+    
+    return (otherComposite.elements.equals(this.elements))
+        && otherComposite.getCallStack().equals(this.getCallStack());
   }
 
   @Override
   public int hashCode() {
-    int hashCode = 0;
-
-    for (AbstractElement lElement : elements) {
-      if (lElement == null) {
-        continue;
-      }
-
-      hashCode += lElement.hashCode();
-    }
-
-    return hashCode;
+    return elements.hashCode();
   }
 
   @Override

@@ -48,4 +48,9 @@ public class BDDAbstractFormula implements AbstractFormula {
         }
         return false;
     }
+    
+    @Override
+    public int hashCode() {
+        return bddRepr;
+    }
 }

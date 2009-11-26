@@ -336,7 +336,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
 
     if (isStartOfFunction(edge)) {
       Pair<SymbolicFormula, SSAMap> p = makeAndEnterFunction(
-          m1, edge.getPredecessor(), ssa, updateSSA,
+          m1, (FunctionDefinitionNode)edge.getPredecessor(), ssa, updateSSA,
           absoluteSSAIndices);
       m1 = (MathsatSymbolicFormula)p.getFirst();
       f1 = m1;
@@ -540,10 +540,9 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
   }
 
   private Pair<SymbolicFormula, SSAMap> makeAndEnterFunction(
-      MathsatSymbolicFormula m1, CFANode pred, SSAMap ssa,
+      MathsatSymbolicFormula m1, FunctionDefinitionNode fn, SSAMap ssa,
       boolean updateSSA, boolean absoluteSSAIndices)
       throws UnrecognizedCFAEdgeException {
-    FunctionDefinitionNode fn = (FunctionDefinitionNode)pred;
     List<IASTParameterDeclaration> params = fn.getFunctionParameters();
     if (params.isEmpty()) {
       return new Pair<SymbolicFormula, SSAMap>(m1, ssa);
@@ -1239,7 +1238,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       if (tp instanceof ITypedef) {
         return getTypeName(((ITypedef)tp).getType());
       }
-      return ((IBinding)tp).getName().toString();
+      return ((IBinding)tp).getName();
     } catch (DOMException e) {
       e.printStackTrace();
       assert(false);

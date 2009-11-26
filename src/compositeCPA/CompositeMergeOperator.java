@@ -76,7 +76,7 @@ public class CompositeMergeOperator implements MergeOperator{
     CallStack cs2 = comp2.getCallStack();
 
     // do not merge if call stacks are not equal
-    if(!cs1.stacksContextEqual(cs2)){
+    if(!cs1.equals(cs2)){
       return element2;
     }
 

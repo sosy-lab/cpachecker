@@ -30,9 +30,9 @@ import org.eclipse.core.runtime.IPath;
 import cmdline.stubs.StubPath;
 
 
-public class StubPath implements IPath {
+public class StubPath implements IPath, Cloneable {
 
-	private String pth;
+	private final String pth;
 
 	public StubPath(String p) {
 		pth = p;
@@ -40,7 +40,11 @@ public class StubPath implements IPath {
 
 	@Override
 	public Object clone() {
-		return new StubPath(pth);
+		try {
+      return super.clone();
+    } catch (CloneNotSupportedException e) {
+      return this; // does never occur
+    }
 	}
 
 

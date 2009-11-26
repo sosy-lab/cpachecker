@@ -28,9 +28,6 @@ import java.util.List;
 
 import cfa.objectmodel.c.CallToReturnEdge;
 
-import cfa.objectmodel.CFAEdge;
-import cfa.objectmodel.CFANode;
-
 
 public class CFANode implements Comparable<CFANode>
 {
@@ -179,8 +176,13 @@ public class CFANode implements Comparable<CFANode>
 
     @Override
     public boolean equals(Object other) {
-        if (!(other instanceof CFANode)) return false;
-        return getNodeNumber() == ((CFANode)other).getNodeNumber();
+      if (other == this) {
+        return true;
+      }
+      if (other == null || !(other instanceof CFANode)) {
+        return false;
+      }
+      return getNodeNumber() == ((CFANode)other).getNodeNumber();
     }
 
     public static int getFinalNumberOfNodes(){

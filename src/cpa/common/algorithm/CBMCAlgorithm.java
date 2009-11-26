@@ -57,8 +57,7 @@ public class CBMCAlgorithm implements Algorithm {
     if (reached.getLastElement().isError()) {
       System.out.println("________ ERROR PATH ____________");
 
-      List<ARTElement> elementsOnErrorPath = new ArrayList<ARTElement>();
-      elementsOnErrorPath = getElementsToErrorPath((ARTElement)reached.getLastElement());
+      List<ARTElement> elementsOnErrorPath = getElementsToErrorPath((ARTElement)reached.getLastElement());
       
       int cbmcRes = CProver.checkSat(AbstractPathToCTranslator.translatePaths(cfa, elementsOnErrorPath));
       if(cbmcRes == 10) {

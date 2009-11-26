@@ -126,8 +126,10 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
     if (this == o) {
       return true;
     }
-
-    else if(elementId == ((SymbPredAbsAbstractElement)o).elementId){
+    if (o == null || !(o instanceof SymbPredAbsAbstractElement)) {
+      return false;
+    }
+    if(elementId == ((SymbPredAbsAbstractElement)o).elementId){
       return true;
     }
 

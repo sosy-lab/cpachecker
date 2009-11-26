@@ -84,7 +84,6 @@ public class CEGARAlgorithm implements Algorithm {
       // if the element is an error element
       if (reached.getLastElement().isError()) {
 
-        assert(reached != null);
         long startRef = System.currentTimeMillis();
 
         RefinementOutcome refout = mRefiner.performRefinement(reached);

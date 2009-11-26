@@ -23,17 +23,15 @@
  */
 package cpa.common;
 
-import compositeCPA.CompositeElement;
-
 import cfa.objectmodel.CFANode;
-import cpa.common.interfaces.AbstractElement;
-import cpa.common.CallElement;
+
+import compositeCPA.CompositeElement;
 
 public class CallElement {
 
-	private String functionName;
-	private CFANode callNode;
-	private CompositeElement state;
+	private final String functionName;
+	private final CFANode callNode;
+	private final CompositeElement state;
 
 	public CallElement(String functionName, CFANode callNode,
 			CompositeElement state) {
@@ -52,67 +50,34 @@ public class CallElement {
 		return functionName;
 	}
 
-	public void setFunctionName(String functionName) {
-		this.functionName = functionName;
-	}
-
 	public CFANode getCallNode() {
 		return callNode;
-	}
-
-	public void setCallNode(CFANode callNode) {
-		this.callNode = callNode;
 	}
 
 	public CompositeElement getState() {
 		return state;
 	}
 
-	public void setState(CompositeElement state) {
-		this.state = state;
-	}
-
-	public boolean areContextEqual(CallElement other){
-	   if(!other.functionName.equals(other.functionName)){
-	      return false;
-	    }
-
-	    if(other.callNode.getNodeNumber() != this.callNode.getNodeNumber()){
-	      return false;
-	    }
-	    
-	    return true;
-	}
-	
 	@Override
-	public boolean equals(Object other){
+	public boolean equals(Object other) {
+	  if (other == this) {
+	    return true;
+	  }
+	  if (other == null || !(other instanceof CallElement)) {
+	    return false;
+	  }
 		CallElement otherCallElement = (CallElement) other;
 
-		if(!otherCallElement.functionName.equals(otherCallElement.functionName)){
-			return false;
-		}
-
-		if(otherCallElement.callNode.getNodeNumber() != this.callNode.getNodeNumber()){
-			return false;
-		}
-
-		CompositeElement thisCompElement = this.getState();
-		CompositeElement otherCompElement = otherCallElement.getState();
-
-		assert(thisCompElement.getNumberofElements() ==
-			otherCompElement.getNumberofElements());
-
-		for (int idx = 0; idx < thisCompElement.getNumberofElements(); idx++)
-		{
-			AbstractElement element1 = thisCompElement.get (idx);
-			AbstractElement element2 = otherCompElement.get (idx);
-
-			if (!element1.equals (element2))
-				return false;
-		}
-		return true;
+		return otherCallElement.functionName.equals(this.functionName)
+		    && otherCallElement.callNode.equals(this.callNode)
+		    && otherCallElement.state.equals(this.state);
 	}
 
+	@Override
+	public int hashCode() {
+	  return functionName.hashCode() + 17 * callNode.hashCode();
+	}
+	
 	public boolean isConsistent(String functionName) {
 		return (functionName.equals(this.functionName));
 	}

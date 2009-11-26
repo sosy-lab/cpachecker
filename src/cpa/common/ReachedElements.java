@@ -137,7 +137,16 @@ public class ReachedElements {
     Pair<AbstractElementWithLocation,Precision> result = null;
 
     switch(traversal) {
-    case TOPSORT: 
+    case BFS:
+      result = waitlist.get(0);
+      break;
+      
+    case DFS:
+      result = waitlist.get(waitlist.size()-1);
+      break;
+
+    case TOPSORT:
+    default:
       for (Pair<AbstractElementWithLocation,Precision> currentElement : waitlist) {
         if ((result == null) 
             || (currentElement.getFirst().getLocationNode().getTopologicalSortId() >
@@ -145,14 +154,6 @@ public class ReachedElements {
           result = currentElement;
         }
       }
-      break;
-    
-    case BFS:
-      result = waitlist.get(0);
-      break;
-      
-    case DFS:
-      result = waitlist.get(waitlist.size()-1);
       break;
     }
     

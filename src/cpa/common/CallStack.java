@@ -23,94 +23,60 @@
  */
 package cpa.common;
 
-import java.util.Iterator;
-import java.util.Stack;
+import java.util.ArrayList;
 
-import cpa.common.CallElement;
-import cpa.common.CallStack;
+public class CallStack implements Cloneable {
 
-public class CallStack {
-
-	private Stack<CallElement> stack;
+	private final ArrayList<CallElement> stack;
 
 	public CallStack(){
-		stack = new Stack<CallElement>();
+		stack = new ArrayList<CallElement>();
 	}
 
-	public CallStack(CallStack otherCallStack){
-		stack = otherCallStack.stack;
-	}
-
-	public Stack<CallElement> getStack() {
-		return stack;
-	}
-
-	public void setStack(Stack<CallElement> stack) {
-		this.stack = stack;
-	}
-
-	public CallElement push(CallElement item){
-		return stack.push(item);
+	public void push(CallElement item){
+		stack.add(item);
 	}
 
 	public CallElement pop(){
-		return stack.pop();
+		return stack.remove(stack.size()-1);
 	}
 
-	public int getSize(){
+	public int size(){
 		return stack.size();
 	}
 
 	@Override
 	public CallStack clone(){
-		CallStack ret = new CallStack();
+	  CallStack ret = new CallStack();
 		for(CallElement item:stack){
 			ret.push(item);
 		}
 		return ret;
 	}
-	
-	public boolean stacksContextEqual(CallStack other){
-    if(this.getSize() != other.getSize()){
-      return false;
-    }
-    Iterator<CallElement> thisStackIt = this.stack.iterator();
-    Iterator<CallElement> otherStackIt = other.stack.iterator();
-    while(thisStackIt.hasNext()){
-      CallElement thisCallElement = thisStackIt.next();
-      CallElement otherCallElement = otherStackIt.next();
-      if(!thisCallElement.areContextEqual(otherCallElement)){
-        return false;
-      }
-    }
-    return true;
-  
-	}
 
 	@Override
 	public boolean equals(Object other){
+	  if (other == this) {
+	    return true;
+	  }
+	  if (other == null || !(other instanceof CallStack)) {
+	    return false;
+	  }
 		CallStack otherCs = (CallStack) other;
-		if(this.getSize() != otherCs.getSize()){
-			return false;
-		}
-		Iterator<CallElement> thisStackIt = this.stack.iterator();
-		Iterator<CallElement> otherStackIt = otherCs.stack.iterator();
-		while(thisStackIt.hasNext()){
-			CallElement thisCallElement = thisStackIt.next();
-			CallElement otherCallElement = otherStackIt.next();
-			if(!thisCallElement.equals(otherCallElement)){
-				return false;
-			}
-		}
-		return true;
+		return stack.equals(otherCs.stack);
 	}
 
+	@Override
+	public int hashCode() {
+	  return stack.hashCode();
+	}
+	
 	public CallElement peek() {
-		return stack.peek();
+		return stack.get(stack.size()-1);
 	}
 
 	public CallElement getSecondTopElement(){
-		assert(getStack().size() >= 2);
+		assert(stack.size() >= 2);
 		return stack.get(stack.size()-2);
 	}
 }

@@ -32,7 +32,7 @@ import cmdline.CPAMain;
 
 public class StubConfiguration implements IParserConfiguration {
 
-    class StubScannerInfo implements IScannerInfo {
+    private static class StubScannerInfo implements IScannerInfo {
 
         @SuppressWarnings("unchecked")
         public Map getDefinedSymbols() {
