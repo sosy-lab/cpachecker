@@ -72,10 +72,6 @@ public class TypesElement implements AbstractElement {
   }
   
   public void addVariable(String function, String name, Type type) {
-    String fullName = getFullVariableName(function, name);
-    if (variables.containsKey(fullName)) {
-      throw new IllegalArgumentException("Redeclared variable " + fullName);
-    }
     variables.put(getFullVariableName(function, name), type);
   }
   

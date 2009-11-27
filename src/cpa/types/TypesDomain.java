@@ -76,7 +76,7 @@ public class TypesDomain implements AbstractDomain {
         return false;
       }
       
-      return ((TypesElement)element1).isSubsetOf(((TypesElement)element2));
+      return (element1 == element2) || ((TypesElement)element1).isSubsetOf(((TypesElement)element2));
     }
   }
   
