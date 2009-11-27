@@ -504,7 +504,7 @@ public class CPAMain {
       logManager.log(Level.FINE, "CPA Algorithm starting ...");
       cpaStats.startAnalysisTimer();
       
-      algorithm.run(reached, false);
+      algorithm.run(reached, CPAMain.cpaConfig.getBooleanValue("analysis.stopAfterError"));
       
       cpaStats.stopAnalysisTimer();
       logManager.log(Level.FINE, "CPA Algorithm finished");
@@ -544,7 +544,7 @@ public class CPAMain {
     Set<Integer> nodesList = new HashSet<Integer>();
     Set<ARTElement> processed = new HashSet<ARTElement>();
     StringBuffer sb = new StringBuffer();
-    PrintWriter out = null;
+    PrintWriter out;
     try {
       out = new PrintWriter(new File(outfile));
     } catch (FileNotFoundException e) {
@@ -564,29 +564,23 @@ public class CPAMain {
       }
       processed.add(currentElement);
       if(!nodesList.contains(currentElement.getElementId())){
-        SymbPredAbsAbstractElement symbpredabselem = (SymbPredAbsAbstractElement)currentElement.retrieveElementOfType("SymbPredAbsAbstractElement");
-        if(symbpredabselem == null){
-          out.println("node [shape = diamond, color = blue, style = filled, label=" +  
-              (currentElement.getLocationNode()==null ? 0 : currentElement.getLocationNode().getNodeNumber()) + "000" + currentElement.getElementId() +"] " + currentElement.getElementId() + ";");
-        }
-        else{
-          if(symbpredabselem.isAbstractionNode()){
-            if(currentElement.isCovered()){
-              out.println("node [shape = diamond, color = green, style = filled, label=" +  currentElement.getLocationNode().getNodeNumber() + "000" + currentElement.getElementId() +"] " + currentElement.getElementId() + ";");
-            }
-            else{
-              out.println("node [shape = diamond, color = red, style = filled, label=" +  currentElement.getLocationNode().getNodeNumber() + "000" + currentElement.getElementId() +"] " + currentElement.getElementId() + ";");
-            }
-          }
-          else{
-            if(currentElement.isCovered()){
-              out.println("node [shape = diamond, color = green, style = filled, label=" +  currentElement.getLocationNode().getNodeNumber() + "000" + currentElement.getElementId() +"] " + currentElement.getElementId() + ";");
-            }
-            else{
-              out.println("node [shape = diamond, color = white, style = filled, label=" +  currentElement.getLocationNode().getNodeNumber() + "000" + currentElement.getElementId() +"] " + currentElement.getElementId() + ";");
-            }
+        String color;
+        if (currentElement.isError()) {
+          color = "red";
+        } else if (currentElement.isCovered()) {
+          color = "green";
+        } else {
+          SymbPredAbsAbstractElement symbpredabselem = (SymbPredAbsAbstractElement)currentElement.retrieveElementOfType("SymbPredAbsAbstractElement");
+          if (symbpredabselem != null && symbpredabselem.isAbstractionNode()) {
+            color = "blue";
+          } else {
+            color = "white";
           }
         }
+
+        String label = (currentElement.getLocationNode()==null ? 0 : currentElement.getLocationNode().getNodeNumber()) + "000" + currentElement.getElementId();
+        out.println("node [shape = diamond, color = " + color + ", style = filled, label=" + label +"] " + currentElement.getElementId() + ";");
+        
         nodesList.add(currentElement.getElementId());
       }
       for(ARTElement child : currentElement.getChildren()){
@@ -595,7 +589,7 @@ public class CPAMain {
         sb.append(" -> ");
         sb.append(child.getElementId());
         sb.append(" [label=\"");
-        sb.append(edge);
+        sb.append(edge != null ? edge.toString().replace('"', '\'') : "");
         sb.append("\"];\n");
         if(!worklist.contains(child)){
           worklist.add(child);

@@ -118,3 +118,4 @@ analysis.useGlobalVars		true/false		false		true
 analysis.queryDrivenProgramTesting	true/false	false		false		use QueryDrivenProgramTesting instead of normal algorithm
 analysis.useFunctionDeclarations	true/false	false		true		include declarations of external functions in CFA
 analysis.programNames		path+filename		<CMDLINE>	<CMDLINE>	the file to analyze
+analysis.stopAfterError		true/false		false		false		if analysis should stop when the first bug has been found
