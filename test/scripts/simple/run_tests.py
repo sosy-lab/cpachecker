@@ -42,32 +42,40 @@ def run_single(benchmark, config, time_limit, mem_limit):
                        '$benchmark.$cn.log 2>&1)').substitute(locals())
     p = subprocess.Popen(['/bin/bash', '-c', cmdline], shell=False)
     retval = p.wait()
+    tot_time, outcome = None, None
     if retval != 0:
-        outcome = 'ERROR'
+        if retval == 137:
+            outcome = 'TERMINATED'
+        else:
+            outcome = 'ERROR (%d)' % retval
+
+    with open('%s.%s.log' % (benchmark, configname(config))) as f:
+        for line in f:
+            if tot_time is None and line.startswith(
+                'Total Time Elapsed including CFA construction:'):
+                tot_time = line[46:].strip()[:-1]
+            if line.find('java.lang.OutOfMemoryError') != -1:
+                outcome = 'OUT OF MEMORY'
+            if line.find('SIGSEGV') != -1:
+                outcome = 'SEGMENTATION FAULT'
+	    if outcome is None and (line.find('Exception') != -1):
+                outcome = 'EXCEPTION'
+            if outcome is None and line.startswith(
+                'Error location(s) reached?'):
+                line = line[26:].strip()
+                if line.startswith('NO'):
+                    outcome = 'SAFE'
+                elif line.startswith('YES'):
+                    outcome = 'UNSAFE'
+                else:
+                    outcome = 'UNKNOWN'
+            if outcome is None and line.startswith(
+                    '#Test cases computed:'):
+                outcome = 'OK'
+    if tot_time is None:
         tot_time = -1
-    else:
-        tot_time, outcome = None, None
-        with open('%s.%s.log' % (benchmark, configname(config))) as f:
-            for line in f:
-                if tot_time is None and line.startswith(
-                    'Total Time Elapsed including CFA construction:'):
-                    tot_time = line[46:].strip()[:-1]
-                if outcome is None and line.startswith(
-                    'Error location(s) reached?'):
-                    line = line[26:].strip()
-                    if line.startswith('NO'):
-                        outcome = 'SAFE'
-                    elif line.startswith('YES'):
-                        outcome = 'UNSAFE'
-                    else:
-                        outcome = 'UNKNOWN'
-                if outcome is None and line.startswith(
-                        '#Test cases computed:'):
-                    outcome = 'OK'
-        if tot_time is None:
-            tot_time = -1
-        if outcome is None:
-            outcome = 'UNKNOWN'
+    if outcome is None:
+        outcome = 'UNKNOWN'
     return tot_time, outcome
     
 
@@ -142,11 +150,13 @@ def main(which, benchmarks, configs, time_limit, mem_limit, outfile,
             sys.stdout.flush()
         subst = re.compile('.*/(benchmarks-[^/]*/)')
         bs = subst.sub(r'\1', b)
-        results[configname(c)][bs] = run(b, c, t, m)
-        if results[configname(c)][bs][1] == 'ERROR':
-            sys.stderr.write('ERROR\n')
-        elif verbose:
-            sys.stdout.write('DONE\n')
+        results[configname(c)][bs] = run(os.path.abspath(b), c, t, m)
+	sys.stderr.write(results[configname(c)][bs][1])
+	sys.stderr.write('\n')
+#        if results[configname(c)][bs][1] == 'ERROR':
+#            sys.stderr.write('ERROR\n')
+#        elif verbose:
+#            sys.stdout.write('DONE\n')
 
     try:
         if order == 'config':
@@ -202,5 +212,6 @@ if __name__ == '__main__':
         sys.stdout.write('ERROR, at least one benchmark required\n')
     else:
         main('blast' if opts.blast else 'cpa',
-             map(os.path.abspath, args),
+#             map(os.path.abspath, args),
+             args,
              opts.config, opts.timeout, opts.memlimit, opts.output)
