@@ -353,7 +353,8 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
         handleBinaryAssume(element, binaryExpression, !isTrueBranch, assumeEdge);
       
       } else {
-        throw new TransferRelationException("Not expected in CIL: " + assumeEdge.getRawStatement());        
+        // assume it's not a pointer comparison
+        return;
       }
         
     } else if (expression instanceof IASTUnaryExpression) {
@@ -370,6 +371,10 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       // if (a)
       String varName = expression.getRawSignature();
       Pointer p = element.lookupPointer(varName);
+      if (p == null) {
+        // no pointer
+        return;
+      }
       boolean isNull = p.contains(Memory.NULL_POINTER);
       
       if (isTrueBranch && isNull && p.getNumberOfTargets() == 1) {
@@ -442,6 +447,8 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
     List<String> formalParameters = funcDefNode.getFunctionParameterNames();
     IASTExpression[] actualParameters = ((FunctionCallEdge)cfaEdge).getArguments();
     
+    // TODO: relocate parameter handling to strengthen operator
+    
     if (formalParameters != null && formalParameters.size() > 0
         && actualParameters != null && actualParameters.length > 0) {
     
@@ -462,7 +469,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
           if ((literal.getKind() == IASTLiteralExpression.lk_integer_constant)
              && parseIntegerLiteral(literal) == 0) {
            
-            actualValues.add(new Pointer()); // null pointer               
+             actualValues.add(new Pointer()); // null pointer               
            } else {
              actualValues.add(null); // probably not a pointer
            }
@@ -487,27 +494,26 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       
       element.callFunction(funcName);
       
-      boolean missingInformation = false;
       for (int i = 0; i < actualValues.size(); i++) {
         Pointer value = actualValues.get(i);
         if (value != null) {
           Pointer parameter = new Pointer();
           element.addNewLocalPointer(formalParameters.get(i), parameter); // sets location
           element.pointerOp(new Pointer.Assign(value), parameter);
-          missingInformation = true;
         }
-      }
-      
-      if (missingInformation) {
-        // there are pointer parameters, so we miss information about their sizeOfTarget
-        missing = new MissingInformation();
       }
 
     } else {
       element.callFunction(funcName);
     }
     
-    element.addNewLocalPointer(RETURN_VALUE_VARIABLE, new Pointer());
+    element.addNewLocalPointer(RETURN_VALUE_VARIABLE, null);
+    element.addTemporaryTracking(RETURN_VALUE_VARIABLE, new Pointer());
+
+    // always have MissingInformation because we do not know if the function
+    // returns a pointer (and the sizeOfTargets of the parameters are not known
+    // if there are any)
+    missing = new MissingInformation();
   }
   
   private long parseIntegerLiteral(IASTLiteralExpression expression) throws TransferRelationException {
@@ -533,14 +539,16 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
     // even if the function returns an int
     
     // check for references to stack variables in result pointer
-    for (PointerTarget resultTarget : resultPointer.getTargets()) {
-      if (resultTarget instanceof LocalVariable) {
-        LocalVariable var = (LocalVariable)resultTarget;
-        String function = element.getCurrentFunctionName();
-        if (function.equals(var.getFunctionName())) {
-          // function returns a reference to a local variable
-          addWarning("Function " + function + " returns reference to local variable '"
-                     + var.getVarName() + "'", cfaEdge, resultTarget.toString());
+    if (resultPointer != null) {
+      for (PointerTarget resultTarget : resultPointer.getTargets()) {
+        if (resultTarget instanceof LocalVariable) {
+          LocalVariable var = (LocalVariable)resultTarget;
+          String function = element.getCurrentFunctionName();
+          if (function.equals(var.getFunctionName())) {
+            // function returns a reference to a local variable
+            addWarning("Function " + function + " returns reference to local variable '"
+                       + var.getVarName() + "'", cfaEdge, resultTarget.toString());
+          }
         }
       }
     }
@@ -1306,6 +1314,9 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
           
           setSizeOfTarget(pointer, type);
         }
+      }
+      if (function.getReturnType().getTypeClass() != Type.TypeClass.POINTER) {
+        pointerElement.removeTemporaryTracking(pointerElement.lookupVariable(RETURN_VALUE_VARIABLE));
       }
       
     } else {
