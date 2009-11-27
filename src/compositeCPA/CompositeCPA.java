@@ -150,19 +150,19 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, CPAWithStatist
         cpas.add(newCPA);
 
       } catch (ClassNotFoundException e) {
-        e.printStackTrace();
+        CPAMain.logManager.logException(Level.WARNING, e, "ClassNotFoundException");
       } catch (SecurityException e) {
-        e.printStackTrace();
+        CPAMain.logManager.logException(Level.WARNING, e, "SecurityException");
       } catch (NoSuchMethodException e) {
-        e.printStackTrace();
+        CPAMain.logManager.logException(Level.WARNING, e, "NoSuchMethodException");
       } catch (IllegalArgumentException e) {
-        e.printStackTrace();
+        CPAMain.logManager.logException(Level.WARNING, e, "IllegalArgumentException");
       } catch (InstantiationException e) {
-        e.printStackTrace();
+        CPAMain.logManager.logException(Level.WARNING, e, "InstantiationException");
       } catch (IllegalAccessException e) {
-        e.printStackTrace();
+        CPAMain.logManager.logException(Level.WARNING, e, "IllegalAccessException");
       } catch (InvocationTargetException e) {
-        e.printStackTrace();
+        CPAMain.logManager.logException(Level.WARNING, e, "InvocationTargetException");
       }
     }
 
