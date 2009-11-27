@@ -204,7 +204,7 @@ public class CPAMain {
        codeReaderFactory = createCodeReaderFactory();
     } catch (ClassNotFoundException e) {
       logManager.logException(Level.SEVERE, e, "ClassNotFoundException:" +
-      		"Missing implementation of ICodeReaderFactory, check your CDT version!");
+          "Missing implementation of ICodeReaderFactory, check your CDT version!");
       System.exit(1);
     }
     
@@ -213,7 +213,7 @@ public class CPAMain {
       ast = p.getTranslationUnit(file, codeReaderFactory, new StubConfiguration());
     } catch (UnsupportedDialectException e) {
       logManager.logException(Level.SEVERE, e, "UnsupportedDialectException:" +
-      		"Unsupported dialect for parser, check parser.dialect option!");
+          "Unsupported dialect for parser, check parser.dialect option!");
       System.exit(1);
     }
 
@@ -257,31 +257,20 @@ public class CPAMain {
     }
   }
   
-  private static Pair<CFAMap, CFAFunctionDefinitionNode> createCFA(IASTTranslationUnit ast) {
-
-    // Build CFA
-    final CFABuilder builder = new CFABuilder();
-    ast.accept(builder);
-    final CFAMap cfas = builder.getCFAs();
+  /**
+   * --Refactoring:
+   * Initializes the CFA. This method is created based on the 
+   * "extract method refactoring technique" to help simplify the createCFA method body.
+   * @param builder
+   * @param cfas
+   * @return
+   */
+  private static CFAFunctionDefinitionNode initCFA(final CFABuilder builder, final CFAMap cfas)
+  {
     final Collection<CFAFunctionDefinitionNode> cfasList = cfas.cfaMapIterator();
-    final int numFunctions = cfas.size();
-
-    String mainFunctionName = CPAMain.cpaConfig.getProperty("analysis.entryFunction"); 
-    CFAFunctionDefinitionNode mainFunction = cfas.getCFA(mainFunctionName);
+    String mainFunctionName = CPAMain.cpaConfig.getProperty("analysis.entryFunction");
     
-    // check the CFA of each function
-    // enable only while debugging/testing
-    if(CPAMain.cpaConfig.getBooleanValue("cfa.check")){
-      for(CFAFunctionDefinitionNode cfa : cfasList){
-        CFACheck.check(cfa);
-      }
-    }
-
-    // annotate CFA nodes with topological information for later use
-    for(CFAFunctionDefinitionNode cfa : cfasList){
-      CFATopologicalSort topSort = new CFATopologicalSort();
-      topSort.topologicalSort(cfa);
-    }
+    CFAFunctionDefinitionNode mainFunction = cfas.getCFA(mainFunctionName);
     
     // simplify CFA
     if (CPAMain.cpaConfig.getBooleanValue("cfa.simplify")) {
@@ -301,7 +290,65 @@ public class CPAMain {
         spbuilder.insertCallEdges(cfa.getFunctionName());
       }
     }
+    
+    // optionally combine several edges into summary edges
+    if (CPAMain.cpaConfig.getBooleanValue( "analysis.useSummaryLocations")) {
+      logManager.log(Level.FINE, "Building Summary CFAs");
+   
+      SummaryCFABuilder summaryBuilder = new SummaryCFABuilder(mainFunction,
+                                              builder.getGlobalDeclarations());
+      return summaryBuilder.buildSummary();
 
+    } else if (CPAMain.cpaConfig.getBooleanValue("analysis.useBlockEdges")){
+      logManager.log(Level.FINE, "Building Block CFAs");
+      
+      BlockCFABuilder summaryBuilder =   new BlockCFABuilder(mainFunction,
+                                              builder.getGlobalDeclarations());
+      return summaryBuilder.buildBlocks();
+
+    } 
+    // TODO The following else-if block should be converted to "if"
+    // and relocated to the top of the method.
+    else if (CPAMain.cpaConfig.getBooleanValue("analysis.useGlobalVars")){
+      // add global variables at the beginning of main
+      
+      List<IASTDeclaration> globalVars = builder.getGlobalDeclarations();
+      insertGlobalDeclarations(mainFunction, globalVars);
+    }
+    
+    return mainFunction;
+  }
+  
+  
+  private static Pair<CFAMap, CFAFunctionDefinitionNode> createCFA(IASTTranslationUnit ast) {
+
+    // Build CFA
+    final CFABuilder builder = new CFABuilder();
+    ast.accept(builder);
+    final CFAMap cfas = builder.getCFAs();
+    final Collection<CFAFunctionDefinitionNode> cfasList = cfas.cfaMapIterator();
+    final int numFunctions = cfas.size();
+
+    String mainFunctionName = CPAMain.cpaConfig.getProperty("analysis.entryFunction");
+    
+    // --Refactoring:
+    CFAFunctionDefinitionNode mainFunction = initCFA(builder, cfas);
+    
+    // --Refactoring: The following commented section does not affect the actual 
+    //                execution of the code
+    
+    // check the CFA of each function
+    // enable only while debugging/testing
+//    if(CPAMain.cpaConfig.getBooleanValue("cfa.check")){
+//      for(CFAFunctionDefinitionNode cfa : cfasList){
+//        CFACheck.check(cfa);
+//      }
+//    }
+
+    // --Refactoring: The following section was relocated to after the "initCFA" method 
+    //                but before the topological sort to make it easier for the 
+    //                sorting operation by removing irrelevant locations
+    
     // remove irrelevant locations
     if (CPAMain.cpaConfig.getBooleanValue("cfa.removeIrrelevantForErrorLocations")) {
       CFAReduction coi =  new CFAReduction();
@@ -313,28 +360,16 @@ public class CPAMain {
         System.exit(0);
       }
     }
+
+    // --Refactoring: Relocated the topological sort operation
+    //                after the new "initCFA" method
     
-    // optionally combine several edges into summary edges
-    if (CPAMain.cpaConfig.getBooleanValue( "analysis.useSummaryLocations")) {
-      logManager.log(Level.FINE, "Building Summary CFAs");
-   
-      SummaryCFABuilder summaryBuilder = new SummaryCFABuilder(mainFunction,
-                                              builder.getGlobalDeclarations());
-      mainFunction = summaryBuilder.buildSummary();
-
-    } else if (CPAMain.cpaConfig.getBooleanValue("analysis.useBlockEdges")){
-      logManager.log(Level.FINE, "Building Block CFAs");
-      
-      BlockCFABuilder summaryBuilder =   new BlockCFABuilder(mainFunction,
-                                              builder.getGlobalDeclarations());
-      mainFunction = summaryBuilder.buildBlocks();
-
-    } else if (CPAMain.cpaConfig.getBooleanValue("analysis.useGlobalVars")){
-      // add global variables at the beginning of main
-      
-      List<IASTDeclaration> globalVars = builder.getGlobalDeclarations();
-      insertGlobalDeclarations(mainFunction, globalVars);
+    // annotate CFA nodes with topological information for later use
+    for(CFAFunctionDefinitionNode cfa : cfasList){
+      CFATopologicalSort topSort = new CFATopologicalSort();
+      topSort.topologicalSort(cfa);
     }
+    // ---
     
     // check the super CFA starting at the main function
     // enable only while debugging/testing
@@ -432,14 +467,20 @@ public class CPAMain {
     } else {
  
       logManager.log(Level.FINE, "Creating CPAs");
-      ConfigurableProgramAnalysis cpa = CompositeCPA.getCompositeCPA(mainFunction);
+      
+      // --Refactoring: rename the following variable to cpaInit to
+      // perform "Static Single Assignment" for cpa variable definition
+      ConfigurableProgramAnalysis cpaInit = CompositeCPA.getCompositeCPA(mainFunction);
 
       boolean useART = CPAMain.cpaConfig.getBooleanValue("analysis.useART"); 
       
-      if (useART) {
-        cpa = ARTCPA.getARTCPA(mainFunction, cpa);  // wrap CPA with ARTCPA
-      }
-      
+      // --Refactoring: use the unary operator instead of the if, to let the
+      //                cfa variable be defined by a single statement. Makes 
+      //                understanding of the code easier      
+      // wrap CPA with ARTCPA if requested
+      ConfigurableProgramAnalysis cpa 
+          = useART ? ARTCPA.getARTCPA(mainFunction, cpaInit) : cpaInit; 
+
       if (cpa instanceof CPAWithStatistics) {
         ((CPAWithStatistics)cpa).collectStatistics(cpaStats.getSubStatistics());
       }
