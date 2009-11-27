@@ -328,8 +328,12 @@ public class CPAMain {
     final CFAMap cfas = builder.getCFAs();
     final Collection<CFAFunctionDefinitionNode> cfasList = cfas.cfaMapIterator();
     final int numFunctions = cfas.size();
-
-    String mainFunctionName = CPAMain.cpaConfig.getProperty("analysis.entryFunction");
+    
+    // annotate CFA nodes with topological information for later use
+    for(CFAFunctionDefinitionNode cfa : cfasList){
+      CFATopologicalSort topSort = new CFATopologicalSort();
+      topSort.topologicalSort(cfa);
+    }
     
     // --Refactoring:
     CFAFunctionDefinitionNode mainFunction = initCFA(builder, cfas);
@@ -346,8 +350,6 @@ public class CPAMain {
 //    }
 
     // --Refactoring: The following section was relocated to after the "initCFA" method 
-    //                but before the topological sort to make it easier for the 
-    //                sorting operation by removing irrelevant locations
     
     // remove irrelevant locations
     if (CPAMain.cpaConfig.getBooleanValue("cfa.removeIrrelevantForErrorLocations")) {
@@ -355,21 +357,11 @@ public class CPAMain {
       coi.removeIrrelevantForErrorLocations(mainFunction);
 
       if (mainFunction.getNumLeavingEdges() == 0) {
-        System.out.println("No error locations reachable from " + mainFunctionName
+        System.out.println("No error locations reachable from " + mainFunction.getFunctionName()
               + ", analysis not necessary.");
         System.exit(0);
       }
     }
-
-    // --Refactoring: Relocated the topological sort operation
-    //                after the new "initCFA" method
-    
-    // annotate CFA nodes with topological information for later use
-    for(CFAFunctionDefinitionNode cfa : cfasList){
-      CFATopologicalSort topSort = new CFATopologicalSort();
-      topSort.topologicalSort(cfa);
-    }
-    // ---
     
     // check the super CFA starting at the main function
     // enable only while debugging/testing
