@@ -43,25 +43,30 @@ def run_single(benchmark, config, time_limit, mem_limit):
     p = subprocess.Popen(['/bin/bash', '-c', cmdline], shell=False)
     retval = p.wait()
     tot_time, outcome = None, None
-    if retval != 0:
-        if retval == 137:
-            outcome = 'TERMINATED'
-        else:
-            outcome = 'ERROR (%d)' % retval
+
+    if retval == 0:
+        outcome = None
+    elif retval == 134:
+        outcome = 'ABORTED (probably by Mathsat)'
+    elif retval == 137:
+        outcome = 'KILLED BY SIGNAL 9 (probably ulimit)'
+    elif retval == 143:
+        outcome = 'KILLED'
+    else:
+        outcome = 'ERROR (%d)' % retval
 
     with open('%s.%s.log' % (benchmark, configname(config))) as f:
         for line in f:
             if tot_time is None and line.startswith(
                 'Total Time Elapsed including CFA construction:'):
                 tot_time = line[46:].strip()[:-1]
-            if line.find('java.lang.OutOfMemoryError') != -1:
+            if (line.find('java.lang.OutOfMemoryError') != -1) or line.startswith('out of memory'):
                 outcome = 'OUT OF MEMORY'
-            if line.find('SIGSEGV') != -1:
+            elif line.find('SIGSEGV') != -1:
                 outcome = 'SEGMENTATION FAULT'
-	    if outcome is None and (line.find('Exception') != -1):
+            elif (outcome is None or outcome == "ERROR (1)") and (line.find('Exception') != -1):
                 outcome = 'EXCEPTION'
-            if outcome is None and line.startswith(
-                'Error location(s) reached?'):
+            elif outcome is None and line.startswith('Error location(s) reached?'):
                 line = line[26:].strip()
                 if line.startswith('NO'):
                     outcome = 'SAFE'
@@ -182,7 +187,7 @@ def main(which, benchmarks, configs, time_limit, mem_limit, outfile,
                     line = Template('$fname $ftime $foutcome\n')
                     fname = name.ljust(maxlen)
                     ftime = str(d[name][0]).rjust(maxlentime)
-                    foutcome = d[name][1].rjust(7)
+                    foutcome = d[name][1].ljust(7)
                     out.write(line.substitute(locals()))
 
 
