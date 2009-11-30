@@ -65,6 +65,7 @@ import cpa.types.Type.PointerType;
 import cpa.types.Type.Primitive;
 import cpa.types.Type.PrimitiveType;
 import cpa.types.Type.StructType;
+import cpa.types.Type.UnionType;
 import exceptions.CPAException;
 import exceptions.CPATransferException;
 import exceptions.TransferRelationException;
@@ -335,8 +336,10 @@ public class TypesTransferRelation implements TransferRelation {
           type = new StructType(name, constant);
           break;
         case IASTElaboratedTypeSpecifier.k_union:
-          type = new StructType(name, constant);
+          type = new UnionType(name, constant);
           break;
+        default:
+          throw new RuntimeException("Missing case clause");
         }
       
         element.addTypedef(name, type);

@@ -139,7 +139,7 @@ public interface Type {
     
     @Override
     public boolean equals(Object obj) {
-      if (obj == null || !(obj instanceof PointerType)) {
+      if (obj == null || !(obj instanceof PrimitiveType)) {
         return false;
       }
       PrimitiveType other = (PrimitiveType)obj;
@@ -597,7 +597,7 @@ public static final class ArrayType extends AbstractType {
       return (obj == this)
         || (   name.equals(other.name)
             && returnType.equals(other.returnType)
-            && parameters.equals(other.returnType)
+            && parameters.equals(other.parameters)
             && hasVarArgs == other.hasVarArgs);
     }
     
@@ -657,6 +657,9 @@ public static final class ArrayType extends AbstractType {
     public boolean equals(Type other) {
       return (other != null) && (isConst() == other.isConst());
     }
+    
+    @Override
+    public abstract int hashCode();
     
     @Override
     public String getDefinition() {

@@ -24,6 +24,7 @@
 package cpa.types;
 
 import cfa.objectmodel.CFAFunctionDefinitionNode;
+import cpa.common.defaults.StaticPrecisisonAdjustment;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
@@ -42,7 +43,6 @@ public class TypesCPA implements ConfigurableProgramAnalysis {
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
   private final TransferRelation transferRelation;
-  private final PrecisionAdjustment precisionAdjustment;
   
   public TypesCPA(String mergeType, String stopType) {
     TypesDomain domain = new TypesDomain();
@@ -51,7 +51,6 @@ public class TypesCPA implements ConfigurableProgramAnalysis {
     mergeOperator = new TypesMergeJoin(domain);
     stopOperator = new TypesStopSep(domain);
     transferRelation = new TypesTransferRelation();
-    precisionAdjustment = null; //TODO precision adjustment
   }
   
   @Override
@@ -66,7 +65,6 @@ public class TypesCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
-    // TODO precision
     return null;
   }
 
@@ -77,7 +75,7 @@ public class TypesCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return precisionAdjustment;
+    return StaticPrecisisonAdjustment.getInstance();
   }
 
   @Override
