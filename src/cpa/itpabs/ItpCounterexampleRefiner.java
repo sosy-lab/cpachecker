@@ -128,9 +128,8 @@ public class ItpCounterexampleRefiner {
         try {
             concPath = amgr.buildConcretePath(mgr, abstarr);
         } catch (UnrecognizedCFAEdgeException e1) {
-            e1.printStackTrace();
-            System.out.println("BAD ERROR TRACE: " + abstractTrace);
-            System.out.flush();
+          CPAMain.logManager.logException(Level.SEVERE, e1, 
+              "BAD ERROR TRACE: " + abstractTrace);
             System.exit(1);
         }
 
@@ -348,9 +347,8 @@ public class ItpCounterexampleRefiner {
         try {
             concPath = amgr.buildConcretePath(mgr, abstarr);
         } catch (UnrecognizedCFAEdgeException e1) {
-            e1.printStackTrace();
-            System.out.println("BAD FORCED COVERAGE PATH: " + path);
-            System.out.flush();
+          CPAMain.logManager.logException(Level.SEVERE, e1, 
+              "BAD FORCED COVERAGE PATH: " + path);
             System.exit(1);
         }
 
@@ -484,8 +482,8 @@ public class ItpCounterexampleRefiner {
                 out.println(repr);
                 out.close();
             } catch (FileNotFoundException e) {
-                e.printStackTrace();
-                assert(false);
+              CPAMain.logManager.logException(Level.WARNING, e, "");
+              assert(false);
             }
         }
     }

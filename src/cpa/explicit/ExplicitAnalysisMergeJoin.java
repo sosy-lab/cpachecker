@@ -23,6 +23,9 @@
  */
 package cpa.explicit;
 
+import java.util.logging.Level;
+
+import cmdline.CPAMain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.MergeOperator;
@@ -43,7 +46,7 @@ public class ExplicitAnalysisMergeJoin implements MergeOperator
     try {
       return explicitAnalysisDomain.getJoinOperator().join(element1, element2);
     } catch (CPAException e) {
-      e.printStackTrace();
+      CPAMain.logManager.logException(Level.WARNING, e, "");
     }
     // return bottom element if unable to join elements
     return explicitAnalysisDomain.getBottomElement();

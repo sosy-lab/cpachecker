@@ -37,6 +37,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 
 import org.eclipse.cdt.core.dom.IASTServiceProvider.UnsupportedDialectException;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
@@ -82,12 +83,13 @@ public class CPASelfCheck {
         try {
           cpaInst = tryToInstantiate(cpa);
         } catch (InvocationTargetException e) {
-          System.out.println(" Instantiating " + cpa.getCanonicalName() + " failed!");
-          e.printStackTrace();
+          CPAMain.logManager.logException(Level.WARNING, e, 
+              "Instantiating " + cpa.getCanonicalName() + " failed!");
           continue;
         } catch (NoSuchMethodException e) {
-          System.out.print(" Instantiating " + cpa.getCanonicalName() + " failed: ");
-          System.out.println("no (String, String) constructor!");
+          CPAMain.logManager.logException(Level.WARNING, e, 
+              "Instantiating " + cpa.getCanonicalName() + 
+              " failed: no (String, String) constructor!");
           continue;
         }
         assert(cpaInst != null);
@@ -97,8 +99,8 @@ public class CPASelfCheck {
         try {
           cpaInst.getInitialElement(main);
         } catch (Exception e) {
-          System.out.println(" Getting initial element failed!");
-          e.printStackTrace();
+          CPAMain.logManager.logException(Level.WARNING, e, 
+              "Getting initial element failed!");
           continue;
         }
 
@@ -118,7 +120,7 @@ public class CPASelfCheck {
         System.out.println(ok ? " OK" : " ERROR");
       }
     } catch (Exception e) {
-      e.printStackTrace();
+      CPAMain.logManager.logException(Level.WARNING, e, "");
     }
   }
   

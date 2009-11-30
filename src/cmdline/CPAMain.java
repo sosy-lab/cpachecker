@@ -496,7 +496,7 @@ public class CPAMain {
       try {
         reached = new ReachedElements(CPAMain.cpaConfig.getProperty("analysis.traversal"));
       } catch (IllegalArgumentException e) {
-        System.err.println("ERROR, unknown traversal option");
+        logManager.logException(Level.SEVERE, e, "ERROR, unknown traversal option");
         System.exit(1);
       }
       reached.add(initialPair);

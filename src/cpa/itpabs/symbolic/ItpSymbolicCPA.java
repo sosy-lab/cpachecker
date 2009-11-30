@@ -176,8 +176,8 @@ public class ItpSymbolicCPA extends ItpCPA {
             }
             return summaryToFormulaMap.get(succLoc);
         } catch (UnrecognizedCFAEdgeException e) {
-            e.printStackTrace();
-            return null;
+          CPAMain.logManager.logException(Level.WARNING, e, "");
+          return null;
         }
     }
     

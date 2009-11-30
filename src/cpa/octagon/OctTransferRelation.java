@@ -26,6 +26,7 @@ package cpa.octagon;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.logging.Level;
 
 import octagon.LibraryAccess;
 import octagon.Num;
@@ -40,6 +41,8 @@ import org.eclipse.cdt.core.dom.ast.IASTIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
 import org.eclipse.cdt.core.dom.ast.IASTPointerOperator;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
+
+import cmdline.CPAMain;
 
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAErrorNode;
@@ -116,7 +119,7 @@ public class OctTransferRelation implements TransferRelation{
         try {
           handleExitFromFunction(octElement, expression, statementEdge);
         } catch (OctagonTransferException e) {
-          e.printStackTrace();
+          CPAMain.logManager.logException(Level.WARNING, e, "");
         }
       }
 
@@ -125,7 +128,7 @@ public class OctTransferRelation implements TransferRelation{
         try {
           handleStatement (octElement, expression, cfaEdge);
         } catch (OctagonTransferException e) {
-          e.printStackTrace();
+          CPAMain.logManager.logException(Level.WARNING, e, "");
         }
       }
       break;
@@ -151,7 +154,7 @@ public class OctTransferRelation implements TransferRelation{
       try {
         handleAssumption (octElement, expression, cfaEdge, assumeEdge.getTruthAssumption());
       } catch (OctagonTransferException e) {
-        e.printStackTrace();
+        CPAMain.logManager.logException(Level.WARNING, e, "");
       }
       break;
 
@@ -175,7 +178,7 @@ public class OctTransferRelation implements TransferRelation{
         try {
           handleExternalFunctionCall(octElement, functionCallEdge);
         } catch (OctagonTransferException e) {
-          e.printStackTrace();
+          CPAMain.logManager.logException(Level.WARNING, e, "");
         }
       }
       else{
@@ -183,7 +186,7 @@ public class OctTransferRelation implements TransferRelation{
           handleFunctionCall(octElement, functionCallEdge);
         } catch (OctagonTransferException e) {
           // TODO Auto-generated catch block
-          e.printStackTrace();
+          CPAMain.logManager.logException(Level.WARNING, e, "");
         }
       }
       break;
@@ -199,7 +202,7 @@ public class OctTransferRelation implements TransferRelation{
         handleFunctionReturn(octElement, functionReturnEdge);
       } catch (OctagonTransferException e) {
         // TODO Auto-generated catch block
-        e.printStackTrace();
+        CPAMain.logManager.logException(Level.WARNING, e, "");
       }
       break;
     }

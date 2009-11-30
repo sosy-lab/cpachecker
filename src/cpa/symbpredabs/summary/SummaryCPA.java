@@ -129,7 +129,7 @@ public class SummaryCPA implements ConfigurableProgramAnalysis, CPAWithStatistic
                 InputStream in = new FileInputStream(f);
                 preds = p.parsePredicates(in);
             } catch (IOException e) {
-                e.printStackTrace();
+              CPAMain.logManager.logException(Level.WARNING, e, "");
                 preds = new Vector<Predicate>();
             }
             pmap = new FixedPredicateMap(preds);
@@ -207,7 +207,7 @@ public class SummaryCPA implements ConfigurableProgramAnalysis, CPAWithStatistic
             }
             return summaryToFormulaMap.get(succLoc);
         } catch (UnrecognizedCFAEdgeException e) {
-            e.printStackTrace();
+          CPAMain.logManager.logException(Level.WARNING, e, "");
             return null;
         }
     }

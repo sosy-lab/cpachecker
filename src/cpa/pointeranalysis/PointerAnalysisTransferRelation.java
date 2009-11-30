@@ -28,6 +28,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
 
 import org.eclipse.cdt.core.dom.ast.IASTArrayDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTArrayModifier;
@@ -608,7 +609,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       }
     } catch (InvalidPointerException e) {
       // happens only on double free, which is obviously not the case here
-      e.printStackTrace();
+      CPAMain.logManager.logException(Level.WARNING, e, "");
     }
         
   }

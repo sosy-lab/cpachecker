@@ -381,7 +381,7 @@ implements PredicateAbstractionAbstractFormulaManager {
       try {
         p = mgr.makeAnd(fabs, edge, ssa, false/*true*/, false);
       } catch (UnrecognizedCFAEdgeException e1) {
-        e1.printStackTrace();
+        CPAMain.logManager.logException(Level.SEVERE, e1, "");
         System.exit(1);
       }
       if (useCache) {
@@ -850,7 +850,7 @@ implements PredicateAbstractionAbstractFormulaManager {
     try {
       concPath = buildConcretePath(mgr, pathArray);
     } catch (UnrecognizedCFAEdgeException e1) {
-      e1.printStackTrace();
+      CPAMain.logManager.logException(Level.SEVERE, e1, "");
       System.exit(1);
     }
     long extTimeEnd = System.currentTimeMillis();
@@ -1107,7 +1107,7 @@ implements PredicateAbstractionAbstractFormulaManager {
 //    try {
 //      concPath = buildConcretePath(mgr, abstarr);
 //    } catch (UnrecognizedCFAEdgeException e1) {
-//      e1.printStackTrace();
+//      CPAMain.logManager.logException(Level.SEVERE, e, "");
 //      System.exit(1);
 //    }
 //    long extTimeEnd = System.currentTimeMillis();

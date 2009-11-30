@@ -33,8 +33,11 @@ import java.util.Scanner;
 import java.util.Set;
 import java.util.Stack;
 import java.util.Vector;
+import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import cmdline.CPAMain;
 
 import symbpredabstraction.interfaces.SymbolicFormula;
 import symbpredabstraction.interfaces.TheoremProver;
@@ -306,7 +309,7 @@ public class YicesTheoremProver implements TheoremProver {
             modelScanner = new Scanner(tmpForModel);
         } catch (IOException e1) {
             // TODO Auto-generated catch block
-            e1.printStackTrace();
+          CPAMain.logManager.logException(Level.WARNING, e1, "");
             assert(false);
         }
         String filename = tmpForModel.getAbsolutePath();

@@ -37,6 +37,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 import java.util.Map.Entry;
+import java.util.logging.Level;
+
+import cmdline.CPAMain;
 
 import symbpredabstraction.UpdateablePredicateMap;
 import symbpredabstraction.interfaces.Predicate;
@@ -169,7 +172,7 @@ public class QueryDrivenProgramTesting {
 //      try {
 //         algo.CPA(cpa, lInitialElement, lInitialPrecision);
 //      } catch (CPAException e1) {
-//        e1.printStackTrace();
+//        CPAMain.logManager.logException(Level.WARNING, e1, "");
 //        
 //        // end test case generation
 //        break;

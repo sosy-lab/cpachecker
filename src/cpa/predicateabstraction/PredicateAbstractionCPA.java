@@ -117,7 +117,7 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis, CPA
                 preds = null;
             }
         } catch (IOException e) {
-            e.printStackTrace();
+          CPAMain.logManager.logException(Level.WARNING, e, "");
             preds = new Vector<Predicate>();
         }
         if (CPAMain.cpaConfig.getBooleanValue(

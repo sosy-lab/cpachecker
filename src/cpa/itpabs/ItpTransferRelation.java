@@ -337,7 +337,7 @@ public class ItpTransferRelation implements TransferRelation {
     //     abstractTree.dump("/home/alb/tmp/art.dot");
     // } catch (IOException e1) {
     //     // TODO Auto-generated catch block
-    //     e1.printStackTrace();
+    //     CPAMain.logManager.logException(Level.WARNING, e1, "");
     // }
     Collection<AbstractElementWithLocation> maybeToWaitlist =
       new HashSet<AbstractElementWithLocation>();
@@ -638,7 +638,7 @@ public class ItpTransferRelation implements TransferRelation {
         try {
           s.stop(e, el);
         } catch (CPAException e1) {
-          e1.printStackTrace();
+          CPAMain.logManager.logException(Level.SEVERE, e1, "");
           System.exit(1);
         }
       }

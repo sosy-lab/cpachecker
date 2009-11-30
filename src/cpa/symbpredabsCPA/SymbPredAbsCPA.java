@@ -119,7 +119,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, CPAWithStati
         InputStream in = new FileInputStream(f);
         preds = p.parsePredicates(in);
       } catch (IOException e) {
-        e.printStackTrace();
+        CPAMain.logManager.logException(Level.WARNING, e, "");
         preds = new Vector<Predicate>();
       }
       return new FixedPredicateMap(preds);

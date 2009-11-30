@@ -35,6 +35,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Stack;
+import java.util.logging.Level;
 
 import cfa.CFAMap;
 import cfa.objectmodel.CFAEdge;
@@ -51,6 +52,8 @@ import cfa.objectmodel.c.StatementEdge;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
 import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
+
+import cmdline.CPAMain;
 
 import cpa.symbpredabs.explicit.ExplicitAbstractElement;
 
@@ -118,7 +121,7 @@ public class AbstractPathToCTranslator {
       
       //}
       //catch(Exception e) {
-      //  e.printStackTrace();
+      //CPAMain.logManager.logException(Level.WARNING, e, "");
       //}
 
       lPathPrograms.put(lAbstractPath, lTranslation);

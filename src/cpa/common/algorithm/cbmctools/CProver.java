@@ -32,6 +32,9 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.util.logging.Level;
+
+import cmdline.CPAMain;
 
 /**
  * @author Michael Tautschnig <tautschnig@forsyte.de>
@@ -46,6 +49,8 @@ public class CProver {
 //    try {
 //      lFile = File.createTempFile("path", ".c");
 //    } catch (IOException e1) {
+//      If this is activated again, it should call CPAMain.logManager.logException for
+//      documenting the exception. This automatically prints the stack trace as well.
 //      // TODO Auto-generated catch block
 //      e1.printStackTrace();
 //    }
@@ -55,7 +60,7 @@ public class CProver {
     try {
       lWriter = new PrintWriter(lFile);
     } catch (FileNotFoundException e) {
-      e.printStackTrace();
+      CPAMain.logManager.logException(Level.SEVERE, e, "");
       System.exit(1);
     }
 
@@ -124,7 +129,7 @@ public class CProver {
       break;
       }
     } catch (IOException e) {
-      e.printStackTrace();
+      CPAMain.logManager.logException(Level.SEVERE, e, "");
       System.exit(1);
     } 
 

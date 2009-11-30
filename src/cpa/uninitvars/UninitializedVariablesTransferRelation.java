@@ -26,6 +26,7 @@ package cpa.uninitvars;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
 
 import org.eclipse.cdt.core.dom.ast.IASTArraySubscriptExpression;
 import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
@@ -98,7 +99,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       try {
         handleStatement(successor, ((StatementEdge)cfaEdge).getExpression(), cfaEdge);
       } catch (TransferRelationException e) {
-        e.printStackTrace();
+        CPAMain.logManager.logException(Level.WARNING, e, "");
       }
       break;
     
@@ -111,7 +112,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       try {
         handleStatement(successor, ctrEdge.getExpression(), ctrEdge);
       } catch (TransferRelationException e) {
-        e.printStackTrace();
+        CPAMain.logManager.logException(Level.WARNING, e, "");
       }
       break;
       
@@ -121,7 +122,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
         try {
           isExpressionUninitialized(successor, ((AssumeEdge)cfaEdge).getExpression(), cfaEdge);
         } catch (TransferRelationException e) {
-          e.printStackTrace();
+          CPAMain.logManager.logException(Level.WARNING, e, "");
         }
       }
       break;
@@ -144,7 +145,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       try {
         throw new UnrecognizedCFAEdgeException("Unknown edge type");
       } catch (UnrecognizedCFAEdgeException e) {
-        e.printStackTrace();
+        CPAMain.logManager.logException(Level.WARNING, e, "");
       }
     }
     
@@ -325,6 +326,8 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       
     } else if (expression instanceof IASTFieldReference) {
       // TODO: field access (needs types)
+      System.out.println(expression.getRawSignature());
+
       return false;
     
     } else if (expression instanceof IASTArraySubscriptExpression) {
@@ -387,7 +390,9 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
   @Override
   public AbstractElement strengthen(AbstractElement element,
                          List<AbstractElement> otherElements, CFAEdge cfaEdge,
-                         Precision precision) {    
+                         Precision precision) { 
+    UninitializedVariablesElement e = (UninitializedVariablesElement)element;
+    System.out.println(e.toString());
     return null;
   }
 }

@@ -36,6 +36,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Deque;
+import java.util.logging.Level;
+
+import cmdline.CPAMain;
 
 import cpa.symbpredabs.explicit.ExplicitAbstractElement;
 
@@ -54,7 +57,7 @@ public class CProver {
         // TODO shouldn't it be ".i"?
         lFile = File.createTempFile("path", ".c");
       } catch (IOException e) {
-        e.printStackTrace();
+        CPAMain.logManager.logException(Level.SEVERE, e, "");
         System.exit(1);
       }
       lFile.deleteOnExit();
@@ -63,7 +66,7 @@ public class CProver {
       try {
         lWriter = new PrintWriter(lFile);
       } catch (FileNotFoundException e) {
-        e.printStackTrace();
+        CPAMain.logManager.logException(Level.SEVERE, e, "");
         System.exit(1);
       }
 
@@ -131,7 +134,7 @@ public class CProver {
           break;
         }
       } catch (IOException e) {
-        e.printStackTrace();
+        CPAMain.logManager.logException(Level.SEVERE, e, "");
         System.exit(1);
       } 
     }

@@ -175,8 +175,7 @@ public class CPARun implements IWorkbenchWindowActionDelegate
 		}
 		catch (Exception e)
 		{
-			System.out.println (e.getMessage ());
-			e.printStackTrace ();
+      CPAMain.logManager.logException(Level.WARNING, e, "");
 		}
 	}
 

@@ -26,6 +26,7 @@ package cpa.explicit;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
 
 import org.eclipse.cdt.core.dom.ast.IASTArraySubscriptExpression;
 import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
@@ -109,7 +110,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
         try {
           successor = handleExitFromFunction(explicitElement, expression, statementEdge);
         } catch (ExplicitAnalysisTransferException e) {
-          e.printStackTrace();
+          CPAMain.logManager.logException(Level.WARNING, e, "");
         }
       }
 
@@ -118,7 +119,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
         try {
           successor = handleStatement(explicitElement, expression, cfaEdge);
         } catch (ExplicitAnalysisTransferException e) {
-          e.printStackTrace();
+          CPAMain.logManager.logException(Level.WARNING, e, "");
         }
       }
       break;
@@ -140,7 +141,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
       try {
         successor = handleAssumption(explicitElement, expression, cfaEdge, assumeEdge.getTruthAssumption());
       } catch (ExplicitAnalysisTransferException e) {
-        e.printStackTrace();
+        CPAMain.logManager.logException(Level.WARNING, e, "");
       }
       break;
     }
@@ -162,14 +163,14 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
 //      try {
 //      handleExternalFunctionCall(expAnalysisElement, functionCallEdge);
 //      } catch (ExplicitAnalysisTransferException e) {
-//      e.printStackTrace();
+//        CPAMain.logManager.logException(Level.WARNING, e, "");
 //      }
       }
       else{
         try {
           successor = handleFunctionCall(explicitElement, functionCallEdge);
         } catch (ExplicitAnalysisTransferException e) {
-          e.printStackTrace();
+          CPAMain.logManager.logException(Level.WARNING, e, "");
         }
       }
       break;
@@ -183,7 +184,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
       try {
         successor = handleFunctionReturn(explicitElement, functionReturnEdge);
       } catch (ExplicitAnalysisTransferException e) {
-        e.printStackTrace();
+        CPAMain.logManager.logException(Level.WARNING, e, "");
       }
       break;
     }
@@ -210,7 +211,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
       try {
         throw new UnrecognizedCFAEdgeException("Unknown edge type");
       } catch (UnrecognizedCFAEdgeException e) {
-        e.printStackTrace();
+        CPAMain.logManager.logException(Level.WARNING, e, "");
       }
     }
     return successor;
@@ -1070,7 +1071,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
           return strengthen(explicitElement, (PointerAnalysisElement)ae, cfaEdge, precision);
         }
       } catch (ExplicitAnalysisTransferException e) {
-        e.printStackTrace();
+        CPAMain.logManager.logException(Level.WARNING, e, "");
       }
     }
     return null;

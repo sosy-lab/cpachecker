@@ -1244,7 +1244,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       }
       return ((IBinding)tp).getName();
     } catch (DOMException e) {
-      e.printStackTrace();
+      CPAMain.logManager.logException(Level.WARNING, e, "");
       assert(false);
     }
     return null;

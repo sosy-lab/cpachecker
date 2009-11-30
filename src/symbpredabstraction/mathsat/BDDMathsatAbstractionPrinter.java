@@ -30,6 +30,9 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.Stack;
 import java.util.Vector;
+import java.util.logging.Level;
+
+import cmdline.CPAMain;
 
 import symbpredabstraction.interfaces.SymbolicFormula;
 
@@ -94,7 +97,7 @@ public class BDDMathsatAbstractionPrinter {
             }
             out.close();
         } catch (FileNotFoundException e) {
-            e.printStackTrace();
+          CPAMain.logManager.logException(Level.WARNING, e, "");
             assert(false);
         }
     }
@@ -182,7 +185,7 @@ public class BDDMathsatAbstractionPrinter {
             }
             out.close();
         } catch (FileNotFoundException e) {
-            e.printStackTrace();
+          CPAMain.logManager.logException(Level.WARNING, e, "");
             assert(false);
         }
 

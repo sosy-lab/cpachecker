@@ -1171,7 +1171,7 @@ public class BDDMathsatSummaryAbstractManager extends
                 out.println(repr);
                 out.close();
             } catch (FileNotFoundException e) {
-                e.printStackTrace();
+              CPAMain.logManager.logException(Level.WARNING, e, "");
                 System.exit(1);
             }
         }

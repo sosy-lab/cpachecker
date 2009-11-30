@@ -24,6 +24,7 @@
 package cpa.types;
 
 import java.util.List;
+import java.util.logging.Level;
 
 import org.eclipse.cdt.core.dom.ast.IASTArrayDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTArrayModifier;
@@ -44,6 +45,8 @@ import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTStandardFunctionDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTEnumerationSpecifier.IASTEnumerator;
+
+import cmdline.CPAMain;
 
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.c.DeclarationEdge;
@@ -84,7 +87,7 @@ public class TypesTransferRelation implements TransferRelation {
       try {
         handleDeclaration(successor, (DeclarationEdge)cfaEdge);
       } catch (TransferRelationException e) {
-        e.printStackTrace();
+        CPAMain.logManager.logException(Level.WARNING, e, "");
       }
       break;
       
@@ -103,7 +106,7 @@ public class TypesTransferRelation implements TransferRelation {
             handleFunctionDeclaration(successor,
                 funcDef.getDeclarator(), funcDef.getDeclSpecifier());
           } catch (TransferRelationException e1) {
-            e1.printStackTrace();
+            CPAMain.logManager.logException(Level.WARNING, e1, "");
           }
         }
       }
@@ -125,7 +128,7 @@ public class TypesTransferRelation implements TransferRelation {
       try {
         throw new UnrecognizedCFAEdgeException("Unknown edge type: " + cfaEdge.getEdgeType());
       } catch (UnrecognizedCFAEdgeException e) {
-        e.printStackTrace();
+        CPAMain.logManager.logException(Level.WARNING, e, "");
       }
     }
 

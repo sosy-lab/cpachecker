@@ -76,7 +76,7 @@ public class MathsatPredicateParser {
             }
             return parsePredicates(formula);
         } catch (IOException e) {
-            e.printStackTrace();
+          CPAMain.logManager.logException(Level.WARNING, e, "");
             return null;
         }
     }

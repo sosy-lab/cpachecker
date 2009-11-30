@@ -37,6 +37,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 import java.util.Vector;
+import java.util.logging.Level;
 
 import symbpredabstraction.interfaces.SymbolicFormula;
 import symbpredabstraction.interfaces.TheoremProver;
@@ -76,7 +77,7 @@ public class SimplifyTheoremProver implements TheoremProver {
                 dumpQueryWriter = new PrintWriter(
                         new File("simplify_queries.txt"));
             } catch (FileNotFoundException e) {
-                e.printStackTrace();
+              CPAMain.logManager.logException(Level.WARNING, e, "");
                 dumpQueryWriter = null;
             }
         }
@@ -214,7 +215,7 @@ public class SimplifyTheoremProver implements TheoremProver {
             simplifyOut = new BufferedReader(new InputStreamReader(out));
             simplifyIn = new PrintWriter(in);
         } catch (IOException e) {
-            e.printStackTrace();
+          CPAMain.logManager.logException(Level.WARNING, e, "");
             assert(false);
         }
     }
@@ -417,7 +418,7 @@ public class SimplifyTheoremProver implements TheoremProver {
                 status = simplifyOut.readLine();
             }
         } catch (IOException e) {
-            e.printStackTrace();
+          CPAMain.logManager.logException(Level.SEVERE, e, "");
             System.exit(1);
         }
         assert(status != null);
@@ -451,7 +452,7 @@ public class SimplifyTheoremProver implements TheoremProver {
                 status = simplifyOut.readLine();
             }
         } catch (IOException e) {
-            e.printStackTrace();
+          CPAMain.logManager.logException(Level.SEVERE, e, "");
             System.exit(1);
         }
         assert(status != null);
@@ -501,7 +502,7 @@ public class SimplifyTheoremProver implements TheoremProver {
                 }
             }
         } catch (IOException e) {
-            e.printStackTrace();
+          CPAMain.logManager.logException(Level.WARNING, e, "");
             assert(false);
         }
         long[] ret = new long[model.size()];

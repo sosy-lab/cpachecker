@@ -12,6 +12,9 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.util.List;
+import java.util.logging.Level;
+
+import cmdline.CPAMain;
 
 /**
  *
@@ -28,7 +31,7 @@ public class FShell {
     try {
       lFile = File.createTempFile("path", ".i");
     } catch (IOException e) {
-      e.printStackTrace();
+      CPAMain.logManager.logException(Level.WARNING, e, "");
       assert(false);
     }
     
@@ -41,7 +44,7 @@ public class FShell {
     try {
       lWriter = new PrintWriter(lFile);
     } catch (FileNotFoundException e) {
-      e.printStackTrace();
+      CPAMain.logManager.logException(Level.WARNING, e, "");
       assert(false);
     }
     
@@ -60,7 +63,7 @@ public class FShell {
       lQueryFile = File.createTempFile("query", "fql");
     }
     catch (IOException e) {
-      e.printStackTrace();
+      CPAMain.logManager.logException(Level.WARNING, e, "");
       assert(false);
     }
     
@@ -73,7 +76,7 @@ public class FShell {
     try {
       lQueryWriter = new PrintWriter(lQueryFile);
     } catch (FileNotFoundException e) {
-      e.printStackTrace();
+      CPAMain.logManager.logException(Level.WARNING, e, "");
       assert(false);
     }
     
@@ -111,10 +114,10 @@ public class FShell {
       
       System.out.println(lFShellExitValue);
     } catch (IOException ex) {
-      ex.printStackTrace();
+      CPAMain.logManager.logException(Level.WARNING, ex, "");
       assert(false);
     } catch (InterruptedException e) {
-      e.printStackTrace();
+      CPAMain.logManager.logException(Level.WARNING, e, "");
       assert(false);
     }
   }

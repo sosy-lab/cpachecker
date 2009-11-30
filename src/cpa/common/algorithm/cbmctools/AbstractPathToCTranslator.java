@@ -114,6 +114,8 @@ public class AbstractPathToCTranslator {
     //lWriter.close();
 
     //}
+    // If this is activated again, it should call CPAMain.logManager.logException for
+    // documenting the exception. This automatically prints the stack trace as well.
     //catch(Exception e) {
     //  e.printStackTrace();
     //}

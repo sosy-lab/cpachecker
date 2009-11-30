@@ -30,8 +30,11 @@ import java.io.InputStream;
 import java.net.URL;
 import java.util.Properties;
 import java.util.Vector;
+import java.util.logging.Level;
 
 import javax.swing.JOptionPane;
+
+import cmdline.CPAMain;
 
 
 /**
@@ -67,7 +70,7 @@ public class CPAConfiguration extends Properties{
             try {
                 processArgs(args);
             } catch (Exception e) {
-                e.printStackTrace();
+              CPAMain.logManager.logException(Level.WARNING, e, "");
             }
         }
         //normalizeValues();
