@@ -457,15 +457,18 @@ if (expression == null) {
           }
         }
       }
+      
+      if (typesCPAPresent == 0 && lastAdded != null) {
+        //set typesCPAPresent so this message only comes up once
+        typesCPAPresent = 2;
+        CPAMain.logManager.log(Level.INFO, 
+            "TypesCPA not present - information about field references may be unreliable");
+      }
+      
       //set lastAdded to null to prevent unnecessary repeats 
       lastAdded = null;
     }
-    if (typesCPAPresent == 0) {
-      //set typesCPAPresent so this message only comes up once
-      typesCPAPresent = 2;
-      CPAMain.logManager.log(Level.INFO, 
-          "TypesCPA not present - information about field references may be unreliable");
-    }
+
     return null;
 
   }

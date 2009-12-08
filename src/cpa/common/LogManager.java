@@ -67,29 +67,32 @@ public class LogManager {
   }
   
   private LogManager() throws SecurityException, IOException {
-    
-    if(logLevel != Level.OFF) {
-    
-    //create or fetch loggers
-    fileLogger = Logger.getLogger("resMan.fileLogger");
-    consoleLogger = Logger.getLogger("resMan.consoleLogger");
 
-    //handler with format for the fileLogger
-    outfileHandler = new FileHandler(outfilePath, false);
-    outfileHandler.setFormatter(new CPALogFormatter());
-    
-    //only file output when using the fileLogger 
-    fileLogger.setUseParentHandlers(false);
-    fileLogger.addHandler(outfileHandler);
-    //log only records of priority equal to or greater than the level defined in the configuration
-    fileLogger.setLevel(logLevel);
-    
-    //set format for console output
-    //per default, the console handler is found in the handler array of each logger's parent at [0]
-    consoleLogger.getParent().getHandlers()[0].setFormatter(new CPALogFormatter());
-    //need to set the level for both the logger and its handler
-    consoleLogger.getParent().getHandlers()[0].setLevel(logConsoleLevel);
-    consoleLogger.setLevel(logConsoleLevel);
+    if(logLevel != Level.OFF) {
+
+      //create or fetch file logger
+      fileLogger = Logger.getLogger("resMan.fileLogger");
+
+      //handler with format for the fileLogger
+      outfileHandler = new FileHandler(outfilePath, false);
+      outfileHandler.setFormatter(new CPALogFormatter());
+
+      //only file output when using the fileLogger 
+      fileLogger.setUseParentHandlers(false);
+      fileLogger.addHandler(outfileHandler);
+      //log only records of priority equal to or greater than the level defined in the configuration
+      fileLogger.setLevel(logLevel);
+    }
+
+    if (logConsoleLevel != Level.OFF) {
+      //create or fetch console logger
+      consoleLogger = Logger.getLogger("resMan.consoleLogger");
+      //set format for console output
+      //per default, the console handler is found in the handler array of each logger's parent at [0]
+      consoleLogger.getParent().getHandlers()[0].setFormatter(new CPALogFormatter());
+      //need to set the level for both the logger and its handler
+      consoleLogger.getParent().getHandlers()[0].setLevel(logConsoleLevel);
+      consoleLogger.setLevel(logConsoleLevel);
     }
   }
   
@@ -108,11 +111,13 @@ public class LogManager {
   //Logs any message occurring during program execution.
   //args can be an arbitrary number of objects containing any information.
   public void log(Level priority, Object... args) {
-    
+
     //Since some toString() methods may be rather costly, only log if the level is 
     //sufficiently high. Ensure priority != OFF (since it is possible to abuse the logging 
     //system by publishing logs with Level OFF).
-    if (priority.intValue() >= logLevel.intValue() && priority != Level.OFF) {
+    if ((priority.intValue() >= logLevel.intValue() || 
+        priority.intValue() >= logConsoleLevel.intValue()) && 
+        priority != Level.OFF) {
 
       StringBuffer buf = new StringBuffer();
 
@@ -123,15 +128,18 @@ public class LogManager {
           buf.append("null ");
         }
       }
-      
+
       LogRecord record = new LogRecord(priority, buf.toString());
       StackTraceElement[] trace = Thread.currentThread().getStackTrace();
       record.setSourceClassName(trace[2].getFileName());
       record.setSourceMethodName(trace[2].getMethodName());
-      
-      fileLogger.log(record);
-      consoleLogger.log(record);
-      
+
+      if (priority.intValue() >= logLevel.intValue()) {
+        fileLogger.log(record);
+      }
+      if (priority.intValue() >= logConsoleLevel.intValue()) {
+        consoleLogger.log(record);
+      }
     }
   }
   
@@ -140,7 +148,9 @@ public class LogManager {
   //After logging, print the stack trace.
   public void logException(Level priority, Exception e, String additionalMessage) {
     
-    if (priority.intValue() >= logLevel.intValue()) {
+    if ((priority.intValue() >= logLevel.intValue() ||
+        priority.intValue() >= logConsoleLevel.intValue()) && 
+        priority != Level.OFF) {
       
       String logMessage = e.getMessage() + ", " + e.getStackTrace()[0];
 
@@ -158,8 +168,13 @@ public class LogManager {
       record.setSourceClassName(trace[2].getFileName());
       record.setSourceMethodName(trace[2].getMethodName());
 
-      fileLogger.log(record);
-      consoleLogger.log(record);
+      if (priority.intValue() >= logLevel.intValue()) {
+        fileLogger.log(record);
+      }
+      if (priority.intValue() >= logConsoleLevel.intValue()) {
+        consoleLogger.log(record);
+      }
+      
     }
     
     e.printStackTrace();
@@ -175,6 +190,10 @@ public class LogManager {
   
   public Level getLogLevel() {
     return logLevel;
+  }
+  
+  public Level getLogConsoleLevel() {
+    return logConsoleLevel;
   }
   
 }
