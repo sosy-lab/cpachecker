@@ -43,6 +43,7 @@ import org.eclipse.cdt.core.dom.ast.IASTTypeIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 
 import cfa.objectmodel.CFAEdge;
+import cfa.objectmodel.CFAEdgeType;
 import cfa.objectmodel.c.AssumeEdge;
 import cfa.objectmodel.c.CallToReturnEdge;
 import cfa.objectmodel.c.DeclarationEdge;
@@ -57,6 +58,10 @@ import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
+import cpa.types.Type;
+import cpa.types.TypesElement;
+import cpa.types.Type.StructType;
+import cpa.types.Type.TypeClass;
 import exceptions.CPAException;
 import exceptions.CPATransferException;
 import exceptions.TransferRelationException;
@@ -64,6 +69,9 @@ import exceptions.UnrecognizedCFAEdgeException;
 
 /**
  * @author Philipp Wendler
+ * 
+ * Needs typesCPA to properly deal with field references. 
+ * If run without typesCPA, uninitialized field references may not be detected.
  */
 public class UninitializedVariablesTransferRelation implements TransferRelation {
 
@@ -72,6 +80,11 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
   
   private boolean printWarnings;
   private Set<Pair<Integer, String>> warnings;
+  
+  //needed for strengthen()
+  String lastAdded = null;
+  //used to display a message in strengthen() if typesCPA is not used as well
+  int typesCPAPresent = 0;
 
   public UninitializedVariablesTransferRelation() {
     globalVars = new HashSet<String>();
@@ -182,8 +195,8 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
   }
   
   private void handleDeclaration(UninitializedVariablesElement element,
-                                 DeclarationEdge declaration) {
-        
+      DeclarationEdge declaration) {
+
     for (IASTDeclarator declarator : declaration.getDeclarators()) {
       if (declarator != null) {
 
@@ -191,13 +204,14 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
         String varName = declarator.getName().toString();
         if (declaration instanceof GlobalDeclarationEdge) {
           globalVars.add(varName);
+          lastAdded = varName;
         }
 
         IASTInitializer initializer = declarator.getInitializer();
         // initializers in CIL are always constant, so no need to check if
         // initializer expression contains uninitialized variables
         if (initializer == null) {
-          setUninitialized(element, varName);  
+          setUninitialized(element, varName); 
         }          
       }
     }
@@ -274,24 +288,41 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
     
     IASTExpression op1 = expression.getOperand1();
     IASTExpression op2 = expression.getOperand2();
-    
+
     if (op1 instanceof IASTIdExpression) {
       // assignment to simple variable
-      
+
       String leftName = op1.getRawSignature();
-      
+
       if (isExpressionUninitialized(element, op2, cfaEdge)) {
         setUninitialized(element, leftName);
       } else {
         setInitialized(element, leftName);
       }
-    
+
+
+    } else if (op1 instanceof IASTFieldReference) {
+      //for field references, don't change the initialization status in case of a pointer dereference
+      if (((IASTFieldReference) op1).isPointerDereference()) {
+        if (printWarnings) {
+          isExpressionUninitialized(element, op1, cfaEdge);
+          isExpressionUninitialized(element, op2, cfaEdge);
+        }
+      } else {
+        String leftName = op1.getRawSignature();
+        if (isExpressionUninitialized(element, op2, cfaEdge)) {
+          setUninitialized(element, leftName);
+        } else {
+          setInitialized(element, leftName);
+        }
+      }
+      
     } else if (
-           ((op1 instanceof IASTUnaryExpression) 
-             && (((IASTUnaryExpression)op1).getOperator() == IASTUnaryExpression.op_star))
-        || (op1 instanceof IASTFieldReference)
-        || (op1 instanceof IASTArraySubscriptExpression)) {
-      // assignment to the target of a pointer, a field or an array element,
+
+        ((op1 instanceof IASTUnaryExpression) 
+            && (((IASTUnaryExpression)op1).getOperator() == IASTUnaryExpression.op_star))
+            || (op1 instanceof IASTArraySubscriptExpression)) {
+      // assignment to the target of a pointer or an array element,
       // this does not change the initialization status of the variable
       
       if (printWarnings) {
@@ -307,7 +338,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
   private boolean isExpressionUninitialized(UninitializedVariablesElement element,
                                             IASTExpression expression,
                                             CFAEdge cfaEdge) throws TransferRelationException {
-    if (expression == null) {
+if (expression == null) {
       // e.g. empty parameter list
       return false;
     
@@ -325,11 +356,19 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       return false;
       
     } else if (expression instanceof IASTFieldReference) {
-      // TODO: field access (needs types)
-      System.out.println(expression.getRawSignature());
-
-      return false;
-    
+      IASTFieldReference e = (IASTFieldReference) expression;
+      if (e.isPointerDereference()) {
+        return isExpressionUninitialized(element, e.getFieldOwner(), cfaEdge);
+      } else {
+        String variable = expression.getRawSignature();
+        if (element.isUninitialized(variable)) {
+          addWarning(cfaEdge, variable);
+          return true;
+        } else {
+          return false;
+        }
+      }
+      
     } else if (expression instanceof IASTArraySubscriptExpression) {
       IASTArraySubscriptExpression arrayExpression = (IASTArraySubscriptExpression)expression;
       return isExpressionUninitialized(element, arrayExpression.getArrayExpression(), cfaEdge)
@@ -348,7 +387,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       }
       
     } else if (expression instanceof IASTBinaryExpression) {
-      IASTBinaryExpression binExpression = (IASTBinaryExpression) expression; 
+      IASTBinaryExpression binExpression = (IASTBinaryExpression) expression;
       return isExpressionUninitialized(element, binExpression.getOperand1(), cfaEdge)
            | isExpressionUninitialized(element, binExpression.getOperand2(), cfaEdge);
     
@@ -388,11 +427,46 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
   }
 
   @Override
+  /**
+   * strengthen() is only necessary when declaring field variables, so the underlying struct type
+   * is properly associated. This can only be done here because information about types is needed, which can
+   * only be provided by typesCPA.
+   */
   public AbstractElement strengthen(AbstractElement element,
                          List<AbstractElement> otherElements, CFAEdge cfaEdge,
-                         Precision precision) { 
-    UninitializedVariablesElement e = (UninitializedVariablesElement)element;
-    System.out.println(e.toString());
+                         Precision precision) {
+    //only call for declarations. check for lastAdded prevents unnecessary repeated executions for the same statement 
+    if (cfaEdge.getEdgeType() == CFAEdgeType.DeclarationEdge && lastAdded != null) {
+      for (AbstractElement other : otherElements) {
+        //only interested in the types here
+        if (other instanceof TypesElement) {
+          typesCPAPresent = 1;
+          //find type of the item last added to the list of variables
+          Type t = ((TypesElement) other).getVariableTypes().get(lastAdded);
+          if (t != null) {
+            //only need to do this for structs: add a variable for each field of the struct
+            //and set it uninitialized (since it is only declared at this point)
+            if (t.getTypeClass() == TypeClass.STRUCT) {
+              Set<String> members = ((StructType)t).getMembers();
+              for (String s : members) {
+                String varName = lastAdded + "." + s;
+                globalVars.add(varName);
+                setUninitialized((UninitializedVariablesElement) element, varName);
+              }
+            }
+          }
+        }
+      }
+      //set lastAdded to null to prevent unnecessary repeats 
+      lastAdded = null;
+    }
+    if (typesCPAPresent == 0) {
+      //set typesCPAPresent so this message only comes up once
+      typesCPAPresent = 2;
+      CPAMain.logManager.log(Level.INFO, 
+          "TypesCPA not present - information about field references may be unreliable");
+    }
     return null;
+
   }
 }
