@@ -12,18 +12,19 @@ import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.AbstractWrapperElement;
 
 public class ARTElement implements AbstractElementWithLocation, AbstractWrapperElement{
-
+  
+  public static long artElementEqualsTime = 0; 
+  
   private final ARTCPA mCpa;
   private final AbstractElementWithLocation element;
   private final Set<ARTElement> children;
-  public static long artElementEqualsTime = 0; 
   private final Set<ARTElement> parents; // more than one parent if joining elements
   private ARTElement mCoveredBy = null;
-
-  private int elementId;
-  private static int nextArtElementId= 0;
-
-  private int mark;
+  private boolean isBottom = false;
+  
+  private final int elementId;
+  
+  private static int nextArtElementId = 0;
 
   protected ARTElement(ARTCPA pCpa, AbstractElementWithLocation pAbstractElement, ARTElement pParentElement) {
     mCpa = pCpa;
@@ -34,7 +35,6 @@ public class ARTElement implements AbstractElementWithLocation, AbstractWrapperE
     }
     children = new HashSet<ARTElement>();
     elementId = ++nextArtElementId;
-    mark = 0;
   }
 
   public Set<ARTElement> getParents(){
@@ -53,22 +53,6 @@ public class ARTElement implements AbstractElementWithLocation, AbstractWrapperE
 
   public AbstractElementWithLocation getAbstractElementOnArtNode(){
     return element;
-  }
-
-  public boolean isMarked() { 
-    return mark > 0; 
-  }
-
-  protected void setMark() { 
-    mark = nextArtElementId++; 
-  }
-
-  protected void setMark(int pMark) { 
-    mark = pMark; 
-  }
-
-  public int getMark() { 
-    return mark; 
   }
 
   protected void setCovered(ARTElement pCoveredBy) {
@@ -90,26 +74,24 @@ public class ARTElement implements AbstractElementWithLocation, AbstractWrapperE
     return mCoveredBy;
   }
   
+  public boolean isBottom() {
+    return isBottom;
+  }
+  
+  protected void setBottom(boolean pIsBottom) {
+    isBottom = pIsBottom;
+  }
+  
   public ARTCPA getCpa() {
     return mCpa;
   }
   
   @Override
   public String toString() {
-    String s = "\n";
-    s = s + "ART Element Id: " + elementId + " : Mark: "+ mark +", ";
-//    if(parentElement != null){
-//      s = s + "Parent Element's Id: " + getParent().elementId + ", ";
-//      for(ARTElement additionalParent: additionalParents){
-//        s = s + "Add. Parent's Id: " + additionalParent.elementId + ", ";
-//      }
-//    }
-//    else{
-//      s = s + "parent is null" + ", ";
-//    }
-    s = s + " CHILDS > " + children.size() + ", ";
-    s = s + element;
-    return s;
+    return "\n" 
+          + "ART Element Id: " + elementId + ", "
+          + "children: " + children.size() + ", "
+          + element;
   }
 
   @Override
@@ -150,13 +132,13 @@ public class ARTElement implements AbstractElementWithLocation, AbstractWrapperE
    * Note that it does not remove any elements from the covered set, this has to
    * be done by the caller.
    */
-  protected void clearChildren() {
+  /*protected void clearChildren() {
     for (ARTElement child : children) {
       assert (child.parents.contains(this));
       child.parents.remove(this);
     }
     children.clear();
-  }
+  }*/
 
 
   /**
@@ -170,9 +152,14 @@ public class ARTElement implements AbstractElementWithLocation, AbstractWrapperE
    * elements will not be removed from the covered set.
    */
   protected void removeFromART() {
-    clearChildren();
+    // clear children
+    for (ARTElement child : children) {
+      assert (child.parents.contains(this));
+      child.parents.remove(this);
+    }
+    children.clear();
     
-    // clearParents
+    // clear parents
     for (ARTElement parent : parents) {
       assert (parent.children.contains(this));
       parent.children.remove(this);

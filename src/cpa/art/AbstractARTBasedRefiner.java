@@ -40,7 +40,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
   
   @Override
   public final RefinementOutcome performRefinement(ReachedElements pReached) throws CPAException {
-    //assert checkART(pReached);
+    assert checkART(pReached);
     
     AbstractElement lastElement = pReached.getLastElement();
     assert lastElement instanceof ARTElement;
@@ -108,14 +108,22 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
     assert(root != null);
     
     Collection<ARTElement> toWaitlist = new HashSet<ARTElement>();
-    toWaitlist.add(root);
     Set<ARTElement> toUnreach = root.getSubtree();
-        
-    // clear everything below root
-    root.clearChildren();
+    toUnreach.remove(root);
+    toWaitlist.add(root);
+
+    // remove all nodes below root from ART
+    // re-add their parents to the waitlist
     for (ARTElement ae : toUnreach) {
-      ae.setUncovered();
+      for (ARTElement parent : ae.getParents()) {
+        if (!toUnreach.contains(parent)) {
+          toWaitlist.add(parent);
+        }
+      }
+      ae.removeFromART();
     }
+    
+    toUnreach.addAll(toWaitlist);
     
     // re-add those elements to the waitlist, which were covered by
     // elements which are removed now
@@ -130,7 +138,6 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
       }
       
       for (ARTElement ae : toUncover) {
-        // TODO adding all parents? check this
         toWaitlist.addAll(ae.getParents());
         ae.removeFromART(); // removes are from parents and covered set
       }
@@ -139,7 +146,6 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
     return new RefinementOutcome(true, toUnreach, toWaitlist, root);
   }
   
-  @SuppressWarnings("unused")
   private boolean checkART(ReachedElements pReached) {
     Set<AbstractElement> reached = new HashSet<AbstractElement>();
     for (Pair<AbstractElementWithLocation, Precision> currentPair : pReached.getReached()) {
@@ -160,8 +166,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
       }
       
       // check if (e \in ART) => ((e \in Reached ^ e.isCovered()) ^ (e == Bottom))
-      // TODO how to check for Bottom here?
-      assert !(reached.contains(currentElement) && currentElement.isCovered());
+      assert reached.contains(currentElement) ^ currentElement.isCovered() ^ currentElement.isBottom();
       
       if (art.add(currentElement)) {
         workList.addAll(currentElement.getChildren());

@@ -65,9 +65,6 @@ public class ARTMergeJoin implements MergeOperator {
     // artElement1 will only be removed from ART if stop(e1, reached) returns true
     artElement2.removeFromART();
 
-    // TODO new mark or max mark of two elements?
-    mergedElement.setMark();
-//  newElement.setMark(Math.max(((ARTElement)pElement1).getMark(), ((ARTElement)pElement2).getMark()));
     return mergedElement;
   }
 }

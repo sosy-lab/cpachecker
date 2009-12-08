@@ -30,6 +30,7 @@ public class ARTStopSep implements StopOperator {
     if(stopOp instanceof CompositeStopOperator){
       CompositeStopOperator compStopOp = (CompositeStopOperator) stopOp;
       if(compStopOp.containsBottomElement(wrappedElement)){
+        artElement.setBottom(true);
         return true;
       }
     }
@@ -47,13 +48,6 @@ public class ARTStopSep implements StopOperator {
 
   public boolean stop(ARTElement pElement, ARTElement pReachedElement)
                                                       throws CPAException {
-
-    /* TODO PW Why is this code here? replaced by assertion to see if its relevant
-    if (!reachedArtElement.isMarked()) {
-      return false;
-    }
-    */
-    assert pReachedElement.isMarked();
 
     AbstractElement wrappedElement = pElement.getAbstractElementOnArtNode();
     AbstractElement wrappedReachedElement = pReachedElement.getAbstractElementOnArtNode();

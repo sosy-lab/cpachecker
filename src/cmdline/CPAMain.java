@@ -549,7 +549,7 @@ public class CPAMain {
       out = new PrintWriter(new File(outfile));
     } catch (FileNotFoundException e) {
       logManager.log(Level.WARNING,
-          "Could not write CFA to file ", outfile, ", (", e.getMessage(), ")");
+          "Could not write ART to file ", outfile, ", (", e.getMessage(), ")");
       return;
     }
     out.println("digraph ART {");
@@ -565,10 +565,12 @@ public class CPAMain {
       processed.add(currentElement);
       if(!nodesList.contains(currentElement.getElementId())){
         String color;
-        if (currentElement.isError()) {
-          color = "red";
+        if (currentElement.isBottom()) {
+          color = "black";
         } else if (currentElement.isCovered()) {
           color = "green";
+        } else if (currentElement.isError()) {
+          color = "red";
         } else {
           SymbPredAbsAbstractElement symbpredabselem = (SymbPredAbsAbstractElement)currentElement.retrieveElementOfType("SymbPredAbsAbstractElement");
           if (symbpredabselem != null && symbpredabselem.isAbstractionNode()) {

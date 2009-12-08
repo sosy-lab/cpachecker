@@ -81,6 +81,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
         artPair.getFirst().retrieveElementOfType("SymbPredAbsAbstractElement");
       
       if (symbElement.isAbstractionNode()) {
+        assert lastElement != null;
         path.add(lastElement);
       }
       lastElement = symbElement;
