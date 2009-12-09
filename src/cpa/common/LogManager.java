@@ -52,7 +52,7 @@ public class LogManager {
   private Logger fileLogger;
   private Logger consoleLogger;
   
-  //inner class to handle formatting
+  //inner class to handle formatting for file output
   private class CPALogFormatter extends Formatter {
     @Override
     public String format(LogRecord lr) {
@@ -63,6 +63,20 @@ public class LogManager {
                      + className[0]  + "."  
                      + methodName[0]  + "\t" 
                      + lr.getMessage() + "\n\n";
+    }
+  }
+  
+//inner class to handle formatting for console output
+  private class CPAConsoleLogFormatter extends Formatter {
+    @Override
+    public String format(LogRecord lr) {
+      String[] className = lr.getSourceClassName().split("\\.");
+      String[] methodName = lr.getSourceMethodName().split("\\.");
+      return lr.getMessage() + " (" 
+                     + className[0]  + "."  
+                     + methodName[0]  + ", " 
+                     + lr.getLevel().toString()
+                     + ")\n\n";
     }
   }
   
@@ -89,7 +103,7 @@ public class LogManager {
       consoleLogger = Logger.getLogger("resMan.consoleLogger");
       //set format for console output
       //per default, the console handler is found in the handler array of each logger's parent at [0]
-      consoleLogger.getParent().getHandlers()[0].setFormatter(new CPALogFormatter());
+      consoleLogger.getParent().getHandlers()[0].setFormatter(new CPAConsoleLogFormatter());
       //need to set the level for both the logger and its handler
       consoleLogger.getParent().getHandlers()[0].setLevel(logConsoleLevel);
       consoleLogger.setLevel(logConsoleLevel);
