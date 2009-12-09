@@ -427,7 +427,7 @@ public class SimplifyTheoremProver implements TheoremProver {
         } else if (status.contains("Invalid.")) {
             return false;
         } else {
-            System.err.println("BAD ANSWER FROM SIMPLIFY: '" + status + "', " +
+          CPAMain.logManager.log(Level.WARNING, "BAD ANSWER FROM SIMPLIFY: '" + status + "', " +
                     "FORMULA: " + formula);
             assert(false);
         }
@@ -462,7 +462,7 @@ public class SimplifyTheoremProver implements TheoremProver {
             // ok, let's parse the model
             return ret;
         } else {
-            System.err.println("BAD ANSWER FROM SIMPLIFY: '" + status + "', " +
+          CPAMain.logManager.log(Level.WARNING, "BAD ANSWER FROM SIMPLIFY: '" + status + "', " +
                     "FORMULA: " + formula);
             assert(false);
         }

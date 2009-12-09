@@ -161,8 +161,7 @@ public class CPASelfCheck {
   
   private static boolean ensure(boolean pB, String pString) {
     if (!pB) {
-      System.err.print(" " + pString);
-      System.err.flush();
+      CPAMain.logManager.log(Level.WARNING, pString);
       // assert(false);
       return false;
     }

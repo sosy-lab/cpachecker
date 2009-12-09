@@ -29,6 +29,7 @@ package cpa.pointsto;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
 
 import org.eclipse.cdt.core.dom.ast.ASTVisitor;
 import org.eclipse.cdt.core.dom.ast.IASTArraySubscriptExpression;
@@ -41,6 +42,8 @@ import org.eclipse.cdt.core.dom.ast.IASTNode;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 import org.eclipse.cdt.core.dom.ast.IArrayType;
 import org.eclipse.cdt.core.dom.ast.IPointerType;
+
+import cmdline.CPAMain;
 
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.c.DeclarationEdge;
@@ -80,7 +83,7 @@ public class PointsToTransferRelation implements TransferRelation {
 
     @Override
     public int visit (IASTDeclarator declarator) {
-      // System.err.println("Got into IASTDeclarator");
+      // CPAMain.logManager.log(Level.ALL, "DEBUG_1", "Got into IASTDeclarator");
       if (0 != declarator.getPointerOperators().length) {
         relation = pointsToElement.addVariable(declarator);
         IASTInitializer initializer = declarator.getInitializer ();
@@ -95,7 +98,7 @@ public class PointsToTransferRelation implements TransferRelation {
      */
     @Override
     public int visit(IASTExpression expression) {
-      // System.err.println("Got into IASTExpression with " + expression.toString());
+      // CPAMain.logManager.log(Level.ALL, "DEBUG_1", "Got into IASTExpression with " + expression.toString());
       assert (null != relation);
 
       if (expression.getRawSignature().equals("NULL") || expression.toString().equals("0")) {
@@ -126,7 +129,7 @@ public class PointsToTransferRelation implements TransferRelation {
 
     private void handle(IASTBinaryExpression binaryExpression) {
 
-      System.err.println("Got into IASTBinaryExpression with " + binaryExpression.toString());
+      CPAMain.logManager.log(Level.ALL, "DEBUG_1", "Got into IASTBinaryExpression with " + binaryExpression.toString());
 
       switch (binaryExpression.getOperator ())
       {
@@ -203,14 +206,14 @@ public class PointsToTransferRelation implements TransferRelation {
       case IASTBinaryExpression.op_pmdot:*/
       default:
       {
-        System.err.println("Unhandled expression " + binaryExpression.getRawSignature());
+        CPAMain.logManager.log(Level.WARNING, "Unhandled expression " + binaryExpression.getRawSignature());
       }
       }
     }
 
     private void handle(IASTUnaryExpression unaryExpression) {
 
-      System.err.println("Got into IASTUnaryExpression with " + unaryExpression.toString());
+      CPAMain.logManager.log(Level.ALL, "DEBUG_1", "Got into IASTUnaryExpression with " + unaryExpression.toString());
 
       PointsToRelation entry = relations.get(unaryExpression.getOperand());
 
@@ -311,14 +314,14 @@ public class PointsToTransferRelation implements TransferRelation {
       }
       default:
       {
-        System.err.println("Unhandled expression " + unaryExpression.getRawSignature());
+        CPAMain.logManager.log(Level.WARNING, "Unhandled expression " + unaryExpression.getRawSignature());
       }
       }
     }
 
     private void handle(IASTArraySubscriptExpression arrayExpression) {
-      System.err.println("Got into IASTArraySubscriptExpression with " + arrayExpression.toString());
-      System.err.println("Is composed of " + arrayExpression.getArrayExpression() + " " + arrayExpression.getSubscriptExpression());
+      CPAMain.logManager.log(Level.ALL, "DEBUG_1", "Got into IASTArraySubscriptExpression with " + arrayExpression.toString());
+      CPAMain.logManager.log(Level.ALL, "DEBUG_1", "Is composed of " + arrayExpression.getArrayExpression() + " " + arrayExpression.getSubscriptExpression());
       PointsToRelation var = relations.get(arrayExpression.getArrayExpression());
       assert (var != null);
       PointsToRelation r = new PointsToRelation(var.getVariable(),
@@ -359,7 +362,7 @@ public class PointsToTransferRelation implements TransferRelation {
      */
     @Override
     public int leave(IASTExpression expression) {
-      System.err.println("Got into IASTExpression with " + expression.toString());
+      CPAMain.logManager.log(Level.ALL, "DEBUG_1", "Got into IASTExpression with " + expression.toString());
 
       if (!(expression.getExpressionType() instanceof IPointerType) &&
           !(expression.getExpressionType() instanceof IArrayType)) return PROCESS_CONTINUE;
@@ -372,11 +375,11 @@ public class PointsToTransferRelation implements TransferRelation {
       } else if (expression instanceof IASTArraySubscriptExpression) {
         handle((IASTArraySubscriptExpression)expression);
       } else if (expression instanceof IASTIdExpression) {
-        System.err.println("Got into IASTName");
+        CPAMain.logManager.log(Level.ALL, "DEBUG_1", "Got into IASTName");
         relations.put(expression, pointsToElement.lookup(((IASTIdExpression)expression).getName()));
         assert (relations.get(expression) != null);
       } else {
-        System.err.println("Unhandled expression " + expression);
+        CPAMain.logManager.log(Level.WARNING, "Unhandled expression " + expression);
         assert (false);
       }
       return PROCESS_CONTINUE;
@@ -413,9 +416,9 @@ public class PointsToTransferRelation implements TransferRelation {
    * @see cpaplugin.cpa.common.interfaces.TransferRelation#getAbstractSuccessor(cpaplugin.cpa.common.interfaces.AbstractElement, cpaplugin.cfa.objectmodel.CFAEdge)
    */
   public AbstractElement getAbstractSuccessor(AbstractElement element,
-                                              CFAEdge cfaEdge, Precision prec) throws CPATransferException {
+      CFAEdge cfaEdge, Precision prec) throws CPATransferException {
     PointsToElement pointsToElement = (PointsToElement) element;
-    System.err.println("Input: " + pointsToElement.toString());
+    CPAMain.logManager.log(Level.INFO, "Input: " + pointsToElement.toString());
 
     switch (cfaEdge.getEdgeType ())
     {
@@ -425,7 +428,7 @@ public class PointsToTransferRelation implements TransferRelation {
       StatementVisitor visitor = new StatementVisitor(pointsToElement);
       StatementEdge statementEdge = (StatementEdge) cfaEdge;
       IASTExpression expression = statementEdge.getExpression ();
-      System.err.println("Statement Edge = " + expression.getRawSignature());
+      CPAMain.logManager.log(Level.INFO, "Statement Edge = " + expression.getRawSignature());
       expression.accept(visitor);
       break;
     }
@@ -445,7 +448,7 @@ public class PointsToTransferRelation implements TransferRelation {
       DeclarationVisitor visitor = new DeclarationVisitor(pointsToElement);
       DeclarationEdge declarationEdge = (DeclarationEdge) cfaEdge;
       IASTDeclarator [] declarators = declarationEdge.getDeclarators ();
-      System.err.println("Decleration Edge = " + declarationEdge.getRawStatement());
+      CPAMain.logManager.log(Level.INFO, "Decleration Edge = " + declarationEdge.getRawStatement());
       for (IASTDeclarator declarator : declarators) {
         declarator.accept(visitor);
       }
@@ -468,11 +471,11 @@ public class PointsToTransferRelation implements TransferRelation {
     case ReturnEdge:
     default:
     {
-      System.err.println("Edge " + cfaEdge + " not handled in points-to transfer relation");
+      CPAMain.logManager.log(Level.WARNING, "Edge " + cfaEdge + " not handled in points-to transfer relation");
     }
     }
 
-    System.err.println("Output: " + pointsToElement.toString());
+    CPAMain.logManager.log(Level.INFO, "Output: " + pointsToElement.toString());
     return pointsToElement;
   }
 

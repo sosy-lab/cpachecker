@@ -97,7 +97,7 @@ public abstract class ItpCPA implements ConfigurableProgramAnalysis, CPAWithStat
         } else if (whichProver.equals("yices")) {
             thmProver = new YicesTheoremProver(mgr);
         } else {
-            System.err.println("Unknown solver: " + whichProver);
+          CPAMain.logManager.log(Level.SEVERE, "Unknown solver: " + whichProver);
             assert(false);
             System.exit(1);
         }

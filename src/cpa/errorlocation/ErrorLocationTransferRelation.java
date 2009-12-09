@@ -3,9 +3,12 @@ package cpa.errorlocation;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
 
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression;
+
+import cmdline.CPAMain;
 
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAErrorNode;
@@ -34,7 +37,7 @@ public class ErrorLocationTransferRelation implements TransferRelation {
     
     if (!messages.contains(lineNumber)) {
       messages.add(lineNumber);
-      System.err.println("ERROR: " + message + " in line " + lineNumber + "!");
+      CPAMain.logManager.log(Level.WARNING, "ERROR: " + message + " in line " + lineNumber + "!");
     }
   }
   

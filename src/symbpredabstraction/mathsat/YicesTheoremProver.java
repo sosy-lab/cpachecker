@@ -220,7 +220,7 @@ public class YicesTheoremProver implements TheoremProver {
     private int yicesCommand(String cmd, boolean ignoreError) {
         int ret = yicesManager.yicesl_read(yicesContext, cmd);
         if (ret == 0 && !ignoreError) {
-            System.err.println("YICES ERROR: " +
+          CPAMain.logManager.log(Level.WARNING, "YICES ERROR: " +
                     yicesManager.yicesl_get_last_error_message());
         }
         assert(ignoreError || ret != 0);

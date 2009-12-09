@@ -475,7 +475,7 @@ public class SummaryCFABuilder {
                     assert(n.getNumEnteringEdges() == 1);
                     CFAEdge e = n.getEnteringEdge(0);
                     if (!isLoopBack(e)) {
-                        System.err.println("ERROR: " + n + ": " +
+                      CPAMain.logManager.log(Level.WARNING, "ERROR: " + n + ": " +
                                 e.getRawStatement());
                     }
                     assert(isLoopBack(e));

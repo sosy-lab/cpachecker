@@ -166,10 +166,10 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       if (!warnings.contains(warningIndex)) {
         warnings.add(warningIndex);
         if (lineNumber != null) {
-          System.err.println("Warning: " + message + " in line " + lineNumber+": "
+          CPAMain.logManager.log(Level.WARNING, "Warning: " + message + " in line " + lineNumber+": "
               + edge.getRawStatement());
         } else {
-          System.err.println("Warning: " + message);
+          CPAMain.logManager.log(Level.WARNING, "Warning: " + message);
         }
       }
     }
@@ -178,7 +178,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
   private static void addError(String message, CFAEdge edge) {
     if (printWarnings) {
       int lineNumber = edge.getSuccessor().getLineNumber();
-      System.err.println("ERROR: " + message + " in line " + lineNumber + ": "
+      CPAMain.logManager.log(Level.WARNING, "ERROR: " + message + " in line " + lineNumber + ": "
           + edge.getRawStatement());
     }
   }

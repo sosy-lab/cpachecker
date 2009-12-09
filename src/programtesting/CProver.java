@@ -115,18 +115,18 @@ public class CProver {
         default:
           // lCBMCExitValue == 6 : Start function symbol not found, but also gcc not found
           // more error codes?
-          System.err.println("CBMC had exit code " + lCBMCExitValue + ", output was:");
+          CPAMain.logManager.log(Level.WARNING, "CBMC had exit code " + lCBMCExitValue + ", output was:");
           BufferedReader br = new BufferedReader(new InputStreamReader(lCBMCProcess.getErrorStream()));
           String line = null;
         
           while ((line = br.readLine()) != null) {
-            System.err.println(line);
+            CPAMain.logManager.log(Level.WARNING, line);
           }
           br.close();
           
           br = new BufferedReader(new InputStreamReader(lCBMCProcess.getInputStream()));
           while ((line = br.readLine()) != null) {
-            System.err.println(line);
+            CPAMain.logManager.log(Level.WARNING, line);
           }
 
           br.close();
