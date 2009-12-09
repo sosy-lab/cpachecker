@@ -66,6 +66,7 @@ Sources of binaries provided with the distribution/SVN:
   http://javabdd.sourceforge.net/compiling.html
 - Simplify: http://kind.ucd.ie/products/opensource/Simplify/
 - mathsat.jar: Source code provided with the archive
+- icu4j-4_2_1.jar: http://site.icu-project.org/
 - others: Unknown (MT)
 
 Examples of working installation:

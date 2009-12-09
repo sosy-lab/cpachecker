@@ -49,6 +49,7 @@ import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
 import org.eclipse.cdt.core.dom.ast.IASTNullStatement;
 import org.eclipse.cdt.core.dom.ast.IASTProblem;
 import org.eclipse.cdt.core.dom.ast.IASTProblemDeclaration;
+import org.eclipse.cdt.core.dom.ast.IASTProblemStatement;
 import org.eclipse.cdt.core.dom.ast.IASTReturnStatement;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTStatement;
@@ -206,11 +207,9 @@ public class CFABuilder extends ASTVisitor
 		  // Either insert the following macro before compiling with CIL:
 		  // #define  __attribute__(x)  /*NOTHING*/
 		  // or insert "parser.dialect = GNUC" into properties file
-	    System.out.println ("IASTProblemDeclaration Raw Signature: " + declaration.getRawSignature ());
-	    System.out.println ("    File Loc: " + fileloc);
-		
+		  visit(((IASTProblemDeclaration)declaration).getProblem());		
 		} else {
-      throw new CFAGenerationRuntimeException ("Type: " + declaration.getClass().getName() + " support not implemented", fileloc.getStartingLineNumber ());
+      throw new CFAGenerationRuntimeException("Unknown declaration type " + declaration.getClass().getSimpleName(),  declaration);
 		}
 
 		return PROCESS_CONTINUE;
@@ -299,11 +298,11 @@ public class CFABuilder extends ASTVisitor
 		else if (statement instanceof IASTDeclarationStatement)
 		{
 			// TODO: I think we can ignore these here...
+		} else if (statement instanceof IASTProblemStatement) {
+      visit(((IASTProblemStatement)statement).getProblem());
 		}
-		else
-		{
-			System.out.println("statement " + statement.getRawSignature());
-			throw new CFAGenerationRuntimeException ("Type: " + statement.getClass ().getName () + " support not implemented", fileloc.getStartingLineNumber ());
+		else {
+		  throw new CFAGenerationRuntimeException("Unknown AST node " + statement.getClass().getSimpleName() + " in line " + fileloc.getStartingLineNumber() + ": " + statement.getRawSignature());
 		}
 
 		return PROCESS_CONTINUE;
@@ -648,13 +647,7 @@ public class CFABuilder extends ASTVisitor
 	 * @see org.eclipse.cdt.core.dom.ast.ASTVisitor#visit(org.eclipse.cdt.core.dom.ast.IASTProblem)
 	 */
 	@Override
-	public int visit (IASTProblem problem)
-	{
-		IASTFileLocation fileloc = problem.getFileLocation ();
-
-		System.out.println ("IASTProblem Raw Signature: " + problem.getRawSignature ());
-		System.out.println ("    File Loc: " + fileloc);
-
-		return PROCESS_CONTINUE;
+	public int visit (IASTProblem problem) {
+	  throw new CFAGenerationRuntimeException(problem.getMessage(), problem);
 	}
 }

@@ -85,6 +85,7 @@ import cpa.symbpredabs.summary.SummaryDOTBuilder;
 import cpa.symbpredabsCPA.SymbPredAbsAbstractElement;
 import cpaplugin.CPAConfiguration;
 import cpaplugin.MainCPAStatistics;
+import exceptions.CFAGenerationRuntimeException;
 import exceptions.CPAException;
 
 @SuppressWarnings("restriction")
@@ -324,7 +325,14 @@ public class CPAMain {
 
     // Build CFA
     final CFABuilder builder = new CFABuilder();
-    ast.accept(builder);
+    try {
+      ast.accept(builder);
+    } catch (CFAGenerationRuntimeException e) {
+      // only log message, not whole exception because this is a C problem,
+      // not a CPAchecker problem
+      logManager.log(Level.SEVERE, e.getMessage());
+      System.exit(0);
+    }
     final CFAMap cfas = builder.getCFAs();
     final Collection<CFAFunctionDefinitionNode> cfasList = cfas.cfaMapIterator();
     final int numFunctions = cfas.size();

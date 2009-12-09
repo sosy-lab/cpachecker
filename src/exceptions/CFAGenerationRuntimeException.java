@@ -23,27 +23,23 @@
  */
 package exceptions;
 
+import org.eclipse.cdt.core.dom.ast.IASTNode;
+
 /**
- * Handles runtime exceptions generated during CFA generation
+ * Handles problems during CFA generation
  * @author erkan
  */
-public class CFAGenerationRuntimeException extends RuntimeException
-{
-    // Exceptions are serializable, and warnings are generated without this.  No importance for now.
-    public static final long serialVersionUID = 1L;
+public class CFAGenerationRuntimeException extends RuntimeException {
 
-    public CFAGenerationRuntimeException ()
-    {
-        super ();
-    }
+  private static final long serialVersionUID = 6850681425709171716L;
 
-    public CFAGenerationRuntimeException (String s)
-    {
-        super (s);
-    }
+  public CFAGenerationRuntimeException(String msg) {
+    super(msg);
+  }
 
-    public CFAGenerationRuntimeException (String s, int lineNum)
-    {
-        super (s + " Triggered by line #: " + lineNum);
-    }
+    
+  public CFAGenerationRuntimeException(String msg, IASTNode astNode) {
+    this(msg + " in line " + astNode.getFileLocation().getStartingLineNumber()
+        + ": " + astNode.getRawSignature());
+  }
 }
