@@ -121,9 +121,8 @@ public abstract class ItpCPA implements ConfigurableProgramAnalysis, CPAWithStat
         // the solution below is possible, but ignores the new enumerator for traversal method 
         if (!CPAMain.cpaConfig.getProperty("analysis.traversal").toUpperCase().equals("DFS")) {
             // this analysis only works with dfs traversal
-            System.out.println(
-                    "ERROR: Interpolation-based analysis works only with DFS " +
-                    "traversal!");
+          CPAMain.logManager.log(Level.SEVERE, 
+                    "ERROR: Interpolation-based analysis works only with DFS traversal!");
             System.out.flush();
             assert(false);
             System.exit(1);

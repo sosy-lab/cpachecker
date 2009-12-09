@@ -29,6 +29,9 @@ package cpa.testgoal;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.logging.Level;
+
+import cmdline.CPAMain;
 
 import common.Pair;
 
@@ -277,7 +280,7 @@ public class TestGoalCPA implements ConfigurableProgramAnalysis {
       int lNewSize = lPrecision.getRemainingFinalStates().size();
       
       if (lOldSize != lNewSize) {
-        System.out.println("Remaining #states = " + lNewSize);
+        CPAMain.logManager.log(Level.INFO, "Remaining #states = " + lNewSize);
       }
       
       return lElement;

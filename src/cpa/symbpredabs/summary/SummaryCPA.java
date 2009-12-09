@@ -108,7 +108,7 @@ public class SummaryCPA implements ConfigurableProgramAnalysis, CPAWithStatistic
         } else if (whichProver.equals("yices")) {
             thmProver = new YicesTheoremProver(mgr);
         } else {
-            System.out.println("ERROR, Unknown prover: " + whichProver);
+          CPAMain.logManager.log(Level.SEVERE, "ERROR, Unknown prover: " + whichProver);
             assert(false);
             System.exit(1);
         }

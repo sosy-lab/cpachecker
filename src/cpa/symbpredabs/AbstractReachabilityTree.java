@@ -34,6 +34,9 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Stack;
 import java.util.Vector;
+import java.util.logging.Level;
+
+import cmdline.CPAMain;
 
 import cfa.objectmodel.CFANode;
 
@@ -114,7 +117,7 @@ public class AbstractReachabilityTree {
                 toProcess.addAll(tree.get(e));
             }
         }
-        System.out.println("ERROR, NOT FOUND: " + loc);
+        CPAMain.logManager.log(Level.WARNING, "ERROR, NOT FOUND: " + loc);
         //assert(false);
         //return null;
         return root;

@@ -69,16 +69,14 @@ public class CPASelfCheck {
    */
   public static void main(String[] args) {
     try {
-      System.out.println("Searching for CPAs");
+      CPAMain.logManager.log(Level.INFO, "Searching for CPAs");
       LinkedList<Class<ConfigurableProgramAnalysis>> cpas = getCPAs();
       
       CPAMain.cpaConfig = new CPAConfiguration(args);
       CPAMain.logManager = LogManager.getInstance();
 
       for (Class<ConfigurableProgramAnalysis> cpa : cpas) {
-        System.out.println();
-        System.out.print("Checking " + cpa.getCanonicalName() + " ...");
-        System.out.flush();
+        CPAMain.logManager.log(Level.INFO, "Checking " + cpa.getCanonicalName() + " ...");
         ConfigurableProgramAnalysis cpaInst = null;
         try {
           cpaInst = tryToInstantiate(cpa);

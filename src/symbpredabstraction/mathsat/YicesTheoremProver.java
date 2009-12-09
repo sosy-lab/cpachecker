@@ -184,7 +184,7 @@ public class YicesTheoremProver implements TheoremProver {
                     } else if (mathsat.api.msat_term_is_negate(term) != 0) {
                         op = "-";
                     } else {
-                        System.out.println("UNRECOGNIZED TERM: " +
+                      CPAMain.logManager.log(Level.WARNING, "UNRECOGNIZED TERM: " +
                                 mathsat.api.msat_term_repr(term));
                         System.out.flush();
                         assert(false);

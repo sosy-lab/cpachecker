@@ -365,7 +365,7 @@ public class CPAMain {
       coi.removeIrrelevantForErrorLocations(mainFunction);
 
       if (mainFunction.getNumLeavingEdges() == 0) {
-        System.out.println("No error locations reachable from " + mainFunction.getFunctionName()
+        CPAMain.logManager.log(Level.INFO, "No error locations reachable from " + mainFunction.getFunctionName()
               + ", analysis not necessary.");
         System.exit(0);
       }

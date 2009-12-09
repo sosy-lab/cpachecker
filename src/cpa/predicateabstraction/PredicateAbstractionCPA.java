@@ -93,7 +93,7 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis, CPA
         } else if (whichProver.equals("yices")) {
             prover = new YicesTheoremProver(mgr);
         } else {
-            System.out.println("ERROR, UNSUPPORTED SOLVER: " + whichProver);
+          CPAMain.logManager.log(Level.SEVERE, "ERROR, UNSUPPORTED SOLVER: " + whichProver);
             System.exit(1);
         }
         InterpolatingTheoremProver itpProver =

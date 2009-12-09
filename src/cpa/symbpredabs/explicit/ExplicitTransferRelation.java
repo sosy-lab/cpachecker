@@ -274,7 +274,7 @@ public class ExplicitTransferRelation implements TransferRelation {
       if (firstInterpolant == null && newpreds.size() > 0) {
         firstInterpolant = e;
       }
-      System.out.println(e.getLocation() + "  ..  " + newpreds);
+      CPAMain.logManager.log(Level.ALL, "DEBUG_1", e.getLocation() + "  ..  " + newpreds);
       System.exit(0);
       
       if (curpmap.update(e.getLocation(), newpreds)) {

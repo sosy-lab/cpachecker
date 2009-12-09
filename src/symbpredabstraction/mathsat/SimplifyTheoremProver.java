@@ -245,7 +245,7 @@ public class SimplifyTheoremProver implements TheoremProver {
             boolean childrenDone = true;
             String[] children = new String[mathsat.api.msat_term_arity(term)];
             if (isTermIteAssignment(term)) {
-                System.out.println("ERROR!!: " + mathsat.api.msat_term_repr(term));
+              CPAMain.logManager.log(Level.WARNING, "ERROR!!: " + mathsat.api.msat_term_repr(term));
                 assert(false);
                 children = new String[4];
                 long c1 = mathsat.api.msat_term_get_arg(term, 0);

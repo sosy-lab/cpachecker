@@ -30,6 +30,9 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
+
+import cmdline.CPAMain;
 
 import cfa.objectmodel.CFAEdge;
 import cpa.common.interfaces.AbstractElement;
@@ -472,7 +475,7 @@ public class PointerAnalysisElement implements AbstractElement, Memory {
           && target != INVALID_POINTER && target != UNKNOWN_POINTER) {
         
         mergeAliases(p1.getLocation(), p2.getLocation());
-        System.out.println("INFO: Found pointer aliases which were not already aliased.");
+        CPAMain.logManager.log(Level.INFO, "INFO: Found pointer aliases which were not already aliased.");
         return true;
       }
     }

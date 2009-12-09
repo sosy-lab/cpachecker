@@ -367,7 +367,7 @@ public class ItpCounterexampleRefiner {
         statew = new MathsatSymbolicFormula(mathsat.api.msat_make_not(msatEnv,
                 ((MathsatSymbolicFormula)statew).getTerm()));
         if (statew.isFalse()) {
-            System.out.println("ERROR, statew is false!! statew2 is: " +
+          CPAMain.logManager.log(Level.WARNING, "ERROR, statew is false!! statew2 is: " +
                     statew2 + ", w.getAbstraction() is: " + w.getAbstraction() +
                     ", ssa is: " + ssa);
             System.out.flush();

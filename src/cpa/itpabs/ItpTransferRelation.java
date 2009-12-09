@@ -209,13 +209,13 @@ public class ItpTransferRelation implements TransferRelation {
         boolean retloc = false;
         for (ItpAbstractElement elem : path) {
           if (elemMgr.isFunctionStart(elem)) {
-            System.out.println("CALLER: " + elem.getParent());
-            System.out.println("CALLED FUNCTION: " + elem);
+            CPAMain.logManager.log(Level.INFO, "CALLER: " + elem.getParent());
+            CPAMain.logManager.log(Level.INFO, "CALLED FUNCTION: " + elem);
           } else if (elemMgr.isFunctionEnd(elem, null)) {
             retloc = true;
           } else if (retloc) {
             retloc = false;
-            System.out.println("RETURNING TO: " + elem);
+            CPAMain.logManager.log(Level.INFO, "RETURNING TO: " + elem);
           }
         }
         CPAMain.logManager.log(Level.FINEST, 
@@ -297,13 +297,13 @@ public class ItpTransferRelation implements TransferRelation {
 //  boolean retloc = false;
 //  for (ItpAbstractElement elem : path) {
 //  if (elemMgr.isFunctionStart(elem)) {
-//  System.out.println("CALLER: " + elem.getParent());
-//  System.out.println("CALLED FUNCTION: " + elem);
+//  CPAMain.logManager.log(Level.INFO, "CALLER: " + elem.getParent());
+//  CPAMain.logManager.log(Level.INFO, "CALLED FUNCTION: " + elem);
 //  } else if (elemMgr.isFunctionEnd(elem)) {
 //  retloc = true;
 //  } else if (retloc) {
 //  retloc = false;
-//  System.out.println("RETURNING TO: " + elem);
+//  CPAMain.logManager.log(Level.INFO, "RETURNING TO: " + elem);
 //  }
 //  }
 //  CPAMain.logManager.log(Level.FINEST, 
