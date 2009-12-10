@@ -18,7 +18,7 @@ import cpa.pointeranalysis.Memory.Variable;
 /**
  * A pointer is a set of possible targets.
  */
-public class Pointer {
+public class Pointer implements Cloneable {
   
   private int sizeOfTarget; 
   
@@ -219,11 +219,10 @@ public class Pointer {
 
   @Override
   public boolean equals(Object other) {
-    if (!(other instanceof Pointer)) {
+    if (other == null || !(other instanceof Pointer)) {
       return false;
     }
-    return (other != null)
-        && location.equals(((Pointer)other).location)
+    return location.equals(((Pointer)other).location)
         && targets.equals(((Pointer)other).targets);
   }
   

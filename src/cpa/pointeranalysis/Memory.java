@@ -247,6 +247,11 @@ public interface Memory {
     }
     
     @Override
+    public int hashCode() {
+      return region.hashCode() + 17 * (int)offset;
+    }
+    
+    @Override
     public String toString() {
       return region + (hasOffset() ? "[" + offset + "]" : "[?]" );
     }

@@ -30,11 +30,11 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.Map.Entry;
 import java.util.logging.Level;
 
-import cmdline.CPAMain;
-
 import cfa.objectmodel.CFAEdge;
+import cmdline.CPAMain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.pointeranalysis.Pointer.PointerOperation;
 
@@ -44,7 +44,7 @@ import cpa.pointeranalysis.Pointer.PointerOperation;
  * 
  * @author Philipp Wendler
  */
-public class PointerAnalysisElement implements AbstractElement, Memory {
+public class PointerAnalysisElement implements AbstractElement, Memory, Cloneable {
 
   private static final char FUNCTION_NAME_SEPARATOR = ':';
 
@@ -104,23 +104,23 @@ public class PointerAnalysisElement implements AbstractElement, Memory {
     this.currentFunctionName = currentFunctionName;
     this.tempTracked = new HashSet<PointerLocation>(tempTracked);
 
-    for (String function : stack.keySet()) {
-      Map<String, Pointer> oldPointers = stack.get(function);
+    for (Entry<String, Map<String, Pointer>> function : stack.entrySet()) {
+      Map<String, Pointer> oldPointers = function.getValue();
       Map<String, Pointer> newPointers = new HashMap<String, Pointer>();
       
-      for (String var : oldPointers.keySet()) {
-        Pointer oldPointer = oldPointers.get(var);
-        newPointers.put(var, oldPointer == null ? null : oldPointer.clone());
+      for (Entry<String, Pointer> var : oldPointers.entrySet()) {
+        Pointer oldPointer = var.getValue();
+        newPointers.put(var.getKey(), oldPointer == null ? null : oldPointer.clone());
       }
-      this.stack.put(function, newPointers);
+      this.stack.put(function.getKey(), newPointers);
     }
     
-    for (MemoryAddress memAddress : heap.keySet()) {
-      this.heap.put(memAddress, heap.get(memAddress).clone());
+    for (Entry<MemoryAddress, Pointer> memAddress : heap.entrySet()) {
+      this.heap.put(memAddress.getKey(), memAddress.getValue().clone());
     }
     
-    for (PointerTarget target : reverseRelation.keySet()) {
-      this.reverseRelation.put(target, new HashSet<PointerLocation>(reverseRelation.get(target)));
+    for (Entry<PointerTarget, Set<PointerLocation>> target : reverseRelation.entrySet()) {
+      this.reverseRelation.put(target.getKey(), new HashSet<PointerLocation>(target.getValue()));
     }
     
     for (Set<PointerLocation> aliasSet : aliases.values()) {
@@ -248,10 +248,7 @@ public class PointerAnalysisElement implements AbstractElement, Memory {
   
   public void addTemporaryTracking(String var, Pointer content) {
     PointerLocation loc = lookupVariable(var);
-    if (loc == null) {
-      throw new IllegalStateException("Unknown variable " + var);
-    }
-    
+
     if (tempTracked.contains(loc)) {
       pointerOp(new Pointer.Assign(content), getPointer(loc));
 
@@ -847,7 +844,7 @@ public class PointerAnalysisElement implements AbstractElement, Memory {
         if (oldFunctionName.equals(((LocalVariable)target).getFunctionName())) {
           // this target is a local variable, there may be no remaining reference to this target!
           while (!locations.isEmpty()) {
-            PointerLocation loc = locations.toArray(new PointerLocation[0])[0];
+            PointerLocation loc = locations.toArray(new PointerLocation[locations.size()])[0];
             Pointer p = loc.getPointer(this);
 
             // all local locations have already been removed, there has to be a global one!
@@ -956,8 +953,8 @@ public class PointerAnalysisElement implements AbstractElement, Memory {
       if (!function.equals("")) {
         sb.append("> <" + function + ":");
         Map<String, Pointer> pointers = stack.get(function);
-        for (String var : pointers.keySet()) {
-          sb.append(" " + var + "=" + pointers.get(var) + " ");
+        for (Entry<String, Pointer> var : pointers.entrySet()) {
+          sb.append(" " + var.getKey() + "=" + var.getValue() + " ");
         }
       }
     }

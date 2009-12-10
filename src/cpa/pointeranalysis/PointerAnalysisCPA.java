@@ -24,6 +24,7 @@
 package cpa.pointeranalysis;
 
 import cfa.objectmodel.CFAFunctionDefinitionNode;
+import cpa.common.defaults.StaticPrecisisonAdjustment;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
@@ -42,7 +43,6 @@ public class PointerAnalysisCPA implements ConfigurableProgramAnalysis {
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
   private final TransferRelation transferRelation;
-  private final PrecisionAdjustment precisionAdjustment;
   
   public PointerAnalysisCPA(String mergeType, String stopType) {
     PointerAnalysisDomain domain = new PointerAnalysisDomain();
@@ -59,7 +59,6 @@ public class PointerAnalysisCPA implements ConfigurableProgramAnalysis {
     mergeOperator = mergeOp;
     stopOperator = new PointerAnalysisStopSep(domain);
     transferRelation = new PointerAnalysisTransferRelation(domain);
-    precisionAdjustment = null; //TODO precision adjustment
   }
   
   @Override
@@ -74,7 +73,6 @@ public class PointerAnalysisCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
-    // TODO precision
     return null;
   }
 
@@ -85,7 +83,7 @@ public class PointerAnalysisCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return precisionAdjustment;
+    return StaticPrecisisonAdjustment.getInstance();
   }
 
   @Override
