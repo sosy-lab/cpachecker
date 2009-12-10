@@ -692,8 +692,9 @@ implements SymbPredAbstFormulaManager
       
       // TODO - reconstruct counterexample
       // For now, we dump the asserted formula to a user-specified file
-      String cexPath = CPAMain.cpaConfig.getProperty("cpas.symbpredabs.refinement.msatCexPath");
-      if (cexPath != null) {
+      String cexFile = CPAMain.cpaConfig.getProperty("cpas.symbpredabs.refinement.msatCexFile");
+      if (cexFile != null) {
+        String path = CPAMain.cpaConfig.getProperty("output.path") + cexFile;
         try {
           SymbolicFormula t = mgr.makeTrue();
           for (SymbolicFormula fm : f) {
@@ -701,12 +702,12 @@ implements SymbPredAbstFormulaManager
           }
           String msatRepr = mmgr.dumpFormula(t);
 
-          PrintWriter pw = new PrintWriter(new File(cexPath));
+          PrintWriter pw = new PrintWriter(new File(path));
           pw.println(msatRepr);
           pw.close();
         } catch (FileNotFoundException e) {
           CPAMain.logManager.log(Level.INFO,
-              "Failed to save msat Counterexample to file ", cexPath,
+              "Failed to save msat Counterexample to file ", path,
               " (", e.getMessage(), ")");
         }
       }

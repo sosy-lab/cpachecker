@@ -103,39 +103,43 @@ public class PredicateAbstractionCPAStatistics implements CPAStatistics {
 
         // check if/where to dump the predicate map
         if (result == Result.SAFE) {
-            String pth = CPAMain.cpaConfig.getProperty(
-                    "cpas.symbpredabs.refinement.finalPredMapPath", "");
-            if (!pth.equals("")) {
-                File f = new File(pth);
-                try {
-                    PrintWriter pw = new PrintWriter(f);
-                    pw.println("ALL PREDICATES:");
-                    for (Predicate p : allPreds) {
-                        Pair<MathsatSymbolicFormula, MathsatSymbolicFormula> d =
-                            amgr.getPredicateNameAndDef((BDDPredicate)p);
-                        pw.format("%s ==> %s <-> %s\n", p, d.getFirst(),
-                                d.getSecond());
-                    }
-                    if (!CPAMain.cpaConfig.getBooleanValue(
-                        "cpas.symbpredabs.refinement.addPredicatesGlobally")) {
-                        pw.println("\nFOR EACH LOCATION:");
-                        for (CFANode l : allLocs) {
-                            Collection<Predicate> c =
-                                pmap.getRelevantPredicates(l);
-                            pw.println("LOCATION: " + l);
-                            for (Predicate p : c) {
-                                pw.println(p);
-                            }
-                            pw.println("");
-                        }
-                    }
-                    pw.close();
-                } catch (FileNotFoundException e) {
-                    // just issue a warning to the user
-                    out.println("WARNING: impossible to dump predicate map on `"
-                                + pth + "'");
+          String outfilePath = CPAMain.cpaConfig.getProperty("output.path");
+          String outfileName = CPAMain.cpaConfig.getProperty(
+              "cpas.symbpredabs.refinement.finalPredMapFile", "");
+          if (outfileName == null) {
+            outfileName = "predmap.txt";
+          }
+          if (!outfileName.equals("")) {
+            File f = new File(outfilePath + outfileName);
+            try {
+              PrintWriter pw = new PrintWriter(f);
+              pw.println("ALL PREDICATES:");
+              for (Predicate p : allPreds) {
+                Pair<MathsatSymbolicFormula, MathsatSymbolicFormula> d =
+                  amgr.getPredicateNameAndDef((BDDPredicate)p);
+                pw.format("%s ==> %s <-> %s\n", p, d.getFirst(),
+                    d.getSecond());
+              }
+              if (!CPAMain.cpaConfig.getBooleanValue(
+              "cpas.symbpredabs.refinement.addPredicatesGlobally")) {
+                pw.println("\nFOR EACH LOCATION:");
+                for (CFANode l : allLocs) {
+                  Collection<Predicate> c =
+                    pmap.getRelevantPredicates(l);
+                  pw.println("LOCATION: " + l);
+                  for (Predicate p : c) {
+                    pw.println(p);
+                  }
+                  pw.println("");
                 }
+              }
+              pw.close();
+            } catch (FileNotFoundException e) {
+              // just issue a warning to the user
+              out.println("WARNING: impossible to dump predicate map on `"
+                  + outfilePath + outfileName + "'");
             }
+          }
         }
 
         BDDMathsatPredicateAbstractionAbstractManager.Stats bs = amgr.getStats();

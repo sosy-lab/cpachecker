@@ -45,7 +45,6 @@ public class LogManager {
 
   private static LogManager instance = null;
   private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS");
-  private String outfilePath = CPAMain.cpaConfig.getProperty("log.path");
   private Level logLevel = Level.parse(CPAMain.cpaConfig.getProperty("log.level").toUpperCase());
   private Level logConsoleLevel = Level.parse(CPAMain.cpaConfig.getProperty("log.consoleLevel").toUpperCase());
   private FileHandler outfileHandler;
@@ -84,11 +83,19 @@ public class LogManager {
 
     if(logLevel != Level.OFF) {
 
+      String outfilePath = CPAMain.cpaConfig.getProperty("output.path");
+      String outfileName = CPAMain.cpaConfig.getProperty("log.file");
+      
+      //if no filename is given, use default value
+      if (outfileName == null) {
+        outfileName = "CPALog.txt";
+      }
+      
       //create or fetch file logger
       fileLogger = Logger.getLogger("resMan.fileLogger");
 
       //handler with format for the fileLogger
-      outfileHandler = new FileHandler(outfilePath, false);
+      outfileHandler = new FileHandler(outfilePath + outfileName, false);
       outfileHandler.setFormatter(new CPALogFormatter());
 
       //only file output when using the fileLogger 

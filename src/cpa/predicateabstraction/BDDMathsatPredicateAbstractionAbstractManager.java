@@ -1052,9 +1052,9 @@ implements PredicateAbstractionAbstractFormulaManager {
 //      info.setConcreteTrace(cf);
       // TODO - reconstruct counterexample
       // For now, we dump the asserted formula to a user-specified file
-      String cexPath = CPAMain.cpaConfig.getProperty(
-      "cpas.symbpredabs.refinement.msatCexPath");
-      if (cexPath != null) {
+      String cexFile = CPAMain.cpaConfig.getProperty("cpas.symbpredabs.refinement.msatCexFile");
+      if (cexFile != null) {
+        String path = CPAMain.cpaConfig.getProperty("output.path") + cexFile;
         long t = mathsat.api.msat_make_true(msatEnv);
         for (SymbolicFormula fm : f) {
           long term = ((MathsatSymbolicFormula)fm).getTerm();
@@ -1062,13 +1062,13 @@ implements PredicateAbstractionAbstractFormulaManager {
         }
         String msatRepr = mathsat.api.msat_to_msat(msatEnv, t);
         try {
-          PrintWriter pw = new PrintWriter(new File(cexPath));
+          PrintWriter pw = new PrintWriter(new File(path));
           pw.println(msatRepr);
           pw.close();
         } catch (FileNotFoundException e) {
           CPAMain.logManager.log(Level.INFO,
               "Failed to save msat Counterexample to file: ",
-              cexPath);
+              path);
         }
       }
     }
@@ -1315,9 +1315,9 @@ implements PredicateAbstractionAbstractFormulaManager {
 //      info.setConcreteTrace(cf);
 //      // TODO - reconstruct counterexample
 //      // For now, we dump the asserted formula to a user-specified file
-//      String cexPath = CPAMain.cpaConfig.getProperty(
-//      "cpas.symbpredabs.refinement.msatCexPath");
-//      if (cexPath != null) {
+//      String cexFile = CPAMain.cpaConfig.getProperty("cpas.symbpredabs.refinement.msatCexFile");
+//      if (cexFile != null) {
+//        String path = CPAMain.cpaConfig.getProperty("output.path") + cexFile;
 //        long t = mathsat.api.msat_make_true(msatEnv);
 //        for (SymbolicFormula fm : f) {
 //          long term = ((MathsatSymbolicFormula)fm).getTerm();
@@ -1325,13 +1325,13 @@ implements PredicateAbstractionAbstractFormulaManager {
 //        }
 //        String msatRepr = mathsat.api.msat_to_msat(msatEnv, t);
 //        try {
-//          PrintWriter pw = new PrintWriter(new File(cexPath));
+//          PrintWriter pw = new PrintWriter(new File(path));
 //          pw.println(msatRepr);
 //          pw.close();
 //        } catch (FileNotFoundException e) {
 //          CPAMain.logManager.log(Level.INFO,
 //              "Failed to save msat Counterexample to file: ",
-//              cexPath);
+//              path);
 //        }
 //      }
 //    }

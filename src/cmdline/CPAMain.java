@@ -378,20 +378,25 @@ public class CPAMain {
     }
 
     // write CFA to file
-    if (CPAMain.cpaConfig.getBooleanValue("dot.export")) {
+    if (CPAMain.cpaConfig.getBooleanValue("cfa.export")) {
       DOTBuilderInterface dotBuilder;
       if (CPAMain.cpaConfig.getBooleanValue( "analysis.useSummaryLocations")) {
         dotBuilder = new SummaryDOTBuilder();
       } else {
         dotBuilder = new DOTBuilder();
       }
-      String dotPath = CPAMain.cpaConfig.getProperty("dot.path");
+      String cfaFile = CPAMain.cpaConfig.getProperty("cfa.file");
+      //if no filename is given, use default value
+      if (cfaFile == null) {
+        cfaFile = "cfa.dot";
+      }
+      String path = CPAMain.cpaConfig.getProperty("output.path") + cfaFile;
       try {
         dotBuilder.generateDOT(cfasList, mainFunction,
-            new File(dotPath, "dot_main.dot").getPath());
+            new File(path).getPath());
       } catch (IOException e) {
         logManager.logException(Level.WARNING, e,
-          "Could not write CFA to dot file, check configuration option dot.path!");
+          "Could not write CFA to dot file, check configuration option cfa.file!");
         // continue with analysis
       }
     }
@@ -530,9 +535,15 @@ public class CPAMain {
           result = Result.SAFE;
         }
       }
-      
-      if (useART && CPAMain.cpaConfig.getBooleanValue("reachedPath.export")) {
-        dumpPathToDotFile(reached, CPAMain.cpaConfig.getProperty("reachedPath.file"));
+
+      if (useART && CPAMain.cpaConfig.getBooleanValue("ART.export")) {
+        String outfilePath = CPAMain.cpaConfig.getProperty("output.path");
+        String outfileName = CPAMain.cpaConfig.getProperty("ART.file");
+        //if no filename is given, use default value
+        if (outfileName == null) {
+          outfileName = "ART.dot";
+        }
+        dumpPathToDotFile(reached, outfilePath + outfileName);
       }
       
       System.out.println();

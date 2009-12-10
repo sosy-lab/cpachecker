@@ -86,13 +86,14 @@ pwendler 2009-08-25:
 CONFIGURATION OPTIONS:
 Name				possible values		default		recommended	explanation			
 -------------------------------------------------------------------------------------------------------------------------------------
-log.path			path+filename		<ERROR>		CPALog.txt	name of logfile
+output.path			path		<ERROR>		test/output/	name of path for all output 
+log.file			filename	CPALog.txt	CPALog.txt	filename for logging	
 log.level			off, severe, warning...	<ERROR>		<DEPENDS>	verbosity level (higher is less verbose)
 log.consoleLevel	off, severe, warning... <ERROR>		<DEPENDS>	verbosity level of console output
-dot.export			true/false		false		<DEPENDS>	write CFA to file
-dot.path			path			"."		<DEPENDS>	CFA graph output file
-reachedPath.export		true/false		false		false		write ART to file (needs cpa.useART)
-reachedPath.file		path+filename				<DEPENDS>	ART graph output file
+cfa.export			true/false		false		<DEPENDS>	write CFA to file
+cfa.file			filename			"."		<DEPENDS>	CFA graph output file
+ART.export		true/false		false		false		write ART to file (needs cpa.useART)
+ART.file		filename				<DEPENDS>	ART graph output file
 cfa.simplify			true/false		false		true		run simplifications below
 cfa.check			true/false		false		true		run consistency checks on CFA
 cfa.combineBlockStatements	true/false		false		false		combine statements and declarations into MultiStatement and MultiDeclaration edges respectively

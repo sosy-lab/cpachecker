@@ -269,10 +269,10 @@ public class ItpCounterexampleRefiner {
             info.setConcreteTrace(new ConcreteTraceNoInfo());
             // TODO - reconstruct counterexample
             // For now, we dump the asserted formula to a user-specified file
-            String cexPath = CPAMain.cpaConfig.getProperty(
-                    "cpas.symbpredabs.refinement.msatCexPath");
-            if (cexPath != null) {
-                dumpCounterexample(mmgr, f, cexPath);
+            String cexFile = CPAMain.cpaConfig.getProperty("cpas.symbpredabs.refinement.msatCexFile");
+            if (cexFile != null) {
+              String path = CPAMain.cpaConfig.getProperty("output.path") + cexFile;
+                dumpCounterexample(mmgr, f, path);
             }
         }
 

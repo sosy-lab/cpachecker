@@ -90,10 +90,14 @@ public class SymbPredAbsCPAStatistics implements CPAStatistics {
 
       // check if/where to dump the predicate map
       if (result == Result.SAFE) {
-        String pth = CPAMain.cpaConfig.getProperty(
-            "cpas.symbpredabs.refinement.finalPredMapPath", "");
-        if (!pth.equals("")) {
-          File f = new File(pth);
+        String outfilePath = CPAMain.cpaConfig.getProperty("output.path");
+        String outfileName = CPAMain.cpaConfig.getProperty(
+            "cpas.symbpredabs.refinement.finalPredMapFile", "");
+        if (outfileName == null) {
+          outfileName = "predmap.txt";
+        }
+        if (!outfileName.equals("")) {
+          File f = new File(outfilePath + outfileName);
           try {
             PrintWriter pw = new PrintWriter(f);
             pw.println("ALL PREDICATES:");
@@ -121,7 +125,7 @@ public class SymbPredAbsCPAStatistics implements CPAStatistics {
           } catch (FileNotFoundException e) {
             // just issue a warning to the user
             out.println("WARNING: impossible to dump predicate map on `"
-                + pth + "'");
+                + outfilePath + outfileName + "'");
           }
         }
       }

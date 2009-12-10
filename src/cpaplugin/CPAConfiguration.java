@@ -123,19 +123,26 @@ public class CPAConfiguration extends Properties{
 
         for (int i = 0; i < args.length;) {
             String arg = args[i];
-            if (arg.equals("-logpath")) {
+            if (arg.equals("-outputpath")) {
                 if (i+1 < args.length) {
-                    this.setProperty("log.path", args[i+1]);
+                    this.setProperty("output.path", args[i+1]);
                     i += 2;
                 } else {
-                    throw new Exception("-logpath argument missing!");
+                    throw new Exception("-outputpath argument missing!");
                 }
-            } else if (arg.equals("-dotoutpath")) {
+            } else if (arg.equals("-logfile")) {
+              if (i+1 < args.length) {
+                  this.setProperty("log.file", args[i+1]);
+                  i += 2;
+              } else {
+                  throw new Exception("-logfile argument missing!");
+              }
+            } else if (arg.equals("-cfafile")) {
                 if (i+1 < args.length) {
-                    this.setProperty("dot.path", args[i+1]);
+                    this.setProperty("cfa.file", args[i+1]);
                     i += 2;
                 } else {
-                    throw new Exception("-dotoutpath argument missing!");
+                    throw new Exception("-cfafile argument missing!");
                 }
             } else if (arg.equals("-predlistpath")) {
                 if (i+1 < args.length) {
@@ -162,6 +169,7 @@ public class CPAConfiguration extends Properties{
               ++i;
             } else if (arg.equals("-nolog")) {
                 this.setProperty("log.level", "off");
+                this.setProperty("log.consoleLevel", "off");
                 ++i;
             } else if (arg.equals("-setprop")) {
                 if (i+1 < args.length) {
@@ -177,7 +185,8 @@ public class CPAConfiguration extends Properties{
                 }
             } else if (arg.equals("-help")) {
                 System.out.println("OPTIONS:");
-                System.out.println(" -logpath");
+                System.out.println(" -outputpath");
+                System.out.println(" -logfile");
                 System.out.println(" -dotoutpath");
                 System.out.println(" -predlistpath");
                 System.out.println(" -entryfunction");
