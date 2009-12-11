@@ -69,13 +69,19 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
 
     // this will be the merged element
     SymbPredAbsAbstractElement merged;
-    // if not abstraction node
-    if(!elem1.isAbstractionNode()){
+
+    if (elem1.isAbstractionNode() || elem2.isAbstractionNode()) {
+      // we don't merge if this is an abstraction location
+      merged = elem2;
+    } else {
       // if two elements have different abstraction paths, do not merge
       if(elem1 == domain.getBottomElement()){
         merged = elem2;
       }
       else if(!elem1.getAbstractionPathList().equals(elem2.getAbstractionPathList())){
+        merged = elem2;
+      }
+      else if(!elem1.getAbstraction().equals(elem2.getAbstraction())) {
         merged = elem2;
       }
       // if they have the same abstraction paths, we will take the disjunction 
@@ -121,17 +127,14 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
         
         merged = new SymbPredAbsAbstractElement(false, elem1.getAbstractionLocation(), 
             pathFormula, pfParents, elem1.getInitAbstractionFormula(), elem1.getAbstraction(), 
-            elem1.getAbstractionPathList());
+            elem1.getAbstractionPathList(),
+            Math.max(elem1.getSizeSinceAbstraction(), elem2.getSizeSinceAbstraction()));
 
         // TODO check
 //        merged.updateMaxIndex(ssa1);
         long end = System.currentTimeMillis();
         totalMergeTime = totalMergeTime + (end - start);
       }
-    }
-    // we don't merge if this is an abstraction location
-    else{
-      merged = elem2;
     }
 
     return merged;

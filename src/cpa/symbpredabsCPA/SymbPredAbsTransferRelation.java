@@ -37,6 +37,7 @@ import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cfa.objectmodel.CFANode;
 import cfa.objectmodel.c.ReturnEdge;
+import cmdline.CPAMain;
 
 import common.Triple;
 
@@ -67,7 +68,9 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   public long initAbstractionFormulaTime = 0;
   public long computingAbstractionTime = 0;
   
-  private int numAbstractStates = 0; // for statistics
+  //for statistics
+  public int numAbstractStates = 0;
+  public int maxBlockSize = 0;
 
   private final AbstractDomain domain;
   private final PredicateMap predicateMap;
@@ -75,6 +78,8 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   private final SymbolicFormulaManager symbolicFormulaManager;
   private final SymbPredAbstFormulaManager abstractFormulaManager;
 
+  private final int blockSize;
+  
   // map from a node to path formula
   // used to not compute the formula again
   // the first integer in the key is parent element's node id
@@ -90,6 +95,8 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     predicateMap = pCpa.getPredicateMap();
     abstractFormulaManager = pCpa.getAbstractFormulaManager();
     symbolicFormulaManager = pCpa.getSymbolicFormulaManager();
+    
+    blockSize = Integer.parseInt(CPAMain.cpaConfig.getProperty("cpa.symbpredabs.blocksize", "0"));
   }
 
   @Override
@@ -105,7 +112,10 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     long time = System.currentTimeMillis();
     SymbPredAbsAbstractElement element = (SymbPredAbsAbstractElement) pElement;
     lastElement = element;
-    boolean abstractionLocation = isAbstractionLocation(edge.getSuccessor());
+    //boolean abstractionLocation = (blockSize == 0) ? isAbstractionLocation(edge.getSuccessor())
+    //    : (element.getSizeSinceAbstraction() >= (blockSize-1));
+    boolean abstractionLocation = isAbstractionLocation(edge.getSuccessor())
+        || ((blockSize > 0) && (element.getSizeSinceAbstraction() >= (blockSize-1)));
     
     try {
       if (abstractionLocation) {
@@ -158,7 +168,9 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
         false, element.getAbstractionLocation(), pf, newPfParents,
         // set 'initAbstractionFormula', 'abstraction' and 'abstractionPathList' to last element's values, they don't change
         element.getInitAbstractionFormula(), element.getAbstraction(),
-        element.getAbstractionPathList());
+        element.getAbstractionPathList(),
+        // set 'sizeSinceAbstraction' to last element's value plus one for the current edge
+        element.getSizeSinceAbstraction() + 1);
 
     // set and update maxIndex for ssa
     // TODO check
@@ -201,6 +213,8 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
       pathFormula = convertEdgeToPathFormula(element.getPathFormula(), edge, abstractionNodeId);
     }
 
+    maxBlockSize = Math.max(maxBlockSize, element.getSizeSinceAbstraction()+1);
+    
     // TODO handle returning from functions
 //  if (edge instanceof ReturnEdge){
 //    SymbPredAbsAbstractElement previousElem = (SymbPredAbsAbstractElement)summaryEdge.extractAbstractElement("SymbPredAbsAbstractElement");
@@ -218,7 +232,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     
     long time2 = System.currentTimeMillis();
     computingAbstractionTime += time2 - time1; 
-    
+
     // if the abstraction is false, return bottom element
     if (abstractFormulaManager.isFalse(newAbstraction)) {
       return domain.getBottomElement();
@@ -239,6 +253,10 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     List<Integer> newAbstractionPath = new ArrayList<Integer>(element.getAbstractionPathList());
     newAbstractionPath.add(edge.getSuccessor().getNodeNumber());
 
+    // update pfParents list
+    List<Integer> newPfParents = new ArrayList<Integer>();
+    newPfParents.add(edge.getPredecessor().getNodeNumber());
+    
     return new SymbPredAbsAbstractElement(
         // set 'isAbstractionNode' to true, this is an abstraction node
         // set 'abstractionLocation' to edge.getSuccessor()
@@ -248,7 +266,8 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
         // set 'initAbstractionFormula' to  pathFormula computed above
         // set 'abstraction' to newly computed abstraction
         // set 'abstractionPathList' to updated pathList
-        null, pathFormula, newAbstraction, newAbstractionPath);
+        // set 'sizeSinceAbstraction' to zero
+        newPfParents, pathFormula, newAbstraction, newAbstractionPath, 0);
 
 //    SSAMap maxIndex = new SSAMap();
 //    newElement.setMaxIndex(maxIndex);
@@ -305,10 +324,6 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     else {
       return false;
     }
-  }
-
-  public int getNumAbstractStates() {
-    return numAbstractStates;
   }
 
   @Override

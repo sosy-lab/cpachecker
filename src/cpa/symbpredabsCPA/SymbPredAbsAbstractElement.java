@@ -66,6 +66,12 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
    * {@link SymbPredAbsAbstractElement#equals(Object)} to make a fast, syntactic check on 
    * equality of formula*/
   private final List<Integer> pfParents;
+  
+  private int sizeSinceAbstraction = 0;
+  
+  public int getSizeSinceAbstraction() {
+    return sizeSinceAbstraction;
+  }
 
   // TODO check again
 //  private SSAMap maxIndex;
@@ -101,11 +107,12 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
     this.initAbstractionFormula = null;
     this.abstraction = null;
     this.abstractionPathList = null;
+    this.sizeSinceAbstraction = 0;
   }
 
   public SymbPredAbsAbstractElement(boolean isAbstractionElement, CFANode abstLoc,
       PathFormula pf, List<Integer> pfParentsList, PathFormula initFormula, AbstractFormula a, 
-      List<Integer> pl){
+      List<Integer> pl, int sizeSinceAbstraction){
     this.elementId = nextAvailableId++;
     this.isAbstractionNode = isAbstractionElement;
     this.abstractionLocation = abstLoc;
@@ -114,6 +121,7 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
     this.initAbstractionFormula = initFormula;
     this.abstraction = a;
     this.abstractionPathList = pl;
+    this.sizeSinceAbstraction = sizeSinceAbstraction;
 //    this.maxIndex = new SSAMap();
   }
 

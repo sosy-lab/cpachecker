@@ -133,10 +133,11 @@ public class SymbPredAbsCPAStatistics implements CPAStatistics {
       BDDMathsatSymbPredAbstractionAbstractManager.Stats bs = amgr.stats;
       SymbPredAbsTransferRelation trans = cpa.getTransferRelation();
 
-      out.println("Number of abstract states visited: " + trans.getNumAbstractStates());
-      out.println("Number of abstraction steps: " + bs.numCallsAbstraction + " (" + bs.numCallsAbstractionCached + " cached)");
-      out.println("Number of refinement steps: " + bs.numCallsCexAnalysis);
-      out.println("Number of coverage checks: " + bs.numCoverageChecks);
+      out.println("Number of abstraction steps:       " + bs.numCallsAbstraction + " (" + bs.numCallsAbstractionCached + " cached)");
+      out.println("Max LBE block size:                " + trans.maxBlockSize);
+      out.println("Number of abstract states reached: " + trans.numAbstractStates);
+      out.println("Number of refinement steps:        " + bs.numCallsCexAnalysis);
+      out.println("Number of coverage checks:         " + bs.numCoverageChecks);
       out.println();
       out.println("Total number of predicates discovered: " + allPreds.size());
       out.println("Avg number of predicates per location: " + avgPreds);
