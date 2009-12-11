@@ -25,6 +25,7 @@ package cpa.common;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.logging.*;
 
 import cmdline.CPAMain;
@@ -47,10 +48,12 @@ public class LogManager {
   private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS");
   private Level logLevel = Level.parse(CPAMain.cpaConfig.getProperty("log.level").toUpperCase());
   private Level logConsoleLevel = Level.parse(CPAMain.cpaConfig.getProperty("log.consoleLevel").toUpperCase());
+  private ArrayList<Level> excludeLevelsFile = new ArrayList<Level>();
+  private ArrayList<Level> excludeLevelsConsole = new ArrayList<Level>();
   private FileHandler outfileHandler;
   private Logger fileLogger;
   private Logger consoleLogger;
-  
+
   //inner class to handle formatting for file output
   private class CPALogFormatter extends Formatter {
     @Override
@@ -58,39 +61,47 @@ public class LogManager {
       String[] className = lr.getSourceClassName().split("\\.");
       String[] methodName = lr.getSourceMethodName().split("\\.");
       return "log: " + lr.getLevel().toString() + "\t" 
-                     + dateFormat.format(lr.getMillis()) + "    "
-                     + className[0]  + "."  
-                     + methodName[0]  + "\t" 
-                     + lr.getMessage() + "\n\n";
+      + dateFormat.format(lr.getMillis()) + "    "
+      + className[0]  + "."  
+      + methodName[0]  + "\t" 
+      + lr.getMessage() + "\n\n";
     }
   }
-  
-//inner class to handle formatting for console output
+
+  //inner class to handle formatting for console output
   private class CPAConsoleLogFormatter extends Formatter {
     @Override
     public String format(LogRecord lr) {
       String[] className = lr.getSourceClassName().split("\\.");
       String[] methodName = lr.getSourceMethodName().split("\\.");
       return lr.getMessage() + " (" 
-                     + className[0]  + "."  
-                     + methodName[0]  + ", " 
-                     + lr.getLevel().toString()
-                     + ")\n\n";
+      + className[0]  + "."  
+      + methodName[0]  + ", " 
+      + lr.getLevel().toString()
+      + ")\n\n";
     }
   }
-  
+
   private LogManager() throws SecurityException, IOException {
 
     if(logLevel != Level.OFF) {
 
       String outfilePath = CPAMain.cpaConfig.getProperty("output.path");
       String outfileName = CPAMain.cpaConfig.getProperty("log.file");
-      
+
+      //build up list of Levels to exclude from logging
+      String[] excludeFile = CPAMain.cpaConfig.getPropertiesArray("log.fileExclude");
+      if (excludeFile != null) {
+        for (String s : excludeFile) {
+          excludeLevelsFile.add(Level.parse(s));
+        }
+      }
+
       //if no filename is given, use default value
       if (outfileName == null) {
         outfileName = "CPALog.txt";
       }
-      
+
       //create or fetch file logger
       fileLogger = Logger.getLogger("resMan.fileLogger");
 
@@ -106,6 +117,15 @@ public class LogManager {
     }
 
     if (logConsoleLevel != Level.OFF) {
+
+      //build up list of Levels to exclude from logging
+      String[] excludeConsole = CPAMain.cpaConfig.getPropertiesArray("log.fileExclude");
+      if (excludeConsole != null) {
+        for (String s : excludeConsole) {
+          excludeLevelsConsole.add(Level.parse(s));
+        }
+      }
+
       //create or fetch console logger
       consoleLogger = Logger.getLogger("resMan.consoleLogger");
       //set format for console output
@@ -116,7 +136,7 @@ public class LogManager {
       consoleLogger.setLevel(logConsoleLevel);
     }
   }
-  
+
   public static LogManager getInstance() {
     try {
       if (instance == null) {
@@ -128,7 +148,7 @@ public class LogManager {
     }
     return instance;
   }
-  
+
   //Logs any message occurring during program execution.
   //args can be an arbitrary number of objects containing any information.
   public void log(Level priority, Object... args) {
@@ -138,7 +158,9 @@ public class LogManager {
     //system by publishing logs with Level OFF).
     if ((priority.intValue() >= logLevel.intValue() || 
         priority.intValue() >= logConsoleLevel.intValue()) && 
-        priority != Level.OFF) {
+        priority != Level.OFF &&
+        (!excludeLevelsFile.contains(priority) ||
+         !excludeLevelsConsole.contains(priority)))  {
 
       StringBuffer buf = new StringBuffer();
 
@@ -155,24 +177,26 @@ public class LogManager {
       record.setSourceClassName(trace[2].getFileName());
       record.setSourceMethodName(trace[2].getMethodName());
 
-      if (priority.intValue() >= logLevel.intValue()) {
+      if (priority.intValue() >= logLevel.intValue()
+          && !excludeLevelsFile.contains(priority)) {
         fileLogger.log(record);
       }
-      if (priority.intValue() >= logConsoleLevel.intValue()) {
+      if (priority.intValue() >= logConsoleLevel.intValue()
+          && !excludeLevelsConsole.contains(priority)) {
         consoleLogger.log(record);
       }
     }
   }
-  
+
   //Logs any Exception occurring during program execution by composing a message of
   //the exception's properties, and optionally an additional message passed.
   //After logging, print the stack trace.
   public void logException(Level priority, Exception e, String additionalMessage) {
-    
+
     if ((priority.intValue() >= logLevel.intValue() ||
         priority.intValue() >= logConsoleLevel.intValue()) && 
         priority != Level.OFF) {
-      
+
       String logMessage = e.getMessage() + ", " + e.getStackTrace()[0];
 
       if (additionalMessage == null || additionalMessage.equals("")) {
@@ -195,26 +219,26 @@ public class LogManager {
       if (priority.intValue() >= logConsoleLevel.intValue()) {
         consoleLogger.log(record);
       }
-      
+
     }
-    
+
     e.printStackTrace();
     System.err.println();
 
   }
-  
+
   public void flush() {
     if(outfileHandler != null) {
       outfileHandler.flush();
     }
   }
-  
+
   public Level getLogLevel() {
     return logLevel;
   }
-  
+
   public Level getLogConsoleLevel() {
     return logConsoleLevel;
   }
-  
+
 }
