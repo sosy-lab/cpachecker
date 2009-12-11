@@ -85,14 +85,16 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
         return false;
       }
 
-      assert(e1.getAbstraction() != null);
-      assert(e2.getAbstraction() != null);
-
-      // if not an abstraction location
-      if(!e1.isAbstractionNode()){
-        // if abstraction paths are same
-        if(e1.getAbstractionPathList().equals(e2.getAbstractionPathList())){
-
+      if (e1.isAbstractionNode() && e2.isAbstractionNode()) {
+        // if e1's predicate abstraction entails e2's pred. abst.
+        return mAbstractFormulaManager.entails(e1.getAbstraction(), e2.getAbstraction());
+      
+      } else {
+        // if not an abstraction location
+        if (e1.getAbstractionLocation().equals(e2.getAbstractionLocation()) 
+          && e1.getAbstractionPathList().equals(e2.getAbstractionPathList())
+          && e1.getAbstraction().equals(e2.getAbstraction())) {
+            
           List<Integer> succList = e1.getPfParents();
           List<Integer> reachedList = e2.getPfParents();
 
@@ -105,11 +107,6 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
           return reachedList.containsAll(succList);
         }
         return false;
-      }
-      // if abstraction location
-      else{
-        // if e1's predicate abstraction entails e2's pred. abst.
-        return mAbstractFormulaManager.entails(e1.getAbstraction(), e2.getAbstraction());
       }
     }
   }
