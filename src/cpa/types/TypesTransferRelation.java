@@ -37,6 +37,7 @@ import org.eclipse.cdt.core.dom.ast.IASTEnumerationSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
+import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
 import org.eclipse.cdt.core.dom.ast.IASTNamedTypeSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTPointer;
@@ -287,7 +288,7 @@ public class TypesTransferRelation implements TransferRelation {
       for (IASTDeclaration subDeclaration : compositeSpecifier.getMembers()) {
         if (subDeclaration instanceof IASTSimpleDeclaration) {
           IASTSimpleDeclaration simpleSubDeclaration = (IASTSimpleDeclaration)subDeclaration;
-          
+                  
           Type subType = getType(element, simpleSubDeclaration.getDeclSpecifier());  
 
           for (IASTDeclarator declarator : simpleSubDeclaration.getDeclarators()) {
@@ -378,14 +379,18 @@ public class TypesTransferRelation implements TransferRelation {
     } else if (declSpecifier instanceof IASTNamedTypeSpecifier) {
       // type reference to type declared with typedef
       IASTNamedTypeSpecifier namedTypeSpecifier = (IASTNamedTypeSpecifier)declSpecifier;
-      
+           
       type = element.getTypedef(namedTypeSpecifier.getName().getRawSignature());
+      
+      if (type == null) {
+        throw new TransferRelationException("Error, Type not defined: " + 
+            namedTypeSpecifier.getName().getRawSignature()); 
+       }
       
     } else {
       throw new TransferRelationException("Unhandled case: " + declSpecifier.getRawSignature());
     }
-    
-    assert type != null;
+
     return type;
   }
 
@@ -401,9 +406,15 @@ public class TypesTransferRelation implements TransferRelation {
         IASTExpression lengthExpression = arrayOp.getConstantExpression();
         if (lengthExpression != null) {
           try {
-            length = Integer.parseInt(lengthExpression.getRawSignature());
+            //if the length expression is a literal, get its integer value 
+            if (lengthExpression instanceof IASTLiteralExpression) {
+              length = parseLiteral(lengthExpression).intValue();
+            //if not, we can't get the value with this cpa alone, and so use the default value 
+            } else {
+              length = 0; 
+            }
           } catch (NumberFormatException e) {
-            throw new TransferRelationException("Not exptected in CIL: " + declarator.getRawSignature());
+            throw new TransferRelationException("Not expected in CIL: " + declarator.getRawSignature());
           }
         }
         result = new ArrayType(result, length);
@@ -423,6 +434,23 @@ public class TypesTransferRelation implements TransferRelation {
     return result;
   }
   
+  private Long parseLiteral(IASTExpression expression) throws NumberFormatException {
+    if (expression instanceof IASTLiteralExpression) {
+
+      int typeOfLiteral = ((IASTLiteralExpression)expression).getKind();
+      if (typeOfLiteral == IASTLiteralExpression.lk_integer_constant) {
+
+        String s = expression.getRawSignature();
+        if(s.endsWith("L") || s.endsWith("U")){
+          s = s.replace("L", "");
+          s = s.replace("U", "");
+        }
+        return Long.valueOf(s);
+      }
+    }
+    return null;
+  }
+
   @Override
   public List<AbstractElementWithLocation> getAllAbstractSuccessors(
                                            AbstractElementWithLocation element,
