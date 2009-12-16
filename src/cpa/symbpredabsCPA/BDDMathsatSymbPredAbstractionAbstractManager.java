@@ -438,7 +438,7 @@ implements SymbPredAbstFormulaManager
     if (CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.useBitwiseAxioms")) {
       MathsatSymbolicFormula bitwiseAxioms = mmgr.getBitwiseAxioms(
           (MathsatSymbolicFormula)symbFormula);
-      symbFormula = mmgr.makeAnd(symbFormula, bitwiseAxioms);
+      symbFormula = mgr.makeAnd(symbFormula, bitwiseAxioms);
 
       CPAMain.logManager.log(Level.ALL, "DEBUG_3", "ADDED BITWISE AXIOMS:",
           bitwiseAxioms);
@@ -607,7 +607,7 @@ implements SymbPredAbstFormulaManager
     long msatSolveTimeStart = System.currentTimeMillis();
 
     if (shortestTrace && CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.explicit.getUsefulBlocks")) {
-      f = getUsefulBlocks(mmgr, f, theoryCombinationNeeded, useSuffix, useZigZag);
+      f = getUsefulBlocks(mgr, f, theoryCombinationNeeded, useSuffix, useZigZag);
      
       // set shortestTrace to false, so we perform only one final call
       // to msat_solve
@@ -620,8 +620,6 @@ implements SymbPredAbstFormulaManager
     long msatSolveTime = msatSolveTimeEnd - msatSolveTimeStart;
 
     CounterexampleTraceInfo info = new CounterexampleTraceInfo(spurious);
-
-    long msatEnv = mmgr.getMsatEnv();
 
     if (spurious) {
       // the counterexample is spurious. Extract the predicates from
@@ -660,7 +658,7 @@ implements SymbPredAbstFormulaManager
 
         Collection<SymbolicFormula> atoms = mmgr.extractAtoms(
             itp, true, splitItpAtoms, false);
-        Set<Predicate> preds = buildPredicates(msatEnv, atoms);
+        Set<Predicate> preds = buildPredicates(mgr, atoms);
         SymbPredAbsAbstractElement e = abstractTrace.get(i);
         info.addPredicatesForRefinement(e, preds);
 
@@ -730,7 +728,6 @@ implements SymbPredAbstFormulaManager
   private Vector<SymbolicFormula> getFormulasForTrace(
       SymbolicFormulaManager mgr,
       ArrayList<SymbPredAbsAbstractElement> abstractTrace) {
-    MathsatSymbolicFormulaManager mmgr = (MathsatSymbolicFormulaManager)mgr;
 
     // create the DAG formula corresponding to the abstract trace. We create
     // n formulas, one per interpolation group
@@ -746,7 +743,7 @@ implements SymbPredAbstFormulaManager
       
       if (ssa != null) {
         CPAMain.logManager.log(Level.ALL, "DEBUG_3", "SHIFTING:", p.getSymbolicFormula(), " WITH SSA: ", ssa);
-        p = mmgr.shift(p.getSymbolicFormula(), ssa);
+        p = mgr.shift(p.getSymbolicFormula(), ssa);
         newSsa = p.getSsa();
         CPAMain.logManager.log(Level.ALL, "DEBUG_3", "RESULT:", p.getSymbolicFormula(), " SSA: ", newSsa);
         newSsa.update(ssa);
@@ -796,7 +793,7 @@ implements SymbPredAbstFormulaManager
     if (useBitwiseAxioms && foundUninterpretedFunction) {
       CPAMain.logManager.log(Level.ALL, "DEBUG_3", "ADDING BITWISE AXIOMS TO THE",
           "LAST GROUP: ", bitwiseAxioms);
-      traceFormulas.setElementAt(mmgr.makeAnd(traceFormulas.elementAt(traceFormulas.size()-1), bitwiseAxioms),
+      traceFormulas.setElementAt(mgr.makeAnd(traceFormulas.elementAt(traceFormulas.size()-1), bitwiseAxioms),
           traceFormulas.size()-1);
     }
     return foundUninterpretedFunction;
@@ -900,8 +897,9 @@ implements SymbPredAbstFormulaManager
   
   // generates the predicates corresponding to the given atoms, which were
   // extracted from the interpolant
-  private Set<Predicate> buildPredicates(long dstenv,
+  private Set<Predicate> buildPredicates(SymbolicFormulaManager mgr,
       Collection<SymbolicFormula> atoms) {
+    long dstenv = ((MathsatSymbolicFormulaManager)mgr).getMsatEnv();
     Set<Predicate> ret = new HashSet<Predicate>();
     for (SymbolicFormula atom : atoms) {
       long tt = ((MathsatSymbolicFormula)atom).getTerm();
@@ -937,18 +935,14 @@ implements SymbPredAbstFormulaManager
     long gubStart = System.currentTimeMillis();
     
     // try to find a minimal-unsatisfiable-core of the trace (as Blast does)
-    MathsatSymbolicFormulaManager mmgr =
-      (MathsatSymbolicFormulaManager)mgr;
 
-    long msatEnv = mmgr.getMsatEnv();
     thmProver.init(TheoremProver.COUNTEREXAMPLE_ANALYSIS);
 
     CPAMain.logManager.log(Level.ALL, "DEBUG_1", "Calling getUsefulBlocks on path",
         "of length:", f.size());
 
-    MathsatSymbolicFormula trueFormula = new MathsatSymbolicFormula(
-        mathsat.api.msat_make_true(msatEnv));
-    MathsatSymbolicFormula[] needed = new MathsatSymbolicFormula[f.size()];
+    SymbolicFormula trueFormula = mgr.makeTrue();
+    SymbolicFormula[] needed = new SymbolicFormula[f.size()];
     for (int i = 0; i < needed.length; ++i) {
       needed[i] = trueFormula;
     }
@@ -985,8 +979,7 @@ implements SymbPredAbstFormulaManager
           else --e;
           fromStart = !fromStart;
 
-          MathsatSymbolicFormula t =
-            (MathsatSymbolicFormula)f.elementAt(i);
+          SymbolicFormula t = f.elementAt(i);
           thmProver.push(t);
           ++toPop;
           if (thmProver.isUnsat(trueFormula)) {
@@ -1009,8 +1002,7 @@ implements SymbPredAbstFormulaManager
       } else {
         for (int i = pos; suffixTrace ? i >= 0 : i < f.size();
         i += incr) {
-          MathsatSymbolicFormula t =
-            (MathsatSymbolicFormula)f.elementAt(i);
+          SymbolicFormula t = f.elementAt(i);
           thmProver.push(t);
           ++toPop;
           if (thmProver.isUnsat(trueFormula)) {
