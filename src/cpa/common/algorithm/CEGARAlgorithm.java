@@ -55,21 +55,39 @@ public class CEGARAlgorithm implements Algorithm {
   private final Algorithm algorithm;
   private final Refiner mRefiner;
   
+  /**
+   * Creates an instance of class className, passing the objects from argumentList
+   * to the constructor and casting the object to class type. Throws a CPAException
+   * if anything goes wrong.
+   * 
+   * TODO This method could be used in other places, too. Perhaps move it to a central location. 
+   */
+  @SuppressWarnings("unchecked")
+  private static <T> T createInstance(String className, Object[] argumentList, Class<T> type)
+      throws CPAException {
+    try {
+      Class<?> cls = Class.forName(className);
+      Class<?> parameterTypes[] = {ConfigurableProgramAnalysis.class};
+      Constructor<?> ct = cls.getConstructor(parameterTypes);
+      Object obj = ct.newInstance(argumentList);
+      if (type.isAssignableFrom(obj.getClass())) {
+        return (T)obj;
+      } else {
+        throw new ClassCastException(obj.getClass() + " cannot be cast to " + type);
+      }
+    } catch (Exception e) {
+      throw new CPAException("Could not instantiate " + className + ": " + e.getMessage());
+    }
+    
+  }
+  
   public CEGARAlgorithm(Algorithm algorithm) throws CPAException {
     this.algorithm = algorithm;
     
-    String refManagerName = CPAMain.cpaConfig.getProperty("cegar.refiner");
-
-    try {
-      Class<?> cls = Class.forName(refManagerName);
-      Class<?> parameterTypes[] = {ConfigurableProgramAnalysis.class};
-      Constructor<?> ct = cls.getConstructor(parameterTypes);
-      Object argumentlist[] = {algorithm.getCPA()};
-      Object obj = ct.newInstance(argumentlist);
-      mRefiner = (Refiner)obj;
-    } catch (Exception e) {
-      throw new CPAException("Could not instantiate " + refManagerName + ": " + e.getMessage());
-    }
+    String refinerName = CPAMain.cpaConfig.getProperty("cegar.refiner");
+    Object[] refinerArguments = {algorithm.getCPA()};
+    
+    mRefiner = createInstance(refinerName, refinerArguments, Refiner.class);
   }
   
   @Override
@@ -104,7 +122,7 @@ public class CEGARAlgorithm implements Algorithm {
             // TODO
           
           } else {
-            modifySets(algorithm, reached, refout.getToUnreach(), refout.getToWaitlist());
+            modifySets(reached, refout.getToUnreach(), refout.getToWaitlist());
           }
           
           long end = System.currentTimeMillis();
@@ -129,8 +147,7 @@ public class CEGARAlgorithm implements Algorithm {
     return;
   }
 
-  private void modifySets(Algorithm pAlgorithm,
-      ReachedElements reached,
+  private void modifySets(ReachedElements reached,
       Collection<? extends AbstractElementWithLocation> reachableToUndo,
       Collection<? extends AbstractElementWithLocation> toWaitlist) {
 
@@ -149,7 +166,6 @@ public class CEGARAlgorithm implements Algorithm {
       AbstractElementWithLocation e = p.getFirst();
       
       if (reachableToUndo.contains(e)) {
-        CPAMain.logManager.log(Level.FINEST, "Removing element:", e, "from reached");
         toRemove.add(p);
       }
       
@@ -159,11 +175,7 @@ public class CEGARAlgorithm implements Algorithm {
     }
     
     reached.removeAll(toRemove);
-    
-    CPAMain.logManager.log(Level.FINEST, "Reached now is:", reached.getReached());
-    
-    CPAMain.logManager.log(Level.FINEST, "Adding elements:", toWaitlist, "to waitlist");
-    
+   
     for (AbstractElementWithLocation e : toWaitlist) {
       Pair<AbstractElementWithLocation, Precision> p;
       if (toWaitlistPrecision.containsKey(e)) {
