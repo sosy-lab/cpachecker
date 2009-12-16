@@ -580,11 +580,12 @@ implements SymbPredAbstFormulaManager
     long startTime = System.currentTimeMillis();
     stats.numCallsCexAnalysis++;
 
-    CPAMain.logManager.log(Level.ALL, "DEBUG_1", "BUILDING COUNTEREXAMPLE TRACE");
-    CPAMain.logManager.log(Level.ALL, "DEBUG_1", "ABSTRACT TRACE:", abstractTrace);
+    CPAMain.logManager.log(Level.FINEST, "Building counterexample trace");
 
     Vector<SymbolicFormula> f = getFormulasForTrace(mgr, abstractTrace);
 
+    CPAMain.logManager.log(Level.ALL, "Counterexample trace formulas:", f);
+    
     boolean theoryCombinationNeeded = false;
     boolean useDtc = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.mathsat.useDtc");
 
@@ -592,7 +593,7 @@ implements SymbPredAbstFormulaManager
       theoryCombinationNeeded = addBitwiseAxioms(mgr, f);
     }
     
-    CPAMain.logManager.log(Level.ALL, "DEBUG_3", "Checking feasibility of abstract trace");
+    CPAMain.logManager.log(Level.FINEST, "Checking feasibility of counterexample trace");
 
     // now f is the DAG formula which is satisfiable iff there is a
     // concrete counterexample
@@ -621,6 +622,8 @@ implements SymbPredAbstFormulaManager
 
     CounterexampleTraceInfo info = new CounterexampleTraceInfo(spurious);
 
+    CPAMain.logManager.log(Level.FINEST, "Counterexample trace is", (spurious ? "infeasible" : "feasible"));
+    
     if (spurious) {
       // the counterexample is spurious. Extract the predicates from
       // the interpolants
@@ -721,6 +724,8 @@ implements SymbPredAbstFormulaManager
     stats.cexAnalysisMathsatTime += msatSolveTime;
     stats.cexAnalysisMaxMathsatTime =
       Math.max(msatSolveTime, stats.cexAnalysisMaxMathsatTime);
+
+    CPAMain.logManager.log(Level.ALL, "Counterexample information:", info);
 
     return info;
   }

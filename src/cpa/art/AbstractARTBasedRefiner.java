@@ -7,9 +7,11 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
 
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFANode;
+import cmdline.CPAMain;
 
 import common.Pair;
 
@@ -40,17 +42,24 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
   
   @Override
   public final RefinementOutcome performRefinement(ReachedElements pReached) throws CPAException {
+    CPAMain.logManager.log(Level.FINEST, "Starting ART based refinement");
+    
     assert checkART(pReached);
     
     AbstractElement lastElement = pReached.getLastElement();
     assert lastElement instanceof ARTElement;
     Path path = buildPath((ARTElement)lastElement);
     
+    CPAMain.logManager.log(Level.ALL, "Error path:\n", path.toString());
+    
     ARTElement root = performRefinement(pReached, path);
     
     if (root != null) {
+      CPAMain.logManager.log(Level.FINEST, "ART based refinement successful");
+      CPAMain.logManager.log(Level.ALL, "Refinement root is", root);
       return cleanART(pReached, root);
     } else {
+      CPAMain.logManager.log(Level.FINEST, "ART based refinement unsuccessful");
       return new RefinementOutcome();
     }
   }

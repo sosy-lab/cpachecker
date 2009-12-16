@@ -14,13 +14,14 @@ public class Path extends LinkedList<Pair<ARTElement, CFAEdge>> {
 
   @Override
   public String toString() {
-    String s = "";
+    StringBuffer sb = new StringBuffer();
 
     for (Pair<ARTElement, CFAEdge> pair : this) {
-      s = pair.getSecond() + "\n" + s;
+      sb.append(pair.getSecond());
+      sb.append("\n");
     }
     
-    return s;
+    return sb.toString();
   }
 
 }

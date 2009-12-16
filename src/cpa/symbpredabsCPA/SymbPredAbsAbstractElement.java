@@ -192,7 +192,7 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
   @Override
   public String toString() {
     return "Abstraction location: " + isAbstractionNode
-        + " Abstraction parents: " + abstractionPathList;
+        + " Abstraction path: " + abstractionPathList;
   }
 
   @Override

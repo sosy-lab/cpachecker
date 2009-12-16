@@ -71,6 +71,8 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
   public ARTElement performRefinement(ReachedElements pReached,
       Path pPath) throws CPAException {
 
+    CPAMain.logManager.log(Level.FINEST, "Starting refinement for SymbPredAbsCPA");
+    
     // create path with all elements directly before an abstraction location,
     // last element is the element corresponding to the error location
     // (which is twice in pPath)
@@ -87,18 +89,19 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
       lastElement = symbElement;
     }
     
+    CPAMain.logManager.log(Level.ALL, "Abstraction trace is", path);
     // TODO PW I can't imagine why this path has to be like this, is it correct?
         
     // build the counterexample
     CounterexampleTraceInfo info = abstractFormulaManager.buildCounterexampleTrace(
         symbolicFormulaManager, path);
-    
+        
     // if error is spurious refine
     if (info.isSpurious()) {
-      CPAMain.logManager.log(Level.FINEST,
-            "Found spurious error trace, refining the abstraction");
+      CPAMain.logManager.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
       return performRefinement(pReached, path, pPath, info);
     } else {
+      CPAMain.logManager.log(Level.FINEST, "Error trace is not spurious");
       // we have a real error
       return null;
     }
@@ -134,6 +137,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
     }
     if (symbPredRootElement == null) {
       assert(firstInterpolant != null);
+      // FIXME (test/tests/ssh-simple/s3_clnt_4.cil.c.symbpredabsCPA-2.log) what to do here?
       if (numSeen > 1) {
 //      assert(numSeen == 2);
 //        if (CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.abstraction.cartesian")) {

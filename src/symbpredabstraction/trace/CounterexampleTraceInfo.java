@@ -102,4 +102,10 @@ public class CounterexampleTraceInfo {
     public void setConcreteTrace(ConcreteTrace ctrace) {
         this.ctrace = ctrace;
     }
+    
+    @Override
+    public String toString() {
+      return "Spurious: " + isSpurious() +
+        (isSpurious() ? "" : ", " + getConcreteTrace());
+    }
 }
