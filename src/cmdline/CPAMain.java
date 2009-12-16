@@ -473,19 +473,13 @@ public class CPAMain {
  
       logManager.log(Level.FINE, "Creating CPAs");
       
-      // --Refactoring: rename the following variable to cpaInit to
-      // perform "Static Single Assignment" for cpa variable definition
-      ConfigurableProgramAnalysis cpaInit = CompositeCPA.getCompositeCPA(mainFunction);
+      ConfigurableProgramAnalysis cpa = CompositeCPA.getCompositeCPA(mainFunction);
 
       boolean useART = CPAMain.cpaConfig.getBooleanValue("analysis.useART"); 
-      
-      // --Refactoring: use the unary operator instead of the if, to let the
-      //                cfa variable be defined by a single statement. Makes 
-      //                understanding of the code easier      
-      // wrap CPA with ARTCPA if requested
-      ConfigurableProgramAnalysis cpa 
-          = useART ? ARTCPA.getARTCPA(mainFunction, cpaInit) : cpaInit; 
-
+      if (useART) {
+        cpa = ARTCPA.getARTCPA(mainFunction, cpa);
+      }
+          
       if (cpa instanceof CPAWithStatistics) {
         ((CPAWithStatistics)cpa).collectStatistics(cpaStats.getSubStatistics());
       }

@@ -152,7 +152,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
       }
     }
     
-    return new RefinementOutcome(true, toUnreach, toWaitlist, root);
+    return new RefinementOutcome(true, toUnreach, toWaitlist);
   }
   
   private boolean checkART(ReachedElements pReached) {

@@ -30,11 +30,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
+
 import cmdline.CPAMain;
 
 import common.Pair;
 
-import cpa.art.ARTElement;
 import cpa.common.ReachedElements;
 import cpa.common.RefinementOutcome;
 import cpa.common.interfaces.AbstractElementWithLocation;
@@ -84,6 +84,8 @@ public class CEGARAlgorithm implements Algorithm {
       // if the element is an error element
       if (reached.getLastElement().isError()) {
 
+        CPAMain.logManager.log(Level.FINER, "Error found, performing CEGAR");
+        
         long startRef = System.currentTimeMillis();
 
         RefinementOutcome refout = mRefiner.performRefinement(reached);
@@ -93,24 +95,27 @@ public class CEGARAlgorithm implements Algorithm {
 
         if (refout.refinementPerformed()) {
           // successful refinement
+          
+          CPAMain.logManager.log(Level.FINER, "Refinement successful");
+          
           long start = System.currentTimeMillis();
           
           if (CPAMain.cpaConfig.getBooleanValue("cegar.restartOnRefinement")) {
             // TODO
           
           } else {
-            modifySets(algorithm, reached, refout.getToUnreach(), refout.getToWaitlist(), refout.getRoot());
+            modifySets(algorithm, reached, refout.getToUnreach(), refout.getToWaitlist());
           }
           
           long end = System.currentTimeMillis();
           modifySetsTime = modifySetsTime + (end - start);
-        
-          CPAMain.logManager.log(Level.FINEST, "Refinement done");
-          
+                  
           runGC();
           
         } else {
           // no refinement found
+          CPAMain.logManager.log(Level.FINER, "No refinement found");
+          
           stopAnalysis = true;
           // TODO: if (stopAfterError == false), continue to look for next error
         }
@@ -126,9 +131,12 @@ public class CEGARAlgorithm implements Algorithm {
 
   private void modifySets(Algorithm pAlgorithm,
       ReachedElements reached,
-      Collection<ARTElement> reachableToUndo,
-      Collection<ARTElement> toWaitlist, AbstractElementWithLocation pRoot) {
+      Collection<? extends AbstractElementWithLocation> reachableToUndo,
+      Collection<? extends AbstractElementWithLocation> toWaitlist) {
 
+    CPAMain.logManager.log(Level.ALL, "Removing elements from reached set:", reachableToUndo);
+    CPAMain.logManager.log(Level.ALL, "Adding elements to waitlist:", toWaitlist);
+    
     // TODO if starting from nothing, do not bother calling this
     
     Map<AbstractElementWithLocation, Pair<AbstractElementWithLocation, Precision>> toWaitlistPrecision
