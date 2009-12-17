@@ -37,8 +37,6 @@ import cpa.common.interfaces.AbstractElement;
  */
 public class SymbPredAbsAbstractElement implements AbstractElement {
 
-  /** Unique state id */
-  private final int elementId;
   /** If the element is on an abstraction location */
   private final boolean isAbstractionNode;
   /** This is a pointer to the last abstraction node, when the computed abstract element
@@ -76,8 +74,6 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
   // TODO check again
 //  private SSAMap maxIndex;
 
-  private static int nextAvailableId = 1;
-
   public PathFormula getPathFormula() {
     return pathFormula;
   }
@@ -99,7 +95,6 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
   }
 
   public SymbPredAbsAbstractElement() {
-    this.elementId = nextAvailableId++;
     this.isAbstractionNode = false;
     this.abstractionLocation = null;
     this.pathFormula = null;
@@ -113,7 +108,6 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
   public SymbPredAbsAbstractElement(boolean isAbstractionElement, CFANode abstLoc,
       PathFormula pf, List<Integer> pfParentsList, PathFormula initFormula, AbstractFormula a, 
       List<Integer> pl, int sizeSinceAbstraction){
-    this.elementId = nextAvailableId++;
     this.isAbstractionNode = isAbstractionElement;
     this.abstractionLocation = abstLoc;
     this.pathFormula = pf;
@@ -129,62 +123,39 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
   public boolean equals(Object o) {
     if (this == o) {
       return true;
-    }
-    if (o == null || !(o instanceof SymbPredAbsAbstractElement)) {
+    
+    } else if (o == null || !(o instanceof SymbPredAbsAbstractElement)) {
       return false;
-    }
-    if(elementId == ((SymbPredAbsAbstractElement)o).elementId){
-      return true;
-    }
+    
+    } else{
+      SymbPredAbsAbstractElement other = (SymbPredAbsAbstractElement)o;
 
-    else{
-      SymbPredAbsAbstractElement thisElement = this;
-      SymbPredAbsAbstractElement otherElement = (SymbPredAbsAbstractElement)o;
-
-      // if this is not an abstraction location
-      if(!thisElement.isAbstractionNode()){
-        // we check if this element and the other element has the same
-        // elements on the AbstractionPathList
-        if(thisElement.getAbstractionPathList().equals(otherElement.getAbstractionPathList())){
-          // we check if this element and the other element has the same 
-          // PathFormulas. We can do this by comparing pfParents because
-          // since two elements have the same abstraction path list PathFormulas
-          // of two elements are same if they are constructed by same edges
-          List<Integer> thisList = thisElement.getPfParents();
-          List<Integer> otherList = otherElement.getPfParents();
-
-          if(thisList.size() != otherList.size()){
-            return false;
-          }
-
-          for(int par: thisList){
-            if(!otherList.contains(par)){
-              return false;
-            }
-          }
-          return true;
-        }
+      if ((this.isAbstractionNode != other.isAbstractionNode)
+          || !this.getAbstractionPathList().equals(other.getAbstractionPathList())) {
         return false;
       }
-      // if this is an abstraction location
-      else{
-        assert(thisElement.getAbstraction() != null);
-        assert(otherElement.getAbstraction() != null);
-        // we check if this element and the other element has the same
-        // elements on the AbstractionPathList
-        if(!thisElement.getAbstractionPathList().equals(otherElement.getAbstractionPathList())){
-          return false;
-        }
-        else{
-          // if they have the same abstraction path and if the abstraction formulas
-          // are same, we return true
-          // TODO note: if this is called before an abstraction is computed
-          // it might be buggy because initAbstractionFormula is used to
-          // compute abstraction and we don't check if they are equal
-          // ** initAbstractionFormula cannot be different though, we have the same
-          // AbstractionPathList
-          return thisElement.getAbstraction().equals(otherElement.getAbstraction());
-        }
+      
+      if (isAbstractionNode()) {
+        // if this is an abstraction location
+
+        // if the abstraction formulas are same, we return true
+        // TODO note: if this is called before an abstraction is computed
+        // it might be buggy because initAbstractionFormula is used to
+        // compute abstraction and we don't check if they are equal
+        // ** initAbstractionFormula cannot be different though, we have the same
+        // AbstractionPathList
+        return this.getAbstraction().equals(other.getAbstraction());
+        
+      } else{
+        // if this is not an abstraction location
+
+        // we check if this element and the other element has the same 
+        // PathFormulas. We can do this by comparing pfParents because
+        // since two elements have the same abstraction path list PathFormulas
+        // of two elements are same if they are constructed by same edges
+
+        return this.getAbstraction().equals(other.getAbstraction())
+            && this.getPfParents().equals(other.getPfParents());
       }
     }
   }
@@ -197,7 +168,9 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
 
   @Override
   public int hashCode() {
-    return elementId;
+    return abstractionPathList.hashCode()
+      + 17 * abstraction.hashCode()
+      + 23 * pathFormula.hashCode();
   }
 
   public PathFormula getInitAbstractionFormula() {
