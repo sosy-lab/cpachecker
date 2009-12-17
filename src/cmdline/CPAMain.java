@@ -185,8 +185,7 @@ public class CPAMain {
       interrupted = false;
 
     } catch (CPAException e) {
-      logManager.logException(Level.SEVERE, e, "CPAException");
-      e.printStackTrace();
+      logManager.logException(Level.SEVERE, e, null);
     }
   }
   

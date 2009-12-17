@@ -50,7 +50,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
     assert lastElement instanceof ARTElement;
     Path path = buildPath((ARTElement)lastElement);
     
-    CPAMain.logManager.log(Level.ALL, "Error path:\n", path.toString());
+    CPAMain.logManager.log(Level.ALL, "Error path:\n", path);
     
     ARTElement root = performRefinement(pReached, path);
     

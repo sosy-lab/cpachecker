@@ -4,9 +4,8 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
+import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -36,8 +35,9 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
   private final SymbolicFormulaManager symbolicFormulaManager;
   private final SymbPredAbstFormulaManager abstractFormulaManager;
 
-  private final Map<ArrayList<SymbPredAbsAbstractElement>, Integer> seenAbstractCounterexamples;
-
+  private int numSeenAbstractCounterexample = 0;
+  private List<Integer> seenAbstractCounterexample = null;
+  
   public SymbPredAbsRefiner(final ConfigurableProgramAnalysis pCpa) throws CPAException {
     super(pCpa);
 
@@ -64,7 +64,6 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
 
     symbolicFormulaManager = mCpa.getSymbolicFormulaManager();
     abstractFormulaManager = mCpa.getAbstractFormulaManager();
-    seenAbstractCounterexamples = new HashMap<ArrayList<SymbPredAbsAbstractElement>, Integer>();
   }
 
   @Override
@@ -111,17 +110,12 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
       ArrayList<SymbPredAbsAbstractElement> pPath, Path pArtPath, CounterexampleTraceInfo pInfo) throws CPAException {
 
     // TODO check
-    int numSeen = 0;
-    if (seenAbstractCounterexamples.containsKey(pPath)) {
-      numSeen = seenAbstractCounterexamples.get(pPath);
-    }
-    seenAbstractCounterexamples.put(pPath, numSeen+1);
-    UpdateablePredicateMap curpmap =
-      (UpdateablePredicateMap)mCpa.getPredicateMap();
-    ARTElement root = null;
+
+    UpdateablePredicateMap curpmap = (UpdateablePredicateMap)mCpa.getPredicateMap();
     SymbPredAbsAbstractElement symbPredRootElement = null;
     SymbPredAbsAbstractElement firstInterpolant = null;
     SymbPredAbsAbstractElement previous = null;
+    
     for (SymbPredAbsAbstractElement e : pPath) {
       Collection<Predicate> newpreds = pInfo.getPredicatesForRefinement(e);
       if (firstInterpolant == null && newpreds.size() > 0) {
@@ -135,20 +129,40 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
       }
       previous = e;
     }
+
+    // FIXME (test/tests/ssh-simple/s3_clnt_4.cil.c.symbpredabsCPA-2.log) what to do here?
+    assert(firstInterpolant != null);
+
+    SymbPredAbsAbstractElement errorElement = pPath.get(pPath.size()-1);
+    ARTElement root;
     if (symbPredRootElement == null) {
-      assert(firstInterpolant != null);
-      // FIXME (test/tests/ssh-simple/s3_clnt_4.cil.c.symbpredabsCPA-2.log) what to do here?
-      if (numSeen > 1) {
-//      assert(numSeen == 2);
-//        if (CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.abstraction.cartesian")) {
-          throw new CPAException("not enough predicates");
-//        }
+      
+      if ((numSeenAbstractCounterexample > 1) &&
+          errorElement.getAbstractionPathList().equals(seenAbstractCounterexample)) {
+        
+        CPAMain.logManager.log(Level.FINEST, "Found spurious counterexample",
+            seenAbstractCounterexample, ", but no new predicates, terminating analysis");
+
+        throw new CPAException("Not enough predicates");
       }
 
+      seenAbstractCounterexample = errorElement.getAbstractionPathList();
+      numSeenAbstractCounterexample++;
+
       CFANode loc = firstInterpolant.getAbstractionLocation(); 
+
+      CPAMain.logManager.log(Level.FINEST, "Found spurious counterexample",
+          seenAbstractCounterexample,
+          ", but no new predicates, setting refinement root to location", loc);
+
       root = this.getArtCpa().findHighest(pArtPath.getLast().getFirst(), loc);
     }
     else{
+      seenAbstractCounterexample = null;
+      numSeenAbstractCounterexample = 0;
+
+      CPAMain.logManager.log(Level.FINEST, "New predicates were discovered.");
+      
       long start = System.currentTimeMillis();
       root = findARTElementof(symbPredRootElement, pArtPath.getLast());
       long end = System.currentTimeMillis();
