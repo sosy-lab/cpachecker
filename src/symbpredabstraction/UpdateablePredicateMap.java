@@ -38,8 +38,6 @@ import cmdline.CPAMain;
 
 import cfa.objectmodel.CFANode;
 
-
-
 /**
  * A predicate map which can be updated (refined) during execution
  *
@@ -47,11 +45,14 @@ import cfa.objectmodel.CFANode;
  */
 public class UpdateablePredicateMap implements PredicateMap {
 
-    private Map<CFANode, Set<Predicate>> repr;
-    private Map<String, Set<Predicate>> functionGlobalPreds;
-    private Collection<Predicate> initialGlobalPreds;
+    private final Map<CFANode, Set<Predicate>> repr;
+    private final Map<String, Set<Predicate>> functionGlobalPreds;
+    private final Collection<Predicate> initialGlobalPreds;
+    
+    private final boolean globalPredicates;
 
     public UpdateablePredicateMap(Collection<Predicate> initial) {
+        globalPredicates = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.refinement.addPredicatesGlobally");
         repr = new HashMap<CFANode, Set<Predicate>>();
         functionGlobalPreds = new HashMap<String, Set<Predicate>>();
         initialGlobalPreds = initial;
@@ -63,8 +64,7 @@ public class UpdateablePredicateMap implements PredicateMap {
 
     public boolean update(CFANode n, Collection<Predicate> preds) {
         boolean added = false;
-        if (CPAMain.cpaConfig.getBooleanValue(
-                "cpas.symbpredabs.refinement.addPredicatesGlobally")) {
+        if (globalPredicates) {
             String fn = n.getFunctionName();
             assert(fn != null);
             if (!functionGlobalPreds.containsKey(fn)) {
@@ -77,8 +77,7 @@ public class UpdateablePredicateMap implements PredicateMap {
             Set<Predicate> s = functionGlobalPreds.get(fn);
             added |= s.addAll(preds);
             if (added) {
-              CPAMain.logManager.log(Level.ALL, "DEBUG_1",
-                        "UPDATED PREDICATES FOR FUNCTION ", fn, ": ", s);
+              CPAMain.logManager.log(Level.ALL, "Updated predicates for function", fn, ":", s);
             }
         } else {
             if (!repr.containsKey(n)) {
@@ -91,11 +90,7 @@ public class UpdateablePredicateMap implements PredicateMap {
             Set<Predicate> s = repr.get(n);
             added |= s.addAll(preds);
             if (added) {
-              CPAMain.logManager.log(Level.ALL, "DEBUG_1", "UPDATED PREDICATES FOR", n,
-                        ": ", s);
-            } else {
-              CPAMain.logManager.log(Level.ALL, "DEBUG_2", "NOT ADDING PREDICATES TO",
-                        n, ": ", s, ", preds: ", preds);
+              CPAMain.logManager.log(Level.ALL, "Added predicates to", n, ":", preds);
             }
         }
         return added;
@@ -103,8 +98,7 @@ public class UpdateablePredicateMap implements PredicateMap {
 
     @Override
     public Collection<Predicate> getRelevantPredicates(CFANode n) {
-        if (CPAMain.cpaConfig.getBooleanValue(
-                "cpas.symbpredabs.refinement.addPredicatesGlobally")) {
+        if (globalPredicates) {
             String fn = n.getFunctionName();
             if (functionGlobalPreds.containsKey(fn)) {
                 return functionGlobalPreds.get(fn);
@@ -130,6 +124,7 @@ public class UpdateablePredicateMap implements PredicateMap {
         }
     }
 
+    @Override
     public Collection<Predicate> getRelevantPredicates(String fn) {
         if (functionGlobalPreds.containsKey(fn)) {
             return functionGlobalPreds.get(fn);
@@ -138,10 +133,12 @@ public class UpdateablePredicateMap implements PredicateMap {
         }
     }
 
+    @Override
     public Collection<CFANode> getKnownLocations() {
         return repr.keySet();
     }
 
+    @Override
     public Collection<String> getKnownFunctions() {
         return functionGlobalPreds.keySet();
     }

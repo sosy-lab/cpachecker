@@ -646,14 +646,15 @@ implements SymbPredAbstFormulaManager
           // cut from the beginning
           start_of_a = 0;          
         }
-
-        int sz = i - start_of_a;
-        Vector<SymbolicFormula> formulasOfA =
-          new Vector<SymbolicFormula>();
-        formulasOfA.ensureCapacity(sz);
-        for (int j = 0; j < sz; ++j) {
-          formulasOfA.add(f.elementAt(j+start_of_a));
+        
+        Vector<SymbolicFormula> formulasOfA = new Vector<SymbolicFormula>(i - start_of_a);
+        for (int j = start_of_a; j < i; ++j) {
+          formulasOfA.add(f.elementAt(j));
         }
+        
+        CPAMain.logManager.log(Level.ALL, "Looking for interpolant for formulas from",
+            start_of_a, "to", i-1, ":", formulasOfA);
+        
         msatSolveTimeStart = System.currentTimeMillis();
         SymbolicFormula itp = itpProver.getInterpolant(formulasOfA);
         msatSolveTimeEnd = System.currentTimeMillis();
@@ -665,10 +666,10 @@ implements SymbPredAbstFormulaManager
         SymbPredAbsAbstractElement e = abstractTrace.get(i);
         info.addPredicatesForRefinement(e, preds);
 
-        CPAMain.logManager.log(Level.ALL, "DEBUG_1",
-            "Got interpolant(", i, "): ", itp, ", location: ", e);
-        CPAMain.logManager.log(Level.ALL, "DEBUG_1", "Preds for",
-            e.getAbstractionLocation(), ":", preds);
+        CPAMain.logManager.log(Level.ALL, "For element (", e, ") got:\n",
+            "interpolant", itp,
+            "atoms ", atoms,
+            "predicates", preds);
 
         // If we are entering or exiting a function, update the stack
         // of entry points
@@ -679,8 +680,6 @@ implements SymbPredAbstFormulaManager
         // TODO check we are returning from a function
         if (e.getAbstractionLocation().getEnteringSummaryEdge() != null) {
           entryPoints.pop();
-
-          //pmap.update((CFANode)e.getLocation(), preds);
         }
       }
     } else {
