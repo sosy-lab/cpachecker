@@ -273,6 +273,11 @@ public class CPAMain {
     
     CFAFunctionDefinitionNode mainFunction = cfas.getCFA(mainFunctionName);
     
+    if (mainFunction == null) {
+      logManager.log(Level.SEVERE, "Function", mainFunctionName, "not found!");
+      System.exit(0);
+    }
+    
     // simplify CFA
     if (CPAMain.cpaConfig.getBooleanValue("cfa.simplify")) {
       // TODO Erkan Simplify each CFA
