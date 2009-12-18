@@ -35,10 +35,9 @@ import java.util.logging.Level;
 
 import symbpredabstraction.SSAMap;
 import symbpredabstraction.bdd.BDDAbstractFormula;
+import symbpredabstraction.bdd.BDDAbstractFormulaManager;
 import symbpredabstraction.bdd.BDDPredicate;
-import symbpredabstraction.bdd.JavaBDD;
 import symbpredabstraction.interfaces.AbstractFormula;
-import symbpredabstraction.interfaces.AbstractFormulaManager;
 import symbpredabstraction.interfaces.Predicate;
 import symbpredabstraction.interfaces.SymbolicFormula;
 import symbpredabstraction.interfaces.SymbolicFormulaManager;
@@ -50,7 +49,7 @@ import cmdline.CPAMain;
 import common.Pair;
 
 
-public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
+public class BDDMathsatAbstractFormulaManager extends BDDAbstractFormulaManager {
 
     /**
      * callback used to build the predicate abstraction of a formula
@@ -62,18 +61,19 @@ public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
         private int bdd;
         private Deque<Integer> cubes;
 
-        public AllSatCallback(int bdd, long msatEnv, long absEnv) {
-            this.bdd = bdd;
+        public AllSatCallback(long msatEnv, long absEnv) {
+            this.bdd = ((BDDAbstractFormula)makeFalse()).getBDD();
             this.msatEnv = msatEnv;
             this.absEnv = absEnv;
             cubes = new LinkedList<Integer>();
         }
 
-        public int getBDD() {
+        // TODO rename getBDD to something like getResult
+        public AbstractFormula getBDD() {
             if (cubes.size() > 0) {
                 buildBalancedOr();
             }
-            return bdd;
+            return new BDDAbstractFormula(bdd);
         }
 
         private void buildBalancedOr() {
@@ -128,8 +128,6 @@ public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
         }
     }
 
-    protected final JavaBDD bddManager;
-
     // a predicate is just a BDD index for a variable (see BDDPredicate). Here
     // we keep the mapping BDD index -> (MathSAT variable, MathSAT atom)
     private final Map<Integer, Pair<Long, Long>> bddPredicateToMsatAtom;
@@ -138,25 +136,16 @@ public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
     // and MathSAT atom -> BDD index
     private final Map<Long, Integer> msatAtomToBddPredicate;
 
-    private final boolean entailsUseCache;
-    private final Map<Pair<AbstractFormula, AbstractFormula>, Boolean> entailsCache;
     private final Map<Integer, Long> toConcreteCache;
 
 
     public BDDMathsatAbstractFormulaManager() {
-        //bddManager = new JDD();
-        bddManager = new JavaBDD();
         bddPredicateToMsatAtom = new HashMap<Integer, Pair<Long, Long>>();
         msatVarToBddPredicate = new HashMap<Long, Integer>();
         msatAtomToBddPredicate = new HashMap<Long, Integer>();
-        entailsUseCache = CPAMain.cpaConfig.getBooleanValue(
-                "cpas.symbpredabs.mathsat.useCache");
-        if (entailsUseCache) {
-            entailsCache =
-                new HashMap<Pair<AbstractFormula, AbstractFormula>, Boolean>();
+        if (useCache) {
             toConcreteCache = new HashMap<Integer, Long>();
         } else {
-          entailsCache = null;
           toConcreteCache = null;
         }
     }
@@ -186,27 +175,6 @@ public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
             msatAtomToBddPredicate.put(msatAtom, bddVar);
             return new BDDPredicate(bddVar, var);
         }
-    }
-
-    @Override
-    public boolean entails(AbstractFormula f1, AbstractFormula f2) {
-        // check entailment using BDDs: create the BDD representing
-        // the implication, and check that it is the TRUE formula
-        Pair<AbstractFormula, AbstractFormula> key = null;
-        if (entailsUseCache) {
-            key = new Pair<AbstractFormula, AbstractFormula>(f1, f2);
-            if (entailsCache.containsKey(key)) {
-                return entailsCache.get(key);
-            }
-        }
-        int imp = bddManager.imp(((BDDAbstractFormula)f1).getBDD(),
-                                 ((BDDAbstractFormula)f2).getBDD());
-        boolean yes = (imp == bddManager.getOne());
-        if (entailsUseCache) {
-            assert(key != null);
-            entailsCache.put(key, yes);
-        }
-        return yes;
     }
 
     protected void collectVarNames(MathsatSymbolicFormulaManager mmgr,
@@ -314,7 +282,7 @@ public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
         long msatEnv = mmgr.getMsatEnv();
 
         Map<Integer, Long> cache;
-        if (entailsUseCache) {
+        if (useCache) {
             cache = toConcreteCache;
         } else {
             cache = new HashMap<Integer, Long>();
@@ -366,19 +334,6 @@ public class BDDMathsatAbstractFormulaManager implements AbstractFormulaManager{
         assert(cache.containsKey(bdd));
 
         return new MathsatSymbolicFormula(cache.get(bdd));
-    }
-
-    
-    @Override
-    public boolean isFalse(AbstractFormula f) {
-        return ((BDDAbstractFormula)f).getBDD() == bddManager.getZero();
-    }
-
-
-    @Override
-    public AbstractFormula makeTrue() {
-        int t = bddManager.getOne();
-        return new BDDAbstractFormula(t);
     }
 
     protected SymbolicFormula[] getInstantiatedAt(

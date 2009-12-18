@@ -74,4 +74,8 @@ public interface AbstractFormulaManager {
    */
   public AbstractFormula makeTrue();
 
+  /**
+   * @return a representation of logical falseness
+   */
+  public AbstractFormula makeFalse();
 }

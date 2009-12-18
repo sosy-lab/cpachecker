@@ -75,8 +75,8 @@ implements PredicateAbstractionAbstractFormulaManager {
   implements TheoremProver.AllSatCallback {
     public long totTime = 0;
 
-    public AllSatCallbackStats(int bdd, long msatEnv, long absEnv) {
-      super(bdd, msatEnv, absEnv);
+    public AllSatCallbackStats(long msatEnv, long absEnv) {
+      super(msatEnv, absEnv);
     }
 
     @Override
@@ -546,8 +546,7 @@ implements PredicateAbstractionAbstractFormulaManager {
 
     ++stats.abstractionNumMathsatQueries;
 
-    int absbdd = bddManager.getZero();
-    AllSatCallbackStats func = new AllSatCallbackStats(absbdd, msatEnv, 0);
+    AllSatCallbackStats func = new AllSatCallbackStats(msatEnv, 0);
     Vector<SymbolicFormula> imp = new Vector<SymbolicFormula>();
     imp.ensureCapacity(important.length);
     for (long p : important) {
@@ -575,10 +574,9 @@ implements PredicateAbstractionAbstractFormulaManager {
 
     AbstractFormula ret = null;
     if (numModels == -2) {
-      absbdd = bddManager.getOne();
-      ret = new BDDAbstractFormula(absbdd);
+      ret = makeTrue();
     } else {
-      ret = new BDDAbstractFormula(func.getBDD());
+      ret = func.getBDD();
     }
     if (useCache) {
       booleanAbstractionCache.put(key, ret);

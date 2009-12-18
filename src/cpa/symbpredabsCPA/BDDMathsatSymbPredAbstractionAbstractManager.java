@@ -77,8 +77,8 @@ implements SymbPredAbstFormulaManager
     public long totTime = 0;
     private long[] curModel;
 
-    public AllSatCallbackStats(int bdd, long msatEnv, long absEnv) {
-      super(bdd, msatEnv, absEnv);
+    public AllSatCallbackStats(long msatEnv, long absEnv) {
+      super(msatEnv, absEnv);
       curModel = null;
     }
 
@@ -225,7 +225,7 @@ implements SymbPredAbstFormulaManager
             if (!feasibilityCache.get(key)) {
                 thmProver.reset();
                 // abstract post leads to false, we can return immediately
-                return new BDDAbstractFormula(bddManager.getZero());
+                return makeFalse();
             }
         }
     }
@@ -253,7 +253,7 @@ implements SymbPredAbstFormulaManager
                 }
                 feasibilityCache.put(key, false);
             }
-            return new BDDAbstractFormula(bddManager.getZero());
+            return makeFalse();
         } else {
             if (useCache) {
                 FeasibilityCacheKey key = new FeasibilityCacheKey(fkey);
@@ -520,7 +520,7 @@ implements SymbPredAbstFormulaManager
       // environment in which all terms are created
       final long msatEnv = mmgr.getMsatEnv();
    
-      AllSatCallbackStats allSatCallback = new AllSatCallbackStats(bddManager.getZero(), msatEnv, 0);
+      AllSatCallbackStats allSatCallback = new AllSatCallbackStats(msatEnv, 0);
       long msatSolveStartTime = System.currentTimeMillis();
       final int numModels = thmProver.allSat(fm, importantPreds, allSatCallback);
       long msatSolveEndTime = System.currentTimeMillis();
@@ -529,9 +529,9 @@ implements SymbPredAbstFormulaManager
 
       if (numModels == -2) {
         // formula has infinite number of models
-        result = new BDDAbstractFormula(bddManager.getOne());
+        result = makeTrue();
       } else {
-        result = new BDDAbstractFormula(allSatCallback.getBDD());
+        result = allSatCallback.getBDD();
       }
 
       if (useCache) {

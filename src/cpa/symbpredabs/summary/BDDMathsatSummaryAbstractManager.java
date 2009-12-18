@@ -78,8 +78,8 @@ public class BDDMathsatSummaryAbstractManager extends
         public long totTime = 0;
         private long[] curModel;
 
-        public AllSatCallbackStats(int bdd, long msatEnv, long absEnv) {
-            super(bdd, msatEnv, absEnv);
+        public AllSatCallbackStats(long msatEnv, long absEnv) {
+            super(msatEnv, absEnv);
             curModel = null;
         }
 
@@ -518,9 +518,8 @@ public class BDDMathsatSummaryAbstractManager extends
             ++stats.numCallsAbstractionCached;
             result = abstractionCache.get(absKey);
         } else {
-            int absbdd = bddManager.getZero();
             AllSatCallbackStats func =
-                new AllSatCallbackStats(absbdd, msatEnv, 0);
+                new AllSatCallbackStats(msatEnv, 0);
             long msatSolveStartTime = System.currentTimeMillis();
             int numModels = thmProver.allSat(fm, imp, func);
             assert(numModels != -1);
@@ -553,12 +552,9 @@ public class BDDMathsatSummaryAbstractManager extends
             }
 
             if (numModels == -2) {
-                absbdd = bddManager.getOne();
-                //return new BDDAbstractFormula(absbdd);
-                result = new BDDAbstractFormula(absbdd);
+                result = makeTrue();
             } else {
-                //return new BDDAbstractFormula(func.getBDD());
-                result = new BDDAbstractFormula(func.getBDD());
+                result = func.getBDD();
             }
             if (useCache) {
                 abstractionCache.put(absKey, result);
