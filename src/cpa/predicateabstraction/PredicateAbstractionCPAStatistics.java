@@ -33,7 +33,6 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.Vector;
 
-import symbpredabstraction.bdd.BDDPredicate;
 import symbpredabstraction.interfaces.Predicate;
 import symbpredabstraction.interfaces.PredicateMap;
 import symbpredabstraction.mathsat.MathsatSymbolicFormula;
@@ -45,7 +44,6 @@ import cmdline.CPAMain.Result;
 import common.Pair;
 
 import cpaplugin.CPAStatistics;
-import cpaplugin.MainCPAStatistics;
 
 
 /**
@@ -116,7 +114,7 @@ public class PredicateAbstractionCPAStatistics implements CPAStatistics {
               pw.println("ALL PREDICATES:");
               for (Predicate p : allPreds) {
                 Pair<MathsatSymbolicFormula, MathsatSymbolicFormula> d =
-                  amgr.getPredicateNameAndDef((BDDPredicate)p);
+                  amgr.getPredicateNameAndDef(p);
                 pw.format("%s ==> %s <-> %s\n", p, d.getFirst(),
                     d.getSecond());
               }

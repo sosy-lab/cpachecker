@@ -41,8 +41,6 @@ import symbpredabstraction.SSAMap;
 import symbpredabstraction.Cache.CartesianAbstractionCacheKey;
 import symbpredabstraction.Cache.FeasibilityCacheKey;
 import symbpredabstraction.Cache.TimeStampCache;
-import symbpredabstraction.bdd.BDDAbstractFormula;
-import symbpredabstraction.bdd.BDDPredicate;
 import symbpredabstraction.interfaces.AbstractFormula;
 import symbpredabstraction.interfaces.InterpolatingTheoremProver;
 import symbpredabstraction.interfaces.Predicate;
@@ -50,7 +48,7 @@ import symbpredabstraction.interfaces.SymbolicFormula;
 import symbpredabstraction.interfaces.SymbolicFormulaManager;
 import symbpredabstraction.interfaces.TheoremProver;
 import symbpredabstraction.mathsat.BDDMathsatAbstractFormulaManager;
-import symbpredabstraction.mathsat.BDDMathsatAbstractionPrinter;
+import symbpredabstraction.mathsat.MathsatAbstractionPrinter;
 import symbpredabstraction.mathsat.MathsatSymbolicFormula;
 import symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
 import symbpredabstraction.trace.ConcreteTraceFunctionCalls;
@@ -271,7 +269,7 @@ implements SymbPredAbstFormulaManager
 
     long totBddTime = 0;
 
-    int absbdd = bddManager.getOne();
+    AbstractFormula absbdd = makeTrue();
 
     // check whether each of the predicate is implied in the next state...
     Set<String> predvars = new HashSet<String>();
@@ -283,22 +281,21 @@ implements SymbPredAbstFormulaManager
     int predIndex = -1;
     for (Predicate p : predicates) {
         ++predIndex;
-        BDDPredicate bp = (BDDPredicate)p;
         if (useCache && predVals[predIndex] != NO_VALUE) {
             long startBddTime = System.currentTimeMillis();
-            int v = bp.getBDD();
+            AbstractFormula v = p.getFormula();
             if (predVals[predIndex] == -1) { // pred is false
-                v = bddManager.not(v);
-                absbdd = bddManager.and(absbdd, v);
+                v = makeNot(v);
+                absbdd = makeAnd(absbdd, v);
             } else if (predVals[predIndex] == 1) { // pred is true
-                absbdd = bddManager.and(absbdd, v);
+                absbdd = makeAnd(absbdd, v);
             }
             long endBddTime = System.currentTimeMillis();
             totBddTime += (endBddTime - startBddTime);
             //++stats.abstractionNumCachedQueries;
         } else {
             Pair<MathsatSymbolicFormula, MathsatSymbolicFormula> pi =
-                getPredicateNameAndDef(bp);
+                getPredicateNameAndDef(p);
 
             // update the SSA map, by instantiating all the uninstantiated
             // variables that occur in the predicates definitions
@@ -346,8 +343,8 @@ implements SymbPredAbstFormulaManager
 
             if (isTrue) {
                 long startBddTime = System.currentTimeMillis();
-                int v = bp.getBDD();
-                absbdd = bddManager.and(absbdd, v);
+                AbstractFormula v = p.getFormula();
+                absbdd = makeAnd(absbdd, v);
                 long endBddTime = System.currentTimeMillis();
                 totBddTime += (endBddTime - startBddTime);
             } else {
@@ -360,9 +357,9 @@ implements SymbPredAbstFormulaManager
 
                 if (isFalse) {
                     long startBddTime = System.currentTimeMillis();
-                    int v = bp.getBDD();
-                    v = bddManager.not(v);
-                    absbdd = bddManager.and(absbdd, v);
+                    AbstractFormula v = p.getFormula();
+                    v = makeNot(v);
+                    absbdd = makeAnd(absbdd, v);
                     long endBddTime = System.currentTimeMillis();
                     totBddTime += (endBddTime - startBddTime);
                 }
@@ -400,7 +397,7 @@ implements SymbPredAbstFormulaManager
     stats.abstractionMaxMathsatSolveTime =
         Math.max(solveTime, stats.abstractionMaxMathsatSolveTime);
 
-    return new BDDAbstractFormula(absbdd);
+    return absbdd;
     
   }
 
@@ -554,7 +551,7 @@ implements SymbPredAbstFormulaManager
       // TODO dump hard abst
       if (msatSolveTime > 10000 && dumpHardAbstractions) {
         // we want to dump "hard" problems...
-        BDDMathsatAbstractionPrinter absPrinter = new BDDMathsatAbstractionPrinter(msatEnv, "abs");
+        MathsatAbstractionPrinter absPrinter = new MathsatAbstractionPrinter(msatEnv, "abs");
         absPrinter.printMsatFormat(absFormula, symbFormula, predDef, importantPreds);
         absPrinter.printNusmvFormat(absFormula, symbFormula, predDef, importantPreds);
         absPrinter.nextNum();

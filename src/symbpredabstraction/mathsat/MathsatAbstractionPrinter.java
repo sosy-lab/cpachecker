@@ -42,13 +42,13 @@ import symbpredabstraction.interfaces.SymbolicFormula;
  *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
-public class BDDMathsatAbstractionPrinter {
+public class MathsatAbstractionPrinter {
 
     private long msatEnv;
     private String baseFileName;
     private int curNum;
 
-    public BDDMathsatAbstractionPrinter(long env, String baseName) {
+    public MathsatAbstractionPrinter(long env, String baseName) {
         msatEnv = env;
         baseFileName = baseName;
         curNum = 0;

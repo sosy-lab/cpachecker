@@ -26,7 +26,9 @@ package cpa.symbpredabs.summary;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -34,13 +36,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 import java.util.Vector;
-import java.util.Arrays;
-import java.util.Comparator;
 import java.util.logging.Level;
 
 import symbpredabstraction.SSAMap;
-import symbpredabstraction.bdd.BDDAbstractFormula;
-import symbpredabstraction.bdd.BDDPredicate;
 import symbpredabstraction.interfaces.AbstractFormula;
 import symbpredabstraction.interfaces.InterpolatingTheoremProver;
 import symbpredabstraction.interfaces.Predicate;
@@ -48,18 +46,16 @@ import symbpredabstraction.interfaces.SymbolicFormula;
 import symbpredabstraction.interfaces.SymbolicFormulaManager;
 import symbpredabstraction.interfaces.TheoremProver;
 import symbpredabstraction.mathsat.BDDMathsatAbstractFormulaManager;
-import symbpredabstraction.mathsat.BDDMathsatAbstractionPrinter;
+import symbpredabstraction.mathsat.MathsatAbstractionPrinter;
 import symbpredabstraction.mathsat.MathsatSymbolicFormula;
 import symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
 import symbpredabstraction.trace.ConcreteTraceFunctionCalls;
 import symbpredabstraction.trace.CounterexampleTraceInfo;
-
-import cmdline.CPAMain;
-
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFANode;
 import cfa.objectmodel.c.FunctionDefinitionNode;
 import cfa.objectmodel.c.ReturnEdge;
+import cmdline.CPAMain;
 
 import common.Pair;
 
@@ -254,7 +250,7 @@ public class BDDMathsatSummaryAbstractManager extends
         cartesianAbstractionCache;
     protected TimeStampCache<FeasibilityCacheKey, Boolean> feasibilityCache;
 
-    private BDDMathsatAbstractionPrinter absPrinter = null;
+    private MathsatAbstractionPrinter absPrinter = null;
     private boolean dumpHardAbstractions;
 
     private TheoremProver thmProver;
@@ -543,7 +539,7 @@ public class BDDMathsatSummaryAbstractManager extends
             if (abstractionMsatTime > 10000 && dumpHardAbstractions) {
                 // we want to dump "hard" problems...
                 if (absPrinter == null) {
-                    absPrinter = new BDDMathsatAbstractionPrinter(
+                    absPrinter = new MathsatAbstractionPrinter(
                             msatEnv, "abs");
                 }
                 absPrinter.printMsatFormat(curstate, term, preddef, important);
@@ -636,7 +632,7 @@ public class BDDMathsatSummaryAbstractManager extends
                 if (!feasibilityCache.get(key)) {
                     thmProver.reset();
                     // abstract post leads to false, we can return immediately
-                    return new BDDAbstractFormula(bddManager.getZero());
+                    return makeFalse();
                 }
             }
         }
@@ -664,7 +660,7 @@ public class BDDMathsatSummaryAbstractManager extends
                     }
                     feasibilityCache.put(key, false);
                 }
-                return new BDDAbstractFormula(bddManager.getZero());
+                return makeFalse();
             } else {
                 if (useCache) {
                     FeasibilityCacheKey key = new FeasibilityCacheKey(fkey);
@@ -682,7 +678,7 @@ public class BDDMathsatSummaryAbstractManager extends
 
         long totBddTime = 0;
 
-        int absbdd = bddManager.getOne();
+        AbstractFormula absbdd = makeTrue();
 
         // check whether each of the predicate is implied in the next state...
         Set<String> predvars = new HashSet<String>();
@@ -694,22 +690,21 @@ public class BDDMathsatSummaryAbstractManager extends
         int predIndex = -1;
         for (Predicate p : predicates) {
             ++predIndex;
-            BDDPredicate bp = (BDDPredicate)p;
             if (useCache && predVals[predIndex] != NO_VALUE) {
                 long startBddTime = System.currentTimeMillis();
-                int v = bp.getBDD();
+                AbstractFormula v = p.getFormula();
                 if (predVals[predIndex] == -1) { // pred is false
-                    v = bddManager.not(v);
-                    absbdd = bddManager.and(absbdd, v);
+                    v = makeNot(v);
+                    absbdd = makeAnd(absbdd, v);
                 } else if (predVals[predIndex] == 1) { // pred is true
-                    absbdd = bddManager.and(absbdd, v);
+                    absbdd = makeAnd(absbdd, v);
                 }
                 long endBddTime = System.currentTimeMillis();
                 totBddTime += (endBddTime - startBddTime);
                 //++stats.abstractionNumCachedQueries;
             } else {
                 Pair<MathsatSymbolicFormula, MathsatSymbolicFormula> pi =
-                    getPredicateNameAndDef(bp);
+                    getPredicateNameAndDef(p);
 
                 // update the SSA map, by instantiating all the uninstantiated
                 // variables that occur in the predicates definitions
@@ -757,8 +752,8 @@ public class BDDMathsatSummaryAbstractManager extends
 
                 if (isTrue) {
                     long startBddTime = System.currentTimeMillis();
-                    int v = bp.getBDD();
-                    absbdd = bddManager.and(absbdd, v);
+                    AbstractFormula v = p.getFormula();
+                    absbdd = makeAnd(absbdd, v);
                     long endBddTime = System.currentTimeMillis();
                     totBddTime += (endBddTime - startBddTime);
                 } else {
@@ -771,9 +766,9 @@ public class BDDMathsatSummaryAbstractManager extends
 
                     if (isFalse) {
                         long startBddTime = System.currentTimeMillis();
-                        int v = bp.getBDD();
-                        v = bddManager.not(v);
-                        absbdd = bddManager.and(absbdd, v);
+                        AbstractFormula v = p.getFormula();
+                        v = makeNot(v);
+                        absbdd = makeAnd(absbdd, v);
                         long endBddTime = System.currentTimeMillis();
                         totBddTime += (endBddTime - startBddTime);
                     }
@@ -811,7 +806,7 @@ public class BDDMathsatSummaryAbstractManager extends
         stats.abstractionMaxMathsatSolveTime =
             Math.max(solveTime, stats.abstractionMaxMathsatSolveTime);
 
-        return new BDDAbstractFormula(absbdd);
+        return absbdd;
     }
 
     @Override

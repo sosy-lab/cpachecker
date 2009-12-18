@@ -130,14 +130,14 @@ public class BDDMathsatAbstractFormulaManager extends BDDAbstractFormulaManager 
     // and the reverse mapping MathSAT variable -> predicate
     private final Map<Long, Predicate> msatVarToPredicate;
 
-    private final Map<AbstractFormula, Long> toConcreteCache;
+    private final Map<AbstractFormula, SymbolicFormula> toConcreteCache;
 
 
     public BDDMathsatAbstractFormulaManager() {
         predicateToMsatAtom = new HashMap<Predicate, Pair<Long, Long>>();
         msatVarToPredicate = new HashMap<Long, Predicate>();
         if (useCache) {
-            toConcreteCache = new HashMap<AbstractFormula, Long>();
+            toConcreteCache = new HashMap<AbstractFormula, SymbolicFormula>();
         } else {
           toConcreteCache = null;
         }
@@ -259,18 +259,17 @@ public class BDDMathsatAbstractFormulaManager extends BDDAbstractFormulaManager 
     public SymbolicFormula toConcrete(SymbolicFormulaManager mgr,
             AbstractFormula af) {
         MathsatSymbolicFormulaManager mmgr = (MathsatSymbolicFormulaManager)mgr;
-        long msatEnv = mmgr.getMsatEnv();
 
-        Map<AbstractFormula, Long> cache;
+        Map<AbstractFormula, SymbolicFormula> cache;
         if (useCache) {
             cache = toConcreteCache;
         } else {
-            cache = new HashMap<AbstractFormula, Long>();
+            cache = new HashMap<AbstractFormula, SymbolicFormula>();
         }
         Stack<AbstractFormula> toProcess = new Stack<AbstractFormula>();
 
-        cache.put(makeTrue(), mathsat.api.msat_make_true(msatEnv));
-        cache.put(makeFalse(), mathsat.api.msat_make_false(msatEnv));
+        cache.put(makeTrue(), mgr.makeTrue());
+        cache.put(makeFalse(), mgr.makeFalse());
 
         toProcess.push(af);
         while (!toProcess.empty()) {
@@ -280,8 +279,8 @@ public class BDDMathsatAbstractFormulaManager extends BDDAbstractFormulaManager 
                 continue;
             }
             boolean childrenDone = true;
-            long m1 = mathsat.api.MSAT_MAKE_ERROR_TERM();
-            long m2 = mathsat.api.MSAT_MAKE_ERROR_TERM();
+            SymbolicFormula m1 = null;
+            SymbolicFormula m2 = null;
             
             Triple<Predicate, AbstractFormula, AbstractFormula> parts = getIfThenElse(n);
             AbstractFormula c1 = parts.getSecond();
@@ -299,22 +298,23 @@ public class BDDMathsatAbstractFormulaManager extends BDDAbstractFormulaManager 
                 m2 = cache.get(c2);
             }
             if (childrenDone) {
-                assert(!mathsat.api.MSAT_ERROR_TERM(m1));
-                assert(!mathsat.api.MSAT_ERROR_TERM(m2));
+                assert m1 != null;
+                assert m2 != null;
 
                 toProcess.pop();
                 Predicate var = parts.getFirst();
                 assert(predicateToMsatAtom.containsKey(var));
 
-                long matom = predicateToMsatAtom.get(var).getSecond();
-                long ite = mathsat.api.msat_make_ite(msatEnv, matom, m1, m2);
+                long mAtom = predicateToMsatAtom.get(var).getSecond();
+                
+                SymbolicFormula ite = mmgr.makeIfThenElse(mAtom, m1, m2);
                 cache.put(n, ite);
             }
         }
 
         assert(cache.containsKey(af));
 
-        return new MathsatSymbolicFormula(cache.get(af));
+        return cache.get(af);
     }
 
     protected SymbolicFormula[] getInstantiatedAt(

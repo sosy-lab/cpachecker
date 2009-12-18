@@ -308,6 +308,15 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
   }
 
 
+  public SymbolicFormula makeIfThenElse(long atom, SymbolicFormula f1, SymbolicFormula f2) {
+    MathsatSymbolicFormula m1 = (MathsatSymbolicFormula)f1;
+    MathsatSymbolicFormula m2 = (MathsatSymbolicFormula)f2;
+    
+    long ite = mathsat.api.msat_make_ite(msatEnv, atom, m1.getTerm(), m2.getTerm());
+
+    return new MathsatSymbolicFormula(ite);
+  }
+  
   public PathFormula makeAnd(
       SymbolicFormula f1, CFAEdge edge, SSAMap ssa,
       boolean updateSSA, boolean absoluteSSAIndices)

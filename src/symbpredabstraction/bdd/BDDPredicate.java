@@ -31,29 +31,18 @@ import symbpredabstraction.interfaces.Predicate;
  *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
-public class BDDPredicate implements Predicate {
+class BDDPredicate implements Predicate {
     private final BDDAbstractFormula bdd;
                            // this is the BDD representing this single variable.
                            // That is, a node with variable varindex and two
                            // children 0 and 1
     private final int varindex; // this is the variable itself
 
-    protected BDDPredicate(BDDAbstractFormula bdd, int idx) {
+    public BDDPredicate(BDDAbstractFormula bdd, int idx) {
         this.bdd = bdd;
         this.varindex = idx;
     }
 
-    /**
-     * Returns the BDD index corresponding to the formula representing this single
-     * variable. Should be replaced by calls to {@link #getFormula()}.
-     * 
-     * @return a BDD index
-     */
-    @Deprecated
-    public int getBDD() {
-        return bdd.getBDD();
-    }
-    
     @Override
     public AbstractFormula getFormula() {
         return bdd;

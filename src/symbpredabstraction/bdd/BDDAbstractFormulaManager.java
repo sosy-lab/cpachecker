@@ -13,11 +13,7 @@ import common.Triple;
 
 public abstract class BDDAbstractFormulaManager implements AbstractFormulaManager {
 
-  /**
-   * It's deprecated to use this field outside of this class.
-   */
-  @Deprecated
-  protected final JavaBDD bddManager;
+  private final JavaBDD bddManager;
   
   protected final boolean useCache;
 

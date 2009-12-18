@@ -35,7 +35,7 @@ import java.util.Map;
  *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
-public class JavaBDD {
+class JavaBDD {
     private Map<Integer, net.sf.javabdd.BDD> index2bdd;
     private Map<net.sf.javabdd.BDD, Integer> bdd2index;
     private static final String BDD_PACKAGE = "cudd";
