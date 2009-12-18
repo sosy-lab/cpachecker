@@ -130,10 +130,11 @@ public class BDDMathsatAbstractFormulaManager extends BDDAbstractFormulaManager 
     // and the reverse mapping MathSAT variable -> predicate
     private final Map<Long, Predicate> msatVarToPredicate;
 
+    private final boolean useCache;
     private final Map<AbstractFormula, SymbolicFormula> toConcreteCache;
 
-
     public BDDMathsatAbstractFormulaManager() {
+        useCache = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.mathsat.useCache");
         predicateToMsatAtom = new HashMap<Predicate, Pair<Long, Long>>();
         msatVarToPredicate = new HashMap<Long, Predicate>();
         if (useCache) {

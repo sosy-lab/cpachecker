@@ -23,6 +23,7 @@
  */
 package symbpredabstraction.bdd;
 
+import net.sf.javabdd.BDD;
 import symbpredabstraction.interfaces.AbstractFormula;
 import symbpredabstraction.interfaces.Predicate;
 
@@ -31,36 +32,26 @@ import symbpredabstraction.interfaces.Predicate;
  *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
-class BDDPredicate implements Predicate {
-    private final BDDAbstractFormula bdd;
+class BDDPredicate extends BDDAbstractFormula implements Predicate {
                            // this is the BDD representing this single variable.
                            // That is, a node with variable varindex and two
                            // children 0 and 1
-    private final int varindex; // this is the variable itself
 
-    public BDDPredicate(BDDAbstractFormula bdd, int idx) {
-        this.bdd = bdd;
-        this.varindex = idx;
+    public BDDPredicate(BDD bdd) {
+      super(bdd);
     }
 
     @Override
     public AbstractFormula getFormula() {
-        return bdd;
+        return this;
     }
 
-    @Override
-    public boolean equals(Object o) {
-      return (this == o)
-        || ((o instanceof BDDPredicate) && (varindex == ((BDDPredicate)o).varindex));
-    }
-
-    @Override
-    public int hashCode() {
-        return varindex;
+    private int getVarIndex() {
+      return getBDD().var();
     }
 
     @Override
     public String toString() {
-        return "BDD(" + varindex + ")";
+        return "BDD(" + getVarIndex() + ")";
     }
 }

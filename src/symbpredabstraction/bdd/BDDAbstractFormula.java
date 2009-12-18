@@ -23,6 +23,7 @@
  */
 package symbpredabstraction.bdd;
 
+import net.sf.javabdd.BDD;
 import symbpredabstraction.interfaces.AbstractFormula;
 
 /**
@@ -31,26 +32,32 @@ import symbpredabstraction.interfaces.AbstractFormula;
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
 class BDDAbstractFormula implements AbstractFormula {
-    private final int bddRepr;
+    
+    private final BDD bddRepr;
 
-    public BDDAbstractFormula(int r) {
-        bddRepr = r;
+    public BDDAbstractFormula(BDD pBDD) {
+        bddRepr = pBDD;
     }
 
-    public int getBDD() {
+    protected BDD getBDD() {
         return bddRepr;
     }
 
     @Override
     public boolean equals(Object o) {
         if (o instanceof BDDAbstractFormula) {
-            return bddRepr == ((BDDAbstractFormula)o).bddRepr;
+            return bddRepr.equals(((BDDAbstractFormula)o).bddRepr);
         }
         return false;
     }
     
     @Override
     public int hashCode() {
-        return bddRepr;
+        return bddRepr.hashCode();
+    }
+    
+    @Override
+    public String toString() {
+      return bddRepr.toString();
     }
 }
