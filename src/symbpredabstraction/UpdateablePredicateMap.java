@@ -55,7 +55,12 @@ public class UpdateablePredicateMap implements PredicateMap {
         globalPredicates = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.refinement.addPredicatesGlobally");
         repr = new HashMap<CFANode, Set<Predicate>>();
         functionGlobalPreds = new HashMap<String, Set<Predicate>>();
-        initialGlobalPreds = initial;
+        
+        if (initial == null || initial.size() == 0) {
+          initialGlobalPreds = Collections.emptySet();
+        } else {
+          initialGlobalPreds = Collections.unmodifiableCollection(initial);
+        }
     }
 
     public UpdateablePredicateMap() {
@@ -63,15 +68,16 @@ public class UpdateablePredicateMap implements PredicateMap {
     }
 
     public boolean update(CFANode n, Collection<Predicate> preds) {
+        if (initialGlobalPreds.containsAll(preds)) {
+          return false;
+        }
+      
         boolean added = false;
         if (globalPredicates) {
             String fn = n.getFunctionName();
             assert(fn != null);
             if (!functionGlobalPreds.containsKey(fn)) {
-                Set<Predicate> s = new HashSet<Predicate>();
-                if (initialGlobalPreds != null) {
-                    added |= s.addAll(initialGlobalPreds);
-                }
+                Set<Predicate> s = new HashSet<Predicate>(initialGlobalPreds);
                 functionGlobalPreds.put(fn, s);
             }
             Set<Predicate> s = functionGlobalPreds.get(fn);
@@ -81,10 +87,7 @@ public class UpdateablePredicateMap implements PredicateMap {
             }
         } else {
             if (!repr.containsKey(n)) {
-                Set<Predicate> s = new HashSet<Predicate>();
-                if (initialGlobalPreds != null) {
-                    added |= s.addAll(initialGlobalPreds);
-                }
+                Set<Predicate> s = new HashSet<Predicate>(initialGlobalPreds);
                 repr.put(n, s);
             }
             Set<Predicate> s = repr.get(n);
@@ -102,24 +105,14 @@ public class UpdateablePredicateMap implements PredicateMap {
             String fn = n.getFunctionName();
             if (functionGlobalPreds.containsKey(fn)) {
                 return functionGlobalPreds.get(fn);
-            } else if (initialGlobalPreds != null) {
-                Set<Predicate> s = new HashSet<Predicate>();
-                s.addAll(initialGlobalPreds);
-                functionGlobalPreds.put(fn, s);
-                return s;
             } else {
-                return Collections.emptySet();
+                return initialGlobalPreds;
             }
         } else {
             if (repr.containsKey(n)) {
                 return repr.get(n);
-            } else if (initialGlobalPreds != null) {
-                Set<Predicate> s = new HashSet<Predicate>();
-                s.addAll(initialGlobalPreds);
-                repr.put(n, s);
-                return s;
             } else {
-                return Collections.emptySet();
+              return initialGlobalPreds;
             }
         }
     }
@@ -141,5 +134,14 @@ public class UpdateablePredicateMap implements PredicateMap {
     @Override
     public Collection<String> getKnownFunctions() {
         return functionGlobalPreds.keySet();
+    }
+    
+    @Override
+    public String toString() {
+        if (globalPredicates) {
+          return functionGlobalPreds.toString();
+        } else {
+          return repr.toString();
+        }
     }
 }

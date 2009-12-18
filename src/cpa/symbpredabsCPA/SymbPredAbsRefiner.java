@@ -113,13 +113,13 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
 
     UpdateablePredicateMap curpmap = (UpdateablePredicateMap)mCpa.getPredicateMap();
     SymbPredAbsAbstractElement symbPredRootElement = null;
-    SymbPredAbsAbstractElement firstInterpolant = null;
+    SymbPredAbsAbstractElement firstInterpolationElement = null;
     SymbPredAbsAbstractElement previous = null;
     
     for (SymbPredAbsAbstractElement e : pPath) {
       Collection<Predicate> newpreds = pInfo.getPredicatesForRefinement(e);
-      if (firstInterpolant == null && newpreds.size() > 0) {
-        firstInterpolant = e;
+      if (firstInterpolationElement == null && newpreds.size() > 0) {
+        firstInterpolationElement = e;
       }
       if (curpmap.update(e.getAbstractionLocation(), newpreds)) {
         if (symbPredRootElement == null) {
@@ -131,7 +131,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
     }
 
     // FIXME (test/tests/ssh-simple/s3_clnt_4.cil.c.symbpredabsCPA-2.log) what to do here?
-    assert(firstInterpolant != null);
+    assert(firstInterpolationElement != null);
 
     SymbPredAbsAbstractElement errorElement = pPath.get(pPath.size()-1);
     ARTElement root;
@@ -149,7 +149,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
       seenAbstractCounterexample = errorElement.getAbstractionPathList();
       numSeenAbstractCounterexample++;
 
-      CFANode loc = firstInterpolant.getAbstractionLocation(); 
+      CFANode loc = firstInterpolationElement.getAbstractionLocation(); 
 
       CPAMain.logManager.log(Level.FINEST, "Found spurious counterexample",
           seenAbstractCounterexample,
