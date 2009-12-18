@@ -60,10 +60,10 @@ public class LogManager {
     public String format(LogRecord lr) {
       String[] className = lr.getSourceClassName().split("\\.");
       String[] methodName = lr.getSourceMethodName().split("\\.");
-      return "log: " + lr.getLevel().toString() + "\t" 
-      + dateFormat.format(lr.getMillis()) + "    "
+      return dateFormat.format(lr.getMillis()) + "\t "
+      + "level: " + lr.getLevel().toString() + "\t " 
       + className[0]  + "."  
-      + methodName[0]  + "\t" 
+      + methodName[0]  + "\t " 
       + lr.getMessage() + "\n\n";
     }
   }
