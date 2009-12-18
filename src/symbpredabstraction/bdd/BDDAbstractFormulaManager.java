@@ -3,16 +3,22 @@ package symbpredabstraction.bdd;
 import java.util.HashMap;
 import java.util.Map;
 
+import symbpredabstraction.interfaces.AbstractFormula;
+import symbpredabstraction.interfaces.AbstractFormulaManager;
+import symbpredabstraction.interfaces.Predicate;
 import cmdline.CPAMain;
 
 import common.Pair;
-
-import symbpredabstraction.interfaces.AbstractFormula;
-import symbpredabstraction.interfaces.AbstractFormulaManager;
+import common.Triple;
 
 public abstract class BDDAbstractFormulaManager implements AbstractFormulaManager {
 
+  /**
+   * It's deprecated to use this field outside of this class.
+   */
+  @Deprecated
   protected final JavaBDD bddManager;
+  
   protected final boolean useCache;
 
   private final Map<Pair<AbstractFormula, AbstractFormula>, Boolean> entailsCache;
@@ -69,4 +75,48 @@ public abstract class BDDAbstractFormulaManager implements AbstractFormulaManage
     return falseFormula;
   }
 
+  @Override
+  public AbstractFormula makeAnd(AbstractFormula pF1, AbstractFormula pF2) {
+    BDDAbstractFormula f1 = (BDDAbstractFormula)pF1;
+    BDDAbstractFormula f2 = (BDDAbstractFormula)pF2;
+    
+    return new BDDAbstractFormula(bddManager.and(f1.getBDD(), f2.getBDD()));
+  }
+
+  @Override
+  public AbstractFormula makeNot(AbstractFormula pF) {
+    BDDAbstractFormula f = (BDDAbstractFormula)pF;
+    
+    return new BDDAbstractFormula(bddManager.not(f.getBDD()));
+  }
+
+  @Override
+  public AbstractFormula makeOr(AbstractFormula pF1, AbstractFormula pF2) {
+    BDDAbstractFormula f1 = (BDDAbstractFormula)pF1;
+    BDDAbstractFormula f2 = (BDDAbstractFormula)pF2;
+    
+    return new BDDAbstractFormula(bddManager.or(f1.getBDD(), f2.getBDD()));
+  }
+  
+  @Override
+  public Predicate createPredicate() {
+    int bddVar = bddManager.createVar();
+    int varIndex = bddManager.getVar(bddVar);
+    BDDAbstractFormula bdd = new BDDAbstractFormula(bddVar);
+    
+    return new BDDPredicate(bdd, varIndex);
+  }
+  
+  @Override
+  public Triple<Predicate, AbstractFormula, AbstractFormula> getIfThenElse(AbstractFormula pF) {
+    BDDAbstractFormula f = (BDDAbstractFormula)pF;
+    
+    int varIndex = bddManager.getVar(f.getBDD());
+    BDDAbstractFormula bdd = new BDDAbstractFormula(bddManager.bddForVar(varIndex));
+    BDDPredicate predicate = new BDDPredicate(bdd, varIndex);
+    BDDAbstractFormula fThen = new BDDAbstractFormula(bddManager.getThen(f.getBDD()));
+    BDDAbstractFormula fElse = new BDDAbstractFormula(bddManager.getElse(f.getBDD()));
+    
+    return new Triple<Predicate, AbstractFormula, AbstractFormula>(predicate, fThen, fElse);
+  }
 }

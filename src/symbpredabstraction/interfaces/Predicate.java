@@ -30,4 +30,9 @@ package symbpredabstraction.interfaces;
  */
 public interface Predicate {
 
+  /**
+   * Returns an formula representing this predicate.
+   * @return an abstract formula
+   */
+  public AbstractFormula getFormula();
 }
