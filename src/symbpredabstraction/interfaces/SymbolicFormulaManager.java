@@ -74,6 +74,17 @@ public interface SymbolicFormulaManager {
     public SymbolicFormula makeEquivalence(SymbolicFormula f1, SymbolicFormula f2);
     
     /**
+     * Creates a formula representing "IF atom THEN f1 ELSE f2"
+     * @param atom a SymbolicFormula
+     * @param f1 a SymbolicFormula
+     * @param f2 a SymbolicFormula
+     * @return (IF atom THEN f1 ELSE f2)
+     */
+    
+    public SymbolicFormula makeIfThenElse(SymbolicFormula atom,
+        SymbolicFormula f1, SymbolicFormula f2);
+    
+    /**
      * Creates a formula representing an AND of the two argument.
      * @param f1 a SymbolicFormula
      * @param e a CFA edge
@@ -171,4 +182,5 @@ public interface SymbolicFormulaManager {
     public Collection<SymbolicFormula> extractAtoms(SymbolicFormula f,
             boolean uninstantiate, boolean splitArithEqualities,
             boolean conjunctionsOnly);
+
 }
