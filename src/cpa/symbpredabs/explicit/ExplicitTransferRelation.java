@@ -37,9 +37,7 @@ import java.util.logging.Level;
 import symbpredabstraction.UpdateablePredicateMap;
 import symbpredabstraction.interfaces.AbstractFormula;
 import symbpredabstraction.interfaces.Predicate;
-import symbpredabstraction.interfaces.SymbolicFormulaManager;
 import symbpredabstraction.trace.CounterexampleTraceInfo;
-
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAErrorNode;
 import cfa.objectmodel.CFANode;
@@ -162,19 +160,18 @@ public class ExplicitTransferRelation implements TransferRelation {
       succ.popContext();
     }
 
-    ExplicitAbstractFormulaManager amgr = cpa.getAbstractFormulaManager();
+    ExplicitAbstractFormulaManager amgr = cpa.getExplicitFormulaManager();
     AbstractFormula abstraction = amgr.buildAbstraction(
-        cpa.getFormulaManager(), e, succ, edge, predicates);
+        e, succ, edge, predicates);
     succ.setAbstraction(abstraction);
     succ.setParent(e);
 
     if (CPAMain.logManager.getLogLevel().intValue() <= Level.ALL.intValue()) {
-      SymbolicFormulaManager mgr = cpa.getFormulaManager();
       CPAMain.logManager.log(Level.ALL, "DEBUG_1", "COMPUTED ABSTRACTION:",
-          amgr.toConcrete(mgr, abstraction));
+          amgr.toConcrete(abstraction));
     }
 
-    if (amgr.isFalse(abstraction)) {
+    if (cpa.getAbstractFormulaManager().isFalse(abstraction)) {
       return domain.getBottomElement();
     } else {
       //++numAbstractStates;
@@ -200,8 +197,7 @@ public class ExplicitTransferRelation implements TransferRelation {
           parent = parent.getParent();
         }
         CounterexampleTraceInfo info =
-          amgr.buildCounterexampleTrace(
-              cpa.getFormulaManager(), path);
+          amgr.buildCounterexampleTrace(path);
         if (info.isSpurious()) {
           CPAMain.logManager.log(Level.FINEST,
               "Found spurious error trace, refining the ",

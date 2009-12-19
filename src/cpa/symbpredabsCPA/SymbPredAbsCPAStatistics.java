@@ -58,7 +58,7 @@ public class SymbPredAbsCPAStatistics implements CPAStatistics {
     public void printStatistics(PrintWriter out, Result result) {
       PredicateMap pmap = cpa.getPredicateMap();
       BDDMathsatSymbPredAbstractionAbstractManager amgr =
-        (BDDMathsatSymbPredAbstractionAbstractManager)cpa.getAbstractFormulaManager();
+        (BDDMathsatSymbPredAbstractionAbstractManager)cpa.getFormulaManager();
 
       Set<Predicate> allPreds = new HashSet<Predicate>();
       Collection<CFANode> allLocs = null;

@@ -40,6 +40,7 @@ import java.util.logging.Level;
 
 import symbpredabstraction.SSAMap;
 import symbpredabstraction.interfaces.AbstractFormula;
+import symbpredabstraction.interfaces.AbstractFormulaManager;
 import symbpredabstraction.interfaces.InterpolatingTheoremProver;
 import symbpredabstraction.interfaces.Predicate;
 import symbpredabstraction.interfaces.SymbolicFormula;
@@ -256,9 +257,12 @@ public class BDDMathsatSummaryAbstractManager extends
     private TheoremProver thmProver;
     private InterpolatingTheoremProver itpProver;
 
-    public BDDMathsatSummaryAbstractManager(TheoremProver prover,
+    public BDDMathsatSummaryAbstractManager(
+            AbstractFormulaManager amgr,
+            MathsatSymbolicFormulaManager smgr,
+            TheoremProver prover,
             InterpolatingTheoremProver interpolator) {
-        super();
+        super(amgr, smgr);
         stats = new Stats();
         abstractionTranslationCache =
             new HashMap<Pair<CFANode, CFANode>,
@@ -370,7 +374,7 @@ public class BDDMathsatSummaryAbstractManager extends
         // (abstract formula is the bdd representation)
         MathsatSymbolicFormula fabs =
             (MathsatSymbolicFormula)mmgr.instantiate(
-                    toConcrete(mmgr, abs), null);
+                    toConcrete(abs), null);
 
         CPAMain.logManager.log(Level.ALL, "DEBUG_3", "Abstraction:",
                 mathsat.api.msat_term_id(fabs.getTerm()));
@@ -386,7 +390,7 @@ public class BDDMathsatSummaryAbstractManager extends
                 AbstractFormula ctx = e.topContextAbstraction();
                 MathsatSymbolicFormula fctx =
                     (MathsatSymbolicFormula)mmgr.instantiate(
-                            toConcrete(mmgr, ctx), null);
+                            toConcrete(ctx), null);
                 fabs = (MathsatSymbolicFormula)mmgr.makeAnd(fabs, fctx);
 
                 CPAMain.logManager.log(Level.ALL, "DEBUG_3",
@@ -446,7 +450,7 @@ public class BDDMathsatSummaryAbstractManager extends
 
 
         // build the definition of the predicates, and instantiate them
-        PredInfo predinfo = buildPredList(mmgr, predicates);
+        PredInfo predinfo = buildPredList(predicates);
         long preddef = predinfo.predDef;
         long[] important = predinfo.important;
         Collection<String> predvars = predinfo.allVars;
@@ -463,7 +467,7 @@ public class BDDMathsatSummaryAbstractManager extends
             new HashMap<SymbolicFormula, SymbolicFormula>();
         for (Pair<String, SymbolicFormula[]> p : predlvals) {
             SymbolicFormula[] args =
-                getInstantiatedAt(mmgr, p.getSecond(), ssa, cache);
+                getInstantiatedAt(p.getSecond(), ssa, cache);
             if (ssa.getIndex(p.getFirst(), args) < 0) {
                 ssa.setIndex(p.getFirst(), args, 1);
             }
@@ -548,7 +552,7 @@ public class BDDMathsatSummaryAbstractManager extends
             }
 
             if (numModels == -2) {
-                result = makeTrue();
+                result = amgr.makeTrue();
             } else {
                 result = func.getBDD();
             }
@@ -632,7 +636,7 @@ public class BDDMathsatSummaryAbstractManager extends
                 if (!feasibilityCache.get(key)) {
                     thmProver.reset();
                     // abstract post leads to false, we can return immediately
-                    return makeFalse();
+                    return amgr.makeFalse();
                 }
             }
         }
@@ -660,7 +664,7 @@ public class BDDMathsatSummaryAbstractManager extends
                     }
                     feasibilityCache.put(key, false);
                 }
-                return makeFalse();
+                return amgr.makeFalse();
             } else {
                 if (useCache) {
                     FeasibilityCacheKey key = new FeasibilityCacheKey(fkey);
@@ -678,7 +682,7 @@ public class BDDMathsatSummaryAbstractManager extends
 
         long totBddTime = 0;
 
-        AbstractFormula absbdd = makeTrue();
+        AbstractFormula absbdd = amgr.makeTrue();
 
         // check whether each of the predicate is implied in the next state...
         Set<String> predvars = new HashSet<String>();
@@ -694,10 +698,10 @@ public class BDDMathsatSummaryAbstractManager extends
                 long startBddTime = System.currentTimeMillis();
                 AbstractFormula v = p.getFormula();
                 if (predVals[predIndex] == -1) { // pred is false
-                    v = makeNot(v);
-                    absbdd = makeAnd(absbdd, v);
+                    v = amgr.makeNot(v);
+                    absbdd = amgr.makeAnd(absbdd, v);
                 } else if (predVals[predIndex] == 1) { // pred is true
-                    absbdd = makeAnd(absbdd, v);
+                    absbdd = amgr.makeAnd(absbdd, v);
                 }
                 long endBddTime = System.currentTimeMillis();
                 totBddTime += (endBddTime - startBddTime);
@@ -711,7 +715,7 @@ public class BDDMathsatSummaryAbstractManager extends
                 // (at index 1)
                 predvars.clear();
                 predlvals.clear();
-                collectVarNames(mmgr, pi.getSecond().getTerm(),
+                collectVarNames(pi.getSecond().getTerm(),
                         predvars, predlvals);
                 for (String var : predvars) {
                     if (ssa.getIndex(var) < 0) {
@@ -720,7 +724,7 @@ public class BDDMathsatSummaryAbstractManager extends
                 }
                 for (Pair<String, SymbolicFormula[]> pp : predlvals) {
                     SymbolicFormula[] args =
-                        getInstantiatedAt(mmgr, pp.getSecond(), ssa,
+                        getInstantiatedAt(pp.getSecond(), ssa,
                                 predLvalsCache);
                     if (ssa.getIndex(pp.getFirst(), args) < 0) {
                         ssa.setIndex(pp.getFirst(), args, 1);
@@ -753,7 +757,7 @@ public class BDDMathsatSummaryAbstractManager extends
                 if (isTrue) {
                     long startBddTime = System.currentTimeMillis();
                     AbstractFormula v = p.getFormula();
-                    absbdd = makeAnd(absbdd, v);
+                    absbdd = amgr.makeAnd(absbdd, v);
                     long endBddTime = System.currentTimeMillis();
                     totBddTime += (endBddTime - startBddTime);
                 } else {
@@ -767,8 +771,8 @@ public class BDDMathsatSummaryAbstractManager extends
                     if (isFalse) {
                         long startBddTime = System.currentTimeMillis();
                         AbstractFormula v = p.getFormula();
-                        v = makeNot(v);
-                        absbdd = makeAnd(absbdd, v);
+                        v = amgr.makeNot(v);
+                        absbdd = amgr.makeAnd(absbdd, v);
                         long endBddTime = System.currentTimeMillis();
                         totBddTime += (endBddTime - startBddTime);
                     }
@@ -1136,7 +1140,8 @@ public class BDDMathsatSummaryAbstractManager extends
         return ret;
     }
 
-    @Override
+    // TODO move this statistics to stop operator 
+    /*@Override
     public boolean entails(AbstractFormula f1, AbstractFormula f2) {
         long start = System.currentTimeMillis();
         boolean ret = super.entails(f1, f2);
@@ -1146,7 +1151,7 @@ public class BDDMathsatSummaryAbstractManager extends
         stats.bddCoverageCheckTime += (end - start);
         ++stats.numCoverageChecks;
         return ret;
-    }
+    }*/
 
     /*
     private void dumpInterpolationProblem(MathsatSymbolicFormulaManager mmgr,

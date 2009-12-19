@@ -11,7 +11,6 @@ import java.util.logging.Level;
 
 import symbpredabstraction.UpdateablePredicateMap;
 import symbpredabstraction.interfaces.Predicate;
-import symbpredabstraction.interfaces.SymbolicFormulaManager;
 import symbpredabstraction.trace.CounterexampleTraceInfo;
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFANode;
@@ -32,8 +31,7 @@ import exceptions.CPAException;
 public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
 
   private final SymbPredAbsCPA mCpa;
-  private final SymbolicFormulaManager symbolicFormulaManager;
-  private final SymbPredAbstFormulaManager abstractFormulaManager;
+  private final SymbPredAbstFormulaManager formulaManager;
 
   private int numSeenAbstractCounterexample = 0;
   private List<Integer> seenAbstractCounterexample = null;
@@ -62,8 +60,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
       mCpa = symbPredAbsCpa;
     }
 
-    symbolicFormulaManager = mCpa.getSymbolicFormulaManager();
-    abstractFormulaManager = mCpa.getAbstractFormulaManager();
+    formulaManager = mCpa.getFormulaManager();
   }
 
   @Override
@@ -92,8 +89,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
     // TODO PW I can't imagine why this path has to be like this, is it correct?
         
     // build the counterexample
-    CounterexampleTraceInfo info = abstractFormulaManager.buildCounterexampleTrace(
-        symbolicFormulaManager, path);
+    CounterexampleTraceInfo info = formulaManager.buildCounterexampleTrace(path);
         
     // if error is spurious refine
     if (info.isSpurious()) {

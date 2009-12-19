@@ -27,12 +27,10 @@ import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
 
-import cmdline.CPAMain;
-
 import symbpredabstraction.interfaces.AbstractFormula;
 import symbpredabstraction.interfaces.Predicate;
-import symbpredabstraction.interfaces.SymbolicFormulaManager;
 import cfa.objectmodel.CFAEdge;
+import cmdline.CPAMain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.Precision;
@@ -145,19 +143,18 @@ public class PredicateAbstractionTransferRelation implements TransferRelation {
 //  succ.popContext();
 //  }
 
-    PredicateAbstractionAbstractFormulaManager amgr = cpa.getAbstractFormulaManager();
+    PredicateAbstractionAbstractFormulaManager amgr = cpa.getPredAbsFormulaManager();
     AbstractFormula abstraction = amgr.buildAbstraction(
-        cpa.getFormulaManager(), e, succ, edge, predicates);
+        e, succ, edge, predicates);
     succ.setAbstraction(abstraction);
 //  succ.setParent(e);
 
     if (CPAMain.logManager.getLogLevel().intValue() <= Level.ALL.intValue()) {
-      SymbolicFormulaManager mgr = cpa.getFormulaManager();
       CPAMain.logManager.log(Level.ALL, "DEBUG_1", "COMPUTED ABSTRACTION:",
-          amgr.toConcrete(mgr, abstraction));
+          amgr.toConcrete(abstraction));
     }
 
-    if (amgr.isFalse(abstraction)) {
+    if (cpa.getAbstractFormulaManager().isFalse(abstraction)) {
       return domain.getBottomElement();
     } else {
       //++numAbstractStates;

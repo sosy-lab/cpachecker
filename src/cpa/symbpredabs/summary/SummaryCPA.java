@@ -39,7 +39,9 @@ import java.util.logging.Level;
 import symbpredabstraction.FixedPredicateMap;
 import symbpredabstraction.SSAMap;
 import symbpredabstraction.UpdateablePredicateMap;
+import symbpredabstraction.bdd.BDDAbstractFormulaManager;
 import symbpredabstraction.interfaces.AbstractFormula;
+import symbpredabstraction.interfaces.AbstractFormulaManager;
 import symbpredabstraction.interfaces.InterpolatingTheoremProver;
 import symbpredabstraction.interfaces.Predicate;
 import symbpredabstraction.interfaces.PredicateMap;
@@ -50,7 +52,6 @@ import symbpredabstraction.mathsat.MathsatPredicateParser;
 import symbpredabstraction.mathsat.MathsatTheoremProver;
 import symbpredabstraction.mathsat.SimplifyTheoremProver;
 import symbpredabstraction.mathsat.YicesTheoremProver;
-
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cfa.objectmodel.CFANode;
 import cmdline.CPAMain;
@@ -82,6 +83,7 @@ public class SummaryCPA implements ConfigurableProgramAnalysis, CPAWithStatistic
     // private SummaryMergeOperator merge;
     private SummaryStopOperator stop;
     private PrecisionAdjustment precisionAdjustment;
+    private AbstractFormulaManager abstractFormulaManager;
     private MathsatSummaryFormulaManager mgr;
     private BDDMathsatSummaryAbstractManager amgr;
     private PredicateMap pmap;
@@ -97,6 +99,7 @@ public class SummaryCPA implements ConfigurableProgramAnalysis, CPAWithStatistic
         // merge = new SummaryMergeOperator(domain);
         stop = new SummaryStopOperator(domain);
         precisionAdjustment = new SummaryPrecisionAdjustment();
+        abstractFormulaManager = new BDDAbstractFormulaManager();
         mgr = new MathsatSummaryFormulaManager();
         TheoremProver thmProver = null;
         String whichProver = CPAMain.cpaConfig.getProperty(
@@ -114,7 +117,7 @@ public class SummaryCPA implements ConfigurableProgramAnalysis, CPAWithStatistic
         }
         InterpolatingTheoremProver itpProver =
             new MathsatInterpolatingProver(mgr, false);
-        amgr = new BDDMathsatSummaryAbstractManager(thmProver, itpProver);
+        amgr = new BDDMathsatSummaryAbstractManager(abstractFormulaManager, mgr, thmProver, itpProver);
         covered = new HashSet<SummaryAbstractElement>();
 
         // for testing purposes, it's nice to be able to use a given set of
@@ -178,14 +181,18 @@ public class SummaryCPA implements ConfigurableProgramAnalysis, CPAWithStatistic
       return precisionAdjustment;
     }
 
-    public SummaryAbstractFormulaManager getAbstractFormulaManager() {
-        return amgr;
+    public AbstractFormulaManager getAbstractFormulaManager() {
+        return abstractFormulaManager;
     }
 
     public SummaryFormulaManager getFormulaManager() {
         return mgr;
     }
 
+    public SummaryAbstractFormulaManager getSummaryFormulaManager() {
+      return amgr;
+    }
+    
     public PredicateMap getPredicateMap() {
         return pmap;
     }
@@ -232,7 +239,7 @@ public class SummaryCPA implements ConfigurableProgramAnalysis, CPAWithStatistic
         SummaryAbstractElement e = new SummaryAbstractElement(loc);
         Map<CFANode, Pair<SymbolicFormula, SSAMap>> p = getPathFormulas(loc);
         e.setPathFormulas(p);
-        e.setAbstraction(amgr.makeTrue());
+        e.setAbstraction(abstractFormulaManager.makeTrue());
         e.setContext(new Stack<Pair<AbstractFormula, SummaryCFANode>>(), true);
         return e;
     }

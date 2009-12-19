@@ -27,7 +27,7 @@ import java.util.Collection;
 import java.util.Deque;
 
 import symbpredabstraction.interfaces.AbstractFormula;
-import symbpredabstraction.interfaces.AbstractFormulaManager;
+import symbpredabstraction.interfaces.FormulaManager;
 import symbpredabstraction.interfaces.Predicate;
 import symbpredabstraction.trace.CounterexampleTraceInfo;
 
@@ -37,7 +37,7 @@ import symbpredabstraction.trace.CounterexampleTraceInfo;
  *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
-public interface SummaryAbstractFormulaManager extends AbstractFormulaManager {
+public interface SummaryAbstractFormulaManager extends FormulaManager {
 
     /**
      * Abstract post operation.

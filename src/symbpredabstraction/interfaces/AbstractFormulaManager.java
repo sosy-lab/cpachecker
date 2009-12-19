@@ -34,29 +34,6 @@ import common.Triple;
 public interface AbstractFormulaManager {
 
   /**
-   * @return a concrete representation of an abstract formula
-   * The formula returned is a "generic" version, not instantiated to any
-   * particular "SSA step" (see SymbolicFormulaManager.instantiate()).
-   */
-  public SymbolicFormula toConcrete(SymbolicFormulaManager mgr,
-                                    AbstractFormula af);
-  /**
-   * Computes the predicate abstraction of the given formula
-   * @param mgr the manager for the symbolic formula
-   * @param f the formula to abstract
-   * @param ssa the SSAMap to use for resolving variable names
-   * @param predicates the list of predicates
-   * @return the predicate abstraction of f
-   */
-  /*
-   * PW removed in revision 761 because there was only one broken
-   * implementation and nobody used it.
-   * 
-  public AbstractFormula toAbstract(SymbolicFormulaManager mgr,
-          SymbolicFormula f, SSAMap ssa, Collection<Predicate> predicates);
-  */
-
-  /**
    * checks whether the data region represented by f1
    * is a subset of that represented by f2
    * @param f1 an AbstractFormula

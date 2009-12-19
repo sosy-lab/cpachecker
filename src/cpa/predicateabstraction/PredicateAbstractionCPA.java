@@ -33,10 +33,11 @@ import java.util.logging.Level;
 
 import symbpredabstraction.FixedPredicateMap;
 import symbpredabstraction.UpdateablePredicateMap;
+import symbpredabstraction.bdd.BDDAbstractFormulaManager;
+import symbpredabstraction.interfaces.AbstractFormulaManager;
 import symbpredabstraction.interfaces.InterpolatingTheoremProver;
 import symbpredabstraction.interfaces.Predicate;
 import symbpredabstraction.interfaces.PredicateMap;
-import symbpredabstraction.interfaces.SymbolicFormulaManager;
 import symbpredabstraction.interfaces.TheoremProver;
 import symbpredabstraction.mathsat.MathsatInterpolatingProver;
 import symbpredabstraction.mathsat.MathsatPredicateParser;
@@ -70,7 +71,7 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis, CPA
     private final PredicateAbstractionMergeOperator merge;
     private final PredicateAbstractionStopOperator stop;
     private final PrecisionAdjustment precisionAdjustment;
-    private final MathsatSymbolicFormulaManager mgr;
+    private final AbstractFormulaManager abstractFormulaManager;
     private final BDDMathsatPredicateAbstractionAbstractManager amgr;
     private PredicateMap pmap;
 
@@ -82,7 +83,8 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis, CPA
         merge = new PredicateAbstractionMergeOperator();
         stop = new PredicateAbstractionStopOperator(domain);
         precisionAdjustment = new PredicateAbstractionPrecisionAdjustment();
-        mgr = new MathsatSymbolicFormulaManager();
+        abstractFormulaManager = new BDDAbstractFormulaManager();
+        MathsatSymbolicFormulaManager mgr = new MathsatSymbolicFormulaManager();
         String whichProver = CPAMain.cpaConfig.getProperty(
                 "cpas.symbpredabs.explicit.abstraction.solver", "mathsat");
         TheoremProver prover = null;
@@ -98,7 +100,7 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis, CPA
         }
         InterpolatingTheoremProver itpProver =
             new MathsatInterpolatingProver(mgr, true);
-        amgr = new BDDMathsatPredicateAbstractionAbstractManager(prover, itpProver);
+        amgr = new BDDMathsatPredicateAbstractionAbstractManager(abstractFormulaManager, mgr, prover, itpProver);
 
 //        covers = new HashMap<ExplicitAbstractElement,
 //                             Set<ExplicitAbstractElement>>();
@@ -171,7 +173,7 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis, CPA
                        "Getting initial element from node: ", node);
 
         PredicateAbstractionAbstractElement e = new PredicateAbstractionAbstractElement();
-        e.setAbstraction(amgr.makeTrue());
+        e.setAbstraction(abstractFormulaManager.makeTrue());
         return e;
     }
     
@@ -179,14 +181,14 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis, CPA
       return new PredicateAbstractionPrecision();
     }
 
-    public PredicateAbstractionAbstractFormulaManager getAbstractFormulaManager() {
-        return amgr;
+    public AbstractFormulaManager getAbstractFormulaManager() {
+        return abstractFormulaManager;
     }
 
-    public SymbolicFormulaManager getFormulaManager() {
-        return mgr;
+    public PredicateAbstractionAbstractFormulaManager getPredAbsFormulaManager() {
+      return amgr;
     }
-
+    
     public PredicateMap getPredicateMap() {
         return pmap;
     }

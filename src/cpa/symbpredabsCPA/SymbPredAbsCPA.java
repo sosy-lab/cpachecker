@@ -37,7 +37,9 @@ import symbpredabstraction.FixedPredicateMap;
 import symbpredabstraction.PathFormula;
 import symbpredabstraction.SSAMap;
 import symbpredabstraction.UpdateablePredicateMap;
+import symbpredabstraction.bdd.BDDAbstractFormulaManager;
 import symbpredabstraction.interfaces.AbstractFormula;
+import symbpredabstraction.interfaces.AbstractFormulaManager;
 import symbpredabstraction.interfaces.InterpolatingTheoremProver;
 import symbpredabstraction.interfaces.Predicate;
 import symbpredabstraction.interfaces.PredicateMap;
@@ -74,13 +76,15 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, CPAWithStati
   private final SymbPredAbsTransferRelation transfer;
   private final SymbPredAbsMergeOperator merge;
   private final StopOperator stop;
+  private final AbstractFormulaManager abstractFormulaManager;
   private final MathsatSymbolicFormulaManager symbolicFormulaManager;
-  private final BDDMathsatSymbPredAbstractionAbstractManager abstractFormulaManager;
+  private final BDDMathsatSymbPredAbstractionAbstractManager formulaManager;
   private final PredicateMap predicateMap;
   private final SymbPredAbsCPAStatistics stats;
 
   private SymbPredAbsCPA() throws CPAException {
     predicateMap = createPredicateMap();
+    abstractFormulaManager = new BDDAbstractFormulaManager();
     symbolicFormulaManager = new MathsatSymbolicFormulaManager();
     TheoremProver thmProver;
     String whichProver = CPAMain.cpaConfig.getProperty(
@@ -97,7 +101,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, CPAWithStati
     }
     InterpolatingTheoremProver itpProver =
       new MathsatInterpolatingProver(symbolicFormulaManager, false);
-    abstractFormulaManager = new BDDMathsatSymbPredAbstractionAbstractManager(thmProver, itpProver);
+    formulaManager = new BDDMathsatSymbPredAbstractionAbstractManager(abstractFormulaManager, symbolicFormulaManager, thmProver, itpProver);
     domain = new SymbPredAbsAbstractDomain(abstractFormulaManager);
     transfer = new SymbPredAbsTransferRelation(this);
     merge = new SymbPredAbsMergeOperator(this);
@@ -111,7 +115,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, CPAWithStati
     // for testing purposes, it's nice to be able to use a given set of
     // predicates and disable refinement
     if (CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.abstraction.norefinement")) {
-      MathsatPredicateParser p = new MathsatPredicateParser(symbolicFormulaManager, abstractFormulaManager);
+      MathsatPredicateParser p = new MathsatPredicateParser(symbolicFormulaManager, formulaManager);
       Collection<Predicate> preds;
       try {
         String pth = CPAMain.cpaConfig.getProperty("predicates.path");
@@ -151,8 +155,12 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, CPAWithStati
     return stop;
   }
 
-  public SymbPredAbstFormulaManager getAbstractFormulaManager() {
+  public AbstractFormulaManager getAbstractFormulaManager() {
     return abstractFormulaManager;
+  }
+  
+  public SymbPredAbstFormulaManager getFormulaManager() {
+    return formulaManager;
   }
 
   public PredicateMap getPredicateMap() {

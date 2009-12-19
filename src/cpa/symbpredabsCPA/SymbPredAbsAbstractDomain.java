@@ -26,7 +26,6 @@ package cpa.symbpredabsCPA;
 import java.util.List;
 
 import symbpredabstraction.interfaces.AbstractFormulaManager;
-
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.JoinOperator;
@@ -73,6 +72,17 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
       SymbPredAbsAbstractElement e1 = (SymbPredAbsAbstractElement)element1;
       SymbPredAbsAbstractElement e2 = (SymbPredAbsAbstractElement)element2;
 
+      // TODO time statistics (previously in formula manager)
+      /*
+    long start = System.currentTimeMillis();
+    entails(f1, f2);
+    long end = System.currentTimeMillis();
+    stats.bddCoverageCheckMaxTime = Math.max(stats.bddCoverageCheckMaxTime,
+        (end - start));
+    stats.bddCoverageCheckTime += (end - start);
+    ++stats.numCoverageChecks;
+       */
+      
       if (e1 == bottom) {
         return true;
       } else if (e2 == top) {

@@ -21,7 +21,7 @@ import common.Triple;
  * 
  * TODO perhaps introduce caching for BDD -> BDDAbstractFormulas
  */
-public abstract class BDDAbstractFormulaManager implements AbstractFormulaManager {
+public class BDDAbstractFormulaManager implements AbstractFormulaManager {
   
   private final boolean useCache;
   private final Map<Pair<AbstractFormula, AbstractFormula>, Boolean> entailsCache;

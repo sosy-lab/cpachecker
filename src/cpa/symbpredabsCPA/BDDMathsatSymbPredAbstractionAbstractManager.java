@@ -42,10 +42,10 @@ import symbpredabstraction.Cache.CartesianAbstractionCacheKey;
 import symbpredabstraction.Cache.FeasibilityCacheKey;
 import symbpredabstraction.Cache.TimeStampCache;
 import symbpredabstraction.interfaces.AbstractFormula;
+import symbpredabstraction.interfaces.AbstractFormulaManager;
 import symbpredabstraction.interfaces.InterpolatingTheoremProver;
 import symbpredabstraction.interfaces.Predicate;
 import symbpredabstraction.interfaces.SymbolicFormula;
-import symbpredabstraction.interfaces.SymbolicFormulaManager;
 import symbpredabstraction.interfaces.TheoremProver;
 import symbpredabstraction.mathsat.BDDMathsatAbstractFormulaManager;
 import symbpredabstraction.mathsat.MathsatAbstractionPrinter;
@@ -139,12 +139,15 @@ implements SymbPredAbstFormulaManager
 
   private final boolean dumpHardAbstractions;
 
-  public BDDMathsatSymbPredAbstractionAbstractManager(TheoremProver prover,
-      InterpolatingTheoremProver interpolator) {
-    super();
+  public BDDMathsatSymbPredAbstractionAbstractManager(
+      AbstractFormulaManager pAmgr,
+      MathsatSymbolicFormulaManager pMmgr,
+      TheoremProver pThmProver,
+      InterpolatingTheoremProver pItpProver) {
+    super(pAmgr, pMmgr);
     stats = new Stats();
-    thmProver = prover;
-    itpProver = interpolator;
+    thmProver = pThmProver;
+    itpProver = pItpProver;
 
     dumpHardAbstractions = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.mathsat.dumpHardAbstractionQueries");
     useCache = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.mathsat.useCache");
@@ -161,28 +164,25 @@ implements SymbPredAbstFormulaManager
   }
 
   @Override
-  public AbstractFormula buildAbstraction(SymbolicFormulaManager mgr,
+  public AbstractFormula buildAbstraction(
       AbstractFormula abs, PathFormula pathFormula,
-      Collection<Predicate> predicates/*, SymbolicFormula functionExitFormula*/) {
+      Collection<Predicate> predicates) {
     stats.numCallsAbstraction++;
     if (CPAMain.cpaConfig.getBooleanValue(
     "cpas.symbpredabs.abstraction.cartesian")) {
-      return buildCartesianAbstraction(mgr, abs, pathFormula, predicates/*, functionExitFormula*/);
+      return buildCartesianAbstraction(abs, pathFormula, predicates);
     } else {
-      return buildBooleanAbstraction(mgr, abs, pathFormula, predicates/*, functionExitFormula*/);
+      return buildBooleanAbstraction(abs, pathFormula, predicates);
     }
   }
 
   private AbstractFormula buildCartesianAbstraction(
-      SymbolicFormulaManager mgr,
       AbstractFormula abs,
       PathFormula pathFormula,
       Collection<Predicate> predicates/*,
       SymbolicFormula functionExitFormula*/) {
     
     long startTime = System.currentTimeMillis();
-
-    MathsatSymbolicFormulaManager mmgr = (MathsatSymbolicFormulaManager)mgr;
 
     long msatEnv = mmgr.getMsatEnv();
 
@@ -223,7 +223,7 @@ implements SymbPredAbstFormulaManager
             if (!feasibilityCache.get(key)) {
                 thmProver.reset();
                 // abstract post leads to false, we can return immediately
-                return makeFalse();
+                return amgr.makeFalse();
             }
         }
     }
@@ -251,7 +251,7 @@ implements SymbPredAbstFormulaManager
                 }
                 feasibilityCache.put(key, false);
             }
-            return makeFalse();
+            return amgr.makeFalse();
         } else {
             if (useCache) {
                 FeasibilityCacheKey key = new FeasibilityCacheKey(fkey);
@@ -269,7 +269,7 @@ implements SymbPredAbstFormulaManager
 
     long totBddTime = 0;
 
-    AbstractFormula absbdd = makeTrue();
+    AbstractFormula absbdd = amgr.makeTrue();
 
     // check whether each of the predicate is implied in the next state...
     Set<String> predvars = new HashSet<String>();
@@ -285,10 +285,10 @@ implements SymbPredAbstFormulaManager
             long startBddTime = System.currentTimeMillis();
             AbstractFormula v = p.getFormula();
             if (predVals[predIndex] == -1) { // pred is false
-                v = makeNot(v);
-                absbdd = makeAnd(absbdd, v);
+                v = amgr.makeNot(v);
+                absbdd = amgr.makeAnd(absbdd, v);
             } else if (predVals[predIndex] == 1) { // pred is true
-                absbdd = makeAnd(absbdd, v);
+                absbdd = amgr.makeAnd(absbdd, v);
             }
             long endBddTime = System.currentTimeMillis();
             totBddTime += (endBddTime - startBddTime);
@@ -302,7 +302,7 @@ implements SymbPredAbstFormulaManager
             // (at index 1)
             predvars.clear();
             predlvals.clear();
-            collectVarNames(mmgr, pi.getSecond().getTerm(),
+            collectVarNames(pi.getSecond().getTerm(),
                     predvars, predlvals);
             for (String var : predvars) {
                 if (ssa.getIndex(var) < 0) {
@@ -311,7 +311,7 @@ implements SymbPredAbstFormulaManager
             }
             for (Pair<String, SymbolicFormula[]> pp : predlvals) {
                 SymbolicFormula[] args =
-                    getInstantiatedAt(mmgr, pp.getSecond(), ssa,
+                    getInstantiatedAt(pp.getSecond(), ssa,
                             predLvalsCache);
                 if (ssa.getIndex(pp.getFirst(), args) < 0) {
                     ssa.setIndex(pp.getFirst(), args, 1);
@@ -344,7 +344,7 @@ implements SymbPredAbstFormulaManager
             if (isTrue) {
                 long startBddTime = System.currentTimeMillis();
                 AbstractFormula v = p.getFormula();
-                absbdd = makeAnd(absbdd, v);
+                absbdd = amgr.makeAnd(absbdd, v);
                 long endBddTime = System.currentTimeMillis();
                 totBddTime += (endBddTime - startBddTime);
             } else {
@@ -358,8 +358,8 @@ implements SymbPredAbstFormulaManager
                 if (isFalse) {
                     long startBddTime = System.currentTimeMillis();
                     AbstractFormula v = p.getFormula();
-                    v = makeNot(v);
-                    absbdd = makeAnd(absbdd, v);
+                    v = amgr.makeNot(v);
+                    absbdd = amgr.makeAnd(absbdd, v);
                     long endBddTime = System.currentTimeMillis();
                     totBddTime += (endBddTime - startBddTime);
                 }
@@ -401,11 +401,10 @@ implements SymbPredAbstFormulaManager
     
   }
 
-  private AbstractFormula buildBooleanAbstraction(SymbolicFormulaManager mgr,
+  private AbstractFormula buildBooleanAbstraction(
       AbstractFormula abstractionFormula, PathFormula pathFormula,
-      Collection<Predicate> predicates/*, SymbolicFormula functionExitFormula*/) {
+      Collection<Predicate> predicates) {
     // A SummaryFormulaManager for MathSAT formulas
-    MathsatSymbolicFormulaManager mmgr = (MathsatSymbolicFormulaManager)mgr;
 
     long startTime = System.currentTimeMillis();
 
@@ -414,7 +413,7 @@ implements SymbPredAbstFormulaManager
     // which is basically an integer which represents it
     // create the concrete form of the abstract formula
     // (abstract formula is the bdd representation)
-    final SymbolicFormula absFormula = mgr.instantiate(toConcrete(mgr, abstractionFormula), null);
+    final SymbolicFormula absFormula = smgr.instantiate(toConcrete(abstractionFormula), null);
 
     // create an ssamap from concrete formula
     SSAMap absSsa = mmgr.extractSSA((MathsatSymbolicFormula)absFormula);
@@ -422,7 +421,7 @@ implements SymbPredAbstFormulaManager
     // shift pathFormula indices by the offsets in absSsa
     long start = System.currentTimeMillis();
 
-    pathFormula = mgr.shift(pathFormula.getSymbolicFormula(), absSsa);
+    pathFormula = smgr.shift(pathFormula.getSymbolicFormula(), absSsa);
     SymbolicFormula symbFormula = mmgr.replaceAssignments((MathsatSymbolicFormula)pathFormula.getSymbolicFormula());
     final SSAMap symbSsa = pathFormula.getSsa();
 
@@ -435,7 +434,7 @@ implements SymbPredAbstFormulaManager
     if (CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.useBitwiseAxioms")) {
       MathsatSymbolicFormula bitwiseAxioms = mmgr.getBitwiseAxioms(
           (MathsatSymbolicFormula)symbFormula);
-      symbFormula = mgr.makeAnd(symbFormula, bitwiseAxioms);
+      symbFormula = smgr.makeAnd(symbFormula, bitwiseAxioms);
 
       CPAMain.logManager.log(Level.ALL, "DEBUG_3", "ADDED BITWISE AXIOMS:",
           bitwiseAxioms);
@@ -451,7 +450,7 @@ implements SymbPredAbstFormulaManager
 
 
     // build the definition of the predicates, and instantiate them
-    PredInfo predinfo = buildPredList(mmgr, predicates);
+    PredInfo predinfo = buildPredList(predicates);
     {
       Collection<String> predvars = predinfo.allVars;
       Collection<Pair<String, SymbolicFormula[]>> predlvals =
@@ -467,7 +466,7 @@ implements SymbPredAbstFormulaManager
         new HashMap<SymbolicFormula, SymbolicFormula>();
       for (Pair<String, SymbolicFormula[]> p : predlvals) {
         SymbolicFormula[] args =
-          getInstantiatedAt(mmgr, p.getSecond(), symbSsa, cache);
+          getInstantiatedAt(p.getSecond(), symbSsa, cache);
         if (symbSsa.getIndex(p.getFirst(), args) < 0) {
           symbSsa.setIndex(p.getFirst(), args, 1);
         }
@@ -496,12 +495,12 @@ implements SymbPredAbstFormulaManager
 
     
     // instantiate the definitions with the right SSA
-    SymbolicFormula predDef = mgr.instantiate(
+    SymbolicFormula predDef = smgr.instantiate(
         new MathsatSymbolicFormula(predinfo.predDef), symbSsa);
 
     // the formula is (absFormula & symbFormula & predDef)
-    final SymbolicFormula fm = mgr.makeAnd( 
-        mgr.makeAnd(absFormula, symbFormula), predDef);
+    final SymbolicFormula fm = smgr.makeAnd( 
+        smgr.makeAnd(absFormula, symbFormula), predDef);
     
     CPAMain.logManager.log(Level.ALL, "DEBUG_2",
         "COMPUTING ALL-SMT ON FORMULA: ", fm);
@@ -526,7 +525,7 @@ implements SymbPredAbstFormulaManager
 
       if (numModels == -2) {
         // formula has infinite number of models
-        result = makeTrue();
+        result = amgr.makeTrue();
       } else {
         result = allSatCallback.getBDD();
       }
@@ -569,17 +568,16 @@ implements SymbPredAbstFormulaManager
   }
 
   @Override
-  public CounterexampleTraceInfo buildCounterexampleTrace(SymbolicFormulaManager mgr,
+  public CounterexampleTraceInfo buildCounterexampleTrace(
       ArrayList<SymbPredAbsAbstractElement> abstractTrace) {
     assert(abstractTrace.size() > 1);
-    MathsatSymbolicFormulaManager mmgr = (MathsatSymbolicFormulaManager)mgr;
 
     long startTime = System.currentTimeMillis();
     stats.numCallsCexAnalysis++;
 
     CPAMain.logManager.log(Level.FINEST, "Building counterexample trace");
 
-    Vector<SymbolicFormula> f = getFormulasForTrace(mgr, abstractTrace);
+    Vector<SymbolicFormula> f = getFormulasForTrace(abstractTrace);
 
     CPAMain.logManager.log(Level.ALL, "Counterexample trace formulas:", f);
     
@@ -587,7 +585,7 @@ implements SymbPredAbstFormulaManager
     boolean useDtc = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.mathsat.useDtc");
 
     if (useDtc) {
-      theoryCombinationNeeded = addBitwiseAxioms(mgr, f);
+      theoryCombinationNeeded = addBitwiseAxioms(f);
     }
     
     CPAMain.logManager.log(Level.FINEST, "Checking feasibility of counterexample trace");
@@ -605,7 +603,7 @@ implements SymbPredAbstFormulaManager
     long msatSolveTimeStart = System.currentTimeMillis();
 
     if (shortestTrace && CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.explicit.getUsefulBlocks")) {
-      f = getUsefulBlocks(mgr, f, theoryCombinationNeeded, useSuffix, useZigZag);
+      f = getUsefulBlocks(f, theoryCombinationNeeded, useSuffix, useZigZag);
      
       // set shortestTrace to false, so we perform only one final call
       // to msat_solve
@@ -659,7 +657,7 @@ implements SymbPredAbstFormulaManager
 
         Collection<SymbolicFormula> atoms = mmgr.extractAtoms(
             itp, true, splitItpAtoms, false);
-        Set<Predicate> preds = buildPredicates(mgr, atoms);
+        Set<Predicate> preds = buildPredicates(atoms);
         SymbPredAbsAbstractElement e = abstractTrace.get(i);
         info.addPredicatesForRefinement(e, preds);
 
@@ -693,9 +691,9 @@ implements SymbPredAbstFormulaManager
       if (cexFile != null) {
         String path = CPAMain.cpaConfig.getProperty("output.path") + cexFile;
         try {
-          SymbolicFormula t = mgr.makeTrue();
+          SymbolicFormula t = smgr.makeTrue();
           for (SymbolicFormula fm : f) {
-            t = mgr.makeAnd(t, fm);
+            t = smgr.makeAnd(t, fm);
           }
           String msatRepr = mmgr.dumpFormula(t);
 
@@ -727,7 +725,6 @@ implements SymbPredAbstFormulaManager
   }
 
   private Vector<SymbolicFormula> getFormulasForTrace(
-      SymbolicFormulaManager mgr,
       ArrayList<SymbPredAbsAbstractElement> abstractTrace) {
 
     // create the DAG formula corresponding to the abstract trace. We create
@@ -739,12 +736,12 @@ implements SymbPredAbstFormulaManager
     for (int i = 1; i < abstractTrace.size(); ++i) {
       SymbPredAbsAbstractElement e = abstractTrace.get(i);
       // TODO here we take the formula from the abstract element
-      PathFormula p = getInitSymbolicFormula(e.getInitAbstractionFormula(), mgr, (ssa == null));
+      PathFormula p = getInitSymbolicFormula(e.getInitAbstractionFormula(), (ssa == null));
       SSAMap newSsa;
       
       if (ssa != null) {
         CPAMain.logManager.log(Level.ALL, "DEBUG_3", "SHIFTING:", p.getSymbolicFormula(), " WITH SSA: ", ssa);
-        p = mgr.shift(p.getSymbolicFormula(), ssa);
+        p = smgr.shift(p.getSymbolicFormula(), ssa);
         newSsa = p.getSsa();
         CPAMain.logManager.log(Level.ALL, "DEBUG_3", "RESULT:", p.getSymbolicFormula(), " SSA: ", newSsa);
         newSsa.update(ssa);
@@ -767,13 +764,12 @@ implements SymbPredAbstFormulaManager
    * @param traceFormulas
    * @return
    */
-  private boolean addBitwiseAxioms(SymbolicFormulaManager mgr,
+  private boolean addBitwiseAxioms(
       Vector<SymbolicFormula> traceFormulas) {
-    MathsatSymbolicFormulaManager mmgr = (MathsatSymbolicFormulaManager)mgr;
 
     boolean foundUninterpretedFunction = false;
     
-    SymbolicFormula bitwiseAxioms = mgr.makeTrue();
+    SymbolicFormula bitwiseAxioms = smgr.makeTrue();
     boolean useBitwiseAxioms = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.useBitwiseAxioms");
     
     for (SymbolicFormula fm : traceFormulas) {
@@ -783,7 +779,7 @@ implements SymbPredAbstFormulaManager
 
         if (useBitwiseAxioms) {
           SymbolicFormula a = mmgr.getBitwiseAxioms((MathsatSymbolicFormula)fm);
-          bitwiseAxioms = mgr.makeAnd(bitwiseAxioms, a);
+          bitwiseAxioms = smgr.makeAnd(bitwiseAxioms, a);
         } else {
           // do not need to check all formulas, one with UF is enough
           break;
@@ -794,7 +790,7 @@ implements SymbPredAbstFormulaManager
     if (useBitwiseAxioms && foundUninterpretedFunction) {
       CPAMain.logManager.log(Level.ALL, "DEBUG_3", "ADDING BITWISE AXIOMS TO THE",
           "LAST GROUP: ", bitwiseAxioms);
-      traceFormulas.setElementAt(mgr.makeAnd(traceFormulas.elementAt(traceFormulas.size()-1), bitwiseAxioms),
+      traceFormulas.setElementAt(smgr.makeAnd(traceFormulas.elementAt(traceFormulas.size()-1), bitwiseAxioms),
           traceFormulas.size()-1);
     }
     return foundUninterpretedFunction;
@@ -878,19 +874,19 @@ implements SymbPredAbstFormulaManager
     return spurious;
   }
 
-  private PathFormula getInitSymbolicFormula(PathFormula pf, SymbolicFormulaManager mgr, boolean replace) {
+  private PathFormula getInitSymbolicFormula(PathFormula pf, boolean replace) {
     SSAMap ssa = new SSAMap();
-    SymbolicFormula f = mgr.makeFalse();
+    SymbolicFormula f = smgr.makeFalse();
     Pair<Pair<SymbolicFormula, SymbolicFormula>, SSAMap> mp =
-      mgr.mergeSSAMaps(ssa, pf.getSsa(), false);
+      smgr.mergeSSAMaps(ssa, pf.getSsa(), false);
     SymbolicFormula curf = pf.getSymbolicFormula();
     // TODO modified if
     if (replace) {
-      curf = ((MathsatSymbolicFormulaManager)mgr).replaceAssignments((MathsatSymbolicFormula)curf);
+      curf = mmgr.replaceAssignments((MathsatSymbolicFormula)curf);
     }
-    f = mgr.makeAnd(f, mp.getFirst().getFirst());
-    curf = mgr.makeAnd(curf, mp.getFirst().getSecond());
-    f = mgr.makeOr(f, curf);
+    f = smgr.makeAnd(f, mp.getFirst().getFirst());
+    curf = smgr.makeAnd(curf, mp.getFirst().getSecond());
+    f = smgr.makeOr(f, curf);
     ssa = mp.getSecond();
     return new PathFormula(f,ssa);
   }
@@ -898,9 +894,8 @@ implements SymbPredAbstFormulaManager
   
   // generates the predicates corresponding to the given atoms, which were
   // extracted from the interpolant
-  private Set<Predicate> buildPredicates(SymbolicFormulaManager mgr,
-      Collection<SymbolicFormula> atoms) {
-    long dstenv = ((MathsatSymbolicFormulaManager)mgr).getMsatEnv();
+  private Set<Predicate> buildPredicates(Collection<SymbolicFormula> atoms) {
+    long dstenv = mmgr.getMsatEnv();
     Set<Predicate> ret = new HashSet<Predicate>();
     for (SymbolicFormula atom : atoms) {
       long tt = ((MathsatSymbolicFormula)atom).getTerm();
@@ -917,22 +912,8 @@ implements SymbPredAbstFormulaManager
     return ret;
   }
 
-  @Override
-  public boolean entails(AbstractFormula f1, AbstractFormula f2) {
-    long start = System.currentTimeMillis();
-    boolean ret = super.entails(f1, f2);
-    long end = System.currentTimeMillis();
-    stats.bddCoverageCheckMaxTime = Math.max(stats.bddCoverageCheckMaxTime,
-        (end - start));
-    stats.bddCoverageCheckTime += (end - start);
-    ++stats.numCoverageChecks;
-    return ret;
-  }
-
-  private Vector<SymbolicFormula> getUsefulBlocks(
-      SymbolicFormulaManager mgr, Vector<SymbolicFormula> f,
-      boolean theoryCombinationNeeded, boolean suffixTrace,
-      boolean zigZag) {
+  private Vector<SymbolicFormula> getUsefulBlocks(Vector<SymbolicFormula> f,
+      boolean theoryCombinationNeeded, boolean suffixTrace, boolean zigZag) {
     long gubStart = System.currentTimeMillis();
     
     // try to find a minimal-unsatisfiable-core of the trace (as Blast does)
@@ -942,7 +923,7 @@ implements SymbPredAbstFormulaManager
     CPAMain.logManager.log(Level.ALL, "DEBUG_1", "Calling getUsefulBlocks on path",
         "of length:", f.size());
 
-    SymbolicFormula trueFormula = mgr.makeTrue();
+    SymbolicFormula trueFormula = smgr.makeTrue();
     SymbolicFormula[] needed = new SymbolicFormula[f.size()];
     for (int i = 0; i < needed.length; ++i) {
       needed[i] = trueFormula;

@@ -32,6 +32,8 @@ import java.util.Stack;
 import java.util.TreeSet;
 import java.util.logging.Level;
 
+import symbpredabstraction.bdd.BDDAbstractFormulaManager;
+import symbpredabstraction.interfaces.AbstractFormulaManager;
 import symbpredabstraction.interfaces.InterpolatingTheoremProver;
 import symbpredabstraction.interfaces.SymbolicFormula;
 import symbpredabstraction.interfaces.SymbolicFormulaManager;
@@ -41,7 +43,6 @@ import symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
 import symbpredabstraction.mathsat.MathsatTheoremProver;
 import symbpredabstraction.mathsat.SimplifyTheoremProver;
 import symbpredabstraction.mathsat.YicesTheoremProver;
-
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cfa.objectmodel.CFANode;
 import cmdline.CPAMain;
@@ -86,6 +87,7 @@ public abstract class ItpCPA implements ConfigurableProgramAnalysis, CPAWithStat
                 Set<ItpAbstractElement>> covers;
 
     protected ItpCPA() {
+        AbstractFormulaManager abstractFormulaManager = new BDDAbstractFormulaManager();
         mgr = new MathsatSymbolicFormulaManager();
         TheoremProver thmProver = null;
         String whichProver = CPAMain.cpaConfig.getProperty(
@@ -104,7 +106,7 @@ public abstract class ItpCPA implements ConfigurableProgramAnalysis, CPAWithStat
         InterpolatingTheoremProver itpProver =
             new MathsatInterpolatingProver(mgr, true);
         ExplicitAbstractFormulaManager amgr =
-            new BDDMathsatExplicitAbstractManager(thmProver, itpProver);
+            new BDDMathsatExplicitAbstractManager(abstractFormulaManager, mgr, thmProver, itpProver);
 
         domain = new ItpAbstractDomain(this);
         trans = new ItpTransferRelation(domain);

@@ -26,8 +26,8 @@ package cpa.symbpredabs.explicit;
 import java.util.Collection;
 import java.util.logging.Level;
 
+import symbpredabstraction.interfaces.AbstractFormulaManager;
 import cmdline.CPAMain;
-
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.StopOperator;
@@ -97,7 +97,7 @@ public class ExplicitStopOperator implements StopOperator {
       }
 
       ExplicitCPA cpa = domain.getCPA();
-      ExplicitAbstractFormulaManager amgr =
+      AbstractFormulaManager amgr =
         cpa.getAbstractFormulaManager();
 
       assert(e1.getAbstraction() != null);

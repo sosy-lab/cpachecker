@@ -31,6 +31,7 @@ import java.util.Map;
 import symbpredabstraction.PathFormula;
 import symbpredabstraction.SSAMap;
 import symbpredabstraction.interfaces.AbstractFormula;
+import symbpredabstraction.interfaces.AbstractFormulaManager;
 import symbpredabstraction.interfaces.PredicateMap;
 import symbpredabstraction.interfaces.SymbolicFormulaManager;
 import cfa.objectmodel.CFAEdge;
@@ -75,8 +76,9 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   private final AbstractDomain domain;
   private final PredicateMap predicateMap;
   // formula managers
+  private final AbstractFormulaManager abstractFormulaManager;
   private final SymbolicFormulaManager symbolicFormulaManager;
-  private final SymbPredAbstFormulaManager abstractFormulaManager;
+  private final SymbPredAbstFormulaManager formulaManager;
 
   private final int blockSize;
   
@@ -93,8 +95,9 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   public SymbPredAbsTransferRelation(SymbPredAbsCPA pCpa) {
     domain = pCpa.getAbstractDomain();
     predicateMap = pCpa.getPredicateMap();
-    abstractFormulaManager = pCpa.getAbstractFormulaManager();
     symbolicFormulaManager = pCpa.getSymbolicFormulaManager();
+    abstractFormulaManager = pCpa.getAbstractFormulaManager();
+    formulaManager = pCpa.getFormulaManager();
     
     blockSize = Integer.parseInt(CPAMain.cpaConfig.getProperty("cpa.symbpredabs.blocksize", "0"));
   }
@@ -226,8 +229,8 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     long time1 = System.currentTimeMillis();
 
     // compute new abstraction
-    AbstractFormula newAbstraction = abstractFormulaManager.buildAbstraction(
-        symbolicFormulaManager, element.getAbstraction(), pathFormula, 
+    AbstractFormula newAbstraction = formulaManager.buildAbstraction(
+        element.getAbstraction(), pathFormula, 
         predicateMap.getRelevantPredicates(edge.getSuccessor()));
     
     long time2 = System.currentTimeMillis();

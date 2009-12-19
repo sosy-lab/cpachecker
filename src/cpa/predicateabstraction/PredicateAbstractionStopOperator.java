@@ -25,6 +25,7 @@ package cpa.predicateabstraction;
 
 import java.util.Collection;
 
+import symbpredabstraction.interfaces.AbstractFormulaManager;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.StopOperator;
@@ -84,7 +85,7 @@ public class PredicateAbstractionStopOperator implements StopOperator {
 //    }
 
     PredicateAbstractionCPA cpa = domain.getCPA();
-    PredicateAbstractionAbstractFormulaManager amgr =
+    AbstractFormulaManager amgr =
       cpa.getAbstractFormulaManager();
 
     assert(e1.getAbstraction() != null);

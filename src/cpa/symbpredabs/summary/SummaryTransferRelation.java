@@ -165,19 +165,18 @@ public class SummaryTransferRelation implements TransferRelation {
       succ.popContext();
     }
 
-    SummaryAbstractFormulaManager amgr = cpa.getAbstractFormulaManager();
+    SummaryAbstractFormulaManager amgr = cpa.getSummaryFormulaManager();
     AbstractFormula abstraction = amgr.buildAbstraction(
         cpa.getFormulaManager(), e, succ, predicates);
     succ.setAbstraction(abstraction);
     succ.setParent(e);
 
     if (CPAMain.logManager.getLogLevel().intValue() <= Level.ALL.intValue()) {
-      SummaryFormulaManager mgr = cpa.getFormulaManager();
       CPAMain.logManager.log(Level.ALL, "DEBUG_1", "COMPUTED ABSTRACTION:",
-          amgr.toConcrete(mgr, abstraction));
+          amgr.toConcrete(abstraction));
     }
 
-    if (amgr.isFalse(abstraction)) {
+    if (cpa.getAbstractFormulaManager().isFalse(abstraction)) {
       return domain.getBottomElement();
     } else {
       ++numAbstractStates;
@@ -247,8 +246,7 @@ public class SummaryTransferRelation implements TransferRelation {
         //assert(retNode != null);
         if (retNode != null) {
           CPAMain.logManager.log(Level.ALL, "DEBUG_3", "PUSHING CONTEXT TO", succ,
-              ": ", cpa.getAbstractFormulaManager().toConcrete(
-                  cpa.getFormulaManager(),
+              ": ", cpa.getSummaryFormulaManager().toConcrete(
                   succ.getAbstraction()));
           //succ.getContext().push(succ.getAbstraction());
           succ.pushContext(succ.getAbstraction(), retNode);

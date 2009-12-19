@@ -59,7 +59,7 @@ public class PredicateAbstractionRefiner extends AbstractARTBasedRefiner {
       }
     }
     
-    amgr = mCpa.getAbstractFormulaManager();
+    amgr = mCpa.getPredAbsFormulaManager();
     abstractCex = new HashMap<Vector<Integer>, Integer>();
   }
 
@@ -71,8 +71,7 @@ public class PredicateAbstractionRefiner extends AbstractARTBasedRefiner {
     pathArray = getPathArray(pPath);
 
     CounterexampleTraceInfo info =
-      amgr.buildCounterexampleTrace(
-          mCpa.getFormulaManager(), pathArray);
+      amgr.buildCounterexampleTrace(pathArray);
 
     assert(info != null);
 

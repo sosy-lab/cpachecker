@@ -28,12 +28,11 @@ import java.util.Vector;
 
 import symbpredabstraction.SSAMap;
 import symbpredabstraction.interfaces.AbstractFormula;
-import symbpredabstraction.interfaces.AbstractFormulaManager;
+import symbpredabstraction.interfaces.FormulaManager;
 import symbpredabstraction.interfaces.Predicate;
 import symbpredabstraction.interfaces.SymbolicFormula;
 import symbpredabstraction.interfaces.SymbolicFormulaManager;
 import symbpredabstraction.trace.CounterexampleTraceInfo;
-
 import cfa.objectmodel.CFAEdge;
 
 import common.Pair;
@@ -46,13 +45,13 @@ import exceptions.UnrecognizedCFAEdgeException;
  *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
-public interface PredicateAbstractionAbstractFormulaManager extends AbstractFormulaManager {
+public interface PredicateAbstractionAbstractFormulaManager extends FormulaManager {
 
     /**
      * Computes the abstract post from "e" to "succ" on the given edge
      * wrt. the given set of predicates.
      */
-    public AbstractFormula buildAbstraction(SymbolicFormulaManager mgr,
+    public AbstractFormula buildAbstraction(
             PredicateAbstractionAbstractElement e, PredicateAbstractionAbstractElement succ,
             CFAEdge edge, Collection<Predicate> predicates);
 
@@ -63,7 +62,6 @@ public interface PredicateAbstractionAbstractFormulaManager extends AbstractForm
      * execution path leading to the error.
      */
     public CounterexampleTraceInfo buildCounterexampleTrace(
-            SymbolicFormulaManager mgr,
             Pair<ARTElement, CFAEdge>[] pathArray);
 
 

@@ -104,8 +104,7 @@ public class QueryDrivenProgramTesting {
     ExplicitCPA lExplicitAbstractionCPA = new ExplicitCPA("sep", "sep");
     cpas.add(lExplicitAbstractionCPA);
     
-    ExplicitAbstractFormulaManager lEAFManager = lExplicitAbstractionCPA.getAbstractFormulaManager();
-    SymbolicFormulaManager lSFManager = lExplicitAbstractionCPA.getFormulaManager();
+    ExplicitAbstractFormulaManager lEAFManager = lExplicitAbstractionCPA.getExplicitFormulaManager();
 
     // get scope restriction automaton
     Automaton<CFAEdge> lScopeRestrictionAutomaton = AutomatonTestCases.getScopeRestrictionAutomaton(pMainFunction);
@@ -249,7 +248,7 @@ public class QueryDrivenProgramTesting {
 
               BDDMathsatExplicitAbstractManager lMathsatManager = (BDDMathsatExplicitAbstractManager) lEAFManager;
 
-              Pair<CounterexampleTraceInfo, Integer> lPair = lMathsatManager.buildCounterexampleTrace2(lSFManager, lPath);
+              Pair<CounterexampleTraceInfo, Integer> lPair = lMathsatManager.buildCounterexampleTrace2(lPath);
 
               CounterexampleTraceInfo lInfo = lPair.getFirst();
 
@@ -277,7 +276,7 @@ public class QueryDrivenProgramTesting {
                 Deque<ExplicitAbstractElement> lBacktrackPath = getAbstractPath((ExplicitAbstractElement) lBacktrackElement.get(mAbstractionCPAIndex));
 
                 // TODO remove this correctness check in production code
-                Pair<CounterexampleTraceInfo, Integer> lBacktrackPair = lMathsatManager.buildCounterexampleTrace2(lSFManager, lBacktrackPath);
+                Pair<CounterexampleTraceInfo, Integer> lBacktrackPair = lMathsatManager.buildCounterexampleTrace2(lBacktrackPath);
 
                 CounterexampleTraceInfo lBacktrackInfo = lBacktrackPair.getFirst();
 

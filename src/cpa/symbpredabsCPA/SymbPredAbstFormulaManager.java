@@ -28,9 +28,8 @@ import java.util.Collection;
 
 import symbpredabstraction.PathFormula;
 import symbpredabstraction.interfaces.AbstractFormula;
-import symbpredabstraction.interfaces.AbstractFormulaManager;
+import symbpredabstraction.interfaces.FormulaManager;
 import symbpredabstraction.interfaces.Predicate;
-import symbpredabstraction.interfaces.SymbolicFormulaManager;
 import symbpredabstraction.trace.CounterexampleTraceInfo;
 
 
@@ -39,12 +38,12 @@ import symbpredabstraction.trace.CounterexampleTraceInfo;
  *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
-public interface SymbPredAbstFormulaManager extends AbstractFormulaManager {
+public interface SymbPredAbstFormulaManager extends FormulaManager {
 
     /**
      * Abstract post operation.
      */
-    public AbstractFormula buildAbstraction(SymbolicFormulaManager mgr,
+    public AbstractFormula buildAbstraction(
             AbstractFormula abs, PathFormula pathFormula,
             Collection<Predicate> predicates);
 
@@ -52,6 +51,5 @@ public interface SymbPredAbstFormulaManager extends AbstractFormulaManager {
      * Counterexample analysis and predicate discovery.
      */
     public CounterexampleTraceInfo buildCounterexampleTrace(
-            SymbolicFormulaManager mgr,
             ArrayList<SymbPredAbsAbstractElement> abstractTrace);
 }

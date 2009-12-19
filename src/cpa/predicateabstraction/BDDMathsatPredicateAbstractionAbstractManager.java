@@ -40,6 +40,7 @@ import java.util.logging.Level;
 
 import symbpredabstraction.SSAMap;
 import symbpredabstraction.interfaces.AbstractFormula;
+import symbpredabstraction.interfaces.AbstractFormulaManager;
 import symbpredabstraction.interfaces.InterpolatingTheoremProver;
 import symbpredabstraction.interfaces.Predicate;
 import symbpredabstraction.interfaces.SymbolicFormula;
@@ -306,9 +307,12 @@ implements PredicateAbstractionAbstractFormulaManager {
   private TheoremProver thmProver;
   private InterpolatingTheoremProver itpProver;
 
-  public BDDMathsatPredicateAbstractionAbstractManager(TheoremProver prover,
+  public BDDMathsatPredicateAbstractionAbstractManager(
+      AbstractFormulaManager amgr,
+      MathsatSymbolicFormulaManager mmgr,
+      TheoremProver prover,
       InterpolatingTheoremProver interpolator) {
-    super();
+    super(amgr, mmgr);
     stats = new Stats();
     useCache = CPAMain.cpaConfig.getBooleanValue(
         "cpas.symbpredabs.mathsat.useCache");
@@ -352,7 +356,7 @@ implements PredicateAbstractionAbstractFormulaManager {
 
     AbstractFormula abs = e.getAbstraction();
     MathsatSymbolicFormula fabs = null;
-    SymbolicFormula concr = toConcrete(mgr, abs);
+    SymbolicFormula concr = toConcrete(abs);
     if (useCache && instantiateCache.containsKey(concr)) {
       fabs = instantiateCache.get(concr);
     } else {
@@ -391,7 +395,7 @@ implements PredicateAbstractionAbstractFormulaManager {
   }
 
   @Override
-  public AbstractFormula buildAbstraction(SymbolicFormulaManager mgr,
+  public AbstractFormula buildAbstraction(
       PredicateAbstractionAbstractElement e, PredicateAbstractionAbstractElement succ,
       CFAEdge edge, Collection<Predicate> predicates) {
     stats.numCallsAbstraction++;
@@ -418,9 +422,9 @@ implements PredicateAbstractionAbstractFormulaManager {
 
     if (CPAMain.cpaConfig.getBooleanValue(
     "cpas.symbpredabs.abstraction.cartesian")) {
-      return buildCartesianAbstraction(mgr, e, succ, edge, predicates);
+      return buildCartesianAbstraction(smgr, e, succ, edge, predicates);
     } else {
-      return buildBooleanAbstraction(mgr, e, succ, edge, predicates);
+      return buildBooleanAbstraction(smgr, e, succ, edge, predicates);
     }
   }
 
@@ -488,7 +492,7 @@ implements PredicateAbstractionAbstractFormulaManager {
     assert(!mathsat.api.MSAT_ERROR_TERM(term));
 
     // build the definition of the predicates, and instantiate them
-    PredInfo predinfo = buildPredList(mmgr, predicates);
+    PredInfo predinfo = buildPredList(predicates);
     long preddef = predinfo.predDef;
     long[] important = predinfo.important;
     Collection<String> predvars = predinfo.allVars;
@@ -506,7 +510,7 @@ implements PredicateAbstractionAbstractFormulaManager {
       new HashMap<SymbolicFormula, SymbolicFormula>();
     for (Pair<String, SymbolicFormula[]> p : predlvals) {
       SymbolicFormula[] args =
-        getInstantiatedAt(mmgr, p.getSecond(), ssa, cache);
+        getInstantiatedAt(p.getSecond(), ssa, cache);
       if (ssa.getIndex(p.getFirst(), args) < 0) {
         ssa.setIndex(p.getFirst(), args, 1);
       }
@@ -572,7 +576,7 @@ implements PredicateAbstractionAbstractFormulaManager {
 
     AbstractFormula ret = null;
     if (numModels == -2) {
-      ret = makeTrue();
+      ret = amgr.makeTrue();
     } else {
       ret = func.getBDD();
     }
@@ -652,7 +656,7 @@ implements PredicateAbstractionAbstractFormulaManager {
         if (!feasibilityCache.get(key)) {
           thmProver.reset();
           // abstract post leads to false, we can return immediately
-          return makeFalse();
+          return amgr.makeFalse();
         }
       }
     }
@@ -680,7 +684,7 @@ implements PredicateAbstractionAbstractFormulaManager {
           }
           feasibilityCache.put(key, false);
         }
-        return makeFalse();
+        return amgr.makeFalse();
       } else {
         if (useCache) {
           FeasibilityCacheKey key = new FeasibilityCacheKey(fkey);
@@ -698,7 +702,7 @@ implements PredicateAbstractionAbstractFormulaManager {
 
     long totBddTime = 0;
 
-    AbstractFormula absbdd = makeTrue();
+    AbstractFormula absbdd = amgr.makeTrue();
 
     // check whether each of the predicate is implied in the next state...
     Set<String> predvars = new HashSet<String>();
@@ -714,10 +718,10 @@ implements PredicateAbstractionAbstractFormulaManager {
         long startBddTime = System.currentTimeMillis();
         AbstractFormula v = p.getFormula();
         if (predVals[predIndex] == -1) { // pred is false
-          v = makeNot(v);
-          absbdd = makeAnd(absbdd, v);
+          v = amgr.makeNot(v);
+          absbdd = amgr.makeAnd(absbdd, v);
         } else if (predVals[predIndex] == 1) { // pred is true
-          absbdd = makeAnd(absbdd, v);
+          absbdd = amgr.makeAnd(absbdd, v);
         }
         long endBddTime = System.currentTimeMillis();
         totBddTime += (endBddTime - startBddTime);
@@ -731,7 +735,7 @@ implements PredicateAbstractionAbstractFormulaManager {
         // (at index 1)
         predvars.clear();
         predlvals.clear();
-        collectVarNames(mmgr, pi.getSecond().getTerm(),
+        collectVarNames(pi.getSecond().getTerm(),
             predvars, predlvals);
         for (String var : predvars) {
           if (ssa.getIndex(var) < 0) {
@@ -740,7 +744,7 @@ implements PredicateAbstractionAbstractFormulaManager {
         }
         for (Pair<String, SymbolicFormula[]> pp : predlvals) {
           SymbolicFormula[] args =
-            getInstantiatedAt(mmgr, pp.getSecond(), ssa,
+            getInstantiatedAt(pp.getSecond(), ssa,
                 predLvalsCache);
           if (ssa.getIndex(pp.getFirst(), args) < 0) {
             ssa.setIndex(pp.getFirst(), args, 1);
@@ -773,7 +777,7 @@ implements PredicateAbstractionAbstractFormulaManager {
         if (isTrue) {
           long startBddTime = System.currentTimeMillis();
           AbstractFormula v = p.getFormula();
-          absbdd = makeAnd(absbdd, v);
+          absbdd = amgr.makeAnd(absbdd, v);
           long endBddTime = System.currentTimeMillis();
           totBddTime += (endBddTime - startBddTime);
         } else {
@@ -787,8 +791,8 @@ implements PredicateAbstractionAbstractFormulaManager {
           if (isFalse) {
             long startBddTime = System.currentTimeMillis();
             AbstractFormula v = p.getFormula();
-            v = makeNot(v);
-            absbdd = makeAnd(absbdd, v);
+            v = amgr.makeNot(v);
+            absbdd = amgr.makeAnd(absbdd, v);
             long endBddTime = System.currentTimeMillis();
             totBddTime += (endBddTime - startBddTime);
           }
@@ -832,7 +836,6 @@ implements PredicateAbstractionAbstractFormulaManager {
   // counterexample analysis
   @Override
   public CounterexampleTraceInfo buildCounterexampleTrace(
-      SymbolicFormulaManager mgr,
       Pair<ARTElement, CFAEdge>[] pathArray) {
     assert(pathArray.length > 1);
     long startTime = System.currentTimeMillis();
@@ -843,7 +846,7 @@ implements PredicateAbstractionAbstractFormulaManager {
     long extTimeStart = System.currentTimeMillis();
     ConcretePath concPath = null;
     try {
-      concPath = buildConcretePath(mgr, pathArray);
+      concPath = buildConcretePath(smgr, pathArray);
     } catch (UnrecognizedCFAEdgeException e1) {
       CPAMain.logManager.logException(Level.SEVERE, e1, "");
       System.exit(1);
@@ -851,7 +854,6 @@ implements PredicateAbstractionAbstractFormulaManager {
     long extTimeEnd = System.currentTimeMillis();
     stats.termBuildTime += extTimeEnd - extTimeStart;
 
-    MathsatSymbolicFormulaManager mmgr = (MathsatSymbolicFormulaManager)mgr;
     Vector<SymbolicFormula> f = concPath.path;
     boolean theoryCombinationNeeded = concPath.theoryCombinationNeeded;
 
