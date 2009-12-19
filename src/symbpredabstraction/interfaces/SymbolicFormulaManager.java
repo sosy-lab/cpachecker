@@ -43,14 +43,14 @@ import exceptions.UnrecognizedCFAEdgeException;
 public interface SymbolicFormulaManager {
   
     /**
-     * Creates a formula representing a negation of the argument
+     * Creates a formula representing a negation of the argument.
      * @param f a SymbolicFormula
      * @return (!f1)
      */
     public SymbolicFormula makeNot(SymbolicFormula f);
   
     /**
-     * Creates a formula representing an AND of the two argument
+     * Creates a formula representing an AND of the two arguments.
      * @param f1 a SymbolicFormula
      * @param f2 a SymbolicFormula
      * @return (f1 & f2)
@@ -58,7 +58,7 @@ public interface SymbolicFormulaManager {
     public SymbolicFormula makeAnd(SymbolicFormula f1, SymbolicFormula f2);
 
     /**
-     * Creates a formula representing an OR of the two argument
+     * Creates a formula representing an OR of the two arguments.
      * @param f1 a SymbolicFormula
      * @param f2 a SymbolicFormula
      * @return (f1 | f2)
@@ -66,7 +66,15 @@ public interface SymbolicFormulaManager {
     public SymbolicFormula makeOr(SymbolicFormula f1, SymbolicFormula f2);
 
     /**
-     * Creates a formula representing an AND of the two argument
+     * Creates a formula representing an equivalence of the two arguments.
+     * @param f1 a SymbolicFormula
+     * @param f2 a SymbolicFormula
+     * @return (f1 <-> f2)
+     */
+    public SymbolicFormula makeEquivalence(SymbolicFormula f1, SymbolicFormula f2);
+    
+    /**
+     * Creates a formula representing an AND of the two argument.
      * @param f1 a SymbolicFormula
      * @param e a CFA edge
      * @param ssa the SSA map for resolving variables

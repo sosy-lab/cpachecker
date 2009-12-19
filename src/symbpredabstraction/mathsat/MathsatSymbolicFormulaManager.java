@@ -302,6 +302,13 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     return new MathsatSymbolicFormula(a);
   }
 
+  public SymbolicFormula makeEquivalence(SymbolicFormula f1, SymbolicFormula f2) {
+    MathsatSymbolicFormula m1 = (MathsatSymbolicFormula)f1;
+    MathsatSymbolicFormula m2 = (MathsatSymbolicFormula)f2;
+
+    long a = mathsat.api.msat_make_iff(msatEnv, m1.getTerm(), m2.getTerm());
+    return new MathsatSymbolicFormula(a);
+  }
 
   public SymbolicFormula makeTrue() {
     return new MathsatSymbolicFormula(mathsat.api.msat_make_true(msatEnv));
