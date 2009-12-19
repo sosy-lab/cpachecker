@@ -66,7 +66,10 @@ Sources of binaries provided with the distribution/SVN:
   http://javabdd.sourceforge.net/compiling.html
 - Simplify: http://kind.ucd.ie/products/opensource/Simplify/
 - mathsat.jar: Source code provided with the archive
+- java-cup-11a.jar: http://www2.cs.tum.edu/projects/cup/
 - icu4j-4_2_1.jar: http://site.icu-project.org/
+- JFlex.jar: http://jflex.de/
+- 
 - others: Unknown (MT)
 
 Examples of working installation:
