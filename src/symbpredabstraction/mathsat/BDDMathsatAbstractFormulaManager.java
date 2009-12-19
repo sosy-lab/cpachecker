@@ -25,29 +25,24 @@ package symbpredabstraction.mathsat;
 
 import java.util.Collection;
 import java.util.Deque;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
-import java.util.logging.Level;
 
 import mathsat.AllSatModelCallback;
+import symbpredabstraction.CommonFormulaManager;
 import symbpredabstraction.SSAMap;
 import symbpredabstraction.interfaces.AbstractFormula;
 import symbpredabstraction.interfaces.AbstractFormulaManager;
-import symbpredabstraction.interfaces.FormulaManager;
 import symbpredabstraction.interfaces.Predicate;
 import symbpredabstraction.interfaces.SymbolicFormula;
-import symbpredabstraction.interfaces.SymbolicFormulaManager;
-import cmdline.CPAMain;
 
 import common.Pair;
-import common.Triple;
 
 
-public class BDDMathsatAbstractFormulaManager implements FormulaManager {
+public class BDDMathsatAbstractFormulaManager extends CommonFormulaManager {
 
     /**
      * callback used to build the predicate abstraction of a formula
@@ -103,12 +98,10 @@ public class BDDMathsatAbstractFormulaManager implements FormulaManager {
                 AbstractFormula v;
                 if (mathsat.api.msat_term_is_not(t) != 0) {
                     t = mathsat.api.msat_term_get_arg(t, 0);
-                    assert(msatVarToPredicate.containsKey(t));
-                    v = msatVarToPredicate.get(t).getFormula();
+                    v = getPredicate(new MathsatSymbolicFormula(t)).getFormula();
                     v = amgr.makeNot(v);
                 } else {
-                  assert(msatVarToPredicate.containsKey(t));
-                  v = msatVarToPredicate.get(t).getFormula();
+                  v = getPredicate(new MathsatSymbolicFormula(t)).getFormula();
                 }
                 curCube.add(v);
             }
@@ -125,53 +118,23 @@ public class BDDMathsatAbstractFormulaManager implements FormulaManager {
         }
     }
 
-    protected final AbstractFormulaManager amgr;
-    protected final SymbolicFormulaManager smgr;
     protected final MathsatSymbolicFormulaManager mmgr;
-    
-    // a predicate is just a BDD index for a variable (see BDDPredicate).
-    // Here we keep the mapping predicate -> (MathSAT variable, MathSAT atom)
-    private final Map<Predicate, Pair<Long, Long>> predicateToMsatAtom;
-    // and the reverse mapping MathSAT variable -> predicate
-    private final Map<Long, Predicate> msatVarToPredicate;
-
-    private final boolean useCache;
-    private final Map<AbstractFormula, SymbolicFormula> toConcreteCache;
 
     public BDDMathsatAbstractFormulaManager(AbstractFormulaManager pAmgr,
               MathsatSymbolicFormulaManager pMmgr) {
-        amgr = pAmgr;
-        smgr = pMmgr;
+        super(pAmgr, pMmgr);
         mmgr = pMmgr;
-        useCache = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.mathsat.useCache");
-        predicateToMsatAtom = new HashMap<Predicate, Pair<Long, Long>>();
-        msatVarToPredicate = new HashMap<Long, Predicate>();
-        if (useCache) {
-            toConcreteCache = new HashMap<AbstractFormula, SymbolicFormula>();
-        } else {
-          toConcreteCache = null;
-        }
     }
 
     /**
      * creates a BDDPredicate from the Boolean mathsat variable (msatVar) and
      * the atoms that defines it (the msatAtom)
+     * 
+     * Use {{@link #makePredicate(SymbolicFormula, SymbolicFormula)} instead.
      */
+    @Deprecated
     protected Predicate makePredicate(long msatVar, long msatAtom) {
-        if (msatVarToPredicate.containsKey(msatVar)) {
-            return msatVarToPredicate.get(msatVar);
-        } else {
-            Predicate result = amgr.createPredicate();
-
-            CPAMain.logManager.log(Level.FINEST,
-                           "CREATED PREDICATE:", result,
-                           "from msatAtom:",
-                           new MathsatSymbolicFormula(msatAtom));
-
-            predicateToMsatAtom.put(result, new Pair<Long, Long>(msatVar, msatAtom));
-            msatVarToPredicate.put(msatVar, result);
-            return result;
-        }
+        return makePredicate(new MathsatSymbolicFormula(msatVar), new MathsatSymbolicFormula(msatAtom));
     }
 
     protected void collectVarNames(
@@ -237,8 +200,8 @@ public class BDDMathsatAbstractFormulaManager implements FormulaManager {
         long preddef = mathsat.api.msat_make_true(msatEnv);
         int i = 0;
         for (Predicate p : predicates) {
-            long var = predicateToMsatAtom.get(p).getFirst();
-            long def = predicateToMsatAtom.get(p).getSecond();
+            long var = getPredicateNameAndDef(p).getFirst().getTerm();
+            long def = getPredicateNameAndDef(p).getSecond().getTerm();
             collectVarNames(def, allvars, allfuncs);
             important[i++] = var;
             // build the mathsat (var <-> def)
@@ -250,78 +213,13 @@ public class BDDMathsatAbstractFormulaManager implements FormulaManager {
         return new PredInfo(preddef, important, allvars, allfuncs);
     }
 
-    public Pair<MathsatSymbolicFormula, MathsatSymbolicFormula>
-      getPredicateNameAndDef(Predicate p) {
-        long var = predicateToMsatAtom.get(p).getFirst();
-        long def = predicateToMsatAtom.get(p).getSecond();
-        return new Pair<MathsatSymbolicFormula, MathsatSymbolicFormula>(
-                new MathsatSymbolicFormula(var),
-                new MathsatSymbolicFormula(def));
-    }
-
     /**
-     * Given an abstract formula (which is a BDD over the predicates), build
-     * its concrete representation (which is a MathSAT formula corresponding
-     * to the BDD, in which each predicate is replaced with its definition)
+     * Use {@link #getPredicateVarAndAtom(Predicate)} instead.
      */
-    @Override
-    public SymbolicFormula toConcrete(AbstractFormula af) {
-
-        Map<AbstractFormula, SymbolicFormula> cache;
-        if (useCache) {
-            cache = toConcreteCache;
-        } else {
-            cache = new HashMap<AbstractFormula, SymbolicFormula>();
-        }
-        Stack<AbstractFormula> toProcess = new Stack<AbstractFormula>();
-
-        cache.put(amgr.makeTrue(), smgr.makeTrue());
-        cache.put(amgr.makeFalse(), smgr.makeFalse());
-
-        toProcess.push(af);
-        while (!toProcess.empty()) {
-            AbstractFormula n = toProcess.peek();
-            if (cache.containsKey(n)) {
-                toProcess.pop();
-                continue;
-            }
-            boolean childrenDone = true;
-            SymbolicFormula m1 = null;
-            SymbolicFormula m2 = null;
-            
-            Triple<Predicate, AbstractFormula, AbstractFormula> parts = amgr.getIfThenElse(n);
-            AbstractFormula c1 = parts.getSecond();
-            AbstractFormula c2 = parts.getThird();
-            if (!cache.containsKey(c1)) {
-                toProcess.push(c1);
-                childrenDone = false;
-            } else {
-                m1 = cache.get(c1);
-            }
-            if (!cache.containsKey(c2)) {
-                toProcess.push(c2);
-                childrenDone = false;
-            } else {
-                m2 = cache.get(c2);
-            }
-            if (childrenDone) {
-                assert m1 != null;
-                assert m2 != null;
-
-                toProcess.pop();
-                Predicate var = parts.getFirst();
-                assert(predicateToMsatAtom.containsKey(var));
-
-                long mAtom = predicateToMsatAtom.get(var).getSecond();
-                
-                SymbolicFormula ite = mmgr.makeIfThenElse(mAtom, m1, m2);
-                cache.put(n, ite);
-            }
-        }
-
-        assert(cache.containsKey(af));
-
-        return cache.get(af);
+    @SuppressWarnings("unchecked")
+    @Deprecated
+    public Pair<MathsatSymbolicFormula, MathsatSymbolicFormula> getPredicateNameAndDef(Predicate p) {
+        return (Pair<MathsatSymbolicFormula, MathsatSymbolicFormula>)getPredicateVarAndAtom(p);
     }
 
     protected SymbolicFormula[] getInstantiatedAt(SymbolicFormula[] args,
