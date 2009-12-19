@@ -1,0 +1,114 @@
+package cpa.observeranalysis;
+
+import java_cup.runtime.Symbol;
+import java_cup.runtime.SymbolFactory;
+import java.util.List;
+import java.util.LinkedList;
+import java.util.HashMap;
+import java.util.Map;
+
+/* Preliminaries to use the scanner.  */
+scan with {: return scanner.next_token(); :};
+
+parser code {: 
+  /* this map is used to collect the local variables. It is then passed to each "VarAccess" and "Assignment" Expression.
+   * ( I don't want to pass the Variable-Instance directly, because it might be defined after the Expression in the input Document.) 
+   */
+  protected Map<String, ObserverVariable> variablesMap = new HashMap<String, ObserverVariable>();
+  public boolean syntaxErrors;
+  ObserverScanner scanner;
+
+  public ObserverParser(ObserverScanner scanner, SymbolFactory sf) {
+      super(scanner, sf);
+      this.scanner = scanner;
+  }
+
+  
+  public void report_error(String message, Object info) {
+    syntaxErrors = true;
+    
+    System.out.print(message);
+    
+    if ( !(info instanceof Symbol) ) return;
+    Symbol symbol = (Symbol) info;
+    
+    if ( symbol.left < 0 || symbol.right < 0 ) return;
+    
+    System.out.println(" at line "+symbol.left+", column "+symbol.right);
+  }
+:}; 
+
+
+
+terminal ARROW, OPENCURLY, CLOSECURLY, NAME, LOCAL, INITIAL, STATE, ASS, MATCH, DO, GOTO, IDENTIFIER, INTEGER_LITERAL, EQ, EQEQ, PLUS , TRUE, FALSE, STRING_LITERAL ;
+
+non terminal ObserverAutomaton initial ;
+non terminal String Naming ;
+non terminal ObserverAutomaton Body ;
+non terminal Map<String, ObserverVariable> LocalDefs ;
+non terminal List<ObserverState> StateDefs ;
+non terminal List<ObserverTransition> Matches ;
+non terminal List<ObserverBoolExpr> Assertions ;
+non terminal List<ObserverActionExpr> Actions ;
+
+non terminal ObserverVariable LocalDef ;
+non terminal ObserverState StateDef ;
+non terminal ObserverTransition Match ;
+non terminal ObserverBoolExpr Assertion ;
+non terminal ObserverActionExpr Action ;
+
+non terminal ObserverIntExpr Int ;
+non terminal ObserverBoolExpr Bool ; 
+
+precedence left PLUS;
+
+initial ::= Naming:n Body:b {: b.setName(n); RESULT = b; :}
+              | Body:b {: RESULT = b; :}
+              ;
+
+Naming    ::= NAME IDENTIFIER:id {: RESULT = id.toString(); :};
+
+Body      ::= LocalDefs:vars StateDefs:states1 INITIAL StateDef:init StateDefs:states2
+              {: states1.addAll(states2); states1.add(init); RESULT = new ObserverAutomaton(vars, states1, init); :}
+            ;
+
+LocalDefs ::= LocalDef:d LocalDefs:lst {: lst.put(d.getName(), d); RESULT = lst; :}
+              | /* empty */ {: RESULT = parser.variablesMap; /* RESULT = new HashMap<String, ObserverVariable>(); */ :}
+              ;
+              
+LocalDef  ::= LOCAL IDENTIFIER:type IDENTIFIER:name  {: RESULT = new ObserverVariable(type.toString(), name.toString()); :};
+
+StateDefs ::= StateDef:s StateDefs:lst  {: lst.add(s); RESULT = lst; :} // elements will be in reversed order (irrelevant ?)
+            | /* empty */ {: RESULT = new LinkedList<ObserverState>(); :}
+              ;
+
+StateDef  ::= STATE IDENTIFIER:id OPENCURLY Matches:ms CLOSECURLY  {: RESULT = new ObserverState(id.toString(), ms); :} 
+            ;
+            
+Matches   ::= Match:m Matches:lst {: lst.add(m); RESULT = lst; :} // elements will be in reversed order (irrelevant ?)
+            | /* empty */ {: RESULT = new LinkedList<ObserverTransition>(); :}
+            ;
+            
+Match     ::= MATCH OPENCURLY STRING_LITERAL:lit CLOSECURLY ARROW Assertions:ass Actions:acts GOTO IDENTIFIER:follow 
+              {: RESULT = new ObserverTransition(lit.toString(), ass, acts, follow.toString()); :} 
+            ;
+
+Assertions ::= Assertion:a Assertions:lst {: lst.add(a); RESULT = lst; :} // elements will be in reversed order (irrelevant ?)
+             | /* empty */ {: RESULT = new LinkedList<ObserverBoolExpr>(); :}
+             ;
+Assertion  ::= ASS OPENCURLY Bool:b CLOSECURLY  {: RESULT = b; :};
+
+Actions   ::= Action:a Actions:lst {: lst.add(a); RESULT = lst; :} // elements will be in reversed order (irrelevant ?) 
+            | /* empty */ {: RESULT = new LinkedList<ObserverActionExpr>(); :} 
+            ;
+Action    ::= DO OPENCURLY IDENTIFIER:var EQ Int:i CLOSECURLY  {: RESULT = new ObserverActionExpr.Assignment(var.toString(), i, parser.variablesMap); :} ;
+
+Int       ::= INTEGER_LITERAL:c  {: RESULT = new ObserverIntExpr.Constant(c.toString()); :}
+            | IDENTIFIER:x  {: RESULT = new ObserverIntExpr.VarAccess(x.toString(), parser.variablesMap); :}
+            | Int:a PLUS Int:b  {: RESULT = new ObserverIntExpr.Plus(a,b); :}
+            ;
+            
+Bool      ::= TRUE  {: RESULT = new ObserverBoolExpr.True(); :}
+            | FALSE  {: RESULT = new ObserverBoolExpr.False(); :}
+            | Int:a EQEQ Int:b  {: RESULT = new ObserverBoolExpr.EqTest(a,b); :}
+            ;

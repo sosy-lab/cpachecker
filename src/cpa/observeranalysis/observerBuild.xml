@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<!DOCTYPE project> <!-- generic AcceptAllDTD to make the Eclipse Warning go away -->
+<project name="ObserverParserGeneration" default="generate" basedir="./../../../">
+  <!-- basedir should be the "CPAchecker" directory -->
+  <property name="parserDir" location="src/cpa/observeranalysis/" />
+  <property name="src"       location="src" />
+  <property name="lib"       location="lib" />
+  <property environment="env" />
+
+  <taskdef name="jflex" 
+           classname="JFlex.anttask.JFlexTask" 
+  	       classpath="${lib}/JFlex.jar" 
+  />
+  <taskdef name="cup" 
+           classname="java_cup.anttask.CUPTask" 
+           classpath="${lib}/java-cup-11a.jar"
+  />
+  
+  <target name="echos">
+  	<echo>${lib}</echo>
+  	<echo>${src}</echo>
+  	<echo>${parserDir}</echo>
+  	<echo>${basedir}</echo>
+  </target>
+	
+  <target name="generate">
+    <cup srcfile="${parserDir}/Parser.cup" 
+         destdir="${src}" 
+    	 force="true"
+         interface="true"
+         parser="ObserverParser"
+    	 symbols="ObserverSym"
+    	 nopositions="true"
+    />
+    <jflex file="${parserDir}/Scanner.jflex" destdir="${src}" />
+  </target>
+</project>
