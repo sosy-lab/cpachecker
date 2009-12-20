@@ -32,7 +32,7 @@ import java.util.Set;
 
 import symbpredabstraction.interfaces.Predicate;
 import symbpredabstraction.interfaces.PredicateMap;
-import symbpredabstraction.mathsat.MathsatSymbolicFormula;
+import symbpredabstraction.interfaces.SymbolicFormula;
 import cfa.objectmodel.CFANode;
 import cmdline.CPAMain;
 import cmdline.CPAMain.Result;
@@ -101,8 +101,8 @@ public class SymbPredAbsCPAStatistics implements CPAStatistics {
             PrintWriter pw = new PrintWriter(f);
             pw.println("ALL PREDICATES:");
             for (Predicate p : allPreds) {
-              Pair<MathsatSymbolicFormula, MathsatSymbolicFormula> d =
-                amgr.getPredicateNameAndDef(p);
+              Pair<? extends SymbolicFormula, ? extends SymbolicFormula> d =
+                amgr.getPredicateVarAndAtom(p);
               pw.format("%s ==> %s <-> %s\n", p, d.getFirst(),
                   d.getSecond());
             }

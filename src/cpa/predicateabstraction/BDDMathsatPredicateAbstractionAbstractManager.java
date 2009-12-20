@@ -32,6 +32,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
@@ -492,12 +493,11 @@ implements PredicateAbstractionAbstractFormulaManager {
     assert(!mathsat.api.MSAT_ERROR_TERM(term));
 
     // build the definition of the predicates, and instantiate them
-    PredInfo predinfo = buildPredList(predicates);
-    long preddef = predinfo.predDef;
-    long[] important = predinfo.important;
-    Collection<String> predvars = predinfo.allVars;
+    PredicateInfo predinfo = buildPredicateInformation(predicates);
+    List<SymbolicFormula> important = predinfo.predicateNames;
+    Collection<String> predvars = predinfo.allVariables;
     Collection<Pair<String, SymbolicFormula[]>> predlvals =
-      predinfo.allFuncs;
+      predinfo.allFunctions;
 
     // update the SSA map, by instantiating all the uninstantiated
     // variables that occur in the predicates definitions (at index 1)
@@ -516,16 +516,9 @@ implements PredicateAbstractionAbstractFormulaManager {
       }
     }
 
-    if (CPAMain.logManager.getLogLevel().intValue() <= Level.ALL.intValue()) {
-      StringBuffer importantStrBuf = new StringBuffer();
-      for (long t : important) {
-        importantStrBuf.append(mathsat.api.msat_term_repr(t));
-        importantStrBuf.append(" ");
-      }
-      CPAMain.logManager.log(Level.ALL, "DEBUG_1",
-          "IMPORTANT SYMBOLS (", important.length, "): ",
-          importantStrBuf);
-    }
+    CPAMain.logManager.log(Level.ALL, "DEBUG_1",
+        "IMPORTANT SYMBOLS (", important.size(), "): ",
+        important);
 
     // first, create the new formula corresponding to
     // (f & edges from e to succ)
@@ -536,8 +529,8 @@ implements PredicateAbstractionAbstractFormulaManager {
 
     // instantiate the definitions with the right SSA
     MathsatSymbolicFormula inst = (MathsatSymbolicFormula)mmgr.instantiate(
-        new MathsatSymbolicFormula(preddef), ssa);
-    preddef = inst.getTerm();
+        predinfo.predicateDefinition, ssa);
+    long preddef = inst.getTerm();
 
     // the formula is (curstate & term & preddef)
     // build the formula and send it to the absEnv
@@ -549,14 +542,9 @@ implements PredicateAbstractionAbstractFormulaManager {
     ++stats.abstractionNumMathsatQueries;
 
     AllSatCallbackStats func = new AllSatCallbackStats(msatEnv, 0);
-    Vector<SymbolicFormula> imp = new Vector<SymbolicFormula>();
-    imp.ensureCapacity(important.length);
-    for (long p : important) {
-      imp.add(new MathsatSymbolicFormula(p));
-    }
     long libmsatStartTime = System.currentTimeMillis();
     int numModels = thmProver.allSat(
-        new MathsatSymbolicFormula(formula), imp, func);
+        new MathsatSymbolicFormula(formula), important, func);
     assert(numModels != -1);
     long libmsatEndTime = System.currentTimeMillis();
 
@@ -727,15 +715,15 @@ implements PredicateAbstractionAbstractFormulaManager {
         totBddTime += (endBddTime - startBddTime);
         ++stats.abstractionNumCachedQueries;
       } else {
-        Pair<MathsatSymbolicFormula, MathsatSymbolicFormula> pi =
-          getPredicateNameAndDef(p);
+        Pair<? extends SymbolicFormula, ? extends SymbolicFormula> pi =
+          getPredicateVarAndAtom(p);
 
         // update the SSA map, by instantiating all the uninstantiated
         // variables that occur in the predicates definitions
         // (at index 1)
         predvars.clear();
         predlvals.clear();
-        collectVarNames(pi.getSecond().getTerm(),
+        collectVarNames(pi.getSecond(),
             predvars, predlvals);
         for (String var : predvars) {
           if (ssa.getIndex(var) < 0) {
@@ -1378,7 +1366,7 @@ implements PredicateAbstractionAbstractFormulaManager {
           long var = mathsat.api.msat_make_variable(dstenv, d);
           assert(!mathsat.api.MSAT_ERROR_TERM(var));
 
-          ret.add(makePredicate(var, tt));
+          ret.add(makePredicate(new MathsatSymbolicFormula(var), atom));
     }
     return ret;
   }

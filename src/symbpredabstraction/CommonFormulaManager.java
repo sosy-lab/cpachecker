@@ -83,7 +83,8 @@ public abstract class CommonFormulaManager implements FormulaManager {
    * creates a Predicate from the Boolean symbolic variable (var) and
    * the atom that defines it
    */
-  protected Predicate makePredicate(SymbolicFormula var, SymbolicFormula atom) {
+  @Override
+  public Predicate makePredicate(SymbolicFormula var, SymbolicFormula atom) {
     if (symbVarToPredicate.containsKey(var)) {
       return symbVarToPredicate.get(var);
     } else {
@@ -104,7 +105,7 @@ public abstract class CommonFormulaManager implements FormulaManager {
    * @param p A predicate which has been return by {@link #makePredicate(SymbolicFormula, SymbolicFormula)}
    * @return The values passed to the makePredicate call (symbolic formula for var and atom)
    */
-  protected Pair<? extends SymbolicFormula, ? extends SymbolicFormula> getPredicateVarAndAtom(Predicate p) {
+  public Pair<? extends SymbolicFormula, ? extends SymbolicFormula> getPredicateVarAndAtom(Predicate p) {
     return predicateToVarAndAtom.get(p);
   }
   
@@ -113,7 +114,7 @@ public abstract class CommonFormulaManager implements FormulaManager {
    * @param var A symbolic formula representing the variable. The same formula has to been passed to makePredicate earlier. 
    * @return a Predicate
    */
-  protected Predicate getPredicate(SymbolicFormula var) {
+  public Predicate getPredicate(SymbolicFormula var) {
     Predicate result = symbVarToPredicate.get(var);
     if (var == null) {
       throw new IllegalArgumentException(var + " seems not to be a formula corresponding to a single predicate variable.");

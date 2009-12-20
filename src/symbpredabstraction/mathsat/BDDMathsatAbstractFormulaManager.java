@@ -59,6 +59,10 @@ public class BDDMathsatAbstractFormulaManager extends CommonFormulaManager {
             this.absEnv = absEnv;
             cubes = new ArrayDeque<AbstractFormula>();
         }
+        
+        public AllSatCallback() {
+          this(mmgr.getMsatEnv(), 0);
+        }
 
         // TODO rename getBDD to something like getResult
         public AbstractFormula getBDD() {

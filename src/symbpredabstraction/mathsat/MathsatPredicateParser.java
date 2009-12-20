@@ -32,9 +32,10 @@ import java.util.Stack;
 import java.util.Vector;
 import java.util.logging.Level;
 
-import cmdline.CPAMain;
-
+import symbpredabstraction.interfaces.FormulaManager;
 import symbpredabstraction.interfaces.Predicate;
+import symbpredabstraction.interfaces.SymbolicFormula;
+import cmdline.CPAMain;
 
 
 /**
@@ -46,13 +47,13 @@ import symbpredabstraction.interfaces.Predicate;
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
 public class MathsatPredicateParser {
-    private MathsatSymbolicFormulaManager mgr;
-    private BDDMathsatAbstractFormulaManager amgr;
+    private final MathsatSymbolicFormulaManager mmgr;
+    private final FormulaManager mgr;
 
-    public MathsatPredicateParser(MathsatSymbolicFormulaManager mgr,
-                                  BDDMathsatAbstractFormulaManager amgr) {
+    public MathsatPredicateParser(MathsatSymbolicFormulaManager mmgr,
+                                  FormulaManager mgr) {
+        this.mmgr = mmgr;
         this.mgr = mgr;
-        this.amgr = amgr;
     }
 
     public Collection<Predicate> parsePredicates(InputStream in) {
@@ -69,7 +70,7 @@ public class MathsatPredicateParser {
               return null;
             }
             
-            long msatEnv = mgr.getMsatEnv();
+            long msatEnv = mmgr.getMsatEnv();
             long formula = mathsat.api.msat_from_msat(msatEnv, data.toString());
             if (mathsat.api.MSAT_ERROR_TERM(formula)) {
                 return null;
@@ -112,13 +113,15 @@ public class MathsatPredicateParser {
                 if (mathsat.api.msat_term_is_boolean_var(var) != 0) {
                     assert(mathsat.api.msat_term_is_not(def) != 0);
                     def = mathsat.api.msat_term_get_arg(def, 0);
-                    ret.add(amgr.makePredicate(var, def));
+                    SymbolicFormula symbVar = new MathsatSymbolicFormula(var);
+                    SymbolicFormula symbDef = new MathsatSymbolicFormula(def);
+                    ret.add(mgr.makePredicate(symbVar, symbDef));
 
                     CPAMain.logManager.log(Level.ALL, "DEBUG_1",
                                    "ADDED PREDICATE, name: ",
-                                   new MathsatSymbolicFormula(var),
+                                   symbVar,
                                    ", atom: ",
-                                   new MathsatSymbolicFormula(def));
+                                   symbDef);
                 }
             }
         }

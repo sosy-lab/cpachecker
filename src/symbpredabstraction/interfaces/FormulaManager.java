@@ -23,6 +23,8 @@
  */
 package symbpredabstraction.interfaces;
 
+import common.Pair;
+
 public interface FormulaManager {
 
   /**
@@ -32,4 +34,24 @@ public interface FormulaManager {
    */
   public SymbolicFormula toConcrete(AbstractFormula af);
   
+  /**
+   * creates a Predicate from the Boolean symbolic variable (var) and
+   * the atom that defines it
+   */
+  public Predicate makePredicate(SymbolicFormula var, SymbolicFormula atom);
+  
+  /**
+   * Get the symbolic formulas for the variable and the atom which belong to a
+   * predicate. 
+   * @param p A predicate which has been return by {@link #makePredicate(SymbolicFormula, SymbolicFormula)}
+   * @return The values passed to the makePredicate call (symbolic formula for var and atom)
+   */
+  public Pair<? extends SymbolicFormula, ? extends SymbolicFormula> getPredicateVarAndAtom(Predicate p);
+  
+  /**
+   * Get predicate corresponding to a variable.
+   * @param var A symbolic formula representing the variable. The same formula has to been passed to makePredicate earlier. 
+   * @return a Predicate
+   */
+  public Predicate getPredicate(SymbolicFormula var);
 }

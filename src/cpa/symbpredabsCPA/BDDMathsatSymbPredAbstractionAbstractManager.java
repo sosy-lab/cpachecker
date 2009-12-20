@@ -77,8 +77,8 @@ implements SymbPredAbstFormulaManager
     public long totTime = 0;
     private long[] curModel;
 
-    public AllSatCallbackStats(long msatEnv, long absEnv) {
-      super(msatEnv, absEnv);
+    public AllSatCallbackStats() {
+      super();
       curModel = null;
     }
 
@@ -296,15 +296,15 @@ implements SymbPredAbstFormulaManager
             totBddTime += (endBddTime - startBddTime);
             //++stats.abstractionNumCachedQueries;
         } else {
-            Pair<MathsatSymbolicFormula, MathsatSymbolicFormula> pi =
-                getPredicateNameAndDef(p);
+            Pair<? extends SymbolicFormula, ? extends SymbolicFormula> pi =
+                getPredicateVarAndAtom(p);
 
             // update the SSA map, by instantiating all the uninstantiated
             // variables that occur in the predicates definitions
             // (at index 1)
             predvars.clear();
             predlvals.clear();
-            collectVarNames(pi.getSecond().getTerm(),
+            collectVarNames(pi.getSecond(),
                     predvars, predlvals);
             for (String var : predvars) {
                 if (ssa.getIndex(var) < 0) {
@@ -473,18 +473,9 @@ implements SymbPredAbstFormulaManager
     }
   
     List<SymbolicFormula> importantPreds = predinfo.predicateNames;
-    
-    if (CPAMain.logManager.getLogLevel().intValue() <= Level.ALL.intValue()) {
-      StringBuffer importantStrBuf = new StringBuffer();
-      for (SymbolicFormula impFormula : importantPreds) {
-        importantStrBuf.append(impFormula.toString());
-        importantStrBuf.append(" ");
-      }
-      CPAMain.logManager.log(Level.ALL, "DEBUG_1",
-          "IMPORTANT SYMBOLS (", importantPreds.size(), "): ",
-          importantStrBuf);
-    }
-
+    CPAMain.logManager.log(Level.ALL, "DEBUG_1",
+        "IMPORTANT SYMBOLS (", importantPreds.size(), "): ",
+        importantPreds);
     
     // instantiate the definitions with the right SSA
     SymbolicFormula predDef = smgr.instantiate(predinfo.predicateDefinition, symbSsa);
@@ -505,9 +496,8 @@ implements SymbPredAbstFormulaManager
     } else {
       // get the environment from the manager - this is unique, it is the
       // environment in which all terms are created
-      final long msatEnv = mmgr.getMsatEnv();
    
-      AllSatCallbackStats allSatCallback = new AllSatCallbackStats(msatEnv, 0);
+      AllSatCallbackStats allSatCallback = new AllSatCallbackStats();
       long msatSolveStartTime = System.currentTimeMillis();
       final int numModels = thmProver.allSat(fm, importantPreds, allSatCallback);
       long msatSolveEndTime = System.currentTimeMillis();
@@ -541,7 +531,7 @@ implements SymbPredAbstFormulaManager
       // TODO dump hard abst
       if (msatSolveTime > 10000 && dumpHardAbstractions) {
         // we want to dump "hard" problems...
-        MathsatAbstractionPrinter absPrinter = new MathsatAbstractionPrinter(msatEnv, "abs");
+        MathsatAbstractionPrinter absPrinter = new MathsatAbstractionPrinter(mmgr.getMsatEnv(), "abs");
         absPrinter.printMsatFormat(absFormula, symbFormula, predDef, importantPreds);
         absPrinter.printNusmvFormat(absFormula, symbFormula, predDef, importantPreds);
         absPrinter.nextNum();
