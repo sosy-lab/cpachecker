@@ -23,8 +23,8 @@
  */
 package symbpredabstraction.mathsat;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Vector;
 
 import symbpredabstraction.interfaces.SymbolicFormula;
 import symbpredabstraction.interfaces.TheoremProver;
@@ -163,28 +163,16 @@ public class MathsatTheoremProver implements TheoremProver {
     }
 
     class MathsatAllSatCallback implements mathsat.AllSatModelCallback {
-        private Vector<SymbolicFormula> outModel;
-        private AllSatCallback toCall;
+        private final AllSatCallback toCall;
 
         public MathsatAllSatCallback(AllSatCallback tc) {
             toCall = tc;
-            outModel = null;
         }
 
         public void callback(long[] model) {
-            if (outModel == null) {
-                outModel = new Vector<SymbolicFormula>();
-                outModel.ensureCapacity(model.length);
-                for (int i = 0; i < model.length; ++i) {
-                    outModel.add(new MathsatSymbolicFormula(model[i]));
-                }
-            } else {
-                for (int i = 0; i < model.length; ++i) {
-                    MathsatSymbolicFormula f =
-                        (MathsatSymbolicFormula)outModel.elementAt(i);
-                    // TODO this prevents MathsatSymbolicFormula from being unmodifiable
-                    f.setTerm(model[i]);
-                }
+            List<SymbolicFormula> outModel = new ArrayList<SymbolicFormula>(model.length);
+            for (long t : model) {
+              outModel.add(new MathsatSymbolicFormula(t));
             }
             toCall.modelFound(outModel);
         }

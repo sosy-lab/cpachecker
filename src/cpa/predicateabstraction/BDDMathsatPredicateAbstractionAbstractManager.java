@@ -71,31 +71,6 @@ class BDDMathsatPredicateAbstractionAbstractManager extends
 BDDMathsatAbstractFormulaManager
 implements PredicateAbstractionAbstractFormulaManager {
 
-  public class AllSatCallbackStats extends AllSatCallback
-  implements TheoremProver.AllSatCallback {
-    public long totTime = 0;
-
-    public AllSatCallbackStats(long msatEnv, long absEnv) {
-      super(msatEnv, absEnv);
-    }
-
-    @Override
-    public void callback(long[] model) {
-      long start = System.currentTimeMillis();
-      super.callback(model);
-      long end = System.currentTimeMillis();
-      totTime += (end - start);
-    }
-
-    public void modelFound(Vector<SymbolicFormula> model) {
-      long[] m = new long[model.size()];
-      for (int i = 0; i < m.length; ++i) {
-        m[i] = ((MathsatSymbolicFormula)model.elementAt(i)).getTerm();
-      }
-      callback(m);
-    }
-  }
-
   // some statistics. All times are in milliseconds
   public class Stats {
     public long abstractionMathsatTime = 0;
@@ -541,7 +516,7 @@ implements PredicateAbstractionAbstractFormulaManager {
 
     ++stats.abstractionNumMathsatQueries;
 
-    AllSatCallbackStats func = new AllSatCallbackStats(msatEnv, 0);
+    AllSatCallback func = new AllSatCallback();
     long libmsatStartTime = System.currentTimeMillis();
     int numModels = thmProver.allSat(
         new MathsatSymbolicFormula(formula), important, func);
@@ -550,14 +525,14 @@ implements PredicateAbstractionAbstractFormulaManager {
 
     // update statistics
     long endTime = System.currentTimeMillis();
-    long libmsatTime = (libmsatEndTime - libmsatStartTime) - func.totTime;
-    long msatTime = (endTime - startTime) - func.totTime;
+    long libmsatTime = (libmsatEndTime - libmsatStartTime) - func.totalTime;
+    long msatTime = (endTime - startTime) - func.totalTime;
     stats.abstractionMaxMathsatTime =
       Math.max(msatTime, stats.abstractionMaxMathsatTime);
     stats.abstractionMaxBddTime =
-      Math.max(func.totTime, stats.abstractionMaxBddTime);
+      Math.max(func.totalTime, stats.abstractionMaxBddTime);
     stats.abstractionMathsatTime += msatTime;
-    stats.abstractionBddTime += func.totTime;
+    stats.abstractionBddTime += func.totalTime;
     stats.abstractionMathsatSolveTime += libmsatTime;
     stats.abstractionMaxMathsatSolveTime =
       Math.max(libmsatTime, stats.abstractionMaxMathsatSolveTime);

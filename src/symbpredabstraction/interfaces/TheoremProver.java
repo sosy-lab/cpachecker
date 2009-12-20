@@ -24,7 +24,6 @@
 package symbpredabstraction.interfaces;
 
 import java.util.List;
-import java.util.Vector;
 
 
 
@@ -40,7 +39,7 @@ public interface TheoremProver {
     void reset();
 
     public interface AllSatCallback {
-        public void modelFound(Vector<SymbolicFormula> model);
+        public void modelFound(List<SymbolicFormula> model);
     }
     public int allSat(SymbolicFormula f,
             List<SymbolicFormula> important, AllSatCallback callback);

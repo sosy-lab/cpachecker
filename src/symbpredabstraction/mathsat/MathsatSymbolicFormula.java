@@ -33,7 +33,7 @@ import symbpredabstraction.interfaces.SymbolicFormula;
  */
 public class MathsatSymbolicFormula implements SymbolicFormula {
 
-    private long msatTerm;
+    private final long msatTerm;
 
     public MathsatSymbolicFormula(long t) {
         msatTerm = t;
@@ -59,8 +59,6 @@ public class MathsatSymbolicFormula implements SymbolicFormula {
     }
 
     public long getTerm() { return msatTerm; }
-
-    void setTerm(long t) { msatTerm = t; }
 
     @Override
     public int hashCode() {

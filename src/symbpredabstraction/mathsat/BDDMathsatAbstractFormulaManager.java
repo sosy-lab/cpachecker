@@ -27,6 +27,7 @@ import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
@@ -37,6 +38,7 @@ import symbpredabstraction.interfaces.AbstractFormula;
 import symbpredabstraction.interfaces.AbstractFormulaManager;
 import symbpredabstraction.interfaces.Predicate;
 import symbpredabstraction.interfaces.SymbolicFormula;
+import symbpredabstraction.interfaces.TheoremProver;
 
 import common.Pair;
 
@@ -47,22 +49,13 @@ public class BDDMathsatAbstractFormulaManager extends CommonFormulaManager {
      * callback used to build the predicate abstraction of a formula
      * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
      */
-    protected abstract class AllSatCallback {
-        private final long msatEnv;
-        private final long absEnv;
-        private AbstractFormula formula;
-        private final Deque<AbstractFormula> cubes;
+    protected class AllSatCallback implements TheoremProver.AllSatCallback {
+        public long totalTime = 0;
 
-        public AllSatCallback(long msatEnv, long absEnv) {
-            this.formula = amgr.makeFalse();
-            this.msatEnv = msatEnv;
-            this.absEnv = absEnv;
-            cubes = new ArrayDeque<AbstractFormula>();
-        }
+        private AbstractFormula formula = amgr.makeFalse();
+        private final Deque<AbstractFormula> cubes = new ArrayDeque<AbstractFormula>();
         
-        public AllSatCallback() {
-          this(mmgr.getMsatEnv(), 0);
-        }
+        public AllSatCallback() { /* change visibility to public */ }
 
         // TODO rename getBDD to something like getResult
         public AbstractFormula getBDD() {
@@ -83,28 +76,26 @@ public class BDDMathsatAbstractFormulaManager extends CommonFormulaManager {
             formula = cubes.remove();
         }
 
-        protected void callback(long[] model) {
+        @Override
+        public void modelFound(List<SymbolicFormula> model) {
+            long start = System.currentTimeMillis();
+
             // the abstraction is created simply by taking the disjunction
             // of all the models found by msat_all_sat, and storing them
             // in a BDD
             // first, let's create the BDD corresponding to the model
             Deque<AbstractFormula> curCube = new ArrayDeque<AbstractFormula>();
             AbstractFormula m = amgr.makeTrue();
-            for (int i = 0; i < model.length; ++i) {
-                long t = 0;
-                if (absEnv != 0) {
-                    t = mathsat.api.msat_make_copy_from(
-                            msatEnv, model[i], absEnv);
-                } else {
-                    t = model[i];
-                }
+            for (SymbolicFormula f : model) {
+                long t = ((MathsatSymbolicFormula)f).getTerm();
+                
                 AbstractFormula v;
                 if (mathsat.api.msat_term_is_not(t) != 0) {
                     t = mathsat.api.msat_term_get_arg(t, 0);
                     v = getPredicate(new MathsatSymbolicFormula(t)).getFormula();
                     v = amgr.makeNot(v);
                 } else {
-                  v = getPredicate(new MathsatSymbolicFormula(t)).getFormula();
+                  v = getPredicate(f).getFormula();
                 }
                 curCube.add(v);
             }
@@ -118,6 +109,9 @@ public class BDDMathsatAbstractFormulaManager extends CommonFormulaManager {
             assert(curCube.size() == 1);
             m = curCube.remove();
             cubes.add(m);
+
+            long end = System.currentTimeMillis();
+            totalTime += (end - start);
         }
     }
 

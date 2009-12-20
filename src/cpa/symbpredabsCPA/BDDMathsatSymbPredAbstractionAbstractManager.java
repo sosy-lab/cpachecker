@@ -35,7 +35,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Vector;
 import java.util.logging.Level;
 
 import symbpredabstraction.PathFormula;
@@ -71,37 +70,6 @@ import common.Pair;
 class BDDMathsatSymbPredAbstractionAbstractManager extends BDDMathsatAbstractFormulaManager 
 implements SymbPredAbstFormulaManager
 {
-
-  private class AllSatCallbackStats extends AllSatCallback
-  implements TheoremProver.AllSatCallback {
-    public long totTime = 0;
-    private long[] curModel;
-
-    public AllSatCallbackStats() {
-      super();
-      curModel = null;
-    }
-
-    @Override
-    public void callback(long[] model) {
-      long start = System.currentTimeMillis();
-      super.callback(model);
-      long end = System.currentTimeMillis();
-      totTime += (end - start);
-    }
-
-    @Override
-    public void modelFound(Vector<SymbolicFormula> model) {
-      if (curModel == null || curModel.length != model.size()) {
-        curModel = new long[model.size()];
-      }
-      for (int i = 0; i < curModel.length; ++i) {
-        long t = ((MathsatSymbolicFormula)model.get(i)).getTerm();
-        curModel[i] = t;
-      }
-      callback(curModel);
-    }
-  }
 
   static class Stats {
     public long abstractionMathsatTime = 0;
@@ -497,7 +465,7 @@ implements SymbPredAbstFormulaManager
       // get the environment from the manager - this is unique, it is the
       // environment in which all terms are created
    
-      AllSatCallbackStats allSatCallback = new AllSatCallbackStats();
+      AllSatCallback allSatCallback = new AllSatCallback();
       long msatSolveStartTime = System.currentTimeMillis();
       final int numModels = thmProver.allSat(fm, importantPreds, allSatCallback);
       long msatSolveEndTime = System.currentTimeMillis();
@@ -516,7 +484,7 @@ implements SymbPredAbstFormulaManager
       }
       
       // update statistics
-      long bddTime       = allSatCallback.totTime;
+      long bddTime       = allSatCallback.totalTime;
       long msatSolveTime = (msatSolveEndTime - msatSolveStartTime) - bddTime;
 
       stats.abstractionMathsatSolveTime += msatSolveTime;
