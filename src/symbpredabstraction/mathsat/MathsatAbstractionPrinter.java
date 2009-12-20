@@ -27,14 +27,13 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.Stack;
-import java.util.Vector;
 import java.util.logging.Level;
 
-import cmdline.CPAMain;
-
 import symbpredabstraction.interfaces.SymbolicFormula;
+import cmdline.CPAMain;
 
 /**
  * Class used to dump "hard" abstraction problems in MathSAT and NuSMV
@@ -59,10 +58,10 @@ public class MathsatAbstractionPrinter {
     }
 
     public void printMsatFormat(SymbolicFormula curState, SymbolicFormula edgeFormula,
-                                SymbolicFormula predDef, Vector<SymbolicFormula> important) {
+                                SymbolicFormula predDef, List<SymbolicFormula> important) {
       long[] imp = new long[important.size()];
       for (int i = 0; i < imp.length; ++i) {
-          imp[i] = ((MathsatSymbolicFormula)important.elementAt(i)).getTerm();
+          imp[i] = ((MathsatSymbolicFormula)important.get(i)).getTerm();
       }
       printMsatFormat(
           ((MathsatSymbolicFormula)curState).getTerm(),
@@ -104,10 +103,10 @@ public class MathsatAbstractionPrinter {
 
 
     public void printNusmvFormat(SymbolicFormula curState, SymbolicFormula edgeFormula,
-                                SymbolicFormula predDef, Vector<SymbolicFormula> important) {
+                                SymbolicFormula predDef, List<SymbolicFormula> important) {
       long[] imp = new long[important.size()];
       for (int i = 0; i < imp.length; ++i) {
-          imp[i] = ((MathsatSymbolicFormula)important.elementAt(i)).getTerm();
+          imp[i] = ((MathsatSymbolicFormula)important.get(i)).getTerm();
       }
       printNusmvFormat(
           ((MathsatSymbolicFormula)curState).getTerm(),

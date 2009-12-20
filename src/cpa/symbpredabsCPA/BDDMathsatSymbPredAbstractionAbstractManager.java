@@ -26,13 +26,15 @@ package cpa.symbpredabsCPA;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Stack;
 import java.util.Vector;
 import java.util.logging.Level;
 
@@ -94,7 +96,7 @@ implements SymbPredAbstFormulaManager
         curModel = new long[model.size()];
       }
       for (int i = 0; i < curModel.length; ++i) {
-        long t = ((MathsatSymbolicFormula)model.elementAt(i)).getTerm();
+        long t = ((MathsatSymbolicFormula)model.get(i)).getTerm();
         curModel[i] = t;
       }
       callback(curModel);
@@ -130,7 +132,7 @@ implements SymbPredAbstFormulaManager
   private static final int MAX_CACHE_SIZE = 100000;
 
   private final boolean useCache;
-  private final Map<Pair<SymbolicFormula, Vector<SymbolicFormula>>, AbstractFormula> abstractionCache;
+  private final Map<Pair<SymbolicFormula, List<SymbolicFormula>>, AbstractFormula> abstractionCache;
   //cache for cartesian abstraction queries. For each predicate, the values
   // are -1: predicate is false, 0: predicate is don't care,
   // 1: predicate is true
@@ -153,7 +155,7 @@ implements SymbPredAbstFormulaManager
     useCache = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.mathsat.useCache");
 
     if (useCache) {
-      abstractionCache = new HashMap<Pair<SymbolicFormula, Vector<SymbolicFormula>>, AbstractFormula>();
+      abstractionCache = new HashMap<Pair<SymbolicFormula, List<SymbolicFormula>>, AbstractFormula>();
       cartesianAbstractionCache = new TimeStampCache<CartesianAbstractionCacheKey, Byte>(MAX_CACHE_SIZE);
       feasibilityCache = new TimeStampCache<FeasibilityCacheKey, Boolean>(MAX_CACHE_SIZE);
     } else {
@@ -470,7 +472,7 @@ implements SymbPredAbstFormulaManager
       }
     }
   
-    Vector<SymbolicFormula> importantPreds = new Vector<SymbolicFormula>(predinfo.predicateNames);
+    List<SymbolicFormula> importantPreds = predinfo.predicateNames;
     
     if (CPAMain.logManager.getLogLevel().intValue() <= Level.ALL.intValue()) {
       StringBuffer importantStrBuf = new StringBuffer();
@@ -494,8 +496,8 @@ implements SymbPredAbstFormulaManager
     CPAMain.logManager.log(Level.ALL, "DEBUG_2",
         "COMPUTING ALL-SMT ON FORMULA: ", fm);
 
-    Pair<SymbolicFormula, Vector<SymbolicFormula>> absKey =
-      new Pair<SymbolicFormula, Vector<SymbolicFormula>>(fm, importantPreds);
+    Pair<SymbolicFormula, List<SymbolicFormula>> absKey =
+      new Pair<SymbolicFormula, List<SymbolicFormula>>(fm, importantPreds);
     AbstractFormula result;
     if (useCache && abstractionCache.containsKey(absKey)) {
       ++stats.numCallsAbstractionCached;
@@ -566,7 +568,7 @@ implements SymbPredAbstFormulaManager
 
     CPAMain.logManager.log(Level.FINEST, "Building counterexample trace");
 
-    Vector<SymbolicFormula> f = getFormulasForTrace(abstractTrace);
+    List<SymbolicFormula> f = getFormulasForTrace(abstractTrace);
 
     CPAMain.logManager.log(Level.ALL, "Counterexample trace formulas:", f);
     
@@ -618,7 +620,7 @@ implements SymbPredAbstFormulaManager
       // is the trace from the entry point of the current function
       // to the current point, and B is everything else. To implement
       // this, we keep track of which function we are currently in.
-      Stack<Integer> entryPoints = new Stack<Integer>();
+      Deque<Integer> entryPoints = new ArrayDeque<Integer>();
       entryPoints.push(0);
       
       for (int i = 0; i < f.size(); ++i) {
@@ -631,9 +633,9 @@ implements SymbPredAbstFormulaManager
           start_of_a = 0;          
         }
         
-        Vector<SymbolicFormula> formulasOfA = new Vector<SymbolicFormula>(i - start_of_a);
+        List<SymbolicFormula> formulasOfA = new ArrayList<SymbolicFormula>(i - start_of_a);
         for (int j = start_of_a; j < i; ++j) {
-          formulasOfA.add(f.elementAt(j));
+          formulasOfA.add(f.get(j));
         }
         
         CPAMain.logManager.log(Level.ALL, "Looking for interpolant for formulas from",
@@ -713,14 +715,14 @@ implements SymbPredAbstFormulaManager
     return info;
   }
 
-  private Vector<SymbolicFormula> getFormulasForTrace(
+  private List<SymbolicFormula> getFormulasForTrace(
       ArrayList<SymbPredAbsAbstractElement> abstractTrace) {
 
     // create the DAG formula corresponding to the abstract trace. We create
     // n formulas, one per interpolation group
     SSAMap ssa = null;
 
-    Vector<SymbolicFormula> f = new Vector<SymbolicFormula>();
+    List<SymbolicFormula> f = new ArrayList<SymbolicFormula>(abstractTrace.size()-1);
 
     for (int i = 1; i < abstractTrace.size(); ++i) {
       SymbPredAbsAbstractElement e = abstractTrace.get(i);
@@ -753,8 +755,7 @@ implements SymbPredAbstFormulaManager
    * @param traceFormulas
    * @return
    */
-  private boolean addBitwiseAxioms(
-      Vector<SymbolicFormula> traceFormulas) {
+  private boolean addBitwiseAxioms(List<SymbolicFormula> traceFormulas) {
 
     boolean foundUninterpretedFunction = false;
     
@@ -779,14 +780,13 @@ implements SymbPredAbstFormulaManager
     if (useBitwiseAxioms && foundUninterpretedFunction) {
       CPAMain.logManager.log(Level.ALL, "DEBUG_3", "ADDING BITWISE AXIOMS TO THE",
           "LAST GROUP: ", bitwiseAxioms);
-      traceFormulas.setElementAt(smgr.makeAnd(traceFormulas.elementAt(traceFormulas.size()-1), bitwiseAxioms),
-          traceFormulas.size()-1);
+      traceFormulas.set(traceFormulas.size()-1, smgr.makeAnd(traceFormulas.get(traceFormulas.size()-1), bitwiseAxioms));
     }
     return foundUninterpretedFunction;
   }
   
   private boolean checkInfeasabilityOfTrace(
-      Vector<SymbolicFormula> traceFormulas, boolean shortestTrace,
+      List<SymbolicFormula> traceFormulas, boolean shortestTrace,
       boolean useSuffix, boolean useZigZag) {
     boolean spurious;
     if (shortestTrace) {
@@ -803,13 +803,13 @@ implements SymbPredAbstFormulaManager
           fromStart = !fromStart;
           
           tmpSpurious = null;
-          SymbolicFormula fm = traceFormulas.elementAt(i);
+          SymbolicFormula fm = traceFormulas.get(i);
           itpProver.addFormula(fm);
           if (!fm.isTrue()) {
             if (itpProver.isUnsat()) {
               tmpSpurious = Boolean.TRUE;
               for (int j = s; j <= e; ++j) {
-                itpProver.addFormula(traceFormulas.elementAt(j));
+                itpProver.addFormula(traceFormulas.get(j));
               }
               break;
             } else {
@@ -823,7 +823,7 @@ implements SymbPredAbstFormulaManager
               useSuffix ? i >= 0 : i < traceFormulas.size(); i += useSuffix ? -1 : 1) {
           
           tmpSpurious = null;
-          SymbolicFormula fm = traceFormulas.elementAt(i);
+          SymbolicFormula fm = traceFormulas.get(i);
           itpProver.addFormula(fm);
           if (!fm.isTrue()) {
             if (itpProver.isUnsat()) {
@@ -833,7 +833,7 @@ implements SymbPredAbstFormulaManager
               for (int j = i+(useSuffix ? -1 : 1);
                   useSuffix ? j >= 0 : j < traceFormulas.size();
                   j += useSuffix ? -1 : 1) {
-                itpProver.addFormula(traceFormulas.elementAt(j));
+                itpProver.addFormula(traceFormulas.get(j));
               }
               break;
             } else {
@@ -855,7 +855,7 @@ implements SymbPredAbstFormulaManager
       for (int i = useSuffix ? traceFormulas.size()-1 : 0;
         useSuffix ? i >= 0 : i < traceFormulas.size(); i += useSuffix ? -1 : 1) {
         
-        SymbolicFormula fm = traceFormulas.elementAt(i);
+        SymbolicFormula fm = traceFormulas.get(i);
         itpProver.addFormula(fm); 
       }
       spurious = itpProver.isUnsat();
@@ -900,7 +900,7 @@ implements SymbPredAbstFormulaManager
     return ret;
   }
 
-  private Vector<SymbolicFormula> getUsefulBlocks(Vector<SymbolicFormula> f,
+  private List<SymbolicFormula> getUsefulBlocks(List<SymbolicFormula> f,
       boolean theoryCombinationNeeded, boolean suffixTrace, boolean zigZag) {
     long gubStart = System.currentTimeMillis();
     
@@ -931,7 +931,7 @@ implements SymbPredAbstFormulaManager
       }
       // 2. if needed is inconsistent, then return it
       if (thmProver.isUnsat(trueFormula)) {
-        f = new Vector<SymbolicFormula>();
+        f = new ArrayList<SymbolicFormula>(f.size());
         for (int i = 0; i < needed.length; ++i) {
           f.add(needed[i]);
         }
@@ -949,7 +949,7 @@ implements SymbPredAbstFormulaManager
           else --e;
           fromStart = !fromStart;
 
-          SymbolicFormula t = f.elementAt(i);
+          SymbolicFormula t = f.get(i);
           thmProver.push(t);
           ++toPop;
           if (thmProver.isUnsat(trueFormula)) {
@@ -972,7 +972,7 @@ implements SymbPredAbstFormulaManager
       } else {
         for (int i = pos; suffixTrace ? i >= 0 : i < f.size();
         i += incr) {
-          SymbolicFormula t = f.elementAt(i);
+          SymbolicFormula t = f.get(i);
           thmProver.push(t);
           ++toPop;
           if (thmProver.isUnsat(trueFormula)) {

@@ -33,6 +33,7 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
@@ -41,7 +42,6 @@ import java.util.logging.Level;
 
 import symbpredabstraction.interfaces.SymbolicFormula;
 import symbpredabstraction.interfaces.TheoremProver;
-
 import cmdline.CPAMain;
 
 
@@ -113,7 +113,7 @@ public class SimplifyTheoremProver implements TheoremProver {
     }
 
     @Override
-    public int allSat(SymbolicFormula f, Vector<SymbolicFormula> important,
+    public int allSat(SymbolicFormula f, List<SymbolicFormula> important,
             AllSatCallback callback) {
         // first, initialize simplify with model generation support
         PrintWriter savedIn = simplifyIn;
@@ -512,7 +512,7 @@ public class SimplifyTheoremProver implements TheoremProver {
         return ret;
     }
 
-    private Set<String> toSimplifyPreds(Vector<SymbolicFormula> important) {
+    private Set<String> toSimplifyPreds(List<SymbolicFormula> important) {
         Set<String> ret = new HashSet<String>();
         for (SymbolicFormula p : important) {
             long pred = ((MathsatSymbolicFormula)p).getTerm();

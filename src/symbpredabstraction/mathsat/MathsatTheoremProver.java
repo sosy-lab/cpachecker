@@ -23,11 +23,11 @@
  */
 package symbpredabstraction.mathsat;
 
+import java.util.List;
 import java.util.Vector;
 
 import symbpredabstraction.interfaces.SymbolicFormula;
 import symbpredabstraction.interfaces.TheoremProver;
-
 import cmdline.CPAMain;
 
 
@@ -192,7 +192,7 @@ public class MathsatTheoremProver implements TheoremProver {
 
     @Override
     public int allSat(SymbolicFormula f,
-            Vector<SymbolicFormula> important, AllSatCallback callback) {
+            List<SymbolicFormula> important, AllSatCallback callback) {
         long allsatEnv = mathsat.api.msat_create_shared_env(msatEnv);
 
         int theories = mmgr.getNeededTheories((MathsatSymbolicFormula)f);
@@ -219,7 +219,7 @@ public class MathsatTheoremProver implements TheoremProver {
         long formula = ((MathsatSymbolicFormula)f).getTerm();
         long[] imp = new long[important.size()];
         for (int i = 0; i < imp.length; ++i) {
-            imp[i] = ((MathsatSymbolicFormula)important.elementAt(i)).getTerm();
+            imp[i] = ((MathsatSymbolicFormula)important.get(i)).getTerm();
         }
         MathsatAllSatCallback func = new MathsatAllSatCallback(callback);
         mathsat.api.msat_assert_formula(allsatEnv, formula);

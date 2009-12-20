@@ -24,12 +24,11 @@
 package symbpredabstraction.mathsat;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 
 import symbpredabstraction.interfaces.InterpolatingTheoremProver;
 import symbpredabstraction.interfaces.SymbolicFormula;
-
 import cmdline.CPAMain;
 
 
@@ -107,11 +106,11 @@ public class MathsatInterpolatingProver implements InterpolatingTheoremProver {
     }
 
     @Override
-    public SymbolicFormula getInterpolant(Vector<SymbolicFormula> formulasOfA) {
+    public SymbolicFormula getInterpolant(List<SymbolicFormula> formulasOfA) {
         int[] groupsOfA = new int[formulasOfA.size()];
         for (int i = 0; i < groupsOfA.length; ++i) {
             long t =
-                ((MathsatSymbolicFormula)formulasOfA.elementAt(i)).getTerm();
+                ((MathsatSymbolicFormula)formulasOfA.get(i)).getTerm();
             if (!useSharedEnv) {
                 assert(copyFromCache.containsKey(t));
                 t = copyFromCache.get(t);

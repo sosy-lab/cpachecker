@@ -23,15 +23,14 @@
  */
 package symbpredabstraction.mathsat;
 
+import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 
-import mathsat.AllSatModelCallback;
 import symbpredabstraction.CommonFormulaManager;
 import symbpredabstraction.SSAMap;
 import symbpredabstraction.interfaces.AbstractFormula;
@@ -48,17 +47,17 @@ public class BDDMathsatAbstractFormulaManager extends CommonFormulaManager {
      * callback used to build the predicate abstraction of a formula
      * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
      */
-    public class AllSatCallback implements AllSatModelCallback {
-        private long msatEnv;
-        private long absEnv;
+    protected abstract class AllSatCallback {
+        private final long msatEnv;
+        private final long absEnv;
         private AbstractFormula formula;
-        private Deque<AbstractFormula> cubes;
+        private final Deque<AbstractFormula> cubes;
 
         public AllSatCallback(long msatEnv, long absEnv) {
             this.formula = amgr.makeFalse();
             this.msatEnv = msatEnv;
             this.absEnv = absEnv;
-            cubes = new LinkedList<AbstractFormula>();
+            cubes = new ArrayDeque<AbstractFormula>();
         }
 
         // TODO rename getBDD to something like getResult
@@ -80,12 +79,12 @@ public class BDDMathsatAbstractFormulaManager extends CommonFormulaManager {
             formula = cubes.remove();
         }
 
-        public void callback(long[] model) {
+        protected void callback(long[] model) {
             // the abstraction is created simply by taking the disjunction
             // of all the models found by msat_all_sat, and storing them
             // in a BDD
             // first, let's create the BDD corresponding to the model
-            Deque<AbstractFormula> curCube = new LinkedList<AbstractFormula>();
+            Deque<AbstractFormula> curCube = new ArrayDeque<AbstractFormula>();
             AbstractFormula m = amgr.makeTrue();
             for (int i = 0; i < model.length; ++i) {
                 long t = 0;

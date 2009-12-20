@@ -23,7 +23,7 @@
  */
 package symbpredabstraction.interfaces;
 
-import java.util.Vector;
+import java.util.List;
 
 
 
@@ -32,5 +32,5 @@ public interface InterpolatingTheoremProver {
     public void reset();
     void addFormula(SymbolicFormula f);
     boolean isUnsat();
-    SymbolicFormula getInterpolant(Vector<SymbolicFormula> formulasOfA);
+    SymbolicFormula getInterpolant(List<SymbolicFormula> formulasOfA);
 }

@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
@@ -37,10 +38,9 @@ import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import cmdline.CPAMain;
-
 import symbpredabstraction.interfaces.SymbolicFormula;
 import symbpredabstraction.interfaces.TheoremProver;
+import cmdline.CPAMain;
 
 import common.Pair;
 
@@ -274,7 +274,7 @@ public class YicesTheoremProver implements TheoremProver {
         return ret;
     }
 
-    private Set<String> toYicesPreds(Vector<SymbolicFormula> important) {
+    private Set<String> toYicesPreds(List<SymbolicFormula> important) {
         Set<String> ret = new HashSet<String>();
         for (SymbolicFormula f : important) {
             long pred = ((MathsatSymbolicFormula)f).getTerm();
@@ -289,7 +289,7 @@ public class YicesTheoremProver implements TheoremProver {
     }
 
     @Override
-    public int allSat(SymbolicFormula f, Vector<SymbolicFormula> important,
+    public int allSat(SymbolicFormula f, List<SymbolicFormula> important,
             AllSatCallback callback) {
         // build the yices representation of the formula...
         Pair<Collection<String>, String> yicesFormula = toYices(f);
