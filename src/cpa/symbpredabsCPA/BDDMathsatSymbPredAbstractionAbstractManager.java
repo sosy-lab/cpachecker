@@ -450,21 +450,18 @@ implements SymbPredAbstFormulaManager
 
 
     // build the definition of the predicates, and instantiate them
-    PredInfo predinfo = buildPredList(predicates);
+    PredicateInfo predinfo = buildPredicateInformation(predicates);
     {
-      Collection<String> predvars = predinfo.allVars;
-      Collection<Pair<String, SymbolicFormula[]>> predlvals =
-        predinfo.allFuncs;
       // update the SSA map, by instantiating all the uninstantiated
       // variables that occur in the predicates definitions (at index 1)
-      for (String var : predvars) {
+      for (String var : predinfo.allVariables) {
         if (symbSsa.getIndex(var) < 0) {
           symbSsa.setIndex(var, 1);
         }
       }
       Map<SymbolicFormula, SymbolicFormula> cache =
         new HashMap<SymbolicFormula, SymbolicFormula>();
-      for (Pair<String, SymbolicFormula[]> p : predlvals) {
+      for (Pair<String, SymbolicFormula[]> p : predinfo.allFunctions) {
         SymbolicFormula[] args =
           getInstantiatedAt(p.getSecond(), symbSsa, cache);
         if (symbSsa.getIndex(p.getFirst(), args) < 0) {
@@ -473,14 +470,7 @@ implements SymbPredAbstFormulaManager
       }
     }
   
-    Vector<SymbolicFormula> importantPreds = new Vector<SymbolicFormula>();
-    {
-      final long[] important = predinfo.important;
-      importantPreds.ensureCapacity(important.length);
-      for (long p : important) {
-        importantPreds.add(new MathsatSymbolicFormula(p));
-      }
-    }
+    Vector<SymbolicFormula> importantPreds = new Vector<SymbolicFormula>(predinfo.predicateNames);
     
     if (CPAMain.logManager.getLogLevel().intValue() <= Level.ALL.intValue()) {
       StringBuffer importantStrBuf = new StringBuffer();
@@ -495,8 +485,7 @@ implements SymbPredAbstFormulaManager
 
     
     // instantiate the definitions with the right SSA
-    SymbolicFormula predDef = smgr.instantiate(
-        new MathsatSymbolicFormula(predinfo.predDef), symbSsa);
+    SymbolicFormula predDef = smgr.instantiate(predinfo.predicateDefinition, symbSsa);
 
     // the formula is (absFormula & symbFormula & predDef)
     final SymbolicFormula fm = smgr.makeAnd( 
@@ -904,10 +893,9 @@ implements SymbPredAbstFormulaManager
           mathsat.api.MSAT_BOOL);
       long var = mathsat.api.msat_make_variable(dstenv, d);
 
-      assert(!mathsat.api.MSAT_ERROR_TERM(tt));
       assert(!mathsat.api.MSAT_ERROR_TERM(var));
 
-      ret.add(makePredicate(var, tt));
+      ret.add(makePredicate(new MathsatSymbolicFormula(var), atom));
     }
     return ret;
   }

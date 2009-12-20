@@ -130,13 +130,24 @@ public class BDDMathsatAbstractFormulaManager extends CommonFormulaManager {
      * creates a BDDPredicate from the Boolean mathsat variable (msatVar) and
      * the atoms that defines it (the msatAtom)
      * 
-     * Use {{@link #makePredicate(SymbolicFormula, SymbolicFormula)} instead.
+     * Use {@link #makePredicate(SymbolicFormula, SymbolicFormula)} instead.
      */
     @Deprecated
     protected Predicate makePredicate(long msatVar, long msatAtom) {
         return makePredicate(new MathsatSymbolicFormula(msatVar), new MathsatSymbolicFormula(msatAtom));
     }
 
+    @Override
+    protected void collectVarNames(SymbolicFormula term, Set<String> vars,
+        Set<Pair<String, SymbolicFormula[]>> lvals) {
+      
+      collectVarNames(((MathsatSymbolicFormula)term).getTerm(), vars, lvals);
+    }
+    
+    /**
+     * Use {@link #collectVarNames(SymbolicFormula, Set, Set)} instead.
+     */
+    @Deprecated
     protected void collectVarNames(
             long term, Set<String> vars,
             Set<Pair<String, SymbolicFormula[]>> lvals) {
@@ -172,6 +183,7 @@ public class BDDMathsatAbstractFormulaManager extends CommonFormulaManager {
     // [mathsat term for \bigwedge_preds (var <-> def),
     //  list of important terms (the names of the preds),
     //   list of variables occurring in the definitions of the preds]
+    @Deprecated
     protected static class PredInfo {
         public long predDef; // mathsat term for \bigwedge_preds (var <-> def)
         public long[] important; // list of important terms 
@@ -190,6 +202,12 @@ public class BDDMathsatAbstractFormulaManager extends CommonFormulaManager {
             allFuncs = af;
         }
     }
+    /**
+     * Use {@link #buildPredicateInfo(Collection)} instead.
+     * @param predicates
+     * @return
+     */
+    @Deprecated
     protected PredInfo buildPredList(
             Collection<Predicate> predicates) {
         long msatEnv = mmgr.getMsatEnv();
@@ -221,7 +239,7 @@ public class BDDMathsatAbstractFormulaManager extends CommonFormulaManager {
     public Pair<MathsatSymbolicFormula, MathsatSymbolicFormula> getPredicateNameAndDef(Predicate p) {
         return (Pair<MathsatSymbolicFormula, MathsatSymbolicFormula>)getPredicateVarAndAtom(p);
     }
-
+    
     protected SymbolicFormula[] getInstantiatedAt(SymbolicFormula[] args,
             SSAMap ssa, Map<SymbolicFormula, SymbolicFormula> cache) {
         Stack<Long> toProcess = new Stack<Long>();

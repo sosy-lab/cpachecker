@@ -23,8 +23,14 @@
  */
 package symbpredabstraction;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Stack;
 import java.util.logging.Level;
 
@@ -51,9 +57,9 @@ public abstract class CommonFormulaManager implements FormulaManager {
   
   // Here we keep the mapping abstract predicate ->
   // (symbolic formula representing the variable, symbolic formula representing the atom)
-  private final Map<Predicate, Pair<SymbolicFormula, SymbolicFormula>> predicateToMsatAtom;
+  private final Map<Predicate, Pair<SymbolicFormula, SymbolicFormula>> predicateToVarAndAtom;
   // and the reverse mapping symbolic variable -> predicate
-  private final Map<SymbolicFormula, Predicate> msatVarToPredicate;
+  private final Map<SymbolicFormula, Predicate> symbVarToPredicate;
 
   private final boolean useCache;
   private final Map<AbstractFormula, SymbolicFormula> toConcreteCache;
@@ -62,8 +68,8 @@ public abstract class CommonFormulaManager implements FormulaManager {
     amgr = pAmgr;
     smgr = pSmgr;
     
-    predicateToMsatAtom = new HashMap<Predicate, Pair<SymbolicFormula, SymbolicFormula>>();
-    msatVarToPredicate = new HashMap<SymbolicFormula, Predicate>();
+    predicateToVarAndAtom = new HashMap<Predicate, Pair<SymbolicFormula, SymbolicFormula>>();
+    symbVarToPredicate = new HashMap<SymbolicFormula, Predicate>();
     
     useCache = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.mathsat.useCache");
     if (useCache) {
@@ -78,22 +84,28 @@ public abstract class CommonFormulaManager implements FormulaManager {
    * the atom that defines it
    */
   protected Predicate makePredicate(SymbolicFormula var, SymbolicFormula atom) {
-    if (msatVarToPredicate.containsKey(var)) {
-      return msatVarToPredicate.get(var);
+    if (symbVarToPredicate.containsKey(var)) {
+      return symbVarToPredicate.get(var);
     } else {
       Predicate result = amgr.createPredicate();
 
       CPAMain.logManager.log(Level.FINEST, "Created predicate", result,
                      "from variable", var, "and atom", atom);
 
-      predicateToMsatAtom.put(result, new Pair<SymbolicFormula, SymbolicFormula>(var, atom));
-      msatVarToPredicate.put(var, result);
+      predicateToVarAndAtom.put(result, new Pair<SymbolicFormula, SymbolicFormula>(var, atom));
+      symbVarToPredicate.put(var, result);
       return result;
     }
   }
   
+  /**
+   * Get the symbolic formulas for the variable and the atom which belong to a
+   * predicate. 
+   * @param p A predicate which has been return by {@link #makePredicate(SymbolicFormula, SymbolicFormula)}
+   * @return The values passed to the makePredicate call (symbolic formula for var and atom)
+   */
   protected Pair<? extends SymbolicFormula, ? extends SymbolicFormula> getPredicateVarAndAtom(Predicate p) {
-    return predicateToMsatAtom.get(p);
+    return predicateToVarAndAtom.get(p);
   }
   
   /**
@@ -102,12 +114,70 @@ public abstract class CommonFormulaManager implements FormulaManager {
    * @return a Predicate
    */
   protected Predicate getPredicate(SymbolicFormula var) {
-    Predicate result = msatVarToPredicate.get(var);
+    Predicate result = symbVarToPredicate.get(var);
     if (var == null) {
       throw new IllegalArgumentException(var + " seems not to be a formula corresponding to a single predicate variable.");
     }
     return result;
   }
+  
+  
+  protected static class PredicateInfo {
+    // formula for \bigwedge_preds (var <-> def)
+    public final SymbolicFormula predicateDefinition;
+    
+    // list of important terms (the names of the preds)
+    public final List<SymbolicFormula> predicateNames;   
+                                         
+    // list of variable names occurring in the definitions of the preds
+    public final Set<String> allVariables; 
+                                 
+    // list of functions occurring in the preds defs and their arguments' values
+    public final Set<Pair<String, SymbolicFormula[]>> allFunctions;
+    
+    public PredicateInfo(SymbolicFormula pd, List<SymbolicFormula> imp, Set<String> av, 
+                    Set<Pair<String, SymbolicFormula[]>> af) {
+        predicateDefinition = pd;
+        predicateNames = Collections.unmodifiableList(imp);
+        allVariables = Collections.unmodifiableSet(av);
+        allFunctions = Collections.unmodifiableSet(af);
+    }
+  }
+  
+  /**
+   * Get some needed information out of a list of predicates.
+   * See {@link PredicateInfo} for more information.
+   * @param predicates Some predicates to analyze.
+   * @return PredicateInfo
+   */
+  protected PredicateInfo buildPredicateInformation(Collection<Predicate> predicates) {
+    List<SymbolicFormula> important = new ArrayList<SymbolicFormula>(predicates.size());
+    Set<String> allvars = new HashSet<String>();
+    Set<Pair<String, SymbolicFormula[]>> allfuncs = new HashSet<Pair<String, SymbolicFormula[]>>();
+    SymbolicFormula preddef = smgr.makeTrue();
+    
+    for (Predicate p : predicates) {
+        SymbolicFormula var = getPredicateVarAndAtom(p).getFirst();
+        SymbolicFormula def = getPredicateVarAndAtom(p).getSecond();
+        collectVarNames(def, allvars, allfuncs);
+        important.add(var);
+        // build the formula (var <-> def)
+        SymbolicFormula equiv = smgr.makeEquivalence(var, def);
+        
+        // and add it to the list of definitions
+        preddef = smgr.makeAnd(preddef, equiv);
+    }
+    return new PredicateInfo(preddef, important, allvars, allfuncs);
+  }
+  
+  /**
+   * Collects all variables names and all lValues in a term.
+   * @param term  the symbolic formula to analyze
+   * @param vars  the set were all variable names are stored
+   * @param lvals the set where all lValue UIFs and their arguments are stored
+   */
+  protected abstract void collectVarNames(SymbolicFormula term, Set<String> vars,
+                                      Set<Pair<String, SymbolicFormula[]>> lvals);
   
   /**
    * Given an abstract formula (which is a BDD over the predicates), build
@@ -160,9 +230,9 @@ public abstract class CommonFormulaManager implements FormulaManager {
 
               toProcess.pop();
               Predicate var = parts.getFirst();
-              assert(predicateToMsatAtom.containsKey(var));
+              assert(predicateToVarAndAtom.containsKey(var));
 
-              SymbolicFormula atom = predicateToMsatAtom.get(var).getSecond();
+              SymbolicFormula atom = predicateToVarAndAtom.get(var).getSecond();
               
               SymbolicFormula ite = smgr.makeIfThenElse(atom, m1, m2);
               cache.put(n, ite);
