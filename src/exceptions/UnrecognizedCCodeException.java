@@ -23,25 +23,21 @@
  */
 package exceptions;
 
+import org.eclipse.cdt.core.dom.ast.IASTNode;
+
 import cfa.objectmodel.CFAEdge;
 
 /**
- * Exception thrown if a CPA cannot handle a specific CFAEdge.
- *
- * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
+ * Exception thrown when a CPA cannot handle some C code attached to a CFAEdge.
  */
-public class UnrecognizedCFAEdgeException extends TransferRelationException {
+public class UnrecognizedCCodeException extends CPATransferException {
 
-    public UnrecognizedCFAEdgeException(String msg) {
-        super(msg);
-    }
-    
-    public UnrecognizedCFAEdgeException(CFAEdge edge) {
-        super("Unknown CFA edge: " + edge.getEdgeType() + " (" + edge.getRawStatement() + ")");
-    }
+  private static final long serialVersionUID = -8319167530363457020L;
 
-    /**
-     * auto-generated UID
-     */
-    private static final long serialVersionUID = -5106215499745787051L;
+  public UnrecognizedCCodeException(String msg, CFAEdge edge, IASTNode astNode) {
+    super("Unrecognized C code"
+        + (msg != null ? " (" + msg + ") " : " ")
+        + "in line " + astNode.getFileLocation().getStartingLineNumber()
+        + ": " + astNode.getRawSignature());
+  }
 }

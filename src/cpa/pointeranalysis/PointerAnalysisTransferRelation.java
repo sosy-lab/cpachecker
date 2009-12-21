@@ -84,6 +84,8 @@ import exceptions.CPAException;
 import exceptions.CPATransferException;
 import exceptions.ErrorReachedException;
 import exceptions.TransferRelationException;
+import exceptions.UnrecognizedCCodeException;
+import exceptions.UnrecognizedCFAEdgeException;
 
 /**
  * @author Philipp Wendler
@@ -228,20 +230,10 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       case BlankEdge:
         break;
         
-      case CallToReturnEdge:
-      case MultiStatementEdge:
-      case MultiDeclarationEdge:
-        assert false;
-        break;
-      
       default:
-        throw new ErrorReachedException("Unknown edge type: " + cfaEdge.getEdgeType());
+        throw new UnrecognizedCFAEdgeException(cfaEdge);
       }
-    
-    } catch (TransferRelationException e) {
-      addError(e.getMessage(), cfaEdge);
-      throw new ErrorReachedException(e.getMessage());
-    
+
     } catch (InvalidPointerException e) {
       addError(e.getMessage(), cfaEdge);
       return domain.getBottomElement();
@@ -254,7 +246,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
 
   private void handleDeclaration(PointerAnalysisElement element,
                                  DeclarationEdge declaration)
-                                 throws TransferRelationException {
+                                 throws CPATransferException {
     if (declaration.getDeclSpecifier().getStorageClass() == IASTDeclSpecifier.sc_typedef) {
       // ignore, this is a type definition, not a variable declaration
       return;
@@ -269,7 +261,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
     
     IASTDeclarator[] declarators = declaration.getDeclarators();
     if (declarators == null || declarators.length != 1) {
-      throw new TransferRelationException("Not expected in CIL: " + declaration.getRawStatement());  
+      throw new UnrecognizedCCodeException("not expected in CIL", declaration, declaration.getDeclSpecifier().getParent());  
     }
   
     if (declarators[0] instanceof IASTFunctionDeclarator) {
@@ -289,12 +281,12 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       //long length = parseIntegerLiteral(((IASTArrayDeclarator)declarators[0]).)
       IASTArrayModifier[] modifiers = ((IASTArrayDeclarator)(declarators[0])).getArrayModifiers();
       if (modifiers.length != 1 || modifiers[0] == null) {
-        throw new TransferRelationException("Unsupported array declaration " + declaration.getRawStatement());
+        throw new UnrecognizedCCodeException("unsupported array declaration", declaration, declarators[0]);
       }
       
       IASTExpression lengthExpression = modifiers[0].getConstantExpression();
       if (!(lengthExpression instanceof IASTLiteralExpression)) {
-        throw new TransferRelationException("Variable sized stack arrays are not supported: " + declaration.getRawStatement());
+        throw new UnrecognizedCCodeException("variable sized stack arrays are not supported", declaration, declarators[0]);
       }
       
       long length = parseIntegerLiteral((IASTLiteralExpression)lengthExpression);
@@ -530,7 +522,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       }
       return Long.parseLong(s);
     } catch (NumberFormatException e) {
-      throw new TransferRelationException("Error parsing " + expression + " as integer constant");
+      throw new TransferRelationException("Error parsing " + expression + "in line " + expression.getFileLocation().getStartingLineNumber() + " as integer constant");
     }
   }
 
