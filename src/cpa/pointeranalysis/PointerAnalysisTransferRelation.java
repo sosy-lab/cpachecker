@@ -37,6 +37,8 @@ import org.eclipse.cdt.core.dom.ast.IASTCastExpression;
 import org.eclipse.cdt.core.dom.ast.IASTCompositeTypeSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
+import org.eclipse.cdt.core.dom.ast.IASTElaboratedTypeSpecifier;
+import org.eclipse.cdt.core.dom.ast.IASTEnumerationSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionDeclarator;
@@ -257,8 +259,11 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       // ignore, this is a type definition, not a variable declaration
       return;
     }
-    if (declaration.getDeclSpecifier() instanceof IASTCompositeTypeSpecifier) {
-      // TODO handle fields
+    IASTDeclSpecifier specifier = declaration.getDeclSpecifier();
+    if (   specifier instanceof IASTCompositeTypeSpecifier
+        || specifier instanceof IASTElaboratedTypeSpecifier
+        || specifier instanceof IASTEnumerationSpecifier) {
+      // TODO handle fields & enums
       return;
     }
     
