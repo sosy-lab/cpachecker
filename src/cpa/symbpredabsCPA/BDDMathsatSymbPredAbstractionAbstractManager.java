@@ -519,7 +519,6 @@ implements SymbPredAbstFormulaManager
   @Override
   public CounterexampleTraceInfo buildCounterexampleTrace(
       ArrayList<SymbPredAbsAbstractElement> abstractTrace) {
-    assert(abstractTrace.size() > 1);
 
     long startTime = System.currentTimeMillis();
     stats.numCallsCexAnalysis++;
@@ -581,9 +580,11 @@ implements SymbPredAbstFormulaManager
       Deque<Integer> entryPoints = new ArrayDeque<Integer>();
       entryPoints.push(0);
       
-      for (int i = 0; i < f.size(); ++i) {
+      boolean wellScopedPredicates = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.refinement.addWellScopedPredicates");
+      // FIXME why is the last iteration left out?
+      for (int i = 0; i < f.size()-1; ++i) {
         int start_of_a;
-        if (CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.refinement.addWellScopedPredicates")) {
+        if (wellScopedPredicates) {
           start_of_a = entryPoints.peek();
         } else {
           // if we don't want "well-scoped" predicates, we always
@@ -592,12 +593,12 @@ implements SymbPredAbstFormulaManager
         }
         
         List<SymbolicFormula> formulasOfA = new ArrayList<SymbolicFormula>(i - start_of_a);
-        for (int j = start_of_a; j < i; ++j) {
+        for (int j = start_of_a; j <= i; ++j) {
           formulasOfA.add(f.get(j));
         }
         
         CPAMain.logManager.log(Level.ALL, "Looking for interpolant for formulas from",
-            start_of_a, "to", i-1, ":", formulasOfA);
+            start_of_a, "to", i, ":", formulasOfA);
         
         msatSolveTimeStart = System.currentTimeMillis();
         SymbolicFormula itp = itpProver.getInterpolant(formulasOfA);
@@ -615,6 +616,8 @@ implements SymbPredAbstFormulaManager
             "atoms ", atoms,
             "predicates", preds);
 
+        // TODO the following code relies on the fact that there is always an abstraction on function call and return
+        
         // If we are entering or exiting a function, update the stack
         // of entry points
         // TODO checking if the abstraction node is a new function
@@ -682,7 +685,7 @@ implements SymbPredAbstFormulaManager
 
     List<SymbolicFormula> f = new ArrayList<SymbolicFormula>(abstractTrace.size()-1);
 
-    for (int i = 1; i < abstractTrace.size(); ++i) {
+    for (int i = 0; i < abstractTrace.size(); ++i) {
       SymbPredAbsAbstractElement e = abstractTrace.get(i);
       // TODO here we take the formula from the abstract element
       PathFormula p = getInitSymbolicFormula(e.getInitAbstractionFormula(), (ssa == null));

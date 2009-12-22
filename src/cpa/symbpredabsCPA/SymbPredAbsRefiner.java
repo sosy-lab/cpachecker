@@ -69,8 +69,9 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
 
     CPAMain.logManager.log(Level.FINEST, "Starting refinement for SymbPredAbsCPA");
     
-    // create path with all elements directly before an abstraction location,
-    // last element is the element corresponding to the error location
+    // create path with all abstraction location elements (excluding the initial
+    // element, which is not in pPath)
+    // the last element is the element corresponding to the error location
     // (which is twice in pPath)
     ArrayList<SymbPredAbsAbstractElement> path = new ArrayList<SymbPredAbsAbstractElement>();
     SymbPredAbsAbstractElement lastElement = null;
@@ -78,15 +79,13 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
       SymbPredAbsAbstractElement symbElement = (SymbPredAbsAbstractElement)
         artPair.getFirst().retrieveElementOfType("SymbPredAbsAbstractElement");
       
-      if (symbElement.isAbstractionNode()) {
-        assert lastElement != null;
-        path.add(lastElement);
+      if (symbElement.isAbstractionNode() && symbElement != lastElement) {
+        path.add(symbElement);
       }
       lastElement = symbElement;
     }
     
     CPAMain.logManager.log(Level.ALL, "Abstraction trace is", path);
-    // TODO PW I can't imagine why this path has to be like this, is it correct?
         
     // build the counterexample
     CounterexampleTraceInfo info = formulaManager.buildCounterexampleTrace(path);
@@ -110,7 +109,6 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
     UpdateablePredicateMap curpmap = (UpdateablePredicateMap)mCpa.getPredicateMap();
     SymbPredAbsAbstractElement symbPredRootElement = null;
     SymbPredAbsAbstractElement firstInterpolationElement = null;
-    SymbPredAbsAbstractElement previous = null;
     
     for (SymbPredAbsAbstractElement e : pPath) {
       Collection<Predicate> newpreds = pInfo.getPredicatesForRefinement(e);
@@ -119,25 +117,36 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
       }
       if (curpmap.update(e.getAbstractionLocation(), newpreds)) {
         if (symbPredRootElement == null) {
-          assert previous != null;
-          symbPredRootElement = previous;
+          symbPredRootElement = e;
         }
       }
-      previous = e;
     }
+    
+    // It can happen that we discovered interpolants and curpmap.update returns
+    // false. This occurs when we discovered the same predicate on the same
+    // CFANode in another error path before. In this case we try a new strategy,
+    // because there might be more paths where this predicate will help. So we
+    // remove everything below the first occurrence of this CFANode in the error
+    // path from the ART. Then hopefully we won't have to refine all of those paths
+    // one by one.
+    
+    // Another strategy would be to always remove everything below all occurrences
+    // of this CFANode from the ART.
+    
+    CPAMain.logManager.log(Level.ALL, "Predicate map now is", curpmap);
 
     // FIXME (test/tests/ssh-simple/s3_clnt_4.cil.c.symbpredabsCPA-2.log) what to do here?
     assert(firstInterpolationElement != null);
 
-    SymbPredAbsAbstractElement errorElement = pPath.get(pPath.size()-1);
     ARTElement root;
     if (symbPredRootElement == null) {
+      SymbPredAbsAbstractElement errorElement = pPath.get(pPath.size()-1);
       
       if ((numSeenAbstractCounterexample > 1) &&
           errorElement.getAbstractionPathList().equals(seenAbstractCounterexample)) {
         
         CPAMain.logManager.log(Level.FINEST, "Found spurious counterexample",
-            seenAbstractCounterexample, ", but no new predicates, terminating analysis");
+            errorElement.getAbstractionPathList(), ", but no new predicates, terminating analysis");
 
         throw new CPAException("Not enough predicates");
       }
@@ -149,7 +158,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
 
       CPAMain.logManager.log(Level.FINEST, "Found spurious counterexample",
           seenAbstractCounterexample,
-          ", but no new predicates, setting refinement root to location", loc);
+          "again, trying new strategy: remove everything below node", loc, "from ART.");
 
       root = this.getArtCpa().findHighest(pArtPath.getLast().getFirst(), loc);
     }

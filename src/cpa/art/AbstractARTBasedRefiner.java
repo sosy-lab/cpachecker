@@ -118,10 +118,8 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
     
     Collection<ARTElement> toWaitlist = new HashSet<ARTElement>();
     Set<ARTElement> toUnreach = root.getSubtree();
-    toUnreach.remove(root);
-    toWaitlist.add(root);
 
-    // remove all nodes below root from ART
+    // remove root and all nodes below root from ART
     // re-add their parents to the waitlist
     for (ARTElement ae : toUnreach) {
       for (ARTElement parent : ae.getParents()) {
@@ -132,24 +130,19 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
       ae.removeFromART();
     }
     
-    toUnreach.addAll(toWaitlist);
-    
     // re-add those elements to the waitlist, which were covered by
     // elements which are removed now
-    // only necessary if we do not throw away the whole ART
-    if (!root.getParents().isEmpty()) { // not the root element
-      List<ARTElement> toUncover = new ArrayList<ARTElement>();
-      
-      for (ARTElement ae : mArtCpa.getCovered()) {
-        if (toUnreach.contains(ae.getCoveredBy())) {
-          toUncover.add(ae);
-        }
+    List<ARTElement> toUncover = new ArrayList<ARTElement>();
+    
+    for (ARTElement ae : mArtCpa.getCovered()) {
+      if (toUnreach.contains(ae.getCoveredBy())) {
+        toUncover.add(ae);
       }
-      
-      for (ARTElement ae : toUncover) {
-        toWaitlist.addAll(ae.getParents());
-        ae.removeFromART(); // removes are from parents and covered set
-      }
+    }
+    
+    for (ARTElement ae : toUncover) {
+      toWaitlist.addAll(ae.getParents());
+      ae.removeFromART(); // removes ae from parents and covered set
     }
     
     return new RefinementOutcome(true, toUnreach, toWaitlist);
