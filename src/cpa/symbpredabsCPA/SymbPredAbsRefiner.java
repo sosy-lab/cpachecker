@@ -30,8 +30,8 @@ import exceptions.CPAException;
 
 public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
 
-  private final SymbPredAbsCPA mCpa;
   private final SymbPredAbstFormulaManager formulaManager;
+  private final UpdateablePredicateMap predicateMap;
 
   private int numSeenAbstractCounterexample = 0;
   private List<Integer> seenAbstractCounterexample = null;
@@ -41,11 +41,11 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
 
     ConfigurableProgramAnalysis cpa = this.getArtCpa().getWrappedCPA();
     
+    SymbPredAbsCPA symbPredAbsCpa = null;
     if (cpa instanceof SymbPredAbsCPA) {
-      mCpa = (SymbPredAbsCPA)pCpa;
+      symbPredAbsCpa = (SymbPredAbsCPA)cpa;
     
     } else {
-      SymbPredAbsCPA symbPredAbsCpa = null;
       if (cpa instanceof CompositeCPA) {
         for (ConfigurableProgramAnalysis compCPA : ((CompositeCPA)cpa).getComponentCPAs()) {
           if (compCPA instanceof SymbPredAbsCPA) {
@@ -57,10 +57,13 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
       if (symbPredAbsCpa == null) {
         throw new CPAException(getClass().getSimpleName() + " needs a SymbPredAbsCPA");
       }
-      mCpa = symbPredAbsCpa;
     }
 
-    formulaManager = mCpa.getFormulaManager();
+    if (!(symbPredAbsCpa.getPredicateMap() instanceof UpdateablePredicateMap)) {
+      throw new CPAException("Refinement needs updateable predicate map");
+    }
+    predicateMap = (UpdateablePredicateMap)symbPredAbsCpa.getPredicateMap();
+    formulaManager = symbPredAbsCpa.getFormulaManager();
   }
 
   @Override
@@ -106,7 +109,6 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
 
     // TODO check
 
-    UpdateablePredicateMap curpmap = (UpdateablePredicateMap)mCpa.getPredicateMap();
     SymbPredAbsAbstractElement symbPredRootElement = null;
     SymbPredAbsAbstractElement firstInterpolationElement = null;
     
@@ -115,14 +117,14 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
       if (firstInterpolationElement == null && newpreds.size() > 0) {
         firstInterpolationElement = e;
       }
-      if (curpmap.update(e.getAbstractionLocation(), newpreds)) {
+      if (predicateMap.update(e.getAbstractionLocation(), newpreds)) {
         if (symbPredRootElement == null) {
           symbPredRootElement = e;
         }
       }
     }
     
-    // It can happen that we discovered interpolants and curpmap.update returns
+    // It can happen that we discovered interpolants and predicateMap.update returns
     // false. This occurs when we discovered the same predicate on the same
     // CFANode in another error path before. In this case we try a new strategy,
     // because there might be more paths where this predicate will help. So we
@@ -133,7 +135,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
     // Another strategy would be to always remove everything below all occurrences
     // of this CFANode from the ART.
     
-    CPAMain.logManager.log(Level.ALL, "Predicate map now is", curpmap);
+    CPAMain.logManager.log(Level.ALL, "Predicate map now is", predicateMap);
 
     // FIXME (test/tests/ssh-simple/s3_clnt_4.cil.c.symbpredabsCPA-2.log) what to do here?
     assert(firstInterpolationElement != null);
