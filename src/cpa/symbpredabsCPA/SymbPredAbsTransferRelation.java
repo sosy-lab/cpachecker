@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 
 import symbpredabstraction.PathFormula;
 import symbpredabstraction.SSAMap;
@@ -200,6 +201,8 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   private AbstractElement handleAbstractionLocation(SymbPredAbsAbstractElement element, CFAEdge edge) 
   throws UnrecognizedCFAEdgeException {
     
+    CPAMain.logManager.log(Level.FINEST, "Computing abstraction on node", edge.getSuccessor());
+    
     // this will be the initial abstraction formula that we will use 
     // to compute the abstraction. Say this formula is pf, and the abstraction
     // from last element is af, then we use "pf AND af" to compute the new
@@ -238,6 +241,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
     // if the abstraction is false, return bottom element
     if (abstractFormulaManager.isFalse(newAbstraction)) {
+      CPAMain.logManager.log(Level.FINEST, "Abstraction is false, node is not reachable");
       return domain.getBottomElement();
     }
     

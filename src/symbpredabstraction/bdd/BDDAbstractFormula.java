@@ -58,6 +58,6 @@ class BDDAbstractFormula implements AbstractFormula {
     
     @Override
     public String toString() {
-      return bddRepr.toString();
+      return bddRepr.isOne() ? "true" : bddRepr.toString();
     }
 }

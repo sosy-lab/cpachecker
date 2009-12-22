@@ -542,14 +542,8 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       return ret;
     }
 
-    case MultiStatementEdge: {
-      throw new UnrecognizedCFAEdgeException("MULTI STATEMENT: " +
-          edge.getRawStatement());
-    }
-
-    case MultiDeclarationEdge: {
-      break;
-    }
+    default:
+      throw new UnrecognizedCFAEdgeException(edge);
     }
 
     return new PathFormula(f1, ssa);
@@ -772,8 +766,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       }
     }
     // if we are here, we can't handle the return properly...
-    throw new UnrecognizedCFAEdgeException("UNRECOGNIZED: " +
-        edge.getRawStatement());
+    throw new UnrecognizedCFAEdgeException(edge);
   }
 
   private void setNamespace(String ns) {
@@ -2181,10 +2174,6 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
             if (newssa.getIndex(name) < ssaidx + idx-1) {
               newssa.setIndex(name, ssaidx + idx-1);
             }
-            CPAMain.logManager.log(Level.ALL, "DEBUG_3", "SHIFTING VAR:",
-                name, "@", ssaidx, ", ",
-                "RESULT: ", //name, "@", newssa.getIndex(name));
-                mathsat.api.msat_term_repr(newt));
           } else {
             cache.put(t, t);
             if (newssa.getIndex(name) < idx) {
@@ -2262,11 +2251,6 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
                   if (newssa.getIndex(name, a) < newidx) {
                     newssa.setIndex(name, a, newidx);
                   }
-                  CPAMain.logManager.log(Level.ALL, "DEBUG_3",
-                      "SHIFTING UF: ",
-                      name, "@", ssaidx, ", ",
-                      "RESULT: ",
-                      mathsat.api.msat_term_repr(newt));
                 } else {
                   newt = mathsat.api.msat_replace_args(
                       msatEnv, t, newargs);
@@ -2285,10 +2269,6 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
             }
           }
           assert(!mathsat.api.MSAT_ERROR_TERM(newt));
-
-          CPAMain.logManager.log(Level.ALL, "DEBUG_4", "CACHING:",
-              new MathsatSymbolicFormula(t),
-              " VAL:", new MathsatSymbolicFormula(newt));
 
           cache.put(t, newt);
         }

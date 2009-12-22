@@ -375,7 +375,11 @@ implements SymbPredAbstFormulaManager
       AbstractFormula abstractionFormula, PathFormula pathFormula,
       Collection<Predicate> predicates) {
     // A SummaryFormulaManager for MathSAT formulas
-
+    
+    CPAMain.logManager.log(Level.ALL, "Old abstraction:", abstractionFormula);
+    CPAMain.logManager.log(Level.ALL, "Path formula:", pathFormula);
+    CPAMain.logManager.log(Level.ALL, "Predicates:", predicates);
+    
     long startTime = System.currentTimeMillis();
 
     // build the concrete representation of the abstract formula of e
@@ -441,7 +445,7 @@ implements SymbPredAbstFormulaManager
     }
   
     List<SymbolicFormula> importantPreds = predinfo.predicateNames;
-    CPAMain.logManager.log(Level.ALL, "DEBUG_1",
+    CPAMain.logManager.log(Level.ALL, 
         "IMPORTANT SYMBOLS (", importantPreds.size(), "): ",
         importantPreds);
     
@@ -461,6 +465,8 @@ implements SymbPredAbstFormulaManager
     if (useCache && abstractionCache.containsKey(absKey)) {
       ++stats.numCallsAbstractionCached;
       result = abstractionCache.get(absKey);
+      
+      CPAMain.logManager.log(Level.ALL, "Abstraction was cached, result is", result);
     } else {
       // get the environment from the manager - this is unique, it is the
       // environment in which all terms are created
@@ -504,6 +510,7 @@ implements SymbPredAbstFormulaManager
         absPrinter.printNusmvFormat(absFormula, symbFormula, predDef, importantPreds);
         absPrinter.nextNum();
       }
+      CPAMain.logManager.log(Level.ALL, "Abstraction computed, result is", result);
     }
 
     // update statistics
@@ -598,7 +605,7 @@ implements SymbPredAbstFormulaManager
         }
         
         CPAMain.logManager.log(Level.ALL, "Looking for interpolant for formulas from",
-            start_of_a, "to", i, ":", formulasOfA);
+            start_of_a, "to", i);
         
         msatSolveTimeStart = System.currentTimeMillis();
         SymbolicFormula itp = itpProver.getInterpolant(formulasOfA);
@@ -692,19 +699,15 @@ implements SymbPredAbstFormulaManager
       SSAMap newSsa;
       
       if (ssa != null) {
-        CPAMain.logManager.log(Level.ALL, "DEBUG_3", "SHIFTING:", p.getSymbolicFormula(), " WITH SSA: ", ssa);
         p = smgr.shift(p.getSymbolicFormula(), ssa);
         newSsa = p.getSsa();
-        CPAMain.logManager.log(Level.ALL, "DEBUG_3", "RESULT:", p.getSymbolicFormula(), " SSA: ", newSsa);
         newSsa.update(ssa);
       } else {
         newSsa = p.getSsa();
-        CPAMain.logManager.log(Level.ALL, "DEBUG_3", "INITIAL:", p.getSymbolicFormula(), " SSA: ", newSsa);
       }
       f.add(p.getSymbolicFormula());
       ssa = newSsa;
 
-      CPAMain.logManager.log(Level.ALL, "DEBUG_2", "Adding formula:", p.getSymbolicFormula());
     }
     return f;
   }
