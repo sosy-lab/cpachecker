@@ -1449,17 +1449,15 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       boolean absoluteSSAIndices) {
     IASTExpression fn = fexp.getFunctionNameExpression();
     IASTExpression pexp = fexp.getParameterExpression();
+    CPAMain.logManager.log(Level.ALL, "External function call " + fn.getRawSignature()
+        + " encountered, assuming it has no side effects!");
     if (pexp == null) {
       // this is a function of arity 0. We create a fresh global variable
-      // for it
+      // for it (instantiated at 1 because we need an index but it never
+      // increases)
       String func = ((IASTIdExpression)fn).getName().getRawSignature();
       globalVars.add(func);
-      long d = mathsat.api.msat_declare_variable(msatEnv, func,
-          msatVarType);
-      if (mathsat.api.MSAT_ERROR_DECL(d)) {
-        return mathsat.api.MSAT_MAKE_ERROR_TERM();
-      }
-      return mathsat.api.msat_make_variable(msatEnv, d);
+      return buildMsatVariable(func, 1);
     } else {
       IASTExpression[] args = null;
       if (pexp instanceof IASTExpressionList) {
@@ -2446,7 +2444,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       if (mathsat.api.msat_term_is_variable(t) != 0) {
         String name = mathsat.api.msat_term_repr(t);
         String[] bits = name.split("@");
-        assert(bits.length == 2);
+        assert(bits.length == 2) : "Not exactly one '@' in term '" + name + "' when uninstantiating.";
         name = bits[0];
         long d = mathsat.api.msat_declare_variable(msatEnv, name,
             msatVarType);
