@@ -26,15 +26,12 @@ package cpaplugin;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Properties;
-import java.util.Vector;
-import java.util.logging.Level;
-
-import javax.swing.JOptionPane;
-
-import cmdline.CPAMain;
 
 
 /**
@@ -46,148 +43,136 @@ import cmdline.CPAMain;
  *
  */
 public class CPAConfiguration extends Properties{
+  
+    public static class InvalidCmdlineArgumentException extends Exception {
 
+      private static final long serialVersionUID = -6526968677815416436L;
+
+      private InvalidCmdlineArgumentException(String msg) {
+        super(msg);
+      }
+    }
+  
     private static final long serialVersionUID = -5910186668866464153L;
-    private String fileName;
-    public boolean validConfig = true;
     /** Delimiters to create string arrays */
-    static final String DELIMS = "[;, ]+";
+    private static final String DELIMS = "[;, ]+";
 
     // TODO use arguments later to change config values dynamically
     /**
      * Class constructor to process arguments and load file.
      * @param args arguments to change values dynamically
      */
-    public CPAConfiguration(String[] args) {
-        super(new CPAConfiguration());
+    public CPAConfiguration(String[] args) throws InvalidCmdlineArgumentException, IOException {
 
         // get the file name
-        loadFileName(args);
+        String fileName = getConfigFileName(args);
         // load the file
-        validConfig = loadFile(this.fileName);
+        loadFile(fileName);
         // if there are some commandline arguments, process them
-        if (args != null){
-            try {
-                processArgs(args);
-            } catch (Exception e) {
-              CPAMain.logManager.logException(Level.WARNING, e, "");
-            }
+        if (args != null) {
+          processArgs(args);                
         }
         //normalizeValues();
     }
 
-    /**
-     * Class constructor.
-     */
-    private CPAConfiguration() {
-
-    }
-
+    public CPAConfiguration(String fileName) throws IOException {
+      // load the file
+      loadFile(fileName);
+  }
+    
     /**
      * if -config is specified in arguments, loads this properties file,
      * otherwise loads the file from a default location. Default properties file is
      * $CPACheckerMain/default.properties
      * @param args commandline arguments
      */
-    private void loadFileName(String[] args){
-        for (int i = 0; i < args.length; i++) {
-            String arg = args[i];
-            if(arg.equals("-config")){
-                this.fileName = args[i+1];
-                return;
+    private String getConfigFileName(String[] args) throws InvalidCmdlineArgumentException{
+        Iterator<String> argsIt = Arrays.asList(args).iterator();
+  
+        while (argsIt.hasNext()) {
+          if (argsIt.next().equals("-config")) {
+            if (argsIt.hasNext()) {
+              return argsIt.next();
+            } else {
+              throw new InvalidCmdlineArgumentException("-config argument missing!");
             }
+          }
         }
-        URL binDir = getClass().getProtectionDomain().getCodeSource().getLocation();
-        String binDirString = binDir.getPath();
-        int index = binDirString.lastIndexOf("\\")+1;
-        if(index < binDirString.lastIndexOf("/")+1)
-        {
-            index = binDirString.lastIndexOf("/")+1;
-            binDirString = binDirString.substring(0, index);
-            this.fileName = binDirString + "../default.properties";
-        }
-        else{
-            binDirString = binDirString.substring(0, index);
-            this.fileName = binDirString + "..\\default.properties";
-        }
+        return null;
+    }
+    
+    private String getDefaultConfigFileName() {
+      // TODO use resources for this?
+      URL binDir = getClass().getProtectionDomain().getCodeSource().getLocation();
+      String binDirString = binDir.getPath();
+      int index = binDirString.lastIndexOf(File.separatorChar);
+      binDirString = binDirString.substring(0, index);
+      return binDirString + ".." + File.separatorChar + "default.properties";
     }
 
+    /**
+     * Handle a command line argument with one value.
+     */
+    private boolean handleArgument1(String arg, String option, String currentArg, Iterator<String> args)
+          throws InvalidCmdlineArgumentException {
+      if (currentArg.equals(arg)) {
+        if (args.hasNext()) {
+          this.setProperty(option, args.next());
+        } else {
+          throw new InvalidCmdlineArgumentException(currentArg + " argument missing!");
+        }
+        return true;
+      } else {
+        return false;
+      }
+    }
+    
     /**
      * Reads the arguments and process them. If a corresponding key is found, the property
      * is updated
      * @param args commandline arguments
      * @throws Exception if an option is set but no value for the option is found
      */
-    private void processArgs(String[] args) throws Exception {
-        Vector<String> ret = new Vector<String>();
+    private void processArgs(String[] args) throws InvalidCmdlineArgumentException {
+        List<String> ret = new ArrayList<String>();
+        
+        Iterator<String> argsIt = Arrays.asList(args).iterator();
 
-        for (int i = 0; i < args.length;) {
-            String arg = args[i];
-            if (arg.equals("-outputpath")) {
-                if (i+1 < args.length) {
-                    this.setProperty("output.path", args[i+1]);
-                    i += 2;
-                } else {
-                    throw new Exception("-outputpath argument missing!");
-                }
-            } else if (arg.equals("-logfile")) {
-              if (i+1 < args.length) {
-                  this.setProperty("log.file", args[i+1]);
-                  i += 2;
-              } else {
-                  throw new Exception("-logfile argument missing!");
-              }
-            } else if (arg.equals("-cfafile")) {
-                if (i+1 < args.length) {
-                    this.setProperty("cfa.file", args[i+1]);
-                    i += 2;
-                } else {
-                    throw new Exception("-cfafile argument missing!");
-                }
-            } else if (arg.equals("-predlistpath")) {
-                if (i+1 < args.length) {
-                    this.setProperty("predicates.path", args[i+1]);
-                    i += 2;
-                } else {
-                    throw new Exception("-predlistpath argument missing!");
-                }
-            } else if (arg.equals("-entryfunction")) {
-                if (i+1 < args.length) {
-                    this.setProperty("analysis.entryFunction", args[i+1]);
-                    i += 2;
-                } else {
-                    throw new Exception("-entryfunction argument missing!");
-                }
+        while (argsIt.hasNext()) {
+            String arg = argsIt.next();
+            if (   handleArgument1("-outputpath", "output.path", arg, argsIt)
+                || handleArgument1("-logfile", "log.file", arg, argsIt)
+                || handleArgument1("-cfafile", "cfa.file", arg, argsIt)
+                || handleArgument1("-predlistpath", "predicates.path", arg, argsIt)
+                || handleArgument1("-entryfunction", "analysis.entryFunction", arg, argsIt)
+               ) { 
+              // nothing left to do 
+            
             } else if (arg.equals("-dfs")) {
                 this.setProperty("analysis.traversal", "dfs");
-                ++i;
             } else if (arg.equals("-bfs")) {
                 this.setProperty("analysis.traversal", "bfs");
-                ++i;
             } else if (arg.equals("-topsort")) {
               this.setProperty("analysis.traversal", "topsort");
-              ++i;
             } else if (arg.equals("-nolog")) {
                 this.setProperty("log.level", "off");
                 this.setProperty("log.consoleLevel", "off");
-                ++i;
             } else if (arg.equals("-setprop")) {
-                if (i+1 < args.length) {
-                    String[] bits = args[i+1].split("=");
+                if (argsIt.hasNext()) {
+                    String[] bits = argsIt.next().split("=");
                     if (bits.length != 2) {
-                        throw new Exception(
+                        throw new InvalidCmdlineArgumentException(
                                 "-setprop argument must be a key=value pair!");
                     }
                     this.setProperty(bits[0], bits[1]);
-                    i += 2;
                 } else {
-                    throw new Exception("-setprop argument missing!");
+                    throw new InvalidCmdlineArgumentException("-setprop argument missing!");
                 }
             } else if (arg.equals("-help")) {
                 System.out.println("OPTIONS:");
                 System.out.println(" -outputpath");
                 System.out.println(" -logfile");
-                System.out.println(" -dotoutpath");
+                System.out.println(" -cfafile");
                 System.out.println(" -predlistpath");
                 System.out.println(" -entryfunction");
                 System.out.println(" -dfs");
@@ -198,19 +183,18 @@ public class CPAConfiguration extends Properties{
                 System.exit(0);
             } else if (arg.equals("-config")) {
                 // this has been processed earlier, in loadFileName
-                i += 2;
+              argsIt.next(); // ignore config file name argument
             } else {
                 ret.add(arg);
-                ++i;
             }
         }
 
         // arguments with non-specified options are considered as file names
-        String programNames = "";
-        if(ret.size() > 0){
-            programNames = programNames + ret.get(0);
-            for (int i = 1; i < ret.size(); i++) {
-                programNames = programNames + ", " + ret.get(i);
+        if (!ret.isEmpty()) {
+            Iterator<String> it = ret.iterator();
+            String programNames = it.next();
+            while (it.hasNext()) {
+                programNames = programNames + ", " + it.next();
             }
             this.setProperty("analysis.programNames", programNames);
         }
@@ -221,31 +205,12 @@ public class CPAConfiguration extends Properties{
      * @param fileName name of the property file
      * @return true if file is loaded successfully
      */
-    private boolean loadFile(String fileName) {
-        InputStream is = null;
-        try {
-            // first, try to load from a file
-            File f = new File(fileName);
-            if (!f.exists()) {
-            	String path = cpaplugin.PreferencesActivator.getDefault().getPreferenceStore().getString(cpaplugin.preferences.PreferenceConstants.P_PATH);
-            	if(path.endsWith(".properties") == false)
-            		return false;
-            	f = new File(path);
-            }
-	            if (f.exists()) {
-	                is = new FileInputStream(f);
-	            }
-	            if (is != null) {
-	                load(is);
-	                return true;
-	            }
-        } catch (IOException iex)
-        {
-
-            return false;
-        }
-        JOptionPane.showMessageDialog(null, "Could not find default.properties, set path in window>preferences>CPAPlugin", "Missing Default Properties", JOptionPane.ERROR_MESSAGE);
-        return false;
+    private void loadFile(String fileName) throws IOException {
+      if (fileName == null || fileName.isEmpty()) {
+        fileName = getDefaultConfigFileName();
+      }
+      
+      load(new FileInputStream(fileName));
     }
 
     // TODO implement this when you get really bored
@@ -280,10 +245,7 @@ public class CPAConfiguration extends Properties{
      */
     public String[] getPropertiesArray(String key){
         String s = getProperty(key);
-        if (s != null) {
-            return s.split(DELIMS);
-        }
-        return null;
+        return (s != null) ? s.split(DELIMS) : null;
     }
 
 
@@ -294,15 +256,7 @@ public class CPAConfiguration extends Properties{
      * the properties file false
      */
     public boolean getBooleanValue(String key){
-        String s = getProperty(key);
-        if (s == null) {
-            return false;
-        } else if (s.equals("true")) {
-            return true;
-        } else {
-            assert(s.equals("false"));
-            return false;
-        }
+        return Boolean.valueOf(getProperty(key));
     }
 }
 

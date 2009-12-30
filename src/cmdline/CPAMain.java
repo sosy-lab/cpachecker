@@ -85,6 +85,7 @@ import cpa.symbpredabs.summary.SummaryDOTBuilder;
 import cpa.symbpredabsCPA.SymbPredAbsAbstractElement;
 import cpaplugin.CPAConfiguration;
 import cpaplugin.MainCPAStatistics;
+import cpaplugin.CPAConfiguration.InvalidCmdlineArgumentException;
 import exceptions.CFAGenerationRuntimeException;
 import exceptions.CPAException;
 
@@ -139,7 +140,15 @@ public class CPAMain {
 
   public static void main(String[] args) {
     // initialize various components
-    cpaConfig = new CPAConfiguration(args);
+    try {
+      cpaConfig = new CPAConfiguration(args);
+    } catch (InvalidCmdlineArgumentException e) {
+      System.err.println("Could not parse command line arguments: " + e.getMessage());
+      System.exit(1);
+    } catch (IOException e) {
+      System.err.println("Could not read config file " + e.getMessage());
+      System.exit(1);
+    }
     logManager = LogManager.getInstance();
     
     // get code file name
@@ -268,7 +277,7 @@ public class CPAMain {
   private static CFAFunctionDefinitionNode initCFA(final CFABuilder builder, final CFAMap cfas)
   {
     final Collection<CFAFunctionDefinitionNode> cfasList = cfas.cfaMapIterator();
-    String mainFunctionName = CPAMain.cpaConfig.getProperty("analysis.entryFunction");
+    String mainFunctionName = CPAMain.cpaConfig.getProperty("analysis.entryFunction", "main");
     
     CFAFunctionDefinitionNode mainFunction = cfas.getCFA(mainFunctionName);
     
@@ -389,11 +398,8 @@ public class CPAMain {
       } else {
         dotBuilder = new DOTBuilder();
       }
-      String cfaFile = CPAMain.cpaConfig.getProperty("cfa.file");
+      String cfaFile = CPAMain.cpaConfig.getProperty("cfa.file", "cfa.dot");
       //if no filename is given, use default value
-      if (cfaFile == null) {
-        cfaFile = "cfa.dot";
-      }
       String path = CPAMain.cpaConfig.getProperty("output.path") + cfaFile;
       try {
         dotBuilder.generateDOT(cfasList, mainFunction,
@@ -536,11 +542,8 @@ public class CPAMain {
 
       if (useART && CPAMain.cpaConfig.getBooleanValue("ART.export")) {
         String outfilePath = CPAMain.cpaConfig.getProperty("output.path");
-        String outfileName = CPAMain.cpaConfig.getProperty("ART.file");
+        String outfileName = CPAMain.cpaConfig.getProperty("ART.file", "ART.dot");
         //if no filename is given, use default value
-        if (outfileName == null) {
-          outfileName = "ART.dot";
-        }
         dumpPathToDotFile(reached, outfilePath + outfileName);
       }
       

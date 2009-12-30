@@ -23,8 +23,11 @@
  */
 package cpaplugin.actions;
 
+import java.io.IOException;
 import java.io.PrintStream;
 import java.util.logging.Level;
+
+import javax.swing.JOptionPane;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.jface.action.IAction;
@@ -98,16 +101,18 @@ public class CPARun implements IWorkbenchWindowActionDelegate
 	public void run (IAction action)
 	{
 		numberOfRuns++;
-	    String s[] = {};
-	    CPAMain.cpaConfig = new CPAConfiguration(s);
-	    CPAMain.logManager = LogManager.getInstance();
-	    
-	    if(!CPAMain.cpaConfig.validConfig)
-	    {
-	    	return;
-	    }
-	    //Lets set up a console to write to
-	    init();
+    try {
+      String configFile = cpaplugin.PreferencesActivator.getDefault().getPreferenceStore().getString(cpaplugin.preferences.PreferenceConstants.P_PATH);
+      CPAMain.cpaConfig = new CPAConfiguration(configFile);
+    } catch (IOException e) {
+      // TODO shouldn't an Eclipse Dialog be used here?
+      JOptionPane.showMessageDialog(null, "Could not read config file " + e.getMessage(), "Could not read config file", JOptionPane.ERROR_MESSAGE);
+      return;
+    }
+    CPAMain.logManager = LogManager.getInstance();
+    
+    //Lets set up a console to write to
+    init();
 		MessageConsole myConsole = findConsole("CPACHECKER");
 		CPAMain.logManager.log(Level.INFO, "Run #:" + numberOfRuns);
 		CPAMain.logManager.log(Level.INFO, "Program Started");

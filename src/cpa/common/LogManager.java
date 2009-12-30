@@ -26,7 +26,14 @@ package cpa.common;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.logging.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.logging.FileHandler;
+import java.util.logging.Formatter;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
 
 import cmdline.CPAMain;
 
@@ -45,14 +52,15 @@ import cmdline.CPAMain;
 public class LogManager {
 
   private static LogManager instance = null;
-  private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS");
-  private Level logLevel = Level.parse(CPAMain.cpaConfig.getProperty("log.level").toUpperCase());
-  private Level logConsoleLevel = Level.parse(CPAMain.cpaConfig.getProperty("log.consoleLevel").toUpperCase());
-  private ArrayList<Level> excludeLevelsFile = new ArrayList<Level>();
-  private ArrayList<Level> excludeLevelsConsole = new ArrayList<Level>();
-  private FileHandler outfileHandler;
-  private Logger fileLogger;
-  private Logger consoleLogger;
+
+  private final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS");
+  private final Level logLevel;
+  private final Level logConsoleLevel;
+  private final List<Level> excludeLevelsFile;
+  private final List<Level> excludeLevelsConsole;
+  private final Handler outfileHandler;
+  private final Logger fileLogger;
+  private final Logger consoleLogger;
 
   //inner class to handle formatting for file output
   private class CPALogFormatter extends Formatter {
@@ -82,31 +90,51 @@ public class LogManager {
     }
   }
 
-  private LogManager() throws SecurityException, IOException {
+  private LogManager() {
+    Level logLevel = Level.parse(CPAMain.cpaConfig.getProperty("log.level", "OFF").toUpperCase());
+    Level logConsoleLevel = Level.parse(CPAMain.cpaConfig.getProperty("log.consoleLevel", "INFO").toUpperCase());
 
-    if(logLevel != Level.OFF) {
-
+    // check if file logging will succeed
+    Handler outfileHandler;
+    IOException exception = null;
+    try {
       String outfilePath = CPAMain.cpaConfig.getProperty("output.path");
-      String outfileName = CPAMain.cpaConfig.getProperty("log.file");
+      String outfileName = CPAMain.cpaConfig.getProperty("log.file", "CPALog.txt");
+      
+      outfileHandler = new FileHandler(outfilePath + outfileName, false);
+    } catch (IOException e) {
+      outfileHandler = null;
+      exception = e; // will be logged later
+      // redirect log messages to console
+      if (logConsoleLevel.intValue() > logLevel.intValue()) {
+        logConsoleLevel = logLevel;
+        logLevel = Level.OFF;
+      }
+    }
+    
+    // now the real log levels have been determined
+    this.outfileHandler = outfileHandler;
+    this.logLevel = logLevel;
+    this.logConsoleLevel = logConsoleLevel;
 
+    // create file logger
+    if(logLevel != Level.OFF) {
       //build up list of Levels to exclude from logging
       String[] excludeFile = CPAMain.cpaConfig.getPropertiesArray("log.fileExclude");
       if (excludeFile != null) {
+        List<Level> excludeLevels = new ArrayList<Level>(excludeFile.length); 
         for (String s : excludeFile) {
-          excludeLevelsFile.add(Level.parse(s));
+          excludeLevels.add(Level.parse(s));
         }
-      }
-
-      //if no filename is given, use default value
-      if (outfileName == null) {
-        outfileName = "CPALog.txt";
+        excludeLevelsFile = Collections.unmodifiableList(excludeLevels);
+      } else {
+        excludeLevelsFile = Collections.emptyList();
       }
 
       //create or fetch file logger
       fileLogger = Logger.getLogger("resMan.fileLogger");
 
       //handler with format for the fileLogger
-      outfileHandler = new FileHandler(outfilePath + outfileName, false);
       outfileHandler.setFormatter(new CPALogFormatter());
 
       //only file output when using the fileLogger 
@@ -114,16 +142,24 @@ public class LogManager {
       fileLogger.addHandler(outfileHandler);
       //log only records of priority equal to or greater than the level defined in the configuration
       fileLogger.setLevel(logLevel);
+    } else {
+      fileLogger = null;
+      excludeLevelsFile = Collections.emptyList();
     }
-
+    
+    // create console logger
     if (logConsoleLevel != Level.OFF) {
 
       //build up list of Levels to exclude from logging
-      String[] excludeConsole = CPAMain.cpaConfig.getPropertiesArray("log.fileExclude");
+      String[] excludeConsole = CPAMain.cpaConfig.getPropertiesArray("log.consoleExclude");
       if (excludeConsole != null) {
+        List<Level> excludeLevels = new ArrayList<Level>(excludeConsole.length); 
         for (String s : excludeConsole) {
-          excludeLevelsConsole.add(Level.parse(s));
+          excludeLevels.add(Level.parse(s));
         }
+        excludeLevelsConsole = Collections.unmodifiableList(excludeLevels);
+      } else {
+        excludeLevelsConsole = Collections.emptyList();
       }
 
       //create or fetch console logger
@@ -134,18 +170,20 @@ public class LogManager {
       //need to set the level for both the logger and its handler
       consoleLogger.getParent().getHandlers()[0].setLevel(logConsoleLevel);
       consoleLogger.setLevel(logConsoleLevel);
+    } else {
+      consoleLogger = null;
+      excludeLevelsConsole = Collections.emptyList();
+    }
+    
+    if (exception != null) {
+      consoleLogger.log(Level.WARNING, "Could not open log file " + exception.getMessage() + ", redirecting log output to console");
     }
   }
 
   public static LogManager getInstance() {
-    try {
-      if (instance == null) {
-        instance = new LogManager();
-      } 
-    }catch (IOException e) {
-      System.err.println("ERROR, could not find path of logfile location, check configuration");
-      System.exit(1);
-    }
+    if (instance == null) {
+      instance = new LogManager();
+    } 
     return instance;
   }
 

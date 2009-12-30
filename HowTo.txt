@@ -89,14 +89,14 @@ pwendler 2009-08-25:
 CONFIGURATION OPTIONS:
 Name				possible values		default		recommended	explanation			
 -------------------------------------------------------------------------------------------------------------------------------------
-output.path			path		<ERROR>		test/output/	name of path for all output 
-log.file			filename	CPALog.txt	CPALog.txt	filename for logging	
-log.level			off, severe, warning...	<ERROR>		<DEPENDS>	verbosity level (higher is less verbose)
-log.consoleLevel	off, severe, warning... <ERROR>		<DEPENDS>	verbosity level of console output
+output.path			path			<ERROR>		test/output/	name of path for all output 
+log.file			filename		"CPALog.txt"	"CPALog.txt"	filename for logging	
+log.level			off, severe, warning...	"OFF"		<DEPENDS>	verbosity level (higher is less verbose)
+log.consoleLevel		off, severe, warning... "INFO"		<DEPENDS>	verbosity level of console output
 cfa.export			true/false		false		<DEPENDS>	write CFA to file
-cfa.file			filename			"."		<DEPENDS>	CFA graph output file
-ART.export		true/false		false		false		write ART to file (needs cpa.useART)
-ART.file		filename				<DEPENDS>	ART graph output file
+cfa.file			filename		"cfa.dot"	"cfa.dot"	CFA graph output file
+ART.export			true/false		false		false		write ART to file (needs cpa.useART)
+ART.file			filename		"ART.dot"	"ART.dot"	ART graph output file
 cfa.simplify			true/false		false		true		run simplifications below
 cfa.check			true/false		false		true		run consistency checks on CFA
 cfa.combineBlockStatements	true/false		false		false		combine statements and declarations into MultiStatement and MultiDeclaration edges respectively
@@ -113,7 +113,7 @@ analysis.useGlobalVars		true/false		false		true		include global variable declara
 analysis.noExternalCalls	true/false		false		true		don't create call/return edges for external function calls
 analysis.noCompositeCPA		true/false		false		true		don't use composite CPA if there is only one CPA
 predicates.path
-analysis.entryFunction		function name		<ERROR>		main		name of function where analysis should start
+analysis.entryFunction		function name		main		<DEFAULT>	name of function where analysis should start
 analysis.bfs			true/false		false		false		use BFS or DFS as strategy for visiting states
 analysis.programs		path							for running CPAchecker as eclipse plugin
 analysis.cpas			list of class names	<ERROR>		<DEPENDS>	comma-separated list of CPAs to use
