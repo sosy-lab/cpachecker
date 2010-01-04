@@ -23,18 +23,17 @@
  */
 package cpa.invariant.assumptions;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
 import symbpredabstraction.interfaces.SymbolicFormula;
-
 import cfa.objectmodel.CFAEdge;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
 import cpa.invariant.util.InvariantSymbolicFormulaManager;
-import exceptions.CPAException;
 import exceptions.CPATransferException;
 
 /**
@@ -72,8 +71,7 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
     registerDefaultAssumptionBuilders();
   }
   
-  @Override
-  public AbstractElement getAbstractSuccessor(AbstractElement el, CFAEdge edge, Precision p)
+  private AbstractElement getAbstractSuccessor(AbstractElement el, CFAEdge edge, Precision p)
     throws CPATransferException
   {
     SymbolicFormula assumptions = manager.makeTrue();
@@ -85,11 +83,11 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
   }
 
   @Override
-  public List<AbstractElementWithLocation> getAllAbstractSuccessors(
-      AbstractElementWithLocation pElement, Precision pPrecision)
-    throws CPAException, CPATransferException
+  public Collection<AbstractElement> getAbstractSuccessors(
+      AbstractElement pElement, Precision pPrecision, CFAEdge cfaEdge)
+    throws CPATransferException
   {
-    throw new CPAException ("Cannot get all abstract successors from non-location domain");
+    return Collections.singleton(getAbstractSuccessor(pElement, cfaEdge, pPrecision));
   }
 
   @Override

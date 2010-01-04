@@ -24,14 +24,14 @@
 package cpa.invariant.controller;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 import cfa.objectmodel.CFAEdge;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
-import exceptions.CPAException;
 import exceptions.CPATransferException;
 
 /**
@@ -48,8 +48,7 @@ public class AnalysisControllerTransferRelation implements TransferRelation {
     domain = d;
   }
   
-  @Override
-  public AbstractElement getAbstractSuccessor(AbstractElement el, CFAEdge edge, Precision p)
+  private AbstractElement getAbstractSuccessor(AbstractElement el, CFAEdge edge, Precision p)
     throws CPATransferException
   {
     AnalysisControllerElement pre = (AnalysisControllerElement)el;
@@ -68,10 +67,10 @@ public class AnalysisControllerTransferRelation implements TransferRelation {
   }
 
   @Override
-  public List<AbstractElementWithLocation> getAllAbstractSuccessors(
-      AbstractElementWithLocation pElement, Precision pPrecision)
-      throws CPAException, CPATransferException {
-    throw new CPAException ("Cannot get all abstract successors from non-location domain");
+  public Collection<AbstractElement> getAbstractSuccessors(
+      AbstractElement pElement, Precision pPrecision, CFAEdge cfaEdge)
+      throws CPATransferException {
+    return Collections.singleton(getAbstractSuccessor(pElement, cfaEdge, pPrecision));
   }
 
   @Override

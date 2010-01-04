@@ -23,6 +23,7 @@
  */
 package cpa.symbpredabs.summary;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
@@ -40,7 +41,6 @@ import symbpredabstraction.interfaces.AbstractFormula;
 import symbpredabstraction.interfaces.Predicate;
 import symbpredabstraction.interfaces.SymbolicFormula;
 import symbpredabstraction.trace.CounterexampleTraceInfo;
-
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAErrorNode;
 import cfa.objectmodel.CFANode;
@@ -56,7 +56,6 @@ import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
 import cpa.symbpredabs.AbstractReachabilityTree;
-import exceptions.CPAException;
 import exceptions.CPATransferException;
 import exceptions.ErrorReachedException;
 import exceptions.RefinementNeededException;
@@ -351,8 +350,7 @@ public class SummaryTransferRelation implements TransferRelation {
   }
 
 
-  @Override
-  public AbstractElement getAbstractSuccessor(AbstractElement element,
+  private AbstractElement getAbstractSuccessor(AbstractElement element,
       CFAEdge cfaEdge, Precision prec) throws CPATransferException {
     CPAMain.logManager.log(Level.FINEST,
         "Getting Abstract Successor of element: ", element,
@@ -386,13 +384,13 @@ public class SummaryTransferRelation implements TransferRelation {
   }
 
   @Override
-  public List<AbstractElementWithLocation> getAllAbstractSuccessors(
-      AbstractElementWithLocation element, Precision prec) throws CPAException, CPATransferException {
+  public Collection<AbstractElement> getAbstractSuccessors(
+      AbstractElement element, Precision prec, CFAEdge cfaEdge) throws CPATransferException {
     CPAMain.logManager.log(Level.FINEST,
         "Getting ALL Abstract Successors of element: ",
         element);
 
-    List<AbstractElementWithLocation> allSucc = new Vector<AbstractElementWithLocation>();
+    List<AbstractElement> allSucc = new ArrayList<AbstractElement>();
     SummaryAbstractElement e = (SummaryAbstractElement)element;
     CFANode src = (CFANode)e.getLocation();
 
@@ -400,7 +398,7 @@ public class SummaryTransferRelation implements TransferRelation {
       AbstractElement newe =
         getAbstractSuccessor(e, src.getLeavingEdge(i), prec);
       if (newe != domain.getBottomElement()) {
-        allSucc.add((SummaryAbstractElement)newe);
+        allSucc.add(newe);
       }
     }
 

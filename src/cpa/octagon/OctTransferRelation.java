@@ -24,6 +24,8 @@
 package cpa.octagon;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.logging.Level;
@@ -42,8 +44,6 @@ import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
 import org.eclipse.cdt.core.dom.ast.IASTPointerOperator;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 
-import cmdline.CPAMain;
-
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAErrorNode;
 import cfa.objectmodel.c.AssumeEdge;
@@ -54,11 +54,10 @@ import cfa.objectmodel.c.FunctionDefinitionNode;
 import cfa.objectmodel.c.GlobalDeclarationEdge;
 import cfa.objectmodel.c.ReturnEdge;
 import cfa.objectmodel.c.StatementEdge;
+import cmdline.CPAMain;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
-import exceptions.CPAException;
 import exceptions.OctagonTransferException;
 /**
  * Handles transfer relation for Octagon abstract domain library.
@@ -80,10 +79,7 @@ public class OctTransferRelation implements TransferRelation{
     LibraryAccess.initOctEnvironment();
   }
 
-  /* (non-Javadoc)
-   * @see cpa.common.interfaces.TransferRelation#getAbstractSuccessor(cpa.common.interfaces.AbstractElement, cfa.objectmodel.CFAEdge)
-   */
-  public AbstractElement getAbstractSuccessor (AbstractElement element, CFAEdge cfaEdge, Precision prec)
+  private AbstractElement getAbstractSuccessor (AbstractElement element, CFAEdge cfaEdge, Precision prec)
   {
 
 //  if(cfaEdge.getSuccessor().isLoopStart()){
@@ -95,7 +91,6 @@ public class OctTransferRelation implements TransferRelation{
     // octElement is the region of the current state
     // this state will be updated using the edge
     OctElement octElement = (OctElement) element;
-    OctElement octElement1 = octElement;
 
     // check the type of the edge
     switch (cfaEdge.getEdgeType ())
@@ -246,12 +241,9 @@ public class OctTransferRelation implements TransferRelation{
     return octElement;
   }
 
-  /* (non-Javadoc)
-   * @see cpa.common.interfaces.TransferRelation#getAllAbstractSuccessors(cpa.common.interfaces.AbstractElement)
-   */
-  public List<AbstractElementWithLocation> getAllAbstractSuccessors (AbstractElementWithLocation element, Precision prec) throws CPAException
-  {
-    throw new CPAException ("Cannot get all abstract successors from non-location domain");
+  @Override
+  public Collection<AbstractElement> getAbstractSuccessors (AbstractElement element, Precision prec, CFAEdge cfaEdge) {
+    return Collections.singleton(getAbstractSuccessor(element, cfaEdge, prec));
   }
 
   /**

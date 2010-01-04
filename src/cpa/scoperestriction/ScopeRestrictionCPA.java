@@ -27,13 +27,14 @@
 package cpa.scoperestriction;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
-
-import common.Pair;
 
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
-import exceptions.CPATransferException;
+
+import common.Pair;
+
 import cpa.common.automaton.Automaton;
 import cpa.common.automaton.AutomatonCPADomain;
 import cpa.common.interfaces.AbstractElement;
@@ -45,6 +46,7 @@ import cpa.common.interfaces.PrecisionAdjustment;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
 import exceptions.CPAException;
+import exceptions.CPATransferException;
 
 /**
  * @author holzera
@@ -113,8 +115,7 @@ public class ScopeRestrictionCPA implements ConfigurableProgramAnalysis {
   
   public class ScopeRestrictionTransferRelation implements TransferRelation {
 
-    @Override
-    public AutomatonCPADomain<CFAEdge>.Element getAbstractSuccessor(AbstractElement pElement,
+    private AbstractElement getAbstractSuccessor(AbstractElement pElement,
                                                 CFAEdge pCfaEdge, Precision prec)
                                                                  throws CPATransferException {
       AutomatonCPADomain<CFAEdge>.Element lSuccessor = mDomain.getSuccessor(pElement, pCfaEdge);
@@ -126,13 +127,9 @@ public class ScopeRestrictionCPA implements ConfigurableProgramAnalysis {
     }
 
     @Override
-    public List<AbstractElementWithLocation> getAllAbstractSuccessors(AbstractElementWithLocation pElement, Precision prec)
-                                                                                   throws CPAException,
-                                                                                   CPATransferException {
-      // this method may not be called!
-      assert(false);
-      
-      return null;
+    public Collection<AbstractElement> getAbstractSuccessors(AbstractElement pElement, Precision prec, CFAEdge cfaEdge)
+                                                                                   throws CPATransferException {
+      return Collections.singleton(getAbstractSuccessor(pElement, cfaEdge, prec));
     }
 
     @Override

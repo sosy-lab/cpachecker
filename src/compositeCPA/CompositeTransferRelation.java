@@ -24,6 +24,7 @@
 package compositeCPA;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -34,10 +35,8 @@ import cfa.objectmodel.c.CallToReturnEdge;
 import cpa.common.CallElement;
 import cpa.common.CallStack;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
-import exceptions.CPAException;
 import exceptions.CPATransferException;
 
 public class CompositeTransferRelation implements TransferRelation{
@@ -51,25 +50,40 @@ public class CompositeTransferRelation implements TransferRelation{
   {
     this.compositeDomain = compositeDomain;
     this.transferRelations = transferRelations;
-
-    //TransferRelation first = transferRelations.get (0);
-    //if (first instanceof LocationTransferRelation)
-    //{
-    //	locationTransferRelation = (LocationTransferRelation) first;
-    //}
   }
 
-  public AbstractElement getAbstractSuccessor (AbstractElement element, CFAEdge cfaEdge, Precision precision) throws CPATransferException
-  {
+  @Override
+  public Collection<CompositeElement> getAbstractSuccessors(AbstractElement element, Precision precision, CFAEdge cfaEdge) throws CPATransferException {
+    CompositeElement compositeElement = (CompositeElement) element;
+    Collection<CompositeElement> results;
+    
+    if (cfaEdge == null) {
+      CFANode node = compositeElement.getLocationNode();
+      results = new ArrayList<CompositeElement>(node.getNumLeavingEdges());
+      
+      for (int edgeIdx = 0; edgeIdx < node.getNumLeavingEdges(); edgeIdx++) {
+        CFAEdge edge = node.getLeavingEdge(edgeIdx);
+        getAbstractSuccessorForEdge(compositeElement, precision, edge, results);
+      }
+    
+    } else {
+      results = new ArrayList<CompositeElement>(1);
+      getAbstractSuccessorForEdge(compositeElement, precision, cfaEdge, results);
+
+    }
+
+    return results;
+  }
+  
+  private void getAbstractSuccessorForEdge(CompositeElement compositeElement, Precision precision, CFAEdge cfaEdge,
+      Collection<CompositeElement> compositeSuccessors) throws CPATransferException {
+    assert cfaEdge != null;
+    
     CompositePrecision lCompositePrecision = null;
     if(precision != null){
       assert(precision instanceof CompositePrecision);
       lCompositePrecision = (CompositePrecision)precision;
     }
-
-    CompositeElement compositeElement = (CompositeElement) element;
-    List<AbstractElement> inputElements = compositeElement.getElements ();
-    List<AbstractElement> resultingElements = new ArrayList<AbstractElement> ();
 
     CallStack updatedCallStack = compositeElement.getCallStack();
 
@@ -93,8 +107,9 @@ public class CompositeTransferRelation implements TransferRelation{
       CallElement returnElement = compositeElement.getCallStack().getSecondTopElement();
 
       if(! topCallElement.isConsistent(cfaEdge.getSuccessor()) ||
-          ! returnElement.isConsistent(cfaEdge.getSuccessor().getFunctionName()) ){
-        return compositeDomain.getBottomElement();
+          ! returnElement.isConsistent(cfaEdge.getSuccessor().getFunctionName()) ) {
+        compositeSuccessors.add(compositeDomain.getBottomElement());
+        return;
       }
 
       // TODO we are saving the abstract state on summary edge, that works for
@@ -112,53 +127,80 @@ public class CompositeTransferRelation implements TransferRelation{
       }
     }
 
-    for (int idx = 0; idx < transferRelations.size (); idx++)
-    {
-      TransferRelation transfer = transferRelations.get (idx);
-      AbstractElement subElement = null;
-      AbstractElement successor = null;
-      subElement = inputElements.get (idx);
-      // handling a call edge
+    int resultCount = 1;
+    List<AbstractElement> componentElements = compositeElement.getElements();
+    List<Collection<? extends AbstractElement>> allComponentsSuccessors = new ArrayList<Collection<? extends AbstractElement>>(transferRelations.size());
 
-      Precision lPresicion = null;
-      if(lCompositePrecision != null){
-        lPresicion = lCompositePrecision.get(idx);
+    for (int idx = 0; idx < transferRelations.size (); idx++) {
+      TransferRelation transfer = transferRelations.get(idx);
+      AbstractElement componentElement = componentElements.get(idx);
+
+      Precision lPrecision = null;
+      if (lCompositePrecision != null) {
+        lPrecision = lCompositePrecision.get(idx);
       }
 
-      successor = transfer.getAbstractSuccessor (subElement, cfaEdge, lPresicion);
-      resultingElements.add (successor);
+      Collection<? extends AbstractElement> componentSuccessors = transfer.getAbstractSuccessors(componentElement, lPrecision, cfaEdge);
+      resultCount *= componentSuccessors.size();
+      allComponentsSuccessors.add(componentSuccessors);
     }
-
-    List<AbstractElement> resultingElementsRO = Collections.unmodifiableList(resultingElements);
-    for (int idx = 0; idx < transferRelations.size(); idx++) {
-      AbstractElement result = transferRelations.get(idx).strengthen(
-          resultingElements.get(idx),
-          resultingElementsRO, cfaEdge,
-          (lCompositePrecision == null) ? null : lCompositePrecision.get(idx));
-      if (result != null) {
-        resultingElements.set(idx, result);
+    assert resultCount != 0;
+    
+    Collection<List<AbstractElement>> allResultingElements;
+    
+    if (resultCount == 1) {
+      List<AbstractElement> resultingElements = new ArrayList<AbstractElement>(allComponentsSuccessors.size());
+      for (Collection<? extends AbstractElement> componentSuccessors : allComponentsSuccessors) {
+        assert componentSuccessors.size() == 1;
+        resultingElements.add(componentSuccessors.toArray(new AbstractElement[1])[0]);
       }
+      allResultingElements = Collections.singleton(resultingElements);
+      
+    } else {
+      // create cartesian product of all componentSuccessors and store the result in allResultingElements
+      List<AbstractElement> initialPrefix = Collections.emptyList();
+      allResultingElements = new ArrayList<List<AbstractElement>>(resultCount);
+      createCartesianProduct(allComponentsSuccessors, initialPrefix, allResultingElements);
+    }
+    
+    assert resultCount == allResultingElements.size();
+    
+    for (List<AbstractElement> resultingElements : allResultingElements) {
+      List<AbstractElement> resultingElementsRO = Collections.unmodifiableList(resultingElements);
+      for (int idx = 0; idx < transferRelations.size(); idx++) {
+        AbstractElement result = transferRelations.get(idx).strengthen(
+            resultingElements.get(idx),
+            resultingElementsRO, cfaEdge,
+            (lCompositePrecision == null) ? null : lCompositePrecision.get(idx));
+        if (result != null) {
+          resultingElements.set(idx, result);
+        }
+      }
+      
+      CompositeElement compositeSuccessor = new CompositeElement(resultingElements, updatedCallStack);
+      compositeSuccessors.add(compositeSuccessor);
     }
 
-    CompositeElement successorState = new CompositeElement (resultingElements, updatedCallStack);
-    return successorState;
+    return;
   }
+  
+  private static void createCartesianProduct(List<Collection<? extends AbstractElement>> allComponentsSuccessors,
+      List<AbstractElement> prefix, Collection<List<AbstractElement>> allResultingElements) {
+    
+    if (prefix.size() == allComponentsSuccessors.size()) {
+      allResultingElements.add(prefix);
 
-  public List<AbstractElementWithLocation> getAllAbstractSuccessors (AbstractElementWithLocation element, Precision precision) throws CPAException, CPATransferException
-  {
-
-    CompositeElement compositeElement = (CompositeElement) element;
-    CFANode node = compositeElement.getLocationNode();
-
-    List<AbstractElementWithLocation> results = new ArrayList<AbstractElementWithLocation> ();
-
-    for (int edgeIdx = 0; edgeIdx < node.getNumLeavingEdges (); edgeIdx++)
-    {
-      CFAEdge edge = node.getLeavingEdge (edgeIdx);
-      results.add ((CompositeElement) getAbstractSuccessor (element, edge, precision));
+    } else {
+      int depth = prefix.size();
+      Collection<? extends AbstractElement> myComponentsSuccessors = allComponentsSuccessors.get(depth);
+      
+      for (AbstractElement currentComponent : myComponentsSuccessors) {
+        List<AbstractElement> newPrefix = new ArrayList<AbstractElement>(prefix);
+        newPrefix.add(currentComponent);
+        
+        createCartesianProduct(allComponentsSuccessors, newPrefix, allResultingElements);
+      }
     }
-
-    return results;
   }
 
   @Override

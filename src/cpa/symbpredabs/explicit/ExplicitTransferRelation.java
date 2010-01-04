@@ -23,6 +23,7 @@
  */
 package cpa.symbpredabs.explicit;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
@@ -49,7 +50,6 @@ import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
 import cpa.symbpredabs.AbstractReachabilityTree;
-import exceptions.CPAException;
 import exceptions.CPATransferException;
 import exceptions.ErrorReachedException;
 import exceptions.RefinementNeededException;
@@ -427,8 +427,7 @@ public class ExplicitTransferRelation implements TransferRelation {
     }
    */
 
-  @Override
-  public AbstractElement getAbstractSuccessor(AbstractElement element,
+  private AbstractElement getAbstractSuccessor(AbstractElement element,
                                               CFAEdge cfaEdge, Precision prec) throws CPATransferException {
     CPAMain.logManager.log(Level.FINEST,
         "Getting Abstract Successor of element: ", element,
@@ -473,13 +472,13 @@ public class ExplicitTransferRelation implements TransferRelation {
   }
 
   @Override
-  public List<AbstractElementWithLocation> getAllAbstractSuccessors(
-      AbstractElementWithLocation element, Precision prec) throws CPAException, CPATransferException {
+  public Collection<AbstractElement> getAbstractSuccessors(
+      AbstractElement element, Precision prec, CFAEdge cfaEdge) throws CPATransferException {
     CPAMain.logManager.log(Level.FINEST,
         "Getting ALL Abstract Successors of element: ",
         element);
 
-    List<AbstractElementWithLocation> allSucc = new Vector<AbstractElementWithLocation>();
+    List<AbstractElement> allSucc = new ArrayList<AbstractElement>();
     ExplicitAbstractElement e = (ExplicitAbstractElement)element;
 
 
@@ -490,7 +489,7 @@ public class ExplicitTransferRelation implements TransferRelation {
       AbstractElement newe =
         getAbstractSuccessor(e, src.getLeavingEdge(i), prec);
       if (newe != domain.getBottomElement()) {
-        allSucc.add((ExplicitAbstractElement)newe);
+        allSucc.add(newe);
       }
     }
 

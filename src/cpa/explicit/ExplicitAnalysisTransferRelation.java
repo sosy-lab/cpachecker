@@ -23,6 +23,8 @@
  */
 package cpa.explicit;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -52,13 +54,11 @@ import cfa.objectmodel.c.ReturnEdge;
 import cfa.objectmodel.c.StatementEdge;
 import cmdline.CPAMain;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
 import cpa.pointeranalysis.Memory;
 import cpa.pointeranalysis.Pointer;
 import cpa.pointeranalysis.PointerAnalysisElement;
-import exceptions.CPAException;
 import exceptions.CPATransferException;
 import exceptions.ExplicitAnalysisTransferException;
 import exceptions.UnrecognizedCFAEdgeException;
@@ -83,8 +83,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
     threshold = Integer.parseInt(CPAMain.cpaConfig.getProperty("explicitAnalysis.threshold"));
   }
 
-  @Override
-  public AbstractElement getAbstractSuccessor(AbstractElement element,
+  private AbstractElement getAbstractSuccessor(AbstractElement element,
       CFAEdge cfaEdge, Precision precision) 
   throws CPATransferException
   {
@@ -1043,9 +1042,9 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
   }
   
   @Override
-  public List<AbstractElementWithLocation> getAllAbstractSuccessors(
-      AbstractElementWithLocation element, Precision precision) throws CPAException, CPATransferException {
-    throw new CPAException ("Cannot get all abstract successors from non-location domain");
+  public Collection<AbstractElement> getAbstractSuccessors(
+      AbstractElement element, Precision precision, CFAEdge cfaEdge) throws CPATransferException {
+    return Collections.singleton(getAbstractSuccessor(element, cfaEdge, precision));
   }
 
   public String getvarName(String variableName, String functionName){

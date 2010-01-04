@@ -384,7 +384,6 @@ public class ItpTransferRelation implements TransferRelation {
       close(e);
     }
     assert(falseAbst.size() > 0);
-    ItpCPA cpa = domain.getCPA();
     Collection<AbstractElementWithLocation> toUnreach = new HashSet<AbstractElementWithLocation>();
     for (ItpAbstractElement ie : falseAbst) {
 //    maybeToWaitlist.addAll(cpa.removeDescendantsFromCovering(ie));
@@ -412,8 +411,7 @@ public class ItpTransferRelation implements TransferRelation {
     throw new RefinementNeededException(toUnreach, toWaitlist);
   }
 
-  @Override
-  public AbstractElement getAbstractSuccessor(AbstractElement element,
+  private AbstractElement getAbstractSuccessor(AbstractElement element,
                                               CFAEdge cfaEdge, Precision prec) throws CPATransferException {
 
     removeObsoleteToProcess(element);
@@ -505,7 +503,7 @@ public class ItpTransferRelation implements TransferRelation {
   }
 
   private void removeObsoleteToProcess(AbstractElement element) {
-    ItpAbstractElement e = (ItpAbstractElement)element;
+//  ItpAbstractElement e = (ItpAbstractElement)element;
     Collection<AbstractElement> toRemove = new Vector<AbstractElement>();
     for (AbstractElement el : toProcess) {
       ItpAbstractElement iel = (ItpAbstractElement)el;
@@ -519,8 +517,8 @@ public class ItpTransferRelation implements TransferRelation {
   }
 
   @Override
-  public List<AbstractElementWithLocation> getAllAbstractSuccessors(
-      AbstractElementWithLocation element, Precision prec) throws CPAException, CPATransferException {
+  public Collection<AbstractElementWithLocation> getAbstractSuccessors(
+      AbstractElement element, Precision prec, CFAEdge cfaEdge) throws CPATransferException {
     CPAMain.logManager.log(Level.FINEST, 
         "Getting ALL Abstract Successors of element: ",
         element);

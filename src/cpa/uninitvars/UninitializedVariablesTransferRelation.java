@@ -23,6 +23,8 @@
  */
 package cpa.uninitvars;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -55,14 +57,12 @@ import cmdline.CPAMain;
 import common.Pair;
 
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
 import cpa.types.Type;
 import cpa.types.TypesElement;
 import cpa.types.Type.StructType;
 import cpa.types.Type.TypeClass;
-import exceptions.CPAException;
 import exceptions.CPATransferException;
 import exceptions.TransferRelationException;
 import exceptions.UnrecognizedCFAEdgeException;
@@ -94,8 +94,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
     }
   }
   
-  @Override
-  public AbstractElement getAbstractSuccessor(AbstractElement element,
+  private AbstractElement getAbstractSuccessor(AbstractElement element,
                                               CFAEdge cfaEdge,
                                               Precision precision)
                                               throws CPATransferException {
@@ -419,11 +418,11 @@ if (expression == null) {
   }
   
   @Override
-  public List<AbstractElementWithLocation> getAllAbstractSuccessors(
-                                           AbstractElementWithLocation element,
-                                           Precision precision)
-                       throws CPAException, CPATransferException {
-    throw new CPAException ("Cannot get all abstract successors from non-location domain");
+  public Collection<AbstractElement> getAbstractSuccessors(
+                                           AbstractElement element,
+                                           Precision precision, CFAEdge cfaEdge)
+                       throws CPATransferException {
+    return Collections.singleton(getAbstractSuccessor(element, cfaEdge, precision));
   }
 
   @Override

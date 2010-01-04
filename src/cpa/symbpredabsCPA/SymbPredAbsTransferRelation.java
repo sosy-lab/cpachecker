@@ -24,6 +24,8 @@
 package cpa.symbpredabsCPA;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,10 +47,8 @@ import common.Triple;
 
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
-import exceptions.CPAException;
 import exceptions.UnrecognizedCFAEdgeException;
 
 /**
@@ -104,14 +104,8 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   }
 
   @Override
-  public List<AbstractElementWithLocation> getAllAbstractSuccessors(
-      AbstractElementWithLocation element, Precision prec) throws CPAException {
-    throw new CPAException ("Cannot get all abstract successors from non-location domain");
-  }
-
-  @Override
-  public AbstractElement getAbstractSuccessor(AbstractElement pElement,
-      CFAEdge edge, Precision prec) throws UnrecognizedCFAEdgeException {
+  public Collection<AbstractElement> getAbstractSuccessors(AbstractElement pElement,
+      Precision precision, CFAEdge edge) throws UnrecognizedCFAEdgeException {
 
     long time = System.currentTimeMillis();
     SymbPredAbsAbstractElement element = (SymbPredAbsAbstractElement) pElement;
@@ -123,9 +117,9 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     
     try {
       if (abstractionLocation) {
-        return handleAbstractionLocation(element, edge);
+        return Collections.singleton(handleAbstractionLocation(element, edge));
       } else {
-        return handleNonAbstractionLocation(element, edge);
+        return Collections.singleton(handleNonAbstractionLocation(element, edge));
       }
       
     } finally {

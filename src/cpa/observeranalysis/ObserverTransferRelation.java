@@ -1,13 +1,13 @@
 package cpa.observeranalysis;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 import cfa.objectmodel.CFAEdge;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
-import exceptions.CPAException;
 import exceptions.CPATransferException;
 
 class ObserverTransferRelation implements TransferRelation {
@@ -17,8 +17,7 @@ class ObserverTransferRelation implements TransferRelation {
     automaton = pAutomaton;
   }
 
-  @Override
-  public AbstractElement getAbstractSuccessor(AbstractElement pElement,
+  private AbstractElement getAbstractSuccessor(AbstractElement pElement,
       CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException {
     if (! (pElement instanceof ObserverState)) {
       throw new IllegalArgumentException("Cannot getAbstractSuccessor for non-ObserverState AbstractElements.");
@@ -45,10 +44,10 @@ class ObserverTransferRelation implements TransferRelation {
   }
 
   @Override
-  public List<AbstractElementWithLocation> getAllAbstractSuccessors(
-                      AbstractElementWithLocation element, Precision precision)
-                      throws CPAException, CPATransferException {
-    throw new CPAException ("Cannot get all abstract successors from non-location domain");
+  public Collection<AbstractElement> getAbstractSuccessors(
+                      AbstractElement element, Precision precision, CFAEdge cfaEdge)
+                      throws CPATransferException {
+    return Collections.singleton(getAbstractSuccessor(element, cfaEdge, precision));
   }
 
   @Override

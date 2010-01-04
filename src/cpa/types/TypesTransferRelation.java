@@ -23,6 +23,8 @@
  */
 package cpa.types;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 
@@ -47,15 +49,13 @@ import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTStandardFunctionDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTEnumerationSpecifier.IASTEnumerator;
 
-import cmdline.CPAMain;
-
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.c.DeclarationEdge;
 import cfa.objectmodel.c.FunctionCallEdge;
 import cfa.objectmodel.c.FunctionDefinitionNode;
 import cfa.objectmodel.c.GlobalDeclarationEdge;
+import cmdline.CPAMain;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
 import cpa.types.Type.ArrayType;
@@ -67,7 +67,6 @@ import cpa.types.Type.Primitive;
 import cpa.types.Type.PrimitiveType;
 import cpa.types.Type.StructType;
 import cpa.types.Type.UnionType;
-import exceptions.CPAException;
 import exceptions.CPATransferException;
 import exceptions.TransferRelationException;
 import exceptions.UnrecognizedCFAEdgeException;
@@ -77,8 +76,7 @@ import exceptions.UnrecognizedCFAEdgeException;
  */
 public class TypesTransferRelation implements TransferRelation {
 
-  @Override
-  public AbstractElement getAbstractSuccessor(AbstractElement element,
+  private AbstractElement getAbstractSuccessor(AbstractElement element,
                                               CFAEdge cfaEdge,
                                               Precision precision)
                                               throws CPATransferException {
@@ -452,12 +450,11 @@ public class TypesTransferRelation implements TransferRelation {
   }
 
   @Override
-  public List<AbstractElementWithLocation> getAllAbstractSuccessors(
-                                           AbstractElementWithLocation element,
-                                           Precision precision)
-                                           throws CPAException,
-                                                  CPATransferException {
-    throw new CPAException ("Cannot get all abstract successors from non-location domain");
+  public Collection<AbstractElement> getAbstractSuccessors(
+                                           AbstractElement element,
+                                           Precision precision, CFAEdge cfaEdge)
+                                           throws CPATransferException {
+    return Collections.singleton(getAbstractSuccessor(element, cfaEdge, precision));
   }
 
   @Override

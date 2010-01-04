@@ -53,7 +53,6 @@ import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
-import exceptions.CPAException;
 import exceptions.CPATransferException;
 
 /**
@@ -160,8 +159,10 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
 
         Precision lPresicion = lCompositePrecision.get(idx);
 
-        successor = transfer.getAbstractSuccessor (subElement, cfaEdge, lPresicion);
-
+        Collection<? extends AbstractElement> successors = transfer.getAbstractSuccessors(subElement, lPresicion, cfaEdge);
+        assert successors.size() == 1;
+        successor = successors.toArray(new AbstractElement[1])[0];
+        
         // as soon as a component returns bottom we return composite bottom
         if (compositeDomain.getDomains().get(idx).getBottomElement().equals(successor)) {
           return compositeDomain.getBottomElement();
@@ -177,7 +178,8 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
       return successorState;
     }
 
-    public List<AbstractElementWithLocation> getAllAbstractSuccessors(AbstractElementWithLocation element, Precision precision) throws CPAException, CPATransferException
+    @Override
+    public Collection<AbstractElementWithLocation> getAbstractSuccessors(AbstractElement element, Precision precision, CFAEdge cfaEdge) throws CPATransferException
     {
 
       //TODO CPACheckerStatistics.noOfTransferRelations++;

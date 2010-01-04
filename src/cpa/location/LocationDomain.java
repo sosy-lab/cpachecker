@@ -114,7 +114,7 @@ public class LocationDomain implements AbstractDomain
 
     }
 
-    public AbstractElement getBottomElement ()
+    public LocationElement getBottomElement ()
     {
         return bottomElement;
     }

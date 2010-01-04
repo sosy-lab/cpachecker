@@ -24,17 +24,17 @@
 package cpa.location;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFANode;
 import cfa.objectmodel.c.CallToReturnEdge;
-
-import exceptions.CPATransferException;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
+import exceptions.CPATransferException;
 
 public class LocationTransferRelation implements TransferRelation
 {
@@ -45,7 +45,7 @@ public class LocationTransferRelation implements TransferRelation
     this.locationDomain = locationDomain;
   }
 
-  public AbstractElement getAbstractSuccessor (AbstractElement element, CFAEdge cfaEdge, Precision prec) throws CPATransferException
+  private AbstractElement getAbstractSuccessor (AbstractElement element, CFAEdge cfaEdge, Precision prec) throws CPATransferException
   {
     LocationElement inputElement = (LocationElement) element;
     CFANode node = inputElement.getLocationNode ();
@@ -68,11 +68,16 @@ public class LocationTransferRelation implements TransferRelation
     return locationDomain.getBottomElement ();
   }
 
-  public List<AbstractElementWithLocation> getAllAbstractSuccessors (AbstractElementWithLocation element, Precision prec) throws CPATransferException
+  @Override
+  public Collection<AbstractElement> getAbstractSuccessors (AbstractElement element, Precision prec, CFAEdge cfaEdge) throws CPATransferException
   {
-    CFANode node = element.getLocationNode ();
+    if (cfaEdge != null) {
+      return Collections.singleton(getAbstractSuccessor(element, cfaEdge, prec));
+    }
+    
+    CFANode node = ((LocationElement)element).getLocationNode ();
 
-    List<AbstractElementWithLocation> allSuccessors = new ArrayList<AbstractElementWithLocation> ();
+    List<AbstractElement> allSuccessors = new ArrayList<AbstractElement> ();
     int numLeavingEdges = node.getNumLeavingEdges ();
 
     for (int edgeIdx = 0; edgeIdx < numLeavingEdges; edgeIdx++)

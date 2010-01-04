@@ -68,12 +68,12 @@ public class CompositeDomain implements AbstractDomain
         return domains;
     }
 
-    public AbstractElement getBottomElement ()
+    public CompositeElement getBottomElement ()
     {
         return bottomElement;
     }
 
-    public AbstractElement getTopElement ()
+    public CompositeElement getTopElement ()
     {
         return topElement;
     }

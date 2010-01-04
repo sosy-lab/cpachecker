@@ -25,6 +25,7 @@ package cpa.pointeranalysis;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -62,7 +63,6 @@ import cmdline.CPAMain;
 import common.Pair;
 
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
 import cpa.explicit.ExplicitAnalysisElement;
@@ -80,7 +80,6 @@ import cpa.types.TypesElement;
 import cpa.types.Type.ArrayType;
 import cpa.types.Type.FunctionType;
 import cpa.types.Type.PointerType;
-import exceptions.CPAException;
 import exceptions.CPATransferException;
 import exceptions.ErrorReachedException;
 import exceptions.TransferRelationException;
@@ -191,8 +190,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
     this.domain = domain;
   }
   
-  @Override
-  public AbstractElement getAbstractSuccessor(AbstractElement element,
+  private AbstractElement getAbstractSuccessor(AbstractElement element,
                                               CFAEdge cfaEdge,
                                               Precision precision)
                                               throws CPATransferException {
@@ -1174,12 +1172,11 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
   }
   
   @Override
-  public List<AbstractElementWithLocation> getAllAbstractSuccessors(
-                                             AbstractElementWithLocation element,
-                                             Precision precision)
-                                             throws CPAException,
-                                                    CPATransferException {
-    throw new CPAException ("Cannot get all abstract successors from non-location domain");
+  public Collection<AbstractElement> getAbstractSuccessors(
+                                             AbstractElement element,
+                                             Precision precision, CFAEdge cfaEdge)
+                                             throws CPATransferException {
+    return Collections.singleton(getAbstractSuccessor(element, cfaEdge, precision));
   }
 
   

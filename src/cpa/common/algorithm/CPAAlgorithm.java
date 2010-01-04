@@ -34,6 +34,7 @@ import cmdline.CPAMain;
 import common.Pair;
 
 import cpa.common.ReachedElements;
+import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
@@ -78,12 +79,13 @@ public class CPAAlgorithm implements Algorithm {
           "with precision", precision, "is popped from queue");
 
       start = System.currentTimeMillis();
-      List<AbstractElementWithLocation> successors = transferRelation.getAllAbstractSuccessors (element, precision);
+      Collection<? extends AbstractElement> successors = transferRelation.getAbstractSuccessors (element, precision, null);
       end = System.currentTimeMillis();
       transferTime += (end - start);
       // TODO When we have a nice way to mark the analysis result as incomplete, we could continue analysis on a CPATransferException with the next element from waitlist.
       
-      for (AbstractElementWithLocation successor : successors) {
+      for (AbstractElement succ : successors) {
+        AbstractElementWithLocation successor = (AbstractElementWithLocation)succ;
         CPAMain.logManager.log(Level.FINER, "successor of", element, "-->", successor);
         
         Collection<Pair<AbstractElementWithLocation,Precision>> reached = reachedElements.getReached(successor.getLocationNode());

@@ -24,6 +24,7 @@
 package cpa.predicateabstraction;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 
@@ -32,10 +33,8 @@ import symbpredabstraction.interfaces.Predicate;
 import cfa.objectmodel.CFAEdge;
 import cmdline.CPAMain;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
-import exceptions.CPAException;
 import exceptions.CPATransferException;
 
 
@@ -240,8 +239,7 @@ public class PredicateAbstractionTransferRelation implements TransferRelation {
     }
   }
 
-  @Override
-  public AbstractElement getAbstractSuccessor(AbstractElement element,
+  private AbstractElement getAbstractSuccessor(AbstractElement element,
       CFAEdge cfaEdge, Precision prec) throws CPATransferException {
     CPAMain.logManager.log(Level.FINEST, 
         "Getting Abstract Successor of element: ", element,
@@ -290,12 +288,10 @@ public class PredicateAbstractionTransferRelation implements TransferRelation {
   }
 
   @Override
-  public List<AbstractElementWithLocation> getAllAbstractSuccessors(
-      AbstractElementWithLocation element, Precision prec) throws CPAException, CPATransferException {
-    CPAMain.logManager.log(Level.FINEST,
-        "Getting ALL Abstract Successors of element: ",
-        element);
-    return null;
+  public Collection<AbstractElement> getAbstractSuccessors(
+      AbstractElement element, Precision prec, CFAEdge cfaEdge) throws CPATransferException {
+    return Collections.singleton(getAbstractSuccessor(element, cfaEdge, prec));
+
 //  List<AbstractElementWithLocation> allSucc = new Vector<AbstractElementWithLocation>();
 //  PredicateAbstractionAbstractElement e = (PredicateAbstractionAbstractElement)element;
 

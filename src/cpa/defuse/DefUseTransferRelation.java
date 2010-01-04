@@ -23,6 +23,8 @@
  */
 package cpa.defuse;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
@@ -37,13 +39,10 @@ import cfa.objectmodel.c.DeclarationEdge;
 import cfa.objectmodel.c.MultiDeclarationEdge;
 import cfa.objectmodel.c.MultiStatementEdge;
 import cfa.objectmodel.c.StatementEdge;
-
-import exceptions.CPATransferException;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
-import exceptions.CPAException;
+import exceptions.CPATransferException;
 
 public class DefUseTransferRelation implements TransferRelation
 {
@@ -105,7 +104,7 @@ public class DefUseTransferRelation implements TransferRelation
     }
   }
 
-  public AbstractElement getAbstractSuccessor (AbstractElement element, CFAEdge cfaEdge, Precision prec) throws CPATransferException
+  private AbstractElement getAbstractSuccessor(AbstractElement element, CFAEdge cfaEdge, Precision prec) throws CPATransferException
   {
     DefUseElement defUseElement = (DefUseElement) element;
 
@@ -164,9 +163,9 @@ public class DefUseTransferRelation implements TransferRelation
     return defUseElement;
   }
 
-  public List<AbstractElementWithLocation> getAllAbstractSuccessors (AbstractElementWithLocation element, Precision prec) throws CPAException, CPATransferException
-  {
-    throw new CPAException ("Cannot get all abstract successors from non-location domain");
+  @Override
+  public Collection<AbstractElement> getAbstractSuccessors(AbstractElement element, Precision prec, CFAEdge cfaEdge) throws CPATransferException {
+    return Collections.singleton(getAbstractSuccessor(element, cfaEdge, prec));
   }
 
   @Override

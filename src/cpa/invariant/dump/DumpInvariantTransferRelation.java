@@ -23,17 +23,16 @@
  */
 package cpa.invariant.dump;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 import symbpredabstraction.interfaces.SymbolicFormula;
 import symbpredabstraction.interfaces.SymbolicFormulaManager;
-
 import cfa.objectmodel.CFAEdge;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
-import exceptions.CPAException;
 import exceptions.CPATransferException;
 
 /**
@@ -48,20 +47,12 @@ public class DumpInvariantTransferRelation implements TransferRelation {
   {
     symbolicFormulaManager = cpa.getSymbolicFormulaManager();
   }
-  
-  @Override
-  public AbstractElement getAbstractSuccessor(AbstractElement el, CFAEdge edge, Precision p)
-    throws CPATransferException
-  {
-    // always return top
-    return DumpInvariantElement.TOP;
-  }
 
   @Override
-  public List<AbstractElementWithLocation> getAllAbstractSuccessors(
-      AbstractElementWithLocation pElement, Precision pPrecision)
-      throws CPAException, CPATransferException {
-    throw new CPAException ("Cannot get all abstract successors from non-location domain");
+  public Collection<? extends AbstractElement> getAbstractSuccessors(
+      AbstractElement pElement, Precision pPrecision, CFAEdge cfaEdge)
+      throws CPATransferException {
+    return Collections.singleton(DumpInvariantElement.TOP);
   }
 
   @Override

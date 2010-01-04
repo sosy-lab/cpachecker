@@ -1,5 +1,7 @@
 package cpa.errorlocation;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -8,17 +10,14 @@ import java.util.logging.Level;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression;
 
-import cmdline.CPAMain;
-
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAErrorNode;
 import cfa.objectmodel.c.StatementEdge;
+import cmdline.CPAMain;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
 import cpa.errorlocation.ErrorLocationCPA.ErrorLocationDomain;
-import exceptions.CPAException;
 import exceptions.CPATransferException;
 
 public class ErrorLocationTransferRelation implements TransferRelation {
@@ -41,8 +40,7 @@ public class ErrorLocationTransferRelation implements TransferRelation {
     }
   }
   
-  @Override
-  public AbstractElement getAbstractSuccessor(AbstractElement element,
+  private AbstractElement getAbstractSuccessor(AbstractElement element,
                                               CFAEdge cfaEdge, Precision precision)
                                               throws CPATransferException {
     
@@ -83,10 +81,10 @@ public class ErrorLocationTransferRelation implements TransferRelation {
   }
 
   @Override
-  public List<AbstractElementWithLocation> getAllAbstractSuccessors(
-                      AbstractElementWithLocation element, Precision precision)
-                      throws CPAException, CPATransferException {
-    throw new CPAException ("Cannot get all abstract successors from non-location domain");
+  public Collection<AbstractElement> getAbstractSuccessors(
+                      AbstractElement element, Precision precision, CFAEdge cfaEdge)
+                      throws CPATransferException {
+    return Collections.singleton(getAbstractSuccessor(element, cfaEdge, precision));
   }
 
   @Override
