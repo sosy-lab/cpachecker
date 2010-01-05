@@ -3,6 +3,21 @@ package fql.frontend.parser;
 
 import java_cup.runtime.*;
 
+import fql.frontend.ast.filter.Identity;
+import fql.frontend.ast.filter.File;
+import fql.frontend.ast.filter.BasicBlockEntry;
+import fql.frontend.ast.filter.ConditionEdge;
+import fql.frontend.ast.filter.DecisionEdge;
+import fql.frontend.ast.filter.ConditionGraph;
+import fql.frontend.ast.filter.Line;
+import fql.frontend.ast.filter.FunctionCalls;
+import fql.frontend.ast.filter.Column;
+import fql.frontend.ast.filter.Function;
+import fql.frontend.ast.filter.Label;
+import fql.frontend.ast.filter.FunctionCall;
+import fql.frontend.ast.filter.FunctionEntry;
+import fql.frontend.ast.filter.FunctionExit;
+
 parser code
 {:
 :}
@@ -309,53 +324,72 @@ Filter				::=
 Filter_Function		::=
 						TOK_IDENTITY
 						{:
+							RESULT = Identity.getInstance();
 						:}
-					|	TOK_FILE TOK_L_PARENTHESIS TOK_QUOTED_STRING TOK_R_PARENTHESIS
+					|	TOK_FILE TOK_L_PARENTHESIS TOK_QUOTED_STRING:filename TOK_R_PARENTHESIS
 						{:
+							RESULT = new File(filename);
 						:}
-					|	TOK_LINE TOK_L_PARENTHESIS TOK_NAT_NUMBER TOK_R_PARENTHESIS
+					|	TOK_LINE TOK_L_PARENTHESIS TOK_NAT_NUMBER:linenumber TOK_R_PARENTHESIS
 						{:
+							RESULT = new Line(linenumber);
 						:}
-					|	TOK_LINE_ABBREV
+					|	TOK_LINE_ABBREV:linenumber
 						{:
+							RESULT = new Line(linenumber);
 						:}
-					|	TOK_COLUMN TOK_L_PARENTHESIS TOK_NAT_NUMBER TOK_R_PARENTHESIS
+					|	TOK_COLUMN TOK_L_PARENTHESIS TOK_NAT_NUMBER:columnnumber TOK_R_PARENTHESIS
 						{:
+							RESULT = new Column(columnnumber);
 						:}
-					| 	TOK_FUNC TOK_L_PARENTHESIS TOK_C_IDENT TOK_R_PARENTHESIS
+					| 	TOK_FUNC TOK_L_PARENTHESIS TOK_C_IDENT:function TOK_R_PARENTHESIS
 						{:
+							RESULT = new Function(function);
 						:}
-					|	TOK_LABEL TOK_L_PARENTHESIS TOK_C_IDENT TOK_R_PARENTHESIS
+					|	TOK_LABEL TOK_L_PARENTHESIS TOK_C_IDENT:label TOK_R_PARENTHESIS
 						{:
+							RESULT = new Label(label);
 						:}
-					| 	TOK_CALL TOK_L_PARENTHESIS TOK_C_IDENT TOK_R_PARENTHESIS
+					| 	TOK_CALL TOK_L_PARENTHESIS TOK_C_IDENT:function TOK_R_PARENTHESIS
 						{:
+							RESULT = new FunctionCall(function);
 						:}
 					|	TOK_CALLS
 						{:
+							RESULT = FunctionCalls.getInstance();
 						:}
-					| 	TOK_ENTRY TOK_L_PARENTHESIS TOK_C_IDENT TOK_R_PARENTHESIS
+					| 	TOK_ENTRY TOK_L_PARENTHESIS TOK_C_IDENT:function TOK_R_PARENTHESIS
 						{:
+							RESULT = new FunctionEntry(function);
 						:}
-					|	TOK_EXIT TOK_L_PARENTHESIS TOK_C_IDENT TOK_R_PARENTHESIS
+					|	TOK_EXIT TOK_L_PARENTHESIS TOK_C_IDENT:function TOK_R_PARENTHESIS
 						{:
+							RESULT = new FunctionExit(function);
 						:}
 					|	TOK_EXPR TOK_L_PARENTHESIS TOK_QUOTED_STRING TOK_R_PARENTHESIS
 						{:
+							// TODO implement expression
+							RESULT = null;
 						:}
 					|	TOK_REGEXP TOK_L_PARENTHESIS TOK_QUOTED_STRING TOK_R_PARENTHESIS
 						{:
+							// TODO implement regular expression
+							RESULT = null;
 						:}
 					|	TOK_BASICBLOCKENTRY
 						{:
+							RESULT = BasicBlockEntry.getInstance();
 						:}
 					| 	TOK_CONDITIONEDGE
 						{:
+							RESULT = ConditionEdge.getInstance();
 						:}
 					|	TOK_DECISIONEDGE
 						{:
+							RESULT = DecisionEdge.getInstance();
 						:}
 					|	TOK_CONDITIONGRAPH
 						{:
+							RESULT = ConditionGraph.getInstance();
 						:}
 					;
