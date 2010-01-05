@@ -1,0 +1,361 @@
+
+package fql.frontend.parser;
+
+import java_cup.runtime.*;
+
+parser code
+{:
+:}
+
+action code
+{:
+:}
+
+/* general */
+terminal TOK_L_PARENTHESIS;
+terminal TOK_R_PARENTHESIS;
+terminal TOK_COMMA;
+
+/* filter functions */
+terminal TOK_IDENTITY;
+terminal TOK_FILE;
+terminal TOK_LINE;
+terminal Integer TOK_LINE_ABBREV;
+terminal TOK_COLUMN;
+terminal TOK_FUNC;
+terminal TOK_LABEL;
+terminal TOK_CALL;
+terminal TOK_CALLS;
+terminal TOK_ENTRY;
+terminal TOK_EXIT;
+terminal TOK_EXPR;
+terminal TOK_REGEXP;
+terminal TOK_BASICBLOCKENTRY;
+terminal TOK_CONDITIONEDGE;
+terminal TOK_DECISIONEDGE;
+terminal TOK_CONDITIONGRAPH;
+/*terminal TOK_DEF;*/
+/*terminal TOK_USE;*/
+/*terminal TOK_STMTTYPE;*/
+/*terminal TOK_STT_IF;*/
+/*terminal TOK_STT_FOR;*/
+/*terminal TOK_STT_WHILE;*/
+/*terminal TOK_STT_SWITCH;*/
+/*terminal TOK_STT_CONDOP;*/
+/*terminal TOK_STT_ASSERT;*/
+
+/* operations on target graphs */
+terminal TOK_COMPLEMENT;
+terminal TOK_UNION;
+terminal TOK_INTERSECT;
+terminal TOK_SETMINUS;
+terminal TOK_ENCLOSING_SCOPES;
+terminal TOK_COMPOSE;
+
+/* abstraction/predicates */
+terminal TOK_L_BRACE;
+terminal TOK_R_BRACE;
+terminal TOK_GREATER_OR_EQ;
+terminal TOK_GREATER;
+terminal TOK_EQ;
+terminal TOK_LESS_OR_EQ;
+terminal TOK_LESS;
+terminal TOK_NEQ;
+
+/* coverage specification */
+terminal TOK_STATECOV;
+terminal TOK_EDGECOV;
+terminal TOK_PATHCOV;
+terminal TOK_L_SEQ;
+terminal TOK_R_SEQ;
+
+/* path monitors */
+terminal TOK_NEXT;
+terminal TOK_CONCAT;
+terminal TOK_ALTERNATIVE;
+terminal TOK_KLEENE;
+
+/* query */
+terminal TOK_IN;
+terminal TOK_COVER;
+terminal TOK_PASSING;
+
+/* C identifier */
+terminal String TOK_C_IDENT;
+terminal String TOK_QUOTED_STRING;
+
+/* a natural number */
+terminal Integer TOK_NAT_NUMBER;
+
+
+non terminal 	Query;
+non terminal 	Scope;
+non terminal 	Cover;
+non terminal	Passing;
+non terminal 	Test_Goal_Sequence;
+non terminal	Path_Monitor;
+non terminal	Path_Monitor_Term;
+non terminal	Path_Monitor_Factor;
+non terminal	Path_Monitor_Symbol;
+non terminal	Test_Goal_Set;
+non terminal	Preconditions;
+non terminal	Predicates;
+non terminal	Predicate;
+non terminal	c_LHS;
+non terminal	Comparison;
+non terminal	Filter;
+non terminal	Filter_Function;
+
+start with Query;
+
+Query				::= 
+						Scope Cover Passing
+						{:
+						:}
+					;
+				
+Scope				::= 
+					| 	TOK_IN Filter
+						{:
+						:}
+					;
+
+Cover				::= 
+						TOK_COVER Test_Goal_Sequence
+						{:
+						:}
+					;
+				
+Passing				::= 
+					| 	TOK_PASSING Path_Monitor
+						{:
+						:}
+					;
+				
+Test_Goal_Sequence 	::=	
+						Test_Goal_Set
+						{:
+						:} 
+					| 	Test_Goal_Sequence TOK_L_SEQ Path_Monitor TOK_R_SEQ Test_Goal_Set
+						{:
+						:}
+					|	Test_Goal_Sequence TOK_NEXT Test_Goal_Set
+						{:
+						:}
+					;
+					
+Path_Monitor		::= 
+						Path_Monitor_Term 
+					  	{:
+					  	:}
+					  | Path_Monitor TOK_ALTERNATIVE Path_Monitor_Term
+						{:
+						:}
+					;
+					
+Path_Monitor_Term	::= 
+						Path_Monitor_Factor
+						{:
+						:} 
+					| 	Path_Monitor_Term TOK_CONCAT Path_Monitor_Factor
+						{:
+						:}
+					|	Path_Monitor_Term TOK_NEXT Path_Monitor_Factor
+						{:
+						:}
+					;
+					
+Path_Monitor_Factor	::= 
+						Preconditions Path_Monitor_Symbol 
+						{:
+						:}
+					| 	Preconditions TOK_L_PARENTHESIS Path_Monitor TOK_R_PARENTHESIS
+						{:
+						:}
+					| 	Path_Monitor_Factor Predicate
+						{:
+						:}
+					| 	Path_Monitor_Factor TOK_KLEENE
+						{:
+						:}
+					| 	Path_Monitor_Factor TOK_LESS_OR_EQ TOK_NAT_NUMBER
+						{:
+						:}
+					| 	Path_Monitor_Factor TOK_GREATER_OR_EQ TOK_NAT_NUMBER
+						{:
+						:}
+					;
+					
+Path_Monitor_Symbol	::= 
+					  	Filter
+						{:
+						:}
+					;
+					
+Test_Goal_Set		::= 
+						Preconditions TOK_L_PARENTHESIS Test_Goal_Set TOK_R_PARENTHESIS
+						{:
+						:}
+					| 	Test_Goal_Set Predicate
+						{:
+						:}
+					| 	Preconditions TOK_UNION TOK_L_PARENTHESIS Test_Goal_Set TOK_COMMA Test_Goal_Set TOK_R_PARENTHESIS
+						{:
+						:}
+					| 	Preconditions TOK_INTERSECT TOK_L_PARENTHESIS Test_Goal_Set TOK_COMMA Test_Goal_Set TOK_R_PARENTHESIS
+						{:
+						:}
+					| 	Preconditions TOK_SETMINUS TOK_L_PARENTHESIS Test_Goal_Set TOK_COMMA Test_Goal_Set TOK_R_PARENTHESIS
+						{:
+						:}
+					| 	Preconditions TOK_STATECOV TOK_L_PARENTHESIS Filter TOK_R_PARENTHESIS
+						{:
+						:}
+					| 	Preconditions TOK_STATECOV TOK_L_PARENTHESIS Filter TOK_COMMA Predicates TOK_R_PARENTHESIS
+						{:
+						:}
+					| 	Preconditions TOK_EDGECOV TOK_L_PARENTHESIS Filter TOK_R_PARENTHESIS
+						{:
+						:}
+					| 	Preconditions TOK_EDGECOV TOK_L_PARENTHESIS Filter TOK_COMMA Predicates TOK_R_PARENTHESIS
+						{:
+						:}
+					| 	Preconditions TOK_PATHCOV TOK_L_PARENTHESIS Filter TOK_COMMA TOK_NAT_NUMBER TOK_R_PARENTHESIS
+						{:
+						:}
+					| 	Preconditions TOK_PATHCOV TOK_L_PARENTHESIS Filter TOK_COMMA TOK_NAT_NUMBER TOK_COMMA Predicates TOK_R_PARENTHESIS
+						{:
+						:}
+					;
+					
+Preconditions		::=
+					|	Preconditions Predicate
+						{:
+						:}
+					;
+					
+Predicates			::= 
+					| 	Predicate
+						{:
+						:} 
+					| 	Predicates TOK_COMMA Predicate
+						{:
+						:}
+					;
+					
+Predicate			::=
+						TOK_L_BRACE c_LHS Comparison c_LHS TOK_R_BRACE
+						{:
+						:}
+					|	TOK_L_BRACE TOK_QUOTED_STRING TOK_R_BRACE
+						{:
+						:}
+					;
+					
+c_LHS				::= 
+						TOK_C_IDENT
+						{:
+						:}
+					| 	TOK_NAT_NUMBER
+						{:
+						:}
+					;
+					
+Comparison			::= 
+						TOK_GREATER_OR_EQ
+						{:
+						:} 
+					| 	TOK_GREATER
+						{:
+						:} 
+					| 	TOK_EQ
+						{:
+						:} 
+					| 	TOK_LESS_OR_EQ
+						{:
+						:} 
+					| 	TOK_LESS
+						{:
+						:}
+					| 	TOK_NEQ
+						{:
+						:}
+					;
+					
+Filter				::=
+						Filter_Function
+						{:
+						:}
+					|	TOK_COMPLEMENT TOK_L_PARENTHESIS Filter TOK_R_PARENTHESIS
+						{:
+						:}
+					| 	TOK_UNION TOK_L_PARENTHESIS Filter TOK_COMMA Filter TOK_R_PARENTHESIS
+						{:
+						:}
+					|	TOK_INTERSECT TOK_L_PARENTHESIS Filter TOK_COMMA Filter TOK_R_PARENTHESIS
+						{:
+						:}
+					| 	TOK_SETMINUS TOK_L_PARENTHESIS Filter TOK_COMMA Filter TOK_R_PARENTHESIS
+						{:
+						:}
+					| 	TOK_ENCLOSING_SCOPES TOK_L_PARENTHESIS Filter TOK_R_PARENTHESIS
+						{:
+						:}
+					| 	TOK_COMPOSE TOK_L_PARENTHESIS Filter TOK_COMMA Filter TOK_R_PARENTHESIS
+						{:
+						:}
+					;
+					
+Filter_Function		::=
+						TOK_IDENTITY
+						{:
+						:}
+					|	TOK_FILE TOK_L_PARENTHESIS TOK_QUOTED_STRING TOK_R_PARENTHESIS
+						{:
+						:}
+					|	TOK_LINE TOK_L_PARENTHESIS TOK_NAT_NUMBER TOK_R_PARENTHESIS
+						{:
+						:}
+					|	TOK_LINE_ABBREV
+						{:
+						:}
+					|	TOK_COLUMN TOK_L_PARENTHESIS TOK_NAT_NUMBER TOK_R_PARENTHESIS
+						{:
+						:}
+					| 	TOK_FUNC TOK_L_PARENTHESIS TOK_C_IDENT TOK_R_PARENTHESIS
+						{:
+						:}
+					|	TOK_LABEL TOK_L_PARENTHESIS TOK_C_IDENT TOK_R_PARENTHESIS
+						{:
+						:}
+					| 	TOK_CALL TOK_L_PARENTHESIS TOK_C_IDENT TOK_R_PARENTHESIS
+						{:
+						:}
+					|	TOK_CALLS
+						{:
+						:}
+					| 	TOK_ENTRY TOK_L_PARENTHESIS TOK_C_IDENT TOK_R_PARENTHESIS
+						{:
+						:}
+					|	TOK_EXIT TOK_L_PARENTHESIS TOK_C_IDENT TOK_R_PARENTHESIS
+						{:
+						:}
+					|	TOK_EXPR TOK_L_PARENTHESIS TOK_QUOTED_STRING TOK_R_PARENTHESIS
+						{:
+						:}
+					|	TOK_REGEXP TOK_L_PARENTHESIS TOK_QUOTED_STRING TOK_R_PARENTHESIS
+						{:
+						:}
+					|	TOK_BASICBLOCKENTRY
+						{:
+						:}
+					| 	TOK_CONDITIONEDGE
+						{:
+						:}
+					|	TOK_DECISIONEDGE
+						{:
+						:}
+					|	TOK_CONDITIONGRAPH
+						{:
+						:}
+					;
