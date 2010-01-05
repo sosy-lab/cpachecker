@@ -23,6 +23,7 @@
  */
 package compositeCPA;
 
+import java.util.Iterator;
 import java.util.List;
 
 import cfa.objectmodel.CFANode;
@@ -126,5 +127,10 @@ public class CompositeElement implements AbstractElementWithLocation, AbstractWr
       }
     }
     return null;
+  }
+
+  @Override
+  public Iterable<AbstractElement> getWrappedElements() {
+    return elements;
   }
 }

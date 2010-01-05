@@ -1,0 +1,129 @@
+/*
+ *  CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker. 
+ *
+ *  Copyright (C) 2007-2008  Dirk Beyer and Erkan Keremoglu.
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://www.cs.sfu.ca/~dbeyer/CPAchecker/
+ */
+package cpa.common.algorithm;
+
+import cfa.objectmodel.CFANode;
+import symbpredabstraction.interfaces.SymbolicFormula;
+import common.Pair;
+
+import cpa.common.Path;
+import cpa.common.ReachedElements;
+import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.AbstractElementWithLocation;
+import cpa.common.interfaces.AbstractWrapperElement;
+import cpa.common.interfaces.ConfigurableProgramAnalysis;
+import cpa.common.interfaces.Precision;
+import cpa.invariant.dump.DumpInvariantElement;
+import cpa.invariant.util.InvariantWithLocation;
+import cpa.invariant.util.MathsatInvariantSymbolicFormulaManager;
+import exceptions.CPAException;
+import exceptions.RefinementFailedException;
+
+/**
+ * Outer algorithm to collect all invariants generated during
+ * the analysis, and report them to the user
+ * 
+ * @author g.theoduloz
+ */
+public class InvariantCollectionAlgorithm implements Algorithm {
+
+  private final Algorithm innerAlgorithm;
+  private final MathsatInvariantSymbolicFormulaManager manager;
+  
+  public InvariantCollectionAlgorithm(Algorithm algo)
+  {
+    innerAlgorithm = algo;
+    manager = MathsatInvariantSymbolicFormulaManager.getInstance();
+  }
+  
+  @Override
+  public ConfigurableProgramAnalysis getCPA() {
+    return innerAlgorithm.getCPA();
+  }
+  
+  @Override
+  public void run(ReachedElements reached, boolean stopAfterError)
+      throws CPAException {
+    
+    InvariantWithLocation invariantMap = new InvariantWithLocation();
+    
+    try {
+      // run the inner algorithm to fill the reached set
+      innerAlgorithm.run(reached, stopAfterError);
+      
+    } catch (RefinementFailedException failedRefinement) {
+      addInvariantsForFailedRefinement(invariantMap, failedRefinement);
+    }
+      
+    // collect and dump all assumptions stored in abstract states
+    for (Pair<AbstractElementWithLocation, Precision> pair : reached.getReached())
+    {
+      AbstractElementWithLocation element = pair.getFirst();
+      
+      CFANode loc = element.getLocationNode();
+      SymbolicFormula invariant = extractInvariant(element);
+      
+      invariantMap.addInvariant(loc, invariant);
+    }
+    
+    
+  }
+
+  /**
+   * Returns the invariant(s) stored in the given abstract
+   * element
+   */
+  private SymbolicFormula extractInvariant(AbstractElement element)
+  {
+    SymbolicFormula result = manager.makeTrue();
+    
+    // If it is a wrapper, add its sub-element's assertions
+    if (element instanceof AbstractWrapperElement)
+    {
+      for (AbstractElement subel : ((AbstractWrapperElement) element).getWrappedElements())
+        result = manager.makeAnd(result, extractInvariant(subel));
+    }
+    
+    if (element instanceof DumpInvariantElement)
+    {
+      result = manager.makeAnd(result, ((DumpInvariantElement) element).getInvariant());
+    }
+     
+    return result;
+  }
+
+  /**
+   * Adds to the given map the invariant required to
+   * avoid the given refinement failure 
+   */
+  private void addInvariantsForFailedRefinement(
+      InvariantWithLocation invariant,
+      RefinementFailedException failedRefinement) {
+    RefinementFailedException.Reason reason = failedRefinement.getReason();
+    Path path = failedRefinement.getErrorPath();
+    int pos = failedRefinement.getFailurePoint();
+    
+    // TODO: complete it to extract the desired interpolant
+  } 
+}

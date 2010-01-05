@@ -1,6 +1,7 @@
 package cpa.art;
 
 import java.util.ArrayDeque;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -107,6 +108,11 @@ public class ARTElement implements AbstractElementWithLocation, AbstractWrapperE
     else{
       return ((AbstractWrapperElement)element).retrieveElementOfType(pElementClass);
     }
+  }
+  
+  @Override
+  public Iterable<AbstractElement> getWrappedElements() {
+    return Collections.singletonList((AbstractElement) element);
   }
 
   // TODO check
