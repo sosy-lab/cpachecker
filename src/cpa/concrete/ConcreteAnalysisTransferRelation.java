@@ -75,17 +75,24 @@ public class ConcreteAnalysisTransferRelation implements TransferRelation {
   public Collection<? extends AbstractElement> getAbstractSuccessors(
       AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException {
-    return Collections.singleton(getAbstractSuccessor((ConcreteAnalysisElement)pElement, pCfaEdge, pPrecision));
+    ConcreteAnalysisElement lSuccessor = getAbstractSuccessor((ConcreteAnalysisElement)pElement, pCfaEdge, pPrecision);
+    
+    if (lSuccessor.equals(this.mDomain.getBottomElement())) {
+      return Collections.emptySet();
+    }
+    else {
+      return Collections.singleton(lSuccessor);      
+    }
   }
   
   public ConcreteAnalysisElement getAbstractSuccessor(
       ConcreteAnalysisElement pCurrentElement, CFAEdge pCfaEdge,
       Precision pPrecision) throws CPATransferException {
     
-    //ConcreteAnalysisElement lCurrentElement = (ConcreteAnalysisElement)pElement;
+    assert(pCurrentElement != null);
+    assert(pCfaEdge != null);
+    assert(pPrecision != null);
     
-    ConcreteAnalysisElement lCurrentElement = pCurrentElement;
-
     // check the type of the edge
     switch (pCfaEdge.getEdgeType ())
     {
@@ -109,18 +116,18 @@ public class ConcreteAnalysisTransferRelation implements TransferRelation {
           // return (a);
           // modeled by an assignment to unique global variable
           
-          return handleAssignmentToVariable(lCurrentElement, "___cpa_temp_result_var_", lExpression, lStatementEdge);
+          return handleAssignmentToVariable(pCurrentElement, "___cpa_temp_result_var_", lExpression, lStatementEdge);
         }
         else {
           // return;
           
-          return lCurrentElement.clone();
+          return pCurrentElement.clone();
         }
       }
       else{
         // this is a regular statement
       
-        return handleStatement(lCurrentElement, lExpression, pCfaEdge);
+        return handleStatement(pCurrentElement, lExpression, pCfaEdge);
       }
     }
 
@@ -128,7 +135,7 @@ public class ConcreteAnalysisTransferRelation implements TransferRelation {
     {
       // edge is a declaration edge, e.g. int a;
     
-      return handleDeclaration(lCurrentElement, (DeclarationEdge)pCfaEdge);
+      return handleDeclaration(pCurrentElement, (DeclarationEdge)pCfaEdge);
     }
 
     case AssumeEdge:
@@ -138,12 +145,12 @@ public class ConcreteAnalysisTransferRelation implements TransferRelation {
       AssumeEdge assumeEdge = (AssumeEdge) pCfaEdge;
       IASTExpression expression = assumeEdge.getExpression();
       
-      return handleAssumption(lCurrentElement, expression, pCfaEdge, assumeEdge.getTruthAssumption());
+      return handleAssumption(pCurrentElement, expression, pCfaEdge, assumeEdge.getTruthAssumption());
     }
 
     case BlankEdge:
     {
-      return lCurrentElement.clone();
+      return pCurrentElement.clone();
     }
 
     case FunctionCallEdge:
@@ -162,7 +169,7 @@ public class ConcreteAnalysisTransferRelation implements TransferRelation {
         return mDomain.getBottomElement();
       }
       else{
-        return handleFunctionCall(lCurrentElement, lFunctionCallEdge);
+        return handleFunctionCall(pCurrentElement, lFunctionCallEdge);
       }
     }
 
@@ -171,7 +178,7 @@ public class ConcreteAnalysisTransferRelation implements TransferRelation {
       // this is a return edge from function, this is different from return statement
       // of the function. See case for statement edge for details
     
-      return handleFunctionReturn(lCurrentElement, (ReturnEdge)pCfaEdge);
+      return handleFunctionReturn(pCurrentElement, (ReturnEdge)pCfaEdge);
     }
 
     case CallToReturnEdge:
