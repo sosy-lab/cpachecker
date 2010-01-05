@@ -25,12 +25,6 @@ public class CBMCStackElement {
     codeList = new ArrayList<Object>();
     boolean truthAssumption = pEdge.getTruthAssumption();
     condition = truthAssumption;
-    if(truthAssumption){
-      codeList.add("if(" + pEdge.getExpression().getRawSignature() + ") {");
-    }
-    else{
-      codeList.add("if(!(" + pEdge.getExpression().getRawSignature() + ")) {");
-    }
   }
 
   public int getElementId() {
@@ -61,11 +55,11 @@ public class CBMCStackElement {
       // or a conditional statement
       if(obj instanceof String){
         ret.append((String)obj);
-        ret.append("/n");
+        ret.append("\n");
       }
       else if(obj instanceof CBMCStackElement){
         ret.append(((CBMCStackElement)obj).getCode());
-        ret.append("/n");
+        ret.append("\n");
       }
       else{
         assert(false);
@@ -74,6 +68,11 @@ public class CBMCStackElement {
 
     return ret;
 
+  }
+  
+  @Override
+  public String toString() {
+    return "Element id: " + elementId + " Condition: " + condition;
   }
 
 }

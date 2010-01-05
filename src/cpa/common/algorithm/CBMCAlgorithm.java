@@ -26,6 +26,8 @@ package cpa.common.algorithm;
 import java.util.ArrayList;
 import java.util.List;
 
+import cmdline.CPAMain;
+
 import cfa.CFAMap;
 import cpa.art.ARTCPA;
 import cpa.art.ARTElement;
@@ -57,6 +59,8 @@ public class CBMCAlgorithm implements Algorithm {
     if (reached.getLastElement().isError()) {
       System.out.println("________ ERROR PATH ____________");
 
+      CPAMain.dumpPathToDotFile(reached, "/home/erkan/art.dot");
+      
       List<ARTElement> elementsOnErrorPath = getElementsToErrorPath((ARTElement)reached.getLastElement());
       
       int cbmcRes = CProver.checkSat(AbstractPathToCTranslator.translatePaths(cfa, elementsOnErrorPath));

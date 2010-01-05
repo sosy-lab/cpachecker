@@ -435,12 +435,16 @@ public class CPAMain {
       assert(d instanceof IASTSimpleDeclaration);
       IASTSimpleDeclaration sd = (IASTSimpleDeclaration)d;
       // TODO refactor this
-      if (sd.getDeclarators().length == 1 &&
-          sd.getDeclarators()[0] instanceof IASTFunctionDeclarator) {
-        if (!cpaConfig.getBooleanValue("analysis.useFunctionDeclarations")) {
-          continue;
-        }
-      }
+//      if (sd.getDeclarators().length == 1 &&
+//          sd.getDeclarators()[0] instanceof IASTFunctionDeclarator) {
+//        if (cpaConfig.getBooleanValue("analysis.useFunctionDeclarations")) {
+//          // do nothing
+//        }
+//        else {
+//          System.out.println(d.getRawSignature());
+//          continue;
+//        }
+//      }
       GlobalDeclarationEdge e = new GlobalDeclarationEdge(
           d.getRawSignature(),
           ((IASTSimpleDeclaration)d).getDeclarators(),
@@ -557,7 +561,7 @@ public class CPAMain {
     }
   }
   
-  private static void dumpPathToDotFile(ReachedElements pReached, String outfile) {
+  public static void dumpPathToDotFile(ReachedElements pReached, String outfile) {
     ARTElement firstElement = (ARTElement)pReached.getFirstElement();
 
     Deque<ARTElement> worklist = new LinkedList<ARTElement>();

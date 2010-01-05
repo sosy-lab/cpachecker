@@ -11,19 +11,19 @@ import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.AbstractWrapperElement;
 
-public class ARTElement implements AbstractElementWithLocation, AbstractWrapperElement{
-  
+public class ARTElement implements AbstractElementWithLocation, AbstractWrapperElement, Comparable<ARTElement>{
+
   public static long artElementEqualsTime = 0; 
-  
+
   private final ARTCPA mCpa;
   private final AbstractElementWithLocation element;
   private final Set<ARTElement> children;
   private final Set<ARTElement> parents; // more than one parent if joining elements
   private ARTElement mCoveredBy = null;
   private boolean isBottom = false;
-  
+
   private final int elementId;
-  
+
   private static int nextArtElementId = 0;
 
   protected ARTElement(ARTCPA pCpa, AbstractElementWithLocation pAbstractElement, ARTElement pParentElement) {
@@ -60,38 +60,38 @@ public class ARTElement implements AbstractElementWithLocation, AbstractWrapperE
     mCoveredBy = pCoveredBy;
     mCpa.setCovered(this, true);
   }
-  
+
   protected void setUncovered() {
     mCoveredBy = null;
     mCpa.setCovered(this, false);
   }
-  
+
   public boolean isCovered() {
     return mCpa.isCovered(this);
   }
-  
+
   public ARTElement getCoveredBy() {
     return mCoveredBy;
   }
-  
+
   public boolean isBottom() {
     return isBottom;
   }
-  
+
   protected void setBottom(boolean pIsBottom) {
     isBottom = pIsBottom;
   }
-  
+
   public ARTCPA getCpa() {
     return mCpa;
   }
-  
+
   @Override
   public String toString() {
     return "\n" 
-          + "ART Element Id: " + elementId + ", "
-          + "children: " + children.size() + ", "
-          + element;
+    + "ART Element Id: " + elementId + ", "
+    + "children: " + children.size() + ", "
+    + element;
   }
 
   @Override
@@ -158,7 +158,7 @@ public class ARTElement implements AbstractElementWithLocation, AbstractWrapperE
       child.parents.remove(this);
     }
     children.clear();
-    
+
     // clear parents
     for (ARTElement parent : parents) {
       assert (parent.children.contains(this));
@@ -168,7 +168,7 @@ public class ARTElement implements AbstractElementWithLocation, AbstractWrapperE
 
     setUncovered();
   }
-    
+
   public int getElementId() {
     return elementId;
   }
@@ -189,4 +189,19 @@ public class ARTElement implements AbstractElementWithLocation, AbstractWrapperE
     Iterator<ARTElement> it = parents.iterator();
     return it.next();
   }
+
+  @Override
+  public int compareTo(ARTElement pO) {
+
+    int otherElementid = pO.getElementId();
+
+    if(this.getElementId() > otherElementid){
+      return 1;
+    }
+    else if(getElementId() < otherElementid){
+      return -1;
+    }
+    return 0;
+  }
+  
 }

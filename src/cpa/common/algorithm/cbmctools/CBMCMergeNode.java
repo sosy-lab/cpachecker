@@ -50,5 +50,10 @@ public class CBMCMergeNode {
     }
     return numberOfProcessed;
   }
+  
+  @Override
+  public String toString() {
+    return "id: " + elementId + " >> " + branchesMap;
+  }
 
 }

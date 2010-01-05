@@ -45,7 +45,7 @@ public class CProver {
   public static int checkSat (String pTranslatedProgram) {
 
     File lFile = null;
-    lFile = new File("/localhome/erkan/path.c");
+    lFile = new File("/home/erkan/path.c");
 //    try {
 //      lFile = File.createTempFile("path", ".c");
 //    } catch (IOException e1) {
@@ -74,7 +74,7 @@ public class CProver {
       // TODO function name
       String lFunctionName = "main";
       // TODO we check for assertion errors
-      Process lCBMCProcess = Runtime.getRuntime().exec("cbmc --function " + 
+      Process lCBMCProcess = Runtime.getRuntime().exec("/home/erkan/Desktop/cbmc-3-3-2-linux/cbmc --function " + 
           lFunctionName + "_0 --no-bounds-check --no-div-by-zero-check --no-pointer-check " + lFile.getAbsolutePath());            
 
       // TODO Remove output --- begin

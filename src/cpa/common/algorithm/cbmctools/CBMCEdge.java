@@ -73,4 +73,9 @@ public class CBMCEdge implements Comparable<CBMCEdge>{
     return 0;
   }
   
+  @Override
+  public String toString() {
+    return "CBMC ELEMENT > " + parentElement.getElementId() + " --> " + childElement.getElementId();
+  }
+  
 }
