@@ -10,6 +10,11 @@ import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
 import exceptions.CPATransferException;
 
+/** The TransferRelation of this CPA determines the AbstractSuccessor of a {@link ObserverState} 
+ * by evaluating the {@link ObserverTransition.match(CFAEdge)} method for 
+ * all outgoing {@link ObserverTransition}s of this State.
+ * @author rhein
+ */
 class ObserverTransferRelation implements TransferRelation {
   ObserverAutomaton automaton;
 
@@ -37,9 +42,9 @@ class ObserverTransferRelation implements TransferRelation {
         break;
       }
     }
-    if (followState!= sourceState) {
+    /* if (followState!= sourceState) {
       System.out.println("Transition from " + sourceState.toString() + " to " + followState.toString());
-    }
+    } */
     return followState;
   }
 

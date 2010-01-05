@@ -1,7 +1,7 @@
 package cpa.observeranalysis;
 
 import java_cup.runtime.*;
-
+@SuppressWarnings(value = { "all" })
 %%
 
 %cup
@@ -19,6 +19,12 @@ import java_cup.runtime.*;
 	this(r);
 	this.sf = sf;
   }
+  public int getLine() {
+     return this.yyline;
+   }
+   public int getColumn() {
+     return this.yycolumn;
+   }
   
   private Symbol symbol(String name, int sym) {
     return  sf.newSymbol(name, sym);
@@ -50,26 +56,29 @@ Identifier = [:jletter:] [:jletterdigit:]*
 DecIntegerLiteral = 0 | [1-9][0-9]*
 
 %state STRING
-%state Pattern
+%state CURLYEXPR
+%state SQUAREEXPR
+
 
 %%
 
 /* keywords */
+<YYINITIAL> ";"                 { return symbol(";", ObserverSym.SEMICOLON); }
+<YYINITIAL> ":"                 { return symbol(":", ObserverSym.COLON); }
 <YYINITIAL> "->"                { return symbol("->", ObserverSym.ARROW); }
-<YYINITIAL> "{"                 { return symbol("{", ObserverSym.OPENCURLY); }
-<YYINITIAL> "}"                 { return symbol("}", ObserverSym.CLOSECURLY); }
-<YYINITIAL> "NAME"              { return symbol("NAME", ObserverSym.NAME); }
+<YYINITIAL> "AUTOMATON"         { return symbol("AUTOMATON", ObserverSym.AUTOMATON); }
 <YYINITIAL> "LOCAL"             { return symbol("LOCAL", ObserverSym.LOCAL); }
 <YYINITIAL> "INITIAL"           { return symbol("INITIAL", ObserverSym.INITIAL); }
 <YYINITIAL> "STATE"             { return symbol("STATE", ObserverSym.STATE); }
-<YYINITIAL> "ASS"               { return symbol("ASS", ObserverSym.ASS); }
+<YYINITIAL> "ASSERT"            { return symbol("ASSERT", ObserverSym.ASS); }
 <YYINITIAL> "MATCH"             { return symbol("MATCH", ObserverSym.MATCH); }
 <YYINITIAL> "DO"                { return symbol("DO", ObserverSym.DO); }
 <YYINITIAL> "GOTO"              { return symbol("GOTO", ObserverSym.GOTO); }
 <YYINITIAL> "true"              { return symbol("TRUE", ObserverSym.TRUE); }
 <YYINITIAL> "false"             { return symbol("FALSE", ObserverSym.FALSE); }
 <YYINITIAL> "TRUE"              { return symbol("TRUE", ObserverSym.TRUE); }
-<YYINITIAL> "FALSE"              { return symbol("FALSE", ObserverSym.FALSE); }
+<YYINITIAL> "FALSE"             { return symbol("FALSE", ObserverSym.FALSE); }
+<YYINITIAL> "PRINT"             { return symbol("PRINT", ObserverSym.PRINT); }
 
 <YYINITIAL> {
   /* identifiers */ 
@@ -78,11 +87,15 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
   /* literals */
   {DecIntegerLiteral}            { return symbol("INT", ObserverSym.INTEGER_LITERAL, yytext()); }
   \"                             { string.setLength(0); yybegin(STRING); }
+  \{                             { string.setLength(0); yybegin(CURLYEXPR); }
+  \[                             { string.setLength(0); yybegin(SQUAREEXPR); }
 
   /* operators */
   "=="                           { return symbol("==", ObserverSym.EQEQ); }
+  "!="                           { return symbol("!=", ObserverSym.NEQ); }
   "="                            { return symbol("=", ObserverSym.EQ); }
   "+"                            { return symbol("+", ObserverSym.PLUS); }
+  "-"                            { return symbol("-", ObserverSym.MINUS); }
 
   /* comments */
   {Comment}                      { /* ignore */ }
@@ -96,6 +109,30 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
                                    return symbol("STRING", ObserverSym.STRING_LITERAL, 
                                    string.toString()); }
   [^\n\r\"\\]+                   { string.append( yytext() ); }
+  \\t                            { string.append('\t'); }
+  \\n                            { string.append('\n'); }
+
+  \\r                            { string.append('\r'); }
+  \\\"                           { string.append('\"'); }
+  \\                             { string.append('\\'); }
+}
+<CURLYEXPR> {
+  \}                             { yybegin(YYINITIAL); 
+                                   return symbol("CURLYEXPR", ObserverSym.CURLYEXPR, 
+                                   string.toString()); }
+  [^\n\r\}\\]+                   { string.append( yytext() ); }
+  \\t                            { string.append('\t'); }
+  \\n                            { string.append('\n'); }
+
+  \\r                            { string.append('\r'); }
+  \\\"                           { string.append('\"'); }
+  \\                             { string.append('\\'); }
+}
+<SQUAREEXPR> {
+  \]                             { yybegin(YYINITIAL); 
+                                   return symbol("CURLYEXPR", ObserverSym.SQUAREEXPR, 
+                                   string.toString()); }
+  [^\n\r\]\\]+                   { string.append( yytext() ); }
   \\t                            { string.append('\t'); }
   \\n                            { string.append('\n'); }
 

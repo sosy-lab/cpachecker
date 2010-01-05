@@ -21,6 +21,8 @@ int main() {
 
 	init();
 
+	x = 5;
+
 	// unlocking after init() is not allowed by the automaton
 	unlock();
 

@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.LinkedList;
 import java.util.HashMap;
 import java.util.Map;
+import cpa.observeranalysis.ObserverTransition.PATTERN_MATCHING_METHODS;
 
 /* Preliminaries to use the scanner.  */
 scan with {: return scanner.next_token(); :};
@@ -22,12 +23,13 @@ parser code {:
       super(scanner, sf);
       this.scanner = scanner;
   }
-
   
+  @Override
   public void report_error(String message, Object info) {
     syntaxErrors = true;
     
     System.out.print(message);
+    System.out.println("ScannerLine: " + scanner.getLine()+1 + " ScannerColumn: " + scanner.getColumn());
     
     if ( !(info instanceof Symbol) ) return;
     Symbol symbol = (Symbol) info;
@@ -40,10 +42,10 @@ parser code {:
 
 
 
-terminal ARROW, OPENCURLY, CLOSECURLY, NAME, LOCAL, INITIAL, STATE, ASS, MATCH, DO, GOTO, IDENTIFIER, INTEGER_LITERAL, EQ, EQEQ, PLUS , TRUE, FALSE, STRING_LITERAL ;
+terminal ARROW, SEMICOLON, COLON, AUTOMATON, LOCAL, INITIAL, STATE, ASS, MATCH, DO, PRINT, GOTO, IDENTIFIER, INTEGER_LITERAL, NEQ, EQ, EQEQ, PLUS, MINUS, TRUE, FALSE, STRING_LITERAL, CURLYEXPR, SQUAREEXPR ;
 
 non terminal ObserverAutomaton initial ;
-non terminal String Naming ;
+non terminal String Naming, InitDef ;
 non terminal ObserverAutomaton Body ;
 non terminal Map<String, ObserverVariable> LocalDefs ;
 non terminal List<ObserverState> StateDefs ;
@@ -60,55 +62,67 @@ non terminal ObserverActionExpr Action ;
 non terminal ObserverIntExpr Int ;
 non terminal ObserverBoolExpr Bool ; 
 
-precedence left PLUS;
+precedence left PLUS, MINUS;
 
 initial ::= Naming:n Body:b {: b.setName(n); RESULT = b; :}
               | Body:b {: RESULT = b; :}
               ;
 
-Naming    ::= NAME IDENTIFIER:id {: RESULT = id.toString(); :};
+Naming    ::= AUTOMATON IDENTIFIER:id {: RESULT = id.toString(); :};
 
-Body      ::= LocalDefs:vars StateDefs:states1 INITIAL StateDef:init StateDefs:states2
-              {: states1.addAll(states2); states1.add(init); RESULT = new ObserverAutomaton(vars, states1, init); :}
+Body      ::= LocalDefs:vars InitDef:init StateDefs:states
+              {: RESULT = new ObserverAutomaton(vars, states, init); :}
             ;
+            
+InitDef    ::= INITIAL STATE IDENTIFIER:id SEMICOLON {: RESULT = id.toString(); :};
 
 LocalDefs ::= LocalDef:d LocalDefs:lst {: lst.put(d.getName(), d); RESULT = lst; :}
               | /* empty */ {: RESULT = parser.variablesMap; /* RESULT = new HashMap<String, ObserverVariable>(); */ :}
               ;
               
-LocalDef  ::= LOCAL IDENTIFIER:type IDENTIFIER:name  {: RESULT = new ObserverVariable(type.toString(), name.toString()); :};
-
+LocalDef  ::= LOCAL IDENTIFIER:type IDENTIFIER:name  SEMICOLON {: RESULT = new ObserverVariable(type.toString(), name.toString()); :}
+            | LOCAL IDENTIFIER:type IDENTIFIER:name  EQ Int:i SEMICOLON {: RESULT = new ObserverVariable(type.toString(), name.toString()); RESULT.setValue(i.eval()); :}
+            ;
+            
 StateDefs ::= StateDef:s StateDefs:lst  {: lst.add(s); RESULT = lst; :} // elements will be in reversed order (irrelevant ?)
             | /* empty */ {: RESULT = new LinkedList<ObserverState>(); :}
               ;
 
-StateDef  ::= STATE IDENTIFIER:id OPENCURLY Matches:ms CLOSECURLY  {: RESULT = new ObserverState(id.toString(), ms); :} 
+StateDef  ::= STATE IDENTIFIER:id COLON  Matches:ms   {: RESULT = new ObserverState(id.toString(), ms); :} 
             ;
             
-Matches   ::= Match:m Matches:lst {: lst.add(m); RESULT = lst; :} // elements will be in reversed order (irrelevant ?)
+Matches   ::= Match:m Matches:lst {: lst.add(0, m); RESULT = lst; :}
             | /* empty */ {: RESULT = new LinkedList<ObserverTransition>(); :}
             ;
             
-Match     ::= MATCH OPENCURLY STRING_LITERAL:lit CLOSECURLY ARROW Assertions:ass Actions:acts GOTO IDENTIFIER:follow 
-              {: RESULT = new ObserverTransition(lit.toString(), ass, acts, follow.toString()); :} 
+Match     ::= MATCH  STRING_LITERAL:lit  ARROW Assertions:ass Actions:acts GOTO IDENTIFIER:follow SEMICOLON 
+              {: RESULT = new ObserverTransition(lit.toString(), ass, acts, follow.toString(), PATTERN_MATCHING_METHODS.EXACT_MATCH); :} 
+            | MATCH  CURLYEXPR:expr ARROW Assertions:ass Actions:acts GOTO IDENTIFIER:follow SEMICOLON 
+              {: RESULT = new ObserverTransition(expr.toString(), ass, acts, follow.toString(), PATTERN_MATCHING_METHODS.AST_COMPARISON); :} 
+            | MATCH  SQUAREEXPR:expr ARROW Assertions:ass Actions:acts GOTO IDENTIFIER:follow SEMICOLON 
+              {: RESULT = new ObserverTransition(expr.toString(), ass, acts, follow.toString(), PATTERN_MATCHING_METHODS.REGEX_MATCH); :}
             ;
 
-Assertions ::= Assertion:a Assertions:lst {: lst.add(a); RESULT = lst; :} // elements will be in reversed order (irrelevant ?)
+Assertions ::= Assertion:a Assertions:lst {: lst.add(0,a); RESULT = lst; :}
              | /* empty */ {: RESULT = new LinkedList<ObserverBoolExpr>(); :}
              ;
-Assertion  ::= ASS OPENCURLY Bool:b CLOSECURLY  {: RESULT = b; :};
+Assertion  ::= ASS  Bool:b   {: RESULT = b; :};
 
-Actions   ::= Action:a Actions:lst {: lst.add(a); RESULT = lst; :} // elements will be in reversed order (irrelevant ?) 
+Actions   ::= Action:a Actions:lst {: lst.add(0,a); RESULT = lst; :} // insert at the beginning of the list to preserve the order.
             | /* empty */ {: RESULT = new LinkedList<ObserverActionExpr>(); :} 
             ;
-Action    ::= DO OPENCURLY IDENTIFIER:var EQ Int:i CLOSECURLY  {: RESULT = new ObserverActionExpr.Assignment(var.toString(), i, parser.variablesMap); :} ;
+Action    ::= DO  IDENTIFIER:var EQ Int:i   {: RESULT = new ObserverActionExpr.Assignment(var.toString(), i, parser.variablesMap); :} 
+            | PRINT  STRING_LITERAL:lit {: RESULT = new ObserverActionExpr.Print(lit.toString()); :}
+            ;
 
 Int       ::= INTEGER_LITERAL:c  {: RESULT = new ObserverIntExpr.Constant(c.toString()); :}
             | IDENTIFIER:x  {: RESULT = new ObserverIntExpr.VarAccess(x.toString(), parser.variablesMap); :}
             | Int:a PLUS Int:b  {: RESULT = new ObserverIntExpr.Plus(a,b); :}
+            | Int:a MINUS Int:b  {: RESULT = new ObserverIntExpr.Minus(a,b); :}
             ;
             
 Bool      ::= TRUE  {: RESULT = new ObserverBoolExpr.True(); :}
             | FALSE  {: RESULT = new ObserverBoolExpr.False(); :}
             | Int:a EQEQ Int:b  {: RESULT = new ObserverBoolExpr.EqTest(a,b); :}
+            | Int:a NEQ Int:b  {: RESULT = new ObserverBoolExpr.NotEqTest(a,b); :}
             ;

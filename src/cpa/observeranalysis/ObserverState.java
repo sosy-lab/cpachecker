@@ -6,40 +6,56 @@ import java.util.List;
 
 import cpa.common.interfaces.AbstractElement;
 
+/** Represents a State in the observer automaton.
+ * @author rhein
+ */
 class ObserverState implements AbstractElement {
   static final List<ObserverTransition> emptyTransitionList = Collections.emptyList();
+  /** Error State */
   static final ObserverState ERR = new ObserverState("ERR", emptyTransitionList);
   static final ObserverState TOP = new ObserverState("TOP", emptyTransitionList);
   static final ObserverState BOTTOM = new ObserverState("BOTTOM", emptyTransitionList);
   
   // the StateId is used to identify States in GraphViz
   private static int stateIdCounter = 0;
+  // stateIdCounter is incremented every time an instance of ObserverState is created.
   private int stateId = stateIdCounter++;
   
+  /** Name of this State.  */
   private String name;
+  /** Outgoing transitions of this state.  */
   private List<ObserverTransition> transitions;
   
-  public ObserverState(String name, List<ObserverTransition> transitions) {
-    this.name = name;
-    this.transitions = transitions;
+  public ObserverState(String pName, List<ObserverTransition> pTransitions) {
+    this.name = pName;
+    this.transitions = pTransitions;
   }
   
-  void setFollowStates(List<ObserverState> allStates) {
+  /** Lets all outgoing transitions of this state resolve their "sink" states.
+   * @param pAllStates map of all states of this automaton.
+   */
+  void setFollowStates(List<ObserverState> pAllStates) {
     for (ObserverTransition t : transitions) {
-      t.setFollowState(allStates);
+      t.setFollowState(pAllStates);
     }
   }
 
   public String getName() {
     return name;
   }
+  /** @return a integer representation of this state.
+   */
   public int getStateId() {
     return stateId;
   }
 
-  public void writeTransitionsToDotFile(PrintStream out) {
+
+  /**  Writes a representation of this state (as node) in DOT file format to the argument {@link PrintStream}.
+   * @param pOut
+   */
+  public void writeTransitionsToDotFile(PrintStream pOut) {
     for (ObserverTransition t : transitions) {
-      t.writeTransitionToDotFile(stateId, out);
+      t.writeTransitionToDotFile(stateId, pOut);
     }
   }
 

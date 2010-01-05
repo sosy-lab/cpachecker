@@ -1,0 +1,23 @@
+AUTOMATON LockingAutomaton
+// Kommentar
+/* Kommentar */
+
+LOCAL int lock= 0;
+
+INITIAL STATE Init;
+
+STATE Init : 
+  MATCH  [init\(\)]  -> ASSERT lock == 0 DO lock = 0  GOTO Unlocked;
+  MATCH  [lock\(\)]  -> GOTO ERR;
+  MATCH  [unlock\(\)]  -> GOTO ERR;
+
+STATE Locked : 
+  MATCH  [init\(\)]  ->  GOTO ERR;
+  MATCH  [lock\(\)]  ->  GOTO ERR;
+  MATCH  [unlock\(\)]  -> ASSERT lock == 1  DO  lock = 0  GOTO Unlocked;
+
+
+STATE Unlocked : 
+  MATCH  [init\(\)]  ->  GOTO ERR;
+  MATCH  [lock\(\)]  -> ASSERT lock == 0  DO  lock = 1  GOTO Locked;
+  MATCH  [unlock\(\)]  -> GOTO ERR;

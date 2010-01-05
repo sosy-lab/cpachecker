@@ -1,5 +1,9 @@
 package cpa.observeranalysis;
 
+/** Represents a local variable of the observer automaton.
+ * So far only integer variables are supported.
+ * @author rhein
+ */
 class ObserverVariable {
   private int value;
   private String name;

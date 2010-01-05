@@ -25,6 +25,10 @@ import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
 import exceptions.CPAException;
 
+/**
+ * This class implements an ObserverAutomatonAnalysis as described in the related Documentation. 
+ * @author rhein
+ */
 public class ObserverAutomatonCPA implements ConfigurableProgramAnalysis {
   private ObserverAutomaton automaton;
   private TransferRelation transferRelation;
@@ -34,10 +38,10 @@ public class ObserverAutomatonCPA implements ConfigurableProgramAnalysis {
   private static final StopOperator stopOperator = new StopSepOperator(partialOrder);
   private static final JoinOperator joinOperator = new JoinOperator() {
     @Override
-    public AbstractElement join(AbstractElement element1,
-                                AbstractElement element2) throws CPAException {
-      if (element1 == element2) {
-        return element1;
+    public AbstractElement join(AbstractElement pElement1,
+                                AbstractElement pElement2) throws CPAException {
+      if (pElement1 == pElement2) {
+        return pElement1;
       } else {
         return ObserverState.TOP;
       }
@@ -66,13 +70,20 @@ public class ObserverAutomatonCPA implements ConfigurableProgramAnalysis {
     }
   };
   
-  public ObserverAutomatonCPA(String mergeType, String stopType) throws FileNotFoundException { 
+  /**
+   * Loads a ObserverAutomaton from the argument DefinitionFile.
+   * The argument mergeType is ignored.
+   * @param mergeType
+   * @param pStopType
+   * @throws FileNotFoundException
+   */
+  public ObserverAutomatonCPA(String pMergeType, String pStopType) throws FileNotFoundException { 
     String file = CPAMain.cpaConfig.getProperty("observerAnalysis.inputFile");
     parseObserverFile(file);
   }
   
-  private void parseObserverFile(String filename) throws FileNotFoundException {
-    File f = new File(filename);
+  private void parseObserverFile(String pFilename) throws FileNotFoundException {
+    File f = new File(pFilename);
     try {
       SymbolFactory sf = new ComplexSymbolFactory();   
       Symbol symbol = new ObserverParser(new ObserverScanner(new java.io.FileInputStream(f), sf),sf).parse();
@@ -82,7 +93,7 @@ public class ObserverAutomatonCPA implements ConfigurableProgramAnalysis {
       System.out.println("ObserverAutomatonAnalysis: Loaded the " + automaton.getName());
       
     } catch (Exception e) {
-      System.err.println("ObserverAnalysis.ObserverParser: General Exception during Parsing of the inputfile " + filename);
+      System.err.println("ObserverAnalysis.ObserverParser: General Exception during Parsing of the inputfile " + pFilename);
       e.printStackTrace();
     } 
   }
@@ -92,9 +103,9 @@ public class ObserverAutomatonCPA implements ConfigurableProgramAnalysis {
     return observerDomain;
   }
 
+  @SuppressWarnings("unchecked")
   @Override
-  public AbstractElement getInitialElement(
-      CFAFunctionDefinitionNode pNode) {
+  public AbstractElement getInitialElement(CFAFunctionDefinitionNode pNode) {
     return automaton.getInitialState();
   }
 
