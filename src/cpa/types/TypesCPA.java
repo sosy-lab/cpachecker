@@ -24,7 +24,7 @@
 package cpa.types;
 
 import cfa.objectmodel.CFAFunctionDefinitionNode;
-import cpa.common.defaults.StaticPrecisisonAdjustment;
+import cpa.common.defaults.StaticPrecisionAdjustment;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
@@ -75,7 +75,7 @@ public class TypesCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return StaticPrecisisonAdjustment.getInstance();
+    return StaticPrecisionAdjustment.getInstance();
   }
 
   @Override

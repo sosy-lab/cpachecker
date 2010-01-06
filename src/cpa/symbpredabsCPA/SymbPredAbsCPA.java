@@ -53,7 +53,7 @@ import symbpredabstraction.mathsat.SimplifyTheoremProver;
 import symbpredabstraction.mathsat.YicesTheoremProver;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cmdline.CPAMain;
-import cpa.common.defaults.StaticPrecisisonAdjustment;
+import cpa.common.defaults.StaticPrecisionAdjustment;
 import cpa.common.defaults.StopSepOperator;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
@@ -202,7 +202,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, CPAWithStati
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return StaticPrecisisonAdjustment.getInstance();
+    return StaticPrecisionAdjustment.getInstance();
   }
   
   @Override

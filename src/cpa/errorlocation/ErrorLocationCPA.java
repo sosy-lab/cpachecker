@@ -3,7 +3,7 @@ package cpa.errorlocation;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cpa.common.defaults.EqualityPartialOrder;
 import cpa.common.defaults.MergeSepOperator;
-import cpa.common.defaults.StaticPrecisisonAdjustment;
+import cpa.common.defaults.StaticPrecisionAdjustment;
 import cpa.common.defaults.StopSepOperator;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
@@ -115,7 +115,7 @@ public class ErrorLocationCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return StaticPrecisisonAdjustment.getInstance();
+    return StaticPrecisionAdjustment.getInstance();
   }
 
   @Override

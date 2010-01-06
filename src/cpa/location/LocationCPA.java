@@ -25,7 +25,7 @@ package cpa.location;
 
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cpa.common.defaults.MergeSepOperator;
-import cpa.common.defaults.StaticPrecisisonAdjustment;
+import cpa.common.defaults.StaticPrecisionAdjustment;
 import cpa.common.defaults.StopSepOperator;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
@@ -63,7 +63,7 @@ public class LocationCPA implements ConfigurableProgramAnalysis{
 	}
 
   public PrecisionAdjustment getPrecisionAdjustment () {
-    return StaticPrecisisonAdjustment.getInstance();
+    return StaticPrecisionAdjustment.getInstance();
   }
   
   @Override

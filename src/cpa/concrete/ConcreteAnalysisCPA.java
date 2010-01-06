@@ -26,7 +26,7 @@ package cpa.concrete;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cpa.common.defaults.SingletonPrecision;
 import cpa.common.defaults.MergeSepOperator;
-import cpa.common.defaults.StaticPrecisisonAdjustment;
+import cpa.common.defaults.StaticPrecisionAdjustment;
 import cpa.common.defaults.StopSepOperator;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.PrecisionAdjustment;
@@ -49,7 +49,7 @@ public class ConcreteAnalysisCPA implements cpa.common.interfaces.ConfigurablePr
     
     this.mMergeOperator = MergeSepOperator.getInstance();
     this.mStopOperator = new StopSepOperator(this.mAbstractDomain.getPartialOrder());
-    this.mPrecisionAdjustment = StaticPrecisisonAdjustment.getInstance();
+    this.mPrecisionAdjustment = StaticPrecisionAdjustment.getInstance();
   }
 
   public ConcreteAnalysisDomain getAbstractDomain ()
