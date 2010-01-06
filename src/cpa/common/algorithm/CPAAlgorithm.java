@@ -71,8 +71,12 @@ public class CPAAlgorithm implements Algorithm {
       long start = System.currentTimeMillis();
       Pair<AbstractElementWithLocation,Precision> e = reachedElements.popFromWaitlist();
       long end = System.currentTimeMillis();
-      chooseTime += (end - start); 
-      e = precisionAdjustment.prec(e.getFirst(), e.getSecond(), reachedElements.getReached());
+      chooseTime += (end - start);
+      Pair<AbstractElementWithLocation,Precision> tempPair;
+      tempPair = precisionAdjustment.prec(e.getFirst(), e.getSecond(), reachedElements.getReached());
+      if(tempPair != null){
+        e = tempPair;
+      }
       AbstractElementWithLocation element = e.getFirst();
       Precision precision = e.getSecond();
 
