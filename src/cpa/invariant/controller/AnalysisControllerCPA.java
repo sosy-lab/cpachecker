@@ -67,8 +67,8 @@ public class AnalysisControllerCPA implements ConfigurableProgramAnalysis {
     enabledHeuristics = Collections.unmodifiableList(heuristics);
     
     abstractDomain = new AnalysisControllerDomain(this);
-    mergeOperator = new MergeSepOperator();
-    stopOperator = new StopNeverOperator();
+    mergeOperator = MergeSepOperator.getInstance();
+    stopOperator = StopNeverOperator.getInstance();
     transferRelation = new AnalysisControllerTransferRelation(abstractDomain);
     precisionAdjustment = new AnalysisControllerPrecisionAdjustment();
   }

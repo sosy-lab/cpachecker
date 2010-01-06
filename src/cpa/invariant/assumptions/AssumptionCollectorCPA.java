@@ -27,6 +27,7 @@ import java.util.Collection;
 
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cpa.common.defaults.MergeSepOperator;
+import cpa.common.defaults.StaticPrecisionAdjustment;
 import cpa.common.defaults.StopNeverOperator;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
@@ -47,6 +48,7 @@ public class AssumptionCollectorCPA implements ConfigurableProgramAnalysis {
   private MergeOperator mergeOperator;
   private StopOperator stopOperator;
   private TransferRelation transferRelation;
+  private PrecisionAdjustment precisionAdjustment;
   
   // Symbolic Formula Manager used to represent build invariant formulas
   private InvariantSymbolicFormulaManager symbolicFormulaManager;
@@ -57,8 +59,9 @@ public class AssumptionCollectorCPA implements ConfigurableProgramAnalysis {
     
     abstractDomain = new AssumptionCollectorDomain(this);
     
-    mergeOperator = new MergeSepOperator();
-    stopOperator = new StopNeverOperator();
+    mergeOperator = MergeSepOperator.getInstance();
+    stopOperator = StopNeverOperator.getInstance();
+    precisionAdjustment = StaticPrecisionAdjustment.getInstance();
     
     transferRelation = new AssumptionCollectorTransferRelation(this);
   }
@@ -74,6 +77,7 @@ public class AssumptionCollectorCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
+  @SuppressWarnings("unchecked")  
   public <AE extends AbstractElement> AE getInitialElement(CFAFunctionDefinitionNode pNode) {
     return (AE) abstractDomain.getTopElement();
   }
@@ -90,7 +94,7 @@ public class AssumptionCollectorCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return null;
+    return precisionAdjustment;
   }
 
   @Override

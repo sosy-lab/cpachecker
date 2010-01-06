@@ -25,6 +25,7 @@ package cpa.invariant.dump;
 
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cpa.common.defaults.MergeSepOperator;
+import cpa.common.defaults.StaticPrecisionAdjustment;
 import cpa.common.defaults.StopNeverOperator;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
@@ -55,14 +56,16 @@ public class DumpInvariantCPA implements ConfigurableProgramAnalysis {
   private final StopOperator stopOperator;
   private final TransferRelation transferRelation;
   private final InvariantSymbolicFormulaManager symbolicFormulaManager;
+  private final PrecisionAdjustment precisionAdjustment;
   
   public DumpInvariantCPA(String merge, String stop)
   {
     symbolicFormulaManager = MathsatInvariantSymbolicFormulaManager.getInstance();
     abstractDomain = new DumpInvariantDomain();
-    mergeOperator = new MergeSepOperator();
-    stopOperator = new StopNeverOperator();
+    mergeOperator = MergeSepOperator.getInstance();
+    stopOperator = StopNeverOperator.getInstance();
     transferRelation = new DumpInvariantTransferRelation(this);
+    precisionAdjustment = StaticPrecisionAdjustment.getInstance();
   }
   
   public InvariantSymbolicFormulaManager getSymbolicFormulaManager()
@@ -76,13 +79,13 @@ public class DumpInvariantCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
+  @SuppressWarnings("unchecked")
   public <AE extends AbstractElement> AE getInitialElement(CFAFunctionDefinitionNode node) {
     return (AE) abstractDomain.getTopElement();
   }
 
   @Override
   public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
-    // TODO Auto-generated method stub
     return null;
   }
 
@@ -93,7 +96,7 @@ public class DumpInvariantCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return null;
+    return precisionAdjustment;
   }
 
   @Override
