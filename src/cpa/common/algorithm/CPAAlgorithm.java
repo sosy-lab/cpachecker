@@ -39,6 +39,7 @@ import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
+import cpa.common.interfaces.PrecisionAdjustment;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
 import exceptions.CPAException;
@@ -61,6 +62,7 @@ public class CPAAlgorithm implements Algorithm {
     final TransferRelation transferRelation = cpa.getTransferRelation();
     final MergeOperator mergeOperator = cpa.getMergeOperator();
     final StopOperator stopOperator = cpa.getStopOperator();
+    PrecisionAdjustment precisionAdjustment = cpa.getPrecisionAdjustment();
 
     while (reachedElements.hasWaitingElement()) {
       
@@ -71,7 +73,8 @@ public class CPAAlgorithm implements Algorithm {
       long end = System.currentTimeMillis();
       chooseTime += (end - start); 
       // TODO enable this
-      //e = precisionAdjustment.prec(e.getFirst(), e.getSecond(), reached);
+      if (precisionAdjustment != null)
+        e = precisionAdjustment.prec(e.getFirst(), e.getSecond(), reachedElements.getReached());
       AbstractElementWithLocation element = e.getFirst();
       Precision precision = e.getSecond();
 

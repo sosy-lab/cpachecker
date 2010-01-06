@@ -28,8 +28,6 @@ import java.util.List;
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFANode;
 import symbpredabstraction.interfaces.AbstractFormula;
-import symbpredabstraction.interfaces.AbstractFormulaManager;
-import symbpredabstraction.interfaces.FormulaManager;
 import symbpredabstraction.interfaces.SymbolicFormula;
 import common.Pair;
 
@@ -45,7 +43,6 @@ import cpa.common.interfaces.Precision;
 import cpa.invariant.dump.DumpInvariantElement;
 import cpa.invariant.util.InvariantWithLocation;
 import cpa.invariant.util.MathsatInvariantSymbolicFormulaManager;
-import cpa.predicateabstraction.PredicateAbstractionAbstractElement;
 import cpa.symbpredabsCPA.SymbPredAbsAbstractElement;
 import cpa.symbpredabsCPA.SymbPredAbsCPA;
 import cpa.symbpredabsCPA.SymbPredAbstFormulaManager;
@@ -120,7 +117,7 @@ public class InvariantCollectionAlgorithm implements Algorithm {
     // the waitlist
     addInvariantsForWaitlist(invariantMap, reached.getWaitlist());
     
-    //invariantMap.dump(System.out);
+    invariantMap.dump(System.out);
   }
 
   /**
@@ -140,7 +137,9 @@ public class InvariantCollectionAlgorithm implements Algorithm {
     
     if (element instanceof DumpInvariantElement)
     {
-      result = symbolicManager.makeAnd(result, ((DumpInvariantElement) element).getInvariant());
+      SymbolicFormula dumpedInvariant = ((DumpInvariantElement) element).getInvariant();
+      if (dumpedInvariant != null)
+        result = symbolicManager.makeAnd(result, dumpedInvariant);
     }
      
     return result;
@@ -178,7 +177,6 @@ public class InvariantCollectionAlgorithm implements Algorithm {
   private void addInvariantsForFailedRefinement(
       InvariantWithLocation invariant,
       RefinementFailedException failedRefinement) {
-    RefinementFailedException.Reason reason = failedRefinement.getReason();
     Path path = failedRefinement.getErrorPath();
     
     int pos = failedRefinement.getFailurePoint();

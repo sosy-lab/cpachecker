@@ -41,6 +41,10 @@ public class DumpInvariantElement implements AbstractElement {
     invariant = f;
   }
   
+  /**
+   * Return the invariant in this state. May return
+   * a null value in case no invariant is stored.
+   */
   public SymbolicFormula getInvariant()
   {
     return invariant;

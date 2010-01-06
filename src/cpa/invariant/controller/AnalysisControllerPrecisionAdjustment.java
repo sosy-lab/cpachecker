@@ -91,6 +91,7 @@ public class AnalysisControllerPrecisionAdjustment implements
   }
   
   @Override
+  @SuppressWarnings("unchecked")
   public <AE extends AbstractElement> Pair<AE, Precision> prec(AE el,
       Precision p, Collection<Pair<AE, Precision>> reached) {
     AnalysisControllerElement element = (AnalysisControllerElement) el;

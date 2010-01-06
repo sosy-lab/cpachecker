@@ -23,11 +23,20 @@
  */
 package cpa.invariant.util;
 
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.PrintStream;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.io.Writer;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+
+import common.Pair;
 
 import cfa.objectmodel.CFANode;
 
@@ -61,18 +70,23 @@ public class InvariantWithLocation {
       return result;
   }
   
+  private SymbolicFormula conjunctList(List<SymbolicFormula> list)
+  {
+    SymbolicFormula result = manager.makeTrue();
+    for (SymbolicFormula f : list)
+    {
+      result = manager.makeAnd(result, f);
+    }
+    return result;
+  }
+  
   /**
    * Return the invariant as a formula for a given node
    */
   public SymbolicFormula getInvariant(CFANode node)
   {
-    SymbolicFormula result = manager.makeTrue();
     List<SymbolicFormula> invariants = getInvariants(node);
-    for (SymbolicFormula f : invariants)
-    {
-      result = manager.makeAnd(result, f);
-    }
-    return result;
+    return conjunctList(invariants);
   }
 
   /**
@@ -80,14 +94,43 @@ public class InvariantWithLocation {
    */
   public void addInvariant(CFANode node, SymbolicFormula invariant)
   {
-    List<SymbolicFormula> old = map.get(node.getNodeNumber());
-    if (old == null)
-      old = new LinkedList<SymbolicFormula>();
-    for (SymbolicFormula other : old) {
-      if (invariant.equals(other))
-        return; // already in the list
+    if (!manager.entails(manager.makeTrue(), invariant)) {
+      List<SymbolicFormula> list = map.get(node);
+      if (list == null) {
+        list = new LinkedList<SymbolicFormula>();
+        map.put(node, list);
+      }
+      for (SymbolicFormula other : list) {
+        if (invariant.equals(other))
+          return; // already in the list
+      }
+      list.add(invariant);
     }
-    old.add(invariant);
+  }
+  
+  /**
+   * Dump the invariant to the given Appendable object
+   * (e.g., PrintStream, Writer, etc.)
+   * IOException are ignored.
+   */
+  public void dump(Appendable out)
+  {
+    try {
+      for (Entry<CFANode, List<SymbolicFormula>> entry : map.entrySet()) {
+        out.append("pc = ");
+        out.append(Integer.toString(entry.getKey().getNodeNumber()));
+        out.append(" ===>   ");
+        out.append(conjunctList(entry.getValue()).toString());
+        out.append("\n");
+      }
+    } catch (IOException e) { }
+  }
+
+  @Override
+  public String toString() {
+    StringWriter writer = new StringWriter();
+    dump(writer);
+    return writer.toString();
   }
   
 }
