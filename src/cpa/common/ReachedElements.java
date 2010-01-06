@@ -64,11 +64,12 @@ public class ReachedElements {
   }
   
   private boolean remove(Pair<AbstractElementWithLocation, Precision> toRemove) {
-    int hc = toRemove.hashCode();
-    if (hc == firstElement.hashCode() && toRemove.equals(firstElement)) {
+    AbstractElementWithLocation e = toRemove.getFirst();
+    int hc = e.hashCode();
+    if (hc == firstElement.hashCode() && e.equals(firstElement)) {
       firstElement = null;
     }
-    if (hc == lastElement.hashCode() && toRemove.equals(lastElement)) {
+    if (hc == lastElement.hashCode() && e.equals(lastElement)) {
       lastElement = null;
     }
     waitlist.remove(toRemove);
@@ -79,6 +80,7 @@ public class ReachedElements {
     for (Pair<AbstractElementWithLocation, Precision> pair : toRemove) {
       remove(pair);
     }
+    assert firstElement != null || reached.isEmpty() : "firstElement may only be removed if the whole reached set is cleared";
   }
   
   public void clear() {
