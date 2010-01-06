@@ -75,6 +75,7 @@ import cpa.common.algorithm.Algorithm;
 import cpa.common.algorithm.CBMCAlgorithm;
 import cpa.common.algorithm.CEGARAlgorithm;
 import cpa.common.algorithm.CPAAlgorithm;
+import cpa.common.algorithm.InvariantCollectionAlgorithm;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.CPAWithStatistics;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
@@ -503,6 +504,10 @@ public class CPAMain {
       
       if (CPAMain.cpaConfig.getBooleanValue("analysis.useRefinement")) {
         algorithm = new CEGARAlgorithm(algorithm);
+      }
+      
+      if (CPAMain.cpaConfig.getBooleanValue("analysis.useInvariantDump")) {
+        algorithm = new InvariantCollectionAlgorithm(algorithm);
       }
       
       if (CPAMain.cpaConfig.getBooleanValue("analysis.useCBMC")) {

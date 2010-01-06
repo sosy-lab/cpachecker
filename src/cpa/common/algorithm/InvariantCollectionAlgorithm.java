@@ -23,20 +23,32 @@
  */
 package cpa.common.algorithm;
 
+import java.util.List;
+
+import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFANode;
+import symbpredabstraction.interfaces.AbstractFormula;
+import symbpredabstraction.interfaces.AbstractFormulaManager;
+import symbpredabstraction.interfaces.FormulaManager;
 import symbpredabstraction.interfaces.SymbolicFormula;
 import common.Pair;
 
+import cpa.art.ARTElement;
 import cpa.common.Path;
 import cpa.common.ReachedElements;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.AbstractWrapperElement;
+import cpa.common.interfaces.CPAWrapper;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;
 import cpa.invariant.dump.DumpInvariantElement;
 import cpa.invariant.util.InvariantWithLocation;
 import cpa.invariant.util.MathsatInvariantSymbolicFormulaManager;
+import cpa.predicateabstraction.PredicateAbstractionAbstractElement;
+import cpa.symbpredabsCPA.SymbPredAbsAbstractElement;
+import cpa.symbpredabsCPA.SymbPredAbsCPA;
+import cpa.symbpredabsCPA.SymbPredAbstFormulaManager;
 import exceptions.CPAException;
 import exceptions.RefinementFailedException;
 
@@ -49,14 +61,31 @@ import exceptions.RefinementFailedException;
 public class InvariantCollectionAlgorithm implements Algorithm {
 
   private final Algorithm innerAlgorithm;
-  private final MathsatInvariantSymbolicFormulaManager manager;
+  private final MathsatInvariantSymbolicFormulaManager symbolicManager;
+  private final SymbPredAbstFormulaManager symbPredAbstManager;
   
   public InvariantCollectionAlgorithm(Algorithm algo)
   {
     innerAlgorithm = algo;
-    manager = MathsatInvariantSymbolicFormulaManager.getInstance();
+    symbolicManager = MathsatInvariantSymbolicFormulaManager.getInstance();
+    symbPredAbstManager = extractSymbPredAbstManager(innerAlgorithm.getCPA());
   }
   
+  private SymbPredAbstFormulaManager extractSymbPredAbstManager(ConfigurableProgramAnalysis cpa) {
+    if (cpa instanceof SymbPredAbsCPA)
+      return ((SymbPredAbsCPA) cpa).getFormulaManager();
+    
+    if (cpa instanceof CPAWrapper) {
+      for (ConfigurableProgramAnalysis subCPA : ((CPAWrapper) cpa).getWrappedCPAs()) {
+        SymbPredAbstFormulaManager result = extractSymbPredAbstManager(subCPA);
+        if (result != null)
+          return result;
+      }
+    }
+    
+    return null;
+  }
+
   @Override
   public ConfigurableProgramAnalysis getCPA() {
     return innerAlgorithm.getCPA();
@@ -87,7 +116,11 @@ public class InvariantCollectionAlgorithm implements Algorithm {
       invariantMap.addInvariant(loc, invariant);
     }
     
+    // dump invariants to prevent going further with nodes in
+    // the waitlist
+    addInvariantsForWaitlist(invariantMap, reached.getWaitlist());
     
+    //invariantMap.dump(System.out);
   }
 
   /**
@@ -96,25 +129,50 @@ public class InvariantCollectionAlgorithm implements Algorithm {
    */
   private SymbolicFormula extractInvariant(AbstractElement element)
   {
-    SymbolicFormula result = manager.makeTrue();
+    SymbolicFormula result = symbolicManager.makeTrue();
     
     // If it is a wrapper, add its sub-element's assertions
     if (element instanceof AbstractWrapperElement)
     {
       for (AbstractElement subel : ((AbstractWrapperElement) element).getWrappedElements())
-        result = manager.makeAnd(result, extractInvariant(subel));
+        result = symbolicManager.makeAnd(result, extractInvariant(subel));
     }
     
     if (element instanceof DumpInvariantElement)
     {
-      result = manager.makeAnd(result, ((DumpInvariantElement) element).getInvariant());
+      result = symbolicManager.makeAnd(result, ((DumpInvariantElement) element).getInvariant());
+    }
+     
+    return result;
+  }
+  
+  /**
+   * Returns a predicate representing states represented by
+   * the given abstract element
+   */
+  private SymbolicFormula extractData(AbstractElement element)
+  {
+    SymbolicFormula result = symbolicManager.makeTrue();
+    
+    // If it is a wrapper, add its sub-element's assertions
+    if (element instanceof AbstractWrapperElement)
+    {
+      for (AbstractElement subel : ((AbstractWrapperElement) element).getWrappedElements())
+        result = symbolicManager.makeAnd(result, extractData(subel));
+    }
+    
+    if ((symbPredAbstManager != null)
+        && (element instanceof SymbPredAbsAbstractElement)) {
+      AbstractFormula abstractFormula = ((SymbPredAbsAbstractElement) element).getAbstraction();
+      SymbolicFormula symbolicFormula = symbPredAbstManager.toConcrete(abstractFormula);
+      result = symbolicManager.makeAnd(result, symbolicFormula);
     }
      
     return result;
   }
 
   /**
-   * Adds to the given map the invariant required to
+   * Add to the given map the invariant required to
    * avoid the given refinement failure 
    */
   private void addInvariantsForFailedRefinement(
@@ -122,8 +180,28 @@ public class InvariantCollectionAlgorithm implements Algorithm {
       RefinementFailedException failedRefinement) {
     RefinementFailedException.Reason reason = failedRefinement.getReason();
     Path path = failedRefinement.getErrorPath();
+    
     int pos = failedRefinement.getFailurePoint();
     
-    // TODO: complete it to extract the desired interpolant
-  } 
+    if (pos == -1)
+      pos = path.size() - 2; // the node before the error node
+    
+    Pair<ARTElement, CFAEdge> pair = path.get(pos);
+    SymbolicFormula data = extractData(pair.getFirst());
+    invariant.addInvariant(pair.getFirst().getLocationNode(), data);
+  }
+  
+  /**
+   * Add to the given map the invariant required to
+   * avoid nodes in the given set of states
+   */
+  private void addInvariantsForWaitlist(
+      InvariantWithLocation invariant,
+      List<Pair<AbstractElementWithLocation, Precision>> waitlist) {
+    for (Pair<AbstractElementWithLocation, Precision> pair : waitlist) {
+      AbstractElementWithLocation element = pair.getFirst();
+      SymbolicFormula dataRegion = extractData(element);
+      invariant.addInvariant(element.getLocationNode(), symbolicManager.makeNot(dataRegion));
+    }
+  }
 }

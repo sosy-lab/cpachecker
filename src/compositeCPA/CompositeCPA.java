@@ -40,6 +40,7 @@ import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.CPAWithStatistics;
+import cpa.common.interfaces.CPAWrapper;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
@@ -49,7 +50,7 @@ import cpa.common.interfaces.TransferRelation;
 import cpaplugin.CPAStatistics;
 import exceptions.CPAException;
 
-public class CompositeCPA implements ConfigurableProgramAnalysis, CPAWithStatistics
+public class CompositeCPA implements ConfigurableProgramAnalysis, CPAWithStatistics, CPAWrapper
 {
   private final AbstractDomain abstractDomain;
   private final TransferRelation transferRelation;
@@ -219,5 +220,10 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, CPAWithStatist
         ((CPAWithStatistics)cpa).collectStatistics(pStatsCollection);
       }
     }
+  }
+  
+  @Override
+  public Iterable<ConfigurableProgramAnalysis> getWrappedCPAs() {
+    return cpas;
   }
 }

@@ -135,6 +135,11 @@ public class ReachedElements {
     return !waitlist.isEmpty();
   }
   
+  public List<Pair<AbstractElementWithLocation,Precision>> getWaitlist()
+  {
+    return waitlist;
+  }
+  
   public Pair<AbstractElementWithLocation,Precision> popFromWaitlist() {
     Pair<AbstractElementWithLocation,Precision> result = null;
 
