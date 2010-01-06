@@ -70,7 +70,12 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
         slice.add(new Pair<AbstractElement,Precision>(((CompositeElement)entry.getFirst()).get(i),
             ((CompositePrecision)entry.getSecond()).get(i)));
       }
-      Pair<AbstractElement,Precision> out = precisionAdjustments.get(i).prec(comp.get(i), prec.get(i), slice);
+      PrecisionAdjustment precisionAdjustment = precisionAdjustments.get(i); 
+      Pair<AbstractElement,Precision> out;
+      if (precisionAdjustment != null)
+        out = precisionAdjustment.prec(comp.get(i), prec.get(i), slice);
+      else
+        out = new Pair<AbstractElement, Precision>(comp.get(i), prec.get(i));
       outElements.add(out.getFirst());
       outPrecisions.add(out.getSecond());
     }
