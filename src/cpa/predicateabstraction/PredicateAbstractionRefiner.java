@@ -45,16 +45,15 @@ public class PredicateAbstractionRefiner extends AbstractARTBasedRefiner {
       mCpa = (PredicateAbstractionCPA)cpa;
     
     } else {
-      PredicateAbstractionCPA predabsCPA = null;
-      if (pCpa instanceof CompositeCPA) {
+      if (cpa instanceof CompositeCPA) {
         for (ConfigurableProgramAnalysis compCPA : ((CompositeCPA)cpa).getComponentCPAs()) {
           if (compCPA instanceof PredicateAbstractionCPA) {
-            predabsCPA = (PredicateAbstractionCPA)cpa;
+            mCpa = (PredicateAbstractionCPA)compCPA;
             break;
           }
         }
       }
-      if (predabsCPA == null) {
+      if (mCpa == null) {
         throw new CPAException(getClass().getSimpleName() + " needs a PredicateAbstractionCPA");
       }
     }
@@ -167,7 +166,7 @@ public class PredicateAbstractionRefiner extends AbstractARTBasedRefiner {
   private Pair<ARTElement, CFAEdge>[] getPathArray(
       Path pPath) {
 
-    Pair<ARTElement, CFAEdge>[] array = (Pair<ARTElement, CFAEdge>[])pPath.toArray();
+    Pair<ARTElement, CFAEdge>[] array = pPath.toArray(new Pair[pPath.size()]);
     /*
     Pair<ARTElement, CFAEdge>[] array =
       new Pair[pPath.size()];
