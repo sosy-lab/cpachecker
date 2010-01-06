@@ -57,10 +57,10 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
     if (root != null) {
       CPAMain.logManager.log(Level.FINEST, "ART based refinement successful");
       CPAMain.logManager.log(Level.ALL, "Refinement root is", root);
-      return cleanART(pReached, root);
+      return cleanART(path, pReached, root);
     } else {
       CPAMain.logManager.log(Level.FINEST, "ART based refinement unsuccessful");
-      return new RefinementOutcome();
+      return new RefinementOutcome(path);
     }
   }
 
@@ -113,7 +113,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
     return path;
   }
   
-  private RefinementOutcome cleanART(ReachedElements pReached, ARTElement root) {
+  private RefinementOutcome cleanART(Path errorPath, ReachedElements pReached, ARTElement root) {
     assert(root != null);
     
     Collection<ARTElement> toWaitlist = new HashSet<ARTElement>();
@@ -145,7 +145,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
       ae.removeFromART(); // removes ae from parents and covered set
     }
     
-    return new RefinementOutcome(true, toUnreach, toWaitlist);
+    return new RefinementOutcome(true, toUnreach, toWaitlist, errorPath);
   }
   
   private boolean checkART(ReachedElements pReached) {
