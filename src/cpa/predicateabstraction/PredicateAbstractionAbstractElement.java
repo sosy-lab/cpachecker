@@ -104,7 +104,7 @@ public class PredicateAbstractionAbstractElement implements AbstractElement {
 
   @Override
   public String toString() {
-    return "E<" + ">(";
+    return "E<" + abstraction + ">(";
 //    +
 //    (isMarked() ? mark : getId()) + ")";
   }

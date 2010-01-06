@@ -66,10 +66,11 @@ public class ReachedElements {
   private boolean remove(Pair<AbstractElementWithLocation, Precision> toRemove) {
     AbstractElementWithLocation e = toRemove.getFirst();
     int hc = e.hashCode();
-    if (hc == firstElement.hashCode() && e.equals(firstElement)) {
+    if ((firstElement == null) || hc == firstElement.hashCode() && e.equals(firstElement)) {
       firstElement = null;
     }
-    if (hc == lastElement.hashCode() && e.equals(lastElement)) {
+    
+    if ((lastElement == null) || (hc == lastElement.hashCode() && e.equals(lastElement))) {
       lastElement = null;
     }
     waitlist.remove(toRemove);

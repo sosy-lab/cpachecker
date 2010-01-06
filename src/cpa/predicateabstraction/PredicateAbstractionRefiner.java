@@ -139,7 +139,13 @@ public class PredicateAbstractionRefiner extends AbstractARTBasedRefiner {
         assert(firstInterpolant != null);
         CPAMain.logManager.log(Level.FINEST,
         "Restarting ART from scratch");
-        root = (ARTElement)pReached.getFirstElement();
+        // if the root is theinitial element, we add
+        // its child as the root so that refinement algorithm
+        // does not try to add initial element's parent
+        // which is null
+        ARTElement initialElement = (ARTElement)pReached.getFirstElement();
+        assert(initialElement.getChildren().size() == 1);
+        root = (ARTElement)initialElement.getChildren().toArray()[0];
       }
     } else {
       //samePathAlready  = 0;
