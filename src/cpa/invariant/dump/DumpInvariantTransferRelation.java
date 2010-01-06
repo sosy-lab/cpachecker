@@ -61,8 +61,8 @@ public class DumpInvariantTransferRelation implements TransferRelation {
   {
     SymbolicFormula result = null;
     for (AbstractElement other : others) {
-      if (other instanceof DumpableAbstractElement) {
-        SymbolicFormula otherInv = ((DumpableAbstractElement)other).getInvariant();
+      if (other instanceof InvariantReportingAbstractElement) {
+        SymbolicFormula otherInv = ((InvariantReportingAbstractElement)other).getInvariant();
         if (otherInv != null) {
           if (result == null)
             result = otherInv;

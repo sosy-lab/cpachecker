@@ -32,7 +32,7 @@ import cpa.common.interfaces.AbstractElement;
  * 
  * @author g.theoduloz
  */
-public interface DumpableAbstractElement extends AbstractElement {
+public interface InvariantReportingAbstractElement extends AbstractElement {
 
   /**
    * Get the invariant that the given abstract element

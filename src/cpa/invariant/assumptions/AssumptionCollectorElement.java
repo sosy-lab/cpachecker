@@ -24,7 +24,7 @@
 package cpa.invariant.assumptions;
 
 import symbpredabstraction.interfaces.SymbolicFormula;
-import cpa.invariant.dump.DumpableAbstractElement;
+import cpa.invariant.dump.InvariantReportingAbstractElement;
 import cpa.invariant.util.InvariantSymbolicFormulaManager;
 
 /**
@@ -34,7 +34,7 @@ import cpa.invariant.util.InvariantSymbolicFormulaManager;
  * 
  * @author g.theoduloz
  */
-public class AssumptionCollectorElement implements DumpableAbstractElement {
+public class AssumptionCollectorElement implements InvariantReportingAbstractElement {
 
   // The inner representation is a formula.
   private SymbolicFormula formula;
