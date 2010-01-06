@@ -42,6 +42,7 @@ import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.Refiner;
 import exceptions.CPAException;
+import exceptions.RefinementFailedException;
 
 public class CEGARAlgorithm implements Algorithm {
 
@@ -135,6 +136,8 @@ public class CEGARAlgorithm implements Algorithm {
           CPAMain.logManager.log(Level.FINER, "No refinement found");
           
           stopAnalysis = true;
+          
+          throw new RefinementFailedException(RefinementFailedException.Reason.NoNewPredicates, refout.getErrorPath());
           // TODO: if (stopAfterError == false), continue to look for next error
         }
         

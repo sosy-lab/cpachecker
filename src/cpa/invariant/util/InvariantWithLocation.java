@@ -24,11 +24,7 @@
 package cpa.invariant.util;
 
 import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.PrintStream;
-import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.io.Writer;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -36,11 +32,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import common.Pair;
-
-import cfa.objectmodel.CFANode;
-
 import symbpredabstraction.interfaces.SymbolicFormula;
+import cfa.objectmodel.CFANode;
 
 /**
  * Representation of an invariant of the form \land_i. pc = l_i ==> \phi_i
@@ -119,7 +112,7 @@ public class InvariantWithLocation {
       for (Entry<CFANode, List<SymbolicFormula>> entry : map.entrySet()) {
         out.append("pc = ");
         out.append(Integer.toString(entry.getKey().getNodeNumber()));
-        out.append(" ===>   ");
+        out.append("\t ===>  ");
         out.append(conjunctList(entry.getValue()).toString());
         out.append("\n");
       }
