@@ -45,7 +45,7 @@ public interface TransferRelation {
    * specified edge should be handled.
    * @param element abstract element with current state
    * @param cfaEdge null or an edge of the CFA
-   * @return list of all successors of the current state (currently may not be empty)
+   * @return list of all successors of the current state (may be empty)
    */
   public Collection<? extends AbstractElement> getAbstractSuccessors(AbstractElement element, Precision precision, CFAEdge cfaEdge)
     throws CPATransferException;

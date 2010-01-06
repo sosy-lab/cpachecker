@@ -144,19 +144,24 @@ public class CompositeTransferRelation implements TransferRelation{
       resultCount *= componentSuccessors.size();
       allComponentsSuccessors.add(componentSuccessors);
     }
-    assert resultCount != 0;
     
     Collection<List<AbstractElement>> allResultingElements;
     
-    if (resultCount == 1) {
+    switch (resultCount) {
+    case 0:
+      // at least one CPA decided that there is no successor
+      return;
+            
+    case 1:
       List<AbstractElement> resultingElements = new ArrayList<AbstractElement>(allComponentsSuccessors.size());
       for (Collection<? extends AbstractElement> componentSuccessors : allComponentsSuccessors) {
         assert componentSuccessors.size() == 1;
         resultingElements.add(componentSuccessors.toArray(new AbstractElement[1])[0]);
       }
       allResultingElements = Collections.singleton(resultingElements);
+      break;
       
-    } else {
+    default:
       // create cartesian product of all componentSuccessors and store the result in allResultingElements
       List<AbstractElement> initialPrefix = Collections.emptyList();
       allResultingElements = new ArrayList<List<AbstractElement>>(resultCount);
@@ -180,8 +185,6 @@ public class CompositeTransferRelation implements TransferRelation{
       CompositeElement compositeSuccessor = new CompositeElement(resultingElements, updatedCallStack);
       compositeSuccessors.add(compositeSuccessor);
     }
-
-    return;
   }
   
   private static void createCartesianProduct(List<Collection<? extends AbstractElement>> allComponentsSuccessors,

@@ -2,6 +2,7 @@ package cpa.art;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 import cfa.objectmodel.CFAEdge;
@@ -31,6 +32,10 @@ public class ARTTransferRelation implements TransferRelation {
       wrappedPrecision = ((ARTPrecision)pPrecision).getPrecision();
     }
     Collection<? extends AbstractElement> successors = transferRelation.getAbstractSuccessors(wrappedElement, wrappedPrecision, pCfaEdge);
+    if (successors.isEmpty()) {
+      return Collections.emptySet();
+    }
+    
     Collection<ARTElement> wrappedSuccessors = new ArrayList<ARTElement>();
     for (AbstractElement absElement : successors) {
       ARTElement successorElem = new ARTElement(element.getCpa(), (AbstractElementWithLocation)absElement, element);
