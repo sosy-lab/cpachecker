@@ -3,6 +3,11 @@ package fql.frontend.parser;
 
 import java_cup.runtime.*;
 
+import fql.frontend.ast.coverage.States;
+import fql.frontend.ast.coverage.Edges;
+import fql.frontend.ast.coverage.Paths;
+import fql.frontend.ast.coverage.Coverage;
+import fql.frontend.ast.coverage.ConditionalCoverage;
 import fql.frontend.ast.filter.Identity;
 import fql.frontend.ast.filter.File;
 import fql.frontend.ast.filter.BasicBlockEntry;
@@ -17,6 +22,20 @@ import fql.frontend.ast.filter.Label;
 import fql.frontend.ast.filter.FunctionCall;
 import fql.frontend.ast.filter.FunctionEntry;
 import fql.frontend.ast.filter.FunctionExit;
+import fql.frontend.ast.filter.EnclosingScopes;
+import fql.frontend.ast.filter.Compose;
+import fql.frontend.ast.filter.Expression;
+import fql.frontend.ast.filter.RegularExpression;
+import fql.frontend.ast.filter.Filter;
+import fql.frontend.ast.filter.SetMinus;
+import fql.frontend.ast.filter.Intersection;
+import fql.frontend.ast.filter.Union;
+import fql.frontend.ast.filter.Complement;
+import fql.frontend.ast.predicate.Predicate;
+import fql.frontend.ast.predicate.Term;
+import fql.frontend.ast.predicate.CIdentifier;
+import fql.frontend.ast.predicate.NaturalNumber;
+import fql.frontend.ast.predicate.Predicates;
 
 parser code
 {:
@@ -112,6 +131,7 @@ non terminal	Path_Monitor;
 non terminal	Path_Monitor_Term;
 non terminal	Path_Monitor_Factor;
 non terminal	Path_Monitor_Symbol;
+non terminal    Conditional_Test_Goal_Set;
 non terminal	Test_Goal_Set;
 non terminal	Preconditions;
 non terminal	Predicates;
@@ -124,14 +144,18 @@ non terminal	Filter_Function;
 start with Query;
 
 Query				::= 
-						Scope Cover Passing
+						Scope:scope Cover Passing
 						{:
+							if (scope != null) {
+							
+							}
 						:}
 					;
 				
 Scope				::= 
-					| 	TOK_IN Filter
+					| 	TOK_IN Filter:filter
 						{:
+							RESULT = filter;
 						:}
 					;
 
@@ -148,13 +172,13 @@ Passing				::=
 					;
 				
 Test_Goal_Sequence 	::=	
-						Test_Goal_Set
+						Conditional_Test_Goal_Set
 						{:
 						:} 
-					| 	Test_Goal_Sequence TOK_L_SEQ Path_Monitor TOK_R_SEQ Test_Goal_Set
+					| 	Test_Goal_Sequence TOK_L_SEQ Path_Monitor TOK_R_SEQ Conditional_Test_Goal_Set
 						{:
 						:}
-					|	Test_Goal_Sequence TOK_NEXT Test_Goal_Set
+					|	Test_Goal_Sequence TOK_NEXT Conditional_Test_Goal_Set
 						{:
 						:}
 					;
@@ -207,117 +231,244 @@ Path_Monitor_Symbol	::=
 						:}
 					;
 					
-Test_Goal_Set		::= 
-						Preconditions TOK_L_PARENTHESIS Test_Goal_Set TOK_R_PARENTHESIS
+Conditional_Test_Goal_Set
+					::= Predicates:preconditions Test_Goal_Set:coverage Predicates:postconditions
 						{:
-						:}
-					| 	Test_Goal_Set Predicate
-						{:
-						:}
-					| 	Preconditions TOK_UNION TOK_L_PARENTHESIS Test_Goal_Set TOK_COMMA Test_Goal_Set TOK_R_PARENTHESIS
-						{:
-						:}
-					| 	Preconditions TOK_INTERSECT TOK_L_PARENTHESIS Test_Goal_Set TOK_COMMA Test_Goal_Set TOK_R_PARENTHESIS
-						{:
-						:}
-					| 	Preconditions TOK_SETMINUS TOK_L_PARENTHESIS Test_Goal_Set TOK_COMMA Test_Goal_Set TOK_R_PARENTHESIS
-						{:
-						:}
-					| 	Preconditions TOK_STATECOV TOK_L_PARENTHESIS Filter TOK_R_PARENTHESIS
-						{:
-						:}
-					| 	Preconditions TOK_STATECOV TOK_L_PARENTHESIS Filter TOK_COMMA Predicates TOK_R_PARENTHESIS
-						{:
-						:}
-					| 	Preconditions TOK_EDGECOV TOK_L_PARENTHESIS Filter TOK_R_PARENTHESIS
-						{:
-						:}
-					| 	Preconditions TOK_EDGECOV TOK_L_PARENTHESIS Filter TOK_COMMA Predicates TOK_R_PARENTHESIS
-						{:
-						:}
-					| 	Preconditions TOK_PATHCOV TOK_L_PARENTHESIS Filter TOK_COMMA TOK_NAT_NUMBER TOK_R_PARENTHESIS
-						{:
-						:}
-					| 	Preconditions TOK_PATHCOV TOK_L_PARENTHESIS Filter TOK_COMMA TOK_NAT_NUMBER TOK_COMMA Predicates TOK_R_PARENTHESIS
-						{:
+							assert(preconditions != null);
+							assert(coverage != null);
+							assert(postconditions != null);
+							
+							assert(preconditions instanceof Predicates);
+							assert(coverage instanceof Coverage);
+							assert(postconditions instanceof Predicates);
+							
+							RESULT = new ConditionalCoverage((Predicates)preconditions, (Coverage)coverage, (Predicates)postconditions);
 						:}
 					;
 					
-Preconditions		::=
-					|	Preconditions Predicate
+Test_Goal_Set		::=
+						TOK_UNION TOK_L_PARENTHESIS Test_Goal_Set:coverage1 TOK_COMMA Test_Goal_Set:coverage2 TOK_R_PARENTHESIS
 						{:
+							assert(coverage1 != null);
+							assert(coverage2 != null);
+							
+							assert(coverage1 instanceof Coverage);
+							assert(coverage2 instanceof Coverage);
+							
+							RESULT = new fql.frontend.ast.coverage.Union((Coverage)coverage1, (Coverage)coverage2);
+						:}
+					|   TOK_INTERSECT TOK_L_PARENTHESIS Test_Goal_Set:coverage1 TOK_COMMA Test_Goal_Set:coverage2 TOK_R_PARENTHESIS
+						{:
+							assert(coverage1 != null);
+							assert(coverage2 != null);
+							
+							assert(coverage1 instanceof Coverage);
+							assert(coverage2 instanceof Coverage);
+							
+							RESULT = new fql.frontend.ast.coverage.Intersection((Coverage)coverage1, (Coverage)coverage2);
+						:}
+					| 	TOK_SETMINUS TOK_L_PARENTHESIS Test_Goal_Set:coverage1 TOK_COMMA Test_Goal_Set:coverage2 TOK_R_PARENTHESIS
+						{:
+							assert(coverage1 != null);
+							assert(coverage2 != null);
+							
+							assert(coverage1 instanceof Coverage);
+							assert(coverage2 instanceof Coverage);
+							
+							RESULT = new fql.frontend.ast.coverage.SetMinus((Coverage)coverage1, (Coverage)coverage2);
+						:}
+					| 	TOK_STATECOV TOK_L_PARENTHESIS Filter:filter TOK_R_PARENTHESIS
+						{:
+							assert(filter != null);
+							assert(filter instanceof Filter);
+							
+							RESULT = new States((Filter)filter, new Predicates());
+						:}
+					| 	TOK_STATECOV TOK_L_PARENTHESIS Filter:filter TOK_COMMA Predicates:predicates TOK_R_PARENTHESIS
+						{:
+							assert(filter != null);
+							assert(predicates != null);
+							
+							assert(filter instanceof Filter);
+							assert(predicates instanceof Predicates);
+							
+							RESULT = new States((Filter)filter, (Predicates)predicates);
+						:}
+					| 	TOK_EDGECOV TOK_L_PARENTHESIS Filter:filter TOK_R_PARENTHESIS
+						{:
+							assert(filter != null);
+							assert(filter instanceof Filter);
+							
+							RESULT = new Edges((Filter)filter, new Predicates());
+						:}
+					| 	TOK_EDGECOV TOK_L_PARENTHESIS Filter:filter TOK_COMMA Predicates:predicates TOK_R_PARENTHESIS
+						{:
+							assert(filter != null);
+							assert(filter instanceof Filter);
+							
+							assert(predicates != null);
+							assert(predicates instanceof Predicates);
+							
+							RESULT = new Edges((Filter)filter, (Predicates)predicates);
+						:}
+					| 	TOK_PATHCOV TOK_L_PARENTHESIS Filter:filter TOK_COMMA TOK_NAT_NUMBER:bound TOK_R_PARENTHESIS
+						{:
+							assert(filter != null);
+							assert(filter instanceof Filter);
+														
+							RESULT = new Paths((Filter)filter, bound.intValue(), new Predicates()); 
+						:}
+					| 	TOK_PATHCOV TOK_L_PARENTHESIS Filter:filter TOK_COMMA TOK_NAT_NUMBER:bound TOK_COMMA Predicates:predicates TOK_R_PARENTHESIS
+						{:
+							assert(filter != null);
+							assert(filter instanceof Filter);
+							
+							assert(predicates != null);
+							assert(predicates instanceof Predicates);
+							
+							RESULT = new Paths((Filter)filter, bound.intValue(), (Predicates)predicates);
 						:}
 					;
 					
 Predicates			::= 
-					| 	Predicate
 						{:
+							RESULT = new Predicates();
+						:}
+					| 	Predicate:predicate
+						{:
+							assert(predicate != null);
+							assert(predicate instanceof Predicate);
+							
+							Predicates lPredicates = new Predicates();
+							
+							lPredicates.add((Predicate)predicate);
+							
+							RESULT = lPredicates;
 						:} 
-					| 	Predicates TOK_COMMA Predicate
+					| 	Predicates:predicates TOK_COMMA Predicate:predicate
 						{:
+							assert(predicates != null);
+							assert(predicate != null);
+							
+							assert(predicates instanceof Predicates);
+							assert(predicate instanceof Predicate);
+							
+							Predicates lPredicates = (Predicates)predicates;
+							Predicate lPredicate = (Predicate)predicate;
+							
+							lPredicates.add(lPredicate);
+							
+							RESULT = lPredicates;
 						:}
 					;
 					
 Predicate			::=
-						TOK_L_BRACE c_LHS Comparison c_LHS TOK_R_BRACE
+						TOK_L_BRACE c_LHS:leftterm Comparison:comparison c_LHS:rightterm TOK_R_BRACE
 						{:
-						:}
-					|	TOK_L_BRACE TOK_QUOTED_STRING TOK_R_BRACE
-						{:
+							assert(leftterm != null);
+							assert(comparison != null);
+							assert(rightterm != null);
+							
+							assert(leftterm instanceof Term);
+							assert(comparison instanceof Predicate.Comparison);
+							assert(rightterm instanceof Term);
+							
+							RESULT = new Predicate((Term)leftterm, (Predicate.Comparison)comparison, (Term)rightterm);
 						:}
 					;
 					
 c_LHS				::= 
-						TOK_C_IDENT
+						TOK_C_IDENT:identifier
 						{:
+							RESULT = new CIdentifier(identifier);
 						:}
-					| 	TOK_NAT_NUMBER
+					| 	TOK_NAT_NUMBER:number
 						{:
+							RESULT = new NaturalNumber(number);
 						:}
 					;
 					
 Comparison			::= 
 						TOK_GREATER_OR_EQ
 						{:
+							RESULT = Predicate.Comparison.GREATER_OR_EQUAL;
 						:} 
 					| 	TOK_GREATER
 						{:
+							RESULT = Predicate.Comparison.GREATER;
 						:} 
 					| 	TOK_EQ
 						{:
+							RESULT = Predicate.Comparison.EQUAL;
 						:} 
 					| 	TOK_LESS_OR_EQ
 						{:
+							RESULT = Predicate.Comparison.LESS_OR_EQUAL;
 						:} 
 					| 	TOK_LESS
 						{:
+							RESULT = Predicate.Comparison.LESS;
 						:}
 					| 	TOK_NEQ
 						{:
+							RESULT = Predicate.Comparison.NOT_EQUAL;
 						:}
 					;
 					
 Filter				::=
-						Filter_Function
+						Filter_Function:filter
 						{:
+							RESULT = filter;
 						:}
-					|	TOK_COMPLEMENT TOK_L_PARENTHESIS Filter TOK_R_PARENTHESIS
+					|	TOK_COMPLEMENT TOK_L_PARENTHESIS Filter:filter TOK_R_PARENTHESIS
 						{:
+							assert(filter != null);
+							assert(filter instanceof Filter);
+							
+							RESULT = new Complement((Filter)filter);
 						:}
-					| 	TOK_UNION TOK_L_PARENTHESIS Filter TOK_COMMA Filter TOK_R_PARENTHESIS
+					| 	TOK_UNION TOK_L_PARENTHESIS Filter:filter1 TOK_COMMA Filter:filter2 TOK_R_PARENTHESIS
 						{:
+							assert(filter1 != null);
+							assert(filter2 != null);
+							assert(filter1 instanceof Filter);
+							assert(filter2 instanceof Filter);
+						
+							RESULT = new Union((Filter)filter1, (Filter)filter2);
 						:}
-					|	TOK_INTERSECT TOK_L_PARENTHESIS Filter TOK_COMMA Filter TOK_R_PARENTHESIS
+					|	TOK_INTERSECT TOK_L_PARENTHESIS Filter:filter1 TOK_COMMA Filter:filter2 TOK_R_PARENTHESIS
 						{:
+							assert(filter1 != null);
+							assert(filter2 != null);
+							assert(filter1 instanceof Filter);
+							assert(filter2 instanceof Filter);
+						
+							RESULT = new Intersection((Filter)filter1, (Filter)filter2);
 						:}
-					| 	TOK_SETMINUS TOK_L_PARENTHESIS Filter TOK_COMMA Filter TOK_R_PARENTHESIS
+					| 	TOK_SETMINUS TOK_L_PARENTHESIS Filter:filter1 TOK_COMMA Filter:filter2 TOK_R_PARENTHESIS
 						{:
+							assert(filter1 != null);
+							assert(filter2 != null);
+							assert(filter1 instanceof Filter);
+							assert(filter2 instanceof Filter);
+						
+							RESULT = new SetMinus((Filter)filter1, (Filter)filter2);
 						:}
-					| 	TOK_ENCLOSING_SCOPES TOK_L_PARENTHESIS Filter TOK_R_PARENTHESIS
+					| 	TOK_ENCLOSING_SCOPES TOK_L_PARENTHESIS Filter:filter TOK_R_PARENTHESIS
 						{:
+							assert(filter != null);
+							assert(filter instanceof Filter);
+							
+							RESULT = new EnclosingScopes((Filter)filter);
 						:}
-					| 	TOK_COMPOSE TOK_L_PARENTHESIS Filter TOK_COMMA Filter TOK_R_PARENTHESIS
+					| 	TOK_COMPOSE TOK_L_PARENTHESIS Filter:filter1 TOK_COMMA Filter:filter2 TOK_R_PARENTHESIS
 						{:
+							assert(filter1 != null);
+							assert(filter2 != null);
+							assert(filter1 instanceof Filter);
+							assert(filter2 instanceof Filter);
+						
+							RESULT = new Compose((Filter)filter1, (Filter)filter2);
 						:}
 					;
 					
@@ -366,15 +517,13 @@ Filter_Function		::=
 						{:
 							RESULT = new FunctionExit(function);
 						:}
-					|	TOK_EXPR TOK_L_PARENTHESIS TOK_QUOTED_STRING TOK_R_PARENTHESIS
+					|	TOK_EXPR TOK_L_PARENTHESIS TOK_QUOTED_STRING:expression TOK_R_PARENTHESIS
 						{:
-							// TODO implement expression
-							RESULT = null;
+							RESULT = new Expression(expression);
 						:}
-					|	TOK_REGEXP TOK_L_PARENTHESIS TOK_QUOTED_STRING TOK_R_PARENTHESIS
+					|	TOK_REGEXP TOK_L_PARENTHESIS TOK_QUOTED_STRING:regularexpression TOK_R_PARENTHESIS
 						{:
-							// TODO implement regular expression
-							RESULT = null;
+							RESULT = new RegularExpression(regularexpression);
 						:}
 					|	TOK_BASICBLOCKENTRY
 						{:
