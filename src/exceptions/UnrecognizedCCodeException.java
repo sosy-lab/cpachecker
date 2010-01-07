@@ -40,4 +40,8 @@ public class UnrecognizedCCodeException extends CPATransferException {
         + "in line " + astNode.getFileLocation().getStartingLineNumber()
         + ": " + astNode.getRawSignature());
   }
+  
+  public UnrecognizedCCodeException(CFAEdge edge, IASTNode astNode) {
+    this(null, edge, astNode);
+  }
 }
