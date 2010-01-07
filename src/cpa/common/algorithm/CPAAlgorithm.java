@@ -81,8 +81,8 @@ public class CPAAlgorithm implements Algorithm {
       AbstractElementWithLocation element = e.getFirst();
       Precision precision = e.getSecond();
 
-      CPAMain.logManager.log(Level.FINER, element,
-          "with precision", precision, "is popped from queue");
+      CPAMain.logManager.log(Level.FINER, "Retrieved element from waitlist");
+      CPAMain.logManager.log(Level.ALL, "Current element is", element, "with precision", precision);
 
       start = System.currentTimeMillis();
       Collection<? extends AbstractElement> successors = transferRelation.getAbstractSuccessors (element, precision, null);
@@ -90,9 +90,12 @@ public class CPAAlgorithm implements Algorithm {
       transferTime += (end - start);
       // TODO When we have a nice way to mark the analysis result as incomplete, we could continue analysis on a CPATransferException with the next element from waitlist.
       
+      CPAMain.logManager.log(Level.FINER, "Current element has", successors.size(), "successors");
+      
       for (AbstractElement succ : successors) {
         AbstractElementWithLocation successor = (AbstractElementWithLocation)succ;
-        CPAMain.logManager.log(Level.FINER, "successor of", element, "-->", successor);
+        CPAMain.logManager.log(Level.FINER, "Considering successor of current element");
+        CPAMain.logManager.log(Level.ALL, "Successor of", element, "\nis", successor);
         
         Collection<Pair<AbstractElementWithLocation,Precision>> reached = reachedElements.getReached(successor.getLocationNode());
 
@@ -104,17 +107,16 @@ public class CPAAlgorithm implements Algorithm {
           List<Pair<AbstractElementWithLocation,Precision>> toRemove = new Vector<Pair<AbstractElementWithLocation,Precision>>();
           List<Pair<AbstractElementWithLocation,Precision>> toAdd = new Vector<Pair<AbstractElementWithLocation,Precision>>();
           
+          CPAMain.logManager.log(Level.FINER, "Considering", reached.size(), "elements from reached set for merge");
           for (Pair<AbstractElementWithLocation, Precision> reachedEntry : reached) {
             AbstractElementWithLocation reachedElement = reachedEntry.getFirst();
             AbstractElementWithLocation mergedElement = mergeOperator.merge( successor, reachedElement, precision);
-            CPAMain.logManager.log(Level.FINER,
-                "Merged", successor, "and", reachedElement, "-->", mergedElement);
-            if (!mergedElement.equals(reachedElement)) {
-              CPAMain.logManager.log(Level.FINER,
-                  "reached element", reachedElement,
-                  "is removed from queue and", mergedElement,
-                  "with precision", precision, "is added to queue");
 
+            if (!mergedElement.equals(reachedElement)) {
+              CPAMain.logManager.log(Level.FINER, "Successor was merged with element from reached set");
+              CPAMain.logManager.log(Level.ALL,
+                  "Merged", successor, "\nand", reachedElement, "\n-->", mergedElement);
+              
               toRemove.add(reachedEntry);
               toAdd.add(new Pair<AbstractElementWithLocation,Precision>(mergedElement, precision));
             }
@@ -134,9 +136,11 @@ public class CPAAlgorithm implements Algorithm {
           simpleReached.add(e2);
         }
 
-        if (!stopOperator.stop(successor, simpleReached, precision)) {
-          CPAMain.logManager.log(Level.FINER,
-              "No need to stop", successor, "is added to queue");
+        if (stopOperator.stop(successor, simpleReached, precision)) {
+          CPAMain.logManager.log(Level.FINER, "Successor is covered or unreachable, not adding to waitlist");
+        
+        } else {
+          CPAMain.logManager.log(Level.FINER, "No need to stop, adding successor to waitlist");
 
           reachedElements.add(new Pair<AbstractElementWithLocation,Precision>(successor,precision));
           

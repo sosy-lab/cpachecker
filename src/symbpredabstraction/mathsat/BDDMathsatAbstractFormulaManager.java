@@ -31,6 +31,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
+import java.util.logging.Level;
+
+import cmdline.CPAMain;
 
 import symbpredabstraction.CommonFormulaManager;
 import symbpredabstraction.SSAMap;
@@ -78,6 +81,7 @@ public class BDDMathsatAbstractFormulaManager extends CommonFormulaManager {
 
         @Override
         public void modelFound(List<SymbolicFormula> model) {
+            CPAMain.logManager.log(Level.ALL, "Allsat found model", model);
             long start = System.currentTimeMillis();
 
             // the abstraction is created simply by taking the disjunction

@@ -114,7 +114,8 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
   }
   
   private RefinementOutcome cleanART(Path errorPath, ReachedElements pReached, ARTElement root) {
-    assert(root != null);
+    assert root != null;
+    assert !root.getParents().isEmpty() : "initial element makes no sense as refinement root";
     
     Collection<ARTElement> toWaitlist = new HashSet<ARTElement>();
     Set<ARTElement> toUnreach = root.getSubtree();

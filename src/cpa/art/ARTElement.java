@@ -1,10 +1,12 @@
 package cpa.art;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 
 import cfa.objectmodel.CFANode;
@@ -22,6 +24,7 @@ public class ARTElement implements AbstractElementWithLocation, AbstractWrapperE
   private final Set<ARTElement> parents; // more than one parent if joining elements
   private ARTElement mCoveredBy = null;
   private boolean isBottom = false;
+  private boolean destroyed = false;
 
   private final int elementId;
 
@@ -39,20 +42,24 @@ public class ARTElement implements AbstractElementWithLocation, AbstractWrapperE
   }
 
   public Set<ARTElement> getParents(){
+    assert !destroyed;
     return parents;
   }
 
   protected void addParent(ARTElement pOtherParent){
+    assert !destroyed;
     if(parents.add(pOtherParent)){
       pOtherParent.children.add(this);
     }
   }
 
   public Set<ARTElement> getChildren(){
+    assert !destroyed;
     return children;
   }
 
   public AbstractElementWithLocation getAbstractElementOnArtNode(){
+    assert !destroyed;
     return element;
   }
 
@@ -63,23 +70,28 @@ public class ARTElement implements AbstractElementWithLocation, AbstractWrapperE
   }
 
   protected void setUncovered() {
+    assert !destroyed;
     mCoveredBy = null;
     mCpa.setCovered(this, false);
   }
 
   public boolean isCovered() {
+    assert !destroyed;
     return mCpa.isCovered(this);
   }
 
   public ARTElement getCoveredBy() {
+    assert !destroyed;
     return mCoveredBy;
   }
 
   public boolean isBottom() {
+    assert !destroyed;
     return isBottom;
   }
 
   protected void setBottom(boolean pIsBottom) {
+    assert !destroyed;
     isBottom = pIsBottom;
   }
 
@@ -89,10 +101,29 @@ public class ARTElement implements AbstractElementWithLocation, AbstractWrapperE
 
   @Override
   public String toString() {
-    return "\n" 
-    + "ART Element Id: " + elementId + ", "
-    + "children: " + children.size() + ", "
-    + element;
+    StringBuffer sb = new StringBuffer();
+    if (destroyed) {
+      sb.append("Destroyed ");
+    }
+    sb.append("ART Element (Id: ");
+    sb.append(elementId);
+    if (!destroyed) {
+      sb.append(", Parents: ");
+      List<Integer> list = new ArrayList<Integer>();
+      for (ARTElement e: parents) {
+        list.add(e.elementId);
+      }
+      sb.append(list);
+      sb.append(", Children: ");
+      list.clear();
+      for (ARTElement e: children) {
+        list.add(e.elementId);
+      }
+      sb.append(list);
+    }
+    sb.append(") ");
+    sb.append(element);
+    return sb.toString();
   }
 
   @Override
@@ -102,6 +133,7 @@ public class ARTElement implements AbstractElementWithLocation, AbstractWrapperE
 
   @Override
   public AbstractElement retrieveElementOfType(String pElementClass) {
+    assert !destroyed;
     if(element.getClass().getSimpleName().equals(pElementClass)){
       return element;
     }
@@ -112,11 +144,13 @@ public class ARTElement implements AbstractElementWithLocation, AbstractWrapperE
   
   @Override
   public Iterable<AbstractElement> getWrappedElements() {
+    assert !destroyed;
     return Collections.singletonList((AbstractElement) element);
   }
 
   // TODO check
   public Set<ARTElement> getSubtree() {
+    assert !destroyed;
     Set<ARTElement> result = new HashSet<ARTElement>();
     Deque<ARTElement> workList = new ArrayDeque<ARTElement>();
 
@@ -158,6 +192,8 @@ public class ARTElement implements AbstractElementWithLocation, AbstractWrapperE
    * elements will not be removed from the covered set.
    */
   protected void removeFromART() {
+    assert !destroyed;
+    
     // clear children
     for (ARTElement child : children) {
       assert (child.parents.contains(this));
@@ -173,6 +209,7 @@ public class ARTElement implements AbstractElementWithLocation, AbstractWrapperE
     parents.clear();
 
     setUncovered();
+    destroyed = true;
   }
 
   public int getElementId() {

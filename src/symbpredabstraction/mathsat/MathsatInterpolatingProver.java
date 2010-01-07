@@ -34,11 +34,11 @@ import cmdline.CPAMain;
 
 public class MathsatInterpolatingProver implements InterpolatingTheoremProver {
 
-    private long msatEnv;
+    private final long msatEnv;
     private long env;
-    private boolean useSharedEnv;
-    private Map<Long, Integer> formulaToItpGroup;
-    private Map<Long, Long> copyFromCache;
+    private final boolean useSharedEnv;
+    private final Map<Long, Integer> formulaToItpGroup;
+    private final Map<Long, Long> copyFromCache;
 
     public MathsatInterpolatingProver(MathsatSymbolicFormulaManager mgr,
                                       boolean useSharing) {
@@ -51,7 +51,9 @@ public class MathsatInterpolatingProver implements InterpolatingTheoremProver {
 
     @Override
     public void init() {
-        formulaToItpGroup.clear();
+        assert copyFromCache.isEmpty();
+        assert formulaToItpGroup.isEmpty();
+        assert env == 0;
 
         if (useSharedEnv) {
             env = mathsat.api.msat_create_shared_env(msatEnv);
@@ -81,9 +83,11 @@ public class MathsatInterpolatingProver implements InterpolatingTheoremProver {
 
     @Override
     public void addFormula(SymbolicFormula f) {
+        assert env != 0;
+      
         long t = ((MathsatSymbolicFormula)f).getTerm();
         if (!useSharedEnv) {
-            long t2 = mathsat.api.MSAT_MAKE_ERROR_TERM();
+            long t2;
             if (copyFromCache.containsKey(t)) {
                 t2 = copyFromCache.get(t);
             } else {
@@ -107,6 +111,8 @@ public class MathsatInterpolatingProver implements InterpolatingTheoremProver {
 
     @Override
     public SymbolicFormula getInterpolant(List<SymbolicFormula> formulasOfA) {
+        assert env != 0;
+      
         int[] groupsOfA = new int[formulasOfA.size()];
         for (int i = 0; i < groupsOfA.length; ++i) {
             long t =
