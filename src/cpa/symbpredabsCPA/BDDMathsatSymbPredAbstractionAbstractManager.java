@@ -58,6 +58,8 @@ import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cmdline.CPAMain;
 
 import common.Pair;
+import exceptions.CPAException;
+import exceptions.RefinementFailedException;
 
 
 /**
@@ -525,7 +527,7 @@ implements SymbPredAbstFormulaManager
 
   @Override
   public CounterexampleTraceInfo buildCounterexampleTrace(
-      ArrayList<SymbPredAbsAbstractElement> abstractTrace) {
+      ArrayList<SymbPredAbsAbstractElement> abstractTrace) throws CPAException {
 
     long startTime = System.currentTimeMillis();
     stats.numCallsCexAnalysis++;
@@ -587,6 +589,7 @@ implements SymbPredAbstFormulaManager
       Deque<Integer> entryPoints = new ArrayDeque<Integer>();
       entryPoints.push(0);
       
+      boolean foundPredicates = false;
       boolean wellScopedPredicates = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.refinement.addWellScopedPredicates");
       // FIXME why is the last iteration left out?
       for (int i = 0; i < f.size()-1; ++i) {
@@ -598,6 +601,7 @@ implements SymbPredAbstFormulaManager
           // cut from the beginning
           start_of_a = 0;          
         }
+        SymbPredAbsAbstractElement e = abstractTrace.get(i);
         
         List<SymbolicFormula> formulasOfA = new ArrayList<SymbolicFormula>(i - start_of_a);
         for (int j = start_of_a; j <= i; ++j) {
@@ -612,16 +616,21 @@ implements SymbPredAbstFormulaManager
         msatSolveTimeEnd = System.currentTimeMillis();
         msatSolveTime += msatSolveTimeEnd - msatSolveTimeStart;
 
-        Collection<SymbolicFormula> atoms = mmgr.extractAtoms(
-            itp, true, splitItpAtoms, false);
-        Set<Predicate> preds = buildPredicates(atoms);
-        SymbPredAbsAbstractElement e = abstractTrace.get(i);
-        info.addPredicatesForRefinement(e, preds);
+        if (itp.isTrue() || itp.isFalse()) {
+          CPAMain.logManager.log(Level.ALL, "For location", e.getAbstractionLocation(), "got no interpolant.");
+        } else {
+          foundPredicates = true;
 
-        CPAMain.logManager.log(Level.ALL, "For element (", e, ") got:\n",
-            "interpolant", itp,
-            "atoms ", atoms,
-            "predicates", preds);
+          Collection<SymbolicFormula> atoms = mmgr.extractAtoms(
+              itp, true, splitItpAtoms, false);
+          Set<Predicate> preds = buildPredicates(atoms);
+          info.addPredicatesForRefinement(e, preds);
+  
+          CPAMain.logManager.log(Level.ALL, "For location", e.getAbstractionLocation(), "got:",
+              "interpolant", itp,
+              "atoms ", atoms,
+              "predicates", preds);
+        }
 
         // TODO the following code relies on the fact that there is always an abstraction on function call and return
         
@@ -635,6 +644,10 @@ implements SymbPredAbstFormulaManager
         if (e.getAbstractionLocation().getEnteringSummaryEdge() != null) {
           entryPoints.pop();
         }
+      }
+      
+      if (!foundPredicates) {
+        throw new RefinementFailedException(RefinementFailedException.Reason.InterpolationFailed, null);
       }
     } else {
       // this is a real bug, notify the user

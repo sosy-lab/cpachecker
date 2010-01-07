@@ -26,6 +26,8 @@ package cpa.symbpredabsCPA;
 import java.util.ArrayList;
 import java.util.Collection;
 
+import exceptions.CPAException;
+
 import symbpredabstraction.PathFormula;
 import symbpredabstraction.interfaces.AbstractFormula;
 import symbpredabstraction.interfaces.FormulaManager;
@@ -49,7 +51,8 @@ public interface SymbPredAbstFormulaManager extends FormulaManager {
 
     /**
      * Counterexample analysis and predicate discovery.
+     * @throws CPAException 
      */
     public CounterexampleTraceInfo buildCounterexampleTrace(
-            ArrayList<SymbPredAbsAbstractElement> abstractTrace);
+            ArrayList<SymbPredAbsAbstractElement> abstractTrace) throws CPAException;
 }
