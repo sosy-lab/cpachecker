@@ -33,6 +33,7 @@ import cfa.objectmodel.CFAEdge;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
+import cpa.invariant.util.FormulaReportingUtils;
 import exceptions.CPATransferException;
 
 /**
@@ -41,11 +42,11 @@ import exceptions.CPATransferException;
  */
 public class DumpInvariantTransferRelation implements TransferRelation {
 
-  private final SymbolicFormulaManager symbolicFormulaManager;
+  private final SymbolicFormulaManager symbolicManager;
   
   public DumpInvariantTransferRelation(DumpInvariantCPA cpa)
   {
-    symbolicFormulaManager = cpa.getSymbolicFormulaManager();
+    symbolicManager = cpa.getSymbolicFormulaManager();
   }
 
   @Override
@@ -59,18 +60,44 @@ public class DumpInvariantTransferRelation implements TransferRelation {
   public AbstractElement strengthen(AbstractElement el, List<AbstractElement> others, CFAEdge edge, Precision p)
     throws CPATransferException
   {
+    boolean dumpAvoidanceInvariant = false;
     SymbolicFormula result = null;
+    
+    // collect invariants and determine whether we need to add an invariant
+    // to avoid the current node.
     for (AbstractElement other : others) {
-      if (other instanceof InvariantReportingAbstractElement) {
-        SymbolicFormula otherInv = ((InvariantReportingAbstractElement)other).getInvariant();
+      if (other instanceof InvariantReportingElement) {
+        SymbolicFormula otherInv = ((InvariantReportingElement)other).getInvariant();
         if (otherInv != null) {
           if (result == null)
             result = otherInv;
           else
-            result = symbolicFormulaManager.makeAnd(result, otherInv);
+            result = symbolicManager.makeAnd(result, otherInv);
         }
       }
+      if (other instanceof AvoidanceReportingElement) {
+        if (((AvoidanceReportingElement)other).mustDumpInvariantForAvoidance())
+          dumpAvoidanceInvariant = true;
+      }
     }
+    
+    // if necessary, add an invariant to avoid the current node
+    if (dumpAvoidanceInvariant) {
+      // collect data
+      SymbolicFormula avoidanceInvariant = symbolicManager.makeTrue();
+      for (AbstractElement other : others) {
+        SymbolicFormula reported = FormulaReportingUtils.extractReportedFormulas(symbolicManager, other);
+        if (reported != null)
+          avoidanceInvariant = symbolicManager.makeAnd(avoidanceInvariant, reported);
+      }
+    
+      // add the invariant
+      if (result == null)
+        result = avoidanceInvariant;
+      else
+        result = symbolicManager.makeAnd(result, avoidanceInvariant);
+    }
+    
     if (result != null)
       return new DumpInvariantElement(result);
     else

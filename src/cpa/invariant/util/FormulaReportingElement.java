@@ -21,26 +21,22 @@
  *  CPAchecker web page:
  *    http://www.cs.sfu.ca/~dbeyer/CPAchecker/
  */
-package cpa.invariant.dump;
+package cpa.invariant.util;
 
 import symbpredabstraction.interfaces.SymbolicFormula;
-import cpa.common.interfaces.AbstractElement;
 
 /**
- * Interface to implement in order for a given abstract element
- * to be able to contribute to the invariant construction.
+ * Interface to implement in order for an object (typically abstract element)
+ * to be able to be over-approximated by a symbolic formula representing
+ * the abstract element.
  * 
  * @author g.theoduloz
  */
-public interface InvariantReportingAbstractElement extends AbstractElement {
-
+public interface FormulaReportingElement {
+  
   /**
-   * Get the invariant that the given abstract element
-   * wants to report.
-   * 
-   * @return a symbolic formula representing the invariant
-   *         or the value null representing the invariant true. 
+   * Returns a symbolic formula over-approximating the element
    */
-  public SymbolicFormula getInvariant();
+  public SymbolicFormula getFormulaApproximation();
   
 }

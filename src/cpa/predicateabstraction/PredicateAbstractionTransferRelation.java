@@ -132,7 +132,7 @@ public class PredicateAbstractionTransferRelation implements TransferRelation {
     //  e.getParent().getLocation());
     //  }
 
-    PredicateAbstractionAbstractElement succ = new PredicateAbstractionAbstractElement();
+    PredicateAbstractionAbstractElement succ = new PredicateAbstractionAbstractElement(cpa);
 
     // if e is the end of a function, we must find the correct return
     // location

@@ -172,7 +172,7 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis, CPA
       CPAMain.logManager.log(Level.FINEST, 
                        "Getting initial element from node: ", node);
 
-        PredicateAbstractionAbstractElement e = new PredicateAbstractionAbstractElement();
+        PredicateAbstractionAbstractElement e = new PredicateAbstractionAbstractElement(this);
         e.setAbstraction(abstractFormulaManager.makeTrue());
         return e;
     }

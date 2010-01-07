@@ -30,12 +30,13 @@ import java.util.List;
 import cfa.objectmodel.CFANode;
 
 import cpa.common.interfaces.AbstractElement;
+import cpa.invariant.dump.AvoidanceReportingElement;
 
 /**
  * Class to represent the abstract element of the analysis controller.
  * @author g.theoduloz
  */
-public class AnalysisControllerElement implements AbstractElement {
+public class AnalysisControllerElement implements AbstractElement, AvoidanceReportingElement {
   
   private final List<StopHeuristicsData> data;
   
@@ -161,6 +162,17 @@ public class AnalysisControllerElement implements AbstractElement {
       buffer.append(d.getClass().getSimpleName()).append(": ").append(d.toString());
     }
     return buffer.toString();
+  }
+
+  @Override
+  public boolean mustDumpInvariantForAvoidance() {
+    // returns true if the current element is the same as bottom
+    for (StopHeuristicsData d : data) {
+      if (d.isBottom())
+        return true;
+    }
+    
+    return false;
   }
  
 }

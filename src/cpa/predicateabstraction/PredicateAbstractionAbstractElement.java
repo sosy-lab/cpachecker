@@ -24,32 +24,38 @@
 package cpa.predicateabstraction;
 
 import symbpredabstraction.interfaces.AbstractFormula;
+import symbpredabstraction.interfaces.FormulaManager;
+import symbpredabstraction.interfaces.SymbolicFormula;
 import cpa.common.interfaces.AbstractElement;
+import cpa.invariant.util.FormulaReportingElement;
+import cpa.invariant.util.MathsatInvariantSymbolicFormulaManager;
 
 /**
  * AbstractElement for explicit-state lazy abstraction.
  *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
-public class PredicateAbstractionAbstractElement implements AbstractElement {
+public class PredicateAbstractionAbstractElement implements AbstractElement, FormulaReportingElement {
 
   private int elemId;
   private AbstractFormula abstraction;
+  private final PredicateAbstractionCPA cpa;
 
   //private boolean covered;
   //private int mark;
 
   private static int nextAvailableId = 1;
 
-  PredicateAbstractionAbstractElement(AbstractFormula a) {
+  PredicateAbstractionAbstractElement(PredicateAbstractionCPA pCpa, AbstractFormula a) {
     elemId = nextAvailableId++;
     abstraction = a;
+    cpa = pCpa;
     //covered = false;
     //mark = 0;
   }
 
-  public PredicateAbstractionAbstractElement() {
-    this(null);
+  public PredicateAbstractionAbstractElement(PredicateAbstractionCPA pCpa) {
+    this(pCpa, null);
   }
 
   public int getId() { 
@@ -107,6 +113,11 @@ public class PredicateAbstractionAbstractElement implements AbstractElement {
     return "E<" + abstraction + ">(";
 //    +
 //    (isMarked() ? mark : getId()) + ")";
+  }
+
+  @Override
+  public SymbolicFormula getFormulaApproximation() {
+    return cpa.getPredAbsFormulaManager().toConcrete(abstraction);
   }
 
 }
