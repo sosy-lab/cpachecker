@@ -24,67 +24,20 @@
 package cpa.types;
 
 import cfa.objectmodel.CFAFunctionDefinitionNode;
-import cpa.common.defaults.StaticPrecisionAdjustment;
-import cpa.common.interfaces.AbstractDomain;
+import cpa.common.defaults.AbstractCPA;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.ConfigurableProgramAnalysis;
-import cpa.common.interfaces.MergeOperator;
-import cpa.common.interfaces.Precision;
-import cpa.common.interfaces.PrecisionAdjustment;
-import cpa.common.interfaces.StopOperator;
-import cpa.common.interfaces.TransferRelation;
 
 /**
  * @author Philipp Wendler
  */
-public class TypesCPA implements ConfigurableProgramAnalysis {
-
-  private final AbstractDomain abstractDomain;
-  private final MergeOperator mergeOperator;
-  private final StopOperator stopOperator;
-  private final TransferRelation transferRelation;
+public class TypesCPA extends AbstractCPA {
   
   public TypesCPA(String mergeType, String stopType) {
-    TypesDomain domain = new TypesDomain();
-
-    abstractDomain = domain;
-    mergeOperator = new TypesMergeJoin(domain);
-    stopOperator = new TypesStopSep(domain);
-    transferRelation = new TypesTransferRelation();
+    super("join", "sep", new TypesTransferRelation());
   }
   
-  @Override
-  public AbstractDomain getAbstractDomain() {
-    return abstractDomain;
-  }
-
   @Override
   public AbstractElement getInitialElement(CFAFunctionDefinitionNode pNode) {
     return new TypesElement();
-  }
-
-  @Override
-  public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
-    return null;
-  }
-
-  @Override
-  public MergeOperator getMergeOperator() {
-    return mergeOperator;
-  }
-
-  @Override
-  public PrecisionAdjustment getPrecisionAdjustment() {
-    return StaticPrecisionAdjustment.getInstance();
-  }
-
-  @Override
-  public StopOperator getStopOperator() {
-    return stopOperator;
-  }
-
-  @Override
-  public TransferRelation getTransferRelation() {
-    return transferRelation;
   }
 }

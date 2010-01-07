@@ -17,17 +17,16 @@ import cmdline.CPAMain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
-import cpa.errorlocation.ErrorLocationCPA.ErrorLocationDomain;
 import exceptions.CPATransferException;
 
 public class ErrorLocationTransferRelation implements TransferRelation {
 
   private static Set<Integer> messages = new HashSet<Integer>();
 
-  private final ErrorLocationDomain domain;
+  private final AbstractElement errorElement;
   
-  public ErrorLocationTransferRelation(ErrorLocationDomain domain) {
-    this.domain = domain;
+  public ErrorLocationTransferRelation(AbstractElement errorElement) {
+    this.errorElement = errorElement;
   }
   
 
@@ -46,7 +45,7 @@ public class ErrorLocationTransferRelation implements TransferRelation {
     
     if (cfaEdge.getSuccessor() instanceof CFAErrorNode) {
       addError("Reaching error node with edge " + cfaEdge.getRawStatement(), cfaEdge);
-      return domain.getErrorElement();
+      return errorElement;
     }
     
     switch (cfaEdge.getEdgeType()) {
@@ -59,7 +58,7 @@ public class ErrorLocationTransferRelation implements TransferRelation {
           if (functionName.equals("__assert_fail")) {
 
             addError("Hit assertion " + expression.getRawSignature(), cfaEdge);
-            return domain.getErrorElement();
+            return errorElement;
           }
         }
         break;
@@ -72,7 +71,7 @@ public class ErrorLocationTransferRelation implements TransferRelation {
           // (where it doesn't belong IMHO)
           
           addError("Reaching error node with edge " + cfaEdge.getRawStatement(), cfaEdge);
-          return domain.getErrorElement();
+          return errorElement;
         }
         break;
     }

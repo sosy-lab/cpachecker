@@ -174,12 +174,6 @@ public class TypesElement implements AbstractElement {
   }
   
   @Override
-  protected TypesElement clone() {
-    // return new TypesElement(variables, typedefs, functions);
-    return this;
-  }
-  
-  @Override
   public String toString() {
     return variables.toString() + " " + functions.toString(); 
   }

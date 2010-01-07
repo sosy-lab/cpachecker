@@ -13,10 +13,34 @@ import cpa.common.interfaces.PartialOrder;
  *
  */
 public class FlatLatticeDomain implements AbstractDomain {
-  private AbstractElement mTopElement;
-  private AbstractElement mBottomElement;
-  private JoinOperator mJoinOperator;
-  private PartialOrder mPartialOrder;
+  private final AbstractElement mTopElement;
+  private final AbstractElement mBottomElement;
+  private final JoinOperator mJoinOperator;
+  private final PartialOrder mPartialOrder;
+  
+  private static class BottomElement implements AbstractElement {
+    @Override
+    public boolean isError() {
+      return false;
+    }
+    
+    @Override
+    public String toString() {
+      return "<BOTTOM>";
+    }
+  }
+  
+  private static class TopElement implements AbstractElement {
+    @Override
+    public boolean isError() {
+      return false;
+    }
+    
+    @Override
+    public String toString() {
+      return "<TOP>";
+    }
+  }
   
   public FlatLatticeDomain(AbstractElement pTopElement, AbstractElement pBottomElement) {
     assert(pTopElement != null);
@@ -29,33 +53,25 @@ public class FlatLatticeDomain implements AbstractDomain {
     this.mJoinOperator = new EqualityJoinOperator(this);
   }
   
-  /* (non-Javadoc)
-   * @see cpa.common.interfaces.AbstractDomain#getBottomElement()
-   */
+  public FlatLatticeDomain() {
+    this(new TopElement(), new BottomElement());
+  }
+  
   @Override
   public AbstractElement getBottomElement() {
     return this.mBottomElement;
   }
 
-  /* (non-Javadoc)
-   * @see cpa.common.interfaces.AbstractDomain#getTopElement()
-   */
   @Override
   public AbstractElement getTopElement() {
     return this.mTopElement;
   }
 
-  /* (non-Javadoc)
-   * @see cpa.common.interfaces.AbstractDomain#getJoinOperator()
-   */
   @Override
   public JoinOperator getJoinOperator() {
     return this.mJoinOperator;
   }
 
-  /* (non-Javadoc)
-   * @see cpa.common.interfaces.AbstractDomain#getPartialOrder()
-   */
   @Override
   public PartialOrder getPartialOrder() {
     return this.mPartialOrder;
