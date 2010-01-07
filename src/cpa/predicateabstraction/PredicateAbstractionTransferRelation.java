@@ -28,8 +28,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -39,10 +37,12 @@ import symbpredabstraction.interfaces.AbstractFormula;
 import symbpredabstraction.interfaces.Predicate;
 import cfa.objectmodel.CFAEdge;
 import cmdline.CPAMain;
+import cpa.common.algorithm.CEGARAlgorithm;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
 import exceptions.CPATransferException;
+import exceptions.TransferTimeOutException;
 
 
 /**
@@ -54,6 +54,8 @@ import exceptions.CPATransferException;
  */
 public class PredicateAbstractionTransferRelation implements TransferRelation {
 
+  PostOperationCallable po = new PostOperationCallable();
+  
   //  class Path {
   //    Vector<Integer> elemIds;
   //
@@ -247,7 +249,7 @@ public class PredicateAbstractionTransferRelation implements TransferRelation {
   }
 
   private AbstractElement getAbstractSuccessor(AbstractElement element,
-      CFAEdge cfaEdge, Precision prec) throws CPATransferException {
+      CFAEdge cfaEdge, Precision prec) throws CPATransferException, TransferTimeOutException {
     CPAMain.logManager.log(Level.FINEST, 
         "Getting Abstract Successor of element: ", element,
         " on edge: ", cfaEdge.getRawStatement());
@@ -284,19 +286,22 @@ public class PredicateAbstractionTransferRelation implements TransferRelation {
       // time limit is given in milliseconds
       long timeLimit = Integer.parseInt(CPAMain.cpaConfig.getPropertiesArray
                                ("predicateabstraction.trackabstractioncomputation.limit")[0]);
-      ExecutorService executor = Executors.newSingleThreadExecutor();
-      Future<AbstractElement> future = executor.submit(new PostOperationCallable(cfaEdge, e));
+      // set the edge and element
+      po.setEdge(cfaEdge);
+      po.setElement(e);
+      Future<AbstractElement> future = CEGARAlgorithm.executor.submit(po);
       try{
         // here we get the result of the post computation but there is a time limit
         // given to complete the task specified by timeLimit
         ret = future.get(timeLimit, TimeUnit.MILLISECONDS);
       } catch (TimeoutException exc){
-        System.out.println("Predicate Abstraction post computation time out");
+        throw new TransferTimeOutException(cfaEdge, e);
       } catch (InterruptedException exc) {
         exc.printStackTrace();
       } catch (ExecutionException exc) {
         exc.printStackTrace();
       }
+//      executor.shutdown();
     }
     else{
       ret = buildSuccessor(e, cfaEdge);
@@ -322,7 +327,7 @@ public class PredicateAbstractionTransferRelation implements TransferRelation {
 
   @Override
   public Collection<AbstractElement> getAbstractSuccessors(
-      AbstractElement element, Precision prec, CFAEdge cfaEdge) throws CPATransferException {
+      AbstractElement element, Precision prec, CFAEdge cfaEdge) throws CPATransferException, TransferTimeOutException {
     return Collections.singleton(getAbstractSuccessor(element, cfaEdge, prec));
 
     //  List<AbstractElementWithLocation> allSucc = new Vector<AbstractElementWithLocation>();
@@ -364,9 +369,8 @@ public class PredicateAbstractionTransferRelation implements TransferRelation {
     CFAEdge cfaEdge;
     PredicateAbstractionAbstractElement abstractElement;
     
-    public PostOperationCallable(CFAEdge pCfaEdge, PredicateAbstractionAbstractElement pAbstractElement) {
-      cfaEdge = pCfaEdge;
-      abstractElement = pAbstractElement;
+    public PostOperationCallable() {
+      
     }
     
     @Override
@@ -374,6 +378,13 @@ public class PredicateAbstractionTransferRelation implements TransferRelation {
       return buildSuccessor(abstractElement, cfaEdge);
     }
     
+    public void setEdge(CFAEdge pCfaEdge){
+      cfaEdge = pCfaEdge;
+    }
+    
+    public void setElement(PredicateAbstractionAbstractElement pAbstractElement){
+      abstractElement = pAbstractElement;
+    }
   }
   
 }

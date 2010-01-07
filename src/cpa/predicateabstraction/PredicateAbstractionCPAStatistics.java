@@ -70,7 +70,7 @@ public class PredicateAbstractionCPAStatistics implements CPAStatistics {
             (PredicateAbstractionTransferRelation)cpa.getTransferRelation();
         PredicateMap pmap = cpa.getPredicateMap();
         BDDMathsatPredicateAbstractionAbstractManager amgr =
-            (BDDMathsatPredicateAbstractionAbstractManager)cpa.getAbstractFormulaManager();
+            (BDDMathsatPredicateAbstractionAbstractManager)cpa.getPredAbsFormulaManager();
 
         Set<Predicate> allPreds = new HashSet<Predicate>();
         Collection<CFANode> allLocs = null;

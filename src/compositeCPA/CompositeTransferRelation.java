@@ -38,6 +38,7 @@ import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
 import exceptions.CPATransferException;
+import exceptions.TransferTimeOutException;
 
 public class CompositeTransferRelation implements TransferRelation{
 
@@ -53,7 +54,7 @@ public class CompositeTransferRelation implements TransferRelation{
   }
 
   @Override
-  public Collection<CompositeElement> getAbstractSuccessors(AbstractElement element, Precision precision, CFAEdge cfaEdge) throws CPATransferException {
+  public Collection<CompositeElement> getAbstractSuccessors(AbstractElement element, Precision precision, CFAEdge cfaEdge) throws CPATransferException, TransferTimeOutException {
     CompositeElement compositeElement = (CompositeElement) element;
     Collection<CompositeElement> results;
     
@@ -76,7 +77,7 @@ public class CompositeTransferRelation implements TransferRelation{
   }
   
   private void getAbstractSuccessorForEdge(CompositeElement compositeElement, Precision precision, CFAEdge cfaEdge,
-      Collection<CompositeElement> compositeSuccessors) throws CPATransferException {
+      Collection<CompositeElement> compositeSuccessors) throws CPATransferException, TransferTimeOutException {
     assert cfaEdge != null;
     
     CompositePrecision lCompositePrecision = null;

@@ -38,6 +38,7 @@ import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
 import exceptions.CPATransferException;
+import exceptions.TransferTimeOutException;
 
 /**
  * @author holzera
@@ -64,7 +65,7 @@ public class DominatorTransferRelation implements TransferRelation {
 	/* (non-Javadoc)
 	 * @see cpa.common.interfaces.TransferRelation#getAbstractSuccessor(cpa.common.interfaces.AbstractElement, cfa.objectmodel.CFAEdge)
 	 */
-	public AbstractElement getAbstractSuccessor(AbstractElement element, CFAEdge cfaEdge, Precision prec) throws CPATransferException {
+	public AbstractElement getAbstractSuccessor(AbstractElement element, CFAEdge cfaEdge, Precision prec) throws CPATransferException, TransferTimeOutException {
 		if (!(element instanceof DominatorElement)) {
 			return this.domain.getBottomElement();
 		}
@@ -95,7 +96,7 @@ public class DominatorTransferRelation implements TransferRelation {
 
 	@Override
 	public Collection<AbstractElement> getAbstractSuccessors(
-	    AbstractElement element, Precision prec, CFAEdge cfaEdge) throws CPATransferException {
+	    AbstractElement element, Precision prec, CFAEdge cfaEdge) throws CPATransferException, TransferTimeOutException {
 	  if (cfaEdge != null) {
 	    return Collections.singleton(getAbstractSuccessor(element, cfaEdge, prec));
 	  }

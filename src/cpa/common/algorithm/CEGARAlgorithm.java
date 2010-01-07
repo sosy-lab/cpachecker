@@ -29,6 +29,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.logging.Level;
 
 import cmdline.CPAMain;
@@ -42,6 +44,7 @@ import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.Refiner;
 import exceptions.CPAException;
+import exceptions.TransferTimeOutException;
 
 public class CEGARAlgorithm implements Algorithm {
 
@@ -54,6 +57,8 @@ public class CEGARAlgorithm implements Algorithm {
 
   private final Algorithm algorithm;
   private final Refiner mRefiner;
+  
+  public static ExecutorService executor;
   
   /**
    * Creates an instance of class className, passing the objects from argumentList
@@ -91,10 +96,10 @@ public class CEGARAlgorithm implements Algorithm {
   }
   
   @Override
-  public void run(ReachedElements reached, boolean stopAfterError) throws CPAException {
+  public void run(ReachedElements reached, boolean stopAfterError) throws CPAException, TransferTimeOutException {
 
     boolean stopAnalysis = false;
-    
+    executor = Executors.newCachedThreadPool();
     while (!stopAnalysis) {
       // run algorithm
       algorithm.run(reached, true);
@@ -145,6 +150,7 @@ public class CEGARAlgorithm implements Algorithm {
         stopAnalysis = true;
       }
     }
+    executor.shutdownNow();
     return;
   }
 

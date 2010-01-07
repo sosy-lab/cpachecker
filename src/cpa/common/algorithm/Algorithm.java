@@ -26,11 +26,12 @@ package cpa.common.algorithm;
 import cpa.common.ReachedElements;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import exceptions.CPAException;
+import exceptions.TransferTimeOutException;
 
 public interface Algorithm {
 
   public void run(ReachedElements reachedElements, boolean stopAfterError)
-                  throws CPAException;
+                  throws CPAException, TransferTimeOutException;
   
   public ConfigurableProgramAnalysis getCPA();
 }

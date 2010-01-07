@@ -89,6 +89,7 @@ import cpaplugin.MainCPAStatistics;
 import cpaplugin.CPAConfiguration.InvalidCmdlineArgumentException;
 import exceptions.CFAGenerationRuntimeException;
 import exceptions.CPAException;
+import exceptions.TransferTimeOutException;
 
 @SuppressWarnings("restriction")
 public class CPAMain {
@@ -139,7 +140,7 @@ public class CPAMain {
     }
   }
 
-  public static void main(String[] args) {
+  public static void main(String[] args) throws TransferTimeOutException {
     // initialize various components
     try {
       cpaConfig = new CPAConfiguration(args);
@@ -178,7 +179,7 @@ public class CPAMain {
     // statistics are displayed by shutdown hook
   }
   
-  public static void CPAchecker(IFile file) {
+  public static void CPAchecker(IFile file) throws TransferTimeOutException {
     logManager.log(Level.FINE, "Analysis Started");
     
     // parse code file
@@ -472,7 +473,7 @@ public class CPAMain {
     return;
   }
   
-  private static void runAlgorithm(final CFAMap cfas, final CFAFunctionDefinitionNode mainFunction) throws CPAException {
+  private static void runAlgorithm(final CFAMap cfas, final CFAFunctionDefinitionNode mainFunction) throws CPAException, TransferTimeOutException {
 
     if (CPAMain.cpaConfig.getBooleanValue("analysis.queryDrivenProgramTesting")) {
       

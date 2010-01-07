@@ -36,6 +36,7 @@ import cpa.common.algorithm.cbmctools.AbstractPathToCTranslator;
 import cpa.common.algorithm.cbmctools.CProver;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import exceptions.CPAException;
+import exceptions.TransferTimeOutException;
 
 public class CBMCAlgorithm implements Algorithm {
 
@@ -52,7 +53,7 @@ public class CBMCAlgorithm implements Algorithm {
   }
 
   @Override
-  public void run(ReachedElements reached, boolean stopAfterError) throws CPAException {
+  public void run(ReachedElements reached, boolean stopAfterError) throws CPAException, TransferTimeOutException {
 
     algorithm.run(reached, true);
 
