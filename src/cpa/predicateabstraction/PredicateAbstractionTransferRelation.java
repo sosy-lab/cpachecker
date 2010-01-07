@@ -249,7 +249,7 @@ public class PredicateAbstractionTransferRelation implements TransferRelation {
   }
 
   private AbstractElement getAbstractSuccessor(AbstractElement element,
-      CFAEdge cfaEdge, Precision prec) throws CPATransferException, TransferTimeOutException {
+      CFAEdge cfaEdge, Precision prec) throws CPATransferException {
     CPAMain.logManager.log(Level.FINEST, 
         "Getting Abstract Successor of element: ", element,
         " on edge: ", cfaEdge.getRawStatement());
@@ -327,7 +327,7 @@ public class PredicateAbstractionTransferRelation implements TransferRelation {
 
   @Override
   public Collection<AbstractElement> getAbstractSuccessors(
-      AbstractElement element, Precision prec, CFAEdge cfaEdge) throws CPATransferException, TransferTimeOutException {
+      AbstractElement element, Precision prec, CFAEdge cfaEdge) throws CPATransferException {
     return Collections.singleton(getAbstractSuccessor(element, cfaEdge, prec));
 
     //  List<AbstractElementWithLocation> allSucc = new Vector<AbstractElementWithLocation>();

@@ -1,10 +1,9 @@
 package exceptions;
 
 import cfa.objectmodel.CFAEdge;
-import cfa.objectmodel.CFANode;
 import cpa.common.interfaces.AbstractElement;
 
-public class TransferTimeOutException extends Exception {
+public class TransferTimeOutException extends CPATransferException {
 
   private static final long serialVersionUID = -8621199013744809508L;
   
@@ -12,7 +11,7 @@ public class TransferTimeOutException extends Exception {
   private final AbstractElement abstractElement;
   
   public TransferTimeOutException(CFAEdge pCfaEdge, AbstractElement pAbstractElement){
-    super();
+    super("transfer timed out for edge " + pCfaEdge.toString());
     cfaEdge = pCfaEdge;
     abstractElement = pAbstractElement;
   }

@@ -44,7 +44,6 @@ import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.Refiner;
 import exceptions.CPAException;
-import exceptions.TransferTimeOutException;
 
 public class CEGARAlgorithm implements Algorithm {
 
@@ -96,7 +95,7 @@ public class CEGARAlgorithm implements Algorithm {
   }
   
   @Override
-  public void run(ReachedElements reached, boolean stopAfterError) throws CPAException, TransferTimeOutException {
+  public void run(ReachedElements reached, boolean stopAfterError) throws CPAException {
 
     boolean stopAnalysis = false;
     executor = Executors.newCachedThreadPool();

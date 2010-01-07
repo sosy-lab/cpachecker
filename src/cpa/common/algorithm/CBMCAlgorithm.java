@@ -26,9 +26,8 @@ package cpa.common.algorithm;
 import java.util.ArrayList;
 import java.util.List;
 
-import cmdline.CPAMain;
-
 import cfa.CFAMap;
+import cmdline.CPAMain;
 import cpa.art.ARTCPA;
 import cpa.art.ARTElement;
 import cpa.common.ReachedElements;
@@ -36,7 +35,6 @@ import cpa.common.algorithm.cbmctools.AbstractPathToCTranslator;
 import cpa.common.algorithm.cbmctools.CProver;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import exceptions.CPAException;
-import exceptions.TransferTimeOutException;
 
 public class CBMCAlgorithm implements Algorithm {
 
@@ -53,7 +51,7 @@ public class CBMCAlgorithm implements Algorithm {
   }
 
   @Override
-  public void run(ReachedElements reached, boolean stopAfterError) throws CPAException, TransferTimeOutException {
+  public void run(ReachedElements reached, boolean stopAfterError) throws CPAException {
 
     algorithm.run(reached, true);
 

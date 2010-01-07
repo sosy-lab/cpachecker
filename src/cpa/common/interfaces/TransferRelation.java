@@ -27,10 +27,7 @@ import java.util.Collection;
 import java.util.List;
 
 import cfa.objectmodel.CFAEdge;
-
 import exceptions.CPATransferException;
-import exceptions.TransferTimeOutException;
-import cpa.common.interfaces.AbstractElement;
 
 /**
  * Interface for transfer relations.
@@ -49,7 +46,7 @@ public interface TransferRelation {
    * @return list of all successors of the current state (may be empty)
    */
   public Collection<? extends AbstractElement> getAbstractSuccessors(AbstractElement element, Precision precision, CFAEdge cfaEdge)
-    throws CPATransferException, TransferTimeOutException;
+    throws CPATransferException;
   
   /**
    * Updates an abstract element with information from the abstract elements of

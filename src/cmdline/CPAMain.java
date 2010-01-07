@@ -39,7 +39,6 @@ import org.eclipse.cdt.core.dom.IASTServiceProvider;
 import org.eclipse.cdt.core.dom.ICodeReaderFactory;
 import org.eclipse.cdt.core.dom.IASTServiceProvider.UnsupportedDialectException;
 import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
-import org.eclipse.cdt.core.dom.ast.IASTFunctionDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.cdt.internal.core.dom.InternalASTServiceProvider;
@@ -69,8 +68,8 @@ import compositeCPA.CompositeStopOperator;
 
 import cpa.art.ARTCPA;
 import cpa.art.ARTElement;
-import cpa.common.ReachedElements;
 import cpa.common.LogManager;
+import cpa.common.ReachedElements;
 import cpa.common.algorithm.Algorithm;
 import cpa.common.algorithm.CBMCAlgorithm;
 import cpa.common.algorithm.CEGARAlgorithm;
@@ -89,7 +88,6 @@ import cpaplugin.MainCPAStatistics;
 import cpaplugin.CPAConfiguration.InvalidCmdlineArgumentException;
 import exceptions.CFAGenerationRuntimeException;
 import exceptions.CPAException;
-import exceptions.TransferTimeOutException;
 
 @SuppressWarnings("restriction")
 public class CPAMain {
@@ -140,7 +138,7 @@ public class CPAMain {
     }
   }
 
-  public static void main(String[] args) throws TransferTimeOutException {
+  public static void main(String[] args) {
     // initialize various components
     try {
       cpaConfig = new CPAConfiguration(args);
@@ -179,7 +177,7 @@ public class CPAMain {
     // statistics are displayed by shutdown hook
   }
   
-  public static void CPAchecker(IFile file) throws TransferTimeOutException {
+  public static void CPAchecker(IFile file) {
     logManager.log(Level.FINE, "Analysis Started");
     
     // parse code file
@@ -449,8 +447,8 @@ public class CPAMain {
 //      }
       GlobalDeclarationEdge e = new GlobalDeclarationEdge(
           d.getRawSignature(),
-          ((IASTSimpleDeclaration)d).getDeclarators(),
-          ((IASTSimpleDeclaration)d).getDeclSpecifier());
+          sd.getDeclarators(),
+          sd.getDeclSpecifier());
       CFANode n = new CFANode(0);
       n.setFunctionName(cur.getFunctionName());
       e.initialize(cur, n);
@@ -473,7 +471,7 @@ public class CPAMain {
     return;
   }
   
-  private static void runAlgorithm(final CFAMap cfas, final CFAFunctionDefinitionNode mainFunction) throws CPAException, TransferTimeOutException {
+  private static void runAlgorithm(final CFAMap cfas, final CFAFunctionDefinitionNode mainFunction) throws CPAException {
 
     if (CPAMain.cpaConfig.getBooleanValue("analysis.queryDrivenProgramTesting")) {
       

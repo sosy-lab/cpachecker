@@ -54,7 +54,6 @@ import cpa.common.interfaces.PrecisionAdjustment;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
 import exceptions.CPATransferException;
-import exceptions.TransferTimeOutException;
 
 /**
  * @author Andreas Holzer <holzer@forsyte.de>
@@ -94,7 +93,7 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
       return mAbstractReachabilityTree;
     }
 
-    public AbstractElement getAbstractSuccessor (AbstractElement element, CFAEdge cfaEdge, Precision precision) throws CPATransferException, TransferTimeOutException
+    public AbstractElement getAbstractSuccessor (AbstractElement element, CFAEdge cfaEdge, Precision precision) throws CPATransferException
     {
       assert(precision instanceof CompositePrecision);
       CompositePrecision lCompositePrecision = (CompositePrecision)precision;
@@ -180,7 +179,7 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
     }
 
     @Override
-    public Collection<AbstractElementWithLocation> getAbstractSuccessors(AbstractElement element, Precision precision, CFAEdge cfaEdge) throws CPATransferException, TransferTimeOutException
+    public Collection<AbstractElementWithLocation> getAbstractSuccessors(AbstractElement element, Precision precision, CFAEdge cfaEdge) throws CPATransferException
     {
 
       //TODO CPACheckerStatistics.noOfTransferRelations++;
