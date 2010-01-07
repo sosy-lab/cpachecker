@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.logging.Level;
 
 import symbpredabstraction.interfaces.SymbolicFormula;
-import symbpredabstraction.interfaces.SymbolicFormulaManager;
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFANode;
 import cmdline.CPAMain;
@@ -43,12 +42,12 @@ import cpa.common.interfaces.AbstractWrapperElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;
 import cpa.invariant.dump.DumpInvariantElement;
-import cpa.invariant.util.FormulaReportingElement;
 import cpa.invariant.util.FormulaReportingUtils;
 import cpa.invariant.util.InvariantWithLocation;
 import cpa.invariant.util.MathsatInvariantSymbolicFormulaManager;
 import exceptions.CPAException;
 import exceptions.RefinementFailedException;
+import exceptions.TransferTimeOutException;
 
 /**
  * Outer algorithm to collect all invariants generated during
@@ -77,17 +76,25 @@ public class InvariantCollectionAlgorithm implements Algorithm {
       throws CPAException {
     
     InvariantWithLocation invariantMap = new InvariantWithLocation();
+    boolean restartCPA = false;
     
-    try {
-      // run the inner algorithm to fill the reached set
-      innerAlgorithm.run(reached, stopAfterError);
-      
-    } catch (RefinementFailedException failedRefinement) {
-      CPAMain.logManager.log(Level.ALL, "Dumping invariants due to: " + failedRefinement.toString());
-      addInvariantsForFailedRefinement(invariantMap, failedRefinement);
-    } catch (CPAException e) {
-      CPAMain.logManager.log(Level.ALL, "Dumping invariants due to: " + e.toString());
-    }
+    // loop if restartCPA is set to false
+    do {
+      restartCPA = false;
+      try {
+        // run the inner algorithm to fill the reached set
+        innerAlgorithm.run(reached, stopAfterError);
+      } catch (RefinementFailedException failedRefinement) {
+        CPAMain.logManager.log(Level.ALL, "Dumping invariants due to: " + failedRefinement.toString());
+        addInvariantsForFailedRefinement(invariantMap, failedRefinement);
+      } catch (TransferTimeOutException failedTransfer) {
+        CPAMain.logManager.log(Level.ALL, "Dumping invariants due to: " + failedTransfer.toString());
+        addInvariantsForFailedTransfer(invariantMap, failedTransfer);
+        restartCPA = true;
+      } catch (CPAException e) {
+        CPAMain.logManager.log(Level.ALL, "Dumping invariants due to: " + e.toString());
+      }
+    } while (restartCPA);
       
     // collect and dump all assumptions stored in abstract states
     CPAMain.logManager.log(Level.FINEST, "Dumping invariants resulting from assumptions");
@@ -168,5 +175,16 @@ public class InvariantCollectionAlgorithm implements Algorithm {
       SymbolicFormula dataRegion = FormulaReportingUtils.extractReportedFormulas(symbolicManager, element);
       invariant.addInvariant(element.getLocationNode(), symbolicManager.makeNot(dataRegion));
     }
+  }
+  
+  /**
+   * Returns the invariant(s) necessary to avoid the failed transfer
+   */
+  private void addInvariantsForFailedTransfer(
+      InvariantWithLocation invariant,
+      TransferTimeOutException failedTransfer) {
+    CFANode sourceLocation = failedTransfer.getCfaEdge().getPredecessor();
+    SymbolicFormula dataRegion = FormulaReportingUtils.extractReportedFormulas(symbolicManager, failedTransfer.getAbstractElement());
+    invariant.addInvariant(sourceLocation, symbolicManager.makeNot(dataRegion));
   }
 }
