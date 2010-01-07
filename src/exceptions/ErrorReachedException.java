@@ -25,6 +25,12 @@ package exceptions;
 
 import exceptions.CPATransferException;
 
+/**
+ * Exception thrown when an error has been found in the analyzed program.
+ * As this is not an error in CPAchecker, no exception should be used. Instead
+ * return an abstract element whose isError() method returns true.
+ */
+@Deprecated
 public class ErrorReachedException extends CPATransferException {
 
     /**

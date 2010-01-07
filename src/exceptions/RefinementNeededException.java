@@ -28,6 +28,14 @@ import java.util.Collection;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import exceptions.CPATransferException;
 
+/**
+ * Exception thrown when an refinement is needed.
+ * 
+ * Because of the separation of CPAAlgorithm and CEGAR, this exception cannot
+ * be used to signal the need of refinement any more, instead the program will
+ * crash. 
+ */
+@Deprecated
 public class RefinementNeededException extends CPATransferException {
 
     /**

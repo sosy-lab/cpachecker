@@ -1202,7 +1202,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
         
       } catch (TransferRelationException e) {
         addError(e.getMessage(), cfaEdge);
-        throw new ErrorReachedException(e.getMessage());
+        return domain.getBottomElement();
       
       } catch (InvalidPointerException e) {
         addError(e.getMessage(), cfaEdge);
