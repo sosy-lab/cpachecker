@@ -26,25 +26,16 @@ package cpa.predicateabstraction;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 
 import symbpredabstraction.interfaces.AbstractFormula;
 import symbpredabstraction.interfaces.Predicate;
 import cfa.objectmodel.CFAEdge;
 import cmdline.CPAMain;
-import cpa.common.algorithm.CEGARAlgorithm;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
 import exceptions.CPATransferException;
-import exceptions.TransferTimeOutException;
-
-
 /**
  * TransferRelation for explicit-state lazy abstraction. This is the most
  * complex of the CPA-related classes, and where the analysis is actually
@@ -53,34 +44,6 @@ import exceptions.TransferTimeOutException;
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
 public class PredicateAbstractionTransferRelation implements TransferRelation {
-
-  PostOperationCallable po = new PostOperationCallable();
-  
-  //  class Path {
-  //    Vector<Integer> elemIds;
-  //
-  //    public Path(Deque<PredicateAbstractionAbstractElement> cex) {
-  //      elemIds = new Vector<Integer>();
-  //      elemIds.ensureCapacity(cex.size());
-  //      for (PredicateAbstractionAbstractElement e : cex) {
-  //        elemIds.add(e.getLocation().getNodeNumber());
-  //      }
-  //    }
-  //
-  //    @Override
-  //    public boolean equals(Object o) {
-  //      if (o == this) return true;
-  //      if (o instanceof Path) {
-  //        return elemIds.equals(((Path)o).elemIds);
-  //      }
-  //      return false;
-  //    }
-  //
-  //    @Override
-  //    public int hashCode() {
-  //      return elemIds.hashCode();
-  //    }
-  //  }
 
   private PredicateAbstractionAbstractDomain domain;
   //private Map<Path, Integer> abstractCex;
@@ -165,85 +128,6 @@ public class PredicateAbstractionTransferRelation implements TransferRelation {
     if (cpa.getAbstractFormulaManager().isFalse(abstraction)) {
       return domain.getBottomElement();
     } else {
-      //++numAbstractStates;
-      // if we reach an error state, we want to log this...
-      //      if (succ.getLocation() instanceof CFAErrorNode) {
-      //        if (CPAMain.cpaConfig.getBooleanValue(
-      //        "cpas.symbpredabs.abstraction.norefinement")) {
-      //          CPAMain.cpaStats.setErrorReached(true);
-      //          throw new ErrorReachedException(
-      //          "Reached error location, but refinement disabled");
-      //        }
-      //        // oh oh, reached error location. Let's check whether the
-      //        // trace is feasible or spurious, and in case refine the
-      //        // abstraction
-      //        //
-      //        // first we build the abstract path
-      //        Deque<PredicateAbstractionAbstractElement> path =
-      //          new LinkedList<PredicateAbstractionAbstractElement>();
-      //        path.addFirst(succ);
-      //        PredicateAbstractionAbstractElement parent = succ.getParent();
-      //        while (parent != null) {
-      //          path.addFirst(parent);
-      //          parent = parent.getParent();
-      //        }
-      //        CounterexampleTraceInfo info =
-      //          amgr.buildCounterexampleTrace(
-      //              cpa.getFormulaManager(), path);
-      //        if (info.isSpurious()) {
-      //          CPAMain.logManager.log(Level.FINEST, 
-      //              "Found spurious error trace, refining the ",
-      //          "abstraction");
-      //          performRefinement(path, info);
-      //        } else {
-      //          CPAMain.logManager.log(Level.FINEST, 
-      //              "REACHED ERROR LOCATION!: ", succ,
-      //          " RETURNING BOTTOM!");
-      //          CPAMain.cpaStats.setErrorReached(true);
-      //          throw new ErrorReachedException(
-      //              info.getConcreteTrace().toString());
-      //        }
-      //        return domain.getBottomElement();
-      //      }
-
-      //      if (isFunctionStart(succ)) {
-      //        // we push into the context the return location, which is
-      //        // the successor location of the summary edge
-      //        assert(e.getLocation().getLeavingSummaryEdge() != null);
-      //        CFANode retNode = null;
-      //        retNode =
-      //          e.getLocation().getLeavingSummaryEdge().getSuccessor();
-      //        succ.pushContext(e.getAbstraction(), retNode);
-      ////      for (CFANode l : e.getLeaves()) {
-      ////      if (l instanceof FunctionDefinitionNode) {
-      ////      assert(l.getNumLeavingEdges() == 1);
-      ////      assert(l.getNumEnteringEdges() == 1);
-      //
-      ////      CFAEdge ee = l.getLeavingEdge(0);
-      ////      InnerCFANode n = (InnerCFANode)ee.getSuccessor();
-      ////      if (n.getSummaryNode().equals(succ.getLocation())) {
-      ////      CFANode pr = l.getEnteringEdge(0).getPredecessor();
-      ////      CallToReturnEdge ce = pr.getLeavingSummaryEdge();
-      ////      //assert(ce != null);
-      ////      if (ce != null) {
-      ////      retNode = ((InnerCFANode)ce.getSuccessor()).
-      ////      getSummaryNode();
-      ////      break;
-      ////      }
-      ////      }
-      ////      }
-      ////      }
-      //        //assert(retNode != null);
-      //        if (retNode != null) {
-      ////        CPAMain.logManager.log(Level.ALL, "DEBUG_3", "PUSHING CONTEXT TO", succ,
-      ////        ": ", cpa.getAbstractFormulaManager().toConcrete(
-      ////        cpa.getFormulaManager(),
-      ////        succ.getAbstraction()));
-      ////        //succ.getContext().push(succ.getAbstraction());
-      ////        succ.pushContext(succ.getAbstraction(), retNode);
-      //        }
-      //      }
-
       return succ;
     }
   }
@@ -253,14 +137,6 @@ public class PredicateAbstractionTransferRelation implements TransferRelation {
     CPAMain.logManager.log(Level.FINEST, 
         "Getting Abstract Successor of element: ", element,
         " on edge: ", cfaEdge.getRawStatement());
-
-    //    System.out.println("---------------------------");
-    //    System.out.println(cfaEdge);
-    //    System.out.println("___________________________");
-
-    //  if (!abstractTree.contains((AbstractElementWithLocation)element)) {
-    //  ++numAbstractStates;
-    //  }
 
     // To get the successor, we compute the predicate abstraction of the
     // formula of element plus all the edges that connect any of the
@@ -273,89 +149,19 @@ public class PredicateAbstractionTransferRelation implements TransferRelation {
       return e;
     }
 
-    //  CFANode src = e.getLocation();
+    AbstractElement ret = buildSuccessor(e, cfaEdge);
 
-    //  for (int i = 0; i < src.getNumLeavingEdges(); ++i) {
-    //    CFAEdge edge = src.getLeavingEdge(i);
-    //  if (edge.equals(cfaEdge)) {
-
-    AbstractElement ret = null;
-    
-    // use a timer if tracking is enabled
-    if (CPAMain.cpaConfig.getBooleanValue("predicateabstraction.trackabstractioncomputation.enabled")){
-      // time limit is given in milliseconds
-      long timeLimit = Integer.parseInt(CPAMain.cpaConfig.getPropertiesArray
-                               ("predicateabstraction.trackabstractioncomputation.limit")[0]);
-      // set the edge and element
-      po.setEdge(cfaEdge);
-      po.setElement(e);
-      Future<AbstractElement> future = CEGARAlgorithm.executor.submit(po);
-      try{
-        // here we get the result of the post computation but there is a time limit
-        // given to complete the task specified by timeLimit
-        ret = future.get(timeLimit, TimeUnit.MILLISECONDS);
-      } catch (TimeoutException exc){
-        throw new TransferTimeOutException(cfaEdge, e);
-      } catch (InterruptedException exc) {
-        exc.printStackTrace();
-      } catch (ExecutionException exc) {
-        exc.printStackTrace();
-      }
-//      executor.shutdown();
-    }
-    else{
-      ret = buildSuccessor(e, cfaEdge);
-    }
-
-    assert(ret != null);
-    
     CPAMain.logManager.log(Level.FINEST,
         "Successor is: ", ret);
 
-    //  if (ret != domain.getBottomElement()) {
-    //  abstractTree.addChild(e, ret);
-    //  }
-
     return ret;
-    //  }
-    //  }
-
-    //    CPAMain.logManager.log(Level.FINEST, "Successor is: BOTTOM");
-    //
-    //    return domain.getBottomElement();
   }
 
   @Override
   public Collection<AbstractElement> getAbstractSuccessors(
       AbstractElement element, Precision prec, CFAEdge cfaEdge) throws CPATransferException {
     return Collections.singleton(getAbstractSuccessor(element, cfaEdge, prec));
-
-    //  List<AbstractElementWithLocation> allSucc = new Vector<AbstractElementWithLocation>();
-    //  PredicateAbstractionAbstractElement e = (PredicateAbstractionAbstractElement)element;
-
-
-    //  assert(!e.isCovered());
-    //  CFANode src = e.getLocation();
-
-    //  for (int i = 0; i < src.getNumLeavingEdges(); ++i) {
-    //  AbstractElement newe =
-    //  getAbstractSuccessor(e, src.getLeavingEdge(i), prec);
-    //  if (newe != domain.getBottomElement()) {
-    //  allSucc.add((PredicateAbstractionAbstractElement)newe);
-    //  }
-    //  }
-
-    //  e.setMark();
-
-    //  CPAMain.logManager.log(Level.FINEST,
-    //  allSucc.size(), " successors found");
-
-    //  return allSucc;
   }
-
-  //  public void clearART() {
-  //    this.abstractTree.clear();
-  //  }
 
   @Override
   public AbstractElement strengthen(AbstractElement element,
@@ -363,30 +169,4 @@ public class PredicateAbstractionTransferRelation implements TransferRelation {
       Precision precision) {    
     return null;
   }
-  
-  private class PostOperationCallable implements Callable<AbstractElement>{
-
-    CFAEdge cfaEdge;
-    PredicateAbstractionAbstractElement abstractElement;
-    
-    public PostOperationCallable() {
-      
-    }
-    
-    @Override
-    public AbstractElement call() throws Exception {
-      return buildSuccessor(abstractElement, cfaEdge);
-    }
-    
-    public void setEdge(CFAEdge pCfaEdge){
-      cfaEdge = pCfaEdge;
-    }
-    
-    public void setElement(PredicateAbstractionAbstractElement pAbstractElement){
-      abstractElement = pAbstractElement;
-    }
-  }
-  
 }
-
- 
