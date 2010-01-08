@@ -114,13 +114,12 @@ analysis.noExternalCalls	true/false		false		true		don't create call/return edges
 analysis.noCompositeCPA		true/false		false		true		don't use composite CPA if there is only one CPA
 predicates.path
 analysis.entryFunction		function name		main		<DEFAULT>	name of function where analysis should start
-analysis.bfs			true/false		false		false		use BFS or DFS as strategy for visiting states
+analysis.traversal			"dfs","bfs","topsort"		"dfs"		<DEPENDS>		use DFS, BFS or TOPSORT as strategy for visiting states
 analysis.programs		path							for running CPAchecker as eclipse plugin
 analysis.cpas			list of class names	<ERROR>		<DEPENDS>	comma-separated list of CPAs to use
 analysis.mergeOperators		list of Strings				<DEPENDS>	comma-separated list of Strings passed to the above CPAs as name of the merge operator
 analysis.stopOperators		list of Strings				<DEPENDS>	comma-separated list of Strings passed to the above CPAs as name of the stop operator
 analysis.dontPrintReachableStates true/false		false		true		don't print set of reached abstract states after analysis
-analysis.topsort
 analysis.useGlobalVars		true/false		false		true		
 analysis.queryDrivenProgramTesting	true/false	false		false		use QueryDrivenProgramTesting instead of normal algorithm
 analysis.useFunctionDeclarations	true/false	false		true		include declarations of external functions in CFA
