@@ -72,7 +72,7 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis, CPA
     private final PredicateAbstractionStopOperator stop;
     private final PrecisionAdjustment precisionAdjustment;
     private final AbstractFormulaManager abstractFormulaManager;
-    private final BDDMathsatPredicateAbstractionAbstractManager amgr;
+    private final PredicateAbstractionAbstractFormulaManager amgr;
     private PredicateMap pmap;
 
     private final PredicateAbstractionCPAStatistics stats;
@@ -98,9 +98,9 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis, CPA
           CPAMain.logManager.log(Level.SEVERE, "ERROR, UNSUPPORTED SOLVER: " + whichProver);
             System.exit(1);
         }
-        InterpolatingTheoremProver itpProver =
+        InterpolatingTheoremProver<Integer> itpProver =
             new MathsatInterpolatingProver(mgr, true);
-        amgr = new BDDMathsatPredicateAbstractionAbstractManager(abstractFormulaManager, mgr, prover, itpProver);
+        amgr = new BDDMathsatPredicateAbstractionAbstractManager<Integer>(abstractFormulaManager, mgr, prover, itpProver);
 
 //        covers = new HashMap<ExplicitAbstractElement,
 //                             Set<ExplicitAbstractElement>>();

@@ -69,8 +69,8 @@ public class ExplicitCPAStatistics implements CPAStatistics {
         ExplicitTransferRelation trans =
             (ExplicitTransferRelation)cpa.getTransferRelation();
         PredicateMap pmap = cpa.getPredicateMap();
-        BDDMathsatExplicitAbstractManager amgr =
-            (BDDMathsatExplicitAbstractManager)cpa.getAbstractFormulaManager();
+        BDDMathsatExplicitAbstractManager<?> amgr =
+            (BDDMathsatExplicitAbstractManager<?>)cpa.getAbstractFormulaManager();
 
         Set<Predicate> allPreds = new HashSet<Predicate>();
         Collection<CFANode> allLocs = null;
@@ -140,7 +140,7 @@ public class ExplicitCPAStatistics implements CPAStatistics {
             }
         }
 
-        BDDMathsatExplicitAbstractManager.Stats bs = amgr.getStats();
+        BDDMathsatExplicitAbstractManager<?>.Stats bs = amgr.getStats();
 
         out.println("Number of abstract states visited: " +
                 trans.getNumAbstractStates());

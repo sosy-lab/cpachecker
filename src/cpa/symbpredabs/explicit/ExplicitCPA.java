@@ -80,7 +80,7 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis, CPAWithStatisti
     private final ExplicitStopOperator stop;
     private final PrecisionAdjustment precisionAdjustment;
     private final AbstractFormulaManager abstractFormulaManager;
-    private final BDDMathsatExplicitAbstractManager amgr;
+    private final ExplicitAbstractFormulaManager amgr;
     private PredicateMap pmap;
 
     // covering relation
@@ -110,9 +110,9 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis, CPAWithStatisti
           CPAMain.logManager.log(Level.SEVERE, "ERROR, UNSUPPORTED SOLVER: " + whichProver);
             System.exit(1);
         }
-        InterpolatingTheoremProver itpProver =
+        InterpolatingTheoremProver<Integer> itpProver =
             new MathsatInterpolatingProver(mgr, true);
-        amgr = new BDDMathsatExplicitAbstractManager(abstractFormulaManager, mgr, prover, itpProver);
+        amgr = new BDDMathsatExplicitAbstractManager<Integer>(abstractFormulaManager, mgr, prover, itpProver);
 
 //        covers = new HashMap<ExplicitAbstractElement,
 //                             Set<ExplicitAbstractElement>>();

@@ -85,7 +85,7 @@ public class SummaryCPA implements ConfigurableProgramAnalysis, CPAWithStatistic
     private PrecisionAdjustment precisionAdjustment;
     private AbstractFormulaManager abstractFormulaManager;
     private MathsatSummaryFormulaManager mgr;
-    private BDDMathsatSummaryAbstractManager amgr;
+    private SummaryAbstractFormulaManager amgr;
     private PredicateMap pmap;
     private Map<SummaryCFANode, Map<CFANode, Pair<SymbolicFormula, SSAMap>>>
         summaryToFormulaMap;
@@ -115,9 +115,9 @@ public class SummaryCPA implements ConfigurableProgramAnalysis, CPAWithStatistic
             assert(false);
             System.exit(1);
         }
-        InterpolatingTheoremProver itpProver =
+        InterpolatingTheoremProver<Integer> itpProver =
             new MathsatInterpolatingProver(mgr, false);
-        amgr = new BDDMathsatSummaryAbstractManager(abstractFormulaManager, mgr, thmProver, itpProver);
+        amgr = new BDDMathsatSummaryAbstractManager<Integer>(abstractFormulaManager, mgr, thmProver, itpProver);
         covered = new HashSet<SummaryAbstractElement>();
 
         // for testing purposes, it's nice to be able to use a given set of

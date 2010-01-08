@@ -26,11 +26,14 @@ package symbpredabstraction.interfaces;
 import java.util.List;
 
 
-
-public interface InterpolatingTheoremProver {
+/**
+ * @param <T> The type of the objects which can be used to select formulas for
+ * interpolant creation.
+ */
+public interface InterpolatingTheoremProver<T> {
     public void init();
     public void reset();
-    void addFormula(SymbolicFormula f);
-    boolean isUnsat();
-    SymbolicFormula getInterpolant(List<SymbolicFormula> formulasOfA);
+    public T addFormula(SymbolicFormula f);
+    public boolean isUnsat();
+    public SymbolicFormula getInterpolant(List<T> formulasOfA);
 }

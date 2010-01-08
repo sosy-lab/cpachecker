@@ -78,7 +78,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, CPAWithStati
   private final StopOperator stop;
   private final AbstractFormulaManager abstractFormulaManager;
   private final MathsatSymbolicFormulaManager symbolicFormulaManager;
-  private final BDDMathsatSymbPredAbstractionAbstractManager formulaManager;
+  private final SymbPredAbstFormulaManager formulaManager;
   private final PredicateMap predicateMap;
   private final SymbPredAbsCPAStatistics stats;
 
@@ -99,9 +99,9 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, CPAWithStati
       throw new CPAException("Unknown theorem prover " + whichProver
           + ", check option cpas.symbpredabs.explicit.abstraction.solver");
     }
-    InterpolatingTheoremProver itpProver =
+    InterpolatingTheoremProver<Integer> itpProver =
       new MathsatInterpolatingProver(symbolicFormulaManager, false);
-    formulaManager = new BDDMathsatSymbPredAbstractionAbstractManager(abstractFormulaManager, symbolicFormulaManager, thmProver, itpProver);
+    formulaManager = new BDDMathsatSymbPredAbstractionAbstractManager<Integer>(abstractFormulaManager, symbolicFormulaManager, thmProver, itpProver);
     domain = new SymbPredAbsAbstractDomain(abstractFormulaManager);
     transfer = new SymbPredAbsTransferRelation(this);
     merge = new SymbPredAbsMergeOperator(this);

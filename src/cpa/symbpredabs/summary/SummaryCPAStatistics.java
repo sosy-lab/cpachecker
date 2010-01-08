@@ -64,8 +64,8 @@ public class SummaryCPAStatistics implements CPAStatistics {
         SummaryTransferRelation trans =
             (SummaryTransferRelation)cpa.getTransferRelation();
         PredicateMap pmap = cpa.getPredicateMap();
-        BDDMathsatSummaryAbstractManager amgr =
-            (BDDMathsatSummaryAbstractManager)cpa.getAbstractFormulaManager();
+        BDDMathsatSummaryAbstractManager<?> amgr =
+            (BDDMathsatSummaryAbstractManager<?>)cpa.getAbstractFormulaManager();
 
         Set<Predicate> allPreds = new HashSet<Predicate>();
         Collection<CFANode> allLocs = null;
@@ -136,7 +136,7 @@ public class SummaryCPAStatistics implements CPAStatistics {
             }
         }
 
-        BDDMathsatSummaryAbstractManager.Stats bs = amgr.getStats();
+        BDDMathsatSummaryAbstractManager<?>.Stats bs = amgr.getStats();
 
         out.println("Number of abstract states visited: " +
                 trans.getNumAbstractStates());

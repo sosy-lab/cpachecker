@@ -26,6 +26,7 @@ package cpa.symbpredabs.explicit;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -33,6 +34,7 @@ import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
@@ -69,7 +71,7 @@ import exceptions.UnrecognizedCFAEdgeException;
  *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
-public class BDDMathsatExplicitAbstractManager extends
+public class BDDMathsatExplicitAbstractManager<T> extends
         BDDMathsatAbstractFormulaManager
         implements ExplicitAbstractFormulaManager {
 
@@ -108,7 +110,7 @@ public class BDDMathsatExplicitAbstractManager extends
     protected Stats stats;
     private boolean extendedStats;
 
-    abstract class KeyWithTimeStamp {
+    static abstract class KeyWithTimeStamp {
         public long timeStamp;
 
         public KeyWithTimeStamp() {
@@ -120,7 +122,7 @@ public class BDDMathsatExplicitAbstractManager extends
         }
     }
 
-    class CartesianAbstractionCacheKey extends KeyWithTimeStamp {
+    static class CartesianAbstractionCacheKey extends KeyWithTimeStamp {
         SymbolicFormula formula;
         Predicate pred;
 
@@ -148,7 +150,7 @@ public class BDDMathsatExplicitAbstractManager extends
         }
     }
 
-    class BooleanAbstractionCacheKey extends KeyWithTimeStamp {
+    static class BooleanAbstractionCacheKey extends KeyWithTimeStamp {
         SymbolicFormula formula;
         Set<Predicate> predList;
 
@@ -191,7 +193,7 @@ public class BDDMathsatExplicitAbstractManager extends
         }
     }
 
-    class FeasibilityCacheKey extends KeyWithTimeStamp {
+    static class FeasibilityCacheKey extends KeyWithTimeStamp {
         SymbolicFormula f;
 
         public FeasibilityCacheKey(SymbolicFormula fm) {
@@ -214,7 +216,7 @@ public class BDDMathsatExplicitAbstractManager extends
         }
     }
 
-    class TimeStampCache<Key extends KeyWithTimeStamp, Value>
+    static class TimeStampCache<Key extends KeyWithTimeStamp, Value>
         extends HashMap<Key, Value> {
         /**
          * default value
@@ -283,13 +285,13 @@ public class BDDMathsatExplicitAbstractManager extends
                   Pair<SymbolicFormula, SSAMap>> buildConcreteFormulaCache;
 
     private TheoremProver thmProver;
-    private InterpolatingTheoremProver itpProver;
+    private InterpolatingTheoremProver<T> itpProver;
 
     public BDDMathsatExplicitAbstractManager(
             AbstractFormulaManager amgr,
             MathsatSymbolicFormulaManager mmgr,
             TheoremProver prover,
-            InterpolatingTheoremProver interpolator) {
+            InterpolatingTheoremProver<T> interpolator) {
         super(amgr, mmgr);
         stats = new Stats();
         useCache = CPAMain.cpaConfig.getBooleanValue(
@@ -870,13 +872,18 @@ public class BDDMathsatExplicitAbstractManager extends
         long msatEnv = mmgr.getMsatEnv();
         itpProver.init();
 
+        List<T> itpGroupsIds = new ArrayList<T>(f.size());
+        for (int i = 0; i < f.size(); i++) {
+          itpGroupsIds.add(null);
+        }
+        
         int res = -1;
         long msatSolveTimeStart = System.currentTimeMillis();
         for (int i = suffixTrace ? f.size()-1 : 0;
              suffixTrace ? i >= 0 : i < f.size();
              i = (suffixTrace ? i-1 : i+1)) {
             SymbolicFormula cur = f.elementAt(i);
-            itpProver.addFormula(cur);
+            itpGroupsIds.set(i, itpProver.addFormula(cur));
 
             CPAMain.logManager.log(Level.ALL, "DEBUG_1",
                            "Asserting formula: ", cur);
@@ -898,6 +905,9 @@ public class BDDMathsatExplicitAbstractManager extends
                 res = -1;
             }
         }
+        assert itpGroupsIds.size() == f.size();
+        assert !itpGroupsIds.contains(null); // has to be filled completely
+
         // and check satisfiability
         boolean unsat = false;
         if (!shortestTrace || res == -1) {
@@ -945,8 +955,10 @@ public class BDDMathsatExplicitAbstractManager extends
                 for (int j = 0; j < sz; ++j) {
                     formulasOfA.add(f.elementAt(j+start_of_a));
                 }
+                List<T> idsOfA = itpGroupsIds.subList(start_of_a, start_of_a+sz);
+                assert formulasOfA.size() == idsOfA.size();
                 msatSolveTimeStart = System.currentTimeMillis();
-                SymbolicFormula itp = itpProver.getInterpolant(formulasOfA);
+                SymbolicFormula itp = itpProver.getInterpolant(idsOfA);
                 msatSolveTimeEnd = System.currentTimeMillis();
                 msatSolveTime += msatSolveTimeEnd - msatSolveTimeStart;
 
@@ -1126,6 +1138,11 @@ public class BDDMathsatExplicitAbstractManager extends
         long msatEnv = mmgr.getMsatEnv();
         itpProver.init();
 
+        List<T> itpGroupsIds = new ArrayList<T>(f.size());
+        for (int i = 0; i < f.size(); i++) {
+          itpGroupsIds.add(null);
+        }
+        
         int res = -1;
         long msatSolveTimeStart = System.currentTimeMillis();
         for (int i = suffixTrace ? f.size()-1 : 0;
@@ -1154,6 +1171,9 @@ public class BDDMathsatExplicitAbstractManager extends
                 res = -1;
             }
         }
+        assert itpGroupsIds.size() == f.size();
+        assert !itpGroupsIds.contains(null); // has to be filled completely
+
         // and check satisfiability
         boolean unsat = false;
         if (!shortestTrace || res == -1) {
@@ -1203,8 +1223,10 @@ public class BDDMathsatExplicitAbstractManager extends
                 for (int j = 0; j < sz; ++j) {
                     formulasOfA.add(f.elementAt(j+start_of_a));
                 }
+                List<T> idsOfA = itpGroupsIds.subList(start_of_a, start_of_a+sz);
+                assert formulasOfA.size() == idsOfA.size();
                 msatSolveTimeStart = System.currentTimeMillis();
-                SymbolicFormula itp = itpProver.getInterpolant(formulasOfA);
+                SymbolicFormula itp = itpProver.getInterpolant(idsOfA);
                 msatSolveTimeEnd = System.currentTimeMillis();
                 msatSolveTime += msatSolveTimeEnd - msatSolveTimeStart;
 
