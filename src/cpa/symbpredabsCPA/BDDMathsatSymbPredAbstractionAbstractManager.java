@@ -28,7 +28,9 @@ import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -58,6 +60,7 @@ import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cmdline.CPAMain;
 
 import common.Pair;
+
 import exceptions.CPAException;
 import exceptions.RefinementFailedException;
 
@@ -101,15 +104,24 @@ implements SymbPredAbstFormulaManager
 
   private static final int MAX_CACHE_SIZE = 100000;
 
+  private final boolean cartesianAbstraction;
+  private final boolean dumpHardAbstractions;
+  private final boolean getUsefulBlocks;
+  private final boolean shortestTrace;
+  private final boolean splitItpAtoms;
+  private final boolean useBitwiseAxioms;
   private final boolean useCache;
+  private final boolean useDtc;
+  private final boolean useSuffix;
+  private final boolean useZigZag;
+  private final boolean wellScopedPredicates;
+  
   private final Map<Pair<SymbolicFormula, List<SymbolicFormula>>, AbstractFormula> abstractionCache;
   //cache for cartesian abstraction queries. For each predicate, the values
   // are -1: predicate is false, 0: predicate is don't care,
   // 1: predicate is true
   private final TimeStampCache<CartesianAbstractionCacheKey, Byte> cartesianAbstractionCache;
   private final TimeStampCache<FeasibilityCacheKey, Boolean> feasibilityCache;
-
-  private final boolean dumpHardAbstractions;
 
   public BDDMathsatSymbPredAbstractionAbstractManager(
       AbstractFormulaManager pAmgr,
@@ -121,9 +133,18 @@ implements SymbPredAbstFormulaManager
     thmProver = pThmProver;
     itpProver = pItpProver;
 
+    cartesianAbstraction = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.abstraction.cartesian");
     dumpHardAbstractions = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.mathsat.dumpHardAbstractionQueries");
-    useCache = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.mathsat.useCache");
-
+    getUsefulBlocks      = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.explicit.getUsefulBlocks");
+    shortestTrace        = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.shortestCexTrace");
+    splitItpAtoms        = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.refinement.splitItpAtoms");
+    useBitwiseAxioms     = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.useBitwiseAxioms");
+    useCache             = !CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.mathsat.useCache");
+    useDtc               = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.mathsat.useDtc");
+    useSuffix            = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.shortestCexTraceUseSuffix");
+    useZigZag            = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.shortestCexTraceZigZag");
+    wellScopedPredicates = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.refinement.addWellScopedPredicates");
+    
     if (useCache) {
       abstractionCache = new HashMap<Pair<SymbolicFormula, List<SymbolicFormula>>, AbstractFormula>();
       cartesianAbstractionCache = new TimeStampCache<CartesianAbstractionCacheKey, Byte>(MAX_CACHE_SIZE);
@@ -140,8 +161,7 @@ implements SymbPredAbstFormulaManager
       AbstractFormula abs, PathFormula pathFormula,
       Collection<Predicate> predicates) {
     stats.numCallsAbstraction++;
-    if (CPAMain.cpaConfig.getBooleanValue(
-    "cpas.symbpredabs.abstraction.cartesian")) {
+    if (cartesianAbstraction) {
       return buildCartesianAbstraction(abs, pathFormula, predicates);
     } else {
       return buildBooleanAbstraction(abs, pathFormula, predicates);
@@ -200,8 +220,7 @@ implements SymbPredAbstFormulaManager
         }
     }
 
-    if (CPAMain.cpaConfig.getBooleanValue(
-            "cpas.symbpredabs.useBitwiseAxioms")) {
+    if (useBitwiseAxioms) {
         MathsatSymbolicFormula bitwiseAxioms = mmgr.getBitwiseAxioms(
                 (MathsatSymbolicFormula)f);
         f = mmgr.makeAnd(f, bitwiseAxioms);
@@ -407,7 +426,7 @@ implements SymbPredAbstFormulaManager
     // from now on, abstractionFormula, pathFormula and functionExitFormula should not be used,
     // only absFormula, absSsa, symbFormula, symbSsa
     
-    if (CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.useBitwiseAxioms")) {
+    if (useBitwiseAxioms) {
       MathsatSymbolicFormula bitwiseAxioms = mmgr.getBitwiseAxioms(
           (MathsatSymbolicFormula)symbFormula);
       symbFormula = smgr.makeAnd(symbFormula, bitwiseAxioms);
@@ -539,12 +558,12 @@ implements SymbPredAbstFormulaManager
     CPAMain.logManager.log(Level.ALL, "Counterexample trace formulas:", f);
     
     boolean theoryCombinationNeeded = false;
-    boolean useDtc = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.mathsat.useDtc");
 
     if (useDtc) {
       theoryCombinationNeeded = addBitwiseAxioms(f);
     }
-    
+    f = Collections.unmodifiableList(f);
+
     CPAMain.logManager.log(Level.FINEST, "Checking feasibility of counterexample trace");
 
     // now f is the DAG formula which is satisfiable iff there is a
@@ -553,22 +572,27 @@ implements SymbPredAbstFormulaManager
     // create a working environment
     itpProver.init();
 
-    boolean shortestTrace = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.shortestCexTrace");
-    boolean useSuffix = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.shortestCexTraceUseSuffix");
-    boolean useZigZag = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.shortestCexTraceZigZag");
-
     long msatSolveTimeStart = System.currentTimeMillis();
 
-    if (shortestTrace && CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.explicit.getUsefulBlocks")) {
-      f = getUsefulBlocks(f, theoryCombinationNeeded, useSuffix, useZigZag);
-     
-      // set shortestTrace to false, so we perform only one final call
-      // to msat_solve
-      shortestTrace = false;
+    if (shortestTrace && getUsefulBlocks) {
+      f = Collections.unmodifiableList(getUsefulBlocks(f, theoryCombinationNeeded, useSuffix, useZigZag));
     }
 
-    boolean spurious = checkInfeasabilityOfTrace(f, shortestTrace, useSuffix, useZigZag);
-
+    boolean spurious;
+    if (getUsefulBlocks || !shortestTrace) {
+      // check all formulas in f at once
+      
+      for (int i = useSuffix ? f.size()-1 : 0;
+          useSuffix ? i >= 0 : i < f.size(); i += useSuffix ? -1 : 1) {
+          
+        itpProver.addFormula(f.get(i)); 
+      }
+      spurious = itpProver.isUnsat();
+      
+    } else {
+      spurious = checkInfeasabilityOfShortestTrace(f);
+    }
+      
     long msatSolveTimeEnd = System.currentTimeMillis();
     long msatSolveTime = msatSolveTimeEnd - msatSolveTimeStart;
 
@@ -579,57 +603,51 @@ implements SymbPredAbstFormulaManager
     if (spurious) {
       // the counterexample is spurious. Extract the predicates from
       // the interpolants
-      boolean splitItpAtoms = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.refinement.splitItpAtoms");
       
       // how to partition the trace into (A, B) depends on whether
       // there are function calls involved or not: in general, A
       // is the trace from the entry point of the current function
       // to the current point, and B is everything else. To implement
       // this, we keep track of which function we are currently in.
-      Deque<Integer> entryPoints = new ArrayDeque<Integer>();
-      entryPoints.push(0);
-      
+      // if we don't want "well-scoped" predicates, A always starts at the beginning
+      Deque<Integer> entryPoints = null;
+      if (wellScopedPredicates) {
+        entryPoints = new ArrayDeque<Integer>();
+        entryPoints.push(0);
+      }
       boolean foundPredicates = false;
-      boolean wellScopedPredicates = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.refinement.addWellScopedPredicates");
-      // FIXME why is the last iteration left out?
+
       for (int i = 0; i < f.size()-1; ++i) {
-        int start_of_a;
-        if (wellScopedPredicates) {
-          start_of_a = entryPoints.peek();
-        } else {
-          // if we don't want "well-scoped" predicates, we always
-          // cut from the beginning
-          start_of_a = 0;          
-        }
+        // last iteration is left out because B would be empty
+        final int start_of_a = (wellScopedPredicates ? entryPoints.peek() : 0);
         SymbPredAbsAbstractElement e = abstractTrace.get(i);
-        
-        List<SymbolicFormula> formulasOfA = new ArrayList<SymbolicFormula>(i - start_of_a);
-        for (int j = start_of_a; j <= i; ++j) {
-          formulasOfA.add(f.get(j));
-        }
+
+        List<SymbolicFormula> formulasOfA = f.subList(start_of_a, i+1);
         
         CPAMain.logManager.log(Level.ALL, "Looking for interpolant for formulas from",
             start_of_a, "to", i);
-        
+                
         msatSolveTimeStart = System.currentTimeMillis();
         SymbolicFormula itp = itpProver.getInterpolant(formulasOfA);
         msatSolveTimeEnd = System.currentTimeMillis();
         msatSolveTime += msatSolveTimeEnd - msatSolveTimeStart;
-
+                
         if (itp.isTrue() || itp.isFalse()) {
           CPAMain.logManager.log(Level.ALL, "For location", e.getAbstractionLocation(), "got no interpolant.");
+        
         } else {
           foundPredicates = true;
 
-          Collection<SymbolicFormula> atoms = mmgr.extractAtoms(
-              itp, true, splitItpAtoms, false);
+          Collection<SymbolicFormula> atoms = mmgr.extractAtoms(itp, true, splitItpAtoms, false);
+          assert !atoms.isEmpty();
           Set<Predicate> preds = buildPredicates(atoms);
           info.addPredicatesForRefinement(e, preds);
-  
+
           CPAMain.logManager.log(Level.ALL, "For location", e.getAbstractionLocation(), "got:",
               "interpolant", itp,
               "atoms ", atoms,
               "predicates", preds);
+        
         }
 
         // TODO the following code relies on the fact that there is always an abstraction on function call and return
@@ -637,11 +655,11 @@ implements SymbPredAbstFormulaManager
         // If we are entering or exiting a function, update the stack
         // of entry points
         // TODO checking if the abstraction node is a new function
-        if (e.getAbstractionLocation() instanceof CFAFunctionDefinitionNode) {
+        if (wellScopedPredicates && e.getAbstractionLocation() instanceof CFAFunctionDefinitionNode) {
           entryPoints.push(i);
         }
         // TODO check we are returning from a function
-        if (e.getAbstractionLocation().getEnteringSummaryEdge() != null) {
+        if (wellScopedPredicates && e.getAbstractionLocation().getEnteringSummaryEdge() != null) {
           entryPoints.pop();
         }
       }
@@ -649,6 +667,7 @@ implements SymbPredAbstFormulaManager
       if (!foundPredicates) {
         throw new RefinementFailedException(RefinementFailedException.Reason.InterpolationFailed, null);
       }
+
     } else {
       // this is a real bug, notify the user
       ConcreteTraceFunctionCalls cf = new ConcreteTraceFunctionCalls();
@@ -659,25 +678,7 @@ implements SymbPredAbstFormulaManager
       
       // TODO - reconstruct counterexample
       // For now, we dump the asserted formula to a user-specified file
-      String cexFile = CPAMain.cpaConfig.getProperty("cpas.symbpredabs.refinement.msatCexFile");
-      if (cexFile != null) {
-        String path = CPAMain.cpaConfig.getProperty("output.path") + cexFile;
-        try {
-          SymbolicFormula t = smgr.makeTrue();
-          for (SymbolicFormula fm : f) {
-            t = smgr.makeAnd(t, fm);
-          }
-          String msatRepr = mmgr.dumpFormula(t);
-
-          PrintWriter pw = new PrintWriter(new File(path));
-          pw.println(msatRepr);
-          pw.close();
-        } catch (FileNotFoundException e) {
-          CPAMain.logManager.log(Level.INFO,
-              "Failed to save msat Counterexample to file ", path,
-              " (", e.getMessage(), ")");
-        }
-      }
+      dumpFormulasToFile(f);
     }
 
     itpProver.reset();
@@ -694,6 +695,28 @@ implements SymbPredAbstFormulaManager
     CPAMain.logManager.log(Level.ALL, "Counterexample information:", info);
 
     return info;
+  }
+
+  private void dumpFormulasToFile(List<SymbolicFormula> f) {
+    String cexFile = CPAMain.cpaConfig.getProperty("cpas.symbpredabs.refinement.msatCexFile");
+    if (cexFile != null) {
+      String path = CPAMain.cpaConfig.getProperty("output.path") + cexFile;
+      try {
+        SymbolicFormula t = smgr.makeTrue();
+        for (SymbolicFormula fm : f) {
+          t = smgr.makeAnd(t, fm);
+        }
+        String msatRepr = mmgr.dumpFormula(t);
+
+        PrintWriter pw = new PrintWriter(new File(path));
+        pw.println(msatRepr);
+        pw.close();
+      } catch (FileNotFoundException e) {
+        CPAMain.logManager.log(Level.WARNING,
+            "Failed to save msat Counterexample to file ", path,
+            " (", e.getMessage(), ")");
+      }
+    }
   }
 
   private List<SymbolicFormula> getFormulasForTrace(
@@ -737,7 +760,6 @@ implements SymbPredAbstFormulaManager
     boolean foundUninterpretedFunction = false;
     
     SymbolicFormula bitwiseAxioms = smgr.makeTrue();
-    boolean useBitwiseAxioms = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.useBitwiseAxioms");
     
     for (SymbolicFormula fm : traceFormulas) {
       boolean hasUf = mmgr.hasUninterpretedFunctions((MathsatSymbolicFormula)fm);
@@ -762,11 +784,7 @@ implements SymbPredAbstFormulaManager
     return foundUninterpretedFunction;
   }
   
-  private boolean checkInfeasabilityOfTrace(
-      List<SymbolicFormula> traceFormulas, boolean shortestTrace,
-      boolean useSuffix, boolean useZigZag) {
-    boolean spurious;
-    if (shortestTrace) {
+  private boolean checkInfeasabilityOfShortestTrace(List<SymbolicFormula> traceFormulas) {
       Boolean tmpSpurious = null;
       
       if (useZigZag) {
@@ -820,24 +838,7 @@ implements SymbPredAbstFormulaManager
         }
       }
       
-      if (tmpSpurious == null) {
-        spurious = itpProver.isUnsat();
-      } else {
-        spurious = tmpSpurious.booleanValue();
-      }
-      
-    } else {
-      // ZigZag makes no sense here
-      
-      for (int i = useSuffix ? traceFormulas.size()-1 : 0;
-        useSuffix ? i >= 0 : i < traceFormulas.size(); i += useSuffix ? -1 : 1) {
-        
-        SymbolicFormula fm = traceFormulas.get(i);
-        itpProver.addFormula(fm); 
-      }
-      spurious = itpProver.isUnsat();
-    }
-    return spurious;
+      return (tmpSpurious == null) ? itpProver.isUnsat() : tmpSpurious;
   }
 
   private PathFormula getInitSymbolicFormula(PathFormula pf, boolean replace) {
@@ -908,10 +909,7 @@ implements SymbPredAbstFormulaManager
       }
       // 2. if needed is inconsistent, then return it
       if (thmProver.isUnsat(trueFormula)) {
-        f = new ArrayList<SymbolicFormula>(f.size());
-        for (int i = 0; i < needed.length; ++i) {
-          f.add(needed[i]);
-        }
+        f = Arrays.asList(needed);
         break;
       }
       // 3. otherwise, assert one block at a time, until we get an

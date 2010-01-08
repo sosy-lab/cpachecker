@@ -30,7 +30,6 @@ import java.util.Map;
 import java.util.Set;
 
 import symbpredabstraction.interfaces.Predicate;
-
 import cpa.common.interfaces.AbstractElement;
 
 
@@ -44,8 +43,8 @@ import cpa.common.interfaces.AbstractElement;
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
 public class CounterexampleTraceInfo {
-    private boolean spurious;
-    private Map<AbstractElement, Set<Predicate>> pmap;
+    private final boolean spurious;
+    private final Map<AbstractElement, Set<Predicate>> pmap;
     private ConcreteTrace ctrace;
 
     public CounterexampleTraceInfo(boolean spurious) {
@@ -82,6 +81,7 @@ public class CounterexampleTraceInfo {
      */
     public void addPredicatesForRefinement(AbstractElement e,
                                            Set<Predicate> preds) {
+      if (!preds.isEmpty()) {
         if (pmap.containsKey(e)) {
             Set<Predicate> old = pmap.get(e);
             old.addAll(preds);
@@ -89,6 +89,7 @@ public class CounterexampleTraceInfo {
         } else {
             pmap.put(e, preds);
         }
+      }
     }
 
     /**
@@ -106,6 +107,6 @@ public class CounterexampleTraceInfo {
     @Override
     public String toString() {
       return "Spurious: " + isSpurious() +
-        (isSpurious() ? "" : ", " + getConcreteTrace());
+        (isSpurious() ? ", new predicates: " + pmap : ", trace: " + getConcreteTrace());
     }
 }
