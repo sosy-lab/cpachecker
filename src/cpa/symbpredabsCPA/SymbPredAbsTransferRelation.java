@@ -117,7 +117,12 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     
     try {
       if (abstractionLocation) {
-        return Collections.singleton(handleAbstractionLocation(element, edge));
+        AbstractElement result = handleAbstractionLocation(element, edge);
+        if (result == domain.getBottomElement()) {
+          return Collections.emptySet();
+        } else {
+          return Collections.singleton(result);
+        }
       } else {
         return Collections.singleton(handleNonAbstractionLocation(element, edge));
       }
