@@ -44,6 +44,8 @@ import fql.frontend.ast.pathmonitor.Concatenation;
 import fql.frontend.ast.pathmonitor.Alternative;
 import fql.frontend.ast.coverage.Sequence;
 import fql.frontend.ast.query.Query;
+import fql.frontend.ast.query.FilterPropagator;
+import fql.frontend.ast.FQLNode;
 
 parser code
 {:
@@ -159,8 +161,14 @@ Query				::=
 							Coverage lCoverage;
 							
 							if (filter != null) {
-								// apply filter on coverage
-								lCoverage = null;
+								assert(filter instanceof Filter);
+							
+								FQLNode lNode = ((Coverage)coverage).accept(new FilterPropagator((Filter)filter));
+								
+								assert(lNode != null);
+								assert(lNode instanceof Coverage);
+								
+								lCoverage = (Coverage)lNode;
 							}
 							else {
 								lCoverage = (Coverage)coverage;

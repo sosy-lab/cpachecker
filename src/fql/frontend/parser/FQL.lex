@@ -36,7 +36,7 @@ import static fql.frontend.parser.FQLSym.*;
 
 	private Symbol sym(int type, Object value)
 	{
-		System.out.println(value);
+		//System.out.println(value);
 	
 		return new Symbol(type, yyline, yycolumn, value);
 	}

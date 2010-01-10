@@ -17,7 +17,7 @@ public class FQLParserTest {
     
     FQLParser lParser = new FQLParser(new FQLLexer(new StringReader(lInput)));
     
-    System.out.println(lParser.parse().value);
+    System.out.println("RESULT: " + lParser.parse().value.toString());
   }
 
   @Test
@@ -28,7 +28,7 @@ public class FQLParserTest {
     
     FQLParser lParser = new FQLParser(new FQLLexer(new StringReader(lInput)));
     
-    System.out.println(lParser.parse().value);
+    System.out.println("RESULT: " + lParser.parse().value.toString());
   }
   
   @Test
@@ -39,7 +39,7 @@ public class FQLParserTest {
     
     FQLParser lParser = new FQLParser(new FQLLexer(new StringReader(lInput)));
     
-    System.out.println(lParser.parse().value);
+    System.out.println("RESULT: " + lParser.parse().value.toString());
   }
   
   @Test
@@ -50,7 +50,7 @@ public class FQLParserTest {
     
     FQLParser lParser = new FQLParser(new FQLLexer(new StringReader(lInput)));
     
-    System.out.println(lParser.parse().value);
+    System.out.println("RESULT: " + lParser.parse().value.toString());
   }
   
   @Test
@@ -61,7 +61,7 @@ public class FQLParserTest {
     
     FQLParser lParser = new FQLParser(new FQLLexer(new StringReader(lInput)));
     
-    System.out.println(lParser.parse().value);
+    System.out.println("RESULT: " + lParser.parse().value.toString());
   }
   
   @Test
@@ -72,7 +72,7 @@ public class FQLParserTest {
     
     FQLParser lParser = new FQLParser(new FQLLexer(new StringReader(lInput)));
     
-    System.out.println(lParser.parse().value);
+    System.out.println("RESULT: " + lParser.parse().value.toString());
   }
   
   @Test
@@ -83,7 +83,7 @@ public class FQLParserTest {
     
     FQLParser lParser = new FQLParser(new FQLLexer(new StringReader(lInput)));
     
-    System.out.println(lParser.parse().value);
+    System.out.println("RESULT: " + lParser.parse().value.toString());
   }
   
   @Test
@@ -94,6 +94,51 @@ public class FQLParserTest {
     
     FQLParser lParser = new FQLParser(new FQLLexer(new StringReader(lInput)));
     
-    System.out.println(lParser.parse().value);
+    System.out.println("RESULT: " + lParser.parse().value.toString());
   }
+  
+  @Test
+  public void testFQLParserScanner009() throws Exception {
+    String lInput = "IN @FILE(\"foo.c\") COVER EDGES(UNION(@BASICBLOCKENTRY, @CONDITIONEDGE))";
+    
+    System.out.println(lInput);
+    
+    FQLParser lParser = new FQLParser(new FQLLexer(new StringReader(lInput)));
+    
+    System.out.println("RESULT: " + lParser.parse().value.toString());
+  }
+
+  @Test
+  public void testFQLParserScanner010() throws Exception {
+    String lInput = "IN @FILE(\"foo.c\") COVER EDGES(UNION(@BASICBLOCKENTRY, @CONDITIONEDGE)) PASSING ID*.@5.ID*";
+    
+    System.out.println(lInput);
+    
+    FQLParser lParser = new FQLParser(new FQLLexer(new StringReader(lInput)));
+    
+    System.out.println("RESULT: " + lParser.parse().value.toString());
+  }
+
+  @Test
+  public void testFQLParserScanner011() throws Exception {
+    String lInput = "IN @FILE(\"foo.c\") COVER STATES(@CONDITIONEDGE, { x > 10}) PASSING ID*.@5.ID*";
+    
+    System.out.println(lInput);
+    
+    FQLParser lParser = new FQLParser(new FQLLexer(new StringReader(lInput)));
+    
+    System.out.println("RESULT: " + lParser.parse().value.toString());
+  }
+
+  @Test
+  public void testFQLParserScanner012() throws Exception {
+    String lInput = "IN @FILE(\"foo.c\") COVER { y <= 53049 } STATES(@CONDITIONEDGE, { x > 10}) PASSING ID*.@5.ID*";
+    
+    System.out.println(lInput);
+    
+    FQLParser lParser = new FQLParser(new FQLLexer(new StringReader(lInput)));
+    
+    System.out.println("RESULT: " + lParser.parse().value.toString());
+  }
+  
 }

@@ -27,7 +27,24 @@ public class Predicates implements FQLNode, Iterable<Predicate> {
   
   @Override
   public String toString() {
-    return mPredicates.toString();
+    String lResult = "{";
+    
+    boolean lFirst = true;
+    
+    for (Predicate lPredicate : mPredicates) {
+      lResult += " " + lPredicate.toString();
+      
+      if (lFirst) {
+        lFirst = false;
+      }
+      else {
+        lResult += ",";
+      }
+    }
+    
+    lResult += " }";
+    
+    return lResult;
   }
   
   @Override
