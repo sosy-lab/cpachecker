@@ -44,10 +44,10 @@ public class SetMinus implements Filter {
   }
 
   @Override
-  public void accept(ASTVisitor pVisitor) {
+  public <T> T accept(ASTVisitor<T> pVisitor) {
     assert(pVisitor != null);
     
-    pVisitor.visit(this);
+    return pVisitor.visit(this);
   }
 
 }

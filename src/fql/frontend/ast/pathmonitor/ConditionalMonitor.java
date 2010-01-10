@@ -1,21 +1,21 @@
-package fql.frontend.ast.coverage;
+package fql.frontend.ast.pathmonitor;
 
 import fql.frontend.ast.ASTVisitor;
 import fql.frontend.ast.predicate.Predicates;
 
-public class ConditionalCoverage implements Coverage {
+public class ConditionalMonitor implements PathMonitor {
 
-  private Coverage mCoverage;
   private Predicates mPreconditions;
+  private PathMonitor mSubmonitor;
   private Predicates mPostconditions;
   
-  public ConditionalCoverage(Predicates pPreconditions, Coverage pCoverage, Predicates pPostconditions) {
+  public ConditionalMonitor(Predicates pPreconditions, PathMonitor pSubmonitor, Predicates pPostconditions) {
     assert(pPreconditions != null);
-    assert(pCoverage != null);
+    assert(pSubmonitor != null);
     assert(pPostconditions != null);
     
     mPreconditions = pPreconditions;
-    mCoverage = pCoverage;
+    mSubmonitor = pSubmonitor;
     mPostconditions = pPostconditions;
   }
   
@@ -27,13 +27,13 @@ public class ConditionalCoverage implements Coverage {
     return mPostconditions;
   }
   
-  public Coverage getCoverage() {
-    return mCoverage;
+  public PathMonitor getSubmonitor() {
+    return mSubmonitor;
   }
   
   @Override
   public String toString() {
-    return mPreconditions.toString() + " " + mCoverage.toString() + " " + mPostconditions.toString();
+    return mPreconditions.toString() + " " + mSubmonitor.toString() + " " + mPostconditions.toString();
   }
   
   @Override
@@ -47,9 +47,11 @@ public class ConditionalCoverage implements Coverage {
     }
     
     if (pOther.getClass() == getClass()) {
-      ConditionalCoverage lOther = (ConditionalCoverage)pOther;
+      ConditionalMonitor lMonitor = (ConditionalMonitor)pOther;
       
-      return (lOther.mCoverage.equals(mCoverage) && lOther.mPreconditions.equals(mPreconditions) && lOther.mPostconditions.equals(mPostconditions));
+      return lMonitor.mPreconditions.equals(mPreconditions) 
+              && lMonitor.mSubmonitor.equals(mSubmonitor)
+              && lMonitor.mPostconditions.equals(mPostconditions);
     }
     
     return false;
@@ -57,7 +59,7 @@ public class ConditionalCoverage implements Coverage {
   
   @Override
   public int hashCode() {
-    return 712803 + mCoverage.hashCode() + mPreconditions.hashCode() + mPostconditions.hashCode();
+    return 20393 + mPreconditions.hashCode() + mSubmonitor.hashCode() + mPostconditions.hashCode();
   }
   
   @Override

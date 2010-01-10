@@ -15,6 +15,12 @@ public class Predicates implements FQLNode, Iterable<Predicate> {
     mPredicates.add(pPredicate);
   }
   
+  public void add(Predicates pPredicates) {
+    assert(pPredicates != null);
+    
+    mPredicates.addAll(pPredicates.mPredicates);
+  }
+  
   public boolean isEmpty() {
     return mPredicates.isEmpty();
   }
@@ -49,10 +55,10 @@ public class Predicates implements FQLNode, Iterable<Predicate> {
   }
   
   @Override
-  public void accept(ASTVisitor pVisitor) {
+  public <T> T accept(ASTVisitor<T> pVisitor) {
     assert(pVisitor != null);
     
-    pVisitor.visit(this);
+    return pVisitor.visit(this);
   }
 
   @Override

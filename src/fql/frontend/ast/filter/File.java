@@ -42,8 +42,10 @@ public class File implements Filter {
   }
   
   @Override
-  public void accept(ASTVisitor pVisitor) {
-    pVisitor.visit(this);
+  public <T> T accept(ASTVisitor<T> pVisitor) {
+    assert(pVisitor != null);
+    
+    return pVisitor.visit(this);
   }
 
 }
