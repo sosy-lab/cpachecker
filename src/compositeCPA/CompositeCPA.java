@@ -25,13 +25,12 @@ package compositeCPA;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-
 import java.util.logging.Level;
+
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cmdline.CPAMain;
 import cpa.common.CallElement;
@@ -47,6 +46,7 @@ import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
+import cpa.transferrelationmonitor.TransferRelationMonitorCPA;
 import cpaplugin.CPAStatistics;
 import exceptions.CPAException;
 
@@ -124,6 +124,10 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, CPAWithStatist
     String[] cpaNamesArray = CPAMain.cpaConfig.getPropertiesArray("analysis.cpas");
     String[] mergeTypesArray = CPAMain.cpaConfig.getPropertiesArray("analysis.mergeOperators");
     String[] stopTypesArray = CPAMain.cpaConfig.getPropertiesArray("analysis.stopOperators");
+    String[] cpaToBeMonitored = null;
+    if(CPAMain.cpaConfig.getBooleanValue("monitoringCPA.enable")){
+      cpaToBeMonitored = CPAMain.cpaConfig.getPropertiesArray("monitoringCPA.cpa"); 
+    }
 
     int sizeOfCompositeCPA = cpaNamesArray.length;
     if (0 == sizeOfCompositeCPA) throw new CPAException("Configuration option analysis.cpas is not set!");
@@ -148,6 +152,14 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, CPAWithStatist
         Object obj = ct.newInstance(argumentlist);
         // Convert object to CPA
         ConfigurableProgramAnalysis newCPA = (ConfigurableProgramAnalysis)obj;
+        // TODO only one CPA can be monitored for now, combine more on demand and
+        // monitor all later
+        if(cpaToBeMonitored != null){
+          if(cpaToBeMonitored[0].equals(cpaName)){
+            TransferRelationMonitorCPA monitoringCPA = new TransferRelationMonitorCPA(newCPA);
+            newCPA = monitoringCPA;
+          }
+        }
         cpas.add(newCPA);
 
       } catch (ClassNotFoundException e) {

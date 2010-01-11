@@ -26,6 +26,7 @@ import cpa.common.ReachedElements;
 import cpa.common.algorithm.CEGARAlgorithm;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
+import cpa.transferrelationmonitor.TransferRelationMonitorCPA;
 import exceptions.CPAException;
 
 public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
@@ -51,6 +52,14 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
           if (compCPA instanceof SymbPredAbsCPA) {
             symbPredAbsCpa = (SymbPredAbsCPA)compCPA;
             break;
+          }
+          else if (compCPA instanceof TransferRelationMonitorCPA){
+            // TODO we assume that only one CPA is monitored
+            ConfigurableProgramAnalysis cCpa = ((TransferRelationMonitorCPA)compCPA).getWrappedCPAs().iterator().next();
+            if(cCpa instanceof SymbPredAbsCPA){
+              symbPredAbsCpa = (SymbPredAbsCPA)cCpa;
+              break;
+            }
           }
         }
       }

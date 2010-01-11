@@ -125,6 +125,15 @@ public class CompositeElement implements AbstractElementWithLocation, AbstractWr
       if(item.getClass().getSimpleName().equals(pElementClass)){
         return item;
       }
+      else if(item instanceof AbstractWrapperElement){
+        AbstractElement wrappedElement = 
+          ((AbstractWrapperElement)item).retrieveElementOfType(pElementClass);
+        if(wrappedElement != null){
+          if(wrappedElement.getClass().getSimpleName().equals(pElementClass)){
+            return wrappedElement;
+          }
+        }
+      }
     }
     return null;
   }

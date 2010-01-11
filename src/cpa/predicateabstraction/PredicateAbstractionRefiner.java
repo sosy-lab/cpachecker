@@ -20,6 +20,7 @@ import cpa.art.AbstractARTBasedRefiner;
 import cpa.common.Path;
 import cpa.common.ReachedElements;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
+import cpa.transferrelationmonitor.TransferRelationMonitorCPA;
 import exceptions.CPAException;
 
 public class PredicateAbstractionRefiner extends AbstractARTBasedRefiner {
@@ -38,12 +39,11 @@ public class PredicateAbstractionRefiner extends AbstractARTBasedRefiner {
 
   public PredicateAbstractionRefiner(final ConfigurableProgramAnalysis pCpa) throws CPAException {
     super(pCpa);
-    
+
     ConfigurableProgramAnalysis cpa = this.getArtCpa().getWrappedCPA();
-    
+
     if (cpa instanceof PredicateAbstractionCPA) {
       mCpa = (PredicateAbstractionCPA)cpa;
-    
     } else {
       if (cpa instanceof CompositeCPA) {
         for (ConfigurableProgramAnalysis compCPA : ((CompositeCPA)cpa).getComponentCPAs()) {
@@ -51,13 +51,21 @@ public class PredicateAbstractionRefiner extends AbstractARTBasedRefiner {
             mCpa = (PredicateAbstractionCPA)compCPA;
             break;
           }
+          else if (compCPA instanceof TransferRelationMonitorCPA){
+            // TODO we assume that only one CPA is monitored
+            ConfigurableProgramAnalysis cCpa = ((TransferRelationMonitorCPA)compCPA).getWrappedCPAs().iterator().next();
+            if(cCpa instanceof PredicateAbstractionCPA){
+              mCpa = (PredicateAbstractionCPA)cCpa;
+              break;
+            }
+          }
         }
       }
       if (mCpa == null) {
         throw new CPAException(getClass().getSimpleName() + " needs a PredicateAbstractionCPA");
       }
     }
-    
+
     amgr = mCpa.getPredAbsFormulaManager();
     abstractCex = new HashMap<Vector<Integer>, Integer>();
   }
@@ -76,7 +84,7 @@ public class PredicateAbstractionRefiner extends AbstractARTBasedRefiner {
 
     if (info.isSpurious()) {
       CPAMain.logManager.log(Level.FINEST,
-          "Found spurious error trace, refining the abstraction");
+      "Found spurious error trace, refining the abstraction");
       return performRefinement(pReached, pPath, pathArray, info);
 
     } else {
@@ -117,7 +125,7 @@ public class PredicateAbstractionRefiner extends AbstractARTBasedRefiner {
       }
     }
     // TODO check
-//  Path pth = new Path(path);
+    //  Path pth = new Path(path);
     Vector<Integer> pth = arrayToVector(pPathArray);
     int alreadySeen = 0;
     if (abstractCex.containsKey(pth)) {
@@ -187,45 +195,45 @@ public class PredicateAbstractionRefiner extends AbstractARTBasedRefiner {
       Pair<AbstractElement, CFAEdge> p = pPath.getElementAt(i);
       array[i] = new Pair<ARTElement, CFAEdge>((ARTElement) p.getFirst(), p.getSecond());
     }
-    */
+     */
 
     return array;
 
-//  AbstractElement wrappedElement = artElement.getAbstractElementOnArtNode();
-//  int idxOfPredAbsElem = -1;
+    //  AbstractElement wrappedElement = artElement.getAbstractElementOnArtNode();
+    //  int idxOfPredAbsElem = -1;
 
-//  if(wrappedElement instanceof CompositeElement){
-//  CompositeElement compositeElement = (CompositeElement) wrappedElement;
-//  for(int i=0; i<compositeElement.getNumberofElements(); i++){
-//  AbstractElement abstElement = compositeElement.get(i);
-//  if(abstElement instanceof PredicateAbstractionAbstractElement){
-//  idxOfPredAbsElem = i;
-//  break;
-//  }
-//  }
+    //  if(wrappedElement instanceof CompositeElement){
+    //  CompositeElement compositeElement = (CompositeElement) wrappedElement;
+    //  for(int i=0; i<compositeElement.getNumberofElements(); i++){
+    //  AbstractElement abstElement = compositeElement.get(i);
+    //  if(abstElement instanceof PredicateAbstractionAbstractElement){
+    //  idxOfPredAbsElem = i;
+    //  break;
+    //  }
+    //  }
 
-//  assert(idxOfPredAbsElem != -1);
+    //  assert(idxOfPredAbsElem != -1);
 
-//  for(int i=0; i<pPath.size(); i++){
-//  Pair<AbstractElement, CFAEdge> p = pPath.getElementAt(i);
-//  CompositeElement compElement = (CompositeElement)p.getFirst();
-//  CFAEdge edge = p.getSecond();
-//  PredicateAbstractionAbstractElement predAbsElem = (PredicateAbstractionAbstractElement)compElement.get(idxOfPredAbsElem);
-//  array[i] = new Pair<PredicateAbstractionAbstractElement, CFAEdge>(predAbsElem, edge);
-//  }
+    //  for(int i=0; i<pPath.size(); i++){
+    //  Pair<AbstractElement, CFAEdge> p = pPath.getElementAt(i);
+    //  CompositeElement compElement = (CompositeElement)p.getFirst();
+    //  CFAEdge edge = p.getSecond();
+    //  PredicateAbstractionAbstractElement predAbsElem = (PredicateAbstractionAbstractElement)compElement.get(idxOfPredAbsElem);
+    //  array[i] = new Pair<PredicateAbstractionAbstractElement, CFAEdge>(predAbsElem, edge);
+    //  }
 
-//  }
-//  else{
-//  assert(wrappedElement instanceof PredicateAbstractionAbstractElement);
-//  for(int i=0; i<pPath.size(); i++){
-//  Pair<AbstractElement, CFAEdge> p = pPath.getElementAt(i);
-//  PredicateAbstractionAbstractElement predAbsElem = (PredicateAbstractionAbstractElement)p.getFirst();
-//  CFAEdge edge = p.getSecond();
-//  array[i] = new Pair<PredicateAbstractionAbstractElement, CFAEdge>(predAbsElem, edge);
-//  }
-//  }
+    //  }
+    //  else{
+    //  assert(wrappedElement instanceof PredicateAbstractionAbstractElement);
+    //  for(int i=0; i<pPath.size(); i++){
+    //  Pair<AbstractElement, CFAEdge> p = pPath.getElementAt(i);
+    //  PredicateAbstractionAbstractElement predAbsElem = (PredicateAbstractionAbstractElement)p.getFirst();
+    //  CFAEdge edge = p.getSecond();
+    //  array[i] = new Pair<PredicateAbstractionAbstractElement, CFAEdge>(predAbsElem, edge);
+    //  }
+    //  }
 
-//  return array;
+    //  return array;
 
   }
 

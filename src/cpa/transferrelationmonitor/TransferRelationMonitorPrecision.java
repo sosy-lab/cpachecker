@@ -7,7 +7,7 @@ public class TransferRelationMonitorPrecision implements Precision {
   private final Precision wrappedPrec;
   
   public TransferRelationMonitorPrecision(Precision pWrappedPrec) {
-    assert pWrappedPrec != null;
+//    assert pWrappedPrec != null;
     wrappedPrec = pWrappedPrec;
   }
   

@@ -49,4 +49,11 @@ public class TransferRelationMonitorElement implements AbstractElement, Abstract
     isBottom = pIsBottom;
   }
   
+  @Override
+  public boolean equals(Object pObj) {
+    TransferRelationMonitorElement otherElem = (TransferRelationMonitorElement)pObj;
+    AbstractElement otherWrappedElement = otherElem.element;
+    return this.element.equals(otherWrappedElement);
+  }
+  
 }

@@ -4,7 +4,6 @@ import java.util.Collection;
 import java.util.Collections;
 
 import cfa.objectmodel.CFAFunctionDefinitionNode;
-import cpa.art.ARTPrecision;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
@@ -28,7 +27,7 @@ public class TransferRelationMonitorCPA implements ConfigurableProgramAnalysis, 
   private final PrecisionAdjustment precisionAdjustment;
   private final ConfigurableProgramAnalysis wrappedCPA;
   
-  private TransferRelationMonitorCPA(ConfigurableProgramAnalysis pCpa) throws CPAException{
+  public TransferRelationMonitorCPA(ConfigurableProgramAnalysis pCpa) throws CPAException{
     wrappedCPA = pCpa;
     abstractDomain = new TransferRelationMonitorDomain(this);
     transferRelation = new TransferRelationMonitorTransferRelation(wrappedCPA.getTransferRelation());
@@ -45,12 +44,12 @@ public class TransferRelationMonitorCPA implements ConfigurableProgramAnalysis, 
   @Override
   public <AE extends AbstractElement> AE getInitialElement(
       CFAFunctionDefinitionNode pNode) {
-    return (AE) new TransferRelationMonitorElement(this, (AbstractElementWithLocation)wrappedCPA.getInitialElement(pNode));
+    return (AE) new TransferRelationMonitorElement(this, (AbstractElement)wrappedCPA.getInitialElement(pNode));
   }
 
   @Override
   public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
-    return new ARTPrecision(wrappedCPA.getInitialPrecision(pNode));
+    return new TransferRelationMonitorPrecision(wrappedCPA.getInitialPrecision(pNode));
   }
 
   @Override

@@ -197,7 +197,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, CPAWithStati
   }
 
   public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
-    return null;
+    return new SymbPredAbsPrecision();
   }
 
   @Override
