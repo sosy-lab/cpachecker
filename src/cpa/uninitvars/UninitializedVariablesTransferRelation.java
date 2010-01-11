@@ -64,7 +64,7 @@ import cpa.types.TypesElement;
 import cpa.types.Type.StructType;
 import cpa.types.Type.TypeClass;
 import exceptions.CPATransferException;
-import exceptions.TransferRelationException;
+import exceptions.UnrecognizedCCodeException;
 import exceptions.UnrecognizedCFAEdgeException;
 
 /**
@@ -108,11 +108,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       break;
       
     case StatementEdge:
-      try {
-        handleStatement(successor, ((StatementEdge)cfaEdge).getExpression(), cfaEdge);
-      } catch (TransferRelationException e) {
-        CPAMain.logManager.logException(Level.WARNING, e, "");
-      }
+      handleStatement(successor, ((StatementEdge)cfaEdge).getExpression(), cfaEdge);
       break;
     
     case ReturnEdge:
@@ -121,21 +117,13 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       // now handle the complete a = func(x) statement in the CallToReturnEdge
       ReturnEdge returnEdge = (ReturnEdge)cfaEdge;
       CallToReturnEdge ctrEdge = returnEdge.getSuccessor().getEnteringSummaryEdge();
-      try {
-        handleStatement(successor, ctrEdge.getExpression(), ctrEdge);
-      } catch (TransferRelationException e) {
-        CPAMain.logManager.logException(Level.WARNING, e, "");
-      }
+      handleStatement(successor, ctrEdge.getExpression(), ctrEdge);
       break;
       
     case AssumeEdge:
       // just check if there are uninitialized variable usages
       if (printWarnings) {
-        try {
-          isExpressionUninitialized(successor, ((AssumeEdge)cfaEdge).getExpression(), cfaEdge);
-        } catch (TransferRelationException e) {
-          CPAMain.logManager.logException(Level.WARNING, e, "");
-        }
+        isExpressionUninitialized(successor, ((AssumeEdge)cfaEdge).getExpression(), cfaEdge);
       }
       break;
       
@@ -145,20 +133,9 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       
     case BlankEdge:
       break;
-      
-    case CallToReturnEdge:
-      // summary edge, handled from ReturnEdge
-    case MultiStatementEdge:
-    case MultiDeclarationEdge:
-      assert false;
-      break;
     
     default:
-      try {
-        throw new UnrecognizedCFAEdgeException("Unknown edge type");
-      } catch (UnrecognizedCFAEdgeException e) {
-        CPAMain.logManager.logException(Level.WARNING, e, "");
-      }
+      throw new UnrecognizedCFAEdgeException(cfaEdge);
     }
     
     return successor;
@@ -218,7 +195,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
   
   private void handleStatement(UninitializedVariablesElement element,
                                IASTExpression expression, CFAEdge cfaEdge)
-                               throws TransferRelationException {
+                               throws UnrecognizedCCodeException {
     
     if (cfaEdge.isJumpEdge()) {
       // this is the return-statement of a function
@@ -273,17 +250,17 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       
       } else {
         // a + b etc.
-        throw new TransferRelationException("Unhandled case " + cfaEdge.getRawStatement());
+        throw new UnrecognizedCCodeException("unknown binary operator", cfaEdge, binExpression);
       }
     
     } else {
-      throw new TransferRelationException("Unhandled case " + cfaEdge.getRawStatement());
+      throw new UnrecognizedCCodeException(cfaEdge, expression);
     }
   }
 
   private void handleAssign(UninitializedVariablesElement element,
                             IASTBinaryExpression expression, CFAEdge cfaEdge)
-                            throws TransferRelationException {
+                            throws UnrecognizedCCodeException {
     
     IASTExpression op1 = expression.getOperand1();
     IASTExpression op2 = expression.getOperand2();
@@ -330,14 +307,14 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       }
     
     } else {
-      throw new TransferRelationException("Unhandled case " + expression.getRawSignature());     
+      throw new UnrecognizedCCodeException("unknown left hand side of an assignment", cfaEdge, op1);
     }
   }
 
   private boolean isExpressionUninitialized(UninitializedVariablesElement element,
                                             IASTExpression expression,
-                                            CFAEdge cfaEdge) throws TransferRelationException {
-if (expression == null) {
+                                            CFAEdge cfaEdge) throws UnrecognizedCCodeException {
+    if (expression == null) {
       // e.g. empty parameter list
       return false;
     
@@ -413,7 +390,7 @@ if (expression == null) {
       return false;
       
     } else {
-      throw new TransferRelationException("Unhandled case " + expression.getRawSignature());
+      throw new UnrecognizedCCodeException(cfaEdge, expression);
     }
   }
   

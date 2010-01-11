@@ -28,7 +28,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.logging.Level;
 
 import org.eclipse.cdt.core.dom.ast.IASTArraySubscriptExpression;
 import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
@@ -60,7 +59,7 @@ import cpa.pointeranalysis.Memory;
 import cpa.pointeranalysis.Pointer;
 import cpa.pointeranalysis.PointerAnalysisElement;
 import exceptions.CPATransferException;
-import exceptions.ExplicitAnalysisTransferException;
+import exceptions.UnrecognizedCCodeException;
 import exceptions.UnrecognizedCFAEdgeException;
 
 public class ExplicitAnalysisTransferRelation implements TransferRelation {
@@ -83,137 +82,84 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
     threshold = Integer.parseInt(CPAMain.cpaConfig.getProperty("explicitAnalysis.threshold"));
   }
 
-  private AbstractElement getAbstractSuccessor(AbstractElement element,
-      CFAEdge cfaEdge, Precision precision) 
-  throws CPATransferException
-  {
+  @Override
+  public Collection<AbstractElement> getAbstractSuccessors(
+      AbstractElement element, Precision precision, CFAEdge cfaEdge) throws CPATransferException {
     AbstractElement successor = explicitAnalysisDomain.getBottomElement();
     ExplicitAnalysisElement explicitElement = (ExplicitAnalysisElement)element;
 
     // check the type of the edge
-    switch (cfaEdge.getEdgeType ())
-    {
+    switch (cfaEdge.getEdgeType ()) {
 
     // if edge is a statement edge, e.g. a = b + c
-    case StatementEdge:
-    {
+    case StatementEdge: {
       StatementEdge statementEdge = (StatementEdge) cfaEdge;
-      IASTExpression expression = statementEdge.getExpression ();
-      // this statement is a function return, e.g. return (a);
-      // note that this is different from return edge
-      // this is a statement edge which leads the function to the
-      // last node of its CFA, where return edge is from that last node
-      // to the return site of the caller function
-      if(statementEdge.isJumpEdge())
-      {
-        try {
-          successor = handleExitFromFunction(explicitElement, expression, statementEdge);
-        } catch (ExplicitAnalysisTransferException e) {
-          CPAMain.logManager.logException(Level.WARNING, e, "");
-        }
-      }
 
-      // this is a regular statement
-      else{
-        try {
-          successor = handleStatement(explicitElement, expression, cfaEdge);
-        } catch (ExplicitAnalysisTransferException e) {
-          CPAMain.logManager.logException(Level.WARNING, e, "");
-        }
+      if (statementEdge.isJumpEdge()) {
+        // this statement is a function return, e.g. return (a);
+        // note that this is different from return edge
+        // this is a statement edge which leads the function to the
+        // last node of its CFA, where return edge is from that last node
+        // to the return site of the caller function
+
+        successor = handleExitFromFunction(explicitElement, statementEdge.getExpression(), statementEdge);
+      } else {
+        // this is a regular statement
+        successor = handleStatement(explicitElement, statementEdge.getExpression(), cfaEdge);
       }
       break;
     }
 
     // edge is a declaration edge, e.g. int a;
-    case DeclarationEdge:
-    {
+    case DeclarationEdge: {
       DeclarationEdge declarationEdge = (DeclarationEdge) cfaEdge;
       successor = handleDeclaration(explicitElement, declarationEdge);
       break;
     }
 
     // this is an assumption, e.g. if(a == b)
-    case AssumeEdge:
-    {
+    case AssumeEdge: {
       AssumeEdge assumeEdge = (AssumeEdge) cfaEdge;
-      IASTExpression expression = assumeEdge.getExpression();
-      try {
-        successor = handleAssumption(explicitElement, expression, cfaEdge, assumeEdge.getTruthAssumption());
-      } catch (ExplicitAnalysisTransferException e) {
-        CPAMain.logManager.logException(Level.WARNING, e, "");
-      }
+      successor = handleAssumption(explicitElement, assumeEdge.getExpression(), cfaEdge, assumeEdge.getTruthAssumption());
       break;
     }
 
-    case BlankEdge:
-    {
+    case BlankEdge: {
       successor = explicitElement.clone();
       break;
     }
 
-    case FunctionCallEdge:
-    {
+    case FunctionCallEdge: {
       FunctionCallEdge functionCallEdge = (FunctionCallEdge) cfaEdge;
 
-      // call to an external function
-      if(functionCallEdge.isExternalCall())
-      {
+      if (functionCallEdge.isExternalCall()) {
+        // call to an external function
         // TODO external function call
+        throw new UnrecognizedCCodeException("external function calls not yet supported", functionCallEdge);
 //      try {
 //      handleExternalFunctionCall(expAnalysisElement, functionCallEdge);
 //      } catch (ExplicitAnalysisTransferException e) {
 //        CPAMain.logManager.logException(Level.WARNING, e, "");
 //      }
-      }
-      else{
-        try {
-          successor = handleFunctionCall(explicitElement, functionCallEdge);
-        } catch (ExplicitAnalysisTransferException e) {
-          CPAMain.logManager.logException(Level.WARNING, e, "");
-        }
+      } else {
+        successor = handleFunctionCall(explicitElement, functionCallEdge);
       }
       break;
     }
 
     // this is a return edge from function, this is different from return statement
     // of the function. See case for statement edge for details
-    case ReturnEdge:
-    {
+    case ReturnEdge: {
       ReturnEdge functionReturnEdge = (ReturnEdge) cfaEdge;
-      try {
-        successor = handleFunctionReturn(explicitElement, functionReturnEdge);
-      } catch (ExplicitAnalysisTransferException e) {
-        CPAMain.logManager.logException(Level.WARNING, e, "");
-      }
+      successor = handleFunctionReturn(explicitElement, functionReturnEdge);
       break;
     }
 
-    // Summary edge, we handle this on function return, do nothing
-    case CallToReturnEdge:
-    {
-      assert(false);
-      break;
-    }
-
-    case MultiStatementEdge:
-    {
-      assert(false);
-      break;
-    }
-
-    case MultiDeclarationEdge:
-    {
-      assert(false);
-      break;
-    }
     default:
-      try {
-        throw new UnrecognizedCFAEdgeException("Unknown edge type");
-      } catch (UnrecognizedCFAEdgeException e) {
-        CPAMain.logManager.logException(Level.WARNING, e, "");
-      }
+      throw new UnrecognizedCFAEdgeException(cfaEdge);
     }
-    return successor;
+    
+    return Collections.singleton(successor);
   }
 
   /**
@@ -221,11 +167,10 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
    * @param element previous abstract element.
    * @param functionReturnEdge return edge from a function to its call site.
    * @return new abstract element.
-   * @throws ExplicitAnalysisTransferException the operation on the edge cannot be handled.
    */
   private ExplicitAnalysisElement handleFunctionReturn(ExplicitAnalysisElement element,
       ReturnEdge functionReturnEdge) 
-  throws ExplicitAnalysisTransferException{
+  throws UnrecognizedCCodeException {
 
     CallToReturnEdge summaryEdge =
       functionReturnEdge.getSuccessor().getEnteringSummaryEdge();
@@ -297,7 +242,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
         }
       }
       else{
-        throw new ExplicitAnalysisTransferException("Unhandled case " + functionReturnEdge.getPredecessor().getNodeNumber());
+        throw new UnrecognizedCCodeException("on function return", summaryEdge, op1);
       }
     }
     // TODO this is not called -- expression is a unary operation, e.g. g(b);
@@ -343,7 +288,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
       }
     }
     else{
-      throw new ExplicitAnalysisTransferException("Unhandled case - return from function" + functionReturnEdge.getPredecessor().getNodeNumber());
+      throw new UnrecognizedCCodeException("on function return", summaryEdge, exprOnSummary);
     }
 
     return newElement;
@@ -351,7 +296,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
 
   private ExplicitAnalysisElement handleFunctionCall(ExplicitAnalysisElement element,
       FunctionCallEdge callEdge)  
-  throws ExplicitAnalysisTransferException {
+  throws UnrecognizedCCodeException {
 
     FunctionDefinitionNode functionEntryNode = (FunctionDefinitionNode)callEdge.getSuccessor();
     String calledFunctionName = functionEntryNode.getFunctionName();
@@ -435,14 +380,14 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
   private ExplicitAnalysisElement handleExitFromFunction(ExplicitAnalysisElement element,
       IASTExpression expression,
       StatementEdge statementEdge) 
-  throws ExplicitAnalysisTransferException {
+  throws UnrecognizedCCodeException {
 
     return handleAssignmentToVariable(element, "___cpa_temp_result_var_", expression, statementEdge);
   }
 
   private AbstractElement handleAssumption(ExplicitAnalysisElement element,
                   IASTExpression expression, CFAEdge cfaEdge, boolean truthValue)
-                  throws ExplicitAnalysisTransferException {
+                  throws UnrecognizedCCodeException {
 
     Boolean result = getBooleanExpressionValue(element, expression, cfaEdge, truthValue);
     
@@ -460,7 +405,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
 
   private Boolean getBooleanExpressionValue(ExplicitAnalysisElement element,
                               IASTExpression expression, CFAEdge cfaEdge, boolean truthValue)
-                              throws ExplicitAnalysisTransferException {
+                              throws UnrecognizedCCodeException {
     if (expression instanceof IASTUnaryExpression) {
       // [!exp]
       IASTUnaryExpression unaryExp = ((IASTUnaryExpression)expression);
@@ -474,7 +419,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
         return getBooleanExpressionValue(element, unaryExp.getOperand(), cfaEdge, !truthValue);
 
       default:
-        throw new ExplicitAnalysisTransferException("Unhandled case " + cfaEdge.getRawStatement());
+        throw new UnrecognizedCCodeException(cfaEdge, unaryExp);
       }
     
     } else if (expression instanceof IASTIdExpression) {
@@ -528,7 +473,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
           break;
           
         default:
-          throw new ExplicitAnalysisTransferException("Unhandled case " + cfaEdge.getRawStatement());
+          throw new UnrecognizedCCodeException(cfaEdge, binExp);
         }
         
         return expressionValue == truthValue;
@@ -539,7 +484,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
       
     } else {
       // TODO fields, arrays
-      throw new ExplicitAnalysisTransferException("Unhandled case " + cfaEdge.getRawStatement());
+      throw new UnrecognizedCCodeException(cfaEdge, expression);
     }
   }
   
@@ -578,7 +523,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
 
   private ExplicitAnalysisElement handleStatement(ExplicitAnalysisElement element,
       IASTExpression expression, CFAEdge cfaEdge) 
-  throws ExplicitAnalysisTransferException {
+  throws UnrecognizedCCodeException {
     // expression is a binary operation, e.g. a = b;
     if (expression instanceof IASTBinaryExpression) {
       return handleBinaryStatement(element, expression, cfaEdge);
@@ -598,13 +543,13 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
       return element.clone();
     }
     else{
-      throw new ExplicitAnalysisTransferException("Unhandled case " + cfaEdge.getRawStatement());
+      throw new UnrecognizedCCodeException(cfaEdge, expression);
     }
   }
 
   private ExplicitAnalysisElement handleUnaryStatement(ExplicitAnalysisElement element,
       IASTExpression expression, CFAEdge cfaEdge) 
-  throws ExplicitAnalysisTransferException {
+  throws UnrecognizedCCodeException {
 
     IASTUnaryExpression unaryExpression = (IASTUnaryExpression) expression;
     int operator = unaryExpression.getOperator();
@@ -620,7 +565,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
       // a--, --a
       shift = -1;
     } else {
-      throw new ExplicitAnalysisTransferException("Unhandled case " + cfaEdge.getRawStatement());
+      throw new UnrecognizedCCodeException(cfaEdge, unaryExpression);
     }
     
     IASTExpression operand = unaryExpression.getOperand();
@@ -635,13 +580,13 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
       return newElement;
       
     } else {
-      throw new ExplicitAnalysisTransferException("Unhandled case " + cfaEdge.getRawStatement());
+      throw new UnrecognizedCCodeException(cfaEdge, operand);
     }
   }
 
   private ExplicitAnalysisElement handleBinaryStatement(ExplicitAnalysisElement element,
       IASTExpression expression, CFAEdge cfaEdge)
-  throws ExplicitAnalysisTransferException 
+  throws UnrecognizedCCodeException 
   {
     IASTBinaryExpression binaryExpression = (IASTBinaryExpression) expression;
     switch (binaryExpression.getOperator ())
@@ -664,13 +609,13 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
       return handleOperationAndAssign(element, binaryExpression, cfaEdge);
     }
     default: 
-      throw new ExplicitAnalysisTransferException("Unhandled case " + binaryExpression.getRawSignature());
+      throw new UnrecognizedCCodeException(cfaEdge, binaryExpression);
     }
   }
 
   private ExplicitAnalysisElement handleOperationAndAssign(ExplicitAnalysisElement element,
                                       IASTBinaryExpression binaryExpression, CFAEdge cfaEdge) 
-                                      throws ExplicitAnalysisTransferException {
+                                      throws UnrecognizedCCodeException {
     
     IASTExpression leftOp = binaryExpression.getOperand1();
     IASTExpression rightOp = binaryExpression.getOperand2();
@@ -678,7 +623,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
 
     if (!(leftOp instanceof IASTIdExpression)) {
       // TODO handle fields, arrays
-      throw new ExplicitAnalysisTransferException("Unhandled case " + cfaEdge.getRawStatement());
+      throw new UnrecognizedCCodeException("left operand of assignment has to be a variable", cfaEdge, leftOp);
     }
     
     int newOperator;
@@ -708,7 +653,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
       newOperator = IASTBinaryExpression.op_binaryOr;
       break;
     default:
-      throw new ExplicitAnalysisTransferException("Unhandled case " + cfaEdge.getRawStatement());
+      throw new UnrecognizedCCodeException("unknown binary operator", cfaEdge, binaryExpression);
     }
     
     return handleAssignmentOfBinaryExp(element, leftOp.getRawSignature(), leftOp,
@@ -717,7 +662,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
 
   private ExplicitAnalysisElement handleAssignment(ExplicitAnalysisElement element,
                             IASTBinaryExpression binaryExpression, CFAEdge cfaEdge) 
-                            throws ExplicitAnalysisTransferException {
+                            throws UnrecognizedCCodeException {
     
     IASTExpression op1 = binaryExpression.getOperand1();
     IASTExpression op2 = binaryExpression.getOperand2();
@@ -749,7 +694,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
         missingInformationRightExpression = op2;
       
       } else {
-        throw new ExplicitAnalysisTransferException("Unhandled case " + cfaEdge.getRawStatement());
+        throw new UnrecognizedCCodeException("left operand of assignment has to be a variable", cfaEdge, op1);
       }
       return element.clone();
     
@@ -762,12 +707,12 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
       return element.clone();
     
     } else {
-      throw new ExplicitAnalysisTransferException("Unhandled case " + cfaEdge.getRawStatement());
+      throw new UnrecognizedCCodeException("left operand of assignment has to be a variable", cfaEdge, op1);
     }
   }
 
   private ExplicitAnalysisElement handleAssignmentToVariable(ExplicitAnalysisElement element,
-                          String lParam, IASTExpression rightExp, CFAEdge cfaEdge) throws ExplicitAnalysisTransferException {
+                          String lParam, IASTExpression rightExp, CFAEdge cfaEdge) throws UnrecognizedCCodeException {
     String functionName = cfaEdge.getPredecessor().getFunctionName();
 
     // a = 8.2 or "return;" (when rightExp == null)
@@ -802,13 +747,13 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
       return newElement;
     }
     else{
-      throw new ExplicitAnalysisTransferException("Unhandled case " + cfaEdge.getRawStatement());
+      throw new UnrecognizedCCodeException(cfaEdge, rightExp);
     }
   }
   
   private ExplicitAnalysisElement handleAssignmentOfCast(ExplicitAnalysisElement element,
                               String lParam, IASTCastExpression castExp, CFAEdge cfaEdge) 
-                              throws ExplicitAnalysisTransferException 
+                              throws UnrecognizedCCodeException 
   {
     IASTExpression castOperand = castExp.getOperand();
     return handleAssignmentToVariable(element, lParam, castOperand, cfaEdge);
@@ -816,7 +761,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
 
   private ExplicitAnalysisElement handleAssignmentOfUnaryExp(ExplicitAnalysisElement element,
                                       String lParam, IASTUnaryExpression unaryExp, CFAEdge cfaEdge) 
-                                      throws ExplicitAnalysisTransferException {
+                                      throws UnrecognizedCCodeException {
     
     String functionName = cfaEdge.getPredecessor().getFunctionName();
     // name of the updated variable, so if a = -b is handled, lParam is a
@@ -845,7 +790,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
         missingInformationLeftVariable = assignedVar;
         missingInformationRightPointer = unaryOperand.getRawSignature();
       } else{
-        throw new ExplicitAnalysisTransferException("Unhandled case " + cfaEdge.getRawStatement());
+        throw new UnrecognizedCCodeException(cfaEdge, unaryOperand);
       }
     
     } else if (unaryOperator == IASTUnaryExpression.op_bracketedPrimary) {
@@ -869,7 +814,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
   private ExplicitAnalysisElement handleAssignmentOfBinaryExp(ExplicitAnalysisElement element,
                        String lParam, IASTExpression lVarInBinaryExp, IASTExpression rVarInBinaryExp,
                        int binaryOperator, CFAEdge cfaEdge)
-                       throws ExplicitAnalysisTransferException{
+                       throws UnrecognizedCCodeException {
 
     String functionName = cfaEdge.getPredecessor().getFunctionName();
     // name of the updated variable, so if a = b + c is handled, lParam is a
@@ -927,7 +872,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
           break;
           
         default:
-          throw new ExplicitAnalysisTransferException("Coding error, missing case in inner switch statement!");
+          throw new UnrecognizedCCodeException("unkown binary operator", cfaEdge, rVarInBinaryExp.getParent());
         }
         
         newElement.assignConstant(assignedVar, value, this.threshold);
@@ -939,7 +884,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
   }
 
   private Long getExpressionValue(ExplicitAnalysisElement element, IASTExpression expression,
-                                  String functionName, CFAEdge cfaEdge) throws ExplicitAnalysisTransferException {
+                                  String functionName, CFAEdge cfaEdge) throws UnrecognizedCCodeException {
 
     if (expression instanceof IASTLiteralExpression) {
       return parseLiteral(expression);
@@ -975,11 +920,11 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
         return null; // valid expresion, but it's a pointer value
 
       default:
-        throw new ExplicitAnalysisTransferException("Unhandled case " + cfaEdge.getRawStatement());
+        throw new UnrecognizedCCodeException("unknown unary operator", cfaEdge, unaryExpression);
       }
     } else {
       // TODO fields, arrays
-      throw new ExplicitAnalysisTransferException("Unhandled case " + cfaEdge.getRawStatement());
+      throw new UnrecognizedCCodeException(cfaEdge, expression);
     }
   }
   
@@ -1003,7 +948,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
 
   private ExplicitAnalysisElement handleAssignmentOfLiteral(ExplicitAnalysisElement element,
                         String lParam, IASTExpression op2, String functionName)
-                        throws ExplicitAnalysisTransferException
+                        throws UnrecognizedCCodeException
   {
     ExplicitAnalysisElement newElement = element.clone();
 
@@ -1020,7 +965,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
     return newElement;
   }
 
-  private Long parseLiteral(IASTExpression expression) throws ExplicitAnalysisTransferException {
+  private Long parseLiteral(IASTExpression expression) throws UnrecognizedCCodeException {
     if (expression instanceof IASTLiteralExpression) {
 
       int typeOfLiteral = ((IASTLiteralExpression)expression).getKind();
@@ -1034,17 +979,11 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
         try {
           return Long.valueOf(s);
         } catch (NumberFormatException e) {
-          throw new ExplicitAnalysisTransferException("Invalid integer literal " + s);
+          throw new UnrecognizedCCodeException("invalid integer literal", null, expression);
         }
       }
     }
     return null;
-  }
-  
-  @Override
-  public Collection<AbstractElement> getAbstractSuccessors(
-      AbstractElement element, Precision precision, CFAEdge cfaEdge) throws CPATransferException {
-    return Collections.singleton(getAbstractSuccessor(element, cfaEdge, precision));
   }
 
   public String getvarName(String variableName, String functionName){
@@ -1057,7 +996,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
   @Override
   public AbstractElement strengthen(AbstractElement element,
                                     List<AbstractElement> elements,
-                                    CFAEdge cfaEdge, Precision precision) {    
+                                    CFAEdge cfaEdge, Precision precision) throws UnrecognizedCCodeException {    
     
     if (!(element instanceof ExplicitAnalysisElement) || element == explicitAnalysisDomain.getBottomElement()) {
       return null;
@@ -1065,19 +1004,15 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
     ExplicitAnalysisElement explicitElement = (ExplicitAnalysisElement)element;
     
     for (AbstractElement ae : elements) {
-      try {
-        if (ae instanceof PointerAnalysisElement) {
-          return strengthen(explicitElement, (PointerAnalysisElement)ae, cfaEdge, precision);
-        }
-      } catch (ExplicitAnalysisTransferException e) {
-        CPAMain.logManager.logException(Level.WARNING, e, "");
+      if (ae instanceof PointerAnalysisElement) {
+        return strengthen(explicitElement, (PointerAnalysisElement)ae, cfaEdge, precision);
       }
     }
     return null;
   }
 
   private ExplicitAnalysisElement strengthen(ExplicitAnalysisElement explicitElement,
-      PointerAnalysisElement pointerElement, CFAEdge cfaEdge, Precision precision) throws ExplicitAnalysisTransferException {
+      PointerAnalysisElement pointerElement, CFAEdge cfaEdge, Precision precision) throws UnrecognizedCCodeException {
     
     if (missingInformationLeftVariable != null && missingInformationRightPointer != null) {
       

@@ -30,7 +30,7 @@ import cfa.objectmodel.CFAEdge;
  *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
-public class UnrecognizedCFAEdgeException extends TransferRelationException {
+public class UnrecognizedCFAEdgeException extends CPATransferException {
 
     public UnrecognizedCFAEdgeException(String msg) {
         super(msg);

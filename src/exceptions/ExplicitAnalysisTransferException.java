@@ -23,16 +23,19 @@
  */
 package exceptions;
 
-public class ExplicitAnalysisTransferException extends TransferRelationException
+/**
+ * Exception is deprecated, because all its usages in ExplicitAnalysisCPA were
+ * replaced by the better-fitting UnrecognizedCFAEdge / UnrecognizedCCode
+ * exceptions. This should be done for all other usages, too, and this exception
+ * should be deleted.
+ */
+@Deprecated
+public class ExplicitAnalysisTransferException extends CPATransferException
 {
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-
-	public ExplicitAnalysisTransferException(){
-		super();
-	}
 
 	public ExplicitAnalysisTransferException(String s){
 		super(s);

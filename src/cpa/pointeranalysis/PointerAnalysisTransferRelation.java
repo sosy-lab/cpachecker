@@ -81,8 +81,6 @@ import cpa.types.Type.ArrayType;
 import cpa.types.Type.FunctionType;
 import cpa.types.Type.PointerType;
 import exceptions.CPATransferException;
-import exceptions.ErrorReachedException;
-import exceptions.TransferRelationException;
 import exceptions.UnrecognizedCCodeException;
 import exceptions.UnrecognizedCFAEdgeException;
 
@@ -109,7 +107,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
    *      error is printed and the new abstract element will be the bottom
    *      element of the domain.
    *      
-   * TransferRelationException: The program has invalid syntax, a type error or
+   * UnrecognizedCCodeException: The program has invalid syntax, a type error or
    *      C constructs which should not appear in CIL. An error is printed and
    *      analysis will halt completely.
    *      
@@ -157,7 +155,6 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
   private static Set<Pair<Integer, String>> warnings
                   = printWarnings ? new HashSet<Pair<Integer, String>>() : null;
 
-  // TODO: does this methods need to be thread-safe? 
   public static void addWarning(String message, CFAEdge edge, String variable) {
     if (printWarnings) {
       Integer lineNumber = null;
@@ -337,7 +334,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
                             IASTExpression expression,
                             boolean isTrueBranch,
                             AssumeEdge assumeEdge)
-                            throws TransferRelationException, UnreachableStateException {
+                            throws UnrecognizedCCodeException, UnreachableStateException {
     
     if (expression instanceof IASTBinaryExpression) {
       IASTBinaryExpression binaryExpression = (IASTBinaryExpression)expression; 
@@ -360,7 +357,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
         handleAssume(element, unaryExpression.getOperand(), !isTrueBranch, assumeEdge);
       
       } else {
-        throw new TransferRelationException("Not expected in CIL: " + assumeEdge.getRawStatement());
+        throw new UnrecognizedCCodeException("not expected in CIL", assumeEdge, expression);
       }
       
     } else if (expression instanceof IASTIdExpression) {
@@ -397,7 +394,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
                                   IASTBinaryExpression expression,
                                   boolean isTrueBranch,
                                   AssumeEdge assumeEdge)
-                                  throws TransferRelationException, UnreachableStateException {
+                                  throws UnrecognizedCCodeException, UnreachableStateException {
    
     IASTExpression leftOp = expression.getOperand1();
     IASTExpression rightOp = expression.getOperand2();
@@ -435,7 +432,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
   }
   
   private void handleFunctionCall(PointerAnalysisElement element,
-                                  CFAEdge cfaEdge) throws TransferRelationException {
+                                  CFAEdge cfaEdge) throws UnrecognizedCCodeException {
     
     FunctionDefinitionNode funcDefNode = (FunctionDefinitionNode)cfaEdge.getSuccessor();
     String funcName = funcDefNode.getFunctionName();
@@ -481,10 +478,10 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
             actualValues.add(new Pointer(var));
           
           } else {
-            throw new TransferRelationException("Not expected in CIL: " + cfaEdge.getRawStatement());
+            throw new UnrecognizedCCodeException("not expected in CIL", cfaEdge, unaryExpression);
           }
         } else {
-          throw new TransferRelationException("Not expected in CIL: " + cfaEdge.getRawStatement());
+          throw new UnrecognizedCCodeException("not expected in CIL", cfaEdge, parameter);
         }
       }
       
@@ -512,7 +509,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
     missing = new MissingInformation();
   }
   
-  private long parseIntegerLiteral(IASTLiteralExpression expression) throws TransferRelationException {
+  private long parseIntegerLiteral(IASTLiteralExpression expression) throws UnrecognizedCCodeException {
     try {
       String s = expression.getRawSignature();
       if (s.endsWith("U")) {
@@ -520,14 +517,14 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       }
       return Long.parseLong(s);
     } catch (NumberFormatException e) {
-      throw new TransferRelationException("Error parsing " + expression + "in line " + expression.getFileLocation().getStartingLineNumber() + " as integer constant");
+      throw new UnrecognizedCCodeException("invalid integer literal", null, expression);
     }
   }
 
   private void handleReturnFromFunction(PointerAnalysisElement element,
                                         IASTExpression expression,
                                         CFAEdge cfaEdge)
-                                        throws TransferRelationException {
+                                        throws UnrecognizedCCodeException {
     
     Pointer resultPointer = element.lookupPointer(RETURN_VALUE_VARIABLE);
     // resultPointer does not reliably indicate if the function returns a pointer!
@@ -569,12 +566,12 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
               // resultPointer an alias of leftPointer
               element.pointerOp(new Pointer.AssignListOfTargets(resultPointer.getTargets()), leftPointer);
             } else {
-              throw new TransferRelationException("Assigning non-pointer value to pointer variable: " + cfaEdge.getRawStatement());
+              throw new UnrecognizedCCodeException("assigning non-pointer value to pointer variable", cfaEdge, binExpression);
             }
         
           } else {
             // a += func()
-            throw new TransferRelationException("This code is not expected in CIL: " + cfaEdge.getRawStatement());
+            throw new UnrecognizedCCodeException("not expected in CIL", cfaEdge, binExpression);
           }
 
         } else {
@@ -583,14 +580,14 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
         
       } else {
         // *x = func() etc.
-        throw new TransferRelationException("This code is not expected in CIL: " + cfaEdge.getRawStatement());  
+        throw new UnrecognizedCCodeException("not expected in CIL", cfaEdge, binExpression);  
       }
       
     } else if (expression instanceof IASTFunctionCallExpression) {
       // func()
       // ignore
     } else {
-      throw new TransferRelationException("Invalid C code: " + cfaEdge.getRawStatement());  
+      throw new UnrecognizedCCodeException(cfaEdge, expression);  
     }
     
     // check for memory leaks
@@ -611,7 +608,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
   
   private void handleStatement(PointerAnalysisElement element,
                                IASTExpression expression, CFAEdge cfaEdge)
-                               throws TransferRelationException, InvalidPointerException {
+                               throws UnrecognizedCCodeException, InvalidPointerException {
     
     if (cfaEdge.isJumpEdge()) {
       // this is the return-statement of a function
@@ -648,7 +645,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
             element.pointerOp(new Pointer.AddOffset(-1), p);
           
           } else {
-            throw new TransferRelationException("Invalid C code: " + cfaEdge.getRawStatement());  
+            throw new UnrecognizedCCodeException("unknown unary operator", cfaEdge, unaryExpression);  
           }
         }
       }
@@ -673,21 +670,20 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       handleBinaryStatement(element, (IASTBinaryExpression)expression, cfaEdge);
       
     } else {
-      throw new TransferRelationException("Invalid C code: " + cfaEdge.getRawStatement());
+      throw new UnrecognizedCCodeException(cfaEdge, expression);
     }
   }
 
   private void handleFree(PointerAnalysisElement element,
                           IASTFunctionCallExpression expression, CFAEdge cfaEdge)
-                          throws TransferRelationException, InvalidPointerException {
+                          throws UnrecognizedCCodeException, InvalidPointerException {
     
     IASTExpression parameter = expression.getParameterExpression();
     if (parameter instanceof IASTIdExpression) {
       Pointer p = element.lookupPointer(parameter.getRawSignature());
     
       if (p == null) {
-        throw new TransferRelationException("Freeing non-pointer pointer "
-            + parameter.getRawSignature());
+        throw new UnrecognizedCCodeException("freeing non-pointer pointer", cfaEdge, parameter);
       }
       
       List<PointerTarget> newTargets = new ArrayList<PointerTarget>();
@@ -748,15 +744,14 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       element.pointerOpForAllAliases(new Pointer.AssignListOfTargets(newTargets), p, false);
       
     } else {
-      throw new TransferRelationException("This code is not expected in CIL: "
-          + cfaEdge.getRawStatement());
+      throw new UnrecognizedCCodeException("not expected in CIL", cfaEdge, parameter);
     }
   }
 
   private void handleBinaryStatement(PointerAnalysisElement element,
                                      IASTBinaryExpression expression,
                                      CFAEdge cfaEdge)
-                                     throws TransferRelationException, InvalidPointerException {
+                                     throws UnrecognizedCCodeException, InvalidPointerException {
     
     // left hand side    
     IASTExpression leftExpression = expression.getOperand1();
@@ -792,14 +787,14 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
         
         if (!(leftExpression instanceof IASTIdExpression)) {
           // not a variable at left hand side
-          throw new TransferRelationException("This code is not expected in CIL: " + cfaEdge.getRawStatement());
+          throw new UnrecognizedCCodeException("not expected in CIL", cfaEdge, leftExpression);
         }
         
         leftPointer = element.lookupPointer(leftExpression.getRawSignature());
         if (leftPointer == null) {
           
           if (!leftCast) {
-            throw new TransferRelationException("Dereferencing a non-pointer: " + cfaEdge.getRawStatement());
+            throw new UnrecognizedCCodeException("dereferencing a non-pointer", cfaEdge, leftExpression);
           } else {
             addWarning("Casting non-pointer value " + leftExpression.getRawSignature() + " to pointer and dereferencing it", cfaEdge, leftExpression.getRawSignature());
           }
@@ -827,11 +822,11 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
         }
         
       } else {
-        throw new TransferRelationException("This code is not expected in CIL: " + cfaEdge.getRawStatement());
+        throw new UnrecognizedCCodeException("not expected in CIL", cfaEdge, unaryExpression);
       }
     } else {
       // TODO fields, arrays
-      throw new TransferRelationException("This code is not expected in CIL: " + cfaEdge.getRawStatement());
+      throw new UnrecognizedCCodeException("not expected in CIL", cfaEdge, leftExpression);
     }
     
     
@@ -869,10 +864,10 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
         missing.actionOffsetNegative = (typeOfOperator == IASTBinaryExpression.op_minusAssign);
       
       } else {
-        throw new TransferRelationException("This code is not expected in CIL: " + cfaEdge.getRawStatement());
+        throw new UnrecognizedCCodeException("not expected in CIL", cfaEdge, op2);
       }
     } else {
-      throw new TransferRelationException("This code is not expected in CIL: " + cfaEdge.getRawStatement());
+      throw new UnrecognizedCCodeException("not expected in CIL", cfaEdge, expression);
     }
   }
 
@@ -884,7 +879,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
   private void handleAssignment(PointerAnalysisElement element, String leftVarName,
                                 Pointer leftPointer, boolean leftDereference,
                                 IASTExpression expression, CFAEdge cfaEdge)
-                                throws TransferRelationException, InvalidPointerException {
+                                throws UnrecognizedCCodeException, InvalidPointerException {
     
     if (expression instanceof IASTLiteralExpression) {
       // a = 0
@@ -958,7 +953,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
           if (!(typeOfOperator == IASTBinaryExpression.op_plus
               || typeOfOperator == IASTBinaryExpression.op_minus)) {
 
-            throw new TransferRelationException("Invalid C code: " + cfaEdge.getRawStatement());
+            throw new UnrecognizedCCodeException(cfaEdge, binExpression);
           }
 
           if (op2 instanceof IASTLiteralExpression) {
@@ -978,7 +973,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
             missing.actionASTNode = op2;
             
           } else { 
-            throw new TransferRelationException("This code is not expected in CIL: " + cfaEdge.getRawStatement());
+            throw new UnrecognizedCCodeException("not expected in CIL", cfaEdge, op2);
           }
         }
         
@@ -995,11 +990,11 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
           element.pointerOp(new Pointer.Assign(Memory.UNKNOWN_POINTER), leftPointer, leftDereference);
         
         } else {
-          throw new TransferRelationException("This code is not expected in CIL: " + cfaEdge.getRawStatement());
+          throw new UnrecognizedCCodeException("not expected in CIL", cfaEdge, op2);
         }
       
       } else {
-        throw new TransferRelationException("This code is not expected in CIL: " + cfaEdge.getRawStatement());
+        throw new UnrecognizedCCodeException("not expected in CIL", cfaEdge, op1);
       }
       
     } else if (expression instanceof IASTUnaryExpression) {
@@ -1043,7 +1038,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
         
         if (!(expression instanceof IASTIdExpression)) {
           // not a variable at left hand side
-          throw new TransferRelationException("This code is not expected in CIL: " + cfaEdge.getRawStatement());
+          throw new UnrecognizedCCodeException("not expected in CIL", cfaEdge, expression);
         }
         
         Pointer rightPointer = element.lookupPointer(expression.getRawSignature());
@@ -1051,7 +1046,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
         if (rightPointer == null) {
           
           if (!rightCast) {
-            throw new TransferRelationException("Dereferencing a non-pointer: " + cfaEdge.getRawStatement());
+            throw new UnrecognizedCCodeException("dereferencing a non-pointer", cfaEdge, expression);
           } else {
             addWarning("Casting non-pointer value " + expression.getRawSignature() + " to pointer and dereferencing it", cfaEdge, expression.getRawSignature());
           }  
@@ -1095,7 +1090,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
         }
         
       } else {
-        throw new TransferRelationException("This code is not expected in CIL: " + cfaEdge.getRawStatement());
+        throw new UnrecognizedCCodeException("not expected in CIL", cfaEdge, unaryExpression);
       }
       
     } else if (expression instanceof IASTIdExpression) {
@@ -1121,12 +1116,11 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       } else {
         if (rightPointer != null && leftVarName != null) {
           element.addTemporaryTracking(leftVarName, rightPointer);
-          // TODO: assigning pointer variable to non-pointer variable, start tracking this variable 
         }
       }
       
     } else {
-      throw new TransferRelationException("This code is not expected in CIL: " + cfaEdge.getRawStatement());
+      throw new UnrecognizedCCodeException("not expected in CIL", cfaEdge, expression);
     }
   }
 
@@ -1137,12 +1131,12 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
    * @param parameter the parameter to the malloc call in the AST
    * @throws InvalidPointerException if malloc fails
    * @throws NumberFormatException if argument is a number, not a valid integer
-   * @throws TransferRelationException if parameter contains something unexpected
+   * @throws UnrecognizedCCodeException if parameter contains something unexpected
    */
   private void handleMalloc(PointerAnalysisElement element, Pointer pointer,
                             boolean leftDereference,
                             IASTExpression parameter, CFAEdge cfaEdge)
-                            throws TransferRelationException {
+                            throws UnrecognizedCCodeException {
 
     Pointer.MallocAndAssign op = new Pointer.MallocAndAssign();
     element.pointerOp(op, pointer, leftDereference);
@@ -1151,7 +1145,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
     if (parameter instanceof IASTLiteralExpression) {
       long size = parseIntegerLiteral((IASTLiteralExpression)parameter);
       if (size < 0) {
-        throw new TransferRelationException("Malloc with size < 0, but malloc takes unsigned parameter");
+        throw new UnrecognizedCCodeException("malloc with size < 0, but malloc takes unsigned parameter", cfaEdge, parameter);
       }
       if (size > 0x7FFFFFFF) {
         addWarning("Possible sign error: malloc with size > 2GB", cfaEdge, "malloc");
@@ -1167,7 +1161,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       missing.mallocSizeASTNode = parameter;
     
     } else {
-      throw new TransferRelationException("Not expected in CIL: malloc(" + parameter.getRawSignature() + ")");
+      throw new UnrecognizedCCodeException("not expected in CIL", cfaEdge, parameter);
     }
   }
   
@@ -1200,7 +1194,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
           strengthen(pointerElement, (TypesElement)ae, cfaEdge, precision);
         }
         
-      } catch (TransferRelationException e) {
+      } catch (UnrecognizedCCodeException e) {
         addError(e.getMessage(), cfaEdge);
         return domain.getBottomElement();
       
@@ -1230,13 +1224,14 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
   
   private void strengthen(PointerAnalysisElement pointerElement, 
                           ExplicitAnalysisElement explicitElement,
-                          CFAEdge cfaEdge, Precision precision) throws InvalidPointerException, TransferRelationException {
+                          CFAEdge cfaEdge, Precision precision) throws InvalidPointerException, UnrecognizedCCodeException {
     
     if (missing.mallocSizeMemory != null) {
       Long value = getVariableContent(missing.mallocSizeASTNode, explicitElement, cfaEdge);
       if (value != null) {
         if (value < 0) {
-          throw new TransferRelationException("Malloc with size < 0, but malloc takes unsigned parameter");
+          // TODO better exception or warning
+          throw new UnrecognizedCCodeException("malloc with size < 0, but malloc takes unsigned parameter", cfaEdge);
         }
         if (value > 0x7FFFFFFF) {
           addWarning("Possible sign error: malloc with size > 2GB", cfaEdge, "malloc");
@@ -1293,7 +1288,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
   private void strengthen(PointerAnalysisElement pointerElement, 
                           TypesElement typesElement,
                           CFAEdge cfaEdge, Precision precision)
-                          throws TransferRelationException {
+                          throws UnrecognizedCCodeException {
 
     if (cfaEdge instanceof FunctionCallEdge) {
       // function call, adjust sizeOfTarget of parameters
@@ -1328,7 +1323,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       
       IASTDeclarator[] declarators = missing.typeInformationEdge.getDeclarators();
       if (declarators == null || declarators.length != 1) {
-         throw new TransferRelationException("Not expected in CIL: " + missing.typeInformationEdge.getRawStatement());
+         throw new UnrecognizedCCodeException("not expected in CIL", missing.typeInformationEdge);
       }
       
       String varName = declarators[0].getName().getRawSignature();
@@ -1338,21 +1333,18 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
     }
   }
   
-  private void setSizeOfTarget(Pointer pointer, Type type) throws TransferRelationException {
-    int sizeOfTarget;
+  private void setSizeOfTarget(Pointer pointer, Type type) {
     switch (type.getTypeClass()) {
     case POINTER:
-      sizeOfTarget = ((PointerType)type).getTargetType().sizeOf();
+      pointer.setSizeOfTarget(((PointerType)type).getTargetType().sizeOf());
       break;
       
     case ARRAY:
-      sizeOfTarget = ((ArrayType)type).getType().sizeOf();
+      pointer.setSizeOfTarget(((ArrayType)type).getType().sizeOf());
       break;
       
     default: 
-      throw new TransferRelationException("Types determined by TypesCPA und PointerAnalysisCPA differ!");
+      addWarning("Types determined by TypesCPA und PointerAnalysisCPA differ!", null, pointer.getLocation().toString());
     }
-
-    pointer.setSizeOfTarget(sizeOfTarget);
   }
 }

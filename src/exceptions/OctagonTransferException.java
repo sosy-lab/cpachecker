@@ -23,16 +23,10 @@
  */
 package exceptions;
 
-import exceptions.TransferRelationException;
 
-public class OctagonTransferException extends TransferRelationException
+public class OctagonTransferException extends CPATransferException
 {
 	private static final long serialVersionUID = 3;
-
-	public OctagonTransferException(){
-		super();
-		System.exit(0);
-	}
 
 	public OctagonTransferException(String s){
 		super(s);
