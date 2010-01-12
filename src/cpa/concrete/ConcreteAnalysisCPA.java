@@ -41,7 +41,11 @@ public class ConcreteAnalysisCPA implements cpa.common.interfaces.ConfigurablePr
   private ConcreteAnalysisTransferRelation mTransferRelation;
   private PrecisionAdjustment mPrecisionAdjustment;
 
-  public ConcreteAnalysisCPA (String mergeType, String stopType) throws CPAException {
+  public ConcreteAnalysisCPA(String pMergeType, String pStopType) throws CPAException {
+    this();
+  }
+  
+  public ConcreteAnalysisCPA() throws CPAException {
     
     this.mAbstractDomain = ConcreteAnalysisDomain.getInstance();
     
@@ -52,29 +56,29 @@ public class ConcreteAnalysisCPA implements cpa.common.interfaces.ConfigurablePr
     this.mPrecisionAdjustment = StaticPrecisionAdjustment.getInstance();
   }
 
-  public ConcreteAnalysisDomain getAbstractDomain ()
+  public ConcreteAnalysisDomain getAbstractDomain()
   {
     return mAbstractDomain;
   }
 
-  public MergeOperator getMergeOperator ()
+  public MergeOperator getMergeOperator()
   {
     return this.mMergeOperator;
   }
 
-  public StopOperator getStopOperator ()
+  public StopOperator getStopOperator()
   {
     return mStopOperator;
   }
 
-  public ConcreteAnalysisTransferRelation getTransferRelation ()
+  public ConcreteAnalysisTransferRelation getTransferRelation()
   {
     return mTransferRelation;
   }
 
   @SuppressWarnings("unchecked")
   @Override
-  public ConcreteAnalysisElement getInitialElement (CFAFunctionDefinitionNode node)
+  public ConcreteAnalysisElement getInitialElement(CFAFunctionDefinitionNode node)
   {
     return new ConcreteAnalysisElement();
   }

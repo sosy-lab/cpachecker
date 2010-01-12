@@ -37,10 +37,13 @@ import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTFieldReference;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression;
 import org.eclipse.cdt.core.dom.ast.IASTIdExpression;
+import org.eclipse.cdt.core.dom.ast.IASTInitializer;
+import org.eclipse.cdt.core.dom.ast.IASTInitializerExpression;
 import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
 import org.eclipse.cdt.core.dom.ast.IASTPointerOperator;
 import org.eclipse.cdt.core.dom.ast.IASTTypeIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
+import org.eclipse.cdt.internal.core.dom.parser.c.CASTInitializerExpression;
 
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.c.AssumeEdge;
@@ -55,6 +58,7 @@ import cmdline.CPAMain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
+import cpa.mustmay.MustMayAnalysisElement;
 import exceptions.CPATransferException;
 import exceptions.ExplicitAnalysisTransferException;
 
@@ -92,6 +96,10 @@ public class ConcreteAnalysisTransferRelation implements TransferRelation {
     assert(pCurrentElement != null);
     assert(pCfaEdge != null);
     assert(pPrecision != null);
+    
+    if (pCurrentElement.equals(mDomain.getBottomElement())) {
+      return mDomain.getBottomElement();
+    }
     
     // check the type of the edge
     switch (pCfaEdge.getEdgeType ())
@@ -211,7 +219,21 @@ public class ConcreteAnalysisTransferRelation implements TransferRelation {
     // retrieve summaryEdge or predecessor from stack ???
     // TODO Post question on developer forum
     
+    // CAUTION: This is not possible because of nested access!!!
     ConcreteAnalysisElement previousElem = (ConcreteAnalysisElement)lSummaryEdge.extractAbstractElement("ConcreteAnalysisElement");
+    
+    if (previousElem == null) {
+      // previousElem is null because we use the CPA in another CPA (must-may-analysis)
+      // and thus we can not access the concrete element
+      
+      // TODO: remove this hack
+      
+      // here comes the hack
+      MustMayAnalysisElement lMustMayAnalysisElement = (MustMayAnalysisElement)lSummaryEdge.extractAbstractElement("MustMayAnalysisElement");
+      
+      previousElem = (ConcreteAnalysisElement)lMustMayAnalysisElement.getMustElement();
+    }
+    
     ConcreteAnalysisElement newElement = previousElem.clone();
 
     String callerFunctionName = pFunctionReturnEdge.getSuccessor().getFunctionName();
@@ -527,6 +549,18 @@ public class ConcreteAnalysisTransferRelation implements TransferRelation {
         if(declarationEdge instanceof GlobalDeclarationEdge)
         {
           globalVars.add(varName);
+          
+          // cilly might initialize global variables 
+          
+          IASTInitializer lInitializer = declarator.getInitializer();
+          
+          if (lInitializer != null) {
+            assert(lInitializer instanceof IASTInitializerExpression);
+            
+            IASTInitializerExpression lInitializerExpression = (IASTInitializerExpression)lInitializer;
+            
+            newElement = handleAssignmentToVariable(newElement, varName, lInitializerExpression.getExpression(), declarationEdge);
+          }
         }
       }
     }
@@ -1026,8 +1060,9 @@ public class ConcreteAnalysisTransferRelation implements TransferRelation {
     assert(op2 != null);
     
     Long val = parseLiteral(op2);
-
+    
     String assignedVar = getvarName(lParam, functionName);
+    
     if (val != null) {
       newElement.assignConstant(assignedVar, val);
     } else {

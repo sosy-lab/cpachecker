@@ -87,24 +87,13 @@ public class ConcreteAnalysisElement implements AbstractElement {
       return false;
     }
     
-    assert(pOther instanceof ConcreteAnalysisElement);   
-
-    ConcreteAnalysisElement otherElement = (ConcreteAnalysisElement) pOther;
-    if (otherElement.mConstantsMap.size() != mConstantsMap.size()){
-      return false;
-    }
-
-    for (String s: mConstantsMap.keySet()){
-      if(!otherElement.mConstantsMap.containsKey(s)){
-        return false;
-      }
-      if(otherElement.mConstantsMap.get(s).longValue() != 
-        mConstantsMap.get(s)){
-        return false;
-      }
+    if (pOther.getClass() == getClass()) {
+      ConcreteAnalysisElement lOtherElement = (ConcreteAnalysisElement) pOther;
+      
+      return lOtherElement.mConstantsMap.equals(mConstantsMap);
     }
     
-    return true;
+    return false;
   }
 
   /*
