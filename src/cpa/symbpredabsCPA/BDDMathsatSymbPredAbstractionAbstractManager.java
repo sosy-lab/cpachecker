@@ -182,10 +182,6 @@ implements SymbPredAbstFormulaManager
     
     long startTime = System.currentTimeMillis();
 
-    long msatEnv = mmgr.getMsatEnv();
-
-    thmProver.init(TheoremProver.CARTESIAN_ABSTRACTION);
-
     final SymbolicFormula absFormula = smgr.instantiate(toConcrete(abs), null);
     final SSAMap absSsa = mmgr.extractSSA((MathsatSymbolicFormula)absFormula);
     
@@ -225,11 +221,10 @@ implements SymbPredAbstFormulaManager
 
     boolean skipFeasibilityCheck = false;
     if (useCache) {
-        FeasibilityCacheKey key = new FeasibilityCacheKey(f);
+        FeasibilityCacheKey key = new FeasibilityCacheKey(fkey);
         if (feasibilityCache.containsKey(key)) {
             skipFeasibilityCheck = true;
             if (!feasibilityCache.get(key)) {
-                thmProver.reset();
                 // abstract post leads to false, we can return immediately
                 return amgr.makeFalse();
             }
@@ -246,48 +241,40 @@ implements SymbPredAbstFormulaManager
 
     long solveStartTime = System.currentTimeMillis();
 
-    if (!skipFeasibilityCheck) {
+    thmProver.init(TheoremProver.CARTESIAN_ABSTRACTION);
+    try {
+      
+      if (!skipFeasibilityCheck) {
         //++stats.abstractionNumMathsatQueries;
-        if (thmProver.isUnsat(f)) {
-            thmProver.reset();
-            if (useCache) {
-                FeasibilityCacheKey key = new FeasibilityCacheKey(fkey);
-                if (feasibilityCache.containsKey(key)) {
-                    assert(feasibilityCache.get(key) == false);
-                }
-                feasibilityCache.put(key, false);
-            }
-            return amgr.makeFalse();
-        } else {
-            if (useCache) {
-                FeasibilityCacheKey key = new FeasibilityCacheKey(fkey);
-                if (feasibilityCache.containsKey(key)) {
-                    assert(feasibilityCache.get(key) == true);
-                }
-                feasibilityCache.put(key, true);
-            }
+        boolean unsat = thmProver.isUnsat(f);
+        if (useCache) {
+          FeasibilityCacheKey key = new FeasibilityCacheKey(fkey);
+          feasibilityCache.put(key, !unsat);
         }
-    } else {
-        //++stats.abstractionNumCachedQueries;
-    }
-
-    thmProver.push(f);
-
-    long totBddTime = 0;
-
-    AbstractFormula absbdd = amgr.makeTrue();
-
-    // check whether each of the predicate is implied in the next state...
-    Set<String> predvars = new HashSet<String>();
-    Set<Pair<String, SymbolicFormula[]>> predlvals =
-        new HashSet<Pair<String, SymbolicFormula[]>>();
-    Map<SymbolicFormula, SymbolicFormula> predLvalsCache =
-        new HashMap<SymbolicFormula, SymbolicFormula>();
-
-    int predIndex = -1;
-    for (Predicate p : predicates) {
-        ++predIndex;
-        if (useCache && predVals[predIndex] != NO_VALUE) {
+        if (unsat) {
+          return amgr.makeFalse();
+        }
+      } else {
+          //++stats.abstractionNumCachedQueries;
+      }
+  
+      thmProver.push(f);
+      try {
+        long totBddTime = 0;
+    
+        AbstractFormula absbdd = amgr.makeTrue();
+    
+        // check whether each of the predicate is implied in the next state...
+        Set<String> predvars = new HashSet<String>();
+        Set<Pair<String, SymbolicFormula[]>> predlvals =
+            new HashSet<Pair<String, SymbolicFormula[]>>();
+        Map<SymbolicFormula, SymbolicFormula> predLvalsCache =
+            new HashMap<SymbolicFormula, SymbolicFormula>();
+    
+        int predIndex = -1;
+        for (Predicate p : predicates) {
+          ++predIndex;
+          if (useCache && predVals[predIndex] != NO_VALUE) {
             long startBddTime = System.currentTimeMillis();
             AbstractFormula v = p.getFormula();
             if (predVals[predIndex] == -1) { // pred is false
@@ -299,7 +286,7 @@ implements SymbPredAbstFormulaManager
             long endBddTime = System.currentTimeMillis();
             totBddTime += (endBddTime - startBddTime);
             //++stats.abstractionNumCachedQueries;
-        } else {
+          } else {
             Pair<? extends SymbolicFormula, ? extends SymbolicFormula> pi =
                 getPredicateVarAndAtom(p);
 
@@ -329,23 +316,15 @@ implements SymbPredAbstFormulaManager
                     "CHECKING VALUE OF PREDICATE: ", pi.getFirst());
 
             // instantiate the definition of the predicate
-            MathsatSymbolicFormula inst =
-                (MathsatSymbolicFormula)mmgr.instantiate(
-                        pi.getSecond(), ssa);
+            SymbolicFormula predTrue = mmgr.instantiate(pi.getSecond(), ssa);
+            SymbolicFormula predFalse = smgr.makeNot(predTrue);
 
-            boolean isTrue = false, isFalse = false;
             // check whether this predicate has a truth value in the next
             // state
-            long predTrue = inst.getTerm();
-//            predTrue = mathsat.api.msat_make_copy_from(
-//                    absEnv, inst.getTerm(), msatEnv);
-            long predFalse = mathsat.api.msat_make_not(msatEnv, predTrue);
+            byte predVal = 0; // pred is neither true nor false
 
             //++stats.abstractionNumMathsatQueries;
-            if (thmProver.isUnsat(
-                    new MathsatSymbolicFormula(predFalse))) {
-                isTrue = true;
-            }
+            boolean isTrue = thmProver.isUnsat(predFalse);
 
             if (isTrue) {
                 long startBddTime = System.currentTimeMillis();
@@ -353,13 +332,12 @@ implements SymbPredAbstFormulaManager
                 absbdd = amgr.makeAnd(absbdd, v);
                 long endBddTime = System.currentTimeMillis();
                 totBddTime += (endBddTime - startBddTime);
+                
+                predVal = 1; 
             } else {
                 // check whether it's false...
                 //++stats.abstractionNumMathsatQueries;
-                if (thmProver.isUnsat(
-                        new MathsatSymbolicFormula(predTrue))) {
-                    isFalse = true;
-                }
+              boolean isFalse = thmProver.isUnsat(predTrue);
 
                 if (isFalse) {
                     long startBddTime = System.currentTimeMillis();
@@ -368,43 +346,43 @@ implements SymbPredAbstFormulaManager
                     absbdd = amgr.makeAnd(absbdd, v);
                     long endBddTime = System.currentTimeMillis();
                     totBddTime += (endBddTime - startBddTime);
+                    
+                    predVal = -1;
                 }
             }
 
             if (useCache) {
-                if (predVals[predIndex] != NO_VALUE) {
-                    assert(isTrue ? predVals[predIndex] == 1 :
-                        (isFalse ? predVals[predIndex] == -1 :
-                            predVals[predIndex] == 0));
-                }
                 CartesianAbstractionCacheKey key =
                     new CartesianAbstractionCacheKey(fkey, p);
-                byte val = (byte)(isTrue ? 1 : (isFalse ? -1 : 0));
-                cartesianAbstractionCache.put(key, val);
+                cartesianAbstractionCache.put(key, predVal);
             }
+          }
         }
+        long solveEndTime = System.currentTimeMillis();
+
+        // update statistics
+        long endTime = System.currentTimeMillis();
+        long solveTime = (solveEndTime - solveStartTime) - totBddTime;
+        long msatTime = (endTime - startTime) - totBddTime;
+        stats.abstractionMaxMathsatTime =
+            Math.max(msatTime, stats.abstractionMaxMathsatTime);
+        stats.abstractionMaxBddTime =
+            Math.max(totBddTime, stats.abstractionMaxBddTime);
+        stats.abstractionMathsatTime += msatTime;
+        stats.abstractionBddTime += totBddTime;
+        stats.abstractionMathsatSolveTime += solveTime;
+        stats.abstractionMaxMathsatSolveTime =
+            Math.max(solveTime, stats.abstractionMaxMathsatSolveTime);
+        
+        return absbdd;
+
+      } finally {
+        thmProver.pop();
+      }
+
+    } finally {
+      thmProver.reset();     
     }
-    long solveEndTime = System.currentTimeMillis();
-
-    thmProver.pop();
-    thmProver.reset();
-
-    // update statistics
-    long endTime = System.currentTimeMillis();
-    long solveTime = (solveEndTime - solveStartTime) - totBddTime;
-    long msatTime = (endTime - startTime) - totBddTime;
-    stats.abstractionMaxMathsatTime =
-        Math.max(msatTime, stats.abstractionMaxMathsatTime);
-    stats.abstractionMaxBddTime =
-        Math.max(totBddTime, stats.abstractionMaxBddTime);
-    stats.abstractionMathsatTime += msatTime;
-    stats.abstractionBddTime += totBddTime;
-    stats.abstractionMathsatSolveTime += solveTime;
-    stats.abstractionMaxMathsatSolveTime =
-        Math.max(solveTime, stats.abstractionMaxMathsatSolveTime);
-
-    return absbdd;
-    
   }
 
   private AbstractFormula buildBooleanAbstraction(
