@@ -146,9 +146,16 @@ implements SymbPredAbstFormulaManager
     wellScopedPredicates = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.refinement.addWellScopedPredicates");
     
     if (useCache) {
-      abstractionCache = new HashMap<Pair<SymbolicFormula, List<SymbolicFormula>>, AbstractFormula>();
-      cartesianAbstractionCache = new TimeStampCache<CartesianAbstractionCacheKey, Byte>(MAX_CACHE_SIZE);
-      feasibilityCache = new TimeStampCache<FeasibilityCacheKey, Boolean>(MAX_CACHE_SIZE);
+      if (cartesianAbstraction) {
+        abstractionCache = null;
+        cartesianAbstractionCache = new TimeStampCache<CartesianAbstractionCacheKey, Byte>(MAX_CACHE_SIZE);
+        feasibilityCache = new TimeStampCache<FeasibilityCacheKey, Boolean>(MAX_CACHE_SIZE);
+      
+      } else {
+        abstractionCache = new HashMap<Pair<SymbolicFormula, List<SymbolicFormula>>, AbstractFormula>();
+        cartesianAbstractionCache = null;
+        feasibilityCache = null;
+      }
     } else {
       abstractionCache = null;
       cartesianAbstractionCache = null;
@@ -167,12 +174,11 @@ implements SymbPredAbstFormulaManager
       return buildBooleanAbstraction(abs, pathFormula, predicates);
     }
   }
-
+  
   private AbstractFormula buildCartesianAbstraction(
       AbstractFormula abs,
       PathFormula pathFormula,
-      Collection<Predicate> predicates/*,
-      SymbolicFormula functionExitFormula*/) {
+      Collection<Predicate> predicates) {
     
     long startTime = System.currentTimeMillis();
 
@@ -180,14 +186,24 @@ implements SymbPredAbstFormulaManager
 
     thmProver.init(TheoremProver.CARTESIAN_ABSTRACTION);
 
+    final SymbolicFormula absFormula = smgr.instantiate(toConcrete(abs), null);
+    final SSAMap absSsa = mmgr.extractSSA((MathsatSymbolicFormula)absFormula);
+    
+    
+    pathFormula = smgr.shift(pathFormula.getSymbolicFormula(), absSsa);
+    final SymbolicFormula symbFormula = mmgr.replaceAssignments((MathsatSymbolicFormula)pathFormula.getSymbolicFormula());
+    final SSAMap ssa = pathFormula.getSsa();
+    
+    SymbolicFormula f = smgr.makeAnd(absFormula, symbFormula);
+    
 //    Pair<SymbolicFormula, SSAMap> pc =
 //        buildConcreteFormula(mmgr, e, succ, edge, false);
 //    SymbolicFormula f = pc.getFirst();
 //    SSAMap ssa = pc.getSecond();
-    SymbolicFormula f = pathFormula.getSymbolicFormula();
-    SSAMap ssa = pathFormula.getSsa();
-
-    f = mmgr.replaceAssignments((MathsatSymbolicFormula)f);
+//    SymbolicFormula f = pathFormula.getSymbolicFormula();
+//    SSAMap ssa = pathFormula.getSsa();
+//
+//    f = mmgr.replaceAssignments((MathsatSymbolicFormula)f);
     SymbolicFormula fkey = f;
 
     byte[] predVals = null;
@@ -221,8 +237,7 @@ implements SymbPredAbstFormulaManager
     }
 
     if (useBitwiseAxioms) {
-        MathsatSymbolicFormula bitwiseAxioms = mmgr.getBitwiseAxioms(
-                (MathsatSymbolicFormula)f);
+        SymbolicFormula bitwiseAxioms = mmgr.getBitwiseAxioms((MathsatSymbolicFormula)f);
         f = mmgr.makeAnd(f, bitwiseAxioms);
 
         CPAMain.logManager.log(Level.ALL, "DEBUG_3", "ADDED BITWISE AXIOMS:",
