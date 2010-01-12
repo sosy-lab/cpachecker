@@ -24,5 +24,6 @@
 	<classpathentry kind="lib" path="lib/yicesapijava.jar"/>
 	<classpathentry kind="lib" path="lib/StubCodeReaderFactory.jar"/>
 	<classpathentry kind="lib" path="lib/icu4j-4_2_1.jar"/>
+	<classpathentry kind="lib" path="lib/google-collect-1.0.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

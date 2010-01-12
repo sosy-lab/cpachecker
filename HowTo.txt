@@ -69,7 +69,7 @@ Sources of binaries provided with the distribution/SVN:
 - java-cup-11a.jar: http://www2.cs.tum.edu/projects/cup/
 - icu4j-4_2_1.jar: http://site.icu-project.org/
 - JFlex.jar: http://jflex.de/
-- 
+- Google Collections: http://code.google.com/p/google-collections/
 - others: Unknown (MT)
 
 Examples of working installation:
