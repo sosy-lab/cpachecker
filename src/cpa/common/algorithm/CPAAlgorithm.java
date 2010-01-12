@@ -43,6 +43,7 @@ import cpa.common.interfaces.PrecisionAdjustment;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
 import exceptions.CPAException;
+import exceptions.TransferTimeOutException;
 
 public class CPAAlgorithm implements Algorithm {
 
@@ -58,7 +59,7 @@ public class CPAAlgorithm implements Algorithm {
   }
 
   @Override
-  public void run(final ReachedElements reachedElements, boolean stopAfterError) throws CPAException {
+  public void run(final ReachedElements reachedElements, boolean stopAfterError) throws CPAException, TransferTimeOutException {
     final TransferRelation transferRelation = cpa.getTransferRelation();
     final MergeOperator mergeOperator = cpa.getMergeOperator();
     final StopOperator stopOperator = cpa.getStopOperator();

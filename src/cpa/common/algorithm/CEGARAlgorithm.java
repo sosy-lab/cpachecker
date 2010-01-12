@@ -44,6 +44,7 @@ import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.Refiner;
 import exceptions.CPAException;
+import exceptions.TransferTimeOutException;
 
 public class CEGARAlgorithm implements Algorithm {
 
@@ -56,9 +57,9 @@ public class CEGARAlgorithm implements Algorithm {
 
   private final Algorithm algorithm;
   private final Refiner mRefiner;
-  
+
   public static ExecutorService executor;
-  
+
   /**
    * Creates an instance of class className, passing the objects from argumentList
    * to the constructor and casting the object to class type. Throws a CPAException
@@ -68,7 +69,7 @@ public class CEGARAlgorithm implements Algorithm {
    */
   @SuppressWarnings("unchecked")
   private static <T> T createInstance(String className, Object[] argumentList, Class<T> type)
-      throws CPAException {
+  throws CPAException {
     try {
       Class<?> cls = Class.forName(className);
       Class<?> parameterTypes[] = {ConfigurableProgramAnalysis.class};
@@ -82,18 +83,18 @@ public class CEGARAlgorithm implements Algorithm {
     } catch (Exception e) {
       throw new CPAException("Could not instantiate " + className + ": " + e.getMessage());
     }
-    
+
   }
-  
+
   public CEGARAlgorithm(Algorithm algorithm) throws CPAException {
     this.algorithm = algorithm;
-    
+
     String refinerName = CPAMain.cpaConfig.getProperty("cegar.refiner");
     Object[] refinerArguments = {algorithm.getCPA()};
-    
+
     mRefiner = createInstance(refinerName, refinerArguments, Refiner.class);
   }
-  
+
   @Override
   public void run(ReachedElements reached, boolean stopAfterError) throws CPAException {
 
@@ -101,13 +102,19 @@ public class CEGARAlgorithm implements Algorithm {
     executor = Executors.newCachedThreadPool();
     while (!stopAnalysis) {
       // run algorithm
-      algorithm.run(reached, true);
+      try{
+        algorithm.run(reached, true);
+      } catch (TransferTimeOutException toE) {
+        // TODO this is temp. to terminate
+        // this exception should be handled in InvariantCOllectionAlgorithm 
+        System.out.println("Timed out @ " + toE.getCfaEdge());
+      }
 
       // if the element is an error element
       if (reached.getLastElement().isError()) {
 
         CPAMain.logManager.log(Level.FINER, "Error found, performing CEGAR");
-        
+
         long startRef = System.currentTimeMillis();
 
         RefinementOutcome refout = mRefiner.performRefinement(reached);
@@ -117,32 +124,32 @@ public class CEGARAlgorithm implements Algorithm {
 
         if (refout.refinementPerformed()) {
           // successful refinement
-          
+
           CPAMain.logManager.log(Level.FINER, "Refinement successful");
-          
+
           long start = System.currentTimeMillis();
-          
+
           if (CPAMain.cpaConfig.getBooleanValue("cegar.restartOnRefinement")) {
             // TODO
-          
+
           } else {
             modifySets(reached, refout.getToUnreach(), refout.getToWaitlist());
           }
-          
+
           long end = System.currentTimeMillis();
           modifySetsTime = modifySetsTime + (end - start);
-                  
+
           runGC();
-          
+
         } else {
           // no refinement found, because the counterexample is not spurious
           CPAMain.logManager.log(Level.FINER, "No refinement found");
-          
+
           stopAnalysis = true;
-          
+
           // TODO: if (stopAfterError == false), continue to look for next error
         }
-        
+
       } else {
         // no error
         System.out.println("ERROR label NOT reached");
@@ -159,29 +166,29 @@ public class CEGARAlgorithm implements Algorithm {
 
     CPAMain.logManager.log(Level.ALL, "Removing elements from reached set:", reachableToUndo);
     CPAMain.logManager.log(Level.ALL, "Adding elements to waitlist:", toWaitlist);
-    
+
     // TODO if starting from nothing, do not bother calling this
-    
+
     Map<AbstractElementWithLocation, Pair<AbstractElementWithLocation, Precision>> toWaitlistPrecision
-      = new HashMap<AbstractElementWithLocation, Pair<AbstractElementWithLocation, Precision>>();
+    = new HashMap<AbstractElementWithLocation, Pair<AbstractElementWithLocation, Precision>>();
 
     // remove from reached all the elements in reachableToUndo
     List<Pair<AbstractElementWithLocation, Precision>> toRemove = new ArrayList<Pair<AbstractElementWithLocation, Precision>>();
-    
+
     for (Pair<AbstractElementWithLocation, Precision> p : reached.getReached()) {
       AbstractElementWithLocation e = p.getFirst();
-      
+
       if (reachableToUndo.contains(e)) {
         toRemove.add(p);
       }
-      
+
       if (toWaitlist.contains(e)) {
         toWaitlistPrecision.put(e, p);
       }
     }
-    
+
     reached.removeAll(toRemove);
-   
+
     for (AbstractElementWithLocation e : toWaitlist) {
       Pair<AbstractElementWithLocation, Precision> p;
       if (toWaitlistPrecision.containsKey(e)) {
@@ -200,7 +207,7 @@ public class CEGARAlgorithm implements Algorithm {
       gcCounter = 0;
     }
   }
-  
+
   @Override
   public ConfigurableProgramAnalysis getCPA() {
     return algorithm.getCPA();
