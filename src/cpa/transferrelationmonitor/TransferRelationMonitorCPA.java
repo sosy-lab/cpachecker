@@ -29,8 +29,7 @@ public class TransferRelationMonitorCPA implements ConfigurableProgramAnalysis, 
   public TransferRelationMonitorCPA(ConfigurableProgramAnalysis pCpa) throws CPAException{
     wrappedCPA = pCpa;
     abstractDomain = new TransferRelationMonitorDomain(this);
-    transferRelation = new TransferRelationMonitorTransferRelation(wrappedCPA.getTransferRelation(), 
-        (TransferRelationMonitorDomain)abstractDomain);
+    transferRelation = new TransferRelationMonitorTransferRelation(wrappedCPA.getTransferRelation());
     precisionAdjustment = new TransferRelationMonitorPrecisionAdjustment();
     mergeOperator = new TransferRelationMonitorMerge(wrappedCPA);
     stopOperator = new TransferRelationMonitorStop(wrappedCPA);  
@@ -44,7 +43,7 @@ public class TransferRelationMonitorCPA implements ConfigurableProgramAnalysis, 
   @Override
   public <AE extends AbstractElement> AE getInitialElement(
       CFAFunctionDefinitionNode pNode) {
-    return (AE) new TransferRelationMonitorElement(this, (AbstractElement)wrappedCPA.getInitialElement(pNode));
+    return (AE) new TransferRelationMonitorElement(this, wrappedCPA.getInitialElement(pNode));
   }
 
   @Override

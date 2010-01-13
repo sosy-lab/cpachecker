@@ -33,6 +33,9 @@ public class TransferRelationMonitorMerge implements MergeOperator{
 
     TransferRelationMonitorElement mergedElement = new TransferRelationMonitorElement(transferRelationMonitorElement1.getCpa(), retElement);
 
+    mergedElement.setTotalTime(Math.max(transferRelationMonitorElement1.getTotalTimeOnThePath(), 
+        transferRelationMonitorElement2.getTotalTimeOnThePath()));
+    
     return mergedElement;
   }
 

@@ -10,11 +10,9 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import cmdline.CPAMain;
-
 import cfa.objectmodel.CFAEdge;
+import cmdline.CPAMain;
 import cpa.common.algorithm.CEGARAlgorithm;
-import cpa.common.automaton.AutomatonCPADomain.BottomElement;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
@@ -25,11 +23,9 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
 
   private final TransferRelation transferRelation;
   private TransferCallable tc = new TransferCallable();
-  private final TransferRelationMonitorDomain domain;
   
-  public TransferRelationMonitorTransferRelation(TransferRelation pTransferRelation, TransferRelationMonitorDomain pDomain) {
+  public TransferRelationMonitorTransferRelation(TransferRelation pTransferRelation) {
     transferRelation = pTransferRelation;
-    domain = pDomain;
   }
 
   @Override
@@ -53,10 +49,16 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
     tc.setPrecision(pPrecision);
     Future<Collection<? extends AbstractElement>> future = CEGARAlgorithm.executor.submit(tc);
     try{
+      start = System.currentTimeMillis();
+      if(timeLimit == 0){
+        successors = future.get();
+      }
       // here we get the result of the post computation but there is a time limit
       // given to complete the task specified by timeLimit
-      start = System.currentTimeMillis();
-      successors = future.get(timeLimit, TimeUnit.MILLISECONDS);
+      else{
+        assert(timeLimit > 0);
+        successors = future.get(timeLimit, TimeUnit.MILLISECONDS);
+      }
       end = System.currentTimeMillis();
     } catch (TimeoutException exc){
       throw new TransferTimeOutException(pCfaEdge, wrappedElement, pPrecision);
@@ -89,22 +91,28 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
       Precision precision) {    
     TransferRelationMonitorElement monitorElement = (TransferRelationMonitorElement)element;
     AbstractElement wrappedElement = monitorElement.getWrappedElements().iterator().next();
+    List<AbstractElement> retList = new ArrayList<AbstractElement>();
     
-    AbstractElement wrappedReturnElement = null;
     try {
-      wrappedReturnElement = transferRelation.strengthen(wrappedElement, otherElements, cfaEdge, precision);
+       Collection<? extends AbstractElement> wrappedList = transferRelation.strengthen(wrappedElement, otherElements, cfaEdge, precision);
+       // if the returned list is null return null
+       if(wrappedList == null)
+         return null;
+    // TODO we assume that only one element is returned or empty set to represent bottom
+       assert(wrappedList.size() < 2);
+       // if bottom return empty list
+       if(wrappedList.size() == 0){
+         return retList;
+       }
+       
+       AbstractElement wrappedReturnElement = wrappedList.iterator().next();
+       retList.add(new TransferRelationMonitorElement(monitorElement.getCpa(), wrappedReturnElement));
+       return retList;
     } catch (CPATransferException e) {
       e.printStackTrace();
     }
-   
-    if(wrappedReturnElement == null)
-      return null;
     
-    if(wrappedReturnElement instanceof BottomElement)
-      return 
-      
-    return new TransferRelationMonitorElement(monitorElement.getCpa(), wrappedReturnElement);
-    
+    return null;
   }
 
   private class TransferCallable implements Callable<Collection<? extends AbstractElement>>{
