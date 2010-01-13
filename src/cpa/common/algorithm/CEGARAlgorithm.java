@@ -176,7 +176,7 @@ public class CEGARAlgorithm implements Algorithm {
     List<Pair<AbstractElementWithLocation, Precision>> toWaitlistWithPrecision
                         = Lists.newArrayListWithCapacity(toWaitlist.size());
 
-    if (newPrecision != null) {
+    if (newPrecision == null) {
       for (AbstractElementWithLocation e : toWaitlist) {
         toWaitlistWithPrecision.add(new Pair<AbstractElementWithLocation, Precision>(e, reached.getPrecision(e)));
       }
