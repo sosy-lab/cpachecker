@@ -3,7 +3,6 @@ package cpa.common;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -15,6 +14,8 @@ import cmdline.CPAMain;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.SetMultimap;
 import common.Pair;
 
 import cpa.common.interfaces.AbstractElement;
@@ -23,13 +24,13 @@ import cpa.common.interfaces.Precision;
 
 public class ReachedElements implements Iterable<AbstractElementWithLocation> {
   
-  private final Set<AbstractElementWithLocation> reached;
+  private final Map<AbstractElementWithLocation, Precision> reached;
   private final Set<AbstractElementWithLocation> unmodifiableReached;
-  private final Map<AbstractElement, Precision> precisions;
   private final Collection<Pair<AbstractElementWithLocation, Precision>> reachedWithPrecision;
+  private final SetMultimap<CFANode, AbstractElementWithLocation> locationMappedReached;
   private AbstractElementWithLocation lastElement = null;
   private AbstractElementWithLocation firstElement = null;
-  private final List<AbstractElementWithLocation> waitlist;
+  private final LinkedList<AbstractElementWithLocation> waitlist;
   private final TraversalMethod traversal;
   
   private Function<AbstractElementWithLocation, Pair<AbstractElementWithLocation, Precision>> getPrecisionAsPair = 
@@ -45,10 +46,15 @@ public class ReachedElements implements Iterable<AbstractElementWithLocation> {
   };
  
   public ReachedElements(String traversal) {
-    reached = createReachedSet();
-    unmodifiableReached = Collections.unmodifiableSet(reached);
-    precisions = new HashMap<AbstractElement, Precision>();
-    reachedWithPrecision = Collections2.transform(reached, getPrecisionAsPair);
+    reached = new HashMap<AbstractElementWithLocation, Precision>();
+    unmodifiableReached = Collections.unmodifiableSet(reached.keySet());
+    reachedWithPrecision = Collections2.transform(unmodifiableReached, getPrecisionAsPair);
+    if (CPAMain.cpaConfig.getBooleanValue("cpa.useSpecializedReachedSet")) {
+      locationMappedReached = HashMultimap.create(); 
+    } else {
+      locationMappedReached = null;
+    }
+    
     waitlist = new LinkedList<AbstractElementWithLocation>();
     //set traversal method given in config file; 
     //throws IllegalArgumentException if anything other than dfs, bfs, or topsort is passed
@@ -59,22 +65,17 @@ public class ReachedElements implements Iterable<AbstractElementWithLocation> {
   public enum TraversalMethod {
     DFS, BFS, TOPSORT
   }
-  
-  private Set<AbstractElementWithLocation> createReachedSet() {
-    if(CPAMain.cpaConfig.getBooleanValue("cpa.useSpecializedReachedSet")){
-      return new LocationMappedReachedSet();
-    }
-    return new HashSet<AbstractElementWithLocation>();
-  }
 
   public void add(AbstractElementWithLocation element, Precision precision) {
     if (reached.size() == 0) {
       firstElement = element;
     }
     
-    reached.add(element);
+    reached.put(element, precision);
+    if (locationMappedReached != null) {
+      locationMappedReached.put(element.getLocationNode(), element);
+    }
     waitlist.add(element);
-    precisions.put(element, precision);
     lastElement = element;
   }
 
@@ -96,7 +97,9 @@ public class ReachedElements implements Iterable<AbstractElementWithLocation> {
     }
     waitlist.remove(element);
     reached.remove(element);
-    precisions.remove(element);
+    if (locationMappedReached != null) {
+      locationMappedReached.remove(element.getLocationNode(), element);
+    }
   }
   
   public void removeAll(Collection<? extends AbstractElementWithLocation> toRemove) {
@@ -111,7 +114,9 @@ public class ReachedElements implements Iterable<AbstractElementWithLocation> {
     lastElement = null;
     waitlist.clear();
     reached.clear();
-    precisions.clear();
+    if (locationMappedReached != null) {
+      locationMappedReached.clear();
+    }
   }
   
   public Set<AbstractElementWithLocation> getReached() {
@@ -143,13 +148,11 @@ public class ReachedElements implements Iterable<AbstractElementWithLocation> {
    * @return A subset of the reached set.
    */
   public Set<AbstractElementWithLocation> getReached(CFANode loc) {
-    Set<AbstractElementWithLocation> result;
-    if (reached instanceof LocationMappedReachedSet) {
-      result = ((LocationMappedReachedSet)reached).getReached(loc);
+    if (locationMappedReached != null) {
+      return Collections.unmodifiableSet(locationMappedReached.get(loc));
     } else {
-      result = reached;
+      return unmodifiableReached;
     }
-    return Collections.unmodifiableSet(result);
   }
   
   public AbstractElementWithLocation getFirstElement() {
@@ -172,16 +175,16 @@ public class ReachedElements implements Iterable<AbstractElementWithLocation> {
     return Collections.unmodifiableList(waitlist);
   }
   
-  public Pair<AbstractElementWithLocation,Precision> popFromWaitlist() {
+  public Pair<AbstractElementWithLocation, Precision> popFromWaitlist() {
     AbstractElementWithLocation result = null;
 
     switch(traversal) {
     case BFS:
-      result = waitlist.get(0);
+      result = waitlist.removeFirst();
       break;
       
     case DFS:
-      result = waitlist.get(waitlist.size()-1);
+      result = waitlist.removeLast();
       break;
 
     case TOPSORT:
@@ -193,10 +196,10 @@ public class ReachedElements implements Iterable<AbstractElementWithLocation> {
           result = currentElement;
         }
       }
+      waitlist.remove(result);
       break;
     }
     
-    waitlist.remove(result);
     return getPrecisionAsPair.apply(result);
   }
   
@@ -206,7 +209,7 @@ public class ReachedElements implements Iterable<AbstractElementWithLocation> {
    * @return The precision for the element or null.
    */
   public Precision getPrecision(AbstractElement element) {
-    return precisions.get(element);
+    return reached.get(element);
   }
   
   public int size() {
@@ -215,6 +218,6 @@ public class ReachedElements implements Iterable<AbstractElementWithLocation> {
   
   @Override
   public String toString() {   
-    return reached.toString();
+    return reached.keySet().toString();
   }
 }
