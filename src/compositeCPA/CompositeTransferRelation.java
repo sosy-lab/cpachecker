@@ -55,19 +55,19 @@ public class CompositeTransferRelation implements TransferRelation{
 
   @Override
   public Collection<CompositeElement> getAbstractSuccessors(AbstractElement element, Precision precision, CFAEdge cfaEdge)
-      throws CPATransferException, TransferTimeOutException {
+  throws CPATransferException, TransferTimeOutException {
     CompositeElement compositeElement = (CompositeElement) element;
     Collection<CompositeElement> results;
-    
+
     if (cfaEdge == null) {
       CFANode node = compositeElement.getLocationNode();
       results = new ArrayList<CompositeElement>(node.getNumLeavingEdges());
-      
+
       for (int edgeIdx = 0; edgeIdx < node.getNumLeavingEdges(); edgeIdx++) {
         CFAEdge edge = node.getLeavingEdge(edgeIdx);
         getAbstractSuccessorForEdge(compositeElement, precision, edge, results);
       }
-    
+
     } else {
       results = new ArrayList<CompositeElement>(1);
       getAbstractSuccessorForEdge(compositeElement, precision, cfaEdge, results);
@@ -76,11 +76,11 @@ public class CompositeTransferRelation implements TransferRelation{
 
     return results;
   }
-  
+
   private void getAbstractSuccessorForEdge(CompositeElement compositeElement, Precision precision, CFAEdge cfaEdge,
       Collection<CompositeElement> compositeSuccessors) throws CPATransferException {
     assert cfaEdge != null;
-    
+
     CompositePrecision lCompositePrecision = null;
     if(precision != null){
       assert(precision instanceof CompositePrecision);
@@ -146,14 +146,14 @@ public class CompositeTransferRelation implements TransferRelation{
       resultCount *= componentSuccessors.size();
       allComponentsSuccessors.add(componentSuccessors);
     }
-    
+
     Collection<List<AbstractElement>> allResultingElements;
-    
+
     switch (resultCount) {
     case 0:
       // at least one CPA decided that there is no successor
       return;
-            
+
     case 1:
       List<AbstractElement> resultingElements = new ArrayList<AbstractElement>(allComponentsSuccessors.size());
       for (Collection<? extends AbstractElement> componentSuccessors : allComponentsSuccessors) {
@@ -162,47 +162,59 @@ public class CompositeTransferRelation implements TransferRelation{
       }
       allResultingElements = Collections.singleton(resultingElements);
       break;
-      
+
     default:
       // create cartesian product of all componentSuccessors and store the result in allResultingElements
       List<AbstractElement> initialPrefix = Collections.emptyList();
       allResultingElements = new ArrayList<List<AbstractElement>>(resultCount);
       createCartesianProduct(allComponentsSuccessors, initialPrefix, allResultingElements);
     }
-    
+
     assert resultCount == allResultingElements.size();
-    
+
     for (List<AbstractElement> resultingElements : allResultingElements) {
       List<AbstractElement> resultingElementsRO = Collections.unmodifiableList(resultingElements);
+      boolean isBottom = false;
       for (int idx = 0; idx < transferRelations.size(); idx++) {
-        AbstractElement result = transferRelations.get(idx).strengthen(
+        Collection<? extends AbstractElement> resultsList = transferRelations.get(idx).strengthen(
             resultingElements.get(idx),
             resultingElementsRO, cfaEdge,
             (lCompositePrecision == null) ? null : lCompositePrecision.get(idx));
-        if (result != null) {
-          resultingElements.set(idx, result);
+        // TODO for now we assume that there is either a single element returned or empty list returned
+        // to represent bottom
+        if (resultsList != null) {
+          assert(resultsList.size() < 2);
+          if(resultsList.size() == 1){
+            AbstractElement result = resultsList.iterator().next();
+            //          if (result != null) {
+            resultingElements.set(idx, result);
+          }
+          else{
+            isBottom = true;
+          }
         }
       }
-      
-      CompositeElement compositeSuccessor = new CompositeElement(resultingElements, updatedCallStack);
-      compositeSuccessors.add(compositeSuccessor);
+      if(!isBottom){
+        CompositeElement compositeSuccessor = new CompositeElement(resultingElements, updatedCallStack);
+        compositeSuccessors.add(compositeSuccessor);
+      }
     }
   }
-  
+
   private static void createCartesianProduct(List<Collection<? extends AbstractElement>> allComponentsSuccessors,
       List<AbstractElement> prefix, Collection<List<AbstractElement>> allResultingElements) {
-    
+
     if (prefix.size() == allComponentsSuccessors.size()) {
       allResultingElements.add(prefix);
 
     } else {
       int depth = prefix.size();
       Collection<? extends AbstractElement> myComponentsSuccessors = allComponentsSuccessors.get(depth);
-      
+
       for (AbstractElement currentComponent : myComponentsSuccessors) {
         List<AbstractElement> newPrefix = new ArrayList<AbstractElement>(prefix);
         newPrefix.add(currentComponent);
-        
+
         createCartesianProduct(allComponentsSuccessors, newPrefix, allResultingElements);
       }
     }
