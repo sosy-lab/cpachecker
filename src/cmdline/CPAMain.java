@@ -75,6 +75,7 @@ import cpa.common.algorithm.CBMCAlgorithm;
 import cpa.common.algorithm.CEGARAlgorithm;
 import cpa.common.algorithm.CPAAlgorithm;
 import cpa.common.algorithm.InvariantCollectionAlgorithm;
+import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.CPAWithStatistics;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
@@ -515,8 +516,6 @@ public class CPAMain {
       
       AbstractElementWithLocation initialElement = cpa.getInitialElement(mainFunction);
       Precision initialPrecision = cpa.getInitialPrecision(mainFunction);
-      Pair<AbstractElementWithLocation, Precision> initialPair
-          = new Pair<AbstractElementWithLocation, Precision>(initialElement, initialPrecision);
       ReachedElements reached = null;
       try {
         reached = new ReachedElements(CPAMain.cpaConfig.getProperty("analysis.traversal"));
@@ -524,7 +523,7 @@ public class CPAMain {
         logManager.logException(Level.SEVERE, e, "ERROR, unknown traversal option");
         System.exit(1);
       }
-      reached.add(initialPair);
+      reached.add(initialElement, initialPrecision);
 
       logManager.log(Level.FINE, "CPA Algorithm starting ...");
       cpaStats.startAnalysisTimer();
@@ -536,8 +535,8 @@ public class CPAMain {
 
       if (result == Result.UNKNOWN) {
         boolean errorFound = false;
-        for (Pair<AbstractElementWithLocation, Precision> reachedElement : reached.getReached()) {
-          if (reachedElement.getFirst().isError()) {
+        for (AbstractElement reachedElement : reached) {
+          if (reachedElement.isError()) {
             errorFound = true;
             result = Result.UNSAFE;
             break;
@@ -560,7 +559,9 @@ public class CPAMain {
       System.out.println(" number of stops " + CompositeStopOperator.noOfOperations);
       
       if (!cpaConfig.getBooleanValue("analysis.dontPrintReachableStates")) {
-        reached.printStates();
+        for (AbstractElementWithLocation e : reached) {
+          System.out.println(e);
+        }
       }
     }
   }

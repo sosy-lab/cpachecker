@@ -26,9 +26,7 @@ package cpa.common.algorithm;
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
@@ -171,36 +169,22 @@ public class CEGARAlgorithm implements Algorithm {
 
     // TODO if starting from nothing, do not bother calling this
 
-    Map<AbstractElementWithLocation, Pair<AbstractElementWithLocation, Precision>> toWaitlistPrecision
-    = new HashMap<AbstractElementWithLocation, Pair<AbstractElementWithLocation, Precision>>();
-
-    // remove from reached all the elements in reachableToUndo
-    List<Pair<AbstractElementWithLocation, Precision>> toRemove = new ArrayList<Pair<AbstractElementWithLocation, Precision>>();
-
-    for (Pair<AbstractElementWithLocation, Precision> p : reached.getReached()) {
-      AbstractElementWithLocation e = p.getFirst();
-
-      if (reachableToUndo.contains(e)) {
-        toRemove.add(p);
-      }
-
-      if (toWaitlist.contains(e)) {
-        toWaitlistPrecision.put(e, p);
-      }
-    }
-
-    reached.removeAll(toRemove);
+    // This assertion is not true because reachableToUndo probably contains
+    // covered elements, which were in the ART but not in the reached set
+    //assert reached.getReached().containsAll(reachableToUndo);
+    
+    assert reached.getReached().containsAll(toWaitlist);
+    
+    List<Pair<AbstractElementWithLocation, Precision>> toWaitlistWithPrecision
+                = new ArrayList<Pair<AbstractElementWithLocation, Precision>>();
 
     for (AbstractElementWithLocation e : toWaitlist) {
-      Pair<AbstractElementWithLocation, Precision> p;
-      if (toWaitlistPrecision.containsKey(e)) {
-        p = toWaitlistPrecision.get(e);
-      } else {
-        // TODO no precision information from toWaitlist available, setting to null
-        p = new Pair<AbstractElementWithLocation, Precision>(e, null); 
-      }
-      reached.add(p);
+      toWaitlistWithPrecision.add(new Pair<AbstractElementWithLocation, Precision>(e, reached.getPrecision(e)));
     }
+
+    reached.removeAll(reachableToUndo);
+
+    reached.addAll(toWaitlistWithPrecision);
   }
 
   private void runGC() {

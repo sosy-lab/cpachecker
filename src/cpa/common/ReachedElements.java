@@ -2,33 +2,57 @@ package cpa.common;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import cfa.objectmodel.CFANode;
 import cmdline.CPAMain;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Collections2;
 import common.Pair;
 
+import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.Precision;
 
-public class ReachedElements {
+public class ReachedElements implements Iterable<AbstractElementWithLocation> {
   
-  private final Set<Pair<AbstractElementWithLocation, Precision>> reached;
+  private final Set<AbstractElementWithLocation> reached;
+  private final Set<AbstractElementWithLocation> unmodifiableReached;
+  private final Map<AbstractElement, Precision> precisions;
+  private final Collection<Pair<AbstractElementWithLocation, Precision>> reachedWithPrecision;
   private AbstractElementWithLocation lastElement = null;
   private AbstractElementWithLocation firstElement = null;
-  private final List<Pair<AbstractElementWithLocation, Precision>> waitlist;
+  private final List<AbstractElementWithLocation> waitlist;
   private final TraversalMethod traversal;
   
+  private Function<AbstractElementWithLocation, Pair<AbstractElementWithLocation, Precision>> getPrecisionAsPair = 
+    new Function<AbstractElementWithLocation, Pair<AbstractElementWithLocation, Precision>>() {
+
+      @Override
+      public Pair<AbstractElementWithLocation, Precision> apply(
+                  AbstractElementWithLocation element) {
+
+        return new Pair<AbstractElementWithLocation, Precision>(element, getPrecision(element));
+      }
+    
+  };
+ 
   public ReachedElements(String traversal) {
     reached = createReachedSet();
-    waitlist = new LinkedList<Pair<AbstractElementWithLocation, Precision>>();
+    unmodifiableReached = Collections.unmodifiableSet(reached);
+    precisions = new HashMap<AbstractElement, Precision>();
+    reachedWithPrecision = Collections2.transform(reached, getPrecisionAsPair);
+    waitlist = new LinkedList<AbstractElementWithLocation>();
     //set traversal method given in config file; 
     //throws IllegalArgumentException if anything other than dfs, bfs, or topsort is passed
-      this.traversal = TraversalMethod.valueOf(traversal.toUpperCase());
+    this.traversal = TraversalMethod.valueOf(traversal.toUpperCase());
   }
   
   //enumerator for traversal methods
@@ -36,50 +60,48 @@ public class ReachedElements {
     DFS, BFS, TOPSORT
   }
   
-  private Set<Pair<AbstractElementWithLocation,Precision>> createReachedSet() {
+  private Set<AbstractElementWithLocation> createReachedSet() {
     if(CPAMain.cpaConfig.getBooleanValue("cpa.useSpecializedReachedSet")){
       return new LocationMappedReachedSet();
     }
-    return new HashSet<Pair<AbstractElementWithLocation,Precision>>();
+    return new HashSet<AbstractElementWithLocation>();
   }
 
-  public void add(Pair<AbstractElementWithLocation, Precision> pair) {
+  public void add(AbstractElementWithLocation element, Precision precision) {
     if (reached.size() == 0) {
-      firstElement = pair.getFirst();
+      firstElement = element;
     }
-    reached.add(pair);
-    lastElement = pair.getFirst();
-    waitlist.add(pair);
+    
+    reached.add(element);
+    waitlist.add(element);
+    precisions.put(element, precision);
+    lastElement = element;
   }
 
 
-  public boolean addAll(List<Pair<AbstractElementWithLocation, Precision>> toAdd) {
-//    if (traversal == traversalMethod.BFS) {
-    waitlist.addAll(toAdd);
-//    } else {
-//      waitlist.addAll(0, toAdd);
-//    }
-    return reached.addAll(toAdd);
-
+  public void addAll(Collection<Pair<AbstractElementWithLocation, Precision>> toAdd) {
+    for (Pair<AbstractElementWithLocation, Precision> pair : toAdd) {
+      add(pair.getFirst(), pair.getSecond());
+    }
   }
   
-  private boolean remove(Pair<AbstractElementWithLocation, Precision> toRemove) {
-    AbstractElementWithLocation e = toRemove.getFirst();
-    int hc = e.hashCode();
-    if ((firstElement == null) || hc == firstElement.hashCode() && e.equals(firstElement)) {
+  private void remove(AbstractElementWithLocation element) {
+    int hc = element.hashCode();
+    if ((firstElement == null) || hc == firstElement.hashCode() && element.equals(firstElement)) {
       firstElement = null;
     }
     
-    if ((lastElement == null) || (hc == lastElement.hashCode() && e.equals(lastElement))) {
+    if ((lastElement == null) || (hc == lastElement.hashCode() && element.equals(lastElement))) {
       lastElement = null;
     }
-    waitlist.remove(toRemove);
-    return reached.remove(toRemove);
+    waitlist.remove(element);
+    reached.remove(element);
+    precisions.remove(element);
   }
   
-  public void removeAll(Collection<Pair<AbstractElementWithLocation, Precision>> toRemove) {
-    for (Pair<AbstractElementWithLocation, Precision> pair : toRemove) {
-      remove(pair);
+  public void removeAll(Collection<? extends AbstractElementWithLocation> toRemove) {
+    for (AbstractElementWithLocation element : toRemove) {
+      remove(element);
     }
     assert firstElement != null || reached.isEmpty() : "firstElement may only be removed if the whole reached set is cleared";
   }
@@ -89,10 +111,20 @@ public class ReachedElements {
     lastElement = null;
     waitlist.clear();
     reached.clear();
+    precisions.clear();
   }
   
-  public Set<Pair<AbstractElementWithLocation, Precision>> getReached() {
-    return reached;
+  public Set<AbstractElementWithLocation> getReached() {
+    return unmodifiableReached;
+  }
+  
+  @Override
+  public Iterator<AbstractElementWithLocation> iterator() {
+    return unmodifiableReached.iterator();
+  }
+  
+  public Collection<Pair<AbstractElementWithLocation, Precision>> getReachedWithPrecision() {
+    return reachedWithPrecision; // this is unmodifiable
   }
 
   /**
@@ -110,8 +142,8 @@ public class ReachedElements {
    * @param loc A CFANode for which the abstract states should be retrieved.
    * @return A subset of the reached set.
    */
-  public Set<Pair<AbstractElementWithLocation,Precision>> getReached(CFANode loc) {
-    Set<Pair<AbstractElementWithLocation,Precision>> result;
+  public Set<AbstractElementWithLocation> getReached(CFANode loc) {
+    Set<AbstractElementWithLocation> result;
     if (reached instanceof LocationMappedReachedSet) {
       result = ((LocationMappedReachedSet)reached).getReached(loc);
     } else {
@@ -136,13 +168,12 @@ public class ReachedElements {
     return !waitlist.isEmpty();
   }
   
-  public List<Pair<AbstractElementWithLocation,Precision>> getWaitlist()
-  {
-    return waitlist;
+  public List<AbstractElementWithLocation> getWaitlist() {
+    return Collections.unmodifiableList(waitlist);
   }
   
   public Pair<AbstractElementWithLocation,Precision> popFromWaitlist() {
-    Pair<AbstractElementWithLocation,Precision> result = null;
+    AbstractElementWithLocation result = null;
 
     switch(traversal) {
     case BFS:
@@ -155,10 +186,10 @@ public class ReachedElements {
 
     case TOPSORT:
     default:
-      for (Pair<AbstractElementWithLocation,Precision> currentElement : waitlist) {
+      for (AbstractElementWithLocation currentElement : waitlist) {
         if ((result == null) 
-            || (currentElement.getFirst().getLocationNode().getTopologicalSortId() >
-                      result.getFirst().getLocationNode().getTopologicalSortId())) {
+            || (currentElement.getLocationNode().getTopologicalSortId() >
+                      result.getLocationNode().getTopologicalSortId())) {
           result = currentElement;
         }
       }
@@ -166,18 +197,20 @@ public class ReachedElements {
     }
     
     waitlist.remove(result);
-    return result;
+    return getPrecisionAsPair.apply(result);
+  }
+  
+  /**
+   * Returns the precision for an element.
+   * @param element The element to look for.
+   * @return The precision for the element or null.
+   */
+  public Precision getPrecision(AbstractElement element) {
+    return precisions.get(element);
   }
   
   public int size() {
     return reached.size();
-  }
-
-  public void printStates() {
-    for(Pair<AbstractElementWithLocation,Precision> p:reached){
-      AbstractElementWithLocation absEl = p.getFirst();
-      System.out.println(absEl);
-    }
   }
   
   @Override

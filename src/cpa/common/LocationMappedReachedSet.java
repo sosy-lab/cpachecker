@@ -30,12 +30,11 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
-import common.Pair;
+import com.google.common.base.Preconditions;
 
 import cfa.objectmodel.CFANode;
 import cpa.common.algorithm.CPAAlgorithm;
 import cpa.common.interfaces.AbstractElementWithLocation;
-import cpa.common.interfaces.Precision;
 
 /**
  * A class that can be used by CPAs to build specialized versions of
@@ -48,15 +47,15 @@ import cpa.common.interfaces.Precision;
  *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
-class LocationMappedReachedSet implements Set<Pair<AbstractElementWithLocation,Precision>> {
-    private final Map<CFANode, Set<Pair<AbstractElementWithLocation,Precision>>> repr;
+class LocationMappedReachedSet implements Set<AbstractElementWithLocation> {
+    private final Map<CFANode, Set<AbstractElementWithLocation>> repr;
     private int numElems;
 
-    private static class Iter implements Iterator<Pair<AbstractElementWithLocation,Precision>> {
-        private final Iterator<Map.Entry<CFANode, Set<Pair<AbstractElementWithLocation,Precision>>>> outer;
-        private Iterator<Pair<AbstractElementWithLocation,Precision>> inner;
+    private static class Iter implements Iterator<AbstractElementWithLocation> {
+        private final Iterator<Map.Entry<CFANode, Set<AbstractElementWithLocation>>> outer;
+        private Iterator<AbstractElementWithLocation> inner;
 
-        Iter(Iterator<Map.Entry<CFANode, Set<Pair<AbstractElementWithLocation,Precision>>>> it) {
+        private Iter(Iterator<Map.Entry<CFANode, Set<AbstractElementWithLocation>>> it) {
             outer = it;
             advanceInner();
         }
@@ -64,7 +63,7 @@ class LocationMappedReachedSet implements Set<Pair<AbstractElementWithLocation,P
         private void advanceInner() {
             inner = null;
             while (inner == null && outer.hasNext()) {
-                Set<Pair<AbstractElementWithLocation,Precision>> s = outer.next().getValue();
+                Set<AbstractElementWithLocation> s = outer.next().getValue();
                 if (!s.isEmpty()) {
                     inner = s.iterator();
                 }
@@ -80,7 +79,7 @@ class LocationMappedReachedSet implements Set<Pair<AbstractElementWithLocation,P
         }
 
         @Override
-        public Pair<AbstractElementWithLocation,Precision> next() {
+        public AbstractElementWithLocation next() {
             return inner.next();
         }
 
@@ -91,23 +90,23 @@ class LocationMappedReachedSet implements Set<Pair<AbstractElementWithLocation,P
     }
 
     public LocationMappedReachedSet() {
-        repr = new HashMap<CFANode, Set<Pair<AbstractElementWithLocation,Precision>>>();
+        repr = new HashMap<CFANode, Set<AbstractElementWithLocation>>();
         numElems = 0;
     }
 
-    public Set<Pair<AbstractElementWithLocation,Precision>> getReached(CFANode loc) {
-      Set<Pair<AbstractElementWithLocation, Precision>> result = repr.get(loc);
+    public Set<AbstractElementWithLocation> getReached(CFANode loc) {
+      Set<AbstractElementWithLocation> result = repr.get(loc);
       if (result == null) {
-        result = new HashSet<Pair<AbstractElementWithLocation,Precision>>();
+        result = new HashSet<AbstractElementWithLocation>();
         repr.put(loc, result);
       }
       return result;
     }
 
     @Override
-    public boolean add(Pair<AbstractElementWithLocation, Precision> elem) {
-      CFANode loc = elem.getFirst().getLocationNode();
-      Set<Pair<AbstractElementWithLocation, Precision>> s = getReached(loc);
+    public boolean add(AbstractElementWithLocation elem) {
+      CFANode loc = elem.getLocationNode();
+      Set<AbstractElementWithLocation> s = getReached(loc);
       boolean added = s.add(elem);
       if (added) {
         ++numElems;
@@ -116,9 +115,9 @@ class LocationMappedReachedSet implements Set<Pair<AbstractElementWithLocation,P
     }
 
     @Override
-    public boolean addAll(Collection<? extends Pair<AbstractElementWithLocation,Precision>> elems) {
+    public boolean addAll(Collection<? extends AbstractElementWithLocation> elems) {
         boolean added = false;
-        for (Pair<AbstractElementWithLocation,Precision> e : elems) {
+        for (AbstractElementWithLocation e : elems) {
             added |= add(e);
         }
         return added;
@@ -130,17 +129,14 @@ class LocationMappedReachedSet implements Set<Pair<AbstractElementWithLocation,P
         numElems = 0;
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public boolean contains(Object o) {
-        if (!(o instanceof Pair)) return false;
-        if (!(((Pair)o).getFirst() instanceof AbstractElementWithLocation)) return false;
-        if (!(((Pair)o).getSecond() instanceof Precision)) return false;
-      
-        Pair<AbstractElementWithLocation,Precision> e = (Pair<AbstractElementWithLocation,Precision>)o;
-        CFANode loc = e.getFirst().getLocationNode();
-        if (!repr.containsKey(loc)) return false;
-        return repr.get(loc).contains(o);
+      Preconditions.checkNotNull(o);
+      Preconditions.checkArgument(o instanceof AbstractElementWithLocation);
+    
+      AbstractElementWithLocation e = (AbstractElementWithLocation)o;
+      CFANode loc = e.getLocationNode();
+      return repr.containsKey(loc) && repr.get(loc).contains(e);
     }
 
     @Override
@@ -154,32 +150,33 @@ class LocationMappedReachedSet implements Set<Pair<AbstractElementWithLocation,P
     @Override
     public boolean isEmpty() {
         if (repr.isEmpty()) return true;
-        for (Set<Pair<AbstractElementWithLocation,Precision>> s : repr.values()) {
+        for (Set<AbstractElementWithLocation> s : repr.values()) {
             if (!s.isEmpty()) return false;
         }
         return true;
     }
 
     @Override
-    public Iterator<Pair<AbstractElementWithLocation,Precision>> iterator() {
+    public Iterator<AbstractElementWithLocation> iterator() {
         return new Iter(repr.entrySet().iterator());
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public boolean remove(Object o) {
-      if (!(o instanceof Pair)) return false;
-      if (!(((Pair)o).getFirst() instanceof AbstractElementWithLocation)) return false;
-      if (!(((Pair)o).getSecond() instanceof Precision)) return false;
-      Pair<AbstractElementWithLocation,Precision> e = (Pair<AbstractElementWithLocation,Precision>)o;
-        CFANode loc = e.getFirst().getLocationNode();
-        if (!repr.containsKey(loc)) return false;
-        Set<Pair<AbstractElementWithLocation,Precision>> s = repr.get(loc);
-        boolean ret = s.remove(o);
-        if (ret) {
-            --numElems;
-        }
-        return ret;
+      Preconditions.checkNotNull(o);
+      Preconditions.checkArgument(o instanceof AbstractElementWithLocation);
+      
+      AbstractElementWithLocation e = (AbstractElementWithLocation)o;
+      CFANode loc = e.getLocationNode();
+      if (!repr.containsKey(loc)) {
+        return false;
+      }
+      Set<AbstractElementWithLocation> s = repr.get(loc);
+      boolean ret = s.remove(o);
+      if (ret) {
+          --numElems;
+      }
+      return ret;
     }
 
     @Override

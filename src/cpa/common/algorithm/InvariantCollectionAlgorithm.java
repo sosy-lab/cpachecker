@@ -40,7 +40,6 @@ import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.AbstractWrapperElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
-import cpa.common.interfaces.Precision;
 import cpa.invariant.dump.DumpInvariantElement;
 import cpa.invariant.util.FormulaReportingUtils;
 import cpa.invariant.util.InvariantWithLocation;
@@ -98,10 +97,7 @@ public class InvariantCollectionAlgorithm implements Algorithm {
       
     // collect and dump all assumptions stored in abstract states
     CPAMain.logManager.log(Level.FINEST, "Dumping invariants resulting from assumptions");
-    for (Pair<AbstractElementWithLocation, Precision> pair : reached.getReached())
-    {
-      AbstractElementWithLocation element = pair.getFirst();
-      
+    for (AbstractElementWithLocation element : reached) {      
       CFANode loc = element.getLocationNode();
       SymbolicFormula invariant = extractInvariant(element);
       
@@ -169,9 +165,8 @@ public class InvariantCollectionAlgorithm implements Algorithm {
    */
   private void addInvariantsForWaitlist(
       InvariantWithLocation invariant,
-      List<Pair<AbstractElementWithLocation, Precision>> waitlist) {
-    for (Pair<AbstractElementWithLocation, Precision> pair : waitlist) {
-      AbstractElementWithLocation element = pair.getFirst();
+      List<AbstractElementWithLocation> waitlist) {
+    for (AbstractElementWithLocation element : waitlist) {
       SymbolicFormula dataRegion = FormulaReportingUtils.extractReportedFormulas(symbolicManager, element);
       invariant.addInvariant(element.getLocationNode(), symbolicManager.makeNot(dataRegion));
     }

@@ -19,9 +19,7 @@ import cpa.common.Path;
 import cpa.common.ReachedElements;
 import cpa.common.RefinementOutcome;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
-import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.Refiner;
 import exceptions.CPAException;
 
@@ -150,10 +148,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
   }
   
   private boolean checkART(ReachedElements pReached) {
-    Set<AbstractElement> reached = new HashSet<AbstractElement>();
-    for (Pair<AbstractElementWithLocation, Precision> currentPair : pReached.getReached()) {
-      reached.add(currentPair.getFirst());
-    }
+    Set<? extends AbstractElement> reached = pReached.getReached();
     
     Deque<AbstractElement> workList = new ArrayDeque<AbstractElement>();
     Set<ARTElement> art = new HashSet<ARTElement>();
