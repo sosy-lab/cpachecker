@@ -24,7 +24,6 @@
 package cpa.common.algorithm;
 
 import java.lang.reflect.Constructor;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -33,6 +32,7 @@ import java.util.logging.Level;
 
 import cmdline.CPAMain;
 
+import com.google.common.collect.Lists;
 import common.Pair;
 
 import cpa.common.ReachedElements;
@@ -41,7 +41,6 @@ import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.Refiner;
-import cpa.transferrelationmonitor.TransferRelationMonitorElement;
 import exceptions.CPAException;
 import exceptions.TransferTimeOutException;
 
@@ -132,7 +131,7 @@ public class CEGARAlgorithm implements Algorithm {
             // TODO
 
           } else {
-            modifySets(reached, refout.getToUnreach(), refout.getToWaitlist());
+            modifySets(reached, refout.getNewPrecision(), refout.getToUnreach(), refout.getToWaitlist());
           }
 
           long end = System.currentTimeMillis();
@@ -156,11 +155,10 @@ public class CEGARAlgorithm implements Algorithm {
       }
     }
     executor.shutdownNow();
-    System.out.println(" MAX TIME >>>>>>>> " + TransferRelationMonitorElement.maxTimeOfTransfer);
     return;
   }
 
-  private void modifySets(ReachedElements reached,
+  private void modifySets(ReachedElements reached, Precision newPrecision,
       Collection<? extends AbstractElementWithLocation> reachableToUndo,
       Collection<? extends AbstractElementWithLocation> toWaitlist) {
 
@@ -176,10 +174,16 @@ public class CEGARAlgorithm implements Algorithm {
     assert reached.getReached().containsAll(toWaitlist);
     
     List<Pair<AbstractElementWithLocation, Precision>> toWaitlistWithPrecision
-                = new ArrayList<Pair<AbstractElementWithLocation, Precision>>();
+                        = Lists.newArrayListWithCapacity(toWaitlist.size());
 
-    for (AbstractElementWithLocation e : toWaitlist) {
-      toWaitlistWithPrecision.add(new Pair<AbstractElementWithLocation, Precision>(e, reached.getPrecision(e)));
+    if (newPrecision != null) {
+      for (AbstractElementWithLocation e : toWaitlist) {
+        toWaitlistWithPrecision.add(new Pair<AbstractElementWithLocation, Precision>(e, reached.getPrecision(e)));
+      }
+    } else {
+      for (AbstractElementWithLocation e : toWaitlist) {
+        toWaitlistWithPrecision.add(new Pair<AbstractElementWithLocation, Precision>(e, newPrecision));
+      }
     }
 
     reached.removeAll(reachableToUndo);

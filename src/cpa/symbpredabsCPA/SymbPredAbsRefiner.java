@@ -26,6 +26,7 @@ import cpa.common.ReachedElements;
 import cpa.common.algorithm.CEGARAlgorithm;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
+import cpa.common.interfaces.Precision;
 import cpa.transferrelationmonitor.TransferRelationMonitorCPA;
 import exceptions.CPAException;
 
@@ -76,7 +77,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
   }
 
   @Override
-  public ARTElement performRefinement(ReachedElements pReached,
+  public Pair<ARTElement, Precision> performRefinement(ReachedElements pReached,
       Path pPath) throws CPAException {
 
     CPAMain.logManager.log(Level.FINEST, "Starting refinement for SymbPredAbsCPA");
@@ -105,7 +106,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
     // if error is spurious refine
     if (info.isSpurious()) {
       CPAMain.logManager.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
-      return performRefinement(pReached, path, pPath, info);
+      return new Pair<ARTElement, Precision>(performRefinement(pReached, path, pPath, info), null);
     } else {
       CPAMain.logManager.log(Level.FINEST, "Error trace is not spurious");
       // we have a real error

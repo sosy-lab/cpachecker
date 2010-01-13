@@ -20,6 +20,7 @@ import cpa.common.ReachedElements;
 import cpa.common.RefinementOutcome;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
+import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.Refiner;
 import exceptions.CPAException;
 
@@ -50,12 +51,12 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
     
     CPAMain.logManager.log(Level.ALL, "Error path:\n", path);
     
-    ARTElement root = performRefinement(pReached, path);
+    Pair<ARTElement, Precision> refinementResult = performRefinement(pReached, path);
     
-    if (root != null) {
+    if (refinementResult != null) {
       CPAMain.logManager.log(Level.FINEST, "ART based refinement successful");
-      CPAMain.logManager.log(Level.ALL, "Refinement root is", root);
-      return cleanART(path, pReached, root);
+      CPAMain.logManager.log(Level.ALL, "Refinement root is", refinementResult.getFirst());
+      return cleanART(path, pReached, refinementResult.getFirst(), refinementResult.getSecond());
     } else {
       CPAMain.logManager.log(Level.FINEST, "ART based refinement unsuccessful");
       return new RefinementOutcome(path);
@@ -63,8 +64,15 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
   }
 
 
-  protected abstract ARTElement performRefinement(ReachedElements pReached,
-                                                  Path pPath) throws CPAException ;
+  /**
+   * Perform refinement.
+   * @param pReached
+   * @param pPath
+   * @return
+   * @throws CPAException
+   */
+  protected abstract Pair<ARTElement, Precision> performRefinement(
+                      ReachedElements pReached, Path pPath) throws CPAException;
 
   /**
    * Create a path in the ART from root to the given element.
@@ -111,7 +119,8 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
     return path;
   }
   
-  private RefinementOutcome cleanART(Path errorPath, ReachedElements pReached, ARTElement root) {
+  private RefinementOutcome cleanART(Path errorPath, ReachedElements pReached,
+                ARTElement root, Precision newPrecision) {
     assert root != null;
     assert !root.getParents().isEmpty() : "initial element makes no sense as refinement root";
     
@@ -144,7 +153,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
       ae.removeFromART(); // removes ae from parents and covered set
     }
     
-    return new RefinementOutcome(true, toUnreach, toWaitlist, errorPath);
+    return new RefinementOutcome(newPrecision, toUnreach, toWaitlist, errorPath);
   }
   
   private boolean checkART(ReachedElements pReached) {

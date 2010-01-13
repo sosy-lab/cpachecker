@@ -23,7 +23,6 @@
  */
 package compositeCPA;
 
-import java.util.Iterator;
 import java.util.List;
 
 import cfa.objectmodel.CFANode;

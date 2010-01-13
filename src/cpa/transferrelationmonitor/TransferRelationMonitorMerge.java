@@ -26,8 +26,7 @@ public class TransferRelationMonitorMerge implements MergeOperator{
     MergeOperator mergeOperator = wrappedCpa.getMergeOperator();
     AbstractElement wrappedElement1 = transferRelationMonitorElement1.getWrappedElements().iterator().next();
     AbstractElement wrappedElement2 = transferRelationMonitorElement2.getWrappedElements().iterator().next();
-    Precision wrappedPrecision = (pPrecision == null) ? null : ((TransferRelationMonitorPrecision)pPrecision).getPrecision();
-    AbstractElement retElement = mergeOperator.merge(wrappedElement1, wrappedElement2, wrappedPrecision);
+    AbstractElement retElement = mergeOperator.merge(wrappedElement1, wrappedElement2, pPrecision);
     if(retElement.equals(wrappedElement2)){
       return pElement2;
     }

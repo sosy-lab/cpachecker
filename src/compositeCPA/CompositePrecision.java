@@ -26,15 +26,17 @@
  */
 package compositeCPA;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import cpa.common.interfaces.Precision;
+import cpa.common.interfaces.WrapperPrecision;
 
 /**
  * @author Michael Tautschnig <tautschnig@forsyte.de>
  *
  */
-public class CompositePrecision implements Precision {
+public class CompositePrecision implements WrapperPrecision {
   private final List<Precision> precisions;
 
   public CompositePrecision (List<Precision> precisions) {
@@ -68,5 +70,58 @@ public class CompositePrecision implements Precision {
   @Override
   public String toString() {
     return precisions.toString();
+  }
+  
+  @SuppressWarnings("unchecked")
+  @Override
+  public <T extends Precision> T retrieveWrappedPrecision(Class<T> pType) {
+    for (Precision precision : precisions) {
+      if (precision != null) {
+        if (precision.getClass().equals(pType)) {
+          return (T)precision;
+        
+        } else if (precision instanceof WrapperPrecision) {
+          T wrappedPrecision = ((WrapperPrecision)precision).retrieveWrappedPrecision(pType);
+          if (wrappedPrecision != null) {
+            return wrappedPrecision;
+          }
+        }
+      }
+    }
+    return null;
+  }
+  
+  @Override
+  public Precision replaceWrappedPrecision(Precision newPrecision) {
+    Class<? extends Precision> newPrecClass = newPrecision.getClass();
+    
+    if (newPrecClass.equals(CompositePrecision.class)) {
+      return newPrecision;
+    }
+    
+    List<Precision> newPrecisions = new ArrayList<Precision>(precisions.size());
+    boolean changed = false;
+    for (Precision precision : precisions) {
+      if (precision == null) {
+        newPrecisions.add(null);
+      
+      } else if (newPrecClass.equals(precision.getClass())) {
+        newPrecisions.add(newPrecision);
+        changed = true;
+      
+      } else if (precision instanceof WrapperPrecision) {
+        Precision newWrappedPrecision = ((WrapperPrecision)precision).replaceWrappedPrecision(newPrecision);
+        if (newWrappedPrecision != null) {
+          newPrecisions.add(newWrappedPrecision);
+          changed = true;
+          
+        } else {
+          newPrecisions.add(precision);
+        }
+      } else {
+        newPrecisions.add(precision);
+      }
+    }
+    return changed ? new CompositePrecision(newPrecisions) : null;
   }
 }

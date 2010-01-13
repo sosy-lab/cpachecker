@@ -43,11 +43,6 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
     long end = 0;
     
     AbstractElement wrappedElement = element.getWrappedElements().iterator().next();
-    Precision wrappedPrecision = null;
-    
-    if(pPrecision != null){
-      wrappedPrecision = ((TransferRelationMonitorPrecision)pPrecision).getPrecision();
-    }
 
     // time limit is given in milliseconds
     long timeLimit = Integer.parseInt(CPAMain.cpaConfig.getPropertiesArray
@@ -55,7 +50,7 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
     // set the edge and element
     tc.setEdge(pCfaEdge);
     tc.setElement(wrappedElement);
-    tc.setPrecision(wrappedPrecision);
+    tc.setPrecision(pPrecision);
     Future<Collection<? extends AbstractElement>> future = CEGARAlgorithm.executor.submit(tc);
     try{
       // here we get the result of the post computation but there is a time limit
@@ -64,7 +59,7 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
       successors = future.get(timeLimit, TimeUnit.MILLISECONDS);
       end = System.currentTimeMillis();
     } catch (TimeoutException exc){
-      throw new TransferTimeOutException(pCfaEdge, wrappedElement, wrappedPrecision);
+      throw new TransferTimeOutException(pCfaEdge, wrappedElement, pPrecision);
     } catch (InterruptedException exc) {
       exc.printStackTrace();
     } catch (ExecutionException exc) {

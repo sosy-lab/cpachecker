@@ -20,6 +20,7 @@ import cpa.art.AbstractARTBasedRefiner;
 import cpa.common.Path;
 import cpa.common.ReachedElements;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
+import cpa.common.interfaces.Precision;
 import cpa.transferrelationmonitor.TransferRelationMonitorCPA;
 import exceptions.CPAException;
 
@@ -71,7 +72,7 @@ public class PredicateAbstractionRefiner extends AbstractARTBasedRefiner {
   }
 
   @Override
-  public ARTElement performRefinement(ReachedElements pReached, Path pPath) {
+  public Pair<ARTElement, Precision> performRefinement(ReachedElements pReached, Path pPath) {
 
     Pair<ARTElement, CFAEdge>[] pathArray;
 
@@ -85,7 +86,7 @@ public class PredicateAbstractionRefiner extends AbstractARTBasedRefiner {
     if (info.isSpurious()) {
       CPAMain.logManager.log(Level.FINEST,
       "Found spurious error trace, refining the abstraction");
-      return performRefinement(pReached, pPath, pathArray, info);
+      return new Pair<ARTElement, Precision>(performRefinement(pReached, pPath, pathArray, info), null);
 
     } else {
       CPAMain.setErrorReached();

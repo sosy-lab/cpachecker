@@ -101,9 +101,8 @@ public class ARTCPA implements ConfigurableProgramAnalysis, CPAWithStatistics, C
         null);
   }
 
-  public Precision getInitialPrecision 
-  (CFAFunctionDefinitionNode pNode) {
-    return new ARTPrecision(wrappedCPA.getInitialPrecision(pNode));
+  public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
+    return wrappedCPA.getInitialPrecision(pNode);
   }
 
   public ConfigurableProgramAnalysis getWrappedCPA(){

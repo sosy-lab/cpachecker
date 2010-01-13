@@ -6,7 +6,6 @@ import java.util.Collections;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.CPAWithStatistics;
 import cpa.common.interfaces.CPAWrapper;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
@@ -50,7 +49,7 @@ public class TransferRelationMonitorCPA implements ConfigurableProgramAnalysis, 
 
   @Override
   public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
-    return new TransferRelationMonitorPrecision(wrappedCPA.getInitialPrecision(pNode));
+    return wrappedCPA.getInitialPrecision(pNode);
   }
 
   @Override
