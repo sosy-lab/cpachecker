@@ -45,7 +45,6 @@ import cmdline.CPAMain;
 
 import common.Triple;
 
-import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
@@ -74,7 +73,6 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   public int numAbstractStates = 0;
   public int maxBlockSize = 0;
 
-  private final AbstractDomain domain;
   private final PredicateMap predicateMap;
   // formula managers
   private final AbstractFormulaManager abstractFormulaManager;
@@ -94,7 +92,6 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   private SymbPredAbsAbstractElement lastElement = null;
   
   public SymbPredAbsTransferRelation(SymbPredAbsCPA pCpa) {
-    domain = pCpa.getAbstractDomain();
     predicateMap = pCpa.getPredicateMap();
     symbolicFormulaManager = pCpa.getSymbolicFormulaManager();
     abstractFormulaManager = pCpa.getAbstractFormulaManager();
@@ -104,7 +101,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<AbstractElement> getAbstractSuccessors(AbstractElement pElement,
+  public Collection<? extends AbstractElement> getAbstractSuccessors(AbstractElement pElement,
       Precision precision, CFAEdge edge) throws UnrecognizedCFAEdgeException {
 
     long time = System.currentTimeMillis();
@@ -117,12 +114,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     
     try {
       if (abstractionLocation) {
-        AbstractElement result = handleAbstractionLocation(element, edge);
-        if (result == domain.getBottomElement()) {
-          return Collections.emptySet();
-        } else {
-          return Collections.singleton(result);
-        }
+        return handleAbstractionLocation(element, edge);
       } else {
         return Collections.singleton(handleNonAbstractionLocation(element, edge));
       }
@@ -197,7 +189,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
    * @return computed abstract element
    * @throws UnrecognizedCFAEdgeException if edge is not recognized
    */
-  private AbstractElement handleAbstractionLocation(SymbPredAbsAbstractElement element, CFAEdge edge) 
+  private Collection<SymbPredAbsAbstractElement> handleAbstractionLocation(SymbPredAbsAbstractElement element, CFAEdge edge) 
   throws UnrecognizedCFAEdgeException {
     
     CPAMain.logManager.log(Level.FINEST, "Computing abstraction on node", edge.getSuccessor());
@@ -241,7 +233,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     // if the abstraction is false, return bottom element
     if (abstractFormulaManager.isFalse(newAbstraction)) {
       CPAMain.logManager.log(Level.FINEST, "Abstraction is false, node is not reachable");
-      return domain.getBottomElement();
+      return Collections.emptySet();
     }
     
     // create new path formula for current edge (mostly true) 
@@ -263,7 +255,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     List<Integer> newPfParents = new ArrayList<Integer>();
     newPfParents.add(edge.getPredecessor().getNodeNumber());
     
-    return new SymbPredAbsAbstractElement(
+    return Collections.singleton(new SymbPredAbsAbstractElement(
         // set 'isAbstractionNode' to true, this is an abstraction node
         // set 'abstractionLocation' to edge.getSuccessor()
         // set 'pathFormula' to newPathFormula computed above
@@ -273,7 +265,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
         // set 'abstraction' to newly computed abstraction
         // set 'abstractionPathList' to updated pathList
         // set 'sizeSinceAbstraction' to zero
-        newPfParents, pathFormula, newAbstraction, newAbstractionPath, 0);
+        newPfParents, pathFormula, newAbstraction, newAbstractionPath, 0));
 
 //    SSAMap maxIndex = new SSAMap();
 //    newElement.setMaxIndex(maxIndex);
@@ -353,9 +345,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
     if (errorFound) {
       // TODO a simple reachability check through sat solving should be enough here, at least if the error is not reachable
-      List<AbstractElement> retList = new ArrayList<AbstractElement>();
-      retList.add(handleAbstractionLocation(lastElement, edge));
-      return retList;
+      return handleAbstractionLocation(lastElement, edge);
     } else {
       return null;
     }
