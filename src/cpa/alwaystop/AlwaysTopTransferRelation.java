@@ -38,7 +38,7 @@ public class AlwaysTopTransferRelation implements TransferRelation {
   }
 
   @Override
-  public AbstractElement strengthen(AbstractElement pElement,
+  public Collection<? extends AbstractElement> strengthen(AbstractElement pElement,
       List<AbstractElement> pOtherElements, CFAEdge pCfaEdge,
       Precision pPrecision) throws CPATransferException {
     // TODO Auto-generated method stub

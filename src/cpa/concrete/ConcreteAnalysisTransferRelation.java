@@ -1106,7 +1106,7 @@ public class ConcreteAnalysisTransferRelation implements TransferRelation {
   }
 
   @Override
-  public AbstractElement strengthen(AbstractElement element,
+  public Collection<? extends AbstractElement> strengthen(AbstractElement element,
                                     List<AbstractElement> elements,
                                     CFAEdge cfaEdge, Precision precision) {    
     
