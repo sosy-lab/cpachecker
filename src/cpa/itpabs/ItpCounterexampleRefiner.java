@@ -39,15 +39,10 @@ import symbpredabstraction.interfaces.SymbolicFormula;
 import symbpredabstraction.interfaces.SymbolicFormulaManager;
 import symbpredabstraction.mathsat.MathsatSymbolicFormula;
 import symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
-import symbpredabstraction.trace.ConcreteTraceNoInfo;
-
 import cmdline.CPAMain;
-
 import cpa.common.interfaces.AbstractElementWithLocation;
-import cpa.itpabs.ItpAbstractElement;
-import cpa.itpabs.ItpCounterexampleTraceInfo;
-import exceptions.UnrecognizedCFAEdgeException;
 import cpa.symbpredabs.explicit.ExplicitAbstractFormulaManager;
+import exceptions.UnrecognizedCFAEdgeException;
 
 /**
  * STILL ON-GOING, NOT FINISHED, AND CURRENTLY BROKEN
@@ -266,7 +261,6 @@ public class ItpCounterexampleRefiner {
         } else {
             // this is a real bug, notify the user
             info = new ItpCounterexampleTraceInfo(false);
-            info.setConcreteTrace(new ConcreteTraceNoInfo());
             // TODO - reconstruct counterexample
             // For now, we dump the asserted formula to a user-specified file
             String cexFile = CPAMain.cpaConfig.getProperty("cpas.symbpredabs.refinement.msatCexFile");

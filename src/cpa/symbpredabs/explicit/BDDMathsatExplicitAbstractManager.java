@@ -52,7 +52,6 @@ import symbpredabstraction.interfaces.TheoremProver;
 import symbpredabstraction.mathsat.BDDMathsatAbstractFormulaManager;
 import symbpredabstraction.mathsat.MathsatSymbolicFormula;
 import symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
-import symbpredabstraction.trace.ConcreteTraceFunctionCalls;
 import symbpredabstraction.trace.CounterexampleTraceInfo;
 import cfa.objectmodel.BlankEdge;
 import cfa.objectmodel.CFAEdge;
@@ -1037,11 +1036,6 @@ public class BDDMathsatExplicitAbstractManager<T> extends
         } else {
             // this is a real bug, notify the user
             info = new CounterexampleTraceInfo(false);
-            ConcreteTraceFunctionCalls cf = new ConcreteTraceFunctionCalls();
-            for (ExplicitAbstractElement e : abstractTrace) {
-                cf.add(e.getLocationNode().getFunctionName());
-            }
-            info.setConcreteTrace(cf);
             // TODO - reconstruct counterexample
             // For now, we dump the asserted formula to a user-specified file
             String cexFile = CPAMain.cpaConfig.getProperty("cpas.symbpredabs.refinement.msatCexFile");
@@ -1308,11 +1302,6 @@ public class BDDMathsatExplicitAbstractManager<T> extends
         } else {
             // this is a real bug, notify the user
             info = new CounterexampleTraceInfo(false);
-            ConcreteTraceFunctionCalls cf = new ConcreteTraceFunctionCalls();
-            for (ExplicitAbstractElement e : abstractTrace) {
-                cf.add(e.getLocationNode().getFunctionName());
-            }
-            info.setConcreteTrace(cf);
             // TODO - reconstruct counterexample
             // For now, we dump the asserted formula to a user-specified file
             String cexFile = CPAMain.cpaConfig.getProperty("cpas.symbpredabs.refinement.msatCexFile");

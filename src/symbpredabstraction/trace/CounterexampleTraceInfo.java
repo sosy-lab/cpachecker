@@ -34,23 +34,20 @@ import cpa.common.interfaces.AbstractElement;
 
 
 /**
- * A class that stores information about a counterexample trace. For
- * real counterexamples, this stores the actual execution trace leading to
- * the error. For spurious counterexamples, this stores a predicate map
+ * A class that stores information about a counterexample trace. 
+ * For spurious counterexamples, this stores a predicate map
  * with new predicates that are sufficient to rule out the trace in the
- * refined abstract model
+ * refined abstract model.
  *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
 public class CounterexampleTraceInfo {
     private final boolean spurious;
     private final Map<AbstractElement, Set<Predicate>> pmap;
-    private ConcreteTrace ctrace;
 
     public CounterexampleTraceInfo(boolean spurious) {
         this.spurious = spurious;
         pmap = new HashMap<AbstractElement, Set<Predicate>>();
-        ctrace = null;
     }
     /**
      * checks whether this trace is a real bug or a spurious counterexample
@@ -92,21 +89,9 @@ public class CounterexampleTraceInfo {
       }
     }
 
-    /**
-     * for real counterexamples, returns the concrete execution trace leading
-     * to the error
-     * @return a ConcreteTrace from the entry point of the program to an error
-     *         location
-     */
-    public ConcreteTrace getConcreteTrace() { return ctrace; }
-
-    public void setConcreteTrace(ConcreteTrace ctrace) {
-        this.ctrace = ctrace;
-    }
-    
     @Override
     public String toString() {
       return "Spurious: " + isSpurious() +
-        (isSpurious() ? ", new predicates: " + pmap : ", trace: " + getConcreteTrace());
+        (isSpurious() ? ", new predicates: " + pmap : "");
     }
 }

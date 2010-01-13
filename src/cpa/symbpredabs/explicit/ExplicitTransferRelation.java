@@ -208,8 +208,7 @@ public class ExplicitTransferRelation implements TransferRelation {
               "REACHED ERROR LOCATION!: ", succ,
           " RETURNING BOTTOM!");
           CPAMain.setErrorReached();
-          throw new ErrorReachedException(
-              info.getConcreteTrace().toString());
+          throw new ErrorReachedException("");
         }
         return domain.getBottomElement();
       }

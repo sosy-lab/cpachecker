@@ -54,7 +54,6 @@ import symbpredabstraction.mathsat.BDDMathsatAbstractFormulaManager;
 import symbpredabstraction.mathsat.MathsatAbstractionPrinter;
 import symbpredabstraction.mathsat.MathsatSymbolicFormula;
 import symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
-import symbpredabstraction.trace.ConcreteTraceFunctionCalls;
 import symbpredabstraction.trace.CounterexampleTraceInfo;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cmdline.CPAMain;
@@ -668,11 +667,6 @@ implements SymbPredAbstFormulaManager
 
     } else {
       // this is a real bug, notify the user
-      ConcreteTraceFunctionCalls cf = new ConcreteTraceFunctionCalls();
-      for (SymbPredAbsAbstractElement e : abstractTrace) {
-        cf.add(e.getAbstractionLocation().getFunctionName());
-      }
-      info.setConcreteTrace(cf);
       
       // TODO - reconstruct counterexample
       // For now, we dump the asserted formula to a user-specified file

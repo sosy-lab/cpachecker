@@ -35,7 +35,7 @@ import symbpredabstraction.interfaces.SymbolicFormula;
  */
 public class Cache {
 
-  private static abstract class KeyWithTimeStamp implements Comparable<KeyWithTimeStamp> {
+  public static abstract class KeyWithTimeStamp implements Comparable<KeyWithTimeStamp> {
     private long timeStamp;
 
     public KeyWithTimeStamp() {

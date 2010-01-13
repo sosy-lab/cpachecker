@@ -41,19 +41,18 @@ import java.util.logging.Level;
 
 import symbpredabstraction.interfaces.SymbolicFormula;
 import symbpredabstraction.interfaces.SymbolicFormulaManager;
-
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFANode;
 import cmdline.CPAMain;
-import exceptions.CPATransferException;
-import exceptions.ErrorReachedException;
-import exceptions.RefinementNeededException;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
 import cpa.symbpredabs.AbstractReachabilityTree;
 import exceptions.CPAException;
+import exceptions.CPATransferException;
+import exceptions.ErrorReachedException;
+import exceptions.RefinementNeededException;
 
 
 /**
@@ -222,8 +221,7 @@ public class ItpTransferRelation implements TransferRelation {
             "REACHED ERROR LOCATION!: ", e,
         " RETURNING BOTTOM!");
         CPAMain.setErrorReached();
-        throw new ErrorReachedException(
-            info.getConcreteTrace().toString());
+        throw new ErrorReachedException("");
       }
       return domain.getBottomElement();
     }

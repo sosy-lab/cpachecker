@@ -27,20 +27,16 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
 
-import cmdline.CPAMain;
-
 import symbpredabstraction.interfaces.SymbolicFormula;
-import symbpredabstraction.trace.ConcreteTrace;
-
+import cmdline.CPAMain;
 import cpa.common.interfaces.AbstractElement;
 
 
 /**
  * STILL ON-GOING, NOT FINISHED, AND CURRENTLY BROKEN
  * 
- * An class that stores information about a counterexample trace. For
- * real counterexamples, this stores the actual execution trace leading to
- * the error. For spurious counterexamples, this stores a predicate map
+ * An class that stores information about a counterexample trace. 
+ * For spurious counterexamples, this stores a predicate map
  * with new predicates that are sufficient to rule out the trace in the
  * refined abstract model
  *
@@ -49,12 +45,10 @@ import cpa.common.interfaces.AbstractElement;
 public class ItpCounterexampleTraceInfo {
     private boolean spurious;
     private Map<AbstractElement, SymbolicFormula> refmap;
-    private ConcreteTrace ctrace;
 
     public ItpCounterexampleTraceInfo(boolean spurious) {
         this.spurious = spurious;
         refmap = new HashMap<AbstractElement, SymbolicFormula>();
-        ctrace = null;
     }
     /**
      * checks whether this trace is a real bug or a spurious counterexample
@@ -74,17 +68,5 @@ public class ItpCounterexampleTraceInfo {
       CPAMain.logManager.log(Level.ALL, "DEBUG_3", "SETTING REFINEMENT FOR", e,
                 ": ", f);
         refmap.put(e, f);
-    }
-
-    /**
-     * for real counterexamples, returns the concrete execution trace leading
-     * to the error
-     * @return a ConcreteTrace from the entry point of the program to an error
-     *         location
-     */
-    public ConcreteTrace getConcreteTrace() { return ctrace; }
-
-    public void setConcreteTrace(ConcreteTrace ctrace) {
-        this.ctrace = ctrace;
     }
 }
