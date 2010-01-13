@@ -333,7 +333,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   }
 
   @Override
-  public AbstractElement strengthen(AbstractElement pElement,
+  public Collection<? extends AbstractElement> strengthen(AbstractElement pElement,
       List<AbstractElement> otherElements, CFAEdge edge, Precision precision) throws UnrecognizedCFAEdgeException {
     // do abstraction (including reachability check) if an error was found by another CPA 
     
@@ -353,7 +353,9 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
     if (errorFound) {
       // TODO a simple reachability check through sat solving should be enough here, at least if the error is not reachable
-      return handleAbstractionLocation(lastElement, edge);
+      List<AbstractElement> retList = new ArrayList<AbstractElement>();
+      retList.add(handleAbstractionLocation(lastElement, edge));
+      return retList;
     } else {
       return null;
     }

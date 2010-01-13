@@ -91,7 +91,7 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
   }
 
   @Override
-  public AbstractElement strengthen(
+  public Collection<? extends AbstractElement> strengthen(
       AbstractElement el, List<AbstractElement> otherElements,
       CFAEdge edge, Precision p)
     throws CPATransferException

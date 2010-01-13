@@ -23,6 +23,7 @@
  */
 package cpa.invariant.dump;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -43,7 +44,7 @@ import exceptions.CPATransferException;
 public class DumpInvariantTransferRelation implements TransferRelation {
 
   private final SymbolicFormulaManager symbolicManager;
-  
+
   public DumpInvariantTransferRelation(DumpInvariantCPA cpa)
   {
     symbolicManager = cpa.getSymbolicFormulaManager();
@@ -57,12 +58,12 @@ public class DumpInvariantTransferRelation implements TransferRelation {
   }
 
   @Override
-  public AbstractElement strengthen(AbstractElement el, List<AbstractElement> others, CFAEdge edge, Precision p)
-    throws CPATransferException
+  public Collection<? extends AbstractElement> strengthen(AbstractElement el, List<AbstractElement> others, CFAEdge edge, Precision p)
+  throws CPATransferException
   {
     boolean dumpAvoidanceInvariant = false;
     SymbolicFormula result = null;
-    
+
     // collect invariants and determine whether we need to add an invariant
     // to avoid the current node.
     for (AbstractElement other : others) {
@@ -80,7 +81,7 @@ public class DumpInvariantTransferRelation implements TransferRelation {
           dumpAvoidanceInvariant = true;
       }
     }
-    
+
     // if necessary, add an invariant to avoid the current node
     if (dumpAvoidanceInvariant) {
       // collect data
@@ -90,18 +91,23 @@ public class DumpInvariantTransferRelation implements TransferRelation {
         if (reported != null)
           avoidanceInvariant = symbolicManager.makeAnd(avoidanceInvariant, reported);
       }
-    
+
       // add the invariant
       if (result == null)
         result = avoidanceInvariant;
       else
         result = symbolicManager.makeAnd(result, avoidanceInvariant);
     }
-    
-    if (result != null)
-      return new DumpInvariantElement(result);
-    else
+
+    List<DumpInvariantElement> retList = new ArrayList<DumpInvariantElement>();
+
+    if (result != null){
+      retList.add(new DumpInvariantElement(result));
+      return retList;
+    }
+    else{
       return null;
+    }
   }
 
 }

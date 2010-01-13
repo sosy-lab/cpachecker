@@ -408,7 +408,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
    * is properly associated. This can only be done here because information about types is needed, which can
    * only be provided by typesCPA.
    */
-  public AbstractElement strengthen(AbstractElement element,
+  public Collection<? extends AbstractElement> strengthen(AbstractElement element,
                          List<AbstractElement> otherElements, CFAEdge cfaEdge,
                          Precision precision) {
     //only call for declarations. check for lastAdded prevents unnecessary repeated executions for the same statement 

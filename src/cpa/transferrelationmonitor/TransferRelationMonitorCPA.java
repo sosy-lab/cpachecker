@@ -30,7 +30,8 @@ public class TransferRelationMonitorCPA implements ConfigurableProgramAnalysis, 
   public TransferRelationMonitorCPA(ConfigurableProgramAnalysis pCpa) throws CPAException{
     wrappedCPA = pCpa;
     abstractDomain = new TransferRelationMonitorDomain(this);
-    transferRelation = new TransferRelationMonitorTransferRelation(wrappedCPA.getTransferRelation());
+    transferRelation = new TransferRelationMonitorTransferRelation(wrappedCPA.getTransferRelation(), 
+        (TransferRelationMonitorDomain)abstractDomain);
     precisionAdjustment = new TransferRelationMonitorPrecisionAdjustment();
     mergeOperator = new TransferRelationMonitorMerge(wrappedCPA);
     stopOperator = new TransferRelationMonitorStop(wrappedCPA);  

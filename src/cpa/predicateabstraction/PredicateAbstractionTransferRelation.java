@@ -164,7 +164,7 @@ public class PredicateAbstractionTransferRelation implements TransferRelation {
   }
 
   @Override
-  public AbstractElement strengthen(AbstractElement element,
+  public Collection<? extends AbstractElement> strengthen(AbstractElement element,
       List<AbstractElement> otherElements, CFAEdge cfaEdge,
       Precision precision) {    
     return null;

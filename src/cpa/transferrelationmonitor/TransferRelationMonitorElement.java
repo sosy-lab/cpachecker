@@ -10,11 +10,17 @@ public class TransferRelationMonitorElement implements AbstractElement, Abstract
   private final TransferRelationMonitorCPA cpa;
   private final AbstractElement element;
   private boolean isBottom = false;
+  
+  private long timeOfTranferToComputeElement;
+  private long totalTimeOnThePath;
+  public static long maxTimeOfTransfer = 0;
 
   protected TransferRelationMonitorElement(TransferRelationMonitorCPA pCpa, 
       AbstractElement pAbstractElement) {
     cpa = pCpa;
     element = pAbstractElement;
+    timeOfTranferToComputeElement = 0;
+    totalTimeOnThePath = 0;
   }
 
   @Override
@@ -49,11 +55,35 @@ public class TransferRelationMonitorElement implements AbstractElement, Abstract
     isBottom = pIsBottom;
   }
   
+  protected void setTransferTime(long pTransferTime){
+    timeOfTranferToComputeElement = pTransferTime;
+    if(timeOfTranferToComputeElement > maxTimeOfTransfer){
+      maxTimeOfTransfer = timeOfTranferToComputeElement;
+    }
+  }
+
+  protected void setTotalTime(long pTotalTime){
+    totalTimeOnThePath = pTotalTime + timeOfTranferToComputeElement;
+  }
+  
+  public long getTimeOfTranferToComputeElement() {
+    return timeOfTranferToComputeElement;
+  }
+
+  public long getTotalTimeOnThePath() {
+    return totalTimeOnThePath;
+  }
+
   @Override
   public boolean equals(Object pObj) {
     TransferRelationMonitorElement otherElem = (TransferRelationMonitorElement)pObj;
     AbstractElement otherWrappedElement = otherElem.element;
     return this.element.equals(otherWrappedElement);
+  }
+  
+  @Override
+  public String toString() {
+    return element.toString();
   }
   
 }

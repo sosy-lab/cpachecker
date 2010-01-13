@@ -43,6 +43,7 @@ import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.Refiner;
+import cpa.transferrelationmonitor.TransferRelationMonitorElement;
 import exceptions.CPAException;
 import exceptions.TransferTimeOutException;
 
@@ -157,6 +158,7 @@ public class CEGARAlgorithm implements Algorithm {
       }
     }
     executor.shutdownNow();
+    System.out.println(" MAX TIME >>>>>>>> " + TransferRelationMonitorElement.maxTimeOfTransfer);
     return;
   }
 

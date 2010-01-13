@@ -23,6 +23,7 @@
  */
 package cpa.explicit;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -994,7 +995,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
   }
 
   @Override
-  public AbstractElement strengthen(AbstractElement element,
+  public Collection<? extends AbstractElement> strengthen(AbstractElement element,
                                     List<AbstractElement> elements,
                                     CFAEdge cfaEdge, Precision precision) throws UnrecognizedCCodeException {    
     
@@ -1011,8 +1012,10 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
     return null;
   }
 
-  private ExplicitAnalysisElement strengthen(ExplicitAnalysisElement explicitElement,
+  private Collection<? extends AbstractElement> strengthen(ExplicitAnalysisElement explicitElement,
       PointerAnalysisElement pointerElement, CFAEdge cfaEdge, Precision precision) throws UnrecognizedCCodeException {
+    
+    List<ExplicitAnalysisElement> retList = new ArrayList<ExplicitAnalysisElement>();
     
     if (missingInformationLeftVariable != null && missingInformationRightPointer != null) {
       
@@ -1032,7 +1035,8 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
       String leftVar = derefPointerToVariable(pointerElement, missingInformationLeftPointer);
       if (leftVar != null) {
         leftVar = getvarName(leftVar, cfaEdge.getPredecessor().getFunctionName());
-        return handleAssignmentToVariable(explicitElement, leftVar, missingInformationRightExpression, cfaEdge);
+        retList.add(handleAssignmentToVariable(explicitElement, leftVar, missingInformationRightExpression, cfaEdge));
+        return retList;
       }
       
       missingInformationLeftPointer = null;

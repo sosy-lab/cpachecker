@@ -56,9 +56,9 @@ public interface TransferRelation {
    * @param otherElements list of abstract elements of all domains
    * @param cfaEdge the current edge of the CFA 
    * @param precision
-   * @return A new abstract element which should replace the old one, or null for no change.
+   * @return list of all abstract elements which should replace the old one, empty list for bottom or null for no change.
    */
-  public AbstractElement strengthen (AbstractElement element,
+  public Collection<? extends AbstractElement> strengthen (AbstractElement element,
                                      List<AbstractElement> otherElements,
                                      CFAEdge cfaEdge,
                                      Precision precision) throws CPATransferException;

@@ -1175,7 +1175,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
 
   
   @Override
-  public AbstractElement strengthen(AbstractElement element, List<AbstractElement> elements,
+  public Collection<? extends AbstractElement> strengthen(AbstractElement element, List<AbstractElement> elements,
                          CFAEdge cfaEdge, Precision precision) throws CPATransferException {
     if (missing == null) {
       return null;
@@ -1196,11 +1196,11 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
         
       } catch (UnrecognizedCCodeException e) {
         addError(e.getMessage(), cfaEdge);
-        return domain.getBottomElement();
+        return new ArrayList<AbstractElement>();
       
       } catch (InvalidPointerException e) {
         addError(e.getMessage(), cfaEdge);
-        return domain.getBottomElement();
+        return new ArrayList<AbstractElement>();
       }
     }
     
