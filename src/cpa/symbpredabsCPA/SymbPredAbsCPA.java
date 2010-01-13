@@ -23,30 +23,20 @@
  */
 package cpa.symbpredabsCPA;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
-import java.util.Vector;
-import java.util.logging.Level;
 
-import symbpredabstraction.FixedPredicateMap;
 import symbpredabstraction.PathFormula;
 import symbpredabstraction.SSAMap;
-import symbpredabstraction.UpdateablePredicateMap;
 import symbpredabstraction.bdd.BDDAbstractFormulaManager;
 import symbpredabstraction.interfaces.AbstractFormula;
 import symbpredabstraction.interfaces.AbstractFormulaManager;
 import symbpredabstraction.interfaces.InterpolatingTheoremProver;
-import symbpredabstraction.interfaces.Predicate;
-import symbpredabstraction.interfaces.PredicateMap;
 import symbpredabstraction.interfaces.SymbolicFormulaManager;
 import symbpredabstraction.interfaces.TheoremProver;
 import symbpredabstraction.mathsat.MathsatInterpolatingProver;
-import symbpredabstraction.mathsat.MathsatPredicateParser;
 import symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
 import symbpredabstraction.mathsat.MathsatTheoremProver;
 import symbpredabstraction.mathsat.SimplifyTheoremProver;
@@ -76,14 +66,13 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, CPAWithStati
   private final SymbPredAbsTransferRelation transfer;
   private final SymbPredAbsMergeOperator merge;
   private final StopOperator stop;
+  private final SymbPredAbsPrecision initialPrecision;
   private final AbstractFormulaManager abstractFormulaManager;
   private final MathsatSymbolicFormulaManager symbolicFormulaManager;
   private final SymbPredAbstFormulaManager formulaManager;
-  private final PredicateMap predicateMap;
   private final SymbPredAbsCPAStatistics stats;
 
   private SymbPredAbsCPA() throws CPAException {
-    predicateMap = createPredicateMap();
     abstractFormulaManager = new BDDAbstractFormulaManager();
     symbolicFormulaManager = new MathsatSymbolicFormulaManager();
     TheoremProver thmProver;
@@ -106,32 +95,37 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, CPAWithStati
     transfer = new SymbPredAbsTransferRelation(this);
     merge = new SymbPredAbsMergeOperator(this);
     stop = new StopSepOperator(domain.getPartialOrder());
+    initialPrecision = new SymbPredAbsPrecision();
 
-    
     stats = new SymbPredAbsCPAStatistics(this);
   }
 
+/* TODO do we still need this?  
   private PredicateMap createPredicateMap() {
-    // for testing purposes, it's nice to be able to use a given set of
-    // predicates and disable refinement
-    if (CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.abstraction.norefinement")) {
-      MathsatPredicateParser p = new MathsatPredicateParser(symbolicFormulaManager, formulaManager);
-      Collection<Predicate> preds;
+    Collection<Predicate> preds = null;
+
+    String path = CPAMain.cpaConfig.getProperty("predicates.path");
+    if (path != null) {
+      File f = new File(path, "predicates.msat");
       try {
-        String pth = CPAMain.cpaConfig.getProperty("predicates.path");
-        File f = new File(pth, "predicates.msat");
         InputStream in = new FileInputStream(f);
+        
+        MathsatPredicateParser p = new MathsatPredicateParser(symbolicFormulaManager, formulaManager);
         preds = p.parsePredicates(in);
       } catch (IOException e) {
-        CPAMain.logManager.logException(Level.WARNING, e, "");
-        preds = new Vector<Predicate>();
+        CPAMain.logManager.log(Level.WARNING, "Cannot read predicates from", f.getPath());
       }
+    }
+    
+    if (CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.abstraction.norefinement")) {
+      // for testing purposes, it's nice to be able to use a given set of
+      // predicates and disable refinement
       return new FixedPredicateMap(preds);
     } else {
-      return new UpdateablePredicateMap();
+      return new UpdateablePredicateMap(preds);
     }
-
   }
+*/
   
   public SymbPredAbsCPA(String s1, String s2) throws CPAException {
     this();
@@ -163,41 +157,23 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, CPAWithStati
     return formulaManager;
   }
 
-  public PredicateMap getPredicateMap() {
-    return predicateMap;
-  }
-
   public SymbolicFormulaManager getSymbolicFormulaManager() {
     return symbolicFormulaManager;
   }
 
-  /* (non-Javadoc)
-   * @see cpa.common.interfaces.ConfigurableProgramAnalysis#getInitialElement(cfa.objectmodel.CFAFunctionDefinitionNode)
-   */
   public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
-    CPAMain.logManager.log(Level.FINEST,
-        "Getting initial element from node: ", node);
-
-    //SymbPredAbsAbstractElement e = new SymbPredAbsAbstractElement(domain, loc, null);
-
-    List<Integer> parents = new ArrayList<Integer>();
-    parents.add(node.getNodeNumber());
+    List<Integer> abstractionPath = Collections.singletonList(node.getNodeNumber());
     SSAMap ssamap = new SSAMap();
     PathFormula pf = new PathFormula(symbolicFormulaManager.makeTrue(), ssamap);
-    List<Integer> pfParents = new ArrayList<Integer>();
-    PathFormula initPf = new PathFormula(symbolicFormulaManager.makeTrue(), ssamap);
+    List<Integer> pfParents = Collections.emptyList();
     AbstractFormula initAbstraction = abstractFormulaManager.makeTrue();
 
-    SymbPredAbsAbstractElement e = new SymbPredAbsAbstractElement(true, node,
-        pf, pfParents, initPf, initAbstraction, parents, 0);
-    // TODO check
-//    e.setMaxIndex(new SSAMap());
-
-    return e;
+    return new SymbPredAbsAbstractElement(true, node,
+        pf, pfParents, pf, initAbstraction, abstractionPath, 0);
   }
 
   public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
-    return new SymbPredAbsPrecision();
+    return initialPrecision;
   }
 
   @Override

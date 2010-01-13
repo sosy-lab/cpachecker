@@ -95,9 +95,6 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
         assert (elem1.getInitAbstractionFormula() == elem2.getInitAbstractionFormula());
         assert (elem1.getAbstractionLocation() == elem2.getAbstractionLocation());
 
-        // TODO check
-//      elem1.updateMaxIndex(elem1.getPathFormula().getSsa());
-
         SymbolicFormula formula1 = elem1.getPathFormula().getSymbolicFormula();
         SymbolicFormula formula2 = elem2.getPathFormula().getSymbolicFormula();
         SSAMap ssa1 = elem1.getPathFormula().getSsa();
@@ -130,8 +127,6 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
             elem1.getAbstractionPathList(),
             Math.max(elem1.getSizeSinceAbstraction(), elem2.getSizeSinceAbstraction()));
 
-        // TODO check
-//        merged.updateMaxIndex(ssa1);
         long end = System.currentTimeMillis();
         totalMergeTime = totalMergeTime + (end - start);
       }

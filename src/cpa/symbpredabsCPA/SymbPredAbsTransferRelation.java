@@ -73,7 +73,6 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   public int numAbstractStates = 0;
   public int maxBlockSize = 0;
 
-  private final PredicateMap predicateMap;
   // formula managers
   private final AbstractFormulaManager abstractFormulaManager;
   private final SymbolicFormulaManager symbolicFormulaManager;
@@ -92,7 +91,6 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   private SymbPredAbsAbstractElement lastElement = null;
   
   public SymbPredAbsTransferRelation(SymbPredAbsCPA pCpa) {
-    predicateMap = pCpa.getPredicateMap();
     symbolicFormulaManager = pCpa.getSymbolicFormulaManager();
     abstractFormulaManager = pCpa.getAbstractFormulaManager();
     formulaManager = pCpa.getFormulaManager();
@@ -102,10 +100,11 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
   @Override
   public Collection<? extends AbstractElement> getAbstractSuccessors(AbstractElement pElement,
-      Precision precision, CFAEdge edge) throws UnrecognizedCFAEdgeException {
+      Precision pPrecision, CFAEdge edge) throws UnrecognizedCFAEdgeException {
 
     long time = System.currentTimeMillis();
     SymbPredAbsAbstractElement element = (SymbPredAbsAbstractElement) pElement;
+    SymbPredAbsPrecision precision = (SymbPredAbsPrecision) pPrecision;
     lastElement = element;
     //boolean abstractionLocation = (blockSize == 0) ? isAbstractionLocation(edge.getSuccessor())
     //    : (element.getSizeSinceAbstraction() >= (blockSize-1));
@@ -114,7 +113,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     
     try {
       if (abstractionLocation) {
-        return handleAbstractionLocation(element, edge);
+        return handleAbstractionLocation(element, precision, edge);
       } else {
         return Collections.singleton(handleNonAbstractionLocation(element, edge));
       }
@@ -166,12 +165,6 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
         element.getAbstractionPathList(),
         // set 'sizeSinceAbstraction' to last element's value plus one for the current edge
         element.getSizeSinceAbstraction() + 1);
-
-    // set and update maxIndex for ssa
-    // TODO check
-    //newElement.setMaxIndex(element.getMaxIndex());
-//    SSAMap ssa1 = pf.getSsa();
-//    newElement.updateMaxIndex(ssa1);
   }
 
   /**
@@ -189,7 +182,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
    * @return computed abstract element
    * @throws UnrecognizedCFAEdgeException if edge is not recognized
    */
-  private Collection<SymbPredAbsAbstractElement> handleAbstractionLocation(SymbPredAbsAbstractElement element, CFAEdge edge) 
+  private Collection<SymbPredAbsAbstractElement> handleAbstractionLocation(SymbPredAbsAbstractElement element, SymbPredAbsPrecision precision, CFAEdge edge) 
   throws UnrecognizedCFAEdgeException {
     
     CPAMain.logManager.log(Level.FINEST, "Computing abstraction on node", edge.getSuccessor());
@@ -225,12 +218,12 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     // compute new abstraction
     AbstractFormula newAbstraction = formulaManager.buildAbstraction(
         element.getAbstraction(), pathFormula, 
-        predicateMap.getRelevantPredicates(edge.getSuccessor()));
+        precision.getPredicateMap().get(edge.getSuccessor()));
     
     long time2 = System.currentTimeMillis();
     computingAbstractionTime += time2 - time1; 
 
-    // if the abstraction is false, return bottom element
+    // if the abstraction is false, return bottom (represented by empty set)
     if (abstractFormulaManager.isFalse(newAbstraction)) {
       CPAMain.logManager.log(Level.FINEST, "Abstraction is false, node is not reachable");
       return Collections.emptySet();
@@ -326,10 +319,11 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
   @Override
   public Collection<? extends AbstractElement> strengthen(AbstractElement pElement,
-      List<AbstractElement> otherElements, CFAEdge edge, Precision precision) throws UnrecognizedCFAEdgeException {
+      List<AbstractElement> otherElements, CFAEdge edge, Precision pPrecision) throws UnrecognizedCFAEdgeException {
     // do abstraction (including reachability check) if an error was found by another CPA 
     
     SymbPredAbsAbstractElement element = (SymbPredAbsAbstractElement)pElement;
+    SymbPredAbsPrecision precision = (SymbPredAbsPrecision) pPrecision;
     if (element.isAbstractionNode()) {
       // not necessary
       return null;
@@ -345,7 +339,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
     if (errorFound) {
       // TODO a simple reachability check through sat solving should be enough here, at least if the error is not reachable
-      return handleAbstractionLocation(lastElement, edge);
+      return handleAbstractionLocation(lastElement, precision, edge);
     } else {
       return null;
     }

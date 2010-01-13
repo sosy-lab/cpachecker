@@ -9,13 +9,14 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
-import symbpredabstraction.UpdateablePredicateMap;
 import symbpredabstraction.interfaces.Predicate;
 import symbpredabstraction.trace.CounterexampleTraceInfo;
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFANode;
 import cmdline.CPAMain;
 
+import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.Multimap;
 import common.Pair;
 import compositeCPA.CompositeCPA;
 
@@ -27,13 +28,13 @@ import cpa.common.algorithm.CEGARAlgorithm;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;
+import cpa.common.interfaces.WrapperPrecision;
 import cpa.transferrelationmonitor.TransferRelationMonitorCPA;
 import exceptions.CPAException;
 
 public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
 
   private final SymbPredAbstFormulaManager formulaManager;
-  private final UpdateablePredicateMap predicateMap;
 
   private int numSeenAbstractCounterexample = 0;
   private List<Integer> seenAbstractCounterexample = null;
@@ -69,10 +70,6 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
       }
     }
 
-    if (!(symbPredAbsCpa.getPredicateMap() instanceof UpdateablePredicateMap)) {
-      throw new CPAException("Refinement needs updateable predicate map");
-    }
-    predicateMap = (UpdateablePredicateMap)symbPredAbsCpa.getPredicateMap();
     formulaManager = symbPredAbsCpa.getFormulaManager();
   }
 
@@ -98,6 +95,17 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
       lastElement = symbElement;
     }
     
+    Precision oldPrecision = pReached.getPrecision(pReached.getLastElement());
+    SymbPredAbsPrecision oldSymbPredAbsPrecision = null;
+    if (oldPrecision instanceof SymbPredAbsPrecision) {
+      oldSymbPredAbsPrecision = (SymbPredAbsPrecision)oldPrecision;
+    } else if (oldPrecision instanceof WrapperPrecision) {
+      oldSymbPredAbsPrecision = ((WrapperPrecision)oldPrecision).retrieveWrappedPrecision(SymbPredAbsPrecision.class);
+    }
+    if (oldSymbPredAbsPrecision == null) {
+      throw new IllegalStateException("Could not find the SymbPredAbsPrecision for the error element");
+    }
+    
     CPAMain.logManager.log(Level.ALL, "Abstraction trace is", path);
         
     // build the counterexample
@@ -106,7 +114,16 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
     // if error is spurious refine
     if (info.isSpurious()) {
       CPAMain.logManager.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
-      return new Pair<ARTElement, Precision>(performRefinement(pReached, path, pPath, info), null);
+      Pair<ARTElement, SymbPredAbsPrecision> refinementResult = 
+              performRefinement(oldSymbPredAbsPrecision, path, pPath, info);
+      
+      Precision newPrecision = refinementResult.getSecond();
+      if (oldPrecision instanceof WrapperPrecision) {
+        newPrecision = ((WrapperPrecision)oldPrecision).replaceWrappedPrecision(newPrecision);
+      }
+      assert newPrecision != null;
+      
+      return new Pair<ARTElement, Precision>(refinementResult.getFirst(), newPrecision);
     } else {
       CPAMain.logManager.log(Level.FINEST, "Error trace is not spurious");
       // we have a real error
@@ -114,26 +131,34 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
     }
   }
 
-  private ARTElement performRefinement(ReachedElements pReached,
+  private Pair<ARTElement, SymbPredAbsPrecision> performRefinement(SymbPredAbsPrecision oldPrecision,
       ArrayList<SymbPredAbsAbstractElement> pPath, Path pArtPath, CounterexampleTraceInfo pInfo) throws CPAException {
 
-    // TODO check
-
+    Multimap<CFANode, Predicate> oldPredicateMap = oldPrecision.getPredicateMap();
     SymbPredAbsAbstractElement symbPredRootElement = null;
     SymbPredAbsAbstractElement firstInterpolationElement = null;
     
+    ImmutableSetMultimap.Builder<CFANode, Predicate> pmapBuilder = ImmutableSetMultimap.builder();
+
+    pmapBuilder.putAll(oldPrecision.getPredicateMap());
+    
     for (SymbPredAbsAbstractElement e : pPath) {
       Collection<Predicate> newpreds = pInfo.getPredicatesForRefinement(e);
+      CFANode loc = e.getAbstractionLocation();
       if (firstInterpolationElement == null && newpreds.size() > 0) {
         firstInterpolationElement = e;
       }
-      if (predicateMap.update(e.getAbstractionLocation(), newpreds)) {
-        if (symbPredRootElement == null) {
-          symbPredRootElement = e;
-        }
+      if ((symbPredRootElement == null) && !oldPredicateMap.get(loc).containsAll(newpreds)) {
+        // new predicates for this location
+        symbPredRootElement = e;
       }
+      pmapBuilder.putAll(loc, newpreds);
     }
     
+    ImmutableSetMultimap<CFANode, Predicate> newPredicateMap = pmapBuilder.build();
+    SymbPredAbsPrecision newPrecision = new SymbPredAbsPrecision(newPredicateMap); 
+    
+    // This is outdated, it should not occur anymore IMHO:
     // It can happen that we discovered interpolants and predicateMap.update returns
     // false. This occurs when we discovered the same predicate on the same
     // CFANode in another error path before. In this case we try a new strategy,
@@ -145,13 +170,16 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
     // Another strategy would be to always remove everything below all occurrences
     // of this CFANode from the ART.
     
-    CPAMain.logManager.log(Level.ALL, "Predicate map now is", predicateMap);
+    CPAMain.logManager.log(Level.ALL, "Predicate map now is", newPredicateMap);
 
-    // FIXME (test/tests/ssh-simple/s3_clnt_4.cil.c.symbpredabsCPA-2.log) what to do here?
     assert(firstInterpolationElement != null);
 
     ARTElement root;
     if (symbPredRootElement == null) {
+      // I'm not sure if this case should ever occur in a correct example.
+      // If it does indeed, then the exception should be removed again.
+//      throw new RefinementFailedException(RefinementFailedException.Reason.NoNewPredicates, pArtPath);
+
       SymbPredAbsAbstractElement errorElement = pPath.get(pPath.size()-1);
       
       if ((numSeenAbstractCounterexample > 1) &&
@@ -173,6 +201,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
           "again, trying new strategy: remove everything below node", loc, "from ART.");
 
       root = this.getArtCpa().findHighest(pArtPath.getLast().getFirst(), loc);
+
     }
     else{
       seenAbstractCounterexample = null;
@@ -181,12 +210,12 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
       CPAMain.logManager.log(Level.FINEST, "New predicates were discovered.");
       
       long start = System.currentTimeMillis();
-      root = findARTElementof(symbPredRootElement, pArtPath.getLast());
+      root = findARTElementof(firstInterpolationElement, pArtPath.getLast());
       long end = System.currentTimeMillis();
       CEGARAlgorithm.totalfindArtTime= CEGARAlgorithm.totalfindArtTime + (end - start);
     }
 
-    return root;
+    return new Pair<ARTElement, SymbPredAbsPrecision>(root, newPrecision);
   }
 
   private ARTElement findARTElementof(SymbPredAbsAbstractElement pSymbPredRootElement,

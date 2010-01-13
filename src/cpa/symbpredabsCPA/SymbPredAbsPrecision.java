@@ -1,7 +1,3 @@
-package cpa.symbpredabsCPA;
-
-import cpa.common.interfaces.Precision;
-
 /*
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker. 
@@ -25,14 +21,48 @@ import cpa.common.interfaces.Precision;
  *  CPAchecker web page:
  *    http://www.cs.sfu.ca/~dbeyer/CPAchecker/
  */
+package cpa.symbpredabsCPA;
 
+import symbpredabstraction.interfaces.Predicate;
+import cfa.objectmodel.CFANode;
 
-/**
- * @author Michael Tautschnig <tautschnig@forsyte.de>
- *
- */
+import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.SetMultimap;
+
+import cpa.common.interfaces.Precision;
+
 public class SymbPredAbsPrecision implements Precision {
 
+  private final SetMultimap<CFANode, Predicate> predicateMap;
+  
+  public SymbPredAbsPrecision(ImmutableSetMultimap<CFANode, Predicate> predicateMap) {
+    assert predicateMap != null;
+    this.predicateMap = predicateMap;
+  }
+  
+  public SymbPredAbsPrecision() {
+    predicateMap = ImmutableSetMultimap.of();
+  }
+  
+  public SetMultimap<CFANode, Predicate> getPredicateMap() {
+    return predicateMap;
+  }
+  
+  @Override
+  public int hashCode() {
+    return predicateMap.hashCode();
+  }
+  
+  @Override
+  public boolean equals(Object pObj) {
+    if (pObj == this) {
+      return true;
+    } else if (!(pObj instanceof SymbPredAbsPrecision)) {
+      return false;
+    } else {
+      return predicateMap.equals(((SymbPredAbsPrecision)pObj).predicateMap);
+    }
+  }
 }
 
 

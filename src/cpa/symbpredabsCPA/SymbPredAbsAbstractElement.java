@@ -71,9 +71,6 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
     return sizeSinceAbstraction;
   }
 
-  // TODO check again
-//  private SSAMap maxIndex;
-
   public PathFormula getPathFormula() {
     return pathFormula;
   }
@@ -176,24 +173,6 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
   public PathFormula getInitAbstractionFormula() {
     return initAbstractionFormula;
   }
-
-  // TODO disabled
-//  public void updateMaxIndex(SSAMap ssa) {
-//    assert(maxIndex != null);
-//    for (String var : ssa.allVariables()) {
-//      int i = ssa.getIndex(var);
-//      int i2 = maxIndex.getIndex(var);
-//      maxIndex.setIndex(var, Math.max(i, i2));
-//    }
-//  }
-//
-//  public SSAMap getMaxIndex() {
-//    return maxIndex;
-//  }
-//
-//  public void setMaxIndex(SSAMap maxIndex) {
-//    this.maxIndex = maxIndex;
-//  }
   
   public List<Integer> getPfParents() {
     return pfParents;

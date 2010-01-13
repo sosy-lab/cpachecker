@@ -23,22 +23,10 @@
  */
 package cpa.symbpredabsCPA;
 
-import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.PrintWriter;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
 
-import symbpredabstraction.interfaces.Predicate;
-import symbpredabstraction.interfaces.PredicateMap;
-import symbpredabstraction.interfaces.SymbolicFormula;
-import cfa.objectmodel.CFANode;
 import cmdline.CPAMain;
 import cmdline.CPAMain.Result;
-
-import common.Pair;
-
 import cpaplugin.CPAStatistics;
 
 public class SymbPredAbsCPAStatistics implements CPAStatistics {
@@ -56,10 +44,10 @@ public class SymbPredAbsCPAStatistics implements CPAStatistics {
 
     @Override
     public void printStatistics(PrintWriter out, Result result) {
-      PredicateMap pmap = cpa.getPredicateMap();
       BDDMathsatSymbPredAbstractionAbstractManager<?> amgr =
         (BDDMathsatSymbPredAbstractionAbstractManager<?>)cpa.getFormulaManager();
 
+/* TODO re-enable this with precision based approach      
       Set<Predicate> allPreds = new HashSet<Predicate>();
       Collection<CFANode> allLocs = null;
       Collection<String> allFuncs = null;
@@ -128,7 +116,7 @@ public class SymbPredAbsCPAStatistics implements CPAStatistics {
           }
         }
       }
-
+*/
       BDDMathsatSymbPredAbstractionAbstractManager.Stats bs = amgr.stats;
       SymbPredAbsTransferRelation trans = cpa.getTransferRelation();
 
@@ -138,9 +126,9 @@ public class SymbPredAbsCPAStatistics implements CPAStatistics {
       out.println("Number of refinement steps:        " + bs.numCallsCexAnalysis);
       out.println("Number of coverage checks:         " + bs.numCoverageChecks);
       out.println();
-      out.println("Total number of predicates discovered: " + allPreds.size());
-      out.println("Avg number of predicates per location: " + avgPreds);
-      out.println("Max number of predicates per location: " + maxPreds);
+//      out.println("Total number of predicates discovered: " + allPreds.size());
+//      out.println("Avg number of predicates per location: " + avgPreds);
+//      out.println("Max number of predicates per location: " + maxPreds);
       out.println();
       out.println("Time for merge:                " + toTime(cpa.getMergeOperator().totalMergeTime));
       out.println("Time for abstraction post:     " + toTime(trans.abstractionTime));
