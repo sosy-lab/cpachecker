@@ -31,6 +31,7 @@ import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.WrapperPrecision;
 import cpa.transferrelationmonitor.TransferRelationMonitorCPA;
 import exceptions.CPAException;
+import exceptions.NoNewPredicatesFoundException;
 
 public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
 
@@ -188,7 +189,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
         CPAMain.logManager.log(Level.FINEST, "Found spurious counterexample",
             errorElement.getAbstractionPathList(), ", but no new predicates, terminating analysis");
 
-        throw new CPAException("Not enough predicates");
+        throw new NoNewPredicatesFoundException(pArtPath.getLast().getFirst());
       }
 
       seenAbstractCounterexample = errorElement.getAbstractionPathList();

@@ -191,7 +191,7 @@ public class ARTElement implements AbstractElementWithLocation, AbstractWrapperE
    * reachable any more, i.e. they do not belong to the ART any more. But those
    * elements will not be removed from the covered set.
    */
-  protected void removeFromART() {
+  public void removeFromART() {
     assert !destroyed;
     
     // clear children

@@ -24,6 +24,7 @@
 package cpa.common.algorithm;
 
 import java.lang.reflect.Constructor;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -42,6 +43,7 @@ import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.Refiner;
 import exceptions.CPAException;
+import exceptions.NoNewPredicatesFoundException;
 import exceptions.TransferTimeOutException;
 
 public class CEGARAlgorithm implements Algorithm {
@@ -115,9 +117,25 @@ public class CEGARAlgorithm implements Algorithm {
 
         long startRef = System.currentTimeMillis();
 
-        RefinementOutcome refout = mRefiner.performRefinement(reached);
+        RefinementOutcome refout = null;
+        try{
+          refout = mRefiner.performRefinement(reached);
+        } catch (NoNewPredicatesFoundException toE) {
+          // TODO this is temp. to terminate
+          System.out.println(" No new predicates found --- Skipping this path ");
+          System.out.println(" ---------------------------------------------- ");
+          System.out.println("Last element: " + toE.getArtLasttElement());
+          // remove error element from ART
+          toE.getArtLasttElement().removeFromART();
+          List<AbstractElementWithLocation> toRemove =  new ArrayList<AbstractElementWithLocation>();
+          toRemove.add(toE.getArtLasttElement());
+          reached.removeAll(toRemove);
+          continue;
+        }
         long endRef = System.currentTimeMillis();
         refinementTime = refinementTime + (endRef  - startRef);
+        
+        assert(refout != null);
         stopAnalysis = !refout.refinementPerformed();
 
         if (refout.refinementPerformed()) {
@@ -167,14 +185,10 @@ public class CEGARAlgorithm implements Algorithm {
 
     // TODO if starting from nothing, do not bother calling this
 
-    // This assertion is not true because reachableToUndo probably contains
-    // covered elements, which were in the ART but not in the reached set
-    //assert reached.getReached().containsAll(reachableToUndo);
-    
     assert reached.getReached().containsAll(toWaitlist);
-    
+
     List<Pair<AbstractElementWithLocation, Precision>> toWaitlistWithPrecision
-                        = Lists.newArrayListWithCapacity(toWaitlist.size());
+    = Lists.newArrayListWithCapacity(toWaitlist.size());
 
     if (newPrecision == null) {
       for (AbstractElementWithLocation e : toWaitlist) {
