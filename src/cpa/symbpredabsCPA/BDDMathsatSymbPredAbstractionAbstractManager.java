@@ -138,7 +138,7 @@ implements SymbPredAbstFormulaManager
     shortestTrace        = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.shortestCexTrace");
     splitItpAtoms        = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.refinement.splitItpAtoms");
     useBitwiseAxioms     = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.useBitwiseAxioms");
-    useCache             = !CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.mathsat.useCache");
+    useCache             = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.mathsat.useCache");
     useDtc               = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.mathsat.useDtc");
     useSuffix            = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.shortestCexTraceUseSuffix");
     useZigZag            = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.shortestCexTraceZigZag");
