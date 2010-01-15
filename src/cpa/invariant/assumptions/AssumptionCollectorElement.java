@@ -25,8 +25,8 @@ package cpa.invariant.assumptions;
 
 import symbpredabstraction.interfaces.SymbolicFormula;
 import cpa.common.interfaces.AbstractElement;
+import cpa.invariant.common.InvariantSymbolicFormulaManager;
 import cpa.invariant.dump.InvariantReportingElement;
-import cpa.invariant.util.InvariantSymbolicFormulaManager;
 
 /**
  * Abstract element for the assumption collector CPA;

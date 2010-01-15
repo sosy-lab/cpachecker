@@ -28,7 +28,7 @@ import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.JoinOperator;
 import cpa.common.interfaces.PartialOrder;
-import cpa.invariant.util.InvariantSymbolicFormulaManager;
+import cpa.invariant.common.InvariantSymbolicFormulaManager;
 import exceptions.CPAException;
 
 public class AssumptionCollectorDomain implements AbstractDomain {

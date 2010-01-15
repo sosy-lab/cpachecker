@@ -21,18 +21,18 @@
  *  CPAchecker web page:
  *    http://www.cs.sfu.ca/~dbeyer/CPAchecker/
  */
-package cpa.invariant.util;
+package cpa.invariant.common;
 
 import org.eclipse.cdt.core.dom.ast.ASTNodeProperty;
 import org.eclipse.cdt.core.dom.ast.ASTSignatureUtil;
 import org.eclipse.cdt.core.dom.ast.ASTVisitor;
 import org.eclipse.cdt.core.dom.ast.ExpansionOverlapsBoundaryException;
+import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTFileLocation;
 import org.eclipse.cdt.core.dom.ast.IASTNode;
 import org.eclipse.cdt.core.dom.ast.IASTNodeLocation;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
-import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 import org.eclipse.cdt.core.dom.ast.IType;
 import org.eclipse.cdt.core.parser.IToken;
 
@@ -42,25 +42,32 @@ import sun.reflect.generics.reflectiveObjects.NotImplementedException;
  * Hack!!!
  * @author g.theoduloz
  */
-public class DummyASTUnaryExpression implements IASTUnaryExpression {
+public class DummyASTBinaryExpression implements IASTBinaryExpression {
 
   private int operator;
-  private IASTExpression operand;
+  private IASTExpression operand1;
+  private IASTExpression operand2;
   
-  public DummyASTUnaryExpression(int op, IASTExpression op1)
+  public DummyASTBinaryExpression(int op, IASTExpression op1, IASTExpression op2)
   {
     operator = op;
-    op1 = operand;
+    operand1 = op1;
+    operand2 = op2;
   }
   
   @Override
-  public IASTUnaryExpression copy() {
+  public IASTBinaryExpression copy() {
     throw new NotImplementedException();
   }
 
   @Override
-  public IASTExpression getOperand() {
-    return operand;
+  public IASTExpression getOperand1() {
+    return operand1;
+  }
+
+  @Override
+  public IASTExpression getOperand2() {
+    return operand2;
   }
 
   @Override
@@ -69,13 +76,18 @@ public class DummyASTUnaryExpression implements IASTUnaryExpression {
   }
 
   @Override
-  public void setOperand(IASTExpression pExpression) {
-    operand = pExpression;
+  public void setOperand1(IASTExpression pExpression) {
+    operand1 = pExpression;
   }
 
   @Override
-  public void setOperator(int pValue) {
-    operator = pValue;
+  public void setOperand2(IASTExpression pExpression) {
+    operand2 = pExpression;
+  }
+
+  @Override
+  public void setOperator(int pOp) {
+    operator = pOp;
   }
 
   @Override
@@ -85,12 +97,12 @@ public class DummyASTUnaryExpression implements IASTUnaryExpression {
 
   @Override
   public boolean accept(ASTVisitor pVisitor) {
-    throw new NotImplementedException();
+    return false;
   }
 
   @Override
   public boolean contains(IASTNode pNode) {
-    throw new NotImplementedException();
+    return false;
   }
 
   @Override
@@ -131,7 +143,10 @@ public class DummyASTUnaryExpression implements IASTUnaryExpression {
 
   @Override
   public String getRawSignature() {
-    return ASTSignatureUtil.getUnaryOperatorString(this) + operand.getRawSignature();
+    return
+      "(" + operand1.getRawSignature()
+      + ASTSignatureUtil.getBinaryOperatorString(this)
+      + operand2.getRawSignature() + ")";
   }
 
   @Override
@@ -174,10 +189,10 @@ public class DummyASTUnaryExpression implements IASTUnaryExpression {
   public void setPropertyInParent(ASTNodeProperty pProperty) {
     throw new NotImplementedException();
   }
-
+  
   @Override
   public String toString() {
     return getRawSignature();
   }
-  
+
 }

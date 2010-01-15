@@ -33,7 +33,7 @@ import cfa.objectmodel.CFAEdge;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
-import cpa.invariant.util.InvariantSymbolicFormulaManager;
+import cpa.invariant.common.InvariantSymbolicFormulaManager;
 import exceptions.CPATransferException;
 
 /**

@@ -41,8 +41,8 @@ import cfa.objectmodel.c.StatementEdge;
 
 import common.Pair;
 
-import cpa.invariant.util.DummyASTBinaryExpression;
-import cpa.invariant.util.DummyASTNumericalLiteralExpression;
+import cpa.invariant.common.DummyASTBinaryExpression;
+import cpa.invariant.common.DummyASTNumericalLiteralExpression;
 
 /**
  * Class to generate assumptions related to over/underflow 

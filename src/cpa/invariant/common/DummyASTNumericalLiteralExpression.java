@@ -21,15 +21,15 @@
  *  CPAchecker web page:
  *    http://www.cs.sfu.ca/~dbeyer/CPAchecker/
  */
-package cpa.invariant.util;
+package cpa.invariant.common;
+
+import java.math.BigDecimal;
 
 import org.eclipse.cdt.core.dom.ast.ASTNodeProperty;
-import org.eclipse.cdt.core.dom.ast.ASTSignatureUtil;
 import org.eclipse.cdt.core.dom.ast.ASTVisitor;
 import org.eclipse.cdt.core.dom.ast.ExpansionOverlapsBoundaryException;
-import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
-import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTFileLocation;
+import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
 import org.eclipse.cdt.core.dom.ast.IASTNode;
 import org.eclipse.cdt.core.dom.ast.IASTNodeLocation;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
@@ -39,55 +39,46 @@ import org.eclipse.cdt.core.parser.IToken;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 /**
- * Hack!!!
+ * Hack!!
  * @author g.theoduloz
  */
-public class DummyASTBinaryExpression implements IASTBinaryExpression {
-
-  private int operator;
-  private IASTExpression operand1;
-  private IASTExpression operand2;
+public class DummyASTNumericalLiteralExpression implements
+    IASTLiteralExpression, Comparable<DummyASTNumericalLiteralExpression> {
   
-  public DummyASTBinaryExpression(int op, IASTExpression op1, IASTExpression op2)
-  {
-    operator = op;
-    operand1 = op1;
-    operand2 = op2;
+  private String representation;
+  
+  public DummyASTNumericalLiteralExpression(String r) {
+    representation = r;
   }
-  
+
   @Override
-  public IASTBinaryExpression copy() {
+  public IASTLiteralExpression copy() {
     throw new NotImplementedException();
   }
 
   @Override
-  public IASTExpression getOperand1() {
-    return operand1;
+  public int getKind() {
+    return IASTLiteralExpression.lk_integer_constant;
   }
 
   @Override
-  public IASTExpression getOperand2() {
-    return operand2;
+  public char[] getValue() {
+    return representation.toCharArray();
   }
 
   @Override
-  public int getOperator() {
-    return operator;
+  public void setKind(int pValue) {
+    throw new NotImplementedException();
   }
 
   @Override
-  public void setOperand1(IASTExpression pExpression) {
-    operand1 = pExpression;
+  public void setValue(char[] pValue) {
+    representation = new String(pValue);
   }
 
   @Override
-  public void setOperand2(IASTExpression pExpression) {
-    operand2 = pExpression;
-  }
-
-  @Override
-  public void setOperator(int pOp) {
-    operator = pOp;
+  public void setValue(String pValue) {
+    representation = pValue;
   }
 
   @Override
@@ -97,12 +88,12 @@ public class DummyASTBinaryExpression implements IASTBinaryExpression {
 
   @Override
   public boolean accept(ASTVisitor pVisitor) {
-    return false;
+    throw new NotImplementedException();
   }
 
   @Override
   public boolean contains(IASTNode pNode) {
-    return false;
+    throw new NotImplementedException();
   }
 
   @Override
@@ -143,10 +134,7 @@ public class DummyASTBinaryExpression implements IASTBinaryExpression {
 
   @Override
   public String getRawSignature() {
-    return
-      "(" + operand1.getRawSignature()
-      + ASTSignatureUtil.getBinaryOperatorString(this)
-      + operand2.getRawSignature() + ")";
+    return representation;
   }
 
   @Override
@@ -189,10 +177,44 @@ public class DummyASTBinaryExpression implements IASTBinaryExpression {
   public void setPropertyInParent(ASTNodeProperty pProperty) {
     throw new NotImplementedException();
   }
+
+  @Override
+  public int compareTo(DummyASTNumericalLiteralExpression other) {
+    if (this == other) return 0;
+    BigDecimal decThis = new BigDecimal(representation);
+    BigDecimal decOther = new BigDecimal(other.representation);
+    return decThis.compareTo(decOther);
+  }
   
   @Override
   public String toString() {
     return getRawSignature();
   }
-
+  
+  /* Constants, assuming 32-bit machine */
+  public static final DummyASTNumericalLiteralExpression ZERO = new DummyASTNumericalLiteralExpression("0");
+  public static final DummyASTNumericalLiteralExpression FALSE = ZERO;
+  public static final DummyASTNumericalLiteralExpression ONE = new DummyASTNumericalLiteralExpression("1");
+  public static final DummyASTNumericalLiteralExpression TRUE = ONE;
+  
+  public static final DummyASTNumericalLiteralExpression INT_MAX = new DummyASTNumericalLiteralExpression("2147483647");
+  public static final DummyASTNumericalLiteralExpression INT_MIN = new DummyASTNumericalLiteralExpression("-2147483648");
+  public static final DummyASTNumericalLiteralExpression UINT_MIN = ZERO;
+  public static final DummyASTNumericalLiteralExpression UINT_MAX = new DummyASTNumericalLiteralExpression("4294967295");
+  
+  public static final DummyASTNumericalLiteralExpression LONG_MAX = new DummyASTNumericalLiteralExpression("2147483647");
+  public static final DummyASTNumericalLiteralExpression LONG_MIN = new DummyASTNumericalLiteralExpression("-2147483648");
+  public static final DummyASTNumericalLiteralExpression ULONG_MIN = ZERO;
+  public static final DummyASTNumericalLiteralExpression ULONG_MAX = new DummyASTNumericalLiteralExpression("4294967295");
+  
+  public static final DummyASTNumericalLiteralExpression SHRT_MAX = new DummyASTNumericalLiteralExpression("32767");
+  public static final DummyASTNumericalLiteralExpression SHRT_MIN = new DummyASTNumericalLiteralExpression("-32768");
+  public static final DummyASTNumericalLiteralExpression USHRT_MIN = ZERO;
+  public static final DummyASTNumericalLiteralExpression USHRT_MAX = new DummyASTNumericalLiteralExpression("65535");
+  
+  public static final DummyASTNumericalLiteralExpression CHAR_MAX = new DummyASTNumericalLiteralExpression("127");
+  public static final DummyASTNumericalLiteralExpression CHAR_MIN = new DummyASTNumericalLiteralExpression("-128");
+  public static final DummyASTNumericalLiteralExpression UCHAR_MIN = ZERO;
+  public static final DummyASTNumericalLiteralExpression UCHAR_MAX = new DummyASTNumericalLiteralExpression("255");
+  
 }

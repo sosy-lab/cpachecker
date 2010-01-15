@@ -26,7 +26,7 @@ package cpa.predicateabstraction;
 import symbpredabstraction.interfaces.AbstractFormula;
 import symbpredabstraction.interfaces.SymbolicFormula;
 import cpa.common.interfaces.AbstractElement;
-import cpa.invariant.util.FormulaReportingElement;
+import cpa.invariant.common.FormulaReportingElement;
 
 /**
  * AbstractElement for explicit-state lazy abstraction.
