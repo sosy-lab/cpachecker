@@ -12,6 +12,8 @@ import java.util.Set;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cfa.objectmodel.CFANode;
 import cmdline.CPAMain;
+import cpa.common.defaults.MergeSepOperator;
+import cpa.common.defaults.StaticPrecisionAdjustment;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
@@ -42,9 +44,9 @@ public class ARTCPA implements ConfigurableProgramAnalysis, CPAWithStatistics, C
     wrappedCPA = cpa;
     abstractDomain = new ARTDomain(this);
     transferRelation = new ARTTransferRelation(cpa.getTransferRelation());
-    precisionAdjustment = new ARTPrecisionAdjustment();
+    precisionAdjustment = StaticPrecisionAdjustment.getInstance();
     if(mergeType.equals("sep")){
-      mergeOperator = new ARTMergeSep();
+      mergeOperator = MergeSepOperator.getInstance();
     } else if(mergeType.equals("join")){
       mergeOperator = new ARTMergeJoin(wrappedCPA);
     } else {
@@ -75,6 +77,7 @@ public class ARTCPA implements ConfigurableProgramAnalysis, CPAWithStatistics, C
   }
 
   public PrecisionAdjustment getPrecisionAdjustment () {
+    // TODO implement ART precision adjustment
     return precisionAdjustment;
   }
 

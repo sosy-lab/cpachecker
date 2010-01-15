@@ -47,6 +47,8 @@ import symbpredabstraction.mathsat.SimplifyTheoremProver;
 import symbpredabstraction.mathsat.YicesTheoremProver;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cmdline.CPAMain;
+import cpa.common.defaults.MergeSepOperator;
+import cpa.common.defaults.StaticPrecisionAdjustment;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.CPAWithStatistics;
@@ -68,7 +70,7 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis, CPA
 
     private final PredicateAbstractionAbstractDomain domain;
     private final PredicateAbstractionTransferRelation trans;
-    private final PredicateAbstractionMergeOperator merge;
+    private final MergeOperator merge;
     private final PredicateAbstractionStopOperator stop;
     private final PrecisionAdjustment precisionAdjustment;
     private final AbstractFormulaManager abstractFormulaManager;
@@ -80,9 +82,9 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis, CPA
     private PredicateAbstractionCPA() {
         domain = new PredicateAbstractionAbstractDomain(this);
         trans = new PredicateAbstractionTransferRelation(domain);
-        merge = new PredicateAbstractionMergeOperator();
+        merge = MergeSepOperator.getInstance();
         stop = new PredicateAbstractionStopOperator(domain);
-        precisionAdjustment = new PredicateAbstractionPrecisionAdjustment();
+        precisionAdjustment = StaticPrecisionAdjustment.getInstance();
         abstractFormulaManager = new BDDAbstractFormulaManager();
         MathsatSymbolicFormulaManager mgr = new MathsatSymbolicFormulaManager();
         String whichProver = CPAMain.cpaConfig.getProperty(
@@ -178,7 +180,7 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis, CPA
     }
     
     public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
-      return new PredicateAbstractionPrecision();
+      return null;
     }
 
     public AbstractFormulaManager getAbstractFormulaManager() {

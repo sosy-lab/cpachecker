@@ -24,6 +24,10 @@
 package cpa.uninitvars;
 
 import cfa.objectmodel.CFAFunctionDefinitionNode;
+import cpa.common.defaults.MergeJoinOperator;
+import cpa.common.defaults.MergeSepOperator;
+import cpa.common.defaults.StaticPrecisionAdjustment;
+import cpa.common.defaults.StopSepOperator;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
@@ -49,16 +53,16 @@ public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis {
     
     MergeOperator mergeOp = null;
     if(mergeType.equals("sep")) {
-      mergeOp = new UninitializedVariablesMergeSep ();
+      mergeOp = MergeSepOperator.getInstance();
     }
     if(mergeType.equals("join")) {
-      mergeOp = new UninitializedVariablesMergeJoin(domain);
+      mergeOp = new MergeJoinOperator(domain.getJoinOperator());
     }
 
     StopOperator stopOp = null;
 
     if(stopType.equals("sep")) {
-      stopOp = new UninitializedVariablesStopSep(domain);
+      stopOp = new StopSepOperator(domain.getPartialOrder());
     }
     if(stopType.equals("join")){
       stopOp = new UninitializedVariablesStopJoin(domain);
@@ -68,7 +72,7 @@ public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis {
     this.mergeOperator = mergeOp;
     this.stopOperator = stopOp;
     this.transferRelation = new UninitializedVariablesTransferRelation();
-    this.precisionAdjustment = new UninitializedVariablesPrecisionAdjustment();
+    this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
   }
   
   @Override
@@ -83,7 +87,7 @@ public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
-    return new UninitializedVariablesPrecision();
+    return null;
   }
 
   @Override

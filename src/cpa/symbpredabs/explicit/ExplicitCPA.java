@@ -55,6 +55,8 @@ import cmdline.CPAMain;
 
 import common.Pair;
 
+import cpa.common.defaults.MergeSepOperator;
+import cpa.common.defaults.StaticPrecisionAdjustment;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.CPAWithStatistics;
@@ -76,7 +78,7 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis, CPAWithStatisti
 
     private final ExplicitAbstractDomain domain;
     private final ExplicitTransferRelation trans;
-    private final ExplicitMergeOperator merge;
+    private final MergeOperator merge;
     private final ExplicitStopOperator stop;
     private final PrecisionAdjustment precisionAdjustment;
     private final AbstractFormulaManager abstractFormulaManager;
@@ -92,9 +94,9 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis, CPAWithStatisti
     private ExplicitCPA() {
         domain = new ExplicitAbstractDomain(this);
         trans = new ExplicitTransferRelation(domain);
-        merge = new ExplicitMergeOperator();
+        merge = MergeSepOperator.getInstance();
         stop = new ExplicitStopOperator(domain);
-        precisionAdjustment = new ExplicitPrecisionAdjustment();
+        precisionAdjustment = StaticPrecisionAdjustment.getInstance();
         abstractFormulaManager = new BDDAbstractFormulaManager();
         MathsatSymbolicFormulaManager mgr = new MathsatSymbolicFormulaManager();
         String whichProver = CPAMain.cpaConfig.getProperty(
@@ -190,7 +192,7 @@ public class ExplicitCPA implements ConfigurableProgramAnalysis, CPAWithStatisti
     }
     
     public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
-      return new ExplicitPrecision();
+      return null;
     }
 
     public AbstractFormulaManager getAbstractFormulaManager() {

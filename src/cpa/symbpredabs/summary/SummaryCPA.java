@@ -58,6 +58,8 @@ import cmdline.CPAMain;
 
 import common.Pair;
 
+import cpa.common.defaults.MergeSepOperator;
+import cpa.common.defaults.StaticPrecisionAdjustment;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.CPAWithStatistics;
@@ -98,7 +100,7 @@ public class SummaryCPA implements ConfigurableProgramAnalysis, CPAWithStatistic
         trans = new SummaryTransferRelation(domain);
         // merge = new SummaryMergeOperator(domain);
         stop = new SummaryStopOperator(domain);
-        precisionAdjustment = new SummaryPrecisionAdjustment();
+        precisionAdjustment = StaticPrecisionAdjustment.getInstance();
         abstractFormulaManager = new BDDAbstractFormulaManager();
         mgr = new MathsatSummaryFormulaManager();
         TheoremProver thmProver = null;
@@ -167,8 +169,7 @@ public class SummaryCPA implements ConfigurableProgramAnalysis, CPAWithStatistic
     } 
 
     public MergeOperator getMergeOperator() {
-        //return merge;
-        return null;
+        return MergeSepOperator.getInstance();
     }
 
     @Override
@@ -245,7 +246,7 @@ public class SummaryCPA implements ConfigurableProgramAnalysis, CPAWithStatistic
     }
 
     public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
-      return new SummaryPrecision();
+      return null;
     }
     
     @Override

@@ -32,6 +32,9 @@ import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
 
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cfa.objectmodel.c.FunctionDefinitionNode;
+import cpa.common.defaults.MergeJoinOperator;
+import cpa.common.defaults.StaticPrecisionAdjustment;
+import cpa.common.defaults.StopSepOperator;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
@@ -57,9 +60,9 @@ public class PointsToCPA implements ConfigurableProgramAnalysis {
   public PointsToCPA (String mergeType, String stopType) throws CPAException {
     abstractDomain = new PointsToDomain();
     transferRelation = new PointsToTransferRelation();
-    mergeOperator = new PointsToMerge(abstractDomain);
-    stopOperator = new PointsToStop(abstractDomain);
-    precisionAdjustment = new PointsToPrecisionAdjustment();
+    mergeOperator = new MergeJoinOperator(abstractDomain.getJoinOperator());
+    stopOperator = new StopSepOperator(abstractDomain.getPartialOrder());
+    precisionAdjustment = StaticPrecisionAdjustment.getInstance();
   }
 
   /* (non-Javadoc)
@@ -118,6 +121,6 @@ public class PointsToCPA implements ConfigurableProgramAnalysis {
   }
 
   public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
-    return new PointsToPrecision();
+    return null;
   }
 }

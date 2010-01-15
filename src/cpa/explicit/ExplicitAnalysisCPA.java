@@ -24,6 +24,10 @@
 package cpa.explicit;
 
 import cfa.objectmodel.CFAFunctionDefinitionNode;
+import cpa.common.defaults.MergeJoinOperator;
+import cpa.common.defaults.MergeSepOperator;
+import cpa.common.defaults.StaticPrecisionAdjustment;
+import cpa.common.defaults.StopSepOperator;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
@@ -46,20 +50,13 @@ public class ExplicitAnalysisCPA implements ConfigurableProgramAnalysis {
     ExplicitAnalysisDomain explicitAnalysisDomain = new ExplicitAnalysisDomain ();
     MergeOperator explicitAnalysisMergeOp = null;
     if(mergeType.equals("sep")){
-      explicitAnalysisMergeOp = new ExplicitAnalysisMergeSep ();
+      explicitAnalysisMergeOp = MergeSepOperator.getInstance();
     }
     if(mergeType.equals("join")){
-      explicitAnalysisMergeOp = new ExplicitAnalysisMergeJoin (explicitAnalysisDomain);
+      explicitAnalysisMergeOp = new MergeJoinOperator(explicitAnalysisDomain.getJoinOperator());
     }
 
-    StopOperator explicitAnalysisStopOp = null;
-
-    if(stopType.equals("sep")){
-      explicitAnalysisStopOp = new ExplicitAnalysisStopSep (explicitAnalysisDomain);
-    }
-    if(stopType.equals("join")){
-      explicitAnalysisStopOp = new ExplicitAnalysisStopJoin ();
-    }
+    StopOperator explicitAnalysisStopOp = new StopSepOperator(explicitAnalysisDomain.getPartialOrder());
 
     TransferRelation explicitAnalysisTransferRelation = new ExplicitAnalysisTransferRelation (explicitAnalysisDomain);
     
@@ -67,7 +64,7 @@ public class ExplicitAnalysisCPA implements ConfigurableProgramAnalysis {
     this.mergeOperator = explicitAnalysisMergeOp;
     this.stopOperator = explicitAnalysisStopOp;
     this.transferRelation = explicitAnalysisTransferRelation;
-    this.precisionAdjustment = new ExplicitAnalysisPrecisionAdjustment();
+    this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
   }
 
   public AbstractDomain getAbstractDomain ()
@@ -98,7 +95,7 @@ public class ExplicitAnalysisCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
-    return new ExplicitAnalysisPrecision();
+    return null;
   }
 
   @Override

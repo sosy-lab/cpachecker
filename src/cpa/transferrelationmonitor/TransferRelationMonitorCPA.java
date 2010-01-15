@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.Collections;
 
 import cfa.objectmodel.CFAFunctionDefinitionNode;
+import cpa.common.defaults.StaticPrecisionAdjustment;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.CPAWithStatistics;
@@ -30,7 +31,7 @@ public class TransferRelationMonitorCPA implements ConfigurableProgramAnalysis, 
     wrappedCPA = pCpa;
     abstractDomain = new TransferRelationMonitorDomain(this);
     transferRelation = new TransferRelationMonitorTransferRelation(wrappedCPA.getTransferRelation());
-    precisionAdjustment = new TransferRelationMonitorPrecisionAdjustment();
+    precisionAdjustment = StaticPrecisionAdjustment.getInstance(); // TODO
     mergeOperator = new TransferRelationMonitorMerge(wrappedCPA);
     stopOperator = new TransferRelationMonitorStop(wrappedCPA);  
   }

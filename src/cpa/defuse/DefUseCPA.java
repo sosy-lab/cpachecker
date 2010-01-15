@@ -28,7 +28,9 @@ import java.util.List;
 
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cfa.objectmodel.c.FunctionDefinitionNode;
-
+import cpa.common.defaults.MergeSepOperator;
+import cpa.common.defaults.StaticPrecisionAdjustment;
+import cpa.common.defaults.StopSepOperator;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
@@ -37,14 +39,6 @@ import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
-import cpa.defuse.DefUseDefinition;
-import cpa.defuse.DefUseDomain;
-import cpa.defuse.DefUseElement;
-import cpa.defuse.DefUseMergeJoin;
-import cpa.defuse.DefUseMergeSep;
-import cpa.defuse.DefUseStopJoin;
-import cpa.defuse.DefUseStopSep;
-import cpa.defuse.DefUseTransferRelation;
 import exceptions.CPAException;
 
 public class DefUseCPA implements ConfigurableProgramAnalysis{
@@ -64,19 +58,19 @@ public class DefUseCPA implements ConfigurableProgramAnalysis{
 
     this.mergeOperator = null;
     if(mergeType.equals("sep")){
-      this.mergeOperator = new DefUseMergeSep ();
+      this.mergeOperator = MergeSepOperator.getInstance();
     } else if(mergeType.equals("join")){
       this.mergeOperator = new DefUseMergeJoin ();
     }
 
     this.stopOperator = null;
     if(stopType.equals("sep")){
-      this.stopOperator = new DefUseStopSep (defUseDomain);
+      this.stopOperator = new StopSepOperator(defUseDomain.getPartialOrder());
     } else if(stopType.equals("join")){
       this.stopOperator = new DefUseStopJoin ();
     }
 
-    this.precisionAdjustment = new DefUsePrecisionAdjustment ();
+    this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
   }
 
   public AbstractDomain getAbstractDomain ()
@@ -123,6 +117,6 @@ public class DefUseCPA implements ConfigurableProgramAnalysis{
   }
 
   public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
-    return new DefUsePrecision();
+    return null;
   }
 }

@@ -24,6 +24,9 @@
 package cpa.dominator.parametric;
 
 import cfa.objectmodel.CFAFunctionDefinitionNode;
+import cpa.common.defaults.MergeJoinOperator;
+import cpa.common.defaults.StaticPrecisionAdjustment;
+import cpa.common.defaults.StopSepOperator;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
@@ -33,11 +36,6 @@ import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
-import cpa.dominator.parametric.DominatorDomain;
-import cpa.dominator.parametric.DominatorElement;
-import cpa.dominator.parametric.DominatorMerge;
-import cpa.dominator.parametric.DominatorStop;
-import cpa.dominator.parametric.DominatorTransferRelation;
 import exceptions.CPAException;
 
 public class DominatorCPA {
@@ -55,9 +53,9 @@ public class DominatorCPA {
 	  
 		this.abstractDomain = new DominatorDomain(this.cpa);
     this.transferRelation = new DominatorTransferRelation(this.abstractDomain, this.cpa);
-    this.mergeOperator = new DominatorMerge(this.abstractDomain);
-		this.stopOperator = new DominatorStop(this.abstractDomain);
-		this.precisionAdjustment = new DominatorPrecisionAdjustment();
+    this.mergeOperator = new MergeJoinOperator(abstractDomain.getJoinOperator());
+		this.stopOperator = new StopSepOperator(abstractDomain.getPartialOrder());
+		this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
 	}
 
 	public AbstractDomain getAbstractDomain() {
@@ -93,6 +91,6 @@ public class DominatorCPA {
   }
 
   public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
-    return new DominatorPrecision();
+    return null;
   }
 }

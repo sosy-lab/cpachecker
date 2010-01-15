@@ -24,6 +24,9 @@
 package cpa.octagon;
 
 import cfa.objectmodel.CFAFunctionDefinitionNode;
+import cpa.common.defaults.MergeSepOperator;
+import cpa.common.defaults.StaticPrecisionAdjustment;
+import cpa.common.defaults.StopSepOperator;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
@@ -49,25 +52,18 @@ public class OctagonCPA implements ConfigurableProgramAnalysis{
 
     MergeOperator octagonMergeOp = null;
     if(mergeType.equals("sep")){
-      octagonMergeOp = new OctMergeSep ();
+      octagonMergeOp = MergeSepOperator.getInstance();
     }
     else if(mergeType.equals("join")){
       octagonMergeOp = new OctMergeJoin ();
     }
 
-    StopOperator octagonStopOp = null;
-
-    if(stopType.equals("sep")){
-      octagonStopOp = new OctStopSep (octagonDomain);
-    }
-    else if(stopType.equals("join")){
-      octagonStopOp = new OctStopJoin ();
-    }
-
+    StopOperator octagonStopOp = new StopSepOperator(octagonDomain.getPartialOrder());
+    
     this.abstractDomain = octagonDomain;
     this.mergeOperator = octagonMergeOp;
     this.stopOperator = octagonStopOp;
-    this.precisionAdjustment = new OctPrecisionAdjustment ();
+    this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
   }
 
   public AbstractDomain getAbstractDomain ()
@@ -101,6 +97,6 @@ public class OctagonCPA implements ConfigurableProgramAnalysis{
   }
 
   public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
-    return new OctPrecision();
+    return null;
   }
 }

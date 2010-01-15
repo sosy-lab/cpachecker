@@ -24,7 +24,10 @@
 package cpa.pointeranalysis;
 
 import cfa.objectmodel.CFAFunctionDefinitionNode;
+import cpa.common.defaults.MergeJoinOperator;
+import cpa.common.defaults.MergeSepOperator;
 import cpa.common.defaults.StaticPrecisionAdjustment;
+import cpa.common.defaults.StopSepOperator;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
@@ -49,15 +52,15 @@ public class PointerAnalysisCPA implements ConfigurableProgramAnalysis {
     
     MergeOperator mergeOp = null;
     if(mergeType.equals("sep")) {
-      mergeOp = new PointerAnalysisMergeSep ();
+      mergeOp = MergeSepOperator.getInstance();
     }
     if(mergeType.equals("join")) {
-      mergeOp = new PointerAnalysisMergeJoin(domain);
+      mergeOp = new MergeJoinOperator(domain.getJoinOperator());
     }
 
     abstractDomain = domain;
     mergeOperator = mergeOp;
-    stopOperator = new PointerAnalysisStopSep(domain);
+    stopOperator = new StopSepOperator(domain.getPartialOrder());
     transferRelation = new PointerAnalysisTransferRelation(domain);
   }
   

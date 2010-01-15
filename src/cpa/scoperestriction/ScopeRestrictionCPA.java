@@ -32,20 +32,18 @@ import java.util.List;
 
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
-
-import common.Pair;
-
 import cpa.common.automaton.Automaton;
 import cpa.common.automaton.AutomatonCPADomain;
+import cpa.common.defaults.MergeSepOperator;
+import cpa.common.defaults.StaticPrecisionAdjustment;
+import cpa.common.defaults.StopSepOperator;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
-import exceptions.CPAException;
 import exceptions.CPATransferException;
 
 /**
@@ -53,65 +51,6 @@ import exceptions.CPATransferException;
  *
  */
 public class ScopeRestrictionCPA implements ConfigurableProgramAnalysis {
-  
-  public class ScopeRestrictionPrecision implements Precision {
-    
-  }
-  
-  public class ScopeRestrictionMergeOperator implements MergeOperator {
-
-    @Override
-    public AbstractElement merge(AbstractElement pElement1,
-                                 AbstractElement pElement2,
-                                 Precision prec) throws CPAException {
-      // no join
-      return pElement2;
-    }
-
-    public AbstractElementWithLocation merge(AbstractElementWithLocation pElement1,
-                                             AbstractElementWithLocation pElement2,
-                                             Precision prec) throws CPAException {
-      throw new CPAException ("Cannot return element with location information");
-    }
-  }
-  
-  public class ScopeRestrictionStopOperator implements StopOperator {
-    
-    @Override
-    public <AE extends AbstractElement> boolean stop(AE pElement,
-                        Collection<AE> pReached, Precision prec)
-                                                             throws CPAException {
-      assert(pElement != null);
-      assert(pReached != null);
-      
-      // exists lElement in pReached with stop(pElement, lElement)?
-      for (AbstractElement lElement : pReached) {
-        if (stop(pElement, lElement)) {
-          return true;
-        }
-      }
-      
-      return false;
-    }
-
-    @Override
-    public boolean stop(AbstractElement pElement,
-                        AbstractElement pReachedElement) throws CPAException {
-      return mDomain.getPartialOrder().satisfiesPartialOrder(pElement, pReachedElement);
-    }
-    
-  }
-  
-  public class ScopeRestrictionPrecisionAdjustment implements PrecisionAdjustment {
-
-    public <AE extends AbstractElement> Pair<AE, Precision> prec(
-                                                                 AE pElement,
-                                                                 Precision pPrecision,
-                                                                 Collection<Pair<AE, Precision>> pElements) {
-      return new Pair<AE,Precision> (pElement, pPrecision);
-    }
-    
-  }
   
   public class ScopeRestrictionTransferRelation implements TransferRelation {
 
@@ -142,8 +81,8 @@ public class ScopeRestrictionCPA implements ConfigurableProgramAnalysis {
   
   private AutomatonCPADomain<CFAEdge> mDomain;
   private ScopeRestrictionTransferRelation mTransferRelation;
-  private ScopeRestrictionMergeOperator mMergeOperator;
-  private ScopeRestrictionStopOperator mStopOperator;
+  private MergeOperator mMergeOperator;
+  private StopOperator mStopOperator;
   private PrecisionAdjustment mPrecisionAdjustment;
   
   public ScopeRestrictionCPA(Automaton<CFAEdge> pTestGoalAutomaton) {
@@ -152,9 +91,9 @@ public class ScopeRestrictionCPA implements ConfigurableProgramAnalysis {
     
     mDomain = new AutomatonCPADomain<CFAEdge>(pTestGoalAutomaton);
     mTransferRelation = new ScopeRestrictionTransferRelation();
-    mMergeOperator = new ScopeRestrictionMergeOperator();
-    mStopOperator = new ScopeRestrictionStopOperator();
-    mPrecisionAdjustment = new ScopeRestrictionPrecisionAdjustment();
+    mMergeOperator = MergeSepOperator.getInstance();
+    mStopOperator = new StopSepOperator(mDomain.getPartialOrder());
+    mPrecisionAdjustment = StaticPrecisionAdjustment.getInstance();
   }
   
   /* (non-Javadoc)
@@ -177,7 +116,7 @@ public class ScopeRestrictionCPA implements ConfigurableProgramAnalysis {
    * @see cpa.common.interfaces.ConfigurableProgramAnalysis#getMergeOperator()
    */
   @Override
-  public ScopeRestrictionMergeOperator getMergeOperator() {
+  public MergeOperator getMergeOperator() {
     return mMergeOperator;
   }
 
@@ -185,7 +124,7 @@ public class ScopeRestrictionCPA implements ConfigurableProgramAnalysis {
    * @see cpa.common.interfaces.ConfigurableProgramAnalysis#getStopOperator()
    */
   @Override
-  public ScopeRestrictionStopOperator getStopOperator() {
+  public StopOperator getStopOperator() {
     return mStopOperator;
   }
   
@@ -202,6 +141,6 @@ public class ScopeRestrictionCPA implements ConfigurableProgramAnalysis {
   }
 
   public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
-    return new ScopeRestrictionPrecision();
+    return null;
   }
 }

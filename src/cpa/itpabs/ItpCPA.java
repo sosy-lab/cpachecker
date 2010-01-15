@@ -49,6 +49,8 @@ import cmdline.CPAMain;
 
 import common.Pair;
 
+import cpa.common.defaults.MergeSepOperator;
+import cpa.common.defaults.StaticPrecisionAdjustment;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
@@ -76,7 +78,7 @@ public abstract class ItpCPA implements ConfigurableProgramAnalysis, CPAWithStat
 
     protected ItpAbstractDomain domain;
     protected ItpTransferRelation trans;
-    protected ItpMergeOperator merge;
+    protected MergeOperator merge;
     protected ItpStopOperator stop;
     protected PrecisionAdjustment precisionAdjustment;
     protected MathsatSymbolicFormulaManager mgr;
@@ -110,9 +112,9 @@ public abstract class ItpCPA implements ConfigurableProgramAnalysis, CPAWithStat
 
         domain = new ItpAbstractDomain(this);
         trans = new ItpTransferRelation(domain);
-        merge = new ItpMergeOperator();
+        merge = MergeSepOperator.getInstance();
         stop = new ItpStopOperator(domain, thmProver);
-        precisionAdjustment = new ItpPrecisionAdjustment();
+        precisionAdjustment = StaticPrecisionAdjustment.getInstance();
 
         refiner = new ItpCounterexampleRefiner(amgr, itpProver);
 
@@ -177,7 +179,7 @@ public abstract class ItpCPA implements ConfigurableProgramAnalysis, CPAWithStat
     }
 
     public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
-      return new ItpPrecision();
+      return null;
     }
 
     public ItpCounterexampleRefiner getRefiner() {

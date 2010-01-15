@@ -35,13 +35,11 @@ import java.util.logging.Level;
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cmdline.CPAMain;
-
-import common.Pair;
-
 import cpa.common.automaton.Automaton;
 import cpa.common.automaton.AutomatonCPADomain;
+import cpa.common.defaults.MergeSepOperator;
+import cpa.common.defaults.StaticPrecisionAdjustment;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
@@ -130,13 +128,13 @@ public class TestGoalCPA implements ConfigurableProgramAnalysis {
     
   }
 
-  public class TestGoalMergeOperator implements MergeOperator {
+  /*public class TestGoalMergeOperator implements MergeOperator {
 
     @Override
     public AbstractElement merge(AbstractElement pElement1,
                                  AbstractElement pElement2,
                                  Precision prec) throws CPAException {
-      /*assert(pElement1 != null);
+      assert(pElement1 != null);
       assert(pElement2 != null);
       
       assert(pElement1 instanceof AutomatonCPADomain<?>.Element);
@@ -169,7 +167,7 @@ public class TestGoalCPA implements ConfigurableProgramAnalysis {
         }
       }
       
-      return lElement1.createUnionElement(lElement2.getStates());*/
+      return lElement1.createUnionElement(lElement2.getStates());
       
       // no join
       return pElement2;
@@ -180,7 +178,7 @@ public class TestGoalCPA implements ConfigurableProgramAnalysis {
                                              Precision prec) throws CPAException {
       throw new CPAException ("Cannot return element with location information");
     }
-  }
+  }*/
 
   public class TestGoalStopOperator implements StopOperator {
 
@@ -243,19 +241,6 @@ public class TestGoalCPA implements ConfigurableProgramAnalysis {
 
   }
 
-  public class TestGoalPrecisionAdjustment implements PrecisionAdjustment {
-
-    public <AE extends AbstractElement> Pair<AE, Precision> prec(
-        AE pElement,
-        Precision pPrecision,
-        Collection<Pair<AE, Precision>> pElements) {
-      // TODO remove all covered test goals from pPrecision
-      // TODO This is a hack for performance reasons
-      return new Pair<AE,Precision> (pElement, pPrecision);
-    }
-
-  }
-
   public class TestGoalTransferRelation implements TransferRelation {
 
     private AbstractElement getAbstractSuccessor(AbstractElement pElement,
@@ -302,7 +287,7 @@ public class TestGoalCPA implements ConfigurableProgramAnalysis {
 
   private AutomatonCPADomain<CFAEdge> mDomain;
   private TestGoalTransferRelation mTransferRelation;
-  private TestGoalMergeOperator mMergeOperator;
+  private MergeOperator mMergeOperator;
   private TestGoalStopOperator mStopOperator;
   private PrecisionAdjustment mPrecisionAdjustment;
 
@@ -315,9 +300,12 @@ public class TestGoalCPA implements ConfigurableProgramAnalysis {
 
     mDomain = new AutomatonCPADomain<CFAEdge>(pTestGoalAutomaton);
     mTransferRelation = new TestGoalTransferRelation();
-    mMergeOperator = new TestGoalMergeOperator();
+    mMergeOperator = MergeSepOperator.getInstance();
     mStopOperator = new TestGoalStopOperator();
-    mPrecisionAdjustment = new TestGoalPrecisionAdjustment();
+    
+    // TODO remove all covered test goals from pPrecision
+    // TODO This is a hack for performance reasons
+    mPrecisionAdjustment = StaticPrecisionAdjustment.getInstance();
   }
 
   /* (non-Javadoc)
@@ -340,7 +328,7 @@ public class TestGoalCPA implements ConfigurableProgramAnalysis {
    * @see cpa.common.interfaces.ConfigurableProgramAnalysis#getMergeOperator()
    */
   @Override
-  public TestGoalMergeOperator getMergeOperator() {
+  public MergeOperator getMergeOperator() {
     return mMergeOperator;
   }
 
