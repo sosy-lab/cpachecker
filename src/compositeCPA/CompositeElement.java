@@ -128,7 +128,12 @@ public class CompositeElement implements AbstractWrapperElement {
   
   @Override
   public AbstractElementWithLocation retrieveLocationElement() {
-    return retrieveWrappedElement(AbstractElementWithLocation.class);
+    if (elements.get(0) instanceof AbstractElementWithLocation) {
+      return (AbstractElementWithLocation)elements.get(0);
+    } else {
+      assert false;
+      return retrieveWrappedElement(AbstractElementWithLocation.class);
+    }
   }
   
   @Override

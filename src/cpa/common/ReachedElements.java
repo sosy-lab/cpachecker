@@ -171,9 +171,7 @@ public class ReachedElements implements Iterable<AbstractElement> {
   public Set<AbstractElement> getReached(AbstractElement element) {
     if (locationMappedReached != null) {
       CFANode loc = getLocationFromElement(element);
-      if (loc != null) {
-        return Collections.unmodifiableSet(locationMappedReached.get(loc));
-      }
+      return Collections.unmodifiableSet(locationMappedReached.get(loc));
     }
     return unmodifiableReached;
   }

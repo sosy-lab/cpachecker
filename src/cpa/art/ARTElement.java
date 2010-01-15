@@ -30,6 +30,7 @@ public class ARTElement implements AbstractWrapperElement, Comparable<ARTElement
   private static int nextArtElementId = 0;
 
   protected ARTElement(ARTCPA pCpa, AbstractElement pAbstractElement, ARTElement pParentElement) {
+    elementId = ++nextArtElementId;
     mCpa = pCpa;
     element = pAbstractElement;
     parents = new HashSet<ARTElement>();
@@ -37,7 +38,6 @@ public class ARTElement implements AbstractWrapperElement, Comparable<ARTElement
       addParent(pParentElement);
     }
     children = new HashSet<ARTElement>();
-    elementId = ++nextArtElementId;
   }
 
   public Set<ARTElement> getParents(){
@@ -140,7 +140,13 @@ public class ARTElement implements AbstractWrapperElement, Comparable<ARTElement
   
   @Override
   public AbstractElementWithLocation retrieveLocationElement() {
-    return retrieveWrappedElement(AbstractElementWithLocation.class);
+    if (element instanceof AbstractWrapperElement) {
+      return ((AbstractWrapperElement)element).retrieveLocationElement();
+    } else if (element instanceof AbstractElementWithLocation) {
+      return (AbstractElementWithLocation)element;
+    } else {
+      return null;
+    }
   }
   
   @Override

@@ -63,6 +63,11 @@ public class SymbPredAbsPrecision implements Precision {
       return predicateMap.equals(((SymbPredAbsPrecision)pObj).predicateMap);
     }
   }
+  
+  @Override
+  public String toString() {
+    return predicateMap.toString();
+  }
 }
 
 
