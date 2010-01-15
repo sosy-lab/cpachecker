@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -31,14 +30,10 @@ import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.WrapperPrecision;
 import cpa.transferrelationmonitor.TransferRelationMonitorCPA;
 import exceptions.CPAException;
-import exceptions.NoNewPredicatesFoundException;
 
 public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
 
   private final SymbPredAbstFormulaManager formulaManager;
-
-  private int numSeenAbstractCounterexample = 0;
-  private List<Integer> seenAbstractCounterexample = null;
   
   public SymbPredAbsRefiner(final ConfigurableProgramAnalysis pCpa) throws CPAException {
     super(pCpa);
@@ -141,7 +136,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
     
     ImmutableSetMultimap.Builder<CFANode, Predicate> pmapBuilder = ImmutableSetMultimap.builder();
 
-    pmapBuilder.putAll(oldPrecision.getPredicateMap());
+    pmapBuilder.putAll(oldPredicateMap);
     
     for (SymbPredAbsAbstractElement e : pPath) {
       Collection<Predicate> newpreds = pInfo.getPredicatesForRefinement(e);
@@ -155,66 +150,40 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
       }
       pmapBuilder.putAll(loc, newpreds);
     }
-    
+    assert(firstInterpolationElement != null);
+
     ImmutableSetMultimap<CFANode, Predicate> newPredicateMap = pmapBuilder.build();
     SymbPredAbsPrecision newPrecision = new SymbPredAbsPrecision(newPredicateMap); 
     
-    // This is outdated, it should not occur anymore IMHO:
-    // It can happen that we discovered interpolants and predicateMap.update returns
-    // false. This occurs when we discovered the same predicate on the same
-    // CFANode in another error path before. In this case we try a new strategy,
-    // because there might be more paths where this predicate will help. So we
-    // remove everything below the first occurrence of this CFANode in the error
-    // path from the ART. Then hopefully we won't have to refine all of those paths
-    // one by one.
-    
-    // Another strategy would be to always remove everything below all occurrences
-    // of this CFANode from the ART.
-    
     CPAMain.logManager.log(Level.ALL, "Predicate map now is", newPredicateMap);
 
-    assert(firstInterpolationElement != null);
-
+    // symbPredRootElement might be null here, but firstInterpolationElement
+    // might be not. TODO investigate why this happens
+    // We have two different strategies for the refinement root: set it to
+    // the firstInterpolationElement or set it to highest location in the ART
+    // where the same CFANode appears.
+    // Both work, so this is a heuristics question to get the best performance.
+    // My benchmark showed, that at least for the benchmarks-lbe examples it is
+    // best to use strategy one iff symbPredRootElement is not null.
+    
     ARTElement root;
-    if (symbPredRootElement == null) {
-      // I'm not sure if this case should ever occur in a correct example.
-      // If it does indeed, then the exception should be removed again.
-//      throw new RefinementFailedException(RefinementFailedException.Reason.NoNewPredicates, pArtPath);
-
-      SymbPredAbsAbstractElement errorElement = pPath.get(pPath.size()-1);
+    long start = System.currentTimeMillis();
+    if (symbPredRootElement != null) {
+      CPAMain.logManager.log(Level.FINEST, "Found spurious counterexample,",
+          "trying strategy 1: remove everything below", firstInterpolationElement, "from ART.");
       
-      if ((numSeenAbstractCounterexample > 1) &&
-          errorElement.getAbstractionPathList().equals(seenAbstractCounterexample)) {
-        
-        CPAMain.logManager.log(Level.FINEST, "Found spurious counterexample",
-            errorElement.getAbstractionPathList(), ", but no new predicates, terminating analysis");
-
-        throw new NoNewPredicatesFoundException(pArtPath.getLast().getFirst());
-      }
-
-      seenAbstractCounterexample = errorElement.getAbstractionPathList();
-      numSeenAbstractCounterexample++;
-
+      root = findARTElementof(firstInterpolationElement, pArtPath.getLast());
+      
+    } else {
       CFANode loc = firstInterpolationElement.getAbstractionLocation(); 
 
-      CPAMain.logManager.log(Level.FINEST, "Found spurious counterexample",
-          seenAbstractCounterexample,
-          "again, trying new strategy: remove everything below node", loc, "from ART.");
+      CPAMain.logManager.log(Level.FINEST, "Found spurious counterexample,",
+          "trying strategy 2: remove everything below node", loc, "from ART.");
 
       root = this.getArtCpa().findHighest(pArtPath.getLast().getFirst(), loc);
-
     }
-    else{
-      seenAbstractCounterexample = null;
-      numSeenAbstractCounterexample = 0;
-
-      CPAMain.logManager.log(Level.FINEST, "New predicates were discovered.");
-      
-      long start = System.currentTimeMillis();
-      root = findARTElementof(firstInterpolationElement, pArtPath.getLast());
-      long end = System.currentTimeMillis();
-      CEGARAlgorithm.totalfindArtTime= CEGARAlgorithm.totalfindArtTime + (end - start);
-    }
+    long end = System.currentTimeMillis();
+    CEGARAlgorithm.totalfindArtTime= CEGARAlgorithm.totalfindArtTime + (end - start);
 
     return new Pair<ARTElement, SymbPredAbsPrecision>(root, newPrecision);
   }
