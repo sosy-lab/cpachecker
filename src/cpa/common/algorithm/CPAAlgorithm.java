@@ -34,7 +34,6 @@ import common.Pair;
 
 import cpa.common.ReachedElements;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
@@ -69,15 +68,15 @@ public class CPAAlgorithm implements Algorithm {
       // Pick next element using strategy
       // BFS, DFS or top sort according to the configuration
       long start = System.currentTimeMillis();
-      Pair<AbstractElementWithLocation,Precision> e = reachedElements.popFromWaitlist();
+      Pair<AbstractElement,Precision> e = reachedElements.popFromWaitlist();
       long end = System.currentTimeMillis();
       chooseTime += (end - start);
-      Pair<AbstractElementWithLocation,Precision> tempPair;
+      Pair<AbstractElement, Precision> tempPair;
       tempPair = precisionAdjustment.prec(e.getFirst(), e.getSecond(), reachedElements.getReachedWithPrecision());
       if(tempPair != null){
         e = tempPair;
       }
-      AbstractElementWithLocation element = e.getFirst();
+      AbstractElement element = e.getFirst();
       Precision precision = e.getSecond();
 
       CPAMain.logManager.log(Level.FINER, "Retrieved element from waitlist");
@@ -91,24 +90,23 @@ public class CPAAlgorithm implements Algorithm {
       
       CPAMain.logManager.log(Level.FINER, "Current element has", successors.size(), "successors");
       
-      for (AbstractElement succ : successors) {
-        AbstractElementWithLocation successor = (AbstractElementWithLocation)succ;
+      for (AbstractElement successor : successors) {
         CPAMain.logManager.log(Level.FINER, "Considering successor of current element");
         CPAMain.logManager.log(Level.ALL, "Successor of", element, "\nis", successor);
         
-        Collection<AbstractElementWithLocation> reached = reachedElements.getReached(successor.getLocationNode());
+        Collection<AbstractElement> reached = reachedElements.getReached(successor);
 
         // AG as an optimization, we allow the mergeOperator to be null,
         // as a synonym of a trivial operator that never merges
         if (mergeOperator != null && !reached.isEmpty()) {
           start = System.currentTimeMillis();
 
-          List<AbstractElementWithLocation> toRemove = new ArrayList<AbstractElementWithLocation>();
-          List<Pair<AbstractElementWithLocation,Precision>> toAdd = new ArrayList<Pair<AbstractElementWithLocation,Precision>>();
+          List<AbstractElement> toRemove = new ArrayList<AbstractElement>();
+          List<Pair<AbstractElement, Precision>> toAdd = new ArrayList<Pair<AbstractElement, Precision>>();
           
           CPAMain.logManager.log(Level.FINER, "Considering", reached.size(), "elements from reached set for merge");
-          for (AbstractElementWithLocation reachedElement : reached) {
-            AbstractElementWithLocation mergedElement = mergeOperator.merge( successor, reachedElement, precision);
+          for (AbstractElement reachedElement : reached) {
+            AbstractElement mergedElement = mergeOperator.merge( successor, reachedElement, precision);
 
             if (!mergedElement.equals(reachedElement)) {
               CPAMain.logManager.log(Level.FINER, "Successor was merged with element from reached set");
@@ -116,7 +114,7 @@ public class CPAAlgorithm implements Algorithm {
                   "Merged", successor, "\nand", reachedElement, "\n-->", mergedElement);
               
               toRemove.add(reachedElement);
-              toAdd.add(new Pair<AbstractElementWithLocation,Precision>(mergedElement, precision));
+              toAdd.add(new Pair<AbstractElement, Precision>(mergedElement, precision));
             }
           }
           reachedElements.removeAll(toRemove);

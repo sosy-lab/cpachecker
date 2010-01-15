@@ -36,11 +36,9 @@ public class AlwaysTopCPA implements ConfigurableProgramAnalysis {
     return mDomain;
   }
 
-  @SuppressWarnings("unchecked")
   @Override
-  public <AE extends AbstractElement> AE getInitialElement(
-      CFAFunctionDefinitionNode pNode) {
-    return (AE) AlwaysTopTopElement.getInstance();
+  public AbstractElement getInitialElement(CFAFunctionDefinitionNode pNode) {
+    return AlwaysTopTopElement.getInstance();
   }
 
   @Override

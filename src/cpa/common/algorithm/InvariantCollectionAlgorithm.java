@@ -37,7 +37,6 @@ import cpa.art.ARTElement;
 import cpa.common.Path;
 import cpa.common.ReachedElements;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.AbstractWrapperElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.invariant.common.FormulaReportingUtils;
@@ -98,8 +97,8 @@ public class InvariantCollectionAlgorithm implements Algorithm {
       
     // collect and dump all assumptions stored in abstract states
     CPAMain.logManager.log(Level.FINEST, "Dumping invariants resulting from assumptions");
-    for (AbstractElementWithLocation element : reached) {      
-      CFANode loc = element.getLocationNode();
+    for (AbstractElement element : reached) {      
+      CFANode loc = ((AbstractWrapperElement)element).retrieveLocationElement().getLocationNode();
       Invariant invariant = extractInvariant(element);
       
       invariantMap.addInvariant(loc, invariant);
@@ -157,7 +156,7 @@ public class InvariantCollectionAlgorithm implements Algorithm {
     
     Pair<ARTElement, CFAEdge> pair = path.get(pos);
     SymbolicFormula dataRegion = FormulaReportingUtils.extractReportedFormulas(symbolicManager, pair.getFirst());
-    invariant.addInvariant(pair.getFirst().getLocationNode(), new Invariant(dataRegion, false));
+    invariant.addInvariant(pair.getFirst().retrieveLocationElement().getLocationNode(), new Invariant(dataRegion, false));
   }
   
   /**
@@ -166,10 +165,10 @@ public class InvariantCollectionAlgorithm implements Algorithm {
    */
   private void addInvariantsForWaitlist(
       InvariantWithLocation invariant,
-      List<AbstractElementWithLocation> waitlist) {
-    for (AbstractElementWithLocation element : waitlist) {
+      List<AbstractElement> waitlist) {
+    for (AbstractElement element : waitlist) {
       SymbolicFormula dataRegion = FormulaReportingUtils.extractReportedFormulas(symbolicManager, element);
-      invariant.addInvariant(element.getLocationNode(), new Invariant(symbolicManager.makeNot(dataRegion), false));
+      invariant.addInvariant(((AbstractWrapperElement)element).retrieveLocationElement().getLocationNode(), new Invariant(symbolicManager.makeNot(dataRegion), false));
     }
   }
   

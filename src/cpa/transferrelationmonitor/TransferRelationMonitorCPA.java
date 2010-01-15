@@ -42,9 +42,8 @@ public class TransferRelationMonitorCPA implements ConfigurableProgramAnalysis, 
   }
 
   @Override
-  public <AE extends AbstractElement> AE getInitialElement(
-      CFAFunctionDefinitionNode pNode) {
-    return (AE) new TransferRelationMonitorElement(this, wrappedCPA.getInitialElement(pNode));
+  public AbstractElement getInitialElement(CFAFunctionDefinitionNode pNode) {
+    return new TransferRelationMonitorElement(this, wrappedCPA.getInitialElement(pNode));
   }
 
   @Override

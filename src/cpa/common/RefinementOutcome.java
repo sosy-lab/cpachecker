@@ -2,7 +2,7 @@ package cpa.common;
 
 import java.util.Collection;
 
-import cpa.common.interfaces.AbstractElementWithLocation;
+import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.Precision;
 
 public class RefinementOutcome {
@@ -10,8 +10,8 @@ public class RefinementOutcome {
   private final boolean refinementPerformed;
   private final Precision newPrecision;
   private final Path errorPath;
-  private final Collection<? extends AbstractElementWithLocation> toUnreach;
-  private final Collection<? extends AbstractElementWithLocation> toWaitlist;
+  private final Collection<? extends AbstractElement> toUnreach;
+  private final Collection<? extends AbstractElement> toWaitlist;
   
   public RefinementOutcome(Path pErrorPath) {
     refinementPerformed = false;
@@ -21,8 +21,8 @@ public class RefinementOutcome {
     errorPath = pErrorPath;
   }
 
-  public RefinementOutcome(Precision pNewPrecision, Collection<? extends AbstractElementWithLocation> pToUnreach,
-      Collection<? extends AbstractElementWithLocation> pToWaitlist, Path pErrorPath) {
+  public RefinementOutcome(Precision pNewPrecision, Collection<? extends AbstractElement> pToUnreach,
+      Collection<? extends AbstractElement> pToWaitlist, Path pErrorPath) {
     refinementPerformed = true;
     newPrecision = pNewPrecision;
     toUnreach = pToUnreach;
@@ -38,11 +38,11 @@ public class RefinementOutcome {
     return newPrecision;
   }
   
-  public Collection<? extends AbstractElementWithLocation> getToUnreach() {
+  public Collection<? extends AbstractElement> getToUnreach() {
     return toUnreach;
   }
 
-  public Collection<? extends AbstractElementWithLocation> getToWaitlist() {
+  public Collection<? extends AbstractElement> getToWaitlist() {
     return toWaitlist;
   }
   

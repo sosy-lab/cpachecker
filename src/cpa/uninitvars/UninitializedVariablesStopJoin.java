@@ -45,12 +45,10 @@ public class UninitializedVariablesStopJoin implements StopOperator {
   }
   
   @Override
-  public <AE extends AbstractElement> boolean stop(AE element,
-                                                   Collection<AE> reached,
-                                                   Precision precision)
-                                                   throws CPAException {
+  public boolean stop(AbstractElement element, Collection<AbstractElement> reached,
+                      Precision precision) throws CPAException {
     JoinOperator join = domain.getJoinOperator();
-    Iterator<AE> it = reached.iterator();
+    Iterator<AbstractElement> it = reached.iterator();
     AbstractElement joinedElement = it.next();
     while (it.hasNext()) {
       joinedElement = join.join(it.next(), joinedElement);

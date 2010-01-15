@@ -1,7 +1,6 @@
 package cpa.art;
 
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
@@ -18,15 +17,7 @@ public class ARTMergeJoin implements MergeOperator {
   @Override
   public AbstractElement merge(AbstractElement pElement1,
       AbstractElement pElement2, Precision pPrecision) throws CPAException {
-    assert(false);
-    return null;
-  }
-
-  @Override
-  public AbstractElementWithLocation merge(
-      AbstractElementWithLocation pElement1,
-      AbstractElementWithLocation pElement2, Precision pPrecision)
-  throws CPAException {
+    
     ARTElement artElement1 = (ARTElement)pElement1;
     ARTElement artElement2 = (ARTElement)pElement2;
 
@@ -35,9 +26,9 @@ public class ARTMergeJoin implements MergeOperator {
     assert !artElement2.isCovered();
     
     MergeOperator mergeOperator = wrappedCpa.getMergeOperator();
-    AbstractElementWithLocation wrappedElement1 = artElement1.getAbstractElementOnArtNode();
-    AbstractElementWithLocation wrappedElement2 = artElement2.getAbstractElementOnArtNode();
-    AbstractElementWithLocation retElement = mergeOperator.merge(wrappedElement1, wrappedElement2, pPrecision);
+    AbstractElement wrappedElement1 = artElement1.getAbstractElementOnArtNode();
+    AbstractElement wrappedElement2 = artElement2.getAbstractElementOnArtNode();
+    AbstractElement retElement = mergeOperator.merge(wrappedElement1, wrappedElement2, pPrecision);
     if(retElement.equals(wrappedElement2)){
       return pElement2;
     }

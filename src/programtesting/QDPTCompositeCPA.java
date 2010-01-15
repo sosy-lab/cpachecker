@@ -46,7 +46,6 @@ import cpa.common.CallStack;
 import cpa.common.automaton.AutomatonCPADomain;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
@@ -179,20 +178,20 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
     }
 
     @Override
-    public Collection<AbstractElementWithLocation> getAbstractSuccessors(AbstractElement element, Precision precision, CFAEdge cfaEdge) throws CPATransferException
+    public Collection<AbstractElement> getAbstractSuccessors(AbstractElement element, Precision precision, CFAEdge cfaEdge) throws CPATransferException
     {
 
       //TODO CPACheckerStatistics.noOfTransferRelations++;
 
       CompositeElement compositeElement = (CompositeElement) element;
-      CFANode node = compositeElement.getLocationNode();
+      CFANode node = compositeElement.retrieveLocationElement().getLocationNode();
 
-      List<AbstractElementWithLocation> results = new ArrayList<AbstractElementWithLocation> ();
+      List<AbstractElement> results = new ArrayList<AbstractElement> ();
 
       for (int edgeIdx = 0; edgeIdx < node.getNumLeavingEdges (); edgeIdx++)
       {
         CFAEdge edge = node.getLeavingEdge (edgeIdx);
-        results.add ((CompositeElement) getAbstractSuccessor (element, edge, precision));
+        results.add (getAbstractSuccessor (element, edge, precision));
       }
 
       return results;
@@ -262,7 +261,7 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
   // it by default by creating a hash set?
   // TODO: During ART creation establish an order
   // that allows efficient querying for test goals
-  public Collection<Pair<AbstractElementWithLocation,Precision>> newReachedSet() {
+  public Collection<Pair<AbstractElement,Precision>> newReachedSet() {
     return new QDPTReachedSet(mAutomatonDomain,mTestGoalCPAIndex);
   }
   

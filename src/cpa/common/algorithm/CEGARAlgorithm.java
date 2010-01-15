@@ -37,7 +37,7 @@ import common.Pair;
 
 import cpa.common.ReachedElements;
 import cpa.common.RefinementOutcome;
-import cpa.common.interfaces.AbstractElementWithLocation;
+import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.Refiner;
@@ -159,8 +159,8 @@ public class CEGARAlgorithm implements Algorithm {
   }
 
   private void modifySets(ReachedElements reached, Precision newPrecision,
-      Collection<? extends AbstractElementWithLocation> reachableToUndo,
-      Collection<? extends AbstractElementWithLocation> toWaitlist) {
+      Collection<? extends AbstractElement> reachableToUndo,
+      Collection<? extends AbstractElement> toWaitlist) {
 
     CPAMain.logManager.log(Level.ALL, "Removing elements from reached set:", reachableToUndo);
     CPAMain.logManager.log(Level.ALL, "Adding elements to waitlist:", toWaitlist);
@@ -173,16 +173,16 @@ public class CEGARAlgorithm implements Algorithm {
     
     assert reached.getReached().containsAll(toWaitlist);
     
-    List<Pair<AbstractElementWithLocation, Precision>> toWaitlistWithPrecision
+    List<Pair<AbstractElement, Precision>> toWaitlistWithPrecision
                         = Lists.newArrayListWithCapacity(toWaitlist.size());
 
     if (newPrecision == null) {
-      for (AbstractElementWithLocation e : toWaitlist) {
-        toWaitlistWithPrecision.add(new Pair<AbstractElementWithLocation, Precision>(e, reached.getPrecision(e)));
+      for (AbstractElement e : toWaitlist) {
+        toWaitlistWithPrecision.add(new Pair<AbstractElement, Precision>(e, reached.getPrecision(e)));
       }
     } else {
-      for (AbstractElementWithLocation e : toWaitlist) {
-        toWaitlistWithPrecision.add(new Pair<AbstractElementWithLocation, Precision>(e, newPrecision));
+      for (AbstractElement e : toWaitlist) {
+        toWaitlistWithPrecision.add(new Pair<AbstractElement, Precision>(e, newPrecision));
       }
     }
 

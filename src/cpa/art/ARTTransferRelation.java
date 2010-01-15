@@ -7,7 +7,6 @@ import java.util.List;
 
 import cfa.objectmodel.CFAEdge;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
 import exceptions.CPATransferException;
@@ -27,7 +26,7 @@ public class ARTTransferRelation implements TransferRelation {
       throws CPATransferException, TransferTimeOutException {
     ARTElement element = (ARTElement)pElement;
     
-    AbstractElementWithLocation wrappedElement = element.getAbstractElementOnArtNode();
+    AbstractElement wrappedElement = element.getAbstractElementOnArtNode();
     Collection<? extends AbstractElement> successors = transferRelation.getAbstractSuccessors(wrappedElement, pPrecision, pCfaEdge);
     if (successors.isEmpty()) {
       return Collections.emptySet();
@@ -35,7 +34,7 @@ public class ARTTransferRelation implements TransferRelation {
     
     Collection<ARTElement> wrappedSuccessors = new ArrayList<ARTElement>();
     for (AbstractElement absElement : successors) {
-      ARTElement successorElem = new ARTElement(element.getCpa(), (AbstractElementWithLocation)absElement, element);
+      ARTElement successorElem = new ARTElement(element.getCpa(), absElement, element);
       wrappedSuccessors.add(successorElem);
     }
     return wrappedSuccessors;

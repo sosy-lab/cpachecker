@@ -26,11 +26,12 @@ package cpa.symbpredabs.explicit;
 import java.util.Stack;
 
 import symbpredabstraction.interfaces.AbstractFormula;
-
 import cfa.objectmodel.CFANode;
 
-import cpa.common.interfaces.AbstractElementWithLocation;
 import common.Pair;
+
+import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.AbstractElementWithLocation;
 
 /**
  * AbstractElement for explicit-state lazy abstraction.
@@ -38,7 +39,7 @@ import common.Pair;
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
 public class ExplicitAbstractElement
-        implements AbstractElementWithLocation {
+        implements AbstractElementWithLocation, AbstractElement {
 
     private int elemId;
     private CFANode location;

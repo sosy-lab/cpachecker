@@ -1,7 +1,6 @@
 package cpa.transferrelationmonitor;
 
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
@@ -39,12 +38,4 @@ public class TransferRelationMonitorMerge implements MergeOperator{
     return mergedElement;
   }
 
-  @Override
-  public AbstractElementWithLocation merge(
-      AbstractElementWithLocation pElement1,
-      AbstractElementWithLocation pElement2, Precision pPrecision)
-      throws CPAException {
-    // TODO Auto-generated method stub
-    return null;
-  }
 }

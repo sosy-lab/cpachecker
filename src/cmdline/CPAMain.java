@@ -76,7 +76,6 @@ import cpa.common.algorithm.CEGARAlgorithm;
 import cpa.common.algorithm.CPAAlgorithm;
 import cpa.common.algorithm.InvariantCollectionAlgorithm;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.CPAWithStatistics;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;
@@ -514,7 +513,7 @@ public class CPAMain {
         algorithm = new CBMCAlgorithm(cfas, algorithm);
       }
       
-      AbstractElementWithLocation initialElement = cpa.getInitialElement(mainFunction);
+      AbstractElement initialElement = cpa.getInitialElement(mainFunction);
       Precision initialPrecision = cpa.getInitialPrecision(mainFunction);
       ReachedElements reached = null;
       try {
@@ -559,7 +558,7 @@ public class CPAMain {
       System.out.println(" number of stops " + CompositeStopOperator.noOfOperations);
       
       if (!cpaConfig.getBooleanValue("analysis.dontPrintReachableStates")) {
-        for (AbstractElementWithLocation e : reached) {
+        for (AbstractElement e : reached) {
           System.out.println(e);
         }
       }
@@ -609,7 +608,8 @@ public class CPAMain {
           }
         }
 
-        String label = (currentElement.getLocationNode()==null ? 0 : currentElement.getLocationNode().getNodeNumber()) + "000" + currentElement.getElementId();
+        CFANode loc = currentElement.retrieveLocationElement().getLocationNode();
+        String label = (loc==null ? 0 : loc.getNodeNumber()) + "000" + currentElement.getElementId();
         out.println("node [shape = diamond, color = " + color + ", style = filled, label=" + label +"] " + currentElement.getElementId() + ";");
         
         nodesList.add(currentElement.getElementId());
@@ -634,14 +634,15 @@ public class CPAMain {
     out.close();
   }
 
-  public static CFAEdge getEdgeBetween(ARTElement pCurrentElement,
+  public static CFAEdge getEdgeBetween(final ARTElement pCurrentElement,
       ARTElement pChild) {
+    CFANode currentLoc = pCurrentElement.retrieveLocationElement().getLocationNode();
     CFAEdge writeEdge = null;
-    CFANode childNode = pChild.getLocationNode();
+    CFANode childNode = pChild.retrieveLocationElement().getLocationNode();
     if(childNode != null){
       for(int i=0; i<childNode.getNumEnteringEdges(); i++){
         CFAEdge edge = childNode.getEnteringEdge(i);
-        if(pCurrentElement.getLocationNode().getNodeNumber() == edge.getPredecessor().getNodeNumber()){
+        if(currentLoc.getNodeNumber() == edge.getPredecessor().getNodeNumber()){
           writeEdge = edge;
         }
       }

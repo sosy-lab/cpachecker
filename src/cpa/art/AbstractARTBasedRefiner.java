@@ -92,16 +92,16 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
     // add the error node and its -first- outgoing edge
     // that edge is not important so we pick the first even
     // if there are more outgoing edges
-    CFAEdge lastEdge = pLastElement.getLocationNode().getLeavingEdge(0);
+    CFAEdge lastEdge = currentARTElement.retrieveLocationElement().getLocationNode().getLeavingEdge(0);
     path.addFirst(new Pair<ARTElement, CFAEdge>(currentARTElement, lastEdge));
     
     while(currentARTElement != null){
-      CFANode currentNode = currentARTElement.getLocationNode();
+      CFANode currentNode = currentARTElement.retrieveLocationElement().getLocationNode();
       ARTElement parentElement = currentARTElement.getFirstParent();
       
       CFANode parentNode = null;
       if(parentElement != null) {
-        parentNode = parentElement.getLocationNode();
+        parentNode = parentElement.retrieveLocationElement().getLocationNode();
       }
 
       boolean foundEdge = false;

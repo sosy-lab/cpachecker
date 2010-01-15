@@ -73,9 +73,8 @@ public class AssumptionCollectorCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  @SuppressWarnings("unchecked")  
-  public <AE extends AbstractElement> AE getInitialElement(CFAFunctionDefinitionNode pNode) {
-    return (AE) abstractDomain.getTopElement();
+  public AbstractElement getInitialElement(CFAFunctionDefinitionNode pNode) {
+    return abstractDomain.getTopElement();
   }
 
   @Override

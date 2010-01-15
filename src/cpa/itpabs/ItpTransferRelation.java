@@ -45,7 +45,6 @@ import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFANode;
 import cmdline.CPAMain;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
 import cpa.symbpredabs.AbstractReachabilityTree;
@@ -337,8 +336,8 @@ public class ItpTransferRelation implements TransferRelation {
     //     // TODO Auto-generated catch block
     //     CPAMain.logManager.logException(Level.WARNING, e1, "");
     // }
-    Collection<AbstractElementWithLocation> maybeToWaitlist =
-      new HashSet<AbstractElementWithLocation>();
+    Collection<AbstractElement> maybeToWaitlist =
+      new HashSet<AbstractElement>();
     Collection<ItpAbstractElement> falseAbst =
       new Vector<ItpAbstractElement>();
     // we strengthen each element in the spurious path with the
@@ -350,7 +349,7 @@ public class ItpTransferRelation implements TransferRelation {
         CPAMain.logManager.log(Level.ALL, "DEBUG_1",
             "REFINING1 ", e, ", new abstraction: ", newabs);
         e.setAbstraction(newabs);
-        for (AbstractElementWithLocation el : domain.getCPA().uncoverAll(e)) {
+        for (AbstractElement el : domain.getCPA().uncoverAll(e)) {
           maybeToWaitlist.add(el);
         }
       } else if (e.getAbstraction().isTrue() && !newabs.isTrue()) {
@@ -358,14 +357,14 @@ public class ItpTransferRelation implements TransferRelation {
             "REFINING2 ", e, ", new abstraction: ", newabs);
         e.setAbstraction(newabs);
         //maybeToWaitlist.add(e);
-        for (AbstractElementWithLocation el : domain.getCPA().uncoverAll(e)) {
+        for (AbstractElement el : domain.getCPA().uncoverAll(e)) {
           maybeToWaitlist.add(el);
         }
       } else if (!e.getAbstraction().isTrue() && !newabs.isTrue()) {
         if (!mgr.entails(e.getAbstraction(), newabs)) {
           e.setAbstraction(mgr.makeAnd(e.getAbstraction(), newabs));
           //maybeToWaitlist.add(e);
-          for (AbstractElementWithLocation el : domain.getCPA().uncoverAll(e)) {
+          for (AbstractElement el : domain.getCPA().uncoverAll(e)) {
             maybeToWaitlist.add(el);
           }
           CPAMain.logManager.log(Level.ALL, "DEBUG_1",
@@ -382,10 +381,10 @@ public class ItpTransferRelation implements TransferRelation {
       close(e);
     }
     assert(falseAbst.size() > 0);
-    Collection<AbstractElementWithLocation> toUnreach = new HashSet<AbstractElementWithLocation>();
+    Collection<AbstractElement> toUnreach = new HashSet<AbstractElement>();
     for (ItpAbstractElement ie : falseAbst) {
 //    maybeToWaitlist.addAll(cpa.removeDescendantsFromCovering(ie));
-      Collection<AbstractElementWithLocation> tmp = 
+      Collection<AbstractElement> tmp = 
         abstractTree.getSubtree(ie, true, false);
       for (AbstractElement el : tmp) {
         removeFromReached((ItpAbstractElement)el);
@@ -395,8 +394,8 @@ public class ItpTransferRelation implements TransferRelation {
     toProcess.removeAll(toUnreach);
     // we re-add to the waiting list all the element that have been
     // uncovered as a consequence of refinement
-    Collection<AbstractElementWithLocation> toWaitlist = new Vector<AbstractElementWithLocation>();
-    for (AbstractElementWithLocation e : maybeToWaitlist) {
+    Collection<AbstractElement> toWaitlist = new Vector<AbstractElement>();
+    for (AbstractElement e : maybeToWaitlist) {
       if (((ItpAbstractElement)e).getParent() != null && !toUnreach.contains(e)) {
 //      assert(!expanded.contains(e));
         toWaitlist.add(e);
@@ -453,7 +452,7 @@ public class ItpTransferRelation implements TransferRelation {
         "Getting Abstract Successor of element: ", element,
         " on edge: ", cfaEdge);
 
-    if (!abstractTree.contains((AbstractElementWithLocation)element)) {
+    if (!abstractTree.contains(element)) {
       ++numAbstractStates;
     }
 
@@ -468,7 +467,7 @@ public class ItpTransferRelation implements TransferRelation {
       CFAEdge edge = src.getLeavingEdge(i);
       if (edge.equals(cfaEdge)) {
         try {
-          AbstractElementWithLocation ret = buildSuccessor(e, edge);
+          AbstractElement ret = buildSuccessor(e, edge);
 
           CPAMain.logManager.log(Level.FINEST, 
               "Successor is: ", ret);
@@ -481,7 +480,7 @@ public class ItpTransferRelation implements TransferRelation {
           return ret;
         } catch (RefinementNeededException exc) {
           for (int j = i+1; j < src.getNumLeavingEdges(); ++j) {
-            AbstractElementWithLocation e2 =
+            AbstractElement e2 =
               buildSuccessor(e, src.getLeavingEdge(j));
             if (e2 != domain.getBottomElement()) {
               abstractTree.addChild(
@@ -515,17 +514,17 @@ public class ItpTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<AbstractElementWithLocation> getAbstractSuccessors(
+  public Collection<AbstractElement> getAbstractSuccessors(
       AbstractElement element, Precision prec, CFAEdge cfaEdge) throws CPATransferException {
     CPAMain.logManager.log(Level.FINEST, 
         "Getting ALL Abstract Successors of element: ",
         element);
 
-    List<AbstractElementWithLocation> allSucc = new Vector<AbstractElementWithLocation>();
+    List<AbstractElement> allSucc = new Vector<AbstractElement>();
     ItpAbstractElement e = (ItpAbstractElement)element;
     CFANode src = e.getLocation();
 
-    AbstractElementWithLocation r = abstractTree.getRoot();
+    AbstractElement r = abstractTree.getRoot();
     if (r == null || !(e != r && e.getParent() == null)) {            
       assert(abstractTree.getRoot() == null ||
           abstractTree.inTree(e));
@@ -537,7 +536,7 @@ public class ItpTransferRelation implements TransferRelation {
           AbstractElement newe =
             getAbstractSuccessor(e, src.getLeavingEdge(i), prec);
           if (newe != domain.getBottomElement()) {
-            allSucc.add((ItpAbstractElement)newe);
+            allSucc.add(newe);
           }
         }
       }
@@ -551,8 +550,8 @@ public class ItpTransferRelation implements TransferRelation {
       // this is really a HACK!!
       CPAMain.logManager.log(Level.ALL, "DEBUG_1",
           "RE-ADDING uncovered to waitlist: ", toProcess);
-      Vector<AbstractElementWithLocation> toWaitlist =
-        new Vector<AbstractElementWithLocation>();
+      Vector<AbstractElement> toWaitlist =
+        new Vector<AbstractElement>();
       Collection<AbstractElement> tmp = toProcess;
       toProcess = new HashSet<AbstractElement>();
       for (AbstractElement el : tmp) {

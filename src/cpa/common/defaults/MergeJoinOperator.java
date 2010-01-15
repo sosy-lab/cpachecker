@@ -24,7 +24,6 @@
 package cpa.common.defaults;
 
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.JoinOperator;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
@@ -52,15 +51,6 @@ public class MergeJoinOperator implements MergeOperator {
     throws CPAException
   {
     return joinOperator.join(el1, el2);
-  }
-
-  @Override
-  public AbstractElementWithLocation merge(
-      AbstractElementWithLocation el1,
-      AbstractElementWithLocation el2, Precision p)
-    throws CPAException
-  {
-    return (AbstractElementWithLocation) joinOperator.join(el1, el2);
   }
 
 }

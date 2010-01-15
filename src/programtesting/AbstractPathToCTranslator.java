@@ -35,7 +35,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Stack;
-import java.util.logging.Level;
+
+import org.eclipse.cdt.core.dom.ast.IASTExpression;
+import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
+import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
 
 import cfa.CFAMap;
 import cfa.objectmodel.CFAEdge;
@@ -48,13 +51,6 @@ import cfa.objectmodel.c.FunctionDefinitionNode;
 import cfa.objectmodel.c.MultiDeclarationEdge;
 import cfa.objectmodel.c.MultiStatementEdge;
 import cfa.objectmodel.c.StatementEdge;
-
-import org.eclipse.cdt.core.dom.ast.IASTExpression;
-import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
-import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
-
-import cmdline.CPAMain;
-
 import cpa.symbpredabs.explicit.ExplicitAbstractElement;
 
 /**

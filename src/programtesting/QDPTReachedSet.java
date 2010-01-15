@@ -39,17 +39,16 @@ import compositeCPA.CompositeElement;
 import cpa.common.automaton.Automaton;
 import cpa.common.automaton.AutomatonCPADomain;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.Precision;
 
 /**
  * @author Andreas Holzer <holzer@forsyte.de>
  *
  */
-public class QDPTReachedSet implements Collection<Pair<AbstractElementWithLocation,Precision>> {
+public class QDPTReachedSet implements Collection<Pair<AbstractElement,Precision>> {
 
-  class QDPTReachedSetIterator implements Iterator<Pair<AbstractElementWithLocation,Precision>> {
-    private Iterator<Pair<AbstractElementWithLocation,Precision>> lInnerIterator;
+  class QDPTReachedSetIterator implements Iterator<Pair<AbstractElement,Precision>> {
+    private Iterator<Pair<AbstractElement,Precision>> lInnerIterator;
 
     private int lMapIndex;
 
@@ -83,7 +82,7 @@ public class QDPTReachedSet implements Collection<Pair<AbstractElementWithLocati
     }
 
     @Override
-    public Pair<AbstractElementWithLocation,Precision> next() {
+    public Pair<AbstractElement,Precision> next() {
       init();
 
       if (hasNext()) {
@@ -102,7 +101,7 @@ public class QDPTReachedSet implements Collection<Pair<AbstractElementWithLocati
 
   }
 
-  private Map<Integer, Set<Pair<AbstractElementWithLocation,Precision>>> mMap;
+  private Map<Integer, Set<Pair<AbstractElement,Precision>>> mMap;
   private AutomatonCPADomain<CFAEdge> mAutomatonDomain;
   private final int mTestGoalCPAIndex;
   
@@ -111,7 +110,7 @@ public class QDPTReachedSet implements Collection<Pair<AbstractElementWithLocati
 
   public QDPTReachedSet(AutomatonCPADomain<CFAEdge> pAutomatonDomain, int pTestGoalCPAIndex) {
 
-    mMap = new HashMap<Integer, Set<Pair<AbstractElementWithLocation,Precision>>>();
+    mMap = new HashMap<Integer, Set<Pair<AbstractElement,Precision>>>();
     
     assert(pAutomatonDomain != null);
     mAutomatonDomain = pAutomatonDomain;
@@ -121,19 +120,19 @@ public class QDPTReachedSet implements Collection<Pair<AbstractElementWithLocati
     // top
     assert(pAutomatonDomain.getAutomaton().getFinalStates().size() < Integer.MAX_VALUE);
     TOP_INDEX = pAutomatonDomain.getAutomaton().getFinalStates().size() + 1;
-    mMap.put(TOP_INDEX, new HashSet<Pair<AbstractElementWithLocation,Precision>>());
+    mMap.put(TOP_INDEX, new HashSet<Pair<AbstractElement,Precision>>());
 
     for (int i = 0; i <= pAutomatonDomain.getAutomaton().getFinalStates().size(); i++) {
-      mMap.put(i, new HashSet<Pair<AbstractElementWithLocation,Precision>>());
+      mMap.put(i, new HashSet<Pair<AbstractElement,Precision>>());
     }
 
     // bottom
     BOTTOM_INDEX = -1;
-    mMap.put(BOTTOM_INDEX, new HashSet<Pair<AbstractElementWithLocation,Precision>>());
+    mMap.put(BOTTOM_INDEX, new HashSet<Pair<AbstractElement,Precision>>());
   }
 
   @Override
-  public boolean add(Pair<AbstractElementWithLocation,Precision> pE) {
+  public boolean add(Pair<AbstractElement,Precision> pE) {
     assert(pE != null);
     assert(pE.getFirst() != null);
     assert(pE.getFirst() instanceof CompositeElement);
@@ -143,7 +142,7 @@ public class QDPTReachedSet implements Collection<Pair<AbstractElementWithLocati
     AbstractElement lTmpElement = lCompositeElement.get(mTestGoalCPAIndex);
 
     if (mAutomatonDomain.getBottomElement().equals(lTmpElement)) {
-      Set<Pair<AbstractElementWithLocation,Precision>> lSet = mMap.get(TOP_INDEX);
+      Set<Pair<AbstractElement,Precision>> lSet = mMap.get(TOP_INDEX);
 
       assert(lSet != null);
 
@@ -151,7 +150,7 @@ public class QDPTReachedSet implements Collection<Pair<AbstractElementWithLocati
     }
 
     if (mAutomatonDomain.getBottomElement().equals(lTmpElement)) {
-      Set<Pair<AbstractElementWithLocation,Precision>> lSet = mMap.get(BOTTOM_INDEX);
+      Set<Pair<AbstractElement,Precision>> lSet = mMap.get(BOTTOM_INDEX);
 
       assert(lSet != null);
 
@@ -170,7 +169,7 @@ public class QDPTReachedSet implements Collection<Pair<AbstractElementWithLocati
       }
     }
 
-    Set<Pair<AbstractElementWithLocation,Precision>> lSet = mMap.get(lNumberOfFinalStates);
+    Set<Pair<AbstractElement,Precision>> lSet = mMap.get(lNumberOfFinalStates);
 
     assert(lSet != null);
 
@@ -178,12 +177,12 @@ public class QDPTReachedSet implements Collection<Pair<AbstractElementWithLocati
   }
 
   @Override
-  public boolean addAll(Collection<? extends Pair<AbstractElementWithLocation,Precision>> pC) {
+  public boolean addAll(Collection<? extends Pair<AbstractElement,Precision>> pC) {
     assert(pC != null);
 
     boolean lWasChanged = false;
 
-    for (Pair<AbstractElementWithLocation,Precision> lElement : pC) {
+    for (Pair<AbstractElement,Precision> lElement : pC) {
       if (add(lElement)) {
         lWasChanged = true;
       }
@@ -194,7 +193,7 @@ public class QDPTReachedSet implements Collection<Pair<AbstractElementWithLocati
 
   @Override
   public void clear() {
-    for (Map.Entry<Integer, Set<Pair<AbstractElementWithLocation,Precision>>> lEntry : mMap.entrySet()) {
+    for (Map.Entry<Integer, Set<Pair<AbstractElement,Precision>>> lEntry : mMap.entrySet()) {
       lEntry.getValue().clear();
     }
   }
@@ -204,7 +203,7 @@ public class QDPTReachedSet implements Collection<Pair<AbstractElementWithLocati
     assert(pO != null);
     assert(pO instanceof Pair<?,?>);
 
-    Pair<AbstractElementWithLocation,Precision> lPair = (Pair<AbstractElementWithLocation,Precision>)pO;
+    Pair<AbstractElement,Precision> lPair = (Pair<AbstractElement,Precision>)pO;
 
     assert(lPair.getFirst() instanceof CompositeElement);
 
@@ -213,7 +212,7 @@ public class QDPTReachedSet implements Collection<Pair<AbstractElementWithLocati
     AbstractElement lTmpElement = lCompositeElement.get(mTestGoalCPAIndex);
 
     if (mAutomatonDomain.getBottomElement().equals(lTmpElement)) {
-      Set<Pair<AbstractElementWithLocation,Precision>> lSet = mMap.get(TOP_INDEX);
+      Set<Pair<AbstractElement,Precision>> lSet = mMap.get(TOP_INDEX);
 
       assert(lSet != null);
 
@@ -221,7 +220,7 @@ public class QDPTReachedSet implements Collection<Pair<AbstractElementWithLocati
     }
 
     if (mAutomatonDomain.getBottomElement().equals(lTmpElement)) {
-      Set<Pair<AbstractElementWithLocation,Precision>> lSet = mMap.get(BOTTOM_INDEX);
+      Set<Pair<AbstractElement,Precision>> lSet = mMap.get(BOTTOM_INDEX);
 
       assert(lSet != null);
 
@@ -240,7 +239,7 @@ public class QDPTReachedSet implements Collection<Pair<AbstractElementWithLocati
       }
     }
 
-    Set<Pair<AbstractElementWithLocation,Precision>> lSet = mMap.get(lNumberOfFinalStates);
+    Set<Pair<AbstractElement,Precision>> lSet = mMap.get(lNumberOfFinalStates);
 
     assert(lSet != null);
 
@@ -262,7 +261,7 @@ public class QDPTReachedSet implements Collection<Pair<AbstractElementWithLocati
 
   @Override
   public boolean isEmpty() {
-    for (Map.Entry<Integer, Set<Pair<AbstractElementWithLocation,Precision>>> lEntry : mMap.entrySet()) {
+    for (Map.Entry<Integer, Set<Pair<AbstractElement,Precision>>> lEntry : mMap.entrySet()) {
       if (!lEntry.getValue().isEmpty()) {
         return false;
       }
@@ -272,7 +271,7 @@ public class QDPTReachedSet implements Collection<Pair<AbstractElementWithLocati
   }
 
   @Override
-  public Iterator<Pair<AbstractElementWithLocation,Precision>> iterator() {
+  public Iterator<Pair<AbstractElement,Precision>> iterator() {
     return new QDPTReachedSetIterator();
   }
 
@@ -287,7 +286,7 @@ public class QDPTReachedSet implements Collection<Pair<AbstractElementWithLocati
     AbstractElement lTmpElement = lCompositeElement.get(mTestGoalCPAIndex);
 
     if (mAutomatonDomain.getBottomElement().equals(lTmpElement)) {
-      Set<Pair<AbstractElementWithLocation,Precision>> lSet = mMap.get(TOP_INDEX);
+      Set<Pair<AbstractElement,Precision>> lSet = mMap.get(TOP_INDEX);
 
       assert(lSet != null);
 
@@ -295,7 +294,7 @@ public class QDPTReachedSet implements Collection<Pair<AbstractElementWithLocati
     }
 
     if (mAutomatonDomain.getBottomElement().equals(lTmpElement)) {
-      Set<Pair<AbstractElementWithLocation,Precision>> lSet = mMap.get(BOTTOM_INDEX);
+      Set<Pair<AbstractElement,Precision>> lSet = mMap.get(BOTTOM_INDEX);
 
       assert(lSet != null);
 
@@ -314,7 +313,7 @@ public class QDPTReachedSet implements Collection<Pair<AbstractElementWithLocati
       }
     }
 
-    Set<Pair<AbstractElementWithLocation,Precision>> lSet = mMap.get(lNumberOfFinalStates);
+    Set<Pair<AbstractElement,Precision>> lSet = mMap.get(lNumberOfFinalStates);
 
     assert(lSet != null);
 
@@ -342,7 +341,7 @@ public class QDPTReachedSet implements Collection<Pair<AbstractElementWithLocati
 
     boolean lWasChanged = false;
 
-    for (Pair<AbstractElementWithLocation,Precision> lElement : this) {
+    for (Pair<AbstractElement,Precision> lElement : this) {
       if (!pC.contains(lElement)) {
         if (remove(lElement)) {
           lWasChanged = true;
@@ -357,7 +356,7 @@ public class QDPTReachedSet implements Collection<Pair<AbstractElementWithLocati
   public int size() {
     int lSize = 0;
 
-    for (Map.Entry<Integer, Set<Pair<AbstractElementWithLocation,Precision>>> lEntry : mMap.entrySet()) {
+    for (Map.Entry<Integer, Set<Pair<AbstractElement,Precision>>> lEntry : mMap.entrySet()) {
       lSize += lEntry.getValue().size();
     }
 

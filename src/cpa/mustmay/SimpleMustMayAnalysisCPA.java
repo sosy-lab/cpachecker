@@ -25,9 +25,9 @@ public class SimpleMustMayAnalysisCPA implements ConfigurableProgramAnalysis {
   }
   
   @Override
-  public <AE extends AbstractElement> AE getInitialElement(
+  public AbstractElement getInitialElement(
       CFAFunctionDefinitionNode pNode) {
-    return (AE) mMustMayAnalysisCPA.getInitialElement(pNode);
+    return mMustMayAnalysisCPA.getInitialElement(pNode);
   }
 
   @Override

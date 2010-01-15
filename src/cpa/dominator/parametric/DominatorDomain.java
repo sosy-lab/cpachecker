@@ -33,7 +33,6 @@ import java.util.Set;
 import cfa.objectmodel.CFANode;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.JoinOperator;
 import cpa.common.interfaces.PartialOrder;
@@ -117,10 +116,10 @@ public class DominatorDomain implements AbstractDomain, PartialOrder, JoinOperat
         	DominatorElement dominatorElement2 = (DominatorElement)element2;
 
         	if (this.cpa.getAbstractDomain().getPartialOrder().satisfiesPartialOrder(dominatorElement1.getDominatedElement(), dominatorElement2.getDominatedElement())) {
-        		Iterator<AbstractElementWithLocation> dominatorIterator = dominatorElement2.getIterator();
+        		Iterator<AbstractElement> dominatorIterator = dominatorElement2.getIterator();
 
         		while (dominatorIterator.hasNext()) {
-        			AbstractElementWithLocation dominator = dominatorIterator.next();
+        		  AbstractElement dominator = dominatorIterator.next();
 
         			if (!dominatorElement1.isDominatedBy(dominator)) {
         				return false;
@@ -134,7 +133,7 @@ public class DominatorDomain implements AbstractDomain, PartialOrder, JoinOperat
         return false;
     }
 
-    public AbstractElementWithLocation join(AbstractElement element1, AbstractElement element2) {
+    public AbstractElement join(AbstractElement element1, AbstractElement element2) {
       if (!(element1 instanceof DominatorElement)) {
         throw new IllegalArgumentException(
             "element1 is not a DominatorElement!");
@@ -168,12 +167,12 @@ public class DominatorDomain implements AbstractDomain, PartialOrder, JoinOperat
 			return topElement;
 		}
 
-		Set<AbstractElementWithLocation> intersectingDominators = new HashSet<AbstractElementWithLocation>();
+		Set<AbstractElement> intersectingDominators = new HashSet<AbstractElement>();
 
-		Iterator<AbstractElementWithLocation> dominatorIterator = dominatorElement1.getIterator();
+		Iterator<AbstractElement> dominatorIterator = dominatorElement1.getIterator();
 
 		while (dominatorIterator.hasNext()) {
-			AbstractElementWithLocation dominator = dominatorIterator.next();
+		  AbstractElement dominator = dominatorIterator.next();
 
 			if (dominatorElement2.isDominatedBy(dominator)) {
 				intersectingDominators.add(dominator);

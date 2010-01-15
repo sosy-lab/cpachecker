@@ -47,8 +47,7 @@ public class ExplicitStopOperator implements StopOperator {
     domain = d;
   }
 
-  public <AE extends AbstractElement> boolean stop(AE element,
-                                                   Collection<AE> reached, Precision prec) throws CPAException {
+  public boolean stop(AbstractElement element, Collection<AbstractElement> reached, Precision prec) throws CPAException {
     if (domain.getBottomElement().equals(element)) {
       // stopping here is only correct if reached is not empty.
       // correct means there is an element in reached that

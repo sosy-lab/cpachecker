@@ -52,7 +52,6 @@ import cmdline.CPAMain;
 import common.Pair;
 
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
 import cpa.symbpredabs.AbstractReachabilityTree;
@@ -268,8 +267,8 @@ public class SummaryTransferRelation implements TransferRelation {
 
     UpdateablePredicateMap curpmap =
       (UpdateablePredicateMap)domain.getCPA().getPredicateMap();
-    AbstractElementWithLocation root = null;
-    AbstractElementWithLocation firstInterpolant = null;
+    AbstractElement root = null;
+    AbstractElement firstInterpolant = null;
     for (SummaryAbstractElement e : path) {
       Collection<Predicate> newpreds = info.getPredicatesForRefinement(e);
       if (firstInterpolant == null && newpreds.size() > 0) {
@@ -311,13 +310,13 @@ public class SummaryTransferRelation implements TransferRelation {
 
     assert(root != null);
     //root = path.getFirst();
-    Collection<AbstractElementWithLocation> toWaitlist = new HashSet<AbstractElementWithLocation>();
+    Collection<AbstractElement> toWaitlist = new HashSet<AbstractElement>();
     toWaitlist.add(root);
-    Collection<AbstractElementWithLocation> toUnreach =
+    Collection<AbstractElement> toUnreach =
       abstractTree.getSubtree(root, true, false);
 
     SummaryCPA cpa = domain.getCPA();
-    for (AbstractElementWithLocation ae : toUnreach) {
+    for (AbstractElement ae : toUnreach) {
       SummaryAbstractElement e = (SummaryAbstractElement)ae;
       if (e.isCovered()) {
         e.setCovered(false);
@@ -364,7 +363,7 @@ public class SummaryTransferRelation implements TransferRelation {
     for (int i = 0; i < src.getNumLeavingEdges(); ++i) {
       CFAEdge edge = src.getLeavingEdge(i);
       if (edge.equals(cfaEdge)) {
-        AbstractElementWithLocation ret = buildSuccessor(e, edge);
+        AbstractElement ret = buildSuccessor(e, edge);
 
         CPAMain.logManager.log(Level.FINEST,
             "Successor is: ", ret);

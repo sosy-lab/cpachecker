@@ -35,10 +35,8 @@ import common.Pair;
 
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
-import exceptions.CPAException;
 
 /**
  * Merge operator for symbolic predicate abstraction.
@@ -135,12 +133,4 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
     return merged;
   }
 
-  @Override
-  public AbstractElementWithLocation merge(
-                                           AbstractElementWithLocation pElement1,
-                                           AbstractElementWithLocation pElement2,
-                                           Precision pPrecision)
-  throws CPAException {
-    throw new CPAException ("Cannot return element with location information");
-  }
 }

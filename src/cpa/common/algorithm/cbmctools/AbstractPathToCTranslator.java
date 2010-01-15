@@ -183,7 +183,7 @@ public class AbstractPathToCTranslator {
     ARTElement firstElementsChild = (ARTElement)firstElement.getChildren().toArray()[0];
     // create the first stack element using the first element of the initiating function
     CBMCStackElement firstStackElement = new CBMCStackElement(firstElement.getElementId(), 
-        startFunction(mFunctionIndex++, firstElement.getLocationNode()));
+        startFunction(mFunctionIndex++, firstElement.retrieveLocationElement().getLocationNode()));
     functions.add(firstStackElement);
     
     Stack<Stack<CBMCStackElement>> newStack = new Stack<Stack<CBMCStackElement>>();
@@ -230,7 +230,7 @@ public class AbstractPathToCTranslator {
           // create a new function
           ARTElement firstFunctionElement = nextCBMCEdge.getChildElement();
           CBMCStackElement firstFunctionStackElement = new CBMCStackElement(firstFunctionElement.getElementId(), 
-              startFunction(mFunctionIndex++, firstFunctionElement.getLocationNode()));
+              startFunction(mFunctionIndex++, firstFunctionElement.retrieveLocationElement().getLocationNode()));
           functions.add(firstFunctionStackElement);
           newFunctionStack.push(firstFunctionStackElement);
           stack.push(newFunctionStack);

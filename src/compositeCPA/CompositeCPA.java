@@ -37,7 +37,6 @@ import cpa.common.CallElement;
 import cpa.common.CallStack;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.CPAWithStatistics;
 import cpa.common.interfaces.CPAWrapper;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
@@ -57,7 +56,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, CPAWithStatist
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
   private final PrecisionAdjustment precisionAdjustment;
-  private final AbstractElementWithLocation initialElement;
+  private final AbstractElement initialElement;
   private final Precision initialPrecision;
 
   private final List<ConfigurableProgramAnalysis> cpas;
@@ -67,7 +66,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, CPAWithStatist
       MergeOperator mergeOperator,
       StopOperator stopOperator,
       PrecisionAdjustment precisionAdjustment,
-      AbstractElementWithLocation initialElement,
+      AbstractElement initialElement,
       Precision initialPrecision,
       List<ConfigurableProgramAnalysis> cpas)
   {

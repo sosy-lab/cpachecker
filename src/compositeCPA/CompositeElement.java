@@ -25,13 +25,12 @@ package compositeCPA;
 
 import java.util.List;
 
-import cfa.objectmodel.CFANode;
 import cpa.common.CallStack;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.AbstractWrapperElement;
 
-public class CompositeElement implements AbstractElementWithLocation, AbstractWrapperElement {
+public class CompositeElement implements AbstractWrapperElement {
   private final List<AbstractElement> elements;
   private CallStack callStack;
 
@@ -109,15 +108,6 @@ public class CompositeElement implements AbstractElementWithLocation, AbstractWr
     this.callStack = callStack;
   }
 
-  public CFANode getLocationNode() {
-    return getElementWithLocation().getLocationNode();
-  }
-
-  public AbstractElementWithLocation getElementWithLocation() {
-    assert (elements.get(0) instanceof AbstractElementWithLocation);
-    return (AbstractElementWithLocation)elements.get(0);
-  }
-
   @Override
   public <T extends AbstractElement> T retrieveWrappedElement(Class<T> pType) {
     if (pType.isAssignableFrom(getClass())) {
@@ -134,6 +124,11 @@ public class CompositeElement implements AbstractElementWithLocation, AbstractWr
       }  
     }
     return null;
+  }
+  
+  @Override
+  public AbstractElementWithLocation retrieveLocationElement() {
+    return retrieveWrappedElement(AbstractElementWithLocation.class);
   }
   
   @Override

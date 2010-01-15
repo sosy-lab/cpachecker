@@ -9,17 +9,16 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import cfa.objectmodel.CFANode;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.AbstractWrapperElement;
 
-public class ARTElement implements AbstractElementWithLocation, AbstractWrapperElement, Comparable<ARTElement>{
+public class ARTElement implements AbstractWrapperElement, Comparable<ARTElement>{
 
   public static long artElementEqualsTime = 0; 
 
   private final ARTCPA mCpa;
-  private final AbstractElementWithLocation element;
+  private final AbstractElement element;
   private final Set<ARTElement> children;
   private final Set<ARTElement> parents; // more than one parent if joining elements
   private ARTElement mCoveredBy = null;
@@ -30,7 +29,7 @@ public class ARTElement implements AbstractElementWithLocation, AbstractWrapperE
 
   private static int nextArtElementId = 0;
 
-  protected ARTElement(ARTCPA pCpa, AbstractElementWithLocation pAbstractElement, ARTElement pParentElement) {
+  protected ARTElement(ARTCPA pCpa, AbstractElement pAbstractElement, ARTElement pParentElement) {
     mCpa = pCpa;
     element = pAbstractElement;
     parents = new HashSet<ARTElement>();
@@ -58,7 +57,7 @@ public class ARTElement implements AbstractElementWithLocation, AbstractWrapperE
     return children;
   }
 
-  public AbstractElementWithLocation getAbstractElementOnArtNode(){
+  public AbstractElement getAbstractElementOnArtNode(){
     assert !destroyed;
     return element;
   }
@@ -127,13 +126,7 @@ public class ARTElement implements AbstractElementWithLocation, AbstractWrapperE
   }
 
   @Override
-  public CFANode getLocationNode() {
-    return element.getLocationNode();
-  }
-
-  @Override
   public <T extends AbstractElement> T retrieveWrappedElement(Class<T> pType) {
-    assert !destroyed;
     if (pType.isAssignableFrom(getClass())) {
       return pType.cast(this);
     } else if (pType.isAssignableFrom(element.getClass())) {
@@ -146,9 +139,14 @@ public class ARTElement implements AbstractElementWithLocation, AbstractWrapperE
   }
   
   @Override
+  public AbstractElementWithLocation retrieveLocationElement() {
+    return retrieveWrappedElement(AbstractElementWithLocation.class);
+  }
+  
+  @Override
   public Iterable<AbstractElement> getWrappedElements() {
     assert !destroyed;
-    return Collections.singletonList((AbstractElement) element);
+    return Collections.singletonList(element);
   }
 
   // TODO check

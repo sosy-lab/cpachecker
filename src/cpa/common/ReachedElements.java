@@ -20,33 +20,34 @@ import common.Pair;
 
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
+import cpa.common.interfaces.AbstractWrapperElement;
 import cpa.common.interfaces.Precision;
 
-public class ReachedElements implements Iterable<AbstractElementWithLocation> {
+public class ReachedElements implements Iterable<AbstractElement> {
   
-  private final Map<AbstractElementWithLocation, Precision> reached;
-  private final Set<AbstractElementWithLocation> unmodifiableReached;
-  private final Collection<Pair<AbstractElementWithLocation, Precision>> reachedWithPrecision;
-  private final SetMultimap<CFANode, AbstractElementWithLocation> locationMappedReached;
-  private AbstractElementWithLocation lastElement = null;
-  private AbstractElementWithLocation firstElement = null;
-  private final LinkedList<AbstractElementWithLocation> waitlist;
+  private final Map<AbstractElement, Precision> reached;
+  private final Set<AbstractElement> unmodifiableReached;
+  private final Collection<Pair<AbstractElement, Precision>> reachedWithPrecision;
+  private final SetMultimap<CFANode, AbstractElement> locationMappedReached;
+  private AbstractElement lastElement = null;
+  private AbstractElement firstElement = null;
+  private final LinkedList<AbstractElement> waitlist;
   private final TraversalMethod traversal;
   
-  private Function<AbstractElementWithLocation, Pair<AbstractElementWithLocation, Precision>> getPrecisionAsPair = 
-    new Function<AbstractElementWithLocation, Pair<AbstractElementWithLocation, Precision>>() {
+  private Function<AbstractElement, Pair<AbstractElement, Precision>> getPrecisionAsPair = 
+    new Function<AbstractElement, Pair<AbstractElement, Precision>>() {
 
       @Override
-      public Pair<AbstractElementWithLocation, Precision> apply(
-                  AbstractElementWithLocation element) {
+      public Pair<AbstractElement, Precision> apply(
+                  AbstractElement element) {
 
-        return new Pair<AbstractElementWithLocation, Precision>(element, getPrecision(element));
+        return new Pair<AbstractElement, Precision>(element, getPrecision(element));
       }
     
   };
  
   public ReachedElements(String traversal) {
-    reached = new HashMap<AbstractElementWithLocation, Precision>();
+    reached = new HashMap<AbstractElement, Precision>();
     unmodifiableReached = Collections.unmodifiableSet(reached.keySet());
     reachedWithPrecision = Collections2.transform(unmodifiableReached, getPrecisionAsPair);
     if (CPAMain.cpaConfig.getBooleanValue("cpa.useSpecializedReachedSet")) {
@@ -55,7 +56,7 @@ public class ReachedElements implements Iterable<AbstractElementWithLocation> {
       locationMappedReached = null;
     }
     
-    waitlist = new LinkedList<AbstractElementWithLocation>();
+    waitlist = new LinkedList<AbstractElement>();
     //set traversal method given in config file; 
     //throws IllegalArgumentException if anything other than dfs, bfs, or topsort is passed
     this.traversal = TraversalMethod.valueOf(traversal.toUpperCase());
@@ -66,27 +67,44 @@ public class ReachedElements implements Iterable<AbstractElementWithLocation> {
     DFS, BFS, TOPSORT
   }
 
-  public void add(AbstractElementWithLocation element, Precision precision) {
+  private CFANode getLocationFromElement(AbstractElement element) {
+    if (element instanceof AbstractWrapperElement) {
+      AbstractElementWithLocation locationElement =
+        ((AbstractWrapperElement)element).retrieveLocationElement();
+      assert locationElement != null;
+      return locationElement.getLocationNode();
+
+    } else if (element instanceof AbstractElementWithLocation) {
+      return ((AbstractElementWithLocation)element).getLocationNode();
+    
+    } else {
+      return null;
+    }
+  }
+  
+  public void add(AbstractElement element, Precision precision) {
     if (reached.size() == 0) {
       firstElement = element;
     }
     
     reached.put(element, precision);
     if (locationMappedReached != null) {
-      locationMappedReached.put(element.getLocationNode(), element);
+      CFANode location = getLocationFromElement(element);
+      assert location != null : "Location information necessary for SpecializedReachedSet";
+      locationMappedReached.put(location, element);
     }
     waitlist.add(element);
     lastElement = element;
   }
 
 
-  public void addAll(Collection<Pair<AbstractElementWithLocation, Precision>> toAdd) {
-    for (Pair<AbstractElementWithLocation, Precision> pair : toAdd) {
+  public void addAll(Collection<Pair<AbstractElement, Precision>> toAdd) {
+    for (Pair<AbstractElement, Precision> pair : toAdd) {
       add(pair.getFirst(), pair.getSecond());
     }
   }
   
-  private void remove(AbstractElementWithLocation element) {
+  private void remove(AbstractElement element) {
     int hc = element.hashCode();
     if ((firstElement == null) || hc == firstElement.hashCode() && element.equals(firstElement)) {
       firstElement = null;
@@ -98,12 +116,15 @@ public class ReachedElements implements Iterable<AbstractElementWithLocation> {
     waitlist.remove(element);
     reached.remove(element);
     if (locationMappedReached != null) {
-      locationMappedReached.remove(element.getLocationNode(), element);
+      CFANode location = getLocationFromElement(element);
+      if (location != null) {
+        locationMappedReached.remove(location, element);
+      }
     }
   }
   
-  public void removeAll(Collection<? extends AbstractElementWithLocation> toRemove) {
-    for (AbstractElementWithLocation element : toRemove) {
+  public void removeAll(Collection<? extends AbstractElement> toRemove) {
+    for (AbstractElement element : toRemove) {
       remove(element);
     }
     assert firstElement != null || reached.isEmpty() : "firstElement may only be removed if the whole reached set is cleared";
@@ -119,23 +140,23 @@ public class ReachedElements implements Iterable<AbstractElementWithLocation> {
     }
   }
   
-  public Set<AbstractElementWithLocation> getReached() {
+  public Set<AbstractElement> getReached() {
     return unmodifiableReached;
   }
   
   @Override
-  public Iterator<AbstractElementWithLocation> iterator() {
+  public Iterator<AbstractElement> iterator() {
     return unmodifiableReached.iterator();
   }
   
-  public Collection<Pair<AbstractElementWithLocation, Precision>> getReachedWithPrecision() {
+  public Collection<Pair<AbstractElement, Precision>> getReachedWithPrecision() {
     return reachedWithPrecision; // this is unmodifiable
   }
-
+ 
   /**
    * Returns a subset of the reached set, which contains at least all abstract
-   * elements belonging to a given CFANode. It may even return an empty set if
-   * there are no states belonging to the CFANode. Note that it may return up to
+   * elements belonging to the same location as a given element. It may even
+   * return an empty set if there are no such states. Note that it may return up to
    * all abstract states. 
    * 
    * The returned set is a view of the actual data, so it might change if nodes
@@ -144,22 +165,24 @@ public class ReachedElements implements Iterable<AbstractElementWithLocation> {
    * 
    * The returned set is unmodifiable.
    * 
-   * @param loc A CFANode for which the abstract states should be retrieved.
+   * @param element An abstract element for whose location the abstract states should be retrieved.
    * @return A subset of the reached set.
    */
-  public Set<AbstractElementWithLocation> getReached(CFANode loc) {
+  public Set<AbstractElement> getReached(AbstractElement element) {
     if (locationMappedReached != null) {
-      return Collections.unmodifiableSet(locationMappedReached.get(loc));
-    } else {
-      return unmodifiableReached;
+      CFANode loc = getLocationFromElement(element);
+      if (loc != null) {
+        return Collections.unmodifiableSet(locationMappedReached.get(loc));
+      }
     }
+    return unmodifiableReached;
   }
   
-  public AbstractElementWithLocation getFirstElement() {
+  public AbstractElement getFirstElement() {
     return firstElement;
   }
 
-  public AbstractElementWithLocation getLastElement() {
+  public AbstractElement getLastElement() {
     return lastElement;
   }
   
@@ -171,12 +194,12 @@ public class ReachedElements implements Iterable<AbstractElementWithLocation> {
     return !waitlist.isEmpty();
   }
   
-  public List<AbstractElementWithLocation> getWaitlist() {
+  public List<AbstractElement> getWaitlist() {
     return Collections.unmodifiableList(waitlist);
   }
   
-  public Pair<AbstractElementWithLocation, Precision> popFromWaitlist() {
-    AbstractElementWithLocation result = null;
+  public Pair<AbstractElement, Precision> popFromWaitlist() {
+    AbstractElement result = null;
 
     switch(traversal) {
     case BFS:
@@ -189,11 +212,13 @@ public class ReachedElements implements Iterable<AbstractElementWithLocation> {
 
     case TOPSORT:
     default:
-      for (AbstractElementWithLocation currentElement : waitlist) {
+      int resultTopSortId = Integer.MIN_VALUE;
+      for (AbstractElement currentElement : waitlist) {
         if ((result == null) 
-            || (currentElement.getLocationNode().getTopologicalSortId() >
-                      result.getLocationNode().getTopologicalSortId())) {
+            || (getLocationFromElement(currentElement).getTopologicalSortId() >
+                resultTopSortId)) {
           result = currentElement;
+          resultTopSortId = getLocationFromElement(result).getTopologicalSortId();
         }
       }
       waitlist.remove(result);

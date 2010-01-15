@@ -79,9 +79,8 @@ public class DumpInvariantCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  @SuppressWarnings("unchecked")
-  public <AE extends AbstractElement> AE getInitialElement(CFAFunctionDefinitionNode node) {
-    return (AE) abstractDomain.getTopElement();
+  public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
+    return abstractDomain.getTopElement();
   }
 
   @Override

@@ -19,8 +19,8 @@ public class TransferRelationMonitorStop implements StopOperator {
   }
   
   @Override
-  public <AE extends AbstractElement> boolean stop(AE pElement,
-      Collection<AE> pReached, Precision pPrecision) throws CPAException {
+  public boolean stop(AbstractElement pElement,
+      Collection<AbstractElement> pReached, Precision pPrecision) throws CPAException {
 
     TransferRelationMonitorElement transferRelationMonitorElement = (TransferRelationMonitorElement)pElement;
     AbstractElement wrappedElement = transferRelationMonitorElement.getWrappedElements().iterator().next();

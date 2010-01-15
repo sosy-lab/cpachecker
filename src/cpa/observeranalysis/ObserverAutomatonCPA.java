@@ -103,7 +103,6 @@ public class ObserverAutomatonCPA implements ConfigurableProgramAnalysis {
     return observerDomain;
   }
 
-  @SuppressWarnings("unchecked")
   @Override
   public AbstractElement getInitialElement(CFAFunctionDefinitionNode pNode) {
     return automaton.getInitialState();

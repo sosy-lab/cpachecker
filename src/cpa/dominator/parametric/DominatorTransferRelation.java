@@ -33,7 +33,6 @@ import java.util.List;
 
 import cfa.objectmodel.CFAEdge;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
@@ -76,7 +75,7 @@ public class DominatorTransferRelation implements TransferRelation {
 		AbstractElement successorOfDominatedElement_tmp = successorsOfDominatedElement_tmp.toArray(new AbstractElement[1])[0]; 
 		
 		// TODO: make this nicer
-		AbstractElementWithLocation successorOfDominatedElement = (AbstractElementWithLocation)successorOfDominatedElement_tmp;
+		AbstractElement successorOfDominatedElement = successorOfDominatedElement_tmp;
 
 		if (successorOfDominatedElement.equals(this.cpa.getAbstractDomain().getBottomElement())) {
 			return this.domain.getBottomElement();
@@ -121,9 +120,9 @@ public class DominatorTransferRelation implements TransferRelation {
 					continue;
 				}
 
-				DominatorElement successor = new DominatorElement((AbstractElementWithLocation)successorOfDominatedElement, dominatorElement);
+				DominatorElement successor = new DominatorElement(successorOfDominatedElement, dominatorElement);
 
-				successor.update((AbstractElementWithLocation)successorOfDominatedElement);
+				successor.update(successorOfDominatedElement);
 
 				successors.add(successor);
 			}

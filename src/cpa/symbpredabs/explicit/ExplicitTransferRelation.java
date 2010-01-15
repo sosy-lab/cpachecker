@@ -46,7 +46,6 @@ import cfa.objectmodel.c.FunctionDefinitionNode;
 import cfa.objectmodel.c.ReturnEdge;
 import cmdline.CPAMain;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
 import cpa.symbpredabs.AbstractReachabilityTree;
@@ -347,7 +346,7 @@ public class ExplicitTransferRelation implements TransferRelation {
 //  }
     assert(root != null);
     //root = path.getFirst();
-    Collection<AbstractElementWithLocation> toWaitlist = new HashSet<AbstractElementWithLocation>();
+    Collection<AbstractElement> toWaitlist = new HashSet<AbstractElement>();
 //  Collection<AbstractElementWithLocation> toUnreach = null;
 //  for (AbstractElementWithLocation e : roots) {
 //  toWaitlist.add(e);
@@ -357,12 +356,12 @@ public class ExplicitTransferRelation implements TransferRelation {
 //  else toUnreach.addAll(t);
 //  }
     toWaitlist.add(root);
-    Collection<AbstractElementWithLocation> toUnreach =
+    Collection<AbstractElement> toUnreach =
       abstractTree.getSubtree(root, true, false);
     if (cur != null) {
       // we don't want to unreach elements that were covered before
       // reaching the error!
-      for (Iterator<AbstractElementWithLocation> it = toUnreach.iterator();
+      for (Iterator<AbstractElement> it = toUnreach.iterator();
       it.hasNext(); ) {
         ExplicitAbstractElement e = (ExplicitAbstractElement)it.next();
         if (e.isCovered() && e.getMark() < cur.getMark()) {
@@ -374,7 +373,7 @@ public class ExplicitTransferRelation implements TransferRelation {
     }
 
     ExplicitCPA cpa = domain.getCPA();
-    for (AbstractElementWithLocation ae : toUnreach) {
+    for (AbstractElement ae : toUnreach) {
       ExplicitAbstractElement e = (ExplicitAbstractElement)ae;
       if (e.isCovered()) {
         e.setCovered(false);
@@ -432,7 +431,7 @@ public class ExplicitTransferRelation implements TransferRelation {
         "Getting Abstract Successor of element: ", element,
         " on edge: ", cfaEdge.getRawStatement());
 
-    if (!abstractTree.contains((AbstractElementWithLocation)element)) {
+    if (!abstractTree.contains(element)) {
       ++numAbstractStates;
     }
 
@@ -452,7 +451,7 @@ public class ExplicitTransferRelation implements TransferRelation {
     for (int i = 0; i < src.getNumLeavingEdges(); ++i) {
       CFAEdge edge = src.getLeavingEdge(i);
       if (edge.equals(cfaEdge)) {
-        AbstractElementWithLocation ret = (ExplicitAbstractElement)buildSuccessor(e, edge);
+        AbstractElement ret = buildSuccessor(e, edge);
 
         CPAMain.logManager.log(Level.FINEST,
             "Successor is: ", ret);

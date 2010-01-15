@@ -46,8 +46,7 @@ public class SummaryStopOperator implements StopOperator {
     domain = d;
   }
 
-  public <AE extends AbstractElement> boolean stop(AE element,
-                                                   Collection<AE> reached, Precision prec) throws CPAException {
+  public boolean stop(AbstractElement element, Collection<AbstractElement> reached, Precision prec) throws CPAException {
     for (AbstractElement e : reached) {
       if (stop(element, e)) {
         return true;

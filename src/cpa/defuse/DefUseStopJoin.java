@@ -32,7 +32,7 @@ import exceptions.CPAException;
 
 public class DefUseStopJoin implements StopOperator
 {
-  public <AE extends AbstractElement> boolean stop (AE element, Collection<AE> reached, Precision prec) throws CPAException
+  public boolean stop (AbstractElement element, Collection<AbstractElement> reached, Precision prec) throws CPAException
   {
     // TODO Erkan implement
     return false;

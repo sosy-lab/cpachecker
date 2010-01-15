@@ -3,6 +3,7 @@ package cpa.transferrelationmonitor;
 import java.util.Collections;
 
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.AbstractWrapperElement;
 
 public class TransferRelationMonitorElement implements AbstractElement, AbstractWrapperElement{
@@ -44,6 +45,11 @@ public class TransferRelationMonitorElement implements AbstractElement, Abstract
     } else {
       return null;
     }
+  }
+  
+  @Override
+  public AbstractElementWithLocation retrieveLocationElement() {
+    return retrieveWrappedElement(AbstractElementWithLocation.class);
   }
   
   public TransferRelationMonitorCPA getCpa() {

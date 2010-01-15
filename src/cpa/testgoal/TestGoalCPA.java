@@ -183,8 +183,7 @@ public class TestGoalCPA implements ConfigurableProgramAnalysis {
   public class TestGoalStopOperator implements StopOperator {
 
     @Override
-    public <AE extends AbstractElement> boolean stop(AE pElement,
-                                                     Collection<AE> pReached, Precision prec)
+    public boolean stop(AbstractElement pElement, Collection<AbstractElement> pReached, Precision prec)
     throws CPAException {
       assert(pElement != null);
       assert(pReached != null);

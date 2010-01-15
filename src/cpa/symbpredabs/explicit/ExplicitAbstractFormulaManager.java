@@ -35,7 +35,7 @@ import symbpredabstraction.interfaces.SymbolicFormula;
 import symbpredabstraction.interfaces.SymbolicFormulaManager;
 import symbpredabstraction.trace.CounterexampleTraceInfo;
 import cfa.objectmodel.CFAEdge;
-import cpa.common.interfaces.AbstractElementWithLocation;
+import cpa.common.interfaces.AbstractElement;
 import exceptions.UnrecognizedCFAEdgeException;
 
 /**
@@ -76,7 +76,7 @@ public interface ExplicitAbstractFormulaManager extends FormulaManager {
     }
 
     public ConcretePath buildConcretePath(SymbolicFormulaManager mgr,
-            AbstractElementWithLocation[] path)
+                AbstractElement[] path)
                 throws UnrecognizedCFAEdgeException;
 
     public Vector<SymbolicFormula> getUsefulBlocks(SymbolicFormulaManager mgr,

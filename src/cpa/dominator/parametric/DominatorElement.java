@@ -26,25 +26,24 @@
  */
 package cpa.dominator.parametric;
 
-import cpa.common.interfaces.AbstractElementWithLocation;
-import cpa.dominator.parametric.DominatorElement;
-
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
-import java.util.HashSet;
 
 import cfa.objectmodel.CFANode;
+import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.AbstractElementWithLocation;
 
 /**
  * @author holzera
  *
  */
-public class DominatorElement implements AbstractElementWithLocation {
+public class DominatorElement implements AbstractElementWithLocation, AbstractElement {
 
-	private AbstractElementWithLocation dominatedElement;
-	private Set<AbstractElementWithLocation> dominators = new HashSet<AbstractElementWithLocation>();
+	private AbstractElement dominatedElement;
+	private Set<AbstractElement> dominators = new HashSet<AbstractElement>();
 
-	public DominatorElement(AbstractElementWithLocation dominatedElement) {
+	public DominatorElement(AbstractElement dominatedElement) {
 		if (dominatedElement == null) {
 			throw new IllegalArgumentException("dominatedElement is null!");
 		}
@@ -52,7 +51,7 @@ public class DominatorElement implements AbstractElementWithLocation {
 		this.dominatedElement = dominatedElement;
 	}
 
-	public DominatorElement(AbstractElementWithLocation dominatedElement, Set<AbstractElementWithLocation> dominators) {
+	public DominatorElement(AbstractElement dominatedElement, Set<AbstractElement> dominators) {
 		this(dominatedElement);
 
 		if (dominators == null) {
@@ -70,7 +69,7 @@ public class DominatorElement implements AbstractElementWithLocation {
 		this(other.dominatedElement, other.dominators);
 	}
 
-	public DominatorElement(AbstractElementWithLocation dominatedElement, DominatorElement other) {
+	public DominatorElement(AbstractElement dominatedElement, DominatorElement other) {
 		this(dominatedElement, other.dominators);
 	}
 
@@ -80,7 +79,7 @@ public class DominatorElement implements AbstractElementWithLocation {
         return new DominatorElement(this);
     }
 
-	public void update(AbstractElementWithLocation dominator) {
+	public void update(AbstractElement dominator) {
 		if (dominator == null) {
 			throw new IllegalArgumentException("dominator is null!");
 		}
@@ -88,16 +87,16 @@ public class DominatorElement implements AbstractElementWithLocation {
 		dominators.add(dominator);
 	}
 
-	public AbstractElementWithLocation getDominatedElement() {
+	public AbstractElement getDominatedElement() {
 		return this.dominatedElement;
 	}
 
-	public Iterator<AbstractElementWithLocation> getIterator ()
+	public Iterator<AbstractElement> getIterator ()
     {
         return this.dominators.iterator();
     }
 
-	public boolean isDominatedBy(AbstractElementWithLocation dominator) {
+	public boolean isDominatedBy(AbstractElement dominator) {
 		return this.dominators.contains(dominator);
 	}
 
@@ -122,7 +121,7 @@ public class DominatorElement implements AbstractElementWithLocation {
 			return false;
 		}
 
-		for (AbstractElementWithLocation dominator : dominators) {
+		for (AbstractElement dominator : dominators) {
 			if (!other_element.isDominatedBy(dominator)) {
 				return false;
 			}
@@ -137,7 +136,7 @@ public class DominatorElement implements AbstractElementWithLocation {
         builder.append ("( " + this.dominatedElement.toString() + ", {");
 
         boolean first = true;
-        for (AbstractElementWithLocation dominator : this.dominators) {
+        for (AbstractElement dominator : this.dominators) {
         	if (first)  {
         		first = false;
         	}
@@ -154,7 +153,7 @@ public class DominatorElement implements AbstractElementWithLocation {
 	}
 
 	public CFANode getLocationNode() {
-		return this.dominatedElement.getLocationNode();
+		return ((AbstractElementWithLocation)dominatedElement).getLocationNode();
 	}
 
 	@Override

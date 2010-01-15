@@ -29,7 +29,6 @@ import java.util.List;
 
 import cpa.common.CallStack;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
 import exceptions.CPAException;
@@ -45,15 +44,10 @@ public class CompositeMergeOperator implements MergeOperator{
     this.mergeOperators = mergeOperators;
   }
 
-  // TODO fix this part
-  public AbstractElement merge (AbstractElement element1, AbstractElement element2, Precision precision) throws CPAException
-  {
-    return merge((AbstractElementWithLocation)element1, (AbstractElementWithLocation)element2, precision);
-  }
-
-  public AbstractElementWithLocation merge(AbstractElementWithLocation element1,
-                                           AbstractElementWithLocation element2,
-                                           Precision precision) throws CPAException {
+  @Override
+  public AbstractElement merge(AbstractElement element1,
+                               AbstractElement element2,
+                               Precision precision) throws CPAException {
 
     // TODO check
     if (element1 == compositeDomain.getBottomElement()) {
@@ -67,7 +61,7 @@ public class CompositeMergeOperator implements MergeOperator{
 
     assert(comp1.getNumberofElements() == comp2.getNumberofElements());
 
-    if (!comp1.getElementWithLocation().equals (comp2.getElementWithLocation()))
+    if (!comp1.retrieveLocationElement().equals (comp2.retrieveLocationElement()))
     {
       return element2;
     }

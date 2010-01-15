@@ -56,11 +56,13 @@ import symbpredabstraction.trace.CounterexampleTraceInfo;
 import cfa.objectmodel.BlankEdge;
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAErrorNode;
+import cfa.objectmodel.CFANode;
 import cfa.objectmodel.c.FunctionDefinitionNode;
 import cmdline.CPAMain;
 
 import common.Pair;
 
+import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import exceptions.UnrecognizedCFAEdgeException;
 
@@ -825,8 +827,8 @@ public class BDDMathsatExplicitAbstractManager<T> extends
         // create the DAG formula corresponding to the abstract trace. We create
         // n formulas, one per interpolation group
         long extTimeStart = System.currentTimeMillis();
-        AbstractElementWithLocation[] abstarr =
-            abstractTrace.toArray(new AbstractElementWithLocation[0]);
+        AbstractElement[] abstarr =
+            abstractTrace.toArray(new AbstractElement[0]);
         ConcretePath concPath = null;
         try {
             concPath = buildConcretePath(smgr, abstarr);
@@ -1086,8 +1088,8 @@ public class BDDMathsatExplicitAbstractManager<T> extends
         // create the DAG formula corresponding to the abstract trace. We create
         // n formulas, one per interpolation group
         long extTimeStart = System.currentTimeMillis();
-        AbstractElementWithLocation[] abstarr =
-            abstractTrace.toArray(new AbstractElementWithLocation[0]);
+        AbstractElement[] abstarr =
+            abstractTrace.toArray(new AbstractElement[0]);
         ConcretePath concPath = null;
         try {
             concPath = buildConcretePath(smgr, abstarr);
@@ -1533,7 +1535,7 @@ public class BDDMathsatExplicitAbstractManager<T> extends
 
     @Override
     public ConcretePath buildConcretePath(SymbolicFormulaManager mgr,
-            AbstractElementWithLocation[] path)
+            AbstractElement[] path)
             throws UnrecognizedCFAEdgeException {
         SSAMap ssa = new SSAMap();
         MathsatSymbolicFormulaManager mmgr = (MathsatSymbolicFormulaManager)mgr;
@@ -1544,16 +1546,17 @@ public class BDDMathsatExplicitAbstractManager<T> extends
         CPAMain.logManager.log(Level.ALL, "DEBUG_1", "ABSTRACT TRACE:",
                 new ArrayToStringConverter(path));
 
-        AbstractElementWithLocation cur = path[0];
+        AbstractElement cur = path[0];
 
         boolean theoryCombinationNeeded = false;
 
         for (int i = 1; i < path.length; ++i) {
-            AbstractElementWithLocation e = path[i];
+          AbstractElement e = path[i];
             CFAEdge found = null;
-            for (int j = 0; j < e.getLocationNode().getNumEnteringEdges(); ++j){
-                CFAEdge edge = e.getLocationNode().getEnteringEdge(j);
-                if (edge.getPredecessor().equals(cur.getLocationNode())) {
+            CFANode loc = ((AbstractElementWithLocation)e).getLocationNode();
+            for (int j = 0; j < loc.getNumEnteringEdges(); ++j){
+                CFAEdge edge = loc.getEnteringEdge(j);
+                if (edge.getPredecessor().equals(((AbstractElementWithLocation)cur).getLocationNode())) {
                     found = edge;
                     break;
                 }

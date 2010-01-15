@@ -3,7 +3,6 @@ package cpa.errorlocation;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cpa.common.defaults.AbstractCPA;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.TransferRelation;
 
 public class ErrorLocationCPA extends AbstractCPA {

@@ -41,10 +41,10 @@ import cpa.common.interfaces.PrecisionAdjustment;
 public class StaticPrecisionAdjustment implements PrecisionAdjustment {
 
   @Override
-  public <AE extends AbstractElement> Pair<AE, Precision> prec(AE element,
-        Precision precision, Collection<Pair<AE, Precision>> elements) {
+  public Pair<AbstractElement, Precision> prec(AbstractElement element,
+        Precision precision, Collection<Pair<AbstractElement, Precision>> elements) {
     
-    return new Pair<AE, Precision>(element, precision);
+    return new Pair<AbstractElement, Precision>(element, precision);
   }
   
   private static final PrecisionAdjustment instance = new StaticPrecisionAdjustment();

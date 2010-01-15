@@ -53,7 +53,6 @@ import cpa.common.defaults.MergeSepOperator;
 import cpa.common.defaults.StaticPrecisionAdjustment;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.CPAWithStatistics;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
@@ -241,7 +240,7 @@ public abstract class ItpCPA implements ConfigurableProgramAnalysis, CPAWithStat
      */
     public Collection<ItpAbstractElement> removeDescendantsFromCovering(
             ItpAbstractElement e2) {
-        Collection<AbstractElementWithLocation> sub =
+        Collection<AbstractElement> sub =
             trans.getART().getSubtree(e2, false, true);
         Set<ItpAbstractElement> ret =
             new TreeSet<ItpAbstractElement>();

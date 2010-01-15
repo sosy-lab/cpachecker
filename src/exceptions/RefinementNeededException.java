@@ -25,8 +25,7 @@ package exceptions;
 
 import java.util.Collection;
 
-import cpa.common.interfaces.AbstractElementWithLocation;
-import exceptions.CPATransferException;
+import cpa.common.interfaces.AbstractElement;
 
 /**
  * Exception thrown when an refinement is needed.
@@ -43,22 +42,22 @@ public class RefinementNeededException extends CPATransferException {
      */
     private static final long serialVersionUID = -141927893977460824L;
 
-    private final Collection<AbstractElementWithLocation> toUnreach;
-    private final Collection<AbstractElementWithLocation> toWaitlist;
+    private final Collection<AbstractElement> toUnreach;
+    private final Collection<AbstractElement> toWaitlist;
 
     public RefinementNeededException(
-            Collection<AbstractElementWithLocation> toUnreach,
-            Collection<AbstractElementWithLocation> toWaitlist) {
+            Collection<AbstractElement> toUnreach,
+            Collection<AbstractElement> toWaitlist) {
         super();
         this.toUnreach = toUnreach;
         this.toWaitlist = toWaitlist;
     }
 
-    public Collection<AbstractElementWithLocation> getReachableToUndo() {
+    public Collection<AbstractElement> getReachableToUndo() {
         return toUnreach;
     }
 
-    public Collection<AbstractElementWithLocation> getToWaitlist() {
+    public Collection<AbstractElement> getToWaitlist() {
         return toWaitlist;
     }
 

@@ -77,8 +77,7 @@ public class ItpStopOperator implements StopOperator {
     }
   }
 
-  public <AE extends AbstractElement> boolean stop(AE element,
-                                                   Collection<AE> reached, Precision prec) throws CPAException {
+  public boolean stop(AbstractElement element, Collection<AbstractElement> reached, Precision prec) throws CPAException {
     ItpCPA cpa = domain.getCPA();
     ItpAbstractElement ie = (ItpAbstractElement)element;
     if (cpa.isCovered(ie)) {

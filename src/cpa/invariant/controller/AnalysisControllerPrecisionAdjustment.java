@@ -91,9 +91,8 @@ public class AnalysisControllerPrecisionAdjustment implements
   }
   
   @Override
-  @SuppressWarnings("unchecked")
-  public <AE extends AbstractElement> Pair<AE, Precision> prec(AE el,
-      Precision p, Collection<Pair<AE, Precision>> reached) {
+  public Pair<AbstractElement, Precision> prec(AbstractElement el,
+      Precision p, Collection<Pair<AbstractElement, Precision>> reached) {
     AnalysisControllerElement element = (AnalysisControllerElement) el;
     
     List<StopHeuristicsData> preData = element.getComponents();
@@ -101,11 +100,11 @@ public class AnalysisControllerPrecisionAdjustment implements
     
     int idx = 0;
     for (StopHeuristicsData d : preData) {
-      postData.add(d.collectData(new ProjectionIterable<AE>(reached, idx)));
+      postData.add(d.collectData(new ProjectionIterable<AbstractElement>(reached, idx)));
       idx++;
     }
     
-    return new Pair<AE, Precision>((AE) new AnalysisControllerElement(postData), p);
+    return new Pair<AbstractElement, Precision>(new AnalysisControllerElement(postData), p);
   }
 
 }

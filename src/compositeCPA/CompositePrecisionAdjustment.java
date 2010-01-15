@@ -52,10 +52,9 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
   /* (non-Javadoc)
    * @see cpa.common.interfaces.PrecisionAdjustment#prec(cpa.common.interfaces.AbstractElement, cpa.common.interfaces.Precision, java.util.Collection)
    */
-  public <AE extends AbstractElement> Pair<AE, Precision> prec(
-                                                               AE pElement,
-                                                               Precision pPrecision,
-                                                               Collection<Pair<AE, Precision>> pElements) {
+  public Pair<AbstractElement, Precision> prec(AbstractElement pElement,
+                                               Precision pPrecision,
+                                               Collection<Pair<AbstractElement, Precision>> pElements) {
     CompositeElement comp = (CompositeElement) pElement;
     CompositePrecision prec = (CompositePrecision) pPrecision;
     assert (comp.getElements().size() == prec.getPrecisions().size());
@@ -66,7 +65,7 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
     
     for (int i = 0; i < dim; ++i) {
       HashSet<Pair<AbstractElement,Precision>> slice = new HashSet<Pair<AbstractElement,Precision>>();
-      for (Pair<AE,Precision> entry : pElements) {
+      for (Pair<AbstractElement, Precision> entry : pElements) {
         slice.add(new Pair<AbstractElement,Precision>(((CompositeElement)entry.getFirst()).get(i),
             ((CompositePrecision)entry.getSecond()).get(i)));
       }
@@ -78,7 +77,7 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
     
     // TODO for now we just take the input call stack, that may be wrong, but how to construct 
     // a proper one in case this _is_ wrong?
-    return new Pair<AE,Precision>((AE) new CompositeElement(outElements, comp.getCallStack()),
+    return new Pair<AbstractElement, Precision>(new CompositeElement(outElements, comp.getCallStack()),
         new CompositePrecision(outPrecisions));
   }
 

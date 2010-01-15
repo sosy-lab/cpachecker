@@ -37,13 +37,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 import java.util.Map.Entry;
-import java.util.logging.Level;
-
-import cmdline.CPAMain;
 
 import symbpredabstraction.UpdateablePredicateMap;
 import symbpredabstraction.interfaces.Predicate;
-import symbpredabstraction.interfaces.SymbolicFormulaManager;
 import symbpredabstraction.trace.CounterexampleTraceInfo;
 import cfa.CFAMap;
 import cfa.objectmodel.CFAEdge;
@@ -53,11 +49,9 @@ import common.Pair;
 import compositeCPA.CompositeElement;
 import compositeCPA.CompositePrecision;
 
-import cpa.common.algorithm.CPAAlgorithm;
 import cpa.common.automaton.Automaton;
 import cpa.common.automaton.AutomatonCPADomain;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
@@ -69,7 +63,6 @@ import cpa.symbpredabs.explicit.ExplicitCPA;
 import cpa.symbpredabs.explicit.ExplicitTransferRelation;
 import cpa.testgoal.TestGoalCPA;
 import cpa.testgoal.TestGoalCPA.TestGoalPrecision;
-import exceptions.CPAException;
 
 /**
  * @author Michael Tautschnig <tautschnig@forsyte.de>
@@ -155,7 +148,7 @@ public class QueryDrivenProgramTesting {
           lTestGoalCPA.getAbstractDomain(), mTestGoalCPAIndex);
       
       
-      AbstractElementWithLocation lInitialElement = cpa.getInitialElement(pMainFunction);
+      AbstractElement lInitialElement = cpa.getInitialElement(pMainFunction);
       Precision lInitialPrecision = cpa.getInitialPrecision(pMainFunction);
       
       

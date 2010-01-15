@@ -40,7 +40,7 @@ import symbpredabstraction.interfaces.SymbolicFormulaManager;
 import symbpredabstraction.mathsat.MathsatSymbolicFormula;
 import symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
 import cmdline.CPAMain;
-import cpa.common.interfaces.AbstractElementWithLocation;
+import cpa.common.interfaces.AbstractElement;
 import cpa.symbpredabs.explicit.ExplicitAbstractFormulaManager;
 import exceptions.UnrecognizedCFAEdgeException;
 
@@ -117,8 +117,8 @@ public class ItpCounterexampleRefiner {
 
         // create the DAG formula corresponding to the abstract trace. We create
         // n formulas, one per interpolation group
-        AbstractElementWithLocation[] abstarr = abstractTrace.toArray(
-                new AbstractElementWithLocation[0]);
+        AbstractElement[] abstarr = abstractTrace.toArray(
+                new AbstractElement[0]);
         ExplicitAbstractFormulaManager.ConcretePath concPath = null;
         try {
             concPath = amgr.buildConcretePath(mgr, abstarr);
@@ -335,8 +335,8 @@ public class ItpCounterexampleRefiner {
         // n formulas, one per interpolation group
         // create the DAG formula corresponding to the abstract trace. We create
         // n formulas, one per interpolation group
-        AbstractElementWithLocation[] abstarr = path.toArray(
-                new AbstractElementWithLocation[0]);
+        AbstractElement[] abstarr = path.toArray(
+                new AbstractElement[0]);
         ExplicitAbstractFormulaManager.ConcretePath concPath = null;
         try {
             concPath = amgr.buildConcretePath(mgr, abstarr);

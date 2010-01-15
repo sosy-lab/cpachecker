@@ -60,7 +60,7 @@ public class CompositeTransferRelation implements TransferRelation{
     Collection<CompositeElement> results;
 
     if (cfaEdge == null) {
-      CFANode node = compositeElement.getLocationNode();
+      CFANode node = compositeElement.retrieveLocationElement().getLocationNode();
       results = new ArrayList<CompositeElement>(node.getNumLeavingEdges());
 
       for (int edgeIdx = 0; edgeIdx < node.getNumLeavingEdges(); edgeIdx++) {

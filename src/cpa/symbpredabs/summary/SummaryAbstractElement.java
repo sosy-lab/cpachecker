@@ -30,11 +30,12 @@ import java.util.Stack;
 import symbpredabstraction.SSAMap;
 import symbpredabstraction.interfaces.AbstractFormula;
 import symbpredabstraction.interfaces.SymbolicFormula;
-
 import cfa.objectmodel.CFANode;
 
-import cpa.common.interfaces.AbstractElementWithLocation;
 import common.Pair;
+
+import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.AbstractElementWithLocation;
 
 /**
  * AbstractElement for symbolic lazy abstraction with summaries
@@ -42,7 +43,7 @@ import common.Pair;
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
 public class SummaryAbstractElement
-        implements AbstractElementWithLocation {
+        implements AbstractElementWithLocation, AbstractElement {
 
     private int elemId;
     private SummaryCFANode summaryLocation;

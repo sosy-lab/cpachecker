@@ -48,7 +48,7 @@ public class StopSepOperator implements StopOperator {
   }
   
   @Override
-  public <AE extends AbstractElement> boolean stop(AE el, Collection<AE> reached, Precision precision)
+  public boolean stop(AbstractElement el, Collection<AbstractElement> reached, Precision precision)
     throws CPAException
   {
     for (AbstractElement reachedElement : reached) {

@@ -19,8 +19,8 @@ public class ARTStopSep implements StopOperator {
   }
 
   @Override
-  public <AE extends AbstractElement> boolean stop(AE pElement,
-      Collection<AE> pReached, Precision pPrecision) throws CPAException {
+  public boolean stop(AbstractElement pElement,
+      Collection<AbstractElement> pReached, Precision pPrecision) throws CPAException {
 
     ARTElement artElement = (ARTElement)pElement;
     AbstractElement wrappedElement = artElement.getAbstractElementOnArtNode();
@@ -46,7 +46,7 @@ public class ARTStopSep implements StopOperator {
 
   }
 
-  public boolean stop(ARTElement pElement, ARTElement pReachedElement)
+  private boolean stop(ARTElement pElement, ARTElement pReachedElement)
                                                       throws CPAException {
 
     AbstractElement wrappedElement = pElement.getAbstractElementOnArtNode();

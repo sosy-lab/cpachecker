@@ -27,11 +27,11 @@ import java.util.Collection;
 import java.util.Stack;
 
 import symbpredabstraction.interfaces.SymbolicFormula;
-
 import cfa.objectmodel.CFANode;
 
 import common.Pair;
 
+import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 
 /**
@@ -41,7 +41,7 @@ import cpa.common.interfaces.AbstractElementWithLocation;
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
 public abstract class ItpAbstractElement
-        implements AbstractElementWithLocation,
+        implements AbstractElementWithLocation, AbstractElement,
         Comparable<ItpAbstractElement> {
 
     private final int elemId;

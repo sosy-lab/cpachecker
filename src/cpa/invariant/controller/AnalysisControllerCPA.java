@@ -79,9 +79,8 @@ public class AnalysisControllerCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  @SuppressWarnings("unchecked")
-  public <AE extends AbstractElement> AE getInitialElement(CFAFunctionDefinitionNode node) {
-    return (AE) AnalysisControllerElement.getInitial(this, node);
+  public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
+    return AnalysisControllerElement.getInitial(this, node);
   }
 
   @Override

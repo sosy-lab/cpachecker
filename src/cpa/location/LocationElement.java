@@ -24,9 +24,10 @@
 package cpa.location;
 
 import cfa.objectmodel.CFANode;
+import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 
-public class LocationElement implements AbstractElementWithLocation
+public class LocationElement implements AbstractElementWithLocation, AbstractElement
 {
     private final CFANode locationNode;
 

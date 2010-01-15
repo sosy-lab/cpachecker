@@ -24,7 +24,6 @@
 package cpa.common.defaults;
 
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
 import exceptions.CPAException;
@@ -37,15 +36,6 @@ public class MergeSepOperator implements MergeOperator {
 
   @Override
   public AbstractElement merge(AbstractElement el1, AbstractElement el2, Precision p)
-    throws CPAException
-  {
-    return el2;
-  }
-
-  @Override
-  public AbstractElementWithLocation merge(
-      AbstractElementWithLocation el1,
-      AbstractElementWithLocation el2, Precision p)
     throws CPAException
   {
     return el2;

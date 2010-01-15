@@ -47,7 +47,8 @@ public class CompositeStopOperator implements StopOperator{
     this.stopOperators = stopOperators;
   }
 
-  public <AE extends AbstractElement> boolean stop (AE element, Collection<AE> reached, Precision precision) throws CPAException
+  @Override
+  public boolean stop(AbstractElement element, Collection<AbstractElement> reached, Precision precision) throws CPAException
   {
     if(containsBottomElement(element)){
       return true;
@@ -85,6 +86,7 @@ public class CompositeStopOperator implements StopOperator{
     return false;
   }
 
+  @Override
   public boolean stop(AbstractElement element, AbstractElement reachedElement)
   throws CPAException {
     noOfOperations++;

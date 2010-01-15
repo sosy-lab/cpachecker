@@ -36,64 +36,64 @@ import java.util.Stack;
 import java.util.Vector;
 import java.util.logging.Level;
 
-import cmdline.CPAMain;
-
 import cfa.objectmodel.CFANode;
+import cmdline.CPAMain;
 
 import common.Pair;
 
+import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 
 public class AbstractReachabilityTree {
-    private Map<AbstractElementWithLocation, 
-                Collection<AbstractElementWithLocation>> tree;
-    private AbstractElementWithLocation root;
+    private Map<AbstractElement, 
+                Collection<AbstractElement>> tree;
+    private AbstractElement root;
 
     public AbstractReachabilityTree() {
-        tree = new HashMap<AbstractElementWithLocation, 
-                           Collection<AbstractElementWithLocation>>();
+        tree = new HashMap<AbstractElement, 
+                           Collection<AbstractElement>>();
         root = null;
     }
 
-    public void addChild(AbstractElementWithLocation parent, 
-                         AbstractElementWithLocation child) {
+    public void addChild(AbstractElement parent, 
+                         AbstractElement child) {
         if (root == null) {
             root = parent;
         }
         if (!tree.containsKey(parent)) {
-            tree.put(parent, new Vector<AbstractElementWithLocation>());
+            tree.put(parent, new Vector<AbstractElement>());
         }
-        Collection<AbstractElementWithLocation> c = tree.get(parent);
+        Collection<AbstractElement> c = tree.get(parent);
         c.add(child);
     }
     
-    public Collection<AbstractElementWithLocation> getChildren(
-            AbstractElementWithLocation e) {
+    public Collection<AbstractElement> getChildren(
+            AbstractElement e) {
         if (tree.containsKey(e)) {
             return tree.get(e);
         }
         return Collections.emptySet();
     }
 
-    public Collection<AbstractElementWithLocation> getSubtree(
-            AbstractElementWithLocation root,
+    public Collection<AbstractElement> getSubtree(
+            AbstractElement root,
             boolean remove, boolean includeRoot) {
-        Vector<AbstractElementWithLocation> ret = 
-            new Vector<AbstractElementWithLocation>();
+        Vector<AbstractElement> ret = 
+            new Vector<AbstractElement>();
 
-        Stack<AbstractElementWithLocation> toProcess = 
-            new Stack<AbstractElementWithLocation>();
+        Stack<AbstractElement> toProcess = 
+            new Stack<AbstractElement>();
         toProcess.push(root);
 
         while (!toProcess.empty()) {
-            AbstractElementWithLocation cur = toProcess.pop();
+            AbstractElement cur = toProcess.pop();
             ret.add(cur);
             if (tree.containsKey(cur)) {
                 toProcess.addAll(remove ? tree.remove(cur) : tree.get(cur));
             }
         }
         if (!includeRoot) {
-            AbstractElementWithLocation tmp = ret.lastElement();
+            AbstractElement tmp = ret.lastElement();
             assert(ret.firstElement() == root);
             ret.setElementAt(tmp, 0);
             ret.remove(ret.size()-1);
@@ -101,16 +101,16 @@ public class AbstractReachabilityTree {
         return ret;
     }
 
-    public AbstractElementWithLocation findHighest(CFANode loc) {
+    public AbstractElement findHighest(CFANode loc) {
         if (root == null) return null;
 
-        Queue<AbstractElementWithLocation> toProcess =
-            new ArrayDeque<AbstractElementWithLocation>();
+        Queue<AbstractElement> toProcess =
+            new ArrayDeque<AbstractElement>();
         toProcess.add(root);
 
         while (!toProcess.isEmpty()) {
-            AbstractElementWithLocation e = toProcess.remove();
-            if (e.getLocationNode().equals(loc)) {
+            AbstractElement e = toProcess.remove();
+            if (((AbstractElementWithLocation)e).getLocationNode().equals(loc)) {
                 return e;
             }
             if (tree.containsKey(e)) {
@@ -123,19 +123,19 @@ public class AbstractReachabilityTree {
         return root;
     }
     
-    public Collection<AbstractElementWithLocation> findAll(CFANode loc) {
+    public Collection<AbstractElement> findAll(CFANode loc) {
         if (root == null) return null;
 
-        Queue<AbstractElementWithLocation> toProcess =
-            new ArrayDeque<AbstractElementWithLocation>();
+        Queue<AbstractElement> toProcess =
+            new ArrayDeque<AbstractElement>();
         toProcess.add(root);
         
-        Collection<AbstractElementWithLocation> ret = 
-            new Vector<AbstractElementWithLocation>();
+        Collection<AbstractElement> ret = 
+            new Vector<AbstractElement>();
 
         while (!toProcess.isEmpty()) {
-            AbstractElementWithLocation e = toProcess.remove();
-            if (e.getLocationNode().equals(loc)) {
+            AbstractElement e = toProcess.remove();
+            if (((AbstractElementWithLocation)e).getLocationNode().equals(loc)) {
                 ret.add(e);
             }
             if (tree.containsKey(e)) {
@@ -145,18 +145,18 @@ public class AbstractReachabilityTree {
         return ret;        
     }
     
-    public AbstractElementWithLocation getRoot() { return root; }
+    public AbstractElement getRoot() { return root; }
     
-    public boolean contains(AbstractElementWithLocation n) {
+    public boolean contains(AbstractElement n) {
         return tree.containsKey(n);
     }
     
-    public boolean inTree(AbstractElementWithLocation n) {
-        Stack<AbstractElementWithLocation> toProcess = 
-            new Stack<AbstractElementWithLocation>();
+    public boolean inTree(AbstractElement n) {
+        Stack<AbstractElement> toProcess = 
+            new Stack<AbstractElement>();
         toProcess.push(root);
         while (!toProcess.empty()) {
-            AbstractElementWithLocation e = toProcess.pop();
+            AbstractElement e = toProcess.pop();
             if (e == n) return true;
             toProcess.addAll(getChildren(e));
         }
@@ -171,23 +171,23 @@ public class AbstractReachabilityTree {
     public void dump(String outfile) throws IOException {
         PrintWriter out = new PrintWriter(new File(outfile));
         out.println("digraph ART {");
-        Stack<Pair<AbstractElementWithLocation, Integer>> toProcess = 
-            new Stack<Pair<AbstractElementWithLocation, Integer>>();
+        Stack<Pair<AbstractElement, Integer>> toProcess = 
+            new Stack<Pair<AbstractElement, Integer>>();
         int i = 0;
         if (root != null) {
             toProcess.push(
-                    new Pair<AbstractElementWithLocation, Integer>(root, i));
+                    new Pair<AbstractElement, Integer>(root, i));
             out.println("" + (i++) + " [label=\"" + root + "\"];");
         }
 
         while (!toProcess.empty()) {
-            Pair<AbstractElementWithLocation, Integer> e = toProcess.pop();
-            for (AbstractElementWithLocation c : getChildren(e.getFirst())) {
+            Pair<AbstractElement, Integer> e = toProcess.pop();
+            for (AbstractElement c : getChildren(e.getFirst())) {
                 int cur = i;
                 out.println("" + cur + " [label=\"" + c + "\"];");
                 out.println("" + e.getSecond() + " -> " + cur);
                 toProcess.push(
-                        new Pair<AbstractElementWithLocation, Integer>(c, i));
+                        new Pair<AbstractElement, Integer>(c, i));
                 ++i;
             }
         }

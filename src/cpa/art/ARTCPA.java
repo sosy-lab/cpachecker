@@ -16,7 +16,6 @@ import cpa.common.defaults.MergeSepOperator;
 import cpa.common.defaults.StaticPrecisionAdjustment;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.CPAWithStatistics;
 import cpa.common.interfaces.CPAWrapper;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
@@ -100,7 +99,7 @@ public class ARTCPA implements ConfigurableProgramAnalysis, CPAWithStatistics, C
   @Override
   public AbstractElement getInitialElement (CFAFunctionDefinitionNode pNode) {
     // TODO some code relies on the fact that this method is called only one and the result is the root of the ART
-    return new ARTElement(this, (AbstractElementWithLocation)wrappedCPA.getInitialElement(pNode), 
+    return new ARTElement(this, wrappedCPA.getInitialElement(pNode), 
         null);
   }
 
@@ -139,11 +138,12 @@ public class ARTCPA implements ConfigurableProgramAnalysis, CPAWithStatistics, C
         continue;
       }
       // TODO check - bottom element
-      if(currentElement.getLocationNode() == null) {
+      CFANode loc = currentElement.retrieveLocationElement().getLocationNode(); 
+      if(loc == null) {
         assert false;
         continue;
       } else{
-        if (currentElement.getLocationNode().equals(pLoc)) {
+        if (loc.equals(pLoc)) {
           tempRetVal = currentElement;
         }
         workList.addAll(currentElement.getParents());
