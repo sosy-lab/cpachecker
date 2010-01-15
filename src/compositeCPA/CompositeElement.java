@@ -119,24 +119,23 @@ public class CompositeElement implements AbstractElementWithLocation, AbstractWr
   }
 
   @Override
-  public AbstractElement retrieveElementOfType(String pElementClass){
-    for(AbstractElement item:elements) {
-      if(item.getClass().getSimpleName().equals(pElementClass)){
-        return item;
-      }
-      else if(item instanceof AbstractWrapperElement){
-        AbstractElement wrappedElement = 
-          ((AbstractWrapperElement)item).retrieveElementOfType(pElementClass);
-        if(wrappedElement != null){
-          if(wrappedElement.getClass().getSimpleName().equals(pElementClass)){
-            return wrappedElement;
-          }
+  public <T extends AbstractElement> T retrieveWrappedElement(Class<T> pType) {
+    if (pType.isAssignableFrom(getClass())) {
+      return pType.cast(this);
+    }
+    for (AbstractElement element : elements) {
+      if (pType.isAssignableFrom(element.getClass())) {
+        return pType.cast(element);
+      } else if (element instanceof AbstractWrapperElement) {
+        T result = ((AbstractWrapperElement)element).retrieveWrappedElement(pType);
+        if (result != null) {
+          return result;
         }
-      }
+      }  
     }
     return null;
   }
-
+  
   @Override
   public Iterable<AbstractElement> getWrappedElements() {
     return elements;

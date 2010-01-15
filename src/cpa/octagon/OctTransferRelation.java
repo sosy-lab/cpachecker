@@ -2100,7 +2100,7 @@ public class OctTransferRelation implements TransferRelation{
     CallToReturnEdge summaryEdge =
       functionReturnEdge.getSuccessor().getEnteringSummaryEdge();
     IASTExpression exprOnSummary = summaryEdge.getExpression();
-    OctElement previousOctElem = (OctElement)summaryEdge.extractAbstractElement("OctElement");
+    OctElement previousOctElem = summaryEdge.extractAbstractElement(OctElement.class);
     OctElement newElement = previousOctElem.clone();
     String callerFunctionName = functionReturnEdge.getSuccessor().getFunctionName();
     String calledFunctionName = functionReturnEdge.getPredecessor().getFunctionName();

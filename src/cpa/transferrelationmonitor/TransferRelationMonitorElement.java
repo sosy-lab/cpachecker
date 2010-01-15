@@ -34,12 +34,15 @@ public class TransferRelationMonitorElement implements AbstractElement, Abstract
   }
 
   @Override
-  public AbstractElement retrieveElementOfType(String pElementClass) {
-    if(element.getClass().getSimpleName().equals(pElementClass)){
-      return element;
-    }
-    else{
-      return ((AbstractWrapperElement)element).retrieveElementOfType(pElementClass);
+  public <T extends AbstractElement> T retrieveWrappedElement(Class<T> pType) {
+    if (pType.isAssignableFrom(getClass())) {
+      return pType.cast(this);
+    } else if (pType.isAssignableFrom(element.getClass())) {
+      return pType.cast(element);
+    } else if (element instanceof AbstractWrapperElement) {
+      return ((AbstractWrapperElement)element).retrieveWrappedElement(pType);
+    } else {
+      return null;
     }
   }
   

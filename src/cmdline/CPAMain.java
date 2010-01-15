@@ -601,7 +601,7 @@ public class CPAMain {
         } else if (currentElement.isError()) {
           color = "red";
         } else {
-          SymbPredAbsAbstractElement symbpredabselem = (SymbPredAbsAbstractElement)currentElement.retrieveElementOfType("SymbPredAbsAbstractElement");
+          SymbPredAbsAbstractElement symbpredabselem = currentElement.retrieveWrappedElement(SymbPredAbsAbstractElement.class);
           if (symbpredabselem != null && symbpredabselem.isAbstractionNode()) {
             color = "blue";
           } else {

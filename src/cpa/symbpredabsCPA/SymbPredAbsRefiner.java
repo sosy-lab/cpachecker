@@ -24,7 +24,6 @@ import cpa.art.AbstractARTBasedRefiner;
 import cpa.common.Path;
 import cpa.common.ReachedElements;
 import cpa.common.algorithm.CEGARAlgorithm;
-import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.WrapperPrecision;
@@ -82,8 +81,8 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
     ArrayList<SymbPredAbsAbstractElement> path = new ArrayList<SymbPredAbsAbstractElement>();
     SymbPredAbsAbstractElement lastElement = null;
     for (Pair<ARTElement,CFAEdge> artPair : pPath) {
-      SymbPredAbsAbstractElement symbElement = (SymbPredAbsAbstractElement)
-        artPair.getFirst().retrieveElementOfType("SymbPredAbsAbstractElement");
+      SymbPredAbsAbstractElement symbElement = 
+        artPair.getFirst().retrieveWrappedElement(SymbPredAbsAbstractElement.class);
       
       if (symbElement.isAbstractionNode() && symbElement != lastElement) {
         path.add(symbElement);
@@ -205,8 +204,8 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
         continue;
       }
       
-      AbstractElement currentSymbPredElement = 
-                currentElement.retrieveElementOfType("SymbPredAbsAbstractElement");
+      SymbPredAbsAbstractElement currentSymbPredElement = 
+                currentElement.retrieveWrappedElement(SymbPredAbsAbstractElement.class);
       if (currentSymbPredElement == pSymbPredRootElement){
         return currentElement;
       }

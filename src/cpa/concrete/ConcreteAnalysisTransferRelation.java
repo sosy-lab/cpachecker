@@ -43,7 +43,6 @@ import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
 import org.eclipse.cdt.core.dom.ast.IASTPointerOperator;
 import org.eclipse.cdt.core.dom.ast.IASTTypeIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
-import org.eclipse.cdt.internal.core.dom.parser.c.CASTInitializerExpression;
 
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.c.AssumeEdge;
@@ -220,7 +219,7 @@ public class ConcreteAnalysisTransferRelation implements TransferRelation {
     // TODO Post question on developer forum
     
     // CAUTION: This is not possible because of nested access!!!
-    ConcreteAnalysisElement previousElem = (ConcreteAnalysisElement)lSummaryEdge.extractAbstractElement("ConcreteAnalysisElement");
+    ConcreteAnalysisElement previousElem = lSummaryEdge.extractAbstractElement(ConcreteAnalysisElement.class);
     
     if (previousElem == null) {
       // previousElem is null because we use the CPA in another CPA (must-may-analysis)
@@ -229,8 +228,7 @@ public class ConcreteAnalysisTransferRelation implements TransferRelation {
       // TODO: remove this hack
       
       // here comes the hack
-      MustMayAnalysisElement lMustMayAnalysisElement = (MustMayAnalysisElement)lSummaryEdge.extractAbstractElement("MustMayAnalysisElement");
-      
+      MustMayAnalysisElement lMustMayAnalysisElement = lSummaryEdge.extractAbstractElement(MustMayAnalysisElement.class);      
       previousElem = (ConcreteAnalysisElement)lMustMayAnalysisElement.getMustElement();
     }
     
