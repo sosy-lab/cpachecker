@@ -35,6 +35,7 @@ import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
 import cpa.invariant.common.FormulaReportingUtils;
+import cpa.invariant.common.Invariant;
 import exceptions.CPATransferException;
 
 /**
@@ -62,18 +63,18 @@ public class DumpInvariantTransferRelation implements TransferRelation {
   throws CPATransferException
   {
     boolean dumpAvoidanceInvariant = false;
-    SymbolicFormula result = null;
+    Invariant result = null;
 
     // collect invariants and determine whether we need to add an invariant
     // to avoid the current node.
     for (AbstractElement other : others) {
       if (other instanceof InvariantReportingElement) {
-        SymbolicFormula otherInv = ((InvariantReportingElement)other).getInvariant();
+        Invariant otherInv = ((InvariantReportingElement)other).getInvariant();
         if (otherInv != null) {
           if (result == null)
             result = otherInv;
           else
-            result = symbolicManager.makeAnd(result, otherInv);
+            result = result.and(otherInv);
         }
       }
       if (other instanceof AvoidanceReportingElement) {
@@ -85,27 +86,27 @@ public class DumpInvariantTransferRelation implements TransferRelation {
     // if necessary, add an invariant to avoid the current node
     if (dumpAvoidanceInvariant) {
       // collect data
-      SymbolicFormula avoidanceInvariant = symbolicManager.makeTrue();
+      SymbolicFormula avoidanceInvariantFormula = symbolicManager.makeTrue();
       for (AbstractElement other : others) {
         SymbolicFormula reported = FormulaReportingUtils.extractReportedFormulas(symbolicManager, other);
         if (reported != null)
-          avoidanceInvariant = symbolicManager.makeAnd(avoidanceInvariant, reported);
+          avoidanceInvariantFormula = symbolicManager.makeAnd(avoidanceInvariantFormula, reported);
       }
-
+      Invariant avoidanceInvariant = new Invariant(avoidanceInvariantFormula, false);
+      
       // add the invariant
       if (result == null)
         result = avoidanceInvariant;
       else
-        result = symbolicManager.makeAnd(result, avoidanceInvariant);
+        result = result.and(avoidanceInvariant);
     }
 
     List<DumpInvariantElement> retList = new ArrayList<DumpInvariantElement>();
 
-    if (result != null){
+    if (result != null) {
       retList.add(new DumpInvariantElement(result));
       return retList;
-    }
-    else{
+    } else {
       return null;
     }
   }

@@ -23,7 +23,7 @@
  */
 package cpa.invariant.dump;
 
-import symbpredabstraction.interfaces.SymbolicFormula;
+import cpa.invariant.common.Invariant;
 
 /**
  * Interface to implement in order for an object to be able to
@@ -37,9 +37,10 @@ public interface InvariantReportingElement {
    * Get the invariant that the given abstract element
    * wants to report for its containing node's location.
    * 
-   * @return a symbolic formula representing the invariant
-   *         or the value null representing the invariant true. 
+   * @return an invariant representing the assumptions to generate
+   *         for the given element, or the value null representing
+   *         the invariant true. 
    */
-  public SymbolicFormula getInvariant();
+  public Invariant getInvariant();
 
 }

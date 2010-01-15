@@ -41,6 +41,7 @@ import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.AbstractWrapperElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.invariant.common.FormulaReportingUtils;
+import cpa.invariant.common.Invariant;
 import cpa.invariant.common.InvariantWithLocation;
 import cpa.invariant.common.MathsatInvariantSymbolicFormulaManager;
 import cpa.invariant.dump.DumpInvariantElement;
@@ -99,7 +100,7 @@ public class InvariantCollectionAlgorithm implements Algorithm {
     CPAMain.logManager.log(Level.FINEST, "Dumping invariants resulting from assumptions");
     for (AbstractElementWithLocation element : reached) {      
       CFANode loc = element.getLocationNode();
-      SymbolicFormula invariant = extractInvariant(element);
+      Invariant invariant = extractInvariant(element);
       
       invariantMap.addInvariant(loc, invariant);
     }
@@ -119,22 +120,22 @@ public class InvariantCollectionAlgorithm implements Algorithm {
    * Returns the invariant(s) stored in the given abstract
    * element
    */
-  private SymbolicFormula extractInvariant(AbstractElement element)
+  private Invariant extractInvariant(AbstractElement element)
   {
-    SymbolicFormula result = symbolicManager.makeTrue();
+    Invariant result = Invariant.TRUE;
     
     // If it is a wrapper, add its sub-element's assertions
     if (element instanceof AbstractWrapperElement)
     {
       for (AbstractElement subel : ((AbstractWrapperElement) element).getWrappedElements())
-        result = symbolicManager.makeAnd(result, extractInvariant(subel));
+        result = result.and(extractInvariant(subel));
     }
     
     if (element instanceof DumpInvariantElement)
     {
-      SymbolicFormula dumpedInvariant = ((DumpInvariantElement) element).getInvariant();
+      Invariant dumpedInvariant = ((DumpInvariantElement) element).getInvariant();
       if (dumpedInvariant != null)
-        result = symbolicManager.makeAnd(result, dumpedInvariant);
+        result = result.and(dumpedInvariant);
     }
      
     return result;
@@ -156,7 +157,7 @@ public class InvariantCollectionAlgorithm implements Algorithm {
     
     Pair<ARTElement, CFAEdge> pair = path.get(pos);
     SymbolicFormula dataRegion = FormulaReportingUtils.extractReportedFormulas(symbolicManager, pair.getFirst());
-    invariant.addInvariant(pair.getFirst().getLocationNode(), dataRegion);
+    invariant.addInvariant(pair.getFirst().getLocationNode(), new Invariant(dataRegion, false));
   }
   
   /**
@@ -168,7 +169,7 @@ public class InvariantCollectionAlgorithm implements Algorithm {
       List<AbstractElementWithLocation> waitlist) {
     for (AbstractElementWithLocation element : waitlist) {
       SymbolicFormula dataRegion = FormulaReportingUtils.extractReportedFormulas(symbolicManager, element);
-      invariant.addInvariant(element.getLocationNode(), symbolicManager.makeNot(dataRegion));
+      invariant.addInvariant(element.getLocationNode(), new Invariant(symbolicManager.makeNot(dataRegion), false));
     }
   }
   
@@ -180,6 +181,6 @@ public class InvariantCollectionAlgorithm implements Algorithm {
       TransferTimeOutException failedTransfer) {
     CFANode sourceLocation = failedTransfer.getCfaEdge().getPredecessor();
     SymbolicFormula dataRegion = FormulaReportingUtils.extractReportedFormulas(symbolicManager, failedTransfer.getAbstractElement());
-    invariant.addInvariant(sourceLocation, symbolicManager.makeNot(dataRegion));
+    invariant.addInvariant(sourceLocation, new Invariant (symbolicManager.makeNot(dataRegion), false));
   }
 }

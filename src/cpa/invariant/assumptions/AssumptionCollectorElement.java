@@ -25,6 +25,7 @@ package cpa.invariant.assumptions;
 
 import symbpredabstraction.interfaces.SymbolicFormula;
 import cpa.common.interfaces.AbstractElement;
+import cpa.invariant.common.Invariant;
 import cpa.invariant.common.InvariantSymbolicFormulaManager;
 import cpa.invariant.dump.InvariantReportingElement;
 
@@ -55,9 +56,12 @@ public class AssumptionCollectorElement implements AbstractElement, InvariantRep
   }
   
   @Override
-  public SymbolicFormula getInvariant()
+  public Invariant getInvariant()
   {
-    return formula;
+    if (formula == null)
+      return Invariant.TRUE;
+    else
+      return new Invariant(formula, true);
   }
   
   /**

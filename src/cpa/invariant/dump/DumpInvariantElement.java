@@ -23,8 +23,8 @@
  */
 package cpa.invariant.dump;
 
-import symbpredabstraction.interfaces.SymbolicFormula;
 import cpa.common.interfaces.AbstractElement;
+import cpa.invariant.common.Invariant;
 
 /**
  * Abstract element for the DumpInvariant CPA. Encapsulate a
@@ -34,9 +34,9 @@ import cpa.common.interfaces.AbstractElement;
  */
 public class DumpInvariantElement implements AbstractElement {
 
-  private final SymbolicFormula invariant;
+  private final Invariant invariant;
  
-  public DumpInvariantElement(SymbolicFormula f)
+  public DumpInvariantElement(Invariant f)
   {
     invariant = f;
   }
@@ -45,7 +45,7 @@ public class DumpInvariantElement implements AbstractElement {
    * Return the invariant in this state. May return
    * a null value in case no invariant is stored.
    */
-  public SymbolicFormula getInvariant()
+  public Invariant getInvariant()
   {
     return invariant;
   }

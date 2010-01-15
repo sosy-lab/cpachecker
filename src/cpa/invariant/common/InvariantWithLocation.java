@@ -25,10 +25,7 @@ package cpa.invariant.common;
 
 import java.io.IOException;
 import java.io.StringWriter;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -43,61 +40,36 @@ import cfa.objectmodel.CFANode;
 public class InvariantWithLocation {
   
   // map from location to (conjunctive) list of invariants
-  private final Map<CFANode, List<SymbolicFormula>> map;
-  private final MathsatInvariantSymbolicFormulaManager manager;
+  private final Map<CFANode, Invariant> map;
   
   public InvariantWithLocation() {
-    map = new HashMap<CFANode, List<SymbolicFormula>>();
-    manager = MathsatInvariantSymbolicFormulaManager.getInstance();
-  }
-  
-  /**
-   * Return the invariants for a given node as a list
-   */
-  public List<SymbolicFormula> getInvariants(CFANode node)
-  {
-    List<SymbolicFormula> result = map.get(node);
-    if (result == null)
-      return Collections.emptyList();
-    else
-      return result;
-  }
-  
-  private SymbolicFormula conjunctList(List<SymbolicFormula> list)
-  {
-    SymbolicFormula result = manager.makeTrue();
-    for (SymbolicFormula f : list)
-    {
-      result = manager.makeAnd(result, f);
-    }
-    return result;
+    map = new HashMap<CFANode, Invariant>();
   }
   
   /**
    * Return the invariant as a formula for a given node
    */
-  public SymbolicFormula getInvariant(CFANode node)
+  public Invariant getInvariant(CFANode node)
   {
-    List<SymbolicFormula> invariants = getInvariants(node);
-    return conjunctList(invariants);
+    Invariant result = map.get(node);
+    
+    if (result == null)
+      return Invariant.TRUE;
+    else
+      return result;
   }
 
   /**
    * Add an invariant at the given location
    */
-  public void addInvariant(CFANode node, SymbolicFormula invariant)
+  public void addInvariant(CFANode node, Invariant invariant)
   {
-    if (!manager.entails(manager.makeTrue(), invariant)) {
-      List<SymbolicFormula> list = map.get(node);
-      if (list == null) {
-        list = new LinkedList<SymbolicFormula>();
-        map.put(node, list);
-      }
-      for (SymbolicFormula other : list) {
-        if (invariant.equals(other))
-          return; // already in the list
-      }
-      list.add(invariant);
+    if (!invariant.isTrue()) {
+      Invariant oldInvariant = map.get(node);
+      if (oldInvariant == null)
+        map.put(node, invariant);
+      else
+        map.put(node, oldInvariant.and(invariant));
     }
   }
   
@@ -109,12 +81,19 @@ public class InvariantWithLocation {
   public void dump(Appendable out)
   {
     try {
-      for (Entry<CFANode, List<SymbolicFormula>> entry : map.entrySet()) {
-        out.append("pc = ");
-        out.append(Integer.toString(entry.getKey().getNodeNumber()));
-        out.append("\t ===>  ");
-        out.append(conjunctList(entry.getValue()).toString());
-        out.append("\n");
+      for (Entry<CFANode, Invariant> entry : map.entrySet()) {
+        String nodeId = Integer.toString(entry.getKey().getNodeNumber());
+        Invariant inv = entry.getValue();
+        SymbolicFormula disInv = inv.getDischargeableAssumption();
+        SymbolicFormula otherInv = inv.getOtherAssumption();
+        if (!disInv.isTrue()) {
+          out.append("pc = ").append(nodeId).append("\t =(d)=>  ");
+          out.append(disInv.toString()).append("\n");
+        }
+        if (!otherInv.isTrue()) {
+          out.append("pc = ").append(nodeId).append("\t =====>  ");
+          out.append(otherInv.toString()).append("\n");
+        }
       }
     } catch (IOException e) { }
   }
