@@ -74,7 +74,7 @@ public class CompositeMergeOperator implements MergeOperator{
       return element2;
     }
 
-    List<AbstractElement> mergedElements = new ArrayList<AbstractElement> ();
+    List<AbstractElement> mergedElements = new ArrayList<AbstractElement> (comp1.getElements().size());
     Iterator<AbstractElement> iter1 = comp1.getElements().iterator();
     Iterator<AbstractElement> iter2 = comp2.getElements().iterator();
     Iterator<Precision> precIter = (prec == null) ? null : prec.getPrecisions().iterator();

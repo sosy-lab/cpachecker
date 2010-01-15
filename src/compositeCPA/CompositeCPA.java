@@ -82,13 +82,13 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, CPAWithStatist
 
   public static CompositeCPA createNewCompositeCPA(List<ConfigurableProgramAnalysis> cpas, CFAFunctionDefinitionNode node) {
 
-    List<AbstractDomain> domains = new ArrayList<AbstractDomain> ();
-    List<TransferRelation> transferRelations = new ArrayList<TransferRelation> ();
-    List<MergeOperator> mergeOperators = new ArrayList<MergeOperator> ();
-    List<StopOperator> stopOperators = new ArrayList<StopOperator> ();
-    List<PrecisionAdjustment> precisionAdjustments = new ArrayList<PrecisionAdjustment> ();
-    List<AbstractElement> initialElements = new ArrayList<AbstractElement> ();
-    List<Precision> initialPrecisions = new ArrayList<Precision> ();
+    List<AbstractDomain> domains = new ArrayList<AbstractDomain> (cpas.size());
+    List<TransferRelation> transferRelations = new ArrayList<TransferRelation> (cpas.size());
+    List<MergeOperator> mergeOperators = new ArrayList<MergeOperator> (cpas.size());
+    List<StopOperator> stopOperators = new ArrayList<StopOperator> (cpas.size());
+    List<PrecisionAdjustment> precisionAdjustments = new ArrayList<PrecisionAdjustment> (cpas.size());
+    List<AbstractElement> initialElements = new ArrayList<AbstractElement> (cpas.size());
+    List<Precision> initialPrecisions = new ArrayList<Precision> (cpas.size());
 
     for(ConfigurableProgramAnalysis sp : cpas) {
       domains.add(sp.getAbstractDomain());

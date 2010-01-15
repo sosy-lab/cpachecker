@@ -28,6 +28,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
+import com.google.common.collect.Iterables;
+
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAEdgeType;
 import cfa.objectmodel.CFANode;
@@ -157,8 +159,7 @@ public class CompositeTransferRelation implements TransferRelation{
     case 1:
       List<AbstractElement> resultingElements = new ArrayList<AbstractElement>(allComponentsSuccessors.size());
       for (Collection<? extends AbstractElement> componentSuccessors : allComponentsSuccessors) {
-        assert componentSuccessors.size() == 1;
-        resultingElements.add(componentSuccessors.toArray(new AbstractElement[1])[0]);
+        resultingElements.add(Iterables.getOnlyElement(componentSuccessors));
       }
       allResultingElements = Collections.singleton(resultingElements);
       break;

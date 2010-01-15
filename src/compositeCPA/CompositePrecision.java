@@ -72,18 +72,20 @@ public class CompositePrecision implements WrapperPrecision {
     return precisions.toString();
   }
   
-  @SuppressWarnings("unchecked")
   @Override
   public <T extends Precision> T retrieveWrappedPrecision(Class<T> pType) {
+    if (pType.isAssignableFrom(getClass())) {
+      return pType.cast(this);
+    }
     for (Precision precision : precisions) {
       if (precision != null) {
-        if (precision.getClass().equals(pType)) {
-          return (T)precision;
-        
+        if (pType.isAssignableFrom(precision.getClass())) {
+          return pType.cast(precision);
+          
         } else if (precision instanceof WrapperPrecision) {
-          T wrappedPrecision = ((WrapperPrecision)precision).retrieveWrappedPrecision(pType);
-          if (wrappedPrecision != null) {
-            return wrappedPrecision;
+          T result = ((WrapperPrecision)precision).retrieveWrappedPrecision(pType);
+          if (result != null) {
+            return result;
           }
         }
       }

@@ -25,6 +25,8 @@ package compositeCPA;
 
 import java.util.List;
 
+import com.google.common.collect.ImmutableList;
+
 import cpa.common.CallStack;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
@@ -36,7 +38,7 @@ public class CompositeElement implements AbstractWrapperElement {
 
   public CompositeElement(List<AbstractElement> elements, CallStack stack)
   {
-    this.elements = elements;
+    this.elements = ImmutableList.copyOf(elements);
     this.callStack = stack;
   }
 
@@ -137,7 +139,7 @@ public class CompositeElement implements AbstractWrapperElement {
   }
   
   @Override
-  public Iterable<AbstractElement> getWrappedElements() {
+  public List<AbstractElement> getWrappedElements() {
     return elements;
   }
 }
