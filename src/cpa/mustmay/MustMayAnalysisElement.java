@@ -1,11 +1,17 @@
 package cpa.mustmay;
 
-import cpa.common.interfaces.AbstractElement;
+import java.util.ArrayList;
 
-public class MustMayAnalysisElement implements AbstractElement {
+import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.AbstractElementWithLocation;
+import cpa.common.interfaces.AbstractWrapperElement;
+
+public class MustMayAnalysisElement implements AbstractElement, AbstractWrapperElement {
 
   AbstractElement mMustElement;
   AbstractElement mMayElement;
+  
+  ArrayList<AbstractElement> mWrappedElements;
   
   public MustMayAnalysisElement(AbstractElement pMustElement, AbstractElement pMayElement) {
     assert(pMustElement != null);
@@ -13,6 +19,10 @@ public class MustMayAnalysisElement implements AbstractElement {
     
     mMustElement = pMustElement;
     mMayElement = pMayElement;
+    
+    mWrappedElements = new ArrayList<AbstractElement>();
+    mWrappedElements.add(mMustElement);
+    mWrappedElements.add(mMayElement);
   }
   
   public AbstractElement getMustElement() {
@@ -58,6 +68,41 @@ public class MustMayAnalysisElement implements AbstractElement {
   @Override
   public boolean isError() {
     return false;
+  }
+
+  @Override
+  public Iterable<? extends AbstractElement> getWrappedElements() {
+    return mWrappedElements;
+  }
+
+  @Override
+  public <T extends AbstractElement> T retrieveWrappedElement(Class<T> pType) {
+
+    // TODO: should retrieveWrappedElement return itself if this is a subtype of pType?
+    
+    for (AbstractElement lElement : mWrappedElements) {
+      if (pType.isAssignableFrom(lElement.getClass())) {
+        return pType.cast(lElement);
+      } 
+      else if (lElement instanceof AbstractWrapperElement) {
+        T lResult = ((AbstractWrapperElement)lElement).retrieveWrappedElement(pType);
+        
+        if (lResult != null) {
+          return lResult;
+        }
+      }  
+    }
+    
+    return null;
+  }
+
+  @Override
+  public AbstractElementWithLocation retrieveLocationElement() {
+    // TODO: think about what to do here
+    assert(false);
+    
+    // TODO Auto-generated method stub
+    return null;
   }
 
 }

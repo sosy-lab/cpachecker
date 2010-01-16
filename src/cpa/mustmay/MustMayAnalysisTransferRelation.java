@@ -87,19 +87,21 @@ public class MustMayAnalysisTransferRelation implements TransferRelation {
     for (AbstractElement lMaySuccessor : lConsolidatedMaySuccessors) {
       for (AbstractElement lMustSuccessor : lConsolidatedMustSuccessors) {
         // TODO: the strengthening operator of the must transfer relation has to guarantee (and establish) the subset relation of concretizations
-        Collection<? extends AbstractElement> strengthenList = mMustTransferRelation.strengthen(lMustSuccessor, Collections.singletonList((AbstractElement)lMaySuccessor), pCfaEdge, lPrecision.getMustPrecision());
-        AbstractElement lStrengthenedMustSuccessor = null;
-        // TODO: why is null and not the passed element itself returned?
-        if (strengthenList == null) {
-          lStrengthenedMustSuccessor = lMustSuccessor;
+        Collection<? extends AbstractElement> lStrengthenList = mMustTransferRelation.strengthen(lMustSuccessor, Collections.singletonList((AbstractElement)lMaySuccessor), pCfaEdge, lPrecision.getMustPrecision());
+        
+        if (lStrengthenList == null) {
+          lSuccessors.add(new MustMayAnalysisElement(lMustSuccessor, lMaySuccessor));
         }
         else{
-          lStrengthenedMustSuccessor = strengthenList.iterator().next();
+          if (lStrengthenList.isEmpty()) {
+            lSuccessors.add(new MustMayAnalysisElement(mBottomElement, lMaySuccessor));
+          }
+          else {
+            for (AbstractElement lStrengthenedSuccessor : lStrengthenList) {
+              lSuccessors.add(new MustMayAnalysisElement(lStrengthenedSuccessor, lMaySuccessor));
+            }
+          }
         }
-
-        MustMayAnalysisElement lSuccessor = new MustMayAnalysisElement(lStrengthenedMustSuccessor, lMaySuccessor);
-
-        lSuccessors.add(lSuccessor);
       }
     }
 

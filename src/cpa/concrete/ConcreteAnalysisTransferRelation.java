@@ -220,18 +220,7 @@ public class ConcreteAnalysisTransferRelation implements TransferRelation {
     
     // CAUTION: This is not possible because of nested access!!!
     ConcreteAnalysisElement previousElem = lSummaryEdge.extractAbstractElement(ConcreteAnalysisElement.class);
-    
-    if (previousElem == null) {
-      // previousElem is null because we use the CPA in another CPA (must-may-analysis)
-      // and thus we can not access the concrete element
-      
-      // TODO: remove this hack
-      
-      // here comes the hack
-      MustMayAnalysisElement lMustMayAnalysisElement = lSummaryEdge.extractAbstractElement(MustMayAnalysisElement.class);      
-      previousElem = (ConcreteAnalysisElement)lMustMayAnalysisElement.getMustElement();
-    }
-    
+        
     ConcreteAnalysisElement newElement = previousElem.clone();
 
     String callerFunctionName = pFunctionReturnEdge.getSuccessor().getFunctionName();
