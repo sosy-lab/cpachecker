@@ -79,6 +79,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   private final SymbPredAbstFormulaManager formulaManager;
 
   private final int blockSize;
+  private final boolean inlineFunctions;
   
   // map from a node to path formula
   // used to not compute the formula again
@@ -96,6 +97,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     formulaManager = pCpa.getFormulaManager();
     
     blockSize = Integer.parseInt(CPAMain.cpaConfig.getProperty("cpas.symbpredabs.blocksize", "0"));
+    inlineFunctions = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.inlineFunctions");
   }
 
   @Override
@@ -279,24 +281,42 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
    */
   private PathFormula convertEdgeToPathFormula(PathFormula pathFormula, CFAEdge edge,
                           int abstractionNodeId) throws UnrecognizedCFAEdgeException {
-    // id of element's node
-    final int currentNodeId = edge.getPredecessor().getNodeNumber();
-    // id of sucessor element's node
-    final int successorNodeId = edge.getSuccessor().getNodeNumber();
-    
     final long start = System.currentTimeMillis();
-    final Triple<Integer, Integer, Integer> formulaCacheKey = 
-      new Triple<Integer, Integer, Integer>(abstractionNodeId, currentNodeId, successorNodeId);
-    PathFormula pf = pathFormulaMapHash.get(formulaCacheKey);
-    if (pf == null) {
+    PathFormula pf = null;
+    
+    if (inlineFunctions) {
       long startComp = System.currentTimeMillis();
       // compute new pathFormula with the operation on the edge
       pf = symbolicFormulaManager.makeAnd(
           pathFormula.getSymbolicFormula(),
           edge, pathFormula.getSsa(), false);
       pathFormulaComputationTime += System.currentTimeMillis() - startComp;
-      pathFormulaMapHash.put(formulaCacheKey, pf);
+
+    } else {
+      // caching possible because we don't visit edges twice between two abstractions
+      // TODO add condition that loop unrolling is off when this is implemented
+      // TODO or replace caching key by (oldPathFormula, edge), but SSAMap should be immutable for this
+      // TODO move caching to SymbolicFormulaManager?
+      
+      // id of element's node
+      final int currentNodeId = edge.getPredecessor().getNodeNumber();
+      // id of sucessor element's node
+      final int successorNodeId = edge.getSuccessor().getNodeNumber();
+      
+      final Triple<Integer, Integer, Integer> formulaCacheKey = 
+        new Triple<Integer, Integer, Integer>(abstractionNodeId, currentNodeId, successorNodeId);
+      pf = pathFormulaMapHash.get(formulaCacheKey);
+      if (pf == null) {
+        long startComp = System.currentTimeMillis();
+        // compute new pathFormula with the operation on the edge
+        pf = symbolicFormulaManager.makeAnd(
+            pathFormula.getSymbolicFormula(),
+            edge, pathFormula.getSsa(), false);
+        pathFormulaComputationTime += System.currentTimeMillis() - startComp;
+        pathFormulaMapHash.put(formulaCacheKey, pf);
+      }
     }
+    assert pf != null;
     pathFormulaTime += System.currentTimeMillis() - start;
     return pf;
   }
@@ -309,13 +329,15 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
    */
   private boolean isAbstractionLocation(CFANode succLoc) {
     if (succLoc.isLoopStart()) {
+      // loop head
       return true;
-    } else if (succLoc instanceof CFAFunctionDefinitionNode) {
+    } else if (!inlineFunctions && (succLoc instanceof CFAFunctionDefinitionNode)) {
+      // function call edge
       return true;
-    } else if (succLoc.getEnteringSummaryEdge() != null) {
+    } else if (!inlineFunctions && (succLoc.getEnteringSummaryEdge() != null)) {
+      // function return edge
       return true;
-    }
-    else {
+    } else {
       return false;
     }
   }

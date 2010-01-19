@@ -142,7 +142,15 @@ implements SymbPredAbstFormulaManager
     useDtc               = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.mathsat.useDtc");
     useSuffix            = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.shortestCexTraceUseSuffix");
     useZigZag            = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.shortestCexTraceZigZag");
-    wellScopedPredicates = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.refinement.addWellScopedPredicates");
+    boolean inlineFunctions = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.inlineFunctions");
+    boolean lWellScopedPredicates = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.refinement.addWellScopedPredicates");
+    if (inlineFunctions && lWellScopedPredicates) {
+      CPAMain.logManager.log(Level.WARNING, "Well scoped predicates not possible with function inlining, disabling them.");
+      wellScopedPredicates = false;
+    } else {
+      wellScopedPredicates = lWellScopedPredicates;
+    }
+    
     
     if (useCache) {
       if (cartesianAbstraction) {
