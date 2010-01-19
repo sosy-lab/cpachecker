@@ -290,7 +290,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
       // compute new pathFormula with the operation on the edge
       pf = symbolicFormulaManager.makeAnd(
           pathFormula.getSymbolicFormula(),
-          edge, pathFormula.getSsa(), false, false);
+          edge, pathFormula.getSsa(), false);
       pathFormulaComputationTime += System.currentTimeMillis() - startComp;
       pathFormulaMapHash.put(formulaCacheKey, pf);
     }

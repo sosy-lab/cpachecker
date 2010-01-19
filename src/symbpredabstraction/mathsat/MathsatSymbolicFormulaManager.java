@@ -326,7 +326,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
   
   public PathFormula makeAnd(
       SymbolicFormula f1, CFAEdge edge, SSAMap ssa,
-      boolean updateSSA, boolean absoluteSSAIndices)
+      boolean absoluteSSAIndices)
       throws UnrecognizedCFAEdgeException {
     // this is where the "meat" is... We have to parse the statement
     // attached to the edge, and convert it to the appropriate formula
@@ -336,7 +336,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       BlockEdge block = (BlockEdge)edge;
       PathFormula ret = null;
       for (CFAEdge e : block.getEdges()) {
-        ret = makeAnd(f1, e, ssa, updateSSA, absoluteSSAIndices);
+        ret = makeAnd(f1, e, ssa, absoluteSSAIndices);
         f1 = ret.getFirst();
         ssa = ret.getSecond();
       }
@@ -352,8 +352,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
 
     if (isStartOfFunction(edge)) {
       Pair<SymbolicFormula, SSAMap> p = makeAndEnterFunction(
-          m1, (FunctionDefinitionNode)edge.getPredecessor(), ssa, updateSSA,
-          absoluteSSAIndices);
+          m1, (FunctionDefinitionNode)edge.getPredecessor(), ssa, absoluteSSAIndices);
       m1 = (MathsatSymbolicFormula)p.getFirst();
       f1 = m1;
       ssa = p.getSecond();
@@ -370,12 +369,10 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
               "MathsatSymbolicFormulaManager, IGNORING return ",
               "from main: ", edge.getRawStatement());
         } else {
-          return makeAndReturn(m1, statementEdge, ssa, updateSSA,
-              absoluteSSAIndices);
+          return makeAndReturn(m1, statementEdge, ssa, absoluteSSAIndices);
         }
       } else {
-        return makeAndStatement(m1, statementEdge, ssa, updateSSA,
-            absoluteSSAIndices);
+        return makeAndStatement(m1, statementEdge, ssa, absoluteSSAIndices);
       }
       break;
     }
@@ -383,11 +380,9 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     case DeclarationEdge: {
       // at each declaration, we instantiate the variable in the SSA:
       // this is to avoid problems with uninitialized variables
-      SSAMap newssa = ssa;
-      if (!updateSSA) {
-        newssa = new SSAMap();
-        newssa.copyFrom(ssa);
-      }
+      SSAMap newssa = new SSAMap();
+      newssa.copyFrom(ssa);
+
       IASTDeclarator[] decls =
         ((DeclarationEdge)edge).getDeclarators();
       IASTDeclSpecifier spec = ((DeclarationEdge)edge).getDeclSpecifier();
@@ -523,11 +518,10 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     }
 
     case FunctionCallEdge: {
-      if (!updateSSA) {
-        SSAMap newssa = new SSAMap();
-        newssa.copyFrom(ssa);
-        ssa = newssa;
-      }
+      SSAMap newssa = new SSAMap();
+      newssa.copyFrom(ssa);
+      ssa = newssa;
+
       return makeAndFunctionCall(m1, (FunctionCallEdge)edge, ssa,
           absoluteSSAIndices);
     }
@@ -537,7 +531,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       CFANode succ = edge.getSuccessor();
       CallToReturnEdge ce = succ.getEnteringSummaryEdge();
       PathFormula ret =
-        makeAndExitFunction(m1, ce, ssa, updateSSA, absoluteSSAIndices);
+        makeAndExitFunction(m1, ce, ssa, absoluteSSAIndices);
       //popNamespace(); - done inside makeAndExitFunction
       return ret;
     }
@@ -551,17 +545,17 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
 
   private Pair<SymbolicFormula, SSAMap> makeAndEnterFunction(
       MathsatSymbolicFormula m1, FunctionDefinitionNode fn, SSAMap ssa,
-      boolean updateSSA, boolean absoluteSSAIndices)
+      boolean absoluteSSAIndices)
       throws UnrecognizedCFAEdgeException {
     List<IASTParameterDeclaration> params = fn.getFunctionParameters();
     if (params.isEmpty()) {
       return new Pair<SymbolicFormula, SSAMap>(m1, ssa);
     }
-    if (!updateSSA) {
-      SSAMap newssa = new SSAMap();
-      newssa.copyFrom(ssa);
-      ssa = newssa;
-    }
+
+    SSAMap newssa = new SSAMap();
+    newssa.copyFrom(ssa);
+    ssa = newssa;
+
     long term = mathsat.api.msat_make_true(msatEnv);
     int i = 0;
     for (IASTParameterDeclaration param : params) {
@@ -620,7 +614,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
 
   private PathFormula makeAndExitFunction(
       MathsatSymbolicFormula m1, CallToReturnEdge ce, SSAMap ssa,
-      boolean updateSSA, boolean absoluteSSAIndices)
+      boolean absoluteSSAIndices)
       throws UnrecognizedCFAEdgeException {
     IASTExpression retExp = ce.getExpression();
     if (retExp instanceof IASTFunctionCallExpression) {
@@ -631,11 +625,11 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       IASTBinaryExpression exp = (IASTBinaryExpression)retExp;
       assert(exp.getOperator() == IASTBinaryExpression.op_assign);
       String retvar = scoped(VAR_RETURN_NAME);
-      if (!updateSSA) {
-        SSAMap newssa = new SSAMap();
-        newssa.copyFrom(ssa);
-        ssa = newssa;
-      }
+
+      SSAMap newssa = new SSAMap();
+      newssa.copyFrom(ssa);
+      ssa = newssa;
+
       int retidx = ssa.getIndex(retvar);
       if (retidx < 0) {
         retidx = absoluteSSAIndices ? SSAMap.getNextSSAIndex() : 1;
@@ -723,7 +717,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
 
   private PathFormula makeAndReturn(
       MathsatSymbolicFormula m1, StatementEdge edge, SSAMap ssa,
-      boolean updateSSA, boolean absoluteSSAIndices)
+      boolean absoluteSSAIndices)
       throws UnrecognizedCFAEdgeException {
     IASTExpression exp = edge.getExpression();
     if (exp == null) {
@@ -746,11 +740,11 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         idx = getNewIndex(retvalname, ssa);
       }
       assert(idx > 1);
-      if (!updateSSA) {
-        SSAMap ssa2 = new SSAMap();
-        ssa2.copyFrom(ssa);
-        ssa = ssa2;
-      }
+
+      SSAMap ssa2 = new SSAMap();
+      ssa2.copyFrom(ssa);
+      ssa = ssa2;
+
       long retvar = buildMsatVariable(retvalname, idx);
       ssa.setIndex(retvalname, idx);
       long retval = buildMsatTerm(exp, ssa, absoluteSSAIndices);
@@ -1603,10 +1597,10 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
 
   private PathFormula makeAndStatement(
       MathsatSymbolicFormula f1, StatementEdge stmt, SSAMap ssa,
-      boolean updateSSA, boolean absoluteSSAIndices)
+      boolean absoluteSSAIndices)
       throws UnrecognizedCFAEdgeException {
     IASTExpression expr = stmt.getExpression();
-    if (!updateSSA && needsSSAUpdate(expr)) {
+    if (needsSSAUpdate(expr)) {
       SSAMap ssa2 = new SSAMap();
       ssa2.copyFrom(ssa);
       ssa = ssa2;

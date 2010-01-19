@@ -89,15 +89,13 @@ public interface SymbolicFormulaManager {
      * @param f1 a SymbolicFormula
      * @param e a CFA edge
      * @param ssa the SSA map for resolving variables
-     * @param updateSSA if true, update the given ssa in-place instead of
-     *                  building a new one
      * @param absoluteSSAIndices if true, use a unique index for each ssa
      *                           variable, instead of keeping a separate index
      *                           for each var
      * @return The formula (f1 & e), and the new/updated SSAMap
      */
     public PathFormula makeAnd(SymbolicFormula f1, CFAEdge e,
-                                                 SSAMap ssa, boolean updateSSA,
+                                                 SSAMap ssa,
                                                  boolean absoluteSSAIndices)
         throws UnrecognizedCFAEdgeException;
 

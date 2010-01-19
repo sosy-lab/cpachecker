@@ -364,7 +364,7 @@ public class BDDMathsatExplicitAbstractManager<T> extends
         }
         if (p == null) {
             try {
-                p = mgr.makeAnd(fabs, edge, ssa, false/*true*/, false);
+                p = mgr.makeAnd(fabs, edge, ssa, false);
             } catch (UnrecognizedCFAEdgeException e1) {
               CPAMain.logManager.logException(Level.SEVERE, e1, "");
                 System.exit(1);
@@ -1389,7 +1389,7 @@ public class BDDMathsatExplicitAbstractManager<T> extends
             return makeFormulaCache.get(key);
         }
         Pair<SymbolicFormula, SSAMap> ret =
-            mmgr.makeAnd(mmgr.makeTrue(), edge, ssa, false, false);
+            mmgr.makeAnd(mmgr.makeTrue(), edge, ssa, false);
         if (useCache) {
             makeFormulaCache.put(key, ret);
         }

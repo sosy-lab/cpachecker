@@ -145,7 +145,7 @@ public class MathsatSummaryFormulaManager extends MathsatSymbolicFormulaManager
                         !succ.equals(summary.getInnerNode())) {
                     isLeaf = false;
                     Pair<SymbolicFormula, SSAMap> p =
-                        makeAnd(t, e, ssa, false, false);
+                        makeAnd(t, e, ssa, false);
                     SymbolicFormula t1 = p.getFirst();
                     SSAMap ssa1 = p.getSecond();
                     updateMaxIndex(ssa1);
