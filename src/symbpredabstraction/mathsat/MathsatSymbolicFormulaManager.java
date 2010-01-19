@@ -80,7 +80,6 @@ import cmdline.CPAMain;
 
 import common.Pair;
 
-import cpa.symbpredabs.BlockEdge;
 import exceptions.UnrecognizedCFAEdgeException;
 
 
@@ -330,19 +329,6 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       throws UnrecognizedCFAEdgeException {
     // this is where the "meat" is... We have to parse the statement
     // attached to the edge, and convert it to the appropriate formula
-
-    // TODO this should be in MathsatSummaryFormulaManager
-    if (edge instanceof BlockEdge) {
-      BlockEdge block = (BlockEdge)edge;
-      PathFormula ret = null;
-      for (CFAEdge e : block.getEdges()) {
-        ret = makeAnd(f1, e, ssa, absoluteSSAIndices);
-        f1 = ret.getFirst();
-        ssa = ret.getSecond();
-      }
-      assert(ret != null);
-      return ret;
-    }
 
     MathsatSymbolicFormula m1 = (MathsatSymbolicFormula)f1;
 

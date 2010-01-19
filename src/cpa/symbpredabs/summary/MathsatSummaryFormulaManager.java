@@ -35,6 +35,7 @@ import java.util.logging.Level;
 
 import cmdline.CPAMain;
 
+import symbpredabstraction.PathFormula;
 import symbpredabstraction.SSAMap;
 import symbpredabstraction.interfaces.SymbolicFormula;
 import symbpredabstraction.mathsat.MathsatSymbolicFormula;
@@ -44,6 +45,7 @@ import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFANode;
 
 import common.Pair;
+import cpa.symbpredabs.BlockEdge;
 import exceptions.UnrecognizedCFAEdgeException;
 
 /**
@@ -130,8 +132,8 @@ public class MathsatSummaryFormulaManager extends MathsatSymbolicFormulaManager
 
             assert(nodeToFormula.containsKey(in));
 
-            MathsatSymbolicFormula t = nodeToFormula.get(in);
-            SSAMap ssa = nodeToSSA.get(in);
+            final SymbolicFormula t = nodeToFormula.get(in);
+            final SSAMap ssa = nodeToSSA.get(in);
             //updateMaxIndex(ssa);
 
             boolean isLeaf = true;
@@ -144,8 +146,22 @@ public class MathsatSummaryFormulaManager extends MathsatSymbolicFormulaManager
                 if (succ.getSummaryNode().equals(summary) &&
                         !succ.equals(summary.getInnerNode())) {
                     isLeaf = false;
-                    Pair<SymbolicFormula, SSAMap> p =
-                        makeAnd(t, e, ssa, false);
+                    
+                    PathFormula p = null;
+                    if (e instanceof BlockEdge) {
+                      BlockEdge block = (BlockEdge)e;
+                      SymbolicFormula f = t;
+                      SSAMap fSSA = ssa;
+                      for (CFAEdge edge : block.getEdges()) {
+                        p = makeAnd(f, edge, fSSA, false);
+                        f = p.getFirst();
+                        fSSA = p.getSecond();
+                      }
+                      assert(p != null);
+                    } else {
+                      p = makeAnd(t, e, ssa, false);
+                    }
+                    
                     SymbolicFormula t1 = p.getFirst();
                     SSAMap ssa1 = p.getSecond();
                     updateMaxIndex(ssa1);
