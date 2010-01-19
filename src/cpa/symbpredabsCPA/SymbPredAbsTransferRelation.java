@@ -143,11 +143,14 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
    */
   private AbstractElement handleNonAbstractionLocation(SymbPredAbsAbstractElement element, CFAEdge edge)
   throws UnrecognizedCFAEdgeException {
-    
+    CPAMain.logManager.log(Level.FINEST, "Handling non-abstraction location.");
+
     // id of parent
     int abstractionNodeId = element.getAbstractionLocation().getNodeNumber();
 
     PathFormula pf = convertEdgeToPathFormula(element.getPathFormula(), edge, abstractionNodeId); 
+
+    CPAMain.logManager.log(Level.ALL, "New path formula is", pf);
 
     // update pfParents list
     List<Integer> newPfParents = new ArrayList<Integer>();

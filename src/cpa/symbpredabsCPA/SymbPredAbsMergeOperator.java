@@ -25,6 +25,9 @@ package cpa.symbpredabsCPA;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+
+import cmdline.CPAMain;
 
 import symbpredabstraction.PathFormula;
 import symbpredabstraction.SSAMap;
@@ -93,6 +96,9 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
         assert (elem1.getInitAbstractionFormula() == elem2.getInitAbstractionFormula());
         assert (elem1.getAbstractionLocation() == elem2.getAbstractionLocation());
 
+        CPAMain.logManager.log(Level.FINEST, "Merging two non-abstraction nodes with parents",
+                elem1.getPfParents(), "and", elem2.getPfParents(), ".");
+
         SymbolicFormula formula1 = elem1.getPathFormula().getSymbolicFormula();
         SymbolicFormula formula2 = elem2.getPathFormula().getSymbolicFormula();
         SSAMap ssa1 = elem1.getPathFormula().getSsa();
@@ -106,6 +112,8 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
 
         PathFormula pathFormula = new PathFormula(newFormula, ssa1);
         
+        CPAMain.logManager.log(Level.ALL, "New path formula is", pathFormula);
+
         // now we update the pfParents,
         List<Integer> pfParents = new ArrayList<Integer>();
         pfParents.addAll(elem2.getPfParents());
