@@ -95,7 +95,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     abstractFormulaManager = pCpa.getAbstractFormulaManager();
     formulaManager = pCpa.getFormulaManager();
     
-    blockSize = Integer.parseInt(CPAMain.cpaConfig.getProperty("cpa.symbpredabs.blocksize", "0"));
+    blockSize = Integer.parseInt(CPAMain.cpaConfig.getProperty("cpas.symbpredabs.blocksize", "0"));
   }
 
   @Override
