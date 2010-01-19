@@ -44,14 +44,11 @@ import exceptions.TransferTimeOutException;
 
 public class CompositeTransferRelation implements TransferRelation{
 
-  private final CompositeDomain compositeDomain;
   private final List<TransferRelation> transferRelations;
 
   // private LocationTransferRelation locationTransferRelation;
 
-  public CompositeTransferRelation (CompositeDomain compositeDomain, List<TransferRelation> transferRelations)
-  {
-    this.compositeDomain = compositeDomain;
+  public CompositeTransferRelation (List<TransferRelation> transferRelations) {
     this.transferRelations = transferRelations;
   }
 
@@ -112,7 +109,6 @@ public class CompositeTransferRelation implements TransferRelation{
 
       if(! topCallElement.isConsistent(cfaEdge.getSuccessor()) ||
           ! returnElement.isConsistent(cfaEdge.getSuccessor().getFunctionName()) ) {
-        compositeSuccessors.add(compositeDomain.getBottomElement());
         return;
       }
 
