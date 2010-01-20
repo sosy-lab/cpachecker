@@ -23,13 +23,16 @@
  */
 package symbpredabstraction;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 
 import symbpredabstraction.interfaces.SymbolicFormula;
 
+import com.google.common.base.Joiner;
+import com.google.common.collect.Lists;
 import common.Pair;
 
 /**
@@ -39,104 +42,88 @@ import common.Pair;
  * referring to that variable
  */
 public class SSAMap {
-  static long ssaMapEqualsTime = 0;
-  static long ssaMapHashTime = 0;
-  static long ssaGetIndexTime = 0;
-    private interface Key {}
-    private static class VarKey implements Key {
-        private String name;
+  
+  private static interface Key {}
+  
+  private static class VarKey implements Key {
+    private final String name;
 
-        public VarKey(String str) { name = str; }
-        public String getName() { return name; }
+    public VarKey(String str) { name = str; }
+    public String getName() { return name; }
 
-        @Override
-        public int hashCode() {
-          long start = System.currentTimeMillis();
-          int i = name.hashCode();
-          long end = System.currentTimeMillis();
-          ssaMapHashTime = ssaMapHashTime + (end - start);
-          return i;
-          }
-        @Override
-        public boolean equals(Object o) {
-          boolean b = false;
-          long start = System.currentTimeMillis();
-            if (o instanceof VarKey) {
-                b = name.equals(((VarKey)o).name);
-            } else if (o instanceof String) {
-                b = name.equals(o);
-            }
-            long end = System.currentTimeMillis();
-            ssaMapEqualsTime = ssaMapEqualsTime + (end - start);
-            return b;
-        }
-
-        @Override
-        public String toString() { return name; }
+    @Override
+    public int hashCode() {
+      return name.hashCode();
     }
-    private static class FuncKey implements Key {
-        private String name;
-        private SymbolicFormula[] args;
-
-        public FuncKey(String n, SymbolicFormula[] a) {
-            name = n;
-            args = a;
-        }
-        public String getName() { return name; }
-        public SymbolicFormula[] getArgs() { return args; }
-
-        @Override
-        public int hashCode() {
-            int ret = name.hashCode();
-            for (SymbolicFormula a : args) ret ^= a.hashCode();
-            return ret;
-        }
-        @Override
-        public boolean equals(Object o) {
-            if (o instanceof FuncKey) {
-                FuncKey f = (FuncKey)o;
-                if (!name.equals(f.name)) return false;
-                for (int i = 0; i < args.length; ++i) {
-                    if (!args[i].equals(f.args[i])) return false;
-                }
-                return true;
-            }
-            return false;
-        }
-
-        @Override
-        public String toString() {
-            StringBuffer buf = new StringBuffer();
-            buf.append(name);
-            buf.append("(");
-            for (SymbolicFormula a : args) {
-                buf.append(a.toString());
-                buf.append(",");
-            }
-            buf.deleteCharAt(buf.length()-1);
-            buf.append(")");
-            return buf.toString();
-        }
+    
+    @Override
+    public boolean equals(Object o) {
+      boolean b = false;
+      if (o instanceof VarKey) {
+          b = name.equals(((VarKey)o).name);
+      } else if (o instanceof String) {
+          b = name.equals(o);
+      }
+      return b;
     }
-    private Map<Key, Integer> repr = new HashMap<Key, Integer>();
-    private static int nextSSAIndex = 1;
+
+    @Override
+    public String toString() { return name; }
+  }
+    
+  private static class FuncKey implements Key {
+    private final String name;
+    private final SymbolicFormula[] args;
+
+    public FuncKey(String n, SymbolicFormula[] a) {
+        name = n;
+        args = a;
+    }
+    
+    public String getName() { return name; }
+    public SymbolicFormula[] getArgs() { return args; }
+
+    @Override
+    public int hashCode() {
+        return 31 * name.hashCode() + Arrays.hashCode(args);
+    }
+    
+    @Override
+    public boolean equals(Object o) {
+      if (o == this) {
+        return true;
+      } else if (o instanceof FuncKey) {
+          FuncKey f = (FuncKey)o;
+          return name.equals(f.name) && Arrays.deepEquals(args, f.args);
+      } else {
+        return false;
+      }
+    }
+
+    @Override
+    public String toString() {
+      return name + "(" + Joiner.on(",").join(args) + ")";
+    }
+  }
+  
+  private final Map<Key, Integer> repr = new HashMap<Key, Integer>();
+  
+  @Deprecated
+  private static int nextSSAIndex = 1;
 
     /**
      * returns the index of the variable in the map
      */
     public int getIndex(String variable) {
       int i;
-      long start = System.currentTimeMillis();
-        VarKey k = new VarKey(variable);
-        if (repr.containsKey(k)) {
-            i = repr.get(k);
-        } else {
-            // no index found, return -1
-            i = -1;
-        }
-        long end = System.currentTimeMillis();
-        ssaGetIndexTime = ssaGetIndexTime + (end - start);
-        return i;
+      VarKey k = new VarKey(variable);
+      if (repr.containsKey(k)) {
+          i = repr.get(k);
+      } else {
+          // no index found, return -1
+          i = -1;
+      }
+      return i;
     }
 
     public void setIndex(String variable, int idx) {
@@ -156,63 +143,41 @@ public class SSAMap {
         repr.put(new FuncKey(name, args), idx);
     }
 
-    public int getIndex(String name, SymbolicFormula arg) {
-        SymbolicFormula[] args = {arg};
-        return getIndex(name, args);
-    }
-
-    public void setIndex(String name, SymbolicFormula arg, int idx) {
-        SymbolicFormula[] args = {arg};
-        setIndex(name, args, idx);
-    }
-
     /**
      * returns the next available global index. This method is not used anymore
      * (except in broken code :-) and should be removed.
      */
+    @Deprecated
     public static int getNextSSAIndex() {
         return nextSSAIndex++;
     }
 
     public Collection<String> allVariables() {
-        Vector<String> ret = new Vector<String>();
-        ret.ensureCapacity(repr.size());
-        for (Key k : repr.keySet()) {
-            if (k instanceof VarKey) {
-                ret.add(((VarKey)k).getName());
-            }
-        }
-        return ret;
-    }
+      List<String> ret = Lists.newArrayList();
 
-    public Collection<Pair<String, SymbolicFormula[]>> allFunctions() {
-        Vector<Pair<String, SymbolicFormula[]>> ret =
-            new Vector<Pair<String, SymbolicFormula[]>>();
-        ret.ensureCapacity(repr.size());
-        for (Key k : repr.keySet()) {
-            if (k instanceof FuncKey) {
-                FuncKey kk = (FuncKey)k;
-                Pair<String, SymbolicFormula[]> p =
-                    new Pair<String, SymbolicFormula[]>(
-                            kk.getName(), kk.getArgs());
-                ret.add(p);
-            }
+      for (Key k : repr.keySet()) {
+        if (k instanceof VarKey) {
+          ret.add(((VarKey)k).getName());
         }
-        return ret;
+      }
+      return ret;
+    }
+    
+    public Collection<Pair<String, SymbolicFormula[]>> allFunctions() {
+      List<Pair<String, SymbolicFormula[]>> ret = Lists.newArrayList();
+
+      for (Key k : repr.keySet()) {
+        if (k instanceof FuncKey) {
+          FuncKey kk = (FuncKey)k;
+          ret.add(new Pair<String, SymbolicFormula[]>(kk.getName(), kk.getArgs()));
+        }
+      }
+      return ret;
     }
 
     @Override
     public String toString() {
-        StringBuffer buf = new StringBuffer();
-        buf.append("{ ");
-        for (Key k : repr.keySet()) {
-            buf.append(k);
-            buf.append("@");
-            buf.append(repr.get(k));
-            buf.append(" ");
-        }
-        buf.append("}");
-        return buf.toString();
+      return Joiner.on(" ").withKeyValueSeparator("@").join(repr);
     }
 
     /**

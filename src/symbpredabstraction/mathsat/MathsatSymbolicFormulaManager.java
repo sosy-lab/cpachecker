@@ -148,10 +148,10 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
   private Map<Long, Boolean> arithCache;
 
   // cache for uninstantiating terms (see uninstantiate() below)
-  protected Map<Long, Long> uninstantiateGlobalCache;
+  private Map<Long, Long> uninstantiateGlobalCache;
 
   // cache for replacing assignments
-  protected Map<Long, Long> replaceAssignmentsCache;
+  private Map<Long, Long> replaceAssignmentsCache;
   private Map<Long, Integer> neededTheories;
 
   private Set<IASTExpression> warnedUnsafeVars =
@@ -336,7 +336,8 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       setNamespace(edge.getPredecessor().getFunctionName());
     }
 
-    if (isStartOfFunction(edge)) {
+    if (edge.getPredecessor() instanceof FunctionDefinitionNode) {
+      // function start
       Pair<SymbolicFormula, SSAMap> p = makeAndEnterFunction(
           m1, (FunctionDefinitionNode)edge.getPredecessor(), ssa, absoluteSSAIndices);
       m1 = (MathsatSymbolicFormula)p.getFirst();
@@ -364,139 +365,11 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     }
 
     case DeclarationEdge: {
-      // at each declaration, we instantiate the variable in the SSA:
-      // this is to avoid problems with uninitialized variables
-      SSAMap newssa = new SSAMap();
-      newssa.copyFrom(ssa);
-
-      IASTDeclarator[] decls =
-        ((DeclarationEdge)edge).getDeclarators();
-      IASTDeclSpecifier spec = ((DeclarationEdge)edge).getDeclSpecifier();
-
-      boolean isGlobal = edge instanceof GlobalDeclarationEdge;
-
-      if (spec instanceof IASTEnumerationSpecifier) {
-        // extract the fields, and add them as global variables
-        assert(isGlobal);
-        IASTEnumerationSpecifier.IASTEnumerator[] enums =
-          ((IASTEnumerationSpecifier)spec).getEnumerators();
-        for (IASTEnumerationSpecifier.IASTEnumerator e : enums) {
-          String var = e.getName().getRawSignature();
-          globalVars.add(var);
-          IASTExpression exp = e.getValue();
-          assert(exp != null);
-
-          int idx = absoluteSSAIndices ? SSAMap.getNextSSAIndex() : 1;
-          newssa.setIndex(var, idx);
-
-          CPAMain.logManager.log(Level.ALL, "DEBUG_3",
-              "Declared enum field: ", var, ", index: ", idx);
-
-          long minit = buildMsatTerm(exp, newssa, absoluteSSAIndices);
-          long mvar = buildMsatVariable(var, idx);
-          long t = makeAssignment(mvar, minit);
-          t = mathsat.api.msat_make_and(msatEnv, m1.getTerm(), t);
-          m1 = new MathsatSymbolicFormula(t);
-        }
-        return new PathFormula(m1, newssa);
-      }
-
-
-      if (!(spec instanceof IASTSimpleDeclSpecifier ||
-          spec instanceof IASTElaboratedTypeSpecifier ||
-          spec instanceof IASTNamedTypeSpecifier)) {
-
-        if (spec instanceof IASTCompositeTypeSpecifier) {
-          // this is the declaration of a struct, just ignore it...
-          warn("IGNORING declaration: " + edge.getRawStatement());
-          return new PathFormula(m1, newssa);
-        } else {
-          throw new UnrecognizedCFAEdgeException(
-              "UNSUPPORTED SPECIFIER FOR DECLARATION: " +
-              edge.getRawStatement());
-        }
-      }
-
-      if (spec.getStorageClass() == IASTDeclSpecifier.sc_typedef) {
-        warn("IGNORING typedef: " + edge.getRawStatement());
-        return new PathFormula(m1, newssa);
-      }
-
-      for (IASTDeclarator d : decls) {
-        String var = d.getName().getRawSignature();
-        if (isGlobal) {
-          globalVars.add(var);
-        }
-        var = scoped(var);
-        int idx = absoluteSSAIndices ? SSAMap.getNextSSAIndex() :
-          getNewIndex(var, newssa)/*1*/;
-        newssa.setIndex(var, idx);
-
-        CPAMain.logManager.log(Level.ALL, "DEBUG_3",
-            "Declared variable: ", var, ", index: ", idx);
-        // TODO get the type of the variable, and act accordingly
-
-        // if the var is unsigned, add the constraint that it should
-        // be > 0
-//      if (((IASTSimpleDeclSpecifier)spec).isUnsigned()) {
-//      long z = mathsat.api.msat_make_number(msatEnv, "0");
-//      long mvar = buildMsatVariable(var, idx);
-//      long t = mathsat.api.msat_make_gt(msatEnv, mvar, z);
-//      t = mathsat.api.msat_make_and(msatEnv, m1.getTerm(), t);
-//      m1 = new MathsatSymbolicFormula(t);
-//      }
-
-        // if there is an initializer associated to this variable,
-        // take it into account
-        if (d.getInitializer() != null) {
-          IASTInitializer init = d.getInitializer();
-          if (!(init instanceof IASTInitializerExpression)) {
-//          throw new UnrecognizedCFAEdgeException(
-//          "BAD INITIALIZER: " + edge.getRawStatement());
-            warn("UNSUPPORTED INITIALIZER: " +
-                edge.getRawStatement() + ", ignoring it!");
-            continue;
-          }
-          IASTExpression exp =
-            ((IASTInitializerExpression)init).getExpression();
-          long minit = buildMsatTerm(exp, newssa, absoluteSSAIndices);
-          long mvar = buildMsatVariable(var, idx);
-          long t = makeAssignment(mvar, minit);
-          t = mathsat.api.msat_make_and(msatEnv, m1.getTerm(), t);
-          m1 = new MathsatSymbolicFormula(t);
-        } else if (spec.getStorageClass() ==
-          IASTDeclSpecifier.sc_extern) {
-          warn("NOT initializing, because extern declaration: " +
-              edge.getRawStatement());
-        } else if (isGlobal ||
-            CPAMain.cpaConfig.getBooleanValue(
-                "cpas.symbpredabs.initAllVars")) {
-          // auto-initialize variables to zero, unless they match
-          // the noAutoInitPrefix pattern
-          String noAutoInit = CPAMain.cpaConfig.getProperty(
-              "cpas.symbpredabs.noAutoInitPrefix", "");
-          if (noAutoInit.equals("") ||
-              !d.getName().getRawSignature().startsWith(noAutoInit)) {
-            long mvar = buildMsatVariable(var, idx);
-            long z = mathsat.api.msat_make_number(msatEnv, "0");
-            long t = makeAssignment(mvar, z);
-            t = mathsat.api.msat_make_and(msatEnv, m1.getTerm(), t);
-            m1 = new MathsatSymbolicFormula(t);
-            CPAMain.logManager.log(Level.ALL, "DEBUG_3", "AUTO-INITIALIZING",
-                (isGlobal ? "GLOBAL" : ""), "VAR: ",
-                var, " (", d.getName().getRawSignature(), ")");
-          } else {
-            CPAMain.logManager.log(Level.ALL, "DEBUG_3",
-                "NOT AUTO-INITIALIZING VAR:", var);
-          }
-        }
-      }
-      return new PathFormula(m1, newssa);
+      return makeAndDeclaration(m1, (DeclarationEdge)edge, ssa, absoluteSSAIndices);
     }
 
     case AssumeEdge: {
-      AssumeEdge assumeEdge = (AssumeEdge)edge;
-      return makeAndAssume(m1, assumeEdge, ssa, absoluteSSAIndices);
+      return makeAndAssume(m1, (AssumeEdge)edge, ssa, absoluteSSAIndices);
     }
 
     case BlankEdge: {
@@ -504,12 +377,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     }
 
     case FunctionCallEdge: {
-      SSAMap newssa = new SSAMap();
-      newssa.copyFrom(ssa);
-      ssa = newssa;
-
-      return makeAndFunctionCall(m1, (FunctionCallEdge)edge, ssa,
-          absoluteSSAIndices);
+      return makeAndFunctionCall(m1, (FunctionCallEdge)edge, ssa, absoluteSSAIndices);
     }
 
     case ReturnEdge: {
@@ -529,6 +397,138 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     return new PathFormula(f1, ssa);
   }
 
+  private PathFormula makeAndDeclaration(
+      MathsatSymbolicFormula m1, DeclarationEdge declarationEdge, SSAMap ssa,
+      boolean absoluteSSAIndices) throws UnrecognizedCFAEdgeException {
+    // at each declaration, we instantiate the variable in the SSA:
+    // this is to avoid problems with uninitialized variables
+    SSAMap newssa = new SSAMap();
+    newssa.copyFrom(ssa);
+
+    IASTDeclarator[] decls = declarationEdge.getDeclarators();
+    IASTDeclSpecifier spec = declarationEdge.getDeclSpecifier();
+
+    boolean isGlobal = declarationEdge instanceof GlobalDeclarationEdge;
+
+    if (spec instanceof IASTEnumerationSpecifier) {
+      // extract the fields, and add them as global variables
+      assert(isGlobal);
+      IASTEnumerationSpecifier.IASTEnumerator[] enums =
+        ((IASTEnumerationSpecifier)spec).getEnumerators();
+      for (IASTEnumerationSpecifier.IASTEnumerator e : enums) {
+        String var = e.getName().getRawSignature();
+        globalVars.add(var);
+        IASTExpression exp = e.getValue();
+        assert(exp != null);
+
+        int idx = absoluteSSAIndices ? SSAMap.getNextSSAIndex() : 1;
+        newssa.setIndex(var, idx);
+
+        CPAMain.logManager.log(Level.ALL, "DEBUG_3",
+            "Declared enum field: ", var, ", index: ", idx);
+
+        long minit = buildMsatTerm(exp, newssa, absoluteSSAIndices);
+        long mvar = buildMsatVariable(var, idx);
+        long t = makeAssignment(mvar, minit);
+        t = mathsat.api.msat_make_and(msatEnv, m1.getTerm(), t);
+        m1 = new MathsatSymbolicFormula(t);
+      }
+      return new PathFormula(m1, newssa);
+    }
+
+
+    if (!(spec instanceof IASTSimpleDeclSpecifier ||
+        spec instanceof IASTElaboratedTypeSpecifier ||
+        spec instanceof IASTNamedTypeSpecifier)) {
+
+      if (spec instanceof IASTCompositeTypeSpecifier) {
+        // this is the declaration of a struct, just ignore it...
+        warn("IGNORING declaration: " + declarationEdge.getRawStatement());
+        return new PathFormula(m1, newssa);
+      } else {
+        throw new UnrecognizedCFAEdgeException(
+            "UNSUPPORTED SPECIFIER FOR DECLARATION: " +
+            declarationEdge.getRawStatement());
+      }
+    }
+
+    if (spec.getStorageClass() == IASTDeclSpecifier.sc_typedef) {
+      warn("IGNORING typedef: " + declarationEdge.getRawStatement());
+      return new PathFormula(m1, newssa);
+    }
+
+    for (IASTDeclarator d : decls) {
+      String var = d.getName().getRawSignature();
+      if (isGlobal) {
+        globalVars.add(var);
+      }
+      var = scoped(var);
+      int idx = absoluteSSAIndices ? SSAMap.getNextSSAIndex() :
+        getNewIndex(var, newssa)/*1*/;
+      newssa.setIndex(var, idx);
+
+      CPAMain.logManager.log(Level.ALL, "DEBUG_3",
+          "Declared variable: ", var, ", index: ", idx);
+      // TODO get the type of the variable, and act accordingly
+
+      // if the var is unsigned, add the constraint that it should
+      // be > 0
+//    if (((IASTSimpleDeclSpecifier)spec).isUnsigned()) {
+//    long z = mathsat.api.msat_make_number(msatEnv, "0");
+//    long mvar = buildMsatVariable(var, idx);
+//    long t = mathsat.api.msat_make_gt(msatEnv, mvar, z);
+//    t = mathsat.api.msat_make_and(msatEnv, m1.getTerm(), t);
+//    m1 = new MathsatSymbolicFormula(t);
+//    }
+
+      // if there is an initializer associated to this variable,
+      // take it into account
+      if (d.getInitializer() != null) {
+        IASTInitializer init = d.getInitializer();
+        if (!(init instanceof IASTInitializerExpression)) {
+//        throw new UnrecognizedCFAEdgeException(
+//        "BAD INITIALIZER: " + edge.getRawStatement());
+          warn("UNSUPPORTED INITIALIZER: " +
+              declarationEdge.getRawStatement() + ", ignoring it!");
+          continue;
+        }
+        IASTExpression exp =
+          ((IASTInitializerExpression)init).getExpression();
+        long minit = buildMsatTerm(exp, newssa, absoluteSSAIndices);
+        long mvar = buildMsatVariable(var, idx);
+        long t = makeAssignment(mvar, minit);
+        t = mathsat.api.msat_make_and(msatEnv, m1.getTerm(), t);
+        m1 = new MathsatSymbolicFormula(t);
+      } else if (spec.getStorageClass() ==
+        IASTDeclSpecifier.sc_extern) {
+        warn("NOT initializing, because extern declaration: " +
+            declarationEdge.getRawStatement());
+      } else if (isGlobal ||
+          CPAMain.cpaConfig.getBooleanValue(
+              "cpas.symbpredabs.initAllVars")) {
+        // auto-initialize variables to zero, unless they match
+        // the noAutoInitPrefix pattern
+        String noAutoInit = CPAMain.cpaConfig.getProperty(
+            "cpas.symbpredabs.noAutoInitPrefix", "");
+        if (noAutoInit.equals("") ||
+            !d.getName().getRawSignature().startsWith(noAutoInit)) {
+          long mvar = buildMsatVariable(var, idx);
+          long z = mathsat.api.msat_make_number(msatEnv, "0");
+          long t = makeAssignment(mvar, z);
+          t = mathsat.api.msat_make_and(msatEnv, m1.getTerm(), t);
+          m1 = new MathsatSymbolicFormula(t);
+          CPAMain.logManager.log(Level.ALL, "DEBUG_3", "AUTO-INITIALIZING",
+              (isGlobal ? "GLOBAL" : ""), "VAR: ",
+              var, " (", d.getName().getRawSignature(), ")");
+        } else {
+          CPAMain.logManager.log(Level.ALL, "DEBUG_3",
+              "NOT AUTO-INITIALIZING VAR:", var);
+        }
+      }
+    }
+    return new PathFormula(m1, newssa);
+  }
+  
   private Pair<SymbolicFormula, SSAMap> makeAndEnterFunction(
       MathsatSymbolicFormula m1, FunctionDefinitionNode fn, SSAMap ssa,
       boolean absoluteSSAIndices)
@@ -594,10 +594,6 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     CPAMain.logManager.log(Level.ALL, "DEBUG_2", "WARNING:", msg);
   }
 
-  protected boolean isStartOfFunction(CFAEdge edge) {
-    return edge.getPredecessor() instanceof FunctionDefinitionNode;
-  }
-
   private PathFormula makeAndExitFunction(
       MathsatSymbolicFormula m1, CallToReturnEdge ce, SSAMap ssa,
       boolean absoluteSSAIndices)
@@ -643,6 +639,10 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       throw new UnrecognizedCFAEdgeException(
           "EXTERNAL CALL UNSUPPORTED: " + edge.getRawStatement());
     } else {
+      SSAMap newssa = new SSAMap();
+      newssa.copyFrom(ssa);
+      ssa = newssa;
+      
       // build the actual parameters in the caller's context
       long[] msatActualParams;
       if (edge.getArguments() == null) {
@@ -1390,7 +1390,8 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         (fexp.isPointerDereference() ? "->{" : ".{") +
         tpname + "," + field + "}";
       int idx = getLvalIndex(ufname, term, ssa, absoluteSSAIndices);
-      ssa.setIndex(ufname, new MathsatSymbolicFormula(term), idx);
+      SymbolicFormula[] args = {new MathsatSymbolicFormula(term)};
+      ssa.setIndex(ufname, args, idx);
       // see above for the case of &x and *x
       long decl = mathsat.api.msat_declare_uif(msatEnv,
           ufname + "@" + idx, msatVarType, 1, new int[]{msatVarType});
@@ -1813,26 +1814,16 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     return new Pair<Long, Long>(e1, e2);
   }
 
-  protected int getNewIndex(String var, SSAMap ssa) {
+  private int getNewIndex(String var, SSAMap ssa) {
     int idx = ssa.getIndex(var);
     if (idx > 0) return idx+1;
     else return 1;
   }
 
-  protected int getNewIndex(String f, SymbolicFormula arg, SSAMap ssa) {
-    int idx = ssa.getIndex(f, arg);
-    if (idx > 0) return idx+1;
-    else return 1;
-  }
-
-  protected int getNewIndex(String f, SymbolicFormula[] args, SSAMap ssa) {
+  private int getNewIndex(String f, SymbolicFormula[] args, SSAMap ssa) {
     int idx = ssa.getIndex(f, args);
     if (idx > 0) return idx+1;
     else return 1;
-  }
-
-  protected int getNewIndex(String var, int i1, int i2) {
-    return Math.max(i1, i2) + 1;
   }
 
   public Pair<Pair<SymbolicFormula, SymbolicFormula>, SSAMap> mergeSSAMaps(

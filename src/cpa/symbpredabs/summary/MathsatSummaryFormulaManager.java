@@ -56,8 +56,6 @@ import exceptions.UnrecognizedCFAEdgeException;
 public class MathsatSummaryFormulaManager extends MathsatSymbolicFormulaManager
         implements SummaryFormulaManager {
 
-    private SSAMap maxIndex = null;
-
     // Computes a topological order of the nodes in the subgraph corresponding
     // to the given Summary location
     private List<InnerCFANode> topologicalSort(SummaryCFANode summary) {
@@ -125,8 +123,6 @@ public class MathsatSummaryFormulaManager extends MathsatSymbolicFormulaManager
                           (MathsatSymbolicFormula)makeTrue());
         nodeToSSA.put((InnerCFANode)summary.getInnerNode(), new SSAMap());
 
-        maxIndex = new SSAMap();
-
         for (InnerCFANode in : toProcess) {
             CFANode n = (CFANode)in;
 
@@ -164,7 +160,6 @@ public class MathsatSummaryFormulaManager extends MathsatSymbolicFormulaManager
                     
                     SymbolicFormula t1 = p.getFirst();
                     SSAMap ssa1 = p.getSecond();
-                    updateMaxIndex(ssa1);
                     if (nodeToFormula.containsKey(succ)) {
                         MathsatSymbolicFormula old =
                             nodeToFormula.get(succ);
@@ -187,7 +182,6 @@ public class MathsatSummaryFormulaManager extends MathsatSymbolicFormulaManager
                                                    t1).getTerm()), " ", t1);
 
                     nodeToSSA.put(succ, ssa1);
-                    updateMaxIndex(ssa1);
                 }
             }
             if (isLeaf) {
@@ -213,43 +207,6 @@ public class MathsatSummaryFormulaManager extends MathsatSymbolicFormulaManager
                     " IS: ", f);
         }
 
-        maxIndex = null;
-
         return ret;
-    }
-
-    //-------------------------------------------------------------------------
-    // From here on only unused code, that should be removed
-    //-------------------------------------------------------------------------
-
-    private void updateMaxIndex(SSAMap ssa) {
-        assert(maxIndex != null);
-        for (String var : ssa.allVariables()) {
-            int i = ssa.getIndex(var);
-            int i2 = maxIndex.getIndex(var);
-            maxIndex.setIndex(var, Math.max(i, i2));
-        }
-    }
-
-    @Override
-    protected int getNewIndex(String var, SSAMap ssa) {
-//        if (maxIndex != null) {
-//            int idx = maxIndex.getIndex(var);
-//            if (idx < 0) idx = 1;
-//            else idx += 1;
-//            return idx;
-//        }
-        return super.getNewIndex(var, ssa);
-    }
-
-    @Override
-    protected int getNewIndex(String var, int i1, int i2) {
-//        if (maxIndex != null) {
-//            int idx = maxIndex.getIndex(var);
-//            if (idx < 0) idx = 1;
-//            else idx += 1;
-//            return idx;
-//        }
-        return super.getNewIndex(var, i1, i2);
     }
 }
