@@ -81,7 +81,7 @@ public abstract class ItpCPA implements ConfigurableProgramAnalysis, CPAWithStat
     protected ItpStopOperator stop;
     protected PrecisionAdjustment precisionAdjustment;
     protected MathsatSymbolicFormulaManager mgr;
-    protected ItpCounterexampleRefiner refiner;
+    protected ItpCounterexampleRefiner<Integer> refiner;
 
     // covering relation
     protected Map<ItpAbstractElement,
@@ -104,10 +104,10 @@ public abstract class ItpCPA implements ConfigurableProgramAnalysis, CPAWithStat
             assert(false);
             System.exit(1);
         }
-        InterpolatingTheoremProver itpProver =
+        InterpolatingTheoremProver<Integer> itpProver =
             new MathsatInterpolatingProver(mgr, true);
         ExplicitAbstractFormulaManager amgr =
-            new BDDMathsatExplicitAbstractManager(abstractFormulaManager, mgr, thmProver, itpProver);
+            new BDDMathsatExplicitAbstractManager<Integer>(abstractFormulaManager, mgr, thmProver, itpProver);
 
         domain = new ItpAbstractDomain(this);
         trans = new ItpTransferRelation(domain);
@@ -115,7 +115,7 @@ public abstract class ItpCPA implements ConfigurableProgramAnalysis, CPAWithStat
         stop = new ItpStopOperator(domain, thmProver);
         precisionAdjustment = StaticPrecisionAdjustment.getInstance();
 
-        refiner = new ItpCounterexampleRefiner(amgr, itpProver);
+        refiner = new ItpCounterexampleRefiner<Integer>(amgr, itpProver);
 
         covers = new HashMap<ItpAbstractElement,
                              Set<ItpAbstractElement>>();
@@ -181,7 +181,7 @@ public abstract class ItpCPA implements ConfigurableProgramAnalysis, CPAWithStat
       return null;
     }
 
-    public ItpCounterexampleRefiner getRefiner() {
+    public ItpCounterexampleRefiner<Integer> getRefiner() {
         return refiner;
     }
 

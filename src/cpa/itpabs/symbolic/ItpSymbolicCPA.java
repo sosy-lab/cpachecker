@@ -139,7 +139,7 @@ public class ItpSymbolicCPA extends ItpCPA {
         stats = new ItpCPAStatistics(this,
                 "Symbolic Interpolation-based Lazy Abstraction with Summaries");
         mgr = new MathsatSummaryFormulaManager();
-        refiner = new ItpSymbolicCounterexampleRefiner();
+        refiner = new ItpSymbolicCounterexampleRefiner<Integer>();
         summaryToFormulaMap =
             new HashMap<SummaryCFANode,
                         Map<CFANode, Pair<SymbolicFormula, SSAMap>>>();

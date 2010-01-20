@@ -183,7 +183,7 @@ public class ItpTransferRelation implements TransferRelation {
     ItpAbstractElementManager elemMgr = domain.getCPA().getElementCreator();
 
     if (e.isError()) {
-      ItpCounterexampleRefiner refiner = cpa.getRefiner();
+      ItpCounterexampleRefiner<?> refiner = cpa.getRefiner();
       // reached error location, we have to refine the abstraction
       Deque<ItpAbstractElement> path =
         new LinkedList<ItpAbstractElement>();

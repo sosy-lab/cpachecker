@@ -54,7 +54,7 @@ import exceptions.UnrecognizedCFAEdgeException;
  *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
-public class ItpCounterexampleRefiner {
+public class ItpCounterexampleRefiner<T> {
 
     // some statistics. All times are in milliseconds
     public class Stats {
@@ -85,10 +85,10 @@ public class ItpCounterexampleRefiner {
     private Map<SymbolicFormula, MathsatSymbolicFormula> instantiateCache;
 
     private ExplicitAbstractFormulaManager amgr;
-    private InterpolatingTheoremProver itpProver;
+    private InterpolatingTheoremProver<T> itpProver;
 
     public ItpCounterexampleRefiner(ExplicitAbstractFormulaManager mgr,
-            InterpolatingTheoremProver interpolator) {
+            InterpolatingTheoremProver<T> interpolator) {
         super();
         stats = new Stats();
         dumpCexQueries = CPAMain.cpaConfig.getBooleanValue(

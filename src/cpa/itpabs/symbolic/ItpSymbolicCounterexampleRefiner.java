@@ -58,7 +58,7 @@ import cpa.symbpredabs.summary.SummaryCFANode;
  * 
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
-public class ItpSymbolicCounterexampleRefiner extends ItpCounterexampleRefiner {
+public class ItpSymbolicCounterexampleRefiner<T> extends ItpCounterexampleRefiner<T> {
 
     public ItpSymbolicCounterexampleRefiner() {
         super(null, null); // TODO
