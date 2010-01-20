@@ -13,6 +13,7 @@ import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFANode;
 import cmdline.CPAMain;
 
+import com.google.common.collect.Sets;
 import common.Pair;
 
 import cpa.common.Path;
@@ -27,6 +28,8 @@ import exceptions.CPAException;
 public abstract class AbstractARTBasedRefiner implements Refiner {
 
   private final ARTCPA mArtCpa;
+
+  private final Set<Path> seenCounterexamples = Sets.newHashSet();
   
   protected AbstractARTBasedRefiner(ConfigurableProgramAnalysis pCpa) throws CPAException {
     if (!(pCpa instanceof ARTCPA)) {
@@ -50,6 +53,8 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
     Path path = buildPath((ARTElement)lastElement);
     
     CPAMain.logManager.log(Level.ALL, "Error path:\n", path);
+    
+    assert seenCounterexamples.add(path);
     
     Pair<ARTElement, Precision> refinementResult = performRefinement(pReached, path);
     
