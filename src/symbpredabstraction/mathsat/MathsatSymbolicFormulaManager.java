@@ -217,10 +217,33 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         "cpas.symbpredabs.mathsat.lvalsAsUIFs");
   }
 
+  /**
+   * Usage is deprecated outside of the symbpredabstraction.mathsat package.
+   * After all external references to this method have been eliminated, it should
+   * be made package private and the deprecation tag may be removed again.
+   */
+  @Deprecated
   public long getMsatEnv() {
     return msatEnv;
   }
 
+  @Override
+  public SymbolicFormula createPredicateVariable(SymbolicFormula atom) {
+    long tt = ((MathsatSymbolicFormula)atom).getTerm();
+    assert(!mathsat.api.MSAT_ERROR_TERM(tt));
+
+    String repr = mathsat.api.msat_term_is_atom(tt) != 0 ?
+                    mathsat.api.msat_term_repr(tt) :
+                      ("#" + mathsat.api.msat_term_id(tt));
+    long d = mathsat.api.msat_declare_variable(msatEnv,
+        "\"PRED" + repr + "\"",
+        mathsat.api.MSAT_BOOL);
+    long var = mathsat.api.msat_make_variable(msatEnv, d);
+    assert(!mathsat.api.MSAT_ERROR_TERM(var));
+    
+    return new MathsatSymbolicFormula(var);
+  }
+  
   public String dumpFormula(SymbolicFormula f) {
     MathsatSymbolicFormula m = (MathsatSymbolicFormula)f;
     
@@ -260,14 +283,8 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
 
   public boolean entails(SymbolicFormula f1, SymbolicFormula f2,
       TheoremProver thmProver) {
-    MathsatSymbolicFormula m1 = (MathsatSymbolicFormula)f1;
-    MathsatSymbolicFormula m2 = (MathsatSymbolicFormula)f2;
-
-    MathsatSymbolicFormula toCheck = new MathsatSymbolicFormula(
-        mathsat.api.msat_make_and(msatEnv,
-            m1.getTerm(),
-            mathsat.api.msat_make_not(msatEnv, m2.getTerm())));
-
+    SymbolicFormula toCheck = makeAnd(f1, makeNot(f2));
+    
     thmProver.init(TheoremProver.ENTAILMENT_CHECK);
     boolean ret = thmProver.isUnsat(toCheck);
     thmProver.reset();

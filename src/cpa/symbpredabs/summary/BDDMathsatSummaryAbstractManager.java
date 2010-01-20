@@ -23,9 +23,6 @@
  */
 package cpa.symbpredabs.summary;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -512,8 +509,7 @@ public class BDDMathsatSummaryAbstractManager<T> extends
             if (abstractionMsatTime > 10000 && dumpHardAbstractions) {
                 // we want to dump "hard" problems...
                 if (absPrinter == null) {
-                    absPrinter = new MathsatAbstractionPrinter(
-                            msatEnv, "abs");
+                    absPrinter = new MathsatAbstractionPrinter(mmgr, "abs");
                 }
                 absPrinter.printMsatFormat(curstate, term, preddef, important);
                 absPrinter.printNusmvFormat(curstate, term, preddef, important);
@@ -1011,7 +1007,7 @@ public class BDDMathsatSummaryAbstractManager<T> extends
 
                 Collection<SymbolicFormula> atoms = mmgr.extractAtoms(
                             itp, true, splitItpAtoms, false);
-                Set<Predicate> preds = buildPredicates(msatEnv, atoms);
+                Set<Predicate> preds = buildPredicates(atoms);
                 SummaryAbstractElement s1 =
                     (SummaryAbstractElement)abstarr[i];
                 info.addPredicatesForRefinement(s1, preds);
@@ -1046,25 +1042,7 @@ public class BDDMathsatSummaryAbstractManager<T> extends
             info = new CounterexampleTraceInfo(false);
             // TODO - reconstruct counterexample
             // For now, we dump the asserted formula to a user-specified file
-            String cexFile = CPAMain.cpaConfig.getProperty("cpas.symbpredabs.refinement.msatCexFile");
-            if (cexFile != null) {
-              String path = CPAMain.cpaConfig.getProperty("output.path") + cexFile;
-                long t = mathsat.api.msat_make_true(msatEnv);
-                for (SymbolicFormula fm : f) {
-                    long term = ((MathsatSymbolicFormula)fm).getTerm();
-                    t = mathsat.api.msat_make_and(msatEnv, t, term);
-                }
-                String msatRepr = mathsat.api.msat_to_msat(msatEnv, t);
-                try {
-                    PrintWriter pw = new PrintWriter(new File(path));
-                    pw.println(msatRepr);
-                    pw.close();
-                } catch (FileNotFoundException e) {
-                  CPAMain.logManager.log(Level.INFO,
-                            "Failed to save msat Counterexample to file: ",
-                            path);
-                }
-            }
+            dumpFormulasToFile(f, CPAMain.cpaConfig.getProperty("cpas.symbpredabs.refinement.msatCexFile"));
         }
 
         itpProver.reset();
@@ -1092,26 +1070,6 @@ public class BDDMathsatSummaryAbstractManager<T> extends
         return (inner.getNumEnteringEdges() > 0 &&
                 inner.getEnteringEdge(0).getPredecessor() instanceof
                 FunctionDefinitionNode);
-    }
-
-    // generates the predicates corresponding to the given atoms, which were
-    // extracted from the interpolant
-    private Set<Predicate> buildPredicates(long dstenv,
-            Collection<SymbolicFormula> atoms) {
-        Set<Predicate> ret = new HashSet<Predicate>();
-        for (SymbolicFormula atom : atoms) {
-            long tt = ((MathsatSymbolicFormula)atom).getTerm();
-            long d = mathsat.api.msat_declare_variable(dstenv,
-                    "\"PRED" + mathsat.api.msat_term_repr(tt) + "\"",
-                    mathsat.api.MSAT_BOOL);
-            long var = mathsat.api.msat_make_variable(dstenv, d);
-
-            assert(!mathsat.api.MSAT_ERROR_TERM(tt));
-            assert(!mathsat.api.MSAT_ERROR_TERM(var));
-
-            ret.add(makePredicate(var, tt));
-        }
-        return ret;
     }
 
     // TODO move this statistics to stop operator 

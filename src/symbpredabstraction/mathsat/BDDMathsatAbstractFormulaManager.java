@@ -127,17 +127,6 @@ public class BDDMathsatAbstractFormulaManager extends CommonFormulaManager {
         mmgr = pMmgr;
     }
 
-    /**
-     * creates a BDDPredicate from the Boolean mathsat variable (msatVar) and
-     * the atoms that defines it (the msatAtom)
-     * 
-     * Use {@link #makePredicate(SymbolicFormula, SymbolicFormula)} instead.
-     */
-    @Deprecated
-    protected Predicate makePredicate(long msatVar, long msatAtom) {
-        return makePredicate(new MathsatSymbolicFormula(msatVar), new MathsatSymbolicFormula(msatAtom));
-    }
-
     @Override
     protected void collectVarNames(SymbolicFormula term, Set<String> vars,
         Set<Pair<String, SymbolicFormula[]>> lvals) {
@@ -231,7 +220,7 @@ public class BDDMathsatAbstractFormulaManager extends CommonFormulaManager {
         }
         return new PredInfo(preddef, important, allvars, allfuncs);
     }
-
+    
     /**
      * Use {@link #getPredicateVarAndAtom(Predicate)} instead.
      */

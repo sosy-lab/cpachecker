@@ -54,4 +54,6 @@ public interface FormulaManager {
    * @return a Predicate
    */
   public Predicate getPredicate(SymbolicFormula var);
+
+  void dumpFormulasToFile(Iterable<SymbolicFormula> pF, String pFilename);
 }

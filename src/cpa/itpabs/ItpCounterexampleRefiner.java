@@ -263,11 +263,7 @@ public class ItpCounterexampleRefiner {
             info = new ItpCounterexampleTraceInfo(false);
             // TODO - reconstruct counterexample
             // For now, we dump the asserted formula to a user-specified file
-            String cexFile = CPAMain.cpaConfig.getProperty("cpas.symbpredabs.refinement.msatCexFile");
-            if (cexFile != null) {
-              String path = CPAMain.cpaConfig.getProperty("output.path") + cexFile;
-                dumpCounterexample(mmgr, f, path);
-            }
+            amgr.dumpFormulasToFile(f, CPAMain.cpaConfig.getProperty("cpas.symbpredabs.refinement.msatCexFile"));
         }
 
         itpProver.reset();
@@ -282,26 +278,6 @@ public class ItpCounterexampleRefiner {
             Math.max(msatSolveTime, stats.cexAnalysisMaxMathsatTime);
 
         return info;
-    }
-
-    private void dumpCounterexample(MathsatSymbolicFormulaManager mmgr,
-            Vector<SymbolicFormula> f, String cexPath) {
-        long msatEnv = mmgr.getMsatEnv();
-        try {
-            PrintWriter pw = new PrintWriter(new File(cexPath));
-            int n = 0;
-            for (SymbolicFormula fm : f) {
-                long t = ((MathsatSymbolicFormula)fm).getTerm();
-                String s = mathsat.api.msat_to_msat(msatEnv, t);
-                pw.println("#--- TERM: " + (n++));
-                pw.println(s);
-            }
-            pw.close();
-        } catch (FileNotFoundException e) {
-          CPAMain.logManager.log(Level.INFO,
-                    "Failed to save msat Counterexample to file: ",
-                    cexPath);
-        }
     }
 
     private boolean isFunctionExit(ItpAbstractElement e) {

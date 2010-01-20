@@ -982,8 +982,7 @@ public class BDDMathsatExplicitAbstractManager<T> extends
                 extTimeStart = System.currentTimeMillis();
                 Collection<SymbolicFormula> atoms = mmgr.extractAtoms(
                             itp, true, splitItpAtoms, nonAtomic);
-                Set<Predicate> preds =
-                    buildPredicates(msatEnv, atoms);
+                Set<Predicate> preds = buildPredicates(atoms);
 
                 extTimeEnd = System.currentTimeMillis();
                 stats.predicateExtractionTime += extTimeEnd - extTimeStart;
@@ -1040,25 +1039,7 @@ public class BDDMathsatExplicitAbstractManager<T> extends
             info = new CounterexampleTraceInfo(false);
             // TODO - reconstruct counterexample
             // For now, we dump the asserted formula to a user-specified file
-            String cexFile = CPAMain.cpaConfig.getProperty("cpas.symbpredabs.refinement.msatCexFile");
-            if (cexFile != null) {
-              String path = CPAMain.cpaConfig.getProperty("output.path") + cexFile;
-                long t = mathsat.api.msat_make_true(msatEnv);
-                for (SymbolicFormula fm : f) {
-                    long term = ((MathsatSymbolicFormula)fm).getTerm();
-                    t = mathsat.api.msat_make_and(msatEnv, t, term);
-                }
-                String msatRepr = mathsat.api.msat_to_msat(msatEnv, t);
-                try {
-                    PrintWriter pw = new PrintWriter(new File(path));
-                    pw.println(msatRepr);
-                    pw.close();
-                } catch (FileNotFoundException e) {
-                  CPAMain.logManager.log(Level.INFO,
-                            "Failed to save msat Counterexample to file: ",
-                            path);
-                }
-            }
+            dumpFormulasToFile(f, CPAMain.cpaConfig.getProperty("cpas.symbpredabs.refinement.msatCexFile"));
         }
 
         itpProver.reset();
@@ -1245,8 +1226,7 @@ public class BDDMathsatExplicitAbstractManager<T> extends
                 extTimeStart = System.currentTimeMillis();
                 Collection<SymbolicFormula> atoms = mmgr.extractAtoms(
                             itp, true, splitItpAtoms, nonAtomic);
-                Set<Predicate> preds =
-                    buildPredicates(msatEnv, atoms);
+                Set<Predicate> preds = buildPredicates(atoms);
 
                 extTimeEnd = System.currentTimeMillis();
                 stats.predicateExtractionTime += extTimeEnd - extTimeStart;
@@ -1355,27 +1335,6 @@ public class BDDMathsatExplicitAbstractManager<T> extends
 //        return (inner.getNumEnteringEdges() > 0 &&
 //                inner.getEnteringEdge(0).getPredecessor() instanceof
 //                FunctionDefinitionNode);
-    }
-
-    private Set<Predicate> buildPredicates(long dstenv,
-            Collection<SymbolicFormula> atoms) {
-        Set<Predicate> ret = new HashSet<Predicate>();
-        for (SymbolicFormula atom : atoms) {
-            long tt = ((MathsatSymbolicFormula)atom).getTerm();
-            assert(!mathsat.api.MSAT_ERROR_TERM(tt));
-
-            String repr = mathsat.api.msat_term_is_atom(tt) != 0 ?
-                          mathsat.api.msat_term_repr(tt) :
-                          ("#" + mathsat.api.msat_term_id(tt));
-            long d = mathsat.api.msat_declare_variable(dstenv,
-                    "\"PRED" + repr + "\"",
-                    mathsat.api.MSAT_BOOL);
-            long var = mathsat.api.msat_make_variable(dstenv, d);
-            assert(!mathsat.api.MSAT_ERROR_TERM(var));
-
-            ret.add(makePredicate(var, tt));
-        }
-        return ret;
     }
 
     private Pair<SymbolicFormula, SSAMap> makeFormula(

@@ -31,16 +31,18 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
-import java.util.Vector;
 import java.util.logging.Level;
 
 import symbpredabstraction.interfaces.SymbolicFormula;
+import symbpredabstraction.interfaces.SymbolicFormulaManager;
 import symbpredabstraction.interfaces.TheoremProver;
 import cmdline.CPAMain;
 
@@ -55,13 +57,13 @@ public class SimplifyTheoremProver implements TheoremProver {
     private BufferedReader simplifyOut;
     private PrintWriter simplifyIn;
     private PrintWriter dumpQueryWriter;
-    private MathsatSymbolicFormulaManager mmgr;
+    private SymbolicFormulaManager smgr;
 
     private Process simplifyWithCex;
     private PrintWriter simplifyWithCexIn;
     private BufferedReader simplifyWithCexOut;
 
-    public SimplifyTheoremProver(MathsatSymbolicFormulaManager mgr) {
+    public SimplifyTheoremProver(SymbolicFormulaManager mgr) {
         msatVarToSimplifyVar = new HashMap<Long, String>();
         msatToSimplifyCache = new HashMap<Long, String>();
         simplifyPredToMsat = new HashMap<String, Long>();
@@ -70,7 +72,7 @@ public class SimplifyTheoremProver implements TheoremProver {
         simplifyIn = null;
         simplifyOut = null;
         dumpQueryWriter = null;
-        mmgr = mgr;
+        smgr = mgr;
         if (CPAMain.cpaConfig.getBooleanValue(
             "cpas.symbpredabs.explicit.abstraction.simplifyDumpQueries")) {
             try {
@@ -139,33 +141,24 @@ public class SimplifyTheoremProver implements TheoremProver {
         // assert the initial formula
         String impl = "(IMPLIES " + simplifyFormula + " FALSE)";
         int numModels = 0;
-        Vector<SymbolicFormula> outModel = null;
 
         while (true) {
-            long[] model = simplifyGetCounterexample(impl, mmgr, simplifyPreds);
+            List<SymbolicFormula> model = simplifyGetCounterexample(impl, simplifyPreds);
             if (model == null) {
                 break; // context is inconsistent now
             }
-            if (model.length == 0) {
+            if (model.size() == 0) {
                 numModels = -2;
                 break;
             }
 
-            if (outModel == null) {
-                outModel = new Vector<SymbolicFormula>();
-            }
-            outModel.clear();
-            outModel.ensureCapacity(model.length);
-            for (long m : model) {
-                outModel.add(new MathsatSymbolicFormula(m));
-            }
-
             ++numModels;
-            callback.modelFound(outModel);
+            callback.modelFound(Collections.unmodifiableList(model));
             // add the model as a blocking clause
             StringBuffer buf = new StringBuffer();
             //buf.append("(or ");
-            for (long t : model) {
+            for (SymbolicFormula m : model) {
+                long t = ((MathsatSymbolicFormula)m).getTerm();
                 if (mathsat.api.msat_term_is_not(t) != 0) {
                     t = mathsat.api.msat_term_get_arg(t, 0);
                     assert(mathsat.api.msat_term_is_boolean_var(t) != 0);
@@ -183,7 +176,7 @@ public class SimplifyTheoremProver implements TheoremProver {
             }
             //buf.append(")");
             ++numPopsNeeded;
-            if (model.length == 1) {
+            if (model.size() == 1) {
                 simplifyPush(buf.toString());
             } else {
                 simplifyPush("(OR " + buf + ")");
@@ -434,18 +427,17 @@ public class SimplifyTheoremProver implements TheoremProver {
         return false;
     }
 
-    private long[] simplifyGetCounterexample(String formula,
-            MathsatSymbolicFormulaManager mmgr,
+    private List<SymbolicFormula> simplifyGetCounterexample(String formula,
             Set<String> predicates) {
         simplifyIn.println(formula);
         simplifyIn.flush();
         String status = null;
-        long[] ret = null;
+        List<SymbolicFormula> ret = null;
         try {
             status = simplifyOut.readLine();
             while (status != null) {
                 if (status.contains("Counterexample:")) {
-                    ret = parseCex(mmgr, predicates);
+                    ret = parseCex(predicates);
                 } else if (status.contains("alid.")) {
                     break;
                 }
@@ -469,15 +461,13 @@ public class SimplifyTheoremProver implements TheoremProver {
         return null;
     }
 
-    private long[] parseCex(MathsatSymbolicFormulaManager mmgr,
-            Set<String> predicates) {
-        Vector<Long> model = new Vector<Long>();
-        long msatEnv = mmgr.getMsatEnv();
+    private List<SymbolicFormula> parseCex(Set<String> predicates) {
+        List<SymbolicFormula> model = new ArrayList<SymbolicFormula>();
         try {
             String line = simplifyOut.readLine();
             assert(line.contains("context:") || line.isEmpty());
             if (line.isEmpty()) {
-                return new long[0]; // empty model means that the formula
+                return Collections.emptyList(); // empty model means that the formula
                 // is a tautology
             }
             line = simplifyOut.readLine();
@@ -494,22 +484,18 @@ public class SimplifyTheoremProver implements TheoremProver {
                     line = line.substring(5, line.length()-1);
                 }
                 if (predicates.contains(line)) {
-                    long t = simplifyPredToMsat.get(line);
+                    SymbolicFormula f = new MathsatSymbolicFormula(simplifyPredToMsat.get(line));
                     if (negate) {
-                        t = mathsat.api.msat_make_not(msatEnv, t);
+                        f = smgr.makeNot(f);
                     }
-                    model.add(t);
+                    model.add(f);
                 }
             }
         } catch (IOException e) {
           CPAMain.logManager.logException(Level.WARNING, e, "");
             assert(false);
         }
-        long[] ret = new long[model.size()];
-        for (int i = 0; i < model.size(); ++i) {
-            ret[i] = model.elementAt(i);
-        }
-        return ret;
+        return model;
     }
 
     private Set<String> toSimplifyPreds(List<SymbolicFormula> important) {

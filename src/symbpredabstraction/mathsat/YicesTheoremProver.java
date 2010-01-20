@@ -25,7 +25,9 @@ package symbpredabstraction.mathsat;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -39,6 +41,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import symbpredabstraction.interfaces.SymbolicFormula;
+import symbpredabstraction.interfaces.SymbolicFormulaManager;
 import symbpredabstraction.interfaces.TheoremProver;
 import cmdline.CPAMain;
 
@@ -52,7 +55,7 @@ public class YicesTheoremProver implements TheoremProver {
     private int curVarIndex;
     private int yicesContext;
     private yices.YicesLite yicesManager;
-    private MathsatSymbolicFormulaManager mmgr;
+    private SymbolicFormulaManager smgr;
 
     private Stack<Collection<String>> declStack;
     private Set<String> globalDecls;
@@ -64,7 +67,7 @@ public class YicesTheoremProver implements TheoremProver {
     // much memory
     // private final int MAX_NUM_YICES_CALLS = 100;
 
-    public YicesTheoremProver(MathsatSymbolicFormulaManager mgr) {
+    public YicesTheoremProver(SymbolicFormulaManager mgr) {
         msatVarToYicesVar = new HashMap<Long, String>();
         msatToYicesCache = new HashMap<Long, String>();
         yicesPredToMsat = new HashMap<String, Long>();
@@ -75,7 +78,7 @@ public class YicesTheoremProver implements TheoremProver {
         yicesManager.yicesl_set_output_file("/dev/null");
         //System.out.println("USING YICES VERSION: " +
         //                   yicesManager.yicesl_version());
-        mmgr = mgr;
+        smgr = mgr;
         declStack = new Stack<Collection<String>>();
         globalDecls = new HashSet<String>();
     }
@@ -235,17 +238,15 @@ public class YicesTheoremProver implements TheoremProver {
         return yicesManager.yicesl_inconsistent(yicesContext) != 0;
     }
 
-    private long[] parseMsatPredicates(MathsatSymbolicFormulaManager mmgr,
-            Set<String> yicesPreds, Scanner s) {
+    private List<SymbolicFormula> parseMsatPredicates(Set<String> yicesPreds, Scanner s) {
         if (s.hasNextLine()) {
             String status = s.nextLine();
             if (!status.startsWith("sat")) {
                 return null; // no model to extract
             }
         }
-        Vector<Long> model = new Vector<Long>();
+        List<SymbolicFormula> model = new ArrayList<SymbolicFormula>();
         Pattern mp = Pattern.compile("^\\(= ([a-z0-9]+) (true|false)\\) *$");
-        long msatEnv = mmgr.getMsatEnv();
         while (s.hasNextLine()) {
             String l = s.nextLine();
             if (l.isEmpty()) {
@@ -258,20 +259,15 @@ public class YicesTheoremProver implements TheoremProver {
                 if (yicesPreds.contains(name)) {
                     // ok, predicate found. Convert to mathsat and
                     // add to the model
-                    long msatPred = yicesPredToMsat.get(name);
+                    SymbolicFormula msatPred = new MathsatSymbolicFormula(yicesPredToMsat.get(name));
                     if (value.equals("false")) {
-                        msatPred = mathsat.api.msat_make_not(
-                                msatEnv, msatPred);
+                        msatPred = smgr.makeNot(msatPred);
                     }
                     model.add(msatPred);
                 }
             }
         }
-        long[] ret = new long[model.size()];
-        for (int i = 0; i < model.size(); ++i) {
-            ret[i] = model.elementAt(i);
-        }
-        return ret;
+        return model;
     }
 
     private Set<String> toYicesPreds(List<SymbolicFormula> important) {
@@ -319,34 +315,25 @@ public class YicesTheoremProver implements TheoremProver {
         // assert the initial formula
         yicesCommand("(assert " + yicesFormula.getSecond() + ")");
 
-        Vector<SymbolicFormula> outModel = null;
         int numModels = 0;
         while (true) {
             yicesCommand("(check)");
-            long[] model = parseMsatPredicates(mmgr, yicesPreds, modelScanner);
+            List<SymbolicFormula> model = parseMsatPredicates(yicesPreds, modelScanner);
             if (model == null) {
                 break; // context is inconsistent now
             }
-            if (model.length == 0) {
+            if (model.size() == 0) {
                 numModels = -2;
                 break;
             }
             ++numModels;
 
-            // notify the callback of the new model
-            if (outModel == null) {
-                outModel = new Vector<SymbolicFormula>();
-            }
-            outModel.clear();
-            outModel.ensureCapacity(model.length);
-            for (long m : model) {
-                outModel.add(new MathsatSymbolicFormula(m));
-            }
-            callback.modelFound(outModel);
+            callback.modelFound(Collections.unmodifiableList(model));
 
             // add the model as a blocking clause
             StringBuffer buf = new StringBuffer();
-            for (long t : model) {
+            for (SymbolicFormula m : model) {
+                long t = ((MathsatSymbolicFormula)m).getTerm();
                 if (mathsat.api.msat_term_is_not(t) != 0) {
                     t = mathsat.api.msat_term_get_arg(t, 0);
                     assert(mathsat.api.msat_term_is_boolean_var(t) != 0);
@@ -362,7 +349,7 @@ public class YicesTheoremProver implements TheoremProver {
                     buf.append("(not " + yv + ") ");
                 }
             }
-            if (model.length == 1) {
+            if (model.size() == 1) {
                 yicesCommand("(assert " + buf + ")");
             } else {
                 yicesCommand("(assert (or " + buf + "))");

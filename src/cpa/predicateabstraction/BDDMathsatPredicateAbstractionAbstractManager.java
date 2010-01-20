@@ -23,9 +23,6 @@
  */
 package cpa.predicateabstraction;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -414,8 +411,6 @@ implements PredicateAbstractionAbstractFormulaManager {
 
     long startTime = System.currentTimeMillis();
 
-    long msatEnv = mmgr.getMsatEnv();
-
 //    if (isFunctionExit(e)) {
       // we have to take the context before the function call
       // into account, otherwise we are not building the right
@@ -465,8 +460,6 @@ implements PredicateAbstractionAbstractFormulaManager {
       CPAMain.logManager.log(Level.ALL, "DEBUG_3", "ADDED BITWISE AXIOMS:",
           bitwiseAxioms);
     }
-    long term = ((MathsatSymbolicFormula)f).getTerm();
-    assert(!mathsat.api.MSAT_ERROR_TERM(term));
 
     // build the definition of the predicates, and instantiate them
     PredicateInfo predinfo = buildPredicateInformation(predicates);
@@ -504,23 +497,20 @@ implements PredicateAbstractionAbstractFormulaManager {
     // (So, for now we don't need to to anything...)
 
     // instantiate the definitions with the right SSA
-    MathsatSymbolicFormula inst = (MathsatSymbolicFormula)mmgr.instantiate(
-        predinfo.predicateDefinition, ssa);
-    long preddef = inst.getTerm();
+    SymbolicFormula preddef = mmgr.instantiate(predinfo.predicateDefinition, ssa);
 
     // the formula is (curstate & term & preddef)
     // build the formula and send it to the absEnv
-    long formula = mathsat.api.msat_make_and(msatEnv, term, preddef);
+    SymbolicFormula formula = smgr.makeAnd(f, preddef);
 
     CPAMain.logManager.log(Level.ALL, "DEBUG_1", "COMPUTING ALL-SMT ON FORMULA:",
-        new MathsatSymbolicFormula(formula));
+        formula);
 
     ++stats.abstractionNumMathsatQueries;
 
     AllSatCallback func = new AllSatCallback();
     long libmsatStartTime = System.currentTimeMillis();
-    int numModels = thmProver.allSat(
-        new MathsatSymbolicFormula(formula), important, func);
+    int numModels = thmProver.allSat(formula, important, func);
     assert(numModels != -1);
     long libmsatEndTime = System.currentTimeMillis();
 
@@ -558,8 +548,6 @@ implements PredicateAbstractionAbstractFormulaManager {
     long startTime = System.currentTimeMillis();
 
     MathsatSymbolicFormulaManager mmgr = (MathsatSymbolicFormulaManager)mgr;
-
-    long msatEnv = mmgr.getMsatEnv();
 
     thmProver.init(TheoremProver.CARTESIAN_ABSTRACTION);
 
@@ -720,21 +708,15 @@ implements PredicateAbstractionAbstractFormulaManager {
             "CHECKING VALUE OF PREDICATE: ", pi.getFirst());
 
         // instantiate the definition of the predicate
-        MathsatSymbolicFormula inst =
-          (MathsatSymbolicFormula)mmgr.instantiate(
-              pi.getSecond(), ssa);
+        SymbolicFormula predTrue =  mmgr.instantiate(pi.getSecond(), ssa);
+        SymbolicFormula predFalse = smgr.makeNot(predTrue);
 
         boolean isTrue = false, isFalse = false;
         // check whether this predicate has a truth value in the next
         // state
-        long predTrue = inst.getTerm();
-//      predTrue = mathsat.api.msat_make_copy_from(
-//      absEnv, inst.getTerm(), msatEnv);
-        long predFalse = mathsat.api.msat_make_not(msatEnv, predTrue);
 
         ++stats.abstractionNumMathsatQueries;
-        if (thmProver.isUnsat(
-            new MathsatSymbolicFormula(predFalse))) {
+        if (thmProver.isUnsat(predFalse)) {
           isTrue = true;
         }
 
@@ -747,8 +729,7 @@ implements PredicateAbstractionAbstractFormulaManager {
         } else {
           // check whether it's false...
           ++stats.abstractionNumMathsatQueries;
-          if (thmProver.isUnsat(
-              new MathsatSymbolicFormula(predTrue))) {
+          if (thmProver.isUnsat(predTrue)) {
             isFalse = true;
           }
 
@@ -849,7 +830,6 @@ implements PredicateAbstractionAbstractFormulaManager {
     // concrete counterexample
     //
     // create a working environment
-    long msatEnv = mmgr.getMsatEnv();
     itpProver.init();
 
     List<T> itpGroupsIds = new ArrayList<T>(f.size());
@@ -961,8 +941,7 @@ implements PredicateAbstractionAbstractFormulaManager {
         extTimeStart = System.currentTimeMillis();
         Collection<SymbolicFormula> atoms = mmgr.extractAtoms(
             itp, true, splitItpAtoms, nonAtomic);
-        Set<Predicate> preds =
-          buildPredicates(msatEnv, atoms);
+        Set<Predicate> preds = buildPredicates(atoms);
 
         extTimeEnd = System.currentTimeMillis();
         stats.predicateExtractionTime += extTimeEnd - extTimeStart;
@@ -1023,25 +1002,7 @@ implements PredicateAbstractionAbstractFormulaManager {
 //      info.setConcreteTrace(cf);
       // TODO - reconstruct counterexample
       // For now, we dump the asserted formula to a user-specified file
-      String cexFile = CPAMain.cpaConfig.getProperty("cpas.symbpredabs.refinement.msatCexFile");
-      if (cexFile != null) {
-        String path = CPAMain.cpaConfig.getProperty("output.path") + cexFile;
-        long t = mathsat.api.msat_make_true(msatEnv);
-        for (SymbolicFormula fm : f) {
-          long term = ((MathsatSymbolicFormula)fm).getTerm();
-          t = mathsat.api.msat_make_and(msatEnv, t, term);
-        }
-        String msatRepr = mathsat.api.msat_to_msat(msatEnv, t);
-        try {
-          PrintWriter pw = new PrintWriter(new File(path));
-          pw.println(msatRepr);
-          pw.close();
-        } catch (FileNotFoundException e) {
-          CPAMain.logManager.log(Level.INFO,
-              "Failed to save msat Counterexample to file: ",
-              path);
-        }
-      }
+      dumpFormulasToFile(f, CPAMain.cpaConfig.getProperty("cpas.symbpredabs.refinement.msatCexFile"));
     }
 
     itpProver.reset();
@@ -1336,27 +1297,6 @@ implements PredicateAbstractionAbstractFormulaManager {
 ////  FunctionDefinitionNode);
 //  }
 
-  private Set<Predicate> buildPredicates(long dstenv,
-      Collection<SymbolicFormula> atoms) {
-    Set<Predicate> ret = new HashSet<Predicate>();
-    for (SymbolicFormula atom : atoms) {
-      long tt = ((MathsatSymbolicFormula)atom).getTerm();
-      assert(!mathsat.api.MSAT_ERROR_TERM(tt));
-
-      String repr = mathsat.api.msat_term_is_atom(tt) != 0 ?
-          mathsat.api.msat_term_repr(tt) :
-            ("#" + mathsat.api.msat_term_id(tt));
-          long d = mathsat.api.msat_declare_variable(dstenv,
-              "\"PRED" + repr + "\"",
-              mathsat.api.MSAT_BOOL);
-          long var = mathsat.api.msat_make_variable(dstenv, d);
-          assert(!mathsat.api.MSAT_ERROR_TERM(var));
-
-          ret.add(makePredicate(new MathsatSymbolicFormula(var), atom));
-    }
-    return ret;
-  }
-
   private Pair<SymbolicFormula, SSAMap> makeFormula(
       MathsatSymbolicFormulaManager mmgr,
       CFAEdge edge,
@@ -1380,17 +1320,14 @@ implements PredicateAbstractionAbstractFormulaManager {
       Vector<SymbolicFormula> f, boolean theoryCombinationNeeded,
       boolean suffixTrace, boolean zigZag, boolean setAllTrueIfSat) {
     // try to find a minimal-unsatisfiable-core of the trace (as Blast does)
-    MathsatSymbolicFormulaManager mmgr = (MathsatSymbolicFormulaManager)mgr;
 
-    long msatEnv = mmgr.getMsatEnv();
     thmProver.init(TheoremProver.COUNTEREXAMPLE_ANALYSIS);
 
     CPAMain.logManager.log(Level.ALL, "DEBUG_1", "Calling getUsefulBlocks on path",
         "of length: ", f.size());
 
-    MathsatSymbolicFormula trueFormula = new MathsatSymbolicFormula(
-        mathsat.api.msat_make_true(msatEnv));
-    MathsatSymbolicFormula[] needed = new MathsatSymbolicFormula[f.size()];
+    SymbolicFormula trueFormula = mgr.makeTrue();
+    SymbolicFormula[] needed = new SymbolicFormula[f.size()];
     for (int i = 0; i < needed.length; ++i) {
       needed[i] = trueFormula;
     }

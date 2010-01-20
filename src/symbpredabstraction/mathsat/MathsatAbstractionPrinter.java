@@ -47,8 +47,8 @@ public class MathsatAbstractionPrinter {
     private String baseFileName;
     private int curNum;
 
-    public MathsatAbstractionPrinter(long env, String baseName) {
-        msatEnv = env;
+    public MathsatAbstractionPrinter(MathsatSymbolicFormulaManager mmgr, String baseName) {
+        msatEnv = mmgr.getMsatEnv();
         baseFileName = baseName;
         curNum = 0;
     }

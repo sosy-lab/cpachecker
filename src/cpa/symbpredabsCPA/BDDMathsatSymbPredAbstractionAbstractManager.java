@@ -23,9 +23,6 @@
  */
 package cpa.symbpredabsCPA;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.PrintWriter;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -532,7 +529,7 @@ implements SymbPredAbstFormulaManager
       // TODO dump hard abst
       if (msatSolveTime > 10000 && dumpHardAbstractions) {
         // we want to dump "hard" problems...
-        MathsatAbstractionPrinter absPrinter = new MathsatAbstractionPrinter(mmgr.getMsatEnv(), "abs");
+        MathsatAbstractionPrinter absPrinter = new MathsatAbstractionPrinter(mmgr, "abs");
         absPrinter.printMsatFormat(smgr.makeTrue(), symbFormula, predDef, importantPreds);
         absPrinter.printNusmvFormat(smgr.makeTrue(), symbFormula, predDef, importantPreds);
         absPrinter.nextNum();
@@ -557,7 +554,7 @@ implements SymbPredAbstFormulaManager
     
     // purpose = ENTAILMENT_CHECK copied from MathsatSymbolicFormulaManager.entails()
     // this method does essentially the same (just check one formula for unsatisfiability)
-    thmProver.init(TheoremProver.CARTESIAN_ABSTRACTION);
+    thmProver.init(TheoremProver.ENTAILMENT_CHECK);
     boolean result = thmProver.isUnsat(symbFormula.getFirst());
     thmProver.reset();
     
@@ -698,7 +695,7 @@ implements SymbPredAbstFormulaManager
       
       // TODO - reconstruct counterexample
       // For now, we dump the asserted formula to a user-specified file
-      dumpFormulasToFile(f);
+      dumpFormulasToFile(f, CPAMain.cpaConfig.getProperty("cpas.symbpredabs.refinement.msatCexFile"));
     }
 
     itpProver.reset();
@@ -715,28 +712,6 @@ implements SymbPredAbstFormulaManager
     CPAMain.logManager.log(Level.ALL, "Counterexample information:", info);
 
     return info;
-  }
-
-  private void dumpFormulasToFile(List<SymbolicFormula> f) {
-    String cexFile = CPAMain.cpaConfig.getProperty("cpas.symbpredabs.refinement.msatCexFile");
-    if (cexFile != null) {
-      String path = CPAMain.cpaConfig.getProperty("output.path") + cexFile;
-      try {
-        SymbolicFormula t = smgr.makeTrue();
-        for (SymbolicFormula fm : f) {
-          t = smgr.makeAnd(t, fm);
-        }
-        String msatRepr = mmgr.dumpFormula(t);
-
-        PrintWriter pw = new PrintWriter(new File(path));
-        pw.println(msatRepr);
-        pw.close();
-      } catch (FileNotFoundException e) {
-        CPAMain.logManager.log(Level.WARNING,
-            "Failed to save msat Counterexample to file ", path,
-            " (", e.getMessage(), ")");
-      }
-    }
   }
 
   private List<SymbolicFormula> getFormulasForTrace(
@@ -877,26 +852,6 @@ implements SymbPredAbstFormulaManager
     f = smgr.makeOr(f, curf);
     ssa = mp.getSecond();
     return new PathFormula(f,ssa);
-  }
-
-  
-  // generates the predicates corresponding to the given atoms, which were
-  // extracted from the interpolant
-  private Set<Predicate> buildPredicates(Collection<SymbolicFormula> atoms) {
-    long dstenv = mmgr.getMsatEnv();
-    Set<Predicate> ret = new HashSet<Predicate>();
-    for (SymbolicFormula atom : atoms) {
-      long tt = ((MathsatSymbolicFormula)atom).getTerm();
-      long d = mathsat.api.msat_declare_variable(dstenv,
-          "\"PRED" + mathsat.api.msat_term_repr(tt) + "\"",
-          mathsat.api.MSAT_BOOL);
-      long var = mathsat.api.msat_make_variable(dstenv, d);
-
-      assert(!mathsat.api.MSAT_ERROR_TERM(var));
-
-      ret.add(makePredicate(new MathsatSymbolicFormula(var), atom));
-    }
-    return ret;
   }
 
   private List<SymbolicFormula> getUsefulBlocks(List<SymbolicFormula> f,

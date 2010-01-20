@@ -181,4 +181,17 @@ public interface SymbolicFormulaManager {
             boolean uninstantiate, boolean splitArithEqualities,
             boolean conjunctionsOnly);
 
+    /**
+     * Create string representation of a formula in a format which may be dumped
+     * to a file.
+     */
+    public String dumpFormula(SymbolicFormula pT);
+
+    /**
+     * Create the variable representing a predicate for the given atom. There won't
+     * be any tracking of the correspondence between the atom and the variable, 
+     * if it is not done by the caller of this method.
+     */
+    public SymbolicFormula createPredicateVariable(SymbolicFormula pAtom);
+
 }

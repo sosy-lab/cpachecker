@@ -23,6 +23,9 @@
  */
 package symbpredabstraction;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -77,6 +80,18 @@ public abstract class CommonFormulaManager implements FormulaManager {
     } else {
       toConcreteCache = null;
     }
+  }
+  
+  /**
+   * Generates the predicates corresponding to the given atoms.
+   */
+  protected Set<Predicate> buildPredicates(Collection<SymbolicFormula> atoms) {
+    Set<Predicate> ret = new HashSet<Predicate>(atoms.size());
+    
+    for (SymbolicFormula atom : atoms) {
+      ret.add(makePredicate(smgr.createPredicateVariable(atom), atom));
+    }
+    return ret;
   }
   
   /**
@@ -243,6 +258,28 @@ public abstract class CommonFormulaManager implements FormulaManager {
       assert(cache.containsKey(af));
 
       return cache.get(af);
+  }
+
+  @Override
+  public void dumpFormulasToFile(Iterable<SymbolicFormula> f, String filename) {
+    if (filename != null) {
+      String path = CPAMain.cpaConfig.getProperty("output.path") + filename;
+      try {
+        SymbolicFormula t = smgr.makeTrue();
+        for (SymbolicFormula fm : f) {
+          t = smgr.makeAnd(t, fm);
+        }
+        String msatRepr = smgr.dumpFormula(t);
+
+        PrintWriter pw = new PrintWriter(new File(path));
+        pw.println(msatRepr);
+        pw.close();
+      } catch (FileNotFoundException e) {
+        CPAMain.logManager.log(Level.WARNING,
+            "Failed to save formula to file ", path,
+            "(", e.getMessage(), ")");
+      }
+    }
   }
 
 }
