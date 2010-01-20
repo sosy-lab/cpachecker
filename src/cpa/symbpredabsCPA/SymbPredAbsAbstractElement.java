@@ -175,6 +175,7 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
   }
   
   public List<Integer> getPfParents() {
+    assert !isAbstractionNode : "abstraction nodes have no pathformula parents";
     return pfParents;
   }
 

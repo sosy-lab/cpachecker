@@ -392,16 +392,8 @@ implements SymbPredAbstFormulaManager
     }
   }
 
-  private AbstractFormula buildBooleanAbstraction(
-      AbstractFormula abstractionFormula, PathFormula pathFormula,
-      Collection<Predicate> predicates) {
-    // A SummaryFormulaManager for MathSAT formulas
-    
-    CPAMain.logManager.log(Level.ALL, "Old abstraction:", abstractionFormula);
-    CPAMain.logManager.log(Level.ALL, "Path formula:", pathFormula);
-    CPAMain.logManager.log(Level.ALL, "Predicates:", predicates);
-    
-    long startTime = System.currentTimeMillis();
+  private PathFormula buildSymbolicFormula(AbstractFormula abstractionFormula,
+      PathFormula pathFormula) {
 
     // build the concrete representation of the abstract formula of e
     // this is an abstract formula - specifically it is a bddabstractformula
@@ -411,7 +403,7 @@ implements SymbPredAbstFormulaManager
     final SymbolicFormula absFormula = smgr.instantiate(toConcrete(abstractionFormula), null);
 
     // create an ssamap from concrete formula
-    SSAMap absSsa = mmgr.extractSSA((MathsatSymbolicFormula)absFormula);
+    final SSAMap absSsa = mmgr.extractSSA((MathsatSymbolicFormula)absFormula);
 
     // shift pathFormula indices by the offsets in absSsa
     long start = System.currentTimeMillis();
@@ -434,7 +426,19 @@ implements SymbPredAbstFormulaManager
       CPAMain.logManager.log(Level.ALL, "DEBUG_3", "ADDED BITWISE AXIOMS:",
           bitwiseAxioms);
     }
-
+   
+    return new PathFormula(smgr.makeAnd(absFormula, symbFormula), symbSsa);
+  }
+  
+  private AbstractFormula buildBooleanAbstraction(
+      AbstractFormula abstractionFormula, PathFormula pathFormula,
+      Collection<Predicate> predicates) {
+    
+    CPAMain.logManager.log(Level.ALL, "Old abstraction:", abstractionFormula);
+    CPAMain.logManager.log(Level.ALL, "Path formula:", pathFormula);
+    CPAMain.logManager.log(Level.ALL, "Predicates:", predicates);
+    
+    long startTime = System.currentTimeMillis();
 
     // first, create the new formula corresponding to
     // (symbFormula & edges from e to succ)
@@ -443,7 +447,10 @@ implements SymbPredAbstFormulaManager
     // return edges or gotos). This might need to change in the future!!
     // (So, for now we don't need to to anything...)
 
-
+    PathFormula symbFormulaPair = buildSymbolicFormula(abstractionFormula, pathFormula);
+    SymbolicFormula symbFormula = symbFormulaPair.getFirst();
+    SSAMap symbSsa = symbFormulaPair.getSecond();
+    
     // build the definition of the predicates, and instantiate them
     PredicateInfo predinfo = buildPredicateInformation(predicates);
     {
@@ -473,9 +480,8 @@ implements SymbPredAbstFormulaManager
     // instantiate the definitions with the right SSA
     SymbolicFormula predDef = smgr.instantiate(predinfo.predicateDefinition, symbSsa);
 
-    // the formula is (absFormula & symbFormula & predDef)
-    final SymbolicFormula fm = smgr.makeAnd( 
-        smgr.makeAnd(absFormula, symbFormula), predDef);
+    // the formula is (abstractionFormula & pathFormula & predDef)
+    final SymbolicFormula fm = smgr.makeAnd(symbFormula, predDef);
     
     CPAMain.logManager.log(Level.ALL, "DEBUG_2",
         "COMPUTING ALL-SMT ON FORMULA: ", fm);
@@ -527,8 +533,8 @@ implements SymbPredAbstFormulaManager
       if (msatSolveTime > 10000 && dumpHardAbstractions) {
         // we want to dump "hard" problems...
         MathsatAbstractionPrinter absPrinter = new MathsatAbstractionPrinter(mmgr.getMsatEnv(), "abs");
-        absPrinter.printMsatFormat(absFormula, symbFormula, predDef, importantPreds);
-        absPrinter.printNusmvFormat(absFormula, symbFormula, predDef, importantPreds);
+        absPrinter.printMsatFormat(smgr.makeTrue(), symbFormula, predDef, importantPreds);
+        absPrinter.printNusmvFormat(smgr.makeTrue(), symbFormula, predDef, importantPreds);
         absPrinter.nextNum();
       }
       CPAMain.logManager.log(Level.ALL, "Abstraction computed, result is", result);
@@ -544,6 +550,20 @@ implements SymbPredAbstFormulaManager
     return result;
   }
 
+  @Override
+  public boolean unsat(AbstractFormula abstractionFormula, PathFormula pathFormula) {
+    
+    PathFormula symbFormula = buildSymbolicFormula(abstractionFormula, pathFormula);
+    
+    // purpose = ENTAILMENT_CHECK copied from MathsatSymbolicFormulaManager.entails()
+    // this method does essentially the same (just check one formula for unsatisfiability)
+    thmProver.init(TheoremProver.CARTESIAN_ABSTRACTION);
+    boolean result = thmProver.isUnsat(symbFormula.getFirst());
+    thmProver.reset();
+    
+    return result;
+  }
+  
   @Override
   public CounterexampleTraceInfo buildCounterexampleTrace(
       ArrayList<SymbPredAbsAbstractElement> abstractTrace) throws CPAException {

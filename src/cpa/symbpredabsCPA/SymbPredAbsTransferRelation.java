@@ -88,8 +88,6 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   // the third is the sucessor element's node id
   private final Map<Triple<Integer, Integer, Integer>, PathFormula> pathFormulaMapHash =
     new HashMap<Triple<Integer,Integer,Integer>, PathFormula>();
-
-  private SymbPredAbsAbstractElement lastElement = null;
   
   public SymbPredAbsTransferRelation(SymbPredAbsCPA pCpa) {
     symbolicFormulaManager = pCpa.getSymbolicFormulaManager();
@@ -107,7 +105,6 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     long time = System.currentTimeMillis();
     SymbPredAbsAbstractElement element = (SymbPredAbsAbstractElement) pElement;
     SymbPredAbsPrecision precision = (SymbPredAbsPrecision) pPrecision;
-    lastElement = element;
     //boolean abstractionLocation = (blockSize == 0) ? isAbstractionLocation(edge.getSuccessor())
     //    : (element.getSizeSinceAbstraction() >= (blockSize-1));
     boolean abstractionLocation = isAbstractionLocation(edge.getSuccessor())
@@ -117,7 +114,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
       if (abstractionLocation) {
         return handleAbstractionLocation(element, precision, edge);
       } else {
-        return Collections.singleton(handleNonAbstractionLocation(element, edge));
+        return handleNonAbstractionLocation(element, edge, false);
       }
       
     } finally {
@@ -143,9 +140,11 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
    * @return computed abstract element
    * @throws UnrecognizedCFAEdgeException if edge is not recognized
    */
-  private AbstractElement handleNonAbstractionLocation(SymbPredAbsAbstractElement element, CFAEdge edge)
-  throws UnrecognizedCFAEdgeException {
-    CPAMain.logManager.log(Level.FINEST, "Handling non-abstraction location.");
+  private Collection<SymbPredAbsAbstractElement> handleNonAbstractionLocation(
+                SymbPredAbsAbstractElement element, CFAEdge edge, boolean satCheck)
+                throws UnrecognizedCFAEdgeException {
+    CPAMain.logManager.log(Level.FINEST, "Handling non-abstraction location",
+        (satCheck ? "with satisfiability check" : ""));
 
     // id of parent
     int abstractionNodeId = element.getAbstractionLocation().getNodeNumber();
@@ -154,12 +153,17 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
     CPAMain.logManager.log(Level.ALL, "New path formula is", pf);
 
+    if (satCheck && formulaManager.unsat(element.getAbstraction(), pf)) {
+      CPAMain.logManager.log(Level.FINEST, "Abstraction & PathFormula is unsatisfiable.");
+      return Collections.emptySet();
+    }
+    
     // update pfParents list
     List<Integer> newPfParents = new ArrayList<Integer>();
     newPfParents.add(edge.getPredecessor().getNodeNumber());
 
     // create the new abstract element for non-abstraction location
-    return new SymbPredAbsAbstractElement(
+    return Collections.singleton(new SymbPredAbsAbstractElement(
         // set 'isAbstractionLocation' to false
         // set 'abstractionLocation' to last element's abstractionLocation since they are same
         // set 'pathFormula' to pf - the updated pathFormula -
@@ -169,9 +173,9 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
         element.getInitAbstractionFormula(), element.getAbstraction(),
         element.getAbstractionPathList(),
         // set 'sizeSinceAbstraction' to last element's value plus one for the current edge
-        element.getSizeSinceAbstraction() + 1);
+        element.getSizeSinceAbstraction() + 1));
   }
-
+  
   /**
    * Computes element -(op)-> newElement where edge = (l1 -(op)-> l2) and l2 
    * is an abstraction location. 
@@ -248,10 +252,6 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     // add the new abstraction location to the abstractionPath
     List<Integer> newAbstractionPath = new ArrayList<Integer>(element.getAbstractionPathList());
     newAbstractionPath.add(edge.getSuccessor().getNodeNumber());
-
-    // update pfParents list
-    List<Integer> newPfParents = new ArrayList<Integer>();
-    newPfParents.add(edge.getPredecessor().getNodeNumber());
     
     return Collections.singleton(new SymbPredAbsAbstractElement(
         // set 'isAbstractionNode' to true, this is an abstraction node
@@ -263,10 +263,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
         // set 'abstraction' to newly computed abstraction
         // set 'abstractionPathList' to updated pathList
         // set 'sizeSinceAbstraction' to zero
-        newPfParents, pathFormula, newAbstraction, newAbstractionPath, 0));
-
-//    SSAMap maxIndex = new SSAMap();
-//    newElement.setMaxIndex(maxIndex);
+        null, pathFormula, newAbstraction, newAbstractionPath, 0));
   }
   
   /**
@@ -348,9 +345,8 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     // do abstraction (including reachability check) if an error was found by another CPA 
     
     SymbPredAbsAbstractElement element = (SymbPredAbsAbstractElement)pElement;
-    SymbPredAbsPrecision precision = (SymbPredAbsPrecision) pPrecision;
     if (element.isAbstractionNode()) {
-      // not necessary
+      // not necessary to do satisfiability check
       return null;
     }
     
@@ -362,9 +358,34 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
       }
     }
 
-    if (errorFound) {
-      // TODO a simple reachability check through sat solving should be enough here, at least if the error is not reachable
-      return handleAbstractionLocation(lastElement, precision, edge);
+    if (errorFound) { 
+      if (formulaManager.unsat(element.getAbstraction(), element.getPathFormula())) {
+        return Collections.emptySet();
+      } else {
+        // although this is not an abstraction location, we fake an abstraction
+        // because refinement code expect it to be like this
+        
+        ++numAbstractStates;
+
+        maxBlockSize = Math.max(maxBlockSize, element.getSizeSinceAbstraction());
+
+        // add the new abstraction location to the abstractionPath
+        List<Integer> newAbstractionPath = new ArrayList<Integer>(element.getAbstractionPathList());
+        newAbstractionPath.add(edge.getSuccessor().getNodeNumber());
+        
+        return Collections.singleton(new SymbPredAbsAbstractElement(
+            // set 'isAbstractionLocation' to true
+            // set 'abstractionLocation' to edge.getSuccessor()
+            // set 'pathFormula' to true
+            true, edge.getSuccessor(), new PathFormula(symbolicFormulaManager.makeTrue(), new SSAMap()),
+            // 'pfParents' is not instantiated for abstraction locations
+            // set 'initAbstractionFormula' to old pathFormula
+            // set 'abstraction' to true (we don't know better)
+            null, element.getPathFormula(), abstractFormulaManager.makeTrue(),
+            // set 'abstractionPathList' to updated pathList
+            // set 'sizeSinceAbstraction' to zero
+            newAbstractionPath, 0));
+      }
     } else {
       return null;
     }
