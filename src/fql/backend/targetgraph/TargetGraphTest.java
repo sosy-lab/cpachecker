@@ -11,6 +11,9 @@ import cpaplugin.CPAConfiguration;
 import cpaplugin.MainCPAStatistics;
 import cpaplugin.CPAConfiguration.InvalidCmdlineArgumentException;
 import exceptions.CPAException;
+import fql.frontend.ast.predicate.CIdentifier;
+import fql.frontend.ast.predicate.NaturalNumber;
+import fql.frontend.ast.predicate.Predicate;
 
 public class TargetGraphTest {
   private String mConfig = "-config";
@@ -221,6 +224,34 @@ public class TargetGraphTest {
     TargetGraph lMinusGraph = TargetGraph.applyMinusFilter(lTargetGraph, lFuncTargetGraph);
     
     System.out.println(lMinusGraph);
+  }
+  
+  @Test
+  public void test_08() throws InvalidCmdlineArgumentException, IOException, CPAException {
+    String[] lArguments = new String[3];
+    
+    lArguments[0] = mConfig;
+    lArguments[1] = mPropertiesFile;
+    lArguments[2] = "test/tests/single/functionCall.c";
+    
+    CPAConfiguration lConfiguration = new CPAConfiguration(lArguments);
+    
+    // necessary for LogManager
+    CPAMain.cpaConfig = lConfiguration;
+    
+    LogManager lLogManager = LogManager.getInstance();
+      
+    MainCPAStatistics lStatistics = new MainCPAStatistics();
+    
+    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager, lStatistics);
+    
+    TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
+    
+    TargetGraph lFuncTargetGraph = TargetGraph.applyFunctionNameFilter(lTargetGraph, "f");
+    
+    TargetGraph lPredicatedGraph = TargetGraph.applyPredication(lFuncTargetGraph, new Predicate(new CIdentifier("x"), Predicate.Comparison.LESS, new NaturalNumber(100)));
+    
+    System.out.println(lPredicatedGraph);
   }
   
 }

@@ -1,5 +1,6 @@
 package fql.backend.targetgraph;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -11,11 +12,14 @@ import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DirectedMaskSubgraph;
 import org.jgrapht.graph.MaskFunctor;
 
+import common.Pair;
+
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAExitNode;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cfa.objectmodel.CFANode;
 import cfa.objectmodel.c.CallToReturnEdge;
+import fql.frontend.ast.predicate.Predicate;
 
 public class TargetGraph {
   private Set<Node> mInitialNodes;
@@ -164,6 +168,83 @@ public class TargetGraph {
     lCopy.mGraph.removeAllVertices(pTargetGraph2.mGraph.vertexSet());
     
     return lCopy;
+  }
+  
+  public static TargetGraph applyPredication(TargetGraph pTargetGraph, Predicate pPredicate) {
+    assert(pTargetGraph != null);
+    assert(pPredicate != null);
+    
+    HashSet<Node> lInitialNodes = new HashSet<Node>();
+    HashSet<Node> lFinalNodes = new HashSet<Node>();
+    DirectedGraph<Node, Edge> lGraph = new DefaultDirectedGraph<Node, Edge>(Edge.class);
+    
+    // 1) duplicate vertices
+    
+    HashMap<Node, Pair<Node, Node>> lMap = new HashMap<Node, Pair<Node, Node>>();
+    
+    for (Node lNode : pTargetGraph.mGraph.vertexSet()) {
+      Node lTrueNode = new Node(lNode);
+      lTrueNode.addPredicate(pPredicate, true);
+      lGraph.addVertex(lTrueNode);
+      
+      Node lFalseNode = new Node(lNode);
+      lFalseNode.addPredicate(pPredicate, false);
+      lGraph.addVertex(lFalseNode);
+      
+      Pair<Node, Node> lPair = new Pair<Node, Node>(lTrueNode, lFalseNode);
+      
+      lMap.put(lNode, lPair);
+    }
+    
+    for (Node lNode : pTargetGraph.mInitialNodes) {
+      Pair<Node, Node> lPair = lMap.get(lNode);
+      
+      lInitialNodes.add(lPair.getFirst());
+      lInitialNodes.add(lPair.getSecond());
+    }
+    
+    for (Node lNode : pTargetGraph.mFinalNodes) {
+      Pair<Node, Node> lPair = lMap.get(lNode);
+      
+      lFinalNodes.add(lPair.getFirst());
+      lFinalNodes.add(lPair.getSecond());
+    }
+    
+    // 2) replicate edges
+    
+    for (Edge lEdge : pTargetGraph.mGraph.edgeSet()) {
+      Node lSourceNode = lEdge.getSource();
+      Pair<Node, Node> lSourcePair = lMap.get(lSourceNode);
+      
+      Node lTargetNode = lEdge.getTarget();
+      Pair<Node, Node> lTargetPair = lMap.get(lTargetNode);
+      
+      Node lSourceTrueNode = lSourcePair.getFirst();
+      Node lSourceFalseNode = lSourcePair.getSecond();
+      
+      Node lTargetTrueNode = lTargetPair.getFirst();
+      Node lTargetFalseNode = lTargetPair.getSecond();
+      
+      new Edge(lSourceTrueNode, lTargetTrueNode, lEdge.getCFAEdge(), lGraph);
+      new Edge(lSourceTrueNode, lTargetFalseNode, lEdge.getCFAEdge(), lGraph);
+      new Edge(lSourceFalseNode, lTargetTrueNode, lEdge.getCFAEdge(), lGraph);
+      new Edge(lSourceFalseNode, lTargetFalseNode, lEdge.getCFAEdge(), lGraph);
+    }
+    
+    return new TargetGraph(lInitialNodes, lFinalNodes, lGraph);
+  }
+  
+  public static TargetGraph applyPredication(TargetGraph pTargetGraph, Collection<Predicate> pPredicates) {
+    assert(pTargetGraph != null);
+    assert(pPredicates != null);
+    
+    TargetGraph lResultGraph = pTargetGraph;
+    
+    for (Predicate lPredicate : pPredicates) {
+      lResultGraph = applyPredication(lResultGraph, lPredicate);
+    }
+    
+    return lResultGraph;
   }
   
   public Iterator<Node> getInitialNodes() {
