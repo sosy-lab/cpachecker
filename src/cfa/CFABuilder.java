@@ -395,6 +395,7 @@ public class CFABuilder extends ASTVisitor
 		        assumeEdgeFalse.initialize (prevNode, postIfNode);
 		    }
     } // end of IF_CONDITION_NORMAL case
+		    break;
     default:
         throw new InternalError("Missing switch clause");
 		} // end of switch statement

@@ -58,13 +58,13 @@ public class SSAMap {
     
     @Override
     public boolean equals(Object o) {
-      boolean b = false;
-      if (o instanceof VarKey) {
-          b = name.equals(((VarKey)o).name);
-      } else if (o instanceof String) {
-          b = name.equals(o);
+      if (o == this) {
+        return true;
+      } else if (o instanceof VarKey) {
+        return name.equals(((VarKey)o).name);
+      } else {
+        return false;
       }
-      return b;
     }
 
     @Override

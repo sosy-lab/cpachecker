@@ -131,8 +131,8 @@ public abstract class CommonFormulaManager implements FormulaManager {
    */
   public Predicate getPredicate(SymbolicFormula var) {
     Predicate result = symbVarToPredicate.get(var);
-    if (var == null) {
-      throw new IllegalArgumentException(var + " seems not to be a formula corresponding to a single predicate variable.");
+    if (result == null) {
+      throw new IllegalArgumentException(var + "seems not to be a formula corresponding to a single predicate variable.");
     }
     return result;
   }

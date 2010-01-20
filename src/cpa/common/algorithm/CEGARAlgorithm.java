@@ -50,13 +50,12 @@ public class CEGARAlgorithm implements Algorithm {
   private int gcCounter = 0;
 
   private static long modifySetsTime=0;
-  public static long totalfindArtTime =0;
   private static long refinementTime = 0;
 
   private final Algorithm algorithm;
   private final Refiner mRefiner;
 
-  public static ExecutorService executor;
+  public static final ExecutorService executor = Executors.newCachedThreadPool();
 
   /**
    * Creates an instance of class className, passing the objects from argumentList
@@ -97,7 +96,6 @@ public class CEGARAlgorithm implements Algorithm {
   public void run(ReachedElements reached, boolean stopAfterError) throws CPAException {
 
     boolean stopAnalysis = false;
-    executor = Executors.newCachedThreadPool();
     while (!stopAnalysis) {
       // run algorithm
       try{

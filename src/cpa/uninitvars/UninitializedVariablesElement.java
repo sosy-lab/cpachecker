@@ -99,7 +99,7 @@ public class UninitializedVariablesElement implements AbstractElement {
   
   @Override
   public boolean equals(Object o) {
-    if (o == null) {
+    if (o == null || !(o instanceof UninitializedVariablesElement)) {
       return false;
     }
     if (this == o) {

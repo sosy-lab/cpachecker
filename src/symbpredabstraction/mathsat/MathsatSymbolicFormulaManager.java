@@ -2502,6 +2502,11 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     return new MathsatSymbolicFormula(uninstantiate(f.getTerm(), cache));
   }
 
+  private static final Comparator<Long> MathsatComparator = new Comparator<Long>() {
+    public int compare(Long o1, Long o2) {
+      return mathsat.api.msat_term_id(o1) - mathsat.api.msat_term_id(o2);
+    }
+  };
 
   @Override
   public Collection<SymbolicFormula> extractAtoms(SymbolicFormula f,
@@ -2509,13 +2514,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       boolean conjunctionsOnly) {
     Set<Long> cache = new HashSet<Long>();
     //Set<Long> atoms = new HashSet<Long>();
-    Set<Long> atoms = new TreeSet<Long>(
-        new Comparator<Long>() {
-          public int compare(Long o1, Long o2) {
-            return mathsat.api.msat_term_id(o1) -
-            mathsat.api.msat_term_id(o2);
-          }
-        });
+    Set<Long> atoms = new TreeSet<Long>(MathsatComparator);
     Map<Long, Long> varcache = uninstantiateGlobalCache;
 
     Stack<Long> toProcess = new Stack<Long>();

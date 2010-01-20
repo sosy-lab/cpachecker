@@ -13,9 +13,7 @@ import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.AbstractWrapperElement;
 
-public class ARTElement implements AbstractWrapperElement, Comparable<ARTElement>{
-
-  public static long artElementEqualsTime = 0; 
+public class ARTElement implements AbstractWrapperElement {
 
   private final ARTCPA mCpa;
   private final AbstractElement element;
@@ -240,18 +238,4 @@ public class ARTElement implements AbstractWrapperElement, Comparable<ARTElement
     return it.next();
   }
 
-  @Override
-  public int compareTo(ARTElement pO) {
-
-    int otherElementid = pO.getElementId();
-
-    if(this.getElementId() > otherElementid){
-      return 1;
-    }
-    else if(getElementId() < otherElementid){
-      return -1;
-    }
-    return 0;
-  }
-  
 }

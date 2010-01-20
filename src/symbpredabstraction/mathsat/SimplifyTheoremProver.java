@@ -474,7 +474,11 @@ public class SimplifyTheoremProver implements TheoremProver {
             assert(line.contains("(AND"));
             while (true) {
                 // here we parse the model
-                line = simplifyOut.readLine().trim();
+                line = simplifyOut.readLine();
+                if (line == null) {
+                  break;
+                }
+                line = line.trim();
                 if (line.isEmpty()) {
                     break;
                 }

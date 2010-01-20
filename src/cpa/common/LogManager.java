@@ -53,7 +53,7 @@ public class LogManager {
 
   private static LogManager instance = null;
 
-  private final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS");
+  private static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS");
   private final Level logLevel;
   private final Level logConsoleLevel;
   private final List<Level> excludeLevelsFile;
@@ -63,7 +63,7 @@ public class LogManager {
   private final Logger consoleLogger;
 
   //inner class to handle formatting for file output
-  private class CPALogFormatter extends Formatter {
+  private static class CPALogFormatter extends Formatter {
     @Override
     public String format(LogRecord lr) {
       String[] className = lr.getSourceClassName().split("\\.");
@@ -77,7 +77,7 @@ public class LogManager {
   }
 
   //inner class to handle formatting for console output
-  private class CPAConsoleLogFormatter extends Formatter {
+  private static class CPAConsoleLogFormatter extends Formatter {
     @Override
     public String format(LogRecord lr) {
       String[] className = lr.getSourceClassName().split("\\.");

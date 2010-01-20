@@ -74,6 +74,24 @@ public class CBMCEdge implements Comparable<CBMCEdge>{
   }
   
   @Override
+  public boolean equals(Object pObj) {
+    if (pObj == this) {
+      return true;
+    } else if (pObj instanceof CBMCEdge) {
+      int otherElementId = ((CBMCEdge)pObj).getChildElement().getElementId();
+      int thisElementId = this.getChildElement().getElementId();
+      return thisElementId == otherElementId;
+    } else {
+      return false;
+    }
+  }
+  
+  @Override
+  public int hashCode() {
+    return getChildElement().getElementId();
+  }
+  
+  @Override
   public String toString() {
     return "CBMC ELEMENT > " + parentElement.getElementId() + " --> " + childElement.getElementId();
   }

@@ -23,7 +23,6 @@ import cpa.art.ARTElement;
 import cpa.art.AbstractARTBasedRefiner;
 import cpa.common.Path;
 import cpa.common.ReachedElements;
-import cpa.common.algorithm.CEGARAlgorithm;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.WrapperPrecision;
@@ -166,7 +165,6 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
     // best to use strategy one iff symbPredRootElement is not null.
     
     ARTElement root;
-    long start = System.currentTimeMillis();
     if (symbPredRootElement != null) {
       CPAMain.logManager.log(Level.FINEST, "Found spurious counterexample,",
           "trying strategy 1: remove everything below", firstInterpolationElement, "from ART.");
@@ -181,9 +179,6 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
 
       root = this.getArtCpa().findHighest(pArtPath.getLast().getFirst(), loc);
     }
-    long end = System.currentTimeMillis();
-    CEGARAlgorithm.totalfindArtTime= CEGARAlgorithm.totalfindArtTime + (end - start);
-
     return new Pair<ARTElement, SymbPredAbsPrecision>(root, newPrecision);
   }
 

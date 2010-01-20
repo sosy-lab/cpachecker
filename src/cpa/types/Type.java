@@ -125,7 +125,7 @@ public interface Type {
     
     @Override
     public int sizeOf() {
-      return primitiveType.sizeOf;
+      return primitiveType.sizeOf();
     }
     
     @Override

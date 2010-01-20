@@ -40,6 +40,8 @@ import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.google.common.base.Joiner;
+
 import symbpredabstraction.interfaces.SymbolicFormula;
 import symbpredabstraction.interfaces.SymbolicFormulaManager;
 import symbpredabstraction.interfaces.TheoremProver;
@@ -129,23 +131,20 @@ public class YicesTheoremProver implements TheoremProver {
                     String yicesFun = null;
                     if (!msatVarToYicesVar.containsKey(d)) {
                         yicesFun = "f" + (curVarIndex++);
-                        String tp = "(->";
-                        for (int i = 0; i < mathsat.api.msat_term_arity(term);
-                             ++i) {
-                            tp += " int";
+                        StringBuffer tp = new StringBuffer();
+                        tp.append("(->");
+                        int arity = mathsat.api.msat_term_arity(term);
+                        for (int i = 0; i < arity; i++) {
+                            tp.append(" int");
                         }
-                        tp += " int)";
+                        tp.append(" int)");
                         String decl = "(define " + yicesFun + "::" + tp + ")";
                         msatVarToYicesVar.put(d, yicesFun);
                         decls.add(decl);
                     } else {
                         yicesFun = msatVarToYicesVar.get(d);
                     }
-                    String s = "(" + yicesFun;
-                    for (String c : children) {
-                        s += " " + c;
-                    }
-                    s += ")";
+                    String s = "(" + yicesFun + " " + Joiner.on(' ').join(children) + ")";
                     msatToYicesCache.put(term, s);
                 } else if (mathsat.api.msat_term_is_number(term) != 0) {
                     msatToYicesCache.put(term, mathsat.api.msat_term_repr(term));

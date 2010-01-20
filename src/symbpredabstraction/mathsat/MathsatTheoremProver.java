@@ -162,7 +162,7 @@ public class MathsatTheoremProver implements TheoremProver {
         }
     }
 
-    class MathsatAllSatCallback implements mathsat.AllSatModelCallback {
+    private static class MathsatAllSatCallback implements mathsat.AllSatModelCallback {
         private final AllSatCallback toCall;
 
         public MathsatAllSatCallback(AllSatCallback tc) {
