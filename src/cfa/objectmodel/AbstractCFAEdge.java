@@ -131,6 +131,11 @@ public abstract class AbstractCFAEdge implements CFAEdge
     }
 
     @Override
+    public int hashCode() {
+      return 31 * predecessor.hashCode() + successor.hashCode();
+    }
+    
+    @Override
     public boolean equals (Object other)
     {
         if (!(other instanceof AbstractCFAEdge))

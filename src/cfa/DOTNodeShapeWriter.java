@@ -42,14 +42,18 @@ public class DOTNodeShapeWriter {
 	}
 
 	public String getDot(){
-		String s = "";
+		StringBuffer sb = new StringBuffer();
 		for(ShapePair sp:shapedNodes){
-			s = s + "node [shape = " + sp.shape + "]; " + sp.nodeNumber + ";\n";
+			sb.append("node [shape = ");
+			sb.append(sp.shape);
+			sb.append("]; ");
+		  sb.append(sp.nodeNumber);
+		  sb.append(";\n");
 		}
-		return s;
+		return sb.toString();
 	}
 
-	public class ShapePair {
+	private static class ShapePair {
 		public int nodeNumber;
 		String shape;
 

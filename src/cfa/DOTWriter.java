@@ -26,6 +26,8 @@ package cfa;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.google.common.base.Joiner;
+
 public class DOTWriter {
 
 	protected String name;
@@ -41,10 +43,6 @@ public class DOTWriter {
 	}
 
 	public String getSubGraph(){
-		String s = "";
-		for(String line:entries){
-			s = s + line + "\n";
-		}
-		return s;
+	  return Joiner.on('\n').join(entries);
 	}
 }

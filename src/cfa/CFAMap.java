@@ -80,16 +80,14 @@ public class CFAMap {
 		return cfaMap.values();
 	}
 
-	/* (non-Javadoc)
-	 * @see java.lang.Object#toString()
-	 */
 	@Override
 	public String toString(){
-		String s = "";
+		StringBuffer sb = new StringBuffer();
 		Collection <CFAFunctionDefinitionNode> cfas = cfaMapIterator ();
-		for(CFAFunctionDefinitionNode cfa:cfas){
-			s = s + cfa.getFunctionName() + "\n";
+		for (CFAFunctionDefinitionNode cfa:cfas) {
+		  sb.append(cfa.getFunctionName());
+		  sb.append('\n');
 		}
-		return s;
+		return sb.toString();
 	}
 }
