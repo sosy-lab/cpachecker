@@ -68,7 +68,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, CPAWithStati
   private final SymbPredAbsPrecision initialPrecision;
   private final AbstractFormulaManager abstractFormulaManager;
   private final MathsatSymbolicFormulaManager symbolicFormulaManager;
-  private final SymbPredAbstFormulaManager formulaManager;
+  private final SymbPredAbsFormulaManager formulaManager;
   private final SymbPredAbsCPAStatistics stats;
 
   private SymbPredAbsCPA() throws CPAException {
@@ -89,7 +89,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, CPAWithStati
     }
     InterpolatingTheoremProver<Integer> itpProver =
       new MathsatInterpolatingProver(symbolicFormulaManager, false);
-    formulaManager = new BDDMathsatSymbPredAbstractionAbstractManager<Integer>(abstractFormulaManager, symbolicFormulaManager, thmProver, itpProver);
+    formulaManager = new MathsatSymbPredAbsFormulaManager<Integer>(abstractFormulaManager, symbolicFormulaManager, thmProver, itpProver);
     domain = new SymbPredAbsAbstractDomain(abstractFormulaManager);
     transfer = new SymbPredAbsTransferRelation(this);
     merge = new SymbPredAbsMergeOperator(this);
@@ -152,7 +152,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, CPAWithStati
     return abstractFormulaManager;
   }
   
-  public SymbPredAbstFormulaManager getFormulaManager() {
+  public SymbPredAbsFormulaManager getFormulaManager() {
     return formulaManager;
   }
 

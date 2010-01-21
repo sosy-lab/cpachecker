@@ -44,8 +44,8 @@ public class SymbPredAbsCPAStatistics implements CPAStatistics {
 
     @Override
     public void printStatistics(PrintWriter out, Result result) {
-      BDDMathsatSymbPredAbstractionAbstractManager<?> amgr =
-        (BDDMathsatSymbPredAbstractionAbstractManager<?>)cpa.getFormulaManager();
+      MathsatSymbPredAbsFormulaManager<?> amgr =
+        (MathsatSymbPredAbsFormulaManager<?>)cpa.getFormulaManager();
 
 /* TODO re-enable this with precision based approach      
       Set<Predicate> allPreds = new HashSet<Predicate>();
@@ -117,7 +117,7 @@ public class SymbPredAbsCPAStatistics implements CPAStatistics {
         }
       }
 */
-      BDDMathsatSymbPredAbstractionAbstractManager.Stats bs = amgr.stats;
+      MathsatSymbPredAbsFormulaManager.Stats bs = amgr.stats;
       SymbPredAbsTransferRelation trans = cpa.getTransferRelation();
 
       out.println("Number of abstraction steps:       " + bs.numCallsAbstraction + " (" + bs.numCallsAbstractionCached + " cached)");

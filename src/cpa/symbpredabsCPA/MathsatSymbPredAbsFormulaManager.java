@@ -47,7 +47,7 @@ import symbpredabstraction.interfaces.InterpolatingTheoremProver;
 import symbpredabstraction.interfaces.Predicate;
 import symbpredabstraction.interfaces.SymbolicFormula;
 import symbpredabstraction.interfaces.TheoremProver;
-import symbpredabstraction.mathsat.BDDMathsatAbstractFormulaManager;
+import symbpredabstraction.mathsat.MathsatFormulaManager;
 import symbpredabstraction.mathsat.MathsatAbstractionPrinter;
 import symbpredabstraction.mathsat.MathsatSymbolicFormula;
 import symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
@@ -68,8 +68,8 @@ import exceptions.RefinementFailedException;
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
 
-class BDDMathsatSymbPredAbstractionAbstractManager<T> extends BDDMathsatAbstractFormulaManager 
-implements SymbPredAbstFormulaManager
+class MathsatSymbPredAbsFormulaManager<T> extends MathsatFormulaManager 
+implements SymbPredAbsFormulaManager
 {
 
   static class Stats {
@@ -119,7 +119,7 @@ implements SymbPredAbstFormulaManager
   private final TimeStampCache<CartesianAbstractionCacheKey, Byte> cartesianAbstractionCache;
   private final TimeStampCache<FeasibilityCacheKey, Boolean> feasibilityCache;
 
-  public BDDMathsatSymbPredAbstractionAbstractManager(
+  public MathsatSymbPredAbsFormulaManager(
       AbstractFormulaManager pAmgr,
       MathsatSymbolicFormulaManager pMmgr,
       TheoremProver pThmProver,

@@ -31,7 +31,7 @@ import exceptions.CPAException;
 
 public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
 
-  private final SymbPredAbstFormulaManager formulaManager;
+  private final SymbPredAbsFormulaManager formulaManager;
   
   public SymbPredAbsRefiner(final ConfigurableProgramAnalysis pCpa) throws CPAException {
     super(pCpa);

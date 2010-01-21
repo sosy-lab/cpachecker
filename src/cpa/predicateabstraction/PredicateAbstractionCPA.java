@@ -74,7 +74,7 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis, CPA
     private final PredicateAbstractionStopOperator stop;
     private final PrecisionAdjustment precisionAdjustment;
     private final AbstractFormulaManager abstractFormulaManager;
-    private final PredicateAbstractionAbstractFormulaManager amgr;
+    private final PredicateAbstractionFormulaManager amgr;
     private PredicateMap pmap;
 
     private final PredicateAbstractionCPAStatistics stats;
@@ -102,7 +102,7 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis, CPA
         }
         InterpolatingTheoremProver<Integer> itpProver =
             new MathsatInterpolatingProver(mgr, true);
-        amgr = new BDDMathsatPredicateAbstractionAbstractManager<Integer>(abstractFormulaManager, mgr, prover, itpProver);
+        amgr = new MathsatPredicateAbstractionFormulaManager<Integer>(abstractFormulaManager, mgr, prover, itpProver);
 
 //        covers = new HashMap<ExplicitAbstractElement,
 //                             Set<ExplicitAbstractElement>>();
@@ -187,7 +187,7 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis, CPA
         return abstractFormulaManager;
     }
 
-    public PredicateAbstractionAbstractFormulaManager getPredAbsFormulaManager() {
+    public PredicateAbstractionFormulaManager getPredAbsFormulaManager() {
       return amgr;
     }
     

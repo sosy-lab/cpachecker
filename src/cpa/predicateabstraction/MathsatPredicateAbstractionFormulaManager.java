@@ -45,7 +45,7 @@ import symbpredabstraction.interfaces.Predicate;
 import symbpredabstraction.interfaces.SymbolicFormula;
 import symbpredabstraction.interfaces.SymbolicFormulaManager;
 import symbpredabstraction.interfaces.TheoremProver;
-import symbpredabstraction.mathsat.BDDMathsatAbstractFormulaManager;
+import symbpredabstraction.mathsat.MathsatFormulaManager;
 import symbpredabstraction.mathsat.MathsatSymbolicFormula;
 import symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
 import symbpredabstraction.trace.CounterexampleTraceInfo;
@@ -65,9 +65,9 @@ import exceptions.UnrecognizedCFAEdgeException;
  *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
-class BDDMathsatPredicateAbstractionAbstractManager<T> extends
-BDDMathsatAbstractFormulaManager
-implements PredicateAbstractionAbstractFormulaManager {
+class MathsatPredicateAbstractionFormulaManager<T> extends
+MathsatFormulaManager
+implements PredicateAbstractionFormulaManager {
 
   // some statistics. All times are in milliseconds
   public class Stats {
@@ -281,7 +281,7 @@ implements PredicateAbstractionAbstractFormulaManager {
   private TheoremProver thmProver;
   private InterpolatingTheoremProver<T> itpProver;
 
-  public BDDMathsatPredicateAbstractionAbstractManager(
+  public MathsatPredicateAbstractionFormulaManager(
       AbstractFormulaManager amgr,
       MathsatSymbolicFormulaManager mmgr,
       TheoremProver prover,

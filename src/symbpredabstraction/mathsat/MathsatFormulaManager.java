@@ -46,7 +46,7 @@ import symbpredabstraction.interfaces.TheoremProver;
 import common.Pair;
 
 
-public class BDDMathsatAbstractFormulaManager extends CommonFormulaManager {
+public class MathsatFormulaManager extends CommonFormulaManager {
 
     /**
      * callback used to build the predicate abstraction of a formula
@@ -121,7 +121,7 @@ public class BDDMathsatAbstractFormulaManager extends CommonFormulaManager {
 
     protected final MathsatSymbolicFormulaManager mmgr;
 
-    public BDDMathsatAbstractFormulaManager(AbstractFormulaManager pAmgr,
+    public MathsatFormulaManager(AbstractFormulaManager pAmgr,
               MathsatSymbolicFormulaManager pMmgr) {
         super(pAmgr, pMmgr);
         mmgr = pMmgr;

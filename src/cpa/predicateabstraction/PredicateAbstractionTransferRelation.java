@@ -114,7 +114,7 @@ public class PredicateAbstractionTransferRelation implements TransferRelation {
     //  succ.popContext();
     //  }
 
-    PredicateAbstractionAbstractFormulaManager amgr = cpa.getPredAbsFormulaManager();
+    PredicateAbstractionFormulaManager amgr = cpa.getPredAbsFormulaManager();
     AbstractFormula abstraction = amgr.buildAbstraction(
         e, succ, edge, predicates);
     succ.setAbstraction(abstraction);

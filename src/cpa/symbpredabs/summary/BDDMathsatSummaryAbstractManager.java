@@ -45,7 +45,7 @@ import symbpredabstraction.interfaces.Predicate;
 import symbpredabstraction.interfaces.SymbolicFormula;
 import symbpredabstraction.interfaces.SymbolicFormulaManager;
 import symbpredabstraction.interfaces.TheoremProver;
-import symbpredabstraction.mathsat.BDDMathsatAbstractFormulaManager;
+import symbpredabstraction.mathsat.MathsatFormulaManager;
 import symbpredabstraction.mathsat.MathsatAbstractionPrinter;
 import symbpredabstraction.mathsat.MathsatSymbolicFormula;
 import symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
@@ -65,7 +65,7 @@ import common.Pair;
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
 public class BDDMathsatSummaryAbstractManager<T> extends
-        BDDMathsatAbstractFormulaManager implements
+        MathsatFormulaManager implements
         SummaryAbstractFormulaManager {
 
     // some statistics. All times are in milliseconds

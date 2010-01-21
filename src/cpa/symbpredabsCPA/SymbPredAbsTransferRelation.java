@@ -76,7 +76,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   // formula managers
   private final AbstractFormulaManager abstractFormulaManager;
   private final SymbolicFormulaManager symbolicFormulaManager;
-  private final SymbPredAbstFormulaManager formulaManager;
+  private final SymbPredAbsFormulaManager formulaManager;
 
   private final int blockSize;
   private final boolean inlineFunctions;

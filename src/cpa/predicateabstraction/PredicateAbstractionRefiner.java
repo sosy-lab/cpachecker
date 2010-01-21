@@ -27,7 +27,7 @@ import exceptions.CPAException;
 public class PredicateAbstractionRefiner extends AbstractARTBasedRefiner {
 
   private PredicateAbstractionCPA mCpa;
-  private PredicateAbstractionAbstractFormulaManager amgr;
+  private PredicateAbstractionFormulaManager amgr;
   private Map<Vector<Integer>, Integer> abstractCex;
 
   private int numAbstractStates = 0; // for statistics

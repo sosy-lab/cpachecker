@@ -40,7 +40,7 @@ import symbpredabstraction.trace.CounterexampleTraceInfo;
  *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
-public interface SymbPredAbstFormulaManager extends FormulaManager {
+public interface SymbPredAbsFormulaManager extends FormulaManager {
 
     /**
      * Abstract post operation.

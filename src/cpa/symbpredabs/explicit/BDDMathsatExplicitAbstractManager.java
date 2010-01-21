@@ -49,7 +49,7 @@ import symbpredabstraction.interfaces.Predicate;
 import symbpredabstraction.interfaces.SymbolicFormula;
 import symbpredabstraction.interfaces.SymbolicFormulaManager;
 import symbpredabstraction.interfaces.TheoremProver;
-import symbpredabstraction.mathsat.BDDMathsatAbstractFormulaManager;
+import symbpredabstraction.mathsat.MathsatFormulaManager;
 import symbpredabstraction.mathsat.MathsatSymbolicFormula;
 import symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
 import symbpredabstraction.trace.CounterexampleTraceInfo;
@@ -73,7 +73,7 @@ import exceptions.UnrecognizedCFAEdgeException;
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
 public class BDDMathsatExplicitAbstractManager<T> extends
-        BDDMathsatAbstractFormulaManager
+        MathsatFormulaManager
         implements ExplicitAbstractFormulaManager {
 
     // some statistics. All times are in milliseconds

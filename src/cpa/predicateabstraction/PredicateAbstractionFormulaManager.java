@@ -45,7 +45,7 @@ import exceptions.UnrecognizedCFAEdgeException;
  *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
-public interface PredicateAbstractionAbstractFormulaManager extends FormulaManager {
+public interface PredicateAbstractionFormulaManager extends FormulaManager {
 
     /**
      * Computes the abstract post from "e" to "succ" on the given edge

@@ -69,8 +69,8 @@ public class PredicateAbstractionCPAStatistics implements CPAStatistics {
       PredicateAbstractionTransferRelation trans =
             (PredicateAbstractionTransferRelation)cpa.getTransferRelation();
         PredicateMap pmap = cpa.getPredicateMap();
-        BDDMathsatPredicateAbstractionAbstractManager<?> amgr =
-            (BDDMathsatPredicateAbstractionAbstractManager<?>)cpa.getPredAbsFormulaManager();
+        MathsatPredicateAbstractionFormulaManager<?> amgr =
+            (MathsatPredicateAbstractionFormulaManager<?>)cpa.getPredAbsFormulaManager();
 
         Set<Predicate> allPreds = new HashSet<Predicate>();
         Collection<CFANode> allLocs = null;
@@ -140,7 +140,7 @@ public class PredicateAbstractionCPAStatistics implements CPAStatistics {
           }
         }
 
-        BDDMathsatPredicateAbstractionAbstractManager<?>.Stats bs = amgr.getStats();
+        MathsatPredicateAbstractionFormulaManager<?>.Stats bs = amgr.getStats();
 
         out.println("Number of abstract states visited: " +
                 trans.getNumAbstractStates());
