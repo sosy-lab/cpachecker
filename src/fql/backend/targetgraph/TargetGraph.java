@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Set;
 
 import org.jgrapht.DirectedGraph;
@@ -19,12 +20,152 @@ import cfa.objectmodel.CFAExitNode;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cfa.objectmodel.CFANode;
 import cfa.objectmodel.c.CallToReturnEdge;
+import fql.frontend.ast.DefaultASTVisitor;
+import fql.frontend.ast.filter.Complement;
+import fql.frontend.ast.filter.Compose;
+import fql.frontend.ast.filter.Filter;
+import fql.frontend.ast.filter.Function;
+import fql.frontend.ast.filter.Identity;
+import fql.frontend.ast.filter.Intersection;
+import fql.frontend.ast.filter.SetMinus;
+import fql.frontend.ast.filter.Union;
 import fql.frontend.ast.predicate.Predicate;
 
 public class TargetGraph {
+  private class FilterEvaluator extends DefaultASTVisitor<TargetGraph> {
+
+    private Map<Filter, TargetGraph> mCache;
+    
+    public FilterEvaluator() {
+      mCache = new HashMap<Filter, TargetGraph>();
+    }
+    
+    @Override
+    public TargetGraph visit(Complement pComplement) {
+      assert(pComplement != null);
+      
+      if (mCache.containsKey(pComplement)) {
+        return mCache.get(pComplement);
+      }
+      else {
+        Filter lFilter = pComplement.getFilter();
+        
+        TargetGraph lResult = TargetGraph.applyMinusFilter(mSelf, mSelf.apply(lFilter)); 
+        
+        mCache.put(pComplement, lResult);
+        
+        return lResult;
+      }
+    }
+
+    @Override
+    public TargetGraph visit(Compose pCompose) {
+      assert(pCompose != null);
+      
+      if (mCache.containsKey(pCompose)) {
+        return mCache.get(pCompose);
+      }
+      else {
+        TargetGraph lResult = mSelf.apply(pCompose.getFilterAppliedFirst()).apply(pCompose.getFilterAppliedSecond());
+        
+        mCache.put(pCompose, lResult);
+        
+        return lResult;
+      }
+    }
+
+    @Override
+    public TargetGraph visit(Identity pIdentity) {
+      return mSelf;
+    }
+
+    @Override
+    public TargetGraph visit(Intersection pIntersection) {
+      assert(pIntersection != null);
+      
+      if (mCache.containsKey(pIntersection)) {
+        return mCache.get(pIntersection);
+      }
+      else {
+        TargetGraph lGraph1 = mSelf.apply(pIntersection.getFirstFilter());
+        TargetGraph lGraph2 = mSelf.apply(pIntersection.getSecondFilter());
+        
+        TargetGraph lResult = TargetGraph.applyIntersectionFilter(lGraph1, lGraph2);
+        
+        mCache.put(pIntersection, lResult);
+        
+        return lResult;
+      }
+    }
+
+    @Override
+    public TargetGraph visit(SetMinus pSetMinus) {
+      assert(pSetMinus != null);
+      
+      if (mCache.containsKey(pSetMinus)) {
+        return mCache.get(pSetMinus);
+      }
+      else {
+        TargetGraph lGraph1 = mSelf.apply(pSetMinus.getFirstFilter());
+        TargetGraph lGraph2 = mSelf.apply(pSetMinus.getSecondFilter());
+        
+        TargetGraph lResult = TargetGraph.applyMinusFilter(lGraph1, lGraph2);
+
+        mCache.put(pSetMinus, lResult);
+        
+        return lResult;
+      }
+    }
+
+    @Override
+    public TargetGraph visit(Union pUnion) {
+      assert(pUnion != null);
+      
+      if (mCache.containsKey(pUnion)) {
+        return mCache.get(pUnion);
+      }
+      else {
+        TargetGraph lGraph1 = mSelf.apply(pUnion.getFirstFilter());
+        TargetGraph lGraph2 = mSelf.apply(pUnion.getSecondFilter());
+        
+        TargetGraph lResult = TargetGraph.applyUnionFilter(lGraph1, lGraph2);
+        
+        mCache.put(pUnion, lResult);
+        
+        return lResult;
+      }
+    }
+
+    @Override
+    public TargetGraph visit(Function pFunc) {
+      assert(pFunc != null);
+      
+      if (mCache.containsKey(pFunc)) {
+        return mCache.get(pFunc);
+      }
+      else {
+        TargetGraph lResult = TargetGraph.applyFunctionNameFilter(mSelf, pFunc.getFunctionName());
+        
+        mCache.put(pFunc, lResult);
+        
+        return lResult;
+      }
+    }
+    
+  }
+  
+  public TargetGraph apply(Filter pFilter) {
+    assert(pFilter != null);
+    
+    return pFilter.accept(mEvaluator);
+  }
+  
+  private FilterEvaluator mEvaluator = new FilterEvaluator();
+  
   private Set<Node> mInitialNodes;
   private Set<Node> mFinalNodes;
   private DirectedGraph<Node, Edge> mGraph;
+  private TargetGraph mSelf = this;
   
   private TargetGraph(Set<Node> pInitialNodes, Set<Node> pFinalNodes, DirectedGraph<Node, Edge> pGraph) {
     assert(pInitialNodes != null);
@@ -251,7 +392,7 @@ public class TargetGraph {
     return mInitialNodes.iterator();
   }
   
-  public Iterator<Node> getFinalNode() {
+  public Iterator<Node> getFinalNodes() {
     return mFinalNodes.iterator();
   }
   

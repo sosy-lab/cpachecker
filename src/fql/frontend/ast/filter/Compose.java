@@ -15,11 +15,19 @@ public class Compose implements Filter {
     mFilter2 = pFilter2;
   }
   
-  public Filter getFirstFilter() {
+  public Filter getFilter1() {
     return mFilter1;
   }
   
-  public Filter getSecondFilter() {
+  public Filter getFilter2() {
+    return mFilter2;
+  }
+  
+  public Filter getFilterAppliedSecond() {
+    return mFilter1;
+  }
+  
+  public Filter getFilterAppliedFirst() {
     return mFilter2;
   }
   
