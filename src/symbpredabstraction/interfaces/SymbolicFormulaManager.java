@@ -95,8 +95,7 @@ public interface SymbolicFormulaManager {
      * @return The formula (f1 & e), and the new/updated SSAMap
      */
     public PathFormula makeAnd(SymbolicFormula f1, CFAEdge e,
-                                                 SSAMap ssa,
-                                                 boolean absoluteSSAIndices)
+                                                 SSAMap ssa)
         throws UnrecognizedCFAEdgeException;
 
     /**

@@ -149,13 +149,13 @@ public class MathsatSummaryFormulaManager extends MathsatSymbolicFormulaManager
                       SymbolicFormula f = t;
                       SSAMap fSSA = ssa;
                       for (CFAEdge edge : block.getEdges()) {
-                        p = makeAnd(f, edge, fSSA, false);
+                        p = makeAnd(f, edge, fSSA);
                         f = p.getFirst();
                         fSSA = p.getSecond();
                       }
                       assert(p != null);
                     } else {
-                      p = makeAnd(t, e, ssa, false);
+                      p = makeAnd(t, e, ssa);
                     }
                     
                     SymbolicFormula t1 = p.getFirst();

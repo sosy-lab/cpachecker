@@ -355,7 +355,7 @@ implements PredicateAbstractionAbstractFormulaManager {
     }
     if (p == null) {
       try {
-        p = mgr.makeAnd(fabs, edge, ssa, false);
+        p = mgr.makeAnd(fabs, edge, ssa);
       } catch (UnrecognizedCFAEdgeException e1) {
         CPAMain.logManager.logException(Level.SEVERE, e1, "");
         System.exit(1);
@@ -1307,8 +1307,7 @@ implements PredicateAbstractionAbstractFormulaManager {
       stats.makeFormulaCacheHits++;
       return makeFormulaCache.get(key);
     }
-    Pair<SymbolicFormula, SSAMap> ret =
-      mmgr.makeAnd(mmgr.makeTrue(), edge, ssa, false);
+    Pair<SymbolicFormula, SSAMap> ret = mmgr.makeAnd(mmgr.makeTrue(), edge, ssa);
     if (useCache) {
       makeFormulaCache.put(key, ret);
     }

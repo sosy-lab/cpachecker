@@ -108,9 +108,6 @@ public class SSAMap {
   
   private final Map<Key, Integer> repr = new HashMap<Key, Integer>();
   
-  @Deprecated
-  private static int nextSSAIndex = 1;
-
     /**
      * returns the index of the variable in the map
      */
@@ -141,15 +138,6 @@ public class SSAMap {
 
     public void setIndex(String name, SymbolicFormula[] args, int idx) {
         repr.put(new FuncKey(name, args), idx);
-    }
-
-    /**
-     * returns the next available global index. This method is not used anymore
-     * (except in broken code :-) and should be removed.
-     */
-    @Deprecated
-    public static int getNextSSAIndex() {
-        return nextSSAIndex++;
     }
 
     public Collection<String> allVariables() {

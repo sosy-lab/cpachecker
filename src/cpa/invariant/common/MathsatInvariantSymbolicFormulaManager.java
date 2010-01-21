@@ -127,7 +127,7 @@ public class MathsatInvariantSymbolicFormulaManager
     }
     
     // atomic formula    
-    MathsatSymbolicFormula ssaFormula = buildFormulaPredicate(p, sign, dummySSAMap, false);
+    MathsatSymbolicFormula ssaFormula = buildFormulaPredicate(p, sign, dummySSAMap);
     return uninstantiate(ssaFormula);
   }
   
