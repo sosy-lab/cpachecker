@@ -1134,15 +1134,17 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       }
 
       default:
-        // this might be a predicate implicitly cast to an int. Let's
-        // see if this is indeed the case...
+        // this might be a predicate implicitly cast to an int, like this:
+        // int tmp = (a == b)
+        // Let's see if this is indeed the case...
         MathsatSymbolicFormula ftmp = buildFormulaPredicate(
             exp, true, ssa);
       if (ftmp == null) {
         return mathsat.api.MSAT_MAKE_ERROR_TERM();
       } else {
-        System.out.println(exp.getRawSignature());
-        assert(false);
+        // PW why this assertion? without it, everything seems to work nicely
+        //System.out.println(exp.getRawSignature());
+        //assert(false);
         return mathsat.api.msat_make_ite(msatEnv, ftmp.getTerm(),
             mathsat.api.msat_make_number(msatEnv, "1"),
             mathsat.api.msat_make_number(msatEnv, "0"));
