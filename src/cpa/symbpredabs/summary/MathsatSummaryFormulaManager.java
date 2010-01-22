@@ -165,7 +165,7 @@ public class MathsatSummaryFormulaManager extends MathsatSymbolicFormulaManager
                             nodeToFormula.get(succ);
                         SSAMap oldssa = nodeToSSA.get(succ);
                         Pair<Pair<SymbolicFormula, SymbolicFormula>,
-                             SSAMap> pm = mergeSSAMaps(oldssa, ssa1, false);
+                             SSAMap> pm = mergeSSAMaps(oldssa, ssa1);
                         old = (MathsatSymbolicFormula)makeAnd(
                                 old, pm.getFirst().getFirst());
                         t1 = makeAnd(t1, pm.getFirst().getSecond());

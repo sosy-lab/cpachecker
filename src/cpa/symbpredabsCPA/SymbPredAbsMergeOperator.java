@@ -103,7 +103,7 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
         SymbolicFormula formula2 = elem2.getPathFormula().getSymbolicFormula();
         SSAMap ssa1 = elem1.getPathFormula().getSsa();
         SSAMap ssa2 = elem2.getPathFormula().getSsa();
-        Pair<Pair<SymbolicFormula, SymbolicFormula>,SSAMap> pm = symbolicFormulaManager.mergeSSAMaps(ssa2, ssa1, false);
+        Pair<Pair<SymbolicFormula, SymbolicFormula>,SSAMap> pm = symbolicFormulaManager.mergeSSAMaps(ssa2, ssa1);
         SymbolicFormula old = symbolicFormulaManager.makeAnd(
             formula2, pm.getFirst().getFirst());
         SymbolicFormula newFormula = symbolicFormulaManager.makeAnd(formula1, pm.getFirst().getSecond());

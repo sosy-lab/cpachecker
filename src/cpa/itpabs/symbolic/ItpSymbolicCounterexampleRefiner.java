@@ -369,7 +369,7 @@ public class ItpSymbolicCounterexampleRefiner<T> extends ItpCounterexampleRefine
         SymbolicFormula f = mgr.makeFalse();
         for (Pair<SymbolicFormula, SSAMap> p : relevantPaths) {
             Pair<Pair<SymbolicFormula, SymbolicFormula>, SSAMap> mp =
-                mgr.mergeSSAMaps(ssa, p.getSecond(), false);
+                mgr.mergeSSAMaps(ssa, p.getSecond());
             SymbolicFormula curf = p.getFirst();
             if (replaceAssignments) {
                 curf = mgr.replaceAssignments((MathsatSymbolicFormula)curf);

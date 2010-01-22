@@ -89,9 +89,6 @@ public interface SymbolicFormulaManager {
      * @param f1 a SymbolicFormula
      * @param e a CFA edge
      * @param ssa the SSA map for resolving variables
-     * @param absoluteSSAIndices if true, use a unique index for each ssa
-     *                           variable, instead of keeping a separate index
-     *                           for each var
      * @return The formula (f1 & e), and the new/updated SSAMap
      */
     public PathFormula makeAnd(SymbolicFormula f1, CFAEdge e,
@@ -118,13 +115,10 @@ public interface SymbolicFormulaManager {
      *
      * @param ssa1 an SSAMap
      * @param ssa2 an SSAMap
-     * @param absoluteSSAIndices if true, use a unique index for each ssa
-     *                           variable, instead of keeping a separate index
-     *                           for each var
      * @return A pair (SymbolicFormula, SSAMap)
      */
     public Pair<Pair<SymbolicFormula, SymbolicFormula>, SSAMap> mergeSSAMaps(
-            SSAMap ssa1, SSAMap ssa2, boolean absoluteSSAIndices);
+            SSAMap ssa1, SSAMap ssa2);
 
 
     /**

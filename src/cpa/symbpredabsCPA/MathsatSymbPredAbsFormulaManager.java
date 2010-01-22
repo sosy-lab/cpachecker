@@ -841,7 +841,7 @@ implements SymbPredAbsFormulaManager
     SSAMap ssa = new SSAMap();
     SymbolicFormula f = smgr.makeFalse();
     Pair<Pair<SymbolicFormula, SymbolicFormula>, SSAMap> mp =
-      smgr.mergeSSAMaps(ssa, pf.getSsa(), false);
+      smgr.mergeSSAMaps(ssa, pf.getSsa());
     SymbolicFormula curf = pf.getSymbolicFormula();
     // TODO modified if
     if (replace) {

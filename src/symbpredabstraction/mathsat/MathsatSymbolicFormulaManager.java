@@ -1802,7 +1802,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
   }
 
   public Pair<Pair<SymbolicFormula, SymbolicFormula>, SSAMap> mergeSSAMaps(
-      SSAMap ssa1, SSAMap ssa2, boolean absoluteSSAIndices) {
+      SSAMap ssa1, SSAMap ssa2) {
     SSAMap result = new SSAMap();
     long mt1 = mathsat.api.msat_make_true(msatEnv);
     long mt2 = mathsat.api.msat_make_true(msatEnv);
