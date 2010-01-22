@@ -28,11 +28,15 @@ public class FunctionCall implements Filter {
   
   @Override
   public boolean equals(Object pOther) {
-    if (pOther != null) {
+    if (this == pOther) {
+      return true;
+    }
+    
+    if (pOther == null) {
       return false;
     }
     
-    if (pOther instanceof FunctionCall) {
+    if (pOther.getClass() == getClass()) {
       FunctionCall mCallFilter = (FunctionCall)pOther;
       
       return mFuncName.equals(mCallFilter.mFuncName);

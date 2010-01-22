@@ -28,7 +28,7 @@ import java.util.Map;
 
 import cpa.common.interfaces.AbstractElement;
 
-public class ConcreteAnalysisElement implements AbstractElement {
+public class ConcreteAnalysisElement implements AbstractElement, Cloneable {
   
   // map that keeps the name of variables and their constant values
   private Map<String, Long> mConstantsMap;
@@ -109,12 +109,24 @@ public class ConcreteAnalysisElement implements AbstractElement {
 
   @Override
   public String toString() {
-    String s = "[";
+    StringBuffer lBuffer = new StringBuffer();
+    
+    lBuffer.append("[");
+    
     for (String key: mConstantsMap.keySet()){
       long val = mConstantsMap.get(key);
-      s = s  + " <" +key + " = " + val + "> ";
+      
+      lBuffer.append(" <");
+      lBuffer.append(key);
+      lBuffer.append(" = ");
+      lBuffer.append(val);
+      lBuffer.append("> ");
     }
-    return s + "] size->  " + mConstantsMap.size();
+    
+    lBuffer.append("] size->  ");
+    lBuffer.append(mConstantsMap.size()); 
+    
+    return lBuffer.toString();
   }
   
   @Override

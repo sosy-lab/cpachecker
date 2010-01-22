@@ -484,12 +484,16 @@ public class TargetGraph {
     String lInitialNodes = "INITIAL NODES: " + mInitialNodes.toString() + "\n";
     String lFinalNodes = "FINAL NODES: " + mFinalNodes.toString() + "\n";
     
-    String lEdges = "";
+    StringBuffer lBuffer = new StringBuffer();
+    
+    lBuffer.append(lInitialNodes);
+    lBuffer.append(lFinalNodes);
     
     for (Edge lEdge : mGraph.edgeSet()) {
-      lEdges += lEdge.toString() + "\n";
+      lBuffer.append(lEdge.toString());
+      lBuffer.append("\n");
     }
     
-    return lInitialNodes + lFinalNodes + lEdges;
+    return lBuffer.toString();
   }
 }

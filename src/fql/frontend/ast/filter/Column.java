@@ -22,11 +22,15 @@ public class Column implements Filter {
   
   @Override
   public boolean equals(Object pOther) {
-    if (pOther != null) {
+    if (this == pOther) {
+      return true;
+    }
+    
+    if (pOther == null) {
       return false;
     }
     
-    if (pOther instanceof Column) {
+    if (pOther.getClass() == getClass()) {
       Column mOtherColumn = (Column)pOther;
       
       return (mOtherColumn.getColumn() == mColumn);

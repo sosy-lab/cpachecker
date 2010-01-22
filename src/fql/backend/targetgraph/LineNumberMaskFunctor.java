@@ -45,5 +45,29 @@ public class LineNumberMaskFunctor implements MaskFunctor<Node, Edge> {
       return false;
     }
   }
+  
+  @Override
+  public boolean equals(Object pOther) {
+    if (this == pOther) {
+      return true;
+    }
+    
+    if (pOther == null) {
+      return false;
+    }
+    
+    if (pOther.getClass() == getClass()) {
+      LineNumberMaskFunctor lFunctor = (LineNumberMaskFunctor)pOther;
+      
+      return (mLineNumber == lFunctor.mLineNumber);
+    }
+    
+    return false;
+  }
+  
+  @Override
+  public int hashCode() {
+    return 234677 + mLineNumber;  
+  }
 
 }

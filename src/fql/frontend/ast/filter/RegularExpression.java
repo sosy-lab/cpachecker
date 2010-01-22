@@ -28,11 +28,15 @@ public class RegularExpression implements Filter {
   
   @Override
   public boolean equals(Object pOther) {
-    if (pOther != null) {
+    if (this == pOther) {
+      return true;
+    }
+    
+    if (pOther == null) {
       return false;
     }
     
-    if (pOther instanceof RegularExpression) {
+    if (pOther.getClass() == getClass()) {
       RegularExpression mRegularExpressionFilter = (RegularExpression)pOther;
       
       return mRegularExpression.equals(mRegularExpressionFilter.mRegularExpression);

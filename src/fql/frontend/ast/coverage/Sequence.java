@@ -57,17 +57,23 @@ public class Sequence implements Coverage, Iterable<Pair<PathMonitor, Coverage>>
   
   @Override
   public String toString() {
-    String lSequence = "";
+    StringBuffer lBuffer = new StringBuffer();
     
     for (Pair<PathMonitor, Coverage> lPair : mSequence) {
       PathMonitor lMonitor = lPair.getFirst();
       Coverage lCoverage = lPair.getSecond();
       
-      lSequence += "-[" + lMonitor.toString() + "]>";
-      lSequence += lCoverage.toString();
+      lBuffer.append("-[");
+      lBuffer.append(lMonitor.toString());
+      lBuffer.append("]>");
+      lBuffer.append(lCoverage.toString());
     }
+
+    lBuffer.append("-[");
+    lBuffer.append(mFinalMonitor.toString());
+    lBuffer.append("]>");
     
-    return lSequence + "-[" + mFinalMonitor.toString() + "]>";
+    return lBuffer.toString();
   }
   
   @Override

@@ -22,11 +22,15 @@ public class Line implements Filter {
   
   @Override
   public boolean equals(Object pOther) {
-    if (pOther != null) {
+    if (this == pOther) {
+      return true;
+    }
+    
+    if (pOther == null) {
       return false;
     }
     
-    if (pOther instanceof Line) {
+    if (pOther.getClass() == getClass()) {
       Line mOtherLine = (Line)pOther;
       
       return (mOtherLine.getLine() == mLine);

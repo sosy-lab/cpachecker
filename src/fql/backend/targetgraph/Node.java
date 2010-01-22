@@ -73,7 +73,6 @@ public class Node {
       Node lNode = (Node)pOther;
       
       return lNode.mCFANode == mCFANode && lNode.mPredicates.equals(mPredicates) && lNode.mEvaluation.equals(mEvaluation);
-      //return (lNode.mCFANode == mCFANode);
     }
     
     return false;

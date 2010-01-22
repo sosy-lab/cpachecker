@@ -44,7 +44,7 @@ public class ConcreteAnalysisElementTest {
     
     HashMap<String, Long> lMap = new HashMap<String, Long>();
     
-    lMap.put("x", new Long(10));
+    lMap.put("x", Long.valueOf(10));
     
     ConcreteAnalysisElement lElement3 = new ConcreteAnalysisElement(lMap);
     

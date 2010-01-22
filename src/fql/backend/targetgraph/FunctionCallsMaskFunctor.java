@@ -2,30 +2,27 @@ package fql.backend.targetgraph;
 
 import org.jgrapht.graph.MaskFunctor;
 
-import cfa.objectmodel.BlankEdge;
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAEdgeType;
 import cfa.objectmodel.CFANode;
 
-public class FunctionEntriesMaskFunctor implements MaskFunctor<Node, Edge> {
-
-  private static FunctionEntriesMaskFunctor mInstance = new FunctionEntriesMaskFunctor();
+public class FunctionCallsMaskFunctor implements MaskFunctor<Node, Edge> {
   
-  private FunctionEntriesMaskFunctor() {
+  private static FunctionCallsMaskFunctor mInstance = new FunctionCallsMaskFunctor();
+  
+  private FunctionCallsMaskFunctor() {
     
   }
   
-  public static FunctionEntriesMaskFunctor getInstance() {
+  public static FunctionCallsMaskFunctor getInstance() {
     return mInstance;
   }
   
-  private boolean isFunctionEntryEdge(CFAEdge lEdge) {
+  private boolean isFunctionCallEdge(CFAEdge lEdge) {
     assert(lEdge != null);
     
-    if (lEdge.getEdgeType().equals(CFAEdgeType.BlankEdge)) {
-      BlankEdge lBlankEdge = (BlankEdge)lEdge;
-      
-      return lBlankEdge.getRawStatement().equals("Function start dummy edge");
+    if (lEdge.getEdgeType().equals(CFAEdgeType.FunctionCallEdge)) {
+      return true;
     }
     
     return false;
@@ -35,7 +32,7 @@ public class FunctionEntriesMaskFunctor implements MaskFunctor<Node, Edge> {
   public boolean isEdgeMasked(Edge pArg0) {
     assert(pArg0 != null);
     
-    return !isFunctionEntryEdge(pArg0.getCFAEdge());
+    return !isFunctionCallEdge(pArg0.getCFAEdge());
   }
 
   @Override
@@ -45,13 +42,13 @@ public class FunctionEntriesMaskFunctor implements MaskFunctor<Node, Edge> {
     CFANode lCFANode = pArg0.getCFANode();
     
     for (int lIndex = 0; lIndex < lCFANode.getNumEnteringEdges(); lIndex++) {
-      if (isFunctionEntryEdge(lCFANode.getEnteringEdge(lIndex))) {
+      if (isFunctionCallEdge(lCFANode.getEnteringEdge(lIndex))) {
         return false;
       }
     }
     
     for (int lIndex = 0; lIndex < lCFANode.getNumLeavingEdges(); lIndex++) {
-      if (isFunctionEntryEdge(lCFANode.getLeavingEdge(lIndex))) {
+      if (isFunctionCallEdge(lCFANode.getLeavingEdge(lIndex))) {
         return false;
       }
     }

@@ -28,11 +28,15 @@ public class File implements Filter {
   
   @Override
   public boolean equals(Object pOther) {
-    if (pOther != null) {
+    if (this == pOther) {
+      return true;
+    }
+    
+    if (pOther == null) {
       return false;
     }
     
-    if (pOther instanceof File) {
+    if (pOther.getClass() == getClass()) {
       File mFileFilter = (File)pOther;
       
       return mFileName.equals(mFileFilter.mFileName);

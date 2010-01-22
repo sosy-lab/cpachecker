@@ -28,11 +28,15 @@ public class FunctionExit implements Filter {
   
   @Override
   public boolean equals(Object pOther) {
-    if (pOther != null) {
+    if (this == pOther) {
+      return true;
+    }
+    
+    if (pOther == null) {
       return false;
     }
     
-    if (pOther instanceof FunctionExit) {
+    if (pOther.getClass() == getClass()) {
       FunctionExit mFuncFilter = (FunctionExit)pOther;
       
       return mFuncName.equals(mFuncFilter.mFuncName);

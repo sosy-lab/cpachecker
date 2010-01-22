@@ -1,5 +1,7 @@
 package fql.backend.targetgraph;
 
+import static org.junit.Assert.*;
+
 import java.io.IOException;
 
 import org.junit.Test;
@@ -11,6 +13,8 @@ import cpaplugin.CPAConfiguration;
 import cpaplugin.MainCPAStatistics;
 import cpaplugin.CPAConfiguration.InvalidCmdlineArgumentException;
 import exceptions.CPAException;
+import fql.frontend.ast.filter.Function;
+import fql.frontend.ast.filter.Identity;
 import fql.frontend.ast.predicate.CIdentifier;
 import fql.frontend.ast.predicate.NaturalNumber;
 import fql.frontend.ast.predicate.Predicate;
@@ -252,6 +256,78 @@ public class TargetGraphTest {
     TargetGraph lPredicatedGraph = TargetGraph.applyPredication(lFuncTargetGraph, new Predicate(new CIdentifier("x"), Predicate.Comparison.LESS, new NaturalNumber(100)));
     
     System.out.println(lPredicatedGraph);
+  }
+  
+  @Test
+  public void test_09() throws InvalidCmdlineArgumentException, IOException, CPAException {
+    String[] lArguments = new String[3];
+    
+    lArguments[0] = mConfig;
+    lArguments[1] = mPropertiesFile;
+    lArguments[2] = "test/tests/single/functionCall.c";
+    
+    CPAConfiguration lConfiguration = new CPAConfiguration(lArguments);
+    
+    // necessary for LogManager
+    CPAMain.cpaConfig = lConfiguration;
+    
+    LogManager lLogManager = LogManager.getInstance();
+      
+    MainCPAStatistics lStatistics = new MainCPAStatistics();
+    
+    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager, lStatistics);
+    
+    TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
+    
+    TargetGraph lFilteredTargetGraph = lTargetGraph.apply(Identity.getInstance());
+    
+    // identity returns the (physically) same target graph
+    assertTrue(lFilteredTargetGraph == lTargetGraph);
+  }
+  
+  @Test
+  public void test_10() throws InvalidCmdlineArgumentException, IOException, CPAException {
+    String[] lArguments = new String[3];
+    
+    lArguments[0] = mConfig;
+    lArguments[1] = mPropertiesFile;
+    lArguments[2] = "test/tests/single/functionCall.c";
+    
+    CPAConfiguration lConfiguration = new CPAConfiguration(lArguments);
+    
+    // necessary for LogManager
+    CPAMain.cpaConfig = lConfiguration;
+    
+    LogManager lLogManager = LogManager.getInstance();
+      
+    MainCPAStatistics lStatistics = new MainCPAStatistics();
+    
+    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager, lStatistics);
+    
+    TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
+    
+    Function lFunctionFilter = new Function("f");
+    
+    TargetGraph lFilteredTargetGraph1 = lTargetGraph.apply(lFunctionFilter);
+    
+    TargetGraph lFilteredTargetGraph2 = lTargetGraph.apply(lFunctionFilter);
+    
+    // caching should return in the same target graphs
+    assertTrue(lFilteredTargetGraph1 == lFilteredTargetGraph2);
+    
+    Function lFunctionFilter2 = new Function("f");
+    
+    TargetGraph lFilteredTargetGraph3 = lTargetGraph.apply(lFunctionFilter2);
+    
+    // caching should also work with logically equals filters
+    assertTrue(lFilteredTargetGraph1 == lFilteredTargetGraph3);
+    
+    Function lFunctionFilter3 = new Function("foo");
+    
+    TargetGraph lFilteredTargetGraph4 = lTargetGraph.apply(lFunctionFilter3);
+    
+    // a different function name filter should return in a different target graph
+    assertFalse(lFilteredTargetGraph3.equals(lFilteredTargetGraph4));
   }
   
 }

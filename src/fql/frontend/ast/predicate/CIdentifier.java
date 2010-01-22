@@ -23,6 +23,10 @@ public class CIdentifier implements Term {
       return true;
     }
     
+    if (pOther == null) {
+      return false;
+    }
+    
     if (pOther.getClass() == getClass()) {
       CIdentifier lOther = (CIdentifier)pOther;
       

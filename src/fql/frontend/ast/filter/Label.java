@@ -28,11 +28,15 @@ public class Label implements Filter {
   
   @Override
   public boolean equals(Object pOther) {
-    if (pOther != null) {
+    if (this == pOther) {
+      return true;
+    }
+    
+    if (pOther == null) {
       return false;
     }
     
-    if (pOther instanceof Label) {
+    if (pOther.getClass() == getClass()) {
       Label mLabelFilter = (Label)pOther;
       
       return mLabel.equals(mLabelFilter.mLabel);

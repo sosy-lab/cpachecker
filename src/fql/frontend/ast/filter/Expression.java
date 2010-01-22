@@ -28,11 +28,15 @@ public class Expression implements Filter {
   
   @Override
   public boolean equals(Object pOther) {
-    if (pOther != null) {
+    if (this == pOther) {
+      return true;
+    }
+    
+    if (pOther == null) {
       return false;
     }
     
-    if (pOther instanceof Expression) {
+    if (pOther.getClass() == getClass()) {
       Expression mExpressionFilter = (Expression)pOther;
       
       return mExpression.equals(mExpressionFilter.mExpression);

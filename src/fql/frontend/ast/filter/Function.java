@@ -28,11 +28,15 @@ public class Function implements Filter {
   
   @Override
   public boolean equals(Object pOther) {
-    if (pOther != null) {
+    if (pOther == this) {
+      return true;
+    }
+    
+    if (pOther == null) {
       return false;
     }
     
-    if (pOther instanceof Function) {
+    if (pOther.getClass() == getClass()) {
       Function mFuncFilter = (Function)pOther;
       
       return mFuncName.equals(mFuncFilter.mFuncName);
