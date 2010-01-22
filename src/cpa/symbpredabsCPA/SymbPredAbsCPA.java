@@ -24,8 +24,6 @@
 package cpa.symbpredabsCPA;
 
 import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
 
 import symbpredabstraction.PathFormula;
 import symbpredabstraction.SSAMap;
@@ -41,7 +39,11 @@ import symbpredabstraction.mathsat.MathsatTheoremProver;
 import symbpredabstraction.mathsat.SimplifyTheoremProver;
 import symbpredabstraction.mathsat.YicesTheoremProver;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
+import cfa.objectmodel.CFANode;
 import cmdline.CPAMain;
+
+import com.google.common.collect.ImmutableList;
+
 import cpa.common.defaults.StaticPrecisionAdjustment;
 import cpa.common.defaults.StopSepOperator;
 import cpa.common.interfaces.AbstractDomain;
@@ -161,14 +163,12 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, CPAWithStati
   }
 
   public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
-    List<Integer> abstractionPath = Collections.singletonList(node.getNodeNumber());
-    SSAMap ssamap = new SSAMap();
-    PathFormula pf = new PathFormula(symbolicFormulaManager.makeTrue(), ssamap);
-    List<Integer> pfParents = Collections.emptyList();
+    ImmutableList<CFANode> oldAbstractionPath = ImmutableList.of();
+    PathFormula pf = new PathFormula(symbolicFormulaManager.makeTrue(), new SSAMap());
     AbstractFormula initAbstraction = abstractFormulaManager.makeTrue();
 
-    return new SymbPredAbsAbstractElement(true, node,
-        pf, pfParents, pf, initAbstraction, abstractionPath, 0);
+    return new SymbPredAbsAbstractElement(node,
+        pf, pf, initAbstraction, oldAbstractionPath);
   }
 
   public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {

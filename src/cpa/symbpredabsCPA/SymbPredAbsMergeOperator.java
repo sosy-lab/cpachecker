@@ -23,17 +23,17 @@
  */
 package cpa.symbpredabsCPA;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.logging.Level;
-
-import cmdline.CPAMain;
 
 import symbpredabstraction.PathFormula;
 import symbpredabstraction.SSAMap;
 import symbpredabstraction.interfaces.SymbolicFormula;
 import symbpredabstraction.interfaces.SymbolicFormulaManager;
+import cfa.objectmodel.CFANode;
+import cmdline.CPAMain;
 
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import common.Pair;
 
 import cpa.common.interfaces.AbstractDomain;
@@ -114,22 +114,19 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
         
         CPAMain.logManager.log(Level.ALL, "New path formula is", pathFormula);
 
-        // now we update the pfParents,
-        List<Integer> pfParents = new ArrayList<Integer>();
-        pfParents.addAll(elem2.getPfParents());
+        // now we update the pfParents
         // elem1 is the successor element and elem2 is the reached element from
         // the reached set the successor (elem1) should have only 1 element in 
         // its pfParents list
-        assert(elem1.getPfParents().size() == 1);
-        // now we merge elem1 and elem2's pfParents and set it as merged element's
-        // pfParents
-        Integer elem1Parent = elem1.getPfParents().get(0);
-        if(!pfParents.contains(elem1Parent)){
-          pfParents.add(elem1Parent);
-        }
+        CFANode elem1Parent = Iterables.getOnlyElement(elem1.getPfParents());
+        assert !elem2.getPfParents().contains(elem1Parent);
         
-        merged = new SymbPredAbsAbstractElement(false, elem1.getAbstractionLocation(), 
-            pathFormula, pfParents, elem1.getInitAbstractionFormula(), elem1.getAbstraction(), 
+        ImmutableSet.Builder<CFANode> pfParents = ImmutableSet.builder();
+        pfParents.addAll(elem2.getPfParents());
+        pfParents.add(elem1Parent);
+                
+        merged = new SymbPredAbsAbstractElement(elem1.getAbstractionLocation(), 
+            pathFormula, pfParents.build(), elem1.getInitAbstractionFormula(), elem1.getAbstraction(), 
             elem1.getAbstractionPathList(),
             Math.max(elem1.getSizeSinceAbstraction(), elem2.getSizeSinceAbstraction()));
 

@@ -23,7 +23,6 @@
  */
 package cpa.symbpredabsCPA;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -43,6 +42,7 @@ import cfa.objectmodel.CFANode;
 import cfa.objectmodel.c.ReturnEdge;
 import cmdline.CPAMain;
 
+import com.google.common.collect.ImmutableSet;
 import common.Triple;
 
 import cpa.common.interfaces.AbstractElement;
@@ -159,16 +159,14 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     }
     
     // update pfParents list
-    List<Integer> newPfParents = new ArrayList<Integer>();
-    newPfParents.add(edge.getPredecessor().getNodeNumber());
+    ImmutableSet<CFANode> newPfParents = ImmutableSet.of(edge.getPredecessor());
 
     // create the new abstract element for non-abstraction location
     return Collections.singleton(new SymbPredAbsAbstractElement(
-        // set 'isAbstractionLocation' to false
         // set 'abstractionLocation' to last element's abstractionLocation since they are same
         // set 'pathFormula' to pf - the updated pathFormula -
         // set 'pfParents' to newPfParents - the updated list of nodes that constructed the pathFormula -
-        false, element.getAbstractionLocation(), pf, newPfParents,
+        element.getAbstractionLocation(), pf, newPfParents,
         // set 'initAbstractionFormula', 'abstraction' and 'abstractionPathList' to last element's values, they don't change
         element.getInitAbstractionFormula(), element.getAbstraction(),
         element.getAbstractionPathList(),
@@ -248,22 +246,15 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     }
     
     ++numAbstractStates;
-
-    // add the new abstraction location to the abstractionPath
-    List<Integer> newAbstractionPath = new ArrayList<Integer>(element.getAbstractionPathList());
-    newAbstractionPath.add(edge.getSuccessor().getNodeNumber());
     
     return Collections.singleton(new SymbPredAbsAbstractElement(
-        // set 'isAbstractionNode' to true, this is an abstraction node
         // set 'abstractionLocation' to edge.getSuccessor()
         // set 'pathFormula' to newPathFormula computed above
-        true, edge.getSuccessor(), newPathFormula, 
-        // 'pfParents' is not instantiated for abstraction locations
+        edge.getSuccessor(), newPathFormula, 
         // set 'initAbstractionFormula' to  pathFormula computed above
         // set 'abstraction' to newly computed abstraction
-        // set 'abstractionPathList' to updated pathList
-        // set 'sizeSinceAbstraction' to zero
-        null, pathFormula, newAbstraction, newAbstractionPath, 0));
+        // set 'abstractionPathList' to old pathList (element will update itself)
+        pathFormula, newAbstraction, element.getAbstractionPathList()));
   }
   
   /**
@@ -368,23 +359,16 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
         ++numAbstractStates;
 
         maxBlockSize = Math.max(maxBlockSize, element.getSizeSinceAbstraction());
-
-        // add the new abstraction location to the abstractionPath
-        List<Integer> newAbstractionPath = new ArrayList<Integer>(element.getAbstractionPathList());
-        newAbstractionPath.add(edge.getSuccessor().getNodeNumber());
         
         return Collections.singleton(new SymbPredAbsAbstractElement(
-            // set 'isAbstractionLocation' to true
             // set 'abstractionLocation' to edge.getSuccessor()
             // set 'pathFormula' to true
-            true, edge.getSuccessor(), new PathFormula(symbolicFormulaManager.makeTrue(), new SSAMap()),
-            // 'pfParents' is not instantiated for abstraction locations
+            edge.getSuccessor(), new PathFormula(symbolicFormulaManager.makeTrue(), new SSAMap()),
             // set 'initAbstractionFormula' to old pathFormula
             // set 'abstraction' to true (we don't know better)
-            null, element.getPathFormula(), abstractFormulaManager.makeTrue(),
-            // set 'abstractionPathList' to updated pathList
-            // set 'sizeSinceAbstraction' to zero
-            newAbstractionPath, 0));
+            element.getPathFormula(), abstractFormulaManager.makeTrue(),
+            // set 'abstractionPathList' to old pathList (element will update itself)
+            element.getAbstractionPathList()));
       }
     } else {
       return null;

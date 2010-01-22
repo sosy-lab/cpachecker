@@ -23,8 +23,6 @@
  */
 package cpa.symbpredabsCPA;
 
-import java.util.List;
-
 import symbpredabstraction.interfaces.AbstractFormulaManager;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
@@ -104,17 +102,14 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
         if (e1.getAbstractionLocation().equals(e2.getAbstractionLocation()) 
           && e1.getAbstractionPathList().equals(e2.getAbstractionPathList())
           && e1.getAbstraction().equals(e2.getAbstraction())) {
-            
-          List<Integer> succList = e1.getPfParents();
-          List<Integer> reachedList = e2.getPfParents();
 
-          assert(succList.size() == 1);
+          assert(e1.getPfParents().size() == 1);
           // and if pfParents of e1 is included in e2's pfParents
           // we don't need to add again, return true
           // this is useful after merging two elements which are not
           // abstraction locations and stop not to add the same
           // element again
-          return reachedList.containsAll(succList);
+          return e2.getPfParents().containsAll(e1.getPfParents());
         }
         return false;
       }

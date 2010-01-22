@@ -23,11 +23,13 @@
  */
 package cpa.symbpredabsCPA;
 
-import java.util.List;
-
 import symbpredabstraction.PathFormula;
 import symbpredabstraction.interfaces.AbstractFormula;
 import cfa.objectmodel.CFANode;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+
 import cpa.common.interfaces.AbstractElement;
 
 /**
@@ -57,15 +59,15 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
   /** List of abstraction locations with the order of their computation
    * up to that point. We use this list in {@link SymbPredAbsMergeOperator#merge(AbstractElement, AbstractElement, cpa.common.interfaces.Precision)} and
    * for partial order operator*/
-  private final List<Integer> abstractionPathList;
-  /** List of {@link CFANode} ids that we constructed the {@link PathFormula}. This is
+  private final ImmutableList<CFANode> abstractionPathList;
+  /** List of {@link CFANode} that we constructed the {@link PathFormula}. This is
    * updated if {@link SymbPredAbsMergeOperator#merge(AbstractElement, AbstractElement, cpa.common.interfaces.Precision)}
    * is called and the {@link PathFormula} is updated. This list is also used by 
    * {@link SymbPredAbsAbstractElement#equals(Object)} to make a fast, syntactic check on 
    * equality of formula*/
-  private final List<Integer> pfParents;
+  private final ImmutableSet<CFANode> pfParents;
   
-  private int sizeSinceAbstraction = 0;
+  private final int sizeSinceAbstraction;
   
   public int getSizeSinceAbstraction() {
     return sizeSinceAbstraction;
@@ -83,7 +85,7 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
     return abstraction;
   }
 
-  public List<Integer> getAbstractionPathList() {
+  public ImmutableList<CFANode> getAbstractionPathList() {
     return abstractionPathList;
   }
 
@@ -101,11 +103,21 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
     this.abstractionPathList = null;
     this.sizeSinceAbstraction = 0;
   }
-
-  public SymbPredAbsAbstractElement(boolean isAbstractionElement, CFANode abstLoc,
-      PathFormula pf, List<Integer> pfParentsList, PathFormula initFormula, AbstractFormula a, 
-      List<Integer> pl, int sizeSinceAbstraction){
-    this.isAbstractionNode = isAbstractionElement;
+  
+  /**
+   * Constructor for non-abstraction location.
+   * @param abstLoc
+   * @param pf
+   * @param pfParentsList
+   * @param initFormula
+   * @param a
+   * @param pl
+   * @param sizeSinceAbstraction
+   */
+  public SymbPredAbsAbstractElement(CFANode abstLoc,
+      PathFormula pf, ImmutableSet<CFANode> pfParentsList, PathFormula initFormula, AbstractFormula a, 
+      ImmutableList<CFANode> pl, int sizeSinceAbstraction){
+    this.isAbstractionNode = false;
     this.abstractionLocation = abstLoc;
     this.pathFormula = pf;
     this.pfParents = pfParentsList;
@@ -113,7 +125,35 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
     this.abstraction = a;
     this.abstractionPathList = pl;
     this.sizeSinceAbstraction = sizeSinceAbstraction;
-//    this.maxIndex = new SSAMap();
+  }
+  
+  /**
+   * Constructor for abstraction element.
+   * @param abstLoc The CFANode where the abstraction took place.
+   * @param pf  The new path formula.
+   * @param initFormula The path formula before the abstraction.
+   * @param a The abstraction.
+   * @param oldAbstractionPathList The old abstraction path.
+   */
+  public SymbPredAbsAbstractElement(CFANode abstLoc,
+      PathFormula pf, PathFormula initFormula, AbstractFormula a, 
+      ImmutableList<CFANode> oldAbstractionPathList){
+    // set 'isAbstractionLocation' to true
+    this.isAbstractionNode = true;
+    this.abstractionLocation = abstLoc;
+    this.pathFormula = pf;
+    // 'pfParents' is not instantiated for abstraction locations
+    this.pfParents = null;
+    this.initAbstractionFormula = initFormula;
+    this.abstraction = a;
+    
+    // add the new abstraction location to the abstractionPath
+    ImmutableList.Builder<CFANode> newAbstractionPath = ImmutableList.builder();
+    newAbstractionPath.addAll(oldAbstractionPathList);
+    newAbstractionPath.add(abstLoc);
+    this.abstractionPathList = newAbstractionPath.build();
+    
+    this.sizeSinceAbstraction = 0;
   }
 
   @Override
@@ -174,7 +214,7 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
     return initAbstractionFormula;
   }
   
-  public List<Integer> getPfParents() {
+  public ImmutableSet<CFANode> getPfParents() {
     assert !isAbstractionNode : "abstraction nodes have no pathformula parents";
     return pfParents;
   }
