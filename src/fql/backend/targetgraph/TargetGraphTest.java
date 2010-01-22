@@ -324,7 +324,7 @@ public class TargetGraphTest {
     
     TargetGraph lFilteredTargetGraph3 = lTargetGraph.apply(lFunctionFilter2);
     
-    // caching should also work with logically equals filters
+    // caching should also work with logically equal filters
     assertTrue(lFilteredTargetGraph1 == lFilteredTargetGraph3);
     
     Function lFunctionFilter3 = new Function("foo");
@@ -395,6 +395,11 @@ public class TargetGraphTest {
     
     // check caching
     assertTrue(lFilteredTargetGraph == lTargetGraph.apply(lFunctionCallFilter));
+    
+    FunctionCall lFunctionCallFilter2 = new FunctionCall("func");
+    
+    // caching should also work with logically equal filters
+    assertTrue(lFilteredTargetGraph == lTargetGraph.apply(lFunctionCallFilter2));
   }
   
   @Test
@@ -457,6 +462,11 @@ public class TargetGraphTest {
     
     // check caching
     assertTrue(lFilteredTargetGraph == lTargetGraph.apply(lFunctionEntryFilter));
+    
+    Filter lFunctionEntryFilter2 = new FunctionEntry("func");
+    
+    // caching should also work with logically equal filters
+    assertTrue(lFilteredTargetGraph == lTargetGraph.apply(lFunctionEntryFilter2));
   }
   
   @Test
@@ -488,6 +498,11 @@ public class TargetGraphTest {
     
     // check caching
     assertTrue(lFilteredTargetGraph == lTargetGraph.apply(lLineFilter));
+    
+    Filter lLineFilter2 = new Line(102);
+    
+    // caching should also work with logically equal filters
+    assertTrue(lFilteredTargetGraph == lTargetGraph.apply(lLineFilter2));
   }
   
 }
