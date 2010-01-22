@@ -13,8 +13,13 @@ import cpaplugin.CPAConfiguration;
 import cpaplugin.MainCPAStatistics;
 import cpaplugin.CPAConfiguration.InvalidCmdlineArgumentException;
 import exceptions.CPAException;
+import fql.frontend.ast.filter.Filter;
 import fql.frontend.ast.filter.Function;
+import fql.frontend.ast.filter.FunctionCall;
+import fql.frontend.ast.filter.FunctionCalls;
+import fql.frontend.ast.filter.FunctionEntry;
 import fql.frontend.ast.filter.Identity;
+import fql.frontend.ast.filter.Line;
 import fql.frontend.ast.predicate.CIdentifier;
 import fql.frontend.ast.predicate.NaturalNumber;
 import fql.frontend.ast.predicate.Predicate;
@@ -328,6 +333,161 @@ public class TargetGraphTest {
     
     // a different function name filter should return in a different target graph
     assertFalse(lFilteredTargetGraph3.equals(lFilteredTargetGraph4));
+  }
+  
+  @Test
+  public void test_11() throws InvalidCmdlineArgumentException, IOException, CPAException {
+    String[] lArguments = new String[3];
+    
+    lArguments[0] = mConfig;
+    lArguments[1] = mPropertiesFile;
+    lArguments[2] = "test/tests/single/functionCall.c";
+    
+    CPAConfiguration lConfiguration = new CPAConfiguration(lArguments);
+    
+    // necessary for LogManager
+    CPAMain.cpaConfig = lConfiguration;
+    
+    LogManager lLogManager = LogManager.getInstance();
+      
+    MainCPAStatistics lStatistics = new MainCPAStatistics();
+    
+    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager, lStatistics);
+    
+    TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
+    
+    FunctionCall lFunctionCallFilter = new FunctionCall("f");
+    
+    TargetGraph lFilteredTargetGraph = lTargetGraph.apply(lFunctionCallFilter);
+    
+    System.out.println(lFilteredTargetGraph);
+    
+    // check caching
+    assertTrue(lFilteredTargetGraph == lTargetGraph.apply(lFunctionCallFilter));
+  }
+  
+  @Test
+  public void test_12() throws InvalidCmdlineArgumentException, IOException, CPAException {
+    String[] lArguments = new String[3];
+    
+    lArguments[0] = mConfig;
+    lArguments[1] = mPropertiesFile;
+    lArguments[2] = "test/tests/single/uninitVars.cil.c";
+    
+    CPAConfiguration lConfiguration = new CPAConfiguration(lArguments);
+    
+    // necessary for LogManager
+    CPAMain.cpaConfig = lConfiguration;
+    
+    LogManager lLogManager = LogManager.getInstance();
+      
+    MainCPAStatistics lStatistics = new MainCPAStatistics();
+    
+    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager, lStatistics);
+    
+    TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
+    
+    FunctionCall lFunctionCallFilter = new FunctionCall("func");
+    
+    TargetGraph lFilteredTargetGraph = lTargetGraph.apply(lFunctionCallFilter);
+    
+    System.out.println(lFilteredTargetGraph);
+    
+    // check caching
+    assertTrue(lFilteredTargetGraph == lTargetGraph.apply(lFunctionCallFilter));
+  }
+  
+  @Test
+  public void test_13() throws InvalidCmdlineArgumentException, IOException, CPAException {
+    String[] lArguments = new String[3];
+    
+    lArguments[0] = mConfig;
+    lArguments[1] = mPropertiesFile;
+    lArguments[2] = "test/tests/single/uninitVars.cil.c";
+    
+    CPAConfiguration lConfiguration = new CPAConfiguration(lArguments);
+    
+    // necessary for LogManager
+    CPAMain.cpaConfig = lConfiguration;
+    
+    LogManager lLogManager = LogManager.getInstance();
+      
+    MainCPAStatistics lStatistics = new MainCPAStatistics();
+    
+    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager, lStatistics);
+    
+    TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
+    
+    Filter lFunctionCallsFilter = FunctionCalls.getInstance();
+    
+    TargetGraph lFilteredTargetGraph = lTargetGraph.apply(lFunctionCallsFilter);
+    
+    System.out.println(lFilteredTargetGraph);
+    
+    // check caching
+    assertTrue(lFilteredTargetGraph == lTargetGraph.apply(lFunctionCallsFilter));
+  }
+  
+  @Test
+  public void test_14() throws InvalidCmdlineArgumentException, IOException, CPAException {
+    String[] lArguments = new String[3];
+    
+    lArguments[0] = mConfig;
+    lArguments[1] = mPropertiesFile;
+    lArguments[2] = "test/tests/single/uninitVars.cil.c";
+    
+    CPAConfiguration lConfiguration = new CPAConfiguration(lArguments);
+    
+    // necessary for LogManager
+    CPAMain.cpaConfig = lConfiguration;
+    
+    LogManager lLogManager = LogManager.getInstance();
+      
+    MainCPAStatistics lStatistics = new MainCPAStatistics();
+    
+    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager, lStatistics);
+    
+    TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
+    
+    Filter lFunctionEntryFilter = new FunctionEntry("func");
+    
+    TargetGraph lFilteredTargetGraph = lTargetGraph.apply(lFunctionEntryFilter);
+    
+    System.out.println(lFilteredTargetGraph);
+    
+    // check caching
+    assertTrue(lFilteredTargetGraph == lTargetGraph.apply(lFunctionEntryFilter));
+  }
+  
+  @Test
+  public void test_15() throws InvalidCmdlineArgumentException, IOException, CPAException {
+    String[] lArguments = new String[3];
+    
+    lArguments[0] = mConfig;
+    lArguments[1] = mPropertiesFile;
+    lArguments[2] = "test/tests/single/uninitVars.cil.c";
+    
+    CPAConfiguration lConfiguration = new CPAConfiguration(lArguments);
+    
+    // necessary for LogManager
+    CPAMain.cpaConfig = lConfiguration;
+    
+    LogManager lLogManager = LogManager.getInstance();
+      
+    MainCPAStatistics lStatistics = new MainCPAStatistics();
+    
+    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager, lStatistics);
+    
+    TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
+    
+    Filter lLineFilter = new Line(102);
+    
+    TargetGraph lFilteredTargetGraph = lTargetGraph.apply(lLineFilter);
+    
+    System.out.println(lFilteredTargetGraph);
+    
+    // check caching
+    assertTrue(lFilteredTargetGraph == lTargetGraph.apply(lLineFilter));
   }
   
 }

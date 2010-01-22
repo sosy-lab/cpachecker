@@ -25,8 +25,12 @@ import fql.frontend.ast.filter.Complement;
 import fql.frontend.ast.filter.Compose;
 import fql.frontend.ast.filter.Filter;
 import fql.frontend.ast.filter.Function;
+import fql.frontend.ast.filter.FunctionCall;
+import fql.frontend.ast.filter.FunctionCalls;
+import fql.frontend.ast.filter.FunctionEntry;
 import fql.frontend.ast.filter.Identity;
 import fql.frontend.ast.filter.Intersection;
+import fql.frontend.ast.filter.Line;
 import fql.frontend.ast.filter.SetMinus;
 import fql.frontend.ast.filter.Union;
 import fql.frontend.ast.predicate.Predicate;
@@ -152,6 +156,77 @@ public class TargetGraph {
       }
     }
     
+    @Override
+    public TargetGraph visit(FunctionCall pFunctionCall) {
+      assert(pFunctionCall != null);
+      
+      if (mCache.containsKey(pFunctionCall)) {
+        return mCache.get(pFunctionCall);
+      }
+      else {
+        MaskFunctor<Node, Edge> lMaskFunctor = new FunctionCallMaskFunctor(pFunctionCall.getFunctionName());
+        
+        TargetGraph lResult = TargetGraph.applyStandardEdgeBasedFilter(mSelf, lMaskFunctor);
+        
+        mCache.put(pFunctionCall, lResult);
+        
+        return lResult;
+      }
+    }
+    
+    @Override
+    public TargetGraph visit(FunctionCalls pFunctionCalls) {
+      assert(pFunctionCalls != null);
+      
+      if (mCache.containsKey(pFunctionCalls)) {
+        return mCache.get(pFunctionCalls);
+      }
+      else {
+        TargetGraph lResult = TargetGraph.applyStandardEdgeBasedFilter(mSelf, FunctionCallsMaskFunctor.getInstance());
+        
+        mCache.put(pFunctionCalls, lResult);
+        
+        return  lResult;
+      }
+    }
+
+    @Override
+    public TargetGraph visit(FunctionEntry pEntry) {
+      assert(pEntry != null);
+      
+      if (mCache.containsKey(pEntry)) {
+        return mCache.get(pEntry);
+      }
+      else {
+        MaskFunctor<Node, Edge> lMaskFunctor = new FunctionEntryMaskFunctor(pEntry.getFunctionName());
+        
+        TargetGraph lResult = TargetGraph.applyStandardEdgeBasedFilter(mSelf, lMaskFunctor);
+        
+        mCache.put(pEntry, lResult);
+        
+        return lResult;
+      }
+    }
+
+    @Override
+    public TargetGraph visit(Line pLine) {
+      assert(pLine != null);
+      
+      if (mCache.containsKey(pLine)) {
+        return mCache.get(pLine);
+      }
+      else {
+        MaskFunctor<Node, Edge> lMaskFunctor = new LineNumberMaskFunctor(pLine.getLine());
+        
+        TargetGraph lResult = TargetGraph.applyStandardEdgeBasedFilter(mSelf, lMaskFunctor);
+        
+        mCache.put(pLine, lResult);
+        
+        return lResult;
+      }
+    }
+    
+    
   }
   
   public TargetGraph apply(Filter pFilter) {
@@ -239,6 +314,49 @@ public class TargetGraph {
     }
     
     return new TargetGraph(lInitialNodes, lFinalNodes, lMaskedGraph);
+  }
+  
+  public static TargetGraph applyStandardEdgeBasedFilter(TargetGraph pTargetGraph, MaskFunctor<Node, Edge> pMaskFunctor) {
+    assert(pTargetGraph != null);
+    assert(pMaskFunctor != null);
+    
+    DirectedGraph<Node, Edge> lMaskedGraph = new DirectedMaskSubgraph<Node, Edge>(pTargetGraph.mGraph, pMaskFunctor);
+    
+    HashSet<Node> lInitialNodes = new HashSet<Node>();
+    HashSet<Node> lFinalNodes = new HashSet<Node>();
+    
+    for (Edge lEdge : lMaskedGraph.edgeSet()) {
+      lInitialNodes.add(lEdge.getSource());
+      lFinalNodes.add(lEdge.getTarget());
+    }
+    
+    return new TargetGraph(lInitialNodes, lFinalNodes, lMaskedGraph);
+  }
+  
+  public static TargetGraph applyFunctionCallsFilter(TargetGraph pTargetGraph) {
+    assert(pTargetGraph != null);
+    
+    return null;
+  }
+  
+  public static TargetGraph applyFunctionEntriesFilter(TargetGraph pTargetGraph) {
+    assert(pTargetGraph != null);
+    
+    return null;
+  }
+  
+  public static TargetGraph applyFunctionEntryFilter(TargetGraph pTargetGraph, String pFunctionName) {
+    assert(pTargetGraph != null);
+    assert(pFunctionName != null);
+    
+    return null;
+  }
+  
+  public static TargetGraph applyLineNumberFilter(TargetGraph pTargetGraph, int pLineNumber) {
+    assert(pTargetGraph != null);
+    assert(pLineNumber > 0);
+    
+    return null;
   }
   
   public static TargetGraph applyUnionFilter(TargetGraph pTargetGraph1, TargetGraph pTargetGraph2) {

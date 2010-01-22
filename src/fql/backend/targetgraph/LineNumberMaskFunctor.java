@@ -19,7 +19,7 @@ public class LineNumberMaskFunctor implements MaskFunctor<Node, Edge> {
   public boolean isEdgeMasked(Edge pArg0) {
     assert(pArg0 != null);
     
-    return pArg0.getSource().getCFANode().getLineNumber() != mLineNumber;
+    return pArg0.getTarget().getCFANode().getLineNumber() != mLineNumber;
   }
 
   @Override
@@ -29,10 +29,10 @@ public class LineNumberMaskFunctor implements MaskFunctor<Node, Edge> {
     CFANode lCFANode = pArg0.getCFANode();
     
     if (pArg0.getCFANode().getLineNumber() != mLineNumber) {
-      for (int lIndex = 0; lIndex < lCFANode.getNumEnteringEdges(); lIndex++) {
-        CFAEdge lCFAEdge = lCFANode.getEnteringEdge(lIndex);
+      for (int lIndex = 0; lIndex < lCFANode.getNumLeavingEdges(); lIndex++) {
+        CFAEdge lCFAEdge = lCFANode.getLeavingEdge(lIndex);
         
-        if (lCFAEdge.getPredecessor().getLineNumber() == mLineNumber) {
+        if (lCFAEdge.getSuccessor().getLineNumber() == mLineNumber) {
           // predecessor has correct line number and thus we have to keep this 
           // vertex to preserve the edge
           return false;
