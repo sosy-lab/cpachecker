@@ -715,32 +715,35 @@ implements SymbPredAbsFormulaManager
   }
 
   private List<SymbolicFormula> getFormulasForTrace(
-      ArrayList<SymbPredAbsAbstractElement> abstractTrace) {
+      List<SymbPredAbsAbstractElement> abstractTrace) {
 
     // create the DAG formula corresponding to the abstract trace. We create
     // n formulas, one per interpolation group
     SSAMap ssa = null;
 
-    List<SymbolicFormula> f = new ArrayList<SymbolicFormula>(abstractTrace.size()-1);
+    List<SymbolicFormula> result = new ArrayList<SymbolicFormula>(abstractTrace.size());
 
-    for (int i = 0; i < abstractTrace.size(); ++i) {
-      SymbPredAbsAbstractElement e = abstractTrace.get(i);
-      // TODO here we take the formula from the abstract element
-      PathFormula p = getInitSymbolicFormula(e.getInitAbstractionFormula(), (ssa == null));
+    for (SymbPredAbsAbstractElement e : abstractTrace) {
+      // here we take the formula from the abstract element
+      PathFormula p = e.getInitAbstractionFormula();
       SSAMap newSsa;
+      SymbolicFormula f;
       
       if (ssa != null) {
+        // don't need to call replaceAssignments because shift does the same trick
         p = smgr.shift(p.getSymbolicFormula(), ssa);
+        f = p.getSymbolicFormula();
         newSsa = p.getSsa();
         newSsa.update(ssa);
       } else {
+        f = mmgr.replaceAssignments((MathsatSymbolicFormula)p.getSymbolicFormula());
         newSsa = p.getSsa();
       }
-      f.add(p.getSymbolicFormula());
+      
+      result.add(f);
       ssa = newSsa;
-
     }
-    return f;
+    return result;
   }
 
   /**
@@ -835,23 +838,6 @@ implements SymbPredAbsFormulaManager
       }
       
       return (tmpSpurious == null) ? itpProver.isUnsat() : tmpSpurious;
-  }
-
-  private PathFormula getInitSymbolicFormula(PathFormula pf, boolean replace) {
-    SSAMap ssa = new SSAMap();
-    SymbolicFormula f = smgr.makeFalse();
-    Pair<Pair<SymbolicFormula, SymbolicFormula>, SSAMap> mp =
-      smgr.mergeSSAMaps(ssa, pf.getSsa());
-    SymbolicFormula curf = pf.getSymbolicFormula();
-    // TODO modified if
-    if (replace) {
-      curf = mmgr.replaceAssignments((MathsatSymbolicFormula)curf);
-    }
-    f = smgr.makeAnd(f, mp.getFirst().getFirst());
-    curf = smgr.makeAnd(curf, mp.getFirst().getSecond());
-    f = smgr.makeOr(f, curf);
-    ssa = mp.getSecond();
-    return new PathFormula(f,ssa);
   }
 
   private List<SymbolicFormula> getUsefulBlocks(List<SymbolicFormula> f,

@@ -2025,6 +2025,10 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
   }
 
 
+  /**
+   * As a side effect, this method does the same thing as {@link #replaceAssignments(MathsatSymbolicFormula)}
+   * to the formula.
+   */
   public PathFormula shift(SymbolicFormula f, SSAMap ssa) {
     Stack<Long> toProcess = new Stack<Long>();
     Map<Long, Long> cache = new HashMap<Long, Long>();
@@ -2560,6 +2564,12 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     }
   }
 
+  /**
+   * The path formulas created by this class have an uninterpreted function :=
+   * where an assignment should be. This method replaces all those appearances
+   * by equalities (which is a valid representation of an assignment for a SSA
+   * formula).
+   */
   public MathsatSymbolicFormula replaceAssignments(MathsatSymbolicFormula f) {
     Stack<Long> toProcess = new Stack<Long>();
     Map<Long, Long> cache = replaceAssignmentsCache;//new HashMap<Long, Long>();
