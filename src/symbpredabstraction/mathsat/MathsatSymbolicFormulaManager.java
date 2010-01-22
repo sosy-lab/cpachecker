@@ -572,7 +572,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
             fn.getFunctionDefinition().getRawSignature());
       }
       if (param.getDeclarator().getPointerOperators().length != 0) {
-        warn("Ignoring the semantics of pointer for paramenter: " +
+        warn("Ignoring the semantics of pointer for parameter: " +
             param.getDeclarator().getName().toString() +
             " in function: " + fn.getFunctionName());
       }
@@ -1456,8 +1456,8 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
   private void warnUnsafeVar(IASTExpression exp) {
     if (!warnedUnsafeVars.contains(exp)) {
       warnedUnsafeVars.add(exp);
-      warn("unhandled expression: " +
-          exp.getRawSignature() + " - treating as a free variable!");
+      CPAMain.logManager.log(Level.WARNING, "unhandled expression",
+          exp.getRawSignature(), "- treating as a free variable!");
     }
   }
 
