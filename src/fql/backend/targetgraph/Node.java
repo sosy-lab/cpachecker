@@ -6,7 +6,6 @@ import java.util.List;
 import cfa.objectmodel.CFANode;
 import fql.backend.testgoals.TestGoal;
 import fql.backend.testgoals.TestGoalVisitor;
-import fql.frontend.ast.ASTVisitor;
 import fql.frontend.ast.predicate.Predicate;
 
 public class Node implements TestGoal {
