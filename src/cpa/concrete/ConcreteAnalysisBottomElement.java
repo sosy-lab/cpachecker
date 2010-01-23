@@ -6,8 +6,9 @@ package cpa.concrete;
 /**
  * @author holzera
  *
+ * Bottom element of the concrete analysis lattice.
  */
-public class ConcreteAnalysisBottomElement extends ConcreteAnalysisElement {
+public class ConcreteAnalysisBottomElement implements ConcreteAnalysisDomainElement {
   private final static ConcreteAnalysisBottomElement mInstance = new ConcreteAnalysisBottomElement();
   
   public static ConcreteAnalysisBottomElement getInstance() {
@@ -19,19 +20,12 @@ public class ConcreteAnalysisBottomElement extends ConcreteAnalysisElement {
   }
   
   @Override
-  public boolean equals(Object pOther) {
-    assert(this == mInstance);
-    
-    return (this == pOther);
-  }
-  
-  @Override
-  public int hashCode() {
-    return Integer.MIN_VALUE;
-  }
-  
-  @Override
   public String toString() {
     return "<ConcreteAnalysis BOTTOM>";
+  }
+
+  @Override
+  public boolean isError() {
+    return false;
   }
 }

@@ -14,7 +14,7 @@ public class ConcreteAnalysisElementTest {
     lElement.assignConstant("x", 10);
     lElement.assignConstant("y", 55);
     
-    ConcreteAnalysisElement lElement2 = lElement.clone();
+    ConcreteAnalysisElement lElement2 = new ConcreteAnalysisElement(lElement);
     
     assertEquals(lElement.hashCode(), lElement2.hashCode());
     
@@ -109,7 +109,7 @@ public class ConcreteAnalysisElementTest {
     
     assertFalse(lElement.contains("z"));
     
-    ConcreteAnalysisElement lElement2 = lElement.clone();
+    ConcreteAnalysisElement lElement2 = new ConcreteAnalysisElement(lElement);
     
     assertTrue(lElement2.contains("x"));
     
@@ -125,7 +125,7 @@ public class ConcreteAnalysisElementTest {
     lElement.assignConstant("x", 10);
     lElement.assignConstant("y", 55);
     
-    ConcreteAnalysisElement lElement2 = lElement.clone();
+    ConcreteAnalysisElement lElement2 = new ConcreteAnalysisElement(lElement);
     
     assertTrue(lElement.equals(lElement2));
   }

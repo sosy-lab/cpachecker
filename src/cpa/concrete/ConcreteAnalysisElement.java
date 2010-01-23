@@ -26,9 +26,7 @@ package cpa.concrete;
 import java.util.HashMap;
 import java.util.Map;
 
-import cpa.common.interfaces.AbstractElement;
-
-public class ConcreteAnalysisElement implements AbstractElement, Cloneable {
+public class ConcreteAnalysisElement implements ConcreteAnalysisDomainElement {
   
   // map that keeps the name of variables and their constant values
   private Map<String, Long> mConstantsMap;
@@ -70,11 +68,6 @@ public class ConcreteAnalysisElement implements AbstractElement, Cloneable {
 
   public boolean contains(String pVariableName){
     return mConstantsMap.containsKey(pVariableName);
-  }
-
-  @Override
-  public ConcreteAnalysisElement clone() {
-    return new ConcreteAnalysisElement(this);
   }
 
   @Override
@@ -133,4 +126,5 @@ public class ConcreteAnalysisElement implements AbstractElement, Cloneable {
   public boolean isError() {
     return false;
   }
+  
 }
