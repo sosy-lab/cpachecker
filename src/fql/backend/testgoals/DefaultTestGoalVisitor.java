@@ -3,7 +3,7 @@ package fql.backend.testgoals;
 import fql.backend.targetgraph.Edge;
 import fql.backend.targetgraph.Node;
 
-public class StandardTestGoalVisitor<T> implements TestGoalVisitor<T> {
+public class DefaultTestGoalVisitor<T> implements TestGoalVisitor<T> {
 
   @Override
   public T visit(Node pNode) {

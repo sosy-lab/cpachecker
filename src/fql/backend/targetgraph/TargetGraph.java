@@ -5,6 +5,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -20,7 +22,14 @@ import cfa.objectmodel.CFAExitNode;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cfa.objectmodel.CFANode;
 import cfa.objectmodel.c.CallToReturnEdge;
+import fql.backend.testgoals.EdgeSequence;
+import fql.backend.testgoals.TestGoal;
 import fql.frontend.ast.DefaultASTVisitor;
+import fql.frontend.ast.coverage.ConditionalCoverage;
+import fql.frontend.ast.coverage.Coverage;
+import fql.frontend.ast.coverage.Edges;
+import fql.frontend.ast.coverage.Paths;
+import fql.frontend.ast.coverage.States;
 import fql.frontend.ast.filter.Complement;
 import fql.frontend.ast.filter.Compose;
 import fql.frontend.ast.filter.Filter;
@@ -34,6 +43,7 @@ import fql.frontend.ast.filter.Line;
 import fql.frontend.ast.filter.SetMinus;
 import fql.frontend.ast.filter.Union;
 import fql.frontend.ast.predicate.Predicate;
+import fql.frontend.ast.predicate.Predicates;
 
 public class TargetGraph {
   private class FilterEvaluator extends DefaultASTVisitor<TargetGraph> {
@@ -226,16 +236,193 @@ public class TargetGraph {
       }
     }
     
+  }
+  
+  private class CoverageSpecificationEvaluator extends DefaultASTVisitor<Set<? extends TestGoal>> {
+
+    @Override
+    public Set<? extends TestGoal> visit(ConditionalCoverage pConditionalCoverage) {
+      // TODO Auto-generated method stub
+      return super.visit(pConditionalCoverage);
+    }
+
+    @Override
+    public Set<? extends TestGoal> visit(Edges pEdges) {
+      assert(pEdges != null);
+      
+      Filter lFilter = pEdges.getFilter();
+      Predicates lPredicates = pEdges.getPredicates();
+      
+      TargetGraph lFilteredTargetGraph = mSelf.apply(lFilter);
+      TargetGraph lPredicatedTargetGraph = TargetGraph.applyPredication(lFilteredTargetGraph, lPredicates);
+  
+      return lPredicatedTargetGraph.mGraph.edgeSet();
+    }
+
+    @Override
+    public Set<? extends TestGoal> visit(Intersection pIntersection) {
+      // TODO Auto-generated method stub
+      return super.visit(pIntersection);
+    }
+
+    @Override
+    public Set<? extends TestGoal> visit(Paths pPaths) {
+      assert(pPaths != null);
+      
+      Filter lFilter = pPaths.getFilter();
+      Predicates lPredicates = pPaths.getPredicates();
+      
+      TargetGraph lFilteredTargetGraph = mSelf.apply(lFilter);
+      TargetGraph lPredicatedTargetGraph = TargetGraph.applyPredication(lFilteredTargetGraph, lPredicates);
+  
+      Iterator<Node> lInitialNodesIterator = lPredicatedTargetGraph.getInitialNodes();
+      
+      HashSet<TestGoal> lTestGoals = new HashSet<TestGoal>();
+      
+      while (lInitialNodesIterator.hasNext()) {
+        Node lInitialNode = lInitialNodesIterator.next();
+        
+        Set<Edge> lOutgoingEdges = lPredicatedTargetGraph.mGraph.outgoingEdgesOf(lInitialNode);
+        
+        if (lOutgoingEdges.size() == 0) {
+          lTestGoals.add(lInitialNode);
+        }
+        else {
+          // enumerate all k-bounded paths starting in lInitialNode
+          HashMap<Node, Integer> lNumberOfOccurrences = new HashMap<Node, Integer>();
+          
+          lNumberOfOccurrences.put(lInitialNode, 1);
+          
+          LinkedList<Iterator<Edge>> lIteratorStack = new LinkedList<Iterator<Edge>>();
+          
+          lIteratorStack.addFirst(lOutgoingEdges.iterator());
+          
+          LinkedList<Edge> lEdgeStack = new LinkedList<Edge>();
+          
+          while (!lIteratorStack.isEmpty()) {
+            Iterator<Edge> lIterator = lIteratorStack.getLast();
+            
+            if (lIterator.hasNext()) {
+              Edge lEdge = lIterator.next();
+              
+              lEdgeStack.addLast(lEdge);
+              
+              Node lTarget = lEdge.getTarget();
+              
+              int lOccurrences;
+              
+              if (lNumberOfOccurrences.containsKey(lTarget)) {
+                lOccurrences = lNumberOfOccurrences.get(lTarget);
+                
+                lOccurrences++;
+              }
+              else {
+                lOccurrences = 1;
+              }
+              
+              if (lOccurrences > pPaths.getBound()) {
+                lEdgeStack.removeLast();
+                lNumberOfOccurrences.put(lTarget, lOccurrences - 1);
+                
+                switch (lEdgeStack.size()) {
+                case 0:
+                  lTestGoals.add(lInitialNode);
+                  break;
+                case 1:
+                  lTestGoals.add(lEdgeStack.getFirst());
+                  break;
+                default:
+                  lTestGoals.add(new EdgeSequence(lEdgeStack));
+                  break;
+                }
+              }
+              else {
+                // add iterator to stack
+                Iterator<Edge> lNextIterator = lPredicatedTargetGraph.mGraph.outgoingEdgesOf(lTarget).iterator();
+                
+                if (lNextIterator.hasNext()) {
+                  // update occurrences
+                  lNumberOfOccurrences.put(lTarget, lOccurrences);
+                  
+                  // add to stack
+                  lIteratorStack.addLast(lNextIterator);
+                }
+                else {
+                  assert(lEdgeStack.size() > 0);
+                  
+                  if (lEdgeStack.size() == 1) {
+                    lTestGoals.add(lEdge);
+                  }
+                  else {
+                    lTestGoals.add(new EdgeSequence(lEdgeStack));
+                  }
+                  
+                  lEdgeStack.removeLast();
+                }
+              }
+            }
+            else {
+              lIteratorStack.removeLast();
+              
+              // first iterator is not associated with an edge,
+              // so remove only edge if it is not the first one
+              if (lIteratorStack.size() > 0) {
+                Edge lEdge = lEdgeStack.getLast();
+                Node lTarget = lEdge.getTarget();
+                int lOccurrences = lNumberOfOccurrences.get(lTarget);
+                lNumberOfOccurrences.put(lTarget, lOccurrences - 1);
+                
+                lEdgeStack.removeLast();
+              }
+            }
+          }
+        }
+      }
+      
+      return lTestGoals;
+    }
+
+    @Override
+    public Set<? extends TestGoal> visit(SetMinus pSetMinus) {
+      // TODO Auto-generated method stub
+      return super.visit(pSetMinus);
+    }
+
+    @Override
+    public Set<? extends TestGoal> visit(States pStates) {
+      assert(pStates != null);
+      
+      Filter lFilter = pStates.getFilter();
+      Predicates lPredicates = pStates.getPredicates();
+      
+      TargetGraph lFilteredTargetGraph = mSelf.apply(lFilter);
+      TargetGraph lPredicatedTargetGraph = TargetGraph.applyPredication(lFilteredTargetGraph, lPredicates);
+  
+      return lPredicatedTargetGraph.mGraph.vertexSet();
+    }
+
+    @Override
+    public Set<? extends TestGoal> visit(Union pUnion) {
+      // TODO Auto-generated method stub
+      return super.visit(pUnion);
+    }
     
   }
   
   public TargetGraph apply(Filter pFilter) {
     assert(pFilter != null);
     
-    return pFilter.accept(mEvaluator);
+    return pFilter.accept(mFilterEvaluator);
   }
   
-  private FilterEvaluator mEvaluator = new FilterEvaluator();
+  public Set<? extends TestGoal> apply(Coverage pCoverageSpecification) {
+    assert(pCoverageSpecification != null);
+    
+    return pCoverageSpecification.accept(mCoverageSpecificationEvaluator);
+  }
+  
+  private FilterEvaluator mFilterEvaluator = new FilterEvaluator();
+  private CoverageSpecificationEvaluator mCoverageSpecificationEvaluator = new CoverageSpecificationEvaluator();
   
   private Set<Node> mInitialNodes;
   private Set<Node> mFinalNodes;
@@ -467,7 +654,7 @@ public class TargetGraph {
     return new TargetGraph(lInitialNodes, lFinalNodes, lGraph);
   }
   
-  public static TargetGraph applyPredication(TargetGraph pTargetGraph, Collection<Predicate> pPredicates) {
+  public static TargetGraph applyPredication(TargetGraph pTargetGraph, Predicates pPredicates) {
     assert(pTargetGraph != null);
     assert(pPredicates != null);
     

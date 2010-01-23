@@ -3,6 +3,7 @@ package fql.backend.targetgraph;
 import static org.junit.Assert.*;
 
 import java.io.IOException;
+import java.util.Set;
 
 import org.junit.Test;
 
@@ -13,6 +14,10 @@ import cpaplugin.CPAConfiguration;
 import cpaplugin.MainCPAStatistics;
 import cpaplugin.CPAConfiguration.InvalidCmdlineArgumentException;
 import exceptions.CPAException;
+import fql.backend.testgoals.TestGoal;
+import fql.frontend.ast.coverage.Edges;
+import fql.frontend.ast.coverage.Paths;
+import fql.frontend.ast.coverage.States;
 import fql.frontend.ast.filter.Filter;
 import fql.frontend.ast.filter.Function;
 import fql.frontend.ast.filter.FunctionCall;
@@ -23,6 +28,7 @@ import fql.frontend.ast.filter.Line;
 import fql.frontend.ast.predicate.CIdentifier;
 import fql.frontend.ast.predicate.NaturalNumber;
 import fql.frontend.ast.predicate.Predicate;
+import fql.frontend.ast.predicate.Predicates;
 
 public class TargetGraphTest {
   private String mConfig = "-config";
@@ -503,6 +509,124 @@ public class TargetGraphTest {
     
     // caching should also work with logically equal filters
     assertTrue(lFilteredTargetGraph == lTargetGraph.apply(lLineFilter2));
+  }
+  
+  @Test
+  public void test_16() throws InvalidCmdlineArgumentException, IOException, CPAException {
+    String[] lArguments = new String[3];
+    
+    lArguments[0] = mConfig;
+    lArguments[1] = mPropertiesFile;
+    lArguments[2] = "test/tests/single/uninitVars.cil.c";
+    
+    CPAConfiguration lConfiguration = new CPAConfiguration(lArguments);
+    
+    // necessary for LogManager
+    CPAMain.cpaConfig = lConfiguration;
+    
+    LogManager lLogManager = LogManager.getInstance();
+      
+    MainCPAStatistics lStatistics = new MainCPAStatistics();
+    
+    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager, lStatistics);
+    
+    TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
+    
+    Filter lFunctionFilter = new Function("func");
+    
+    States lStates = new States(lFunctionFilter, new Predicates());
+    
+    Set<? extends TestGoal> lTestGoals = lTargetGraph.apply(lStates);
+    
+    System.out.println(lTestGoals);
+  }
+  
+  @Test
+  public void test_17() throws InvalidCmdlineArgumentException, IOException, CPAException {
+    String[] lArguments = new String[3];
+    
+    lArguments[0] = mConfig;
+    lArguments[1] = mPropertiesFile;
+    lArguments[2] = "test/tests/single/uninitVars.cil.c";
+    
+    CPAConfiguration lConfiguration = new CPAConfiguration(lArguments);
+    
+    // necessary for LogManager
+    CPAMain.cpaConfig = lConfiguration;
+    
+    LogManager lLogManager = LogManager.getInstance();
+      
+    MainCPAStatistics lStatistics = new MainCPAStatistics();
+    
+    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager, lStatistics);
+    
+    TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
+    
+    Filter lFunctionFilter = new Function("func");
+    
+    Edges lEdges = new Edges(lFunctionFilter, new Predicates());
+    
+    Set<? extends TestGoal> lTestGoals = lTargetGraph.apply(lEdges);
+    
+    System.out.println(lTestGoals);
+  }
+  
+  @Test
+  public void test_18() throws InvalidCmdlineArgumentException, IOException, CPAException {
+    String[] lArguments = new String[3];
+    
+    lArguments[0] = mConfig;
+    lArguments[1] = mPropertiesFile;
+    lArguments[2] = "test/tests/single/uninitVars.cil.c";
+    
+    CPAConfiguration lConfiguration = new CPAConfiguration(lArguments);
+    
+    // necessary for LogManager
+    CPAMain.cpaConfig = lConfiguration;
+    
+    LogManager lLogManager = LogManager.getInstance();
+      
+    MainCPAStatistics lStatistics = new MainCPAStatistics();
+    
+    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager, lStatistics);
+    
+    TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
+    
+    Filter lFunctionFilter = new Function("func");
+    
+    Paths lPaths = new Paths(lFunctionFilter, 2, new Predicates());
+    
+    Set<? extends TestGoal> lTestGoals = lTargetGraph.apply(lPaths);
+    
+    System.out.println(lTestGoals);
+  }
+ 
+  @Test
+  public void test_19() throws InvalidCmdlineArgumentException, IOException, CPAException {
+    String[] lArguments = new String[3];
+    
+    lArguments[0] = mConfig;
+    lArguments[1] = mPropertiesFile;
+    lArguments[2] = "test/tests/single/loop1.c";
+    
+    CPAConfiguration lConfiguration = new CPAConfiguration(lArguments);
+    
+    // necessary for LogManager
+    CPAMain.cpaConfig = lConfiguration;
+    
+    LogManager lLogManager = LogManager.getInstance();
+      
+    MainCPAStatistics lStatistics = new MainCPAStatistics();
+    
+    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager, lStatistics);
+    
+    TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
+    
+    Paths lPaths = new Paths(Identity.getInstance(), 2, new Predicates());
+    
+    Set<? extends TestGoal> lTestGoals = lTargetGraph.apply(lPaths);
+    
+    System.out.println(lTestGoals);
   }
   
 }

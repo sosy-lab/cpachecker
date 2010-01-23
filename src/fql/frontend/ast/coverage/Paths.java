@@ -13,7 +13,7 @@ public class Paths implements Coverage {
   public Paths(Filter pFilter, int pBound, Predicates pPredicates) {
     assert(pFilter != null);
     assert(pPredicates != null);
-    assert(pBound >= 0);
+    assert(pBound > 0);
     
     mFilter = pFilter;
     mBound = pBound;
