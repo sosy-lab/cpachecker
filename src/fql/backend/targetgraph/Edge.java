@@ -3,8 +3,10 @@ package fql.backend.targetgraph;
 import org.jgrapht.Graph;
 
 import cfa.objectmodel.CFAEdge;
+import fql.backend.testgoals.TestGoal;
+import fql.backend.testgoals.TestGoalVisitor;
 
-public class Edge {
+public class Edge implements TestGoal {
   private Node mSource;
   private Node mTarget;
   private CFAEdge mCFAEdge;
@@ -68,6 +70,13 @@ public class Edge {
   
   public CFAEdge getCFAEdge() {
     return mCFAEdge;
+  }
+  
+  @Override
+  public <T> T accept(TestGoalVisitor<T> pVisitor) {
+    assert(pVisitor != null);
+    
+    return pVisitor.visit(this);
   }
   
 }

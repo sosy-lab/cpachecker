@@ -333,32 +333,6 @@ public class TargetGraph {
     return new TargetGraph(lInitialNodes, lFinalNodes, lMaskedGraph);
   }
   
-  public static TargetGraph applyFunctionCallsFilter(TargetGraph pTargetGraph) {
-    assert(pTargetGraph != null);
-    
-    return null;
-  }
-  
-  public static TargetGraph applyFunctionEntriesFilter(TargetGraph pTargetGraph) {
-    assert(pTargetGraph != null);
-    
-    return null;
-  }
-  
-  public static TargetGraph applyFunctionEntryFilter(TargetGraph pTargetGraph, String pFunctionName) {
-    assert(pTargetGraph != null);
-    assert(pFunctionName != null);
-    
-    return null;
-  }
-  
-  public static TargetGraph applyLineNumberFilter(TargetGraph pTargetGraph, int pLineNumber) {
-    assert(pTargetGraph != null);
-    assert(pLineNumber > 0);
-    
-    return null;
-  }
-  
   public static TargetGraph applyUnionFilter(TargetGraph pTargetGraph1, TargetGraph pTargetGraph2) {
     assert(pTargetGraph1 != null);
     assert(pTargetGraph2 != null);
