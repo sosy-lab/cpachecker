@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -20,6 +21,7 @@ import cfa.objectmodel.CFAExitNode;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cfa.objectmodel.CFANode;
 import cfa.objectmodel.c.CallToReturnEdge;
+import fql.backend.testgoals.DefaultTestGoalVisitor;
 import fql.backend.testgoals.EdgeSequence;
 import fql.backend.testgoals.TestGoal;
 import fql.frontend.ast.DefaultASTVisitor;
@@ -238,10 +240,140 @@ public class TargetGraph {
   
   private class CoverageSpecificationEvaluator extends DefaultASTVisitor<Set<? extends TestGoal>> {
 
+    private class TestGoalPredicator extends DefaultTestGoalVisitor<TestGoal> {
+
+      private Predicates mPreconditions;
+      private Predicates mPostconditions;
+      
+      public TestGoalPredicator(Predicates pPreconditions, Predicates pPostconditions) {
+        assert(pPreconditions != null);
+        assert(pPostconditions != null);
+        
+        mPreconditions = pPreconditions;
+        mPostconditions = pPostconditions;
+      }
+      
+      private Node getPredicatedNode(Node pNode, Predicates pPredicates) {
+        assert(pNode != null);
+        assert(pPredicates != null);
+        
+        if (pPredicates.isEmpty()) {
+          return pNode;
+        }
+        else {
+          Node lNode = new Node(pNode);
+          
+          for (Predicate lPredicate : pPredicates) {
+            lNode.addPredicate(lPredicate, true);
+          }
+          
+          return lNode;
+        }
+      }
+      
+      @Override
+      public Edge visit(Edge pEdge) {
+        assert(pEdge != null);
+        
+        Node lSource = pEdge.getSource();
+        Node lTarget = pEdge.getTarget();
+        CFAEdge lCFAEdge = pEdge.getCFAEdge();
+        
+        Node lNewSource = getPredicatedNode(lSource, mPreconditions);
+        
+        Node lNewTarget = getPredicatedNode(lTarget, mPostconditions);
+        
+        return new Edge(lNewSource, lNewTarget, lCFAEdge);
+      }
+
+      @Override
+      public EdgeSequence visit(EdgeSequence pEdgeSequence) {
+        assert(pEdgeSequence != null);
+        
+        assert(pEdgeSequence.size() > 1);
+        
+        Edge lFirstEdge = pEdgeSequence.get(0);
+        Edge lLastEdge = pEdgeSequence.get(pEdgeSequence.size() - 1);
+
+        
+        Edge lNewFirstEdge;
+        
+        if (mPreconditions.isEmpty()) {
+          lNewFirstEdge = lFirstEdge;
+        }
+        else {
+          Node lFirstNode = lFirstEdge.getSource();
+          
+          Node lNewFirstNode = getPredicatedNode(lFirstNode, mPreconditions);
+          
+          lNewFirstEdge = new Edge(lNewFirstNode, lFirstEdge.getTarget(), lFirstEdge.getCFAEdge());
+        }
+        
+        Edge lNewLastEdge;
+        
+        if (mPostconditions.isEmpty()) {
+          lNewLastEdge = lLastEdge;
+        }
+        else {
+          Node lLastNode = lLastEdge.getTarget();
+          
+          Node lNewLastNode = getPredicatedNode(lLastNode, mPostconditions);
+          
+          lNewLastEdge = new Edge(lLastEdge.getSource(), lNewLastNode, lLastEdge.getCFAEdge());
+        }
+        
+        List<Edge> lEdgeSequence = new LinkedList<Edge>();
+        
+        lEdgeSequence.add(lNewFirstEdge);
+        
+        for (int lIndex = 1; lIndex < pEdgeSequence.size() - 1; lIndex++) {
+          lEdgeSequence.add(pEdgeSequence.get(lIndex));
+        }
+        
+        lEdgeSequence.add(lNewLastEdge);
+        
+        return new EdgeSequence(lEdgeSequence);
+      }
+
+      @Override
+      public Node visit(Node pNode) {
+        assert(pNode != null);
+        
+        Node lNode = new Node(pNode);
+        
+        for (Predicate lPredicate : mPreconditions) {
+          lNode.addPredicate(lPredicate, true);
+        }
+        
+        for (Predicate lPredicate : mPostconditions) {
+          lNode.addPredicate(lPredicate, true);
+        }
+        
+        return lNode;
+      }
+      
+    }
+    
     @Override
     public Set<? extends TestGoal> visit(ConditionalCoverage pConditionalCoverage) {
-      // TODO Auto-generated method stub
-      return super.visit(pConditionalCoverage);
+      assert(pConditionalCoverage != null);
+      
+      Predicates lPreconditions = pConditionalCoverage.getPreconditions();
+      Predicates lPostconditions = pConditionalCoverage.getPostconditions();
+      
+      Coverage lCoverage = pConditionalCoverage.getCoverage();
+      
+      Set<? extends TestGoal> lTestGoals = mSelf.apply(lCoverage);
+      
+      Set<TestGoal> lPredicatedTestGoals = new HashSet<TestGoal>();
+      
+      TestGoalPredicator lPredicator = new TestGoalPredicator(lPreconditions, lPostconditions);
+      
+      for (TestGoal lTestGoal : lTestGoals) {
+        lPredicatedTestGoals.add(lTestGoal.accept(lPredicator));
+      }
+      
+      return lPredicatedTestGoals;
     }
 
     @Override
@@ -255,12 +387,6 @@ public class TargetGraph {
       TargetGraph lPredicatedTargetGraph = TargetGraph.applyPredication(lFilteredTargetGraph, lPredicates);
   
       return lPredicatedTargetGraph.mGraph.edgeSet();
-    }
-
-    @Override
-    public Set<? extends TestGoal> visit(Intersection pIntersection) {
-      // TODO Auto-generated method stub
-      return super.visit(pIntersection);
     }
 
     @Override
@@ -381,12 +507,6 @@ public class TargetGraph {
     }
 
     @Override
-    public Set<? extends TestGoal> visit(SetMinus pSetMinus) {
-      // TODO Auto-generated method stub
-      return super.visit(pSetMinus);
-    }
-
-    @Override
     public Set<? extends TestGoal> visit(States pStates) {
       assert(pStates != null);
       
@@ -400,11 +520,38 @@ public class TargetGraph {
     }
 
     @Override
-    public Set<? extends TestGoal> visit(Union pUnion) {
-      // TODO Auto-generated method stub
-      return super.visit(pUnion);
+    public Set<? extends TestGoal> visit(fql.frontend.ast.coverage.Union pUnion) {
+      assert(pUnion != null);
+      
+      Coverage lLeftCoverage = pUnion.getLeftCoverage();
+      Coverage lRightCoverage = pUnion.getRightCoverage();
+      
+      assert(lLeftCoverage != null);
+      assert(lRightCoverage != null);
+      
+      Set<? extends TestGoal> lFirstTestGoalSet = mSelf.apply(lLeftCoverage);
+      Set<? extends TestGoal> lSecondTestGoalSet = mSelf.apply(lRightCoverage);
+      
+      Set<TestGoal> lResult = new HashSet<TestGoal>();
+      
+      lResult.addAll(lFirstTestGoalSet);
+      lResult.addAll(lSecondTestGoalSet);
+      
+      return lResult;
     }
-    
+
+    @Override
+    public Set<? extends TestGoal> visit(fql.frontend.ast.coverage.Intersection pIntersection) {
+      // TODO Auto-generated method stub
+      return super.visit(pIntersection);
+    }
+
+    @Override
+    public Set<? extends TestGoal> visit(fql.frontend.ast.coverage.SetMinus pSetMinus) {
+      // TODO Auto-generated method stub
+      return super.visit(pSetMinus);
+    }
+
   }
   
   public TargetGraph apply(Filter pFilter) {

@@ -629,4 +629,35 @@ public class TargetGraphTest {
     System.out.println(lTestGoals);
   }
   
+  @Test
+  public void test_20() throws InvalidCmdlineArgumentException, IOException, CPAException {
+    String[] lArguments = new String[3];
+    
+    lArguments[0] = mConfig;
+    lArguments[1] = mPropertiesFile;
+    lArguments[2] = "test/tests/single/loop1.c";
+    
+    CPAConfiguration lConfiguration = new CPAConfiguration(lArguments);
+    
+    // necessary for LogManager
+    CPAMain.cpaConfig = lConfiguration;
+    
+    LogManager lLogManager = LogManager.getInstance();
+      
+    MainCPAStatistics lStatistics = new MainCPAStatistics();
+    
+    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager, lStatistics);
+    
+    TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
+    
+    Edges lEdges = new Edges(Identity.getInstance(), new Predicates());
+    
+    States lStates = new States(Identity.getInstance(), new Predicates());
+    
+    fql.frontend.ast.coverage.Union lUnion = new fql.frontend.ast.coverage.Union(lEdges, lStates);
+    
+    Set<? extends TestGoal> lTestGoals = lTargetGraph.apply(lUnion);
+    
+    System.out.println(lTestGoals);
+  }
 }
