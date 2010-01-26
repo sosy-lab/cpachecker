@@ -604,6 +604,10 @@ public class TargetGraph {
     }
   }
   
+  public Set<Edge> getEdges() {
+    return mGraph.edgeSet(); 
+  }
+    
   public static TargetGraph createTargetGraphFromCFA(CFANode pInitialNode) {
     assert(pInitialNode != null);
     
