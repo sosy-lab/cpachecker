@@ -37,6 +37,8 @@ import java.util.logging.Logger;
 
 import cmdline.CPAMain;
 
+import com.google.common.base.Joiner;
+
 /**
  * @author Gregor Endler
  * 
@@ -54,6 +56,7 @@ public class LogManager {
   private static LogManager instance = null;
 
   private static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS");
+  private static final Joiner messageFormat = Joiner.on(' ').useForNull("null");
   private final Level logLevel;
   private final Level logConsoleLevel;
   private final List<Level> excludeLevelsFile;
@@ -187,30 +190,31 @@ public class LogManager {
     return instance;
   }
 
-  //Logs any message occurring during program execution.
-  //args can be an arbitrary number of objects containing any information.
+  /**
+   * Returns true if a message with the given log level would be logged.
+   * @param priority the log level 
+   * @return whether this log level is enabled
+   */
+  public boolean wouldBeLogged(Level priority) {
+    // Ensure priority != OFF (since it is possible to abuse the logging 
+    // system by publishing logs with Level OFF).
+    return (priority.intValue() >= logLevel.intValue() || priority.intValue() >= logConsoleLevel.intValue())
+        && priority != Level.OFF
+        && (!excludeLevelsFile.contains(priority) || !excludeLevelsConsole.contains(priority));
+  }
+  
+  /**
+   * Logs any message occurring during program execution.
+   * @param priority the log level for the message
+   * @param args the message (can be an arbitrary number of objects containing any information), will be concatenated by " "
+   */
   public void log(Level priority, Object... args) {
 
     //Since some toString() methods may be rather costly, only log if the level is 
-    //sufficiently high. Ensure priority != OFF (since it is possible to abuse the logging 
-    //system by publishing logs with Level OFF).
-    if ((priority.intValue() >= logLevel.intValue() || 
-        priority.intValue() >= logConsoleLevel.intValue()) && 
-        priority != Level.OFF &&
-        (!excludeLevelsFile.contains(priority) ||
-         !excludeLevelsConsole.contains(priority)))  {
+    //sufficiently high. 
+    if (wouldBeLogged(priority))  {
 
-      StringBuffer buf = new StringBuffer();
-
-      for (Object o : args) {
-        if (o != null) {
-          buf.append(o.toString() + " ");
-        } else {
-          buf.append("null ");
-        }
-      }
-
-      LogRecord record = new LogRecord(priority, buf.toString());
+      LogRecord record = new LogRecord(priority, messageFormat.join(args));
       StackTraceElement[] trace = Thread.currentThread().getStackTrace();
       record.setSourceClassName(trace[2].getFileName());
       record.setSourceMethodName(trace[2].getMethodName());
@@ -226,14 +230,19 @@ public class LogManager {
     }
   }
 
-  //Logs any Exception occurring during program execution by composing a message of
-  //the exception's properties, and optionally an additional message passed.
-  //After logging, print the stack trace.
+  /**
+   * Logs any Exception occurring during program execution by composing a message of
+   * the exception's properties, and optionally an additional message passed.
+   * 
+   * After logging, print the stack trace.
+   * TODO remove this, better log stack trace with level debug (if enabled) 
+   * @param priority the log level for the message
+   * @param e the occurred exception
+   * @param additionalMessage an optional message
+   */
   public void logException(Level priority, Exception e, String additionalMessage) {
 
-    if ((priority.intValue() >= logLevel.intValue() ||
-        priority.intValue() >= logConsoleLevel.intValue()) && 
-        priority != Level.OFF) {
+    if (wouldBeLogged(priority)) {
 
       String logMessage = e.getMessage() + ", " + e.getStackTrace()[0];
 
