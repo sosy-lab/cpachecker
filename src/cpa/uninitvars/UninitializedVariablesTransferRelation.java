@@ -49,6 +49,8 @@ import cfa.objectmodel.CFAEdgeType;
 import cfa.objectmodel.c.AssumeEdge;
 import cfa.objectmodel.c.CallToReturnEdge;
 import cfa.objectmodel.c.DeclarationEdge;
+import cfa.objectmodel.c.FunctionCallEdge;
+import cfa.objectmodel.c.FunctionDefinitionNode;
 import cfa.objectmodel.c.GlobalDeclarationEdge;
 import cfa.objectmodel.c.ReturnEdge;
 import cfa.objectmodel.c.StatementEdge;
@@ -68,7 +70,7 @@ import exceptions.UnrecognizedCCodeException;
 import exceptions.UnrecognizedCFAEdgeException;
 
 /**
- * @author Philipp Wendler
+ * @author Philipp Wendler, Gregor Endler
  * 
  * Needs typesCPA to properly deal with field references. 
  * If run without typesCPA, uninitialized field references may not be detected.
@@ -82,9 +84,9 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
   private Set<Pair<Integer, String>> warnings;
   
   //needed for strengthen()
-  String lastAdded = null;
+  private String lastAdded = null;
   //used to display a message in strengthen() if typesCPA is not used as well
-  int typesCPAPresent = 0;
+  private int typesCPAPresent = 0;
 
   public UninitializedVariablesTransferRelation() {
     globalVars = new HashSet<String>();
@@ -112,9 +114,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       break;
     
     case ReturnEdge:
-      successor.returnFromFunction(); // throw away local context
-      
-      // now handle the complete a = func(x) statement in the CallToReturnEdge
+      //handle statement like a = func(x) in the CallToReturnEdge
       ReturnEdge returnEdge = (ReturnEdge)cfaEdge;
       CallToReturnEdge ctrEdge = returnEdge.getSuccessor().getEnteringSummaryEdge();
       handleStatement(successor, ctrEdge.getExpression(), ctrEdge);
@@ -128,7 +128,9 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       break;
       
     case FunctionCallEdge:
-      successor.callFunction(cfaEdge.getRawStatement());
+      //on calling a function, check initialization status of the parameters
+      FunctionCallEdge callEdge = (FunctionCallEdge)cfaEdge;
+      handleStatement(successor, callEdge.getPredecessor().getLeavingSummaryEdge().getExpression(), callEdge);
       break;
       
     case BlankEdge:
@@ -148,8 +150,13 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       Pair<Integer, String> warningIndex = new Pair<Integer, String>(lineNumber, variable);
       if (!warnings.contains(warningIndex)) {
         warnings.add(warningIndex);
-        System.out.println("uninitialized variable " + variable + " used in line "
-            + lineNumber + ": " + edge.getRawStatement());
+        if (edge instanceof CallToReturnEdge) {
+          System.out.println("uninitialized return value of function call " + variable + " in line "
+              + lineNumber + ": " + edge.getRawStatement());
+        } else {
+          System.out.println("uninitialized variable " + variable + " used in line "
+              + lineNumber + ": " + edge.getRawStatement());
+        }
       }
     }
   }
@@ -200,7 +207,26 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
     if (cfaEdge.isJumpEdge()) {
       // this is the return-statement of a function
       uninitializedFunctionReturn = isExpressionUninitialized(element, expression, cfaEdge);
-    
+      
+    } else if (cfaEdge instanceof FunctionCallEdge) {
+      //find functions's parameters and arguments
+      FunctionCallEdge callEdge = (FunctionCallEdge)cfaEdge;   
+      FunctionDefinitionNode functionEntryNode = (FunctionDefinitionNode)callEdge.getSuccessor();
+
+      List<String> paramNames = functionEntryNode.getFunctionParameterNames();
+      IASTExpression[] arguments = callEdge.getArguments();
+
+      //set initialization status of the function's parameters according to the arguments
+      if (arguments != null) {
+        for (int i = 0; i < arguments.length; i++) {
+          if(isExpressionUninitialized(element, arguments[i], callEdge)) {
+            setUninitialized(element, paramNames.get(i));
+          } else {
+            setInitialized(element, paramNames.get(i));
+          }
+        }
+      }
+      
     } else if ((expression instanceof IASTUnaryExpression)
             || (expression instanceof IASTFunctionCallExpression)) {
       // this is either an unary operation (a++) or a mere function call (func(a))
@@ -372,9 +398,10 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       
     } else if (expression instanceof IASTFunctionCallExpression) {
       IASTFunctionCallExpression funcExpression = (IASTFunctionCallExpression)expression;
-      return uninitializedFunctionReturn
-           | isExpressionUninitialized(element, funcExpression.getFunctionNameExpression(), cfaEdge)
-           | isExpressionUninitialized(element, funcExpression.getParameterExpression(), cfaEdge);
+      if (printWarnings && uninitializedFunctionReturn) {
+        addWarning(cfaEdge, funcExpression.getRawSignature());
+      }
+      return uninitializedFunctionReturn;
     
     } else if (expression instanceof IASTExpressionList) {
       IASTExpressionList expressionList = (IASTExpressionList)expression;
