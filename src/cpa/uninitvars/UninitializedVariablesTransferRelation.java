@@ -85,8 +85,8 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
   
   //needed for strengthen()
   private String lastAdded = null;
-  //used to display a message in strengthen() if typesCPA is not used as well
-  private int typesCPAPresent = 0;
+  //used to check if a warning message in strengthen() has been deisplayed if typesCPA is not present
+  private boolean typesWarningAlreadyDisplayed = false;
 
   public UninitializedVariablesTransferRelation() {
     globalVars = new HashSet<String>();
@@ -436,14 +436,15 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
    * only be provided by typesCPA.
    */
   public Collection<? extends AbstractElement> strengthen(AbstractElement element,
-                         List<AbstractElement> otherElements, CFAEdge cfaEdge,
-                         Precision precision) {
-    //only call for declarations. check for lastAdded prevents unnecessary repeated executions for the same statement 
+                          List<AbstractElement> otherElements, CFAEdge cfaEdge,
+                          Precision precision) {
+    //only call for declarations. check for lastAdded prevents unnecessary repeated executions for the same statement
+    boolean typesCPAPresent = false;
     if (cfaEdge.getEdgeType() == CFAEdgeType.DeclarationEdge && lastAdded != null) {
       for (AbstractElement other : otherElements) {
         //only interested in the types here
         if (other instanceof TypesElement) {
-          typesCPAPresent = 1;
+          typesCPAPresent = true;
           //find type of the item last added to the list of variables
           Type t = ((TypesElement) other).getVariableTypes().get(lastAdded);
           if (t != null) {
@@ -460,14 +461,14 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
           }
         }
       }
-      
-      if (typesCPAPresent == 0 && lastAdded != null) {
+
+      if (!typesWarningAlreadyDisplayed && !typesCPAPresent && lastAdded != null) {
         //set typesCPAPresent so this message only comes up once
-        typesCPAPresent = 2;
+        typesWarningAlreadyDisplayed = true;
         CPAMain.logManager.log(Level.INFO, 
-            "TypesCPA not present - information about field references may be unreliable");
+        "TypesCPA not present - information about field references may be unreliable");
       }
-      
+
       //set lastAdded to null to prevent unnecessary repeats 
       lastAdded = null;
     }
