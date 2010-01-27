@@ -7,7 +7,8 @@ Requirements for executing CPAchecker:
    Possibly necessary flags:
    --dosimpleMem
 
-Requirements for building CPAchecker:
+Building CPAchecker:
+--------------------
 1. Install Java 1.6 SDK or higher.
    http://java.sun.com/
    Or contact Michael Tautschnig <tautschnig@forsyte.de> to
@@ -27,30 +28,36 @@ For building in Eclipse:
    http://subclipse.tigris.org/
 6. Create new project from SVN repository
    URL: svn+ssh://svn.sosy-lab.org/repos/RC-software/cpachecker/trunk
-7. If your system is not 32bit Linux, you will have to change the paths to the
-   native libraries in the .classpath file
 
-Running it:
-8. Choose a configuration file and a source code file
+For building with Ant:
+5. Install ant (no particular version requirements).
+6. Set the environment variable ECLIPSE_HOME to the directory where
+   your eclipse is installed (the one that contains the plugins directory)
+   and run ant from the project root directory.
+
+Running CPAchecker:
+-------------------
+7. Choose a configuration file and a source code file
    Example: test/config/explicitAnalysisInf.properties
             test/tests/single/loop1.c
    Check that the configuration file does not contain any non-existent paths 
-9. Running it from Eclipse:
-   Create a run configuration with main class "cmdline.CPAMain", 
+
+Running it from Eclipse:
+8. Create a run configuration with main class "cmdline.CPAMain", 
    program arguments "-config <CONFIG_FILE> <SOURCE_FILE>", and
    VM arguments "-Djava.library.path=lib/native/<ENVIRONMENT>" 
    specifying your environment for the library path. 
    Settings for <ENVIRONMENT>: 
    		ppc-macosx, x86_64-linux, x86-linux, x86-macosx,  x86-win32
 
-Or:
-9. Running it from command line:
-   Execute "test/scripts/simple/cpa.sh -config <CONFIG_FILE> <SOURCE_FILE>"
-   You need to edit this script, if your Eclipse is not in ~/eclipse,
-   /opt/eclipse or ~/Desktop/eclipse
-
+Running it from command line:
+8. Execute "test/scripts/simple/cpa.sh -config <CONFIG_FILE> <SOURCE_FILE>"
+   If your Eclipse is not installed to ~/eclipse, /opt/eclipse or ~/Desktop/eclipse,
+   you need to set the environment variable ECLIPSE_HOME to the directory where
+   your eclipse is installed (the one that contains the plugins directory).
 
 Troubleshooting:
+----------------
 - Imports starting with org.eclipse are not recognized.
   Errors "Project 'CPAChecker (svn trunk)' is missing required library: 'bin/'" and
   		 "The Project cannot be built until build path errors are resolved" occur.

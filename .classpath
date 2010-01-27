@@ -7,19 +7,11 @@
 	</classpathentry>
 	<classpathentry exported="true" kind="lib" path="META-INF/"/>
 	<classpathentry exported="true" kind="lib" path="bin/"/>
-	<classpathentry kind="lib" path="lib/java-cup-11a.jar"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6">
-		<attributes>
-			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="lib/native/x86-linux/"/>
-		</attributes>
-	</classpathentry>
-	<classpathentry kind="con" path="org.eclipse.pde.core.requiredPlugins">
-		<attributes>
-			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="lib/native/x86-linux/"/>
-		</attributes>
-	</classpathentry>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>
+	<classpathentry kind="con" path="org.eclipse.pde.core.requiredPlugins"/>
 	<classpathentry kind="lib" path="lib/mathsat.jar"/>
 	<classpathentry kind="lib" path="lib/javabdd-1.0b2.jar"/>
+	<classpathentry kind="lib" path="lib/java-cup-11a.jar"/>
 	<classpathentry kind="lib" path="lib/yicesapijava.jar"/>
 	<classpathentry kind="lib" path="lib/StubCodeReaderFactory.jar"/>
 	<classpathentry kind="lib" path="lib/icu4j-4_2_1.jar"/>

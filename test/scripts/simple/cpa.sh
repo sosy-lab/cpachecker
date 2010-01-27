@@ -8,7 +8,7 @@
 JAVA=java
 
 # installation of eclipse
-ECLIPSE_SEARCH_PATH="$HOME/eclipse /opt/eclipse $HOME/Desktop/eclipse $HOME/progs/eclipse"
+ECLIPSE_SEARCH_PATH="$ECLIPSE_HOME $HOME/eclipse /opt/eclipse $HOME/Desktop/eclipse $HOME/progs/eclipse"
 
 #------------------------------------------------------------------------------
 # From here on you should not need to change anything
@@ -63,7 +63,7 @@ if [ "$PATH_TO_CPACHECKER" != "`dirname $0`/../../.." ] ; then
 fi
 
 # the core jar files for eclipse
-CLASSPATH="`ls --color=no $eclipse_plugins/org.eclipse.core*jar $eclipse_plugins/org.eclipse.equinox*jar $eclipse_plugins/org.eclipse.osgi*jar $eclipse_plugins/org.eclipse.ui*jar $eclipse_plugins/org.eclipse.jface*jar $eclipse_plugins/org.eclipse.swt*jar | tr "[:space:]" ":"`"
+CLASSPATH="`ls --color=no $eclipse_plugins/org.eclipse.core*jar $eclipse_plugins/org.eclipse.equinox*jar $eclipse_plugins/org.eclipse.osgi*jar | tr "[:space:]" ":"`"
 # the jar files of the CDT plugin
 CLASSPATH="$CLASSPATH:`ls --color=no $eclipse_plugins/org.eclipse.cdt*jar | tr "[:space:]" ":"`"
 
