@@ -23,9 +23,16 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
 
   private final TransferRelation transferRelation;
   private TransferCallable tc = new TransferCallable();
+  private long timeLimit = 0;
+  private long timeLimitForPath = 0;
   
   public TransferRelationMonitorTransferRelation(TransferRelation pTransferRelation) {
     transferRelation = pTransferRelation;
+ // time limit is given in milliseconds
+    timeLimit = Integer.parseInt(CPAMain.cpaConfig.getPropertiesArray
+        ("trackabstractioncomputation.limit")[0]);
+    timeLimitForPath = Integer.parseInt(CPAMain.cpaConfig.getPropertiesArray
+        ("trackabstractioncomputation.pathcomputationlimit")[0]);
   }
 
   @Override
@@ -39,10 +46,50 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
     long end = 0;
     
     AbstractElement wrappedElement = element.getWrappedElements().iterator().next();
-
-    // time limit is given in milliseconds
-    long timeLimit = Integer.parseInt(CPAMain.cpaConfig.getPropertiesArray
-        ("predicateabstraction.trackabstractioncomputation.limit")[0]);
+    
+// TODO i'll move all of this to somwehere else - Erkan
+// // try this later com.sun.management.OperatingSystemMXBean
+//
+// try {
+//         FileInputStream fis = new FileInputStream("/proc/meminfo");
+//         DataInputStream dis = new DataInputStream(fis);
+//         BufferedReader bfr = new BufferedReader(new InputStreamReader(dis));
+//         String line;
+//         
+//         long memTotal = 0;
+//         long memFree = 0;
+//         long buffers = 0;
+//         long cached = 0;
+//         
+//         while((line = bfr.readLine()) != null){
+//           //          MemTotal:        2060840 kB
+//           //          MemFree:         1732952 kB
+//           //          Buffers:            3164 kB
+//           //          Cached:            58376 kB
+//           if(line.contains("MemTotal:")){
+//             continue;
+//           }
+//           else if(line.contains("MemFree:")){
+//             memFree = Long.valueOf(line.split("\\s+")[1]);
+//           }
+//           else{
+//             break;
+//           }
+//         }
+//         
+////         long totalFree = memTotal - (memFree + buffers + cached);
+//         long totalFree = memFree;
+//         
+//         if(memFree < 100000){
+//           System.out.println("MEM IS OUT");
+//           return;
+//         }
+//         
+//         dis.close();
+//       } catch (Exception e1) {
+//         e1.printStackTrace();
+//       }
+    
     // set the edge and element
     tc.setEdge(pCfaEdge);
     tc.setElement(wrappedElement);
@@ -80,6 +127,9 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
       TransferRelationMonitorElement successorElem = new TransferRelationMonitorElement(element.getCpa(), absElement);
       successorElem.setTransferTime(timeOfExecution);
       successorElem.setTotalTime(element.getTotalTimeOnThePath());
+      if(successorElem.getTotalTimeOnThePath() > timeLimitForPath){
+        throw new TransferTimeOutException(pCfaEdge, wrappedElement, pPrecision);
+      }
       wrappedSuccessors.add(successorElem);
     }
     return wrappedSuccessors;
