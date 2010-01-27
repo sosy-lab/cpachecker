@@ -8,7 +8,6 @@
 	<classpathentry exported="true" kind="lib" path="META-INF/"/>
 	<classpathentry exported="true" kind="lib" path="bin/"/>
 	<classpathentry kind="lib" path="lib/java-cup-11a.jar"/>
-	<classpathentry kind="lib" path="lib/JFlex.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER">
 		<attributes>
 			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="lib/native/x86-linux/"/>
@@ -25,5 +24,6 @@
 	<classpathentry kind="lib" path="lib/StubCodeReaderFactory.jar"/>
 	<classpathentry kind="lib" path="lib/icu4j-4_2_1.jar"/>
 	<classpathentry kind="lib" path="lib/google-collect-1.0.jar"/>
+	<classpathentry kind="lib" path="lib/jgrapht-jdk1.6.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

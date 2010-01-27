@@ -13,25 +13,28 @@
     <path id="CPAchecker.classpath">
         <pathelement location="bin"/>
         <path refid="org.eclipse.pde.core.requiredPlugins.libraryclasspath"/>
-        <pathelement location="lib/mathsat.jar"/>
-        <pathelement location="lib/javabdd-1.0b2.jar"/>
-        <pathelement location="lib/yicesapijava.jar"/>
-        <pathelement location="lib/StubCodeReaderFactory.jar"/>
+        <fileset dir="lib" includes="*.jar"/>
         <!-- Your eclipse plugin directory: do export ECLIPSE_HOME=<where eclipse is> -->
-        <fileset dir="${env.ECLIPSE_HOME}/plugins" includes="*.jar"/>
+	<fileset dir="${env.ECLIPSE_HOME}/plugins" includes="*.jar"/>
+	<fileset dir="${env.ECLIPSE_HOME}/plugins" includes="*junit4*/*.jar"/>
     </path>
     <target name="init">
         <mkdir dir="bin"/>
-        <copy includeemptydirs="false" todir="bin">
+	<!-- seems not to be necessary
+	<copy includeemptydirs="false" todir="bin">
             <fileset dir="src" excludes="**/*.launch, **/*.java"/>
-        </copy>
+	</copy>
+	-->
     </target>
     <target name="clean">
         <delete dir="bin"/>
     </target>
     <target depends="clean" name="cleanall"/>
     <target depends="build-subprojects,build-project" name="build"/>
-    <target name="build-subprojects"/>
+    <target name="build-subprojects">
+	    <ant antfile="src/cpa/observeranalysis/observerBuild.xml" inheritAll="false"/>
+	    <ant antfile="src/fql/frontend/parser/build.xml" inheritAll="false"/>
+    </target>
     <target depends="init" name="build-project">
         <echo message="${ant.project.name}: ${ant.file}"/>
         <javac debug="true" debuglevel="${debuglevel}" destdir="bin" source="${source}" target="${target}">

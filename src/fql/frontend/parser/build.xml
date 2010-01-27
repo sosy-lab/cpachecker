@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="ISO-8859-1" ?>
 <!DOCTYPE project> <!-- generic AcceptAllDTD to make the Eclipse Warning go away -->
-<project name="ObserverParserGeneration" default="generate" basedir="./../../../">
+<project name="FQLParserGeneration" default="generate" basedir="./../../../../">
   <!-- basedir should be the "CPAchecker" directory -->
-  <property name="parserDir" location="src/cpa/observeranalysis/" />
+  <property name="parserDir" location="src/fql/frontend/parser" />
   <property name="src"       location="src" />
   <property name="lib"       location="lib" />
   <property environment="env" />
@@ -24,13 +24,13 @@
   </target>
 	
   <target name="generate">
-    <cup srcfile="${parserDir}/parser.cup" 
+    <cup srcfile="${parserDir}/FQL.cup" 
          destdir="${src}" 
          interface="true"
-         parser="ObserverParser"
-    	 symbols="ObserverSym"
+	 parser="FQLParser"
+	 symbols="FQLSym"
     	 nopositions="true"
     />
-    <jflex file="${parserDir}/Scanner.jflex" destdir="${src}" />
+    <jflex file="${parserDir}/FQL.lex" destdir="${src}" />
   </target>
 </project>

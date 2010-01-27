@@ -226,7 +226,7 @@ public class ItpCounterexampleRefiner<T> {
                     formulasOfA.add(f.elementAt(j+start_of_a));
                 }
                 msatSolveTimeStart = System.currentTimeMillis();
-                SymbolicFormula itp = itpProver.getInterpolant(formulasOfA);
+                SymbolicFormula itp = null;// = itpProver.getInterpolant(formulasOfA);
                 msatSolveTimeEnd = System.currentTimeMillis();
                 msatSolveTime += msatSolveTimeEnd - msatSolveTimeStart;
 
@@ -410,8 +410,8 @@ public class ItpCounterexampleRefiner<T> {
                     for (int j = 0; j < sz; ++j) {
                         formulasOfA.add(f.elementAt(j+start_of_a));
                     }
-                    SymbolicFormula itp =
-                        itpProver.getInterpolant(formulasOfA);
+                    SymbolicFormula itp = null;
+//                        itpProver.getInterpolant(formulasOfA);
 
                     CPAMain.logManager.log(Level.ALL, "DEBUG_1",
                             "Got interpolant(", i, "): ", itp);
