@@ -105,7 +105,7 @@ public class ObserverAutomatonCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public AbstractElement getInitialElement(CFAFunctionDefinitionNode pNode) {
-    return automaton.getInitialState();
+    return new ObserverState(automaton.getInitialVariables(), automaton.getInitialState());
   }
 
   @Override

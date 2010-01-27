@@ -2,6 +2,8 @@ package cpa.observeranalysis;
 
 import java.io.PrintStream;
 import java.util.List;
+import java.util.Map;
+
 import cfa.objectmodel.CFAEdge;
 
 /** A transition in the observer automaton implements one of the {@link PATTERN_MATCHING_METHODS}.
@@ -28,7 +30,7 @@ class ObserverTransition {
    * resolved by calling setFollowState() when all States are known. 
    */
   private String followStateName;
-  private ObserverState followState;
+  private ObserverInternalState followState;
 
   public ObserverTransition(String pPattern, List<ObserverBoolExpr> pAssertions, List<ObserverActionExpr> pActions,
       String pFollowStateName, PATTERN_MATCHING_METHODS pUseMethod) {
@@ -43,8 +45,8 @@ class ObserverTransition {
    * Resolves the follow-state relation for this transition.
    * @param pAllStates
    */
-  public void setFollowState(List<ObserverState> pAllStates) {
-    for (ObserverState s : pAllStates) {
+  public void setFollowState(List<ObserverInternalState> pAllStates) {
+    for (ObserverInternalState s : pAllStates) {
       if (s.getName().equals(followStateName)) {
         this.followState = s;
         return;
@@ -87,9 +89,9 @@ class ObserverTransition {
    * in the current configuration of the automaton this method is called.
    * @return
    */
-  public boolean assertionsHold() {
+  public boolean assertionsHold(Map<String, ObserverVariable> pVars) {
     for (ObserverBoolExpr assertion : assertions) {
-      if (assertion.eval() == false) {
+      if (assertion.eval(pVars) == false) {
         return false; // Lazy Evaluation
       }
     }
@@ -98,17 +100,18 @@ class ObserverTransition {
   
   /**
    * Executes all actions of this transition in the order which is defined in the automaton definition file.
+   * @param pVars 
    */
-  public void executeActions() {
+  public void executeActions(Map<String, ObserverVariable> pVars) {
     for (ObserverActionExpr action : actions) {
-      action.execute();
+      action.execute(pVars);
     }
   }
 
   /** returns null if setFollowState() was not called or no followState with appropriate name was found.
    * @return
    */
-  public ObserverState getFollowState() {
+  public ObserverInternalState getFollowState() {
     return followState;
   }
 }

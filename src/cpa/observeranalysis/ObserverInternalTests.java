@@ -1,6 +1,7 @@
 package cpa.observeranalysis;
 
 import java.io.File;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -19,7 +20,7 @@ class ObserverInternalTests {
    */
   public static void main(String[] args) {
     ObserverBoolExpr ex = new ObserverBoolExpr.True();
-    System.out.println(ex.eval());
+    System.out.println(ex.eval(null));
     try {
       File f = new File("test/tests/observerAutomata/LockingAutomatonAstComp.txt");
       
@@ -54,29 +55,28 @@ class ObserverInternalTests {
   private static void testExpressionEvaluator() {
     
     Map<String, ObserverVariable> map = new HashMap<String, ObserverVariable>();
-    ObserverIntExpr AccessA = new ObserverIntExpr.VarAccess("a", map);
-    ObserverIntExpr AccessB = new ObserverIntExpr.VarAccess("b", map);
+    ObserverIntExpr AccessA = new ObserverIntExpr.VarAccess("a");
+    ObserverIntExpr AccessB = new ObserverIntExpr.VarAccess("b");
     
     ObserverActionExpr storeA = new ObserverActionExpr.Assignment("a",
-        new ObserverIntExpr.Constant(5)
-        , map);
+        new ObserverIntExpr.Constant(5));
     
     ObserverActionExpr storeB = new ObserverActionExpr.Assignment("b",
-        new ObserverIntExpr.Plus(AccessA, new ObserverIntExpr.Constant(2))
-        , map);
+        new ObserverIntExpr.Plus(AccessA, new ObserverIntExpr.Constant(2)));
     
     ObserverBoolExpr bool = new ObserverBoolExpr.EqTest(
         new ObserverIntExpr.Plus(new ObserverIntExpr.Constant(2), AccessA)
         , AccessB
         );
     
-    storeA.execute();
-    storeB.execute();
+    storeA.execute(map);
+    storeB.execute(map);
     
-    System.out.println("Expression Evaluation result: " + bool.eval());
+    System.out.println("Expression Evaluation result: " + bool.eval(map));
     
   }
   private static void testASTcomparison() {
+   
    testAST("x=5;", "x= $?;");
    testAST("x=5;", "x= 10;");
    //ObserverASTComparator.printAST("x=10;");

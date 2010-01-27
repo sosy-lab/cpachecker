@@ -1,5 +1,7 @@
 package cpa.observeranalysis;
 
+import java.util.Map;
+
 /**
  * Implements a boolean expression that evaluates and returns a <code>boolean</code> value when <code>eval()</code> is called.
  * The Expression can be evaluated multiple times.
@@ -7,26 +9,20 @@ package cpa.observeranalysis;
  */
 abstract class ObserverBoolExpr {
   private ObserverBoolExpr() {} //nobody can use this
-  abstract boolean eval();
-  @Override
-  public boolean equals(Object pObj) {
-    if (pObj instanceof ObserverBoolExpr)
-      return this.eval() == ((ObserverBoolExpr)pObj).eval();
-    else return super.equals(pObj);
-  }
+  abstract boolean eval(Map<String, ObserverVariable> pVars);
   
   /** Constant for true.
    * @author rhein
    */
   static class True extends ObserverBoolExpr {
-    @Override boolean eval() {return true;}
+    @Override boolean eval(Map<String, ObserverVariable> pVars) {return true;}
   }
   
   /** Constant for false.
    * @author rhein
    */
   static class False extends ObserverBoolExpr {
-    @Override boolean eval() {return false;}
+    @Override boolean eval(Map<String, ObserverVariable> pVars) {return false;}
   }
   
   /** Tests the equality of the values of two instances of {@link ObserverIntExpr}.
@@ -35,7 +31,7 @@ abstract class ObserverBoolExpr {
   static class EqTest extends ObserverBoolExpr {
     ObserverIntExpr a, b;
     public EqTest(ObserverIntExpr pA, ObserverIntExpr pB) {this.a = pA; this.b = pB;}
-    @Override boolean eval() {return a.eval() == b.eval();}
+    @Override boolean eval(Map<String, ObserverVariable> pVars) {return a.eval(pVars) == b.eval(pVars);}
   }
   /** Tests whether two instances of {@link ObserverIntExpr} evaluate to different integers.
    * @author rhein
@@ -43,6 +39,6 @@ abstract class ObserverBoolExpr {
   static class NotEqTest extends ObserverBoolExpr {
     ObserverIntExpr a, b;
     public NotEqTest(ObserverIntExpr pA, ObserverIntExpr pB) {this.a = pA; this.b = pB;}
-    @Override boolean eval() {return a.eval() != b.eval();}
+    @Override boolean eval(Map<String, ObserverVariable> pVars) {return a.eval(pVars) != b.eval(pVars);}
   }
 }

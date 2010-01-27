@@ -10,7 +10,7 @@ import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
 import exceptions.CPATransferException;
 
-/** The TransferRelation of this CPA determines the AbstractSuccessor of a {@link ObserverState} 
+/** The TransferRelation of this CPA determines the AbstractSuccessor of a {@link ObserverInternalState} 
  * by evaluating the {@link ObserverTransition.match(CFAEdge)} method for 
  * all outgoing {@link ObserverTransition}s of this State.
  * @author rhein
@@ -27,25 +27,8 @@ class ObserverTransferRelation implements TransferRelation {
     if (! (pElement instanceof ObserverState)) {
       throw new IllegalArgumentException("Cannot getAbstractSuccessor for non-ObserverState AbstractElements.");
     }
-    
-    ObserverState sourceState = (ObserverState)pElement;
-    ObserverState followState = sourceState;
-    
-    for (ObserverTransition t : sourceState.getTransitions()) {
-      if (t.match(pCfaEdge)) {
-        if (t.assertionsHold()) {
-          t.executeActions();
-          followState = t.getFollowState();
-        } else {
-          followState = ObserverState.ERR;
-        }
-        break;
-      }
-    }
-    /* if (followState!= sourceState) {
-      System.out.println("Transition from " + sourceState.toString() + " to " + followState.toString());
-    } */
-    return followState;
+    ObserverState ns =((ObserverState)pElement).getFollowState(pCfaEdge); 
+    return ns;
   }
 
   @Override

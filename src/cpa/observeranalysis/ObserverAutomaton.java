@@ -13,30 +13,29 @@ class ObserverAutomaton {
   /* The internal variables used by the actions/ assignments of this automaton.
    * This reference of the Map is unused because the actions/assignments get their reference from the parser.
    */
-  @SuppressWarnings("unused")
-  private Map<String, ObserverVariable> vars;
-  private List<ObserverState> states;
-  private ObserverState initState;
+  private Map<String, ObserverVariable> initVars;
+  private List<ObserverInternalState> states;
+  private ObserverInternalState initState;
 
-  public ObserverAutomaton(Map<String, ObserverVariable> pVars, List<ObserverState> pStates,
+  public ObserverAutomaton(Map<String, ObserverVariable> pVars, List<ObserverInternalState> pStates,
       String pInit) {
-    this.vars = pVars;
+    this.initVars = pVars;
     this.states = pStates;
-    for (ObserverState s : pStates) {
+    for (ObserverInternalState s : pStates) {
       if (s.getName().equals(pInit)) {
         this.initState = s;
       }
     }
     if (initState == null) {
       System.out.println("InitState not found. Going to ErrorState");
-      initState = ObserverState.ERR;
+      initState = ObserverInternalState.ERR;
     }
     // implicit error State (might be followState of Transitions)
-    pStates.add(ObserverState.ERR);
+    pStates.add(ObserverInternalState.ERR);
     // i think i do not need to add TOP and BOTTOM
     
     // set the FollowStates of all Transitions
-    for (ObserverState s : pStates) {
+    for (ObserverInternalState s : pStates) {
       s.setFollowStates(pStates);
     }
   }  
@@ -48,7 +47,7 @@ class ObserverAutomaton {
     return name;
   }
   
-  ObserverState getInitialState() {
+  ObserverInternalState getInitialState() {
     return initState;
   }
   
@@ -58,7 +57,7 @@ class ObserverAutomaton {
    */
   void writeDotFile(PrintStream pOut) {
     pOut.println("digraph " + name + "{");
-    for (ObserverState s : states) {
+    for (ObserverInternalState s : states) {
       if (initState.equals(s)) {
         pOut.println(s.getStateId() + " [shape=\"circle\" color=\"green\" label=\"" +  s.getName() + "\"]");
       } else {
@@ -67,5 +66,9 @@ class ObserverAutomaton {
       s.writeTransitionsToDotFile(pOut);
     }
     pOut.println("}");
+  }
+
+  public Map<String, ObserverVariable> getInitialVariables() {
+    return initVars;
   }
 }

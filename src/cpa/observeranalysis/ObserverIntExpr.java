@@ -9,13 +9,7 @@ import java.util.Map;
  */
 abstract class ObserverIntExpr {
     private ObserverIntExpr() {} //nobody can use this
-    abstract int eval();
-    @Override
-    public boolean equals(Object pObj) {
-      if (pObj instanceof ObserverIntExpr)
-        return this.eval() == ((ObserverIntExpr)pObj).eval();
-      else return super.equals(pObj);
-    }
+    abstract int eval(Map<String, ObserverVariable> pVars);
     /** Stores a constant integer.
      * @author rhein
      */
@@ -23,17 +17,16 @@ abstract class ObserverIntExpr {
       int i;
       public Constant(int pI) {this.i = pI; }
       public Constant(String pI) {this.i = Integer.parseInt(pI); }
-      @Override public int eval() {return i; }
+      @Override public int eval(Map<String, ObserverVariable> pVars) {return i; }
     }
     /** Loads an {@link ObserverVariable} from the VariableMap and returns its int value. 
      * @author rhein
      */
     static class VarAccess extends ObserverIntExpr {
-      Map<String, ObserverVariable> varsMap;
       String varId;
-      public VarAccess(String pId, Map<String, ObserverVariable> pMap) {this.varId = pId; this.varsMap = pMap; }
-      @Override public int eval() {
-        return varsMap.get(varId).getValue(); // only ints supported so far
+      public VarAccess(String pId) {this.varId = pId; }
+      @Override public int eval(Map<String, ObserverVariable> pVars) {
+        return pVars.get(varId).getValue(); // only ints supported so far
       }
     }
     /** Addition of {@link ObserverIntExpr} instances. 
@@ -42,8 +35,8 @@ abstract class ObserverIntExpr {
     static class Plus extends ObserverIntExpr {
       ObserverIntExpr a, b;
       public Plus(ObserverIntExpr pA, ObserverIntExpr pB) {this.a = pA; this.b = pB;}
-      @Override public int eval() {
-        return a.eval() + b.eval();
+      @Override public int eval(Map<String, ObserverVariable> pVars) {
+        return a.eval(pVars) + b.eval(pVars);
       }
     }
     /** Subtraction of {@link ObserverIntExpr} instances.
@@ -52,8 +45,8 @@ abstract class ObserverIntExpr {
     static class Minus extends ObserverIntExpr {
       ObserverIntExpr a, b;
       public Minus(ObserverIntExpr pA, ObserverIntExpr pB) {this.a = pA; this.b = pB;}
-      @Override public int eval() {
-        return a.eval() - b.eval();
+      @Override public int eval(Map<String, ObserverVariable> pVars) {
+        return a.eval(pVars) - b.eval(pVars);
       }
     }
 }

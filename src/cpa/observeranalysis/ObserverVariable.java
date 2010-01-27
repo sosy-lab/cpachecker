@@ -31,4 +31,31 @@ class ObserverVariable {
   public String toString() {
     return String.valueOf(value);
   }
+  
+  @Override
+  public ObserverVariable clone() {
+    ObserverVariable ret = new ObserverVariable("int", name);
+    ret.setValue(getValue());
+    return ret;
+  }
+  @Override
+  public boolean equals(Object pObj) {
+    if (super.equals(pObj)) {
+      return true;
+    }
+    if (!(pObj instanceof ObserverVariable)) {
+      return false;
+    }
+    ObserverVariable otherVar = (ObserverVariable) pObj;
+    return (this.value == otherVar.value) && this.name.equals(otherVar.name);
+  }
+  /* (non-Javadoc)
+   * @see java.lang.Object#hashCode()
+   * 
+   * I don't use the hashcode, but it should be redefined every time equals is overwritten.
+   */
+  @Override
+  public int hashCode() {
+    return this.value + this.name.hashCode(); 
+  }
 }

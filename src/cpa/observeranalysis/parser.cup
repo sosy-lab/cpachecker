@@ -48,13 +48,13 @@ non terminal ObserverAutomaton initial ;
 non terminal String Naming, InitDef ;
 non terminal ObserverAutomaton Body ;
 non terminal Map<String, ObserverVariable> LocalDefs ;
-non terminal List<ObserverState> StateDefs ;
+non terminal List<ObserverInternalState> StateDefs ;
 non terminal List<ObserverTransition> Matches ;
 non terminal List<ObserverBoolExpr> Assertions ;
 non terminal List<ObserverActionExpr> Actions ;
 
 non terminal ObserverVariable LocalDef ;
-non terminal ObserverState StateDef ;
+non terminal ObserverInternalState StateDef ;
 non terminal ObserverTransition Match ;
 non terminal ObserverBoolExpr Assertion ;
 non terminal ObserverActionExpr Action ;
@@ -81,14 +81,14 @@ LocalDefs ::= LocalDef:d LocalDefs:lst {: lst.put(d.getName(), d); RESULT = lst;
               ;
               
 LocalDef  ::= LOCAL IDENTIFIER:type IDENTIFIER:name  SEMICOLON {: RESULT = new ObserverVariable(type.toString(), name.toString()); :}
-            | LOCAL IDENTIFIER:type IDENTIFIER:name  EQ Int:i SEMICOLON {: RESULT = new ObserverVariable(type.toString(), name.toString()); RESULT.setValue(i.eval()); :}
+            | LOCAL IDENTIFIER:type IDENTIFIER:name  EQ Int:i SEMICOLON {: RESULT = new ObserverVariable(type.toString(), name.toString()); RESULT.setValue(i.eval(parser.variablesMap)); :}
             ;
             
 StateDefs ::= StateDef:s StateDefs:lst  {: lst.add(s); RESULT = lst; :} // elements will be in reversed order (irrelevant ?)
-            | /* empty */ {: RESULT = new LinkedList<ObserverState>(); :}
+            | /* empty */ {: RESULT = new LinkedList<ObserverInternalState>(); :}
               ;
 
-StateDef  ::= STATE IDENTIFIER:id COLON  Matches:ms   {: RESULT = new ObserverState(id.toString(), ms); :} 
+StateDef  ::= STATE IDENTIFIER:id COLON  Matches:ms   {: RESULT = new ObserverInternalState(id.toString(), ms); :} 
             ;
             
 Matches   ::= Match:m Matches:lst {: lst.add(0, m); RESULT = lst; :}
@@ -111,12 +111,13 @@ Assertion  ::= ASS  Bool:b   {: RESULT = b; :};
 Actions   ::= Action:a Actions:lst {: lst.add(0,a); RESULT = lst; :} // insert at the beginning of the list to preserve the order.
             | /* empty */ {: RESULT = new LinkedList<ObserverActionExpr>(); :} 
             ;
-Action    ::= DO  IDENTIFIER:var EQ Int:i   {: RESULT = new ObserverActionExpr.Assignment(var.toString(), i, parser.variablesMap); :} 
+Action    ::= DO  IDENTIFIER:var EQ Int:i   {: RESULT = new ObserverActionExpr.Assignment(var.toString(), i); :} 
             | PRINT  STRING_LITERAL:lit {: RESULT = new ObserverActionExpr.Print(lit.toString()); :}
+            | PRINT  Int:int_expr {: RESULT = new ObserverActionExpr.PrintInt(int_expr); :}
             ;
 
 Int       ::= INTEGER_LITERAL:c  {: RESULT = new ObserverIntExpr.Constant(c.toString()); :}
-            | IDENTIFIER:x  {: RESULT = new ObserverIntExpr.VarAccess(x.toString(), parser.variablesMap); :}
+            | IDENTIFIER:x  {: RESULT = new ObserverIntExpr.VarAccess(x.toString()); :}
             | Int:a PLUS Int:b  {: RESULT = new ObserverIntExpr.Plus(a,b); :}
             | Int:a MINUS Int:b  {: RESULT = new ObserverIntExpr.Minus(a,b); :}
             ;

@@ -1,75 +1,125 @@
 package cpa.observeranalysis;
 
-import java.io.PrintStream;
 import java.util.Collections;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
 
+import cfa.objectmodel.CFAEdge;
 import cpa.common.interfaces.AbstractElement;
 
-/** Represents a State in the observer automaton.
+/**
+ * This class combines a ObserverInternal State with a variable Configuration.
+ * Instaces of this class are passed to the CPAchecker as AbstractElement.
  * @author rhein
  */
 class ObserverState implements AbstractElement {
-  static final List<ObserverTransition> emptyTransitionList = Collections.emptyList();
-  /** Error State */
-  static final ObserverState ERR = new ObserverState("ERR", emptyTransitionList);
-  static final ObserverState TOP = new ObserverState("TOP", emptyTransitionList);
-  static final ObserverState BOTTOM = new ObserverState("BOTTOM", emptyTransitionList);
+  static final ObserverState TOP = new ObserverState();
+  static final ObserverState BOTTOM = new ObserverState();
   
-  // the StateId is used to identify States in GraphViz
-  private static int stateIdCounter = 0;
-  // stateIdCounter is incremented every time an instance of ObserverState is created.
-  private int stateId = stateIdCounter++;
+  private Map<String, ObserverVariable> vars;
+  private ObserverInternalState internalState;
   
-  /** Name of this State.  */
-  private String name;
-  /** Outgoing transitions of this state.  */
-  private List<ObserverTransition> transitions;
-  
-  public ObserverState(String pName, List<ObserverTransition> pTransitions) {
-    this.name = pName;
-    this.transitions = pTransitions;
+  private ObserverState() {
+    vars = null;
+    internalState = null;
   }
   
-  /** Lets all outgoing transitions of this state resolve their "sink" states.
-   * @param pAllStates map of all states of this automaton.
-   */
-  void setFollowStates(List<ObserverState> pAllStates) {
-    for (ObserverTransition t : transitions) {
-      t.setFollowState(pAllStates);
+  ObserverState(Map<String, ObserverVariable> pVars,
+      ObserverInternalState pInternalState) {
+    super();
+    vars = pVars;
+    internalState = pInternalState;
+  }
+
+  ObserverState getFollowState (CFAEdge pCfaEdge) {
+    if (this == TOP) return this;
+    if (this == BOTTOM) return this;
+    if (this.isError()) return this;
+    // a new Set of Variables for the next state
+    Map<String, ObserverVariable> newVars = null;
+    ObserverInternalState followState = null;
+    for (ObserverTransition t : internalState.getTransitions()) {
+      if (t.match(pCfaEdge)) {
+        if (t.assertionsHold(vars)) {
+          // this transition will be taken. copy the variables
+          newVars = deepClone(vars);
+          t.executeActions(newVars);
+          followState = t.getFollowState();
+        } else {
+          followState = ObserverInternalState.ERR;
+          newVars = Collections.emptyMap();
+        }
+        break;
+      }
+    }
+    /* if (followState!= sourceState) {
+      System.out.println("Transition from " + sourceState.toString() + " to " + followState.toString());
+    } */
+    if (followState == null) {
+      // no transition was taken, staying in the same state
+      return this;
+    } else {
+      return new ObserverState(newVars, followState);
     }
   }
-
-  public String getName() {
-    return name;
-  }
-  /** @return a integer representation of this state.
-   */
-  public int getStateId() {
-    return stateId;
-  }
-
-
-  /**  Writes a representation of this state (as node) in DOT file format to the argument {@link PrintStream}.
-   * @param pOut
-   */
-  public void writeTransitionsToDotFile(PrintStream pOut) {
-    for (ObserverTransition t : transitions) {
-      t.writeTransitionToDotFile(stateId, pOut);
+  
+  private Map<String, ObserverVariable> deepClone (Map<String, ObserverVariable> pOld) {
+    Map<String, ObserverVariable> result = new HashMap<String, ObserverVariable>(pOld.size());
+    for (Entry<String, ObserverVariable> e : pOld.entrySet()) {
+      result.put(e.getKey(), e.getValue().clone());
     }
+    return result;
   }
+
 
   @Override
   public boolean isError() {
-    return this.equals(ERR);
+    if (this==TOP || this == BOTTOM) return false;
+    return internalState == ObserverInternalState.ERR;
   }
-
-  public List<ObserverTransition> getTransitions() {
-    return transitions;
+  
+  @Override
+  public boolean equals(Object pObj) {
+    if (super.equals(pObj)) {
+      return true;
+    }
+    /* If one of the states is top or bottom they cannot be equal, Object.equal would have found this.
+     * Because TOP and Bottom do not have internal States this must be returned explicitly.
+     */
+    if (this==TOP || this == BOTTOM) return false;
+    if (!(pObj instanceof ObserverState)) {
+      return false;
+    }
+    ObserverState otherState = (ObserverState) pObj;
+    if (! this.internalState.equals(otherState.internalState)) {
+      return false;
+    }
+    if (this.vars.equals(otherState.vars)) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+  
+  /* (non-Javadoc)
+   * @see java.lang.Object#hashCode()
+   * 
+   * I don't use the hashCode, but the method should be redefined every time equals is overwritten.
+   */
+  @Override
+  public int hashCode() {
+    if (this == TOP || this == BOTTOM) return super.hashCode();
+    return this.internalState.hashCode() + this.vars.hashCode();
   }
   
   @Override
   public String toString() {
-    return this.name;
+    String v = "";
+    for (ObserverVariable o : vars.values()) {
+      v = v + " " + o.getName() + "=" + o.getValue() + ";";
+    }
+    return this.internalState.getName() + v;
   }
+
 }
