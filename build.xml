@@ -17,6 +17,7 @@
         <!-- Your eclipse plugin directory: do export ECLIPSE_HOME=<where eclipse is> -->
 	<fileset dir="${env.ECLIPSE_HOME}/plugins" includes="*.jar"/>
 	<fileset dir="${env.ECLIPSE_HOME}/plugins" includes="*junit4*/*.jar"/>
+	<fileset dir="${env.ECLIPSE_HOME}/plugins" includes="org.hamcrest*.jar"/>
     </path>
     <target name="init">
         <mkdir dir="bin"/>
@@ -56,4 +57,20 @@
         <property name="build.compiler" value="org.eclipse.jdt.core.JDTCompilerAdapter"/>
         <antcall target="build"/>
     </target>
+   <target description="Run all JUnit tests" depends="build" name="tests">
+        <property name="test.report.dir" value="test/output" />
+	<mkdir dir="${test.report.dir}" />
+        <junit fork="true" printSummary="true" showOutput="false">
+            <formatter type="plain" />
+            <classpath refid="CPAchecker.classpath"/>
+            <batchtest fork="true" todir="${test.report.dir}" >
+                <fileset dir="${basedir}/bin">
+                    <include name="**/*Test.*" />
+		    <exclude name="**/*$*Test.*" />
+		    <exclude name="octagon/OctLibraryTest.class" />
+                </fileset>
+            </batchtest>
+        </junit>
+    </target>
+
 </project>
