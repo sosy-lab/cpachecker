@@ -30,7 +30,7 @@ For building in Eclipse:
    URL: svn+ssh://svn.sosy-lab.org/repos/RC-software/cpachecker/trunk
 
 For building with Ant:
-5. Install ant (no particular version requirements).
+5. Install ant (anything since version 1.6 should be ok).
 6. Set the environment variable ECLIPSE_HOME to the directory where
    your eclipse is installed (the one that contains the plugins directory)
    and run ant from the project root directory.

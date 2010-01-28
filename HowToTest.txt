@@ -10,5 +10,6 @@ Some guideline on testing:
   If it becomes too cluttered, do what you normally would do: refactor (have a file XTest.java for file X.java).
   If the directory becomes too cluttered, start a new directory.
   But I would start having the test code as close as possible to the code it tests.
-
+- To run JUnit test cases automatically, the name of the class containing the test methods has to end with "Test".
+  No other classes should have such a name.
 

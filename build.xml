@@ -60,7 +60,10 @@
    <target description="Run all JUnit tests" depends="build" name="tests">
         <property name="test.report.dir" value="test/output" />
 	<mkdir dir="${test.report.dir}" />
-        <junit fork="true" printSummary="true" showOutput="false">
+	<junit fork="true" printSummary="true" showOutput="false">
+	    <assertions>
+		<enable />
+	    </assertions>
             <formatter type="plain" />
             <classpath refid="CPAchecker.classpath"/>
             <batchtest fork="true" todir="${test.report.dir}" >
