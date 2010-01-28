@@ -36,8 +36,6 @@ import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.cdt.core.dom.ast.IType;
 import org.eclipse.cdt.core.parser.IToken;
 
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
-
 /**
  * Hack!!!
  * @author g.theoduloz
@@ -57,7 +55,7 @@ public class DummyASTBinaryExpression implements IASTBinaryExpression {
   
   @Override
   public IASTBinaryExpression copy() {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 
   @Override
@@ -92,7 +90,7 @@ public class DummyASTBinaryExpression implements IASTBinaryExpression {
 
   @Override
   public IType getExpressionType() {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 
   @Override
@@ -107,38 +105,38 @@ public class DummyASTBinaryExpression implements IASTBinaryExpression {
 
   @Override
   public IASTNode[] getChildren() {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public String getContainingFilename() {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public IASTFileLocation getFileLocation() {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public IToken getLeadingSyntax() throws ExpansionOverlapsBoundaryException,
       UnsupportedOperationException {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public IASTNodeLocation[] getNodeLocations() {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public IASTNode getParent() {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public ASTNodeProperty getPropertyInParent() {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 
   @Override
@@ -151,43 +149,43 @@ public class DummyASTBinaryExpression implements IASTBinaryExpression {
 
   @Override
   public IToken getSyntax() throws ExpansionOverlapsBoundaryException {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public IToken getTrailingSyntax() throws ExpansionOverlapsBoundaryException,
       UnsupportedOperationException {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public IASTTranslationUnit getTranslationUnit() {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public boolean isActive() {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public boolean isFrozen() {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public boolean isPartOfTranslationUnitFile() {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public void setParent(IASTNode pNode) {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
 
   @Override
   public void setPropertyInParent(ASTNodeProperty pProperty) {
-    throw new NotImplementedException();
+    throw new UnsupportedOperationException();
   }
   
   @Override
