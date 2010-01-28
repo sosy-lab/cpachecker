@@ -57,7 +57,6 @@ import cmdline.CPAMain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
-import cpa.mustmay.MustMayAnalysisElement;
 import exceptions.CPATransferException;
 import exceptions.ExplicitAnalysisTransferException;
 

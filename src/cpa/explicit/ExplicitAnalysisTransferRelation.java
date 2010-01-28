@@ -831,6 +831,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
     case IASTBinaryExpression.op_binaryOr:
       // TODO check which cases can be handled (I think all)
       newElement.forget(assignedVar);
+      break;
     
     case IASTBinaryExpression.op_plus:
     case IASTBinaryExpression.op_minus:

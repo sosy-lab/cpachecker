@@ -4,7 +4,7 @@ package cpa.observeranalysis;
  * So far only integer variables are supported.
  * @author rhein
  */
-class ObserverVariable {
+class ObserverVariable implements Cloneable {
   private int value;
   private String name;
   public ObserverVariable(String type, String name) {
@@ -34,9 +34,11 @@ class ObserverVariable {
   
   @Override
   public ObserverVariable clone() {
-    ObserverVariable ret = new ObserverVariable("int", name);
-    ret.setValue(getValue());
-    return ret;
+    try {
+      return (ObserverVariable)super.clone();
+    } catch (CloneNotSupportedException e) {
+      throw new InternalError();
+    }
   }
   @Override
   public boolean equals(Object pObj) {

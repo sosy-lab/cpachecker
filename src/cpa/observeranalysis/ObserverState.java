@@ -115,9 +115,13 @@ class ObserverState implements AbstractElement {
   
   @Override
   public String toString() {
-    String v = "";
+    StringBuffer v = new StringBuffer();
     for (ObserverVariable o : vars.values()) {
-      v = v + " " + o.getName() + "=" + o.getValue() + ";";
+      v.append(' ');
+      v.append(o.getName());
+      v.append('=');
+      v.append(o.getValue());
+      v.append(' ');
     }
     return this.internalState.getName() + v;
   }

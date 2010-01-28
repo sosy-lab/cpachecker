@@ -4,21 +4,20 @@ import java.io.PrintStream;
 import java.util.Collections;
 import java.util.List;
 
-import cpa.common.interfaces.AbstractElement;
-
 /** Represents a State in the observer automaton.
  * @author rhein
  */
 class ObserverInternalState {
   static final List<ObserverTransition> emptyTransitionList = Collections.emptyList();
-  /** Error State */
-  static final ObserverInternalState ERR = new ObserverInternalState("ERR", emptyTransitionList);
   
   // the StateId is used to identify States in GraphViz
   private static int stateIdCounter = 0;
   // stateIdCounter is incremented every time an instance of ObserverState is created.
   private int stateId = stateIdCounter++;
   
+  /** Error State */
+  static final ObserverInternalState ERR = new ObserverInternalState("ERR", emptyTransitionList);
+
   /** Name of this State.  */
   private String name;
   /** Outgoing transitions of this state.  */

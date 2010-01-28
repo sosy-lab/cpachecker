@@ -48,7 +48,7 @@ public class DummyASTUnaryExpression implements IASTUnaryExpression {
   public DummyASTUnaryExpression(int op, IASTExpression op1)
   {
     operator = op;
-    op1 = operand;
+    operand = op1;
   }
   
   @Override

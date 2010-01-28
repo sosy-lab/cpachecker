@@ -14,7 +14,7 @@ public class TransferRelationMonitorElement implements AbstractElement, Abstract
   
   private long timeOfTranferToComputeElement;
   private long totalTimeOnThePath;
-  public static long maxTimeOfTransfer = 0;
+  static long maxTimeOfTransfer = 0;
 
   protected TransferRelationMonitorElement(TransferRelationMonitorCPA pCpa, 
       AbstractElement pAbstractElement) {
@@ -85,9 +85,19 @@ public class TransferRelationMonitorElement implements AbstractElement, Abstract
 
   @Override
   public boolean equals(Object pObj) {
-    TransferRelationMonitorElement otherElem = (TransferRelationMonitorElement)pObj;
-    AbstractElement otherWrappedElement = otherElem.element;
-    return this.element.equals(otherWrappedElement);
+    if (this == pObj) {
+      return true;
+    } else if (pObj instanceof TransferRelationMonitorElement) {
+      TransferRelationMonitorElement otherElem = (TransferRelationMonitorElement)pObj;
+      return this.element.equals(otherElem.element);
+    } else {
+      return false;
+    }
+  }
+  
+  @Override
+  public int hashCode() {
+    return element.hashCode();
   }
   
   @Override
