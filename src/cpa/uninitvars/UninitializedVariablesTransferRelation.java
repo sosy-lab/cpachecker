@@ -153,7 +153,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
     return successor;
   }
   
-  private void addWarning(CFAEdge edge, String variable) {
+  private void addWarning(CFAEdge edge, String variable, IASTExpression expression) {
     
     if (printWarnings) {
       
@@ -169,7 +169,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       Pair<Integer, String> warningIndex = new Pair<Integer, String>(lineNumber, variable);
       if (!warnings.contains(warningIndex)) {
         warnings.add(warningIndex);
-        if (edge instanceof CallToReturnEdge) {
+        if (edge instanceof CallToReturnEdge && expression instanceof IASTFunctionCallExpression) {
           System.out.println("uninitialized return value of function call " + variable + " in line "
               + lineNumber + ": " + edge.getRawStatement());
         } else {
@@ -295,7 +295,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
         if (element.isUninitialized(leftName)) {
           // a +=5 where a is uninitialized -> everything stays the same
           if (printWarnings) {
-            addWarning(cfaEdge, leftName);
+            addWarning(cfaEdge, leftName, expression);
             // check wether there are further uninitialized variables on right side
             isExpressionUninitialized(element, binExpression.getOperand2(), cfaEdge);
           }
@@ -377,7 +377,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
     } else if (expression instanceof IASTIdExpression) {
       String variable = expression.getRawSignature();
       if (element.isUninitialized(variable)) {
-        addWarning(cfaEdge, variable);
+        addWarning(cfaEdge, variable, expression);
         return true;
       } else {
         return false;
@@ -394,7 +394,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       } else {
         String variable = expression.getRawSignature();
         if (element.isUninitialized(variable)) {
-          addWarning(cfaEdge, variable);
+          addWarning(cfaEdge, variable, expression);
           return true;
         } else {
           return false;
@@ -441,7 +441,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       } else {
         boolean returnUninit = element.isUninitialized("CPAChecker_UninitVars_FunctionReturn");
         if (printWarnings && returnUninit) {
-          addWarning(cfaEdge, funcExpression.getRawSignature());
+          addWarning(cfaEdge, funcExpression.getRawSignature(), expression);
         }
         return returnUninit;
       }
