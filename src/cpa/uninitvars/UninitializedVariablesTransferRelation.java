@@ -129,7 +129,18 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
     case FunctionCallEdge:
       //on calling a function, check initialization status of the parameters
       FunctionCallEdge callEdge = (FunctionCallEdge)cfaEdge;
-      handleFunctionCall(successor, callEdge);
+      //if the function is external, display warnings for uninitialized arguments
+      if (callEdge.isExternalCall()) {
+        IASTExpression[] args = callEdge.getArguments();
+        if (args != null) {
+          for (IASTExpression exp : args) {
+            handleStatement(successor, exp, cfaEdge);
+          }
+        }
+      //if the function is internal, handle separately
+      } else {
+        handleFunctionCall(successor, callEdge);
+      }
       break;
       
     case BlankEdge:
@@ -240,10 +251,16 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
         setInitialized(element, "CPAChecker_UninitVars_FunctionReturn");
       }
       
-    } else if ((expression instanceof IASTUnaryExpression)
-            || (expression instanceof IASTFunctionCallExpression)) {
-      // this is either an unary operation (a++) or a mere function call (func(a))
-      // all of these do not change the initialization status of variables
+    } else if (expression instanceof IASTFunctionCallExpression) {
+      //a mere function call (func(a)) does not change the initialization status of variables
+      // just check if there are uninitialized variable usages
+      if (printWarnings) {
+        IASTExpression params = ((IASTFunctionCallExpression)expression).getParameterExpression();
+        isExpressionUninitialized(element, params, cfaEdge);
+      }
+
+    } else if (expression instanceof IASTUnaryExpression) {
+      // a unary operation (a++) does not change the initialization status of variables
 
       // just check if there are uninitialized variable usages
       if (printWarnings) {
@@ -411,12 +428,24 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       
     } else if (expression instanceof IASTFunctionCallExpression) {
       IASTFunctionCallExpression funcExpression = (IASTFunctionCallExpression)expression;
-      boolean returnUninit = element.isUninitialized("CPAChecker_UninitVars_FunctionReturn");
-      if (printWarnings && returnUninit) {
-        addWarning(cfaEdge, funcExpression.getRawSignature());
+      //if the FunctionCallExpression is associated with a statement edge, this is an external function call.
+      //since we can not know it's return value's initialization status, only check the parameters 
+      if (cfaEdge instanceof StatementEdge) {
+        IASTExpression params = funcExpression.getParameterExpression();
+        if (printWarnings) {
+          isExpressionUninitialized(element, params, cfaEdge);
+        }
+        return false;
+        
+      //for an internal function call, we can check the return value 
+      } else {
+        boolean returnUninit = element.isUninitialized("CPAChecker_UninitVars_FunctionReturn");
+        if (printWarnings && returnUninit) {
+          addWarning(cfaEdge, funcExpression.getRawSignature());
+        }
+        return returnUninit;
       }
-      return returnUninit;
-    
+      
     } else if (expression instanceof IASTExpressionList) {
       IASTExpressionList expressionList = (IASTExpressionList)expression;
       boolean result = false;
