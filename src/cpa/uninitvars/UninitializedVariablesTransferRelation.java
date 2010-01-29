@@ -26,6 +26,7 @@ package cpa.uninitvars;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -117,6 +118,8 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       ReturnEdge returnEdge = (ReturnEdge)cfaEdge;
       CallToReturnEdge ctrEdge = returnEdge.getSuccessor().getEnteringSummaryEdge();
       handleStatement(successor, ctrEdge.getExpression(), ctrEdge);
+      //get rid of the local context
+      successor.returnFromFunction();
       break;
       
     case AssumeEdge:
@@ -225,16 +228,33 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
     FunctionDefinitionNode functionEntryNode = (FunctionDefinitionNode)callEdge.getSuccessor();
     List<String> paramNames = functionEntryNode.getFunctionParameterNames();
     IASTExpression[] arguments = callEdge.getArguments();
-
-    //set initialization status of the function's parameters according to the arguments
+    
+    LinkedList<String> uninitParameters = new LinkedList<String>();
+    LinkedList<String> initParameters = new LinkedList<String>();
+    
+    //collect initialization status of the called function's parameters from the context of the calling function
     if (arguments != null) {
       for (int i = 0; i < arguments.length; i++) {
         if(isExpressionUninitialized(element, arguments[i], callEdge)) {
-          setUninitialized(element, paramNames.get(i));
+          uninitParameters.add(paramNames.get(i));
         } else {
-          setInitialized(element, paramNames.get(i));
+          initParameters.add(paramNames.get(i));
         }
       }
+      
+      //create local context of the called function
+      element.callFunction(functionEntryNode.getFunctionName());
+      
+      //set initialization status of the function's parameters according to the arguments
+      for (String param : uninitParameters) {
+        setUninitialized(element, param);
+      }
+      for (String param : initParameters) {
+        setInitialized(element, param);
+      }
+    } else {
+      //if there are no parameters, just create the local context
+      element.callFunction(functionEntryNode.getFunctionName());
     }
   }
   
@@ -243,7 +263,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
                                throws UnrecognizedCCodeException {
     
     if (cfaEdge.isJumpEdge()) {
-      // this is the return-statement of a function
+      //this is the return-statement of a function
       //set a local variable tracking the return statement's initialization status
       if (isExpressionUninitialized(element, expression, cfaEdge)) {
         setUninitialized(element, "CPAChecker_UninitVars_FunctionReturn");
