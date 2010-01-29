@@ -39,7 +39,6 @@ public class ARTElement implements AbstractWrapperElement {
   }
 
   public Set<ARTElement> getParents(){
-    assert !destroyed;
     return parents;
   }
 

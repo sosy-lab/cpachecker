@@ -160,10 +160,8 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
       }
     }
     
-    for (AbstractElement currentElement : reached) {
-      // check if (e \in Reached) => (e \in ART)
-      assert art.contains(currentElement);
-    }
+    // check if (e \in Reached) => (e \in ART)
+    assert art.containsAll(reached) : "Element in reached but not in ART";
 
     return true;
   }
