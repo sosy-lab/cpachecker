@@ -55,7 +55,7 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
    * to build the formula to the error location */
   private final PathFormula initAbstractionFormula;
   /** The abstraction which is updated only on abstraction locations */
-  private final AbstractFormula abstraction;
+  private AbstractFormula abstraction;
   /** List of abstraction locations with the order of their computation
    * up to that point. We use this list in {@link SymbPredAbsMergeOperator#merge(AbstractElement, AbstractElement, cpa.common.interfaces.Precision)} and
    * for partial order operator*/
@@ -85,6 +85,10 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
     return abstraction;
   }
 
+  public void setAbstraction(AbstractFormula pAbstraction) {
+    abstraction = pAbstraction;
+  }
+  
   public ImmutableList<CFANode> getAbstractionPathList() {
     return abstractionPathList;
   }
@@ -156,7 +160,7 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
     this.sizeSinceAbstraction = 0;
   }
 
-  @Override
+  /*@Override
   public boolean equals(Object o) {
     if (this == o) {
       return true;
@@ -195,7 +199,7 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
             && this.getPfParents().equals(other.getPfParents());
       }
     }
-  }
+  }*/
 
   @Override
   public String toString() {
@@ -203,12 +207,12 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
         + " Abstraction path: " + abstractionPathList;
   }
 
-  @Override
+  /*@Override
   public int hashCode() {
     return abstractionPathList.hashCode()
       + 17 * abstraction.hashCode()
       + 23 * pathFormula.hashCode();
-  }
+  }*/
 
   public PathFormula getInitAbstractionFormula() {
     return initAbstractionFormula;
