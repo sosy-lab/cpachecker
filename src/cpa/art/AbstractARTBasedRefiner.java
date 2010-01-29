@@ -1,11 +1,8 @@
 package cpa.art;
 
 import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -22,10 +19,8 @@ import common.Pair;
 
 import cpa.common.Path;
 import cpa.common.ReachedElements;
-import cpa.common.RefinementOutcome;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
-import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.Refiner;
 import exceptions.CPAException;
 
@@ -60,7 +55,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
   };
   
   @Override
-  public final RefinementOutcome performRefinement(ReachedElements pReached) throws CPAException {
+  public final boolean performRefinement(ReachedElements pReached) throws CPAException {
     CPAMain.logManager.log(Level.FINEST, "Starting ART based refinement");
     
     assert checkART(pReached);
@@ -77,16 +72,13 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
     
     assert seenCounterexamples.add(path);
     
-    Pair<ARTElement, Precision> refinementResult = performRefinement(pReached, path);
+    boolean result = performRefinement(new ARTReachedSet(pReached, mArtCpa), path);
     
-    if (refinementResult != null) {
-      CPAMain.logManager.log(Level.FINEST, "ART based refinement successful");
-      CPAMain.logManager.log(Level.ALL, "Refinement root is", refinementResult.getFirst());
-      return cleanART(path, pReached, refinementResult.getFirst(), refinementResult.getSecond());
-    } else {
-      CPAMain.logManager.log(Level.FINEST, "ART based refinement unsuccessful");
-      return new RefinementOutcome(path);
-    }
+    assert checkART(pReached);
+
+    CPAMain.logManager.log(Level.FINEST, "ART based refinement finished, result is", result);
+
+    return result;
   }
 
 
@@ -94,11 +86,10 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
    * Perform refinement.
    * @param pReached
    * @param pPath
-   * @return
-   * @throws CPAException
+   * @return whether the refinement was successful 
    */
-  protected abstract Pair<ARTElement, Precision> performRefinement(
-                      ReachedElements pReached, Path pPath) throws CPAException;
+  protected abstract boolean performRefinement(ARTReachedSet pReached, Path pPath)
+            throws CPAException;
 
   /**
    * Create a path in the ART from root to the given element.
@@ -143,43 +134,6 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
       currentARTElement = parentElement;
     }
     return path;
-  }
-  
-  private RefinementOutcome cleanART(Path errorPath, ReachedElements pReached,
-                ARTElement root, Precision newPrecision) {
-    assert root != null;
-    assert !root.getParents().isEmpty() : "initial element makes no sense as refinement root";
-    
-    Collection<ARTElement> toWaitlist = new HashSet<ARTElement>();
-    Set<ARTElement> toUnreach = root.getSubtree();
-
-    // remove root and all nodes below root from ART
-    // re-add their parents to the waitlist
-    for (ARTElement ae : toUnreach) {
-      for (ARTElement parent : ae.getParents()) {
-        if (!toUnreach.contains(parent)) {
-          toWaitlist.add(parent);
-        }
-      }
-      ae.removeFromART();
-    }
-    
-    // re-add those elements to the waitlist, which were covered by
-    // elements which are removed now
-    List<ARTElement> toUncover = new ArrayList<ARTElement>();
-    
-    for (ARTElement ae : mArtCpa.getCovered()) {
-      if (toUnreach.contains(ae.getCoveredBy())) {
-        toUncover.add(ae);
-      }
-    }
-    
-    for (ARTElement ae : toUncover) {
-      toWaitlist.addAll(ae.getParents());
-      ae.removeFromART(); // removes ae from parents and covered set
-    }
-    
-    return new RefinementOutcome(newPrecision, toUnreach, toWaitlist, errorPath);
   }
   
   private boolean checkART(ReachedElements pReached) {

@@ -20,9 +20,9 @@ import common.Pair;
 import compositeCPA.CompositeCPA;
 
 import cpa.art.ARTElement;
+import cpa.art.ARTReachedSet;
 import cpa.art.AbstractARTBasedRefiner;
 import cpa.common.Path;
-import cpa.common.ReachedElements;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.WrapperPrecision;
@@ -68,8 +68,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
   }
 
   @Override
-  public Pair<ARTElement, Precision> performRefinement(ReachedElements pReached,
-      Path pPath) throws CPAException {
+  public boolean performRefinement(ARTReachedSet pReached, Path pPath) throws CPAException {
 
     CPAMain.logManager.log(Level.FINEST, "Starting refinement for SymbPredAbsCPA");
     
@@ -117,11 +116,12 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
       }
       assert newPrecision != null;
       
-      return new Pair<ARTElement, Precision>(refinementResult.getFirst(), newPrecision);
+      pReached.removeSubtree(refinementResult.getFirst(), newPrecision);
+      return true;
     } else {
-      CPAMain.logManager.log(Level.FINEST, "Error trace is not spurious");
       // we have a real error
-      return null;
+      CPAMain.logManager.log(Level.FINEST, "Error trace is not spurious");
+      return false;
     }
   }
 

@@ -13,6 +13,7 @@ import cfa.objectmodel.CFANode;
 import cmdline.CPAMain;
 
 import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.SetMultimap;
@@ -104,7 +105,18 @@ public class ReachedElements implements Iterable<AbstractElement> {
     }
   }
   
-  private void remove(AbstractElement element) {
+  /**
+   * Re-add an element to the waitlist which already is contained in the reached set.
+   */
+  public void reAddToWaitlist(AbstractElement e) {
+    Preconditions.checkArgument(reached.containsKey(e), "Element has to be in the reached set");
+    
+    if (!waitlist.contains(e)) {
+      waitlist.add(e);
+    }
+  }
+  
+  public void remove(AbstractElement element) {
     int hc = element.hashCode();
     if ((firstElement == null) || hc == firstElement.hashCode() && element.equals(firstElement)) {
       firstElement = null;

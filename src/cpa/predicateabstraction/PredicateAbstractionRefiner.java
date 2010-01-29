@@ -16,11 +16,10 @@ import common.Pair;
 import compositeCPA.CompositeCPA;
 
 import cpa.art.ARTElement;
+import cpa.art.ARTReachedSet;
 import cpa.art.AbstractARTBasedRefiner;
 import cpa.common.Path;
-import cpa.common.ReachedElements;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
-import cpa.common.interfaces.Precision;
 import cpa.transferrelationmonitor.TransferRelationMonitorCPA;
 import exceptions.CPAException;
 
@@ -72,7 +71,7 @@ public class PredicateAbstractionRefiner extends AbstractARTBasedRefiner {
   }
 
   @Override
-  public Pair<ARTElement, Precision> performRefinement(ReachedElements pReached, Path pPath) {
+  public boolean performRefinement(ARTReachedSet pReached, Path pPath) {
 
     Pair<ARTElement, CFAEdge>[] pathArray;
 
@@ -86,27 +85,29 @@ public class PredicateAbstractionRefiner extends AbstractARTBasedRefiner {
     if (info.isSpurious()) {
       CPAMain.logManager.log(Level.FINEST,
       "Found spurious error trace, refining the abstraction");
-      return new Pair<ARTElement, Precision>(performRefinement(pReached, pPath, pathArray, info), null);
-
+      
+      ARTElement refinementRoot = performRefinement(pReached, pPath, pathArray, info);
+      assert refinementRoot != null;
+      
+      pReached.removeSubtree(refinementRoot);
+      return true;
     } else {
-      CPAMain.setErrorReached();
-      return null;
+      // we have a real error
+      CPAMain.logManager.log(Level.FINEST, "Error trace is not spurious");
+      return false;
     }
   }
 
 
-  private ARTElement performRefinement(ReachedElements pReached, Path pPath,
+  private ARTElement performRefinement(ARTReachedSet pReached, Path pPath,
       Pair<ARTElement, CFAEdge>[] pPathArray,
       CounterexampleTraceInfo pInfo) {
     CPAMain.logManager.log(Level.ALL, "DEBUG_1", "STARTING REFINEMENT");
     UpdateablePredicateMap curpmap =
       (UpdateablePredicateMap)mCpa.getPredicateMap();
 
-    assert(pReached.getLastElement() instanceof ARTElement);
-    ARTElement lastElem = (ARTElement)pReached.getLastElement();
 
     ARTElement root = null;
-    ARTElement cur = null;
     ARTElement firstInterpolant = null;
 
     for (Pair<ARTElement, CFAEdge> p : pPathArray) {
@@ -120,7 +121,6 @@ public class PredicateAbstractionRefiner extends AbstractARTBasedRefiner {
       assert(edge != null);
       if (curpmap.update(edge.getSuccessor(), newpreds)) {
         if (root == null) {
-          cur = e;
           root = e;
         }
       }
@@ -152,7 +152,7 @@ public class PredicateAbstractionRefiner extends AbstractARTBasedRefiner {
         // its child as the root so that refinement algorithm
         // does not try to add initial element's parent
         // which is null
-        ARTElement initialElement = (ARTElement)pReached.getFirstElement();
+        ARTElement initialElement = pReached.getFirstElement();
         assert(initialElement.getChildren().size() == 1);
         root = (ARTElement)initialElement.getChildren().toArray()[0];
       }
@@ -160,6 +160,7 @@ public class PredicateAbstractionRefiner extends AbstractARTBasedRefiner {
       //samePathAlready  = 0;
     }
 
+    assert root != null;
     return root;
   }
 

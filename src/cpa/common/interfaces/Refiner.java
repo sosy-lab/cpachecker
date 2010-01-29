@@ -1,11 +1,17 @@
 package cpa.common.interfaces;
 
 import cpa.common.ReachedElements;
-import cpa.common.RefinementOutcome;
 import exceptions.CPAException;
 
 public interface Refiner {
   
-  public RefinementOutcome performRefinement(ReachedElements pReached) throws CPAException;
+  /**
+   * Perform refinement, if possible.
+   * 
+   * @param pReached The reached set.
+   * @return Whether the refinement was successful.
+   * @throws CPAException If an error occured during refinement.
+   */
+  public boolean performRefinement(ReachedElements pReached) throws CPAException;
 
 }

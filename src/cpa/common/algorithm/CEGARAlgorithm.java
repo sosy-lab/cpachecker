@@ -24,22 +24,13 @@
 package cpa.common.algorithm;
 
 import java.lang.reflect.Constructor;
-import java.util.Collection;
-import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
 
 import cmdline.CPAMain;
-
-import com.google.common.collect.Lists;
-import common.Pair;
-
 import cpa.common.ReachedElements;
-import cpa.common.RefinementOutcome;
-import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
-import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.Refiner;
 import exceptions.CPAException;
 import exceptions.TransferTimeOutException;
@@ -113,12 +104,11 @@ public class CEGARAlgorithm implements Algorithm {
 
         long startRef = System.currentTimeMillis();
 
-        RefinementOutcome refout = mRefiner.performRefinement(reached);
+        boolean refinementResult = mRefiner.performRefinement(reached);
         long endRef = System.currentTimeMillis();
         refinementTime = refinementTime + (endRef  - startRef);
-        stopAnalysis = !refout.refinementPerformed();
 
-        if (refout.refinementPerformed()) {
+        if (refinementResult) {
           // successful refinement
 
           CPAMain.logManager.log(Level.FINER, "Refinement successful");
@@ -127,19 +117,18 @@ public class CEGARAlgorithm implements Algorithm {
 
           if (CPAMain.cpaConfig.getBooleanValue("cegar.restartOnRefinement")) {
             // TODO
-
-          } else {
-            modifySets(reached, refout.getNewPrecision(), refout.getToUnreach(), refout.getToWaitlist());
           }
 
           long end = System.currentTimeMillis();
           modifySetsTime = modifySetsTime + (end - start);
 
           runGC();
+          
+          stopAnalysis = false;
 
         } else {
           // no refinement found, because the counterexample is not spurious
-          CPAMain.logManager.log(Level.FINER, "No refinement found");
+          CPAMain.logManager.log(Level.FINER, "Refinement unsuccessful");
 
           stopAnalysis = true;
 
@@ -154,39 +143,6 @@ public class CEGARAlgorithm implements Algorithm {
     }
     executor.shutdownNow();
     return;
-  }
-
-  private void modifySets(ReachedElements reached, Precision newPrecision,
-      Collection<? extends AbstractElement> reachableToUndo,
-      Collection<? extends AbstractElement> toWaitlist) {
-
-    CPAMain.logManager.log(Level.ALL, "Removing elements from reached set:", reachableToUndo);
-    CPAMain.logManager.log(Level.ALL, "Adding elements to waitlist:", toWaitlist);
-
-    // TODO if starting from nothing, do not bother calling this
-
-    // This assertion is not true because reachableToUndo probably contains
-    // covered elements, which were in the ART but not in the reached set
-    //assert reached.getReached().containsAll(reachableToUndo);
-    
-    assert reached.getReached().containsAll(toWaitlist);
-    
-    List<Pair<AbstractElement, Precision>> toWaitlistWithPrecision
-                        = Lists.newArrayListWithCapacity(toWaitlist.size());
-
-    if (newPrecision == null) {
-      for (AbstractElement e : toWaitlist) {
-        toWaitlistWithPrecision.add(new Pair<AbstractElement, Precision>(e, reached.getPrecision(e)));
-      }
-    } else {
-      for (AbstractElement e : toWaitlist) {
-        toWaitlistWithPrecision.add(new Pair<AbstractElement, Precision>(e, newPrecision));
-      }
-    }
-
-    reached.removeAll(reachableToUndo);
-
-    reached.addAll(toWaitlistWithPrecision);
   }
 
   private void runGC() {
