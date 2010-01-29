@@ -1,9 +1,49 @@
 [AH]: Andreas Holzer <holzer@forsyte.de>
 [DB]: Dirk Beyer <dirk.beyer@sfu.ca>
 [MT]: Michael Tautschnig <tautschnig@forsyte.de>
+[PW]: Philipp Wendler <uni@philippwendler.de>
 
 * cleanup and prioritization to be done in telephone conference *
 * probably group them in design/technical/conceptual *
+
+Technical:
+----------
+- [PW] find out which JARs from Eclipse and CDT are needed for running CPAchecker,
+  add them to lib/eclipse and change cpa.sh and build.xml so that they use these
+  libraries (no need to search for Eclipse directory on disk anymore)
+
+- [PW] write script to add license text to all classes which don't contain it
+
+- [MT] Whitespace at the end of a line is undesirable for merging tools, do a cleanup
+
+- [PW] Perhaps move CompositeCPA to cpa.composite package.
+
+
+
+Conceptual suggestions:
+-----------------------
+- [PW] Currently for function calls the abstract element from the call site is stored
+  on the summary edge so that transfer relations processing the return edge can use
+  this information. IMHO this is ugly because state should not be stored in the CFA and
+  unwrapping the element is difficult. Think of a better way to provide this information.
+  I suggest adding a getAbstractSuccessorForFunctionReturn method in the transfer relation
+  interface.
+
+- [PW] Move CallStack tracking to separate CPA from compositeCPA.
+
+- [PW] Generalize LocationMappedReachedSet to PartitionedReachedSet allowing arbitrary
+  keys which can be provided by the AbstractElement with a getPartitionKey method. This
+  key could include location information, call stack.
+
+
+
+- [PW] Currently broken CPAs include at least ItpAbs, symbpredabs.SummaryCPA and
+  symbpredabs.ExplicitCPA. Also QueryDrivenProgramTesting is broken. Decide what
+  to do with these.
+
+- [PW] As there is no clear policy which object instances are considered bottom
+  (and this differs between CPAs), better remove usage of Top and Bottom. If a
+  CPA really needs it, it can still implement it on it's on (without exposing it).
 
 - [MT] move getInitialElement to its own class
   * method makeInitialElement (AE, AEwLoc, must be static)
@@ -12,11 +52,12 @@
     information), and do the initialPrecision stuff
   * also pass the configuration object to the Builder instead of referring to
     CPAMain in all the classes
-
+  [AH] Provide configuration to every CPA via its constructor instead of having
+  a global static variable in order to improve decoupling and reusability.
+  [PW] same for LogManager
+ 
 - [MT] Instead of the String parameters to set sep or join for merge and stop just
   create multiple CPA classes that fix the operator ** did not understand this, erkan **
-
-- [MT] add default implementations of stopsep/join, mergesep/join, precision stuff
 
 - [MT] review mergeJoin for the use of joinOperator
 
@@ -28,43 +69,14 @@
 
 - [DB] Maybe rename satisfiesPartialOrder to isLessOrEqual
 
-- [MT] (well known, but not noted thus far) Using exceptions to perform
-  abstraction refinement is really really cruel
-
 - [MT] compositestop is broken
   stop(e,reachedSet,prec) calls stop(e,reachedElement), thus loses info about
   precision (and never calls stop(e,reachedSet,prec) of the underlying CPA
-
-- [MT] The use of LocationMappedReachedSet in
-  cpa.symbpredabs.explicit.ExplicitStopOperator is currently broken because of
-  the disparity of reached vs. simpleReached; this results in a performance
-  penalty of 10-20% according to recent regression testing
-  -- this has been fixed in r318, but deserves further testing whether it is
-  really fixed
-  -- the fix in r318 was reverted in r319
-  -- A possible solution introducing a wrapper class was added in
-  r320-r322,r325, benchmarking is ongoing as of 2008-12-15
-  -- Another possible idea is a general implementation of the ReachedSet as a
-  multipmap of AbstractElements -> { Precisions }, with an additional option to
-  specify a Comperator to obtain a "good" sorting of the keys. What is the
-  crucial lessons we learnt while going back and forth so far:
-  * The CPA+ algorithms requires that a projection of
-    AbstractElements(WithLocation) is performed (efficiently)
-  * If an interface "ReachedSet" is introduced somewhere take care that some
-    CPAs only provide AbstractElement, not WithLocation, and if
-    AbstractElementWithLocation becomes a defining part of the ReachedSet
-    interface, ReachedSet cannot be used as part of each and every CPA
-
-- [MT] We have multiple implementations of a class Path
-
-- [MT] Whitespace at the end of a line is undesirable for merging tools, do a cleanup
+  [PW] True for ARTCPA as well. Losing precision should be fixed by passing
+  the precision in the second stop method as well.
 
 - [MT] Use iterators instead of get(i), this is CLEANER, SAFER, and FASTER in general
   (unless impossible, of course)
-
-- [MT] in createReachedSet use a safe cast instead of reflection+cruel cast
-  * code has been modified along with the LocationMappedReachedSet stuff, review
-    that
 
 - [MT] Refactor the TheoremProver (and similarly named ones) interfaces and move all
   the decision procedures related stuff to its own package
@@ -78,9 +90,6 @@
   collection); sets will always check for uniqueness
 
 - [MT] DefUse became useless after not updating for a long time. Fix some time.
-
-- [MT] precisionAdjustment is currently not enabled! (code commented out in
-  CPAAlgorithm)
 
 - [MT] Setting cpas.symbpredabs.mathsat.useCache to false causes a null pointer
   exception (with ExplicitCPA, at least)
@@ -97,8 +106,6 @@
   dangerous; however, commenting out that piece of code breaks ExplicitCPA on
   several examples, which must be due to some other bug in ExplicitCPA (other
   CPAs relying on that piece of code don't break)
-
-- [MT] newReachedSet not used anymore, some classes still implement it
 
 - [MT] ExplicitCPA claims that ssh/s3_srvr_2_BUG.cil.c is safe, the filename and
   other CPAs suggest that it should be UNSAFE instead
@@ -119,9 +126,6 @@
 - [MT] Properties of the CFA (like function entry points) should not be
   evaluated in each CPA again and again, this info must be built into the CFA
 
-- [AH] Provide configuration to every CPA via its constructor instead of having
-  a global static variable in order to improve decoupling and reusability.
- 
 - [Erkan] Get rid of obsolete packages and classes
 
 - [Erkan] cpa.common.CallElement and cpa.common.CallStack might move to their own
@@ -146,3 +150,41 @@ Handled Jobs
 
 - [MT] Cleanup cpa.common and move the composite stuff to compositecpa,
   CPAType.java could probably be removed rightaway -- [Erkan]
+
+- [MT] add default implementations of stopsep/join, mergesep/join, precision stuff
+
+- [MT] (well known, but not noted thus far) Using exceptions to perform
+  abstraction refinement is really really cruel
+
+- [MT] The use of LocationMappedReachedSet in
+  cpa.symbpredabs.explicit.ExplicitStopOperator is currently broken because of
+  the disparity of reached vs. simpleReached; this results in a performance
+  penalty of 10-20% according to recent regression testing
+  -- this has been fixed in r318, but deserves further testing whether it is
+  really fixed
+  -- the fix in r318 was reverted in r319
+  -- A possible solution introducing a wrapper class was added in
+  r320-r322,r325, benchmarking is ongoing as of 2008-12-15
+  -- Another possible idea is a general implementation of the ReachedSet as a
+  multipmap of AbstractElements -> { Precisions }, with an additional option to
+  specify a Comperator to obtain a "good" sorting of the keys. What is the
+  crucial lessons we learnt while going back and forth so far:
+  * The CPA+ algorithms requires that a projection of
+    AbstractElements(WithLocation) is performed (efficiently)
+  * If an interface "ReachedSet" is introduced somewhere take care that some
+    CPAs only provide AbstractElement, not WithLocation, and if
+    AbstractElementWithLocation becomes a defining part of the ReachedSet
+    interface, ReachedSet cannot be used as part of each and every CPA
+
+- [MT] We have multiple implementations of a class Path
+
+- [MT] in createReachedSet use a safe cast instead of reflection+cruel cast
+  * code has been modified along with the LocationMappedReachedSet stuff, review
+    that
+
+- [MT] precisionAdjustment is currently not enabled! (code commented out in
+  CPAAlgorithm)
+
+- [MT] newReachedSet not used anymore, some classes still implement it
+
+
