@@ -28,7 +28,6 @@ package cpa.dominator.parametric;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 
 import cfa.objectmodel.CFAEdge;
@@ -60,75 +59,34 @@ public class DominatorTransferRelation implements TransferRelation {
 		this.cpa = cpa;
 	}
 
-	/* (non-Javadoc)
-	 * @see cpa.common.interfaces.TransferRelation#getAbstractSuccessor(cpa.common.interfaces.AbstractElement, cfa.objectmodel.CFAEdge)
-	 */
-	public AbstractElement getAbstractSuccessor(AbstractElement element, CFAEdge cfaEdge, Precision prec) throws CPATransferException {
-		if (!(element instanceof DominatorElement)) {
-			return this.domain.getBottomElement();
-		}
-
-		DominatorElement dominatorElement = (DominatorElement)element;
-
-		Collection<? extends AbstractElement> successorsOfDominatedElement_tmp = this.cpa.getTransferRelation().getAbstractSuccessors(dominatorElement.getDominatedElement(), prec, cfaEdge);
-		assert successorsOfDominatedElement_tmp.size() == 1;
-		AbstractElement successorOfDominatedElement_tmp = successorsOfDominatedElement_tmp.toArray(new AbstractElement[1])[0]; 
-		
-		// TODO: make this nicer
-		AbstractElement successorOfDominatedElement = successorOfDominatedElement_tmp;
-
-		if (successorOfDominatedElement.equals(this.cpa.getAbstractDomain().getBottomElement())) {
-			return this.domain.getBottomElement();
-		}
-
-		if (successorOfDominatedElement.equals(this.cpa.getAbstractDomain().getTopElement())) {
-			return this.domain.getTopElement();
-		}
-
-		DominatorElement successor = new DominatorElement(successorOfDominatedElement, dominatorElement);
-
-		successor.update(successorOfDominatedElement);
-
-		return successor;
-	}
-
 	@Override
-	public Collection<AbstractElement> getAbstractSuccessors(
+	public Collection<DominatorElement> getAbstractSuccessors(
 	    AbstractElement element, Precision prec, CFAEdge cfaEdge) throws CPATransferException {
-	  if (cfaEdge != null) {
-	    return Collections.singleton(getAbstractSuccessor(element, cfaEdge, prec));
-	  }
-	  
-		List<AbstractElement> successors = new ArrayList<AbstractElement>();
 
-		if (element instanceof DominatorElement) {
-			DominatorElement dominatorElement = (DominatorElement)element;
-
-			Collection<? extends AbstractElement> successorsOfDominatedElement = this.cpa.getTransferRelation().getAbstractSuccessors(dominatorElement.getDominatedElement(), prec, cfaEdge);
-
-			for (AbstractElement successorOfDominatedElement : successorsOfDominatedElement) {
-
-				if (successorOfDominatedElement.equals(this.cpa.getAbstractDomain().getBottomElement())) {
-					successors.add(this.domain.getBottomElement());
-
-					continue;
-				}
-
-				if (successorOfDominatedElement.equals(this.cpa.getAbstractDomain().getTopElement())) {
-					successors.add(this.domain.getTopElement());
-
-					continue;
-				}
-
-				DominatorElement successor = new DominatorElement(successorOfDominatedElement, dominatorElement);
-
-				successor.update(successorOfDominatedElement);
-
-				successors.add(successor);
-			}
-		}
-
-		return successors;
+	  assert element instanceof DominatorElement;
+    
+    DominatorElement dominatorElement = (DominatorElement)element;
+    
+    Collection<? extends AbstractElement> successorsOfDominatedElement = this.cpa.getTransferRelation().getAbstractSuccessors(dominatorElement.getDominatedElement(), prec, cfaEdge);
+    
+    Collection<DominatorElement> successors = new ArrayList<DominatorElement>(successorsOfDominatedElement.size());
+    for (AbstractElement successorOfDominatedElement : successorsOfDominatedElement) {
+      if (successorOfDominatedElement.equals(this.cpa.getAbstractDomain().getBottomElement())) {
+        // don't need to return bottom, may just leave out this element from result set
+        continue;
+      }
+      
+      if (successorOfDominatedElement.equals(this.cpa.getAbstractDomain().getTopElement())) {
+        successors.add(this.domain.getTopElement());
+      
+      } else {
+        DominatorElement successor = new DominatorElement(successorOfDominatedElement, dominatorElement);
+        successor.update(successorOfDominatedElement);
+        successors.add(successor);
+      }
+    }
+    
+    return successors;	  
 	}
 
   @Override

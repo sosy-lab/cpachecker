@@ -69,7 +69,7 @@ public class AnalysisControllerCPA implements ConfigurableProgramAnalysis {
     abstractDomain = new AnalysisControllerDomain(this);
     mergeOperator = MergeSepOperator.getInstance();
     stopOperator = StopNeverOperator.getInstance();
-    transferRelation = new AnalysisControllerTransferRelation(abstractDomain);
+    transferRelation = new AnalysisControllerTransferRelation();
     precisionAdjustment = new AnalysisControllerPrecisionAdjustment();
   }
   

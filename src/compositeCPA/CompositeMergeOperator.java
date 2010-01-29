@@ -35,12 +35,10 @@ import exceptions.CPAException;
 
 public class CompositeMergeOperator implements MergeOperator{
   
-  private final CompositeDomain compositeDomain;
   private final List<MergeOperator> mergeOperators;
 
-  public CompositeMergeOperator(CompositeDomain compositeDomain, List<MergeOperator> mergeOperators)
+  public CompositeMergeOperator(List<MergeOperator> mergeOperators)
   {
-    this.compositeDomain = compositeDomain;
     this.mergeOperators = mergeOperators;
   }
 
@@ -48,11 +46,6 @@ public class CompositeMergeOperator implements MergeOperator{
   public AbstractElement merge(AbstractElement element1,
                                AbstractElement element2,
                                Precision precision) throws CPAException {
-
-    // TODO check
-    if (element1 == compositeDomain.getBottomElement()) {
-      return element2;
-    }
 
     // Merge Sep Code
     CompositeElement comp1 = (CompositeElement) element1;

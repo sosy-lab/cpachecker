@@ -61,7 +61,7 @@ public class PointerAnalysisCPA implements ConfigurableProgramAnalysis {
     abstractDomain = domain;
     mergeOperator = mergeOp;
     stopOperator = new StopSepOperator(domain.getPartialOrder());
-    transferRelation = new PointerAnalysisTransferRelation(domain);
+    transferRelation = new PointerAnalysisTransferRelation();
   }
   
   @Override

@@ -40,17 +40,11 @@ import exceptions.CPATransferException;
  * @author g.theoduloz
  */
 public class AnalysisControllerTransferRelation implements TransferRelation {
-  
-  private final AnalysisControllerDomain domain;
-  
-  public AnalysisControllerTransferRelation(AnalysisControllerDomain d)
-  {
-    domain = d;
-  }
-  
-  private AbstractElement getAbstractSuccessor(AbstractElement el, CFAEdge edge, Precision p)
-    throws CPATransferException
-  {
+
+  @Override
+  public Collection<AnalysisControllerElement> getAbstractSuccessors(
+      AbstractElement el, Precision pPrecision, CFAEdge edge)
+      throws CPATransferException {
     AnalysisControllerElement pre = (AnalysisControllerElement)el;
     List<StopHeuristicsData> preData = pre.getComponents();
     List<StopHeuristicsData> postData = new ArrayList<StopHeuristicsData>(preData.size());
@@ -59,18 +53,11 @@ public class AnalysisControllerTransferRelation implements TransferRelation {
       StopHeuristicsData postD = d.processEdge(edge);
       if (postD.isBottom())
         // 'squash' to bottom
-        return domain.getBottomElement();
+        return Collections.emptySet();
       else
         postData.add(postD);
     }
-    return new AnalysisControllerElement(postData);
-  }
-
-  @Override
-  public Collection<AbstractElement> getAbstractSuccessors(
-      AbstractElement pElement, Precision pPrecision, CFAEdge cfaEdge)
-      throws CPATransferException {
-    return Collections.singleton(getAbstractSuccessor(pElement, cfaEdge, pPrecision));
+    return Collections.singleton(new AnalysisControllerElement(postData));
   }
 
   @Override

@@ -79,7 +79,7 @@ public class PredicateAbstractionTransferRelation implements TransferRelation {
   //}
 
   // performs the abstract post operation
-  private AbstractElement buildSuccessor(PredicateAbstractionAbstractElement e,
+  private Collection<PredicateAbstractionAbstractElement> buildSuccessor(PredicateAbstractionAbstractElement e,
       CFAEdge edge) throws CPATransferException {
     PredicateAbstractionCPA cpa = domain.getCPA();
     //    CFANode succLoc = edge.getSuccessor();
@@ -126,41 +126,31 @@ public class PredicateAbstractionTransferRelation implements TransferRelation {
     }
 
     if (cpa.getAbstractFormulaManager().isFalse(abstraction)) {
-      return domain.getBottomElement();
+      return Collections.emptySet();
     } else {
-      return succ;
+      return Collections.singleton(succ);
     }
   }
 
-  private AbstractElement getAbstractSuccessor(AbstractElement element,
-      CFAEdge cfaEdge, Precision prec) throws CPATransferException {
+  @Override
+  public Collection<PredicateAbstractionAbstractElement> getAbstractSuccessors(
+      AbstractElement element, Precision prec, CFAEdge cfaEdge) throws CPATransferException {
     CPAMain.logManager.log(Level.FINEST, 
         "Getting Abstract Successor of element: ", element,
         " on edge: ", cfaEdge.getRawStatement());
-
+    
     // To get the successor, we compute the predicate abstraction of the
     // formula of element plus all the edges that connect any of the
     // inner nodes of the summary of element to any inner node of the
     // destination
     PredicateAbstractionAbstractElement e = (PredicateAbstractionAbstractElement)element;
-
-    // bottom produces bottom
-    if (domain.getBottomElement().equals(e)) {
-      return e;
-    }
-
-    AbstractElement ret = buildSuccessor(e, cfaEdge);
-
+    
+    Collection<PredicateAbstractionAbstractElement> ret = buildSuccessor(e, cfaEdge);
+    
     CPAMain.logManager.log(Level.FINEST,
         "Successor is: ", ret);
-
+    
     return ret;
-  }
-
-  @Override
-  public Collection<AbstractElement> getAbstractSuccessors(
-      AbstractElement element, Precision prec, CFAEdge cfaEdge) throws CPATransferException {
-    return Collections.singleton(getAbstractSuccessor(element, cfaEdge, prec));
   }
 
   @Override

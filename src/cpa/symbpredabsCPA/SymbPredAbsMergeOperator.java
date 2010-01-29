@@ -36,7 +36,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import common.Pair;
 
-import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
@@ -52,13 +51,11 @@ import cpa.common.interfaces.Precision;
  */
 public class SymbPredAbsMergeOperator implements MergeOperator {
 
-  private final AbstractDomain domain;
   private final SymbolicFormulaManager symbolicFormulaManager;
 
   public long totalMergeTime = 0;
   
   public SymbPredAbsMergeOperator(SymbPredAbsCPA pCpa) {
-    domain = pCpa.getAbstractDomain();
     symbolicFormulaManager = pCpa.getSymbolicFormulaManager();
   }
 
@@ -76,10 +73,7 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
       merged = elem2;
     } else {
       // if two elements have different abstraction paths, do not merge
-      if(elem1 == domain.getBottomElement()){
-        merged = elem2;
-      }
-      else if(!elem1.getAbstractionPathList().equals(elem2.getAbstractionPathList())){
+      if(!elem1.getAbstractionPathList().equals(elem2.getAbstractionPathList())){
         merged = elem2;
       }
       else if(!elem1.getAbstraction().equals(elem2.getAbstraction())) {

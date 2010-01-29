@@ -40,7 +40,7 @@ import exceptions.CPAException;
 public class LocationCPA implements ConfigurableProgramAnalysis{
 
 	private static final LocationDomain abstractDomain = new LocationDomain();
-	private static final TransferRelation transferRelation = new LocationTransferRelation(abstractDomain);
+	private static final TransferRelation transferRelation = new LocationTransferRelation();
 	private static final StopOperator stopOperator = new StopSepOperator(abstractDomain.getPartialOrder());
 
 	public LocationCPA (String mergeType, String stopType) throws CPAException{

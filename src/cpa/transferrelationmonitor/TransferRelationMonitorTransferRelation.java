@@ -13,7 +13,9 @@ import java.util.concurrent.TimeoutException;
 import cfa.objectmodel.CFAEdge;
 import cmdline.CPAMain;
 import cpa.common.algorithm.CEGARAlgorithm;
+import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
 import exceptions.CPATransferException;
@@ -21,13 +23,15 @@ import exceptions.TransferTimeOutException;
 
 public class TransferRelationMonitorTransferRelation implements TransferRelation {
 
+  private final AbstractDomain domain;
   private final TransferRelation transferRelation;
   private TransferCallable tc = new TransferCallable();
   private long timeLimit = 0;
   private long timeLimitForPath = 0;
   
-  public TransferRelationMonitorTransferRelation(TransferRelation pTransferRelation) {
-    transferRelation = pTransferRelation;
+  public TransferRelationMonitorTransferRelation(ConfigurableProgramAnalysis pWrappedCPA) {
+    transferRelation = pWrappedCPA.getTransferRelation();
+    domain = pWrappedCPA.getAbstractDomain();
  // time limit is given in milliseconds
     timeLimit = Integer.parseInt(CPAMain.cpaConfig.getPropertiesArray
         ("trackabstractioncomputation.limit")[0]);
@@ -124,6 +128,10 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
 
     Collection<TransferRelationMonitorElement> wrappedSuccessors = new ArrayList<TransferRelationMonitorElement>();
     for (AbstractElement absElement : successors) {
+      if (absElement.equals(domain.getBottomElement())) {
+        // omit bottom element from successors list
+        continue;
+      }
       TransferRelationMonitorElement successorElem = new TransferRelationMonitorElement(element.getCpa(), absElement);
       successorElem.setTransferTime(timeOfExecution);
       successorElem.setTotalTime(element.getTotalTimeOnThePath());

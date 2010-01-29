@@ -44,7 +44,7 @@ import exceptions.CPAException;
 public class InverseLocationCPA implements ConfigurableProgramAnalysis{
 
   private static final LocationDomain abstractDomain = new LocationDomain();
-  private static final TransferRelation transferRelation = new InverseLocationTransferRelation(abstractDomain);
+  private static final TransferRelation transferRelation = new InverseLocationTransferRelation();
   private static final StopOperator stopOperator = new StopSepOperator(abstractDomain.getPartialOrder());
 
   public InverseLocationCPA (String mergeType, String stopType) throws CPAException{

@@ -102,7 +102,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, CPAWithStatist
 
     CompositeDomain compositeDomain = new CompositeDomain (domains);
     CompositeTransferRelation compositeTransfer = new CompositeTransferRelation (transferRelations);
-    CompositeMergeOperator compositeMerge = new CompositeMergeOperator (compositeDomain, mergeOperators);
+    CompositeMergeOperator compositeMerge = new CompositeMergeOperator (mergeOperators);
     CompositeStopOperator compositeStop = new CompositeStopOperator (compositeDomain, stopOperators);
     CompositePrecisionAdjustment compositePrecisionAdjustment = new CompositePrecisionAdjustment (precisionAdjustments);
     CompositeElement initialElement = new CompositeElement (initialElements, null);

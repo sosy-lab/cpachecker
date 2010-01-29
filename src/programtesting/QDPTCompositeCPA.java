@@ -92,7 +92,7 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
       return mAbstractReachabilityTree;
     }
 
-    public AbstractElement getAbstractSuccessor (AbstractElement element, CFAEdge cfaEdge, Precision precision) throws CPATransferException
+    private AbstractElement getAbstractSuccessor (AbstractElement element, CFAEdge cfaEdge, Precision precision) throws CPATransferException
     {
       assert(precision instanceof CompositePrecision);
       CompositePrecision lCompositePrecision = (CompositePrecision)precision;
@@ -130,7 +130,8 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
 
         if(! topCallElement.isConsistent(cfaEdge.getSuccessor()) ||
             ! returnElement.isConsistent(cfaEdge.getSuccessor().getFunctionName()) ){
-          return compositeDomain.getBottomElement();
+          // return null for bottom
+          return null;
         }
 
         // TODO we are saving the abstract state on summary edge, that works for
@@ -164,7 +165,8 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
         
         // as soon as a component returns bottom we return composite bottom
         if (compositeDomain.getDomains().get(idx).getBottomElement().equals(successor)) {
-          return compositeDomain.getBottomElement();
+          // return null for bottom
+          return null;
         }
 
         resultingElements.add (successor);
@@ -191,7 +193,10 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
       for (int edgeIdx = 0; edgeIdx < node.getNumLeavingEdges (); edgeIdx++)
       {
         CFAEdge edge = node.getLeavingEdge (edgeIdx);
-        results.add (getAbstractSuccessor (element, edge, precision));
+        AbstractElement successor = getAbstractSuccessor(element, edge, precision);
+        if (successor != null) {
+          results.add(successor);
+        }
       }
 
       return results;
@@ -238,7 +243,7 @@ public class QDPTCompositeCPA implements ConfigurableProgramAnalysis {
 
     mDomain = new CompositeDomain(domains);
     mTransferRelation = new QDPTCompositeTransferRelation(mDomain, transferRelations);
-    mMergeOperator = new CompositeMergeOperator(mDomain, mergeOperators);
+    mMergeOperator = new CompositeMergeOperator(mergeOperators);
     mStopOperator = new CompositeStopOperator(mDomain, stopOperators);
     mPrecisionAdjustment = new CompositePrecisionAdjustment(precisionAdjustments);
     mInitialElement = new CompositeElement(initialElements, null);

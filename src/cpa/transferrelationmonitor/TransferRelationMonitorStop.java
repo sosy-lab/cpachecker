@@ -2,8 +2,6 @@ package cpa.transferrelationmonitor;
 
 import java.util.Collection;
 
-import compositeCPA.CompositeStopOperator;
-
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;
@@ -22,18 +20,7 @@ public class TransferRelationMonitorStop implements StopOperator {
   public boolean stop(AbstractElement pElement,
       Collection<AbstractElement> pReached, Precision pPrecision) throws CPAException {
 
-    TransferRelationMonitorElement transferRelationMonitorElement = (TransferRelationMonitorElement)pElement;
-    AbstractElement wrappedElement = transferRelationMonitorElement.getWrappedElements().iterator().next();
-    
-    // TODO this is ugly, perhaps introduce AbstractElement.isBottom() instead?
-    StopOperator stopOp = wrappedCpa.getStopOperator();
-    if(stopOp instanceof CompositeStopOperator){
-      CompositeStopOperator compStopOp = (CompositeStopOperator) stopOp;
-      if(compStopOp.containsBottomElement(wrappedElement)){
-        transferRelationMonitorElement.setBottom(true);
-        return true;
-      }
-    }
+    TransferRelationMonitorElement transferRelationMonitorElement = (TransferRelationMonitorElement)pElement;   
 
     for (AbstractElement reachedElement : pReached) {
       TransferRelationMonitorElement transferRelationMonitorReachedElement = (TransferRelationMonitorElement)reachedElement;

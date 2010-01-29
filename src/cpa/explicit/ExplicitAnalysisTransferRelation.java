@@ -86,7 +86,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
   @Override
   public Collection<AbstractElement> getAbstractSuccessors(
       AbstractElement element, Precision precision, CFAEdge cfaEdge) throws CPATransferException {
-    AbstractElement successor = explicitAnalysisDomain.getBottomElement();
+    AbstractElement successor;
     ExplicitAnalysisElement explicitElement = (ExplicitAnalysisElement)element;
 
     // check the type of the edge
@@ -160,7 +160,11 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
       throw new UnrecognizedCFAEdgeException(cfaEdge);
     }
     
-    return Collections.singleton(successor);
+    if (successor == null) {
+      return Collections.emptySet();
+    } else {
+      return Collections.singleton(successor);
+    }
   }
 
   /**
@@ -396,7 +400,8 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
       if (result) {
         return element.clone();
       } else {
-        return explicitAnalysisDomain.getBottomElement();
+        // return null for bottom element
+        return null;
       }
     } else {
       // don't know
@@ -999,10 +1004,8 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
   public Collection<? extends AbstractElement> strengthen(AbstractElement element,
                                     List<AbstractElement> elements,
                                     CFAEdge cfaEdge, Precision precision) throws UnrecognizedCCodeException {    
-    
-    if (!(element instanceof ExplicitAnalysisElement) || element == explicitAnalysisDomain.getBottomElement()) {
-      return null;
-    }
+
+    assert element instanceof ExplicitAnalysisElement;
     ExplicitAnalysisElement explicitElement = (ExplicitAnalysisElement)element;
     
     for (AbstractElement ae : elements) {

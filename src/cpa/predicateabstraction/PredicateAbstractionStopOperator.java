@@ -47,17 +47,7 @@ public class PredicateAbstractionStopOperator implements StopOperator {
 
   public boolean stop(AbstractElement element,
       Collection<AbstractElement> reached, Precision prec) throws CPAException {
-    if (domain.getBottomElement().equals(element)) {
-      // stopping here is only correct if reached is not empty.
-      // correct means there is an element in reached that
-      // covers the bottom element.
-      // if this notion of correct is to strict we can skip the
-      // assert
-      assert(reached.size() > 0);
-
-      return true;
-    }
-
+    
     for (AbstractElement e : reached) {
       if (stop(element, e)) {
         return true;
@@ -69,13 +59,7 @@ public class PredicateAbstractionStopOperator implements StopOperator {
 
   public boolean stop(AbstractElement element, AbstractElement reachedElement)
   throws CPAException {
-    if (domain.getBottomElement().equals(element)) {
-      return true;
-    }
-
-    if (domain.getBottomElement().equals(reachedElement)) {
-      return false;
-    }
+    // transfer relation does not produce bottom, so no need to check for bottom here
 
     PredicateAbstractionAbstractElement e1 = (PredicateAbstractionAbstractElement)element;
     PredicateAbstractionAbstractElement e2 = (PredicateAbstractionAbstractElement)reachedElement;

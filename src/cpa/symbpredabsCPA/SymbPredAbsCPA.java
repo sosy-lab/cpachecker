@@ -46,7 +46,6 @@ import com.google.common.collect.ImmutableList;
 
 import cpa.common.defaults.StaticPrecisionAdjustment;
 import cpa.common.defaults.StopSepOperator;
-import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.CPAWithStatistics;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
@@ -63,7 +62,7 @@ import exceptions.CPAException;
  */
 public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, CPAWithStatistics {
 
-  private final AbstractDomain domain;
+  private final SymbPredAbsAbstractDomain domain;
   private final SymbPredAbsTransferRelation transfer;
   private final SymbPredAbsMergeOperator merge;
   private final StopOperator stop;
@@ -133,7 +132,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, CPAWithStati
   }
 
   @Override
-  public AbstractDomain getAbstractDomain() {
+  public SymbPredAbsAbstractDomain getAbstractDomain() {
     return domain;
   }
 

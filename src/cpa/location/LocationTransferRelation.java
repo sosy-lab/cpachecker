@@ -36,16 +36,9 @@ import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
 import exceptions.CPATransferException;
 
-public class LocationTransferRelation implements TransferRelation
-{
-  private final LocationDomain locationDomain;
+public class LocationTransferRelation implements TransferRelation {
 
-  public LocationTransferRelation (LocationDomain locationDomain)
-  {
-    this.locationDomain = locationDomain;
-  }
-
-  private AbstractElement getAbstractSuccessor (AbstractElement element, CFAEdge cfaEdge, Precision prec) throws CPATransferException
+  private Collection<LocationElement> getAbstractSuccessor (AbstractElement element, CFAEdge cfaEdge, Precision prec) throws CPATransferException
   {
     LocationElement inputElement = (LocationElement) element;
     CFANode node = inputElement.getLocationNode ();
@@ -56,29 +49,29 @@ public class LocationTransferRelation implements TransferRelation
       CFAEdge testEdge = node.getLeavingEdge (edgeIdx);
       if (testEdge == cfaEdge)
       {
-        return new LocationElement (testEdge.getSuccessor ());
+        return Collections.singleton(new LocationElement (testEdge.getSuccessor ()));
       }
     }
 
     if (node.getLeavingSummaryEdge() != null){
       CallToReturnEdge summaryEdge = node.getLeavingSummaryEdge();
-      return new LocationElement (summaryEdge.getSuccessor());
+      return Collections.singleton(new LocationElement (summaryEdge.getSuccessor()));
     }
 
-    return locationDomain.getBottomElement ();
+    return Collections.emptySet();
   }
 
   @Override
-  public Collection<AbstractElement> getAbstractSuccessors (AbstractElement element, Precision prec, CFAEdge cfaEdge) throws CPATransferException
+  public Collection<LocationElement> getAbstractSuccessors (AbstractElement element, Precision prec, CFAEdge cfaEdge) throws CPATransferException
   {
     if (cfaEdge != null) {
-      return Collections.singleton(getAbstractSuccessor(element, cfaEdge, prec));
+      return getAbstractSuccessor(element, cfaEdge, prec);
     }
     
     CFANode node = ((LocationElement)element).getLocationNode ();
 
-    List<AbstractElement> allSuccessors = new ArrayList<AbstractElement> ();
-    int numLeavingEdges = node.getNumLeavingEdges ();
+    int numLeavingEdges = node.getNumLeavingEdges();
+    List<LocationElement> allSuccessors = new ArrayList<LocationElement>(numLeavingEdges);
 
     for (int edgeIdx = 0; edgeIdx < numLeavingEdges; edgeIdx++)
     {

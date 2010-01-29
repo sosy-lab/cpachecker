@@ -10,7 +10,6 @@ public class TransferRelationMonitorElement implements AbstractElement, Abstract
 
   private final TransferRelationMonitorCPA cpa;
   private final AbstractElement element;
-  private boolean isBottom = false;
   
   private long timeOfTranferToComputeElement;
   private long totalTimeOnThePath;
@@ -54,14 +53,6 @@ public class TransferRelationMonitorElement implements AbstractElement, Abstract
   
   public TransferRelationMonitorCPA getCpa() {
     return cpa;
-  }
-
-  public boolean isBottom() {
-    return isBottom;
-  }
-
-  protected void setBottom(boolean pIsBottom) {
-    isBottom = pIsBottom;
   }
   
   protected void setTransferTime(long pTransferTime){

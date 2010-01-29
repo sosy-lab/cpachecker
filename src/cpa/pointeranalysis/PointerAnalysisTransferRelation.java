@@ -148,9 +148,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
   }
   
   private MissingInformation missing = null;
-  
-  private final PointerAnalysisDomain domain;
-  
+    
   private static boolean printWarnings = Boolean.parseBoolean(CPAMain.cpaConfig.getProperty("pointerAnalysis.printWarnings", "false"));
   private static Set<Pair<Integer, String>> warnings
                   = printWarnings ? new HashSet<Pair<Integer, String>>() : null;
@@ -183,14 +181,11 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
     }
   }
   
-  public PointerAnalysisTransferRelation(PointerAnalysisDomain domain) {
-    this.domain = domain;
-  }
-  
-  private AbstractElement getAbstractSuccessor(AbstractElement element,
-                                              CFAEdge cfaEdge,
-                                              Precision precision)
-                                              throws CPATransferException {
+  @Override
+  public Collection<PointerAnalysisElement> getAbstractSuccessors(
+                                             AbstractElement element,
+                                             Precision precision, CFAEdge cfaEdge)
+                                             throws CPATransferException {
     PointerAnalysisElement successor = ((PointerAnalysisElement)element).clone();
     successor.setCurrentEdge(cfaEdge);
 
@@ -231,12 +226,12 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
 
     } catch (InvalidPointerException e) {
       addError(e.getMessage(), cfaEdge);
-      return domain.getBottomElement();
+      return Collections.emptySet();
       
     } catch (UnreachableStateException e) {
-      return domain.getBottomElement();
+      return Collections.emptySet();
     }
-    return successor;
+    return Collections.singleton(successor);
   }
 
   private void handleDeclaration(PointerAnalysisElement element,
@@ -1165,15 +1160,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
     }
   }
   
-  @Override
-  public Collection<AbstractElement> getAbstractSuccessors(
-                                             AbstractElement element,
-                                             Precision precision, CFAEdge cfaEdge)
-                                             throws CPATransferException {
-    return Collections.singleton(getAbstractSuccessor(element, cfaEdge, precision));
-  }
-
-  
+ 
   @Override
   public Collection<? extends AbstractElement> strengthen(AbstractElement element, List<AbstractElement> elements,
                          CFAEdge cfaEdge, Precision precision) throws CPATransferException {
