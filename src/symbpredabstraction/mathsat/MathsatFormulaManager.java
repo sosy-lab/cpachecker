@@ -24,28 +24,24 @@
 package symbpredabstraction.mathsat;
 
 import java.util.ArrayDeque;
-import java.util.Collection;
 import java.util.Deque;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 import java.util.logging.Level;
 
-import cmdline.CPAMain;
-
 import symbpredabstraction.CommonFormulaManager;
 import symbpredabstraction.SSAMap;
 import symbpredabstraction.interfaces.AbstractFormula;
 import symbpredabstraction.interfaces.AbstractFormulaManager;
-import symbpredabstraction.interfaces.Predicate;
 import symbpredabstraction.interfaces.SymbolicFormula;
 import symbpredabstraction.interfaces.TheoremProver;
+import cmdline.CPAMain;
 
 import common.Pair;
 
-
+// TODO decide which parts of the API of this class can be move to the FormularManager interface
 public class MathsatFormulaManager extends CommonFormulaManager {
 
     /**
@@ -131,105 +127,34 @@ public class MathsatFormulaManager extends CommonFormulaManager {
     protected void collectVarNames(SymbolicFormula term, Set<String> vars,
         Set<Pair<String, SymbolicFormula[]>> lvals) {
       
-      collectVarNames(((MathsatSymbolicFormula)term).getTerm(), vars, lvals);
+      Deque<Long> toProcess = new ArrayDeque<Long>();
+      toProcess.push(((MathsatSymbolicFormula)term).getTerm());
+      // TODO - this assumes the term is small! There is no memoizing yet!!
+      while (!toProcess.isEmpty()) {
+          long t = toProcess.pop();
+          if (mathsat.api.msat_term_is_variable(t) != 0) {
+              vars.add(mathsat.api.msat_term_repr(t));
+          } else {
+              for (int i = 0; i < mathsat.api.msat_term_arity(t); ++i) {
+                  toProcess.push(mathsat.api.msat_term_get_arg(t, i));
+              }
+              if (mathsat.api.msat_term_is_uif(t) != 0) {
+                  long d = mathsat.api.msat_term_get_decl(t);
+                  String name = mathsat.api.msat_decl_get_name(d);
+                  if (mmgr.ufCanBeLvalue(name)) {
+                      int n = mathsat.api.msat_term_arity(t);
+                      SymbolicFormula[] a = new SymbolicFormula[n];
+                      for (int i = 0; i < n; ++i) {
+                          a[i] = new MathsatSymbolicFormula(
+                                  mathsat.api.msat_term_get_arg(t, i));
+                      }
+                      lvals.add(new Pair<String, SymbolicFormula[]>(name, a));
+                  }
+              }
+          }
+      }
     }
-    
-    /**
-     * Use {@link #collectVarNames(SymbolicFormula, Set, Set)} instead.
-     */
-    @Deprecated
-    protected void collectVarNames(
-            long term, Set<String> vars,
-            Set<Pair<String, SymbolicFormula[]>> lvals) {
-        Stack<Long> toProcess = new Stack<Long>();
-        toProcess.push(term);
-        // TODO - this assumes the term is small! There is no memoizing yet!!
-        while (!toProcess.empty()) {
-            long t = toProcess.pop();
-            if (mathsat.api.msat_term_is_variable(t) != 0) {
-                vars.add(mathsat.api.msat_term_repr(t));
-            } else {
-                for (int i = 0; i < mathsat.api.msat_term_arity(t); ++i) {
-                    toProcess.push(mathsat.api.msat_term_get_arg(t, i));
-                }
-                if (mathsat.api.msat_term_is_uif(t) != 0) {
-                    long d = mathsat.api.msat_term_get_decl(t);
-                    String name = mathsat.api.msat_decl_get_name(d);
-                    if (mmgr.ufCanBeLvalue(name)) {
-                        int n = mathsat.api.msat_term_arity(t);
-                        SymbolicFormula[] a = new SymbolicFormula[n];
-                        for (int i = 0; i < n; ++i) {
-                            a[i] = new MathsatSymbolicFormula(
-                                    mathsat.api.msat_term_get_arg(t, i));
-                        }
-                        lvals.add(new Pair<String, SymbolicFormula[]>(name, a));
-                    }
-                }
-            }
-        }
-    }
-
-    // return value is:
-    // [mathsat term for \bigwedge_preds (var <-> def),
-    //  list of important terms (the names of the preds),
-    //   list of variables occurring in the definitions of the preds]
-    @Deprecated
-    protected static class PredInfo {
-        public long predDef; // mathsat term for \bigwedge_preds (var <-> def)
-        public long[] important; // list of important terms 
-                                 // (the names of the preds)
-        public Set<String> allVars; // list of variable names occurring 
-                                    // in the definitions of the preds
-        public Set<Pair<String, 
-                        SymbolicFormula[]>> allFuncs; // list of functions
-                                                      // occurring in the 
-                                                      // preds defs
-        public PredInfo(long pd, long[] imp, Set<String> av, 
-                        Set<Pair<String, SymbolicFormula[]>> af) {
-            predDef = pd;
-            important = imp;
-            allVars = av;
-            allFuncs = af;
-        }
-    }
-    /**
-     * Use {@link #buildPredicateInfo(Collection)} instead.
-     * @param predicates
-     * @return
-     */
-    @Deprecated
-    protected PredInfo buildPredList(
-            Collection<Predicate> predicates) {
-        long msatEnv = mmgr.getMsatEnv();
-        long[] important = new long[predicates.size()];
-        Set<String> allvars = new HashSet<String>();
-        Set<Pair<String, SymbolicFormula[]>> allfuncs =
-            new HashSet<Pair<String, SymbolicFormula[]>>();
-        long preddef = mathsat.api.msat_make_true(msatEnv);
-        int i = 0;
-        for (Predicate p : predicates) {
-            long var = getPredicateNameAndDef(p).getFirst().getTerm();
-            long def = getPredicateNameAndDef(p).getSecond().getTerm();
-            collectVarNames(def, allvars, allfuncs);
-            important[i++] = var;
-            // build the mathsat (var <-> def)
-            long iff = mathsat.api.msat_make_iff(msatEnv, var, def);
-            assert(!mathsat.api.MSAT_ERROR_TERM(iff));
-            // and add it to the list of definitions
-            preddef = mathsat.api.msat_make_and(msatEnv, preddef, iff);
-        }
-        return new PredInfo(preddef, important, allvars, allfuncs);
-    }
-    
-    /**
-     * Use {@link #getPredicateVarAndAtom(Predicate)} instead.
-     */
-    @SuppressWarnings("unchecked")
-    @Deprecated
-    public Pair<MathsatSymbolicFormula, MathsatSymbolicFormula> getPredicateNameAndDef(Predicate p) {
-        return (Pair<MathsatSymbolicFormula, MathsatSymbolicFormula>)getPredicateVarAndAtom(p);
-    }
-    
+  
     protected SymbolicFormula[] getInstantiatedAt(SymbolicFormula[] args,
             SSAMap ssa, Map<SymbolicFormula, SymbolicFormula> cache) {
         Stack<Long> toProcess = new Stack<Long>();

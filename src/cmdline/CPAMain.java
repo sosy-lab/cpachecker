@@ -95,15 +95,6 @@ public class CPAMain {
   // used in the ShutdownHook to check whether the analysis has been
   // interrupted by the user
   private static boolean interrupted = true;
-
-  /**
-   * Sets the marker that an error was found.
-   * @deprecated AbstractElement.isError() should be used to signal an error.
-   */
-  @Deprecated
-  public static void setErrorReached() {
-    result = Result.UNSAFE;
-  }
   
   public static enum Result { UNKNOWN, UNSAFE, SAFE };   
   
@@ -494,18 +485,16 @@ public class CPAMain {
       cpaStats.stopAnalysisTimer();
       logManager.log(Level.FINE, "CPA Algorithm finished");
 
-      if (result == Result.UNKNOWN) {
-        boolean errorFound = false;
-        for (AbstractElement reachedElement : reached) {
-          if (reachedElement.isError()) {
-            errorFound = true;
-            result = Result.UNSAFE;
-            break;
-          }
+      boolean errorFound = false;
+      for (AbstractElement reachedElement : reached) {
+        if (reachedElement.isError()) {
+          errorFound = true;
+          result = Result.UNSAFE;
+          break;
         }
-        if (!errorFound) {
-          result = Result.SAFE;
-        }
+      }
+      if (!errorFound) {
+        result = Result.SAFE;
       }
 
       if (useART && CPAMain.cpaConfig.getBooleanValue("ART.export")) {

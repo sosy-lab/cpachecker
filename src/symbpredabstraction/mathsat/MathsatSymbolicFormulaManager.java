@@ -217,13 +217,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         "cpas.symbpredabs.mathsat.lvalsAsUIFs");
   }
 
-  /**
-   * Usage is deprecated outside of the symbpredabstraction.mathsat package.
-   * After all external references to this method have been eliminated, it should
-   * be made package private and the deprecation tag may be removed again.
-   */
-  @Deprecated
-  public long getMsatEnv() {
+  long getMsatEnv() {
     return msatEnv;
   }
 
