@@ -124,8 +124,6 @@ analysis.interprocedural	true/false		false		true		combine function CFAs to globa
 analysis.useRefinement		true/false		false		<DEPENDS>	use refinement algorithm (needs cpa.useART)
 anaylsis.useART			true/false		false		false		wrap CPA in ART CPA
 analysis.useCBMC		true/false		false		false		use CBMC to check counter examples (currently only if analysis.useRefinement)
-analysis.useSummaryLocations	true/false		false		false		use summary edges for loop-free parts of the program		
-analysis.useBlockEdges		true/false		false		false		use block edges for branch-free parts of the program (not if useSummaryLocations)
 analysis.useGlobalVars		true/false		false		true		include global variable declarations (not if useSummaryLocations or useBlockEdges)
 analysis.noExternalCalls	true/false		false		true		don't create call/return edges for external function calls
 analysis.noCompositeCPA		true/false		false		true		don't use composite CPA if there is only one CPA

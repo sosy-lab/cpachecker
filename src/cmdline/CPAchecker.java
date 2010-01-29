@@ -11,10 +11,6 @@ import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 
-import common.Pair;
-import compositeCPA.CompositeCPA;
-import compositeCPA.CompositeStopOperator;
-
 import cfa.CFABuilder;
 import cfa.CFACheck;
 import cfa.CFAMap;
@@ -32,6 +28,10 @@ import cfa.objectmodel.c.GlobalDeclarationEdge;
 import cmdline.CPAMain.Result;
 import cmdline.stubs.StubFile;
 
+import common.Pair;
+import compositeCPA.CompositeCPA;
+import compositeCPA.CompositeStopOperator;
+
 import cpa.art.ARTCPA;
 import cpa.common.LogManager;
 import cpa.common.ReachedElements;
@@ -44,9 +44,6 @@ import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.CPAWithStatistics;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;
-import cpa.symbpredabs.BlockCFABuilder;
-import cpa.symbpredabs.summary.SummaryCFABuilder;
-import cpa.symbpredabs.summary.SummaryDOTBuilder;
 import cpaplugin.CPAConfiguration;
 import cpaplugin.MainCPAStatistics;
 import exceptions.CFAGenerationRuntimeException;
@@ -159,12 +156,7 @@ public class CPAchecker {
 
     // write CFA to file
     if (mConfiguration.getBooleanValue("cfa.export")) {
-      DOTBuilderInterface dotBuilder;
-      if (mConfiguration.getBooleanValue( "analysis.useSummaryLocations")) {
-        dotBuilder = new SummaryDOTBuilder();
-      } else {
-        dotBuilder = new DOTBuilder();
-      }
+      DOTBuilderInterface dotBuilder = new DOTBuilder();
       String cfaFile = mConfiguration.getProperty("cfa.file", "cfa.dot");
       //if no filename is given, use default value
       String path = mConfiguration.getProperty("output.path") + cfaFile;
@@ -214,25 +206,7 @@ public class CPAchecker {
       }
     }
     
-    // optionally combine several edges into summary edges
-    if (mConfiguration.getBooleanValue( "analysis.useSummaryLocations")) {
-      mLogManager.log(Level.FINE, "Building Summary CFAs");
-   
-      SummaryCFABuilder summaryBuilder = new SummaryCFABuilder(mainFunction,
-                                              builder.getGlobalDeclarations());
-      return summaryBuilder.buildSummary();
-
-    } else if (mConfiguration.getBooleanValue("analysis.useBlockEdges")){
-      mLogManager.log(Level.FINE, "Building Block CFAs");
-      
-      BlockCFABuilder summaryBuilder =   new BlockCFABuilder(mainFunction,
-                                              builder.getGlobalDeclarations());
-      return summaryBuilder.buildBlocks();
-
-    } 
-    // TODO The following else-if block should be converted to "if"
-    // and relocated to the top of the method.
-    else if (mConfiguration.getBooleanValue("analysis.useGlobalVars")){
+    if (mConfiguration.getBooleanValue("analysis.useGlobalVars")){
       // add global variables at the beginning of main
       
       List<IASTDeclaration> globalVars = builder.getGlobalDeclarations();

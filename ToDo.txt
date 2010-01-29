@@ -37,10 +37,6 @@ Conceptual suggestions:
 
 
 
-- [PW] Currently broken CPAs include at least ItpAbs, symbpredabs.SummaryCPA and
-  symbpredabs.ExplicitCPA. Also QueryDrivenProgramTesting is broken. Decide what
-  to do with these.
-
 - [PW] As there is no clear policy which object instances are considered bottom
   (and this differs between CPAs), better remove usage of Top and Bottom. If a
   CPA really needs it, it can still implement it on it's on (without exposing it).
@@ -187,4 +183,6 @@ Handled Jobs
 
 - [MT] newReachedSet not used anymore, some classes still implement it
 
-
+- [PW] Currently broken CPAs include at least ItpAbs, symbpredabs.SummaryCPA and
+  symbpredabs.ExplicitCPA. Also QueryDrivenProgramTesting is broken. Decide what
+  to do with these.

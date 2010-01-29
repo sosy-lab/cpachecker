@@ -78,9 +78,6 @@ import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.CPAWithStatistics;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;
-import cpa.symbpredabs.BlockCFABuilder;
-import cpa.symbpredabs.summary.SummaryCFABuilder;
-import cpa.symbpredabs.summary.SummaryDOTBuilder;
 import cpa.symbpredabsCPA.SymbPredAbsAbstractElement;
 import cpaplugin.CPAConfiguration;
 import cpaplugin.MainCPAStatistics;
@@ -304,25 +301,7 @@ public class CPAMain {
       }
     }
     
-    // optionally combine several edges into summary edges
-    if (CPAMain.cpaConfig.getBooleanValue( "analysis.useSummaryLocations")) {
-      logManager.log(Level.FINE, "Building Summary CFAs");
-   
-      SummaryCFABuilder summaryBuilder = new SummaryCFABuilder(mainFunction,
-                                              builder.getGlobalDeclarations());
-      return summaryBuilder.buildSummary();
-
-    } else if (CPAMain.cpaConfig.getBooleanValue("analysis.useBlockEdges")){
-      logManager.log(Level.FINE, "Building Block CFAs");
-      
-      BlockCFABuilder summaryBuilder =   new BlockCFABuilder(mainFunction,
-                                              builder.getGlobalDeclarations());
-      return summaryBuilder.buildBlocks();
-
-    } 
-    // TODO The following else-if block should be converted to "if"
-    // and relocated to the top of the method.
-    else if (CPAMain.cpaConfig.getBooleanValue("analysis.useGlobalVars")){
+    if (CPAMain.cpaConfig.getBooleanValue("analysis.useGlobalVars")){
       // add global variables at the beginning of main
       
       List<IASTDeclaration> globalVars = builder.getGlobalDeclarations();
@@ -391,12 +370,8 @@ public class CPAMain {
 
     // write CFA to file
     if (CPAMain.cpaConfig.getBooleanValue("cfa.export")) {
-      DOTBuilderInterface dotBuilder;
-      if (CPAMain.cpaConfig.getBooleanValue( "analysis.useSummaryLocations")) {
-        dotBuilder = new SummaryDOTBuilder();
-      } else {
-        dotBuilder = new DOTBuilder();
-      }
+      DOTBuilderInterface dotBuilder = new DOTBuilder();
+      
       String cfaFile = CPAMain.cpaConfig.getProperty("cfa.file", "cfa.dot");
       //if no filename is given, use default value
       String path = CPAMain.cpaConfig.getProperty("output.path") + cfaFile;
