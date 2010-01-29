@@ -138,7 +138,6 @@ analysis.mergeOperators		list of Strings				<DEPENDS>	comma-separated list of St
 analysis.stopOperators		list of Strings				<DEPENDS>	comma-separated list of Strings passed to the above CPAs as name of the stop operator
 analysis.dontPrintReachableStates true/false		false		true		don't print set of reached abstract states after analysis
 analysis.useGlobalVars		true/false		false		true		
-analysis.queryDrivenProgramTesting	true/false	false		false		use QueryDrivenProgramTesting instead of normal algorithm
 analysis.useFunctionDeclarations	true/false	false		true		include declarations of external functions in CFA
 analysis.programNames		path+filename		<CMDLINE>	<CMDLINE>	the file to analyze
 analysis.stopAfterError		true/false		false		false		if analysis should stop when the first bug has been found

@@ -44,7 +44,6 @@ import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.cdt.internal.core.dom.InternalASTServiceProvider;
 import org.eclipse.core.resources.IFile;
 
-import programtesting.QueryDrivenProgramTesting;
 import cfa.CFABuilder;
 import cfa.CFACheck;
 import cfa.CFAMap;
@@ -472,18 +471,6 @@ public class CPAMain {
   }
   
   private static void runAlgorithm(final CFAMap cfas, final CFAFunctionDefinitionNode mainFunction) throws CPAException {
-
-    if (CPAMain.cpaConfig.getBooleanValue("analysis.queryDrivenProgramTesting")) {
-      
-      logManager.log(Level.FINE, "CPA Algorithm starting ...");
-      cpaStats.startAnalysisTimer();
-
-      QueryDrivenProgramTesting.doIt(cfas, mainFunction);
-
-      cpaStats.stopAnalysisTimer();
-      logManager.log(Level.FINE, "CPA Algorithm finished");
-
-    } else {
  
       logManager.log(Level.FINE, "Creating CPAs");
       
@@ -562,7 +549,6 @@ public class CPAMain {
           System.out.println(e);
         }
       }
-    }
   }
   
   public static void dumpPathToDotFile(ReachedElements pReached, String outfile) {
