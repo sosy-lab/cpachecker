@@ -10,6 +10,10 @@ public class Paths implements Coverage {
   private Predicates mPredicates;
   private int mBound;
   
+  public Paths(Filter pFilter, int pBound) {
+    this(pFilter, pBound, new Predicates());
+  }
+  
   public Paths(Filter pFilter, int pBound, Predicates pPredicates) {
     assert(pFilter != null);
     assert(pPredicates != null);

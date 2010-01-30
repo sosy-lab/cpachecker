@@ -9,6 +9,10 @@ public class States implements Coverage {
   private Filter mFilter;
   private Predicates mPredicates;
   
+  public States(Filter pFilter) {
+    this(pFilter, new Predicates());
+  }
+  
   public States(Filter pFilter, Predicates pPredicates) {
     assert(pFilter != null);
     assert(pPredicates != null);

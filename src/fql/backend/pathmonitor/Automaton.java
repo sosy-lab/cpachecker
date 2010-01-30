@@ -66,13 +66,13 @@ public class Automaton {
   public String toString() {
     StringBuffer lBuffer = new StringBuffer();
     
-    lBuffer.append("Initial States: ");
+    lBuffer.append("(Init: ");
     lBuffer.append(mInitialStates.toString());
-    lBuffer.append("\n");
-    lBuffer.append("Final States: ");
+    lBuffer.append(", Final: ");
     lBuffer.append(mFinalStates.toString());
-    lBuffer.append("\n");
+    lBuffer.append(", ");
     lBuffer.append(mTransitionRelation.edgeSet().toString());
+    lBuffer.append(")");
     
     return lBuffer.toString();
   }

@@ -9,6 +9,10 @@ public class Edges implements Coverage {
   private Filter mFilter;
   private Predicates mPredicates;
   
+  public Edges(Filter pFilter) {
+    this(pFilter, new Predicates());
+  }
+  
   public Edges(Filter pFilter, Predicates pPredicates) {
     assert(pFilter != null);
     assert(pPredicates != null);
