@@ -47,8 +47,23 @@ import fql.frontend.ast.query.Query;
 import fql.frontend.ast.query.FilterPropagator;
 import fql.frontend.ast.FQLNode;
 
+import java.io.Reader;
+import java.io.InputStream;
+import java.io.StringReader;
+
 parser code
 {:
+	public FQLParser(String pQueryString) {
+      this(new StringReader(pQueryString));
+	}
+	
+	public FQLParser(Reader pReader) {
+	  this(new FQLLexer(pReader));
+	}
+	
+	public FQLParser(InputStream pInputStream) {
+	  this(new FQLLexer(pInputStream));
+	}
 :}
 
 action code

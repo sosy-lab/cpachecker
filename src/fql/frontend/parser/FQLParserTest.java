@@ -141,4 +141,15 @@ public class FQLParserTest {
     System.out.println("RESULT: " + lParser.parse().value.toString());
   }
   
+  @Test
+  public void testFQLParserScanner013() throws Exception {
+    String lInput = "IN @FILE(\"foo.c\") COVER { y <= 53049 } STATES(@CONDITIONEDGE, { x > 10}) PASSING ID*.@5.ID*";
+    
+    System.out.println(lInput);
+    
+    FQLParser lParser = new FQLParser(lInput);
+    
+    System.out.println("RESULT: " + lParser.parse().value.toString());
+  }
+  
 }
