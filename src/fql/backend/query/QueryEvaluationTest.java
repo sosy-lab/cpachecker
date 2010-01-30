@@ -1,4 +1,4 @@
-package fql.backend.testgoals;
+package fql.backend.query;
 
 import java.io.IOException;
 
@@ -11,19 +11,18 @@ import cpaplugin.CPAConfiguration;
 import cpaplugin.MainCPAStatistics;
 import cpaplugin.CPAConfiguration.InvalidCmdlineArgumentException;
 import exceptions.CPAException;
-import fql.backend.pathmonitor.Automaton;
 import fql.backend.targetgraph.TargetGraph;
+import fql.frontend.ast.coverage.Edges;
 import fql.frontend.ast.coverage.Sequence;
 import fql.frontend.ast.coverage.States;
-import fql.frontend.ast.coverage.Edges;
 import fql.frontend.ast.filter.Identity;
 import fql.frontend.ast.pathmonitor.LowerBound;
 import fql.frontend.ast.pathmonitor.PathMonitor;
 import fql.frontend.ast.query.Query;
 
 
-public class CoverageSequenceTest {
-  
+public class QueryEvaluationTest {
+
   private String mConfig = "-config";
   private String mPropertiesFile = "test/config/simpleMustMayAnalysis.properties";
   
@@ -52,13 +51,7 @@ public class CoverageSequenceTest {
     
     Query lQuery = new Query(lStatesCoverage, new LowerBound(Identity.getInstance(), 0));
     
-    CoverageSequence lCoverageSequence = CoverageSequence.create(lQuery.getCoverage(), lTargetGraph);
-    
-    Automaton lPassingAutomaton = Automaton.create(lQuery.getPassingMonitor(), lTargetGraph);
-    
-    System.out.println(lCoverageSequence);
-    System.out.println("PASSING AUTOMATON: ");
-    System.out.println(lPassingAutomaton);
+    System.out.println(QueryEvaluation.evaluate(lQuery, lTargetGraph));
   }
   
   @Test
@@ -90,13 +83,7 @@ public class CoverageSequenceTest {
     
     Query lQuery = new Query(lSequence, lTrueMonitor);
     
-    CoverageSequence lCoverageSequence = CoverageSequence.create(lQuery.getCoverage(), lTargetGraph);
-    
-    Automaton lPassingAutomaton = Automaton.create(lQuery.getPassingMonitor(), lTargetGraph);
-    
-    System.out.println(lCoverageSequence);
-    System.out.print("PASSING AUTOMATON: ");
-    System.out.println(lPassingAutomaton);
+    System.out.println(QueryEvaluation.evaluate(lQuery, lTargetGraph));
   }
   
   @Test
@@ -130,13 +117,7 @@ public class CoverageSequenceTest {
     
     Query lQuery = new Query(lSequence, lTrueMonitor);
     
-    CoverageSequence lCoverageSequence = CoverageSequence.create(lQuery.getCoverage(), lTargetGraph);
-    
-    Automaton lPassingAutomaton = Automaton.create(lQuery.getPassingMonitor(), lTargetGraph);
-    
-    System.out.println(lCoverageSequence);
-    System.out.print("PASSING AUTOMATON: ");
-    System.out.println(lPassingAutomaton);
+    System.out.println(QueryEvaluation.evaluate(lQuery, lTargetGraph));
   }
   
 }

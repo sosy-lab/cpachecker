@@ -110,7 +110,7 @@ public class CoverageSequence implements Iterable<Pair<Automaton, Set<? extends 
     return mSequence.iterator();
   }
   
-  public static CoverageSequence create(TargetGraph pTargetGraph, Coverage pCoverageSpecification) {
+  public static CoverageSequence create(Coverage pCoverageSpecification, TargetGraph pTargetGraph) {
     assert(pTargetGraph != null);
     assert(pCoverageSpecification != null);
     
