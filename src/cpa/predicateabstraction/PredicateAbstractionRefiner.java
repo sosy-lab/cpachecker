@@ -29,13 +29,13 @@ public class PredicateAbstractionRefiner extends AbstractARTBasedRefiner {
   private PredicateAbstractionFormulaManager amgr;
   private Map<Vector<Integer>, Integer> abstractCex;
 
-  private int numAbstractStates = 0; // for statistics
+//  private int numAbstractStates = 0; // for statistics
 
   // this is used for deciding how much of the ART to undo after refinement
   // private Deque<ExplicitAbstractElement> lastErrorPath;
   // private int samePathAlready = 0;
 
-  private boolean notEnoughPredicatesFlag = false;
+//  private boolean notEnoughPredicatesFlag = false;
 
   public PredicateAbstractionRefiner(final ConfigurableProgramAnalysis pCpa) throws CPAException {
     super(pCpa);
@@ -138,7 +138,7 @@ public class PredicateAbstractionRefiner extends AbstractARTBasedRefiner {
         if (alreadySeen > 1) {//samePathAlready == 1) {
           // we have not enough predicates to rule out this path, and
           // we can't find any new, we are forced to exit :-(
-          notEnoughPredicatesFlag = true;
+//          notEnoughPredicatesFlag = true;
           assert(false);
           System.exit(1);
         } else {

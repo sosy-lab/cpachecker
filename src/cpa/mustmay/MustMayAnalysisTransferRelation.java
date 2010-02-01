@@ -87,7 +87,7 @@ public class MustMayAnalysisTransferRelation implements TransferRelation {
     for (AbstractElement lMaySuccessor : lConsolidatedMaySuccessors) {
       for (AbstractElement lMustSuccessor : lConsolidatedMustSuccessors) {
         // TODO: the strengthening operator of the must transfer relation has to guarantee (and establish) the subset relation of concretizations
-        Collection<? extends AbstractElement> lStrengthenList = mMustTransferRelation.strengthen(lMustSuccessor, Collections.singletonList((AbstractElement)lMaySuccessor), pCfaEdge, lPrecision.getMustPrecision());
+        Collection<? extends AbstractElement> lStrengthenList = mMustTransferRelation.strengthen(lMustSuccessor, Collections.singletonList(lMaySuccessor), pCfaEdge, lPrecision.getMustPrecision());
         
         if (lStrengthenList == null) {
           lSuccessors.add(new MustMayAnalysisElement(lMustSuccessor, lMaySuccessor));

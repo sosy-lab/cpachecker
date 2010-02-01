@@ -76,7 +76,6 @@ public class ConcreteAnalysisCPA implements cpa.common.interfaces.ConfigurablePr
     return mTransferRelation;
   }
 
-  @SuppressWarnings("unchecked")
   @Override
   public ConcreteAnalysisElement getInitialElement(CFAFunctionDefinitionNode node)
   {

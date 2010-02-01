@@ -47,7 +47,6 @@ public class MustMayAnalysisCPA implements ConfigurableProgramAnalysis {
     return mDomain;
   }
 
-  @SuppressWarnings("unchecked")
   @Override
   public MustMayAnalysisElement getInitialElement(
       CFAFunctionDefinitionNode pNode) {

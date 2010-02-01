@@ -65,8 +65,6 @@ import exceptions.UnrecognizedCFAEdgeException;
 
 public class ExplicitAnalysisTransferRelation implements TransferRelation {
 
-  private ExplicitAnalysisDomain explicitAnalysisDomain;
-
   private Set<String> globalVars;
 
   private int threshold;
@@ -76,9 +74,8 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
   private String missingInformationLeftPointer  = null;
   private IASTExpression missingInformationRightExpression = null;
 
-  public ExplicitAnalysisTransferRelation (ExplicitAnalysisDomain explicitAnalysisfUseDomain)
+  public ExplicitAnalysisTransferRelation ()
   {
-    this.explicitAnalysisDomain = explicitAnalysisfUseDomain;
     globalVars = new HashSet<String>();
     threshold = Integer.parseInt(CPAMain.cpaConfig.getProperty("explicitAnalysis.threshold"));
   }

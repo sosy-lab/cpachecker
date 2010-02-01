@@ -58,7 +58,7 @@ public class ExplicitAnalysisCPA implements ConfigurableProgramAnalysis {
 
     StopOperator explicitAnalysisStopOp = new StopSepOperator(explicitAnalysisDomain.getPartialOrder());
 
-    TransferRelation explicitAnalysisTransferRelation = new ExplicitAnalysisTransferRelation (explicitAnalysisDomain);
+    TransferRelation explicitAnalysisTransferRelation = new ExplicitAnalysisTransferRelation ();
     
     this.abstractDomain = explicitAnalysisDomain;
     this.mergeOperator = explicitAnalysisMergeOp;
