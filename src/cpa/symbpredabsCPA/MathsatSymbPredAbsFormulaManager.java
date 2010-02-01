@@ -551,6 +551,7 @@ implements SymbPredAbsFormulaManager
   public boolean unsat(AbstractFormula abstractionFormula, PathFormula pathFormula) {
     
     PathFormula symbFormula = buildSymbolicFormula(abstractionFormula, pathFormula);
+    CPAMain.logManager.log(Level.ALL, "Checking satisfiability of formula", symbFormula.getFirst());
     
     // purpose = ENTAILMENT_CHECK copied from MathsatSymbolicFormulaManager.entails()
     // this method does essentially the same (just check one formula for unsatisfiability)
@@ -572,14 +573,14 @@ implements SymbPredAbsFormulaManager
 
     List<SymbolicFormula> f = getFormulasForTrace(abstractTrace);
 
-    CPAMain.logManager.log(Level.ALL, "Counterexample trace formulas:", f);
-    
     boolean theoryCombinationNeeded = false;
 
     if (useDtc) {
       theoryCombinationNeeded = addBitwiseAxioms(f);
     }
     f = Collections.unmodifiableList(f);
+
+    CPAMain.logManager.log(Level.ALL, "Counterexample trace formulas:", f);
 
     CPAMain.logManager.log(Level.FINEST, "Checking feasibility of counterexample trace");
 
