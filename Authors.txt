@@ -3,10 +3,14 @@ Authors/Maintainers:
   Erkan Keremoglu
 
 Contributors:
-  Alberto Griggio (2008, 2009)
-  Andreas Holzer (2008, 2009)
-  Michael Tautschnig (2008, 2009)
-  Philipp Wendler (2009)
+  Gregor Endler (2009 - 2010)
+  Alberto Griggio (2008 - 2009)
+  Andreas Holzer (2008 - 2010)
+  Michael Tautschnig (2008 - 2009)
+  Gregory Theoduloz (2009 - 2010)
+  Philipp Wendler (2009 - 2010)
+
 
 Bug reports:
-  Dirk Beyer: firstname.lastname@sfu.ca
+  Dirk Beyer: CPAchecker-Users@sosy-lab.org
+
