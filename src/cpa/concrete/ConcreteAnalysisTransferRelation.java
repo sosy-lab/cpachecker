@@ -58,7 +58,7 @@ import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
 import exceptions.CPATransferException;
-import exceptions.ExplicitAnalysisTransferException;
+import exceptions.UnrecognizedCCodeException;
 
 public class ConcreteAnalysisTransferRelation implements TransferRelation {
 
@@ -274,7 +274,7 @@ public class ConcreteAnalysisTransferRelation implements TransferRelation {
         return newElement;
       }
       else{
-        CPAMain.logManager.logException(Level.ALL, new ExplicitAnalysisTransferException("Unhandled case " + pFunctionReturnEdge.getPredecessor().getNodeNumber()), "");
+        CPAMain.logManager.logException(Level.ALL, new UnrecognizedCCodeException(pFunctionReturnEdge, op1), "");
         
         return mDomain.getBottomElement();
       }
@@ -306,7 +306,7 @@ public class ConcreteAnalysisTransferRelation implements TransferRelation {
       return newElement;
     }
     else{
-      CPAMain.logManager.logException(Level.ALL, new ExplicitAnalysisTransferException("Unhandled case - return from function" + pFunctionReturnEdge.getPredecessor().getNodeNumber()), "");
+      CPAMain.logManager.logException(Level.ALL, new UnrecognizedCCodeException(pFunctionReturnEdge, exprOnSummary), "");
       
       return mDomain.getBottomElement();
     }
@@ -437,7 +437,7 @@ public class ConcreteAnalysisTransferRelation implements TransferRelation {
         return getBooleanExpressionValue(element, unaryExp.getOperand(), cfaEdge, !truthValue);
 
       default:
-        CPAMain.logManager.logException(Level.ALL, new ExplicitAnalysisTransferException("Unhandled case " + cfaEdge.getRawStatement()), "");
+        CPAMain.logManager.logException(Level.ALL, new UnrecognizedCCodeException(cfaEdge, unaryExp), "");
         
         return null;
       }
@@ -493,7 +493,7 @@ public class ConcreteAnalysisTransferRelation implements TransferRelation {
           break;
           
         default:
-          CPAMain.logManager.logException(Level.ALL, new ExplicitAnalysisTransferException("Unhandled case " + cfaEdge.getRawStatement()), "");
+          CPAMain.logManager.logException(Level.ALL, new UnrecognizedCCodeException(cfaEdge, binExp), "");
           
           return null;
         }
@@ -506,7 +506,7 @@ public class ConcreteAnalysisTransferRelation implements TransferRelation {
       
     } else {
       // TODO fields, arrays
-      CPAMain.logManager.logException(Level.ALL, new ExplicitAnalysisTransferException("Unhandled case " + cfaEdge.getRawStatement()), "");
+      CPAMain.logManager.logException(Level.ALL, new UnrecognizedCCodeException(cfaEdge, expression), "");
       
       return null;
     }
@@ -609,7 +609,7 @@ public class ConcreteAnalysisTransferRelation implements TransferRelation {
       return mDomain.getBottomElement();
     }
     else{
-      CPAMain.logManager.logException(Level.ALL, new ExplicitAnalysisTransferException("Unhandled case " + cfaEdge.getRawStatement()), "");
+      CPAMain.logManager.logException(Level.ALL, new UnrecognizedCCodeException(cfaEdge, expression), "");
       
       return mDomain.getBottomElement();
     }
@@ -632,7 +632,7 @@ public class ConcreteAnalysisTransferRelation implements TransferRelation {
       // a--, --a
       shift = -1;
     } else {
-      CPAMain.logManager.logException(Level.ALL, new ExplicitAnalysisTransferException("Unhandled case " + cfaEdge.getRawStatement()), "");
+      CPAMain.logManager.logException(Level.ALL, new UnrecognizedCCodeException(cfaEdge, unaryExpression), "");
       
       return mDomain.getBottomElement();
     }
@@ -651,7 +651,7 @@ public class ConcreteAnalysisTransferRelation implements TransferRelation {
       return newElement;
       
     } else {
-      CPAMain.logManager.logException(Level.ALL, new ExplicitAnalysisTransferException("Unhandled case " + cfaEdge.getRawStatement()), "");
+      CPAMain.logManager.logException(Level.ALL, new UnrecognizedCCodeException(cfaEdge, operand), "");
       
       return mDomain.getBottomElement();
     }
@@ -680,7 +680,7 @@ public class ConcreteAnalysisTransferRelation implements TransferRelation {
       return handleOperationAndAssign(element, binaryExpression, cfaEdge);
     }
     default:
-      CPAMain.logManager.logException(Level.ALL, new ExplicitAnalysisTransferException("Unhandled case " + binaryExpression.getRawSignature()), "");
+      CPAMain.logManager.logException(Level.ALL, new UnrecognizedCCodeException(cfaEdge, binaryExpression), "");
       
       return mDomain.getBottomElement();
     }
@@ -696,7 +696,7 @@ public class ConcreteAnalysisTransferRelation implements TransferRelation {
     if (!(leftOp instanceof IASTIdExpression)) {
       // TODO handle fields, arrays
       
-      CPAMain.logManager.logException(Level.ALL, new ExplicitAnalysisTransferException("Unhandled case " + cfaEdge.getRawStatement()), "");
+      CPAMain.logManager.logException(Level.ALL, new UnrecognizedCCodeException(cfaEdge, leftOp), "");
 
       return mDomain.getBottomElement();
     }
@@ -728,7 +728,7 @@ public class ConcreteAnalysisTransferRelation implements TransferRelation {
       newOperator = IASTBinaryExpression.op_binaryOr;
       break;
     default:
-      CPAMain.logManager.logException(Level.ALL, new ExplicitAnalysisTransferException("Unhandled case " + cfaEdge.getRawStatement()), "");
+      CPAMain.logManager.logException(Level.ALL, new UnrecognizedCCodeException(cfaEdge, binaryExpression), "");
       
       return mDomain.getBottomElement();
     }
@@ -751,7 +751,7 @@ public class ConcreteAnalysisTransferRelation implements TransferRelation {
         && ((IASTUnaryExpression)op1).getOperator() == IASTUnaryExpression.op_star) {
       // *a = ...
       
-      CPAMain.logManager.logException(Level.ALL, new ExplicitAnalysisTransferException("Unhandled case " + cfaEdge.getRawStatement()), "");
+      CPAMain.logManager.logException(Level.ALL, new UnrecognizedCCodeException(cfaEdge, op1), "");
       
       return mDomain.getBottomElement();
       
@@ -787,7 +787,7 @@ public class ConcreteAnalysisTransferRelation implements TransferRelation {
       return element.clone();
     
     }*/ else {
-      CPAMain.logManager.logException(Level.ALL, new ExplicitAnalysisTransferException("Unhandled case " + cfaEdge.getRawStatement()), "");
+      CPAMain.logManager.logException(Level.ALL, new UnrecognizedCCodeException(cfaEdge, op1), "");
       
       return mDomain.getBottomElement();
     }
@@ -836,7 +836,7 @@ public class ConcreteAnalysisTransferRelation implements TransferRelation {
       return newElement;
     }*/
     else{
-      CPAMain.logManager.logException(Level.ALL, new ExplicitAnalysisTransferException("Unhandled case " + cfaEdge.getRawStatement()), "");
+      CPAMain.logManager.logException(Level.ALL, new UnrecognizedCCodeException(cfaEdge, rightExp), "");
       
       return mDomain.getBottomElement();
     }
@@ -1026,14 +1026,14 @@ public class ConcreteAnalysisTransferRelation implements TransferRelation {
         return null; // valid expression, but it's a pointer value
 
       default:
-        CPAMain.logManager.logException(Level.ALL, new ExplicitAnalysisTransferException("Unhandled case " + cfaEdge.getRawStatement()), "");
+        CPAMain.logManager.logException(Level.ALL, new UnrecognizedCCodeException(cfaEdge, unaryExpression), "");
         
         return null;
       }
     } else {
       // TODO fields, arrays
       
-      CPAMain.logManager.logException(Level.ALL, new ExplicitAnalysisTransferException("Unhandled case " + cfaEdge.getRawStatement()), "");
+      CPAMain.logManager.logException(Level.ALL, new UnrecognizedCCodeException(cfaEdge, expression), "");
       
       return null;
     }
