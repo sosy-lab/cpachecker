@@ -118,8 +118,6 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       ReturnEdge returnEdge = (ReturnEdge)cfaEdge;
       CallToReturnEdge ctrEdge = returnEdge.getSuccessor().getEnteringSummaryEdge();
       handleStatement(successor, ctrEdge.getExpression(), ctrEdge);
-      //get rid of the local context
-      successor.returnFromFunction();
       break;
       
     case AssumeEdge:
@@ -462,6 +460,10 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
         boolean returnUninit = element.isUninitialized("CPAChecker_UninitVars_FunctionReturn");
         if (printWarnings && returnUninit) {
           addWarning(cfaEdge, funcExpression.getRawSignature(), expression);
+        }
+        if (cfaEdge instanceof CallToReturnEdge) {
+          //get rid of the local context, as it is no longer needed and may be different on the next call
+          element.returnFromFunction();
         }
         return returnUninit;
       }
