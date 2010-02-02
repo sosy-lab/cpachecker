@@ -2,8 +2,14 @@ package fql.fllesh;
 
 import cpa.common.interfaces.AbstractElement;
 import fql.backend.pathmonitor.Automaton;
+import fql.backend.targetgraph.Edge;
+import fql.backend.targetgraph.Node;
+import fql.backend.testgoals.EdgeSequence;
 import fql.backend.testgoals.TestGoal;
 
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.Set;
 import java.util.List;
 
@@ -13,10 +19,98 @@ public class TestGoalEnumeration {
   
   public static void run(List<Pair<Automaton, Set<? extends TestGoal>>> pCoverageSequence, Automaton pPassingMonitor, AbstractElement pInitialState) {
     assert(pCoverageSequence != null);
-    assert(pPassingMonitor != null);
-    //assert(pInitialState != null);
     
+    int lLength = pCoverageSequence.size();
     
+    ArrayList<Set<? extends TestGoal>> lTargetSets = new ArrayList<Set<? extends TestGoal>>();
+    ArrayList<Automaton> lAutomata = new ArrayList<Automaton>();
+    
+    LinkedList<Automaton> lAutomatonSequence = new LinkedList<Automaton>();
+    LinkedList<Node> lWaypointSequence = new LinkedList<Node>();
+    
+    ArrayList<Iterator<? extends TestGoal>> lIterators = new ArrayList<Iterator<? extends TestGoal>>();
+    
+    int[] lEntries = new int[lLength];
+    
+    int lIndex = 0;
+    
+    for (Pair<Automaton, Set<? extends TestGoal>> lPair : pCoverageSequence) {
+      lIterators.add(lPair.getSecond().iterator());
+      
+      lTargetSets.add(lPair.getSecond());
+      lAutomata.add(lPair.getFirst());
+      
+      lEntries[lIndex] = 0;
+      
+      lIndex++;
+    }
+    
+    lIndex = 0;
+    
+    while (lIndex >= 0) {
+      
+      while (lEntries[lIndex] > 0) {
+        lAutomatonSequence.removeLast();
+        lWaypointSequence.removeLast();
+        
+        lEntries[lIndex]--;
+      }
+      
+      if (!lIterators.get(lIndex).hasNext()) {
+        lIterators.set(lIndex, lTargetSets.get(lIndex).iterator());
+        lIndex--;
+      }
+      else {
+        TestGoal lGoal = lIterators.get(lIndex).next();
+        
+        if (lGoal instanceof Node) {
+          lAutomatonSequence.add(lAutomata.get(lIndex));
+          lWaypointSequence.add((Node)lGoal);
+          lEntries[lIndex] = 1;
+        }
+        else {
+          Node lFirstNode;
+          Node lLastNode;
+          
+          Automaton lTargetAutomaton;
+          
+          if (lGoal instanceof Edge) {
+            Edge lEdge = (Edge)lGoal;
+            lTargetAutomaton = Automaton.create(lEdge);
+            lFirstNode = lEdge.getSource();
+            lLastNode = lEdge.getTarget();
+          }
+          else {
+            EdgeSequence lEdgeSequence = (EdgeSequence)lGoal;
+            lTargetAutomaton = Automaton.create(lEdgeSequence);
+            lFirstNode = lEdgeSequence.getStartNode();
+            lLastNode = lEdgeSequence.getEndNode();
+          }
+          
+          lAutomatonSequence.add(lAutomata.get(lIndex));
+          lWaypointSequence.add(lFirstNode);
+          
+          lAutomatonSequence.add(lTargetAutomaton);
+          lWaypointSequence.add(lLastNode);
+          
+          lEntries[lIndex] = 2;
+        }
+        
+        if (lIndex < lLength - 1) {
+          lIndex++;
+        }
+        else {
+          // TODO: check feasibility
+          
+          System.out.println(lAutomatonSequence);
+          System.out.println(lWaypointSequence);
+          
+          //throw new UnsupportedOperationException("Implementation missing!");
+        }
+        
+      }
+      
+    }
   }
   
 }

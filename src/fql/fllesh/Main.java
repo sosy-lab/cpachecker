@@ -94,7 +94,16 @@ public class Main {
   private static Query parseQuery(String pFQLQuery) throws Exception {
     FQLParser lParser = new FQLParser(pFQLQuery);
     
-    Object pParseResult = lParser.parse().value;
+    Object pParseResult;
+    
+    try {
+      pParseResult = lParser.parse().value;
+    }
+    catch (Exception e) {
+      System.out.println(pFQLQuery);
+      
+      throw e;
+    }
     
     assert(pParseResult instanceof Query);
     

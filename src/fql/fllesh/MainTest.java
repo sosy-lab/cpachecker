@@ -8,11 +8,18 @@ public class MainTest {
   public void testMain001() throws Exception {
     String[] lArguments = new String[2];
     
-    lArguments[0] = "COVER STATES(ID)";
-    //lArguments[1] = "test/tests/single/functionCall.c";
-    //lArguments[1] = "test/tests/single/blast_incorrect.cil.c";
-    //lArguments[1] = "test/tests/single/lock-loop.cil.c";
-    lArguments[1] = "test/tests/single/ex2.cil.c";
+    lArguments[0] = "COVER STATES(@ENTRY(f))";
+    lArguments[1] = "test/tests/single/functionCall.c";
+    
+    Main.main(lArguments);
+  }
+  
+  @Test
+  public void testMain002() throws Exception {
+    String[] lArguments = new String[2];
+    
+    lArguments[0] = "COVER EDGES(@ENTRY(f))";
+    lArguments[1] = "test/tests/single/functionCall.c";
     
     Main.main(lArguments);
   }

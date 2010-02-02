@@ -7,7 +7,9 @@ import java.util.Set;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.graph.DefaultDirectedGraph;
 
+import fql.backend.targetgraph.Edge;
 import fql.backend.targetgraph.TargetGraph;
+import fql.backend.testgoals.EdgeSequence;
 import fql.frontend.ast.DefaultASTVisitor;
 import fql.frontend.ast.filter.BasicBlockEntry;
 import fql.frontend.ast.filter.Column;
@@ -88,6 +90,27 @@ public class Automaton {
     // TODO implement automaton cache
     
     return lResult;
+  }
+  
+  public static Automaton create(Edge pEdge) {
+    assert(pEdge != null);
+    
+    return Automaton.create(Identity.getInstance(), TargetGraph.createTargetGraph(pEdge));
+  }
+  
+  public static Automaton create(EdgeSequence pEdgeSequence) {
+    assert(pEdgeSequence != null);
+    
+    DirectedGraph<Integer, AutomatonEdge> lTransitionRelation = new DefaultDirectedGraph<Integer, AutomatonEdge>(AutomatonEdge.class);
+    
+    int lIndex = 0;
+    
+    for (Edge lEdge : pEdgeSequence) {
+      new TargetGraphEdge(lIndex, lIndex + 1, lTransitionRelation, TargetGraph.createTargetGraph(lEdge));
+      lIndex++;
+    }
+
+    return new Automaton(Collections.singleton(0), Collections.singleton(lIndex), lTransitionRelation, lIndex + 1);
   }
   
   private static class PathMonitorCreator extends DefaultASTVisitor<Automaton> {

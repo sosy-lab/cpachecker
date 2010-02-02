@@ -1,5 +1,6 @@
 package fql.backend.targetgraph;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -608,6 +609,56 @@ public class TargetGraph {
     return mGraph.edgeSet(); 
   }
     
+  public static TargetGraph createTargetGraph(Edge pEdge) {
+    assert(pEdge != null);
+    
+    Node lSourceNode = new Node(pEdge.getSource());
+    Node lTargetNode = new Node(pEdge.getTarget());
+    
+    DirectedGraph<Node, Edge> lGraph = new DefaultDirectedGraph<Node, Edge>(Edge.class);
+    
+    new Edge(lSourceNode, lTargetNode, pEdge.getCFAEdge(), lGraph);
+    
+    return new TargetGraph(Collections.singleton(lSourceNode), Collections.singleton(lTargetNode), lGraph);
+  }
+  
+  public static TargetGraph createTargetGraph(EdgeSequence pEdgeSequence) {
+    assert(pEdgeSequence != null);
+    assert(pEdgeSequence.size() > 1);
+    
+    Map<Node, Node> lNodeMap = new HashMap<Node, Node>();
+    
+    DirectedGraph<Node, Edge> lGraph = new DefaultDirectedGraph<Node, Edge>(Edge.class);
+    
+    for (Edge lEdge : pEdgeSequence) {
+      Node lOldSourceNode = lEdge.getSource();
+      Node lOldTargetNode = lEdge.getTarget();
+      
+      Node lSourceNode;
+      Node lTargetNode;
+      
+      if (!lNodeMap.containsKey(lOldSourceNode)) {
+        lSourceNode = new Node(lOldSourceNode);
+        lNodeMap.put(lOldSourceNode, lSourceNode);
+      }
+      else {
+        lSourceNode = lNodeMap.get(lOldSourceNode);
+      }
+      
+      if (!lNodeMap.containsKey(lOldTargetNode)) {
+        lTargetNode = new Node(lOldTargetNode);
+        lNodeMap.put(lOldTargetNode, lTargetNode);
+      }
+      else {
+        lTargetNode = lNodeMap.get(lOldTargetNode);
+      }
+      
+      new Edge(lSourceNode, lTargetNode, lEdge.getCFAEdge(), lGraph);
+    }
+    
+    return new TargetGraph(Collections.singleton(lNodeMap.get(pEdgeSequence.getStartNode())), Collections.singleton(lNodeMap.get(pEdgeSequence.getEndNode())), lGraph);
+  }
+  
   public static TargetGraph createTargetGraphFromCFA(CFANode pInitialNode) {
     assert(pInitialNode != null);
     
