@@ -1,5 +1,6 @@
 package fql.fllesh;
 
+import java.io.File;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -9,6 +10,7 @@ import common.Pair;
 
 import cmdline.CPAMain;
 import cmdline.CPAchecker;
+import cmdline.Cilly;
 import cpa.common.LogManager;
 import cpaplugin.CPAConfiguration;
 import cpaplugin.MainCPAStatistics;
@@ -38,7 +40,24 @@ public class Main {
     
     lArguments[0] = mConfig;
     lArguments[1] = mPropertiesFile;
-    lArguments[2] = pArguments[1];
+    
+    // check cilly invariance of source file, i.e., is it changed when preprocessed by cilly?
+    Cilly lCilly = new Cilly();
+    
+    String lSourceFileName = pArguments[1];
+    
+    if (!lCilly.isCillyInvariant(pArguments[1])) {
+      File lCillyProcessedFile = lCilly.cillyfy(pArguments[1]);
+      
+      lSourceFileName = lCillyProcessedFile.getAbsolutePath();
+      
+      System.err.println("WARNING: Given source file is not CIL invariant ... did preprocessing!");
+      
+      //throw new IllegalArgumentException("Please preprocess your source file with cilly! See options in HowTo.txt!");
+    }
+    
+    // set source file name
+    lArguments[2] = lSourceFileName;
     
     CPAConfiguration lConfiguration = new CPAConfiguration(lArguments);
     
