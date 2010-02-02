@@ -26,7 +26,7 @@ Building CPAchecker:
 For building in Eclipse:
 5. You need an SVN plugin for Eclipse, e.g. SubClipse (http://subclipse.tigris.org/).
    Create new project from SVN repository
-   URL: svn+ssh://svn.sosy-lab.org/repos/RC-software/cpachecker/trunk
+   URL: http://cpachecker.sosy-lab.org/svn/trunk
 6. If you need the parser and scanner classes or you want to remove the compiler
    errors shown by Eclipse, run "ant build-subprojects" in the project directory.
 
