@@ -57,12 +57,11 @@ public class CBMCAlgorithm implements Algorithm {
 
     if (reached.getLastElement().isError()) {
       System.out.println("________ ERROR PATH ____________");
-
-      CPAMain.dumpPathToDotFile(reached, "/home/erkan/art.dot");
-      
+      CPAMain.dumpPathToDotFile(reached, "/localhome/erkan/art.dot");
       List<ARTElement> elementsOnErrorPath = getElementsToErrorPath((ARTElement)reached.getLastElement());
+      String pathProgram = AbstractPathToCTranslator.translatePaths(cfa, elementsOnErrorPath);
+      int cbmcRes = CProver.checkSat(pathProgram);
       
-      int cbmcRes = CProver.checkSat(AbstractPathToCTranslator.translatePaths(cfa, elementsOnErrorPath));
       if(cbmcRes == 10) {
         System.out.println("CBMC comfirms the bug");
         // TODO: if stopAfterError != true, continue analysis
@@ -82,21 +81,22 @@ public class CBMCAlgorithm implements Algorithm {
   private List<ARTElement> getElementsToErrorPath(ARTElement pElement) {
     
     List<ARTElement> waitList = new ArrayList<ARTElement>();
-    List<ARTElement> ret = new ArrayList<ARTElement>();
+    List<ARTElement> retList = new ArrayList<ARTElement>();
     
     waitList.add(pElement);
     
     while(waitList.size() > 0){
       ARTElement currentElement = waitList.remove(0);
-      ret.add(currentElement);
+      retList.add(currentElement);
       for(ARTElement parent: currentElement.getParents()){
-        if(!ret.contains(parent)){
+        if((!retList.contains(parent)) && 
+            (!waitList.contains(parent))){
           waitList.add(parent);
         }
       }
     }
     
-    return ret;
+    return retList;
   }
 
   @Override
