@@ -1,0 +1,26 @@
+
+The CPAchecker Project uses the following mailing lists:
+
+- CPAchecker-Announce@sosy-lab.org
+  Announcements about the CPAchecker project.
+  Read-only, anyone can join, low traffic volume.
+  Replies go to CPAchecker-Users@sosy-lab.org
+
+- CPAchecker-Users@sosy-lab.org
+  User discussion, questions, solutions to common problems.
+  Anyone can post, anyone can join.
+
+- CPAchecker-Commits@sosy-lab.org
+  Archive of commit messages from the CPAchecker repository.
+  Read-only, by invitation only, high volume.
+  Replies go to CPAchecker-Dev@sosy-lab.org
+
+- CPAchecker-Dev@sosy-lab.org
+  Internal developer discussion about the design and implementation of CPAchecker.
+  Only for active developers (>0 cpm), members can post, by invitation only.
+
+More information can be found on the project web site at
+http://cpachecker.sosy-lab.org 
+
+dbeyer 2010-02-02
+
