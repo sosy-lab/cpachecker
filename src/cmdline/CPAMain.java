@@ -151,6 +151,22 @@ public class CPAMain {
       System.exit(1);
     }
     
+    File sourceFile = new File(names[0]);
+    if (!sourceFile.exists()) {
+      logManager.log(Level.SEVERE, "File", names[0], "does not exist!");
+      System.exit(1);
+    }
+    
+    if (!sourceFile.isFile()) {
+      logManager.log(Level.SEVERE, "File", names[0], "is not a normal file!");
+      System.exit(1);
+    }
+    
+    if (!sourceFile.canRead()) {
+      logManager.log(Level.SEVERE, "File", names[0], "is not readable!");
+      System.exit(1);
+    }
+    
     // this is for catching Ctrl+C and printing statistics even in that
     // case. It might be useful to understand what's going on when
     // the analysis takes a lot of time...
