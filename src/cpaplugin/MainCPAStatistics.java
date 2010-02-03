@@ -28,9 +28,13 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedList;
 
-import cpa.common.ReachedElements;
-
+import cmdline.CPAMain;
 import cmdline.CPAMain.Result;
+
+import compositeCPA.CompositeStopOperator;
+
+import cpa.common.ReachedElements;
+import cpa.common.interfaces.AbstractElement;
 
 public class MainCPAStatistics implements CPAStatistics {
     private Collection<CPAStatistics> subStats;
@@ -75,27 +79,39 @@ public class MainCPAStatistics implements CPAStatistics {
         long totalTimeInMillis = analysisEndingTime - analysisStartingTime;
         long totalAbsoluteTimeMillis = analysisEndingTime - programStartingTime;
 
-        out.println("\nCPAChecker general statistics:");
+        
+        if (!CPAMain.cpaConfig.getBooleanValue("analysis.dontPrintReachableStates")) {
+          out.println("\nReached set:");
+          out.println("------------");
+          for (AbstractElement e : reached) {
+            out.println(e);
+          }
+        }
+        
+        out.println("\nCPAchecker general statistics:");
         out.println("------------------------------");
+        out.println("Size of reached set: " + reached.size());
+        out.println("Number of stops:     " + CompositeStopOperator.noOfOperations); // TODO IMHO it's wrong to use CompositeStopOperator for this
         out.println("Total Time Elapsed: " + toTime(totalTimeInMillis));
         out.println("Total Time Elapsed including CFA construction: " +
                 toTime(totalAbsoluteTimeMillis));
 
         if (!subStats.isEmpty()) {
             out.println("\nAnalysis-specific statistics:");
-            out.println("-----------------------------\n");
+            out.println("-----------------------------");
             for (CPAStatistics s : subStats) {
                 String name = s.getName();
-                out.println(name);
-                char[] c = new char[name.length()];
-                Arrays.fill(c, '-');
-                out.println(String.copyValueOf(c));
+                if (name != null && !name.isEmpty()) {
+                  out.println("");
+                  out.println(name);
+                  char[] c = new char[name.length()];
+                  Arrays.fill(c, '-');
+                  out.println(String.copyValueOf(c));
+                }
                 s.printStatistics(out, result, reached);
-                out.println("");
             }
-        } else {
-            out.println("");
         }
+        out.println("");
         out.print("Error location(s) reached? ");
         switch (result) {
         case UNKNOWN:

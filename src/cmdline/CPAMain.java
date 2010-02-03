@@ -63,7 +63,6 @@ import cmdline.stubs.StubFile;
 
 import common.Pair;
 import compositeCPA.CompositeCPA;
-import compositeCPA.CompositeStopOperator;
 
 import cpa.art.ARTCPA;
 import cpa.art.ARTElement;
@@ -527,16 +526,6 @@ public class CPAMain {
         String outfileName = CPAMain.cpaConfig.getProperty("ART.file", "ART.dot");
         //if no filename is given, use default value
         dumpPathToDotFile(reached, outfilePath + outfileName);
-      }
-      
-      System.out.println();
-      System.out.println(" size of reached set: " + reached.size());
-      System.out.println(" number of stops " + CompositeStopOperator.noOfOperations);
-      
-      if (!cpaConfig.getBooleanValue("analysis.dontPrintReachableStates")) {
-        for (AbstractElement e : reached) {
-          System.out.println(e);
-        }
       }
   }
   
