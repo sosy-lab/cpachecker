@@ -28,7 +28,7 @@ import java.io.PrintWriter;
 import cmdline.CPAMain;
 import cmdline.CPAMain.Result;
 import cpa.common.ReachedElements;
-import cpaplugin.CPAStatistics;
+import cpa.common.interfaces.CPAStatistics;
 
 public class SymbPredAbsCPAStatistics implements CPAStatistics {
 

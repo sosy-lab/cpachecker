@@ -44,7 +44,7 @@ import cmdline.CPAMain.Result;
 import common.Pair;
 
 import cpa.common.ReachedElements;
-import cpaplugin.CPAStatistics;
+import cpa.common.interfaces.CPAStatistics;
 
 
 /**

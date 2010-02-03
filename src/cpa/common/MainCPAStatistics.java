@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://www.cs.sfu.ca/~dbeyer/CPAchecker/
  */
-package cpaplugin;
+package cpa.common;
 
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -33,8 +33,8 @@ import cmdline.CPAMain.Result;
 
 import compositeCPA.CompositeStopOperator;
 
-import cpa.common.ReachedElements;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.CPAStatistics;
 
 public class MainCPAStatistics implements CPAStatistics {
     private final Collection<CPAStatistics> subStats;

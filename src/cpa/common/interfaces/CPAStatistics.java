@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://www.cs.sfu.ca/~dbeyer/CPAchecker/
  */
-package cpaplugin;
+package cpa.common.interfaces;
 
 import java.io.PrintWriter;
 

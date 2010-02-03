@@ -6,8 +6,8 @@ import org.junit.Test;
 
 import cmdline.CPAMain.InvalidCmdlineArgumentException;
 import cpa.common.LogManager;
+import cpa.common.MainCPAStatistics;
 import cpaplugin.CPAConfiguration;
-import cpaplugin.MainCPAStatistics;
 import exceptions.CPAException;
 
 public class CPAcheckerTest {

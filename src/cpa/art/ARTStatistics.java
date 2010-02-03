@@ -14,8 +14,8 @@ import cfa.objectmodel.CFANode;
 import cmdline.CPAMain;
 import cmdline.CPAMain.Result;
 import cpa.common.ReachedElements;
+import cpa.common.interfaces.CPAStatistics;
 import cpa.symbpredabsCPA.SymbPredAbsAbstractElement;
-import cpaplugin.CPAStatistics;
 
 public class ARTStatistics implements CPAStatistics {
 
