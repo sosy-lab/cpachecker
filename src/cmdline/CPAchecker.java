@@ -30,7 +30,6 @@ import cmdline.stubs.StubFile;
 
 import common.Pair;
 import compositeCPA.CompositeCPA;
-import compositeCPA.CompositeStopOperator;
 
 import cpa.art.ARTCPA;
 import cpa.common.LogManager;
@@ -318,8 +317,7 @@ public class CPAchecker {
       
     ConfigurableProgramAnalysis cpa = CompositeCPA.getCompositeCPA(mMainFunction);
 
-    boolean useART = mConfiguration.getBooleanValue("analysis.useART"); 
-    if (useART) {
+    if (mConfiguration.getBooleanValue("analysis.useART")) {
       cpa = ARTCPA.getARTCPA(mMainFunction, cpa);
     }
           
@@ -343,23 +341,6 @@ public class CPAchecker {
     }
     
     ReachedElements reached = run(algorithm, cpa.getInitialElement(mMainFunction), cpa.getInitialPrecision(mMainFunction));
-    
-    if (useART && mConfiguration.getBooleanValue("ART.export")) {
-      String outfilePath = mConfiguration.getProperty("output.path");
-      String outfileName = mConfiguration.getProperty("ART.file", "ART.dot");
-      //if no filename is given, use default value
-      CPAMain.dumpPathToDotFile(reached, outfilePath + outfileName);
-    }
-      
-    System.out.println();
-    System.out.println(" size of reached set: " + reached.size());
-    System.out.println(" number of stops " + CompositeStopOperator.noOfOperations);
-      
-    if (!mConfiguration.getBooleanValue("analysis.dontPrintReachableStates")) {
-      for (AbstractElement e : reached) {
-        System.out.println(e);
-      }
-    }
     
     for (AbstractElement reachedElement : reached) {
       if (reachedElement.isError()) {

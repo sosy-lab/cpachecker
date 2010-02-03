@@ -29,6 +29,8 @@ import exceptions.CPAException;
 
 public class ARTCPA implements ConfigurableProgramAnalysis, CPAWithStatistics, CPAWrapper {
 
+  private static final CPAStatistics stats = new ARTStatistics();
+  
   private final AbstractDomain abstractDomain;
   private final TransferRelation transferRelation;
   private final MergeOperator mergeOperator;
@@ -160,6 +162,7 @@ public class ARTCPA implements ConfigurableProgramAnalysis, CPAWithStatistics, C
 
   @Override
   public void collectStatistics(Collection<CPAStatistics> pStatsCollection) {
+    pStatsCollection.add(stats);
     if (wrappedCPA instanceof CPAWithStatistics) {
       ((CPAWithStatistics)wrappedCPA).collectStatistics(pStatsCollection);
     }
