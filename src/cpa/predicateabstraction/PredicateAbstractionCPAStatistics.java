@@ -43,6 +43,7 @@ import cmdline.CPAMain.Result;
 
 import common.Pair;
 
+import cpa.common.ReachedElements;
 import cpaplugin.CPAStatistics;
 
 
@@ -65,7 +66,7 @@ public class PredicateAbstractionCPAStatistics implements CPAStatistics {
     }
 
     @Override
-    public void printStatistics(PrintWriter out, Result result) {
+    public void printStatistics(PrintWriter out, Result result, ReachedElements reached) {
       PredicateAbstractionTransferRelation trans =
             (PredicateAbstractionTransferRelation)cpa.getTransferRelation();
         PredicateMap pmap = cpa.getPredicateMap();

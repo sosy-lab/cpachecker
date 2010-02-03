@@ -28,6 +28,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedList;
 
+import cpa.common.ReachedElements;
+
 import cmdline.CPAMain.Result;
 
 public class MainCPAStatistics implements CPAStatistics {
@@ -69,7 +71,7 @@ public class MainCPAStatistics implements CPAStatistics {
     }
 
     @Override
-    public void printStatistics(PrintWriter out, Result result) {
+    public void printStatistics(PrintWriter out, Result result, ReachedElements reached) {
         long totalTimeInMillis = analysisEndingTime - analysisStartingTime;
         long totalAbsoluteTimeMillis = analysisEndingTime - programStartingTime;
 
@@ -88,7 +90,7 @@ public class MainCPAStatistics implements CPAStatistics {
                 char[] c = new char[name.length()];
                 Arrays.fill(c, '-');
                 out.println(String.copyValueOf(c));
-                s.printStatistics(out, result);
+                s.printStatistics(out, result, reached);
                 out.println("");
             }
         } else {

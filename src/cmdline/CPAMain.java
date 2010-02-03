@@ -100,7 +100,14 @@ public class CPAMain {
   
   private static Result result = Result.UNKNOWN;
 
-  public static class ShutdownHook extends Thread {
+  private static class ShutdownHook extends Thread {
+    
+    private final ReachedElements mReached;
+    
+    public ShutdownHook(ReachedElements pReached) {
+      mReached = pReached;
+    }
+    
     @Override
     public void run() {
       if (interrupted) {
@@ -110,7 +117,7 @@ public class CPAMain {
        
       System.out.flush();
       System.err.flush();
-      cpaStats.printStatistics(new PrintWriter(System.out), result);
+      cpaStats.printStatistics(new PrintWriter(System.out), result, mReached);
       
       if (interrupted) {
         System.out.println("\n" +
@@ -492,7 +499,7 @@ public class CPAMain {
       // this is for catching Ctrl+C and printing statistics even in that
       // case. It might be useful to understand what's going on when
       // the analysis takes a lot of time...
-      Runtime.getRuntime().addShutdownHook(new ShutdownHook());
+      Runtime.getRuntime().addShutdownHook(new ShutdownHook(reached));
 
       logManager.log(Level.INFO, "Starting analysis...");
       cpaStats.startAnalysisTimer();

@@ -27,6 +27,7 @@ import java.io.PrintWriter;
 
 import cmdline.CPAMain;
 import cmdline.CPAMain.Result;
+import cpa.common.ReachedElements;
 import cpaplugin.CPAStatistics;
 
 public class SymbPredAbsCPAStatistics implements CPAStatistics {
@@ -43,7 +44,7 @@ public class SymbPredAbsCPAStatistics implements CPAStatistics {
     }
 
     @Override
-    public void printStatistics(PrintWriter out, Result result) {
+    public void printStatistics(PrintWriter out, Result result, ReachedElements reached) {
       MathsatSymbPredAbsFormulaManager<?> amgr =
         (MathsatSymbPredAbsFormulaManager<?>)cpa.getFormulaManager();
 

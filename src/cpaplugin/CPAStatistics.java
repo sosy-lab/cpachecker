@@ -25,6 +25,8 @@ package cpaplugin;
 
 import java.io.PrintWriter;
 
+import cpa.common.ReachedElements;
+
 import static cmdline.CPAMain.Result;
 
 /**
@@ -34,9 +36,11 @@ import static cmdline.CPAMain.Result;
 public interface CPAStatistics {
     /**
      * Prints this group of statistics using the given writer
-     * @param out
+     * @param out the writer to use for printing the statistics
+     * @param result the result of the analysis 
+     * @param reached the final reached set
      */
-    public void printStatistics(PrintWriter out, Result result);
+    public void printStatistics(PrintWriter out, Result result, ReachedElements reached);
 
     /**
      * @return The name for this group of statistics
