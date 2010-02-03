@@ -9,8 +9,6 @@ import java.util.Set;
 import common.Pair;
 
 import cmdline.CPAMain;
-import cmdline.CPAchecker;
-import cmdline.Cilly;
 import cpa.common.CPAConfiguration;
 import cpa.common.LogManager;
 import cpa.common.MainCPAStatistics;

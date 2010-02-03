@@ -9,13 +9,13 @@ import java.util.Set;
 import org.junit.Test;
 
 import cmdline.CPAMain;
-import cmdline.CPAchecker;
 import cmdline.CPAMain.InvalidCmdlineArgumentException;
 import cpa.common.CPAConfiguration;
 import cpa.common.LogManager;
 import cpa.common.MainCPAStatistics;
 import exceptions.CPAException;
 import fql.backend.testgoals.TestGoal;
+import fql.fllesh.CPAchecker;
 import fql.frontend.ast.coverage.Edges;
 import fql.frontend.ast.coverage.Paths;
 import fql.frontend.ast.coverage.States;

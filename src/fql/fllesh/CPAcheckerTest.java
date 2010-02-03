@@ -1,9 +1,10 @@
-package cmdline;
+package fql.fllesh;
 
 import java.io.IOException;
 
 import org.junit.Test;
 
+import cmdline.CPAMain;
 import cmdline.CPAMain.InvalidCmdlineArgumentException;
 import cpa.common.CPAConfiguration;
 import cpa.common.LogManager;
