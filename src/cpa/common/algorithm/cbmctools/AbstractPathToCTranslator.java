@@ -57,7 +57,6 @@ import cfa.objectmodel.c.MultiDeclarationEdge;
 import cfa.objectmodel.c.MultiStatementEdge;
 import cfa.objectmodel.c.ReturnEdge;
 import cfa.objectmodel.c.StatementEdge;
-import cmdline.CPAMain;
 import cpa.art.ARTElement;
 
 /**
@@ -193,7 +192,7 @@ public class AbstractPathToCTranslator {
 
     // add the first edge and the first stack element
     CBMCEdge firstEdge = new CBMCEdge(firstElement, firstElementsChild, 
-        CPAMain.getEdgeBetween(firstElement, firstElementsChild), newStack);
+        firstElement.getEdgeToChild(firstElementsChild), newStack);
     waitlist.add(firstEdge);
 
     while(waitlist.size() > 0){
@@ -317,7 +316,7 @@ public class AbstractPathToCTranslator {
       if(relevantChildrenOfElement.size() == 1){
         // get the next ART element, create a new edge using the same stack and add it to the waitlist
         ARTElement elem = relevantChildrenOfElement.get(0);
-        CFAEdge e = CPAMain.getEdgeBetween(childElement, elem);
+        CFAEdge e = childElement.getEdgeToChild(elem);
         CBMCEdge newEdge = new CBMCEdge(childElement, elem, e, stack);
         waitlist.add(newEdge);
       }
@@ -327,7 +326,7 @@ public class AbstractPathToCTranslator {
       else if(relevantChildrenOfElement.size() > 1){
         for(ARTElement elem: relevantChildrenOfElement){
           Stack<Stack<CBMCStackElement>> newCondStack = cloneStack(stack);  
-          CFAEdge e = CPAMain.getEdgeBetween(childElement, elem);
+          CFAEdge e = childElement.getEdgeToChild(elem);
           Stack<CBMCStackElement> lastStackOfFunction = newCondStack.peek();
           assert(e instanceof AssumeEdge);
           AssumeEdge assumeEdge = (AssumeEdge)e;

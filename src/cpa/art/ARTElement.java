@@ -9,6 +9,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import com.google.common.base.Preconditions;
+
+import cfa.objectmodel.CFAEdge;
+import cfa.objectmodel.CFANode;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.AbstractWrapperElement;
@@ -237,4 +241,18 @@ public class ARTElement implements AbstractWrapperElement {
     return it.next();
   }
 
+  public CFAEdge getEdgeToChild(ARTElement pChild) {
+    Preconditions.checkArgument(children.contains(pChild));
+    
+    CFANode currentLoc = this.retrieveLocationElement().getLocationNode();
+    CFANode childNode = pChild.retrieveLocationElement().getLocationNode();
+
+    for (int i = 0; i < childNode.getNumEnteringEdges(); i++) {
+      CFAEdge edge = childNode.getEnteringEdge(i);
+      if (currentLoc.getNodeNumber() == edge.getPredecessor().getNodeNumber()) {
+        return edge;
+      }
+    }
+    return null;
+  }
 }

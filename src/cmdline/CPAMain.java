@@ -579,7 +579,7 @@ public class CPAMain {
         nodesList.add(currentElement.getElementId());
       }
       for(ARTElement child : currentElement.getChildren()){
-        CFAEdge edge = getEdgeBetween(currentElement, child);
+        CFAEdge edge = currentElement.getEdgeToChild(child);
         sb.append(currentElement.getElementId());
         sb.append(" -> ");
         sb.append(child.getElementId());
@@ -598,19 +598,4 @@ public class CPAMain {
     out.close();
   }
 
-  public static CFAEdge getEdgeBetween(final ARTElement pCurrentElement,
-      ARTElement pChild) {
-    CFANode currentLoc = pCurrentElement.retrieveLocationElement().getLocationNode();
-    CFAEdge writeEdge = null;
-    CFANode childNode = pChild.retrieveLocationElement().getLocationNode();
-    if(childNode != null){
-      for(int i=0; i<childNode.getNumEnteringEdges(); i++){
-        CFAEdge edge = childNode.getEnteringEdge(i);
-        if(currentLoc.getNodeNumber() == edge.getPredecessor().getNodeNumber()){
-          writeEdge = edge;
-        }
-      }
-    }
-    return writeEdge;
-  }
 }
