@@ -57,7 +57,6 @@ public class CBMCAlgorithm implements Algorithm {
 
     if (reached.getLastElement().isError()) {
       System.out.println("________ ERROR PATH ____________");
-      CPAMain.dumpPathToDotFile(reached, "/localhome/erkan/art.dot");
       List<ARTElement> elementsOnErrorPath = getElementsToErrorPath((ARTElement)reached.getLastElement());
       String pathProgram = AbstractPathToCTranslator.translatePaths(cfa, elementsOnErrorPath);
       int cbmcRes = CProver.checkSat(pathProgram);

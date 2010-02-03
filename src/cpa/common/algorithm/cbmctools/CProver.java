@@ -45,16 +45,15 @@ public class CProver {
   public static int checkSat (String pTranslatedProgram) {
 
     File lFile = null;
-    lFile = new File("/localhome/erkan/path.c");
-//    try {
-//      lFile = File.createTempFile("path", ".c");
-//    } catch (IOException e1) {
+//    lFile = new File("/localhome/erkan/path.c");
+    try {
+      lFile = File.createTempFile("path", ".c");
+    } catch (IOException e1) {
 //      If this is activated again, it should call CPAMain.logManager.logException for
 //      documenting the exception. This automatically prints the stack trace as well.
-//      // TODO Auto-generated catch block
-//      e1.printStackTrace();
-//    }
-//    lFile.deleteOnExit();
+      e1.printStackTrace();
+    }
+    lFile.deleteOnExit();
 
     PrintWriter lWriter = null;
     try {
