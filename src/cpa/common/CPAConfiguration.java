@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://www.cs.sfu.ca/~dbeyer/CPAchecker/
  */
-package cpaplugin;
+package cpa.common;
 
 import java.io.File;
 import java.io.FileInputStream;

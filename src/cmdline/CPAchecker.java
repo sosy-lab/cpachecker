@@ -32,6 +32,7 @@ import common.Pair;
 import compositeCPA.CompositeCPA;
 
 import cpa.art.ARTCPA;
+import cpa.common.CPAConfiguration;
 import cpa.common.LogManager;
 import cpa.common.MainCPAStatistics;
 import cpa.common.ReachedElements;
@@ -44,7 +45,6 @@ import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.CPAWithStatistics;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;
-import cpaplugin.CPAConfiguration;
 import exceptions.CFAGenerationRuntimeException;
 import exceptions.CPAException;
 

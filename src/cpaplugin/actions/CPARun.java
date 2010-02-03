@@ -50,8 +50,8 @@ import org.eclipse.ui.console.IOConsoleOutputStream;
 import org.eclipse.ui.console.MessageConsole;
 
 import cmdline.CPAMain;
+import cpa.common.CPAConfiguration;
 import cpa.common.LogManager;
-import cpaplugin.CPAConfiguration;
 
 public class CPARun implements IWorkbenchWindowActionDelegate
 {

@@ -5,9 +5,9 @@ import java.io.IOException;
 import org.junit.Test;
 
 import cmdline.CPAMain.InvalidCmdlineArgumentException;
+import cpa.common.CPAConfiguration;
 import cpa.common.LogManager;
 import cpa.common.MainCPAStatistics;
-import cpaplugin.CPAConfiguration;
 import exceptions.CPAException;
 
 public class CPAcheckerTest {
