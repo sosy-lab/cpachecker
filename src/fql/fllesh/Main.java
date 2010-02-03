@@ -86,9 +86,18 @@ public class Main {
       lTargetSequence.add(lPair);
     }
     
-    lTargetSequence.add(new Pair<Automaton, Set<? extends TestGoal>>(lCoverageSequence.getFinalMonitor(), Collections.singleton(new Node(lCPAchecker.getMainFunction().getExitNode()))));
+    Node lProgramEntry = new Node(lCPAchecker.getMainFunction());
+    Node lProgramExit = new Node(lCPAchecker.getMainFunction().getExitNode());
     
-    TestGoalEnumeration.run(lTargetSequence, lPassingMonitor, null);
+    lTargetSequence.add(new Pair<Automaton, Set<? extends TestGoal>>(lCoverageSequence.getFinalMonitor(), Collections.singleton(lProgramExit)));
+    
+    Set<FeasibilityWitness> lWitnesses = TestGoalEnumeration.run(lTargetSequence, lPassingMonitor, lProgramEntry);
+    
+    generateTestCases(lWitnesses);
+  }
+  
+  private static void generateTestCases(Set<FeasibilityWitness> pWitnesses) {
+    // TODO: implement test case generation mechanism
   }
   
   private static Query parseQuery(String pFQLQuery) throws Exception {

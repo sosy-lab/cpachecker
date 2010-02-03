@@ -1,6 +1,5 @@
 package fql.fllesh;
 
-import cpa.common.interfaces.AbstractElement;
 import fql.backend.pathmonitor.Automaton;
 import fql.backend.targetgraph.Edge;
 import fql.backend.targetgraph.Node;
@@ -8,6 +7,8 @@ import fql.backend.testgoals.EdgeSequence;
 import fql.backend.testgoals.TestGoal;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Set;
@@ -17,8 +18,10 @@ import common.Pair;
 
 public class TestGoalEnumeration {
   
-  public static void run(List<Pair<Automaton, Set<? extends TestGoal>>> pCoverageSequence, Automaton pPassingMonitor, AbstractElement pInitialState) {
+  public static Set<FeasibilityWitness> run(List<Pair<Automaton, Set<? extends TestGoal>>> pCoverageSequence, Automaton pPassingMonitor, Node pInitialState) {
     assert(pCoverageSequence != null);
+    
+    HashSet<FeasibilityWitness> lWitnesses = new HashSet<FeasibilityWitness>();
     
     int lLength = pCoverageSequence.size();
     
@@ -100,17 +103,59 @@ public class TestGoalEnumeration {
           lIndex++;
         }
         else {
-          // TODO: check feasibility
+          Witness lWitness = FeasibilityCheck.run(lAutomatonSequence, lWaypointSequence, pPassingMonitor, pInitialState);
           
-          System.out.println(lAutomatonSequence);
-          System.out.println(lWaypointSequence);
-          
-          //throw new UnsupportedOperationException("Implementation missing!");
+          if (lWitness instanceof InfeasibilityWitness) {
+            InfeasibilityWitness lInfeasibilityWitness = (InfeasibilityWitness)lWitness;
+            
+            int lBacktrackLevel = determineBacktrackLevel(lInfeasibilityWitness, lEntries);
+            
+            // TODO: remove output
+            System.out.println("lLength: " + lLength);
+            System.out.println("lAutomatonSequence.size(): " + lAutomatonSequence.size());
+            System.out.println("lInfeasibilityWitness.getBacktrackIndex(): " + lInfeasibilityWitness.getBacktrackIndex());
+            System.out.println("lBacktrackLevel: " + lBacktrackLevel);
+            
+            for (int i = lBacktrackLevel; i < lLength; i++) {
+              Set<? extends TestGoal> lEmptySet = Collections.emptySet();
+              lIterators.set(i, lEmptySet.iterator());
+            }
+          }
+          else {
+            FeasibilityWitness lFeasibilityWitness = (FeasibilityWitness)lWitness;
+            
+            lWitnesses.add(lFeasibilityWitness);
+          }
         }
         
       }
       
     }
+    
+    return lWitnesses;
+  }
+  
+  private static int determineBacktrackLevel(InfeasibilityWitness pWitness, int[] pEntries) {
+    assert(pWitness != null);
+    assert(pEntries != null);
+    
+    int lSum = 0;
+    
+    for (int lIndex = 0; lIndex < pEntries.length; lIndex++) {
+      lSum += pEntries[lIndex];
+    }
+    
+    // normalize to sum
+    int lBacktrackIndex = pWitness.getBacktrackIndex() + 1;
+    
+    int lBacktrackLevel = pEntries.length - 1;
+    
+    while (lSum > lBacktrackIndex) {
+      lSum -= pEntries[lBacktrackLevel];
+      lBacktrackLevel--;
+    }
+    
+    return lBacktrackLevel;
   }
   
 }

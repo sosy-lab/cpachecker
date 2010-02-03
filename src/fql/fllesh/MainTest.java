@@ -24,4 +24,14 @@ public class MainTest {
     Main.main(lArguments);
   }
 
+  @Test
+  public void testMain003() throws Exception {
+    String[] lArguments = new String[2];
+    
+    lArguments[0] = "COVER EDGES(UNION(@ENTRY(f), @ENTRY(main)))";
+    lArguments[1] = "test/tests/single/functionCall.c";
+    
+    Main.main(lArguments);
+  }
+  
 }
