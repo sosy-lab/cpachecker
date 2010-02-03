@@ -6,10 +6,10 @@ import org.junit.Test;
 
 import cmdline.CPAMain;
 import cmdline.CPAchecker;
+import cmdline.CPAMain.InvalidCmdlineArgumentException;
 import cpa.common.LogManager;
 import cpaplugin.CPAConfiguration;
 import cpaplugin.MainCPAStatistics;
-import cpaplugin.CPAConfiguration.InvalidCmdlineArgumentException;
 import exceptions.CPAException;
 import fql.backend.targetgraph.TargetGraph;
 import fql.frontend.ast.coverage.Edges;
@@ -34,7 +34,7 @@ public class QueryEvaluationTest {
     lArguments[1] = mPropertiesFile;
     lArguments[2] = "test/tests/single/functionCall.c";
     
-    CPAConfiguration lConfiguration = new CPAConfiguration(lArguments);
+    CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
     
     // necessary for LogManager
     CPAMain.cpaConfig = lConfiguration;
@@ -62,7 +62,7 @@ public class QueryEvaluationTest {
     lArguments[1] = mPropertiesFile;
     lArguments[2] = "test/tests/single/functionCall.c";
     
-    CPAConfiguration lConfiguration = new CPAConfiguration(lArguments);
+    CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
     
     // necessary for LogManager
     CPAMain.cpaConfig = lConfiguration;
@@ -94,7 +94,7 @@ public class QueryEvaluationTest {
     lArguments[1] = mPropertiesFile;
     lArguments[2] = "test/tests/single/functionCall.c";
     
-    CPAConfiguration lConfiguration = new CPAConfiguration(lArguments);
+    CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
     
     // necessary for LogManager
     CPAMain.cpaConfig = lConfiguration;

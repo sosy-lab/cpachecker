@@ -27,10 +27,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Properties;
 
 
@@ -44,61 +40,12 @@ import java.util.Properties;
  */
 public class CPAConfiguration extends Properties {
 
-  public static class InvalidCmdlineArgumentException extends Exception {
-
-    private static final long serialVersionUID = -6526968677815416436L;
-
-    private InvalidCmdlineArgumentException(String msg) {
-      super(msg);
-    }
-  }
-
   private static final long serialVersionUID = -5910186668866464153L;
   /** Delimiters to create string arrays */
   private static final String DELIMS = "[;, ]+";
 
-  // TODO use arguments later to change config values dynamically
-  /**
-   * Class constructor to process arguments and load file.
-   * @param args arguments to change values dynamically
-   */
-  public CPAConfiguration(String[] args) throws InvalidCmdlineArgumentException, IOException {
-
-    // get the file name
-    String fileName = getConfigFileName(args);
-    // load the file
-    loadFile(fileName);
-    // if there are some commandline arguments, process them
-    if (args != null) {
-      processArgs(args);                
-    }
-    //normalizeValues();
-  }
-
   public CPAConfiguration(String fileName) throws IOException {
-    // load the file
     loadFile(fileName);
-  }
-
-  /**
-   * if -config is specified in arguments, loads this properties file,
-   * otherwise loads the file from a default location. Default properties file is
-   * $CPACheckerMain/default.properties
-   * @param args commandline arguments
-   */
-  private String getConfigFileName(String[] args) throws InvalidCmdlineArgumentException{
-    Iterator<String> argsIt = Arrays.asList(args).iterator();
-
-    while (argsIt.hasNext()) {
-      if (argsIt.next().equals("-config")) {
-        if (argsIt.hasNext()) {
-          return argsIt.next();
-        } else {
-          throw new InvalidCmdlineArgumentException("-config argument missing!");
-        }
-      }
-    }
-    return null;
   }
 
   private String getDefaultConfigFileName() {
@@ -108,96 +55,6 @@ public class CPAConfiguration extends Properties {
     int index = binDirString.lastIndexOf(File.separatorChar);
     binDirString = binDirString.substring(0, index);
     return binDirString + ".." + File.separatorChar + "default.properties";
-  }
-
-  /**
-   * Handle a command line argument with one value.
-   */
-  private boolean handleArgument1(String arg, String option, String currentArg, Iterator<String> args)
-  throws InvalidCmdlineArgumentException {
-    if (currentArg.equals(arg)) {
-      if (args.hasNext()) {
-        this.setProperty(option, args.next());
-      } else {
-        throw new InvalidCmdlineArgumentException(currentArg + " argument missing!");
-      }
-      return true;
-    } else {
-      return false;
-    }
-  }
-
-  /**
-   * Reads the arguments and process them. If a corresponding key is found, the property
-   * is updated
-   * @param args commandline arguments
-   * @throws Exception if an option is set but no value for the option is found
-   */
-  private void processArgs(String[] args) throws InvalidCmdlineArgumentException {
-    List<String> ret = new ArrayList<String>();
-
-    Iterator<String> argsIt = Arrays.asList(args).iterator();
-
-    while (argsIt.hasNext()) {
-      String arg = argsIt.next();
-      if (   handleArgument1("-outputpath", "output.path", arg, argsIt)
-          || handleArgument1("-logfile", "log.file", arg, argsIt)
-          || handleArgument1("-cfafile", "cfa.file", arg, argsIt)
-          || handleArgument1("-predlistpath", "predicates.path", arg, argsIt)
-          || handleArgument1("-entryfunction", "analysis.entryFunction", arg, argsIt)
-      ) { 
-        // nothing left to do 
-
-      } else if (arg.equals("-dfs")) {
-        this.setProperty("analysis.traversal", "dfs");
-      } else if (arg.equals("-bfs")) {
-        this.setProperty("analysis.traversal", "bfs");
-      } else if (arg.equals("-topsort")) {
-        this.setProperty("analysis.traversal", "topsort");
-      } else if (arg.equals("-nolog")) {
-        this.setProperty("log.level", "off");
-        this.setProperty("log.consoleLevel", "off");
-      } else if (arg.equals("-setprop")) {
-        if (argsIt.hasNext()) {
-          String[] bits = argsIt.next().split("=");
-          if (bits.length != 2) {
-            throw new InvalidCmdlineArgumentException(
-                "-setprop argument must be a key=value pair!");
-          }
-          this.setProperty(bits[0], bits[1]);
-        } else {
-          throw new InvalidCmdlineArgumentException("-setprop argument missing!");
-        }
-      } else if (arg.equals("-help")) {
-        System.out.println("OPTIONS:");
-        System.out.println(" -outputpath");
-        System.out.println(" -logfile");
-        System.out.println(" -cfafile");
-        System.out.println(" -predlistpath");
-        System.out.println(" -entryfunction");
-        System.out.println(" -dfs");
-        System.out.println(" -bfs");
-        System.out.println(" -nolog");
-        System.out.println(" -setprop");
-        System.out.println(" -help");
-        System.exit(0);
-      } else if (arg.equals("-config")) {
-        // this has been processed earlier, in loadFileName
-        argsIt.next(); // ignore config file name argument
-      } else {
-        ret.add(arg);
-      }
-    }
-
-    // arguments with non-specified options are considered as file names
-    if (!ret.isEmpty()) {
-      Iterator<String> it = ret.iterator();
-      String programNames = it.next();
-      while (it.hasNext()) {
-        programNames = programNames + ", " + it.next();
-      }
-      this.setProperty("analysis.programNames", programNames);
-    }
   }
 
   /**
@@ -219,30 +76,6 @@ public class CPAConfiguration extends Properties {
     }
 
   }
-
-  // TODO implement this when you get really bored
-  //	void normalizeValues() {
-  //	for (Enumeration<?> keys = propertyNames(); keys.hasMoreElements();) {
-  //	String k = (String) keys.nextElement();
-  //	String v = getProperty(k);
-
-  //	// trim heading and trailing blanks (at least Java 1.4.2 does not take care of trailing blanks)
-  //	String v0 = v;
-  //	v = v.trim();
-  //	if (!v.equals(v0)) {
-  //	put(k, v);
-  //	}
-
-  //	if ("true".equalsIgnoreCase(v) || "t".equalsIgnoreCase(v)
-  //	|| "yes".equalsIgnoreCase(v) || "y".equalsIgnoreCase(v)) {
-  //	put(k, "true");
-  //	} else if ("false".equalsIgnoreCase(v) || "f".equalsIgnoreCase(v)
-  //	|| "no".equalsIgnoreCase(v) || "n".equalsIgnoreCase(v)) {
-  //	put(k, "false");
-  //	}
-  //	}
-  //	}
-
 
   /**
    * If there are a number of properties for a given key, this method will split them
@@ -266,4 +99,3 @@ public class CPAConfiguration extends Properties {
     return Boolean.valueOf(getProperty(key));
   }
 }
-

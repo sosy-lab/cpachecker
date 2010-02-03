@@ -55,7 +55,6 @@ import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.PartialOrder;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.StopOperator;
-import cpaplugin.CPAConfiguration;
 import exceptions.CPAException;
 
 /**
@@ -72,7 +71,7 @@ public class CPASelfCheck {
       CPAMain.logManager.log(Level.INFO, "Searching for CPAs");
       LinkedList<Class<ConfigurableProgramAnalysis>> cpas = getCPAs();
       
-      CPAMain.cpaConfig = new CPAConfiguration(args);
+      CPAMain.cpaConfig = CPAMain.createConfiguration(args);
       CPAMain.logManager = LogManager.getInstance();
 
       for (Class<ConfigurableProgramAnalysis> cpa : cpas) {

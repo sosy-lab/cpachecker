@@ -59,7 +59,7 @@ public class Main {
     // set source file name
     lArguments[2] = lSourceFileName;
     
-    CPAConfiguration lConfiguration = new CPAConfiguration(lArguments);
+    CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
     
     // necessary for LogManager
     CPAMain.cpaConfig = lConfiguration;

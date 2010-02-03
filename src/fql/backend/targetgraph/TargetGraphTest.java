@@ -1,6 +1,7 @@
 package fql.backend.targetgraph;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.Set;
@@ -9,10 +10,10 @@ import org.junit.Test;
 
 import cmdline.CPAMain;
 import cmdline.CPAchecker;
+import cmdline.CPAMain.InvalidCmdlineArgumentException;
 import cpa.common.LogManager;
 import cpaplugin.CPAConfiguration;
 import cpaplugin.MainCPAStatistics;
-import cpaplugin.CPAConfiguration.InvalidCmdlineArgumentException;
 import exceptions.CPAException;
 import fql.backend.testgoals.TestGoal;
 import fql.frontend.ast.coverage.Edges;
@@ -42,7 +43,7 @@ public class TargetGraphTest {
     lArguments[1] = mPropertiesFile;
     lArguments[2] = "test/tests/single/functionCall.c";
     
-    CPAConfiguration lConfiguration = new CPAConfiguration(lArguments);
+    CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
     
     // necessary for LogManager
     CPAMain.cpaConfig = lConfiguration;
@@ -66,7 +67,7 @@ public class TargetGraphTest {
     lArguments[1] = mPropertiesFile;
     lArguments[2] = "test/tests/single/loop1.c";
         
-    CPAConfiguration lConfiguration = new CPAConfiguration(lArguments);
+    CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
     
     // necessary for LogManager
     CPAMain.cpaConfig = lConfiguration;
@@ -96,7 +97,7 @@ public class TargetGraphTest {
      * it can not handle pointers at the moment.
      */
     
-    CPAConfiguration lConfiguration = new CPAConfiguration(lArguments);
+    CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
     
     // necessary for LogManager
     CPAMain.cpaConfig = lConfiguration;
@@ -126,7 +127,7 @@ public class TargetGraphTest {
      * it can not handle pointers at the moment.
      */
     
-    CPAConfiguration lConfiguration = new CPAConfiguration(lArguments);
+    CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
     
     // necessary for LogManager
     CPAMain.cpaConfig = lConfiguration;
@@ -158,7 +159,7 @@ public class TargetGraphTest {
      * it can not handle pointers at the moment.
      */
     
-    CPAConfiguration lConfiguration = new CPAConfiguration(lArguments);
+    CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
     
     // necessary for LogManager
     CPAMain.cpaConfig = lConfiguration;
@@ -193,7 +194,7 @@ public class TargetGraphTest {
      * it can not handle pointers at the moment.
      */
     
-    CPAConfiguration lConfiguration = new CPAConfiguration(lArguments);
+    CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
     
     // necessary for LogManager
     CPAMain.cpaConfig = lConfiguration;
@@ -221,7 +222,7 @@ public class TargetGraphTest {
     lArguments[1] = mPropertiesFile;
     lArguments[2] = "test/tests/single/functionCall.c";
     
-    CPAConfiguration lConfiguration = new CPAConfiguration(lArguments);
+    CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
     
     // necessary for LogManager
     CPAMain.cpaConfig = lConfiguration;
@@ -249,7 +250,7 @@ public class TargetGraphTest {
     lArguments[1] = mPropertiesFile;
     lArguments[2] = "test/tests/single/functionCall.c";
     
-    CPAConfiguration lConfiguration = new CPAConfiguration(lArguments);
+    CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
     
     // necessary for LogManager
     CPAMain.cpaConfig = lConfiguration;
@@ -277,7 +278,7 @@ public class TargetGraphTest {
     lArguments[1] = mPropertiesFile;
     lArguments[2] = "test/tests/single/functionCall.c";
     
-    CPAConfiguration lConfiguration = new CPAConfiguration(lArguments);
+    CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
     
     // necessary for LogManager
     CPAMain.cpaConfig = lConfiguration;
@@ -304,7 +305,7 @@ public class TargetGraphTest {
     lArguments[1] = mPropertiesFile;
     lArguments[2] = "test/tests/single/functionCall.c";
     
-    CPAConfiguration lConfiguration = new CPAConfiguration(lArguments);
+    CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
     
     // necessary for LogManager
     CPAMain.cpaConfig = lConfiguration;
@@ -349,7 +350,7 @@ public class TargetGraphTest {
     lArguments[1] = mPropertiesFile;
     lArguments[2] = "test/tests/single/functionCall.c";
     
-    CPAConfiguration lConfiguration = new CPAConfiguration(lArguments);
+    CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
     
     // necessary for LogManager
     CPAMain.cpaConfig = lConfiguration;
@@ -380,7 +381,7 @@ public class TargetGraphTest {
     lArguments[1] = mPropertiesFile;
     lArguments[2] = "test/tests/single/uninitVars.cil.c";
     
-    CPAConfiguration lConfiguration = new CPAConfiguration(lArguments);
+    CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
     
     // necessary for LogManager
     CPAMain.cpaConfig = lConfiguration;
@@ -416,7 +417,7 @@ public class TargetGraphTest {
     lArguments[1] = mPropertiesFile;
     lArguments[2] = "test/tests/single/uninitVars.cil.c";
     
-    CPAConfiguration lConfiguration = new CPAConfiguration(lArguments);
+    CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
     
     // necessary for LogManager
     CPAMain.cpaConfig = lConfiguration;
@@ -447,7 +448,7 @@ public class TargetGraphTest {
     lArguments[1] = mPropertiesFile;
     lArguments[2] = "test/tests/single/uninitVars.cil.c";
     
-    CPAConfiguration lConfiguration = new CPAConfiguration(lArguments);
+    CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
     
     // necessary for LogManager
     CPAMain.cpaConfig = lConfiguration;
@@ -483,7 +484,7 @@ public class TargetGraphTest {
     lArguments[1] = mPropertiesFile;
     lArguments[2] = "test/tests/single/uninitVars.cil.c";
     
-    CPAConfiguration lConfiguration = new CPAConfiguration(lArguments);
+    CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
     
     // necessary for LogManager
     CPAMain.cpaConfig = lConfiguration;
@@ -519,7 +520,7 @@ public class TargetGraphTest {
     lArguments[1] = mPropertiesFile;
     lArguments[2] = "test/tests/single/uninitVars.cil.c";
     
-    CPAConfiguration lConfiguration = new CPAConfiguration(lArguments);
+    CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
     
     // necessary for LogManager
     CPAMain.cpaConfig = lConfiguration;
@@ -549,7 +550,7 @@ public class TargetGraphTest {
     lArguments[1] = mPropertiesFile;
     lArguments[2] = "test/tests/single/uninitVars.cil.c";
     
-    CPAConfiguration lConfiguration = new CPAConfiguration(lArguments);
+    CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
     
     // necessary for LogManager
     CPAMain.cpaConfig = lConfiguration;
@@ -579,7 +580,7 @@ public class TargetGraphTest {
     lArguments[1] = mPropertiesFile;
     lArguments[2] = "test/tests/single/uninitVars.cil.c";
     
-    CPAConfiguration lConfiguration = new CPAConfiguration(lArguments);
+    CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
     
     // necessary for LogManager
     CPAMain.cpaConfig = lConfiguration;
@@ -609,7 +610,7 @@ public class TargetGraphTest {
     lArguments[1] = mPropertiesFile;
     lArguments[2] = "test/tests/single/loop1.c";
     
-    CPAConfiguration lConfiguration = new CPAConfiguration(lArguments);
+    CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
     
     // necessary for LogManager
     CPAMain.cpaConfig = lConfiguration;
@@ -637,7 +638,7 @@ public class TargetGraphTest {
     lArguments[1] = mPropertiesFile;
     lArguments[2] = "test/tests/single/loop1.c";
     
-    CPAConfiguration lConfiguration = new CPAConfiguration(lArguments);
+    CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
     
     // necessary for LogManager
     CPAMain.cpaConfig = lConfiguration;

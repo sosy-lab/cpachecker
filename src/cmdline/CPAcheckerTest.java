@@ -2,13 +2,12 @@ package cmdline;
 
 import java.io.IOException;
 
+import org.junit.Test;
+
+import cmdline.CPAMain.InvalidCmdlineArgumentException;
 import cpa.common.LogManager;
 import cpaplugin.CPAConfiguration;
 import cpaplugin.MainCPAStatistics;
-import cpaplugin.CPAConfiguration.InvalidCmdlineArgumentException;
-
-import org.junit.Test;
-
 import exceptions.CPAException;
 
 public class CPAcheckerTest {
@@ -23,7 +22,7 @@ public class CPAcheckerTest {
     lArguments[1] = mPropertiesFile;
     lArguments[2] = "test/tests/single/functionCall.c";
     
-    CPAConfiguration lConfiguration = new CPAConfiguration(lArguments);
+    CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
     
     // necessary for LogManager
     CPAMain.cpaConfig = lConfiguration;
@@ -45,7 +44,7 @@ public class CPAcheckerTest {
     lArguments[1] = mPropertiesFile;
     lArguments[2] = "test/tests/single/loop1.c";
         
-    CPAConfiguration lConfiguration = new CPAConfiguration(lArguments);
+    CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
     
     // necessary for LogManager
     CPAMain.cpaConfig = lConfiguration;
@@ -73,7 +72,7 @@ public class CPAcheckerTest {
      * it can not handle pointers at the moment.
      */
     
-    CPAConfiguration lConfiguration = new CPAConfiguration(lArguments);
+    CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
     
     // necessary for LogManager
     CPAMain.cpaConfig = lConfiguration;
