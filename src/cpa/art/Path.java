@@ -1,4 +1,4 @@
-package cpa.common;
+package cpa.art;
 
 import java.util.LinkedList;
 
@@ -6,7 +6,6 @@ import cfa.objectmodel.CFAEdge;
 
 import common.Pair;
 
-import cpa.art.ARTElement;
 
 public class Path extends LinkedList<Pair<ARTElement, CFAEdge>> {
   

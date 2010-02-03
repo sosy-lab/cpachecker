@@ -17,7 +17,6 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.Sets;
 import common.Pair;
 
-import cpa.common.Path;
 import cpa.common.ReachedElements;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;

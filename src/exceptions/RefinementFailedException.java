@@ -23,7 +23,7 @@
  */
 package exceptions;
 
-import cpa.common.Path;
+import cpa.art.Path;
 
 /**
  * Exception raised when the refinement procedure fails, or was

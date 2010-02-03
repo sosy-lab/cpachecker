@@ -34,7 +34,7 @@ import cmdline.CPAMain;
 import common.Pair;
 
 import cpa.art.ARTElement;
-import cpa.common.Path;
+import cpa.art.Path;
 import cpa.common.ReachedElements;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractWrapperElement;

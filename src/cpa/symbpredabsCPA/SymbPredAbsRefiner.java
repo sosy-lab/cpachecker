@@ -22,7 +22,7 @@ import compositeCPA.CompositeCPA;
 import cpa.art.ARTElement;
 import cpa.art.ARTReachedSet;
 import cpa.art.AbstractARTBasedRefiner;
-import cpa.common.Path;
+import cpa.art.Path;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.WrapperPrecision;
