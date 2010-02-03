@@ -64,7 +64,7 @@ public class Main {
     // necessary for LogManager
     CPAMain.cpaConfig = lConfiguration;
     
-    LogManager lLogManager = LogManager.getInstance();
+    LogManager lLogManager = new LogManager(lConfiguration);
       
     MainCPAStatistics lStatistics = new MainCPAStatistics();
     

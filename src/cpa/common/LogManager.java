@@ -35,8 +35,6 @@ import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 
-import cmdline.CPAMain;
-
 import com.google.common.base.Joiner;
 
 /**
@@ -52,8 +50,6 @@ import com.google.common.base.Joiner;
  *  
  */
 public class LogManager {
-
-  private static LogManager instance = null;
 
   private static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS");
   private static final Joiner messageFormat = Joiner.on(' ').useForNull("null");
@@ -93,16 +89,16 @@ public class LogManager {
     }
   }
 
-  private LogManager() {
-    Level logLevel = Level.parse(CPAMain.cpaConfig.getProperty("log.level", "OFF").toUpperCase());
-    Level logConsoleLevel = Level.parse(CPAMain.cpaConfig.getProperty("log.consoleLevel", "INFO").toUpperCase());
+  public LogManager(CPAConfiguration config) {
+    Level logLevel = Level.parse(config.getProperty("log.level", "OFF").toUpperCase());
+    Level logConsoleLevel = Level.parse(config.getProperty("log.consoleLevel", "INFO").toUpperCase());
 
     // check if file logging will succeed
     Handler outfileHandler;
     IOException exception = null;
     try {
-      String outfilePath = CPAMain.cpaConfig.getProperty("output.path");
-      String outfileName = CPAMain.cpaConfig.getProperty("log.file", "CPALog.txt");
+      String outfilePath = config.getProperty("output.path");
+      String outfileName = config.getProperty("log.file", "CPALog.txt");
       
       outfileHandler = new FileHandler(outfilePath + outfileName, false);
     } catch (IOException e) {
@@ -123,7 +119,7 @@ public class LogManager {
     // create file logger
     if(logLevel != Level.OFF) {
       //build up list of Levels to exclude from logging
-      String[] excludeFile = CPAMain.cpaConfig.getPropertiesArray("log.fileExclude");
+      String[] excludeFile = config.getPropertiesArray("log.fileExclude");
       if (excludeFile != null) {
         List<Level> excludeLevels = new ArrayList<Level>(excludeFile.length); 
         for (String s : excludeFile) {
@@ -154,7 +150,7 @@ public class LogManager {
     if (logConsoleLevel != Level.OFF) {
 
       //build up list of Levels to exclude from logging
-      String[] excludeConsole = CPAMain.cpaConfig.getPropertiesArray("log.consoleExclude");
+      String[] excludeConsole = config.getPropertiesArray("log.consoleExclude");
       if (excludeConsole != null) {
         List<Level> excludeLevels = new ArrayList<Level>(excludeConsole.length); 
         for (String s : excludeConsole) {
@@ -181,13 +177,6 @@ public class LogManager {
     if (exception != null) {
       consoleLogger.log(Level.WARNING, "Could not open log file " + exception.getMessage() + ", redirecting log output to console");
     }
-  }
-
-  public static LogManager getInstance() {
-    if (instance == null) {
-      instance = new LogManager();
-    } 
-    return instance;
   }
 
   /**

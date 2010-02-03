@@ -39,7 +39,7 @@ public class AutomatonTest {
     // necessary for LogManager
     CPAMain.cpaConfig = lConfiguration;
     
-    LogManager lLogManager = LogManager.getInstance();
+    LogManager lLogManager = new LogManager(lConfiguration);
       
     MainCPAStatistics lStatistics = new MainCPAStatistics();
     
@@ -69,7 +69,7 @@ public class AutomatonTest {
     // necessary for LogManager
     CPAMain.cpaConfig = lConfiguration;
     
-    LogManager lLogManager = LogManager.getInstance();
+    LogManager lLogManager = new LogManager(lConfiguration);
       
     MainCPAStatistics lStatistics = new MainCPAStatistics();
     
@@ -103,7 +103,7 @@ public class AutomatonTest {
     // necessary for LogManager
     CPAMain.cpaConfig = lConfiguration;
     
-    LogManager lLogManager = LogManager.getInstance();
+    LogManager lLogManager = new LogManager(lConfiguration);
       
     MainCPAStatistics lStatistics = new MainCPAStatistics();
     
@@ -136,7 +136,7 @@ public class AutomatonTest {
     // necessary for LogManager
     CPAMain.cpaConfig = lConfiguration;
     
-    LogManager lLogManager = LogManager.getInstance();
+    LogManager lLogManager = new LogManager(lConfiguration);
       
     MainCPAStatistics lStatistics = new MainCPAStatistics();
     
@@ -169,7 +169,7 @@ public class AutomatonTest {
     // necessary for LogManager
     CPAMain.cpaConfig = lConfiguration;
     
-    LogManager lLogManager = LogManager.getInstance();
+    LogManager lLogManager = new LogManager(lConfiguration);
       
     MainCPAStatistics lStatistics = new MainCPAStatistics();
     
@@ -202,7 +202,7 @@ public class AutomatonTest {
     // necessary for LogManager
     CPAMain.cpaConfig = lConfiguration;
     
-    LogManager lLogManager = LogManager.getInstance();
+    LogManager lLogManager = new LogManager(lConfiguration);
       
     MainCPAStatistics lStatistics = new MainCPAStatistics();
     
@@ -236,7 +236,7 @@ public class AutomatonTest {
     // necessary for LogManager
     CPAMain.cpaConfig = lConfiguration;
     
-    LogManager lLogManager = LogManager.getInstance();
+    LogManager lLogManager = new LogManager(lConfiguration);
       
     MainCPAStatistics lStatistics = new MainCPAStatistics();
     

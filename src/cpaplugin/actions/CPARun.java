@@ -109,7 +109,7 @@ public class CPARun implements IWorkbenchWindowActionDelegate
       JOptionPane.showMessageDialog(null, "Could not read config file " + e.getMessage(), "Could not read config file", JOptionPane.ERROR_MESSAGE);
       return;
     }
-    CPAMain.logManager = LogManager.getInstance();
+    CPAMain.logManager = new LogManager(CPAMain.cpaConfig);
     
     //Lets set up a console to write to
     init();

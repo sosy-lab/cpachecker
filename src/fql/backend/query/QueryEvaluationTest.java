@@ -39,7 +39,7 @@ public class QueryEvaluationTest {
     // necessary for LogManager
     CPAMain.cpaConfig = lConfiguration;
     
-    LogManager lLogManager = LogManager.getInstance();
+    LogManager lLogManager = new LogManager(lConfiguration);
       
     MainCPAStatistics lStatistics = new MainCPAStatistics();
     
@@ -67,7 +67,7 @@ public class QueryEvaluationTest {
     // necessary for LogManager
     CPAMain.cpaConfig = lConfiguration;
     
-    LogManager lLogManager = LogManager.getInstance();
+    LogManager lLogManager = new LogManager(lConfiguration);
       
     MainCPAStatistics lStatistics = new MainCPAStatistics();
     
@@ -99,7 +99,7 @@ public class QueryEvaluationTest {
     // necessary for LogManager
     CPAMain.cpaConfig = lConfiguration;
     
-    LogManager lLogManager = LogManager.getInstance();
+    LogManager lLogManager = new LogManager(lConfiguration);
       
     MainCPAStatistics lStatistics = new MainCPAStatistics();
     

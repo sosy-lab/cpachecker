@@ -147,7 +147,7 @@ public class CPAMain {
       System.err.println("Could not read config file " + e.getMessage());
       System.exit(1);
     }
-    logManager = LogManager.getInstance();
+    logManager = new LogManager(cpaConfig);
     
     // get code file name
     String[] names = cpaConfig.getPropertiesArray("analysis.programNames");

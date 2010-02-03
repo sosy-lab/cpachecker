@@ -72,7 +72,7 @@ public class CPASelfCheck {
       LinkedList<Class<ConfigurableProgramAnalysis>> cpas = getCPAs();
       
       CPAMain.cpaConfig = CPAMain.createConfiguration(args);
-      CPAMain.logManager = LogManager.getInstance();
+      CPAMain.logManager = new LogManager(CPAMain.cpaConfig);
 
       for (Class<ConfigurableProgramAnalysis> cpa : cpas) {
         CPAMain.logManager.log(Level.INFO, "Checking " + cpa.getCanonicalName() + " ...");
