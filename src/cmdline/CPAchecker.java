@@ -25,7 +25,6 @@ import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cfa.objectmodel.CFANode;
 import cfa.objectmodel.c.GlobalDeclarationEdge;
-import cmdline.CPAMain.Result;
 import cmdline.stubs.StubFile;
 
 import common.Pair;
@@ -42,6 +41,7 @@ import cpa.common.algorithm.CEGARAlgorithm;
 import cpa.common.algorithm.CPAAlgorithm;
 import cpa.common.algorithm.InvariantCollectionAlgorithm;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.CPAStatistics;
 import cpa.common.interfaces.CPAWithStatistics;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;
@@ -311,7 +311,7 @@ public class CPAchecker {
     mLogManager.log(Level.FINE, "CPA Algorithm finished");
   }
   
-  public CPAMain.Result runAlgorithm() throws CPAException {
+  public CPAStatistics.Result runAlgorithm() throws CPAException {
 
     mLogManager.log(Level.FINE, "Creating CPAs");
       
@@ -344,11 +344,11 @@ public class CPAchecker {
     
     for (AbstractElement reachedElement : reached) {
       if (reachedElement.isError()) {
-        return Result.UNSAFE;
+        return CPAStatistics.Result.UNSAFE;
       }
     }
         
-    return Result.SAFE;
+    return CPAStatistics.Result.SAFE;
   }
   
 }

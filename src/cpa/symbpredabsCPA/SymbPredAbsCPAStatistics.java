@@ -26,7 +26,6 @@ package cpa.symbpredabsCPA;
 import java.io.PrintWriter;
 
 import cmdline.CPAMain;
-import cmdline.CPAMain.Result;
 import cpa.common.ReachedElements;
 import cpa.common.interfaces.CPAStatistics;
 

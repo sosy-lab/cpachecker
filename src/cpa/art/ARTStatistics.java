@@ -12,7 +12,6 @@ import java.util.logging.Level;
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFANode;
 import cmdline.CPAMain;
-import cmdline.CPAMain.Result;
 import cpa.common.ReachedElements;
 import cpa.common.interfaces.CPAStatistics;
 import cpa.symbpredabsCPA.SymbPredAbsAbstractElement;

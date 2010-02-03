@@ -27,13 +27,14 @@ import java.io.PrintWriter;
 
 import cpa.common.ReachedElements;
 
-import static cmdline.CPAMain.Result;
-
 /**
  * A class to hold statistics of the analysis
  * @author alb
  */
 public interface CPAStatistics {
+    
+    public static enum Result { UNKNOWN, UNSAFE, SAFE }
+
     /**
      * Prints this group of statistics using the given writer
      * @param out the writer to use for printing the statistics

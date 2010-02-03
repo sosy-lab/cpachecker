@@ -78,6 +78,7 @@ import cpa.common.interfaces.CPAStatistics;
 import cpa.common.interfaces.CPAWithStatistics;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;
+import cpa.common.interfaces.CPAStatistics.Result;
 import exceptions.CFAGenerationRuntimeException;
 import exceptions.CPAException;
 
@@ -87,8 +88,6 @@ public class CPAMain {
   public static CPAConfiguration cpaConfig;
   public static LogManager logManager;
 
-  public static enum Result { UNKNOWN, UNSAFE, SAFE };   
-  
   private static class ShutdownHook extends Thread {
     
     private final CPAStatistics mStats;

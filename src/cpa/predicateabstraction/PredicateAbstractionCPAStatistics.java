@@ -39,7 +39,6 @@ import symbpredabstraction.interfaces.SymbolicFormula;
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFANode;
 import cmdline.CPAMain;
-import cmdline.CPAMain.Result;
 
 import common.Pair;
 
@@ -101,7 +100,7 @@ public class PredicateAbstractionCPAStatistics implements CPAStatistics {
         }
 
         // check if/where to dump the predicate map
-        if (result == Result.SAFE) {
+        if (result == CPAStatistics.Result.SAFE) {
           String outfilePath = CPAMain.cpaConfig.getProperty("output.path");
           String outfileName = CPAMain.cpaConfig.getProperty(
               "cpas.symbpredabs.refinement.finalPredMapFile", "");

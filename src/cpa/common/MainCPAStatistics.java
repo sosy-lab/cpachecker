@@ -29,7 +29,6 @@ import java.util.Arrays;
 import java.util.Collection;
 
 import cmdline.CPAMain;
-import cmdline.CPAMain.Result;
 
 import compositeCPA.CompositeStopOperator;
 
