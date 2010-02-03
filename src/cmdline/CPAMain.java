@@ -73,6 +73,7 @@ import cpa.common.interfaces.CPAWithStatistics;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;
 import cpaplugin.CPAConfiguration;
+import cpaplugin.CPAStatistics;
 import cpaplugin.MainCPAStatistics;
 import cpaplugin.CPAConfiguration.InvalidCmdlineArgumentException;
 import exceptions.CFAGenerationRuntimeException;
@@ -83,43 +84,43 @@ public class CPAMain {
 
   public static CPAConfiguration cpaConfig;
   public static LogManager logManager;
-  private final static MainCPAStatistics cpaStats = new MainCPAStatistics();
 
-  // used in the ShutdownHook to check whether the analysis has been
-  // interrupted by the user
-  private static boolean interrupted = true;
-  
   public static enum Result { UNKNOWN, UNSAFE, SAFE };   
   
-  private static Result result = Result.UNKNOWN;
-
   private static class ShutdownHook extends Thread {
     
+    private final CPAStatistics mStats;
     private final ReachedElements mReached;
     
-    public ShutdownHook(ReachedElements pReached) {
+    // if still null when run() is executed, analysis has been interrupted by user
+    private Result mResult = null;
+    
+    public ShutdownHook(CPAStatistics pStats, ReachedElements pReached) {
+      mStats = pStats; 
       mReached = pReached;
+    }
+    
+    public void setResult(Result pResult) {
+      assert mResult == null;
+      mResult = pResult;
     }
     
     @Override
     public void run() {
-      if (interrupted) {
-        cpaStats.stopAnalysisTimer();
-        result = Result.UNKNOWN;
+      if (mResult == null) {
+        mResult = Result.UNKNOWN;
       }
        
+      logManager.flush();
       System.out.flush();
       System.err.flush();
-      cpaStats.printStatistics(new PrintWriter(System.out), result, mReached);
+      mStats.printStatistics(new PrintWriter(System.out), mResult, mReached);
       
-      if (interrupted) {
+      if (mResult == Result.UNKNOWN) {
         System.out.println("\n" +
-            "***************************************************" +
-            "****************************\n" +
-            "* WARNING:  Analysis interrupted!! The statistics " +
-            "might be unreliable!        *\n" +
-            "***************************************************" +
-            "****************************\n"
+            "***********************************************************************\n" +
+            "* WARNING: Analysis interrupted!! The statistics might be unreliable! *\n" +
+            "***********************************************************************"
         );
       }
     }
@@ -172,7 +173,6 @@ public class CPAMain {
     
     //ensure all logs are written to the outfile
     logManager.flush();
-    // statistics are displayed by shutdown hook
   }
   
   public static void CPAchecker(IFile file) {
@@ -181,19 +181,30 @@ public class CPAMain {
     // parse code file
     IASTTranslationUnit ast = parse(file);
 
+    MainCPAStatistics stats = new MainCPAStatistics();
+
     // start measuring time
-    cpaStats.startProgramTimer();
+    stats.startProgramTimer();
 
     // create CFA
     Pair<CFAMap, CFAFunctionDefinitionNode> cfa = createCFA(ast);
+    CFAMap cfas = cfa.getFirst();
+    CFAFunctionDefinitionNode mainFunction = cfa.getSecond();
     
     try {
-      runAlgorithm(cfa.getFirst(), cfa.getSecond());
-      interrupted = false;
+      ConfigurableProgramAnalysis cpa = createCPA(mainFunction, stats);
+      
+      Algorithm algorithm = createAlgorithm(cfas, cpa);
+      
+      ReachedElements reached = createInitialReachedSet(cpa, mainFunction);
+      
+      runAlgorithm(algorithm, reached, stats);
 
     } catch (CPAException e) {
       logManager.logException(Level.SEVERE, e, null);
     }
+    
+    // statistics are displayed by shutdown hook
   }
   
   /**
@@ -447,71 +458,90 @@ public class CPAMain {
     return;
   }
   
-  private static void runAlgorithm(final CFAMap cfas, final CFAFunctionDefinitionNode mainFunction) throws CPAException {
- 
-      logManager.log(Level.FINE, "Creating CPAs");
-      
-      ConfigurableProgramAnalysis cpa = CompositeCPA.getCompositeCPA(mainFunction);
+  private static void runAlgorithm(final Algorithm algorithm,
+          final ReachedElements reached,
+          final MainCPAStatistics stats) throws CPAException {
+     
+    // this is for catching Ctrl+C and printing statistics even in that
+    // case. It might be useful to understand what's going on when
+    // the analysis takes a lot of time...
+    ShutdownHook shutdownHook = new ShutdownHook(stats, reached);
+    Runtime.getRuntime().addShutdownHook(shutdownHook);
 
-      if (CPAMain.cpaConfig.getBooleanValue("analysis.useART")) {
-        cpa = ARTCPA.getARTCPA(mainFunction, cpa);
-      }
-          
-      if (cpa instanceof CPAWithStatistics) {
-        ((CPAWithStatistics)cpa).collectStatistics(cpaStats.getSubStatistics());
-      }
-      
-      // create algorithm
-      Algorithm algorithm = new CPAAlgorithm(cpa);
-      
-      if (CPAMain.cpaConfig.getBooleanValue("analysis.useRefinement")) {
-        algorithm = new CEGARAlgorithm(algorithm);
-      }
-      
-      if (CPAMain.cpaConfig.getBooleanValue("analysis.useInvariantDump")) {
-        algorithm = new InvariantCollectionAlgorithm(algorithm);
-      }
-      
-      if (CPAMain.cpaConfig.getBooleanValue("analysis.useCBMC")) {
-        algorithm = new CBMCAlgorithm(cfas, algorithm);
-      }
-      
-      AbstractElement initialElement = cpa.getInitialElement(mainFunction);
-      Precision initialPrecision = cpa.getInitialPrecision(mainFunction);
-      ReachedElements reached = null;
-      try {
-        reached = new ReachedElements(CPAMain.cpaConfig.getProperty("analysis.traversal"));
-      } catch (IllegalArgumentException e) {
-        logManager.logException(Level.SEVERE, e, "ERROR, unknown traversal option");
-        System.exit(1);
-      }
-      reached.add(initialElement, initialPrecision);
+    logManager.log(Level.INFO, "Starting analysis...");
+    stats.startAnalysisTimer();
+    
+    algorithm.run(reached, CPAMain.cpaConfig.getBooleanValue("analysis.stopAfterError"));
+    
+    stats.stopAnalysisTimer();
+    logManager.log(Level.INFO, "Analysis finished.");
 
-      
-      // this is for catching Ctrl+C and printing statistics even in that
-      // case. It might be useful to understand what's going on when
-      // the analysis takes a lot of time...
-      Runtime.getRuntime().addShutdownHook(new ShutdownHook(reached));
-
-      logManager.log(Level.INFO, "Starting analysis...");
-      cpaStats.startAnalysisTimer();
-
-      
-      algorithm.run(reached, CPAMain.cpaConfig.getBooleanValue("analysis.stopAfterError"));
-      
-      cpaStats.stopAnalysisTimer();
-      logManager.log(Level.INFO, "Analysis finished.");
-
-      boolean errorFound = false;
-      for (AbstractElement reachedElement : reached) {
-        if (reachedElement.isError()) {
-          errorFound = true;
-          result = Result.UNSAFE;
-          break;
-        }
+    Result result = Result.UNKNOWN;
+    for (AbstractElement reachedElement : reached) {
+      if (reachedElement.isError()) {
+        result = Result.UNSAFE;
+        break;
       }
-      if (!errorFound) {
-        result = Result.SAFE;
-      }
+    }
+    if (result == Result.UNKNOWN) {
+      result = Result.SAFE;
+    }
+    
+    shutdownHook.setResult(result);
+  }
+
+  private static ConfigurableProgramAnalysis createCPA(
+      final CFAFunctionDefinitionNode mainFunction, MainCPAStatistics stats) throws CPAException {
+    logManager.log(Level.FINE, "Creating CPAs");
+    
+    ConfigurableProgramAnalysis cpa = CompositeCPA.getCompositeCPA(mainFunction);
+
+    if (CPAMain.cpaConfig.getBooleanValue("analysis.useART")) {
+      cpa = ARTCPA.getARTCPA(mainFunction, cpa);
+    }
+        
+    if (cpa instanceof CPAWithStatistics) {
+      ((CPAWithStatistics)cpa).collectStatistics(stats.getSubStatistics());
+    }
+    return cpa;
+  }
+  
+  private static Algorithm createAlgorithm(final CFAMap cfas,
+      final ConfigurableProgramAnalysis cpa) throws CPAException {
+    logManager.log(Level.FINE, "Creating algorithms");
+
+    Algorithm algorithm = new CPAAlgorithm(cpa);
+    
+    if (CPAMain.cpaConfig.getBooleanValue("analysis.useRefinement")) {
+      algorithm = new CEGARAlgorithm(algorithm);
+    }
+    
+    if (CPAMain.cpaConfig.getBooleanValue("analysis.useInvariantDump")) {
+      algorithm = new InvariantCollectionAlgorithm(algorithm);
+    }
+    
+    if (CPAMain.cpaConfig.getBooleanValue("analysis.useCBMC")) {
+      algorithm = new CBMCAlgorithm(cfas, algorithm);
+    }
+    return algorithm;
+  }
+
+
+  private static ReachedElements createInitialReachedSet(
+      final ConfigurableProgramAnalysis cpa,
+      final CFAFunctionDefinitionNode mainFunction) {
+    logManager.log(Level.FINE, "Creating initial reached set");
+    
+    AbstractElement initialElement = cpa.getInitialElement(mainFunction);
+    Precision initialPrecision = cpa.getInitialPrecision(mainFunction);
+    ReachedElements reached = null;
+    try {
+      reached = new ReachedElements(CPAMain.cpaConfig.getProperty("analysis.traversal"));
+    } catch (IllegalArgumentException e) {
+      logManager.logException(Level.SEVERE, e, "ERROR, unknown traversal option");
+      System.exit(1);
+    }
+    reached.add(initialElement, initialPrecision);
+    return reached;
   }
 }

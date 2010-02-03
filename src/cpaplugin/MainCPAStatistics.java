@@ -24,9 +24,9 @@
 package cpaplugin;
 
 import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.LinkedList;
 
 import cmdline.CPAMain;
 import cmdline.CPAMain.Result;
@@ -37,13 +37,13 @@ import cpa.common.ReachedElements;
 import cpa.common.interfaces.AbstractElement;
 
 public class MainCPAStatistics implements CPAStatistics {
-    private Collection<CPAStatistics> subStats;
+    private final Collection<CPAStatistics> subStats;
     private long programStartingTime;
     private long analysisStartingTime;
     private long analysisEndingTime;
 
     public MainCPAStatistics() {
-        subStats = new LinkedList<CPAStatistics>();
+        subStats = new ArrayList<CPAStatistics>();
         programStartingTime = 0;
         analysisStartingTime = 0;
         analysisEndingTime = 0;
@@ -60,10 +60,6 @@ public class MainCPAStatistics implements CPAStatistics {
     public void stopAnalysisTimer() {
         analysisEndingTime = System.currentTimeMillis();
     }
-
-    public void addSubStatistics(CPAStatistics s) {
-        subStats.add(s);
-    }
     
     public Collection<CPAStatistics> getSubStatistics() {
       return subStats;
@@ -76,6 +72,10 @@ public class MainCPAStatistics implements CPAStatistics {
 
     @Override
     public void printStatistics(PrintWriter out, Result result, ReachedElements reached) {
+        if (analysisEndingTime == 0) {
+          stopAnalysisTimer();
+        }
+      
         long totalTimeInMillis = analysisEndingTime - analysisStartingTime;
         long totalAbsoluteTimeMillis = analysisEndingTime - programStartingTime;
 
