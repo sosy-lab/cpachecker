@@ -166,12 +166,7 @@ public class CPAMain {
       logManager.log(Level.SEVERE, "File", names[0], "is not readable!");
       System.exit(1);
     }
-    
-    // this is for catching Ctrl+C and printing statistics even in that
-    // case. It might be useful to understand what's going on when
-    // the analysis takes a lot of time...
-    Runtime.getRuntime().addShutdownHook(new ShutdownHook());
-    
+
     // run analysis
     CPAchecker(new StubFile(names[0]));
     
@@ -493,13 +488,20 @@ public class CPAMain {
       }
       reached.add(initialElement, initialPrecision);
 
-      logManager.log(Level.FINE, "CPA Algorithm starting ...");
+      
+      // this is for catching Ctrl+C and printing statistics even in that
+      // case. It might be useful to understand what's going on when
+      // the analysis takes a lot of time...
+      Runtime.getRuntime().addShutdownHook(new ShutdownHook());
+
+      logManager.log(Level.INFO, "Starting analysis...");
       cpaStats.startAnalysisTimer();
+
       
       algorithm.run(reached, CPAMain.cpaConfig.getBooleanValue("analysis.stopAfterError"));
       
       cpaStats.stopAnalysisTimer();
-      logManager.log(Level.FINE, "CPA Algorithm finished");
+      logManager.log(Level.INFO, "Analysis finished.");
 
       boolean errorFound = false;
       for (AbstractElement reachedElement : reached) {
