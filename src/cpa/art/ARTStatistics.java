@@ -13,10 +13,10 @@ import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFANode;
 import cpa.common.CPAchecker;
 import cpa.common.ReachedElements;
-import cpa.common.interfaces.CPAStatistics;
+import cpa.common.interfaces.Statistics;
 import cpa.symbpredabsCPA.SymbPredAbsAbstractElement;
 
-public class ARTStatistics implements CPAStatistics {
+public class ARTStatistics implements Statistics {
 
   @Override
   public String getName() {

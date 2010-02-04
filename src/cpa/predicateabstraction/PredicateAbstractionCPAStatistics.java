@@ -43,7 +43,7 @@ import common.Pair;
 
 import cpa.common.CPAchecker;
 import cpa.common.ReachedElements;
-import cpa.common.interfaces.CPAStatistics;
+import cpa.common.interfaces.Statistics;
 
 
 /**
@@ -51,7 +51,7 @@ import cpa.common.interfaces.CPAStatistics;
  *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
-public class PredicateAbstractionCPAStatistics implements CPAStatistics {
+public class PredicateAbstractionCPAStatistics implements Statistics {
 
     private PredicateAbstractionCPA cpa;
 
@@ -100,7 +100,7 @@ public class PredicateAbstractionCPAStatistics implements CPAStatistics {
         }
 
         // check if/where to dump the predicate map
-        if (result == CPAStatistics.Result.SAFE) {
+        if (result == Statistics.Result.SAFE) {
           String outfilePath = CPAchecker.config.getProperty("output.path");
           String outfileName = CPAchecker.config.getProperty(
               "cpas.symbpredabs.refinement.finalPredMapFile", "");

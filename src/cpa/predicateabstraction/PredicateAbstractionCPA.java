@@ -51,8 +51,8 @@ import cpa.common.defaults.MergeSepOperator;
 import cpa.common.defaults.StaticPrecisionAdjustment;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.CPAStatistics;
-import cpa.common.interfaces.CPAWithStatistics;
+import cpa.common.interfaces.Statistics;
+import cpa.common.interfaces.StatisticsProvider;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
@@ -66,7 +66,7 @@ import cpa.common.interfaces.TransferRelation;
  *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
-public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis, CPAWithStatistics {
+public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
     private final PredicateAbstractionAbstractDomain domain;
     private final PredicateAbstractionTransferRelation trans;
@@ -196,7 +196,7 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis, CPA
     }
 
     @Override
-    public void collectStatistics(Collection<CPAStatistics> pStatsCollection) {
+    public void collectStatistics(Collection<Statistics> pStatsCollection) {
       pStatsCollection.add(stats);
     }
     

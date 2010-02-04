@@ -66,11 +66,11 @@ import cpa.common.algorithm.CEGARAlgorithm;
 import cpa.common.algorithm.CPAAlgorithm;
 import cpa.common.algorithm.AssumptionCollectionAlgorithm;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.CPAStatistics;
-import cpa.common.interfaces.CPAWithStatistics;
+import cpa.common.interfaces.Statistics;
+import cpa.common.interfaces.StatisticsProvider;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;
-import cpa.common.interfaces.CPAStatistics.Result;
+import cpa.common.interfaces.Statistics.Result;
 import exceptions.CFAGenerationRuntimeException;
 import exceptions.CPAException;
 
@@ -85,13 +85,13 @@ public class CPAchecker {
 
   private static class ShutdownHook extends Thread {
     
-    private final CPAStatistics mStats;
+    private final Statistics mStats;
     private final ReachedElements mReached;
     
     // if still null when run() is executed, analysis has been interrupted by user
     private Result mResult = null;
     
-    public ShutdownHook(CPAStatistics pStats, ReachedElements pReached) {
+    public ShutdownHook(Statistics pStats, ReachedElements pReached) {
       mStats = pStats; 
       mReached = pReached;
     }
@@ -143,7 +143,7 @@ public class CPAchecker {
     try {
       ConfigurableProgramAnalysis cpa = createCPA(mainFunction, stats);
       
-      Algorithm algorithm = createAlgorithm(cfas, cpa);
+      Algorithm algorithm = createAlgorithm(cfas, cpa, stats);
       
       ReachedElements reached = createInitialReachedSet(cpa, mainFunction);
       
@@ -449,14 +449,14 @@ public class CPAchecker {
       cpa = ARTCPA.getARTCPA(mainFunction, cpa);
     }
         
-    if (cpa instanceof CPAWithStatistics) {
-      ((CPAWithStatistics)cpa).collectStatistics(stats.getSubStatistics());
+    if (cpa instanceof StatisticsProvider) {
+      ((StatisticsProvider)cpa).collectStatistics(stats.getSubStatistics());
     }
     return cpa;
   }
   
   private Algorithm createAlgorithm(final CFAMap cfas,
-      final ConfigurableProgramAnalysis cpa) throws CPAException {
+      final ConfigurableProgramAnalysis cpa, MainCPAStatistics stats) throws CPAException {
     logger.log(Level.FINE, "Creating algorithms");
 
     Algorithm algorithm = new CPAAlgorithm(cpa);
@@ -471,6 +471,10 @@ public class CPAchecker {
     
     if (CPAchecker.config.getBooleanValue("analysis.useCBMC")) {
       algorithm = new CBMCAlgorithm(cfas, algorithm);
+    }
+    
+    if (algorithm instanceof StatisticsProvider) {
+      ((StatisticsProvider)cpa).collectStatistics(stats.getSubStatistics());
     }
     return algorithm;
   }

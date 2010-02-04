@@ -31,7 +31,7 @@ import cpa.common.ReachedElements;
  * A class to hold statistics of the analysis
  * @author alb
  */
-public interface CPAStatistics {
+public interface Statistics {
     
     public static enum Result { UNKNOWN, UNSAFE, SAFE }
 

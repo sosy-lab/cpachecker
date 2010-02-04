@@ -47,8 +47,8 @@ import cpa.common.CPAchecker;
 import cpa.common.defaults.StaticPrecisionAdjustment;
 import cpa.common.defaults.StopSepOperator;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.CPAStatistics;
-import cpa.common.interfaces.CPAWithStatistics;
+import cpa.common.interfaces.Statistics;
+import cpa.common.interfaces.StatisticsProvider;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
@@ -60,7 +60,7 @@ import exceptions.CPAException;
  * @author Erkan
  *
  */
-public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, CPAWithStatistics {
+public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
   private final SymbPredAbsAbstractDomain domain;
   private final SymbPredAbsTransferRelation transfer;
@@ -180,7 +180,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, CPAWithStati
   }
   
   @Override
-  public void collectStatistics(Collection<CPAStatistics> pStatsCollection) {
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(stats);
   }
 }

@@ -27,9 +27,9 @@ import java.io.PrintWriter;
 
 import cpa.common.CPAchecker;
 import cpa.common.ReachedElements;
-import cpa.common.interfaces.CPAStatistics;
+import cpa.common.interfaces.Statistics;
 
-public class SymbPredAbsCPAStatistics implements CPAStatistics {
+public class SymbPredAbsCPAStatistics implements Statistics {
 
     private final SymbPredAbsCPA cpa;
 

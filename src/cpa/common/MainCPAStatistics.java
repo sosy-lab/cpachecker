@@ -31,16 +31,16 @@ import java.util.Collection;
 import compositeCPA.CompositeStopOperator;
 
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.CPAStatistics;
+import cpa.common.interfaces.Statistics;
 
-public class MainCPAStatistics implements CPAStatistics {
-    private final Collection<CPAStatistics> subStats;
+public class MainCPAStatistics implements Statistics {
+    private final Collection<Statistics> subStats;
     private long programStartingTime;
     private long analysisStartingTime;
     private long analysisEndingTime;
 
     public MainCPAStatistics() {
-        subStats = new ArrayList<CPAStatistics>();
+        subStats = new ArrayList<Statistics>();
         programStartingTime = 0;
         analysisStartingTime = 0;
         analysisEndingTime = 0;
@@ -58,7 +58,7 @@ public class MainCPAStatistics implements CPAStatistics {
         analysisEndingTime = System.currentTimeMillis();
     }
     
-    public Collection<CPAStatistics> getSubStatistics() {
+    public Collection<Statistics> getSubStatistics() {
       return subStats;
   }
 
@@ -93,7 +93,7 @@ public class MainCPAStatistics implements CPAStatistics {
         out.println("Total Time Elapsed including CFA construction: " +
                 toTime(totalAbsoluteTimeMillis));
 
-        for (CPAStatistics s : subStats) {
+        for (Statistics s : subStats) {
             String name = s.getName();
             if (name != null && !name.isEmpty()) {
               out.println("");

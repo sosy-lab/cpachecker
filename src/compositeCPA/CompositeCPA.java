@@ -37,8 +37,8 @@ import cpa.common.CallElement;
 import cpa.common.CallStack;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.CPAStatistics;
-import cpa.common.interfaces.CPAWithStatistics;
+import cpa.common.interfaces.Statistics;
+import cpa.common.interfaces.StatisticsProvider;
 import cpa.common.interfaces.CPAWrapper;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
@@ -49,7 +49,7 @@ import cpa.common.interfaces.TransferRelation;
 import cpa.transferrelationmonitor.TransferRelationMonitorCPA;
 import exceptions.CPAException;
 
-public class CompositeCPA implements ConfigurableProgramAnalysis, CPAWithStatistics, CPAWrapper
+public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProvider, CPAWrapper
 {
   private final AbstractDomain abstractDomain;
   private final TransferRelation transferRelation;
@@ -225,10 +225,10 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, CPAWithStatist
   }
 
   @Override
-  public void collectStatistics(Collection<CPAStatistics> pStatsCollection) {
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
     for (ConfigurableProgramAnalysis cpa: cpas) {
-      if (cpa instanceof CPAWithStatistics) {
-        ((CPAWithStatistics)cpa).collectStatistics(pStatsCollection);
+      if (cpa instanceof StatisticsProvider) {
+        ((StatisticsProvider)cpa).collectStatistics(pStatsCollection);
       }
     }
   }
