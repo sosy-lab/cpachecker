@@ -23,11 +23,11 @@
  */
 package cpa.common.algorithm;
 
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
-
 
 import common.Pair;
 
@@ -38,17 +38,54 @@ import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
+import cpa.common.interfaces.Statistics;
+import cpa.common.interfaces.StatisticsProvider;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
 import exceptions.CPAException;
 import exceptions.TransferTimeOutException;
 
-public class CPAAlgorithm implements Algorithm {
+public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
-  private long chooseTime = 0;
-  private long transferTime = 0;
-  private long mergeTime = 0;
-  private long stopTime = 0;
+  private static class CPAStatistics implements Statistics {
+  
+    private long totalTime = 0;
+    private long chooseTime = 0;
+    private long precisionTime = 0;
+    private long transferTime = 0;
+    private long mergeTime = 0;
+    private long stopTime = 0;
+   
+    private int countSuccessors = 0;
+    private int countMerge = 0;
+    private int countStop = 0;
+    
+    @Override
+    public String getName() {
+      return "CPA algorithm";
+    }
+    
+    @Override
+    public void printStatistics(PrintWriter out, Result pResult,
+        ReachedElements pReached) {
+      out.println("Number of computed successors: " + countSuccessors);
+      out.println("Number of times merged:        " + countMerge);
+      out.println("Number of times stopped:       " + countStop);
+      out.println();
+      out.println("Total time for CPA algorithm:  " + toTime(totalTime));
+      out.println("Time for choose from waitlist: " + toTime(chooseTime));
+      out.println("Time for precision adjustment: " + toTime(precisionTime));
+      out.println("Time for transfer relation:    " + toTime(transferTime));
+      out.println("Time for merge operator:       " + toTime(mergeTime));
+      out.println("Time for stop operator:        " + toTime(stopTime));
+    }
+    
+    private String toTime(long timeMillis) {
+      return String.format("% 5d.%03ds", timeMillis/1000, timeMillis%1000);
+    }
+  }
+  
+  private final CPAStatistics stats = new CPAStatistics();
   
   private final ConfigurableProgramAnalysis cpa;
 
@@ -58,6 +95,7 @@ public class CPAAlgorithm implements Algorithm {
 
   @Override
   public void run(final ReachedElements reachedElements, boolean stopAfterError) throws CPAException, TransferTimeOutException {
+    long startTotalTime = System.currentTimeMillis();
     final TransferRelation transferRelation = cpa.getTransferRelation();
     final MergeOperator mergeOperator = cpa.getMergeOperator();
     final StopOperator stopOperator = cpa.getStopOperator();
@@ -70,9 +108,13 @@ public class CPAAlgorithm implements Algorithm {
       long start = System.currentTimeMillis();
       Pair<AbstractElement,Precision> e = reachedElements.popFromWaitlist();
       long end = System.currentTimeMillis();
-      chooseTime += (end - start);
+      stats.chooseTime += (end - start);
+      
       Pair<AbstractElement, Precision> tempPair;
+      start = System.currentTimeMillis();
       tempPair = precisionAdjustment.prec(e.getFirst(), e.getSecond(), reachedElements.getReachedWithPrecision());
+      end = System.currentTimeMillis();
+      stats.precisionTime += (end - start);
       if(tempPair != null){
         e = tempPair;
       }
@@ -85,7 +127,7 @@ public class CPAAlgorithm implements Algorithm {
       start = System.currentTimeMillis();
       Collection<? extends AbstractElement> successors = transferRelation.getAbstractSuccessors (element, precision, null);
       end = System.currentTimeMillis();
-      transferTime += (end - start);
+      stats.transferTime += (end - start);
       // TODO When we have a nice way to mark the analysis result as incomplete, we could continue analysis on a CPATransferException with the next element from waitlist.
       
       CPAchecker.logger.log(Level.FINER, "Current element has", successors.size(), "successors");
@@ -93,6 +135,7 @@ public class CPAAlgorithm implements Algorithm {
       for (AbstractElement successor : successors) {
         CPAchecker.logger.log(Level.FINER, "Considering successor of current element");
         CPAchecker.logger.log(Level.ALL, "Successor of", element, "\nis", successor);
+        stats.countSuccessors++;
         
         Collection<AbstractElement> reached = reachedElements.getReached(successor);
 
@@ -112,6 +155,7 @@ public class CPAAlgorithm implements Algorithm {
               CPAchecker.logger.log(Level.FINER, "Successor was merged with element from reached set");
               CPAchecker.logger.log(Level.ALL,
                   "Merged", successor, "\nand", reachedElement, "\n-->", mergedElement);
+              stats.countMerge++;
               
               toRemove.add(reachedElement);
               toAdd.add(new Pair<AbstractElement, Precision>(mergedElement, precision));
@@ -121,14 +165,15 @@ public class CPAAlgorithm implements Algorithm {
           reachedElements.addAll(toAdd);
           
           end = System.currentTimeMillis();
-          mergeTime += (end - start);
+          stats.mergeTime += (end - start);
         }
         
         start = System.currentTimeMillis();
 
         if (stopOperator.stop(successor, reached, precision)) {
           CPAchecker.logger.log(Level.FINER, "Successor is covered or unreachable, not adding to waitlist");
-        
+          stats.countStop++;
+          
         } else {
           CPAchecker.logger.log(Level.FINER, "No need to stop, adding successor to waitlist");
 
@@ -136,18 +181,25 @@ public class CPAAlgorithm implements Algorithm {
           
           if(stopAfterError && successor.isError()) {
             end = System.currentTimeMillis();
-            stopTime += (end - start);
+            stats.stopTime += (end - start);
+            stats.totalTime += (end - startTotalTime);
             return;
           }
         }
         end = System.currentTimeMillis();
-        stopTime += (end - start);
+        stats.stopTime += (end - start);
       }
     }
+    stats.totalTime += System.currentTimeMillis() - startTotalTime;
   }
 
   @Override
   public ConfigurableProgramAnalysis getCPA() {
     return cpa;
+  }
+  
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(stats);
   }
 }
