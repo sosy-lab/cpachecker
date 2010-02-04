@@ -10,7 +10,7 @@ import cpa.common.CPAConfiguration;
 import cpa.common.LogManager;
 import exceptions.CPAException;
 import fql.backend.targetgraph.TargetGraph;
-import fql.fllesh.util.CPAchecker;
+import fql.fllesh.CPAchecker;
 import fql.frontend.ast.coverage.Edges;
 import fql.frontend.ast.coverage.Sequence;
 import fql.frontend.ast.coverage.States;

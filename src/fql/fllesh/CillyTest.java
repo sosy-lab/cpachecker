@@ -7,16 +7,12 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.io.IOException;
 
-import junit.framework.Assert;
-
 import org.junit.Test;
 
 public class CillyTest {
 
   @Test
   public void test001() throws IOException {
-    // TODO remove absolute path
-    //Cilly lCilly = new Cilly("/home/holzera/cil/cil/obj/x86_LINUX/cilly.asm.exe");
     Cilly lCilly = new Cilly();
     
     lCilly.cillyfy("test/tests/single/functionCall.c");
@@ -24,8 +20,6 @@ public class CillyTest {
   
   @Test
   public void test002() throws IOException {
-    // TODO remove absolute path
-    //Cilly lCilly = new Cilly("/home/holzera/cil/cil/obj/x86_LINUX/cilly.asm.exe");
     Cilly lCilly = new Cilly();
     
     assertFalse(lCilly.isCillyInvariant("test/tests/single/functionCall.c"));
@@ -33,8 +27,6 @@ public class CillyTest {
   
   @Test
   public void test003() throws IOException {
-    // TODO remove absolute path
-    //Cilly lCilly = new Cilly("/home/holzera/cil/cil/obj/x86_LINUX/cilly.asm.exe");
     Cilly lCilly = new Cilly();
     
     File lCillyfiedFile = lCilly.cillyfy("test/tests/single/functionCall.c");

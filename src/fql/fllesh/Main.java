@@ -6,13 +6,13 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
+import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cmdline.CPAMain;
 
 import common.Pair;
 
 import cpa.common.CPAConfiguration;
 import cpa.common.LogManager;
-import cpa.common.MainCPAStatistics;
 import fql.backend.pathmonitor.Automaton;
 import fql.backend.query.QueryEvaluation;
 import fql.backend.targetgraph.Node;
@@ -51,8 +51,6 @@ public class Main {
       lSourceFileName = lCillyProcessedFile.getAbsolutePath();
       
       System.err.println("WARNING: Given source file is not CIL invariant ... did preprocessing!");
-      
-      //throw new IllegalArgumentException("Please preprocess your source file with cilly! See options in HowTo.txt!");
     }
     
     // set source file name
@@ -62,13 +60,13 @@ public class Main {
 
     LogManager lLogManager = new LogManager(lConfiguration);
       
-    MainCPAStatistics lStatistics = new MainCPAStatistics();
-    
-    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager, lStatistics);
+    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
     
     Query lQuery = parseQuery(pArguments[0]);
     
-    TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
+    CFAFunctionDefinitionNode lMainFunction = lCPAchecker.getMainFunction();
+    
+    TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lMainFunction);
     
     Pair<CoverageSequence, Automaton> lQueryEvaluation = QueryEvaluation.evaluate(lQuery, lTargetGraph);
     
@@ -82,8 +80,8 @@ public class Main {
       lTargetSequence.add(lPair);
     }
     
-    Node lProgramEntry = new Node(lCPAchecker.getMainFunction());
-    Node lProgramExit = new Node(lCPAchecker.getMainFunction().getExitNode());
+    Node lProgramEntry = new Node(lMainFunction);
+    Node lProgramExit = new Node(lMainFunction.getExitNode());
     
     lTargetSequence.add(new Pair<Automaton, Set<? extends TestGoal>>(lCoverageSequence.getFinalMonitor(), Collections.singleton(lProgramExit)));
     

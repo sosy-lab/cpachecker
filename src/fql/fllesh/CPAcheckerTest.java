@@ -8,7 +8,6 @@ import cmdline.CPAMain;
 import cmdline.CPAMain.InvalidCmdlineArgumentException;
 import cpa.common.CPAConfiguration;
 import cpa.common.LogManager;
-import cpa.common.MainCPAStatistics;
 import exceptions.CPAException;
 
 public class CPAcheckerTest {
@@ -25,16 +24,12 @@ public class CPAcheckerTest {
     
     CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
     
-    // necessary for LogManager
-    CPAMain.cpaConfig = lConfiguration;
-    
     LogManager lLogManager = new LogManager(lConfiguration);
       
-    MainCPAStatistics lStatistics = new MainCPAStatistics();
+    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
     
-    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager, lStatistics);
-    
-    System.out.println(lCPAchecker.runAlgorithm().toString());
+    // TODO: reimplement or reuse?
+    //System.out.println(lCPAchecker.runAlgorithm().toString());
   }
   
   @Test
@@ -47,16 +42,12 @@ public class CPAcheckerTest {
         
     CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
     
-    // necessary for LogManager
-    CPAMain.cpaConfig = lConfiguration;
-    
     LogManager lLogManager = new LogManager(lConfiguration);
       
-    MainCPAStatistics lStatistics = new MainCPAStatistics();
+    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
     
-    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager, lStatistics);
-    
-    System.out.println(lCPAchecker.runAlgorithm().toString());
+    // TODO: reimplement or reuse?
+    //System.out.println(lCPAchecker.runAlgorithm().toString());
   }
   
   @Test
@@ -75,15 +66,11 @@ public class CPAcheckerTest {
     
     CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
     
-    // necessary for LogManager
-    CPAMain.cpaConfig = lConfiguration;
-    
     LogManager lLogManager = new LogManager(lConfiguration);
       
-    MainCPAStatistics lStatistics = new MainCPAStatistics();
-    
-    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager, lStatistics);
-    
-    System.out.println(lCPAchecker.runAlgorithm().toString());
+    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
+   
+    // TODO: reimplement or reuse?
+    //System.out.println(lCPAchecker.runAlgorithm().toString());
   }
 }
