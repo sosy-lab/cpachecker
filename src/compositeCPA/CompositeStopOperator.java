@@ -39,7 +39,6 @@ public class CompositeStopOperator implements StopOperator{
 
   private final CompositeDomain compositeDomain;
   private final List<StopOperator> stopOperators;
-  public static long noOfOperations = 0;
 
   public CompositeStopOperator (CompositeDomain compositeDomain, List<StopOperator> stopOperators)
   {
@@ -89,7 +88,6 @@ public class CompositeStopOperator implements StopOperator{
   @Override
   public boolean stop(AbstractElement element, AbstractElement reachedElement)
   throws CPAException {
-    noOfOperations++;
     CompositeElement compositeElement1 = (CompositeElement) element;
     CompositeElement compositeElement2 = (CompositeElement) reachedElement;
     if(!compositeElement1.getCallStack().equals(compositeElement2.getCallStack())){

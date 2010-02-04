@@ -28,8 +28,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 
-import compositeCPA.CompositeStopOperator;
-
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.Statistics;
 
@@ -88,7 +86,6 @@ public class MainCPAStatistics implements Statistics {
         out.println("\nCPAchecker general statistics:");
         out.println("------------------------------");
         out.println("Size of reached set: " + reached.size());
-        out.println("Number of stops:     " + CompositeStopOperator.noOfOperations); // TODO IMHO it's wrong to use CompositeStopOperator for this
         out.println("Total Time Elapsed: " + toTime(totalTimeInMillis));
         out.println("Total Time Elapsed including CFA construction: " +
                 toTime(totalAbsoluteTimeMillis));
