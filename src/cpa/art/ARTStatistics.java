@@ -34,7 +34,7 @@ public class ARTStatistics implements Statistics {
     }
   }
 
-  private static void dumpARTToDotFile(ReachedElements pReached, File outfile) {
+  public static void dumpARTToDotFile(ReachedElements pReached, File outfile) {
     ARTElement firstElement = (ARTElement)pReached.getFirstElement();
 
     Deque<ARTElement> worklist = new LinkedList<ARTElement>();
