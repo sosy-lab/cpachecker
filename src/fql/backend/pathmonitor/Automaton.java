@@ -64,6 +64,18 @@ public class Automaton {
     mNextFreeState = pNextFreeState;
   }
   
+  public Set<Integer> getInitialStates() {
+    return mInitialStates;
+  }
+  
+  public Set<Integer> getFinalStates() {
+    return mFinalStates;
+  }
+  
+  public Set<Integer> getStates() {
+    return mTransitionRelation.vertexSet();
+  }
+  
   @Override
   public String toString() {
     StringBuffer lBuffer = new StringBuffer();

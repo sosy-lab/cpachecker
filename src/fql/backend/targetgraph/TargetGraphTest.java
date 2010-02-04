@@ -12,10 +12,9 @@ import cmdline.CPAMain;
 import cmdline.CPAMain.InvalidCmdlineArgumentException;
 import cpa.common.CPAConfiguration;
 import cpa.common.LogManager;
-import cpa.common.MainCPAStatistics;
 import exceptions.CPAException;
 import fql.backend.testgoals.TestGoal;
-import fql.fllesh.CPAchecker;
+import fql.fllesh.util.CPAchecker;
 import fql.frontend.ast.coverage.Edges;
 import fql.frontend.ast.coverage.Paths;
 import fql.frontend.ast.coverage.States;
@@ -47,9 +46,7 @@ public class TargetGraphTest {
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
-    MainCPAStatistics lStatistics = new MainCPAStatistics();
-    
-    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager, lStatistics);
+    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
     
     TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
     
@@ -68,9 +65,7 @@ public class TargetGraphTest {
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
-    MainCPAStatistics lStatistics = new MainCPAStatistics();
-    
-    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager, lStatistics);
+    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
     
     TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
     
@@ -95,9 +90,7 @@ public class TargetGraphTest {
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
-    MainCPAStatistics lStatistics = new MainCPAStatistics();
-    
-    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager, lStatistics);
+    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
     
     TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
     
@@ -122,9 +115,7 @@ public class TargetGraphTest {
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
-    MainCPAStatistics lStatistics = new MainCPAStatistics();
-    
-    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager, lStatistics);
+    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
     
     TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
     
@@ -151,9 +142,7 @@ public class TargetGraphTest {
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
-    MainCPAStatistics lStatistics = new MainCPAStatistics();
-    
-    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager, lStatistics);
+    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
     
     TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
     
@@ -183,9 +172,7 @@ public class TargetGraphTest {
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
-    MainCPAStatistics lStatistics = new MainCPAStatistics();
-    
-    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager, lStatistics);
+    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
     
     TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
     
@@ -208,9 +195,7 @@ public class TargetGraphTest {
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
-    MainCPAStatistics lStatistics = new MainCPAStatistics();
-    
-    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager, lStatistics);
+    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
     
     TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
     
@@ -233,9 +218,7 @@ public class TargetGraphTest {
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
-    MainCPAStatistics lStatistics = new MainCPAStatistics();
-    
-    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager, lStatistics);
+    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
     
     TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
     
@@ -258,9 +241,7 @@ public class TargetGraphTest {
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
-    MainCPAStatistics lStatistics = new MainCPAStatistics();
-    
-    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager, lStatistics);
+    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
     
     TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
     
@@ -282,9 +263,7 @@ public class TargetGraphTest {
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
-    MainCPAStatistics lStatistics = new MainCPAStatistics();
-    
-    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager, lStatistics);
+    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
     
     TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
     
@@ -324,9 +303,7 @@ public class TargetGraphTest {
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
-    MainCPAStatistics lStatistics = new MainCPAStatistics();
-    
-    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager, lStatistics);
+    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
     
     TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
     
@@ -352,9 +329,7 @@ public class TargetGraphTest {
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
-    MainCPAStatistics lStatistics = new MainCPAStatistics();
-    
-    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager, lStatistics);
+    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
     
     TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
     
@@ -385,9 +360,7 @@ public class TargetGraphTest {
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
-    MainCPAStatistics lStatistics = new MainCPAStatistics();
-    
-    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager, lStatistics);
+    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
     
     TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
     
@@ -413,9 +386,7 @@ public class TargetGraphTest {
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
-    MainCPAStatistics lStatistics = new MainCPAStatistics();
-    
-    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager, lStatistics);
+    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
     
     TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
     
@@ -446,9 +417,7 @@ public class TargetGraphTest {
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
-    MainCPAStatistics lStatistics = new MainCPAStatistics();
-    
-    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager, lStatistics);
+    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
     
     TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
     
@@ -479,9 +448,7 @@ public class TargetGraphTest {
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
-    MainCPAStatistics lStatistics = new MainCPAStatistics();
-    
-    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager, lStatistics);
+    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
     
     TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
     
@@ -506,9 +473,7 @@ public class TargetGraphTest {
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
-    MainCPAStatistics lStatistics = new MainCPAStatistics();
-    
-    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager, lStatistics);
+    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
     
     TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
     
@@ -533,9 +498,7 @@ public class TargetGraphTest {
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
-    MainCPAStatistics lStatistics = new MainCPAStatistics();
-    
-    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager, lStatistics);
+    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
     
     TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
     
@@ -560,9 +523,7 @@ public class TargetGraphTest {
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
-    MainCPAStatistics lStatistics = new MainCPAStatistics();
-    
-    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager, lStatistics);
+    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
     
     TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
     
@@ -585,9 +546,7 @@ public class TargetGraphTest {
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
-    MainCPAStatistics lStatistics = new MainCPAStatistics();
-    
-    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager, lStatistics);
+    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
     
     TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
     
