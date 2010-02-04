@@ -31,10 +31,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
+import cpa.common.CPAchecker;
+
 import symbpredabstraction.interfaces.Predicate;
 import symbpredabstraction.interfaces.PredicateMap;
 
-import cmdline.CPAMain;
 
 import cfa.objectmodel.CFANode;
 
@@ -52,7 +53,7 @@ public class UpdateablePredicateMap implements PredicateMap {
     private final boolean globalPredicates;
 
     public UpdateablePredicateMap(Collection<Predicate> initial) {
-        globalPredicates = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.refinement.addPredicatesGlobally");
+        globalPredicates = CPAchecker.config.getBooleanValue("cpas.symbpredabs.refinement.addPredicatesGlobally");
         repr = new HashMap<CFANode, Set<Predicate>>();
         functionGlobalPreds = new HashMap<String, Set<Predicate>>();
         
@@ -83,7 +84,7 @@ public class UpdateablePredicateMap implements PredicateMap {
             Set<Predicate> s = functionGlobalPreds.get(fn);
             added |= s.addAll(preds);
             if (added) {
-              CPAMain.logManager.log(Level.ALL, "Updated predicates for function", fn, ":", s);
+              CPAchecker.logger.log(Level.ALL, "Updated predicates for function", fn, ":", s);
             }
         } else {
             if (!repr.containsKey(n)) {
@@ -93,7 +94,7 @@ public class UpdateablePredicateMap implements PredicateMap {
             Set<Predicate> s = repr.get(n);
             added |= s.addAll(preds);
             if (added) {
-              CPAMain.logManager.log(Level.ALL, "Added predicates to", n, ":", preds);
+              CPAchecker.logger.log(Level.ALL, "Added predicates to", n, ":", preds);
             }
         }
         return added;

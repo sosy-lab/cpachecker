@@ -32,7 +32,6 @@ import symbpredabstraction.interfaces.AbstractFormulaManager;
 import symbpredabstraction.interfaces.Predicate;
 import symbpredabstraction.trace.CounterexampleTraceInfo;
 import cfa.objectmodel.CFAEdge;
-import cmdline.CPAMain;
 
 import common.Pair;
 import compositeCPA.CompositeCPA;
@@ -41,6 +40,7 @@ import cpa.art.ARTElement;
 import cpa.art.ARTReachedSet;
 import cpa.art.AbstractARTBasedRefiner;
 import cpa.art.Path;
+import cpa.common.CPAchecker;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.transferrelationmonitor.TransferRelationMonitorCPA;
 import exceptions.CPAException;
@@ -88,7 +88,7 @@ public class McMillanRefiner extends AbstractARTBasedRefiner {
   @Override
   public boolean performRefinement(ARTReachedSet pReached, Path pPath) throws CPAException {
 
-    CPAMain.logManager.log(Level.FINEST, "Starting refinement for SymbPredAbsCPA");
+    CPAchecker.logger.log(Level.FINEST, "Starting refinement for SymbPredAbsCPA");
     
     // create path with all abstraction location elements (excluding the initial
     // element, which is not in pPath)
@@ -113,12 +113,12 @@ public class McMillanRefiner extends AbstractARTBasedRefiner {
         
     // if error is spurious refine
     if (info.isSpurious()) {
-      CPAMain.logManager.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
+      CPAchecker.logger.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
       performRefinement(pReached, pPath, info);
       
       return true;
     } else {
-      CPAMain.logManager.log(Level.FINEST, "Error trace is not spurious");
+      CPAchecker.logger.log(Level.FINEST, "Error trace is not spurious");
       // we have a real error
       return false;
     }

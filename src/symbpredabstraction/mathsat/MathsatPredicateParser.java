@@ -32,10 +32,11 @@ import java.util.Stack;
 import java.util.Vector;
 import java.util.logging.Level;
 
+import cpa.common.CPAchecker;
+
 import symbpredabstraction.interfaces.FormulaManager;
 import symbpredabstraction.interfaces.Predicate;
 import symbpredabstraction.interfaces.SymbolicFormula;
-import cmdline.CPAMain;
 
 
 /**
@@ -77,7 +78,7 @@ public class MathsatPredicateParser {
             }
             return parsePredicates(formula);
         } catch (IOException e) {
-          CPAMain.logManager.logException(Level.WARNING, e, "");
+          CPAchecker.logger.logException(Level.WARNING, e, "");
             return null;
         }
     }
@@ -86,7 +87,7 @@ public class MathsatPredicateParser {
         Collection<Predicate> ret = new Vector<Predicate>();
         Stack<Long> toProcess = new Stack<Long>();
 
-        CPAMain.logManager.log(Level.ALL, "DEBUG_3",
+        CPAchecker.logger.log(Level.ALL, "DEBUG_3",
                        "FORMULA IS: ", new MathsatSymbolicFormula(formula));
 
         // We *ASSUME* that in the original msat file the formula is a
@@ -117,7 +118,7 @@ public class MathsatPredicateParser {
                     SymbolicFormula symbDef = new MathsatSymbolicFormula(def);
                     ret.add(mgr.makePredicate(symbVar, symbDef));
 
-                    CPAMain.logManager.log(Level.ALL, "DEBUG_1",
+                    CPAchecker.logger.log(Level.ALL, "DEBUG_1",
                                    "ADDED PREDICATE, name: ",
                                    symbVar,
                                    ", atom: ",

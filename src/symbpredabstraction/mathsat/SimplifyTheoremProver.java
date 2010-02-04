@@ -41,10 +41,11 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.logging.Level;
 
+import cpa.common.CPAchecker;
+
 import symbpredabstraction.interfaces.SymbolicFormula;
 import symbpredabstraction.interfaces.SymbolicFormulaManager;
 import symbpredabstraction.interfaces.TheoremProver;
-import cmdline.CPAMain;
 
 
 public class SimplifyTheoremProver implements TheoremProver {
@@ -73,13 +74,13 @@ public class SimplifyTheoremProver implements TheoremProver {
         simplifyOut = null;
         dumpQueryWriter = null;
         smgr = mgr;
-        if (CPAMain.cpaConfig.getBooleanValue(
+        if (CPAchecker.config.getBooleanValue(
             "cpas.symbpredabs.explicit.abstraction.simplifyDumpQueries")) {
             try {
                 dumpQueryWriter = new PrintWriter(
                         new File("simplify_queries.txt"));
             } catch (FileNotFoundException e) {
-              CPAMain.logManager.logException(Level.WARNING, e, "");
+              CPAchecker.logger.logException(Level.WARNING, e, "");
                 dumpQueryWriter = null;
             }
         }
@@ -208,7 +209,7 @@ public class SimplifyTheoremProver implements TheoremProver {
             simplifyOut = new BufferedReader(new InputStreamReader(out));
             simplifyIn = new PrintWriter(in);
         } catch (IOException e) {
-          CPAMain.logManager.logException(Level.WARNING, e, "");
+          CPAchecker.logger.logException(Level.WARNING, e, "");
             assert(false);
         }
     }
@@ -238,7 +239,7 @@ public class SimplifyTheoremProver implements TheoremProver {
             boolean childrenDone = true;
             String[] children = new String[mathsat.api.msat_term_arity(term)];
             if (isTermIteAssignment(term)) {
-              CPAMain.logManager.log(Level.WARNING, "ERROR!!: " + mathsat.api.msat_term_repr(term));
+              CPAchecker.logger.log(Level.WARNING, "ERROR!!: " + mathsat.api.msat_term_repr(term));
                 assert(false);
                 children = new String[4];
                 long c1 = mathsat.api.msat_term_get_arg(term, 0);
@@ -411,7 +412,7 @@ public class SimplifyTheoremProver implements TheoremProver {
                 status = simplifyOut.readLine();
             }
         } catch (IOException e) {
-          CPAMain.logManager.logException(Level.SEVERE, e, "");
+          CPAchecker.logger.logException(Level.SEVERE, e, "");
             System.exit(1);
         }
         assert(status != null);
@@ -420,7 +421,7 @@ public class SimplifyTheoremProver implements TheoremProver {
         } else if (status.contains("Invalid.")) {
             return false;
         } else {
-          CPAMain.logManager.log(Level.WARNING, "BAD ANSWER FROM SIMPLIFY: '" + status + "', " +
+          CPAchecker.logger.log(Level.WARNING, "BAD ANSWER FROM SIMPLIFY: '" + status + "', " +
                     "FORMULA: " + formula);
             assert(false);
         }
@@ -444,7 +445,7 @@ public class SimplifyTheoremProver implements TheoremProver {
                 status = simplifyOut.readLine();
             }
         } catch (IOException e) {
-          CPAMain.logManager.logException(Level.SEVERE, e, "");
+          CPAchecker.logger.logException(Level.SEVERE, e, "");
             System.exit(1);
         }
         assert(status != null);
@@ -454,7 +455,7 @@ public class SimplifyTheoremProver implements TheoremProver {
             // ok, let's parse the model
             return ret;
         } else {
-          CPAMain.logManager.log(Level.WARNING, "BAD ANSWER FROM SIMPLIFY: '" + status + "', " +
+          CPAchecker.logger.log(Level.WARNING, "BAD ANSWER FROM SIMPLIFY: '" + status + "', " +
                     "FORMULA: " + formula);
             assert(false);
         }
@@ -496,7 +497,7 @@ public class SimplifyTheoremProver implements TheoremProver {
                 }
             }
         } catch (IOException e) {
-          CPAMain.logManager.logException(Level.WARNING, e, "");
+          CPAchecker.logger.logException(Level.WARNING, e, "");
             assert(false);
         }
         return model;

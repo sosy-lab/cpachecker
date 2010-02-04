@@ -76,9 +76,9 @@ import cfa.objectmodel.c.FunctionCallEdge;
 import cfa.objectmodel.c.FunctionDefinitionNode;
 import cfa.objectmodel.c.GlobalDeclarationEdge;
 import cfa.objectmodel.c.StatementEdge;
-import cmdline.CPAMain;
 
 import common.Pair;
+import cpa.common.CPAchecker;
 
 import exceptions.UnrecognizedCFAEdgeException;
 
@@ -170,7 +170,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
 
   public MathsatSymbolicFormulaManager() {
     msatEnv = mathsat.api.msat_create_env();
-    if (CPAMain.cpaConfig.getBooleanValue(
+    if (CPAchecker.config.getBooleanValue(
         "cpas.symbpredabs.mathsat.useIntegers")) {
       msatVarType = mathsat.api.MSAT_INT;
     } else {
@@ -213,7 +213,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     nextStringLitIndex = 0;
     stringLitToMsat = new HashMap<String, Long>();
 
-    lvalsAsUif = CPAMain.cpaConfig.getBooleanValue(
+    lvalsAsUif = CPAchecker.config.getBooleanValue(
         "cpas.symbpredabs.mathsat.lvalsAsUIFs");
   }
 
@@ -251,7 +251,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     // create a temporary environment for checking the implication
     long env = mathsat.api.msat_create_env();
     mathsat.api.msat_add_theory(env, mathsat.api.MSAT_UF);
-    if (CPAMain.cpaConfig.getBooleanValue(
+    if (CPAchecker.config.getBooleanValue(
         "cpas.symbpredabs.mathsat.useIntegers")) {
       mathsat.api.msat_add_theory(env, mathsat.api.MSAT_LIA);
       int ok = mathsat.api.msat_set_option(env, "split_eq", "true");
@@ -363,7 +363,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       if (statementEdge.isJumpEdge()) {
         if (statementEdge.getSuccessor().getFunctionName().equals(
             "main")) {
-          CPAMain.logManager.log(Level.ALL, "DEBUG_3",
+          CPAchecker.logger.log(Level.ALL, "DEBUG_3",
               "MathsatSymbolicFormulaManager, IGNORING return ",
               "from main: ", edge.getRawStatement());
         } else {
@@ -435,7 +435,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         int idx = 1;
         newssa.setIndex(var, 1);
 
-        CPAMain.logManager.log(Level.ALL, "DEBUG_3",
+        CPAchecker.logger.log(Level.ALL, "DEBUG_3",
             "Declared enum field: ", var, ", index: ", idx);
 
         long minit = buildMsatTerm(exp, newssa);
@@ -477,7 +477,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       int idx = getNewIndex(var, newssa);
       newssa.setIndex(var, idx);
 
-      CPAMain.logManager.log(Level.ALL, "DEBUG_3",
+      CPAchecker.logger.log(Level.ALL, "DEBUG_3",
           "Declared variable: ", var, ", index: ", idx);
       // TODO get the type of the variable, and act accordingly
 
@@ -514,11 +514,11 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         warn("NOT initializing, because extern declaration: " +
             declarationEdge.getRawStatement());
       } else if (isGlobal ||
-          CPAMain.cpaConfig.getBooleanValue(
+          CPAchecker.config.getBooleanValue(
               "cpas.symbpredabs.initAllVars")) {
         // auto-initialize variables to zero, unless they match
         // the noAutoInitPrefix pattern
-        String noAutoInit = CPAMain.cpaConfig.getProperty(
+        String noAutoInit = CPAchecker.config.getProperty(
             "cpas.symbpredabs.noAutoInitPrefix", "");
         if (noAutoInit.equals("") ||
             !d.getName().getRawSignature().startsWith(noAutoInit)) {
@@ -527,11 +527,11 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
           long t = makeAssignment(mvar, z);
           t = mathsat.api.msat_make_and(msatEnv, m1.getTerm(), t);
           m1 = new MathsatSymbolicFormula(t);
-          CPAMain.logManager.log(Level.ALL, "DEBUG_3", "AUTO-INITIALIZING",
+          CPAchecker.logger.log(Level.ALL, "DEBUG_3", "AUTO-INITIALIZING",
               (isGlobal ? "GLOBAL" : ""), "VAR: ",
               var, " (", d.getName().getRawSignature(), ")");
         } else {
-          CPAMain.logManager.log(Level.ALL, "DEBUG_3",
+          CPAchecker.logger.log(Level.ALL, "DEBUG_3",
               "NOT AUTO-INITIALIZING VAR:", var);
         }
       }
@@ -600,7 +600,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
   }
 
   private void warn(String msg) {
-    CPAMain.logManager.log(Level.ALL, "DEBUG_2", "WARNING:", msg);
+    CPAchecker.logger.log(Level.ALL, "DEBUG_2", "WARNING:", msg);
   }
 
   private PathFormula makeAndExitFunction(
@@ -784,7 +784,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
   }
 
   private int autoInstantiateVar(String var, SSAMap ssa) {
-    CPAMain.logManager.log(Level.ALL, "DEBUG_3",
+    CPAchecker.logger.log(Level.ALL, "DEBUG_3",
         "WARNING: Auto-instantiating variable: ", var);
     ssa.setIndex(var, 1);
     return 1;
@@ -792,15 +792,15 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
 
   private int autoInstantiateLvalue(String name, SymbolicFormula[] args, SSAMap ssa) {
     if (args.length == 1) {
-      CPAMain.logManager.log(Level.ALL, "DEBUG_3",
+      CPAchecker.logger.log(Level.ALL, "DEBUG_3",
           "WARNING: Auto-instantiating lval: ", name, "(", args[0],
       ")");
     } else if (args.length == 2) {
-      CPAMain.logManager.log(Level.ALL, "DEBUG_3",
+      CPAchecker.logger.log(Level.ALL, "DEBUG_3",
           "WARNING: Auto-instantiating lval: ", name, "(", args[0],
           ",", args[1], ")");
     } else {
-      CPAMain.logManager.log(Level.ALL, "DEBUG_3",
+      CPAchecker.logger.log(Level.ALL, "DEBUG_3",
           "WARNING: Auto-instantiating lval: ", name, "(", args, ")");
     }
     ssa.setIndex(name, args, 1);
@@ -883,7 +883,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         }
       }
       default:
-        CPAMain.logManager.log(Level.ALL, "DEBUG_1",
+        CPAchecker.logger.log(Level.ALL, "DEBUG_1",
             "ERROR, UNKNOWN LITERAL: ", exp.getRawSignature());
       return mathsat.api.MSAT_MAKE_ERROR_TERM();
       }
@@ -902,7 +902,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       return mathsat.api.msat_make_number(msatEnv, num);
     } else if (exp instanceof IASTCastExpression) {
       // we completely ignore type casts
-      CPAMain.logManager.log(Level.ALL, "DEBUG_3", "IGNORING TYPE CAST:",
+      CPAchecker.logger.log(Level.ALL, "DEBUG_3", "IGNORING TYPE CAST:",
           exp.getRawSignature());
       return buildMsatTerm(((IASTCastExpression)exp).getOperand(), ssa);
     } else if (exp instanceof IASTUnaryExpression) {
@@ -1222,7 +1222,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       }
       return ((IBinding)tp).getName();
     } catch (DOMException e) {
-      CPAMain.logManager.logException(Level.WARNING, e, "");
+      CPAchecker.logger.logException(Level.WARNING, e, "");
       assert(false);
     }
     return null;
@@ -1404,7 +1404,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       IASTFunctionCallExpression fexp, SSAMap ssa) {
     IASTExpression fn = fexp.getFunctionNameExpression();
     IASTExpression pexp = fexp.getParameterExpression();
-    CPAMain.logManager.log(Level.ALL, "External function call " + fn.getRawSignature()
+    CPAchecker.logger.log(Level.ALL, "External function call " + fn.getRawSignature()
         + " encountered, assuming it has no side effects!");
     if (pexp == null) {
       // this is a function of arity 0. We create a fresh global variable
@@ -1450,7 +1450,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
   private void warnUnsafeVar(IASTExpression exp) {
     if (!warnedUnsafeVars.contains(exp)) {
       warnedUnsafeVars.add(exp);
-      CPAMain.logManager.log(Level.WARNING, "unhandled expression",
+      CPAchecker.logger.log(Level.WARNING, "unhandled expression",
           exp.getRawSignature(), "- treating as a free variable!");
     }
   }
@@ -1549,7 +1549,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
   }
 
   private long makeAssignment(long t1, long t2) {
-    CPAMain.logManager.log(Level.ALL, "DEBUG_3",
+    CPAchecker.logger.log(Level.ALL, "DEBUG_3",
         "MAKE ASSIGNMENT: ", new MathsatSymbolicFormula(t1), " := ",
         new MathsatSymbolicFormula(t2));
     return mathsat.api.msat_make_uif(msatEnv, assignUfDecl,
@@ -2097,7 +2097,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
             idx = Integer.parseInt(bits[1]);
             name = bits[0];
           } catch (NumberFormatException e) {
-            CPAMain.logManager.log(Level.ALL, "DEBUG_1",
+            CPAchecker.logger.log(Level.ALL, "DEBUG_1",
                 "Bad variable name!: ", name, ", exception: ",
                 e);
             assert(false); // should not happen
@@ -2158,7 +2158,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
                   idx = Integer.parseInt(bits[1]);
                   name = bits[0];
                 } catch (NumberFormatException e) {
-                  CPAMain.logManager.log(Level.ALL, "DEBUG_1",
+                  CPAchecker.logger.log(Level.ALL, "DEBUG_1",
                       "Bad UF name!: ", name,
                       ", exception: ", e);
                   assert(false); // should not happen
@@ -2238,7 +2238,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       }
       cache.add(t);
       if (mathsat.api.msat_term_is_uif(t) != 0) {
-        CPAMain.logManager.log(Level.ALL, "DEBUG_3", "FOUND UIF IN FORMULA:", f,
+        CPAchecker.logger.log(Level.ALL, "DEBUG_3", "FOUND UIF IN FORMULA:", f,
             ", term is:", new MathsatSymbolicFormula(t));
         return true;
       }

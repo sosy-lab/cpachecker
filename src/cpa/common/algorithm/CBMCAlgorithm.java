@@ -27,7 +27,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import cfa.CFAMap;
-import cmdline.CPAMain;
 import cpa.art.ARTCPA;
 import cpa.art.ARTElement;
 import cpa.common.ReachedElements;

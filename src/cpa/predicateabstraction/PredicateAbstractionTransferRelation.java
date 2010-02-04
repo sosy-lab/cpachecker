@@ -31,7 +31,7 @@ import java.util.logging.Level;
 import symbpredabstraction.interfaces.AbstractFormula;
 import symbpredabstraction.interfaces.Predicate;
 import cfa.objectmodel.CFAEdge;
-import cmdline.CPAMain;
+import cpa.common.CPAchecker;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
@@ -120,8 +120,8 @@ public class PredicateAbstractionTransferRelation implements TransferRelation {
     succ.setAbstraction(abstraction);
     //  succ.setParent(e);
 
-    if (CPAMain.logManager.getLogLevel().intValue() <= Level.ALL.intValue()) {
-      CPAMain.logManager.log(Level.ALL, "DEBUG_1", "COMPUTED ABSTRACTION:",
+    if (CPAchecker.logger.getLogLevel().intValue() <= Level.ALL.intValue()) {
+      CPAchecker.logger.log(Level.ALL, "DEBUG_1", "COMPUTED ABSTRACTION:",
           amgr.toConcrete(abstraction));
     }
 
@@ -135,7 +135,7 @@ public class PredicateAbstractionTransferRelation implements TransferRelation {
   @Override
   public Collection<PredicateAbstractionAbstractElement> getAbstractSuccessors(
       AbstractElement element, Precision prec, CFAEdge cfaEdge) throws CPATransferException {
-    CPAMain.logManager.log(Level.FINEST, 
+    CPAchecker.logger.log(Level.FINEST, 
         "Getting Abstract Successor of element: ", element,
         " on edge: ", cfaEdge.getRawStatement());
     
@@ -147,7 +147,7 @@ public class PredicateAbstractionTransferRelation implements TransferRelation {
     
     Collection<PredicateAbstractionAbstractElement> ret = buildSuccessor(e, cfaEdge);
     
-    CPAMain.logManager.log(Level.FINEST,
+    CPAchecker.logger.log(Level.FINEST,
         "Successor is: ", ret);
     
     return ret;

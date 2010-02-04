@@ -37,9 +37,6 @@ public class CoverageSequenceTest {
     
     CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
     
-    // necessary for LogManager
-    CPAMain.cpaConfig = lConfiguration;
-    
     LogManager lLogManager = new LogManager(lConfiguration);
       
     MainCPAStatistics lStatistics = new MainCPAStatistics();
@@ -70,9 +67,6 @@ public class CoverageSequenceTest {
     lArguments[2] = "test/tests/single/functionCall.c";
     
     CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
-    
-    // necessary for LogManager
-    CPAMain.cpaConfig = lConfiguration;
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
@@ -108,9 +102,6 @@ public class CoverageSequenceTest {
     lArguments[2] = "test/tests/single/functionCall.c";
     
     CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
-    
-    // necessary for LogManager
-    CPAMain.cpaConfig = lConfiguration;
     
     LogManager lLogManager = new LogManager(lConfiguration);
       

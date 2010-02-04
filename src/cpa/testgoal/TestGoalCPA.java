@@ -34,7 +34,7 @@ import java.util.logging.Level;
 
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
-import cmdline.CPAMain;
+import cpa.common.CPAchecker;
 import cpa.common.automaton.Automaton;
 import cpa.common.automaton.AutomatonCPADomain;
 import cpa.common.defaults.MergeSepOperator;
@@ -264,7 +264,7 @@ public class TestGoalCPA implements ConfigurableProgramAnalysis {
       int lNewSize = lPrecision.getRemainingFinalStates().size();
       
       if (lOldSize != lNewSize) {
-        CPAMain.logManager.log(Level.INFO, "Remaining #states = " + lNewSize);
+        CPAchecker.logger.log(Level.INFO, "Remaining #states = " + lNewSize);
       }
       
       return lElement;

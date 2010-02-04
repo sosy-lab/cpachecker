@@ -40,11 +40,11 @@ import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cfa.objectmodel.CFANode;
 import cfa.objectmodel.c.ReturnEdge;
-import cmdline.CPAMain;
 
 import com.google.common.collect.ImmutableSet;
 import common.Triple;
 
+import cpa.common.CPAchecker;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
@@ -94,8 +94,8 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     abstractFormulaManager = pCpa.getAbstractFormulaManager();
     formulaManager = pCpa.getFormulaManager();
     
-    blockSize = Integer.parseInt(CPAMain.cpaConfig.getProperty("cpas.symbpredabs.blocksize", "0"));
-    inlineFunctions = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.inlineFunctions");
+    blockSize = Integer.parseInt(CPAchecker.config.getProperty("cpas.symbpredabs.blocksize", "0"));
+    inlineFunctions = CPAchecker.config.getBooleanValue("cpas.symbpredabs.inlineFunctions");
   }
 
   @Override
@@ -143,7 +143,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   private Collection<SymbPredAbsAbstractElement> handleNonAbstractionLocation(
                 SymbPredAbsAbstractElement element, CFAEdge edge, boolean satCheck)
                 throws UnrecognizedCFAEdgeException {
-    CPAMain.logManager.log(Level.FINEST, "Handling non-abstraction location",
+    CPAchecker.logger.log(Level.FINEST, "Handling non-abstraction location",
         (satCheck ? "with satisfiability check" : ""));
 
     // id of parent
@@ -151,10 +151,10 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
     PathFormula pf = convertEdgeToPathFormula(element.getPathFormula(), edge, abstractionNodeId); 
 
-    CPAMain.logManager.log(Level.ALL, "New path formula is", pf);
+    CPAchecker.logger.log(Level.ALL, "New path formula is", pf);
 
     if (satCheck && formulaManager.unsat(element.getAbstraction(), pf)) {
-      CPAMain.logManager.log(Level.FINEST, "Abstraction & PathFormula is unsatisfiable.");
+      CPAchecker.logger.log(Level.FINEST, "Abstraction & PathFormula is unsatisfiable.");
       return Collections.emptySet();
     }
     
@@ -192,7 +192,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   private Collection<SymbPredAbsAbstractElement> handleAbstractionLocation(SymbPredAbsAbstractElement element, SymbPredAbsPrecision precision, CFAEdge edge) 
   throws UnrecognizedCFAEdgeException {
     
-    CPAMain.logManager.log(Level.FINEST, "Computing abstraction on node", edge.getSuccessor());
+    CPAchecker.logger.log(Level.FINEST, "Computing abstraction on node", edge.getSuccessor());
     
     // this will be the initial abstraction formula that we will use 
     // to compute the abstraction. Say this formula is pf, and the abstraction
@@ -232,7 +232,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
     // if the abstraction is false, return bottom (represented by empty set)
     if (abstractFormulaManager.isFalse(newAbstraction)) {
-      CPAMain.logManager.log(Level.FINEST, "Abstraction is false, node is not reachable");
+      CPAchecker.logger.log(Level.FINEST, "Abstraction is false, node is not reachable");
       return Collections.emptySet();
     }
     

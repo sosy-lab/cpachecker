@@ -10,7 +10,6 @@ import symbpredabstraction.UpdateablePredicateMap;
 import symbpredabstraction.interfaces.Predicate;
 import symbpredabstraction.trace.CounterexampleTraceInfo;
 import cfa.objectmodel.CFAEdge;
-import cmdline.CPAMain;
 
 import common.Pair;
 import compositeCPA.CompositeCPA;
@@ -19,6 +18,7 @@ import cpa.art.ARTElement;
 import cpa.art.ARTReachedSet;
 import cpa.art.AbstractARTBasedRefiner;
 import cpa.art.Path;
+import cpa.common.CPAchecker;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.transferrelationmonitor.TransferRelationMonitorCPA;
 import exceptions.CPAException;
@@ -83,7 +83,7 @@ public class PredicateAbstractionRefiner extends AbstractARTBasedRefiner {
     assert(info != null);
 
     if (info.isSpurious()) {
-      CPAMain.logManager.log(Level.FINEST,
+      CPAchecker.logger.log(Level.FINEST,
       "Found spurious error trace, refining the abstraction");
       
       ARTElement refinementRoot = performRefinement(pReached, pPath, pathArray, info);
@@ -93,7 +93,7 @@ public class PredicateAbstractionRefiner extends AbstractARTBasedRefiner {
       return true;
     } else {
       // we have a real error
-      CPAMain.logManager.log(Level.FINEST, "Error trace is not spurious");
+      CPAchecker.logger.log(Level.FINEST, "Error trace is not spurious");
       return false;
     }
   }
@@ -102,7 +102,7 @@ public class PredicateAbstractionRefiner extends AbstractARTBasedRefiner {
   private ARTElement performRefinement(ARTReachedSet pReached, Path pPath,
       Pair<ARTElement, CFAEdge>[] pPathArray,
       CounterexampleTraceInfo pInfo) {
-    CPAMain.logManager.log(Level.ALL, "DEBUG_1", "STARTING REFINEMENT");
+    CPAchecker.logger.log(Level.ALL, "DEBUG_1", "STARTING REFINEMENT");
     UpdateablePredicateMap curpmap =
       (UpdateablePredicateMap)mCpa.getPredicateMap();
 
@@ -146,7 +146,7 @@ public class PredicateAbstractionRefiner extends AbstractARTBasedRefiner {
         }
       } else {
         assert(firstInterpolant != null);
-        CPAMain.logManager.log(Level.FINEST,
+        CPAchecker.logger.log(Level.FINEST,
         "Restarting ART from scratch");
         // if the root is theinitial element, we add
         // its child as the root so that refinement algorithm

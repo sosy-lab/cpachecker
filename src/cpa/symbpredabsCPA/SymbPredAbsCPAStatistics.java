@@ -25,7 +25,7 @@ package cpa.symbpredabsCPA;
 
 import java.io.PrintWriter;
 
-import cmdline.CPAMain;
+import cpa.common.CPAchecker;
 import cpa.common.ReachedElements;
 import cpa.common.interfaces.CPAStatistics;
 
@@ -151,7 +151,7 @@ public class SymbPredAbsCPAStatistics implements CPAStatistics {
       out.println("  Total:                       " + toTime(bs.cexAnalysisTime));
       out.println("  Max:                         " + toTime(bs.cexAnalysisMaxTime));
       out.println("  Solving time only:           " + toTime(bs.cexAnalysisMathsatTime));
-      if (CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.explicit.getUsefulBlocks")) {
+      if (CPAchecker.config.getBooleanValue("cpas.symbpredabs.explicit.getUsefulBlocks")) {
         out.println("  Cex.focusing total:          " + toTime(bs.cexAnalysisGetUsefulBlocksTime));
         out.println("  Cex.focusing max:            " + toTime(bs.cexAnalysisGetUsefulBlocksMaxTime));
       }

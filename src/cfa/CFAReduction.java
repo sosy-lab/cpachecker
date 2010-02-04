@@ -27,9 +27,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Stack;
 
-import cmdline.CPAMain;
 
 import java.util.logging.Level;
+
+import cpa.common.CPAchecker;
 
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAErrorNode;
@@ -134,7 +135,7 @@ public class CFAReduction {
       }
       if (finished) {
         toProcess.pop();
-        CPAMain.logManager.log(Level.ALL, "DEBUG_3",
+        CPAchecker.logger.log(Level.ALL, "DEBUG_3",
             "FINISHED: ", n.getNodeNumber());
         dfsMarked.put(n, 1);
       }

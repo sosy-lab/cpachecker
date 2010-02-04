@@ -6,9 +6,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
+import cmdline.CPAMain;
+
 import common.Pair;
 
-import cmdline.CPAMain;
 import cpa.common.CPAConfiguration;
 import cpa.common.LogManager;
 import cpa.common.MainCPAStatistics;
@@ -58,10 +59,7 @@ public class Main {
     lArguments[2] = lSourceFileName;
     
     CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
-    
-    // necessary for LogManager
-    CPAMain.cpaConfig = lConfiguration;
-    
+
     LogManager lLogManager = new LogManager(lConfiguration);
       
     MainCPAStatistics lStatistics = new MainCPAStatistics();

@@ -52,7 +52,7 @@ import cfa.objectmodel.c.FunctionDefinitionNode;
 import cfa.objectmodel.c.GlobalDeclarationEdge;
 import cfa.objectmodel.c.ReturnEdge;
 import cfa.objectmodel.c.StatementEdge;
-import cmdline.CPAMain;
+import cpa.common.CPAchecker;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
@@ -77,7 +77,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
   public ExplicitAnalysisTransferRelation ()
   {
     globalVars = new HashSet<String>();
-    threshold = Integer.parseInt(CPAMain.cpaConfig.getProperty("explicitAnalysis.threshold"));
+    threshold = Integer.parseInt(CPAchecker.config.getProperty("explicitAnalysis.threshold"));
   }
 
   @Override

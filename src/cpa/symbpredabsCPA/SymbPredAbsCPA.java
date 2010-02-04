@@ -40,10 +40,10 @@ import symbpredabstraction.mathsat.SimplifyTheoremProver;
 import symbpredabstraction.mathsat.YicesTheoremProver;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cfa.objectmodel.CFANode;
-import cmdline.CPAMain;
 
 import com.google.common.collect.ImmutableList;
 
+import cpa.common.CPAchecker;
 import cpa.common.defaults.StaticPrecisionAdjustment;
 import cpa.common.defaults.StopSepOperator;
 import cpa.common.interfaces.AbstractElement;
@@ -76,7 +76,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, CPAWithStati
     abstractFormulaManager = new BDDAbstractFormulaManager();
     symbolicFormulaManager = new MathsatSymbolicFormulaManager();
     TheoremProver thmProver;
-    String whichProver = CPAMain.cpaConfig.getProperty(
+    String whichProver = CPAchecker.config.getProperty(
         "cpas.symbpredabs.explicit.abstraction.solver", "mathsat");
     if (whichProver.equals("mathsat")) {
       thmProver = new MathsatTheoremProver(symbolicFormulaManager, false);

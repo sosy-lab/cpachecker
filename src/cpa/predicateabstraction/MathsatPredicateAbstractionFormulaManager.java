@@ -52,11 +52,11 @@ import symbpredabstraction.trace.CounterexampleTraceInfo;
 import cfa.objectmodel.BlankEdge;
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.c.FunctionDefinitionNode;
-import cmdline.CPAMain;
 
 import common.Pair;
 
 import cpa.art.ARTElement;
+import cpa.common.CPAchecker;
 import exceptions.UnrecognizedCFAEdgeException;
 
 /**
@@ -288,7 +288,7 @@ implements PredicateAbstractionFormulaManager {
       InterpolatingTheoremProver<T> interpolator) {
     super(amgr, mmgr);
     stats = new Stats();
-    useCache = CPAMain.cpaConfig.getBooleanValue(
+    useCache = CPAchecker.config.getBooleanValue(
         "cpas.symbpredabs.mathsat.useCache");
     if (useCache) {
       final int MAX_CACHE_SIZE = 100000;
@@ -311,7 +311,7 @@ implements PredicateAbstractionFormulaManager {
         new HashMap<Pair<MathsatSymbolicFormula, CFAEdge>,
         Pair<SymbolicFormula, SSAMap>>();
     }
-    extendedStats = CPAMain.cpaConfig.getBooleanValue(
+    extendedStats = CPAchecker.config.getBooleanValue(
         "cpas.symbpredabs.explicit.extendedStats");
 
     thmProver = prover;
@@ -357,7 +357,7 @@ implements PredicateAbstractionFormulaManager {
       try {
         p = mgr.makeAnd(fabs, edge, ssa);
       } catch (UnrecognizedCFAEdgeException e1) {
-        CPAMain.logManager.logException(Level.SEVERE, e1, "");
+        CPAchecker.logger.logException(Level.SEVERE, e1, "");
         System.exit(1);
       }
       if (useCache) {
@@ -387,14 +387,14 @@ implements PredicateAbstractionFormulaManager {
 //      ((BDDAbstractFormula)e.getAbstraction()).getBDD() ==
 //      bddManager.getOne())) {
     ) {
-      CPAMain.logManager.log(Level.ALL, "DEBUG_1",
+      CPAchecker.logger.log(Level.ALL, "DEBUG_1",
           "SKIPPING ABSTRACTION CHECK, e: ", e, ", SUCC:", succ,
           ", edge: ", edge);
       return e.getAbstraction();
     }
 //  }
 
-    if (CPAMain.cpaConfig.getBooleanValue(
+    if (CPAchecker.config.getBooleanValue(
     "cpas.symbpredabs.abstraction.cartesian")) {
       return buildCartesianAbstraction(smgr, e, succ, edge, predicates);
     } else {
@@ -451,13 +451,13 @@ implements PredicateAbstractionFormulaManager {
       }
     }
 
-    if (CPAMain.cpaConfig.getBooleanValue(
+    if (CPAchecker.config.getBooleanValue(
         "cpas.symbpredabs.useBitwiseAxioms")) {
       MathsatSymbolicFormula bitwiseAxioms = mmgr.getBitwiseAxioms(
           (MathsatSymbolicFormula)f);
       f = mmgr.makeAnd(f, bitwiseAxioms);
 
-      CPAMain.logManager.log(Level.ALL, "DEBUG_3", "ADDED BITWISE AXIOMS:",
+      CPAchecker.logger.log(Level.ALL, "DEBUG_3", "ADDED BITWISE AXIOMS:",
           bitwiseAxioms);
     }
 
@@ -485,7 +485,7 @@ implements PredicateAbstractionFormulaManager {
       }
     }
 
-    CPAMain.logManager.log(Level.ALL, "DEBUG_1",
+    CPAchecker.logger.log(Level.ALL, "DEBUG_1",
         "IMPORTANT SYMBOLS (", important.size(), "): ",
         important);
 
@@ -503,7 +503,7 @@ implements PredicateAbstractionFormulaManager {
     // build the formula and send it to the absEnv
     SymbolicFormula formula = smgr.makeAnd(f, preddef);
 
-    CPAMain.logManager.log(Level.ALL, "DEBUG_1", "COMPUTING ALL-SMT ON FORMULA:",
+    CPAchecker.logger.log(Level.ALL, "DEBUG_1", "COMPUTING ALL-SMT ON FORMULA:",
         formula);
 
     ++stats.abstractionNumMathsatQueries;
@@ -613,13 +613,13 @@ implements PredicateAbstractionFormulaManager {
       }
     }
 
-    if (CPAMain.cpaConfig.getBooleanValue(
+    if (CPAchecker.config.getBooleanValue(
     "cpas.symbpredabs.useBitwiseAxioms")) {
       MathsatSymbolicFormula bitwiseAxioms = mmgr.getBitwiseAxioms(
           (MathsatSymbolicFormula)f);
       f = mmgr.makeAnd(f, bitwiseAxioms);
 
-      CPAMain.logManager.log(Level.ALL, "DEBUG_3", "ADDED BITWISE AXIOMS:",
+      CPAchecker.logger.log(Level.ALL, "DEBUG_3", "ADDED BITWISE AXIOMS:",
           bitwiseAxioms);
     }
 
@@ -704,7 +704,7 @@ implements PredicateAbstractionFormulaManager {
         }
 
 
-        CPAMain.logManager.log(Level.ALL, "DEBUG_1",
+        CPAchecker.logger.log(Level.ALL, "DEBUG_1",
             "CHECKING VALUE OF PREDICATE: ", pi.getFirst());
 
         // instantiate the definition of the predicate
@@ -793,7 +793,7 @@ implements PredicateAbstractionFormulaManager {
     try {
       concPath = buildConcretePath(smgr, pathArray);
     } catch (UnrecognizedCFAEdgeException e1) {
-      CPAMain.logManager.logException(Level.SEVERE, e1, "");
+      CPAchecker.logger.logException(Level.SEVERE, e1, "");
       System.exit(1);
     }
     long extTimeEnd = System.currentTimeMillis();
@@ -802,17 +802,17 @@ implements PredicateAbstractionFormulaManager {
     Vector<SymbolicFormula> f = concPath.path;
     boolean theoryCombinationNeeded = concPath.theoryCombinationNeeded;
 
-    boolean shortestTrace = CPAMain.cpaConfig.getBooleanValue(
+    boolean shortestTrace = CPAchecker.config.getBooleanValue(
         "cpas.symbpredabs.shortestCexTrace");
-    boolean suffixTrace = CPAMain.cpaConfig.getBooleanValue(
+    boolean suffixTrace = CPAchecker.config.getBooleanValue(
     "cpas.symbpredabs.shortestCexTraceUseSuffix");
-    boolean useZigZag = CPAMain.cpaConfig.getBooleanValue(
+    boolean useZigZag = CPAchecker.config.getBooleanValue(
     "cpas.symbpredabs.shortestCexTraceZigZag");
 
-    CPAMain.logManager.log(Level.ALL, "DEBUG_3",
+    CPAchecker.logger.log(Level.ALL, "DEBUG_3",
     "Checking feasibility of abstract trace");
 
-    if (shortestTrace && CPAMain.cpaConfig.getBooleanValue(
+    if (shortestTrace && CPAchecker.config.getBooleanValue(
     "cpas.symbpredabs.explicit.getUsefulBlocks")) {
       long gubStart = System.currentTimeMillis();
       f = getUsefulBlocks(mmgr, f, theoryCombinationNeeded,
@@ -845,7 +845,7 @@ implements PredicateAbstractionFormulaManager {
       SymbolicFormula cur = f.elementAt(i);
       itpGroupsIds.set(i, itpProver.addFormula(cur));
 
-      CPAMain.logManager.log(Level.ALL, "DEBUG_1",
+      CPAchecker.logger.log(Level.ALL, "DEBUG_1",
           "Asserting formula: ", cur);
 
       boolean doCheckHere = !cur.isTrue();
@@ -855,7 +855,7 @@ implements PredicateAbstractionFormulaManager {
       if (shortestTrace && doCheckHere) {
         if (itpProver.isUnsat()) {
           res = 0;
-          CPAMain.logManager.log(Level.ALL, "DEBUG_1",
+          CPAchecker.logger.log(Level.ALL, "DEBUG_1",
               "TRACE INCONSISTENT AFTER group: ", i);
           break;
         } else {
@@ -881,7 +881,7 @@ implements PredicateAbstractionFormulaManager {
     CounterexampleTraceInfo info = null;
 
     if (unsat) {
-      boolean useBlastWay = CPAMain.cpaConfig.getBooleanValue(
+      boolean useBlastWay = CPAchecker.config.getBooleanValue(
           "cpas.symbpredabs.refinement.useBlastWay");
       Set<Predicate> allPreds = null;
       if (useBlastWay) allPreds = new HashSet<Predicate>();
@@ -890,7 +890,7 @@ implements PredicateAbstractionFormulaManager {
       // the counterexample is spurious. Extract the predicates from
       // the interpolants
       info = new CounterexampleTraceInfo(true);
-      boolean splitItpAtoms = CPAMain.cpaConfig.getBooleanValue(
+      boolean splitItpAtoms = CPAchecker.config.getBooleanValue(
       "cpas.symbpredabs.refinement.splitItpAtoms");
       // how to partition the trace into (A, B) depends on whether
       // there are function calls involved or not: in general, A
@@ -901,7 +901,7 @@ implements PredicateAbstractionFormulaManager {
       entryPoints.push(0);
       for (int i = 1; i < f.size(); ++i) {
         int start_of_a = entryPoints.peek();
-        if (!CPAMain.cpaConfig.getBooleanValue(
+        if (!CPAchecker.config.getBooleanValue(
             "cpas.symbpredabs.refinement.addWellScopedPredicates")) {
           // if we don't want "well-scoped" predicates, we always
           // cut from the beginning
@@ -935,7 +935,7 @@ implements PredicateAbstractionFormulaManager {
 //            ((PredicateAbstractionAbstractElement)
 //                abstarr[i-1]).getLocation());
 
-        boolean nonAtomic = CPAMain.cpaConfig.getBooleanValue(
+        boolean nonAtomic = CPAchecker.config.getBooleanValue(
             "cpas.symbpredabs.abstraction.explicit." +
         "nonAtomicPredicates");
         extTimeStart = System.currentTimeMillis();
@@ -949,7 +949,7 @@ implements PredicateAbstractionFormulaManager {
         if (useBlastWay) {
           allPreds.addAll(preds);
         } else {
-          if (CPAMain.cpaConfig.getBooleanValue(
+          if (CPAchecker.config.getBooleanValue(
               "cpas.symbpredabs.refinement.addPredicatesGlobally")) {
             for (Pair<ARTElement, CFAEdge> pair : pathArray) {
               ARTElement s = pair.getFirst();
@@ -1002,7 +1002,7 @@ implements PredicateAbstractionFormulaManager {
 //      info.setConcreteTrace(cf);
       // TODO - reconstruct counterexample
       // For now, we dump the asserted formula to a user-specified file
-      dumpFormulasToFile(f, CPAMain.cpaConfig.getProperty("cpas.symbpredabs.refinement.msatCexFile"));
+      dumpFormulasToFile(f, CPAchecker.config.getProperty("cpas.symbpredabs.refinement.msatCexFile"));
     }
 
     itpProver.reset();
@@ -1322,7 +1322,7 @@ implements PredicateAbstractionFormulaManager {
 
     thmProver.init(TheoremProver.COUNTEREXAMPLE_ANALYSIS);
 
-    CPAMain.logManager.log(Level.ALL, "DEBUG_1", "Calling getUsefulBlocks on path",
+    CPAchecker.logger.log(Level.ALL, "DEBUG_1", "Calling getUsefulBlocks on path",
         "of length: ", f.size());
 
     SymbolicFormula trueFormula = mgr.makeTrue();
@@ -1370,7 +1370,7 @@ implements PredicateAbstractionFormulaManager {
           if (thmProver.isUnsat(trueFormula)) {
             // add this block to the needed ones, and repeat
             needed[i] = t;
-            CPAMain.logManager.log(Level.ALL, "DEBUG_1",
+            CPAchecker.logger.log(Level.ALL, "DEBUG_1",
                 "Found needed block: ", i, ", term: ", t);
             // pop all
             while (toPop > 0) {
@@ -1393,7 +1393,7 @@ implements PredicateAbstractionFormulaManager {
           if (thmProver.isUnsat(trueFormula)) {
             // add this block to the needed ones, and repeat
             needed[i] = t;
-            CPAMain.logManager.log(Level.ALL, "DEBUG_1",
+            CPAchecker.logger.log(Level.ALL, "DEBUG_1",
                 "Found needed block: ", i, ", term: ", t);
             // pop all
             while (toPop > 0) {
@@ -1426,7 +1426,7 @@ implements PredicateAbstractionFormulaManager {
 
     thmProver.reset();
 
-    CPAMain.logManager.log(Level.ALL, "DEBUG_1", "Done getUsefulBlocks");
+    CPAchecker.logger.log(Level.ALL, "DEBUG_1", "Done getUsefulBlocks");
 
     return f;
   }
@@ -1457,7 +1457,7 @@ implements PredicateAbstractionFormulaManager {
 
     Vector<SymbolicFormula> f = new Vector<SymbolicFormula>();
 
-    CPAMain.logManager.log(Level.ALL, "DEBUG_1", "BUILDING COUNTEREXAMPLE TRACE");
+    CPAchecker.logger.log(Level.ALL, "DEBUG_1", "BUILDING COUNTEREXAMPLE TRACE");
 //    CPAMain.logManager.log(Level.ALL, "DEBUG_1", "ABSTRACT TRACE:",
 //        new ArrayToStringConverter(path));
 
@@ -1486,7 +1486,7 @@ implements PredicateAbstractionFormulaManager {
       SymbolicFormula fm = null;
       fm = mmgr.replaceAssignments(
           (MathsatSymbolicFormula)p.getFirst());
-      CPAMain.logManager.log(Level.ALL, "DEBUG_3", "INITIAL:", fm,
+      CPAchecker.logger.log(Level.ALL, "DEBUG_3", "INITIAL:", fm,
           " SSA: ", p.getSecond());
       newssa = p.getSecond();
       boolean hasUf = mmgr.hasUninterpretedFunctions(

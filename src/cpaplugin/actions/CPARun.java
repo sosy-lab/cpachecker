@@ -49,8 +49,8 @@ import org.eclipse.ui.console.IConsoleView;
 import org.eclipse.ui.console.IOConsoleOutputStream;
 import org.eclipse.ui.console.MessageConsole;
 
-import cmdline.CPAMain;
 import cpa.common.CPAConfiguration;
+import cpa.common.CPAchecker;
 import cpa.common.LogManager;
 
 public class CPARun implements IWorkbenchWindowActionDelegate
@@ -100,22 +100,23 @@ public class CPARun implements IWorkbenchWindowActionDelegate
 	 */
 	public void run (IAction action)
 	{
+	  CPAConfiguration cpaConfig = null;
 		numberOfRuns++;
     try {
       String configFile = cpaplugin.PreferencesActivator.getDefault().getPreferenceStore().getString(cpaplugin.preferences.PreferenceConstants.P_PATH);
-      CPAMain.cpaConfig = new CPAConfiguration(configFile);
+      cpaConfig = new CPAConfiguration(configFile);
     } catch (IOException e) {
       // TODO shouldn't an Eclipse Dialog be used here?
       JOptionPane.showMessageDialog(null, "Could not read config file " + e.getMessage(), "Could not read config file", JOptionPane.ERROR_MESSAGE);
       return;
     }
-    CPAMain.logManager = new LogManager(CPAMain.cpaConfig);
+    LogManager logManager = new LogManager(cpaConfig);
     
     //Lets set up a console to write to
     init();
 		MessageConsole myConsole = findConsole("CPACHECKER");
-		CPAMain.logManager.log(Level.INFO, "Run #:" + numberOfRuns);
-		CPAMain.logManager.log(Level.INFO, "Program Started");
+		logManager.log(Level.INFO, "Run #:" + numberOfRuns);
+		logManager.log(Level.INFO, "Program Started");
 
 		MessageDialog.openInformation (window.getShell (), "CPAPlugin Plug-in", "Launching CPAChecker Eclipse Plugin");
 
@@ -176,11 +177,12 @@ public class CPARun implements IWorkbenchWindowActionDelegate
       view.display(myConsole);
 			
       //Now run analysis
-      CPAMain.CPAchecker(currentFile);
+      CPAchecker cpachecker = new CPAchecker(cpaConfig, logManager);
+      cpachecker.run(currentFile);
 		}
 		catch (Exception e)
 		{
-      CPAMain.logManager.logException(Level.WARNING, e, "");
+      logManager.logException(Level.WARNING, e, "");
 		}
 	}
 

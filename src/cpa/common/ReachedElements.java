@@ -10,7 +10,6 @@ import java.util.Map;
 import java.util.Set;
 
 import cfa.objectmodel.CFANode;
-import cmdline.CPAMain;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
@@ -51,7 +50,7 @@ public class ReachedElements implements Iterable<AbstractElement> {
     reached = new HashMap<AbstractElement, Precision>();
     unmodifiableReached = Collections.unmodifiableSet(reached.keySet());
     reachedWithPrecision = Collections2.transform(unmodifiableReached, getPrecisionAsPair);
-    if (CPAMain.cpaConfig.getBooleanValue("cpa.useSpecializedReachedSet")) {
+    if (CPAchecker.config.getBooleanValue("cpa.useSpecializedReachedSet")) {
       locationMappedReached = HashMultimap.create(); 
     } else {
       locationMappedReached = null;

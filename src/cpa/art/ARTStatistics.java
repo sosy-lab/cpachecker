@@ -11,7 +11,7 @@ import java.util.logging.Level;
 
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFANode;
-import cmdline.CPAMain;
+import cpa.common.CPAchecker;
 import cpa.common.ReachedElements;
 import cpa.common.interfaces.CPAStatistics;
 import cpa.symbpredabsCPA.SymbPredAbsAbstractElement;
@@ -26,9 +26,9 @@ public class ARTStatistics implements CPAStatistics {
   @Override
   public void printStatistics(PrintWriter pOut, Result pResult,
       ReachedElements pReached) {
-    if (CPAMain.cpaConfig.getBooleanValue("ART.export")) {
-      String outfilePath = CPAMain.cpaConfig.getProperty("output.path");
-      String outfileName = CPAMain.cpaConfig.getProperty("ART.file", "ART.dot");
+    if (CPAchecker.config.getBooleanValue("ART.export")) {
+      String outfilePath = CPAchecker.config.getProperty("output.path");
+      String outfileName = CPAchecker.config.getProperty("ART.file", "ART.dot");
       //if no filename is given, use default value
       dumpARTToDotFile(pReached, new File(outfilePath, outfileName));
     }
@@ -45,7 +45,7 @@ public class ARTStatistics implements CPAStatistics {
     try {
       out = new PrintWriter(outfile);
     } catch (FileNotFoundException e) {
-      CPAMain.logManager.log(Level.WARNING,
+      CPAchecker.logger.log(Level.WARNING,
           "Could not write ART to file ", outfile, ", (", e.getMessage(), ")");
       return;
     }

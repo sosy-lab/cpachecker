@@ -34,7 +34,7 @@ import java.util.Map.Entry;
 import java.util.logging.Level;
 
 import cfa.objectmodel.CFAEdge;
-import cmdline.CPAMain;
+import cpa.common.CPAchecker;
 import cpa.common.interfaces.AbstractElement;
 import cpa.pointeranalysis.Pointer.PointerOperation;
 
@@ -472,7 +472,7 @@ public class PointerAnalysisElement implements AbstractElement, Memory, Cloneabl
           && target != INVALID_POINTER && target != UNKNOWN_POINTER) {
         
         mergeAliases(p1.getLocation(), p2.getLocation());
-        CPAMain.logManager.log(Level.INFO, "INFO: Found pointer aliases which were not already aliased.");
+        CPAchecker.logger.log(Level.INFO, "INFO: Found pointer aliases which were not already aliased.");
         return true;
       }
     }

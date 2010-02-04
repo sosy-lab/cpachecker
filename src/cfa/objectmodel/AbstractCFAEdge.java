@@ -25,7 +25,8 @@ package cfa.objectmodel;
 
 import java.util.logging.Level;
 
-import cmdline.CPAMain;
+import cpa.common.CPAchecker;
+
 import cfa.objectmodel.AbstractCFAEdge;
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFANode;
@@ -64,7 +65,7 @@ public abstract class AbstractCFAEdge implements CFAEdge
               if (edge != this) {
                 if (edge.isJumpEdge()) {
                   // we're dead, there was a jump edge already
-                  CPAMain.logManager.log(Level.INFO, "Dead code detected after line " + predecessor.getLineNumber() + ": " + this.getRawStatement());
+                  CPAchecker.logger.log(Level.INFO, "Dead code detected after line " + predecessor.getLineNumber() + ": " + this.getRawStatement());
                   deadEdge = true;
                 } else {
                   // just remove the edge to temporarily dead code (we might also link it to some dummy node?)

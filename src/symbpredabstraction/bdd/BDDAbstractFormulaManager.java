@@ -8,10 +8,10 @@ import net.sf.javabdd.BDDFactory;
 import symbpredabstraction.interfaces.AbstractFormula;
 import symbpredabstraction.interfaces.AbstractFormulaManager;
 import symbpredabstraction.interfaces.Predicate;
-import cmdline.CPAMain;
 
 import common.Pair;
 import common.Triple;
+import cpa.common.CPAchecker;
 
 /**
  * A wrapper for the javabdd (http://javabdd.sf.net) package.
@@ -40,7 +40,7 @@ public class BDDAbstractFormulaManager implements AbstractFormulaManager {
   }
   
   public BDDAbstractFormulaManager() {
-    useCache = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.mathsat.useCache");
+    useCache = CPAchecker.config.getBooleanValue("cpas.symbpredabs.mathsat.useCache");
     if (useCache) {
       entailsCache = new HashMap<Pair<AbstractFormula, AbstractFormula>, Boolean>();
     } else {

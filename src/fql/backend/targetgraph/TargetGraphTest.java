@@ -45,9 +45,6 @@ public class TargetGraphTest {
     
     CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
     
-    // necessary for LogManager
-    CPAMain.cpaConfig = lConfiguration;
-    
     LogManager lLogManager = new LogManager(lConfiguration);
       
     MainCPAStatistics lStatistics = new MainCPAStatistics();
@@ -68,9 +65,6 @@ public class TargetGraphTest {
     lArguments[2] = "test/tests/single/loop1.c";
         
     CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
-    
-    // necessary for LogManager
-    CPAMain.cpaConfig = lConfiguration;
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
@@ -99,9 +93,6 @@ public class TargetGraphTest {
     
     CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
     
-    // necessary for LogManager
-    CPAMain.cpaConfig = lConfiguration;
-    
     LogManager lLogManager = new LogManager(lConfiguration);
       
     MainCPAStatistics lStatistics = new MainCPAStatistics();
@@ -128,9 +119,6 @@ public class TargetGraphTest {
      */
     
     CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
-    
-    // necessary for LogManager
-    CPAMain.cpaConfig = lConfiguration;
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
@@ -160,9 +148,6 @@ public class TargetGraphTest {
      */
     
     CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
-    
-    // necessary for LogManager
-    CPAMain.cpaConfig = lConfiguration;
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
@@ -196,9 +181,6 @@ public class TargetGraphTest {
     
     CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
     
-    // necessary for LogManager
-    CPAMain.cpaConfig = lConfiguration;
-    
     LogManager lLogManager = new LogManager(lConfiguration);
       
     MainCPAStatistics lStatistics = new MainCPAStatistics();
@@ -223,9 +205,6 @@ public class TargetGraphTest {
     lArguments[2] = "test/tests/single/functionCall.c";
     
     CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
-    
-    // necessary for LogManager
-    CPAMain.cpaConfig = lConfiguration;
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
@@ -252,9 +231,6 @@ public class TargetGraphTest {
     
     CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
     
-    // necessary for LogManager
-    CPAMain.cpaConfig = lConfiguration;
-    
     LogManager lLogManager = new LogManager(lConfiguration);
       
     MainCPAStatistics lStatistics = new MainCPAStatistics();
@@ -280,9 +256,6 @@ public class TargetGraphTest {
     
     CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
     
-    // necessary for LogManager
-    CPAMain.cpaConfig = lConfiguration;
-    
     LogManager lLogManager = new LogManager(lConfiguration);
       
     MainCPAStatistics lStatistics = new MainCPAStatistics();
@@ -306,9 +279,6 @@ public class TargetGraphTest {
     lArguments[2] = "test/tests/single/functionCall.c";
     
     CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
-    
-    // necessary for LogManager
-    CPAMain.cpaConfig = lConfiguration;
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
@@ -352,9 +322,6 @@ public class TargetGraphTest {
     
     CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
     
-    // necessary for LogManager
-    CPAMain.cpaConfig = lConfiguration;
-    
     LogManager lLogManager = new LogManager(lConfiguration);
       
     MainCPAStatistics lStatistics = new MainCPAStatistics();
@@ -382,9 +349,6 @@ public class TargetGraphTest {
     lArguments[2] = "test/tests/single/uninitVars.cil.c";
     
     CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
-    
-    // necessary for LogManager
-    CPAMain.cpaConfig = lConfiguration;
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
@@ -419,9 +383,6 @@ public class TargetGraphTest {
     
     CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
     
-    // necessary for LogManager
-    CPAMain.cpaConfig = lConfiguration;
-    
     LogManager lLogManager = new LogManager(lConfiguration);
       
     MainCPAStatistics lStatistics = new MainCPAStatistics();
@@ -449,9 +410,6 @@ public class TargetGraphTest {
     lArguments[2] = "test/tests/single/uninitVars.cil.c";
     
     CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
-    
-    // necessary for LogManager
-    CPAMain.cpaConfig = lConfiguration;
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
@@ -486,9 +444,6 @@ public class TargetGraphTest {
     
     CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
     
-    // necessary for LogManager
-    CPAMain.cpaConfig = lConfiguration;
-    
     LogManager lLogManager = new LogManager(lConfiguration);
       
     MainCPAStatistics lStatistics = new MainCPAStatistics();
@@ -522,9 +477,6 @@ public class TargetGraphTest {
     
     CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
     
-    // necessary for LogManager
-    CPAMain.cpaConfig = lConfiguration;
-    
     LogManager lLogManager = new LogManager(lConfiguration);
       
     MainCPAStatistics lStatistics = new MainCPAStatistics();
@@ -551,9 +503,6 @@ public class TargetGraphTest {
     lArguments[2] = "test/tests/single/uninitVars.cil.c";
     
     CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
-    
-    // necessary for LogManager
-    CPAMain.cpaConfig = lConfiguration;
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
@@ -582,9 +531,6 @@ public class TargetGraphTest {
     
     CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
     
-    // necessary for LogManager
-    CPAMain.cpaConfig = lConfiguration;
-    
     LogManager lLogManager = new LogManager(lConfiguration);
       
     MainCPAStatistics lStatistics = new MainCPAStatistics();
@@ -612,9 +558,6 @@ public class TargetGraphTest {
     
     CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
     
-    // necessary for LogManager
-    CPAMain.cpaConfig = lConfiguration;
-    
     LogManager lLogManager = new LogManager(lConfiguration);
       
     MainCPAStatistics lStatistics = new MainCPAStatistics();
@@ -639,9 +582,6 @@ public class TargetGraphTest {
     lArguments[2] = "test/tests/single/loop1.c";
     
     CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
-    
-    // necessary for LogManager
-    CPAMain.cpaConfig = lConfiguration;
     
     LogManager lLogManager = new LogManager(lConfiguration);
       

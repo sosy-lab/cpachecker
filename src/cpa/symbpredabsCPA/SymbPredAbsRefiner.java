@@ -12,7 +12,6 @@ import symbpredabstraction.interfaces.Predicate;
 import symbpredabstraction.trace.CounterexampleTraceInfo;
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFANode;
-import cmdline.CPAMain;
 
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Multimap;
@@ -23,6 +22,7 @@ import cpa.art.ARTElement;
 import cpa.art.ARTReachedSet;
 import cpa.art.AbstractARTBasedRefiner;
 import cpa.art.Path;
+import cpa.common.CPAchecker;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.WrapperPrecision;
@@ -70,7 +70,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
   @Override
   public boolean performRefinement(ARTReachedSet pReached, Path pPath) throws CPAException {
 
-    CPAMain.logManager.log(Level.FINEST, "Starting refinement for SymbPredAbsCPA");
+    CPAchecker.logger.log(Level.FINEST, "Starting refinement for SymbPredAbsCPA");
     
     // create path with all abstraction location elements (excluding the initial
     // element, which is not in pPath)
@@ -99,14 +99,14 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
       throw new IllegalStateException("Could not find the SymbPredAbsPrecision for the error element");
     }
     
-    CPAMain.logManager.log(Level.ALL, "Abstraction trace is", path);
+    CPAchecker.logger.log(Level.ALL, "Abstraction trace is", path);
         
     // build the counterexample
     CounterexampleTraceInfo info = formulaManager.buildCounterexampleTrace(path);
         
     // if error is spurious refine
     if (info.isSpurious()) {
-      CPAMain.logManager.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
+      CPAchecker.logger.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
       Pair<ARTElement, SymbPredAbsPrecision> refinementResult = 
               performRefinement(oldSymbPredAbsPrecision, path, pPath, info);
       
@@ -120,7 +120,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
       return true;
     } else {
       // we have a real error
-      CPAMain.logManager.log(Level.FINEST, "Error trace is not spurious");
+      CPAchecker.logger.log(Level.FINEST, "Error trace is not spurious");
       return false;
     }
   }
@@ -153,7 +153,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
     ImmutableSetMultimap<CFANode, Predicate> newPredicateMap = pmapBuilder.build();
     SymbPredAbsPrecision newPrecision = new SymbPredAbsPrecision(newPredicateMap); 
     
-    CPAMain.logManager.log(Level.ALL, "Predicate map now is", newPredicateMap);
+    CPAchecker.logger.log(Level.ALL, "Predicate map now is", newPredicateMap);
 
     // symbPredRootElement might be null here, but firstInterpolationElement
     // might be not. TODO investigate why this happens
@@ -166,7 +166,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
     
     ARTElement root;
     if (symbPredRootElement != null) {
-      CPAMain.logManager.log(Level.FINEST, "Found spurious counterexample,",
+      CPAchecker.logger.log(Level.FINEST, "Found spurious counterexample,",
           "trying strategy 1: remove everything below", firstInterpolationElement, "from ART.");
       
       root = findARTElementof(firstInterpolationElement, pArtPath.getLast());
@@ -174,7 +174,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
     } else {
       CFANode loc = firstInterpolationElement.getAbstractionLocation(); 
 
-      CPAMain.logManager.log(Level.FINEST, "Found spurious counterexample,",
+      CPAchecker.logger.log(Level.FINEST, "Found spurious counterexample,",
           "trying strategy 2: remove everything below node", loc, "from ART.");
 
       root = this.getArtCpa().findHighest(pArtPath.getLast().getFirst(), loc);

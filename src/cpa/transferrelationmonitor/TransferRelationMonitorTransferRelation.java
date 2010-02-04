@@ -11,7 +11,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import cfa.objectmodel.CFAEdge;
-import cmdline.CPAMain;
+import cpa.common.CPAchecker;
 import cpa.common.algorithm.CEGARAlgorithm;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
@@ -33,9 +33,9 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
     transferRelation = pWrappedCPA.getTransferRelation();
     domain = pWrappedCPA.getAbstractDomain();
  // time limit is given in milliseconds
-    timeLimit = Integer.parseInt(CPAMain.cpaConfig.getPropertiesArray
+    timeLimit = Integer.parseInt(CPAchecker.config.getPropertiesArray
         ("trackabstractioncomputation.limit")[0]);
-    timeLimitForPath = Integer.parseInt(CPAMain.cpaConfig.getPropertiesArray
+    timeLimitForPath = Integer.parseInt(CPAchecker.config.getPropertiesArray
         ("trackabstractioncomputation.pathcomputationlimit")[0]);
   }
 

@@ -55,10 +55,10 @@ import cfa.objectmodel.c.FunctionDefinitionNode;
 import cfa.objectmodel.c.GlobalDeclarationEdge;
 import cfa.objectmodel.c.ReturnEdge;
 import cfa.objectmodel.c.StatementEdge;
-import cmdline.CPAMain;
 
 import common.Pair;
 
+import cpa.common.CPAchecker;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
@@ -90,7 +90,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
 
   public UninitializedVariablesTransferRelation() {
     globalVars = new HashSet<String>();
-    printWarnings = Boolean.parseBoolean(CPAMain.cpaConfig.getProperty("uninitVars.printWarnings", "false"));
+    printWarnings = Boolean.parseBoolean(CPAchecker.config.getProperty("uninitVars.printWarnings", "false"));
     if (printWarnings) {
       warnings = new HashSet<Pair<Integer, String>>();
     }
@@ -530,7 +530,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       if (!typesWarningAlreadyDisplayed && !typesCPAPresent && lastAdded != null) {
         //set typesCPAPresent so this message only comes up once
         typesWarningAlreadyDisplayed = true;
-        CPAMain.logManager.log(Level.INFO, 
+        CPAchecker.logger.log(Level.INFO, 
         "TypesCPA not present - information about field references may be unreliable");
       }
 

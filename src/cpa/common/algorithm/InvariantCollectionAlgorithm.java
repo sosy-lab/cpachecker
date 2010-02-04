@@ -29,12 +29,12 @@ import java.util.logging.Level;
 import symbpredabstraction.interfaces.SymbolicFormula;
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFANode;
-import cmdline.CPAMain;
 
 import common.Pair;
 
 import cpa.art.ARTElement;
 import cpa.art.Path;
+import cpa.common.CPAchecker;
 import cpa.common.ReachedElements;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractWrapperElement;
@@ -84,19 +84,19 @@ public class InvariantCollectionAlgorithm implements Algorithm {
         // run the inner algorithm to fill the reached set
         innerAlgorithm.run(reached, stopAfterError);
       } catch (RefinementFailedException failedRefinement) {
-        CPAMain.logManager.log(Level.ALL, "Dumping invariants due to: " + failedRefinement.toString());
+        CPAchecker.logger.log(Level.ALL, "Dumping invariants due to: " + failedRefinement.toString());
         addInvariantsForFailedRefinement(invariantMap, failedRefinement);
       } catch (TransferTimeOutException failedTransfer) {
-        CPAMain.logManager.log(Level.ALL, "Dumping invariants due to: " + failedTransfer.toString());
+        CPAchecker.logger.log(Level.ALL, "Dumping invariants due to: " + failedTransfer.toString());
         addInvariantsForFailedTransfer(invariantMap, failedTransfer);
         restartCPA = true;
       } catch (CPAException e) {
-        CPAMain.logManager.log(Level.ALL, "Dumping invariants due to: " + e.toString());
+        CPAchecker.logger.log(Level.ALL, "Dumping invariants due to: " + e.toString());
       }
     } while (restartCPA);
       
     // collect and dump all assumptions stored in abstract states
-    CPAMain.logManager.log(Level.FINEST, "Dumping invariants resulting from assumptions");
+    CPAchecker.logger.log(Level.FINEST, "Dumping invariants resulting from assumptions");
     for (AbstractElement element : reached) {      
       CFANode loc = ((AbstractWrapperElement)element).retrieveLocationElement().getLocationNode();
       Invariant invariant = extractInvariant(element);
@@ -107,11 +107,11 @@ public class InvariantCollectionAlgorithm implements Algorithm {
     // dump invariants to prevent going further with nodes in
     // the waitlist
     if (reached.hasWaitingElement()) {
-      CPAMain.logManager.log(Level.FINEST, "Dumping invariants resulting from unprocessed elements");
+      CPAchecker.logger.log(Level.FINEST, "Dumping invariants resulting from unprocessed elements");
       addInvariantsForWaitlist(invariantMap, reached.getWaitlist());
     }
     
-    CPAMain.logManager.log(Level.ALL, "THE SYSTEM IS SAFE UNDER THE FOLLOWING INVARIANT:");
+    CPAchecker.logger.log(Level.ALL, "THE SYSTEM IS SAFE UNDER THE FOLLOWING INVARIANT:");
     invariantMap.dump(System.out);
   }
 

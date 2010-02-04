@@ -28,7 +28,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 
-import cmdline.CPAMain;
 
 import compositeCPA.CompositeStopOperator;
 
@@ -79,7 +78,7 @@ public class MainCPAStatistics implements CPAStatistics {
         long totalAbsoluteTimeMillis = analysisEndingTime - programStartingTime;
 
         
-        if (!CPAMain.cpaConfig.getBooleanValue("analysis.dontPrintReachableStates")) {
+        if (!CPAchecker.config.getBooleanValue("analysis.dontPrintReachableStates")) {
           out.println("\nReached set:");
           out.println("------------");
           for (AbstractElement e : reached) {

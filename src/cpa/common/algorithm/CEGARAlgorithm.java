@@ -28,7 +28,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
 
-import cmdline.CPAMain;
+import cpa.common.CPAchecker;
 import cpa.common.ReachedElements;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Refiner;
@@ -77,7 +77,7 @@ public class CEGARAlgorithm implements Algorithm {
   public CEGARAlgorithm(Algorithm algorithm) throws CPAException {
     this.algorithm = algorithm;
 
-    String refinerName = CPAMain.cpaConfig.getProperty("cegar.refiner");
+    String refinerName = CPAchecker.config.getProperty("cegar.refiner");
     Object[] refinerArguments = {algorithm.getCPA()};
 
     mRefiner = createInstance(refinerName, refinerArguments, Refiner.class);
@@ -100,7 +100,7 @@ public class CEGARAlgorithm implements Algorithm {
       // if the element is an error element
       if (reached.getLastElement().isError()) {
 
-        CPAMain.logManager.log(Level.FINER, "Error found, performing CEGAR");
+        CPAchecker.logger.log(Level.FINER, "Error found, performing CEGAR");
 
         long startRef = System.currentTimeMillis();
 
@@ -111,11 +111,11 @@ public class CEGARAlgorithm implements Algorithm {
         if (refinementResult) {
           // successful refinement
 
-          CPAMain.logManager.log(Level.FINER, "Refinement successful");
+          CPAchecker.logger.log(Level.FINER, "Refinement successful");
 
           long start = System.currentTimeMillis();
 
-          if (CPAMain.cpaConfig.getBooleanValue("cegar.restartOnRefinement")) {
+          if (CPAchecker.config.getBooleanValue("cegar.restartOnRefinement")) {
             // TODO
           }
 
@@ -128,7 +128,7 @@ public class CEGARAlgorithm implements Algorithm {
 
         } else {
           // no refinement found, because the counterexample is not spurious
-          CPAMain.logManager.log(Level.FINER, "Refinement unsuccessful");
+          CPAchecker.logger.log(Level.FINER, "Refinement unsuccessful");
 
           stopAnalysis = true;
 

@@ -58,10 +58,10 @@ import cfa.objectmodel.c.FunctionDefinitionNode;
 import cfa.objectmodel.c.GlobalDeclarationEdge;
 import cfa.objectmodel.c.ReturnEdge;
 import cfa.objectmodel.c.StatementEdge;
-import cmdline.CPAMain;
 
 import common.Pair;
 
+import cpa.common.CPAchecker;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
@@ -149,7 +149,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
   
   private MissingInformation missing = null;
     
-  private static boolean printWarnings = Boolean.parseBoolean(CPAMain.cpaConfig.getProperty("pointerAnalysis.printWarnings", "false"));
+  private static boolean printWarnings = Boolean.parseBoolean(CPAchecker.config.getProperty("pointerAnalysis.printWarnings", "false"));
   private static Set<Pair<Integer, String>> warnings
                   = printWarnings ? new HashSet<Pair<Integer, String>>() : null;
 
@@ -164,10 +164,10 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       if (!warnings.contains(warningIndex)) {
         warnings.add(warningIndex);
         if (lineNumber != null) {
-          CPAMain.logManager.log(Level.WARNING, "Warning: " + message + " in line " + lineNumber+": "
+          CPAchecker.logger.log(Level.WARNING, "Warning: " + message + " in line " + lineNumber+": "
               + edge.getRawStatement());
         } else {
-          CPAMain.logManager.log(Level.WARNING, "Warning: " + message);
+          CPAchecker.logger.log(Level.WARNING, "Warning: " + message);
         }
       }
     }
@@ -176,7 +176,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
   private static void addError(String message, CFAEdge edge) {
     if (printWarnings) {
       int lineNumber = edge.getSuccessor().getLineNumber();
-      CPAMain.logManager.log(Level.WARNING, "ERROR: " + message + " in line " + lineNumber + ": "
+      CPAchecker.logger.log(Level.WARNING, "ERROR: " + message + " in line " + lineNumber + ": "
           + edge.getRawStatement());
     }
   }
@@ -596,7 +596,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       }
     } catch (InvalidPointerException e) {
       // happens only on double free, which is obviously not the case here
-      CPAMain.logManager.logException(Level.WARNING, e, "");
+      CPAchecker.logger.logException(Level.WARNING, e, "");
     }
         
   }

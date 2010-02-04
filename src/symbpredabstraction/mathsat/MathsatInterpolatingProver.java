@@ -27,9 +27,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import cpa.common.CPAchecker;
+
 import symbpredabstraction.interfaces.InterpolatingTheoremProver;
 import symbpredabstraction.interfaces.SymbolicFormula;
-import cmdline.CPAMain;
 
 
 public class MathsatInterpolatingProver implements InterpolatingTheoremProver<Integer> {
@@ -61,13 +62,13 @@ public class MathsatInterpolatingProver implements InterpolatingTheoremProver<In
         mathsat.api.msat_add_theory(env, mathsat.api.MSAT_UF);
         mathsat.api.msat_add_theory(env, mathsat.api.MSAT_LRA);
 
-        boolean theoryCombinationNeeded = CPAMain.cpaConfig.getBooleanValue(
+        boolean theoryCombinationNeeded = CPAchecker.config.getBooleanValue(
                 "cpas.symbpredabs.mathsat.useDtc");
 
         if (theoryCombinationNeeded) {
             mathsat.api.msat_set_theory_combination(env,
                     mathsat.api.MSAT_COMB_DTC);
-        } else if (CPAMain.cpaConfig.getBooleanValue(
+        } else if (CPAchecker.config.getBooleanValue(
                 "cpas.symbpredabs.mathsat.useIntegers")) {
             int ok = mathsat.api.msat_set_option(env, "split_eq", "true");
             assert(ok == 0);

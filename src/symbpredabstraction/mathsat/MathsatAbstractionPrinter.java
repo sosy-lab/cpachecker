@@ -32,8 +32,9 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.logging.Level;
 
+import cpa.common.CPAchecker;
+
 import symbpredabstraction.interfaces.SymbolicFormula;
-import cmdline.CPAMain;
 
 /**
  * Class used to dump "hard" abstraction problems in MathSAT and NuSMV
@@ -96,7 +97,7 @@ public class MathsatAbstractionPrinter {
             }
             out.close();
         } catch (FileNotFoundException e) {
-          CPAMain.logManager.logException(Level.WARNING, e, "");
+          CPAchecker.logger.logException(Level.WARNING, e, "");
             assert(false);
         }
     }
@@ -184,7 +185,7 @@ public class MathsatAbstractionPrinter {
             }
             out.close();
         } catch (FileNotFoundException e) {
-          CPAMain.logManager.logException(Level.WARNING, e, "");
+          CPAchecker.logger.logException(Level.WARNING, e, "");
             assert(false);
         }
 

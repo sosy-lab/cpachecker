@@ -36,9 +36,6 @@ public class AutomatonTest {
     
     CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
     
-    // necessary for LogManager
-    CPAMain.cpaConfig = lConfiguration;
-    
     LogManager lLogManager = new LogManager(lConfiguration);
       
     MainCPAStatistics lStatistics = new MainCPAStatistics();
@@ -65,9 +62,6 @@ public class AutomatonTest {
     lArguments[2] = "test/tests/single/functionCall.c";
     
     CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
-    
-    // necessary for LogManager
-    CPAMain.cpaConfig = lConfiguration;
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
@@ -100,9 +94,6 @@ public class AutomatonTest {
     
     CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
     
-    // necessary for LogManager
-    CPAMain.cpaConfig = lConfiguration;
-    
     LogManager lLogManager = new LogManager(lConfiguration);
       
     MainCPAStatistics lStatistics = new MainCPAStatistics();
@@ -132,9 +123,6 @@ public class AutomatonTest {
     lArguments[2] = "test/tests/single/functionCall.c";
     
     CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
-    
-    // necessary for LogManager
-    CPAMain.cpaConfig = lConfiguration;
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
@@ -166,9 +154,6 @@ public class AutomatonTest {
     
     CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
     
-    // necessary for LogManager
-    CPAMain.cpaConfig = lConfiguration;
-    
     LogManager lLogManager = new LogManager(lConfiguration);
       
     MainCPAStatistics lStatistics = new MainCPAStatistics();
@@ -198,9 +183,6 @@ public class AutomatonTest {
     lArguments[2] = "test/tests/single/functionCall.c";
     
     CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
-    
-    // necessary for LogManager
-    CPAMain.cpaConfig = lConfiguration;
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
@@ -232,9 +214,6 @@ public class AutomatonTest {
     lArguments[2] = "test/tests/single/functionCall.c";
     
     CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
-    
-    // necessary for LogManager
-    CPAMain.cpaConfig = lConfiguration;
     
     LogManager lLogManager = new LogManager(lConfiguration);
       

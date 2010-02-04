@@ -46,7 +46,7 @@ import symbpredabstraction.mathsat.MathsatTheoremProver;
 import symbpredabstraction.mathsat.SimplifyTheoremProver;
 import symbpredabstraction.mathsat.YicesTheoremProver;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
-import cmdline.CPAMain;
+import cpa.common.CPAchecker;
 import cpa.common.defaults.MergeSepOperator;
 import cpa.common.defaults.StaticPrecisionAdjustment;
 import cpa.common.interfaces.AbstractDomain;
@@ -87,7 +87,7 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis, CPA
         precisionAdjustment = StaticPrecisionAdjustment.getInstance();
         abstractFormulaManager = new BDDAbstractFormulaManager();
         MathsatSymbolicFormulaManager mgr = new MathsatSymbolicFormulaManager();
-        String whichProver = CPAMain.cpaConfig.getProperty(
+        String whichProver = CPAchecker.config.getProperty(
                 "cpas.symbpredabs.explicit.abstraction.solver", "mathsat");
         TheoremProver prover = null;
         if (whichProver.equals("mathsat")) {
@@ -97,7 +97,7 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis, CPA
         } else if (whichProver.equals("yices")) {
             prover = new YicesTheoremProver(mgr);
         } else {
-          CPAMain.logManager.log(Level.SEVERE, "ERROR, UNSUPPORTED SOLVER: " + whichProver);
+          CPAchecker.logger.log(Level.SEVERE, "ERROR, UNSUPPORTED SOLVER: " + whichProver);
             System.exit(1);
         }
         InterpolatingTheoremProver<Integer> itpProver =
@@ -111,7 +111,7 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis, CPA
         MathsatPredicateParser p = new MathsatPredicateParser(mgr, amgr);
         Collection<Predicate> preds = null;
         try {
-            String pth = CPAMain.cpaConfig.getProperty(
+            String pth = CPAchecker.config.getProperty(
                     "cpas.symbpredabs.abstraction.fixedPredMap", null);
             if (pth != null) {
                 File f = new File(pth);
@@ -121,10 +121,10 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis, CPA
                 preds = null;
             }
         } catch (IOException e) {
-          CPAMain.logManager.logException(Level.WARNING, e, "");
+          CPAchecker.logger.logException(Level.WARNING, e, "");
             preds = new Vector<Predicate>();
         }
-        if (CPAMain.cpaConfig.getBooleanValue(
+        if (CPAchecker.config.getBooleanValue(
                 "cpas.symbpredabs.abstraction.norefinement")) {
             pmap = new FixedPredicateMap(preds);
         } else {
@@ -171,7 +171,7 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis, CPA
 
     @Override
     public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
-      CPAMain.logManager.log(Level.FINEST, 
+      CPAchecker.logger.log(Level.FINEST, 
                        "Getting initial element from node: ", node);
 
         PredicateAbstractionAbstractElement e = new PredicateAbstractionAbstractElement(this);

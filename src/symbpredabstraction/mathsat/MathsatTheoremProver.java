@@ -26,9 +26,10 @@ package symbpredabstraction.mathsat;
 import java.util.ArrayList;
 import java.util.List;
 
+import cpa.common.CPAchecker;
+
 import symbpredabstraction.interfaces.SymbolicFormula;
 import symbpredabstraction.interfaces.TheoremProver;
-import cmdline.CPAMain;
 
 
 public class MathsatTheoremProver implements TheoremProver {
@@ -77,7 +78,7 @@ public class MathsatTheoremProver implements TheoremProver {
         if (absEnv == 0 || !incremental) {
             absEnv = mathsat.api.msat_create_shared_env(msatEnv);
             mathsat.api.msat_add_theory(absEnv, mathsat.api.MSAT_UF);
-            if (CPAMain.cpaConfig.getBooleanValue(
+            if (CPAchecker.config.getBooleanValue(
             "cpas.symbpredabs.mathsat.useIntegers")) {
                 mathsat.api.msat_add_theory(absEnv, mathsat.api.MSAT_LIA);
                 int ok = mathsat.api.msat_set_option(
@@ -86,7 +87,7 @@ public class MathsatTheoremProver implements TheoremProver {
             } else {
                 mathsat.api.msat_add_theory(absEnv, mathsat.api.MSAT_LRA);
             }
-            if (CPAMain.cpaConfig.getBooleanValue(
+            if (CPAchecker.config.getBooleanValue(
                     "cpas.symbpredabs.mathsat.useDtc")) {
                 mathsat.api.msat_set_theory_combination(absEnv,
                         mathsat.api.MSAT_COMB_DTC);
@@ -117,7 +118,7 @@ public class MathsatTheoremProver implements TheoremProver {
             curEnv = mathsat.api.msat_create_env();
         }
         mathsat.api.msat_add_theory(curEnv, mathsat.api.MSAT_UF);
-        if (CPAMain.cpaConfig.getBooleanValue(
+        if (CPAchecker.config.getBooleanValue(
         "cpas.symbpredabs.mathsat.useIntegers")) {
             mathsat.api.msat_add_theory(curEnv, mathsat.api.MSAT_LIA);
             int ok = mathsat.api.msat_set_option(
@@ -126,7 +127,7 @@ public class MathsatTheoremProver implements TheoremProver {
         } else {
             mathsat.api.msat_add_theory(curEnv, mathsat.api.MSAT_LRA);
         }
-        if (CPAMain.cpaConfig.getBooleanValue(
+        if (CPAchecker.config.getBooleanValue(
                 "cpas.symbpredabs.mathsat.useDtc")) {
             mathsat.api.msat_set_theory_combination(curEnv,
                     mathsat.api.MSAT_COMB_DTC);
@@ -187,7 +188,7 @@ public class MathsatTheoremProver implements TheoremProver {
 
         mathsat.api.msat_add_theory(allsatEnv, mathsat.api.MSAT_UF);
         if ((theories & MathsatSymbolicFormulaManager.THEORY_ARITH) != 0) {
-            if (CPAMain.cpaConfig.getBooleanValue(
+            if (CPAchecker.config.getBooleanValue(
                     "cpas.symbpredabs.mathsat.useIntegers")) {
                 mathsat.api.msat_add_theory(allsatEnv, mathsat.api.MSAT_LIA);
                 int ok = mathsat.api.msat_set_option(allsatEnv, "split_eq",
@@ -196,7 +197,7 @@ public class MathsatTheoremProver implements TheoremProver {
             } else {
                 mathsat.api.msat_add_theory(allsatEnv, mathsat.api.MSAT_LRA);
             }
-            if (CPAMain.cpaConfig.getBooleanValue(
+            if (CPAchecker.config.getBooleanValue(
                     "cpas.symbpredabs.mathsat.useDtc")) {
                 mathsat.api.msat_set_theory_combination(allsatEnv,
                         mathsat.api.MSAT_COMB_DTC);

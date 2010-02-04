@@ -46,7 +46,10 @@ import org.eclipse.core.resources.IFile;
 import cfa.CFABuilder;
 import cfa.CFAMap;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
+import cmdline.CPAMain.InvalidCmdlineArgumentException;
 import cmdline.stubs.StubFile;
+import cpa.common.CPAchecker;
+import cpa.common.CPAConfiguration;
 import cpa.common.LogManager;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
@@ -63,40 +66,52 @@ import exceptions.CPAException;
  */
 public class CPASelfCheck {
 
+  private static CPAConfiguration cpaConfig;
+  private static LogManager logManager;
+  
   /**
    * @param args
    */
   public static void main(String[] args) {
     try {
-      CPAMain.logManager.log(Level.INFO, "Searching for CPAs");
+      cpaConfig = CPAMain.createConfiguration(args);
+    } catch (InvalidCmdlineArgumentException e) {
+      System.err.println("Could not parse command line arguments: " + e.getMessage());
+      System.exit(1);
+    } catch (IOException e) {
+      System.err.println("Could not read config file " + e.getMessage());
+      System.exit(1);
+    }
+    logManager = new LogManager(cpaConfig);
+    CPAchecker cpachecker = new CPAchecker(cpaConfig, logManager);
+    
+    try {
+      logManager.log(Level.INFO, "Searching for CPAs");
       LinkedList<Class<ConfigurableProgramAnalysis>> cpas = getCPAs();
       
-      CPAMain.cpaConfig = CPAMain.createConfiguration(args);
-      CPAMain.logManager = new LogManager(CPAMain.cpaConfig);
-
       for (Class<ConfigurableProgramAnalysis> cpa : cpas) {
-        CPAMain.logManager.log(Level.INFO, "Checking " + cpa.getCanonicalName() + " ...");
+        logManager.log(Level.INFO, "Checking " + cpa.getCanonicalName() + " ...");
         ConfigurableProgramAnalysis cpaInst = null;
         try {
           cpaInst = tryToInstantiate(cpa);
         } catch (InvocationTargetException e) {
-          CPAMain.logManager.logException(Level.WARNING, e, 
+          logManager.logException(Level.WARNING, e, 
               "Instantiating " + cpa.getCanonicalName() + " failed!");
           continue;
         } catch (NoSuchMethodException e) {
-          CPAMain.logManager.logException(Level.WARNING, e, 
+          logManager.logException(Level.WARNING, e, 
               "Instantiating " + cpa.getCanonicalName() + 
               " failed: no (String, String) constructor!");
           continue;
         }
         assert(cpaInst != null);
         
-        CFAFunctionDefinitionNode main = createCFA();
+        CFAFunctionDefinitionNode main = createCFA(cpachecker);
        
         try {
           cpaInst.getInitialElement(main);
         } catch (Exception e) {
-          CPAMain.logManager.logException(Level.WARNING, e, 
+          logManager.logException(Level.WARNING, e, 
               "Getting initial element failed!");
           continue;
         }
@@ -117,11 +132,11 @@ public class CPASelfCheck {
         System.out.println(ok ? " OK" : " ERROR");
       }
     } catch (Exception e) {
-      CPAMain.logManager.logException(Level.WARNING, e, "");
+      logManager.logException(Level.WARNING, e, "");
     }
   }
   
-  private static CFAFunctionDefinitionNode createCFA() throws IOException, UnsupportedDialectException {
+  private static CFAFunctionDefinitionNode createCFA(CPAchecker cpachecker) throws IOException, UnsupportedDialectException {
     File lFile = File.createTempFile("dummy", ".c");
     lFile.deleteOnExit();
        
@@ -140,7 +155,7 @@ public class CPASelfCheck {
     IFile currentFile = new StubFile(lFile.getCanonicalPath());
 
     // Get Eclipse to parse the C in the current file
-    IASTTranslationUnit ast = CPAMain.parse(currentFile);
+    IASTTranslationUnit ast = cpachecker.parse(currentFile);
 
     // TODO use the methods from CPAMain for this?
     CFABuilder builder = new CFABuilder();
@@ -158,7 +173,7 @@ public class CPASelfCheck {
   
   private static boolean ensure(boolean pB, String pString) {
     if (!pB) {
-      CPAMain.logManager.log(Level.WARNING, pString);
+      logManager.log(Level.WARNING, pString);
       // assert(false);
       return false;
     }

@@ -50,7 +50,7 @@ import cfa.objectmodel.c.DeclarationEdge;
 import cfa.objectmodel.c.MultiDeclarationEdge;
 import cfa.objectmodel.c.MultiStatementEdge;
 import cfa.objectmodel.c.StatementEdge;
-import cmdline.CPAMain;
+import cpa.common.CPAchecker;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
@@ -128,7 +128,7 @@ public class PointsToTransferRelation implements TransferRelation {
 
     private void handle(IASTBinaryExpression binaryExpression) {
 
-      CPAMain.logManager.log(Level.ALL, "DEBUG_1", "Got into IASTBinaryExpression with " + binaryExpression.toString());
+      CPAchecker.logger.log(Level.ALL, "DEBUG_1", "Got into IASTBinaryExpression with " + binaryExpression.toString());
 
       switch (binaryExpression.getOperator ())
       {
@@ -205,14 +205,14 @@ public class PointsToTransferRelation implements TransferRelation {
       case IASTBinaryExpression.op_pmdot:*/
       default:
       {
-        CPAMain.logManager.log(Level.WARNING, "Unhandled expression " + binaryExpression.getRawSignature());
+        CPAchecker.logger.log(Level.WARNING, "Unhandled expression " + binaryExpression.getRawSignature());
       }
       }
     }
 
     private void handle(IASTUnaryExpression unaryExpression) {
 
-      CPAMain.logManager.log(Level.ALL, "DEBUG_1", "Got into IASTUnaryExpression with " + unaryExpression.toString());
+      CPAchecker.logger.log(Level.ALL, "DEBUG_1", "Got into IASTUnaryExpression with " + unaryExpression.toString());
 
       PointsToRelation entry = relations.get(unaryExpression.getOperand());
 
@@ -313,14 +313,14 @@ public class PointsToTransferRelation implements TransferRelation {
       }
       default:
       {
-        CPAMain.logManager.log(Level.WARNING, "Unhandled expression " + unaryExpression.getRawSignature());
+        CPAchecker.logger.log(Level.WARNING, "Unhandled expression " + unaryExpression.getRawSignature());
       }
       }
     }
 
     private void handle(IASTArraySubscriptExpression arrayExpression) {
-      CPAMain.logManager.log(Level.ALL, "DEBUG_1", "Got into IASTArraySubscriptExpression with " + arrayExpression.toString());
-      CPAMain.logManager.log(Level.ALL, "DEBUG_1", "Is composed of " + arrayExpression.getArrayExpression() + " " + arrayExpression.getSubscriptExpression());
+      CPAchecker.logger.log(Level.ALL, "DEBUG_1", "Got into IASTArraySubscriptExpression with " + arrayExpression.toString());
+      CPAchecker.logger.log(Level.ALL, "DEBUG_1", "Is composed of " + arrayExpression.getArrayExpression() + " " + arrayExpression.getSubscriptExpression());
       PointsToRelation var = relations.get(arrayExpression.getArrayExpression());
       assert (var != null);
       PointsToRelation r = new PointsToRelation(var.getVariable(),
@@ -361,7 +361,7 @@ public class PointsToTransferRelation implements TransferRelation {
      */
     @Override
     public int leave(IASTExpression expression) {
-      CPAMain.logManager.log(Level.ALL, "DEBUG_1", "Got into IASTExpression with " + expression.toString());
+      CPAchecker.logger.log(Level.ALL, "DEBUG_1", "Got into IASTExpression with " + expression.toString());
 
       if (!(expression.getExpressionType() instanceof IPointerType) &&
           !(expression.getExpressionType() instanceof IArrayType)) return PROCESS_CONTINUE;
@@ -374,11 +374,11 @@ public class PointsToTransferRelation implements TransferRelation {
       } else if (expression instanceof IASTArraySubscriptExpression) {
         handle((IASTArraySubscriptExpression)expression);
       } else if (expression instanceof IASTIdExpression) {
-        CPAMain.logManager.log(Level.ALL, "DEBUG_1", "Got into IASTName");
+        CPAchecker.logger.log(Level.ALL, "DEBUG_1", "Got into IASTName");
         relations.put(expression, pointsToElement.lookup(((IASTIdExpression)expression).getName()));
         assert (relations.get(expression) != null);
       } else {
-        CPAMain.logManager.log(Level.WARNING, "Unhandled expression " + expression);
+        CPAchecker.logger.log(Level.WARNING, "Unhandled expression " + expression);
         assert (false);
       }
       return PROCESS_CONTINUE;
@@ -414,7 +414,7 @@ public class PointsToTransferRelation implements TransferRelation {
   private AbstractElement getAbstractSuccessor(AbstractElement element,
       CFAEdge cfaEdge, Precision prec) throws CPATransferException {
     PointsToElement pointsToElement = (PointsToElement) element;
-    CPAMain.logManager.log(Level.INFO, "Input: " + pointsToElement.toString());
+    CPAchecker.logger.log(Level.INFO, "Input: " + pointsToElement.toString());
 
     switch (cfaEdge.getEdgeType ())
     {
@@ -424,7 +424,7 @@ public class PointsToTransferRelation implements TransferRelation {
       StatementVisitor visitor = new StatementVisitor(pointsToElement);
       StatementEdge statementEdge = (StatementEdge) cfaEdge;
       IASTExpression expression = statementEdge.getExpression ();
-      CPAMain.logManager.log(Level.INFO, "Statement Edge = " + expression.getRawSignature());
+      CPAchecker.logger.log(Level.INFO, "Statement Edge = " + expression.getRawSignature());
       expression.accept(visitor);
       break;
     }
@@ -444,7 +444,7 @@ public class PointsToTransferRelation implements TransferRelation {
       DeclarationVisitor visitor = new DeclarationVisitor(pointsToElement);
       DeclarationEdge declarationEdge = (DeclarationEdge) cfaEdge;
       IASTDeclarator [] declarators = declarationEdge.getDeclarators ();
-      CPAMain.logManager.log(Level.INFO, "Decleration Edge = " + declarationEdge.getRawStatement());
+      CPAchecker.logger.log(Level.INFO, "Decleration Edge = " + declarationEdge.getRawStatement());
       for (IASTDeclarator declarator : declarators) {
         declarator.accept(visitor);
       }
@@ -467,11 +467,11 @@ public class PointsToTransferRelation implements TransferRelation {
     case ReturnEdge:
     default:
     {
-      CPAMain.logManager.log(Level.WARNING, "Edge " + cfaEdge + " not handled in points-to transfer relation");
+      CPAchecker.logger.log(Level.WARNING, "Edge " + cfaEdge + " not handled in points-to transfer relation");
     }
     }
 
-    CPAMain.logManager.log(Level.INFO, "Output: " + pointsToElement.toString());
+    CPAchecker.logger.log(Level.INFO, "Output: " + pointsToElement.toString());
     return pointsToElement;
   }
 

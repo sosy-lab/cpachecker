@@ -11,7 +11,7 @@ import java.util.Set;
 
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cfa.objectmodel.CFANode;
-import cmdline.CPAMain;
+import cpa.common.CPAchecker;
 import cpa.common.defaults.MergeSepOperator;
 import cpa.common.defaults.StaticPrecisionAdjustment;
 import cpa.common.interfaces.AbstractDomain;
@@ -115,7 +115,7 @@ public class ARTCPA implements ConfigurableProgramAnalysis, CPAWithStatistics, C
 
   public static ConfigurableProgramAnalysis getARTCPA 
   (CFAFunctionDefinitionNode node, ConfigurableProgramAnalysis cpa) throws CPAException{
-    String[] mergeTypesArray = CPAMain.cpaConfig.getPropertiesArray("analysis.mergeOperators");
+    String[] mergeTypesArray = CPAchecker.config.getPropertiesArray("analysis.mergeOperators");
     ArrayList<String> mergeTypes = new ArrayList<String>(Arrays.asList(mergeTypesArray));
     if(mergeTypes.contains("join")){
       return new ARTCPA("join", cpa);

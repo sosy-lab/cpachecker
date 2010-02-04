@@ -13,7 +13,7 @@ import org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression;
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAErrorNode;
 import cfa.objectmodel.c.StatementEdge;
-import cmdline.CPAMain;
+import cpa.common.CPAchecker;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
@@ -35,7 +35,7 @@ public class ErrorLocationTransferRelation implements TransferRelation {
     
     if (!messages.contains(lineNumber)) {
       messages.add(lineNumber);
-      CPAMain.logManager.log(Level.WARNING, "ERROR: " + message + " in line " + lineNumber + "!");
+      CPAchecker.logger.log(Level.WARNING, "ERROR: " + message + " in line " + lineNumber + "!");
     }
   }
   

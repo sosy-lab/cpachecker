@@ -32,7 +32,7 @@ import java.util.List;
 import java.util.logging.Level;
 
 import cfa.objectmodel.CFAFunctionDefinitionNode;
-import cmdline.CPAMain;
+import cpa.common.CPAchecker;
 import cpa.common.CallElement;
 import cpa.common.CallStack;
 import cpa.common.interfaces.AbstractDomain;
@@ -120,12 +120,12 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, CPAWithStatist
   @SuppressWarnings("unchecked")
   public static ConfigurableProgramAnalysis getCompositeCPA (CFAFunctionDefinitionNode node) throws CPAException
   {
-    String[] cpaNamesArray = CPAMain.cpaConfig.getPropertiesArray("analysis.cpas");
-    String[] mergeTypesArray = CPAMain.cpaConfig.getPropertiesArray("analysis.mergeOperators");
-    String[] stopTypesArray = CPAMain.cpaConfig.getPropertiesArray("analysis.stopOperators");
+    String[] cpaNamesArray = CPAchecker.config.getPropertiesArray("analysis.cpas");
+    String[] mergeTypesArray = CPAchecker.config.getPropertiesArray("analysis.mergeOperators");
+    String[] stopTypesArray = CPAchecker.config.getPropertiesArray("analysis.stopOperators");
     String[] cpaToBeMonitored = null;
-    if(CPAMain.cpaConfig.getBooleanValue("monitoringCPA.enable")){
-      cpaToBeMonitored = CPAMain.cpaConfig.getPropertiesArray("monitoringCPA.cpa"); 
+    if(CPAchecker.config.getBooleanValue("monitoringCPA.enable")){
+      cpaToBeMonitored = CPAchecker.config.getPropertiesArray("monitoringCPA.cpa"); 
     }
 
     int sizeOfCompositeCPA = cpaNamesArray.length;
@@ -162,19 +162,19 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, CPAWithStatist
         cpas.add(newCPA);
 
       } catch (ClassNotFoundException e) {
-        CPAMain.logManager.logException(Level.WARNING, e, "ClassNotFoundException");
+        CPAchecker.logger.logException(Level.WARNING, e, "ClassNotFoundException");
       } catch (SecurityException e) {
-        CPAMain.logManager.logException(Level.WARNING, e, "SecurityException");
+        CPAchecker.logger.logException(Level.WARNING, e, "SecurityException");
       } catch (NoSuchMethodException e) {
-        CPAMain.logManager.logException(Level.WARNING, e, "NoSuchMethodException");
+        CPAchecker.logger.logException(Level.WARNING, e, "NoSuchMethodException");
       } catch (IllegalArgumentException e) {
-        CPAMain.logManager.logException(Level.WARNING, e, "IllegalArgumentException");
+        CPAchecker.logger.logException(Level.WARNING, e, "IllegalArgumentException");
       } catch (InstantiationException e) {
-        CPAMain.logManager.logException(Level.WARNING, e, "InstantiationException");
+        CPAchecker.logger.logException(Level.WARNING, e, "InstantiationException");
       } catch (IllegalAccessException e) {
-        CPAMain.logManager.logException(Level.WARNING, e, "IllegalAccessException");
+        CPAchecker.logger.logException(Level.WARNING, e, "IllegalAccessException");
       } catch (InvocationTargetException e) {
-        CPAMain.logManager.logException(Level.WARNING, e, "InvocationTargetException");
+        CPAchecker.logger.logException(Level.WARNING, e, "InvocationTargetException");
       }
     }
 
@@ -182,11 +182,11 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, CPAWithStatist
     // TODO this was for efficiency but I modified the condition for it to work only with
     // summary nodes
     if (cpas.size() == 1 &&
-        CPAMain.cpaConfig.getBooleanValue("analysis.noCompositeCPA")) {
-      CPAMain.logManager.log(Level.FINE, "Only one analyis active, no need of a composite CPA");
+        CPAchecker.config.getBooleanValue("analysis.noCompositeCPA")) {
+      CPAchecker.logger.log(Level.FINE, "Only one analyis active, no need of a composite CPA");
       cpa = cpas.get(0);
     } else {
-      CPAMain.logManager.log(Level.FINE, "CompositeCPA is built using the list of CPAs");
+      CPAchecker.logger.log(Level.FINE, "CompositeCPA is built using the list of CPAs");
       cpa = CompositeCPA.createNewCompositeCPA(cpas, node);
     }
     return cpa;

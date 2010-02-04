@@ -9,7 +9,6 @@ import java.util.logging.Level;
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFANode;
 import cfa.objectmodel.c.FunctionCallEdge;
-import cmdline.CPAMain;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -17,6 +16,7 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.Sets;
 import common.Pair;
 
+import cpa.common.CPAchecker;
 import cpa.common.ReachedElements;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
@@ -55,7 +55,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
   
   @Override
   public final boolean performRefinement(ReachedElements pReached) throws CPAException {
-    CPAMain.logManager.log(Level.FINEST, "Starting ART based refinement");
+    CPAchecker.logger.log(Level.FINEST, "Starting ART based refinement");
     
     assert checkART(pReached);
     
@@ -63,9 +63,9 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
     assert lastElement instanceof ARTElement;
     Path path = buildPath((ARTElement)lastElement);
 
-    if (CPAMain.logManager.wouldBeLogged(Level.ALL)) {
-      CPAMain.logManager.log(Level.ALL, "Error path:\n", path);
-      CPAMain.logManager.log(Level.ALL, "Function calls on Error path:\n",
+    if (CPAchecker.logger.wouldBeLogged(Level.ALL)) {
+      CPAchecker.logger.log(Level.ALL, "Error path:\n", path);
+      CPAchecker.logger.log(Level.ALL, "Function calls on Error path:\n",
           Joiner.on("\n ").skipNulls().join(Collections2.transform(path, pathToFunctionCalls)));
     }
     
@@ -75,7 +75,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
     
     assert checkART(pReached);
 
-    CPAMain.logManager.log(Level.FINEST, "ART based refinement finished, result is", result);
+    CPAchecker.logger.log(Level.FINEST, "ART based refinement finished, result is", result);
 
     return result;
   }

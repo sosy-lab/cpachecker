@@ -43,10 +43,10 @@ import symbpredabstraction.interfaces.FormulaManager;
 import symbpredabstraction.interfaces.Predicate;
 import symbpredabstraction.interfaces.SymbolicFormula;
 import symbpredabstraction.interfaces.SymbolicFormulaManager;
-import cmdline.CPAMain;
 
 import common.Pair;
 import common.Triple;
+import cpa.common.CPAchecker;
 
 /**
  * Abstract super class for classes implementing the FormulaManager interface,
@@ -74,7 +74,7 @@ public abstract class CommonFormulaManager implements FormulaManager {
     predicateToVarAndAtom = new HashMap<Predicate, Pair<SymbolicFormula, SymbolicFormula>>();
     symbVarToPredicate = new HashMap<SymbolicFormula, Predicate>();
     
-    useCache = CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.mathsat.useCache");
+    useCache = CPAchecker.config.getBooleanValue("cpas.symbpredabs.mathsat.useCache");
     if (useCache) {
         toConcreteCache = new HashMap<AbstractFormula, SymbolicFormula>();
     } else {
@@ -105,7 +105,7 @@ public abstract class CommonFormulaManager implements FormulaManager {
     } else {
       Predicate result = amgr.createPredicate();
 
-      CPAMain.logManager.log(Level.FINEST, "Created predicate", result,
+      CPAchecker.logger.log(Level.FINEST, "Created predicate", result,
                      "from variable", var, "and atom", atom);
 
       predicateToVarAndAtom.put(result, new Pair<SymbolicFormula, SymbolicFormula>(var, atom));
@@ -263,7 +263,7 @@ public abstract class CommonFormulaManager implements FormulaManager {
   @Override
   public void dumpFormulasToFile(Iterable<SymbolicFormula> f, String filename) {
     if (filename != null) {
-      String path = CPAMain.cpaConfig.getProperty("output.path") + filename;
+      String path = CPAchecker.config.getProperty("output.path") + filename;
       try {
         SymbolicFormula t = smgr.makeTrue();
         for (SymbolicFormula fm : f) {
@@ -275,7 +275,7 @@ public abstract class CommonFormulaManager implements FormulaManager {
         pw.println(msatRepr);
         pw.close();
       } catch (FileNotFoundException e) {
-        CPAMain.logManager.log(Level.WARNING,
+        CPAchecker.logger.log(Level.WARNING,
             "Failed to save formula to file ", path,
             "(", e.getMessage(), ")");
       }

@@ -45,9 +45,9 @@ import com.google.common.base.Joiner;
 import symbpredabstraction.interfaces.SymbolicFormula;
 import symbpredabstraction.interfaces.SymbolicFormulaManager;
 import symbpredabstraction.interfaces.TheoremProver;
-import cmdline.CPAMain;
 
 import common.Pair;
+import cpa.common.CPAchecker;
 
 public class YicesTheoremProver implements TheoremProver {
 
@@ -186,7 +186,7 @@ public class YicesTheoremProver implements TheoremProver {
                     } else if (mathsat.api.msat_term_is_negate(term) != 0) {
                         op = "-";
                     } else {
-                      CPAMain.logManager.log(Level.WARNING, "UNRECOGNIZED TERM: " +
+                      CPAchecker.logger.log(Level.WARNING, "UNRECOGNIZED TERM: " +
                                 mathsat.api.msat_term_repr(term));
                         System.out.flush();
                         assert(false);
@@ -222,7 +222,7 @@ public class YicesTheoremProver implements TheoremProver {
     private int yicesCommand(String cmd, boolean ignoreError) {
         int ret = yicesManager.yicesl_read(yicesContext, cmd);
         if (ret == 0 && !ignoreError) {
-          CPAMain.logManager.log(Level.WARNING, "YICES ERROR: " +
+          CPAchecker.logger.log(Level.WARNING, "YICES ERROR: " +
                     yicesManager.yicesl_get_last_error_message());
         }
         assert(ignoreError || ret != 0);
@@ -304,7 +304,7 @@ public class YicesTheoremProver implements TheoremProver {
             modelScanner = new Scanner(tmpForModel);
         } catch (IOException e1) {
             // TODO Auto-generated catch block
-          CPAMain.logManager.logException(Level.WARNING, e1, "");
+          CPAchecker.logger.logException(Level.WARNING, e1, "");
             assert(false);
         }
         String filename = tmpForModel.getAbsolutePath();

@@ -34,7 +34,8 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.util.logging.Level;
 
-import cmdline.CPAMain;
+import cpa.common.CPAchecker;
+
 
 /**
  * @author Michael Tautschnig <tautschnig@forsyte.de>
@@ -59,7 +60,7 @@ public class CProver {
     try {
       lWriter = new PrintWriter(lFile);
     } catch (FileNotFoundException e) {
-      CPAMain.logManager.logException(Level.SEVERE, e, "");
+      CPAchecker.logger.logException(Level.SEVERE, e, "");
       System.exit(1);
     }
 
@@ -111,18 +112,18 @@ public class CProver {
       default:
         // lCBMCExitValue == 6 : Start function symbol not found, but also gcc not found
         // more error codes?
-        CPAMain.logManager.log(Level.WARNING, "CBMC had exit code " + lCBMCExitValue + ", output was:");
+        CPAchecker.logger.log(Level.WARNING, "CBMC had exit code " + lCBMCExitValue + ", output was:");
       BufferedReader br = new BufferedReader(new InputStreamReader(lCBMCProcess.getErrorStream()));
       String line = null;
 
       while ((line = br.readLine()) != null) {
-        CPAMain.logManager.log(Level.WARNING, line);
+        CPAchecker.logger.log(Level.WARNING, line);
       }
       br.close();
 
       br = new BufferedReader(new InputStreamReader(lCBMCProcess.getInputStream()));
       while ((line = br.readLine()) != null) {
-        CPAMain.logManager.log(Level.WARNING, line);
+        CPAchecker.logger.log(Level.WARNING, line);
       }
 
       br.close();
@@ -130,7 +131,7 @@ public class CProver {
       break;
       }
     } catch (IOException e) {
-      CPAMain.logManager.logException(Level.SEVERE, e, "");
+      CPAchecker.logger.logException(Level.SEVERE, e, "");
       System.exit(1);
     } 
 

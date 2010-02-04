@@ -30,12 +30,12 @@ import symbpredabstraction.SSAMap;
 import symbpredabstraction.interfaces.SymbolicFormula;
 import symbpredabstraction.interfaces.SymbolicFormulaManager;
 import cfa.objectmodel.CFANode;
-import cmdline.CPAMain;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import common.Pair;
 
+import cpa.common.CPAchecker;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
@@ -90,7 +90,7 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
         assert (elem1.getInitAbstractionFormula() == elem2.getInitAbstractionFormula());
         assert (elem1.getAbstractionLocation() == elem2.getAbstractionLocation());
 
-        CPAMain.logManager.log(Level.FINEST, "Merging two non-abstraction nodes with parents",
+        CPAchecker.logger.log(Level.FINEST, "Merging two non-abstraction nodes with parents",
                 elem1.getPfParents(), "and", elem2.getPfParents(), ".");
 
         SymbolicFormula formula1 = elem1.getPathFormula().getSymbolicFormula();
@@ -106,7 +106,7 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
 
         PathFormula pathFormula = new PathFormula(newFormula, ssa1);
         
-        CPAMain.logManager.log(Level.ALL, "New path formula is", pathFormula);
+        CPAchecker.logger.log(Level.ALL, "New path formula is", pathFormula);
 
         // now we update the pfParents
         // elem1 is the successor element and elem2 is the reached element from

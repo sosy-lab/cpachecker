@@ -37,9 +37,9 @@ import symbpredabstraction.interfaces.AbstractFormula;
 import symbpredabstraction.interfaces.AbstractFormulaManager;
 import symbpredabstraction.interfaces.SymbolicFormula;
 import symbpredabstraction.interfaces.TheoremProver;
-import cmdline.CPAMain;
 
 import common.Pair;
+import cpa.common.CPAchecker;
 
 // TODO decide which parts of the API of this class can be move to the FormularManager interface
 public class MathsatFormulaManager extends CommonFormulaManager {
@@ -77,7 +77,7 @@ public class MathsatFormulaManager extends CommonFormulaManager {
 
         @Override
         public void modelFound(List<SymbolicFormula> model) {
-            CPAMain.logManager.log(Level.ALL, "Allsat found model", model);
+            CPAchecker.logger.log(Level.ALL, "Allsat found model", model);
             long start = System.currentTimeMillis();
 
             // the abstraction is created simply by taking the disjunction

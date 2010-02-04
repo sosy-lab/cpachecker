@@ -33,7 +33,8 @@ import java.util.Set;
 import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
 
-import cmdline.CPAMain;
+import cpa.common.CPAchecker;
+
 
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAEdgeType;
@@ -106,13 +107,13 @@ public class CFASimplifier
 		// Remove leading blank edge if useless
 		removeUselessBlankEdge (node);
 
-		if (CPAMain.cpaConfig.getBooleanValue("cfa.combineBlockStatements"))
+		if (CPAchecker.config.getBooleanValue("cfa.combineBlockStatements"))
 		{
 			makeMultiStatement (node);
 			makeMultiDeclaration (node);
 		}
 
-		if (CPAMain.cpaConfig.getBooleanValue("cfa.removeDeclarations"))
+		if (CPAchecker.config.getBooleanValue("cfa.removeDeclarations"))
 		{
 			removeDeclarations(node);
 		}

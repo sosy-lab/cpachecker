@@ -3,12 +3,12 @@ package cpa.observeranalysis;
 import java.io.File;
 import java.io.FileNotFoundException;
 
-import cmdline.CPAMain;
 
 import java_cup.runtime.ComplexSymbolFactory;
 import java_cup.runtime.Symbol;
 import java_cup.runtime.SymbolFactory;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
+import cpa.common.CPAchecker;
 import cpa.common.defaults.EqualityPartialOrder;
 import cpa.common.defaults.MergeSepOperator;
 import cpa.common.defaults.StaticPrecisionAdjustment;
@@ -78,7 +78,7 @@ public class ObserverAutomatonCPA implements ConfigurableProgramAnalysis {
    * @throws FileNotFoundException
    */
   public ObserverAutomatonCPA(String pMergeType, String pStopType) throws FileNotFoundException { 
-    String file = CPAMain.cpaConfig.getProperty("observerAnalysis.inputFile");
+    String file = CPAchecker.config.getProperty("observerAnalysis.inputFile");
     parseObserverFile(file);
   }
   
