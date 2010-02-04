@@ -64,7 +64,7 @@ import cpa.common.algorithm.Algorithm;
 import cpa.common.algorithm.CBMCAlgorithm;
 import cpa.common.algorithm.CEGARAlgorithm;
 import cpa.common.algorithm.CPAAlgorithm;
-import cpa.common.algorithm.InvariantCollectionAlgorithm;
+import cpa.common.algorithm.AssumptionCollectionAlgorithm;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.CPAStatistics;
 import cpa.common.interfaces.CPAWithStatistics;
@@ -474,7 +474,7 @@ public class CPAchecker {
     }
     
     if (CPAchecker.config.getBooleanValue("analysis.useInvariantDump")) {
-      algorithm = new InvariantCollectionAlgorithm(algorithm);
+      algorithm = new AssumptionCollectionAlgorithm(algorithm);
     }
     
     if (CPAchecker.config.getBooleanValue("analysis.useCBMC")) {
