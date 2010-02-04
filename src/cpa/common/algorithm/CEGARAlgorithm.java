@@ -24,6 +24,7 @@
 package cpa.common.algorithm;
 
 import java.lang.reflect.Constructor;
+import java.util.Collection;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
@@ -32,10 +33,12 @@ import cpa.common.CPAchecker;
 import cpa.common.ReachedElements;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Refiner;
+import cpa.common.interfaces.Statistics;
+import cpa.common.interfaces.StatisticsProvider;
 import exceptions.CPAException;
 import exceptions.TransferTimeOutException;
 
-public class CEGARAlgorithm implements Algorithm {
+public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
   private static final int GC_PERIOD = 100;
   private int gcCounter = 0;
@@ -156,4 +159,12 @@ public class CEGARAlgorithm implements Algorithm {
   public ConfigurableProgramAnalysis getCPA() {
     return algorithm.getCPA();
   }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    if (algorithm instanceof StatisticsProvider) {
+      ((StatisticsProvider)algorithm).collectStatistics(pStatsCollection);
+    }
+  }
+
 }

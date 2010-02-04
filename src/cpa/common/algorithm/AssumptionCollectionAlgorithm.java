@@ -23,6 +23,7 @@
  */
 package cpa.common.algorithm;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
 
@@ -45,6 +46,8 @@ import cpa.common.ReachedElements;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractWrapperElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
+import cpa.common.interfaces.Statistics;
+import cpa.common.interfaces.StatisticsProvider;
 import exceptions.CPAException;
 import exceptions.RefinementFailedException;
 import exceptions.TransferTimeOutException;
@@ -55,7 +58,7 @@ import exceptions.TransferTimeOutException;
  * 
  * @author g.theoduloz
  */
-public class AssumptionCollectionAlgorithm implements Algorithm {
+public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvider {
 
   private final Algorithm innerAlgorithm;
   private final MathsatInvariantSymbolicFormulaManager symbolicManager;
@@ -182,5 +185,12 @@ public class AssumptionCollectionAlgorithm implements Algorithm {
     CFANode sourceLocation = failedTransfer.getCfaEdge().getPredecessor();
     SymbolicFormula dataRegion = FormulaReportingUtils.extractReportedFormulas(symbolicManager, failedTransfer.getAbstractElement());
     invariant.addAssumption(sourceLocation, new Assumption (symbolicManager.makeNot(dataRegion), false));
+  }
+  
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    if (innerAlgorithm instanceof StatisticsProvider) {
+      ((StatisticsProvider)innerAlgorithm).collectStatistics(pStatsCollection);
+    }
   }
 }

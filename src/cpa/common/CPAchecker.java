@@ -474,7 +474,7 @@ public class CPAchecker {
     }
     
     if (algorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider)cpa).collectStatistics(stats.getSubStatistics());
+      ((StatisticsProvider)algorithm).collectStatistics(stats.getSubStatistics());
     }
     return algorithm;
   }

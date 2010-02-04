@@ -24,6 +24,7 @@
 package cpa.common.algorithm;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import cfa.CFAMap;
@@ -33,9 +34,11 @@ import cpa.common.ReachedElements;
 import cpa.common.algorithm.cbmctools.AbstractPathToCTranslator;
 import cpa.common.algorithm.cbmctools.CProver;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
+import cpa.common.interfaces.Statistics;
+import cpa.common.interfaces.StatisticsProvider;
 import exceptions.CPAException;
 
-public class CBMCAlgorithm implements Algorithm {
+public class CBMCAlgorithm implements Algorithm, StatisticsProvider {
 
   private final CFAMap cfa;
   private final Algorithm algorithm;
@@ -100,5 +103,12 @@ public class CBMCAlgorithm implements Algorithm {
   @Override
   public ConfigurableProgramAnalysis getCPA() {
     return algorithm.getCPA();
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    if (algorithm instanceof StatisticsProvider) {
+      ((StatisticsProvider)algorithm).collectStatistics(pStatsCollection);
+    }
   }
 }
