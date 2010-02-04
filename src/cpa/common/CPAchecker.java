@@ -111,14 +111,6 @@ public class CPAchecker {
       System.out.flush();
       System.err.flush();
       mStats.printStatistics(new PrintWriter(System.out), mResult, mReached);
-      
-      if (mResult == Result.UNKNOWN) {
-        System.out.println("\n" +
-            "***********************************************************************\n" +
-            "* WARNING: Analysis interrupted!! The statistics might be unreliable! *\n" +
-            "***********************************************************************"
-        );
-      }
     }
   }
   

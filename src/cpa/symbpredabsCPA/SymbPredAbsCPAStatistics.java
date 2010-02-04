@@ -129,7 +129,7 @@ public class SymbPredAbsCPAStatistics implements CPAStatistics {
 //      out.println("Total number of predicates discovered: " + allPreds.size());
 //      out.println("Avg number of predicates per location: " + avgPreds);
 //      out.println("Max number of predicates per location: " + maxPreds);
-      out.println();
+//      out.println();
       out.println("Time for merge:                " + toTime(cpa.getMergeOperator().totalMergeTime));
       out.println("Time for abstraction post:     " + toTime(trans.abstractionTime));
       out.println("  initial abstraction formula: " + toTime(trans.initAbstractionFormulaTime));

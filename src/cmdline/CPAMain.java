@@ -32,6 +32,9 @@ import java.util.List;
 import java.util.logging.Level;
 
 import cmdline.stubs.StubFile;
+
+import com.google.common.base.Joiner;
+
 import cpa.common.CPAConfiguration;
 import cpa.common.CPAchecker;
 import cpa.common.LogManager;
@@ -199,12 +202,7 @@ public class CPAMain {
 
     // arguments with non-specified options are considered as file names
     if (!ret.isEmpty()) {
-      Iterator<String> it = ret.iterator();
-      String programNames = it.next();
-      while (it.hasNext()) {
-        programNames = programNames + ", " + it.next();
-      }
-      config.setProperty("analysis.programNames", programNames);
+      config.setProperty("analysis.programNames", Joiner.on(", ").join(ret));
     }
   }
 

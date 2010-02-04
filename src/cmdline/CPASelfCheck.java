@@ -66,13 +66,13 @@ import exceptions.CPAException;
  */
 public class CPASelfCheck {
 
-  private static CPAConfiguration cpaConfig;
   private static LogManager logManager;
   
   /**
    * @param args
    */
   public static void main(String[] args) {
+    CPAConfiguration cpaConfig = null;
     try {
       cpaConfig = CPAMain.createConfiguration(args);
     } catch (InvalidCmdlineArgumentException e) {

@@ -28,7 +28,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 
-
 import compositeCPA.CompositeStopOperator;
 
 import cpa.common.interfaces.AbstractElement;
@@ -65,7 +64,7 @@ public class MainCPAStatistics implements CPAStatistics {
 
     @Override
     public String getName() {
-        return "CPAChecker";
+        return "CPAchecker";
     }
 
     @Override
@@ -94,26 +93,27 @@ public class MainCPAStatistics implements CPAStatistics {
         out.println("Total Time Elapsed including CFA construction: " +
                 toTime(totalAbsoluteTimeMillis));
 
-        if (!subStats.isEmpty()) {
-            out.println("\nAnalysis-specific statistics:");
-            out.println("-----------------------------");
-            for (CPAStatistics s : subStats) {
-                String name = s.getName();
-                if (name != null && !name.isEmpty()) {
-                  out.println("");
-                  out.println(name);
-                  char[] c = new char[name.length()];
-                  Arrays.fill(c, '-');
-                  out.println(String.copyValueOf(c));
-                }
-                s.printStatistics(out, result, reached);
+        for (CPAStatistics s : subStats) {
+            String name = s.getName();
+            if (name != null && !name.isEmpty()) {
+              out.println("");
+              out.println(name);
+              char[] c = new char[name.length()];
+              Arrays.fill(c, '-');
+              out.println(String.copyValueOf(c));
             }
+            s.printStatistics(out, result, reached);
         }
+
         out.println("");
         out.print("Error location(s) reached? ");
         switch (result) {
         case UNKNOWN:
-          out.println("UNKNOWN, analysis has not completed");
+          out.println("UNKNOWN, analysis has not completed\n\n" +
+              "***********************************************************************\n" +
+              "* WARNING: Analysis interrupted!! The statistics might be unreliable! *\n" +
+              "***********************************************************************"
+            );
           break;
         case UNSAFE:
           out.println("YES, there is a BUG!");
