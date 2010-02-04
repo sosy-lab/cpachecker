@@ -11,7 +11,7 @@ import cpa.common.LogManager;
 import exceptions.CPAException;
 import fql.backend.pathmonitor.Automaton;
 import fql.backend.targetgraph.TargetGraph;
-import fql.fllesh.CPAchecker;
+import fql.fllesh.util.CPAchecker;
 import fql.frontend.ast.coverage.Edges;
 import fql.frontend.ast.coverage.Sequence;
 import fql.frontend.ast.coverage.States;

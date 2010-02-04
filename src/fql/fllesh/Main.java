@@ -19,6 +19,8 @@ import fql.backend.targetgraph.Node;
 import fql.backend.targetgraph.TargetGraph;
 import fql.backend.testgoals.CoverageSequence;
 import fql.backend.testgoals.TestGoal;
+import fql.fllesh.util.CPAchecker;
+import fql.fllesh.util.Cilly;
 import fql.frontend.ast.query.Query;
 import fql.frontend.parser.FQLParser;
 

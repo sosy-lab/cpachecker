@@ -1,4 +1,4 @@
-package fql.fllesh;
+package fql.fllesh.util;
 
 import java.util.logging.Level;
 

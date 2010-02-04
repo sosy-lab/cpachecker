@@ -1,4 +1,4 @@
-package fql.fllesh;
+package fql.fllesh.util;
 
 import java.io.BufferedReader;
 import java.io.File;
