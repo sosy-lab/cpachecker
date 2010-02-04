@@ -274,7 +274,7 @@ public class CPAchecker {
   }
   
   
-  private Pair<CFAMap, CFAFunctionDefinitionNode> createCFA(IASTTranslationUnit ast) {
+  protected Pair<CFAMap, CFAFunctionDefinitionNode> createCFA(IASTTranslationUnit ast) {
 
     // Build CFA
     final CFABuilder builder = new CFABuilder();
