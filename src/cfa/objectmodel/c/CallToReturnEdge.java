@@ -70,33 +70,4 @@ public class CallToReturnEdge extends AbstractCFAEdge {
 		AbstractWrapperElement wrappedElem = (AbstractWrapperElement) abstractElement;
 		return wrappedElem.retrieveWrappedElement(pType);
 	}
-
-  /**
-   * @return
-   */
-  public boolean hasAnyPointerParameters() {
-    // db: Not implemented.
-    assert(false);
-    return false;
-  }
-
-  /**
-   * @return
-   */
-  public Iterable<AliasedPointers> getAliasedPointersList() {
-    // db: Not implemented.
-    assert(false);
-    return null;
-  }
-
-  /**
-   * @param pArgumentName
-   * @param pParameterName
-   */
-  public void registerAliasesOnFunctionCalls(String pArgumentName,
-                                             String pParameterName) {
-    // db: Not implemented.
-    assert(false);
-  }
-
 }
