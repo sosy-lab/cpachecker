@@ -3,8 +3,25 @@ package fql.fllesh;
 import java.util.LinkedList;
 import java.util.Set;
 
-import compositeCPA.CompositeElement;
+import cfa.objectmodel.CFAFunctionDefinitionNode;
+import cfa.objectmodel.CFANode;
 
+import compositeCPA.CompositeCPA;
+import compositeCPA.CompositeElement;
+import cpa.alwaystop.AlwaysTopCPA;
+import cpa.alwaystop.AlwaysTopTopElement;
+import cpa.common.CallElement;
+import cpa.common.CallStack;
+import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.ConfigurableProgramAnalysis;
+import cpa.concrete.ConcreteAnalysisCPA;
+import cpa.concrete.ConcreteAnalysisTopElement;
+import cpa.location.LocationCPA;
+import cpa.location.LocationElement;
+import cpa.mustmay.MustMayAnalysisCPA;
+import cpa.mustmay.MustMayAnalysisElement;
+
+import exceptions.CPAException;
 import fql.backend.pathmonitor.Automaton;
 import fql.backend.targetgraph.Node;
 import fql.fllesh.reachability.Query;
@@ -13,7 +30,40 @@ import fql.fllesh.reachability.StandardQuery;
 import fql.fllesh.reachability.Waypoint;
 
 public class FeasibilityCheck {
-  public static Witness run(LinkedList<Automaton> pAutomatonSequence, LinkedList<Node> pWaypointSequence, Automaton pPassingMonitor, Node pInitialState) {
+  
+  private AlwaysTopCPA mMayCPA;
+  private ConcreteAnalysisCPA mMustCPA;
+  private MustMayAnalysisCPA mMustMayAnalysisCPA;
+  private LocationCPA mLocationCPA;
+  private CompositeCPA mCompositeCPA;
+  
+  public FeasibilityCheck(CFAFunctionDefinitionNode pNode) {
+    assert(pNode != null);
+    
+    mMayCPA = new AlwaysTopCPA();
+    mMustCPA = new ConcreteAnalysisCPA();
+    
+    mMustMayAnalysisCPA = new MustMayAnalysisCPA(mMustCPA, mMayCPA);
+    
+    try {
+      // TODO: check why LocationCPA has a "throws CPAException" clause
+      mLocationCPA = new LocationCPA("", "");
+    } catch (CPAException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+      
+      System.exit(1);
+    }
+    
+    LinkedList<ConfigurableProgramAnalysis> lCPAs = new LinkedList<ConfigurableProgramAnalysis>();
+    
+    lCPAs.add(mLocationCPA);
+    lCPAs.add(mMustMayAnalysisCPA);
+    
+    mCompositeCPA = CompositeCPA.createNewCompositeCPA(lCPAs, pNode);
+  }
+  
+  public Witness run(LinkedList<Automaton> pAutomatonSequence, LinkedList<Node> pWaypointSequence, Automaton pPassingMonitor, Node pInitialState) {
     
     assert(pAutomatonSequence != null);
     assert(pWaypointSequence != null);
@@ -34,10 +84,8 @@ public class FeasibilityCheck {
     
     int lLastIndex = pAutomatonSequence.size() + 1;
     
+    // TODO: brauchen wir auch eine initial precision?
     
-    // TODO: wir brauchen hier ein CompositeElement (mit CompositePrecision?)
-    // TODO: CompositeCPA anlegen ?
-    // TODO: remove nulls
     CompositeElement lInitialElement = createInitialElement(pInitialState);
     Automaton lFirstAutomaton = pAutomatonSequence.getFirst();
     Query lInitialQuery = SingletonQuery.create(lInitialElement, lFirstAutomaton, lFirstAutomaton.getInitialStates(), pPassingMonitor, pPassingMonitor.getInitialStates());
@@ -90,23 +138,75 @@ public class FeasibilityCheck {
     return new InfeasibilityWitness(lMaxIndex);
   }
   
-  private static CompositeElement createInitialElement(Node pInitialNode) {
+  private CompositeElement createInitialElement(Node pInitialNode) {
     assert(pInitialNode != null);
     
-    // TODO: implement
+    if (!pInitialNode.getPredicates().isEmpty()) {
+      // TODO implement support for predicates, i.e., the initial elements have to be
+      // restricted according to the predicates in pInitialState.getPredicates()
+      throw new UnsupportedOperationException("Predicates not supported currently!");
+    }
     
-    return null;
+    CFANode lInitialCFANode = pInitialNode.getCFANode();
+    
+    AlwaysTopTopElement lAlwaysTopTopElement = AlwaysTopTopElement.getInstance();
+    ConcreteAnalysisTopElement lConcreteAnalysisTopElement = ConcreteAnalysisTopElement.getInstance();
+    MustMayAnalysisElement lInitialMustMayAnalysisElement = new MustMayAnalysisElement(lConcreteAnalysisTopElement, lAlwaysTopTopElement);
+    
+    LocationElement lInitialLocationElement = new LocationElement(lInitialCFANode);
+    
+    LinkedList<AbstractElement> lAbstractElements = new LinkedList<AbstractElement>();
+    
+    lAbstractElements.add(lInitialLocationElement);
+    lAbstractElements.add(lInitialMustMayAnalysisElement);
+    
+    CompositeElement lInitialCompositeElement = new CompositeElement(lAbstractElements, null);   
+    
+    CallElement lInitialCallElement = new CallElement(lInitialCFANode.getFunctionName(), lInitialCFANode, lInitialCompositeElement);
+    
+    CallStack lInitialCallStack = new CallStack();
+    lInitialCallStack.push(lInitialCallElement);
+    lInitialCompositeElement.setCallStack(lInitialCallStack);
+    
+    return lInitialCompositeElement;
   }
   
-  private static CompositeElement createNextElement(Node pNextNode) {
+  private CompositeElement createNextElement(Node pNextNode) {
     assert(pNextNode != null);
     
-    // TODO: implement
+    if (!pNextNode.getPredicates().isEmpty()) {
+      // TODO implement support for predicates, i.e., the initial elements have to be
+      // restricted according to the predicates in pInitialState.getPredicates()
+      throw new UnsupportedOperationException("Predicates not supported currently!");
+    }
     
-    return null;
+    CFANode lCFANode = pNextNode.getCFANode();
+    
+    AlwaysTopTopElement lAlwaysTopTopElement = AlwaysTopTopElement.getInstance();
+    ConcreteAnalysisTopElement lConcreteAnalysisTopElement = ConcreteAnalysisTopElement.getInstance();
+    MustMayAnalysisElement lInitialMustMayAnalysisElement = new MustMayAnalysisElement(lConcreteAnalysisTopElement, lAlwaysTopTopElement);
+    
+    LocationElement lInitialLocationElement = new LocationElement(lCFANode);
+    
+    LinkedList<AbstractElement> lAbstractElements = new LinkedList<AbstractElement>();
+    
+    lAbstractElements.add(lInitialLocationElement);
+    lAbstractElements.add(lInitialMustMayAnalysisElement);
+    
+    CompositeElement lNextElement = new CompositeElement(lAbstractElements, null);   
+    
+    // TODO: special treatment of last element? ... stack only containing call to main function
+    // ... stack predicates? ... would make sense
+    
+    //CallElement lInitialCallElement = new CallElement(lInitialCFANode.getFunctionName(), lInitialCFANode, lInitialCompositeElement);
+    //CallStack lInitialCallStack = new CallStack();
+    //lInitialCallStack.push(lInitialCallElement);
+    //lInitialCompositeElement.setCallStack(lInitialCallStack);
+    
+    return lNextElement;
   }
   
-  private static FeasibilityWitness generateWitness(LinkedList<Waypoint> lWaypoints) {
+  private FeasibilityWitness generateWitness(LinkedList<Waypoint> lWaypoints) {
     assert(lWaypoints != null);
     
     // TODO implement

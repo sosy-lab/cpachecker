@@ -58,8 +58,6 @@ public class Cilly {
     
     String lNiceCILName = Cilly.getNiceCILName(pArguments[0]);
     
-    // TODO remove absolute path
-    //Cilly lCilly = new Cilly("/home/holzera/cil/cil/obj/x86_LINUX/cilly.asm.exe");
     Cilly lCilly = new Cilly();
     
     lCilly.cillyfy(pArguments[0], lNiceCILName);

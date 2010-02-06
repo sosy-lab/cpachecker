@@ -11,13 +11,12 @@ import cpa.common.interfaces.PrecisionAdjustment;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
 import cpa.concrete.ConcreteAnalysisCPA;
-import exceptions.CPAException;
 
 public class SimpleMustMayAnalysisCPA implements ConfigurableProgramAnalysis {
 
   MustMayAnalysisCPA mMustMayAnalysisCPA;
   
-  public SimpleMustMayAnalysisCPA(String pMergeType, String pStopType) throws CPAException {
+  public SimpleMustMayAnalysisCPA(String pMergeType, String pStopType) {
     AlwaysTopCPA lMayCPA = new AlwaysTopCPA();
     ConcreteAnalysisCPA lMustCPA = new ConcreteAnalysisCPA();
     

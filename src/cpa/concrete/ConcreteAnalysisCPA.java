@@ -31,7 +31,6 @@ import cpa.common.defaults.StopSepOperator;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.PrecisionAdjustment;
 import cpa.common.interfaces.StopOperator;
-import exceptions.CPAException;
 
 public class ConcreteAnalysisCPA implements cpa.common.interfaces.ConfigurableProgramAnalysis {
 
@@ -41,11 +40,11 @@ public class ConcreteAnalysisCPA implements cpa.common.interfaces.ConfigurablePr
   private ConcreteAnalysisTransferRelation mTransferRelation;
   private PrecisionAdjustment mPrecisionAdjustment;
 
-  public ConcreteAnalysisCPA(String pMergeType, String pStopType) throws CPAException {
+  public ConcreteAnalysisCPA(String pMergeType, String pStopType) {
     this();
   }
   
-  public ConcreteAnalysisCPA() throws CPAException {
+  public ConcreteAnalysisCPA() {
     
     this.mAbstractDomain = ConcreteAnalysisDomain.getInstance();
     

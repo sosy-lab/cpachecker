@@ -1,5 +1,6 @@
 package fql.fllesh.reachability;
 
+import java.util.LinkedList;
 import java.util.Set;
 
 import compositeCPA.CompositeElement;
@@ -8,6 +9,8 @@ import fql.backend.pathmonitor.Automaton;
 
 public class StandardQuery extends AbstractQuery {
 
+  private LinkedList<Waypoint> lNextWaypoints;
+  
   public static StandardQuery create(Automaton pFirstAutomaton, Automaton pSecondAutomaton, CompositeElement pSourceElement, Set<Integer> pSourceStatesOfFirstAutomaton, Set<Integer> pSourceStatesOfSecondAutomaton, CompositeElement pTargetElement, Set<Integer> pTargetStatesOfFirstAutomaton, Set<Integer> pTargetStatesOfSecondAutomaton) {
     StandardQuery lQuery = new StandardQuery(pFirstAutomaton, pSecondAutomaton);
     
@@ -26,6 +29,7 @@ public class StandardQuery extends AbstractQuery {
   private StandardQuery(Automaton pFirstAutomaton, Automaton pSecondAutomaton) {
     super(pFirstAutomaton, pSecondAutomaton);
     
+    lNextWaypoints = new LinkedList<Waypoint>();
   }
   
   public Waypoint getSource() {
@@ -44,8 +48,16 @@ public class StandardQuery extends AbstractQuery {
 
   @Override
   public Waypoint next() {
-    // TODO Auto-generated method stub
-    return null;
+    
+    if (lNextWaypoints.isEmpty()) {
+      // TODO implement correct handling
+      // TODO throw NoSuchElementException in case there is no element anymore
+      
+      return null;
+    }
+    else {
+      return lNextWaypoints.removeFirst();
+    }
   }
 
   @Override

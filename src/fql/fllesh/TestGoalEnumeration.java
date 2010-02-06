@@ -18,8 +18,9 @@ import common.Pair;
 
 public class TestGoalEnumeration {
   
-  public static Set<FeasibilityWitness> run(List<Pair<Automaton, Set<? extends TestGoal>>> pCoverageSequence, Automaton pPassingMonitor, Node pInitialState) {
+  public static Set<FeasibilityWitness> run(List<Pair<Automaton, Set<? extends TestGoal>>> pCoverageSequence, Automaton pPassingMonitor, Node pInitialState, FeasibilityCheck pFeasibilityCheck) {
     assert(pCoverageSequence != null);
+    assert(pFeasibilityCheck != null);
     
     HashSet<FeasibilityWitness> lWitnesses = new HashSet<FeasibilityWitness>();
     
@@ -103,7 +104,7 @@ public class TestGoalEnumeration {
           lIndex++;
         }
         else {
-          Witness lWitness = FeasibilityCheck.run(lAutomatonSequence, lWaypointSequence, pPassingMonitor, pInitialState);
+          Witness lWitness = pFeasibilityCheck.run(lAutomatonSequence, lWaypointSequence, pPassingMonitor, pInitialState);
           
           if (lWitness instanceof InfeasibilityWitness) {
             InfeasibilityWitness lInfeasibilityWitness = (InfeasibilityWitness)lWitness;
