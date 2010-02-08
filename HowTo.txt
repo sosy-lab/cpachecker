@@ -111,10 +111,12 @@ output.path			path			<ERROR>		test/output/	name of path for all output
 log.file			filename		"CPALog.txt"	"CPALog.txt"	filename for logging	
 log.level			off, severe, warning...	"OFF"		<DEPENDS>	verbosity level (higher is less verbose)
 log.consoleLevel		off, severe, warning... "INFO"		<DEPENDS>	verbosity level of console output
-cfa.export			true/false		false		<DEPENDS>	write CFA to file
-cfa.file			filename		"cfa.dot"	"cfa.dot"	CFA graph output file
-ART.export			true/false		false		false		write ART to file (needs cpa.useART)
-ART.file			filename		"ART.dot"	"ART.dot"	ART graph output file
+cfa.export			true/false		false		true		write CFA to file
+cfa.file			filename		"cfa.dot"	<DEFAULT>	CFA graph output file
+ART.export			true/false		false		true		write ART to file (needs cpa.useART)
+ART.file			filename		"ART.dot"	<DEFAULT>	ART graph output file
+reachedSet.export		true/false		false		true		write all elements in final reached set to file
+reachedSet.file			filename		"reached.txt"	<DEFAULT>	reached set output file
 cfa.simplify			true/false		false		true		run simplifications below
 cfa.check			true/false		false		true		run consistency checks on CFA
 cfa.combineBlockStatements	true/false		false		false		combine statements and declarations into MultiStatement and MultiDeclaration edges respectively
@@ -135,7 +137,6 @@ analysis.programs		path							for running CPAchecker as eclipse plugin
 analysis.cpas			list of class names	<ERROR>		<DEPENDS>	comma-separated list of CPAs to use
 analysis.mergeOperators		list of Strings				<DEPENDS>	comma-separated list of Strings passed to the above CPAs as name of the merge operator
 analysis.stopOperators		list of Strings				<DEPENDS>	comma-separated list of Strings passed to the above CPAs as name of the stop operator
-analysis.dontPrintReachableStates true/false		false		true		don't print set of reached abstract states after analysis
 analysis.useGlobalVars		true/false		false		true		
 analysis.useFunctionDeclarations	true/false	false		true		include declarations of external functions in CFA
 analysis.programNames		path+filename		<CMDLINE>	<CMDLINE>	the file to analyze

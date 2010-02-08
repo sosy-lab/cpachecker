@@ -23,10 +23,13 @@
  */
 package cpa.common;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.logging.Level;
 
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.Statistics;
@@ -70,19 +73,28 @@ public class MainCPAStatistics implements Statistics {
         if (analysisEndingTime == 0) {
           stopAnalysisTimer();
         }
-      
-        long totalTimeInMillis = analysisEndingTime - analysisStartingTime;
-        long totalAbsoluteTimeMillis = analysisEndingTime - programStartingTime;
 
-        
-        if (!CPAchecker.config.getBooleanValue("analysis.dontPrintReachableStates")) {
-          out.println("\nReached set:");
-          out.println("------------");
-          for (AbstractElement e : reached) {
-            out.println(e);
+        if (CPAchecker.config.getBooleanValue("reachedSet.export")) {
+          String outfilePath = CPAchecker.config.getProperty("output.path");
+          String outfileName = CPAchecker.config.getProperty("reachedSet.file", "reached.txt");
+          //if no filename is given, use default value
+          
+          File reachedFile = new File(outfilePath, outfileName);
+          try {
+            PrintWriter file = new PrintWriter(reachedFile);
+            for (AbstractElement e : reached) {
+              file.println(e);
+            }
+          } catch (FileNotFoundException e) {
+            CPAchecker.logger.log(Level.WARNING,
+                "Could not write reached set to file ", reachedFile.getAbsolutePath(),
+                ", (", e.getMessage(), ")");
           }
         }
         
+        long totalTimeInMillis = analysisEndingTime - analysisStartingTime;
+        long totalAbsoluteTimeMillis = analysisEndingTime - programStartingTime;
+
         out.println("\nCPAchecker general statistics:");
         out.println("------------------------------");
         out.println("Size of reached set: " + reached.size());
