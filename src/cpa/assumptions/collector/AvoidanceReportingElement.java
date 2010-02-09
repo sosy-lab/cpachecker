@@ -36,6 +36,6 @@ public interface AvoidanceReportingElement {
    * Returns true if an invariant must be added so as to avoid
    * the given state in the future.  
    */
-  public boolean mustDumpInvariantForAvoidance();
+  public boolean mustDumpAssumptionForAvoidance();
 
 }

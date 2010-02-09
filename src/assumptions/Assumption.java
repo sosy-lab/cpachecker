@@ -23,6 +23,7 @@
  */
 package assumptions;
 
+import cfa.objectmodel.CFANode;
 import symbpredabstraction.interfaces.SymbolicFormula;
 
 /**
@@ -58,11 +59,11 @@ public class Assumption {
     otherAssumption = manager.makeTrue();
   }
 
-  public SymbolicFormula getDischargeableAssumption() {
+  public SymbolicFormula getDischargeableFormula() {
     return dischargeableAssumption;
   }
   
-  public SymbolicFormula getOtherAssumption() {
+  public SymbolicFormula getOtherFormula() {
     return otherAssumption;
   }
   
@@ -70,7 +71,7 @@ public class Assumption {
    * Return a formula representing all assumptions
    * contained in this invariant
    */
-  public SymbolicFormula getAllAssumptions() {
+  public SymbolicFormula getAllFormula() {
     return manager.makeAnd(dischargeableAssumption, otherAssumption);
   }
   
@@ -98,11 +99,34 @@ public class Assumption {
     // shortcut
     if (this == TRUE)
       return true;
-    
-    return dischargeableAssumption.isTrue()
-        && otherAssumption.isTrue();
+    else 
+      return dischargeableAssumption.isTrue()
+          && otherAssumption.isTrue();
+  }
+  
+  public boolean isFalse() {
+    if (this == FALSE)
+      return true;
+    else if (this == TRUE)
+      return false;
+    else
+      return dischargeableAssumption.isFalse()
+          || otherAssumption.isFalse(); 
+  }
+  
+  /**
+   * Return an assumption with location for the given
+   * location
+   */
+  public AssumptionWithLocation atLocation(CFANode node)
+  {
+    if (isTrue())
+      return AssumptionWithLocation.TRUE;
+    else
+      return new AssumptionWithSingleLocation(node, this);
   }
   
   public static final Assumption TRUE = new Assumption();
+  public static final Assumption FALSE = new Assumption(MathsatInvariantSymbolicFormulaManager.getInstance().makeFalse(), false);
  
 }

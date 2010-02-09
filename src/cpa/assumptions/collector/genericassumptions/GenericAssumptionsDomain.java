@@ -24,7 +24,6 @@
 
 package cpa.assumptions.collector.genericassumptions;
 
-import assumptions.AssumptionSymbolicFormulaManager;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.JoinOperator;
@@ -32,10 +31,6 @@ import cpa.common.interfaces.PartialOrder;
 import exceptions.CPAException;
 
 public class GenericAssumptionsDomain implements AbstractDomain {
-  
-  private final GenericAssumptionsElement bottomElement;
-  private final GenericAssumptionsElement topElement;
-  private final AssumptionSymbolicFormulaManager manager;
   
   private final JoinOperator joinOperator =
     new JoinOperator() {
@@ -54,22 +49,19 @@ public class GenericAssumptionsDomain implements AbstractDomain {
       public boolean satisfiesPartialOrder(AbstractElement el1, AbstractElement el2)
         throws CPAException
       {
-        if (el1.equals(bottomElement)) return true;
-        if (el2.equals(topElement)) return true;
+        if (GenericAssumptionsElement.BOTTOM.equals(el1)) return true;
+        if (GenericAssumptionsElement.TOP.equals(el2)) return true;
         return el1.equals(el2);
       }
     };
   
   public GenericAssumptionsDomain(GenericAssumptionsCPA aCPA)
   {
-    manager = aCPA.getSymbolicFormulaManager();
-    bottomElement = new GenericAssumptionsElement(manager, manager.makeFalse());
-    topElement = new GenericAssumptionsElement(manager, manager.makeTrue());
   }
   
   @Override
   public AbstractElement getBottomElement() {
-    return bottomElement;
+    return GenericAssumptionsElement.BOTTOM;
   }
 
   @Override
@@ -84,7 +76,7 @@ public class GenericAssumptionsDomain implements AbstractDomain {
 
   @Override
   public AbstractElement getTopElement() {
-    return topElement;
+    return GenericAssumptionsElement.TOP;
   }
 
 }

@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
+import assumptions.Assumption;
 import assumptions.AssumptionSymbolicFormulaManager;
 
 import symbpredabstraction.interfaces.SymbolicFormula;
@@ -60,7 +61,7 @@ public class GenericAssumptionsTransferRelation implements TransferRelation {
     assumptionBuilders.add(new ArithmeticOverflowAssumptionBuilder());
   }
   
-  private AssumptionSymbolicFormulaManager manager;
+  private final AssumptionSymbolicFormulaManager manager;
   
   /**
    * Constructor
@@ -75,12 +76,12 @@ public class GenericAssumptionsTransferRelation implements TransferRelation {
   private AbstractElement getAbstractSuccessor(AbstractElement el, CFAEdge edge, Precision p)
     throws CPATransferException
   {
-    SymbolicFormula assumptions = manager.makeTrue();
+    SymbolicFormula assumptionFormula = manager.makeTrue();
     for (GenericAssumptionBuilder b : assumptionBuilders)
     {
-      assumptions = manager.makeAnd(assumptions, b.assumptionsForEdge(edge));
+      assumptionFormula = manager.makeAnd(assumptionFormula, b.assumptionsForEdge(edge));
     }
-    return new GenericAssumptionsElement(manager, assumptions);
+    return new GenericAssumptionsElement((new Assumption(assumptionFormula, true)).atLocation(edge.getPredecessor()));
   }
 
   @Override

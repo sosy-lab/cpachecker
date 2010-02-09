@@ -35,8 +35,9 @@ import cfa.objectmodel.CFAEdge;
 public interface GenericAssumptionBuilder {
   
   /**
-   * Returns the invariant predicate that the system assumes when
-   * it encounters the given edge 
+   * Returns the assumption predicate that the system assumes when
+   * it encounters the given edge. The assumption is evaluated in
+   * the pre-state of the edge.
    * @return A non-null predicate representing the assumptions
    */
   public IASTExpression assumptionsForEdge(CFAEdge edge);

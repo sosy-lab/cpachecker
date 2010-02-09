@@ -28,6 +28,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
+import assumptions.AssumptionWithLocation;
 import assumptions.FormulaReportingUtils;
 import assumptions.Assumption;
 
@@ -63,29 +64,29 @@ public class CollectorTransferRelation implements TransferRelation {
   public Collection<? extends AbstractElement> strengthen(AbstractElement el, List<AbstractElement> others, CFAEdge edge, Precision p)
   throws CPATransferException
   {
-    boolean dumpAvoidanceInvariant = false;
-    Assumption result = null;
+    boolean dumpAvoidanceAssumption = false;
+    AssumptionWithLocation result = null;
 
     // collect invariants and determine whether we need to add an invariant
     // to avoid the current node.
     for (AbstractElement other : others) {
       if (other instanceof AssumptionReportingElement) {
-        Assumption otherInv = ((AssumptionReportingElement)other).getAssumption();
-        if (otherInv != null) {
+        AssumptionWithLocation otherAssumption = ((AssumptionReportingElement)other).getAssumptionWithLocation();
+        if (otherAssumption != null) {
           if (result == null)
-            result = otherInv;
+            result = otherAssumption;
           else
-            result = result.and(otherInv);
+            result = result.and(otherAssumption);
         }
       }
       if (other instanceof AvoidanceReportingElement) {
-        if (((AvoidanceReportingElement)other).mustDumpInvariantForAvoidance())
-          dumpAvoidanceInvariant = true;
+        if (((AvoidanceReportingElement)other).mustDumpAssumptionForAvoidance())
+          dumpAvoidanceAssumption = true;
       }
     }
 
     // if necessary, add an invariant to avoid the current node
-    if (dumpAvoidanceInvariant) {
+    if (dumpAvoidanceAssumption) {
       // collect data
       SymbolicFormula avoidanceInvariantFormula = symbolicManager.makeTrue();
       for (AbstractElement other : others) {
@@ -93,13 +94,14 @@ public class CollectorTransferRelation implements TransferRelation {
         if (reported != null)
           avoidanceInvariantFormula = symbolicManager.makeAnd(avoidanceInvariantFormula, reported);
       }
-      Assumption avoidanceInvariant = new Assumption(avoidanceInvariantFormula, false);
+      Assumption assumptionData = new Assumption(avoidanceInvariantFormula, false);
+      AssumptionWithLocation avoidanceAssumption = assumptionData.atLocation(edge.getSuccessor());
       
       // add the invariant
       if (result == null)
-        result = avoidanceInvariant;
+        result = avoidanceAssumption;
       else
-        result = result.and(avoidanceInvariant);
+        result = result.and(avoidanceAssumption);
     }
 
     List<CollectorElement> retList = new ArrayList<CollectorElement>();

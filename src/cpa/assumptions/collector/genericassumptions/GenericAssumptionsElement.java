@@ -23,9 +23,7 @@
  */
 package cpa.assumptions.collector.genericassumptions;
 
-import assumptions.Assumption;
-import assumptions.AssumptionSymbolicFormulaManager;
-import symbpredabstraction.interfaces.SymbolicFormula;
+import assumptions.AssumptionWithLocation;
 import cpa.assumptions.collector.AssumptionReportingElement;
 import cpa.common.interfaces.AbstractElement;
 
@@ -39,29 +37,20 @@ import cpa.common.interfaces.AbstractElement;
 public class GenericAssumptionsElement implements AbstractElement, AssumptionReportingElement {
 
   // The inner representation is a formula.
-  private SymbolicFormula formula;
-  private final AssumptionSymbolicFormulaManager manager; 
+  private final AssumptionWithLocation assumption;
   
-  public GenericAssumptionsElement(
-      AssumptionSymbolicFormulaManager aManager,
-      SymbolicFormula aFormula)
+  public GenericAssumptionsElement(AssumptionWithLocation anAssumption)
   {
-    manager = aManager;
-    formula = aFormula;
-  }
-
-  public SymbolicFormula getFormula()
-  {
-    return formula;
+    assumption = anAssumption;
   }
   
   @Override
-  public Assumption getAssumption()
+  public AssumptionWithLocation getAssumptionWithLocation()
   {
-    if (formula == null)
-      return Assumption.TRUE;
+    if (assumption == null)
+      return AssumptionWithLocation.TRUE;
     else
-      return new Assumption(formula, true);
+      return assumption;
   }
   
   /**
@@ -71,9 +60,12 @@ public class GenericAssumptionsElement implements AbstractElement, AssumptionRep
    */
   public GenericAssumptionsElement makeAnd(GenericAssumptionsElement other)
   {
-    assert manager == other.manager;
-    SymbolicFormula newFormula = manager.makeAnd(formula, other.formula);
-    return new GenericAssumptionsElement(manager, newFormula);
+    // Special cases
+    if (this == TOP) return other;
+    if (other == TOP) return this;
+    if ((this == BOTTOM) || (other == BOTTOM)) return BOTTOM;
+    
+    return new GenericAssumptionsElement(assumption.and(other.assumption));
   }
   
   @Override
@@ -84,14 +76,16 @@ public class GenericAssumptionsElement implements AbstractElement, AssumptionRep
   @Override
   public boolean equals(Object pObj) {
     if (pObj instanceof GenericAssumptionsElement)
-      return formula.equals(((GenericAssumptionsElement)pObj).formula);
+      return assumption.equals(((GenericAssumptionsElement)pObj).assumption);
     else
       return false;
   }
   
   @Override
   public String toString() {
-    return formula.toString();
+    return assumption.toString();
   }
 
+  public static final GenericAssumptionsElement TOP = new GenericAssumptionsElement(AssumptionWithLocation.TRUE);
+  public static final GenericAssumptionsElement BOTTOM = new GenericAssumptionsElement(AssumptionWithLocation.FALSE);
 }

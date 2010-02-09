@@ -27,9 +27,10 @@ import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
 
+import assumptions.AssumptionWithLocation;
 import assumptions.FormulaReportingUtils;
 import assumptions.Assumption;
-import assumptions.AssumptionWithLocation;
+import assumptions.AssumptionWithMultipleLocations;
 import assumptions.MathsatInvariantSymbolicFormulaManager;
 
 import symbpredabstraction.interfaces.SymbolicFormula;
@@ -78,7 +79,7 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
   public void run(ReachedElements reached, boolean stopAfterError)
       throws CPAException {
     
-    AssumptionWithLocation invariantMap = new AssumptionWithLocation();
+    AssumptionWithMultipleLocations resultAssumption = new AssumptionWithMultipleLocations();
     boolean restartCPA = false;
     
     // loop if restartCPA is set to false
@@ -89,10 +90,10 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
         innerAlgorithm.run(reached, stopAfterError);
       } catch (RefinementFailedException failedRefinement) {
         CPAchecker.logger.log(Level.ALL, "Dumping assumptions due to: " + failedRefinement.toString());
-        addInvariantsForFailedRefinement(invariantMap, failedRefinement);
+        addAssumptionsForFailedRefinement(resultAssumption, failedRefinement);
       } catch (TransferTimeOutException failedTransfer) {
         CPAchecker.logger.log(Level.ALL, "Dumping assumptions due to: " + failedTransfer.toString());
-        addInvariantsForFailedTransfer(invariantMap, failedTransfer);
+        addAssumptionsForFailedTransfer(resultAssumption, failedTransfer);
         restartCPA = true;
       } catch (CPAException e) {
         CPAchecker.logger.log(Level.ALL, "Dumping assumptions due to: " + e.toString());
@@ -100,43 +101,42 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
     } while (restartCPA);
       
     // collect and dump all assumptions stored in abstract states
-    CPAchecker.logger.log(Level.FINEST, "Dumping assumptions resulting from assumptions");
+    CPAchecker.logger.log(Level.FINEST, "Dumping assumptions resulting from tool assumptions");
     for (AbstractElement element : reached) {      
-      CFANode loc = ((AbstractWrapperElement)element).retrieveLocationElement().getLocationNode();
-      Assumption invariant = extractInvariant(element);
+      AssumptionWithLocation assumption = extractAssumption(element);
       
-      invariantMap.addAssumption(loc, invariant);
+      resultAssumption.addAssumption(assumption);
     }
     
     // dump invariants to prevent going further with nodes in
     // the waitlist
     if (reached.hasWaitingElement()) {
       CPAchecker.logger.log(Level.FINEST, "Dumping assumptions resulting from unprocessed elements");
-      addInvariantsForWaitlist(invariantMap, reached.getWaitlist());
+      addAssumptionsForWaitlist(resultAssumption, reached.getWaitlist());
     }
     
     CPAchecker.logger.log(Level.ALL, "THE SYSTEM IS SAFE UNDER THE FOLLOWING ASSUMPTION:");
-    invariantMap.dump(System.out);
+    resultAssumption.dump(System.out);
   }
 
   /**
    * Returns the invariant(s) stored in the given abstract
    * element
    */
-  private Assumption extractInvariant(AbstractElement element)
+  private AssumptionWithLocation extractAssumption(AbstractElement element)
   {
-    Assumption result = Assumption.TRUE;
+    AssumptionWithLocation result = AssumptionWithLocation.TRUE;
     
     // If it is a wrapper, add its sub-element's assertions
     if (element instanceof AbstractWrapperElement)
     {
       for (AbstractElement subel : ((AbstractWrapperElement) element).getWrappedElements())
-        result = result.and(extractInvariant(subel));
+        result = result.and(extractAssumption(subel));
     }
     
     if (element instanceof CollectorElement)
     {
-      Assumption dumpedInvariant = ((CollectorElement) element).getCollectedAssumptions();
+      AssumptionWithLocation dumpedInvariant = ((CollectorElement) element).getCollectedAssumptions();
       if (dumpedInvariant != null)
         result = result.and(dumpedInvariant);
     }
@@ -148,8 +148,8 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
    * Add to the given map the invariant required to
    * avoid the given refinement failure 
    */
-  private void addInvariantsForFailedRefinement(
-      AssumptionWithLocation invariant,
+  private void addAssumptionsForFailedRefinement(
+      AssumptionWithMultipleLocations invariant,
       RefinementFailedException failedRefinement) {
     Path path = failedRefinement.getErrorPath();
     
@@ -167,8 +167,8 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
    * Add to the given map the invariant required to
    * avoid nodes in the given set of states
    */
-  private void addInvariantsForWaitlist(
-      AssumptionWithLocation invariant,
+  private void addAssumptionsForWaitlist(
+      AssumptionWithMultipleLocations invariant,
       List<AbstractElement> waitlist) {
     for (AbstractElement element : waitlist) {
       SymbolicFormula dataRegion = FormulaReportingUtils.extractReportedFormulas(symbolicManager, element);
@@ -179,8 +179,8 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
   /**
    * Returns the invariant(s) necessary to avoid the failed transfer
    */
-  private void addInvariantsForFailedTransfer(
-      AssumptionWithLocation invariant,
+  private void addAssumptionsForFailedTransfer(
+      AssumptionWithMultipleLocations invariant,
       TransferTimeOutException failedTransfer) {
     CFANode sourceLocation = failedTransfer.getCfaEdge().getPredecessor();
     SymbolicFormula dataRegion = FormulaReportingUtils.extractReportedFormulas(symbolicManager, failedTransfer.getAbstractElement());

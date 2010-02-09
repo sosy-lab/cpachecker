@@ -23,7 +23,7 @@
  */
 package cpa.assumptions.collector;
 
-import assumptions.Assumption;
+import assumptions.AssumptionWithLocation;
 
 /**
  * Interface to implement in order for an object to be able to
@@ -41,6 +41,6 @@ public interface AssumptionReportingElement {
    *         for the given element, or the value null representing
    *         the assumption true. 
    */
-  public Assumption getAssumption();
+  public AssumptionWithLocation getAssumptionWithLocation();
 
 }

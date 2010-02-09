@@ -23,7 +23,7 @@
  */
 package cpa.assumptions.collector;
 
-import assumptions.Assumption;
+import assumptions.AssumptionWithLocation;
 import cpa.common.interfaces.AbstractElement;
 
 /**
@@ -34,20 +34,20 @@ import cpa.common.interfaces.AbstractElement;
  */
 public class CollectorElement implements AbstractElement {
 
-  private final Assumption invariant;
+  private final AssumptionWithLocation assumption;
  
-  public CollectorElement(Assumption f)
+  public CollectorElement(AssumptionWithLocation f)
   {
-    invariant = f;
+    assumption = f;
   }
   
   /**
    * Return the invariant in this state. May return
    * a null value in case no invariant is stored.
    */
-  public Assumption getCollectedAssumptions()
+  public AssumptionWithLocation getCollectedAssumptions()
   {
-    return invariant;
+    return assumption;
   }
   
   @Override
@@ -57,12 +57,12 @@ public class CollectorElement implements AbstractElement {
   
   @Override
   public String toString() {
-    if (invariant == null)
+    if (assumption == null)
       if (this == BOTTOM) return "BOTTOM";
       else if (this == TOP) return "TOP";
       else return "(null)";
     else
-      return invariant.toString();
+      return assumption.toString();
   }
   
   /** Bottom */

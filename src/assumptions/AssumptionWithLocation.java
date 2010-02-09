@@ -25,8 +25,7 @@ package assumptions;
 
 import java.io.IOException;
 import java.io.StringWriter;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Collections;
 import java.util.Map.Entry;
 
 import symbpredabstraction.interfaces.SymbolicFormula;
@@ -37,41 +36,22 @@ import cfa.objectmodel.CFANode;
  * 
  * @author g.theoduloz
  */
-public class AssumptionWithLocation {
+public abstract class AssumptionWithLocation {
   
-  // map from location to (conjunctive) list of invariants
-  private final Map<CFANode, Assumption> map;
-  
-  public AssumptionWithLocation() {
-    map = new HashMap<CFANode, Assumption>();
-  }
+  /**
+   * Conjunct this assumption with the given assumption
+   */
+  public abstract AssumptionWithLocation and(AssumptionWithLocation other);
   
   /**
    * Return the assumption as a formula for a given node
    */
-  public Assumption getAssumption(CFANode node)
-  {
-    Assumption result = map.get(node);
-    
-    if (result == null)
-      return Assumption.TRUE;
-    else
-      return result;
-  }
-
+  public abstract Assumption getAssumption(CFANode node);
+  
   /**
-   * Add an assumption at the given location
+   * Returns an iterator over assumptions per location 
    */
-  public void addAssumption(CFANode node, Assumption invariant)
-  {
-    if (!invariant.isTrue()) {
-      Assumption oldInvariant = map.get(node);
-      if (oldInvariant == null)
-        map.put(node, invariant);
-      else
-        map.put(node, oldInvariant.and(invariant));
-    }
-  }
+  public abstract Iterable<Entry<CFANode, Assumption>> getAssumptionsIterator();
   
   /**
    * Dump the assumption to the given Appendable object
@@ -81,11 +61,11 @@ public class AssumptionWithLocation {
   public void dump(Appendable out)
   {
     try {
-      for (Entry<CFANode, Assumption> entry : map.entrySet()) {
+      for (Entry<CFANode, Assumption> entry : getAssumptionsIterator()) {
         String nodeId = Integer.toString(entry.getKey().getNodeNumber());
         Assumption inv = entry.getValue();
-        SymbolicFormula disInv = inv.getDischargeableAssumption();
-        SymbolicFormula otherInv = inv.getOtherAssumption();
+        SymbolicFormula disInv = inv.getDischargeableFormula();
+        SymbolicFormula otherInv = inv.getOtherFormula();
         if (!disInv.isTrue()) {
           out.append("pc = ").append(nodeId).append("\t =(d)=>  ");
           out.append(disInv.toString()).append("\n");
@@ -104,5 +84,53 @@ public class AssumptionWithLocation {
     dump(writer);
     return writer.toString();
   }
+  
+  public static final AssumptionWithLocation TRUE =
+    new AssumptionWithLocation() {
+      @Override
+      public AssumptionWithLocation and(AssumptionWithLocation other) {
+        return other;
+      }
+      @Override
+      public Assumption getAssumption(CFANode node) {
+        return Assumption.TRUE;
+      }
+      @Override
+      public Iterable<Entry<CFANode, Assumption>> getAssumptionsIterator() {
+        return Collections.emptySet();
+      }
+      @Override
+      public boolean equals(Object other) {
+        return other == this;
+      }
+      @Override
+      public String toString() {
+        return "TRUE";
+      }
+  };
+  
+  public static final AssumptionWithLocation FALSE =
+    new AssumptionWithLocation() {
+      @Override
+      public AssumptionWithLocation and(AssumptionWithLocation other) {
+        return this;
+      }
+      @Override
+      public Assumption getAssumption(CFANode node) {
+        return Assumption.FALSE;
+      }
+      @Override
+      public Iterable<Entry<CFANode, Assumption>> getAssumptionsIterator() {
+        return Collections.emptySet();
+      }
+      @Override
+      public boolean equals(Object other) {
+        return other == this;
+      }
+      @Override
+      public String toString() {
+        return "FALSE";
+      }
+  };
   
 }

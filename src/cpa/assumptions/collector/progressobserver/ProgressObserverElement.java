@@ -165,7 +165,7 @@ public class ProgressObserverElement implements AbstractElement, AvoidanceReport
   }
 
   @Override
-  public boolean mustDumpInvariantForAvoidance() {
+  public boolean mustDumpAssumptionForAvoidance() {
     // returns true if the current element is the same as bottom
     for (StopHeuristicsData d : data) {
       if (d.isBottom())
