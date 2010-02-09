@@ -32,11 +32,13 @@ import exceptions.CPAException;
 /**
  * @author g.theoduloz
  */
-public class CollectorDomain implements AbstractDomain {
-
+public class AssumptionCollectorDomain implements AbstractDomain {
+  
+  public AssumptionCollectorDomain() { }
+  
   @Override
   public AbstractElement getBottomElement() {
-    return CollectorElement.BOTTOM;
+    return AssumptionCollectorElement.BOTTOM;
   }
 
   @Override
@@ -49,7 +51,7 @@ public class CollectorDomain implements AbstractDomain {
         if (el1 == el2)
           return el1;
         else
-          return CollectorElement.TOP;
+          return AssumptionCollectorElement.TOP;
       }
     };
   }
@@ -62,15 +64,15 @@ public class CollectorDomain implements AbstractDomain {
         throws CPAException
       {
         return (el1 == el2)
-          || (el1 == CollectorElement.BOTTOM)
-          || (el2 == CollectorElement.TOP);
+          || (el1 == AssumptionCollectorElement.BOTTOM)
+          || (el2 == AssumptionCollectorElement.TOP);
       }
     };
   }
 
   @Override
   public AbstractElement getTopElement() {
-    return CollectorElement.TOP;
+    return AssumptionCollectorElement.TOP;
   }
   
 }

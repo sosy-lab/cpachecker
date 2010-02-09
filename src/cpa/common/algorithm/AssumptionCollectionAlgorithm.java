@@ -27,13 +27,12 @@ import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
 
-import assumptions.AssumptionWithLocation;
-import assumptions.FormulaReportingUtils;
+import symbpredabstraction.interfaces.SymbolicFormula;
 import assumptions.Assumption;
+import assumptions.AssumptionWithLocation;
 import assumptions.AssumptionWithMultipleLocations;
 import assumptions.MathsatInvariantSymbolicFormulaManager;
-
-import symbpredabstraction.interfaces.SymbolicFormula;
+import assumptions.ReportingUtils;
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFANode;
 
@@ -41,7 +40,7 @@ import common.Pair;
 
 import cpa.art.ARTElement;
 import cpa.art.Path;
-import cpa.assumptions.collector.CollectorElement;
+import cpa.assumptions.collector.AssumptionCollectorElement;
 import cpa.common.CPAchecker;
 import cpa.common.ReachedElements;
 import cpa.common.interfaces.AbstractElement;
@@ -134,9 +133,9 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
         result = result.and(extractAssumption(subel));
     }
     
-    if (element instanceof CollectorElement)
+    if (element instanceof AssumptionCollectorElement)
     {
-      AssumptionWithLocation dumpedInvariant = ((CollectorElement) element).getCollectedAssumptions();
+      AssumptionWithLocation dumpedInvariant = ((AssumptionCollectorElement) element).getCollectedAssumptions();
       if (dumpedInvariant != null)
         result = result.and(dumpedInvariant);
     }
@@ -159,7 +158,7 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
       pos = path.size() - 2; // the node before the error node
     
     Pair<ARTElement, CFAEdge> pair = path.get(pos);
-    SymbolicFormula dataRegion = FormulaReportingUtils.extractReportedFormulas(symbolicManager, pair.getFirst());
+    SymbolicFormula dataRegion = ReportingUtils.extractReportedFormulas(symbolicManager, pair.getFirst());
     invariant.addAssumption(pair.getFirst().retrieveLocationElement().getLocationNode(), new Assumption(dataRegion, false));
   }
   
@@ -171,7 +170,7 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
       AssumptionWithMultipleLocations invariant,
       List<AbstractElement> waitlist) {
     for (AbstractElement element : waitlist) {
-      SymbolicFormula dataRegion = FormulaReportingUtils.extractReportedFormulas(symbolicManager, element);
+      SymbolicFormula dataRegion = ReportingUtils.extractReportedFormulas(symbolicManager, element);
       invariant.addAssumption(((AbstractWrapperElement)element).retrieveLocationElement().getLocationNode(), new Assumption(symbolicManager.makeNot(dataRegion), false));
     }
   }
@@ -183,7 +182,7 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
       AssumptionWithMultipleLocations invariant,
       TransferTimeOutException failedTransfer) {
     CFANode sourceLocation = failedTransfer.getCfaEdge().getPredecessor();
-    SymbolicFormula dataRegion = FormulaReportingUtils.extractReportedFormulas(symbolicManager, failedTransfer.getAbstractElement());
+    SymbolicFormula dataRegion = ReportingUtils.extractReportedFormulas(symbolicManager, failedTransfer.getAbstractElement());
     invariant.addAssumption(sourceLocation, new Assumption (symbolicManager.makeNot(dataRegion), false));
   }
   

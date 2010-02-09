@@ -23,14 +23,16 @@
  */
 package cpa.assumptions.collector;
 
+import java.util.Collections;
+
 import assumptions.AssumptionSymbolicFormulaManager;
 import assumptions.MathsatInvariantSymbolicFormulaManager;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
-import cpa.common.defaults.MergeSepOperator;
 import cpa.common.defaults.StaticPrecisionAdjustment;
 import cpa.common.defaults.StopNeverOperator;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.CPAWrapper;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
@@ -47,22 +49,24 @@ import cpa.common.interfaces.TransferRelation;
  *  
  * @author g.theoduloz
  */
-public class CollectorCPA implements ConfigurableProgramAnalysis {
+public class AssumptionCollectorCPA implements ConfigurableProgramAnalysis, CPAWrapper {
 
-  private final CollectorDomain abstractDomain;
+  private final AssumptionCollectorDomain abstractDomain;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
   private final TransferRelation transferRelation;
   private final AssumptionSymbolicFormulaManager symbolicFormulaManager;
   private final PrecisionAdjustment precisionAdjustment;
+  private final ConfigurableProgramAnalysis wrappedCPA;
   
-  public CollectorCPA(String merge, String stop)
+  public AssumptionCollectorCPA(ConfigurableProgramAnalysis cpa)
   {
+    wrappedCPA = cpa;
     symbolicFormulaManager = MathsatInvariantSymbolicFormulaManager.getInstance();
-    abstractDomain = new CollectorDomain();
-    mergeOperator = MergeSepOperator.getInstance();
+    abstractDomain = new AssumptionCollectorDomain();
+    mergeOperator = new AssumptionCollectorMerge(wrappedCPA);
     stopOperator = StopNeverOperator.getInstance();
-    transferRelation = new CollectorTransferRelation(this);
+    transferRelation = new AssumptionCollectorTransferRelation(this);
     precisionAdjustment = StaticPrecisionAdjustment.getInstance();
   }
   
@@ -104,6 +108,11 @@ public class CollectorCPA implements ConfigurableProgramAnalysis {
   @Override
   public TransferRelation getTransferRelation() {
     return transferRelation;
+  }
+
+  @Override
+  public Iterable<ConfigurableProgramAnalysis> getWrappedCPAs() {
+    return Collections.singleton(wrappedCPA);
   }
 
 }

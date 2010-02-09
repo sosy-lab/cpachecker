@@ -34,10 +34,10 @@ import cpa.common.interfaces.AbstractWrapperElement;
  * 
  * @author g.theoduloz
  */
-public class FormulaReportingUtils {
+public class ReportingUtils {
   
   /** Cannot have instances */
-  private FormulaReportingUtils() {}
+  private ReportingUtils() {}
   
   /**
    * Returns a predicate representing states represented by

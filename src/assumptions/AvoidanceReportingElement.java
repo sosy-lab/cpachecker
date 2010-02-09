@@ -21,26 +21,21 @@
  *  CPAchecker web page:
  *    http://www.cs.sfu.ca/~dbeyer/CPAchecker/
  */
-package cpa.assumptions.collector;
-
-import assumptions.AssumptionWithLocation;
+package assumptions;
 
 /**
  * Interface to implement in order for an object to be able to
- * contribute invariants to the invariant construction.
+ * make the system generate an assumption to avoid re-considering
+ * this node.
  * 
  * @author g.theoduloz
  */
-public interface AssumptionReportingElement {
-
+public interface AvoidanceReportingElement {
+  
   /**
-   * Get the assumption that the given abstract element
-   * wants to report for its containing node's location.
-   * 
-   * @return an assumption representing the assumptions to generate
-   *         for the given element, or the value null representing
-   *         the assumption true. 
+   * Returns true if an invariant must be added so as to avoid
+   * the given state in the future.  
    */
-  public AssumptionWithLocation getAssumptionWithLocation();
+  public boolean mustDumpAssumptionForAvoidance();
 
 }

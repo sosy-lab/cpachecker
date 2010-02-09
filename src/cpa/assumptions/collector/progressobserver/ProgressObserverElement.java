@@ -27,9 +27,10 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import assumptions.AvoidanceReportingElement;
+
 import cfa.objectmodel.CFANode;
 
-import cpa.assumptions.collector.AvoidanceReportingElement;
 import cpa.common.interfaces.AbstractElement;
 
 /**

@@ -23,8 +23,8 @@
  */
 package cpa.assumptions.collector.genericassumptions;
 
+import assumptions.AssumptionReportingElement;
 import assumptions.AssumptionWithLocation;
-import cpa.assumptions.collector.AssumptionReportingElement;
 import cpa.common.interfaces.AbstractElement;
 
 /**
