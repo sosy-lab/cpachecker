@@ -60,6 +60,7 @@ import common.Pair;
 import compositeCPA.CompositeCPA;
 
 import cpa.art.ARTCPA;
+import cpa.assumptions.collector.AssumptionCollectorCPA;
 import cpa.common.algorithm.Algorithm;
 import cpa.common.algorithm.CBMCAlgorithm;
 import cpa.common.algorithm.CEGARAlgorithm;
@@ -445,6 +446,10 @@ public class CPAchecker {
     
     ConfigurableProgramAnalysis cpa = CompositeCPA.getCompositeCPA(mainFunction);
 
+    if (CPAchecker.config.getBooleanValue("analysis.useAssumptionCollector")) {
+      cpa = new AssumptionCollectorCPA(cpa);
+    }
+    
     if (CPAchecker.config.getBooleanValue("analysis.useART")) {
       cpa = ARTCPA.getARTCPA(mainFunction, cpa);
     }
@@ -465,7 +470,7 @@ public class CPAchecker {
       algorithm = new CEGARAlgorithm(algorithm);
     }
     
-    if (CPAchecker.config.getBooleanValue("analysis.useInvariantDump")) {
+    if (CPAchecker.config.getBooleanValue("analysis.useAssumptionCollector")) {
       algorithm = new AssumptionCollectionAlgorithm(algorithm);
     }
     
