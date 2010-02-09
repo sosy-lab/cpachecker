@@ -39,12 +39,19 @@ import cpa.common.interfaces.AbstractWrapperElement;
 public class AssumptionCollectorElement implements AbstractElement, AbstractWrapperElement {
 
   private final AssumptionWithLocation assumption;
+  private final boolean stop;
   private final AbstractElement element;
  
-  public AssumptionCollectorElement(AbstractElement wrappedElement, AssumptionWithLocation f)
+  public AssumptionCollectorElement(AbstractElement wrappedElement, AssumptionWithLocation f, boolean forceStop)
   {
     element = wrappedElement;
     assumption = f;
+    stop = forceStop;
+  }
+  
+  public AssumptionCollectorElement(AbstractElement wrappedElement, AssumptionWithLocation f)
+  {
+    this(wrappedElement, f, false);
   }
   
   /**
@@ -67,6 +74,8 @@ public class AssumptionCollectorElement implements AbstractElement, AbstractWrap
   @Override
   public String toString() {
     StringBuilder builder = new StringBuilder();
+    if (stop)
+      builder.append("<STOP> ");
     builder.append("assume: ");
     if (assumption == null)
       builder.append("(null)");
@@ -100,6 +109,21 @@ public class AssumptionCollectorElement implements AbstractElement, AbstractWrap
     return retrieveWrappedElement(AbstractElementWithLocation.class);
   }
   
-  public static final AssumptionCollectorElement TOP = null;
-  public static final AssumptionCollectorElement BOTTOM = null;
+  public boolean isStop() {
+    return stop;
+  }
+  
+  @Override
+  public boolean equals(Object other) {
+    if (other instanceof AssumptionCollectorElement)
+    {
+      AssumptionCollectorElement otherElement = (AssumptionCollectorElement) other;
+      if (otherElement.stop && stop) return true;
+      if (otherElement.stop != stop) return false;
+      return assumption.equals(otherElement.assumption);
+    } else {
+      return false;
+    }
+  }
+  
 }

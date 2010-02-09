@@ -28,10 +28,18 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
+import symbpredabstraction.interfaces.SymbolicFormula;
 import assumptions.AbstractWrappedElementVisitor;
+import assumptions.Assumption;
 import assumptions.AssumptionReportingElement;
+import assumptions.AssumptionSymbolicFormulaManager;
 import assumptions.AssumptionWithLocation;
+import assumptions.AvoidanceReportingElement;
+import assumptions.ReportingUtils;
 import cfa.objectmodel.CFAEdge;
+
+import common.Pair;
+
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;
@@ -46,13 +54,17 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
 
   private final ConfigurableProgramAnalysis wrappedCPA;
   private final TransferRelation wrappedTransfer;
-  private final AssumptionReportingVisitor reportingVisitor;
+  private final AssumptionAndForceStopReportingVisitor reportingVisitor;
+  private final AssumptionSymbolicFormulaManager manager;
+  private final AbstractElement wrappedBottom;
 
   public AssumptionCollectorTransferRelation(AssumptionCollectorCPA cpa)
   {
     wrappedCPA = cpa.getWrappedCPAs().iterator().next();
     wrappedTransfer = wrappedCPA.getTransferRelation();
-    reportingVisitor = new AssumptionReportingVisitor();
+    wrappedBottom = wrappedCPA.getAbstractDomain().getBottomElement();
+    reportingVisitor = new AssumptionAndForceStopReportingVisitor();
+    manager = cpa.getSymbolicFormulaManager();
   }
 
   @Override
@@ -74,8 +86,19 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
     // Handle all inner-successor, one after the other, and produce
     // a corresponding wrapped successor
     for (AbstractElement wrappedSuccessor : wrappedSuccessors) {
-      AssumptionWithLocation innerAssumption = reportingVisitor.collectAssumptions(wrappedSuccessor);
-      successors.add(new AssumptionCollectorElement(wrappedSuccessor, innerAssumption)); 
+      Pair<AssumptionWithLocation,Boolean> pair = reportingVisitor.collect(wrappedSuccessor);
+      AssumptionWithLocation assumption = pair.getFirst();
+      
+      boolean forceStop = pair.getSecond();
+      if (forceStop) {
+        SymbolicFormula reportedFormula = ReportingUtils.extractReportedFormulas(manager, wrappedElement);
+        AssumptionWithLocation dataAssumption = (new Assumption(reportedFormula,false)).atLocation(cfaEdge.getPredecessor());
+        assumption = assumption.and(dataAssumption);
+      }
+      
+      boolean isBottom = forceStop || wrappedBottom.equals(wrappedSuccessor); 
+
+      successors.add(new AssumptionCollectorElement(wrappedSuccessor, assumption, isBottom));
     }
     return successors;
   }
@@ -87,10 +110,11 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
     return null;
   }
 
-  private static final class AssumptionReportingVisitor
+  private static final class AssumptionAndForceStopReportingVisitor
     extends AbstractWrappedElementVisitor
   {
     private AssumptionWithLocation assumptionResult;
+    private boolean forceStop;
 
     @Override
     public void process(AbstractElement element) {
@@ -103,18 +127,23 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
             assumptionResult = assumptionResult.and(otherInv);
         }
       }
+      if (element instanceof AvoidanceReportingElement) {
+        
+      }
     }
     
-    public synchronized AssumptionWithLocation collectAssumptions(AbstractElement element)
+    public synchronized Pair<AssumptionWithLocation, Boolean> collect(AbstractElement element)
     {
       assumptionResult = null;
+      forceStop = false;
       
       visit(element);
       
-      AssumptionWithLocation result = assumptionResult;
+      Pair<AssumptionWithLocation, Boolean> result = new Pair<AssumptionWithLocation, Boolean>(assumptionResult, forceStop); 
       assumptionResult = null;
+      forceStop = false;
       return result;
     }
   }
-  
+    
 }

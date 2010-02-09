@@ -23,6 +23,7 @@
  */
 package cpa.assumptions.collector;
 
+import assumptions.AssumptionWithLocation;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.JoinOperator;
@@ -34,11 +35,17 @@ import exceptions.CPAException;
  */
 public class AssumptionCollectorDomain implements AbstractDomain {
   
-  public AssumptionCollectorDomain() { }
+  private final AbstractElement top;
+  private final AbstractElement bottom;
+  
+  public AssumptionCollectorDomain(AbstractDomain wrappedDomain) {
+    top = new AssumptionCollectorElement(wrappedDomain.getTopElement(), AssumptionWithLocation.TRUE);
+    bottom = new AssumptionCollectorElement(wrappedDomain.getBottomElement(), AssumptionWithLocation.TRUE);
+  }
   
   @Override
   public AbstractElement getBottomElement() {
-    return AssumptionCollectorElement.BOTTOM;
+    return bottom;
   }
 
   @Override
@@ -51,7 +58,7 @@ public class AssumptionCollectorDomain implements AbstractDomain {
         if (el1 == el2)
           return el1;
         else
-          return AssumptionCollectorElement.TOP;
+          return top;
       }
     };
   }
@@ -63,16 +70,16 @@ public class AssumptionCollectorDomain implements AbstractDomain {
       public boolean satisfiesPartialOrder(AbstractElement el1, AbstractElement el2)
         throws CPAException
       {
-        return (el1 == el2)
-          || (el1 == AssumptionCollectorElement.BOTTOM)
-          || (el2 == AssumptionCollectorElement.TOP);
+        return (el1.equals(el2))
+          || (top.equals(el2))
+          || (bottom.equals(el1));
       }
     };
   }
 
   @Override
   public AbstractElement getTopElement() {
-    return AssumptionCollectorElement.TOP;
+    return top;
   }
   
 }

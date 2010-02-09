@@ -63,7 +63,7 @@ public class AssumptionCollectorCPA implements ConfigurableProgramAnalysis, CPAW
   {
     wrappedCPA = cpa;
     symbolicFormulaManager = MathsatInvariantSymbolicFormulaManager.getInstance();
-    abstractDomain = new AssumptionCollectorDomain();
+    abstractDomain = new AssumptionCollectorDomain(wrappedCPA.getAbstractDomain());
     mergeOperator = new AssumptionCollectorMerge(wrappedCPA);
     stopOperator = StopNeverOperator.getInstance();
     transferRelation = new AssumptionCollectorTransferRelation(this);
