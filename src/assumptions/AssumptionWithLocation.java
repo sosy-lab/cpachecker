@@ -61,18 +61,27 @@ public abstract class AssumptionWithLocation {
   public void dump(Appendable out)
   {
     try {
+      boolean first = true;
       for (Entry<CFANode, Assumption> entry : getAssumptionsIterator()) {
         String nodeId = Integer.toString(entry.getKey().getNodeNumber());
         Assumption inv = entry.getValue();
         SymbolicFormula disInv = inv.getDischargeableFormula();
         SymbolicFormula otherInv = inv.getOtherFormula();
         if (!disInv.isTrue()) {
+          if (first)
+            first = false;
+          else
+            out.append("\n");
           out.append("pc = ").append(nodeId).append("\t =(d)=>  ");
-          out.append(disInv.toString()).append("\n");
+          out.append(disInv.toString());
         }
         if (!otherInv.isTrue()) {
+          if (first)
+            first = false;
+          else
+            out.append("\n");
           out.append("pc = ").append(nodeId).append("\t =====>  ");
-          out.append(otherInv.toString()).append("\n");
+          out.append(otherInv.toString());
         }
       }
     } catch (IOException e) { }
