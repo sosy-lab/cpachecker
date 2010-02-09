@@ -1,5 +1,0 @@
-test/tests/ntdrivers-simple/*.cil.c
-test/tests/ssh-simple/*.cil.c
-test/tests/single/ex2.cil.c
-test/tests/single/loop1.c
-test/tests/single/tempTest.c

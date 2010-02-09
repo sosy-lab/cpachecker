@@ -40,7 +40,7 @@ Running CPAchecker:
 -------------------
 7. Choose a configuration file and a source code file
    Example: test/config/explicitAnalysisInf.properties
-            test/tests/single/loop1.c
+            test/programs/simple/loop1.c
    Check that the configuration file does not contain any non-existent paths 
 
 Running it from Eclipse:
@@ -52,7 +52,7 @@ Running it from Eclipse:
    		ppc-macosx, x86_64-linux, x86-linux, x86-macosx,  x86-win32
 
 Running it from command line:
-8. Execute "test/scripts/simple/cpa.sh -config <CONFIG_FILE> <SOURCE_FILE>"
+8. Execute "scripts/cpa.sh -config <CONFIG_FILE> <SOURCE_FILE>"
    If your Eclipse is not installed to ~/eclipse, /opt/eclipse or ~/Desktop/eclipse,
    you need to set the environment variable ECLIPSE_HOME to the directory where
    your eclipse is installed (the one that contains the plugins directory).

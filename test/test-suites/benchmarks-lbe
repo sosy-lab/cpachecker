@@ -1,5 +1,0 @@
-test/tests/locks/*.c
-test/tests/ntdrivers-simple/*.cil.c
-test/tests/ssh-simple/*.cil.c
-test/tests/single/modulo.cil.c
-test/tests/single/path_duplication.cil.c

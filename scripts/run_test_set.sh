@@ -1,6 +1,6 @@
 #!/bin/sh
 
-BASE_DIR="`dirname \"$0\"`/../../.."
+BASE_DIR="`dirname \"$0\"`/.."
 
 cd "$BASE_DIR"
 
@@ -14,7 +14,7 @@ if [ -z "$2" ]; then
 	exit 1
 fi
 
-SUITE="test/test-suites/$1" 
+SUITE="test/test-sets/$1" 
 
 if [ ! -f "$SUITE" ] ; then
 	echo "Error: file $SUITE does not exist."
@@ -35,4 +35,4 @@ INSTANCES="`cat \"$SUITE\"`"
 
 shift; shift
 
-exec test/scripts/simple/run_tests.py "--config=$CONFIG" "--output=$OUTFILE" "$@" $INSTANCES
+exec scripts/run_tests.py "--config=$CONFIG" "--output=$OUTFILE" "$@" $INSTANCES
