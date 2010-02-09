@@ -26,6 +26,7 @@ package cpa.assumptions.collector;
 import java.util.Collections;
 
 import assumptions.AssumptionSymbolicFormulaManager;
+import assumptions.AssumptionWithLocation;
 import assumptions.MathsatInvariantSymbolicFormulaManager;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cpa.common.defaults.StaticPrecisionAdjustment;
@@ -81,7 +82,8 @@ public class AssumptionCollectorCPA implements ConfigurableProgramAnalysis, CPAW
 
   @Override
   public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
-    return abstractDomain.getTopElement();
+    AbstractElement wrappedInitialElement = wrappedCPA.getInitialElement(node);
+    return new AssumptionCollectorElement(wrappedInitialElement, AssumptionWithLocation.TRUE);
   }
 
   @Override
