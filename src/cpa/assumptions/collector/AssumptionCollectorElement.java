@@ -104,6 +104,11 @@ public class AssumptionCollectorElement implements AbstractElement, AbstractWrap
     }
   }
   
+  public AbstractElement getWrappedElement()
+  {
+    return element;
+  }
+  
   @Override
   public AbstractElementWithLocation retrieveLocationElement() {
     return retrieveWrappedElement(AbstractElementWithLocation.class);

@@ -29,7 +29,6 @@ import assumptions.AssumptionSymbolicFormulaManager;
 import assumptions.MathsatInvariantSymbolicFormulaManager;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cpa.common.defaults.StaticPrecisionAdjustment;
-import cpa.common.defaults.StopNeverOperator;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.CPAWrapper;
@@ -65,7 +64,7 @@ public class AssumptionCollectorCPA implements ConfigurableProgramAnalysis, CPAW
     symbolicFormulaManager = MathsatInvariantSymbolicFormulaManager.getInstance();
     abstractDomain = new AssumptionCollectorDomain(wrappedCPA.getAbstractDomain());
     mergeOperator = new AssumptionCollectorMerge(wrappedCPA);
-    stopOperator = StopNeverOperator.getInstance();
+    stopOperator = new AssumptionCollectorStop(wrappedCPA);
     transferRelation = new AssumptionCollectorTransferRelation(this);
     precisionAdjustment = StaticPrecisionAdjustment.getInstance();
   }
@@ -87,7 +86,7 @@ public class AssumptionCollectorCPA implements ConfigurableProgramAnalysis, CPAW
 
   @Override
   public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
-    return null;
+    return wrappedCPA.getInitialPrecision(pNode);
   }
 
   @Override
