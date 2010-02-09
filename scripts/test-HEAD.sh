@@ -6,7 +6,7 @@ if [ "`hostname`" != "cs-sel-02" ] ; then
 fi
 
 cd `dirname $0`
-rep_dir=/localhome/dbeyer/SVN-software/cpachecker
+rep_dir=/repos/RC-software/cpachecker
 rev=`svnlook youngest $rep_dir`
 [ -d results.lbe.r$rev ] && exit 0
 if ps aux | grep regression-tester.sh | grep -q cpachecker ; then

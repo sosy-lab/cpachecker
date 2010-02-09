@@ -36,3 +36,4 @@ INSTANCES="`cat \"$SUITE\"`"
 shift; shift
 
 exec scripts/run_tests.py "--config=$CONFIG" "--output=$OUTFILE" "$@" $INSTANCES
+
