@@ -23,6 +23,9 @@
  */
 package cpa.common.algorithm;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
 import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
@@ -114,8 +117,29 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
       addAssumptionsForWaitlist(resultAssumption, reached.getWaitlist());
     }
     
-    CPAchecker.logger.log(Level.ALL, "THE SYSTEM IS SAFE UNDER THE FOLLOWING ASSUMPTION:");
-    resultAssumption.dump(System.out);
+    Appendable output;
+    if (CPAchecker.config.getBooleanValue("assumptions.export")) {
+      String outfilePath = CPAchecker.config.getProperty("output.path");
+      String outfileName = CPAchecker.config.getProperty("assumptions.file", "assumptions.txt");
+      //if no filename is given, use default value
+      
+      File assumptionsFile = new File(outfilePath, outfileName);
+      try {
+        output = new PrintWriter(assumptionsFile);
+      } catch (Exception e) {
+        CPAchecker.logger.log(Level.WARNING,
+            "Could not write assumptions to file ", assumptionsFile.getAbsolutePath(),
+            ", (", e.getMessage(), ")");
+        output = null;
+      }
+    } else {
+      output = System.out; 
+    }
+    if (output != null) {
+      resultAssumption.dump(output);
+      if (output != System.out)
+        ((PrintWriter)output).close();
+    }
   }
 
   /**
