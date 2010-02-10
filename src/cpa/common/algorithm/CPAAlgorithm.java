@@ -56,7 +56,10 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     private long mergeTime = 0;
     private long stopTime = 0;
    
+    private int countIterations = 0;
+    private int countWaitlistSize = 0;
     private int countSuccessors = 0;
+    private int maxSuccessors = 0;
     private int countMerge = 0;
     private int countStop = 0;
     
@@ -68,16 +71,19 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     @Override
     public void printStatistics(PrintWriter out, Result pResult,
         ReachedElements pReached) {
-      out.println("Number of computed successors: " + countSuccessors);
-      out.println("Number of times merged:        " + countMerge);
-      out.println("Number of times stopped:       " + countStop);
+      out.println("Number of iterations:           " + countIterations);
+      out.println("Average size of waitlist:       " + countWaitlistSize/countIterations);
+      out.println("Number of computed successors:  " + countSuccessors);
+      out.println("Max successors for one element: " + maxSuccessors);
+      out.println("Number of times merged:         " + countMerge);
+      out.println("Number of times stopped:        " + countStop);
       out.println();
-      out.println("Total time for CPA algorithm:  " + toTime(totalTime));
-      out.println("Time for choose from waitlist: " + toTime(chooseTime));
-      out.println("Time for precision adjustment: " + toTime(precisionTime));
-      out.println("Time for transfer relation:    " + toTime(transferTime));
-      out.println("Time for merge operator:       " + toTime(mergeTime));
-      out.println("Time for stop operator:        " + toTime(stopTime));
+      out.println("Total time for CPA algorithm:   " + toTime(totalTime));
+      out.println("Time for choose from waitlist:  " + toTime(chooseTime));
+      out.println("Time for precision adjustment:  " + toTime(precisionTime));
+      out.println("Time for transfer relation:     " + toTime(transferTime));
+      out.println("Time for merge operator:        " + toTime(mergeTime));
+      out.println("Time for stop operator:         " + toTime(stopTime));
     }
     
     private String toTime(long timeMillis) {
@@ -102,9 +108,12 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     PrecisionAdjustment precisionAdjustment = cpa.getPrecisionAdjustment();
 
     while (reachedElements.hasWaitingElement()) {
+      stats.countIterations++;
       
       // Pick next element using strategy
       // BFS, DFS or top sort according to the configuration
+      stats.countWaitlistSize += reachedElements.getWaitlistSize();
+      
       long start = System.currentTimeMillis();
       Pair<AbstractElement,Precision> e = reachedElements.popFromWaitlist();
       long end = System.currentTimeMillis();
@@ -130,12 +139,14 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       stats.transferTime += (end - start);
       // TODO When we have a nice way to mark the analysis result as incomplete, we could continue analysis on a CPATransferException with the next element from waitlist.
       
-      CPAchecker.logger.log(Level.FINER, "Current element has", successors.size(), "successors");
+      int numSuccessors = successors.size();
+      CPAchecker.logger.log(Level.FINER, "Current element has", numSuccessors, "successors");
+      stats.countSuccessors += numSuccessors;
+      stats.maxSuccessors = Math.max(numSuccessors, stats.maxSuccessors);
       
       for (AbstractElement successor : successors) {
         CPAchecker.logger.log(Level.FINER, "Considering successor of current element");
         CPAchecker.logger.log(Level.ALL, "Successor of", element, "\nis", successor);
-        stats.countSuccessors++;
         
         Collection<AbstractElement> reached = reachedElements.getReached(successor);
 

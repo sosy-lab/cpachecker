@@ -237,6 +237,10 @@ public class ReachedElements implements Iterable<AbstractElement> {
     return getPrecisionAsPair.apply(result);
   }
   
+  public int getWaitlistSize() {
+    return waitlist.size();
+  }
+  
   /**
    * Returns the precision for an element.
    * @param element The element to look for.
