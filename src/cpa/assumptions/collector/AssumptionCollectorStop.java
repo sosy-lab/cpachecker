@@ -23,8 +23,10 @@
  */
 package cpa.assumptions.collector;
 
-import java.util.ArrayList;
 import java.util.Collection;
+
+import com.google.common.base.Function;
+import com.google.common.collect.Collections2;
 
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
@@ -47,6 +49,18 @@ public class AssumptionCollectorStop implements StopOperator {
     wrappedStop = wrappedCPA.getStopOperator();
   }
   
+  /**
+   * Function used by Collections.transform to map a collection of elements
+   * to the collection of wrapped elements
+   */
+  private static final Function<AbstractElement, AbstractElement> UNWRAP_FUNCTION =
+    new Function<AbstractElement, AbstractElement>() {
+      @Override
+      public AbstractElement apply(AbstractElement element) {
+        return ((AssumptionCollectorElement)element).getWrappedElement();
+      }
+    };
+  
   @Override
   public boolean stop(AbstractElement element,
       Collection<AbstractElement> reached, Precision precision)
@@ -59,10 +73,7 @@ public class AssumptionCollectorStop implements StopOperator {
     if (assumptionElement.isStop())
       return false;
     
-    ArrayList<AbstractElement> wrappedReached = new ArrayList<AbstractElement>(reached.size());
-    for (AbstractElement reachedElement : reached) {
-      wrappedReached.add(((AssumptionCollectorElement)reachedElement).getWrappedElement());
-    }
+    Collection<AbstractElement> wrappedReached = Collections2.transform(reached, UNWRAP_FUNCTION);
     
     return wrappedStop.stop(assumptionElement.getWrappedElement(), wrappedReached, precision);
   }
