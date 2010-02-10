@@ -113,14 +113,14 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
         // the reached set the successor (elem1) should have only 1 element in 
         // its pfParents list
         CFANode elem1Parent = Iterables.getOnlyElement(elem1.getPfParents());
-        assert !elem2.getPfParents().contains(elem1Parent);
-        
-        ImmutableSet.Builder<CFANode> pfParents = ImmutableSet.builder();
-        pfParents.addAll(elem2.getPfParents());
-        pfParents.add(elem1Parent);
+        ImmutableSet<CFANode> pfParents = elem2.getPfParents();
+        if (!pfParents.contains(elem1Parent)) {
+          ImmutableSet.Builder<CFANode> builder = ImmutableSet.builder();
+          pfParents = builder.addAll(pfParents).add(elem1Parent).build();
+        }
                 
         merged = new SymbPredAbsAbstractElement(elem1.getAbstractionLocation(), 
-            pathFormula, pfParents.build(), elem1.getInitAbstractionFormula(), elem1.getAbstraction(), 
+            pathFormula, pfParents, elem1.getInitAbstractionFormula(), elem1.getAbstraction(), 
             elem1.getAbstractionPathList(),
             Math.max(elem1.getSizeSinceAbstraction(), elem2.getSizeSinceAbstraction()));
 
