@@ -260,6 +260,34 @@ public abstract class CommonFormulaManager implements FormulaManager {
       return cache.get(af);
   }
 
+  /**
+   * Creates a new path formula representing an OR of the two arguments. Differently
+   * from {@link SymbolicFormulaManager#makeOr(SymbolicFormula, SymbolicFormula)},
+   * it also merges the SSA maps and creates the necessary adjustments to the
+   * formulas if the two SSA maps contain different values for the same variables. 
+   * 
+   * @param pF1 a PathFormula
+   * @param pF2 a PathFormula
+   * @return (pF1 | pF2)
+   */
+  @Override
+  public PathFormula makeOr(PathFormula pF1, PathFormula pF2) {
+    SymbolicFormula formula1 = pF1.getSymbolicFormula();
+    SymbolicFormula formula2 = pF2.getSymbolicFormula();
+    SSAMap ssa1 = pF1.getSsa();
+    SSAMap ssa2 = pF2.getSsa();
+    
+    Pair<Pair<SymbolicFormula, SymbolicFormula>,SSAMap> pm = smgr.mergeSSAMaps(ssa2, ssa1);
+    
+    SymbolicFormula newFormula1 = smgr.makeAnd(formula1, pm.getFirst().getSecond());
+    SymbolicFormula newFormula2 = smgr.makeAnd(formula2, pm.getFirst().getFirst());
+    
+    SymbolicFormula newFormula = smgr.makeOr(newFormula1, newFormula2);
+    SSAMap newSsa = pm.getSecond();
+
+    return new PathFormula(newFormula, newSsa);
+  }
+  
   @Override
   public void dumpFormulasToFile(Iterable<SymbolicFormula> f, String filename) {
     if (filename != null) {

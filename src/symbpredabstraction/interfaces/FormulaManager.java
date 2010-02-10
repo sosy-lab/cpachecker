@@ -23,6 +23,7 @@
  */
 package symbpredabstraction.interfaces;
 
+import symbpredabstraction.PathFormula;
 import common.Pair;
 
 public interface FormulaManager {
@@ -33,7 +34,19 @@ public interface FormulaManager {
    * particular "SSA step" (see SymbolicFormulaManager.instantiate()).
    */
   public SymbolicFormula toConcrete(AbstractFormula af);
-  
+
+  /**
+   * Creates a new path formula representing an OR of the two arguments. Differently
+   * from {@link SymbolicFormulaManager#makeOr(SymbolicFormula, SymbolicFormula)},
+   * it also merges the SSA maps and creates the necessary adjustments to the
+   * formulas if the two SSA maps contain different values for the same variables. 
+   * 
+   * @param pF1 a PathFormula
+   * @param pF2 a PathFormula
+   * @return (pF1 | pF2)
+   */
+  public PathFormula makeOr(PathFormula pF1, PathFormula pF2);
+
   /**
    * creates a Predicate from the Boolean symbolic variable (var) and
    * the atom that defines it

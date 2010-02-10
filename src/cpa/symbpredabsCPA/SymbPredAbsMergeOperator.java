@@ -26,14 +26,11 @@ package cpa.symbpredabsCPA;
 import java.util.logging.Level;
 
 import symbpredabstraction.PathFormula;
-import symbpredabstraction.SSAMap;
-import symbpredabstraction.interfaces.SymbolicFormula;
-import symbpredabstraction.interfaces.SymbolicFormulaManager;
+import symbpredabstraction.interfaces.FormulaManager;
 import cfa.objectmodel.CFANode;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import common.Pair;
 
 import cpa.common.CPAchecker;
 import cpa.common.interfaces.AbstractElement;
@@ -51,12 +48,12 @@ import cpa.common.interfaces.Precision;
  */
 public class SymbPredAbsMergeOperator implements MergeOperator {
 
-  private final SymbolicFormulaManager symbolicFormulaManager;
+  private final FormulaManager formulaManager;
 
-  public long totalMergeTime = 0;
+  long totalMergeTime = 0;
   
   public SymbPredAbsMergeOperator(SymbPredAbsCPA pCpa) {
-    symbolicFormulaManager = pCpa.getSymbolicFormulaManager();
+    formulaManager = pCpa.getFormulaManager();
   }
 
   public AbstractElement merge(AbstractElement element1,
@@ -93,19 +90,8 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
         CPAchecker.logger.log(Level.FINEST, "Merging two non-abstraction nodes with parents",
                 elem1.getPfParents(), "and", elem2.getPfParents(), ".");
 
-        SymbolicFormula formula1 = elem1.getPathFormula().getSymbolicFormula();
-        SymbolicFormula formula2 = elem2.getPathFormula().getSymbolicFormula();
-        SSAMap ssa1 = elem1.getPathFormula().getSsa();
-        SSAMap ssa2 = elem2.getPathFormula().getSsa();
-        Pair<Pair<SymbolicFormula, SymbolicFormula>,SSAMap> pm = symbolicFormulaManager.mergeSSAMaps(ssa2, ssa1);
-        SymbolicFormula old = symbolicFormulaManager.makeAnd(
-            formula2, pm.getFirst().getFirst());
-        SymbolicFormula newFormula = symbolicFormulaManager.makeAnd(formula1, pm.getFirst().getSecond());
-        newFormula = symbolicFormulaManager.makeOr(old, newFormula);
-        ssa1 = pm.getSecond();
-
-        PathFormula pathFormula = new PathFormula(newFormula, ssa1);
-        
+        PathFormula pathFormula = formulaManager.makeOr(elem1.getPathFormula(), elem2.getPathFormula());
+       
         CPAchecker.logger.log(Level.ALL, "New path formula is", pathFormula);
 
         // now we update the pfParents
