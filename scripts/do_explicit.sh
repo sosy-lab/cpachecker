@@ -8,5 +8,5 @@ SCRIPT="`dirname \"$0\"`/run_test_suite.sh"
 
 # run the tests
 for cfg in $configurations; do 
-	"$SCRIPT" benchmarks-explicit "$cfg.properties" --timeout=1200 --memlimit=1000000
+	"$SCRIPT" benchmarks-explicit.set "$cfg.properties" --timeout=1200 --memlimit=1000000
 done
