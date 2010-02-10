@@ -63,9 +63,17 @@ public class AssumptionCollectorPrecisionAdjustment
   public Pair<AbstractElement, Precision> prec(AbstractElement element,
       Precision precision, Collection<Pair<AbstractElement, Precision>> reachedElements)
   {
-    AbstractElement unwrappedElement = ((AssumptionCollectorElement)element).getWrappedElement();
+    AssumptionCollectorElement assumptionElement = (AssumptionCollectorElement)element;
+    AbstractElement unwrappedElement = assumptionElement.getWrappedElement();
     Collection<Pair<AbstractElement, Precision>> unwrappedReached = Collections2.transform(reachedElements, UNWRAP_WITH_PRECISION_FUNCTION);
-    return wrappedPrecisionAdjustment.prec(unwrappedElement, precision, unwrappedReached);
+    Pair<AbstractElement, Precision> unwrappedResult = wrappedPrecisionAdjustment.prec(unwrappedElement, precision, unwrappedReached);
+    
+    AbstractElement resultElement;
+    if (unwrappedElement != unwrappedResult.getFirst())
+      resultElement = new AssumptionCollectorElement(unwrappedElement, assumptionElement.getCollectedAssumptions());
+    else
+      resultElement = element;
+    return new Pair<AbstractElement, Precision>(resultElement, unwrappedResult.getSecond());
   }
 
 }
