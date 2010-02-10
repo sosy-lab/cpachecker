@@ -54,8 +54,10 @@ public class AssumptionCollectorStop implements StopOperator {
   {
     AssumptionCollectorElement assumptionElement = (AssumptionCollectorElement) element;
     
+    // if stop, then do not stop to make sure the state is
+    // added to the reached set
     if (assumptionElement.isStop())
-      return true;
+      return false;
     
     ArrayList<AbstractElement> wrappedReached = new ArrayList<AbstractElement>(reached.size());
     for (AbstractElement reachedElement : reached) {
@@ -70,9 +72,11 @@ public class AssumptionCollectorStop implements StopOperator {
       throws CPAException
   {
     AssumptionCollectorElement assumptionElement = (AssumptionCollectorElement) element;
-    
+
+    // if stop, then do not stop to make sure the state is
+    // added to the reached set
     if (assumptionElement.isStop())
-      return true;
+      return false;
     
     AssumptionCollectorElement reachedAssumptionElement = (AssumptionCollectorElement) reachedElement;
     return wrappedStop.stop(assumptionElement.getWrappedElement(), reachedAssumptionElement.getWrappedElement());

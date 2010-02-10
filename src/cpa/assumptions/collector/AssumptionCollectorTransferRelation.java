@@ -73,6 +73,11 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
       throws CPATransferException {
     
     AssumptionCollectorElement element = (AssumptionCollectorElement)pElement;
+    
+    // If we must top, then let's stop by returning an empty set
+    if (element.isStop())
+      return Collections.emptySet();
+    
     AbstractElement wrappedElement = element.getWrappedElements().iterator().next();
     
     // Compute the inner-successor

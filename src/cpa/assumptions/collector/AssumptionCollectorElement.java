@@ -126,9 +126,8 @@ public class AssumptionCollectorElement implements AbstractElement, AbstractWrap
     if (other instanceof AssumptionCollectorElement)
     {
       AssumptionCollectorElement otherElement = (AssumptionCollectorElement) other;
-      if (otherElement.stop && stop) return true;
-      if (otherElement.stop != stop) return false;
-      return assumption.equals(otherElement.assumption);
+      return (otherElement.stop == stop) 
+          && assumption.equals(otherElement.assumption);
     } else {
       return false;
     }
