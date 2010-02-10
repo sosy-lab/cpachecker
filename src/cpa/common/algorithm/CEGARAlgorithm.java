@@ -23,6 +23,7 @@
  */
 package cpa.common.algorithm;
 
+import java.io.PrintWriter;
 import java.lang.reflect.Constructor;
 import java.util.Collection;
 import java.util.concurrent.ExecutorService;
@@ -40,11 +41,41 @@ import exceptions.TransferTimeOutException;
 
 public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
+  private static class CEGARStatistics implements Statistics {
+    
+    private long totalTime = 0;
+    private long refinementTime = 0;
+    private long gcTime = 0;
+    
+    private int countRefinements = 0;
+    private int countSuccessfulRefinements = 0;
+    
+    @Override
+    public String getName() {
+      return "CEGAR algorithm";
+    }
+    
+    @Override
+    public void printStatistics(PrintWriter out, Result pResult,
+        ReachedElements pReached) {
+      
+      out.println("Number of refinements:          " + countRefinements + " (" + countSuccessfulRefinements + " successful)");
+      out.println("");
+      out.println("Total time for CEGAR algorithm: " + toTime(totalTime));
+      out.println("Time for refinements:           " + toTime(refinementTime));
+      out.println("Average time for refinement:    " + toTime(refinementTime/countRefinements));
+      out.println("Time for garbage collection:    " + toTime(gcTime));      
+    }
+    
+    private String toTime(long timeMillis) {
+      return String.format("% 5d.%03ds", timeMillis/1000, timeMillis%1000);
+    }
+  }
+  
+  private final CEGARStatistics stats = new CEGARStatistics();
+  
   private static final int GC_PERIOD = 100;
   private int gcCounter = 0;
-
-  private static long modifySetsTime=0;
-  private static long refinementTime = 0;
 
   private final Algorithm algorithm;
   private final Refiner mRefiner;
@@ -88,7 +119,8 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
   @Override
   public void run(ReachedElements reached, boolean stopAfterError) throws CPAException {
-
+    long start = System.currentTimeMillis();
+    
     boolean stopAnalysis = false;
     while (!stopAnalysis) {
       // run algorithm
@@ -104,26 +136,21 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
       if (reached.getLastElement().isError()) {
 
         CPAchecker.logger.log(Level.FINER, "Error found, performing CEGAR");
-
-        long startRef = System.currentTimeMillis();
-
+        stats.countRefinements++;
+        
+        long startRefinement = System.currentTimeMillis();
         boolean refinementResult = mRefiner.performRefinement(reached);
-        long endRef = System.currentTimeMillis();
-        refinementTime = refinementTime + (endRef  - startRef);
+        stats.refinementTime += (System.currentTimeMillis() - startRefinement);
 
         if (refinementResult) {
           // successful refinement
 
           CPAchecker.logger.log(Level.FINER, "Refinement successful");
-
-          long start = System.currentTimeMillis();
+          stats.countSuccessfulRefinements++;
 
           if (CPAchecker.config.getBooleanValue("cegar.restartOnRefinement")) {
             // TODO
           }
-
-          long end = System.currentTimeMillis();
-          modifySetsTime = modifySetsTime + (end - start);
 
           runGC();
           
@@ -145,13 +172,16 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
       }
     }
     executor.shutdownNow();
-    return;
+    
+    stats.totalTime += (System.currentTimeMillis() - start);
   }
 
   private void runGC() {
     if ((++gcCounter % GC_PERIOD) == 0) {
+      long start = System.currentTimeMillis();
       System.gc();
       gcCounter = 0;
+      stats.gcTime += (System.currentTimeMillis() - start);
     }
   }
 
@@ -162,6 +192,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(stats);
     if (algorithm instanceof StatisticsProvider) {
       ((StatisticsProvider)algorithm).collectStatistics(pStatsCollection);
     }
