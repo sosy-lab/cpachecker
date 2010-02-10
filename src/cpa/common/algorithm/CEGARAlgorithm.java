@@ -32,6 +32,7 @@ import java.util.logging.Level;
 
 import cpa.common.CPAchecker;
 import cpa.common.ReachedElements;
+import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Refiner;
 import cpa.common.interfaces.Statistics;
@@ -135,8 +136,10 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
         System.out.println("Timed out @ " + toE.getCfaEdge());
       }
 
+      AbstractElement lastElement = reached.getLastElement();
+      
       // if the element is an error element
-      if (reached.getLastElement().isError()) {
+      if (lastElement != null && lastElement.isError()) {
 
         CPAchecker.logger.log(Level.FINER, "Error found, performing CEGAR");
         stats.countRefinements++;
