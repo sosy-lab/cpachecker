@@ -60,11 +60,14 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
         ReachedElements pReached) {
       
       out.println("Number of refinements:          " + countRefinements + " (" + countSuccessfulRefinements + " successful)");
-      out.println("");
-      out.println("Total time for CEGAR algorithm: " + toTime(totalTime));
-      out.println("Time for refinements:           " + toTime(refinementTime));
-      out.println("Average time for refinement:    " + toTime(refinementTime/countRefinements));
-      out.println("Time for garbage collection:    " + toTime(gcTime));      
+      
+      if (countRefinements > 0) {
+        out.println("");
+        out.println("Total time for CEGAR algorithm: " + toTime(totalTime));
+        out.println("Time for refinements:           " + toTime(refinementTime));
+        out.println("Average time for refinement:    " + toTime(refinementTime/countRefinements));
+        out.println("Time for garbage collection:    " + toTime(gcTime));
+      }
     }
     
     private String toTime(long timeMillis) {
