@@ -6,6 +6,9 @@ Requirements for executing CPAchecker:
    --dosimplify --printCilAsIs --save-temps --domakeCFG
    Possibly necessary flags:
    --dosimpleMem
+   Comments:
+   --save-temps saves files to the current directory, a different directory can 
+   be specified by using --save-temps=<DIRECTORY>
 
 Building CPAchecker:
 --------------------
@@ -59,8 +62,8 @@ Running it from command line:
 
 Running test cases:
 -------------------
-9.  Install ant and ant-junit.jar (ob Debian/Ubuntu you need the package ant-optional).
-10. Set the environment variable ECLIPSE_HOME as described unter "building with Ant"
+9.  Install ant and ant-junit.jar (on Debian/Ubuntu you need the package ant-optional).
+10. Set the environment variable ECLIPSE_HOME as described under "building with Ant"
 11. Run "ant tests" from the project root directory. The output (including the test
     results) will be in test/output/.
 
