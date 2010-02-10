@@ -21,16 +21,14 @@
  *  CPAchecker web page:
  *    http://www.cs.sfu.ca/~dbeyer/CPAchecker/
  */
-/**
- * 
- */
 package compositeCPA;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Collections2;
 import common.Pair;
 
 import cpa.common.interfaces.AbstractElement;
@@ -49,6 +47,22 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
     this.precisionAdjustments = precisionAdjustments;
   }
   
+  private static class ProjectionFunction
+    implements Function<Pair<AbstractElement, Precision>, Pair<AbstractElement, Precision>>
+  {
+    private final int dimension;
+    
+    public ProjectionFunction(int d) {
+      dimension = d;
+    }
+
+    @Override
+    public Pair<AbstractElement, Precision> apply(Pair<AbstractElement, Precision> entry) {
+      return new Pair<AbstractElement,Precision>(((CompositeElement)entry.getFirst()).get(dimension),
+          ((CompositePrecision)entry.getSecond()).get(dimension));
+    }
+  }
+  
   /* (non-Javadoc)
    * @see cpa.common.interfaces.PrecisionAdjustment#prec(cpa.common.interfaces.AbstractElement, cpa.common.interfaces.Precision, java.util.Collection)
    */
@@ -64,16 +78,12 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
     List<Precision> outPrecisions = new ArrayList<Precision>();
     
     for (int i = 0; i < dim; ++i) {
-      HashSet<Pair<AbstractElement,Precision>> slice = new HashSet<Pair<AbstractElement,Precision>>();
-      for (Pair<AbstractElement, Precision> entry : pElements) {
-        slice.add(new Pair<AbstractElement,Precision>(((CompositeElement)entry.getFirst()).get(i),
-            ((CompositePrecision)entry.getSecond()).get(i)));
-      }
+      Collection<Pair<AbstractElement,Precision>> slice = Collections2.transform(pElements, new ProjectionFunction(i));
       PrecisionAdjustment precisionAdjustment = precisionAdjustments.get(i); 
       Pair<AbstractElement,Precision> out = precisionAdjustment.prec(comp.get(i), prec.get(i), slice);
       outElements.add(out.getFirst());
       outPrecisions.add(out.getSecond());
-    }
+    }      
     
     // TODO for now we just take the input call stack, that may be wrong, but how to construct 
     // a proper one in case this _is_ wrong?
