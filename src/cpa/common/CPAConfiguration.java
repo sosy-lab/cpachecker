@@ -51,10 +51,10 @@ public class CPAConfiguration extends Properties {
   private String getDefaultConfigFileName() {
     // TODO use resources for this?
     URL binDir = getClass().getProtectionDomain().getCodeSource().getLocation();
-    String binDirString = binDir.getPath();
-    int index = binDirString.lastIndexOf(File.separatorChar);
-    binDirString = binDirString.substring(0, index);
-    return binDirString + ".." + File.separatorChar + "default.properties";
+    
+    File defaultFile = new File("..", "default.properties");
+    defaultFile = new File(binDir.getPath(), defaultFile.getPath());
+    return defaultFile.getPath();
   }
 
   /**

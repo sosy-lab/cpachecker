@@ -130,11 +130,11 @@ public class CPAMain {
         if (argsIt.hasNext()) {
           return argsIt.next();
         } else {
-          throw new InvalidCmdlineArgumentException("-config argument missing!");
+          throw new InvalidCmdlineArgumentException("Argument to -config parameter missing!");
         }
       }
     }
-    return null;
+    throw new InvalidCmdlineArgumentException("No -config parameter specified!");
   }
 
   /**
