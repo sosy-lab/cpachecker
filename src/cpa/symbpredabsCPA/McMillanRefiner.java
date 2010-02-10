@@ -131,7 +131,7 @@ public class McMillanRefiner extends AbstractARTBasedRefiner {
     ARTElement root = null;
     
     // those elements where predicates have been added
-    Collection<ARTElement> strengthened = new ArrayList<ARTElement>();
+//    Collection<ARTElement> strengthened = new ArrayList<ARTElement>();
     
     boolean foundInterpolant = false;
     for (Pair<ARTElement,CFAEdge> artPair : pArtPath) {
@@ -184,12 +184,20 @@ public class McMillanRefiner extends AbstractARTBasedRefiner {
       
       if (newPred) {
         e.setAbstraction(abs);
-        strengthened.add(ae);
+        pReached.removeCoverage(ae);
+//        strengthened.add(ae);
+        
+        if (pReached.checkForCoveredBy(ae)) {
+          // this element is now covered by another element
+          // the whole subtree has been removed
+          
+          return;
+        }
       }
     }
     assert root != null : "Infeasible path without interpolant false at some time cannot exist";
     
-    pReached.removeCoverage(strengthened);
+//    pReached.removeCoverage(strengthened);
     pReached.replaceWithBottom(root);
   }
 }

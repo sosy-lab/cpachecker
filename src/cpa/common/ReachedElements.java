@@ -250,6 +250,10 @@ public class ReachedElements implements Iterable<AbstractElement> {
     return reached.get(element);
   }
   
+  public boolean contains(AbstractElement element) {
+    return reached.containsKey(element);
+  }
+  
   public int size() {
     return reached.size();
   }

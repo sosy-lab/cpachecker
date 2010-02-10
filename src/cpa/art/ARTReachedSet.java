@@ -10,7 +10,10 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 
 import cpa.common.ReachedElements;
+import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.Precision;
+import cpa.common.interfaces.StopOperator;
+import exceptions.CPAException;
 
 /**
  * This class is a modifiable live view of a reached set, which shows the ART
@@ -82,22 +85,35 @@ public class ARTReachedSet {
         toUnreach.add(ae);
       }
     }
+    mReached.removeAll(toUnreach);
 
-    // collect all elements to re-add to the waitlist (the parents of the
-    // removed elements, if they are not removed themselves)
+    Set<ARTElement> toWaitlist = removeSet(toUnreach);
+
+    return toWaitlist;
+  }
+
+  /**
+   * Remove a set of elements from the ART. There are no sanity checks.
+   * 
+   * The result will be a set of elements that need to be added to the waitlist
+   * to re-discover the removed elements. These are the parents of the removed
+   * elements which are not removed themselves.
+   * 
+   * @param elements the elements to remove
+   * @return the elements to re-add to the waitlist
+   */
+  private static Set<ARTElement> removeSet(Set<ARTElement> elements) {
     Set<ARTElement> toWaitlist = new HashSet<ARTElement>();
-    for (ARTElement ae : toUnreach) {
+    for (ARTElement ae : elements) {
 
       for (ARTElement parent : ae.getParents()) {
-        if (!toUnreach.contains(parent)) {
+        if (!elements.contains(parent)) {
           toWaitlist.add(parent);
         }
       }
       
       ae.removeFromART();
     }
-
-    mReached.removeAll(toUnreach);
     return toWaitlist;
   }
   
@@ -167,5 +183,71 @@ public class ARTReachedSet {
         ae.removeFromART();
       }
     }
+  }
+  
+  public void removeCoverage(ARTElement element) {
+    for (ARTElement ae : ImmutableSet.copyOf(mCpa.getCovered())) {
+      if (element.equals(ae.getCoveredBy())) {
+        
+        for (ARTElement parent : ae.getParents()) {
+          mReached.reAddToWaitlist(parent);
+        }
+        ae.removeFromART();
+      }
+    }
+  }
+  
+  /**
+   * Check if an element is covered by another element in the reached set. The
+   * element has to be in the reached set currently, so it was not covered when
+   * it was added. Children of the given element are not considered for the
+   * coverage check.
+   * 
+   * If this method returns true, it already has done all the necessary
+   * modifications to the reached set and the ART to reflect the new situation.
+   * Both of them then look as if the element would have been covered at the time
+   * it was produced by the transfer relation.
+   * 
+   * @param element
+   * @return
+   * @throws CPAException 
+   */
+  public boolean checkForCoveredBy(ARTElement element) throws CPAException {
+    Preconditions.checkNotNull(element);
+    Preconditions.checkArgument(mReached.contains(element));
+    assert !element.isCovered() : "element in reached set but covered";
+    
+    // get the reached set and remove the element itself and all its children
+    Set<AbstractElement> localReached = new HashSet<AbstractElement>(mReached.getReached(element));
+    Set<ARTElement> subtree = element.getSubtree();
+    localReached.removeAll(subtree);
+        
+    StopOperator stopOp = mCpa.getStopOperator();
+    boolean stop = stopOp.stop(element, localReached, mReached.getPrecision(element));
+    
+    if (stop) {
+      // remove subtree from ART, but not the element itself
+      Set<ARTElement> toUnreach = new HashSet<ARTElement>(subtree);
+      toUnreach.remove(element);
+      
+      // collect all elements covered by the subtree
+      for (ARTElement ae : mCpa.getCovered()) {
+        if (toUnreach.contains(ae.getCoveredBy())) {
+          toUnreach.add(ae);
+        }
+      }
+      mReached.removeAll(toUnreach);
+      mReached.remove(element);
+      
+      Set<ARTElement> toWaitlist = removeSet(toUnreach);
+      // do not add the element itself, because it is covered
+      toWaitlist.remove(element);
+      
+      for (ARTElement ae : toWaitlist) {
+        mReached.reAddToWaitlist(ae);
+      }
+    }
+    
+    return stop;
   }
 }
