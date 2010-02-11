@@ -121,20 +121,21 @@ public class CPAchecker {
     @SuppressWarnings("deprecation")
     @Override
     public void run() {
-      if (mResult == null) {
-        mResult = Result.UNKNOWN;
-      }
-      
       if (mainThread.isAlive()) {
+        // probably the user pressed Ctrl+C
         requireStopAsap = true;
-        logger.log(Level.ALL, "Waiting 2s for main thread to stop...");
+        logger.log(Level.INFO, "Stop signal received, waiting 2s for analysis to stop cleanly...");
         try {
           mainThread.join(2000);
         } catch (InterruptedException e) {}
         if (mainThread.isAlive()) {
-          logger.log(Level.ALL, "Forcing main thread to stop.");
+          logger.log(Level.WARNING, "Analysis did not stop fast enough, forcing it. This might prevent the statistics from being generated.");
           mainThread.stop();
         }
+      }
+
+      if (mResult == null) {
+        mResult = Result.UNKNOWN;
       }
       
       logger.flush();
