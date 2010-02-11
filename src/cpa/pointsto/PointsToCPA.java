@@ -51,7 +51,7 @@ import exceptions.CPAException;
  */
 public class PointsToCPA implements ConfigurableProgramAnalysis {
 
-  private final AbstractDomain abstractDomain;
+  private final PointsToDomain abstractDomain;
   private final TransferRelation transferRelation;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;

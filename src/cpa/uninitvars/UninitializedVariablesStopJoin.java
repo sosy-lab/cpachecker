@@ -26,7 +26,6 @@ package cpa.uninitvars;
 import java.util.Collection;
 import java.util.Iterator;
 
-import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.JoinOperator;
 import cpa.common.interfaces.Precision;
@@ -38,7 +37,7 @@ import exceptions.CPAException;
  */
 public class UninitializedVariablesStopJoin implements StopOperator {
 
- private final AbstractDomain domain;
+ private final UninitializedVariablesDomain domain;
   
   public UninitializedVariablesStopJoin(UninitializedVariablesDomain domain) {
     this.domain = domain;
