@@ -25,7 +25,7 @@ package compositeCPA;
 
 import java.util.List;
 
-import compositeCPA.CompositeElement;
+import com.google.common.collect.ImmutableList;
 
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.PartialOrder;
@@ -33,9 +33,9 @@ import exceptions.CPAException;
 
 public class CompositePartialOrder implements PartialOrder
 {
-    private List<PartialOrder> partialOrders;
+    private final ImmutableList<PartialOrder> partialOrders;
 
-    public CompositePartialOrder (List<PartialOrder> partialOrders)
+    public CompositePartialOrder(ImmutableList<PartialOrder> partialOrders)
     {
         this.partialOrders = partialOrders;
     }

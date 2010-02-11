@@ -28,12 +28,14 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import com.google.common.collect.Iterables;
-
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAEdgeType;
 import cfa.objectmodel.CFANode;
 import cfa.objectmodel.c.CallToReturnEdge;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+
 import cpa.common.CallElement;
 import cpa.common.CallStack;
 import cpa.common.interfaces.AbstractElement;
@@ -44,11 +46,11 @@ import exceptions.TransferTimeOutException;
 
 public class CompositeTransferRelation implements TransferRelation{
 
-  private final List<TransferRelation> transferRelations;
+  private final ImmutableList<TransferRelation> transferRelations;
 
   // private LocationTransferRelation locationTransferRelation;
 
-  public CompositeTransferRelation (List<TransferRelation> transferRelations) {
+  public CompositeTransferRelation(ImmutableList<TransferRelation> transferRelations) {
     this.transferRelations = transferRelations;
   }
 

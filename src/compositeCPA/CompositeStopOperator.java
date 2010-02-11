@@ -26,6 +26,7 @@ package compositeCPA;
 import java.util.Collection;
 import java.util.List;
 
+import com.google.common.collect.ImmutableList;
 
 import cpa.common.CPAchecker;
 import cpa.common.interfaces.AbstractDomain;
@@ -38,9 +39,9 @@ import exceptions.CPAException;
 public class CompositeStopOperator implements StopOperator{
 
   private final CompositeDomain compositeDomain;
-  private final List<StopOperator> stopOperators;
+  private final ImmutableList<StopOperator> stopOperators;
 
-  public CompositeStopOperator (CompositeDomain compositeDomain, List<StopOperator> stopOperators)
+  public CompositeStopOperator(CompositeDomain compositeDomain, ImmutableList<StopOperator> stopOperators)
   {
     this.compositeDomain = compositeDomain;
     this.stopOperators = stopOperators;

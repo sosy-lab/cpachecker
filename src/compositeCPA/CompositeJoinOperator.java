@@ -26,7 +26,7 @@ package compositeCPA;
 import java.util.ArrayList;
 import java.util.List;
 
-import compositeCPA.CompositeElement;
+import com.google.common.collect.ImmutableList;
 
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.JoinOperator;
@@ -34,9 +34,9 @@ import exceptions.CPAException;
 
 public class CompositeJoinOperator implements JoinOperator
 {
-    private List<JoinOperator> joinOperators;
+    private final ImmutableList<JoinOperator> joinOperators;
 
-    public CompositeJoinOperator (List<JoinOperator> joinOperators)
+    public CompositeJoinOperator (ImmutableList<JoinOperator> joinOperators)
     {
         this.joinOperators = joinOperators;
     }

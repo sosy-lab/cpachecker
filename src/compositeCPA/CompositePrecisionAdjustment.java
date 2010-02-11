@@ -29,6 +29,7 @@ import java.util.List;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.ImmutableList;
 import common.Pair;
 
 import cpa.common.interfaces.AbstractElement;
@@ -41,9 +42,9 @@ import cpa.common.interfaces.PrecisionAdjustment;
  */
 public class CompositePrecisionAdjustment implements PrecisionAdjustment {
 
-  private List<PrecisionAdjustment> precisionAdjustments;
+  private final ImmutableList<PrecisionAdjustment> precisionAdjustments;
   
-  public CompositePrecisionAdjustment (List<PrecisionAdjustment> precisionAdjustments) {
+  public CompositePrecisionAdjustment(ImmutableList<PrecisionAdjustment> precisionAdjustments) {
     this.precisionAdjustments = precisionAdjustments;
   }
   

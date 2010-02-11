@@ -23,8 +23,9 @@
  */
 package compositeCPA;
 
-import java.util.ArrayList;
 import java.util.List;
+
+import com.google.common.collect.ImmutableList;
 
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
@@ -33,21 +34,21 @@ import cpa.common.interfaces.PartialOrder;
 
 public class CompositeDomain implements AbstractDomain
 {
-    private final List<AbstractDomain> domains;
+    private final ImmutableList<AbstractDomain> domains;
 
     private final CompositeElement bottomElement;
     private final CompositeElement topElement;
     private final CompositeJoinOperator joinOperator;
     private final CompositePartialOrder partialOrder;
 
-    public CompositeDomain (List<AbstractDomain> domains)
+    public CompositeDomain(ImmutableList<AbstractDomain> domains)
     {
         this.domains = domains;
 
-        List<AbstractElement> bottoms = new ArrayList<AbstractElement> ();
-        List<AbstractElement> tops = new ArrayList<AbstractElement> ();
-        List<JoinOperator> joinOperators = new ArrayList<JoinOperator> ();
-        List<PartialOrder> partialOrders = new ArrayList<PartialOrder> ();
+        ImmutableList.Builder<AbstractElement> bottoms = ImmutableList.builder();
+        ImmutableList.Builder<AbstractElement> tops = ImmutableList.builder();
+        ImmutableList.Builder<JoinOperator> joinOperators = ImmutableList.builder();
+        ImmutableList.Builder<PartialOrder> partialOrders = ImmutableList.builder();
 
         for (AbstractDomain domain : domains)
         {
@@ -57,10 +58,10 @@ public class CompositeDomain implements AbstractDomain
             partialOrders.add (domain.getPartialOrder ());
         }
 
-        this.bottomElement = new CompositeElement(bottoms, null);
-        this.topElement = new CompositeElement(tops, null);
-        this.joinOperator = new CompositeJoinOperator (joinOperators);
-        this.partialOrder = new CompositePartialOrder (partialOrders);
+        this.bottomElement = new CompositeElement(bottoms.build(), null);
+        this.topElement = new CompositeElement(tops.build(), null);
+        this.joinOperator = new CompositeJoinOperator(joinOperators.build());
+        this.partialOrder = new CompositePartialOrder(partialOrders.build());
     }
 
     public List<AbstractDomain> getDomains ()

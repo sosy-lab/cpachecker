@@ -33,7 +33,7 @@ import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.AbstractWrapperElement;
 
 public class CompositeElement implements AbstractWrapperElement {
-  private final List<AbstractElement> elements;
+  private final ImmutableList<AbstractElement> elements;
   private CallStack callStack;
 
   public CompositeElement(List<AbstractElement> elements, CallStack stack)

@@ -27,6 +27,8 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import com.google.common.collect.ImmutableList;
+
 import cpa.common.CallStack;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.MergeOperator;
@@ -35,9 +37,9 @@ import exceptions.CPAException;
 
 public class CompositeMergeOperator implements MergeOperator{
   
-  private final List<MergeOperator> mergeOperators;
+  private final ImmutableList<MergeOperator> mergeOperators;
 
-  public CompositeMergeOperator(List<MergeOperator> mergeOperators)
+  public CompositeMergeOperator(ImmutableList<MergeOperator> mergeOperators)
   {
     this.mergeOperators = mergeOperators;
   }

@@ -27,6 +27,7 @@
 package compositeCPA;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import cpa.common.interfaces.Precision;
@@ -40,7 +41,7 @@ public class CompositePrecision implements WrapperPrecision {
   private final List<Precision> precisions;
 
   public CompositePrecision (List<Precision> precisions) {
-    this.precisions = precisions;
+    this.precisions = Collections.unmodifiableList(precisions);
   }
 
   public List<Precision> getPrecisions() {

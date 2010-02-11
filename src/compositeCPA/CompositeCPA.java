@@ -27,23 +27,25 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 
 import cfa.objectmodel.CFAFunctionDefinitionNode;
+
+import com.google.common.collect.ImmutableList;
+
 import cpa.common.CPAchecker;
 import cpa.common.CallElement;
 import cpa.common.CallStack;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.Statistics;
-import cpa.common.interfaces.StatisticsProvider;
 import cpa.common.interfaces.CPAWrapper;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
+import cpa.common.interfaces.Statistics;
+import cpa.common.interfaces.StatisticsProvider;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
 import cpa.transferrelationmonitor.TransferRelationMonitorCPA;
@@ -59,7 +61,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final AbstractElement initialElement;
   private final Precision initialPrecision;
 
-  private final List<ConfigurableProgramAnalysis> cpas;
+  private final ImmutableList<ConfigurableProgramAnalysis> cpas;
   
   private CompositeCPA (AbstractDomain abstractDomain,
       TransferRelation transferRelation,
@@ -68,7 +70,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       PrecisionAdjustment precisionAdjustment,
       AbstractElement initialElement,
       Precision initialPrecision,
-      List<ConfigurableProgramAnalysis> cpas)
+      ImmutableList<ConfigurableProgramAnalysis> cpas)
   {
     this.abstractDomain = abstractDomain;
     this.transferRelation = transferRelation;
@@ -77,20 +79,21 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
     this.precisionAdjustment = precisionAdjustment;
     this.initialElement = initialElement;
     this.initialPrecision = initialPrecision;
-    this.cpas = Collections.unmodifiableList(cpas);
+    this.cpas = cpas;
   }
 
-  public static CompositeCPA createNewCompositeCPA(List<ConfigurableProgramAnalysis> cpas, CFAFunctionDefinitionNode node) {
+  public static CompositeCPA createNewCompositeCPA(List<ConfigurableProgramAnalysis> pCpas, CFAFunctionDefinitionNode node) {
+    ImmutableList<ConfigurableProgramAnalysis> cpas = ImmutableList.copyOf(pCpas);
 
-    List<AbstractDomain> domains = new ArrayList<AbstractDomain> (cpas.size());
-    List<TransferRelation> transferRelations = new ArrayList<TransferRelation> (cpas.size());
-    List<MergeOperator> mergeOperators = new ArrayList<MergeOperator> (cpas.size());
-    List<StopOperator> stopOperators = new ArrayList<StopOperator> (cpas.size());
-    List<PrecisionAdjustment> precisionAdjustments = new ArrayList<PrecisionAdjustment> (cpas.size());
-    List<AbstractElement> initialElements = new ArrayList<AbstractElement> (cpas.size());
-    List<Precision> initialPrecisions = new ArrayList<Precision> (cpas.size());
+    ImmutableList.Builder<AbstractDomain> domains = ImmutableList.builder();
+    ImmutableList.Builder<TransferRelation> transferRelations = ImmutableList.builder();
+    ImmutableList.Builder<MergeOperator> mergeOperators = ImmutableList.builder();
+    ImmutableList.Builder<StopOperator> stopOperators = ImmutableList.builder();
+    ImmutableList.Builder<PrecisionAdjustment> precisionAdjustments = ImmutableList.builder();
+    ImmutableList.Builder<AbstractElement> initialElements = ImmutableList.builder();
+    List<Precision> initialPrecisions = new ArrayList<Precision>(cpas.size());
 
-    for(ConfigurableProgramAnalysis sp : cpas) {
+    for (ConfigurableProgramAnalysis sp : cpas) {
       domains.add(sp.getAbstractDomain());
       transferRelations.add(sp.getTransferRelation());
       mergeOperators.add(sp.getMergeOperator());
@@ -100,13 +103,13 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       initialPrecisions.add(sp.getInitialPrecision(node));
     }
 
-    CompositeDomain compositeDomain = new CompositeDomain (domains);
-    CompositeTransferRelation compositeTransfer = new CompositeTransferRelation (transferRelations);
-    CompositeMergeOperator compositeMerge = new CompositeMergeOperator (mergeOperators);
-    CompositeStopOperator compositeStop = new CompositeStopOperator (compositeDomain, stopOperators);
-    CompositePrecisionAdjustment compositePrecisionAdjustment = new CompositePrecisionAdjustment (precisionAdjustments);
-    CompositeElement initialElement = new CompositeElement (initialElements, null);
-    CompositePrecision initialPrecision = new CompositePrecision (initialPrecisions);
+    CompositeDomain compositeDomain = new CompositeDomain(domains.build());
+    CompositeTransferRelation compositeTransfer = new CompositeTransferRelation(transferRelations.build());
+    CompositeMergeOperator compositeMerge = new CompositeMergeOperator(mergeOperators.build());
+    CompositeStopOperator compositeStop = new CompositeStopOperator(compositeDomain, stopOperators.build());
+    CompositePrecisionAdjustment compositePrecisionAdjustment = new CompositePrecisionAdjustment(precisionAdjustments.build());
+    CompositeElement initialElement = new CompositeElement(initialElements.build(), null);
+    CompositePrecision initialPrecision = new CompositePrecision(initialPrecisions);
     // set call stack
     CallStack initialCallStack = new CallStack();
     CallElement initialCallElement = new CallElement(node.getFunctionName(), node, initialElement);
