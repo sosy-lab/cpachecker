@@ -25,6 +25,7 @@ package cpa.assumptions.collector.progressobserver;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAEdgeType;
@@ -101,7 +102,13 @@ public class RepetitionsInPathHeuristicsData implements StopHeuristicsData {
 
   @Override
   public String toString() {
-    return super.toString();
+    StringBuilder builder = new StringBuilder();
+    for (Entry<CFAEdge, Integer> entry : frequencyMap.entrySet()) {
+      int count = entry.getValue();
+      CFAEdge edge = entry.getKey();
+      builder.append(count).append("x(").append(edge).append(") ");
+    }
+    return builder.toString();
   }
   
   public static final RepetitionsInPathHeuristicsData TOP = new RepetitionsInPathHeuristicsData() {
