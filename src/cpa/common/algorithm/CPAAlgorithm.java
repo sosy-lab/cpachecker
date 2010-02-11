@@ -43,6 +43,7 @@ import cpa.common.interfaces.StatisticsProvider;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
 import exceptions.CPAException;
+import exceptions.ForceStopCPAException;
 import exceptions.TransferTimeOutException;
 
 public class CPAAlgorithm implements Algorithm, StatisticsProvider {
@@ -108,6 +109,8 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     PrecisionAdjustment precisionAdjustment = cpa.getPrecisionAdjustment();
 
     while (reachedElements.hasWaitingElement()) {
+      if (CPAchecker.getRequireStopAsap())
+        throw new ForceStopCPAException();
       stats.countIterations++;
       
       // Pick next element using strategy

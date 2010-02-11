@@ -62,18 +62,19 @@ import compositeCPA.CompositeCPA;
 import cpa.art.ARTCPA;
 import cpa.assumptions.collector.AssumptionCollectorCPA;
 import cpa.common.algorithm.Algorithm;
+import cpa.common.algorithm.AssumptionCollectionAlgorithm;
 import cpa.common.algorithm.CBMCAlgorithm;
 import cpa.common.algorithm.CEGARAlgorithm;
 import cpa.common.algorithm.CPAAlgorithm;
-import cpa.common.algorithm.AssumptionCollectionAlgorithm;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.Statistics;
-import cpa.common.interfaces.StatisticsProvider;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;
+import cpa.common.interfaces.Statistics;
+import cpa.common.interfaces.StatisticsProvider;
 import cpa.common.interfaces.Statistics.Result;
 import exceptions.CFAGenerationRuntimeException;
 import exceptions.CPAException;
+import exceptions.ForceStopCPAException;
 
 @SuppressWarnings("restriction")
 public class CPAchecker {
@@ -83,11 +84,23 @@ public class CPAchecker {
   // Use the constructor to initialize them.
   public static CPAConfiguration config = null;
   public static LogManager logger = null;
+  private static volatile boolean requireStopAsap = false;
+  
+  /**
+   * Return true if the main thread is required to stop
+   * working as soon as possible, in response to the user
+   * interrupting it.
+   */
+  public static boolean getRequireStopAsap()
+  {
+    return requireStopAsap;
+  }
 
   private static class ShutdownHook extends Thread {
     
     private final Statistics mStats;
     private final ReachedElements mReached;
+    private final Thread mainThread;
     
     // if still null when run() is executed, analysis has been interrupted by user
     private Result mResult = null;
@@ -95,6 +108,7 @@ public class CPAchecker {
     public ShutdownHook(Statistics pStats, ReachedElements pReached) {
       mStats = pStats; 
       mReached = pReached;
+      mainThread = Thread.currentThread();
     }
     
     public void setResult(Result pResult) {
@@ -102,12 +116,27 @@ public class CPAchecker {
       mResult = pResult;
     }
     
+    // We want to use Thread.stop() to force the main thread to stop
+    // when interrupted by the user.
+    @SuppressWarnings("deprecation")
     @Override
     public void run() {
       if (mResult == null) {
         mResult = Result.UNKNOWN;
       }
-       
+      
+      if (mainThread.isAlive()) {
+        requireStopAsap = true;
+        logger.log(Level.ALL, "Waiting 2s for main thread to stop...");
+        try {
+          mainThread.join(2000);
+        } catch (InterruptedException e) {}
+        if (mainThread.isAlive()) {
+          logger.log(Level.ALL, "Forcing main thread to stop.");
+          mainThread.stop();
+        }
+      }
+      
       logger.flush();
       System.out.flush();
       System.err.flush();
@@ -150,6 +179,9 @@ public class CPAchecker {
       
       runAlgorithm(algorithm, reached, stats);
 
+    } catch (ForceStopCPAException e) {
+      // CPA must exit because it is asked to by the shutdown hook
+      logger.log(Level.SEVERE, "CPA is stopping forcefully");
     } catch (CPAException e) {
       logger.logException(Level.SEVERE, e, null);
     }
