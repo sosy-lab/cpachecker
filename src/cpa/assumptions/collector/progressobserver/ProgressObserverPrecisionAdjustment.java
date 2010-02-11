@@ -24,9 +24,9 @@
 package cpa.assumptions.collector.progressobserver;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
+import com.google.common.base.Function;
 import common.Pair;
 
 import cpa.common.UnmodifiableReachedElements;
@@ -44,49 +44,20 @@ public class ProgressObserverPrecisionAdjustment implements
   {
   }
   
-  /** Iterable class over a selected data within an element */
-  private static class ProjectionIterable<AE extends AbstractElement>
-    implements Iterable<StopHeuristicsData>
+  /** Projection function class over a selected data within an element */
+  private static class ProjectionFunction
+    implements Function<AbstractElement, StopHeuristicsData>
   {
-    private final Iterable<Pair<AE, Precision>> elements;
-    private final int selectedData;
+    private final int dimension;
     
-    /** Iterator class */
-    private class ProjectionIterator
-      implements Iterator<StopHeuristicsData>
-    {
-      private final Iterator<Pair<AE, Precision>> innerIterator;
-      
-      public ProjectionIterator() {
-        innerIterator = elements.iterator();
-      }
-      
-      @Override
-      public boolean hasNext() {
-        return innerIterator.hasNext();
-      }
-      
-      @Override
-      public StopHeuristicsData next() {
-        ProgressObserverElement nextElement = (ProgressObserverElement) innerIterator.next().getFirst(); 
-        return nextElement.getComponents().get(selectedData);
-      }
-      
-      @Override
-      public void remove() {
-        throw new UnsupportedOperationException();
-      }
-    }
-    
-    public ProjectionIterable(Iterable<Pair<AE, Precision>> base, int select)
-    {
-      elements = base;
-      selectedData = select;
+    public ProjectionFunction(int d) {
+      dimension = d;
     }
     
     @Override
-    public Iterator<StopHeuristicsData> iterator() {
-      return new ProjectionIterator();
+    public StopHeuristicsData apply(AbstractElement from) {
+      ProgressObserverElement element = (ProgressObserverElement) from; 
+      return element.getComponents().get(dimension);
     }
   }
   
@@ -100,7 +71,8 @@ public class ProgressObserverPrecisionAdjustment implements
     
     int idx = 0;
     for (StopHeuristicsData d : preData) {
-      postData.add(d.collectData(new ProjectionIterable<AbstractElement>(reached.getReachedWithPrecision(), idx)));
+      ReachedHeuristicsDataSetView slice = new ReachedHeuristicsDataSetView(reached, new ProjectionFunction(idx)); 
+      postData.add(d.collectData(slice));
       idx++;
     }
     

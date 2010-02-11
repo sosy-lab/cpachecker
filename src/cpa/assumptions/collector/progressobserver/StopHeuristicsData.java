@@ -35,7 +35,7 @@ public interface StopHeuristicsData {
   public boolean isLessThan(StopHeuristicsData d);
   
   /** Collect data with respect to the given set of reached states */
-  public StopHeuristicsData collectData(Iterable<StopHeuristicsData> reached);
+  public StopHeuristicsData collectData(ReachedHeuristicsDataSetView reached);
   
   /** Process an edge and update the data */
   public StopHeuristicsData processEdge(CFAEdge edge);

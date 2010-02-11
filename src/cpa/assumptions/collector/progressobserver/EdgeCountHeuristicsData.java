@@ -133,10 +133,10 @@ public class EdgeCountHeuristicsData
   }
   
   @Override
-  public StopHeuristicsData collectData(Iterable<StopHeuristicsData> reached) {
+  public StopHeuristicsData collectData(ReachedHeuristicsDataSetView reached) {
     if (isTop() || isBottom() || !isInteresting()) return this;
     
-    for (StopHeuristicsData d : reached) {
+    for (StopHeuristicsData d : reached.getHeuristicsDataForLocation(node)) {
       EdgeCountHeuristicsData other = (EdgeCountHeuristicsData) d;
       if (other.untouched && (other != this) && (other.node == node)) {
         for (int i=0; i < counters.length; i++) {
@@ -175,7 +175,7 @@ public class EdgeCountHeuristicsData
     }
     
     @Override
-    public StopHeuristicsData collectData(Iterable<StopHeuristicsData> reached) {
+    public StopHeuristicsData collectData(ReachedHeuristicsDataSetView reached) {
       return this;
     }
     
@@ -202,7 +202,7 @@ public class EdgeCountHeuristicsData
     }
     
     @Override
-    public StopHeuristicsData collectData(Iterable<StopHeuristicsData> reached) {
+    public StopHeuristicsData collectData(ReachedHeuristicsDataSetView reached) {
       return this;
     }
     
