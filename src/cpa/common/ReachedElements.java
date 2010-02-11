@@ -1,12 +1,34 @@
+/*
+ *  CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker. 
+ *
+ *  Copyright (C) 2007-2008  Dirk Beyer and Erkan Keremoglu.
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://www.cs.sfu.ca/~dbeyer/CPAchecker/
+ */
 package cpa.common;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import cfa.objectmodel.CFANode;
@@ -14,8 +36,7 @@ import cfa.objectmodel.CFANode;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Collections2;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.SetMultimap;
+import com.google.common.collect.LinkedHashMultimap;
 import common.Pair;
 
 import cpa.common.interfaces.AbstractElement;
@@ -23,12 +44,20 @@ import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.AbstractWrapperElement;
 import cpa.common.interfaces.Precision;
 
+/**
+ * This class implements a set of reached elements, including storing a
+ * precision for each one. It groups elements by location (if enabled) and allows
+ * access to either all elements or those with the same location as a given one.
+ * 
+ * In all its operations it preserves the order in which the elements were added.
+ * All the collections returned from methods of this class ensure this ordering, too.
+ */
 public class ReachedElements implements Iterable<AbstractElement> {
   
-  private final Map<AbstractElement, Precision> reached;
+  private final LinkedHashMap<AbstractElement, Precision> reached;
   private final Set<AbstractElement> unmodifiableReached;
   private final Collection<Pair<AbstractElement, Precision>> reachedWithPrecision;
-  private final SetMultimap<CFANode, AbstractElement> locationMappedReached;
+  private final LinkedHashMultimap<CFANode, AbstractElement> locationMappedReached;
   private AbstractElement lastElement = null;
   private AbstractElement firstElement = null;
   private final LinkedList<AbstractElement> waitlist;
@@ -47,11 +76,11 @@ public class ReachedElements implements Iterable<AbstractElement> {
   };
  
   public ReachedElements(String traversal) {
-    reached = new HashMap<AbstractElement, Precision>();
+    reached = new LinkedHashMap<AbstractElement, Precision>();
     unmodifiableReached = Collections.unmodifiableSet(reached.keySet());
     reachedWithPrecision = Collections2.transform(unmodifiableReached, getPrecisionAsPair);
     if (CPAchecker.config.getBooleanValue("cpa.useSpecializedReachedSet")) {
-      locationMappedReached = HashMultimap.create(); 
+      locationMappedReached = LinkedHashMultimap.create(); 
     } else {
       locationMappedReached = null;
     }
