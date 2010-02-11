@@ -28,6 +28,8 @@ import java.util.Iterator;
 
 import javax.naming.OperationNotSupportedException;
 
+import cfa.objectmodel.CFANode;
+
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.collect.Collections2;
@@ -104,6 +106,11 @@ public class UnmodifiableReachedElementsView
   @Override
   public Collection<AbstractElement> getReached(AbstractElement pElement) throws OperationNotSupportedException {
     throw new OperationNotSupportedException("Unwrapping may prevent to know the location");
+  }
+  
+  @Override
+  public Collection<AbstractElement> getReached(CFANode pLocation) {
+    return Collections2.transform(underlying.getReached(pLocation), mapElementFunction);
   }
 
   @Override

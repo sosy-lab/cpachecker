@@ -209,11 +209,15 @@ public class ReachedElements implements UnmodifiableReachedElements {
    * @return A subset of the reached set.
    */
   public Set<AbstractElement> getReached(AbstractElement element) {
-    if (locationMappedReached != null) {
-      CFANode loc = getLocationFromElement(element);
-      return Collections.unmodifiableSet(locationMappedReached.get(loc));
-    }
-    return unmodifiableReached;
+    CFANode loc = getLocationFromElement(element);
+    return getReached(loc);
+  }
+  
+  public Set<AbstractElement> getReached(CFANode location) {
+    if (locationMappedReached != null)
+      return Collections.unmodifiableSet(locationMappedReached.get(location));
+    else
+      return unmodifiableReached;
   }
   
   public AbstractElement getFirstElement() {
