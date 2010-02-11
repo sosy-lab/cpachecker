@@ -279,9 +279,10 @@ public abstract class CommonFormulaManager implements FormulaManager {
     
     Pair<Pair<SymbolicFormula, SymbolicFormula>,SSAMap> pm = smgr.mergeSSAMaps(ssa2, ssa1);
     
-    SymbolicFormula newFormula1 = smgr.makeAnd(formula1, pm.getFirst().getSecond());
+    // do not swap these two lines, that makes a huge difference in performance!
     SymbolicFormula newFormula2 = smgr.makeAnd(formula2, pm.getFirst().getFirst());
-    
+    SymbolicFormula newFormula1 = smgr.makeAnd(formula1, pm.getFirst().getSecond());
+
     SymbolicFormula newFormula = smgr.makeOr(newFormula1, newFormula2);
     SSAMap newSsa = pm.getSecond();
 
