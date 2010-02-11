@@ -83,17 +83,22 @@ public class RepetitionsInPathHeuristicsData implements StopHeuristicsData {
   private boolean isInteresting(CFAEdge edge)
   {
     return (edge.getEdgeType() == CFAEdgeType.FunctionCallEdge)
-        && (edge.getPredecessor().isLoopStart());
+        || (edge.getPredecessor().isLoopStart());
   }
   
   @Override
   public StopHeuristicsData processEdge(CFAEdge edge) {
     if (!isInteresting(edge)) return this;
     
-    RepetitionsInPathHeuristicsData result = copy();
-    int oldValue = frequencyMap.get(edge);
-    result.frequencyMap.put(edge, oldValue+1);
-    return result;
+    Integer newValueInTable = frequencyMap.get(edge);
+    int newValue = (newValueInTable == null) ? 1 : newValueInTable.intValue();
+    if (newValue > threshold)
+      return BOTTOM;
+    else {
+      RepetitionsInPathHeuristicsData result = copy();
+      result.frequencyMap.put(edge, newValue+1);
+      return result;
+    }
   }
   
   private RepetitionsInPathHeuristicsData copy() {

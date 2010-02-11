@@ -33,7 +33,7 @@ public class ReachedSizeHeuristics implements StopHeuristics<ReachedSizeHeuristi
 
   public ReachedSizeHeuristics()
   {
-    long configThreshold = Long.parseLong(CPAchecker.config.getProperty("assumptions.reachedcount.threshold", "-1"));
+    long configThreshold = Long.parseLong(CPAchecker.config.getProperty("assumptions.reachedCount.threshold", "-1"));
     ReachedSizeHeuristicsData.setThreshold(configThreshold);
   }
   

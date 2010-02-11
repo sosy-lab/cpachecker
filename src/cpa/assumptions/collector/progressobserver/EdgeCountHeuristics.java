@@ -34,7 +34,7 @@ public class EdgeCountHeuristics implements StopHeuristics<EdgeCountHeuristicsDa
   public EdgeCountHeuristics()
   {
     // Initialise the base threshold
-    int configThreshold = Integer.parseInt(CPAchecker.config.getProperty("assumptions.edgecount.threshold", "-1"));
+    int configThreshold = Integer.parseInt(CPAchecker.config.getProperty("assumptions.edgeCount.threshold", "-1"));
     EdgeCountHeuristicsData.setBaseThreshold(configThreshold);
   }
   
