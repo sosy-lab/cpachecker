@@ -18,7 +18,7 @@ import cpa.observeranalysis.ObserverTransition.PATTERN_MATCHING_METHODS;
 /** CUP v0.11a beta 20060608 generated parser.
   * @version Thu Feb 11 22:46:39 CET 2010
   */
-public class ObserverParser extends java_cup.runtime.lr_parser {
+@SuppressWarnings(value = { "all" }) public class ObserverParser extends java_cup.runtime.lr_parser {
 
   /** Default constructor. */
   public ObserverParser() {super();}
@@ -221,7 +221,7 @@ public class ObserverParser extends java_cup.runtime.lr_parser {
 }
 
 /** Cup generated class to encapsulate user supplied action code.*/
-class CUP$ObserverParser$actions {
+@SuppressWarnings(value = { "all" }) class CUP$ObserverParser$actions {
   private final ObserverParser parser;
 
   /** Constructor */

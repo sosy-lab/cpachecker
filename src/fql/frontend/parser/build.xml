@@ -32,5 +32,9 @@
     	 nopositions="true"
     />
     <jflex file="${parserDir}/FQL.lex" destdir="${src}" />
+  	<!-- places the suppressWarnings-tag in front of the outer class -->
+  	<replace file="${parserDir}/FQLParser.java" token="public class " value="@SuppressWarnings(value = { &quot;all&quot; }) public class "/>
+  	<!-- places the suppressWarnings-tag in front of the inner class -->
+  	<replace file="${parserDir}/FQLParser.java" token="class CUP$" value="@SuppressWarnings(value = { &quot;all&quot; }) class CUP$"/>
   </target>
 </project>

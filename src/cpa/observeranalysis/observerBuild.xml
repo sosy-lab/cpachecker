@@ -32,5 +32,9 @@
     	 nopositions="true"
     />
     <jflex file="${parserDir}/Scanner.jflex" destdir="${src}" />
+  	<!-- places the suppressWarnings-tag in front of the outer class -->
+  	<replace file="${parserDir}/ObserverParser.java" token="public class " value="@SuppressWarnings(value = { &quot;all&quot; }) public class "/>
+  	<!-- places the suppressWarnings-tag in front of the inner class -->
+  	<replace file="${parserDir}/ObserverParser.java" token="class CUP$" value="@SuppressWarnings(value = { &quot;all&quot; }) class CUP$"/>
   </target>
 </project>
