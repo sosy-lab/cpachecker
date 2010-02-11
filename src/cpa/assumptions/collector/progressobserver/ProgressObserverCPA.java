@@ -23,12 +23,14 @@
  */
 package cpa.assumptions.collector.progressobserver;
 
-import java.util.Collections;
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 
 import cfa.objectmodel.CFAFunctionDefinitionNode;
+
+import com.google.common.collect.ImmutableList;
+
 import cpa.common.CPAchecker;
 import cpa.common.defaults.MergeSepOperator;
 import cpa.common.defaults.StopNeverOperator;
@@ -53,12 +55,44 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
   private final TransferRelation transferRelation;
   private final PrecisionAdjustment precisionAdjustment;
   
-  private final List<StopHeuristics<? extends StopHeuristicsData>> enabledHeuristics;
+  private final ImmutableList<StopHeuristics<? extends StopHeuristicsData>> enabledHeuristics;
   
   /** Return the immutable list of enables heuristics */
   public List<StopHeuristics<? extends StopHeuristicsData>> getEnabledHeuristics()
   {
     return enabledHeuristics;
+  }
+  
+  @SuppressWarnings("unchecked")
+  private static ImmutableList<StopHeuristics<? extends StopHeuristicsData>> createEnabledHeuristics()
+  {
+    String[] heuristicsNamesArray = CPAchecker.config.getPropertiesArray("assumptions.observer.heuristics");
+    List<StopHeuristics<? extends StopHeuristicsData>> result = new ArrayList<StopHeuristics<? extends StopHeuristicsData>>(heuristicsNamesArray.length);
+    
+    for (int i = 0; i < heuristicsNamesArray.length; i++) {
+      String heuristicsName = heuristicsNamesArray[i];
+      if (!heuristicsName.contains("."))
+        heuristicsName = "cpa.assumptions.collector.progressobserver." + heuristicsName;
+      try {
+        Class<?> cls = Class.forName(heuristicsName);
+        Object obj = cls.newInstance();
+        // Convert object to StopHeuristics
+        StopHeuristics<? extends StopHeuristicsData> newHeuristics = (StopHeuristics<? extends StopHeuristicsData>)obj;
+        result.add(newHeuristics);
+      } catch (ClassNotFoundException e) {
+        CPAchecker.logger.logException(Level.WARNING, e, "ClassNotFoundException");
+      } catch (SecurityException e) {
+        CPAchecker.logger.logException(Level.WARNING, e, "SecurityException");
+      } catch (IllegalArgumentException e) {
+        CPAchecker.logger.logException(Level.WARNING, e, "IllegalArgumentException");
+      } catch (InstantiationException e) {
+        CPAchecker.logger.logException(Level.WARNING, e, "InstantiationException");
+      } catch (IllegalAccessException e) {
+        CPAchecker.logger.logException(Level.WARNING, e, "IllegalAccessException");
+      }
+    }
+    
+    return new ImmutableList.Builder<StopHeuristics<? extends StopHeuristicsData>>().addAll(result).build();
   }
   
   public ProgressObserverCPA(String mergeOp, String stopOp)
@@ -67,11 +101,8 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
     // not be sound
     if (!CPAchecker.config.getBooleanValue("analysis.useAssumptionCollector"))
       CPAchecker.logger.log(Level.WARNING, "Analysis may not be sound because ProgressObserverCPA is used without assumption collector");
-    
-    // TODO make this parametric
-    LinkedList<StopHeuristics<? extends StopHeuristicsData>> heuristics = new LinkedList<StopHeuristics<? extends StopHeuristicsData>>();
-    heuristics.add(new EdgeCountHeuristics());
-    enabledHeuristics = Collections.unmodifiableList(heuristics);
+        
+    enabledHeuristics = createEnabledHeuristics();
     
     abstractDomain = new ProgressObserverDomain(this);
     mergeOperator = MergeSepOperator.getInstance();
