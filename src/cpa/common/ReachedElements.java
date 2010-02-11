@@ -52,7 +52,7 @@ import cpa.common.interfaces.Precision;
  * In all its operations it preserves the order in which the elements were added.
  * All the collections returned from methods of this class ensure this ordering, too.
  */
-public class ReachedElements implements Iterable<AbstractElement> {
+public class ReachedElements implements UnmodifiableReachedElements {
   
   private final LinkedHashMap<AbstractElement, Precision> reached;
   private final Set<AbstractElement> unmodifiableReached;
@@ -63,7 +63,7 @@ public class ReachedElements implements Iterable<AbstractElement> {
   private final LinkedList<AbstractElement> waitlist;
   private final TraversalMethod traversal;
   
-  private Function<AbstractElement, Pair<AbstractElement, Precision>> getPrecisionAsPair = 
+  private final Function<AbstractElement, Pair<AbstractElement, Precision>> getPrecisionAsPair = 
     new Function<AbstractElement, Pair<AbstractElement, Precision>>() {
 
       @Override
