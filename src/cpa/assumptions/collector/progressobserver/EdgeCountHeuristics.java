@@ -29,7 +29,7 @@ import cfa.objectmodel.CFANode;
 /**
  * @author g.theoduloz
  */
-public class EdgeCountHeuristics extends StopHeuristics<EdgeCountHeuristicsData> {
+public class EdgeCountHeuristics implements StopHeuristics<EdgeCountHeuristicsData> {
 
   public EdgeCountHeuristics()
   {

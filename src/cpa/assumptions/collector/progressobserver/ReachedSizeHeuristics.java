@@ -29,7 +29,7 @@ import cfa.objectmodel.CFANode;
 /**
  * @author g.theoduloz
  */
-public class ReachedSizeHeuristics extends StopHeuristics<ReachedSizeHeuristicsData> {
+public class ReachedSizeHeuristics implements StopHeuristics<ReachedSizeHeuristicsData> {
 
   public ReachedSizeHeuristics()
   {

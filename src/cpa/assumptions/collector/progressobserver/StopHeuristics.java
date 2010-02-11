@@ -29,13 +29,13 @@ import cfa.objectmodel.CFANode;
  * A stopping heuristics for the controller CPA
  * @author g.theoduloz
  */
-public abstract class StopHeuristics <D extends StopHeuristicsData> {
+public interface StopHeuristics <D extends StopHeuristicsData> {
   /** Get the initial data */
-  public abstract D getInitialData(CFANode node);
+  public D getInitialData(CFANode node);
   
   /** Get top */
-  public abstract D getTop();
+  public D getTop();
   
   /** Get bottom */
-  public abstract D getBottom();
+  public D getBottom();
 }
