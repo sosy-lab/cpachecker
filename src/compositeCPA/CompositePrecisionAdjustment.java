@@ -43,9 +43,22 @@ import cpa.common.interfaces.PrecisionAdjustment;
 public class CompositePrecisionAdjustment implements PrecisionAdjustment {
 
   private final ImmutableList<PrecisionAdjustment> precisionAdjustments;
+  private final ImmutableList<ElementProjectionFunction> elementProjectionFunctions;
+  private final ImmutableList<PrecisionProjectionFunction> precisionProjectionFunctions;
+  
   
   public CompositePrecisionAdjustment(ImmutableList<PrecisionAdjustment> precisionAdjustments) {
     this.precisionAdjustments = precisionAdjustments;
+    
+    ImmutableList.Builder<ElementProjectionFunction> elementProjectionFunctions = ImmutableList.builder();
+    ImmutableList.Builder<PrecisionProjectionFunction> precisionProjectionFunctions = ImmutableList.builder();
+    
+    for (int i = 0; i < precisionAdjustments.size(); i++) {
+      elementProjectionFunctions.add(new ElementProjectionFunction(i));
+      precisionProjectionFunctions.add(new PrecisionProjectionFunction(i));
+    }
+    this.elementProjectionFunctions = elementProjectionFunctions.build();
+    this.precisionProjectionFunctions = precisionProjectionFunctions.build();
   }
   
   private static class ElementProjectionFunction
@@ -94,7 +107,7 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
     
     for (int i = 0; i < dim; ++i) {
       UnmodifiableReachedElements slice =
-        new UnmodifiableReachedElementsView(pElements, new ElementProjectionFunction(i), new PrecisionProjectionFunction(i));
+        new UnmodifiableReachedElementsView(pElements, elementProjectionFunctions.get(i), precisionProjectionFunctions.get(i));
       PrecisionAdjustment precisionAdjustment = precisionAdjustments.get(i); 
       Pair<AbstractElement,Precision> out = precisionAdjustment.prec(comp.get(i), prec.get(i), slice);
       outElements.add(out.getFirst());
