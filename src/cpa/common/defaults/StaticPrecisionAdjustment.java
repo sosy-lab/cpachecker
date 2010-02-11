@@ -23,10 +23,10 @@
  */
 package cpa.common.defaults;
 
-import java.util.Collection;
 
 import common.Pair;
 
+import cpa.common.UnmodifiableReachedElements;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
@@ -42,7 +42,7 @@ public class StaticPrecisionAdjustment implements PrecisionAdjustment {
 
   @Override
   public Pair<AbstractElement, Precision> prec(AbstractElement element,
-        Precision precision, Collection<Pair<AbstractElement, Precision>> elements) {
+        Precision precision, UnmodifiableReachedElements elements) {
     
     return new Pair<AbstractElement, Precision>(element, precision);
   }

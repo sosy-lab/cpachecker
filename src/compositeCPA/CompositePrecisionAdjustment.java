@@ -24,14 +24,14 @@
 package compositeCPA;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
 import com.google.common.base.Function;
-import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import common.Pair;
 
+import cpa.common.UnmodifiableReachedElements;
+import cpa.common.UnmodifiableReachedElementsView;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
@@ -48,19 +48,33 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
     this.precisionAdjustments = precisionAdjustments;
   }
   
-  private static class ProjectionFunction
-    implements Function<Pair<AbstractElement, Precision>, Pair<AbstractElement, Precision>>
+  private static class ElementProjectionFunction
+    implements Function<AbstractElement, AbstractElement>
   {
     private final int dimension;
     
-    public ProjectionFunction(int d) {
+    public ElementProjectionFunction(int d) {
       dimension = d;
     }
 
     @Override
-    public Pair<AbstractElement, Precision> apply(Pair<AbstractElement, Precision> entry) {
-      return new Pair<AbstractElement,Precision>(((CompositeElement)entry.getFirst()).get(dimension),
-          ((CompositePrecision)entry.getSecond()).get(dimension));
+    public AbstractElement apply(AbstractElement from) {
+      return ((CompositeElement)from).get(dimension);
+    }
+  }
+  
+  private static class PrecisionProjectionFunction
+  implements Function<Precision, Precision>
+  {
+    private final int dimension;
+    
+    public PrecisionProjectionFunction(int d) {
+      dimension = d;
+    }
+  
+    @Override
+    public Precision apply(Precision from) {
+      return ((CompositePrecision)from).get(dimension);
     }
   }
   
@@ -69,7 +83,7 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
    */
   public Pair<AbstractElement, Precision> prec(AbstractElement pElement,
                                                Precision pPrecision,
-                                               Collection<Pair<AbstractElement, Precision>> pElements) {
+                                               UnmodifiableReachedElements pElements) {
     CompositeElement comp = (CompositeElement) pElement;
     CompositePrecision prec = (CompositePrecision) pPrecision;
     assert (comp.getElements().size() == prec.getPrecisions().size());
@@ -79,7 +93,8 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
     List<Precision> outPrecisions = new ArrayList<Precision>();
     
     for (int i = 0; i < dim; ++i) {
-      Collection<Pair<AbstractElement,Precision>> slice = Collections2.transform(pElements, new ProjectionFunction(i));
+      UnmodifiableReachedElements slice =
+        new UnmodifiableReachedElementsView(pElements, new ElementProjectionFunction(i), new PrecisionProjectionFunction(i));
       PrecisionAdjustment precisionAdjustment = precisionAdjustments.get(i); 
       Pair<AbstractElement,Precision> out = precisionAdjustment.prec(comp.get(i), prec.get(i), slice);
       outElements.add(out.getFirst());

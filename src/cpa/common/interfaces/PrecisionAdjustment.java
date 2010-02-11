@@ -26,9 +26,9 @@
  */
 package cpa.common.interfaces;
 
-import java.util.Collection;
 
 import common.Pair;
+import cpa.common.UnmodifiableReachedElements;
 
 /**
  * @author Michael Tautschnig <tautschnig@forsyte.de>
@@ -36,5 +36,5 @@ import common.Pair;
  */
 public interface PrecisionAdjustment {
   public Pair<AbstractElement,Precision> prec (AbstractElement element, Precision precision,
-                                            Collection<Pair<AbstractElement,Precision>> elements);
+                                            UnmodifiableReachedElements elements);
 }

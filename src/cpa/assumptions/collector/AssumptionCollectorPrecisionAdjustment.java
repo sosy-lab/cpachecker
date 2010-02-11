@@ -23,13 +23,12 @@
  */
 package cpa.assumptions.collector;
 
-import java.util.Collection;
-
 import com.google.common.base.Function;
-import com.google.common.collect.Collections2;
-
+import com.google.common.base.Functions;
 import common.Pair;
 
+import cpa.common.UnmodifiableReachedElements;
+import cpa.common.UnmodifiableReachedElementsView;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;
@@ -51,21 +50,23 @@ public class AssumptionCollectorPrecisionAdjustment
     wrappedPrecisionAdjustment = wrappedCPA.getPrecisionAdjustment();
   }
   
-  private static final Function<Pair<AbstractElement, Precision>, Pair<AbstractElement, Precision>> UNWRAP_WITH_PRECISION_FUNCTION =
-    new Function<Pair<AbstractElement, Precision>, Pair<AbstractElement, Precision>>() {
+  private static final Function<AbstractElement, AbstractElement> UNWRAP_ELEMENT_FUNCTION =
+    new Function<AbstractElement, AbstractElement>() {
       @Override
-      public Pair<AbstractElement, Precision> apply(Pair<AbstractElement, Precision> pair) {
-        return new Pair<AbstractElement, Precision>(((AssumptionCollectorElement)pair.getFirst()).getWrappedElement(), pair.getSecond());
+      public AbstractElement apply(AbstractElement from) {
+        return ((AssumptionCollectorElement)from).getWrappedElement();
       }
     };
+    
+  private static final Function<Precision, Precision> UNWRAP_PRECISION_FUNCTION = Functions.<Precision>identity();
 
   @Override
   public Pair<AbstractElement, Precision> prec(AbstractElement element,
-      Precision precision, Collection<Pair<AbstractElement, Precision>> reachedElements)
+      Precision precision, UnmodifiableReachedElements reachedElements)
   {
     AssumptionCollectorElement assumptionElement = (AssumptionCollectorElement)element;
     AbstractElement unwrappedElement = assumptionElement.getWrappedElement();
-    Collection<Pair<AbstractElement, Precision>> unwrappedReached = Collections2.transform(reachedElements, UNWRAP_WITH_PRECISION_FUNCTION);
+    UnmodifiableReachedElements unwrappedReached = new UnmodifiableReachedElementsView(reachedElements, UNWRAP_ELEMENT_FUNCTION, UNWRAP_PRECISION_FUNCTION);
     Pair<AbstractElement, Precision> unwrappedResult = wrappedPrecisionAdjustment.prec(unwrappedElement, precision, unwrappedReached);
     
     AbstractElement resultElement;

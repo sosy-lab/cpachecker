@@ -124,7 +124,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       
       Pair<AbstractElement, Precision> tempPair;
       start = System.currentTimeMillis();
-      tempPair = precisionAdjustment.prec(e.getFirst(), e.getSecond(), reachedElements.getReachedWithPrecision());
+      tempPair = precisionAdjustment.prec(e.getFirst(), e.getSecond(), reachedElements);
       end = System.currentTimeMillis();
       stats.precisionTime += (end - start);
       if(tempPair != null){

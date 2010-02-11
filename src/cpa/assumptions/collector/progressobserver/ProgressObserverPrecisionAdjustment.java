@@ -24,12 +24,12 @@
 package cpa.assumptions.collector.progressobserver;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 
 import common.Pair;
 
+import cpa.common.UnmodifiableReachedElements;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
@@ -92,7 +92,7 @@ public class ProgressObserverPrecisionAdjustment implements
   
   @Override
   public Pair<AbstractElement, Precision> prec(AbstractElement el,
-      Precision p, Collection<Pair<AbstractElement, Precision>> reached) {
+      Precision p, UnmodifiableReachedElements reached) {
     ProgressObserverElement element = (ProgressObserverElement) el;
     
     List<StopHeuristicsData> preData = element.getComponents();
@@ -100,7 +100,7 @@ public class ProgressObserverPrecisionAdjustment implements
     
     int idx = 0;
     for (StopHeuristicsData d : preData) {
-      postData.add(d.collectData(new ProjectionIterable<AbstractElement>(reached, idx)));
+      postData.add(d.collectData(new ProjectionIterable<AbstractElement>(reached.getReachedWithPrecision(), idx)));
       idx++;
     }
     
