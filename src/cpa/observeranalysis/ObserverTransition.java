@@ -4,6 +4,8 @@ import java.io.PrintStream;
 import java.util.List;
 import java.util.Map;
 
+import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
+
 import cfa.objectmodel.CFAEdge;
 
 /** A transition in the observer automaton implements one of the {@link PATTERN_MATCHING_METHODS}.
@@ -74,6 +76,7 @@ class ObserverTransition {
     case REGEX_MATCH :
         return pCfaEdge.getRawStatement().matches(pattern);
       case AST_COMPARISON :
+        // this line should never be entered because there is a extra subclass for AST_comparisons.
         boolean result = ObserverASTComparator.generateAndCompareASTs(pCfaEdge.getRawStatement(), pattern);
         /*if (result == true) {
           System.out.println("Triggered : " + pCfaEdge.getRawStatement() + " : " + this.pattern + " to " + followStateName);
@@ -113,5 +116,35 @@ class ObserverTransition {
    */
   public ObserverInternalState getFollowState() {
     return followState;
+  }
+  
+  /**
+   * This class does the same as the ObserverTransition class with the AST_COMPARISON Enum.
+   * It has a more efficient implementation because it caches the generated ASTs for the pattern.
+   * It also displays error messages if the AST contains problems/errors.
+   * @author rhein
+   */
+  public static class CachingASTComparisonTransition extends ObserverTransition {
+    private IASTTranslationUnit patternAST;
+
+    public CachingASTComparisonTransition(String pPattern,
+        List<ObserverBoolExpr> pAssertions, List<ObserverActionExpr> pActions,
+        String pFollowStateName) {
+      super(pPattern, pAssertions, pActions, pFollowStateName, PATTERN_MATCHING_METHODS.AST_COMPARISON);
+      this.patternAST = ObserverASTComparator.generatePatternAST(pPattern);
+      String problem = ObserverASTComparator.ASTcontatinsProblems(patternAST);
+      if (problem != null) {
+        System.out.println("The AST generated for \"" + pPattern + "\" contains the following problem: " + problem);
+      }
+    }
+    
+    @Override
+    public boolean match(CFAEdge pCfaEdge) {
+      boolean result = ObserverASTComparator.generateAndCompareASTs(pCfaEdge.getRawStatement(), patternAST);
+      /*if (result == true) {
+        System.out.println("Triggered : " + pCfaEdge.getRawStatement() + " : " + this.pattern + " to " + followStateName);
+      }*/
+      return result;
+    }
   }
 }

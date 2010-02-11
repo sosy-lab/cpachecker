@@ -98,7 +98,7 @@ Matches   ::= Match:m Matches:lst {: lst.add(0, m); RESULT = lst; :}
 Match     ::= MATCH  STRING_LITERAL:lit  ARROW Assertions:ass Actions:acts GOTO IDENTIFIER:follow SEMICOLON 
               {: RESULT = new ObserverTransition(lit.toString(), ass, acts, follow.toString(), PATTERN_MATCHING_METHODS.EXACT_MATCH); :} 
             | MATCH  CURLYEXPR:expr ARROW Assertions:ass Actions:acts GOTO IDENTIFIER:follow SEMICOLON 
-              {: RESULT = new ObserverTransition(expr.toString(), ass, acts, follow.toString(), PATTERN_MATCHING_METHODS.AST_COMPARISON); :} 
+              {: RESULT = new ObserverTransition.CachingASTComparisonTransition(expr.toString(), ass, acts, follow.toString());  :} 
             | MATCH  SQUAREEXPR:expr ARROW Assertions:ass Actions:acts GOTO IDENTIFIER:follow SEMICOLON 
               {: RESULT = new ObserverTransition(expr.toString(), ass, acts, follow.toString(), PATTERN_MATCHING_METHODS.REGEX_MATCH); :}
             ;

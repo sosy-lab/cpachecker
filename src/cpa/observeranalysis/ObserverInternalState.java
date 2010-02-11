@@ -17,7 +17,7 @@ class ObserverInternalState {
   
   /** Error State */
   static final ObserverInternalState ERR = new ObserverInternalState("ERR", emptyTransitionList);
-
+  
   /** Name of this State.  */
   private String name;
   /** Outgoing transitions of this state.  */

@@ -3,7 +3,6 @@ package cpa.observeranalysis;
 import java.io.File;
 import java.io.FileNotFoundException;
 
-
 import java_cup.runtime.ComplexSymbolFactory;
 import java_cup.runtime.Symbol;
 import java_cup.runtime.SymbolFactory;

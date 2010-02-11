@@ -16,6 +16,7 @@ import org.eclipse.cdt.core.dom.ast.IASTNode;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.cdt.core.parser.IScannerInfo;
 import org.eclipse.cdt.internal.core.dom.InternalASTServiceProvider;
+import org.eclipse.cdt.internal.core.dom.parser.c.CASTProblem;
 import org.eclipse.core.resources.IFile;
 
 import cmdline.stubs.StubFile;
@@ -40,7 +41,7 @@ public class ObserverASTComparator {
   private static final String JOKER_EXPR = " CPAChecker_ObserverAnalysis_JokerExpression ";
 
   /**
-   * Returns if the ASTs for the argument strings are considered equal.
+   * Returns whether the ASTs for the argument strings are considered equal.
    * Substitutes wildcard expressions in pattern, generates the 2 ASTs and compares them.
    * 
    * The strings can be any C-Statement/Expression that may appear inside of a block.
@@ -59,11 +60,45 @@ public class ObserverASTComparator {
     boolean result = ObserverASTComparator.compareASTs(a, b);
     return result;
   }
-  static void printAST(String pattern) {
-    String tmp = addFunctionDeclaration(pattern).replaceAll("\\$\\?", JOKER_EXPR);
+
+  public static boolean generateAndCompareASTs(String pSourceExpression,
+      IASTTranslationUnit pPatternAST) {
+    IFile file = ObserverASTComparator.writeToIFile(TEMP_FILE, addFunctionDeclaration(pSourceExpression));
+    IASTTranslationUnit a = ObserverASTComparator.parse(file);
+        
+    boolean result = ObserverASTComparator.compareASTs(a, pPatternAST);
+    return result;
+  }
+
+  static IASTTranslationUnit generatePatternAST(String pPattern) {
+    String tmp = addFunctionDeclaration(pPattern).replaceAll("\\$\\?", JOKER_EXPR);
     IFile file = ObserverASTComparator.writeToIFile(TEMP_FILE, tmp);
-    IASTTranslationUnit b = ObserverASTComparator.parse(file);
-    printAST(b, 0);
+    return ObserverASTComparator.parse(file);
+  }
+  
+  /**
+   * Returns the Problem Message if this AST has a problem node.
+   * Returns null otherwise.
+   * @param pAST
+   * @return
+   */
+  static String ASTcontatinsProblems(IASTNode pAST) {
+    if (pAST instanceof CASTProblem) {
+      return ((CASTProblem)pAST).getMessage();
+    } else {
+      String problem;
+      for (IASTNode n : pAST.getChildren()) {
+        problem = ASTcontatinsProblems(n);
+          if (problem != null) {
+            return problem;
+        }
+      }
+    }
+    return null;
+  }
+  
+  static void printAST(String pPattern) {
+    printAST(generatePatternAST(pPattern), 0);
   }
   
   

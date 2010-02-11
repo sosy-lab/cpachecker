@@ -2,7 +2,8 @@
 
 package cpa.observeranalysis;
 
-import java_cup.runtime.*;
+import java_cup.runtime.Symbol;
+import java_cup.runtime.SymbolFactory;
 @SuppressWarnings(value = { "all" })
 
 /**
