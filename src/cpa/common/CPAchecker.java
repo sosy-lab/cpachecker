@@ -182,7 +182,7 @@ public class CPAchecker {
 
     } catch (ForceStopCPAException e) {
       // CPA must exit because it is asked to by the shutdown hook
-      logger.log(Level.SEVERE, "CPA is stopping forcefully");
+      logger.log(Level.FINE, "ForceStopCPAException caught at top level: CPAchecker has stopped forcefully, but cleanly");
     } catch (CPAException e) {
       logger.logException(Level.SEVERE, e, null);
     }
