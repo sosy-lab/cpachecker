@@ -26,8 +26,10 @@ package cpa.assumptions.collector.progressobserver;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.logging.Level;
 
 import cfa.objectmodel.CFAFunctionDefinitionNode;
+import cpa.common.CPAchecker;
 import cpa.common.defaults.MergeSepOperator;
 import cpa.common.defaults.StopNeverOperator;
 import cpa.common.interfaces.AbstractDomain;
@@ -61,6 +63,11 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
   
   public ProgressObserverCPA(String mergeOp, String stopOp)
   {
+    // Check if assumption collector is enabled; if not, the analysis will
+    // not be sound
+    if (!CPAchecker.config.getBooleanValue("analysis.useAssumptionCollector"))
+      CPAchecker.logger.log(Level.WARNING, "Analysis may not be sound because ProgressObserverCPA is used without assumption collector");
+    
     // TODO make this parametric
     LinkedList<StopHeuristics<? extends StopHeuristicsData>> heuristics = new LinkedList<StopHeuristics<? extends StopHeuristicsData>>();
     heuristics.add(new EdgeCountHeuristics());

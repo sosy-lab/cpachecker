@@ -24,6 +24,7 @@
 package cpa.assumptions.collector.progressobserver;
 
 import cfa.objectmodel.CFAEdge;
+import cfa.objectmodel.CFAEdgeType;
 import cfa.objectmodel.CFANode;
 
 /**
@@ -33,13 +34,27 @@ public class EdgeCountHeuristicsData
   implements StopHeuristicsData {
 
   private final int[] counters;
-  private final CFANode node; 
+  private final CFANode node;
+  private boolean untouched;
+  
+  private static int threshold = -1;
+  
+  public static void setBaseThreshold(int newThreshold)
+  {
+    threshold = newThreshold;
+  }
+  
+  public static int getBaseThreshold()
+  {
+    return threshold;
+  }
 
   public EdgeCountHeuristicsData(CFANode sourceNode)
   {
     assert sourceNode != null;
     node = sourceNode;
     counters = new int[sourceNode.getNumLeavingEdges()];
+    untouched = true;
   }
   
   private EdgeCountHeuristicsData() {
@@ -80,7 +95,7 @@ public class EdgeCountHeuristicsData
    */
   private int getThreshold(CFAEdge edge)
   {
-    return 100;
+    return threshold;
   }
   
   /**
@@ -97,7 +112,6 @@ public class EdgeCountHeuristicsData
         counters[i]++;
         // Threshold exceeded!
         if (counters[i] >= getThreshold(edge)) {
-          // TODO Output invariant, instead of simply setting to bottom
           return BOTTOM;
         }
       }
@@ -105,15 +119,34 @@ public class EdgeCountHeuristicsData
     return new EdgeCountHeuristicsData(edge.getSuccessor());
   }
   
+  private boolean isInteresting()
+  {
+    if (node.isLoopStart())
+      return true;
+    for (int i = 0; i < node.getNumLeavingEdges(); i++)
+    {
+      CFAEdge edge = node.getLeavingEdge(i);
+      if (edge.getEdgeType() == CFAEdgeType.FunctionCallEdge)
+        return true;
+    }
+    return false;
+  }
+  
   @Override
   public StopHeuristicsData collectData(Iterable<StopHeuristicsData> reached) {
-    if (isTop() || isBottom()) return this;
+    if (isTop() || isBottom() || !isInteresting()) return this;
     
     for (StopHeuristicsData d : reached) {
       EdgeCountHeuristicsData other = (EdgeCountHeuristicsData) d;
-      if (other.node == node)
-        for (int i=0; i < counters.length; i++)
-          counters[i] = Math.max(counters[i], other.counters[i]);
+      if (other.untouched && (other != this) && (other.node == node)) {
+        for (int i=0; i < counters.length; i++) {
+          // The 'untouched trick' computes the maximum more efficiently
+          // counters[i] = Math.max(counters[i], other.counters[i]);
+          counters[i] = other.counters[i];
+        }
+        other.untouched = false;
+        break;
+      }
     }
     return this;
   }

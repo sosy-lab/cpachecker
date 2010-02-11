@@ -23,6 +23,7 @@
  */
 package cpa.assumptions.collector.progressobserver;
 
+import cpa.common.CPAchecker;
 import cfa.objectmodel.CFANode;
 
 /**
@@ -30,6 +31,13 @@ import cfa.objectmodel.CFANode;
  */
 public class EdgeCountHeuristics extends StopHeuristics<EdgeCountHeuristicsData> {
 
+  public EdgeCountHeuristics()
+  {
+    // Initialise the base threshold
+    int configThreshold = Integer.parseInt(CPAchecker.config.getProperty("assumptions.edgecount.threshold", "-1"));
+    EdgeCountHeuristicsData.setBaseThreshold(configThreshold);
+  }
+  
   @Override
   public EdgeCountHeuristicsData getBottom() {
     return EdgeCountHeuristicsData.BOTTOM;

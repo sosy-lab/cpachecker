@@ -27,8 +27,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.logging.Level;
 
 import cfa.objectmodel.CFAEdge;
+import cpa.common.CPAchecker;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
@@ -51,11 +53,14 @@ public class ProgressObserverTransferRelation implements TransferRelation {
 
     for (StopHeuristicsData d : preData) {
       StopHeuristicsData postD = d.processEdge(edge);
-      if (postD.isBottom())
+      if (postD.isBottom()) {
+        CPAchecker.logger.log(Level.INFO, "Giving up at edge ", edge.toString());
+        CPAchecker.logger.log(Level.FINEST, "Observer element at the time was: ", el.toString());
         // 'squash' to bottom
         return Collections.emptySet();
-      else
+      } else {
         postData.add(postD);
+      }
     }
     return Collections.singleton(new ProgressObserverElement(postData));
   }
