@@ -78,8 +78,11 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   private final SymbolicFormulaManager symbolicFormulaManager;
   private final SymbPredAbsFormulaManager formulaManager;
 
-  private final int blockSize;
+  private final int abstractionBlockSize;
   private final boolean inlineFunctions;
+  private final boolean unrollLoops;
+  private final int satCheckBlockSize;
+
   
   // map from a node to path formula
   // used to not compute the formula again
@@ -94,9 +97,11 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     abstractFormulaManager = pCpa.getAbstractFormulaManager();
     formulaManager = pCpa.getFormulaManager();
     
-    blockSize = Integer.parseInt(CPAchecker.config.getProperty("cpas.symbpredabs.blocksize", "0"));
+    abstractionBlockSize = Integer.parseInt(CPAchecker.config.getProperty("cpas.symbpredabs.blocksize", "0"));
+    satCheckBlockSize = Integer.parseInt(CPAchecker.config.getProperty("cpas.symbpredabs.satCheck", "0"));
     inlineFunctions = CPAchecker.config.getBooleanValue("cpas.symbpredabs.inlineFunctions");
-  }
+    unrollLoops = CPAchecker.config.getBooleanValue("cpas.symbpredabs.unrollLoops");
+}
 
   @Override
   public Collection<? extends AbstractElement> getAbstractSuccessors(AbstractElement pElement,
@@ -108,13 +113,15 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     //boolean abstractionLocation = (blockSize == 0) ? isAbstractionLocation(edge.getSuccessor())
     //    : (element.getSizeSinceAbstraction() >= (blockSize-1));
     boolean abstractionLocation = isAbstractionLocation(edge.getSuccessor())
-        || ((blockSize > 0) && (element.getSizeSinceAbstraction() >= (blockSize-1)));
+        || ((abstractionBlockSize > 0) && (element.getSizeSinceAbstraction() >= (abstractionBlockSize-1)));
+    boolean satCheck = (satCheckBlockSize > 0) && (element.getSizeSinceAbstraction() >= (satCheckBlockSize-1));
+
     
     try {
       if (abstractionLocation) {
         return handleAbstractionLocation(element, precision, edge);
       } else {
-        return handleNonAbstractionLocation(element, edge, false);
+        return handleNonAbstractionLocation(element, edge, satCheck);
       }
       
     } finally {
@@ -272,7 +279,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     final long start = System.currentTimeMillis();
     PathFormula pf = null;
     
-    if (inlineFunctions) {
+    if (inlineFunctions || unrollLoops) {
       long startComp = System.currentTimeMillis();
       // compute new pathFormula with the operation on the edge
       pf = symbolicFormulaManager.makeAnd(
@@ -316,7 +323,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
    * the start node of a function or if it is the call site from a function call.
    */
   private boolean isAbstractionLocation(CFANode succLoc) {
-    if (succLoc.isLoopStart()) {
+    if (!unrollLoops && succLoc.isLoopStart()) {
       // loop head
       return true;
     } else if (!inlineFunctions && (succLoc instanceof CFAFunctionDefinitionNode)) {
@@ -350,11 +357,14 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     }
 
     if (errorFound) { 
+      CPAchecker.logger.log(Level.FINEST, "Checking for feasibility of path because error has been found");
       if (formulaManager.unsat(element.getAbstraction(), element.getPathFormula())) {
+        CPAchecker.logger.log(Level.FINEST, "Path is infeasible.");
         return Collections.emptySet();
       } else {
         // although this is not an abstraction location, we fake an abstraction
         // because refinement code expect it to be like this
+        CPAchecker.logger.log(Level.FINEST, "Last part of the path is not infeasible.");
         
         ++numAbstractStates;
 
