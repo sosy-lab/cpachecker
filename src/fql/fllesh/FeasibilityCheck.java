@@ -8,6 +8,7 @@ import cfa.objectmodel.CFANode;
 
 import compositeCPA.CompositeCPA;
 import compositeCPA.CompositeElement;
+
 import cpa.alwaystop.AlwaysTopCPA;
 import cpa.alwaystop.AlwaysTopTopElement;
 import cpa.common.CallElement;
@@ -20,8 +21,6 @@ import cpa.location.LocationCPA;
 import cpa.location.LocationElement;
 import cpa.mustmay.MustMayAnalysisCPA;
 import cpa.mustmay.MustMayAnalysisElement;
-
-import exceptions.CPAException;
 import fql.backend.pathmonitor.Automaton;
 import fql.backend.targetgraph.Node;
 import fql.fllesh.reachability.Query;
@@ -45,15 +44,7 @@ public class FeasibilityCheck {
     
     mMustMayAnalysisCPA = new MustMayAnalysisCPA(mMustCPA, mMayCPA);
     
-    try {
-      // TODO: check why LocationCPA has a "throws CPAException" clause
-      mLocationCPA = new LocationCPA("", "");
-    } catch (CPAException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-      
-      System.exit(1);
-    }
+    mLocationCPA = new LocationCPA("", "");
     
     LinkedList<ConfigurableProgramAnalysis> lCPAs = new LinkedList<ConfigurableProgramAnalysis>();
     

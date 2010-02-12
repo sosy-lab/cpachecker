@@ -35,7 +35,6 @@ import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
-import exceptions.CPAException;
 
 /**
  * @author holzera
@@ -47,7 +46,7 @@ public class InverseLocationCPA implements ConfigurableProgramAnalysis{
   private static final TransferRelation transferRelation = new InverseLocationTransferRelation();
   private static final StopOperator stopOperator = new StopSepOperator(abstractDomain.getPartialOrder());
 
-  public InverseLocationCPA (String mergeType, String stopType) throws CPAException{
+  public InverseLocationCPA (String mergeType, String stopType) {
   }
 
   public AbstractDomain getAbstractDomain() {

@@ -41,7 +41,7 @@ public class ARTCPA implements ConfigurableProgramAnalysis, StatisticsProvider, 
   // TODO state in the CPA, possibly dangerous with multiple ARTs
   private final Set<ARTElement> covered;
 
-  private ARTCPA(String mergeType, ConfigurableProgramAnalysis cpa) throws CPAException {
+  private ARTCPA(String mergeType, ConfigurableProgramAnalysis cpa) {
     wrappedCPA = cpa;
     abstractDomain = new ARTDomain(this);
     transferRelation = new ARTTransferRelation(cpa.getTransferRelation());
@@ -113,8 +113,7 @@ public class ARTCPA implements ConfigurableProgramAnalysis, StatisticsProvider, 
     return wrappedCPA;
   }
 
-  public static ConfigurableProgramAnalysis getARTCPA 
-  (CFAFunctionDefinitionNode node, ConfigurableProgramAnalysis cpa) throws CPAException{
+  public static ConfigurableProgramAnalysis getARTCPA(CFAFunctionDefinitionNode node, ConfigurableProgramAnalysis cpa) {
     String[] mergeTypesArray = CPAchecker.config.getPropertiesArray("analysis.mergeOperators");
     ArrayList<String> mergeTypes = new ArrayList<String>(Arrays.asList(mergeTypesArray));
     if(mergeTypes.contains("join")){

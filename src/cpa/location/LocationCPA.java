@@ -35,7 +35,6 @@ import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
-import exceptions.CPAException;
 
 public class LocationCPA implements ConfigurableProgramAnalysis{
 
@@ -43,7 +42,7 @@ public class LocationCPA implements ConfigurableProgramAnalysis{
 	private static final TransferRelation transferRelation = new LocationTransferRelation();
 	private static final StopOperator stopOperator = new StopSepOperator(abstractDomain.getPartialOrder());
 
-	public LocationCPA (String mergeType, String stopType) throws CPAException{
+	public LocationCPA (String mergeType, String stopType) {
 	}
 
 	public AbstractDomain getAbstractDomain() {

@@ -7,16 +7,15 @@ import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cpa.common.defaults.StaticPrecisionAdjustment;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.Statistics;
-import cpa.common.interfaces.StatisticsProvider;
 import cpa.common.interfaces.CPAWrapper;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
+import cpa.common.interfaces.Statistics;
+import cpa.common.interfaces.StatisticsProvider;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
-import exceptions.CPAException;
 
 public class TransferRelationMonitorCPA implements ConfigurableProgramAnalysis, StatisticsProvider, CPAWrapper {
 
@@ -27,7 +26,7 @@ public class TransferRelationMonitorCPA implements ConfigurableProgramAnalysis, 
   private final PrecisionAdjustment precisionAdjustment;
   private final ConfigurableProgramAnalysis wrappedCPA;
   
-  public TransferRelationMonitorCPA(ConfigurableProgramAnalysis pCpa) throws CPAException{
+  public TransferRelationMonitorCPA(ConfigurableProgramAnalysis pCpa) {
     wrappedCPA = pCpa;
     abstractDomain = new TransferRelationMonitorDomain(this);
     transferRelation = new TransferRelationMonitorTransferRelation(wrappedCPA);
