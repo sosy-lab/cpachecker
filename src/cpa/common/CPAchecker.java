@@ -281,7 +281,9 @@ public class CPAchecker {
     // simplify CFA
     if (CPAchecker.config.getBooleanValue("cfa.simplify")) {
       // TODO Erkan Simplify each CFA
-      CFASimplifier simplifier = new CFASimplifier();
+      boolean combineBlockStatements = CPAchecker.config.getBooleanValue("cfa.combineBlockStatements");
+      boolean removeDeclarations = CPAchecker.config.getBooleanValue("cfa.removeDeclarations");
+      CFASimplifier simplifier = new CFASimplifier(combineBlockStatements, removeDeclarations);
       simplifier.simplify(mainFunction);
     }
 

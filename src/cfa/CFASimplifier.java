@@ -33,9 +33,6 @@ import java.util.Set;
 import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
 
-import cpa.common.CPAchecker;
-
-
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAEdgeType;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
@@ -45,20 +42,18 @@ import cfa.objectmodel.c.MultiDeclarationEdge;
 import cfa.objectmodel.c.MultiStatementEdge;
 import cfa.objectmodel.c.StatementEdge;
 
-
 /**
  * Used to simplify CPA by removing blank edges and combining block statements
  * @author erkan
- *
  */
-public class CFASimplifier
-{
-	/**
-	 * Class constructor.
-	 */
-	public CFASimplifier ()
-	{
+public class CFASimplifier {
 
+  private final boolean combineBlockStatements;
+  private final boolean removeDeclarations;  
+  
+	public CFASimplifier(boolean combineBlockStatements, boolean removeDeclarations) {
+	  this.combineBlockStatements = combineBlockStatements;
+	  this.removeDeclarations = removeDeclarations;
 	}
 
 	/**
@@ -102,19 +97,16 @@ public class CFASimplifier
 	 * Takes the node and run simplifications on it.
 	 * @param node This node's edges will be simplified
 	 */
-	private void simplifyNode (CFANode node)
-	{
+	private void simplifyNode(CFANode node) {
 		// Remove leading blank edge if useless
 		removeUselessBlankEdge (node);
 
-		if (CPAchecker.config.getBooleanValue("cfa.combineBlockStatements"))
-		{
+		if (combineBlockStatements) {
 			makeMultiStatement (node);
 			makeMultiDeclaration (node);
 		}
 
-		if (CPAchecker.config.getBooleanValue("cfa.removeDeclarations"))
-		{
+		if (removeDeclarations) {
 			removeDeclarations(node);
 		}
 	}
