@@ -4,9 +4,9 @@ package fql.frontend.parser;
 import java_cup.runtime.*;
 import java.io.IOException;
 
-import fql.frontend.parser.FQLSym;
 import static fql.frontend.parser.FQLSym.*;
 
+@SuppressWarnings("unused")
 %%
 
 %class FQLLexer
