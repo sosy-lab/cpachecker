@@ -42,7 +42,7 @@ def run_single(benchmark, config, time_limit, mem_limit):
                        '$benchmark.$cn.log 2>&1)').substitute(locals())
     p = subprocess.Popen(['/bin/bash', '-c', cmdline], shell=False)
     retval = p.wait()
-    tot_time, outcome = None, None
+    tot_time, outcome, reached, refinements, abstractions, blocksize = None, None, None, None, None, None
 
     if retval == 0:
         outcome = None
@@ -60,6 +60,14 @@ def run_single(benchmark, config, time_limit, mem_limit):
             if tot_time is None and line.startswith(
                 'Total Time Elapsed including CFA construction:'):
                 tot_time = line[46:].strip()[:-1]
+            elif reached is None and line.startswith('Size of reached set:'):
+                reached = line[20:].strip()
+            elif abstractions is None and line.startswith('Number of abstraction steps:'):
+                abstractions = line[28:].strip()
+            elif refinements is None and line.startswith('Number of refinement steps:'):
+                refinements = line[27:].strip()
+            elif blocksize is None and line.startswith('Max LBE block size: '):
+                blocksize = line[19:].strip()   
             if (line.find('java.lang.OutOfMemoryError') != -1) or line.startswith('out of memory'):
                 outcome = 'OUT OF MEMORY'
             elif line.find('SIGSEGV') != -1:
@@ -81,7 +89,7 @@ def run_single(benchmark, config, time_limit, mem_limit):
         tot_time = -1
     if outcome is None:
         outcome = 'UNKNOWN'
-    return tot_time, outcome
+    return tot_time, outcome, reached, refinements, abstractions, blocksize
     
 
 def blast_cmdline_for_config(config):
@@ -179,16 +187,20 @@ def main(which, benchmarks, configs, time_limit, mem_limit, outfile,
                 d = results[config]
                 maxlen = max(map(len, d.keys()))
                 maxlentime = len(str(time_limit)) + 4
-                out.write(Template('$i $t $o\n').substitute(
+                out.write(Template('$i\t$t\t$o\t\tReached\tRefinements\tAbstractions\t\tBlocksize\n').substitute(
                     i='INSTANCE'.ljust(maxlen), t='TIME'.rjust(maxlentime),
                     o='OUTCOME'))
-                out.write('-' * (maxlen + maxlentime + 7 + 2) + '\n')
+                out.write('-' * (maxlen + maxlentime + 86) + '\n')
+                line = Template('$fname\t$ftime\t$foutcome\t$freached\t$frefinements\t$fabstractions\t$fblocksize')
                 for name in sorted(d):
-                    line = Template('$fname $ftime $foutcome\n')
                     fname = name.ljust(maxlen)
                     ftime = str(d[name][0]).rjust(maxlentime)
-                    foutcome = d[name][1].ljust(7)
-                    out.write(line.substitute(locals()))
+                    foutcome = d[name][1].ljust(15)
+                    freached = d[name][2].ljust(7)
+                    frefinements = (d[name][3] if d[name][3] != None else "").ljust(15)
+                    fabstractions = (d[name][4] if d[name][4] != None else "").ljust(22)
+                    fblocksize = d[name][5] if d[name][5] != None else ""
+                    out.write(line.substitute(locals()).strip() + '\n')
 
 
 if __name__ == '__main__':
