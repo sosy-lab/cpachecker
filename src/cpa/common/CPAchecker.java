@@ -48,7 +48,6 @@ import cfa.CFASimplifier;
 import cfa.CFATopologicalSort;
 import cfa.CPASecondPassBuilder;
 import cfa.DOTBuilder;
-import cfa.DOTBuilderInterface;
 import cfa.objectmodel.BlankEdge;
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
@@ -324,7 +323,6 @@ public class CPAchecker {
     }
     final CFAMap cfas = builder.getCFAs();
     final Collection<CFAFunctionDefinitionNode> cfasList = cfas.cfaMapIterator();
-    final int numFunctions = cfas.size();
     
     // annotate CFA nodes with topological information for later use
     for(CFAFunctionDefinitionNode cfa : cfasList){
@@ -368,22 +366,21 @@ public class CPAchecker {
 
     // write CFA to file
     if (CPAchecker.config.getBooleanValue("cfa.export")) {
-      DOTBuilderInterface dotBuilder = new DOTBuilder();
+      DOTBuilder dotBuilder = new DOTBuilder();
+      File cfaFile = new File(CPAchecker.config.getProperty("output.path"),
+                              CPAchecker.config.getProperty("cfa.file", "cfa.dot"));
       
-      String cfaFile = CPAchecker.config.getProperty("cfa.file", "cfa.dot");
-      //if no filename is given, use default value
-      String path = CPAchecker.config.getProperty("output.path") + cfaFile;
       try {
-        dotBuilder.generateDOT(cfasList, mainFunction,
-            new File(path).getPath());
+        dotBuilder.generateDOT(cfasList, mainFunction, cfaFile);
       } catch (IOException e) {
-        logger.logException(Level.WARNING, e,
-          "Could not write CFA to dot file, check configuration option cfa.file!");
+        logger.log(Level.WARNING,
+          "Could not write CFA to dot file, check configuration option cfa.file! (",
+          e.getMessage() + ")");
         // continue with analysis
       }
     }
     
-    logger.log(Level.FINE, "DONE, CFA for", numFunctions, "functions created");
+    logger.log(Level.FINE, "DONE, CFA for", cfas.size(), "functions created");
 
     return new Pair<CFAMap, CFAFunctionDefinitionNode>(cfas, mainFunction);
   }

@@ -23,9 +23,11 @@
  */
 package cfa;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
@@ -41,42 +43,74 @@ import cfa.objectmodel.c.AssumeEdge;
 import cfa.objectmodel.c.FunctionCallEdge;
 import cfa.objectmodel.c.ReturnEdge;
 
-import cfa.DOTBuilderInterface;
-import cfa.DOTNodeShapeWriter;
-import cfa.DOTWriter;
+import com.google.common.base.Joiner;
 
-public class DOTBuilder implements DOTBuilderInterface
-{
-	/**
-	 * Class constructor.
-	 */
-	public DOTBuilder ()
-	{
+/**
+ * Class for generating a DOT file from a CFA.
+ */
+public class DOTBuilder {
 
-	}
+	private static final String MAIN_GRAPH = "____Main____Diagram__";
+  private static final Joiner JOINER_ON_NEWLINE = Joiner.on('\n');
 
-	public void generateDOT (Collection<CFAFunctionDefinitionNode> cfasMapList, CFAFunctionDefinitionNode cfa, String fileName) throws IOException
+  private static class ShapePair {
+    private final int nodeNumber;
+    private final String shape;
+
+    private ShapePair(int nodeNo, String shape){
+      this.nodeNumber = nodeNo;
+      this.shape = shape;
+    }
+    
+    @Override
+    public String toString() {
+      return "node [shape = " + shape + "]; " + nodeNumber + ";"; 
+    }
+  }
+  
+  private static class DOTNodeShapeWriter extends ArrayList<ShapePair> {
+
+    private static final long serialVersionUID = -595748260228384806L;
+
+    public void add(int no, String shape){
+      add(new ShapePair(no, shape));
+    }
+    
+    public String getDot(){
+      return JOINER_ON_NEWLINE.join(this);
+    }
+    
+  }
+  
+  private static class DOTWriter extends ArrayList<String> {
+
+    private static final long serialVersionUID = -3086512411642445646L;
+
+    public String getSubGraph(){
+      return JOINER_ON_NEWLINE.join(this);
+    }
+  }
+  
+  public void generateDOT (Collection<CFAFunctionDefinitionNode> cfasMapList, CFAFunctionDefinitionNode cfa, File fileName) throws IOException
 	{
 		Map<String, DOTWriter> subGraphWriters = new HashMap<String, DOTWriter>();
 		DOTNodeShapeWriter nodeWriter = new DOTNodeShapeWriter();
 
-		DOTWriter dw = new DOTWriter("____Main____Diagram__");
-		subGraphWriters.put("____Main____Diagram__", dw);
+		DOTWriter dw = new DOTWriter();
+		subGraphWriters.put(MAIN_GRAPH, dw);
 
 		for(CFAFunctionDefinitionNode fnode:cfasMapList){
-			dw = new DOTWriter(fnode.getFunctionName());
+			dw = new DOTWriter();
 			subGraphWriters.put(fnode.getFunctionName(), dw);
 		}
 
-		PrintWriter writer = new PrintWriter (fileName);
-
 		generateDotHelper (subGraphWriters, nodeWriter, cfa);
 
+    PrintWriter writer = new PrintWriter(fileName);
 		writer.println ("digraph " + "CFA" + " {");
 
-		writer.print(nodeWriter.getDot());
-		writer.print("node [shape = circle];");
-		writer.println();
+		writer.println(nodeWriter.getDot());
+		writer.println("node [shape = circle];");
 
 		for(CFAFunctionDefinitionNode fnode:cfasMapList){
 			dw = subGraphWriters.get(fnode.getFunctionName());
@@ -86,7 +120,7 @@ public class DOTBuilder implements DOTBuilderInterface
 			writer.println ("}");
 		}
 
-		dw = subGraphWriters.get("____Main____Diagram__");
+		dw = subGraphWriters.get(MAIN_GRAPH);
 		writer.print(dw.getSubGraph());
 		writer.println ("}");
 		writer.close ();
@@ -145,7 +179,7 @@ public class DOTBuilder implements DOTBuilderInterface
 				DOTWriter dw;
 				if((edge instanceof FunctionCallEdge && !((FunctionCallEdge)edge).isExternalCall()) ||
 						edge instanceof ReturnEdge){
-					dw = subGraphWriters.get("____Main____Diagram__");
+					dw = subGraphWriters.get(MAIN_GRAPH);
 				}
 				else{
 					dw = subGraphWriters.get(node.getFunctionName());
