@@ -5,18 +5,20 @@ import java.util.Iterator;
 import java.util.Set;
 
 import compositeCPA.CompositeElement;
+import compositeCPA.CompositePrecision;
 
 import fql.backend.pathmonitor.Automaton;
 
 public class SingletonQuery extends AbstractQuery {
   Iterator<Waypoint> mIterator;
   
-  public static SingletonQuery create(CompositeElement pElement, Automaton pFirstAutomaton, Set<Integer> pStatesOfFirstAutomaton, Automaton pSecondAutomaton, Set<Integer> pStatesOfSecondAutomaton) {
+  public static SingletonQuery create(CompositeElement pElement, CompositePrecision pPrecision, Automaton pFirstAutomaton, Set<Integer> pStatesOfFirstAutomaton, Automaton pSecondAutomaton, Set<Integer> pStatesOfSecondAutomaton) {
     assert(pElement != null);
+    assert(pPrecision != null);
     
     SingletonQuery lQuery = new SingletonQuery(pFirstAutomaton, pSecondAutomaton);
     
-    Waypoint lWaypoint = new Waypoint(lQuery, pElement, pStatesOfFirstAutomaton, pStatesOfSecondAutomaton);
+    Waypoint lWaypoint = new Waypoint(lQuery, pElement, pPrecision, pStatesOfFirstAutomaton, pStatesOfSecondAutomaton);
     
     lQuery.mIterator = Collections.singleton(lWaypoint).iterator();
     

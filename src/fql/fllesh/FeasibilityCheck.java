@@ -8,6 +8,7 @@ import cfa.objectmodel.CFANode;
 
 import compositeCPA.CompositeCPA;
 import compositeCPA.CompositeElement;
+import compositeCPA.CompositePrecision;
 
 import cpa.alwaystop.AlwaysTopCPA;
 import cpa.alwaystop.AlwaysTopTopElement;
@@ -75,11 +76,11 @@ public class FeasibilityCheck {
     
     int lLastIndex = pAutomatonSequence.size() + 1;
     
-    // TODO: brauchen wir auch eine initial precision?
     
     CompositeElement lInitialElement = createInitialElement(pInitialState);
+    CompositePrecision lInitialPrecision = createInitialPrecision(pInitialState);
     Automaton lFirstAutomaton = pAutomatonSequence.getFirst();
-    Query lInitialQuery = SingletonQuery.create(lInitialElement, lFirstAutomaton, lFirstAutomaton.getInitialStates(), pPassingMonitor, pPassingMonitor.getInitialStates());
+    Query lInitialQuery = SingletonQuery.create(lInitialElement, lInitialPrecision, lFirstAutomaton, lFirstAutomaton.getInitialStates(), pPassingMonitor, pPassingMonitor.getInitialStates());
     lQueries.add(lInitialQuery);
     
     while (!lQueries.isEmpty()) {
@@ -115,7 +116,7 @@ public class FeasibilityCheck {
           
           Automaton lNextAutomaton = pAutomatonSequence.get(lQueryIndex);
           
-          Query lNextQuery = StandardQuery.create(lNextAutomaton, pPassingMonitor, lWaypoint.getElement(), lNextAutomaton.getInitialStates(), lWaypoint.getStatesOfSecondAutomaton(), lNextElement, lNextAutomaton.getFinalStates(), lFinalStates);
+          Query lNextQuery = StandardQuery.create(lNextAutomaton, pPassingMonitor, lWaypoint.getElement(), lWaypoint.getPrecision(), lNextAutomaton.getInitialStates(), lWaypoint.getStatesOfSecondAutomaton(), lNextElement, lNextAutomaton.getFinalStates(), lFinalStates);
           
           lQueries.addLast(lNextQuery);
         }
@@ -129,7 +130,20 @@ public class FeasibilityCheck {
     return new InfeasibilityWitness(lMaxIndex);
   }
   
-  private CompositeElement createInitialElement(Node pInitialNode) {
+  private CompositePrecision createInitialPrecision(Node pInitialNode) {
+    assert(pInitialNode != null);
+    
+    CFANode lInitialCFANode = pInitialNode.getCFANode();
+    
+    if (!(lInitialCFANode instanceof CFAFunctionDefinitionNode)) {
+      throw new UnsupportedOperationException();
+    }
+    
+    // TODO this cast is ugly
+    return (CompositePrecision)mCompositeCPA.getInitialPrecision((CFAFunctionDefinitionNode)lInitialCFANode);
+  }
+  
+  public static CompositeElement createInitialElement(Node pInitialNode) {
     assert(pInitialNode != null);
     
     if (!pInitialNode.getPredicates().isEmpty()) {
@@ -162,7 +176,7 @@ public class FeasibilityCheck {
     return lInitialCompositeElement;
   }
   
-  private CompositeElement createNextElement(Node pNextNode) {
+  public static CompositeElement createNextElement(Node pNextNode) {
     assert(pNextNode != null);
     
     if (!pNextNode.getPredicates().isEmpty()) {

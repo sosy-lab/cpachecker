@@ -2,14 +2,10 @@ package cpa.mustmay;
 
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cpa.alwaystop.AlwaysTopCPA;
-import cpa.common.interfaces.AbstractDomain;
-import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
-import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
 import cpa.common.interfaces.StopOperator;
-import cpa.common.interfaces.TransferRelation;
 import cpa.concrete.ConcreteAnalysisCPA;
 
 public class SimpleMustMayAnalysisCPA implements ConfigurableProgramAnalysis {
@@ -24,18 +20,18 @@ public class SimpleMustMayAnalysisCPA implements ConfigurableProgramAnalysis {
   }
   
   @Override
-  public AbstractElement getInitialElement(
+  public MustMayAnalysisElement getInitialElement(
       CFAFunctionDefinitionNode pNode) {
     return mMustMayAnalysisCPA.getInitialElement(pNode);
   }
 
   @Override
-  public AbstractDomain getAbstractDomain() {
+  public MustMayAnalysisDomain getAbstractDomain() {
     return mMustMayAnalysisCPA.getAbstractDomain();
   }
 
   @Override
-  public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
+  public MustMayAnalysisPrecision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
     return mMustMayAnalysisCPA.getInitialPrecision(pNode);
   }
 
@@ -55,7 +51,7 @@ public class SimpleMustMayAnalysisCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public TransferRelation getTransferRelation() {
+  public MustMayAnalysisTransferRelation getTransferRelation() {
     return mMustMayAnalysisCPA.getTransferRelation();
   }
 

@@ -64,6 +64,12 @@ public class Automaton {
     mNextFreeState = pNextFreeState;
   }
   
+  public Set<AutomatonEdge> getOutgoingEdges(Integer pState) {
+    assert(pState != null);
+    
+    return mTransitionRelation.outgoingEdgesOf(pState);
+  }
+  
   public Set<Integer> getInitialStates() {
     return mInitialStates;
   }

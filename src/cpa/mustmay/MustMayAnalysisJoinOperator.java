@@ -19,7 +19,7 @@ public class MustMayAnalysisJoinOperator implements JoinOperator {
   }
   
   @Override
-  public AbstractElement join(AbstractElement pElement1,
+  public MustMayAnalysisElement join(AbstractElement pElement1,
       AbstractElement pElement2) throws CPAException {
     assert(pElement1 != null);
     assert(pElement2 != null);

@@ -1,11 +1,14 @@
 package fql.fllesh;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
 
+import cfa.DOTBuilder;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cmdline.CPAMain;
 
@@ -19,6 +22,7 @@ import fql.backend.targetgraph.Node;
 import fql.backend.targetgraph.TargetGraph;
 import fql.backend.testgoals.CoverageSequence;
 import fql.backend.testgoals.TestGoal;
+import fql.fllesh.cpa.AddSelfLoop;
 import fql.fllesh.util.CPAchecker;
 import fql.fllesh.util.Cilly;
 import fql.frontend.ast.query.Query;
@@ -81,6 +85,16 @@ public class Main {
     for (Pair<Automaton, Set<? extends TestGoal>> lPair : lCoverageSequence) {
       lTargetSequence.add(lPair);
     }
+    
+    
+    // add self loops to CFA
+    AddSelfLoop.addSelfLoops(lMainFunction);
+    
+    
+    // TODO remove this output code
+    DOTBuilder dotBuilder = new DOTBuilder();
+    dotBuilder.generateDOT(lCPAchecker.getCFAMap().cfaMapIterator(), lMainFunction, new File("/tmp/mycfa.dot"));
+    
     
     Node lProgramEntry = new Node(lMainFunction);
     Node lProgramExit = new Node(lMainFunction.getExitNode());
