@@ -291,6 +291,10 @@ public class ReachedElements implements UnmodifiableReachedElements {
     return reached.size();
   }
   
+  public boolean isEmpty() {
+    return (size() == 0);
+  }
+  
   @Override
   public String toString() {   
     return reached.keySet().toString();

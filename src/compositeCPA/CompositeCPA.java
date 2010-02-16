@@ -119,6 +119,33 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
     return new CompositeCPA(compositeDomain, compositeTransfer, compositeMerge, compositeStop,
         compositePrecisionAdjustment, initialElement, initialPrecision, cpas);
   }
+  
+  public static CompositeCPA createNewCompositeCPA(List<ConfigurableProgramAnalysis> pCpas, CompositeElement pInitialElement, CompositePrecision pInitialPrecision) {
+    ImmutableList<ConfigurableProgramAnalysis> cpas = ImmutableList.copyOf(pCpas);
+
+    ImmutableList.Builder<AbstractDomain> domains = ImmutableList.builder();
+    ImmutableList.Builder<TransferRelation> transferRelations = ImmutableList.builder();
+    ImmutableList.Builder<MergeOperator> mergeOperators = ImmutableList.builder();
+    ImmutableList.Builder<StopOperator> stopOperators = ImmutableList.builder();
+    ImmutableList.Builder<PrecisionAdjustment> precisionAdjustments = ImmutableList.builder();
+
+    for (ConfigurableProgramAnalysis sp : cpas) {
+      domains.add(sp.getAbstractDomain());
+      transferRelations.add(sp.getTransferRelation());
+      mergeOperators.add(sp.getMergeOperator());
+      stopOperators.add(sp.getStopOperator());
+      precisionAdjustments.add(sp.getPrecisionAdjustment());
+    }
+
+    CompositeDomain compositeDomain = new CompositeDomain(domains.build());
+    CompositeTransferRelation compositeTransfer = new CompositeTransferRelation(transferRelations.build());
+    CompositeMergeOperator compositeMerge = new CompositeMergeOperator(mergeOperators.build());
+    CompositeStopOperator compositeStop = new CompositeStopOperator(compositeDomain, stopOperators.build());
+    CompositePrecisionAdjustment compositePrecisionAdjustment = new CompositePrecisionAdjustment(precisionAdjustments.build());
+    
+    return new CompositeCPA(compositeDomain, compositeTransfer, compositeMerge, compositeStop,
+        compositePrecisionAdjustment, pInitialElement, pInitialPrecision, cpas);
+  }
 
   @SuppressWarnings("unchecked")
   public static ConfigurableProgramAnalysis getCompositeCPA (CFAFunctionDefinitionNode node) throws CPAException
