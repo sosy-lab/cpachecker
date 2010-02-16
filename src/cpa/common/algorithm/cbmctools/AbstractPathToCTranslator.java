@@ -44,6 +44,7 @@ import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
 import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
 
 import cfa.CFAMap;
+import cfa.objectmodel.BlankEdge;
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAErrorNode;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
@@ -64,13 +65,12 @@ import cpa.art.ARTElement;
  *
  */
 public class AbstractPathToCTranslator {
-  
+
   private static List<String> mGlobalDefinitionsList = new ArrayList<String>();
   private static List<String> mFunctionDecls = null;
   private static int mFunctionIndex = 0;
 
   public static String translatePaths(CFAMap pCfas, List<ARTElement> elementsOnErrorPath) {
-
     String ret = "";
     // Add the original function declarations to enable read-only use of function pointers;
     // there will be no code for these functions, so they can never be called via the function
@@ -95,10 +95,10 @@ public class AbstractPathToCTranslator {
       }
 
       lOriginalFunctionDecl += ");";
-      
+
       mFunctionDecls.add(lOriginalFunctionDecl);
     }
-    
+
     List<StringBuffer> lTranslation = translatePath(elementsOnErrorPath);
 
     if (mFunctionDecls != null) {
@@ -106,11 +106,11 @@ public class AbstractPathToCTranslator {
         mGlobalDefinitionsList.add(decl);
       }
     }
-    
+
     for (String lGlobalString : mGlobalDefinitionsList) {
       ret = ret + lGlobalString + "\n";
     }
-    
+
     for (StringBuffer lProgramString : lTranslation) {
       ret = ret + lProgramString + "\n";
     }
@@ -161,11 +161,11 @@ public class AbstractPathToCTranslator {
 
   public static List<StringBuffer> translatePath(List<ARTElement> pElementsOnPath){
 
-//    ARTElement parentElement;
+//  ARTElement parentElement;
     ARTElement childElement;
     CFAEdge edge;
     Stack<Stack<CBMCStackElement>> stack;
-    
+
     // waitlist for the edges to be processed
     List<CBMCEdge> waitlist = new ArrayList<CBMCEdge>();
     // map of nodes to check end of a condition
@@ -184,7 +184,7 @@ public class AbstractPathToCTranslator {
     CBMCStackElement firstStackElement = new CBMCStackElement(firstElement.getElementId(), 
         startFunction(mFunctionIndex++, firstElement.retrieveLocationElement().getLocationNode()));
     functions.add(firstStackElement);
-    
+
     Stack<Stack<CBMCStackElement>> newStack = new Stack<Stack<CBMCStackElement>>();
     Stack<CBMCStackElement> newElementsStack = new Stack<CBMCStackElement>();
     newElementsStack.add(firstStackElement);
@@ -196,15 +196,14 @@ public class AbstractPathToCTranslator {
     waitlist.add(firstEdge);
 
     while(waitlist.size() > 0){
-      
       // we need to sort the list based on art element id because we have to process
       // the edges in topological sort
       Collections.sort(waitlist);
-      
+
       // get the first element in the list (this is the smallest element when topologically sorted)
       CBMCEdge nextCBMCEdge = waitlist.remove(0);
-      
-//      parentElement = nextCBMCEdge.getParentElement();
+
+//    parentElement = nextCBMCEdge.getParentElement();
       childElement = nextCBMCEdge.getChildElement();
       edge = nextCBMCEdge.getEdge();
       stack = nextCBMCEdge.getStack();
@@ -212,13 +211,18 @@ public class AbstractPathToCTranslator {
       // clone stack to have a different representation of the function calls and conditions 
       // every element
       stack = cloneStack(stack);
-      
+
       // how many parents does the child have?
       int sizeOfChildsParents = childElement.getParents().size();
 
       // if there is only one child this is not the end of the condition
       if(sizeOfChildsParents == 1){
         CBMCStackElement lastStackElement = stack.peek().peek();
+
+        if(edge instanceof BlankEdge){
+          lastStackElement.write(new CBMCLabelElement(((BlankEdge)edge).getRawStatement(), childElement));
+        }
+
         // if this is a function call edge we need to create a new element and push
         // it to the topmost stack to represent the function
         if(edge instanceof FunctionCallEdge){
@@ -240,11 +244,11 @@ public class AbstractPathToCTranslator {
         }
         else if(edge.getSuccessor() instanceof CFAErrorNode){
           lastStackElement.write("assert(0); // error location ");
-//          lastStackElement.write("}");
-          
+//        lastStackElement.write("}");
+
           while(stack.size() > 0){
             CBMCStackElement stackElem = stack.pop().firstElement();
-              stackElem.write("}");
+            stackElem.write("}");
           }
         }
         else{
@@ -254,6 +258,18 @@ public class AbstractPathToCTranslator {
 
       // this is the end of the condition, determine whether we should continue or backtrack
       else if(sizeOfChildsParents > 1){
+        if(edge instanceof BlankEdge){
+          CBMCStackElement lastStackElement = stack.peek().peek();
+//          if(((BlankEdge)edge).getRawStatement().contains("Label:")){
+//            System.out.println(((BlankEdge)edge).getRawStatement());
+//            System.out.println(stack.peek().size());
+//            lastStackElement = stack.peek().get(stack.peek().size()-2);
+//            lastStackElement.write(new CBMCLabelElement(((BlankEdge)edge).getRawStatement(), childElement));
+//          }
+//          else{
+            lastStackElement.write(new CBMCLabelElement(((BlankEdge)edge).getRawStatement(), childElement));
+//          }
+        }
         int elemId = childElement.getElementId();
         // get the merge node for that node
         CBMCMergeNode mergeNode = mergeNodes.get(elemId);
@@ -282,8 +298,6 @@ public class AbstractPathToCTranslator {
             if(setOfEndedBranches.contains(idOfElem)){
               // remove the condition from the stack
               stack.peek().pop();
-              // close the bracket
-//              elem.write("}");
             }
             else{
               break;
@@ -324,6 +338,8 @@ public class AbstractPathToCTranslator {
       // if there are more than one relevant child, then this is a condition
       // we need to update the stack
       else if(relevantChildrenOfElement.size() > 1){
+        assert(relevantChildrenOfElement.size() == 2);
+        int ind = 0;
         for(ARTElement elem: relevantChildrenOfElement){
           Stack<Stack<CBMCStackElement>> newCondStack = cloneStack(stack);  
           CFAEdge e = childElement.getEdgeToChild(elem);
@@ -332,39 +348,52 @@ public class AbstractPathToCTranslator {
           AssumeEdge assumeEdge = (AssumeEdge)e;
           // create a new
           CBMCStackElement newStackElement = new CBMCStackElement(childElement.getElementId(), assumeEdge);
-          
+
           boolean truthAssumption = assumeEdge.getTruthAssumption();
-          
-          if(truthAssumption){
-            lastStackOfFunction.peek().write("if(" + assumeEdge.getExpression().getRawSignature() + ") {");
-            lastStackOfFunction.peek().write(newStackElement);
-            lastStackOfFunction.peek().write(";;;}");
+
+          String cond = "";
+
+          if(ind == 0){
+            cond = "if";
+          }
+          else if(ind == 1){
+            cond = "else if";
           }
           else{
-            lastStackOfFunction.peek().write("if(!(" + assumeEdge.getExpression().getRawSignature() + ")) {");
-            lastStackOfFunction.peek().write(newStackElement);
-            lastStackOfFunction.peek().write(";;;}");
+            assert(false);
           }
-          
+          ind++;
+
+          if(truthAssumption){
+            lastStackOfFunction.peek().write(cond + "(" + assumeEdge.getExpression().getRawSignature() + ") {");
+            lastStackOfFunction.peek().write(newStackElement);
+            lastStackOfFunction.peek().write("}");
+          }
+          else{
+            lastStackOfFunction.peek().write(cond + "(!(" + assumeEdge.getExpression().getRawSignature() + ")) {");
+            lastStackOfFunction.peek().write(newStackElement);
+            lastStackOfFunction.peek().write("}");
+          }
+
           lastStackOfFunction.push(newStackElement);
           CBMCEdge newEdge = new CBMCEdge(childElement, elem, e, newCondStack);
           waitlist.add(newEdge);
         }
       }
     }
-    
+
     List<StringBuffer> retList = new ArrayList<StringBuffer>();
-    
+
     for(CBMCStackElement stackElem: functions){
       retList.add(stackElem.getCode());
     }
-    
+
     return retList;
   }
 
 
   private static String processSimpleEdge(CFAEdge pCFAEdge){
-    
+
     switch (pCFAEdge.getEdgeType()) {
     case BlankEdge: {
       //          nothing to do
@@ -404,7 +433,7 @@ public class AbstractPathToCTranslator {
     }
     case DeclarationEdge: {
       DeclarationEdge lDeclarationEdge = (DeclarationEdge)pCFAEdge;
-      
+
       if (lDeclarationEdge instanceof cfa.objectmodel.c.GlobalDeclarationEdge) {
         mGlobalDefinitionsList.add(lDeclarationEdge.getRawStatement());
       }
@@ -426,7 +455,7 @@ lProgramText.println(lDeclarationEdge.getDeclSpecifier().getRawSignature() + " "
       MultiStatementEdge lMultiStatementEdge = (MultiStatementEdge)pCFAEdge;
 
       String ret = "";
-      
+
       for (IASTExpression lExpression : lMultiStatementEdge.getExpressions()) {
         ret = ret + (lExpression.getRawSignature() + ";");
       }
@@ -498,7 +527,7 @@ lProgramText.println(lDeclarationEdge.getDeclSpecifier().getRawSignature() + " "
       return(lFunctionName + "_" + mFunctionIndex + lArgumentString + ";");
     }
   }
-  
+
   public static String startFunction(int pFunctionIndex, CFANode pNode) {
     assert(pNode != null);
     assert(pNode instanceof FunctionDefinitionNode);

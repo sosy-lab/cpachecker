@@ -57,6 +57,9 @@ public class CBMCStackElement {
         ret.append((String)obj);
         ret.append("\n");
       }
+      else if(obj instanceof CBMCLabelElement){
+        ret.append(((CBMCLabelElement)obj).getCode());
+      }
       else if(obj instanceof CBMCStackElement){
         ret.append(((CBMCStackElement)obj).getCode());
         ret.append("\n");
