@@ -51,7 +51,6 @@ import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
-import cpa.transferrelationmonitor.TransferRelationMonitorElement;
 import exceptions.CPATransferException;
 
 /**
@@ -67,9 +66,9 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
   private final AbstractElement wrappedBottom;
   
   // variables for monitoring execution of a single transfer
-  private TransferCallable tc = new TransferCallable();
-  private long timeLimit = 0;
-  private long timeLimitForPath = 0;
+  private final TransferCallable tc;
+  private final long timeLimit;
+  private final long timeLimitForPath;
 
   public AssumptionCollectorTransferRelation(AssumptionCollectorCPA cpa)
   {
@@ -79,6 +78,7 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
     reportingVisitor = new AssumptionAndForceStopReportingVisitor();
     manager = cpa.getSymbolicFormulaManager();
     // time limit is given in milliseconds
+    tc = new TransferCallable();
     timeLimit = Integer.parseInt(CPAchecker.config.getPropertiesArray
         ("trackabstractioncomputation.limit")[0]);
     timeLimitForPath = Integer.parseInt(CPAchecker.config.getPropertiesArray
@@ -96,9 +96,9 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
     if (element.isStop())
       return Collections.emptySet();
     
-    long timeOfExecution = 0;
     long start = 0;
     long end = 0;
+    long previousTotalTimeOnThePath = element.getTotalTimeOnThePath();
     
     Collection<? extends AbstractElement> wrappedSuccessors = null;
     AbstractElement wrappedElement = element.getWrappedElements().iterator().next();
@@ -109,6 +109,7 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
     
     // Compute the inner-successor
     Future<Collection<? extends AbstractElement>> future = CEGARAlgorithm.executor.submit(tc);
+    boolean failed = false;
     try{
       start = System.currentTimeMillis();
       if(timeLimit == 0){
@@ -122,12 +123,31 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
       }
       end = System.currentTimeMillis();
     } catch (TimeoutException exc){
-      // we should return something here I think such as bottom
-      return ??;
+      failed = true;
     } catch (InterruptedException exc) {
       exc.printStackTrace();
+      failed = true;
     } catch (ExecutionException exc) {
       exc.printStackTrace();
+      failed = true;
+    }
+    
+    // check whether the path execution time is above
+    // the threshold
+    long timeOfExecution = end - start;
+      
+    if (!failed && (timeLimitForPath > 0) && (previousTotalTimeOnThePath + timeOfExecution > timeLimitForPath)) {
+      
+      failed = true;
+    }
+    
+    
+    if (failed) {
+      // return stop + assumption to avoid re-computing the state
+      SymbolicFormula reportedFormula = ReportingUtils.extractReportedFormulas(manager, wrappedElement);
+      AssumptionWithLocation dataAssumption = (new Assumption(manager.makeNot(reportedFormula),false)).atLocation(pCfaEdge.getPredecessor());
+      AssumptionCollectorElement successor = new AssumptionCollectorElement(wrappedBottom, dataAssumption, true, timeLimit, previousTotalTimeOnThePath);
+      return Collections.singletonList(successor);
     }
     
     if (wrappedSuccessors.isEmpty())
@@ -144,13 +164,13 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
       boolean forceStop = pair.getSecond();
       if (forceStop) {
         SymbolicFormula reportedFormula = ReportingUtils.extractReportedFormulas(manager, wrappedElement);
-        AssumptionWithLocation dataAssumption = (new Assumption(reportedFormula,false)).atLocation(pCfaEdge.getPredecessor());
+        AssumptionWithLocation dataAssumption = (new Assumption(manager.makeNot(reportedFormula),false)).atLocation(pCfaEdge.getPredecessor());
         assumption = assumption.and(dataAssumption);
       }
       
-      boolean isBottom = forceStop || wrappedBottom.equals(wrappedSuccessor); 
+      boolean isBottom = forceStop || wrappedBottom.equals(wrappedSuccessor);
 
-      successors.add(new AssumptionCollectorElement(wrappedSuccessor, assumption, isBottom));
+      successors.add(new AssumptionCollectorElement(wrappedSuccessor, assumption, isBottom, timeOfExecution, previousTotalTimeOnThePath));
     }
     return successors;
   }
@@ -161,26 +181,26 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
   {
     // TODO copied this from monitoringCPA to be tested -- we need the strengthening for 
     // error location analysis
-    
-    TransferRelationMonitorElement monitorElement = (TransferRelationMonitorElement)el;
-    AbstractElement wrappedElement = monitorElement.getWrappedElements().iterator().next();
-    List<AbstractElement> retList = new ArrayList<AbstractElement>();
+    AssumptionCollectorElement collectorElement = (AssumptionCollectorElement)el;    
+    AbstractElement wrappedElement = collectorElement.getWrappedElement();
     
     try {
        Collection<? extends AbstractElement> wrappedList = wrappedTransfer.strengthen(wrappedElement, others, edge, p);
        // if the returned list is null return null
        if(wrappedList == null)
          return null;
-    // TODO we assume that only one element is returned or empty set to represent bottom
-       assert(wrappedList.size() < 2);
+
        // if bottom return empty list
        if(wrappedList.size() == 0){
-         return retList;
+         return Collections.emptyList();
        }
-       
-       AbstractElement wrappedReturnElement = wrappedList.iterator().next();
-       // fix this
-       retList.add(new AssumptionCollectorElement(????));
+
+       ArrayList<AssumptionCollectorElement> retList = new ArrayList<AssumptionCollectorElement>(wrappedList.size());
+       AssumptionWithLocation assumption = collectorElement.getCollectedAssumptions();
+       boolean stop = collectorElement.isStop(); 
+       long totalTimeOnThePath = collectorElement.getTotalTimeOnThePath();
+       for (AbstractElement wrappedReturnElement : wrappedList)
+         retList.add(new AssumptionCollectorElement(wrappedReturnElement, assumption, stop, 0, totalTimeOnThePath));
        return retList;
     } catch (CPATransferException e) {
       e.printStackTrace();

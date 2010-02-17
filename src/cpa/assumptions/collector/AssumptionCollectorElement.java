@@ -41,17 +41,27 @@ public class AssumptionCollectorElement implements AbstractElement, AbstractWrap
   private final AssumptionWithLocation assumption;
   private final boolean stop;
   private final AbstractElement element;
+  private final long timeOfTranferToComputeElement;
+  private final long totalTimeOnThePath;
+  
+  private static long maxTimeOfTransfer = 0;
  
-  public AssumptionCollectorElement(AbstractElement wrappedElement, AssumptionWithLocation f, boolean forceStop)
+  public AssumptionCollectorElement(AbstractElement wrappedElement, AssumptionWithLocation f,
+      boolean forceStop, long timeToCompute, long previousTimeOnPath)
   {
     element = wrappedElement;
     assumption = f;
     stop = forceStop;
+    timeOfTranferToComputeElement = timeToCompute;
+    if (timeOfTranferToComputeElement > maxTimeOfTransfer)
+      maxTimeOfTransfer = timeOfTranferToComputeElement;
+    totalTimeOnThePath = previousTimeOnPath + timeToCompute;
   }
   
-  public AssumptionCollectorElement(AbstractElement wrappedElement, AssumptionWithLocation f)
+  public AssumptionCollectorElement(AbstractElement wrappedElement, AssumptionWithLocation f,
+      long timeToCompute, long previousTimeOnPath)
   {
-    this(wrappedElement, f, false);
+    this(wrappedElement, f, false, timeToCompute, previousTimeOnPath);
   }
   
   /**
@@ -119,6 +129,18 @@ public class AssumptionCollectorElement implements AbstractElement, AbstractWrap
   
   public boolean isStop() {
     return stop;
+  }
+
+  public long getTimeOfTranferToComputeElement() {
+    return timeOfTranferToComputeElement;
+  }
+
+  public long getTotalTimeOnThePath() {
+    return totalTimeOnThePath;
+  }
+  
+  public static long getMaxTimeOfTransfer() {
+    return maxTimeOfTransfer;
   }
   
   @Override

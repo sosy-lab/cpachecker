@@ -23,6 +23,8 @@
  */
 package cpa.assumptions.collector;
 
+import assumptions.AssumptionWithLocation;
+
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import common.Pair;
@@ -70,10 +72,15 @@ public class AssumptionCollectorPrecisionAdjustment
     Pair<AbstractElement, Precision> unwrappedResult = wrappedPrecisionAdjustment.prec(unwrappedElement, precision, unwrappedReached);
     
     AbstractElement resultElement;
-    if (unwrappedElement != unwrappedResult.getFirst())
-      resultElement = new AssumptionCollectorElement(unwrappedElement, assumptionElement.getCollectedAssumptions());
-    else
+    if (unwrappedElement != unwrappedResult.getFirst()) {
+      AssumptionWithLocation assumption = assumptionElement.getCollectedAssumptions();
+      boolean stop = assumptionElement.isStop();
+      // TODO Do we want to add time to compute 'prec' to path total time?
+      long totalTimeAlongPath = assumptionElement.getTotalTimeOnThePath();
+      resultElement = new AssumptionCollectorElement(unwrappedElement, assumption, stop, 0, totalTimeAlongPath);
+    } else {
       resultElement = element;
+    }
     return new Pair<AbstractElement, Precision>(resultElement, unwrappedResult.getSecond());
   }
 
