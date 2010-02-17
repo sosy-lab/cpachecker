@@ -90,19 +90,19 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
         // run the inner algorithm to fill the reached set
         innerAlgorithm.run(reached, stopAfterError);
       } catch (RefinementFailedException failedRefinement) {
-        CPAchecker.logger.log(Level.ALL, "Dumping assumptions due to: " + failedRefinement.toString());
+        CPAchecker.logger.log(Level.FINER, "Dumping assumptions due to: " + failedRefinement.toString());
         addAssumptionsForFailedRefinement(resultAssumption, failedRefinement);
       } catch (TransferTimeOutException failedTransfer) {
-        CPAchecker.logger.log(Level.ALL, "Dumping assumptions due to: " + failedTransfer.toString());
+        CPAchecker.logger.log(Level.FINER, "Dumping assumptions due to: " + failedTransfer.toString());
         addAssumptionsForFailedTransfer(resultAssumption, failedTransfer);
         restartCPA = true;
       } catch (CPAException e) {
-        CPAchecker.logger.log(Level.ALL, "Dumping assumptions due to: " + e.toString());
+        CPAchecker.logger.log(Level.FINER, "Dumping assumptions due to: " + e.toString());
       }
     } while (restartCPA);
       
     // collect and dump all assumptions stored in abstract states
-    CPAchecker.logger.log(Level.FINEST, "Dumping assumptions resulting from tool assumptions");
+    CPAchecker.logger.log(Level.FINER, "Dumping assumptions resulting from tool assumptions");
     for (AbstractElement element : reached) {      
       AssumptionWithLocation assumption = extractAssumption(element);
       
@@ -112,7 +112,7 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
     // dump invariants to prevent going further with nodes in
     // the waitlist
     if (reached.hasWaitingElement()) {
-      CPAchecker.logger.log(Level.FINEST, "Dumping assumptions resulting from unprocessed elements");
+      CPAchecker.logger.log(Level.FINER, "Dumping assumptions resulting from unprocessed elements");
       addAssumptionsForWaitlist(resultAssumption, reached.getWaitlist());
     }
     
