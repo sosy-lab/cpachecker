@@ -43,7 +43,6 @@ import org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
 import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
 
-import cfa.CFAMap;
 import cfa.objectmodel.BlankEdge;
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAErrorNode;
@@ -70,14 +69,14 @@ public class AbstractPathToCTranslator {
   private static List<String> mFunctionDecls = null;
   private static int mFunctionIndex = 0;
 
-  public static String translatePaths(CFAMap pCfas, List<ARTElement> elementsOnErrorPath) {
+  public static String translatePaths(Map<String, CFAFunctionDefinitionNode> pCfas, List<ARTElement> elementsOnErrorPath) {
     String ret = "";
     // Add the original function declarations to enable read-only use of function pointers;
     // there will be no code for these functions, so they can never be called via the function
     // pointer properly; a real solution requires function pointer support within the CPA
     // providing location/successor information
     mFunctionDecls = new ArrayList<String>();
-    for (CFAFunctionDefinitionNode node : pCfas.cfaMapIterator()) {
+    for (CFAFunctionDefinitionNode node : pCfas.values()) {
       FunctionDefinitionNode lFunctionDefinitionNode = (FunctionDefinitionNode)node;
       String lOriginalFunctionDecl = lFunctionDefinitionNode.getFunctionDefinition().getDeclSpecifier().getRawSignature() + " " + node.getFunctionName() + "(";
 

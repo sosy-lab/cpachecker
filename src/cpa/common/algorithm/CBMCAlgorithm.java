@@ -26,8 +26,9 @@ package cpa.common.algorithm;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
-import cfa.CFAMap;
+import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cpa.art.ARTCPA;
 import cpa.art.ARTElement;
 import cpa.common.ReachedElements;
@@ -40,10 +41,10 @@ import exceptions.CPAException;
 
 public class CBMCAlgorithm implements Algorithm, StatisticsProvider {
 
-  private final CFAMap cfa;
+  private final Map<String, CFAFunctionDefinitionNode> cfa;
   private final Algorithm algorithm;
 
-  public CBMCAlgorithm(CFAMap cfa, Algorithm algorithm) throws CPAException {
+  public CBMCAlgorithm(Map<String, CFAFunctionDefinitionNode> cfa, Algorithm algorithm) throws CPAException {
     this.cfa = cfa;
     this.algorithm = algorithm;
 

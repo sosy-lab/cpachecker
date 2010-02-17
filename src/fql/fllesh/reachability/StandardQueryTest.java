@@ -1,8 +1,5 @@
 package fql.fllesh.reachability;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.LinkedList;
@@ -81,7 +78,7 @@ public class StandardQueryTest {
     
     // TODO remove this output code
     DOTBuilder dotBuilder = new DOTBuilder();
-    dotBuilder.generateDOT(lCPAchecker.getCFAMap().cfaMapIterator(), lMainFunction, new File("/tmp/mycfa.dot"));
+    dotBuilder.generateDOT(lCPAchecker.getCFAMap().values(), lMainFunction, new File("/tmp/mycfa.dot"));
     
     
     Node lProgramEntry = new Node(lMainFunction);

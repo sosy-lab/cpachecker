@@ -81,7 +81,7 @@ public class SingletonQueryTest {
     
     // TODO remove this output code
     DOTBuilder dotBuilder = new DOTBuilder();
-    dotBuilder.generateDOT(lCPAchecker.getCFAMap().cfaMapIterator(), lMainFunction, new File("/tmp/mycfa.dot"));
+    dotBuilder.generateDOT(lCPAchecker.getCFAMap().values(), lMainFunction, new File("/tmp/mycfa.dot"));
     
     
     Node lProgramEntry = new Node(lMainFunction);

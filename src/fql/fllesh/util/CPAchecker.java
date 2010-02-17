@@ -1,10 +1,10 @@
 package fql.fllesh.util;
 
+import java.util.Map;
 import java.util.logging.Level;
 
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 
-import cfa.CFAMap;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cmdline.stubs.StubFile;
 
@@ -15,7 +15,7 @@ import cpa.common.LogManager;
 
 // TODO: where is the right place to collect statistics?
 public class CPAchecker extends cpa.common.CPAchecker {
-  private CFAMap mCFAMap;
+  private Map<String, CFAFunctionDefinitionNode> mCFAMap;
   private CFAFunctionDefinitionNode mMainFunction;
   
   public CPAchecker(CPAConfiguration pConfiguration, LogManager pLogManager) {
@@ -40,13 +40,13 @@ public class CPAchecker extends cpa.common.CPAchecker {
     // parse code file
     IASTTranslationUnit lAst = super.parse(lSourceFile);
     
-    Pair<CFAMap, CFAFunctionDefinitionNode> lCFA = super.createCFA(lAst);
+    Pair<Map<String, CFAFunctionDefinitionNode>, CFAFunctionDefinitionNode> lCFA = super.createCFA(lAst);
     
     mCFAMap = lCFA.getFirst();
     mMainFunction = lCFA.getSecond();
   }
   
-  public CFAMap getCFAMap() {
+  public Map<String, CFAFunctionDefinitionNode> getCFAMap() {
     return mCFAMap;
   }
   

@@ -1,12 +1,10 @@
 package fql.fllesh;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-import java.util.logging.Level;
 
 import cfa.DOTBuilder;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
@@ -93,7 +91,7 @@ public class Main {
     
     // TODO remove this output code
     DOTBuilder dotBuilder = new DOTBuilder();
-    dotBuilder.generateDOT(lCPAchecker.getCFAMap().cfaMapIterator(), lMainFunction, new File("/tmp/mycfa.dot"));
+    dotBuilder.generateDOT(lCPAchecker.getCFAMap().values(), lMainFunction, new File("/tmp/mycfa.dot"));
     
     
     Node lProgramEntry = new Node(lMainFunction);

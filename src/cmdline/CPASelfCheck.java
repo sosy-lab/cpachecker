@@ -44,12 +44,11 @@ import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.core.resources.IFile;
 
 import cfa.CFABuilder;
-import cfa.CFAMap;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cmdline.CPAMain.InvalidCmdlineArgumentException;
 import cmdline.stubs.StubFile;
-import cpa.common.CPAchecker;
 import cpa.common.CPAConfiguration;
+import cpa.common.CPAchecker;
 import cpa.common.LogManager;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
@@ -160,8 +159,8 @@ public class CPASelfCheck {
     // TODO use the methods from CPAMain for this?
     CFABuilder builder = new CFABuilder();
     ast.accept(builder);
-    CFAMap cfas = builder.getCFAs();
-    return cfas.getCFA("main");
+    Map<String, CFAFunctionDefinitionNode> cfas = builder.getCFAs();
+    return cfas.get("main");
   }
 
   private static ConfigurableProgramAnalysis tryToInstantiate(Class<ConfigurableProgramAnalysis> pCpa) throws NoSuchMethodException, IllegalArgumentException, InstantiationException, IllegalAccessException, InvocationTargetException {

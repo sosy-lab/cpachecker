@@ -60,13 +60,12 @@ import org.eclipse.cdt.core.dom.ast.IASTWhileStatement;
 import cfa.objectmodel.BlankEdge;
 import cfa.objectmodel.CFAErrorNode;
 import cfa.objectmodel.CFAExitNode;
+import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cfa.objectmodel.CFANode;
 import cfa.objectmodel.c.AssumeEdge;
 import cfa.objectmodel.c.DeclarationEdge;
 import cfa.objectmodel.c.FunctionDefinitionNode;
 import cfa.objectmodel.c.StatementEdge;
-
-import cfa.CFAMap;
 import exceptions.CFAGenerationRuntimeException;
 
 /**
@@ -92,7 +91,7 @@ public class CFABuilder extends ASTVisitor
 	private Map<String, List<CFANode>> gotoLabelNeeded;
 
 	// Data structures for handling function declarations
-	private CFAMap cfas;
+	private Map<String, CFAFunctionDefinitionNode> cfas;
 	private CFAExitNode returnNode;
 
 	// Data structure for storing global declarations
@@ -123,7 +122,7 @@ public class CFABuilder extends ASTVisitor
 		labelMap = new HashMap<String, CFANode> ();
 		gotoLabelNeeded = new HashMap<String, List<CFANode>> ();
 
-		cfas = new CFAMap ();
+		cfas = new HashMap<String, CFAFunctionDefinitionNode>();
 		returnNode = null;
 
 		globalDeclarations = new ArrayList<IASTDeclaration> ();
@@ -133,8 +132,7 @@ public class CFABuilder extends ASTVisitor
 	 * Retrieves list of all functions
 	 * @return all CFAs in the program
 	 */
-	public CFAMap getCFAs ()
-	{
+	public Map<String, CFAFunctionDefinitionNode> getCFAs()	{
 		return cfas;
 	}
 
@@ -197,7 +195,7 @@ public class CFABuilder extends ASTVisitor
 			dummyEdge.initialize(newCFA, functionStartDummyNode);
 			
 			locStack.add (functionStartDummyNode);
-			cfas.addCFA(nameOfFunction, newCFA);
+			cfas.put(nameOfFunction, newCFA);
 
 			returnNode = new CFAExitNode (fileloc.getEndingLineNumber (), nameOfFunction);
 			newCFA.setExitNode(returnNode);

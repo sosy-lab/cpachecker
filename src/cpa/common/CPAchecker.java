@@ -26,9 +26,9 @@ package cpa.common;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 
 import org.eclipse.cdt.core.dom.IASTServiceProvider;
@@ -42,7 +42,6 @@ import org.eclipse.core.resources.IFile;
 
 import cfa.CFABuilder;
 import cfa.CFACheck;
-import cfa.CFAMap;
 import cfa.CFAReduction;
 import cfa.CFASimplifier;
 import cfa.CFATopologicalSort;
@@ -55,6 +54,7 @@ import cfa.objectmodel.CFANode;
 import cfa.objectmodel.c.GlobalDeclarationEdge;
 import cmdline.stubs.StubConfiguration;
 
+import com.google.common.collect.ImmutableMap;
 import common.Pair;
 import compositeCPA.CompositeCPA;
 
@@ -166,8 +166,8 @@ public class CPAchecker {
     stats.startProgramTimer();
 
     // create CFA
-    Pair<CFAMap, CFAFunctionDefinitionNode> cfa = createCFA(ast);
-    CFAMap cfas = cfa.getFirst();
+    Pair<Map<String, CFAFunctionDefinitionNode>, CFAFunctionDefinitionNode> cfa = createCFA(ast);
+    Map<String, CFAFunctionDefinitionNode> cfas = cfa.getFirst();
     CFAFunctionDefinitionNode mainFunction = cfa.getSecond();
     
     try {
@@ -265,12 +265,11 @@ public class CPAchecker {
    * @param cfas
    * @return
    */
-  private CFAFunctionDefinitionNode initCFA(final CFABuilder builder, final CFAMap cfas)
+  private CFAFunctionDefinitionNode initCFA(final CFABuilder builder, final Map<String, CFAFunctionDefinitionNode> cfas)
   {
-    final Collection<CFAFunctionDefinitionNode> cfasList = cfas.cfaMapIterator();
     String mainFunctionName = CPAchecker.config.getProperty("analysis.entryFunction", "main");
     
-    CFAFunctionDefinitionNode mainFunction = cfas.getCFA(mainFunctionName);
+    CFAFunctionDefinitionNode mainFunction = cfas.get(mainFunctionName);
     
     if (mainFunction == null) {
       logger.log(Level.SEVERE, "Function", mainFunctionName, "not found!");
@@ -293,7 +292,7 @@ public class CPAchecker {
       boolean noExtCalls = CPAchecker.config.getBooleanValue("analysis.noExternalCalls");
       CPASecondPassBuilder spbuilder = new CPASecondPassBuilder(cfas, noExtCalls);
       
-      for (CFAFunctionDefinitionNode cfa : cfasList) {
+      for (CFAFunctionDefinitionNode cfa : cfas.values()) {
         spbuilder.insertCallEdges(cfa.getFunctionName());
       }
     }
@@ -309,7 +308,7 @@ public class CPAchecker {
   }
   
   
-  protected Pair<CFAMap, CFAFunctionDefinitionNode> createCFA(IASTTranslationUnit ast) {
+  protected Pair<Map<String, CFAFunctionDefinitionNode>, CFAFunctionDefinitionNode> createCFA(IASTTranslationUnit ast) {
 
     // Build CFA
     final CFABuilder builder = new CFABuilder();
@@ -321,11 +320,10 @@ public class CPAchecker {
       logger.log(Level.SEVERE, e.getMessage());
       System.exit(0);
     }
-    final CFAMap cfas = builder.getCFAs();
-    final Collection<CFAFunctionDefinitionNode> cfasList = cfas.cfaMapIterator();
+    final Map<String, CFAFunctionDefinitionNode> cfas = builder.getCFAs();
     
     // annotate CFA nodes with topological information for later use
-    for(CFAFunctionDefinitionNode cfa : cfasList){
+    for(CFAFunctionDefinitionNode cfa : cfas.values()){
       CFATopologicalSort topSort = new CFATopologicalSort();
       topSort.topologicalSort(cfa);
     }
@@ -371,7 +369,7 @@ public class CPAchecker {
                               CPAchecker.config.getProperty("cfa.file", "cfa.dot"));
       
       try {
-        dotBuilder.generateDOT(cfasList, mainFunction, cfaFile);
+        dotBuilder.generateDOT(cfas.values(), mainFunction, cfaFile);
       } catch (IOException e) {
         logger.log(Level.WARNING,
           "Could not write CFA to dot file, check configuration option cfa.file! (",
@@ -382,7 +380,8 @@ public class CPAchecker {
     
     logger.log(Level.FINE, "DONE, CFA for", cfas.size(), "functions created");
 
-    return new Pair<CFAMap, CFAFunctionDefinitionNode>(cfas, mainFunction);
+    return new Pair<Map<String, CFAFunctionDefinitionNode>, CFAFunctionDefinitionNode>(
+        ImmutableMap.copyOf(cfas), mainFunction);
   }
 
   /**
@@ -492,7 +491,7 @@ public class CPAchecker {
     return cpa;
   }
   
-  private Algorithm createAlgorithm(final CFAMap cfas,
+  private Algorithm createAlgorithm(final Map<String, CFAFunctionDefinitionNode> cfas,
       final ConfigurableProgramAnalysis cpa, MainCPAStatistics stats) throws CPAException {
     logger.log(Level.FINE, "Creating algorithms");
 

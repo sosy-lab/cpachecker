@@ -25,6 +25,7 @@ package cfa;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.Map;
 
 import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
@@ -39,8 +40,6 @@ import cfa.objectmodel.c.FunctionCallEdge;
 import cfa.objectmodel.c.ReturnEdge;
 import cfa.objectmodel.c.StatementEdge;
 
-import cfa.CFAMap;
-
 /**
  * Used for post processing the CFA. This class provides methods which are used
  * to modify the CFAs for each function according to user's needs. For example
@@ -51,16 +50,16 @@ import cfa.CFAMap;
  */
 public class CPASecondPassBuilder {
 
-  private CFAMap cfas;
-  private boolean createCallEdgesForExternalCalls;
+  private final Map<String, CFAFunctionDefinitionNode> cfas;
+  private final boolean createCallEdgesForExternalCalls;
 
   /**
    * Class constructor.
    * @param map List of all CFA's in the program.
    */
-  public CPASecondPassBuilder(CFAMap map,
+  public CPASecondPassBuilder(Map<String, CFAFunctionDefinitionNode> cfas,
       boolean noCallEdgesForExternalCalls) {
-    cfas = map;
+    this.cfas = cfas;
     createCallEdgesForExternalCalls = !noCallEdgesForExternalCalls;
   }
 
@@ -77,7 +76,7 @@ public class CPASecondPassBuilder {
     Deque<CFANode> workList = new ArrayDeque<CFANode> ();
     Deque<CFANode> processedList = new ArrayDeque<CFANode> ();
 
-    CFANode initialNode = cfas.getCFA(funcName);
+    CFANode initialNode = cfas.get(funcName);
 
     workList.addLast (initialNode);
     processedList.addLast (initialNode);
@@ -141,7 +140,7 @@ public class CPASecondPassBuilder {
   private boolean shouldCreateCallEdges(IASTFunctionCallExpression f) {
     if (createCallEdgesForExternalCalls) return true;
     String name = f.getFunctionNameExpression().getRawSignature();
-    CFAFunctionDefinitionNode fDefNode = cfas.getCFA(name);
+    CFAFunctionDefinitionNode fDefNode = cfas.get(name);
     return fDefNode != null;
   }
 
@@ -157,7 +156,7 @@ public class CPASecondPassBuilder {
    */
   private void createCallAndReturnEdges(CFANode node, CFANode successorNode, CFAEdge edge, IASTExpression expr, IASTFunctionCallExpression functionCall) {
     String functionName = functionCall.getFunctionNameExpression().getRawSignature();
-    CFAFunctionDefinitionNode fDefNode = cfas.getCFA(functionName);
+    CFAFunctionDefinitionNode fDefNode = cfas.get(functionName);
 
     IASTExpression parameters = functionCall.getParameterExpression();
     FunctionCallEdge callEdge = new FunctionCallEdge(functionCall.getRawSignature(), parameters);
@@ -181,7 +180,7 @@ public class CPASecondPassBuilder {
     fDefNode.setFunctionName(functionName);
     // set return edge from exit node of the function
     ReturnEdge returnEdge = new ReturnEdge("Return Edge to " + successorNode.getNodeNumber());
-    returnEdge.initialize(cfas.getCFA(functionName).getExitNode(), successorNode);
+    returnEdge.initialize(cfas.get(functionName).getExitNode(), successorNode);
     returnEdge.getSuccessor().setFunctionName(node.getFunctionName());
 
     CallToReturnEdge calltoReturnEdge = new CallToReturnEdge(expr.getRawSignature(), expr);
