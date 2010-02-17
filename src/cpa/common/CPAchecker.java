@@ -29,6 +29,7 @@ import java.io.PrintWriter;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 
 import org.eclipse.cdt.core.dom.IASTServiceProvider;
@@ -291,10 +292,10 @@ public class CPAchecker {
       
       boolean noExtCalls = CPAchecker.config.getBooleanValue("analysis.noExternalCalls");
       CPASecondPassBuilder spbuilder = new CPASecondPassBuilder(cfas, noExtCalls);
+      Set<String> calledFunctions = spbuilder.insertCallEdgesRecursively(mainFunctionName);
       
-      for (CFAFunctionDefinitionNode cfa : cfas.values()) {
-        spbuilder.insertCallEdges(cfa.getFunctionName());
-      }
+      // remove all functions which are never reached from cfas
+      cfas.keySet().retainAll(calledFunctions);
     }
     
     if (CPAchecker.config.getBooleanValue("analysis.useGlobalVars")){

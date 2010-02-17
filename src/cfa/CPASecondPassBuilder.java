@@ -24,8 +24,12 @@
 package cfa;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
@@ -63,20 +67,46 @@ public class CPASecondPassBuilder {
     createCallEdgesForExternalCalls = !noCallEdgesForExternalCalls;
   }
 
-
+  /**
+   * Traverses a CFA and inserts call edges and return edges (@see {@link #insertCallEdges(CFANode)}.
+   * This method starts with a function and recursively acts on all functions
+   * reachable from the first one.
+   * @param functionName  The function where to start processing.
+   * @return A set of all functions reachable (including external functions and the function passed as argument).
+   */
+  public Set<String> insertCallEdgesRecursively(String functionName) {
+    Deque<String> worklist = new ArrayDeque<String>();
+    worklist.addLast(functionName);
+    Set<String> reachedFunctions = new HashSet<String>();
+    
+    while (!worklist.isEmpty()) {
+      String currentFunction = worklist.pollFirst();
+      if (!reachedFunctions.add(currentFunction)) {
+        // reachedFunctions already contained function
+        continue;
+      }
+      CFAFunctionDefinitionNode functionStartNode = cfas.get(currentFunction);
+      if (functionStartNode != null) {
+        // otherwise it's an external call
+        worklist.addAll(insertCallEdges(functionStartNode));
+      }
+    }
+    return reachedFunctions;
+  }
+  
   /**
    * Traverses a CFA with the specified function name and insert call edges
    * and return edges from the call site and to the return site of the function
    * call. Each node carries information about the function they are in and
    * this information is also set by this method, see {@link CFANode#setFunctionName(String)}.
-   * @param funcName name of the function to be processed.
+   * @param initialNode CFANode where to start processing
+   * @return a list of all function calls encountered (may contain duplicates)
    */
-  public void insertCallEdges(String funcName){
+  public List<String> insertCallEdges(CFAFunctionDefinitionNode initialNode){
     // we use a worklist algorithm
     Deque<CFANode> workList = new ArrayDeque<CFANode> ();
     Deque<CFANode> processedList = new ArrayDeque<CFANode> ();
-
-    CFANode initialNode = cfas.get(funcName);
+    ArrayList<String> calledFunctions = new ArrayList<String>();
 
     workList.addLast (initialNode);
     processedList.addLast (initialNode);
@@ -99,8 +129,11 @@ public class CPASecondPassBuilder {
             IASTExpression operand2 = ((IASTBinaryExpression)expr).getOperand2();
             // if statement is of the form x = call(a,b);
             if(operand2 instanceof IASTFunctionCallExpression &&
-                shouldCreateCallEdges((IASTFunctionCallExpression)operand2)){
-              createCallAndReturnEdges(node, successorNode, edge, expr, (IASTFunctionCallExpression)operand2);
+                shouldCreateCallEdges((IASTFunctionCallExpression)operand2)) {
+              
+              IASTFunctionCallExpression functionCall = (IASTFunctionCallExpression)operand2;
+              calledFunctions.add(functionCall.getFunctionNameExpression().getRawSignature());
+              createCallAndReturnEdges(node, successorNode, edge, expr, functionCall);
             }
             // if this is not a function call just set the function name
             else{
@@ -112,6 +145,7 @@ public class CPASecondPassBuilder {
           else if(expr instanceof IASTFunctionCallExpression &&
               shouldCreateCallEdges((IASTFunctionCallExpression)expr)){
             IASTFunctionCallExpression functionCall = (IASTFunctionCallExpression)expr;
+            calledFunctions.add(functionCall.getFunctionNameExpression().getRawSignature());
             createCallAndReturnEdges(node, successorNode, edge, expr, functionCall);
           }
 
@@ -135,6 +169,7 @@ public class CPASecondPassBuilder {
       // node is processed
       processedList.add(node);
     }
+    return calledFunctions;
   }
 
   private boolean shouldCreateCallEdges(IASTFunctionCallExpression f) {
@@ -161,7 +196,7 @@ public class CPASecondPassBuilder {
     IASTExpression parameters = functionCall.getParameterExpression();
     FunctionCallEdge callEdge = new FunctionCallEdge(functionCall.getRawSignature(), parameters);
 
-    // if the successor node is null, then this is an external call
+    // if the function definition node is null, then this is an external call
     if(fDefNode == null){
       assert(createCallEdgesForExternalCalls); // AG
 
