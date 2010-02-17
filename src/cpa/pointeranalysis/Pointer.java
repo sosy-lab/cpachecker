@@ -19,42 +19,42 @@ import cpa.pointeranalysis.Memory.Variable;
  * A pointer is a set of possible targets.
  */
 public class Pointer implements Cloneable {
-  
-  private int sizeOfTarget; 
-  
+
+  private int                sizeOfTarget;
+
   private Set<PointerTarget> targets;
-  
-  private int levelOfIndirection; // how many stars does this pointer have?
-  
-  private PointerLocation location;
-  
+
+  private int                levelOfIndirection; // how many stars does this pointer have?
+
+  private PointerLocation    location;
+
   public Pointer() {
     this(0);
   }
 
   public Pointer(PointerTarget target) {
     this();
-    if (target == null) {
-      throw new IllegalArgumentException("Pointer must have a target!");
-    }
-    
+    if (target == null) { throw new IllegalArgumentException(
+        "Pointer must have a target!"); }
+
     targets.clear();
     targets.add(target);
   }
-  
+
   public Pointer(int levelOfIndirection) {
-    this (-1, levelOfIndirection, new HashSet<PointerTarget>(), null);
-    
+    this(-1, levelOfIndirection, new HashSet<PointerTarget>(), null);
+
     // if uninitialized, pointer is null
     targets.add(NULL_POINTER);
   }
-  
-  private Pointer(int sizeOfTarget, int levelOfIndirection, Set<PointerTarget> targets, PointerLocation location) {
+
+  private Pointer(int sizeOfTarget, int levelOfIndirection,
+      Set<PointerTarget> targets, PointerLocation location) {
     this.sizeOfTarget = sizeOfTarget;
     this.levelOfIndirection = levelOfIndirection;
     this.targets = new HashSet<PointerTarget>(targets);
     this.location = location;
-  }  
+  }
 
   private void join(Pointer p) {
     assert p != null;
@@ -65,24 +65,21 @@ public class Pointer implements Cloneable {
   /*public boolean isUnsafe() {
     return targets.contains(NULL_POINTER) || targets.contains(INVALID_POINTER);
   }*/
-  
+
   public boolean isDereferencable() {
     for (PointerTarget target : targets) {
-      if (target == UNKNOWN_POINTER
-          || target instanceof Variable
-          || target instanceof MemoryAddress) {
-        return true;
-      }
+      if (target == UNKNOWN_POINTER || target instanceof Variable
+          || target instanceof MemoryAddress) { return true; }
     }
     return false;
   }
-  
+
   public boolean isSafe() {
     return !(targets.contains(NULL_POINTER)
-             || targets.contains(INVALID_POINTER)
-             || targets.contains(UNKNOWN_POINTER));
+        || targets.contains(INVALID_POINTER) || targets
+        .contains(UNKNOWN_POINTER));
   }
-  
+
   public boolean isSubsetOf(Pointer other) {
     assert other != null;
     return (this == other) || other.targets.containsAll(targets);
@@ -92,37 +89,37 @@ public class Pointer implements Cloneable {
     assert other != null;
     return !this.isSubsetOf(other)
         && !other.isSubsetOf(this)
-        && !(targets.contains(INVALID_POINTER) && other.targets.contains(INVALID_POINTER))
-        && !targets.contains(UNKNOWN_POINTER)
+        && !(targets.contains(INVALID_POINTER) && other.targets
+            .contains(INVALID_POINTER)) && !targets.contains(UNKNOWN_POINTER)
         && !other.targets.contains(UNKNOWN_POINTER);
   }
-  
+
   public boolean contains(PointerTarget target) {
     assert target != null;
     return targets.contains(target);
   }
-  
+
   private void addOffset(long shift, boolean keepOldTargets, Memory memory) {
     if (!hasSizeOfTarget()) {
       addUnknownOffset(keepOldTargets, memory);
-      
+
     } else {
       Set<PointerTarget> newTargets = new HashSet<PointerTarget>();
       long byteShift = shift * sizeOfTarget;
-      
+
       for (PointerTarget target : targets) {
         try {
           newTargets.add(target.addOffset(byteShift));
-          
+
         } catch (InvalidPointerException e) {
-          PointerAnalysisTransferRelation.addWarning(e.getMessage(),
-              memory.getCurrentEdge(), target.toString());
-          
+          PointerAnalysisTransferRelation.addWarning(e.getMessage(), memory
+              .getCurrentEdge(), target.toString());
+
           newTargets.add(INVALID_POINTER);
         }
       }
       assert newTargets.size() >= 1;
-      
+
       if (keepOldTargets) {
         targets.addAll(newTargets);
       } else {
@@ -133,14 +130,14 @@ public class Pointer implements Cloneable {
 
   private void addUnknownOffset(boolean keepOldTargets, Memory memory) {
     Set<PointerTarget> newTargets = new HashSet<PointerTarget>();
-    
+
     for (PointerTarget target : targets) {
       try {
         newTargets.add(target.addUnknownOffset());
       } catch (InvalidPointerException e) {
-        PointerAnalysisTransferRelation.addWarning(e.getMessage(),
-            memory.getCurrentEdge(), target.toString());
-        
+        PointerAnalysisTransferRelation.addWarning(e.getMessage(), memory
+            .getCurrentEdge(), target.toString());
+
         newTargets.add(INVALID_POINTER);
       }
     }
@@ -152,7 +149,7 @@ public class Pointer implements Cloneable {
       targets = newTargets;
     }
   }
-  
+
   public int getNumberOfTargets() {
     return targets.size();
   }
@@ -160,7 +157,7 @@ public class Pointer implements Cloneable {
   public Set<PointerTarget> getTargets() {
     return Collections.unmodifiableSet(targets);
   }
-  
+
   public PointerTarget getFirstTarget() {
     if (getNumberOfTargets() >= 1) {
       return targets.iterator().next();
@@ -168,14 +165,14 @@ public class Pointer implements Cloneable {
       return null;
     }
   }
-  
+
   /**
    * Checks if the size of the target of the pointer is known. 
    */
   public boolean hasSizeOfTarget() {
     return sizeOfTarget != -1;
   }
-  
+
   /**
    * Returns the size of the target of the pointer in bytes. The return value is
    * undefined, if the length is not known (i.e., if hasSizeOfTarget() returns false). 
@@ -189,15 +186,11 @@ public class Pointer implements Cloneable {
    */
   public void setSizeOfTarget(int sizeOfTarget) {
     // allow setting this value only once
-    if (hasSizeOfTarget() && this.sizeOfTarget != sizeOfTarget) {
-      throw new IllegalArgumentException();
-    }
-    if (sizeOfTarget <= 0) {
-      throw new IllegalArgumentException();
-    }
+    if (hasSizeOfTarget() && this.sizeOfTarget != sizeOfTarget) { throw new IllegalArgumentException(); }
+    if (sizeOfTarget <= 0) { throw new IllegalArgumentException(); }
     this.sizeOfTarget = sizeOfTarget;
   }
-  
+
   public boolean isPointerToPointer() {
     return levelOfIndirection > 1;
   }
@@ -211,31 +204,28 @@ public class Pointer implements Cloneable {
   }
 
   public void setLocation(PointerLocation location) {
-    if (this.location != null) {
-      throw new IllegalStateException("May not overwrite pointer location!");
-    }
+    if (this.location != null) { throw new IllegalStateException(
+        "May not overwrite pointer location!"); }
     this.location = location;
   }
 
   @Override
   public boolean equals(Object other) {
-    if (other == null || !(other instanceof Pointer)) {
-      return false;
-    }
-    return location.equals(((Pointer)other).location)
-        && targets.equals(((Pointer)other).targets);
+    if (other == null || !(other instanceof Pointer)) { return false; }
+    return location.equals(((Pointer) other).location)
+        && targets.equals(((Pointer) other).targets);
   }
-  
+
   @Override
   public int hashCode() {
     return targets.hashCode();
   }
-  
+
   @Override
   public Pointer clone() {
     return new Pointer(sizeOfTarget, levelOfIndirection, targets, location);
   }
-  
+
   @Override
   public String toString() {
     StringBuffer sb = new StringBuffer();
@@ -257,111 +247,117 @@ public class Pointer implements Cloneable {
 
   public static interface PointerOperation {
 
-    public void doOperation(Memory memory, Pointer pointer, boolean keepOldTargets);
-    
+    public void doOperation(Memory memory, Pointer pointer,
+        boolean keepOldTargets);
+
   }
-  
+
   public static class AddOffset implements PointerOperation {
-    
+
     private final long shift;
-    
+
     public AddOffset(long shift) {
       this.shift = shift;
     }
-    
+
     @Override
-    public void doOperation(Memory memory, Pointer pointer, boolean keepOldTargets) {
-      pointer.addOffset(shift, keepOldTargets, memory);      
+    public void doOperation(Memory memory, Pointer pointer,
+        boolean keepOldTargets) {
+      pointer.addOffset(shift, keepOldTargets, memory);
     }
   }
-  
+
   public static class AddUnknownOffset implements PointerOperation {
 
     @Override
-    public void doOperation(Memory memory, Pointer pointer, boolean keepOldTargets) {
-      pointer.addUnknownOffset(keepOldTargets, memory);      
+    public void doOperation(Memory memory, Pointer pointer,
+        boolean keepOldTargets) {
+      pointer.addUnknownOffset(keepOldTargets, memory);
     }
   }
 
   public static class Assign implements PointerOperation {
-    
+
     private final PointerTarget assignValueTarget;
-    private final Pointer assignValuePointer;
-    
+    private final Pointer       assignValuePointer;
+
     public Assign(PointerTarget assignValue) {
-      this.assignValueTarget  = assignValue;
+      this.assignValueTarget = assignValue;
       this.assignValuePointer = null;
     }
-    
+
     public Assign(Pointer assignValue) {
-      this.assignValueTarget  = null;
+      this.assignValueTarget = null;
       this.assignValuePointer = assignValue;
     }
-    
+
     @Override
-    public void doOperation(Memory memory, Pointer pointer, boolean keepOldTargets) {
-      
+    public void doOperation(Memory memory, Pointer pointer,
+        boolean keepOldTargets) {
+
       if (!keepOldTargets) {
         pointer.targets.clear();
       }
-      
+
       if (assignValueTarget != null) {
         pointer.targets.add(assignValueTarget);
       } else {
         pointer.join(assignValuePointer);
-        
+
         if (!keepOldTargets && assignValuePointer.getLocation() != null) {
-          memory.makeAlias(assignValuePointer.getLocation(), pointer.getLocation());
+          memory.makeAlias(assignValuePointer.getLocation(), pointer
+              .getLocation());
         }
       }
     }
   }
-  
+
   public static class AssignListOfTargets implements PointerOperation {
-    
+
     private final Collection<PointerTarget> assignValues;
-    
+
     public AssignListOfTargets(Collection<PointerTarget> assignValues) {
-      if (assignValues.isEmpty()) {
-        throw new IllegalArgumentException("No targets for assignment!");
-      }
+      if (assignValues.isEmpty()) { throw new IllegalArgumentException(
+          "No targets for assignment!"); }
       this.assignValues = assignValues;
     }
-    
+
     @Override
-    public void doOperation(Memory memory, Pointer pointer, boolean keepOldTargets) {
+    public void doOperation(Memory memory, Pointer pointer,
+        boolean keepOldTargets) {
       if (!keepOldTargets) {
         pointer.targets.clear();
       }
-      
+
       pointer.targets.addAll(assignValues);
     }
   }
-  
+
   public static class AddOffsetAndAssign implements PointerOperation {
 
     private final Pointer assignValue;
-    private final long shift;
+    private final long    shift;
 
     public AddOffsetAndAssign(Pointer assignValue, long shift) {
       this.assignValue = assignValue;
       this.shift = shift;
     }
-    
+
     @Override
-    public void doOperation(Memory memory, Pointer pointer, boolean keepOldTargets) {
+    public void doOperation(Memory memory, Pointer pointer,
+        boolean keepOldTargets) {
       Pointer shiftedAssignValue = assignValue.clone(); // clone first!
 
       if (!keepOldTargets) {
         pointer.targets.clear();
       }
-      
+
       shiftedAssignValue.addOffset(shift, false, memory);
-      
+
       pointer.join(shiftedAssignValue);
     }
   }
-    
+
   public static class AddUnknownOffsetAndAssign implements PointerOperation {
 
     private final Pointer assignValue;
@@ -369,63 +365,66 @@ public class Pointer implements Cloneable {
     public AddUnknownOffsetAndAssign(Pointer assignValue) {
       this.assignValue = assignValue;
     }
-    
+
     @Override
-    public void doOperation(Memory memory, Pointer pointer, boolean keepOldTargets) {
+    public void doOperation(Memory memory, Pointer pointer,
+        boolean keepOldTargets) {
       Pointer shiftedAssignValue = assignValue.clone(); // clone first!
 
       if (!keepOldTargets) {
         pointer.targets.clear();
       }
-      
+
       shiftedAssignValue.addUnknownOffset(false, memory);
-      
+
       pointer.join(shiftedAssignValue);
     }
   }
-    
+
   public static class DerefAndAssign implements PointerOperation {
-    
+
     private final Pointer assignValue;
- 
+
     public DerefAndAssign(Pointer assignValue) {
       this.assignValue = assignValue;
-      
-      if (!assignValue.isPointerToPointer()) {
-        throw new IllegalArgumentException("Pointers which do not point to other pointers cannot be dereferenced in this analysis!");
-      }
-      
-      if (!assignValue.isDereferencable()) {
-        throw new IllegalArgumentException("Unsafe deref of pointer " + assignValue.getLocation() + " = " + assignValue);
-      }
+
+      if (!assignValue.isPointerToPointer()) { throw new IllegalArgumentException(
+          "Pointers which do not point to other pointers cannot be dereferenced in this analysis!"); }
+
+      if (!assignValue.isDereferencable()) { throw new IllegalArgumentException(
+          "Unsafe deref of pointer " + assignValue.getLocation() + " = "
+              + assignValue); }
     }
-    
+
     @Override
-    public void doOperation(Memory memory, Pointer pointer, boolean keepOldTargets) {
+    public void doOperation(Memory memory, Pointer pointer,
+        boolean keepOldTargets) {
       if (!keepOldTargets) {
         pointer.targets.clear();
       }
-      
+
       for (PointerTarget assignTarget : assignValue.getTargets()) {
         Pointer actualAssignValue = memory.deref(assignValue, assignTarget);
-        
+
         if (actualAssignValue != null) {
           pointer.join(actualAssignValue);
-          
+
           if (!keepOldTargets && assignValue.getNumberOfTargets() == 1) {
-            memory.makeAlias(actualAssignValue.getLocation(), pointer.getLocation());
+            memory.makeAlias(actualAssignValue.getLocation(), pointer
+                .getLocation());
           }
         }
       }
     }
   }
-  
+
   public static class MallocAndAssign implements PointerOperation {
 
     private MemoryAddress memAddress = null;
-    
+
     @Override
-    public void doOperation(Memory memory, Pointer pointer, boolean keepOldTargets) {
+    public void doOperation(Memory memory, Pointer pointer,
+        boolean keepOldTargets) {
       if (!keepOldTargets) {
         pointer.targets.clear();
       }
@@ -433,34 +432,34 @@ public class Pointer implements Cloneable {
       if (memAddress == null) {
         memAddress = memory.malloc();
       }
-      
+
       pointer.targets.add(Memory.NULL_POINTER);
       pointer.targets.add(memAddress);
     }
-    
+
     public MemoryAddress getMallocResult() {
       return memAddress;
     }
   }
-  
+
   public static class AssumeInequality implements PointerOperation {
-    
+
     private final PointerTarget removeTarget;
-    
+
     public AssumeInequality(PointerTarget removeTarget) {
       this.removeTarget = removeTarget;
     }
-    
+
     /**
      * @param keepOldTargets ignored
      */
     @Override
-    public void doOperation(Memory memory, Pointer pointer, boolean keepOldTargets) {
-      
+    public void doOperation(Memory memory, Pointer pointer,
+        boolean keepOldTargets) {
+
       pointer.targets.remove(removeTarget);
-      if (pointer.getNumberOfTargets() == 0) {
-        throw new IllegalStateException("Pointer without target must not exist!");
-      }
+      if (pointer.getNumberOfTargets() == 0) { throw new IllegalStateException(
+          "Pointer without target must not exist!"); }
     }
   }
 }

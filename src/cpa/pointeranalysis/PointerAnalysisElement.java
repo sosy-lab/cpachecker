@@ -515,16 +515,19 @@ public class PointerAnalysisElement implements AbstractElement, Memory, Cloneabl
   @Override
   public MemoryAddress malloc() {
     MemoryRegion mem = new MemoryRegion();
+    mem.setValid(true);
     mallocs.add(mem);
     return new MemoryAddress(mem);
   }
   
   @Override
   public void free(MemoryRegion mem) throws InvalidPointerException {
-    if (!mallocs.contains(mem)) {
+    if (mallocs.contains(mem) && !mem.isValid()) {
       throw new InvalidPointerException("Double free of region " + mem);
     }
     mallocs.remove(mem);
+    mem.setValid(false);
+    mallocs.add(mem);
     
     // remove all pointers stored in region mem on heap
     Iterator<MemoryAddress> heapIt = heap.keySet().iterator();
@@ -537,9 +540,9 @@ public class PointerAnalysisElement implements AbstractElement, Memory, Cloneabl
         heapIt.remove();
       }
     }
-    
+    /*
     PointerOperation opInvalid = new Pointer.Assign(INVALID_POINTER);
-    
+
     // set all pointers pointing to mem to INVALID
     Iterator<PointerTarget> reverseIt = reverseRelation.keySet().iterator();
     while (reverseIt.hasNext()) {
@@ -562,7 +565,7 @@ public class PointerAnalysisElement implements AbstractElement, Memory, Cloneabl
         // now handle the reverse relation, remove the target for all pointers at once
         reverseIt.remove();
       }
-    }
+    } */
   }
   
   @Override

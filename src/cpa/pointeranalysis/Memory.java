@@ -25,7 +25,11 @@ public interface Memory {
   
     private final int id;
     private long length = -1; // length of region in bytes, -1 if unknown
-        
+    private boolean isValid; // denotes if this memory region is safe to access
+    
+    
+
+
     public MemoryRegion() {
       synchronized (this.getClass()) {
         id = idCounter++;
@@ -47,6 +51,21 @@ public interface Memory {
       return length;
     }
     
+    
+    /** Check if this memory region is still valid
+     * @return if this memory region is valid
+     */
+    public boolean isValid() {
+      return isValid;
+    }
+
+    /**
+     * Set the validity of this memory region (e.g. memory is valid after malloc, but invalid after free)
+     * @param pIsValid the validity of this memory region
+     */
+    public void setValid(boolean pIsValid) {
+      isValid = pIsValid;
+    }    
     /**
      * Set the length of this memory region in bytes, if it was unknown before.
      * As objects of this type are considered constant, this method should be
@@ -502,8 +521,6 @@ public interface Memory {
   
   public void addNewGlobalPointer(String name, Pointer p);
 
-  public void addNewLocalPointer(String name, Pointer p);
-
   public Pointer lookupPointer(String name);
 
   /**
@@ -519,6 +536,8 @@ public interface Memory {
 
   public Pointer getPointer(LocalVariable var);
   
+  public void addNewLocalPointer(String name, Pointer p);
+
   public Pointer getPointer(GlobalVariable var);
     
   public Pointer getPointer(MemoryAddress memAddress);
