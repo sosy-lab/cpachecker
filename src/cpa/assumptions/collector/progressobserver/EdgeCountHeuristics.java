@@ -23,19 +23,26 @@
  */
 package cpa.assumptions.collector.progressobserver;
 
-import cpa.common.CPAchecker;
+import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFANode;
+
+import com.google.common.base.Function;
+import com.google.common.base.Functions;
+
+import cpa.common.CPAchecker;
 
 /**
  * @author g.theoduloz
  */
 public class EdgeCountHeuristics implements StopHeuristics<EdgeCountHeuristicsData> {
 
+  private final Function<? super CFAEdge, Integer> thresholdFunction;
+  
   public EdgeCountHeuristics()
   {
-    // Initialise the base threshold
-    int configThreshold = Integer.parseInt(CPAchecker.config.getProperty("assumptions.edgeCount.threshold", "-1"));
-    EdgeCountHeuristicsData.setBaseThreshold(configThreshold);
+    // Initialise the threshold function
+    int staticThreshold = Integer.parseInt(CPAchecker.config.getProperty("assumptions.edgeCount.threshold", "-1"));
+    thresholdFunction = Functions.constant((staticThreshold <= 0) ? null : staticThreshold);
   }
   
   @Override
@@ -51,6 +58,16 @@ public class EdgeCountHeuristics implements StopHeuristics<EdgeCountHeuristicsDa
   @Override
   public EdgeCountHeuristicsData getTop() {
     return EdgeCountHeuristicsData.TOP;
+  }
+
+  @Override
+  public EdgeCountHeuristicsData collectData(StopHeuristicsData pData, ReachedHeuristicsDataSetView pReached) {
+    return ((EdgeCountHeuristicsData)pData).collectData(pReached);
+  }
+
+  @Override
+  public EdgeCountHeuristicsData processEdge(StopHeuristicsData pData, CFAEdge pEdge) {
+    return ((EdgeCountHeuristicsData)pData).updateForEdge(pEdge, thresholdFunction);
   }
 
 }

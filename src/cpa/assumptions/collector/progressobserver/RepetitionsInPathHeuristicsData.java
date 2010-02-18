@@ -27,6 +27,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import com.google.common.base.Function;
+
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAEdgeType;
 
@@ -59,11 +61,6 @@ public class RepetitionsInPathHeuristicsData implements StopHeuristicsData {
   {
     frequencyMap = new HashMap<CFAEdge, Integer>(map);
   }
-  
-  @Override
-  public StopHeuristicsData collectData(ReachedHeuristicsDataSetView pReached) {
-    return this;
-  }
 
   @Override
   public boolean isBottom() {
@@ -86,17 +83,17 @@ public class RepetitionsInPathHeuristicsData implements StopHeuristicsData {
         || (edge.getPredecessor().isLoopStart());
   }
   
-  @Override
-  public StopHeuristicsData processEdge(CFAEdge edge) {
+  public RepetitionsInPathHeuristicsData updateForEdge(CFAEdge edge, Function<? super CFAEdge, Integer> thresholds) {
     if (!isInteresting(edge)) return this;
     
-    Integer newValueInTable = frequencyMap.get(edge);
-    int newValue = (newValueInTable == null) ? 1 : newValueInTable.intValue();
-    if (newValue > threshold)
+    Integer oldValueInTable = frequencyMap.get(edge);
+    int newValue = (oldValueInTable == null) ? 1 : (oldValueInTable.intValue() + 1);
+    Integer threshold = thresholds.apply(edge);
+    if ((threshold != null) && (newValue > threshold.intValue()))
       return BOTTOM;
     else {
       RepetitionsInPathHeuristicsData result = copy();
-      result.frequencyMap.put(edge, newValue+1);
+      result.frequencyMap.put(edge, newValue);
       return result;
     }
   }
@@ -120,7 +117,7 @@ public class RepetitionsInPathHeuristicsData implements StopHeuristicsData {
     @Override
     public boolean isTop() { return true; }
     @Override
-    public StopHeuristicsData processEdge(CFAEdge edge) { return this; }
+    public RepetitionsInPathHeuristicsData updateForEdge(CFAEdge edge, Function<? super CFAEdge, Integer> thresholds) { return this; }
     @Override
     public String toString() { return "TOP"; }
   };
@@ -129,7 +126,7 @@ public class RepetitionsInPathHeuristicsData implements StopHeuristicsData {
     @Override
     public boolean isBottom() { return true; }
     @Override
-    public StopHeuristicsData processEdge(CFAEdge edge) { return this; }
+    public RepetitionsInPathHeuristicsData updateForEdge(CFAEdge edge, Function<? super CFAEdge, Integer> thresholds) { return this; }
     @Override
     public String toString() { return "BOTTOM"; }
   };

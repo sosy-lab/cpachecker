@@ -23,7 +23,6 @@
  */
 package cpa.assumptions.collector.progressobserver;
 
-import cfa.objectmodel.CFAEdge;
 
 /**
  * Data that needs to be tracked by a stopping heuristics
@@ -33,10 +32,4 @@ public interface StopHeuristicsData {
   public boolean isBottom();
   public boolean isTop();
   public boolean isLessThan(StopHeuristicsData d);
-  
-  /** Collect data with respect to the given set of reached states */
-  public StopHeuristicsData collectData(ReachedHeuristicsDataSetView reached);
-  
-  /** Process an edge and update the data */
-  public StopHeuristicsData processEdge(CFAEdge edge);
 }

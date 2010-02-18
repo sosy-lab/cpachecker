@@ -24,9 +24,12 @@
 package cpa.assumptions.collector.progressobserver;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import com.google.common.base.Function;
+import com.google.common.collect.ImmutableList;
+
 import common.Pair;
 
 import cpa.common.UnmodifiableReachedElements;
@@ -40,8 +43,11 @@ import cpa.common.interfaces.PrecisionAdjustment;
 public class ProgressObserverPrecisionAdjustment implements
     PrecisionAdjustment {
 
-  public ProgressObserverPrecisionAdjustment()
+  private final ImmutableList<StopHeuristics<? extends StopHeuristicsData>> heuristics;
+  
+  public ProgressObserverPrecisionAdjustment(ProgressObserverCPA aCPA)
   {
+    heuristics = aCPA.getEnabledHeuristics();
   }
   
   /** Projection function class over a selected data within an element */
@@ -69,10 +75,14 @@ public class ProgressObserverPrecisionAdjustment implements
     List<StopHeuristicsData> preData = element.getComponents();
     List<StopHeuristicsData> postData = new ArrayList<StopHeuristicsData>(preData.size());
     
+    Iterator<StopHeuristics<? extends StopHeuristicsData>> heuristicsIt = heuristics.iterator();
+    Iterator<StopHeuristicsData> preIt = preData.iterator();
     int idx = 0;
-    for (StopHeuristicsData d : preData) {
+    while (preIt.hasNext()) {
+      StopHeuristics<? extends StopHeuristicsData> h = heuristicsIt.next();
+      StopHeuristicsData d = preIt.next();
       ReachedHeuristicsDataSetView slice = new ReachedHeuristicsDataSetView(reached, new ProjectionFunction(idx)); 
-      postData.add(d.collectData(slice));
+      postData.add(h.collectData(d, slice));
       idx++;
     }
     

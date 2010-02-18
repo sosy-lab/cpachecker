@@ -23,6 +23,8 @@
  */
 package cpa.assumptions.collector.progressobserver;
 
+import com.google.common.base.Function;
+
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAEdgeType;
 import cfa.objectmodel.CFANode;
@@ -90,28 +92,19 @@ public class EdgeCountHeuristicsData
   }
   
   /**
-   * Function that returns the threshold for a given edge,
-   * or -1 if there is no threshold for the given edge
-   */
-  private int getThreshold(CFAEdge edge)
-  {
-    return threshold;
-  }
-  
-  /**
    * processEdge relies on side-effect to update the pre, because
    * prec has access only to pre-states, while the edge is only
    * known when computing the post state.
    */
-  @Override
-  public StopHeuristicsData processEdge(CFAEdge edge) {
+  public EdgeCountHeuristicsData updateForEdge(CFAEdge edge, Function<? super CFAEdge, Integer> thresholds) {
     assert edge.getPredecessor() == node;
     
     for (int i=0; i < counters.length; i++)
       if (node.getLeavingEdge(i) == edge) {
         counters[i]++;
-        // Threshold exceeded!
-        if (counters[i] >= getThreshold(edge)) {
+        // Threshold exceeded?
+        Integer threshold = thresholds.apply(edge);
+        if ((threshold != null) && (counters[i] >= threshold.intValue())) {
           return BOTTOM;
         }
       }
@@ -132,8 +125,7 @@ public class EdgeCountHeuristicsData
     return false;
   }
   
-  @Override
-  public StopHeuristicsData collectData(ReachedHeuristicsDataSetView reached) {
+  public EdgeCountHeuristicsData collectData(ReachedHeuristicsDataSetView reached) {
     if (isTop() || isBottom() || !isInteresting()) return this;
     
     for (StopHeuristicsData d : reached.getHeuristicsDataForLocation(node)) {
@@ -170,12 +162,12 @@ public class EdgeCountHeuristicsData
     public boolean isLessThan(StopHeuristicsData d) { return true; }
     
     @Override
-    public StopHeuristicsData processEdge(CFAEdge edge) {
+    public EdgeCountHeuristicsData updateForEdge(CFAEdge edge, Function<? super CFAEdge,Integer> thresholds) {
       return this;
     }
     
     @Override
-    public StopHeuristicsData collectData(ReachedHeuristicsDataSetView reached) {
+    public EdgeCountHeuristicsData collectData(ReachedHeuristicsDataSetView reached) {
       return this;
     }
     
@@ -197,12 +189,12 @@ public class EdgeCountHeuristicsData
     public boolean isLessThan(StopHeuristicsData d) { return d == this; }
     
     @Override
-    public StopHeuristicsData processEdge(CFAEdge edge) {
+    public EdgeCountHeuristicsData updateForEdge(CFAEdge edge, Function<? super CFAEdge,Integer> thresholds) {
       return new EdgeCountHeuristicsData(edge.getSuccessor());
     }
     
     @Override
-    public StopHeuristicsData collectData(ReachedHeuristicsDataSetView reached) {
+    public EdgeCountHeuristicsData collectData(ReachedHeuristicsDataSetView reached) {
       return this;
     }
     

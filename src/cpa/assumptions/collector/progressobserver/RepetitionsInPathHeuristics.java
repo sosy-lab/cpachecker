@@ -23,6 +23,10 @@
  */
 package cpa.assumptions.collector.progressobserver;
 
+import com.google.common.base.Function;
+import com.google.common.base.Functions;
+
+import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFANode;
 import cpa.common.CPAchecker;
 
@@ -32,10 +36,12 @@ import cpa.common.CPAchecker;
 public class RepetitionsInPathHeuristics
   implements StopHeuristics<RepetitionsInPathHeuristicsData>
 {
+  private final Function<? super CFAEdge, Integer> thresholdFunction;
+  
   public RepetitionsInPathHeuristics()
   {
-    long configThreshold = Long.parseLong(CPAchecker.config.getProperty("assumptions.repetitionsInPath.threshold", "-1"));
-    RepetitionsInPathHeuristicsData.setThreshold(configThreshold);
+    int configThreshold = Integer.parseInt(CPAchecker.config.getProperty("assumptions.repetitionsInPath.threshold", "-1"));
+    thresholdFunction = Functions.constant((configThreshold <= 0) ? null : configThreshold);
   }
 
   @Override
@@ -51,6 +57,18 @@ public class RepetitionsInPathHeuristics
   @Override
   public RepetitionsInPathHeuristicsData getTop() {
     return RepetitionsInPathHeuristicsData.TOP;
+  }
+
+  @Override
+  public RepetitionsInPathHeuristicsData collectData(StopHeuristicsData pData,
+      ReachedHeuristicsDataSetView pReached) {
+    return (RepetitionsInPathHeuristicsData)pData;
+  }
+
+  @Override
+  public RepetitionsInPathHeuristicsData processEdge(StopHeuristicsData pData,
+      CFAEdge pEdge) {
+    return ((RepetitionsInPathHeuristicsData)pData).updateForEdge(pEdge, thresholdFunction);
   }
   
 }

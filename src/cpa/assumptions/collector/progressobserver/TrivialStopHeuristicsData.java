@@ -23,26 +23,37 @@
  */
 package cpa.assumptions.collector.progressobserver;
 
-import cfa.objectmodel.CFAEdge;
-import cfa.objectmodel.CFANode;
-
 /**
- * A stopping heuristics for the controller CPA
+ * Trivial heuristics data to represent only top and bottom.
  * @author g.theoduloz
  */
-public interface StopHeuristics <D extends StopHeuristicsData> {
-  /** Get the initial data */
-  public D getInitialData(CFANode node);
+public class TrivialStopHeuristicsData implements StopHeuristicsData {
+
+  private final boolean bottom;
   
-  /** Get top */
-  public D getTop();
+  /** Instances are only accessible via TOP/BOTTOM */
+  private TrivialStopHeuristicsData(boolean isBottom) {
+    bottom = isBottom;
+  }
   
-  /** Get bottom */
-  public D getBottom();
+  public static final TrivialStopHeuristicsData TOP = new TrivialStopHeuristicsData(false);
+  public static final TrivialStopHeuristicsData BOTTOM = new TrivialStopHeuristicsData(true);
   
-  /** Collect data with respect to the given set of reached states */
-  public D collectData(StopHeuristicsData data, ReachedHeuristicsDataSetView reached);
+  @Override
+  public boolean isBottom() {
+    return bottom;
+  }
   
-  /** Process an edge and update the data */
-  public D processEdge(StopHeuristicsData data, CFAEdge edge);
+  @Override
+  public boolean isTop() {
+    return !bottom;
+  }
+
+  @Override
+  public boolean isLessThan(StopHeuristicsData other) {
+    if (this == BOTTOM) return true;
+    if (other == TOP) return true;
+    return (this == other);
+  }
+
 }

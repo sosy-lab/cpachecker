@@ -61,7 +61,7 @@ public class ProgressObserverDomain implements AbstractDomain {
   };
   
   @Override
-  public AbstractElement getBottomElement() {
+  public ProgressObserverElement getBottomElement() {
     return bottom;
   }
 
@@ -76,7 +76,7 @@ public class ProgressObserverDomain implements AbstractDomain {
   }
 
   @Override
-  public AbstractElement getTopElement() {
+  public ProgressObserverElement getTopElement() {
     return top;
   }
 

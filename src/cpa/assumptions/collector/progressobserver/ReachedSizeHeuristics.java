@@ -24,32 +24,47 @@
 package cpa.assumptions.collector.progressobserver;
 
 import cpa.common.CPAchecker;
+import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFANode;
 
 /**
  * @author g.theoduloz
  */
-public class ReachedSizeHeuristics implements StopHeuristics<ReachedSizeHeuristicsData> {
+public class ReachedSizeHeuristics implements StopHeuristics<TrivialStopHeuristicsData> {
 
+  private final int threshold;
+  
   public ReachedSizeHeuristics()
   {
-    long configThreshold = Long.parseLong(CPAchecker.config.getProperty("assumptions.reachedCount.threshold", "-1"));
-    ReachedSizeHeuristicsData.setThreshold(configThreshold);
+    threshold = Integer.parseInt(CPAchecker.config.getProperty("assumptions.reachedCount.threshold", "-1"));
   }
   
   @Override
-  public ReachedSizeHeuristicsData getBottom() {
-    return ReachedSizeHeuristicsData.BOTTOM;
+  public TrivialStopHeuristicsData getBottom() {
+    return TrivialStopHeuristicsData.BOTTOM;
   }
 
   @Override
-  public ReachedSizeHeuristicsData getInitialData(CFANode pNode) {
-    return ReachedSizeHeuristicsData.TOP;
+  public TrivialStopHeuristicsData getInitialData(CFANode pNode) {
+    return TrivialStopHeuristicsData.TOP;
   }
 
   @Override
-  public ReachedSizeHeuristicsData getTop() {
-    return ReachedSizeHeuristicsData.TOP;
+  public TrivialStopHeuristicsData getTop() {
+    return TrivialStopHeuristicsData.TOP;
+  }
+
+  @Override
+  public TrivialStopHeuristicsData collectData(StopHeuristicsData pData, ReachedHeuristicsDataSetView pReached) {
+    if ((pData == TrivialStopHeuristicsData.BOTTOM) || (pReached.getHeuristicsData().size() > threshold))
+      return TrivialStopHeuristicsData.BOTTOM;
+    else
+      return TrivialStopHeuristicsData.TOP;
+  }
+
+  @Override
+  public TrivialStopHeuristicsData processEdge(StopHeuristicsData pData, CFAEdge pEdge) {
+    return (TrivialStopHeuristicsData)pData;
   }
   
 }

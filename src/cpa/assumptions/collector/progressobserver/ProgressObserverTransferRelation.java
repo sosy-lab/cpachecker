@@ -26,8 +26,11 @@ package cpa.assumptions.collector.progressobserver;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
+
+import com.google.common.collect.ImmutableList;
 
 import cfa.objectmodel.CFAEdge;
 import cpa.common.CPAchecker;
@@ -43,6 +46,14 @@ import exceptions.CPATransferException;
  */
 public class ProgressObserverTransferRelation implements TransferRelation {
 
+  private final ImmutableList<StopHeuristics<? extends StopHeuristicsData>> heuristics;
+  private final ProgressObserverElement bottom;
+  
+  public ProgressObserverTransferRelation(ProgressObserverCPA aCPA) {
+    heuristics = aCPA.getEnabledHeuristics();
+    bottom = aCPA.getAbstractDomain().getBottomElement();
+  }
+  
   @Override
   public Collection<ProgressObserverElement> getAbstractSuccessors(
       AbstractElement el, Precision pPrecision, CFAEdge edge)
@@ -51,13 +62,18 @@ public class ProgressObserverTransferRelation implements TransferRelation {
     List<StopHeuristicsData> preData = pre.getComponents();
     List<StopHeuristicsData> postData = new ArrayList<StopHeuristicsData>(preData.size());
 
-    for (StopHeuristicsData d : preData) {
-      StopHeuristicsData postD = d.processEdge(edge);
+    Iterator<StopHeuristics<? extends StopHeuristicsData>> heuristicsIt = heuristics.iterator();
+    Iterator<StopHeuristicsData> preIt = preData.iterator();
+
+    while (preIt.hasNext()) {
+      StopHeuristics<? extends StopHeuristicsData> h = heuristicsIt.next();
+      StopHeuristicsData d = preIt.next();
+      StopHeuristicsData postD = h.processEdge(d, edge);
       if (postD.isBottom()) {
         CPAchecker.logger.log(Level.INFO, "Giving up at edge ", edge.toString());
         CPAchecker.logger.log(Level.FINEST, "Observer element at the time was: ", el.toString());
         // 'squash' to bottom
-        return Collections.emptySet();
+        return ImmutableList.<ProgressObserverElement>of(bottom);
       } else {
         postData.add(postD);
       }

@@ -23,7 +23,6 @@
  */
 package cpa.assumptions.collector.progressobserver;
 
-import java.util.List;
 import java.util.logging.Level;
 
 import cfa.objectmodel.CFAFunctionDefinitionNode;
@@ -33,9 +32,8 @@ import com.google.common.collect.ImmutableList;
 import cpa.common.CPAchecker;
 import cpa.common.defaults.AbstractCPAFactory;
 import cpa.common.defaults.MergeSepOperator;
+import cpa.common.defaults.SingletonPrecision;
 import cpa.common.defaults.StopNeverOperator;
-import cpa.common.interfaces.AbstractDomain;
-import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.CPAFactory;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
@@ -71,7 +69,7 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
   private final ImmutableList<StopHeuristics<? extends StopHeuristicsData>> enabledHeuristics;
   
   /** Return the immutable list of enables heuristics */
-  public List<StopHeuristics<? extends StopHeuristicsData>> getEnabledHeuristics()
+  public ImmutableList<StopHeuristics<? extends StopHeuristicsData>> getEnabledHeuristics()
   {
     return enabledHeuristics;
   }
@@ -120,23 +118,23 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
     abstractDomain = new ProgressObserverDomain(this);
     mergeOperator = MergeSepOperator.getInstance();
     stopOperator = StopNeverOperator.getInstance();
-    transferRelation = new ProgressObserverTransferRelation();
-    precisionAdjustment = new ProgressObserverPrecisionAdjustment();
+    transferRelation = new ProgressObserverTransferRelation(this);
+    precisionAdjustment = new ProgressObserverPrecisionAdjustment(this);
   }
   
   @Override
-  public AbstractDomain getAbstractDomain() {
+  public ProgressObserverDomain getAbstractDomain() {
     return abstractDomain;
   }
 
   @Override
-  public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
+  public ProgressObserverElement getInitialElement(CFAFunctionDefinitionNode node) {
     return ProgressObserverElement.getInitial(this, node);
   }
 
   @Override
   public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
-    return null;
+    return SingletonPrecision.getInstance();
   }
 
   @Override
