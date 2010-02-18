@@ -85,6 +85,7 @@ public class MainCPAStatistics implements Statistics {
             for (AbstractElement e : reached) {
               file.println(e);
             }
+            file.close();
           } catch (FileNotFoundException e) {
             CPAchecker.logger.log(Level.WARNING,
                 "Could not write reached set to file ", reachedFile.getAbsolutePath(),
