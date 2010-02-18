@@ -38,7 +38,6 @@ import cpa.common.interfaces.Refiner;
 import cpa.common.interfaces.Statistics;
 import cpa.common.interfaces.StatisticsProvider;
 import exceptions.CPAException;
-import exceptions.TransferTimeOutException;
 
 public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
@@ -128,13 +127,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
     boolean stopAnalysis = false;
     while (!stopAnalysis) {
       // run algorithm
-      try{
-        algorithm.run(reached, true);
-      } catch (TransferTimeOutException toE) {
-        // TODO this is temp. to terminate
-        // this exception should be handled in InvariantCOllectionAlgorithm 
-        System.out.println("Timed out @ " + toE.getCfaEdge());
-      }
+      algorithm.run(reached, true);
 
       AbstractElement lastElement = reached.getLastElement();
       

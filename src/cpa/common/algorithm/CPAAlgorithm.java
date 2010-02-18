@@ -44,7 +44,6 @@ import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
 import exceptions.CPAException;
 import exceptions.ForceStopCPAException;
-import exceptions.TransferTimeOutException;
 
 public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
@@ -101,7 +100,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   @Override
-  public void run(final ReachedElements reachedElements, boolean stopAfterError) throws CPAException, TransferTimeOutException {
+  public void run(final ReachedElements reachedElements, boolean stopAfterError) throws CPAException {
     long startTotalTime = System.currentTimeMillis();
     final TransferRelation transferRelation = cpa.getTransferRelation();
     final MergeOperator mergeOperator = cpa.getMergeOperator();

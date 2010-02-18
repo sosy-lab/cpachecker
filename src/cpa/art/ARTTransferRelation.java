@@ -10,7 +10,6 @@ import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
 import exceptions.CPATransferException;
-import exceptions.TransferTimeOutException;
 
 public class ARTTransferRelation implements TransferRelation {
   
@@ -23,7 +22,7 @@ public class ARTTransferRelation implements TransferRelation {
   @Override
   public Collection<ARTElement> getAbstractSuccessors(
       AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge)
-      throws CPATransferException, TransferTimeOutException {
+      throws CPATransferException {
     ARTElement element = (ARTElement)pElement;
     
     AbstractElement wrappedElement = element.getAbstractElementOnArtNode();
