@@ -25,6 +25,8 @@ package cpa.common;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.logging.Level;
 
 import com.google.common.base.Preconditions;
@@ -52,16 +54,20 @@ public class CPABuilder {
       throw new InvalidConfigurationException("Option cpa is not set in the configuration file!");
     }
 
-    return buildCPAs(cpaName, "cpa");
+    return buildCPAs(cpaName, "cpa", new HashSet<String>());
   }
 
-  private ConfigurableProgramAnalysis buildCPAs(String optionValue, String optionName) throws CPAException {
+  private ConfigurableProgramAnalysis buildCPAs(String optionValue, String optionName, Set<String> usedAliases) throws CPAException {
     Preconditions.checkNotNull(optionValue);
     
     // parse option (may be of syntax "classname alias"
     String[] optionParts = optionValue.trim().split("\\s+");
     String cpaName = optionParts[0];
     String cpaAlias = getCPAAlias(optionValue, optionName, optionParts, cpaName);      
+    
+    if (!usedAliases.add(cpaAlias)) {
+      throw new InvalidConfigurationException("Alias " + cpaAlias + " used twice for a CPA.");
+    }
     
     // first get instance of appropriate factory
     
@@ -76,7 +82,7 @@ public class CPABuilder {
     factory.setConfiguration(config);
     factory.setLogger(logger);
     
-    createAndSetChildrenCPAs(cpaName, cpaAlias, factory);
+    createAndSetChildrenCPAs(cpaName, cpaAlias, factory, usedAliases);
     
     // finally call createInstance
     ConfigurableProgramAnalysis cpa;
@@ -155,7 +161,7 @@ public class CPABuilder {
   }
 
   private void createAndSetChildrenCPAs(String cpaName, String cpaAlias,
-      CPAFactory factory) throws InvalidConfigurationException, CPAException {
+      CPAFactory factory, Set<String> usedAliases) throws InvalidConfigurationException, CPAException {
     String childOptionName = cpaAlias + ".cpa";
     String childrenOptionName = cpaAlias + ".cpas";
     String childCpaName = config.getProperty(childOptionName);
@@ -169,7 +175,7 @@ public class CPABuilder {
       }
       
       try {
-        factory.setChild(buildCPAs(childCpaName, childOptionName));
+        factory.setChild(buildCPAs(childCpaName, childOptionName, usedAliases));
       } catch (UnsupportedOperationException e) {
         throw new InvalidConfigurationException(cpaName + " is no wrapper CPA, but option " + childOptionName + " was specified!");
       }
@@ -179,7 +185,7 @@ public class CPABuilder {
       ImmutableList.Builder<ConfigurableProgramAnalysis> childrenCpas = ImmutableList.builder();
       
       for (String currentChildCpaName : childrenCpaNames.split("\\s*,\\s*")) {
-        childrenCpas.add(buildCPAs(currentChildCpaName, childrenOptionName));
+        childrenCpas.add(buildCPAs(currentChildCpaName, childrenOptionName, usedAliases));
       }
       
       try {
