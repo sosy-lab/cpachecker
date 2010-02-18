@@ -229,7 +229,7 @@ public class LogManager {
    * @param e the occurred exception
    * @param additionalMessage an optional message
    */
-  public void logException(Level priority, Exception e, String additionalMessage) {
+  public void logException(Level priority, Throwable e, String additionalMessage) {
 
     if (wouldBeLogged(priority)) {
 

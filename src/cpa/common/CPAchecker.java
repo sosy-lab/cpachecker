@@ -57,10 +57,7 @@ import cmdline.stubs.StubConfiguration;
 
 import com.google.common.collect.ImmutableMap;
 import common.Pair;
-import compositeCPA.CompositeCPA;
 
-import cpa.art.ARTCPA;
-import cpa.assumptions.collector.AssumptionCollectorCPA;
 import cpa.common.algorithm.Algorithm;
 import cpa.common.algorithm.AssumptionCollectionAlgorithm;
 import cpa.common.algorithm.CBMCAlgorithm;
@@ -75,6 +72,7 @@ import cpa.common.interfaces.Statistics.Result;
 import exceptions.CFAGenerationRuntimeException;
 import exceptions.CPAException;
 import exceptions.ForceStopCPAException;
+import exceptions.InvalidConfigurationException;
 
 @SuppressWarnings("restriction")
 public class CPAchecker {
@@ -179,7 +177,10 @@ public class CPAchecker {
       ReachedElements reached = createInitialReachedSet(cpa, mainFunction);
       
       runAlgorithm(algorithm, reached, stats);
-
+    
+    } catch (InvalidConfigurationException e) {
+      logger.log(Level.SEVERE, "Invalid configuration: " + e.getMessage());
+      
     } catch (ForceStopCPAException e) {
       // CPA must exit because it is asked to by the shutdown hook
       logger.log(Level.FINE, "ForceStopCPAException caught at top level: CPAchecker has stopped forcefully, but cleanly");
@@ -475,16 +476,9 @@ public class CPAchecker {
   private ConfigurableProgramAnalysis createCPA(MainCPAStatistics stats) throws CPAException {
     logger.log(Level.FINE, "Creating CPAs");
     
-    ConfigurableProgramAnalysis cpa = CompositeCPA.getCompositeCPA();
+    CPABuilder builder = new CPABuilder(config, logger);
+    ConfigurableProgramAnalysis cpa = builder.buildCPAs();
 
-    if (CPAchecker.config.getBooleanValue("analysis.useAssumptionCollector")) {
-      cpa = new AssumptionCollectorCPA(cpa);
-    }
-    
-    if (CPAchecker.config.getBooleanValue("analysis.useART")) {
-      cpa = ARTCPA.getARTCPA(cpa);
-    }
-        
     if (cpa instanceof StatisticsProvider) {
       ((StatisticsProvider)cpa).collectStatistics(stats.getSubStatistics());
     }

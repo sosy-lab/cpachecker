@@ -23,19 +23,15 @@
  */
 package compositeCPA;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.logging.Level;
 
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
-import cpa.common.CPAchecker;
 import cpa.common.CallElement;
 import cpa.common.CallStack;
 import cpa.common.defaults.AbstractCPAFactory;
@@ -51,8 +47,6 @@ import cpa.common.interfaces.Statistics;
 import cpa.common.interfaces.StatisticsProvider;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
-import cpa.transferrelationmonitor.TransferRelationMonitorCPA;
-import exceptions.CPAException;
 
 public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProvider, CPAWrapper
 {
@@ -61,7 +55,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
     private ImmutableList<ConfigurableProgramAnalysis> cpas = null;
     
     @Override
-    public ConfigurableProgramAnalysis createInstance() throws CPAException {
+    public ConfigurableProgramAnalysis createInstance() {
       Preconditions.checkState(cpas != null, "CompositeCPA needs wrapped CPAs!");
       return createNewCompositeCPA(cpas);
     }
@@ -135,81 +129,6 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
     return new CompositeCPA(compositeDomain, compositeTransfer, compositeMerge, compositeStop,
         compositePrecisionAdjustment, cpas);
-  }
-
-  @SuppressWarnings("unchecked")
-  public static ConfigurableProgramAnalysis getCompositeCPA() throws CPAException
-  {
-    String[] cpaNamesArray = CPAchecker.config.getPropertiesArray("analysis.cpas");
-    String[] mergeTypesArray = CPAchecker.config.getPropertiesArray("analysis.mergeOperators");
-    String[] stopTypesArray = CPAchecker.config.getPropertiesArray("analysis.stopOperators");
-    String[] cpaToBeMonitored = null;
-    if(CPAchecker.config.getBooleanValue("monitoringCPA.enable")){
-      cpaToBeMonitored = CPAchecker.config.getPropertiesArray("monitoringCPA.cpa"); 
-    }
-
-    int sizeOfCompositeCPA = cpaNamesArray.length;
-    if (0 == sizeOfCompositeCPA) throw new CPAException("Configuration option analysis.cpas is not set!");
-
-    // The list to keep all cpas
-    List<ConfigurableProgramAnalysis> cpas = new ArrayList<ConfigurableProgramAnalysis> (sizeOfCompositeCPA);
-
-    for(int i=0; i<sizeOfCompositeCPA; i++){
-      // TODO make sure that the first CPA carries location information
-      // otherwise the analysis will have efficiency problems
-      // -- this is currently checked when constructing a CompositeElement
-
-      // get name of the cpa, we are getting the explicit
-      // path of the representing class of this cpa
-      String cpaName = cpaNamesArray[i];
-
-      try {
-        Class cls = Class.forName(cpaName);
-        Class parameterTypes[] = {String.class, String.class};
-        Constructor ct = cls.getConstructor(parameterTypes);
-        Object argumentlist[] = {mergeTypesArray[i], stopTypesArray[i]};
-        Object obj = ct.newInstance(argumentlist);
-        // Convert object to CPA
-        ConfigurableProgramAnalysis newCPA = (ConfigurableProgramAnalysis)obj;
-        // TODO only one CPA can be monitored for now, combine more on demand and
-        // monitor all later
-        if(cpaToBeMonitored != null){
-          if(cpaToBeMonitored[0].equals(cpaName)){
-            TransferRelationMonitorCPA monitoringCPA = new TransferRelationMonitorCPA(newCPA);
-            newCPA = monitoringCPA;
-          }
-        }
-        cpas.add(newCPA);
-
-      } catch (ClassNotFoundException e) {
-        CPAchecker.logger.logException(Level.WARNING, e, "ClassNotFoundException");
-      } catch (SecurityException e) {
-        CPAchecker.logger.logException(Level.WARNING, e, "SecurityException");
-      } catch (NoSuchMethodException e) {
-        CPAchecker.logger.logException(Level.WARNING, e, "NoSuchMethodException");
-      } catch (IllegalArgumentException e) {
-        CPAchecker.logger.logException(Level.WARNING, e, "IllegalArgumentException");
-      } catch (InstantiationException e) {
-        CPAchecker.logger.logException(Level.WARNING, e, "InstantiationException");
-      } catch (IllegalAccessException e) {
-        CPAchecker.logger.logException(Level.WARNING, e, "IllegalAccessException");
-      } catch (InvocationTargetException e) {
-        CPAchecker.logger.logException(Level.WARNING, e, "InvocationTargetException");
-      }
-    }
-
-    ConfigurableProgramAnalysis cpa;
-    // TODO this was for efficiency but I modified the condition for it to work only with
-    // summary nodes
-    if (cpas.size() == 1 &&
-        CPAchecker.config.getBooleanValue("analysis.noCompositeCPA")) {
-      CPAchecker.logger.log(Level.FINE, "Only one analyis active, no need of a composite CPA");
-      cpa = cpas.get(0);
-    } else {
-      CPAchecker.logger.log(Level.FINE, "CompositeCPA is built using the list of CPAs");
-      cpa = CompositeCPA.createNewCompositeCPA(cpas);
-    }
-    return cpa;
   }
 
   public AbstractDomain getAbstractDomain() {
