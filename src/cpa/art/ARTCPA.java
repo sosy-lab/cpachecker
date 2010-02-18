@@ -11,18 +11,23 @@ import java.util.Set;
 
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cfa.objectmodel.CFANode;
+
+import com.google.common.base.Preconditions;
+
 import cpa.common.CPAchecker;
+import cpa.common.defaults.AbstractCPAFactory;
 import cpa.common.defaults.MergeSepOperator;
 import cpa.common.defaults.StaticPrecisionAdjustment;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.Statistics;
-import cpa.common.interfaces.StatisticsProvider;
+import cpa.common.interfaces.CPAFactory;
 import cpa.common.interfaces.CPAWrapper;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
+import cpa.common.interfaces.Statistics;
+import cpa.common.interfaces.StatisticsProvider;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
 import exceptions.CPAException;
@@ -30,6 +35,33 @@ import exceptions.CPAException;
 public class ARTCPA implements ConfigurableProgramAnalysis, StatisticsProvider, CPAWrapper {
 
   private static final Statistics stats = new ARTStatistics();
+
+  private static class ARTCPAFactory extends AbstractCPAFactory {
+
+    private ConfigurableProgramAnalysis cpa = null;
+    
+    @Override
+    public ConfigurableProgramAnalysis createInstance() throws CPAException {
+      Preconditions.checkState(cpa != null);
+      
+      // use join as default merge, because sep is only safe if all other cpas also use sep
+      String mergeType = getConfiguration().getProperty("cpas.art.merge", "join");
+      return new ARTCPA(mergeType, cpa);
+    }
+
+    @Override
+    public CPAFactory setChild(ConfigurableProgramAnalysis pChild) {
+      Preconditions.checkNotNull(pChild);
+      Preconditions.checkState(cpa == null);
+      
+      cpa = pChild;
+      return this;
+    }
+  }
+  
+  public static CPAFactory factory() {
+    return new ARTCPAFactory();
+  }
   
   private final AbstractDomain abstractDomain;
   private final TransferRelation transferRelation;

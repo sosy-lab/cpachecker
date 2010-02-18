@@ -25,12 +25,28 @@ package cpa.types;
 
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cpa.common.defaults.AbstractCPA;
+import cpa.common.defaults.AbstractCPAFactory;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.CPAFactory;
+import cpa.common.interfaces.ConfigurableProgramAnalysis;
+import exceptions.CPAException;
 
 /**
  * @author Philipp Wendler
  */
 public class TypesCPA extends AbstractCPA {
+  
+  private static class TypesCPAFactory extends AbstractCPAFactory {
+    
+    @Override
+    public ConfigurableProgramAnalysis createInstance() throws CPAException {
+      return new TypesCPA(null, null);
+    }
+  }
+  
+  public static CPAFactory factory() {
+    return new TypesCPAFactory();
+  }
   
   public TypesCPA(String mergeType, String stopType) {
     super("join", "sep", new TypesTransferRelation());

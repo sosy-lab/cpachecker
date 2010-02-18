@@ -21,24 +21,25 @@
  *  CPAchecker web page:
  *    http://www.cs.sfu.ca/~dbeyer/CPAchecker/
  */
-package cpa.common.interfaces;
+package cpa.location;
 
-import cfa.objectmodel.CFAFunctionDefinitionNode;
+import cpa.common.defaults.AbstractCPAFactory;
+import cpa.common.interfaces.ConfigurableProgramAnalysis;
 
-/**
- * Interface for classes representing a Configurable Program Analysis.
- * 
- * All instances of this class have to have a public static method "factory()"
- * which takes no arguments, returns an instance of {@link CPAFactory} and never
- * fails that is, it never returns null or throws an exception).
- */
-public interface ConfigurableProgramAnalysis
-{
-  public AbstractDomain getAbstractDomain();
-  public TransferRelation getTransferRelation();
-  public MergeOperator getMergeOperator();
-  public StopOperator getStopOperator();
-  public PrecisionAdjustment getPrecisionAdjustment();
-  public AbstractElement getInitialElement(CFAFunctionDefinitionNode node);
-  public Precision getInitialPrecision(CFAFunctionDefinitionNode node);
+class LocationCPAFactory extends AbstractCPAFactory {
+
+  private final boolean inverse;
+  
+  public LocationCPAFactory(boolean pInverse) {
+    inverse = pInverse;
+  }
+  
+  @Override
+  public ConfigurableProgramAnalysis createInstance() {
+    if (inverse) {
+      return new InverseLocationCPA();
+    } else {
+      return new LocationCPA();
+    }
+  }
 }

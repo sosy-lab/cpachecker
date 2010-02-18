@@ -44,14 +44,16 @@ import cfa.objectmodel.CFANode;
 import com.google.common.collect.ImmutableList;
 
 import cpa.common.CPAchecker;
+import cpa.common.defaults.AbstractCPAFactory;
 import cpa.common.defaults.StaticPrecisionAdjustment;
 import cpa.common.defaults.StopSepOperator;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.Statistics;
-import cpa.common.interfaces.StatisticsProvider;
+import cpa.common.interfaces.CPAFactory;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
+import cpa.common.interfaces.Statistics;
+import cpa.common.interfaces.StatisticsProvider;
 import cpa.common.interfaces.StopOperator;
 import exceptions.CPAException;
 
@@ -62,6 +64,17 @@ import exceptions.CPAException;
  */
 public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
+  private static class SymbPredAbsCPAFactory extends AbstractCPAFactory {
+    @Override
+    public ConfigurableProgramAnalysis createInstance() throws CPAException {
+      return new SymbPredAbsCPA();
+    }
+  }
+  
+  public static CPAFactory factory() {
+    return new SymbPredAbsCPAFactory();
+  }
+  
   private final SymbPredAbsAbstractDomain domain;
   private final SymbPredAbsTransferRelation transfer;
   private final SymbPredAbsMergeOperator merge;

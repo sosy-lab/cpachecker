@@ -38,8 +38,10 @@ import com.google.common.collect.ImmutableList;
 import cpa.common.CPAchecker;
 import cpa.common.CallElement;
 import cpa.common.CallStack;
+import cpa.common.defaults.AbstractCPAFactory;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.CPAFactory;
 import cpa.common.interfaces.CPAWrapper;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
@@ -54,6 +56,37 @@ import exceptions.CPAException;
 
 public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProvider, CPAWrapper
 {
+  private static class CompositeCPAFactory extends AbstractCPAFactory {
+
+    private ImmutableList<ConfigurableProgramAnalysis> cpas = null;
+    
+    @Override
+    public ConfigurableProgramAnalysis createInstance() throws CPAException {
+      Preconditions.checkState(cpas != null);
+      return createNewCompositeCPA(cpas);
+    }
+
+    @Override
+    public CPAFactory setChild(ConfigurableProgramAnalysis pChild)
+        throws UnsupportedOperationException {
+      throw new UnsupportedOperationException("Use CompositeCPA to wrap several CPAs!");
+    }
+
+    @Override
+    public CPAFactory setChildren(List<ConfigurableProgramAnalysis> pChildren) {
+      Preconditions.checkNotNull(pChildren);
+      Preconditions.checkArgument(!pChildren.isEmpty());
+      Preconditions.checkState(cpas == null);
+      
+      cpas = ImmutableList.copyOf(pChildren);
+      return this;
+    }
+  }
+  
+  public static CPAFactory factory() {
+    return new CompositeCPAFactory();
+  }
+  
   private final AbstractDomain abstractDomain;
   private final TransferRelation transferRelation;
   private final MergeOperator mergeOperator;

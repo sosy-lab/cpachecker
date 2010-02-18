@@ -29,6 +29,7 @@ import cpa.common.defaults.StaticPrecisionAdjustment;
 import cpa.common.defaults.StopSepOperator;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.CPAFactory;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
@@ -42,6 +43,13 @@ public class LocationCPA implements ConfigurableProgramAnalysis{
 	private static final TransferRelation transferRelation = new LocationTransferRelation();
 	private static final StopOperator stopOperator = new StopSepOperator(abstractDomain.getPartialOrder());
 
+	public static CPAFactory factory() {
+	  return new LocationCPAFactory(false);
+	}
+	
+	public LocationCPA() {
+  }
+	
 	public LocationCPA (String mergeType, String stopType) {
 	}
 

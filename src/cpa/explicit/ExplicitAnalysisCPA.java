@@ -24,12 +24,14 @@
 package cpa.explicit;
 
 import cfa.objectmodel.CFAFunctionDefinitionNode;
+import cpa.common.defaults.AbstractCPAFactory;
 import cpa.common.defaults.MergeJoinOperator;
 import cpa.common.defaults.MergeSepOperator;
 import cpa.common.defaults.StaticPrecisionAdjustment;
 import cpa.common.defaults.StopSepOperator;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.CPAFactory;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
@@ -40,6 +42,20 @@ import exceptions.CPAException;
 
 public class ExplicitAnalysisCPA implements ConfigurableProgramAnalysis {
 
+  private static class ExplicitAnalysisCPAFactory extends AbstractCPAFactory {
+    
+    @Override
+    public ConfigurableProgramAnalysis createInstance() throws CPAException {
+      String mergeType = getConfiguration().getProperty("cpas.explicit.merge", "sep");
+      
+      return new ExplicitAnalysisCPA(mergeType, "sep");
+    }
+  }
+  
+  public static CPAFactory factory() {
+    return new ExplicitAnalysisCPAFactory();
+  }
+  
   private AbstractDomain abstractDomain;
   private MergeOperator mergeOperator;
   private StopOperator stopOperator;

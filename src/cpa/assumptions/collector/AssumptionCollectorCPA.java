@@ -29,8 +29,13 @@ import assumptions.AssumptionSymbolicFormulaManager;
 import assumptions.AssumptionWithLocation;
 import assumptions.MathsatInvariantSymbolicFormulaManager;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
+
+import com.google.common.base.Preconditions;
+
+import cpa.common.defaults.AbstractCPAFactory;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.CPAFactory;
 import cpa.common.interfaces.CPAWrapper;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
@@ -38,6 +43,7 @@ import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
+import exceptions.CPAException;
 
 /**
  * CPA used to capture the assumptions that ought to be dumped.
@@ -50,6 +56,30 @@ import cpa.common.interfaces.TransferRelation;
  */
 public class AssumptionCollectorCPA implements ConfigurableProgramAnalysis, CPAWrapper {
 
+  private static class AssumptionCollectorCPAFactory extends AbstractCPAFactory {
+
+    private ConfigurableProgramAnalysis cpa = null;
+    
+    @Override
+    public ConfigurableProgramAnalysis createInstance() throws CPAException {
+      Preconditions.checkState(cpa != null);
+      return new AssumptionCollectorCPA(cpa);
+    }
+
+    @Override
+    public CPAFactory setChild(ConfigurableProgramAnalysis pChild) {
+      Preconditions.checkNotNull(pChild);
+      Preconditions.checkState(cpa == null);
+      
+      cpa = pChild;
+      return this;
+    }
+  }
+  
+  public static CPAFactory factory() {
+    return new AssumptionCollectorCPAFactory();
+  }
+  
   private final AssumptionCollectorDomain abstractDomain;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;

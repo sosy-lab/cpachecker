@@ -8,12 +8,14 @@ import java_cup.runtime.Symbol;
 import java_cup.runtime.SymbolFactory;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cpa.common.CPAchecker;
+import cpa.common.defaults.AbstractCPAFactory;
 import cpa.common.defaults.EqualityPartialOrder;
 import cpa.common.defaults.MergeSepOperator;
 import cpa.common.defaults.StaticPrecisionAdjustment;
 import cpa.common.defaults.StopSepOperator;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.CPAFactory;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.JoinOperator;
 import cpa.common.interfaces.MergeOperator;
@@ -29,6 +31,24 @@ import exceptions.CPAException;
  * @author rhein
  */
 public class ObserverAutomatonCPA implements ConfigurableProgramAnalysis {
+  
+  private static class ObserverAutomatonCPAFactory extends AbstractCPAFactory {
+    
+    @Override
+    public ConfigurableProgramAnalysis createInstance() throws CPAException {
+      try {
+        return new ObserverAutomatonCPA(null, null);
+      } catch (FileNotFoundException e) {
+        throw new CPAException("Cannot create ObserverAutomatonCPA without automaton file ("
+            + e.getMessage() + ")");
+      }
+    }
+  }
+  
+  public static CPAFactory factory() {
+    return new ObserverAutomatonCPAFactory();
+  }
+  
   private ObserverAutomaton automaton;
   private TransferRelation transferRelation;
   

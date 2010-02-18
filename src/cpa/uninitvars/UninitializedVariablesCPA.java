@@ -24,24 +24,44 @@
 package cpa.uninitvars;
 
 import cfa.objectmodel.CFAFunctionDefinitionNode;
+import cpa.common.CPAConfiguration;
+import cpa.common.defaults.AbstractCPAFactory;
 import cpa.common.defaults.MergeJoinOperator;
 import cpa.common.defaults.MergeSepOperator;
 import cpa.common.defaults.StaticPrecisionAdjustment;
 import cpa.common.defaults.StopSepOperator;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.CPAFactory;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
+import exceptions.CPAException;
 
 /**
  * @author Philipp Wendler
  */
 public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis {
 
+  private static class UninitializedVariablesCPAFactory extends AbstractCPAFactory {
+    
+    @Override
+    public ConfigurableProgramAnalysis createInstance() throws CPAException {
+      CPAConfiguration config = getConfiguration();
+      String mergeType = config.getProperty("uninitVars.merge", "sep");
+      String stopType = config.getProperty("uninitVars.stop", "join");
+      
+      return new UninitializedVariablesCPA(mergeType, stopType);
+    }
+  }
+  
+  public static CPAFactory factory() {
+    return new UninitializedVariablesCPAFactory();
+  }
+  
   private final AbstractDomain abstractDomain;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
