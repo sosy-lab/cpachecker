@@ -32,17 +32,14 @@ public class AssumptionCollectorMerge implements MergeOperator {
 
     AssumptionWithLocation assumption1 = collectorElement1.getCollectedAssumptions();
     boolean shouldStop1 = collectorElement1.isStop();
-    long totalTime1 = collectorElement1.getTotalTimeOnThePath();
     
     AssumptionWithLocation assumption2 = collectorElement2.getCollectedAssumptions();
-    long totalTime2 = collectorElement2.getTotalTimeOnThePath();
     boolean shouldStop2 = collectorElement2.isStop();
     
     AssumptionWithLocation mergedAssumption = assumption1.and(assumption2);
     boolean mergedShouldStop = shouldStop1 && shouldStop2;
-    long mergedTotalTime = Math.max(totalTime1, totalTime2);
     
-    AssumptionCollectorElement mergedElement = new AssumptionCollectorElement(retElement, mergedAssumption, mergedShouldStop, 0, mergedTotalTime);
+    AssumptionCollectorElement mergedElement = new AssumptionCollectorElement(retElement, mergedAssumption, mergedShouldStop);
     
     return mergedElement;
   }

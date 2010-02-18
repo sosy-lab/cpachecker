@@ -27,11 +27,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import symbpredabstraction.interfaces.SymbolicFormula;
 import assumptions.AbstractWrappedElementVisitor;
@@ -45,8 +40,6 @@ import cfa.objectmodel.CFAEdge;
 
 import common.Pair;
 
-import cpa.common.CPAchecker;
-import cpa.common.algorithm.CEGARAlgorithm;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;
@@ -64,11 +57,6 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
   private final AssumptionAndForceStopReportingVisitor reportingVisitor;
   private final AssumptionSymbolicFormulaManager manager;
   private final AbstractElement wrappedBottom;
-  
-  // variables for monitoring execution of a single transfer
-  private final TransferCallable tc;
-  private final long timeLimit;
-  private final long timeLimitForPath;
 
   public AssumptionCollectorTransferRelation(AssumptionCollectorCPA cpa)
   {
@@ -77,12 +65,6 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
     wrappedBottom = wrappedCPA.getAbstractDomain().getBottomElement();
     reportingVisitor = new AssumptionAndForceStopReportingVisitor();
     manager = cpa.getSymbolicFormulaManager();
-    // time limit is given in milliseconds
-    tc = new TransferCallable();
-    timeLimit = Integer.parseInt(CPAchecker.config.getPropertiesArray
-        ("trackabstractioncomputation.limit")[0]);
-    timeLimitForPath = Integer.parseInt(CPAchecker.config.getPropertiesArray
-        ("trackabstractioncomputation.pathcomputationlimit")[0]);
   }
 
   @Override
@@ -91,74 +73,24 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
       throws CPATransferException {
     
     AssumptionCollectorElement element = (AssumptionCollectorElement)pElement;
+    AbstractElement wrappedElement = element.getWrappedElement();
     
     // If we must stop, then let's stop by returning an empty set
     if (element.isStop())
       return Collections.emptySet();
     
-    long start = 0;
-    long end = 0;
-    long previousTotalTimeOnThePath = element.getTotalTimeOnThePath();
-    
-    Collection<? extends AbstractElement> wrappedSuccessors = null;
-    AbstractElement wrappedElement = element.getWrappedElements().iterator().next();
-    // set the edge and element
-    tc.setEdge(pCfaEdge);
-    tc.setElement(wrappedElement);
-    tc.setPrecision(pPrecision);
-    
     // Compute the inner-successor
-    Future<Collection<? extends AbstractElement>> future = CEGARAlgorithm.executor.submit(tc);
-    boolean failed = false;
-    try{
-      start = System.currentTimeMillis();
-      if(timeLimit == 0){
-        wrappedSuccessors = future.get();
-      }
-      // here we get the result of the post computation but there is a time limit
-      // given to complete the task specified by timeLimit
-      else{
-        assert(timeLimit > 0);
-        wrappedSuccessors = future.get(timeLimit, TimeUnit.MILLISECONDS);
-      }
-      end = System.currentTimeMillis();
-    } catch (TimeoutException exc){
-      failed = true;
-    } catch (InterruptedException exc) {
-      exc.printStackTrace();
-      failed = true;
-    } catch (ExecutionException exc) {
-      exc.printStackTrace();
-      failed = true;
-    }
+    Collection<? extends AbstractElement> unwrappedSuccessors = wrappedTransfer.getAbstractSuccessors(wrappedElement, pPrecision, pCfaEdge); 
     
-    // check whether the path execution time is above
-    // the threshold
-    long timeOfExecution = end - start;
-      
-    if (!failed && (timeLimitForPath > 0) && (previousTotalTimeOnThePath + timeOfExecution > timeLimitForPath)) {
-      
-      failed = true;
-    }
-    
-    
-    if (failed) {
-      // return stop + assumption to avoid re-computing the state
-      SymbolicFormula reportedFormula = ReportingUtils.extractReportedFormulas(manager, wrappedElement);
-      AssumptionWithLocation dataAssumption = (new Assumption(manager.makeNot(reportedFormula),false)).atLocation(pCfaEdge.getPredecessor());
-      AssumptionCollectorElement successor = new AssumptionCollectorElement(wrappedBottom, dataAssumption, true, timeLimit, previousTotalTimeOnThePath);
-      return Collections.singletonList(successor);
-    }
-    
-    if (wrappedSuccessors.isEmpty())
+    if (unwrappedSuccessors.isEmpty())
       return Collections.emptyList();
     
-    ArrayList<AssumptionCollectorElement> successors = new ArrayList<AssumptionCollectorElement>(wrappedSuccessors.size());
+    ArrayList<AssumptionCollectorElement> successors = new ArrayList<AssumptionCollectorElement>(unwrappedSuccessors.size());
     
-    // Handle all inner-successor, one after the other, and produce
+    // Handle all inner-successors, one after the other, and produce
     // a corresponding wrapped successor
-    for (AbstractElement wrappedSuccessor : wrappedSuccessors) {
-      Pair<AssumptionWithLocation,Boolean> pair = reportingVisitor.collect(wrappedSuccessor);
+    for (AbstractElement unwrappedSuccessor : unwrappedSuccessors) {
+      Pair<AssumptionWithLocation,Boolean> pair = reportingVisitor.collect(unwrappedSuccessor);
       AssumptionWithLocation assumption = pair.getFirst();
       
       boolean forceStop = pair.getSecond();
@@ -168,16 +100,16 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
         assumption = assumption.and(dataAssumption);
       }
       
-      boolean isBottom = forceStop || wrappedBottom.equals(wrappedSuccessor);
+      boolean isBottom = forceStop || wrappedBottom.equals(unwrappedSuccessor);
 
-      successors.add(new AssumptionCollectorElement(wrappedSuccessor, assumption, isBottom, timeOfExecution, previousTotalTimeOnThePath));
+      successors.add(new AssumptionCollectorElement(unwrappedSuccessor, assumption, isBottom));
     }
     return successors;
   }
 
   @Override
   public Collection<? extends AbstractElement> strengthen(AbstractElement el, List<AbstractElement> others, CFAEdge edge, Precision p)
-  throws CPATransferException
+    throws CPATransferException
   {
     // TODO copied this from monitoringCPA to be tested -- we need the strengthening for 
     // error location analysis
@@ -198,9 +130,8 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
        ArrayList<AssumptionCollectorElement> retList = new ArrayList<AssumptionCollectorElement>(wrappedList.size());
        AssumptionWithLocation assumption = collectorElement.getCollectedAssumptions();
        boolean stop = collectorElement.isStop(); 
-       long totalTimeOnThePath = collectorElement.getTotalTimeOnThePath();
        for (AbstractElement wrappedReturnElement : wrappedList)
-         retList.add(new AssumptionCollectorElement(wrappedReturnElement, assumption, stop, 0, totalTimeOnThePath));
+         retList.add(new AssumptionCollectorElement(wrappedReturnElement, assumption, stop));
        return retList;
     } catch (CPATransferException e) {
       e.printStackTrace();
@@ -216,6 +147,7 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
 
     @Override
     public void process(AbstractElement element) {
+      // process reported assumptions
       if (element instanceof AssumptionReportingElement) {
         AssumptionWithLocation otherInv = ((AssumptionReportingElement)element).getAssumptionWithLocation();
         if (otherInv != null) {
@@ -225,8 +157,12 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
             assumptionResult = assumptionResult.and(otherInv);
         }
       }
+      
+      // process stop flag
       if (element instanceof AvoidanceReportingElement) {
-        
+        boolean otherStop = ((AvoidanceReportingElement)element).mustDumpAssumptionForAvoidance();
+        if (otherStop)
+          forceStop = true;
       }
     }
     
@@ -243,33 +179,5 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
       return result;
     }
   }
-  
-  private class TransferCallable implements Callable<Collection<? extends AbstractElement>>{
-
-    CFAEdge cfaEdge;
-    AbstractElement abstractElement;
-    Precision precision;
-
-    public TransferCallable() {
-
-    }
-
-    @Override
-    public Collection<? extends AbstractElement> call() throws Exception {
-      return wrappedTransfer.getAbstractSuccessors(abstractElement, precision, cfaEdge);
-    }
-
-    public void setEdge(CFAEdge pCfaEdge){
-      cfaEdge = pCfaEdge;
-    }
-
-    public void setElement(AbstractElement pAbstractElement){
-      abstractElement = pAbstractElement;
-    }
-
-    public void setPrecision(Precision pPrecision){
-      precision = pPrecision;
-    }
-  }
-    
+      
 }

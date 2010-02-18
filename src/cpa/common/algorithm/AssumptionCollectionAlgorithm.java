@@ -36,7 +36,6 @@ import assumptions.AssumptionWithMultipleLocations;
 import assumptions.MathsatInvariantSymbolicFormulaManager;
 import assumptions.ReportingUtils;
 import cfa.objectmodel.CFAEdge;
-import cfa.objectmodel.CFANode;
 
 import common.Pair;
 
@@ -52,7 +51,6 @@ import cpa.common.interfaces.Statistics;
 import cpa.common.interfaces.StatisticsProvider;
 import exceptions.CPAException;
 import exceptions.RefinementFailedException;
-import exceptions.TransferTimeOutException;
 
 /**
  * Outer algorithm to collect all invariants generated during
@@ -92,10 +90,6 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
       } catch (RefinementFailedException failedRefinement) {
         CPAchecker.logger.log(Level.FINER, "Dumping assumptions due to: " + failedRefinement.toString());
         addAssumptionsForFailedRefinement(resultAssumption, failedRefinement);
-      } catch (TransferTimeOutException failedTransfer) {
-        CPAchecker.logger.log(Level.FINER, "Dumping assumptions due to: " + failedTransfer.toString());
-        addAssumptionsForFailedTransfer(resultAssumption, failedTransfer);
-        restartCPA = true;
       } catch (CPAException e) {
         CPAchecker.logger.log(Level.FINER, "Dumping assumptions due to: " + e.toString());
       }
@@ -196,17 +190,6 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
       SymbolicFormula dataRegion = ReportingUtils.extractReportedFormulas(symbolicManager, element);
       invariant.addAssumption(((AbstractWrapperElement)element).retrieveLocationElement().getLocationNode(), new Assumption(symbolicManager.makeNot(dataRegion), false));
     }
-  }
-  
-  /**
-   * Returns the invariant(s) necessary to avoid the failed transfer
-   */
-  private void addAssumptionsForFailedTransfer(
-      AssumptionWithMultipleLocations invariant,
-      TransferTimeOutException failedTransfer) {
-    CFANode sourceLocation = failedTransfer.getCfaEdge().getPredecessor();
-    SymbolicFormula dataRegion = ReportingUtils.extractReportedFormulas(symbolicManager, failedTransfer.getAbstractElement());
-    invariant.addAssumption(sourceLocation, new Assumption (symbolicManager.makeNot(dataRegion), false));
   }
   
   @Override

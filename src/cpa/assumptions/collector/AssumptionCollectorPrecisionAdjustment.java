@@ -75,9 +75,7 @@ public class AssumptionCollectorPrecisionAdjustment
     if (unwrappedElement != unwrappedResult.getFirst()) {
       AssumptionWithLocation assumption = assumptionElement.getCollectedAssumptions();
       boolean stop = assumptionElement.isStop();
-      // TODO Do we want to add time to compute 'prec' to path total time?
-      long totalTimeAlongPath = assumptionElement.getTotalTimeOnThePath();
-      resultElement = new AssumptionCollectorElement(unwrappedElement, assumption, stop, 0, totalTimeAlongPath);
+      resultElement = new AssumptionCollectorElement(unwrappedElement, assumption, stop);
     } else {
       resultElement = element;
     }

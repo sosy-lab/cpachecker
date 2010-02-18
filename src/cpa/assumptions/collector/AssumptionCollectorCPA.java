@@ -82,7 +82,7 @@ public class AssumptionCollectorCPA implements ConfigurableProgramAnalysis, CPAW
   @Override
   public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
     AbstractElement wrappedInitialElement = wrappedCPA.getInitialElement(node);
-    return new AssumptionCollectorElement(wrappedInitialElement, AssumptionWithLocation.TRUE, false, 0, 0);
+    return new AssumptionCollectorElement(wrappedInitialElement, AssumptionWithLocation.TRUE, false);
   }
 
   @Override
