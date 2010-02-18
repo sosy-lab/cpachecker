@@ -38,7 +38,7 @@ public class ObserverAutomatonCPA implements ConfigurableProgramAnalysis {
     @Override
     public ConfigurableProgramAnalysis createInstance() throws CPAException {
       try {
-        return new ObserverAutomatonCPA(null, null);
+        return new ObserverAutomatonCPA();
       } catch (FileNotFoundException e) {
         throw new InvalidConfigurationException("Cannot create ObserverAutomatonCPA without automaton file ("
             + e.getMessage() + ")");
@@ -97,7 +97,7 @@ public class ObserverAutomatonCPA implements ConfigurableProgramAnalysis {
    * @param pStopType
    * @throws FileNotFoundException
    */
-  public ObserverAutomatonCPA(String pMergeType, String pStopType) throws FileNotFoundException { 
+  private ObserverAutomatonCPA() throws FileNotFoundException { 
     String file = CPAchecker.config.getProperty("observerAnalysis.inputFile");
     parseObserverFile(file);
   }

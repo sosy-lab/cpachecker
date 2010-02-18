@@ -28,29 +28,45 @@ import java.util.List;
 
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cfa.objectmodel.c.FunctionDefinitionNode;
+import cpa.common.CPAConfiguration;
+import cpa.common.defaults.AbstractCPAFactory;
 import cpa.common.defaults.MergeSepOperator;
 import cpa.common.defaults.StaticPrecisionAdjustment;
 import cpa.common.defaults.StopSepOperator;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.CPAFactory;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
-import exceptions.CPAException;
 
 public class DefUseCPA implements ConfigurableProgramAnalysis{
 
+  private static class DefUseCPAFactory extends AbstractCPAFactory {
+    
+    @Override
+    public ConfigurableProgramAnalysis createInstance() {
+      CPAConfiguration config = getConfiguration();
+      String mergeType = config.getProperty("cpas.defuse.merge");
+      String stopType = config.getProperty("cpas.defuse.stop");
+      return new DefUseCPA(mergeType, stopType);
+    }
+  }
+  
+  public static CPAFactory factory() {
+    return new DefUseCPAFactory();
+  }
+  
   private AbstractDomain abstractDomain;
   private TransferRelation transferRelation;
   private MergeOperator mergeOperator;
   private StopOperator stopOperator;
   private PrecisionAdjustment precisionAdjustment;
 
-
-  public DefUseCPA (String mergeType, String stopType) throws CPAException{
+  private DefUseCPA (String mergeType, String stopType) {
     DefUseDomain defUseDomain = new DefUseDomain ();
     this.abstractDomain = defUseDomain;
 

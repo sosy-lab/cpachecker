@@ -4,9 +4,14 @@ import java.util.Collection;
 import java.util.Collections;
 
 import cfa.objectmodel.CFAFunctionDefinitionNode;
+
+import com.google.common.base.Preconditions;
+
+import cpa.common.defaults.AbstractCPAFactory;
 import cpa.common.defaults.StaticPrecisionAdjustment;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.CPAFactory;
 import cpa.common.interfaces.CPAWrapper;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
@@ -19,6 +24,31 @@ import cpa.common.interfaces.TransferRelation;
 
 public class TransferRelationMonitorCPA implements ConfigurableProgramAnalysis, StatisticsProvider, CPAWrapper {
 
+  private static class TransferRelationMonitorCPAFactory extends AbstractCPAFactory {
+    
+    private ConfigurableProgramAnalysis cpa = null;
+
+    @Override
+    public ConfigurableProgramAnalysis createInstance() {
+      Preconditions.checkState(cpa != null, "TransferRelationMonitorCPA needs a wrapped CPA!");
+
+      return new TransferRelationMonitorCPA(cpa);
+    }
+    
+    @Override
+    public CPAFactory setChild(ConfigurableProgramAnalysis pChild) {
+      Preconditions.checkNotNull(pChild);
+      Preconditions.checkState(cpa == null);
+      
+      cpa = pChild;
+      return this;
+    }
+  }
+  
+  public static CPAFactory factory() {
+    return new TransferRelationMonitorCPAFactory();
+  }
+  
   private final AbstractDomain abstractDomain;
   private final TransferRelation transferRelation;
   private final MergeOperator mergeOperator;
@@ -26,7 +56,7 @@ public class TransferRelationMonitorCPA implements ConfigurableProgramAnalysis, 
   private final PrecisionAdjustment precisionAdjustment;
   private final ConfigurableProgramAnalysis wrappedCPA;
   
-  public TransferRelationMonitorCPA(ConfigurableProgramAnalysis pCpa) {
+  private TransferRelationMonitorCPA(ConfigurableProgramAnalysis pCpa) {
     wrappedCPA = pCpa;
     abstractDomain = new TransferRelationMonitorDomain(this);
     transferRelation = new TransferRelationMonitorTransferRelation(wrappedCPA);

@@ -31,10 +31,12 @@ import cfa.objectmodel.CFAFunctionDefinitionNode;
 import com.google.common.collect.ImmutableList;
 
 import cpa.common.CPAchecker;
+import cpa.common.defaults.AbstractCPAFactory;
 import cpa.common.defaults.MergeSepOperator;
 import cpa.common.defaults.StopNeverOperator;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.CPAFactory;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
@@ -48,6 +50,18 @@ import cpa.common.interfaces.TransferRelation;
  */
 public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
 
+  private static class ProgressObserverCPAFactory extends AbstractCPAFactory {
+    
+    @Override
+    public ConfigurableProgramAnalysis createInstance() {
+      return new ProgressObserverCPA();
+    }
+  }
+  
+  public static CPAFactory factory() {
+    return new ProgressObserverCPAFactory();
+  }
+  
   private final ProgressObserverDomain abstractDomain;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
@@ -94,7 +108,7 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
     return builder.build();
   }
   
-  public ProgressObserverCPA(String mergeOp, String stopOp)
+  private ProgressObserverCPA()
   {
     // Check if assumption collector is enabled; if not, the analysis will
     // not be sound

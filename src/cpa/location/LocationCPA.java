@@ -46,12 +46,6 @@ public class LocationCPA implements ConfigurableProgramAnalysis{
 	public static CPAFactory factory() {
 	  return new LocationCPAFactory(false);
 	}
-	
-	public LocationCPA() {
-  }
-	
-	public LocationCPA (String mergeType, String stopType) {
-	}
 
 	public AbstractDomain getAbstractDomain() {
 	  return abstractDomain;

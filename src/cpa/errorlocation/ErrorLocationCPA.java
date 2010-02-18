@@ -7,15 +7,14 @@ import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.CPAFactory;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.TransferRelation;
-import exceptions.CPAException;
 
 public class ErrorLocationCPA extends AbstractCPA {
 
   private static class ErrorLocationCPAFactory extends AbstractCPAFactory {
     
     @Override
-    public ConfigurableProgramAnalysis createInstance() throws CPAException {
-      return new ErrorLocationCPA(null, null);
+    public ConfigurableProgramAnalysis createInstance() {
+      return new ErrorLocationCPA();
     }
   }
   
@@ -49,7 +48,7 @@ public class ErrorLocationCPA extends AbstractCPA {
 
   private static final TransferRelation transferRelation = new ErrorLocationTransferRelation(ErrorLocationElement.ERROR);
   
-  public ErrorLocationCPA(String mergeType, String stopType) {
+  private ErrorLocationCPA() {
     super("sep", "sep", transferRelation);
   }
 

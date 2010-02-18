@@ -34,14 +34,13 @@ import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.PrecisionAdjustment;
 import cpa.common.interfaces.StopOperator;
-import exceptions.CPAException;
 
 public class ConcreteAnalysisCPA implements cpa.common.interfaces.ConfigurableProgramAnalysis {
 
   private static class ConcreteAnalysisCPAFactory extends AbstractCPAFactory {
     
     @Override
-    public ConfigurableProgramAnalysis createInstance() throws CPAException {
+    public ConfigurableProgramAnalysis createInstance() {
       return new ConcreteAnalysisCPA();
     }
   }
@@ -55,10 +54,6 @@ public class ConcreteAnalysisCPA implements cpa.common.interfaces.ConfigurablePr
   private StopOperator mStopOperator;
   private ConcreteAnalysisTransferRelation mTransferRelation;
   private PrecisionAdjustment mPrecisionAdjustment;
-
-  public ConcreteAnalysisCPA(String pMergeType, String pStopType) {
-    this();
-  }
   
   public ConcreteAnalysisCPA() {
     

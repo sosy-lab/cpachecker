@@ -29,7 +29,6 @@ import cpa.common.defaults.AbstractCPAFactory;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.CPAFactory;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
-import exceptions.CPAException;
 
 /**
  * @author Philipp Wendler
@@ -39,8 +38,8 @@ public class TypesCPA extends AbstractCPA {
   private static class TypesCPAFactory extends AbstractCPAFactory {
     
     @Override
-    public ConfigurableProgramAnalysis createInstance() throws CPAException {
-      return new TypesCPA(null, null);
+    public ConfigurableProgramAnalysis createInstance() {
+      return new TypesCPA();
     }
   }
   
@@ -48,7 +47,7 @@ public class TypesCPA extends AbstractCPA {
     return new TypesCPAFactory();
   }
   
-  public TypesCPA(String mergeType, String stopType) {
+  private TypesCPA() {
     super("join", "sep", new TypesTransferRelation());
   }
   

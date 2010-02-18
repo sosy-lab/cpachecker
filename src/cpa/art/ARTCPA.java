@@ -1,8 +1,6 @@
 package cpa.art;
 
 import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
@@ -14,7 +12,6 @@ import cfa.objectmodel.CFANode;
 
 import com.google.common.base.Preconditions;
 
-import cpa.common.CPAchecker;
 import cpa.common.defaults.AbstractCPAFactory;
 import cpa.common.defaults.MergeSepOperator;
 import cpa.common.defaults.StaticPrecisionAdjustment;
@@ -31,6 +28,7 @@ import cpa.common.interfaces.StatisticsProvider;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
 import exceptions.CPAException;
+import exceptions.InvalidConfigurationException;
 
 public class ARTCPA implements ConfigurableProgramAnalysis, StatisticsProvider, CPAWrapper {
 
@@ -73,7 +71,7 @@ public class ARTCPA implements ConfigurableProgramAnalysis, StatisticsProvider, 
   // TODO state in the CPA, possibly dangerous with multiple ARTs
   private final Set<ARTElement> covered;
 
-  private ARTCPA(String mergeType, ConfigurableProgramAnalysis cpa) {
+  private ARTCPA(String mergeType, ConfigurableProgramAnalysis cpa) throws InvalidConfigurationException {
     wrappedCPA = cpa;
     abstractDomain = new ARTDomain(this);
     transferRelation = new ARTTransferRelation(cpa.getTransferRelation());
@@ -83,7 +81,7 @@ public class ARTCPA implements ConfigurableProgramAnalysis, StatisticsProvider, 
     } else if(mergeType.equals("join")){
       mergeOperator = new ARTMergeJoin(wrappedCPA);
     } else {
-      throw new IllegalArgumentException();
+      throw new InvalidConfigurationException("Invalid merge operator for ARTCPA!");
     }
     stopOperator = new ARTStopSep(wrappedCPA);  
     covered = new HashSet<ARTElement>();
@@ -143,17 +141,6 @@ public class ARTCPA implements ConfigurableProgramAnalysis, StatisticsProvider, 
 
   public ConfigurableProgramAnalysis getWrappedCPA(){
     return wrappedCPA;
-  }
-
-  public static ConfigurableProgramAnalysis getARTCPA(ConfigurableProgramAnalysis cpa) {
-    String[] mergeTypesArray = CPAchecker.config.getPropertiesArray("analysis.mergeOperators");
-    ArrayList<String> mergeTypes = new ArrayList<String>(Arrays.asList(mergeTypesArray));
-    if(mergeTypes.contains("join")){
-      return new ARTCPA("join", cpa);
-    }
-    else{
-      return new ARTCPA("sep", cpa);
-    }
   }
 
   public ARTElement findHighest(ARTElement pLastElem, CFANode pLoc) throws CPAException {

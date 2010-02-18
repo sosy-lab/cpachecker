@@ -61,7 +61,6 @@ import cpa.common.interfaces.Statistics;
 import cpa.common.interfaces.StatisticsProvider;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
-import exceptions.CPAException;
 
 
 /**
@@ -74,7 +73,7 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis, Sta
     private static class PredicateAbstractionCPAFactory extends AbstractCPAFactory {
       
       @Override
-      public ConfigurableProgramAnalysis createInstance() throws CPAException {
+      public ConfigurableProgramAnalysis createInstance() {
         return new PredicateAbstractionCPA();
       }
     }
@@ -149,16 +148,6 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis, Sta
         stats = new PredicateAbstractionCPAStatistics(this);
     }
 
-    /**
-     * Constructor conforming to the "contract" in CompositeCPA. The two
-     * arguments are ignored
-     * @param s1
-     * @param s2
-     */
-    public PredicateAbstractionCPA(String s1, String s2) {
-        this();
-    }
-
     @Override
     public AbstractDomain getAbstractDomain() {
         return domain;
@@ -171,7 +160,6 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis, Sta
 
     public MergeOperator getMergeOperator() {
         return merge;
-        //return null;
     }
 
     @Override

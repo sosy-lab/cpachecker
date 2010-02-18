@@ -24,8 +24,10 @@
 package cpa.dominator;
 
 import cfa.objectmodel.CFAFunctionDefinitionNode;
+import cpa.common.defaults.AbstractCPAFactory;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.CPAFactory;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
@@ -33,14 +35,25 @@ import cpa.common.interfaces.PrecisionAdjustment;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
 import cpa.location.InverseLocationCPA;
-import exceptions.CPAException;
 
 public class PostDominatorCPA implements ConfigurableProgramAnalysis {
 
+  private static class PostDominatorCPAFactory extends AbstractCPAFactory {
+    
+    @Override
+    public ConfigurableProgramAnalysis createInstance() {
+      return new PostDominatorCPA();
+    }
+  }
+  
+  public static CPAFactory factory() {
+    return new PostDominatorCPAFactory();
+  }
+  
 	private cpa.dominator.parametric.DominatorCPA parametricDominatorCPA;
 
-	public PostDominatorCPA(String mergeType, String stopType) throws CPAException {
-		this.parametricDominatorCPA = new cpa.dominator.parametric.DominatorCPA(new InverseLocationCPA(mergeType, stopType));
+	public PostDominatorCPA() {
+		this.parametricDominatorCPA = new cpa.dominator.parametric.DominatorCPA(new InverseLocationCPA());
 	}
 
   public AbstractDomain getAbstractDomain() {

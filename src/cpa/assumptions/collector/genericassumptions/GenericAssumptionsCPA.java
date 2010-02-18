@@ -26,11 +26,13 @@ package cpa.assumptions.collector.genericassumptions;
 import assumptions.AssumptionSymbolicFormulaManager;
 import assumptions.MathsatInvariantSymbolicFormulaManager;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
+import cpa.common.defaults.AbstractCPAFactory;
 import cpa.common.defaults.MergeSepOperator;
 import cpa.common.defaults.StaticPrecisionAdjustment;
 import cpa.common.defaults.StopNeverOperator;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.CPAFactory;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
@@ -40,6 +42,18 @@ import cpa.common.interfaces.TransferRelation;
 
 public class GenericAssumptionsCPA implements ConfigurableProgramAnalysis {
 
+  private static class GenericAssumptionsCPAFactory extends AbstractCPAFactory {
+    
+    @Override
+    public ConfigurableProgramAnalysis createInstance() {
+      return new GenericAssumptionsCPA();
+    }
+  }
+  
+  public static CPAFactory factory() {
+    return new GenericAssumptionsCPAFactory();
+  }
+  
   private GenericAssumptionsDomain abstractDomain;
   private MergeOperator mergeOperator;
   private StopOperator stopOperator;
@@ -49,7 +63,7 @@ public class GenericAssumptionsCPA implements ConfigurableProgramAnalysis {
   // Symbolic Formula Manager used to represent build invariant formulas
   private AssumptionSymbolicFormulaManager symbolicFormulaManager;
   
-  public GenericAssumptionsCPA(String mergeOp, String stopOp)
+  private GenericAssumptionsCPA()
   {
     symbolicFormulaManager = MathsatInvariantSymbolicFormulaManager.getInstance();
     

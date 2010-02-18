@@ -24,28 +24,42 @@
 package cpa.octagon;
 
 import cfa.objectmodel.CFAFunctionDefinitionNode;
+import cpa.common.defaults.AbstractCPAFactory;
 import cpa.common.defaults.MergeSepOperator;
 import cpa.common.defaults.StaticPrecisionAdjustment;
 import cpa.common.defaults.StopSepOperator;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.CPAFactory;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
-import exceptions.CPAException;
 
 public class OctagonCPA implements ConfigurableProgramAnalysis{
 
+  private static class OctagonCPAFactory extends AbstractCPAFactory {
+    
+    @Override
+    public ConfigurableProgramAnalysis createInstance() {
+      String mergeType = getConfiguration().getProperty("cpas.octagon.merge");
+      return new OctagonCPA(mergeType);
+    }
+  }
+  
+  public static CPAFactory factory() {
+    return new OctagonCPAFactory();
+  }
+  
   private AbstractDomain abstractDomain;
   private TransferRelation transferRelation;
   private MergeOperator mergeOperator;
   private StopOperator stopOperator;
   private PrecisionAdjustment precisionAdjustment;
 
-  public OctagonCPA (String mergeType, String stopType) throws CPAException{
+  private OctagonCPA(String mergeType) {
     OctDomain octagonDomain = new OctDomain ();
 
     this.transferRelation = new OctTransferRelation ();

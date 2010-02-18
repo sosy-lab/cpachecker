@@ -39,7 +39,6 @@ import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
-import exceptions.CPAException;
 
 /**
  * @author Philipp Wendler
@@ -49,7 +48,7 @@ public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis {
   private static class UninitializedVariablesCPAFactory extends AbstractCPAFactory {
     
     @Override
-    public ConfigurableProgramAnalysis createInstance() throws CPAException {
+    public ConfigurableProgramAnalysis createInstance() {
       CPAConfiguration config = getConfiguration();
       String mergeType = config.getProperty("uninitVars.merge", "sep");
       String stopType = config.getProperty("uninitVars.stop", "sep");
@@ -68,7 +67,7 @@ public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis {
   private final TransferRelation transferRelation;
   private final PrecisionAdjustment precisionAdjustment;
   
-  public UninitializedVariablesCPA(String mergeType, String stopType) {
+  private UninitializedVariablesCPA(String mergeType, String stopType) {
     UninitializedVariablesDomain domain = new UninitializedVariablesDomain();
     
     MergeOperator mergeOp = null;

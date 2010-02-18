@@ -50,12 +50,6 @@ public class InverseLocationCPA implements ConfigurableProgramAnalysis{
   public static CPAFactory factory() {
     return new LocationCPAFactory(true);
   }
-  
-  public InverseLocationCPA() {
-  }
-  
-  public InverseLocationCPA (String mergeType, String stopType) {
-  }
 
   public AbstractDomain getAbstractDomain() {
     return abstractDomain;

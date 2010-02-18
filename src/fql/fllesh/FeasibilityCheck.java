@@ -22,6 +22,7 @@ import cpa.location.LocationCPA;
 import cpa.location.LocationElement;
 import cpa.mustmay.MustMayAnalysisCPA;
 import cpa.mustmay.MustMayAnalysisElement;
+import exceptions.CPAException;
 import fql.backend.pathmonitor.Automaton;
 import fql.backend.targetgraph.Node;
 import fql.fllesh.reachability.Query;
@@ -35,23 +36,23 @@ public class FeasibilityCheck {
   private ConcreteAnalysisCPA mMustCPA;
   private MustMayAnalysisCPA mMustMayAnalysisCPA;
   private LocationCPA mLocationCPA;
-  private CompositeCPA mCompositeCPA;
+  private ConfigurableProgramAnalysis mCompositeCPA;
   
-  public FeasibilityCheck() {
+  public FeasibilityCheck() throws CPAException {
     
     mMayCPA = new AlwaysTopCPA();
     mMustCPA = new ConcreteAnalysisCPA();
     
     mMustMayAnalysisCPA = new MustMayAnalysisCPA(mMustCPA, mMayCPA);
     
-    mLocationCPA = new LocationCPA("", "");
+    mLocationCPA = new LocationCPA();
     
     LinkedList<ConfigurableProgramAnalysis> lCPAs = new LinkedList<ConfigurableProgramAnalysis>();
     
     lCPAs.add(mLocationCPA);
     lCPAs.add(mMustMayAnalysisCPA);
     
-    mCompositeCPA = CompositeCPA.createNewCompositeCPA(lCPAs);
+    mCompositeCPA = CompositeCPA.factory().setChildren(lCPAs).createInstance();
   }
   
   public Witness run(LinkedList<Automaton> pAutomatonSequence, LinkedList<Node> pWaypointSequence, Automaton pPassingMonitor, Node pInitialState) {

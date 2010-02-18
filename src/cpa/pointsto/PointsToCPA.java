@@ -32,18 +32,19 @@ import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
 
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cfa.objectmodel.c.FunctionDefinitionNode;
+import cpa.common.defaults.AbstractCPAFactory;
 import cpa.common.defaults.MergeJoinOperator;
 import cpa.common.defaults.StaticPrecisionAdjustment;
 import cpa.common.defaults.StopSepOperator;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.CPAFactory;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
-import exceptions.CPAException;
 
 /**
  * @author Michael Tautschnig <tautschnig@forsyte.de>
@@ -51,13 +52,25 @@ import exceptions.CPAException;
  */
 public class PointsToCPA implements ConfigurableProgramAnalysis {
 
+  private static class PointsToCPAFactory extends AbstractCPAFactory {
+    
+    @Override
+    public ConfigurableProgramAnalysis createInstance() {
+      return new PointsToCPA();
+    }
+  }
+  
+  public static CPAFactory factory() {
+    return new PointsToCPAFactory();
+  }
+  
   private final PointsToDomain abstractDomain;
   private final TransferRelation transferRelation;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
   private final PrecisionAdjustment precisionAdjustment;
 
-  public PointsToCPA (String mergeType, String stopType) throws CPAException {
+  private PointsToCPA() {
     abstractDomain = new PointsToDomain();
     transferRelation = new PointsToTransferRelation();
     mergeOperator = new MergeJoinOperator(abstractDomain.getJoinOperator());

@@ -9,15 +9,14 @@ import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.PrecisionAdjustment;
 import cpa.common.interfaces.StopOperator;
 import cpa.concrete.ConcreteAnalysisCPA;
-import exceptions.CPAException;
 
 public class SimpleMustMayAnalysisCPA implements ConfigurableProgramAnalysis {
 
   private static class SimpleMustMayAnalysisCPAFactory extends AbstractCPAFactory {
     
     @Override
-    public ConfigurableProgramAnalysis createInstance() throws CPAException {
-      return new SimpleMustMayAnalysisCPA(null, null);
+    public ConfigurableProgramAnalysis createInstance() {
+      return new SimpleMustMayAnalysisCPA();
     }
   }
   
@@ -27,7 +26,7 @@ public class SimpleMustMayAnalysisCPA implements ConfigurableProgramAnalysis {
   
   private final MustMayAnalysisCPA mMustMayAnalysisCPA;
   
-  public SimpleMustMayAnalysisCPA(String pMergeType, String pStopType) {
+  public SimpleMustMayAnalysisCPA() {
     AlwaysTopCPA lMayCPA = new AlwaysTopCPA();
     ConcreteAnalysisCPA lMustCPA = new ConcreteAnalysisCPA();
     

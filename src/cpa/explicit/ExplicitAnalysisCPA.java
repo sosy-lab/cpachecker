@@ -38,17 +38,16 @@ import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
-import exceptions.CPAException;
 
 public class ExplicitAnalysisCPA implements ConfigurableProgramAnalysis {
 
   private static class ExplicitAnalysisCPAFactory extends AbstractCPAFactory {
     
     @Override
-    public ConfigurableProgramAnalysis createInstance() throws CPAException {
+    public ConfigurableProgramAnalysis createInstance() {
       String mergeType = getConfiguration().getProperty("cpas.explicit.merge", "sep");
       
-      return new ExplicitAnalysisCPA(mergeType, "sep");
+      return new ExplicitAnalysisCPA(mergeType);
     }
   }
   
@@ -62,7 +61,7 @@ public class ExplicitAnalysisCPA implements ConfigurableProgramAnalysis {
   private TransferRelation transferRelation;
   private PrecisionAdjustment precisionAdjustment;
 
-  public ExplicitAnalysisCPA (String mergeType, String stopType) throws CPAException {
+  private ExplicitAnalysisCPA(String mergeType) {
     ExplicitAnalysisDomain explicitAnalysisDomain = new ExplicitAnalysisDomain ();
     MergeOperator explicitAnalysisMergeOp = null;
     if(mergeType.equals("sep")){

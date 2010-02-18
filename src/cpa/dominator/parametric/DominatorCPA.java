@@ -35,7 +35,6 @@ import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
-import exceptions.CPAException;
 
 public class DominatorCPA {
   
@@ -47,7 +46,7 @@ public class DominatorCPA {
   private StopOperator stopOperator;
   private PrecisionAdjustment precisionAdjustment;
 
-	public DominatorCPA(ConfigurableProgramAnalysis cpa) throws CPAException {
+	public DominatorCPA(ConfigurableProgramAnalysis cpa) {
 	  this.cpa = cpa;
 	  
 		this.abstractDomain = new DominatorDomain(this.cpa);

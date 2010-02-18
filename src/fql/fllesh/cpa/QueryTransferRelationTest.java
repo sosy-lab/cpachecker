@@ -22,7 +22,7 @@ public class QueryTransferRelationTest {
 
   @Test
   public void test_01() throws CPATransferException {
-    SimpleMustMayAnalysisCPA lMustMayCPA = new SimpleMustMayAnalysisCPA("", "");
+    SimpleMustMayAnalysisCPA lMustMayCPA = new SimpleMustMayAnalysisCPA();
     
     AbstractElement lMustBottomElement = lMustMayCPA.getAbstractDomain().getBottomElement().getMustElement();
     
@@ -38,7 +38,7 @@ public class QueryTransferRelationTest {
   
   @Test
   public void test_02() throws CPATransferException {
-    SimpleMustMayAnalysisCPA lMustMayCPA = new SimpleMustMayAnalysisCPA("", "");
+    SimpleMustMayAnalysisCPA lMustMayCPA = new SimpleMustMayAnalysisCPA();
     
     AbstractElement lMustBottomElement = lMustMayCPA.getAbstractDomain().getBottomElement().getMustElement();
     
@@ -55,7 +55,7 @@ public class QueryTransferRelationTest {
 
   @Test
   public void test_03() throws CPATransferException {
-    SimpleMustMayAnalysisCPA lMustMayCPA = new SimpleMustMayAnalysisCPA("", "");
+    SimpleMustMayAnalysisCPA lMustMayCPA = new SimpleMustMayAnalysisCPA();
     
     AbstractElement lMustBottomElement = lMustMayCPA.getAbstractDomain().getBottomElement().getMustElement();
     
@@ -75,7 +75,7 @@ public class QueryTransferRelationTest {
   
   @Test
   public void test_04() throws CPATransferException {
-    SimpleMustMayAnalysisCPA lMustMayCPA = new SimpleMustMayAnalysisCPA("", "");
+    SimpleMustMayAnalysisCPA lMustMayCPA = new SimpleMustMayAnalysisCPA();
     
     AbstractElement lMustBottomElement = lMustMayCPA.getAbstractDomain().getBottomElement().getMustElement();
     
@@ -93,7 +93,7 @@ public class QueryTransferRelationTest {
   
   @Test
   public void test_05() throws CPATransferException {
-    SimpleMustMayAnalysisCPA lMustMayCPA = new SimpleMustMayAnalysisCPA("", "");
+    SimpleMustMayAnalysisCPA lMustMayCPA = new SimpleMustMayAnalysisCPA();
     
     AbstractElement lMustBottomElement = lMustMayCPA.getAbstractDomain().getBottomElement().getMustElement();
     

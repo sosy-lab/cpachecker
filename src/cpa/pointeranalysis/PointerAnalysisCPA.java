@@ -38,7 +38,6 @@ import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
-import exceptions.CPAException;
 
 /**
  * @author Philipp Wendler
@@ -48,10 +47,10 @@ public class PointerAnalysisCPA implements ConfigurableProgramAnalysis {
   private static class PointerAnalysisCPAFactory extends AbstractCPAFactory {
     
     @Override
-    public ConfigurableProgramAnalysis createInstance() throws CPAException {
+    public ConfigurableProgramAnalysis createInstance() {
       String mergeType = getConfiguration().getProperty("cpas.pointeranalysis.merge", "sep");
 
-      return new PointerAnalysisCPA(mergeType, "sep");
+      return new PointerAnalysisCPA(mergeType);
     }
   }
   
@@ -64,7 +63,7 @@ public class PointerAnalysisCPA implements ConfigurableProgramAnalysis {
   private final StopOperator stopOperator;
   private final TransferRelation transferRelation;
   
-  public PointerAnalysisCPA(String mergeType, String stopType) {
+  private PointerAnalysisCPA(String mergeType) {
     PointerAnalysisDomain domain = new PointerAnalysisDomain();
     
     MergeOperator mergeOp = null;

@@ -56,6 +56,7 @@ import cpa.common.interfaces.Statistics;
 import cpa.common.interfaces.StatisticsProvider;
 import cpa.common.interfaces.StopOperator;
 import exceptions.CPAException;
+import exceptions.InvalidConfigurationException;
 
 /**
  * CPA that defines symbolic predicate abstraction.
@@ -98,7 +99,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     } else if (whichProver.equals("yices")) {
       thmProver = new YicesTheoremProver(symbolicFormulaManager);
     } else {
-      throw new CPAException("Unknown theorem prover " + whichProver
+      throw new InvalidConfigurationException("Unknown theorem prover " + whichProver
           + ", check option cpas.symbpredabs.explicit.abstraction.solver");
     }
     InterpolatingTheoremProver<Integer> itpProver =
@@ -139,10 +140,6 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     }
   }
 */
-  
-  public SymbPredAbsCPA(String s1, String s2) throws CPAException {
-    this();
-  }
 
   @Override
   public SymbPredAbsAbstractDomain getAbstractDomain() {

@@ -25,6 +25,7 @@ import cpa.concrete.ConcreteAnalysisCPA;
 import cpa.location.LocationCPA;
 import cpa.mustmay.MustMayAnalysisCPA;
 
+import exceptions.CPAException;
 import fql.backend.pathmonitor.Automaton;
 import fql.backend.targetgraph.Node;
 import fql.backend.targetgraph.TargetGraph;
@@ -41,7 +42,7 @@ public class SingletonQueryTest {
   private static final String mPropertiesFile = "test/config/simpleMustMayAnalysis.properties";
   
   @Test
-  public void test_01() throws IOException, InvalidCmdlineArgumentException {
+  public void test_01() throws IOException, InvalidCmdlineArgumentException, CPAException {
     
     String[] lArguments = new String[3];
     
@@ -92,14 +93,14 @@ public class SingletonQueryTest {
     
     MustMayAnalysisCPA lMustMayAnalysisCPA = new MustMayAnalysisCPA(lMustCPA, lMayCPA);
     
-    LocationCPA lLocationCPA = new LocationCPA("", "");
+    LocationCPA lLocationCPA = new LocationCPA();
     
     LinkedList<ConfigurableProgramAnalysis> lCPAs = new LinkedList<ConfigurableProgramAnalysis>();
     
     lCPAs.add(lLocationCPA);
     lCPAs.add(lMustMayAnalysisCPA);
     
-    CompositeCPA lCompositeCPA = CompositeCPA.createNewCompositeCPA(lCPAs);
+    ConfigurableProgramAnalysis lCompositeCPA = CompositeCPA.factory().setChildren(lCPAs).createInstance();
     
     CompositeElement lDataSpaceElement = FeasibilityCheck.createInitialElement(lProgramEntry);
     CompositePrecision lDataSpacePrecision = (CompositePrecision)lCompositeCPA.getInitialPrecision(lMainFunction);

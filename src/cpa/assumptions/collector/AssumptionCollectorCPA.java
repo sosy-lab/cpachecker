@@ -43,7 +43,6 @@ import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
-import exceptions.CPAException;
 
 /**
  * CPA used to capture the assumptions that ought to be dumped.
@@ -61,7 +60,7 @@ public class AssumptionCollectorCPA implements ConfigurableProgramAnalysis, CPAW
     private ConfigurableProgramAnalysis cpa = null;
     
     @Override
-    public ConfigurableProgramAnalysis createInstance() throws CPAException {
+    public ConfigurableProgramAnalysis createInstance() {
       Preconditions.checkState(cpa != null);
       return new AssumptionCollectorCPA(cpa);
     }
@@ -88,7 +87,7 @@ public class AssumptionCollectorCPA implements ConfigurableProgramAnalysis, CPAW
   private final PrecisionAdjustment precisionAdjustment;
   private final ConfigurableProgramAnalysis wrappedCPA;
   
-  public AssumptionCollectorCPA(ConfigurableProgramAnalysis cpa)
+  private AssumptionCollectorCPA(ConfigurableProgramAnalysis cpa)
   {
     wrappedCPA = cpa;
     symbolicFormulaManager = MathsatInvariantSymbolicFormulaManager.getInstance();
