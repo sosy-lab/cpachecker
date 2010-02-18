@@ -37,8 +37,7 @@ public class FeasibilityCheck {
   private LocationCPA mLocationCPA;
   private CompositeCPA mCompositeCPA;
   
-  public FeasibilityCheck(CFAFunctionDefinitionNode pNode) {
-    assert(pNode != null);
+  public FeasibilityCheck() {
     
     mMayCPA = new AlwaysTopCPA();
     mMustCPA = new ConcreteAnalysisCPA();
@@ -52,7 +51,7 @@ public class FeasibilityCheck {
     lCPAs.add(mLocationCPA);
     lCPAs.add(mMustMayAnalysisCPA);
     
-    mCompositeCPA = CompositeCPA.createNewCompositeCPA(lCPAs, pNode);
+    mCompositeCPA = CompositeCPA.createNewCompositeCPA(lCPAs);
   }
   
   public Witness run(LinkedList<Automaton> pAutomatonSequence, LinkedList<Node> pWaypointSequence, Automaton pPassingMonitor, Node pInitialState) {

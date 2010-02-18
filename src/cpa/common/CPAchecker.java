@@ -172,7 +172,7 @@ public class CPAchecker {
     CFAFunctionDefinitionNode mainFunction = cfa.getSecond();
     
     try {
-      ConfigurableProgramAnalysis cpa = createCPA(mainFunction, stats);
+      ConfigurableProgramAnalysis cpa = createCPA(stats);
       
       Algorithm algorithm = createAlgorithm(cfas, cpa, stats);
       
@@ -472,18 +472,17 @@ public class CPAchecker {
     shutdownHook.setResult(result);
   }
 
-  private ConfigurableProgramAnalysis createCPA(
-      final CFAFunctionDefinitionNode mainFunction, MainCPAStatistics stats) throws CPAException {
+  private ConfigurableProgramAnalysis createCPA(MainCPAStatistics stats) throws CPAException {
     logger.log(Level.FINE, "Creating CPAs");
     
-    ConfigurableProgramAnalysis cpa = CompositeCPA.getCompositeCPA(mainFunction);
+    ConfigurableProgramAnalysis cpa = CompositeCPA.getCompositeCPA();
 
     if (CPAchecker.config.getBooleanValue("analysis.useAssumptionCollector")) {
       cpa = new AssumptionCollectorCPA(cpa);
     }
     
     if (CPAchecker.config.getBooleanValue("analysis.useART")) {
-      cpa = ARTCPA.getARTCPA(mainFunction, cpa);
+      cpa = ARTCPA.getARTCPA(cpa);
     }
         
     if (cpa instanceof StatisticsProvider) {

@@ -32,6 +32,7 @@ import java.util.logging.Level;
 
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import cpa.common.CPAchecker;
@@ -58,8 +59,6 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
   private final PrecisionAdjustment precisionAdjustment;
-  private final AbstractElement initialElement;
-  private final Precision initialPrecision;
 
   private final ImmutableList<ConfigurableProgramAnalysis> cpas;
   
@@ -68,8 +67,6 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       MergeOperator mergeOperator,
       StopOperator stopOperator,
       PrecisionAdjustment precisionAdjustment,
-      AbstractElement initialElement,
-      Precision initialPrecision,
       ImmutableList<ConfigurableProgramAnalysis> cpas)
   {
     this.abstractDomain = abstractDomain;
@@ -77,50 +74,10 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
     this.mergeOperator = mergeOperator;
     this.stopOperator = stopOperator;
     this.precisionAdjustment = precisionAdjustment;
-    this.initialElement = initialElement;
-    this.initialPrecision = initialPrecision;
     this.cpas = cpas;
   }
 
-  public static CompositeCPA createNewCompositeCPA(List<ConfigurableProgramAnalysis> pCpas, CFAFunctionDefinitionNode node) {
-    ImmutableList<ConfigurableProgramAnalysis> cpas = ImmutableList.copyOf(pCpas);
-
-    ImmutableList.Builder<AbstractDomain> domains = ImmutableList.builder();
-    ImmutableList.Builder<TransferRelation> transferRelations = ImmutableList.builder();
-    ImmutableList.Builder<MergeOperator> mergeOperators = ImmutableList.builder();
-    ImmutableList.Builder<StopOperator> stopOperators = ImmutableList.builder();
-    ImmutableList.Builder<PrecisionAdjustment> precisionAdjustments = ImmutableList.builder();
-    ImmutableList.Builder<AbstractElement> initialElements = ImmutableList.builder();
-    List<Precision> initialPrecisions = new ArrayList<Precision>(cpas.size());
-
-    for (ConfigurableProgramAnalysis sp : cpas) {
-      domains.add(sp.getAbstractDomain());
-      transferRelations.add(sp.getTransferRelation());
-      mergeOperators.add(sp.getMergeOperator());
-      stopOperators.add(sp.getStopOperator());
-      precisionAdjustments.add(sp.getPrecisionAdjustment());
-      initialElements.add(sp.getInitialElement(node));
-      initialPrecisions.add(sp.getInitialPrecision(node));
-    }
-
-    CompositeDomain compositeDomain = new CompositeDomain(domains.build());
-    CompositeTransferRelation compositeTransfer = new CompositeTransferRelation(transferRelations.build());
-    CompositeMergeOperator compositeMerge = new CompositeMergeOperator(mergeOperators.build());
-    CompositeStopOperator compositeStop = new CompositeStopOperator(compositeDomain, stopOperators.build());
-    CompositePrecisionAdjustment compositePrecisionAdjustment = new CompositePrecisionAdjustment(precisionAdjustments.build());
-    CompositeElement initialElement = new CompositeElement(initialElements.build(), null);
-    CompositePrecision initialPrecision = new CompositePrecision(initialPrecisions);
-    // set call stack
-    CallStack initialCallStack = new CallStack();
-    CallElement initialCallElement = new CallElement(node.getFunctionName(), node, initialElement);
-    initialCallStack.push(initialCallElement);
-    initialElement.setCallStack(initialCallStack);
-
-    return new CompositeCPA(compositeDomain, compositeTransfer, compositeMerge, compositeStop,
-        compositePrecisionAdjustment, initialElement, initialPrecision, cpas);
-  }
-  
-  public static CompositeCPA createNewCompositeCPA(List<ConfigurableProgramAnalysis> pCpas, CompositeElement pInitialElement, CompositePrecision pInitialPrecision) {
+  public static CompositeCPA createNewCompositeCPA(List<ConfigurableProgramAnalysis> pCpas) {
     ImmutableList<ConfigurableProgramAnalysis> cpas = ImmutableList.copyOf(pCpas);
 
     ImmutableList.Builder<AbstractDomain> domains = ImmutableList.builder();
@@ -142,13 +99,13 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
     CompositeMergeOperator compositeMerge = new CompositeMergeOperator(mergeOperators.build());
     CompositeStopOperator compositeStop = new CompositeStopOperator(compositeDomain, stopOperators.build());
     CompositePrecisionAdjustment compositePrecisionAdjustment = new CompositePrecisionAdjustment(precisionAdjustments.build());
-    
+
     return new CompositeCPA(compositeDomain, compositeTransfer, compositeMerge, compositeStop,
-        compositePrecisionAdjustment, pInitialElement, pInitialPrecision, cpas);
+        compositePrecisionAdjustment, cpas);
   }
 
   @SuppressWarnings("unchecked")
-  public static ConfigurableProgramAnalysis getCompositeCPA (CFAFunctionDefinitionNode node) throws CPAException
+  public static ConfigurableProgramAnalysis getCompositeCPA() throws CPAException
   {
     String[] cpaNamesArray = CPAchecker.config.getPropertiesArray("analysis.cpas");
     String[] mergeTypesArray = CPAchecker.config.getPropertiesArray("analysis.mergeOperators");
@@ -217,7 +174,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       cpa = cpas.get(0);
     } else {
       CPAchecker.logger.log(Level.FINE, "CompositeCPA is built using the list of CPAs");
-      cpa = CompositeCPA.createNewCompositeCPA(cpas, node);
+      cpa = CompositeCPA.createNewCompositeCPA(cpas);
     }
     return cpa;
   }
@@ -243,11 +200,31 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
   }
   @Override
   public AbstractElement getInitialElement (CFAFunctionDefinitionNode node) {
+    Preconditions.checkNotNull(node);
+    
+    ImmutableList.Builder<AbstractElement> initialElements = ImmutableList.builder();
+    for (ConfigurableProgramAnalysis sp : cpas) {
+      initialElements.add(sp.getInitialElement(node));
+    }
+    
+    CompositeElement initialElement = new CompositeElement(initialElements.build(), null);
+    // set call stack
+    CallStack initialCallStack = new CallStack();
+    CallElement initialCallElement = new CallElement(node.getFunctionName(), node, initialElement);
+    initialCallStack.push(initialCallElement);
+    initialElement.setCallStack(initialCallStack);
+    
     return initialElement;
   }
 
   public Precision getInitialPrecision (CFAFunctionDefinitionNode node) {
-    return initialPrecision;
+    Preconditions.checkNotNull(node);
+    
+    List<Precision> initialPrecisions = new ArrayList<Precision>(cpas.size());
+    for (ConfigurableProgramAnalysis sp : cpas) {
+      initialPrecisions.add(sp.getInitialPrecision(node));
+    }
+    return new CompositePrecision(initialPrecisions);
   }
   
   public List<ConfigurableProgramAnalysis> getComponentCPAs() {

@@ -97,7 +97,7 @@ public class StandardQueryTest {
     lCPAs.add(lLocationCPA);
     lCPAs.add(lMustMayAnalysisCPA);
     
-    CompositeCPA lCompositeCPA = CompositeCPA.createNewCompositeCPA(lCPAs, lMainFunction);
+    CompositeCPA lCompositeCPA = CompositeCPA.createNewCompositeCPA(lCPAs);
     
     CompositeElement lInitialDataSpaceElement = FeasibilityCheck.createInitialElement(lProgramEntry);
     CompositeElement lFinalDataSpaceElement = FeasibilityCheck.createNextElement(lProgramExit);

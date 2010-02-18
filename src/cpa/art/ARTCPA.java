@@ -113,7 +113,7 @@ public class ARTCPA implements ConfigurableProgramAnalysis, StatisticsProvider, 
     return wrappedCPA;
   }
 
-  public static ConfigurableProgramAnalysis getARTCPA(CFAFunctionDefinitionNode node, ConfigurableProgramAnalysis cpa) {
+  public static ConfigurableProgramAnalysis getARTCPA(ConfigurableProgramAnalysis cpa) {
     String[] mergeTypesArray = CPAchecker.config.getPropertiesArray("analysis.mergeOperators");
     ArrayList<String> mergeTypes = new ArrayList<String>(Arrays.asList(mergeTypesArray));
     if(mergeTypes.contains("join")){

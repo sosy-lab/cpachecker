@@ -99,7 +99,7 @@ public class SingletonQueryTest {
     lCPAs.add(lLocationCPA);
     lCPAs.add(lMustMayAnalysisCPA);
     
-    CompositeCPA lCompositeCPA = CompositeCPA.createNewCompositeCPA(lCPAs, lMainFunction);
+    CompositeCPA lCompositeCPA = CompositeCPA.createNewCompositeCPA(lCPAs);
     
     CompositeElement lDataSpaceElement = FeasibilityCheck.createInitialElement(lProgramEntry);
     CompositePrecision lDataSpacePrecision = (CompositePrecision)lCompositeCPA.getInitialPrecision(lMainFunction);
