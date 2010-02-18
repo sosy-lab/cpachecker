@@ -23,7 +23,6 @@
  */
 package cpa.assumptions.collector.progressobserver;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 
@@ -67,7 +66,7 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
   private static ImmutableList<StopHeuristics<? extends StopHeuristicsData>> createEnabledHeuristics()
   {
     String[] heuristicsNamesArray = CPAchecker.config.getPropertiesArray("assumptions.observer.heuristics");
-    List<StopHeuristics<? extends StopHeuristicsData>> result = new ArrayList<StopHeuristics<? extends StopHeuristicsData>>(heuristicsNamesArray.length);
+    ImmutableList.Builder<StopHeuristics<? extends StopHeuristicsData>> builder = ImmutableList.<StopHeuristics<? extends StopHeuristicsData>>builder();
     
     for (int i = 0; i < heuristicsNamesArray.length; i++) {
       String heuristicsName = heuristicsNamesArray[i];
@@ -78,7 +77,7 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
         Object obj = cls.newInstance();
         // Convert object to StopHeuristics
         StopHeuristics<? extends StopHeuristicsData> newHeuristics = (StopHeuristics<? extends StopHeuristicsData>)obj;
-        result.add(newHeuristics);
+        builder.add(newHeuristics);
       } catch (ClassNotFoundException e) {
         CPAchecker.logger.logException(Level.WARNING, e, "ClassNotFoundException");
       } catch (SecurityException e) {
@@ -92,7 +91,7 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
       }
     }
     
-    return new ImmutableList.Builder<StopHeuristics<? extends StopHeuristicsData>>().addAll(result).build();
+    return builder.build();
   }
   
   public ProgressObserverCPA(String mergeOp, String stopOp)
