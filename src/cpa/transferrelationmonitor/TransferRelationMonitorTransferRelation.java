@@ -19,7 +19,6 @@ import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
 import exceptions.CPATransferException;
-import exceptions.TransferTimeOutException;
 
 public class TransferRelationMonitorTransferRelation implements TransferRelation {
 
@@ -42,7 +41,7 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
   @Override
   public Collection<TransferRelationMonitorElement> getAbstractSuccessors(
       AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge)
-      throws CPATransferException, TransferTimeOutException {
+      throws CPATransferException {
     TransferRelationMonitorElement element = (TransferRelationMonitorElement)pElement;
     Collection<? extends AbstractElement> successors = null;
     long timeOfExecution = 0;
@@ -112,7 +111,7 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
       }
       end = System.currentTimeMillis();
     } catch (TimeoutException exc){
-      throw new TransferTimeOutException(pCfaEdge, wrappedElement, pPrecision);
+      return Collections.emptySet();
     } catch (InterruptedException exc) {
       exc.printStackTrace();
     } catch (ExecutionException exc) {
@@ -136,7 +135,7 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
       successorElem.setTransferTime(timeOfExecution);
       successorElem.setTotalTime(element.getTotalTimeOnThePath());
       if(successorElem.getTotalTimeOnThePath() > timeLimitForPath){
-        throw new TransferTimeOutException(pCfaEdge, wrappedElement, pPrecision);
+        return Collections.emptySet();
       }
       wrappedSuccessors.add(successorElem);
     }
@@ -146,7 +145,7 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
   @Override
   public Collection<? extends AbstractElement> strengthen(AbstractElement element,
       List<AbstractElement> otherElements, CFAEdge cfaEdge,
-      Precision precision) {    
+      Precision precision) {
     TransferRelationMonitorElement monitorElement = (TransferRelationMonitorElement)element;
     AbstractElement wrappedElement = monitorElement.getWrappedElements().iterator().next();
     List<AbstractElement> retList = new ArrayList<AbstractElement>();

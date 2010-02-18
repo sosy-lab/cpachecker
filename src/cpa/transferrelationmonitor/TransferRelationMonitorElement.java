@@ -2,14 +2,18 @@ package cpa.transferrelationmonitor;
 
 import java.util.Collections;
 
+import assumptions.AvoidanceReportingElement;
+
+import cpa.assumptions.collector.progressobserver.StopHeuristicsData;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.AbstractWrapperElement;
 
-public class TransferRelationMonitorElement implements AbstractElement, AbstractWrapperElement{
+public class TransferRelationMonitorElement implements AbstractElement, AbstractWrapperElement, AvoidanceReportingElement {
 
   private final TransferRelationMonitorCPA cpa;
   private final AbstractElement element;
+  private boolean isBottom = false;
   
   private long timeOfTranferToComputeElement;
   private long totalTimeOnThePath;
@@ -94,6 +98,17 @@ public class TransferRelationMonitorElement implements AbstractElement, Abstract
   @Override
   public String toString() {
     return element.toString();
+  }
+
+  @Override
+  public boolean mustDumpAssumptionForAvoidance() {
+    // returns true if the current element is the same as bottom
+    for (StopHeuristicsData d : data) {
+      if (d.isBottom())
+        return true;
+    }
+    
+    return false;
   }
   
 }
