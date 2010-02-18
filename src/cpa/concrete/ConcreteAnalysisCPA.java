@@ -24,16 +24,32 @@
 package cpa.concrete;
 
 import cfa.objectmodel.CFAFunctionDefinitionNode;
-import cpa.common.defaults.SingletonPrecision;
+import cpa.common.defaults.AbstractCPAFactory;
 import cpa.common.defaults.MergeSepOperator;
+import cpa.common.defaults.SingletonPrecision;
 import cpa.common.defaults.StaticPrecisionAdjustment;
 import cpa.common.defaults.StopSepOperator;
+import cpa.common.interfaces.CPAFactory;
+import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.PrecisionAdjustment;
 import cpa.common.interfaces.StopOperator;
+import exceptions.CPAException;
 
 public class ConcreteAnalysisCPA implements cpa.common.interfaces.ConfigurableProgramAnalysis {
 
+  private static class ConcreteAnalysisCPAFactory extends AbstractCPAFactory {
+    
+    @Override
+    public ConfigurableProgramAnalysis createInstance() throws CPAException {
+      return new ConcreteAnalysisCPA();
+    }
+  }
+  
+  public static CPAFactory factory() {
+    return new ConcreteAnalysisCPAFactory();
+  }
+  
   private ConcreteAnalysisDomain mAbstractDomain;
   private MergeOperator mMergeOperator;
   private StopOperator mStopOperator;

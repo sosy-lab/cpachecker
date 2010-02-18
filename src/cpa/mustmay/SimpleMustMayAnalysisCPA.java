@@ -2,15 +2,30 @@ package cpa.mustmay;
 
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cpa.alwaystop.AlwaysTopCPA;
+import cpa.common.defaults.AbstractCPAFactory;
+import cpa.common.interfaces.CPAFactory;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.PrecisionAdjustment;
 import cpa.common.interfaces.StopOperator;
 import cpa.concrete.ConcreteAnalysisCPA;
+import exceptions.CPAException;
 
 public class SimpleMustMayAnalysisCPA implements ConfigurableProgramAnalysis {
 
-  MustMayAnalysisCPA mMustMayAnalysisCPA;
+  private static class SimpleMustMayAnalysisCPAFactory extends AbstractCPAFactory {
+    
+    @Override
+    public ConfigurableProgramAnalysis createInstance() throws CPAException {
+      return new SimpleMustMayAnalysisCPA(null, null);
+    }
+  }
+  
+  public static CPAFactory factory() {
+    return new SimpleMustMayAnalysisCPAFactory();
+  }
+  
+  private final MustMayAnalysisCPA mMustMayAnalysisCPA;
   
   public SimpleMustMayAnalysisCPA(String pMergeType, String pStopType) {
     AlwaysTopCPA lMayCPA = new AlwaysTopCPA();

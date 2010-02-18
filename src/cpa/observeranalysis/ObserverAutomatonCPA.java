@@ -25,6 +25,7 @@ import cpa.common.interfaces.PrecisionAdjustment;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
 import exceptions.CPAException;
+import exceptions.InvalidConfigurationException;
 
 /**
  * This class implements an ObserverAutomatonAnalysis as described in the related Documentation. 
@@ -39,7 +40,7 @@ public class ObserverAutomatonCPA implements ConfigurableProgramAnalysis {
       try {
         return new ObserverAutomatonCPA(null, null);
       } catch (FileNotFoundException e) {
-        throw new CPAException("Cannot create ObserverAutomatonCPA without automaton file ("
+        throw new InvalidConfigurationException("Cannot create ObserverAutomatonCPA without automaton file ("
             + e.getMessage() + ")");
       }
     }

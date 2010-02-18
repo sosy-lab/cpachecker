@@ -52,7 +52,7 @@ public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis {
     public ConfigurableProgramAnalysis createInstance() throws CPAException {
       CPAConfiguration config = getConfiguration();
       String mergeType = config.getProperty("uninitVars.merge", "sep");
-      String stopType = config.getProperty("uninitVars.stop", "join");
+      String stopType = config.getProperty("uninitVars.stop", "sep");
       
       return new UninitializedVariablesCPA(mergeType, stopType);
     }

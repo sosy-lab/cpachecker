@@ -1,22 +1,37 @@
 package cpa.alwaystop;
 
 import cfa.objectmodel.CFAFunctionDefinitionNode;
+import cpa.common.defaults.AbstractCPAFactory;
 import cpa.common.defaults.FlatLatticeDomain;
 import cpa.common.defaults.MergeSepOperator;
-import cpa.common.defaults.StaticPrecisionAdjustment;
 import cpa.common.defaults.SingletonPrecision;
+import cpa.common.defaults.StaticPrecisionAdjustment;
 import cpa.common.defaults.StopSepOperator;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.CPAFactory;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
+import exceptions.CPAException;
 
 public class AlwaysTopCPA implements ConfigurableProgramAnalysis {
 
+  private static class AlwaysTopCPAFactory extends AbstractCPAFactory {
+    
+    @Override
+    public ConfigurableProgramAnalysis createInstance() throws CPAException {
+      return new AlwaysTopCPA();
+    }
+  }
+  
+  public static CPAFactory factory() {
+    return new AlwaysTopCPAFactory();
+  }
+  
   FlatLatticeDomain mDomain;
   MergeSepOperator mMergeOperator;
   StopSepOperator mStopOperator;
