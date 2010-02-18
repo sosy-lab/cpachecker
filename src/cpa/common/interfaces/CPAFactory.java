@@ -95,6 +95,8 @@ public interface CPAFactory {
    * Returns a new instance of the CPA belonging to this CPAFactory, using the
    * objects passed to the other methods of this CPAFactory before. If this is not
    * possible, an exception (either a CPAException or a RuntimeException) may be thrown.
+   * If the CPA is something it needs in order to be created (e.g. one or more
+   * children), it should indicate this by a {@link IllegalStateException}.
    * @return a new ConfigurableProgramAnalysis instance
    * @exception CPAException If the CPA cannot be instantiated.
    */

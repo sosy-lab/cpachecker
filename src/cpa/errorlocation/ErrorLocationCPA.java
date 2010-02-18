@@ -2,11 +2,27 @@ package cpa.errorlocation;
 
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cpa.common.defaults.AbstractCPA;
+import cpa.common.defaults.AbstractCPAFactory;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.CPAFactory;
+import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.TransferRelation;
+import exceptions.CPAException;
 
 public class ErrorLocationCPA extends AbstractCPA {
 
+  private static class ErrorLocationCPAFactory extends AbstractCPAFactory {
+    
+    @Override
+    public ConfigurableProgramAnalysis createInstance() throws CPAException {
+      return new ErrorLocationCPA(null, null);
+    }
+  }
+  
+  public static CPAFactory factory() {
+    return new ErrorLocationCPAFactory();
+  }
+  
   private static enum ErrorLocationElement implements AbstractElement {
     
     NORMAL(false),

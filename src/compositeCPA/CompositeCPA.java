@@ -62,7 +62,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
     
     @Override
     public ConfigurableProgramAnalysis createInstance() throws CPAException {
-      Preconditions.checkState(cpas != null);
+      Preconditions.checkState(cpas != null, "CompositeCPA needs wrapped CPAs!");
       return createNewCompositeCPA(cpas);
     }
 

@@ -42,7 +42,7 @@ public class ARTCPA implements ConfigurableProgramAnalysis, StatisticsProvider, 
     
     @Override
     public ConfigurableProgramAnalysis createInstance() throws CPAException {
-      Preconditions.checkState(cpa != null);
+      Preconditions.checkState(cpa != null, "ARTCPA needs a wrapped CPA!");
       
       // use join as default merge, because sep is only safe if all other cpas also use sep
       String mergeType = getConfiguration().getProperty("cpas.art.merge", "join");
