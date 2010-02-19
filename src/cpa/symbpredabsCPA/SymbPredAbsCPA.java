@@ -42,8 +42,10 @@ import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cfa.objectmodel.CFANode;
 
 import com.google.common.collect.ImmutableList;
+import common.configuration.Configuration;
+import common.configuration.Option;
+import common.configuration.Options;
 
-import cpa.common.CPAchecker;
 import cpa.common.defaults.AbstractCPAFactory;
 import cpa.common.defaults.StaticPrecisionAdjustment;
 import cpa.common.defaults.StopSepOperator;
@@ -56,25 +58,28 @@ import cpa.common.interfaces.Statistics;
 import cpa.common.interfaces.StatisticsProvider;
 import cpa.common.interfaces.StopOperator;
 import exceptions.CPAException;
-import exceptions.InvalidConfigurationException;
 
 /**
  * CPA that defines symbolic predicate abstraction.
  * @author Erkan
  *
  */
+@Options(prefix="cpas.symbpredabs")
 public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
   private static class SymbPredAbsCPAFactory extends AbstractCPAFactory {
     @Override
     public ConfigurableProgramAnalysis createInstance() throws CPAException {
-      return new SymbPredAbsCPA();
+      return new SymbPredAbsCPA(getConfiguration());
     }
   }
   
   public static CPAFactory factory() {
     return new SymbPredAbsCPAFactory();
   }
+  
+  @Option(name="explicit.abstraction.solver", values = {"mathsat", "simplify", "yices"})
+  private String whichProver = "mathsat"; 
   
   private final SymbPredAbsAbstractDomain domain;
   private final SymbPredAbsTransferRelation transfer;
@@ -86,12 +91,12 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
   private final SymbPredAbsFormulaManager formulaManager;
   private final SymbPredAbsCPAStatistics stats;
 
-  private SymbPredAbsCPA() throws CPAException {
+  private SymbPredAbsCPA(Configuration config) throws CPAException {
+    config.inject(this);
+    
     abstractFormulaManager = new BDDAbstractFormulaManager();
     symbolicFormulaManager = new MathsatSymbolicFormulaManager();
     TheoremProver thmProver;
-    String whichProver = CPAchecker.config.getProperty(
-        "cpas.symbpredabs.explicit.abstraction.solver", "mathsat");
     if (whichProver.equals("mathsat")) {
       thmProver = new MathsatTheoremProver(symbolicFormulaManager, false);
     } else if (whichProver.equals("simplify")) {
@@ -99,14 +104,14 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     } else if (whichProver.equals("yices")) {
       thmProver = new YicesTheoremProver(symbolicFormulaManager);
     } else {
-      throw new InvalidConfigurationException("Unknown theorem prover " + whichProver
-          + ", check option cpas.symbpredabs.explicit.abstraction.solver");
+      throw new InternalError("Update list of allowed solvers!");
     }
+    
     InterpolatingTheoremProver<Integer> itpProver =
       new MathsatInterpolatingProver(symbolicFormulaManager, false);
     formulaManager = new MathsatSymbPredAbsFormulaManager<Integer>(abstractFormulaManager, symbolicFormulaManager, thmProver, itpProver);
     domain = new SymbPredAbsAbstractDomain(abstractFormulaManager);
-    transfer = new SymbPredAbsTransferRelation(this);
+    transfer = new SymbPredAbsTransferRelation(this, config);
     merge = new SymbPredAbsMergeOperator(this);
     stop = new StopSepOperator(domain.getPartialOrder());
     initialPrecision = new SymbPredAbsPrecision();

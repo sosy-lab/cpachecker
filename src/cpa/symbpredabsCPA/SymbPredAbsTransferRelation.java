@@ -43,11 +43,15 @@ import cfa.objectmodel.c.ReturnEdge;
 
 import com.google.common.collect.ImmutableSet;
 import common.Triple;
+import common.configuration.Configuration;
+import common.configuration.Option;
+import common.configuration.Options;
 
 import cpa.common.CPAchecker;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
+import exceptions.InvalidConfigurationException;
 import exceptions.UnrecognizedCFAEdgeException;
 
 /**
@@ -59,8 +63,21 @@ import exceptions.UnrecognizedCFAEdgeException;
  *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it> and Erkan
  */
+@Options(prefix="cpas.symbpredabs")
 public class SymbPredAbsTransferRelation implements TransferRelation {
 
+  @Option(name="blocksize")
+  private int abstractionBlockSize = 0;
+  
+  @Option
+  private boolean inlineFunctions = false;
+  
+  @Option
+  private boolean unrollLoops = false;
+  
+  @Option(name="satCheck")
+  private int satCheckBlockSize = 0;
+  
   // statistics
   public long abstractionTime = 0;
   public long nonAbstractionTime = 0;
@@ -69,7 +86,6 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   public long initAbstractionFormulaTime = 0;
   public long computingAbstractionTime = 0;
   
-  //for statistics
   public int numAbstractStates = 0;
   public int maxBlockSize = 0;
 
@@ -77,12 +93,6 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   private final AbstractFormulaManager abstractFormulaManager;
   private final SymbolicFormulaManager symbolicFormulaManager;
   private final SymbPredAbsFormulaManager formulaManager;
-
-  private final int abstractionBlockSize;
-  private final boolean inlineFunctions;
-  private final boolean unrollLoops;
-  private final int satCheckBlockSize;
-
   
   // map from a node to path formula
   // used to not compute the formula again
@@ -92,15 +102,12 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   private final Map<Triple<Integer, Integer, Integer>, PathFormula> pathFormulaMapHash =
     new HashMap<Triple<Integer,Integer,Integer>, PathFormula>();
   
-  public SymbPredAbsTransferRelation(SymbPredAbsCPA pCpa) {
+  public SymbPredAbsTransferRelation(SymbPredAbsCPA pCpa, Configuration config) throws InvalidConfigurationException {
     symbolicFormulaManager = pCpa.getSymbolicFormulaManager();
     abstractFormulaManager = pCpa.getAbstractFormulaManager();
     formulaManager = pCpa.getFormulaManager();
     
-    abstractionBlockSize = Integer.parseInt(CPAchecker.config.getProperty("cpas.symbpredabs.blocksize", "0"));
-    satCheckBlockSize = Integer.parseInt(CPAchecker.config.getProperty("cpas.symbpredabs.satCheck", "0"));
-    inlineFunctions = CPAchecker.config.getBooleanValue("cpas.symbpredabs.inlineFunctions");
-    unrollLoops = CPAchecker.config.getBooleanValue("cpas.symbpredabs.unrollLoops");
+    config.inject(this);
 }
 
   @Override
