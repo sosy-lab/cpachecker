@@ -66,7 +66,14 @@ public class CPAMain {
       System.err.println("Could not read config file " + e.getMessage());
       System.exit(1);
     }
-    LogManager logManager = new LogManager(cpaConfig);
+    
+    LogManager logManager = null;
+    try {
+      logManager = new LogManager(cpaConfig);
+    } catch (InvalidConfigurationException e) {
+      System.err.println("Invalid configuration: " + e.getMessage());
+      System.exit(1);
+    }
     
     // get code file name
     String[] names = cpaConfig.getPropertiesArray("analysis.programNames");

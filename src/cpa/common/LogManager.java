@@ -23,9 +23,9 @@
  */
 package cpa.common;
 
+import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.logging.FileHandler;
@@ -36,7 +36,12 @@ import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
 import common.configuration.Configuration;
+import common.configuration.Option;
+import common.configuration.Options;
+
+import exceptions.InvalidConfigurationException;
 
 /**
  * @author Gregor Endler
@@ -50,8 +55,27 @@ import common.configuration.Configuration;
  * debug levels 1-4, denoted e.g. by the string DEBUG_1 in the message of the log.
  *  
  */
+@Options
 public class LogManager {
 
+  @Option(name="log.level", toUppercase=true, values={"OFF", "SEVERE", "WARNING", "INFO", "FINE", "FINER", "FINEST", "ALL"})
+  private String logLevelStr = "OFF";
+  
+  @Option(name="log.consoleLevel", toUppercase=true, values={"OFF", "SEVERE", "WARNING", "INFO", "FINE", "FINER", "FINEST", "ALL"})
+  private String consoleLevelStr = "INFO";
+  
+  @Option(name="log.fileExclude", toUppercase=true)
+  private String[] excludeLevelsFileStr = {};
+  
+  @Option(name="log.consoleExclude", toUppercase=true)
+  private String[] excludeLevelsConsoleStr = {};
+  
+  @Option(name="output.path")
+  private String outputDirectory = "test/output/";
+  
+  @Option(name="log.file")
+  private String outputFile = "CPALog.txt";
+  
   private static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS");
   private static final Joiner messageFormat = Joiner.on(' ').useForNull("null");
   private final Level logLevel;
@@ -90,18 +114,16 @@ public class LogManager {
     }
   }
 
-  public LogManager(Configuration config) {
-    Level logLevel = Level.parse(config.getProperty("log.level", "OFF").toUpperCase());
-    Level logConsoleLevel = Level.parse(config.getProperty("log.consoleLevel", "INFO").toUpperCase());
+  public LogManager(Configuration config) throws InvalidConfigurationException {
+    config.inject(this);
+    Level logLevel = Level.parse(logLevelStr);
+    Level logConsoleLevel = Level.parse(consoleLevelStr);
 
     // check if file logging will succeed
     Handler outfileHandler;
     IOException exception = null;
     try {
-      String outfilePath = config.getProperty("output.path");
-      String outfileName = config.getProperty("log.file", "CPALog.txt");
-      
-      outfileHandler = new FileHandler(outfilePath + outfileName, false);
+      outfileHandler = new FileHandler(new File(outputDirectory, outputFile).getAbsolutePath(), false);
     } catch (IOException e) {
       outfileHandler = null;
       exception = e; // will be logged later
@@ -120,13 +142,12 @@ public class LogManager {
     // create file logger
     if(logLevel != Level.OFF) {
       //build up list of Levels to exclude from logging
-      String[] excludeFile = config.getPropertiesArray("log.fileExclude");
-      if (excludeFile != null) {
-        List<Level> excludeLevels = new ArrayList<Level>(excludeFile.length); 
-        for (String s : excludeFile) {
+      if (excludeLevelsFileStr.length != 0) {
+        ImmutableList.Builder<Level> excludeLevels = ImmutableList.builder(); 
+        for (String s : excludeLevelsFileStr) {
           excludeLevels.add(Level.parse(s));
         }
-        excludeLevelsFile = Collections.unmodifiableList(excludeLevels);
+        excludeLevelsFile = excludeLevels.build();
       } else {
         excludeLevelsFile = Collections.emptyList();
       }
@@ -151,13 +172,12 @@ public class LogManager {
     if (logConsoleLevel != Level.OFF) {
 
       //build up list of Levels to exclude from logging
-      String[] excludeConsole = config.getPropertiesArray("log.consoleExclude");
-      if (excludeConsole != null) {
-        List<Level> excludeLevels = new ArrayList<Level>(excludeConsole.length); 
-        for (String s : excludeConsole) {
+      if (excludeLevelsConsoleStr.length != 0) {
+        ImmutableList.Builder<Level> excludeLevels = ImmutableList.builder(); 
+        for (String s : excludeLevelsConsoleStr) {
           excludeLevels.add(Level.parse(s));
         }
-        excludeLevelsConsole = Collections.unmodifiableList(excludeLevels);
+        excludeLevelsConsole = excludeLevels.build();
       } else {
         excludeLevelsConsole = Collections.emptyList();
       }

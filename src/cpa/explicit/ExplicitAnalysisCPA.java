@@ -24,6 +24,11 @@
 package cpa.explicit;
 
 import cfa.objectmodel.CFAFunctionDefinitionNode;
+
+import common.configuration.Configuration;
+import common.configuration.Option;
+import common.configuration.Options;
+
 import cpa.common.defaults.AbstractCPAFactory;
 import cpa.common.defaults.MergeJoinOperator;
 import cpa.common.defaults.MergeSepOperator;
@@ -38,16 +43,16 @@ import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
+import exceptions.InvalidConfigurationException;
 
+@Options(prefix="cpas.explicit")
 public class ExplicitAnalysisCPA implements ConfigurableProgramAnalysis {
 
   private static class ExplicitAnalysisCPAFactory extends AbstractCPAFactory {
     
     @Override
-    public ConfigurableProgramAnalysis createInstance() {
-      String mergeType = getConfiguration().getProperty("cpas.explicit.merge", "sep");
-      
-      return new ExplicitAnalysisCPA(mergeType);
+    public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException {
+      return new ExplicitAnalysisCPA(getConfiguration());
     }
   }
   
@@ -55,25 +60,29 @@ public class ExplicitAnalysisCPA implements ConfigurableProgramAnalysis {
     return new ExplicitAnalysisCPAFactory();
   }
   
+  @Option(name="merge", toUppercase=true, values={"SEP", "JOIN"})
+  private String mergeType = "SEP";
+  
   private AbstractDomain abstractDomain;
   private MergeOperator mergeOperator;
   private StopOperator stopOperator;
   private TransferRelation transferRelation;
   private PrecisionAdjustment precisionAdjustment;
 
-  private ExplicitAnalysisCPA(String mergeType) {
+  private ExplicitAnalysisCPA(Configuration config) throws InvalidConfigurationException {
+    config.inject(this);
+    
     ExplicitAnalysisDomain explicitAnalysisDomain = new ExplicitAnalysisDomain ();
     MergeOperator explicitAnalysisMergeOp = null;
-    if(mergeType.equals("sep")){
+    if (mergeType.equals("SEP")){
       explicitAnalysisMergeOp = MergeSepOperator.getInstance();
-    }
-    if(mergeType.equals("join")){
+    } else if (mergeType.equals("JOIN")){
       explicitAnalysisMergeOp = new MergeJoinOperator(explicitAnalysisDomain.getJoinOperator());
     }
 
     StopOperator explicitAnalysisStopOp = new StopSepOperator(explicitAnalysisDomain.getPartialOrder());
 
-    TransferRelation explicitAnalysisTransferRelation = new ExplicitAnalysisTransferRelation ();
+    TransferRelation explicitAnalysisTransferRelation = new ExplicitAnalysisTransferRelation(config);
     
     this.abstractDomain = explicitAnalysisDomain;
     this.mergeOperator = explicitAnalysisMergeOp;

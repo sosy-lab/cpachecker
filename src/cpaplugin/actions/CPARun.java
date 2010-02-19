@@ -53,6 +53,7 @@ import common.configuration.Configuration;
 
 import cpa.common.CPAchecker;
 import cpa.common.LogManager;
+import exceptions.InvalidConfigurationException;
 
 public class CPARun implements IWorkbenchWindowActionDelegate
 {
@@ -111,7 +112,13 @@ public class CPARun implements IWorkbenchWindowActionDelegate
       JOptionPane.showMessageDialog(null, "Could not read config file " + e.getMessage(), "Could not read config file", JOptionPane.ERROR_MESSAGE);
       return;
     }
-    LogManager logManager = new LogManager(cpaConfig);
+    LogManager logManager;
+    try {
+      logManager = new LogManager(cpaConfig);
+    } catch (InvalidConfigurationException e) {
+      JOptionPane.showMessageDialog(null, "Invalid configuration: " + e.getMessage(), "Invalid configuration", JOptionPane.ERROR_MESSAGE);
+      return;
+    }
     
     //Lets set up a console to write to
     init();

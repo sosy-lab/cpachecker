@@ -214,12 +214,13 @@ public class Configuration {
       }
       
       String name = getOptionName(prefix, field, option);
-      String valueStr = getOptionValue(name, option);
+      Class<?> type = field.getType();
+
+      String valueStr = getOptionValue(name, option, type.isEnum());
       if (valueStr == null) {
         continue;
       }
       
-      Class<?> type = field.getType();
       Object value = convertValue(name, valueStr, type);
       
       // set value to field
@@ -250,12 +251,13 @@ public class Configuration {
       }
       
       String name = getOptionName(prefix, method, option);
-      String valueStr = getOptionValue(name, option);
+      Class<?> type = parameters[0];
+
+      String valueStr = getOptionValue(name, option, type.isEnum());
       if (valueStr == null) {
         continue;
       }
       
-      Class<?> type = parameters[0];
       Object value = convertValue(name, valueStr, type);
       
       // set value to field
@@ -304,7 +306,7 @@ public class Configuration {
     return name;
   }
   
-  private String getOptionValue(String name, Option option) throws InvalidConfigurationException {
+  private String getOptionValue(String name, Option option, boolean alwaysUppercase) throws InvalidConfigurationException {
     // get value in String representation
     String valueStr = getProperty(name);
     if (valueStr == null || valueStr.isEmpty()) {
@@ -315,6 +317,10 @@ public class Configuration {
     }
     
     valueStr = valueStr.trim();
+    
+    if (alwaysUppercase || option.toUppercase()) {
+      valueStr = valueStr.toUpperCase();
+    }
     
     // check if it is included in the allowed values list
     String[] allowedValues = option.values();
@@ -352,7 +358,7 @@ public class Configuration {
     Object result;
     
     if (type.isArray()) {
-      if (!type.equals(String.class)) {
+      if (!type.equals(String[].class)) {
         throw new UnsupportedOperationException("Currently only arrays of type String are supported for configuration options");
       }
       result = valueStr.split("\\s*,\\s*");
@@ -364,7 +370,7 @@ public class Configuration {
       
     } else if (type.isEnum()) {
       // all enums have valueOf method
-      result = valueOf(type, name, valueStr.toUpperCase());
+      result = valueOf(type, name, valueStr);
       
     } else if (type.equals(String.class)) {
       result = valueStr;

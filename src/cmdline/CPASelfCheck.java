@@ -83,7 +83,13 @@ public class CPASelfCheck {
       System.err.println("Could not read config file " + e.getMessage());
       System.exit(1);
     }
-    logManager = new LogManager(cpaConfig);
+    try {
+      logManager = new LogManager(cpaConfig);
+    } catch (InvalidConfigurationException e) {
+      System.err.println("Invalid configuration: " + e.getMessage());
+      System.exit(1);
+    }
+    
     CPAchecker cpachecker = null;
     try {
       cpachecker = new CPAchecker(cpaConfig, logManager);

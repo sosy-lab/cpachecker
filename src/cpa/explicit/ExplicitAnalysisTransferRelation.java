@@ -52,7 +52,11 @@ import cfa.objectmodel.c.FunctionDefinitionNode;
 import cfa.objectmodel.c.GlobalDeclarationEdge;
 import cfa.objectmodel.c.ReturnEdge;
 import cfa.objectmodel.c.StatementEdge;
-import cpa.common.CPAchecker;
+
+import common.configuration.Configuration;
+import common.configuration.Option;
+import common.configuration.Options;
+
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
@@ -60,24 +64,25 @@ import cpa.pointeranalysis.Memory;
 import cpa.pointeranalysis.Pointer;
 import cpa.pointeranalysis.PointerAnalysisElement;
 import exceptions.CPATransferException;
+import exceptions.InvalidConfigurationException;
 import exceptions.UnrecognizedCCodeException;
 import exceptions.UnrecognizedCFAEdgeException;
 
+@Options(prefix="cpas.explicit")
 public class ExplicitAnalysisTransferRelation implements TransferRelation {
 
-  private Set<String> globalVars;
+  private final Set<String> globalVars = new HashSet<String>();
 
-  private int threshold;
+  @Option
+  private int threshold = 0;
 
   private String missingInformationLeftVariable = null;
   private String missingInformationRightPointer = null;
   private String missingInformationLeftPointer  = null;
   private IASTExpression missingInformationRightExpression = null;
 
-  public ExplicitAnalysisTransferRelation ()
-  {
-    globalVars = new HashSet<String>();
-    threshold = Integer.parseInt(CPAchecker.config.getProperty("explicitAnalysis.threshold"));
+  public ExplicitAnalysisTransferRelation(Configuration config) throws InvalidConfigurationException {
+    config.inject(this);
   }
 
   @Override

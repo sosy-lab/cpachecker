@@ -11,13 +11,33 @@ import java.util.logging.Level;
 
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFANode;
+
+import common.configuration.Configuration;
+import common.configuration.Option;
+import common.configuration.Options;
+
 import cpa.common.CPAchecker;
 import cpa.common.ReachedElements;
 import cpa.common.interfaces.Statistics;
 import cpa.symbpredabsCPA.SymbPredAbsAbstractElement;
+import exceptions.InvalidConfigurationException;
 
+@Options
 public class ARTStatistics implements Statistics {
 
+  @Option(name="ART.export")
+  private boolean exportART = true;
+  
+  @Option(name="output.path")
+  private String outputDirectory = "test/output/";
+
+  @Option(name="ART.file")
+  private String outputFile = "ART.dot";
+
+  public ARTStatistics(Configuration config) throws InvalidConfigurationException {
+    config.inject(this);
+  }  
+  
   @Override
   public String getName() {
     return null; // return null because we do not print statistics
@@ -26,11 +46,8 @@ public class ARTStatistics implements Statistics {
   @Override
   public void printStatistics(PrintWriter pOut, Result pResult,
       ReachedElements pReached) {
-    if (CPAchecker.config.getBooleanValue("ART.export")) {
-      String outfilePath = CPAchecker.config.getProperty("output.path");
-      String outfileName = CPAchecker.config.getProperty("ART.file", "ART.dot");
-      //if no filename is given, use default value
-      dumpARTToDotFile(pReached, new File(outfilePath, outfileName));
+    if (exportART) {
+      dumpARTToDotFile(pReached, new File(outputDirectory, outputFile));
     }
   }
 

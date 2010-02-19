@@ -76,6 +76,13 @@ public @interface Option {
   public boolean required() default false;
 
   /**
+   * An optional flag that specifies if a configuration value should be converted
+   * to upper case after it was read. For options with enum types, this flag is
+   * always assumed to be true.  
+   */
+  public boolean toUppercase() default false;
+  
+  /**
    * If regexp is specified, the value of this option (prior to conversion to
    * the correct type) will be checked against this regular expression. If it
    * does not match, an exception will be thrown.

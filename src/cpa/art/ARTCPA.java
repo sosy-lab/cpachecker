@@ -11,6 +11,9 @@ import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cfa.objectmodel.CFANode;
 
 import com.google.common.base.Preconditions;
+import common.configuration.Configuration;
+import common.configuration.Option;
+import common.configuration.Options;
 
 import cpa.common.defaults.AbstractCPAFactory;
 import cpa.common.defaults.MergeSepOperator;
@@ -30,9 +33,8 @@ import cpa.common.interfaces.TransferRelation;
 import exceptions.CPAException;
 import exceptions.InvalidConfigurationException;
 
+@Options(prefix="cpas.art")
 public class ARTCPA implements ConfigurableProgramAnalysis, StatisticsProvider, CPAWrapper {
-
-  private static final Statistics stats = new ARTStatistics();
 
   private static class ARTCPAFactory extends AbstractCPAFactory {
 
@@ -42,9 +44,7 @@ public class ARTCPA implements ConfigurableProgramAnalysis, StatisticsProvider, 
     public ConfigurableProgramAnalysis createInstance() throws CPAException {
       Preconditions.checkState(cpa != null, "ARTCPA needs a wrapped CPA!");
       
-      // use join as default merge, because sep is only safe if all other cpas also use sep
-      String mergeType = getConfiguration().getProperty("cpas.art.merge", "join");
-      return new ARTCPA(mergeType, cpa);
+      return new ARTCPA(cpa, getConfiguration());
     }
 
     @Override
@@ -61,30 +61,40 @@ public class ARTCPA implements ConfigurableProgramAnalysis, StatisticsProvider, 
     return new ARTCPAFactory();
   }
   
+  /**
+   * Use join as default merge, because sep is only safe if all other cpas also use sep.
+   */
+  @Option(name="merge", toUppercase=true, values={"SEP", "JOIN"})
+  private String mergeType = "JOIN";
+  
   private final AbstractDomain abstractDomain;
   private final TransferRelation transferRelation;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
   private final PrecisionAdjustment precisionAdjustment;
+  private final Statistics stats;
   private final ConfigurableProgramAnalysis wrappedCPA;
 
   // TODO state in the CPA, possibly dangerous with multiple ARTs
   private final Set<ARTElement> covered;
 
-  private ARTCPA(String mergeType, ConfigurableProgramAnalysis cpa) throws InvalidConfigurationException {
+  private ARTCPA(ConfigurableProgramAnalysis cpa, Configuration config) throws InvalidConfigurationException {
+    config.inject(this);
+    
     wrappedCPA = cpa;
     abstractDomain = new ARTDomain(this);
     transferRelation = new ARTTransferRelation(cpa.getTransferRelation());
     precisionAdjustment = StaticPrecisionAdjustment.getInstance();
-    if(mergeType.equals("sep")){
+    if (mergeType.equals("SEP")){
       mergeOperator = MergeSepOperator.getInstance();
-    } else if(mergeType.equals("join")){
+    } else if (mergeType.equals("JOIN")){
       mergeOperator = new ARTMergeJoin(wrappedCPA);
     } else {
-      throw new InvalidConfigurationException("Invalid merge operator for ARTCPA!");
+      throw new InternalError("Update list of allowed merge operators!");
     }
     stopOperator = new ARTStopSep(wrappedCPA);  
     covered = new HashSet<ARTElement>();
+    stats = new ARTStatistics(config);
   }
 
   public AbstractDomain getAbstractDomain ()

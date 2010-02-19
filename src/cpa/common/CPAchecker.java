@@ -84,7 +84,7 @@ public class CPAchecker {
   @Options
   private static class CPAcheckerOptions {
 
-    @Option(name="parser.dialect", values={"C99", "GNUC"})
+    @Option(name="parser.dialect", toUppercase=true, values={"C99", "GNUC"})
     String parserDialect = "C99";
 
     // CFA creation and initialization options
