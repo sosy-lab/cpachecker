@@ -79,7 +79,7 @@ public class CPABuilder {
     
     // now use factory to get an instance of the CPA
     
-    factory.setConfiguration(config);
+    factory.setConfiguration(new CPAConfiguration(config, cpaAlias));
     factory.setLogger(logger);
     
     createAndSetChildrenCPAs(cpaName, cpaAlias, factory, usedAliases);

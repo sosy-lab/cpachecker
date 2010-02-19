@@ -30,19 +30,23 @@ import java.net.URL;
 import java.util.Map;
 import java.util.Properties;
 
+import com.google.common.base.Preconditions;
+
 /**
- * Unmodifiable wrapper around a {@link Properties} instance, providing some
+ * Immutable wrapper around a {@link Properties} instance, providing some
  * useful access helper methods.
  */
 public class CPAConfiguration {
 
-  private final Properties properties;
-  
   private static final long serialVersionUID = -5910186668866464153L;
   
   /** Delimiters to create string arrays */
   private static final String DELIMS = "[;, ]+";
 
+  private final Properties properties;
+  
+  private final String prefix;
+  
   /**
    * Constructor for creating a CPAConfiguration with values set from a file.
    * Also allows for passing an optional map of settings overriding those from
@@ -53,6 +57,8 @@ public class CPAConfiguration {
    */
   public CPAConfiguration(String fileName, Map<String, String> pOverrides) throws IOException {
     properties = new Properties();
+    prefix = "";
+    
     loadFile(fileName);
     
     if (pOverrides != null) {
@@ -67,11 +73,28 @@ public class CPAConfiguration {
    * @param pValues The values this configuration should represent.
    */
   public CPAConfiguration(Map<String, String> pValues) {
+    Preconditions.checkNotNull(pValues);
     properties = new Properties();
+    prefix = "";
 
     properties.putAll(pValues);
 
     setDefaultValues();
+  }
+  
+  /**
+   * Constructor for creating a CPAConfiguration from a given configuration.
+   * Allows to pass a prefix. Options with the prefix will override those with
+   * the same key but without the prefix in the new configuration.
+   * @param pConfig An old configuration.
+   * @param pPrefix A prefix for overriding configuration options.
+   */
+  public CPAConfiguration(CPAConfiguration pConfig, String pPrefix) {
+    Preconditions.checkNotNull(pConfig);
+    Preconditions.checkNotNull(pPrefix);
+    
+    properties = pConfig.properties;
+    prefix = pPrefix.isEmpty() ? "" : pPrefix + ".";
   }
   
   private void setDefaultValues() {
@@ -108,14 +131,23 @@ public class CPAConfiguration {
    * @see Properties#getProperty(String)
    */
   public String getProperty(String key) {
-    return properties.getProperty(key);
+    String result = properties.getProperty(prefix + key);
+    
+    if (result == null && !prefix.isEmpty()) {
+      result = properties.getProperty(key);
+    }
+    return result;
   }
 
   /**
    * @see Properties#getProperty(String, String)
    */
   public String getProperty(String key, String defaultValue) {
-    return properties.getProperty(key, defaultValue);
+    String result = getProperty(key);
+    if (result == null) {
+      result = defaultValue;
+    }
+    return result;
   }
   
   /**
@@ -125,7 +157,7 @@ public class CPAConfiguration {
    * @return array of properties
    */
   public String[] getPropertiesArray(String key){
-    String s = properties.getProperty(key);
+    String s = getProperty(key);
     return (s != null) ? s.split(DELIMS) : null;
   }
 
@@ -137,6 +169,6 @@ public class CPAConfiguration {
    * the properties file false
    */
   public boolean getBooleanValue(String key){
-    return Boolean.valueOf(properties.getProperty(key));
+    return Boolean.valueOf(getProperty(key));
   }
 }
