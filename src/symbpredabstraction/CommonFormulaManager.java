@@ -46,17 +46,24 @@ import symbpredabstraction.interfaces.SymbolicFormulaManager;
 
 import common.Pair;
 import common.Triple;
-import cpa.common.CPAchecker;
+import common.configuration.Configuration;
+import common.configuration.Option;
+import common.configuration.Options;
+
+import cpa.common.LogManager;
+import exceptions.InvalidConfigurationException;
 
 /**
  * Abstract super class for classes implementing the FormulaManager interface,
  * providing some commonly used stuff which is independent from specific libraries. 
  * @author Philipp Wendler
  */
+@Options(prefix="cpas.symbpredabs.mathsat")
 public abstract class CommonFormulaManager implements FormulaManager {
 
   protected final AbstractFormulaManager amgr;
   protected final SymbolicFormulaManager smgr;
+  protected final LogManager logger;
   
   // Here we keep the mapping abstract predicate ->
   // (symbolic formula representing the variable, symbolic formula representing the atom)
@@ -64,19 +71,26 @@ public abstract class CommonFormulaManager implements FormulaManager {
   // and the reverse mapping symbolic variable -> predicate
   private final Map<SymbolicFormula, Predicate> symbVarToPredicate;
 
-  private final boolean useCache;
+  @Option
+  protected boolean useCache = false;
+  
   private final Map<AbstractFormula, SymbolicFormula> toConcreteCache;
 
-  public CommonFormulaManager(AbstractFormulaManager pAmgr, SymbolicFormulaManager pSmgr) {
+  @Option(name="output.path")
+  private String outputDirectory = "test/output/";
+  
+  public CommonFormulaManager(AbstractFormulaManager pAmgr, SymbolicFormulaManager pSmgr,
+                    Configuration config, LogManager pLogger) throws InvalidConfigurationException {
+    config.inject(this);
     amgr = pAmgr;
     smgr = pSmgr;
+    logger = pLogger;
     
     predicateToVarAndAtom = new HashMap<Predicate, Pair<SymbolicFormula, SymbolicFormula>>();
     symbVarToPredicate = new HashMap<SymbolicFormula, Predicate>();
     
-    useCache = CPAchecker.config.getBooleanValue("cpas.symbpredabs.mathsat.useCache");
     if (useCache) {
-        toConcreteCache = new HashMap<AbstractFormula, SymbolicFormula>();
+      toConcreteCache = new HashMap<AbstractFormula, SymbolicFormula>();
     } else {
       toConcreteCache = null;
     }
@@ -105,7 +119,7 @@ public abstract class CommonFormulaManager implements FormulaManager {
     } else {
       Predicate result = amgr.createPredicate();
 
-      CPAchecker.logger.log(Level.FINEST, "Created predicate", result,
+      logger.log(Level.FINEST, "Created predicate", result,
                      "from variable", var, "and atom", atom);
 
       predicateToVarAndAtom.put(result, new Pair<SymbolicFormula, SymbolicFormula>(var, atom));
@@ -292,7 +306,7 @@ public abstract class CommonFormulaManager implements FormulaManager {
   @Override
   public void dumpFormulasToFile(Iterable<SymbolicFormula> f, String filename) {
     if (filename != null) {
-      String path = CPAchecker.config.getProperty("output.path") + filename;
+      File file = new File(outputDirectory, filename);
       try {
         SymbolicFormula t = smgr.makeTrue();
         for (SymbolicFormula fm : f) {
@@ -300,12 +314,12 @@ public abstract class CommonFormulaManager implements FormulaManager {
         }
         String msatRepr = smgr.dumpFormula(t);
 
-        PrintWriter pw = new PrintWriter(new File(path));
+        PrintWriter pw = new PrintWriter(file);
         pw.println(msatRepr);
         pw.close();
       } catch (FileNotFoundException e) {
-        CPAchecker.logger.log(Level.WARNING,
-            "Failed to save formula to file ", path,
+        logger.log(Level.WARNING,
+            "Failed to save formula to file ", file.getAbsolutePath(),
             "(", e.getMessage(), ")");
       }
     }

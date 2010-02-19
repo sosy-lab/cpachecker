@@ -47,17 +47,21 @@ import symbpredabstraction.interfaces.InterpolatingTheoremProver;
 import symbpredabstraction.interfaces.Predicate;
 import symbpredabstraction.interfaces.SymbolicFormula;
 import symbpredabstraction.interfaces.TheoremProver;
-import symbpredabstraction.mathsat.MathsatFormulaManager;
 import symbpredabstraction.mathsat.MathsatAbstractionPrinter;
+import symbpredabstraction.mathsat.MathsatFormulaManager;
 import symbpredabstraction.mathsat.MathsatSymbolicFormula;
 import symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
 import symbpredabstraction.trace.CounterexampleTraceInfo;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 
 import common.Pair;
-import cpa.common.CPAchecker;
+import common.configuration.Configuration;
+import common.configuration.Option;
+import common.configuration.Options;
 
+import cpa.common.LogManager;
 import exceptions.CPAException;
+import exceptions.InvalidConfigurationException;
 import exceptions.RefinementFailedException;
 
 
@@ -67,7 +71,7 @@ import exceptions.RefinementFailedException;
  *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
-
+@Options(prefix="cpas.symbpredabs")
 class MathsatSymbPredAbsFormulaManager<T> extends MathsatFormulaManager 
 implements SymbPredAbsFormulaManager
 {
@@ -100,17 +104,41 @@ implements SymbPredAbsFormulaManager
 
   private static final int MAX_CACHE_SIZE = 100000;
 
-  private final boolean cartesianAbstraction;
-  private final boolean dumpHardAbstractions;
-  private final boolean getUsefulBlocks;
-  private final boolean shortestTrace;
-  private final boolean splitItpAtoms;
-  private final boolean useBitwiseAxioms;
-  private final boolean useCache;
-  private final boolean useDtc;
-  private final boolean useSuffix;
-  private final boolean useZigZag;
-  private final boolean wellScopedPredicates;
+  @Option(name="abstraction.cartesian")
+  private boolean cartesianAbstraction = false;
+  
+  @Option(name="mathsat.dumpHardAbstractionQueries")
+  private boolean dumpHardAbstractions = false;
+  
+  @Option(name="explicit.getUsefulBlocks")
+  private boolean getUsefulBlocks = false;
+  
+  @Option(name="shortestCexTrace")
+  private boolean shortestTrace = false;
+  
+  @Option(name="refinement.splitItpAtoms")
+  private boolean splitItpAtoms = false;
+  
+  @Option
+  private boolean useBitwiseAxioms = false;
+  
+  @Option(name="mathsat.useDtc")
+  private boolean useDtc = false;
+  
+  @Option(name="shortestCexTraceUseSuffix")
+  private boolean useSuffix = false;
+  
+  @Option(name="shortestCexTraceZigZag")
+  private boolean useZigZag = false;
+
+  @Option
+  private boolean inlineFunctions = false;
+  
+  @Option(name="refinement.addWellScopedPredicates")
+  private boolean wellScopedPredicates = false;
+  
+  @Option(name="refinement.msatCexFile")
+  private String msatCexFile = "cex.msat";
   
   private final Map<Pair<SymbolicFormula, List<SymbolicFormula>>, AbstractFormula> abstractionCache;
   //cache for cartesian abstraction queries. For each predicate, the values
@@ -123,31 +151,20 @@ implements SymbPredAbsFormulaManager
       AbstractFormulaManager pAmgr,
       MathsatSymbolicFormulaManager pMmgr,
       TheoremProver pThmProver,
-      InterpolatingTheoremProver<T> pItpProver) {
-    super(pAmgr, pMmgr);
+      InterpolatingTheoremProver<T> pItpProver,
+      Configuration config,
+      LogManager logger) throws InvalidConfigurationException {
+    super(pAmgr, pMmgr, config, logger);
+    config.inject(this);
+    
     stats = new Stats();
     thmProver = pThmProver;
     itpProver = pItpProver;
 
-    cartesianAbstraction = CPAchecker.config.getBooleanValue("cpas.symbpredabs.abstraction.cartesian");
-    dumpHardAbstractions = CPAchecker.config.getBooleanValue("cpas.symbpredabs.mathsat.dumpHardAbstractionQueries");
-    getUsefulBlocks      = CPAchecker.config.getBooleanValue("cpas.symbpredabs.explicit.getUsefulBlocks");
-    shortestTrace        = CPAchecker.config.getBooleanValue("cpas.symbpredabs.shortestCexTrace");
-    splitItpAtoms        = CPAchecker.config.getBooleanValue("cpas.symbpredabs.refinement.splitItpAtoms");
-    useBitwiseAxioms     = CPAchecker.config.getBooleanValue("cpas.symbpredabs.useBitwiseAxioms");
-    useCache             = CPAchecker.config.getBooleanValue("cpas.symbpredabs.mathsat.useCache");
-    useDtc               = CPAchecker.config.getBooleanValue("cpas.symbpredabs.mathsat.useDtc");
-    useSuffix            = CPAchecker.config.getBooleanValue("cpas.symbpredabs.shortestCexTraceUseSuffix");
-    useZigZag            = CPAchecker.config.getBooleanValue("cpas.symbpredabs.shortestCexTraceZigZag");
-    boolean inlineFunctions = CPAchecker.config.getBooleanValue("cpas.symbpredabs.inlineFunctions");
-    boolean lWellScopedPredicates = CPAchecker.config.getBooleanValue("cpas.symbpredabs.refinement.addWellScopedPredicates");
-    if (inlineFunctions && lWellScopedPredicates) {
-      CPAchecker.logger.log(Level.WARNING, "Well scoped predicates not possible with function inlining, disabling them.");
+    if (inlineFunctions && wellScopedPredicates) {
+      logger.log(Level.WARNING, "Well scoped predicates not possible with function inlining, disabling them.");
       wellScopedPredicates = false;
-    } else {
-      wellScopedPredicates = lWellScopedPredicates;
     }
-    
     
     if (useCache) {
       if (cartesianAbstraction) {
@@ -239,7 +256,7 @@ implements SymbPredAbsFormulaManager
         SymbolicFormula bitwiseAxioms = mmgr.getBitwiseAxioms((MathsatSymbolicFormula)f);
         f = mmgr.makeAnd(f, bitwiseAxioms);
 
-        CPAchecker.logger.log(Level.ALL, "DEBUG_3", "ADDED BITWISE AXIOMS:",
+        logger.log(Level.ALL, "DEBUG_3", "ADDED BITWISE AXIOMS:",
                 bitwiseAxioms);
     }
 
@@ -316,7 +333,7 @@ implements SymbPredAbsFormulaManager
             }
 
 
-            CPAchecker.logger.log(Level.ALL, "DEBUG_1",
+            logger.log(Level.ALL, "DEBUG_1",
                     "CHECKING VALUE OF PREDICATE: ", pi.getFirst());
 
             // instantiate the definition of the predicate
@@ -420,7 +437,7 @@ implements SymbPredAbsFormulaManager
           (MathsatSymbolicFormula)symbFormula);
       symbFormula = smgr.makeAnd(symbFormula, bitwiseAxioms);
 
-      CPAchecker.logger.log(Level.ALL, "DEBUG_3", "ADDED BITWISE AXIOMS:",
+      logger.log(Level.ALL, "DEBUG_3", "ADDED BITWISE AXIOMS:",
           bitwiseAxioms);
     }
    
@@ -431,9 +448,9 @@ implements SymbPredAbsFormulaManager
       AbstractFormula abstractionFormula, PathFormula pathFormula,
       Collection<Predicate> predicates) {
     
-    CPAchecker.logger.log(Level.ALL, "Old abstraction:", abstractionFormula);
-    CPAchecker.logger.log(Level.ALL, "Path formula:", pathFormula);
-    CPAchecker.logger.log(Level.ALL, "Predicates:", predicates);
+    logger.log(Level.ALL, "Old abstraction:", abstractionFormula);
+    logger.log(Level.ALL, "Path formula:", pathFormula);
+    logger.log(Level.ALL, "Predicates:", predicates);
     
     long startTime = System.currentTimeMillis();
 
@@ -470,7 +487,7 @@ implements SymbPredAbsFormulaManager
     }
   
     List<SymbolicFormula> importantPreds = predinfo.predicateNames;
-    CPAchecker.logger.log(Level.ALL, 
+    logger.log(Level.ALL, 
         "IMPORTANT SYMBOLS (", importantPreds.size(), "): ",
         importantPreds);
     
@@ -480,7 +497,7 @@ implements SymbPredAbsFormulaManager
     // the formula is (abstractionFormula & pathFormula & predDef)
     final SymbolicFormula fm = smgr.makeAnd(symbFormula, predDef);
     
-    CPAchecker.logger.log(Level.ALL, "DEBUG_2",
+    logger.log(Level.ALL, "DEBUG_2",
         "COMPUTING ALL-SMT ON FORMULA: ", fm);
 
     Pair<SymbolicFormula, List<SymbolicFormula>> absKey =
@@ -490,7 +507,7 @@ implements SymbPredAbsFormulaManager
       ++stats.numCallsAbstractionCached;
       result = abstractionCache.get(absKey);
       
-      CPAchecker.logger.log(Level.ALL, "Abstraction was cached, result is", result);
+      logger.log(Level.ALL, "Abstraction was cached, result is", result);
     } else {
       // get the environment from the manager - this is unique, it is the
       // environment in which all terms are created
@@ -534,7 +551,7 @@ implements SymbPredAbsFormulaManager
         absPrinter.printNusmvFormat(smgr.makeTrue(), symbFormula, predDef, importantPreds);
         absPrinter.nextNum();
       }
-      CPAchecker.logger.log(Level.ALL, "Abstraction computed, result is", result);
+      logger.log(Level.ALL, "Abstraction computed, result is", result);
     }
 
     // update statistics
@@ -551,7 +568,7 @@ implements SymbPredAbsFormulaManager
   public boolean unsat(AbstractFormula abstractionFormula, PathFormula pathFormula) {
     
     PathFormula symbFormula = buildSymbolicFormula(abstractionFormula, pathFormula);
-    CPAchecker.logger.log(Level.ALL, "Checking satisfiability of formula", symbFormula.getFirst());
+    logger.log(Level.ALL, "Checking satisfiability of formula", symbFormula.getFirst());
     
     // purpose = ENTAILMENT_CHECK copied from MathsatSymbolicFormulaManager.entails()
     // this method does essentially the same (just check one formula for unsatisfiability)
@@ -569,7 +586,7 @@ implements SymbPredAbsFormulaManager
     long startTime = System.currentTimeMillis();
     stats.numCallsCexAnalysis++;
 
-    CPAchecker.logger.log(Level.FINEST, "Building counterexample trace");
+    logger.log(Level.FINEST, "Building counterexample trace");
 
     List<SymbolicFormula> f = getFormulasForTrace(abstractTrace);
 
@@ -580,9 +597,9 @@ implements SymbPredAbsFormulaManager
     }
     f = Collections.unmodifiableList(f);
 
-    CPAchecker.logger.log(Level.ALL, "Counterexample trace formulas:", f);
+    logger.log(Level.ALL, "Counterexample trace formulas:", f);
 
-    CPAchecker.logger.log(Level.FINEST, "Checking feasibility of counterexample trace");
+    logger.log(Level.FINEST, "Checking feasibility of counterexample trace");
 
     // now f is the DAG formula which is satisfiable iff there is a
     // concrete counterexample
@@ -623,7 +640,7 @@ implements SymbPredAbsFormulaManager
 
     CounterexampleTraceInfo info = new CounterexampleTraceInfo(spurious);
 
-    CPAchecker.logger.log(Level.FINEST, "Counterexample trace is", (spurious ? "infeasible" : "feasible"));
+    logger.log(Level.FINEST, "Counterexample trace is", (spurious ? "infeasible" : "feasible"));
     
     if (spurious) {
       // the counterexample is spurious. Extract the predicates from
@@ -647,7 +664,7 @@ implements SymbPredAbsFormulaManager
         final int start_of_a = (wellScopedPredicates ? entryPoints.peek() : 0);
         SymbPredAbsAbstractElement e = abstractTrace.get(i);
         
-        CPAchecker.logger.log(Level.ALL, "Looking for interpolant for formulas from",
+        logger.log(Level.ALL, "Looking for interpolant for formulas from",
             start_of_a, "to", i);
                 
         msatSolveTimeStart = System.currentTimeMillis();
@@ -656,7 +673,7 @@ implements SymbPredAbsFormulaManager
         msatSolveTime += msatSolveTimeEnd - msatSolveTimeStart;
                 
         if (itp.isTrue() || itp.isFalse()) {
-          CPAchecker.logger.log(Level.ALL, "For location", e.getAbstractionLocation(), "got no interpolant.");
+          logger.log(Level.ALL, "For location", e.getAbstractionLocation(), "got no interpolant.");
         
         } else {
           foundPredicates = true;
@@ -666,7 +683,7 @@ implements SymbPredAbsFormulaManager
           Set<Predicate> preds = buildPredicates(atoms);
           info.addPredicatesForRefinement(e, preds);
 
-          CPAchecker.logger.log(Level.ALL, "For location", e.getAbstractionLocation(), "got:",
+          logger.log(Level.ALL, "For location", e.getAbstractionLocation(), "got:",
               "interpolant", itp,
               "atoms ", atoms,
               "predicates", preds);
@@ -696,7 +713,7 @@ implements SymbPredAbsFormulaManager
       
       // TODO - reconstruct counterexample
       // For now, we dump the asserted formula to a user-specified file
-      dumpFormulasToFile(f, CPAchecker.config.getProperty("cpas.symbpredabs.refinement.msatCexFile"));
+      dumpFormulasToFile(f, msatCexFile);
     }
 
     itpProver.reset();
@@ -710,7 +727,7 @@ implements SymbPredAbsFormulaManager
     stats.cexAnalysisMaxMathsatTime =
       Math.max(msatSolveTime, stats.cexAnalysisMaxMathsatTime);
 
-    CPAchecker.logger.log(Level.ALL, "Counterexample information:", info);
+    logger.log(Level.ALL, "Counterexample information:", info);
 
     return info;
   }
@@ -776,7 +793,7 @@ implements SymbPredAbsFormulaManager
     }
     
     if (useBitwiseAxioms && foundUninterpretedFunction) {
-      CPAchecker.logger.log(Level.ALL, "DEBUG_3", "ADDING BITWISE AXIOMS TO THE",
+      logger.log(Level.ALL, "DEBUG_3", "ADDING BITWISE AXIOMS TO THE",
           "LAST GROUP: ", bitwiseAxioms);
       traceFormulas.set(traceFormulas.size()-1, smgr.makeAnd(traceFormulas.get(traceFormulas.size()-1), bitwiseAxioms));
     }
@@ -849,7 +866,7 @@ implements SymbPredAbsFormulaManager
 
     thmProver.init(TheoremProver.COUNTEREXAMPLE_ANALYSIS);
 
-    CPAchecker.logger.log(Level.ALL, "DEBUG_1", "Calling getUsefulBlocks on path",
+    logger.log(Level.ALL, "DEBUG_1", "Calling getUsefulBlocks on path",
         "of length:", f.size());
 
     SymbolicFormula trueFormula = smgr.makeTrue();
@@ -893,7 +910,7 @@ implements SymbPredAbsFormulaManager
           if (thmProver.isUnsat(trueFormula)) {
             // add this block to the needed ones, and repeat
             needed[i] = t;
-            CPAchecker.logger.log(Level.ALL, "DEBUG_1",
+            logger.log(Level.ALL, "DEBUG_1",
                 "Found needed block: ", i, ", term: ", t);
             // pop all
             while (toPop > 0) {
@@ -916,7 +933,7 @@ implements SymbPredAbsFormulaManager
           if (thmProver.isUnsat(trueFormula)) {
             // add this block to the needed ones, and repeat
             needed[i] = t;
-            CPAchecker.logger.log(Level.ALL, "DEBUG_1",
+            logger.log(Level.ALL, "DEBUG_1",
                 "Found needed block: ", i, ", term: ", t);
             // pop all
             while (toPop > 0) {
@@ -943,7 +960,7 @@ implements SymbPredAbsFormulaManager
 
     thmProver.reset();
 
-    CPAchecker.logger.log(Level.ALL, "DEBUG_1", "Done getUsefulBlocks");
+    logger.log(Level.ALL, "DEBUG_1", "Done getUsefulBlocks");
 
     long gubEnd = System.currentTimeMillis();
     stats.cexAnalysisGetUsefulBlocksTime += gubEnd - gubStart;

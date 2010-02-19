@@ -40,8 +40,10 @@ import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFANode;
 
 import common.Pair;
+import common.configuration.Configuration;
+import common.configuration.Option;
+import common.configuration.Options;
 
-import cpa.common.CPAchecker;
 import cpa.common.ReachedElements;
 import cpa.common.interfaces.Statistics;
 
@@ -51,11 +53,27 @@ import cpa.common.interfaces.Statistics;
  *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
+@Options
 public class PredicateAbstractionCPAStatistics implements Statistics {
 
+    @Option(name="output.path")
+    private String outputDirectory = "test/output/";
+  
+    @Option(name="cpas.symbpredabs.refinement.finalPredMapFile")
+    private String predmapFile = "predmap.txt";
+    
+    @Option(name="cpas.symbpredabs.refinement.addPredicatesGlobally")
+    private boolean addPredicatesGlobally;
+    
+    @Option(name="cpas.symbpredabs.explicit.getUsefulBlocks")
+    private boolean getUsefulBlocks = false;
+
+    @Option(name="cpas.symbpredabs.explicit.extendedStats")
+    private boolean extendedStats = false;
+    
     private PredicateAbstractionCPA cpa;
 
-    public PredicateAbstractionCPAStatistics(PredicateAbstractionCPA cpa) {
+    public PredicateAbstractionCPAStatistics(PredicateAbstractionCPA cpa, Configuration config) {
         this.cpa = cpa;
     }
 
@@ -78,8 +96,7 @@ public class PredicateAbstractionCPAStatistics implements Statistics {
         int maxPreds = 0;
         int totPreds = 0;
         int avgPreds = 0;
-        if (!CPAchecker.config.getBooleanValue(
-                "cpas.symbpredabs.refinement.addPredicatesGlobally")) {
+        if (!addPredicatesGlobally) {
             allLocs = pmap.getKnownLocations();
             for (CFANode l : allLocs) {
                 Collection<Predicate> p = pmap.getRelevantPredicates(l);
@@ -101,14 +118,8 @@ public class PredicateAbstractionCPAStatistics implements Statistics {
 
         // check if/where to dump the predicate map
         if (result == Statistics.Result.SAFE) {
-          String outfilePath = CPAchecker.config.getProperty("output.path");
-          String outfileName = CPAchecker.config.getProperty(
-              "cpas.symbpredabs.refinement.finalPredMapFile", "");
-          if (outfileName == null) {
-            outfileName = "predmap.txt";
-          }
-          if (!outfileName.equals("")) {
-            File f = new File(outfilePath + outfileName);
+          if (!predmapFile.equals("")) {
+            File f = new File(outputDirectory, predmapFile);
             try {
               PrintWriter pw = new PrintWriter(f);
               pw.println("ALL PREDICATES:");
@@ -118,8 +129,7 @@ public class PredicateAbstractionCPAStatistics implements Statistics {
                 pw.format("%s ==> %s <-> %s\n", p, d.getFirst(),
                     d.getSecond());
               }
-              if (!CPAchecker.config.getBooleanValue(
-              "cpas.symbpredabs.refinement.addPredicatesGlobally")) {
+              if (!addPredicatesGlobally) {
                 pw.println("\nFOR EACH LOCATION:");
                 for (CFANode l : allLocs) {
                   Collection<Predicate> c =
@@ -134,8 +144,7 @@ public class PredicateAbstractionCPAStatistics implements Statistics {
               pw.close();
             } catch (FileNotFoundException e) {
               // just issue a warning to the user
-              out.println("WARNING: impossible to dump predicate map on `"
-                  + outfilePath + outfileName + "'");
+              out.println("WARNING: impossible to dump predicate map on " + f.getAbsolutePath());
             }
           }
         }
@@ -199,15 +208,13 @@ public class PredicateAbstractionCPAStatistics implements Statistics {
         out.println("  Max:                 " + toTime(bs.cexAnalysisMaxTime));
         out.println("  Solving time only:   " +
                 toTime(bs.cexAnalysisMathsatTime));
-        if (CPAchecker.config.getBooleanValue(
-                "cpas.symbpredabs.explicit.getUsefulBlocks")) {
+        if (getUsefulBlocks) {
             out.println("  Cex.focusing total:  " +
                     toTime(bs.cexAnalysisGetUsefulBlocksTime));
             out.println("  Cex.focusing max:    " +
                 toTime(bs.cexAnalysisGetUsefulBlocksMaxTime));
         }
-        if (CPAchecker.config.getBooleanValue(
-                "cpas.symbpredabs.explicit.extendedStats")) {
+        if (extendedStats) {
             out.println("Extended statistics:");
             out.println("  Cache lookup time:         " +
                     toTime(bs.cacheLookupTime));

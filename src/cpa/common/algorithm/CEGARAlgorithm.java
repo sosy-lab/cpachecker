@@ -30,7 +30,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
 
-import cpa.common.CPAchecker;
+import common.configuration.Configuration;
+import common.configuration.Option;
+import common.configuration.Options;
+
+import cpa.common.LogManager;
 import cpa.common.ReachedElements;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
@@ -39,6 +43,7 @@ import cpa.common.interfaces.Statistics;
 import cpa.common.interfaces.StatisticsProvider;
 import exceptions.CPAException;
 
+@Options(prefix="cegar")
 public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
   private static class CEGARStatistics implements Statistics {
@@ -80,6 +85,13 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
   private static final int GC_PERIOD = 100;
   private int gcCounter = 0;
 
+  @Option(required=true)
+  private String refiner = "";
+  
+  @Option
+  private boolean restartOnRefinement = false;
+  
+  private final LogManager logger;
   private final Algorithm algorithm;
   private final Refiner mRefiner;
 
@@ -111,13 +123,14 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
   }
 
-  public CEGARAlgorithm(Algorithm algorithm) throws CPAException {
+  public CEGARAlgorithm(Algorithm algorithm, Configuration config, LogManager logger) throws CPAException {
+    config.inject(this);
     this.algorithm = algorithm;
+    this.logger = logger;
 
-    String refinerName = CPAchecker.config.getProperty("cegar.refiner");
     Object[] refinerArguments = {algorithm.getCPA()};
 
-    mRefiner = createInstance(refinerName, refinerArguments, Refiner.class);
+    mRefiner = createInstance(refiner, refinerArguments, Refiner.class);
   }
 
   @Override
@@ -134,7 +147,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
       // if the element is an error element
       if (lastElement != null && lastElement.isError()) {
 
-        CPAchecker.logger.log(Level.FINER, "Error found, performing CEGAR");
+        logger.log(Level.FINER, "Error found, performing CEGAR");
         stats.countRefinements++;
         
         long startRefinement = System.currentTimeMillis();
@@ -144,10 +157,10 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
         if (refinementResult) {
           // successful refinement
 
-          CPAchecker.logger.log(Level.FINER, "Refinement successful");
+          logger.log(Level.FINER, "Refinement successful");
           stats.countSuccessfulRefinements++;
 
-          if (CPAchecker.config.getBooleanValue("cegar.restartOnRefinement")) {
+          if (restartOnRefinement) {
             // TODO
           }
 
@@ -157,7 +170,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
         } else {
           // no refinement found, because the counterexample is not spurious
-          CPAchecker.logger.log(Level.FINER, "Refinement unsuccessful");
+          logger.log(Level.FINER, "Refinement unsuccessful");
 
           stopAnalysis = true;
 

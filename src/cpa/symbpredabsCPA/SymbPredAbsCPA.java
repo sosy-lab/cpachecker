@@ -46,6 +46,7 @@ import common.configuration.Configuration;
 import common.configuration.Option;
 import common.configuration.Options;
 
+import cpa.common.LogManager;
 import cpa.common.defaults.AbstractCPAFactory;
 import cpa.common.defaults.StaticPrecisionAdjustment;
 import cpa.common.defaults.StopSepOperator;
@@ -70,7 +71,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
   private static class SymbPredAbsCPAFactory extends AbstractCPAFactory {
     @Override
     public ConfigurableProgramAnalysis createInstance() throws CPAException {
-      return new SymbPredAbsCPA(getConfiguration());
+      return new SymbPredAbsCPA(getConfiguration(), getLogger());
     }
   }
   
@@ -91,16 +92,16 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
   private final SymbPredAbsFormulaManager formulaManager;
   private final SymbPredAbsCPAStatistics stats;
 
-  private SymbPredAbsCPA(Configuration config) throws CPAException {
+  private SymbPredAbsCPA(Configuration config, LogManager logger) throws CPAException {
     config.inject(this);
     
     abstractFormulaManager = new BDDAbstractFormulaManager();
-    symbolicFormulaManager = new MathsatSymbolicFormulaManager();
+    symbolicFormulaManager = new MathsatSymbolicFormulaManager(config, logger);
     TheoremProver thmProver;
     if (whichProver.equals("mathsat")) {
-      thmProver = new MathsatTheoremProver(symbolicFormulaManager, false);
+      thmProver = new MathsatTheoremProver(symbolicFormulaManager, false, config);
     } else if (whichProver.equals("simplify")) {
-      thmProver = new SimplifyTheoremProver(symbolicFormulaManager);
+      thmProver = new SimplifyTheoremProver(symbolicFormulaManager, config, logger);
     } else if (whichProver.equals("yices")) {
       thmProver = new YicesTheoremProver(symbolicFormulaManager);
     } else {
@@ -108,8 +109,8 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     }
     
     InterpolatingTheoremProver<Integer> itpProver =
-      new MathsatInterpolatingProver(symbolicFormulaManager, false);
-    formulaManager = new MathsatSymbPredAbsFormulaManager<Integer>(abstractFormulaManager, symbolicFormulaManager, thmProver, itpProver);
+      new MathsatInterpolatingProver(symbolicFormulaManager, false, config);
+    formulaManager = new MathsatSymbPredAbsFormulaManager<Integer>(abstractFormulaManager, symbolicFormulaManager, thmProver, itpProver, config, logger);
     domain = new SymbPredAbsAbstractDomain(abstractFormulaManager);
     transfer = new SymbPredAbsTransferRelation(this, config);
     merge = new SymbPredAbsMergeOperator(this);

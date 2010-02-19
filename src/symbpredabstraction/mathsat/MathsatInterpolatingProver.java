@@ -27,21 +27,33 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import cpa.common.CPAchecker;
-
 import symbpredabstraction.interfaces.InterpolatingTheoremProver;
 import symbpredabstraction.interfaces.SymbolicFormula;
 
+import common.configuration.Configuration;
+import common.configuration.Option;
+import common.configuration.Options;
 
+import exceptions.InvalidConfigurationException;
+
+@Options(prefix="cpas.symbpredabs.mathsat")
 public class MathsatInterpolatingProver implements InterpolatingTheoremProver<Integer> {
 
+    @Option
+    private boolean useIntegers = false;
+    
+    @Option
+    private boolean useDtc = false;
+  
     private final long msatEnv;
     private long env;
     private final boolean useSharedEnv;
     private final Map<Long, Long> copyFromCache;
 
     public MathsatInterpolatingProver(MathsatSymbolicFormulaManager mgr,
-                                      boolean useSharing) {
+                                      boolean useSharing,
+                                      Configuration config) throws InvalidConfigurationException {
+        config.inject(this);
         msatEnv = mgr.getMsatEnv();
         env = 0;
         useSharedEnv = useSharing;
@@ -62,14 +74,12 @@ public class MathsatInterpolatingProver implements InterpolatingTheoremProver<In
         mathsat.api.msat_add_theory(env, mathsat.api.MSAT_UF);
         mathsat.api.msat_add_theory(env, mathsat.api.MSAT_LRA);
 
-        boolean theoryCombinationNeeded = CPAchecker.config.getBooleanValue(
-                "cpas.symbpredabs.mathsat.useDtc");
+        boolean theoryCombinationNeeded = useDtc;
 
         if (theoryCombinationNeeded) {
             mathsat.api.msat_set_theory_combination(env,
                     mathsat.api.MSAT_COMB_DTC);
-        } else if (CPAchecker.config.getBooleanValue(
-                "cpas.symbpredabs.mathsat.useIntegers")) {
+        } else if (useIntegers) {
             int ok = mathsat.api.msat_set_option(env, "split_eq", "true");
             assert(ok == 0);
         }

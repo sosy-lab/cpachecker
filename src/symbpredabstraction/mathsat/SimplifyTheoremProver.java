@@ -41,15 +41,23 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.logging.Level;
 
-import cpa.common.CPAchecker;
-
 import symbpredabstraction.interfaces.SymbolicFormula;
 import symbpredabstraction.interfaces.SymbolicFormulaManager;
 import symbpredabstraction.interfaces.TheoremProver;
 
+import common.configuration.Configuration;
+import common.configuration.Option;
+import common.configuration.Options;
 
+import cpa.common.LogManager;
+import exceptions.InvalidConfigurationException;
+
+@Options
 public class SimplifyTheoremProver implements TheoremProver {
 
+    @Option(name="cpas.symbpredabs.explicit.abstraction.simplifyDumpQueries")
+    private boolean simplifyDumpQueries = false; 
+  
     private Map<Long, String> msatVarToSimplifyVar;
     private Map<Long, String> msatToSimplifyCache;
     private Map<String, Long> simplifyPredToMsat;
@@ -64,7 +72,11 @@ public class SimplifyTheoremProver implements TheoremProver {
     private PrintWriter simplifyWithCexIn;
     private BufferedReader simplifyWithCexOut;
 
-    public SimplifyTheoremProver(SymbolicFormulaManager mgr) {
+    private final LogManager logger;
+    
+    public SimplifyTheoremProver(SymbolicFormulaManager mgr, Configuration config, LogManager logger) throws InvalidConfigurationException {
+        config.inject(this);
+        this.logger = logger;
         msatVarToSimplifyVar = new HashMap<Long, String>();
         msatToSimplifyCache = new HashMap<Long, String>();
         simplifyPredToMsat = new HashMap<String, Long>();
@@ -74,13 +86,12 @@ public class SimplifyTheoremProver implements TheoremProver {
         simplifyOut = null;
         dumpQueryWriter = null;
         smgr = mgr;
-        if (CPAchecker.config.getBooleanValue(
-            "cpas.symbpredabs.explicit.abstraction.simplifyDumpQueries")) {
+        if (simplifyDumpQueries) {
             try {
                 dumpQueryWriter = new PrintWriter(
                         new File("simplify_queries.txt"));
             } catch (FileNotFoundException e) {
-              CPAchecker.logger.logException(Level.WARNING, e, "");
+              logger.logException(Level.WARNING, e, "");
                 dumpQueryWriter = null;
             }
         }
@@ -209,7 +220,7 @@ public class SimplifyTheoremProver implements TheoremProver {
             simplifyOut = new BufferedReader(new InputStreamReader(out));
             simplifyIn = new PrintWriter(in);
         } catch (IOException e) {
-          CPAchecker.logger.logException(Level.WARNING, e, "");
+          logger.logException(Level.WARNING, e, "");
             assert(false);
         }
     }
@@ -239,7 +250,7 @@ public class SimplifyTheoremProver implements TheoremProver {
             boolean childrenDone = true;
             String[] children = new String[mathsat.api.msat_term_arity(term)];
             if (isTermIteAssignment(term)) {
-              CPAchecker.logger.log(Level.WARNING, "ERROR!!: " + mathsat.api.msat_term_repr(term));
+              logger.log(Level.WARNING, "ERROR!!: " + mathsat.api.msat_term_repr(term));
                 assert(false);
                 children = new String[4];
                 long c1 = mathsat.api.msat_term_get_arg(term, 0);
@@ -412,7 +423,7 @@ public class SimplifyTheoremProver implements TheoremProver {
                 status = simplifyOut.readLine();
             }
         } catch (IOException e) {
-          CPAchecker.logger.logException(Level.SEVERE, e, "");
+          logger.logException(Level.SEVERE, e, "");
             System.exit(1);
         }
         assert(status != null);
@@ -421,7 +432,7 @@ public class SimplifyTheoremProver implements TheoremProver {
         } else if (status.contains("Invalid.")) {
             return false;
         } else {
-          CPAchecker.logger.log(Level.WARNING, "BAD ANSWER FROM SIMPLIFY: '" + status + "', " +
+          logger.log(Level.WARNING, "BAD ANSWER FROM SIMPLIFY: '" + status + "', " +
                     "FORMULA: " + formula);
             assert(false);
         }
@@ -445,7 +456,7 @@ public class SimplifyTheoremProver implements TheoremProver {
                 status = simplifyOut.readLine();
             }
         } catch (IOException e) {
-          CPAchecker.logger.logException(Level.SEVERE, e, "");
+          logger.logException(Level.SEVERE, e, "");
             System.exit(1);
         }
         assert(status != null);
@@ -455,7 +466,7 @@ public class SimplifyTheoremProver implements TheoremProver {
             // ok, let's parse the model
             return ret;
         } else {
-          CPAchecker.logger.log(Level.WARNING, "BAD ANSWER FROM SIMPLIFY: '" + status + "', " +
+          logger.log(Level.WARNING, "BAD ANSWER FROM SIMPLIFY: '" + status + "', " +
                     "FORMULA: " + formula);
             assert(false);
         }
@@ -497,7 +508,7 @@ public class SimplifyTheoremProver implements TheoremProver {
                 }
             }
         } catch (IOException e) {
-          CPAchecker.logger.logException(Level.WARNING, e, "");
+          logger.logException(Level.WARNING, e, "");
             assert(false);
         }
         return model;

@@ -26,13 +26,24 @@ package symbpredabstraction.mathsat;
 import java.util.ArrayList;
 import java.util.List;
 
-import cpa.common.CPAchecker;
-
 import symbpredabstraction.interfaces.SymbolicFormula;
 import symbpredabstraction.interfaces.TheoremProver;
 
+import common.configuration.Configuration;
+import common.configuration.Option;
+import common.configuration.Options;
 
+import exceptions.InvalidConfigurationException;
+
+@Options(prefix="cpas.symbpredabs.mathsat")
 public class MathsatTheoremProver implements TheoremProver {
+    
+    @Option
+    private boolean useIntegers = false;
+    
+    @Option
+    private boolean useDtc = false;
+  
     private long absEnv;
     private long msatEnv;
     private MathsatSymbolicFormulaManager mmgr;
@@ -43,7 +54,8 @@ public class MathsatTheoremProver implements TheoremProver {
     private boolean needsTermCopy;
 
     public MathsatTheoremProver(MathsatSymbolicFormulaManager mgr,
-            boolean incr) {
+            boolean incr, Configuration config) throws InvalidConfigurationException {
+        config.inject(this);
         msatEnv = mgr.getMsatEnv();
         mmgr = mgr;
         incremental = incr;
@@ -78,8 +90,7 @@ public class MathsatTheoremProver implements TheoremProver {
         if (absEnv == 0 || !incremental) {
             absEnv = mathsat.api.msat_create_shared_env(msatEnv);
             mathsat.api.msat_add_theory(absEnv, mathsat.api.MSAT_UF);
-            if (CPAchecker.config.getBooleanValue(
-            "cpas.symbpredabs.mathsat.useIntegers")) {
+            if (useIntegers) {
                 mathsat.api.msat_add_theory(absEnv, mathsat.api.MSAT_LIA);
                 int ok = mathsat.api.msat_set_option(
                         absEnv, "split_eq", "false");
@@ -87,8 +98,7 @@ public class MathsatTheoremProver implements TheoremProver {
             } else {
                 mathsat.api.msat_add_theory(absEnv, mathsat.api.MSAT_LRA);
             }
-            if (CPAchecker.config.getBooleanValue(
-                    "cpas.symbpredabs.mathsat.useDtc")) {
+            if (useDtc) {
                 mathsat.api.msat_set_theory_combination(absEnv,
                         mathsat.api.MSAT_COMB_DTC);
             }
@@ -118,8 +128,7 @@ public class MathsatTheoremProver implements TheoremProver {
             curEnv = mathsat.api.msat_create_env();
         }
         mathsat.api.msat_add_theory(curEnv, mathsat.api.MSAT_UF);
-        if (CPAchecker.config.getBooleanValue(
-        "cpas.symbpredabs.mathsat.useIntegers")) {
+        if (useIntegers) {
             mathsat.api.msat_add_theory(curEnv, mathsat.api.MSAT_LIA);
             int ok = mathsat.api.msat_set_option(
                     curEnv, "split_eq", "false");
@@ -127,8 +136,7 @@ public class MathsatTheoremProver implements TheoremProver {
         } else {
             mathsat.api.msat_add_theory(curEnv, mathsat.api.MSAT_LRA);
         }
-        if (CPAchecker.config.getBooleanValue(
-                "cpas.symbpredabs.mathsat.useDtc")) {
+        if (useDtc) {
             mathsat.api.msat_set_theory_combination(curEnv,
                     mathsat.api.MSAT_COMB_DTC);
         }
@@ -188,8 +196,7 @@ public class MathsatTheoremProver implements TheoremProver {
 
         mathsat.api.msat_add_theory(allsatEnv, mathsat.api.MSAT_UF);
         if ((theories & MathsatSymbolicFormulaManager.THEORY_ARITH) != 0) {
-            if (CPAchecker.config.getBooleanValue(
-                    "cpas.symbpredabs.mathsat.useIntegers")) {
+            if (useIntegers) {
                 mathsat.api.msat_add_theory(allsatEnv, mathsat.api.MSAT_LIA);
                 int ok = mathsat.api.msat_set_option(allsatEnv, "split_eq",
                         "true");
@@ -197,8 +204,7 @@ public class MathsatTheoremProver implements TheoremProver {
             } else {
                 mathsat.api.msat_add_theory(allsatEnv, mathsat.api.MSAT_LRA);
             }
-            if (CPAchecker.config.getBooleanValue(
-                    "cpas.symbpredabs.mathsat.useDtc")) {
+            if (useDtc) {
                 mathsat.api.msat_set_theory_combination(allsatEnv,
                         mathsat.api.MSAT_COMB_DTC);
             }

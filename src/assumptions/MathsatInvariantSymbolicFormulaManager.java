@@ -23,6 +23,8 @@
  */
 package assumptions;
 
+import java.util.logging.Level;
+
 import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
@@ -31,6 +33,12 @@ import symbpredabstraction.SSAMap;
 import symbpredabstraction.interfaces.SymbolicFormula;
 import symbpredabstraction.mathsat.MathsatSymbolicFormula;
 import symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
+
+import common.configuration.Configuration;
+
+import cpa.common.CPAchecker;
+import cpa.common.LogManager;
+import exceptions.InvalidConfigurationException;
 
 /**
  * Implementation of InvariantSymbolicFormulaManager based on
@@ -76,16 +84,23 @@ public class MathsatInvariantSymbolicFormulaManager
    */
   public static MathsatInvariantSymbolicFormulaManager getInstance()
   {
-    if (instance == null)
-      instance = new MathsatInvariantSymbolicFormulaManager();
+    if (instance == null) {
+      try {
+        // FIXME this is ugly, better pass formula manager object around instead of using singleton pattern
+        instance = new MathsatInvariantSymbolicFormulaManager(CPAchecker.config, CPAchecker.logger);
+      } catch (InvalidConfigurationException e) {
+        CPAchecker.logger.logException(Level.SEVERE, e, null);
+        System.exit(1);
+      }
+    }
     return instance;
   }
 
   /**
    * Private constructor. To get instance, call getInstance()
    */
-  private MathsatInvariantSymbolicFormulaManager() {
-    super();
+  private MathsatInvariantSymbolicFormulaManager(Configuration config, LogManager logger) throws InvalidConfigurationException {
+    super(config, logger);
   }
   
   private final SSAMap dummySSAMap = new DummySSAMap(); 

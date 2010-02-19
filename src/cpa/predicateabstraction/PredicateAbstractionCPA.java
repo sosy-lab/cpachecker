@@ -46,7 +46,12 @@ import symbpredabstraction.mathsat.MathsatTheoremProver;
 import symbpredabstraction.mathsat.SimplifyTheoremProver;
 import symbpredabstraction.mathsat.YicesTheoremProver;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
-import cpa.common.CPAchecker;
+
+import common.configuration.Configuration;
+import common.configuration.Option;
+import common.configuration.Options;
+
+import cpa.common.LogManager;
 import cpa.common.defaults.AbstractCPAFactory;
 import cpa.common.defaults.MergeSepOperator;
 import cpa.common.defaults.StaticPrecisionAdjustment;
@@ -61,6 +66,7 @@ import cpa.common.interfaces.Statistics;
 import cpa.common.interfaces.StatisticsProvider;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
+import exceptions.InvalidConfigurationException;
 
 
 /**
@@ -68,19 +74,32 @@ import cpa.common.interfaces.TransferRelation;
  *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
+@Options(prefix="cpas.symbpredabs")
 public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
     private static class PredicateAbstractionCPAFactory extends AbstractCPAFactory {
       
       @Override
-      public ConfigurableProgramAnalysis createInstance() {
-        return new PredicateAbstractionCPA();
+      public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException {
+        return new PredicateAbstractionCPA(getConfiguration(), getLogger());
       }
     }
     
     public static CPAFactory factory() {
       return new PredicateAbstractionCPAFactory();
     }
+    
+    @Option(name="explicit.abstraction.solver", values = {"mathsat", "simplify", "yices"})
+    private String whichProver = "mathsat";
+    
+    @Option(name="abstraction.fixedPredMap")
+    private String fixedPredMapFile = "";
+    
+    @Option(name="abstraction.norefinement")
+    private boolean noRefinement = false;
+    
+    @Option(name="refinement.addPredicatesGlobally")
+    private boolean addPredicatesGlobally;
   
     private final PredicateAbstractionAbstractDomain domain;
     private final PredicateAbstractionTransferRelation trans;
@@ -89,34 +108,32 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis, Sta
     private final PrecisionAdjustment precisionAdjustment;
     private final AbstractFormulaManager abstractFormulaManager;
     private final PredicateAbstractionFormulaManager amgr;
-    private PredicateMap pmap;
-
+    private final PredicateMap pmap;
     private final PredicateAbstractionCPAStatistics stats;
+    private final LogManager logger;
 
-    private PredicateAbstractionCPA() {
+    private PredicateAbstractionCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
+        this.logger = logger;
         domain = new PredicateAbstractionAbstractDomain(this);
         trans = new PredicateAbstractionTransferRelation(domain);
         merge = MergeSepOperator.getInstance();
         stop = new PredicateAbstractionStopOperator(domain);
         precisionAdjustment = StaticPrecisionAdjustment.getInstance();
         abstractFormulaManager = new BDDAbstractFormulaManager();
-        MathsatSymbolicFormulaManager mgr = new MathsatSymbolicFormulaManager();
-        String whichProver = CPAchecker.config.getProperty(
-                "cpas.symbpredabs.explicit.abstraction.solver", "mathsat");
+        MathsatSymbolicFormulaManager mgr = new MathsatSymbolicFormulaManager(config, logger);
         TheoremProver prover = null;
         if (whichProver.equals("mathsat")) {
-            prover = new MathsatTheoremProver(mgr, false);
+            prover = new MathsatTheoremProver(mgr, false, config);
         } else if (whichProver.equals("simplify")) {
-            prover = new SimplifyTheoremProver(mgr);
+            prover = new SimplifyTheoremProver(mgr, config, logger);
         } else if (whichProver.equals("yices")) {
             prover = new YicesTheoremProver(mgr);
         } else {
-          CPAchecker.logger.log(Level.SEVERE, "ERROR, UNSUPPORTED SOLVER: " + whichProver);
-            System.exit(1);
+          throw new InternalError("Update list of allowed solvers!");
         }
         InterpolatingTheoremProver<Integer> itpProver =
-            new MathsatInterpolatingProver(mgr, true);
-        amgr = new MathsatPredicateAbstractionFormulaManager<Integer>(abstractFormulaManager, mgr, prover, itpProver);
+            new MathsatInterpolatingProver(mgr, true, config);
+        amgr = new MathsatPredicateAbstractionFormulaManager<Integer>(abstractFormulaManager, mgr, prover, itpProver, config, logger);
 
 //        covers = new HashMap<ExplicitAbstractElement,
 //                             Set<ExplicitAbstractElement>>();
@@ -125,27 +142,24 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis, Sta
         MathsatPredicateParser p = new MathsatPredicateParser(mgr, amgr);
         Collection<Predicate> preds = null;
         try {
-            String pth = CPAchecker.config.getProperty(
-                    "cpas.symbpredabs.abstraction.fixedPredMap", null);
-            if (pth != null) {
-                File f = new File(pth);
+            if (!fixedPredMapFile.isEmpty()) {
+                File f = new File(fixedPredMapFile);
                 InputStream in = new FileInputStream(f);
                 preds = p.parsePredicates(in);
             } else {
                 preds = null;
             }
         } catch (IOException e) {
-          CPAchecker.logger.logException(Level.WARNING, e, "");
+          logger.logException(Level.WARNING, e, "");
             preds = new Vector<Predicate>();
         }
-        if (CPAchecker.config.getBooleanValue(
-                "cpas.symbpredabs.abstraction.norefinement")) {
+        if (noRefinement) {
             pmap = new FixedPredicateMap(preds);
         } else {
-            pmap = new UpdateablePredicateMap(preds);
+            pmap = new UpdateablePredicateMap(preds, addPredicatesGlobally);
         }
 
-        stats = new PredicateAbstractionCPAStatistics(this);
+        stats = new PredicateAbstractionCPAStatistics(this, config);
     }
 
     @Override
@@ -174,7 +188,7 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis, Sta
 
     @Override
     public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
-      CPAchecker.logger.log(Level.FINEST, 
+      logger.log(Level.FINEST, 
                        "Getting initial element from node: ", node);
 
         PredicateAbstractionAbstractElement e = new PredicateAbstractionAbstractElement(this);

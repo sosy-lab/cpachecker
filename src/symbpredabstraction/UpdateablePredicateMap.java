@@ -52,8 +52,8 @@ public class UpdateablePredicateMap implements PredicateMap {
     
     private final boolean globalPredicates;
 
-    public UpdateablePredicateMap(Collection<Predicate> initial) {
-        globalPredicates = CPAchecker.config.getBooleanValue("cpas.symbpredabs.refinement.addPredicatesGlobally");
+    public UpdateablePredicateMap(Collection<Predicate> initial, boolean globalPredicates) {
+        this.globalPredicates = globalPredicates;
         repr = new HashMap<CFANode, Set<Predicate>>();
         functionGlobalPreds = new HashMap<String, Set<Predicate>>();
         
@@ -62,10 +62,6 @@ public class UpdateablePredicateMap implements PredicateMap {
         } else {
           initialGlobalPreds = Collections.unmodifiableCollection(initial);
         }
-    }
-
-    public UpdateablePredicateMap() {
-        this(null);
     }
 
     public boolean update(CFANode n, Collection<Predicate> preds) {

@@ -562,7 +562,7 @@ public class CPAchecker {
     Algorithm algorithm = new CPAAlgorithm(cpa);
     
     if (options.useRefinement) {
-      algorithm = new CEGARAlgorithm(algorithm);
+      algorithm = new CEGARAlgorithm(algorithm, config, logger);
     }
     
     if (options.useAssumptionCollector) {
