@@ -26,11 +26,20 @@ package common.configuration;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Member;
+import java.lang.reflect.Method;
 import java.net.URL;
 import java.util.Map;
 import java.util.Properties;
+import java.util.logging.Level;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
+
+import exceptions.InvalidConfigurationException;
+import fql.fllesh.util.CPAchecker;
 
 /**
  * Immutable wrapper around a {@link Properties} instance, providing some
@@ -42,6 +51,19 @@ public class Configuration {
   
   /** Delimiters to create string arrays */
   private static final String DELIMS = "[;, ]+";
+
+  private static final ImmutableMap<Class<?>, Class<?>> PRIMITIVE_TYPES
+      = new ImmutableMap.Builder<Class<?>, Class<?>>()
+                     .put(boolean.class, Boolean.class)
+                     .put(byte.class,    Byte.class)
+                     .put(char.class,    Character.class)
+                     .put(double.class,  Double.class)
+                     .put(float.class,   Float.class)
+                     .put(int.class,     Integer.class)
+                     .put(long.class,    Long.class)
+                     .put(short.class,   Short.class)
+                     .build();
+          
 
   private final Properties properties;
   
@@ -158,5 +180,213 @@ public class Configuration {
    */
   public boolean getBooleanValue(String key){
     return Boolean.valueOf(getProperty(key));
+  }
+  
+  /**
+   * Inject the values of configuration options into an object.
+   * The class of the object has to have a {@link Options} annotation, and each
+   * field to set / method to call has to have a {@link Option} annotation.
+   * 
+   * @param obj The object in which the configuration options should be injected.
+   * @throws InvalidConfigurationException If the user specified configuration is wrong.
+   */
+  public void inject(Object obj) throws InvalidConfigurationException {
+    Preconditions.checkNotNull(obj);
+    
+    Class<?> cls = obj.getClass();
+    Options options = cls.getAnnotation(Options.class);
+    Preconditions.checkNotNull(options, "Class must have @Options annotation.");
+    
+    String prefix = options.prefix();
+    if (!prefix.isEmpty()) {
+      prefix += ".";
+    }
+    
+    // handle fields of the class
+    Field[] fields = cls.getDeclaredFields();
+    Field.setAccessible(fields, true); // override all final & private modifiers
+    
+    for (Field field : fields) {
+      Option option = field.getAnnotation(Option.class);
+      if (option == null) {
+        // ignore all non-option fields
+        continue;
+      }
+      
+      String name = getOptionName(prefix, field, option);
+      String valueStr = getOptionValue(name, option);
+      if (valueStr == null) {
+        continue;
+      }
+      
+      Class<?> type = field.getType();
+      Object value = convertValue(name, valueStr, type);
+      
+      // set value to field
+      try {
+        field.set(obj, value);
+        
+      } catch (IllegalArgumentException e) {
+        assert false : "Type checks above were not successful apparently.";
+      } catch (IllegalAccessException e) {
+        assert false : "Accessibility setting failed silently above.";
+      }
+    }
+    
+    // handle methods of the class
+    Method[] methods = cls.getDeclaredMethods();
+    Method.setAccessible(methods, true); // override all final & private modifiers
+    
+    for (Method method : methods) {
+      Option option = method.getAnnotation(Option.class);
+      if (option == null) {
+        // ignore all non-option fields
+        continue;
+      }
+
+      Class<?>[] parameters = method.getParameterTypes();
+      if (parameters.length != 1) {
+        throw new IllegalArgumentException("Method with @Option must have exactly one parameter!");
+      }
+      
+      String name = getOptionName(prefix, method, option);
+      String valueStr = getOptionValue(name, option);
+      if (valueStr == null) {
+        continue;
+      }
+      
+      Class<?> type = parameters[0];
+      Object value = convertValue(name, valueStr, type);
+      
+      // set value to field
+      try {
+        method.invoke(obj, value);
+        
+      } catch (IllegalArgumentException e) {
+        assert false : "Type checks above were not successful apparently.";
+      } catch (IllegalAccessException e) {
+        assert false : "Accessibility setting failed silently above.";
+      } catch (InvocationTargetException e) {
+        // ITEs always have a wrapped exception which is the real one thrown by
+        // the invoked method. We want to handle this exception, so throw it
+        // (again) and catch it immediately.
+        try {
+          throw e.getCause();
+          
+        } catch (IllegalArgumentException iae) {
+          throw new InvalidConfigurationException("Invalid value in configuration file: \""
+              + name + " = " + valueStr + '\"'
+              + (iae.getMessage() != null ? " (" + iae.getMessage() + ")" : ""));
+        
+        } catch (RuntimeException re) {
+          throw re; // for these exceptions it is easy, we can just re-throw without declaring them
+        
+        } catch (Error err) {
+          throw err; // errors should never be caught!
+        
+        } catch (Throwable t) {
+          // We can't handle it correctly, but we can't throw it either.
+          CPAchecker.logger.logException(Level.FINE, t,
+              "Unexpected checked exception in method invoked by Configuration.inject(Object). It was ignored.");
+          assert false : t.getMessage();
+        }
+      }
+    }
+  }
+
+  private String getOptionName(String prefix, Member field, Option option) {
+    // get name for configuration option
+    String name = option.name();
+    if (name.isEmpty()) {
+      name = field.getName();
+    }
+    name = prefix + name;
+    return name;
+  }
+  
+  private String getOptionValue(String name, Option option) throws InvalidConfigurationException {
+    // get value in String representation
+    String valueStr = getProperty(name);
+    if (valueStr == null || valueStr.isEmpty()) {
+      if (option.required()) {
+        throw new InvalidConfigurationException("Required configuration option " + name  + " is missing!");
+      }
+      return null;
+    }
+    
+    valueStr = valueStr.trim();
+    
+    // check if it is included in the allowed values list
+    String[] allowedValues = option.values();
+    if (allowedValues.length > 0) {
+      boolean invalid = true;
+      for (String allowedValue : allowedValues) {
+        if (valueStr.equals(allowedValue)) {
+          invalid = false;
+          break;
+        }
+      }
+      if (invalid) {
+        throw new InvalidConfigurationException("Invalid value in configuration file: \""
+            + name + " = " + valueStr + '\"'
+            + " (not listed as allowed value)");
+      }
+    }
+    
+    // check if it matches the specification regexp
+    String regexp = option.regexp();
+    if (!regexp.isEmpty()) {
+      if (!valueStr.matches(regexp)) {
+        throw new InvalidConfigurationException("Invalid value in configuration file: \""
+            + name + " = " + valueStr + '\"'
+            + " (does not match RegExp \"" + regexp + "\")");
+      }
+    }
+    
+    return valueStr;
+  }
+  
+  private Object convertValue(String name, String valueStr, Class<?> type) throws UnsupportedOperationException,
+                     InvalidConfigurationException {
+    // convert value to correct type
+    Object result;
+    
+    if (type.isArray()) {
+      if (!type.equals(String.class)) {
+        throw new UnsupportedOperationException("Currently only arrays of type String are supported for configuration options");
+      }
+      result = valueStr.split("\\s*,\\s*");
+    
+    } else if (type.isPrimitive()) {
+      Class<?> wrapperType = PRIMITIVE_TYPES.get(type); // get wrapper type in order to use valueOf method
+      
+      result = valueOf(wrapperType, name, valueStr);
+      
+    } else if (type.isEnum()) {
+      // all enums have valueOf method
+      result = valueOf(type, name, valueStr.toUpperCase());
+      
+    } else if (type.equals(String.class)) {
+      result = valueStr;
+
+    } else {
+      throw new UnsupportedOperationException("Unimplemented type for option: " + type.getSimpleName());
+    }
+    return result;
+  }
+  
+  private Object valueOf(Class<?> type, String name, String value) throws InvalidConfigurationException {
+    try {
+      Method valueOf = type.getMethod("valueOf", String.class);
+      return valueOf.invoke(null, value);
+      
+    } catch (NoSuchMethodException e) {
+      throw new AssertionError("Primitive type class without valueOf(String) method!"); 
+    } catch (IllegalAccessException e) {
+      throw new AssertionError("Primitive type class without accessible valueOf(String) method!");
+    } catch (InvocationTargetException e) {
+      throw new InvalidConfigurationException("Could not parse \"" + name + " = " + value
+          + "\" (" + e.getTargetException().getMessage() + ")");
+    }
   }
 }
