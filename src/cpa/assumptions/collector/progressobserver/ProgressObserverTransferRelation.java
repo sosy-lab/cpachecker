@@ -30,10 +30,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
 
+import cfa.objectmodel.CFAEdge;
+
 import com.google.common.collect.ImmutableList;
 
-import cfa.objectmodel.CFAEdge;
-import cpa.common.CPAchecker;
+import cpa.common.LogManager;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
@@ -48,10 +49,12 @@ public class ProgressObserverTransferRelation implements TransferRelation {
 
   private final ImmutableList<StopHeuristics<? extends StopHeuristicsData>> heuristics;
   private final ProgressObserverElement bottom;
+  private final LogManager logger;
   
   public ProgressObserverTransferRelation(ProgressObserverCPA aCPA) {
     heuristics = aCPA.getEnabledHeuristics();
     bottom = aCPA.getAbstractDomain().getBottomElement();
+    logger = aCPA.getLogger();
   }
   
   @Override
@@ -70,8 +73,8 @@ public class ProgressObserverTransferRelation implements TransferRelation {
       StopHeuristicsData d = preIt.next();
       StopHeuristicsData postD = h.processEdge(d, edge);
       if (postD.isBottom()) {
-        CPAchecker.logger.log(Level.INFO, "Giving up at edge ", edge.toString());
-        CPAchecker.logger.log(Level.FINEST, "Observer element at the time was: ", el.toString());
+        logger.log(Level.INFO, "Giving up at edge ", edge.toString());
+        logger.log(Level.FINEST, "Observer element at the time was: ", el.toString());
         // 'squash' to bottom
         return ImmutableList.<ProgressObserverElement>of(bottom);
       } else {

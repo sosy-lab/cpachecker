@@ -23,9 +23,10 @@
  */
 package cpa.assumptions.collector.progressobserver;
 
-import cpa.common.CPAchecker;
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFANode;
+import cpa.common.CPAConfiguration;
+import cpa.common.LogManager;
 
 /**
  * @author g.theoduloz
@@ -34,9 +35,9 @@ public class ReachedSizeHeuristics implements StopHeuristics<TrivialStopHeuristi
 
   private final int threshold;
   
-  public ReachedSizeHeuristics()
+  public ReachedSizeHeuristics(CPAConfiguration config, LogManager logger)
   {
-    threshold = Integer.parseInt(CPAchecker.config.getProperty("assumptions.reachedCount.threshold", "-1"));
+    threshold = Integer.parseInt(config.getProperty("threshold", "-1"));
   }
   
   @Override

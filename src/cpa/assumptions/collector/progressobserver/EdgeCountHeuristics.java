@@ -29,7 +29,8 @@ import cfa.objectmodel.CFANode;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 
-import cpa.common.CPAchecker;
+import cpa.common.CPAConfiguration;
+import cpa.common.LogManager;
 
 /**
  * @author g.theoduloz
@@ -38,10 +39,10 @@ public class EdgeCountHeuristics implements StopHeuristics<EdgeCountHeuristicsDa
 
   private final Function<? super CFAEdge, Integer> thresholdFunction;
   
-  public EdgeCountHeuristics()
+  public EdgeCountHeuristics(CPAConfiguration config, LogManager logger)
   {
     // Initialise the threshold function
-    int staticThreshold = Integer.parseInt(CPAchecker.config.getProperty("assumptions.edgeCount.threshold", "-1"));
+    int staticThreshold = Integer.parseInt(config.getProperty("threshold", "-1"));
     thresholdFunction = Functions.constant((staticThreshold <= 0) ? null : staticThreshold);
   }
   

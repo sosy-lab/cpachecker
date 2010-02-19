@@ -56,4 +56,12 @@ public class TrivialStopHeuristicsData implements StopHeuristicsData {
     return (this == other);
   }
 
+  @Override
+  public String toString() {
+    if (bottom)
+      return "BOTTOM";
+    else
+      return "TOP";
+  }
+  
 }

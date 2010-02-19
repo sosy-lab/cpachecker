@@ -23,12 +23,14 @@
  */
 package cpa.assumptions.collector.progressobserver;
 
+import cfa.objectmodel.CFAEdge;
+import cfa.objectmodel.CFANode;
+
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 
-import cfa.objectmodel.CFAEdge;
-import cfa.objectmodel.CFANode;
-import cpa.common.CPAchecker;
+import cpa.common.CPAConfiguration;
+import cpa.common.LogManager;
 
 /**
  * @author g.theoduloz
@@ -38,9 +40,9 @@ public class RepetitionsInPathHeuristics
 {
   private final Function<? super CFAEdge, Integer> thresholdFunction;
   
-  public RepetitionsInPathHeuristics()
+  public RepetitionsInPathHeuristics(CPAConfiguration config, LogManager logger)
   {
-    int configThreshold = Integer.parseInt(CPAchecker.config.getProperty("assumptions.repetitionsInPath.threshold", "-1"));
+    int configThreshold = Integer.parseInt(config.getProperty("threshold", "-1"));
     thresholdFunction = Functions.constant((configThreshold <= 0) ? null : configThreshold);
   }
 

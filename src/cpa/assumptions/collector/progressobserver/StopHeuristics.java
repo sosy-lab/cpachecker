@@ -27,7 +27,12 @@ import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFANode;
 
 /**
- * A stopping heuristics for the controller CPA
+ * A stopping heuristics for the controller CPA. A class implementing
+ * stop heuristics must provide a constructor of the form
+ * <code>XXXHeuristics(CPAConfiguration, LogManager)</code> to create
+ * an instance of the heuristics with the given configuration
+ * and logger.
+ * 
  * @author g.theoduloz
  */
 public interface StopHeuristics <D extends StopHeuristicsData> {

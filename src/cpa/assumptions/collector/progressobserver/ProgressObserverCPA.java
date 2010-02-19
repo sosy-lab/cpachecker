@@ -23,13 +23,17 @@
  */
 package cpa.assumptions.collector.progressobserver;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.logging.Level;
 
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 
 import com.google.common.collect.ImmutableList;
 
+import cpa.common.CPAConfiguration;
 import cpa.common.CPAchecker;
+import cpa.common.LogManager;
 import cpa.common.defaults.AbstractCPAFactory;
 import cpa.common.defaults.MergeSepOperator;
 import cpa.common.defaults.SingletonPrecision;
@@ -48,11 +52,10 @@ import cpa.common.interfaces.TransferRelation;
  */
 public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
 
-  private static class ProgressObserverCPAFactory extends AbstractCPAFactory {
-    
+  private static class ProgressObserverCPAFactory extends AbstractCPAFactory {    
     @Override
     public ConfigurableProgramAnalysis createInstance() {
-      return new ProgressObserverCPA();
+      return new ProgressObserverCPA(getConfiguration(), getLogger());
     }
   }
   
@@ -65,6 +68,7 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
   private final StopOperator stopOperator;
   private final TransferRelation transferRelation;
   private final PrecisionAdjustment precisionAdjustment;
+  private final LogManager logger;
   
   private final ImmutableList<StopHeuristics<? extends StopHeuristicsData>> enabledHeuristics;
   
@@ -75,7 +79,7 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
   }
   
   @SuppressWarnings("unchecked")
-  private static ImmutableList<StopHeuristics<? extends StopHeuristicsData>> createEnabledHeuristics()
+  private static ImmutableList<StopHeuristics<? extends StopHeuristicsData>> createEnabledHeuristics(CPAConfiguration config, LogManager logger)
   {
     String[] heuristicsNamesArray = CPAchecker.config.getPropertiesArray("assumptions.observer.heuristics");
     ImmutableList.Builder<StopHeuristics<? extends StopHeuristicsData>> builder = ImmutableList.<StopHeuristics<? extends StopHeuristicsData>>builder();
@@ -86,34 +90,43 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
         heuristicsName = "cpa.assumptions.collector.progressobserver." + heuristicsName;
       try {
         Class<?> cls = Class.forName(heuristicsName);
-        Object obj = cls.newInstance();
+        Constructor<?> constructor = cls.getConstructor(CPAConfiguration.class, LogManager.class);
+        CPAConfiguration localConfig = new CPAConfiguration(config, heuristicsName);
+        Object obj = constructor.newInstance(localConfig, logger);
+        
         // Convert object to StopHeuristics
         StopHeuristics<? extends StopHeuristicsData> newHeuristics = (StopHeuristics<? extends StopHeuristicsData>)obj;
         builder.add(newHeuristics);
       } catch (ClassNotFoundException e) {
-        CPAchecker.logger.logException(Level.WARNING, e, "ClassNotFoundException");
+        logger.logException(Level.WARNING, e, "ClassNotFoundException");
       } catch (SecurityException e) {
-        CPAchecker.logger.logException(Level.WARNING, e, "SecurityException");
+        logger.logException(Level.WARNING, e, "SecurityException");
       } catch (IllegalArgumentException e) {
-        CPAchecker.logger.logException(Level.WARNING, e, "IllegalArgumentException");
+        logger.logException(Level.WARNING, e, "IllegalArgumentException");
       } catch (InstantiationException e) {
-        CPAchecker.logger.logException(Level.WARNING, e, "InstantiationException");
+        logger.logException(Level.WARNING, e, "InstantiationException");
       } catch (IllegalAccessException e) {
-        CPAchecker.logger.logException(Level.WARNING, e, "IllegalAccessException");
+        logger.logException(Level.WARNING, e, "IllegalAccessException");
+      } catch (NoSuchMethodException e) {
+        logger.logException(Level.WARNING, e, "NoSuchMethodException");
+      } catch (InvocationTargetException e) {
+        logger.logException(Level.WARNING, e, "InvocationTargetException");
       }
     }
     
     return builder.build();
   }
   
-  private ProgressObserverCPA()
+  private ProgressObserverCPA(CPAConfiguration cfg, LogManager mgr)
   {
     // Check if assumption collector is enabled; if not, the analysis will
     // not be sound
     if (!CPAchecker.config.getBooleanValue("analysis.useAssumptionCollector"))
       CPAchecker.logger.log(Level.WARNING, "Analysis may not be sound because ProgressObserverCPA is used without assumption collector");
-        
-    enabledHeuristics = createEnabledHeuristics();
+
+    logger = mgr;
+    
+    enabledHeuristics = createEnabledHeuristics(cfg, mgr);
     
     abstractDomain = new ProgressObserverDomain(this);
     mergeOperator = MergeSepOperator.getInstance();
@@ -155,6 +168,10 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
   @Override
   public TransferRelation getTransferRelation() {
     return transferRelation;
+  }
+  
+  public LogManager getLogger() {
+    return logger;
   }
 
 }
