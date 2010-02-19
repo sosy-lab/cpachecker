@@ -11,8 +11,8 @@ import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cmdline.CPAMain;
 
 import common.Pair;
+import common.configuration.Configuration;
 
-import cpa.common.CPAConfiguration;
 import cpa.common.LogManager;
 import fql.backend.pathmonitor.Automaton;
 import fql.backend.query.QueryEvaluation;
@@ -60,7 +60,7 @@ public class Main {
     // set source file name
     lArguments[2] = lSourceFileName;
     
-    CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
+    Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
 
     LogManager lLogManager = new LogManager(lConfiguration);
       

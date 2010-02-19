@@ -9,8 +9,8 @@ import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cmdline.stubs.StubFile;
 
 import common.Pair;
+import common.configuration.Configuration;
 
-import cpa.common.CPAConfiguration;
 import cpa.common.LogManager;
 
 // TODO: where is the right place to collect statistics?
@@ -18,7 +18,7 @@ public class CPAchecker extends cpa.common.CPAchecker {
   private Map<String, CFAFunctionDefinitionNode> mCFAMap;
   private CFAFunctionDefinitionNode mMainFunction;
   
-  public CPAchecker(CPAConfiguration pConfiguration, LogManager pLogManager) {
+  public CPAchecker(Configuration pConfiguration, LogManager pLogManager) {
     super(pConfiguration, pLogManager);
     
     // get code file name

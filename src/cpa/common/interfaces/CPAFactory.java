@@ -25,7 +25,8 @@ package cpa.common.interfaces;
 
 import java.util.List;
 
-import cpa.common.CPAConfiguration;
+import common.configuration.Configuration;
+
 import cpa.common.LogManager;
 import exceptions.CPAException;
 
@@ -69,7 +70,7 @@ public interface CPAFactory {
    * method should do nothing.
    * @return this
    */
-  public CPAFactory setConfiguration(CPAConfiguration configuration);
+  public CPAFactory setConfiguration(Configuration configuration);
   
   /**
    * Provides exactly one child to the CPA. If the CPA does not support wrapping

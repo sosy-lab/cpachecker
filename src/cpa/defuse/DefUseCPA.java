@@ -26,9 +26,10 @@ package cpa.defuse;
 import java.util.ArrayList;
 import java.util.List;
 
+import common.configuration.Configuration;
+
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cfa.objectmodel.c.FunctionDefinitionNode;
-import cpa.common.CPAConfiguration;
 import cpa.common.defaults.AbstractCPAFactory;
 import cpa.common.defaults.MergeSepOperator;
 import cpa.common.defaults.StaticPrecisionAdjustment;
@@ -49,7 +50,7 @@ public class DefUseCPA implements ConfigurableProgramAnalysis{
     
     @Override
     public ConfigurableProgramAnalysis createInstance() {
-      CPAConfiguration config = getConfiguration();
+      Configuration config = getConfiguration();
       String mergeType = config.getProperty("cpas.defuse.merge");
       String stopType = config.getProperty("cpas.defuse.stop");
       return new DefUseCPA(mergeType, stopType);

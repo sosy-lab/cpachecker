@@ -4,9 +4,10 @@ import java.io.IOException;
 
 import org.junit.Test;
 
+import common.configuration.Configuration;
+
 import cmdline.CPAMain;
 import cmdline.CPAMain.InvalidCmdlineArgumentException;
-import cpa.common.CPAConfiguration;
 import cpa.common.LogManager;
 import exceptions.CPAException;
 import fql.backend.pathmonitor.Automaton;
@@ -34,7 +35,7 @@ public class CoverageSequenceTest {
     lArguments[1] = mPropertiesFile;
     lArguments[2] = "test/tests/single/functionCall.c";
     
-    CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
+    Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
@@ -63,7 +64,7 @@ public class CoverageSequenceTest {
     lArguments[1] = mPropertiesFile;
     lArguments[2] = "test/tests/single/functionCall.c";
     
-    CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
+    Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
@@ -96,7 +97,7 @@ public class CoverageSequenceTest {
     lArguments[1] = mPropertiesFile;
     lArguments[2] = "test/tests/single/functionCall.c";
     
-    CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
+    Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
     
     LogManager lLogManager = new LogManager(lConfiguration);
       

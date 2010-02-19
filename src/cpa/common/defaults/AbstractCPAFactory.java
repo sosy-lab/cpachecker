@@ -3,8 +3,8 @@ package cpa.common.defaults;
 import java.util.List;
 
 import com.google.common.base.Preconditions;
+import common.configuration.Configuration;
 
-import cpa.common.CPAConfiguration;
 import cpa.common.LogManager;
 import cpa.common.interfaces.CPAFactory;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
@@ -12,7 +12,7 @@ import cpa.common.interfaces.ConfigurableProgramAnalysis;
 public abstract class AbstractCPAFactory implements CPAFactory {
 
   private LogManager logger = null;
-  private CPAConfiguration configuration = null;
+  private Configuration configuration = null;
   
   @Override
   public CPAFactory setChild(ConfigurableProgramAnalysis pChild)
@@ -27,7 +27,7 @@ public abstract class AbstractCPAFactory implements CPAFactory {
   }
 
   @Override
-  public CPAFactory setConfiguration(CPAConfiguration pConfiguration) {
+  public CPAFactory setConfiguration(Configuration pConfiguration) {
     Preconditions.checkNotNull(pConfiguration);
     Preconditions.checkState(configuration == null, "setConfiguration called twice von CPAFactory");
     
@@ -49,7 +49,7 @@ public abstract class AbstractCPAFactory implements CPAFactory {
     return logger;
   }
   
-  protected CPAConfiguration getConfiguration() {
+  protected Configuration getConfiguration() {
     Preconditions.checkState(configuration != null, "Configuration object needed to create CPA");
     return configuration;
   }

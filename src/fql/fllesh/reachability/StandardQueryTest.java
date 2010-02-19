@@ -11,12 +11,12 @@ import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cmdline.CPAMain;
 import cmdline.CPAMain.InvalidCmdlineArgumentException;
 
+import common.configuration.Configuration;
 import compositeCPA.CompositeCPA;
 import compositeCPA.CompositeElement;
 import compositeCPA.CompositePrecision;
 
 import cpa.alwaystop.AlwaysTopCPA;
-import cpa.common.CPAConfiguration;
 import cpa.common.LogManager;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.concrete.ConcreteAnalysisCPA;
@@ -62,7 +62,7 @@ public class StandardQueryTest {
     // set source file name
     lArguments[2] = lSourceFileName;
     
-    CPAConfiguration lConfiguration = CPAMain.createConfiguration(lArguments);
+    Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
 
     LogManager lLogManager = new LogManager(lConfiguration);
       

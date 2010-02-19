@@ -36,6 +36,7 @@ import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 
 import com.google.common.base.Joiner;
+import common.configuration.Configuration;
 
 /**
  * @author Gregor Endler
@@ -89,7 +90,7 @@ public class LogManager {
     }
   }
 
-  public LogManager(CPAConfiguration config) {
+  public LogManager(Configuration config) {
     Level logLevel = Level.parse(config.getProperty("log.level", "OFF").toUpperCase());
     Level logConsoleLevel = Level.parse(config.getProperty("log.consoleLevel", "INFO").toUpperCase());
 

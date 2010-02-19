@@ -31,6 +31,7 @@ import java.util.logging.Level;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import common.configuration.Configuration;
 
 import cpa.common.interfaces.CPAFactory;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
@@ -39,10 +40,10 @@ import exceptions.InvalidConfigurationException;
 
 public class CPABuilder {
 
-  private final CPAConfiguration config;
+  private final Configuration config;
   private final LogManager logger;
 
-  public CPABuilder(CPAConfiguration pConfig, LogManager pLogger) {
+  public CPABuilder(Configuration pConfig, LogManager pLogger) {
     this.config = pConfig;
     this.logger = pLogger;
   }
@@ -79,7 +80,7 @@ public class CPABuilder {
     
     // now use factory to get an instance of the CPA
     
-    factory.setConfiguration(new CPAConfiguration(config, cpaAlias));
+    factory.setConfiguration(new Configuration(config, cpaAlias));
     factory.setLogger(logger);
     
     createAndSetChildrenCPAs(cpaName, cpaAlias, factory, usedAliases);

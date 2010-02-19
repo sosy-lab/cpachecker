@@ -57,6 +57,7 @@ import cmdline.stubs.StubConfiguration;
 
 import com.google.common.collect.ImmutableMap;
 import common.Pair;
+import common.configuration.Configuration;
 
 import cpa.common.algorithm.Algorithm;
 import cpa.common.algorithm.AssumptionCollectionAlgorithm;
@@ -80,7 +81,7 @@ public class CPAchecker {
   // TODO these fields should not be public and static
   // Write access to these fields is prohibited from outside of this class!
   // Use the constructor to initialize them.
-  public static CPAConfiguration config = null;
+  public static Configuration config = null;
   public static LogManager logger = null;
   private static volatile boolean requireStopAsap = false;
   
@@ -143,7 +144,7 @@ public class CPAchecker {
     }
   }
   
-  public CPAchecker(CPAConfiguration pConfiguration, LogManager pLogManager) {
+  public CPAchecker(Configuration pConfiguration, LogManager pLogManager) {
     // currently only one instance is possible due to these static fields 
     assert config == null;
     assert logger == null;

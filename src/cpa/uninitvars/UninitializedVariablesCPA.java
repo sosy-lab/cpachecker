@@ -23,8 +23,9 @@
  */
 package cpa.uninitvars;
 
+import common.configuration.Configuration;
+
 import cfa.objectmodel.CFAFunctionDefinitionNode;
-import cpa.common.CPAConfiguration;
 import cpa.common.defaults.AbstractCPAFactory;
 import cpa.common.defaults.MergeJoinOperator;
 import cpa.common.defaults.MergeSepOperator;
@@ -49,7 +50,7 @@ public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis {
     
     @Override
     public ConfigurableProgramAnalysis createInstance() {
-      CPAConfiguration config = getConfiguration();
+      Configuration config = getConfiguration();
       String mergeType = config.getProperty("uninitVars.merge", "sep");
       String stopType = config.getProperty("uninitVars.stop", "sep");
       

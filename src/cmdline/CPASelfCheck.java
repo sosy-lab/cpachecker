@@ -43,11 +43,12 @@ import org.eclipse.cdt.core.dom.IASTServiceProvider.UnsupportedDialectException;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.core.resources.IFile;
 
+import common.configuration.Configuration;
+
 import cfa.CFABuilder;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cmdline.CPAMain.InvalidCmdlineArgumentException;
 import cmdline.stubs.StubFile;
-import cpa.common.CPAConfiguration;
 import cpa.common.CPAchecker;
 import cpa.common.LogManager;
 import cpa.common.interfaces.AbstractElement;
@@ -71,7 +72,7 @@ public class CPASelfCheck {
    * @param args
    */
   public static void main(String[] args) {
-    CPAConfiguration cpaConfig = null;
+    Configuration cpaConfig = null;
     try {
       cpaConfig = CPAMain.createConfiguration(args);
     } catch (InvalidCmdlineArgumentException e) {

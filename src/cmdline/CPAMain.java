@@ -37,8 +37,8 @@ import java.util.logging.Level;
 import cmdline.stubs.StubFile;
 
 import com.google.common.base.Joiner;
+import common.configuration.Configuration;
 
-import cpa.common.CPAConfiguration;
 import cpa.common.CPAchecker;
 import cpa.common.LogManager;
 
@@ -55,7 +55,7 @@ public class CPAMain {
   
   public static void main(String[] args) {
     // initialize various components
-    CPAConfiguration cpaConfig = null;
+    Configuration cpaConfig = null;
     try {
       cpaConfig = createConfiguration(args);
     } catch (InvalidCmdlineArgumentException e) {
@@ -103,8 +103,8 @@ public class CPAMain {
     //ensure all logs are written to the outfile
     logManager.flush();
   }
-  
-  public static CPAConfiguration createConfiguration(String[] args)
+
+  public static Configuration createConfiguration(String[] args)
           throws InvalidCmdlineArgumentException, IOException {
     // get the file name
     String fileName = getConfigFileName(args);
@@ -115,7 +115,7 @@ public class CPAMain {
        cmdLineOptions = processArguments(args);                
     }
 
-    CPAConfiguration config = new CPAConfiguration(fileName, cmdLineOptions);
+    Configuration config = new Configuration(fileName, cmdLineOptions);
 
     //normalizeValues();
     return config;

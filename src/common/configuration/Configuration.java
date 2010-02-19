@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://www.cs.sfu.ca/~dbeyer/CPAchecker/
  */
-package cpa.common;
+package common.configuration;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -36,7 +36,7 @@ import com.google.common.base.Preconditions;
  * Immutable wrapper around a {@link Properties} instance, providing some
  * useful access helper methods.
  */
-public class CPAConfiguration {
+public class Configuration {
 
   private static final long serialVersionUID = -5910186668866464153L;
   
@@ -48,14 +48,14 @@ public class CPAConfiguration {
   private final String prefix;
   
   /**
-   * Constructor for creating a CPAConfiguration with values set from a file.
+   * Constructor for creating a Configuration with values set from a file.
    * Also allows for passing an optional map of settings overriding those from
    * the file.
    * @param fileName The complete path to the configuration file.
    * @param pOverrides A set of option values
    * @throws IOException If the file cannot be read.
    */
-  public CPAConfiguration(String fileName, Map<String, String> pOverrides) throws IOException {
+  public Configuration(String fileName, Map<String, String> pOverrides) throws IOException {
     properties = new Properties();
     prefix = "";
     
@@ -64,45 +64,33 @@ public class CPAConfiguration {
     if (pOverrides != null) {
       properties.putAll(pOverrides);
     }
-    
-    setDefaultValues();
   }
 
   /**
-   * Constructor for creating a CPAConfiguration with values set from a given map.
+   * Constructor for creating a Configuration with values set from a given map.
    * @param pValues The values this configuration should represent.
    */
-  public CPAConfiguration(Map<String, String> pValues) {
+  public Configuration(Map<String, String> pValues) {
     Preconditions.checkNotNull(pValues);
     properties = new Properties();
     prefix = "";
 
     properties.putAll(pValues);
-
-    setDefaultValues();
   }
   
   /**
-   * Constructor for creating a CPAConfiguration from a given configuration.
+   * Constructor for creating Configuration from a given configuration.
    * Allows to pass a prefix. Options with the prefix will override those with
    * the same key but without the prefix in the new configuration.
    * @param pConfig An old configuration.
    * @param pPrefix A prefix for overriding configuration options.
    */
-  public CPAConfiguration(CPAConfiguration pConfig, String pPrefix) {
+  public Configuration(Configuration pConfig, String pPrefix) {
     Preconditions.checkNotNull(pConfig);
     Preconditions.checkNotNull(pPrefix);
     
     properties = pConfig.properties;
     prefix = pPrefix.isEmpty() ? "" : pPrefix + ".";
-  }
-  
-  private void setDefaultValues() {
-    //booleans are automatically set to false if no value is given in the config file
-    
-    if (properties.getProperty("analysis.traversal") == null) {
-      properties.setProperty("analysis.traversal", "dfs");
-    }
   }
   
   private String getDefaultConfigFileName() {
@@ -152,7 +140,7 @@ public class CPAConfiguration {
   
   /**
    * If there are a number of properties for a given key, this method will split them
-   * using {@link CPAConfiguration#DELIMS} and return the array of properties
+   * using {@link Configuration#DELIMS} and return the array of properties
    * @param key the key for the property
    * @return array of properties
    */

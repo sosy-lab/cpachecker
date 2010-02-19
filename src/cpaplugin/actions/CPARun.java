@@ -49,7 +49,8 @@ import org.eclipse.ui.console.IConsoleView;
 import org.eclipse.ui.console.IOConsoleOutputStream;
 import org.eclipse.ui.console.MessageConsole;
 
-import cpa.common.CPAConfiguration;
+import common.configuration.Configuration;
+
 import cpa.common.CPAchecker;
 import cpa.common.LogManager;
 
@@ -100,11 +101,11 @@ public class CPARun implements IWorkbenchWindowActionDelegate
 	 */
 	public void run (IAction action)
 	{
-	  CPAConfiguration cpaConfig = null;
+	  Configuration cpaConfig = null;
 		numberOfRuns++;
     try {
       String configFile = cpaplugin.PreferencesActivator.getDefault().getPreferenceStore().getString(cpaplugin.preferences.PreferenceConstants.P_PATH);
-      cpaConfig = new CPAConfiguration(configFile, null);
+      cpaConfig = new Configuration(configFile, null);
     } catch (IOException e) {
       // TODO shouldn't an Eclipse Dialog be used here?
       JOptionPane.showMessageDialog(null, "Could not read config file " + e.getMessage(), "Could not read config file", JOptionPane.ERROR_MESSAGE);
