@@ -50,49 +50,6 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
     
     AbstractElement wrappedElement = element.getWrappedElements().iterator().next();
     
-// TODO i'll move all of this to somwehere else - Erkan
-// // try this later com.sun.management.OperatingSystemMXBean
-//
-// try {
-//         FileInputStream fis = new FileInputStream("/proc/meminfo");
-//         DataInputStream dis = new DataInputStream(fis);
-//         BufferedReader bfr = new BufferedReader(new InputStreamReader(dis));
-//         String line;
-//         
-//         long memTotal = 0;
-//         long memFree = 0;
-//         long buffers = 0;
-//         long cached = 0;
-//         
-//         while((line = bfr.readLine()) != null){
-//           //          MemTotal:        2060840 kB
-//           //          MemFree:         1732952 kB
-//           //          Buffers:            3164 kB
-//           //          Cached:            58376 kB
-//           if(line.contains("MemTotal:")){
-//             continue;
-//           }
-//           else if(line.contains("MemFree:")){
-//             memFree = Long.valueOf(line.split("\\s+")[1]);
-//           }
-//           else{
-//             break;
-//           }
-//         }
-//         
-////         long totalFree = memTotal - (memFree + buffers + cached);
-//         long totalFree = memFree;
-//         
-//         if(memFree < 100000){
-//           System.out.println("MEM IS OUT");
-//           return;
-//         }
-//         
-//         dis.close();
-//       } catch (Exception e1) {
-//         e1.printStackTrace();
-//       }
-    
     // set the edge and element
     tc.setEdge(pCfaEdge);
     tc.setElement(wrappedElement);
@@ -111,7 +68,8 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
       }
       end = System.currentTimeMillis();
     } catch (TimeoutException exc){
-      return Collections.emptySet();
+      TransferRelationMonitorElement bottom = new TransferRelationMonitorElement(null, null);
+      bottom.setAsStopElement();
     } catch (InterruptedException exc) {
       exc.printStackTrace();
     } catch (ExecutionException exc) {
@@ -134,7 +92,7 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
       TransferRelationMonitorElement successorElem = new TransferRelationMonitorElement(element.getCpa(), absElement);
       successorElem.setTransferTime(timeOfExecution);
       successorElem.setTotalTime(element.getTotalTimeOnThePath());
-      if(successorElem.getTotalTimeOnThePath() > timeLimitForPath){
+      if(timeLimitForPath > 0 && successorElem.getTotalTimeOnThePath() > timeLimitForPath){
         return Collections.emptySet();
       }
       wrappedSuccessors.add(successorElem);

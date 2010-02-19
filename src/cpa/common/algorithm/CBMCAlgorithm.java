@@ -23,6 +23,7 @@
  */
 package cpa.common.algorithm;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -31,6 +32,7 @@ import java.util.Map;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cpa.art.ARTCPA;
 import cpa.art.ARTElement;
+import cpa.art.ARTStatistics;
 import cpa.common.ReachedElements;
 import cpa.common.algorithm.cbmctools.AbstractPathToCTranslator;
 import cpa.common.algorithm.cbmctools.CProver;
@@ -60,6 +62,7 @@ public class CBMCAlgorithm implements Algorithm, StatisticsProvider {
 
     if (reached.getLastElement().isError()) {
       System.out.println("________ ERROR PATH ____________");
+      ARTStatistics.dumpARTToDotFile(reached, new File("/localhome/erkan/cbmcArt.dot"));
       List<ARTElement> elementsOnErrorPath = getElementsToErrorPath((ARTElement)reached.getLastElement());
       String pathProgram = AbstractPathToCTranslator.translatePaths(cfa, elementsOnErrorPath);
       int cbmcRes = CProver.checkSat(pathProgram);

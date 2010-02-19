@@ -3,8 +3,6 @@ package cpa.transferrelationmonitor;
 import java.util.Collections;
 
 import assumptions.AvoidanceReportingElement;
-
-import cpa.assumptions.collector.progressobserver.StopHeuristicsData;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
 import cpa.common.interfaces.AbstractWrapperElement;
@@ -13,8 +11,8 @@ public class TransferRelationMonitorElement implements AbstractElement, Abstract
 
   private final TransferRelationMonitorCPA cpa;
   private final AbstractElement element;
-  private boolean isBottom = false;
-  
+  private boolean shouldStop = false;
+
   private long timeOfTranferToComputeElement;
   private long totalTimeOnThePath;
   static long maxTimeOfTransfer = 0;
@@ -49,16 +47,16 @@ public class TransferRelationMonitorElement implements AbstractElement, Abstract
       return null;
     }
   }
-  
+
   @Override
   public AbstractElementWithLocation retrieveLocationElement() {
     return retrieveWrappedElement(AbstractElementWithLocation.class);
   }
-  
+
   public TransferRelationMonitorCPA getCpa() {
     return cpa;
   }
-  
+
   protected void setTransferTime(long pTransferTime){
     timeOfTranferToComputeElement = pTransferTime;
     if(timeOfTranferToComputeElement > maxTimeOfTransfer){
@@ -69,7 +67,7 @@ public class TransferRelationMonitorElement implements AbstractElement, Abstract
   protected void setTotalTime(long pTotalTime){
     totalTimeOnThePath = pTotalTime + timeOfTranferToComputeElement;
   }
-  
+
   public long getTimeOfTranferToComputeElement() {
     return timeOfTranferToComputeElement;
   }
@@ -89,26 +87,27 @@ public class TransferRelationMonitorElement implements AbstractElement, Abstract
       return false;
     }
   }
-  
+
   @Override
   public int hashCode() {
     return element.hashCode();
   }
-  
+
   @Override
   public String toString() {
     return element.toString();
   }
 
+  public void setAsStopElement(){
+    shouldStop = true;
+  }
+
   @Override
   public boolean mustDumpAssumptionForAvoidance() {
     // returns true if the current element is the same as bottom
-    for (StopHeuristicsData d : data) {
-      if (d.isBottom())
-        return true;
-    }
-    
+    if (shouldStop)
+      return true;
     return false;
   }
-  
+
 }
