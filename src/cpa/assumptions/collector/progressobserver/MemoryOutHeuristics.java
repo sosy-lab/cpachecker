@@ -9,7 +9,8 @@ import java.util.logging.Level;
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFANode;
 
-import cpa.common.CPAConfiguration;
+import common.configuration.Configuration;
+
 import cpa.common.LogManager;
 
 public class MemoryOutHeuristics
@@ -18,7 +19,7 @@ public class MemoryOutHeuristics
   private final int threshold;
   private final LogManager logger;
 
-  public MemoryOutHeuristics(CPAConfiguration config, LogManager pLogger) {
+  public MemoryOutHeuristics(Configuration config, LogManager pLogger) {
     threshold = Integer.parseInt(config.getProperty("threshold", "-1"));
     logger = pLogger;
   }

@@ -30,8 +30,8 @@ import java.util.logging.Level;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 
 import com.google.common.collect.ImmutableList;
+import common.configuration.Configuration;
 
-import cpa.common.CPAConfiguration;
 import cpa.common.CPAchecker;
 import cpa.common.LogManager;
 import cpa.common.defaults.AbstractCPAFactory;
@@ -79,7 +79,7 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
   }
   
   @SuppressWarnings("unchecked")
-  private static ImmutableList<StopHeuristics<? extends StopHeuristicsData>> createEnabledHeuristics(CPAConfiguration config, LogManager logger)
+  private static ImmutableList<StopHeuristics<? extends StopHeuristicsData>> createEnabledHeuristics(Configuration config, LogManager logger)
   {
     String[] heuristicsNamesArray = CPAchecker.config.getPropertiesArray("assumptions.observer.heuristics");
     ImmutableList.Builder<StopHeuristics<? extends StopHeuristicsData>> builder = ImmutableList.<StopHeuristics<? extends StopHeuristicsData>>builder();
@@ -90,8 +90,8 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
         heuristicsName = "cpa.assumptions.collector.progressobserver." + heuristicsName;
       try {
         Class<?> cls = Class.forName(heuristicsName);
-        Constructor<?> constructor = cls.getConstructor(CPAConfiguration.class, LogManager.class);
-        CPAConfiguration localConfig = new CPAConfiguration(config, heuristicsName);
+        Constructor<?> constructor = cls.getConstructor(Configuration.class, LogManager.class);
+        Configuration localConfig = new Configuration(config, heuristicsName);
         Object obj = constructor.newInstance(localConfig, logger);
         
         // Convert object to StopHeuristics
@@ -117,7 +117,7 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
     return builder.build();
   }
   
-  private ProgressObserverCPA(CPAConfiguration cfg, LogManager mgr)
+  private ProgressObserverCPA(Configuration cfg, LogManager mgr)
   {
     // Check if assumption collector is enabled; if not, the analysis will
     // not be sound

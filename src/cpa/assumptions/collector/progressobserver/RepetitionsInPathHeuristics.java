@@ -28,8 +28,8 @@ import cfa.objectmodel.CFANode;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
+import common.configuration.Configuration;
 
-import cpa.common.CPAConfiguration;
 import cpa.common.LogManager;
 
 /**
@@ -40,7 +40,7 @@ public class RepetitionsInPathHeuristics
 {
   private final Function<? super CFAEdge, Integer> thresholdFunction;
   
-  public RepetitionsInPathHeuristics(CPAConfiguration config, LogManager logger)
+  public RepetitionsInPathHeuristics(Configuration config, LogManager logger)
   {
     int configThreshold = Integer.parseInt(config.getProperty("threshold", "-1"));
     thresholdFunction = Functions.constant((configThreshold <= 0) ? null : configThreshold);
