@@ -57,6 +57,7 @@ public class MemoryOutHeuristicsData implements StopHeuristicsData {
 
 //    long totalFree = memTotal - (memFree + buffers + cached);
 
+      // TODO this is hard-coded, should be specified in the config file
       if(memFree < 100000){
         // TODO log this
         System.out.println("MEM IS OUT");
