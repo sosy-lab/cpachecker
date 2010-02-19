@@ -12,13 +12,14 @@ import common.Pair;
 import common.configuration.Configuration;
 
 import cpa.common.LogManager;
+import exceptions.InvalidConfigurationException;
 
 // TODO: where is the right place to collect statistics?
 public class CPAchecker extends cpa.common.CPAchecker {
   private Map<String, CFAFunctionDefinitionNode> mCFAMap;
   private CFAFunctionDefinitionNode mMainFunction;
   
-  public CPAchecker(Configuration pConfiguration, LogManager pLogManager) {
+  public CPAchecker(Configuration pConfiguration, LogManager pLogManager) throws InvalidConfigurationException {
     super(pConfiguration, pLogManager);
     
     // get code file name

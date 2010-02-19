@@ -59,6 +59,7 @@ import cpa.common.interfaces.PartialOrder;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.StopOperator;
 import exceptions.CPAException;
+import exceptions.InvalidConfigurationException;
 
 /**
  * @author Michael Tautschnig <tautschnig@forsyte.de>
@@ -83,7 +84,12 @@ public class CPASelfCheck {
       System.exit(1);
     }
     logManager = new LogManager(cpaConfig);
-    CPAchecker cpachecker = new CPAchecker(cpaConfig, logManager);
+    CPAchecker cpachecker = null;
+    try {
+      cpachecker = new CPAchecker(cpaConfig, logManager);
+    } catch (InvalidConfigurationException e) {
+      logManager.log(Level.SEVERE, "Invalid configuration:", e.getMessage());
+    }
     
     try {
       logManager.log(Level.INFO, "Searching for CPAs");

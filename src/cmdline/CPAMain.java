@@ -41,6 +41,7 @@ import common.configuration.Configuration;
 
 import cpa.common.CPAchecker;
 import cpa.common.LogManager;
+import exceptions.InvalidConfigurationException;
 
 public class CPAMain {
 
@@ -97,7 +98,13 @@ public class CPAMain {
     }
 
     // run analysis
-    CPAchecker cpachecker = new CPAchecker(cpaConfig, logManager);
+    CPAchecker cpachecker = null;
+    try {
+      cpachecker = new CPAchecker(cpaConfig, logManager);
+    } catch (InvalidConfigurationException e) {
+      logManager.log(Level.SEVERE, "Invalid configuration:", e.getMessage());
+      System.exit(1);
+    }
     cpachecker.run(new StubFile(names[0]));
     
     //ensure all logs are written to the outfile

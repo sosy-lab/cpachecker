@@ -7,13 +7,13 @@ import java.util.Set;
 import compositeCPA.CompositeCPA;
 import compositeCPA.CompositeElement;
 import compositeCPA.CompositePrecision;
+
 import cpa.alwaystop.AlwaysTopCPA;
 import cpa.common.ReachedElements;
-import cpa.common.interfaces.ConfigurableProgramAnalysis;
+import cpa.common.ReachedElements.TraversalMethod;
 import cpa.concrete.ConcreteAnalysisCPA;
 import cpa.location.LocationCPA;
 import cpa.mustmay.MustMayAnalysisCPA;
-
 import fql.backend.pathmonitor.Automaton;
 import fql.fllesh.cpa.QueryCPA;
 
@@ -83,7 +83,7 @@ public class StandardQuery extends AbstractQuery {
     mExplorationFinished = false;*/
     
     // TODO what about other traversal types?
-    mReachedElements = new ReachedElements("DFS");
+    mReachedElements = new ReachedElements(TraversalMethod.DFS, true);
   }
   
   public Waypoint getSource() {

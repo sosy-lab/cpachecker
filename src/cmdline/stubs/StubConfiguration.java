@@ -28,8 +28,6 @@ import java.util.Map;
 import org.eclipse.cdt.core.dom.IParserConfiguration;
 import org.eclipse.cdt.core.parser.IScannerInfo;
 
-import cpa.common.CPAchecker;
-
 
 public class StubConfiguration implements IParserConfiguration {
 
@@ -46,8 +44,14 @@ public class StubConfiguration implements IParserConfiguration {
         }
     }
 
+    private final String parserDialect;
+    
+    public StubConfiguration(String parserDialect) {
+      this.parserDialect = parserDialect;
+    }
+  
     public String getParserDialect() {
-      return CPAchecker.config.getProperty("parser.dialect", "C99");
+      return parserDialect;
     }
 
     public IScannerInfo getScannerInfo() {

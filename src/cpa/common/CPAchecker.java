@@ -34,6 +34,7 @@ import java.util.logging.Level;
 
 import org.eclipse.cdt.core.dom.IASTServiceProvider;
 import org.eclipse.cdt.core.dom.ICodeReaderFactory;
+import org.eclipse.cdt.core.dom.IParserConfiguration;
 import org.eclipse.cdt.core.dom.IASTServiceProvider.UnsupportedDialectException;
 import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
@@ -58,6 +59,8 @@ import cmdline.stubs.StubConfiguration;
 import com.google.common.collect.ImmutableMap;
 import common.Pair;
 import common.configuration.Configuration;
+import common.configuration.Option;
+import common.configuration.Options;
 
 import cpa.common.algorithm.Algorithm;
 import cpa.common.algorithm.AssumptionCollectionAlgorithm;
@@ -78,12 +81,80 @@ import exceptions.InvalidConfigurationException;
 @SuppressWarnings("restriction")
 public class CPAchecker {
   
+  @Options
+  private static class CPAcheckerOptions {
+
+    @Option(name="parser.dialect", values={"C99", "GNUC"})
+    String parserDialect = "C99";
+
+    // CFA creation and initialization options
+    
+    @Option(name="analysis.entryFunction", regexp="^[_a-zA-Z][_a-zA-Z0-9]*$")
+    String mainFunctionName = "main";
+    
+    @Option(name="cfa.simplify")
+    boolean simplifyCfa = false;
+    
+    @Option(name="cfa.combineBlockStatements")
+    boolean combineBlockStatements = false;
+    
+    @Option(name="cfa.removeDeclarations")
+    boolean removeDeclarations = false;
+    
+    @Option(name="analysis.noExternalCalls")
+    boolean noExternalCalls = false;
+    
+    @Option(name="analysis.interprocedural")
+    boolean interprocedural = false;
+    
+    @Option(name="analysis.useGlobalVars")
+    boolean useGlobalVars = false;
+    
+    @Option(name="cfa.removeIrrelevantForErrorLocations")
+    boolean removeIrrelevantForErrorLocations = false;
+    
+    @Option(name="cfa.check")
+    boolean checkCfa = false;
+    
+    @Option(name="cfa.export")
+    boolean exportCfa = true;
+    
+    @Option(name="cfa.file")
+    String exportCfaFile = "cfa.dot";
+    
+    @Option(name="output.path")
+    String outputDirectory = "test/output/";
+    
+    // algorithm options
+    
+    @Option(name="analysis.traversal")
+    ReachedElements.TraversalMethod traversalMethod = ReachedElements.TraversalMethod.DFS;
+    
+    @Option(name="cpa.useSpecializedReachedSet")
+    boolean locationMappedReachedSet = true;
+    
+    @Option(name="analysis.useAssumptionCollector")
+    boolean useAssumptionCollector = false;
+    
+    @Option(name="analysis.useRefinement")
+    boolean useRefinement = false;
+    
+    @Option(name="analysis.useCBMC")
+    boolean useCBMC = false;
+
+    @Option(name="analysis.stopAfterError")
+    boolean stopAfterError = false;
+    
+  }
+  
   // TODO these fields should not be public and static
   // Write access to these fields is prohibited from outside of this class!
   // Use the constructor to initialize them.
   public static Configuration config = null;
   public static LogManager logger = null;
+  
   private static volatile boolean requireStopAsap = false;
+  private final CPAcheckerOptions options;
   
   /**
    * Return true if the main thread is required to stop
@@ -144,13 +215,16 @@ public class CPAchecker {
     }
   }
   
-  public CPAchecker(Configuration pConfiguration, LogManager pLogManager) {
+  public CPAchecker(Configuration pConfiguration, LogManager pLogManager) throws InvalidConfigurationException {
     // currently only one instance is possible due to these static fields 
     assert config == null;
     assert logger == null;
     
     config = pConfiguration;
     logger = pLogManager;
+
+    options = new CPAcheckerOptions();
+    config.inject(options);
   }
   
   public void run(IFile file) {
@@ -160,17 +234,17 @@ public class CPAchecker {
     // parse code file
     IASTTranslationUnit ast = parse(file);
 
-    MainCPAStatistics stats = new MainCPAStatistics();
-
-    // start measuring time
-    stats.startProgramTimer();
-
-    // create CFA
-    Pair<Map<String, CFAFunctionDefinitionNode>, CFAFunctionDefinitionNode> cfa = createCFA(ast);
-    Map<String, CFAFunctionDefinitionNode> cfas = cfa.getFirst();
-    CFAFunctionDefinitionNode mainFunction = cfa.getSecond();
-    
     try {
+      MainCPAStatistics stats = new MainCPAStatistics(config);
+
+      // start measuring time
+      stats.startProgramTimer();
+  
+      // create CFA
+      Pair<Map<String, CFAFunctionDefinitionNode>, CFAFunctionDefinitionNode> cfa = createCFA(ast);
+      Map<String, CFAFunctionDefinitionNode> cfas = cfa.getFirst();
+      CFAFunctionDefinitionNode mainFunction = cfa.getSecond();
+    
       ConfigurableProgramAnalysis cpa = createCPA(stats);
       
       Algorithm algorithm = createAlgorithm(cfas, cpa, stats);
@@ -180,7 +254,7 @@ public class CPAchecker {
       runAlgorithm(algorithm, reached, stats);
     
     } catch (InvalidConfigurationException e) {
-      logger.log(Level.SEVERE, "Invalid configuration: " + e.getMessage());
+      logger.log(Level.SEVERE, "Invalid configuration:", e.getMessage());
       
     } catch (ForceStopCPAException e) {
       // CPA must exit because it is asked to by the shutdown hook
@@ -213,7 +287,8 @@ public class CPAchecker {
     
     IASTTranslationUnit ast = null;
     try {
-      ast = p.getTranslationUnit(file, codeReaderFactory, new StubConfiguration());
+      IParserConfiguration parserConfiguration = new StubConfiguration(options.parserDialect);
+      ast = p.getTranslationUnit(file, codeReaderFactory, parserConfiguration);
     } catch (UnsupportedDialectException e) {
       logger.logException(Level.SEVERE, e, "UnsupportedDialectException:" +
           "Unsupported dialect for parser, check parser.dialect option!");
@@ -270,37 +345,32 @@ public class CPAchecker {
    */
   private CFAFunctionDefinitionNode initCFA(final CFABuilder builder, final Map<String, CFAFunctionDefinitionNode> cfas)
   {
-    String mainFunctionName = CPAchecker.config.getProperty("analysis.entryFunction", "main");
-    
-    CFAFunctionDefinitionNode mainFunction = cfas.get(mainFunctionName);
+    CFAFunctionDefinitionNode mainFunction = cfas.get(options.mainFunctionName);
     
     if (mainFunction == null) {
-      logger.log(Level.SEVERE, "Function", mainFunctionName, "not found!");
+      logger.log(Level.SEVERE, "Function", options.mainFunctionName, "not found!");
       System.exit(0);
     }
     
     // simplify CFA
-    if (CPAchecker.config.getBooleanValue("cfa.simplify")) {
+    if (options.simplifyCfa) {
       // TODO Erkan Simplify each CFA
-      boolean combineBlockStatements = CPAchecker.config.getBooleanValue("cfa.combineBlockStatements");
-      boolean removeDeclarations = CPAchecker.config.getBooleanValue("cfa.removeDeclarations");
-      CFASimplifier simplifier = new CFASimplifier(combineBlockStatements, removeDeclarations);
+      CFASimplifier simplifier = new CFASimplifier(options.combineBlockStatements, options.removeDeclarations);
       simplifier.simplify(mainFunction);
     }
 
     // Insert call and return edges and build the supergraph
-    if (CPAchecker.config.getBooleanValue("analysis.interprocedural")) {
+    if (options.interprocedural) {
       logger.log(Level.FINE, "Analysis is interprocedural, adding super edges");
       
-      boolean noExtCalls = CPAchecker.config.getBooleanValue("analysis.noExternalCalls");
-      CPASecondPassBuilder spbuilder = new CPASecondPassBuilder(cfas, noExtCalls);
-      Set<String> calledFunctions = spbuilder.insertCallEdgesRecursively(mainFunctionName);
+      CPASecondPassBuilder spbuilder = new CPASecondPassBuilder(cfas, options.noExternalCalls);
+      Set<String> calledFunctions = spbuilder.insertCallEdgesRecursively(options.mainFunctionName);
       
       // remove all functions which are never reached from cfas
       cfas.keySet().retainAll(calledFunctions);
     }
     
-    if (CPAchecker.config.getBooleanValue("analysis.useGlobalVars")){
+    if (options.useGlobalVars){
       // add global variables at the beginning of main
       
       List<IASTDeclaration> globalVars = builder.getGlobalDeclarations();
@@ -348,7 +418,7 @@ public class CPAchecker {
     // --Refactoring: The following section was relocated to after the "initCFA" method 
     
     // remove irrelevant locations
-    if (CPAchecker.config.getBooleanValue("cfa.removeIrrelevantForErrorLocations")) {
+    if (options.removeIrrelevantForErrorLocations) {
       CFAReduction coi =  new CFAReduction();
       coi.removeIrrelevantForErrorLocations(mainFunction);
 
@@ -361,15 +431,14 @@ public class CPAchecker {
     
     // check the super CFA starting at the main function
     // enable only while debugging/testing
-    if(CPAchecker.config.getBooleanValue("cfa.check")){
+    if (options.checkCfa){
       CFACheck.check(mainFunction);
     }
 
     // write CFA to file
-    if (CPAchecker.config.getBooleanValue("cfa.export")) {
+    if (options.exportCfa) {
       DOTBuilder dotBuilder = new DOTBuilder();
-      File cfaFile = new File(CPAchecker.config.getProperty("output.path"),
-                              CPAchecker.config.getProperty("cfa.file", "cfa.dot"));
+      File cfaFile = new File(options.outputDirectory, options.exportCfaFile);
       
       try {
         dotBuilder.generateDOT(cfas.values(), mainFunction, cfaFile);
@@ -455,7 +524,7 @@ public class CPAchecker {
     logger.log(Level.INFO, "Starting analysis...");
     stats.startAnalysisTimer();
     
-    algorithm.run(reached, CPAchecker.config.getBooleanValue("analysis.stopAfterError"));
+    algorithm.run(reached, options.stopAfterError);
     
     stats.stopAnalysisTimer();
     logger.log(Level.INFO, "Analysis finished.");
@@ -492,15 +561,15 @@ public class CPAchecker {
 
     Algorithm algorithm = new CPAAlgorithm(cpa);
     
-    if (CPAchecker.config.getBooleanValue("analysis.useRefinement")) {
+    if (options.useRefinement) {
       algorithm = new CEGARAlgorithm(algorithm);
     }
     
-    if (CPAchecker.config.getBooleanValue("analysis.useAssumptionCollector")) {
+    if (options.useAssumptionCollector) {
       algorithm = new AssumptionCollectionAlgorithm(algorithm);
     }
     
-    if (CPAchecker.config.getBooleanValue("analysis.useCBMC")) {
+    if (options.useCBMC) {
       algorithm = new CBMCAlgorithm(cfas, algorithm);
     }
     
@@ -518,13 +587,7 @@ public class CPAchecker {
     
     AbstractElement initialElement = cpa.getInitialElement(mainFunction);
     Precision initialPrecision = cpa.getInitialPrecision(mainFunction);
-    ReachedElements reached = null;
-    try {
-      reached = new ReachedElements(CPAchecker.config.getProperty("analysis.traversal"));
-    } catch (IllegalArgumentException e) {
-      logger.logException(Level.SEVERE, e, "ERROR, unknown traversal option");
-      System.exit(1);
-    }
+    ReachedElements reached = new ReachedElements(options.traversalMethod, options.locationMappedReachedSet);
     reached.add(initialElement, initialPrecision);
     return reached;
   }

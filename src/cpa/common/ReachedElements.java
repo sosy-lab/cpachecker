@@ -75,20 +75,20 @@ public class ReachedElements implements UnmodifiableReachedElements {
     
   };
  
-  public ReachedElements(String traversal) {
+  public ReachedElements(TraversalMethod traversal, boolean locationMapped) {
+    Preconditions.checkNotNull(traversal);
+    
     reached = new LinkedHashMap<AbstractElement, Precision>();
     unmodifiableReached = Collections.unmodifiableSet(reached.keySet());
     reachedWithPrecision = Collections2.transform(unmodifiableReached, getPrecisionAsPair);
-    if (CPAchecker.config.getBooleanValue("cpa.useSpecializedReachedSet")) {
+    if (locationMapped) {
       locationMappedReached = LinkedHashMultimap.create(); 
     } else {
       locationMappedReached = null;
     }
     
     waitlist = new LinkedList<AbstractElement>();
-    //set traversal method given in config file; 
-    //throws IllegalArgumentException if anything other than dfs, bfs, or topsort is passed
-    this.traversal = TraversalMethod.valueOf(traversal.toUpperCase());
+    this.traversal = traversal;
   }
   
   //enumerator for traversal methods

@@ -31,16 +31,34 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.logging.Level;
 
+import common.configuration.Configuration;
+import common.configuration.Option;
+import common.configuration.Options;
+
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.Statistics;
+import exceptions.InvalidConfigurationException;
 
+@Options
 public class MainCPAStatistics implements Statistics {
+  
+    @Option(name="reachedSet.export")
+    private boolean exportReachedSet = true;
+    
+    @Option(name="output.path")
+    private String outputDirectory = "test/output/";
+  
+    @Option(name="reachedSet.file")
+    private String outputFile = "reached.txt";
+  
     private final Collection<Statistics> subStats;
     private long programStartingTime;
     private long analysisStartingTime;
     private long analysisEndingTime;
 
-    public MainCPAStatistics() {
+    public MainCPAStatistics(Configuration config) throws InvalidConfigurationException {
+        config.inject(this);
+        
         subStats = new ArrayList<Statistics>();
         programStartingTime = 0;
         analysisStartingTime = 0;
@@ -74,12 +92,8 @@ public class MainCPAStatistics implements Statistics {
           stopAnalysisTimer();
         }
 
-        if (CPAchecker.config.getBooleanValue("reachedSet.export")) {
-          String outfilePath = CPAchecker.config.getProperty("output.path");
-          String outfileName = CPAchecker.config.getProperty("reachedSet.file", "reached.txt");
-          //if no filename is given, use default value
-          
-          File reachedFile = new File(outfilePath, outfileName);
+        if (exportReachedSet) {
+          File reachedFile = new File(outputDirectory, outputFile);
           try {
             PrintWriter file = new PrintWriter(reachedFile);
             for (AbstractElement e : reached) {
