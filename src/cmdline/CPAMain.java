@@ -27,8 +27,11 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 
 import cmdline.stubs.StubFile;
@@ -106,12 +109,14 @@ public class CPAMain {
     // get the file name
     String fileName = getConfigFileName(args);
     
-    CPAConfiguration config = new CPAConfiguration(fileName);
-    
-    // if there are some commandline arguments, process them
+    // if there are some command line arguments, process them
+    Map<String, String> cmdLineOptions = Collections.emptyMap();
     if (args != null) {
-      processArguments(args, config);                
+       cmdLineOptions = processArguments(args);                
     }
+
+    CPAConfiguration config = new CPAConfiguration(fileName, cmdLineOptions);
+
     //normalizeValues();
     return config;
   }
@@ -138,36 +143,36 @@ public class CPAMain {
   }
 
   /**
-   * Reads the arguments and process them. If a corresponding key is found, the property
-   * is updated
+   * Reads the arguments and process them.
    * @param args commandline arguments
-   * @throws Exception if an option is set but no value for the option is found
+   * @return a map with all options found in the command line
+   * @throws InvalidCmdlineArgumentException if there is an error in the command line
    */
-  private static void processArguments(String[] args, CPAConfiguration config)
-          throws InvalidCmdlineArgumentException {
-    List<String> ret = new ArrayList<String>();
+  private static Map<String, String> processArguments(String[] args) throws InvalidCmdlineArgumentException {
+    Map<String, String> properties = new HashMap<String, String>();
+    List<String> programs = new ArrayList<String>();
 
     Iterator<String> argsIt = Arrays.asList(args).iterator();
 
     while (argsIt.hasNext()) {
       String arg = argsIt.next();
-      if (   handleArgument1("-outputpath", "output.path", arg, argsIt, config)
-          || handleArgument1("-logfile", "log.file", arg, argsIt, config)
-          || handleArgument1("-cfafile", "cfa.file", arg, argsIt, config)
-          || handleArgument1("-predlistpath", "predicates.path", arg, argsIt, config)
-          || handleArgument1("-entryfunction", "analysis.entryFunction", arg, argsIt, config)
+      if (   handleArgument1("-outputpath", "output.path", arg, argsIt, properties)
+          || handleArgument1("-logfile", "log.file", arg, argsIt, properties)
+          || handleArgument1("-cfafile", "cfa.file", arg, argsIt, properties)
+          || handleArgument1("-predlistpath", "predicates.path", arg, argsIt, properties)
+          || handleArgument1("-entryfunction", "analysis.entryFunction", arg, argsIt, properties)
       ) { 
         // nothing left to do 
 
       } else if (arg.equals("-dfs")) {
-        config.setProperty("analysis.traversal", "dfs");
+        properties.put("analysis.traversal", "dfs");
       } else if (arg.equals("-bfs")) {
-        config.setProperty("analysis.traversal", "bfs");
+        properties.put("analysis.traversal", "bfs");
       } else if (arg.equals("-topsort")) {
-        config.setProperty("analysis.traversal", "topsort");
+        properties.put("analysis.traversal", "topsort");
       } else if (arg.equals("-nolog")) {
-        config.setProperty("log.level", "off");
-        config.setProperty("log.consoleLevel", "off");
+        properties.put("log.level", "off");
+        properties.put("log.consoleLevel", "off");
       } else if (arg.equals("-setprop")) {
         if (argsIt.hasNext()) {
           String[] bits = argsIt.next().split("=");
@@ -175,7 +180,7 @@ public class CPAMain {
             throw new InvalidCmdlineArgumentException(
                 "-setprop argument must be a key=value pair!");
           }
-          config.setProperty(bits[0], bits[1]);
+          properties.put(bits[0], bits[1]);
         } else {
           throw new InvalidCmdlineArgumentException("-setprop argument missing!");
         }
@@ -196,25 +201,26 @@ public class CPAMain {
         // this has been processed earlier, in loadFileName
         argsIt.next(); // ignore config file name argument
       } else {
-        ret.add(arg);
+        programs.add(arg);
       }
     }
 
     // arguments with non-specified options are considered as file names
-    if (!ret.isEmpty()) {
-      config.setProperty("analysis.programNames", Joiner.on(", ").join(ret));
+    if (!programs.isEmpty()) {
+      properties.put("analysis.programNames", Joiner.on(", ").join(programs));
     }
+    return properties;
   }
 
   /**
    * Handle a command line argument with one value.
    */
   private static boolean handleArgument1(String arg, String option, String currentArg,
-        Iterator<String> args, CPAConfiguration config)
+        Iterator<String> args, Map<String, String> properties)
         throws InvalidCmdlineArgumentException {
     if (currentArg.equals(arg)) {
       if (args.hasNext()) {
-        config.setProperty(option, args.next());
+        properties.put(option, args.next());
       } else {
         throw new InvalidCmdlineArgumentException(currentArg + " argument missing!");
       }

@@ -27,27 +27,61 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URL;
+import java.util.Map;
 import java.util.Properties;
 
-
 /**
- * CPA Checker properties file. Processes the properties file and save them as strings.
- * If -config is not among program arguments, reads properties file from a default
- * location. If properties are modified via command line arguments, they are processed
- * and related properties keys are modified by this class.
- * @author erkan
- *
+ * Unmodifiable wrapper around a {@link Properties} instance, providing some
+ * useful access helper methods.
  */
-public class CPAConfiguration extends Properties {
+public class CPAConfiguration {
 
+  private final Properties properties;
+  
   private static final long serialVersionUID = -5910186668866464153L;
+  
   /** Delimiters to create string arrays */
   private static final String DELIMS = "[;, ]+";
 
-  public CPAConfiguration(String fileName) throws IOException {
+  /**
+   * Constructor for creating a CPAConfiguration with values set from a file.
+   * Also allows for passing an optional map of settings overriding those from
+   * the file.
+   * @param fileName The complete path to the configuration file.
+   * @param pOverrides A set of option values
+   * @throws IOException If the file cannot be read.
+   */
+  public CPAConfiguration(String fileName, Map<String, String> pOverrides) throws IOException {
+    properties = new Properties();
     loadFile(fileName);
+    
+    if (pOverrides != null) {
+      properties.putAll(pOverrides);
+    }
+    
+    setDefaultValues();
   }
 
+  /**
+   * Constructor for creating a CPAConfiguration with values set from a given map.
+   * @param pValues The values this configuration should represent.
+   */
+  public CPAConfiguration(Map<String, String> pValues) {
+    properties = new Properties();
+
+    properties.putAll(pValues);
+
+    setDefaultValues();
+  }
+  
+  private void setDefaultValues() {
+    //booleans are automatically set to false if no value is given in the config file
+    
+    if (properties.getProperty("analysis.traversal") == null) {
+      properties.setProperty("analysis.traversal", "dfs");
+    }
+  }
+  
   private String getDefaultConfigFileName() {
     // TODO use resources for this?
     URL binDir = getClass().getProtectionDomain().getCodeSource().getLocation();
@@ -67,16 +101,23 @@ public class CPAConfiguration extends Properties {
       fileName = getDefaultConfigFileName();
     }
 
-    load(new FileInputStream(fileName));
-
-    //section for setting default values
-    //booleans are automatically set to false if no value is given in the config file
-    if (this.getProperty("analysis.traversal") == null) {
-      this.setProperty("analysis.traversal", "dfs");
-    }
-
+    properties.load(new FileInputStream(fileName));
   }
 
+  /**
+   * @see Properties#getProperty(String)
+   */
+  public String getProperty(String key) {
+    return properties.getProperty(key);
+  }
+
+  /**
+   * @see Properties#getProperty(String, String)
+   */
+  public String getProperty(String key, String defaultValue) {
+    return properties.getProperty(key, defaultValue);
+  }
+  
   /**
    * If there are a number of properties for a given key, this method will split them
    * using {@link CPAConfiguration#DELIMS} and return the array of properties
@@ -84,7 +125,7 @@ public class CPAConfiguration extends Properties {
    * @return array of properties
    */
   public String[] getPropertiesArray(String key){
-    String s = getProperty(key);
+    String s = properties.getProperty(key);
     return (s != null) ? s.split(DELIMS) : null;
   }
 
@@ -96,6 +137,6 @@ public class CPAConfiguration extends Properties {
    * the properties file false
    */
   public boolean getBooleanValue(String key){
-    return Boolean.valueOf(getProperty(key));
+    return Boolean.valueOf(properties.getProperty(key));
   }
 }

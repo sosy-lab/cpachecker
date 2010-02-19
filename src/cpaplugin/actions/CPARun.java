@@ -104,7 +104,7 @@ public class CPARun implements IWorkbenchWindowActionDelegate
 		numberOfRuns++;
     try {
       String configFile = cpaplugin.PreferencesActivator.getDefault().getPreferenceStore().getString(cpaplugin.preferences.PreferenceConstants.P_PATH);
-      cpaConfig = new CPAConfiguration(configFile);
+      cpaConfig = new CPAConfiguration(configFile, null);
     } catch (IOException e) {
       // TODO shouldn't an Eclipse Dialog be used here?
       JOptionPane.showMessageDialog(null, "Could not read config file " + e.getMessage(), "Could not read config file", JOptionPane.ERROR_MESSAGE);
