@@ -176,17 +176,6 @@ public class Configuration {
     return (s != null) ? s.split(DELIMS) : new String[0];
   }
 
-
-  /**
-   * A shortcut for properties which has only true, false value
-   * @param key the key for the property
-   * @return the boolean value of the property, if the key is not present in
-   * the properties file false
-   */
-  public boolean getBooleanValue(String key){
-    return Boolean.valueOf(getProperty(key));
-  }
-  
   /**
    * Inject the values of configuration options into an object.
    * The class of the object has to have a {@link Options} annotation, and each

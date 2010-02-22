@@ -28,7 +28,6 @@ import java.util.List;
 
 import com.google.common.collect.ImmutableList;
 
-import cpa.common.CPAchecker;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
@@ -70,13 +69,7 @@ public class CompositeStopOperator implements StopOperator{
     CompositeElement compositeElement = (CompositeElement) element;
     List<AbstractElement> components = compositeElement.getElements ();
     
-    int iterationStartFrom = 0;
-    if(CPAchecker.config.getBooleanValue("cpa.useSpecializedReachedSet")){
-      iterationStartFrom = 1;
-    }
-    
-    for (int idx = iterationStartFrom; idx < components.size(); idx++)
-    {
+    for (int idx = 0; idx < components.size(); idx++) {
       AbstractElement abstElem = components.get(idx);
       AbstractDomain abstDomain = compositeDomain.getDomains().get(idx);
       if(abstElem == abstDomain.getBottomElement()){
@@ -103,13 +96,7 @@ public class CompositeStopOperator implements StopOperator{
 
     assert(locElem1.getLocationNode().equals(locElem2.getLocationNode()));
 
-    int iterationStartFrom = 0;
-    if(CPAchecker.config.getBooleanValue("cpa.useSpecializedReachedSet")){
-      iterationStartFrom = 1;
-    }
-
-    for (int idx = iterationStartFrom; idx < compositeElements1.size (); idx++)
-    {
+    for (int idx = 0; idx < compositeElements1.size (); idx++) {
       StopOperator stopOp = stopOperators.get(idx);
       AbstractElement absElem1 = compositeElements1.get(idx);
       AbstractElement absElem2 = compositeElements2.get(idx);
