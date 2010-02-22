@@ -81,7 +81,7 @@ public abstract class CommonFormulaManager implements FormulaManager {
   
   public CommonFormulaManager(AbstractFormulaManager pAmgr, SymbolicFormulaManager pSmgr,
                     Configuration config, LogManager pLogger) throws InvalidConfigurationException {
-    config.inject(this);
+    config.inject(this, CommonFormulaManager.class);
     amgr = pAmgr;
     smgr = pSmgr;
     logger = pLogger;

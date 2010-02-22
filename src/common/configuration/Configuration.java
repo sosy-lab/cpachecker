@@ -185,9 +185,23 @@ public class Configuration {
    * @throws InvalidConfigurationException If the user specified configuration is wrong.
    */
   public void inject(Object obj) throws InvalidConfigurationException {
+    inject(obj, obj.getClass());
+  }
+
+  /**
+   * @see #inject(Object)
+   * 
+   * Use this method if the calling class is likely to be sub-classed, so that
+   * the options of the calling class get injected, not the options of the
+   * dynamic class type of the object.
+   * 
+   * @param cls The static class type of the object to inject.
+   */
+  public void inject(Object obj, Class<?> cls) throws InvalidConfigurationException {
     Preconditions.checkNotNull(obj);
+    Preconditions.checkNotNull(cls);
+    Preconditions.checkArgument(cls.isAssignableFrom(obj.getClass()));
     
-    Class<?> cls = obj.getClass();
     Options options = cls.getAnnotation(Options.class);
     Preconditions.checkNotNull(options, "Class must have @Options annotation.");
     
