@@ -31,8 +31,9 @@ import cfa.objectmodel.CFAFunctionDefinitionNode;
 
 import com.google.common.collect.ImmutableList;
 import common.configuration.Configuration;
+import common.configuration.Option;
+import common.configuration.Options;
 
-import cpa.common.CPAchecker;
 import cpa.common.LogManager;
 import cpa.common.defaults.AbstractCPAFactory;
 import cpa.common.defaults.MergeSepOperator;
@@ -50,6 +51,7 @@ import cpa.common.interfaces.TransferRelation;
  * @author g.theoduloz
  *
  */
+@Options
 public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
 
   private static class ProgressObserverCPAFactory extends AbstractCPAFactory {    
@@ -63,6 +65,12 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
     return new ProgressObserverCPAFactory();
   }
   
+  @Option(name="analysis.useAssumptionCollector")
+  private boolean useAssumptionCollector = false;
+  
+  @Option(name="assumptions.observer.heuristics", required=true)
+  private String[] heuristicsNames = {};
+  
   private final ProgressObserverDomain abstractDomain;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
@@ -70,22 +78,19 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
   private final PrecisionAdjustment precisionAdjustment;
   private final LogManager logger;
   
-  private final ImmutableList<StopHeuristics<? extends StopHeuristicsData>> enabledHeuristics;
+  private final ImmutableList<StopHeuristics<?>> enabledHeuristics;
   
   /** Return the immutable list of enables heuristics */
-  public ImmutableList<StopHeuristics<? extends StopHeuristicsData>> getEnabledHeuristics()
+  public ImmutableList<StopHeuristics<?>> getEnabledHeuristics()
   {
     return enabledHeuristics;
   }
   
-  @SuppressWarnings("unchecked")
-  private static ImmutableList<StopHeuristics<? extends StopHeuristicsData>> createEnabledHeuristics(Configuration config, LogManager logger)
+  private ImmutableList<StopHeuristics<?>> createEnabledHeuristics(Configuration config)
   {
-    String[] heuristicsNamesArray = CPAchecker.config.getPropertiesArray("assumptions.observer.heuristics");
-    ImmutableList.Builder<StopHeuristics<? extends StopHeuristicsData>> builder = ImmutableList.<StopHeuristics<? extends StopHeuristicsData>>builder();
+    ImmutableList.Builder<StopHeuristics<?>> builder = ImmutableList.builder();
     
-    for (int i = 0; i < heuristicsNamesArray.length; i++) {
-      String heuristicsName = heuristicsNamesArray[i];
+    for (String heuristicsName : heuristicsNames) {
       if (!heuristicsName.contains("."))
         heuristicsName = "cpa.assumptions.collector.progressobserver." + heuristicsName;
       try {
@@ -95,7 +100,7 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
         Object obj = constructor.newInstance(localConfig, logger);
         
         // Convert object to StopHeuristics
-        StopHeuristics<? extends StopHeuristicsData> newHeuristics = (StopHeuristics<? extends StopHeuristicsData>)obj;
+        StopHeuristics<?> newHeuristics = (StopHeuristics<?>)obj;
         builder.add(newHeuristics);
       } catch (ClassNotFoundException e) {
         logger.logException(Level.WARNING, e, "ClassNotFoundException");
@@ -119,14 +124,14 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
   
   private ProgressObserverCPA(Configuration cfg, LogManager mgr)
   {
-    // Check if assumption collector is enabled; if not, the analysis will
-    // not be sound
-    if (!CPAchecker.config.getBooleanValue("analysis.useAssumptionCollector"))
-      CPAchecker.logger.log(Level.WARNING, "Analysis may not be sound because ProgressObserverCPA is used without assumption collector");
-
     logger = mgr;
     
-    enabledHeuristics = createEnabledHeuristics(cfg, mgr);
+    // Check if assumption collector is enabled; if not, the analysis will
+    // not be sound
+    if (!useAssumptionCollector)
+      logger.log(Level.WARNING, "Analysis may not be sound because ProgressObserverCPA is used without assumption collector");
+
+    enabledHeuristics = createEnabledHeuristics(cfg);
     
     abstractDomain = new ProgressObserverDomain(this);
     mergeOperator = MergeSepOperator.getInstance();

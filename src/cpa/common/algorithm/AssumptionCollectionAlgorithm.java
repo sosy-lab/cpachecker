@@ -38,11 +38,14 @@ import assumptions.ReportingUtils;
 import cfa.objectmodel.CFAEdge;
 
 import common.Pair;
+import common.configuration.Configuration;
+import common.configuration.Option;
+import common.configuration.Options;
 
 import cpa.art.ARTElement;
 import cpa.art.Path;
 import cpa.assumptions.collector.AssumptionCollectorElement;
-import cpa.common.CPAchecker;
+import cpa.common.LogManager;
 import cpa.common.ReachedElements;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractWrapperElement;
@@ -50,6 +53,7 @@ import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Statistics;
 import cpa.common.interfaces.StatisticsProvider;
 import exceptions.CPAException;
+import exceptions.InvalidConfigurationException;
 import exceptions.RefinementFailedException;
 
 /**
@@ -58,13 +62,27 @@ import exceptions.RefinementFailedException;
  * 
  * @author g.theoduloz
  */
+@Options
 public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvider {
 
+  @Option(name="assumptions.export")
+  private boolean exportAssumptions = false;
+  
+  @Option(name="output.path")
+  private String outfilePath = "";
+  
+  @Option(name="assumptions.file")
+  private String outfileName = "assumptions.txt";
+  
+  private final LogManager logger;
   private final Algorithm innerAlgorithm;
   private final MathsatInvariantSymbolicFormulaManager symbolicManager;
   
-  public AssumptionCollectionAlgorithm(Algorithm algo)
+  public AssumptionCollectionAlgorithm(Algorithm algo, Configuration config, LogManager logger) throws InvalidConfigurationException
   {
+    config.inject(this);
+    
+    this.logger = logger;
     innerAlgorithm = algo;
     symbolicManager = MathsatInvariantSymbolicFormulaManager.getInstance();
   }
@@ -88,15 +106,15 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
         // run the inner algorithm to fill the reached set
         innerAlgorithm.run(reached, stopAfterError);
       } catch (RefinementFailedException failedRefinement) {
-        CPAchecker.logger.log(Level.FINER, "Dumping assumptions due to: " + failedRefinement.toString());
+        logger.log(Level.FINER, "Dumping assumptions due to: " + failedRefinement.toString());
         addAssumptionsForFailedRefinement(resultAssumption, failedRefinement);
       } catch (CPAException e) {
-        CPAchecker.logger.log(Level.FINER, "Dumping assumptions due to: " + e.toString());
+        logger.log(Level.FINER, "Dumping assumptions due to: " + e.toString());
       }
     } while (restartCPA);
       
     // collect and dump all assumptions stored in abstract states
-    CPAchecker.logger.log(Level.FINER, "Dumping assumptions resulting from tool assumptions");
+    logger.log(Level.FINER, "Dumping assumptions resulting from tool assumptions");
     for (AbstractElement element : reached) {      
       AssumptionWithLocation assumption = extractAssumption(element);
       
@@ -106,21 +124,19 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
     // dump invariants to prevent going further with nodes in
     // the waitlist
     if (reached.hasWaitingElement()) {
-      CPAchecker.logger.log(Level.FINER, "Dumping assumptions resulting from unprocessed elements");
+      logger.log(Level.FINER, "Dumping assumptions resulting from unprocessed elements");
       addAssumptionsForWaitlist(resultAssumption, reached.getWaitlist());
     }
     
     Appendable output;
-    if (CPAchecker.config.getBooleanValue("assumptions.export")) {
-      String outfilePath = CPAchecker.config.getProperty("output.path");
-      String outfileName = CPAchecker.config.getProperty("assumptions.file", "assumptions.txt");
+    if (exportAssumptions) {
       //if no filename is given, use default value
       
       File assumptionsFile = new File(outfilePath, outfileName);
       try {
         output = new PrintWriter(assumptionsFile);
       } catch (Exception e) {
-        CPAchecker.logger.log(Level.WARNING,
+        logger.log(Level.WARNING,
             "Could not write assumptions to file ", assumptionsFile.getAbsolutePath(),
             ", (", e.getMessage(), ")");
         output = null;

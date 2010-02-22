@@ -566,7 +566,7 @@ public class CPAchecker {
     }
     
     if (options.useAssumptionCollector) {
-      algorithm = new AssumptionCollectionAlgorithm(algorithm);
+      algorithm = new AssumptionCollectionAlgorithm(algorithm, config, logger);
     }
     
     if (options.useCBMC) {
