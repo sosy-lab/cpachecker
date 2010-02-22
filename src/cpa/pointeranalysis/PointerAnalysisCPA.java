@@ -24,6 +24,12 @@
 package cpa.pointeranalysis;
 
 import cfa.objectmodel.CFAFunctionDefinitionNode;
+
+import common.configuration.Configuration;
+import common.configuration.Option;
+import common.configuration.Options;
+
+import cpa.common.LogManager;
 import cpa.common.defaults.AbstractCPAFactory;
 import cpa.common.defaults.MergeJoinOperator;
 import cpa.common.defaults.MergeSepOperator;
@@ -38,19 +44,19 @@ import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
+import exceptions.InvalidConfigurationException;
 
 /**
  * @author Philipp Wendler
  */
+@Options(prefix="cpas.pointeranalysis")
 public class PointerAnalysisCPA implements ConfigurableProgramAnalysis {
 
   private static class PointerAnalysisCPAFactory extends AbstractCPAFactory {
     
     @Override
-    public ConfigurableProgramAnalysis createInstance() {
-      String mergeType = getConfiguration().getProperty("cpas.pointeranalysis.merge", "sep");
-
-      return new PointerAnalysisCPA(mergeType);
+    public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException {
+      return new PointerAnalysisCPA(getConfiguration(), getLogger());
     }
   }
   
@@ -58,12 +64,19 @@ public class PointerAnalysisCPA implements ConfigurableProgramAnalysis {
     return new PointerAnalysisCPAFactory();
   }
   
+  @Option(name="merge", values={"sep", "join"})
+  private String mergeType = "sep";
+  
+  @Option
+  private boolean printWarnings = false;
+  
   private final AbstractDomain abstractDomain;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
   private final TransferRelation transferRelation;
   
-  private PointerAnalysisCPA(String mergeType) {
+  private PointerAnalysisCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
+    config.inject(this);
     PointerAnalysisDomain domain = new PointerAnalysisDomain();
     
     MergeOperator mergeOp = null;
@@ -77,7 +90,7 @@ public class PointerAnalysisCPA implements ConfigurableProgramAnalysis {
     abstractDomain = domain;
     mergeOperator = mergeOp;
     stopOperator = new StopSepOperator(domain.getPartialOrder());
-    transferRelation = new PointerAnalysisTransferRelation();
+    transferRelation = new PointerAnalysisTransferRelation(printWarnings, logger);
   }
   
   @Override

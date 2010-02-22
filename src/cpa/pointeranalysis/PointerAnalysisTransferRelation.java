@@ -61,7 +61,7 @@ import cfa.objectmodel.c.StatementEdge;
 
 import common.Pair;
 
-import cpa.common.CPAchecker;
+import cpa.common.LogManager;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
@@ -147,19 +147,18 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
     private IASTNode        mallocSizeASTNode      = null;
   }
 
-  private MissingInformation                missing       = null;
+  private MissingInformation missing = null;
 
-  private static boolean                    printWarnings =
-                                                              Boolean
-                                                                  .parseBoolean(CPAchecker.config
-                                                                      .getProperty(
-                                                                          "pointerAnalysis.printWarnings",
-                                                                          "false"));
-  private static Set<Pair<Integer, String>> warnings      =
-                                                              printWarnings
-                                                                  ? new HashSet<Pair<Integer, String>>()
-                                                                  : null;
+  private static boolean printWarnings = false;
+  private static Set<Pair<Integer, String>> warnings = null;
+  private static LogManager logger = null;
 
+  public PointerAnalysisTransferRelation(boolean pPrintWarnings, LogManager pLogger) {
+    printWarnings = pPrintWarnings;
+    warnings      = printWarnings ? new HashSet<Pair<Integer, String>>() : null;
+    logger        = pLogger;
+  }
+                                                                  
   public static void addWarning(String message, CFAEdge edge, String variable) {
     if (printWarnings) {
       Integer lineNumber = null;
@@ -172,10 +171,10 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       if (!warnings.contains(warningIndex)) {
         warnings.add(warningIndex);
         if (lineNumber != null) {
-          CPAchecker.logger.log(Level.WARNING, "Warning: " + message
+          logger.log(Level.WARNING, "Warning: " + message
               + " in line " + lineNumber + ": " + edge.getRawStatement());
         } else {
-          CPAchecker.logger.log(Level.WARNING, "Warning: " + message);
+          logger.log(Level.WARNING, "Warning: " + message);
         }
       }
     }
@@ -184,7 +183,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
   private static void addError(String message, CFAEdge edge) {
     if (printWarnings) {
       int lineNumber = edge.getSuccessor().getLineNumber();
-      CPAchecker.logger.log(Level.WARNING, "ERROR: " + message + " in line "
+      logger.log(Level.WARNING, "ERROR: " + message + " in line "
           + lineNumber + ": " + edge.getRawStatement());
     }
   }
