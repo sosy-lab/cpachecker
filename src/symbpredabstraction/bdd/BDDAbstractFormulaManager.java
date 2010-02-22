@@ -11,7 +11,10 @@ import symbpredabstraction.interfaces.Predicate;
 
 import common.Pair;
 import common.Triple;
-import cpa.common.CPAchecker;
+import common.configuration.Configuration;
+import common.configuration.Option;
+import common.configuration.Options;
+import exceptions.InvalidConfigurationException;
 
 /**
  * A wrapper for the javabdd (http://javabdd.sf.net) package.
@@ -21,9 +24,12 @@ import cpa.common.CPAchecker;
  * 
  * TODO perhaps introduce caching for BDD -> BDDAbstractFormulas
  */
+@Options
 public class BDDAbstractFormulaManager implements AbstractFormulaManager {
   
-  private final boolean useCache;
+  @Option(name="cpas.symbpredabs.mathsat.useCache")
+  private boolean useCache = false;
+  
   private final Map<Pair<AbstractFormula, AbstractFormula>, Boolean> entailsCache;
   
   // static because init() may be called only once!
@@ -39,13 +45,9 @@ public class BDDAbstractFormulaManager implements AbstractFormulaManager {
     factory.setVarNum(varcount);
   }
   
-  public BDDAbstractFormulaManager() {
-    useCache = CPAchecker.config.getBooleanValue("cpas.symbpredabs.mathsat.useCache");
-    if (useCache) {
-      entailsCache = new HashMap<Pair<AbstractFormula, AbstractFormula>, Boolean>();
-    } else {
-      entailsCache = null;
-    }
+  public BDDAbstractFormulaManager(Configuration config) throws InvalidConfigurationException {
+    config.inject(this);
+    entailsCache = useCache ? new HashMap<Pair<AbstractFormula, AbstractFormula>, Boolean>() : null;
   }
 
   private static BDD createNewVar() {

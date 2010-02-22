@@ -119,7 +119,7 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis, Sta
         merge = MergeSepOperator.getInstance();
         stop = new PredicateAbstractionStopOperator(domain);
         precisionAdjustment = StaticPrecisionAdjustment.getInstance();
-        abstractFormulaManager = new BDDAbstractFormulaManager();
+        abstractFormulaManager = new BDDAbstractFormulaManager(config);
         MathsatSymbolicFormulaManager mgr = new MathsatSymbolicFormulaManager(config, logger);
         TheoremProver prover = null;
         if (whichProver.equals("mathsat")) {

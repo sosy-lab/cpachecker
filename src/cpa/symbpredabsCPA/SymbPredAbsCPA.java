@@ -95,7 +95,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
   private SymbPredAbsCPA(Configuration config, LogManager logger) throws CPAException {
     config.inject(this);
     
-    abstractFormulaManager = new BDDAbstractFormulaManager();
+    abstractFormulaManager = new BDDAbstractFormulaManager(config);
     symbolicFormulaManager = new MathsatSymbolicFormulaManager(config, logger);
     TheoremProver thmProver;
     if (whichProver.equals("mathsat")) {

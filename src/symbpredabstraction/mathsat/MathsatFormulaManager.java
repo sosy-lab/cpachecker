@@ -41,7 +41,6 @@ import symbpredabstraction.interfaces.TheoremProver;
 import common.Pair;
 import common.configuration.Configuration;
 
-import cpa.common.CPAchecker;
 import cpa.common.LogManager;
 import exceptions.InvalidConfigurationException;
 
