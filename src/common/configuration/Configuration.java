@@ -134,7 +134,12 @@ public class Configuration {
       fileName = getDefaultConfigFileName();
     }
 
-    properties.load(new FileInputStream(fileName));
+    FileInputStream file = new FileInputStream(fileName);
+    try {
+      properties.load(file);
+    } finally {
+      file.close();
+    }
   }
 
   /**
@@ -164,11 +169,11 @@ public class Configuration {
    * If there are a number of properties for a given key, this method will split them
    * using {@link Configuration#DELIMS} and return the array of properties
    * @param key the key for the property
-   * @return array of properties
+   * @return array of properties or empty array if property is not specified
    */
   public String[] getPropertiesArray(String key){
     String s = getProperty(key);
-    return (s != null) ? s.split(DELIMS) : null;
+    return (s != null) ? s.split(DELIMS) : new String[0];
   }
 
 

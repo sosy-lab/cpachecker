@@ -144,6 +144,9 @@ public class MainCPAStatistics implements Statistics {
           break;
         case SAFE:
           out.println("NO, the system is safe");
+          break;
+        default:
+          out.println("UNKNOWN result: " + result);
         }
         out.flush();
     }

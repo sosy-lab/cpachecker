@@ -24,14 +24,8 @@ public class CPAchecker extends cpa.common.CPAchecker {
     
     // get code file name
     String[] names = cpa.common.CPAchecker.config.getPropertiesArray("analysis.programNames");
-    if (names == null) {
-      cpa.common.CPAchecker.logger.log(Level.SEVERE, "No code file given!");
-      
-      System.exit(1);
-    }
-    
     if (names.length != 1) {
-      cpa.common.CPAchecker.logger.log(Level.SEVERE, "Support for multiple code files is currently not implemented!");
+      cpa.common.CPAchecker.logger.log(Level.SEVERE, "Exactly one code file has to be given!");
       
       System.exit(1);
     }

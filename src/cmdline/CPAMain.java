@@ -76,15 +76,9 @@ public class CPAMain {
     }
     
     // get code file name
-    String[] names = cpaConfig.getPropertiesArray("analysis.programNames");
-    if (names == null) {
-      logManager.log(Level.SEVERE, "No code file given!");
-      System.exit(1);
-    }
-    
+    String[] names = cpaConfig.getPropertiesArray("analysis.programNames");    
     if (names.length != 1) {
-      logManager.log(Level.SEVERE, 
-              "Support for multiple code files is currently not implemented!");
+      logManager.log(Level.SEVERE, "Exactly one code file has to be given!");
       System.exit(1);
     }
     
