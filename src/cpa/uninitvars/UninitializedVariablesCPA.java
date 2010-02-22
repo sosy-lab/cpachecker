@@ -67,7 +67,7 @@ public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis {
   @Option(name="analysis.entryFunction")
   private String entryFunction = "main";
   @Option(name="uninitVars.printWarnings")
-  private String printWarnings = "main";
+  private String printWarnings = "true";
   @Option(name="uninitVars.merge", values={"sep", "join"}, required=true)
   private String mergeType = "";
   @Option(name="uninitVars.stop", values={"sep", "join"}, required=true)
