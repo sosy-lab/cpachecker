@@ -1,13 +1,19 @@
 package cpa.observeranalysis;
 
-import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.util.logging.Level;
 
 import java_cup.runtime.ComplexSymbolFactory;
 import java_cup.runtime.Symbol;
 import java_cup.runtime.SymbolFactory;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
-import cpa.common.CPAchecker;
+
+import common.configuration.Configuration;
+import common.configuration.Option;
+import common.configuration.Options;
+
+import cpa.common.LogManager;
 import cpa.common.defaults.AbstractCPAFactory;
 import cpa.common.defaults.EqualityPartialOrder;
 import cpa.common.defaults.MergeSepOperator;
@@ -31,18 +37,14 @@ import exceptions.InvalidConfigurationException;
  * This class implements an ObserverAutomatonAnalysis as described in the related Documentation. 
  * @author rhein
  */
+@Options(prefix="observerAnalysis")
 public class ObserverAutomatonCPA implements ConfigurableProgramAnalysis {
   
   private static class ObserverAutomatonCPAFactory extends AbstractCPAFactory {
     
     @Override
     public ConfigurableProgramAnalysis createInstance() throws CPAException {
-      try {
-        return new ObserverAutomatonCPA();
-      } catch (FileNotFoundException e) {
-        throw new InvalidConfigurationException("Cannot create ObserverAutomatonCPA without automaton file ("
-            + e.getMessage() + ")");
-      }
+      return new ObserverAutomatonCPA(getConfiguration(), getLogger());
     }
   }
   
@@ -50,8 +52,11 @@ public class ObserverAutomatonCPA implements ConfigurableProgramAnalysis {
     return new ObserverAutomatonCPAFactory();
   }
   
-  private ObserverAutomaton automaton;
-  private TransferRelation transferRelation;
+  @Option(required=true)
+  private String inputFile = "";
+  
+  private final ObserverAutomaton automaton;
+  private final TransferRelation transferRelation;
   
   private static final ObserverDomain observerDomain = new ObserverDomain();
   private static final PartialOrder partialOrder = new EqualityPartialOrder(observerDomain);
@@ -96,25 +101,30 @@ public class ObserverAutomatonCPA implements ConfigurableProgramAnalysis {
    * @param mergeType
    * @param pStopType
    * @throws FileNotFoundException
+   * @throws InvalidConfigurationException 
    */
-  private ObserverAutomatonCPA() throws FileNotFoundException { 
-    String file = CPAchecker.config.getProperty("observerAnalysis.inputFile");
-    parseObserverFile(file);
+  private ObserverAutomatonCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
+    config.inject(this);
+    automaton = parseObserverFile(logger);
+    logger.log(Level.FINEST, "Automaton", automaton.getName(), "loaded.");
+    transferRelation = new ObserverTransferRelation(automaton);
   }
   
-  private void parseObserverFile(String pFilename) throws FileNotFoundException {
-    File f = new File(pFilename);
+  private ObserverAutomaton parseObserverFile(LogManager logger) throws InvalidConfigurationException {
+    SymbolFactory sf = new ComplexSymbolFactory();   
     try {
-      SymbolFactory sf = new ComplexSymbolFactory();   
-      Symbol symbol = new ObserverParser(new ObserverScanner(new java.io.FileInputStream(f), sf),sf).parse();
-      automaton = (ObserverAutomaton)symbol.value;
-      transferRelation = new ObserverTransferRelation(automaton);
-      
-      System.out.println("ObserverAutomatonAnalysis: Loaded the " + automaton.getName());
+      FileInputStream input = new FileInputStream(inputFile);
+      try {
+        Symbol symbol = new ObserverParser(new ObserverScanner(input, sf),sf).parse();
+        return (ObserverAutomaton)symbol.value;
+      } finally {
+        input.close();
+      }
       
     } catch (Exception e) {
-      System.err.println("ObserverAnalysis.ObserverParser: General Exception during Parsing of the inputfile " + pFilename);
-      e.printStackTrace();
+      logger.logException(Level.FINER, e, "Could not load automaton from file " + inputFile);
+      throw new InvalidConfigurationException("Could not load automaton from file " + inputFile
+          + " (" + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()) + ")");
     } 
   }
   
