@@ -24,8 +24,11 @@
 package cpa.uninitvars;
 
 import common.configuration.Configuration;
+import common.configuration.Option;
+import common.configuration.Options;
 
 import cfa.objectmodel.CFAFunctionDefinitionNode;
+import cpa.common.LogManager;
 import cpa.common.defaults.AbstractCPAFactory;
 import cpa.common.defaults.MergeJoinOperator;
 import cpa.common.defaults.MergeSepOperator;
@@ -40,21 +43,19 @@ import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
+import exceptions.InvalidConfigurationException;
 
 /**
  * @author Philipp Wendler
  */
+@Options
 public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis {
 
   private static class UninitializedVariablesCPAFactory extends AbstractCPAFactory {
     
     @Override
-    public ConfigurableProgramAnalysis createInstance() {
-      Configuration config = getConfiguration();
-      String mergeType = config.getProperty("uninitVars.merge", "sep");
-      String stopType = config.getProperty("uninitVars.stop", "sep");
-      
-      return new UninitializedVariablesCPA(mergeType, stopType);
+    public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException {      
+      return new UninitializedVariablesCPA(getConfiguration(), getLogger());
     }
   }
   
@@ -62,13 +63,26 @@ public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis {
     return new UninitializedVariablesCPAFactory();
   }
   
+  
+  @Option(name="analysis.entryFunction")
+  private String entryFunction = "main";
+  @Option(name="uninitVars.printWarnings")
+  private String printWarnings = "main";
+  @Option(name="uninitVars.merge", values={"sep", "join"}, required=true)
+  private String mergeType = "";
+  @Option(name="uninitVars.stop", values={"sep", "join"}, required=true)
+  private String stopType = "";
+  
   private final AbstractDomain abstractDomain;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
   private final TransferRelation transferRelation;
   private final PrecisionAdjustment precisionAdjustment;
   
-  private UninitializedVariablesCPA(String mergeType, String stopType) {
+  private UninitializedVariablesCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
+    
+    config.inject(this);
+    
     UninitializedVariablesDomain domain = new UninitializedVariablesDomain();
     
     MergeOperator mergeOp = null;
@@ -91,7 +105,7 @@ public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis {
     this.abstractDomain = domain;
     this.mergeOperator = mergeOp;
     this.stopOperator = stopOp;
-    this.transferRelation = new UninitializedVariablesTransferRelation();
+    this.transferRelation = new UninitializedVariablesTransferRelation(printWarnings, logger);
     this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
   }
   
@@ -102,7 +116,7 @@ public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public AbstractElement getInitialElement(CFAFunctionDefinitionNode pNode) {
-    return new UninitializedVariablesElement();
+    return new UninitializedVariablesElement(entryFunction);
   }
 
   @Override

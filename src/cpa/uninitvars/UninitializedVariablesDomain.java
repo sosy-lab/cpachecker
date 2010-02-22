@@ -40,6 +40,11 @@ import exceptions.CPAException;
 public class UninitializedVariablesDomain implements AbstractDomain {
 
   private static class UninitializedVariablesBottomElement extends UninitializedVariablesElement {
+    
+    public UninitializedVariablesBottomElement() {
+      super("<BOTTOM>");
+    }
+    
     @Override
     public String toString() {
       return "<UninitializedVariables BOTTOM>";
@@ -47,6 +52,11 @@ public class UninitializedVariablesDomain implements AbstractDomain {
   }
 
   private static class UninitializedVariablesTopElement extends UninitializedVariablesElement {
+    
+    public UninitializedVariablesTopElement() {
+      super("<TOP>");
+    }
+    
     @Override
     public String toString() {
       return "<UninitializedVariables TOP>";

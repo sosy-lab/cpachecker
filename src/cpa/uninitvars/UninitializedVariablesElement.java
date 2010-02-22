@@ -40,10 +40,11 @@ public class UninitializedVariablesElement implements AbstractElement {
   private final Set<String> globalVars;
   private final Deque<Pair<String, Set<String>>> localVars;
   
-  public UninitializedVariablesElement() {
+  public UninitializedVariablesElement(String entryFunction) {
     globalVars = new HashSet<String>();
     localVars = new LinkedList<Pair<String, Set<String>>>();
-    callFunction("main()"); // for main()
+    // create context of the entry function
+    callFunction(entryFunction);
   }
   
   public UninitializedVariablesElement(Set<String> globalVars, Deque<Pair<String, Set<String>>> localVars) {

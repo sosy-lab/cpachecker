@@ -58,7 +58,7 @@ import cfa.objectmodel.c.StatementEdge;
 
 import common.Pair;
 
-import cpa.common.CPAchecker;
+import cpa.common.LogManager;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
@@ -83,17 +83,20 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
   private boolean printWarnings;
   private Set<Pair<Integer, String>> warnings;
   
+  private LogManager logger;
+  
   //needed for strengthen()
   private String lastAdded = null;
   //used to check if a warning message in strengthen() has been displayed if typesCPA is not present
   private boolean typesWarningAlreadyDisplayed = false;
 
-  public UninitializedVariablesTransferRelation() {
+  public UninitializedVariablesTransferRelation(String printWarnings, LogManager logger) {
     globalVars = new HashSet<String>();
-    printWarnings = Boolean.parseBoolean(CPAchecker.config.getProperty("uninitVars.printWarnings", "false"));
-    if (printWarnings) {
+    this.printWarnings = Boolean.parseBoolean(printWarnings);
+    if (this.printWarnings) {
       warnings = new HashSet<Pair<Integer, String>>();
     }
+    this.logger = logger;
   }
   
   private AbstractElement getAbstractSuccessor(AbstractElement element,
@@ -530,7 +533,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       if (!typesWarningAlreadyDisplayed && !typesCPAPresent && lastAdded != null) {
         //set typesCPAPresent so this message only comes up once
         typesWarningAlreadyDisplayed = true;
-        CPAchecker.logger.log(Level.INFO, 
+        logger.log(Level.INFO, 
         "TypesCPA not present - information about field references may be unreliable");
       }
 
