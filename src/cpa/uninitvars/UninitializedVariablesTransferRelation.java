@@ -279,6 +279,10 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
         IASTExpression params = ((IASTFunctionCallExpression)expression).getParameterExpression();
         isExpressionUninitialized(element, params, cfaEdge);
       }
+      //in case of a return edge, remove the local context of the function from which we returned
+      if (cfaEdge instanceof CallToReturnEdge) {
+        element.returnFromFunction();
+      }
 
     } else if (expression instanceof IASTUnaryExpression) {
       // a unary operation (a++) does not change the initialization status of variables
