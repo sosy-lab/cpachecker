@@ -224,7 +224,15 @@ public class LogManager {
     //sufficiently high. 
     if (wouldBeLogged(priority))  {
 
-      LogRecord record = new LogRecord(priority, messageFormat.join(args));
+      String[] argsStr = new String[args.length];
+      int size = args.length;
+      for (int i = 0; i < args.length; i++) {
+        String arg = args[i].toString();
+        argsStr[i] = arg.length() <= 10000 ? arg : "<ARGUMENT OMITTED BECAUSE " + arg.length() + " CHARACTERS LONG>";
+        size += argsStr[i].length();
+      }
+      
+      LogRecord record = new LogRecord(priority, messageFormat.join(argsStr));
       StackTraceElement[] trace = Thread.currentThread().getStackTrace();
       record.setSourceClassName(trace[2].getFileName());
       record.setSourceMethodName(trace[2].getMethodName());
