@@ -3,6 +3,7 @@ package cpa.art;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -97,7 +98,8 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
    */
   private Path buildPath(ARTElement pLastElement) { 
     Path path = new Path();
-
+    Set<ARTElement> seenElements = new HashSet<ARTElement>();
+    
     // each element of the path consists of the abstract element and the incoming
     // edge from its predecessor
     // an exception is the last element: it is contained two times in the path,
@@ -110,26 +112,20 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
     // if there are more outgoing edges
     CFAEdge lastEdge = currentARTElement.retrieveLocationElement().getLocationNode().getLeavingEdge(0);
     path.addFirst(new Pair<ARTElement, CFAEdge>(currentARTElement, lastEdge));
+    seenElements.add(currentARTElement);
     
-    while(currentARTElement != null){
-      CFANode currentNode = currentARTElement.retrieveLocationElement().getLocationNode();
-      ARTElement parentElement = currentARTElement.getFirstParent();
-      
-      CFANode parentNode = null;
-      if(parentElement != null) {
-        parentNode = parentElement.retrieveLocationElement().getLocationNode();
-      }
+    while (!currentARTElement.getParents().isEmpty()) {
+      Iterator<ARTElement> parents = currentARTElement.getParents().iterator();
 
-      boolean foundEdge = false;
-      for(int i=0; i<currentNode.getNumEnteringEdges(); i++){
-        CFAEdge edge = currentNode.getEnteringEdge(i);
-        if(edge.getPredecessor().equals(parentNode)){
-          foundEdge = true;
-          path.addFirst(new Pair<ARTElement, CFAEdge>(currentARTElement, edge));
-          break;
-        }
+      ARTElement parentElement = parents.next();
+      while (!seenElements.add(parentElement) && parents.hasNext()) {
+        // while seenElements already contained parentElement, try next parent
+        parentElement = parents.next();
       }
-      assert (parentElement == null) || foundEdge;
+      
+      CFAEdge edge = parentElement.getEdgeToChild(currentARTElement);
+      path.addFirst(new Pair<ARTElement, CFAEdge>(currentARTElement, edge));
+
       currentARTElement = parentElement;
     }
     return path;
