@@ -38,7 +38,6 @@ public class ARTStopSep implements StopOperator {
     for (AbstractElement reachedElement : pReached) {
       ARTElement artReachedElement = (ARTElement)reachedElement;
       if (stop(artElement, artReachedElement)) {
-        artElement.setCovered(artReachedElement);
         return true;
       }
     }
@@ -53,7 +52,16 @@ public class ARTStopSep implements StopOperator {
     AbstractElement wrappedReachedElement = pReachedElement.getAbstractElementOnArtNode();
 
     StopOperator stopOp = wrappedCpa.getStopOperator();
-    return stopOp.stop(wrappedElement, wrappedReachedElement);
+    boolean stop = stopOp.stop(wrappedElement, wrappedReachedElement); 
+    
+    if (stop) {
+      if (pElement.getMergedWith() == pReachedElement) {
+        pElement.removeFromART();
+      } else {
+        pElement.setCovered(pReachedElement);
+      }
+    }
+    return stop; 
   }
 
   @Override

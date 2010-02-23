@@ -26,6 +26,7 @@ public class ARTElement implements AbstractWrapperElement {
   private ARTElement mCoveredBy = null;
   private boolean isBottom = false;
   private boolean destroyed = false;
+  private ARTElement mergedWith = null;
 
   private final int elementId;
 
@@ -95,6 +96,14 @@ public class ARTElement implements AbstractWrapperElement {
     isBottom = pIsBottom;
   }
 
+  protected void setMergedWith(ARTElement pMergedWith) {
+    mergedWith = pMergedWith;
+  }
+  
+  public ARTElement getMergedWith() {
+    return mergedWith;
+  }
+  
   public ARTCPA getCpa() {
     return mCpa;
   }
@@ -253,6 +262,6 @@ public class ARTElement implements AbstractWrapperElement {
         return edge;
       }
     }
-    return null;
+    throw new IllegalStateException("Invalid ART, parent<->child relation without corresponding CFAEdge");
   }
 }

@@ -55,6 +55,7 @@ public class ARTMergeJoin implements MergeOperator {
     // artElement1 will only be removed from ART if stop(e1, reached) returns true
     artElement2.removeFromART();
 
+    artElement1.setMergedWith(mergedElement);
     return mergedElement;
   }
 }

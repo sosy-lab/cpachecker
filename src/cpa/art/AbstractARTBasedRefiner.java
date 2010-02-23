@@ -8,7 +8,6 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import cfa.objectmodel.CFAEdge;
-import cfa.objectmodel.CFANode;
 import cfa.objectmodel.c.FunctionCallEdge;
 
 import com.google.common.base.Function;
