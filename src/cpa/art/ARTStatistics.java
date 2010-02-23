@@ -100,12 +100,20 @@ public class ARTStatistics implements Statistics {
         
         nodesList.add(currentElement.getElementId());
       }
+      
+      if (currentElement.isCovered()) {
+        sb.append(currentElement.getElementId());
+        sb.append(" -> ");
+        sb.append(currentElement.getCoveredBy().getElementId());
+        sb.append(" [style = dashed, label = \"covered by\"];");
+      }
+      
       for(ARTElement child : currentElement.getChildren()){
         CFAEdge edge = currentElement.getEdgeToChild(child);
         sb.append(currentElement.getElementId());
         sb.append(" -> ");
         sb.append(child.getElementId());
-        sb.append(" [label=\"");
+        sb.append(" [label = \"");
         sb.append(edge != null ? edge.toString().replace('"', '\'') : "");
         sb.append("\"];\n");
         if(!worklist.contains(child)){
