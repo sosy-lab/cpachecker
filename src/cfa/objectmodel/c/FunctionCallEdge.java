@@ -34,9 +34,11 @@ public class FunctionCallEdge extends AbstractCFAEdge
 	private IASTExpression[] functionArguments;
 	private boolean isExternalCall = false;
 
-    public FunctionCallEdge (String rawStatement, IASTExpression arguments)
+    public FunctionCallEdge (String rawStatement, IASTExpression[] arguments, boolean isExternalCall)
     {
         super (rawStatement);
+        functionArguments = arguments;
+        this.isExternalCall = isExternalCall;
     }
 
     public CFAEdgeType getEdgeType ()
@@ -44,17 +46,9 @@ public class FunctionCallEdge extends AbstractCFAEdge
         return CFAEdgeType.FunctionCallEdge;
     }
 
-    public void setArguments(IASTExpression[] args){
-    	this.functionArguments = args;
-    }
-
     public IASTExpression[] getArguments(){
     	return this.functionArguments;
     }
-
-	public void setExternalCall() {
-		this.isExternalCall = true;
-	}
 
 	public boolean isExternalCall() {
 		return this.isExternalCall;

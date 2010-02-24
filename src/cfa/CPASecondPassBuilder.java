@@ -193,14 +193,24 @@ public class CPASecondPassBuilder {
     String functionName = functionCall.getFunctionNameExpression().getRawSignature();
     CFAFunctionDefinitionNode fDefNode = cfas.get(functionName);
 
-    IASTExpression parameters = functionCall.getParameterExpression();
-    FunctionCallEdge callEdge = new FunctionCallEdge(functionCall.getRawSignature(), parameters);
+    //get the parameter expression
+    IASTExpression parameterExpression = functionCall.getParameterExpression();
+    IASTExpression[] parameters = null;
+    //in case of an expression list, get the corresponding array 
+    if (parameterExpression instanceof IASTExpressionList) {
+      IASTExpressionList paramList = (IASTExpressionList)parameterExpression;
+      parameters = paramList.getExpressions();
+    //in case of a single parameter, use a single-entry array
+    } else if (parameterExpression != null) {
+      parameters = new IASTExpression[] {parameterExpression};
+    }
+    FunctionCallEdge callEdge;
 
     // if the function definition node is null, then this is an external call
     if(fDefNode == null){
       assert(createCallEdgesForExternalCalls); // AG
-
-      callEdge.setExternalCall();
+      
+      callEdge = new FunctionCallEdge(functionCall.getRawSignature(), parameters, true);
       callEdge.initialize (node, edge.getSuccessor());
       callEdge.getSuccessor().setFunctionName(node.getFunctionName());
       CallToReturnEdge calltoReturnEdge = new CallToReturnEdge("External Call", expr);
@@ -210,6 +220,7 @@ public class CPASecondPassBuilder {
       return;
     }
 
+    callEdge = new FunctionCallEdge(functionCall.getRawSignature(), parameters, false);
     callEdge.initialize (node, fDefNode);
     // set name of the function
     fDefNode.setFunctionName(functionName);
@@ -224,26 +235,5 @@ public class CPASecondPassBuilder {
     node.removeLeavingEdge(edge);
     successorNode.removeEnteringEdge(edge);
 
-    // set function parameters
-//  if(parameters instanceof IASTIdExpression){
-//  IASTIdExpression variableParam = (IASTIdExpression)parameters;
-//  IASTExpression[] expressionList = new IASTExpression[1];
-//  expressionList[0] = variableParam;
-//  callEdge.setArguments(expressionList);
-//  }
-//  else if(parameters instanceof IASTExpressionList){
-//  IASTExpressionList paramList = (IASTExpressionList)parameters;
-//  IASTExpression[] expressionList = paramList.getExpressions();
-//  callEdge.setArguments(expressionList);
-//  }
-    // AG - the above is not exhaustive, there are some cases that
-    // are not handled (e.g. f(5))
-    if (parameters instanceof IASTExpressionList) {
-      IASTExpressionList paramList = (IASTExpressionList)parameters;
-      IASTExpression[] expressionList = paramList.getExpressions();
-      callEdge.setArguments(expressionList);
-    } else if (parameters != null) {
-      callEdge.setArguments(new IASTExpression[]{parameters});
-    }
   }
 }
