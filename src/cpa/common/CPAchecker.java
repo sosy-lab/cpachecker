@@ -92,9 +92,6 @@ public class CPAchecker {
     @Option(name="analysis.entryFunction", regexp="^[_a-zA-Z][_a-zA-Z0-9]*$")
     String mainFunctionName = "main";
     
-    @Option(name="cfa.simplify")
-    boolean simplifyCfa = false;
-    
     @Option(name="cfa.combineBlockStatements")
     boolean combineBlockStatements = false;
     
@@ -348,13 +345,6 @@ public class CPAchecker {
       logger.log(Level.SEVERE, "Function", options.mainFunctionName, "not found!");
       System.exit(0);
     }
-    
-    // simplify CFA
-    if (options.simplifyCfa) {
-      // TODO Erkan Simplify each CFA
-      CFASimplifier simplifier = new CFASimplifier(options.combineBlockStatements, options.removeDeclarations);
-      simplifier.simplify(mainFunction);
-    }
 
     // Insert call and return edges and build the supergraph
     if (options.interprocedural) {
@@ -372,6 +362,12 @@ public class CPAchecker {
       
       List<IASTDeclaration> globalVars = builder.getGlobalDeclarations();
       insertGlobalDeclarations(mainFunction, globalVars);
+    }
+    
+    // simplify CFA
+    if (options.combineBlockStatements || options.removeDeclarations) {
+      CFASimplifier simplifier = new CFASimplifier(options.combineBlockStatements, options.removeDeclarations);
+      simplifier.simplify(mainFunction);
     }
     
     return mainFunction;

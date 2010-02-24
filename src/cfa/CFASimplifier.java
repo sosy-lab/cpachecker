@@ -89,26 +89,15 @@ public class CFASimplifier {
 			}
 
 			// The actual simplification part
-			simplifyNode (node);
-		}
-	}
+	    if (combineBlockStatements) {
+	      makeMultiStatement(node);
+	      makeMultiDeclaration(node);
+	    }
 
-	/**
-	 * Takes the node and run simplifications on it.
-	 * @param node This node's edges will be simplified
-	 */
-	private void simplifyNode(CFANode node) {
-		// Remove leading blank edge if useless
-		removeUselessBlankEdge (node);
-
-		if (combineBlockStatements) {
-			makeMultiStatement (node);
-			makeMultiDeclaration (node);
-		}
-
-		if (removeDeclarations) {
-			removeDeclarations(node);
-		}
+	    if (removeDeclarations) {
+	      removeDeclarations(node);
+	    }
+	  }
 	}
 
 	/**
@@ -126,32 +115,6 @@ public class CFASimplifier {
 		CFANode successor = leavingEdge.getSuccessor ();
 
 		if (leavingEdge.getEdgeType () != CFAEdgeType.DeclarationEdge)
-			return;
-
-		for(int idx=0; idx<numOfEnteringEdges; idx++){
-			CFAEdge enteringEdge = node.getEnteringEdge (0);
-			successor.removeEnteringEdge (leavingEdge);
-			node.removeEnteringEdge (enteringEdge);
-			node.removeLeavingEdge (leavingEdge);
-			enteringEdge.setSuccessor (successor);
-		}
-	}
-
-	/**
-	 * Removes blank edges.
-	 * @param node
-	 */
-	private void removeUselessBlankEdge (CFANode node)
-	{
-		int numOfEnteringEdges = node.getNumEnteringEdges();
-
-		if (numOfEnteringEdges == 0 || node.getNumLeavingEdges () != 1)
-			return;
-
-		CFAEdge leavingEdge = node.getLeavingEdge (0);
-		CFANode successor = leavingEdge.getSuccessor ();
-
-		if ((leavingEdge.getEdgeType () != CFAEdgeType.BlankEdge) || !("".equals (leavingEdge.getRawStatement ())))
 			return;
 
 		for(int idx=0; idx<numOfEnteringEdges; idx++){

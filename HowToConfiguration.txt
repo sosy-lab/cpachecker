@@ -12,7 +12,6 @@ ART.export			true/false		false		true		write ART to file (needs cpa.useART)
 ART.file			filename		"ART.dot"	<DEFAULT>	ART graph output file
 reachedSet.export		true/false		false		true		write all elements in final reached set to file
 reachedSet.file			filename		"reached.txt"	<DEFAULT>	reached set output file
-cfa.simplify			true/false		false		true		run simplifications below
 cfa.combineBlockStatements	true/false		false		false		combine statements and declarations into MultiStatement and MultiDeclaration edges respectively
 cfa.removeIrrelevantForErrorLocations	true/false	false		true		remove all paths not leading to error location
 cfa.removeDeclarations		true/false		false		false		remove all DeclarationEdges from CFA
