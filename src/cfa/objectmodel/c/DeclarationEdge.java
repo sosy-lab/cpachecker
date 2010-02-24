@@ -28,19 +28,20 @@ import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
 
 import cfa.objectmodel.AbstractCFAEdge;
 import cfa.objectmodel.CFAEdgeType;
+import cfa.objectmodel.CFANode;
 
 
 
 public class DeclarationEdge extends AbstractCFAEdge
 {
-    private IASTDeclarator[] declarators;
-    private IASTDeclSpecifier specifier;
+    private final IASTDeclarator[] declarators;
+    private final IASTDeclSpecifier specifier;
 
-    public DeclarationEdge (String rawStatement,
+    public DeclarationEdge (String rawStatement, CFANode predecessor, CFANode successor,
                             IASTDeclarator[] declarators,
                             IASTDeclSpecifier specifier)
     {
-        super (rawStatement);
+        super(rawStatement, predecessor, successor);
         this.declarators = declarators;
         this.specifier = specifier;
     }

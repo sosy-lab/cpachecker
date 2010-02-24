@@ -86,7 +86,7 @@ public class QueryTransferRelationTest {
     
     QueryStandardElement lElement = new QueryStandardElement(0, true, 1, false, lMustMayCPA.getAbstractDomain().getTopElement());
     
-    CFAEdge lCFAEdge = new ReturnEdge("bla");
+    CFAEdge lCFAEdge = new ReturnEdge("bla", null, null);
     
     Collection<? extends AbstractElement> lSuccessors = lTransferRelation.getAbstractSuccessors(lElement, null, lCFAEdge);
   }
@@ -104,7 +104,7 @@ public class QueryTransferRelationTest {
     
     QueryStandardElement lElement = new QueryStandardElement(0, true, 1, false, lMustMayCPA.getAbstractDomain().getTopElement());
     
-    CFAEdge lCFAEdge = new BlankEdge("blub");
+    CFAEdge lCFAEdge = new BlankEdge("blub", null, null);
     
     Collection<? extends AbstractElement> lSuccessors = lTransferRelation.getAbstractSuccessors(lElement, null, lCFAEdge);
   }

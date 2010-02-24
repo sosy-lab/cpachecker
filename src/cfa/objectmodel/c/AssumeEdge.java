@@ -27,19 +27,20 @@ import org.eclipse.cdt.core.dom.ast.IASTExpression;
 
 import cfa.objectmodel.AbstractCFAEdge;
 import cfa.objectmodel.CFAEdgeType;
+import cfa.objectmodel.CFANode;
 
 
 
 public class AssumeEdge extends AbstractCFAEdge
 {
-    private boolean truthAssumption;
-    private IASTExpression expression;
+    private final boolean truthAssumption;
+    private final IASTExpression expression;
 
-    public AssumeEdge (String rawStatement,
+    public AssumeEdge (String rawStatement, CFANode predecessor, CFANode successor,
                            IASTExpression expression,
                            boolean truthAssumption)
     {
-        super (rawStatement);
+        super (rawStatement, predecessor, successor);
 
         this.truthAssumption = truthAssumption;
         this.expression = expression;

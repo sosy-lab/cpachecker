@@ -32,21 +32,27 @@ import cpa.common.CPAchecker;
 
 public abstract class AbstractCFAEdge implements CFAEdge
 {
-    protected CFANode predecessor;
-    protected CFANode successor;
+    private final CFANode predecessor;
+    private final CFANode successor;
 
-    private String rawStatement;
+    private final String rawStatement;
 
-    public AbstractCFAEdge (String rawStatement)
-    {
-        this.predecessor = null;
-        this.successor = null;
-
-        this.rawStatement = rawStatement;
+    public AbstractCFAEdge(String rawStatement, CFANode predecessor, CFANode successor) {
+      Preconditions.checkNotNull(rawStatement);
+      Preconditions.checkNotNull(predecessor);
+      Preconditions.checkNotNull(successor);
+      this.predecessor = predecessor;
+      this.successor = successor;
+      this.rawStatement = rawStatement;
     }
 
-    public void initialize (CFANode predecessor, CFANode successor)
+    /**
+     * This method registers adds this edge to the leaving and entering edges
+     * of its predecessor and successor respectively.
+     */
+    public void addToCFA()
     {
+        CFANode predecessor = getPredecessor();
         // some additional checking is required for jump edges
         boolean deadEdge = false;
         if (this.isJumpEdge()) {
@@ -81,8 +87,8 @@ public abstract class AbstractCFAEdge implements CFAEdge
         }
         
         if (!deadEdge) {
-          setPredecessor (predecessor);
-          setSuccessor (successor);
+          predecessor.addLeavingEdge(this);
+          getSuccessor().addEnteringEdge(this);
         }
     }
 
@@ -91,29 +97,9 @@ public abstract class AbstractCFAEdge implements CFAEdge
         return predecessor;
     }
 
-    public void setPredecessor (CFANode pPredecessor) {
-      Preconditions.checkNotNull(pPredecessor);
-      if (this.predecessor != null) {
-        this.predecessor.removeLeavingEdge(this);
-      }
-      
-      this.predecessor = pPredecessor;
-      this.predecessor.addLeavingEdge(this);
-    }
-
     public CFANode getSuccessor ()
     {
         return successor;
-    }
-
-    public void setSuccessor(CFANode pSuccessor) {
-      Preconditions.checkNotNull(pSuccessor);
-      if (this.successor != null) {
-        this.successor.removeEnteringEdge (this);
-      }
-      
-      this.successor = pSuccessor;
-      this.successor.addEnteringEdge (this);
     }
 
     public String getRawStatement ()

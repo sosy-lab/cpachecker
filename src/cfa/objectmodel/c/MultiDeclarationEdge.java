@@ -30,21 +30,19 @@ import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
 
 import cfa.objectmodel.AbstractCFAEdge;
 import cfa.objectmodel.CFAEdgeType;
+import cfa.objectmodel.CFANode;
 
 
 public class MultiDeclarationEdge extends AbstractCFAEdge
 {
-    private List<IASTDeclarator[]> declarators;
-    private List<String> rawStatements;
+    private final List<IASTDeclarator[]> declarators;
+    private final List<String> rawStatements;
 
-    private boolean jumpEdge;
-
-    public MultiDeclarationEdge (String rawStatement,
+    public MultiDeclarationEdge (String rawStatement, CFANode predecessor, CFANode successor,
                               List<IASTDeclarator[]> declarators,
                               List<String> rawStatements)
     {
-        super (rawStatement);
-        this.jumpEdge = false;
+        super(rawStatement, predecessor, successor);
 
         if (declarators == null)
             this.declarators = new ArrayList<IASTDeclarator[]> ();
@@ -57,17 +55,7 @@ public class MultiDeclarationEdge extends AbstractCFAEdge
             this.rawStatements = rawStatements;
     }
 
-    public void setIsJumpEdge (boolean jumpEdge)
-    {
-        this.jumpEdge = jumpEdge;
-    }
-
     @Override
-    public boolean isJumpEdge ()
-    {
-        return jumpEdge;
-    }
-
     public CFAEdgeType getEdgeType ()
     {
         return CFAEdgeType.MultiDeclarationEdge;

@@ -33,20 +33,18 @@ import cpa.common.interfaces.AbstractWrapperElement;
 
 public class CallToReturnEdge extends AbstractCFAEdge {
 
-	private IASTExpression expression;
+	private final IASTExpression expression;
 	private AbstractElement abstractElement;
 
-	public CallToReturnEdge(String rawStatement, IASTExpression exp) {
-		super(rawStatement);
+	public CallToReturnEdge(String rawStatement, CFANode predecessor, CFANode successor, IASTExpression exp) {
+		super(rawStatement, predecessor, successor);
 		this.expression = exp;
 	}
 
 	@Override
-  public void initialize(CFANode predecessorNode, CFANode successorNode) {
-		predecessorNode.addLeavingSummaryEdge(this);
-		predecessor = predecessorNode;
-		successorNode.addEnteringSummaryEdge (this);
-		successor= successorNode;
+  public void addToCFA() {
+		getPredecessor().addLeavingSummaryEdge(this);
+		getSuccessor().addEnteringSummaryEdge(this);
 	}
 
 	public IASTExpression getExpression ()

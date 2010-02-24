@@ -5,7 +5,6 @@ import java.util.Map;
 
 import cfa.objectmodel.BlankEdge;
 import cfa.objectmodel.CFANode;
-import exceptions.CFAGenerationRuntimeException;
 
 public class InternalSelfLoop extends BlankEdge {
 
@@ -24,19 +23,16 @@ public class InternalSelfLoop extends BlankEdge {
   }
   
   private InternalSelfLoop(CFANode pNode) {
-    super("Internal Self Loop");
+    super("Internal Self Loop", pNode, pNode);
 
-    // we don't use super.setPredecessor(..) and super.setSuccessor(..) since
-    // we don't want this edge to be added to the edges of pNode ... or do we?
+    // do we want to add this edge to be added to the edges of pNode?
     // our transfer relation just returns bottom if it has no successor on the 
     // self loop
+    pNode.addEnteringEdge(this);
+    pNode.addLeavingEdge(this);
+
     // if we add it permanently to the CFA we don't need to maintain a cache.
     // mNode = pNode;
-    
-    super.setPredecessor(pNode);
-    super.setSuccessor(pNode);
-    
-    super.setIsJumpEdge(false);
   }
 
   @Override
@@ -64,25 +60,7 @@ public class InternalSelfLoop extends BlankEdge {
   }
 
   @Override
-  public void setIsJumpEdge(boolean pJumpEdge) {
+  public void addToCFA() {
     throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void initialize(CFANode pPredecessor, CFANode pSuccessor) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void setPredecessor(CFANode pPredecessor)
-      throws CFAGenerationRuntimeException {
-    throw new UnsupportedOperationException();
-  }
-  
-  @Override
-  public void setSuccessor(CFANode pSuccessor)
-      throws CFAGenerationRuntimeException {
-    throw new UnsupportedOperationException();
-  }
-  
+  }  
 }

@@ -121,8 +121,8 @@ public class CFASimplifier {
 		node.removeLeavingEdge(leavingEdge);
 		successor.removeEnteringEdge(leavingEdge);
 		
-		BlankEdge be = new BlankEdge("removed declaration");
-		be.initialize(node, successor);
+		BlankEdge be = new BlankEdge("removed declaration", node, successor);
+		be.addToCFA();
 	}
 
 	private void makeMultiStatement (CFANode cfa)
@@ -149,8 +149,8 @@ public class CFASimplifier {
 			priorNode.removeLeavingEdge (enteringEdge);
 			afterNode.removeEnteringEdge (leavingEdge);
 
-			MultiStatementEdge msEdge = new MultiStatementEdge ("multi-statement edge", expressions);
-			msEdge.initialize (priorNode, afterNode);
+			MultiStatementEdge msEdge = new MultiStatementEdge("multi-statement edge", priorNode, afterNode, expressions);
+			msEdge.addToCFA();
 		}
 		else if (enteringEdge.getEdgeType () == CFAEdgeType.MultiStatementEdge)
 		{
@@ -158,10 +158,14 @@ public class CFASimplifier {
 			List<IASTExpression> expressions = msEdge.getExpressions ();
 			expressions.add (leavingStatementEdge.getExpression ());
 
-			CFANode afterNode = leavingEdge.getSuccessor ();
-			afterNode.removeEnteringEdge (leavingEdge);
+	    CFANode priorNode = enteringEdge.getPredecessor ();
+	    CFANode afterNode = leavingEdge.getSuccessor ();
+			
+	    priorNode.removeLeavingEdge (enteringEdge);
+	    afterNode.removeEnteringEdge (leavingEdge);
 
-			msEdge.setSuccessor (afterNode);
+	    MultiStatementEdge newMsEdge = new MultiStatementEdge("multi-statement edge", priorNode, afterNode, expressions);
+	    newMsEdge.addToCFA();
 		}
 	}
 
@@ -194,8 +198,8 @@ public class CFASimplifier {
 			priorNode.removeLeavingEdge (enteringEdge);
 			afterNode.removeEnteringEdge (leavingEdge);
 
-			MultiDeclarationEdge mdEdge = new MultiDeclarationEdge ("multi-declaration edge", declarators, rawStatements);
-			mdEdge.initialize (priorNode, afterNode);
+			MultiDeclarationEdge mdEdge = new MultiDeclarationEdge ("multi-declaration edge", priorNode, afterNode, declarators, rawStatements);
+			mdEdge.addToCFA();
 		}
 		else if (enteringEdge.getEdgeType () == CFAEdgeType.MultiDeclarationEdge)
 		{
@@ -207,10 +211,14 @@ public class CFASimplifier {
 			List<String> rawStatements = mdEdge.getRawStatements ();
 			rawStatements.add (leavingDeclarationEdge.getRawStatement ());
 
-			CFANode afterNode = leavingEdge.getSuccessor ();
-			afterNode.removeEnteringEdge (leavingEdge);
+	    CFANode priorNode = enteringEdge.getPredecessor ();
+	    CFANode afterNode = leavingEdge.getSuccessor ();
+			
+      priorNode.removeLeavingEdge (enteringEdge);
+	    afterNode.removeEnteringEdge (leavingEdge);
 
-			mdEdge.setSuccessor (afterNode);
+      MultiDeclarationEdge newMdEdge = new MultiDeclarationEdge ("multi-declaration edge", priorNode, afterNode, declarators, rawStatements);
+      newMdEdge.addToCFA();
 		}
 	}
 }

@@ -29,16 +29,15 @@ import cfa.objectmodel.CFAEdgeType;
 
 public class BlankEdge extends AbstractCFAEdge
 {
-    private boolean jumpEdge;
+    private final boolean jumpEdge;
 
-    public BlankEdge (String rawStatement)
-    {
-        super (rawStatement);
-        jumpEdge = false;
+    public BlankEdge(String rawStatement, CFANode predecessor, CFANode successor) {
+      this(rawStatement, predecessor, successor, false);
     }
 
-    public void setIsJumpEdge (boolean jumpEdge)
+    public BlankEdge(String rawStatement, CFANode predecessor, CFANode successor, boolean jumpEdge)
     {
+        super(rawStatement, predecessor, successor);
         this.jumpEdge = jumpEdge;
     }
 

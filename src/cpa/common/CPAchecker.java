@@ -472,13 +472,13 @@ public class CPAchecker {
 //          continue;
 //        }
 //      }
-      GlobalDeclarationEdge e = new GlobalDeclarationEdge(
-          d.getRawSignature(),
-          sd.getDeclarators(),
-          sd.getDeclSpecifier());
       CFANode n = new CFANode(0);
       n.setFunctionName(cur.getFunctionName());
-      e.initialize(cur, n);
+      GlobalDeclarationEdge e = new GlobalDeclarationEdge(
+          d.getRawSignature(), cur, n,
+          sd.getDeclarators(),
+          sd.getDeclSpecifier());
+      e.addToCFA();
       decls.add(n);
       cur = n;
     }
@@ -494,12 +494,12 @@ public class CPAchecker {
     secondNode.removeEnteringEdge(firstEdge);
     
     // and add a blank edge connecting the first node of CFA with declarations
-    BlankEdge be = new BlankEdge("INIT GLOBAL VARS");
-    be.initialize(cfa, decls.get(0));
+    BlankEdge be = new BlankEdge("INIT GLOBAL VARS", cfa, decls.get(0));
+    be.addToCFA();
 
     // and a blank edge connecting the declarations with the second node of CFA
-    be = new BlankEdge(firstEdge.getRawStatement());
-    be.initialize(cur, secondNode);
+    be = new BlankEdge(firstEdge.getRawStatement(), cur, secondNode);
+    be.addToCFA();
     
     return;
   }

@@ -25,29 +25,17 @@ package cfa.objectmodel.c;
 
 import cfa.objectmodel.AbstractCFAEdge;
 import cfa.objectmodel.CFAEdgeType;
+import cfa.objectmodel.CFANode;
 
 
-public class ReturnEdge extends AbstractCFAEdge
-{
+public class ReturnEdge extends AbstractCFAEdge {
 
-	private boolean isExitingRecursiveCall = false;
+  public ReturnEdge(String rawStatement, CFANode predecessor, CFANode successor) {
+    super(rawStatement, predecessor, successor);
+  }
 
-	public ReturnEdge (String rawStatement)
-    {
-        super (rawStatement);
-    }
-
-    public CFAEdgeType getEdgeType ()
-    {
-        return CFAEdgeType.ReturnEdge;
-    }
-
-	public void setExitFromRecursive() {
-		isExitingRecursiveCall = true;
-	}
-
-	public boolean isExitingRecursiveCall() {
-		return isExitingRecursiveCall;
-	}
+  public CFAEdgeType getEdgeType() {
+    return CFAEdgeType.ReturnEdge;
+  }
 
 }

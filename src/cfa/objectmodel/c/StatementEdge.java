@@ -27,24 +27,20 @@ import org.eclipse.cdt.core.dom.ast.IASTExpression;
 
 import cfa.objectmodel.AbstractCFAEdge;
 import cfa.objectmodel.CFAEdgeType;
+import cfa.objectmodel.CFANode;
 
 
 
 public class StatementEdge extends AbstractCFAEdge
 {
-    private IASTExpression expression;
-    private boolean jumpEdge;
+    private final IASTExpression expression;
+    private final boolean jumpEdge;
 
-    public StatementEdge (String rawStatement,
-                              IASTExpression expression)
+    public StatementEdge(String rawStatement, CFANode predecessor, CFANode successor,
+                              IASTExpression expression, boolean jumpEdge)
     {
-        super (rawStatement);
+        super(rawStatement, predecessor, successor);
         this.expression = expression;
-        this.jumpEdge = false;
-    }
-
-    public void setIsJumpEdge (boolean jumpEdge)
-    {
         this.jumpEdge = jumpEdge;
     }
 
