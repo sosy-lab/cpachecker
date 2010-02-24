@@ -140,6 +140,9 @@ implements SymbPredAbsFormulaManager
   @Option(name="refinement.msatCexFile")
   private String msatCexFile = "cex.msat";
   
+  @Option(name="refinement.dumpInterpolationProblems")
+  private boolean dumpInterpolationProblems = false;
+  
   private final Map<Pair<SymbolicFormula, List<SymbolicFormula>>, AbstractFormula> abstractionCache;
   //cache for cartesian abstraction queries. For each predicate, the values
   // are -1: predicate is false, 0: predicate is don't care,
@@ -613,6 +616,16 @@ implements SymbPredAbsFormulaManager
       f = Collections.unmodifiableList(getUsefulBlocks(f, theoryCombinationNeeded, useSuffix, useZigZag));
     }
 
+    if (dumpInterpolationProblems) {
+      int refinement = stats.numCallsCexAnalysis;
+      logger.log(Level.FINEST, "Dumping", f.size(), "formulas of refinement number", refinement);
+      
+      int k = 0;
+      for (SymbolicFormula formula : f) {
+        dumpFormulasToFile(Collections.singleton(formula), msatCexFile + ".ref" + refinement + ".f" + k++);
+      }
+    }
+    
     List<T> itpGroupsIds = new ArrayList<T>(f.size());
     for (int i = 0; i < f.size(); i++) {
       itpGroupsIds.add(null);
