@@ -25,12 +25,9 @@ package cfa.objectmodel;
 
 import java.util.logging.Level;
 
-import cpa.common.CPAchecker;
+import com.google.common.base.Preconditions;
 
-import cfa.objectmodel.AbstractCFAEdge;
-import cfa.objectmodel.CFAEdge;
-import cfa.objectmodel.CFANode;
-import exceptions.CFAGenerationRuntimeException;
+import cpa.common.CPAchecker;
 
 
 public abstract class AbstractCFAEdge implements CFAEdge
@@ -53,8 +50,6 @@ public abstract class AbstractCFAEdge implements CFAEdge
         // some additional checking is required for jump edges
         boolean deadEdge = false;
         if (this.isJumpEdge()) {
-          // a null predecessor doesn't make sense
-          assert (predecessor != null);
           int numLeavingEdges = predecessor.getNumLeavingEdges ();
           int numRemoved = 0;
           for (int idx = 0; idx < numLeavingEdges; ++idx)
@@ -79,7 +74,7 @@ public abstract class AbstractCFAEdge implements CFAEdge
           // if there was a jump edge already (deadEdge == true) then no other
           // edge must have existed
           assert (!deadEdge || 1 == numLeavingEdges);
-        } else if (predecessor != null && predecessor.hasJumpEdgeLeaving()) {
+        } else if (predecessor.hasJumpEdgeLeaving()) {
           // there is a jump edge already, no use adding this one
           // may happen if there is a return in a switch
           deadEdge = true;
@@ -96,14 +91,14 @@ public abstract class AbstractCFAEdge implements CFAEdge
         return predecessor;
     }
 
-    public void setPredecessor (CFANode predecessor) throws CFAGenerationRuntimeException
-    {
-        if (this.predecessor != null)
-            this.predecessor.removeLeavingEdge (this);
-
-        this.predecessor = predecessor;
-        if (this.predecessor != null)
-            this.predecessor.addLeavingEdge (this);
+    public void setPredecessor (CFANode pPredecessor) {
+      Preconditions.checkNotNull(pPredecessor);
+      if (this.predecessor != null) {
+        this.predecessor.removeLeavingEdge(this);
+      }
+      
+      this.predecessor = pPredecessor;
+      this.predecessor.addLeavingEdge(this);
     }
 
     public CFANode getSuccessor ()
@@ -111,14 +106,14 @@ public abstract class AbstractCFAEdge implements CFAEdge
         return successor;
     }
 
-    public void setSuccessor (CFANode successor) throws CFAGenerationRuntimeException
-    {
-        if (this.successor != null)
-            this.successor.removeEnteringEdge (this);
-
-        this.successor = successor;
-        if (this.successor != null)
-            this.successor.addEnteringEdge (this);
+    public void setSuccessor(CFANode pSuccessor) {
+      Preconditions.checkNotNull(pSuccessor);
+      if (this.successor != null) {
+        throw new UnsupportedOperationException();
+      }
+      
+      this.successor = pSuccessor;
+      this.successor.addEnteringEdge (this);
     }
 
     public String getRawStatement ()
