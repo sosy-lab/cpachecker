@@ -61,6 +61,7 @@ import cfa.objectmodel.BlankEdge;
 import cfa.objectmodel.CFAErrorNode;
 import cfa.objectmodel.CFAExitNode;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
+import cfa.objectmodel.CFALabelNode;
 import cfa.objectmodel.CFANode;
 import cfa.objectmodel.c.AssumeEdge;
 import cfa.objectmodel.c.DeclarationEdge;
@@ -87,7 +88,7 @@ public class CFABuilder extends ASTVisitor
 	private Deque<CFANode> switchStartStack;
 
 	// Data structures for handling goto
-	private Map<String, CFANode> labelMap;
+	private Map<String, CFALabelNode> labelMap;
 	private Map<String, List<CFANode>> gotoLabelNeeded;
 
 	// Data structures for handling function declarations
@@ -119,7 +120,7 @@ public class CFABuilder extends ASTVisitor
 		elseStack = new ArrayDeque<CFANode> ();
 		switchStartStack = new ArrayDeque<CFANode> ();
 
-		labelMap = new HashMap<String, CFANode> ();
+		labelMap = new HashMap<String, CFALabelNode> ();
 		gotoLabelNeeded = new HashMap<String, List<CFANode>> ();
 
 		cfas = new HashMap<String, CFAFunctionDefinitionNode>();
@@ -443,14 +444,14 @@ public class CFABuilder extends ASTVisitor
 		String labelName = labelStatement.getName ().toString ();
 
 		CFANode prevNode = locStack.pop ();
-		CFANode labelNode = null; // AG
+		CFALabelNode labelNode = null; // AG
 		if (labelName.toLowerCase().startsWith("error")) {
 		    // AG - we want to know which are the error locations: each
 		    // node with a label starting with "error"
 		    labelNode = new CFAErrorNode(
 		            fileloc.getStartingLineNumber());
 		} else {
-		    labelNode = new CFANode (fileloc.getStartingLineNumber ());
+		    labelNode = new CFALabelNode (fileloc.getStartingLineNumber ());
 		}
 
 		BlankEdge blankEdge = new BlankEdge("Label: " + labelName, prevNode, labelNode);

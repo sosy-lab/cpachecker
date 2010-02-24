@@ -23,13 +23,9 @@
  */
 package cfa.objectmodel;
 
-/**
- * A special CFANode to record Error locations
- * @author alb
- */
-public class CFAErrorNode extends CFALabelNode {
+public class CFALabelNode extends CFANode {
 
-    public CFAErrorNode(int lineNumber) {
+    public CFALabelNode(int lineNumber) {
         super(lineNumber);
     }
 
