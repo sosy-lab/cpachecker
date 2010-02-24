@@ -483,18 +483,24 @@ public class CPAchecker {
       cur = n;
     }
 
-    // now update the successors of cfa
-    for (int i = 0; i < cfa.getNumLeavingEdges(); ++i) {
-      CFAEdge e = cfa.getLeavingEdge(i);
-      e.setPredecessor(cur);
-    }
-    if (cfa.getLeavingSummaryEdge() != null) {
-      cfa.getLeavingSummaryEdge().setPredecessor(cur);
-    }
-    // and add a blank edge connecting the first node in decl with cfa
+    // split off first node of CFA
+    assert cfa.getNumLeavingEdges() == 1;
+    assert cfa.getLeavingSummaryEdge() == null;
+    CFAEdge firstEdge = cfa.getLeavingEdge(0);
+    assert firstEdge instanceof BlankEdge && !firstEdge.isJumpEdge();
+    CFANode secondNode = firstEdge.getSuccessor();
+    
+    cfa.removeLeavingEdge(firstEdge);
+    secondNode.removeEnteringEdge(firstEdge);
+    
+    // and add a blank edge connecting the first node of CFA with declarations
     BlankEdge be = new BlankEdge("INIT GLOBAL VARS");
     be.initialize(cfa, decls.get(0));
 
+    // and a blank edge connecting the declarations with the second node of CFA
+    be = new BlankEdge(firstEdge.getRawStatement());
+    be.initialize(cur, secondNode);
+    
     return;
   }
   
