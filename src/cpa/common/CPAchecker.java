@@ -112,10 +112,7 @@ public class CPAchecker {
     
     @Option(name="cfa.removeIrrelevantForErrorLocations")
     boolean removeIrrelevantForErrorLocations = false;
-    
-    @Option(name="cfa.check")
-    boolean checkCfa = false;
-    
+
     @Option(name="cfa.export")
     boolean exportCfa = true;
     
@@ -408,12 +405,9 @@ public class CPAchecker {
     //                execution of the code
     
     // check the CFA of each function
-    // enable only while debugging/testing
-//    if(CPAMain.cpaConfig.getBooleanValue("cfa.check")){
-//      for(CFAFunctionDefinitionNode cfa : cfasList){
-//        CFACheck.check(cfa);
-//      }
-//    }
+    for (CFAFunctionDefinitionNode cfa : cfas.values()) {
+      assert CFACheck.check(cfa);
+    }
 
     // --Refactoring: The following section was relocated to after the "initCFA" method 
     
@@ -430,10 +424,7 @@ public class CPAchecker {
     }
     
     // check the super CFA starting at the main function
-    // enable only while debugging/testing
-    if (options.checkCfa){
-      CFACheck.check(mainFunction);
-    }
+    assert CFACheck.check(mainFunction);
 
     // write CFA to file
     if (options.exportCfa) {

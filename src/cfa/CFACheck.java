@@ -41,7 +41,7 @@ public class CFACheck {
    * BFS-traverse the CFA and run a series of checks at each node
    * @param cfa Node to start traversal from
    */
-  public static void check (CFAFunctionDefinitionNode cfa)
+  public static boolean check (CFAFunctionDefinitionNode cfa)
   {
     // Code copied from CFASimplifier.java
     Set<CFANode> visitedNodes = new HashSet<CFANode> ();
@@ -60,10 +60,11 @@ public class CFACheck {
       }
 
       // The actual checks
-      assert(isConsistent(node));
-      assert(errorNodeHasSuccessor(node));
-      assert(jumpConsistency(node));
+      assert isConsistent(node) : "Incosistent node " + node;
+      assert errorNodeHasSuccessor(node) : "Error node without successor: " + node;
+      assert jumpConsistency(node) : "Incosistent jump at node " + node;
     }
+    return true;
   }
 
   /**
