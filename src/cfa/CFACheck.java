@@ -81,7 +81,9 @@ public class CFACheck {
     for (int edgeIdx = 0; edgeIdx < leavingEdgeCount; ++edgeIdx)
     {
       CFAEdge edge = pNode.getLeavingEdge(edgeIdx);
-      if (!seen.add(edge)) return false;
+      if (!seen.add(edge)) {
+        assert false : "Duplicate leaving edge " + edge + " on node " + pNode;
+      }
       CFANode successor = edge.getSuccessor();
       int succEnteringEdgeCount = successor.getNumEnteringEdges();
       boolean hasEdge = false;
@@ -91,7 +93,10 @@ public class CFACheck {
           break;
         }
       }
-      if (!hasEdge) return false;
+      if (!hasEdge) {
+        assert false : "Node " + pNode + " has leaving edge " + edge
+            + ", but pNode " + successor + " does not have this edge as entering edge!";
+      }
     }
     
     seen.clear();
@@ -99,7 +104,9 @@ public class CFACheck {
     for (int edgeIdx = 0; edgeIdx < enteringEdgeCount; ++edgeIdx)
     {
       CFAEdge edge = pNode.getEnteringEdge(edgeIdx);
-      if (!seen.add(edge)) return false;
+      if (!seen.add(edge)) {
+        assert false : "Duplicate entering edge " + edge + " on node " + pNode;
+      }
       CFANode predecessor = edge.getPredecessor();
       int predLeavingEdgeCount = predecessor.getNumLeavingEdges();
       boolean hasEdge = false;
@@ -109,7 +116,10 @@ public class CFACheck {
           break;
         }
       }
-      if (!hasEdge) return false;
+      if (!hasEdge) {
+        assert false : "Node " + pNode + " has entering edge " + edge
+            + ", but pNode " + predecessor + " does not have this edge as leaving edge!";
+      }
     }
 
     return true;
