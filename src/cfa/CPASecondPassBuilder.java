@@ -214,7 +214,7 @@ public class CPASecondPassBuilder {
       callEdge.initialize (node, edge.getSuccessor());
       callEdge.getSuccessor().setFunctionName(node.getFunctionName());
       CallToReturnEdge calltoReturnEdge = new CallToReturnEdge("External Call", expr);
-      calltoReturnEdge.initializeSummaryEdge(node, edge.getSuccessor());
+      calltoReturnEdge.initialize(node, edge.getSuccessor());
       node.removeLeavingEdge(edge);
       successorNode.removeEnteringEdge(edge);
       return;
@@ -230,7 +230,7 @@ public class CPASecondPassBuilder {
     returnEdge.getSuccessor().setFunctionName(node.getFunctionName());
 
     CallToReturnEdge calltoReturnEdge = new CallToReturnEdge(expr.getRawSignature(), expr);
-    calltoReturnEdge.initializeSummaryEdge(node, successorNode);
+    calltoReturnEdge.initialize(node, successorNode);
 
     node.removeLeavingEdge(edge);
     successorNode.removeEnteringEdge(edge);

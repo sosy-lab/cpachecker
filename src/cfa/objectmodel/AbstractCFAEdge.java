@@ -109,7 +109,7 @@ public abstract class AbstractCFAEdge implements CFAEdge
     public void setSuccessor(CFANode pSuccessor) {
       Preconditions.checkNotNull(pSuccessor);
       if (this.successor != null) {
-        throw new UnsupportedOperationException();
+        this.successor.removeEnteringEdge (this);
       }
       
       this.successor = pSuccessor;

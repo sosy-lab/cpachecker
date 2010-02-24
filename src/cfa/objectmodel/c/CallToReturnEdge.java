@@ -41,7 +41,8 @@ public class CallToReturnEdge extends AbstractCFAEdge {
 		this.expression = exp;
 	}
 
-	public void initializeSummaryEdge(CFANode predecessorNode, CFANode successorNode) {
+	@Override
+  public void initialize(CFANode predecessorNode, CFANode successorNode) {
 		predecessorNode.addLeavingSummaryEdge(this);
 		predecessor = predecessorNode;
 		successorNode.addEnteringSummaryEdge (this);

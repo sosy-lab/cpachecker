@@ -42,6 +42,4 @@ public interface CFAEdge
     public String getRawStatement ();
 
     public boolean isJumpEdge ();
-
-    public void initialize (CFANode predecessor, CFANode successor);
 }
