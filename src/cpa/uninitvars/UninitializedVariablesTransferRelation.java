@@ -135,10 +135,12 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       FunctionCallEdge callEdge = (FunctionCallEdge)cfaEdge;
       //if the function is external, display warnings for uninitialized arguments
       if (callEdge.isExternalCall()) {
-        IASTExpression[] args = callEdge.getArguments();
-        if (args != null) {
-          for (IASTExpression exp : args) {
-            handleStatement(successor, exp, cfaEdge);
+        if (printWarnings) {
+          IASTExpression[] args = callEdge.getArguments();
+          if (args != null) {
+            for (IASTExpression exp : args) {
+              isExpressionUninitialized(successor, exp, cfaEdge);
+            }
           }
         }
       //if the function is internal, handle separately
