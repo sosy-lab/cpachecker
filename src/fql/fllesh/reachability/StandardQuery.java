@@ -1,31 +1,35 @@
 package fql.fllesh.reachability;
 
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.NoSuchElementException;
 import java.util.Set;
 
-import compositeCPA.CompositeCPA;
+import cfa.objectmodel.CFANode;
+
 import compositeCPA.CompositeElement;
 import compositeCPA.CompositePrecision;
 
-import cpa.alwaystop.AlwaysTopCPA;
 import cpa.common.ReachedElements;
+import cpa.common.interfaces.AbstractElement;
 import cpa.common.ReachedElements.TraversalMethod;
-import cpa.concrete.ConcreteAnalysisCPA;
-import cpa.location.LocationCPA;
-import cpa.mustmay.MustMayAnalysisCPA;
 import fql.backend.pathmonitor.Automaton;
-import fql.fllesh.cpa.QueryCPA;
+import fql.fllesh.cpa.QueryStandardElement;
 
 public class StandardQuery extends AbstractQuery {
 
   private LinkedList<Waypoint> lNextWaypoints;
   
-  public static StandardQuery create(Automaton pFirstAutomaton, Automaton pSecondAutomaton, CompositeElement pSourceElement, CompositePrecision pSourcePrecision, Set<Integer> pSourceStatesOfFirstAutomaton, Set<Integer> pSourceStatesOfSecondAutomaton, CompositeElement pTargetElement, Set<Integer> pTargetStatesOfFirstAutomaton, Set<Integer> pTargetStatesOfSecondAutomaton) {
+  //public static StandardQuery create(Automaton pFirstAutomaton, Automaton pSecondAutomaton, CompositeElement pSourceElement, CompositePrecision pSourcePrecision, Set<Integer> pSourceStatesOfFirstAutomaton, Set<Integer> pSourceStatesOfSecondAutomaton, CompositeElement pTargetElement, Set<Integer> pTargetStatesOfFirstAutomaton, Set<Integer> pTargetStatesOfSecondAutomaton) {
+  public static StandardQuery create(Automaton pFirstAutomaton, Automaton pSecondAutomaton, CompositeElement pSourceElement, CompositePrecision pSourcePrecision, Set<Integer> pSourceStatesOfFirstAutomaton, Set<Integer> pSourceStatesOfSecondAutomaton, CFANode pCFANode, Set<Integer> pTargetStatesOfFirstAutomaton, Set<Integer> pTargetStatesOfSecondAutomaton) {
     StandardQuery lQuery = new StandardQuery(pFirstAutomaton, pSecondAutomaton);
     
     Waypoint lSource = new Waypoint(lQuery, pSourceElement, pSourcePrecision, pSourceStatesOfFirstAutomaton, pSourceStatesOfSecondAutomaton);
-    Waypoint lTarget = new Waypoint(lQuery, pTargetElement, null, pTargetStatesOfFirstAutomaton, pTargetStatesOfSecondAutomaton);
+    //Waypoint lTarget = new Waypoint(lQuery, pTargetElement, null, pTargetStatesOfFirstAutomaton, pTargetStatesOfSecondAutomaton);
+    
+    // TODO support for predicates is missing
+    // TODO support for call stack missing
+    TargetPoint lTarget = new TargetPoint(pCFANode, pFirstAutomaton, pTargetStatesOfFirstAutomaton, pSecondAutomaton, pTargetStatesOfSecondAutomaton);
     
     lQuery.mSource = lSource;
     lQuery.mTarget = lTarget;
@@ -34,14 +38,15 @@ public class StandardQuery extends AbstractQuery {
   }
   
   private Waypoint mSource;
-  private Waypoint mTarget;
+  //private Waypoint mTarget;
+  private TargetPoint mTarget;
   
-  private AlwaysTopCPA mMayCPA;
+  /*private AlwaysTopCPA mMayCPA;
   private ConcreteAnalysisCPA mMustCPA;
   private MustMayAnalysisCPA mMustMayAnalysisCPA;
   private LocationCPA mLocationCPA;
   private CompositeCPA mCompositeCPA;
-  private QueryCPA mQueryCPA;
+  private QueryCPA mQueryCPA;*/
   
   private boolean mExplorationFinished;
   private ReachedElements mReachedElements;
@@ -90,7 +95,8 @@ public class StandardQuery extends AbstractQuery {
     return mSource;
   }
   
-  public Waypoint getTarget() {
+  //public Waypoint getTarget() {
+  public TargetPoint getTarget() {
     return mTarget;
   }
   
@@ -114,9 +120,48 @@ public class StandardQuery extends AbstractQuery {
     }
     
     // evaluate reached elements with regard to new waypoints
+    // Here, the initial state can be treated as a waypoint, too. 
+    // Do we need a set with already seen waypoints to exclude 
+    // reinvestigating waypoints?
+    
+    
+    // TODO derive from composite element in order to introduce a structure
+    
+    
+    //Set<AbstractElement> lPotentialTargets = mReachedElements.getReached(mTarget.getElement());
+    // TODO support for predicates is missing
+    Set<AbstractElement> lPotentialTargets = mReachedElements.getReached(mTarget.getCFANode());
+    
+    //CallStack lTargetCallStack = mTarget.getElement().getCallStack();
+    
+    Set<QueryStandardElement> lPotentialTargetsForRefinement = new HashSet<QueryStandardElement>();
+    Set<QueryStandardElement> lDefiniteTargets = new HashSet<QueryStandardElement>();
+    
+    for (AbstractElement lPotentialTarget : lPotentialTargets) {
+      CompositeElement lElement = (CompositeElement)lPotentialTarget;
+      
+      QueryStandardElement lQueryElement = lElement.retrieveWrappedElement(QueryStandardElement.class);
+      
+      assert(lQueryElement != null);
+      
+      if (mTarget.satisfiesTarget(lQueryElement)) {
+        if (lQueryElement.getMustState1() && lQueryElement.getMustState2()) {
+          lDefiniteTargets.add(lQueryElement);
+        }
+        else {
+          lPotentialTargetsForRefinement.add(lQueryElement);
+        }
+      }
+    }
+    
+    
+    // TODO process targets and potential targets for refinement and add to lNextWaypoints
+    System.out.println("Definite Targets: " + lDefiniteTargets);
+    System.out.println("Potential Targets: " + lPotentialTargetsForRefinement);
+    
     
     if (lNextWaypoints.isEmpty()) {
-      // we have found no new waypoints
+      // we have not found any new waypoints
       mExplorationFinished = true;
     }
   }

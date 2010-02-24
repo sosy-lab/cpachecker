@@ -112,11 +112,15 @@ public class FeasibilityCheck {
           
           int lQueryIndex = lQueries.size() - 1;
           
-          CompositeElement lNextElement = createNextElement(pWaypointSequence.get(lQueryIndex));
+          //CompositeElement lNextElement = createNextElement(pWaypointSequence.get(lQueryIndex));
           
           Automaton lNextAutomaton = pAutomatonSequence.get(lQueryIndex);
           
-          Query lNextQuery = StandardQuery.create(lNextAutomaton, pPassingMonitor, lWaypoint.getElement(), lWaypoint.getPrecision(), lNextAutomaton.getInitialStates(), lWaypoint.getStatesOfSecondAutomaton(), lNextElement, lNextAutomaton.getFinalStates(), lFinalStates);
+          //Query lNextQuery = StandardQuery.create(lNextAutomaton, pPassingMonitor, lWaypoint.getElement(), lWaypoint.getPrecision(), lNextAutomaton.getInitialStates(), lWaypoint.getStatesOfSecondAutomaton(), lNextElement, lNextAutomaton.getFinalStates(), lFinalStates);
+          // TODO we have no predicate support currently
+          CFANode lNextTargetCFANode = pWaypointSequence.get(lQueryIndex).getCFANode(); 
+          
+          Query lNextQuery = StandardQuery.create(lNextAutomaton, pPassingMonitor, lWaypoint.getElement(), lWaypoint.getPrecision(), lNextAutomaton.getInitialStates(), lWaypoint.getStatesOfSecondAutomaton(), lNextTargetCFANode, lNextAutomaton.getFinalStates(), lFinalStates);
           
           lQueries.addLast(lNextQuery);
         }
@@ -176,7 +180,7 @@ public class FeasibilityCheck {
     return lInitialCompositeElement;
   }
   
-  public static CompositeElement createNextElement(Node pNextNode) {
+  /*public static CompositeElement createNextElement(Node pNextNode) {
     assert(pNextNode != null);
     
     if (!pNextNode.getPredicates().isEmpty()) {
@@ -209,7 +213,7 @@ public class FeasibilityCheck {
     //lInitialCompositeElement.setCallStack(lInitialCallStack);
     
     return lNextElement;
-  }
+  }*/
   
   private FeasibilityWitness generateWitness(LinkedList<Waypoint> lWaypoints) {
     assert(lWaypoints != null);

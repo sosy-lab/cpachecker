@@ -101,14 +101,14 @@ public class StandardQueryTest {
     ConfigurableProgramAnalysis lCompositeCPA = CompositeCPA.factory().setChildren(lCPAs).createInstance();
     
     CompositeElement lInitialDataSpaceElement = FeasibilityCheck.createInitialElement(lProgramEntry);
-    CompositeElement lFinalDataSpaceElement = FeasibilityCheck.createNextElement(lProgramExit);
+    //CompositeElement lFinalDataSpaceElement = FeasibilityCheck.createNextElement(lProgramExit);
     
     CompositePrecision lDataSpacePrecision = (CompositePrecision)lCompositeCPA.getInitialPrecision(lMainFunction);
     
     Automaton lFirstAutomaton = Automaton.create(Identity.getInstance(), lTargetGraph);
     Automaton lSecondAutomaton = Automaton.create(Identity.getInstance(), lTargetGraph);
     
-    StandardQuery lQuery = StandardQuery.create(lFirstAutomaton, lSecondAutomaton, lInitialDataSpaceElement, lDataSpacePrecision, lFirstAutomaton.getInitialStates(), lSecondAutomaton.getInitialStates(), lFinalDataSpaceElement, lFirstAutomaton.getFinalStates(), lSecondAutomaton.getFinalStates());
+    StandardQuery lQuery = StandardQuery.create(lFirstAutomaton, lSecondAutomaton, lInitialDataSpaceElement, lDataSpacePrecision, lFirstAutomaton.getInitialStates(), lSecondAutomaton.getInitialStates(), lMainFunction.getExitNode(), lFirstAutomaton.getFinalStates(), lSecondAutomaton.getFinalStates());
 
     System.out.println("Source: " + lQuery.getSource().toString());
     System.out.println("Target: " + lQuery.getTarget().toString());
