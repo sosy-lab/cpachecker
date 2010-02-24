@@ -196,7 +196,7 @@ def main(which, benchmarks, configs, time_limit, mem_limit, outfile,
                     fname = name.ljust(maxlen)
                     ftime = str(d[name][0]).rjust(maxlentime)
                     foutcome = d[name][1].ljust(15)
-                    freached = d[name][2].ljust(7)
+                    freached = (d[name][2] if d[name][2] != None else "").ljust(7)
                     frefinements = (d[name][3] if d[name][3] != None else "").ljust(15)
                     fabstractions = (d[name][4] if d[name][4] != None else "").ljust(22)
                     fblocksize = d[name][5] if d[name][5] != None else ""

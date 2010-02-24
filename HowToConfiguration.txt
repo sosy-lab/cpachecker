@@ -1,0 +1,35 @@
+Configuration options:
+
+Name				possible values		default		recommended	explanation			
+-------------------------------------------------------------------------------------------------------------------------------------
+output.path			path			<ERROR>		test/output/	name of path for all output 
+log.file			filename		"CPALog.txt"	"CPALog.txt"	filename for logging	
+log.level			off, severe, warning...	"OFF"		<DEPENDS>	verbosity level (higher is less verbose)
+log.consoleLevel		off, severe, warning... "INFO"		<DEPENDS>	verbosity level of console output
+cfa.export			true/false		false		true		write CFA to file
+cfa.file			filename		"cfa.dot"	<DEFAULT>	CFA graph output file
+ART.export			true/false		false		true		write ART to file (needs cpa.useART)
+ART.file			filename		"ART.dot"	<DEFAULT>	ART graph output file
+reachedSet.export		true/false		false		true		write all elements in final reached set to file
+reachedSet.file			filename		"reached.txt"	<DEFAULT>	reached set output file
+cfa.simplify			true/false		false		true		run simplifications below
+cfa.check			true/false		false		true		run consistency checks on CFA
+cfa.combineBlockStatements	true/false		false		false		combine statements and declarations into MultiStatement and MultiDeclaration edges respectively
+cfa.removeIrrelevantForErrorLocations	true/false	false		true		remove all paths not leading to error location
+cfa.removeDeclarations		true/false		false		false		remove all DeclarationEdges from CFA
+parser.dialect			C99, GNUC		C99		GNUC		C dialect which Eclipse CDT parser uses
+analysis.interprocedural	true/false		false		true		combine function CFAs to global CFA
+analysis.useRefinement		true/false		false		<DEPENDS>	use refinement algorithm (needs cpa.useART)
+analysis.useCBMC		true/false		false		false		use CBMC to check counter examples (currently only if analysis.useRefinement)
+analysis.useGlobalVars		true/false		false		true		include global variable declarations (not if useSummaryLocations or useBlockEdges)
+analysis.noExternalCalls	true/false		false		true		don't create call/return edges for external function calls
+analysis.noCompositeCPA		true/false		false		true		don't use composite CPA if there is only one CPA
+predicates.path
+analysis.entryFunction		function name		main		<DEFAULT>	name of function where analysis should start
+analysis.traversal		"dfs","bfs","topsort"	"dfs"		<DEPENDS>	use DFS, BFS or TOPSORT as strategy for visiting states
+analysis.programs		path							for running CPAchecker as eclipse plugin
+cpa				class name		<ERROR>		<DEPENDS>	CPA to use
+analysis.useGlobalVars		true/false		false		true		
+analysis.useFunctionDeclarations	true/false	false		true		include declarations of external functions in CFA
+analysis.programNames		path+filename		<CMDLINE>	<CMDLINE>	the file to analyze
+analysis.stopAfterError		true/false		false		false		if analysis should stop when the first bug has been found

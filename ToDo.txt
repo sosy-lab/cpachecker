@@ -12,12 +12,14 @@ Technical:
   add them to lib/eclipse and change cpa.sh and build.xml so that they use these
   libraries (no need to search for Eclipse directory on disk anymore)
 
-- [PW] write script to add license text to all classes which don't contain it
+- [PW] run script to add license text to all classes which don't contain it
 
 - [MT] Whitespace at the end of a line is undesirable for merging tools, do a cleanup
 
 - [PW] Perhaps move CompositeCPA to cpa.composite package.
 
+- [PW] finish removing accesses to static CPAchecker fields and convert these fields
+  to instance fields.
 
 
 Conceptual suggestions:
@@ -35,7 +37,10 @@ Conceptual suggestions:
   keys which can be provided by the AbstractElement with a getPartitionKey method. This
   key could include location information, call stack.
 
+- [PW] Discuss if MultiStatement/MultiDeclaration edges and the CFASimplifier are
+  still needed.
 
+- [PW] Think of what to do with CFAErrorNode
 
 - [PW] As there is no clear policy which object instances are considered bottom
   (and this differs between CPAs), better remove usage of Top and Bottom. If a
@@ -43,14 +48,6 @@ Conceptual suggestions:
 
 - [MT] move getInitialElement to its own class
   * method makeInitialElement (AE, AEwLoc, must be static)
-  * I'd suggest introducing CPABuilder and *Builder classes that instantiate a
-    CPA, know how to create proper initial elements (with or without location
-    information), and do the initialPrecision stuff
-  * also pass the configuration object to the Builder instead of referring to
-    CPAMain in all the classes
-  [AH] Provide configuration to every CPA via its constructor instead of having
-  a global static variable in order to improve decoupling and reusability.
-  [PW] same for LogManager
  
 - [MT] Instead of the String parameters to set sep or join for merge and stop just
   create multiple CPA classes that fix the operator ** did not understand this, erkan **
@@ -129,6 +126,16 @@ Conceptual suggestions:
 
 Handled Jobs
 ================================
+
+- [MT]
+  * I'd suggest introducing CPABuilder and *Builder classes that instantiate a
+    CPA, know how to create proper initial elements (with or without location
+    information), and do the initialPrecision stuff
+  * also pass the configuration object to the Builder instead of referring to
+    CPAMain in all the classes
+  [AH] Provide configuration to every CPA via its constructor instead of having
+  a global static variable in order to improve decoupling and reusability.
+  [PW] same for LogManager
 
 - [MT] Remove isBottomElement(x) and replace by call to satisfiesPartialOrder(x,
   domain.getBottomElement()) -- [Erkan]
