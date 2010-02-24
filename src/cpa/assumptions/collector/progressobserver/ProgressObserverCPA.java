@@ -46,6 +46,7 @@ import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
+import exceptions.InvalidConfigurationException;
 
 /**
  * @author g.theoduloz
@@ -56,7 +57,9 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
 
   private static class ProgressObserverCPAFactory extends AbstractCPAFactory {    
     @Override
-    public ConfigurableProgramAnalysis createInstance() {
+    public ConfigurableProgramAnalysis createInstance()
+      throws InvalidConfigurationException
+    {
       return new ProgressObserverCPA(getConfiguration(), getLogger());
     }
   }
@@ -68,7 +71,7 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
   @Option(name="analysis.useAssumptionCollector")
   private boolean useAssumptionCollector = false;
   
-  @Option(name="assumptions.observer.heuristics", required=true)
+  @Option(name="heuristics", required=true)
   private String[] heuristicsNames = {};
   
   private final ProgressObserverDomain abstractDomain;
@@ -96,7 +99,7 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
       try {
         Class<?> cls = Class.forName(heuristicsName);
         Constructor<?> constructor = cls.getConstructor(Configuration.class, LogManager.class);
-        Configuration localConfig = new Configuration(config, heuristicsName);
+        Configuration localConfig = new Configuration(config, cls.getSimpleName());
         Object obj = constructor.newInstance(localConfig, logger);
         
         // Convert object to StopHeuristics
@@ -122,9 +125,10 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
     return builder.build();
   }
   
-  private ProgressObserverCPA(Configuration cfg, LogManager mgr)
+  private ProgressObserverCPA(Configuration cfg, LogManager mgr) throws InvalidConfigurationException
   {
     logger = mgr;
+    cfg.inject(this);
     
     // Check if assumption collector is enabled; if not, the analysis will
     // not be sound
@@ -180,3 +184,4 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
   }
 
 }
+  

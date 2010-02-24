@@ -58,7 +58,8 @@ public class ReachedSizeHeuristics implements StopHeuristics<TrivialStopHeuristi
 
   @Override
   public TrivialStopHeuristicsData collectData(StopHeuristicsData pData, ReachedHeuristicsDataSetView pReached) {
-    if ((pData == TrivialStopHeuristicsData.BOTTOM) || (pReached.getHeuristicsData().size() > threshold))
+    if ((pData == TrivialStopHeuristicsData.BOTTOM)
+     || ((threshold > 0) && (pReached.getHeuristicsData().size() > threshold)))
       return TrivialStopHeuristicsData.BOTTOM;
     else
       return TrivialStopHeuristicsData.TOP;
