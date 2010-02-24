@@ -33,6 +33,7 @@ import java.util.Set;
 import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
 
+import cfa.objectmodel.BlankEdge;
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAEdgeType;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
@@ -101,29 +102,27 @@ public class CFASimplifier {
 	}
 
 	/**
-	 * Removes declaration edges when cfa.combineBlockStatements is set
+	 * Removes declaration edges when cfa.removeDeclarations is set
 	 * to true.
 	 * @param node
 	 */
 	private void removeDeclarations(CFANode node) {
-		int numOfEnteringEdges = node.getNumEnteringEdges();
 
-		if (numOfEnteringEdges == 0 || node.getNumLeavingEdges () != 1)
+		if (node.getNumLeavingEdges() != 1) {
 			return;
-
-		CFAEdge leavingEdge = node.getLeavingEdge (0);
-		CFANode successor = leavingEdge.getSuccessor ();
-
-		if (leavingEdge.getEdgeType () != CFAEdgeType.DeclarationEdge)
-			return;
-
-		for(int idx=0; idx<numOfEnteringEdges; idx++){
-			CFAEdge enteringEdge = node.getEnteringEdge (0);
-			successor.removeEnteringEdge (leavingEdge);
-			node.removeEnteringEdge (enteringEdge);
-			node.removeLeavingEdge (leavingEdge);
-			enteringEdge.setSuccessor (successor);
 		}
+
+		CFAEdge leavingEdge = node.getLeavingEdge(0);
+		if (leavingEdge.getEdgeType() != CFAEdgeType.DeclarationEdge) {
+			return;
+		}
+    CFANode successor = leavingEdge.getSuccessor ();
+
+		node.removeLeavingEdge(leavingEdge);
+		successor.removeEnteringEdge(leavingEdge);
+		
+		BlankEdge be = new BlankEdge("removed declaration");
+		be.initialize(node, successor);
 	}
 
 	private void makeMultiStatement (CFANode cfa)
