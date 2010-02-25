@@ -12,15 +12,14 @@ import symbpredabstraction.trace.CounterexampleTraceInfo;
 import cfa.objectmodel.CFAEdge;
 
 import common.Pair;
-import compositeCPA.CompositeCPA;
 
 import cpa.art.ARTElement;
 import cpa.art.ARTReachedSet;
 import cpa.art.AbstractARTBasedRefiner;
 import cpa.art.Path;
 import cpa.common.CPAchecker;
+import cpa.common.interfaces.CPAWrapper;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
-import cpa.transferrelationmonitor.TransferRelationMonitorCPA;
 import exceptions.CPAException;
 
 public class PredicateAbstractionRefiner extends AbstractARTBasedRefiner {
@@ -37,35 +36,32 @@ public class PredicateAbstractionRefiner extends AbstractARTBasedRefiner {
 
 //  private boolean notEnoughPredicatesFlag = false;
 
-  public PredicateAbstractionRefiner(final ConfigurableProgramAnalysis pCpa) throws CPAException {
+  private static PredicateAbstractionCPA extractPredicateAbstractionCPA(ConfigurableProgramAnalysis pCpa)
+    throws CPAException
+  {
+    if (pCpa instanceof PredicateAbstractionCPA)
+      return (PredicateAbstractionCPA)pCpa;
+    
+    if (pCpa instanceof CPAWrapper) {
+      for (ConfigurableProgramAnalysis innerCpa : ((CPAWrapper)pCpa).getWrappedCPAs()) {
+        PredicateAbstractionCPA paCpa = extractPredicateAbstractionCPA(innerCpa);
+        if (paCpa != null)
+          return paCpa;
+      }
+    }
+    
+    return null;
+  }
+  
+  public PredicateAbstractionRefiner(ConfigurableProgramAnalysis pCpa) throws CPAException {
     super(pCpa);
 
     ConfigurableProgramAnalysis cpa = this.getArtCpa().getWrappedCPA();
 
-    if (cpa instanceof PredicateAbstractionCPA) {
-      mCpa = (PredicateAbstractionCPA)cpa;
-    } else {
-      if (cpa instanceof CompositeCPA) {
-        for (ConfigurableProgramAnalysis compCPA : ((CompositeCPA)cpa).getComponentCPAs()) {
-          if (compCPA instanceof PredicateAbstractionCPA) {
-            mCpa = (PredicateAbstractionCPA)compCPA;
-            break;
-          }
-          else if (compCPA instanceof TransferRelationMonitorCPA){
-            // TODO we assume that only one CPA is monitored
-            ConfigurableProgramAnalysis cCpa = ((TransferRelationMonitorCPA)compCPA).getWrappedCPAs().iterator().next();
-            if(cCpa instanceof PredicateAbstractionCPA){
-              mCpa = (PredicateAbstractionCPA)cCpa;
-              break;
-            }
-          }
-        }
-      }
-      if (mCpa == null) {
-        throw new CPAException(getClass().getSimpleName() + " needs a PredicateAbstractionCPA");
-      }
+    mCpa = extractPredicateAbstractionCPA(cpa);
+    if (mCpa == null) {
+      throw new CPAException(getClass().getSimpleName() + " needs a PredicateAbstractionCPA");
     }
-
     amgr = mCpa.getPredAbsFormulaManager();
     abstractCex = new HashMap<Vector<Integer>, Integer>();
   }
