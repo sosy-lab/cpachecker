@@ -79,8 +79,8 @@ public class ProgressObserverTransferRelation implements TransferRelation {
       StopHeuristicsData d = preIt.next();
       StopHeuristicsData postD = h.processEdge(d, edge);
       if (postD.isBottom()) {
-        logger.log(Level.INFO, "Giving up at edge ", edge.toString());
-        logger.log(Level.FINEST, "Observer element at the time was: ", el.toString());
+        logger.log(Level.WARNING, "Giving up at edge", edge.toString(), "because of", h.getClass().getSimpleName());
+        logger.log(Level.FINEST, "Observer element at the time was:", el.toString());
         // 'squash' to bottom
         return ImmutableList.<ProgressObserverElement>of(bottom);
       } else {

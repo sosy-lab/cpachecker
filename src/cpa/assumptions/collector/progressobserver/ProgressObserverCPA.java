@@ -38,7 +38,6 @@ import cpa.common.LogManager;
 import cpa.common.defaults.AbstractCPAFactory;
 import cpa.common.defaults.MergeSepOperator;
 import cpa.common.defaults.SingletonPrecision;
-import cpa.common.defaults.StopNeverOperator;
 import cpa.common.interfaces.CPAFactory;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
@@ -139,7 +138,7 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
     
     abstractDomain = new ProgressObserverDomain(this);
     mergeOperator = MergeSepOperator.getInstance();
-    stopOperator = StopNeverOperator.getInstance();
+    stopOperator = new ProgressObserverStop();
     transferRelation = new ProgressObserverTransferRelation(this);
     precisionAdjustment = new ProgressObserverPrecisionAdjustment(this);
   }
