@@ -265,7 +265,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
                                IASTExpression expression, CFAEdge cfaEdge)
                                throws UnrecognizedCCodeException {
     
-    if (cfaEdge.isJumpEdge()) {
+    if ((cfaEdge instanceof StatementEdge) && ((StatementEdge)cfaEdge).isJumpEdge()) {
       //this is the return-statement of a function
       //set a local variable tracking the return statement's initialization status
       if (isExpressionUninitialized(element, expression, cfaEdge)) {

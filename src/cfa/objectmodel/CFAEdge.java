@@ -37,5 +37,9 @@ public interface CFAEdge
 
     public String getRawStatement ();
 
+    /**
+     * Gives information whether this information represents a jump to a
+     * distant program location (e.g. a return or a goto statement).
+     */
     public boolean isJumpEdge ();
 }

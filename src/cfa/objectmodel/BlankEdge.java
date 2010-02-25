@@ -41,6 +41,10 @@ public class BlankEdge extends AbstractCFAEdge
         this.jumpEdge = jumpEdge;
     }
 
+    /**
+     * Gives information whether this edge is a jump as produced by a goto, 
+     * continue and break statements.
+     */
     @Override
     public boolean isJumpEdge ()
     {

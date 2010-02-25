@@ -10,6 +10,7 @@ import java.util.logging.Level;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression;
 
+import cfa.objectmodel.BlankEdge;
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAErrorNode;
 import cfa.objectmodel.c.StatementEdge;
@@ -64,7 +65,7 @@ public class ErrorLocationTransferRelation implements TransferRelation {
         break;
         
       case BlankEdge:
-        if (cfaEdge.isJumpEdge() && cfaEdge.getRawStatement().toLowerCase().startsWith("goto: error")) {
+        if (((BlankEdge)cfaEdge).isJumpEdge() && cfaEdge.getRawStatement().toLowerCase().startsWith("goto: error")) {
           // This case is currently never reached, as cfaEdge.getSuccessor is a
           // CFAErrorNode in this case, but it is left here if the special
           // handling for error labels is removed from the CFA generation

@@ -44,6 +44,9 @@ public class StatementEdge extends AbstractCFAEdge
         this.jumpEdge = jumpEdge;
     }
 
+    /**
+     * Gives information whether this edge is a return statement.
+     */
     @Override
     public boolean isJumpEdge ()
     {

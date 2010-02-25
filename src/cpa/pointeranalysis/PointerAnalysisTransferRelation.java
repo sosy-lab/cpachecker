@@ -205,7 +205,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
 
       case StatementEdge:
         handleStatement(successor, ((StatementEdge) cfaEdge).getExpression(),
-            cfaEdge);
+            (StatementEdge)cfaEdge);
         break;
 
       case AssumeEdge:
@@ -628,7 +628,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
   }
 
   private void handleStatement(PointerAnalysisElement element,
-      IASTExpression expression, CFAEdge cfaEdge)
+      IASTExpression expression, StatementEdge cfaEdge)
       throws UnrecognizedCCodeException, InvalidPointerException {
 
     if (cfaEdge.isJumpEdge()) {
