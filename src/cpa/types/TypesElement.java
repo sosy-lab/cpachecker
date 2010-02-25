@@ -43,20 +43,21 @@ public class TypesElement implements AbstractElement {
   
   private final Map<String, FunctionType> functions;
  
-  public TypesElement() {
+  public TypesElement(String entryFunction) {
     this.variables = new HashMap<String, Type>();
-    this.typedefs = new HashMap<String, Type>();
+    this.typedefs  = new HashMap<String, Type>();
     this.functions = new HashMap<String, FunctionType>();
     
-    PrimitiveType mainReturnType = new PrimitiveType(Primitive.LONG, true, false);
-    functions.put("main", new FunctionType("main", mainReturnType, false));
+    //default type - not possible to determine actual type at this point
+    PrimitiveType entryReturnType = new PrimitiveType(Primitive.LONG, true, false);
+    functions.put(entryFunction, new FunctionType(entryFunction, entryReturnType, false));
   }
   
   public TypesElement(Map<String, Type> variables, Map<String, Type> typedefs,
                       Map<String, FunctionType> functions) {
     this.variables = new HashMap<String, Type>(variables);
     this.typedefs  = new HashMap<String, Type>(typedefs);
-    this.functions  = new HashMap<String, FunctionType>(functions);
+    this.functions = new HashMap<String, FunctionType>(functions);
   }
   
   public Map<String, Type> getTypedefs() {

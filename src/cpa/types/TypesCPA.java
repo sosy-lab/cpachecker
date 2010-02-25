@@ -53,6 +53,6 @@ public class TypesCPA extends AbstractCPA {
   
   @Override
   public AbstractElement getInitialElement(CFAFunctionDefinitionNode pNode) {
-    return new TypesElement();
+    return new TypesElement(pNode.getFunctionName());
   }
 }
