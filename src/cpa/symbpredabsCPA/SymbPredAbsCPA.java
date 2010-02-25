@@ -25,6 +25,7 @@ package cpa.symbpredabsCPA;
 
 import java.util.Collection;
 
+import symbpredabstraction.CSIsatInterpolatingProver;
 import symbpredabstraction.PathFormula;
 import symbpredabstraction.SSAMap;
 import symbpredabstraction.bdd.BDDAbstractFormulaManager;
@@ -79,8 +80,11 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     return new SymbPredAbsCPAFactory();
   }
   
-  @Option(name="explicit.abstraction.solver", values = {"mathsat", "simplify", "yices"})
-  private String whichProver = "mathsat"; 
+  @Option(name="explicit.abstraction.solver", toUppercase=true, values={"MATHSAT", "SIMPLIFY", "YICES"})
+  private String whichProver = "MATHSAT"; 
+  
+  @Option(name="interpolatingProver", toUppercase=true, values={"MATHSAT", "CSISAT"})
+  private String whichItpProver = "MATHSAT";
   
   private final SymbPredAbsAbstractDomain domain;
   private final SymbPredAbsTransferRelation transfer;
@@ -98,18 +102,24 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     abstractFormulaManager = new BDDAbstractFormulaManager(config);
     symbolicFormulaManager = new MathsatSymbolicFormulaManager(config, logger);
     TheoremProver thmProver;
-    if (whichProver.equals("mathsat")) {
+    if (whichProver.equals("MATHSAT")) {
       thmProver = new MathsatTheoremProver(symbolicFormulaManager, false, config);
-    } else if (whichProver.equals("simplify")) {
+    } else if (whichProver.equals("SIMPLIFY")) {
       thmProver = new SimplifyTheoremProver(symbolicFormulaManager, config, logger);
-    } else if (whichProver.equals("yices")) {
+    } else if (whichProver.equals("YICES")) {
       thmProver = new YicesTheoremProver(symbolicFormulaManager);
     } else {
       throw new InternalError("Update list of allowed solvers!");
     }
     
-    InterpolatingTheoremProver<Integer> itpProver =
-      new MathsatInterpolatingProver(symbolicFormulaManager, false, config);
+    InterpolatingTheoremProver<Integer> itpProver;
+    if (whichItpProver.equals("MATHSAT")) {
+      itpProver = new MathsatInterpolatingProver(symbolicFormulaManager, false, config);
+    } else if (whichItpProver.equals("CSISAT")) {
+      itpProver = new CSIsatInterpolatingProver(symbolicFormulaManager, logger);
+    } else {
+      throw new InternalError("Update list of allowed solvers!");
+    }
     formulaManager = new MathsatSymbPredAbsFormulaManager<Integer>(abstractFormulaManager, symbolicFormulaManager, thmProver, itpProver, config, logger);
     domain = new SymbPredAbsAbstractDomain(abstractFormulaManager);
     transfer = new SymbPredAbsTransferRelation(this, config);
