@@ -2,8 +2,6 @@ package cpa.art;
 
 import java.util.Collection;
 
-import compositeCPA.CompositeStopOperator;
-
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;
@@ -23,18 +21,7 @@ public class ARTStopSep implements StopOperator {
       Collection<AbstractElement> pReached, Precision pPrecision) throws CPAException {
 
     ARTElement artElement = (ARTElement)pElement;
-    AbstractElement wrappedElement = artElement.getAbstractElementOnArtNode();
     
-    // TODO this is ugly, perhaps introduce AbstractElement.isBottom() instead?
-    StopOperator stopOp = wrappedCpa.getStopOperator();
-    if(stopOp instanceof CompositeStopOperator){
-      CompositeStopOperator compStopOp = (CompositeStopOperator) stopOp;
-      if(compStopOp.containsBottomElement(wrappedElement)){
-        artElement.setBottom(true);
-        return true;
-      }
-    }
-
     for (AbstractElement reachedElement : pReached) {
       ARTElement artReachedElement = (ARTElement)reachedElement;
       if (stop(artElement, artReachedElement)) {

@@ -79,9 +79,7 @@ public class ARTStatistics implements Statistics {
       processed.add(currentElement);
       if(!nodesList.contains(currentElement.getElementId())){
         String color;
-        if (currentElement.isBottom()) {
-          color = "black";
-        } else if (currentElement.isCovered()) {
+        if (currentElement.isCovered()) {
           color = "green";
         } else if (currentElement.isError()) {
           color = "red";

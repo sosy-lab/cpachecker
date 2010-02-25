@@ -24,7 +24,6 @@ public class ARTElement implements AbstractWrapperElement {
   private final Set<ARTElement> parents; // more than one parent if joining elements
   private ARTElement mCoveredBy = null;
   private Set<ARTElement> mCoveredByThis = null; // lazy initialization because rarely needed
-  private boolean isBottom = false;
   private boolean destroyed = false;
   private ARTElement mergedWith = null;
 
@@ -85,16 +84,6 @@ public class ARTElement implements AbstractWrapperElement {
     } else {
       return Collections.unmodifiableSet(mCoveredByThis);
     }
-  }
-  
-  public boolean isBottom() {
-    assert !destroyed;
-    return isBottom;
-  }
-
-  protected void setBottom(boolean pIsBottom) {
-    assert !destroyed;
-    isBottom = pIsBottom;
   }
 
   protected void setMergedWith(ARTElement pMergedWith) {

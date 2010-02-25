@@ -61,7 +61,7 @@ public class CompositeStopOperator implements StopOperator{
     return false;
   }
 
-  public boolean containsBottomElement(AbstractElement element) {
+  private boolean containsBottomElement(AbstractElement element) {
     if (element == compositeDomain.getBottomElement()) {
       return true;
     }

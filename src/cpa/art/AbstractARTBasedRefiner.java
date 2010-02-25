@@ -146,8 +146,8 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
         assert child.getParents().contains(currentElement);
       }
       
-      // check if (e \in ART) => ((e \in Reached ^ e.isCovered()) ^ (e == Bottom))
-      assert reached.contains(currentElement) ^ currentElement.isCovered() ^ currentElement.isBottom();
+      // check if (e \in ART) => (e \in Reached ^ e.isCovered())
+      assert reached.contains(currentElement) ^ currentElement.isCovered();
       
       if (art.add(currentElement)) {
         workList.addAll(currentElement.getChildren());
