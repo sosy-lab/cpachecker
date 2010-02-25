@@ -53,6 +53,7 @@ public class CPABuilder {
   public CPABuilder(Configuration pConfig, LogManager pLogger) {
     this.config = pConfig;
     this.logger = pLogger;
+    config.inject(this);
   }
 
   public ConfigurableProgramAnalysis buildCPAs() throws CPAException {
