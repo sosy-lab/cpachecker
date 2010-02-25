@@ -148,12 +148,12 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
   private int msatVarType = mathsat.api.MSAT_REAL;
 
   // names for special variables needed to deal with functions
-  private static final String VAR_RETURN_NAME = "<retval>";
-  private static final String FUNCTION_PARAM_NAME = "<param>";
-  private static final String OP_ADDRESSOF_NAME = "<ptr_&>";
-  private static final String OP_STAR_NAME = "<ptr_*>";
-  private static final String OP_ARRAY_SUBSCRIPT = "<arr_[]>";
-  private static final String STRING_LIT_FUNCTION = "<string>";
+  private static final String VAR_RETURN_NAME = "__retval__";
+  private static final String FUNCTION_PARAM_NAME = "__param__";
+  private static final String OP_ADDRESSOF_NAME = "__ptrAmp__";
+  private static final String OP_STAR_NAME = "__ptrStar__";
+  private static final String OP_ARRAY_SUBSCRIPT = "__array__";
+  private static final String STRING_LIT_FUNCTION = "__string__";
 
   // a namespace to have a unique name for each variable in the program.
   // Whenever we enter a function, we push its name as namespace. Each
@@ -738,7 +738,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     } else if (exp instanceof IASTUnaryExpression) {
       // we have to save the information about the return value,
       // so that we can use it later on, if it is assigned to
-      // a variable. We create a function::<retval> variable
+      // a variable. We create a function::__retval__ variable
       // that will hold the return value
       String retvalname = scoped(VAR_RETURN_NAME);
       int oldidx = ssa.getIndex(retvalname);
