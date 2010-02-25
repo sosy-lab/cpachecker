@@ -33,7 +33,7 @@ public class ARTMergeJoin implements MergeOperator {
       return pElement2;
     }
 
-    ARTElement mergedElement = new ARTElement(artElement1.getCpa(), retElement, null);
+    ARTElement mergedElement = new ARTElement(retElement, null);
 
     // now replace artElement2 by mergedElement in ART
     

@@ -33,7 +33,7 @@ public class ARTTransferRelation implements TransferRelation {
     
     Collection<ARTElement> wrappedSuccessors = new ArrayList<ARTElement>();
     for (AbstractElement absElement : successors) {
-      ARTElement successorElem = new ARTElement(element.getCpa(), absElement, element);
+      ARTElement successorElem = new ARTElement(absElement, element);
       wrappedSuccessors.add(successorElem);
     }
     return wrappedSuccessors;

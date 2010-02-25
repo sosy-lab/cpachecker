@@ -1,13 +1,14 @@
 package cpa.art;
 
 import java.util.ArrayDeque;
-import java.util.Collection;
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableList;
 
 import cpa.common.ReachedElements;
 import cpa.common.interfaces.AbstractElement;
@@ -76,15 +77,16 @@ public class ARTReachedSet {
     Preconditions.checkNotNull(e);
     Preconditions.checkArgument(!e.getParents().isEmpty(), "May not remove the initial element from the ART/reached set");
     
-    // collect all elements to remove from ART (the subtree and the elements
-    // covered by the subtree)
     Set<ARTElement> toUnreach = e.getSubtree();
-
-    for (ARTElement ae : mCpa.getCovered()) {
-      if (toUnreach.contains(ae.getCoveredBy())) {
-        toUnreach.add(ae);
-      }
+    
+    // collect all elements covered by the subtree
+    List<ARTElement> newToUnreach = new ArrayList<ARTElement>();
+    
+    for (ARTElement ae : toUnreach) {
+      newToUnreach.addAll(ae.getCoveredByThis());
     }
+    toUnreach.addAll(newToUnreach);
+    
     mReached.removeAll(toUnreach);
 
     Set<ARTElement> toWaitlist = removeSet(toUnreach);
@@ -156,11 +158,13 @@ public class ARTReachedSet {
     
     mReached.removeAll(removedElements);
     
-    removeCoverage(removedElements);
+    for (ARTElement removedElement : removedElements) {
+      removeCoverage(removedElement);
+    }
   }
   
   /**
-   * Assume that some elements do not cover any elements anymore.
+   * Assume that one element does not cover any elements anymore.
    * This re-adds the parents of elements previously covered to the waitlist.
    * 
    * You do not need to call this method if you removed elements through the
@@ -171,30 +175,16 @@ public class ARTReachedSet {
    * or elements in the reached set were made stronger after they were added,
    * but elements should never be modified normally.
    * 
-   * @param elements The elements which do not cover anymore.
+   * @param element The element which does not cover anymore.
    */
-  public void removeCoverage(Collection<ARTElement> elements) {
-    for (ARTElement ae : ImmutableSet.copyOf(mCpa.getCovered())) {
-      if (elements.contains(ae.getCoveredBy())) {
-        
-        for (ARTElement parent : ae.getParents()) {
-          mReached.reAddToWaitlist(parent);
-        }
-        ae.removeFromART();
-      }
-    }
-  }
-  
   public void removeCoverage(ARTElement element) {
-    for (ARTElement ae : ImmutableSet.copyOf(mCpa.getCovered())) {
-      if (element.equals(ae.getCoveredBy())) {
-        
-        for (ARTElement parent : ae.getParents()) {
-          mReached.reAddToWaitlist(parent);
-        }
-        ae.removeFromART();
+    for (ARTElement covered : ImmutableList.copyOf(element.getCoveredByThis())) {
+      for (ARTElement parent : covered.getParents()) {
+        mReached.reAddToWaitlist(parent);
       }
+      covered.removeFromART(); // also removes from element.getCoveredByThis() set
     }
+    assert element.getCoveredByThis().isEmpty();
   }
   
   /**
@@ -231,11 +221,13 @@ public class ARTReachedSet {
       toUnreach.remove(element);
       
       // collect all elements covered by the subtree
-      for (ARTElement ae : mCpa.getCovered()) {
-        if (toUnreach.contains(ae.getCoveredBy())) {
-          toUnreach.add(ae);
-        }
+      List<ARTElement> newToUnreach = new ArrayList<ARTElement>();
+      
+      for (ARTElement ae : toUnreach) {
+        newToUnreach.addAll(ae.getCoveredByThis());
       }
+      toUnreach.addAll(newToUnreach);
+
       mReached.removeAll(toUnreach);
       mReached.remove(element);
       

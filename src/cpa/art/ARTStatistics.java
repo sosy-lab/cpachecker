@@ -101,10 +101,10 @@ public class ARTStatistics implements Statistics {
         nodesList.add(currentElement.getElementId());
       }
       
-      if (currentElement.isCovered()) {
-        sb.append(currentElement.getElementId());
+      for (ARTElement covered : currentElement.getCoveredByThis()) {
+        sb.append(covered.getElementId());
         sb.append(" -> ");
-        sb.append(currentElement.getCoveredBy().getElementId());
+        sb.append(currentElement.getElementId());
         sb.append(" [style = dashed, label = \"covered by\"];");
       }
       

@@ -75,9 +75,6 @@ public class ARTCPA implements ConfigurableProgramAnalysis, StatisticsProvider, 
   private final Statistics stats;
   private final ConfigurableProgramAnalysis wrappedCPA;
 
-  // TODO state in the CPA, possibly dangerous with multiple ARTs
-  private final Set<ARTElement> covered;
-
   private ARTCPA(ConfigurableProgramAnalysis cpa, Configuration config) throws InvalidConfigurationException {
     config.inject(this);
     
@@ -93,7 +90,6 @@ public class ARTCPA implements ConfigurableProgramAnalysis, StatisticsProvider, 
       throw new InternalError("Update list of allowed merge operators!");
     }
     stopOperator = new ARTStopSep(wrappedCPA);  
-    covered = new HashSet<ARTElement>();
     stats = new ARTStatistics(config);
   }
 
@@ -121,28 +117,11 @@ public class ARTCPA implements ConfigurableProgramAnalysis, StatisticsProvider, 
     // TODO implement ART precision adjustment
     return precisionAdjustment;
   }
-
-  protected void setCovered(ARTElement pElement, boolean pCovered) {
-    if (pCovered) {
-      covered.add(pElement);
-    } else {
-      covered.remove(pElement);
-    }
-  }
-  
-  public Collection<ARTElement> getCovered() {
-    return Collections.unmodifiableCollection(covered);
-  }
-
-  public boolean isCovered(ARTElement pElement) {
-    return covered.contains(pElement);
-  }
   
   @Override
   public AbstractElement getInitialElement (CFAFunctionDefinitionNode pNode) {
     // TODO some code relies on the fact that this method is called only one and the result is the root of the ART
-    return new ARTElement(this, wrappedCPA.getInitialElement(pNode), 
-        null);
+    return new ARTElement(wrappedCPA.getInitialElement(pNode), null);
   }
 
   public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {

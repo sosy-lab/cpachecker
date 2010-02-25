@@ -19,11 +19,11 @@ import cpa.common.interfaces.AbstractWrapperElement;
 
 public class ARTElement implements AbstractWrapperElement {
 
-  private final ARTCPA mCpa;
   private final AbstractElement element;
   private final Set<ARTElement> children;
   private final Set<ARTElement> parents; // more than one parent if joining elements
   private ARTElement mCoveredBy = null;
+  private Set<ARTElement> mCoveredByThis = null; // lazy initialization because rarely needed
   private boolean isBottom = false;
   private boolean destroyed = false;
   private ARTElement mergedWith = null;
@@ -32,9 +32,8 @@ public class ARTElement implements AbstractWrapperElement {
 
   private static int nextArtElementId = 0;
 
-  protected ARTElement(ARTCPA pCpa, AbstractElement pAbstractElement, ARTElement pParentElement) {
+  protected ARTElement(AbstractElement pAbstractElement, ARTElement pParentElement) {
     elementId = ++nextArtElementId;
-    mCpa = pCpa;
     element = pAbstractElement;
     parents = new HashSet<ARTElement>();
     if(pParentElement != null){
@@ -67,25 +66,27 @@ public class ARTElement implements AbstractWrapperElement {
   protected void setCovered(ARTElement pCoveredBy) {
     assert pCoveredBy != null;
     mCoveredBy = pCoveredBy;
-    mCpa.setCovered(this, true);
-  }
-
-  protected void setUncovered() {
-    assert !destroyed;
-    mCoveredBy = null;
-    mCpa.setCovered(this, false);
+    if (pCoveredBy.mCoveredByThis == null) {
+      // lazy initialization because rarely needed
+      pCoveredBy.mCoveredByThis = new HashSet<ARTElement>(2);
+    }
+    pCoveredBy.mCoveredByThis.add(this);
   }
 
   public boolean isCovered() {
     assert !destroyed;
-    return mCpa.isCovered(this);
+    return mCoveredBy != null;
   }
 
-  public ARTElement getCoveredBy() {
+  public Set<ARTElement> getCoveredByThis() {
     assert !destroyed;
-    return mCoveredBy;
+    if (mCoveredByThis == null) {
+      return Collections.emptySet();
+    } else {
+      return Collections.unmodifiableSet(mCoveredByThis);
+    }
   }
-
+  
   public boolean isBottom() {
     assert !destroyed;
     return isBottom;
@@ -97,15 +98,14 @@ public class ARTElement implements AbstractWrapperElement {
   }
 
   protected void setMergedWith(ARTElement pMergedWith) {
+    assert !destroyed;
+    assert mergedWith == null;
+    
     mergedWith = pMergedWith;
   }
   
   public ARTElement getMergedWith() {
     return mergedWith;
-  }
-  
-  public ARTCPA getCpa() {
-    return mCpa;
   }
 
   @Override
@@ -184,25 +184,11 @@ public class ARTElement implements AbstractWrapperElement {
   }
 
   /**
-   * This method removes all children of this element from the ART.
-   * 
-   * Note that it does not remove any elements from the covered set, this has to
-   * be done by the caller.
-   */
-  /*protected void clearChildren() {
-    for (ARTElement child : children) {
-      assert (child.parents.contains(this));
-      child.parents.remove(this);
-    }
-    children.clear();
-  }*/
-
-
-  /**
    * This method removes this element from the ART by removing it from its
    * parents' children list and from its children's parents list.
    * 
-   * This method also removes the element from the set of covered elements.
+   * This method also removes the element from the covered set of the other
+   * element covering this element, if it is covered.
    * 
    * This means, if its children do not have any other parents, they will be not
    * reachable any more, i.e. they do not belong to the ART any more. But those
@@ -225,7 +211,21 @@ public class ARTElement implements AbstractWrapperElement {
     }
     parents.clear();
 
-    setUncovered();
+    // clear coverage relation
+    if (isCovered()) {
+      assert mCoveredBy.mCoveredByThis.contains(this);
+    
+      mCoveredBy.mCoveredByThis.remove(this);
+      mCoveredBy = null;
+    }
+    
+    if (mCoveredByThis != null) {
+      for (ARTElement covered : mCoveredByThis) {
+        covered.mCoveredBy = null;
+      }
+      mCoveredByThis.clear();
+    }
+    
     destroyed = true;
   }
 
