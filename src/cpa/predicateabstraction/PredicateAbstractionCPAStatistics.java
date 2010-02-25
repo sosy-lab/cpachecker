@@ -63,7 +63,7 @@ public class PredicateAbstractionCPAStatistics implements Statistics {
     private String predmapFile = "predmap.txt";
     
     @Option(name="cpas.symbpredabs.refinement.addPredicatesGlobally")
-    private boolean addPredicatesGlobally;
+    private boolean addPredicatesGlobally = false;
     
     @Option(name="cpas.symbpredabs.explicit.getUsefulBlocks")
     private boolean getUsefulBlocks = false;

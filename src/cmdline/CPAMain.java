@@ -166,8 +166,6 @@ public class CPAMain {
       String arg = argsIt.next();
       if (   handleArgument1("-outputpath", "output.path", arg, argsIt, properties)
           || handleArgument1("-logfile", "log.file", arg, argsIt, properties)
-          || handleArgument1("-cfafile", "cfa.file", arg, argsIt, properties)
-          || handleArgument1("-predlistpath", "predicates.path", arg, argsIt, properties)
           || handleArgument1("-entryfunction", "analysis.entryFunction", arg, argsIt, properties)
       ) { 
         // nothing left to do 
@@ -196,8 +194,6 @@ public class CPAMain {
         System.out.println("OPTIONS:");
         System.out.println(" -outputpath");
         System.out.println(" -logfile");
-        System.out.println(" -cfafile");
-        System.out.println(" -predlistpath");
         System.out.println(" -entryfunction");
         System.out.println(" -dfs");
         System.out.println(" -bfs");

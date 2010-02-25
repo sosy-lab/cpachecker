@@ -137,7 +137,7 @@ public class CPAchecker {
     boolean useCBMC = false;
 
     @Option(name="analysis.stopAfterError")
-    boolean stopAfterError = false;
+    boolean stopAfterError = true;
     
   }
   
