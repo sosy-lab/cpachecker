@@ -28,7 +28,7 @@ import exceptions.InvalidConfigurationException;
 public class BDDAbstractFormulaManager implements AbstractFormulaManager {
   
   @Option(name="cpas.symbpredabs.mathsat.useCache")
-  private boolean useCache = false;
+  private boolean useCache = true;
   
   private final Map<Pair<AbstractFormula, AbstractFormula>, Boolean> entailsCache;
   

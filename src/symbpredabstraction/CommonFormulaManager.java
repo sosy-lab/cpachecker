@@ -72,7 +72,7 @@ public abstract class CommonFormulaManager implements FormulaManager {
   private final Map<SymbolicFormula, Predicate> symbVarToPredicate;
 
   @Option
-  protected boolean useCache = false;
+  protected boolean useCache = true;
   
   private final Map<AbstractFormula, SymbolicFormula> toConcreteCache;
 

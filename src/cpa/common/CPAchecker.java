@@ -85,7 +85,7 @@ public class CPAchecker {
   private static class CPAcheckerOptions {
 
     @Option(name="parser.dialect", toUppercase=true, values={"C99", "GNUC"})
-    String parserDialect = "C99";
+    String parserDialect = "GNUC";
 
     // CFA creation and initialization options
     
@@ -99,13 +99,13 @@ public class CPAchecker {
     boolean removeDeclarations = false;
     
     @Option(name="analysis.noExternalCalls")
-    boolean noExternalCalls = false;
+    boolean noExternalCalls = true;
     
     @Option(name="analysis.interprocedural")
-    boolean interprocedural = false;
+    boolean interprocedural = true;
     
     @Option(name="analysis.useGlobalVars")
-    boolean useGlobalVars = false;
+    boolean useGlobalVars = true;
     
     @Option(name="cfa.removeIrrelevantForErrorLocations")
     boolean removeIrrelevantForErrorLocations = false;

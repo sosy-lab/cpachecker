@@ -108,7 +108,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
   private boolean initAllVars = false;
   
   @Option
-  private String noAutoInitPrefix = "";
+  private String noAutoInitPrefix = "__BLAST_NONDET";
   
   // if true, handle lvalues as *x, &x, s.x, etc. using UIFs. If false, just
   // ue variables
