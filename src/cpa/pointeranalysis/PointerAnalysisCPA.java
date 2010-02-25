@@ -68,7 +68,7 @@ public class PointerAnalysisCPA implements ConfigurableProgramAnalysis {
   private String mergeType = "sep";
   
   @Option
-  private boolean printWarnings = false;
+  private boolean printWarnings = true;
   
   private final AbstractDomain abstractDomain;
   private final MergeOperator mergeOperator;

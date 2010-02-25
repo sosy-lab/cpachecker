@@ -32,14 +32,21 @@ import java.util.logging.Level;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import common.configuration.Configuration;
+import common.configuration.Option;
+import common.configuration.Options;
+import compositeCPA.CompositeCPA;
 
 import cpa.common.interfaces.CPAFactory;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import exceptions.CPAException;
 import exceptions.InvalidConfigurationException;
 
+@Options
 public class CPABuilder {
 
+  @Option(name="cpa")
+  private String cpaName = CompositeCPA.class.getCanonicalName();
+  
   private final Configuration config;
   private final LogManager logger;
 
@@ -49,12 +56,6 @@ public class CPABuilder {
   }
 
   public ConfigurableProgramAnalysis buildCPAs() throws CPAException {
-
-    String cpaName = config.getProperty("cpa");
-    if (cpaName == null) {
-      throw new InvalidConfigurationException("Option cpa is not set in the configuration file!");
-    }
-
     return buildCPAs(cpaName, "cpa", new HashSet<String>());
   }
 
