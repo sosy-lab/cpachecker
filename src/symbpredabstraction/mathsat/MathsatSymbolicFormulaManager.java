@@ -62,6 +62,8 @@ import org.eclipse.cdt.core.dom.ast.IPointerType;
 import org.eclipse.cdt.core.dom.ast.IType;
 import org.eclipse.cdt.core.dom.ast.ITypedef;
 
+import com.google.common.base.Preconditions;
+
 import symbpredabstraction.PathFormula;
 import symbpredabstraction.SSAMap;
 import symbpredabstraction.interfaces.SymbolicFormula;
@@ -336,6 +338,14 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
 
   public SymbolicFormula makeTrue() {
     return new MathsatSymbolicFormula(mathsat.api.msat_make_true(msatEnv));
+  }
+  
+  @Override
+  public SymbolicFormula parseInfix(String s) {
+    long f = mathsat.api.msat_from_string(msatEnv, s);
+    Preconditions.checkArgument(!mathsat.api.MSAT_ERROR_TERM(f), "Could not parse formula as Mathsat formula.");
+    
+    return new MathsatSymbolicFormula(f);
   }
   
   public SymbolicFormula makeIfThenElse(SymbolicFormula atom, SymbolicFormula f1, SymbolicFormula f2) {

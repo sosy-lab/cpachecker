@@ -106,6 +106,13 @@ public interface SymbolicFormulaManager {
     public SymbolicFormula makeFalse();
 
     /**
+     * Parse a formula given as a String in the common infix notation.
+     * @return The same formula in the internal representation.
+     * @throws IllegalArgumentException If the string cannot be parsed. 
+     */
+    public SymbolicFormula parseInfix(String s) throws IllegalArgumentException;
+    
+    /**
      * builds a formula that represents the necessary variable assignments
      * to "merge" the two ssa maps. That is, for every variable X that has two
      * different ssa indices i and j in the maps, creates a new formula
