@@ -23,14 +23,12 @@
  */
 package common.configuration;
 
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
-import java.net.URL;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
@@ -78,15 +76,23 @@ public class Configuration {
    * Constructor for creating a Configuration with values set from a file.
    * Also allows for passing an optional map of settings overriding those from
    * the file.
-   * @param fileName The complete path to the configuration file.
-   * @param pOverrides A set of option values
+   * 
+   * Either the fileName or the map of overrides may be null, not both. If the
+   * fileName is null, this constructor behaves identically to the constructor
+   * {@link #Configuration(Map)}. 
+   * 
+   * @param fileName The optional complete path to the configuration file.
+   * @param pOverrides An optional set of option values.
    * @throws IOException If the file cannot be read.
    */
   public Configuration(String fileName, Map<String, String> pOverrides) throws IOException {
+    Preconditions.checkArgument(fileName != null || pOverrides != null);
     properties = new Properties();
     prefix = "";
     
-    loadFile(fileName);
+    if (fileName != null) {
+      loadFile(fileName);
+    }
     
     if (pOverrides != null) {
       properties.putAll(pOverrides);
@@ -130,15 +136,6 @@ public class Configuration {
     prefix = pPrefix.isEmpty() ? "" : pPrefix + ".";
     unusedProperties = pConfig.unusedProperties; // use same instance here!
   }
-  
-  private String getDefaultConfigFileName() {
-    // TODO use resources for this?
-    URL binDir = getClass().getProtectionDomain().getCodeSource().getLocation();
-    
-    File defaultFile = new File("..", "default.properties");
-    defaultFile = new File(binDir.getPath(), defaultFile.getPath());
-    return defaultFile.getPath();
-  }
 
   /**
    * Load the file as property file see {@link Properties}
@@ -146,10 +143,6 @@ public class Configuration {
    * @return true if file is loaded successfully
    */
   private void loadFile(String fileName) throws IOException {
-    if (fileName == null || fileName.isEmpty()) {
-      fileName = getDefaultConfigFileName();
-    }
-
     FileInputStream file = new FileInputStream(fileName);
     try {
       properties.load(file);
