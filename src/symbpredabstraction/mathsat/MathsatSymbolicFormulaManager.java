@@ -188,7 +188,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
   private final LogManager logger;
 
   public MathsatSymbolicFormulaManager(Configuration config, LogManager logger) throws InvalidConfigurationException {
-    config.inject(this);
+    config.inject(this, MathsatSymbolicFormulaManager.class);
     this.logger = logger;
     msatEnv = mathsat.api.msat_create_env();
     if (useIntegers) {
