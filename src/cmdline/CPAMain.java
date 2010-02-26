@@ -27,7 +27,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -38,12 +37,15 @@ import cmdline.stubs.StubFile;
 
 import com.google.common.base.Joiner;
 import common.configuration.Configuration;
+import compositeCPA.CompositeCPA;
 
 import cpa.common.CPAchecker;
 import cpa.common.LogManager;
 import exceptions.InvalidConfigurationException;
 
 public class CPAMain {
+
+  private static final String CONFIGURATION_FILE_OPTION = "configuration.file";
 
   public static class InvalidCmdlineArgumentException extends Exception {
 
@@ -114,40 +116,21 @@ public class CPAMain {
 
   public static Configuration createConfiguration(String[] args)
           throws InvalidCmdlineArgumentException, IOException {
-    // get the file name
-    String fileName = getConfigFileName(args);
-    
-    // if there are some command line arguments, process them
-    Map<String, String> cmdLineOptions = Collections.emptyMap();
-    if (args != null) {
-       cmdLineOptions = processArguments(args);                
+    if (args == null || args.length < 1) {
+      throw new InvalidCmdlineArgumentException("Need to specify at least configuration file or list of CPAs! Use -help for more information.");
     }
 
-    Configuration config = new Configuration(fileName, cmdLineOptions);
+    // if there are some command line arguments, process them
+    Map<String, String> cmdLineOptions = processArguments(args);                
+
+    // get name of config file (may be null)
+    // and remove this from the list of options (it's not a real option)
+    String configFile = cmdLineOptions.remove(CONFIGURATION_FILE_OPTION);
+    
+    Configuration config = new Configuration(configFile, cmdLineOptions);
 
     //normalizeValues();
     return config;
-  }
-
-  /**
-   * if -config is specified in arguments, loads this properties file,
-   * otherwise loads the file from a default location. Default properties file is
-   * $CPACheckerMain/default.properties
-   * @param args commandline arguments
-   */
-  private static String getConfigFileName(String[] args) throws InvalidCmdlineArgumentException {
-    Iterator<String> argsIt = Arrays.asList(args).iterator();
-
-    while (argsIt.hasNext()) {
-      if (argsIt.next().equals("-config")) {
-        if (argsIt.hasNext()) {
-          return argsIt.next();
-        } else {
-          throw new InvalidCmdlineArgumentException("Argument to -config parameter missing!");
-        }
-      }
-    }
-    throw new InvalidCmdlineArgumentException("No -config parameter specified!");
   }
 
   /**
@@ -167,9 +150,17 @@ public class CPAMain {
       if (   handleArgument1("-outputpath", "output.path", arg, argsIt, properties)
           || handleArgument1("-logfile", "log.file", arg, argsIt, properties)
           || handleArgument1("-entryfunction", "analysis.entryFunction", arg, argsIt, properties)
+          || handleArgument1("-config", CONFIGURATION_FILE_OPTION, arg, argsIt, properties)
       ) { 
         // nothing left to do 
 
+      } else if (arg.equals("-cpas")) {
+        if (argsIt.hasNext()) {
+          properties.put("cpa", CompositeCPA.class.getName());
+          properties.put(CompositeCPA.class.getSimpleName() + ".cpas", argsIt.next());          
+        } else {
+          throw new InvalidCmdlineArgumentException("-cpas argument missing!");
+        }
       } else if (arg.equals("-dfs")) {
         properties.put("analysis.traversal", "dfs");
       } else if (arg.equals("-bfs")) {
@@ -192,6 +183,8 @@ public class CPAMain {
         }
       } else if (arg.equals("-help")) {
         System.out.println("OPTIONS:");
+        System.out.println(" -config");
+        System.out.println(" -cpas");
         System.out.println(" -outputpath");
         System.out.println(" -logfile");
         System.out.println(" -entryfunction");
@@ -201,9 +194,6 @@ public class CPAMain {
         System.out.println(" -setprop");
         System.out.println(" -help");
         System.exit(0);
-      } else if (arg.equals("-config")) {
-        // this has been processed earlier, in loadFileName
-        argsIt.next(); // ignore config file name argument
       } else {
         programs.add(arg);
       }

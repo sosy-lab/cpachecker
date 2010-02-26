@@ -1,31 +1,36 @@
 CPAchecker configuration
 ========================
 
-Configuration of CPAchecker is primarily done via files in the syntax of Java
-properties files. One such file has to be given to CPAchecker with the "-config"
-option.
+Configuration of CPAchecker is done via command-line arguments and
+configuration files in the syntax of Java properties files.
 
 
 Command-line options
 --------------------
-Several configuration options can also be set on the command line with the
-following arguments:
+Several configuration options can be set on the command-line with the
+following arguments (see below to learn what the options mean):
 
--outputpath <DIR>	sets output.path = <DIR>
--logfile <FILE>		sets log.file = <FILE>
--nolog			sets log.level = OFF and log.consoleLevel = OFF
--entryfunction <FUNC>	sets analysis.entryFunction = <FUNC>
--dfs			sets analysis.traversal = DFS
--bfs			sets analysis.traversal = BFS
--topsort		sets analysis.traversal = TOPSORT
--setprop <KEY>=<VALUE>	sets any option: KEY = VALUE
+-help			print list of command-line argumments and exit
+-config <FILE>		sets configuration file name
+-cpas <CPAS>		sets "cpa = compositeCPA.CompositeCPA" and "CompositeCPA.cpas = <CPAS>"
+-outputpath <DIR>	sets "output.path = <DIR>"
+-logfile <FILE>		sets "log.file = <FILE>"
+-nolog			sets "log.level = OFF" and "log.consoleLevel = OFF"
+-entryfunction <FUNC>	sets "analysis.entryFunction = <FUNC>"
+-dfs			sets "analysis.traversal = DFS"
+-bfs			sets "analysis.traversal = BFS"
+-topsort		sets "analysis.traversal = TOPSORT"
+-setprop <KEY>=<VALUE>	sets any option: "KEY = VALUE"
 
-With "-help", CPAchecker prints a small help, "-config <FILE>" sets the
-configuration file to use (see above).
+Either "-help", "-config" or "-cpas" has to be specified.
+
+If an option appears on the command line as well as in the configuration file,
+the value from the command line overrides the one from the file.
 
 All other arguments to CPAchecker are interpreted as code files that should be
 analyzed (option analysis.programs). However, currently only one such file has
 to be specified.
+
 
 Specifying the CPA(s)
 ---------------------
