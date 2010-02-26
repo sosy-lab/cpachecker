@@ -50,7 +50,7 @@ public class CPABuilder {
   private final Configuration config;
   private final LogManager logger;
 
-  public CPABuilder(Configuration pConfig, LogManager pLogger) {
+  public CPABuilder(Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
     this.config = pConfig;
     this.logger = pLogger;
     config.inject(this);
