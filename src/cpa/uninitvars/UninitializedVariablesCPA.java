@@ -64,8 +64,6 @@ public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis {
   }
   
   
-  @Option(name="analysis.entryFunction")
-  private String entryFunction = "main";
   @Option(name="uninitVars.printWarnings")
   private String printWarnings = "true";
   @Option(name="uninitVars.merge", values={"sep", "join"})
@@ -116,7 +114,7 @@ public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public AbstractElement getInitialElement(CFAFunctionDefinitionNode pNode) {
-    return new UninitializedVariablesElement(entryFunction);
+    return new UninitializedVariablesElement(pNode.getFunctionName());
   }
 
   @Override
