@@ -1043,7 +1043,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
           case IASTBinaryExpression.op_multiplyAssign:
             if (mathsat.api.msat_term_is_number(me2) != 0) {
               me2 = mathsat.api.msat_make_times(
-                  msatEnv, oldvar, me2);
+                  msatEnv, me2, oldvar);
             } else {
               me2 = buildMsatUF(op, oldvar, me2);
             }
@@ -1064,7 +1064,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
               me2 = mathsat.api.msat_make_number(msatEnv, n);
               if (!mathsat.api.MSAT_ERROR_TERM(me2)) {
                 me2 = mathsat.api.msat_make_times(
-                    msatEnv, oldvar, me2);
+                    msatEnv, me2, oldvar);
               }
             } else {
               me2 = buildMsatUF(op, oldvar, me2);
@@ -1101,9 +1101,10 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         case IASTBinaryExpression.op_minus:
           return mathsat.api.msat_make_minus(msatEnv, me1, me2);
         case IASTBinaryExpression.op_multiply:
-          if (mathsat.api.msat_term_is_number(me1) != 0 ||
-              mathsat.api.msat_term_is_number(me2) != 0) {
+          if (mathsat.api.msat_term_is_number(me1) != 0) {
             return mathsat.api.msat_make_times(msatEnv, me1, me2);
+          } else if (mathsat.api.msat_term_is_number(me2) != 0) {
+            return mathsat.api.msat_make_times(msatEnv, me2, me1);
           } else {
             return buildMsatUF(op, me1, me2);
           }
@@ -1123,7 +1124,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
             me2 = mathsat.api.msat_make_number(msatEnv, n);
             if (!mathsat.api.MSAT_ERROR_TERM(me2)) {
               me2 = mathsat.api.msat_make_times(
-                  msatEnv, me1, me2);
+                  msatEnv, me2, me1);
             }
           } else {
             me2 = buildMsatUF(op, me1, me2);
