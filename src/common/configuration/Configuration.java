@@ -31,8 +31,11 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
 import java.net.URL;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.logging.Level;
 
 import com.google.common.base.Preconditions;
@@ -69,6 +72,8 @@ public class Configuration {
   
   private final String prefix;
   
+  private final Set<String> unusedProperties;
+  
   /**
    * Constructor for creating a Configuration with values set from a file.
    * Also allows for passing an optional map of settings overriding those from
@@ -86,6 +91,11 @@ public class Configuration {
     if (pOverrides != null) {
       properties.putAll(pOverrides);
     }
+    
+    unusedProperties = new HashSet<String>(properties.size());
+    for (Object key : properties.keySet()) {
+      unusedProperties.add((String)key);
+    }
   }
 
   /**
@@ -98,6 +108,11 @@ public class Configuration {
     prefix = "";
 
     properties.putAll(pValues);
+    
+    unusedProperties = new HashSet<String>(properties.size());
+    for (Object key : properties.keySet()) {
+      unusedProperties.add((String)key);
+    }
   }
   
   /**
@@ -113,6 +128,7 @@ public class Configuration {
     
     properties = pConfig.properties;
     prefix = pPrefix.isEmpty() ? "" : pPrefix + ".";
+    unusedProperties = pConfig.unusedProperties; // use same instance here!
   }
   
   private String getDefaultConfigFileName() {
@@ -147,9 +163,11 @@ public class Configuration {
    */
   public String getProperty(String key) {
     String result = properties.getProperty(prefix + key);
+    unusedProperties.remove(prefix + key);
     
     if (result == null && !prefix.isEmpty()) {
       result = properties.getProperty(key);
+      unusedProperties.remove(key);
     }
     return result;
   }
@@ -176,6 +194,10 @@ public class Configuration {
     return (s != null) ? s.split(DELIMS) : new String[0];
   }
 
+  public Set<String> getUnusedProperties() {
+    return Collections.unmodifiableSet(unusedProperties);
+  }
+  
   /**
    * Inject the values of configuration options into an object.
    * The class of the object has to have a {@link Options} annotation, and each

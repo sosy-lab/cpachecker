@@ -56,6 +56,7 @@ import cfa.objectmodel.CFANode;
 import cfa.objectmodel.c.GlobalDeclarationEdge;
 import cmdline.stubs.StubConfiguration;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
 import common.Pair;
 import common.configuration.Configuration;
@@ -242,6 +243,12 @@ public class CPAchecker {
       ConfigurableProgramAnalysis cpa = createCPA(stats);
       
       Algorithm algorithm = createAlgorithm(cfas, cpa, stats);
+      
+      Set<String> unusedProperties = config.getUnusedProperties();
+      if (!unusedProperties.isEmpty()) {
+        logger.log(Level.WARNING, "The following configuration options were specified but are not used:\n",
+            Joiner.on("\n ").join(unusedProperties), "\n");
+      }
       
       ReachedElements reached = createInitialReachedSet(cpa, mainFunction);
       
