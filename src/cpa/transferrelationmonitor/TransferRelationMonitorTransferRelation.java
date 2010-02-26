@@ -11,7 +11,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import cfa.objectmodel.CFAEdge;
-import cpa.common.CPAchecker;
+
+import common.configuration.Configuration;
+import common.configuration.Option;
+import common.configuration.Options;
+
 import cpa.common.algorithm.CEGARAlgorithm;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
@@ -19,23 +23,27 @@ import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
 import exceptions.CPATransferException;
+import exceptions.InvalidConfigurationException;
 
+@Options(prefix="trackabstractioncomputation")
 public class TransferRelationMonitorTransferRelation implements TransferRelation {
 
   private final AbstractDomain domain;
   private final TransferRelation transferRelation;
   private TransferCallable tc = new TransferCallable();
-  private long timeLimit = 0;
+  
+  @Option(name="limit")
+  private long timeLimit = 0; // given in milliseconds
+  
+  @Option(name="pathcomputationlimit")
   private long timeLimitForPath = 0;
   
-  public TransferRelationMonitorTransferRelation(ConfigurableProgramAnalysis pWrappedCPA) {
+  public TransferRelationMonitorTransferRelation(ConfigurableProgramAnalysis pWrappedCPA,
+                                                 Configuration config) throws InvalidConfigurationException {
+    config.inject(this);
+    
     transferRelation = pWrappedCPA.getTransferRelation();
     domain = pWrappedCPA.getAbstractDomain();
- // time limit is given in milliseconds
-    timeLimit = Integer.parseInt(CPAchecker.config.getPropertiesArray
-        ("trackabstractioncomputation.limit")[0]);
-    timeLimitForPath = Integer.parseInt(CPAchecker.config.getPropertiesArray
-        ("trackabstractioncomputation.pathcomputationlimit")[0]);
   }
 
   @Override

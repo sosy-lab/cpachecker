@@ -6,6 +6,7 @@ import java.util.Collections;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 
 import com.google.common.base.Preconditions;
+import common.configuration.Configuration;
 
 import cpa.common.defaults.AbstractCPAFactory;
 import cpa.common.defaults.StaticPrecisionAdjustment;
@@ -21,6 +22,7 @@ import cpa.common.interfaces.Statistics;
 import cpa.common.interfaces.StatisticsProvider;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
+import exceptions.InvalidConfigurationException;
 
 public class TransferRelationMonitorCPA implements ConfigurableProgramAnalysis, StatisticsProvider, CPAWrapper {
 
@@ -29,10 +31,10 @@ public class TransferRelationMonitorCPA implements ConfigurableProgramAnalysis, 
     private ConfigurableProgramAnalysis cpa = null;
 
     @Override
-    public ConfigurableProgramAnalysis createInstance() {
+    public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException {
       Preconditions.checkState(cpa != null, "TransferRelationMonitorCPA needs a wrapped CPA!");
 
-      return new TransferRelationMonitorCPA(cpa);
+      return new TransferRelationMonitorCPA(cpa, getConfiguration());
     }
     
     @Override
@@ -56,10 +58,10 @@ public class TransferRelationMonitorCPA implements ConfigurableProgramAnalysis, 
   private final PrecisionAdjustment precisionAdjustment;
   private final ConfigurableProgramAnalysis wrappedCPA;
   
-  private TransferRelationMonitorCPA(ConfigurableProgramAnalysis pCpa) {
+  private TransferRelationMonitorCPA(ConfigurableProgramAnalysis pCpa, Configuration config) throws InvalidConfigurationException {
     wrappedCPA = pCpa;
     abstractDomain = new TransferRelationMonitorDomain(this);
-    transferRelation = new TransferRelationMonitorTransferRelation(wrappedCPA);
+    transferRelation = new TransferRelationMonitorTransferRelation(wrappedCPA, config);
     precisionAdjustment = StaticPrecisionAdjustment.getInstance(); // TODO
     mergeOperator = new TransferRelationMonitorMerge(wrappedCPA);
     stopOperator = new TransferRelationMonitorStop(wrappedCPA);  
