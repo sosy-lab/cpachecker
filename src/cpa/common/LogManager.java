@@ -120,17 +120,18 @@ public class LogManager {
     Level logConsoleLevel = Level.parse(consoleLevelStr);
 
     // check if file logging will succeed
-    Handler outfileHandler;
+    Handler outfileHandler = null;
     IOException exception = null;
-    try {
-      outfileHandler = new FileHandler(new File(outputDirectory, outputFile).getAbsolutePath(), false);
-    } catch (IOException e) {
-      outfileHandler = null;
-      exception = e; // will be logged later
-      // redirect log messages to console
-      if (logConsoleLevel.intValue() > logLevel.intValue()) {
-        logConsoleLevel = logLevel;
-        logLevel = Level.OFF;
+    if (logLevel != Level.OFF) {
+      try {
+        outfileHandler = new FileHandler(new File(outputDirectory, outputFile).getAbsolutePath(), false);
+      } catch (IOException e) {
+        exception = e; // will be logged later
+        // redirect log messages to console
+        if (logConsoleLevel.intValue() > logLevel.intValue()) {
+          logConsoleLevel = logLevel;
+          logLevel = Level.OFF;
+        }
       }
     }
     
@@ -293,7 +294,7 @@ public class LogManager {
   }
 
   public void flush() {
-    if(outfileHandler != null) {
+    if (outfileHandler != null) {
       outfileHandler.flush();
     }
   }
