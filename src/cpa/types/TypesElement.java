@@ -29,8 +29,6 @@ import java.util.Map;
 
 import cpa.common.interfaces.AbstractElement;
 import cpa.types.Type.FunctionType;
-import cpa.types.Type.Primitive;
-import cpa.types.Type.PrimitiveType;
 
 /**
  * @author Philipp Wendler
@@ -43,14 +41,10 @@ public class TypesElement implements AbstractElement {
   
   private final Map<String, FunctionType> functions;
  
-  public TypesElement(String entryFunction) {
+  public TypesElement() {
     this.variables = new HashMap<String, Type>();
     this.typedefs  = new HashMap<String, Type>();
     this.functions = new HashMap<String, FunctionType>();
-    
-    //default type - not possible to determine actual type at this point
-    PrimitiveType entryReturnType = new PrimitiveType(Primitive.LONG, true, false);
-    functions.put(entryFunction, new FunctionType(entryFunction, entryReturnType, false));
   }
   
   public TypesElement(Map<String, Type> variables, Map<String, Type> typedefs,

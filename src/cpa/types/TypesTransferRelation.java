@@ -150,7 +150,7 @@ public class TypesTransferRelation implements TransferRelation {
     }
   }
 
-  private void handleFunctionDeclaration(TypesElement element,
+  void handleFunctionDeclaration(TypesElement element,
                                         CFAEdge cfaEdge,
                                         IASTFunctionDeclarator funcDeclarator,
                                         IASTDeclSpecifier funcDeclSpecifier)
