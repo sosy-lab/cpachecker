@@ -48,7 +48,7 @@ import exceptions.InvalidConfigurationException;
 /**
  * @author Philipp Wendler
  */
-@Options
+@Options(prefix="uninitVars")
 public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis {
 
   private static class UninitializedVariablesCPAFactory extends AbstractCPAFactory {
@@ -64,11 +64,11 @@ public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis {
   }
   
   
-  @Option(name="uninitVars.printWarnings")
+  @Option(name="printWarnings")
   private String printWarnings = "true";
-  @Option(name="uninitVars.merge", values={"sep", "join"})
+  @Option(name="merge", values={"sep", "join"})
   private String mergeType = "sep";
-  @Option(name="uninitVars.stop", values={"sep", "join"})
+  @Option(name="stop", values={"sep", "join"})
   private String stopType = "sep";
   
   private final AbstractDomain abstractDomain;
