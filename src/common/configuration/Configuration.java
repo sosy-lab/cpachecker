@@ -35,6 +35,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.regex.Pattern;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
@@ -50,8 +51,8 @@ public class Configuration {
 
   private static final long serialVersionUID = -5910186668866464153L;
   
-  /** Delimiters to create string arrays */
-  private static final String DELIMS = "[;, ]+";
+  /** Split pattern to create string arrays */
+  private static final Pattern ARRAY_SPLIT_PATTERN = Pattern.compile("\\s*,\\s*");
 
   private static final ImmutableMap<Class<?>, Class<?>> PRIMITIVE_TYPES
       = new ImmutableMap.Builder<Class<?>, Class<?>>()
@@ -184,7 +185,7 @@ public class Configuration {
    */
   public String[] getPropertiesArray(String key){
     String s = getProperty(key);
-    return (s != null) ? s.split(DELIMS) : new String[0];
+    return (s != null) ? ARRAY_SPLIT_PATTERN.split(s) : new String[0];
   }
 
   public Set<String> getUnusedProperties() {
@@ -384,7 +385,7 @@ public class Configuration {
       if (!type.equals(String[].class)) {
         throw new UnsupportedOperationException("Currently only arrays of type String are supported for configuration options");
       }
-      result = valueStr.split("\\s*,\\s*");
+      result = ARRAY_SPLIT_PATTERN.split(valueStr);
     
     } else if (type.isPrimitive()) {
       Class<?> wrapperType = PRIMITIVE_TYPES.get(type); // get wrapper type in order to use valueOf method
