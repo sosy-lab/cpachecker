@@ -23,8 +23,6 @@
  */
 package assumptions;
 
-import java.util.logging.Level;
-
 import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
@@ -36,7 +34,6 @@ import symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
 
 import common.configuration.Configuration;
 
-import cpa.common.CPAchecker;
 import cpa.common.LogManager;
 import exceptions.InvalidConfigurationException;
 
@@ -79,20 +76,22 @@ public class MathsatInvariantSymbolicFormulaManager
   
   private static MathsatInvariantSymbolicFormulaManager instance = null;
   
-  /**
-   * Return the singleton instance for this class
-   */
-  public static MathsatInvariantSymbolicFormulaManager getInstance()
-  {
+  // TODO Ugly, probably better to remove singleton pattern here.
+  public static MathsatInvariantSymbolicFormulaManager createInstance(
+        Configuration config, LogManager logger) throws InvalidConfigurationException {
     if (instance == null) {
-      try {
-        // FIXME this is ugly, better pass formula manager object around instead of using singleton pattern
-        instance = new MathsatInvariantSymbolicFormulaManager(CPAchecker.config, CPAchecker.logger);
-      } catch (InvalidConfigurationException e) {
-        CPAchecker.logger.logException(Level.SEVERE, e, null);
-        System.exit(1);
-      }
+      instance = new MathsatInvariantSymbolicFormulaManager(config, logger);
     }
+    return instance;
+  }
+  
+  /**
+   * Return the singleton instance for this class.
+   * {@link #createInstance()} has to be called before at least once.
+   */
+  public static MathsatInvariantSymbolicFormulaManager getInstance() {
+    assert instance != null;
+    
     return instance;
   }
 

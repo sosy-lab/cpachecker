@@ -31,7 +31,9 @@ import assumptions.MathsatInvariantSymbolicFormulaManager;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 
 import com.google.common.base.Preconditions;
+import common.configuration.Configuration;
 
+import cpa.common.LogManager;
 import cpa.common.defaults.AbstractCPAFactory;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
@@ -43,6 +45,7 @@ import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
+import exceptions.InvalidConfigurationException;
 
 /**
  * CPA used to capture the assumptions that ought to be dumped.
@@ -60,9 +63,9 @@ public class AssumptionCollectorCPA implements ConfigurableProgramAnalysis, CPAW
     private ConfigurableProgramAnalysis cpa = null;
     
     @Override
-    public ConfigurableProgramAnalysis createInstance() {
+    public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException {
       Preconditions.checkState(cpa != null);
-      return new AssumptionCollectorCPA(cpa);
+      return new AssumptionCollectorCPA(cpa, getConfiguration(), getLogger());
     }
 
     @Override
@@ -87,10 +90,11 @@ public class AssumptionCollectorCPA implements ConfigurableProgramAnalysis, CPAW
   private final PrecisionAdjustment precisionAdjustment;
   private final ConfigurableProgramAnalysis wrappedCPA;
   
-  private AssumptionCollectorCPA(ConfigurableProgramAnalysis cpa)
+  private AssumptionCollectorCPA(ConfigurableProgramAnalysis cpa,
+            Configuration config, LogManager logger) throws InvalidConfigurationException
   {
     wrappedCPA = cpa;
-    symbolicFormulaManager = MathsatInvariantSymbolicFormulaManager.getInstance();
+    symbolicFormulaManager = MathsatInvariantSymbolicFormulaManager.createInstance(config, logger);
     abstractDomain = new AssumptionCollectorDomain(wrappedCPA.getAbstractDomain());
     mergeOperator = new AssumptionCollectorMerge(wrappedCPA);
     stopOperator = new AssumptionCollectorStop(wrappedCPA);

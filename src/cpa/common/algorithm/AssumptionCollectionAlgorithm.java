@@ -84,7 +84,7 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
     
     this.logger = logger;
     innerAlgorithm = algo;
-    symbolicManager = MathsatInvariantSymbolicFormulaManager.getInstance();
+    symbolicManager = MathsatInvariantSymbolicFormulaManager.createInstance(config, logger);
   }
   
   @Override

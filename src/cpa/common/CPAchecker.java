@@ -142,14 +142,15 @@ public class CPAchecker {
     
   }
   
+  private final Configuration config;
+  private final CPAcheckerOptions options;
+
   // TODO these fields should not be public and static
   // Write access to these fields is prohibited from outside of this class!
   // Use the constructor to initialize them.
-  public static Configuration config = null;
   public static LogManager logger = null;
   
   private static volatile boolean requireStopAsap = false;
-  private final CPAcheckerOptions options;
   
   /**
    * Return true if the main thread is required to stop
@@ -212,7 +213,6 @@ public class CPAchecker {
   
   public CPAchecker(Configuration pConfiguration, LogManager pLogManager) throws InvalidConfigurationException {
     // currently only one instance is possible due to these static fields 
-    assert config == null;
     assert logger == null;
     
     config = pConfiguration;
@@ -220,6 +220,10 @@ public class CPAchecker {
 
     options = new CPAcheckerOptions();
     config.inject(options);
+  }
+  
+  protected Configuration getConfiguration() {
+    return config;
   }
   
   public void run(IFile file) {
@@ -230,7 +234,7 @@ public class CPAchecker {
     IASTTranslationUnit ast = parse(file);
 
     try {
-      MainCPAStatistics stats = new MainCPAStatistics(config);
+      MainCPAStatistics stats = new MainCPAStatistics(getConfiguration());
 
       // start measuring time
       stats.startProgramTimer();
@@ -244,7 +248,7 @@ public class CPAchecker {
       
       Algorithm algorithm = createAlgorithm(cfas, cpa, stats);
       
-      Set<String> unusedProperties = config.getUnusedProperties();
+      Set<String> unusedProperties = getConfiguration().getUnusedProperties();
       if (!unusedProperties.isEmpty()) {
         logger.log(Level.WARNING, "The following configuration options were specified but are not used:\n",
             Joiner.on("\n ").join(unusedProperties), "\n");
@@ -546,7 +550,7 @@ public class CPAchecker {
   private ConfigurableProgramAnalysis createCPA(MainCPAStatistics stats) throws CPAException {
     logger.log(Level.FINE, "Creating CPAs");
     
-    CPABuilder builder = new CPABuilder(config, logger);
+    CPABuilder builder = new CPABuilder(getConfiguration(), logger);
     ConfigurableProgramAnalysis cpa = builder.buildCPAs();
 
     if (cpa instanceof StatisticsProvider) {
@@ -562,11 +566,11 @@ public class CPAchecker {
     Algorithm algorithm = new CPAAlgorithm(cpa);
     
     if (options.useRefinement) {
-      algorithm = new CEGARAlgorithm(algorithm, config, logger);
+      algorithm = new CEGARAlgorithm(algorithm, getConfiguration(), logger);
     }
     
     if (options.useAssumptionCollector) {
-      algorithm = new AssumptionCollectionAlgorithm(algorithm, config, logger);
+      algorithm = new AssumptionCollectionAlgorithm(algorithm, getConfiguration(), logger);
     }
     
     if (options.useCBMC) {

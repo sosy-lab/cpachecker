@@ -26,6 +26,10 @@ package cpa.assumptions.collector.genericassumptions;
 import assumptions.AssumptionSymbolicFormulaManager;
 import assumptions.MathsatInvariantSymbolicFormulaManager;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
+
+import common.configuration.Configuration;
+
+import cpa.common.LogManager;
 import cpa.common.defaults.AbstractCPAFactory;
 import cpa.common.defaults.MergeSepOperator;
 import cpa.common.defaults.StaticPrecisionAdjustment;
@@ -39,14 +43,15 @@ import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
+import exceptions.InvalidConfigurationException;
 
 public class GenericAssumptionsCPA implements ConfigurableProgramAnalysis {
 
   private static class GenericAssumptionsCPAFactory extends AbstractCPAFactory {
     
     @Override
-    public ConfigurableProgramAnalysis createInstance() {
-      return new GenericAssumptionsCPA();
+    public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException {
+      return new GenericAssumptionsCPA(getConfiguration(), getLogger());
     }
   }
   
@@ -61,11 +66,11 @@ public class GenericAssumptionsCPA implements ConfigurableProgramAnalysis {
   private PrecisionAdjustment precisionAdjustment;
   
   // Symbolic Formula Manager used to represent build invariant formulas
-  private AssumptionSymbolicFormulaManager symbolicFormulaManager;
+  private final AssumptionSymbolicFormulaManager symbolicFormulaManager;
   
-  private GenericAssumptionsCPA()
+  private GenericAssumptionsCPA(Configuration config, LogManager logger) throws InvalidConfigurationException
   {
-    symbolicFormulaManager = MathsatInvariantSymbolicFormulaManager.getInstance();
+    symbolicFormulaManager = MathsatInvariantSymbolicFormulaManager.createInstance(config, logger);
     
     abstractDomain = new GenericAssumptionsDomain(this);
     

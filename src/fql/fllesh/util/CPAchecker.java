@@ -23,7 +23,7 @@ public class CPAchecker extends cpa.common.CPAchecker {
     super(pConfiguration, pLogManager);
     
     // get code file name
-    String[] names = cpa.common.CPAchecker.config.getPropertiesArray("analysis.programNames");
+    String[] names = pConfiguration.getPropertiesArray("analysis.programNames");
     if (names.length != 1) {
       cpa.common.CPAchecker.logger.log(Level.SEVERE, "Exactly one code file has to be given!");
       
