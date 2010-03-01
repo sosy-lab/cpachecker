@@ -258,10 +258,17 @@ public class QueryTransferRelation implements TransferRelation {
       AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException {
 
-    if (pElement.equals(mTopElement)) { return Collections
-        .singleton(mTopElement); }
+    if (pElement.equals(mTopElement)) {
+      System.out.println("returning top element...");
+      
+      return Collections.singleton(mTopElement); 
+    }
 
-    if (pElement.equals(mBottomElement)) { return Collections.emptySet(); }
+    if (pElement.equals(mBottomElement)) {
+      System.out.println("returning empty set...");
+      
+      return Collections.emptySet(); 
+    }
 
     if (!(pPrecision instanceof MustMayAnalysisPrecision)) {
       throw new UnsupportedOperationException();
@@ -269,7 +276,15 @@ public class QueryTransferRelation implements TransferRelation {
     
     mVisitor.setCurrentElementAndPrecision((QueryStandardElement) pElement, (MustMayAnalysisPrecision)pPrecision);
 
-    return mVisitor.visit(pCfaEdge);
+    System.out.println("visiting ..." + pElement.toString() + "*" + pCfaEdge.toString());
+    
+    Collection<? extends AbstractElement> lResult = mVisitor.visit(pCfaEdge);
+    
+    System.out.println(lResult);
+    
+    return lResult;
+    
+    //return mVisitor.visit(pCfaEdge);
   }
 
   @Override

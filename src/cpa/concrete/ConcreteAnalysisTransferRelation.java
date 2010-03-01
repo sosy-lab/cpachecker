@@ -100,7 +100,10 @@ public class ConcreteAnalysisTransferRelation implements TransferRelation {
     }
     
     if (pCurrentElement.equals(mDomain.getTopElement())) {
-      throw new UnsupportedOperationException("Top element is not allowed to occur during analysis!");
+      return mDomain.getBottomElement();
+      
+      // TODO reactivate this again!!!
+      //throw new UnsupportedOperationException("Top element is not allowed to occur during analysis!");
     }
     
     assert(pCurrentElement instanceof ConcreteAnalysisElement);

@@ -7,13 +7,25 @@ import java.util.Set;
 
 import cfa.objectmodel.CFANode;
 
+import compositeCPA.CompositeCPA;
 import compositeCPA.CompositeElement;
 import compositeCPA.CompositePrecision;
 
+import cpa.alwaystop.AlwaysTopCPA;
 import cpa.common.ReachedElements;
+import cpa.common.algorithm.CPAAlgorithm;
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.CPAFactory;
+import cpa.common.interfaces.ConfigurableProgramAnalysis;
+import cpa.common.interfaces.Precision;
 import cpa.common.ReachedElements.TraversalMethod;
+import cpa.concrete.ConcreteAnalysisCPA;
+import cpa.location.LocationCPA;
+import cpa.mustmay.MustMayAnalysisCPA;
+import cpa.mustmay.MustMayAnalysisElement;
+import exceptions.CPAException;
 import fql.backend.pathmonitor.Automaton;
+import fql.fllesh.cpa.QueryCPA;
 import fql.fllesh.cpa.QueryStandardElement;
 
 public class StandardQuery extends AbstractQuery {
@@ -51,10 +63,42 @@ public class StandardQuery extends AbstractQuery {
   private boolean mExplorationFinished;
   private ReachedElements mReachedElements;
   
+  private ConfigurableProgramAnalysis mCPA;
+  
   private StandardQuery(Automaton pFirstAutomaton, Automaton pSecondAutomaton) {
     super(pFirstAutomaton, pSecondAutomaton);
     
     lNextWaypoints = new LinkedList<Waypoint>();
+    
+    CPAFactory lCPAFactory = CompositeCPA.factory();
+    
+    CPAFactory lLocationCPAFactory = LocationCPA.factory();
+    
+    AlwaysTopCPA mMayCPA = new AlwaysTopCPA();
+    ConcreteAnalysisCPA mMustCPA = new ConcreteAnalysisCPA();
+    
+    MustMayAnalysisCPA mMustMayAnalysisCPA = new MustMayAnalysisCPA(mMustCPA, mMayCPA);
+    
+    QueryCPA lQueryCPA = new QueryCPA(this, mMustMayAnalysisCPA);
+    
+    
+    try {
+      ConfigurableProgramAnalysis lLocationCPA = lLocationCPAFactory.createInstance();
+      
+      LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<ConfigurableProgramAnalysis>();
+      
+      lComponentAnalyses.add(lLocationCPA);
+      lComponentAnalyses.add(lQueryCPA);
+      
+      lCPAFactory.setChildren(lComponentAnalyses);
+      
+      mCPA = lCPAFactory.createInstance();
+      
+      
+    } catch (CPAException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
     
     // create CPA
     // TODO: we need a different CPA than given here
@@ -104,11 +148,45 @@ public class StandardQuery extends AbstractQuery {
     
     if (mReachedElements.isEmpty()) {
       // initialization
-      // TODO implement
+      
+      // TODO we can just use the precision of the source as currently QueryCPA has no own precision
+      //Precision lLocationPrecision = mSource.getPrecision().get(0);
+      //Precision lMustMayPrecision = mSource.getPrecision().get(1);
+      
+      mSource.getElement().get(0);
+      
+      MustMayAnalysisElement lDataSpace = (MustMayAnalysisElement)mSource.getElement().get(1);
+      
+      for (Integer lFirstState : mSource.getStatesOfFirstAutomaton()) {
+        for (Integer lSecondState : mSource.getStatesOfSecondAutomaton()) {
+          QueryStandardElement lNewElement = new QueryStandardElement(lFirstState, true, lSecondState, true, lDataSpace);
+          
+          LinkedList<AbstractElement> lContainedElements = new LinkedList<AbstractElement>();
+          
+          lContainedElements.add(mSource.getElement().get(0));
+          
+          lContainedElements.add(lNewElement);
+          
+          CompositeElement lCompositeElement = new CompositeElement(lContainedElements, mSource.getElement().getCallStack());
+          
+          mReachedElements.add(lCompositeElement, mSource.getPrecision());
+        }
+      }
+      
+      System.out.println("Initial elements: " + mReachedElements);
       
       // apply state space exploration
-      // TODO implement
+      CPAAlgorithm lAlgorithm = new CPAAlgorithm(mCPA);
       
+      // TODO we should be able to use the error feature as a way to enumerate and refine elements in a different way than it is done now 
+      try {
+        lAlgorithm.run(mReachedElements, false);
+      } catch (CPAException e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+      }
+      
+      System.out.println("Explored elements: " + mReachedElements);
     }
     else {
       // refinement necessary 
