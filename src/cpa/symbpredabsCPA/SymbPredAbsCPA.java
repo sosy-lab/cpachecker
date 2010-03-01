@@ -86,6 +86,9 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
   @Option(name="interpolatingProver", toUppercase=true, values={"MATHSAT", "CSISAT"})
   private String whichItpProver = "MATHSAT";
   
+  private final Configuration config;
+  private final LogManager logger;
+  
   private final SymbPredAbsAbstractDomain domain;
   private final SymbPredAbsTransferRelation transfer;
   private final SymbPredAbsMergeOperator merge;
@@ -98,6 +101,9 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
 
   private SymbPredAbsCPA(Configuration config, LogManager logger) throws CPAException {
     config.inject(this);
+    
+    this.config = config;
+    this.logger = logger;
     
     abstractFormulaManager = new BDDAbstractFormulaManager(config);
     symbolicFormulaManager = new MathsatSymbolicFormulaManager(config, logger);
@@ -122,7 +128,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     }
     formulaManager = new MathsatSymbPredAbsFormulaManager<Integer>(abstractFormulaManager, symbolicFormulaManager, thmProver, itpProver, config, logger);
     domain = new SymbPredAbsAbstractDomain(abstractFormulaManager);
-    transfer = new SymbPredAbsTransferRelation(this, config);
+    transfer = new SymbPredAbsTransferRelation(this);
     merge = new SymbPredAbsMergeOperator(this);
     stop = new StopSepOperator(domain.getPartialOrder());
     initialPrecision = new SymbPredAbsPrecision();
@@ -175,16 +181,24 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     return stop;
   }
 
-  public AbstractFormulaManager getAbstractFormulaManager() {
+  protected AbstractFormulaManager getAbstractFormulaManager() {
     return abstractFormulaManager;
   }
   
-  public SymbPredAbsFormulaManager getFormulaManager() {
+  protected SymbPredAbsFormulaManager getFormulaManager() {
     return formulaManager;
   }
 
-  public SymbolicFormulaManager getSymbolicFormulaManager() {
+  protected SymbolicFormulaManager getSymbolicFormulaManager() {
     return symbolicFormulaManager;
+  }
+  
+  protected Configuration getConfiguration() {
+    return config;
+  }
+  
+  protected LogManager getLogger() {
+    return logger;
   }
 
   public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {

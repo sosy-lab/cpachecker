@@ -16,7 +16,7 @@ import common.configuration.Configuration;
 import common.configuration.Option;
 import common.configuration.Options;
 
-import cpa.common.CPAchecker;
+import cpa.common.LogManager;
 import cpa.common.ReachedElements;
 import cpa.common.interfaces.Statistics;
 import cpa.symbpredabsCPA.SymbPredAbsAbstractElement;
@@ -34,8 +34,11 @@ public class ARTStatistics implements Statistics {
   @Option(name="ART.file")
   private String outputFile = "ART.dot";
 
-  public ARTStatistics(Configuration config) throws InvalidConfigurationException {
+  private final LogManager logger;
+  
+  public ARTStatistics(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
+    this.logger = logger;
   }  
   
   @Override
@@ -51,7 +54,7 @@ public class ARTStatistics implements Statistics {
     }
   }
 
-  public static void dumpARTToDotFile(ReachedElements pReached, File outfile) {
+  private void dumpARTToDotFile(ReachedElements pReached, File outfile) {
     ARTElement firstElement = (ARTElement)pReached.getFirstElement();
 
     Deque<ARTElement> worklist = new LinkedList<ARTElement>();
@@ -62,7 +65,7 @@ public class ARTStatistics implements Statistics {
     try {
       out = new PrintWriter(outfile);
     } catch (FileNotFoundException e) {
-      CPAchecker.logger.log(Level.WARNING,
+      logger.log(Level.WARNING,
           "Could not write ART to file ", outfile, ", (", e.getMessage(), ")");
       return;
     }

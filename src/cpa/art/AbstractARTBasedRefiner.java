@@ -16,7 +16,7 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.Sets;
 import common.Pair;
 
-import cpa.common.CPAchecker;
+import cpa.common.LogManager;
 import cpa.common.ReachedElements;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
@@ -26,6 +26,7 @@ import exceptions.CPAException;
 public abstract class AbstractARTBasedRefiner implements Refiner {
 
   private final ARTCPA mArtCpa;
+  private final LogManager logger;
 
   private final Set<Path> seenCounterexamples = Sets.newHashSet();
   
@@ -34,6 +35,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
       throw new CPAException("ARTCPA needed for refinement");
     }
     mArtCpa = (ARTCPA)pCpa;
+    this.logger = mArtCpa.getLogger();
   }
   
   protected ARTCPA getArtCpa() {
@@ -55,7 +57,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
   
   @Override
   public final boolean performRefinement(ReachedElements pReached) throws CPAException {
-    CPAchecker.logger.log(Level.FINEST, "Starting ART based refinement");
+    logger.log(Level.FINEST, "Starting ART based refinement");
     
     assert checkART(pReached);
     
@@ -63,9 +65,9 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
     assert lastElement instanceof ARTElement;
     Path path = buildPath((ARTElement)lastElement);
 
-    if (CPAchecker.logger.wouldBeLogged(Level.ALL)) {
-      CPAchecker.logger.log(Level.ALL, "Error path:\n", path);
-      CPAchecker.logger.log(Level.ALL, "Function calls on Error path:\n",
+    if (logger.wouldBeLogged(Level.ALL)) {
+      logger.log(Level.ALL, "Error path:\n", path);
+      logger.log(Level.ALL, "Function calls on Error path:\n",
           Joiner.on("\n ").skipNulls().join(Collections2.transform(path, pathToFunctionCalls)));
     }
     
@@ -75,7 +77,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
     
     assert checkART(pReached);
 
-    CPAchecker.logger.log(Level.FINEST, "ART based refinement finished, result is", result);
+    logger.log(Level.FINEST, "ART based refinement finished, result is", result);
 
     return result;
   }

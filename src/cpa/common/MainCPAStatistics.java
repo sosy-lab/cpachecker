@@ -51,14 +51,16 @@ public class MainCPAStatistics implements Statistics {
     @Option(name="reachedSet.file")
     private String outputFile = "reached.txt";
   
+    private final LogManager logger;
     private final Collection<Statistics> subStats;
     private long programStartingTime;
     private long analysisStartingTime;
     private long analysisEndingTime;
 
-    public MainCPAStatistics(Configuration config) throws InvalidConfigurationException {
+    public MainCPAStatistics(Configuration config, LogManager logger) throws InvalidConfigurationException {
         config.inject(this);
         
+        this.logger = logger;
         subStats = new ArrayList<Statistics>();
         programStartingTime = 0;
         analysisStartingTime = 0;
@@ -101,7 +103,7 @@ public class MainCPAStatistics implements Statistics {
             }
             file.close();
           } catch (FileNotFoundException e) {
-            CPAchecker.logger.log(Level.WARNING,
+            logger.log(Level.WARNING,
                 "Could not write reached set to file ", reachedFile.getAbsolutePath(),
                 ", (", e.getMessage(), ")");
           }

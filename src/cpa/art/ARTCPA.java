@@ -15,6 +15,7 @@ import common.configuration.Configuration;
 import common.configuration.Option;
 import common.configuration.Options;
 
+import cpa.common.LogManager;
 import cpa.common.defaults.AbstractCPAFactory;
 import cpa.common.defaults.MergeSepOperator;
 import cpa.common.defaults.StaticPrecisionAdjustment;
@@ -44,7 +45,7 @@ public class ARTCPA implements ConfigurableProgramAnalysis, StatisticsProvider, 
     public ConfigurableProgramAnalysis createInstance() throws CPAException {
       Preconditions.checkState(cpa != null, "ARTCPA needs a wrapped CPA!");
       
-      return new ARTCPA(cpa, getConfiguration());
+      return new ARTCPA(cpa, getConfiguration(), getLogger());
     }
 
     @Override
@@ -67,6 +68,8 @@ public class ARTCPA implements ConfigurableProgramAnalysis, StatisticsProvider, 
   @Option(name="merge", toUppercase=true, values={"SEP", "JOIN"})
   private String mergeType = "JOIN";
   
+  private final LogManager logger;
+  
   private final AbstractDomain abstractDomain;
   private final TransferRelation transferRelation;
   private final MergeOperator mergeOperator;
@@ -75,9 +78,10 @@ public class ARTCPA implements ConfigurableProgramAnalysis, StatisticsProvider, 
   private final Statistics stats;
   private final ConfigurableProgramAnalysis wrappedCPA;
 
-  private ARTCPA(ConfigurableProgramAnalysis cpa, Configuration config) throws InvalidConfigurationException {
+  private ARTCPA(ConfigurableProgramAnalysis cpa, Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
     
+    this.logger = logger;
     wrappedCPA = cpa;
     abstractDomain = new ARTDomain(this);
     transferRelation = new ARTTransferRelation(cpa.getTransferRelation());
@@ -90,7 +94,7 @@ public class ARTCPA implements ConfigurableProgramAnalysis, StatisticsProvider, 
       throw new InternalError("Update list of allowed merge operators!");
     }
     stopOperator = new ARTStopSep(wrappedCPA);  
-    stats = new ARTStatistics(config);
+    stats = new ARTStatistics(config, logger);
   }
 
   public AbstractDomain getAbstractDomain ()
@@ -128,6 +132,10 @@ public class ARTCPA implements ConfigurableProgramAnalysis, StatisticsProvider, 
     return wrappedCPA.getInitialPrecision(pNode);
   }
 
+  protected LogManager getLogger() {
+    return logger;
+  }
+  
   public ConfigurableProgramAnalysis getWrappedCPA(){
     return wrappedCPA;
   }

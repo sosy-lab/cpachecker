@@ -43,11 +43,10 @@ import cfa.objectmodel.c.ReturnEdge;
 
 import com.google.common.collect.ImmutableSet;
 import common.Triple;
-import common.configuration.Configuration;
 import common.configuration.Option;
 import common.configuration.Options;
 
-import cpa.common.CPAchecker;
+import cpa.common.LogManager;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
@@ -89,6 +88,8 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   public int numAbstractStates = 0;
   public int maxBlockSize = 0;
 
+  private final LogManager logger;
+  
   // formula managers
   private final AbstractFormulaManager abstractFormulaManager;
   private final SymbolicFormulaManager symbolicFormulaManager;
@@ -102,12 +103,13 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   private final Map<Triple<Integer, Integer, Integer>, PathFormula> pathFormulaMapHash =
     new HashMap<Triple<Integer,Integer,Integer>, PathFormula>();
   
-  public SymbPredAbsTransferRelation(SymbPredAbsCPA pCpa, Configuration config) throws InvalidConfigurationException {
+  public SymbPredAbsTransferRelation(SymbPredAbsCPA pCpa) throws InvalidConfigurationException {
+    pCpa.getConfiguration().inject(this);
+
+    logger = pCpa.getLogger();
     symbolicFormulaManager = pCpa.getSymbolicFormulaManager();
     abstractFormulaManager = pCpa.getAbstractFormulaManager();
     formulaManager = pCpa.getFormulaManager();
-    
-    config.inject(this);
 }
 
   @Override
@@ -157,7 +159,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   private Collection<SymbPredAbsAbstractElement> handleNonAbstractionLocation(
                 SymbPredAbsAbstractElement element, CFAEdge edge, boolean satCheck)
                 throws UnrecognizedCFAEdgeException {
-    CPAchecker.logger.log(Level.FINEST, "Handling non-abstraction location",
+    logger.log(Level.FINEST, "Handling non-abstraction location",
         (satCheck ? "with satisfiability check" : ""));
 
     // id of parent
@@ -165,10 +167,10 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
     PathFormula pf = convertEdgeToPathFormula(element.getPathFormula(), edge, abstractionNodeId); 
 
-    CPAchecker.logger.log(Level.ALL, "New path formula is", pf);
+    logger.log(Level.ALL, "New path formula is", pf);
 
     if (satCheck && formulaManager.unsat(element.getAbstraction(), pf)) {
-      CPAchecker.logger.log(Level.FINEST, "Abstraction & PathFormula is unsatisfiable.");
+      logger.log(Level.FINEST, "Abstraction & PathFormula is unsatisfiable.");
       return Collections.emptySet();
     }
     
@@ -206,7 +208,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   private Collection<SymbPredAbsAbstractElement> handleAbstractionLocation(SymbPredAbsAbstractElement element, SymbPredAbsPrecision precision, CFAEdge edge) 
   throws UnrecognizedCFAEdgeException {
     
-    CPAchecker.logger.log(Level.FINEST, "Computing abstraction on node", edge.getSuccessor());
+    logger.log(Level.FINEST, "Computing abstraction on node", edge.getSuccessor());
     
     // this will be the initial abstraction formula that we will use 
     // to compute the abstraction. Say this formula is pf, and the abstraction
@@ -246,7 +248,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
 
     // if the abstraction is false, return bottom (represented by empty set)
     if (abstractFormulaManager.isFalse(newAbstraction)) {
-      CPAchecker.logger.log(Level.FINEST, "Abstraction is false, node is not reachable");
+      logger.log(Level.FINEST, "Abstraction is false, node is not reachable");
       return Collections.emptySet();
     }
     
@@ -364,14 +366,14 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     }
 
     if (errorFound) { 
-      CPAchecker.logger.log(Level.FINEST, "Checking for feasibility of path because error has been found");
+      logger.log(Level.FINEST, "Checking for feasibility of path because error has been found");
       if (formulaManager.unsat(element.getAbstraction(), element.getPathFormula())) {
-        CPAchecker.logger.log(Level.FINEST, "Path is infeasible.");
+        logger.log(Level.FINEST, "Path is infeasible.");
         return Collections.emptySet();
       } else {
         // although this is not an abstraction location, we fake an abstraction
         // because refinement code expect it to be like this
-        CPAchecker.logger.log(Level.FINEST, "Last part of the path is not infeasible.");
+        logger.log(Level.FINEST, "Last part of the path is not infeasible.");
         
         ++numAbstractStates;
 

@@ -234,7 +234,7 @@ public class CPAchecker {
     IASTTranslationUnit ast = parse(file);
 
     try {
-      MainCPAStatistics stats = new MainCPAStatistics(getConfiguration());
+      MainCPAStatistics stats = new MainCPAStatistics(getConfiguration(), logger);
 
       // start measuring time
       stats.startProgramTimer();
@@ -563,7 +563,7 @@ public class CPAchecker {
       final ConfigurableProgramAnalysis cpa, MainCPAStatistics stats) throws CPAException {
     logger.log(Level.FINE, "Creating algorithms");
 
-    Algorithm algorithm = new CPAAlgorithm(cpa);
+    Algorithm algorithm = new CPAAlgorithm(cpa, logger);
     
     if (options.useRefinement) {
       algorithm = new CEGARAlgorithm(algorithm, getConfiguration(), logger);

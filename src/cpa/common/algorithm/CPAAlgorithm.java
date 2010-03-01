@@ -32,6 +32,7 @@ import java.util.logging.Level;
 import common.Pair;
 
 import cpa.common.CPAchecker;
+import cpa.common.LogManager;
 import cpa.common.ReachedElements;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
@@ -95,8 +96,11 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
   
   private final ConfigurableProgramAnalysis cpa;
 
-  public CPAAlgorithm(ConfigurableProgramAnalysis cpa) {
+  private final LogManager logger;
+  
+  public CPAAlgorithm(ConfigurableProgramAnalysis cpa, LogManager logger) {
     this.cpa = cpa;
+    this.logger = logger;
   }
 
   @Override
@@ -132,8 +136,8 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       AbstractElement element = e.getFirst();
       Precision precision = e.getSecond();
 
-      CPAchecker.logger.log(Level.FINER, "Retrieved element from waitlist");
-      CPAchecker.logger.log(Level.ALL, "Current element is", element, "with precision", precision);
+      logger.log(Level.FINER, "Retrieved element from waitlist");
+      logger.log(Level.ALL, "Current element is", element, "with precision", precision);
 
       start = System.currentTimeMillis();
       Collection<? extends AbstractElement> successors = transferRelation.getAbstractSuccessors (element, precision, null);
@@ -142,13 +146,13 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       // TODO When we have a nice way to mark the analysis result as incomplete, we could continue analysis on a CPATransferException with the next element from waitlist.
       
       int numSuccessors = successors.size();
-      CPAchecker.logger.log(Level.FINER, "Current element has", numSuccessors, "successors");
+      logger.log(Level.FINER, "Current element has", numSuccessors, "successors");
       stats.countSuccessors += numSuccessors;
       stats.maxSuccessors = Math.max(numSuccessors, stats.maxSuccessors);
       
       for (AbstractElement successor : successors) {
-        CPAchecker.logger.log(Level.FINER, "Considering successor of current element");
-        CPAchecker.logger.log(Level.ALL, "Successor of", element, "\nis", successor);
+        logger.log(Level.FINER, "Considering successor of current element");
+        logger.log(Level.ALL, "Successor of", element, "\nis", successor);
         
         Collection<AbstractElement> reached = reachedElements.getReached(successor);
 
@@ -160,13 +164,13 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
           List<AbstractElement> toRemove = new ArrayList<AbstractElement>();
           List<Pair<AbstractElement, Precision>> toAdd = new ArrayList<Pair<AbstractElement, Precision>>();
           
-          CPAchecker.logger.log(Level.FINER, "Considering", reached.size(), "elements from reached set for merge");
+          logger.log(Level.FINER, "Considering", reached.size(), "elements from reached set for merge");
           for (AbstractElement reachedElement : reached) {
             AbstractElement mergedElement = mergeOperator.merge( successor, reachedElement, precision);
 
             if (!mergedElement.equals(reachedElement)) {
-              CPAchecker.logger.log(Level.FINER, "Successor was merged with element from reached set");
-              CPAchecker.logger.log(Level.ALL,
+              logger.log(Level.FINER, "Successor was merged with element from reached set");
+              logger.log(Level.ALL,
                   "Merged", successor, "\nand", reachedElement, "\n-->", mergedElement);
               stats.countMerge++;
               
@@ -184,11 +188,11 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
         start = System.currentTimeMillis();
 
         if (stopOperator.stop(successor, reached, precision)) {
-          CPAchecker.logger.log(Level.FINER, "Successor is covered or unreachable, not adding to waitlist");
+          logger.log(Level.FINER, "Successor is covered or unreachable, not adding to waitlist");
           stats.countStop++;
           
         } else {
-          CPAchecker.logger.log(Level.FINER, "No need to stop, adding successor to waitlist");
+          logger.log(Level.FINER, "No need to stop, adding successor to waitlist");
 
           reachedElements.add(successor, precision);
           

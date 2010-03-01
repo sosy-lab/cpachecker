@@ -32,7 +32,7 @@ import cfa.objectmodel.CFANode;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 
-import cpa.common.CPAchecker;
+import cpa.common.LogManager;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
@@ -48,11 +48,13 @@ import cpa.common.interfaces.Precision;
  */
 public class SymbPredAbsMergeOperator implements MergeOperator {
 
+  private final LogManager logger;
   private final FormulaManager formulaManager;
 
   long totalMergeTime = 0;
   
   public SymbPredAbsMergeOperator(SymbPredAbsCPA pCpa) {
+    this.logger = pCpa.getLogger();
     formulaManager = pCpa.getFormulaManager();
   }
 
@@ -87,12 +89,12 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
         assert (elem1.getInitAbstractionFormula() == elem2.getInitAbstractionFormula());
         assert (elem1.getAbstractionLocation() == elem2.getAbstractionLocation());
 
-        CPAchecker.logger.log(Level.FINEST, "Merging two non-abstraction nodes with parents",
+        logger.log(Level.FINEST, "Merging two non-abstraction nodes with parents",
                 elem1.getPfParents(), "and", elem2.getPfParents(), ".");
 
         PathFormula pathFormula = formulaManager.makeOr(elem1.getPathFormula(), elem2.getPathFormula());
        
-        CPAchecker.logger.log(Level.ALL, "New path formula is", pathFormula);
+        logger.log(Level.ALL, "New path formula is", pathFormula);
 
         // now we update the pfParents
         // elem1 is the successor element and elem2 is the reached element from
