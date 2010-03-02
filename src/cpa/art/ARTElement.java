@@ -9,17 +9,16 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import com.google.common.base.Preconditions;
-
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFANode;
+
+import com.google.common.base.Preconditions;
+
+import cpa.common.defaults.AbstractSingleWrapperElement;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.AbstractElementWithLocation;
-import cpa.common.interfaces.AbstractWrapperElement;
 
-public class ARTElement implements AbstractWrapperElement {
+public class ARTElement extends AbstractSingleWrapperElement {
 
-  private final AbstractElement element;
   private final Set<ARTElement> children;
   private final Set<ARTElement> parents; // more than one parent if joining elements
   private ARTElement mCoveredBy = null;
@@ -31,9 +30,9 @@ public class ARTElement implements AbstractWrapperElement {
 
   private static int nextArtElementId = 0;
 
-  protected ARTElement(AbstractElement pAbstractElement, ARTElement pParentElement) {
+  protected ARTElement(AbstractElement pWrappedElement, ARTElement pParentElement) {
+    super(pWrappedElement);
     elementId = ++nextArtElementId;
-    element = pAbstractElement;
     parents = new HashSet<ARTElement>();
     if(pParentElement != null){
       addParent(pParentElement);
@@ -55,11 +54,6 @@ public class ARTElement implements AbstractWrapperElement {
   public Set<ARTElement> getChildren(){
     assert !destroyed;
     return children;
-  }
-
-  public AbstractElement getAbstractElementOnArtNode(){
-    assert !destroyed;
-    return element;
   }
 
   protected void setCovered(ARTElement pCoveredBy) {
@@ -120,38 +114,8 @@ public class ARTElement implements AbstractWrapperElement {
       sb.append(list);
     }
     sb.append(") ");
-    sb.append(element);
+    sb.append(getWrappedElement());
     return sb.toString();
-  }
-
-  @Override
-  public <T extends AbstractElement> T retrieveWrappedElement(Class<T> pType) {
-    if (pType.isAssignableFrom(getClass())) {
-      return pType.cast(this);
-    } else if (pType.isAssignableFrom(element.getClass())) {
-      return pType.cast(element);
-    } else if (element instanceof AbstractWrapperElement) {
-      return ((AbstractWrapperElement)element).retrieveWrappedElement(pType);
-    } else {
-      return null;
-    }
-  }
-  
-  @Override
-  public AbstractElementWithLocation retrieveLocationElement() {
-    if (element instanceof AbstractWrapperElement) {
-      return ((AbstractWrapperElement)element).retrieveLocationElement();
-    } else if (element instanceof AbstractElementWithLocation) {
-      return (AbstractElementWithLocation)element;
-    } else {
-      return null;
-    }
-  }
-  
-  @Override
-  public Iterable<AbstractElement> getWrappedElements() {
-    assert !destroyed;
-    return Collections.singletonList(element);
   }
 
   // TODO check
@@ -220,11 +184,6 @@ public class ARTElement implements AbstractWrapperElement {
 
   public int getElementId() {
     return elementId;
-  }
-
-  @Override
-  public boolean isError() {
-    return element.isError();
   }
 
   /**

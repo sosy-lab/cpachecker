@@ -1,16 +1,12 @@
 package cpa.transferrelationmonitor;
 
-import java.util.Collections;
-
 import assumptions.AvoidanceReportingElement;
+import cpa.common.defaults.AbstractSingleWrapperElement;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.AbstractElementWithLocation;
-import cpa.common.interfaces.AbstractWrapperElement;
 
-public class TransferRelationMonitorElement implements AbstractElement, AbstractWrapperElement, AvoidanceReportingElement {
+public class TransferRelationMonitorElement extends AbstractSingleWrapperElement implements AvoidanceReportingElement {
 
   private final TransferRelationMonitorCPA cpa;
-  private final AbstractElement element;
   private boolean shouldStop = false;
 
   private long timeOfTranferToComputeElement;
@@ -18,43 +14,11 @@ public class TransferRelationMonitorElement implements AbstractElement, Abstract
   static long maxTimeOfTransfer = 0;
 
   protected TransferRelationMonitorElement(TransferRelationMonitorCPA pCpa, 
-      AbstractElement pAbstractElement) {
+      AbstractElement pWrappedElement) {
+    super(pWrappedElement);
     cpa = pCpa;
-    element = pAbstractElement;
     timeOfTranferToComputeElement = 0;
     totalTimeOnThePath = 0;
-  }
-
-  @Override
-  public boolean isError() {
-    return element.isError();
-  }
-
-  @Override
-  public Iterable<AbstractElement> getWrappedElements() {
-    return Collections.singletonList(element);
-  }
-  
-  protected AbstractElement getWrappedElement() {
-    return element;
-  }
-
-  @Override
-  public <T extends AbstractElement> T retrieveWrappedElement(Class<T> pType) {
-    if (pType.isAssignableFrom(getClass())) {
-      return pType.cast(this);
-    } else if (pType.isAssignableFrom(element.getClass())) {
-      return pType.cast(element);
-    } else if (element instanceof AbstractWrapperElement) {
-      return ((AbstractWrapperElement)element).retrieveWrappedElement(pType);
-    } else {
-      return null;
-    }
-  }
-
-  @Override
-  public AbstractElementWithLocation retrieveLocationElement() {
-    return retrieveWrappedElement(AbstractElementWithLocation.class);
   }
 
   public TransferRelationMonitorCPA getCpa() {
@@ -86,7 +50,7 @@ public class TransferRelationMonitorElement implements AbstractElement, Abstract
       return true;
     } else if (pObj instanceof TransferRelationMonitorElement) {
       TransferRelationMonitorElement otherElem = (TransferRelationMonitorElement)pObj;
-      return this.element.equals(otherElem.element);
+      return this.getWrappedElement().equals(otherElem.getWrappedElement());
     } else {
       return false;
     }
@@ -94,12 +58,7 @@ public class TransferRelationMonitorElement implements AbstractElement, Abstract
 
   @Override
   public int hashCode() {
-    return element.hashCode();
-  }
-
-  @Override
-  public String toString() {
-    return element.toString();
+    return getWrappedElement().hashCode();
   }
 
   public void setAsStopElement(){

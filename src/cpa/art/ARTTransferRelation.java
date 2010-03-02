@@ -25,7 +25,7 @@ public class ARTTransferRelation implements TransferRelation {
       throws CPATransferException {
     ARTElement element = (ARTElement)pElement;
     
-    AbstractElement wrappedElement = element.getAbstractElementOnArtNode();
+    AbstractElement wrappedElement = element.getWrappedElement();
     Collection<? extends AbstractElement> successors = transferRelation.getAbstractSuccessors(wrappedElement, pPrecision, pCfaEdge);
     if (successors.isEmpty()) {
       return Collections.emptySet();

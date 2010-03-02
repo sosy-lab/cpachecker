@@ -23,12 +23,9 @@
  */
 package cpa.assumptions.collector;
 
-import java.util.Collections;
-
 import assumptions.AssumptionWithLocation;
+import cpa.common.defaults.AbstractSingleWrapperElement;
 import cpa.common.interfaces.AbstractElement;
-import cpa.common.interfaces.AbstractElementWithLocation;
-import cpa.common.interfaces.AbstractWrapperElement;
 
 /**
  * Abstract element for the Collector CPA. Encapsulate a
@@ -36,15 +33,14 @@ import cpa.common.interfaces.AbstractWrapperElement;
  * 
  * @author g.theoduloz
  */
-public class AssumptionCollectorElement implements AbstractElement, AbstractWrapperElement {
+public class AssumptionCollectorElement extends AbstractSingleWrapperElement {
 
   private final AssumptionWithLocation assumption;
   private final boolean stop;
-  private final AbstractElement element;
 
   public AssumptionCollectorElement(AbstractElement wrappedElement, AssumptionWithLocation f, boolean forceStop)
   {
-    element = wrappedElement;
+    super(wrappedElement);
     assumption = f;
     stop = forceStop;
   }
@@ -82,39 +78,8 @@ public class AssumptionCollectorElement implements AbstractElement, AbstractWrap
     else
       builder.append(assumption.toString());
     builder.append('\n');
-    builder.append(element.toString());
+    builder.append(getWrappedElement().toString());
     return builder.toString();
-  }
-
-  @Override
-  public Iterable<? extends AbstractElement> getWrappedElements() {
-    return Collections.singleton(element);
-  }
-
-  @Override
-  public <T extends AbstractElement> T retrieveWrappedElement(Class<T> pType) {
-    if (pType.isAssignableFrom(getClass())) {
-      return pType.cast(this);
-    } else if (pType.isAssignableFrom(element.getClass())) {
-      return pType.cast(element);
-    } else if (element instanceof AbstractWrapperElement) {
-      return ((AbstractWrapperElement)element).retrieveWrappedElement(pType);
-    } else {
-      return null;
-    }
-  }
-  
-  public AbstractElement getWrappedElement()
-  {
-    return element;
-  }
-  
-  @Override
-  public AbstractElementWithLocation retrieveLocationElement() {
-    if (element instanceof AbstractWrapperElement)
-      return ((AbstractWrapperElement) element).retrieveLocationElement();
-    else
-      return retrieveWrappedElement(AbstractElementWithLocation.class);
   }
   
   public boolean isStop() {
@@ -133,4 +98,5 @@ public class AssumptionCollectorElement implements AbstractElement, AbstractWrap
     }
   }
   
+  // FIXME hashCode() implementation missing!
 }

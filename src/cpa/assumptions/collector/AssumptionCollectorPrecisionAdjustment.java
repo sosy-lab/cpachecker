@@ -51,14 +51,6 @@ public class AssumptionCollectorPrecisionAdjustment
   {
     wrappedPrecisionAdjustment = wrappedCPA.getPrecisionAdjustment();
   }
-  
-  private static final Function<AbstractElement, AbstractElement> UNWRAP_ELEMENT_FUNCTION =
-    new Function<AbstractElement, AbstractElement>() {
-      @Override
-      public AbstractElement apply(AbstractElement from) {
-        return ((AssumptionCollectorElement)from).getWrappedElement();
-      }
-    };
     
   private static final Function<Precision, Precision> UNWRAP_PRECISION_FUNCTION = Functions.<Precision>identity();
 
@@ -68,7 +60,7 @@ public class AssumptionCollectorPrecisionAdjustment
   {
     AssumptionCollectorElement assumptionElement = (AssumptionCollectorElement)element;
     AbstractElement unwrappedElement = assumptionElement.getWrappedElement();
-    UnmodifiableReachedElements unwrappedReached = new UnmodifiableReachedElementsView(reachedElements, UNWRAP_ELEMENT_FUNCTION, UNWRAP_PRECISION_FUNCTION);
+    UnmodifiableReachedElements unwrappedReached = new UnmodifiableReachedElementsView(reachedElements, AssumptionCollectorElement.getUnwrapFunction(), UNWRAP_PRECISION_FUNCTION);
     Pair<AbstractElement, Precision> unwrappedResult = wrappedPrecisionAdjustment.prec(unwrappedElement, precision, unwrappedReached);
     
     AbstractElement resultElement;
