@@ -28,18 +28,15 @@ import assumptions.AssumptionWithLocation;
 import assumptions.MathsatInvariantSymbolicFormulaManager;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 
-import com.google.common.base.Preconditions;
 import common.configuration.Configuration;
 
 import cpa.common.LogManager;
-import cpa.common.defaults.AbstractCPAFactory;
+import cpa.common.defaults.AbstractSingleWrapperCPA;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.CPAFactory;
-import cpa.common.interfaces.CPAWrapper;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
-import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
@@ -54,25 +51,13 @@ import exceptions.InvalidConfigurationException;
  *  
  * @author g.theoduloz
  */
-public class AssumptionCollectorCPA implements ConfigurableProgramAnalysis, CPAWrapper {
+public class AssumptionCollectorCPA extends AbstractSingleWrapperCPA {
 
-  private static class AssumptionCollectorCPAFactory extends AbstractCPAFactory {
-
-    private ConfigurableProgramAnalysis cpa = null;
+  private static class AssumptionCollectorCPAFactory extends AbstractSingleWrapperCPAFactory {
     
     @Override
     public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException {
-      Preconditions.checkState(cpa != null);
-      return new AssumptionCollectorCPA(cpa, getConfiguration(), getLogger());
-    }
-
-    @Override
-    public CPAFactory setChild(ConfigurableProgramAnalysis pChild) {
-      Preconditions.checkNotNull(pChild);
-      Preconditions.checkState(cpa == null);
-      
-      cpa = pChild;
-      return this;
+      return new AssumptionCollectorCPA(getChild(), getConfiguration(), getLogger());
     }
   }
   
@@ -86,18 +71,17 @@ public class AssumptionCollectorCPA implements ConfigurableProgramAnalysis, CPAW
   private final TransferRelation transferRelation;
   private final AssumptionSymbolicFormulaManager symbolicFormulaManager;
   private final PrecisionAdjustment precisionAdjustment;
-  private final ConfigurableProgramAnalysis wrappedCPA;
   
   private AssumptionCollectorCPA(ConfigurableProgramAnalysis cpa,
             Configuration config, LogManager logger) throws InvalidConfigurationException
   {
-    wrappedCPA = cpa;
+    super(cpa);
     symbolicFormulaManager = MathsatInvariantSymbolicFormulaManager.createInstance(config, logger);
-    abstractDomain = new AssumptionCollectorDomain(wrappedCPA.getAbstractDomain());
-    mergeOperator = new AssumptionCollectorMerge(wrappedCPA);
-    stopOperator = new AssumptionCollectorStop(wrappedCPA);
+    abstractDomain = new AssumptionCollectorDomain(getWrappedCpa().getAbstractDomain());
+    mergeOperator = new AssumptionCollectorMerge(getWrappedCpa());
+    stopOperator = new AssumptionCollectorStop(getWrappedCpa());
     transferRelation = new AssumptionCollectorTransferRelation(this);
-    precisionAdjustment = new AssumptionCollectorPrecisionAdjustment(wrappedCPA);
+    precisionAdjustment = new AssumptionCollectorPrecisionAdjustment(getWrappedCpa());
   }
   
   public AssumptionSymbolicFormulaManager getSymbolicFormulaManager()
@@ -112,13 +96,8 @@ public class AssumptionCollectorCPA implements ConfigurableProgramAnalysis, CPAW
 
   @Override
   public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
-    AbstractElement wrappedInitialElement = wrappedCPA.getInitialElement(node);
+    AbstractElement wrappedInitialElement = getWrappedCpa().getInitialElement(node);
     return new AssumptionCollectorElement(wrappedInitialElement, AssumptionWithLocation.TRUE, false);
-  }
-
-  @Override
-  public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
-    return wrappedCPA.getInitialPrecision(pNode);
   }
 
   @Override
@@ -139,22 +118,5 @@ public class AssumptionCollectorCPA implements ConfigurableProgramAnalysis, CPAW
   @Override
   public TransferRelation getTransferRelation() {
     return transferRelation;
-  }
-
-  protected ConfigurableProgramAnalysis getWrappedCPA() {
-    return wrappedCPA;
-  }
-
-  @Override
-  public <T extends ConfigurableProgramAnalysis> T retrieveWrappedCpa(Class<T> pType) {
-    if (pType.isAssignableFrom(getClass())) {
-      return pType.cast(this);
-    } else if (pType.isAssignableFrom(wrappedCPA.getClass())) {
-      return pType.cast(wrappedCPA);
-    } else if (wrappedCPA instanceof CPAWrapper) {
-      return ((CPAWrapper)wrappedCPA).retrieveWrappedCpa(pType);
-    } else {
-      return null;
-    }
   }
 }

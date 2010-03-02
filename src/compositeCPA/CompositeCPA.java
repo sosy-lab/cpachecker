@@ -38,7 +38,7 @@ import cpa.common.defaults.AbstractCPAFactory;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.CPAFactory;
-import cpa.common.interfaces.CPAWrapper;
+import cpa.common.interfaces.WrapperCPA;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
@@ -48,7 +48,7 @@ import cpa.common.interfaces.StatisticsProvider;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
 
-public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProvider, CPAWrapper
+public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProvider, WrapperCPA
 {
   private static class CompositeCPAFactory extends AbstractCPAFactory {
 
@@ -191,8 +191,8 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
     for (ConfigurableProgramAnalysis cpa : cpas) {
       if (pType.isAssignableFrom(cpa.getClass())) {
         return pType.cast(cpa);
-      } else if (cpa instanceof CPAWrapper) {
-        T result = ((CPAWrapper)cpa).retrieveWrappedCpa(pType);
+      } else if (cpa instanceof WrapperCPA) {
+        T result = ((WrapperCPA)cpa).retrieveWrappedCpa(pType);
         if (result != null) {
           return result;
         }

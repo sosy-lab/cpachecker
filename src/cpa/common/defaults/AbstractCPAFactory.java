@@ -29,7 +29,7 @@ public abstract class AbstractCPAFactory implements CPAFactory {
   @Override
   public CPAFactory setConfiguration(Configuration pConfiguration) {
     Preconditions.checkNotNull(pConfiguration);
-    Preconditions.checkState(configuration == null, "setConfiguration called twice von CPAFactory");
+    Preconditions.checkState(configuration == null, "setConfiguration called twice on CPAFactory");
     
     configuration = pConfiguration;
     return this;
@@ -38,7 +38,7 @@ public abstract class AbstractCPAFactory implements CPAFactory {
   @Override
   public CPAFactory setLogger(LogManager pLogger) {
     Preconditions.checkNotNull(pLogger);
-    Preconditions.checkState(logger == null, "setConfiguration called twice von CPAFactory");
+    Preconditions.checkState(logger == null, "setConfiguration called twice on CPAFactory");
     
     logger = pLogger;
     return this;

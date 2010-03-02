@@ -28,7 +28,7 @@ package cpa.common.interfaces;
  * (like composite CPAs)
  * @author g.theoduloz
  */
-public interface CPAWrapper {
+public interface WrapperCPA {
   
   /**
    * Retrieve one of the wrapped CPAs by type. If the hierarchy of (wrapped)
