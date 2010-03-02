@@ -32,6 +32,7 @@ import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAEdgeType;
 import cfa.objectmodel.CFANode;
 import cfa.objectmodel.c.CallToReturnEdge;
+import cfa.objectmodel.c.FunctionCallEdge;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -90,7 +91,7 @@ public class CompositeTransferRelation implements TransferRelation{
     CallStack updatedCallStack = compositeElement.getCallStack();
 
     // TODO add some check here for unbounded recursive calls
-    if(cfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge)
+    if(cfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge && !((FunctionCallEdge)cfaEdge).isExternalCall())
     {
       String functionName = cfaEdge.getSuccessor().getFunctionName();
       CFANode callNode = cfaEdge.getPredecessor();
