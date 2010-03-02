@@ -67,7 +67,7 @@ public class AssumptionCollectorPrecisionAdjustment
     if (unwrappedElement != unwrappedResult.getFirst()) {
       AssumptionWithLocation assumption = assumptionElement.getCollectedAssumptions();
       boolean stop = assumptionElement.isStop();
-      resultElement = new AssumptionCollectorElement(unwrappedElement, assumption, stop);
+      resultElement = new AssumptionCollectorElement(unwrappedResult.getFirst(), assumption, stop);
     } else {
       resultElement = element;
     }
