@@ -173,10 +173,6 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
     }
     return new CompositePrecision(initialPrecisions);
   }
-  
-  public List<ConfigurableProgramAnalysis> getComponentCPAs() {
-    return cpas;
-  }
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
@@ -190,5 +186,23 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
   @Override
   public Iterable<ConfigurableProgramAnalysis> getWrappedCPAs() {
     return cpas;
+  }
+  
+  @Override
+  public <T extends ConfigurableProgramAnalysis> T retrieveWrappedCpa(Class<T> pType) {
+    if (pType.isAssignableFrom(getClass())) {
+      return pType.cast(this);
+    }
+    for (ConfigurableProgramAnalysis cpa : cpas) {
+      if (pType.isAssignableFrom(cpa.getClass())) {
+        return pType.cast(cpa);
+      } else if (cpa instanceof CPAWrapper) {
+        T result = ((CPAWrapper)cpa).retrieveWrappedCpa(pType);
+        if (result != null) {
+          return result;
+        }
+      }  
+    }
+    return null;
   }
 }

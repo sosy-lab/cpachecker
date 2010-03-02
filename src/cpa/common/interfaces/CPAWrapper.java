@@ -29,5 +29,23 @@ package cpa.common.interfaces;
  * @author g.theoduloz
  */
 public interface CPAWrapper {
-  public Iterable<ConfigurableProgramAnalysis> getWrappedCPAs();
+  
+  /**
+   * Retrieve one of the wrapped CPAs by type. If the hierarchy of (wrapped)
+   * CPAs has several levels, this method searches through them recursively.
+   * 
+   * The type does not need to match exactly, the returned element has just to
+   * be a sub-type of the type passed as argument. 
+   * 
+   * @param <T> The type of the wrapped element.
+   * @param type The class object of the type of the wrapped element.
+   * @return An instance of an element with type T or null if there is none.
+   */
+  public <T extends ConfigurableProgramAnalysis> T retrieveWrappedCpa(Class<T> type);
+  
+  /**
+   * Retrieve all wrapped CPAs contained directly in this object.
+   * @return A non-empty list of abstract elements.
+   */
+  public Iterable<? extends ConfigurableProgramAnalysis> getWrappedCPAs();
 }

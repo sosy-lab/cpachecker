@@ -16,7 +16,6 @@ import cfa.objectmodel.CFANode;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Multimap;
 import common.Pair;
-import compositeCPA.CompositeCPA;
 
 import cpa.art.ARTElement;
 import cpa.art.ARTReachedSet;
@@ -26,7 +25,6 @@ import cpa.common.LogManager;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.WrapperPrecision;
-import cpa.transferrelationmonitor.TransferRelationMonitorCPA;
 import exceptions.CPAException;
 
 public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
@@ -37,32 +35,9 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
   public SymbPredAbsRefiner(final ConfigurableProgramAnalysis pCpa) throws CPAException {
     super(pCpa);
 
-    ConfigurableProgramAnalysis cpa = this.getArtCpa().getWrappedCPA();
-    
-    SymbPredAbsCPA symbPredAbsCpa = null;
-    if (cpa instanceof SymbPredAbsCPA) {
-      symbPredAbsCpa = (SymbPredAbsCPA)cpa;
-    
-    } else {
-      if (cpa instanceof CompositeCPA) {
-        for (ConfigurableProgramAnalysis compCPA : ((CompositeCPA)cpa).getComponentCPAs()) {
-          if (compCPA instanceof SymbPredAbsCPA) {
-            symbPredAbsCpa = (SymbPredAbsCPA)compCPA;
-            break;
-          }
-          else if (compCPA instanceof TransferRelationMonitorCPA){
-            // TODO we assume that only one CPA is monitored
-            ConfigurableProgramAnalysis cCpa = ((TransferRelationMonitorCPA)compCPA).getWrappedCPAs().iterator().next();
-            if(cCpa instanceof SymbPredAbsCPA){
-              symbPredAbsCpa = (SymbPredAbsCPA)cCpa;
-              break;
-            }
-          }
-        }
-      }
-      if (symbPredAbsCpa == null) {
-        throw new CPAException(getClass().getSimpleName() + " needs a SymbPredAbsCPA");
-      }
+    SymbPredAbsCPA symbPredAbsCpa = this.getArtCpa().retrieveWrappedCpa(SymbPredAbsCPA.class);
+    if (symbPredAbsCpa == null) {
+      throw new CPAException(getClass().getSimpleName() + " needs a SymbPredAbsCPA");
     }
 
     logger = symbPredAbsCpa.getLogger();

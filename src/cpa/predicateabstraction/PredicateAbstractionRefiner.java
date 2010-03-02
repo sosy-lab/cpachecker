@@ -18,7 +18,6 @@ import cpa.art.ARTReachedSet;
 import cpa.art.AbstractARTBasedRefiner;
 import cpa.art.Path;
 import cpa.common.CPAchecker;
-import cpa.common.interfaces.CPAWrapper;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import exceptions.CPAException;
 
@@ -35,30 +34,11 @@ public class PredicateAbstractionRefiner extends AbstractARTBasedRefiner {
   // private int samePathAlready = 0;
 
 //  private boolean notEnoughPredicatesFlag = false;
-
-  private static PredicateAbstractionCPA extractPredicateAbstractionCPA(ConfigurableProgramAnalysis pCpa)
-    throws CPAException
-  {
-    if (pCpa instanceof PredicateAbstractionCPA)
-      return (PredicateAbstractionCPA)pCpa;
-    
-    if (pCpa instanceof CPAWrapper) {
-      for (ConfigurableProgramAnalysis innerCpa : ((CPAWrapper)pCpa).getWrappedCPAs()) {
-        PredicateAbstractionCPA paCpa = extractPredicateAbstractionCPA(innerCpa);
-        if (paCpa != null)
-          return paCpa;
-      }
-    }
-    
-    return null;
-  }
   
   public PredicateAbstractionRefiner(ConfigurableProgramAnalysis pCpa) throws CPAException {
     super(pCpa);
 
-    ConfigurableProgramAnalysis cpa = this.getArtCpa().getWrappedCPA();
-
-    mCpa = extractPredicateAbstractionCPA(cpa);
+    mCpa = this.getArtCpa().retrieveWrappedCpa(PredicateAbstractionCPA.class);
     if (mCpa == null) {
       throw new CPAException(getClass().getSimpleName() + " needs a PredicateAbstractionCPA");
     }

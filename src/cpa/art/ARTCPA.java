@@ -135,10 +135,6 @@ public class ARTCPA implements ConfigurableProgramAnalysis, StatisticsProvider, 
   protected LogManager getLogger() {
     return logger;
   }
-  
-  public ConfigurableProgramAnalysis getWrappedCPA(){
-    return wrappedCPA;
-  }
 
   public ARTElement findHighest(ARTElement pLastElem, CFANode pLoc) throws CPAException {
     ARTElement tempRetVal = null;
@@ -188,4 +184,16 @@ public class ARTCPA implements ConfigurableProgramAnalysis, StatisticsProvider, 
     return Collections.singletonList(wrappedCPA);
   }
 
+  @Override
+  public <T extends ConfigurableProgramAnalysis> T retrieveWrappedCpa(Class<T> pType) {
+    if (pType.isAssignableFrom(getClass())) {
+      return pType.cast(this);
+    } else if (pType.isAssignableFrom(wrappedCPA.getClass())) {
+      return pType.cast(wrappedCPA);
+    } else if (wrappedCPA instanceof CPAWrapper) {
+      return ((CPAWrapper)wrappedCPA).retrieveWrappedCpa(pType);
+    } else {
+      return null;
+    }
+  }
 }
