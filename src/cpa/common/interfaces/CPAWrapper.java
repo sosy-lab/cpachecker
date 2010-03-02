@@ -42,10 +42,4 @@ public interface CPAWrapper {
    * @return An instance of an element with type T or null if there is none.
    */
   public <T extends ConfigurableProgramAnalysis> T retrieveWrappedCpa(Class<T> type);
-  
-  /**
-   * Retrieve all wrapped CPAs contained directly in this object.
-   * @return A non-empty list of abstract elements.
-   */
-  public Iterable<? extends ConfigurableProgramAnalysis> getWrappedCPAs();
 }

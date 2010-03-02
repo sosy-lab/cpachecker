@@ -56,7 +56,7 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
     long start = 0;
     long end = 0;
     
-    AbstractElement wrappedElement = element.getWrappedElements().iterator().next();
+    AbstractElement wrappedElement = element.getWrappedElement();
     
     // set the edge and element
     tc.setEdge(pCfaEdge);
@@ -113,7 +113,7 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
       List<AbstractElement> otherElements, CFAEdge cfaEdge,
       Precision precision) {
     TransferRelationMonitorElement monitorElement = (TransferRelationMonitorElement)element;
-    AbstractElement wrappedElement = monitorElement.getWrappedElements().iterator().next();
+    AbstractElement wrappedElement = monitorElement.getWrappedElement();
     List<AbstractElement> retList = new ArrayList<AbstractElement>();
     
     try {

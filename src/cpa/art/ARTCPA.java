@@ -2,7 +2,6 @@ package cpa.art;
 
 import java.util.ArrayDeque;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Set;
@@ -177,11 +176,6 @@ public class ARTCPA implements ConfigurableProgramAnalysis, StatisticsProvider, 
     if (wrappedCPA instanceof StatisticsProvider) {
       ((StatisticsProvider)wrappedCPA).collectStatistics(pStatsCollection);
     }
-  }
-  
-  @Override
-  public Iterable<ConfigurableProgramAnalysis> getWrappedCPAs() {
-    return Collections.singletonList(wrappedCPA);
   }
 
   @Override

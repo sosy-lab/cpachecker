@@ -60,7 +60,7 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
 
   public AssumptionCollectorTransferRelation(AssumptionCollectorCPA cpa)
   {
-    wrappedCPA = cpa.getWrappedCPAs().iterator().next();
+    wrappedCPA = cpa.getWrappedCPA();
     wrappedTransfer = wrappedCPA.getTransferRelation();
     wrappedBottom = wrappedCPA.getAbstractDomain().getBottomElement();
     reportingVisitor = new AssumptionAndForceStopReportingVisitor();

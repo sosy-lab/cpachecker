@@ -1,7 +1,6 @@
 package cpa.transferrelationmonitor;
 
 import java.util.Collection;
-import java.util.Collections;
 
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 
@@ -107,11 +106,6 @@ public class TransferRelationMonitorCPA implements ConfigurableProgramAnalysis, 
     if (wrappedCPA instanceof StatisticsProvider) {
       ((StatisticsProvider)wrappedCPA).collectStatistics(pStatsCollection);
     }
-  }
-
-  @Override
-  public Iterable<ConfigurableProgramAnalysis> getWrappedCPAs() {
-    return Collections.singletonList(wrappedCPA);
   }
 
   @Override

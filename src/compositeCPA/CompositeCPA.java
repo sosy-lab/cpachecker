@@ -184,11 +184,6 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
   }
   
   @Override
-  public Iterable<ConfigurableProgramAnalysis> getWrappedCPAs() {
-    return cpas;
-  }
-  
-  @Override
   public <T extends ConfigurableProgramAnalysis> T retrieveWrappedCpa(Class<T> pType) {
     if (pType.isAssignableFrom(getClass())) {
       return pType.cast(this);

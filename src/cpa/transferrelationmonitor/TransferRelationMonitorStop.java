@@ -35,8 +35,8 @@ public class TransferRelationMonitorStop implements StopOperator {
   public boolean stop(TransferRelationMonitorElement pElement, TransferRelationMonitorElement pReachedElement)
                                                       throws CPAException {
 
-    AbstractElement wrappedElement = pElement.getWrappedElements().iterator().next();
-    AbstractElement wrappedReachedElement = pReachedElement.getWrappedElements().iterator().next();
+    AbstractElement wrappedElement = pElement.getWrappedElement();
+    AbstractElement wrappedReachedElement = pReachedElement.getWrappedElement();
     StopOperator stopOp = wrappedCpa.getStopOperator();
     return stopOp.stop(wrappedElement, wrappedReachedElement);
   }

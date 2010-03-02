@@ -34,6 +34,10 @@ public class TransferRelationMonitorElement implements AbstractElement, Abstract
   public Iterable<AbstractElement> getWrappedElements() {
     return Collections.singletonList(element);
   }
+  
+  protected AbstractElement getWrappedElement() {
+    return element;
+  }
 
   @Override
   public <T extends AbstractElement> T retrieveWrappedElement(Class<T> pType) {

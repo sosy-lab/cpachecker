@@ -23,8 +23,6 @@
  */
 package cpa.assumptions.collector;
 
-import java.util.Collections;
-
 import assumptions.AssumptionSymbolicFormulaManager;
 import assumptions.AssumptionWithLocation;
 import assumptions.MathsatInvariantSymbolicFormulaManager;
@@ -143,9 +141,8 @@ public class AssumptionCollectorCPA implements ConfigurableProgramAnalysis, CPAW
     return transferRelation;
   }
 
-  @Override
-  public Iterable<ConfigurableProgramAnalysis> getWrappedCPAs() {
-    return Collections.singleton(wrappedCPA);
+  protected ConfigurableProgramAnalysis getWrappedCPA() {
+    return wrappedCPA;
   }
 
   @Override
