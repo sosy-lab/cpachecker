@@ -23,6 +23,8 @@
  */
 package cpa.uninitvars;
 
+import java.util.Collection;
+
 import common.configuration.Configuration;
 import common.configuration.Option;
 import common.configuration.Options;
@@ -41,6 +43,8 @@ import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
+import cpa.common.interfaces.Statistics;
+import cpa.common.interfaces.StatisticsProvider;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
 import exceptions.InvalidConfigurationException;
@@ -49,7 +53,7 @@ import exceptions.InvalidConfigurationException;
  * @author Philipp Wendler
  */
 @Options(prefix="uninitVars")
-public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis {
+public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
   private static class UninitializedVariablesCPAFactory extends AbstractCPAFactory {
     
@@ -76,6 +80,7 @@ public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis {
   private final StopOperator stopOperator;
   private final TransferRelation transferRelation;
   private final PrecisionAdjustment precisionAdjustment;
+  private final UninitializedVariablesStatistics statistics;
   
   private UninitializedVariablesCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
     
@@ -105,6 +110,8 @@ public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis {
     this.stopOperator = stopOp;
     this.transferRelation = new UninitializedVariablesTransferRelation(printWarnings, logger);
     this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
+    
+    statistics = new UninitializedVariablesStatistics(printWarnings);
   }
   
   @Override
@@ -141,5 +148,10 @@ public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis {
   public TransferRelation getTransferRelation() {
     return transferRelation;
   }
-
+  
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(statistics);
+  }
+  
 }

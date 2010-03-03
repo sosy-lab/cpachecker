@@ -45,6 +45,8 @@ import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
 import org.eclipse.cdt.core.dom.ast.IASTTypeIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 
+import common.Pair;
+
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAEdgeType;
 import cfa.objectmodel.c.AssumeEdge;
@@ -55,8 +57,6 @@ import cfa.objectmodel.c.FunctionDefinitionNode;
 import cfa.objectmodel.c.GlobalDeclarationEdge;
 import cfa.objectmodel.c.ReturnEdge;
 import cfa.objectmodel.c.StatementEdge;
-
-import common.Pair;
 
 import cpa.common.LogManager;
 import cpa.common.interfaces.AbstractElement;
@@ -81,7 +81,6 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
   private Set<String> globalVars; // set of all global variable names
   
   private boolean printWarnings;
-  private Set<Pair<Integer, String>> warnings;
   
   private LogManager logger;
   
@@ -93,9 +92,6 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
   public UninitializedVariablesTransferRelation(String printWarnings, LogManager logger) {
     globalVars = new HashSet<String>();
     this.printWarnings = Boolean.parseBoolean(printWarnings);
-    if (this.printWarnings) {
-      warnings = new HashSet<Pair<Integer, String>>();
-    }
     this.logger = logger;
   }
   
@@ -159,7 +155,8 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
     return successor;
   }
   
-  private void addWarning(CFAEdge edge, String variable, IASTExpression expression) {
+  private void addWarning(CFAEdge edge, String variable, IASTExpression expression, 
+                                                      UninitializedVariablesElement element) {
     
     if (printWarnings) {
       
@@ -172,17 +169,17 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
         lineNumber = edge.getSuccessor().getLineNumber();
       }
       
-      Pair<Integer, String> warningIndex = new Pair<Integer, String>(lineNumber, variable);
-      if (!warnings.contains(warningIndex)) {
-        warnings.add(warningIndex);
-        if (edge instanceof CallToReturnEdge && expression instanceof IASTFunctionCallExpression) {
-          System.out.println("uninitialized return value of function call " + variable + " in line "
-              + lineNumber + ": " + edge.getRawStatement());
-        } else {
-          System.out.println("uninitialized variable " + variable + " used in line "
-              + lineNumber + ": " + edge.getRawStatement());
-        }
+      String message;
+      
+      if (edge instanceof CallToReturnEdge && expression instanceof IASTFunctionCallExpression) {
+        message = "uninitialized return value of function call " + variable + " in line "
+        + lineNumber + ": " + edge.getRawStatement();
+      } else {
+        message = "uninitialized variable " + variable + " used in line "
+        + lineNumber + ": " + edge.getRawStatement();
       }
+      
+      element.addWarning(lineNumber, variable, message);
     }
   }
   
@@ -322,7 +319,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
         if (element.isUninitialized(leftName)) {
           // a +=5 where a is uninitialized -> everything stays the same
           if (printWarnings) {
-            addWarning(cfaEdge, leftName, expression);
+            addWarning(cfaEdge, leftName, expression, element);
             // check wether there are further uninitialized variables on right side
             isExpressionUninitialized(element, binExpression.getOperand2(), cfaEdge);
           }
@@ -404,7 +401,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
     } else if (expression instanceof IASTIdExpression) {
       String variable = expression.getRawSignature();
       if (element.isUninitialized(variable)) {
-        addWarning(cfaEdge, variable, expression);
+        addWarning(cfaEdge, variable, expression, element);
         return true;
       } else {
         return false;
@@ -421,7 +418,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       } else {
         String variable = expression.getRawSignature();
         if (element.isUninitialized(variable)) {
-          addWarning(cfaEdge, variable, expression);
+          addWarning(cfaEdge, variable, expression, element);
           return true;
         } else {
           return false;
@@ -468,7 +465,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       } else {
         boolean returnUninit = element.isUninitialized("CPAChecker_UninitVars_FunctionReturn");
         if (printWarnings && returnUninit) {
-          addWarning(cfaEdge, funcExpression.getRawSignature(), expression);
+          addWarning(cfaEdge, funcExpression.getRawSignature(), expression, element);
         }
         if (cfaEdge instanceof CallToReturnEdge) {
           //get rid of the local context, as it is no longer needed and may be different on the next call

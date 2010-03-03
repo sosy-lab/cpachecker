@@ -29,6 +29,7 @@ import java.util.LinkedList;
 import java.util.Set;
 
 import common.Pair;
+import common.Triple;
 
 import cpa.common.interfaces.AbstractElement;
 
@@ -40,16 +41,22 @@ public class UninitializedVariablesElement implements AbstractElement {
   private final Set<String> globalVars;
   private final Deque<Pair<String, Set<String>>> localVars;
   
+  private final Set<Triple<Integer, String, String>> warnings;
+  
   public UninitializedVariablesElement(String entryFunction) {
     globalVars = new HashSet<String>();
     localVars = new LinkedList<Pair<String, Set<String>>>();
+    warnings = new HashSet<Triple<Integer, String, String>>();
     // create context of the entry function
     callFunction(entryFunction);
   }
   
-  public UninitializedVariablesElement(Set<String> globalVars, Deque<Pair<String, Set<String>>> localVars) {
+  public UninitializedVariablesElement(Set<String> globalVars, 
+                                       Deque<Pair<String, Set<String>>> localVars, 
+                                       Set<Triple<Integer, String, String>> warnings) {
     this.globalVars = globalVars;
     this.localVars = localVars;
+    this.warnings = warnings;
   }
   
   public void addGlobalVariable(String name) {
@@ -80,6 +87,10 @@ public class UninitializedVariablesElement implements AbstractElement {
     return localVars;
   }
   
+  public Set<Triple<Integer, String, String>> getWarnings() {
+    return warnings;
+  }
+  
   public boolean isUninitialized(String variable) {
     return globalVars.contains(variable)
         || localVars.peekLast().getSecond().contains(variable);
@@ -96,6 +107,13 @@ public class UninitializedVariablesElement implements AbstractElement {
   @Override
   public boolean isError() {
     return false;
+  }
+  
+  public void addWarning(Integer lineNumber, String variable, String message) {
+    Triple<Integer, String, String> warning = new Triple<Integer, String, String>(lineNumber, variable, message);
+    if (!warnings.contains(warning)) {
+      warnings.add(warning);
+    }
   }
   
   @Override
@@ -127,7 +145,8 @@ public class UninitializedVariablesElement implements AbstractElement {
                                                      new HashSet<String>(localSet.getSecond())));
     }
     
-    return new UninitializedVariablesElement(new HashSet<String>(globalVars), newLocalVars);
+    return new UninitializedVariablesElement(new HashSet<String>(globalVars), newLocalVars, 
+                                             new HashSet<Triple<Integer, String, String>>(warnings));
   }
   
   @Override
