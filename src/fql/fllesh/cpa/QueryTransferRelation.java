@@ -37,7 +37,7 @@ public class QueryTransferRelation implements TransferRelation {
       DefaultFlleshCFAEdgeVisitor<Set<QueryElement>> {
 
     private Query mQuery;
-    private QueryStandardElement            mCurrentElement;
+    private QueryStandardElement mCurrentElement;
     private MustMayAnalysisTransferRelation mDataSpaceTransferRelation;
     private MustMayAnalysisPrecision mDataSpacePrecision;
     private AbstractElement mMustBottomElement;
@@ -132,6 +132,8 @@ public class QueryTransferRelation implements TransferRelation {
         throw new UnsupportedOperationException();
       }
       
+      //System.out.println("DATA SPACE SUCCESSORS: " + lDataSpaceSuccessors.toString());
+      
       Set<QueryElement> lSuccessors = new HashSet<QueryElement>();
       
       Integer lAutomatonState1 = mCurrentElement.getAutomatonState1();
@@ -179,7 +181,7 @@ public class QueryTransferRelation implements TransferRelation {
       Set<AutomatonEdge> lOutgoingEdges1 = lAutomaton1.getOutgoingEdges(lAutomatonState1);
       Set<AutomatonEdge> lOutgoingEdges2 = lAutomaton2.getOutgoingEdges(lAutomatonState2);
       
-      
+      // TODO what am I doing here?
       Set<Pair<Integer, Boolean>> lSuccessors1 = getPredicatesEdgeSuccessors(mCurrentElement.getMustState1(), lOutgoingEdges1, pEdge, lCurrentDataSpace); 
         
       for (Pair<Integer, Boolean> lSuccessor1 : lSuccessors1) {
@@ -276,11 +278,11 @@ public class QueryTransferRelation implements TransferRelation {
     
     mVisitor.setCurrentElementAndPrecision((QueryStandardElement) pElement, (MustMayAnalysisPrecision)pPrecision);
 
-    System.out.println("visiting ..." + pElement.toString() + "*" + pCfaEdge.toString());
+    //System.out.println("visiting ..." + pElement.toString() + "*" + pCfaEdge.toString());
     
     Collection<? extends AbstractElement> lResult = mVisitor.visit(pCfaEdge);
     
-    System.out.println(lResult);
+    //System.out.println(lResult);
     
     return lResult;
     

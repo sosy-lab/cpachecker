@@ -12,12 +12,12 @@ import compositeCPA.CompositeElement;
 import compositeCPA.CompositePrecision;
 
 import cpa.alwaystop.AlwaysTopCPA;
+import cpa.common.LogManager;
 import cpa.common.ReachedElements;
 import cpa.common.algorithm.CPAAlgorithm;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.CPAFactory;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
-import cpa.common.interfaces.Precision;
 import cpa.common.ReachedElements.TraversalMethod;
 import cpa.concrete.ConcreteAnalysisCPA;
 import cpa.location.LocationCPA;
@@ -31,22 +31,33 @@ import fql.fllesh.cpa.QueryStandardElement;
 public class StandardQuery extends AbstractQuery {
 
   private LinkedList<Waypoint> lNextWaypoints;
-  
-  //public static StandardQuery create(Automaton pFirstAutomaton, Automaton pSecondAutomaton, CompositeElement pSourceElement, CompositePrecision pSourcePrecision, Set<Integer> pSourceStatesOfFirstAutomaton, Set<Integer> pSourceStatesOfSecondAutomaton, CompositeElement pTargetElement, Set<Integer> pTargetStatesOfFirstAutomaton, Set<Integer> pTargetStatesOfSecondAutomaton) {
-  public static StandardQuery create(Automaton pFirstAutomaton, Automaton pSecondAutomaton, CompositeElement pSourceElement, CompositePrecision pSourcePrecision, Set<Integer> pSourceStatesOfFirstAutomaton, Set<Integer> pSourceStatesOfSecondAutomaton, CFANode pCFANode, Set<Integer> pTargetStatesOfFirstAutomaton, Set<Integer> pTargetStatesOfSecondAutomaton) {
-    StandardQuery lQuery = new StandardQuery(pFirstAutomaton, pSecondAutomaton);
+
+  public static class Factory {
+    private LogManager mLogManager;
     
-    Waypoint lSource = new Waypoint(lQuery, pSourceElement, pSourcePrecision, pSourceStatesOfFirstAutomaton, pSourceStatesOfSecondAutomaton);
-    //Waypoint lTarget = new Waypoint(lQuery, pTargetElement, null, pTargetStatesOfFirstAutomaton, pTargetStatesOfSecondAutomaton);
+    public Factory(LogManager pLogManager) {
+      assert(pLogManager != null);
+      
+      mLogManager = pLogManager;
+    }
     
-    // TODO support for predicates is missing
-    // TODO support for call stack missing
-    TargetPoint lTarget = new TargetPoint(pCFANode, pFirstAutomaton, pTargetStatesOfFirstAutomaton, pSecondAutomaton, pTargetStatesOfSecondAutomaton);
-    
-    lQuery.mSource = lSource;
-    lQuery.mTarget = lTarget;
-    
-    return lQuery;
+    //public static StandardQuery create(Automaton pFirstAutomaton, Automaton pSecondAutomaton, CompositeElement pSourceElement, CompositePrecision pSourcePrecision, Set<Integer> pSourceStatesOfFirstAutomaton, Set<Integer> pSourceStatesOfSecondAutomaton, CompositeElement pTargetElement, Set<Integer> pTargetStatesOfFirstAutomaton, Set<Integer> pTargetStatesOfSecondAutomaton) {
+    //public static StandardQuery create(Automaton pFirstAutomaton, Automaton pSecondAutomaton, CompositeElement pSourceElement, CompositePrecision pSourcePrecision, Set<Integer> pSourceStatesOfFirstAutomaton, Set<Integer> pSourceStatesOfSecondAutomaton, CFANode pCFANode, Set<Integer> pTargetStatesOfFirstAutomaton, Set<Integer> pTargetStatesOfSecondAutomaton) {
+    public StandardQuery create(Automaton pFirstAutomaton, Automaton pSecondAutomaton, CompositeElement pSourceElement, CompositePrecision pSourcePrecision, Set<Integer> pSourceStatesOfFirstAutomaton, Set<Integer> pSourceStatesOfSecondAutomaton, CFANode pCFANode, Set<Integer> pTargetStatesOfFirstAutomaton, Set<Integer> pTargetStatesOfSecondAutomaton) {
+      StandardQuery lQuery = new StandardQuery(pFirstAutomaton, pSecondAutomaton, mLogManager);
+      
+      Waypoint lSource = new Waypoint(lQuery, pSourceElement, pSourcePrecision, pSourceStatesOfFirstAutomaton, pSourceStatesOfSecondAutomaton);
+      //Waypoint lTarget = new Waypoint(lQuery, pTargetElement, null, pTargetStatesOfFirstAutomaton, pTargetStatesOfSecondAutomaton);
+      
+      // TODO support for predicates is missing
+      // TODO support for call stack missing
+      TargetPoint lTarget = new TargetPoint(pCFANode, pFirstAutomaton, pTargetStatesOfFirstAutomaton, pSecondAutomaton, pTargetStatesOfSecondAutomaton);
+      
+      lQuery.mSource = lSource;
+      lQuery.mTarget = lTarget;
+      
+      return lQuery;
+    }
   }
   
   private Waypoint mSource;
@@ -65,8 +76,14 @@ public class StandardQuery extends AbstractQuery {
   
   private ConfigurableProgramAnalysis mCPA;
   
-  private StandardQuery(Automaton pFirstAutomaton, Automaton pSecondAutomaton) {
+  private LogManager mLogManager;
+  
+  private StandardQuery(Automaton pFirstAutomaton, Automaton pSecondAutomaton, LogManager pLogManager) {
     super(pFirstAutomaton, pSecondAutomaton);
+    
+    assert(pLogManager != null);
+    
+    mLogManager = pLogManager;
     
     lNextWaypoints = new LinkedList<Waypoint>();
     
@@ -176,7 +193,7 @@ public class StandardQuery extends AbstractQuery {
       System.out.println("Initial elements: " + mReachedElements);
       
       // apply state space exploration
-      CPAAlgorithm lAlgorithm = new CPAAlgorithm(mCPA);
+      CPAAlgorithm lAlgorithm = new CPAAlgorithm(mCPA, mLogManager);
       
       // TODO we should be able to use the error feature as a way to enumerate and refine elements in a different way than it is done now 
       try {
@@ -234,6 +251,7 @@ public class StandardQuery extends AbstractQuery {
     
     
     // TODO process targets and potential targets for refinement and add to lNextWaypoints
+    System.out.println("CFA node: " + mTarget.getCFANode());
     System.out.println("Definite Targets: " + lDefiniteTargets);
     System.out.println("Potential Targets: " + lPotentialTargetsForRefinement);
     

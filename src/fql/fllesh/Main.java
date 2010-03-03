@@ -99,7 +99,7 @@ public class Main {
     
     lTargetSequence.add(new Pair<Automaton, Set<? extends TestGoal>>(lCoverageSequence.getFinalMonitor(), Collections.singleton(lProgramExit)));
     
-    FeasibilityCheck lFeasibilityCheck = new FeasibilityCheck();
+    FeasibilityCheck lFeasibilityCheck = new FeasibilityCheck(lLogManager);
     
     Set<FeasibilityWitness> lWitnesses = TestGoalEnumeration.run(lTargetSequence, lPassingMonitor, lProgramEntry, lFeasibilityCheck);
     

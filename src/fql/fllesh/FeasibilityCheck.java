@@ -14,6 +14,7 @@ import cpa.alwaystop.AlwaysTopCPA;
 import cpa.alwaystop.AlwaysTopTopElement;
 import cpa.common.CallElement;
 import cpa.common.CallStack;
+import cpa.common.LogManager;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.concrete.ConcreteAnalysisCPA;
@@ -29,6 +30,7 @@ import fql.fllesh.reachability.Query;
 import fql.fllesh.reachability.SingletonQuery;
 import fql.fllesh.reachability.StandardQuery;
 import fql.fllesh.reachability.Waypoint;
+import fql.fllesh.reachability.StandardQuery.Factory;
 
 public class FeasibilityCheck {
   
@@ -38,7 +40,9 @@ public class FeasibilityCheck {
   private LocationCPA mLocationCPA;
   private ConfigurableProgramAnalysis mCompositeCPA;
   
-  public FeasibilityCheck() throws CPAException {
+  private StandardQuery.Factory mQueryFactory;
+  
+  public FeasibilityCheck(LogManager pLogManager) throws CPAException {
     
     mMayCPA = new AlwaysTopCPA();
     mMustCPA = new ConcreteAnalysisCPA();
@@ -53,6 +57,8 @@ public class FeasibilityCheck {
     lCPAs.add(mMustMayAnalysisCPA);
     
     mCompositeCPA = CompositeCPA.factory().setChildren(lCPAs).createInstance();
+    
+    mQueryFactory = new StandardQuery.Factory(pLogManager);
   }
   
   public Witness run(LinkedList<Automaton> pAutomatonSequence, LinkedList<Node> pWaypointSequence, Automaton pPassingMonitor, Node pInitialState) {
@@ -120,7 +126,7 @@ public class FeasibilityCheck {
           // TODO we have no predicate support currently
           CFANode lNextTargetCFANode = pWaypointSequence.get(lQueryIndex).getCFANode(); 
           
-          Query lNextQuery = StandardQuery.create(lNextAutomaton, pPassingMonitor, lWaypoint.getElement(), lWaypoint.getPrecision(), lNextAutomaton.getInitialStates(), lWaypoint.getStatesOfSecondAutomaton(), lNextTargetCFANode, lNextAutomaton.getFinalStates(), lFinalStates);
+          Query lNextQuery = mQueryFactory.create(lNextAutomaton, pPassingMonitor, lWaypoint.getElement(), lWaypoint.getPrecision(), lNextAutomaton.getInitialStates(), lWaypoint.getStatesOfSecondAutomaton(), lNextTargetCFANode, lNextAutomaton.getFinalStates(), lFinalStates);
           
           lQueries.addLast(lNextQuery);
         }
