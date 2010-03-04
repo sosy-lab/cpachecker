@@ -45,8 +45,6 @@ import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
 import org.eclipse.cdt.core.dom.ast.IASTTypeIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 
-import common.Pair;
-
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAEdgeType;
 import cfa.objectmodel.c.AssumeEdge;
