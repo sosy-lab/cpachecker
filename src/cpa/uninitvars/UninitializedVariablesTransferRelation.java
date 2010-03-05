@@ -34,6 +34,7 @@ import java.util.logging.Level;
 import org.eclipse.cdt.core.dom.ast.IASTArraySubscriptExpression;
 import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTCastExpression;
+import org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTExpressionList;
@@ -219,8 +220,9 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
         IASTInitializer initializer = declarator.getInitializer();
         // initializers in CIL are always constant, so no need to check if
         // initializer expression contains uninitialized variables
-        if (initializer == null) {
-          setUninitialized(element, varName); 
+        if (initializer == null &&
+            !(declaration.getDeclSpecifier().getStorageClass() == IASTDeclSpecifier.sc_extern)) {
+          setUninitialized(element, varName);
         }          
       }
     }
