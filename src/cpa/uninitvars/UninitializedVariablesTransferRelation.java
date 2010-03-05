@@ -137,7 +137,13 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
             }
           }
         }
-      //if the function is internal, handle separately
+        //if there possibly is an assignment, we need to set the initialization status of the variable
+        if (callEdge.getSuccessor().getEnteringSummaryEdge().getExpression() 
+            instanceof IASTBinaryExpression) {
+          CallToReturnEdge ctr = callEdge.getSuccessor().getEnteringSummaryEdge();
+          handleStatement(successor, ctr.getExpression(), ctr);
+        }
+        //if the function is internal, handle separately
       } else {
         handleFunctionCall(successor, callEdge);
       }
@@ -450,23 +456,27 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       
     } else if (expression instanceof IASTFunctionCallExpression) {
       IASTFunctionCallExpression funcExpression = (IASTFunctionCallExpression)expression;
-      //if the FunctionCallExpression is associated with a statement edge, this is an external function call.
-      //since we can not know it's return value's initialization status, only check the parameters 
+      //if the FunctionCallExpression is associated with a statement edge, then this is 
+      //an external function call, and call to return edges for external calls are disabled.
+      //since we can not know its return value's initialization status, only check the parameters 
       if (cfaEdge instanceof StatementEdge) {
         IASTExpression params = funcExpression.getParameterExpression();
         if (printWarnings) {
           isExpressionUninitialized(element, params, cfaEdge);
         }
         return false;
-        
-      //for an internal function call, we can check the return value 
+         
       } else {
+        //for an internal function call, we can check the return value - for an external call 
+        //(with enabled call to return edges), the return value is always assumed to be initialized
         boolean returnUninit = element.isUninitialized("CPAChecker_UninitVars_FunctionReturn");
         if (printWarnings && returnUninit) {
           addWarning(cfaEdge, funcExpression.getRawSignature(), expression, element);
-        }
-        if (cfaEdge instanceof CallToReturnEdge) {
-          //get rid of the local context, as it is no longer needed and may be different on the next call
+        } 
+        //get rid of the local context, as it is no longer needed and may be different on the next call.
+        //only do this in case of an internal call.
+        if (cfaEdge instanceof CallToReturnEdge && 
+            !((CallToReturnEdge)cfaEdge).getRawStatement().equals("External Call")) {
           element.returnFromFunction();
         }
         return returnUninit;
