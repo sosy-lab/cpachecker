@@ -31,17 +31,19 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
   private final AbstractDomain domain;
   private final TransferRelation transferRelation;
   private TransferCallable tc = new TransferCallable();
-  
+
+  private static int noOfStops = 0;
+
   @Option(name="limit")
   private long timeLimit = 0; // given in milliseconds
-  
+
   @Option(name="pathcomputationlimit")
   private long timeLimitForPath = 0;
-  
+
   public TransferRelationMonitorTransferRelation(ConfigurableProgramAnalysis pWrappedCPA,
-                                                 Configuration config) throws InvalidConfigurationException {
+      Configuration config) throws InvalidConfigurationException {
     config.inject(this);
-    
+
     transferRelation = pWrappedCPA.getTransferRelation();
     domain = pWrappedCPA.getAbstractDomain();
   }
@@ -55,9 +57,9 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
     long timeOfExecution = 0;
     long start = 0;
     long end = 0;
-    
+
     AbstractElement wrappedElement = element.getWrappedElement();
-    
+
     // set the edge and element
     tc.setEdge(pCfaEdge);
     tc.setElement(wrappedElement);
@@ -71,13 +73,13 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
       // here we get the result of the post computation but there is a time limit
       // given to complete the task specified by timeLimit
       else{
-        assert(timeLimit > 0);
         successors = future.get(timeLimit, TimeUnit.MILLISECONDS);
       }
       end = System.currentTimeMillis();
     } catch (TimeoutException exc){
       TransferRelationMonitorElement bottom = new TransferRelationMonitorElement(null, null);
       bottom.setAsStopElement();
+      return Collections.emptySet();
     } catch (InterruptedException exc) {
       exc.printStackTrace();
     } catch (ExecutionException exc) {
@@ -99,9 +101,18 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
       }
       TransferRelationMonitorElement successorElem = new TransferRelationMonitorElement(element.getCpa(), absElement);
       successorElem.setTransferTime(timeOfExecution);
-      successorElem.setTotalTime(element.getTotalTimeOnThePath());
-      if(timeLimitForPath > 0 && successorElem.getTotalTimeOnThePath() > timeLimitForPath){
-        return Collections.emptySet();
+      successorElem.setTotalTime(element.isIgnore(), element.getTotalTimeOnThePath());
+      if(!successorElem.isIgnore()){
+        if(timeLimitForPath > 0 && 
+            successorElem.getTotalTimeOnThePath() > timeLimitForPath){
+          noOfStops++;
+          if(noOfStops % 100 == 0){
+            successorElem.setIgnore();
+          }
+          else{
+            return Collections.emptySet();
+          }
+        }
       }
       wrappedSuccessors.add(successorElem);
     }
@@ -115,26 +126,26 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
     TransferRelationMonitorElement monitorElement = (TransferRelationMonitorElement)element;
     AbstractElement wrappedElement = monitorElement.getWrappedElement();
     List<AbstractElement> retList = new ArrayList<AbstractElement>();
-    
+
     try {
-       Collection<? extends AbstractElement> wrappedList = transferRelation.strengthen(wrappedElement, otherElements, cfaEdge, precision);
-       // if the returned list is null return null
-       if(wrappedList == null)
-         return null;
-    // TODO we assume that only one element is returned or empty set to represent bottom
-       assert(wrappedList.size() < 2);
-       // if bottom return empty list
-       if(wrappedList.size() == 0){
-         return retList;
-       }
-       
-       AbstractElement wrappedReturnElement = wrappedList.iterator().next();
-       retList.add(new TransferRelationMonitorElement(monitorElement.getCpa(), wrappedReturnElement));
-       return retList;
+      Collection<? extends AbstractElement> wrappedList = transferRelation.strengthen(wrappedElement, otherElements, cfaEdge, precision);
+      // if the returned list is null return null
+      if(wrappedList == null)
+        return null;
+      // TODO we assume that only one element is returned or empty set to represent bottom
+      assert(wrappedList.size() < 2);
+      // if bottom return empty list
+      if(wrappedList.size() == 0){
+        return retList;
+      }
+
+      AbstractElement wrappedReturnElement = wrappedList.iterator().next();
+      retList.add(new TransferRelationMonitorElement(monitorElement.getCpa(), wrappedReturnElement));
+      return retList;
     } catch (CPATransferException e) {
       e.printStackTrace();
     }
-    
+
     return null;
   }
 

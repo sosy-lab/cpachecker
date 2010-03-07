@@ -11,7 +11,9 @@ public class TransferRelationMonitorElement extends AbstractSingleWrapperElement
 
   private long timeOfTranferToComputeElement;
   private long totalTimeOnThePath;
-  static long maxTimeOfTransfer = 0;
+  public static long maxTimeOfTransfer = 0;
+  public static long maxTotalTimeForPath = 0;
+  private boolean ignore = false;
 
   protected TransferRelationMonitorElement(TransferRelationMonitorCPA pCpa, 
       AbstractElement pWrappedElement) {
@@ -32,8 +34,12 @@ public class TransferRelationMonitorElement extends AbstractSingleWrapperElement
     }
   }
 
-  protected void setTotalTime(long pTotalTime){
+  protected void setTotalTime(boolean pIsIgnore, long pTotalTime){
+    ignore = pIsIgnore;
     totalTimeOnThePath = pTotalTime + timeOfTranferToComputeElement;
+    if(totalTimeOnThePath > maxTotalTimeForPath){
+      maxTotalTimeForPath = totalTimeOnThePath;
+    }
   }
 
   public long getTimeOfTranferToComputeElement() {
@@ -71,6 +77,14 @@ public class TransferRelationMonitorElement extends AbstractSingleWrapperElement
     if (shouldStop)
       return true;
     return false;
+  }
+
+  public boolean isIgnore() {
+    return ignore;
+  }
+
+  public void setIgnore() {
+    ignore = true;
   }
 
 }
