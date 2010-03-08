@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
+import org.eclipse.cdt.core.dom.ast.IASTArrayDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTArraySubscriptExpression;
 import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTCastExpression;
@@ -40,6 +41,7 @@ import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTExpressionList;
 import org.eclipse.cdt.core.dom.ast.IASTFieldReference;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression;
+import org.eclipse.cdt.core.dom.ast.IASTFunctionDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTInitializer;
 import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
@@ -221,7 +223,9 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
         // initializers in CIL are always constant, so no need to check if
         // initializer expression contains uninitialized variables
         if (initializer == null &&
-            !(declaration.getDeclSpecifier().getStorageClass() == IASTDeclSpecifier.sc_extern)) {
+            !(declaration.getDeclSpecifier().getStorageClass() == IASTDeclSpecifier.sc_extern) &&
+            !(declarator instanceof IASTArrayDeclarator) &&
+            !(declarator instanceof IASTFunctionDeclarator)) {
           setUninitialized(element, varName);
         }          
       }
