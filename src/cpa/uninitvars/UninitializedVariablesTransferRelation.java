@@ -533,9 +533,10 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
           //find type of the item last added to the list of variables
           Type t = ((TypesElement) other).getVariableTypes().get(lastAdded);
           if (t != null) {
-            //only need to do this for structs: add a variable for each field of the struct
+            //only need to do this for non-external structs: add a variable for each field of the struct
             //and set it uninitialized (since it is only declared at this point)
-            if (t.getTypeClass() == TypeClass.STRUCT) {
+            if (t.getTypeClass() == TypeClass.STRUCT && 
+                !(((DeclarationEdge)cfaEdge).getDeclSpecifier().getStorageClass() == IASTDeclSpecifier.sc_extern)) {
               Set<String> members = ((StructType)t).getMembers();
               for (String s : members) {
                 String varName = lastAdded + "." + s;
@@ -548,7 +549,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       }
 
       if (!typesWarningAlreadyDisplayed && !typesCPAPresent && lastAdded != null) {
-        //set typesCPAPresent so this message only comes up once
+        //set typesWarningAlreadyDisplayed so this message only comes up once
         typesWarningAlreadyDisplayed = true;
         logger.log(Level.INFO, 
         "TypesCPA not present - information about field references may be unreliable");
