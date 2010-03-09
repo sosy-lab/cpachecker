@@ -15,21 +15,21 @@ public class CillyTest {
   public void test001() throws IOException {
     Cilly lCilly = new Cilly();
     
-    lCilly.cillyfy("test/tests/single/functionCall.c");
+    lCilly.cillyfy("test/programs/simple/functionCall.c");
   }
   
   @Test
   public void test002() throws IOException {
     Cilly lCilly = new Cilly();
     
-    assertFalse(lCilly.isCillyInvariant("test/tests/single/functionCall.c"));
+    assertFalse(lCilly.isCillyInvariant("test/programs/simple/functionCall.c"));
   }
   
   @Test
   public void test003() throws IOException {
     Cilly lCilly = new Cilly();
     
-    File lCillyfiedFile = lCilly.cillyfy("test/tests/single/functionCall.c");
+    File lCillyfiedFile = lCilly.cillyfy("test/programs/simple/functionCall.c");
     
     System.out.println(lCillyfiedFile);
     
@@ -38,7 +38,7 @@ public class CillyTest {
   
   @Test
   public void test004() throws IOException {
-    assertEquals("test/tests/single/functionCall.cil.c", Cilly.getNiceCILName("test/tests/single/functionCall.c"));
+    assertEquals("test/programs/simple/functionCall.cil.c", Cilly.getNiceCILName("test/programs/simple/functionCall.c"));
   }
   
 }

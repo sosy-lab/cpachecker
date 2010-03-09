@@ -41,7 +41,7 @@ public class TargetGraphTest {
     
     lArguments[0] = mConfig;
     lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/tests/single/functionCall.c";
+    lArguments[2] = "test/programs/simple/functionCall.c";
     
     Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
     
@@ -60,7 +60,7 @@ public class TargetGraphTest {
     
     lArguments[0] = mConfig;
     lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/tests/single/loop1.c";
+    lArguments[2] = "test/programs/simple/loop1.c";
         
     Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
     
@@ -79,7 +79,7 @@ public class TargetGraphTest {
     
     lArguments[0] = mConfig;
     lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/tests/single/uninitVars.cil.c";
+    lArguments[2] = "test/programs/simple/uninitVars.cil.c";
         
     /*
      * Note: This analysis returns most of the time
@@ -104,7 +104,7 @@ public class TargetGraphTest {
     
     lArguments[0] = mConfig;
     lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/tests/single/uninitVars.cil.c";
+    lArguments[2] = "test/programs/simple/uninitVars.cil.c";
         
     /*
      * Note: This analysis returns most of the time
@@ -131,7 +131,7 @@ public class TargetGraphTest {
     
     lArguments[0] = mConfig;
     lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/tests/single/uninitVars.cil.c";
+    lArguments[2] = "test/programs/simple/uninitVars.cil.c";
         
     /*
      * Note: This analysis returns most of the time
@@ -161,7 +161,7 @@ public class TargetGraphTest {
     
     lArguments[0] = mConfig;
     lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/tests/single/uninitVars.cil.c";
+    lArguments[2] = "test/programs/simple/uninitVars.cil.c";
         
     /*
      * Note: This analysis returns most of the time
@@ -190,7 +190,7 @@ public class TargetGraphTest {
     
     lArguments[0] = mConfig;
     lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/tests/single/functionCall.c";
+    lArguments[2] = "test/programs/simple/functionCall.c";
     
     Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
     
@@ -213,7 +213,7 @@ public class TargetGraphTest {
     
     lArguments[0] = mConfig;
     lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/tests/single/functionCall.c";
+    lArguments[2] = "test/programs/simple/functionCall.c";
     
     Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
     
@@ -236,7 +236,7 @@ public class TargetGraphTest {
     
     lArguments[0] = mConfig;
     lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/tests/single/functionCall.c";
+    lArguments[2] = "test/programs/simple/functionCall.c";
     
     Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
     
@@ -258,7 +258,7 @@ public class TargetGraphTest {
     
     lArguments[0] = mConfig;
     lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/tests/single/functionCall.c";
+    lArguments[2] = "test/programs/simple/functionCall.c";
     
     Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
     
@@ -298,7 +298,7 @@ public class TargetGraphTest {
     
     lArguments[0] = mConfig;
     lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/tests/single/functionCall.c";
+    lArguments[2] = "test/programs/simple/functionCall.c";
     
     Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
     
@@ -324,7 +324,7 @@ public class TargetGraphTest {
     
     lArguments[0] = mConfig;
     lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/tests/single/uninitVars.cil.c";
+    lArguments[2] = "test/programs/simple/uninitVars.cil.c";
     
     Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
     
@@ -355,7 +355,7 @@ public class TargetGraphTest {
     
     lArguments[0] = mConfig;
     lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/tests/single/uninitVars.cil.c";
+    lArguments[2] = "test/programs/simple/uninitVars.cil.c";
     
     Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
     
@@ -381,7 +381,7 @@ public class TargetGraphTest {
     
     lArguments[0] = mConfig;
     lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/tests/single/uninitVars.cil.c";
+    lArguments[2] = "test/programs/simple/uninitVars.cil.c";
     
     Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
     
@@ -412,7 +412,7 @@ public class TargetGraphTest {
     
     lArguments[0] = mConfig;
     lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/tests/single/uninitVars.cil.c";
+    lArguments[2] = "test/programs/simple/uninitVars.cil.c";
     
     Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
     
@@ -443,7 +443,7 @@ public class TargetGraphTest {
     
     lArguments[0] = mConfig;
     lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/tests/single/uninitVars.cil.c";
+    lArguments[2] = "test/programs/simple/uninitVars.cil.c";
     
     Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
     
@@ -468,7 +468,7 @@ public class TargetGraphTest {
     
     lArguments[0] = mConfig;
     lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/tests/single/uninitVars.cil.c";
+    lArguments[2] = "test/programs/simple/uninitVars.cil.c";
     
     Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
     
@@ -493,7 +493,7 @@ public class TargetGraphTest {
     
     lArguments[0] = mConfig;
     lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/tests/single/uninitVars.cil.c";
+    lArguments[2] = "test/programs/simple/uninitVars.cil.c";
     
     Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
     
@@ -518,7 +518,7 @@ public class TargetGraphTest {
     
     lArguments[0] = mConfig;
     lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/tests/single/loop1.c";
+    lArguments[2] = "test/programs/simple/loop1.c";
     
     Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
     
@@ -541,7 +541,7 @@ public class TargetGraphTest {
     
     lArguments[0] = mConfig;
     lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/tests/single/loop1.c";
+    lArguments[2] = "test/programs/simple/loop1.c";
     
     Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
     

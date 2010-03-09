@@ -33,7 +33,7 @@ public class CoverageSequenceTest {
     
     lArguments[0] = mConfig;
     lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/tests/single/functionCall.c";
+    lArguments[2] = "test/programs/simple/functionCall.c";
     
     Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
     
@@ -62,7 +62,7 @@ public class CoverageSequenceTest {
     
     lArguments[0] = mConfig;
     lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/tests/single/functionCall.c";
+    lArguments[2] = "test/programs/simple/functionCall.c";
     
     Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
     
@@ -95,7 +95,7 @@ public class CoverageSequenceTest {
     
     lArguments[0] = mConfig;
     lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/tests/single/functionCall.c";
+    lArguments[2] = "test/programs/simple/functionCall.c";
     
     Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
     

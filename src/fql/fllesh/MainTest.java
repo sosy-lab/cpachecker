@@ -9,7 +9,7 @@ public class MainTest {
     String[] lArguments = new String[2];
     
     lArguments[0] = "COVER STATES(@ENTRY(f))";
-    lArguments[1] = "test/tests/single/functionCall.c";
+    lArguments[1] = "test/programs/simple/functionCall.c";
     
     Main.main(lArguments);
   }
@@ -19,7 +19,7 @@ public class MainTest {
     String[] lArguments = new String[2];
     
     lArguments[0] = "COVER EDGES(@ENTRY(f))";
-    lArguments[1] = "test/tests/single/functionCall.c";
+    lArguments[1] = "test/programs/simple/functionCall.c";
     
     Main.main(lArguments);
   }
@@ -29,7 +29,7 @@ public class MainTest {
     String[] lArguments = new String[2];
     
     lArguments[0] = "COVER EDGES(UNION(@ENTRY(f), @ENTRY(main)))";
-    lArguments[1] = "test/tests/single/functionCall.c";
+    lArguments[1] = "test/programs/simple/functionCall.c";
     
     Main.main(lArguments);
   }

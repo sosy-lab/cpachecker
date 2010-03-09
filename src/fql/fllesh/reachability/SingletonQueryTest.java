@@ -52,7 +52,7 @@ public class SingletonQueryTest {
     // check cilly invariance of source file, i.e., is it changed when preprocessed by cilly?
     Cilly lCilly = new Cilly();
     
-    String lSourceFileName = "test/tests/single/functionCall.cil.c";
+    String lSourceFileName = "test/programs/simple/functionCall.cil.c";
     
     if (!lCilly.isCillyInvariant(lSourceFileName)) {
       File lCillyProcessedFile = lCilly.cillyfy(lSourceFileName);

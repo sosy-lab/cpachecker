@@ -14,7 +14,7 @@ public class AlwaysTopCPATest {
     
     lArguments[0] = mConfig;
     lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/tests/single/functionCall.c";
+    lArguments[2] = "test/programs/simple/functionCall.c";
         
     cmdline.CPAMain.main(lArguments);
   }
@@ -25,7 +25,7 @@ public class AlwaysTopCPATest {
     
     lArguments[0] = mConfig;
     lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/tests/single/loop1.c";
+    lArguments[2] = "test/programs/simple/loop1.c";
         
     cmdline.CPAMain.main(lArguments);
   }
@@ -36,7 +36,7 @@ public class AlwaysTopCPATest {
     
     lArguments[0] = mConfig;
     lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/tests/single/uninitVars.cil.c";
+    lArguments[2] = "test/programs/simple/uninitVars.cil.c";
         
     cmdline.CPAMain.main(lArguments);
   }
