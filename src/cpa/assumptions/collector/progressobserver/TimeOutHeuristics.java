@@ -38,7 +38,7 @@ public class TimeOutHeuristics implements StopHeuristics<TimeOutHeuristicsData> 
   private final int threshold;
 
   public TimeOutHeuristics(Configuration config, LogManager pLogger) {
-    threshold = Integer.parseInt(config.getProperty("threshold", "-1"));
+    threshold = Integer.parseInt(config.getProperty("threshold", "-1").trim());
   }
   
   @Override

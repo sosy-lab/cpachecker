@@ -43,7 +43,7 @@ public class UsedMemoryOutHeuristics
   
   public UsedMemoryOutHeuristics(Configuration config, LogManager logger) {
     mxBean = ManagementFactory.getMemoryMXBean();
-    threshold = Long.parseLong(config.getProperty("threshold", "-1"));
+    threshold = Long.parseLong(config.getProperty("threshold", "-1").trim());
   }
 
   @Override

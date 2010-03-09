@@ -38,7 +38,7 @@ public class ReachedSizeHeuristics implements StopHeuristics<TrivialStopHeuristi
   
   public ReachedSizeHeuristics(Configuration config, LogManager logger)
   {
-    threshold = Integer.parseInt(config.getProperty("threshold", "-1"));
+    threshold = Integer.parseInt(config.getProperty("threshold", "-1").trim());
   }
   
   @Override

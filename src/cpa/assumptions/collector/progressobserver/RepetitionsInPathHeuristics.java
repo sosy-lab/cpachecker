@@ -42,7 +42,7 @@ public class RepetitionsInPathHeuristics
   
   public RepetitionsInPathHeuristics(Configuration config, LogManager logger)
   {
-    int configThreshold = Integer.parseInt(config.getProperty("threshold", "-1"));
+    int configThreshold = Integer.parseInt(config.getProperty("threshold", "-1").trim());
     thresholdFunction = Functions.constant((configThreshold <= 0) ? null : configThreshold);
   }
 

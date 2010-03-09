@@ -20,7 +20,7 @@ public class MemoryOutHeuristics
   private final LogManager logger;
 
   public MemoryOutHeuristics(Configuration config, LogManager pLogger) {
-    threshold = Integer.parseInt(config.getProperty("threshold", "-1"));
+    threshold = Integer.parseInt(config.getProperty("threshold", "-1").trim());
     logger = pLogger;
   }
   

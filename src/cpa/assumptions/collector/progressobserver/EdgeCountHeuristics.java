@@ -42,7 +42,7 @@ public class EdgeCountHeuristics implements StopHeuristics<EdgeCountHeuristicsDa
   public EdgeCountHeuristics(Configuration config, LogManager logger)
   {
     // Initialise the threshold function
-    int staticThreshold = Integer.parseInt(config.getProperty("threshold", "-1"));
+    int staticThreshold = Integer.parseInt(config.getProperty("threshold", "-1").trim());
     thresholdFunction = Functions.constant((staticThreshold <= 0) ? null : staticThreshold);
   }
   
