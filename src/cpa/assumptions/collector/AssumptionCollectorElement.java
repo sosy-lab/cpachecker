@@ -91,8 +91,9 @@ public class AssumptionCollectorElement extends AbstractSingleWrapperElement {
     if (other instanceof AssumptionCollectorElement)
     {
       AssumptionCollectorElement otherElement = (AssumptionCollectorElement) other;
-      return (otherElement.stop == stop) 
-          && assumption.equals(otherElement.assumption);
+      if (otherElement.stop != stop) return false;
+      if (assumption == null) return (otherElement.assumption == null);
+      else return assumption.equals(otherElement.assumption);
     } else {
       return false;
     }
