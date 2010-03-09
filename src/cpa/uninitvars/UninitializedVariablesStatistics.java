@@ -12,6 +12,12 @@ import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractWrapperElement;
 import cpa.common.interfaces.Statistics;
 
+/**
+ * @author Gregor Endler
+ * 
+ * Statistics for UninitializedVariablesCPA.
+ * Displays warnings about all uninitialized variables found. 
+ */
 public class UninitializedVariablesStatistics implements Statistics {
 
   private boolean printWarnings;
@@ -32,29 +38,30 @@ public class UninitializedVariablesStatistics implements Statistics {
     if (printWarnings) {
 
       Set<Pair<Integer, String>> warningsDisplayed = new HashSet<Pair<Integer, String>>();
-      StringBuffer b = new StringBuffer();
+      StringBuffer buffer = new StringBuffer();
 
       //find all UninitializedVariablesElements and get their warnings
       for (AbstractElement reachedElement : pReached) {
         if (reachedElement instanceof AbstractWrapperElement) {
-          UninitializedVariablesElement e = ((AbstractWrapperElement)reachedElement).retrieveWrappedElement(UninitializedVariablesElement.class);
-          if (e != null) {
-            Set<Triple<Integer, String, String>> s = e.getWarnings();
+          UninitializedVariablesElement uninitElement = 
+            ((AbstractWrapperElement)reachedElement).retrieveWrappedElement(UninitializedVariablesElement.class);
+          if (uninitElement != null) {
+            Set<Triple<Integer, String, String>> warnings = uninitElement.getWarnings();
             //warnings are identified by line number and variable name
             Pair<Integer, String> warningIndex;
-            for(Triple<Integer, String, String> t : s) {
+            for(Triple<Integer, String, String> warning : warnings) {
               //check if a warning has already been displayed
-              warningIndex = new  Pair<Integer, String>(t.getFirst(), t.getSecond());
+              warningIndex = new  Pair<Integer, String>(warning.getFirst(), warning.getSecond());
               if (!warningsDisplayed.contains(warningIndex)) {
                 warningsDisplayed.add(warningIndex);
-                b.append(t.getThird() + "\n");
+                buffer.append(warning.getThird() + "\n");
               }
             }
           }
         }
       }
-      if (b.length() > 1) {
-        pOut.println(b.substring(0, b.length() - 1));
+      if (buffer.length() > 1) {
+        pOut.println(buffer.substring(0, buffer.length() - 1));
       } else {
         pOut.println("No uninitialized variables found");
       }
