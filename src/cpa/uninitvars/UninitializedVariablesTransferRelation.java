@@ -230,7 +230,9 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
             !(declarator instanceof IASTArrayDeclarator) &&
             !(declarator instanceof IASTFunctionDeclarator)) {
           setUninitialized(element, varName);
-        }          
+        } else {
+          setInitialized(element, varName);
+        }
       }
     }
   }
