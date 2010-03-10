@@ -285,15 +285,15 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       }
       
     } else if (expression instanceof IASTFunctionCallExpression) {
+      //in case of a return edge, remove the local context of the function from which we returned
+      if (cfaEdge instanceof CallToReturnEdge) {
+        element.returnFromFunction();
+      }
       //a mere function call (func(a)) does not change the initialization status of variables
       // just check if there are uninitialized variable usages
       if (printWarnings) {
         IASTExpression params = ((IASTFunctionCallExpression)expression).getParameterExpression();
         isExpressionUninitialized(element, params, cfaEdge);
-      }
-      //in case of a return edge, remove the local context of the function from which we returned
-      if (cfaEdge instanceof CallToReturnEdge) {
-        element.returnFromFunction();
       }
 
     } else if (expression instanceof IASTUnaryExpression) {
