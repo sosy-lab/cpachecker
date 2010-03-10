@@ -87,13 +87,15 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
   
   //needed for strengthen()
   private String lastAdded = null;
+  private String entryFunction;
   //used to check if a warning message in strengthen() has been displayed if typesCPA is not present
   private boolean typesWarningAlreadyDisplayed = false;
 
-  public UninitializedVariablesTransferRelation(String printWarnings, LogManager logger) {
+  public UninitializedVariablesTransferRelation(String printWarnings, LogManager logger, String entryFunction) {
     globalVars = new HashSet<String>();
     this.printWarnings = Boolean.parseBoolean(printWarnings);
     this.logger = logger;
+    this.entryFunction = entryFunction;
   }
   
   private AbstractElement getAbstractSuccessor(AbstractElement element,
@@ -216,8 +218,9 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
         String varName = declarator.getName().toString();
         if (declaration instanceof GlobalDeclarationEdge) {
           globalVars.add(varName);
-          lastAdded = varName;
         }
+
+        lastAdded = varName;
 
         IASTInitializer initializer = declarator.getInitializer();
         // initializers in CIL are always constant, so no need to check if
@@ -531,12 +534,19 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
         if (other instanceof TypesElement) {
           typesCPAPresent = true;
           //find type of the item last added to the list of variables
-          Type t = ((TypesElement) other).getVariableTypes().get(lastAdded);
+          Type t;
+          String functionName = cfaEdge.getSuccessor().getFunctionName();
+          if (functionName.equals(entryFunction)) {
+            t = ((TypesElement) other).getVariableType(null, lastAdded);
+          } else {
+            t = ((TypesElement) other).getVariableType(functionName, lastAdded);
+          }
           if (t != null) {
             //only need to do this for non-external structs: add a variable for each field of the struct
             //and set it uninitialized (since it is only declared at this point)
             if (t.getTypeClass() == TypeClass.STRUCT && 
                 !(((DeclarationEdge)cfaEdge).getDeclSpecifier().getStorageClass() == IASTDeclSpecifier.sc_extern)) {
+              setInitialized((UninitializedVariablesElement) element, lastAdded);
               Set<String> members = ((StructType)t).getMembers();
               for (String s : members) {
                 String varName = lastAdded + "." + s;

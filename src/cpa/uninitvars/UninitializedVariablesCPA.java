@@ -52,7 +52,7 @@ import exceptions.InvalidConfigurationException;
 /**
  * @author Philipp Wendler
  */
-@Options(prefix="uninitVars")
+@Options
 public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
   private static class UninitializedVariablesCPAFactory extends AbstractCPAFactory {
@@ -67,12 +67,14 @@ public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis, S
     return new UninitializedVariablesCPAFactory();
   }
   
-  
-  @Option(name="printWarnings")
+
+  @Option(name="analysis.entryFunction")
+  private String entryFunction = "main";
+  @Option(name="uninitVars.printWarnings")
   private String printWarnings = "true";
-  @Option(name="merge", values={"sep", "join"})
+  @Option(name="uninitVars.merge", values={"sep", "join"})
   private String mergeType = "sep";
-  @Option(name="stop", values={"sep", "join"})
+  @Option(name="uninitVars.stop", values={"sep", "join"})
   private String stopType = "sep";
   
   private final AbstractDomain abstractDomain;
@@ -108,7 +110,8 @@ public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis, S
     this.abstractDomain = domain;
     this.mergeOperator = mergeOp;
     this.stopOperator = stopOp;
-    this.transferRelation = new UninitializedVariablesTransferRelation(printWarnings, logger);
+    this.transferRelation = new UninitializedVariablesTransferRelation(
+                                      printWarnings, logger, entryFunction);
     this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
     
     statistics = new UninitializedVariablesStatistics(printWarnings);
