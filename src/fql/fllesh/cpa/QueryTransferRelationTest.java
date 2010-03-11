@@ -5,6 +5,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Collection;
 
+import org.junit.Before;
 import org.junit.Test;
 
 import cfa.objectmodel.BlankEdge;
@@ -19,6 +20,12 @@ import fql.fllesh.reachability.Query;
 
 
 public class QueryTransferRelationTest {
+
+  @Before
+  public void tearDown() {
+    /* XXX: Currently this is necessary to pass all assertions. */
+    cpa.common.CPAchecker.logger = null;
+  }
 
   @Test
   public void test_01() throws CPATransferException {

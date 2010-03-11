@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.LinkedList;
 
+import org.junit.Before;
 import org.junit.Test;
 
 import cfa.DOTBuilder;
@@ -38,7 +39,13 @@ public class StandardQueryTest {
   
   private static final String mConfig = "-config";
   private static final String mPropertiesFile = "test/config/simpleMustMayAnalysis.properties";
-  
+
+  @Before
+  public void tearDown() {
+    /* XXX: Currently this is necessary to pass all assertions. */
+    cpa.common.CPAchecker.logger = null;
+  }
+
   @Test
   public void test_01() throws IOException, InvalidCmdlineArgumentException, CPAException {
     

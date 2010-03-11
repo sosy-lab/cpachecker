@@ -1,8 +1,15 @@
 package fql.fllesh;
 
+import org.junit.Before;
 import org.junit.Test;
 
 public class MainTest {
+
+  @Before
+  public void tearDown() {
+    /* XXX: Currently this is necessary to pass all assertions. */
+    cpa.common.CPAchecker.logger = null;
+  }
 
   @Test
   public void testMain001() throws Exception {

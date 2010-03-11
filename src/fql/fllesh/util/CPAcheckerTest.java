@@ -2,6 +2,7 @@ package fql.fllesh.util;
 
 import java.io.IOException;
 
+import org.junit.Before;
 import org.junit.Test;
 
 import common.configuration.Configuration;
@@ -14,7 +15,13 @@ import exceptions.CPAException;
 public class CPAcheckerTest {
   private String mConfig = "-config";
   private String mPropertiesFile = "test/config/simpleMustMayAnalysis.properties";
-  
+
+  @Before
+  public void tearDown() {
+    /* XXX: Currently this is necessary to pass all assertions. */
+    cpa.common.CPAchecker.logger = null;
+  }
+
   @Test
   public void test_01() throws InvalidCmdlineArgumentException, IOException, CPAException {
     String[] lArguments = new String[3];

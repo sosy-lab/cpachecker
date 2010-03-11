@@ -2,6 +2,7 @@ package fql.backend.pathmonitor;
 
 import java.io.IOException;
 
+import org.junit.Before;
 import org.junit.Test;
 
 import common.configuration.Configuration;
@@ -25,7 +26,13 @@ import fql.frontend.ast.predicate.Predicates;
 public class AutomatonTest {
   private String mConfig = "-config";
   private String mPropertiesFile = "test/config/simpleMustMayAnalysis.properties";
-  
+
+  @Before
+  public void tearDown() {
+    /* XXX: Currently this is necessary to pass all assertions. */
+    cpa.common.CPAchecker.logger = null;
+  }
+
   @Test
   public void test_01() throws InvalidCmdlineArgumentException, IOException, CPAException {
     String[] lArguments = new String[3];

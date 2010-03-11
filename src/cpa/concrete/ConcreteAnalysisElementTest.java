@@ -2,10 +2,17 @@ package cpa.concrete;
 
 import static org.junit.Assert.*;
 
+import org.junit.Before;
 import org.junit.Test;
 import java.util.HashMap;
 
 public class ConcreteAnalysisElementTest {
+
+  @Before
+  public void tearDown() {
+    /* XXX: Currently this is necessary to pass all assertions. */
+    cpa.common.CPAchecker.logger = null;
+  }
 
   @Test
   public void testHashCode() {

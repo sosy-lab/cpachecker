@@ -1,5 +1,6 @@
 package cpa.mustmay;
 
+import org.junit.Before;
 import org.junit.Test;
 
 
@@ -7,7 +8,13 @@ public class SimpleMustMayAnalysisCPATest {
   
   private String mConfig = "-config";
   private String mPropertiesFile = "test/config/simpleMustMayAnalysis.properties";
-  
+
+  @Before
+  public void tearDown() {
+    /* XXX: Currently this is necessary to pass all assertions. */
+    cpa.common.CPAchecker.logger = null;
+  }
+
   @Test
   public void test_01() {
     String[] lArguments = new String[3];

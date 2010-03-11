@@ -1,5 +1,6 @@
 package cpa.alwaystop;
 
+import org.junit.Before;
 import org.junit.Test;
 
 
@@ -7,6 +8,12 @@ public class AlwaysTopCPATest {
   
   private String mConfig = "-config";
   private String mPropertiesFile = "test/config/alwaysTopAnalysis.properties";  
+
+  @Before
+  public void tearDown() {
+    /* XXX: Currently this is necessary to pass all assertions. */
+    cpa.common.CPAchecker.logger = null;
+  }
 
   @Test
   public void test_01() {
