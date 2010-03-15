@@ -551,7 +551,7 @@ public static final class ArrayType extends AbstractType {
       if (type == null) {
         throw new IllegalArgumentException();
       }
-      if (name ==  null) {
+      if (name ==  null || name.equals("")) {
         synchronized (this.getClass()) {
           name = "__cpa_anon_param_" + uniqueNameId++;
         }

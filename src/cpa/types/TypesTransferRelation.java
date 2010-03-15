@@ -162,7 +162,14 @@ public class TypesTransferRelation implements TransferRelation {
             
     IASTStandardFunctionDeclarator standardFuncDeclarator = (IASTStandardFunctionDeclarator)funcDeclarator;
     
-    String name = standardFuncDeclarator.getName().getRawSignature();
+    String name;
+    //in case of a nested declarator, get the variable name from the inner declarator
+    if (standardFuncDeclarator.getNestedDeclarator() != null) {
+      name = standardFuncDeclarator.getNestedDeclarator().getName().getRawSignature();
+    } else {
+    //otherwise there is only one declarator
+      name = standardFuncDeclarator.getName().getRawSignature();
+    }
 
     Type returnType = getType(element, cfaEdge, funcDeclSpecifier);
     returnType = getPointerType(returnType, cfaEdge, standardFuncDeclarator);
@@ -363,6 +370,11 @@ public class TypesTransferRelation implements TransferRelation {
       IASTNamedTypeSpecifier namedTypeSpecifier = (IASTNamedTypeSpecifier)declSpecifier;
            
       type = element.getTypedef(namedTypeSpecifier.getName().getRawSignature());
+      
+      //if it is not found in the typedefs, it may be a typedef'd function
+      if (type == null) {
+        type = element.getFunction(namedTypeSpecifier.getName().getRawSignature());
+       }
       
       if (type == null) {
         throw new UnrecognizedCCodeException("type not defined", cfaEdge, namedTypeSpecifier);
