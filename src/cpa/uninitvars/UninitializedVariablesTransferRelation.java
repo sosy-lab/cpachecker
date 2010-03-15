@@ -213,9 +213,15 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
 
     for (IASTDeclarator declarator : declaration.getDeclarators()) {
       if (declarator != null) {
-
-        // get the variable name in the declarator
-        String varName = declarator.getName().toString();
+        
+        String varName;
+        //in case of a nested declarator, get the variable name from the inner declarator
+        if (declarator.getNestedDeclarator() != null) {
+          varName = declarator.getNestedDeclarator().getName().toString();
+        } else {
+        //otherwise there is only one declarator
+          varName = declarator.getName().toString();
+        }
         if (declaration instanceof GlobalDeclarationEdge) {
           globalVars.add(varName);
         }
@@ -535,13 +541,24 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
         //only interested in the types here
         if (other instanceof TypesElement) {
           typesCPAPresent = true;
+          
           //find type of the item last added to the list of variables
+          TypesElement typeElem = (TypesElement) other;
           Type t;
-          String functionName = cfaEdge.getSuccessor().getFunctionName();
-          if (functionName.equals(entryFunction)) {
-            t = ((TypesElement) other).getVariableType(null, lastAdded);
-          } else {
-            t = ((TypesElement) other).getVariableType(functionName, lastAdded);
+          //check type definitions
+          t = typeElem.getTypedef(lastAdded);
+          //if this fails, check functions
+          if (t == null) {
+            t = typeElem.getFunction(lastAdded);
+          }
+          //if this also fails, check variables for the current context
+          if (t == null) {
+            String functionName = cfaEdge.getSuccessor().getFunctionName();
+            if (functionName.equals(entryFunction)) {
+              t = typeElem.getVariableType(null, lastAdded);
+            } else {
+              t = typeElem.getVariableType(functionName, lastAdded);
+            }
           }
           if (t != null) {
             //only need to do this for non-external structs: add a variable for each field of the struct
