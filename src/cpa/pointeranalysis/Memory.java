@@ -187,7 +187,7 @@ public interface Memory {
   
     private final MemoryRegion region;
     private final long offset; // offset in bytes from the start of the region
-                              // -1 if unknown
+                               // -1 if unknown
     
     private MemoryAddress(MemoryRegion region, boolean unknownOffset) {
       assert region != null;
@@ -229,7 +229,7 @@ public interface Memory {
         if (region.hasLength() && (Math.abs(shiftBytes) >= region.getLength())) {
           // current offset is unknown, but this shift is too large for sure
           throw new InvalidPointerException("Invalid shift " + shiftBytes
-              + " for memory address " + this);
+                                          + " for memory address " + this);
         }
         return this;
       }
