@@ -9,7 +9,7 @@ import java.util.Map;
  */
 abstract class ObserverActionExpr {
   private ObserverActionExpr() {};
-  abstract void execute(Map<String, ObserverVariable> pVars);
+  abstract void execute(ObserverExpressionArguments pArgs);
   
   /**
    * Prints a string to System.out when executed.
@@ -18,7 +18,7 @@ abstract class ObserverActionExpr {
   static class Print extends ObserverActionExpr {
     private String toPrint;
     public Print(String pToPrint) { toPrint = pToPrint; }
-    @Override void execute(Map<String, ObserverVariable> pVars) { System.out.println(toPrint); }
+    @Override void execute(ObserverExpressionArguments pArgs) { System.out.println(toPrint); }
   }
   
   /**
@@ -30,7 +30,7 @@ abstract class ObserverActionExpr {
     public PrintInt(ObserverIntExpr pIntExpr) {
       toPrint = pIntExpr;
     }
-    @Override void execute(Map<String, ObserverVariable> pVars) { System.out.println(toPrint.eval(pVars)); }
+    @Override void execute(ObserverExpressionArguments pArgs) { System.out.println(toPrint.eval(pArgs)); }
   }
   
   /** Assigns the value of a ObserverIntExpr to a ObserverVariable determined by its name.
@@ -43,13 +43,14 @@ abstract class ObserverActionExpr {
       this.varId = pVarId;
       this.var = pVar;
     }
-    @Override  void execute(Map<String, ObserverVariable> pVars) {
-      if (pVars.containsKey(varId)) {
-        pVars.get(varId).setValue(var.eval(pVars));
+    @Override  void execute(ObserverExpressionArguments pArgs) {
+      Map<String, ObserverVariable> vars = pArgs.getObserverVariables();
+      if (vars.containsKey(varId)) {
+        vars.get(varId).setValue(var.eval(pArgs));
       } else {
         ObserverVariable newVar = new ObserverVariable("int", varId);
-        newVar.setValue(var.eval(pVars));
-        pVars.put(varId, newVar);
+        newVar.setValue(var.eval(pArgs));
+        vars.put(varId, newVar);
         System.out.println("Defined a Variable " + varId + " that was unknown before (not set in automaton Definition).");
       }
     }

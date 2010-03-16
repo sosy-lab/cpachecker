@@ -8,6 +8,7 @@ import cfa.objectmodel.CFAEdge;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
+import cpa.observeranalysis.ObserverState.ObserverUnknownState;
 import exceptions.CPATransferException;
 
 /** The TransferRelation of this CPA determines the AbstractSuccessor of a {@link ObserverInternalState} 
@@ -22,27 +23,37 @@ class ObserverTransferRelation implements TransferRelation {
     automaton = pAutomaton;
   }
 
-  private AbstractElement getAbstractSuccessor(AbstractElement pElement,
-      CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException {
+  /* (non-Javadoc)
+   * @see cpa.common.interfaces.TransferRelation#getAbstractSuccessors(cpa.common.interfaces.AbstractElement, cpa.common.interfaces.Precision, cfa.objectmodel.CFAEdge)
+   */
+  @Override
+  public Collection<AbstractElement> getAbstractSuccessors(
+                      AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge)
+                      throws CPATransferException {
+    if (pElement instanceof ObserverUnknownState) {
+      // the last CFA edge could not be processed properly 
+      // (strengthen was not called on the ObserverUnknownState or the strengthen operation had not enough information to determine a new following state.) 
+      return Collections.singleton((AbstractElement)ObserverState.TOP);
+    }
     if (! (pElement instanceof ObserverState)) {
       throw new IllegalArgumentException("Cannot getAbstractSuccessor for non-ObserverState AbstractElements.");
     }
-    ObserverState ns =((ObserverState)pElement).getFollowState(pCfaEdge); 
-    return ns;
+    AbstractElement ns =((ObserverState)pElement).getFollowState(new ObserverExpressionArguments(null, null, pCfaEdge));
+    return Collections.singleton(ns);
   }
 
-  @Override
-  public Collection<AbstractElement> getAbstractSuccessors(
-                      AbstractElement element, Precision precision, CFAEdge cfaEdge)
-                      throws CPATransferException {
-    return Collections.singleton(getAbstractSuccessor(element, cfaEdge, precision));
-  }
-
+  /* (non-Javadoc)
+   * @see cpa.common.interfaces.TransferRelation#strengthen(cpa.common.interfaces.AbstractElement, java.util.List, cfa.objectmodel.CFAEdge, cpa.common.interfaces.Precision)
+   */
   @Override
   public Collection<? extends AbstractElement> strengthen(AbstractElement element,
                                     List<AbstractElement> otherElements,
                                     CFAEdge cfaEdge, Precision precision)
                                     throws CPATransferException {
-    return null;
+    if (! (element instanceof ObserverUnknownState))
+      return null;
+    else {
+      return ((ObserverUnknownState)element).strengthen(otherElements,cfaEdge);
+    }
   }
 }

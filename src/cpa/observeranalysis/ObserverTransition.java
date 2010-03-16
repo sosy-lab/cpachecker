@@ -2,27 +2,19 @@ package cpa.observeranalysis;
 
 import java.io.PrintStream;
 import java.util.List;
-import java.util.Map;
-
-import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 
 import cfa.objectmodel.CFAEdge;
+import cpa.observeranalysis.ObserverBoolExpr.MaybeBoolean;
 
 /** A transition in the observer automaton implements one of the {@link PATTERN_MATCHING_METHODS}.
  * This determines if the transition matches on a certain {@link CFAEdge}.
  * @author rhein
  */
 class ObserverTransition {
-  static enum PATTERN_MATCHING_METHODS {
-    EXACT_MATCH,
-    REGEX_MATCH,
-    AST_COMPARISON
-  }
   
-  /** Pattern of this Transition, directly from the observer-definition file.  */
-  private String pattern;
-  private PATTERN_MATCHING_METHODS usedMethod;
-  // The order of assertions and (more importantly) actions is preserved by the parser.
+  
+  // The order of triggers, assertions and (more importantly) actions is preserved by the parser.
+  private List<ObserverBoolExpr> triggers;
   private List<ObserverBoolExpr> assertions;
   private List<ObserverActionExpr> actions;
   /**
@@ -34,13 +26,12 @@ class ObserverTransition {
   private String followStateName;
   private ObserverInternalState followState;
 
-  public ObserverTransition(String pPattern, List<ObserverBoolExpr> pAssertions, List<ObserverActionExpr> pActions,
-      String pFollowStateName, PATTERN_MATCHING_METHODS pUseMethod) {
-    this.pattern = pPattern;
+  public ObserverTransition(List<ObserverBoolExpr> pTriggers, List<ObserverBoolExpr> pAssertions, List<ObserverActionExpr> pActions,
+      String pFollowStateName) {
+    this.triggers = pTriggers;
     this.assertions = pAssertions;
     this.actions = pActions;
     this.followStateName = pFollowStateName;
-    this.usedMethod = pUseMethod;
   }
 
   /**
@@ -61,30 +52,22 @@ class ObserverTransition {
    * @param out
    */
   void writeTransitionToDotFile(int sourceStateId, PrintStream out) {
-    out.println(sourceStateId + " -> " + followState.getStateId() + " [label=\"" + pattern + "\"]");
+    out.println(sourceStateId + " -> " + followState.getStateId() + " [label=\"" /*+ pattern */ + "\"]");
   }
 
-  /** Determines if this Transition matches on the argument {@link CFAEdge}.
-   * The result of this method depends on which {@link PATTERN_MATCHING_METHODS} is used by this transition.
-   * @param pCfaEdge
+  /** Determines if this Transition matches on the current State of the CPA.
+   * This might return a <code>MaybeBoolean.MAYBE</code> value if the method cannot determine if the transition matches.
+   * In this case more information (e.g. more AbstractElements of other CPAs) are needed.
    * @return
    */
-  public boolean match(CFAEdge pCfaEdge) {
-    switch (usedMethod) {
-    case EXACT_MATCH :
-      return pCfaEdge.getRawStatement().equals(pattern);
-    case REGEX_MATCH :
-        return pCfaEdge.getRawStatement().matches(pattern);
-      case AST_COMPARISON :
-        // this line should never be entered because there is a extra subclass for AST_comparisons.
-        boolean result = ObserverASTComparator.generateAndCompareASTs(pCfaEdge.getRawStatement(), pattern);
-        /*if (result == true) {
-          System.out.println("Triggered : " + pCfaEdge.getRawStatement() + " : " + this.pattern + " to " + followStateName);
-        }*/
-        return result;
-      default:
-        return false;
+  public MaybeBoolean match(ObserverExpressionArguments pArgs) {
+    for (ObserverBoolExpr trigger : triggers) {
+      MaybeBoolean triggerValue = trigger.eval(pArgs);
+      if (triggerValue != MaybeBoolean.TRUE) {
+        return triggerValue;
+      }
     }
+    return MaybeBoolean.TRUE;
   }
 
   /**
@@ -92,9 +75,9 @@ class ObserverTransition {
    * in the current configuration of the automaton this method is called.
    * @return
    */
-  public boolean assertionsHold(Map<String, ObserverVariable> pVars) {
+  public boolean assertionsHold(ObserverExpressionArguments pArgs) {
     for (ObserverBoolExpr assertion : assertions) {
-      if (assertion.eval(pVars) == false) {
+      if (assertion.eval(pArgs) != MaybeBoolean.TRUE) {
         return false; // Lazy Evaluation
       }
     }
@@ -105,9 +88,9 @@ class ObserverTransition {
    * Executes all actions of this transition in the order which is defined in the automaton definition file.
    * @param pVars 
    */
-  public void executeActions(Map<String, ObserverVariable> pVars) {
+  public void executeActions(ObserverExpressionArguments pArgs) {
     for (ObserverActionExpr action : actions) {
-      action.execute(pVars);
+      action.execute(pArgs);
     }
   }
 
@@ -116,35 +99,5 @@ class ObserverTransition {
    */
   public ObserverInternalState getFollowState() {
     return followState;
-  }
-  
-  /**
-   * This class does the same as the ObserverTransition class with the AST_COMPARISON Enum.
-   * It has a more efficient implementation because it caches the generated ASTs for the pattern.
-   * It also displays error messages if the AST contains problems/errors.
-   * @author rhein
-   */
-  public static class CachingASTComparisonTransition extends ObserverTransition {
-    private IASTTranslationUnit patternAST;
-
-    public CachingASTComparisonTransition(String pPattern,
-        List<ObserverBoolExpr> pAssertions, List<ObserverActionExpr> pActions,
-        String pFollowStateName) {
-      super(pPattern, pAssertions, pActions, pFollowStateName, PATTERN_MATCHING_METHODS.AST_COMPARISON);
-      this.patternAST = ObserverASTComparator.generatePatternAST(pPattern);
-      String problem = ObserverASTComparator.ASTcontatinsProblems(patternAST);
-      if (problem != null) {
-        System.out.println("The AST generated for \"" + pPattern + "\" contains the following problem: " + problem);
-      }
-    }
-    
-    @Override
-    public boolean match(CFAEdge pCfaEdge) {
-      boolean result = ObserverASTComparator.generateAndCompareASTs(pCfaEdge.getRawStatement(), patternAST);
-      /*if (result == true) {
-        System.out.println("Triggered : " + pCfaEdge.getRawStatement() + " : " + this.pattern + " to " + followStateName);
-      }*/
-      return result;
-    }
   }
 }

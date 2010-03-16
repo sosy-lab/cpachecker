@@ -36,5 +36,7 @@
   	<replace file="${parserDir}/ObserverParser.java" token="public class " value="@SuppressWarnings(value = { &quot;all&quot; }) public  class "/>
   	<!-- places the suppressWarnings-tag in front of the inner class -->
   	<replace file="${parserDir}/ObserverParser.java" token="class CUP$" value="@SuppressWarnings(value = { &quot;all&quot; }) class  CUP$"/>
+  	<!-- SVN had "inconsistent line endings"-Problems. Let ANT fix it -->
+  	<fixcrlf file="${parserDir}/ObserverParser.java" eol="lf" />
   </target>
 </project>

@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.LinkedList;
 import java.util.HashMap;
 import java.util.Map;
-import cpa.observeranalysis.ObserverTransition.PATTERN_MATCHING_METHODS;
 
 /* Preliminaries to use the scanner.  */
 scan with {: return scanner.next_token(); :};
@@ -42,20 +41,22 @@ parser code {:
 
 
 
-terminal ARROW, SEMICOLON, COLON, AUTOMATON, LOCAL, INITIAL, STATE, ASS, MATCH, DO, PRINT, GOTO, IDENTIFIER, INTEGER_LITERAL, NEQ, EQ, EQEQ, PLUS, MINUS, TRUE, FALSE, STRING_LITERAL, CURLYEXPR, SQUAREEXPR ;
+terminal ARROW, SEMICOLON, COLON, OPEN_BRACKETS, CLOSE_BRACKETS, AUTOMATON, LOCAL, INITIAL, STATE, ASS, MATCH, CHECK, DO, PRINT, GOTO, IDENTIFIER, INTEGER_LITERAL, NEQ, EQ, EQEQ, PLUS, MINUS, TRUE, FALSE, STRING_LITERAL, CURLYEXPR, SQUAREEXPR ;
 
 non terminal ObserverAutomaton initial ;
 non terminal String Naming, InitDef ;
 non terminal ObserverAutomaton Body ;
 non terminal Map<String, ObserverVariable> LocalDefs ;
 non terminal List<ObserverInternalState> StateDefs ;
-non terminal List<ObserverTransition> Matches ;
+non terminal List<ObserverTransition> Transitions ;
+non terminal List<ObserverBoolExpr> Triggers ;
 non terminal List<ObserverBoolExpr> Assertions ;
 non terminal List<ObserverActionExpr> Actions ;
 
 non terminal ObserverVariable LocalDef ;
 non terminal ObserverInternalState StateDef ;
-non terminal ObserverTransition Match ;
+non terminal ObserverTransition Transition ;
+non terminal ObserverBoolExpr Trigger ;
 non terminal ObserverBoolExpr Assertion ;
 non terminal ObserverActionExpr Action ;
 
@@ -81,27 +82,36 @@ LocalDefs ::= LocalDef:d LocalDefs:lst {: lst.put(d.getName(), d); RESULT = lst;
               ;
               
 LocalDef  ::= LOCAL IDENTIFIER:type IDENTIFIER:name  SEMICOLON {: RESULT = new ObserverVariable(type.toString(), name.toString()); :}
-            | LOCAL IDENTIFIER:type IDENTIFIER:name  EQ Int:i SEMICOLON {: RESULT = new ObserverVariable(type.toString(), name.toString()); RESULT.setValue(i.eval(parser.variablesMap)); :}
+            | LOCAL IDENTIFIER:type IDENTIFIER:name  EQ Int:i SEMICOLON {: RESULT = new ObserverVariable(type.toString(), name.toString()); RESULT.setValue(i.eval(new ObserverExpressionArguments(parser.variablesMap, null, null))); :}
             ;
             
 StateDefs ::= StateDef:s StateDefs:lst  {: lst.add(s); RESULT = lst; :} // elements will be in reversed order (irrelevant ?)
             | /* empty */ {: RESULT = new LinkedList<ObserverInternalState>(); :}
               ;
 
-StateDef  ::= STATE IDENTIFIER:id COLON  Matches:ms   {: RESULT = new ObserverInternalState(id.toString(), ms); :} 
+StateDef  ::= STATE IDENTIFIER:id COLON  Transitions:ts   {: RESULT = new ObserverInternalState(id.toString(), ts); :} 
             ;
             
-Matches   ::= Match:m Matches:lst {: lst.add(0, m); RESULT = lst; :}
+Transitions   ::= Transition:t Transitions:lst {: lst.add(0, t); RESULT = lst; :}
             | /* empty */ {: RESULT = new LinkedList<ObserverTransition>(); :}
             ;
             
-Match     ::= MATCH  STRING_LITERAL:lit  ARROW Assertions:ass Actions:acts GOTO IDENTIFIER:follow SEMICOLON 
-              {: RESULT = new ObserverTransition(lit.toString(), ass, acts, follow.toString(), PATTERN_MATCHING_METHODS.EXACT_MATCH); :} 
-            | MATCH  CURLYEXPR:expr ARROW Assertions:ass Actions:acts GOTO IDENTIFIER:follow SEMICOLON 
-              {: RESULT = new ObserverTransition.CachingASTComparisonTransition(expr.toString(), ass, acts, follow.toString());  :} 
-            | MATCH  SQUAREEXPR:expr ARROW Assertions:ass Actions:acts GOTO IDENTIFIER:follow SEMICOLON 
-              {: RESULT = new ObserverTransition(expr.toString(), ass, acts, follow.toString(), PATTERN_MATCHING_METHODS.REGEX_MATCH); :}
-            ;
+Transition   ::= Triggers:triggers  ARROW Assertions:ass Actions:acts GOTO IDENTIFIER:follow SEMICOLON 
+              {: RESULT = new ObserverTransition(triggers, ass, acts, follow.toString()); :}
+              ;
+
+Triggers   ::= Trigger:t Triggers:lst {: lst.add(0,t); RESULT = lst; :}
+             | /* empty */ {: RESULT = new LinkedList<ObserverBoolExpr>(); :}
+             ;
+Trigger   ::= MATCH STRING_LITERAL:lit 
+              {: RESULT = new ObserverBoolExpr.MatchCFAEdgeExact(lit.toString()); :} 
+            | MATCH CURLYEXPR:expr
+              {: RESULT = new ObserverBoolExpr.MatchCFAEdgeASTComparison(expr.toString()); :} 
+            | MATCH SQUAREEXPR:expr
+              {: RESULT = new ObserverBoolExpr.MatchCFAEdgeRegEx(expr.toString()); :}
+            | CHECK OPEN_BRACKETS IDENTIFIER:cpa OPEN_BRACKETS STRING_LITERAL:query CLOSE_BRACKETS CLOSE_BRACKETS
+              {: RESULT = new ObserverBoolExpr.CPAQuery(cpa.toString(), query.toString()); :}
+            ;                           
 
 Assertions ::= Assertion:a Assertions:lst {: lst.add(0,a); RESULT = lst; :}
              | /* empty */ {: RESULT = new LinkedList<ObserverBoolExpr>(); :}

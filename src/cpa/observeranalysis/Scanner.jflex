@@ -65,6 +65,8 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
 /* keywords */
 <YYINITIAL> ";"                 { return symbol(";", ObserverSym.SEMICOLON); }
 <YYINITIAL> ":"                 { return symbol(":", ObserverSym.COLON); }
+<YYINITIAL> "("                 { return symbol("(", ObserverSym.OPEN_BRACKETS); }
+<YYINITIAL> ")"                 { return symbol(")", ObserverSym.CLOSE_BRACKETS); }
 <YYINITIAL> "->"                { return symbol("->", ObserverSym.ARROW); }
 <YYINITIAL> "AUTOMATON"         { return symbol("AUTOMATON", ObserverSym.AUTOMATON); }
 <YYINITIAL> "LOCAL"             { return symbol("LOCAL", ObserverSym.LOCAL); }
@@ -72,6 +74,7 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
 <YYINITIAL> "STATE"             { return symbol("STATE", ObserverSym.STATE); }
 <YYINITIAL> "ASSERT"            { return symbol("ASSERT", ObserverSym.ASS); }
 <YYINITIAL> "MATCH"             { return symbol("MATCH", ObserverSym.MATCH); }
+<YYINITIAL> "CHECK"             { return symbol("CHECK", ObserverSym.CHECK); }
 <YYINITIAL> "DO"                { return symbol("DO", ObserverSym.DO); }
 <YYINITIAL> "GOTO"              { return symbol("GOTO", ObserverSym.GOTO); }
 <YYINITIAL> "true"              { return symbol("TRUE", ObserverSym.TRUE); }

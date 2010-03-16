@@ -1,8 +1,6 @@
 package cpa.observeranalysis;
 
 import java.io.File;
-import java.util.HashMap;
-import java.util.Map;
 
 import java_cup.runtime.ComplexSymbolFactory;
 import java_cup.runtime.Symbol;
@@ -52,7 +50,7 @@ class ObserverInternalTests {
   }
   
   private static void testExpressionEvaluator() {
-    
+    /*
     Map<String, ObserverVariable> map = new HashMap<String, ObserverVariable>();
     ObserverIntExpr AccessA = new ObserverIntExpr.VarAccess("a");
     ObserverIntExpr AccessB = new ObserverIntExpr.VarAccess("b");
@@ -72,7 +70,7 @@ class ObserverInternalTests {
     storeB.execute(map);
     
     System.out.println("Expression Evaluation result: " + bool.eval(map));
-    
+    */
   }
   private static void testASTcomparison() {
    
