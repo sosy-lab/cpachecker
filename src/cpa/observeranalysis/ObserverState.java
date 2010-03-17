@@ -136,6 +136,8 @@ class ObserverState implements AbstractElement {
   
   @Override
   public String toString() {
+    if (this == TOP) return "ObserverState.TOP";
+    if (this == BOTTOM) return "ObserverState.BOTTOM";
     StringBuffer v = new StringBuffer();
     for (ObserverVariable o : vars.values()) {
       v.append(' ');

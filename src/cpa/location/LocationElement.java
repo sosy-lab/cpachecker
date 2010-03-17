@@ -24,10 +24,11 @@
 package cpa.location;
 
 import cfa.objectmodel.CFANode;
-import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractElementWithLocation;
+import cpa.common.interfaces.AbstractQueryableElement;
+import exceptions.InvalidQueryException;
 
-public class LocationElement implements AbstractElementWithLocation, AbstractElement
+public class LocationElement implements AbstractElementWithLocation, AbstractQueryableElement
 {
     private final CFANode locationNode;
 
@@ -78,5 +79,31 @@ public class LocationElement implements AbstractElementWithLocation, AbstractEle
     @Override
     public int hashCode() {
     	return locationNode.getNodeNumber();
+    }
+
+    @Override
+    public boolean checkProperty(String pProperty) throws InvalidQueryException {
+      String[] parts = pProperty.split("==");
+      if (parts.length != 2) 
+        throw new InvalidQueryException("The Query \"" + pProperty + "\" is invalid. Could not split the property string correctly.");
+      else {
+        if (parts[0].toLowerCase().equals("line")) {
+          try {
+            int queryLine = Integer.parseInt(parts[1]);
+            return this.locationNode.getLineNumber() == queryLine;
+          } catch (NumberFormatException nfe) {
+            throw new InvalidQueryException("The Query \"" + pProperty + "\" is invalid. Could not parse the integer \"" + parts[1] + "\"");
+          }
+        } else if (parts[0].toLowerCase().equals("functionname")) {
+          return this.locationNode.getFunctionName().equals(parts[1]);
+        } else {
+          throw new InvalidQueryException("The Query \"" + pProperty + "\" is invalid. \"" + parts[0] + "\" is no valid keyword");
+        }
+      }
+    }
+
+    @Override
+    public String getCPAName() {
+      return "location";
     }
 }

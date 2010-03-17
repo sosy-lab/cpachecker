@@ -31,14 +31,14 @@ parser code {:
   public void report_error(String message, Object info) {
     syntaxErrors = true;
     String errorString = message;
-    errorString = errorString + "ScannerLine: " + scanner.getLine()+1 + " ScannerColumn: " + scanner.getColumn() + "\n";
+    errorString = errorString + "ScannerLine: " + (scanner.getLine()+1) + " ScannerColumn: " + scanner.getColumn();
     
     if (info instanceof Symbol) { 
     	Symbol symbol = (Symbol) info;
     	if (!( symbol.left < 0 || symbol.right < 0 )) 
-    		errorString = errorString + " at line "+symbol.left+", column "+symbol.right + "\n";
+    		errorString = errorString + "\n at line "+symbol.left+", column "+symbol.right;
     }
-    logger.log(Level.FINER, "errorString");
+    logger.log(Level.FINER, errorString);
   }
 :}; 
 

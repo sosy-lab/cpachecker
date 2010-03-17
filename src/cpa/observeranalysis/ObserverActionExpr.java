@@ -20,7 +20,11 @@ abstract class ObserverActionExpr {
     private String toPrint;
     public Print(String pToPrint) { toPrint = pToPrint; }
     @Override void execute(ObserverExpressionArguments pArgs) { 
-      pArgs.getLogger().log(Level.INFO, toPrint);
+      if (toPrint.toLowerCase().equals("$rawstatement")) {
+        pArgs.getLogger().log(Level.INFO, pArgs.getCfaEdge().getRawStatement());
+      } else {
+        pArgs.getLogger().log(Level.INFO, toPrint);
+      }
     }
   }
   
