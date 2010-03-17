@@ -1,8 +1,12 @@
 package cpa.observeranalysis;
 
+import java.util.logging.Level;
+
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.AbstractQueryableElement;
+import exceptions.InvalidQueryException;
 
 /**
  * Implements a boolean expression that evaluates and returns a <code>MaybeBoolean</code> value when <code>eval()</code> is called.
@@ -87,16 +91,25 @@ abstract class ObserverBoolExpr {
       cPAName = pCPAName;
       queryString = pQuery;
     }
-    // TODO: Extend the Abstract States: add the CPA's Name and a "boolean query(String s)" function 
     @Override
     MaybeBoolean eval(ObserverExpressionArguments pArgs) {
        for (AbstractElement ae : pArgs.getAbstractElements()) {
-        if (ae.getClass().getName().contains(cPAName)) {
-          /*if (ae.query(queryString)) {
-            return MaybeBoolean.TRUE;
-          } else {
-            return MaybeBoolean.FALSE;
-          }*/
+         if (ae instanceof AbstractQueryableElement) {
+          AbstractQueryableElement aqe = (AbstractQueryableElement) ae;
+          if (aqe.getCPAName().equals(cPAName)) {
+            try {
+              if (aqe.checkProperty(queryString)) {
+                return MaybeBoolean.TRUE;
+              } else {
+                return MaybeBoolean.FALSE;
+              }
+            } catch (InvalidQueryException e) {
+              pArgs.getLogger().logException(Level.WARNING, e, 
+                  "ObserverAutomaton encountered an Exception during Query of the " 
+                  + cPAName + " CPA on Edge " + pArgs.getCfaEdge().getRawStatement());
+              return MaybeBoolean.FALSE;
+            }
+          }
         }
       }
       return MaybeBoolean.MAYBE; // the necessary CPA-State was not found

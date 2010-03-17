@@ -5,15 +5,17 @@ import java.util.List;
 import java.util.Map;
 
 import cfa.objectmodel.CFAEdge;
+import cpa.common.LogManager;
 import cpa.common.interfaces.AbstractElement;
 
 public class ObserverExpressionArguments {
   private Map<String, ObserverVariable> observerVariables;
   private List<AbstractElement> abstractElements;
   private CFAEdge cfaEdge;
-  
+  private LogManager logger;
+
   ObserverExpressionArguments(Map<String, ObserverVariable> pObserverVariables,
-      List<AbstractElement> pAbstractElements, CFAEdge pCfaEdge) {
+      List<AbstractElement> pAbstractElements, CFAEdge pCfaEdge, LogManager pLogger) {
     super();
     if (pObserverVariables == null)
       observerVariables = Collections.emptyMap();
@@ -24,6 +26,7 @@ public class ObserverExpressionArguments {
     else 
       abstractElements = pAbstractElements;
     cfaEdge = pCfaEdge;
+    logger = pLogger;
   }
 
   void setObserverVariables(Map<String, ObserverVariable> pObserverVariables) {
@@ -42,5 +45,7 @@ public class ObserverExpressionArguments {
     return cfaEdge;
   }
   
-  
+  LogManager getLogger() {
+    return logger;
+  }
 }

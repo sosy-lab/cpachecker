@@ -3,11 +3,9 @@ package cpa.observeranalysis;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import cfa.objectmodel.CFAEdge;
 import cpa.common.interfaces.AbstractElement;
 
 /**
@@ -171,9 +169,8 @@ class ObserverState implements AbstractElement {
       return false;
     }
 
-    public Collection<? extends AbstractElement> strengthen(
-        List<AbstractElement> pOtherElements, CFAEdge pCfaEdge) {
-      ObserverExpressionArguments exprArgs = new ObserverExpressionArguments(previousState.vars, pOtherElements, pCfaEdge);
+    public Collection<? extends AbstractElement> strengthen(ObserverExpressionArguments exprArgs) {
+      exprArgs.setObserverVariables(previousState.vars);
       ObserverState ret = previousState.getFollowState(exprArgs);
       if (ret instanceof ObserverUnknownState) {
         // FEHLER nicht genügend informationen um nächsten State zu bestimmen!

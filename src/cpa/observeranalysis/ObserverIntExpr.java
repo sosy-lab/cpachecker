@@ -15,6 +15,7 @@ abstract class ObserverIntExpr {
       int i;
       public Constant(int pI) {this.i = pI; }
       public Constant(String pI) {this.i = Integer.parseInt(pI); }
+      public int eval() {return i;}
       @Override public int eval(ObserverExpressionArguments pArgs) {return i; }
     }
     /** Loads an {@link ObserverVariable} from the VariableMap and returns its int value. 

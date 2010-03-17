@@ -107,7 +107,7 @@ public class ObserverAutomatonCPA implements ConfigurableProgramAnalysis {
     config.inject(this);
     automaton = parseObserverFile(logger);
     logger.log(Level.FINEST, "Automaton", automaton.getName(), "loaded.");
-    transferRelation = new ObserverTransferRelation(automaton);
+    transferRelation = new ObserverTransferRelation(automaton, logger);
   }
   
   private ObserverAutomaton parseObserverFile(LogManager logger) throws InvalidConfigurationException {

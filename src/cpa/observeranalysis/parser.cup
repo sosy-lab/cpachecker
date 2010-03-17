@@ -60,6 +60,7 @@ non terminal ObserverBoolExpr Trigger ;
 non terminal ObserverBoolExpr Assertion ;
 non terminal ObserverActionExpr Action ;
 
+non terminal ObserverIntExpr.Constant ConstantInt ;
 non terminal ObserverIntExpr Int ;
 non terminal ObserverBoolExpr Bool ; 
 
@@ -82,7 +83,7 @@ LocalDefs ::= LocalDef:d LocalDefs:lst {: lst.put(d.getName(), d); RESULT = lst;
               ;
               
 LocalDef  ::= LOCAL IDENTIFIER:type IDENTIFIER:name  SEMICOLON {: RESULT = new ObserverVariable(type.toString(), name.toString()); :}
-            | LOCAL IDENTIFIER:type IDENTIFIER:name  EQ Int:i SEMICOLON {: RESULT = new ObserverVariable(type.toString(), name.toString()); RESULT.setValue(i.eval(new ObserverExpressionArguments(parser.variablesMap, null, null))); :}
+            | LOCAL IDENTIFIER:type IDENTIFIER:name  EQ ConstantInt:ci SEMICOLON {: RESULT = new ObserverVariable(type.toString(), name.toString()); RESULT.setValue(ci.eval()); :}
             ;
             
 StateDefs ::= StateDef:s StateDefs:lst  {: lst.add(s); RESULT = lst; :} // elements will be in reversed order (irrelevant ?)
@@ -126,12 +127,15 @@ Action    ::= DO  IDENTIFIER:var EQ Int:i   {: RESULT = new ObserverActionExpr.A
             | PRINT  Int:int_expr {: RESULT = new ObserverActionExpr.PrintInt(int_expr); :}
             ;
 
-Int       ::= INTEGER_LITERAL:c  {: RESULT = new ObserverIntExpr.Constant(c.toString()); :}
+Int       ::= ConstantInt:c  {: RESULT = c; :}
             | IDENTIFIER:x  {: RESULT = new ObserverIntExpr.VarAccess(x.toString()); :}
             | Int:a PLUS Int:b  {: RESULT = new ObserverIntExpr.Plus(a,b); :}
             | Int:a MINUS Int:b  {: RESULT = new ObserverIntExpr.Minus(a,b); :}
             ;
             
+ConstantInt ::= INTEGER_LITERAL:c  {: RESULT = new ObserverIntExpr.Constant(c.toString()); :}
+			;
+
 Bool      ::= TRUE  {: RESULT = new ObserverBoolExpr.True(); :}
             | FALSE  {: RESULT = new ObserverBoolExpr.False(); :}
             | Int:a EQEQ Int:b  {: RESULT = new ObserverBoolExpr.EqTest(a,b); :}

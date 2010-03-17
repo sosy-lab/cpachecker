@@ -5,22 +5,24 @@ import java.util.Collections;
 import java.util.List;
 
 import cfa.objectmodel.CFAEdge;
+import cpa.common.LogManager;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
 import cpa.observeranalysis.ObserverState.ObserverUnknownState;
 import exceptions.CPATransferException;
 
-/** The TransferRelation of this CPA determines the AbstractSuccessor of a {@link ObserverInternalState} 
- * by evaluating the {@link ObserverTransition.match(CFAEdge)} method for 
- * all outgoing {@link ObserverTransition}s of this State.
+/** The TransferRelation of this CPA determines the AbstractSuccessor of a {@link ObserverState}
+ * and strengthens an {@link ObserverState.ObserverUnknownState}.
  * @author rhein
  */
 class ObserverTransferRelation implements TransferRelation {
   ObserverAutomaton automaton;
+  LogManager logger;
 
-  public ObserverTransferRelation(ObserverAutomaton pAutomaton) {
+  public ObserverTransferRelation(ObserverAutomaton pAutomaton, LogManager pLogger) {
     automaton = pAutomaton;
+    this.logger = pLogger;
   }
 
   /* (non-Javadoc)
@@ -38,7 +40,7 @@ class ObserverTransferRelation implements TransferRelation {
     if (! (pElement instanceof ObserverState)) {
       throw new IllegalArgumentException("Cannot getAbstractSuccessor for non-ObserverState AbstractElements.");
     }
-    AbstractElement ns =((ObserverState)pElement).getFollowState(new ObserverExpressionArguments(null, null, pCfaEdge));
+    AbstractElement ns =((ObserverState)pElement).getFollowState(new ObserverExpressionArguments(null, null, pCfaEdge, logger));
     return Collections.singleton(ns);
   }
 
@@ -46,14 +48,14 @@ class ObserverTransferRelation implements TransferRelation {
    * @see cpa.common.interfaces.TransferRelation#strengthen(cpa.common.interfaces.AbstractElement, java.util.List, cfa.objectmodel.CFAEdge, cpa.common.interfaces.Precision)
    */
   @Override
-  public Collection<? extends AbstractElement> strengthen(AbstractElement element,
-                                    List<AbstractElement> otherElements,
-                                    CFAEdge cfaEdge, Precision precision)
+  public Collection<? extends AbstractElement> strengthen(AbstractElement pElement,
+                                    List<AbstractElement> pOtherElements,
+                                    CFAEdge pCfaEdge, Precision pPrecision)
                                     throws CPATransferException {
-    if (! (element instanceof ObserverUnknownState))
+    if (! (pElement instanceof ObserverUnknownState))
       return null;
     else {
-      return ((ObserverUnknownState)element).strengthen(otherElements,cfaEdge);
+      return ((ObserverUnknownState)pElement).strengthen(new ObserverExpressionArguments(null, pOtherElements, pCfaEdge, logger));
     }
   }
 }
