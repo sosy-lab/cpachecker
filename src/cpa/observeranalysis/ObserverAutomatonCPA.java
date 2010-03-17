@@ -108,21 +108,21 @@ public class ObserverAutomatonCPA implements ConfigurableProgramAnalysis {
     automaton = parseObserverFile(logger);
     logger.log(Level.FINEST, "Automaton", automaton.getName(), "loaded.");
     transferRelation = new ObserverTransferRelation(automaton, logger);
+    logger.log(Level.FINER, "loaded the ObserverAutomaton \"" + automaton.getName() +"\"" );
   }
   
-  private ObserverAutomaton parseObserverFile(LogManager logger) throws InvalidConfigurationException {
+  private ObserverAutomaton parseObserverFile(LogManager pLogger) throws InvalidConfigurationException {
     SymbolFactory sf = new ComplexSymbolFactory();   
     try {
       FileInputStream input = new FileInputStream(inputFile);
       try {
-        Symbol symbol = new ObserverParser(new ObserverScanner(input, sf),sf).parse();
+        Symbol symbol = new ObserverParser(new ObserverScanner(input, sf),sf,pLogger).parse();
         return (ObserverAutomaton)symbol.value;
       } finally {
         input.close();
       }
-      
     } catch (Exception e) {
-      logger.logException(Level.FINER, e, "Could not load automaton from file " + inputFile);
+      pLogger.logException(Level.FINER, e, "Could not load automaton from file " + inputFile);
       throw new InvalidConfigurationException("Could not load automaton from file " + inputFile
           + " (" + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()) + ")");
     } 

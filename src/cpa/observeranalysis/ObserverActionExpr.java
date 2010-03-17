@@ -1,6 +1,7 @@
 package cpa.observeranalysis;
 
 import java.util.Map;
+import java.util.logging.Level;
 
 
 /**
@@ -18,7 +19,9 @@ abstract class ObserverActionExpr {
   static class Print extends ObserverActionExpr {
     private String toPrint;
     public Print(String pToPrint) { toPrint = pToPrint; }
-    @Override void execute(ObserverExpressionArguments pArgs) { System.out.println(toPrint); }
+    @Override void execute(ObserverExpressionArguments pArgs) { 
+      pArgs.getLogger().log(Level.INFO, toPrint);
+    }
   }
   
   /**
@@ -30,7 +33,9 @@ abstract class ObserverActionExpr {
     public PrintInt(ObserverIntExpr pIntExpr) {
       toPrint = pIntExpr;
     }
-    @Override void execute(ObserverExpressionArguments pArgs) { System.out.println(toPrint.eval(pArgs)); }
+    @Override void execute(ObserverExpressionArguments pArgs) { 
+      pArgs.getLogger().log(Level.INFO, toPrint.eval(pArgs));
+    }
   }
   
   /** Assigns the value of a ObserverIntExpr to a ObserverVariable determined by its name.
@@ -51,7 +56,7 @@ abstract class ObserverActionExpr {
         ObserverVariable newVar = new ObserverVariable("int", varId);
         newVar.setValue(var.eval(pArgs));
         vars.put(varId, newVar);
-        System.out.println("Defined a Variable " + varId + " that was unknown before (not set in automaton Definition).");
+        pArgs.getLogger().log(Level.WARNING, "Defined a Variable " + varId + " that was unknown before (not set in automaton Definition).");
       }
     }
   }

@@ -3,6 +3,9 @@ package cpa.observeranalysis;
 import java.io.PrintStream;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+
+import cpa.common.LogManager;
 
 /**
  * @author rhein
@@ -18,7 +21,7 @@ class ObserverAutomaton {
   private ObserverInternalState initState;
 
   public ObserverAutomaton(Map<String, ObserverVariable> pVars, List<ObserverInternalState> pStates,
-      String pInit) {
+      String pInit, LogManager pLogger) {
     this.initVars = pVars;
     this.states = pStates;
     for (ObserverInternalState s : pStates) {
@@ -27,7 +30,7 @@ class ObserverAutomaton {
       }
     }
     if (initState == null) {
-      System.out.println("InitState not found. Going to ErrorState");
+      pLogger.log(Level.WARNING, "InitState not found. ObserverAutomaton \"" + name + "\" is initiated with ErrorState");
       initState = ObserverInternalState.ERR;
     }
     // implicit error State (might be followState of Transitions)
@@ -36,7 +39,7 @@ class ObserverAutomaton {
     
     // set the FollowStates of all Transitions
     for (ObserverInternalState s : pStates) {
-      s.setFollowStates(pStates);
+      s.setFollowStates(pStates, pLogger);
     }
   }  
 

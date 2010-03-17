@@ -2,8 +2,10 @@ package cpa.observeranalysis;
 
 import java.io.PrintStream;
 import java.util.List;
+import java.util.logging.Level;
 
 import cfa.objectmodel.CFAEdge;
+import cpa.common.LogManager;
 import cpa.observeranalysis.ObserverBoolExpr.MaybeBoolean;
 
 /** A transition in the observer automaton implements one of the {@link PATTERN_MATCHING_METHODS}.
@@ -38,14 +40,14 @@ class ObserverTransition {
    * Resolves the follow-state relation for this transition.
    * @param pAllStates
    */
-  public void setFollowState(List<ObserverInternalState> pAllStates) {
+  public void setFollowState(List<ObserverInternalState> pAllStates, LogManager pLogger) {
     for (ObserverInternalState s : pAllStates) {
       if (s.getName().equals(followStateName)) {
         this.followState = s;
         return;
       }
     }
-    System.err.println("No Follow-State with name " + followStateName + " found. Calling this transition will result in an Exception.");
+    pLogger.log(Level.WARNING, "No Follow-State with name " + followStateName + " found. Calling this transition will result in an Exception.");
   }
   /** Writes a representation of this transition (as edge) in DOT file format to the argument {@link PrintStream}.
    * @param sourceStateId

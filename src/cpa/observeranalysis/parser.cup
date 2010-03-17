@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.LinkedList;
 import java.util.HashMap;
 import java.util.Map;
+import cpa.common.LogManager;
+import java.util.logging.Level;
 
 /* Preliminaries to use the scanner.  */
 scan with {: return scanner.next_token(); :};
@@ -17,25 +19,26 @@ parser code {:
   protected Map<String, ObserverVariable> variablesMap = new HashMap<String, ObserverVariable>();
   public boolean syntaxErrors;
   ObserverScanner scanner;
+  LogManager logger;
 
-  public ObserverParser(ObserverScanner scanner, SymbolFactory sf) {
+  public ObserverParser(ObserverScanner scanner, SymbolFactory sf, LogManager pLogger) {
       super(scanner, sf);
       this.scanner = scanner;
+      this.logger = pLogger;
   }
   
   @Override
   public void report_error(String message, Object info) {
     syntaxErrors = true;
+    String errorString = message;
+    errorString = errorString + "ScannerLine: " + scanner.getLine()+1 + " ScannerColumn: " + scanner.getColumn() + "\n";
     
-    System.out.print(message);
-    System.out.println("ScannerLine: " + scanner.getLine()+1 + " ScannerColumn: " + scanner.getColumn());
-    
-    if ( !(info instanceof Symbol) ) return;
-    Symbol symbol = (Symbol) info;
-    
-    if ( symbol.left < 0 || symbol.right < 0 ) return;
-    
-    System.out.println(" at line "+symbol.left+", column "+symbol.right);
+    if (info instanceof Symbol) { 
+    	Symbol symbol = (Symbol) info;
+    	if (!( symbol.left < 0 || symbol.right < 0 )) 
+    		errorString = errorString + " at line "+symbol.left+", column "+symbol.right + "\n";
+    }
+    logger.log(Level.FINER, "errorString");
   }
 :}; 
 
@@ -73,7 +76,7 @@ initial ::= Naming:n Body:b {: b.setName(n); RESULT = b; :}
 Naming    ::= AUTOMATON IDENTIFIER:id {: RESULT = id.toString(); :};
 
 Body      ::= LocalDefs:vars InitDef:init StateDefs:states
-              {: RESULT = new ObserverAutomaton(vars, states, init); :}
+              {: RESULT = new ObserverAutomaton(vars, states, init, parser.logger); :}
             ;
             
 InitDef    ::= INITIAL STATE IDENTIFIER:id SEMICOLON {: RESULT = id.toString(); :};
