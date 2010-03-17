@@ -176,7 +176,7 @@ class ObserverState implements AbstractElement {
       ObserverExpressionArguments exprArgs = new ObserverExpressionArguments(previousState.vars, pOtherElements, pCfaEdge);
       ObserverState ret = previousState.getFollowState(exprArgs);
       if (ret instanceof ObserverUnknownState) {
-        // FEHLER nicht genügend informationen um nächsten State zu bestimmen!
+        // FEHLER nicht genÃ¼gend informationen um nÃ¤chsten State zu bestimmen!
         return Collections.singleton(TOP);
       } else {
         return Collections.singleton(ret);
