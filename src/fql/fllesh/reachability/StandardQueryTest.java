@@ -19,11 +19,14 @@ import compositeCPA.CompositePrecision;
 
 import cpa.alwaystop.AlwaysTopCPA;
 import cpa.common.LogManager;
+import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.CPAFactory;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.concrete.ConcreteAnalysisCPA;
+import cpa.concrete.ConcreteAnalysisTopElement;
 import cpa.location.LocationCPA;
 import cpa.mustmay.MustMayAnalysisCPA;
+import cpa.mustmay.MustMayAnalysisElement;
 import cpa.symbpredabsCPA.SymbPredAbsCPA;
 import exceptions.CPAException;
 import fql.backend.pathmonitor.Automaton;
@@ -118,7 +121,7 @@ public class StandardQueryTest {
     Automaton lFirstAutomaton = Automaton.create(Identity.getInstance(), lTargetGraph);
     Automaton lSecondAutomaton = Automaton.create(Identity.getInstance(), lTargetGraph);
     
-    StandardQuery.Factory lQueryFactory = new StandardQuery.Factory(lLogManager);
+    StandardQuery.Factory lQueryFactory = new StandardQuery.Factory(lLogManager, lMustCPA, lMayCPA);
     
     StandardQuery lQuery = lQueryFactory.create(lFirstAutomaton, lSecondAutomaton, lInitialDataSpaceElement, lDataSpacePrecision, lFirstAutomaton.getInitialStates(), lSecondAutomaton.getInitialStates(), lMainFunction.getExitNode(), lFirstAutomaton.getFinalStates(), lSecondAutomaton.getFinalStates());
 
@@ -198,7 +201,7 @@ public class StandardQueryTest {
     Automaton lFirstAutomaton = Automaton.create(new LowerBound(Identity.getInstance(), 0), lTargetGraph);
     Automaton lSecondAutomaton = Automaton.create(new LowerBound(Identity.getInstance(), 0), lTargetGraph);
     
-    StandardQuery.Factory lQueryFactory = new StandardQuery.Factory(lLogManager);
+    StandardQuery.Factory lQueryFactory = new StandardQuery.Factory(lLogManager, lMustCPA, lMayCPA);
     
     StandardQuery lQuery = lQueryFactory.create(lFirstAutomaton, lSecondAutomaton, lInitialDataSpaceElement, lDataSpacePrecision, lFirstAutomaton.getInitialStates(), lSecondAutomaton.getInitialStates(), lMainFunction.getExitNode(), lFirstAutomaton.getFinalStates(), lSecondAutomaton.getFinalStates());
 
@@ -281,7 +284,7 @@ public class StandardQueryTest {
     Automaton lFirstAutomaton = Automaton.create(new LowerBound(Identity.getInstance(), 0), lTargetGraph);
     Automaton lSecondAutomaton = Automaton.create(new LowerBound(Identity.getInstance(), 0), lTargetGraph);
     
-    StandardQuery.Factory lQueryFactory = new StandardQuery.Factory(lLogManager);
+    StandardQuery.Factory lQueryFactory = new StandardQuery.Factory(lLogManager, lMustCPA, lMayCPA);
     
     StandardQuery lQuery = lQueryFactory.create(lFirstAutomaton, lSecondAutomaton, lInitialDataSpaceElement, lDataSpacePrecision, lFirstAutomaton.getInitialStates(), lSecondAutomaton.getInitialStates(), lMainFunction, lFirstAutomaton.getFinalStates(), lSecondAutomaton.getFinalStates());
 
@@ -340,13 +343,6 @@ public class StandardQueryTest {
     dotBuilder.generateDOT(lCPAchecker.getCFAMap().values(), lMainFunction, new File("/tmp/mycfa.dot"));
     
     
-    Node lProgramEntry = new Node(lMainFunction);
-    //Node lProgramExit = new Node(lMainFunction.getExitNode());
-    
-    
-    //AlwaysTopCPA lMayCPA = new AlwaysTopCPA();
-    
-    
     CPAFactory lSymbPredAbsFactory = SymbPredAbsCPA.factory();
     
     //TODO: modify configuration such that SymbPredAbsCPA is properly configured 
@@ -354,6 +350,12 @@ public class StandardQueryTest {
     lSymbPredAbsFactory.setLogger(lLogManager);
     
     ConfigurableProgramAnalysis lMayCPA = lSymbPredAbsFactory.createInstance();
+    
+    /*CPAFactory lMayARTFactory = ARTCPA.factory();
+    
+    lMayARTFactory.setChild(lMayCPA);
+    lMayARTFactory.setConfiguration(lConfiguration);
+    lMayARTFactory.setLogger(lLogManager);*/
     
     ConcreteAnalysisCPA lMustCPA = new ConcreteAnalysisCPA();
     
@@ -368,15 +370,22 @@ public class StandardQueryTest {
     
     ConfigurableProgramAnalysis lCompositeCPA = CompositeCPA.factory().setChildren(lCPAs).createInstance();
     
-    CompositeElement lInitialDataSpaceElement = FeasibilityCheck.createInitialElement(lProgramEntry);
-    //CompositeElement lFinalDataSpaceElement = FeasibilityCheck.createNextElement(lProgramExit);
+    ConcreteAnalysisTopElement lConcreteAnalysisTopElement = ConcreteAnalysisTopElement.getInstance();
     
+    // Caution: take care of abstraction location
+    AbstractElement lMayTopElement = lMayCPA.getInitialElement(lMainFunction);
+    //AbstractElement lMayTopElement = lMayCPA.getAbstractDomain().getTopElement();
+    
+    MustMayAnalysisElement lInitialMustMayAnalysisElement = new MustMayAnalysisElement(lConcreteAnalysisTopElement, lMayTopElement);
+    
+    CompositeElement lInitialDataSpaceElement = FeasibilityCheck.createInitialElement(lMainFunction, lInitialMustMayAnalysisElement);
+        
     CompositePrecision lDataSpacePrecision = (CompositePrecision)lCompositeCPA.getInitialPrecision(lMainFunction);
     
     Automaton lFirstAutomaton = Automaton.create(new LowerBound(Identity.getInstance(), 0), lTargetGraph);
     Automaton lSecondAutomaton = Automaton.create(new LowerBound(Identity.getInstance(), 0), lTargetGraph);
     
-    StandardQuery.Factory lQueryFactory = new StandardQuery.Factory(lLogManager);
+    StandardQuery.Factory lQueryFactory = new StandardQuery.Factory(lLogManager, lMustCPA, lMayCPA);
     
     StandardQuery lQuery = lQueryFactory.create(lFirstAutomaton, lSecondAutomaton, lInitialDataSpaceElement, lDataSpacePrecision, lFirstAutomaton.getInitialStates(), lSecondAutomaton.getInitialStates(), lMainFunction, lFirstAutomaton.getFinalStates(), lSecondAutomaton.getFinalStates());
 

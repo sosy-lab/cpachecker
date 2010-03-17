@@ -1,6 +1,8 @@
 package fql.fllesh;
 
+import java.util.Collections;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Set;
 
 import cfa.objectmodel.CFAFunctionDefinitionNode;
@@ -30,7 +32,6 @@ import fql.fllesh.reachability.Query;
 import fql.fllesh.reachability.SingletonQuery;
 import fql.fllesh.reachability.StandardQuery;
 import fql.fllesh.reachability.Waypoint;
-import fql.fllesh.reachability.StandardQuery.Factory;
 
 public class FeasibilityCheck {
   
@@ -58,7 +59,7 @@ public class FeasibilityCheck {
     
     mCompositeCPA = CompositeCPA.factory().setChildren(lCPAs).createInstance();
     
-    mQueryFactory = new StandardQuery.Factory(pLogManager);
+    mQueryFactory = new StandardQuery.Factory(pLogManager, mMustCPA, mMayCPA);
   }
   
   public Witness run(LinkedList<Automaton> pAutomatonSequence, LinkedList<Node> pWaypointSequence, Automaton pPassingMonitor, Node pInitialState) {
@@ -153,6 +154,30 @@ public class FeasibilityCheck {
     return (CompositePrecision)mCompositeCPA.getInitialPrecision((CFAFunctionDefinitionNode)lInitialCFANode);
   }
   
+  public static CompositeElement createInitialElement(CFANode pInitialCFANode, AbstractElement pDataSpaceElement) {
+    return createInitialElement(pInitialCFANode, Collections.singletonList(pDataSpaceElement));
+  }
+  
+  public static CompositeElement createInitialElement(CFANode pInitialCFANode, List<AbstractElement> pDataSpaceComposites) {
+    assert(pInitialCFANode != null);
+    assert(pDataSpaceComposites != null);
+    
+    LinkedList<AbstractElement> lComposites = new LinkedList<AbstractElement>();
+    lComposites.add(new LocationElement(pInitialCFANode));
+    
+    lComposites.addAll(pDataSpaceComposites);
+    
+    CompositeElement lInitialCompositeElement = new CompositeElement(lComposites, null);   
+    
+    CallElement lInitialCallElement = new CallElement(pInitialCFANode.getFunctionName(), pInitialCFANode, lInitialCompositeElement);
+    
+    CallStack lInitialCallStack = new CallStack();
+    lInitialCallStack.push(lInitialCallElement);
+    lInitialCompositeElement.setCallStack(lInitialCallStack);
+    
+    return lInitialCompositeElement;
+  }
+  
   public static CompositeElement createInitialElement(Node pInitialNode) {
     assert(pInitialNode != null);
     
@@ -168,14 +193,16 @@ public class FeasibilityCheck {
     ConcreteAnalysisTopElement lConcreteAnalysisTopElement = ConcreteAnalysisTopElement.getInstance();
     MustMayAnalysisElement lInitialMustMayAnalysisElement = new MustMayAnalysisElement(lConcreteAnalysisTopElement, lAlwaysTopTopElement);
     
-    LocationElement lInitialLocationElement = new LocationElement(lInitialCFANode);
+    //LocationElement lInitialLocationElement = new LocationElement(lInitialCFANode);
     
-    LinkedList<AbstractElement> lAbstractElements = new LinkedList<AbstractElement>();
+    //LinkedList<AbstractElement> lAbstractElements = new LinkedList<AbstractElement>();
     
-    lAbstractElements.add(lInitialLocationElement);
-    lAbstractElements.add(lInitialMustMayAnalysisElement);
+    //lAbstractElements.add(lInitialLocationElement);
+    //lAbstractElements.add(lInitialMustMayAnalysisElement);
     
-    CompositeElement lInitialCompositeElement = new CompositeElement(lAbstractElements, null);   
+    return createInitialElement(lInitialCFANode, lInitialMustMayAnalysisElement);
+    
+    /*CompositeElement lInitialCompositeElement = new CompositeElement(lAbstractElements, null);   
     
     CallElement lInitialCallElement = new CallElement(lInitialCFANode.getFunctionName(), lInitialCFANode, lInitialCompositeElement);
     
@@ -183,7 +210,7 @@ public class FeasibilityCheck {
     lInitialCallStack.push(lInitialCallElement);
     lInitialCompositeElement.setCallStack(lInitialCallStack);
     
-    return lInitialCompositeElement;
+    return lInitialCompositeElement;*/
   }
   
   /*public static CompositeElement createNextElement(Node pNextNode) {

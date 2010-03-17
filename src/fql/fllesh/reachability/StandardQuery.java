@@ -11,7 +11,6 @@ import compositeCPA.CompositeCPA;
 import compositeCPA.CompositeElement;
 import compositeCPA.CompositePrecision;
 
-import cpa.alwaystop.AlwaysTopCPA;
 import cpa.common.LogManager;
 import cpa.common.ReachedElements;
 import cpa.common.algorithm.CPAAlgorithm;
@@ -19,7 +18,6 @@ import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.CPAFactory;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.ReachedElements.TraversalMethod;
-import cpa.concrete.ConcreteAnalysisCPA;
 import cpa.location.LocationCPA;
 import cpa.mustmay.MustMayAnalysisCPA;
 import cpa.mustmay.MustMayAnalysisElement;
@@ -32,22 +30,27 @@ public class StandardQuery extends AbstractQuery {
 
   private LinkedList<Waypoint> lNextWaypoints;
 
+  // TODO: configure in the Factory the data space analyses such that they can be
+  // given from outside
   public static class Factory {
     private LogManager mLogManager;
     
-    public Factory(LogManager pLogManager) {
+    private MustMayAnalysisCPA mMustMayAnalysisCPA;
+    
+    public Factory(LogManager pLogManager, ConfigurableProgramAnalysis pMustAnalysis, ConfigurableProgramAnalysis pMayAnalysis) {
       assert(pLogManager != null);
+      assert(pMustAnalysis != null);
+      assert(pMayAnalysis != null);
       
       mLogManager = pLogManager;
+      
+      mMustMayAnalysisCPA = new MustMayAnalysisCPA(pMustAnalysis, pMayAnalysis);
     }
     
-    //public static StandardQuery create(Automaton pFirstAutomaton, Automaton pSecondAutomaton, CompositeElement pSourceElement, CompositePrecision pSourcePrecision, Set<Integer> pSourceStatesOfFirstAutomaton, Set<Integer> pSourceStatesOfSecondAutomaton, CompositeElement pTargetElement, Set<Integer> pTargetStatesOfFirstAutomaton, Set<Integer> pTargetStatesOfSecondAutomaton) {
-    //public static StandardQuery create(Automaton pFirstAutomaton, Automaton pSecondAutomaton, CompositeElement pSourceElement, CompositePrecision pSourcePrecision, Set<Integer> pSourceStatesOfFirstAutomaton, Set<Integer> pSourceStatesOfSecondAutomaton, CFANode pCFANode, Set<Integer> pTargetStatesOfFirstAutomaton, Set<Integer> pTargetStatesOfSecondAutomaton) {
     public StandardQuery create(Automaton pFirstAutomaton, Automaton pSecondAutomaton, CompositeElement pSourceElement, CompositePrecision pSourcePrecision, Set<Integer> pSourceStatesOfFirstAutomaton, Set<Integer> pSourceStatesOfSecondAutomaton, CFANode pCFANode, Set<Integer> pTargetStatesOfFirstAutomaton, Set<Integer> pTargetStatesOfSecondAutomaton) {
-      StandardQuery lQuery = new StandardQuery(pFirstAutomaton, pSecondAutomaton, mLogManager);
+      StandardQuery lQuery = new StandardQuery(pFirstAutomaton, pSecondAutomaton, mLogManager, mMustMayAnalysisCPA);
       
       Waypoint lSource = new Waypoint(lQuery, pSourceElement, pSourcePrecision, pSourceStatesOfFirstAutomaton, pSourceStatesOfSecondAutomaton);
-      //Waypoint lTarget = new Waypoint(lQuery, pTargetElement, null, pTargetStatesOfFirstAutomaton, pTargetStatesOfSecondAutomaton);
       
       // TODO support for predicates is missing
       // TODO support for call stack missing
@@ -61,15 +64,7 @@ public class StandardQuery extends AbstractQuery {
   }
   
   private Waypoint mSource;
-  //private Waypoint mTarget;
   private TargetPoint mTarget;
-  
-  /*private AlwaysTopCPA mMayCPA;
-  private ConcreteAnalysisCPA mMustCPA;
-  private MustMayAnalysisCPA mMustMayAnalysisCPA;
-  private LocationCPA mLocationCPA;
-  private CompositeCPA mCompositeCPA;
-  private QueryCPA mQueryCPA;*/
   
   private boolean mExplorationFinished;
   private ReachedElements mReachedElements;
@@ -78,7 +73,7 @@ public class StandardQuery extends AbstractQuery {
   
   private LogManager mLogManager;
   
-  private StandardQuery(Automaton pFirstAutomaton, Automaton pSecondAutomaton, LogManager pLogManager) {
+  private StandardQuery(Automaton pFirstAutomaton, Automaton pSecondAutomaton, LogManager pLogManager, MustMayAnalysisCPA pMustMayAnalysisCPA) {
     super(pFirstAutomaton, pSecondAutomaton);
     
     assert(pLogManager != null);
@@ -91,12 +86,7 @@ public class StandardQuery extends AbstractQuery {
     
     CPAFactory lLocationCPAFactory = LocationCPA.factory();
     
-    AlwaysTopCPA mMayCPA = new AlwaysTopCPA();
-    ConcreteAnalysisCPA mMustCPA = new ConcreteAnalysisCPA();
-    
-    MustMayAnalysisCPA mMustMayAnalysisCPA = new MustMayAnalysisCPA(mMustCPA, mMayCPA);
-    
-    QueryCPA lQueryCPA = new QueryCPA(this, mMustMayAnalysisCPA);
+    QueryCPA lQueryCPA = new QueryCPA(this, pMustMayAnalysisCPA);
     
     
     try {
@@ -116,37 +106,6 @@ public class StandardQuery extends AbstractQuery {
       // TODO Auto-generated catch block
       e.printStackTrace();
     }
-    
-    // create CPA
-    // TODO: we need a different CPA than given here
-    // LocationCPA, QueryCPA
-    /*mMayCPA = new AlwaysTopCPA();
-    mMustCPA = new ConcreteAnalysisCPA();
-    
-    mMustMayAnalysisCPA = new MustMayAnalysisCPA(mMustCPA, mMayCPA);
-    
-    mQueryCPA = new QueryCPA(this, mMustMayAnalysisCPA);
-    
-    mLocationCPA = new LocationCPA("", "");
-    
-    LinkedList<ConfigurableProgramAnalysis> lCPAs = new LinkedList<ConfigurableProgramAnalysis>();
-    
-    lCPAs.add(mLocationCPA);
-    lCPAs.add(mQueryCPA);
-    
-    // TODO: Problem: mSource and mTarget are initialized after calling the constructor!!!
-    
-    // creation of initial element and precision
-    // TODO: wrong initial element ... problem: set of initial elements
-    CompositeElement lInitialElement = getSource().getElement();
-    // TODO: wrong initial precision ... maybe this precision is even correct ... check transition relation
-    CompositePrecision lInitialPrecision = getSource().getPrecision();
-        
-    
-    
-    mCompositeCPA = CompositeCPA.createNewCompositeCPA(lCPAs, lInitialElement, lInitialPrecision);
-    
-    mExplorationFinished = false;*/
     
     // TODO what about other traversal types?
     mReachedElements = new ReachedElements(TraversalMethod.DFS, true);
