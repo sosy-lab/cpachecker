@@ -13,6 +13,11 @@ public class ObserverExpressionArguments {
   private List<AbstractElement> abstractElements;
   private CFAEdge cfaEdge;
   private LogManager logger;
+  /**
+   * In this String all print messages of the Transition are collected.
+   * They are logged (INFO-level) together at the end of the transition actions.
+   */
+  private String transitionLogMessages = "";
 
   ObserverExpressionArguments(Map<String, ObserverVariable> pObserverVariables,
       List<AbstractElement> pAbstractElements, CFAEdge pCfaEdge, LogManager pLogger) {
@@ -47,5 +52,14 @@ public class ObserverExpressionArguments {
   
   LogManager getLogger() {
     return logger;
+  }
+  void appendToLogMessage(String message) {
+    this.transitionLogMessages = transitionLogMessages  + message;
+  }
+  void appendToLogMessage(int message) {
+    this.transitionLogMessages = transitionLogMessages  + message;
+  }
+  String getLogMessage() {
+    return transitionLogMessages;
   }
 }

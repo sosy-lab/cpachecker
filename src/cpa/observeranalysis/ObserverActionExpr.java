@@ -21,9 +21,10 @@ abstract class ObserverActionExpr {
     public Print(String pToPrint) { toPrint = pToPrint; }
     @Override void execute(ObserverExpressionArguments pArgs) { 
       if (toPrint.toLowerCase().equals("$rawstatement")) {
-        pArgs.getLogger().log(Level.INFO, pArgs.getCfaEdge().getRawStatement());
+        
+        pArgs.appendToLogMessage(pArgs.getCfaEdge().getRawStatement());
       } else {
-        pArgs.getLogger().log(Level.INFO, toPrint);
+        pArgs.appendToLogMessage(toPrint);
       }
     }
   }
@@ -38,7 +39,7 @@ abstract class ObserverActionExpr {
       toPrint = pIntExpr;
     }
     @Override void execute(ObserverExpressionArguments pArgs) { 
-      pArgs.getLogger().log(Level.INFO, toPrint.eval(pArgs));
+      pArgs.appendToLogMessage(toPrint.eval(pArgs));
     }
   }
   

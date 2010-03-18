@@ -88,12 +88,13 @@ class ObserverTransition {
   
   /**
    * Executes all actions of this transition in the order which is defined in the automaton definition file.
-   * @param pVars 
+   * @param pArgs 
    */
   public void executeActions(ObserverExpressionArguments pArgs) {
     for (ObserverActionExpr action : actions) {
       action.execute(pArgs);
     }
+    pArgs.getLogger().log(Level.INFO, pArgs.getLogMessage());
   }
 
   /** returns null if setFollowState() was not called or no followState with appropriate name was found.

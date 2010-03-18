@@ -175,12 +175,13 @@ class ObserverState implements AbstractElement {
       exprArgs.setObserverVariables(previousState.vars);
       ObserverState ret = previousState.getFollowState(exprArgs);
       if (ret instanceof ObserverUnknownState) {
-        // FEHLER nicht genügend informationen um nächsten State zu bestimmen!
+        // Error: not enough information to determine next State
         return Collections.singleton(TOP);
       } else {
         return Collections.singleton(ret);
       }
     }
+    
     @Override
     public boolean equals(Object pObj) {
       if (super.equals(pObj)) {
