@@ -27,8 +27,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.AbstractQueryableElement;
+import exceptions.InvalidQueryException;
 
-public class ExplicitAnalysisElement implements AbstractElement {
+public class ExplicitAnalysisElement implements AbstractQueryableElement {
 
   // map that keeps the name of variables and their constant values
   private Map<String, Long> constantsMap;
@@ -158,5 +160,30 @@ public class ExplicitAnalysisElement implements AbstractElement {
   @Override
   public boolean isError() {
     return false;
+  }
+
+  @Override
+  public boolean checkProperty(String pProperty) throws InvalidQueryException {
+    // e.g. "x==5" where x is a variable. Returns if 5 is the associated constant
+    String[] parts = pProperty.split("==");
+    if (parts.length != 2) 
+      throw new InvalidQueryException("The Query \"" + pProperty + "\" is invalid. Could not split the property string correctly.");
+    else {
+      Long value = this.constantsMap.get(parts[0]);
+      if (value == null) {
+        return false;
+      } else {
+        try {
+          return value.longValue() == Long.parseLong(parts[1]);
+        } catch (NumberFormatException e) {
+          throw new InvalidQueryException("The Query \"" + pProperty + "\" is invalid. Could not parse the long \"" + parts[1] + "\"");
+        }
+      }
+    }
+  }
+
+  @Override
+  public String getCPAName() {
+    return "ExplicitAnalysis";
   }
 }
