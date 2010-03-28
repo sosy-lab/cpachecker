@@ -26,7 +26,6 @@ package cpa.explicit;
 import java.util.HashMap;
 import java.util.Map;
 
-import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractQueryableElement;
 import exceptions.InvalidQueryException;
 
