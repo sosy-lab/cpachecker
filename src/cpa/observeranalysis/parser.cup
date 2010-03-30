@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.Map;
 import cpa.common.LogManager;
 import java.util.logging.Level;
+import java.util.Collections;
 
 /* Preliminaries to use the scanner.  */
 scan with {: return scanner.next_token(); :};
@@ -69,6 +70,7 @@ non terminal ObserverBoolExpr Bool ;
 
 precedence left PLUS, MINUS;
 precedence left AND, OR;
+precedence left EQEQ, NEQ;
 precedence left EXCLAMATION;
 
 initial ::= Naming:n Body:b {: b.setName(n); RESULT = b; :}
@@ -106,18 +108,8 @@ Transition   ::= Triggers:triggers  ARROW Assertions:ass Actions:acts GOTO IDENT
               {: RESULT = new ObserverTransition(triggers, ass, acts, follow.toString()); :}
               ;
 
-Triggers   ::= Trigger:t Triggers:lst {: lst.add(0,t); RESULT = lst; :}
-             | /* empty */ {: RESULT = new LinkedList<ObserverBoolExpr>(); :}
-             ;
-Trigger   ::= MATCH STRING_LITERAL:lit 
-              {: RESULT = new ObserverBoolExpr.MatchCFAEdgeExact(lit.toString()); :} 
-            | MATCH CURLYEXPR:expr
-              {: RESULT = new ObserverBoolExpr.MatchCFAEdgeASTComparison(expr.toString()); :} 
-            | MATCH SQUAREEXPR:expr
-              {: RESULT = new ObserverBoolExpr.MatchCFAEdgeRegEx(expr.toString()); :}
-            | CHECK OPEN_BRACKETS IDENTIFIER:cpa OPEN_BRACKETS STRING_LITERAL:query CLOSE_BRACKETS CLOSE_BRACKETS
-              {: RESULT = new ObserverBoolExpr.CPAQuery(cpa.toString(), query.toString()); :}
-            ;             
+Triggers   ::= Bool:t {: RESULT = Collections.singletonList(t); :}
+             ;           
 
 Assertions ::= Assertion:a Assertions:lst {: lst.add(0,a); RESULT = lst; :}
              | /* empty */ {: RESULT = new LinkedList<ObserverBoolExpr>(); :}
@@ -146,8 +138,21 @@ Bool      ::= TRUE  {: RESULT = new ObserverBoolExpr.True(); :}
             | FALSE  {: RESULT = new ObserverBoolExpr.False(); :}
             | EXCLAMATION Bool:b  {: RESULT = new ObserverBoolExpr.Negation(b); :}
             | OPEN_BRACKETS Bool:b CLOSE_BRACKETS {: RESULT = b; :}
-            | Int:a EQEQ Int:b  {: RESULT = new ObserverBoolExpr.EqTest(a,b); :}
-            | Int:a NEQ Int:b  {: RESULT = new ObserverBoolExpr.NotEqTest(a,b); :}
+            | Int:a EQEQ Int:b  {: RESULT = new ObserverBoolExpr.IntEqTest(a,b); :}
+            | Int:a NEQ Int:b  {: RESULT = new ObserverBoolExpr.IntNotEqTest(a,b); :}
+            | Bool:a EQEQ Bool:b  {: RESULT = new ObserverBoolExpr.BoolEqTest(a,b); :}
+            | Bool:a NEQ Bool:b  {: RESULT = new ObserverBoolExpr.BoolNotEqTest(a,b); :}
             | Bool:a AND Bool:b {: RESULT = new ObserverBoolExpr.And(a,b); :}
             | Bool:a OR Bool:b {: RESULT = new ObserverBoolExpr.Or(a,b); :}
+            | Trigger:t {: RESULT = t; :}
             ;
+
+Trigger   ::= MATCH STRING_LITERAL:lit 
+              {: RESULT = new ObserverBoolExpr.MatchCFAEdgeExact(lit.toString()); :} 
+            | MATCH CURLYEXPR:expr
+              {: RESULT = new ObserverBoolExpr.MatchCFAEdgeASTComparison(expr.toString()); :} 
+            | MATCH SQUAREEXPR:expr
+              {: RESULT = new ObserverBoolExpr.MatchCFAEdgeRegEx(expr.toString()); :}
+            | CHECK OPEN_BRACKETS IDENTIFIER:cpa OPEN_BRACKETS STRING_LITERAL:query CLOSE_BRACKETS CLOSE_BRACKETS
+              {: RESULT = new ObserverBoolExpr.CPAQuery(cpa.toString(), query.toString()); :}
+            ;  

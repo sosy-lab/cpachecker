@@ -1,1 +1,1 @@
-void test() { Goto: ERROR;}
+void test() { f(x,  CPAChecker_ObserverAnalysis_JokerExpression );}

@@ -19,7 +19,12 @@ abstract class ObserverBoolExpr {
    * @author rhein
    * This is a extension of the boolean data type. It also contains a dont-know-value (MAYBE).
    */
-  static enum MaybeBoolean {TRUE, FALSE, MAYBE}
+  static enum MaybeBoolean {TRUE, FALSE, MAYBE;
+    static MaybeBoolean valueOf(boolean pB) {
+      if (pB) return TRUE;
+      else return FALSE;
+    }
+  }
   
   private ObserverBoolExpr() {} //nobody can use this
   abstract MaybeBoolean eval(ObserverExpressionArguments pArgs);
@@ -133,9 +138,9 @@ abstract class ObserverBoolExpr {
   /** Tests the equality of the values of two instances of {@link ObserverIntExpr}.
    * @author rhein
    */
-  static class EqTest extends ObserverBoolExpr {
+  static class IntEqTest extends ObserverBoolExpr {
     ObserverIntExpr a, b;
-    public EqTest(ObserverIntExpr pA, ObserverIntExpr pB) {this.a = pA; this.b = pB;}
+    public IntEqTest(ObserverIntExpr pA, ObserverIntExpr pB) {this.a = pA; this.b = pB;}
     @Override MaybeBoolean eval(ObserverExpressionArguments pArgs) {
       if (a.eval(pArgs) == b.eval(pArgs)) {
         return MaybeBoolean.TRUE;
@@ -147,9 +152,9 @@ abstract class ObserverBoolExpr {
   /** Tests whether two instances of {@link ObserverIntExpr} evaluate to different integers.
    * @author rhein
    */
-  static class NotEqTest extends ObserverBoolExpr {
+  static class IntNotEqTest extends ObserverBoolExpr {
     ObserverIntExpr a, b;
-    public NotEqTest(ObserverIntExpr pA, ObserverIntExpr pB) {this.a = pA; this.b = pB;}
+    public IntNotEqTest(ObserverIntExpr pA, ObserverIntExpr pB) {this.a = pA; this.b = pB;}
     @Override MaybeBoolean eval(ObserverExpressionArguments pArgs) { 
       if (a.eval(pArgs) != b.eval(pArgs)) {
         return MaybeBoolean.TRUE;
@@ -210,4 +215,38 @@ abstract class ObserverBoolExpr {
       }
     }
   }
+  /**
+   * Boolean Equality
+   * @author rhein
+   */
+  static class BoolEqTest extends ObserverBoolExpr {
+    ObserverBoolExpr a, b;
+    public BoolEqTest(ObserverBoolExpr pA, ObserverBoolExpr pB) {this.a = pA; this.b = pB;}
+    @Override MaybeBoolean eval(ObserverExpressionArguments pArgs) { 
+      MaybeBoolean resultA = a.eval(pArgs);
+      MaybeBoolean resultB = b.eval(pArgs);
+      if (resultA == MaybeBoolean.MAYBE || resultB == MaybeBoolean.MAYBE) {
+        return MaybeBoolean.MAYBE;
+      } else {
+        return MaybeBoolean.valueOf(resultA.equals(resultB));
+      }
+    }
+  }
+  /**
+   * Boolean !=
+   * @author rhein
+   */
+    static class BoolNotEqTest extends ObserverBoolExpr {
+      ObserverBoolExpr a, b;
+      public BoolNotEqTest(ObserverBoolExpr pA, ObserverBoolExpr pB) {this.a = pA; this.b = pB;}
+      @Override MaybeBoolean eval(ObserverExpressionArguments pArgs) { 
+        MaybeBoolean resultA = a.eval(pArgs);
+        MaybeBoolean resultB = b.eval(pArgs);
+        if (resultA == MaybeBoolean.MAYBE || resultB == MaybeBoolean.MAYBE) {
+          return MaybeBoolean.MAYBE;
+        } else {
+          return MaybeBoolean.valueOf(! resultA.equals(resultB));
+        }
+      }
+    }
 }
