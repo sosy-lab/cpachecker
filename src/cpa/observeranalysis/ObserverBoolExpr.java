@@ -158,4 +158,56 @@ abstract class ObserverBoolExpr {
       }
     }
   }
+  /** Computes the disjunction of two {@link ObserverBoolExpr} (lazy evaluation).
+   * @author rhein
+   */
+  static class Or extends ObserverBoolExpr {
+    ObserverBoolExpr a, b;
+    public Or(ObserverBoolExpr pA, ObserverBoolExpr pB) {this.a = pA; this.b = pB;}
+    @Override MaybeBoolean eval(ObserverExpressionArguments pArgs) { 
+      MaybeBoolean resultA = a.eval(pArgs);
+      if (resultA == MaybeBoolean.TRUE) {
+        return MaybeBoolean.TRUE;
+      } else {
+        MaybeBoolean resultB = b.eval(pArgs);
+        if (resultB == MaybeBoolean.TRUE)  return MaybeBoolean.TRUE;
+        if (resultB == MaybeBoolean.FALSE) return resultA;
+        return resultB; // in this case resultB==MAYBE
+      }
+    }
+  }
+  /** Computes the conjunction of two {@link ObserverBoolExpr} (lazy evaluation).
+   * @author rhein
+   */
+  static class And extends ObserverBoolExpr {
+    ObserverBoolExpr a, b;
+    public And(ObserverBoolExpr pA, ObserverBoolExpr pB) {this.a = pA; this.b = pB;}
+    @Override MaybeBoolean eval(ObserverExpressionArguments pArgs) { 
+      MaybeBoolean resultA = a.eval(pArgs);
+      if (resultA == MaybeBoolean.FALSE) {
+        return MaybeBoolean.FALSE;
+      } else {
+        MaybeBoolean resultB = b.eval(pArgs);
+        if (resultB == MaybeBoolean.FALSE)  return MaybeBoolean.FALSE;
+        if (resultB == MaybeBoolean.TRUE) return resultA;
+        return resultB; // in this case resultB==MAYBE
+      }
+    }
+  }
+  /**
+   * Negates the result of a {@link ObserverBoolExpr}. If the result is MAYBE it is returned unchanged.
+   * @author rhein
+   */
+  static class Negation extends ObserverBoolExpr {
+    ObserverBoolExpr a;
+    public Negation(ObserverBoolExpr pA) {this.a = pA;}
+    @Override MaybeBoolean eval(ObserverExpressionArguments pArgs) { 
+      MaybeBoolean resultA = a.eval(pArgs);
+      switch (resultA) {
+      case TRUE: return MaybeBoolean.FALSE; 
+      case FALSE: return MaybeBoolean.TRUE;
+      default: return MaybeBoolean.MAYBE;
+      }
+    }
+  }
 }

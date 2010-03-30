@@ -44,7 +44,7 @@ parser code {:
 
 
 
-terminal ARROW, SEMICOLON, COLON, OPEN_BRACKETS, CLOSE_BRACKETS, AUTOMATON, LOCAL, INITIAL, STATE, ASS, MATCH, CHECK, DO, PRINT, GOTO, IDENTIFIER, INTEGER_LITERAL, NEQ, EQ, EQEQ, PLUS, MINUS, TRUE, FALSE, STRING_LITERAL, CURLYEXPR, SQUAREEXPR ;
+terminal EXCLAMATION, AND, OR, ARROW, SEMICOLON, COLON, OPEN_BRACKETS, CLOSE_BRACKETS, AUTOMATON, LOCAL, INITIAL, STATE, ASS, MATCH, CHECK, DO, PRINT, GOTO, IDENTIFIER, INTEGER_LITERAL, NEQ, EQ, EQEQ, PLUS, MINUS, TRUE, FALSE, STRING_LITERAL, CURLYEXPR, SQUAREEXPR ;
 
 non terminal ObserverAutomaton initial ;
 non terminal String Naming, InitDef ;
@@ -68,6 +68,8 @@ non terminal ObserverIntExpr Int ;
 non terminal ObserverBoolExpr Bool ; 
 
 precedence left PLUS, MINUS;
+precedence left AND, OR;
+precedence left EXCLAMATION;
 
 initial ::= Naming:n Body:b {: b.setName(n); RESULT = b; :}
               | Body:b {: RESULT = b; :}
@@ -115,7 +117,7 @@ Trigger   ::= MATCH STRING_LITERAL:lit
               {: RESULT = new ObserverBoolExpr.MatchCFAEdgeRegEx(expr.toString()); :}
             | CHECK OPEN_BRACKETS IDENTIFIER:cpa OPEN_BRACKETS STRING_LITERAL:query CLOSE_BRACKETS CLOSE_BRACKETS
               {: RESULT = new ObserverBoolExpr.CPAQuery(cpa.toString(), query.toString()); :}
-            ;                           
+            ;             
 
 Assertions ::= Assertion:a Assertions:lst {: lst.add(0,a); RESULT = lst; :}
              | /* empty */ {: RESULT = new LinkedList<ObserverBoolExpr>(); :}
@@ -131,6 +133,7 @@ Action    ::= DO  IDENTIFIER:var EQ Int:i   {: RESULT = new ObserverActionExpr.A
             ;
 
 Int       ::= ConstantInt:c  {: RESULT = c; :}
+			| OPEN_BRACKETS Int:i CLOSE_BRACKETS {: RESULT = i; :}
             | IDENTIFIER:x  {: RESULT = new ObserverIntExpr.VarAccess(x.toString()); :}
             | Int:a PLUS Int:b  {: RESULT = new ObserverIntExpr.Plus(a,b); :}
             | Int:a MINUS Int:b  {: RESULT = new ObserverIntExpr.Minus(a,b); :}
@@ -141,6 +144,10 @@ ConstantInt ::= INTEGER_LITERAL:c  {: RESULT = new ObserverIntExpr.Constant(c.to
 
 Bool      ::= TRUE  {: RESULT = new ObserverBoolExpr.True(); :}
             | FALSE  {: RESULT = new ObserverBoolExpr.False(); :}
+            | EXCLAMATION Bool:b  {: RESULT = new ObserverBoolExpr.Negation(b); :}
+            | OPEN_BRACKETS Bool:b CLOSE_BRACKETS {: RESULT = b; :}
             | Int:a EQEQ Int:b  {: RESULT = new ObserverBoolExpr.EqTest(a,b); :}
             | Int:a NEQ Int:b  {: RESULT = new ObserverBoolExpr.NotEqTest(a,b); :}
+            | Bool:a AND Bool:b {: RESULT = new ObserverBoolExpr.And(a,b); :}
+            | Bool:a OR Bool:b {: RESULT = new ObserverBoolExpr.Or(a,b); :}
             ;

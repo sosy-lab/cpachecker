@@ -94,7 +94,10 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
   \[                             { string.setLength(0); yybegin(SQUAREEXPR); }
 
   /* operators */
+  "!"                           { return symbol("!", ObserverSym.EXCLAMATION); }
   "=="                           { return symbol("==", ObserverSym.EQEQ); }
+  "&&"                           { return symbol("&&", ObserverSym.AND); }
+  "||"                           { return symbol("||", ObserverSym.OR); }
   "!="                           { return symbol("!=", ObserverSym.NEQ); }
   "="                            { return symbol("=", ObserverSym.EQ); }
   "+"                            { return symbol("+", ObserverSym.PLUS); }

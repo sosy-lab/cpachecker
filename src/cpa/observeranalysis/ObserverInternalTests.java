@@ -1,10 +1,15 @@
 package cpa.observeranalysis;
 
 import java.io.File;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 import java_cup.runtime.ComplexSymbolFactory;
 import java_cup.runtime.Symbol;
 import java_cup.runtime.SymbolFactory;
+import cpa.common.interfaces.AbstractElement;
+import cpa.observeranalysis.ObserverBoolExpr.MaybeBoolean;
 
 /**
  * This class contains Tests for the ObserverAnalysis
@@ -16,6 +21,9 @@ class ObserverInternalTests {
    * @param args
    */
   public static void main(String[] args) {
+    
+    
+    
     ObserverBoolExpr ex = new ObserverBoolExpr.True();
     System.out.println(ex.eval(null));
     try {
@@ -47,8 +55,46 @@ class ObserverInternalTests {
     
     testExpressionEvaluator();
     testASTcomparison();
+    
+    testAndOr();
   }
-  
+  private static void testAndOr() {
+    // will always return MaybeBoolean.MAYBE
+    ObserverBoolExpr maybe = new ObserverBoolExpr.CPAQuery("none", "none");
+    Map<String, ObserverVariable> vars = Collections.emptyMap();
+    List<AbstractElement> elements = Collections.emptyList();
+    ObserverExpressionArguments args = new ObserverExpressionArguments(vars, elements, null, null);
+    ObserverBoolExpr ex;
+    boolean ok = true;
+    ObserverBoolExpr myTrue= new ObserverBoolExpr.True();
+    ObserverBoolExpr myFalse= new ObserverBoolExpr.False();
+
+    ex = new ObserverBoolExpr.And(myTrue, myTrue); if (ex.eval(args) != MaybeBoolean.TRUE) ok = false;
+    ex = new ObserverBoolExpr.And(myTrue, myFalse); if (ex.eval(args) != MaybeBoolean.FALSE) ok = false;
+    ex = new ObserverBoolExpr.And(myTrue, maybe); if (ex.eval(args) != MaybeBoolean.MAYBE) ok = false;
+    ex = new ObserverBoolExpr.And(myFalse, myTrue); if (ex.eval(args) != MaybeBoolean.FALSE) ok = false;
+    ex = new ObserverBoolExpr.And(myFalse, myFalse); if (ex.eval(args) != MaybeBoolean.FALSE) ok = false;
+    ex = new ObserverBoolExpr.And(myFalse, maybe); if (ex.eval(args) != MaybeBoolean.FALSE) ok = false;
+    ex = new ObserverBoolExpr.And(maybe, myTrue); if (ex.eval(args) != MaybeBoolean.MAYBE) ok = false;
+    ex = new ObserverBoolExpr.And(maybe, myFalse); if (ex.eval(args) != MaybeBoolean.FALSE) ok = false;
+    ex = new ObserverBoolExpr.And(maybe, maybe); if (ex.eval(args) != MaybeBoolean.MAYBE) ok = false;
+
+    ex = new ObserverBoolExpr.Or(myTrue, myTrue); if (ex.eval(args) != MaybeBoolean.TRUE) ok = false;
+    ex = new ObserverBoolExpr.Or(myTrue, myFalse); if (ex.eval(args) != MaybeBoolean.TRUE) ok = false;
+    ex = new ObserverBoolExpr.Or(myTrue, maybe); if (ex.eval(args) != MaybeBoolean.TRUE) ok = false;
+    ex = new ObserverBoolExpr.Or(myFalse, myTrue); if (ex.eval(args) != MaybeBoolean.TRUE) ok = false;
+    ex = new ObserverBoolExpr.Or(myFalse, myFalse); if (ex.eval(args) != MaybeBoolean.FALSE) ok = false;
+    ex = new ObserverBoolExpr.Or(myFalse, maybe); if (ex.eval(args) != MaybeBoolean.MAYBE) ok = false;
+    ex = new ObserverBoolExpr.Or(maybe, myTrue); if (ex.eval(args) != MaybeBoolean.TRUE) ok = false;
+    ex = new ObserverBoolExpr.Or(maybe, myFalse); if (ex.eval(args) != MaybeBoolean.MAYBE) ok = false;
+    ex = new ObserverBoolExpr.Or(maybe, maybe); if (ex.eval(args) != MaybeBoolean.MAYBE) ok = false;
+    
+    if (!ok) {
+      System.out.println("AndOr test has failed!");
+    } else {
+      System.out.println("AndOr Test was OK");
+    }
+  }
   private static void testExpressionEvaluator() {
     /*
     Map<String, ObserverVariable> map = new HashMap<String, ObserverVariable>();
