@@ -3,6 +3,7 @@ package cpa.pointeranalysis;
 import static cpa.pointeranalysis.Memory.INVALID_POINTER;
 import static cpa.pointeranalysis.Memory.NULL_POINTER;
 import static cpa.pointeranalysis.Memory.UNKNOWN_POINTER;
+import static cpa.pointeranalysis.Memory.UNINITIALIZED_POINTER;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -27,6 +28,8 @@ public class Pointer implements Cloneable {
   private int                levelOfIndirection; // how many stars does this pointer have?
 
   private PointerLocation    location;
+  
+  private boolean            actualPointer;             
 
   public Pointer() {
     this(0);
@@ -78,8 +81,9 @@ public class Pointer implements Cloneable {
 
   public boolean isSafe() {
     return !(targets.contains(NULL_POINTER)
-        || targets.contains(INVALID_POINTER) 
-        || targets.contains(UNKNOWN_POINTER));
+        || targets.contains(INVALID_POINTER) || targets
+        .contains(UNKNOWN_POINTER)) || targets.contains(UNINITIALIZED_POINTER);
+
   }
 
   public boolean isSubsetOf(Pointer other) {
@@ -91,9 +95,12 @@ public class Pointer implements Cloneable {
     assert other != null;
     return !this.isSubsetOf(other)
         && !other.isSubsetOf(this)
-        && !(targets.contains(INVALID_POINTER) && other.targets.contains(INVALID_POINTER))
+        && !(targets.contains(INVALID_POINTER) 
+        && other.targets.contains(INVALID_POINTER))
         && !targets.contains(UNKNOWN_POINTER)
-        && !other.targets.contains(UNKNOWN_POINTER);
+        && !other.targets.contains(UNKNOWN_POINTER) 
+        && !targets.contains(UNINITIALIZED_POINTER) 
+        && !other.targets.contains(UNINITIALIZED_POINTER);
   }
 
   public boolean contains(PointerTarget target) {
@@ -214,6 +221,14 @@ public class Pointer implements Cloneable {
       throw new IllegalStateException("May not overwrite pointer location!");
     }
     this.location = location;
+  }
+  
+  public boolean isActualPointer() {
+    return actualPointer;
+  }
+
+  public void setActualPointer(boolean actualPointer) {
+    this.actualPointer = actualPointer;
   }
 
   @Override
@@ -438,6 +453,8 @@ public class Pointer implements Cloneable {
 
       pointer.targets.add(Memory.NULL_POINTER);
       pointer.targets.add(memAddress);
+      
+      
     }
 
     public MemoryAddress getMallocResult() {
@@ -448,6 +465,12 @@ public class Pointer implements Cloneable {
   public static class AssumeInequality implements PointerOperation {
 
     private final PointerTarget removeTarget;
+    
+    public PointerTarget getRemoveTarget() {
+      
+      return removeTarget;
+     
+    }
 
     public AssumeInequality(PointerTarget removeTarget) {
       this.removeTarget = removeTarget;
@@ -460,10 +483,14 @@ public class Pointer implements Cloneable {
     public void doOperation(Memory memory, Pointer pointer,
         boolean keepOldTargets) {
 
+      
       pointer.targets.remove(removeTarget);
+      
       if (pointer.getNumberOfTargets() == 0) { 
         throw new IllegalStateException("Pointer without target must not exist!"); 
       }
     }
   }
+
+ 
 }

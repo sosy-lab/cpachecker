@@ -426,6 +426,8 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
       case IASTUnaryExpression.op_not: // [! exp]
         return getBooleanExpressionValue(element, unaryExp.getOperand(), cfaEdge, !truthValue);
 
+      case IASTUnaryExpression.op_star:
+        return getBooleanExpressionValue(element, unaryExp.getOperand(), cfaEdge, truthValue);
       default:
         throw new UnrecognizedCCodeException(cfaEdge, unaryExp);
       }
@@ -490,7 +492,13 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
         return null;
       }
       
-    } else {
+    } else if (expression instanceof IASTCastExpression) {
+        IASTCastExpression castExpr = (IASTCastExpression) expression;
+        return getBooleanExpressionValue(element, castExpr.getOperand(), cfaEdge, truthValue);
+        
+    }
+    
+  {
       // TODO fields, arrays
       throw new UnrecognizedCCodeException(cfaEdge, expression);
     }
@@ -981,15 +989,19 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
       if (typeOfLiteral == IASTLiteralExpression.lk_integer_constant) {
         
         String s = expression.getRawSignature();
-        if(s.endsWith("L") || s.endsWith("U")){
+        if(s.endsWith("L") || s.endsWith("U") || s.endsWith("UL")){
           s = s.replace("L", "");
           s = s.replace("U", "");
-        }
+          s = s.replace("UL", "");
+        } 
         try {
           return Long.valueOf(s);
         } catch (NumberFormatException e) {
           throw new UnrecognizedCCodeException("invalid integer literal", null, expression);
         }
+      }
+      if (typeOfLiteral == IASTLiteralExpression.lk_string_literal) {
+        return (long) expression.hashCode();
       }
     }
     return null;

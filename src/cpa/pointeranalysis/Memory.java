@@ -53,7 +53,7 @@ public interface Memory {
     
     
     /** Check if this memory region is still valid
-     * @return if this memory region is valid
+     * @return true, if this memory region is valid - false otherwise
      */
     public boolean isValid() {
       return isValid;
@@ -85,7 +85,7 @@ public interface Memory {
     
     @Override
     public String toString() {
-     return "Mem" + (length > 0 ? "(" + length + ")[" : "[" ) + id + "]";
+     return "Mem"+ "[" + (isValid() ? "VALID" : "INVALID") + "]" + (length > 0 ? "(" + length + ")[" : "[" ) + id + "]";
     }
   }
   
@@ -155,6 +155,33 @@ public interface Memory {
     @Override
     public String toString() {
       return "INVALID";
+    }
+  };
+  
+  public static final PointerTarget UNINITIALIZED_POINTER = new PointerTarget() {
+    @Override
+    public PointerTarget addOffset(long shift) throws InvalidPointerException {
+      if (shift == 0) {
+        return this;
+      } else {
+        throw new InvalidPointerException("Pointer arithmetics on uninitialized pointer!");
+      }
+    }
+    
+    @Override
+    public PointerTarget addUnknownOffset() throws InvalidPointerException {
+      throw new InvalidPointerException("Pointer arithmetics on uninitialized pointer!");
+    }
+    
+    @Override
+    // thats the question ... isn't it
+    public boolean isNull() {
+      return false;
+    }
+    
+    @Override
+    public String toString() {
+      return "UNINITIALIZED";
     }
   };
   
