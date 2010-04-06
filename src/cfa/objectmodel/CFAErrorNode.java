@@ -29,8 +29,8 @@ package cfa.objectmodel;
  */
 public class CFAErrorNode extends CFALabelNode {
 
-    public CFAErrorNode(int lineNumber) {
-        super(lineNumber);
+    public CFAErrorNode(int lineNumber, String label) {
+        super(lineNumber, label);
     }
 
 }

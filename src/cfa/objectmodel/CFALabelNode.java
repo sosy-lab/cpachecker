@@ -25,8 +25,14 @@ package cfa.objectmodel;
 
 public class CFALabelNode extends CFANode {
 
-    public CFALabelNode(int lineNumber) {
-        super(lineNumber);
-    }
+  private final String label;
+  
+  public CFALabelNode(int lineNumber, String label) {
+      super(lineNumber);
+      this.label = label;
+  }
 
+  public String getLabel() {
+    return label;
+  }
 }

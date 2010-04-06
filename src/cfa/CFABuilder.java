@@ -449,9 +449,9 @@ public class CFABuilder extends ASTVisitor
 		    // AG - we want to know which are the error locations: each
 		    // node with a label starting with "error"
 		    labelNode = new CFAErrorNode(
-		            fileloc.getStartingLineNumber());
+		            fileloc.getStartingLineNumber(), labelName);
 		} else {
-		    labelNode = new CFALabelNode (fileloc.getStartingLineNumber ());
+		    labelNode = new CFALabelNode (fileloc.getStartingLineNumber(), labelName);
 		}
 
 		BlankEdge blankEdge = new BlankEdge("Label: " + labelName, prevNode, labelNode);
