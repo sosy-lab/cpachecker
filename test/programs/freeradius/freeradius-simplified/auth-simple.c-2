@@ -1,0 +1,486 @@
+
+
+#include "autoconf.h"
+#include "libradius.h"
+
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+
+#if HAVE_CRYPT_H
+#	include <crypt.h>
+#endif
+
+#ifdef OSFC2
+#	include <sys/security.h>
+#	include <prot.h>
+#endif
+
+#if HAVE_NETINET_IN_H
+#	include <netinet/in.h>
+#endif
+
+#include "radiusd.h"
+#include "modules.h"
+
+/*
+ *	Return a short string showing the terminal server, port
+ *	and calling station ID.
+ */
+char *auth_name(char *buf, size_t buflen, REQUEST *request, int do_cli) {
+	VALUE_PAIR	*cli;
+	VALUE_PAIR	*pair;
+	int		port = 0;
+
+	if ((cli = pairfind(request->packet->vps, PW_CALLING_STATION_ID)) == NULL)
+		do_cli = 0;
+	if ((pair = pairfind(request->packet->vps, PW_NAS_PORT_ID)) != NULL)
+		port = pair->lvalue;
+
+	snprintf(buf, buflen, "from nas %.128s port %d%s%.128s",
+			nas_name2(request->packet), port,
+			(do_cli ? " cli " : ""), (do_cli ? (char *)cli->strvalue : ""));
+
+	return buf;
+}
+
+
+/*
+ *	Check if account has expired, and if user may login now.
+ */
+static int check_expiration(REQUEST *request)
+{
+	int result;
+	VALUE_PAIR *check_item = request->config_items;
+
+	result = 0;
+	while (result == 0 && check_item != NULL) {
+
+		/*
+		 *	Check expiration date if we are doing password aging.
+		 */
+		if (check_item->attribute == PW_EXPIRATION) {
+			/*
+			 *	Has this user's password expired?
+			 *
+			 *	If so, remove ALL reply attributes,
+			 *	and add our own Reply-Message, saying
+			 *	why they're being rejected.
+			 */
+			if (check_item->lvalue < (unsigned) time(NULL)) {
+				VALUE_PAIR *vp;
+
+				result = -1;
+				vp = pairmake("Reply-Message",
+						"Password Has Expired\r\n",
+						T_OP_ADD);
+				pairfree(&request->reply->vps);
+				request->reply->vps = vp;
+				break;
+			}
+		}
+		check_item = check_item->next;
+	}
+	return result;
+}
+
+
+/*
+ * Make sure user/pass are clean
+ * and then log them
+ */
+static int rad_authlog(const char *msg, REQUEST *request, int goodpass) {
+
+	char clean_password[1024];
+	char clean_username[1024];
+	char buf[1024];
+
+	if (!mainconfig.log_auth)
+		return 0;
+
+	/* 
+	 *	Clean up the username
+	 */
+	if (request->username == NULL) {
+		DEBUG2("rad_authlog:  no username found");
+		return -1;
+	}
+
+	if (request->username->strvalue) {
+		librad_safeprint((char *)request->username->strvalue,
+				request->username->length,
+				clean_username, sizeof(clean_username));
+	} else {
+		strcpy(clean_username, "<No Username>");
+	}
+
+	/* 
+	 *	Clean up the password
+	 */
+	if (mainconfig.log_auth_badpass || mainconfig.log_auth_goodpass) {
+		if (!request->password) {
+			DEBUG2("rad_authlog:  no password found");
+			return -1;
+		}
+
+		if (request->password->attribute == PW_CHAP_PASSWORD) {
+			strcpy(clean_password, "<CHAP-Password>");
+		} else {
+			if (request->username->strvalue) {
+				librad_safeprint((char *)request->password->strvalue,
+						 request->password->length,
+						 clean_password, sizeof(clean_password));
+			} else {
+				strcpy(clean_password, "<No Password>");
+			}
+		}
+	}
+
+	if (goodpass) {
+		radlog(L_AUTH, "%s: [%s%s%s] (%s)",
+				msg,	
+				clean_username,
+				mainconfig.log_auth_goodpass ? "/" : "",
+				mainconfig.log_auth_goodpass ? clean_password : "",
+				auth_name(buf, sizeof(buf), request, 1));
+	} else {
+		radlog(L_AUTH, "%s: [%s%s%s] (%s)",
+				msg,	
+				clean_username,
+				mainconfig.log_auth_badpass ? "/" : "",
+				mainconfig.log_auth_badpass ? clean_password : "",
+				auth_name(buf, sizeof(buf), request, 1));
+	}
+	
+	return 0;
+}
+
+/*
+ *	Check password.
+ *
+ *	Returns:	0  OK
+ *			-1 Password fail
+ *			-2 Rejected (Auth-Type = Reject, send Port-Message back)
+ *			1  End check & return, don't reply
+ *
+ *	NOTE: NOT the same as the RLM_ values !
+ */
+int rad_check_password(REQUEST *request)
+{
+	VALUE_PAIR *auth_type_pair;
+	VALUE_PAIR *cur_config_item;
+	VALUE_PAIR *password_pair;
+	VALUE_PAIR *auth_item;
+	char string[MAX_STRING_LEN];
+	int auth_type = -1;
+	int result;
+	int auth_type_count = 0;
+	result = 0;
+
+	/*
+	 *	Look for matching check items. We skip the whole lot
+	 *	if the authentication type is PW_AUTHTYPE_ACCEPT or
+	 *	PW_AUTHTYPE_REJECT.
+	 */
+	cur_config_item = request->config_items;
+	while(((auth_type_pair = pairfind(cur_config_item, PW_AUTHTYPE))) != NULL) {
+		auth_type = auth_type_pair->lvalue;
+		auth_type_count++;
+
+		DEBUG2("  rad_check_password:  Found auth-type %s",
+				auth_type_pair->strvalue);
+		cur_config_item = auth_type_pair->next;
+
+		if (auth_type == PW_AUTHTYPE_REJECT) {
+			DEBUG2("  rad_check_password: Auth-Type = Reject, rejecting user");
+			return -2;
+		}
+	}
+
+	if((auth_type_count>1) && (debug_flag)) {
+		radlog(L_ERR, "Warning:  Found %d auth-types on request for user '%s'", 
+			auth_type_count, request->username->strvalue);
+	}
+
+	/*
+	 *	This means we have a proxy reply or an accept  
+	 *  and it wasn't rejected in the above loop.  So 
+	 *  that means it is accepted and we do no further 
+	 *  authentication
+	 */
+	if ((auth_type == PW_AUTHTYPE_ACCEPT) || (request->proxy)) {
+		DEBUG2("  rad_check_password: Auth-Type = Accept, accepting the user");
+		return 0;
+	}
+
+	/*
+	 *	Find the password sent by the user. It SHOULD be there,
+	 *	if it's not authentication fails.
+	 */
+	auth_item = request->password;
+	if (auth_item == NULL) {
+		DEBUG2("  auth: No password in the request");
+		return -1;
+	}
+
+	/*
+	 *	Find the password from the users file.
+	 */
+	if ((password_pair = pairfind(request->config_items, PW_CRYPT_PASSWORD)) != NULL)
+		auth_type = PW_AUTHTYPE_CRYPT;
+	else
+		password_pair = pairfind(request->config_items, PW_PASSWORD);
+
+	/*
+	 *	For backward compatibility, we check the
+	 *	password to see if it is the magic value
+	 *	UNIX if auth_type was not set.
+	 */
+	if (auth_type < 0) {
+		if (password_pair &&
+		    !strcmp((char *)password_pair->strvalue, "UNIX"))
+			auth_type = PW_AUTHTYPE_SYSTEM;
+		else if(password_pair &&
+			!strcmp((char *)password_pair->strvalue,"PAM"))
+			auth_type = PW_AUTHTYPE_PAM;
+		else
+			auth_type = PW_AUTHTYPE_LOCAL;
+	}
+
+	switch(auth_type) {
+		case PW_AUTHTYPE_CRYPT:
+			DEBUG2("  auth: Crypt");
+			if (password_pair == NULL) {
+				result = auth_item->strvalue ? -1 : 0;
+				break;
+			}
+			if (strcmp((char *)password_pair->strvalue,
+					crypt((char *)auth_item->strvalue,
+							(char *)password_pair->strvalue)) != 0)
+				result = -1;
+			break;
+		case PW_AUTHTYPE_LOCAL:
+			DEBUG2("  auth: Local");
+			/*
+			 *	Local password is just plain text.
+	 		 */
+			if (auth_item->attribute != PW_CHAP_PASSWORD) {
+
+				/*
+				 *	Plain text password.
+				 */
+				if (password_pair == NULL ||
+						strcmp((char *)password_pair->strvalue,
+								(char *)auth_item->strvalue)!=0)
+					result = -1;
+				break;
+			}
+
+			/*
+			 *	CHAP - calculate MD5 sum over CHAP-ID,
+			 *	plain-text password and the Chap-Challenge.
+			 *	Compare to Chap-Response (strvalue + 1).
+			 */
+			if (password_pair == NULL) {
+				result= -1;
+				break;
+			}
+			rad_chap_encode(request->packet, string,
+					auth_item->strvalue[0], password_pair);
+
+			/*
+			 *	Compare them
+			 */
+			if (memcmp(string + 1, auth_item->strvalue + 1,
+					CHAP_VALUE_LENGTH) != 0)
+				result = -1;
+			break;
+		default:
+			DEBUG2("  auth: %s",
+					dict_valbyattr(PW_AUTHTYPE, auth_type)->name);
+			/*
+			 *	See if there is a module that handles
+			 *	this type, and turn the RLM_ return
+			 *	status into the values as defined at
+			 *	the top of this function.
+			 */
+			result = module_authenticate(auth_type, request);
+			switch (result) {
+				/*
+				 *	An authentication module FAIL
+				 *	return code, or any return code that
+				 *	is not expected from authentication,
+				 *	is the same as an explicit REJECT!
+				 */
+				case RLM_MODULE_FAIL:
+				case RLM_MODULE_REJECT:
+				case RLM_MODULE_USERLOCK:
+				case RLM_MODULE_INVALID:
+				case RLM_MODULE_NOTFOUND:
+				case RLM_MODULE_NOOP:
+				case RLM_MODULE_UPDATED:
+					result = -1;
+					break;
+				case RLM_MODULE_OK:
+					result = 0;
+					break;
+				case RLM_MODULE_HANDLED:
+					result = 1;
+					break;
+			}
+			break;
+	}
+
+	return result;
+}
+
+/*
+ *	Process and reply to an authentication request
+ *
+ *	The return value of this function isn't actually used right now, so
+ *	it's not entirely clear if it is returning the right things. --Pac.
+ */
+int rad_authenticate(REQUEST *request)
+{
+	VALUE_PAIR	*namepair;
+	VALUE_PAIR	*check_item;
+	VALUE_PAIR	*reply_item;
+	VALUE_PAIR	*auth_item;
+	VALUE_PAIR	*tmp;
+	int		result, r;
+	char		umsg[MAX_STRING_LEN + 1];
+	const char	*user_msg = NULL;
+	const char	*password;
+	char		*exec_program;
+	int		exec_wait;
+	int		seen_callback_id;
+	int 		nas_port = 0;
+	char		buf[1024], logstr[1024];
+
+
+	namepair = request->username;
+
+	if ((auth_item = rad_getpass(request)) != NULL) {
+		password = (const char *)auth_item->strvalue;
+	}
+
+	if (auth_item == NULL) {
+		if ((auth_item = pairfind(request->packet->vps, 
+					  PW_CHAP_PASSWORD)) != NULL) {
+			password = "<CHAP-PASSWORD>";
+		
+		} else {
+			/*
+			 *	No password we recognize.
+			 */
+			password = "<NO-PASSWORD>";
+		}
+	}
+	request->password = auth_item;
+	
+	namepair = request->username;
+
+	/*
+	 *	Failed to validate the user.
+	 *
+	 *	We PRESUME that the code which failed will clean up
+	 *	request->reply->vps, to be ONLY the reply items it
+	 *	wants to send back.
+	 */
+		if ((debug_flag > 1) &&
+				(auth_item->attribute == PW_PASSWORD)) {
+			u_char *p;
+
+			p = auth_item->strvalue;
+		}
+
+	/*
+	 *	We might need this later.  The 'password' string
+	 *	is NOT used anywhere below here, except for logging,
+	 *	so it should be safe...
+	 */
+	if (auth_item->attribute == PW_CHAP_PASSWORD) {
+		password = "CHAP-Password";
+	}
+
+	/*
+	 *	Filter (possibly multiple) Reply-Message attributes
+	 *	through radius_xlat, modifying them in place.
+	 */
+
+	if (exec_program) 
+		free(exec_program);
+	return RLM_MODULE_OK;
+}
+
+
+/*
+ *	These definitions are local, and shouldn't be used by anyone else.
+ */
+#define PW_ENCODED  0
+#define PW_DECODED  1
+
+/*
+ * Find the password pair, decode pass if
+ * needed, and return the value pair.  If
+ * not found, return NULL
+ */
+VALUE_PAIR *rad_getpass(REQUEST *request) {
+	VALUE_PAIR *auth_item;
+
+	/*
+	 *	First, look up the password in the request header.
+	 */
+	auth_item = request->password;
+	if (auth_item) {
+		/*
+		 *	It's there, but it's not a clear-text password.
+		 *	Give up.
+		 */
+		if (auth_item->attribute != PW_PASSWORD) {
+			return NULL;
+		}
+	} else {
+		/*
+		 *	Go find the request password.
+		 */
+		auth_item = pairfind(request->packet->vps, PW_PASSWORD);
+		if (!auth_item) {
+			return NULL;
+		}
+
+		/*
+		 *	Save the found password for later.
+		 */
+		request->password = auth_item;
+	}
+
+
+	/*
+	 *	If we proxied already, it's been decoded
+	 *	Or if the decoded flag is set...just return
+	 */
+	if ((request->proxy != NULL) ||
+			(auth_item->lvalue == PW_DECODED)) {
+		return auth_item;
+	}
+
+	/* 
+	 *	If we get here, we have to decode the password.
+	 */
+	rad_pwdecode((char *)auth_item->strvalue,
+			auth_item->length, request->secret,
+			(char *)request->packet->vector);
+
+	/* 
+	 *	Set lvalue to PW_DECODED so we know not to
+	 *	decode next time we get here
+	 */
+	auth_item->lvalue = PW_DECODED;
+
+	/* ignore more than one trailing '\0' */
+	auth_item->length = strlen((char *)auth_item->strvalue);
+
+	return auth_item;
+}
+
