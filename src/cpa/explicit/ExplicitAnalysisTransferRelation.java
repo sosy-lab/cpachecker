@@ -970,7 +970,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
     ExplicitAnalysisElement newElement = element.clone();
 
     // op2 may be null if this is a "return;" statement
-    Long val = (op2 == null ? 0 : parseLiteral(op2));
+    Long val = (op2 == null ? 0L : parseLiteral(op2));
 
     String assignedVar = getvarName(lParam, functionName);
     if (val != null) {
