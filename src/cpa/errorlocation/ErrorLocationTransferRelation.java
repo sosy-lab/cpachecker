@@ -10,9 +10,11 @@ import java.util.logging.Level;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression;
 
-import cfa.objectmodel.BlankEdge;
 import cfa.objectmodel.CFAEdge;
+import cfa.objectmodel.CFAEdgeType;
 import cfa.objectmodel.CFAErrorNode;
+import cfa.objectmodel.CFALabelNode;
+import cfa.objectmodel.CFANode;
 import cfa.objectmodel.c.StatementEdge;
 import cpa.common.CPAchecker;
 import cpa.common.interfaces.AbstractElement;
@@ -44,37 +46,32 @@ public class ErrorLocationTransferRelation implements TransferRelation {
                                               CFAEdge cfaEdge, Precision precision)
                                               throws CPATransferException {
     
-    if (cfaEdge.getSuccessor() instanceof CFAErrorNode) {
+    CFANode successorNode = cfaEdge.getSuccessor();
+    if (successorNode instanceof CFALabelNode) {
+      String label = ((CFALabelNode)successorNode).getLabel(); 
+      if (label.toLowerCase().startsWith("error")) {
+        addError("Reaching error location " + label + " with edge " + cfaEdge.getRawStatement(), cfaEdge);
+        return errorElement;
+      }
+    }
+    
+    if (successorNode instanceof CFAErrorNode) {
       addError("Reaching error node with edge " + cfaEdge.getRawStatement(), cfaEdge);
       return errorElement;
     }
     
-    switch (cfaEdge.getEdgeType()) {
-      case StatementEdge:
-        IASTExpression expression = ((StatementEdge)cfaEdge).getExpression();
-        if (expression instanceof IASTFunctionCallExpression) {
-          IASTFunctionCallExpression funcExpression = (IASTFunctionCallExpression)expression;
-          
-          String functionName = funcExpression.getFunctionNameExpression().getRawSignature();
-          if (functionName.equals("__assert_fail")) {
-
-            addError("Hit assertion " + expression.getRawSignature(), cfaEdge);
-            return errorElement;
-          }
-        }
-        break;
+    if (cfaEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
+      IASTExpression expression = ((StatementEdge)cfaEdge).getExpression();
+      if (expression instanceof IASTFunctionCallExpression) {
+        IASTFunctionCallExpression funcExpression = (IASTFunctionCallExpression)expression;
         
-      case BlankEdge:
-        if (((BlankEdge)cfaEdge).isJumpEdge() && cfaEdge.getRawStatement().toLowerCase().startsWith("goto: error")) {
-          // This case is currently never reached, as cfaEdge.getSuccessor is a
-          // CFAErrorNode in this case, but it is left here if the special
-          // handling for error labels is removed from the CFA generation
-          // (where it doesn't belong IMHO)
-          
-          addError("Reaching error node with edge " + cfaEdge.getRawStatement(), cfaEdge);
+        String functionName = funcExpression.getFunctionNameExpression().getRawSignature();
+        if (functionName.equals("__assert_fail")) {
+
+          addError("Hit assertion " + expression.getRawSignature(), cfaEdge);
           return errorElement;
         }
-        break;
+      }
     }
     
     return element;
