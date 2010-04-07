@@ -172,8 +172,13 @@ public class DOTBuilder {
 				line = line + " -> ";
 				line = line + successor.getNodeNumber ();
 				line = line + " [label=\"" ;
+				
+				//the first call to replaceAll replaces \" with \ " to prevent a bug in dotty.
+				//future updates of dotty may make this obsolete.
+				String edgeText = edge.getRawStatement().replaceAll("\\Q\\\"\\E", "\\ \"")
+				                                        .replaceAll ("\\\"", "\\\\\\\"")
+				                                        .replaceAll("\n", " ");
 
-				String edgeText = edge.getRawStatement ().replaceAll ("\\\"", "\\\\\\\"").replaceAll("\n", " ");
 				line = line + edgeText;
 				line = line + "\"];";
 				DOTWriter dw;
