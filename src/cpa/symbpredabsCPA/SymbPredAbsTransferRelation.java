@@ -119,12 +119,11 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     long time = System.currentTimeMillis();
     SymbPredAbsAbstractElement element = (SymbPredAbsAbstractElement) pElement;
     SymbPredAbsPrecision precision = (SymbPredAbsPrecision) pPrecision;
-    //boolean abstractionLocation = (blockSize == 0) ? isAbstractionLocation(edge.getSuccessor())
-    //    : (element.getSizeSinceAbstraction() >= (blockSize-1));
-    boolean abstractionLocation = isAbstractionLocation(edge.getSuccessor())
-        || ((abstractionBlockSize > 0) && (element.getSizeSinceAbstraction() >= (abstractionBlockSize-1)));
-    boolean satCheck = (satCheckBlockSize > 0) && (element.getSizeSinceAbstraction() >= (satCheckBlockSize-1));
-
+  
+    boolean thresholdReached = (abstractionBlockSize > 0) && (element.getSizeSinceAbstraction() >= abstractionBlockSize-1);
+    boolean abstractionLocation = isAbstractionLocation(edge.getSuccessor(), thresholdReached);
+    
+    boolean satCheck = (satCheckBlockSize > 0) && (element.getSizeSinceAbstraction() >= satCheckBlockSize-1);
     
     try {
       if (abstractionLocation) {
@@ -327,23 +326,26 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   
   /**
    * @param succLoc successor CFA location.
+   * @param thresholdReached if the maximum block size has been reached
    * @return true if succLoc is an abstraction location. For now a location is 
    * an abstraction location if it has an incoming loop-back edge, if it is
    * the start node of a function or if it is the call site from a function call.
    */
-  private boolean isAbstractionLocation(CFANode succLoc) {
-    if (!unrollLoops && succLoc.isLoopStart()) {
-      // loop head
-      return true;
-    } else if (!inlineFunctions && (succLoc instanceof CFAFunctionDefinitionNode)) {
-      // function call edge
-      return true;
-    } else if (!inlineFunctions && (succLoc.getEnteringSummaryEdge() != null)) {
-      // function return edge
-      return true;
+  private boolean isAbstractionLocation(CFANode succLoc, boolean thresholdReached) {
+    boolean result;
+    if (unrollLoops) {
+      result = thresholdReached && succLoc.isLoopStart();
     } else {
-      return false;
+      result = thresholdReached || succLoc.isLoopStart();
     }
+    
+    if (!inlineFunctions) {
+      result = result
+            || (succLoc instanceof CFAFunctionDefinitionNode) // function call edge
+            || (succLoc.getEnteringSummaryEdge() != null); // function return edge
+    }
+
+    return result;
   }
 
   @Override
