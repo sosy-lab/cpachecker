@@ -16,7 +16,6 @@ import common.configuration.Options;
 import cpa.common.LogManager;
 import cpa.common.defaults.AbstractSingleWrapperCPA;
 import cpa.common.defaults.MergeSepOperator;
-import cpa.common.defaults.StaticPrecisionAdjustment;
 import cpa.common.interfaces.AbstractDomain;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.CPAFactory;
@@ -66,7 +65,7 @@ public class ARTCPA extends AbstractSingleWrapperCPA {
     this.logger = logger;
     abstractDomain = new ARTDomain(this);
     transferRelation = new ARTTransferRelation(cpa.getTransferRelation());
-    precisionAdjustment = StaticPrecisionAdjustment.getInstance();
+    precisionAdjustment = new ARTPrecisionAdjustment(cpa.getPrecisionAdjustment());
     if (mergeType.equals("SEP")){
       mergeOperator = MergeSepOperator.getInstance();
     } else if (mergeType.equals("JOIN")){
@@ -99,7 +98,6 @@ public class ARTCPA extends AbstractSingleWrapperCPA {
   }
 
   public PrecisionAdjustment getPrecisionAdjustment () {
-    // TODO implement ART precision adjustment
     return precisionAdjustment;
   }
   
