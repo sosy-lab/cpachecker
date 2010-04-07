@@ -2,6 +2,7 @@ package cpa.observeranalysis;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.PrintStream;
 import java.util.logging.Level;
 
 import java_cup.runtime.ComplexSymbolFactory;
@@ -39,6 +40,9 @@ import exceptions.InvalidConfigurationException;
  */
 @Options(prefix="observerAnalysis")
 public class ObserverAutomatonCPA implements ConfigurableProgramAnalysis {
+  
+  @Option(name="dotExportFile")
+  private String exportFile = "";
   
   private static class ObserverAutomatonCPAFactory extends AbstractCPAFactory {
     
@@ -108,7 +112,15 @@ public class ObserverAutomatonCPA implements ConfigurableProgramAnalysis {
     automaton = parseObserverFile(logger);
     logger.log(Level.FINEST, "Automaton", automaton.getName(), "loaded.");
     transferRelation = new ObserverTransferRelation(automaton, logger);
-    logger.log(Level.FINER, "loaded the ObserverAutomaton \"" + automaton.getName() +"\"" );
+    logger.log(Level.FINER, "loaded the ObserverAutomaton " + automaton.getName() );
+    
+    if (this.exportFile != "") {
+      try {
+        this.automaton.writeDotFile(new PrintStream(exportFile));
+      } catch (FileNotFoundException e) {
+        logger.log(Level.WARNING, "Could not create/write to the Automaton DOT file \"" + exportFile + "\"");
+      }
+    }
   }
   
   private ObserverAutomaton parseObserverFile(LogManager pLogger) throws InvalidConfigurationException {
