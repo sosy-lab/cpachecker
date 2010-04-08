@@ -1,0 +1,13 @@
+AUTOMATON PointerAnalysisTestAutomaton
+/* Queries the PointerAnalysis for errors and prints them. 
+ * Does not abort the checking (does not go to the error state).
+ */
+
+INITIAL STATE Init;
+
+STATE Init : 
+  CHECK(PointerAnalyis("DOUBLE_FREE")) -> PRINT "Found a double Free" GOTO Init;
+  CHECK(PointerAnalyis("MemoryLeak")) -> PRINT "Found a Memory Leak" GOTO Init;
+  CHECK(PointerAnalyis("UNSAFE_DEREFERENCE")) -> PRINT "Found a UNSAFE_DEREFERENCE" GOTO Init;
+  CHECK(PointerAnalyis("POTENTIALLY_UNSAFE_DEREFERENCE")) -> PRINT "Found a POTENTIALLY_UNSAFE_DEREFERENCE" GOTO Init;
+  CHECK(PointerAnalyis("USING_INVALID_POINTER")) -> PRINT "Found a USING_INVALID_POINTER" GOTO Init;

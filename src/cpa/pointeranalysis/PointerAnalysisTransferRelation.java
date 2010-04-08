@@ -50,6 +50,7 @@ import org.eclipse.cdt.core.dom.ast.IASTNode;
 import org.eclipse.cdt.core.dom.ast.IASTPointerOperator;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTUnaryExpression;
+import org.omg.PortableInterceptor.SUCCESSFUL;
 
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.c.AssumeEdge;
@@ -77,6 +78,7 @@ import cpa.pointeranalysis.Memory.StackArray;
 import cpa.pointeranalysis.Memory.StackArrayCell;
 import cpa.pointeranalysis.Memory.Variable;
 import cpa.pointeranalysis.Pointer.PointerOperation;
+import cpa.pointeranalysis.PointerAnalysisElement.ElementProperty;
 import cpa.types.Type;
 import cpa.types.TypesElement;
 import cpa.types.Type.ArrayType;
@@ -227,25 +229,30 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       switch (cfaEdge.getEdgeType()) {
 
       case DeclarationEdge:
+        successor.clearProperties();
         handleDeclaration(successor, (DeclarationEdge) cfaEdge);
         break;
 
       case StatementEdge:
+        successor.clearProperties();
         handleStatement(successor, ((StatementEdge) cfaEdge).getExpression(),
             (StatementEdge) cfaEdge);
         break;
 
       case AssumeEdge:
+        successor.clearProperties();
         AssumeEdge assumeEdge = (AssumeEdge) cfaEdge;
         handleAssume(successor, assumeEdge.getExpression(), assumeEdge
             .getTruthAssumption(), assumeEdge);
         break;
 
       case FunctionCallEdge:
+        successor.clearProperties();
         handleFunctionCall(successor, cfaEdge);
         break;
 
       case ReturnEdge:
+        successor.clearProperties();
         // now handle the complete a = func(x) statement in the CallToReturnEdge
         ReturnEdge returnEdge = (ReturnEdge) cfaEdge;
         CallToReturnEdge ctrEdge =
@@ -724,6 +731,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
 
       } else if (functionName.equals("malloc")) {
         // malloc without assignment (will lead to memory leak)
+        element.addProperty(ElementProperty.MEMORY_LEAK);
         addWarning(
             "Memory leak because of calling malloc without using the return value!",
             cfaEdge, "");
@@ -776,6 +784,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
 
         } else if (target.isNull()) {
           // free(null) is allowed and does nothing!
+          element.addProperty(ElementProperty.DOUBLE_FREE);
           success = true;
           newTargets.add(Memory.NULL_POINTER);
           //addWarning("Freeing a NULL-pointer at " + p.getLocation() + " - no harm is done, but maybe check your code, if this pointer can hold non-NULL values at the time it's being freed", cfaEdge, target.toString());
@@ -793,6 +802,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       if (!success) {
         // all targets fail
         // elevate the above warnings to an error
+        element.addProperty(ElementProperty.USING_INVALID_POINTER);
         throw new InvalidPointerException("Free of pointer " + p.getLocation()
             + " = " + p
             + " is impossible to succeed (all targets lead to errors)");
@@ -866,7 +876,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
         leftPointer = element.lookupPointer(leftExpression.getRawSignature());
         leftVarName = leftExpression.getRawSignature();
         if (leftPointer == null) {
-
+          element.addProperty(ElementProperty.UNSAFE_DEREFERENCE);
           if (!leftCast) {
             throw new UnrecognizedCCodeException("dereferencing a non-pointer",
                 cfaEdge, leftExpression);
@@ -879,11 +889,14 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
 
         } else {
 
-          if (!leftPointer.isDereferencable()) { throw new InvalidPointerException(
-              "Unsafe deref of pointer " + leftPointer.getLocation() + " = "
-                  + leftPointer); }
+          if (!leftPointer.isDereferencable()) {
+            element.addProperty(ElementProperty.UNSAFE_DEREFERENCE);
+            throw new InvalidPointerException("Unsafe deref of pointer " 
+                + leftPointer.getLocation() + " = " + leftPointer); 
+            }
 
           if (!leftPointer.isSafe()) {
+            element.addProperty(ElementProperty.POTENTIALLY_UNSAFE_DEREFERENCE);
             addWarning("Potentially unsafe deref of pointer "
                 + leftPointer.getLocation() + " = " + leftPointer, cfaEdge,
                 unaryExpression.getRawSignature());
@@ -1163,11 +1176,14 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
 
         } else {
 
-          if (!rightPointer.isDereferencable()) { throw new InvalidPointerException(
+          if (!rightPointer.isDereferencable()) { 
+            element.addProperty(ElementProperty.UNSAFE_DEREFERENCE);
+            throw new InvalidPointerException(
               "Unsafe deref of pointer " + rightPointer.getLocation() + " = "
                   + rightPointer); }
 
           if (!rightPointer.isSafe()) {
+            element.addProperty(ElementProperty.POTENTIALLY_UNSAFE_DEREFERENCE);
             addWarning("Potentially unsafe deref of pointer "
                 + rightPointer.getLocation() + " = " + rightPointer, cfaEdge,
                 unaryExpression.getRawSignature());

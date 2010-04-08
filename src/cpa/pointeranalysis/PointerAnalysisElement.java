@@ -25,6 +25,7 @@ package cpa.pointeranalysis;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -33,10 +34,11 @@ import java.util.Set;
 import java.util.Map.Entry;
 
 import cfa.objectmodel.CFAEdge;
-import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.AbstractQueryableElement;
 import cpa.pointeranalysis.Pointer.Assign;
 import cpa.pointeranalysis.Pointer.AssumeInequality;
 import cpa.pointeranalysis.Pointer.PointerOperation;
+import exceptions.InvalidQueryException;
 
 /**
  * This class is the abstraction of the memory of the program (global variables,
@@ -44,7 +46,7 @@ import cpa.pointeranalysis.Pointer.PointerOperation;
  * 
  * @author Philipp Wendler
  */
-public class PointerAnalysisElement implements AbstractElement, Memory,
+public class PointerAnalysisElement implements AbstractQueryableElement, Memory,
     Cloneable {
 
   private static final char                                    FUNCTION_NAME_SEPARATOR =
@@ -53,6 +55,10 @@ public class PointerAnalysisElement implements AbstractElement, Memory,
   private CFAEdge                                              currentEdge             =
                                                                                            null;
 
+  static enum ElementProperty {DOUBLE_FREE, NO_MEMORY_LEAK,
+    MEMORY_LEAK, UNSAFE_DEREFERENCE, POTENTIALLY_UNSAFE_DEREFERENCE, USING_INVALID_POINTER}
+  private Set<ElementProperty> properties = EnumSet.noneOf(ElementProperty.class); // emptySet
+  
   private final Map<String, Map<String, Pointer>>              stack;
   // global variables are stored here with function name ""
   // non-pointer variables are tracked too, (mapped to null)
@@ -97,7 +103,8 @@ public class PointerAnalysisElement implements AbstractElement, Memory,
       final Map<MemoryAddress, Pointer> heap, final Set<MemoryRegion> mallocs,
       final Map<PointerTarget, Set<PointerLocation>> reverseRelation,
       final Map<PointerLocation, Set<PointerLocation>> aliases,
-      final Set<PointerLocation> tempTracked, final String currentFunctionName) {
+      final Set<PointerLocation> tempTracked, final String currentFunctionName,
+      final Set<ElementProperty> pProperties) {
     this.stack = new HashMap<String, Map<String, Pointer>>();
     this.heap = new HashMap<MemoryAddress, Pointer>();
     this.mallocs = new HashSet<MemoryRegion>(mallocs);
@@ -105,6 +112,7 @@ public class PointerAnalysisElement implements AbstractElement, Memory,
     this.aliases = new HashMap<PointerLocation, Set<PointerLocation>>();
     this.currentFunctionName = currentFunctionName;
     this.tempTracked = new HashSet<PointerLocation>(tempTracked);
+    this.properties.addAll(pProperties);
 
     for (Entry<String, Map<String, Pointer>> function : stack.entrySet()) {
       Map<String, Pointer> oldPointers = function.getValue();
@@ -207,6 +215,21 @@ public class PointerAnalysisElement implements AbstractElement, Memory,
     }
   }
 
+  /**
+   * Adds a property to this element
+   * @param pProp
+   */
+  void addProperty(ElementProperty pProp) {
+    this.properties.add(pProp);
+  }
+  /**
+   * Removes all property of this element
+   * @param pProp
+   */
+  void clearProperties() {
+    this.properties.clear();
+  }
+  
   private Map<String, Pointer> getGlobalPointers() {
     return stack.get("");
   }
@@ -780,7 +803,6 @@ public class PointerAnalysisElement implements AbstractElement, Memory,
       }
 
     }
-
     return unreferencedRegions;
   }
 
@@ -968,7 +990,7 @@ public class PointerAnalysisElement implements AbstractElement, Memory,
   @Override
   public PointerAnalysisElement clone() {
     return new PointerAnalysisElement(stack, heap, mallocs, reverseRelation,
-        aliases, tempTracked, currentFunctionName);
+        aliases, tempTracked, currentFunctionName, properties);
   }
 
   @Override
@@ -993,5 +1015,30 @@ public class PointerAnalysisElement implements AbstractElement, Memory,
     }
     sb.append(">]");
     return sb.toString();
+  }
+
+  @Override
+  public boolean checkProperty(String pProperty) throws InvalidQueryException {
+    if (pProperty.toLowerCase().equals("memoryleak")){
+      if (this.properties.contains(ElementProperty.MEMORY_LEAK)) {
+        return true;
+      } else if (this.properties.contains(ElementProperty.NO_MEMORY_LEAK)) {
+        return false;
+      } else {
+        boolean leak = !checkMemoryLeak().isEmpty();
+        if (leak) properties.add(ElementProperty.MEMORY_LEAK);
+        else properties.add(ElementProperty.NO_MEMORY_LEAK);
+        return leak;
+      }
+    } else {
+      ElementProperty prop = ElementProperty.valueOf(pProperty);
+      // TODO: check what happens if the pProperty is not one of the defined enum constants
+      return this.properties.contains(prop);
+    }
+  }
+
+  @Override
+  public String getCPAName() {
+    return "PointerAnalysis";
   }
 }
