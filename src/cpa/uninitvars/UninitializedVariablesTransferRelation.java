@@ -244,18 +244,29 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
   }
   
   private void handleFunctionCall(UninitializedVariablesElement element, FunctionCallEdge callEdge) 
-                                                                  throws UnrecognizedCCodeException{
+                                                                  throws UnrecognizedCCodeException {
     //find functions's parameters and arguments  
     FunctionDefinitionNode functionEntryNode = (FunctionDefinitionNode)callEdge.getSuccessor();
     List<String> paramNames = functionEntryNode.getFunctionParameterNames();
     IASTExpression[] arguments = callEdge.getArguments();
-    
-    LinkedList<String> uninitParameters = new LinkedList<String>();
-    LinkedList<String> initParameters = new LinkedList<String>();
-    
-    //collect initialization status of the called function's parameters from the context of the calling function
+
     if (arguments != null) {
-      for (int i = 0; i < arguments.length; i++) {
+
+      int numOfParams = paramNames.size();
+
+      //if the following  is the case, this is a varargs function and thus can take any number of arguments
+      if (numOfParams < arguments.length) {
+        //then, for unnamed parameters, only check for use of uninitialized variables
+        for (int j = numOfParams; j < arguments.length; j++) {
+          isExpressionUninitialized(element, arguments[j], callEdge);
+        }
+      }
+      
+      LinkedList<String> uninitParameters = new LinkedList<String>();
+      LinkedList<String> initParameters = new LinkedList<String>();
+      
+      //collect initialization status of the called function's parameters from the context of the calling function
+      for (int i = 0; i < numOfParams; i++) {
         if(isExpressionUninitialized(element, arguments[i], callEdge)) {
           uninitParameters.add(paramNames.get(i));
         } else {
@@ -273,6 +284,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       for (String param : initParameters) {
         setInitialized(element, param);
       }
+      
     } else {
       //if there are no parameters, just create the local context
       element.callFunction(functionEntryNode.getFunctionName());
