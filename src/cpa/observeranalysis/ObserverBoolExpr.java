@@ -4,6 +4,9 @@ import java.util.logging.Level;
 
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 
+import cfa.objectmodel.CFALabelNode;
+import cfa.objectmodel.CFANode;
+
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractQueryableElement;
 import exceptions.InvalidQueryException;
@@ -28,6 +31,34 @@ abstract class ObserverBoolExpr {
   
   private ObserverBoolExpr() {} //nobody can use this
   abstract MaybeBoolean eval(ObserverExpressionArguments pArgs);
+  
+  /**
+   * Implements a regex match on the label after the current CFAEdge.
+   * The eval method returns false if there is no label following the CFAEdge.
+   * (".*" in java-regex means "any characters")
+   * @author rhein
+   */
+  static class MatchLabelRegEx extends ObserverBoolExpr {
+    String pattern;
+    public MatchLabelRegEx(String pPattern) {
+      super();
+      pattern = pPattern;
+    }
+    @Override
+    MaybeBoolean eval(ObserverExpressionArguments pArgs) {
+      CFANode successorNode = pArgs.getCfaEdge().getSuccessor();
+      if (successorNode instanceof CFALabelNode) {
+        String label = ((CFALabelNode)successorNode).getLabel(); 
+        if (label.toLowerCase().matches(pattern)) {
+          return MaybeBoolean.TRUE;
+        } else {
+          return MaybeBoolean.FALSE;
+        } 
+      } else {
+        return MaybeBoolean.FALSE;
+      }
+    }
+  }
   
   /**
    * This is a efficient implementation of the ASTComparison (it caches the generated ASTs for the pattern).

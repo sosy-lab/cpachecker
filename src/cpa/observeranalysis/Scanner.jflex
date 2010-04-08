@@ -74,6 +74,7 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
 <YYINITIAL> "STATE"             { return symbol("STATE", ObserverSym.STATE); }
 <YYINITIAL> "ASSERT"            { return symbol("ASSERT", ObserverSym.ASS); }
 <YYINITIAL> "MATCH"             { return symbol("MATCH", ObserverSym.MATCH); }
+<YYINITIAL> "LABEL"             { return symbol("LABEL", ObserverSym.LABEL); }
 <YYINITIAL> "CHECK"             { return symbol("CHECK", ObserverSym.CHECK); }
 <YYINITIAL> "DO"                { return symbol("DO", ObserverSym.DO); }
 <YYINITIAL> "GOTO"              { return symbol("GOTO", ObserverSym.GOTO); }

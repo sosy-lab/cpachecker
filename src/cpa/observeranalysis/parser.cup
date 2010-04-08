@@ -45,7 +45,7 @@ parser code {:
 
 
 
-terminal EXCLAMATION, AND, OR, ARROW, SEMICOLON, COLON, OPEN_BRACKETS, CLOSE_BRACKETS, AUTOMATON, LOCAL, INITIAL, STATE, ASS, MATCH, CHECK, DO, PRINT, GOTO, IDENTIFIER, INTEGER_LITERAL, NEQ, EQ, EQEQ, PLUS, MINUS, TRUE, FALSE, STRING_LITERAL, CURLYEXPR, SQUAREEXPR ;
+terminal EXCLAMATION, AND, OR, ARROW, SEMICOLON, COLON, OPEN_BRACKETS, CLOSE_BRACKETS, AUTOMATON, LOCAL, INITIAL, STATE, ASS, MATCH, LABEL, CHECK, DO, PRINT, GOTO, IDENTIFIER, INTEGER_LITERAL, NEQ, EQ, EQEQ, PLUS, MINUS, TRUE, FALSE, STRING_LITERAL, CURLYEXPR, SQUAREEXPR ;
 
 non terminal ObserverAutomaton initial ;
 non terminal String Naming, InitDef ;
@@ -153,6 +153,8 @@ Trigger   ::= MATCH STRING_LITERAL:lit
               {: RESULT = new ObserverBoolExpr.MatchCFAEdgeASTComparison(expr.toString()); :} 
             | MATCH SQUAREEXPR:expr
               {: RESULT = new ObserverBoolExpr.MatchCFAEdgeRegEx(expr.toString()); :}
+            | MATCH LABEL SQUAREEXPR:expr
+              {: RESULT = new ObserverBoolExpr.MatchLabelRegEx(expr.toString()); :}
             | CHECK OPEN_BRACKETS IDENTIFIER:cpa OPEN_BRACKETS STRING_LITERAL:query CLOSE_BRACKETS CLOSE_BRACKETS
               {: RESULT = new ObserverBoolExpr.CPAQuery(cpa.toString(), query.toString()); :}
             ;  

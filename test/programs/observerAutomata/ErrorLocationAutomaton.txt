@@ -1,0 +1,19 @@
+AUTOMATON ErrorLocationAutomaton
+// This Automaton replaces the ErrorLocationCPA. It detects error locations that were defined in the sourcecode. 
+
+/* The ErrorLocationCPA had 3 triggers.
+ * The Trigger "(CFAEdge.CFASuccessor instanceOf CFAErrorNode)" could not be implemented in this automaton.
+ */
+
+INITIAL STATE Init;
+
+STATE Init : 
+  // label of the next CFA state starts with "error"
+  MATCH LABEL [error.*]
+  // call of assert_fail without arguments
+  || MATCH {__assert_fail()}
+  // call of assert_fail with any (>0) number of arguments
+  || MATCH {__assert_fail($?)}
+  
+  -> GOTO ERR; 
+  
