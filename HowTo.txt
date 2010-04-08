@@ -17,63 +17,48 @@ Building CPAchecker:
    Or contact Michael Tautschnig <tautschnig@forsyte.de> to
    obtain patches to make it work and compile with 1.5
    (may show degraded performance, though).
-2. Install Eclipse 3.3, 3.4 or 3.5
+2. Checkout CPAchecker from SVN repository.
+   URL: http://svn.sosy-lab.org/software/cpachecker/trunk
+3. Install ant (anything since version 1.6 should be ok).
+4. Run "ant" in CPAchecker directory to build CPAchecker.
+
+Running CPAchecker:
+-------------------
+5. Choose a configuration file and a source code file
+   Example: test/config/explicitAnalysisInf.properties
+            test/programs/simple/loop1.c
+   Check that the configuration file does not contain any non-existent paths 
+6. Execute "scripts/cpa.sh -config <CONFIG_FILE> <SOURCE_FILE>"
+
+Running test cases:
+-------------------
+7. Install ant-junit.jar (on Debian/Ubuntu you need the package ant-optional).
+8. Run "ant tests" from the project root directory. The output (including the test
+   results) will be in test/output/.
+
+Building and running CPAchecker from within Eclipse:
+----------------------------------------------------  
+1. Install Eclipse 3.3, 3.4 or 3.5 with JDT.
    http://www.eclipse.org/
-3. You need the JDT and the "Eclipse Plug-in Development Environment" package (PDE).
-4. Install the C/C++ Development Kit for your Eclipse version
+2. Install the C/C++ Development Kit for your Eclipse version
    (tested with CDT 4.0 and CDT 6.0).   
    Or contact Michael Tautschnig <tautschnig@forsyte.de> to
    obtain patches to make it work with CDT 5
    You need to install only the "Eclipse C/C++ Development Tools SDK" package.
-
-For building in Eclipse:
-5. You need an SVN plugin for Eclipse, e.g. SubClipse (http://subclipse.tigris.org/).
+3. You need an SVN plugin for Eclipse, e.g. SubClipse (http://subclipse.tigris.org/).
    Create new project from SVN repository
    URL: http://svn.sosy-lab.org/software/cpachecker/trunk
-6. If you need the parser and scanner classes or you want to remove the compiler
+4. If you need the parser and scanner classes or you want to remove the compiler
    errors shown by Eclipse, run "ant build-subprojects" in the project directory.
-
-For building with Ant:
-5. Install ant (anything since version 1.6 should be ok).
-6. Set the environment variable ECLIPSE_HOME to the directory where
-   your eclipse is installed (the one that contains the plugins directory)
-   and run ant from the project root directory.
-
-Running CPAchecker:
--------------------
-7. Choose a configuration file and a source code file
-   Example: test/config/explicitAnalysisInf.properties
-            test/programs/simple/loop1.c
-   Check that the configuration file does not contain any non-existent paths 
-
-Running it from Eclipse:
-8. Create a run configuration with main class "cmdline.CPAMain", 
+5. Create a run configuration with main class "cmdline.CPAMain", 
    program arguments "-config <CONFIG_FILE> <SOURCE_FILE>", and
    VM arguments "-Djava.library.path=lib/native/<ENVIRONMENT>" 
    specifying your environment for the library path. 
    Settings for <ENVIRONMENT>: 
    		ppc-macosx, x86_64-linux, x86-linux, x86-macosx,  x86-win32
 
-Running it from command line:
-8. Execute "scripts/cpa.sh -config <CONFIG_FILE> <SOURCE_FILE>"
-   If your Eclipse is not installed to ~/eclipse, /opt/eclipse or ~/Desktop/eclipse,
-   you need to set the environment variable ECLIPSE_HOME to the directory where
-   your eclipse is installed (the one that contains the plugins directory).
-
-Running test cases:
--------------------
-9.  Install ant and ant-junit.jar (on Debian/Ubuntu you need the package ant-optional).
-10. Set the environment variable ECLIPSE_HOME as described under "building with Ant"
-11. Run "ant tests" from the project root directory. The output (including the test
-    results) will be in test/output/.
-
 Troubleshooting:
 ----------------
-- Imports starting with org.eclipse are not recognized.
-  Errors "Project 'CPAChecker (svn trunk)' is missing required library: 'bin/'" and
-  		 "The Project cannot be built until build path errors are resolved" occur.
-  Solution: Double-check PDE is installed (see step 2).
-  			This renders manually inserting the respective .jar files unnecessary.
 - Libraries are missing.
   Error (example): "libgmpxx.so.4: cannot open shared object file: No such file or directory"
   Solution: Install the missing library ('libgmpxx4ldbl' in this case on debian/ubuntu systems)
