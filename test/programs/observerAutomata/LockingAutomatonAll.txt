@@ -6,19 +6,19 @@ INITIAL STATE Init;
 
 STATE Init : 
   MATCH  { x = $?; } -> GOTO ERR;
-  MATCH [init\(\)]   MATCH "init()"   MATCH { init(); }  -> GOTO Unlocked;
+  MATCH [init\(\)] && MATCH "init()" &&  MATCH { init(); }  -> GOTO Unlocked;
   MATCH { lock($?); }  -> GOTO ERR;
   MATCH { unlock($?); } -> GOTO ERR;
  
 STATE Locked : 
   MATCH  { x = $?; } -> GOTO Locked; // unnecessary line
-  MATCH [init\(\)]   MATCH "init()"   MATCH { init(); }  ->  GOTO ERR;
+  MATCH [init\(\)] &&  MATCH "init()" &&  MATCH { init(); }  ->  GOTO ERR;
   MATCH { lock($?); }  ->  GOTO ERR;
   MATCH { unlock($?); }  -> GOTO Unlocked;
  
 STATE Unlocked : 
   MATCH  { x = $?; } -> GOTO ERR;
-  MATCH [init\(\)]   MATCH "init()"   MATCH { init(); }  ->  GOTO ERR;
+  MATCH [init\(\)] &&  MATCH "init()" &&  MATCH { init(); }  ->  GOTO ERR;
   MATCH { lock($?); }  -> GOTO Locked;
   MATCH { unlock($?); }  -> GOTO ERR;
  
