@@ -21,10 +21,7 @@ int main() {
      goto ERROR;
   }
   else {}
-
-  int *ptr = null;
-  free(ptr);
-
+  
   return (0);
   ERROR:
   return (-1);

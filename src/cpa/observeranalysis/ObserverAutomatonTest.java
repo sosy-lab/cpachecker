@@ -35,7 +35,7 @@ public class ObserverAutomatonTest {
      String strOSName = System.getProperty("os.name");
      if (strOSName != null) {
        if (strOSName.toLowerCase().indexOf("windows") != -1)
-         commandLine = "scripts\\cpa.bat "; // windows
+         commandLine = "cmd.exe /c scripts\\cpa.bat "; // windows
        else
          commandLine = "scripts/cpa.sh "; // not windows, assume unix
      }
@@ -144,8 +144,8 @@ public class ObserverAutomatonTest {
     cmd.append(" " + pSourceCodeFilePath);
 
     try {
-      //System.out.println("cmd.exe /c " + this.commandLine + " " + cmd);
-      Process proc = Runtime.getRuntime().exec("cmd.exe /c " + this.commandLine + " " + cmd);
+      //System.out.println(this.commandLine + " " + cmd);
+      Process proc = Runtime.getRuntime().exec(this.commandLine + " " + cmd);
       
       BufferedReader out = new BufferedReader(new InputStreamReader(proc.getInputStream()));
       BufferedReader err = new BufferedReader(new InputStreamReader(proc.getErrorStream()));
