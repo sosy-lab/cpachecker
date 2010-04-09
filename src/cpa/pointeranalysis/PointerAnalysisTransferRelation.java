@@ -50,7 +50,6 @@ import org.eclipse.cdt.core.dom.ast.IASTNode;
 import org.eclipse.cdt.core.dom.ast.IASTPointerOperator;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTUnaryExpression;
-import org.omg.PortableInterceptor.SUCCESSFUL;
 
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.c.AssumeEdge;
