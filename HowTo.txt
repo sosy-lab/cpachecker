@@ -1,7 +1,8 @@
 CPAchecker Installation Requirements
 
 Requirements for executing CPAchecker:
-0. Sources have to be preprocessed by CIL (http://hal.cs.berkeley.edu/cil/).
+0. Sources have to be preprocessed by CIL 
+   (http://hal.cs.berkeley.edu/cil/, mirror at http://www.cs.berkeley.edu/~necula/cil/).
    Necessary flags: 
    --dosimplify --printCilAsIs --save-temps --domakeCFG
    Possibly necessary flags:
