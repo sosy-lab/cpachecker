@@ -4,11 +4,12 @@
 :parameterparsing
 if "%1"=="" goto weiter
 set params=%params% %1
+:: SHIFT shifts through the parameters of this batch file (%2 will be %1,...)
 SHIFT
 goto parameterparsing 
 :weiter
 
-:: goto dir "CPAchecker"
+:: go to dir "CPAchecker" (assuming we are in dir "CPAchecker" or in a direct subdirectory)
 if NOT EXIST bin CD ..\
 
 :: build the Classpath: bin directory, every .jar in lib and every .jar in lib/eclipse/ 
