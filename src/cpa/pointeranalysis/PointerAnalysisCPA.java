@@ -100,7 +100,7 @@ public class PointerAnalysisCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public AbstractElement getInitialElement(CFAFunctionDefinitionNode pNode) {
-    return new PointerAnalysisElement();
+    return new PointerAnalysisElement(pNode.getFunctionName());
   }
 
   @Override

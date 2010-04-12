@@ -87,7 +87,7 @@ public class PointerAnalysisElement implements AbstractQueryableElement, Memory,
    *        and ASTNode is the shift operand   
    */
 
-  public PointerAnalysisElement() {
+  public PointerAnalysisElement(String entryFunction) {
     stack = new HashMap<String, Map<String, Pointer>>();
     heap = new HashMap<MemoryAddress, Pointer>();
     mallocs = new HashSet<MemoryRegion>();
@@ -96,7 +96,7 @@ public class PointerAnalysisElement implements AbstractQueryableElement, Memory,
     tempTracked = new HashSet<PointerLocation>();
 
     stack.put("", new HashMap<String, Pointer>());
-    callFunction("main");
+    callFunction(entryFunction);
   }
 
   private PointerAnalysisElement(final Map<String, Map<String, Pointer>> stack,
