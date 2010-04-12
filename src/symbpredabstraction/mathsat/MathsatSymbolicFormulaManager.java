@@ -53,6 +53,7 @@ import org.eclipse.cdt.core.dom.ast.IASTInitializer;
 import org.eclipse.cdt.core.dom.ast.IASTInitializerExpression;
 import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
 import org.eclipse.cdt.core.dom.ast.IASTNamedTypeSpecifier;
+import org.eclipse.cdt.core.dom.ast.IASTNode;
 import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTTypeIdExpression;
@@ -61,8 +62,6 @@ import org.eclipse.cdt.core.dom.ast.IBinding;
 import org.eclipse.cdt.core.dom.ast.IPointerType;
 import org.eclipse.cdt.core.dom.ast.IType;
 import org.eclipse.cdt.core.dom.ast.ITypedef;
-
-import com.google.common.base.Preconditions;
 
 import symbpredabstraction.PathFormula;
 import symbpredabstraction.SSAMap;
@@ -79,6 +78,7 @@ import cfa.objectmodel.c.FunctionDefinitionNode;
 import cfa.objectmodel.c.GlobalDeclarationEdge;
 import cfa.objectmodel.c.StatementEdge;
 
+import com.google.common.base.Preconditions;
 import common.Pair;
 import common.configuration.Configuration;
 import common.configuration.Option;
@@ -175,8 +175,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
   private Map<Long, Long> replaceAssignmentsCache;
   private Map<Long, Integer> neededTheories;
 
-  private Set<IASTExpression> warnedUnsafeVars =
-    new HashSet<IASTExpression>();
+  private Set<String> printedWarnings = new HashSet<String>();
 
   // set of functions that can be lvalues
   private Set<String> lvalueFunctions;
@@ -478,7 +477,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
 
       if (spec instanceof IASTCompositeTypeSpecifier) {
         // this is the declaration of a struct, just ignore it...
-        warn("IGNORING declaration: " + declarationEdge.getRawStatement());
+        log(Level.ALL, "Ignoring declaration", spec);
         return new PathFormula(m1, newssa);
       } else {
         throw new UnrecognizedCFAEdgeException(
@@ -488,7 +487,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     }
 
     if (spec.getStorageClass() == IASTDeclSpecifier.sc_typedef) {
-      warn("IGNORING typedef: " + declarationEdge.getRawStatement());
+      log(Level.ALL, "Ignoring typedef", spec);
       return new PathFormula(m1, newssa);
     }
 
@@ -522,8 +521,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         if (!(init instanceof IASTInitializerExpression)) {
 //        throw new UnrecognizedCFAEdgeException(
 //        "BAD INITIALIZER: " + edge.getRawStatement());
-          warn("UNSUPPORTED INITIALIZER: " +
-              declarationEdge.getRawStatement() + ", ignoring it!");
+          log(Level.ALL, "Ingoring unsupported initializer", init);
           continue;
         }
         IASTExpression exp =
@@ -535,8 +533,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         m1 = new MathsatSymbolicFormula(t);
       } else if (spec.getStorageClass() ==
         IASTDeclSpecifier.sc_extern) {
-        warn("NOT initializing, because extern declaration: " +
-            declarationEdge.getRawStatement());
+        log(Level.ALL, "Ignoring initializer of extern declaration", d);
       } else if (isGlobal || initAllVars) {
         // auto-initialize variables to zero, unless they match
         // the noAutoInitPrefix pattern
@@ -586,7 +583,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
             fn.getFunctionDefinition().getRawSignature());
       }
       if (param.getDeclarator().getPointerOperators().length != 0) {
-        warn("Ignoring the semantics of pointer for parameter: " +
+        logger.log(Level.WARNING, "Ignoring the semantics of pointer for parameter: " +
             param.getDeclarator().getName().toString() +
             " in function: " + fn.getFunctionName());
       }
@@ -619,8 +616,14 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         new MathsatSymbolicFormula(term), ssa);
   }
 
-  private void warn(String msg) {
-    logger.log(Level.ALL, "DEBUG_2", "WARNING:", msg);
+  private void log(Level level, String msg, IASTNode astNode) {
+    msg = "Line " + astNode.getFileLocation().getStartingLineNumber()
+        + ": " + msg
+        + ": " + astNode.getRawSignature();
+    
+    if (!printedWarnings.add(msg)) {
+      logger.log(level, 1, msg);
+    }
   }
 
   private PathFormula makeAndExitFunction(
@@ -700,7 +703,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       for (IASTParameterDeclaration param : formalParams) {
         long arg = msatActualParams[i++];
         if (param.getDeclarator().getPointerOperators().length != 0) {
-          warn("Ignoring the semantics of pointer for paramenter: " +
+          logger.log(Level.WARNING, "Ignoring the semantics of pointer for parameter: " +
               param.getDeclarator().getName().toString() +
               " in function: " + fn.getFunctionName());
         }
@@ -1426,12 +1429,10 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     IASTExpression fn = fexp.getFunctionNameExpression();
     String func;
     if (fn instanceof IASTIdExpression) {
-      logger.log(Level.INFO, "External function call " + fn.getRawSignature()
-          + " encountered, assuming it is a pure function!");
+      log(Level.INFO, "Assuming external function to be a pure function", fn);
       func = ((IASTIdExpression)fn).getName().getRawSignature();
     } else {
-      logger.log(Level.WARNING, "Function call through function pointer " +
-          fexp.getRawSignature() + " encountered, assuming it is a pure function!");
+      log(Level.WARNING, "Ignoring function call through function pointer", fexp);
       func = "<func>{" + fn.getRawSignature() + "}";
     }
     
@@ -1469,11 +1470,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
   }
 
   private void warnUnsafeVar(IASTExpression exp) {
-    if (!warnedUnsafeVars.contains(exp)) {
-      warnedUnsafeVars.add(exp);
-      logger.log(Level.WARNING, "unhandled expression",
-          exp.getRawSignature(), "- treating as a free variable!");
-    }
+    log(Level.WARNING, "Unhandled expression treated as free variable", exp);
   }
 
   // create a binary uninterpreted function for the unsupported operation "op"
@@ -1597,8 +1594,8 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         // i.e. an expression that gets assigned to nothing. Since
         // we don't handle side-effects, this means that the
         // expression has no effect, and we can just drop it
-        warn("statment " + stmt.getRawStatement() +
-        " has no effect, dropping it!");
+        log(Level.INFO, "Statement is assumed to be side-effect free, but its return value is not used",
+            stmt.getExpression());
         return new PathFormula(f1, ssa);
       }
       long a = mathsat.api.msat_make_and(msatEnv, f1.getTerm(), f2);
