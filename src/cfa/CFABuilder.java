@@ -29,8 +29,10 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 
 import org.eclipse.cdt.core.dom.ast.ASTVisitor;
+import org.eclipse.cdt.core.dom.ast.IASTASMDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTBreakStatement;
 import org.eclipse.cdt.core.dom.ast.IASTCaseStatement;
 import org.eclipse.cdt.core.dom.ast.IASTCompoundStatement;
@@ -210,7 +212,20 @@ public class CFABuilder extends ASTVisitor
 		  // Either insert the following macro before compiling with CIL:
 		  // #define  __attribute__(x)  /*NOTHING*/
 		  // or insert "parser.dialect = GNUC" into properties file
-		  visit(((IASTProblemDeclaration)declaration).getProblem());		
+		  visit(((IASTProblemDeclaration)declaration).getProblem());
+		  
+		} else if (declaration instanceof IASTASMDeclaration) {
+		  // TODO Assembler code is ignored here
+		  logger.log(Level.WARNING, "Ignoring inline assembler code at line " + fileloc.getStartingLineNumber() + ", analysis is probably unsound!");
+		  
+		  CFANode prevNode = locStack.pop();
+		  CFANode nextNode = new CFANode(fileloc.getStartingLineNumber());
+		  
+		  BlankEdge edge = new BlankEdge("Ignored inline assembler code", prevNode, nextNode);
+		  edge.addToCFA();
+		  
+		  locStack.push(nextNode);
+		  
 		} else {
       throw new CFAGenerationRuntimeException("Unknown declaration type " + declaration.getClass().getSimpleName(),  declaration);
 		}
