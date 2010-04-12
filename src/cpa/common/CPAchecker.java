@@ -395,6 +395,8 @@ public class CPAchecker {
       // only log message, not whole exception because this is a C problem,
       // not a CPAchecker problem
       logger.log(Level.SEVERE, e.getMessage());
+      logger.log(Level.INFO, "Make sure that the code was preprocessed using Cil (HowTo.txt).\n"
+      		+ "If the error still occurs, please send this error message together with the input file to cpachecker-users@sosy-lab.org.");
       System.exit(0);
     }
     final Map<String, CFAFunctionDefinitionNode> cfas = builder.getCFAs();
