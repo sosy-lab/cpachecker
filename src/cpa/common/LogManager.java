@@ -220,6 +220,16 @@ public class LogManager {
    * @param args the message (can be an arbitrary number of objects containing any information), will be concatenated by " "
    */
   public void log(Level priority, Object... args) {
+    log(priority, 0, args);
+  }
+
+  /**
+   * Logs any message occurring during program execution.
+   * @param priority the log level for the message
+   * @param callStackOffset how many frames two ignore on call stack (useful for helper methods)
+   * @param args the message (can be an arbitrary number of objects containing any information), will be concatenated by " "
+   */
+  public void log(Level priority, int callStackOffset, Object... args) {
 
     //Since some toString() methods may be rather costly, only log if the level is 
     //sufficiently high. 
@@ -235,8 +245,10 @@ public class LogManager {
       
       LogRecord record = new LogRecord(priority, messageFormat.join(argsStr));
       StackTraceElement[] trace = Thread.currentThread().getStackTrace();
-      record.setSourceClassName(trace[2].getFileName());
-      record.setSourceMethodName(trace[2].getMethodName());
+      callStackOffset += 2; // add 2 for this method and the getStackTrace method
+      
+      record.setSourceClassName(trace[callStackOffset].getFileName());
+      record.setSourceMethodName(trace[callStackOffset].getMethodName());
 
       if (priority.intValue() >= logLevel.intValue()
           && !excludeLevelsFile.contains(priority)) {
