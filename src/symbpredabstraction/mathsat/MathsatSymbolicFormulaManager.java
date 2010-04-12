@@ -1424,14 +1424,22 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
   private long buildMsatTermExternalFunctionCall(
       IASTFunctionCallExpression fexp, SSAMap ssa) {
     IASTExpression fn = fexp.getFunctionNameExpression();
+    String func;
+    if (fn instanceof IASTIdExpression) {
+      logger.log(Level.INFO, "External function call " + fn.getRawSignature()
+          + " encountered, assuming it is a pure function!");
+      func = ((IASTIdExpression)fn).getName().getRawSignature();
+    } else {
+      logger.log(Level.WARNING, "Function call through function pointer " +
+          fexp.getRawSignature() + " encountered, assuming it is a pure function!");
+      func = "<func>{" + fn.getRawSignature() + "}";
+    }
+    
     IASTExpression pexp = fexp.getParameterExpression();
-    logger.log(Level.ALL, "External function call " + fn.getRawSignature()
-        + " encountered, assuming it has no side effects!");
     if (pexp == null) {
       // this is a function of arity 0. We create a fresh global variable
       // for it (instantiated at 1 because we need an index but it never
       // increases)
-      String func = ((IASTIdExpression)fn).getName().getRawSignature();
       globalVars.add(func);
       return buildMsatVariable(func, 1);
     } else {
@@ -1451,14 +1459,6 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         }
       }
 
-      String func = null;
-      if (fn instanceof IASTIdExpression) {
-        func = ((IASTIdExpression)fn).getName().getRawSignature();
-      } else {
-        warn("External call through function pointer!: " +
-            fexp.getRawSignature());
-        func = "<func>{" + fn.getRawSignature() + "}";
-      }
       long d = mathsat.api.msat_declare_uif(msatEnv, func, msatVarType,
           tp.length, tp);
       if (mathsat.api.MSAT_ERROR_DECL(d)) {
