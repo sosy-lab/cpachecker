@@ -221,36 +221,36 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       throws CPATransferException {
 
     PointerAnalysisElement successor = ((PointerAnalysisElement)element).clone();
+    if (successor.isError()) {
+      return Collections.emptySet();
+    }
+    
     successor.setCurrentEdge(cfaEdge);
+    successor.clearProperties();
 
     try {
       switch (cfaEdge.getEdgeType()) {
 
       case DeclarationEdge:
-        successor.clearProperties();
         handleDeclaration(successor, (DeclarationEdge)cfaEdge);
         break;
 
       case StatementEdge:
-        successor.clearProperties();
         handleStatement(successor, ((StatementEdge)cfaEdge).getExpression(),
                                                       (StatementEdge)cfaEdge);
         break;
 
       case AssumeEdge:
-        successor.clearProperties();
         AssumeEdge assumeEdge = (AssumeEdge)cfaEdge;
         handleAssume(successor, assumeEdge.getExpression(),
                 assumeEdge.getTruthAssumption(), assumeEdge);
         break;
 
       case FunctionCallEdge:
-        successor.clearProperties();
         handleFunctionCall(successor, cfaEdge);
         break;
 
       case ReturnEdge:
-        successor.clearProperties();
         // now handle the complete a = func(x) statement in the CallToReturnEdge
         ReturnEdge returnEdge = (ReturnEdge)cfaEdge;
         CallToReturnEdge ctrEdge = returnEdge.getSuccessor().getEnteringSummaryEdge();
@@ -266,7 +266,12 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
 
     } catch (InvalidPointerException e) {
       addError(e.getMessage(), cfaEdge);
-      return Collections.emptySet();
+      successor.setError(true);
+      //assert that at least one flag is set
+      if (successor.getProperties().isEmpty()) {
+        logger.log(Level.WARNING, "InvalidPointerException thrown but no Flag set");
+      }
+      return Collections.singleton(successor);
 
     } catch (UnreachableStateException e) {
       return Collections.emptySet();
@@ -802,7 +807,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       if (!success) {
         // all targets fail
         // elevate the above warnings to an error
-        element.addProperty(ElementProperty.USING_INVALID_POINTER);
+        element.addProperty(ElementProperty.INVALID_FREE);
         throw new InvalidPointerException("Free of pointer " + p.getLocation()
             + " = " + p
             + " is impossible to succeed (all targets lead to errors)");

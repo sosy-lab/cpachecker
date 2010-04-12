@@ -3,6 +3,7 @@ package cpa.observeranalysis;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.logging.Level;
 
 import cfa.objectmodel.CFAEdge;
 import cpa.common.LogManager;
@@ -55,7 +56,13 @@ class ObserverTransferRelation implements TransferRelation {
     if (! (pElement instanceof ObserverUnknownState))
       return null;
     else {
-      return ((ObserverUnknownState)pElement).strengthen(new ObserverExpressionArguments(null, pOtherElements, pCfaEdge, logger));
+      Collection<ObserverState> newStates = ((ObserverUnknownState)pElement).strengthen(new ObserverExpressionArguments(null, pOtherElements, pCfaEdge, logger));
+      for (ObserverState s : newStates) {
+        if (s.equals(ObserverState.TOP)) {
+          logger.log(Level.WARNING, "Following ObserverState could not be determined, ObserverAnalysis will not be available during the rest of this path");
+        }
+      }
+      return newStates;
     }
   }
 }

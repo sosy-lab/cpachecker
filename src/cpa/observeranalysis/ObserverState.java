@@ -171,7 +171,7 @@ class ObserverState implements AbstractElement {
       return false;
     }
 
-    public Collection<? extends AbstractElement> strengthen(ObserverExpressionArguments exprArgs) {
+    public Collection<ObserverState> strengthen(ObserverExpressionArguments exprArgs) {
       exprArgs.setObserverVariables(previousState.vars);
       ObserverState ret = previousState.getFollowState(exprArgs);
       if (ret instanceof ObserverUnknownState) {

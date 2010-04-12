@@ -54,9 +54,13 @@ public class PointerAnalysisElement implements AbstractQueryableElement, Memory,
 
   private CFAEdge                                              currentEdge             =
                                                                                            null;
-
+  /**
+   * true if this AbstractElement represents an error state
+   */
+  private boolean error = false;
+  
   static enum ElementProperty {DOUBLE_FREE, NO_MEMORY_LEAK,
-    MEMORY_LEAK, UNSAFE_DEREFERENCE, POTENTIALLY_UNSAFE_DEREFERENCE, USING_INVALID_POINTER}
+    MEMORY_LEAK, UNSAFE_DEREFERENCE, POTENTIALLY_UNSAFE_DEREFERENCE, INVALID_FREE}
   private Set<ElementProperty> properties = EnumSet.noneOf(ElementProperty.class); // emptySet
   
   private final Map<String, Map<String, Pointer>>              stack;
@@ -221,6 +225,13 @@ public class PointerAnalysisElement implements AbstractQueryableElement, Memory,
    */
   void addProperty(ElementProperty pProp) {
     this.properties.add(pProp);
+  }
+  /**
+   * Returns all properties set for this element.
+   * @return
+   */
+  Set<ElementProperty> getProperties() {
+    return this.properties;
   }
   /**
    * Removes all property of this element
@@ -965,7 +976,7 @@ public class PointerAnalysisElement implements AbstractQueryableElement, Memory,
 
   @Override
   public boolean isError() {
-    return false;
+    return this.error;
   }
 
   @Override
@@ -1040,5 +1051,9 @@ public class PointerAnalysisElement implements AbstractQueryableElement, Memory,
   @Override
   public String getCPAName() {
     return "PointerAnalysis";
+  }
+  
+  public void setError(boolean pError) {
+    this.error = pError;
   }
 }
