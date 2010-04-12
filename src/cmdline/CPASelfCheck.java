@@ -118,7 +118,7 @@ public class CPASelfCheck {
         }
         assert(cpaInst != null);
         
-        CFAFunctionDefinitionNode main = createCFA(cpachecker);
+        CFAFunctionDefinitionNode main = createCFA(cpachecker, logManager);
        
         try {
           cpaInst.getInitialElement(main);
@@ -148,7 +148,7 @@ public class CPASelfCheck {
     }
   }
   
-  private static CFAFunctionDefinitionNode createCFA(CPAchecker cpachecker) throws IOException, UnsupportedDialectException {
+  private static CFAFunctionDefinitionNode createCFA(CPAchecker cpachecker, LogManager logManager) throws IOException, UnsupportedDialectException {
     File lFile = File.createTempFile("dummy", ".c");
     lFile.deleteOnExit();
        
@@ -170,7 +170,7 @@ public class CPASelfCheck {
     IASTTranslationUnit ast = cpachecker.parse(currentFile);
 
     // TODO use the methods from CPAMain for this?
-    CFABuilder builder = new CFABuilder();
+    CFABuilder builder = new CFABuilder(logManager);
     ast.accept(builder);
     Map<String, CFAFunctionDefinitionNode> cfas = builder.getCFAs();
     return cfas.get("main");

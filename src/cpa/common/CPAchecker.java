@@ -388,7 +388,7 @@ public class CPAchecker {
   protected Pair<Map<String, CFAFunctionDefinitionNode>, CFAFunctionDefinitionNode> createCFA(IASTTranslationUnit ast) {
 
     // Build CFA
-    final CFABuilder builder = new CFABuilder();
+    final CFABuilder builder = new CFABuilder(logger);
     try {
       ast.accept(builder);
     } catch (CFAGenerationRuntimeException e) {

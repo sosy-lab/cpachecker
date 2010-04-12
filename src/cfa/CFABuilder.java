@@ -67,6 +67,7 @@ import cfa.objectmodel.c.AssumeEdge;
 import cfa.objectmodel.c.DeclarationEdge;
 import cfa.objectmodel.c.FunctionDefinitionNode;
 import cfa.objectmodel.c.StatementEdge;
+import cpa.common.LogManager;
 import exceptions.CFAGenerationRuntimeException;
 
 /**
@@ -98,8 +99,11 @@ public class CFABuilder extends ASTVisitor
 	// Data structure for storing global declarations
 	private List<IASTDeclaration> globalDeclarations;
 
-	public CFABuilder ()
-	{
+	private final LogManager logger;
+	
+	public CFABuilder (LogManager logger) {
+	  this.logger = logger;
+	  
 		//shouldVisitComments = false;
 		shouldVisitDeclarations = true;
 		shouldVisitDeclarators = false;
