@@ -127,17 +127,6 @@ public interface SymbolicFormulaManager {
     public Pair<Pair<SymbolicFormula, SymbolicFormula>, SSAMap> mergeSSAMaps(
             SSAMap ssa1, SSAMap ssa2);
 
-
-    /**
-     * checks whether this f1 logically entails f2
-     * @param f1 a SymbolicFormula
-     * @param f2 a SymbolicFormula
-     * @return true if (f1 |= f2), false otherwise
-     */
-    public boolean entails(SymbolicFormula f1, SymbolicFormula f2);
-    public boolean entails(SymbolicFormula f1, SymbolicFormula f2,
-                           TheoremProver thmProver);
-
     /**
      * Given a formula that uses "generic" variables, returns the corresponding
      * one that "instantiates" such variables according to the given SSA map.

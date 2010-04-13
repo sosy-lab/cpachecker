@@ -67,7 +67,6 @@ import symbpredabstraction.PathFormula;
 import symbpredabstraction.SSAMap;
 import symbpredabstraction.interfaces.SymbolicFormula;
 import symbpredabstraction.interfaces.SymbolicFormulaManager;
-import symbpredabstraction.interfaces.TheoremProver;
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFANode;
 import cfa.objectmodel.c.AssumeEdge;
@@ -259,48 +258,6 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     
     return mathsat.api.msat_to_msat(msatEnv, m.getTerm());
   }
-  
-  public boolean entails(SymbolicFormula f1, SymbolicFormula f2) {
-    MathsatSymbolicFormula m1 = (MathsatSymbolicFormula)f1;
-    MathsatSymbolicFormula m2 = (MathsatSymbolicFormula)f2;
-
-    // create a temporary environment for checking the implication
-    long env = mathsat.api.msat_create_env();
-    mathsat.api.msat_add_theory(env, mathsat.api.MSAT_UF);
-    if (useIntegers) {
-      mathsat.api.msat_add_theory(env, mathsat.api.MSAT_LIA);
-      int ok = mathsat.api.msat_set_option(env, "split_eq", "true");
-      assert(ok == 0);
-    } else {
-      mathsat.api.msat_add_theory(env, mathsat.api.MSAT_LRA);
-    }
-    mathsat.api.msat_set_theory_combination(env, mathsat.api.MSAT_COMB_DTC);
-
-    long t1 = mathsat.api.msat_make_copy_from(env, m1.getTerm(), msatEnv);
-    long t2 = mathsat.api.msat_make_copy_from(env, m2.getTerm(), msatEnv);
-    long imp = mathsat.api.msat_make_implies(env, t1, t2);
-    mathsat.api.msat_assert_formula(env,
-        mathsat.api.msat_make_not(env, imp));
-    int res = mathsat.api.msat_solve(env);
-
-    mathsat.api.msat_destroy_env(env);
-
-    boolean ret = (res == mathsat.api.MSAT_UNSAT);
-
-    return ret;
-  }
-
-  public boolean entails(SymbolicFormula f1, SymbolicFormula f2,
-      TheoremProver thmProver) {
-    SymbolicFormula toCheck = makeAnd(f1, makeNot(f2));
-    
-    thmProver.init(TheoremProver.ENTAILMENT_CHECK);
-    boolean ret = thmProver.isUnsat(toCheck);
-    thmProver.reset();
-
-    return ret;
-  }
-
 
   public SymbolicFormula makeNot(SymbolicFormula f) {
     MathsatSymbolicFormula m = (MathsatSymbolicFormula)f;
