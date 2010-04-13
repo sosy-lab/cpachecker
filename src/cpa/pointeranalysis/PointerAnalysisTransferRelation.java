@@ -792,7 +792,6 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
 
         } else if (target.isNull()) {
           // free(null) is allowed and does nothing!
-          element.addProperty(ElementProperty.DOUBLE_FREE);
           success = true;
           newTargets.add(Memory.NULL_POINTER);
           //addWarning("Freeing a NULL-pointer at " + p.getLocation() + " - no harm is done, but maybe check your code, if this pointer can hold non-NULL values at the time it's being freed", cfaEdge, target.toString());
@@ -824,7 +823,13 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
 
           && (freeMem != null)) {
 
-        element.free(freeMem.getRegion());
+        try {
+          element.free(freeMem.getRegion());
+        } catch (InvalidPointerException e) {
+          // intercept the Exception and add the DOUBLE_FREE flag, then throw again
+          element.addProperty(ElementProperty.DOUBLE_FREE);
+          throw e;
+        }
 
       }
 

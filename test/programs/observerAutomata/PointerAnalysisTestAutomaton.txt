@@ -6,8 +6,8 @@ AUTOMATON PointerAnalysisTestAutomaton
 INITIAL STATE Init;
 
 STATE Init : 
-  CHECK(PointerAnalysis("DOUBLE_FREE")) -> PRINT "Found a double Free" GOTO Init;
-  CHECK(PointerAnalysis("MemoryLeak")) -> PRINT "Found a Memory Leak" GOTO Init;
-  CHECK(PointerAnalysis("UNSAFE_DEREFERENCE")) -> PRINT "Found an UNSAFE_DEREFERENCE" GOTO Init;
-  CHECK(PointerAnalysis("POTENTIALLY_UNSAFE_DEREFERENCE")) -> PRINT "Found a POTENTIALLY_UNSAFE_DEREFERENCE" GOTO Init;
-  CHECK(PointerAnalysis("INVALID_FREE")) -> PRINT "Found an INVALID_FREE" GOTO Init;
+  CHECK(PointerAnalysis("DOUBLE_FREE")) -> PRINT "Found a DOUBLE_FREE" GOTO Init;
+  CHECK(PointerAnalysis("MemoryLeak")) -> PRINT "Observer: Found a Memory Leak" GOTO Init;
+  CHECK(PointerAnalysis("UNSAFE_DEREFERENCE")) -> PRINT "Observer: Found an UNSAFE_DEREFERENCE" GOTO Init;
+  CHECK(PointerAnalysis("POTENTIALLY_UNSAFE_DEREFERENCE")) -> PRINT "Observer: Found a POTENTIALLY_UNSAFE_DEREFERENCE" GOTO Init;
+  CHECK(PointerAnalysis("INVALID_FREE")) -> PRINT "Observer: Found an INVALID_FREE" GOTO Init;

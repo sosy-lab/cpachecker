@@ -62,6 +62,31 @@ public class ObserverAutomatonTest {
   
   
   @Test
+  public void pointerAnalyisTest() {
+    tearDown();
+    String prop = "CompositeCPA.cpas = cpa.location.LocationCPA, cpa.observeranalysis.ObserverAutomatonCPA, cpa.pointeranalysis.PointerAnalysisCPA \n " +
+        "observerAnalysis.inputFile =  test/programs/observerAutomata/PointerAnalysisTestAutomaton.txt \n " +
+        "log.consoleLevel = INFO \n" + 
+        "observerAnalysis.dotExportFile = " + OUTPUT_PATH + "observerAutomatonExport.dot \n" +
+        "analysis.stopAfterError = FALSE";  
+    try {
+      run(prop, "test/programs/simple/PointerAnalysisErrors.c");
+      FileTester et;
+      et = new FileTester(OutputFile.ERROR);
+      Assert.assertTrue(et.fileContains("Found a DOUBLE_FREE"));
+      Assert.assertTrue(et.fileContains("Found an INVALID_FREE"));
+      Assert.assertTrue(et.fileContains("Found a POTENTIALLY_UNSAFE_DEREFERENCE"));
+      Assert.assertTrue(et.fileContains("Found a Memory Leak"));
+      Assert.assertTrue(et.fileContains("Found an UNSAFE_DEREFERENCE"));
+    } catch (FileNotFoundException e) {
+      System.err.println("Observer Automaton test failed (File not found: " + e.getMessage() + ")");
+      Assert.fail();
+    } catch (TimeoutException e) {
+      Assert.fail("Timeout");
+    }
+  }
+  
+  @Test
   public void locking_correct() {
     tearDown();
     String prop = "CompositeCPA.cpas = cpa.location.LocationCPA, cpa.observeranalysis.ObserverAutomatonCPA \n " +
@@ -275,7 +300,7 @@ public class ObserverAutomatonTest {
     }
     
     boolean systemSafeConsole() {
-      return fileContains("NO, the system is safe");
+      return fileContains("NO, the system is considered safe");
     }
     boolean systemUnSafeConsole() {
       return fileContains("YES, there is a BUG!");
