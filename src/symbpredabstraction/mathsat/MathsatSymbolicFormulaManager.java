@@ -1450,6 +1450,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       } else {
         args = new IASTExpression[]{pexp};
       }
+      func += "{" + args.length + "}"; // add #arguments to function name to cope with varargs functions
       long[] mArgs = new long[args.length];
       int[] tp = new int[args.length];
       for (int i = 0; i < args.length; ++i) {
