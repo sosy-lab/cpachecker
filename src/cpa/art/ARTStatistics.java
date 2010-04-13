@@ -18,6 +18,7 @@ import common.configuration.Options;
 
 import cpa.common.LogManager;
 import cpa.common.ReachedElements;
+import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.Statistics;
 import cpa.symbpredabsCPA.SymbPredAbsAbstractElement;
 import exceptions.InvalidConfigurationException;
@@ -32,8 +33,14 @@ public class ARTStatistics implements Statistics {
   private String outputDirectory = "test/output/";
 
   @Option(name="ART.file")
-  private String outputFile = "ART.dot";
+  private String artFile = "ART.dot";
 
+  @Option(name="cpas.art.errorPath.export")
+  private boolean exportErrorPath = true;
+  
+  @Option(name="cpas.art.errorPath.file")
+  private String errorPathFile = "ErrorPath.txt";
+  
   private final LogManager logger;
   
   public ARTStatistics(Configuration config, LogManager logger) throws InvalidConfigurationException {
@@ -50,27 +57,48 @@ public class ARTStatistics implements Statistics {
   public void printStatistics(PrintWriter pOut, Result pResult,
       ReachedElements pReached) {
     if (exportART) {
-      dumpARTToDotFile(pReached, new File(outputDirectory, outputFile));
+      dumpARTToDotFile(pReached);
+    }
+    
+    if (exportErrorPath) {
+      AbstractElement lastElement = pReached.getLastElement();
+      if (lastElement != null && lastElement.isError() && (lastElement instanceof ARTElement)) {
+        writeToFile(AbstractARTBasedRefiner.buildPath((ARTElement)lastElement).toString(),
+                    errorPathFile);
+      }
     }
   }
 
-  private void dumpARTToDotFile(ReachedElements pReached, File outfile) {
+  private void writeToFile(String content, String filename) {
+    File outfile = new File(outputDirectory, filename);
+    PrintWriter out;
+    try {
+      out = new PrintWriter(outfile);
+    } catch (FileNotFoundException e) {
+      logger.log(Level.WARNING,
+          "Could not write to file ", outfile, ", (", e.getMessage(), ")");
+      return;
+    }
+    
+    out.println(content);
+    out.flush();
+    out.close();
+    if (out.checkError()) {
+      logger.log(Level.WARNING, "Could not write to file ", outfile);
+    }
+  }
+  
+  private void dumpARTToDotFile(ReachedElements pReached) {
     ARTElement firstElement = (ARTElement)pReached.getFirstElement();
 
     Deque<ARTElement> worklist = new LinkedList<ARTElement>();
     Set<Integer> nodesList = new HashSet<Integer>();
     Set<ARTElement> processed = new HashSet<ARTElement>();
     StringBuffer sb = new StringBuffer();
-    PrintWriter out;
-    try {
-      out = new PrintWriter(outfile);
-    } catch (FileNotFoundException e) {
-      logger.log(Level.WARNING,
-          "Could not write ART to file ", outfile, ", (", e.getMessage(), ")");
-      return;
-    }
-    out.println("digraph ART {");
-    out.println("style=filled; color=lightgrey; ");
+    StringBuffer edges = new StringBuffer();
+    
+    sb.append("digraph ART {\n");
+    sb.append("style=filled; color=lightgrey; \n");
 
     worklist.add(firstElement);
 
@@ -97,35 +125,34 @@ public class ARTStatistics implements Statistics {
 
         CFANode loc = currentElement.retrieveLocationElement().getLocationNode();
         String label = (loc==null ? 0 : loc.getNodeNumber()) + "000" + currentElement.getElementId();
-        out.println("node [shape = diamond, color = " + color + ", style = filled, label=" + label +"] " + currentElement.getElementId() + ";");
+        sb.append("node [shape = diamond, color = " + color + ", style = filled, label=" + label +"] " + currentElement.getElementId() + ";\n");
         
         nodesList.add(currentElement.getElementId());
       }
       
       for (ARTElement covered : currentElement.getCoveredByThis()) {
-        sb.append(covered.getElementId());
-        sb.append(" -> ");
-        sb.append(currentElement.getElementId());
-        sb.append(" [style = dashed, label = \"covered by\"];");
+        edges.append(covered.getElementId());
+        edges.append(" -> ");
+        edges.append(currentElement.getElementId());
+        edges.append(" [style = dashed, label = \"covered by\"];\n");
       }
       
       for(ARTElement child : currentElement.getChildren()){
         CFAEdge edge = currentElement.getEdgeToChild(child);
-        sb.append(currentElement.getElementId());
-        sb.append(" -> ");
-        sb.append(child.getElementId());
-        sb.append(" [label = \"");
-        sb.append(edge != null ? edge.toString().replace('"', '\'') : "");
-        sb.append("\"];\n");
+        edges.append(currentElement.getElementId());
+        edges.append(" -> ");
+        edges.append(child.getElementId());
+        edges.append(" [label = \"");
+        edges.append(edge != null ? edge.toString().replace('"', '\'') : "");
+        edges.append("\"];\n");
         if(!worklist.contains(child)){
           worklist.add(child);
         }
       }
     }
+    sb.append(edges);
+    sb.append("}\n");
 
-    out.println(sb.toString());
-    out.println("}");
-    out.flush();
-    out.close();
+    writeToFile(sb.toString(), artFile);
   }
 }

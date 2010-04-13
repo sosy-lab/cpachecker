@@ -173,6 +173,10 @@ cpas.art.merge = join
 ART.export = true
 ART.file = ART.dot
 
+# export error path to file, if one is found
+cpas.art.errorPath.export = true
+cpas.art.errorPath.file = ErrorPath.txt
+
 # which merge operator to use for ExplicitAnalysisCPA (join or sep)
 cpas.explicit.merge = sep
 

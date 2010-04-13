@@ -97,7 +97,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
    * @param pLastElement The last element in the path.
    * @return A path from root to lastElement.
    */
-  private Path buildPath(ARTElement pLastElement) { 
+  static Path buildPath(ARTElement pLastElement) { 
     Path path = new Path();
     Set<ARTElement> seenElements = new HashSet<ARTElement>();
     
@@ -132,7 +132,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
     return path;
   }
   
-  private boolean checkART(ReachedElements pReached) {
+  private static boolean checkART(ReachedElements pReached) {
     Set<? extends AbstractElement> reached = pReached.getReached();
     
     Deque<AbstractElement> workList = new ArrayDeque<AbstractElement>();
