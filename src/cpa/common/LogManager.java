@@ -220,7 +220,7 @@ public class LogManager {
    * @param args the message (can be an arbitrary number of objects containing any information), will be concatenated by " "
    */
   public void log(Level priority, Object... args) {
-    log(priority, 0, args);
+    log(priority, 1, args);
   }
 
   /**
