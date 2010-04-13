@@ -145,7 +145,7 @@ public class MainCPAStatistics implements Statistics {
           out.println("YES, there is a BUG!");
           break;
         case SAFE:
-          out.println("NO, the system is safe");
+          out.println("NO, the system is considered safe by the chosen CPAs");
           break;
         default:
           out.println("UNKNOWN result: " + result);
