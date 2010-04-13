@@ -409,10 +409,13 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
             assumeEdge);
 
       } else if (unaryExpression.getOperator() == IASTUnaryExpression.op_star) {
+        //FIXME: op_star may not be ignored, it must be handled
         handleAssume(element, unaryExpression.getOperand(), isTrueBranch,
             assumeEdge);
 
       } else if (unaryExpression instanceof CASTUnaryExpression) {
+        //FIXME: CASTUnaryExpression may not be used
+        //FIXME: all unary operators are ignored here
         handleAssume(element, unaryExpression.getOperand(), isTrueBranch,
             assumeEdge);
       } else {

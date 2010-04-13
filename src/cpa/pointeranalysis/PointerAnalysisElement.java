@@ -798,7 +798,10 @@ public class PointerAnalysisElement implements AbstractQueryableElement, Memory,
 
   @Override
   public Set<MemoryRegion> checkMemoryLeak() {
-
+    //FIXME: this method is wrong as it does not check for UNKNOWN pointers
+    //TODO: this method does not detect memory leaks of circular data structures
+    //perhaps revert to revision 1020 where both cases were working
+    
     Set<MemoryRegion> unmarkedRegions = new HashSet<MemoryRegion>(mallocs);
     Set<MemoryRegion> unreferencedRegions = new HashSet<MemoryRegion>();
 
