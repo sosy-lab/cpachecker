@@ -947,6 +947,17 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
           return buildMsatTermVar(exprToVarName(exp), ssa);
         }
 
+      /* !operand cannot be handled directly in case operand is a variable
+       * we would need to know if operand is of type boolean or something else
+       * currently ! is handled by the default branch
+      case IASTUnaryExpression.op_not: {
+        long operandMsat = buildMsatTerm(operand, ssa);
+        if (mathsat.api.MSAT_ERROR_TERM(operandMsat)) {
+          return operandMsat;
+        }
+        return mathsat.api.msat_make_not(msatEnv, operandMsat);
+      }*/
+        
       case IASTUnaryExpression.op_sizeof: {
         // TODO
         //return mathsat.api.MSAT_MAKE_ERROR_TERM();
@@ -961,7 +972,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         if (ftmp == null) {
           return mathsat.api.MSAT_MAKE_ERROR_TERM();
         } else {
-          assert(false);
+          //assert(false);
           return mathsat.api.msat_make_ite(msatEnv, ftmp.getTerm(),
               mathsat.api.msat_make_number(msatEnv, "1"),
               mathsat.api.msat_make_number(msatEnv, "0"));
