@@ -1,1 +1,0 @@
-void test() { f(x,  CPAChecker_ObserverAnalysis_JokerExpression );}
