@@ -18,6 +18,7 @@ import common.configuration.Options;
 
 import cpa.common.LogManager;
 import cpa.common.ReachedElements;
+import cpa.common.CPAcheckerResult.Result;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.Statistics;
 import cpa.symbpredabsCPA.SymbPredAbsAbstractElement;

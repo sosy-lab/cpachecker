@@ -34,6 +34,7 @@ import common.Pair;
 import cpa.common.CPAchecker;
 import cpa.common.LogManager;
 import cpa.common.ReachedElements;
+import cpa.common.CPAcheckerResult.Result;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.MergeOperator;
@@ -44,7 +45,6 @@ import cpa.common.interfaces.StatisticsProvider;
 import cpa.common.interfaces.StopOperator;
 import cpa.common.interfaces.TransferRelation;
 import exceptions.CPAException;
-import exceptions.ForceStopCPAException;
 
 public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
@@ -112,8 +112,8 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     PrecisionAdjustment precisionAdjustment = cpa.getPrecisionAdjustment();
 
     while (reachedElements.hasWaitingElement()) {
-      if (CPAchecker.getRequireStopAsap())
-        throw new ForceStopCPAException();
+      CPAchecker.stopIfNecessary();
+
       stats.countIterations++;
       
       // Pick next element using strategy

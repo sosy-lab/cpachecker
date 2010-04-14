@@ -25,6 +25,7 @@ package cmdline;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -40,6 +41,7 @@ import common.configuration.Configuration;
 import compositeCPA.CompositeCPA;
 
 import cpa.common.CPAchecker;
+import cpa.common.CPAcheckerResult;
 import cpa.common.LogManager;
 import exceptions.InvalidConfigurationException;
 
@@ -55,6 +57,53 @@ public class CPAMain {
       super(msg);
     }
   }
+  
+  private static class ShutdownHook extends Thread {
+    
+    private final LogManager logManager;
+    private final Thread mainThread;
+    
+    // if still null when run() is executed, analysis has been interrupted by user
+    private CPAcheckerResult mResult = null;
+    
+    public ShutdownHook(LogManager logger) {
+      this.logManager = logger;
+      mainThread = Thread.currentThread();
+    }
+    
+    public void setResult(CPAcheckerResult pResult) {
+      assert mResult == null;
+      mResult = pResult;
+    }
+    
+    // We want to use Thread.stop() to force the main thread to stop
+    // when interrupted by the user.
+    @SuppressWarnings("deprecation")
+    @Override
+    public void run() {
+      if (mainThread.isAlive()) {
+        // probably the user pressed Ctrl+C
+        CPAchecker.requireStopAsap();
+        logManager.log(Level.INFO, "Stop signal received, waiting 2s for analysis to stop cleanly...");
+        try {
+          mainThread.join(2000);
+        } catch (InterruptedException e) {}
+        if (mainThread.isAlive()) {
+          logManager.log(Level.WARNING, "Analysis did not stop fast enough, forcing it. This might prevent the statistics from being generated.");
+          mainThread.stop();
+        }
+      }
+
+      logManager.flush();
+      System.out.flush();
+      System.err.flush();
+      if (mResult != null) {
+        mResult.printStatistics(new PrintWriter(System.out));
+      }
+      logManager.flush();
+    }
+  }
+  
   
   public static void main(String[] args) {
     // initialize various components
@@ -108,10 +157,18 @@ public class CPAMain {
       logManager.log(Level.SEVERE, "Invalid configuration:", e.getMessage());
       System.exit(1);
     }
-    cpachecker.run(new StubFile(names[0]));
     
-    //ensure all logs are written to the outfile
-    logManager.flush();
+    // this is for catching Ctrl+C and printing statistics even in that
+    // case. It might be useful to understand what's going on when
+    // the analysis takes a lot of time...
+    ShutdownHook shutdownHook = new ShutdownHook(logManager);
+    Runtime.getRuntime().addShutdownHook(shutdownHook);
+
+    CPAcheckerResult result = cpachecker.run(new StubFile(names[0]));
+    
+    shutdownHook.setResult(result);
+
+    // statistics are displayed by shutdown hook
   }
 
   public static Configuration createConfiguration(String[] args)

@@ -45,6 +45,7 @@ import common.configuration.Option;
 import common.configuration.Options;
 
 import cpa.common.ReachedElements;
+import cpa.common.CPAcheckerResult.Result;
 import cpa.common.interfaces.Statistics;
 
 
@@ -117,7 +118,7 @@ public class PredicateAbstractionCPAStatistics implements Statistics {
         }
 
         // check if/where to dump the predicate map
-        if (result == Statistics.Result.SAFE) {
+        if (result == Result.SAFE) {
           if (!predmapFile.equals("")) {
             File f = new File(outputDirectory, predmapFile);
             try {

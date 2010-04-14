@@ -25,7 +25,6 @@ package cpa.common;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -63,6 +62,7 @@ import common.configuration.Configuration;
 import common.configuration.Option;
 import common.configuration.Options;
 
+import cpa.common.CPAcheckerResult.Result;
 import cpa.common.algorithm.Algorithm;
 import cpa.common.algorithm.AssumptionCollectionAlgorithm;
 import cpa.common.algorithm.CBMCAlgorithm;
@@ -71,9 +71,7 @@ import cpa.common.algorithm.CPAAlgorithm;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;
-import cpa.common.interfaces.Statistics;
 import cpa.common.interfaces.StatisticsProvider;
-import cpa.common.interfaces.Statistics.Result;
 import exceptions.CFAGenerationRuntimeException;
 import exceptions.CPAException;
 import exceptions.ForceStopCPAException;
@@ -153,62 +151,20 @@ public class CPAchecker {
   private static volatile boolean requireStopAsap = false;
   
   /**
-   * Return true if the main thread is required to stop
-   * working as soon as possible, in response to the user
-   * interrupting it.
+   * This method will throw an exception if the user has requested CPAchecker to
+   * stop immediately. This exception should not be caught by the caller.
    */
-  public static boolean getRequireStopAsap()
-  {
-    return requireStopAsap;
+  public static void stopIfNecessary() throws ForceStopCPAException {
+    if (requireStopAsap) {
+      throw new ForceStopCPAException();
+    }
   }
 
-  private static class ShutdownHook extends Thread {
-    
-    private final Statistics mStats;
-    private final ReachedElements mReached;
-    private final Thread mainThread;
-    
-    // if still null when run() is executed, analysis has been interrupted by user
-    private Result mResult = null;
-    
-    public ShutdownHook(Statistics pStats, ReachedElements pReached) {
-      mStats = pStats; 
-      mReached = pReached;
-      mainThread = Thread.currentThread();
-    }
-    
-    public void setResult(Result pResult) {
-      assert mResult == null;
-      mResult = pResult;
-    }
-    
-    // We want to use Thread.stop() to force the main thread to stop
-    // when interrupted by the user.
-    @SuppressWarnings("deprecation")
-    @Override
-    public void run() {
-      if (mainThread.isAlive()) {
-        // probably the user pressed Ctrl+C
-        requireStopAsap = true;
-        logger.log(Level.INFO, "Stop signal received, waiting 2s for analysis to stop cleanly...");
-        try {
-          mainThread.join(2000);
-        } catch (InterruptedException e) {}
-        if (mainThread.isAlive()) {
-          logger.log(Level.WARNING, "Analysis did not stop fast enough, forcing it. This might prevent the statistics from being generated.");
-          mainThread.stop();
-        }
-      }
-
-      if (mResult == null) {
-        mResult = Result.UNKNOWN;
-      }
-      
-      logger.flush();
-      System.out.flush();
-      System.err.flush();
-      mStats.printStatistics(new PrintWriter(System.out), mResult, mReached);
-    }
+  /**
+   * This will request all running CPAchecker instances to stop as soon as possible.
+   */
+  public static void requireStopAsap() {
+    requireStopAsap = true;
   }
   
   public CPAchecker(Configuration pConfiguration, LogManager pLogManager) throws InvalidConfigurationException {
@@ -226,15 +182,18 @@ public class CPAchecker {
     return config;
   }
   
-  public void run(IFile file) {
+  public CPAcheckerResult run(IFile file) {
     
     logger.log(Level.FINE, "Analysis Started");
     
     // parse code file
     IASTTranslationUnit ast = parse(file);
 
+    MainCPAStatistics stats = null;
+    ReachedElements reached = null;
+    Result result = Result.UNKNOWN;
     try {
-      MainCPAStatistics stats = new MainCPAStatistics(getConfiguration(), logger);
+      stats = new MainCPAStatistics(getConfiguration(), logger);
 
       // start measuring time
       stats.startProgramTimer();
@@ -254,21 +213,23 @@ public class CPAchecker {
             Joiner.on("\n ").join(unusedProperties), "\n");
       }
       
-      ReachedElements reached = createInitialReachedSet(cpa, mainFunction);
+      if (!requireStopAsap) {
+        reached = createInitialReachedSet(cpa, mainFunction);
       
-      runAlgorithm(algorithm, reached, stats);
+        result = runAlgorithm(algorithm, reached, stats);
+      }
     
     } catch (InvalidConfigurationException e) {
       logger.log(Level.SEVERE, "Invalid configuration:", e.getMessage());
       
     } catch (ForceStopCPAException e) {
-      // CPA must exit because it is asked to by the shutdown hook
+      // CPA must exit because it was asked to
       logger.log(Level.FINE, "ForceStopCPAException caught at top level: CPAchecker has stopped forcefully, but cleanly");
     } catch (CPAException e) {
       logger.logException(Level.SEVERE, e, null);
     }
     
-    // statistics are displayed by shutdown hook
+    return new CPAcheckerResult(result, reached, stats);
   }
   
   /**
@@ -517,15 +478,9 @@ public class CPAchecker {
     return;
   }
   
-  private void runAlgorithm(final Algorithm algorithm,
+  private Result runAlgorithm(final Algorithm algorithm,
           final ReachedElements reached,
           final MainCPAStatistics stats) throws CPAException {
-     
-    // this is for catching Ctrl+C and printing statistics even in that
-    // case. It might be useful to understand what's going on when
-    // the analysis takes a lot of time...
-    ShutdownHook shutdownHook = new ShutdownHook(stats, reached);
-    Runtime.getRuntime().addShutdownHook(shutdownHook);
 
     logger.log(Level.INFO, "Starting analysis...");
     stats.startAnalysisTimer();
@@ -535,18 +490,13 @@ public class CPAchecker {
     stats.stopAnalysisTimer();
     logger.log(Level.INFO, "Analysis finished.");
 
-    Result result = Result.UNKNOWN;
     for (AbstractElement reachedElement : reached) {
       if (reachedElement.isError()) {
-        result = Result.UNSAFE;
-        break;
+        return Result.UNSAFE;
       }
     }
-    if (result == Result.UNKNOWN) {
-      result = Result.SAFE;
-    }
-    
-    shutdownHook.setResult(result);
+
+    return Result.SAFE;
   }
 
   private ConfigurableProgramAnalysis createCPA(MainCPAStatistics stats) throws CPAException {

@@ -26,6 +26,7 @@ package cpa.symbpredabsCPA;
 import java.io.PrintWriter;
 
 import cpa.common.ReachedElements;
+import cpa.common.CPAcheckerResult.Result;
 import cpa.common.interfaces.Statistics;
 
 public class SymbPredAbsCPAStatistics implements Statistics {

@@ -35,6 +35,7 @@ import common.configuration.Configuration;
 import common.configuration.Option;
 import common.configuration.Options;
 
+import cpa.common.CPAcheckerResult.Result;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.Statistics;
 import exceptions.InvalidConfigurationException;

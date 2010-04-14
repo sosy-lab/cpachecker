@@ -25,6 +25,7 @@ package cpaplugin.actions;
 
 import java.io.IOException;
 import java.io.PrintStream;
+import java.io.PrintWriter;
 import java.util.logging.Level;
 
 import javax.swing.JOptionPane;
@@ -52,6 +53,7 @@ import org.eclipse.ui.console.MessageConsole;
 import common.configuration.Configuration;
 
 import cpa.common.CPAchecker;
+import cpa.common.CPAcheckerResult;
 import cpa.common.LogManager;
 import exceptions.InvalidConfigurationException;
 
@@ -186,7 +188,8 @@ public class CPARun implements IWorkbenchWindowActionDelegate
 			
       //Now run analysis
       CPAchecker cpachecker = new CPAchecker(cpaConfig, logManager);
-      cpachecker.run(currentFile);
+      CPAcheckerResult result = cpachecker.run(currentFile);
+      result.printStatistics(new PrintWriter(myConsole.newOutputStream()));
 		}
 		catch (Exception e)
 		{

@@ -26,6 +26,7 @@ package cpa.common.interfaces;
 import java.io.PrintWriter;
 
 import cpa.common.ReachedElements;
+import cpa.common.CPAcheckerResult.Result;
 
 /**
  * A class to hold statistics of the analysis
@@ -33,8 +34,6 @@ import cpa.common.ReachedElements;
  */
 public interface Statistics {
     
-    public static enum Result { UNKNOWN, UNSAFE, SAFE }
-
     /**
      * Prints this group of statistics using the given writer
      * @param out the writer to use for printing the statistics

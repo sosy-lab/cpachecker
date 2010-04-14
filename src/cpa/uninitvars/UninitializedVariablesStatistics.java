@@ -8,6 +8,7 @@ import common.Pair;
 import common.Triple;
 
 import cpa.common.ReachedElements;
+import cpa.common.CPAcheckerResult.Result;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractWrapperElement;
 import cpa.common.interfaces.Statistics;
