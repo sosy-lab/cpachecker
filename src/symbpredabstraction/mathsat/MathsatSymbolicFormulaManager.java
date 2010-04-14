@@ -129,7 +129,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
   private long bitwiseAndUfDecl;
   private long bitwiseOrUfDecl;
   private long bitwiseXorUfDecl;
-  // private long bitwiseNotUfDecl;
+  private long bitwiseNotUfDecl;
   private long leftShiftUfDecl;
   private long rightShiftUfDecl;
   private long multUfDecl;
@@ -207,8 +207,8 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         msatVarType, 2, argtypes);
     bitwiseXorUfDecl = mathsat.api.msat_declare_uif(msatEnv, "_^_",
         msatVarType, 2, argtypes);
-    // bitwiseNotUfDecl = mathsat.api.msat_declare_uif(msatEnv, "_~_",
-    //         msatVarType, 1, new int[]{msatVarType});
+    bitwiseNotUfDecl = mathsat.api.msat_declare_uif(msatEnv, "_~_",
+        msatVarType, 1, new int[]{msatVarType});
     leftShiftUfDecl = mathsat.api.msat_declare_uif(msatEnv, "_<<_",
         msatVarType, 2, argtypes);
     rightShiftUfDecl = mathsat.api.msat_declare_uif(msatEnv, "_>>_",
@@ -945,6 +945,14 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
           return buildMsatTermVar(exprToVarName(exp), ssa);
         }
 
+      case IASTUnaryExpression.op_tilde: {
+        long term = buildMsatTerm(operand, ssa);
+        if (mathsat.api.MSAT_ERROR_TERM(term)) {
+          return term;
+        }
+        return mathsat.api.msat_make_uif(msatEnv, bitwiseNotUfDecl, new long[]{term});
+      }
+        
       /* !operand cannot be handled directly in case operand is a variable
        * we would need to know if operand is of type boolean or something else
        * currently ! is handled by the default branch
