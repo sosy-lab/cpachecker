@@ -608,10 +608,10 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       throws UnrecognizedCCodeException {
     try {
       String s = expression.getRawSignature();
-      if (s.endsWith("U")) {
-        s = s.substring(0, s.length() - 1);
-      } else if (s.endsWith("UL")) {
+      if (s.endsWith("UL")) {
         s = s.substring(0, s.length() - 2);
+      } else if (s.endsWith("U") || s.endsWith("L")) {
+        s = s.substring(0, s.length() - 1);
       }
       return Long.parseLong(s);
     } catch (NumberFormatException e) {
