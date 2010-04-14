@@ -1055,6 +1055,8 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
           case IASTBinaryExpression.op_shiftRightAssign:
             me2 = buildMsatUF(op, oldvar, me2);
             break;
+          default:
+            return mathsat.api.MSAT_MAKE_ERROR_TERM();
           }
           if (mathsat.api.MSAT_ERROR_TERM(me2)) return me2;
         }
@@ -1418,7 +1420,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       globalVars.add(func);
       return buildMsatVariable(func, 1);
     } else {
-      IASTExpression[] args = null;
+      IASTExpression[] args;
       if (pexp instanceof IASTExpressionList) {
         args = ((IASTExpressionList)pexp).getExpressions();
       } else {
