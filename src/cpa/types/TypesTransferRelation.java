@@ -73,6 +73,9 @@ import exceptions.UnrecognizedCFAEdgeException;
  * @author Philipp Wendler
  */
 public class TypesTransferRelation implements TransferRelation {
+  
+  private FunctionDefinitionNode entryFunctionDefinitionNode = null;
+  private boolean entryFunctionProcessed = false;
 
   @Override
   public Collection<TypesElement> getAbstractSuccessors(
@@ -108,7 +111,17 @@ public class TypesTransferRelation implements TransferRelation {
     case AssumeEdge:
     case StatementEdge:
     case ReturnEdge:
+      break;
     case BlankEdge:
+      //the first function start dummy edge is the actual start of the entry function
+      if (!entryFunctionProcessed 
+          && cfaEdge.getRawStatement().equals("Function start dummy edge")) {
+        //since by this point all global variables have been processed, we can now process the entry function
+        IASTFunctionDefinition funcDef = entryFunctionDefinitionNode.getFunctionDefinition();
+        handleFunctionDeclaration(successor, null, funcDef.getDeclarator(), funcDef.getDeclSpecifier());
+        
+        entryFunctionProcessed = true;
+      }
       break;
     
     default:
@@ -150,7 +163,7 @@ public class TypesTransferRelation implements TransferRelation {
     }
   }
 
-  void handleFunctionDeclaration(TypesElement element,
+  private void handleFunctionDeclaration(TypesElement element,
                                         CFAEdge cfaEdge,
                                         IASTFunctionDeclarator funcDeclarator,
                                         IASTDeclSpecifier funcDeclSpecifier)
@@ -442,6 +455,10 @@ public class TypesTransferRelation implements TransferRelation {
       }
     }
     return null;
+  }
+  
+  public void setEntryFunctionDefinitionNode(FunctionDefinitionNode pEntryFunctionDefNode) {
+    entryFunctionDefinitionNode = pEntryFunctionDefNode;
   }
 
   @Override

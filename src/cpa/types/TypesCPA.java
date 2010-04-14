@@ -23,17 +23,14 @@
  */
 package cpa.types;
 
-import java.util.logging.Level;
-import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
+
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cfa.objectmodel.c.FunctionDefinitionNode;
-import cpa.common.LogManager;
 import cpa.common.defaults.AbstractCPA;
 import cpa.common.defaults.AbstractCPAFactory;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.CPAFactory;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
-import exceptions.UnrecognizedCCodeException;
 
 /**
  * @author Philipp Wendler
@@ -44,7 +41,7 @@ public class TypesCPA extends AbstractCPA {
     
     @Override
     public ConfigurableProgramAnalysis createInstance() {
-      return new TypesCPA(getLogger());
+      return new TypesCPA();
     }
   }
   
@@ -52,24 +49,15 @@ public class TypesCPA extends AbstractCPA {
     return new TypesCPAFactory();
   }
   
-  private LogManager logger;
-  
-  private TypesCPA(LogManager logger) {
+  private TypesCPA() {
     super("join", "sep", new TypesTransferRelation());
-    this.logger = logger;
   }
   
   @Override
   public AbstractElement getInitialElement(CFAFunctionDefinitionNode pNode) {
     TypesElement element = new TypesElement();
-    try {
-      IASTFunctionDefinition funcDef = ((FunctionDefinitionNode)pNode).getFunctionDefinition();
-      ((TypesTransferRelation)getTransferRelation()).handleFunctionDeclaration(element, null, 
-                                          funcDef.getDeclarator(), funcDef.getDeclSpecifier());
-    } catch (UnrecognizedCCodeException e) { 
-      logger.log(Level.WARNING, "Could not determine return type of entry function, " +
-      		                      "not adding entry function to known types");
-    }
+    //remember the entry function definition node for later use
+    ((TypesTransferRelation)getTransferRelation()).setEntryFunctionDefinitionNode((FunctionDefinitionNode)pNode);
     return element;
   }
 }
