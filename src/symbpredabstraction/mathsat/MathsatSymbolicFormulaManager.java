@@ -540,9 +540,8 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
             fn.getFunctionDefinition().getRawSignature());
       }
       if (param.getDeclarator().getPointerOperators().length != 0) {
-        logger.log(Level.WARNING, "Ignoring the semantics of pointer for parameter: " +
-            param.getDeclarator().getName().toString() +
-            " in function: " + fn.getFunctionName());
+        log(Level.WARNING, "Ignoring the semantics of pointer for parameter "
+            + param.getDeclarator().getName(), fn.getFunctionDefinition().getDeclarator());
       }
       String pn = param.getDeclarator().getName().toString();
       if (pn.isEmpty()) {
@@ -578,7 +577,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         + ": " + msg
         + ": " + astNode.getRawSignature();
     
-    if (!printedWarnings.add(msg)) {
+    if (printedWarnings.add(msg)) {
       logger.log(level, 1, msg);
     }
   }
@@ -660,9 +659,8 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       for (IASTParameterDeclaration param : formalParams) {
         long arg = msatActualParams[i++];
         if (param.getDeclarator().getPointerOperators().length != 0) {
-          logger.log(Level.WARNING, "Ignoring the semantics of pointer for parameter: " +
-              param.getDeclarator().getName().toString() +
-              " in function: " + fn.getFunctionName());
+          log(Level.WARNING, "Ignoring the semantics of pointer for parameter "
+              + param.getDeclarator().getName(), fn.getFunctionDefinition().getDeclarator());
         }
         String paramName = scoped(FUNCTION_PARAM_NAME + (i-1));
         int idx = ssa.getIndex(paramName);
