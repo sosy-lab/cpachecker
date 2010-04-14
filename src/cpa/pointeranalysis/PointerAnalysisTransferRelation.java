@@ -47,11 +47,13 @@ import org.eclipse.cdt.core.dom.ast.IASTFunctionDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
 import org.eclipse.cdt.core.dom.ast.IASTNode;
+import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTPointerOperator;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTUnaryExpression;
 
 import cfa.objectmodel.CFAEdge;
+import cfa.objectmodel.CFANode;
 import cfa.objectmodel.c.AssumeEdge;
 import cfa.objectmodel.c.CallToReturnEdge;
 import cfa.objectmodel.c.DeclarationEdge;
@@ -156,6 +158,9 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
   private static Set<Pair<Integer, String>> warnings           = null;
   private static LogManager                 logger             = null;
   private static LinkedList<MemoryRegion>   memoryLeakWarnings = null;
+  
+  private FunctionDefinitionNode entryFunctionDefinitionNode = null;
+  private boolean entryFunctionProcessed = false;
 
   public PointerAnalysisTransferRelation(boolean pPrintWarnings,
       LogManager pLogger) {
@@ -258,6 +263,28 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
         break;
 
       case BlankEdge:
+        //the first function start dummy edge is the actual start of the entry function
+        if (!entryFunctionProcessed && 
+            cfaEdge.getRawStatement().equals("Function start dummy edge")) {
+
+          //since by this point all global variables have been processed, we can now process the entry function
+          //by first creating its context...
+          successor.callFunction(entryFunctionDefinitionNode.getFunctionName());
+          
+          List<IASTParameterDeclaration> l = entryFunctionDefinitionNode.getFunctionParameters();
+          
+          //..then adding all parameters as local variables
+          for (IASTParameterDeclaration dec : l) {
+            IASTDeclarator[] declarators = {dec.getDeclarator()};
+            IASTDeclSpecifier declSpecifier = dec.getDeclSpecifier();
+            DeclarationEdge d = new DeclarationEdge("entryFunction temporary edge", 
+                                                    entryFunctionDefinitionNode, 
+                                                    entryFunctionDefinitionNode, 
+                                                    declarators, declSpecifier);
+            handleDeclaration(successor, d);
+          }
+          entryFunctionProcessed = true;
+        }
         break;
 
       default:
@@ -361,7 +388,11 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
           element.pointerOp(new Pointer.Assign(Memory.UNINITIALIZED_POINTER), p);
         } else {
           element.addNewLocalPointer(varName, p);
-          element.pointerOp(new Pointer.Assign(Memory.UNINITIALIZED_POINTER), p);
+          //if the entryFunction has not yet been processed, this means this pointer is a parameter
+          //and should be considered unknown rather than uninitialized
+          PointerTarget pTarg = 
+            (!entryFunctionProcessed ? Memory.UNKNOWN_POINTER : Memory.UNINITIALIZED_POINTER); 
+          element.pointerOp(new Pointer.Assign(pTarg), p);
 
         }
         // store the pointer so the type analysis CPA can update its
@@ -1529,4 +1560,9 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
           null, pointer.getLocation().toString());
     }
   }
+
+  public void setEntryFunctionDefinitionNode(FunctionDefinitionNode pEntryFunctionDefNode) {
+    entryFunctionDefinitionNode = pEntryFunctionDefNode;
+  }
+  
 }

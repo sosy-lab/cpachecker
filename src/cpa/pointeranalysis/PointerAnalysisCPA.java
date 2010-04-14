@@ -24,6 +24,7 @@
 package cpa.pointeranalysis;
 
 import cfa.objectmodel.CFAFunctionDefinitionNode;
+import cfa.objectmodel.c.FunctionDefinitionNode;
 
 import common.configuration.Configuration;
 import common.configuration.Option;
@@ -100,7 +101,9 @@ public class PointerAnalysisCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public AbstractElement getInitialElement(CFAFunctionDefinitionNode pNode) {
-    return new PointerAnalysisElement(pNode.getFunctionName());
+    PointerAnalysisElement element = new PointerAnalysisElement();
+    ((PointerAnalysisTransferRelation)getTransferRelation()).setEntryFunctionDefinitionNode((FunctionDefinitionNode)pNode);
+    return element;
   }
 
   @Override
