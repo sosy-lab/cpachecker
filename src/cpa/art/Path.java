@@ -16,6 +16,9 @@ public class Path extends LinkedList<Pair<ARTElement, CFAEdge>> {
     StringBuffer sb = new StringBuffer();
 
     for (Pair<ARTElement, CFAEdge> pair : this) {
+      sb.append("Line ");
+      sb.append(pair.getSecond().getPredecessor().getLineNumber());
+      sb.append(": ");
       sb.append(pair.getSecond());
       sb.append("\n");
     }
