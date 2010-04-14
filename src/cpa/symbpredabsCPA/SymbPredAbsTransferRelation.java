@@ -39,7 +39,6 @@ import symbpredabstraction.interfaces.SymbolicFormulaManager;
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cfa.objectmodel.CFANode;
-import cfa.objectmodel.c.ReturnEdge;
 
 import com.google.common.collect.ImmutableSet;
 import common.Triple;
@@ -208,22 +207,11 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   throws UnrecognizedCFAEdgeException {
     
     logger.log(Level.FINEST, "Computing abstraction on node", edge.getSuccessor());
-    
-    // this will be the initial abstraction formula that we will use 
-    // to compute the abstraction. Say this formula is pf, and the abstraction
-    // from last element is af, then we use "pf AND af" to compute the new
-    // abstraction
-    PathFormula pathFormula;
 
-    // compute the pathFormula for the current edge if it's not a ReturnEdge
-    // (those will be handled after abstraction)
-    if (edge instanceof ReturnEdge) {
-      pathFormula = element.getPathFormula();
-    } else {
-      int abstractionNodeId = element.getAbstractionLocation().getNodeNumber();
+    // compute the pathFormula for the current edge
+    int abstractionNodeId = element.getAbstractionLocation().getNodeNumber();
       
-      pathFormula = convertEdgeToPathFormula(element.getPathFormula(), edge, abstractionNodeId);
-    }
+    PathFormula pathFormula = convertEdgeToPathFormula(element.getPathFormula(), edge, abstractionNodeId);
 
     maxBlockSize = Math.max(maxBlockSize, element.getSizeSinceAbstraction()+1);
     
@@ -251,14 +239,8 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
       return Collections.emptySet();
     }
     
-    // create new path formula for current edge (mostly true) 
+    // create new empty path formula
     PathFormula newPathFormula = new PathFormula(symbolicFormulaManager.makeTrue(), new SSAMap());
-    
-    if (edge instanceof ReturnEdge) {
-      int abstractionNodeId = edge.getSuccessor().getNodeNumber();
-      
-      newPathFormula = convertEdgeToPathFormula(newPathFormula, edge, abstractionNodeId);
-    }
     
     ++numAbstractStates;
     
