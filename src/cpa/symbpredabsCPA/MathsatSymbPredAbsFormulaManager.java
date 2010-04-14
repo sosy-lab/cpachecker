@@ -49,7 +49,6 @@ import symbpredabstraction.interfaces.SymbolicFormula;
 import symbpredabstraction.interfaces.TheoremProver;
 import symbpredabstraction.mathsat.MathsatAbstractionPrinter;
 import symbpredabstraction.mathsat.MathsatFormulaManager;
-import symbpredabstraction.mathsat.MathsatSymbolicFormula;
 import symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
 import symbpredabstraction.trace.CounterexampleTraceInfo;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
@@ -207,11 +206,11 @@ implements SymbPredAbsFormulaManager
     long startTime = System.currentTimeMillis();
 
     final SymbolicFormula absFormula = smgr.instantiate(toConcrete(abs), null);
-    final SSAMap absSsa = mmgr.extractSSA((MathsatSymbolicFormula)absFormula);
+    final SSAMap absSsa = mmgr.extractSSA(absFormula);
     
     
     pathFormula = smgr.shift(pathFormula.getSymbolicFormula(), absSsa);
-    final SymbolicFormula symbFormula = mmgr.replaceAssignments((MathsatSymbolicFormula)pathFormula.getSymbolicFormula());
+    final SymbolicFormula symbFormula = mmgr.replaceAssignments(pathFormula.getSymbolicFormula());
     final SSAMap ssa = pathFormula.getSsa();
     
     SymbolicFormula f = smgr.makeAnd(absFormula, symbFormula);
@@ -256,8 +255,8 @@ implements SymbPredAbsFormulaManager
     }
 
     if (useBitwiseAxioms) {
-        SymbolicFormula bitwiseAxioms = mmgr.getBitwiseAxioms((MathsatSymbolicFormula)f);
-        f = mmgr.makeAnd(f, bitwiseAxioms);
+        SymbolicFormula bitwiseAxioms = mmgr.getBitwiseAxioms(f);
+        f = smgr.makeAnd(f, bitwiseAxioms);
 
         logger.log(Level.ALL, "DEBUG_3", "ADDED BITWISE AXIOMS:",
                 bitwiseAxioms);
@@ -420,13 +419,13 @@ implements SymbPredAbsFormulaManager
     final SymbolicFormula absFormula = smgr.instantiate(toConcrete(abstractionFormula), null);
 
     // create an ssamap from concrete formula
-    final SSAMap absSsa = mmgr.extractSSA((MathsatSymbolicFormula)absFormula);
+    final SSAMap absSsa = mmgr.extractSSA(absFormula);
 
     // shift pathFormula indices by the offsets in absSsa
     long start = System.currentTimeMillis();
 
     pathFormula = smgr.shift(pathFormula.getSymbolicFormula(), absSsa);
-    SymbolicFormula symbFormula = mmgr.replaceAssignments((MathsatSymbolicFormula)pathFormula.getSymbolicFormula());
+    SymbolicFormula symbFormula = mmgr.replaceAssignments(pathFormula.getSymbolicFormula());
     final SSAMap symbSsa = pathFormula.getSsa();
 
     long end = System.currentTimeMillis();
@@ -436,8 +435,7 @@ implements SymbPredAbsFormulaManager
     // only absFormula, absSsa, symbFormula, symbSsa
     
     if (useBitwiseAxioms) {
-      MathsatSymbolicFormula bitwiseAxioms = mmgr.getBitwiseAxioms(
-          (MathsatSymbolicFormula)symbFormula);
+      SymbolicFormula bitwiseAxioms = mmgr.getBitwiseAxioms(symbFormula);
       symbFormula = smgr.makeAnd(symbFormula, bitwiseAxioms);
 
       logger.log(Level.ALL, "DEBUG_3", "ADDED BITWISE AXIOMS:",
@@ -767,7 +765,7 @@ implements SymbPredAbsFormulaManager
         newSsa = p.getSsa();
         newSsa.update(ssa);
       } else {
-        f = mmgr.replaceAssignments((MathsatSymbolicFormula)p.getSymbolicFormula());
+        f = mmgr.replaceAssignments(p.getSymbolicFormula());
         newSsa = p.getSsa();
       }
       
@@ -791,12 +789,12 @@ implements SymbPredAbsFormulaManager
     SymbolicFormula bitwiseAxioms = smgr.makeTrue();
     
     for (SymbolicFormula fm : traceFormulas) {
-      boolean hasUf = mmgr.hasUninterpretedFunctions((MathsatSymbolicFormula)fm);
+      boolean hasUf = mmgr.hasUninterpretedFunctions(fm);
       if (hasUf) {
         foundUninterpretedFunction = true;  
 
         if (useBitwiseAxioms) {
-          SymbolicFormula a = mmgr.getBitwiseAxioms((MathsatSymbolicFormula)fm);
+          SymbolicFormula a = mmgr.getBitwiseAxioms(fm);
           bitwiseAxioms = smgr.makeAnd(bitwiseAxioms, a);
         } else {
           // do not need to check all formulas, one with UF is enough

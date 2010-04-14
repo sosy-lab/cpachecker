@@ -1998,7 +1998,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
 
 
   /**
-   * As a side effect, this method does the same thing as {@link #replaceAssignments(MathsatSymbolicFormula)}
+   * As a side effect, this method does the same thing as {@link #replaceAssignments(SymbolicFormula)}
    * to the formula.
    */
   public PathFormula shift(SymbolicFormula f, SSAMap ssa) {
@@ -2202,11 +2202,11 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
   // returns true if the given formula contains some uninterpreted
   // functions. This is used to apply some optimizations to MathSAT when
   // free functions are not used
-  public boolean hasUninterpretedFunctions(MathsatSymbolicFormula f) {
+  public boolean hasUninterpretedFunctions(SymbolicFormula f) {
     Stack<Long> toProcess = new Stack<Long>();
     Set<Long> cache = new HashSet<Long>();
 
-    long term = f.getTerm();
+    long term = ((MathsatSymbolicFormula)f).getTerm();
     toProcess.push(term);
     while (!toProcess.empty()) {
       long t = toProcess.peek();
@@ -2240,8 +2240,8 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         mathsat.api.msat_term_is_geq(t) != 0);
   }
 
-  public int getNeededTheories(MathsatSymbolicFormula f) {
-    long term = f.getTerm();
+  int getNeededTheories(SymbolicFormula f) {
+    long term = ((MathsatSymbolicFormula)f).getTerm();
     if (neededTheories.containsKey(term)) {
       return neededTheories.get(term);
     }
@@ -2281,14 +2281,14 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
 
   // returns a formula with some "static learning" about some bitwise
   // operations, so that they are (a bit) "less uninterpreted"
-  public MathsatSymbolicFormula getBitwiseAxioms(MathsatSymbolicFormula f) {
+  public MathsatSymbolicFormula getBitwiseAxioms(SymbolicFormula f) {
     Stack<Long> toProcess = new Stack<Long>();
     Set<Long> cache = new HashSet<Long>();
     Map<Long, Set<Long>> gs = new HashMap<Long, Set<Long>>();
 
     boolean andFound = false;
 
-    toProcess.push(f.getTerm());
+    toProcess.push(((MathsatSymbolicFormula)f).getTerm());
     while (!toProcess.empty()) {
       long t = toProcess.peek();
       if (cache.contains(t)) {
@@ -2418,8 +2418,8 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
    * which all the variables are "generic" ones. This is the inverse of the
    * instantiate() method above
    */
-  public MathsatSymbolicFormula uninstantiate(MathsatSymbolicFormula f) {
-    return new MathsatSymbolicFormula(uninstantiate(f.getTerm()));
+  public MathsatSymbolicFormula uninstantiate(SymbolicFormula f) {
+    return new MathsatSymbolicFormula(uninstantiate(((MathsatSymbolicFormula)f).getTerm()));
   }
 
   private static final Comparator<Long> MathsatComparator = new Comparator<Long>() {
@@ -2528,11 +2528,12 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
    * by equalities (which is a valid representation of an assignment for a SSA
    * formula).
    */
-  public MathsatSymbolicFormula replaceAssignments(MathsatSymbolicFormula f) {
+  public MathsatSymbolicFormula replaceAssignments(SymbolicFormula f) {
     Stack<Long> toProcess = new Stack<Long>();
     Map<Long, Long> cache = replaceAssignmentsCache;
 
-    toProcess.push(f.getTerm());
+    long term = ((MathsatSymbolicFormula)f).getTerm();
+    toProcess.push(term);
     while (!toProcess.empty()) {
       long t = toProcess.peek();
       if (cache.containsKey(t)) {
@@ -2568,19 +2569,19 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         }
       }
     }
-    assert(cache.containsKey(f.getTerm()));
-    return new MathsatSymbolicFormula(cache.get(f.getTerm()));
+    assert(cache.containsKey(term));
+    return new MathsatSymbolicFormula(cache.get(term));
   }
 
   /**
    * returns an SSA map for the instantiated formula f
    */
-  public SSAMap extractSSA(MathsatSymbolicFormula f) {
+  public SSAMap extractSSA(SymbolicFormula f) {
     SSAMap ssa = new SSAMap();
     Stack<Long> toProcess = new Stack<Long>();
     Set<Long> cache = new HashSet<Long>();
 
-    toProcess.push(f.getTerm());
+    toProcess.push(((MathsatSymbolicFormula)f).getTerm());
     while (!toProcess.empty()) {
       long t = toProcess.pop();
       if (cache.contains(t)) {

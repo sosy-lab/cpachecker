@@ -46,7 +46,6 @@ import symbpredabstraction.interfaces.SymbolicFormula;
 import symbpredabstraction.interfaces.SymbolicFormulaManager;
 import symbpredabstraction.interfaces.TheoremProver;
 import symbpredabstraction.mathsat.MathsatFormulaManager;
-import symbpredabstraction.mathsat.MathsatSymbolicFormula;
 import symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
 import symbpredabstraction.trace.CounterexampleTraceInfo;
 import cfa.objectmodel.BlankEdge;
@@ -315,9 +314,9 @@ implements PredicateAbstractionFormulaManager {
   booleanAbstractionCache;
   protected Map<Pair<CFAEdge, SSAMap>, Pair<SymbolicFormula, SSAMap>>
   makeFormulaCache;
-  protected Map<SymbolicFormula, MathsatSymbolicFormula> instantiateCache;
-  protected Map<MathsatSymbolicFormula, SSAMap> extractSSACache;
-  protected Map<Pair<MathsatSymbolicFormula, CFAEdge>,
+  protected Map<SymbolicFormula, SymbolicFormula> instantiateCache;
+  protected Map<SymbolicFormula, SSAMap> extractSSACache;
+  protected Map<Pair<SymbolicFormula, CFAEdge>,
   Pair<SymbolicFormula, SSAMap>> buildConcreteFormulaCache;
 
   private TheoremProver thmProver;
@@ -348,10 +347,10 @@ implements PredicateAbstractionFormulaManager {
         new HashMap<Pair<CFAEdge, SSAMap>,
         Pair<SymbolicFormula, SSAMap>>();
       instantiateCache =
-        new HashMap<SymbolicFormula, MathsatSymbolicFormula>();
-      extractSSACache = new HashMap<MathsatSymbolicFormula, SSAMap>();
+        new HashMap<SymbolicFormula, SymbolicFormula>();
+      extractSSACache = new HashMap<SymbolicFormula, SSAMap>();
       buildConcreteFormulaCache =
-        new HashMap<Pair<MathsatSymbolicFormula, CFAEdge>,
+        new HashMap<Pair<SymbolicFormula, CFAEdge>,
         Pair<SymbolicFormula, SSAMap>>();
     }
 
@@ -370,13 +369,12 @@ implements PredicateAbstractionFormulaManager {
       CFAEdge edge, boolean replaceAssignments) {
 
     AbstractFormula abs = e.getAbstraction();
-    MathsatSymbolicFormula fabs = null;
+    SymbolicFormula fabs = null;
     SymbolicFormula concr = toConcrete(abs);
     if (useCache && instantiateCache.containsKey(concr)) {
       fabs = instantiateCache.get(concr);
     } else {
-      fabs = (MathsatSymbolicFormula)mgr.instantiate(
-          concr/*toConcrete(mgr, abs)*/, null);
+      fabs = mgr.instantiate(concr/*toConcrete(mgr, abs)*/, null);
       instantiateCache.put(concr, fabs);
     }
     SSAMap ssa = null;
@@ -387,9 +385,9 @@ implements PredicateAbstractionFormulaManager {
       extractSSACache.put(fabs, ssa);
     }
     Pair<SymbolicFormula, SSAMap> p = null;
-    Pair<MathsatSymbolicFormula, CFAEdge> key = null;
+    Pair<SymbolicFormula, CFAEdge> key = null;
     if (useCache) {
-      key = new Pair<MathsatSymbolicFormula, CFAEdge>(fabs, edge);
+      key = new Pair<SymbolicFormula, CFAEdge>(fabs, edge);
       if (buildConcreteFormulaCache.containsKey(key)) {
         p = buildConcreteFormulaCache.get(key);
       }
@@ -480,7 +478,7 @@ implements PredicateAbstractionFormulaManager {
     SymbolicFormula f = pc.getFirst();
     SSAMap ssa = pc.getSecond();
 
-    f = mmgr.replaceAssignments((MathsatSymbolicFormula)pc.getFirst());
+    f = mmgr.replaceAssignments(pc.getFirst());
 
     BooleanAbstractionCacheKey key = null;
     if (useCache) {
@@ -492,9 +490,8 @@ implements PredicateAbstractionFormulaManager {
     }
 
     if (useBitwiseAxioms) {
-      MathsatSymbolicFormula bitwiseAxioms = mmgr.getBitwiseAxioms(
-          (MathsatSymbolicFormula)f);
-      f = mmgr.makeAnd(f, bitwiseAxioms);
+      SymbolicFormula bitwiseAxioms = mmgr.getBitwiseAxioms(f);
+      f = mgr.makeAnd(f, bitwiseAxioms);
 
       logger.log(Level.ALL, "DEBUG_3", "ADDED BITWISE AXIOMS:", bitwiseAxioms);
     }
@@ -618,7 +615,7 @@ implements PredicateAbstractionFormulaManager {
     SymbolicFormula f = pc.getFirst();
     SSAMap ssa = pc.getSecond();
 
-    f = mmgr.replaceAssignments((MathsatSymbolicFormula)pc.getFirst());
+    f = mmgr.replaceAssignments(pc.getFirst());
     SymbolicFormula fkey = f;
 
     byte[] predVals = null;
@@ -652,8 +649,7 @@ implements PredicateAbstractionFormulaManager {
     }
 
     if (useBitwiseAxioms) {
-      MathsatSymbolicFormula bitwiseAxioms = mmgr.getBitwiseAxioms(
-          (MathsatSymbolicFormula)f);
+      SymbolicFormula bitwiseAxioms = mmgr.getBitwiseAxioms(f);
       f = mmgr.makeAnd(f, bitwiseAxioms);
 
       logger.log(Level.ALL, "DEBUG_3", "ADDED BITWISE AXIOMS:", bitwiseAxioms);
@@ -1382,8 +1378,7 @@ implements PredicateAbstractionFormulaManager {
           else e--;
           fromStart = !fromStart;
 
-          MathsatSymbolicFormula t =
-            (MathsatSymbolicFormula)f.elementAt(i);
+          SymbolicFormula t = f.elementAt(i);
           thmProver.push(t);
           ++toPop;
           if (thmProver.isUnsat(trueFormula)) {
@@ -1405,8 +1400,7 @@ implements PredicateAbstractionFormulaManager {
       } else {
         for (int i = pos; suffixTrace ? i >= 0 : i < f.size();
         i += incr) {
-          MathsatSymbolicFormula t =
-            (MathsatSymbolicFormula)f.elementAt(i);
+          SymbolicFormula t = f.elementAt(i);
           thmProver.push(t);
           ++toPop;
           if (thmProver.isUnsat(trueFormula)) {
@@ -1503,13 +1497,11 @@ implements PredicateAbstractionFormulaManager {
 
       SSAMap newssa = null;
       SymbolicFormula fm = null;
-      fm = mmgr.replaceAssignments(
-          (MathsatSymbolicFormula)p.getFirst());
+      fm = mmgr.replaceAssignments(p.getFirst());
       logger.log(Level.ALL, "DEBUG_3", "INITIAL:", fm,
           " SSA: ", p.getSecond());
       newssa = p.getSecond();
-      boolean hasUf = mmgr.hasUninterpretedFunctions(
-          (MathsatSymbolicFormula)fm);
+      boolean hasUf = mmgr.hasUninterpretedFunctions(fm);
       theoryCombinationNeeded |= hasUf;
       f.add(fm);
       ssa = newssa;

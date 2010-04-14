@@ -192,7 +192,7 @@ public class MathsatTheoremProver implements TheoremProver {
             List<SymbolicFormula> important, AllSatCallback callback) {
         long allsatEnv = mathsat.api.msat_create_shared_env(msatEnv);
 
-        int theories = mmgr.getNeededTheories((MathsatSymbolicFormula)f);
+        int theories = mmgr.getNeededTheories(f);
 
         mathsat.api.msat_add_theory(allsatEnv, mathsat.api.MSAT_UF);
         if ((theories & MathsatSymbolicFormulaManager.THEORY_ARITH) != 0) {

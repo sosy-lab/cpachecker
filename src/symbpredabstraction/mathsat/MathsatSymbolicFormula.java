@@ -31,7 +31,7 @@ import symbpredabstraction.interfaces.SymbolicFormula;
  *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
-public class MathsatSymbolicFormula implements SymbolicFormula {
+class MathsatSymbolicFormula implements SymbolicFormula {
 
     private final long msatTerm;
 

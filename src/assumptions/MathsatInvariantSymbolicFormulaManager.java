@@ -29,7 +29,6 @@ import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 
 import symbpredabstraction.SSAMap;
 import symbpredabstraction.interfaces.SymbolicFormula;
-import symbpredabstraction.mathsat.MathsatSymbolicFormula;
 import symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
 
 import common.configuration.Configuration;
@@ -141,7 +140,7 @@ public class MathsatInvariantSymbolicFormulaManager
     }
     
     // atomic formula    
-    MathsatSymbolicFormula ssaFormula = buildFormulaPredicate(p, sign, dummySSAMap);
+    SymbolicFormula ssaFormula = buildFormulaPredicate(p, sign, dummySSAMap);
     return uninstantiate(ssaFormula);
   }
   
