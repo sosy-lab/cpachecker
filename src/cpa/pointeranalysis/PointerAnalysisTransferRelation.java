@@ -50,6 +50,7 @@ import org.eclipse.cdt.core.dom.ast.IASTNode;
 import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTPointerOperator;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
+import org.eclipse.cdt.internal.core.dom.parser.IASTAmbiguousExpression;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTUnaryExpression;
 
 import cfa.objectmodel.CFAEdge;
@@ -416,7 +417,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
 
   private void handleAssume(PointerAnalysisElement element,
       IASTExpression expression, boolean isTrueBranch, AssumeEdge assumeEdge)
-      throws UnrecognizedCCodeException, UnreachableStateException {
+      throws UnrecognizedCCodeException, UnreachableStateException, InvalidPointerException {
 
     if (expression instanceof IASTBinaryExpression) {
       IASTBinaryExpression binaryExpression = (IASTBinaryExpression)expression;
@@ -440,15 +441,37 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
             assumeEdge);
 
       } else if (unaryExpression.getOperator() == IASTUnaryExpression.op_star) {
-        //FIXME: op_star may not be ignored, it must be handled
-        handleAssume(element, unaryExpression.getOperand(), isTrueBranch,
-            assumeEdge);
+        // if (*var)      
+        String varName = expression.getRawSignature();
+        Pointer p = element.lookupPointer(varName);
+        
+        if (p == null) {
+          throw new UnrecognizedCCodeException("Trying to dereference a non-pointer variable",
+              assumeEdge, expression);
+        }
+        
+        boolean isNull = (p.contains(Memory.NULL_POINTER));
+        boolean isUninitialized = p.contains(Memory.UNINITIALIZED_POINTER);
+        
+        if (isNull && p.getNumberOfTargets() == 1) {
+          addError("Trying to dereference a NULL pointer" , assumeEdge);
+        }
+        
+        if (isUninitialized && p.getNumberOfTargets() == 1) {
+          // C actually allows this in special cases
+          addWarning("Trying to dereference an uninitialized pointer" , assumeEdge, varName);
+        }
+        
+        if (isTrueBranch) {
+          // *p holds, i.e. *p != 0 holds, i.e. p cannot be NULL
+          element.pointerOpAssumeInequality(p, Memory.NULL_POINTER);
+        }
 
-      } else if (unaryExpression instanceof CASTUnaryExpression) {
-        //FIXME: CASTUnaryExpression may not be used
-        //FIXME: all unary operators are ignored here
+      } else if (unaryExpression instanceof IASTCastExpression) {
+ 
         handleAssume(element, unaryExpression.getOperand(), isTrueBranch,
             assumeEdge);
+        
       } else {
 
         throw new UnrecognizedCCodeException("not expected in CIL", assumeEdge,
@@ -462,7 +485,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
         // no pointer
         return;
       }
-      boolean isNull = p.contains(Memory.NULL_POINTER);
+      boolean isNull = (p.contains(Memory.NULL_POINTER));
 
       if (isTrueBranch && isNull && p.getNumberOfTargets() == 1) {
         // p is always null here -> this branch is never reached
@@ -476,6 +499,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       if (isTrueBranch) {
         // p holds, i.e. p != 0 holds, i.e. p cannot point to null
         element.pointerOpAssumeInequality(p, Memory.NULL_POINTER);
+        
 
       } else {
         // !p holds, i.e. p == 0 holds, i.e. p points to null

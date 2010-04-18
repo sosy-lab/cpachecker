@@ -425,9 +425,7 @@ public class ExplicitAnalysisTransferRelation implements TransferRelation {
 
       case IASTUnaryExpression.op_not: // [! exp]
         return getBooleanExpressionValue(element, unaryExp.getOperand(), cfaEdge, !truthValue);
-
-      case IASTUnaryExpression.op_star:
-        return getBooleanExpressionValue(element, unaryExp.getOperand(), cfaEdge, truthValue);
+        
       default:
         throw new UnrecognizedCCodeException(cfaEdge, unaryExp);
       }
