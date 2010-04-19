@@ -186,13 +186,18 @@ public class CPAchecker {
     
     logger.log(Level.FINE, "Analysis Started");
     
-    // parse code file
-    IASTTranslationUnit ast = parse(file);
-
     MainCPAStatistics stats = null;
     ReachedElements reached = null;
     Result result = Result.UNKNOWN;
+    
     try {
+      // parse code file
+      IASTTranslationUnit ast = parse(file);
+      if (ast == null) {
+        // parsing failed
+        return new CPAcheckerResult(Result.UNKNOWN, null, null);
+      }
+
       stats = new MainCPAStatistics(getConfiguration(), logger);
 
       // start measuring time
@@ -200,6 +205,11 @@ public class CPAchecker {
   
       // create CFA
       Pair<Map<String, CFAFunctionDefinitionNode>, CFAFunctionDefinitionNode> cfa = createCFA(ast);
+      if (cfa == null) {
+        // empty program, do nothing
+        return new CPAcheckerResult(Result.UNKNOWN, null, null);
+      }
+      
       Map<String, CFAFunctionDefinitionNode> cfas = cfa.getFirst();
       CFAFunctionDefinitionNode mainFunction = cfa.getSecond();
     
@@ -219,6 +229,13 @@ public class CPAchecker {
         result = runAlgorithm(algorithm, reached, stats);
       }
     
+    } catch (CFAGenerationRuntimeException e) {
+      // only log message, not whole exception because this is a C problem,
+      // not a CPAchecker problem
+      logger.log(Level.SEVERE, e.getMessage());
+      logger.log(Level.INFO, "Make sure that the code was preprocessed using Cil (HowTo.txt).\n"
+          + "If the error still occurs, please send this error message together with the input file to cpachecker-users@sosy-lab.org.");
+      
     } catch (InvalidConfigurationException e) {
       logger.log(Level.SEVERE, "Invalid configuration:", e.getMessage());
       
@@ -238,8 +255,9 @@ public class CPAchecker {
    * 
    * @param fileName  The file to parse.
    * @return The AST.
+   * @throws InvalidConfigurationException 
    */
-  public IASTTranslationUnit parse(IFile file) {
+  public IASTTranslationUnit parse(IFile file) throws InvalidConfigurationException {
     IASTServiceProvider p = new InternalASTServiceProvider();
     
     ICodeReaderFactory codeReaderFactory = null;
@@ -248,7 +266,7 @@ public class CPAchecker {
     } catch (ClassNotFoundException e) {
       logger.logException(Level.SEVERE, e, "ClassNotFoundException:" +
           "Missing implementation of ICodeReaderFactory, check your CDT version!");
-      System.exit(1);
+      return null;
     }
     
     IASTTranslationUnit ast = null;
@@ -256,9 +274,8 @@ public class CPAchecker {
       IParserConfiguration parserConfiguration = new StubConfiguration(options.parserDialect);
       ast = p.getTranslationUnit(file, codeReaderFactory, parserConfiguration);
     } catch (UnsupportedDialectException e) {
-      logger.logException(Level.SEVERE, e, "UnsupportedDialectException:" +
-          "Unsupported dialect for parser, check parser.dialect option!");
-      System.exit(1);
+      // should never occur here because the value of the option is checked before 
+      throw new InvalidConfigurationException("Unsupported C dialect " + options.parserDialect);
     }
 
     logger.log(Level.FINE, "Parser Finished");
@@ -308,14 +325,14 @@ public class CPAchecker {
    * @param builder
    * @param cfas
    * @return
+   * @throws InvalidConfigurationException 
    */
-  private CFAFunctionDefinitionNode initCFA(final CFABuilder builder, final Map<String, CFAFunctionDefinitionNode> cfas)
+  private CFAFunctionDefinitionNode initCFA(final CFABuilder builder, final Map<String, CFAFunctionDefinitionNode> cfas) throws InvalidConfigurationException
   {
     CFAFunctionDefinitionNode mainFunction = cfas.get(options.mainFunctionName);
     
     if (mainFunction == null) {
-      logger.log(Level.SEVERE, "Function", options.mainFunctionName, "not found!");
-      System.exit(0);
+      throw new InvalidConfigurationException("Function " + options.mainFunctionName + " not found!");
     }
 
     // Insert call and return edges and build the supergraph
@@ -346,20 +363,12 @@ public class CPAchecker {
   }
   
   
-  protected Pair<Map<String, CFAFunctionDefinitionNode>, CFAFunctionDefinitionNode> createCFA(IASTTranslationUnit ast) {
+  protected Pair<Map<String, CFAFunctionDefinitionNode>, CFAFunctionDefinitionNode> createCFA(IASTTranslationUnit ast) throws InvalidConfigurationException, CFAGenerationRuntimeException {
 
     // Build CFA
     final CFABuilder builder = new CFABuilder(logger);
-    try {
-      ast.accept(builder);
-    } catch (CFAGenerationRuntimeException e) {
-      // only log message, not whole exception because this is a C problem,
-      // not a CPAchecker problem
-      logger.log(Level.SEVERE, e.getMessage());
-      logger.log(Level.INFO, "Make sure that the code was preprocessed using Cil (HowTo.txt).\n"
-      		+ "If the error still occurs, please send this error message together with the input file to cpachecker-users@sosy-lab.org.");
-      System.exit(0);
-    }
+    ast.accept(builder);
+
     final Map<String, CFAFunctionDefinitionNode> cfas = builder.getCFAs();
     
     // annotate CFA nodes with topological information for later use
@@ -387,9 +396,9 @@ public class CPAchecker {
       coi.removeIrrelevantForErrorLocations(mainFunction);
 
       if (mainFunction.getNumLeavingEdges() == 0) {
-        CPAchecker.logger.log(Level.INFO, "No error locations reachable from " + mainFunction.getFunctionName()
+        logger.log(Level.INFO, "No error locations reachable from " + mainFunction.getFunctionName()
               + ", analysis not necessary.");
-        System.exit(0);
+        return null;
       }
     }
     

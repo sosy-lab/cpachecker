@@ -39,16 +39,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
-import org.eclipse.cdt.core.dom.IASTServiceProvider.UnsupportedDialectException;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.core.resources.IFile;
-
-import common.configuration.Configuration;
 
 import cfa.CFABuilder;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cmdline.CPAMain.InvalidCmdlineArgumentException;
 import cmdline.stubs.StubFile;
+
+import common.configuration.Configuration;
+
 import cpa.common.CPAchecker;
 import cpa.common.LogManager;
 import cpa.common.interfaces.AbstractElement;
@@ -148,7 +148,7 @@ public class CPASelfCheck {
     }
   }
   
-  private static CFAFunctionDefinitionNode createCFA(CPAchecker cpachecker, LogManager logManager) throws IOException, UnsupportedDialectException {
+  private static CFAFunctionDefinitionNode createCFA(CPAchecker cpachecker, LogManager logManager) throws IOException, InvalidConfigurationException {
     File lFile = File.createTempFile("dummy", ".c");
     lFile.deleteOnExit();
        
