@@ -6,7 +6,6 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.concurrent.TimeoutException;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -37,6 +36,27 @@ public class ObserverAutomatonTest {
   }
   
   @Test
+  public void uninitVarsTest() {
+    tearDown();
+    String prop = "CompositeCPA.cpas = cpa.location.LocationCPA, cpa.observeranalysis.ObserverAutomatonCPA, cpa.uninitvars.UninitializedVariablesCPA, cpa.types.TypesCPA \n " +
+        "observerAnalysis.inputFile =  test/programs/observerAutomata/UninitializedVariablesTestAutomaton.txt \n " +
+        "log.consoleLevel = FINER \n" + 
+        "observerAnalysis.dotExportFile = " + OUTPUT_PATH + "observerAutomatonExport.dot \n" +
+        "analysis.stopAfterError = FALSE";  
+    try {
+      run(prop, "test/programs/simple/UninitVarsErrors.c");
+      FileTester et;
+      et = new FileTester(OutputFile.LOG);
+      Assert.assertTrue(et.fileContains("Observer: Uninitialized return value"));
+      Assert.assertTrue(et.fileContains("Observer: Uninitialized variable used"));
+    } catch (FileNotFoundException e) {
+      System.err.println("Observer Automaton test failed (File not found: " + e.getMessage() + ")");
+      Assert.fail();
+    } catch (InvalidConfigurationException e) {
+      Assert.fail("InvalidConfiguration");
+    }    
+  }
+  @Test
   public void pointerAnalyisTest() {
     tearDown();
     String prop = "CompositeCPA.cpas = cpa.location.LocationCPA, cpa.observeranalysis.ObserverAutomatonCPA, cpa.pointeranalysis.PointerAnalysisCPA \n " +
@@ -56,8 +76,6 @@ public class ObserverAutomatonTest {
     } catch (FileNotFoundException e) {
       System.err.println("Observer Automaton test failed (File not found: " + e.getMessage() + ")");
       Assert.fail();
-    } catch (TimeoutException e) {
-      Assert.fail("Timeout");
     } catch (InvalidConfigurationException e) {
       Assert.fail("InvalidConfiguration");
     }    
@@ -73,8 +91,6 @@ public class ObserverAutomatonTest {
     try {
       CPAcheckerResult results = run(prop, "test/programs/simple/locking_correct.c");
       Assert.assertTrue(results.getResult().equals(Result.SAFE));
-    } catch (TimeoutException e) {
-      Assert.fail("Timeout");
     } catch (InvalidConfigurationException e) {
       Assert.fail("InvalidConfiguration");
     }
@@ -89,8 +105,6 @@ public class ObserverAutomatonTest {
     try {
       CPAcheckerResult results = run(prop, "test/programs/simple/locking_incorrect.c");
       Assert.assertTrue(results.getResult().equals(Result.UNSAFE));
-    } catch (TimeoutException e) {
-      Assert.fail("Timeout");
     } catch (InvalidConfigurationException e) {
       Assert.fail("InvalidConfiguration");
     }
@@ -106,8 +120,6 @@ public class ObserverAutomatonTest {
       CPAcheckerResult results = run(prop, "test/programs/simple/ex2.cil.c");
       Assert.assertTrue(results.getResult().equals(Result.SAFE));
       
-    } catch (TimeoutException e) {
-      Assert.fail("Timeout");
     } catch (InvalidConfigurationException e) {
       Assert.fail("InvalidConfiguration");
     }
@@ -131,20 +143,19 @@ public class ObserverAutomatonTest {
     } catch (FileNotFoundException e) {
       System.err.println("Observer Automaton test failed (File not found: " + e.getMessage() + ")");
       Assert.fail();
-    } catch (TimeoutException e) {
-      Assert.fail("Timeout");
     } catch (InvalidConfigurationException e) {
       Assert.fail("InvalidConfiguration");
     }
   }
   
-  private CPAcheckerResult run(String pPropertiesString, String pSourceCodeFilePath) throws TimeoutException, InvalidConfigurationException {
+  private CPAcheckerResult run(String pPropertiesString, String pSourceCodeFilePath) throws InvalidConfigurationException {
     return run(pPropertiesString, pSourceCodeFilePath, STANDARD_TIMEOUT);
   }
   
-  private CPAcheckerResult run(String pPropertiesString, String pSourceCodeFilePath, long pTimeout) throws TimeoutException, InvalidConfigurationException {
+  private CPAcheckerResult run(String pPropertiesString, String pSourceCodeFilePath, long pTimeout) throws InvalidConfigurationException {
     pPropertiesString = pPropertiesString + 
-    "\nlog.level=FINER";
+    "\nlog.level=FINER" +
+    "\nlog.file = " + logFileName;
     File prop = new File(propertiesFilePath);
     FileWriter w;
     try {

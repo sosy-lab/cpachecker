@@ -1044,9 +1044,15 @@ public class PointerAnalysisElement implements AbstractQueryableElement, Memory,
         return leak;
       }
     } else {
-      ElementProperty prop = ElementProperty.valueOf(pProperty);
-      // TODO: check what happens if the pProperty is not one of the defined enum constants
+      ElementProperty prop;
+      try {
+         prop = ElementProperty.valueOf(pProperty);
+      } catch (IllegalArgumentException e) {
+        // thrown if the Enum does not contain the property
+        throw new InvalidQueryException("The Query \"" + pProperty + "\" is not defined for this CPA (\""+ this.getCPAName() + "\"");
+      }
       return this.properties.contains(prop);
+      
     }
   }
 

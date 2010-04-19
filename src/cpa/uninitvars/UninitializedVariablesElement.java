@@ -24,6 +24,7 @@
 package cpa.uninitvars;
 
 import java.util.Deque;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Set;
@@ -31,17 +32,21 @@ import java.util.Set;
 import common.Pair;
 import common.Triple;
 
-import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.AbstractQueryableElement;
+import exceptions.InvalidQueryException;
 
 /**
  * @author Philipp Wendler
  */
-public class UninitializedVariablesElement implements AbstractElement {
+public class UninitializedVariablesElement implements AbstractQueryableElement {
 
   private final Set<String> globalVars;
   private final Deque<Pair<String, Set<String>>> localVars;
   
   private final Set<Triple<Integer, String, String>> warnings;
+  
+  static enum ElementProperty {UNINITIALIZED_RETURN_VALUE, UNINITIALIZED_VARIABLE_USED}
+  private Set<ElementProperty> properties = EnumSet.noneOf(ElementProperty.class); // emptySet
   
   public UninitializedVariablesElement(String entryFunction) {
     globalVars = new HashSet<String>();
@@ -164,5 +169,44 @@ public class UninitializedVariablesElement implements AbstractElement {
     }
     sb.append(">]");
     return sb.toString();
+  }
+
+  /**
+   * Adds a property to this element
+   * @param pProp
+   */
+  void addProperty(ElementProperty pProp) {
+    this.properties.add(pProp);
+  }
+  /**
+   * Returns all properties set for this element.
+   * @return
+   */
+  Set<ElementProperty> getProperties() {
+    return this.properties;
+  }
+  /**
+   * Removes all property of this element
+   * @param pProp
+   */
+  void clearProperties() {
+    this.properties.clear();
+  }
+  
+  @Override
+  public boolean checkProperty(String pProperty) throws InvalidQueryException {
+    ElementProperty prop;
+    try {
+       prop = ElementProperty.valueOf(pProperty);
+    } catch (IllegalArgumentException e) {
+      // thrown if the Enum does not contain the property
+      throw new InvalidQueryException("The Query \"" + pProperty + "\" is not defined for this CPA (\""+ this.getCPAName() + "\"");
+    }
+    return this.properties.contains(prop);
+  }
+
+  @Override
+  public String getCPAName() {
+    return "uninitVars";
   }
 }

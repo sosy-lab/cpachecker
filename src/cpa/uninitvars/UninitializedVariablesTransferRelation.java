@@ -67,6 +67,7 @@ import cpa.types.Type;
 import cpa.types.TypesElement;
 import cpa.types.Type.StructType;
 import cpa.types.Type.TypeClass;
+import cpa.uninitvars.UninitializedVariablesElement.ElementProperty;
 import exceptions.CPATransferException;
 import exceptions.UnrecognizedCCodeException;
 import exceptions.UnrecognizedCFAEdgeException;
@@ -104,6 +105,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
                                               throws CPATransferException {
     
     UninitializedVariablesElement successor = ((UninitializedVariablesElement)element).clone();
+    successor.clearProperties();
     
     switch (cfaEdge.getEdgeType()) {
     
@@ -183,9 +185,11 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       if (edge instanceof CallToReturnEdge && expression instanceof IASTFunctionCallExpression) {
         message = "uninitialized return value of function call " + variable + " in line "
         + lineNumber + ": " + edge.getRawStatement();
+        element.addProperty(ElementProperty.UNINITIALIZED_RETURN_VALUE);
       } else {
         message = "uninitialized variable " + variable + " used in line "
         + lineNumber + ": " + edge.getRawStatement();
+        element.addProperty(ElementProperty.UNINITIALIZED_VARIABLE_USED);
       }
       
       element.addWarning(lineNumber, variable, message);
