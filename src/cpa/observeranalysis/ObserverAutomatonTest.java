@@ -1,13 +1,9 @@
 package cpa.observeranalysis;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 
-import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -18,64 +14,41 @@ import common.configuration.Configuration;
 import cpa.common.CPAchecker;
 import cpa.common.CPAcheckerResult;
 import cpa.common.LogManager;
-import cpa.common.CPAcheckerResult.Result;
+import cpa.common.LogManager.StringHandler;
 import exceptions.InvalidConfigurationException;
 
 public class ObserverAutomatonTest {
   private static final String OUTPUT_PATH = "test/output/";
   private static final String propertiesFilePath = "test/config/observerAnalysisAutom.properties";
-  private static final String logFileName     = "CPALog.txt";
-  private static final long STANDARD_TIMEOUT = 4000;
-//at the moment it does not make sense to test anything but the LogFile. I am keeping the functionality because it might be needed again in the future. 
-  static enum OutputFile {LOG}; 
-  
-  @After
-  public void tearDown() {
-    File f = new File (OUTPUT_PATH + logFileName);
-    if ( f.exists()) f.delete();
-  }
-  
   @Test
   public void uninitVarsTest() {
-    tearDown();
     String prop = "CompositeCPA.cpas = cpa.location.LocationCPA, cpa.observeranalysis.ObserverAutomatonCPA, cpa.uninitvars.UninitializedVariablesCPA, cpa.types.TypesCPA \n " +
         "observerAnalysis.inputFile =  test/programs/observerAutomata/UninitializedVariablesTestAutomaton.txt \n " +
         "log.consoleLevel = FINER \n" + 
         "observerAnalysis.dotExportFile = " + OUTPUT_PATH + "observerAutomatonExport.dot \n" +
         "analysis.stopAfterError = FALSE";  
     try {
-      run(prop, "test/programs/simple/UninitVarsErrors.c");
-      FileTester et;
-      et = new FileTester(OutputFile.LOG);
-      Assert.assertTrue(et.fileContains("Observer: Uninitialized return value"));
-      Assert.assertTrue(et.fileContains("Observer: Uninitialized variable used"));
-    } catch (FileNotFoundException e) {
-      System.err.println("Observer Automaton test failed (File not found: " + e.getMessage() + ")");
-      Assert.fail();
+      TestResults results = run(prop, "test/programs/simple/UninitVarsErrors.c");
+      Assert.assertTrue(results.logContains("Observer: Uninitialized return value"));
+      Assert.assertTrue(results.logContains("Observer: Uninitialized variable used"));
     } catch (InvalidConfigurationException e) {
       Assert.fail("InvalidConfiguration");
     }    
   }
   @Test
   public void pointerAnalyisTest() {
-    tearDown();
     String prop = "CompositeCPA.cpas = cpa.location.LocationCPA, cpa.observeranalysis.ObserverAutomatonCPA, cpa.pointeranalysis.PointerAnalysisCPA \n " +
         "observerAnalysis.inputFile =  test/programs/observerAutomata/PointerAnalysisTestAutomaton.txt \n " +
         "log.consoleLevel = INFO \n" + 
         "observerAnalysis.dotExportFile = " + OUTPUT_PATH + "observerAutomatonExport.dot \n" +
         "analysis.stopAfterError = FALSE";  
     try {
-      run(prop, "test/programs/simple/PointerAnalysisErrors.c");
-      FileTester et;
-      et = new FileTester(OutputFile.LOG);
-      Assert.assertTrue(et.fileContains("Found a DOUBLE_FREE"));
-      Assert.assertTrue(et.fileContains("Found an INVALID_FREE"));
-      Assert.assertTrue(et.fileContains("Found a POTENTIALLY_UNSAFE_DEREFERENCE"));
-      Assert.assertTrue(et.fileContains("Found a Memory Leak"));
-      Assert.assertTrue(et.fileContains("Found an UNSAFE_DEREFERENCE"));
-    } catch (FileNotFoundException e) {
-      System.err.println("Observer Automaton test failed (File not found: " + e.getMessage() + ")");
-      Assert.fail();
+      TestResults results = run(prop, "test/programs/simple/PointerAnalysisErrors.c");
+      Assert.assertTrue(results.logContains("Found a DOUBLE_FREE"));
+      Assert.assertTrue(results.logContains("Found an INVALID_FREE"));
+      Assert.assertTrue(results.logContains("Found a POTENTIALLY_UNSAFE_DEREFERENCE"));
+      Assert.assertTrue(results.logContains("Found a Memory Leak"));
+      Assert.assertTrue(results.logContains("Found an UNSAFE_DEREFERENCE"));
     } catch (InvalidConfigurationException e) {
       Assert.fail("InvalidConfiguration");
     }    
@@ -83,14 +56,13 @@ public class ObserverAutomatonTest {
   
   @Test
   public void locking_correct() {
-    tearDown();
     String prop = "CompositeCPA.cpas = cpa.location.LocationCPA, cpa.observeranalysis.ObserverAutomatonCPA \n " +
         "observerAnalysis.inputFile =  test/programs/observerAutomata/LockingAutomatonAll.txt \n " +
         "log.consoleLevel = INFO \n" + 
         "observerAnalysis.dotExportFile = " + OUTPUT_PATH + "observerAutomatonExport.dot";    
     try {
-      CPAcheckerResult results = run(prop, "test/programs/simple/locking_correct.c");
-      Assert.assertTrue(results.getResult().equals(Result.SAFE));
+      TestResults results = run(prop, "test/programs/simple/locking_correct.c");
+      Assert.assertTrue(results.isSafe());
     } catch (InvalidConfigurationException e) {
       Assert.fail("InvalidConfiguration");
     }
@@ -98,13 +70,13 @@ public class ObserverAutomatonTest {
   
   @Test
   public void locking_incorrect() {
-    tearDown();
+    
     String prop = "CompositeCPA.cpas = cpa.location.LocationCPA, cpa.observeranalysis.ObserverAutomatonCPA \n " +
         "observerAnalysis.inputFile =  test/programs/observerAutomata/LockingAutomatonAll.txt \n " +
         "log.consoleLevel = INFO";
     try {
-      CPAcheckerResult results = run(prop, "test/programs/simple/locking_incorrect.c");
-      Assert.assertTrue(results.getResult().equals(Result.UNSAFE));
+      TestResults results = run(prop, "test/programs/simple/locking_incorrect.c");
+      Assert.assertTrue(results.isUnsafe());
     } catch (InvalidConfigurationException e) {
       Assert.fail("InvalidConfiguration");
     }
@@ -112,13 +84,12 @@ public class ObserverAutomatonTest {
   
   @Test
   public void explicitAnalysis_observing() {
-    tearDown();
     String prop = "CompositeCPA.cpas = cpa.location.LocationCPA, cpa.observeranalysis.ObserverAutomatonCPA, cpa.explicit.ExplicitAnalysisCPA \n " +
         "observerAnalysis.inputFile =  test/programs/observerAutomata/ExcplicitAnalysisObservingAutomaton.txt \n " +
         "log.consoleLevel = INFO";
     try {
-      CPAcheckerResult results = run(prop, "test/programs/simple/ex2.cil.c");
-      Assert.assertTrue(results.getResult().equals(Result.SAFE));
+      TestResults results = run(prop, "test/programs/simple/ex2.cil.c");
+      Assert.assertTrue(results.isSafe());
       
     } catch (InvalidConfigurationException e) {
       Assert.fail("InvalidConfiguration");
@@ -127,35 +98,22 @@ public class ObserverAutomatonTest {
   
   @Test
   public void functionIdentifying() {
-    tearDown();
     String prop = "CompositeCPA.cpas = cpa.location.LocationCPA, cpa.observeranalysis.ObserverAutomatonCPA \n " +
         "observerAnalysis.inputFile =  test/programs/observerAutomata/FunctionIdentifyingAutomaton.txt \n " +
         "log.consoleLevel = FINER";
     try {
-      run(prop, "test/programs/simple/functionCall.c");
-      FileTester lt;
-      lt = new FileTester(OutputFile.LOG);
-      Assert.assertTrue(lt.fileContains("i'm in Main after Edge int y;"));
-      Assert.assertTrue(lt.fileContains("i'm in f after Edge f()"));
-      Assert.assertTrue(lt.fileContains("i'm in f after Edge int x;"));
-      Assert.assertTrue(lt.fileContains("i'm in Main after Edge Return Edge to"));
-      Assert.assertTrue(lt.fileContains("i'm in Main after Edge Label: ERROR"));
-    } catch (FileNotFoundException e) {
-      System.err.println("Observer Automaton test failed (File not found: " + e.getMessage() + ")");
-      Assert.fail();
+      TestResults results = run(prop, "test/programs/simple/functionCall.c");
+      Assert.assertTrue(results.logContains("i'm in Main after Edge int y;"));
+      Assert.assertTrue(results.logContains("i'm in f after Edge f()"));
+      Assert.assertTrue(results.logContains("i'm in f after Edge int x;"));
+      Assert.assertTrue(results.logContains("i'm in Main after Edge Return Edge to"));
+      Assert.assertTrue(results.logContains("i'm in Main after Edge Label: ERROR"));
     } catch (InvalidConfigurationException e) {
       Assert.fail("InvalidConfiguration");
     }
   }
   
-  private CPAcheckerResult run(String pPropertiesString, String pSourceCodeFilePath) throws InvalidConfigurationException {
-    return run(pPropertiesString, pSourceCodeFilePath, STANDARD_TIMEOUT);
-  }
-  
-  private CPAcheckerResult run(String pPropertiesString, String pSourceCodeFilePath, long pTimeout) throws InvalidConfigurationException {
-    pPropertiesString = pPropertiesString + 
-    "\nlog.level=FINER" +
-    "\nlog.file = " + logFileName;
+  private TestResults run(String pPropertiesString, String pSourceCodeFilePath) throws InvalidConfigurationException {
     File prop = new File(propertiesFilePath);
     FileWriter w;
     try {
@@ -166,10 +124,11 @@ public class ObserverAutomatonTest {
       
       Configuration config;  
       config = new Configuration(propertiesFilePath, null);
-      LogManager logger = new LogManager(config);
+      StringHandler stringLogHandler = new LogManager.StringHandler();
+      LogManager logger = new LogManager(config, stringLogHandler);      
       CPAchecker cpaChecker = new CPAchecker(config, logger);
       CPAcheckerResult results = cpaChecker.run(new StubFile(pSourceCodeFilePath));
-      return results;
+      return new TestResults(stringLogHandler.getLog(), results);
     } catch (IOException e1) {
       System.err.print("Test could not create/find the configuration file");
       e1.printStackTrace();
@@ -177,36 +136,30 @@ public class ObserverAutomatonTest {
     }
   }
   
-  private static class FileTester {
-    File file;
-    
-    FileTester(OutputFile pF) throws FileNotFoundException {
-      String fileName = "unknown";
-      switch (pF) {
-      case LOG:
-        fileName = OUTPUT_PATH + logFileName;
-        break;
-      }
-      file = new File(fileName);
-      if (!file.exists()) {
-        throw new FileNotFoundException(fileName);
-      }
+  private class TestResults {
+    private String log;
+    private CPAcheckerResult checkerResult;
+    public TestResults(String pLog, CPAcheckerResult pCheckerResult) {
+      super();
+      log = pLog;
+      checkerResult = pCheckerResult;
     }
-
-    boolean fileContains(String pattern) {
-       try {
-        BufferedReader r = new BufferedReader(new FileReader(this.file));
-        while(true) {
-          String line = r.readLine();
-          if (line == null) break;
-          if (line.contains(pattern)) return true;
-        }
-      } catch (FileNotFoundException e) {
-        e.printStackTrace();
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
-      return false;
+    @SuppressWarnings("unused")
+    public String getLog() {
+      return log;
+    }
+    @SuppressWarnings("unused")
+    public CPAcheckerResult getCheckerResult() {
+      return checkerResult;
+    }
+    boolean logContains(String pattern) {
+     return log.contains(pattern);
+    }
+    boolean isSafe() {
+      return checkerResult.getResult().equals(CPAcheckerResult.Result.SAFE);
+    }
+    boolean isUnsafe() {
+      return checkerResult.getResult().equals(CPAcheckerResult.Result.UNSAFE);
     }
   }
   /**
