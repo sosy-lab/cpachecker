@@ -30,8 +30,8 @@ import cfa.objectmodel.CFANode;
 
 public class ReturnEdge extends AbstractCFAEdge {
 
-  public ReturnEdge(String rawStatement, CFANode predecessor, CFANode successor) {
-    super(rawStatement, predecessor, successor);
+  public ReturnEdge(String rawStatement, int lineNumber, CFANode predecessor, CFANode successor) {
+    super(rawStatement, lineNumber, predecessor, successor);
   }
 
   public CFAEdgeType getEdgeType() {

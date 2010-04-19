@@ -175,7 +175,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
     if (printWarnings) {
       Integer lineNumber = null;
       if (edge != null) {
-        lineNumber = edge.getSuccessor().getLineNumber();
+        lineNumber = edge.getLineNumber();
       }
 
       Pair<Integer, String> warningIndex =
@@ -197,7 +197,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
     if (printWarnings) {
       Integer lineNumber = null;
       if (edge != null) {
-        lineNumber = edge.getSuccessor().getLineNumber();
+        lineNumber = edge.getLineNumber();
       }
 
       MemoryRegion warningIndex = memoryRegion;
@@ -215,7 +215,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
 
   private static void addError(String message, CFAEdge edge) {
     if (printWarnings) {
-      int lineNumber = edge.getSuccessor().getLineNumber();
+      int lineNumber = edge.getLineNumber();
       logger.log(Level.WARNING, "ERROR: " + message + " in line " + lineNumber
           + ": " + edge.getRawStatement());
     }
@@ -279,6 +279,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
             IASTDeclarator[] declarators = {dec.getDeclarator()};
             IASTDeclSpecifier declSpecifier = dec.getDeclSpecifier();
             DeclarationEdge d = new DeclarationEdge("entryFunction temporary edge", 
+                                                    0,
                                                     entryFunctionDefinitionNode, 
                                                     entryFunctionDefinitionNode, 
                                                     declarators, declSpecifier);

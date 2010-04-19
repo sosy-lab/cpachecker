@@ -210,26 +210,26 @@ public class CPASecondPassBuilder {
     if(fDefNode == null){
       assert(createCallEdgesForExternalCalls); // AG
       
-      callEdge = new FunctionCallEdge(functionCall.getRawSignature(), node, edge.getSuccessor(), parameters, true);
+      callEdge = new FunctionCallEdge(functionCall.getRawSignature(), edge.getLineNumber(), node, edge.getSuccessor(), parameters, true);
       callEdge.addToCFA();
       callEdge.getSuccessor().setFunctionName(node.getFunctionName());
-      CallToReturnEdge calltoReturnEdge = new CallToReturnEdge("External Call", node, edge.getSuccessor(), expr);
+      CallToReturnEdge calltoReturnEdge = new CallToReturnEdge("External Call", edge.getLineNumber(), node, edge.getSuccessor(), expr);
       calltoReturnEdge.addToCFA();
       node.removeLeavingEdge(edge);
       successorNode.removeEnteringEdge(edge);
       return;
     }
 
-    callEdge = new FunctionCallEdge(functionCall.getRawSignature(), node, fDefNode, parameters, false);
+    callEdge = new FunctionCallEdge(functionCall.getRawSignature(), edge.getLineNumber(), node, fDefNode, parameters, false);
     callEdge.addToCFA();
     // set name of the function
     fDefNode.setFunctionName(functionName);
     // set return edge from exit node of the function
-    ReturnEdge returnEdge = new ReturnEdge("Return Edge to " + successorNode.getNodeNumber(), cfas.get(functionName).getExitNode(), successorNode);
+    ReturnEdge returnEdge = new ReturnEdge("Return Edge to " + successorNode.getNodeNumber(), edge.getLineNumber(), cfas.get(functionName).getExitNode(), successorNode);
     returnEdge.addToCFA();
     returnEdge.getSuccessor().setFunctionName(node.getFunctionName());
 
-    CallToReturnEdge calltoReturnEdge = new CallToReturnEdge(expr.getRawSignature(), node, successorNode, expr);
+    CallToReturnEdge calltoReturnEdge = new CallToReturnEdge(expr.getRawSignature(), edge.getLineNumber(), node, successorNode, expr);
     calltoReturnEdge.addToCFA();
 
     node.removeLeavingEdge(edge);

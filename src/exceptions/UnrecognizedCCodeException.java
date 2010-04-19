@@ -48,7 +48,7 @@ public class UnrecognizedCCodeException extends CPATransferException {
   public UnrecognizedCCodeException(String msg, CFAEdge edge) {
     super("Unrecognized C code"
         + (msg != null ? " (" + msg + ") " : " ")
-        + "in line " + edge.getSuccessor().getLineNumber()
+        + "in line " + edge.getLineNumber()
         + ": " + edge.getRawStatement());
 
     }

@@ -38,11 +38,11 @@ public class MultiDeclarationEdge extends AbstractCFAEdge
     private final List<IASTDeclarator[]> declarators;
     private final List<String> rawStatements;
 
-    public MultiDeclarationEdge (String rawStatement, CFANode predecessor, CFANode successor,
+    public MultiDeclarationEdge (String rawStatement, int lineNumber, CFANode predecessor, CFANode successor,
                               List<IASTDeclarator[]> declarators,
                               List<String> rawStatements)
     {
-        super(rawStatement, predecessor, successor);
+        super(rawStatement, lineNumber, predecessor, successor);
 
         if (declarators == null)
             this.declarators = new ArrayList<IASTDeclarator[]> ();

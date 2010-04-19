@@ -37,11 +37,11 @@ public class DeclarationEdge extends AbstractCFAEdge
     private final IASTDeclarator[] declarators;
     private final IASTDeclSpecifier specifier;
 
-    public DeclarationEdge (String rawStatement, CFANode predecessor, CFANode successor,
+    public DeclarationEdge (String rawStatement, int lineNumber, CFANode predecessor, CFANode successor,
                             IASTDeclarator[] declarators,
                             IASTDeclSpecifier specifier)
     {
-        super(rawStatement, predecessor, successor);
+        super(rawStatement, lineNumber, predecessor, successor);
         this.declarators = declarators;
         this.specifier = specifier;
     }

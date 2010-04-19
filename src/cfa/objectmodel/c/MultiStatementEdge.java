@@ -37,10 +37,10 @@ public class MultiStatementEdge extends AbstractCFAEdge
 {
     private final List<IASTExpression> expressions;
 
-    public MultiStatementEdge (String rawStatement, CFANode predecessor, CFANode successor,
+    public MultiStatementEdge (String rawStatement, int lineNumber, CFANode predecessor, CFANode successor,
                               List<IASTExpression> expressions)
     {
-        super(rawStatement, predecessor, successor);
+        super(rawStatement, lineNumber, predecessor, successor);
 
         if (expressions == null)
             this.expressions = new ArrayList<IASTExpression> ();

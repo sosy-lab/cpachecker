@@ -17,7 +17,7 @@ public class Path extends LinkedList<Pair<ARTElement, CFAEdge>> {
 
     for (Pair<ARTElement, CFAEdge> pair : this) {
       sb.append("Line ");
-      sb.append(pair.getSecond().getSuccessor().getLineNumber());
+      sb.append(pair.getSecond().getLineNumber());
       sb.append(": ");
       sb.append(pair.getSecond());
       sb.append("\n");

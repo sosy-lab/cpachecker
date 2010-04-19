@@ -23,7 +23,7 @@ public class InternalSelfLoop extends BlankEdge {
   }
   
   private InternalSelfLoop(CFANode pNode) {
-    super("Internal Self Loop", pNode, pNode);
+    super("Internal Self Loop", pNode.getLineNumber(), pNode, pNode);
 
     // do we want to add this edge to be added to the edges of pNode?
     // our transfer relation just returns bottom if it has no successor on the 

@@ -36,10 +36,10 @@ public class StatementEdge extends AbstractCFAEdge
     private final IASTExpression expression;
     private final boolean jumpEdge;
 
-    public StatementEdge(String rawStatement, CFANode predecessor, CFANode successor,
+    public StatementEdge(String rawStatement, int lineNumber, CFANode predecessor, CFANode successor,
                               IASTExpression expression, boolean jumpEdge)
     {
-        super(rawStatement, predecessor, successor);
+        super(rawStatement, lineNumber, predecessor, successor);
         this.expression = expression;
         this.jumpEdge = jumpEdge;
     }

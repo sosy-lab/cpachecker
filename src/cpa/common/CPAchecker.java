@@ -455,10 +455,10 @@ public class CPAchecker {
 //          continue;
 //        }
 //      }
-      CFANode n = new CFANode(0);
+      CFANode n = new CFANode(sd.getFileLocation().getStartingLineNumber());
       n.setFunctionName(cur.getFunctionName());
       GlobalDeclarationEdge e = new GlobalDeclarationEdge(
-          d.getRawSignature(), cur, n,
+          d.getRawSignature(), sd.getFileLocation().getStartingLineNumber(), cur, n,
           sd.getDeclarators(),
           sd.getDeclSpecifier());
       e.addToCFA();
@@ -477,11 +477,11 @@ public class CPAchecker {
     secondNode.removeEnteringEdge(firstEdge);
     
     // and add a blank edge connecting the first node of CFA with declarations
-    BlankEdge be = new BlankEdge("INIT GLOBAL VARS", cfa, decls.get(0));
+    BlankEdge be = new BlankEdge("INIT GLOBAL VARS", 0, cfa, decls.get(0));
     be.addToCFA();
 
     // and a blank edge connecting the declarations with the second node of CFA
-    be = new BlankEdge(firstEdge.getRawStatement(), cur, secondNode);
+    be = new BlankEdge(firstEdge.getRawStatement(), firstEdge.getLineNumber(), cur, secondNode);
     be.addToCFA();
     
     return;

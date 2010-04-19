@@ -36,8 +36,8 @@ public class CallToReturnEdge extends AbstractCFAEdge {
 	private final IASTExpression expression;
 	private AbstractElement abstractElement;
 
-	public CallToReturnEdge(String rawStatement, CFANode predecessor, CFANode successor, IASTExpression exp) {
-		super(rawStatement, predecessor, successor);
+	public CallToReturnEdge(String rawStatement, int lineNumber, CFANode predecessor, CFANode successor, IASTExpression exp) {
+		super(rawStatement, lineNumber, predecessor, successor);
 		this.expression = exp;
 	}
 

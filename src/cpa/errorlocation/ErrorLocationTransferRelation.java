@@ -34,7 +34,7 @@ public class ErrorLocationTransferRelation implements TransferRelation {
   
 
   public static void addError(String message, CFAEdge edge) {
-    Integer lineNumber = edge.getSuccessor().getLineNumber();
+    int lineNumber = edge.getLineNumber();
     
     if (!messages.contains(lineNumber)) {
       messages.add(lineNumber);

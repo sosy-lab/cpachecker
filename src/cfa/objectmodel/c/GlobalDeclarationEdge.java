@@ -39,9 +39,9 @@ import cfa.objectmodel.c.DeclarationEdge;
  */
 public class GlobalDeclarationEdge extends DeclarationEdge {
 
-    public GlobalDeclarationEdge(String rawStatement, CFANode predecessor, CFANode successor,
+    public GlobalDeclarationEdge(String rawStatement, int lineNumber, CFANode predecessor, CFANode successor,
             IASTDeclarator[] declarators, IASTDeclSpecifier specifier) {
-        super(rawStatement, predecessor, successor, declarators, specifier);
+        super(rawStatement, lineNumber, predecessor, successor, declarators, specifier);
     }
 
 }

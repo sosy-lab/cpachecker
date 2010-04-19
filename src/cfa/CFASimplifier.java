@@ -121,7 +121,7 @@ public class CFASimplifier {
 		node.removeLeavingEdge(leavingEdge);
 		successor.removeEnteringEdge(leavingEdge);
 		
-		BlankEdge be = new BlankEdge("removed declaration", node, successor);
+		BlankEdge be = new BlankEdge("removed declaration", leavingEdge.getLineNumber(), node, successor);
 		be.addToCFA();
 	}
 
@@ -149,7 +149,7 @@ public class CFASimplifier {
 			priorNode.removeLeavingEdge (enteringEdge);
 			afterNode.removeEnteringEdge (leavingEdge);
 
-			MultiStatementEdge msEdge = new MultiStatementEdge("multi-statement edge", priorNode, afterNode, expressions);
+			MultiStatementEdge msEdge = new MultiStatementEdge("multi-statement edge", enteringEdge.getLineNumber(), priorNode, afterNode, expressions);
 			msEdge.addToCFA();
 		}
 		else if (enteringEdge.getEdgeType () == CFAEdgeType.MultiStatementEdge)
@@ -164,7 +164,7 @@ public class CFASimplifier {
 	    priorNode.removeLeavingEdge (enteringEdge);
 	    afterNode.removeEnteringEdge (leavingEdge);
 
-	    MultiStatementEdge newMsEdge = new MultiStatementEdge("multi-statement edge", priorNode, afterNode, expressions);
+	    MultiStatementEdge newMsEdge = new MultiStatementEdge("multi-statement edge", enteringEdge.getLineNumber(), priorNode, afterNode, expressions);
 	    newMsEdge.addToCFA();
 		}
 	}
@@ -198,7 +198,7 @@ public class CFASimplifier {
 			priorNode.removeLeavingEdge (enteringEdge);
 			afterNode.removeEnteringEdge (leavingEdge);
 
-			MultiDeclarationEdge mdEdge = new MultiDeclarationEdge ("multi-declaration edge", priorNode, afterNode, declarators, rawStatements);
+			MultiDeclarationEdge mdEdge = new MultiDeclarationEdge ("multi-declaration edge", enteringEdge.getLineNumber(), priorNode, afterNode, declarators, rawStatements);
 			mdEdge.addToCFA();
 		}
 		else if (enteringEdge.getEdgeType () == CFAEdgeType.MultiDeclarationEdge)
@@ -217,7 +217,7 @@ public class CFASimplifier {
       priorNode.removeLeavingEdge (enteringEdge);
 	    afterNode.removeEnteringEdge (leavingEdge);
 
-      MultiDeclarationEdge newMdEdge = new MultiDeclarationEdge ("multi-declaration edge", priorNode, afterNode, declarators, rawStatements);
+      MultiDeclarationEdge newMdEdge = new MultiDeclarationEdge ("multi-declaration edge", enteringEdge.getLineNumber(), priorNode, afterNode, declarators, rawStatements);
       newMdEdge.addToCFA();
 		}
 	}

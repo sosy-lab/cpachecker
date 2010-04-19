@@ -35,8 +35,8 @@ public class FunctionCallEdge extends AbstractCFAEdge
 	private final IASTExpression[] functionArguments;
 	private final boolean isExternalCall;
 
-    public FunctionCallEdge (String rawStatement, CFANode predecessor, CFANode successor, IASTExpression[] arguments, boolean isExternalCall) {
-        super(rawStatement, predecessor, successor);
+    public FunctionCallEdge (String rawStatement, int lineNumber, CFANode predecessor, CFANode successor, IASTExpression[] arguments, boolean isExternalCall) {
+        super(rawStatement, lineNumber, predecessor, successor);
         functionArguments = arguments;
         this.isExternalCall = isExternalCall;
     }

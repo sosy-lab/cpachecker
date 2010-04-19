@@ -36,11 +36,11 @@ public class AssumeEdge extends AbstractCFAEdge
     private final boolean truthAssumption;
     private final IASTExpression expression;
 
-    public AssumeEdge (String rawStatement, CFANode predecessor, CFANode successor,
+    public AssumeEdge (String rawStatement, int lineNumber, CFANode predecessor, CFANode successor,
                            IASTExpression expression,
                            boolean truthAssumption)
     {
-        super (rawStatement, predecessor, successor);
+        super (rawStatement, lineNumber, predecessor, successor);
 
         this.truthAssumption = truthAssumption;
         this.expression = expression;

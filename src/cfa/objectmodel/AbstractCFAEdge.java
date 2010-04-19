@@ -36,14 +36,17 @@ public abstract class AbstractCFAEdge implements CFAEdge
     private final CFANode successor;
 
     private final String rawStatement;
+    
+    private final int lineNumber;
 
-    public AbstractCFAEdge(String rawStatement, CFANode predecessor, CFANode successor) {
+    public AbstractCFAEdge(String rawStatement, int lineNumber, CFANode predecessor, CFANode successor) {
       Preconditions.checkNotNull(rawStatement);
       Preconditions.checkNotNull(predecessor);
       Preconditions.checkNotNull(successor);
       this.predecessor = predecessor;
       this.successor = successor;
       this.rawStatement = rawStatement;
+      this.lineNumber = lineNumber;
     }
 
     /**
@@ -107,6 +110,11 @@ public abstract class AbstractCFAEdge implements CFAEdge
         return false;
     }
 
+    @Override
+    public int getLineNumber() {
+      return lineNumber;
+    }
+    
     @Override
     public int hashCode() {
       return 31 * predecessor.hashCode() + successor.hashCode();

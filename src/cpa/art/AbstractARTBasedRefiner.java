@@ -48,7 +48,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
       
       if (arg.getSecond() instanceof FunctionCallEdge) {
         FunctionCallEdge funcEdge = (FunctionCallEdge)arg.getSecond();
-        return "line " + funcEdge.getSuccessor().getLineNumber() + ":\t" + funcEdge.getRawStatement();
+        return "line " + funcEdge.getLineNumber() + ":\t" + funcEdge.getRawStatement();
       } else {
         return null;
       }

@@ -171,15 +171,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
     
     if (printWarnings) {
       
-      Integer lineNumber;
-      
-      if (edge instanceof FunctionCallEdge) {
-        //for a function call, show line number of call rather than of function definition
-        lineNumber = edge.getPredecessor().getLeavingSummaryEdge().getSuccessor().getLineNumber(); 
-      } else {
-        lineNumber = edge.getSuccessor().getLineNumber();
-      }
-      
+      int lineNumber = edge.getLineNumber();
       String message;
       
       if (edge instanceof CallToReturnEdge && expression instanceof IASTFunctionCallExpression) {
