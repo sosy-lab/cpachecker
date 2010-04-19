@@ -120,7 +120,7 @@ public class PredicateAbstractionTransferRelation implements TransferRelation {
     succ.setAbstraction(abstraction);
     //  succ.setParent(e);
 
-    if (CPAchecker.logger.getLogLevel().intValue() <= Level.ALL.intValue()) {
+    if (CPAchecker.logger.wouldBeLogged(Level.ALL)) {
       CPAchecker.logger.log(Level.ALL, "DEBUG_1", "COMPUTED ABSTRACTION:",
           amgr.toConcrete(abstraction));
     }
