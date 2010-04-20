@@ -58,7 +58,7 @@ class MathsatSymbolicFormula implements SymbolicFormula {
         return msatTerm == ((MathsatSymbolicFormula)o).msatTerm;
     }
 
-    public long getTerm() { return msatTerm; }
+    long getTerm() { return msatTerm; }
 
     @Override
     public int hashCode() {

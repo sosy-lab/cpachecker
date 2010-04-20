@@ -819,6 +819,7 @@ public class PointerAnalysisElement implements AbstractQueryableElement, Memory,
     return unreferencedRegions;
   }
 
+  @SuppressWarnings("unused")
   private boolean checkMemoryLeak(Set<MemoryRegion> unmarkedRegions, Pointer p) {
     for (PointerTarget target : p.getTargets()) {
       if (target == Memory.UNKNOWN_POINTER) {

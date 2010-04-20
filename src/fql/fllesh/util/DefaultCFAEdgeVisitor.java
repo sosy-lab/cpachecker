@@ -10,7 +10,6 @@ import cfa.objectmodel.c.MultiDeclarationEdge;
 import cfa.objectmodel.c.MultiStatementEdge;
 import cfa.objectmodel.c.ReturnEdge;
 import cfa.objectmodel.c.StatementEdge;
-import fql.fllesh.cpa.InternalSelfLoop;
 
 public class DefaultCFAEdgeVisitor<T> extends AbstractCFAEdgeVisitor<T> {
 

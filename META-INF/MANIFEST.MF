@@ -47,6 +47,5 @@ Export-Package: .,
 Bundle-ClassPath: bin/,
  lib/javabdd-1.0b2.jar,
  lib/mathsat.jar,
- lib/StubCodeReaderFactory.jar,
  lib/icu4j-4_2_1.jar
 Bundle-RequiredExecutionEnvironment: JavaSE-1.6
