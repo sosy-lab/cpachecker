@@ -6,7 +6,6 @@ import java.util.logging.Level;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 
 import cfa.objectmodel.CFAFunctionDefinitionNode;
-import cmdline.stubs.StubFile;
 
 import common.Pair;
 import common.configuration.Configuration;
@@ -30,12 +29,10 @@ public class CPAchecker extends cpa.common.CPAchecker {
       System.exit(1);
     }
     
-    StubFile lSourceFile = new StubFile(names[0]);
-    
     // parse code file
     IASTTranslationUnit lAst = null;
     try {
-      lAst = super.parse(lSourceFile);
+      lAst = super.parse(names[0]);
     } catch (Exception e) {
       e.printStackTrace();
       System.exit(1);

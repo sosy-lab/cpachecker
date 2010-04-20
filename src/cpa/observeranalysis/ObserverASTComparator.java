@@ -16,7 +16,7 @@ import org.eclipse.core.runtime.CoreException;
 
 import cmdline.stubs.CLanguage;
 import cmdline.stubs.StubCodeReaderFactory;
-import cmdline.stubs.StubConfiguration;
+import cmdline.stubs.StubScannerInfo;
 
 /**
  * Provides methods for generating, comparing and printing the ASTs generated from String.
@@ -178,7 +178,7 @@ public class ObserverASTComparator {
   private static IASTTranslationUnit parse(String code) {
     CodeReader reader = new CodeReader(code.toCharArray());
 
-    IScannerInfo scannerInfo = StubConfiguration.getStubScannerInfo();
+    IScannerInfo scannerInfo = StubScannerInfo.getInstance();
     ICodeReaderFactory codeReaderFactory = new StubCodeReaderFactory();
     IParserLogService parserLog = ParserFactory.createDefaultLogService();
 

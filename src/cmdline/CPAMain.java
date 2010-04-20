@@ -34,8 +34,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
-import cmdline.stubs.StubFile;
-
 import com.google.common.base.Joiner;
 import common.configuration.Configuration;
 import compositeCPA.CompositeCPA;
@@ -164,7 +162,7 @@ public class CPAMain {
     ShutdownHook shutdownHook = new ShutdownHook(logManager);
     Runtime.getRuntime().addShutdownHook(shutdownHook);
 
-    CPAcheckerResult result = cpachecker.run(new StubFile(names[0]));
+    CPAcheckerResult result = cpachecker.run(names[0]);
     
     shutdownHook.setResult(result);
 

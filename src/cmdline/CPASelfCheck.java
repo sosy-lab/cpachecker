@@ -40,13 +40,11 @@ import java.util.Map;
 import java.util.logging.Level;
 
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
-import org.eclipse.core.resources.IFile;
 import org.eclipse.core.runtime.CoreException;
 
 import cfa.CFABuilder;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cmdline.CPAMain.InvalidCmdlineArgumentException;
-import cmdline.stubs.StubFile;
 
 import common.configuration.Configuration;
 
@@ -165,10 +163,8 @@ public class CPASelfCheck {
 
     lWriter.close();
 
-    IFile currentFile = new StubFile(lFile.getCanonicalPath());
-
     // Get Eclipse to parse the C in the current file
-    IASTTranslationUnit ast = cpachecker.parse(currentFile);
+    IASTTranslationUnit ast = cpachecker.parse(lFile.getCanonicalPath());
 
     // TODO use the methods from CPAMain for this?
     CFABuilder builder = new CFABuilder(logManager);

@@ -25,41 +25,24 @@ package cmdline.stubs;
 
 import java.util.Map;
 
-import org.eclipse.cdt.core.dom.IParserConfiguration;
 import org.eclipse.cdt.core.parser.IScannerInfo;
 
+public class StubScannerInfo implements IScannerInfo {
 
-public class StubConfiguration implements IParserConfiguration {
+  private static IScannerInfo instance = new StubScannerInfo();
 
-    private static IScannerInfo scannerInfo = new StubScannerInfo();
-  
-    public static IScannerInfo getStubScannerInfo() {
-      return scannerInfo;
-    }
-  
-    private static class StubScannerInfo implements IScannerInfo {
+  public static IScannerInfo getInstance() {
+    return instance;
+  }
 
-        public Map<String, String> getDefinedSymbols() {
-            // the externally defined pre-processor macros  
-            return null;
-        }
+  @Override
+  public Map<String, String> getDefinedSymbols() {
+    // the externally defined pre-processor macros  
+    return null;
+  }
 
-        public String[] getIncludePaths() {
-            return null;
-        }
-    }
-
-    private final String parserDialect;
-    
-    public StubConfiguration(String parserDialect) {
-      this.parserDialect = parserDialect;
-    }
-  
-    public String getParserDialect() {
-      return parserDialect;
-    }
-
-    public IScannerInfo getScannerInfo() {
-        return getStubScannerInfo();
-    }
+  @Override
+  public String[] getIncludePaths() {
+    return null;
+  }
 }

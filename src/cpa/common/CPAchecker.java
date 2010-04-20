@@ -40,7 +40,6 @@ import org.eclipse.cdt.core.parser.CodeReader;
 import org.eclipse.cdt.core.parser.IParserLogService;
 import org.eclipse.cdt.core.parser.IScannerInfo;
 import org.eclipse.cdt.core.parser.ParserFactory;
-import org.eclipse.core.resources.IFile;
 import org.eclipse.core.runtime.CoreException;
 
 import cfa.CFABuilder;
@@ -57,7 +56,7 @@ import cfa.objectmodel.CFANode;
 import cfa.objectmodel.c.GlobalDeclarationEdge;
 import cmdline.stubs.CLanguage;
 import cmdline.stubs.StubCodeReaderFactory;
-import cmdline.stubs.StubConfiguration;
+import cmdline.stubs.StubScannerInfo;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
@@ -185,7 +184,7 @@ public class CPAchecker {
     return config;
   }
   
-  public CPAcheckerResult run(IFile file) {
+  public CPAcheckerResult run(String filename) {
     
     logger.log(Level.FINE, "Analysis Started");
     
@@ -195,7 +194,7 @@ public class CPAchecker {
     
     try {
       // parse code file
-      IASTTranslationUnit ast = parse(file);
+      IASTTranslationUnit ast = parse(filename);
 
       stats = new MainCPAStatistics(getConfiguration(), logger);
 
@@ -229,7 +228,7 @@ public class CPAchecker {
       }
     
     } catch (IOException e) {
-      logger.log(Level.SEVERE, "Could not read file", file.getLocation().toOSString(), 
+      logger.log(Level.SEVERE, "Could not read file", filename, 
           (e.getMessage() != null ? "(" + e.getMessage() + ")" : ""));
 
     } catch (CoreException e) {
@@ -264,12 +263,11 @@ public class CPAchecker {
    * @throws IOException If file cannot be read.
    * @throws CoreException If Eclipse C parser throws an exception.
    */
-  public IASTTranslationUnit parse(IFile file) throws IOException, CoreException {
+  public IASTTranslationUnit parse(String filename) throws IOException, CoreException {
     logger.log(Level.FINE, "Starting parsing of file");
-    String fileName = file.getLocation().toOSString();
-    CodeReader reader = new CodeReader(fileName);
+    CodeReader reader = new CodeReader(filename);
 
-    IScannerInfo scannerInfo = StubConfiguration.getStubScannerInfo();
+    IScannerInfo scannerInfo = StubScannerInfo.getInstance();
     ICodeReaderFactory codeReaderFactory = new StubCodeReaderFactory();
     IParserLogService parserLog = ParserFactory.createDefaultLogService();
 

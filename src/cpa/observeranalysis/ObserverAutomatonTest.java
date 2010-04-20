@@ -7,8 +7,6 @@ import java.io.IOException;
 import org.junit.Assert;
 import org.junit.Test;
 
-import cmdline.stubs.StubFile;
-
 import common.configuration.Configuration;
 
 import cpa.common.CPAchecker;
@@ -127,7 +125,7 @@ public class ObserverAutomatonTest {
       StringHandler stringLogHandler = new LogManager.StringHandler();
       LogManager logger = new LogManager(config, stringLogHandler);      
       CPAchecker cpaChecker = new CPAchecker(config, logger);
-      CPAcheckerResult results = cpaChecker.run(new StubFile(pSourceCodeFilePath));
+      CPAcheckerResult results = cpaChecker.run(pSourceCodeFilePath);
       return new TestResults(stringLogHandler.getLog(), results);
     } catch (IOException e1) {
       System.err.print("Test could not create/find the configuration file");

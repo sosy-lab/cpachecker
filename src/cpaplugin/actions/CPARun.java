@@ -188,7 +188,7 @@ public class CPARun implements IWorkbenchWindowActionDelegate
 			
       //Now run analysis
       CPAchecker cpachecker = new CPAchecker(cpaConfig, logManager);
-      CPAcheckerResult result = cpachecker.run(currentFile);
+      CPAcheckerResult result = cpachecker.run(currentFile.getLocation().toOSString());
       result.printStatistics(new PrintWriter(myConsole.newOutputStream()));
 		}
 		catch (Exception e)
