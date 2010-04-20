@@ -54,7 +54,6 @@ public class StubCodeReaderFactory implements ICodeReaderFactory {
 
     public CodeReader createCodeReaderForTranslationUnit(ITranslationUnit tu) {
       throw new UnsupportedOperationException();
-//      return new CodeReader(tu.getResource().getLocation().toOSString(), tu.getContents());
     }
 
     @Override

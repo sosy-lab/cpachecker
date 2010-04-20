@@ -31,15 +31,17 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.eclipse.cdt.core.dom.IASTServiceProvider;
 import org.eclipse.cdt.core.dom.ICodeReaderFactory;
-import org.eclipse.cdt.core.dom.IParserConfiguration;
-import org.eclipse.cdt.core.dom.IASTServiceProvider.UnsupportedDialectException;
 import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
-import org.eclipse.cdt.internal.core.dom.InternalASTServiceProvider;
+import org.eclipse.cdt.core.model.ILanguage;
+import org.eclipse.cdt.core.parser.CodeReader;
+import org.eclipse.cdt.core.parser.IParserLogService;
+import org.eclipse.cdt.core.parser.IScannerInfo;
+import org.eclipse.cdt.core.parser.ParserFactory;
 import org.eclipse.core.resources.IFile;
+import org.eclipse.core.runtime.CoreException;
 
 import cfa.CFABuilder;
 import cfa.CFACheck;
@@ -53,6 +55,7 @@ import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cfa.objectmodel.CFANode;
 import cfa.objectmodel.c.GlobalDeclarationEdge;
+import cmdline.stubs.CLanguage;
 import cmdline.stubs.StubCodeReaderFactory;
 import cmdline.stubs.StubConfiguration;
 
@@ -78,7 +81,6 @@ import exceptions.CPAException;
 import exceptions.ForceStopCPAException;
 import exceptions.InvalidConfigurationException;
 
-@SuppressWarnings("restriction")
 public class CPAchecker {
   
   @Options
@@ -194,10 +196,6 @@ public class CPAchecker {
     try {
       // parse code file
       IASTTranslationUnit ast = parse(file);
-      if (ast == null) {
-        // parsing failed
-        return new CPAcheckerResult(Result.UNKNOWN, null, null);
-      }
 
       stats = new MainCPAStatistics(getConfiguration(), logger);
 
@@ -230,6 +228,13 @@ public class CPAchecker {
         result = runAlgorithm(algorithm, reached, stats);
       }
     
+    } catch (IOException e) {
+      logger.log(Level.SEVERE, "Could not read file", file.getLocation().toOSString(), 
+          (e.getMessage() != null ? "(" + e.getMessage() + ")" : ""));
+
+    } catch (CoreException e) {
+      logger.logException(Level.SEVERE, e, "Exception thrown by Eclipse C parser");
+      
     } catch (CFAGenerationRuntimeException e) {
       // only log message, not whole exception because this is a C problem,
       // not a CPAchecker problem
@@ -256,27 +261,25 @@ public class CPAchecker {
    * 
    * @param fileName  The file to parse.
    * @return The AST.
-   * @throws InvalidConfigurationException 
+   * @throws IOException If file cannot be read.
+   * @throws CoreException If Eclipse C parser throws an exception.
    */
-  public IASTTranslationUnit parse(IFile file) throws InvalidConfigurationException {
-    IASTServiceProvider p = new InternalASTServiceProvider();
-    
+  public IASTTranslationUnit parse(IFile file) throws IOException, CoreException {
+    logger.log(Level.FINE, "Starting parsing of file");
+    String fileName = file.getLocation().toOSString();
+    CodeReader reader = new CodeReader(fileName);
+
+    IScannerInfo scannerInfo = StubConfiguration.getStubScannerInfo();
     ICodeReaderFactory codeReaderFactory = new StubCodeReaderFactory();
-    IParserConfiguration parserConfiguration = new StubConfiguration(options.parserDialect);
-    
-    IASTTranslationUnit ast = null;
-    try {
-      ast = p.getTranslationUnit(file, codeReaderFactory, parserConfiguration);
-    } catch (UnsupportedDialectException e) {
-      // should never occur here because the value of the option is checked before 
-      throw new InvalidConfigurationException("Unsupported C dialect " + options.parserDialect);
-    }
+    IParserLogService parserLog = ParserFactory.createDefaultLogService();
 
+    ILanguage lang = new CLanguage(options.parserDialect);
+
+    IASTTranslationUnit ast = lang.getASTTranslationUnit(reader, scannerInfo, codeReaderFactory, null, parserLog);
     logger.log(Level.FINE, "Parser Finished");
-
-    return ast;
+    return ast;  
   }
-  
+
   /**
    * --Refactoring:
    * Initializes the CFA. This method is created based on the 

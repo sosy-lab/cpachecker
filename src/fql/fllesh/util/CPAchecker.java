@@ -33,7 +33,13 @@ public class CPAchecker extends cpa.common.CPAchecker {
     StubFile lSourceFile = new StubFile(names[0]);
     
     // parse code file
-    IASTTranslationUnit lAst = super.parse(lSourceFile);
+    IASTTranslationUnit lAst = null;
+    try {
+      lAst = super.parse(lSourceFile);
+    } catch (Exception e) {
+      e.printStackTrace();
+      System.exit(1);
+    }
     
     Pair<Map<String, CFAFunctionDefinitionNode>, CFAFunctionDefinitionNode> lCFA = super.createCFA(lAst);
     

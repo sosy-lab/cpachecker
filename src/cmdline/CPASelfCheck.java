@@ -41,6 +41,7 @@ import java.util.logging.Level;
 
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.core.resources.IFile;
+import org.eclipse.core.runtime.CoreException;
 
 import cfa.CFABuilder;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
@@ -148,7 +149,7 @@ public class CPASelfCheck {
     }
   }
   
-  private static CFAFunctionDefinitionNode createCFA(CPAchecker cpachecker, LogManager logManager) throws IOException, InvalidConfigurationException {
+  private static CFAFunctionDefinitionNode createCFA(CPAchecker cpachecker, LogManager logManager) throws IOException, CoreException {
     File lFile = File.createTempFile("dummy", ".c");
     lFile.deleteOnExit();
        

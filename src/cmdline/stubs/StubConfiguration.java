@@ -31,10 +31,15 @@ import org.eclipse.cdt.core.parser.IScannerInfo;
 
 public class StubConfiguration implements IParserConfiguration {
 
+    private static IScannerInfo scannerInfo = new StubScannerInfo();
+  
+    public static IScannerInfo getStubScannerInfo() {
+      return scannerInfo;
+    }
+  
     private static class StubScannerInfo implements IScannerInfo {
 
-        @SuppressWarnings("unchecked")
-        public Map getDefinedSymbols() {
+        public Map<String, String> getDefinedSymbols() {
             // the externally defined pre-processor macros  
             return null;
         }
@@ -55,6 +60,6 @@ public class StubConfiguration implements IParserConfiguration {
     }
 
     public IScannerInfo getScannerInfo() {
-        return new StubScannerInfo();
+        return getStubScannerInfo();
     }
 }
