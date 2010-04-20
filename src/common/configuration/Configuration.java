@@ -41,7 +41,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 
 import exceptions.InvalidConfigurationException;
-import fql.fllesh.util.CPAchecker;
+import cpa.common.CPAchecker;
 
 /**
  * Immutable wrapper around a {@link Properties} instance, providing some
