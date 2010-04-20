@@ -34,14 +34,12 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.logging.Level;
 import java.util.regex.Pattern;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 
 import exceptions.InvalidConfigurationException;
-import cpa.common.CPAchecker;
 
 /**
  * Immutable wrapper around a {@link Properties} instance, providing some
@@ -312,9 +310,12 @@ public class Configuration {
         
         } catch (Throwable t) {
           // We can't handle it correctly, but we can't throw it either.
-          CPAchecker.logger.logException(Level.FINE, t,
-              "Unexpected checked exception in method invoked by Configuration.inject(Object). It was ignored.");
-          assert false : t.getMessage();
+          InvalidConfigurationException newException = new InvalidConfigurationException(
+              "Unexpected checked exception in method "
+              + method.toGenericString()
+              + ", which was invoked by Configuration.inject()");
+          newException.initCause(t);
+          throw newException;
         }
       }
     }
