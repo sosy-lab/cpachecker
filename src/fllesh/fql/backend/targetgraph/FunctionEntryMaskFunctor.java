@@ -1,4 +1,4 @@
-package fql.backend.targetgraph;
+package fllesh.fql.backend.targetgraph;
 
 import org.jgrapht.graph.MaskFunctor;
 

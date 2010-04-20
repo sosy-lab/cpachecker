@@ -1,11 +1,11 @@
-package fql.backend.testgoals;
+package fllesh.fql.backend.testgoals;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import fql.backend.targetgraph.Edge;
-import fql.backend.targetgraph.Node;
+import fllesh.fql.backend.targetgraph.Edge;
+import fllesh.fql.backend.targetgraph.Node;
 
 public class EdgeSequence implements TestGoal, Iterable<Edge> {
 

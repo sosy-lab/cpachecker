@@ -1,4 +1,4 @@
-package fql.fllesh.reachability;
+package fllesh.fql.fllesh.reachability;
 
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -22,9 +22,9 @@ import cpa.location.LocationCPA;
 import cpa.mustmay.MustMayAnalysisCPA;
 import cpa.mustmay.MustMayAnalysisElement;
 import exceptions.CPAException;
-import fql.backend.pathmonitor.Automaton;
-import fql.fllesh.cpa.QueryCPA;
-import fql.fllesh.cpa.QueryStandardElement;
+import fllesh.fql.backend.pathmonitor.Automaton;
+import fllesh.fql.fllesh.cpa.QueryCPA;
+import fllesh.fql.fllesh.cpa.QueryStandardElement;
 
 public class StandardQuery extends AbstractQuery {
 

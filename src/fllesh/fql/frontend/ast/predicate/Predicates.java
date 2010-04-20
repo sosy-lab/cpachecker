@@ -1,10 +1,10 @@
-package fql.frontend.ast.predicate;
+package fllesh.fql.frontend.ast.predicate;
 
 import java.util.Iterator;
 import java.util.LinkedList;
 
-import fql.frontend.ast.ASTVisitor;
-import fql.frontend.ast.FQLNode;
+import fllesh.fql.frontend.ast.ASTVisitor;
+import fllesh.fql.frontend.ast.FQLNode;
 
 public class Predicates implements FQLNode, Iterable<Predicate> {
   private LinkedList<Predicate> mPredicates = new LinkedList<Predicate>(); 

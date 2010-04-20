@@ -1,8 +1,8 @@
-package fql.fllesh.reachability;
+package fllesh.fql.fllesh.reachability;
 
 import java.util.Iterator;
 
-import fql.backend.pathmonitor.Automaton;
+import fllesh.fql.backend.pathmonitor.Automaton;
 
 public interface Query extends Iterator<Waypoint> {
   

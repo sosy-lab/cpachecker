@@ -1,6 +1,6 @@
-package fql.frontend.ast.predicate;
+package fllesh.fql.frontend.ast.predicate;
 
-import fql.frontend.ast.FQLNode;
+import fllesh.fql.frontend.ast.FQLNode;
 
 public interface Term extends FQLNode {
 

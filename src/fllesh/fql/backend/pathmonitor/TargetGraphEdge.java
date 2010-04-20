@@ -1,11 +1,11 @@
-package fql.backend.pathmonitor;
+package fllesh.fql.backend.pathmonitor;
 
 import java.util.Set;
 
 import org.jgrapht.DirectedGraph;
 
-import fql.backend.targetgraph.Edge;
-import fql.backend.targetgraph.TargetGraph;
+import fllesh.fql.backend.targetgraph.Edge;
+import fllesh.fql.backend.targetgraph.TargetGraph;
 
 public class TargetGraphEdge extends DefaultAutomatonEdge {
 

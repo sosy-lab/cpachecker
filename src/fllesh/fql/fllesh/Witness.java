@@ -1,4 +1,4 @@
-package fql.fllesh;
+package fllesh.fql.fllesh;
 
 public interface Witness {
 

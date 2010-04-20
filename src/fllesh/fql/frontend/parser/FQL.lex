@@ -1,10 +1,10 @@
 
-package fql.frontend.parser;
+package fllesh.fql.frontend.parser;
 
 import java_cup.runtime.*;
 import java.io.IOException;
 
-import static fql.frontend.parser.FQLSym.*;
+import static fllesh.fql.frontend.parser.FQLSym.*;
 
 @SuppressWarnings("unused")
 %%
@@ -19,7 +19,7 @@ import static fql.frontend.parser.FQLSym.*;
 %final
 // %abstract
 
-%cupsym fql.frontend.parser.FQLSym
+%cupsym fllesh.fql.frontend.parser.FQLSym
 %cup
 // %cupdebug
 

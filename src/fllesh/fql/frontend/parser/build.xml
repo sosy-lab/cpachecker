@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="ISO-8859-1" ?>
 <!DOCTYPE project> <!-- generic AcceptAllDTD to make the Eclipse Warning go away -->
-<project name="FQLParserGeneration" default="generate" basedir="./../../../../">
+<project name="FQLParserGeneration" default="generate" basedir="./../../../../../">
   <!-- basedir should be the "CPAchecker" directory -->
-  <property name="parserDir" location="src/fql/frontend/parser" />
+  <property name="parserDir" location="src/fllesh/fql/frontend/parser" />
   <property name="src"       location="src" />
   <property name="lib"       location="lib" />
   <property environment="env" />

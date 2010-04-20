@@ -1,6 +1,6 @@
-package fql.fllesh.util;
+package fllesh.fql.fllesh.util;
 
-import fql.fllesh.cpa.InternalSelfLoop;
+import fllesh.fql.fllesh.cpa.InternalSelfLoop;
 
 public interface FlleshCFAEdgeVisitor<T> extends CFAEdgeVisitor<T> {
 

@@ -1,4 +1,4 @@
-package fql.fllesh.cpa;
+package fllesh.fql.fllesh.cpa;
 
 import java.util.HashMap;
 import java.util.Map;

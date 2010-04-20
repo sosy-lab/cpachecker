@@ -1,6 +1,6 @@
-package fql.frontend.ast.coverage;
+package fllesh.fql.frontend.ast.coverage;
 
-import fql.frontend.ast.ASTVisitor;
+import fllesh.fql.frontend.ast.ASTVisitor;
 
 public class SetMinus implements Coverage {
 

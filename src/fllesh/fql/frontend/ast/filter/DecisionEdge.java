@@ -1,6 +1,6 @@
-package fql.frontend.ast.filter;
+package fllesh.fql.frontend.ast.filter;
 
-import fql.frontend.ast.ASTVisitor;
+import fllesh.fql.frontend.ast.ASTVisitor;
 
 public class DecisionEdge implements Filter {
   private static DecisionEdge mInstance = new DecisionEdge();

@@ -1,4 +1,4 @@
-package fql.fllesh;
+package fllesh.fql.fllesh;
 
 import java.io.File;
 import java.util.Collections;
@@ -14,17 +14,17 @@ import common.Pair;
 import common.configuration.Configuration;
 
 import cpa.common.LogManager;
-import fql.backend.pathmonitor.Automaton;
-import fql.backend.query.QueryEvaluation;
-import fql.backend.targetgraph.Node;
-import fql.backend.targetgraph.TargetGraph;
-import fql.backend.testgoals.CoverageSequence;
-import fql.backend.testgoals.TestGoal;
-import fql.fllesh.cpa.AddSelfLoop;
-import fql.fllesh.util.CPAchecker;
-import fql.fllesh.util.Cilly;
-import fql.frontend.ast.query.Query;
-import fql.frontend.parser.FQLParser;
+import fllesh.fql.backend.pathmonitor.Automaton;
+import fllesh.fql.backend.query.QueryEvaluation;
+import fllesh.fql.backend.targetgraph.Node;
+import fllesh.fql.backend.targetgraph.TargetGraph;
+import fllesh.fql.backend.testgoals.CoverageSequence;
+import fllesh.fql.backend.testgoals.TestGoal;
+import fllesh.fql.fllesh.cpa.AddSelfLoop;
+import fllesh.fql.fllesh.util.CPAchecker;
+import fllesh.fql.fllesh.util.Cilly;
+import fllesh.fql.frontend.ast.query.Query;
+import fllesh.fql.frontend.parser.FQLParser;
 
 public class Main {
 

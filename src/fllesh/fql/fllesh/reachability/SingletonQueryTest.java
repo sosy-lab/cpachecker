@@ -1,4 +1,4 @@
-package fql.fllesh.reachability;
+package fllesh.fql.fllesh.reachability;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -27,14 +27,14 @@ import cpa.location.LocationCPA;
 import cpa.mustmay.MustMayAnalysisCPA;
 
 import exceptions.CPAException;
-import fql.backend.pathmonitor.Automaton;
-import fql.backend.targetgraph.Node;
-import fql.backend.targetgraph.TargetGraph;
-import fql.fllesh.FeasibilityCheck;
-import fql.fllesh.cpa.AddSelfLoop;
-import fql.fllesh.util.CPAchecker;
-import fql.fllesh.util.Cilly;
-import fql.frontend.ast.filter.Identity;
+import fllesh.fql.backend.pathmonitor.Automaton;
+import fllesh.fql.backend.targetgraph.Node;
+import fllesh.fql.backend.targetgraph.TargetGraph;
+import fllesh.fql.fllesh.FeasibilityCheck;
+import fllesh.fql.fllesh.cpa.AddSelfLoop;
+import fllesh.fql.fllesh.util.CPAchecker;
+import fllesh.fql.fllesh.util.Cilly;
+import fllesh.fql.frontend.ast.filter.Identity;
 
 
 public class SingletonQueryTest {

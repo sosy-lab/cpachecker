@@ -1,4 +1,4 @@
-package fql.fllesh.util;
+package fllesh.fql.fllesh.util;
 
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFANode;

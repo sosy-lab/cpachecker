@@ -1,4 +1,4 @@
-package fql.frontend.parser;
+package fllesh.fql.frontend.parser;
 
 import java.io.StringReader;
 

@@ -1,8 +1,8 @@
-package fql.frontend.ast.coverage;
+package fllesh.fql.frontend.ast.coverage;
 
-import fql.frontend.ast.ASTVisitor;
-import fql.frontend.ast.filter.Filter;
-import fql.frontend.ast.predicate.Predicates;
+import fllesh.fql.frontend.ast.ASTVisitor;
+import fllesh.fql.frontend.ast.filter.Filter;
+import fllesh.fql.frontend.ast.predicate.Predicates;
 
 public class Paths implements Coverage {
 

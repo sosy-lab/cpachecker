@@ -1,9 +1,9 @@
-package fql.fllesh.cpa;
+package fllesh.fql.fllesh.cpa;
 
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFANode;
-import fql.fllesh.util.CFATraversal;
-import fql.fllesh.util.CFAVisitor;
+import fllesh.fql.fllesh.util.CFATraversal;
+import fllesh.fql.fllesh.util.CFAVisitor;
 
 public class AddSelfLoop {
   private static class AddSelfLoopCFAVisitor implements CFAVisitor {

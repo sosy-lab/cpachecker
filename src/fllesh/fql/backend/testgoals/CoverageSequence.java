@@ -1,4 +1,4 @@
-package fql.backend.testgoals;
+package fllesh.fql.backend.testgoals;
 
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -6,13 +6,13 @@ import java.util.Set;
 
 import common.Pair;
 
-import fql.backend.pathmonitor.Automaton;
-import fql.backend.targetgraph.TargetGraph;
-import fql.frontend.ast.coverage.Coverage;
-import fql.frontend.ast.coverage.Sequence;
-import fql.frontend.ast.filter.Identity;
-import fql.frontend.ast.pathmonitor.LowerBound;
-import fql.frontend.ast.pathmonitor.PathMonitor;
+import fllesh.fql.backend.pathmonitor.Automaton;
+import fllesh.fql.backend.targetgraph.TargetGraph;
+import fllesh.fql.frontend.ast.coverage.Coverage;
+import fllesh.fql.frontend.ast.coverage.Sequence;
+import fllesh.fql.frontend.ast.filter.Identity;
+import fllesh.fql.frontend.ast.pathmonitor.LowerBound;
+import fllesh.fql.frontend.ast.pathmonitor.PathMonitor;
 
 public class CoverageSequence implements Iterable<Pair<Automaton, Set<? extends TestGoal>>> {
   private Automaton mFinalMonitor;

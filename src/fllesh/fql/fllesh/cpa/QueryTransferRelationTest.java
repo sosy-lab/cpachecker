@@ -1,4 +1,4 @@
-package fql.fllesh.cpa;
+package fllesh.fql.fllesh.cpa;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -16,7 +16,7 @@ import cfa.objectmodel.c.ReturnEdge;
 import cpa.common.interfaces.AbstractElement;
 import cpa.mustmay.SimpleMustMayAnalysisCPA;
 import exceptions.CPATransferException;
-import fql.fllesh.reachability.Query;
+import fllesh.fql.fllesh.reachability.Query;
 
 
 public class QueryTransferRelationTest {

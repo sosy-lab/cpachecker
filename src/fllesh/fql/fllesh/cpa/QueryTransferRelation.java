@@ -1,4 +1,4 @@
-package fql.fllesh.cpa;
+package fllesh.fql.fllesh.cpa;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -23,13 +23,13 @@ import cpa.mustmay.MustMayAnalysisElement;
 import cpa.mustmay.MustMayAnalysisPrecision;
 import cpa.mustmay.MustMayAnalysisTransferRelation;
 import exceptions.CPATransferException;
-import fql.backend.pathmonitor.Automaton;
-import fql.backend.pathmonitor.AutomatonEdge;
-import fql.backend.pathmonitor.PredicatesEdge;
-import fql.backend.pathmonitor.TargetGraphEdge;
-import fql.backend.targetgraph.Edge;
-import fql.fllesh.reachability.Query;
-import fql.fllesh.util.DefaultFlleshCFAEdgeVisitor;
+import fllesh.fql.backend.pathmonitor.Automaton;
+import fllesh.fql.backend.pathmonitor.AutomatonEdge;
+import fllesh.fql.backend.pathmonitor.PredicatesEdge;
+import fllesh.fql.backend.pathmonitor.TargetGraphEdge;
+import fllesh.fql.backend.targetgraph.Edge;
+import fllesh.fql.fllesh.reachability.Query;
+import fllesh.fql.fllesh.util.DefaultFlleshCFAEdgeVisitor;
 
 public class QueryTransferRelation implements TransferRelation {
 

@@ -1,4 +1,4 @@
-package fql.fllesh.util;
+package fllesh.fql.fllesh.util;
 
 import cfa.objectmodel.BlankEdge;
 import cfa.objectmodel.c.AssumeEdge;

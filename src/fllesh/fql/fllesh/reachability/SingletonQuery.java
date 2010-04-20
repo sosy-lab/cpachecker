@@ -1,4 +1,4 @@
-package fql.fllesh.reachability;
+package fllesh.fql.fllesh.reachability;
 
 import java.util.Collections;
 import java.util.Iterator;
@@ -7,7 +7,7 @@ import java.util.Set;
 import compositeCPA.CompositeElement;
 import compositeCPA.CompositePrecision;
 
-import fql.backend.pathmonitor.Automaton;
+import fllesh.fql.backend.pathmonitor.Automaton;
 
 public class SingletonQuery extends AbstractQuery {
   Iterator<Waypoint> mIterator;

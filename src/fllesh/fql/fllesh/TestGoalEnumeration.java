@@ -1,10 +1,10 @@
-package fql.fllesh;
+package fllesh.fql.fllesh;
 
-import fql.backend.pathmonitor.Automaton;
-import fql.backend.targetgraph.Edge;
-import fql.backend.targetgraph.Node;
-import fql.backend.testgoals.EdgeSequence;
-import fql.backend.testgoals.TestGoal;
+import fllesh.fql.backend.pathmonitor.Automaton;
+import fllesh.fql.backend.targetgraph.Edge;
+import fllesh.fql.backend.targetgraph.Node;
+import fllesh.fql.backend.testgoals.EdgeSequence;
+import fllesh.fql.backend.testgoals.TestGoal;
 
 import java.util.ArrayList;
 import java.util.Collections;

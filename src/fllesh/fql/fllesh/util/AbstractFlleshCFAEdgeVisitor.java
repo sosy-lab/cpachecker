@@ -1,9 +1,9 @@
-package fql.fllesh.util;
+package fllesh.fql.fllesh.util;
 
 import cfa.objectmodel.BlankEdge;
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAEdgeType;
-import fql.fllesh.cpa.InternalSelfLoop;
+import fllesh.fql.fllesh.cpa.InternalSelfLoop;
 
 public abstract class AbstractFlleshCFAEdgeVisitor<T> extends AbstractCFAEdgeVisitor<T> implements FlleshCFAEdgeVisitor<T> {
 

@@ -1,4 +1,4 @@
-package fql.frontend.ast;
+package fllesh.fql.frontend.ast;
 
 public interface FQLNode {
 

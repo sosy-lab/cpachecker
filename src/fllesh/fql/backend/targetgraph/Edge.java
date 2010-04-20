@@ -1,10 +1,10 @@
-package fql.backend.targetgraph;
+package fllesh.fql.backend.targetgraph;
 
 import org.jgrapht.Graph;
 
 import cfa.objectmodel.CFAEdge;
-import fql.backend.testgoals.TestGoal;
-import fql.backend.testgoals.TestGoalVisitor;
+import fllesh.fql.backend.testgoals.TestGoal;
+import fllesh.fql.backend.testgoals.TestGoalVisitor;
 
 public class Edge implements TestGoal {
   private Node mSource;

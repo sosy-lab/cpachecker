@@ -1,6 +1,6 @@
-package fql.frontend.ast.filter;
+package fllesh.fql.frontend.ast.filter;
 
-import fql.frontend.ast.pathmonitor.PathMonitor;
+import fllesh.fql.frontend.ast.pathmonitor.PathMonitor;
 
 public interface Filter extends PathMonitor {
 

@@ -1,48 +1,48 @@
-package fql.frontend.ast.query;
+package fllesh.fql.frontend.ast.query;
 
 import common.Pair;
 
-import fql.frontend.ast.ASTVisitor;
-import fql.frontend.ast.FQLNode;
-import fql.frontend.ast.coverage.ConditionalCoverage;
-import fql.frontend.ast.coverage.Coverage;
-import fql.frontend.ast.coverage.Edges;
-import fql.frontend.ast.coverage.Paths;
-import fql.frontend.ast.coverage.Sequence;
-import fql.frontend.ast.coverage.States;
-import fql.frontend.ast.filter.BasicBlockEntry;
-import fql.frontend.ast.filter.Column;
-import fql.frontend.ast.filter.Complement;
-import fql.frontend.ast.filter.Compose;
-import fql.frontend.ast.filter.ConditionEdge;
-import fql.frontend.ast.filter.ConditionGraph;
-import fql.frontend.ast.filter.DecisionEdge;
-import fql.frontend.ast.filter.EnclosingScopes;
-import fql.frontend.ast.filter.Expression;
-import fql.frontend.ast.filter.File;
-import fql.frontend.ast.filter.Filter;
-import fql.frontend.ast.filter.Function;
-import fql.frontend.ast.filter.FunctionCall;
-import fql.frontend.ast.filter.FunctionCalls;
-import fql.frontend.ast.filter.FunctionEntry;
-import fql.frontend.ast.filter.FunctionExit;
-import fql.frontend.ast.filter.Identity;
-import fql.frontend.ast.filter.Intersection;
-import fql.frontend.ast.filter.Label;
-import fql.frontend.ast.filter.Line;
-import fql.frontend.ast.filter.RegularExpression;
-import fql.frontend.ast.filter.SetMinus;
-import fql.frontend.ast.filter.Union;
-import fql.frontend.ast.pathmonitor.Alternative;
-import fql.frontend.ast.pathmonitor.Concatenation;
-import fql.frontend.ast.pathmonitor.ConditionalMonitor;
-import fql.frontend.ast.pathmonitor.LowerBound;
-import fql.frontend.ast.pathmonitor.PathMonitor;
-import fql.frontend.ast.pathmonitor.UpperBound;
-import fql.frontend.ast.predicate.CIdentifier;
-import fql.frontend.ast.predicate.NaturalNumber;
-import fql.frontend.ast.predicate.Predicate;
-import fql.frontend.ast.predicate.Predicates;
+import fllesh.fql.frontend.ast.ASTVisitor;
+import fllesh.fql.frontend.ast.FQLNode;
+import fllesh.fql.frontend.ast.coverage.ConditionalCoverage;
+import fllesh.fql.frontend.ast.coverage.Coverage;
+import fllesh.fql.frontend.ast.coverage.Edges;
+import fllesh.fql.frontend.ast.coverage.Paths;
+import fllesh.fql.frontend.ast.coverage.Sequence;
+import fllesh.fql.frontend.ast.coverage.States;
+import fllesh.fql.frontend.ast.filter.BasicBlockEntry;
+import fllesh.fql.frontend.ast.filter.Column;
+import fllesh.fql.frontend.ast.filter.Complement;
+import fllesh.fql.frontend.ast.filter.Compose;
+import fllesh.fql.frontend.ast.filter.ConditionEdge;
+import fllesh.fql.frontend.ast.filter.ConditionGraph;
+import fllesh.fql.frontend.ast.filter.DecisionEdge;
+import fllesh.fql.frontend.ast.filter.EnclosingScopes;
+import fllesh.fql.frontend.ast.filter.Expression;
+import fllesh.fql.frontend.ast.filter.File;
+import fllesh.fql.frontend.ast.filter.Filter;
+import fllesh.fql.frontend.ast.filter.Function;
+import fllesh.fql.frontend.ast.filter.FunctionCall;
+import fllesh.fql.frontend.ast.filter.FunctionCalls;
+import fllesh.fql.frontend.ast.filter.FunctionEntry;
+import fllesh.fql.frontend.ast.filter.FunctionExit;
+import fllesh.fql.frontend.ast.filter.Identity;
+import fllesh.fql.frontend.ast.filter.Intersection;
+import fllesh.fql.frontend.ast.filter.Label;
+import fllesh.fql.frontend.ast.filter.Line;
+import fllesh.fql.frontend.ast.filter.RegularExpression;
+import fllesh.fql.frontend.ast.filter.SetMinus;
+import fllesh.fql.frontend.ast.filter.Union;
+import fllesh.fql.frontend.ast.pathmonitor.Alternative;
+import fllesh.fql.frontend.ast.pathmonitor.Concatenation;
+import fllesh.fql.frontend.ast.pathmonitor.ConditionalMonitor;
+import fllesh.fql.frontend.ast.pathmonitor.LowerBound;
+import fllesh.fql.frontend.ast.pathmonitor.PathMonitor;
+import fllesh.fql.frontend.ast.pathmonitor.UpperBound;
+import fllesh.fql.frontend.ast.predicate.CIdentifier;
+import fllesh.fql.frontend.ast.predicate.NaturalNumber;
+import fllesh.fql.frontend.ast.predicate.Predicate;
+import fllesh.fql.frontend.ast.predicate.Predicates;
 
 public class FilterPropagator implements ASTVisitor<FQLNode> {
 
@@ -214,36 +214,36 @@ public class FilterPropagator implements ASTVisitor<FQLNode> {
   }
 
   @Override
-  public FQLNode visit(fql.frontend.ast.coverage.SetMinus pSetMinus) {
+  public FQLNode visit(fllesh.fql.frontend.ast.coverage.SetMinus pSetMinus) {
     FQLNode lNode1 = pSetMinus.getLeftCoverage().accept(this);
     FQLNode lNode2 = pSetMinus.getRightCoverage().accept(this);
     
     assert(lNode1 instanceof Coverage);
     assert(lNode2 instanceof Coverage);
     
-    return new fql.frontend.ast.coverage.SetMinus((Coverage)lNode1, (Coverage)lNode2);
+    return new fllesh.fql.frontend.ast.coverage.SetMinus((Coverage)lNode1, (Coverage)lNode2);
   }
 
   @Override
-  public FQLNode visit(fql.frontend.ast.coverage.Union pUnion) {
+  public FQLNode visit(fllesh.fql.frontend.ast.coverage.Union pUnion) {
     FQLNode lNode1 = pUnion.getLeftCoverage().accept(this);
     FQLNode lNode2 = pUnion.getRightCoverage().accept(this);
     
     assert(lNode1 instanceof Coverage);
     assert(lNode2 instanceof Coverage);
     
-    return new fql.frontend.ast.coverage.Union((Coverage)lNode1, (Coverage)lNode2);
+    return new fllesh.fql.frontend.ast.coverage.Union((Coverage)lNode1, (Coverage)lNode2);
   }
 
   @Override
-  public FQLNode visit(fql.frontend.ast.coverage.Intersection pIntersection) {
+  public FQLNode visit(fllesh.fql.frontend.ast.coverage.Intersection pIntersection) {
     FQLNode lNode1 = pIntersection.getLeftCoverage().accept(this);
     FQLNode lNode2 = pIntersection.getRightCoverage().accept(this);
     
     assert(lNode1 instanceof Coverage);
     assert(lNode2 instanceof Coverage);
     
-    return new fql.frontend.ast.coverage.Intersection((Coverage)lNode1, (Coverage)lNode2);
+    return new fllesh.fql.frontend.ast.coverage.Intersection((Coverage)lNode1, (Coverage)lNode2);
   }
 
   @Override

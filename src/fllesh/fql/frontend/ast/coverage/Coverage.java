@@ -1,6 +1,6 @@
-package fql.frontend.ast.coverage;
+package fllesh.fql.frontend.ast.coverage;
 
-import fql.frontend.ast.FQLNode;
+import fllesh.fql.frontend.ast.FQLNode;
 
 public interface Coverage extends FQLNode {
 

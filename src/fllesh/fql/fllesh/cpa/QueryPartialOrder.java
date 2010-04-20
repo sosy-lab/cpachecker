@@ -1,4 +1,4 @@
-package fql.fllesh.cpa;
+package fllesh.fql.fllesh.cpa;
 
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.PartialOrder;

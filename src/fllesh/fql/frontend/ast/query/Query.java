@@ -1,9 +1,9 @@
-package fql.frontend.ast.query;
+package fllesh.fql.frontend.ast.query;
 
-import fql.frontend.ast.ASTVisitor;
-import fql.frontend.ast.FQLNode;
-import fql.frontend.ast.coverage.Coverage;
-import fql.frontend.ast.pathmonitor.PathMonitor;
+import fllesh.fql.frontend.ast.ASTVisitor;
+import fllesh.fql.frontend.ast.FQLNode;
+import fllesh.fql.frontend.ast.coverage.Coverage;
+import fllesh.fql.frontend.ast.pathmonitor.PathMonitor;
 
 public class Query implements FQLNode {
 

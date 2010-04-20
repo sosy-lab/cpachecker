@@ -1,4 +1,4 @@
-package fql.backend.testgoals;
+package fllesh.fql.backend.testgoals;
 
 public interface TestGoal {
   

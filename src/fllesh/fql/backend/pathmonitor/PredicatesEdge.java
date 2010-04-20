@@ -1,8 +1,8 @@
-package fql.backend.pathmonitor;
+package fllesh.fql.backend.pathmonitor;
 
 import org.jgrapht.DirectedGraph;
 
-import fql.frontend.ast.predicate.Predicates;
+import fllesh.fql.frontend.ast.predicate.Predicates;
 
 public class PredicatesEdge extends DefaultAutomatonEdge {
 

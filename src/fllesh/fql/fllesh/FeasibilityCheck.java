@@ -1,4 +1,4 @@
-package fql.fllesh;
+package fllesh.fql.fllesh;
 
 import java.util.Collections;
 import java.util.LinkedList;
@@ -26,12 +26,12 @@ import cpa.location.LocationElement;
 import cpa.mustmay.MustMayAnalysisCPA;
 import cpa.mustmay.MustMayAnalysisElement;
 import exceptions.CPAException;
-import fql.backend.pathmonitor.Automaton;
-import fql.backend.targetgraph.Node;
-import fql.fllesh.reachability.Query;
-import fql.fllesh.reachability.SingletonQuery;
-import fql.fllesh.reachability.StandardQuery;
-import fql.fllesh.reachability.Waypoint;
+import fllesh.fql.backend.pathmonitor.Automaton;
+import fllesh.fql.backend.targetgraph.Node;
+import fllesh.fql.fllesh.reachability.Query;
+import fllesh.fql.fllesh.reachability.SingletonQuery;
+import fllesh.fql.fllesh.reachability.StandardQuery;
+import fllesh.fql.fllesh.reachability.Waypoint;
 
 public class FeasibilityCheck {
   

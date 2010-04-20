@@ -1,4 +1,4 @@
-package fql.fllesh.cpa;
+package fllesh.fql.fllesh.cpa;
 
 public class QueryTopElement implements QueryElement {
 

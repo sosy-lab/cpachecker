@@ -1,6 +1,6 @@
-package fql.fllesh.reachability;
+package fllesh.fql.fllesh.reachability;
 
-import fql.backend.pathmonitor.Automaton;
+import fllesh.fql.backend.pathmonitor.Automaton;
 
 public abstract class AbstractQuery implements Query {
 

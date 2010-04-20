@@ -1,6 +1,6 @@
-package fql.frontend.ast.predicate;
+package fllesh.fql.frontend.ast.predicate;
 
-import fql.frontend.ast.ASTVisitor;
+import fllesh.fql.frontend.ast.ASTVisitor;
 
 public class CIdentifier implements Term {
   

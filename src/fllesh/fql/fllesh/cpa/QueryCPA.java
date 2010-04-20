@@ -1,4 +1,4 @@
-package fql.fllesh.cpa;
+package fllesh.fql.fllesh.cpa;
 
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cpa.common.defaults.MergeSepOperator;
@@ -11,7 +11,7 @@ import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
 import cpa.common.interfaces.StopOperator;
 import cpa.mustmay.MustMayAnalysisCPA;
-import fql.fllesh.reachability.Query;
+import fllesh.fql.fllesh.reachability.Query;
 
 public class QueryCPA implements ConfigurableProgramAnalysis {
 

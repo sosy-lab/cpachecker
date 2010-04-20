@@ -1,4 +1,4 @@
-package fql.fllesh;
+package fllesh.fql.fllesh;
 
 import org.junit.Before;
 import org.junit.Test;

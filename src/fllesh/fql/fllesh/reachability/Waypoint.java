@@ -1,4 +1,4 @@
-package fql.fllesh.reachability;
+package fllesh.fql.fllesh.reachability;
 
 import java.util.Set;
 

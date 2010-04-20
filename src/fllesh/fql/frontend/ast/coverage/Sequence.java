@@ -1,12 +1,12 @@
-package fql.frontend.ast.coverage;
+package fllesh.fql.frontend.ast.coverage;
 
 import java.util.Iterator;
 import java.util.LinkedList;
 
 import common.Pair;
 
-import fql.frontend.ast.ASTVisitor;
-import fql.frontend.ast.pathmonitor.PathMonitor;
+import fllesh.fql.frontend.ast.ASTVisitor;
+import fllesh.fql.frontend.ast.pathmonitor.PathMonitor;
 
 public class Sequence implements Coverage, Iterable<Pair<PathMonitor, Coverage>> {
 

@@ -1,6 +1,6 @@
-package fql.frontend.ast.pathmonitor;
+package fllesh.fql.frontend.ast.pathmonitor;
 
-import fql.frontend.ast.ASTVisitor;
+import fllesh.fql.frontend.ast.ASTVisitor;
 
 public class UpperBound implements PathMonitor {
 

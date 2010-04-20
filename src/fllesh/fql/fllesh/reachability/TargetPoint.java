@@ -1,12 +1,12 @@
-package fql.fllesh.reachability;
+package fllesh.fql.fllesh.reachability;
 
 import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
 
 import cfa.objectmodel.CFANode;
-import fql.backend.pathmonitor.Automaton;
-import fql.fllesh.cpa.QueryStandardElement;
+import fllesh.fql.backend.pathmonitor.Automaton;
+import fllesh.fql.fllesh.cpa.QueryStandardElement;
 
 /*
  * A target point describes the target of a reachability query.

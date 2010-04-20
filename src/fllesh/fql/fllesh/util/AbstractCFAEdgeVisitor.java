@@ -1,4 +1,4 @@
-package fql.fllesh.util;
+package fllesh.fql.fllesh.util;
 
 import cfa.objectmodel.BlankEdge;
 import cfa.objectmodel.CFAEdge;
@@ -10,7 +10,7 @@ import cfa.objectmodel.c.MultiDeclarationEdge;
 import cfa.objectmodel.c.MultiStatementEdge;
 import cfa.objectmodel.c.ReturnEdge;
 import cfa.objectmodel.c.StatementEdge;
-import fql.fllesh.cpa.InternalSelfLoop;
+import fllesh.fql.fllesh.cpa.InternalSelfLoop;
 
 public abstract class AbstractCFAEdgeVisitor<T> implements CFAEdgeVisitor<T> {
 

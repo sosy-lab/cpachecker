@@ -1,7 +1,7 @@
-package fql.backend.testgoals;
+package fllesh.fql.backend.testgoals;
 
-import fql.backend.targetgraph.Edge;
-import fql.backend.targetgraph.Node;
+import fllesh.fql.backend.targetgraph.Edge;
+import fllesh.fql.backend.targetgraph.Node;
 
 public interface TestGoalVisitor<T> {
 
