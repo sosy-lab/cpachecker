@@ -3,7 +3,6 @@ package cpa.observeranalysis;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.Map;
 
 import org.eclipse.cdt.core.dom.IASTServiceProvider;
 import org.eclipse.cdt.core.dom.ICodeReaderFactory;
@@ -13,12 +12,13 @@ import org.eclipse.cdt.core.dom.ast.IASTIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
 import org.eclipse.cdt.core.dom.ast.IASTName;
 import org.eclipse.cdt.core.dom.ast.IASTNode;
+import org.eclipse.cdt.core.dom.ast.IASTProblem;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
-import org.eclipse.cdt.core.parser.IScannerInfo;
 import org.eclipse.cdt.internal.core.dom.InternalASTServiceProvider;
-import org.eclipse.cdt.internal.core.dom.parser.c.CASTProblem;
 import org.eclipse.core.resources.IFile;
 
+import cmdline.stubs.StubCodeReaderFactory;
+import cmdline.stubs.StubConfiguration;
 import cmdline.stubs.StubFile;
 
 /**
@@ -83,8 +83,8 @@ public class ObserverASTComparator {
    * @return
    */
   static String ASTcontatinsProblems(IASTNode pAST) {
-    if (pAST instanceof CASTProblem) {
-      return ((CASTProblem)pAST).getMessage();
+    if (pAST instanceof IASTProblem) {
+      return ((IASTProblem)pAST).getMessage();
     } else {
       String problem;
       for (IASTNode n : pAST.getChildren()) {
@@ -203,80 +203,17 @@ public class ObserverASTComparator {
   private static IASTTranslationUnit parse(IFile pFile) {
     IASTServiceProvider p = new InternalASTServiceProvider();
     
-    ICodeReaderFactory codeReaderFactory = null;
-    try {
-       codeReaderFactory = createCodeReaderFactory();
-    } catch (ClassNotFoundException e) {
-      System.err.println("ClassNotFoundException:" +
-          "Missing implementation of ICodeReaderFactory, check your CDT version!");
-      System.exit(1);
-    }
+    ICodeReaderFactory codeReaderFactory = new StubCodeReaderFactory();
+    IParserConfiguration parserConfiguration = new StubConfiguration("C99");
     
     IASTTranslationUnit ast = null;
     try {
-      ast = p.getTranslationUnit(pFile, codeReaderFactory, new StubConfiguration());
+      ast = p.getTranslationUnit(pFile, codeReaderFactory, parserConfiguration);
     } catch (UnsupportedDialectException e) {
-      System.err.println("UnsupportedDialectException:" +
-          "Unsupported dialect for parser, check parser.dialect option!");
-      System.exit(1);
+      // should never occur here because the dialect is hard-coded
+      assert false;
     }
-    return ast;
-  }
-
-  /**
-   * Get the right StubCodeReaderFactory depending on the current CDT version.
-   * @return The correct implementation of ICodeReaderFactory.
-   * @throws ClassNotFoundException If no matching factory is found.
-   */
-  private static ICodeReaderFactory createCodeReaderFactory() throws ClassNotFoundException {
-    ClassLoader classLoader = ClassLoader.getSystemClassLoader();
     
-    String factoryClassName;
-    // determine CDT version by trying to load the IMacroCollector class which
-    // only exists in CDT 4
-    try {
-      classLoader.loadClass("org.eclipse.cdt.core.dom.IMacroCollector");
-      
-      // CDT 4.0
-      factoryClassName = "cmdline.stubs.StubCodeReaderFactoryCDT4";
-    } catch (ClassNotFoundException e) {
-      // not CDT 4.0
-      factoryClassName = "cmdline.stubs.StubCodeReaderFactory";
-    }
-  
-    // try to load factory class and execute the static getInstance() method
-    try {
-      Class<?> factoryClass = classLoader.loadClass(factoryClassName);
-      Object factoryObject = factoryClass.getMethod("getInstance", (Class<?>[]) null)
-                                                                  .invoke(null);
-      
-      return (ICodeReaderFactory) factoryObject;
-    } catch (Exception e) {
-      // simply wrap all possible exceptions in a ClassNotFoundException
-      // this will terminate the program
-      throw new ClassNotFoundException("Exception while instantiating " + factoryClassName, e);
-    }
-  }
-  private static class StubConfiguration implements IParserConfiguration {
-    public String getParserDialect() {
-      return ("C99");
-    }
-  
-    public IScannerInfo getScannerInfo() {
-        return new StubScannerInfo();
-    }
-  }
-
-  private static class StubScannerInfo implements IScannerInfo {
-  
-      @SuppressWarnings("unchecked")
-      public Map getDefinedSymbols() {
-          // the externally defined pre-processor macros  
-          return null;
-      }
-  
-      public String[] getIncludePaths() {
-          return null;
-      }
+    return ast;
   }
 }

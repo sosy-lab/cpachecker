@@ -53,6 +53,7 @@ import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cfa.objectmodel.CFANode;
 import cfa.objectmodel.c.GlobalDeclarationEdge;
+import cmdline.stubs.StubCodeReaderFactory;
 import cmdline.stubs.StubConfiguration;
 
 import com.google.common.base.Joiner;
@@ -260,18 +261,11 @@ public class CPAchecker {
   public IASTTranslationUnit parse(IFile file) throws InvalidConfigurationException {
     IASTServiceProvider p = new InternalASTServiceProvider();
     
-    ICodeReaderFactory codeReaderFactory = null;
-    try {
-       codeReaderFactory = createCodeReaderFactory();
-    } catch (ClassNotFoundException e) {
-      logger.logException(Level.SEVERE, e, "ClassNotFoundException:" +
-          "Missing implementation of ICodeReaderFactory, check your CDT version!");
-      return null;
-    }
+    ICodeReaderFactory codeReaderFactory = new StubCodeReaderFactory();
+    IParserConfiguration parserConfiguration = new StubConfiguration(options.parserDialect);
     
     IASTTranslationUnit ast = null;
     try {
-      IParserConfiguration parserConfiguration = new StubConfiguration(options.parserDialect);
       ast = p.getTranslationUnit(file, codeReaderFactory, parserConfiguration);
     } catch (UnsupportedDialectException e) {
       // should never occur here because the value of the option is checked before 
@@ -281,41 +275,6 @@ public class CPAchecker {
     logger.log(Level.FINE, "Parser Finished");
 
     return ast;
-  }
-  
-  /**
-   * Get the right StubCodeReaderFactory depending on the current CDT version.
-   * @return The correct implementation of ICodeReaderFactory.
-   * @throws ClassNotFoundException If no matching factory is found.
-   */
-  private ICodeReaderFactory createCodeReaderFactory() throws ClassNotFoundException {
-    ClassLoader classLoader = ClassLoader.getSystemClassLoader();
-    
-    String factoryClassName;
-    // determine CDT version by trying to load the IMacroCollector class which
-    // only exists in CDT 4
-    try {
-      classLoader.loadClass("org.eclipse.cdt.core.dom.IMacroCollector");
-      
-      // CDT 4.0
-      factoryClassName = "cmdline.stubs.StubCodeReaderFactoryCDT4";
-    } catch (ClassNotFoundException e) {
-      // not CDT 4.0
-      factoryClassName = "cmdline.stubs.StubCodeReaderFactory";
-    }
-
-    // try to load factory class and execute the static getInstance() method
-    try {
-      Class<?> factoryClass = classLoader.loadClass(factoryClassName);
-      Object factoryObject = factoryClass.getMethod("getInstance", (Class<?>[]) null)
-                                                                  .invoke(null);
-      
-      return (ICodeReaderFactory) factoryObject;
-    } catch (Exception e) {
-      // simply wrap all possible exceptions in a ClassNotFoundException
-      // this will terminate the program
-      throw new ClassNotFoundException("Exception while instantiating " + factoryClassName, e);
-    }
   }
   
   /**

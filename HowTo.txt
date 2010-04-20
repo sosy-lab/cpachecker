@@ -15,9 +15,6 @@ Building CPAchecker:
 --------------------
 1. Install Java 1.6 SDK or higher.
    http://java.sun.com/
-   Or contact Michael Tautschnig <tautschnig@forsyte.de> to
-   obtain patches to make it work and compile with 1.5
-   (may show degraded performance, though).
 2. Checkout CPAchecker from SVN repository.
    URL: http://svn.sosy-lab.org/software/cpachecker/trunk
 3. Install ant (anything since version 1.6 should be ok).
@@ -39,12 +36,9 @@ Running test cases:
 
 Building and running CPAchecker from within Eclipse:
 ----------------------------------------------------  
-1. Install Eclipse 3.3, 3.4 or 3.5 with JDT.
+1. Install Eclipse 3.5 with JDT.
    http://www.eclipse.org/
-2. Install the C/C++ Development Kit for your Eclipse version
-   (tested with CDT 4.0 and CDT 6.0).   
-   Or contact Michael Tautschnig <tautschnig@forsyte.de> to
-   obtain patches to make it work with CDT 5
+2. Install the C/C++ Development Kit version 6.0.
    You need to install only the "Eclipse C/C++ Development Tools SDK" package.
 3. You need an SVN plugin for Eclipse, e.g. SubClipse (http://subclipse.tigris.org/).
    Create new project from SVN repository
