@@ -311,8 +311,12 @@ cpas.symbpredabs.abstraction.explicit.nonAtomicPredicates = false
 # where to dump the counterexample formula in case the error location is reached
 cpas.symbpredabs.refinement.msatCexFile = cex.msat
 
-# where to dump the final predicate map in case the error location is not reached
+# where to dump the final predicate map in case the error location is not reached (for PredicateAbstractionCPA)
 cpas.symbpredabs.refinement.finalPredMapFile = predmap.txt
+
+# export final predicate map, if the error location is not reached (for SymbPredAbsCPA)
+cpas.symbpredabs.predmap.export = true
+cpas.symbpredabs.predmap.file = predmap.txt
 
 # dump the abstraction formulas in both .msat and .smv formats if they took to long
 cpas.symbpredabs.mathsat.dumpHardAbstractionQueries = false

@@ -23,14 +23,41 @@
  */
 package cpa.symbpredabsCPA;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.PrintWriter;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.logging.Level;
+
+import symbpredabstraction.interfaces.Predicate;
+import symbpredabstraction.interfaces.SymbolicFormula;
+import cfa.objectmodel.CFANode;
+
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
+import common.Pair;
+import common.configuration.Option;
 
 import cpa.common.ReachedElements;
 import cpa.common.CPAcheckerResult.Result;
+import cpa.common.interfaces.AbstractElement;
+import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.Statistics;
+import cpa.common.interfaces.WrapperPrecision;
 
 public class SymbPredAbsCPAStatistics implements Statistics {
 
+    @Option(name="cpas.symbpredabs.predmap.export")
+    private boolean exportPredMap = true;
+    
+    @Option(name="output.path")
+    private String outputDirectory = "test/output/";
+  
+    @Option(name="cpas.symbpredabs.predmap.file")
+    private String predMapFile = "predmap.txt";
+  
     private final SymbPredAbsCPA cpa;
 
     public SymbPredAbsCPAStatistics(SymbPredAbsCPA cpa) {
@@ -47,89 +74,76 @@ public class SymbPredAbsCPAStatistics implements Statistics {
       MathsatSymbPredAbsFormulaManager<?> amgr =
         (MathsatSymbPredAbsFormulaManager<?>)cpa.getFormulaManager();
 
-/* TODO re-enable this with precision based approach      
-      Set<Predicate> allPreds = new HashSet<Predicate>();
-      Collection<CFANode> allLocs = null;
-      Collection<String> allFuncs = null;
-      int maxPreds = 0;
-      int totPreds = 0;
-      int avgPreds = 0;
-      if (!CPAMain.cpaConfig.getBooleanValue(
-          "cpas.symbpredabs.refinement.addPredicatesGlobally")) {
-        allLocs = pmap.getKnownLocations();
-        for (CFANode l : allLocs) {
-          Collection<Predicate> p = pmap.getRelevantPredicates(l);
-          maxPreds = Math.max(maxPreds, p.size());
-          totPreds += p.size();
-          allPreds.addAll(p);
+      Multimap<CFANode, Predicate> predicates = HashMultimap.create();
+      
+      for (AbstractElement e : reached) {
+        Precision precision = reached.getPrecision(e);
+        if (precision != null && precision instanceof WrapperPrecision) {
+          
+          SymbPredAbsPrecision preds = ((WrapperPrecision)precision).retrieveWrappedPrecision(SymbPredAbsPrecision.class);
+          predicates.putAll(preds.getPredicateMap());
         }
-        avgPreds = allLocs.size() > 0 ? totPreds/allLocs.size() : 0;
-      } else {
-        allFuncs = pmap.getKnownFunctions();
-        for (String s : allFuncs) {
-          Collection<Predicate> p = pmap.getRelevantPredicates(s);
-          maxPreds = Math.max(maxPreds, p.size());
-          totPreds += p.size();
-          allPreds.addAll(p);
-        }
-        avgPreds = allFuncs.size() > 0 ? totPreds/allFuncs.size() : 0;
       }
+      
+      Set<Predicate> allPreds = new HashSet<Predicate>(predicates.values());
+      Collection<CFANode> allLocs = predicates.keySet();
+      int maxPredsPerLocation = 0;
+      int totPredsUsed = 0;
+      
+      for (CFANode l : allLocs) {
+        Collection<Predicate> p = predicates.get(l);
+        maxPredsPerLocation = Math.max(maxPredsPerLocation, p.size());
+        totPredsUsed += p.size();
+      }
+      int avgPredsPerLocation = allLocs.size() > 0 ? totPredsUsed/allLocs.size() : 0;
 
       // check if/where to dump the predicate map
-      if (result == Result.SAFE) {
-        String outfilePath = CPAMain.cpaConfig.getProperty("output.path");
-        String outfileName = CPAMain.cpaConfig.getProperty(
-            "cpas.symbpredabs.refinement.finalPredMapFile", "");
-        if (outfileName == null) {
-          outfileName = "predmap.txt";
-        }
-        if (!outfileName.equals("")) {
-          File f = new File(outfilePath + outfileName);
-          try {
-            PrintWriter pw = new PrintWriter(f);
-            pw.println("ALL PREDICATES:");
-            for (Predicate p : allPreds) {
-              Pair<? extends SymbolicFormula, ? extends SymbolicFormula> d =
-                amgr.getPredicateVarAndAtom(p);
-              pw.format("%s ==> %s <-> %s\n", p, d.getFirst(),
-                  d.getSecond());
-            }
-            if (!CPAMain.cpaConfig.getBooleanValue(
-                "cpas.symbpredabs.refinement." +
-            "addPredicatesGlobally")) {
-              pw.println("\nFOR EACH LOCATION:");
-              for (CFANode l : allLocs) {
-                Collection<Predicate> c =
-                  pmap.getRelevantPredicates(l);
-                pw.println("LOCATION: " + l);
-                for (Predicate p : c) {
-                  pw.println(p);
-                }
-                pw.println("");
-              }
-            }
-            pw.close();
-          } catch (FileNotFoundException e) {
-            // just issue a warning to the user
-            out.println("WARNING: impossible to dump predicate map on `"
-                + outfilePath + outfileName + "'");
+      if (result == Result.SAFE && exportPredMap) {
+        File outfile = new File(outputDirectory, predMapFile);
+
+        try {
+          PrintWriter pw = new PrintWriter(outfile);
+          pw.println("ALL PREDICATES:");
+          for (Predicate p : allPreds) {
+            Pair<? extends SymbolicFormula, ? extends SymbolicFormula> d = amgr.getPredicateVarAndAtom(p);
+            pw.format("%s ==> %s <-> %s\n", p, d.getFirst(), d.getSecond());
           }
+          
+          pw.println("\nFOR EACH LOCATION:");
+          for (CFANode l : allLocs) {
+            Collection<Predicate> c = predicates.get(l);
+            pw.println("\nLOCATION: " + l);
+            for (Predicate p : c) {
+              pw.println(p);
+            }
+          }
+          pw.flush();
+          pw.close();
+          if (pw.checkError()) {
+            cpa.getLogger().log(Level.WARNING, "Could not write predicate map to file ", outfile);
+          }
+        } catch (FileNotFoundException e) {
+          cpa.getLogger().log(Level.WARNING, "Could not write predicate map to file ", outfile,
+              (e.getMessage() != null ? "(" + e.getMessage() + ")" : ""));
         }
       }
-*/
+
       MathsatSymbPredAbsFormulaManager.Stats bs = amgr.stats;
       SymbPredAbsTransferRelation trans = cpa.getTransferRelation();
 
       out.println("Number of abstraction steps:       " + bs.numCallsAbstraction + " (" + bs.numCallsAbstractionCached + " cached)");
       out.println("Max LBE block size:                " + trans.maxBlockSize);
-      out.println("Number of abstract states reached: " + trans.numAbstractStates);
+      out.println("Number of abstractions:            " + trans.numAbstractions);
+      out.println("Number of satisfiability checks:   " + trans.numSatChecks);
       out.println("Number of refinement steps:        " + bs.numCallsCexAnalysis);
       out.println("Number of coverage checks:         " + bs.numCoverageChecks);
       out.println();
-//      out.println("Total number of predicates discovered: " + allPreds.size());
-//      out.println("Avg number of predicates per location: " + avgPreds);
-//      out.println("Max number of predicates per location: " + maxPreds);
-//      out.println();
+      out.println("Number of predicates discovered:          " + allPreds.size());
+      out.println("Number of abstraction locations:          " + allLocs.size());
+      out.println("Max number of predicates per location:    " + maxPredsPerLocation);
+      out.println("Avg number of predicates per location:    " + avgPredsPerLocation);
+      out.println("Max number of predicates per abstraction: " + trans.maxPredsPerAbstraction);
+      out.println();
       out.println("Time for merge:                " + toTime(cpa.getMergeOperator().totalMergeTime));
       out.println("Time for abstraction post:     " + toTime(trans.abstractionTime));
       out.println("  initial abstraction formula: " + toTime(trans.initAbstractionFormulaTime));
