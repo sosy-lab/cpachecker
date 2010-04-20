@@ -1,12 +1,11 @@
 package cpa.observeranalysis;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.util.Map;
 
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableMap;
 import common.configuration.Configuration;
 
 import cpa.common.CPAchecker;
@@ -16,15 +15,17 @@ import cpa.common.LogManager.StringHandler;
 import exceptions.InvalidConfigurationException;
 
 public class ObserverAutomatonTest {
-  private static final String OUTPUT_PATH = "test/output/";
-  private static final String propertiesFilePath = "test/config/observerAnalysisAutom.properties";
+  private static final String OUTPUT_FILE = "test/output/observerAutomatonExport.dot";
+
   @Test
   public void uninitVarsTest() {
-    String prop = "CompositeCPA.cpas = cpa.location.LocationCPA, cpa.observeranalysis.ObserverAutomatonCPA, cpa.uninitvars.UninitializedVariablesCPA, cpa.types.TypesCPA \n " +
-        "observerAnalysis.inputFile =  test/programs/observerAutomata/UninitializedVariablesTestAutomaton.txt \n " +
-        "log.consoleLevel = FINER \n" + 
-        "observerAnalysis.dotExportFile = " + OUTPUT_PATH + "observerAutomatonExport.dot \n" +
-        "analysis.stopAfterError = FALSE";  
+    Map<String, String> prop = ImmutableMap.of(
+        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.observeranalysis.ObserverAutomatonCPA, cpa.uninitvars.UninitializedVariablesCPA, cpa.types.TypesCPA",
+        "observerAnalysis.inputFile",     "test/programs/observerAutomata/UninitializedVariablesTestAutomaton.txt",
+        "log.consoleLevel",               "FINER",
+        "observerAnalysis.dotExportFile", OUTPUT_FILE,
+        "analysis.stopAfterError",        "FALSE"
+      );
     try {
       TestResults results = run(prop, "test/programs/simple/UninitVarsErrors.c");
       Assert.assertTrue(results.logContains("Observer: Uninitialized return value"));
@@ -35,11 +36,13 @@ public class ObserverAutomatonTest {
   }
   @Test
   public void pointerAnalyisTest() {
-    String prop = "CompositeCPA.cpas = cpa.location.LocationCPA, cpa.observeranalysis.ObserverAutomatonCPA, cpa.pointeranalysis.PointerAnalysisCPA \n " +
-        "observerAnalysis.inputFile =  test/programs/observerAutomata/PointerAnalysisTestAutomaton.txt \n " +
-        "log.consoleLevel = INFO \n" + 
-        "observerAnalysis.dotExportFile = " + OUTPUT_PATH + "observerAutomatonExport.dot \n" +
-        "analysis.stopAfterError = FALSE";  
+    Map<String, String> prop = ImmutableMap.of(
+        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.observeranalysis.ObserverAutomatonCPA, cpa.pointeranalysis.PointerAnalysisCPA",
+        "observerAnalysis.inputFile",     "test/programs/observerAutomata/PointerAnalysisTestAutomaton.txt",
+        "log.consoleLevel",               "INFO",
+        "observerAnalysis.dotExportFile", OUTPUT_FILE,
+        "analysis.stopAfterError",        "FALSE"
+      );
     try {
       TestResults results = run(prop, "test/programs/simple/PointerAnalysisErrors.c");
       Assert.assertTrue(results.logContains("Found a DOUBLE_FREE"));
@@ -54,10 +57,12 @@ public class ObserverAutomatonTest {
   
   @Test
   public void locking_correct() {
-    String prop = "CompositeCPA.cpas = cpa.location.LocationCPA, cpa.observeranalysis.ObserverAutomatonCPA \n " +
-        "observerAnalysis.inputFile =  test/programs/observerAutomata/LockingAutomatonAll.txt \n " +
-        "log.consoleLevel = INFO \n" + 
-        "observerAnalysis.dotExportFile = " + OUTPUT_PATH + "observerAutomatonExport.dot";    
+    Map<String, String> prop = ImmutableMap.of(
+        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.observeranalysis.ObserverAutomatonCPA",
+        "observerAnalysis.inputFile",     "test/programs/observerAutomata/LockingAutomatonAll.txt",
+        "log.consoleLevel",               "INFO",
+        "observerAnalysis.dotExportFile", OUTPUT_FILE
+      );   
     try {
       TestResults results = run(prop, "test/programs/simple/locking_correct.c");
       Assert.assertTrue(results.isSafe());
@@ -68,10 +73,11 @@ public class ObserverAutomatonTest {
   
   @Test
   public void locking_incorrect() {
-    
-    String prop = "CompositeCPA.cpas = cpa.location.LocationCPA, cpa.observeranalysis.ObserverAutomatonCPA \n " +
-        "observerAnalysis.inputFile =  test/programs/observerAutomata/LockingAutomatonAll.txt \n " +
-        "log.consoleLevel = INFO";
+    Map<String, String> prop = ImmutableMap.of(
+        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.observeranalysis.ObserverAutomatonCPA",
+        "observerAnalysis.inputFile",     "test/programs/observerAutomata/LockingAutomatonAll.txt",
+        "log.consoleLevel",               "INFO"
+      );
     try {
       TestResults results = run(prop, "test/programs/simple/locking_incorrect.c");
       Assert.assertTrue(results.isUnsafe());
@@ -82,9 +88,11 @@ public class ObserverAutomatonTest {
   
   @Test
   public void explicitAnalysis_observing() {
-    String prop = "CompositeCPA.cpas = cpa.location.LocationCPA, cpa.observeranalysis.ObserverAutomatonCPA, cpa.explicit.ExplicitAnalysisCPA \n " +
-        "observerAnalysis.inputFile =  test/programs/observerAutomata/ExcplicitAnalysisObservingAutomaton.txt \n " +
-        "log.consoleLevel = INFO";
+    Map<String, String> prop = ImmutableMap.of(
+        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.observeranalysis.ObserverAutomatonCPA, cpa.explicit.ExplicitAnalysisCPA",
+        "observerAnalysis.inputFile",     "test/programs/observerAutomata/ExcplicitAnalysisObservingAutomaton.txt",
+        "log.consoleLevel",               "INFO"
+      );   
     try {
       TestResults results = run(prop, "test/programs/simple/ex2.cil.c");
       Assert.assertTrue(results.isSafe());
@@ -96,9 +104,11 @@ public class ObserverAutomatonTest {
   
   @Test
   public void functionIdentifying() {
-    String prop = "CompositeCPA.cpas = cpa.location.LocationCPA, cpa.observeranalysis.ObserverAutomatonCPA \n " +
-        "observerAnalysis.inputFile =  test/programs/observerAutomata/FunctionIdentifyingAutomaton.txt \n " +
-        "log.consoleLevel = FINER";
+    Map<String, String> prop = ImmutableMap.of(
+        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.observeranalysis.ObserverAutomatonCPA",
+        "observerAnalysis.inputFile",     "test/programs/observerAutomata/FunctionIdentifyingAutomaton.txt",
+        "log.consoleLevel",               "FINER"
+      );
     try {
       TestResults results = run(prop, "test/programs/simple/functionCall.c");
       Assert.assertTrue(results.logContains("i'm in Main after Edge int y;"));
@@ -111,27 +121,13 @@ public class ObserverAutomatonTest {
     }
   }
   
-  private TestResults run(String pPropertiesString, String pSourceCodeFilePath) throws InvalidConfigurationException {
-    File prop = new File(propertiesFilePath);
-    FileWriter w;
-    try {
-      w = new FileWriter(prop);
-      w.write(pPropertiesString);
-      w.flush();
-      w.close();
-      
-      Configuration config;  
-      config = new Configuration(propertiesFilePath, null);
-      StringHandler stringLogHandler = new LogManager.StringHandler();
-      LogManager logger = new LogManager(config, stringLogHandler);      
-      CPAchecker cpaChecker = new CPAchecker(config, logger);
-      CPAcheckerResult results = cpaChecker.run(pSourceCodeFilePath);
-      return new TestResults(stringLogHandler.getLog(), results);
-    } catch (IOException e1) {
-      System.err.print("Test could not create/find the configuration file");
-      e1.printStackTrace();
-      return null;
-    }
+  private TestResults run(Map<String, String> pProperties, String pSourceCodeFilePath) throws InvalidConfigurationException {
+    Configuration config = new Configuration(pProperties);  
+    StringHandler stringLogHandler = new LogManager.StringHandler();
+    LogManager logger = new LogManager(config, stringLogHandler);      
+    CPAchecker cpaChecker = new CPAchecker(config, logger);
+    CPAcheckerResult results = cpaChecker.run(pSourceCodeFilePath);
+    return new TestResults(stringLogHandler.getLog(), results);
   }
   
   private class TestResults {
@@ -159,24 +155,5 @@ public class ObserverAutomatonTest {
     boolean isUnsafe() {
       return checkerResult.getResult().equals(CPAcheckerResult.Result.UNSAFE);
     }
-  }
-  /**
-   * unused now, but it might be useful sometime later
-   */
-  @SuppressWarnings("unused")
-  private void determineCommandLine() {
-    /*
-     * Get os.name system property using
-     * public static String getProperty(String name) method of
-     * System class.
-     */
-     String strOSName = System.getProperty("os.name");
-     if (strOSName != null) {
-       String commandLine;
-      if (strOSName.toLowerCase().indexOf("windows") != -1)
-         commandLine = "cmd.exe /c scripts\\cpa.bat "; // windows
-       else
-         commandLine = "./scripts/cpa.sh "; // not windows, assume unix
-     }
   }
 }
