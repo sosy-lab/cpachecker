@@ -54,6 +54,7 @@ class ObserverState implements AbstractElement {
     //ObserverExpressionArguments exprArgs = new ObserverExpressionArguments(vars, null, pCfaEdge);
     for (ObserverTransition t : internalState.getTransitions()) {
       boolean exitLoop = false;
+      exprArgs.clearTransitionVariables();
       switch (t.match(exprArgs)) { 
       case TRUE :
         if (t.assertionsHold(exprArgs)) {
@@ -82,6 +83,7 @@ class ObserverState implements AbstractElement {
         break;
       }
     }
+    exprArgs.clearTransitionVariables();
     return returnState;
   }
   

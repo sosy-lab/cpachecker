@@ -1,5 +1,8 @@
 package cpa.observeranalysis;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import org.eclipse.cdt.core.dom.ICodeReaderFactory;
 import org.eclipse.cdt.core.dom.ast.IASTIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
@@ -31,38 +34,52 @@ public class ObserverASTComparator {
    * The JOKER_EXPR must be a valid C-Identifier. It will be used to recognize the jokers in the generated AST.   
    */
   private static final String JOKER_EXPR = " CPAChecker_ObserverAnalysis_JokerExpression ";
-
-  /**
-   * Returns whether the ASTs for the argument strings are considered equal.
-   * Substitutes wildcard expressions in pattern, generates the 2 ASTs and compares them.
-   * 
-   * The strings can be any C-Statement/Expression that may appear inside of a block.
-   * @param pSourceExpression
-   * @param pPattern
-   * @return
-   */
-  static boolean generateAndCompareASTs(String pSourceExpression, String pPattern) {
-    String tmp = addFunctionDeclaration(pSourceExpression);
-    IASTTranslationUnit a = ObserverASTComparator.parse(tmp);
-    
-    tmp = addFunctionDeclaration(pPattern).replaceAll("\\$\\?", JOKER_EXPR);
-    IASTTranslationUnit b = ObserverASTComparator.parse(tmp);
-    
-    boolean result = ObserverASTComparator.compareASTs(a, b);
-    return result;
+  private static final String NUMBERED_JOKER_EXPR = " CPAChecker_ObserverAnalysis_JokerExpression_Num";
+  private static final Pattern NUMBERED_JOKER_PATTERN = Pattern.compile("\\$\\d+");
+  
+  static String preparePatternString(String pPattern) {
+    // $?-Jokers, $1-Jokers and function declaration
+    return addFunctionDeclaration(replaceJokersInPattern(pPattern));
+  }
+  
+  static String prepareSourceString(String pSource) {
+    // only function declaration
+    return addFunctionDeclaration(pSource);
   }
 
-  public static boolean generateAndCompareASTs(String pSourceExpression,
-      IASTTranslationUnit pPatternAST) {
-    String tmp = addFunctionDeclaration(pSourceExpression);
-    IASTTranslationUnit a = ObserverASTComparator.parse(tmp);
+  static boolean generateAndCompareASTs(String pSourceExpression,
+      IASTTranslationUnit pPatternAST, ObserverExpressionArguments pArgs) {
+    IASTTranslationUnit a = ObserverASTComparator.parse(prepareSourceString(pSourceExpression));
         
-    boolean result = ObserverASTComparator.compareASTs(a, pPatternAST);
+    boolean result = ObserverASTComparator.compareASTs(a, pPatternAST, pArgs);
     return result;
   }
 
+  static String replaceJokersInPattern(String pPattern) {
+    String tmp = pPattern.replaceAll("\\$\\?", JOKER_EXPR);
+    Matcher matcher = NUMBERED_JOKER_PATTERN.matcher(tmp);
+    StringBuffer result = new StringBuffer();
+    while (matcher.find()) {
+      matcher.appendReplacement(result, "");
+      String key = tmp.substring(matcher.start()+1, matcher.end());
+      try {
+        int varKey = Integer.parseInt(key);
+        result.append(NUMBERED_JOKER_EXPR + varKey + " ");
+      } catch (NumberFormatException e) {
+        // did not work, but i cant log it down here. Should not be able to happen anyway (regex captures only ints)
+        result.append(matcher.group());
+      }
+    }
+    matcher.appendTail(result);
+    return result.toString();
+  }
+  
   static IASTTranslationUnit generatePatternAST(String pPattern) {
-    String tmp = addFunctionDeclaration(pPattern).replaceAll("\\$\\?", JOKER_EXPR);
+    String tmp = preparePatternString(pPattern);
+    return ObserverASTComparator.parse(tmp);
+  }
+  static IASTTranslationUnit generateSourceAST(String pSource) {
+    String tmp = prepareSourceString(pSource);
     return ObserverASTComparator.parse(tmp);
   }
   
@@ -87,10 +104,6 @@ public class ObserverASTComparator {
     return null;
   }
   
-  static void printAST(String pPattern) {
-    printAST(generatePatternAST(pPattern), 0);
-  }
-  
   
   /**
    * Surrounds the argument with a function declaration. 
@@ -109,11 +122,16 @@ public class ObserverASTComparator {
   
   
   /** Recursive method for comparing the ASTs.
+   * pB is the pattern AST
    */
-  private static boolean compareASTs(IASTNode pA, IASTNode pB) {
+  static boolean compareASTs(IASTNode pA, IASTNode pB, ObserverExpressionArguments pArgs) {
+    
     boolean result = true;
-    if (isJoker(pA) || isJoker(pB)) result = true;
-    else if (pA.getClass().equals(pB.getClass())) {
+    if (isJoker(pB)) {
+      result = true;
+    } else if (handleNumberJoker(pA, pB, pArgs)) {
+      result = true;
+    } else if (pA.getClass().equals(pB.getClass())) {
       if (pA instanceof IASTName && ! IASTNamesAreEqual((IASTName)pA, (IASTName)pB)) {
         result = false;
       } else if (pA instanceof IASTLiteralExpression && ! IASTLiteralExpressionsAreEqual((IASTLiteralExpression)pA, (IASTLiteralExpression)pB)) {
@@ -122,7 +140,7 @@ public class ObserverASTComparator {
         result = false;
       } else {
         for (int i = 0; i < pA.getChildren().length; i++) {
-          if (compareASTs(pA.getChildren()[i], pB.getChildren()[i]) == false)
+          if (compareASTs(pA.getChildren()[i], pB.getChildren()[i], pArgs) == false)
             result = false;
           }
       }
@@ -132,6 +150,38 @@ public class ObserverASTComparator {
     return result;
   }
 
+  private static boolean handleNumberJoker(IASTNode pSource, IASTNode pPotentialJoker,
+      ObserverExpressionArguments pArgs) {
+    boolean isJoker = false;
+    String number = "";
+    if (pPotentialJoker instanceof IASTName) {
+      IASTName name = (IASTName) pPotentialJoker;
+      if (String.copyValueOf(name.getSimpleID()).startsWith(NUMBERED_JOKER_EXPR.trim())) {
+        isJoker = true;
+        number =  String.copyValueOf(name.getSimpleID()).substring(NUMBERED_JOKER_EXPR.trim().length());
+      }
+      // are there more IASTsomethings that could be Jokers?
+    } else if (pPotentialJoker instanceof IASTIdExpression) {
+      IASTIdExpression name = (IASTIdExpression) pPotentialJoker;
+      if (name.getRawSignature().startsWith(NUMBERED_JOKER_EXPR.trim())) {
+        isJoker = true;
+        number =  name.getRawSignature().substring(NUMBERED_JOKER_EXPR.trim().length());
+      }
+    }
+    if (isJoker) {
+      // RawSignature returns the raw code before preprocessing.
+      // This does not matter in this case because only very small sniplets, generated by method "addFunctionDeclaration" are tested, no preprocessing
+      String value = pSource.getRawSignature();
+      pArgs.putTransitionVariable(Integer.parseInt(number),value);
+      return true;
+    } else {
+      return false; 
+    }
+  }
+  
+  public static void printAST(IASTTranslationUnit pAST) {
+    printAST(pAST, 0);
+  }
   /** Recursive method for printing an AST to System.out .
    */
   private static void printAST (IASTNode pNode, int pInd) {

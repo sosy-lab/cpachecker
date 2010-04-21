@@ -1,12 +1,13 @@
 package cpa.observeranalysis;
 
 import java.util.logging.Level;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 
 import cfa.objectmodel.CFALabelNode;
 import cfa.objectmodel.CFANode;
-
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.AbstractQueryableElement;
 import exceptions.InvalidQueryException;
@@ -77,7 +78,7 @@ abstract class ObserverBoolExpr {
     }
     @Override
     MaybeBoolean eval(ObserverExpressionArguments pArgs) {
-      if (ObserverASTComparator.generateAndCompareASTs(pArgs.getCfaEdge().getRawStatement(), patternAST)) {
+      if (ObserverASTComparator.generateAndCompareASTs(pArgs.getCfaEdge().getRawStatement(), patternAST, pArgs)) {
         return MaybeBoolean.TRUE;
       } else {
         return MaybeBoolean.FALSE;
@@ -122,6 +123,8 @@ abstract class ObserverBoolExpr {
    */
   static class CPAQuery extends ObserverBoolExpr {
     String cPAName, queryString;
+    // the pattern \$\d+ matches Expressions like $1 $2 $3
+    static Pattern TRANSITION_VARS_PATTERN = Pattern.compile("\\$\\d+");
     CPAQuery(String pCPAName, String pQuery) {
       super();
       cPAName = pCPAName;
@@ -129,12 +132,17 @@ abstract class ObserverBoolExpr {
     }
     @Override
     MaybeBoolean eval(ObserverExpressionArguments pArgs) {
+      // replace transition variables
+      String modifiedQueryString = replaceVariables(pArgs, queryString);
+      if (modifiedQueryString == null) {
+        return MaybeBoolean.MAYBE;
+      }
        for (AbstractElement ae : pArgs.getAbstractElements()) {
          if (ae instanceof AbstractQueryableElement) {
           AbstractQueryableElement aqe = (AbstractQueryableElement) ae;
           if (aqe.getCPAName().equals(cPAName)) {
             try {
-              if (aqe.checkProperty(queryString)) {
+              if (aqe.checkProperty(modifiedQueryString)) {
                 return MaybeBoolean.TRUE;
               } else {
                 return MaybeBoolean.FALSE;
@@ -149,6 +157,33 @@ abstract class ObserverBoolExpr {
         }
       }
       return MaybeBoolean.MAYBE; // the necessary CPA-State was not found
+    }
+    
+    static String replaceVariables (
+        ObserverExpressionArguments pArgs, String pQueryString) {
+      // replace Transition Variables
+      Matcher matcher = TRANSITION_VARS_PATTERN.matcher(pQueryString);
+      StringBuffer result = new StringBuffer();
+      while (matcher.find()) {
+        matcher.appendReplacement(result, "");
+        String key = pQueryString.substring(matcher.start()+1, matcher.end());
+        try {
+          int varKey = Integer.parseInt(key);
+          String var = pArgs.getTransitionVariable(varKey);
+          if (var == null) {
+            // this variable has not been set.
+            pArgs.getLogger().log(Level.WARNING, "could not replace the transition variable $" + varKey + " (not found).");
+            return null;
+          } else {
+            result.append(var);
+          }
+        } catch (NumberFormatException e) {
+          pArgs.getLogger().log(Level.WARNING, "could not parse the int in " + matcher.group() + " , leaving it untouched");
+          result.append(matcher.group());
+        }
+      }
+      matcher.appendTail(result);
+      return result.toString();
     }
   }
   

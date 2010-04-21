@@ -161,7 +161,8 @@ class ObserverInternalTests {
     System.out.print(" and ");
     System.out.print(pattern);
     System.out.print(" returns ");
-    System.out.print(ObserverASTComparator.generateAndCompareASTs(src, pattern));
+    ObserverExpressionArguments args = new ObserverExpressionArguments(null, null, null, null);
+    System.out.print(ObserverASTComparator.generateAndCompareASTs(src, ObserverASTComparator.generatePatternAST(pattern), args));
     System.out.println();
   }
   

@@ -1,9 +1,15 @@
 package cpa.observeranalysis;
 
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 
+import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.junit.Assert;
 import org.junit.Test;
+
+import cfa.objectmodel.CFAEdge;
 
 import com.google.common.collect.ImmutableMap;
 import common.configuration.Configuration;
@@ -12,6 +18,8 @@ import cpa.common.CPAchecker;
 import cpa.common.CPAcheckerResult;
 import cpa.common.LogManager;
 import cpa.common.LogManager.StringHandler;
+import cpa.common.interfaces.AbstractElement;
+import cpa.observeranalysis.ObserverBoolExpr.CPAQuery;
 import exceptions.InvalidConfigurationException;
 
 public class ObserverAutomatonTest {
@@ -91,10 +99,15 @@ public class ObserverAutomatonTest {
     Map<String, String> prop = ImmutableMap.of(
         "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.observeranalysis.ObserverAutomatonCPA, cpa.explicit.ExplicitAnalysisCPA",
         "observerAnalysis.inputFile",     "test/programs/observerAutomata/ExcplicitAnalysisObservingAutomaton.txt",
-        "log.consoleLevel",               "INFO"
+        "log.consoleLevel",               "INFO",
+        "cpas.explicit.threshold" , "2000"
       );   
     try {
       TestResults results = run(prop, "test/programs/simple/ex2.cil.c");
+      Assert.assertTrue(results.logContains("st==3 after Edge st = 3;"));
+      Assert.assertTrue(results.logContains("st==1 after Edge st = 1;"));
+      Assert.assertTrue(results.logContains("st==2 after Edge st = 2;"));
+      Assert.assertTrue(results.logContains("st==4 after Edge st = 4;"));
       Assert.assertTrue(results.isSafe());
       
     } catch (InvalidConfigurationException e) {
@@ -119,6 +132,62 @@ public class ObserverAutomatonTest {
     } catch (InvalidConfigurationException e) {
       Assert.fail("InvalidConfiguration");
     }
+  }
+  
+  @Test
+  public void transitionVariableReplacement() {
+    Map<String, ObserverVariable> pObserverVariables = null;
+    List<AbstractElement> pAbstractElements = null;
+    CFAEdge pCfaEdge = null;
+    Map<String, String> map = new HashMap<String, String>();
+    map.put("log.level", "OFF");
+    map.put("log.consoleLevel", "WARNING");
+    
+    Configuration config = new Configuration(map);
+    LogManager pLogger = null;
+    try {
+      pLogger = new LogManager(config);
+    } catch (InvalidConfigurationException e1) {
+      Assert.fail("Test setup failed");
+    }
+    ObserverExpressionArguments args = new ObserverExpressionArguments(pObserverVariables, pAbstractElements, pCfaEdge, pLogger);
+    args.putTransitionVariable(1, "hi");
+    args.putTransitionVariable(2, "hello");
+    // actual test
+    String result = CPAQuery.replaceVariables(args, "$1 == $2");
+    Assert.assertTrue("hi == hello".equals(result));
+    result = CPAQuery.replaceVariables(args, "$1 == $1");
+    Assert.assertTrue("hi == hi".equals(result));
+    
+    pLogger.log(Level.WARNING, "Warning expected in the next line (concerning $5)");
+    result = CPAQuery.replaceVariables(args, "$1 == $5");
+    Assert.assertTrue(result == null); // $5 has not been found
+    // this test should issue a log message!
+  }
+  /*
+  @Test
+  public void testJokerReplacementInPattern() {
+    // tests the replacement of Joker expressions in the AST comparison
+    String result = ObserverASTComparator.replaceJokersInPattern("$20 = $?");
+    Assert.assertTrue(result.contains("CPAChecker_ObserverAnalysis_JokerExpression_Num20  =  CPAChecker_ObserverAnalysis_JokerExpression"));
+    result = ObserverASTComparator.replaceJokersInPattern("$1 = $?");
+    Assert.assertTrue(result.contains("CPAChecker_ObserverAnalysis_JokerExpression_Num1  =  CPAChecker_ObserverAnalysis_JokerExpression"));
+    result = ObserverASTComparator.replaceJokersInPattern("$? = $?");
+    Assert.assertTrue(result.contains("CPAChecker_ObserverAnalysis_JokerExpression  =  CPAChecker_ObserverAnalysis_JokerExpression"));
+    result = ObserverASTComparator.replaceJokersInPattern("$1 = $5");
+    Assert.assertTrue(result.contains("CPAChecker_ObserverAnalysis_JokerExpression_Num1  =  CPAChecker_ObserverAnalysis_JokerExpression_Num5 "));
+  }*/
+  @Test
+  public void testJokerReplacementInAST() {
+    // tests the replacement of Joker expressions in the AST comparison
+    IASTTranslationUnit patternAST = ObserverASTComparator.generatePatternAST("$20 = $5($?($1, $?));");
+    ObserverExpressionArguments args = new ObserverExpressionArguments(null, null, null, null);
+    
+    boolean result = ObserverASTComparator.generateAndCompareASTs("var1 = function(g(var2, egal));", patternAST, args);
+    Assert.assertTrue(result);
+    Assert.assertTrue(args.getTransitionVariable(20).equals("var1"));
+    Assert.assertTrue(args.getTransitionVariable(1).equals("var2"));
+    Assert.assertTrue(args.getTransitionVariable(5).equals("function"));
   }
   
   private TestResults run(Map<String, String> pProperties, String pSourceCodeFilePath) throws InvalidConfigurationException {

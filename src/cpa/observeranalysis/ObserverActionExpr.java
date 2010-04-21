@@ -2,6 +2,8 @@ package cpa.observeranalysis;
 
 import java.util.Map;
 import java.util.logging.Level;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 /**
@@ -17,15 +19,42 @@ abstract class ObserverActionExpr {
    * @author rhein
    */
   static class Print extends ObserverActionExpr {
+    // the pattern \$\d+ matches Expressions like $1 $2 $3
+    static Pattern TRANSITION_VARS_PATTERN = Pattern.compile("\\$\\d+");
     private String toPrint;
     public Print(String pToPrint) { toPrint = pToPrint; }
     @Override void execute(ObserverExpressionArguments pArgs) { 
       if (toPrint.toLowerCase().equals("$rawstatement")) {
-        
         pArgs.appendToLogMessage(pArgs.getCfaEdge().getRawStatement());
       } else {
-        pArgs.appendToLogMessage(toPrint);
+        pArgs.appendToLogMessage(replaceVariables(pArgs, toPrint));
       }
+    }
+    static String replaceVariables (
+        ObserverExpressionArguments pArgs, String str) {
+      // replace Transition Variables
+      Matcher matcher = TRANSITION_VARS_PATTERN.matcher(str);
+      StringBuffer result = new StringBuffer();
+      while (matcher.find()) {
+        matcher.appendReplacement(result, "");
+        String key = str.substring(matcher.start()+1, matcher.end());
+        try {
+          int varKey = Integer.parseInt(key);
+          String var = pArgs.getTransitionVariable(varKey);
+          if (var == null) {
+            // this variable has not been set.
+            pArgs.getLogger().log(Level.WARNING, "could not replace the transition variable $" + varKey + " (not found).");
+            return null;
+          } else {
+            result.append(var);
+          }
+        } catch (NumberFormatException e) {
+          pArgs.getLogger().log(Level.WARNING, "could not parse the int in " + matcher.group() + " , leaving it untouched");
+          result.append(matcher.group());
+        }
+      }
+      matcher.appendTail(result);
+      return result.toString();
     }
   }
   

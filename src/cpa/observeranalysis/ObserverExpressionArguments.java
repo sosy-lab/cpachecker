@@ -1,6 +1,7 @@
 package cpa.observeranalysis;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -10,6 +11,9 @@ import cpa.common.interfaces.AbstractElement;
 
 public class ObserverExpressionArguments {
   private Map<String, ObserverVariable> observerVariables;
+  // Variables that are only valid for one transition ($1,$2,...)
+  // these will be set in a MATCH statement, and are erased when the transitions actions are executed.
+  private Map<Integer, String> transitionVariables = new HashMap<Integer, String>();
   private List<AbstractElement> abstractElements;
   private CFAEdge cfaEdge;
   private LogManager logger;
@@ -61,5 +65,17 @@ public class ObserverExpressionArguments {
   }
   String getLogMessage() {
     return transitionLogMessages;
+  }
+  
+  void clearTransitionVariables() {
+    this.transitionVariables.clear();
+  }
+  String getTransitionVariable(int key) {
+    // this is the variable adressed with $<key> in the observer automaton
+    return this.transitionVariables.get(Integer.valueOf(key));
+  }
+  
+  void putTransitionVariable(int key, String value) {
+    this.transitionVariables.put(key, value);
   }
 }

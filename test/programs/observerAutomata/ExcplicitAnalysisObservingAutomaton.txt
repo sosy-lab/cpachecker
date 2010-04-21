@@ -7,9 +7,11 @@ AUTOMATON ExcplicitAnalysisObservingAutomaton
 INITIAL STATE Init;
 
 STATE Init : 
-  MATCH {st = 0; } && CHECK(ExplicitAnalysis("main::st==0")) -> PRINT "st==0 after Edge " PRINT "$RawStatement" GOTO Init;
+  MATCH {st = $1; } && CHECK(ExplicitAnalysis("main::st==$1")) -> PRINT "st==$1 after Edge " PRINT "$RawStatement" GOTO Init;
+  
+  /*MATCH {st = 0; } && CHECK(ExplicitAnalysis("main::st==0")) -> PRINT "st==0 after Edge " PRINT "$RawStatement" GOTO Init;
   MATCH {st = 1; } && CHECK(ExplicitAnalysis("main::st==1")) -> PRINT "st==1 after Edge " PRINT "$RawStatement" GOTO Init;
   MATCH {st = 2; } && CHECK(ExplicitAnalysis("main::st==2")) -> PRINT "st==2 after Edge " PRINT "$RawStatement" GOTO Init;
   MATCH {st = 3; } && CHECK(ExplicitAnalysis("main::st==3")) -> PRINT "st==3 after Edge " PRINT "$RawStatement" GOTO Init;
   MATCH {st = 4; } && CHECK(ExplicitAnalysis("main::st==4")) -> PRINT "st==4 after Edge " PRINT "$RawStatement" GOTO Init;
-  
+  */
