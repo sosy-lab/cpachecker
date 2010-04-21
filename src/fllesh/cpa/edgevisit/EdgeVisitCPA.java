@@ -119,6 +119,11 @@ public class EdgeVisitCPA implements ConfigurableProgramAnalysis {
       return false;
     }
     
+    @Override
+    public String toString() {
+      return "<EdgeVisit - Top-Element>";
+    }
+    
   }
   
   public static class BottomElement extends EdgeVisitElement {
@@ -137,6 +142,11 @@ public class EdgeVisitCPA implements ConfigurableProgramAnalysis {
     public boolean checkProperty(String pProperty) throws InvalidQueryException {
       // We do not know which edge we have taken, so we return false.
       return false;
+    }
+    
+    @Override
+    public String toString() {
+      return "<EdgeVisit - Bottom-Element>";
     }
     
   }
@@ -158,6 +168,12 @@ public class EdgeVisitCPA implements ConfigurableProgramAnalysis {
       // We have not visited a CFA edge, therefore we return false.
       return false;
     }
+    
+    @Override
+    public String toString() {
+      return "<VisitEdge - No Edge>";
+    }
+    
   }
   
   public static class EdgeElement extends EdgeVisitElement {
@@ -171,6 +187,11 @@ public class EdgeVisitCPA implements ConfigurableProgramAnalysis {
     @Override
     public boolean checkProperty(String pProperty) throws InvalidQueryException {
       return mId.equals(pProperty);
+    }
+    
+    @Override
+    public String toString() {
+      return "<VisitEdge - " + mId + ">";
     }
   }
   
