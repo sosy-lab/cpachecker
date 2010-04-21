@@ -1,9 +1,12 @@
 package fllesh;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -35,11 +38,15 @@ import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.Statistics;
 import cpa.location.LocationCPA;
+import cpa.observeranalysis.ObserverAutomatonCPA;
 import cpa.symbpredabsCPA.SymbPredAbsCPA;
 import exceptions.CPAException;
 import fllesh.cpa.edgevisit.EdgeVisitCPA;
+import fllesh.fql.backend.targetgraph.Edge;
+import fllesh.fql.backend.targetgraph.TargetGraph;
 import fllesh.fql.fllesh.util.CPAchecker;
 import fllesh.fql.fllesh.util.Cilly;
+import fllesh.fql.frontend.ast.filter.FunctionCall;
 
 public class Main {
 
@@ -108,6 +115,32 @@ public class Main {
     return lPropertiesFile;
   }
   
+  //observerAnalysis.inputFile =  test/programs/observerAutomata/PointerAnalysisTestAutomaton.txt
+  //observerAnalysis.dotExportFile = observerAutomatonExport.dot
+
+  private static File createPropertiesFile(File pObserverAutomatonFile) {
+    File lPropertiesFile = Main.createPropertiesFile();
+    
+    // append configuration for observer automaton
+    PrintWriter lWriter;
+    try {
+      
+      lWriter = new PrintWriter(new FileOutputStream(lPropertiesFile, true));
+      
+      lWriter.println("observerAnalysis.inputFile = " + pObserverAutomatonFile.getAbsolutePath());
+      lWriter.println("observerAnalysis.dotExportFile = observerAutomatonExport.dot");
+      lWriter.close();
+      
+      return lPropertiesFile;
+      
+    } catch (FileNotFoundException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
+    
+    return null;
+  }
+  
   /**
    * @param pArguments
    * @throws Exception 
@@ -147,6 +180,40 @@ public class Main {
       System.out.println(lEntry.getKey().toString() + " : " + lEntry.getValue());
     }
     
+    
+    TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lMainFunction);
+    FunctionCall lFunctionCallFilter = new FunctionCall("f");
+    TargetGraph lFilteredTargetGraph = lTargetGraph.apply(lFunctionCallFilter);
+    
+    String lId = null;
+    
+    for (Edge lEdge : lFilteredTargetGraph.getEdges()) {
+      lId = lFactory.getId(lEdge.getCFAEdge());
+      
+      // we do not care about predication at the moment
+      System.out.println("GOAL: " + lFactory.getId(lEdge.getCFAEdge()));
+      
+      break;
+    }
+    
+    File lAutomatonFile = File.createTempFile("fllesh.", ".oa");
+    lAutomatonFile.deleteOnExit();
+    
+    PrintWriter lObserverAutomaton = new PrintWriter(new FileWriter(lAutomatonFile));
+    lObserverAutomaton.println("AUTOMATON Goal_" + lId);
+    lObserverAutomaton.println("INITIAL STATE Init;");
+    lObserverAutomaton.println("STATE Init:");
+    lObserverAutomaton.println("CHECK(edgevisit(\"" + lId +  "\")) -> GOTO ERR;");
+    lObserverAutomaton.close();
+    
+    File lExtendedPropertiesFile = Main.createPropertiesFile(lAutomatonFile);
+    Configuration lExtendedConfiguration = Main.createConfiguration(lSourceFileName, lExtendedPropertiesFile.getAbsolutePath());
+    
+    CPAFactory lAutomatonFactory = ObserverAutomatonCPA.factory();
+    lAutomatonFactory.setConfiguration(lExtendedConfiguration);
+    lAutomatonFactory.setLogger(lLogManager);
+    ConfigurableProgramAnalysis lObserverCPA = lAutomatonFactory.createInstance();
+
     CPAFactory lLocationCPAFactory = LocationCPA.factory();
     ConfigurableProgramAnalysis lLocationCPA = lLocationCPAFactory.createInstance();
     
@@ -155,11 +222,11 @@ public class Main {
     lSymbPredAbsCPAFactory.setLogger(lLogManager);
     ConfigurableProgramAnalysis lSymbPredAbsCPA = lSymbPredAbsCPAFactory.createInstance();
 
-    LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<ConfigurableProgramAnalysis>();
-    
+    LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<ConfigurableProgramAnalysis>();    
     lComponentAnalyses.add(lLocationCPA);
     lComponentAnalyses.add(lEdgeVisitCPA);
     lComponentAnalyses.add(lSymbPredAbsCPA);
+    lComponentAnalyses.add(lObserverCPA);
 
     // create composite CPA
     CPAFactory lCPAFactory = CompositeCPA.factory();  
@@ -174,7 +241,6 @@ public class Main {
     lARTCPAFactory.setConfiguration(lConfiguration);
     lARTCPAFactory.setLogger(lLogManager);
     ConfigurableProgramAnalysis lARTCPA = lARTCPAFactory.createInstance();
-    
     
     
     

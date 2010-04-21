@@ -225,6 +225,10 @@ public class EdgeVisitCPA implements ConfigurableProgramAnalysis {
       return mMapping;
     }
     
+    public String getId(CFAEdge pEdge) {
+      return mMapping.get(pEdge);
+    }
+    
     @Override
     public ConfigurableProgramAnalysis createInstance() throws CPAException {
       return new EdgeVisitCPA(mMapping);
