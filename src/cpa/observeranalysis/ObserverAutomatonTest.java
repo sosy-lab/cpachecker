@@ -104,7 +104,7 @@ public class ObserverAutomatonTest {
       );   
     try {
       TestResults results = run(prop, "test/programs/simple/ex2.cil.c");
-      System.out.println(results.log);
+      //System.out.println(results.log);
       Assert.assertTrue(results.logContains("st==3 after Edge st = 3;"));
       Assert.assertTrue(results.logContains("st==1 after Edge st = 1;"));
       Assert.assertTrue(results.logContains("st==2 after Edge st = 2;"));

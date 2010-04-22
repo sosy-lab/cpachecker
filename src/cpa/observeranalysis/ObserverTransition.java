@@ -94,7 +94,9 @@ class ObserverTransition {
     for (ObserverActionExpr action : actions) {
       action.execute(pArgs);
     }
-    pArgs.getLogger().log(Level.INFO, pArgs.getLogMessage());
+    if (pArgs.getLogMessage() != null && pArgs.getLogMessage().length() > 0) {
+      pArgs.getLogger().log(Level.INFO, pArgs.getLogMessage());
+    }
   }
 
   /** returns null if setFollowState() was not called or no followState with appropriate name was found.
