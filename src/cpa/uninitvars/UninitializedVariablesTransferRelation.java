@@ -65,7 +65,6 @@ import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.TransferRelation;
 import cpa.types.Type;
 import cpa.types.TypesElement;
-import cpa.types.Type.StructType;
 import cpa.types.Type.TypeClass;
 import cpa.uninitvars.UninitializedVariablesElement.ElementProperty;
 import exceptions.CPATransferException;
@@ -88,15 +87,13 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
   
   //needed for strengthen()
   private String lastAdded = null;
-  private String entryFunction;
   //used to check if a warning message in strengthen() has been displayed if typesCPA is not present
   private boolean typesWarningAlreadyDisplayed = false;
 
-  public UninitializedVariablesTransferRelation(String printWarnings, LogManager logger, String entryFunction) {
+  public UninitializedVariablesTransferRelation(String printWarnings, LogManager logger) {
     globalVars = new HashSet<String>();
     this.printWarnings = Boolean.parseBoolean(printWarnings);
     this.logger = logger;
-    this.entryFunction = entryFunction;
   }
   
   private AbstractElement getAbstractSuccessor(AbstractElement element,
@@ -532,7 +529,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
                        throws CPATransferException {
     return Collections.singleton(getAbstractSuccessor(element, cfaEdge, precision));
   }
-
+  
   @Override
   /**
    * strengthen() is only necessary when declaring field variables, so the underlying struct type
@@ -542,44 +539,31 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
   public Collection<? extends AbstractElement> strengthen(AbstractElement element,
                           List<AbstractElement> otherElements, CFAEdge cfaEdge,
                           Precision precision) {
+    
     //only call for declarations. check for lastAdded prevents unnecessary repeated executions for the same statement
     boolean typesCPAPresent = false;
+    
     if (cfaEdge.getEdgeType() == CFAEdgeType.DeclarationEdge && lastAdded != null) {
+      
       for (AbstractElement other : otherElements) {
+        
         //only interested in the types here
         if (other instanceof TypesElement) {
           typesCPAPresent = true;
-          
+
           //find type of the item last added to the list of variables
           TypesElement typeElem = (TypesElement) other;
-          Type t;
-          //check type definitions
-          t = typeElem.getTypedef(lastAdded);
-          //if this fails, check functions
-          if (t == null) {
-            t = typeElem.getFunction(lastAdded);
-          }
-          //if this also fails, check variables for the current context
-          if (t == null) {
-            String functionName = cfaEdge.getSuccessor().getFunctionName();
-            if (functionName.equals(entryFunction)) {
-              t = typeElem.getVariableType(null, lastAdded);
-            } else {
-              t = typeElem.getVariableType(functionName, lastAdded);
-            }
-          }
+          Type t = findType(typeElem, cfaEdge, lastAdded);
+          
           if (t != null) {
             //only need to do this for non-external structs: add a variable for each field of the struct
-            //and set it uninitialized (since it is only declared at this point)
+            //and set it uninitialized (since it is only declared at this point); do this recursively for all
+            //fields that are structs themselves
             if (t.getTypeClass() == TypeClass.STRUCT && 
                 !(((DeclarationEdge)cfaEdge).getDeclSpecifier().getStorageClass() == IASTDeclSpecifier.sc_extern)) {
-              setInitialized((UninitializedVariablesElement) element, lastAdded);
-              Set<String> members = ((StructType)t).getMembers();
-              for (String s : members) {
-                String varName = lastAdded + "." + s;
-                globalVars.add(varName);
-                setUninitialized((UninitializedVariablesElement) element, varName);
-              }
+
+              handleStructDeclaration((UninitializedVariablesElement)element, typeElem, 
+                                      (Type.CompositeType)t, lastAdded, lastAdded);
             }
           }
         }
@@ -596,7 +580,163 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       lastAdded = null;
     }
 
-    return null;
+    //the following deals with structs being assigned to other structs
+    if (cfaEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
 
+      IASTExpression exp = ((StatementEdge)cfaEdge).getExpression();
+
+      if (exp instanceof IASTBinaryExpression) {
+
+        if (((IASTBinaryExpression)exp).getOperator() == IASTBinaryExpression.op_assign) {
+
+          IASTExpression op1 = ((IASTBinaryExpression) exp).getOperand1();
+          IASTExpression op2 = ((IASTBinaryExpression) exp).getOperand2();
+
+          String leftName = op1.getRawSignature();
+          String rightName = op2.getRawSignature();
+
+          for (AbstractElement other : otherElements) {
+            //only interested in the types here
+            if (other instanceof TypesElement) {
+              typesCPAPresent = true;
+
+              TypesElement typeElem = (TypesElement) other;
+
+              Type t1 = checkForFieldReferenceType(op1, typeElem, cfaEdge);
+              Type t2 = checkForFieldReferenceType(op2, typeElem, cfaEdge);;
+
+              if (t1 != null && t2 != null) {
+
+                //only interested in structs being assigned to structs here
+                if (t1.getTypeClass() == TypeClass.STRUCT 
+                    && t2.getTypeClass() == TypeClass.STRUCT) {
+
+                  //only structs of the same type can be assigned to each other
+                  assert t1.equals(t2);
+
+                  //check all fields of the structures' type and set their status
+                  initializeFields((UninitializedVariablesElement)element, cfaEdge, exp, typeElem, 
+                                   (Type.CompositeType)t1, leftName, rightName, leftName, rightName);
+                }
+              }
+            }
+          }  
+        }
+      }
+    }
+    return null;
   }
+  
+  /**
+   * recursively checks the initialization status of all fields of a struct being assigned to 
+   * another struct of the same type, setting the status of the assignee's fields accordingly
+   */
+  private void initializeFields(UninitializedVariablesElement element, 
+                                CFAEdge cfaEdge, IASTExpression exp,
+                                TypesElement typeElem, Type.CompositeType structType,
+                                String leftName, String rightName, 
+                                String recursiveLeftName, String recursiveRightName) {
+    
+    Set<String> members = structType.getMembers();
+
+    //check all members
+    for (String member : members) {
+      Type t = structType.getMemberType(member);
+      //for a field that is itself a struct, repeat the whole process
+      if (t != null && t.getTypeClass() == TypeClass.STRUCT) {
+        initializeFields(element, cfaEdge, exp, typeElem, (Type.CompositeType)t, member, member, 
+                         recursiveLeftName + "." + member, recursiveRightName + "." + member);
+      //else, check the initialization status of the assigned variable 
+      //and set the status of the assignee accordingly
+      } else {
+        if (element.isUninitialized(recursiveRightName + "." + member)) {
+          if (printWarnings) {
+            addWarning(cfaEdge, recursiveRightName + "." + member, exp, element);
+          }
+          setUninitialized(element, recursiveLeftName + "." + member);
+        }
+      }
+    }
+  }
+  
+  /**
+   * recursively sets all fields of a struct uninitialized, except if the field is itself a struct
+   */
+  private void handleStructDeclaration(UninitializedVariablesElement element, 
+                                       TypesElement typeElem, 
+                                       Type.CompositeType structType,
+                                       String varName,
+                                       String recursiveVarName) {
+    
+    //structs themselves are always considered initialized
+    setInitialized(element, recursiveVarName);
+   
+    Set<String> members = structType.getMembers();
+    
+    for (String member : members) {
+      Type t = structType.getMemberType(member);
+      //for a field that is itself a struct, repeat the whole process
+      if (t != null && t.getTypeClass() == TypeClass.STRUCT) {
+        handleStructDeclaration(element, typeElem, (Type.CompositeType)t, member, 
+                                recursiveVarName + "." + member);
+      } else {
+        //set non structure fields uninitialized, since they have only just been declared
+        setUninitialized(element, recursiveVarName + "." + member);
+      }
+    }
+  }
+
+  /**
+   * checks wether a given expression is a field reference;
+   * if yes, find the type of the referenced field, if no, try to determine the type of the variable
+   */
+  private Type checkForFieldReferenceType(IASTExpression exp, TypesElement typeElem, CFAEdge cfaEdge) {
+    
+    String name = exp.getRawSignature();
+    Type t = null;
+    
+    if (exp instanceof IASTFieldReference) {
+      String[] s = name.split("[.]");
+      t = findType(typeElem, cfaEdge, s[0]);
+      int i = 1;
+      
+      //follow the field reference to its end
+      while (t != null && t.getTypeClass() == TypeClass.STRUCT && i < s.length) {
+        t = ((Type.CompositeType)t).getMemberType(s[i]);
+        i++;
+      }
+      
+    //if exp is not a field reference, simply try to find the type of the associated variable name
+    } else {
+      t = findType(typeElem, cfaEdge, name);
+    }
+    return t;
+  }
+  
+  /**
+   * checks all possible locations for type information of a given name
+   */
+  private Type findType(TypesElement typeElem, CFAEdge cfaEdge, String varName) {
+    Type t = null;
+    //check type definitions
+    t = typeElem.getTypedef(varName);
+    //if this fails, check functions
+    if (t == null) {
+      t = typeElem.getFunction(varName);
+    }
+    //if this also fails, check variables for the global context
+    if (t == null) {
+      t = typeElem.getVariableType(null, varName);
+    }
+    try {
+      //if again there was no result, check local variables and function parameters
+      if (t == null) {
+        t = typeElem.getVariableType(cfaEdge.getSuccessor().getFunctionName(), varName);
+      }
+    } catch (IllegalArgumentException e) {
+      //if nothing at all can be found, just return null
+    }
+    return t;
+  }
+  
 }

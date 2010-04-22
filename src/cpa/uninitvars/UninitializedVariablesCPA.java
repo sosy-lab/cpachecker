@@ -67,9 +67,6 @@ public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis, S
     return new UninitializedVariablesCPAFactory();
   }
   
-
-  @Option(name="analysis.entryFunction")
-  private String entryFunction = "main";
   @Option(name="uninitVars.printWarnings")
   private String printWarnings = "true";
   @Option(name="uninitVars.merge", values={"sep", "join"})
@@ -110,8 +107,7 @@ public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis, S
     this.abstractDomain = domain;
     this.mergeOperator = mergeOp;
     this.stopOperator = stopOp;
-    this.transferRelation = new UninitializedVariablesTransferRelation(
-                                      printWarnings, logger, entryFunction);
+    this.transferRelation = new UninitializedVariablesTransferRelation(printWarnings, logger);
     this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
     
     statistics = new UninitializedVariablesStatistics(printWarnings);
