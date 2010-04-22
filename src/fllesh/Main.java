@@ -5,8 +5,10 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -42,6 +44,12 @@ import cpa.observeranalysis.ObserverAutomatonCPA;
 import cpa.symbpredabsCPA.SymbPredAbsCPA;
 import exceptions.CPAException;
 import fllesh.cpa.edgevisit.EdgeVisitCPA;
+import fllesh.ecp.reduced.Atom;
+import fllesh.ecp.reduced.Concatenation;
+import fllesh.ecp.reduced.IdCreator;
+import fllesh.ecp.reduced.ObserverAutomatonCreator;
+import fllesh.ecp.reduced.Pattern;
+import fllesh.ecp.reduced.Repetition;
 import fllesh.fql.backend.targetgraph.Edge;
 import fllesh.fql.backend.targetgraph.TargetGraph;
 import fllesh.fql.fllesh.util.CPAchecker;
@@ -128,7 +136,7 @@ public class Main {
       lWriter = new PrintWriter(new FileOutputStream(lPropertiesFile, true));
       
       lWriter.println("observerAnalysis.inputFile = " + pObserverAutomatonFile.getAbsolutePath());
-      lWriter.println("observerAnalysis.dotExportFile = observerAutomatonExport.dot");
+      lWriter.println("observerAnalysis.dotExportFile = test/output/observerAutomatonExport.dot");
       lWriter.close();
       
       return lPropertiesFile;
@@ -140,7 +148,7 @@ public class Main {
     
     return null;
   }
-  
+ 
   /**
    * @param pArguments
    * @throws Exception 
@@ -173,7 +181,29 @@ public class Main {
     CFAFunctionDefinitionNode lMainFunction = lCPAchecker.getMainFunction();
     
     
-    EdgeVisitCPA.Factory lFactory = new EdgeVisitCPA.Factory(lMainFunction);
+    TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lMainFunction);
+    FunctionCall lFunctionCallFilter = new FunctionCall("f");
+    TargetGraph lFilteredTargetGraph = lTargetGraph.apply(lFunctionCallFilter);
+    
+    HashMap<CFAEdge, Set<String>> lAnnotations = new HashMap<CFAEdge, Set<String>>();
+    
+    for (Edge lEdge : lTargetGraph.getEdges()) {
+      Set<String> lEdgeAnnotations = new HashSet<String>();
+      // every edge is annotated with "ID"
+      lEdgeAnnotations.add("ID");
+      // TODO add identifiers
+      lAnnotations.put(lEdge.getCFAEdge(), lEdgeAnnotations);
+    }
+    
+    // Initialize annotations
+    // annotations are useful for \varepsilon transitions and predicate transitions
+    for (Edge lEdge : lFilteredTargetGraph.getEdges()) {
+      Set<String> lEdgeAnnotations = lAnnotations.get(lEdge.getCFAEdge());
+      lEdgeAnnotations.add("@CALL(f)");
+    }
+    
+    
+    EdgeVisitCPA.Factory lFactory = new EdgeVisitCPA.Factory(lMainFunction, lAnnotations);
     ConfigurableProgramAnalysis lEdgeVisitCPA = lFactory.createInstance();
     
     for (Entry<CFAEdge, String> lEntry : lFactory.getMapping().entrySet())  {
@@ -181,9 +211,10 @@ public class Main {
     }
     
     
-    TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lMainFunction);
-    FunctionCall lFunctionCallFilter = new FunctionCall("f");
-    TargetGraph lFilteredTargetGraph = lTargetGraph.apply(lFunctionCallFilter);
+    
+    
+    
+    
     
     String lId = null;
     
@@ -196,15 +227,44 @@ public class Main {
       break;
     }
     
+    
+    
+    /* Reduced ECP patterns */
+    /*Atom lIdAtom1 = new Atom("ID");
+    // TODO sharing?
+    Atom lIdAtom2 = new Atom("ID");
+    
+    Atom lEdgeAtom = new Atom(lId);
+    
+    Repetition lRepetition1 = new Repetition(lIdAtom1);
+    Repetition lRepetition2 = new Repetition(lIdAtom2);
+    
+    Concatenation lConcatenation = new Concatenation(new Concatenation(lRepetition1, lEdgeAtom), lRepetition2);
+    
+    System.out.println(lConcatenation.toString());
+    */
+    
+    Concatenation lConcatenation = new Concatenation(new Atom("E0"), new Concatenation(new Atom("E1"), new Concatenation(new Atom("E3"), new Concatenation(new Atom("E6"), new Atom("E9")))));
+    
     File lAutomatonFile = File.createTempFile("fllesh.", ".oa");
     lAutomatonFile.deleteOnExit();
     
-    PrintWriter lObserverAutomaton = new PrintWriter(new FileWriter(lAutomatonFile));
+    PrintStream lObserverAutomaton = new PrintStream(new FileOutputStream(lAutomatonFile));
+    
+    ObserverAutomatonCreator.printObserverAutomaton(lConcatenation, "Goal_1", lObserverAutomaton);
+    
+    
+    
+    /*PrintWriter lObserverAutomaton = new PrintWriter(new FileWriter(lAutomatonFile));
     lObserverAutomaton.println("AUTOMATON Goal_" + lId);
     lObserverAutomaton.println("INITIAL STATE Init;");
     lObserverAutomaton.println("STATE Init:");
-    lObserverAutomaton.println("CHECK(edgevisit(\"" + lId +  "\")) -> GOTO ERR;");
-    lObserverAutomaton.close();
+    //lObserverAutomaton.println("CHECK(edgevisit(\"" + lId +  "\")) -> GOTO ERR;");
+    lObserverAutomaton.println("CHECK(edgevisit(\"@CALL(f)\")) -> GOTO ERR;");
+    lObserverAutomaton.println("TRUE -> GOTO Init;");
+    lObserverAutomaton.close();*/
+    
+    
     
     File lExtendedPropertiesFile = Main.createPropertiesFile(lAutomatonFile);
     Configuration lExtendedConfiguration = Main.createConfiguration(lSourceFileName, lExtendedPropertiesFile.getAbsolutePath());

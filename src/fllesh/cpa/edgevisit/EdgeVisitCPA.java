@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Map.Entry;
 
 import cfa.objectmodel.CFAEdge;
@@ -178,15 +179,28 @@ public class EdgeVisitCPA implements ConfigurableProgramAnalysis {
   
   public static class EdgeElement extends EdgeVisitElement {
     
+    private Set<String> mAnnotations;
+    
     private final String mId;
     
     public EdgeElement(String pId) {
       mId = pId;
+      mAnnotations = Collections.emptySet();
     }
 
+    public EdgeElement(String pId, Set<String> pAnnotations) {
+      mId = pId;
+      mAnnotations = pAnnotations;
+    }
+    
     @Override
     public boolean checkProperty(String pProperty) throws InvalidQueryException {
-      return mId.equals(pProperty);
+      if (pProperty.startsWith("E")) {
+        return mId.equals(pProperty);
+      }
+      else {
+        return mAnnotations.contains(pProperty);
+      }
     }
     
     @Override
@@ -197,9 +211,12 @@ public class EdgeVisitCPA implements ConfigurableProgramAnalysis {
   
   public static class Factory extends AbstractCPAFactory {
 
-    private Map<CFAEdge, String> mMapping; 
+    private Map<CFAEdge, String> mMapping;
+    private Map<CFAEdge, Set<String>> mAnnotations;
     
-    public Factory(CFANode pInitialNode) {
+    public Factory(CFANode pInitialNode, Map<CFAEdge, Set<String>> pAnnotations) {
+      mAnnotations = pAnnotations;
+      
       mMapping = new HashMap<CFAEdge, String>();
       
       CFAVisitor lVisitor = new CFAVisitor() {
@@ -231,7 +248,7 @@ public class EdgeVisitCPA implements ConfigurableProgramAnalysis {
     
     @Override
     public ConfigurableProgramAnalysis createInstance() throws CPAException {
-      return new EdgeVisitCPA(mMapping);
+      return new EdgeVisitCPA(mMapping, mAnnotations);
     }
     
   }
@@ -243,7 +260,7 @@ public class EdgeVisitCPA implements ConfigurableProgramAnalysis {
   
   private final HashMap<CFAEdge, EdgeElement> mElements;
   
-  public EdgeVisitCPA(Map<CFAEdge, String> pElements) {
+  public EdgeVisitCPA(Map<CFAEdge, String> pElements, Map<CFAEdge, Set<String>> pAnnotations) {
     mDomain = new FlatLatticeDomain(TopElement.getInstance(), BottomElement.getInstance());
     mPrecision = SingletonPrecision.getInstance();
     mPrecisionAdjustment = StaticPrecisionAdjustment.getInstance();
@@ -252,7 +269,9 @@ public class EdgeVisitCPA implements ConfigurableProgramAnalysis {
     mElements = new HashMap<CFAEdge, EdgeElement>();
     
     for (Entry<CFAEdge, String> lEntry : pElements.entrySet()) {
-      mElements.put(lEntry.getKey(), new EdgeElement(lEntry.getValue()));
+      CFAEdge lEdge = lEntry.getKey();
+      
+      mElements.put(lEdge, new EdgeElement(lEntry.getValue(), pAnnotations.get(lEdge)));
     }
   }
   
