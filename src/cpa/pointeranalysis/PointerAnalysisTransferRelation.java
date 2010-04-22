@@ -83,6 +83,7 @@ import cpa.types.TypesElement;
 import cpa.types.Type.ArrayType;
 import cpa.types.Type.FunctionType;
 import cpa.types.Type.PointerType;
+import cpa.types.Type.TypeClass;
 import exceptions.CPATransferException;
 import exceptions.UnrecognizedCCodeException;
 import exceptions.UnrecognizedCFAEdgeException;
@@ -1565,6 +1566,27 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
     }
   }
 
+  /**
+   * recursively traverses all fields of a struct
+   */
+  private void handleStructDeclaration(PointerAnalysisElement element, 
+                                       TypesElement typeElem, Type.CompositeType structType,
+                                       String varName,String recursiveVarName) {
+
+    Set<String> members = structType.getMembers();
+
+    for (String member : members) {
+      Type t = structType.getMemberType(member);
+      //for a field that is itself a struct, repeat the whole process
+      if (t != null && t.getTypeClass() == TypeClass.STRUCT) {
+        handleStructDeclaration(element, typeElem, (Type.CompositeType)t, member, 
+            recursiveVarName + "." + member);
+      } else {
+        //TODO handle pointers
+      }
+    }
+  }
+  
   private void setSizeOfTarget(Pointer pointer, Type type) {
 
     switch (type.getTypeClass()) {
