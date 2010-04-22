@@ -175,6 +175,9 @@ public class ExplicitAnalysisElement implements AbstractQueryableElement {
         try {
           return value.longValue() == Long.parseLong(parts[1]);
         } catch (NumberFormatException e) {
+          // The command might contains something like "main::p==cmd" where the user wants to compare the variable p to the variable cmd (nearest in scope)
+          // perhaps we should omit the "main::" and find the variable via static scoping ("main::p" is also not intuitive for a user)
+          // TODO: implement Variable finding via static scoping
           throw new InvalidQueryException("The Query \"" + pProperty + "\" is invalid. Could not parse the long \"" + parts[1] + "\"");
         }
       }

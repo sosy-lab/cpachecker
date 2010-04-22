@@ -23,15 +23,11 @@ abstract class ObserverActionExpr {
     static Pattern TRANSITION_VARS_PATTERN = Pattern.compile("\\$\\d+");
     private String toPrint;
     public Print(String pToPrint) { toPrint = pToPrint; }
-    @Override void execute(ObserverExpressionArguments pArgs) { 
-      if (toPrint.toLowerCase().equals("$rawstatement")) {
-        pArgs.appendToLogMessage(pArgs.getCfaEdge().getRawStatement());
-      } else {
-        pArgs.appendToLogMessage(replaceVariables(pArgs, toPrint));
-      }
-    }
-    static String replaceVariables (
-        ObserverExpressionArguments pArgs, String str) {
+    @Override void execute(ObserverExpressionArguments pArgs) {
+      // replace $rawstatement
+      String str = toPrint.replaceAll("\\$[rR]aw[Ss]tatement", pArgs.getCfaEdge().getRawStatement());
+      // replace $line
+      str = str.replaceAll("\\$[Ll]ine", String.valueOf(pArgs.getCfaEdge().getLineNumber()));
       // replace Transition Variables
       Matcher matcher = TRANSITION_VARS_PATTERN.matcher(str);
       StringBuffer result = new StringBuffer();
@@ -44,7 +40,7 @@ abstract class ObserverActionExpr {
           if (var == null) {
             // this variable has not been set.
             pArgs.getLogger().log(Level.WARNING, "could not replace the transition variable $" + varKey + " (not found).");
-            return null;
+            return;
           } else {
             result.append(var);
           }
@@ -54,7 +50,7 @@ abstract class ObserverActionExpr {
         }
       }
       matcher.appendTail(result);
-      return result.toString();
+      pArgs.appendToLogMessage(result.toString());
     }
   }
   

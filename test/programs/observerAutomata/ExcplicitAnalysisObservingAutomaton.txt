@@ -8,6 +8,6 @@ LOCAL int x;
 INITIAL STATE Init;
 
 STATE Init : 
-  MATCH {st = $1; } && CHECK(ExplicitAnalysis("main::st==$1")) -> 
-  DO x=$1 
-  PRINT "st==" PRINT x PRINT " after Edge " PRINT "$RawStatement" GOTO Init;
+  MATCH {st = $2; } && CHECK(ExplicitAnalysis("main::st==$2")) -> 
+  DO x=$2 
+  PRINT "st==" PRINT x PRINT " after Edge $RawStatement in line $line" GOTO Init;
