@@ -4,13 +4,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.Map.Entry;
 
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
-import cfa.objectmodel.CFANode;
 import cpa.common.defaults.AbstractCPAFactory;
 import cpa.common.defaults.FlatLatticeDomain;
 import cpa.common.defaults.MergeJoinOperator;
@@ -27,8 +24,6 @@ import cpa.common.interfaces.TransferRelation;
 import exceptions.CPAException;
 import exceptions.CPATransferException;
 import exceptions.InvalidQueryException;
-import fllesh.fql.fllesh.util.CFATraversal;
-import fllesh.fql.fllesh.util.CFAVisitor;
 
 /**
  * @author holzera
@@ -211,44 +206,19 @@ public class EdgeVisitCPA implements ConfigurableProgramAnalysis {
   
   public static class Factory extends AbstractCPAFactory {
 
-    private Map<CFAEdge, String> mMapping;
-    private Map<CFAEdge, Set<String>> mAnnotations;
+    Annotations mAnnotations;
     
-    public Factory(CFANode pInitialNode, Map<CFAEdge, Set<String>> pAnnotations) {
+    public Factory(Annotations pAnnotations) {
       mAnnotations = pAnnotations;
-      
-      mMapping = new HashMap<CFAEdge, String>();
-      
-      CFAVisitor lVisitor = new CFAVisitor() {
-
-        @Override
-        public void init(CFANode pInitialNode) {
-          
-        }
-
-        @Override
-        public void visit(CFAEdge pP) {
-          if (!mMapping.containsKey(pP)) {
-            mMapping.put(pP, "E" + mMapping.size());
-          }
-        }
-        
-      };
-      
-      CFATraversal.traverse(pInitialNode, lVisitor);
-    }
-    
-    public Map<CFAEdge, String> getMapping() {
-      return mMapping;
     }
     
     public String getId(CFAEdge pEdge) {
-      return mMapping.get(pEdge);
+      return mAnnotations.getId(pEdge);
     }
     
     @Override
     public ConfigurableProgramAnalysis createInstance() throws CPAException {
-      return new EdgeVisitCPA(mMapping, mAnnotations);
+      return new EdgeVisitCPA(mAnnotations);
     }
     
   }
@@ -260,7 +230,7 @@ public class EdgeVisitCPA implements ConfigurableProgramAnalysis {
   
   private final HashMap<CFAEdge, EdgeElement> mElements;
   
-  public EdgeVisitCPA(Map<CFAEdge, String> pElements, Map<CFAEdge, Set<String>> pAnnotations) {
+  public EdgeVisitCPA(Annotations pAnnotations) {
     mDomain = new FlatLatticeDomain(TopElement.getInstance(), BottomElement.getInstance());
     mPrecision = SingletonPrecision.getInstance();
     mPrecisionAdjustment = StaticPrecisionAdjustment.getInstance();
@@ -268,10 +238,8 @@ public class EdgeVisitCPA implements ConfigurableProgramAnalysis {
     
     mElements = new HashMap<CFAEdge, EdgeElement>();
     
-    for (Entry<CFAEdge, String> lEntry : pElements.entrySet()) {
-      CFAEdge lEdge = lEntry.getKey();
-      
-      mElements.put(lEdge, new EdgeElement(lEntry.getValue(), pAnnotations.get(lEdge)));
+    for (CFAEdge lEdge : pAnnotations.getCFAEdges()) {
+      mElements.put(lEdge, new EdgeElement(pAnnotations.getId(lEdge), pAnnotations.getAnnotations(lEdge)));
     }
   }
   
