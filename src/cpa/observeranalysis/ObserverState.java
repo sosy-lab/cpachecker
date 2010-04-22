@@ -52,9 +52,12 @@ class ObserverState implements AbstractElement {
     ObserverInternalState followState = null;
     exprArgs.setObserverVariables(vars);
     //ObserverExpressionArguments exprArgs = new ObserverExpressionArguments(vars, null, pCfaEdge);
+    
+    boolean exitLoop = false;
+    
     for (ObserverTransition t : internalState.getTransitions()) {
-      boolean exitLoop = false;
       exprArgs.clearTransitionVariables();
+      
       switch (t.match(exprArgs)) { 
       case TRUE :
         if (t.assertionsHold(exprArgs)) {
@@ -84,6 +87,12 @@ class ObserverState implements AbstractElement {
       }
     }
     exprArgs.clearTransitionVariables();
+    
+    // if no transition is possible reject
+    if (!exitLoop) {
+      return BOTTOM;
+    }
+    
     return returnState;
   }
   
@@ -107,10 +116,15 @@ class ObserverState implements AbstractElement {
     if (super.equals(pObj)) {
       return true;
     }
+    
+    if (pObj == null) {
+      return false;
+    }
+    
     /* If one of the states is top or bottom they cannot be equal, Object.equal would have found this.
      * Because TOP and Bottom do not have internal States this must be returned explicitly.
      */
-    if (this==TOP || this == BOTTOM) return false;
+    if (this == TOP || this == BOTTOM || pObj == TOP || pObj == BOTTOM) return false;
     if (!(pObj instanceof ObserverState)) {
       return false;
     }
@@ -179,6 +193,9 @@ class ObserverState implements AbstractElement {
       if (ret instanceof ObserverUnknownState) {
         // Error: not enough information to determine next State
         return Collections.singleton(TOP);
+      }
+      else if (ret.equals(BOTTOM)) {
+        return Collections.emptySet();
       } else {
         return Collections.singleton(ret);
       }

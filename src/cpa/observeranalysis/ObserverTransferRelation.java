@@ -42,6 +42,11 @@ class ObserverTransferRelation implements TransferRelation {
       throw new IllegalArgumentException("Cannot getAbstractSuccessor for non-ObserverState AbstractElements.");
     }
     AbstractElement ns =((ObserverState)pElement).getFollowState(new ObserverExpressionArguments(null, null, pCfaEdge, logger));
+    
+    if (ns.equals(ObserverState.BOTTOM)) {
+      return Collections.emptySet();
+    }
+    
     return Collections.singleton(ns);
   }
 

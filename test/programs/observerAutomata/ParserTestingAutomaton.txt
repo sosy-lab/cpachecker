@@ -8,5 +8,6 @@ STATE Init :
   //!(FALSE == TRUE) -> GOTO Init;
   (TRUE && !TRUE) -> GOTO Init;
   TRUE -> GOTO ERR;
+  TRUE -> GOTO Init;
   
   

@@ -9,12 +9,14 @@ STATE Init :
   MATCH  { init(); }  -> GOTO Unlocked;
   MATCH  { lock($?); }  -> GOTO ERR;
   MATCH  { unlock($?); }  -> GOTO ERR;
+  TRUE -> GOTO Init;
 
 STATE Locked : 
   MATCH  { x = $?; } -> GOTO Locked; // unnecessary line
   MATCH  { init(); }  ->  GOTO ERR;
   MATCH  { lock($?); }  ->  GOTO ERR;
   MATCH  { unlock($?); }  -> GOTO Unlocked;
+  TRUE -> GOTO Locked;
 
 
 STATE Unlocked : 
@@ -22,3 +24,4 @@ STATE Unlocked :
   MATCH  { init(); }  ->  GOTO ERR;
   MATCH  { lock($?); }  -> GOTO Locked;
   MATCH  { unlock($?); }  -> GOTO ERR;
+  TRUE -> GOTO Unlocked;

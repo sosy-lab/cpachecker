@@ -214,6 +214,11 @@ abstract class ObserverBoolExpr {
       matcher.appendTail(result);
       return result.toString();
     }
+    
+    @Override
+    public String toString() {
+      return "CHECK(" + cPAName + "(\"" + queryString + "\"))";
+    }
   }
   
   /** Constant for true.

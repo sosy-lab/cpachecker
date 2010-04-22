@@ -11,3 +11,4 @@ STATE Init :
   CHECK(PointerAnalysis("UNSAFE_DEREFERENCE")) -> PRINT "Observer: Found an UNSAFE_DEREFERENCE" GOTO Init;
   CHECK(PointerAnalysis("POTENTIALLY_UNSAFE_DEREFERENCE")) -> PRINT "Observer: Found a POTENTIALLY_UNSAFE_DEREFERENCE" GOTO Init;
   CHECK(PointerAnalysis("INVALID_FREE")) -> PRINT "Observer: Found an INVALID_FREE" GOTO Init;
+  TRUE -> GOTO Init;
