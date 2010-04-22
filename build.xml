@@ -24,7 +24,7 @@
     <target depends="build-subprojects,build-project" name="build"/>
     <target name="build-subprojects">
 	    <ant antfile="src/cpa/observeranalysis/observerBuild.xml" inheritAll="false"/>
-	    <ant antfile="src/fql/frontend/parser/build.xml" inheritAll="false"/>
+	    <ant antfile="src/fllesh/fql/frontend/parser/build.xml" inheritAll="false"/>
     </target>
 
     <target depends="init" name="build-project">
