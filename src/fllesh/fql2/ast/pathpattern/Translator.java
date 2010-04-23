@@ -144,6 +144,10 @@ public class Translator implements Annotations {
     StringWriter lResult = new StringWriter();
     PrintWriter lWriter = new PrintWriter(lResult);
     
+    for (CFAEdge lEdge : this.getCFAEdges()) {
+      lWriter.println(lEdge);
+    }
+    
     for (Entry<CFAEdge, String> lEntry : mMapping.entrySet())  {
       lWriter.println(lEntry.getKey().toString() + " : " + lEntry.getValue());
     }

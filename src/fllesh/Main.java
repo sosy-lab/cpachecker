@@ -51,6 +51,7 @@ import fllesh.fql.fllesh.util.CPAchecker;
 import fllesh.fql.fllesh.util.Cilly;
 import fllesh.fql.frontend.ast.filter.FunctionCall;
 import fllesh.fql.frontend.ast.filter.Identity;
+import fllesh.fql.frontend.ast.filter.SetMinus;
 import fllesh.fql2.ast.Edges;
 import fllesh.fql2.ast.coveragespecification.CoverageSpecification;
 import fllesh.fql2.ast.coveragespecification.Quotation;
@@ -94,7 +95,7 @@ public class Main {
       // we do not want to remove parts of the CFA
       lWriter.println("cfa.removeIrrelevantForErrorLocations = false");
       
-      //lWriter.println("log.consoleLevel = ALL");
+      lWriter.println("log.consoleLevel = ALL");
       
       lWriter.println("analysis.traversal = topsort");
       
@@ -167,69 +168,16 @@ public class Main {
     CFAFunctionDefinitionNode lMainFunction = lCPAchecker.getMainFunction();
     
     
-    PathPattern lIdentityPattern1 = new Edges(Identity.getInstance());
-    PathPattern lIdentityPattern2 = new Edges(Identity.getInstance());
-    PathPattern lPrefix = new fllesh.fql2.ast.pathpattern.Concatenation(lIdentityPattern1, lIdentityPattern2);
-    
-    
-    /*PathPattern lPattern = new Edges(Identity.getInstance());
-    System.out.println(lPattern);
-    
-    PathPattern lPattern2 = new fllesh.fql2.ast.pathpattern.Repetition(lPattern);
-    System.out.println(lPattern2);
-    
-    PathPattern lUnionPattern = new Union(lPattern, lPattern2);
-    System.out.println(lUnionPattern);
-    
-    PathPattern lConcatenationPattern = new fllesh.fql2.ast.pathpattern.Concatenation(lPattern, lPattern2);
-    System.out.println(lConcatenationPattern);*/
-    
-    
-    
-    TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lMainFunction);
-    
-    
-    Translator lTranslator = new Translator(lTargetGraph);
-    
-    // 1) determine target graph with respect to original CFA
-    
-    // 2) add self-loops
-    
-    // 3) annotate self-loops with "L" (lambda transition)
-    
-    // 4) pass annotations on to EdgeVisitCPA.Factory 
-    
-    
 
-    EdgeVisitCPA.Factory lFactory = new EdgeVisitCPA.Factory(lTranslator);
-    ConfigurableProgramAnalysis lEdgeVisitCPA = lFactory.createInstance();
-    
-    
-    
-    FunctionCall lFunctionCallFilter = new FunctionCall("f");
-    TargetGraph lFilteredTargetGraph = lTargetGraph.apply(lFunctionCallFilter);
-    
-    String lId = null;
-    
-    for (Edge lEdge : lFilteredTargetGraph.getEdges()) {
-      lId = lTranslator.getId(lEdge.getCFAEdge());
-      
-      // we do not care about predication at the moment
-      //System.out.println("GOAL: " + lFactory.getId(lEdge.getCFAEdge()));
-      
-      break;
-    }
-    
-    /* build reduced ECP */
-    Pattern lTestGoal = new Concatenation(lTranslator.translate(lPrefix), new Atom(lId));
-    
-    System.out.println(lTestGoal);
     
     
     
     fllesh.fql2.ast.coveragespecification.Translator lCoverageSpecificationTranslator = new fllesh.fql2.ast.coveragespecification.Translator(lMainFunction);
     
-    PathPattern lPrefixPattern = new Repetition(new Edges(Identity.getInstance()));
+    FunctionCall lFunctionCallFilter = new FunctionCall("f");
+    SetMinus lSetMinus = new SetMinus(Identity.getInstance(), lFunctionCallFilter);
+    //PathPattern lPrefixPattern = new Repetition(new Edges(Identity.getInstance()));
+    PathPattern lPrefixPattern = new Repetition(new Edges(lSetMinus));
     Quotation lQuotation = new Quotation(lPrefixPattern);
     CoverageSpecification lTarget = new Edges(lFunctionCallFilter);
     
@@ -238,6 +186,8 @@ public class Main {
     Set<Pattern> lTestGoals = lCoverageSpecificationTranslator.translate(lSpecification);
     
     System.out.println(lTestGoals);
+
+    Pattern lTestGoal = null; 
     
     for (Pattern lGoal : lTestGoals) {
       lTestGoal = lGoal;
@@ -263,10 +213,10 @@ public class Main {
     
     // add lambda annotation
     for (CFAEdge lCFAEdge : lSelfLoops) {
-      lTranslator.annotate(lCFAEdge, "L");
-      // we have to generate the internal edge elements
-      ((EdgeVisitCPA)lEdgeVisitCPA).add(lCFAEdge);
+      lCoverageSpecificationTranslator.getAnnotations().annotate(lCFAEdge, "L");
     }
+    
+    
     
     // TODO remove this output code
     DOTBuilder dotBuilder = new DOTBuilder();
@@ -274,20 +224,13 @@ public class Main {
     
     
     
-    
-    /*PrintWriter lObserverAutomaton = new PrintWriter(new FileWriter(lAutomatonFile));
-    lObserverAutomaton.println("AUTOMATON Goal_" + lId);
-    lObserverAutomaton.println("INITIAL STATE Init;");
-    lObserverAutomaton.println("STATE Init:");
-    //lObserverAutomaton.println("CHECK(edgevisit(\"" + lId +  "\")) -> GOTO ERR;");
-    lObserverAutomaton.println("CHECK(edgevisit(\"@CALL(f)\")) -> GOTO ERR;");
-    lObserverAutomaton.println("TRUE -> GOTO Init;");
-    lObserverAutomaton.close();*/
-    
-    
-    
     File lExtendedPropertiesFile = Main.createPropertiesFile(lAutomatonFile);
     Configuration lExtendedConfiguration = Main.createConfiguration(lSourceFileName, lExtendedPropertiesFile.getAbsolutePath());
+
+    EdgeVisitCPA.Factory lFactory = new EdgeVisitCPA.Factory(lCoverageSpecificationTranslator.getAnnotations());
+    lFactory.setConfiguration(lExtendedConfiguration);
+    lFactory.setLogger(lLogManager);
+    ConfigurableProgramAnalysis lEdgeVisitCPA = lFactory.createInstance();
     
     CPAFactory lAutomatonFactory = ObserverAutomatonCPA.factory();
     lAutomatonFactory.setConfiguration(lExtendedConfiguration);
@@ -345,6 +288,8 @@ public class Main {
     }
         
     for (AbstractElement reachedElement : lReachedElements) {
+      // TODO determine whether ERROR element was reached
+      
       System.out.println(reachedElement);
     }
     

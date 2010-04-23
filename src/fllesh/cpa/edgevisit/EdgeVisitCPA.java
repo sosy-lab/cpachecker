@@ -230,8 +230,6 @@ public class EdgeVisitCPA implements ConfigurableProgramAnalysis {
   
   private final HashMap<CFAEdge, EdgeElement> mElements;
   
-  private final Annotations mAnnotations;
-  
   public EdgeVisitCPA(Annotations pAnnotations) {
     mDomain = new FlatLatticeDomain(TopElement.getInstance(), BottomElement.getInstance());
     mPrecision = SingletonPrecision.getInstance();
@@ -242,14 +240,6 @@ public class EdgeVisitCPA implements ConfigurableProgramAnalysis {
     
     for (CFAEdge lEdge : pAnnotations.getCFAEdges()) {
       mElements.put(lEdge, new EdgeElement(pAnnotations.getId(lEdge), pAnnotations.getAnnotations(lEdge)));
-    }
-    
-    mAnnotations = pAnnotations;
-  }
-  
-  public void add(CFAEdge pEdge) {
-    if (!mElements.containsKey(pEdge)) {
-      mElements.put(pEdge, new EdgeElement(mAnnotations.getId(pEdge), mAnnotations.getAnnotations(pEdge)));
     }
   }
   

@@ -7,6 +7,7 @@ import java.util.Set;
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 
+import fllesh.cpa.edgevisit.Annotations;
 import fllesh.ecp.reduced.Atom;
 import fllesh.ecp.reduced.Pattern;
 import fllesh.fql.backend.targetgraph.Edge;
@@ -25,6 +26,10 @@ public class Translator {
     
     mTargetGraph = TargetGraph.createTargetGraphFromCFA(pMainFunction);
     mPathPatternTranslator = new fllesh.fql2.ast.pathpattern.Translator(mTargetGraph);
+  }
+  
+  public Annotations getAnnotations() {
+    return mPathPatternTranslator;
   }
   
   public Set<Pattern> translate(CoverageSpecification pSpecification) {
