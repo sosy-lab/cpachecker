@@ -153,8 +153,8 @@ abstract class ObserverBoolExpr {
     // the pattern \$\d+ matches Expressions like $1 $2 $3
     private static Pattern TRANSITION_VARS_PATTERN = Pattern.compile("\\$\\d+");
     
-    // the pattern \$\d+ matches Expressions like $$x $$y23rinnksd $observerVar (all terminated by a non-word-character)
-    private static Pattern OBSERVER_VARS_PATTERN = Pattern.compile("\\$[a-zA-Z]\\w*");
+    // the pattern \$\$\d+ matches Expressions like $$x $$y23rinnksd $$observerVar (all terminated by a non-word-character)
+    private static Pattern OBSERVER_VARS_PATTERN = Pattern.compile("\\$\\$[a-zA-Z]\\w*");
     
     public CPAQuery(String pCPAName, String pQuery) {
       cpaName = pCPAName;

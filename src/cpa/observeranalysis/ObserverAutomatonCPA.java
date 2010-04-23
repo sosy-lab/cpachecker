@@ -41,7 +41,7 @@ import exceptions.InvalidConfigurationException;
  * @author rhein
  */
 @Options(prefix="observerAnalysis")
-public class ObserverAutomatonCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
+public class ObserverAutomatonCPA implements ConfigurableProgramAnalysis {
   
   @Option(name="dotExportFile")
   private String exportFile = "";
@@ -65,25 +65,29 @@ public class ObserverAutomatonCPA implements ConfigurableProgramAnalysis, Statis
   private final ObserverTransferRelation transferRelation;
   private final Statistics stats = new ObserverStatistics(this);
   
-  private static final ObserverDomain observerDomain = new ObserverDomain();
-  private static final PartialOrder partialOrder = new EqualityPartialOrder(observerDomain);
-  private static final StopOperator stopOperator = new StopSepOperator(partialOrder);
-  private static final JoinOperator joinOperator = new JoinOperator() {
+  private final ObserverState topState = new ObserverState.TOP(ObserverAutomatonCPA.this);
+  private final ObserverState bottomState = new ObserverState.BOTTOM(ObserverAutomatonCPA.this);
+  
+  
+  private final ObserverDomain observerDomain = new ObserverDomain();
+  private final PartialOrder partialOrder = new EqualityPartialOrder(observerDomain);
+  private final StopOperator stopOperator = new StopSepOperator(partialOrder);
+  private final JoinOperator joinOperator = new JoinOperator() {
     @Override
     public AbstractElement join(AbstractElement pElement1,
                                 AbstractElement pElement2) throws CPAException {
       if (pElement1 == pElement2) {
         return pElement1;
       } else {
-        return ObserverState.TOP;
+        return topState;
       }
     }
   };
   
-  private static class ObserverDomain implements AbstractDomain {
+  private class ObserverDomain implements AbstractDomain {
     @Override
     public AbstractElement getTopElement() {
-      return ObserverState.TOP;
+      return topState;
     }
     
     @Override
@@ -98,7 +102,7 @@ public class ObserverAutomatonCPA implements ConfigurableProgramAnalysis, Statis
     
     @Override
     public AbstractElement getBottomElement() {
-      return ObserverState.BOTTOM;
+      return bottomState;
     }
   };
   
@@ -114,7 +118,7 @@ public class ObserverAutomatonCPA implements ConfigurableProgramAnalysis, Statis
     config.inject(this);
     automaton = parseObserverFile(logger);
     logger.log(Level.FINEST, "Automaton", automaton.getName(), "loaded.");
-    transferRelation = new ObserverTransferRelation(logger);
+    transferRelation = new ObserverTransferRelation(automaton, logger);
     logger.log(Level.FINER, "loaded the ObserverAutomaton " + automaton.getName() );
     
     if (this.exportFile != "") {
@@ -143,6 +147,10 @@ public class ObserverAutomatonCPA implements ConfigurableProgramAnalysis, Statis
     } 
   }
   
+  ObserverAutomaton getAutomaton() {
+    return this.automaton;
+  }
+  
   @Override
   public AbstractDomain getAbstractDomain() {
     return observerDomain;
@@ -150,7 +158,7 @@ public class ObserverAutomatonCPA implements ConfigurableProgramAnalysis, Statis
 
   @Override
   public AbstractElement getInitialElement(CFAFunctionDefinitionNode pNode) {
-    return ObserverState.observerStateFactory(automaton.getInitialVariables(), automaton.getInitialState());
+    return ObserverState.observerStateFactory(automaton.getInitialVariables(), automaton.getInitialState(), this);
   }
 
   @Override
@@ -178,7 +186,13 @@ public class ObserverAutomatonCPA implements ConfigurableProgramAnalysis, Statis
     return transferRelation ;
   }
 
-  @Override
+  public ObserverState getBottomState() {
+    return this.bottomState;
+  }
+
+  public ObserverState getTopState() {
+    return this.topState;
+  }
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(stats);
   }

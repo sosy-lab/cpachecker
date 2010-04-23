@@ -8,10 +8,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.logging.Level;
 
-import cfa.objectmodel.CFAEdge;
-
 import com.google.common.base.Preconditions;
 
+import cfa.objectmodel.CFAEdge;
 import cpa.common.LogManager;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.Precision;
@@ -26,14 +25,14 @@ import exceptions.CPATransferException;
  */
 class ObserverTransferRelation implements TransferRelation {
   private final LogManager logger;
-  
+
   long totalPostTime = 0;
   long matchTime = 0;
   long assertionsTime = 0;
   long actionTime = 0;
   long totalStrengthenTime = 0;
-
-  public ObserverTransferRelation(LogManager pLogger) {
+  
+  public ObserverTransferRelation(ObserverAutomaton pAutomaton, LogManager pLogger) {
     this.logger = pLogger;
   }
 
@@ -44,28 +43,31 @@ class ObserverTransferRelation implements TransferRelation {
   public Collection<AbstractElement> getAbstractSuccessors(
                       AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge)
                       throws CPATransferException {
-    Preconditions.checkArgument(pElement instanceof ObserverState);
+                          Preconditions.checkArgument(pElement instanceof ObserverState);
     long start = System.currentTimeMillis();
     try {
       
-      if (pElement instanceof ObserverUnknownState) {
-        // the last CFA edge could not be processed properly 
-        // (strengthen was not called on the ObserverUnknownState or the strengthen operation had not enough information to determine a new following state.) 
-        return Collections.singleton((AbstractElement)ObserverState.TOP);
-      }
-
-      AbstractElement ns = getFollowState((ObserverState)pElement, null, pCfaEdge);
-      
-      if (ns.equals(ObserverState.BOTTOM)) {
-        return Collections.emptySet();
-      }
-      
-      return Collections.singleton(ns);
+    if (pElement instanceof ObserverUnknownState) {
+      // the last CFA edge could not be processed properly 
+      // (strengthen was not called on the ObserverUnknownState or the strengthen operation had not enough information to determine a new following state.) 
+      ObserverState top = ((ObserverUnknownState)pElement).getAutomatonCPA().getTopState();
+      return Collections.singleton((AbstractElement)top);
+    }
+    if (! (pElement instanceof ObserverState)) {
+      throw new IllegalArgumentException("Cannot getAbstractSuccessor for non-ObserverState AbstractElements.");
+    }
+    AbstractElement ns = getFollowState((ObserverState)pElement, null, pCfaEdge);
+    
+    if (ns instanceof ObserverState.BOTTOM) {
+      return Collections.emptySet();
+    }
+    
+    return Collections.singleton(ns);
     } finally {
       totalPostTime += System.currentTimeMillis() - start;
     }
   }
-
+  
   /**
    * Returns the <code>ObserverState</code> that follows this State in the ObserverAutomatonCPA.
    * If the passed <code>ObserverExpressionArguments</code> are not sufficient to determine the following state
@@ -73,8 +75,8 @@ class ObserverTransferRelation implements TransferRelation {
    * The strengthen method of the <code>ObserverUnknownState</code> should be used once enough Information is available to determine the correct following State.
    */
   private ObserverState getFollowState(ObserverState state, List<AbstractElement> otherElements, CFAEdge edge) {
-    if (state == ObserverState.TOP) return state;
-    if (state == ObserverState.BOTTOM) return state;
+    if (state == state.getAutomatonCPA().getTopState()) return state;
+    if (state == state.getAutomatonCPA().getBottomState()) return state;
     if (state.isError()) return state;
 
     ObserverExpressionArguments exprArgs = new ObserverExpressionArguments(state.getVars(), otherElements, edge, logger);
@@ -101,11 +103,11 @@ class ObserverTransferRelation implements TransferRelation {
           t.executeActions(exprArgs);
           actionTime += System.currentTimeMillis() - startAction;
           
-          return ObserverState.observerStateFactory(newVars, t.getFollowState());
+          return ObserverState.observerStateFactory(newVars, t.getFollowState(), state.getAutomatonCPA());
         } else {
           // matching transitions, but unfulfilled assertions: goto error state
           return ObserverState.observerStateFactory(Collections.<String, ObserverVariable>emptyMap(),
-                                   ObserverInternalState.ERROR);
+                                   ObserverInternalState.ERROR, state.getAutomatonCPA());
         }
 
       case MAYBE : 
@@ -119,7 +121,7 @@ class ObserverTransferRelation implements TransferRelation {
     }
     
     // if no transition is possible reject
-    return ObserverState.BOTTOM;
+    return state.getAutomatonCPA().getBottomState();
   }
   
   private static Map<String, ObserverVariable> deepCloneVars(Map<String, ObserverVariable> pOld) {
@@ -144,10 +146,9 @@ class ObserverTransferRelation implements TransferRelation {
       long start = System.currentTimeMillis();
 
       ObserverState newState = getFollowState((ObserverUnknownState)pElement, pOtherElements, pCfaEdge);
-      if (newState.equals(ObserverState.TOP)) {
+      if (newState.equals(((ObserverUnknownState)pElement).getAutomatonCPA().getTopState())) {
         logger.log(Level.WARNING, "Following ObserverState could not be determined, ObserverAnalysis will not be available during the rest of this path");
       }
-      
       totalStrengthenTime += System.currentTimeMillis() - start;
       return Collections.singleton(newState);
     }

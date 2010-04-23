@@ -9,7 +9,7 @@ import java.util.List;
  */
 class ObserverInternalState {
   static final List<ObserverTransition> emptyTransitionList = Collections.emptyList();
-  
+
   // the StateId is used to identify States in GraphViz
   private static int stateIdCounter = 0;
   // stateIdCounter is incremented every time an instance of ObserverState is created.
