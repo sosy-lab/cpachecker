@@ -8,6 +8,9 @@ import java.util.Map;
 import java_cup.runtime.ComplexSymbolFactory;
 import java_cup.runtime.Symbol;
 import java_cup.runtime.SymbolFactory;
+
+import org.eclipse.cdt.core.dom.ast.IASTNode;
+
 import cpa.common.interfaces.AbstractElement;
 import cpa.observeranalysis.ObserverBoolExpr.MaybeBoolean;
 
@@ -27,7 +30,7 @@ class ObserverInternalTests {
     ObserverBoolExpr ex = new ObserverBoolExpr.True();
     System.out.println(ex.eval(null));
     try {
-      File f = new File("test/tests/observerAutomata/LockingAutomatonAstComp.txt");
+      File f = new File("test/programs/observerAutomata/LockingAutomatonAstComp.txt");
       
       /*
       SymbolFactory sf1 = new ComplexSymbolFactory();
@@ -162,7 +165,9 @@ class ObserverInternalTests {
     System.out.print(pattern);
     System.out.print(" returns ");
     ObserverExpressionArguments args = new ObserverExpressionArguments(null, null, null, null);
-    System.out.print(ObserverASTComparator.generateAndCompareASTs(src, ObserverASTComparator.generatePatternAST(pattern), args));
+    IASTNode sourceAST  = ObserverASTComparator.generateSourceAST(src);
+    IASTNode patternAST = ObserverASTComparator.generatePatternAST(pattern);
+    System.out.print(ObserverASTComparator.compareASTs(sourceAST, patternAST, args));
     System.out.println();
   }
   
