@@ -42,6 +42,7 @@ import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTElaboratedTypeSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTEnumerationSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
+import org.eclipse.cdt.core.dom.ast.IASTFieldReference;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTIdExpression;
@@ -1567,6 +1568,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
   }
 
   /**
+   * TODO call, implementation
    * recursively traverses all fields of a struct
    */
   private void handleStructDeclaration(PointerAnalysisElement element, 
@@ -1583,6 +1585,86 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
             recursiveVarName + "." + member);
       } else {
         //TODO handle pointers
+      }
+    }
+  }
+  
+  /**
+   * checks all possible locations for type information of a given name
+   */
+  private Type findType(TypesElement typeElem, CFAEdge cfaEdge, String varName) {
+    Type t = null;
+    //check type definitions
+    t = typeElem.getTypedef(varName);
+    //if this fails, check functions
+    if (t == null) {
+      t = typeElem.getFunction(varName);
+    }
+    //if this also fails, check variables for the global context
+    if (t == null) {
+      t = typeElem.getVariableType(null, varName);
+    }
+    try {
+      //if again there was no result, check local variables and function parameters
+      if (t == null) {
+        t = typeElem.getVariableType(cfaEdge.getSuccessor().getFunctionName(), varName);
+      }
+    } catch (IllegalArgumentException e) {
+      //if nothing at all can be found, just return null
+    }
+    return t;
+  }
+  
+  /**
+   * TODO call
+   * checks wether a given expression is a field reference;
+   * if yes, find the type of the referenced field, if no, try to determine the type of the variable
+   */
+  private Type checkForFieldReferenceType(IASTExpression exp, TypesElement typeElem, CFAEdge cfaEdge) {
+    
+    String name = exp.getRawSignature();
+    Type t = null;
+    
+    if (exp instanceof IASTFieldReference) {
+      String[] s = name.split("[.]");
+      t = findType(typeElem, cfaEdge, s[0]);
+      int i = 1;
+      
+      //follow the field reference to its end
+      while (t != null && t.getTypeClass() == TypeClass.STRUCT && i < s.length) {
+        t = ((Type.CompositeType)t).getMemberType(s[i]);
+        i++;
+      }
+      
+    //if exp is not a field reference, simply try to find the type of the associated variable name
+    } else {
+      t = findType(typeElem, cfaEdge, name);
+    }
+    return t;
+  }
+  
+  /**
+   * TODO call, implementation
+   * recursively checks the fields of a struct being assigned to another struct of
+   * the same type, setting the assignee's fields accordingly
+   */
+  private void checkFields(PointerAnalysisElement element, CFAEdge cfaEdge, IASTExpression exp,
+                           TypesElement typeElem, Type.CompositeType structType,
+                           String leftName, String rightName, 
+                           String recursiveLeftName, String recursiveRightName) {
+    
+    Set<String> members = structType.getMembers();
+
+    //check all members
+    for (String member : members) {
+      Type t = structType.getMemberType(member);
+      //for a field that is itself a struct, repeat the whole process
+      if (t != null && t.getTypeClass() == TypeClass.STRUCT) {
+        checkFields(element, cfaEdge, exp, typeElem, (Type.CompositeType)t, member, member, 
+                         recursiveLeftName + "." + member, recursiveRightName + "." + member);
+      //else, check the assigned variable and set the assignee accordingly
+      } else {
+        //TODO handle copying of pointers
       }
     }
   }
