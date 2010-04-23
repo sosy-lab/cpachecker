@@ -17,7 +17,7 @@ import cpa.observeranalysis.ObserverBoolExpr.MaybeBoolean;
  * @author rhein
  */
 class ObserverTransition {
-  
+
   // The order of triggers, assertions and (more importantly) actions is preserved by the parser.
   private final List<ObserverBoolExpr> triggers;
   private final List<ObserverBoolExpr> assertions;
@@ -30,7 +30,7 @@ class ObserverTransition {
    * resolved by calling setFollowState() when all States are known. 
    */
   private final String followStateName;
-  private ObserverInternalState followState;
+  private ObserverInternalState followState = null;
 
   public ObserverTransition(List<ObserverBoolExpr> pTriggers, List<ObserverBoolExpr> pAssertions, List<ObserverActionExpr> pActions,
       String pFollowStateName) {
@@ -40,17 +40,29 @@ class ObserverTransition {
     this.followStateName = pFollowStateName;
   }
 
+  public ObserverTransition(List<ObserverBoolExpr> pTriggers,
+      List<ObserverBoolExpr> pAssertions, List<ObserverActionExpr> pActions,
+      ObserverInternalState pFollowState) {
+    this.triggers = pTriggers;
+    this.assertions = pAssertions;
+    this.actions = pActions;
+    this.followState = pFollowState;
+    this.followStateName = pFollowState.getName();
+  }
+
   /**
    * Resolves the follow-state relation for this transition.
    */
   public void setFollowState(List<ObserverInternalState> pAllStates, LogManager pLogger) {
-    for (ObserverInternalState s : pAllStates) {
-      if (s.getName().equals(followStateName)) {
-        this.followState = s;
-        return;
+    if (this.followState == null) {
+      for (ObserverInternalState s : pAllStates) {
+        if (s.getName().equals(followStateName)) {
+          this.followState = s;
+          return;
+        }
       }
+      pLogger.log(Level.WARNING, "No Follow-State with name " + followStateName + " found. Calling this transition will result in an Exception.");
     }
-    pLogger.log(Level.WARNING, "No Follow-State with name " + followStateName + " found. Calling this transition will result in an Exception.");
   }
   
   /** Writes a representation of this transition (as edge) in DOT file format to the argument {@link PrintStream}.

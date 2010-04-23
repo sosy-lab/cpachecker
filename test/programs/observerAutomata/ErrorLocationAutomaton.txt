@@ -15,6 +15,6 @@ STATE Init :
   // call of assert_fail with any (>0) number of arguments
   || MATCH {__assert_fail($?)}
   
-  -> GOTO ERR; 
+  -> ERROR; 
   TRUE -> GOTO Init;
   

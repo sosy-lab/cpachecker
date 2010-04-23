@@ -8,19 +8,19 @@ INITIAL STATE Init;
 
 STATE Init : 
   MATCH  [init\(\)]  -> ASSERT lock == 0 DO lock = 0  GOTO Unlocked;
-  MATCH  [lock\(\)]  -> GOTO ERR;
-  MATCH  [unlock\(\)]  -> GOTO ERR;
+  MATCH  [lock\(\)]  -> ERROR;
+  MATCH  [unlock\(\)]  -> ERROR;
   TRUE -> GOTO Init;
 
 STATE Locked : 
-  MATCH  [init\(\)]  ->  GOTO ERR;
-  MATCH  [lock\(\)]  ->  GOTO ERR;
+  MATCH  [init\(\)]  ->  ERROR;
+  MATCH  [lock\(\)]  ->  ERROR;
   MATCH  [unlock\(\)]  -> ASSERT lock == 1  DO  lock = 0  GOTO Unlocked;
   TRUE -> GOTO Locked;
 
 
 STATE Unlocked : 
-  MATCH  [init\(\)]  ->  GOTO ERR;
+  MATCH  [init\(\)]  ->  ERROR;
   MATCH  [lock\(\)]  -> ASSERT lock == 0  DO  lock = 1  GOTO Locked;
-  MATCH  [unlock\(\)]  -> GOTO ERR;
+  MATCH  [unlock\(\)]  -> ERROR;
   TRUE -> GOTO Unlocked;

@@ -45,7 +45,7 @@ parser code {:
 
 
 
-terminal EXCLAMATION, AND, OR, ARROW, SEMICOLON, COLON, OPEN_BRACKETS, CLOSE_BRACKETS, AUTOMATON, LOCAL, INITIAL, STATE, ASS, MATCH, LABEL, CHECK, DO, PRINT, GOTO, IDENTIFIER, INTEGER_LITERAL, NEQ, EQ, EQEQ, PLUS, MINUS, TRUE, FALSE, STRING_LITERAL, CURLYEXPR, SQUAREEXPR ;
+terminal EXCLAMATION, AND, OR, ARROW, SEMICOLON, COLON, OPEN_BRACKETS, CLOSE_BRACKETS, AUTOMATON, LOCAL, INITIAL, STATE, ERROR, BOTTOM, ASS, MATCH, LABEL, CHECK, DO, PRINT, GOTO, IDENTIFIER, INTEGER_LITERAL, NEQ, EQ, EQEQ, PLUS, MINUS, TRUE, FALSE, STRING_LITERAL, CURLYEXPR, SQUAREEXPR ;
 
 non terminal ObserverAutomaton initial ;
 non terminal String Naming, InitDef ;
@@ -106,6 +106,10 @@ Transitions   ::= Transition:t Transitions:lst {: lst.add(0, t); RESULT = lst; :
             
 Transition   ::= Triggers:triggers  ARROW Assertions:ass Actions:acts GOTO IDENTIFIER:follow SEMICOLON 
               {: RESULT = new ObserverTransition(triggers, ass, acts, follow.toString()); :}
+               | Triggers:triggers  ARROW Assertions:ass Actions:acts ERROR SEMICOLON 
+              {: RESULT = new ObserverTransition(triggers, ass, acts, ObserverState.ERROR); :}
+               | Triggers:triggers  ARROW Assertions:ass Actions:acts BOTTOM SEMICOLON 
+              {: RESULT = new ObserverTransition(triggers, ass, acts, ObserverState.BOTTOM); :}
               ;
 
 Triggers   ::= Bool:t {: RESULT = Collections.singletonList(t); :}

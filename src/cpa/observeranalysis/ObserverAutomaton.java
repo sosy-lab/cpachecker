@@ -31,11 +31,10 @@ class ObserverAutomaton {
     }
     if (initState == null) {
       pLogger.log(Level.WARNING, "InitState not found. ObserverAutomaton \"" + name + "\" is initiated with ErrorState");
-      initState = ObserverInternalState.ERR;
+      initState = ObserverInternalState.ERROR;
     }
     // implicit error State (might be followState of Transitions)
-    pStates.add(ObserverInternalState.ERR);
-    // i think i do not need to add TOP and BOTTOM
+    // pStates.add(ObserverInternalState.ERROR);
     
     // set the FollowStates of all Transitions
     for (ObserverInternalState s : pStates) {

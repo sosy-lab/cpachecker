@@ -18,7 +18,10 @@ class ObserverInternalState {
   private int stateId = stateIdCounter++;
   
   /** Error State */
-  static final ObserverInternalState ERR = new ObserverInternalState("ERR", emptyTransitionList);
+  static final ObserverInternalState ERROR = new ObserverInternalState("_predefindedState_ERROR", emptyTransitionList);
+
+  /** State representing BOTTOM */
+  static final ObserverInternalState BOTTOM = new ObserverInternalState("_predefinedState_BOTTOM", emptyTransitionList); 
   
   /** Name of this State.  */
   private String name;

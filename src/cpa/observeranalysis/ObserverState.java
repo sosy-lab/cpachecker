@@ -21,12 +21,21 @@ class ObserverState implements AbstractElement {
   private Map<String, ObserverVariable> vars;
   private ObserverInternalState internalState;
   
+  static ObserverState observerStateFactory(Map<String, ObserverVariable> pVars,
+      ObserverInternalState pInternalState) {
+    if (pInternalState == ObserverInternalState.BOTTOM) {
+      return BOTTOM;
+    } else {
+      return new ObserverState(pVars, pInternalState);
+    }
+  }
+  
   private ObserverState() {
     vars = null;
     internalState = null;
   }
   
-  ObserverState(Map<String, ObserverVariable> pVars,
+  private ObserverState(Map<String, ObserverVariable> pVars,
       ObserverInternalState pInternalState) {
     super();
     vars = pVars;
@@ -67,7 +76,7 @@ class ObserverState implements AbstractElement {
           t.executeActions(exprArgs);
           followState = t.getFollowState();
         } else {
-          followState = ObserverInternalState.ERR;
+          followState = ObserverInternalState.ERROR;
           newVars = Collections.emptyMap();
         }
         returnState = new ObserverState(newVars, followState);
@@ -108,7 +117,7 @@ class ObserverState implements AbstractElement {
   @Override
   public boolean isError() {
     if (this==TOP || this == BOTTOM) return false;
-    return internalState == ObserverInternalState.ERR;
+    return internalState == ObserverInternalState.ERROR;
   }
   
   @Override
