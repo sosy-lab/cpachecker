@@ -140,7 +140,8 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
    */
   private static class MissingInformation {
     private Pointer         typeInformationPointer = null;
-    private DeclarationEdge typeInformationEdge    = null;
+    private CFAEdge         typeInformationEdge    = null;
+    private IASTDeclarator  typeInformationDeclarator = null;
 
     private Pointer         actionLeftPointer      = null;
     private Pointer         actionRightPointer     = null;
@@ -237,7 +238,8 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       switch (cfaEdge.getEdgeType()) {
 
       case DeclarationEdge:
-        handleDeclaration(successor, (DeclarationEdge)cfaEdge);
+        DeclarationEdge declEdge = (DeclarationEdge)cfaEdge;
+        handleDeclaration(successor, cfaEdge, declEdge.getDeclarators(), declEdge.getDeclSpecifier());
         break;
 
       case StatementEdge:
@@ -277,12 +279,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
           for (IASTParameterDeclaration dec : l) {
             IASTDeclarator[] declarators = {dec.getDeclarator()};
             IASTDeclSpecifier declSpecifier = dec.getDeclSpecifier();
-            DeclarationEdge d = new DeclarationEdge("entryFunction temporary edge", 
-                                                    0,
-                                                    entryFunctionDefinitionNode, 
-                                                    entryFunctionDefinitionNode, 
-                                                    declarators, declSpecifier);
-            handleDeclaration(successor, d);
+            handleDeclaration(successor, cfaEdge, declarators, declSpecifier);
           }
           entryFunctionProcessed = true;
         }
@@ -317,15 +314,14 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
     return Collections.singleton(successor);
   }
 
-  private void handleDeclaration(PointerAnalysisElement element,
-      DeclarationEdge declaration) throws CPATransferException {
+  private void handleDeclaration(PointerAnalysisElement element, CFAEdge edge,
+      IASTDeclarator[] declarators, IASTDeclSpecifier specifier) throws CPATransferException {
 
-    if (declaration.getDeclSpecifier().getStorageClass() == IASTDeclSpecifier.sc_typedef) {
+    if (specifier.getStorageClass() == IASTDeclSpecifier.sc_typedef) {
       // ignore, this is a type definition, not a variable declaration
       return;
     }
 
-    IASTDeclSpecifier specifier = declaration.getDeclSpecifier();
     if (specifier instanceof IASTCompositeTypeSpecifier
         || specifier instanceof IASTElaboratedTypeSpecifier
         || specifier instanceof IASTEnumerationSpecifier) {
@@ -333,10 +329,9 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       return;
     }
 
-    IASTDeclarator[] declarators = declaration.getDeclarators();
     if (declarators == null || declarators.length != 1) {
-      throw new UnrecognizedCCodeException("not expected in CIL", declaration,
-                                    declaration.getDeclSpecifier().getParent());
+      throw new UnrecognizedCCodeException("not expected in CIL", edge,
+                                    specifier.getParent());
     }
     
     if (declarators[0] instanceof IASTFunctionDeclarator) {
@@ -347,7 +342,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
 
     if (declarators[0] instanceof IASTArrayDeclarator) {
       Pointer p = new Pointer(1);
-      if (declaration instanceof GlobalDeclarationEdge) {
+      if (edge instanceof GlobalDeclarationEdge) {
         element.addNewGlobalPointer(varName, p);
       } else {
         element.addNewLocalPointer(varName, p);
@@ -358,13 +353,13 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
           ((IASTArrayDeclarator)(declarators[0])).getArrayModifiers();
       if (modifiers.length != 1 || modifiers[0] == null) {
         throw new UnrecognizedCCodeException("unsupported array declaration", 
-                                                     declaration, declarators[0]); 
+                                                     edge, declarators[0]); 
       }
 
       IASTExpression lengthExpression = modifiers[0].getConstantExpression();
       if (!(lengthExpression instanceof IASTLiteralExpression)) {
         throw new UnrecognizedCCodeException("variable sized stack arrays are not supported", 
-            declaration, declarators[0]); 
+            edge, declarators[0]); 
       }
 
       long length = parseIntegerLiteral((IASTLiteralExpression)lengthExpression);
@@ -377,14 +372,15 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       // type information
       missing = new MissingInformation();
       missing.typeInformationPointer = p;
-      missing.typeInformationEdge = declaration;
+      missing.typeInformationEdge = edge;
+      missing.typeInformationDeclarator = declarators[0];
 
     } else {
 
       IASTPointerOperator[] operators = declarators[0].getPointerOperators();
       if (operators != null && operators.length > 0) {
         Pointer p = new Pointer(operators.length);
-        if (declaration instanceof GlobalDeclarationEdge) {
+        if (edge instanceof GlobalDeclarationEdge) {
           element.addNewGlobalPointer(varName, p);
           element.pointerOp(new Pointer.Assign(Memory.UNINITIALIZED_POINTER), p);
         } else {
@@ -400,13 +396,14 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
         // type information
         missing = new MissingInformation();
         missing.typeInformationPointer = p;
-        missing.typeInformationEdge = declaration;
+        missing.typeInformationEdge = edge;
+        missing.typeInformationDeclarator = declarators[0];
 
         // initializers do not need to be considered, because they have to be
         // constant and constant pointers are considered null
         // local variables do not have initializers in CIL
       } else {
-        if (declaration instanceof GlobalDeclarationEdge) {
+        if (edge instanceof GlobalDeclarationEdge) {
           element.addNewGlobalPointer(varName, null);
         } else {
           element.addNewLocalPointer(varName, null);
@@ -1553,14 +1550,8 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
         functionName = null;
       }
 
-      IASTDeclarator[] declarators =
-          missing.typeInformationEdge.getDeclarators();
-      if (declarators == null || declarators.length != 1) {
-        throw new UnrecognizedCCodeException("not expected in CIL", 
-                                             missing.typeInformationEdge); 
-      }
-
-      String varName = declarators[0].getName().getRawSignature();
+      IASTDeclarator declarator = missing.typeInformationDeclarator;
+      String varName = declarator.getName().getRawSignature();
       Type type = typesElement.getVariableType(functionName, varName);
 
       setSizeOfTarget(missing.typeInformationPointer, type);
