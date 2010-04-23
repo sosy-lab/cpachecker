@@ -66,4 +66,15 @@ public class AssumeEdge extends AbstractCFAEdge
     {
         return "[" + super.getRawStatement () + "]";
     }
+    
+    /**
+     * TODO
+     * Warning: for instances with {@link #getTruthAssumption()} == false, the
+     * return value of this method does not represent exactly the return value
+     * of {@link #getRawStatement()} (it misses the outer negation of the expression).
+     */
+    @Override
+    public IASTExpression getRawAST() {
+      return expression;
+    }
 }

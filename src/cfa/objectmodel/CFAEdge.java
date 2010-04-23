@@ -23,8 +23,7 @@
  */
 package cfa.objectmodel;
 
-import cfa.objectmodel.CFAEdgeType;
-import cfa.objectmodel.CFANode;
+import org.eclipse.cdt.core.dom.ast.IASTNode;
 
 
 
@@ -36,6 +35,7 @@ public interface CFAEdge
     public CFANode getSuccessor ();
 
     public String getRawStatement ();
+    public IASTNode getRawAST();
 
     public int getLineNumber();
     

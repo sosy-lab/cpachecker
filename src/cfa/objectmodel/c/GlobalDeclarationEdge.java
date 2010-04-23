@@ -23,11 +23,9 @@
  */
 package cfa.objectmodel.c;
 
-import org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier;
-import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
+import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 
 import cfa.objectmodel.CFANode;
-import cfa.objectmodel.c.DeclarationEdge;
 
 
 /**
@@ -39,9 +37,8 @@ import cfa.objectmodel.c.DeclarationEdge;
  */
 public class GlobalDeclarationEdge extends DeclarationEdge {
 
-    public GlobalDeclarationEdge(String rawStatement, int lineNumber, CFANode predecessor, CFANode successor,
-            IASTDeclarator[] declarators, IASTDeclSpecifier specifier) {
-        super(rawStatement, lineNumber, predecessor, successor, declarators, specifier);
+    public GlobalDeclarationEdge(IASTSimpleDeclaration declaration, int lineNumber, CFANode predecessor, CFANode successor) {
+        super(declaration, lineNumber, predecessor, successor);
     }
 
 }

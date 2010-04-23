@@ -165,10 +165,8 @@ public class CFABuilder extends ASTVisitor
 				CFANode prevNode = locStack.pop ();
 				CFANode nextNode = new CFANode (fileloc.getStartingLineNumber ());
 
-				IASTSimpleDeclaration simpleDeclaration = (IASTSimpleDeclaration) declaration;
-				DeclarationEdge edge = new DeclarationEdge (
-				        simpleDeclaration.getRawSignature (), fileloc.getStartingLineNumber(), prevNode, nextNode, simpleDeclaration.getDeclarators (),
-				        simpleDeclaration.getDeclSpecifier());
+				DeclarationEdge edge = new DeclarationEdge ((IASTSimpleDeclaration) declaration,
+				        fileloc.getStartingLineNumber(), prevNode, nextNode);
 				edge.addToCFA();
 
 				locStack.push (nextNode);
@@ -331,7 +329,7 @@ public class CFABuilder extends ASTVisitor
 		CFANode prevNode = locStack.pop ();
 		CFANode nextNode = new CFANode (fileloc.getStartingLineNumber ());
 
-		StatementEdge edge = new StatementEdge(exprStatement.getRawSignature(), fileloc.getStartingLineNumber(), prevNode, nextNode, exprStatement.getExpression(), false);
+		StatementEdge edge = new StatementEdge(exprStatement, fileloc.getStartingLineNumber(), prevNode, nextNode, exprStatement.getExpression(), false);
 		edge.addToCFA();
 
 		locStack.push (nextNode);
@@ -523,7 +521,7 @@ public class CFABuilder extends ASTVisitor
 		CFANode prevNode = locStack.peek ();
 		CFANode nextNode = returnNode;
 
-		StatementEdge edge = new StatementEdge(returnStatement.getRawSignature(), fileloc.getStartingLineNumber(), prevNode, nextNode, returnStatement.getReturnValue(), true);
+		StatementEdge edge = new StatementEdge(returnStatement, fileloc.getStartingLineNumber(), prevNode, nextNode, returnStatement.getReturnValue(), true);
 		edge.addToCFA();
 	}
 

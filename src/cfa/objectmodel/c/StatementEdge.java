@@ -24,6 +24,7 @@
 package cfa.objectmodel.c;
 
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
+import org.eclipse.cdt.core.dom.ast.IASTStatement;
 
 import cfa.objectmodel.AbstractCFAEdge;
 import cfa.objectmodel.CFAEdgeType;
@@ -34,13 +35,15 @@ import cfa.objectmodel.CFANode;
 public class StatementEdge extends AbstractCFAEdge
 {
     private final IASTExpression expression;
+    private final IASTStatement rawAST;
     private final boolean jumpEdge;
 
-    public StatementEdge(String rawStatement, int lineNumber, CFANode predecessor, CFANode successor,
+    public StatementEdge(IASTStatement rawAST, int lineNumber, CFANode predecessor, CFANode successor,
                               IASTExpression expression, boolean jumpEdge)
     {
-        super(rawStatement, lineNumber, predecessor, successor);
+        super(rawAST.getRawSignature(), lineNumber, predecessor, successor);
         this.expression = expression;
+        this.rawAST = rawAST;
         this.jumpEdge = jumpEdge;
     }
 
@@ -61,5 +64,10 @@ public class StatementEdge extends AbstractCFAEdge
     public IASTExpression getExpression ()
     {
         return expression;
+    }
+    
+    @Override
+    public IASTStatement getRawAST() {
+      return rawAST;
     }
 }

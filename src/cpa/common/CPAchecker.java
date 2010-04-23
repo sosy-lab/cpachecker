@@ -417,10 +417,8 @@ public class CPAchecker {
 //      }
       CFANode n = new CFANode(sd.getFileLocation().getStartingLineNumber());
       n.setFunctionName(cur.getFunctionName());
-      GlobalDeclarationEdge e = new GlobalDeclarationEdge(
-          d.getRawSignature(), sd.getFileLocation().getStartingLineNumber(), cur, n,
-          sd.getDeclarators(),
-          sd.getDeclSpecifier());
+      GlobalDeclarationEdge e = new GlobalDeclarationEdge(sd,
+          sd.getFileLocation().getStartingLineNumber(), cur, n);
       e.addToCFA();
       decls.add(n);
       cur = n;

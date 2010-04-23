@@ -25,39 +25,36 @@ package cfa.objectmodel.c;
 
 import org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
+import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 
 import cfa.objectmodel.AbstractCFAEdge;
 import cfa.objectmodel.CFAEdgeType;
 import cfa.objectmodel.CFANode;
 
+public class DeclarationEdge extends AbstractCFAEdge {
 
+  private final IASTSimpleDeclaration declaration;
 
-public class DeclarationEdge extends AbstractCFAEdge
-{
-    private final IASTDeclarator[] declarators;
-    private final IASTDeclSpecifier specifier;
+  public DeclarationEdge(IASTSimpleDeclaration declaration, int lineNumber,
+      CFANode predecessor, CFANode successor) {
+    super(declaration.getRawSignature(), lineNumber, predecessor, successor);
+    this.declaration = declaration;
+  }
 
-    public DeclarationEdge (String rawStatement, int lineNumber, CFANode predecessor, CFANode successor,
-                            IASTDeclarator[] declarators,
-                            IASTDeclSpecifier specifier)
-    {
-        super(rawStatement, lineNumber, predecessor, successor);
-        this.declarators = declarators;
-        this.specifier = specifier;
-    }
+  public CFAEdgeType getEdgeType() {
+    return CFAEdgeType.DeclarationEdge;
+  }
 
-    public CFAEdgeType getEdgeType ()
-    {
-        return CFAEdgeType.DeclarationEdge;
-    }
+  public IASTDeclarator[] getDeclarators() {
+    return declaration.getDeclarators();
+  }
 
-    public IASTDeclarator[] getDeclarators ()
-    {
-        return declarators;
-    }
-
-    public IASTDeclSpecifier getDeclSpecifier()
-    {
-        return specifier;
-    }
+  public IASTDeclSpecifier getDeclSpecifier() {
+    return declaration.getDeclSpecifier();
+  }
+  
+  @Override
+  public IASTSimpleDeclaration getRawAST() {
+    return declaration;
+  }
 }

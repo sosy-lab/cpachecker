@@ -25,6 +25,8 @@ package cfa.objectmodel;
 
 import java.util.logging.Level;
 
+import org.eclipse.cdt.core.dom.ast.IASTNode;
+
 import com.google.common.base.Preconditions;
 
 import cpa.common.CPAchecker;
@@ -105,6 +107,10 @@ public abstract class AbstractCFAEdge implements CFAEdge
         return rawStatement;
     }
 
+    public IASTNode getRawAST() {
+      return null;
+    }
+    
     public boolean isJumpEdge ()
     {
         return false;
