@@ -452,7 +452,6 @@ public interface Memory {
     
     private StackArrayCell(String function, StackArray array, boolean unknownOffset) {
       super(function, array.name);
-      assert array != null;
       this.array = array;
       
       if (unknownOffset) {
@@ -464,9 +463,6 @@ public interface Memory {
     
     public StackArrayCell(String function, StackArray array) {
       super(function, array.name);
-      if (array == null) {
-        throw new IllegalArgumentException("StackArrayCell needs a StackArray");
-      }
       
       this.array = array;
       this.offset = 0;
@@ -474,7 +470,6 @@ public interface Memory {
     
     private StackArrayCell(String function, StackArray array, long offset) throws InvalidPointerException {
       super(function, array.name);
-      assert array != null;
 
       if ((offset < 0) || (offset >= array.getLength())) {
         throw new InvalidPointerException("Invalid offset " + offset

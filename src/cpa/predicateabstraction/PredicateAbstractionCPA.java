@@ -140,7 +140,7 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis, Sta
 //        covered = new HashSet<PredicateAbstractionAbstractElement>();
 
         MathsatPredicateParser p = new MathsatPredicateParser(mgr, amgr);
-        Collection<Predicate> preds = null;
+        Collection<Predicate> preds;
         try {
             if (!fixedPredMapFile.isEmpty()) {
                 File f = new File(fixedPredMapFile);

@@ -381,8 +381,8 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
     } else {
 
       IASTPointerOperator[] operators = declarators[0].getPointerOperators();
-      Pointer p = new Pointer(operators.length);
       if (operators != null && operators.length > 0) {
+        Pointer p = new Pointer(operators.length);
         if (declaration instanceof GlobalDeclarationEdge) {
           element.addNewGlobalPointer(varName, p);
           element.pointerOp(new Pointer.Assign(Memory.UNINITIALIZED_POINTER), p);

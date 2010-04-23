@@ -59,8 +59,7 @@ public class ReportingUtils {
     if (element instanceof FormulaReportingElement) {
       FormulaReportingElement repel = (FormulaReportingElement) element;
       SymbolicFormula symbolicFormula = repel.getFormulaApproximation();
-      if (repel != null)
-        result = manager.makeAnd(result, symbolicFormula);
+      result = manager.makeAnd(result, symbolicFormula);
     }
      
     return result;
