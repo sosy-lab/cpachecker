@@ -1,10 +1,6 @@
 package cpa.observeranalysis;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import cpa.common.interfaces.AbstractElement;
 
@@ -18,8 +14,8 @@ class ObserverState implements AbstractElement {
   static final ObserverState TOP = new ObserverState();
   static final ObserverState BOTTOM = new ObserverState();
   
-  private Map<String, ObserverVariable> vars;
-  private ObserverInternalState internalState;
+  private final Map<String, ObserverVariable> vars;
+  private final ObserverInternalState internalState;
   
   static ObserverState observerStateFactory(Map<String, ObserverVariable> pVars,
       ObserverInternalState pInternalState) {
@@ -37,83 +33,19 @@ class ObserverState implements AbstractElement {
   
   private ObserverState(Map<String, ObserverVariable> pVars,
       ObserverInternalState pInternalState) {
-    super();
+
     vars = pVars;
     internalState = pInternalState;
   }
 
-  /**
-   * Returns the <code>ObserverState</code> that follows this State in the ObserverAutomatonCPA.
-   * If the passed <code>ObserverExpressionArguments</code> are not sufficient to determine the following state
-   * this method returns a <code>ObserverUnknownState</code> that contains this as previous State.
-   * The strengthen method of the <code>ObserverUnknownState</code> should be used once enough Information is available to determine the correct following State.
-   * @param exprArgs
-   * @return
-   */
-  ObserverState getFollowState (ObserverExpressionArguments exprArgs) {
-    if (this == TOP) return this;
-    if (this == BOTTOM) return this;
-    if (this.isError()) return this;
-    // this variable will be returned, default return value is this.
-    ObserverState returnState = this;
-    // a new Set of Variables for the next state
-    Map<String, ObserverVariable> newVars = null;
-    ObserverInternalState followState = null;
-    exprArgs.setObserverVariables(vars);
-    //ObserverExpressionArguments exprArgs = new ObserverExpressionArguments(vars, null, pCfaEdge);
-    
-    boolean exitLoop = false;
-    
-    for (ObserverTransition t : internalState.getTransitions()) {
-      exprArgs.clearTransitionVariables();
-      
-      switch (t.match(exprArgs)) { 
-      case TRUE :
-        if (t.assertionsHold(exprArgs)) {
-          // this transition will be taken. copy the variables
-          newVars = deepClone(vars);
-          exprArgs.setObserverVariables(newVars);
-          t.executeActions(exprArgs);
-          followState = t.getFollowState();
-        } else {
-          followState = ObserverInternalState.ERROR;
-          newVars = Collections.emptyMap();
-        }
-        returnState = new ObserverState(newVars, followState);
-        exitLoop = true;
-        break;
-      case MAYBE : 
-        // if one transition cannot be evaluated the evaluation must be postponed until enough information is available
-        returnState = new ObserverUnknownState(this);
-        exitLoop = true;
-        break;
-      case FALSE :
-      default :
-        // consider next transition
-      }
-      if (exitLoop) {
-        break;
-      }
-    }
-    exprArgs.clearTransitionVariables();
-    
-    // if no transition is possible reject
-    if (!exitLoop) {
-      return BOTTOM;
-    }
-    
-    return returnState;
+  public ObserverInternalState getInternalState() {
+    return internalState;
   }
   
-  private Map<String, ObserverVariable> deepClone (Map<String, ObserverVariable> pOld) {
-    Map<String, ObserverVariable> result = new HashMap<String, ObserverVariable>(pOld.size());
-    for (Entry<String, ObserverVariable> e : pOld.entrySet()) {
-      result.put(e.getKey(), e.getValue().clone());
-    }
-    return result;
+  public Map<String, ObserverVariable> getVars() {
+    return vars;
   }
-
-
+  
   @Override
   public boolean isError() {
     if (this==TOP || this == BOTTOM) return false;
@@ -122,11 +54,11 @@ class ObserverState implements AbstractElement {
   
   @Override
   public boolean equals(Object pObj) {
-    if (super.equals(pObj)) {
+    if (this == pObj) {
       return true;
     }
     
-    if (pObj == null) {
+    if (pObj == null || !(pObj instanceof ObserverState)) {
       return false;
     }
     
@@ -134,18 +66,10 @@ class ObserverState implements AbstractElement {
      * Because TOP and Bottom do not have internal States this must be returned explicitly.
      */
     if (this == TOP || this == BOTTOM || pObj == TOP || pObj == BOTTOM) return false;
-    if (!(pObj instanceof ObserverState)) {
-      return false;
-    }
+
     ObserverState otherState = (ObserverState) pObj;
-    if (! this.internalState.equals(otherState.internalState)) {
-      return false;
-    }
-    if (this.vars.equals(otherState.vars)) {
-      return true;
-    } else {
-      return false;
-    }
+    return this.internalState.equals(otherState.internalState)
+        && this.vars.equals(otherState.vars);
   }
   
   /* (non-Javadoc)
@@ -184,7 +108,7 @@ class ObserverState implements AbstractElement {
    *
    */
   static class ObserverUnknownState extends ObserverState{
-    private ObserverState previousState;
+    private final ObserverState previousState;
 
     ObserverUnknownState(ObserverState pPreviousState) {
       super();
@@ -195,35 +119,27 @@ class ObserverState implements AbstractElement {
     public boolean isError() {
       return false;
     }
+    
+    @Override
+    public ObserverInternalState getInternalState() {
+      return previousState.getInternalState();
+    }
 
-    public Collection<ObserverState> strengthen(ObserverExpressionArguments exprArgs) {
-      exprArgs.setObserverVariables(previousState.vars);
-      ObserverState ret = previousState.getFollowState(exprArgs);
-      if (ret instanceof ObserverUnknownState) {
-        // Error: not enough information to determine next State
-        return Collections.singleton(TOP);
-      }
-      else if (ret.equals(BOTTOM)) {
-        return Collections.emptySet();
-      } else {
-        return Collections.singleton(ret);
-      }
+    @Override
+    public Map<String, ObserverVariable> getVars() {
+      return previousState.getVars();
     }
     
     @Override
     public boolean equals(Object pObj) {
-      if (super.equals(pObj)) {
+      if (this == pObj) {
         return true;
       }
-      if (!(pObj instanceof ObserverUnknownState)) {
+      if (pObj == null || !(pObj instanceof ObserverUnknownState)) {
         return false;
       }
       ObserverUnknownState otherState = (ObserverUnknownState) pObj;
-      if (this.previousState.equals(otherState.previousState)) {
-        return true;
-      } else {
-        return false;
-      }
+      return this.previousState.equals(otherState.previousState);
     }
     
     /* (non-Javadoc)

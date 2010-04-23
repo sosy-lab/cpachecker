@@ -3,6 +3,7 @@ package cpa.observeranalysis;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
+import java.util.Collection;
 import java.util.logging.Level;
 
 import java_cup.runtime.ComplexSymbolFactory;
@@ -29,8 +30,9 @@ import cpa.common.interfaces.MergeOperator;
 import cpa.common.interfaces.PartialOrder;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
+import cpa.common.interfaces.Statistics;
+import cpa.common.interfaces.StatisticsProvider;
 import cpa.common.interfaces.StopOperator;
-import cpa.common.interfaces.TransferRelation;
 import exceptions.CPAException;
 import exceptions.InvalidConfigurationException;
 
@@ -39,7 +41,7 @@ import exceptions.InvalidConfigurationException;
  * @author rhein
  */
 @Options(prefix="observerAnalysis")
-public class ObserverAutomatonCPA implements ConfigurableProgramAnalysis {
+public class ObserverAutomatonCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
   
   @Option(name="dotExportFile")
   private String exportFile = "";
@@ -60,7 +62,8 @@ public class ObserverAutomatonCPA implements ConfigurableProgramAnalysis {
   private String inputFile = "";
   
   private final ObserverAutomaton automaton;
-  private final TransferRelation transferRelation;
+  private final ObserverTransferRelation transferRelation;
+  private final Statistics stats = new ObserverStatistics(this);
   
   private static final ObserverDomain observerDomain = new ObserverDomain();
   private static final PartialOrder partialOrder = new EqualityPartialOrder(observerDomain);
@@ -111,7 +114,7 @@ public class ObserverAutomatonCPA implements ConfigurableProgramAnalysis {
     config.inject(this);
     automaton = parseObserverFile(logger);
     logger.log(Level.FINEST, "Automaton", automaton.getName(), "loaded.");
-    transferRelation = new ObserverTransferRelation(automaton, logger);
+    transferRelation = new ObserverTransferRelation(logger);
     logger.log(Level.FINER, "loaded the ObserverAutomaton " + automaton.getName() );
     
     if (this.exportFile != "") {
@@ -171,8 +174,12 @@ public class ObserverAutomatonCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public TransferRelation getTransferRelation() {
+  public ObserverTransferRelation getTransferRelation() {
     return transferRelation ;
   }
 
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(stats);
+  }
 }
