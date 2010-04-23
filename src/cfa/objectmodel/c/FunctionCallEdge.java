@@ -24,6 +24,7 @@
 package cfa.objectmodel.c;
 
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
+import org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression;
 
 import cfa.objectmodel.AbstractCFAEdge;
 import cfa.objectmodel.CFAEdgeType;
@@ -33,11 +34,13 @@ import cfa.objectmodel.CFANode;
 public class FunctionCallEdge extends AbstractCFAEdge
 {
 	private final IASTExpression[] functionArguments;
+	private final IASTFunctionCallExpression rawAST;
 	private final boolean isExternalCall;
 
-    public FunctionCallEdge (String rawStatement, int lineNumber, CFANode predecessor, CFANode successor, IASTExpression[] arguments, boolean isExternalCall) {
-        super(rawStatement, lineNumber, predecessor, successor);
-        functionArguments = arguments;
+    public FunctionCallEdge (IASTFunctionCallExpression rawAST, int lineNumber, CFANode predecessor, CFANode successor, IASTExpression[] arguments, boolean isExternalCall) {
+        super(rawAST.getRawSignature(), lineNumber, predecessor, successor);
+        this.functionArguments = arguments;
+        this.rawAST = rawAST;
         this.isExternalCall = isExternalCall;
     }
 
@@ -50,6 +53,11 @@ public class FunctionCallEdge extends AbstractCFAEdge
     	return this.functionArguments;
     }
 
+  @Override
+  public IASTFunctionCallExpression getRawAST() {
+    return rawAST;
+  }
+    
 	public boolean isExternalCall() {
 		return this.isExternalCall;
 	}
