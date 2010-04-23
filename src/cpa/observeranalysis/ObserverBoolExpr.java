@@ -4,7 +4,7 @@ import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
+import org.eclipse.cdt.core.dom.ast.IASTNode;
 
 import cfa.objectmodel.CFALabelNode;
 import cfa.objectmodel.CFANode;
@@ -75,7 +75,7 @@ abstract class ObserverBoolExpr {
    */
   static class MatchCFAEdgeASTComparison extends ObserverBoolExpr {
     
-    private final IASTTranslationUnit patternAST;
+    private final IASTNode patternAST;
     
     public MatchCFAEdgeASTComparison(String pPattern) {
       this.patternAST = ObserverASTComparator.generatePatternAST(pPattern);
@@ -87,9 +87,14 @@ abstract class ObserverBoolExpr {
     
     @Override
     public MaybeBoolean eval(ObserverExpressionArguments pArgs) {
-      return MaybeBoolean.valueOf(
-          ObserverASTComparator.generateAndCompareASTs(
-              pArgs.getCfaEdge().getRawStatement(), patternAST, pArgs));
+     
+      IASTNode ast = pArgs.getCfaEdge().getRawAST();
+      if (ast != null) {
+        // some edges do not have an AST node attached to them, e.g. BlankEdges 
+        return MaybeBoolean.valueOf(ObserverASTComparator.compareASTs(ast, patternAST, pArgs));
+      }
+      
+      return MaybeBoolean.FALSE;
     }
     
     @Override

@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
-import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
+import org.eclipse.cdt.core.dom.ast.IASTNode;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -181,10 +181,11 @@ public class ObserverAutomatonTest {
   @Test
   public void testJokerReplacementInAST() {
     // tests the replacement of Joker expressions in the AST comparison
-    IASTTranslationUnit patternAST = ObserverASTComparator.generatePatternAST("$20 = $5($?($1, $?));");
+    IASTNode patternAST = ObserverASTComparator.generatePatternAST("$20 = $5($?($1, $?));");
+    IASTNode sourceAST  = ObserverASTComparator.generateSourceAST("var1 = function(g(var2, egal));");
     ObserverExpressionArguments args = new ObserverExpressionArguments(null, null, null, null);
     
-    boolean result = ObserverASTComparator.generateAndCompareASTs("var1 = function(g(var2, egal));", patternAST, args);
+    boolean result = ObserverASTComparator.compareASTs(sourceAST, patternAST, args);
     Assert.assertTrue(result);
     Assert.assertTrue(args.getTransitionVariable(20).equals("var1"));
     Assert.assertTrue(args.getTransitionVariable(1).equals("var2"));

@@ -4,11 +4,16 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.eclipse.cdt.core.dom.ICodeReaderFactory;
+import org.eclipse.cdt.core.dom.ast.IASTCompoundStatement;
+import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
+import org.eclipse.cdt.core.dom.ast.IASTExpressionStatement;
+import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
 import org.eclipse.cdt.core.dom.ast.IASTIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
 import org.eclipse.cdt.core.dom.ast.IASTName;
 import org.eclipse.cdt.core.dom.ast.IASTNode;
 import org.eclipse.cdt.core.dom.ast.IASTProblem;
+import org.eclipse.cdt.core.dom.ast.IASTStatement;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.cdt.core.model.ILanguage;
 import org.eclipse.cdt.core.parser.CodeReader;
@@ -20,6 +25,8 @@ import org.eclipse.core.runtime.CoreException;
 import cmdline.stubs.CLanguage;
 import cmdline.stubs.StubCodeReaderFactory;
 import cmdline.stubs.StubScannerInfo;
+
+import com.google.common.base.Preconditions;
 
 /**
  * Provides methods for generating, comparing and printing the ASTs generated from String.
@@ -36,26 +43,8 @@ public class ObserverASTComparator {
   private static final String JOKER_EXPR = " CPAChecker_ObserverAnalysis_JokerExpression ";
   private static final String NUMBERED_JOKER_EXPR = " CPAChecker_ObserverAnalysis_JokerExpression_Num";
   private static final Pattern NUMBERED_JOKER_PATTERN = Pattern.compile("\\$\\d+");
-  
-  static String preparePatternString(String pPattern) {
-    // $?-Jokers, $1-Jokers and function declaration
-    return addFunctionDeclaration(replaceJokersInPattern(pPattern));
-  }
-  
-  static String prepareSourceString(String pSource) {
-    // only function declaration
-    return addFunctionDeclaration(pSource);
-  }
 
-  static boolean generateAndCompareASTs(String pSourceExpression,
-      IASTTranslationUnit pPatternAST, ObserverExpressionArguments pArgs) {
-    IASTTranslationUnit a = ObserverASTComparator.parse(prepareSourceString(pSourceExpression));
-        
-    boolean result = ObserverASTComparator.compareASTs(a, pPatternAST, pArgs);
-    return result;
-  }
-
-  static String replaceJokersInPattern(String pPattern) {
+  private static String replaceJokersInPattern(String pPattern) {
     String tmp = pPattern.replaceAll("\\$\\?", JOKER_EXPR);
     Matcher matcher = NUMBERED_JOKER_PATTERN.matcher(tmp);
     StringBuffer result = new StringBuffer();
@@ -74,13 +63,19 @@ public class ObserverASTComparator {
     return result.toString();
   }
   
-  static IASTTranslationUnit generatePatternAST(String pPattern) {
-    String tmp = preparePatternString(pPattern);
-    return ObserverASTComparator.parse(tmp);
+  static IASTNode generatePatternAST(String pPattern) {
+    // $?-Jokers, $1-Jokers and function declaration
+    String tmp = addFunctionDeclaration(replaceJokersInPattern(pPattern));
+    
+    IASTTranslationUnit ast = ObserverASTComparator.parse(tmp);
+    return stripFunctionDeclaration(ast);
   }
-  static IASTTranslationUnit generateSourceAST(String pSource) {
-    String tmp = prepareSourceString(pSource);
-    return ObserverASTComparator.parse(tmp);
+  
+  static IASTNode generateSourceAST(String pSource) {
+    String tmp = addFunctionDeclaration(pSource);
+
+    IASTTranslationUnit ast = ObserverASTComparator.parse(addFunctionDeclaration(tmp));
+    return stripFunctionDeclaration(ast);
   }
   
   /**
@@ -117,36 +112,56 @@ public class ObserverASTComparator {
     } else {
       return "void test() { " + pBody + ";}";
     }
-      
   }
   
+  private static IASTNode stripFunctionDeclaration(IASTTranslationUnit ast) {
+    IASTDeclaration[] declarations = ast.getDeclarations();
+    assert declarations != null && declarations.length == 1;
+    assert declarations[0] instanceof IASTFunctionDefinition;
+    IASTFunctionDefinition func = (IASTFunctionDefinition)declarations[0];
+    assert func.getDeclarator().getName().getRawSignature().equals("test");
+    assert func.getBody() instanceof IASTCompoundStatement;
+    IASTStatement[] body = ((IASTCompoundStatement)func.getBody()).getStatements();
+    assert body.length == 2 && body[1] == null || body.length == 1;
+    if (body[0] instanceof IASTExpressionStatement) {
+      return ((IASTExpressionStatement)body[0]).getExpression();
+    } else {
+      return body[0];
+    }
+  }
   
-  /** Recursive method for comparing the ASTs.
-   * pB is the pattern AST
+  /**
+   * Recursive method for comparing the ASTs.
    */
-  static boolean compareASTs(IASTNode pA, IASTNode pB, ObserverExpressionArguments pArgs) {
+  static boolean compareASTs(IASTNode pCode, IASTNode pPattern, ObserverExpressionArguments pArgs) {
+    Preconditions.checkNotNull(pCode);
+    Preconditions.checkNotNull(pPattern);
+    Preconditions.checkNotNull(pArgs);
     
     boolean result = true;
-    if (isJoker(pB)) {
+    if (isJoker(pPattern)) {
       result = true;
-    } else if (handleNumberJoker(pA, pB, pArgs)) {
+    } else if (handleNumberJoker(pCode, pPattern, pArgs)) {
       result = true;
-    } else if (pA.getClass().equals(pB.getClass())) {
-      if (pA instanceof IASTName && ! IASTNamesAreEqual((IASTName)pA, (IASTName)pB)) {
+    } else if (pCode instanceof IASTExpressionStatement) {
+      result = compareASTs(((IASTExpressionStatement)pCode).getExpression(), pPattern, pArgs);
+    } else if (pCode.getClass().equals(pPattern.getClass())) {
+      if (pCode instanceof IASTName && ! IASTNamesAreEqual((IASTName)pCode, (IASTName)pPattern)) {
         result = false;
-      } else if (pA instanceof IASTLiteralExpression && ! IASTLiteralExpressionsAreEqual((IASTLiteralExpression)pA, (IASTLiteralExpression)pB)) {
+      } else if (pCode instanceof IASTLiteralExpression && ! IASTLiteralExpressionsAreEqual((IASTLiteralExpression)pCode, (IASTLiteralExpression)pPattern)) {
         result = false;
-      } else if (pA.getChildren().length != pB.getChildren().length) {
+      } else if (pCode.getChildren().length != pPattern.getChildren().length) {
         result = false;
       } else {
-        for (int i = 0; i < pA.getChildren().length; i++) {
-          if (compareASTs(pA.getChildren()[i], pB.getChildren()[i], pArgs) == false)
+        for (int i = 0; i < pCode.getChildren().length; i++) {
+          if (compareASTs(pCode.getChildren()[i], pPattern.getChildren()[i], pArgs) == false)
             result = false;
           }
       }
     } else {
       result = false;
     }
+
     return result;
   }
 
@@ -176,23 +191,6 @@ public class ObserverASTComparator {
       return true;
     } else {
       return false; 
-    }
-  }
-  
-  public static void printAST(IASTTranslationUnit pAST) {
-    printAST(pAST, 0);
-  }
-  /** Recursive method for printing an AST to System.out .
-   */
-  private static void printAST (IASTNode pNode, int pInd) {
-    String x = "";
-    for (int i = 0; i<pInd; i++) {
-      x = x + "  ";
-    }
-    x = x + pNode.getClass().getName() + " "+ pNode.getRawSignature();
-    System.out.println(x);
-    for (IASTNode n : pNode.getChildren()) {
-      printAST(n, pInd +1);
     }
   }
 
