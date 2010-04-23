@@ -124,6 +124,17 @@ Conceptual suggestions:
 - [Erkan] cpa.common.CallElement and cpa.common.CallStack might move to their own
   packages
 
+
+Architecture
+================================
+
+- db: Eliminate old, BLAST-like predicate abstraction and provide a properties file
+  with an ABE configuration that mimics it, for people who still want to use it
+- db: Investigate alternatives to CIL (e.g., LLVM, Goto-CC)
+- db: Intermediate representation for CFAs (e.g., Victor)
+- db: CSIsat versus MathSAT, investigate CVC4 once available
+
+
 Handled Jobs
 ================================
 
