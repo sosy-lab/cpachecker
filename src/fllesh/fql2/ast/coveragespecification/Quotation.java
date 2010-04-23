@@ -1,15 +1,17 @@
 package fllesh.fql2.ast.coveragespecification;
 
+import fllesh.fql2.ast.pathpattern.PathPattern;
+
 public class Quotation implements CoverageSpecification {
 
-  private CoverageSpecification mSubspecification;
+  private PathPattern mPathPattern;
   
-  public Quotation(CoverageSpecification pSubspecification) {
-    mSubspecification = pSubspecification;
+  public Quotation(PathPattern pPathPattern) {
+    mPathPattern = pPathPattern;
   }
   
-  public CoverageSpecification getSubspecification() {
-    return mSubspecification;
+  public PathPattern getPathPattern() {
+    return mPathPattern;
   }
   
   @Override
@@ -19,7 +21,7 @@ public class Quotation implements CoverageSpecification {
   
   @Override
   public String toString() {
-    return "\"(" + mSubspecification.toString() + ")\"";
+    return "\"(" + mPathPattern.toString() + ")\"";
   }
 
 }

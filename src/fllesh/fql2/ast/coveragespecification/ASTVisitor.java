@@ -4,9 +4,9 @@ import fllesh.fql2.ast.Edges;
 
 public interface ASTVisitor<T> {
   
-  public <T> T visit(Concatenation pConcatenation);
-  public <T> T visit(Quotation pQuotation);
-  public <T> T visit(Union pUnion);
-  public <T> T visit(Edges pEdges);
+  public T visit(Concatenation pConcatenation);
+  public T visit(Quotation pQuotation);
+  public T visit(Union pUnion);
+  public T visit(Edges pEdges);
   
 }

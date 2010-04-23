@@ -49,7 +49,10 @@ import fllesh.fql.fllesh.util.Cilly;
 import fllesh.fql.frontend.ast.filter.FunctionCall;
 import fllesh.fql.frontend.ast.filter.Identity;
 import fllesh.fql2.ast.Edges;
+import fllesh.fql2.ast.coveragespecification.CoverageSpecification;
+import fllesh.fql2.ast.coveragespecification.Quotation;
 import fllesh.fql2.ast.pathpattern.PathPattern;
+import fllesh.fql2.ast.pathpattern.Repetition;
 import fllesh.fql2.ast.pathpattern.Translator;
 
 public class Main {
@@ -215,9 +218,26 @@ public class Main {
     }
     
     /* build reduced ECP */
-    Pattern lTestGoal = new Concatenation(lPrefix.accept(lTranslator), new Atom(lId));
+    Pattern lTestGoal = new Concatenation(lTranslator.translate(lPrefix), new Atom(lId));
     
     System.out.println(lTestGoal);
+    
+    
+    
+    fllesh.fql2.ast.coveragespecification.Translator lCoverageSpecificationTranslator = new fllesh.fql2.ast.coveragespecification.Translator(lMainFunction);
+    
+    PathPattern lPrefixPattern = new Repetition(new Edges(Identity.getInstance()));
+    Quotation lQuotation = new Quotation(lPrefixPattern);
+    CoverageSpecification lTarget = new Edges(lFunctionCallFilter);
+    
+    CoverageSpecification lSpecification = new fllesh.fql2.ast.coveragespecification.Concatenation(lQuotation, lTarget);
+    
+    Set<Pattern> lTestGoals = lCoverageSpecificationTranslator.translate(lSpecification);
+    
+    System.out.println(lTestGoals);
+    
+    
+    // TODO: for every test goal (i.e., pattern) create an automaton and check reachability
     
     
     
