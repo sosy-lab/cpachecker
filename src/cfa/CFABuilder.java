@@ -34,12 +34,10 @@ import java.util.logging.Level;
 import org.eclipse.cdt.core.dom.ast.ASTVisitor;
 import org.eclipse.cdt.core.dom.ast.IASTASMDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTBreakStatement;
-import org.eclipse.cdt.core.dom.ast.IASTCaseStatement;
 import org.eclipse.cdt.core.dom.ast.IASTCompoundStatement;
 import org.eclipse.cdt.core.dom.ast.IASTContinueStatement;
 import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTDeclarationStatement;
-import org.eclipse.cdt.core.dom.ast.IASTDefaultStatement;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTExpressionStatement;
 import org.eclipse.cdt.core.dom.ast.IASTFileLocation;
@@ -55,7 +53,6 @@ import org.eclipse.cdt.core.dom.ast.IASTProblemStatement;
 import org.eclipse.cdt.core.dom.ast.IASTReturnStatement;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTStatement;
-import org.eclipse.cdt.core.dom.ast.IASTSwitchStatement;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.cdt.core.dom.ast.IASTWhileStatement;
 
@@ -88,7 +85,9 @@ public class CFABuilder extends ASTVisitor
 	private Deque<CFANode> loopStartStack;
 	private Deque<CFANode> loopNextStack; // For the node following the current if / while block
 	private Deque<CFANode> elseStack;
-	private Deque<CFANode> switchStartStack;
+
+//  switch statements are removed by CIL, also CFA would have been wrong
+//	private Deque<CFANode> switchStartStack = new ArrayDeque<CFANode> ();
 
 	// Data structures for handling goto
 	private Map<String, CFALabelNode> labelMap;
@@ -124,7 +123,6 @@ public class CFABuilder extends ASTVisitor
 		loopStartStack = new ArrayDeque<CFANode> ();
 		loopNextStack = new ArrayDeque<CFANode> ();
 		elseStack = new ArrayDeque<CFANode> ();
-		switchStartStack = new ArrayDeque<CFANode> ();
 
 		labelMap = new HashMap<String, CFALabelNode> ();
 		gotoLabelNeeded = new HashMap<String, List<CFANode>> ();
@@ -303,12 +301,14 @@ public class CFABuilder extends ASTVisitor
 			handleGotoStatement ((IASTGotoStatement)statement, fileloc);
 		else if (statement instanceof IASTReturnStatement)
 			handleReturnStatement ((IASTReturnStatement)statement, fileloc);
+/* switch statements are removed by CIL, also CFA would have been wrong
 		else if (statement instanceof IASTSwitchStatement)
 			handleSwitchStatement ((IASTSwitchStatement)statement, fileloc);
 		else if (statement instanceof IASTCaseStatement)
 			handleCaseStatement ((IASTCaseStatement)statement, fileloc);
 		else if (statement instanceof IASTDefaultStatement)
 			handleDefaultStatement ((IASTDefaultStatement)statement, fileloc);
+*/
 		else if (statement instanceof IASTNullStatement)
 		{
 			// We really don't care about blank statements
@@ -527,6 +527,7 @@ public class CFABuilder extends ASTVisitor
 		edge.addToCFA();
 	}
 
+/* switch statements are removed by CIL, also CFA would have been wrong	
 	private void handleSwitchStatement (IASTSwitchStatement switchStatement, IASTFileLocation fileloc)
 	{
 		CFANode prevNode = locStack.pop ();
@@ -581,6 +582,7 @@ public class CFABuilder extends ASTVisitor
 
 		locStack.push (caseNode);
 	}
+*/
 
 	/* (non-Javadoc)
 	 * @see org.eclipse.cdt.core.dom.ast.ASTVisitor#leave(org.eclipse.cdt.core.dom.ast.IASTStatement)
@@ -638,6 +640,7 @@ public class CFABuilder extends ASTVisitor
 			loopNextStack.pop ();
 			*/
 		}
+/* switch statements are removed by CIL, also CFA would have been wrong
 		else if (statement instanceof IASTSwitchStatement)
 		{
 			CFANode prevNode = locStack.pop ();
@@ -656,7 +659,7 @@ public class CFABuilder extends ASTVisitor
 			switchStartStack.pop ();
 			loopNextStack.pop ();
 		}
-
+*/
 		return PROCESS_CONTINUE;
 	}
 
