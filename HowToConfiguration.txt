@@ -20,6 +20,7 @@ following arguments (see below to learn what the options mean):
 -dfs			sets "analysis.traversal = DFS"
 -bfs			sets "analysis.traversal = BFS"
 -topsort		sets "analysis.traversal = TOPSORT"
+-rand           sets "analysis.traversal = RAND"
 -setprop <KEY>=<VALUE>	sets any option: "KEY = VALUE"
 
 Either "-help", "-config" or "-cpas" has to be specified.

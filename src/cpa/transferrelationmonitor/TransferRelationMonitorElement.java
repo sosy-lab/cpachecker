@@ -42,6 +42,10 @@ public class TransferRelationMonitorElement extends AbstractSingleWrapperElement
     }
   }
 
+  protected void resetTotalTime(){
+    totalTimeOnThePath = 0;
+  }
+  
   public long getTimeOfTranferToComputeElement() {
     return timeOfTranferToComputeElement;
   }

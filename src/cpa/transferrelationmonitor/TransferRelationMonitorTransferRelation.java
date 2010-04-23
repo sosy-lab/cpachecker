@@ -102,18 +102,18 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
       TransferRelationMonitorElement successorElem = new TransferRelationMonitorElement(element.getCpa(), absElement);
       successorElem.setTransferTime(timeOfExecution);
       successorElem.setTotalTime(element.isIgnore(), element.getTotalTimeOnThePath());
-      if(!successorElem.isIgnore()){
+//      if(!successorElem.isIgnore()){
         if(timeLimitForPath > 0 && 
             successorElem.getTotalTimeOnThePath() > timeLimitForPath){
           noOfStops++;
-          if(noOfStops % 100 == 0){
-            successorElem.setIgnore();
+          if(noOfStops % 20 == 0){
+            successorElem.resetTotalTime();
           }
           else{
             return Collections.emptySet();
           }
         }
-      }
+//      }
       wrappedSuccessors.add(successorElem);
     }
     return wrappedSuccessors;

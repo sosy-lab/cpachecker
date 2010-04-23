@@ -29,6 +29,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Random;
 import java.util.Set;
 
 import cfa.objectmodel.CFANode;
@@ -93,7 +94,7 @@ public class ReachedElements implements UnmodifiableReachedElements {
   
   //enumerator for traversal methods
   public enum TraversalMethod {
-    DFS, BFS, TOPSORT
+    DFS, BFS, TOPSORT, RAND
   }
 
   private CFANode getLocationFromElement(AbstractElement element) {
@@ -250,6 +251,12 @@ public class ReachedElements implements UnmodifiableReachedElements {
       
     case DFS:
       result = waitlist.removeLast();
+      break;
+      
+    case RAND:
+      Random rand = new Random();
+      int randInd = rand.nextInt(waitlist.size());
+      result = waitlist.get(randInd);
       break;
 
     case TOPSORT:
