@@ -1,5 +1,6 @@
 package cpa.observeranalysis;
 
+import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -40,12 +41,12 @@ public class ObserverASTComparator {
    * This is necessary because the C-parser cannot parse the pattern if it contains Dollar-Symbols.
    * The JOKER_EXPR must be a valid C-Identifier. It will be used to recognize the jokers in the generated AST.   
    */
-  private static final String JOKER_EXPR = " CPAChecker_ObserverAnalysis_JokerExpression ";
-  private static final String NUMBERED_JOKER_EXPR = " CPAChecker_ObserverAnalysis_JokerExpression_Num";
+  private static final String JOKER_EXPR = "CPAChecker_ObserverAnalysis_JokerExpression";
+  private static final String NUMBERED_JOKER_EXPR = "CPAChecker_ObserverAnalysis_JokerExpression_Num";
   private static final Pattern NUMBERED_JOKER_PATTERN = Pattern.compile("\\$\\d+");
 
   private static String replaceJokersInPattern(String pPattern) {
-    String tmp = pPattern.replaceAll("\\$\\?", JOKER_EXPR);
+    String tmp = pPattern.replaceAll("\\$\\?", " " + JOKER_EXPR + " ");
     Matcher matcher = NUMBERED_JOKER_PATTERN.matcher(tmp);
     StringBuffer result = new StringBuffer();
     while (matcher.find()) {
@@ -53,7 +54,7 @@ public class ObserverASTComparator {
       String key = tmp.substring(matcher.start()+1, matcher.end());
       try {
         int varKey = Integer.parseInt(key);
-        result.append(NUMBERED_JOKER_EXPR + varKey + " ");
+        result.append(" " + NUMBERED_JOKER_EXPR + varKey + " ");
       } catch (NumberFormatException e) {
         // did not work, but i cant log it down here. Should not be able to happen anyway (regex captures only ints)
         result.append(matcher.group());
@@ -63,7 +64,7 @@ public class ObserverASTComparator {
     return result.toString();
   }
   
-  static IASTNode generatePatternAST(String pPattern) {
+  static IASTNode generatePatternAST(String pPattern) throws InvalidAutomatonException {
     // $?-Jokers, $1-Jokers and function declaration
     String tmp = addFunctionDeclaration(replaceJokersInPattern(pPattern));
     
@@ -71,34 +72,12 @@ public class ObserverASTComparator {
     return stripFunctionDeclaration(ast);
   }
   
-  static IASTNode generateSourceAST(String pSource) {
+  static IASTNode generateSourceAST(String pSource) throws InvalidAutomatonException {
     String tmp = addFunctionDeclaration(pSource);
 
-    IASTTranslationUnit ast = ObserverASTComparator.parse(addFunctionDeclaration(tmp));
+    IASTTranslationUnit ast = ObserverASTComparator.parse(tmp);
     return stripFunctionDeclaration(ast);
   }
-  
-  /**
-   * Returns the Problem Message if this AST has a problem node.
-   * Returns null otherwise.
-   * @param pAST
-   * @return
-   */
-  static String ASTcontatinsProblems(IASTNode pAST) {
-    if (pAST instanceof IASTProblem) {
-      return ((IASTProblem)pAST).getMessage();
-    } else {
-      String problem;
-      for (IASTNode n : pAST.getChildren()) {
-        problem = ASTcontatinsProblems(n);
-          if (problem != null) {
-            return problem;
-        }
-      }
-    }
-    return null;
-  }
-  
   
   /**
    * Surrounds the argument with a function declaration. 
@@ -114,15 +93,25 @@ public class ObserverASTComparator {
     }
   }
   
-  private static IASTNode stripFunctionDeclaration(IASTTranslationUnit ast) {
+  private static IASTNode stripFunctionDeclaration(IASTTranslationUnit ast) throws InvalidAutomatonException {
     IASTDeclaration[] declarations = ast.getDeclarations();
-    assert declarations != null && declarations.length == 1;
-    assert declarations[0] instanceof IASTFunctionDefinition;
+    if (   declarations == null
+        || declarations.length != 1
+        || !(declarations[0] instanceof IASTFunctionDefinition)) {
+      throw new InvalidAutomatonException("Error: AST does not match the expectations");
+    }
+    
     IASTFunctionDefinition func = (IASTFunctionDefinition)declarations[0];
-    assert func.getDeclarator().getName().getRawSignature().equals("test");
-    assert func.getBody() instanceof IASTCompoundStatement;
+    if (   !func.getDeclarator().getName().getRawSignature().equals("test")
+        || !(func.getBody() instanceof IASTCompoundStatement)) {
+      throw new InvalidAutomatonException("Error: AST does not match the expectations");
+    }
+    
     IASTStatement[] body = ((IASTCompoundStatement)func.getBody()).getStatements();
-    assert body.length == 2 && body[1] == null || body.length == 1;
+    if (!(body.length == 2 && body[1] == null || body.length == 1)) {
+      throw new InvalidAutomatonException("Error: AST does not match the expectations");
+    }
+    
     if (body[0] instanceof IASTExpressionStatement) {
       return ((IASTExpressionStatement)body[0]).getExpression();
     } else {
@@ -138,31 +127,36 @@ public class ObserverASTComparator {
     Preconditions.checkNotNull(pPattern);
     Preconditions.checkNotNull(pArgs);
     
-    boolean result = true;
     if (isJoker(pPattern)) {
-      result = true;
+      return true;
+      
     } else if (handleNumberJoker(pCode, pPattern, pArgs)) {
-      result = true;
+      return true;
+      
     } else if (pCode instanceof IASTExpressionStatement) {
-      result = compareASTs(((IASTExpressionStatement)pCode).getExpression(), pPattern, pArgs);
+      return compareASTs(((IASTExpressionStatement)pCode).getExpression(), pPattern, pArgs);
+      
     } else if (pCode.getClass().equals(pPattern.getClass())) {
       if (pCode instanceof IASTName && ! IASTNamesAreEqual((IASTName)pCode, (IASTName)pPattern)) {
-        result = false;
+        return false;
+        
       } else if (pCode instanceof IASTLiteralExpression && ! IASTLiteralExpressionsAreEqual((IASTLiteralExpression)pCode, (IASTLiteralExpression)pPattern)) {
-        result = false;
+        return false;
+        
       } else if (pCode.getChildren().length != pPattern.getChildren().length) {
-        result = false;
+        return false;
+        
       } else {
         for (int i = 0; i < pCode.getChildren().length; i++) {
-          if (compareASTs(pCode.getChildren()[i], pPattern.getChildren()[i], pArgs) == false)
-            result = false;
+          if (compareASTs(pCode.getChildren()[i], pPattern.getChildren()[i], pArgs) == false) {
+            return false;
           }
+        }
+        return true;
       }
     } else {
-      result = false;
+      return false;
     }
-
-    return result;
   }
 
   private static boolean handleNumberJoker(IASTNode pSource, IASTNode pPotentialJoker,
@@ -171,16 +165,17 @@ public class ObserverASTComparator {
     String number = "";
     if (pPotentialJoker instanceof IASTName) {
       IASTName name = (IASTName) pPotentialJoker;
-      if (String.copyValueOf(name.getSimpleID()).startsWith(NUMBERED_JOKER_EXPR.trim())) {
+      String strName = String.copyValueOf(name.getSimpleID());
+      if (strName.startsWith(NUMBERED_JOKER_EXPR)) {
         isJoker = true;
-        number =  String.copyValueOf(name.getSimpleID()).substring(NUMBERED_JOKER_EXPR.trim().length());
+        number =  strName.substring(NUMBERED_JOKER_EXPR.length());
       }
       // are there more IASTsomethings that could be Jokers?
     } else if (pPotentialJoker instanceof IASTIdExpression) {
       IASTIdExpression name = (IASTIdExpression) pPotentialJoker;
-      if (name.getRawSignature().startsWith(NUMBERED_JOKER_EXPR.trim())) {
+      if (name.getRawSignature().startsWith(NUMBERED_JOKER_EXPR)) {
         isJoker = true;
-        number =  name.getRawSignature().substring(NUMBERED_JOKER_EXPR.trim().length());
+        number =  name.getRawSignature().substring(NUMBERED_JOKER_EXPR.length());
       }
     }
     if (isJoker) {
@@ -197,24 +192,25 @@ public class ObserverASTComparator {
   private static boolean isJoker(IASTNode pNode) {
     if (pNode instanceof IASTName) {
       IASTName name = (IASTName) pNode;
-      return String.copyValueOf(name.getSimpleID()).equals(JOKER_EXPR.trim());
+      return String.copyValueOf(name.getSimpleID()).equals(JOKER_EXPR);
       // are there more IASTsomethings that could be Jokers?
-    } else if (pNode instanceof IASTName) {
-      IASTName name = (IASTName) pNode;
-      return String.copyValueOf(name.getSimpleID()).equals(JOKER_EXPR.trim());
+    
     } else if (pNode instanceof IASTIdExpression) {
       IASTIdExpression name = (IASTIdExpression) pNode;
-      return name.getRawSignature().equals(JOKER_EXPR.trim());
-    } else return false;
+      return name.getRawSignature().equals(JOKER_EXPR);
+    
+    } else {
+      return false;
+    }
   }
 
   private static boolean IASTNamesAreEqual(IASTName pA, IASTName pB) {
-   return String.copyValueOf(pA.getSimpleID()).equals(String.copyValueOf(pB.getSimpleID()));
+    return Arrays.equals(pA.getSimpleID(), pB.getSimpleID());
   }
   
   private static boolean IASTLiteralExpressionsAreEqual(IASTLiteralExpression pA, IASTLiteralExpression pB) {
-    return String.copyValueOf(pA.getValue()).equals(String.copyValueOf(pB.getValue()));
-   }
+    return Arrays.equals(pA.getValue(), pB.getValue());
+  }
 
   /**
    * Parse the content of a file into an AST with the Eclipse CDT parser.
@@ -222,8 +218,9 @@ public class ObserverASTComparator {
    * 
    * @param code The C code to parse.
    * @return The AST.
+   * @throws InvalidAutomatonException 
    */
-  private static IASTTranslationUnit parse(String code) {
+  private static IASTTranslationUnit parse(String code) throws InvalidAutomatonException {
     CodeReader reader = new CodeReader(code.toCharArray());
 
     IScannerInfo scannerInfo = StubScannerInfo.getInstance();
@@ -232,13 +229,27 @@ public class ObserverASTComparator {
 
     ILanguage lang = new CLanguage("C99");
 
+    IASTTranslationUnit ast;
     try {
-      return lang.getASTTranslationUnit(reader, scannerInfo, codeReaderFactory, null, parserLog);
+       ast = lang.getASTTranslationUnit(reader, scannerInfo, codeReaderFactory, null, parserLog);
     } catch (CoreException e) {
-      // FIXME add error handling
-      e.printStackTrace();
-      assert false;
-      return null;
+      throw new InvalidAutomatonException("Error during parsing C code \""
+          + code + "\": " + e.getMessage());
+    }
+    
+    checkForASTProblems(ast); // will throw an exception if ast contains a problem
+    
+    return ast;
+  }
+  
+  private static void checkForASTProblems(IASTNode pAST) throws InvalidAutomatonException {
+    if (pAST instanceof IASTProblem) {
+      throw new InvalidAutomatonException("Error during parsing C code \""
+          + pAST.getRawSignature() + "\": " + ((IASTProblem)pAST).getMessage());
+    } else {
+      for (IASTNode n : pAST.getChildren()) {
+        checkForASTProblems(n);
+      }
     }
   }
 }

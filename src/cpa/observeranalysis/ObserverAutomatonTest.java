@@ -179,7 +179,7 @@ public class ObserverAutomatonTest {
     Assert.assertTrue(result.contains("CPAChecker_ObserverAnalysis_JokerExpression_Num1  =  CPAChecker_ObserverAnalysis_JokerExpression_Num5 "));
   }*/
   @Test
-  public void testJokerReplacementInAST() {
+  public void testJokerReplacementInAST() throws InvalidAutomatonException {
     // tests the replacement of Joker expressions in the AST comparison
     IASTNode patternAST = ObserverASTComparator.generatePatternAST("$20 = $5($?($1, $?));");
     IASTNode sourceAST  = ObserverASTComparator.generateSourceAST("var1 = function(g(var2, egal));");

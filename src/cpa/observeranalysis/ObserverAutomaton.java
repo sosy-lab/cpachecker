@@ -21,7 +21,7 @@ class ObserverAutomaton {
   private ObserverInternalState initState;
 
   public ObserverAutomaton(Map<String, ObserverVariable> pVars, List<ObserverInternalState> pStates,
-      String pInit, LogManager pLogger) {
+      String pInit, LogManager pLogger) throws InvalidAutomatonException {
     this.initVars = pVars;
     this.states = pStates;
     for (ObserverInternalState s : pStates) {
@@ -38,7 +38,7 @@ class ObserverAutomaton {
     
     // set the FollowStates of all Transitions
     for (ObserverInternalState s : pStates) {
-      s.setFollowStates(pStates, pLogger);
+      s.setFollowStates(pStates);
     }
   }  
 

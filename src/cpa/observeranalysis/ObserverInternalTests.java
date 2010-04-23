@@ -165,9 +165,13 @@ class ObserverInternalTests {
     System.out.print(pattern);
     System.out.print(" returns ");
     ObserverExpressionArguments args = new ObserverExpressionArguments(null, null, null, null);
-    IASTNode sourceAST  = ObserverASTComparator.generateSourceAST(src);
-    IASTNode patternAST = ObserverASTComparator.generatePatternAST(pattern);
-    System.out.print(ObserverASTComparator.compareASTs(sourceAST, patternAST, args));
+    try {
+      IASTNode sourceAST  = ObserverASTComparator.generateSourceAST(src);
+      IASTNode patternAST = ObserverASTComparator.generatePatternAST(pattern);
+      System.out.print(ObserverASTComparator.compareASTs(sourceAST, patternAST, args));
+    } catch (InvalidAutomatonException e) {
+      System.out.println(e.getMessage());
+    }
     System.out.println();
   }
   

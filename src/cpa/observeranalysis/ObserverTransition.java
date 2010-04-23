@@ -8,7 +8,6 @@ import cfa.objectmodel.CFAEdge;
 
 import com.google.common.collect.ImmutableList;
 
-import cpa.common.LogManager;
 import cpa.observeranalysis.ObserverBoolExpr.MaybeBoolean;
 
 /**
@@ -43,9 +42,9 @@ class ObserverTransition {
   public ObserverTransition(List<ObserverBoolExpr> pTriggers,
       List<ObserverBoolExpr> pAssertions, List<ObserverActionExpr> pActions,
       ObserverInternalState pFollowState) {
-    this.triggers = pTriggers;
-    this.assertions = pAssertions;
-    this.actions = pActions;
+    this.triggers = ImmutableList.copyOf(pTriggers);
+    this.assertions = ImmutableList.copyOf(pAssertions);
+    this.actions = ImmutableList.copyOf(pActions);
     this.followState = pFollowState;
     this.followStateName = pFollowState.getName();
   }
@@ -53,7 +52,7 @@ class ObserverTransition {
   /**
    * Resolves the follow-state relation for this transition.
    */
-  public void setFollowState(List<ObserverInternalState> pAllStates, LogManager pLogger) {
+  public void setFollowState(List<ObserverInternalState> pAllStates) throws InvalidAutomatonException {
     if (this.followState == null) {
       for (ObserverInternalState s : pAllStates) {
         if (s.getName().equals(followStateName)) {
@@ -61,7 +60,7 @@ class ObserverTransition {
           return;
         }
       }
-      pLogger.log(Level.WARNING, "No Follow-State with name " + followStateName + " found. Calling this transition will result in an Exception.");
+      throw new InvalidAutomatonException("No Follow-State with name " + followStateName + " found.");
     }
   }
   

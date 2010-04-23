@@ -77,12 +77,8 @@ abstract class ObserverBoolExpr {
     
     private final IASTNode patternAST;
     
-    public MatchCFAEdgeASTComparison(String pPattern) {
+    public MatchCFAEdgeASTComparison(String pPattern) throws InvalidAutomatonException {
       this.patternAST = ObserverASTComparator.generatePatternAST(pPattern);
-      String problem = ObserverASTComparator.ASTcontatinsProblems(patternAST);
-      if (problem != null) {
-        System.out.println("The AST generated for \"" + pPattern + "\" contains the following problem: " + problem);
-      }
     }
     
     @Override

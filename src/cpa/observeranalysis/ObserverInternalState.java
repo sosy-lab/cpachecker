@@ -4,8 +4,6 @@ import java.io.PrintStream;
 import java.util.Collections;
 import java.util.List;
 
-import cpa.common.LogManager;
-
 /** Represents a State in the observer automaton.
  * @author rhein
  */
@@ -36,9 +34,9 @@ class ObserverInternalState {
   /** Lets all outgoing transitions of this state resolve their "sink" states.
    * @param pAllStates map of all states of this automaton.
    */
-  void setFollowStates(List<ObserverInternalState> pAllStates, LogManager pLogger) {
+  void setFollowStates(List<ObserverInternalState> pAllStates) throws InvalidAutomatonException {
     for (ObserverTransition t : transitions) {
-      t.setFollowState(pAllStates, pLogger);
+      t.setFollowState(pAllStates);
     }
   }
 
