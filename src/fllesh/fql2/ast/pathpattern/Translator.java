@@ -112,6 +112,7 @@ public class Translator implements Annotations {
   }
   
   public void annotate(CFAEdge pEdge, String pAnnotation) {
+    mCFAEdges.add(pEdge);
     getOrCreateAnnotationEntry(pEdge).add(pAnnotation);
   }
   

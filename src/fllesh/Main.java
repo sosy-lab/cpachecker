@@ -16,6 +16,8 @@ import java.util.Set;
 
 import com.google.common.base.Joiner;
 
+import cfa.DOTBuilder;
+import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 
 import common.configuration.Configuration;
@@ -44,6 +46,7 @@ import fllesh.ecp.reduced.ObserverAutomatonCreator;
 import fllesh.ecp.reduced.Pattern;
 import fllesh.fql.backend.targetgraph.Edge;
 import fllesh.fql.backend.targetgraph.TargetGraph;
+import fllesh.fql.fllesh.cpa.AddSelfLoop;
 import fllesh.fql.fllesh.util.CPAchecker;
 import fllesh.fql.fllesh.util.Cilly;
 import fllesh.fql.frontend.ast.filter.FunctionCall;
@@ -197,10 +200,10 @@ public class Main {
     // 4) pass annotations on to EdgeVisitCPA.Factory 
     
     
-    
-    
+
     EdgeVisitCPA.Factory lFactory = new EdgeVisitCPA.Factory(lTranslator);
     ConfigurableProgramAnalysis lEdgeVisitCPA = lFactory.createInstance();
+    
     
     
     FunctionCall lFunctionCallFilter = new FunctionCall("f");
@@ -212,7 +215,7 @@ public class Main {
       lId = lTranslator.getId(lEdge.getCFAEdge());
       
       // we do not care about predication at the moment
-      System.out.println("GOAL: " + lFactory.getId(lEdge.getCFAEdge()));
+      //System.out.println("GOAL: " + lFactory.getId(lEdge.getCFAEdge()));
       
       break;
     }
@@ -236,6 +239,11 @@ public class Main {
     
     System.out.println(lTestGoals);
     
+    for (Pattern lGoal : lTestGoals) {
+      lTestGoal = lGoal;
+      break;
+    }
+    
     
     // TODO: for every test goal (i.e., pattern) create an automaton and check reachability
     
@@ -247,6 +255,23 @@ public class Main {
     PrintStream lObserverAutomaton = new PrintStream(new FileOutputStream(lAutomatonFile));
     
     ObserverAutomatonCreator.printObserverAutomaton(lTestGoal, "Goal_1", lObserverAutomaton);
+    
+    
+    
+    // add self loops to CFA
+    Set<CFAEdge> lSelfLoops = AddSelfLoop.addSelfLoops(lMainFunction);
+    
+    // add lambda annotation
+    for (CFAEdge lCFAEdge : lSelfLoops) {
+      lTranslator.annotate(lCFAEdge, "L");
+      // we have to generate the internal edge elements
+      ((EdgeVisitCPA)lEdgeVisitCPA).add(lCFAEdge);
+    }
+    
+    // TODO remove this output code
+    DOTBuilder dotBuilder = new DOTBuilder();
+    dotBuilder.generateDOT(lCPAchecker.getCFAMap().values(), lMainFunction, new File("/tmp/mycfa.dot"));
+    
     
     
     
