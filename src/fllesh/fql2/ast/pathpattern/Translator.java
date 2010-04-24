@@ -129,6 +129,7 @@ public class Translator implements Annotations {
 
   @Override
   public String getId(CFAEdge pEdge) {
+    mCFAEdges.add(pEdge);
     if (mMapping.containsKey(pEdge)) {
       return mMapping.get(pEdge);
     }
@@ -150,6 +151,10 @@ public class Translator implements Annotations {
     
     for (Entry<CFAEdge, String> lEntry : mMapping.entrySet())  {
       lWriter.println(lEntry.getKey().toString() + " : " + lEntry.getValue());
+    }
+    
+    for (Entry<CFAEdge, Set<String>> lEntry :  mAnnotations.entrySet()) {
+      lWriter.println(lEntry);
     }
     
     return lResult.toString();

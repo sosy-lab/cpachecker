@@ -121,10 +121,22 @@ public class TargetGraph {
         return mCache.get(pSetMinus);
       }
       else {
+        System.out.println("SETMINUS");
+        
         TargetGraph lGraph1 = mSelf.apply(pSetMinus.getFirstFilter());
         TargetGraph lGraph2 = mSelf.apply(pSetMinus.getSecondFilter());
         
+        System.out.println(lGraph1);
+        
+        System.out.println("*****************");
+        
+        System.out.println(lGraph2);
+        
         TargetGraph lResult = TargetGraph.applyMinusFilter(lGraph1, lGraph2);
+        
+        System.out.println("*****************");
+        
+        System.out.println(lResult);
 
         mCache.put(pSetMinus, lResult);
         
@@ -781,11 +793,22 @@ public class TargetGraph {
     
     TargetGraph lCopy = new TargetGraph(pTargetGraph1);
     
-    lCopy.mInitialNodes.removeAll(pTargetGraph2.mInitialNodes);
+    /*lCopy.mInitialNodes.removeAll(pTargetGraph2.mInitialNodes);
     lCopy.mFinalNodes.removeAll(pTargetGraph2.mFinalNodes);
     
     lCopy.mGraph.removeAllEdges(pTargetGraph2.mGraph.edgeSet());
-    lCopy.mGraph.removeAllVertices(pTargetGraph2.mGraph.vertexSet());
+    lCopy.mGraph.removeAllVertices(pTargetGraph2.mGraph.vertexSet());*/
+    
+    lCopy.mGraph.removeAllEdges(pTargetGraph2.mGraph.edgeSet());
+    
+    for (Node lNode : pTargetGraph2.mGraph.vertexSet()) {
+      if (lCopy.mGraph.inDegreeOf(lNode) == 0 && lCopy.mGraph.outDegreeOf(lNode) == 0) {
+        lCopy.mGraph.removeVertex(lNode);
+        
+        lCopy.mInitialNodes.remove(lNode);
+        lCopy.mFinalNodes.remove(lNode);
+      }
+    }
     
     return lCopy;
   }

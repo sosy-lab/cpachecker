@@ -214,7 +214,8 @@ public class ObserverAutomatonTranslator {
     lWriter.println();
     lWriter.println("STATE Init:");
     lWriter.println("  CHECK(edgevisit(\"" + pAlphaEdge + "\")) -> GOTO State" + lVisitor.getInitialState() + ";");
-    lWriter.println("  TRUE -> BOTTOM;");
+    lWriter.println("  !CHECK(edgevisit(\"" + pAlphaEdge + "\")) -> GOTO Init;");
+    //lWriter.println("  TRUE -> BOTTOM;");
     lWriter.println();
     
     lVisitor.reduce(lFinalState);
@@ -240,7 +241,7 @@ public class ObserverAutomatonTranslator {
         
         lWorklist.addLast(lTarget);
         
-        lWriter.println("  CHECK(edgevisit(\"" + lOutgoingEdge.getThird().getIdentifier() + "\")) -> GOTO " + lTarget + ";");
+        lWriter.println("  CHECK(edgevisit(\"" + lOutgoingEdge.getThird().getIdentifier() + "\")) -> GOTO State" + lTarget + ";");
       }
       
       if (lState.equals(lFinalState)) {

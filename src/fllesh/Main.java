@@ -6,6 +6,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -14,11 +15,38 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.eclipse.cdt.core.dom.ICodeReaderFactory;
+import org.eclipse.cdt.core.dom.ast.IASTExpression;
+import org.eclipse.cdt.core.dom.ast.IASTExpressionList;
+import org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression;
+import org.eclipse.cdt.core.dom.ast.IASTNode;
+import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
+import org.eclipse.cdt.core.dom.ast.IASTProblem;
+import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
+import org.eclipse.cdt.core.model.ILanguage;
+import org.eclipse.cdt.core.parser.CodeReader;
+import org.eclipse.cdt.core.parser.IParserLogService;
+import org.eclipse.cdt.core.parser.IScannerInfo;
+import org.eclipse.cdt.core.parser.ParserFactory;
+import org.eclipse.core.runtime.CoreException;
+
+import cmdline.stubs.CLanguage;
+import cmdline.stubs.StubCodeReaderFactory;
+import cmdline.stubs.StubScannerInfo;
+
 import com.google.common.base.Joiner;
 
+import cfa.CFABuilder;
+import cfa.CFATopologicalSort;
 import cfa.DOTBuilder;
 import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
+import cfa.objectmodel.CFANode;
+import cfa.objectmodel.c.CallToReturnEdge;
+import cfa.objectmodel.c.FunctionCallEdge;
+import cfa.objectmodel.c.FunctionDefinitionNode;
+import cfa.objectmodel.c.ReturnEdge;
+import cfa.objectmodel.c.StatementEdge;
 
 import common.configuration.Configuration;
 import compositeCPA.CompositeCPA;
@@ -40,14 +68,11 @@ import cpa.observeranalysis.ObserverAutomatonCPA;
 import cpa.symbpredabsCPA.SymbPredAbsCPA;
 import exceptions.CPAException;
 import fllesh.cpa.edgevisit.EdgeVisitCPA;
-import fllesh.ecp.reduced.Atom;
-import fllesh.ecp.reduced.Concatenation;
 import fllesh.ecp.reduced.ObserverAutomatonCreator;
 import fllesh.ecp.reduced.ObserverAutomatonTranslator;
 import fllesh.ecp.reduced.Pattern;
-import fllesh.fql.backend.targetgraph.Edge;
-import fllesh.fql.backend.targetgraph.TargetGraph;
-import fllesh.fql.fllesh.cpa.AddSelfLoop;
+import fllesh.fql.fllesh.util.CFATraversal;
+import fllesh.fql.fllesh.util.CFAVisitor;
 import fllesh.fql.fllesh.util.CPAchecker;
 import fllesh.fql.fllesh.util.Cilly;
 import fllesh.fql.frontend.ast.filter.FunctionCall;
@@ -58,7 +83,6 @@ import fllesh.fql2.ast.coveragespecification.CoverageSpecification;
 import fllesh.fql2.ast.coveragespecification.Quotation;
 import fllesh.fql2.ast.pathpattern.PathPattern;
 import fllesh.fql2.ast.pathpattern.Repetition;
-import fllesh.fql2.ast.pathpattern.Translator;
 
 public class Main {
 
@@ -137,6 +161,17 @@ public class Main {
     return null;
   }
   
+  private static void checkForASTProblems(IASTNode pAST) {
+    if (pAST instanceof IASTProblem) {
+      throw new RuntimeException("Error during parsing C code \""
+          + pAST.getRawSignature() + "\": " + ((IASTProblem)pAST).getMessage());
+    } else {
+      for (IASTNode n : pAST.getChildren()) {
+        checkForASTProblems(n);
+      }
+    }
+  }
+  
   /**
    * @param pArguments
    * @throws Exception 
@@ -173,7 +208,7 @@ public class Main {
     
     
     
-    fllesh.fql2.ast.coveragespecification.Translator lCoverageSpecificationTranslator = new fllesh.fql2.ast.coveragespecification.Translator(lMainFunction);
+    final fllesh.fql2.ast.coveragespecification.Translator lCoverageSpecificationTranslator = new fllesh.fql2.ast.coveragespecification.Translator(lMainFunction);
     
     FunctionCall lFunctionCallFilter = new FunctionCall("f");
     SetMinus lSetMinus = new SetMinus(Identity.getInstance(), lFunctionCallFilter);
@@ -182,7 +217,9 @@ public class Main {
     Quotation lQuotation = new Quotation(lPrefixPattern);
     CoverageSpecification lTarget = new Edges(lFunctionCallFilter);
     
-    CoverageSpecification lSpecification = new fllesh.fql2.ast.coveragespecification.Concatenation(lQuotation, lTarget);
+    CoverageSpecification lIdRepetition = new Quotation(new Repetition(new Edges(Identity.getInstance())));
+    
+    CoverageSpecification lSpecification = new fllesh.fql2.ast.coveragespecification.Concatenation(lQuotation, new fllesh.fql2.ast.coveragespecification.Concatenation(lTarget, lIdRepetition));
     
     Set<Pattern> lTestGoals = lCoverageSpecificationTranslator.translate(lSpecification);
     
@@ -197,12 +234,198 @@ public class Main {
     
     System.out.println(lTestGoal);
     
-    System.out.println(ObserverAutomatonTranslator.translate(lTestGoal, "Goal", "A", "O"));
     
     
-    if (true) {
-      return;
+    /** Generating a wrapper start up method */
+    
+    StringWriter lWrapperFunction = new StringWriter();
+    PrintWriter lWriter = new PrintWriter(lWrapperFunction);
+    
+    FunctionDefinitionNode lMain = (FunctionDefinitionNode)lMainFunction;
+    
+    //lWriter.println("void " + lMain.getFunctionDefinition().getDeclarator().getRawSignature() + ";");
+    //lWriter.println();
+    
+    lWriter.println("void __FLLESH__main()");
+    lWriter.println("{");
+        
+    for (IASTParameterDeclaration lDeclaration : lMain.getFunctionParameters()) {
+      lWriter.println("  " + lDeclaration.getRawSignature() + ";");
     }
+    
+    lWriter.println();
+    lWriter.print("  " + lMainFunction.getFunctionName() + "(");
+
+    boolean isFirst = true;
+    
+    for (IASTParameterDeclaration lDeclaration : lMain.getFunctionParameters()) {
+      if (isFirst) {
+        isFirst = false;
+      }
+      else {
+        lWriter.print(", ");
+      }
+      
+      lWriter.print(lDeclaration.getDeclarator().getName());
+    }
+    
+    lWriter.println(");");
+    lWriter.println("  return;");
+    lWriter.println("}");
+    
+
+    System.out.println(lWrapperFunction);
+    
+    
+    CodeReader reader = new CodeReader(lWrapperFunction.toString().toCharArray());
+    
+    IScannerInfo scannerInfo = StubScannerInfo.getInstance();
+    ICodeReaderFactory codeReaderFactory = new StubCodeReaderFactory();
+    IParserLogService parserLog = ParserFactory.createDefaultLogService();
+
+    ILanguage lang = new CLanguage("C99");
+
+    IASTTranslationUnit ast;
+    try {
+       ast = lang.getASTTranslationUnit(reader, scannerInfo, codeReaderFactory, null, parserLog);
+    } catch (CoreException e) {
+      throw new RuntimeException("Error during parsing C code \""
+          + lWrapperFunction.toString() + "\": " + e.getMessage());
+    }
+    
+    Main.checkForASTProblems(ast);
+    
+    CFABuilder lCFABuilder = new CFABuilder(lLogManager);
+    
+    ast.accept(lCFABuilder);
+    
+    Map<String, CFAFunctionDefinitionNode> cfas = lCFABuilder.getCFAs();
+    
+    // annotate CFA nodes with topological information for later use
+    for(CFAFunctionDefinitionNode cfa : cfas.values()){
+      CFATopologicalSort topSort = new CFATopologicalSort();
+      topSort.topologicalSort(cfa);
+    }
+    
+    CFAFunctionDefinitionNode lWrapperEntry = cfas.get("__FLLESH__main");
+    
+    
+    
+    
+    final Map<String, CFAFunctionDefinitionNode> lAllCFAs = new HashMap<String, CFAFunctionDefinitionNode>();
+    lAllCFAs.putAll(cfas);
+    lAllCFAs.putAll(lCPAchecker.getCFAMap());
+    
+    CFAVisitor lVisitor = new CFAVisitor() {
+
+      private String mFunctionName;
+      
+      @Override
+      public void init(CFANode pInitialNode) {
+        mFunctionName = pInitialNode.getFunctionName();
+      }
+
+      @Override
+      public void visit(CFAEdge pP) {
+        pP.getSuccessor().setFunctionName(mFunctionName);
+      }
+      
+    };
+    
+    // set function names
+    CFATraversal.traverse(lWrapperEntry, lVisitor);
+    
+    // correct call to main function
+    CFAVisitor lVisitor2 = new CFAVisitor() {
+
+      private CFAEdge mAlphaEdge;
+      private CFAEdge mOmegaEdge;
+      private CFAEdge mAlphaToOmegaEdge;
+      
+      public CFAEdge getAlphaEdge() {
+        return mAlphaEdge;
+      }
+      
+      public CFAEdge getOmegaEdge() {
+        return mOmegaEdge;
+      }
+      
+      @Override
+      public void init(CFANode pInitialNode) {
+      
+      }
+
+      @Override
+      public void visit(CFAEdge pP) {
+        if (pP instanceof StatementEdge) {
+          IASTExpression expr = ((StatementEdge)pP).getExpression();
+          
+          if (expr instanceof IASTFunctionCallExpression) {
+            createCallAndReturnEdges(pP.getPredecessor(), pP.getSuccessor(), pP, expr, (IASTFunctionCallExpression)expr);
+            
+            lCoverageSpecificationTranslator.getAnnotations().getId(mAlphaEdge);
+            lCoverageSpecificationTranslator.getAnnotations().getId(mOmegaEdge);
+            lCoverageSpecificationTranslator.getAnnotations().getId(mAlphaToOmegaEdge);
+          }
+                    
+        }
+        else {
+          lCoverageSpecificationTranslator.getAnnotations().getId(pP);          
+        }
+      }
+      
+      private void createCallAndReturnEdges(CFANode node, CFANode successorNode, CFAEdge edge, IASTExpression expr, IASTFunctionCallExpression functionCall) {
+        String functionName = functionCall.getFunctionNameExpression().getRawSignature();
+        CFAFunctionDefinitionNode fDefNode = lAllCFAs.get(functionName);
+
+        //get the parameter expression
+        IASTExpression parameterExpression = functionCall.getParameterExpression();
+        IASTExpression[] parameters = null;
+        //in case of an expression list, get the corresponding array 
+        if (parameterExpression instanceof IASTExpressionList) {
+          IASTExpressionList paramList = (IASTExpressionList)parameterExpression;
+          parameters = paramList.getExpressions();
+        //in case of a single parameter, use a single-entry array
+        } else if (parameterExpression != null) {
+          parameters = new IASTExpression[] {parameterExpression};
+        }
+        FunctionCallEdge callEdge;
+        
+        callEdge = new FunctionCallEdge(functionCall, edge.getLineNumber(), node, fDefNode, parameters, false);
+        callEdge.addToCFA();
+        mAlphaEdge = callEdge;
+        
+        // set name of the function
+        fDefNode.setFunctionName(functionName);
+        // set return edge from exit node of the function
+        ReturnEdge returnEdge = new ReturnEdge("Return Edge to " + successorNode.getNodeNumber(), edge.getLineNumber(), lAllCFAs.get(functionName).getExitNode(), successorNode);
+        returnEdge.addToCFA();
+        returnEdge.getSuccessor().setFunctionName(node.getFunctionName());
+        
+        mOmegaEdge = returnEdge;
+
+        CallToReturnEdge calltoReturnEdge = new CallToReturnEdge(expr.getRawSignature(), edge.getLineNumber(), node, successorNode, expr);
+        calltoReturnEdge.addToCFA();
+        
+        mAlphaToOmegaEdge = calltoReturnEdge;
+
+        node.removeLeavingEdge(edge);
+        successorNode.removeEnteringEdge(edge);
+      }
+      
+    };
+    
+    CFATraversal.traverse(lWrapperEntry, lVisitor2);
+    
+    //DOTBuilder lDOTBuilder = new DOTBuilder();
+    //lDOTBuilder.generateDOT(lAllCFAs.values(), lWrapperEntry, new File("/tmp/wrapper.dot"));
+    
+    /** wrapper end */
+    
+    String lAlphaId = "E4";
+    String lOmegaId = "E5";
+
+    
     
     // TODO: for every test goal (i.e., pattern) create an automaton and check reachability
     
@@ -212,24 +435,14 @@ public class Main {
     lAutomatonFile.deleteOnExit();
     
     PrintStream lObserverAutomaton = new PrintStream(new FileOutputStream(lAutomatonFile));
-    
-    ObserverAutomatonCreator.printObserverAutomaton(lTestGoal, "Goal_1", lObserverAutomaton);
-    
-    
-    
-    // add self loops to CFA
-    /*Set<CFAEdge> lSelfLoops = AddSelfLoop.addSelfLoops(lMainFunction);
-    
-    // add lambda annotation
-    for (CFAEdge lCFAEdge : lSelfLoops) {
-      lCoverageSpecificationTranslator.getAnnotations().annotate(lCFAEdge, "L");
-    }*/
+    lObserverAutomaton.println(ObserverAutomatonTranslator.translate(lTestGoal, "Goal", lAlphaId, lOmegaId));
+    lObserverAutomaton.close();
     
     
     
     // TODO remove this output code
-    DOTBuilder dotBuilder = new DOTBuilder();
-    dotBuilder.generateDOT(lCPAchecker.getCFAMap().values(), lMainFunction, new File("/tmp/mycfa.dot"));
+    //DOTBuilder dotBuilder = new DOTBuilder();
+    //dotBuilder.generateDOT(lCPAchecker.getCFAMap().values(), lMainFunction, new File("/tmp/mycfa.dot"));
     
     
     
@@ -283,10 +496,10 @@ public class Main {
     lStatistics.add(lARTStatistics);
     lAlgorithm.collectStatistics(lStatistics);
     
-    AbstractElement initialElement = lARTCPA.getInitialElement(lMainFunction);
-    Precision initialPrecision = lARTCPA.getInitialPrecision(lMainFunction);
+    AbstractElement initialElement = lARTCPA.getInitialElement(lWrapperEntry);
+    Precision initialPrecision = lARTCPA.getInitialPrecision(lWrapperEntry);
           
-    ReachedElements lReachedElements = new ReachedElements(ReachedElements.TraversalMethod.DFS, true);
+    ReachedElements lReachedElements = new ReachedElements(ReachedElements.TraversalMethod.TOPSORT, true);
     lReachedElements.add(initialElement, initialPrecision);
     
     try {
@@ -305,7 +518,6 @@ public class Main {
     PrintWriter lStatisticsWriter = new PrintWriter(System.out);
 
     lARTStatistics.printStatistics(lStatisticsWriter, Result.SAFE, lReachedElements);
-    
   }
 
 }
