@@ -44,6 +44,8 @@ import exceptions.InvalidConfigurationException;
 @Options
 public class CPABuilder {
 
+  private static final String CPA_CLASS_PREFIX = "org.sosy_lab.cpachecker.";
+  
   @Option(name="cpa")
   private String cpaName = CompositeCPA.class.getCanonicalName();
   
@@ -117,8 +119,12 @@ public class CPABuilder {
     Class<?> cpaClass;
     try {
       cpaClass = Class.forName(cpaName);
-    } catch (ClassNotFoundException e) {
-      throw new InvalidConfigurationException("Option " + optionName + " is set to unknown CPA " + cpaName);
+    } catch (ClassNotFoundException e1) {
+      try {
+        cpaClass = Class.forName(CPA_CLASS_PREFIX + cpaName);
+      } catch (ClassNotFoundException e2) {
+        throw new InvalidConfigurationException("Option " + optionName + " is set to unknown CPA " + cpaName);
+      }
     }
 
     if (!ConfigurableProgramAnalysis.class.isAssignableFrom(cpaClass)) {
