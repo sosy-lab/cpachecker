@@ -86,6 +86,8 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
   private static final int GC_PERIOD = 100;
   private int gcCounter = 0;
 
+  private static final String CLASS_NAME_PREFIX = "org.sosy_lab.cpachecker.";
+  
   @Option(required=true)
   private String refiner = "";
   
@@ -109,7 +111,17 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
   private static <T> T createInstance(String className, Object[] argumentList, Class<T> type)
   throws CPAException {
     try {
-      Class<?> cls = Class.forName(className);
+      Class<?> cls;
+      try {
+        cls = Class.forName(className);
+      } catch (ClassNotFoundException e1) {
+        try {
+          // try with prefix added
+          cls = Class.forName(CLASS_NAME_PREFIX + className);
+        } catch (ClassNotFoundException e2) {
+          throw e1; // re-throw original exception to get correct error message
+        }
+      }
       Class<?> parameterTypes[] = {ConfigurableProgramAnalysis.class};
       Constructor<?> ct = cls.getConstructor(parameterTypes);
       Object obj = ct.newInstance(argumentList);
