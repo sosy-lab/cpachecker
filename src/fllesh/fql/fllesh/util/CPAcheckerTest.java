@@ -10,6 +10,7 @@ import common.configuration.Configuration;
 
 import cpa.common.LogManager;
 import exceptions.CPAException;
+import exceptions.InvalidConfigurationException;
 
 public class CPAcheckerTest {
   private String mPropertiesFile = "test/config/simpleMustMayAnalysis.properties";
@@ -21,7 +22,7 @@ public class CPAcheckerTest {
   }
 
   @Test
-  public void test_01() throws IOException, CPAException {
+  public void test_01() throws IOException, InvalidConfigurationException, CPAException {
     ImmutableMap<String, String> lProperties =
       ImmutableMap.of("analysis.programNames", "test/programs/simple/functionCall.c");
     
@@ -36,7 +37,7 @@ public class CPAcheckerTest {
   }
   
   @Test
-  public void test_02() throws IOException, CPAException {
+  public void test_02() throws IOException, InvalidConfigurationException, CPAException {
     ImmutableMap<String, String> lProperties =
       ImmutableMap.of("analysis.programNames", "test/programs/simple/loop1.c");
     
@@ -51,7 +52,7 @@ public class CPAcheckerTest {
   }
   
   @Test
-  public void test_03() throws IOException, CPAException {
+  public void test_03() throws IOException, InvalidConfigurationException, CPAException {
     ImmutableMap<String, String> lProperties =
       ImmutableMap.of("analysis.programNames", "test/programs/simple/uninitVars.cil.c");
         

@@ -26,6 +26,7 @@ import cpa.location.LocationElement;
 import cpa.mustmay.MustMayAnalysisCPA;
 import cpa.mustmay.MustMayAnalysisElement;
 import exceptions.CPAException;
+import exceptions.InvalidConfigurationException;
 import fllesh.fql.backend.pathmonitor.Automaton;
 import fllesh.fql.backend.targetgraph.Node;
 import fllesh.fql.fllesh.reachability.Query;
@@ -43,7 +44,7 @@ public class FeasibilityCheck {
   
   private StandardQuery.Factory mQueryFactory;
   
-  public FeasibilityCheck(LogManager pLogManager) throws CPAException {
+  public FeasibilityCheck(LogManager pLogManager) throws InvalidConfigurationException, CPAException {
     
     mMayCPA = new AlwaysTopCPA();
     mMustCPA = new ConcreteAnalysisCPA();

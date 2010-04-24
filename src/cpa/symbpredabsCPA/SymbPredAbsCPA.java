@@ -59,7 +59,7 @@ import cpa.common.interfaces.PrecisionAdjustment;
 import cpa.common.interfaces.Statistics;
 import cpa.common.interfaces.StatisticsProvider;
 import cpa.common.interfaces.StopOperator;
-import exceptions.CPAException;
+import exceptions.InvalidConfigurationException;
 
 /**
  * CPA that defines symbolic predicate abstraction.
@@ -71,7 +71,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
 
   private static class SymbPredAbsCPAFactory extends AbstractCPAFactory {
     @Override
-    public ConfigurableProgramAnalysis createInstance() throws CPAException {
+    public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException {
       return new SymbPredAbsCPA(getConfiguration(), getLogger());
     }
   }
@@ -99,7 +99,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
   private final SymbPredAbsFormulaManager formulaManager;
   private final SymbPredAbsCPAStatistics stats;
 
-  private SymbPredAbsCPA(Configuration config, LogManager logger) throws CPAException {
+  private SymbPredAbsCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
     
     this.config = config;

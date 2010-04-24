@@ -102,7 +102,7 @@ public class StandardQuery extends AbstractQuery {
       mCPA = lCPAFactory.createInstance();
       
       
-    } catch (CPAException e) {
+    } catch (Exception e) {
       // TODO Auto-generated catch block
       e.printStackTrace();
     }

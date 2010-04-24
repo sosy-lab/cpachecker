@@ -43,6 +43,7 @@ import cpa.common.interfaces.Refiner;
 import cpa.common.interfaces.Statistics;
 import cpa.common.interfaces.StatisticsProvider;
 import exceptions.CPAException;
+import exceptions.InvalidConfigurationException;
 
 @Options(prefix="cegar")
 public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
@@ -136,7 +137,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
   }
 
-  public CEGARAlgorithm(Algorithm algorithm, Configuration config, LogManager logger) throws CPAException {
+  public CEGARAlgorithm(Algorithm algorithm, Configuration config, LogManager logger) throws InvalidConfigurationException, CPAException {
     config.inject(this);
     this.algorithm = algorithm;
     this.logger = logger;

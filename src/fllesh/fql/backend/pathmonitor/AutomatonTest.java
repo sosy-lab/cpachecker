@@ -11,6 +11,7 @@ import common.configuration.Configuration;
 
 import cpa.common.LogManager;
 import exceptions.CPAException;
+import exceptions.InvalidConfigurationException;
 import fllesh.fql.backend.targetgraph.TargetGraph;
 import fllesh.fql.fllesh.util.CPAchecker;
 import fllesh.fql.frontend.ast.filter.Filter;
@@ -36,7 +37,7 @@ public class AutomatonTest {
   }
 
   @Test
-  public void test_01() throws IOException, CPAException {    
+  public void test_01() throws IOException, InvalidConfigurationException, CPAException {    
     Configuration lConfiguration = new Configuration(mPropertiesFile, mProperties);
     
     LogManager lLogManager = new LogManager(lConfiguration);
@@ -55,7 +56,7 @@ public class AutomatonTest {
   }
   
   @Test
-  public void test_02() throws IOException, CPAException {
+  public void test_02() throws IOException, InvalidConfigurationException, CPAException {
     Configuration lConfiguration = new Configuration(mPropertiesFile, mProperties);
     
     LogManager lLogManager = new LogManager(lConfiguration);
@@ -78,7 +79,7 @@ public class AutomatonTest {
   }
   
   @Test
-  public void test_03() throws IOException, CPAException {
+  public void test_03() throws IOException, InvalidConfigurationException, CPAException {
     Configuration lConfiguration = new Configuration(mPropertiesFile, mProperties);
     
     LogManager lLogManager = new LogManager(lConfiguration);
@@ -100,7 +101,7 @@ public class AutomatonTest {
   }
   
   @Test
-  public void test_04() throws IOException, CPAException {
+  public void test_04() throws IOException, InvalidConfigurationException, CPAException {
     Configuration lConfiguration = new Configuration(mPropertiesFile, mProperties);
     
     LogManager lLogManager = new LogManager(lConfiguration);
@@ -122,7 +123,7 @@ public class AutomatonTest {
   }
   
   @Test
-  public void test_05() throws IOException, CPAException {
+  public void test_05() throws IOException, InvalidConfigurationException, CPAException {
     Configuration lConfiguration = new Configuration(mPropertiesFile, mProperties);
     
     LogManager lLogManager = new LogManager(lConfiguration);
@@ -144,7 +145,7 @@ public class AutomatonTest {
   }
   
   @Test
-  public void test_06() throws IOException, CPAException {
+  public void test_06() throws IOException, InvalidConfigurationException, CPAException {
     Configuration lConfiguration = new Configuration(mPropertiesFile, mProperties);
 
     LogManager lLogManager = new LogManager(lConfiguration);
@@ -167,7 +168,7 @@ public class AutomatonTest {
   }
   
   @Test
-  public void test_07() throws IOException, CPAException {
+  public void test_07() throws IOException, InvalidConfigurationException, CPAException {
     Configuration lConfiguration = new Configuration(mPropertiesFile, mProperties);
     
     LogManager lLogManager = new LogManager(lConfiguration);

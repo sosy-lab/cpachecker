@@ -58,11 +58,11 @@ public class CPABuilder {
     config.inject(this);
   }
 
-  public ConfigurableProgramAnalysis buildCPAs() throws CPAException {
+  public ConfigurableProgramAnalysis buildCPAs() throws InvalidConfigurationException, CPAException {
     return buildCPAs(cpaName, "cpa", new HashSet<String>());
   }
 
-  private ConfigurableProgramAnalysis buildCPAs(String optionValue, String optionName, Set<String> usedAliases) throws CPAException {
+  private ConfigurableProgramAnalysis buildCPAs(String optionValue, String optionName, Set<String> usedAliases) throws InvalidConfigurationException, CPAException {
     Preconditions.checkNotNull(optionValue);
     
     // parse option (may be of syntax "classname alias"

@@ -28,6 +28,7 @@ import cpa.mustmay.MustMayAnalysisCPA;
 import cpa.mustmay.MustMayAnalysisElement;
 import cpa.symbpredabsCPA.SymbPredAbsCPA;
 import exceptions.CPAException;
+import exceptions.InvalidConfigurationException;
 import fllesh.fql.backend.pathmonitor.Automaton;
 import fllesh.fql.backend.targetgraph.Node;
 import fllesh.fql.backend.targetgraph.TargetGraph;
@@ -50,7 +51,7 @@ public class StandardQueryTest {
   }
 
   @Test
-  public void test_01() throws IOException, CPAException {
+  public void test_01() throws IOException, InvalidConfigurationException, CPAException {
     
     // check cilly invariance of source file, i.e., is it changed when preprocessed by cilly?
     Cilly lCilly = new Cilly();
@@ -126,7 +127,7 @@ public class StandardQueryTest {
   }
   
   @Test
-  public void test_02() throws IOException, CPAException {
+  public void test_02() throws IOException, InvalidConfigurationException, CPAException {
     
     // check cilly invariance of source file, i.e., is it changed when preprocessed by cilly?
     Cilly lCilly = new Cilly();
@@ -205,7 +206,7 @@ public class StandardQueryTest {
   }
   
   @Test
-  public void test_03() throws IOException, CPAException {
+  public void test_03() throws IOException, InvalidConfigurationException, CPAException {
     
     // check cilly invariance of source file, i.e., is it changed when preprocessed by cilly?
     Cilly lCilly = new Cilly();
@@ -284,7 +285,7 @@ public class StandardQueryTest {
   }
   
   @Test
-  public void test_04() throws IOException, CPAException {
+  public void test_04() throws IOException, InvalidConfigurationException, CPAException {
     
     // check cilly invariance of source file, i.e., is it changed when preprocessed by cilly?
     Cilly lCilly = new Cilly();

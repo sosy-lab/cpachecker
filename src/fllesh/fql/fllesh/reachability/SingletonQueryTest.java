@@ -25,6 +25,7 @@ import cpa.concrete.ConcreteAnalysisCPA;
 import cpa.location.LocationCPA;
 import cpa.mustmay.MustMayAnalysisCPA;
 import exceptions.CPAException;
+import exceptions.InvalidConfigurationException;
 import fllesh.fql.backend.pathmonitor.Automaton;
 import fllesh.fql.backend.targetgraph.Node;
 import fllesh.fql.backend.targetgraph.TargetGraph;
@@ -45,7 +46,7 @@ public class SingletonQueryTest {
   }    
 
   @Test
-  public void test_01() throws IOException, CPAException {
+  public void test_01() throws IOException, InvalidConfigurationException, CPAException {
             
     // check cilly invariance of source file, i.e., is it changed when preprocessed by cilly?
     Cilly lCilly = new Cilly();

@@ -34,7 +34,7 @@ public class ARTCPA extends AbstractSingleWrapperCPA {
   private static class ARTCPAFactory extends AbstractSingleWrapperCPAFactory {
 
     @Override
-    public ConfigurableProgramAnalysis createInstance() throws CPAException {      
+    public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException {      
       return new ARTCPA(getChild(), getConfiguration(), getLogger());
     }
   }

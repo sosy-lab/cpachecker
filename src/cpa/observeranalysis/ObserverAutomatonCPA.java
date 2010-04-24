@@ -31,7 +31,6 @@ import cpa.common.interfaces.PartialOrder;
 import cpa.common.interfaces.Precision;
 import cpa.common.interfaces.PrecisionAdjustment;
 import cpa.common.interfaces.Statistics;
-import cpa.common.interfaces.StatisticsProvider;
 import cpa.common.interfaces.StopOperator;
 import exceptions.CPAException;
 import exceptions.InvalidConfigurationException;
@@ -49,7 +48,7 @@ public class ObserverAutomatonCPA implements ConfigurableProgramAnalysis {
   private static class ObserverAutomatonCPAFactory extends AbstractCPAFactory {
     
     @Override
-    public ConfigurableProgramAnalysis createInstance() throws CPAException {
+    public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException {
       return new ObserverAutomatonCPA(getConfiguration(), getLogger());
     }
   }

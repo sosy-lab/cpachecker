@@ -466,7 +466,7 @@ public class CPAchecker {
     return Result.SAFE;
   }
 
-  private ConfigurableProgramAnalysis createCPA(MainCPAStatistics stats) throws CPAException {
+  private ConfigurableProgramAnalysis createCPA(MainCPAStatistics stats) throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating CPAs");
     
     CPABuilder builder = new CPABuilder(getConfiguration(), logger);
@@ -479,7 +479,7 @@ public class CPAchecker {
   }
   
   private Algorithm createAlgorithm(final Map<String, CFAFunctionDefinitionNode> cfas,
-      final ConfigurableProgramAnalysis cpa, MainCPAStatistics stats) throws CPAException {
+      final ConfigurableProgramAnalysis cpa, MainCPAStatistics stats) throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating algorithms");
 
     Algorithm algorithm = new CPAAlgorithm(cpa, logger);

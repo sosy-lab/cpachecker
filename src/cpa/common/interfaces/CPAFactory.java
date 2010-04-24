@@ -29,6 +29,7 @@ import common.configuration.Configuration;
 
 import cpa.common.LogManager;
 import exceptions.CPAException;
+import exceptions.InvalidConfigurationException;
 
 /**
  * Interface for classes which know how to create an instance of one specific
@@ -101,5 +102,5 @@ public interface CPAFactory {
    * @return a new ConfigurableProgramAnalysis instance
    * @exception CPAException If the CPA cannot be instantiated.
    */
-  public ConfigurableProgramAnalysis createInstance() throws CPAException;
+  public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException, CPAException;
 }

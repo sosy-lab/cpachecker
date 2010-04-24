@@ -13,6 +13,7 @@ import common.configuration.Configuration;
 
 import cpa.common.LogManager;
 import exceptions.CPAException;
+import exceptions.InvalidConfigurationException;
 import fllesh.fql.backend.testgoals.TestGoal;
 import fllesh.fql.fllesh.util.CPAchecker;
 import fllesh.fql.frontend.ast.coverage.Edges;
@@ -40,7 +41,7 @@ public class TargetGraphTest {
   }
     
   @Test
-  public void test_01() throws IOException, CPAException {
+  public void test_01() throws IOException, InvalidConfigurationException, CPAException {
     ImmutableMap<String, String> lProperties =
       ImmutableMap.of("analysis.programNames", "test/programs/simple/functionCall.c");
     
@@ -56,7 +57,7 @@ public class TargetGraphTest {
   }
   
   @Test
-  public void test_02() throws IOException, CPAException {
+  public void test_02() throws IOException, InvalidConfigurationException, CPAException {
     ImmutableMap<String, String> lProperties =
       ImmutableMap.of("analysis.programNames", "test/programs/simple/loop1.c");
         
@@ -72,7 +73,7 @@ public class TargetGraphTest {
   }
   
   @Test
-  public void test_03() throws IOException, CPAException {
+  public void test_03() throws IOException, InvalidConfigurationException, CPAException {
     ImmutableMap<String, String> lProperties =
       ImmutableMap.of("analysis.programNames", "test/programs/simple/uninitVars.cil.c");
         
@@ -94,7 +95,7 @@ public class TargetGraphTest {
   }
 
   @Test
-  public void test_04() throws IOException, CPAException {
+  public void test_04() throws IOException, InvalidConfigurationException, CPAException {
     ImmutableMap<String, String> lProperties =
       ImmutableMap.of("analysis.programNames", "test/programs/simple/uninitVars.cil.c");
         
@@ -118,7 +119,7 @@ public class TargetGraphTest {
   }  
   
   @Test
-  public void test_05() throws IOException, CPAException {
+  public void test_05() throws IOException, InvalidConfigurationException, CPAException {
     ImmutableMap<String, String> lProperties =
       ImmutableMap.of("analysis.programNames", "test/programs/simple/uninitVars.cil.c");
         
@@ -145,7 +146,7 @@ public class TargetGraphTest {
   }  
   
   @Test
-  public void test_06() throws IOException, CPAException {
+  public void test_06() throws IOException, InvalidConfigurationException, CPAException {
     ImmutableMap<String, String> lProperties =
       ImmutableMap.of("analysis.programNames", "test/programs/simple/uninitVars.cil.c");
         
@@ -171,7 +172,7 @@ public class TargetGraphTest {
   }  
   
   @Test
-  public void test_07() throws IOException, CPAException {
+  public void test_07() throws IOException, InvalidConfigurationException, CPAException {
     ImmutableMap<String, String> lProperties =
       ImmutableMap.of("analysis.programNames", "test/programs/simple/functionCall.c");
     
@@ -191,7 +192,7 @@ public class TargetGraphTest {
   }
   
   @Test
-  public void test_08() throws IOException, CPAException {
+  public void test_08() throws IOException, InvalidConfigurationException, CPAException {
     ImmutableMap<String, String> lProperties =
       ImmutableMap.of("analysis.programNames", "test/programs/simple/functionCall.c");
     
@@ -211,7 +212,7 @@ public class TargetGraphTest {
   }
   
   @Test
-  public void test_09() throws IOException, CPAException {
+  public void test_09() throws IOException, InvalidConfigurationException, CPAException {
     ImmutableMap<String, String> lProperties =
       ImmutableMap.of("analysis.programNames", "test/programs/simple/functionCall.c");
     
@@ -230,7 +231,7 @@ public class TargetGraphTest {
   }
   
   @Test
-  public void test_10() throws IOException, CPAException {
+  public void test_10() throws IOException, InvalidConfigurationException, CPAException {
     ImmutableMap<String, String> lProperties =
       ImmutableMap.of("analysis.programNames", "test/programs/simple/functionCall.c");
     
@@ -267,7 +268,7 @@ public class TargetGraphTest {
   }
   
   @Test
-  public void test_11() throws IOException, CPAException {
+  public void test_11() throws IOException, InvalidConfigurationException, CPAException {
     ImmutableMap<String, String> lProperties =
       ImmutableMap.of("analysis.programNames", "test/programs/simple/functionCall.c");
     
@@ -290,7 +291,7 @@ public class TargetGraphTest {
   }
   
   @Test
-  public void test_12() throws IOException, CPAException {
+  public void test_12() throws IOException, InvalidConfigurationException, CPAException {
     ImmutableMap<String, String> lProperties =
       ImmutableMap.of("analysis.programNames", "test/programs/simple/uninitVars.cil.c");
     
@@ -318,7 +319,7 @@ public class TargetGraphTest {
   }
   
   @Test
-  public void test_13() throws IOException, CPAException {
+  public void test_13() throws IOException, InvalidConfigurationException, CPAException {
     ImmutableMap<String, String> lProperties =
       ImmutableMap.of("analysis.programNames", "test/programs/simple/uninitVars.cil.c");
     
@@ -341,7 +342,7 @@ public class TargetGraphTest {
   }
   
   @Test
-  public void test_14() throws IOException, CPAException {
+  public void test_14() throws IOException, InvalidConfigurationException, CPAException {
     ImmutableMap<String, String> lProperties =
       ImmutableMap.of("analysis.programNames", "test/programs/simple/uninitVars.cil.c");
     
@@ -369,7 +370,7 @@ public class TargetGraphTest {
   }
   
   @Test
-  public void test_15() throws IOException, CPAException {
+  public void test_15() throws IOException, InvalidConfigurationException, CPAException {
     ImmutableMap<String, String> lProperties =
       ImmutableMap.of("analysis.programNames", "test/programs/simple/uninitVars.cil.c");
     
@@ -397,7 +398,7 @@ public class TargetGraphTest {
   }
   
   @Test
-  public void test_16() throws IOException, CPAException {
+  public void test_16() throws IOException, InvalidConfigurationException, CPAException {
     ImmutableMap<String, String> lProperties =
       ImmutableMap.of("analysis.programNames", "test/programs/simple/uninitVars.cil.c");
     
@@ -419,7 +420,7 @@ public class TargetGraphTest {
   }
   
   @Test
-  public void test_17() throws IOException, CPAException {
+  public void test_17() throws IOException, InvalidConfigurationException, CPAException {
     ImmutableMap<String, String> lProperties =
       ImmutableMap.of("analysis.programNames", "test/programs/simple/uninitVars.cil.c");
     
@@ -441,7 +442,7 @@ public class TargetGraphTest {
   }
   
   @Test
-  public void test_18() throws IOException, CPAException {
+  public void test_18() throws IOException, InvalidConfigurationException, CPAException {
     ImmutableMap<String, String> lProperties =
       ImmutableMap.of("analysis.programNames", "test/programs/simple/uninitVars.cil.c");
     
@@ -463,7 +464,7 @@ public class TargetGraphTest {
   }
  
   @Test
-  public void test_19() throws IOException, CPAException {
+  public void test_19() throws IOException, InvalidConfigurationException, CPAException {
     ImmutableMap<String, String> lProperties =
       ImmutableMap.of("analysis.programNames", "test/programs/simple/loop1.c");
     
@@ -483,7 +484,7 @@ public class TargetGraphTest {
   }
   
   @Test
-  public void test_20() throws IOException, CPAException {
+  public void test_20() throws IOException, InvalidConfigurationException, CPAException {
     ImmutableMap<String, String> lProperties =
       ImmutableMap.of("analysis.programNames", "test/programs/simple/loop1.c");
     
