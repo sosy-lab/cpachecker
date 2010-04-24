@@ -9,9 +9,8 @@ import org.junit.Test;
 
 import cfa.DOTBuilder;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
-import cmdline.CPAMain;
-import cmdline.CPAMain.InvalidCmdlineArgumentException;
 
+import com.google.common.collect.ImmutableMap;
 import common.configuration.Configuration;
 import compositeCPA.CompositeCPA;
 import compositeCPA.CompositeElement;
@@ -42,7 +41,6 @@ import fllesh.fql.frontend.ast.pathmonitor.LowerBound;
 
 public class StandardQueryTest {
   
-  private static final String mConfig = "-config";
   private static final String mPropertiesFile = "test/config/simpleMustMayAnalysis.properties";
 
   @Before
@@ -52,12 +50,7 @@ public class StandardQueryTest {
   }
 
   @Test
-  public void test_01() throws IOException, InvalidCmdlineArgumentException, CPAException {
-    
-    String[] lArguments = new String[3];
-    
-    lArguments[0] = mConfig;
-    lArguments[1] = mPropertiesFile;
+  public void test_01() throws IOException, CPAException {
     
     // check cilly invariance of source file, i.e., is it changed when preprocessed by cilly?
     Cilly lCilly = new Cilly();
@@ -73,9 +66,10 @@ public class StandardQueryTest {
     }
     
     // set source file name
-    lArguments[2] = lSourceFileName;
+    ImmutableMap<String, String> lProperties =
+      ImmutableMap.of("analysis.programNames", lSourceFileName);
     
-    Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
+    Configuration lConfiguration = new Configuration(mPropertiesFile, lProperties);
 
     LogManager lLogManager = new LogManager(lConfiguration);
       
@@ -132,12 +126,7 @@ public class StandardQueryTest {
   }
   
   @Test
-  public void test_02() throws IOException, InvalidCmdlineArgumentException, CPAException {
-    
-    String[] lArguments = new String[3];
-    
-    lArguments[0] = mConfig;
-    lArguments[1] = mPropertiesFile;
+  public void test_02() throws IOException, CPAException {
     
     // check cilly invariance of source file, i.e., is it changed when preprocessed by cilly?
     Cilly lCilly = new Cilly();
@@ -153,9 +142,10 @@ public class StandardQueryTest {
     }
     
     // set source file name
-    lArguments[2] = lSourceFileName;
+    ImmutableMap<String, String> lProperties =
+      ImmutableMap.of("analysis.programNames", lSourceFileName);
     
-    Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
+    Configuration lConfiguration = new Configuration(mPropertiesFile, lProperties);
 
     LogManager lLogManager = new LogManager(lConfiguration);
       
@@ -215,12 +205,7 @@ public class StandardQueryTest {
   }
   
   @Test
-  public void test_03() throws IOException, InvalidCmdlineArgumentException, CPAException {
-    
-    String[] lArguments = new String[3];
-    
-    lArguments[0] = mConfig;
-    lArguments[1] = mPropertiesFile;
+  public void test_03() throws IOException, CPAException {
     
     // check cilly invariance of source file, i.e., is it changed when preprocessed by cilly?
     Cilly lCilly = new Cilly();
@@ -236,9 +221,10 @@ public class StandardQueryTest {
     }
     
     // set source file name
-    lArguments[2] = lSourceFileName;
+    ImmutableMap<String, String> lProperties =
+      ImmutableMap.of("analysis.programNames", lSourceFileName);
     
-    Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
+    Configuration lConfiguration = new Configuration(mPropertiesFile, lProperties);
 
     LogManager lLogManager = new LogManager(lConfiguration);
       
@@ -298,12 +284,7 @@ public class StandardQueryTest {
   }
   
   @Test
-  public void test_04() throws IOException, InvalidCmdlineArgumentException, CPAException {
-    
-    String[] lArguments = new String[3];
-    
-    lArguments[0] = mConfig;
-    lArguments[1] = mPropertiesFile;
+  public void test_04() throws IOException, CPAException {
     
     // check cilly invariance of source file, i.e., is it changed when preprocessed by cilly?
     Cilly lCilly = new Cilly();
@@ -319,11 +300,10 @@ public class StandardQueryTest {
     }
     
     // set source file name
-    lArguments[2] = lSourceFileName;
+    ImmutableMap<String, String> lProperties =
+      ImmutableMap.of("analysis.programNames", lSourceFileName);
     
-    Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
-
-    
+    Configuration lConfiguration = new Configuration(mPropertiesFile, lProperties);    
     
     LogManager lLogManager = new LogManager(lConfiguration);
       

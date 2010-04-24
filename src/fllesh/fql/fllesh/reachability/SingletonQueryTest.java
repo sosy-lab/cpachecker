@@ -1,7 +1,6 @@
 package fllesh.fql.fllesh.reachability;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -12,20 +11,19 @@ import org.junit.Test;
 
 import cfa.DOTBuilder;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
-import cmdline.CPAMain;
-import cmdline.CPAMain.InvalidCmdlineArgumentException;
 
+import com.google.common.collect.ImmutableMap;
 import common.configuration.Configuration;
 import compositeCPA.CompositeCPA;
 import compositeCPA.CompositeElement;
 import compositeCPA.CompositePrecision;
+
 import cpa.alwaystop.AlwaysTopCPA;
 import cpa.common.LogManager;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.concrete.ConcreteAnalysisCPA;
 import cpa.location.LocationCPA;
 import cpa.mustmay.MustMayAnalysisCPA;
-
 import exceptions.CPAException;
 import fllesh.fql.backend.pathmonitor.Automaton;
 import fllesh.fql.backend.targetgraph.Node;
@@ -36,10 +34,8 @@ import fllesh.fql.fllesh.util.CPAchecker;
 import fllesh.fql.fllesh.util.Cilly;
 import fllesh.fql.frontend.ast.filter.Identity;
 
-
 public class SingletonQueryTest {
   
-  private static final String mConfig = "-config";
   private static final String mPropertiesFile = "test/config/simpleMustMayAnalysis.properties";
 
   @Before
@@ -49,13 +45,8 @@ public class SingletonQueryTest {
   }    
 
   @Test
-  public void test_01() throws IOException, InvalidCmdlineArgumentException, CPAException {
-    
-    String[] lArguments = new String[3];
-    
-    lArguments[0] = mConfig;
-    lArguments[1] = mPropertiesFile;
-    
+  public void test_01() throws IOException, CPAException {
+            
     // check cilly invariance of source file, i.e., is it changed when preprocessed by cilly?
     Cilly lCilly = new Cilly();
     
@@ -70,9 +61,10 @@ public class SingletonQueryTest {
     }
     
     // set source file name
-    lArguments[2] = lSourceFileName;
+    ImmutableMap<String, String> lProperties =
+      ImmutableMap.of("analysis.programNames", lSourceFileName);
     
-    Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
+    Configuration lConfiguration = new Configuration(mPropertiesFile, lProperties);
 
     LogManager lLogManager = new LogManager(lConfiguration);
       

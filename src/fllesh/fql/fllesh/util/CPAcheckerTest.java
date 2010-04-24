@@ -5,15 +5,13 @@ import java.io.IOException;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableMap;
 import common.configuration.Configuration;
 
-import cmdline.CPAMain;
-import cmdline.CPAMain.InvalidCmdlineArgumentException;
 import cpa.common.LogManager;
 import exceptions.CPAException;
 
 public class CPAcheckerTest {
-  private String mConfig = "-config";
   private String mPropertiesFile = "test/config/simpleMustMayAnalysis.properties";
 
   @Before
@@ -23,14 +21,11 @@ public class CPAcheckerTest {
   }
 
   @Test
-  public void test_01() throws InvalidCmdlineArgumentException, IOException, CPAException {
-    String[] lArguments = new String[3];
+  public void test_01() throws IOException, CPAException {
+    ImmutableMap<String, String> lProperties =
+      ImmutableMap.of("analysis.programNames", "test/programs/simple/functionCall.c");
     
-    lArguments[0] = mConfig;
-    lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/programs/simple/functionCall.c";
-    
-    Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
+    Configuration lConfiguration = new Configuration(mPropertiesFile, lProperties);
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
@@ -41,14 +36,11 @@ public class CPAcheckerTest {
   }
   
   @Test
-  public void test_02() throws InvalidCmdlineArgumentException, IOException, CPAException {
-    String[] lArguments = new String[3];
+  public void test_02() throws IOException, CPAException {
+    ImmutableMap<String, String> lProperties =
+      ImmutableMap.of("analysis.programNames", "test/programs/simple/loop1.c");
     
-    lArguments[0] = mConfig;
-    lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/programs/simple/loop1.c";
-        
-    Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
+    Configuration lConfiguration = new Configuration(mPropertiesFile, lProperties);
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
@@ -59,12 +51,9 @@ public class CPAcheckerTest {
   }
   
   @Test
-  public void test_03() throws InvalidCmdlineArgumentException, IOException, CPAException {
-    String[] lArguments = new String[3];
-    
-    lArguments[0] = mConfig;
-    lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/programs/simple/uninitVars.cil.c";
+  public void test_03() throws IOException, CPAException {
+    ImmutableMap<String, String> lProperties =
+      ImmutableMap.of("analysis.programNames", "test/programs/simple/uninitVars.cil.c");
         
     /*
      * Note: This analysis returns most of the time
@@ -72,7 +61,7 @@ public class CPAcheckerTest {
      * it can not handle pointers at the moment.
      */
     
-    Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
+    Configuration lConfiguration = new Configuration(mPropertiesFile, lProperties);
     
     LogManager lLogManager = new LogManager(lConfiguration);
       

@@ -6,9 +6,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
+import com.google.common.collect.ImmutableMap;
+
 import cfa.DOTBuilder;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
-import cmdline.CPAMain;
 
 import common.Pair;
 import common.configuration.Configuration;
@@ -28,7 +29,6 @@ import fllesh.fql.frontend.parser.FQLParser;
 
 public class Main {
 
-  private static final String mConfig = "-config";
   private static final String mPropertiesFile = "test/config/simpleMustMayAnalysis.properties";
   
   /**
@@ -38,11 +38,6 @@ public class Main {
   public static void main(String[] pArguments) throws Exception {
     assert(pArguments != null);
     assert(pArguments.length > 1);
-    
-    String[] lArguments = new String[3];
-    
-    lArguments[0] = mConfig;
-    lArguments[1] = mPropertiesFile;
     
     // check cilly invariance of source file, i.e., is it changed when preprocessed by cilly?
     Cilly lCilly = new Cilly();
@@ -58,9 +53,10 @@ public class Main {
     }
     
     // set source file name
-    lArguments[2] = lSourceFileName;
+    ImmutableMap<String, String> lProperties =
+      ImmutableMap.of("analysis.programNames", lSourceFileName);
     
-    Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
+    Configuration lConfiguration = new Configuration(mPropertiesFile, lProperties);
 
     LogManager lLogManager = new LogManager(lConfiguration);
       

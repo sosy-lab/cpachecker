@@ -47,7 +47,7 @@ public class CPAMain {
 
   private static final String CONFIGURATION_FILE_OPTION = "configuration.file";
 
-  public static class InvalidCmdlineArgumentException extends Exception {
+  static class InvalidCmdlineArgumentException extends Exception {
 
     private static final long serialVersionUID = -6526968677815416436L;
 
@@ -169,7 +169,7 @@ public class CPAMain {
     // statistics are displayed by shutdown hook
   }
 
-  public static Configuration createConfiguration(String[] args)
+  static Configuration createConfiguration(String[] args)
           throws InvalidCmdlineArgumentException, IOException {
     if (args == null || args.length < 1) {
       throw new InvalidCmdlineArgumentException("Need to specify at least configuration file or list of CPAs! Use -help for more information.");

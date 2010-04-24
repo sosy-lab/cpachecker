@@ -1,7 +1,6 @@
 package fllesh.fql.backend.targetgraph;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 import java.io.IOException;
 import java.util.Set;
@@ -9,10 +8,9 @@ import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableMap;
 import common.configuration.Configuration;
 
-import cmdline.CPAMain;
-import cmdline.CPAMain.InvalidCmdlineArgumentException;
 import cpa.common.LogManager;
 import exceptions.CPAException;
 import fllesh.fql.backend.testgoals.TestGoal;
@@ -33,7 +31,6 @@ import fllesh.fql.frontend.ast.predicate.Predicate;
 import fllesh.fql.frontend.ast.predicate.Predicates;
 
 public class TargetGraphTest {
-  private String mConfig = "-config";
   private String mPropertiesFile = "test/config/simpleMustMayAnalysis.properties";
 
   @Before
@@ -43,14 +40,11 @@ public class TargetGraphTest {
   }
     
   @Test
-  public void test_01() throws InvalidCmdlineArgumentException, IOException, CPAException {
-    String[] lArguments = new String[3];
+  public void test_01() throws IOException, CPAException {
+    ImmutableMap<String, String> lProperties =
+      ImmutableMap.of("analysis.programNames", "test/programs/simple/functionCall.c");
     
-    lArguments[0] = mConfig;
-    lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/programs/simple/functionCall.c";
-    
-    Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
+    Configuration lConfiguration = new Configuration(mPropertiesFile, lProperties);
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
@@ -62,14 +56,11 @@ public class TargetGraphTest {
   }
   
   @Test
-  public void test_02() throws InvalidCmdlineArgumentException, IOException, CPAException {
-    String[] lArguments = new String[3];
-    
-    lArguments[0] = mConfig;
-    lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/programs/simple/loop1.c";
+  public void test_02() throws IOException, CPAException {
+    ImmutableMap<String, String> lProperties =
+      ImmutableMap.of("analysis.programNames", "test/programs/simple/loop1.c");
         
-    Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
+    Configuration lConfiguration = new Configuration(mPropertiesFile, lProperties);
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
@@ -81,12 +72,9 @@ public class TargetGraphTest {
   }
   
   @Test
-  public void test_03() throws InvalidCmdlineArgumentException, IOException, CPAException {
-    String[] lArguments = new String[3];
-    
-    lArguments[0] = mConfig;
-    lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/programs/simple/uninitVars.cil.c";
+  public void test_03() throws IOException, CPAException {
+    ImmutableMap<String, String> lProperties =
+      ImmutableMap.of("analysis.programNames", "test/programs/simple/uninitVars.cil.c");
         
     /*
      * Note: This analysis returns most of the time
@@ -94,7 +82,7 @@ public class TargetGraphTest {
      * it can not handle pointers at the moment.
      */
     
-    Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
+    Configuration lConfiguration = new Configuration(mPropertiesFile, lProperties);
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
@@ -106,12 +94,9 @@ public class TargetGraphTest {
   }
 
   @Test
-  public void test_04() throws InvalidCmdlineArgumentException, IOException, CPAException {
-    String[] lArguments = new String[3];
-    
-    lArguments[0] = mConfig;
-    lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/programs/simple/uninitVars.cil.c";
+  public void test_04() throws IOException, CPAException {
+    ImmutableMap<String, String> lProperties =
+      ImmutableMap.of("analysis.programNames", "test/programs/simple/uninitVars.cil.c");
         
     /*
      * Note: This analysis returns most of the time
@@ -119,7 +104,7 @@ public class TargetGraphTest {
      * it can not handle pointers at the moment.
      */
     
-    Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
+    Configuration lConfiguration = new Configuration(mPropertiesFile, lProperties);
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
@@ -133,12 +118,9 @@ public class TargetGraphTest {
   }  
   
   @Test
-  public void test_05() throws InvalidCmdlineArgumentException, IOException, CPAException {
-    String[] lArguments = new String[3];
-    
-    lArguments[0] = mConfig;
-    lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/programs/simple/uninitVars.cil.c";
+  public void test_05() throws IOException, CPAException {
+    ImmutableMap<String, String> lProperties =
+      ImmutableMap.of("analysis.programNames", "test/programs/simple/uninitVars.cil.c");
         
     /*
      * Note: This analysis returns most of the time
@@ -146,7 +128,7 @@ public class TargetGraphTest {
      * it can not handle pointers at the moment.
      */
     
-    Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
+    Configuration lConfiguration = new Configuration(mPropertiesFile, lProperties);
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
@@ -163,12 +145,9 @@ public class TargetGraphTest {
   }  
   
   @Test
-  public void test_06() throws InvalidCmdlineArgumentException, IOException, CPAException {
-    String[] lArguments = new String[3];
-    
-    lArguments[0] = mConfig;
-    lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/programs/simple/uninitVars.cil.c";
+  public void test_06() throws IOException, CPAException {
+    ImmutableMap<String, String> lProperties =
+      ImmutableMap.of("analysis.programNames", "test/programs/simple/uninitVars.cil.c");
         
     /*
      * Note: This analysis returns most of the time
@@ -176,7 +155,7 @@ public class TargetGraphTest {
      * it can not handle pointers at the moment.
      */
     
-    Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
+    Configuration lConfiguration = new Configuration(mPropertiesFile, lProperties);
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
@@ -192,14 +171,11 @@ public class TargetGraphTest {
   }  
   
   @Test
-  public void test_07() throws InvalidCmdlineArgumentException, IOException, CPAException {
-    String[] lArguments = new String[3];
+  public void test_07() throws IOException, CPAException {
+    ImmutableMap<String, String> lProperties =
+      ImmutableMap.of("analysis.programNames", "test/programs/simple/functionCall.c");
     
-    lArguments[0] = mConfig;
-    lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/programs/simple/functionCall.c";
-    
-    Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
+    Configuration lConfiguration = new Configuration(mPropertiesFile, lProperties);
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
@@ -215,14 +191,11 @@ public class TargetGraphTest {
   }
   
   @Test
-  public void test_08() throws InvalidCmdlineArgumentException, IOException, CPAException {
-    String[] lArguments = new String[3];
+  public void test_08() throws IOException, CPAException {
+    ImmutableMap<String, String> lProperties =
+      ImmutableMap.of("analysis.programNames", "test/programs/simple/functionCall.c");
     
-    lArguments[0] = mConfig;
-    lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/programs/simple/functionCall.c";
-    
-    Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
+    Configuration lConfiguration = new Configuration(mPropertiesFile, lProperties);
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
@@ -238,14 +211,11 @@ public class TargetGraphTest {
   }
   
   @Test
-  public void test_09() throws InvalidCmdlineArgumentException, IOException, CPAException {
-    String[] lArguments = new String[3];
+  public void test_09() throws IOException, CPAException {
+    ImmutableMap<String, String> lProperties =
+      ImmutableMap.of("analysis.programNames", "test/programs/simple/functionCall.c");
     
-    lArguments[0] = mConfig;
-    lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/programs/simple/functionCall.c";
-    
-    Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
+    Configuration lConfiguration = new Configuration(mPropertiesFile, lProperties);
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
@@ -260,14 +230,11 @@ public class TargetGraphTest {
   }
   
   @Test
-  public void test_10() throws InvalidCmdlineArgumentException, IOException, CPAException {
-    String[] lArguments = new String[3];
+  public void test_10() throws IOException, CPAException {
+    ImmutableMap<String, String> lProperties =
+      ImmutableMap.of("analysis.programNames", "test/programs/simple/functionCall.c");
     
-    lArguments[0] = mConfig;
-    lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/programs/simple/functionCall.c";
-    
-    Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
+    Configuration lConfiguration = new Configuration(mPropertiesFile, lProperties);
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
@@ -300,14 +267,11 @@ public class TargetGraphTest {
   }
   
   @Test
-  public void test_11() throws InvalidCmdlineArgumentException, IOException, CPAException {
-    String[] lArguments = new String[3];
+  public void test_11() throws IOException, CPAException {
+    ImmutableMap<String, String> lProperties =
+      ImmutableMap.of("analysis.programNames", "test/programs/simple/functionCall.c");
     
-    lArguments[0] = mConfig;
-    lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/programs/simple/functionCall.c";
-    
-    Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
+    Configuration lConfiguration = new Configuration(mPropertiesFile, lProperties);
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
@@ -326,14 +290,11 @@ public class TargetGraphTest {
   }
   
   @Test
-  public void test_12() throws InvalidCmdlineArgumentException, IOException, CPAException {
-    String[] lArguments = new String[3];
+  public void test_12() throws IOException, CPAException {
+    ImmutableMap<String, String> lProperties =
+      ImmutableMap.of("analysis.programNames", "test/programs/simple/uninitVars.cil.c");
     
-    lArguments[0] = mConfig;
-    lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/programs/simple/uninitVars.cil.c";
-    
-    Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
+    Configuration lConfiguration = new Configuration(mPropertiesFile, lProperties);
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
@@ -357,14 +318,11 @@ public class TargetGraphTest {
   }
   
   @Test
-  public void test_13() throws InvalidCmdlineArgumentException, IOException, CPAException {
-    String[] lArguments = new String[3];
+  public void test_13() throws IOException, CPAException {
+    ImmutableMap<String, String> lProperties =
+      ImmutableMap.of("analysis.programNames", "test/programs/simple/uninitVars.cil.c");
     
-    lArguments[0] = mConfig;
-    lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/programs/simple/uninitVars.cil.c";
-    
-    Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
+    Configuration lConfiguration = new Configuration(mPropertiesFile, lProperties);
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
@@ -383,14 +341,11 @@ public class TargetGraphTest {
   }
   
   @Test
-  public void test_14() throws InvalidCmdlineArgumentException, IOException, CPAException {
-    String[] lArguments = new String[3];
+  public void test_14() throws IOException, CPAException {
+    ImmutableMap<String, String> lProperties =
+      ImmutableMap.of("analysis.programNames", "test/programs/simple/uninitVars.cil.c");
     
-    lArguments[0] = mConfig;
-    lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/programs/simple/uninitVars.cil.c";
-    
-    Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
+    Configuration lConfiguration = new Configuration(mPropertiesFile, lProperties);
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
@@ -414,14 +369,11 @@ public class TargetGraphTest {
   }
   
   @Test
-  public void test_15() throws InvalidCmdlineArgumentException, IOException, CPAException {
-    String[] lArguments = new String[3];
+  public void test_15() throws IOException, CPAException {
+    ImmutableMap<String, String> lProperties =
+      ImmutableMap.of("analysis.programNames", "test/programs/simple/uninitVars.cil.c");
     
-    lArguments[0] = mConfig;
-    lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/programs/simple/uninitVars.cil.c";
-    
-    Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
+    Configuration lConfiguration = new Configuration(mPropertiesFile, lProperties);
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
@@ -445,14 +397,11 @@ public class TargetGraphTest {
   }
   
   @Test
-  public void test_16() throws InvalidCmdlineArgumentException, IOException, CPAException {
-    String[] lArguments = new String[3];
+  public void test_16() throws IOException, CPAException {
+    ImmutableMap<String, String> lProperties =
+      ImmutableMap.of("analysis.programNames", "test/programs/simple/uninitVars.cil.c");
     
-    lArguments[0] = mConfig;
-    lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/programs/simple/uninitVars.cil.c";
-    
-    Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
+    Configuration lConfiguration = new Configuration(mPropertiesFile, lProperties);
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
@@ -470,14 +419,11 @@ public class TargetGraphTest {
   }
   
   @Test
-  public void test_17() throws InvalidCmdlineArgumentException, IOException, CPAException {
-    String[] lArguments = new String[3];
+  public void test_17() throws IOException, CPAException {
+    ImmutableMap<String, String> lProperties =
+      ImmutableMap.of("analysis.programNames", "test/programs/simple/uninitVars.cil.c");
     
-    lArguments[0] = mConfig;
-    lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/programs/simple/uninitVars.cil.c";
-    
-    Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
+    Configuration lConfiguration = new Configuration(mPropertiesFile, lProperties);
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
@@ -495,14 +441,11 @@ public class TargetGraphTest {
   }
   
   @Test
-  public void test_18() throws InvalidCmdlineArgumentException, IOException, CPAException {
-    String[] lArguments = new String[3];
+  public void test_18() throws IOException, CPAException {
+    ImmutableMap<String, String> lProperties =
+      ImmutableMap.of("analysis.programNames", "test/programs/simple/uninitVars.cil.c");
     
-    lArguments[0] = mConfig;
-    lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/programs/simple/uninitVars.cil.c";
-    
-    Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
+    Configuration lConfiguration = new Configuration(mPropertiesFile, lProperties);
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
@@ -520,14 +463,11 @@ public class TargetGraphTest {
   }
  
   @Test
-  public void test_19() throws InvalidCmdlineArgumentException, IOException, CPAException {
-    String[] lArguments = new String[3];
+  public void test_19() throws IOException, CPAException {
+    ImmutableMap<String, String> lProperties =
+      ImmutableMap.of("analysis.programNames", "test/programs/simple/loop1.c");
     
-    lArguments[0] = mConfig;
-    lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/programs/simple/loop1.c";
-    
-    Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
+    Configuration lConfiguration = new Configuration(mPropertiesFile, lProperties);
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
@@ -543,14 +483,11 @@ public class TargetGraphTest {
   }
   
   @Test
-  public void test_20() throws InvalidCmdlineArgumentException, IOException, CPAException {
-    String[] lArguments = new String[3];
+  public void test_20() throws IOException, CPAException {
+    ImmutableMap<String, String> lProperties =
+      ImmutableMap.of("analysis.programNames", "test/programs/simple/loop1.c");
     
-    lArguments[0] = mConfig;
-    lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/programs/simple/loop1.c";
-    
-    Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
+    Configuration lConfiguration = new Configuration(mPropertiesFile, lProperties);
     
     LogManager lLogManager = new LogManager(lConfiguration);
       

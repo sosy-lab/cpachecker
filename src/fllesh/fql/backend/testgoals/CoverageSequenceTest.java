@@ -5,10 +5,9 @@ import java.io.IOException;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableMap;
 import common.configuration.Configuration;
 
-import cmdline.CPAMain;
-import cmdline.CPAMain.InvalidCmdlineArgumentException;
 import cpa.common.LogManager;
 import exceptions.CPAException;
 import fllesh.fql.backend.pathmonitor.Automaton;
@@ -25,8 +24,9 @@ import fllesh.fql.frontend.ast.query.Query;
 
 public class CoverageSequenceTest {
   
-  private String mConfig = "-config";
-  private String mPropertiesFile = "test/config/simpleMustMayAnalysis.properties";
+  private final String mPropertiesFile = "test/config/simpleMustMayAnalysis.properties";
+  private final ImmutableMap<String, String> mProperties =
+        ImmutableMap.of("analysis.programNames", "test/programs/simple/functionCall.c");
 
   @Before
   public void tearDown() {
@@ -35,14 +35,8 @@ public class CoverageSequenceTest {
   }
 
   @Test
-  public void test_01() throws InvalidCmdlineArgumentException, IOException, CPAException {
-    String[] lArguments = new String[3];
-    
-    lArguments[0] = mConfig;
-    lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/programs/simple/functionCall.c";
-    
-    Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
+  public void test_01() throws IOException, CPAException {
+    Configuration lConfiguration = new Configuration(mPropertiesFile, mProperties);
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
@@ -64,14 +58,8 @@ public class CoverageSequenceTest {
   }
   
   @Test
-  public void test_02() throws InvalidCmdlineArgumentException, IOException, CPAException {
-    String[] lArguments = new String[3];
-    
-    lArguments[0] = mConfig;
-    lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/programs/simple/functionCall.c";
-    
-    Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
+  public void test_02() throws IOException, CPAException {
+    Configuration lConfiguration = new Configuration(mPropertiesFile, mProperties);
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
@@ -97,14 +85,8 @@ public class CoverageSequenceTest {
   }
   
   @Test
-  public void test_03() throws InvalidCmdlineArgumentException, IOException, CPAException {
-    String[] lArguments = new String[3];
-    
-    lArguments[0] = mConfig;
-    lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/programs/simple/functionCall.c";
-    
-    Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
+  public void test_03() throws IOException, CPAException {
+    Configuration lConfiguration = new Configuration(mPropertiesFile, mProperties);
     
     LogManager lLogManager = new LogManager(lConfiguration);
       

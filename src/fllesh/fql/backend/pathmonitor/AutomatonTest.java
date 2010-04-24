@@ -5,10 +5,10 @@ import java.io.IOException;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableMap;
+
 import common.configuration.Configuration;
 
-import cmdline.CPAMain;
-import cmdline.CPAMain.InvalidCmdlineArgumentException;
 import cpa.common.LogManager;
 import exceptions.CPAException;
 import fllesh.fql.backend.targetgraph.TargetGraph;
@@ -24,9 +24,11 @@ import fllesh.fql.frontend.ast.predicate.Predicate;
 import fllesh.fql.frontend.ast.predicate.Predicates;
 
 public class AutomatonTest {
-  private String mConfig = "-config";
-  private String mPropertiesFile = "test/config/simpleMustMayAnalysis.properties";
+  private final String mPropertiesFile = "test/config/simpleMustMayAnalysis.properties";
+  private final ImmutableMap<String, String> mProperties =
+        ImmutableMap.of("analysis.programNames", "test/programs/simple/functionCall.c");
 
+  
   @Before
   public void tearDown() {
     /* XXX: Currently this is necessary to pass all assertions. */
@@ -34,14 +36,8 @@ public class AutomatonTest {
   }
 
   @Test
-  public void test_01() throws InvalidCmdlineArgumentException, IOException, CPAException {
-    String[] lArguments = new String[3];
-    
-    lArguments[0] = mConfig;
-    lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/programs/simple/functionCall.c";
-    
-    Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
+  public void test_01() throws IOException, CPAException {    
+    Configuration lConfiguration = new Configuration(mPropertiesFile, mProperties);
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
@@ -59,14 +55,8 @@ public class AutomatonTest {
   }
   
   @Test
-  public void test_02() throws InvalidCmdlineArgumentException, IOException, CPAException {
-    String[] lArguments = new String[3];
-    
-    lArguments[0] = mConfig;
-    lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/programs/simple/functionCall.c";
-    
-    Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
+  public void test_02() throws IOException, CPAException {
+    Configuration lConfiguration = new Configuration(mPropertiesFile, mProperties);
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
@@ -88,14 +78,8 @@ public class AutomatonTest {
   }
   
   @Test
-  public void test_03() throws InvalidCmdlineArgumentException, IOException, CPAException {
-    String[] lArguments = new String[3];
-    
-    lArguments[0] = mConfig;
-    lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/programs/simple/functionCall.c";
-    
-    Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
+  public void test_03() throws IOException, CPAException {
+    Configuration lConfiguration = new Configuration(mPropertiesFile, mProperties);
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
@@ -116,14 +100,8 @@ public class AutomatonTest {
   }
   
   @Test
-  public void test_04() throws InvalidCmdlineArgumentException, IOException, CPAException {
-    String[] lArguments = new String[3];
-    
-    lArguments[0] = mConfig;
-    lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/programs/simple/functionCall.c";
-    
-    Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
+  public void test_04() throws IOException, CPAException {
+    Configuration lConfiguration = new Configuration(mPropertiesFile, mProperties);
     
     LogManager lLogManager = new LogManager(lConfiguration);
     
@@ -144,14 +122,8 @@ public class AutomatonTest {
   }
   
   @Test
-  public void test_05() throws InvalidCmdlineArgumentException, IOException, CPAException {
-    String[] lArguments = new String[3];
-    
-    lArguments[0] = mConfig;
-    lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/programs/simple/functionCall.c";
-    
-    Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
+  public void test_05() throws IOException, CPAException {
+    Configuration lConfiguration = new Configuration(mPropertiesFile, mProperties);
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
@@ -172,15 +144,9 @@ public class AutomatonTest {
   }
   
   @Test
-  public void test_06() throws InvalidCmdlineArgumentException, IOException, CPAException {
-    String[] lArguments = new String[3];
-    
-    lArguments[0] = mConfig;
-    lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/programs/simple/functionCall.c";
-    
-    Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
-    
+  public void test_06() throws IOException, CPAException {
+    Configuration lConfiguration = new Configuration(mPropertiesFile, mProperties);
+
     LogManager lLogManager = new LogManager(lConfiguration);
       
     CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
@@ -201,14 +167,8 @@ public class AutomatonTest {
   }
   
   @Test
-  public void test_07() throws InvalidCmdlineArgumentException, IOException, CPAException {
-    String[] lArguments = new String[3];
-    
-    lArguments[0] = mConfig;
-    lArguments[1] = mPropertiesFile;
-    lArguments[2] = "test/programs/simple/functionCall.c";
-    
-    Configuration lConfiguration = CPAMain.createConfiguration(lArguments);
+  public void test_07() throws IOException, CPAException {
+    Configuration lConfiguration = new Configuration(mPropertiesFile, mProperties);
     
     LogManager lLogManager = new LogManager(lConfiguration);
       
