@@ -43,6 +43,7 @@ import fllesh.cpa.edgevisit.EdgeVisitCPA;
 import fllesh.ecp.reduced.Atom;
 import fllesh.ecp.reduced.Concatenation;
 import fllesh.ecp.reduced.ObserverAutomatonCreator;
+import fllesh.ecp.reduced.ObserverAutomatonTranslator;
 import fllesh.ecp.reduced.Pattern;
 import fllesh.fql.backend.targetgraph.Edge;
 import fllesh.fql.backend.targetgraph.TargetGraph;
@@ -194,6 +195,14 @@ public class Main {
       break;
     }
     
+    System.out.println(lTestGoal);
+    
+    System.out.println(ObserverAutomatonTranslator.translate(lTestGoal, "Goal", "A", "O"));
+    
+    
+    if (true) {
+      return;
+    }
     
     // TODO: for every test goal (i.e., pattern) create an automaton and check reachability
     
@@ -209,12 +218,12 @@ public class Main {
     
     
     // add self loops to CFA
-    Set<CFAEdge> lSelfLoops = AddSelfLoop.addSelfLoops(lMainFunction);
+    /*Set<CFAEdge> lSelfLoops = AddSelfLoop.addSelfLoops(lMainFunction);
     
     // add lambda annotation
     for (CFAEdge lCFAEdge : lSelfLoops) {
       lCoverageSpecificationTranslator.getAnnotations().annotate(lCFAEdge, "L");
-    }
+    }*/
     
     
     
