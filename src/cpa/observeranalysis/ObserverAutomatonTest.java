@@ -192,24 +192,20 @@ public class ObserverAutomatonTest {
     Assert.assertTrue(args.getTransitionVariable(5).equals("function"));
   }
   
-  //@Test
+  @Test
   public void interacting_Observers() {
     Map<String, String> prop = ImmutableMap.of(
-        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.observeranalysis.ObserverAutomatonCPA observerA",//, cpa.observeranalysis.ObserverAutomatonCPA observerB",
+        "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.observeranalysis.ObserverAutomatonCPA observerA, cpa.observeranalysis.ObserverAutomatonCPA observerB, cpa.explicit.ExplicitAnalysisCPA",
         "observerA.observerAnalysis.inputFile",     "test/programs/observerAutomata/InteractionAutomatonA.txt",
-        //"observerB.observerAnalysis.inputFile",     "test/programs/observerAutomata/InteractionAutomatonB.txt",
-        "log.consoleLevel",               "INFO",
+        "observerB.observerAnalysis.inputFile",     "test/programs/observerAutomata/InteractionAutomatonB.txt",
+        "log.consoleLevel", "INFO",
         "cpas.explicit.threshold" , "2000"
       );   
     try {
-      TestResults results = run(prop, "test/programs/simple/ex2.cil.c");
-      System.out.println(results.log);
-      /*Assert.assertTrue(results.logContains("st==3 after Edge st = 3;"));
-      Assert.assertTrue(results.logContains("st==1 after Edge st = 1;"));
-      Assert.assertTrue(results.logContains("st==2 after Edge st = 2;"));
-      Assert.assertTrue(results.logContains("st==4 after Edge st = 4;"));
-      Assert.assertTrue(results.isSafe());*/
-      System.out.println("DONE");
+      TestResults results = run(prop, "test/programs/simple/loop1.c");
+      Assert.assertTrue(results.logContains("A: Matched i in line 9 x=2"));
+      Assert.assertTrue(results.logContains("B: A increased to 2 And i followed "));
+      Assert.assertTrue(results.isSafe());
     } catch (InvalidConfigurationException e) {
       Assert.fail("InvalidConfiguration");
     }
