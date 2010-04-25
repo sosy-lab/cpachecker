@@ -25,7 +25,6 @@ package cmdline;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
@@ -49,7 +48,9 @@ import cmdline.CPAMain.InvalidCmdlineArgumentException;
 import common.configuration.Configuration;
 
 import cpa.common.CPAchecker;
+import cpa.common.CParser;
 import cpa.common.LogManager;
+import cpa.common.CParser.Dialect;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.ConfigurableProgramAnalysis;
 import cpa.common.interfaces.JoinOperator;
@@ -148,23 +149,16 @@ public class CPASelfCheck {
   }
   
   private static CFAFunctionDefinitionNode createCFA(CPAchecker cpachecker, LogManager logManager) throws IOException, CoreException {
-    File lFile = File.createTempFile("dummy", ".c");
-    lFile.deleteOnExit();
-       
-    PrintWriter lWriter = new PrintWriter(lFile);
-
-    lWriter.print(
+    String code =
 "int main() {\n" +
 "  int a;\n" +
 "  a = 1;" +
 "  return (a);\n" +
 "}\n"
-    		);
-
-    lWriter.close();
+    		;
 
     // Get Eclipse to parse the C in the current file
-    IASTTranslationUnit ast = cpachecker.parse(lFile.getCanonicalPath());
+    IASTTranslationUnit ast = CParser.parseString(code, Dialect.C99);
 
     // TODO use the methods from CPAMain for this?
     CFABuilder builder = new CFABuilder(logManager);

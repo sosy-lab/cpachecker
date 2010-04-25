@@ -7,7 +7,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.eclipse.cdt.core.dom.ICodeReaderFactory;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTExpressionList;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression;
@@ -15,18 +14,7 @@ import org.eclipse.cdt.core.dom.ast.IASTNode;
 import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTProblem;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
-import org.eclipse.cdt.core.model.ILanguage;
-import org.eclipse.cdt.core.parser.CodeReader;
-import org.eclipse.cdt.core.parser.IParserLogService;
-import org.eclipse.cdt.core.parser.IScannerInfo;
-import org.eclipse.cdt.core.parser.ParserFactory;
 import org.eclipse.core.runtime.CoreException;
-
-import cpa.common.LogManager;
-
-import cmdline.stubs.CLanguage;
-import cmdline.stubs.StubCodeReaderFactory;
-import cmdline.stubs.StubScannerInfo;
 
 import cfa.CFABuilder;
 import cfa.CFATopologicalSort;
@@ -38,6 +26,9 @@ import cfa.objectmodel.c.FunctionCallEdge;
 import cfa.objectmodel.c.FunctionDefinitionNode;
 import cfa.objectmodel.c.ReturnEdge;
 import cfa.objectmodel.c.StatementEdge;
+import cpa.common.CParser;
+import cpa.common.LogManager;
+import cpa.common.CParser.Dialect;
 import fllesh.cpa.edgevisit.Annotations;
 import fllesh.fql.fllesh.util.CFATraversal;
 import fllesh.fql.fllesh.util.CFAVisitor;
@@ -218,18 +209,10 @@ public class Wrapper {
   
   private Map<String, CFAFunctionDefinitionNode> getWrapper(FunctionDefinitionNode pMainFunction) {
     String lWrapperFunction = getWrapperCFunction(pMainFunction);
-    
-    CodeReader reader = new CodeReader(lWrapperFunction.toCharArray());
-    
-    IScannerInfo scannerInfo = StubScannerInfo.getInstance();
-    ICodeReaderFactory codeReaderFactory = new StubCodeReaderFactory();
-    IParserLogService parserLog = ParserFactory.createDefaultLogService();
-
-    ILanguage lang = new CLanguage("C99");
 
     IASTTranslationUnit ast;
     try {
-       ast = lang.getASTTranslationUnit(reader, scannerInfo, codeReaderFactory, null, parserLog);
+       ast = CParser.parseString(lWrapperFunction, Dialect.C99);
     } catch (CoreException e) {
       throw new RuntimeException("Error during parsing C code \""
           + lWrapperFunction.toString() + "\": " + e.getMessage());

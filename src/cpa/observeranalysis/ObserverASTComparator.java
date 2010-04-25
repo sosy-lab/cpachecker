@@ -4,7 +4,6 @@ import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.eclipse.cdt.core.dom.ICodeReaderFactory;
 import org.eclipse.cdt.core.dom.ast.IASTCompoundStatement;
 import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTExpressionStatement;
@@ -16,18 +15,12 @@ import org.eclipse.cdt.core.dom.ast.IASTNode;
 import org.eclipse.cdt.core.dom.ast.IASTProblem;
 import org.eclipse.cdt.core.dom.ast.IASTStatement;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
-import org.eclipse.cdt.core.model.ILanguage;
-import org.eclipse.cdt.core.parser.CodeReader;
-import org.eclipse.cdt.core.parser.IParserLogService;
-import org.eclipse.cdt.core.parser.IScannerInfo;
-import org.eclipse.cdt.core.parser.ParserFactory;
 import org.eclipse.core.runtime.CoreException;
 
-import cmdline.stubs.CLanguage;
-import cmdline.stubs.StubCodeReaderFactory;
-import cmdline.stubs.StubScannerInfo;
-
 import com.google.common.base.Preconditions;
+
+import cpa.common.CParser;
+import cpa.common.CParser.Dialect;
 
 /**
  * Provides methods for generating, comparing and printing the ASTs generated from String.
@@ -221,17 +214,9 @@ public class ObserverASTComparator {
    * @throws InvalidAutomatonException 
    */
   private static IASTTranslationUnit parse(String code) throws InvalidAutomatonException {
-    CodeReader reader = new CodeReader(code.toCharArray());
-
-    IScannerInfo scannerInfo = StubScannerInfo.getInstance();
-    ICodeReaderFactory codeReaderFactory = new StubCodeReaderFactory();
-    IParserLogService parserLog = ParserFactory.createDefaultLogService();
-
-    ILanguage lang = new CLanguage("C99");
-
     IASTTranslationUnit ast;
     try {
-       ast = lang.getASTTranslationUnit(reader, scannerInfo, codeReaderFactory, null, parserLog);
+      ast = CParser.parseString(code, Dialect.C99);
     } catch (CoreException e) {
       throw new InvalidAutomatonException("Error during parsing C code \""
           + code + "\": " + e.getMessage());

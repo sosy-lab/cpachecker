@@ -31,15 +31,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.eclipse.cdt.core.dom.ICodeReaderFactory;
 import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
-import org.eclipse.cdt.core.model.ILanguage;
-import org.eclipse.cdt.core.parser.CodeReader;
-import org.eclipse.cdt.core.parser.IParserLogService;
-import org.eclipse.cdt.core.parser.IScannerInfo;
-import org.eclipse.cdt.core.parser.ParserFactory;
 import org.eclipse.core.runtime.CoreException;
 
 import cfa.CFABuilder;
@@ -54,9 +48,6 @@ import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cfa.objectmodel.CFANode;
 import cfa.objectmodel.c.GlobalDeclarationEdge;
-import cmdline.stubs.CLanguage;
-import cmdline.stubs.StubCodeReaderFactory;
-import cmdline.stubs.StubScannerInfo;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
@@ -66,6 +57,7 @@ import common.configuration.Option;
 import common.configuration.Options;
 
 import cpa.common.CPAcheckerResult.Result;
+import cpa.common.CParser.Dialect;
 import cpa.common.algorithm.Algorithm;
 import cpa.common.algorithm.AssumptionCollectionAlgorithm;
 import cpa.common.algorithm.CBMCAlgorithm;
@@ -85,8 +77,8 @@ public class CPAchecker {
   @Options
   private static class CPAcheckerOptions {
 
-    @Option(name="parser.dialect", toUppercase=true, values={"C99", "GNUC"})
-    String parserDialect = "GNUC";
+    @Option(name="parser.dialect")
+    Dialect parserDialect = Dialect.GNUC;
 
     // CFA creation and initialization options
     
@@ -256,24 +248,15 @@ public class CPAchecker {
   
   /**
    * Parse the content of a file into an AST with the Eclipse CDT parser.
-   * If an error occurs, the program is halted.
    * 
    * @param fileName  The file to parse.
    * @return The AST.
    * @throws IOException If file cannot be read.
    * @throws CoreException If Eclipse C parser throws an exception.
    */
-  public IASTTranslationUnit parse(String filename) throws IOException, CoreException {
+  protected IASTTranslationUnit parse(String filename) throws IOException, CoreException {
     logger.log(Level.FINE, "Starting parsing of file");
-    CodeReader reader = new CodeReader(filename);
-
-    IScannerInfo scannerInfo = StubScannerInfo.getInstance();
-    ICodeReaderFactory codeReaderFactory = new StubCodeReaderFactory();
-    IParserLogService parserLog = ParserFactory.createDefaultLogService();
-
-    ILanguage lang = new CLanguage(options.parserDialect);
-
-    IASTTranslationUnit ast = lang.getASTTranslationUnit(reader, scannerInfo, codeReaderFactory, null, parserLog);
+    IASTTranslationUnit ast = CParser.parseFile(filename, options.parserDialect);
     logger.log(Level.FINE, "Parser Finished");
     return ast;  
   }
