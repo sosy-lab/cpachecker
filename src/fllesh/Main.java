@@ -6,7 +6,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -15,38 +14,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.eclipse.cdt.core.dom.ICodeReaderFactory;
-import org.eclipse.cdt.core.dom.ast.IASTExpression;
-import org.eclipse.cdt.core.dom.ast.IASTExpressionList;
-import org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression;
-import org.eclipse.cdt.core.dom.ast.IASTNode;
-import org.eclipse.cdt.core.dom.ast.IASTParameterDeclaration;
-import org.eclipse.cdt.core.dom.ast.IASTProblem;
-import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
-import org.eclipse.cdt.core.model.ILanguage;
-import org.eclipse.cdt.core.parser.CodeReader;
-import org.eclipse.cdt.core.parser.IParserLogService;
-import org.eclipse.cdt.core.parser.IScannerInfo;
-import org.eclipse.cdt.core.parser.ParserFactory;
-import org.eclipse.core.runtime.CoreException;
-
-import cmdline.stubs.CLanguage;
-import cmdline.stubs.StubCodeReaderFactory;
-import cmdline.stubs.StubScannerInfo;
-
 import com.google.common.base.Joiner;
 
-import cfa.CFABuilder;
-import cfa.CFATopologicalSort;
-import cfa.DOTBuilder;
-import cfa.objectmodel.CFAEdge;
 import cfa.objectmodel.CFAFunctionDefinitionNode;
-import cfa.objectmodel.CFANode;
-import cfa.objectmodel.c.CallToReturnEdge;
-import cfa.objectmodel.c.FunctionCallEdge;
 import cfa.objectmodel.c.FunctionDefinitionNode;
-import cfa.objectmodel.c.ReturnEdge;
-import cfa.objectmodel.c.StatementEdge;
 
 import common.configuration.Configuration;
 import compositeCPA.CompositeCPA;
@@ -68,11 +39,8 @@ import cpa.observeranalysis.ObserverAutomatonCPA;
 import cpa.symbpredabsCPA.SymbPredAbsCPA;
 import exceptions.CPAException;
 import fllesh.cpa.edgevisit.EdgeVisitCPA;
-import fllesh.ecp.reduced.ObserverAutomatonCreator;
 import fllesh.ecp.reduced.ObserverAutomatonTranslator;
 import fllesh.ecp.reduced.Pattern;
-import fllesh.fql.fllesh.util.CFATraversal;
-import fllesh.fql.fllesh.util.CFAVisitor;
 import fllesh.fql.fllesh.util.CPAchecker;
 import fllesh.fql.fllesh.util.Cilly;
 import fllesh.fql.frontend.ast.filter.FunctionCall;
@@ -232,7 +200,7 @@ public class Main {
     
     // TODO: for every test goal (i.e., pattern) create an automaton and check reachability
     
-    
+    // TODO: was sind die Parameter, die an eine TestInputGen-Funktion ab hier übergeben werden müssten?
     
     File lAutomatonFile = File.createTempFile("fllesh.", ".oa");
     lAutomatonFile.deleteOnExit();

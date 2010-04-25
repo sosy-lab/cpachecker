@@ -54,13 +54,14 @@ public class Wrapper {
     private CFAEdge mAlphaEdge;
     private CFAEdge mOmegaEdge;
     private CFAEdge mAlphaToOmegaEdge;
-    private Map<String, CFAFunctionDefinitionNode> mCFAs;
+    //private Map<String, CFAFunctionDefinitionNode> mCFAs;
     
     private Set<CFAEdge> mCFAEdges;
     
-    private AddFunctionCallVisitor(Map<String, CFAFunctionDefinitionNode> pCFAs) {
+    //private AddFunctionCallVisitor(Map<String, CFAFunctionDefinitionNode> pCFAs) {
+    private AddFunctionCallVisitor() {
       mCFAEdges = new HashSet<CFAEdge>();
-      mCFAs = pCFAs;
+      //mCFAs = pCFAs;
     }
     
     public CFAEdge getAlphaEdge() {
@@ -151,7 +152,8 @@ public class Wrapper {
     CFATraversal.traverse(mEntry, Wrapper.FunctionNameSetter.getInstance());
     
     // correct call to main function
-    mVisitor = new AddFunctionCallVisitor(this.getCFAs());
+    //mVisitor = new AddFunctionCallVisitor(this.getCFAs());
+    mVisitor = new AddFunctionCallVisitor();
     
     CFATraversal.traverse(mEntry, mVisitor);
     
@@ -159,7 +161,6 @@ public class Wrapper {
       pAnnotations.getId(lEdge);
     }
     
-    // TODO remove this output code
     //DOTBuilder dotBuilder = new DOTBuilder();
     //dotBuilder.generateDOT(lCPAchecker.getCFAMap().values(), lMainFunction, new File("/tmp/mycfa.dot"));
     
