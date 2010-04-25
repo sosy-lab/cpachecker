@@ -16,8 +16,7 @@ Export-Package: .,
  cfa;uses:="cfa.objectmodel,org.eclipse.cdt.core.dom.ast",
  cfa.objectmodel;uses:="cfa.objectmodel.c",
  cfa.objectmodel.c;uses:="cfa.objectmodel,org.eclipse.cdt.core.dom.ast,cpa.common.interfaces",
- cmdline;uses:="cpaplugin,org.eclipse.cdt.core.dom.ast",
- cmdline.stubs;
+ cmdline;
   uses:="org.eclipse.core.runtime,
    org.eclipse.cdt.core.model,
    org.eclipse.core.runtime.jobs,
