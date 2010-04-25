@@ -161,17 +161,6 @@ public class Main {
     return null;
   }
   
-  private static void checkForASTProblems(IASTNode pAST) {
-    if (pAST instanceof IASTProblem) {
-      throw new RuntimeException("Error during parsing C code \""
-          + pAST.getRawSignature() + "\": " + ((IASTProblem)pAST).getMessage());
-    } else {
-      for (IASTNode n : pAST.getChildren()) {
-        checkForASTProblems(n);
-      }
-    }
-  }
-  
   /**
    * @param pArguments
    * @throws Exception 
@@ -235,197 +224,11 @@ public class Main {
     System.out.println(lTestGoal);
     
     
-    
     /** Generating a wrapper start up method */
+    Wrapper lWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCPAchecker.getCFAMap(), lCoverageSpecificationTranslator.getAnnotations(),lLogManager);
     
-    StringWriter lWrapperFunction = new StringWriter();
-    PrintWriter lWriter = new PrintWriter(lWrapperFunction);
-    
-    FunctionDefinitionNode lMain = (FunctionDefinitionNode)lMainFunction;
-    
-    //lWriter.println("void " + lMain.getFunctionDefinition().getDeclarator().getRawSignature() + ";");
-    //lWriter.println();
-    
-    lWriter.println("void __FLLESH__main()");
-    lWriter.println("{");
-        
-    for (IASTParameterDeclaration lDeclaration : lMain.getFunctionParameters()) {
-      lWriter.println("  " + lDeclaration.getRawSignature() + ";");
-    }
-    
-    lWriter.println();
-    lWriter.print("  " + lMainFunction.getFunctionName() + "(");
-
-    boolean isFirst = true;
-    
-    for (IASTParameterDeclaration lDeclaration : lMain.getFunctionParameters()) {
-      if (isFirst) {
-        isFirst = false;
-      }
-      else {
-        lWriter.print(", ");
-      }
-      
-      lWriter.print(lDeclaration.getDeclarator().getName());
-    }
-    
-    lWriter.println(");");
-    lWriter.println("  return;");
-    lWriter.println("}");
-    
-
-    System.out.println(lWrapperFunction);
-    
-    
-    CodeReader reader = new CodeReader(lWrapperFunction.toString().toCharArray());
-    
-    IScannerInfo scannerInfo = StubScannerInfo.getInstance();
-    ICodeReaderFactory codeReaderFactory = new StubCodeReaderFactory();
-    IParserLogService parserLog = ParserFactory.createDefaultLogService();
-
-    ILanguage lang = new CLanguage("C99");
-
-    IASTTranslationUnit ast;
-    try {
-       ast = lang.getASTTranslationUnit(reader, scannerInfo, codeReaderFactory, null, parserLog);
-    } catch (CoreException e) {
-      throw new RuntimeException("Error during parsing C code \""
-          + lWrapperFunction.toString() + "\": " + e.getMessage());
-    }
-    
-    Main.checkForASTProblems(ast);
-    
-    CFABuilder lCFABuilder = new CFABuilder(lLogManager);
-    
-    ast.accept(lCFABuilder);
-    
-    Map<String, CFAFunctionDefinitionNode> cfas = lCFABuilder.getCFAs();
-    
-    // annotate CFA nodes with topological information for later use
-    for(CFAFunctionDefinitionNode cfa : cfas.values()){
-      CFATopologicalSort topSort = new CFATopologicalSort();
-      topSort.topologicalSort(cfa);
-    }
-    
-    CFAFunctionDefinitionNode lWrapperEntry = cfas.get("__FLLESH__main");
-    
-    
-    
-    
-    final Map<String, CFAFunctionDefinitionNode> lAllCFAs = new HashMap<String, CFAFunctionDefinitionNode>();
-    lAllCFAs.putAll(cfas);
-    lAllCFAs.putAll(lCPAchecker.getCFAMap());
-    
-    CFAVisitor lVisitor = new CFAVisitor() {
-
-      private String mFunctionName;
-      
-      @Override
-      public void init(CFANode pInitialNode) {
-        mFunctionName = pInitialNode.getFunctionName();
-      }
-
-      @Override
-      public void visit(CFAEdge pP) {
-        pP.getSuccessor().setFunctionName(mFunctionName);
-      }
-      
-    };
-    
-    // set function names
-    CFATraversal.traverse(lWrapperEntry, lVisitor);
-    
-    // correct call to main function
-    CFAVisitor lVisitor2 = new CFAVisitor() {
-
-      private CFAEdge mAlphaEdge;
-      private CFAEdge mOmegaEdge;
-      private CFAEdge mAlphaToOmegaEdge;
-      
-      public CFAEdge getAlphaEdge() {
-        return mAlphaEdge;
-      }
-      
-      public CFAEdge getOmegaEdge() {
-        return mOmegaEdge;
-      }
-      
-      @Override
-      public void init(CFANode pInitialNode) {
-      
-      }
-
-      @Override
-      public void visit(CFAEdge pP) {
-        if (pP instanceof StatementEdge) {
-          IASTExpression expr = ((StatementEdge)pP).getExpression();
-          
-          if (expr instanceof IASTFunctionCallExpression) {
-            createCallAndReturnEdges(pP.getPredecessor(), pP.getSuccessor(), pP, expr, (IASTFunctionCallExpression)expr);
-            
-            lCoverageSpecificationTranslator.getAnnotations().getId(mAlphaEdge);
-            lCoverageSpecificationTranslator.getAnnotations().getId(mOmegaEdge);
-            lCoverageSpecificationTranslator.getAnnotations().getId(mAlphaToOmegaEdge);
-          }
-                    
-        }
-        else {
-          lCoverageSpecificationTranslator.getAnnotations().getId(pP);          
-        }
-      }
-      
-      private void createCallAndReturnEdges(CFANode node, CFANode successorNode, CFAEdge edge, IASTExpression expr, IASTFunctionCallExpression functionCall) {
-        String functionName = functionCall.getFunctionNameExpression().getRawSignature();
-        CFAFunctionDefinitionNode fDefNode = lAllCFAs.get(functionName);
-
-        //get the parameter expression
-        IASTExpression parameterExpression = functionCall.getParameterExpression();
-        IASTExpression[] parameters = null;
-        //in case of an expression list, get the corresponding array 
-        if (parameterExpression instanceof IASTExpressionList) {
-          IASTExpressionList paramList = (IASTExpressionList)parameterExpression;
-          parameters = paramList.getExpressions();
-        //in case of a single parameter, use a single-entry array
-        } else if (parameterExpression != null) {
-          parameters = new IASTExpression[] {parameterExpression};
-        }
-        FunctionCallEdge callEdge;
-        
-        callEdge = new FunctionCallEdge(functionCall, edge.getLineNumber(), node, fDefNode, parameters, false);
-        callEdge.addToCFA();
-        mAlphaEdge = callEdge;
-        
-        // set name of the function
-        fDefNode.setFunctionName(functionName);
-        // set return edge from exit node of the function
-        ReturnEdge returnEdge = new ReturnEdge("Return Edge to " + successorNode.getNodeNumber(), edge.getLineNumber(), lAllCFAs.get(functionName).getExitNode(), successorNode);
-        returnEdge.addToCFA();
-        returnEdge.getSuccessor().setFunctionName(node.getFunctionName());
-        
-        mOmegaEdge = returnEdge;
-
-        CallToReturnEdge calltoReturnEdge = new CallToReturnEdge(expr.getRawSignature(), edge.getLineNumber(), node, successorNode, expr);
-        calltoReturnEdge.addToCFA();
-        
-        mAlphaToOmegaEdge = calltoReturnEdge;
-
-        node.removeLeavingEdge(edge);
-        successorNode.removeEnteringEdge(edge);
-      }
-      
-    };
-    
-    CFATraversal.traverse(lWrapperEntry, lVisitor2);
-    
-    //DOTBuilder lDOTBuilder = new DOTBuilder();
-    //lDOTBuilder.generateDOT(lAllCFAs.values(), lWrapperEntry, new File("/tmp/wrapper.dot"));
-    
-    /** wrapper end */
-    
-    String lAlphaId = "E4";
-    String lOmegaId = "E5";
-
-    
+    String lAlphaId = lCoverageSpecificationTranslator.getAnnotations().getId(lWrapper.getAlphaEdge());
+    String lOmegaId = lCoverageSpecificationTranslator.getAnnotations().getId(lWrapper.getOmegaEdge());
     
     // TODO: for every test goal (i.e., pattern) create an automaton and check reachability
     
@@ -438,11 +241,6 @@ public class Main {
     lObserverAutomaton.println(ObserverAutomatonTranslator.translate(lTestGoal, "Goal", lAlphaId, lOmegaId));
     lObserverAutomaton.close();
     
-    
-    
-    // TODO remove this output code
-    //DOTBuilder dotBuilder = new DOTBuilder();
-    //dotBuilder.generateDOT(lCPAchecker.getCFAMap().values(), lMainFunction, new File("/tmp/mycfa.dot"));
     
     
     
@@ -496,8 +294,8 @@ public class Main {
     lStatistics.add(lARTStatistics);
     lAlgorithm.collectStatistics(lStatistics);
     
-    AbstractElement initialElement = lARTCPA.getInitialElement(lWrapperEntry);
-    Precision initialPrecision = lARTCPA.getInitialPrecision(lWrapperEntry);
+    AbstractElement initialElement = lARTCPA.getInitialElement(lWrapper.getEntry());
+    Precision initialPrecision = lARTCPA.getInitialPrecision(lWrapper.getEntry());
           
     ReachedElements lReachedElements = new ReachedElements(ReachedElements.TraversalMethod.TOPSORT, true);
     lReachedElements.add(initialElement, initialPrecision);
