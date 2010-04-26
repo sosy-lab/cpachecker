@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -27,10 +27,10 @@ import org.sosy_lab.cpachecker.core.ReachedElements;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public interface Refiner {
-  
+
   /**
    * Perform refinement, if possible.
-   * 
+   *
    * @param pReached The reached set.
    * @return Whether the refinement was successful.
    * @throws CPAException If an error occured during refinement.

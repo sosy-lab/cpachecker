@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -68,7 +68,7 @@ import org.sosy_lab.cpachecker.util.CParser.Dialect;
 public class CPASelfCheck {
 
   private static LogManager logManager;
-  
+
   /**
    * @param args
    */
@@ -89,41 +89,41 @@ public class CPASelfCheck {
       System.err.println("Invalid configuration: " + e.getMessage());
       System.exit(1);
     }
-    
+
     CPAchecker cpachecker = null;
     try {
       cpachecker = new CPAchecker(cpaConfig, logManager);
     } catch (InvalidConfigurationException e) {
       logManager.log(Level.SEVERE, "Invalid configuration:", e.getMessage());
     }
-    
+
     try {
       logManager.log(Level.INFO, "Searching for CPAs");
       LinkedList<Class<ConfigurableProgramAnalysis>> cpas = getCPAs();
-      
+
       for (Class<ConfigurableProgramAnalysis> cpa : cpas) {
         logManager.log(Level.INFO, "Checking " + cpa.getCanonicalName() + " ...");
         ConfigurableProgramAnalysis cpaInst = null;
         try {
           cpaInst = tryToInstantiate(cpa);
         } catch (InvocationTargetException e) {
-          logManager.logException(Level.WARNING, e, 
+          logManager.logException(Level.WARNING, e,
               "Instantiating " + cpa.getCanonicalName() + " failed!");
           continue;
         } catch (NoSuchMethodException e) {
-          logManager.logException(Level.WARNING, e, 
-              "Instantiating " + cpa.getCanonicalName() + 
+          logManager.logException(Level.WARNING, e,
+              "Instantiating " + cpa.getCanonicalName() +
               " failed: no (String, String) constructor!");
           continue;
         }
         assert(cpaInst != null);
-        
+
         CFAFunctionDefinitionNode main = createCFA(cpachecker, logManager);
-       
+
         try {
           cpaInst.getInitialElement(main);
         } catch (Exception e) {
-          logManager.logException(Level.WARNING, e, 
+          logManager.logException(Level.WARNING, e,
               "Getting initial element failed!");
           continue;
         }
@@ -147,7 +147,7 @@ public class CPASelfCheck {
       logManager.logException(Level.WARNING, e, "");
     }
   }
-  
+
   private static CFAFunctionDefinitionNode createCFA(CPAchecker cpachecker, LogManager logManager) throws IOException, CoreException {
     String code =
 "int main() {\n" +
@@ -173,7 +173,7 @@ public class CPASelfCheck {
 
     return ct.newInstance(argumentlist);
   }
-  
+
   private static boolean ensure(boolean pB, String pString) {
     if (!pB) {
       logManager.log(Level.WARNING, pString);
@@ -182,12 +182,12 @@ public class CPASelfCheck {
     }
     return true;
   }
-  
+
   private static boolean checkSingletonBottomTop(Class<ConfigurableProgramAnalysis> pCpa, ConfigurableProgramAnalysis pCpaInst, CFAFunctionDefinitionNode pMain) throws NoSuchMethodException, IllegalArgumentException, InstantiationException, IllegalAccessException, InvocationTargetException {
     Constructor<ConfigurableProgramAnalysis> ct = pCpa.getConstructor(String.class, String.class);
     Object argumentlist[] = {"sep", "sep"};
     ConfigurableProgramAnalysis inst2 = ct.newInstance(argumentlist);
-    
+
     // maybe use equals, but elements should really be static
     boolean ok = true;
     ok &= ensure(pCpaInst.getAbstractDomain().getBottomElement() == inst2.getAbstractDomain().getBottomElement(),
@@ -201,13 +201,13 @@ public class CPASelfCheck {
     PartialOrder le = pCpaInst.getAbstractDomain().getPartialOrder();
     AbstractElement bottom = pCpaInst.getAbstractDomain().getBottomElement();
     AbstractElement top = pCpaInst.getAbstractDomain().getBottomElement();
-    
+
     boolean ok = true;
     ok &= ensure(le.satisfiesPartialOrder(bottom, top), "Bottom is not less or equal to top!");
     ok &= ensure(!le.satisfiesPartialOrder(top, bottom), "Top is less or equal to bottom!");
     return ok;
   }
-  
+
 
   private static boolean checkInitialElementInLattice(
                                                    Class<ConfigurableProgramAnalysis> pCpa,
@@ -216,7 +216,7 @@ public class CPASelfCheck {
     AbstractElement bottom = pCpaInst.getAbstractDomain().getBottomElement();
     AbstractElement top = pCpaInst.getAbstractDomain().getBottomElement();
     AbstractElement initial = pCpaInst.getInitialElement(pMain);
-    
+
     boolean ok = true;
     ok &= ensure(le.satisfiesPartialOrder(bottom, initial), "Initial element is not greater or equal bottom!");
     ok &= ensure(le.satisfiesPartialOrder(initial, top), "Initial element is not less or equal top!");
@@ -229,7 +229,7 @@ public class CPASelfCheck {
     JoinOperator join = pCpaInst.getAbstractDomain().getJoinOperator();
     AbstractElement top = pCpaInst.getAbstractDomain().getBottomElement();
     AbstractElement initial = pCpaInst.getInitialElement(pMain);
-    
+
     boolean ok = true;
     ok &= ensure(le.satisfiesPartialOrder(initial, join.join(initial,initial)),
         "Join of same elements is unsound!");
@@ -243,7 +243,7 @@ public class CPASelfCheck {
     MergeOperator merge = pCpaInst.getMergeOperator();
     AbstractElement initial = pCpaInst.getInitialElement(pMain);
     Precision initialPrec = pCpaInst.getInitialPrecision(pMain);
-    
+
     boolean ok = true;
     ok &= ensure(merge != null, "Merge-hack: mergeOperator is null!");
     if (!ok) return false;
@@ -251,7 +251,7 @@ public class CPASelfCheck {
         "Merging same elements was unsound!");
     return ok;
   }
-  
+
 
   private static boolean checkStopEmptyReached(
                                             Class<ConfigurableProgramAnalysis> pCpa,
@@ -260,12 +260,12 @@ public class CPASelfCheck {
     HashSet<AbstractElement> reached = new HashSet<AbstractElement>();
     AbstractElement initial = pCpaInst.getInitialElement(pMain);
     Precision initialPrec = pCpaInst.getInitialPrecision(pMain);
-    
+
     boolean ok = true;
     ok &= ensure(!stop.stop(initial, reached, initialPrec), "Stopped on empty set!");
     return ok;
   }
-  
+
   private static boolean checkStopReached(Class<ConfigurableProgramAnalysis> pCpa,
                                        ConfigurableProgramAnalysis pCpaInst, CFAFunctionDefinitionNode pMain) throws CPAException {
     StopOperator stop = pCpaInst.getStopOperator();
@@ -273,7 +273,7 @@ public class CPASelfCheck {
     AbstractElement initial = pCpaInst.getInitialElement(pMain);
     reached.add(initial);
     Precision initialPrec = pCpaInst.getInitialPrecision(pMain);
-    
+
     boolean ok = true;
     ok &= ensure(stop.stop(initial, reached, initialPrec), "Did not stop on same element!");
     return ok;
@@ -282,19 +282,19 @@ public class CPASelfCheck {
   @SuppressWarnings("unchecked")
   private static LinkedList<Class<ConfigurableProgramAnalysis>> getCPAs() throws ClassNotFoundException, IOException {
     Class[] cpaCandidates = getClasses("cpa");
-    
+
     HashMap<Class,HashSet<String>> transitiveInterfaces = new HashMap<Class,HashSet<String>>();
     LinkedList<Class> waitlist = new LinkedList<Class>();
-    
+
     for (Class cl : cpaCandidates) {
       waitlist.add(cl);
     }
-    
+
     while (!waitlist.isEmpty()) {
       Class cl = waitlist.poll();
       boolean allParentInterfacesKnown = true;
       HashSet<String> allInterfaces = new HashSet<String>();
-      
+
       for (Class p : cl.getInterfaces()) {
         if (!p.getCanonicalName().startsWith("cpa.")) continue;
         allInterfaces.add(p.getCanonicalName());
@@ -322,13 +322,13 @@ public class CPASelfCheck {
         transitiveInterfaces.put(cl, allInterfaces);
       }
     }
-    
+
     LinkedList<Class<ConfigurableProgramAnalysis>> cpas = new LinkedList<Class<ConfigurableProgramAnalysis>>();
-    
+
     for(Map.Entry<Class, HashSet<String>> clEntry : transitiveInterfaces.entrySet()) {
       if (Modifier.isAbstract(clEntry.getKey().getModifiers()) ||
           Modifier.isInterface(clEntry.getKey().getModifiers())) continue;
-      
+
       if (clEntry.getValue().contains("org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis")) {
         cpas.add(clEntry.getKey());
       } /*else {
@@ -336,7 +336,7 @@ public class CPASelfCheck {
         System.out.println("Parents: " + clEntry.getValue());
       }*/
     }
-    
+
     return cpas;
   }
 
@@ -347,7 +347,7 @@ public class CPASelfCheck {
    * @return The classes
    * @throws ClassNotFoundException
    * @throws IOException
-   * 
+   *
    * taken from http://www.sourcesnippets.com/java-get-all-classes-within-a-package.html
    */
   @SuppressWarnings("unchecked")
@@ -376,7 +376,7 @@ public class CPASelfCheck {
    * @param packageName The package name for classes found inside the base directory
    * @return The classes
    * @throws ClassNotFoundException
-   * 
+   *
    * taken from http://www.sourcesnippets.com/java-get-all-classes-within-a-package.html
    */
   @SuppressWarnings("unchecked")

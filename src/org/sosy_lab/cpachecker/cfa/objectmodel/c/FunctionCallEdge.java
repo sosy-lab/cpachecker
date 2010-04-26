@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -57,7 +57,7 @@ public class FunctionCallEdge extends AbstractCFAEdge
   public IASTFunctionCallExpression getRawAST() {
     return rawAST;
   }
-    
+
 	public boolean isExternalCall() {
 		return this.isExternalCall;
 	}

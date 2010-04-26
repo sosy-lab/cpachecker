@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -39,14 +39,14 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 /**
  * Implementation of InvariantSymbolicFormulaManager based on
  * MathsatSymbolicFormulaManager. This is a singleton class.
- * 
+ *
  * @author g.theoduloz
  */
 public class MathsatInvariantSymbolicFormulaManager
   extends MathsatSymbolicFormulaManager
   implements AssumptionSymbolicFormulaManager
 {
-  
+
   /**
    * Dummy SSA map that always return 1 as index. Only used here
    * to circumvent the assumptions of MathsatSymbolicFormulaManager
@@ -58,23 +58,23 @@ public class MathsatInvariantSymbolicFormulaManager
     public int getIndex(String pName, SymbolicFormula[] pArgs) {
       return 1;
     }
-    
+
     @Override
     public int getIndex(String pVariable) {
       return 1;
     }
-    
+
     @Override
     public void setIndex(String pName, SymbolicFormula[] pArgs, int pIdx) {
     }
-    
+
     @Override
     public void setIndex(String pVariable, int pIdx) {
     }
   }
-  
+
   private static MathsatInvariantSymbolicFormulaManager instance = null;
-  
+
   // TODO Ugly, probably better to remove singleton pattern here.
   public static MathsatInvariantSymbolicFormulaManager createInstance(
         Configuration config, LogManager logger) throws InvalidConfigurationException {
@@ -83,14 +83,14 @@ public class MathsatInvariantSymbolicFormulaManager
     }
     return instance;
   }
-  
+
   /**
    * Return the singleton instance for this class.
    * {@link #createInstance()} has to be called before at least once.
    */
   public static MathsatInvariantSymbolicFormulaManager getInstance() {
     assert instance != null;
-    
+
     return instance;
   }
 
@@ -100,14 +100,14 @@ public class MathsatInvariantSymbolicFormulaManager
   private MathsatInvariantSymbolicFormulaManager(Configuration config, LogManager logger) throws InvalidConfigurationException {
     super(config, logger);
   }
-  
-  private final SSAMap dummySSAMap = new DummySSAMap(); 
+
+  private final SSAMap dummySSAMap = new DummySSAMap();
 
   public SymbolicFormula buildSymbolicFormula(IASTExpression p)
   {
     return buildSymbolicFormula(p, true);
   }
-  
+
   private SymbolicFormula buildSymbolicFormula(IASTExpression p, boolean sign)
   {
     // first, check whether we have &&, ||, or !
@@ -138,12 +138,12 @@ public class MathsatInvariantSymbolicFormulaManager
       if (unop.getOperator() == IASTUnaryExpression.op_not)
         return buildSymbolicFormula(unop.getOperand(), !sign);
     }
-    
-    // atomic formula    
+
+    // atomic formula
     SymbolicFormula ssaFormula = buildFormulaPredicate(p, sign, dummySSAMap);
     return uninstantiate(ssaFormula);
   }
-  
+
   @Override
   public SymbolicFormula makeAnd(SymbolicFormula f, IASTExpression p) {
     return makeAnd(f, buildSymbolicFormula(p));

@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -36,7 +36,7 @@ public class CBMCStackElement {
   private boolean condition;
   // this is the code of this element
   private List<Object> codeList;
-  
+
   public CBMCStackElement(int pElementId, String pFunctionName){
     elementId = pElementId;
     codeList = new ArrayList<Object>();
@@ -95,7 +95,7 @@ public class CBMCStackElement {
     return ret;
 
   }
-  
+
   @Override
   public String toString() {
     return "Element id: " + elementId + " Condition: " + condition;

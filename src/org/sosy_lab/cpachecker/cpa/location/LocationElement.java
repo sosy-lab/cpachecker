@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -46,14 +46,14 @@ public class LocationElement implements AbstractElementWithLocation, AbstractQue
     public boolean isError() {
       return false;
     }
-    
+
     @Override
     public boolean equals (Object other)
     {
       if (other == null) {
         return false;
       }
-      
+
       if (!(other instanceof LocationElement)) {
         return false;
       }
@@ -66,7 +66,7 @@ public class LocationElement implements AbstractElementWithLocation, AbstractQue
           assert(false);
         }
       }
-      
+
         return locationNode.getNodeNumber () == ((LocationElement)other).locationNode.getNodeNumber ();
     }
 
@@ -84,7 +84,7 @@ public class LocationElement implements AbstractElementWithLocation, AbstractQue
     @Override
     public boolean checkProperty(String pProperty) throws InvalidQueryException {
       String[] parts = pProperty.split("==");
-      if (parts.length != 2) 
+      if (parts.length != 2)
         throw new InvalidQueryException("The Query \"" + pProperty + "\" is invalid. Could not split the property string correctly.");
       else {
         if (parts[0].toLowerCase().equals("line")) {

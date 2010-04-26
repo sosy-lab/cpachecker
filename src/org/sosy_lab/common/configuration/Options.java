@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -40,5 +40,5 @@ public @interface Options {
    * with this type. Prefix and name of the option will be separated by a dot.
    */
   public String prefix() default "";
-  
+
 }

@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -101,10 +101,10 @@ public class CFABuilder extends ASTVisitor
 	private List<IASTDeclaration> globalDeclarations;
 
 	private final LogManager logger;
-	
+
 	public CFABuilder (LogManager logger) {
 	  this.logger = logger;
-	  
+
 		//shouldVisitComments = false;
 		shouldVisitDeclarations = true;
 		shouldVisitDeclarators = false;
@@ -196,32 +196,32 @@ public class CFABuilder extends ASTVisitor
 			CFANode functionStartDummyNode = new CFANode(fileloc.getStartingLineNumber ());
 			BlankEdge dummyEdge = new BlankEdge("Function start dummy edge", fileloc.getStartingLineNumber(), newCFA, functionStartDummyNode);
 			dummyEdge.addToCFA();
-			
+
 			locStack.add (functionStartDummyNode);
 			cfas.put(nameOfFunction, newCFA);
 
 			returnNode = new CFAExitNode (fileloc.getEndingLineNumber (), nameOfFunction);
 			newCFA.setExitNode(returnNode);
-		
+
 		} else if (declaration instanceof IASTProblemDeclaration) {
 		  // CDT parser struggles on GCC's __attribute__((something)) constructs because we use C99 as default
 		  // Either insert the following macro before compiling with CIL:
 		  // #define  __attribute__(x)  /*NOTHING*/
 		  // or insert "parser.dialect = GNUC" into properties file
 		  visit(((IASTProblemDeclaration)declaration).getProblem());
-		  
+
 		} else if (declaration instanceof IASTASMDeclaration) {
 		  // TODO Assembler code is ignored here
 		  logger.log(Level.WARNING, "Ignoring inline assembler code at line " + fileloc.getStartingLineNumber() + ", analysis is probably unsound!");
-		  
+
 		  CFANode prevNode = locStack.pop();
 		  CFANode nextNode = new CFANode(fileloc.getStartingLineNumber());
-		  
+
 		  BlankEdge edge = new BlankEdge("Ignored inline assembler code", fileloc.getStartingLineNumber(), prevNode, nextNode);
 		  edge.addToCFA();
-		  
+
 		  locStack.push(nextNode);
-		  
+
 		} else {
       throw new CFAGenerationRuntimeException("Unknown declaration type " + declaration.getClass().getSimpleName(),  declaration);
 		}
@@ -525,7 +525,7 @@ public class CFABuilder extends ASTVisitor
 		edge.addToCFA();
 	}
 
-/* switch statements are removed by CIL, also CFA would have been wrong	
+/* switch statements are removed by CIL, also CFA would have been wrong
 	private void handleSwitchStatement (IASTSwitchStatement switchStatement, IASTFileLocation fileloc)
 	{
 		CFANode prevNode = locStack.pop ();

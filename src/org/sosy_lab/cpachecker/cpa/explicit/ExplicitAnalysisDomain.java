@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -41,7 +41,7 @@ public class ExplicitAnalysisDomain implements AbstractDomain {
     }
   }
 
-  private static class ExplicitAnalysisTopElement extends ExplicitAnalysisElement 
+  private static class ExplicitAnalysisTopElement extends ExplicitAnalysisElement
   {
     @Override
     public String toString() {
@@ -63,7 +63,7 @@ public class ExplicitAnalysisDomain implements AbstractDomain {
 //      SystemSystem.out.println.out.println(explicitAnalysisElementReached);
 //      System.out.println("===============");
 //      System.exit(0);
-      
+
       if (explicitAnalysisElementNew == bottomElement) {
         return true;
       } else if (explicitAnalysisElementReached == topElement) {
@@ -109,12 +109,12 @@ public class ExplicitAnalysisDomain implements AbstractDomain {
 
       Map<String, Integer> referencesMap1 = explicitAnalysisElement1.getNoOfReferences();
       Map<String, Integer> referencesMap2 = explicitAnalysisElement2.getNoOfReferences();
-      
+
       Map<String, Long> newConstantsMap = new HashMap<String, Long>();
       Map<String, Integer> newReferencesMap = new HashMap<String, Integer>();
-      
+
       newReferencesMap.putAll(referencesMap1);
-      
+
       for(String key:constantsMap2.keySet()){
         // if there is the same variable
         if(constantsMap1.containsKey(key)){

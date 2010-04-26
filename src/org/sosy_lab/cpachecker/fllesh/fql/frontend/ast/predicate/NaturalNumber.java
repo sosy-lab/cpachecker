@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -27,39 +27,39 @@ import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.ASTVisitor;
 
 public class NaturalNumber implements Term {
   private int mValue;
-  
+
   public NaturalNumber(int pValue) {
     mValue = pValue;
   }
-  
+
   public int getValue() {
     return mValue;
   }
-  
+
   @Override
   public boolean equals(Object pOther) {
     if (this == pOther) {
       return true;
     }
-    
+
     if (pOther == null) {
       return false;
     }
-    
+
     if (pOther.getClass() == this.getClass()) {
       NaturalNumber mOther = (NaturalNumber)pOther;
-      
+
       return (mValue == mOther.mValue);
     }
-    
+
     return false;
   }
-  
+
   @Override
   public int hashCode() {
     return mValue;
   }
-  
+
   @Override
   public String toString() {
     return "" + mValue;
@@ -68,8 +68,8 @@ public class NaturalNumber implements Term {
   @Override
   public <T> T accept(ASTVisitor<T> pVisitor) {
     assert(pVisitor != null);
-    
+
     return pVisitor.visit(this);
   }
-  
+
 }

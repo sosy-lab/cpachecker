@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -56,7 +56,7 @@ public class MathsatFormulaManager extends CommonFormulaManager {
 
         private AbstractFormula formula = amgr.makeFalse();
         private final Deque<AbstractFormula> cubes = new ArrayDeque<AbstractFormula>();
-        
+
         public AllSatCallback() { /* change visibility to public */ }
 
         // TODO rename getBDD to something like getResult
@@ -91,7 +91,7 @@ public class MathsatFormulaManager extends CommonFormulaManager {
             AbstractFormula m = amgr.makeTrue();
             for (SymbolicFormula f : model) {
                 long t = ((MathsatSymbolicFormula)f).getTerm();
-                
+
                 AbstractFormula v;
                 if (mathsat.api.msat_term_is_not(t) != 0) {
                     t = mathsat.api.msat_term_get_arg(t, 0);
@@ -130,7 +130,7 @@ public class MathsatFormulaManager extends CommonFormulaManager {
     @Override
     protected void collectVarNames(SymbolicFormula term, Set<String> vars,
         Set<Pair<String, SymbolicFormula[]>> lvals) {
-      
+
       Deque<Long> toProcess = new ArrayDeque<Long>();
       toProcess.push(((MathsatSymbolicFormula)term).getTerm());
       // TODO - this assumes the term is small! There is no memoizing yet!!
@@ -158,7 +158,7 @@ public class MathsatFormulaManager extends CommonFormulaManager {
           }
       }
     }
-  
+
     protected SymbolicFormula[] getInstantiatedAt(SymbolicFormula[] args,
             SSAMap ssa, Map<SymbolicFormula, SymbolicFormula> cache) {
         Stack<Long> toProcess = new Stack<Long>();

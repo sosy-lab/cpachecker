@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -40,7 +40,7 @@ public class UsedMemoryOutHeuristics
 {
   private final MemoryMXBean mxBean;
   private final long threshold;
-  
+
   public UsedMemoryOutHeuristics(Configuration config, LogManager logger) {
     mxBean = ManagementFactory.getMemoryMXBean();
     threshold = Long.parseLong(config.getProperty("threshold", "-1").trim());
@@ -70,7 +70,7 @@ public class UsedMemoryOutHeuristics
   public TrivialStopHeuristicsData processEdge(StopHeuristicsData pData, CFAEdge pEdge) {
     if (pData == TrivialStopHeuristicsData.BOTTOM)
       return TrivialStopHeuristicsData.BOTTOM;
-    
+
     long usedMemory = mxBean.getHeapMemoryUsage().getUsed();
     if (usedMemory > threshold)
       return TrivialStopHeuristicsData.BOTTOM;

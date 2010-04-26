@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -22,7 +22,7 @@
  *    http://cpachecker.sosy-lab.org
  */
 /**
- * 
+ *
  */
 package org.sosy_lab.cpachecker.util.automaton;
 
@@ -34,7 +34,7 @@ public interface Label<E> {
 
 	/*
 	 * @brief Checks whether e matches this label. Returns true if this is the case and false otherwise.
-	 * 
+	 *
 	 */
 	public boolean matches(E pE);
 }

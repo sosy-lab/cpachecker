@@ -4,24 +4,23 @@ AUTOMATON LockingAutomaton
 
 INITIAL STATE Init;
 
-STATE Init : 
+STATE Init :
   MATCH  { x = $?; } -> ERROR;
   MATCH [init\(\)] && MATCH "init()" &&  MATCH { init(); }  -> GOTO Unlocked;
   MATCH { lock($?); }  -> ERROR;
   MATCH { unlock($?); } -> ERROR;
   TRUE -> GOTO Init;
- 
-STATE Locked : 
+
+STATE Locked :
   MATCH  { x = $?; } -> GOTO Locked; // unnecessary line
   MATCH [init\(\)] &&  MATCH "init()" &&  MATCH { init(); }  ->  ERROR;
   MATCH { lock($?); }  ->  ERROR;
   MATCH { unlock($?); }  -> GOTO Unlocked;
   TRUE -> GOTO Locked;
- 
-STATE Unlocked : 
+
+STATE Unlocked :
   MATCH  { x = $?; } -> ERROR;
   MATCH [init\(\)] &&  MATCH "init()" &&  MATCH { init(); }  ->  ERROR;
   MATCH { lock($?); }  -> GOTO Locked;
   MATCH { unlock($?); }  -> ERROR;
   TRUE -> GOTO Unlocked;
- 

@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -38,24 +38,24 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
  * @author g.theoduloz
  */
 public class ReachedHeuristicsDataSetView {
-  
+
   private final UnmodifiableReachedElements underlying;
   private final Function<AbstractElement, StopHeuristicsData> mapFunction;
-  
+
   public ReachedHeuristicsDataSetView(UnmodifiableReachedElements pUnderlying, Function<AbstractElement, StopHeuristicsData> pMapFunction)
   {
     underlying = pUnderlying;
     mapFunction = pMapFunction;
   }
-  
+
   public Collection<StopHeuristicsData> getHeuristicsData()
   {
     return Collections2.transform(underlying.getReached(), mapFunction);
   }
-  
+
   public Collection<StopHeuristicsData> getHeuristicsDataForLocation(CFANode location)
   {
-    return Collections2.transform(underlying.getReached(location), mapFunction);    
+    return Collections2.transform(underlying.getReached(location), mapFunction);
   }
-  
+
 }

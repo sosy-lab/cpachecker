@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -60,88 +60,88 @@ import org.sosy_lab.cpachecker.fllesh.fql.fllesh.util.Cilly;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Identity;
 
 public class SingletonQueryTest {
-  
+
   private static final String mPropertiesFile = "test/config/simpleMustMayAnalysis.properties";
 
   @Before
   public void tearDown() {
     /* XXX: Currently this is necessary to pass all assertions. */
     org.sosy_lab.cpachecker.core.CPAchecker.logger = null;
-  }    
+  }
 
   @Test
   public void test_01() throws IOException, InvalidConfigurationException, CPAException {
-            
+
     // check cilly invariance of source file, i.e., is it changed when preprocessed by cilly?
     Cilly lCilly = new Cilly();
-    
+
     String lSourceFileName = "test/programs/simple/functionCall.cil.c";
-    
+
     if (!lCilly.isCillyInvariant(lSourceFileName)) {
       File lCillyProcessedFile = lCilly.cillyfy(lSourceFileName);
-      
+
       lSourceFileName = lCillyProcessedFile.getAbsolutePath();
-      
+
       System.err.println("WARNING: Given source file is not CIL invariant ... did preprocessing!");
     }
-    
+
     // set source file name
     ImmutableMap<String, String> lProperties =
       ImmutableMap.of("analysis.programNames", lSourceFileName);
-    
+
     Configuration lConfiguration = new Configuration(mPropertiesFile, lProperties);
 
     LogManager lLogManager = new LogManager(lConfiguration);
-      
+
     CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
-    
+
     CFAFunctionDefinitionNode lMainFunction = lCPAchecker.getMainFunction();
-    
+
     TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lMainFunction);
-    
-    
+
+
     // add self loops to CFA
     AddSelfLoop.addSelfLoops(lMainFunction);
-    
-    
+
+
     // TODO remove this output code
     DOTBuilder dotBuilder = new DOTBuilder();
     dotBuilder.generateDOT(lCPAchecker.getCFAMap().values(), lMainFunction, new File("/tmp/mycfa.dot"));
-    
-    
+
+
     Node lProgramEntry = new Node(lMainFunction);
-    
-    
+
+
     AlwaysTopCPA lMayCPA = new AlwaysTopCPA();
     ConcreteAnalysisCPA lMustCPA = new ConcreteAnalysisCPA();
-    
+
     MustMayAnalysisCPA lMustMayAnalysisCPA = new MustMayAnalysisCPA(lMustCPA, lMayCPA);
-    
+
     LocationCPA lLocationCPA = new LocationCPA();
-    
+
     LinkedList<ConfigurableProgramAnalysis> lCPAs = new LinkedList<ConfigurableProgramAnalysis>();
-    
+
     lCPAs.add(lLocationCPA);
     lCPAs.add(lMustMayAnalysisCPA);
-    
+
     ConfigurableProgramAnalysis lCompositeCPA = CompositeCPA.factory().setChildren(lCPAs).createInstance();
-    
+
     CompositeElement lDataSpaceElement = FeasibilityCheck.createInitialElement(lProgramEntry);
     CompositePrecision lDataSpacePrecision = (CompositePrecision)lCompositeCPA.getInitialPrecision(lMainFunction);
-    
+
     Automaton lFirstAutomaton = Automaton.create(Identity.getInstance(), lTargetGraph);
     Automaton lSecondAutomaton = Automaton.create(Identity.getInstance(), lTargetGraph);
-        
+
     Query lQuery = SingletonQuery.create(lDataSpaceElement, lDataSpacePrecision, lFirstAutomaton, lFirstAutomaton.getInitialStates(), lSecondAutomaton, lSecondAutomaton.getInitialStates());
-    
+
     assertTrue(lQuery.hasNext());
-    
+
     Waypoint lNextWaypoint = lQuery.next();
-    
+
     System.out.println(lNextWaypoint);
-    
+
     assertFalse(lQuery.hasNext());
-    
+
   }
-  
+
 }

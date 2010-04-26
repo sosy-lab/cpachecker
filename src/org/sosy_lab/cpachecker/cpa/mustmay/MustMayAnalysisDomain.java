@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -32,27 +32,27 @@ public class MustMayAnalysisDomain implements AbstractDomain {
 
   AbstractDomain mMustDomain;
   AbstractDomain mMayDomain;
-  
+
   MustMayAnalysisElement mTopElement;
   MustMayAnalysisElement mBottomElement;
-  
+
   MustMayAnalysisJoinOperator mJoinOperator;
   MustMayAnalysisPartialOrder mPartialOrder;
-  
+
   public MustMayAnalysisDomain(AbstractDomain pMustDomain, AbstractDomain pMayDomain) {
     assert(pMustDomain != null);
     assert(pMayDomain != null);
-    
+
     mMustDomain = pMustDomain;
     mMayDomain = pMayDomain;
-    
+
     mTopElement = new MustMayAnalysisElement(pMustDomain.getTopElement(), pMayDomain.getTopElement());
     mBottomElement = new MustMayAnalysisElement(pMustDomain.getBottomElement(), pMayDomain.getBottomElement());
-    
+
     mJoinOperator = new MustMayAnalysisJoinOperator(mMustDomain.getJoinOperator(), mMayDomain.getJoinOperator());
     mPartialOrder = new MustMayAnalysisPartialOrder(mMustDomain.getPartialOrder(), mMayDomain.getPartialOrder());
   }
-  
+
   @Override
   public MustMayAnalysisElement getBottomElement() {
     return mBottomElement;

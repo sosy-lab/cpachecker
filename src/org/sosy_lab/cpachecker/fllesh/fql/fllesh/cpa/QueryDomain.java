@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -31,18 +31,18 @@ public class QueryDomain implements AbstractDomain {
 
   private QueryJoinOperator mJoinOperator;
   private QueryPartialOrder mPartialOrder;
-  
+
   private QueryTopElement mTopElement;
   private QueryBottomElement mBottomElement;
-  
+
   public QueryDomain(MustMayAnalysisJoinOperator pJoinOperator, MustMayAnalysisPartialOrder pPartialOrder) {
     mTopElement = QueryTopElement.getInstance();
     mBottomElement = QueryBottomElement.getInstance();
-    
+
     mJoinOperator = new QueryJoinOperator(mTopElement, mBottomElement, pJoinOperator);
     mPartialOrder = new QueryPartialOrder(mTopElement, mBottomElement, pPartialOrder);
   }
-  
+
   @Override
   public QueryBottomElement getBottomElement() {
     return mBottomElement;

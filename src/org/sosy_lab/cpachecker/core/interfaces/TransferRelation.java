@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -47,14 +47,14 @@ public interface TransferRelation {
    */
   public Collection<? extends AbstractElement> getAbstractSuccessors(AbstractElement element, Precision precision, CFAEdge cfaEdge)
     throws CPATransferException;
-  
+
   /**
    * Updates an abstract element with information from the abstract elements of
    * other CPAs. An implementation of this method should only modify the
-   * abstract element of the domain it belongs to. 
+   * abstract element of the domain it belongs to.
    * @param element abstract element of the current domain
    * @param otherElements list of abstract elements of all domains
-   * @param cfaEdge the current edge of the CFA 
+   * @param cfaEdge the current edge of the CFA
    * @param precision
    * @return list of all abstract elements which should replace the old one, empty list for bottom or null for no change.
    */

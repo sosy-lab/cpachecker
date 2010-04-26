@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -36,35 +36,35 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 
 public class MustMayAnalysisCPA implements ConfigurableProgramAnalysis {
-  
+
   MustMayAnalysisDomain mDomain;
-  
+
   ConfigurableProgramAnalysis mMustCPA;
   ConfigurableProgramAnalysis mMayCPA;
-  
+
   Precision mPrecision;
-  
+
   StopOperator mStopOperator;
-  
+
   MustMayAnalysisTransferRelation mTransferRelation;
-  
+
   public MustMayAnalysisCPA(ConfigurableProgramAnalysis pMustCPA, ConfigurableProgramAnalysis pMayCPA) {
     assert(pMustCPA != null);
     assert(pMayCPA != null);
-    
+
     mMustCPA = pMustCPA;
     mMayCPA = pMayCPA;
-    
+
     AbstractDomain lMustDomain = mMustCPA.getAbstractDomain();
     AbstractDomain lMayDomain = mMayCPA.getAbstractDomain();
-    
+
     mDomain = new MustMayAnalysisDomain(lMustDomain, lMayDomain);
-    
+
     mStopOperator = new StopSepOperator(mDomain.getPartialOrder());
-    
+
     mTransferRelation = new MustMayAnalysisTransferRelation(pMustCPA.getTransferRelation(), pMayCPA.getTransferRelation(), mDomain.getBottomElement());
   }
-  
+
   @Override
   public MustMayAnalysisDomain getAbstractDomain() {
     return mDomain;
@@ -75,7 +75,7 @@ public class MustMayAnalysisCPA implements ConfigurableProgramAnalysis {
       CFAFunctionDefinitionNode pNode) {
     AbstractElement lInitialMustElement = mMustCPA.getInitialElement(pNode);
     AbstractElement lInitialMayElement = mMayCPA.getInitialElement(pNode);
-    
+
     return new MustMayAnalysisElement(lInitialMustElement, lInitialMayElement);
   }
 
@@ -83,7 +83,7 @@ public class MustMayAnalysisCPA implements ConfigurableProgramAnalysis {
   public MustMayAnalysisPrecision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
     Precision lInitialMustPrecision = mMustCPA.getInitialPrecision(pNode);
     Precision lInitialMayPrecision = mMayCPA.getInitialPrecision(pNode);
-    
+
     return new MustMayAnalysisPrecision(lInitialMustPrecision, lInitialMayPrecision);
   }
 

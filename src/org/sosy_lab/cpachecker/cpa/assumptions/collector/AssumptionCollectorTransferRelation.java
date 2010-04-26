@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -71,35 +71,35 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
   public Collection<? extends AbstractElement> getAbstractSuccessors(
       AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException {
-    
+
     AssumptionCollectorElement element = (AssumptionCollectorElement)pElement;
     AbstractElement wrappedElement = element.getWrappedElement();
-    
+
     // If we must stop, then let's stop by returning an empty set
     if (element.isStop())
       return Collections.emptySet();
-    
+
     // Compute the inner-successor
-    Collection<? extends AbstractElement> unwrappedSuccessors = wrappedTransfer.getAbstractSuccessors(wrappedElement, pPrecision, pCfaEdge); 
-    
+    Collection<? extends AbstractElement> unwrappedSuccessors = wrappedTransfer.getAbstractSuccessors(wrappedElement, pPrecision, pCfaEdge);
+
     if (unwrappedSuccessors.isEmpty())
       return Collections.emptyList();
-    
+
     ArrayList<AssumptionCollectorElement> successors = new ArrayList<AssumptionCollectorElement>(unwrappedSuccessors.size());
-    
+
     // Handle all inner-successors, one after the other, and produce
     // a corresponding wrapped successor
     for (AbstractElement unwrappedSuccessor : unwrappedSuccessors) {
       Pair<AssumptionWithLocation,Boolean> pair = reportingVisitor.collect(unwrappedSuccessor);
       AssumptionWithLocation assumption = pair.getFirst();
-      
+
       boolean forceStop = pair.getSecond();
       if (forceStop) {
         SymbolicFormula reportedFormula = ReportingUtils.extractReportedFormulas(manager, wrappedElement);
         AssumptionWithLocation dataAssumption = (new Assumption(manager.makeNot(reportedFormula),false)).atLocation(pCfaEdge.getPredecessor());
         assumption = assumption.and(dataAssumption);
       }
-      
+
       boolean isBottom = forceStop || wrappedBottom.equals(unwrappedSuccessor);
 
       successors.add(new AssumptionCollectorElement(unwrappedSuccessor, assumption, isBottom));
@@ -111,11 +111,11 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
   public Collection<? extends AbstractElement> strengthen(AbstractElement el, List<AbstractElement> others, CFAEdge edge, Precision p)
     throws CPATransferException
   {
-    // TODO copied this from monitoringCPA to be tested -- we need the strengthening for 
+    // TODO copied this from monitoringCPA to be tested -- we need the strengthening for
     // error location analysis
-    AssumptionCollectorElement collectorElement = (AssumptionCollectorElement)el;    
+    AssumptionCollectorElement collectorElement = (AssumptionCollectorElement)el;
     AbstractElement wrappedElement = collectorElement.getWrappedElement();
-    
+
     try {
        Collection<? extends AbstractElement> wrappedList = wrappedTransfer.strengthen(wrappedElement, others, edge, p);
        // if the returned list is null return null
@@ -129,7 +129,7 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
 
        ArrayList<AssumptionCollectorElement> retList = new ArrayList<AssumptionCollectorElement>(wrappedList.size());
        AssumptionWithLocation assumption = collectorElement.getCollectedAssumptions();
-       boolean stop = collectorElement.isStop(); 
+       boolean stop = collectorElement.isStop();
        for (AbstractElement wrappedReturnElement : wrappedList)
          retList.add(new AssumptionCollectorElement(wrappedReturnElement, assumption, stop));
        return retList;
@@ -157,7 +157,7 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
             assumptionResult = assumptionResult.and(otherInv);
         }
       }
-      
+
       // process stop flag
       if (element instanceof AvoidanceReportingElement) {
         boolean otherStop = ((AvoidanceReportingElement)element).mustDumpAssumptionForAvoidance();
@@ -165,19 +165,19 @@ public class AssumptionCollectorTransferRelation implements TransferRelation {
           forceStop = true;
       }
     }
-    
+
     public synchronized Pair<AssumptionWithLocation, Boolean> collect(AbstractElement element)
     {
       assumptionResult = null;
       forceStop = false;
-      
+
       visit(element);
-      
-      Pair<AssumptionWithLocation, Boolean> result = new Pair<AssumptionWithLocation, Boolean>(assumptionResult, forceStop); 
+
+      Pair<AssumptionWithLocation, Boolean> result = new Pair<AssumptionWithLocation, Boolean>(assumptionResult, forceStop);
       assumptionResult = null;
       forceStop = false;
       return result;
     }
   }
-      
+
 }

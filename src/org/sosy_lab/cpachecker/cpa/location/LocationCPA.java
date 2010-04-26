@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -66,7 +66,7 @@ public class LocationCPA implements ConfigurableProgramAnalysis{
   public PrecisionAdjustment getPrecisionAdjustment () {
     return StaticPrecisionAdjustment.getInstance();
   }
-  
+
   @Override
 	public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
 	  return new LocationElement (node);

@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -42,12 +42,12 @@ public class UninitializedVariablesElement implements AbstractQueryableElement {
 
   private final Set<String> globalVars;
   private final Deque<Pair<String, Set<String>>> localVars;
-  
+
   private final Set<Triple<Integer, String, String>> warnings;
-  
+
   static enum ElementProperty {UNINITIALIZED_RETURN_VALUE, UNINITIALIZED_VARIABLE_USED}
   private Set<ElementProperty> properties = EnumSet.noneOf(ElementProperty.class); // emptySet
-  
+
   public UninitializedVariablesElement(String entryFunction) {
     globalVars = new HashSet<String>();
     localVars = new LinkedList<Pair<String, Set<String>>>();
@@ -55,72 +55,72 @@ public class UninitializedVariablesElement implements AbstractQueryableElement {
     // create context of the entry function
     callFunction(entryFunction);
   }
-  
-  public UninitializedVariablesElement(Set<String> globalVars, 
-                                       Deque<Pair<String, Set<String>>> localVars, 
+
+  public UninitializedVariablesElement(Set<String> globalVars,
+                                       Deque<Pair<String, Set<String>>> localVars,
                                        Set<Triple<Integer, String, String>> warnings) {
     this.globalVars = globalVars;
     this.localVars = localVars;
     this.warnings = warnings;
   }
-  
+
   public void addGlobalVariable(String name) {
     globalVars.add(name);
   }
-  
+
   public void removeGlobalVariable(String name) {
     globalVars.remove(name);
   }
-  
+
   public Set<String> getGlobalVariables() {
     return globalVars;
   }
-  
+
   public void addLocalVariable(String name) {
     localVars.peekLast().getSecond().add(name);
   }
-  
+
   public void removeLocalVariable(String name) {
     localVars.peekLast().getSecond().remove(name);
   }
-  
+
   public Set<String> getLocalVariables() {
     return localVars.peekLast().getSecond();
   }
-  
+
   public Deque<Pair<String, Set<String>>> getallLocalVariables() {
     return localVars;
   }
-  
+
   public Set<Triple<Integer, String, String>> getWarnings() {
     return warnings;
   }
-  
+
   public boolean isUninitialized(String variable) {
     return globalVars.contains(variable)
         || localVars.peekLast().getSecond().contains(variable);
   }
-  
+
   public void callFunction(String functionName) {
     localVars.addLast(new Pair<String, Set<String>>(functionName, new HashSet<String>()));
   }
-  
+
   public void returnFromFunction() {
     localVars.pollLast();
   }
-  
+
   @Override
   public boolean isError() {
     return false;
   }
-  
+
   public void addWarning(Integer lineNumber, String variable, String message) {
     Triple<Integer, String, String> warning = new Triple<Integer, String, String>(lineNumber, variable, message);
     if (!warnings.contains(warning)) {
       warnings.add(warning);
     }
   }
-  
+
   @Override
   public boolean equals(Object o) {
     if (o == null || !(o instanceof UninitializedVariablesElement)) {
@@ -129,31 +129,31 @@ public class UninitializedVariablesElement implements AbstractQueryableElement {
     if (this == o) {
       return true;
     }
-    
+
     UninitializedVariablesElement otherElement = (UninitializedVariablesElement)o;
-    
+
     return globalVars.equals(otherElement.globalVars)
         && localVars.equals(otherElement.localVars);
   }
-  
+
   @Override
   public int hashCode() {
     return localVars.hashCode();
   }
-  
+
   @Override
   protected UninitializedVariablesElement clone() {
     LinkedList<Pair<String, Set<String>>> newLocalVars = new LinkedList<Pair<String, Set<String>>>();
-    
+
     for (Pair<String, Set<String>> localSet : localVars) {
       newLocalVars.addLast(new Pair<String, Set<String>>(localSet.getFirst(),
                                                      new HashSet<String>(localSet.getSecond())));
     }
-    
-    return new UninitializedVariablesElement(new HashSet<String>(globalVars), newLocalVars, 
+
+    return new UninitializedVariablesElement(new HashSet<String>(globalVars), newLocalVars,
                                              new HashSet<Triple<Integer, String, String>>(warnings));
   }
-  
+
   @Override
   public String toString() {
     StringBuffer sb = new StringBuffer();
@@ -192,7 +192,7 @@ public class UninitializedVariablesElement implements AbstractQueryableElement {
   void clearProperties() {
     this.properties.clear();
   }
-  
+
   @Override
   public boolean checkProperty(String pProperty) throws InvalidQueryException {
     ElementProperty prop;

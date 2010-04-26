@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -59,19 +59,19 @@ public class PredicateAbstractionCPAStatistics implements Statistics {
 
     @Option(name="output.path")
     private String outputDirectory = "test/output/";
-  
+
     @Option(name="cpas.symbpredabs.refinement.finalPredMapFile")
     private String predmapFile = "predmap.txt";
-    
+
     @Option(name="cpas.symbpredabs.refinement.addPredicatesGlobally")
     private boolean addPredicatesGlobally = false;
-    
+
     @Option(name="cpas.symbpredabs.explicit.getUsefulBlocks")
     private boolean getUsefulBlocks = false;
 
     @Option(name="cpas.symbpredabs.explicit.extendedStats")
     private boolean extendedStats = false;
-    
+
     private PredicateAbstractionCPA cpa;
 
     public PredicateAbstractionCPAStatistics(PredicateAbstractionCPA cpa, Configuration config) {

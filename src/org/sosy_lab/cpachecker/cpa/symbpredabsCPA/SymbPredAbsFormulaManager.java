@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -51,7 +51,7 @@ public interface SymbPredAbsFormulaManager extends FormulaManager {
 
     /**
      * Counterexample analysis and predicate discovery.
-     * @throws CPAException 
+     * @throws CPAException
      */
     public CounterexampleTraceInfo buildCounterexampleTrace(
             ArrayList<SymbPredAbsAbstractElement> abstractTrace) throws CPAException;

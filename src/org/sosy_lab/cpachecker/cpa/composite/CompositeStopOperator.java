@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -52,7 +52,7 @@ public class CompositeStopOperator implements StopOperator{
     if(containsBottomElement(element)){
       return true;
     }
-    
+
     for (AbstractElement e : reached) {
       if (stop(element, e)) {
         return true;
@@ -68,7 +68,7 @@ public class CompositeStopOperator implements StopOperator{
 
     CompositeElement compositeElement = (CompositeElement) element;
     List<AbstractElement> components = compositeElement.getElements ();
-    
+
     for (int idx = 0; idx < components.size(); idx++) {
       AbstractElement abstElem = components.get(idx);
       AbstractDomain abstDomain = compositeDomain.getDomains().get(idx);

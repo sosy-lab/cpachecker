@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public class MergeJoinOperator implements MergeOperator {
 
   private final JoinOperator joinOperator;
-  
+
   /**
    * Creates a merge-join operator, based on the given join
    * operator
@@ -45,7 +45,7 @@ public class MergeJoinOperator implements MergeOperator {
   {
     joinOperator = op;
   }
-  
+
   @Override
   public AbstractElement merge(AbstractElement el1, AbstractElement el2, Precision p)
     throws CPAException

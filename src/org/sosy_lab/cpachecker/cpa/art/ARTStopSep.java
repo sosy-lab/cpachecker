@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -44,7 +44,7 @@ public class ARTStopSep implements StopOperator {
       Collection<AbstractElement> pReached, Precision pPrecision) throws CPAException {
 
     ARTElement artElement = (ARTElement)pElement;
-    
+
     for (AbstractElement reachedElement : pReached) {
       ARTElement artReachedElement = (ARTElement)reachedElement;
       if (stop(artElement, artReachedElement)) {
@@ -62,8 +62,8 @@ public class ARTStopSep implements StopOperator {
     AbstractElement wrappedReachedElement = pReachedElement.getWrappedElement();
 
     StopOperator stopOp = wrappedCpa.getStopOperator();
-    boolean stop = stopOp.stop(wrappedElement, wrappedReachedElement); 
-    
+    boolean stop = stopOp.stop(wrappedElement, wrappedReachedElement);
+
     if (stop) {
       if (pElement.getMergedWith() == pReachedElement) {
         pElement.removeFromART();
@@ -71,7 +71,7 @@ public class ARTStopSep implements StopOperator {
         pElement.setCovered(pReachedElement);
       }
     }
-    return stop; 
+    return stop;
   }
 
   @Override

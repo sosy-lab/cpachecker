@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -51,8 +51,8 @@ public class Pointer implements Cloneable {
   private int                levelOfIndirection; // how many stars does this pointer have?
 
   private PointerLocation    location;
-  
-  private boolean            actualPointer;             
+
+  private boolean            actualPointer;
 
   public Pointer() {
     this(0);
@@ -60,8 +60,8 @@ public class Pointer implements Cloneable {
 
   public Pointer(PointerTarget target) {
     this();
-    if (target == null) { 
-      throw new IllegalArgumentException("Pointer must have a target!"); 
+    if (target == null) {
+      throw new IllegalArgumentException("Pointer must have a target!");
     }
     targets.clear();
     targets.add(target);
@@ -93,10 +93,10 @@ public class Pointer implements Cloneable {
 
   public boolean isDereferencable() {
     for (PointerTarget target : targets) {
-      if (target == UNKNOWN_POINTER 
+      if (target == UNKNOWN_POINTER
           || target instanceof Variable
-          || target instanceof MemoryAddress) { 
-        return true; 
+          || target instanceof MemoryAddress) {
+        return true;
       }
     }
     return false;
@@ -118,11 +118,11 @@ public class Pointer implements Cloneable {
     assert other != null;
     return !this.isSubsetOf(other)
         && !other.isSubsetOf(this)
-        && !(targets.contains(INVALID_POINTER) 
+        && !(targets.contains(INVALID_POINTER)
         && other.targets.contains(INVALID_POINTER))
         && !targets.contains(UNKNOWN_POINTER)
-        && !other.targets.contains(UNKNOWN_POINTER) 
-        && !targets.contains(UNINITIALIZED_POINTER) 
+        && !other.targets.contains(UNKNOWN_POINTER)
+        && !targets.contains(UNINITIALIZED_POINTER)
         && !other.targets.contains(UNINITIALIZED_POINTER);
   }
 
@@ -144,7 +144,7 @@ public class Pointer implements Cloneable {
           newTargets.add(target.addOffset(byteShift));
 
         } catch (InvalidPointerException e) {
-          PointerAnalysisTransferRelation.addWarning(e.getMessage(), 
+          PointerAnalysisTransferRelation.addWarning(e.getMessage(),
               memory.getCurrentEdge(), target.toString());
 
           newTargets.add(INVALID_POINTER);
@@ -167,7 +167,7 @@ public class Pointer implements Cloneable {
       try {
         newTargets.add(target.addUnknownOffset());
       } catch (InvalidPointerException e) {
-        PointerAnalysisTransferRelation.addWarning(e.getMessage(), 
+        PointerAnalysisTransferRelation.addWarning(e.getMessage(),
             memory.getCurrentEdge(), target.toString());
 
         newTargets.add(INVALID_POINTER);
@@ -199,7 +199,7 @@ public class Pointer implements Cloneable {
   }
 
   /**
-   * Checks if the size of the target of the pointer is known. 
+   * Checks if the size of the target of the pointer is known.
    */
   public boolean hasSizeOfTarget() {
     return sizeOfTarget != -1;
@@ -207,7 +207,7 @@ public class Pointer implements Cloneable {
 
   /**
    * Returns the size of the target of the pointer in bytes. The return value is
-   * undefined, if the length is not known (i.e., if hasSizeOfTarget() returns false). 
+   * undefined, if the length is not known (i.e., if hasSizeOfTarget() returns false).
    */
   public int getSizeOfTarget() {
     return sizeOfTarget;
@@ -218,10 +218,10 @@ public class Pointer implements Cloneable {
    */
   public void setSizeOfTarget(int sizeOfTarget) {
     // allow setting this value only once
-    if (hasSizeOfTarget() && this.sizeOfTarget != sizeOfTarget) { 
+    if (hasSizeOfTarget() && this.sizeOfTarget != sizeOfTarget) {
       throw new IllegalArgumentException();
     }
-    if (sizeOfTarget <= 0) { 
+    if (sizeOfTarget <= 0) {
       throw new IllegalArgumentException();
     }
     this.sizeOfTarget = sizeOfTarget;
@@ -240,12 +240,12 @@ public class Pointer implements Cloneable {
   }
 
   public void setLocation(PointerLocation location) {
-    if (this.location != null) { 
+    if (this.location != null) {
       throw new IllegalStateException("May not overwrite pointer location!");
     }
     this.location = location;
   }
-  
+
   public boolean isActualPointer() {
     return actualPointer;
   }
@@ -256,8 +256,8 @@ public class Pointer implements Cloneable {
 
   @Override
   public boolean equals(Object other) {
-    if (other == null || !(other instanceof Pointer)) { 
-      return false; 
+    if (other == null || !(other instanceof Pointer)) {
+      return false;
     }
     return location.equals(((Pointer) other).location)
         && targets.equals(((Pointer) other).targets);
@@ -429,14 +429,14 @@ public class Pointer implements Cloneable {
     public DerefAndAssign(Pointer assignValue) {
       this.assignValue = assignValue;
 
-      if (!assignValue.isPointerToPointer()) { 
+      if (!assignValue.isPointerToPointer()) {
         throw new IllegalArgumentException("Pointers which do not point "
-            + "to other pointers cannot be dereferenced in this analysis!"); 
+            + "to other pointers cannot be dereferenced in this analysis!");
       }
 
-      if (!assignValue.isDereferencable()) { 
+      if (!assignValue.isDereferencable()) {
         throw new IllegalArgumentException("Unsafe deref of pointer "
-                      + assignValue.getLocation() + " = " + assignValue); 
+                      + assignValue.getLocation() + " = " + assignValue);
       }
     }
 
@@ -476,8 +476,8 @@ public class Pointer implements Cloneable {
 
       pointer.targets.add(Memory.NULL_POINTER);
       pointer.targets.add(memAddress);
-      
-      
+
+
     }
 
     public MemoryAddress getMallocResult() {
@@ -488,11 +488,11 @@ public class Pointer implements Cloneable {
   public static class AssumeInequality implements PointerOperation {
 
     private final PointerTarget removeTarget;
-    
+
     public PointerTarget getRemoveTarget() {
-      
+
       return removeTarget;
-     
+
     }
 
     public AssumeInequality(PointerTarget removeTarget) {
@@ -506,14 +506,14 @@ public class Pointer implements Cloneable {
     public void doOperation(Memory memory, Pointer pointer,
         boolean keepOldTargets) {
 
-      
+
       pointer.targets.remove(removeTarget);
-      
-      if (pointer.getNumberOfTargets() == 0) { 
-        throw new IllegalStateException("Pointer without target must not exist!"); 
+
+      if (pointer.getNumberOfTargets() == 0) {
+        throw new IllegalStateException("Pointer without target must not exist!");
       }
     }
   }
 
- 
+
 }

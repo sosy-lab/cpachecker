@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -55,7 +55,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 @Options
 public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
 
-  private static class ProgressObserverCPAFactory extends AbstractCPAFactory {    
+  private static class ProgressObserverCPAFactory extends AbstractCPAFactory {
     @Override
     public ConfigurableProgramAnalysis createInstance()
       throws InvalidConfigurationException
@@ -63,36 +63,36 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
       return new ProgressObserverCPA(getConfiguration(), getLogger());
     }
   }
-  
+
   public static CPAFactory factory() {
     return new ProgressObserverCPAFactory();
   }
-  
+
   @Option(name="analysis.useAssumptionCollector")
   private boolean useAssumptionCollector = false;
-  
+
   @Option(name="heuristics", required=true)
   private String[] heuristicsNames = {};
-  
+
   private final ProgressObserverDomain abstractDomain;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
   private final TransferRelation transferRelation;
   private final PrecisionAdjustment precisionAdjustment;
   private final LogManager logger;
-  
+
   private final ImmutableList<StopHeuristics<?>> enabledHeuristics;
-  
+
   /** Return the immutable list of enables heuristics */
   public ImmutableList<StopHeuristics<?>> getEnabledHeuristics()
   {
     return enabledHeuristics;
   }
-  
+
   private ImmutableList<StopHeuristics<?>> createEnabledHeuristics(Configuration config)
   {
     ImmutableList.Builder<StopHeuristics<?>> builder = ImmutableList.builder();
-    
+
     for (String heuristicsName : heuristicsNames) {
       if (!heuristicsName.contains("."))
         heuristicsName = "cpa.assumptions.collector.progressobserver." + heuristicsName;
@@ -101,7 +101,7 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
         Constructor<?> constructor = cls.getConstructor(Configuration.class, LogManager.class);
         Configuration localConfig = new Configuration(config, cls.getSimpleName());
         Object obj = constructor.newInstance(localConfig, logger);
-        
+
         // Convert object to StopHeuristics
         StopHeuristics<?> newHeuristics = (StopHeuristics<?>)obj;
         builder.add(newHeuristics);
@@ -121,29 +121,29 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
         logger.logException(Level.WARNING, e, "InvocationTargetException");
       }
     }
-    
+
     return builder.build();
   }
-  
+
   private ProgressObserverCPA(Configuration cfg, LogManager mgr) throws InvalidConfigurationException
   {
     logger = mgr;
     cfg.inject(this);
-    
+
     // Check if assumption collector is enabled; if not, the analysis will
     // not be sound
     if (!useAssumptionCollector)
       logger.log(Level.WARNING, "Analysis may not be sound because ProgressObserverCPA is used without assumption collector");
 
     enabledHeuristics = createEnabledHeuristics(cfg);
-    
+
     abstractDomain = new ProgressObserverDomain(this);
     mergeOperator = MergeSepOperator.getInstance();
     stopOperator = new ProgressObserverStop();
     transferRelation = new ProgressObserverTransferRelation(this);
     precisionAdjustment = new ProgressObserverPrecisionAdjustment(this);
   }
-  
+
   @Override
   public ProgressObserverDomain getAbstractDomain() {
     return abstractDomain;
@@ -178,10 +178,9 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
   public TransferRelation getTransferRelation() {
     return transferRelation;
   }
-  
+
   public LogManager getLogger() {
     return logger;
   }
 
 }
-  

@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -27,24 +27,24 @@ import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.ASTVisitor;
 
 public class DecisionEdge implements Filter {
   private static DecisionEdge mInstance = new DecisionEdge();
-  
+
   private DecisionEdge() {
-    
+
   }
-  
+
   public static DecisionEdge getInstance() {
     return mInstance;
   }
-  
+
   @Override
   public String toString() {
     return "@DECISIONEDGE";
   }
-  
+
   @Override
   public <T> T accept(ASTVisitor<T> pVisitor) {
     assert(pVisitor != null);
-    
+
     return pVisitor.visit(this);
   }
 

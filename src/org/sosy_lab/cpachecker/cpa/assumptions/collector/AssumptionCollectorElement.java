@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 /**
  * Abstract element for the Collector CPA. Encapsulate a
  * symbolic formula
- * 
+ *
  * @author g.theoduloz
  */
 public class AssumptionCollectorElement extends AbstractSingleWrapperElement {
@@ -44,12 +44,12 @@ public class AssumptionCollectorElement extends AbstractSingleWrapperElement {
     assumption = f;
     stop = forceStop;
   }
-  
+
   public AssumptionCollectorElement(AbstractElement wrappedElement, AssumptionWithLocation f)
   {
     this(wrappedElement, f, false);
   }
-  
+
   /**
    * Return the invariant in this state. May return
    * a null value in case no invariant is stored.
@@ -61,12 +61,12 @@ public class AssumptionCollectorElement extends AbstractSingleWrapperElement {
     else
       return AssumptionWithLocation.TRUE;
   }
-  
+
   @Override
   public boolean isError() {
     return false;
   }
-  
+
   @Override
   public String toString() {
     StringBuilder builder = new StringBuilder();
@@ -81,11 +81,11 @@ public class AssumptionCollectorElement extends AbstractSingleWrapperElement {
     builder.append(getWrappedElement().toString());
     return builder.toString();
   }
-  
+
   public boolean isStop() {
     return stop;
   }
-  
+
   @Override
   public boolean equals(Object other) {
     if (other instanceof AssumptionCollectorElement)
@@ -98,6 +98,6 @@ public class AssumptionCollectorElement extends AbstractSingleWrapperElement {
       return false;
     }
   }
-  
+
   // FIXME hashCode() implementation missing!
 }

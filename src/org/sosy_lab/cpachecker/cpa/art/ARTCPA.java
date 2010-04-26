@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -57,23 +57,23 @@ public class ARTCPA extends AbstractSingleWrapperCPA {
   private static class ARTCPAFactory extends AbstractSingleWrapperCPAFactory {
 
     @Override
-    public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException {      
+    public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException {
       return new ARTCPA(getChild(), getConfiguration(), getLogger());
     }
   }
-  
+
   public static CPAFactory factory() {
     return new ARTCPAFactory();
   }
-  
+
   /**
    * Use join as default merge, because sep is only safe if all other cpas also use sep.
    */
   @Option(name="merge", toUppercase=true, values={"SEP", "JOIN"})
   private String mergeType = "JOIN";
-  
+
   private final LogManager logger;
-  
+
   private final AbstractDomain abstractDomain;
   private final TransferRelation transferRelation;
   private final MergeOperator mergeOperator;
@@ -84,7 +84,7 @@ public class ARTCPA extends AbstractSingleWrapperCPA {
   private ARTCPA(ConfigurableProgramAnalysis cpa, Configuration config, LogManager logger) throws InvalidConfigurationException {
     super(cpa);
     config.inject(this);
-    
+
     this.logger = logger;
     abstractDomain = new ARTDomain(this);
     transferRelation = new ARTTransferRelation(cpa.getTransferRelation());
@@ -96,7 +96,7 @@ public class ARTCPA extends AbstractSingleWrapperCPA {
     } else {
       throw new InternalError("Update list of allowed merge operators!");
     }
-    stopOperator = new ARTStopSep(getWrappedCpa());  
+    stopOperator = new ARTStopSep(getWrappedCpa());
     stats = new ARTStatistics(config, logger);
   }
 
@@ -123,7 +123,7 @@ public class ARTCPA extends AbstractSingleWrapperCPA {
   public PrecisionAdjustment getPrecisionAdjustment () {
     return precisionAdjustment;
   }
-  
+
   @Override
   public AbstractElement getInitialElement (CFAFunctionDefinitionNode pNode) {
     // TODO some code relies on the fact that this method is called only one and the result is the root of the ART
@@ -136,7 +136,7 @@ public class ARTCPA extends AbstractSingleWrapperCPA {
 
   public ARTElement findHighest(ARTElement pLastElem, CFANode pLoc) throws CPAException {
     ARTElement tempRetVal = null;
-    
+
     Deque<ARTElement> workList = new ArrayDeque<ARTElement>();
     Set<ARTElement> handled = new HashSet<ARTElement>();
 
@@ -149,7 +149,7 @@ public class ARTCPA extends AbstractSingleWrapperCPA {
         continue;
       }
       // TODO check - bottom element
-      CFANode loc = currentElement.retrieveLocationElement().getLocationNode(); 
+      CFANode loc = currentElement.retrieveLocationElement().getLocationNode();
       if(loc == null) {
         assert false;
         continue;

@@ -3,8 +3,8 @@ entryfunction: rad_authenticate
 GIT-SHA1-ID: e53508920463ea475b4bb420859ea72f69529352
 Error locations:
 auth.c: 458 537, 653
-auth.cil.c: 3092 - 3096, 3645-3655; 
-auth-simple.c; 390, 402 
+auth.cil.c: 3092 - 3096, 3645-3655;
+auth-simple.c; 390, 402
 auth-simple.cil: 1329, 1357
 
 rlm_eap_tls.c - Double Free
@@ -14,7 +14,7 @@ Error locations:
 rlm_eap_tls.c: 461
 rlm_eap_tls.cil.c: 3056
 rlm_eap_tls-simple.c 464
-rlm_eap_tls-simple.cil.c 3056 
+rlm_eap_tls-simple.cil.c 3056
 
 auth.c-2 - NULL deref
 entryfunction: rad_check_password

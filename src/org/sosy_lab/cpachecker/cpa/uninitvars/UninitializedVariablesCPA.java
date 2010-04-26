@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -56,37 +56,37 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
   private static class UninitializedVariablesCPAFactory extends AbstractCPAFactory {
-    
+
     @Override
-    public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException {      
+    public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException {
       return new UninitializedVariablesCPA(getConfiguration(), getLogger());
     }
   }
-  
+
   public static CPAFactory factory() {
     return new UninitializedVariablesCPAFactory();
   }
-  
+
   @Option(name="uninitVars.printWarnings")
   private String printWarnings = "true";
   @Option(name="uninitVars.merge", values={"sep", "join"})
   private String mergeType = "sep";
   @Option(name="uninitVars.stop", values={"sep", "join"})
   private String stopType = "sep";
-  
+
   private final AbstractDomain abstractDomain;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
   private final TransferRelation transferRelation;
   private final PrecisionAdjustment precisionAdjustment;
   private final UninitializedVariablesStatistics statistics;
-  
+
   private UninitializedVariablesCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
-    
+
     config.inject(this);
-    
+
     UninitializedVariablesDomain domain = new UninitializedVariablesDomain();
-    
+
     MergeOperator mergeOp = null;
     if(mergeType.equals("sep")) {
       mergeOp = MergeSepOperator.getInstance();
@@ -109,10 +109,10 @@ public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis, S
     this.stopOperator = stopOp;
     this.transferRelation = new UninitializedVariablesTransferRelation(printWarnings, logger);
     this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
-    
+
     statistics = new UninitializedVariablesStatistics(printWarnings);
   }
-  
+
   @Override
   public AbstractDomain getAbstractDomain() {
     return abstractDomain;
@@ -147,10 +147,10 @@ public class UninitializedVariablesCPA implements ConfigurableProgramAnalysis, S
   public TransferRelation getTransferRelation() {
     return transferRelation;
   }
-  
+
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(statistics);
   }
-  
+
 }

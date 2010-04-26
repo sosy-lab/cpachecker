@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -22,7 +22,7 @@
  *    http://cpachecker.sosy-lab.org
  */
 /**
- * 
+ *
  */
 package org.sosy_lab.cpachecker.core.algorithm.cbmctools;
 
@@ -75,9 +75,9 @@ public class CProver {
       String lFunctionName = "main";
       // TODO we check for assertion errors
       System.out.println(" --- Starting CBMC verification --- ");
-      
-      Process lCBMCProcess = Runtime.getRuntime().exec("cbmc --function " + 
-          lFunctionName + "_0 --no-bounds-check --no-div-by-zero-check --no-pointer-check " + lFile.getAbsolutePath());            
+
+      Process lCBMCProcess = Runtime.getRuntime().exec("cbmc --function " +
+          lFunctionName + "_0 --no-bounds-check --no-div-by-zero-check --no-pointer-check " + lFile.getAbsolutePath());
 
       // TODO Remove output --- begin
       /*BufferedReader lReader = new BufferedReader(new InputStreamReader(lCBMCProcess.getInputStream()));
@@ -133,7 +133,7 @@ public class CProver {
     } catch (IOException e) {
       CPAchecker.logger.logException(Level.SEVERE, e, "");
       System.exit(1);
-    } 
+    }
 
     return -99;
   }

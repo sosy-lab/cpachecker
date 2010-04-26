@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -40,7 +40,7 @@ public class RepetitionsInPathHeuristics
   implements StopHeuristics<RepetitionsInPathHeuristicsData>
 {
   private final Function<? super CFAEdge, Integer> thresholdFunction;
-  
+
   public RepetitionsInPathHeuristics(Configuration config, LogManager logger)
   {
     int configThreshold = Integer.parseInt(config.getProperty("threshold", "-1").trim());
@@ -73,5 +73,5 @@ public class RepetitionsInPathHeuristics
       CFAEdge pEdge) {
     return ((RepetitionsInPathHeuristicsData)pData).updateForEdge(pEdge, thresholdFunction);
   }
-  
+
 }

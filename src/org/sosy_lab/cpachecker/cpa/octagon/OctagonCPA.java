@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -41,18 +41,18 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 public class OctagonCPA implements ConfigurableProgramAnalysis{
 
   private static class OctagonCPAFactory extends AbstractCPAFactory {
-    
+
     @Override
     public ConfigurableProgramAnalysis createInstance() {
       String mergeType = getConfiguration().getProperty("cpas.octagon.merge");
       return new OctagonCPA(mergeType);
     }
   }
-  
+
   public static CPAFactory factory() {
     return new OctagonCPAFactory();
   }
-  
+
   private AbstractDomain abstractDomain;
   private TransferRelation transferRelation;
   private MergeOperator mergeOperator;
@@ -73,7 +73,7 @@ public class OctagonCPA implements ConfigurableProgramAnalysis{
     }
 
     StopOperator octagonStopOp = new StopSepOperator(octagonDomain.getPartialOrder());
-    
+
     this.abstractDomain = octagonDomain;
     this.mergeOperator = octagonMergeOp;
     this.stopOperator = octagonStopOp;

@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -31,19 +31,19 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
  * Abstract element for the generic assumption generator CPA;
  * encapsulate a symbolic formula that represents the
  * assumption.
- * 
+ *
  * @author g.theoduloz
  */
 public class GenericAssumptionsElement implements AbstractElement, AssumptionReportingElement {
 
   // The inner representation is a formula.
   private final AssumptionWithLocation assumption;
-  
+
   public GenericAssumptionsElement(AssumptionWithLocation anAssumption)
   {
     assumption = anAssumption;
   }
-  
+
   @Override
   public AssumptionWithLocation getAssumptionWithLocation()
   {
@@ -52,7 +52,7 @@ public class GenericAssumptionsElement implements AbstractElement, AssumptionRep
     else
       return assumption;
   }
-  
+
   /**
    * @param other an other abstract element <b>with the same manager</b>
    * @return an abstract element representing the conjunction of
@@ -64,15 +64,15 @@ public class GenericAssumptionsElement implements AbstractElement, AssumptionRep
     if (this == TOP) return other;
     if (other == TOP) return this;
     if ((this == BOTTOM) || (other == BOTTOM)) return BOTTOM;
-    
+
     return new GenericAssumptionsElement(assumption.and(other.assumption));
   }
-  
+
   @Override
   public boolean isError() {
     return false;
   }
-  
+
   @Override
   public boolean equals(Object pObj) {
     if (pObj instanceof GenericAssumptionsElement)
@@ -80,7 +80,7 @@ public class GenericAssumptionsElement implements AbstractElement, AssumptionRep
     else
       return false;
   }
-  
+
   @Override
   public String toString() {
     return assumption.toString();

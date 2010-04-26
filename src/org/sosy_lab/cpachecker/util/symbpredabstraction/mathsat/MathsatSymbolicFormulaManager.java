@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -103,18 +103,18 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
 
   @Option(name="mathsat.useIntegers")
   private boolean useIntegers = false;
-  
+
   @Option
   private boolean initAllVars = false;
-  
+
   @Option
   private String noAutoInitPrefix = "__BLAST_NONDET";
-  
+
   // if true, handle lvalues as *x, &x, s.x, etc. using UIFs. If false, just
   // ue variables
   @Option(name="mathsat.lvalsAsUIFs")
   private boolean lvalsAsUif = false;
-  
+
   // the MathSAT environment in which all terms are created
   private final long msatEnv;
 
@@ -180,7 +180,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
   private final Map<String, Long> stringLitToMsat = new HashMap<String, Long>();
   private int nextStringLitIndex = 0;
   private final long stringLitUfDecl;
-  
+
   private final LogManager logger;
 
   public MathsatSymbolicFormulaManager(Configuration config, LogManager logger) throws InvalidConfigurationException {
@@ -239,13 +239,13 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         mathsat.api.MSAT_BOOL);
     long var = mathsat.api.msat_make_variable(msatEnv, d);
     assert(!mathsat.api.MSAT_ERROR_TERM(var));
-    
+
     return new MathsatSymbolicFormula(var);
   }
-  
+
   public String dumpFormula(SymbolicFormula f) {
     MathsatSymbolicFormula m = (MathsatSymbolicFormula)f;
-    
+
     return mathsat.api.msat_to_msat(msatEnv, m.getTerm());
   }
 
@@ -255,8 +255,8 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     long a = mathsat.api.msat_make_not(msatEnv, m.getTerm());
     return new MathsatSymbolicFormula(a);
   }
-  
-  
+
+
   public SymbolicFormula makeAnd(SymbolicFormula f1, SymbolicFormula f2) {
     MathsatSymbolicFormula m1 = (MathsatSymbolicFormula)f1;
     MathsatSymbolicFormula m2 = (MathsatSymbolicFormula)f2;
@@ -285,25 +285,25 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
   public SymbolicFormula makeTrue() {
     return new MathsatSymbolicFormula(mathsat.api.msat_make_true(msatEnv));
   }
-  
+
   @Override
   public SymbolicFormula parseInfix(String s) {
     long f = mathsat.api.msat_from_string(msatEnv, s);
     Preconditions.checkArgument(!mathsat.api.MSAT_ERROR_TERM(f), "Could not parse formula as Mathsat formula.");
-    
+
     return new MathsatSymbolicFormula(f);
   }
-  
+
   public SymbolicFormula makeIfThenElse(SymbolicFormula atom, SymbolicFormula f1, SymbolicFormula f2) {
     MathsatSymbolicFormula mAtom = (MathsatSymbolicFormula)atom;
     MathsatSymbolicFormula m1 = (MathsatSymbolicFormula)f1;
     MathsatSymbolicFormula m2 = (MathsatSymbolicFormula)f2;
-    
+
     long ite = mathsat.api.msat_make_ite(msatEnv, mAtom.getTerm(), m1.getTerm(), m2.getTerm());
 
     return new MathsatSymbolicFormula(ite);
   }
-  
+
   @Override
   public PathFormula makeAnd(
       SymbolicFormula f1, CFAEdge edge, SSAMap ssa)
@@ -502,7 +502,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     }
     return new PathFormula(m1, newssa);
   }
-  
+
   private Pair<SymbolicFormula, SSAMap> makeAndEnterFunction(
       MathsatSymbolicFormula m1, FunctionDefinitionNode fn, SSAMap ssa)
       throws UnrecognizedCFAEdgeException {
@@ -566,7 +566,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     msg = "Line " + astNode.getFileLocation().getStartingLineNumber()
         + ": " + msg
         + ": " + astNode.getRawSignature();
-    
+
     if (printedWarnings.add(msg)) {
       logger.log(level, 1, msg);
     }
@@ -619,7 +619,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       SSAMap newssa = new SSAMap();
       newssa.copyFrom(ssa);
       ssa = newssa;
-      
+
       // build the actual parameters in the caller's context
       long[] msatActualParams;
       if (edge.getArguments() == null) {
@@ -824,7 +824,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         assert(s.charAt(0) == '\'');
         assert(s.charAt(length-1) == '\'');
         int n;
-        
+
         if (s.charAt(1) == '\\') {
           n = Integer.parseInt(s.substring(2, length-1));
         } else {
@@ -917,12 +917,12 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
           }
           long term = buildMsatTerm(operand, ssa);
           if (mathsat.api.MSAT_ERROR_TERM(term)) return term;
-          
+
           // PW make SSA index of * independent from argument
           int idx = getLvalIndex(opname, ssa);
           //int idx = getNormalIndex(
           //    opname, term, ssa, absoluteSSAIndices);
-          
+
           if (idx <= 0) return mathsat.api.MSAT_MAKE_ERROR_TERM();
           // build the  function corresponding to this operation.
           long decl = mathsat.api.msat_declare_uif(
@@ -942,7 +942,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         }
         return mathsat.api.msat_make_uif(msatEnv, bitwiseNotUfDecl, new long[]{term});
       }
-        
+
       /* !operand cannot be handled directly in case operand is a variable
        * we would need to know if operand is of type boolean or something else
        * currently ! is handled by the default branch
@@ -953,7 +953,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         }
         return mathsat.api.msat_make_not(msatEnv, operandMsat);
       }*/
-        
+
       case IASTUnaryExpression.op_sizeof: {
         // TODO
         //return mathsat.api.MSAT_MAKE_ERROR_TERM();
@@ -1108,7 +1108,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       case IASTBinaryExpression.op_binaryOr:
       case IASTBinaryExpression.op_binaryXor:
       case IASTBinaryExpression.op_shiftLeft:
-      case IASTBinaryExpression.op_shiftRight: 
+      case IASTBinaryExpression.op_shiftRight:
       {
         long me1 = buildMsatTerm(e1, ssa);
         if (mathsat.api.MSAT_ERROR_TERM(me1)) return me1;
@@ -1331,7 +1331,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       int idx = getLvalIndex(opname, ssa);
       //int idx = getLvalIndex(opname, term, ssa, absoluteSSAIndices);
       //ssa.setIndex(opname, new MathsatSymbolicFormula(term), idx);
-      
+
       // build the "updated" function corresponding to this operation.
       // what we do is the following:
       // C            |     MathSAT
@@ -1401,7 +1401,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       log(Level.WARNING, "Ignoring function call through function pointer", fexp);
       func = "<func>{" + fn.getRawSignature() + "}";
     }
-    
+
     IASTExpression pexp = fexp.getParameterExpression();
     if (pexp == null) {
       // this is a function of arity 0. We create a fresh global variable

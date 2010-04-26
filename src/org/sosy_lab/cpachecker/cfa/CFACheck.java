@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -98,7 +98,7 @@ public class CFACheck {
             + ", but pNode " + successor + " does not have this edge as entering edge!";
       }
     }
-    
+
     seen.clear();
     int enteringEdgeCount = pNode.getNumEnteringEdges ();
     for (int edgeIdx = 0; edgeIdx < enteringEdgeCount; ++edgeIdx)
@@ -124,7 +124,7 @@ public class CFACheck {
 
     return true;
   }
-  
+
   /**
    * Interpolating analyses require that a CFAErrorNode has a successor node
    * @param pNode Node to be checked
@@ -134,10 +134,10 @@ public class CFACheck {
     if (pNode instanceof CFAErrorNode) {
       return (pNode.getNumLeavingEdges() > 0);
     }
-    
+
     return true;
   }
-  
+
 
   /**
    * Check for jump edges and make sure there is only one of them
@@ -148,7 +148,7 @@ public class CFACheck {
     if (pNode.hasJumpEdgeLeaving()) {
       return (pNode.getNumLeavingEdges() == 1);
     }
-    
+
     return true;
   }
 }

@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -33,11 +33,11 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
  * @author alb
  */
 public interface Statistics {
-    
+
     /**
      * Prints this group of statistics using the given writer
      * @param out the writer to use for printing the statistics
-     * @param result the result of the analysis 
+     * @param result the result of the analysis
      * @param reached the final reached set
      */
     public void printStatistics(PrintWriter out, Result result, ReachedElements reached);

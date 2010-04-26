@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -49,14 +49,14 @@ public class UpdateablePredicateMap implements PredicateMap {
     private final Map<CFANode, Set<Predicate>> repr;
     private final Map<String, Set<Predicate>> functionGlobalPreds;
     private final Collection<Predicate> initialGlobalPreds;
-    
+
     private final boolean globalPredicates;
 
     public UpdateablePredicateMap(Collection<Predicate> initial, boolean globalPredicates) {
         this.globalPredicates = globalPredicates;
         repr = new HashMap<CFANode, Set<Predicate>>();
         functionGlobalPreds = new HashMap<String, Set<Predicate>>();
-        
+
         if (initial == null || initial.size() == 0) {
           initialGlobalPreds = Collections.emptySet();
         } else {
@@ -68,7 +68,7 @@ public class UpdateablePredicateMap implements PredicateMap {
         if (initialGlobalPreds.containsAll(preds)) {
           return false;
         }
-      
+
         boolean added = false;
         if (globalPredicates) {
             String fn = n.getFunctionName();
@@ -132,7 +132,7 @@ public class UpdateablePredicateMap implements PredicateMap {
     public Collection<String> getKnownFunctions() {
         return functionGlobalPreds.keySet();
     }
-    
+
     @Override
     public String toString() {
         if (globalPredicates) {

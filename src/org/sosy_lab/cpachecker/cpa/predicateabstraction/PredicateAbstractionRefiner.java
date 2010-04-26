@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -57,7 +57,7 @@ public class PredicateAbstractionRefiner extends AbstractARTBasedRefiner {
   // private int samePathAlready = 0;
 
 //  private boolean notEnoughPredicatesFlag = false;
-  
+
   public PredicateAbstractionRefiner(ConfigurableProgramAnalysis pCpa) throws CPAException {
     super(pCpa);
 
@@ -84,10 +84,10 @@ public class PredicateAbstractionRefiner extends AbstractARTBasedRefiner {
     if (info.isSpurious()) {
       CPAchecker.logger.log(Level.FINEST,
       "Found spurious error trace, refining the abstraction");
-      
+
       ARTElement refinementRoot = performRefinement(pReached, pPath, pathArray, info);
       assert refinementRoot != null;
-      
+
       pReached.removeSubtree(refinementRoot);
       return true;
     } else {

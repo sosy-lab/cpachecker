@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -39,14 +39,14 @@ import org.sosy_lab.common.configuration.Configuration;
 public class EdgeCountHeuristics implements StopHeuristics<EdgeCountHeuristicsData> {
 
   private final Function<? super CFAEdge, Integer> thresholdFunction;
-  
+
   public EdgeCountHeuristics(Configuration config, LogManager logger)
   {
     // Initialise the threshold function
     int staticThreshold = Integer.parseInt(config.getProperty("threshold", "-1").trim());
     thresholdFunction = Functions.constant((staticThreshold <= 0) ? null : staticThreshold);
   }
-  
+
   @Override
   public EdgeCountHeuristicsData getBottom() {
     return EdgeCountHeuristicsData.BOTTOM;

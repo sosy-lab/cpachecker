@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -28,30 +28,30 @@ import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.ASTVisitor;
 public class EnclosingScopes implements Filter {
 
   private Filter mFilter;
-  
+
   public EnclosingScopes(Filter pFilter) {
     assert(pFilter != null);
-    
+
     mFilter = pFilter;
   }
-  
+
   public Filter getFilter() {
     return mFilter;
   }
-  
+
   @Override
   public String toString() {
     return "ENCLOSING_SCOPES(" + mFilter.toString() + ")";
   }
-  
+
   @Override
   public boolean equals(Object obj) {
     if (this == obj) return true;
     if (obj == null) return false;
     if (getClass() != obj.getClass()) return false;
-    
+
     EnclosingScopes other = (EnclosingScopes) obj;
-    
+
     return mFilter.equals(other.mFilter);
   }
 
@@ -59,11 +59,11 @@ public class EnclosingScopes implements Filter {
   public int hashCode() {
     return 476455 + mFilter.hashCode();
   }
-  
+
   @Override
   public <T> T accept(ASTVisitor<T> pVisitor) {
     assert(pVisitor != null);
-    
+
     return pVisitor.visit(this);
   }
 

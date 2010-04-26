@@ -24,7 +24,7 @@ The CPAchecker Project uses the following mailing lists:
   https://groups.google.com/a/sosy-lab.org/group/cpachecker-dev
 
 For group subscription and web access: visit http://groups.sosy-lab.org
-  and click on "Browse all groups". 
+  and click on "Browse all groups".
   Choose the group you want to visit or subscribe.
   In order to sign in to one of the sosy-lab groups,
   use the non-bold link "Sign in for Google Groups".
@@ -32,7 +32,7 @@ For group subscription and web access: visit http://groups.sosy-lab.org
   click on "Enter your email address to access ...".
   This does not necessarily need to be a Google email account.
 
-For project information: visit http://cpachecker.sosy-lab.org 
+For project information: visit http://cpachecker.sosy-lab.org
 
 dbeyer 2010-02-02
 

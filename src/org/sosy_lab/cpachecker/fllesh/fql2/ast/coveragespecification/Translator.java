@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -43,78 +43,78 @@ public class Translator {
   private Visitor mVisitor;
   private TargetGraph mTargetGraph;
   private org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.Translator mPathPatternTranslator;
-  
+
   public Translator(CFAFunctionDefinitionNode pMainFunction) {
     mVisitor = new Visitor();
-    
+
     mTargetGraph = TargetGraph.createTargetGraphFromCFA(pMainFunction);
     mPathPatternTranslator = new org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.Translator(mTargetGraph);
   }
-  
+
   public Annotations getAnnotations() {
     return mPathPatternTranslator;
   }
-  
+
   public Set<Pattern> translate(CoverageSpecification pSpecification) {
     return pSpecification.accept(mVisitor);
   }
-  
+
   private class Visitor implements ASTVisitor<Set<Pattern>> {
 
     @Override
     public Set<Pattern> visit(Concatenation pConcatenation) {
       Set<Pattern> lResultSet = new HashSet<Pattern>();
-      
+
       Set<Pattern> lPrefixSet = pConcatenation.getFirstSubspecification().accept(this);
       Set<Pattern> lSuffixSet = pConcatenation.getSecondSubspecification().accept(this);
-      
+
       for (Pattern lPrefix : lPrefixSet) {
         for (Pattern lSuffix : lSuffixSet) {
           Pattern lConcatenation = new org.sosy_lab.cpachecker.fllesh.ecp.reduced.Concatenation(lPrefix, lSuffix);
           lResultSet.add(lConcatenation);
         }
       }
-      
+
       return lResultSet;
     }
 
     @Override
     public Set<Pattern> visit(Quotation pQuotation) {
       Pattern pPattern = mPathPatternTranslator.translate(pQuotation.getPathPattern());
-      
+
       return Collections.singleton(pPattern);
     }
 
     @Override
     public Set<Pattern> visit(Union pUnion) {
       Set<Pattern> lResultSet = new HashSet<Pattern>();
-      
+
       Set<Pattern> lFirstSet = pUnion.getFirstSubspecification().accept(this);
       Set<Pattern> lSecondSet = pUnion.getSecondSubspecification().accept(this);
-      
+
       lResultSet.addAll(lFirstSet);
       lResultSet.addAll(lSecondSet);
-      
+
       return lResultSet;
     }
 
     @Override
     public Set<Pattern> visit(Edges pEdges) {
       Set<Pattern> lResultSet = new HashSet<Pattern>();
-      
+
       Filter lFilter = pEdges.getFilter();
-      
+
       TargetGraph lFilteredTargetGraph = mTargetGraph.apply(lFilter);
-      
+
       for (Edge lEdge : lFilteredTargetGraph.getEdges()) {
         CFAEdge lCFAEdge = lEdge.getCFAEdge();
-        
+
         lResultSet.add(new Atom(mPathPatternTranslator.getId(lCFAEdge)));
       }
-      
+
       return lResultSet;
     }
-    
+
   }
-  
+
 }

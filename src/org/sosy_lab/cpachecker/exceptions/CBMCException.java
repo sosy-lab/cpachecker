@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -28,9 +28,9 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 public class CBMCException extends CPATransferException {
 
   private static final long serialVersionUID = -8621199013744809508L;
-  
+
   private final AbstractElement abstractElement;
-  
+
   public CBMCException(AbstractElement pAbstractElement){
     abstractElement = pAbstractElement;
   }

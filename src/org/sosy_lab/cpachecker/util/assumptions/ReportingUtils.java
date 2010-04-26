@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -31,14 +31,14 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
 /**
  * Static methods used as helpers to manipulate elements implementing
  * FormulaReportingElement.
- * 
+ *
  * @author g.theoduloz
  */
 public class ReportingUtils {
-  
+
   /** Cannot have instances */
   private ReportingUtils() {}
-  
+
   /**
    * Returns a predicate representing states represented by
    * the given abstract element, according to reported
@@ -47,22 +47,22 @@ public class ReportingUtils {
   public static SymbolicFormula extractReportedFormulas(SymbolicFormulaManager manager, AbstractElement element)
   {
     SymbolicFormula result = manager.makeTrue();
-    
+
     // If it is a wrapper, add its sub-element's assertions
     if (element instanceof AbstractWrapperElement)
     {
       for (AbstractElement subel : ((AbstractWrapperElement) element).getWrappedElements())
         result = manager.makeAnd(result, extractReportedFormulas(manager, subel));
     }
-    
+
     // If the element can be approximated by a formula, conjunct its approximation
     if (element instanceof FormulaReportingElement) {
       FormulaReportingElement repel = (FormulaReportingElement) element;
       SymbolicFormula symbolicFormula = repel.getFormulaApproximation();
       result = manager.makeAnd(result, symbolicFormula);
     }
-     
+
     return result;
   }
-  
+
 }

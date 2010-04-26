@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -61,62 +61,62 @@ public class QueryEvaluationTest {
   @Test
   public void test_01() throws IOException, InvalidConfigurationException, CPAException {
     Configuration lConfiguration = new Configuration(mPropertiesFile, mProperties);
-    
+
     LogManager lLogManager = new LogManager(lConfiguration);
-      
+
     CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
-    
+
     TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
-    
+
     States lStatesCoverage = new States(Identity.getInstance());
-    
+
     Query lQuery = new Query(lStatesCoverage, new LowerBound(Identity.getInstance(), 0));
-    
+
     System.out.println(QueryEvaluation.evaluate(lQuery, lTargetGraph));
   }
-  
+
   @Test
   public void test_02() throws IOException, InvalidConfigurationException, CPAException {
     Configuration lConfiguration = new Configuration(mPropertiesFile, mProperties);
-    
+
     LogManager lLogManager = new LogManager(lConfiguration);
-      
+
     CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
-    
+
     TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
-    
+
     States lStatesCoverage = new States(Identity.getInstance());
-    
+
     PathMonitor lTrueMonitor = new LowerBound(Identity.getInstance(), 0);
-    
+
     Sequence lSequence = new Sequence(lTrueMonitor, lStatesCoverage, lTrueMonitor);
-    
+
     Query lQuery = new Query(lSequence, lTrueMonitor);
-    
+
     System.out.println(QueryEvaluation.evaluate(lQuery, lTargetGraph));
   }
-  
+
   @Test
   public void test_03() throws IOException, InvalidConfigurationException, CPAException {
     Configuration lConfiguration = new Configuration(mPropertiesFile, mProperties);
-    
+
     LogManager lLogManager = new LogManager(lConfiguration);
-      
+
     CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
-    
+
     TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
-    
+
     States lStatesCoverage = new States(Identity.getInstance());
-    
+
     PathMonitor lTrueMonitor = new LowerBound(Identity.getInstance(), 0);
-    
+
     Sequence lSequence = new Sequence(lTrueMonitor, lStatesCoverage, lTrueMonitor);
-    
+
     lSequence.extend(lTrueMonitor, new Edges(Identity.getInstance()));
-    
+
     Query lQuery = new Query(lSequence, lTrueMonitor);
-    
+
     System.out.println(QueryEvaluation.evaluate(lQuery, lTargetGraph));
   }
-  
+
 }

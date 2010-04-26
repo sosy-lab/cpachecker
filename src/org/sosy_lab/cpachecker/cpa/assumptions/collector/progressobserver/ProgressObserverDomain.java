@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -37,12 +37,12 @@ public class ProgressObserverDomain implements AbstractDomain {
 
   private final ProgressObserverElement bottom;
   private final ProgressObserverElement top;
-  
+
   public ProgressObserverDomain(ProgressObserverCPA a) {
     bottom = ProgressObserverElement.getBottom(a);
     top = ProgressObserverElement.getTop(a);
   }
-  
+
   // Join is not supported
   private final JoinOperator joinOperator = new JoinOperator() {
     @Override
@@ -50,7 +50,7 @@ public class ProgressObserverDomain implements AbstractDomain {
       return null;
     }
   };
-  
+
   // Partial order: flat
   private final PartialOrder partialOrder = new PartialOrder() {
     @Override
@@ -59,7 +59,7 @@ public class ProgressObserverDomain implements AbstractDomain {
           || (((ProgressObserverElement)el1).isLessThan((ProgressObserverElement) el2));
     }
   };
-  
+
   @Override
   public ProgressObserverElement getBottomElement() {
     return bottom;

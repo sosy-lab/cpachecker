@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -36,15 +36,15 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 public class AlwaysTopTransferRelation implements TransferRelation {
 
   private static AlwaysTopTransferRelation mInstance = new AlwaysTopTransferRelation();
-  
+
   private AlwaysTopTransferRelation() {
-    
+
   }
-  
+
   public static AlwaysTopTransferRelation getInstance() {
     return mInstance;
   }
-  
+
   @Override
   public Collection<? extends AbstractElement> getAbstractSuccessors(
       AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge)
@@ -52,11 +52,11 @@ public class AlwaysTopTransferRelation implements TransferRelation {
     assert(pElement != null);
     assert(pPrecision != null);
     assert(pCfaEdge != null);
-    
+
     if (AlwaysTopBottomElement.getInstance().equals(pElement)) {
       return Collections.emptySet();
     }
-    
+
     return Collections.singleton(AlwaysTopTopElement.getInstance());
   }
 

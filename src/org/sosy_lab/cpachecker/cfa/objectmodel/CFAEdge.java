@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -38,7 +38,7 @@ public interface CFAEdge
     public IASTNode getRawAST();
 
     public int getLineNumber();
-    
+
     /**
      * Gives information whether this information represents a jump to a
      * distant program location (e.g. a return or a goto statement).

@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -35,12 +35,12 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 public class ReachedSizeHeuristics implements StopHeuristics<TrivialStopHeuristicsData> {
 
   private final int threshold;
-  
+
   public ReachedSizeHeuristics(Configuration config, LogManager logger)
   {
     threshold = Integer.parseInt(config.getProperty("threshold", "-1").trim());
   }
-  
+
   @Override
   public TrivialStopHeuristicsData getBottom() {
     return TrivialStopHeuristicsData.BOTTOM;
@@ -69,5 +69,5 @@ public class ReachedSizeHeuristics implements StopHeuristics<TrivialStopHeuristi
   public TrivialStopHeuristicsData processEdge(StopHeuristicsData pData, CFAEdge pEdge) {
     return (TrivialStopHeuristicsData)pData;
   }
-  
+
 }

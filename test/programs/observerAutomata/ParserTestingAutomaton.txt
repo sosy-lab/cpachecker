@@ -4,10 +4,9 @@ AUTOMATON ParserTestingAutomaton
 
 INITIAL STATE Init;
 
-STATE Init : 
+STATE Init :
   //!(FALSE == TRUE) -> GOTO Init;
   (TRUE && !TRUE) -> GOTO Init;
   TRUE -> ERROR;
   TRUE -> GOTO Init;
-  
-  
+

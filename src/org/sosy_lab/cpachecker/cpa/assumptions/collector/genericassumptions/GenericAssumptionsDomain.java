@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class GenericAssumptionsDomain implements AbstractDomain {
-  
+
   private final JoinOperator joinOperator =
     new JoinOperator() {
       @Override
@@ -42,8 +42,8 @@ public class GenericAssumptionsDomain implements AbstractDomain {
         return iel1.makeAnd(iel2);
       }
     };
-    
-  private final PartialOrder partialOrder = 
+
+  private final PartialOrder partialOrder =
     new PartialOrder() {
       @Override
       public boolean satisfiesPartialOrder(AbstractElement el1, AbstractElement el2)
@@ -54,11 +54,11 @@ public class GenericAssumptionsDomain implements AbstractDomain {
         return el1.equals(el2);
       }
     };
-  
+
   public GenericAssumptionsDomain(GenericAssumptionsCPA aCPA)
   {
   }
-  
+
   @Override
   public AbstractElement getBottomElement() {
     return GenericAssumptionsElement.BOTTOM;

@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -48,44 +48,44 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 public class GenericAssumptionsCPA implements ConfigurableProgramAnalysis {
 
   private static class GenericAssumptionsCPAFactory extends AbstractCPAFactory {
-    
+
     @Override
     public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException {
       return new GenericAssumptionsCPA(getConfiguration(), getLogger());
     }
   }
-  
+
   public static CPAFactory factory() {
     return new GenericAssumptionsCPAFactory();
   }
-  
+
   private GenericAssumptionsDomain abstractDomain;
   private MergeOperator mergeOperator;
   private StopOperator stopOperator;
   private TransferRelation transferRelation;
   private PrecisionAdjustment precisionAdjustment;
-  
+
   // Symbolic Formula Manager used to represent build invariant formulas
   private final AssumptionSymbolicFormulaManager symbolicFormulaManager;
-  
+
   private GenericAssumptionsCPA(Configuration config, LogManager logger) throws InvalidConfigurationException
   {
     symbolicFormulaManager = MathsatInvariantSymbolicFormulaManager.createInstance(config, logger);
-    
+
     abstractDomain = new GenericAssumptionsDomain(this);
-    
+
     mergeOperator = MergeSepOperator.getInstance();
     stopOperator = StopNeverOperator.getInstance();
     precisionAdjustment = StaticPrecisionAdjustment.getInstance();
-    
+
     transferRelation = new GenericAssumptionsTransferRelation(this);
   }
-  
+
   public AssumptionSymbolicFormulaManager getSymbolicFormulaManager()
   {
     return symbolicFormulaManager;
   }
-  
+
   @Override
   public AbstractDomain getAbstractDomain() {
     return abstractDomain;

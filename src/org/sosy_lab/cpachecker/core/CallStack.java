@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -70,7 +70,7 @@ public class CallStack implements Cloneable {
 	public int hashCode() {
 	  return stack.hashCode();
 	}
-	
+
 	public CallElement peek() {
 		return stack.get(stack.size()-1);
 	}

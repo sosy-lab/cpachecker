@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -42,9 +42,9 @@ import org.eclipse.cdt.core.parser.IToken;
  */
 public class DummyASTNumericalLiteralExpression implements
     IASTLiteralExpression, Comparable<DummyASTNumericalLiteralExpression> {
-  
+
   private String representation;
-  
+
   public DummyASTNumericalLiteralExpression(String r) {
     representation = r;
   }
@@ -183,36 +183,36 @@ public class DummyASTNumericalLiteralExpression implements
     BigDecimal decOther = new BigDecimal(other.representation);
     return decThis.compareTo(decOther);
   }
-  
+
   @Override
   public String toString() {
     return getRawSignature();
   }
-  
+
   /* Constants, assuming 32-bit machine */
   public static final DummyASTNumericalLiteralExpression ZERO = new DummyASTNumericalLiteralExpression("0");
   public static final DummyASTNumericalLiteralExpression FALSE = ZERO;
   public static final DummyASTNumericalLiteralExpression ONE = new DummyASTNumericalLiteralExpression("1");
   public static final DummyASTNumericalLiteralExpression TRUE = ONE;
-  
+
   public static final DummyASTNumericalLiteralExpression INT_MAX = new DummyASTNumericalLiteralExpression("2147483647");
   public static final DummyASTNumericalLiteralExpression INT_MIN = new DummyASTNumericalLiteralExpression("-2147483648");
   public static final DummyASTNumericalLiteralExpression UINT_MIN = ZERO;
   public static final DummyASTNumericalLiteralExpression UINT_MAX = new DummyASTNumericalLiteralExpression("4294967295");
-  
+
   public static final DummyASTNumericalLiteralExpression LONG_MAX = new DummyASTNumericalLiteralExpression("2147483647");
   public static final DummyASTNumericalLiteralExpression LONG_MIN = new DummyASTNumericalLiteralExpression("-2147483648");
   public static final DummyASTNumericalLiteralExpression ULONG_MIN = ZERO;
   public static final DummyASTNumericalLiteralExpression ULONG_MAX = new DummyASTNumericalLiteralExpression("4294967295");
-  
+
   public static final DummyASTNumericalLiteralExpression SHRT_MAX = new DummyASTNumericalLiteralExpression("32767");
   public static final DummyASTNumericalLiteralExpression SHRT_MIN = new DummyASTNumericalLiteralExpression("-32768");
   public static final DummyASTNumericalLiteralExpression USHRT_MIN = ZERO;
   public static final DummyASTNumericalLiteralExpression USHRT_MAX = new DummyASTNumericalLiteralExpression("65535");
-  
+
   public static final DummyASTNumericalLiteralExpression CHAR_MAX = new DummyASTNumericalLiteralExpression("127");
   public static final DummyASTNumericalLiteralExpression CHAR_MIN = new DummyASTNumericalLiteralExpression("-128");
   public static final DummyASTNumericalLiteralExpression UCHAR_MIN = ZERO;
   public static final DummyASTNumericalLiteralExpression UCHAR_MAX = new DummyASTNumericalLiteralExpression("255");
-  
+
 }

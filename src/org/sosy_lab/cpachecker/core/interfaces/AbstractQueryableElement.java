@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -26,14 +26,14 @@ package org.sosy_lab.cpachecker.core.interfaces;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
 /**
- * An AbstractElement that evaluates Properties (String-encoded) and 
- * returns whether they are satisfied in concrete states represented by the AbstractElement. 
+ * An AbstractElement that evaluates Properties (String-encoded) and
+ * returns whether they are satisfied in concrete states represented by the AbstractElement.
  * @author rhein
  */
 public interface AbstractQueryableElement extends AbstractElement {
 
   public String getCPAName();
-  
+
   /**
    * Checks whether this AbstractElement satisfies the property.
    * Each CPA defines which properties can be evaluated.
@@ -42,5 +42,5 @@ public interface AbstractQueryableElement extends AbstractElement {
    * @throws InvalidSyntaxException if the property is not given in the (CPA-specific) syntax
    */
   public boolean checkProperty(String property) throws InvalidQueryException;
-  
+
 }

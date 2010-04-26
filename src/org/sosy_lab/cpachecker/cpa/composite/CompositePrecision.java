@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -22,7 +22,7 @@
  *    http://cpachecker.sosy-lab.org
  */
 /**
- * 
+ *
  */
 package org.sosy_lab.cpachecker.cpa.composite;
 
@@ -55,7 +55,7 @@ public class CompositePrecision implements WrapperPrecision {
     } else if (other == null || !(other instanceof CompositePrecision)) {
       return false;
     }
-    
+
     return precisions.equals(((CompositePrecision)other).precisions);
   }
 
@@ -67,12 +67,12 @@ public class CompositePrecision implements WrapperPrecision {
   public Precision get(int idx) {
     return precisions.get(idx);
   }
-  
+
   @Override
   public String toString() {
     return precisions.toString();
   }
-  
+
   @Override
   public <T extends Precision> T retrieveWrappedPrecision(Class<T> pType) {
     if (pType.isAssignableFrom(getClass())) {
@@ -82,7 +82,7 @@ public class CompositePrecision implements WrapperPrecision {
       if (precision != null) {
         if (pType.isAssignableFrom(precision.getClass())) {
           return pType.cast(precision);
-          
+
         } else if (precision instanceof WrapperPrecision) {
           T result = ((WrapperPrecision)precision).retrieveWrappedPrecision(pType);
           if (result != null) {
@@ -93,31 +93,31 @@ public class CompositePrecision implements WrapperPrecision {
     }
     return null;
   }
-  
+
   @Override
   public Precision replaceWrappedPrecision(Precision newPrecision) {
     Class<? extends Precision> newPrecClass = newPrecision.getClass();
-    
+
     if (newPrecClass.equals(CompositePrecision.class)) {
       return newPrecision;
     }
-    
+
     List<Precision> newPrecisions = new ArrayList<Precision>(precisions.size());
     boolean changed = false;
     for (Precision precision : precisions) {
       if (precision == null) {
         newPrecisions.add(null);
-      
+
       } else if (newPrecClass.equals(precision.getClass())) {
         newPrecisions.add(newPrecision);
         changed = true;
-      
+
       } else if (precision instanceof WrapperPrecision) {
         Precision newWrappedPrecision = ((WrapperPrecision)precision).replaceWrappedPrecision(newPrecision);
         if (newWrappedPrecision != null) {
           newPrecisions.add(newWrappedPrecision);
           changed = true;
-          
+
         } else {
           newPrecisions.add(precision);
         }

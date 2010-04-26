@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -78,29 +78,29 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
     private static class PredicateAbstractionCPAFactory extends AbstractCPAFactory {
-      
+
       @Override
       public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException {
         return new PredicateAbstractionCPA(getConfiguration(), getLogger());
       }
     }
-    
+
     public static CPAFactory factory() {
       return new PredicateAbstractionCPAFactory();
     }
-    
+
     @Option(name="explicit.abstraction.solver", values = {"mathsat", "simplify", "yices"})
     private String whichProver = "mathsat";
-    
+
     @Option(name="abstraction.fixedPredMap")
     private String fixedPredMapFile = "";
-    
+
     @Option(name="abstraction.norefinement")
     private boolean noRefinement = false;
-    
+
     @Option(name="refinement.addPredicatesGlobally")
     private boolean addPredicatesGlobally;
-  
+
     private final PredicateAbstractionAbstractDomain domain;
     private final PredicateAbstractionTransferRelation trans;
     private final MergeOperator merge;
@@ -188,14 +188,14 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis, Sta
 
     @Override
     public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
-      logger.log(Level.FINEST, 
+      logger.log(Level.FINEST,
                        "Getting initial element from node: ", node);
 
         PredicateAbstractionAbstractElement e = new PredicateAbstractionAbstractElement(this);
         e.setAbstraction(abstractFormulaManager.makeTrue());
         return e;
     }
-    
+
     public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
       return null;
     }
@@ -207,7 +207,7 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis, Sta
     public PredicateAbstractionFormulaManager getPredAbsFormulaManager() {
       return amgr;
     }
-    
+
     public PredicateMap getPredicateMap() {
         return pmap;
     }
@@ -216,15 +216,15 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis, Sta
     public void collectStatistics(Collection<Statistics> pStatsCollection) {
       pStatsCollection.add(stats);
     }
-    
+
 //    public void setCovered(PredicateAbstractionAbstractElement e1) {
-//        covered.add(e1);        
+//        covered.add(e1);
 //    }
-//    
+//
 //    public Collection<PredicateAbstractionAbstractElement> getCovered() {
 //        return covered;
 //    }
-//    
+//
 //    public void setUncovered(PredicateAbstractionAbstractElement e1) {
 //        covered.remove(e1);
 //    }

@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -36,23 +36,23 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
  * @author Philipp Wendler
  */
 public class TypesCPA extends AbstractCPA {
-  
+
   private static class TypesCPAFactory extends AbstractCPAFactory {
-    
+
     @Override
     public ConfigurableProgramAnalysis createInstance() {
       return new TypesCPA();
     }
   }
-  
+
   public static CPAFactory factory() {
     return new TypesCPAFactory();
   }
-  
+
   private TypesCPA() {
     super("join", "sep", new TypesTransferRelation());
   }
-  
+
   @Override
   public AbstractElement getInitialElement(CFAFunctionDefinitionNode pNode) {
     TypesElement element = new TypesElement();

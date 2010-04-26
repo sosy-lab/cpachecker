@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.core.interfaces.JoinOperator;
 import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
 
 public class ARTDomain implements AbstractDomain {
-  
+
   private final ARTCPA cpa;
 
   private static class ArtBottomElement extends ARTElement
@@ -121,7 +121,7 @@ public class ARTDomain implements AbstractDomain {
       return topElement;
     }
   }
-  
+
   private final static ArtBottomElement bottomElement = new ArtBottomElement ();
   private final static ArtTopElement topElement = new ArtTopElement ();
   private final static PartialOrder partialOrder = new ArtPartialOrder ();
@@ -155,5 +155,5 @@ public class ARTDomain implements AbstractDomain {
   public ARTCPA getCpa(){
     return cpa;
   }
-  
+
 }

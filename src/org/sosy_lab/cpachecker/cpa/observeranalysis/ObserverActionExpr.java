@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -36,7 +36,7 @@ import java.util.regex.Pattern;
 abstract class ObserverActionExpr {
   private ObserverActionExpr() {};
   abstract void execute(ObserverExpressionArguments pArgs);
-  
+
   /**
    * Prints a string to System.out when executed.
    * @author rhein
@@ -76,7 +76,7 @@ abstract class ObserverActionExpr {
       pArgs.appendToLogMessage(result.toString());
     }
   }
-  
+
   /**
    * Prints the value of an ObserverIntExpr
    * @author rhein
@@ -86,11 +86,11 @@ abstract class ObserverActionExpr {
     public PrintInt(ObserverIntExpr pIntExpr) {
       toPrint = pIntExpr;
     }
-    @Override void execute(ObserverExpressionArguments pArgs) { 
+    @Override void execute(ObserverExpressionArguments pArgs) {
       pArgs.appendToLogMessage(toPrint.eval(pArgs));
     }
   }
-  
+
   /** Assigns the value of a ObserverIntExpr to a ObserverVariable determined by its name.
    * @author rhein
    */

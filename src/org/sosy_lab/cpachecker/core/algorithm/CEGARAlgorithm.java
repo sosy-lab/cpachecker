@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -49,25 +49,25 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
 
   private static class CEGARStatistics implements Statistics {
-    
+
     private long totalTime = 0;
     private long refinementTime = 0;
     private long gcTime = 0;
-    
+
     private int countRefinements = 0;
     private int countSuccessfulRefinements = 0;
-    
+
     @Override
     public String getName() {
       return "CEGAR algorithm";
     }
-    
+
     @Override
     public void printStatistics(PrintWriter out, Result pResult,
         ReachedElements pReached) {
-      
+
       out.println("Number of refinements:          " + countRefinements + " (" + countSuccessfulRefinements + " successful)");
-      
+
       if (countRefinements > 0) {
         out.println("");
         out.println("Total time for CEGAR algorithm: " + toTime(totalTime));
@@ -76,25 +76,25 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
         out.println("Time for garbage collection:    " + toTime(gcTime));
       }
     }
-    
+
     private String toTime(long timeMillis) {
       return String.format("% 5d.%03ds", timeMillis/1000, timeMillis%1000);
     }
   }
-  
+
   private final CEGARStatistics stats = new CEGARStatistics();
-  
+
   private static final int GC_PERIOD = 100;
   private int gcCounter = 0;
 
   private static final String CLASS_NAME_PREFIX = "org.sosy_lab.cpachecker.";
-  
+
   @Option(required=true)
   private String refiner = "";
-  
+
   @Option
   private boolean restartOnRefinement = false;
-  
+
   private final LogManager logger;
   private final Algorithm algorithm;
   private final Refiner mRefiner;
@@ -105,8 +105,8 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
    * Creates an instance of class className, passing the objects from argumentList
    * to the constructor and casting the object to class type. Throws a CPAException
    * if anything goes wrong.
-   * 
-   * TODO This method could be used in other places, too. Perhaps move it to a central location. 
+   *
+   * TODO This method could be used in other places, too. Perhaps move it to a central location.
    */
   @SuppressWarnings("unchecked")
   private static <T> T createInstance(String className, Object[] argumentList, Class<T> type)
@@ -150,20 +150,20 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
   @Override
   public void run(ReachedElements reached, boolean stopAfterError) throws CPAException {
     long start = System.currentTimeMillis();
-    
+
     boolean stopAnalysis = false;
     while (!stopAnalysis) {
       // run algorithm
       algorithm.run(reached, true);
 
       AbstractElement lastElement = reached.getLastElement();
-      
+
       // if the element is an error element
       if (lastElement != null && lastElement.isError()) {
 
         logger.log(Level.FINER, "Error found, performing CEGAR");
         stats.countRefinements++;
-        
+
         long startRefinement = System.currentTimeMillis();
         boolean refinementResult = mRefiner.performRefinement(reached);
         stats.refinementTime += (System.currentTimeMillis() - startRefinement);
@@ -179,7 +179,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
           }
 
           runGC();
-          
+
           stopAnalysis = false;
 
         } else {
@@ -198,7 +198,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
       }
     }
     executor.shutdownNow();
-    
+
     stats.totalTime += (System.currentTimeMillis() - start);
   }
 

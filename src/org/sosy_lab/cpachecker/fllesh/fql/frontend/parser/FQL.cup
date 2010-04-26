@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -79,11 +79,11 @@ parser code
 	public FQLParser(String pQueryString) {
       this(new StringReader(pQueryString));
 	}
-	
+
 	public FQLParser(Reader pReader) {
 	  this(new FQLLexer(pReader));
 	}
-	
+
 	public FQLParser(InputStream pInputStream) {
 	  this(new FQLLexer(pInputStream));
 	}
@@ -190,111 +190,111 @@ non terminal	Filter_Function;
 
 start with Query;
 
-Query				::= 
+Query				::=
 						Scope:filter Cover:coverage Passing:monitor
 						{:
 							assert(coverage != null);
 							assert(coverage instanceof Coverage);
-							
+
 							Coverage lCoverage;
-							
+
 							if (filter != null) {
 								assert(filter instanceof Filter);
-							
+
 								FQLNode lNode = ((Coverage)coverage).accept(new FilterPropagator((Filter)filter));
-								
+
 								assert(lNode != null);
 								assert(lNode instanceof Coverage);
-								
+
 								lCoverage = (Coverage)lNode;
 							}
 							else {
 								lCoverage = (Coverage)coverage;
 							}
-							
+
 							// determine passing monitor
 							PathMonitor lMonitor;
-							
+
 							if (monitor == null) {
 								lMonitor = new LowerBound(Identity.getInstance(), 0);
 							}
 							else {
 								assert(monitor instanceof PathMonitor);
-								
+
 								lMonitor = (PathMonitor)monitor;
 							}
 
-							RESULT = new Query(lCoverage, lMonitor);							
+							RESULT = new Query(lCoverage, lMonitor);
 						:}
 					;
-				
-Scope				::= 
+
+Scope				::=
 					| 	TOK_IN Filter:filter
 						{:
 							RESULT = filter;
 						:}
 					;
 
-Cover				::= 
+Cover				::=
 						TOK_COVER Test_Goal_Sequence:sequence
 						{:
 							RESULT = sequence;
 						:}
 					;
-				
-Passing				::= 
+
+Passing				::=
 					| 	TOK_PASSING Path_Monitor:monitor
 						{:
 							RESULT = monitor;
 						:}
 					;
-				
-Test_Goal_Sequence 	::=	
+
+Test_Goal_Sequence 	::=
 						Test_Goal_Set:coverage
 						{:
 							assert(coverage != null);
 							assert(coverage instanceof Coverage);
-							
+
 							PathMonitor lInitialMonitor = new LowerBound(Identity.getInstance(), 0);
 							PathMonitor lFinalMonitor = new LowerBound(Identity.getInstance(), 0);
-							
+
 							RESULT = new Sequence(lInitialMonitor, (Coverage)coverage, lFinalMonitor);
-						:} 
+						:}
 					| 	Test_Goal_Sequence:sequence TOK_L_SEQ Path_Monitor:monitor TOK_R_SEQ Test_Goal_Set:coverage
 						{:
 							assert(sequence != null);
 							assert(sequence instanceof Sequence);
-							
+
 							assert(monitor != null);
 							assert(monitor instanceof PathMonitor);
-							
+
 							assert(coverage != null);
 							assert(coverage instanceof Coverage);
-							
+
 							Sequence lSequence = (Sequence)sequence;
-							
+
 							lSequence.extend((PathMonitor)monitor, (Coverage)coverage);
-							
+
 							RESULT = lSequence;
 						:}
 					|	Test_Goal_Sequence:sequence TOK_NEXT Test_Goal_Set:coverage
 						{:
 							assert(sequence != null);
 							assert(sequence instanceof Sequence);
-							
+
 							assert(coverage != null);
 							assert(coverage instanceof Coverage);
-							
+
 							Sequence lSequence = (Sequence)sequence;
-							
+
 							lSequence.extend(new LowerBound(Identity.getInstance(), 0), (Coverage)coverage);
-							
+
 							RESULT = lSequence;
 						:}
 					;
-					
-Path_Monitor		::= 
-						Path_Monitor_Term:monitor 
+
+Path_Monitor		::=
+						Path_Monitor_Term:monitor
 					  	{:
 					  		RESULT = monitor;
 					  	:}
@@ -302,47 +302,47 @@ Path_Monitor		::=
 						{:
 							assert(monitor1 != null);
 							assert(monitor2 != null);
-							
+
 							assert(monitor1 instanceof PathMonitor);
 							assert(monitor2 instanceof PathMonitor);
-							
+
 							RESULT = new Alternative((PathMonitor)monitor1, (PathMonitor)monitor2);
 						:}
 					;
-					
-Path_Monitor_Term	::= 
+
+Path_Monitor_Term	::=
 						Path_Monitor_Factor:monitor
 						{:
 							RESULT = monitor;
-						:} 
+						:}
 					| 	Path_Monitor_Term:monitor1 TOK_CONCAT Path_Monitor_Factor:monitor2
 						{:
 							assert(monitor1 != null);
 							assert(monitor1 instanceof PathMonitor);
-							
+
 							assert(monitor2 != null);
 							assert(monitor2 instanceof PathMonitor);
-							
+
 							RESULT = new Concatenation((PathMonitor)monitor1, (PathMonitor)monitor2);
 						:}
 					|	Path_Monitor_Term:monitor1 TOK_NEXT Path_Monitor_Factor:monitor2
 						{:
 							/* Shorthand for monitor1.ID*.monitor2 */
-							
+
 							assert(monitor1 != null);
 							assert(monitor1 instanceof PathMonitor);
-							
+
 							assert(monitor2 != null);
 							assert(monitor2 instanceof PathMonitor);
-							
+
 							PathMonitor lIdStar = new LowerBound(Identity.getInstance(), 0);
-							
+
 							PathMonitor lConcatenation = new Concatenation((PathMonitor)monitor1, lIdStar);
 							RESULT = new Concatenation(lConcatenation, (PathMonitor)monitor2);
 						:}
 					;
-					
-Path_Monitor_Factor	::= 
+
+Path_Monitor_Factor	::=
 						Preconditions:preconditions Filter:filter
 						{:
 							RESULT = filter;
@@ -351,359 +351,359 @@ Path_Monitor_Factor	::=
 						{:
 							assert(preconditions != null);
 							assert(preconditions instanceof Predicates);
-							
+
 							assert(monitor != null);
 							assert(monitor instanceof PathMonitor);
-							
+
 							Predicates lPreconditions = (Predicates)preconditions;
-							
+
 							PathMonitor lSubmonitor = (PathMonitor)monitor;
-							
+
 							PathMonitor lMonitor;
-							
+
 							if (lPreconditions.isEmpty()) {
 								lMonitor = lSubmonitor;
 							}
 							else {
 								if (lSubmonitor instanceof ConditionalMonitor) {
 									ConditionalMonitor lConditionalMonitor = (ConditionalMonitor)lSubmonitor;
-									
+
 									Predicates lSubpreconditions = lConditionalMonitor.getPreconditions();
-									
+
 									lSubpreconditions.add(lPreconditions);
-									
+
 									lMonitor = lConditionalMonitor;
 								}
 								else {
 									lMonitor = new ConditionalMonitor(lPreconditions, lSubmonitor, new Predicates());
 								}
 							}
-							
+
 							RESULT = lMonitor;
 						:}
 					| 	Path_Monitor_Factor:factor Predicate:predicate
 						{:
 							assert(factor != null);
 							assert(predicate != null);
-							
+
 							assert(factor instanceof PathMonitor);
 							assert(predicate instanceof Predicate);
-							
+
 							ConditionalMonitor lMonitor;
-							
+
 							if (factor instanceof ConditionalMonitor) {
 							  ConditionalMonitor lConditionalMonitor = (ConditionalMonitor)factor;
-							  
+
 							  Predicates lPostconditions = lConditionalMonitor.getPostconditions();
 							  lPostconditions.add((Predicate)predicate);
-							  
+
 							  lMonitor = lConditionalMonitor;
 							}
 							else {
 							  Predicates lPostconditions = new Predicates();
 							  lPostconditions.add((Predicate)predicate);
-							  
+
 							  lMonitor = new ConditionalMonitor(new Predicates(), (PathMonitor)factor, lPostconditions);
 							}
-							
+
 							RESULT = lMonitor;
 						:}
 					| 	Path_Monitor_Factor:factor TOK_KLEENE
 						{:
 							assert(factor != null);
 							assert(factor instanceof PathMonitor);
-							
+
 							RESULT = new LowerBound((PathMonitor)factor, 0);
 						:}
 					| 	Path_Monitor_Factor:factor TOK_LESS_OR_EQ TOK_NAT_NUMBER:bound
 						{:
 							assert(factor != null);
 							assert(factor instanceof PathMonitor);
-							
+
 							RESULT = new UpperBound((PathMonitor)factor, bound.intValue());
 						:}
 					| 	Path_Monitor_Factor:factor TOK_GREATER_OR_EQ TOK_NAT_NUMBER:bound
 						{:
 							assert(factor != null);
 							assert(factor instanceof PathMonitor);
-							
+
 							RESULT = new LowerBound((PathMonitor)factor, bound.intValue());
 						:}
 					;
-					
+
 Test_Goal_Set		::=
 						Preconditions:preconditions TOK_L_PARENTHESIS Test_Goal_Set:tgs TOK_R_PARENTHESIS
 						{:
 							assert(preconditions != null);
 							assert(preconditions instanceof Predicates);
-							
+
 							Predicates lPredicates = (Predicates)preconditions;
-							
+
 							if (lPredicates.isEmpty()) {
 								RESULT = tgs;
 							}
 							else {
 								assert(tgs != null);
 								assert(tgs instanceof Coverage);
-							
+
 								RESULT = new ConditionalCoverage(lPredicates, (Coverage)tgs, new Predicates());
 							}
-						:} 
+						:}
 					| 	Test_Goal_Set:tgs Predicate:predicate
 						{:
 							assert(tgs != null);
 							assert(tgs instanceof Coverage);
-							
+
 							assert(predicate != null);
 							assert(predicate instanceof Predicate);
-							
+
 							Coverage lCoverage;
-							
+
 							if (tgs instanceof ConditionalCoverage) {
 								ConditionalCoverage lConditionalCoverage = (ConditionalCoverage)tgs;
-								
+
 								Predicates lPostconditions = lConditionalCoverage.getPostconditions();
 								lPostconditions.add((Predicate)predicate);
-								
+
 								lCoverage = (Coverage)tgs;
 							}
 							else {
 								Predicates lPostconditions = new Predicates();
 								lPostconditions.add((Predicate)predicate);
-								
+
 								lCoverage = new ConditionalCoverage(new Predicates(), (Coverage)tgs, lPostconditions);
 							}
-							
+
 							RESULT = lCoverage;
 						:}
 					|	Preconditions:preconditions TOK_UNION TOK_L_PARENTHESIS Test_Goal_Set:coverage1 TOK_COMMA Test_Goal_Set:coverage2 TOK_R_PARENTHESIS
 						{:
 							assert(coverage1 != null);
 							assert(coverage2 != null);
-							
+
 							assert(coverage1 instanceof Coverage);
 							assert(coverage2 instanceof Coverage);
-							
+
 							assert(preconditions != null);
 							assert(preconditions instanceof Predicates);
-							
+
 							Predicates lPreconditions = (Predicates)preconditions;
-							
-							Coverage lUnion = new org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.coverage.Union((Coverage)coverage1, (Coverage)coverage2); 
-							
+
+							Coverage lUnion = new org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.coverage.Union((Coverage)coverage1, (Coverage)coverage2);
+
 							Coverage lCoverage;
-							
+
 							if (lPreconditions.isEmpty()) {
 								lCoverage =  lUnion;
 							}
 							else {
 								lCoverage = new ConditionalCoverage(lPreconditions, lUnion, new Predicates());
 							}
-							
+
 							RESULT = lCoverage;
 						:}
 					|   Preconditions:preconditions TOK_INTERSECT TOK_L_PARENTHESIS Test_Goal_Set:coverage1 TOK_COMMA Test_Goal_Set:coverage2 TOK_R_PARENTHESIS
 						{:
 							assert(coverage1 != null);
 							assert(coverage2 != null);
-							
+
 							assert(coverage1 instanceof Coverage);
 							assert(coverage2 instanceof Coverage);
-							
+
 							assert(preconditions != null);
 							assert(preconditions instanceof Predicates);
-							
+
 							Predicates lPreconditions = (Predicates)preconditions;
-							
-							Coverage lIntersection = new org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.coverage.Intersection((Coverage)coverage1, (Coverage)coverage2); 
-							
+
+							Coverage lIntersection = new org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.coverage.Intersection((Coverage)coverage1, (Coverage)coverage2);
+
 							Coverage lCoverage;
-							
+
 							if (lPreconditions.isEmpty()) {
 								lCoverage =  lIntersection;
 							}
 							else {
 								lCoverage = new ConditionalCoverage(lPreconditions, lIntersection, new Predicates());
 							}
-							
+
 							RESULT = lCoverage;
 						:}
 					| 	Preconditions:preconditions TOK_SETMINUS TOK_L_PARENTHESIS Test_Goal_Set:coverage1 TOK_COMMA Test_Goal_Set:coverage2 TOK_R_PARENTHESIS
 						{:
 							assert(coverage1 != null);
 							assert(coverage2 != null);
-							
+
 							assert(coverage1 instanceof Coverage);
 							assert(coverage2 instanceof Coverage);
-							
+
 							assert(preconditions != null);
 							assert(preconditions instanceof Predicates);
-							
+
 							Predicates lPreconditions = (Predicates)preconditions;
-							
-							Coverage lSetMinus = new org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.coverage.SetMinus((Coverage)coverage1, (Coverage)coverage2); 
-							
+
+							Coverage lSetMinus = new org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.coverage.SetMinus((Coverage)coverage1, (Coverage)coverage2);
+
 							Coverage lCoverage;
-							
+
 							if (lPreconditions.isEmpty()) {
 								lCoverage =  lSetMinus;
 							}
 							else {
 								lCoverage = new ConditionalCoverage(lPreconditions, lSetMinus, new Predicates());
 							}
-							
+
 							RESULT = lCoverage;
 						:}
 					| 	Preconditions:preconditions TOK_STATECOV TOK_L_PARENTHESIS Filter:filter TOK_R_PARENTHESIS
 						{:
 							assert(filter != null);
 							assert(filter instanceof Filter);
-							
+
 							assert(preconditions != null);
 							assert(preconditions instanceof Predicates);
-							
+
 							Predicates lPreconditions = (Predicates)preconditions;
-							
-							Coverage lStates = new States((Filter)filter, new Predicates()); 
-							
+
+							Coverage lStates = new States((Filter)filter, new Predicates());
+
 							Coverage lCoverage;
-							
+
 							if (lPreconditions.isEmpty()) {
 								lCoverage =  lStates;
 							}
 							else {
 								lCoverage = new ConditionalCoverage(lPreconditions, lStates, new Predicates());
 							}
-							
+
 							RESULT = lCoverage;
 						:}
 					| 	Preconditions:preconditions TOK_STATECOV TOK_L_PARENTHESIS Filter:filter TOK_COMMA Predicates:predicates TOK_R_PARENTHESIS
 						{:
 							assert(filter != null);
 							assert(predicates != null);
-							
+
 							assert(filter instanceof Filter);
 							assert(predicates instanceof Predicates);
-							
+
 							assert(preconditions != null);
 							assert(preconditions instanceof Predicates);
-							
+
 							Predicates lPreconditions = (Predicates)preconditions;
-							
+
 							Coverage lStates = new States((Filter)filter, (Predicates)predicates);
-							
+
 							Coverage lCoverage;
-							
+
 							if (lPreconditions.isEmpty()) {
 								lCoverage =  lStates;
 							}
 							else {
 								lCoverage = new ConditionalCoverage(lPreconditions, lStates, new Predicates());
 							}
-							
+
 							RESULT = lCoverage;
 						:}
 					| 	Preconditions:preconditions TOK_EDGECOV TOK_L_PARENTHESIS Filter:filter TOK_R_PARENTHESIS
 						{:
 							assert(filter != null);
 							assert(filter instanceof Filter);
-							
+
 							assert(preconditions != null);
 							assert(preconditions instanceof Predicates);
-							
+
 							Predicates lPreconditions = (Predicates)preconditions;
-							
+
 							Coverage lEdges = new Edges((Filter)filter, new Predicates());
-							
+
 							Coverage lCoverage;
-							
+
 							if (lPreconditions.isEmpty()) {
 								lCoverage =  lEdges;
 							}
 							else {
 								lCoverage = new ConditionalCoverage(lPreconditions, lEdges, new Predicates());
 							}
-							
+
 							RESULT = lCoverage;
 						:}
 					| 	Preconditions:preconditions TOK_EDGECOV TOK_L_PARENTHESIS Filter:filter TOK_COMMA Predicates:predicates TOK_R_PARENTHESIS
 						{:
 							assert(filter != null);
 							assert(filter instanceof Filter);
-							
+
 							assert(predicates != null);
 							assert(predicates instanceof Predicates);
-							
+
 							assert(preconditions != null);
 							assert(preconditions instanceof Predicates);
-							
+
 							Predicates lPreconditions = (Predicates)preconditions;
-							
+
 							Coverage lEdges = new Edges((Filter)filter, (Predicates)predicates);
-							
+
 							Coverage lCoverage;
-							
+
 							if (lPreconditions.isEmpty()) {
 								lCoverage =  lEdges;
 							}
 							else {
 								lCoverage = new ConditionalCoverage(lPreconditions, lEdges, new Predicates());
 							}
-							
+
 							RESULT = lCoverage;
 						:}
 					| 	Preconditions:preconditions TOK_PATHCOV TOK_L_PARENTHESIS Filter:filter TOK_COMMA TOK_NAT_NUMBER:bound TOK_R_PARENTHESIS
 						{:
 							assert(filter != null);
 							assert(filter instanceof Filter);
-														
+
 							assert(preconditions != null);
 							assert(preconditions instanceof Predicates);
-							
+
 							Predicates lPreconditions = (Predicates)preconditions;
-							
+
 							Coverage lPaths = new Paths((Filter)filter, bound.intValue(), new Predicates());
-							
+
 							Coverage lCoverage;
-							
+
 							if (lPreconditions.isEmpty()) {
 								lCoverage =  lPaths;
 							}
 							else {
 								lCoverage = new ConditionalCoverage(lPreconditions, lPaths, new Predicates());
 							}
-							
-							RESULT = lCoverage; 
+
+							RESULT = lCoverage;
 						:}
 					| 	Preconditions:preconditions TOK_PATHCOV TOK_L_PARENTHESIS Filter:filter TOK_COMMA TOK_NAT_NUMBER:bound TOK_COMMA Predicates:predicates TOK_R_PARENTHESIS
 						{:
 							assert(filter != null);
 							assert(filter instanceof Filter);
-							
+
 							assert(predicates != null);
 							assert(predicates instanceof Predicates);
-							
+
 							assert(preconditions != null);
 							assert(preconditions instanceof Predicates);
-							
+
 							Predicates lPreconditions = (Predicates)preconditions;
-							
+
 							Coverage lPaths = new Paths((Filter)filter, bound.intValue(), (Predicates)predicates);
-							
+
 							Coverage lCoverage;
-							
+
 							if (lPreconditions.isEmpty()) {
 								lCoverage =  lPaths;
 							}
 							else {
 								lCoverage = new ConditionalCoverage(lPreconditions, lPaths, new Predicates());
 							}
-							
-							RESULT = lCoverage; 
+
+							RESULT = lCoverage;
 						:}
 					;
-					
-Preconditions		::= 
+
+Preconditions		::=
 						{:
 							RESULT = new Predicates();
 						:}
@@ -711,64 +711,64 @@ Preconditions		::=
 						{:
 							assert(predicates != null);
 							assert(predicate != null);
-							
+
 							assert(predicates instanceof Predicates);
 							assert(predicate instanceof Predicate);
-							
+
 							Predicates lPredicates = (Predicates)predicates;
 							Predicate lPredicate = (Predicate)predicate;
-							
+
 							lPredicates.add(lPredicate);
-							
+
 							RESULT = lPredicates;
 						:}
 					;
-					
-Predicates			::= 
+
+Predicates			::=
 						Predicate:predicate
 						{:
 							assert(predicate != null);
 							assert(predicate instanceof Predicate);
-							
+
 							Predicates lPredicates = new Predicates();
-							
+
 							lPredicates.add((Predicate)predicate);
-							
+
 							RESULT = lPredicates;
-						:} 
+						:}
 					| 	Predicates:predicates TOK_COMMA Predicate:predicate
 						{:
 							assert(predicates != null);
 							assert(predicate != null);
-							
+
 							assert(predicates instanceof Predicates);
 							assert(predicate instanceof Predicate);
-							
+
 							Predicates lPredicates = (Predicates)predicates;
 							Predicate lPredicate = (Predicate)predicate;
-							
+
 							lPredicates.add(lPredicate);
-							
+
 							RESULT = lPredicates;
 						:}
 					;
-					
+
 Predicate			::=
 						TOK_L_BRACE c_LHS:leftterm Comparison:comparison c_LHS:rightterm TOK_R_BRACE
 						{:
 							assert(leftterm != null);
 							assert(comparison != null);
 							assert(rightterm != null);
-							
+
 							assert(leftterm instanceof Term);
 							assert(comparison instanceof Predicate.Comparison);
 							assert(rightterm instanceof Term);
-							
+
 							RESULT = new Predicate((Term)leftterm, (Predicate.Comparison)comparison, (Term)rightterm);
 						:}
 					;
-					
-c_LHS				::= 
+
+c_LHS				::=
 						TOK_C_IDENT:identifier
 						{:
 							RESULT = new CIdentifier(identifier);
@@ -778,24 +778,24 @@ c_LHS				::=
 							RESULT = new NaturalNumber(number);
 						:}
 					;
-					
-Comparison			::= 
+
+Comparison			::=
 						TOK_GREATER_OR_EQ
 						{:
 							RESULT = Predicate.Comparison.GREATER_OR_EQUAL;
-						:} 
+						:}
 					| 	TOK_GREATER
 						{:
 							RESULT = Predicate.Comparison.GREATER;
-						:} 
+						:}
 					| 	TOK_EQ
 						{:
 							RESULT = Predicate.Comparison.EQUAL;
-						:} 
+						:}
 					| 	TOK_LESS_OR_EQ
 						{:
 							RESULT = Predicate.Comparison.LESS_OR_EQUAL;
-						:} 
+						:}
 					| 	TOK_LESS
 						{:
 							RESULT = Predicate.Comparison.LESS;
@@ -805,7 +805,7 @@ Comparison			::=
 							RESULT = Predicate.Comparison.NOT_EQUAL;
 						:}
 					;
-					
+
 Filter				::=
 						Filter_Function:filter
 						{:
@@ -815,7 +815,7 @@ Filter				::=
 						{:
 							assert(filter != null);
 							assert(filter instanceof Filter);
-							
+
 							RESULT = new Complement((Filter)filter);
 						:}
 					| 	TOK_UNION TOK_L_PARENTHESIS Filter:filter1 TOK_COMMA Filter:filter2 TOK_R_PARENTHESIS
@@ -824,7 +824,7 @@ Filter				::=
 							assert(filter2 != null);
 							assert(filter1 instanceof Filter);
 							assert(filter2 instanceof Filter);
-						
+
 							RESULT = new Union((Filter)filter1, (Filter)filter2);
 						:}
 					|	TOK_INTERSECT TOK_L_PARENTHESIS Filter:filter1 TOK_COMMA Filter:filter2 TOK_R_PARENTHESIS
@@ -833,7 +833,7 @@ Filter				::=
 							assert(filter2 != null);
 							assert(filter1 instanceof Filter);
 							assert(filter2 instanceof Filter);
-						
+
 							RESULT = new Intersection((Filter)filter1, (Filter)filter2);
 						:}
 					| 	TOK_SETMINUS TOK_L_PARENTHESIS Filter:filter1 TOK_COMMA Filter:filter2 TOK_R_PARENTHESIS
@@ -842,14 +842,14 @@ Filter				::=
 							assert(filter2 != null);
 							assert(filter1 instanceof Filter);
 							assert(filter2 instanceof Filter);
-						
+
 							RESULT = new SetMinus((Filter)filter1, (Filter)filter2);
 						:}
 					| 	TOK_ENCLOSING_SCOPES TOK_L_PARENTHESIS Filter:filter TOK_R_PARENTHESIS
 						{:
 							assert(filter != null);
 							assert(filter instanceof Filter);
-							
+
 							RESULT = new EnclosingScopes((Filter)filter);
 						:}
 					| 	TOK_COMPOSE TOK_L_PARENTHESIS Filter:filter1 TOK_COMMA Filter:filter2 TOK_R_PARENTHESIS
@@ -858,11 +858,11 @@ Filter				::=
 							assert(filter2 != null);
 							assert(filter1 instanceof Filter);
 							assert(filter2 instanceof Filter);
-						
+
 							RESULT = new Compose((Filter)filter1, (Filter)filter2);
 						:}
 					;
-					
+
 Filter_Function		::=
 						TOK_IDENTITY
 						{:

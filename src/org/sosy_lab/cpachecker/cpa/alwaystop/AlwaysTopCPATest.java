@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -28,9 +28,9 @@ import org.junit.Test;
 
 
 public class AlwaysTopCPATest {
-  
+
   private String mConfig = "-config";
-  private String mPropertiesFile = "test/config/alwaysTopAnalysis.properties";  
+  private String mPropertiesFile = "test/config/alwaysTopAnalysis.properties";
 
   @Before
   public void tearDown() {
@@ -41,33 +41,33 @@ public class AlwaysTopCPATest {
   @Test
   public void test_01() {
     String[] lArguments = new String[3];
-    
+
     lArguments[0] = mConfig;
     lArguments[1] = mPropertiesFile;
     lArguments[2] = "test/programs/simple/functionCall.c";
-        
+
     org.sosy_lab.cpachecker.cmdline.CPAMain.main(lArguments);
   }
-  
+
   @Test
   public void test_02() {
     String[] lArguments = new String[3];
-    
+
     lArguments[0] = mConfig;
     lArguments[1] = mPropertiesFile;
     lArguments[2] = "test/programs/simple/loop1.c";
-        
+
     org.sosy_lab.cpachecker.cmdline.CPAMain.main(lArguments);
   }
-  
+
   @Test
   public void test_03() {
     String[] lArguments = new String[3];
-    
+
     lArguments[0] = mConfig;
     lArguments[1] = mPropertiesFile;
     lArguments[2] = "test/programs/simple/uninitVars.cil.c";
-        
+
     org.sosy_lab.cpachecker.cmdline.CPAMain.main(lArguments);
   }
 

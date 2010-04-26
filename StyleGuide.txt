@@ -4,7 +4,7 @@ Spelling:
 - Names are spelled camel-like, whereEachNewWordStartsWithCapital.
 - Type names start with a capital,
   and each sub-type name starts with an abbreviation of the type
-  (allows for look-up of type hierarchy via auto completion/listing). 
+  (allows for look-up of type hierarchy via auto completion/listing).
 - Method names start lower case.
 - Variable names start lower case,
   where a field starts with 'm', a static field starts with 's',
@@ -28,11 +28,11 @@ Version Control:
 - In order to avoid EOL problems caused by Unix/Windows/Mac, let's run
   find ./ -name "*" -exec svn propset svn:eol-style native {} \;
   from time to time.
-- Commit early, commit often, and 
+- Commit early, commit often, and
   split the commits into reasonable changesets.
-  If possible (this will definitely not always be the case) 
+  If possible (this will definitely not always be the case)
   commit in a way that the project compiles after each commit.
-  This will ease automatic regression testing a lot... 
+  This will ease automatic regression testing a lot...
 - For large chunks of whitespace/indentation changes,
   commit the whitespace changes and the code changes via separate commits.
 

@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -41,24 +41,24 @@ import org.sosy_lab.common.configuration.Options;
 
 /**
  * A wrapper for the javabdd (http://javabdd.sf.net) package.
- * 
+ *
  * This class is not thread-safe, but it could be easily made so by synchronizing
  * the {@link #createNewVar()} method.
- * 
+ *
  * TODO perhaps introduce caching for BDD -> BDDAbstractFormulas
  */
 @Options
 public class BDDAbstractFormulaManager implements AbstractFormulaManager {
-  
+
   @Option(name="cpas.symbpredabs.mathsat.useCache")
   private boolean useCache = true;
-  
+
   private final Map<Pair<AbstractFormula, AbstractFormula>, Boolean> entailsCache;
-  
+
   // static because init() may be called only once!
   private static final String BDD_PACKAGE = "cudd";
   private static final BDDFactory factory = BDDFactory.init(BDD_PACKAGE, 10000, 1000);
-  
+
   private static final AbstractFormula trueFormula = new BDDAbstractFormula(factory.one());
   private static final AbstractFormula falseFormula = new BDDAbstractFormula(factory.zero());
 
@@ -67,7 +67,7 @@ public class BDDAbstractFormulaManager implements AbstractFormulaManager {
   {
     factory.setVarNum(varcount);
   }
-  
+
   public BDDAbstractFormulaManager(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
     entailsCache = useCache ? new HashMap<Pair<AbstractFormula, AbstractFormula>, Boolean>() : null;
@@ -82,7 +82,7 @@ public class BDDAbstractFormulaManager implements AbstractFormulaManager {
 
     return ret;
   }
-  
+
   @Override
   public boolean entails(AbstractFormula pF1, AbstractFormula pF2) {
       // check entailment using BDDs: create the BDD representing
@@ -124,14 +124,14 @@ public class BDDAbstractFormulaManager implements AbstractFormulaManager {
   public AbstractFormula makeAnd(AbstractFormula pF1, AbstractFormula pF2) {
     BDDAbstractFormula f1 = (BDDAbstractFormula)pF1;
     BDDAbstractFormula f2 = (BDDAbstractFormula)pF2;
-    
+
     return new BDDAbstractFormula(f1.getBDD().and(f2.getBDD()));
   }
 
   @Override
   public AbstractFormula makeNot(AbstractFormula pF) {
     BDDAbstractFormula f = (BDDAbstractFormula)pF;
-    
+
     return new BDDAbstractFormula(f.getBDD().not());
   }
 
@@ -139,26 +139,26 @@ public class BDDAbstractFormulaManager implements AbstractFormulaManager {
   public AbstractFormula makeOr(AbstractFormula pF1, AbstractFormula pF2) {
     BDDAbstractFormula f1 = (BDDAbstractFormula)pF1;
     BDDAbstractFormula f2 = (BDDAbstractFormula)pF2;
-    
+
     return new BDDAbstractFormula(f1.getBDD().or(f2.getBDD()));
   }
-  
+
   @Override
   public Predicate createPredicate() {
     BDD bddVar = createNewVar();
-    
+
     return new BDDPredicate(bddVar);
   }
-  
+
   @Override
   public Triple<Predicate, AbstractFormula, AbstractFormula> getIfThenElse(AbstractFormula pF) {
     BDDAbstractFormula f = (BDDAbstractFormula)pF;
-    
+
     int varIndex = f.getBDD().var();
     BDDPredicate predicate = new BDDPredicate(factory.ithVar(varIndex));
     BDDAbstractFormula fThen = new BDDAbstractFormula(f.getBDD().high());
     BDDAbstractFormula fElse = new BDDAbstractFormula(f.getBDD().low());
-    
+
     return new Triple<Predicate, AbstractFormula, AbstractFormula>(predicate, fThen, fElse);
   }
 }

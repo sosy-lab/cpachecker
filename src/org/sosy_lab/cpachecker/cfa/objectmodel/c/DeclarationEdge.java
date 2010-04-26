@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -52,7 +52,7 @@ public class DeclarationEdge extends AbstractCFAEdge {
   public IASTDeclSpecifier getDeclSpecifier() {
     return declaration.getDeclSpecifier();
   }
-  
+
   @Override
   public IASTSimpleDeclaration getRawAST() {
     return declaration;

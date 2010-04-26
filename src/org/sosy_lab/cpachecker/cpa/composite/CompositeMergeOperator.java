@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class CompositeMergeOperator implements MergeOperator{
-  
+
   private final ImmutableList<MergeOperator> mergeOperators;
 
   public CompositeMergeOperator(ImmutableList<MergeOperator> mergeOperators)
@@ -85,7 +85,7 @@ public class CompositeMergeOperator implements MergeOperator{
       }
       mergedElements.add (merged);
     }
-    
+
     if (identicElements) {
       return element2;
     } else {

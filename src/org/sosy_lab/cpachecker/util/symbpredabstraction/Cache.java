@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -45,16 +45,16 @@ public class Cache {
     public void updateTimeStamp() {
       timeStamp = System.currentTimeMillis();
     }
-    
+
     @Override
     public int compareTo(KeyWithTimeStamp p1) {
       long r = this.timeStamp - p1.timeStamp;
       return r < 0 ? -1 : (r > 0 ? 1 : 0);
     }
-    
+
     @Override
     public abstract boolean equals(Object pObj);
-    
+
     @Override
     public abstract int hashCode();
   }
@@ -88,7 +88,7 @@ public class Cache {
   }
 
   public static class FeasibilityCacheKey extends KeyWithTimeStamp {
-    
+
     private final SymbolicFormula f;
 
     public FeasibilityCacheKey(SymbolicFormula fm) {
@@ -146,5 +146,5 @@ public class Cache {
         }
       }
     }
-  }  
+  }
 }

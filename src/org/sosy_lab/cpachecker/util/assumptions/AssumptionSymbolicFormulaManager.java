@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -32,11 +32,11 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormu
  * Extension of predicate abstraction's symbolic formula manager
  * with new makeAnd method that uses an expression rather
  * than CFA edge
- * 
+ *
  * @author g.theoduloz
  */
 public interface AssumptionSymbolicFormulaManager extends SymbolicFormulaManager {
-  
+
   /**
    * Creates a formula representing an AND of the two argument
    * @param f1 a SymbolicFormula

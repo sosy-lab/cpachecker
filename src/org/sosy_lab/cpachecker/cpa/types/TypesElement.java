@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -36,24 +36,24 @@ import org.sosy_lab.cpachecker.cpa.types.Type.FunctionType;
 public class TypesElement implements AbstractElement {
 
   private final Map<String, Type> variables;
-  
+
   private final Map<String, Type> typedefs;
-  
+
   private final Map<String, FunctionType> functions;
- 
+
   public TypesElement() {
     this.variables = new HashMap<String, Type>();
     this.typedefs  = new HashMap<String, Type>();
     this.functions = new HashMap<String, FunctionType>();
   }
-  
+
   public TypesElement(Map<String, Type> variables, Map<String, Type> typedefs,
                       Map<String, FunctionType> functions) {
     this.variables = new HashMap<String, Type>(variables);
     this.typedefs  = new HashMap<String, Type>(typedefs);
     this.functions = new HashMap<String, FunctionType>(functions);
   }
-  
+
   public Map<String, Type> getTypedefs() {
     return Collections.unmodifiableMap(typedefs);
   }
@@ -61,29 +61,29 @@ public class TypesElement implements AbstractElement {
   public Map<String, Type> getVariableTypes() {
     return Collections.unmodifiableMap(variables);
   }
-  
+
   public Map<String, FunctionType> getFunctions() {
     return Collections.unmodifiableMap(functions);
   }
-  
+
   public void addVariable(String function, String name, Type type) {
     variables.put(getFullVariableName(function, name), type);
   }
-  
+
   public void addTypedef(String name, Type type) {
     if (variables.containsKey(name)) {
       throw new IllegalArgumentException("Redeclared type " + name);
     }
     typedefs.put(name, type);
   }
-  
+
   public void addFunction(String name, FunctionType type) {
     if (variables.containsKey(name)) {
       throw new IllegalArgumentException("Redeclared function " + name);
     }
     functions.put(name, type);
   }
-  
+
   public Type getVariableType(String function, String name) {
     Type result = variables.get(getFullVariableName(function, name));
     if (result == null && function != null) {
@@ -92,15 +92,15 @@ public class TypesElement implements AbstractElement {
     }
     return result;
   }
-  
+
   public Type getTypedef(String name) {
     return typedefs.get(name);
   }
-  
+
   public FunctionType getFunction(String name) {
     return functions.get(name);
   }
-   
+
   public void join(TypesElement other) {
     if (other == null) {
       throw new IllegalArgumentException();
@@ -110,7 +110,7 @@ public class TypesElement implements AbstractElement {
       this.typedefs.putAll(other.typedefs);
     }
   }
-  
+
   public boolean isSubsetOf(TypesElement other) {
     if (other == null) {
       throw new IllegalArgumentException();
@@ -120,7 +120,7 @@ public class TypesElement implements AbstractElement {
         || functions.size() > other.functions.size()) {
       return false;
     }
-    
+
     for (String var : variables.keySet()) {
       if (!variables.get(var).equals(other.variables.get(var))) {
         return false;
@@ -138,7 +138,7 @@ public class TypesElement implements AbstractElement {
     }
     return true;
   }
-  
+
   private String getFullVariableName(String function, String variable) {
     if (function == null) {
       return variable;
@@ -146,12 +146,12 @@ public class TypesElement implements AbstractElement {
       return function + "::" + variable;
     }
   }
-  
+
   @Override
   public boolean isError() {
     return false;
   }
-  
+
   @Override
   public boolean equals(Object obj) {
     if (obj == null || !(obj instanceof TypesElement)) {
@@ -162,14 +162,14 @@ public class TypesElement implements AbstractElement {
         && typedefs.equals(other.typedefs)
         && functions.equals(other.functions);
   }
-  
+
   @Override
   public int hashCode() {
     return variables.hashCode() * typedefs.hashCode() * functions.hashCode();
   }
-  
+
   @Override
   public String toString() {
-    return variables.toString() + " " + functions.toString(); 
+    return variables.toString() + " " + functions.toString();
   }
 }

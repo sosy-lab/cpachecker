@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -36,26 +36,26 @@ import org.sosy_lab.cpachecker.cpa.concrete.ConcreteAnalysisCPA;
 public class SimpleMustMayAnalysisCPA implements ConfigurableProgramAnalysis {
 
   private static class SimpleMustMayAnalysisCPAFactory extends AbstractCPAFactory {
-    
+
     @Override
     public ConfigurableProgramAnalysis createInstance() {
       return new SimpleMustMayAnalysisCPA();
     }
   }
-  
+
   public static CPAFactory factory() {
     return new SimpleMustMayAnalysisCPAFactory();
   }
-  
+
   private final MustMayAnalysisCPA mMustMayAnalysisCPA;
-  
+
   public SimpleMustMayAnalysisCPA() {
     AlwaysTopCPA lMayCPA = new AlwaysTopCPA();
     ConcreteAnalysisCPA lMustCPA = new ConcreteAnalysisCPA();
-    
+
     mMustMayAnalysisCPA = new MustMayAnalysisCPA(lMustCPA, lMayCPA);
   }
-  
+
   @Override
   public MustMayAnalysisElement getInitialElement(
       CFAFunctionDefinitionNode pNode) {

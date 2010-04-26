@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -226,7 +226,7 @@ public class OctTransferRelation implements TransferRelation{
       octElement.setBottom();
     }
 
-    if(cfaEdge.getSuccessor() instanceof CFAErrorNode && 
+    if(cfaEdge.getSuccessor() instanceof CFAErrorNode &&
         !octElement.isBottom()){
       System.out.println(" ERROR NODE REACHED ");
       System.out.println(" ============================= ");
@@ -2249,7 +2249,7 @@ public class OctTransferRelation implements TransferRelation{
   @Override
   public Collection<? extends AbstractElement> strengthen(AbstractElement element,
                          List<AbstractElement> otherElements, CFAEdge cfaEdge,
-                         Precision precision) {    
+                         Precision precision) {
     return null;
   }
 }

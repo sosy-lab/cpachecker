@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -27,25 +27,25 @@ public class Union implements CoverageSpecification {
 
   private CoverageSpecification mFirstSubspecification;
   private CoverageSpecification mSecondSubspecification;
-  
+
   public Union(CoverageSpecification pFirstSubspecification, CoverageSpecification pSecondSubspecification) {
     mFirstSubspecification = pFirstSubspecification;
     mSecondSubspecification = pSecondSubspecification;
   }
-  
+
   public CoverageSpecification getFirstSubspecification() {
     return mFirstSubspecification;
   }
-  
+
   public CoverageSpecification getSecondSubspecification() {
     return mSecondSubspecification;
   }
-  
+
   @Override
   public <T> T accept(ASTVisitor<T> pVisitor) {
     return pVisitor.visit(this);
   }
-  
+
   @Override
   public String toString() {
     return "(" + mFirstSubspecification.toString() + " + " + mSecondSubspecification.toString() + ")";

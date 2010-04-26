@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -70,7 +70,7 @@ public class MathsatPredicateParser {
             if (data.toString().trim().isEmpty()) {
               return null;
             }
-            
+
             long msatEnv = mmgr.getMsatEnv();
             long formula = mathsat.api.msat_from_msat(msatEnv, data.toString());
             if (mathsat.api.MSAT_ERROR_TERM(formula)) {

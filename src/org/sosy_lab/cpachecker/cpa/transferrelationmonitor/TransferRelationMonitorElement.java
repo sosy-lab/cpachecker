@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -38,7 +38,7 @@ public class TransferRelationMonitorElement extends AbstractSingleWrapperElement
   public static long maxTotalTimeForPath = 0;
   private boolean ignore = false;
 
-  protected TransferRelationMonitorElement(TransferRelationMonitorCPA pCpa, 
+  protected TransferRelationMonitorElement(TransferRelationMonitorCPA pCpa,
       AbstractElement pWrappedElement) {
     super(pWrappedElement);
     cpa = pCpa;
@@ -68,7 +68,7 @@ public class TransferRelationMonitorElement extends AbstractSingleWrapperElement
   protected void resetTotalTime(){
     totalTimeOnThePath = 0;
   }
-  
+
   public long getTimeOfTranferToComputeElement() {
     return timeOfTranferToComputeElement;
   }

@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -40,7 +40,7 @@ public class TimeOutHeuristics implements StopHeuristics<TimeOutHeuristicsData> 
   public TimeOutHeuristics(Configuration config, LogManager pLogger) {
     threshold = Integer.parseInt(config.getProperty("threshold", "-1").trim());
   }
-  
+
   @Override
   public TimeOutHeuristicsData collectData(StopHeuristicsData pData, ReachedHeuristicsDataSetView pReached) {
     return (TimeOutHeuristicsData)pData;
@@ -58,7 +58,7 @@ public class TimeOutHeuristics implements StopHeuristics<TimeOutHeuristicsData> 
 
   @Override
   public TimeOutHeuristicsData getTop() {
-    return new TimeOutHeuristicsData(0, false); 
+    return new TimeOutHeuristicsData(0, false);
   }
 
   @Override

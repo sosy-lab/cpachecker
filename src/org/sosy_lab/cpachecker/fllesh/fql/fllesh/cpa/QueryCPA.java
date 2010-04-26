@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -40,22 +40,22 @@ public class QueryCPA implements ConfigurableProgramAnalysis {
 
   private Query mQuery;
   private MustMayAnalysisCPA mDataSpaceCPA;
-  
+
   private QueryDomain mDomain;
   private QueryTransferRelation mTransferRelation;
   private StopOperator mStopOperator;
-  
+
   public QueryCPA(Query pQuery, MustMayAnalysisCPA pDataSpaceCPA) {
     assert(pQuery != null);
-    
+
     mQuery = pQuery;
     mDataSpaceCPA = pDataSpaceCPA;
-    
+
     mDomain = new QueryDomain(mDataSpaceCPA.getAbstractDomain().getJoinOperator(), mDataSpaceCPA.getAbstractDomain().getPartialOrder());
     mTransferRelation = new QueryTransferRelation(mQuery, mDomain.getTopElement(), mDomain.getBottomElement(), mDataSpaceCPA.getTransferRelation(), mDataSpaceCPA.getAbstractDomain().getBottomElement().getMustElement());
     mStopOperator = new StopSepOperator(mDomain.getPartialOrder());
   }
-  
+
   @Override
   public QueryDomain getAbstractDomain() {
     return mDomain;

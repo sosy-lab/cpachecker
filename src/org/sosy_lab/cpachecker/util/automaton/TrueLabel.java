@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -22,7 +22,7 @@
  *    http://cpachecker.sosy-lab.org
  */
 /**
- * 
+ *
  */
 package org.sosy_lab.cpachecker.util.automaton;
 
@@ -46,15 +46,15 @@ public class TrueLabel<E> implements Label<E> {
     if (pObject == null) {
       return false;
     }
-    
+
     return (pObject instanceof TrueLabel<?>);
   }
-  
+
   @Override
   public int hashCode() {
     return 1;
   }
-  
+
   @Override
   public String toString() {
     return "true";

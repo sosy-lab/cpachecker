@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -36,9 +36,9 @@ import java.util.Collections;
 /* Preliminaries to use the scanner.  */
 scan with {: return scanner.next_token(); :};
 
-parser code {: 
+parser code {:
   /* this map is used to collect the local variables. It is then passed to each "VarAccess" and "Assignment" Expression.
-   * ( I don't want to pass the Variable-Instance directly, because it might be defined after the Expression in the input Document.) 
+   * ( I don't want to pass the Variable-Instance directly, because it might be defined after the Expression in the input Document.)
    */
   protected Map<String, ObserverVariable> variablesMap = new HashMap<String, ObserverVariable>();
   public boolean syntaxErrors;
@@ -50,21 +50,21 @@ parser code {:
       this.scanner = scanner;
       this.logger = pLogger;
   }
-  
+
   @Override
   public void report_error(String message, Object info) {
     syntaxErrors = true;
     String errorString = message;
     errorString = errorString + "ScannerLine: " + (scanner.getLine()+1) + " ScannerColumn: " + scanner.getColumn();
-    
-    if (info instanceof Symbol) { 
+
+    if (info instanceof Symbol) {
     	Symbol symbol = (Symbol) info;
-    	if (!( symbol.left < 0 || symbol.right < 0 )) 
+    	if (!( symbol.left < 0 || symbol.right < 0 ))
     		errorString = errorString + "\n at line "+symbol.left+", column "+symbol.right;
     }
     logger.log(Level.FINER, errorString);
   }
-:}; 
+:};
 
 
 
@@ -89,7 +89,7 @@ non terminal ObserverActionExpr Action ;
 
 non terminal ObserverIntExpr.Constant ConstantInt ;
 non terminal ObserverIntExpr Int ;
-non terminal ObserverBoolExpr Bool ; 
+non terminal ObserverBoolExpr Bool ;
 
 precedence left PLUS, MINUS;
 precedence left AND, OR;
@@ -105,38 +105,38 @@ Naming    ::= AUTOMATON IDENTIFIER:id {: RESULT = id.toString(); :};
 Body      ::= LocalDefs:vars InitDef:init StateDefs:states
               {: RESULT = new ObserverAutomaton(vars, states, init, parser.logger); :}
             ;
-            
+
 InitDef    ::= INITIAL STATE IDENTIFIER:id SEMICOLON {: RESULT = id.toString(); :};
 
 LocalDefs ::= LocalDef:d LocalDefs:lst {: lst.put(d.getName(), d); RESULT = lst; :}
               | /* empty */ {: RESULT = parser.variablesMap; /* RESULT = new HashMap<String, ObserverVariable>(); */ :}
               ;
-              
+
 LocalDef  ::= LOCAL IDENTIFIER:type IDENTIFIER:name  SEMICOLON {: RESULT = new ObserverVariable(type.toString(), name.toString()); :}
             | LOCAL IDENTIFIER:type IDENTIFIER:name  EQ ConstantInt:ci SEMICOLON {: RESULT = new ObserverVariable(type.toString(), name.toString()); RESULT.setValue(ci.eval()); :}
             ;
-            
+
 StateDefs ::= StateDef:s StateDefs:lst  {: lst.add(s); RESULT = lst; :} // elements will be in reversed order (irrelevant ?)
             | /* empty */ {: RESULT = new LinkedList<ObserverInternalState>(); :}
               ;
 
-StateDef  ::= STATE IDENTIFIER:id COLON  Transitions:ts   {: RESULT = new ObserverInternalState(id.toString(), ts); :} 
+StateDef  ::= STATE IDENTIFIER:id COLON  Transitions:ts   {: RESULT = new ObserverInternalState(id.toString(), ts); :}
             ;
-            
+
 Transitions   ::= Transition:t Transitions:lst {: lst.add(0, t); RESULT = lst; :}
             | /* empty */ {: RESULT = new LinkedList<ObserverTransition>(); :}
             ;
-            
-Transition   ::= Triggers:triggers  ARROW Assertions:ass Actions:acts GOTO IDENTIFIER:follow SEMICOLON 
+
+Transition   ::= Triggers:triggers  ARROW Assertions:ass Actions:acts GOTO IDENTIFIER:follow SEMICOLON
               {: RESULT = new ObserverTransition(triggers, ass, acts, follow.toString()); :}
-               | Triggers:triggers  ARROW Assertions:ass Actions:acts ERROR SEMICOLON 
+               | Triggers:triggers  ARROW Assertions:ass Actions:acts ERROR SEMICOLON
               {: RESULT = new ObserverTransition(triggers, ass, acts, ObserverInternalState.ERROR); :}
-               | Triggers:triggers  ARROW Assertions:ass Actions:acts BOTTOM SEMICOLON 
+               | Triggers:triggers  ARROW Assertions:ass Actions:acts BOTTOM SEMICOLON
               {: RESULT = new ObserverTransition(triggers, ass, acts, ObserverInternalState.BOTTOM); :}
               ;
 
 Triggers   ::= Bool:t {: RESULT = Collections.singletonList(t); :}
-             ;           
+             ;
 
 Assertions ::= Assertion:a Assertions:lst {: lst.add(0,a); RESULT = lst; :}
              | /* empty */ {: RESULT = new LinkedList<ObserverBoolExpr>(); :}
@@ -144,9 +144,9 @@ Assertions ::= Assertion:a Assertions:lst {: lst.add(0,a); RESULT = lst; :}
 Assertion  ::= ASS  Bool:b   {: RESULT = b; :};
 
 Actions   ::= Action:a Actions:lst {: lst.add(0,a); RESULT = lst; :} // insert at the beginning of the list to preserve the order.
-            | /* empty */ {: RESULT = new LinkedList<ObserverActionExpr>(); :} 
+            | /* empty */ {: RESULT = new LinkedList<ObserverActionExpr>(); :}
             ;
-Action    ::= DO  IDENTIFIER:var EQ Int:i   {: RESULT = new ObserverActionExpr.Assignment(var.toString(), i); :} 
+Action    ::= DO  IDENTIFIER:var EQ Int:i   {: RESULT = new ObserverActionExpr.Assignment(var.toString(), i); :}
             | PRINT  STRING_LITERAL:lit {: RESULT = new ObserverActionExpr.Print(lit.toString()); :}
             | PRINT  Int:int_expr {: RESULT = new ObserverActionExpr.PrintInt(int_expr); :}
             ;
@@ -157,7 +157,7 @@ Int       ::= ConstantInt:c  {: RESULT = c; :}
             | Int:a PLUS Int:b  {: RESULT = new ObserverIntExpr.Plus(a,b); :}
             | Int:a MINUS Int:b  {: RESULT = new ObserverIntExpr.Minus(a,b); :}
             ;
-            
+
 ConstantInt ::= INTEGER_LITERAL:c  {: RESULT = new ObserverIntExpr.Constant(c.toString()); :}
 			;
 
@@ -174,14 +174,14 @@ Bool      ::= TRUE  {: RESULT = new ObserverBoolExpr.True(); :}
             | Trigger:t {: RESULT = t; :}
             ;
 
-Trigger   ::= MATCH STRING_LITERAL:lit 
-              {: RESULT = new ObserverBoolExpr.MatchCFAEdgeExact(lit.toString()); :} 
+Trigger   ::= MATCH STRING_LITERAL:lit
+              {: RESULT = new ObserverBoolExpr.MatchCFAEdgeExact(lit.toString()); :}
             | MATCH CURLYEXPR:expr
-              {: RESULT = new ObserverBoolExpr.MatchCFAEdgeASTComparison(expr.toString()); :} 
+              {: RESULT = new ObserverBoolExpr.MatchCFAEdgeASTComparison(expr.toString()); :}
             | MATCH SQUAREEXPR:expr
               {: RESULT = new ObserverBoolExpr.MatchCFAEdgeRegEx(expr.toString()); :}
             | MATCH LABEL SQUAREEXPR:expr
               {: RESULT = new ObserverBoolExpr.MatchLabelRegEx(expr.toString()); :}
             | CHECK OPEN_BRACKETS IDENTIFIER:cpa OPEN_BRACKETS STRING_LITERAL:query CLOSE_BRACKETS CLOSE_BRACKETS
               {: RESULT = new ObserverBoolExpr.CPAQuery(cpa.toString(), query.toString()); :}
-            ;  
+            ;

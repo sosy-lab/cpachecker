@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -46,19 +46,19 @@ public class MemoryOutHeuristics
     threshold = Integer.parseInt(config.getProperty("threshold", "-1").trim());
     logger = pLogger;
   }
-  
+
   @Override
   public TrivialStopHeuristicsData collectData(StopHeuristicsData pData, ReachedHeuristicsDataSetView pReached) {
     return (TrivialStopHeuristicsData)pData;
   }
-  
+
   @Override
   public TrivialStopHeuristicsData processEdge(StopHeuristicsData pData, CFAEdge pEdge)
   {
     // Negative threshold => do nothing
     if (threshold <= 0)
       return TrivialStopHeuristicsData.TOP;
-      
+
     // Bottom => nothing to do, we are already out of memory
     if (pData == TrivialStopHeuristicsData.BOTTOM)
       return TrivialStopHeuristicsData.BOTTOM;
@@ -100,7 +100,7 @@ public class MemoryOutHeuristics
     } catch (Exception e1) {
       e1.printStackTrace();
     }
-    
+
     return TrivialStopHeuristicsData.TOP;
   }
 
@@ -120,5 +120,5 @@ public class MemoryOutHeuristics
   public TrivialStopHeuristicsData getTop() {
     return TrivialStopHeuristicsData.TOP;
   }
-  
+
 }

@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -50,44 +50,44 @@ public class ErrorLocationTransferRelation implements TransferRelation {
   private static Set<Integer> messages = new HashSet<Integer>();
 
   private final AbstractElement errorElement;
-  
+
   public ErrorLocationTransferRelation(AbstractElement errorElement) {
     this.errorElement = errorElement;
   }
-  
+
 
   public static void addError(String message, CFAEdge edge) {
     int lineNumber = edge.getLineNumber();
-    
+
     if (!messages.contains(lineNumber)) {
       messages.add(lineNumber);
       CPAchecker.logger.log(Level.WARNING, "ERROR: " + message + " in line " + lineNumber + "!");
     }
   }
-  
+
   private AbstractElement getAbstractSuccessor(AbstractElement element,
                                               CFAEdge cfaEdge, Precision precision)
                                               throws CPATransferException {
-    
+
     CFANode successorNode = cfaEdge.getSuccessor();
     if (successorNode instanceof CFALabelNode) {
-      String label = ((CFALabelNode)successorNode).getLabel(); 
+      String label = ((CFALabelNode)successorNode).getLabel();
       if (label.toLowerCase().startsWith("error")) {
         addError("Reaching error location " + label + " with edge " + cfaEdge.getRawStatement(), cfaEdge);
         return errorElement;
       }
     }
-    
+
     if (successorNode instanceof CFAErrorNode) {
       addError("Reaching error node with edge " + cfaEdge.getRawStatement(), cfaEdge);
       return errorElement;
     }
-    
+
     if (cfaEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
       IASTExpression expression = ((StatementEdge)cfaEdge).getExpression();
       if (expression instanceof IASTFunctionCallExpression) {
         IASTFunctionCallExpression funcExpression = (IASTFunctionCallExpression)expression;
-        
+
         String functionName = funcExpression.getFunctionNameExpression().getRawSignature();
         if (functionName.equals("__assert_fail")) {
 
@@ -96,7 +96,7 @@ public class ErrorLocationTransferRelation implements TransferRelation {
         }
       }
     }
-    
+
     return element;
   }
 

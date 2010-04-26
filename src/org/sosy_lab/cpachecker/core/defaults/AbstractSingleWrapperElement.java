@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -40,36 +40,36 @@ public abstract class AbstractSingleWrapperElement implements AbstractWrapperEle
 
   private static Function<AbstractElement, AbstractElement> unwrapFunction
       = new Function<AbstractElement, AbstractElement>() {
-    
+
     @Override
     public AbstractElement apply(AbstractElement pArg0) {
       Preconditions.checkArgument(pArg0 instanceof AbstractSingleWrapperElement);
-      
+
       return ((AbstractSingleWrapperElement)pArg0).getWrappedElement();
     }
   };
-  
+
   public static Function<AbstractElement, AbstractElement> getUnwrapFunction() {
     return unwrapFunction;
   }
-  
+
   private final AbstractElement wrappedElement;
-  
+
   public AbstractSingleWrapperElement(AbstractElement pWrappedElement) {
-    // TODO this collides with some CPAs' way of handling TOP and BOTTOM, but it should really be not null here 
+    // TODO this collides with some CPAs' way of handling TOP and BOTTOM, but it should really be not null here
     // Preconditions.checkNotNull(pWrappedElement);
     wrappedElement = pWrappedElement;
   }
-  
+
   public AbstractElement getWrappedElement() {
     return wrappedElement;
   }
-  
+
   @Override
   public boolean isError() {
     return wrappedElement.isError();
   }
-  
+
   @Override
   public String toString() {
     return wrappedElement.toString();
@@ -79,7 +79,7 @@ public abstract class AbstractSingleWrapperElement implements AbstractWrapperEle
   public Iterable<? extends AbstractElement> getWrappedElements() {
     return Collections.singleton(wrappedElement);
   }
-  
+
   @Override
   public <T extends AbstractElement> T retrieveWrappedElement(Class<T> pType) {
     if (pType.isAssignableFrom(getClass())) {
@@ -92,7 +92,7 @@ public abstract class AbstractSingleWrapperElement implements AbstractWrapperEle
       return null;
     }
   }
-  
+
   @Override
   public AbstractElementWithLocation retrieveLocationElement() {
     if (wrappedElement instanceof AbstractWrapperElement) {

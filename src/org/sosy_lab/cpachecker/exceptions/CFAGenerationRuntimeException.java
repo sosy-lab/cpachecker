@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -37,7 +37,7 @@ public class CFAGenerationRuntimeException extends RuntimeException {
     super(msg);
   }
 
-    
+
   public CFAGenerationRuntimeException(String msg, IASTNode astNode) {
     this(msg + " in line " + astNode.getFileLocation().getStartingLineNumber()
         + ": " + astNode.getRawSignature());

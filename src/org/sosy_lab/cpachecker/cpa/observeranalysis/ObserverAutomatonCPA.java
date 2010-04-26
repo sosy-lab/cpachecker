@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -59,38 +59,38 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
- * This class implements an ObserverAutomatonAnalysis as described in the related Documentation. 
+ * This class implements an ObserverAutomatonAnalysis as described in the related Documentation.
  * @author rhein
  */
 @Options(prefix="observerAnalysis")
 public class ObserverAutomatonCPA implements ConfigurableProgramAnalysis {
-  
+
   @Option(name="dotExportFile")
   private String exportFile = "";
-  
+
   private static class ObserverAutomatonCPAFactory extends AbstractCPAFactory {
-    
+
     @Override
     public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException {
       return new ObserverAutomatonCPA(getConfiguration(), getLogger());
     }
   }
-  
+
   public static CPAFactory factory() {
     return new ObserverAutomatonCPAFactory();
   }
-  
+
   @Option(required=true)
   private String inputFile = "";
-  
+
   private final ObserverAutomaton automaton;
   private final ObserverTransferRelation transferRelation;
   private final Statistics stats = new ObserverStatistics(this);
-  
+
   private final ObserverState topState = new ObserverState.TOP(ObserverAutomatonCPA.this);
   private final ObserverState bottomState = new ObserverState.BOTTOM(ObserverAutomatonCPA.this);
-  
-  
+
+
   private final ObserverDomain observerDomain = new ObserverDomain();
   private final PartialOrder partialOrder = new EqualityPartialOrder(observerDomain);
   private final StopOperator stopOperator = new StopSepOperator(partialOrder);
@@ -105,36 +105,36 @@ public class ObserverAutomatonCPA implements ConfigurableProgramAnalysis {
       }
     }
   };
-  
+
   private class ObserverDomain implements AbstractDomain {
     @Override
     public AbstractElement getTopElement() {
       return topState;
     }
-    
+
     @Override
     public PartialOrder getPartialOrder() {
       return partialOrder;
     }
-    
+
     @Override
     public JoinOperator getJoinOperator() {
-      return joinOperator; 
+      return joinOperator;
     }
-    
+
     @Override
     public AbstractElement getBottomElement() {
       return bottomState;
     }
   };
-  
+
   /**
    * Loads a ObserverAutomaton from the argument DefinitionFile.
    * The argument mergeType is ignored.
    * @param mergeType
    * @param pStopType
    * @throws FileNotFoundException
-   * @throws InvalidConfigurationException 
+   * @throws InvalidConfigurationException
    */
   private ObserverAutomatonCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
@@ -142,7 +142,7 @@ public class ObserverAutomatonCPA implements ConfigurableProgramAnalysis {
     logger.log(Level.FINEST, "Automaton", automaton.getName(), "loaded.");
     transferRelation = new ObserverTransferRelation(automaton, logger);
     logger.log(Level.FINER, "loaded the ObserverAutomaton " + automaton.getName() );
-    
+
     if (this.exportFile != "") {
       try {
         this.automaton.writeDotFile(new PrintStream(exportFile));
@@ -151,9 +151,9 @@ public class ObserverAutomatonCPA implements ConfigurableProgramAnalysis {
       }
     }
   }
-  
+
   private ObserverAutomaton parseObserverFile(LogManager pLogger) throws InvalidConfigurationException {
-    SymbolFactory sf = new ComplexSymbolFactory();   
+    SymbolFactory sf = new ComplexSymbolFactory();
     try {
       FileInputStream input = new FileInputStream(inputFile);
       try {
@@ -166,13 +166,13 @@ public class ObserverAutomatonCPA implements ConfigurableProgramAnalysis {
       pLogger.logException(Level.FINER, e, "Could not load automaton from file " + inputFile);
       throw new InvalidConfigurationException("Could not load automaton from file " + inputFile
           + " (" + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()) + ")");
-    } 
+    }
   }
-  
+
   ObserverAutomaton getAutomaton() {
     return this.automaton;
   }
-  
+
   @Override
   public AbstractDomain getAbstractDomain() {
     return observerDomain;

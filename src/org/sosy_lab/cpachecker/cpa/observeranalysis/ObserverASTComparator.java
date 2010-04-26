@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -55,7 +55,7 @@ public class ObserverASTComparator {
   /**
    * Every occurrence of the joker expression $? in the pattern is substituted by JOKER_EXPR.
    * This is necessary because the C-parser cannot parse the pattern if it contains Dollar-Symbols.
-   * The JOKER_EXPR must be a valid C-Identifier. It will be used to recognize the jokers in the generated AST.   
+   * The JOKER_EXPR must be a valid C-Identifier. It will be used to recognize the jokers in the generated AST.
    */
   private static final String JOKER_EXPR = "CPAChecker_ObserverAnalysis_JokerExpression";
   private static final String NUMBERED_JOKER_EXPR = "CPAChecker_ObserverAnalysis_JokerExpression_Num";
@@ -79,25 +79,25 @@ public class ObserverASTComparator {
     matcher.appendTail(result);
     return result.toString();
   }
-  
+
   static IASTNode generatePatternAST(String pPattern) throws InvalidAutomatonException {
     // $?-Jokers, $1-Jokers and function declaration
     String tmp = addFunctionDeclaration(replaceJokersInPattern(pPattern));
-    
+
     IASTTranslationUnit ast = ObserverASTComparator.parse(tmp);
     return stripFunctionDeclaration(ast);
   }
-  
+
   static IASTNode generateSourceAST(String pSource) throws InvalidAutomatonException {
     String tmp = addFunctionDeclaration(pSource);
 
     IASTTranslationUnit ast = ObserverASTComparator.parse(tmp);
     return stripFunctionDeclaration(ast);
   }
-  
+
   /**
-   * Surrounds the argument with a function declaration. 
-   * This is necessary so the string can be parsed by the CDT parser. 
+   * Surrounds the argument with a function declaration.
+   * This is necessary so the string can be parsed by the CDT parser.
    * @param pBody
    * @return "void test() { " + body + ";}";
    */
@@ -108,7 +108,7 @@ public class ObserverASTComparator {
       return "void test() { " + pBody + ";}";
     }
   }
-  
+
   private static IASTNode stripFunctionDeclaration(IASTTranslationUnit ast) throws InvalidAutomatonException {
     IASTDeclaration[] declarations = ast.getDeclarations();
     if (   declarations == null
@@ -116,25 +116,25 @@ public class ObserverASTComparator {
         || !(declarations[0] instanceof IASTFunctionDefinition)) {
       throw new InvalidAutomatonException("Error: AST does not match the expectations");
     }
-    
+
     IASTFunctionDefinition func = (IASTFunctionDefinition)declarations[0];
     if (   !func.getDeclarator().getName().getRawSignature().equals("test")
         || !(func.getBody() instanceof IASTCompoundStatement)) {
       throw new InvalidAutomatonException("Error: AST does not match the expectations");
     }
-    
+
     IASTStatement[] body = ((IASTCompoundStatement)func.getBody()).getStatements();
     if (!(body.length == 2 && body[1] == null || body.length == 1)) {
       throw new InvalidAutomatonException("Error: AST does not match the expectations");
     }
-    
+
     if (body[0] instanceof IASTExpressionStatement) {
       return ((IASTExpressionStatement)body[0]).getExpression();
     } else {
       return body[0];
     }
   }
-  
+
   /**
    * Recursive method for comparing the ASTs.
    */
@@ -142,26 +142,26 @@ public class ObserverASTComparator {
     Preconditions.checkNotNull(pCode);
     Preconditions.checkNotNull(pPattern);
     Preconditions.checkNotNull(pArgs);
-    
+
     if (isJoker(pPattern)) {
       return true;
-      
+
     } else if (handleNumberJoker(pCode, pPattern, pArgs)) {
       return true;
-      
+
     } else if (pCode instanceof IASTExpressionStatement) {
       return compareASTs(((IASTExpressionStatement)pCode).getExpression(), pPattern, pArgs);
-      
+
     } else if (pCode.getClass().equals(pPattern.getClass())) {
       if (pCode instanceof IASTName && ! IASTNamesAreEqual((IASTName)pCode, (IASTName)pPattern)) {
         return false;
-        
+
       } else if (pCode instanceof IASTLiteralExpression && ! IASTLiteralExpressionsAreEqual((IASTLiteralExpression)pCode, (IASTLiteralExpression)pPattern)) {
         return false;
-        
+
       } else if (pCode.getChildren().length != pPattern.getChildren().length) {
         return false;
-        
+
       } else {
         for (int i = 0; i < pCode.getChildren().length; i++) {
           if (compareASTs(pCode.getChildren()[i], pPattern.getChildren()[i], pArgs) == false) {
@@ -201,7 +201,7 @@ public class ObserverASTComparator {
       pArgs.putTransitionVariable(Integer.parseInt(number),value);
       return true;
     } else {
-      return false; 
+      return false;
     }
   }
 
@@ -210,11 +210,11 @@ public class ObserverASTComparator {
       IASTName name = (IASTName) pNode;
       return String.copyValueOf(name.getSimpleID()).equals(JOKER_EXPR);
       // are there more IASTsomethings that could be Jokers?
-    
+
     } else if (pNode instanceof IASTIdExpression) {
       IASTIdExpression name = (IASTIdExpression) pNode;
       return name.getRawSignature().equals(JOKER_EXPR);
-    
+
     } else {
       return false;
     }
@@ -223,7 +223,7 @@ public class ObserverASTComparator {
   private static boolean IASTNamesAreEqual(IASTName pA, IASTName pB) {
     return Arrays.equals(pA.getSimpleID(), pB.getSimpleID());
   }
-  
+
   private static boolean IASTLiteralExpressionsAreEqual(IASTLiteralExpression pA, IASTLiteralExpression pB) {
     return Arrays.equals(pA.getValue(), pB.getValue());
   }
@@ -231,10 +231,10 @@ public class ObserverASTComparator {
   /**
    * Parse the content of a file into an AST with the Eclipse CDT parser.
    * If an error occurs, the program is halted.
-   * 
+   *
    * @param code The C code to parse.
    * @return The AST.
-   * @throws InvalidAutomatonException 
+   * @throws InvalidAutomatonException
    */
   private static IASTTranslationUnit parse(String code) throws InvalidAutomatonException {
     IASTTranslationUnit ast;
@@ -244,12 +244,12 @@ public class ObserverASTComparator {
       throw new InvalidAutomatonException("Error during parsing C code \""
           + code + "\": " + e.getMessage());
     }
-    
+
     checkForASTProblems(ast); // will throw an exception if ast contains a problem
-    
+
     return ast;
   }
-  
+
   private static void checkForASTProblems(IASTNode pAST) throws InvalidAutomatonException {
     if (pAST instanceof IASTProblem) {
       throw new InvalidAutomatonException("Error during parsing C code \""

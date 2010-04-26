@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -47,7 +47,7 @@ public class PredicateAbstractionStopOperator implements StopOperator {
 
   public boolean stop(AbstractElement element,
       Collection<AbstractElement> reached, Precision prec) throws CPAException {
-    
+
     for (AbstractElement e : reached) {
       if (stop(element, e)) {
         return true;

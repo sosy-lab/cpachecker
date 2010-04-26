@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -29,15 +29,15 @@ public abstract class AbstractQuery implements Query {
 
   private Automaton mFirstAutomaton;
   private Automaton mSecondAutomaton;
-  
+
   public AbstractQuery(Automaton pFirstAutomaton, Automaton pSecondAutomaton) {
     assert(pFirstAutomaton != null);
     assert(pSecondAutomaton != null);
-    
+
     mFirstAutomaton = pFirstAutomaton;
     mSecondAutomaton = pSecondAutomaton;
   }
-  
+
   @Override
   public Automaton getFirstAutomaton() {
     return mFirstAutomaton;
@@ -56,5 +56,5 @@ public abstract class AbstractQuery implements Query {
 
   @Override
   public abstract void remove();
-  
+
 }

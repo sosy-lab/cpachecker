@@ -6,20 +6,20 @@ LOCAL int lock= 0;
 
 INITIAL STATE Init;
 
-STATE Init : 
+STATE Init :
   MATCH  "init()"  -> ASSERT lock == 0 DO lock = 0  GOTO Unlocked;
   MATCH  "lock()"  -> ERROR;
   MATCH  "unlock()"  -> ERROR;
   TRUE -> GOTO Init;
 
-STATE Locked : 
+STATE Locked :
   MATCH  "init()"  ->  ERROR;
   MATCH  "lock()"  ->  ERROR;
   MATCH  "unlock()"  -> ASSERT lock == 1  DO  lock = 0  GOTO Unlocked;
   TRUE -> GOTO Locked;
 
 
-STATE Unlocked : 
+STATE Unlocked :
   MATCH  "init()"  ->  ERROR;
   MATCH  "lock()"  -> ASSERT lock == 0  DO  lock = 1  GOTO Locked;
   MATCH  "unlock()"  -> ERROR;

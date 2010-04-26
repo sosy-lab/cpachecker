@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -22,7 +22,7 @@
  *    http://cpachecker.sosy-lab.org
  */
 /**
- * 
+ *
  */
 package org.sosy_lab.cpachecker.cpa.testgoal;
 
@@ -57,75 +57,75 @@ public class TestGoalCPA implements ConfigurableProgramAnalysis {
 
   public class TestGoalPrecision implements Precision {
     Collection<Automaton<CFAEdge>.State> mRemainingFinalStates;
-    
+
     public TestGoalPrecision(Collection<Automaton<CFAEdge>.State> pFinalStates) {
       assert(pFinalStates != null);
-      
+
       mRemainingFinalStates = new HashSet<Automaton<CFAEdge>.State>();
       mRemainingFinalStates.addAll(pFinalStates);
     }
-    
+
     // TODO Hack!!!
     public void setTestGoals(Collection<Automaton<CFAEdge>.State> pFinalStates) {
       assert(pFinalStates != null);
-      
+
       mRemainingFinalStates.clear();
       mRemainingFinalStates.addAll(pFinalStates);
     }
-    
+
     public boolean allTestGoalsCovered() {
       return mRemainingFinalStates.isEmpty();
     }
-    
+
     public void removeAllFinalStates(AutomatonCPADomain<CFAEdge>.Element pElement) {
       assert(pElement != null);
-      
+
       if (mDomain.getTopElement().equals(pElement)) {
         mRemainingFinalStates.clear();
-        
+
         return;
       }
-      
+
       if (mDomain.getBottomElement().equals(pElement)) {
         return;
       }
-      
+
       AutomatonCPADomain<CFAEdge>.StateSetElement lStateSetElement = mDomain.castToStateSetElement(pElement);
-      
+
       mRemainingFinalStates.removeAll(lStateSetElement.getStates());
     }
-    
+
     public final Collection<Automaton<CFAEdge>.State> getRemainingFinalStates() {
       return mRemainingFinalStates;
     }
-    
+
     @Override
     public boolean equals(Object pOther) {
       if (pOther == null) {
         return false;
       }
-      
+
       if (!(pOther instanceof TestGoalPrecision)) {
         return false;
       }
-      
+
       TestGoalPrecision lPrecision = (TestGoalPrecision)pOther;
-      
+
       return mRemainingFinalStates.equals(lPrecision.mRemainingFinalStates);
     }
-    
+
     @Override
     public int hashCode() {
       return mRemainingFinalStates.hashCode();
     }
-    
+
     @Override
     public String toString() {
       String lDescription = "Test goal precision: " + mRemainingFinalStates.toString();
-      
+
       return lDescription;
     }
-    
+
   }
 
   /*public class TestGoalMergeOperator implements MergeOperator {
@@ -136,19 +136,19 @@ public class TestGoalCPA implements ConfigurableProgramAnalysis {
                                  Precision prec) throws CPAException {
       assert(pElement1 != null);
       assert(pElement2 != null);
-      
+
       assert(pElement1 instanceof AutomatonCPADomain<?>.Element);
       assert(pElement2 instanceof AutomatonCPADomain<?>.Element);
-      
+
       // no join if top or bottom element
-      if (!(pElement1 instanceof AutomatonCPADomain<?>.StateSetElement) 
+      if (!(pElement1 instanceof AutomatonCPADomain<?>.StateSetElement)
           || !(pElement2 instanceof AutomatonCPADomain<?>.StateSetElement)) {
         return pElement2;
       }
-      
+
       AutomatonCPADomain<CFAEdge>.StateSetElement lElement1 = mDomain.castToStateSetElement(pElement1);
       AutomatonCPADomain<CFAEdge>.StateSetElement lElement2 = mDomain.castToStateSetElement(pElement2);
-      
+
       for (Automaton<CFAEdge>.State lState : lElement1.getStates()) {
         if (!lState.isFinal()) {
           if (!lElement2.getStates().contains(lState)) {
@@ -157,7 +157,7 @@ public class TestGoalCPA implements ConfigurableProgramAnalysis {
           }
         }
       }
-      
+
       for (Automaton<CFAEdge>.State lState : lElement2.getStates()) {
         if (!lState.isFinal()) {
           if (!lElement1.getStates().contains(lState)) {
@@ -166,9 +166,9 @@ public class TestGoalCPA implements ConfigurableProgramAnalysis {
           }
         }
       }
-      
+
       return lElement1.createUnionElement(lElement2.getStates());
-      
+
       // no join
       return pElement2;
     }
@@ -203,26 +203,26 @@ public class TestGoalCPA implements ConfigurableProgramAnalysis {
                         AbstractElement pReachedElement) throws CPAException {
         assert(pElement != null);
         assert(pReachedElement != null);
-        
+
         if (mDomain.getBottomElement().equals(pElement)) {
             return true;
         }
-        
+
         if (mDomain.getTopElement().equals(pReachedElement)) {
             return true;
         }
-        
+
         if (mDomain.getTopElement().equals(pElement)) {
             return false;
         }
-        
+
         if (mDomain.getBottomElement().equals(pReachedElement)) {
             return false;
         }
-        
+
         assert(pElement instanceof AutomatonCPADomain<?>.Element);
         assert(pReachedElement instanceof AutomatonCPADomain<?>.Element);
-        
+
         AutomatonCPADomain<CFAEdge>.StateSetElement lElement = mDomain.castToStateSetElement(pElement);
         AutomatonCPADomain<CFAEdge>.StateSetElement lReachedElement = mDomain.castToStateSetElement(pReachedElement);
 
@@ -233,7 +233,7 @@ public class TestGoalCPA implements ConfigurableProgramAnalysis {
                 }
             }
         }
-        
+
         return true;
       //return mDomain.getPartialOrder().satisfiesPartialOrder(pElement, pReachedElement);
     }
@@ -247,26 +247,26 @@ public class TestGoalCPA implements ConfigurableProgramAnalysis {
     throws CPATransferException {
       assert(prec != null);
       assert(prec instanceof TestGoalPrecision);
-      
+
       TestGoalPrecision lPrecision = (TestGoalPrecision)prec;
-      
+
       if (lPrecision.allTestGoalsCovered()) {
         return mDomain.getBottomElement();
       }
-      
+
       // TODO This is a hack for performance reasons
       AutomatonCPADomain<CFAEdge>.Element lElement = mDomain.getSuccessor(pElement, pCfaEdge);
-      
+
       int lOldSize = lPrecision.getRemainingFinalStates().size();
-      
+
       lPrecision.removeAllFinalStates(lElement);
-      
+
       int lNewSize = lPrecision.getRemainingFinalStates().size();
-      
+
       if (lOldSize != lNewSize) {
         CPAchecker.logger.log(Level.INFO, "Remaining #states = " + lNewSize);
       }
-      
+
       return lElement;
     }
 
@@ -279,7 +279,7 @@ public class TestGoalCPA implements ConfigurableProgramAnalysis {
     @Override
     public Collection<? extends AbstractElement> strengthen(AbstractElement element,
                            List<AbstractElement> otherElements, CFAEdge cfaEdge,
-                           Precision precision) {    
+                           Precision precision) {
       return null;
     }
   }
@@ -301,7 +301,7 @@ public class TestGoalCPA implements ConfigurableProgramAnalysis {
     mTransferRelation = new TestGoalTransferRelation();
     mMergeOperator = MergeSepOperator.getInstance();
     mStopOperator = new TestGoalStopOperator();
-    
+
     // TODO remove all covered test goals from pPrecision
     // TODO This is a hack for performance reasons
     mPrecisionAdjustment = StaticPrecisionAdjustment.getInstance();

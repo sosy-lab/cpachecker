@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -76,12 +76,12 @@ class ObserverState implements AbstractQueryableElement {
       return false;
     }
   }
-  
+
   private ObserverAutomatonCPA automatonCPA;
   private Map<String, ObserverVariable> vars;
   private ObserverInternalState internalState;
-  
-  
+
+
   static ObserverState observerStateFactory(Map<String, ObserverVariable> pVars,
       ObserverInternalState pInternalState, ObserverAutomatonCPA pAutomatonCPA) {
     if (pInternalState == ObserverInternalState.BOTTOM) {
@@ -90,13 +90,13 @@ class ObserverState implements AbstractQueryableElement {
       return new ObserverState(pVars, pInternalState, pAutomatonCPA);
     }
   }
-  
+
   private ObserverState() {
     automatonCPA = null;
     vars = null;
     internalState = null;
   }
-  
+
   private ObserverState(Map<String, ObserverVariable> pVars,
       ObserverInternalState pInternalState, ObserverAutomatonCPA pAutomatonCPA) {
     super();
@@ -110,23 +110,23 @@ class ObserverState implements AbstractQueryableElement {
     if (this==this.automatonCPA.getTopState() || this == this.automatonCPA.getBottomState()) return false;
     return internalState == ObserverInternalState.ERROR;
   }
-  
+
   @Override
   public boolean equals(Object pObj) {
     if (super.equals(pObj)) {
       return true;
     }
-    
+
     if (pObj == null) {
       return false;
     }
-    
+
     /* If one of the states is top or bottom they cannot be equal, Object.equal would have found this.
      * Because TOP and Bottom do not have internal States this must be returned explicitly.
      */
-    if (this == getAutomatonCPA().getTopState() 
-        || this == getAutomatonCPA().getBottomState() 
-        || pObj == getAutomatonCPA().getTopState() 
+    if (this == getAutomatonCPA().getTopState()
+        || this == getAutomatonCPA().getBottomState()
+        || pObj == getAutomatonCPA().getTopState()
         || pObj == getAutomatonCPA().getBottomState()) return false;
     if (!(pObj instanceof ObserverState)) {
       return false;
@@ -141,10 +141,10 @@ class ObserverState implements AbstractQueryableElement {
       return false;
     }
   }
-  
+
   /* (non-Javadoc)
    * @see java.lang.Object#hashCode()
-   * 
+   *
    * I don't use the hashCode, but the method should be redefined every time equals is overwritten.
    */
   @Override
@@ -152,7 +152,7 @@ class ObserverState implements AbstractQueryableElement {
     if (this == getAutomatonCPA().getTopState() || this == getAutomatonCPA().getBottomState()) return super.hashCode();
     return this.internalState.hashCode() + this.vars.hashCode();
   }
-  
+
   @Override
   public String toString() {
     if (this == getAutomatonCPA().getTopState()) return "ObserverState.TOP";
@@ -167,17 +167,17 @@ class ObserverState implements AbstractQueryableElement {
     }
     return this.internalState.getName() + v;
   }
-  
+
   protected ObserverAutomatonCPA getAutomatonCPA() {
     return this.automatonCPA;
   }
 
-  
+
   /**
    * The UnknownState represents one of the States following a normal State of the ObserverAutomaton.
    * Which State is the correct following state could not be determined so far.
    * This Class is used if during a "getAbstractSuccessor" call the abstract successor could not be determined.
-   * During the subsequent "strengthen" call enough information should be available to determine a normal ObserverState as following State. 
+   * During the subsequent "strengthen" call enough information should be available to determine a normal ObserverState as following State.
    * @author rhein
    *
    */
@@ -216,34 +216,34 @@ class ObserverState implements AbstractQueryableElement {
         return false;
       }
     }
-    
+
     /* (non-Javadoc)
      * @see java.lang.Object#hashCode()
-     * 
+     *
      * I don't use the hashCode, but the method should be redefined every time equals is overwritten.
      */
     @Override
     public int hashCode() {
       return this.previousState.hashCode() + 724;
     }
-    
+
     @Override
     public String toString() {
-      
+
       return "ObserverUnknownState<" + previousState.toString() + ">";
     }
-    
+
     @Override
     protected ObserverAutomatonCPA getAutomatonCPA() {
       return previousState.automatonCPA;
     }
   }
-  
+
   @Override
   public boolean checkProperty(String pProperty) throws InvalidQueryException {
     // e.g. "state == name-of-state" where name-of state can be top, bottom, error, or any state defined in the automaton definition.
     String[] parts = pProperty.split("==");
-    if (parts.length != 2) 
+    if (parts.length != 2)
       throw new InvalidQueryException("The Query \"" + pProperty + "\" is invalid. Could not split the property string correctly.");
     else {
       if (parts[0].trim().toLowerCase().equals("state")) {
@@ -259,7 +259,7 @@ class ObserverState implements AbstractQueryableElement {
           }
         } else {
           throw new InvalidQueryException("The Query \"" + pProperty + "\" is invalid. Only accepting \"State == something\" and \"varname = something\" queries so far.");
-        } 
+        }
       }
     }
   }

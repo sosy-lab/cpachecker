@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -33,19 +33,19 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 /**
  * Stop operator for the observer CPA. Returns always true except when
  * the element is bottom.
- * 
+ *
  * We return true in all cases except bottom because if all other CPAs in
  * the composition return true, then we should also return true to allow
  * the analysis to stop.
- * 
+ *
  * In the case the element is bottom, we return false to force the bottom
  * element to be stored in the reach set. It will not have any successors
  * because of either the assumption collector, or the fact that its
  * transfer would return an empty set.
- * 
+ *
  * To test whether an element is bottom, we use the must-stop reporting
  * (mustDumpAssumptionForAvoidance)
- * 
+ *
  * @author g.theoduloz
  */
 public class ProgressObserverStop implements StopOperator {

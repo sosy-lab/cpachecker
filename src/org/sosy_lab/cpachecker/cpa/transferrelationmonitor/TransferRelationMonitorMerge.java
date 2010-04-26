@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -36,7 +36,7 @@ public class TransferRelationMonitorMerge implements MergeOperator{
   public TransferRelationMonitorMerge(ConfigurableProgramAnalysis pWrappedCPA) {
     wrappedCpa = pWrappedCPA;
   }
-  
+
   @Override
   public AbstractElement merge(
       AbstractElement pElement1,
@@ -56,10 +56,10 @@ public class TransferRelationMonitorMerge implements MergeOperator{
     TransferRelationMonitorElement mergedElement = new TransferRelationMonitorElement(transferRelationMonitorElement1.getCpa(), retElement);
 
     mergedElement.setTotalTime(
-        (transferRelationMonitorElement1.isIgnore() | transferRelationMonitorElement2.isIgnore()), 
-        Math.max(transferRelationMonitorElement1.getTotalTimeOnThePath(), 
+        (transferRelationMonitorElement1.isIgnore() | transferRelationMonitorElement2.isIgnore()),
+        Math.max(transferRelationMonitorElement1.getTotalTimeOnThePath(),
         transferRelationMonitorElement2.getTotalTimeOnThePath()));
-    
+
     return mergedElement;
   }
 

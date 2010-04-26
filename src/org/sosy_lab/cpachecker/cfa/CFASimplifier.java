@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -50,8 +50,8 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 public class CFASimplifier {
 
   private final boolean combineBlockStatements;
-  private final boolean removeDeclarations;  
-  
+  private final boolean removeDeclarations;
+
 	public CFASimplifier(boolean combineBlockStatements, boolean removeDeclarations) {
 	  this.combineBlockStatements = combineBlockStatements;
 	  this.removeDeclarations = removeDeclarations;
@@ -120,7 +120,7 @@ public class CFASimplifier {
 
 		node.removeLeavingEdge(leavingEdge);
 		successor.removeEnteringEdge(leavingEdge);
-		
+
 		BlankEdge be = new BlankEdge("removed declaration", leavingEdge.getLineNumber(), node, successor);
 		be.addToCFA();
 	}
@@ -160,7 +160,7 @@ public class CFASimplifier {
 
 	    CFANode priorNode = enteringEdge.getPredecessor ();
 	    CFANode afterNode = leavingEdge.getSuccessor ();
-			
+
 	    priorNode.removeLeavingEdge (enteringEdge);
 	    afterNode.removeEnteringEdge (leavingEdge);
 
@@ -213,7 +213,7 @@ public class CFASimplifier {
 
 	    CFANode priorNode = enteringEdge.getPredecessor ();
 	    CFANode afterNode = leavingEdge.getSuccessor ();
-			
+
       priorNode.removeLeavingEdge (enteringEdge);
 	    afterNode.removeEnteringEdge (leavingEdge);
 

@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -28,30 +28,30 @@ import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.ASTVisitor;
 public class Complement implements Filter {
 
   private Filter mFilter;
-  
+
   public Complement(Filter pFilter) {
     assert(pFilter != null);
-    
+
     mFilter = pFilter;
   }
-  
+
   public Filter getFilter() {
     return mFilter;
   }
-  
+
   @Override
   public String toString() {
     return "COMPLEMENT(" + mFilter.toString() + ")";
   }
-  
+
   @Override
   public boolean equals(Object obj) {
     if (this == obj) return true;
     if (obj == null) return false;
     if (getClass() != obj.getClass()) return false;
-    
+
     Complement other = (Complement) obj;
-    
+
     return mFilter.equals(other.mFilter);
   }
 
@@ -59,11 +59,11 @@ public class Complement implements Filter {
   public int hashCode() {
     return 155 + mFilter.hashCode();
   }
-  
+
   @Override
   public <T> T accept(ASTVisitor<T> pVisitor) {
     assert(pVisitor != null);
-    
+
     return pVisitor.visit(this);
   }
 

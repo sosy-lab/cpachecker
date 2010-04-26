@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -76,20 +76,20 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
       return new SymbPredAbsCPA(getConfiguration(), getLogger());
     }
   }
-  
+
   public static CPAFactory factory() {
     return new SymbPredAbsCPAFactory();
   }
-  
+
   @Option(name="explicit.abstraction.solver", toUppercase=true, values={"MATHSAT", "SIMPLIFY", "YICES"})
-  private String whichProver = "MATHSAT"; 
-  
+  private String whichProver = "MATHSAT";
+
   @Option(name="interpolatingProver", toUppercase=true, values={"MATHSAT", "CSISAT"})
   private String whichItpProver = "MATHSAT";
-  
+
   private final Configuration config;
   private final LogManager logger;
-  
+
   private final SymbPredAbsAbstractDomain domain;
   private final SymbPredAbsTransferRelation transfer;
   private final SymbPredAbsMergeOperator merge;
@@ -102,10 +102,10 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
 
   private SymbPredAbsCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
-    
+
     this.config = config;
     this.logger = logger;
-    
+
     abstractFormulaManager = new BDDAbstractFormulaManager(config);
     symbolicFormulaManager = new MathsatSymbolicFormulaManager(config, logger);
     TheoremProver thmProver;
@@ -118,7 +118,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     } else {
       throw new InternalError("Update list of allowed solvers!");
     }
-    
+
     InterpolatingTheoremProver<Integer> itpProver;
     if (whichItpProver.equals("MATHSAT")) {
       itpProver = new MathsatInterpolatingProver(symbolicFormulaManager, false, config);
@@ -137,7 +137,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     stats = new SymbPredAbsCPAStatistics(this);
   }
 
-/* TODO do we still need this?  
+/* TODO do we still need this?
   private PredicateMap createPredicateMap() {
     Collection<Predicate> preds = null;
 
@@ -146,14 +146,14 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
       File f = new File(path, "predicates.msat");
       try {
         InputStream in = new FileInputStream(f);
-        
+
         MathsatPredicateParser p = new MathsatPredicateParser(symbolicFormulaManager, formulaManager);
         preds = p.parsePredicates(in);
       } catch (IOException e) {
         CPAMain.logManager.log(Level.WARNING, "Cannot read predicates from", f.getPath());
       }
     }
-    
+
     if (CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.abstraction.norefinement")) {
       // for testing purposes, it's nice to be able to use a given set of
       // predicates and disable refinement
@@ -185,7 +185,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
   protected AbstractFormulaManager getAbstractFormulaManager() {
     return abstractFormulaManager;
   }
-  
+
   protected SymbPredAbsFormulaManager getFormulaManager() {
     return formulaManager;
   }
@@ -193,11 +193,11 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
   protected SymbolicFormulaManager getSymbolicFormulaManager() {
     return symbolicFormulaManager;
   }
-  
+
   protected Configuration getConfiguration() {
     return config;
   }
-  
+
   protected LogManager getLogger() {
     return logger;
   }
@@ -219,7 +219,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
   public PrecisionAdjustment getPrecisionAdjustment() {
     return StaticPrecisionAdjustment.getInstance();
   }
-  
+
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(stats);

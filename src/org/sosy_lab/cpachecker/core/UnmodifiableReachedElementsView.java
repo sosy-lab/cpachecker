@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -60,7 +60,7 @@ public class UnmodifiableReachedElementsView
     assert pUnderlyingSet != null;
     assert pMapElementFunction != null;
     assert pMapPrecisionFunction != null;
-    
+
     underlying = pUnderlyingSet;
     mapElementFunction = pMapElementFunction;
     mapPrecisionFunction = pMapPrecisionFunction;
@@ -74,7 +74,7 @@ public class UnmodifiableReachedElementsView
         }
       };
   }
-  
+
   public UnmodifiableReachedElementsView(UnmodifiableReachedElements pUnderlyingSet)
   {
     underlying = pUnderlyingSet;
@@ -82,7 +82,7 @@ public class UnmodifiableReachedElementsView
     mapPrecisionFunction = Functions.<Precision>identity();
     mapElementAndPrecisionFunction = Functions.<Pair<AbstractElement, Precision>>identity();
   }
-  
+
   @Override
   public AbstractElement getFirstElement() {
     return mapElementFunction.apply(underlying.getFirstElement());
@@ -107,7 +107,7 @@ public class UnmodifiableReachedElementsView
   public Collection<AbstractElement> getReached(AbstractElement pElement) throws OperationNotSupportedException {
     throw new OperationNotSupportedException("Unwrapping may prevent to know the location");
   }
-  
+
   @Override
   public Collection<AbstractElement> getReached(CFANode pLocation) {
     return Collections2.transform(underlying.getReached(pLocation), mapElementFunction);

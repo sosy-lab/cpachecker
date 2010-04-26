@@ -6,12 +6,11 @@ LOCAL int whileSeen = 0;
 
 INITIAL STATE NotInLoop;
 
-STATE NotInLoop : 
+STATE NotInLoop :
   MATCH  "while" -> DO whileSeen = whileSeen + 1 PRINT "loop entered" GOTO InLoop;
   TRUE -> GOTO NotInLoop;
 
-STATE InLoop : 
+STATE InLoop :
   MATCH  "while" -> DO whileSeen = whileSeen + 1 PRINT "while seen:" PRINT whileSeen GOTO InLoop; // unnecessary line
   MATCH  [Goto: .*]  -> PRINT "LoopExited, whileSeen:" PRINT whileSeen GOTO NotInLoop;
   TRUE -> GOTO InLoop;
-  

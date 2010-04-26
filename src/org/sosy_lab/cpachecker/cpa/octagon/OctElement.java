@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -49,7 +49,7 @@ public class OctElement implements AbstractElement{
 	private long elemId;
   private static long nextAvailableId = 0;
   private boolean isBottom = false;
-	
+
 	/**
 	 * Class constructor creating a new octagon and an empty variables list.
 	 */
@@ -93,12 +93,12 @@ public class OctElement implements AbstractElement{
 		this.oct = ent.oct;
 		this.variables = ent.variables;
 	}
-	
+
 	@Override
 	public boolean isError() {
 	  return false;
 	}
-	
+
 	@Override
 	public int hashCode() {
 	  if (oct == null) return (variables == null) ? 0 : variables.hashCode() + 1;
@@ -114,11 +114,11 @@ public class OctElement implements AbstractElement{
 	  if(this.elemId == otherOctagon.elemId){
 	    return true;
 	  }
-	  
+
 		if (this == other){
 			return true;
 		}
-		
+
 		if(otherOctagon.hashCode() == this.hashCode()){
 		  return true;
 		}
@@ -126,7 +126,7 @@ public class OctElement implements AbstractElement{
 		// we check for equality on native library because it optimizes octagons first and
 		// check for equality
 		boolean isEq = LibraryAccess.isEqual(this, otherOctagon);
-		
+
 		return isEq;
 	}
 

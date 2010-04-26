@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -54,7 +54,7 @@ class ObserverTransferRelation implements TransferRelation {
   long assertionsTime = 0;
   long actionTime = 0;
   long totalStrengthenTime = 0;
-  
+
   public ObserverTransferRelation(ObserverAutomaton pAutomaton, LogManager pLogger) {
     this.logger = pLogger;
   }
@@ -69,10 +69,10 @@ class ObserverTransferRelation implements TransferRelation {
                           Preconditions.checkArgument(pElement instanceof ObserverState);
     long start = System.currentTimeMillis();
     try {
-      
+
     if (pElement instanceof ObserverUnknownState) {
-      // the last CFA edge could not be processed properly 
-      // (strengthen was not called on the ObserverUnknownState or the strengthen operation had not enough information to determine a new following state.) 
+      // the last CFA edge could not be processed properly
+      // (strengthen was not called on the ObserverUnknownState or the strengthen operation had not enough information to determine a new following state.)
       ObserverState top = ((ObserverUnknownState)pElement).getAutomatonCPA().getTopState();
       return Collections.singleton((AbstractElement)top);
     }
@@ -80,17 +80,17 @@ class ObserverTransferRelation implements TransferRelation {
       throw new IllegalArgumentException("Cannot getAbstractSuccessor for non-ObserverState AbstractElements.");
     }
     AbstractElement ns = getFollowState((ObserverState)pElement, null, pCfaEdge);
-    
+
     if (ns instanceof ObserverState.BOTTOM) {
       return Collections.emptySet();
     }
-    
+
     return Collections.singleton(ns);
     } finally {
       totalPostTime += System.currentTimeMillis() - start;
     }
   }
-  
+
   /**
    * Returns the <code>ObserverState</code> that follows this State in the ObserverAutomatonCPA.
    * If the passed <code>ObserverExpressionArguments</code> are not sufficient to determine the following state
@@ -103,21 +103,21 @@ class ObserverTransferRelation implements TransferRelation {
     if (state.isError()) return state;
 
     ObserverExpressionArguments exprArgs = new ObserverExpressionArguments(state.getVars(), otherElements, edge, logger);
-    
+
     for (ObserverTransition t : state.getInternalState().getTransitions()) {
       exprArgs.clearTransitionVariables();
-      
+
       long startMatch = System.currentTimeMillis();
       MaybeBoolean match = t.match(exprArgs);
       matchTime += System.currentTimeMillis() - startMatch;
 
-      switch (match) { 
+      switch (match) {
       case TRUE :
 
         long startAssertions = System.currentTimeMillis();
         boolean assertionsHold = t.assertionsHold(exprArgs);
         assertionsTime += System.currentTimeMillis() - startAssertions;
-        
+
         if (assertionsHold) {
           // this transition will be taken. copy the variables
           long startAction = System.currentTimeMillis();
@@ -125,7 +125,7 @@ class ObserverTransferRelation implements TransferRelation {
           exprArgs.setObserverVariables(newVars);
           t.executeActions(exprArgs);
           actionTime += System.currentTimeMillis() - startAction;
-          
+
           return ObserverState.observerStateFactory(newVars, t.getFollowState(), state.getAutomatonCPA());
         } else {
           // matching transitions, but unfulfilled assertions: goto error state
@@ -133,7 +133,7 @@ class ObserverTransferRelation implements TransferRelation {
                                    ObserverInternalState.ERROR, state.getAutomatonCPA());
         }
 
-      case MAYBE : 
+      case MAYBE :
         // if one transition cannot be evaluated the evaluation must be postponed until enough information is available
         return new ObserverUnknownState(state);
 
@@ -142,11 +142,11 @@ class ObserverTransferRelation implements TransferRelation {
         // consider next transition
       }
     }
-    
+
     // if no transition is possible reject
     return state.getAutomatonCPA().getBottomState();
   }
-  
+
   private static Map<String, ObserverVariable> deepCloneVars(Map<String, ObserverVariable> pOld) {
     Map<String, ObserverVariable> result = new HashMap<String, ObserverVariable>(pOld.size());
     for (Entry<String, ObserverVariable> e : pOld.entrySet()) {
@@ -154,7 +154,7 @@ class ObserverTransferRelation implements TransferRelation {
     }
     return result;
   }
-  
+
   /* (non-Javadoc)
    * @see org.sosy_lab.cpachecker.core.interfaces.TransferRelation#strengthen(org.sosy_lab.cpachecker.core.interfaces.AbstractElement, java.util.List, org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge, org.sosy_lab.cpachecker.core.interfaces.Precision)
    */

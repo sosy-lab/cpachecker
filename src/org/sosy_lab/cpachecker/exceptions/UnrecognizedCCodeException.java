@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -40,11 +40,11 @@ public class UnrecognizedCCodeException extends CPATransferException {
         + "in line " + astNode.getFileLocation().getStartingLineNumber()
         + ": " + astNode.getRawSignature());
   }
-  
+
   public UnrecognizedCCodeException(CFAEdge edge, IASTNode astNode) {
     this(null, edge, astNode);
   }
-  
+
   public UnrecognizedCCodeException(String msg, CFAEdge edge) {
     super("Unrecognized C code"
         + (msg != null ? " (" + msg + ") " : " ")

@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -35,7 +35,7 @@ public class Num {
 	public String toString() {
 		return ""+ f;
 	}
-	
+
 	@Override
 	public int hashCode() {
 	  if(f == Double.POSITIVE_INFINITY || f == Double.NEGATIVE_INFINITY){

@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -55,7 +55,7 @@ import org.sosy_lab.common.configuration.Options;
 
 /**
  * Abstract super class for classes implementing the FormulaManager interface,
- * providing some commonly used stuff which is independent from specific libraries. 
+ * providing some commonly used stuff which is independent from specific libraries.
  * @author Philipp Wendler
  */
 @Options(prefix="cpas.symbpredabs.mathsat")
@@ -64,7 +64,7 @@ public abstract class CommonFormulaManager implements FormulaManager {
   protected final AbstractFormulaManager amgr;
   protected final SymbolicFormulaManager smgr;
   protected final LogManager logger;
-  
+
   // Here we keep the mapping abstract predicate ->
   // (symbolic formula representing the variable, symbolic formula representing the atom)
   private final Map<Predicate, Pair<SymbolicFormula, SymbolicFormula>> predicateToVarAndAtom;
@@ -73,41 +73,41 @@ public abstract class CommonFormulaManager implements FormulaManager {
 
   @Option
   protected boolean useCache = true;
-  
+
   private final Map<AbstractFormula, SymbolicFormula> toConcreteCache;
 
   @Option(name="output.path")
   private String outputDirectory = "test/output/";
-  
+
   public CommonFormulaManager(AbstractFormulaManager pAmgr, SymbolicFormulaManager pSmgr,
                     Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this, CommonFormulaManager.class);
     amgr = pAmgr;
     smgr = pSmgr;
     logger = pLogger;
-    
+
     predicateToVarAndAtom = new HashMap<Predicate, Pair<SymbolicFormula, SymbolicFormula>>();
     symbVarToPredicate = new HashMap<SymbolicFormula, Predicate>();
-    
+
     if (useCache) {
       toConcreteCache = new HashMap<AbstractFormula, SymbolicFormula>();
     } else {
       toConcreteCache = null;
     }
   }
-  
+
   /**
    * Generates the predicates corresponding to the given atoms.
    */
   protected Set<Predicate> buildPredicates(Collection<SymbolicFormula> atoms) {
     Set<Predicate> ret = new HashSet<Predicate>(atoms.size());
-    
+
     for (SymbolicFormula atom : atoms) {
       ret.add(makePredicate(smgr.createPredicateVariable(atom), atom));
     }
     return ret;
   }
-  
+
   /**
    * creates a Predicate from the Boolean symbolic variable (var) and
    * the atom that defines it
@@ -127,20 +127,20 @@ public abstract class CommonFormulaManager implements FormulaManager {
       return result;
     }
   }
-  
+
   /**
    * Get the symbolic formulas for the variable and the atom which belong to a
-   * predicate. 
+   * predicate.
    * @param p A predicate which has been return by {@link #makePredicate(SymbolicFormula, SymbolicFormula)}
    * @return The values passed to the makePredicate call (symbolic formula for var and atom)
    */
   public Pair<? extends SymbolicFormula, ? extends SymbolicFormula> getPredicateVarAndAtom(Predicate p) {
     return predicateToVarAndAtom.get(p);
   }
-  
+
   /**
    * Get predicate corresponding to a variable.
-   * @param var A symbolic formula representing the variable. The same formula has to been passed to makePredicate earlier. 
+   * @param var A symbolic formula representing the variable. The same formula has to been passed to makePredicate earlier.
    * @return a Predicate
    */
   public Predicate getPredicate(SymbolicFormula var) {
@@ -150,22 +150,22 @@ public abstract class CommonFormulaManager implements FormulaManager {
     }
     return result;
   }
-  
-  
+
+
   protected static class PredicateInfo {
     // formula for \bigwedge_preds (var <-> def)
     public final SymbolicFormula predicateDefinition;
-    
+
     // list of important terms (the names of the preds)
-    public final List<SymbolicFormula> predicateNames;   
-                                         
+    public final List<SymbolicFormula> predicateNames;
+
     // list of variable names occurring in the definitions of the preds
-    public final Set<String> allVariables; 
-                                 
+    public final Set<String> allVariables;
+
     // list of functions occurring in the preds defs and their arguments' values
     public final Set<Pair<String, SymbolicFormula[]>> allFunctions;
-    
-    public PredicateInfo(SymbolicFormula pd, List<SymbolicFormula> imp, Set<String> av, 
+
+    public PredicateInfo(SymbolicFormula pd, List<SymbolicFormula> imp, Set<String> av,
                     Set<Pair<String, SymbolicFormula[]>> af) {
         predicateDefinition = pd;
         predicateNames = Collections.unmodifiableList(imp);
@@ -173,7 +173,7 @@ public abstract class CommonFormulaManager implements FormulaManager {
         allFunctions = Collections.unmodifiableSet(af);
     }
   }
-  
+
   /**
    * Get some needed information out of a list of predicates.
    * See {@link PredicateInfo} for more information.
@@ -185,7 +185,7 @@ public abstract class CommonFormulaManager implements FormulaManager {
     Set<String> allvars = new HashSet<String>();
     Set<Pair<String, SymbolicFormula[]>> allfuncs = new HashSet<Pair<String, SymbolicFormula[]>>();
     SymbolicFormula preddef = smgr.makeTrue();
-    
+
     for (Predicate p : predicates) {
         SymbolicFormula var = getPredicateVarAndAtom(p).getFirst();
         SymbolicFormula def = getPredicateVarAndAtom(p).getSecond();
@@ -193,13 +193,13 @@ public abstract class CommonFormulaManager implements FormulaManager {
         important.add(var);
         // build the formula (var <-> def)
         SymbolicFormula equiv = smgr.makeEquivalence(var, def);
-        
+
         // and add it to the list of definitions
         preddef = smgr.makeAnd(preddef, equiv);
     }
     return new PredicateInfo(preddef, important, allvars, allfuncs);
   }
-  
+
   /**
    * Collects all variables names and all lValues in a term.
    * @param term  the symbolic formula to analyze
@@ -208,7 +208,7 @@ public abstract class CommonFormulaManager implements FormulaManager {
    */
   protected abstract void collectVarNames(SymbolicFormula term, Set<String> vars,
                                       Set<Pair<String, SymbolicFormula[]>> lvals);
-  
+
   /**
    * Given an abstract formula (which is a BDD over the predicates), build
    * its concrete representation (which is a MathSAT formula corresponding
@@ -238,7 +238,7 @@ public abstract class CommonFormulaManager implements FormulaManager {
           boolean childrenDone = true;
           SymbolicFormula m1 = null;
           SymbolicFormula m2 = null;
-          
+
           Triple<Predicate, AbstractFormula, AbstractFormula> parts = amgr.getIfThenElse(n);
           AbstractFormula c1 = parts.getSecond();
           AbstractFormula c2 = parts.getThird();
@@ -263,7 +263,7 @@ public abstract class CommonFormulaManager implements FormulaManager {
               assert(predicateToVarAndAtom.containsKey(var));
 
               SymbolicFormula atom = predicateToVarAndAtom.get(var).getSecond();
-              
+
               SymbolicFormula ite = smgr.makeIfThenElse(atom, m1, m2);
               cache.put(n, ite);
           }
@@ -278,8 +278,8 @@ public abstract class CommonFormulaManager implements FormulaManager {
    * Creates a new path formula representing an OR of the two arguments. Differently
    * from {@link SymbolicFormulaManager#makeOr(SymbolicFormula, SymbolicFormula)},
    * it also merges the SSA maps and creates the necessary adjustments to the
-   * formulas if the two SSA maps contain different values for the same variables. 
-   * 
+   * formulas if the two SSA maps contain different values for the same variables.
+   *
    * @param pF1 a PathFormula
    * @param pF2 a PathFormula
    * @return (pF1 | pF2)
@@ -290,9 +290,9 @@ public abstract class CommonFormulaManager implements FormulaManager {
     SymbolicFormula formula2 = pF2.getSymbolicFormula();
     SSAMap ssa1 = pF1.getSsa();
     SSAMap ssa2 = pF2.getSsa();
-    
+
     Pair<Pair<SymbolicFormula, SymbolicFormula>,SSAMap> pm = smgr.mergeSSAMaps(ssa2, ssa1);
-    
+
     // do not swap these two lines, that makes a huge difference in performance!
     SymbolicFormula newFormula2 = smgr.makeAnd(formula2, pm.getFirst().getFirst());
     SymbolicFormula newFormula1 = smgr.makeAnd(formula1, pm.getFirst().getSecond());
@@ -302,7 +302,7 @@ public abstract class CommonFormulaManager implements FormulaManager {
 
     return new PathFormula(newFormula, newSsa);
   }
-  
+
   @Override
   public void dumpFormulasToFile(Iterable<SymbolicFormula> f, String filename) {
     if (filename != null) {

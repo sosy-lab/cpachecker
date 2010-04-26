@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -29,14 +29,14 @@ package org.sosy_lab.cpachecker.core.interfaces;
  * @author g.theoduloz
  */
 public interface WrapperCPA {
-  
+
   /**
    * Retrieve one of the wrapped CPAs by type. If the hierarchy of (wrapped)
    * CPAs has several levels, this method searches through them recursively.
-   * 
+   *
    * The type does not need to match exactly, the returned element has just to
-   * be a sub-type of the type passed as argument. 
-   * 
+   * be a sub-type of the type passed as argument.
+   *
    * @param <T> The type of the wrapped element.
    * @param type The class object of the type of the wrapped element.
    * @return An instance of an element with type T or null if there is none.

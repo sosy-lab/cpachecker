@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -35,23 +35,23 @@ public class Predicate implements FQLNode {
     LESS,
     NOT_EQUAL
   }
-  
+
   private Comparison mComparison;
   private Term mLeftTerm;
   private Term mRightTerm;
   private String mString;
-  
+
   public Predicate(Term pLeftTerm, Comparison pComparison, Term pRightTerm) {
     assert(pLeftTerm != null);
     assert(pComparison != null);
     assert(pRightTerm != null);
-    
+
     mLeftTerm = pLeftTerm;
     mComparison = pComparison;
     mRightTerm = pRightTerm;
-    
+
     String lComparisonString = null;
-    
+
     switch (mComparison) {
     case GREATER_OR_EQUAL:
       lComparisonString = ">=";
@@ -72,46 +72,46 @@ public class Predicate implements FQLNode {
       lComparisonString = "!=";
       break;
     }
-    
+
     mString = mLeftTerm.toString() + " " + lComparisonString + " " + mRightTerm.toString();
   }
-  
+
   public Comparison getComparison() {
     return mComparison;
   }
-  
+
   public Term getLeftTerm() {
     return mLeftTerm;
   }
-  
+
   public Term getRightTerm() {
     return mRightTerm;
   }
-  
+
   @Override
   public String toString() {
     return mString;
   }
-  
+
   @Override
   public boolean equals(Object pOther) {
     if (this == pOther) {
       return true;
     }
-    
+
     if (pOther == null) {
       return false;
     }
-    
+
     if (pOther.getClass() == getClass()) {
       Predicate lOther = (Predicate)pOther;
-      
+
       return (mLeftTerm.equals(lOther.mLeftTerm) && mRightTerm.equals(lOther.mRightTerm) && mComparison.equals(lOther.mComparison));
     }
-    
+
     return false;
   }
-  
+
   @Override
   public int hashCode() {
     return 3045820 + mLeftTerm.hashCode() + mComparison.hashCode() + mRightTerm.hashCode();
@@ -120,8 +120,8 @@ public class Predicate implements FQLNode {
   @Override
   public <T> T accept(ASTVisitor<T> pVisitor) {
     assert(pVisitor != null);
-    
+
     return pVisitor.visit(this);
   }
-  
+
 }

@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -54,32 +54,32 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 public class PointerAnalysisCPA implements ConfigurableProgramAnalysis {
 
   private static class PointerAnalysisCPAFactory extends AbstractCPAFactory {
-    
+
     @Override
     public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException {
       return new PointerAnalysisCPA(getConfiguration(), getLogger());
     }
   }
-  
+
   public static CPAFactory factory() {
     return new PointerAnalysisCPAFactory();
   }
-  
+
   @Option(name="merge", values={"sep", "join"})
   private String mergeType = "sep";
-  
+
   @Option
   private boolean printWarnings = true;
-  
+
   private final AbstractDomain abstractDomain;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
   private final TransferRelation transferRelation;
-  
+
   private PointerAnalysisCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
     PointerAnalysisDomain domain = new PointerAnalysisDomain();
-    
+
     MergeOperator mergeOp = null;
     if(mergeType.equals("sep")) {
       mergeOp = MergeSepOperator.getInstance();
@@ -93,7 +93,7 @@ public class PointerAnalysisCPA implements ConfigurableProgramAnalysis {
     stopOperator = new StopSepOperator(domain.getPartialOrder());
     transferRelation = new PointerAnalysisTransferRelation(printWarnings, logger);
   }
-  
+
   @Override
   public AbstractDomain getAbstractDomain() {
     return abstractDomain;

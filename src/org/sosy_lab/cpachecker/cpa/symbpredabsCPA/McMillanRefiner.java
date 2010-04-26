@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -47,7 +47,7 @@ public class McMillanRefiner extends AbstractARTBasedRefiner {
 
   private final AbstractFormulaManager abstractFormulaManager;
   private final SymbPredAbsFormulaManager formulaManager;
-  
+
   public McMillanRefiner(final ConfigurableProgramAnalysis pCpa) throws CPAException {
     super(pCpa);
 
@@ -64,7 +64,7 @@ public class McMillanRefiner extends AbstractARTBasedRefiner {
   public boolean performRefinement(ARTReachedSet pReached, Path pPath) throws CPAException {
 
     CPAchecker.logger.log(Level.FINEST, "Starting refinement for SymbPredAbsCPA");
-    
+
     // create path with all abstraction location elements (excluding the initial
     // element, which is not in pPath)
     // the last element is the element corresponding to the error location
@@ -72,25 +72,25 @@ public class McMillanRefiner extends AbstractARTBasedRefiner {
     ArrayList<SymbPredAbsAbstractElement> path = new ArrayList<SymbPredAbsAbstractElement>();
     SymbPredAbsAbstractElement lastElement = null;
     for (Pair<ARTElement,CFAEdge> artPair : pPath) {
-      SymbPredAbsAbstractElement symbElement = 
+      SymbPredAbsAbstractElement symbElement =
         artPair.getFirst().retrieveWrappedElement(SymbPredAbsAbstractElement.class);
-      
+
       if (symbElement.isAbstractionNode() && symbElement != lastElement) {
         path.add(symbElement);
       }
       lastElement = symbElement;
     }
-    assert path.size() == pPath.size() - 1 : "not all elements are abstraction nodes?"; 
+    assert path.size() == pPath.size() - 1 : "not all elements are abstraction nodes?";
 
-            
+
     // build the counterexample
     CounterexampleTraceInfo info = formulaManager.buildCounterexampleTrace(path);
-        
+
     // if error is spurious refine
     if (info.isSpurious()) {
       CPAchecker.logger.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
       performRefinement(pReached, pPath, info);
-      
+
       return true;
     } else {
       CPAchecker.logger.log(Level.FINEST, "Error trace is not spurious");
@@ -99,50 +99,50 @@ public class McMillanRefiner extends AbstractARTBasedRefiner {
     }
   }
 
-  private void performRefinement(ARTReachedSet pReached, 
+  private void performRefinement(ARTReachedSet pReached,
       Path pArtPath, CounterexampleTraceInfo pInfo) throws CPAException {
 
     // the first element on the path which was discovered to be not reachable
     ARTElement root = null;
-    
+
     // those elements where predicates have been added
 //    Collection<ARTElement> strengthened = new ArrayList<ARTElement>();
-    
+
     boolean foundInterpolant = false;
     for (Pair<ARTElement,CFAEdge> artPair : pArtPath) {
       ARTElement ae = artPair.getFirst();
-      SymbPredAbsAbstractElement e = ae.retrieveWrappedElement(SymbPredAbsAbstractElement.class); 
-      
+      SymbPredAbsAbstractElement e = ae.retrieveWrappedElement(SymbPredAbsAbstractElement.class);
+
       assert e.isAbstractionNode();
-      
+
       Collection<Predicate> newpreds = pInfo.getPredicatesForRefinement(e);
       if (newpreds.size() == 0) {
         if (foundInterpolant) {
           // no predicates after some interpolants have been found means we have
           // reached that part of the path which is not reachable
           // (interpolant is false)
-          
+
           root = ae;
           break;
         }
-        
+
         // no predicates on the beginning of the path means the interpolant is true,
         // do nothing
         continue;
-        
+
       } else {
         foundInterpolant = true;
       }
-      
+
       AbstractFormula abs = e.getAbstraction();
-      
+
       boolean newPred = false;
-      
+
       for (Predicate p : newpreds) {
         AbstractFormula f = p.getFormula();
         if (abstractFormulaManager.isFalse(f)) {
           assert newpreds.size() == 1;
-          
+
           root = ae;
 
         } else if (!abstractFormulaManager.entails(abs, f)) {
@@ -150,28 +150,28 @@ public class McMillanRefiner extends AbstractARTBasedRefiner {
           abs = abstractFormulaManager.makeAnd(abs, p.getFormula());
         }
       }
-      
+
       if (root != null) {
         // from here on, all elements will have the interpolant false
         // they will be removed from ART and reached set
         break;
       }
-      
+
       if (newPred) {
         e.setAbstraction(abs);
         pReached.removeCoverage(ae);
 //        strengthened.add(ae);
-        
+
         if (pReached.checkForCoveredBy(ae)) {
           // this element is now covered by another element
           // the whole subtree has been removed
-          
+
           return;
         }
       }
     }
     assert root != null : "Infeasible path without interpolant false at some time cannot exist";
-    
+
 //    pReached.removeCoverage(strengthened);
     pReached.replaceWithBottom(root);
   }

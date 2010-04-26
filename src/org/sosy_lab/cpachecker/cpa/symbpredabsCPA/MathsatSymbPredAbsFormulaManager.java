@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -71,7 +71,7 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
 @Options(prefix="cpas.symbpredabs")
-class MathsatSymbPredAbsFormulaManager<T> extends MathsatFormulaManager 
+class MathsatSymbPredAbsFormulaManager<T> extends MathsatFormulaManager
 implements SymbPredAbsFormulaManager
 {
 
@@ -105,43 +105,43 @@ implements SymbPredAbsFormulaManager
 
   @Option(name="abstraction.cartesian")
   private boolean cartesianAbstraction = false;
-  
+
   @Option(name="mathsat.dumpHardAbstractionQueries")
   private boolean dumpHardAbstractions = false;
-  
+
   @Option(name="explicit.getUsefulBlocks")
   private boolean getUsefulBlocks = false;
-  
+
   @Option(name="shortestCexTrace")
   private boolean shortestTrace = false;
-  
+
   @Option(name="refinement.splitItpAtoms")
   private boolean splitItpAtoms = false;
-  
+
   @Option
   private boolean useBitwiseAxioms = false;
-  
+
   @Option(name="mathsat.useDtc")
   private boolean useDtc = false;
-  
+
   @Option(name="shortestCexTraceUseSuffix")
   private boolean useSuffix = false;
-  
+
   @Option(name="shortestCexTraceZigZag")
   private boolean useZigZag = false;
 
   @Option
   private boolean inlineFunctions = false;
-  
+
   @Option(name="refinement.addWellScopedPredicates")
   private boolean wellScopedPredicates = false;
-  
+
   @Option(name="refinement.msatCexFile")
   private String msatCexFile = "cex.msat";
-  
+
   @Option(name="refinement.dumpInterpolationProblems")
   private boolean dumpInterpolationProblems = false;
-  
+
   private final Map<Pair<SymbolicFormula, List<SymbolicFormula>>, AbstractFormula> abstractionCache;
   //cache for cartesian abstraction queries. For each predicate, the values
   // are -1: predicate is false, 0: predicate is don't care,
@@ -158,7 +158,7 @@ implements SymbPredAbsFormulaManager
       LogManager logger) throws InvalidConfigurationException {
     super(pAmgr, pMmgr, config, logger);
     config.inject(this);
-    
+
     stats = new Stats();
     thmProver = pThmProver;
     itpProver = pItpProver;
@@ -167,13 +167,13 @@ implements SymbPredAbsFormulaManager
       logger.log(Level.WARNING, "Well scoped predicates not possible with function inlining, disabling them.");
       wellScopedPredicates = false;
     }
-    
+
     if (useCache) {
       if (cartesianAbstraction) {
         abstractionCache = null;
         cartesianAbstractionCache = new TimeStampCache<CartesianAbstractionCacheKey, Byte>(MAX_CACHE_SIZE);
         feasibilityCache = new TimeStampCache<FeasibilityCacheKey, Boolean>(MAX_CACHE_SIZE);
-      
+
       } else {
         abstractionCache = new HashMap<Pair<SymbolicFormula, List<SymbolicFormula>>, AbstractFormula>();
         cartesianAbstractionCache = null;
@@ -197,24 +197,24 @@ implements SymbPredAbsFormulaManager
       return buildBooleanAbstraction(abs, pathFormula, predicates);
     }
   }
-  
+
   private AbstractFormula buildCartesianAbstraction(
       AbstractFormula abs,
       PathFormula pathFormula,
       Collection<Predicate> predicates) {
-    
+
     long startTime = System.currentTimeMillis();
 
     final SymbolicFormula absFormula = smgr.instantiate(toConcrete(abs), null);
     final SSAMap absSsa = mmgr.extractSSA(absFormula);
-    
-    
+
+
     pathFormula = smgr.shift(pathFormula.getSymbolicFormula(), absSsa);
     final SymbolicFormula symbFormula = mmgr.replaceAssignments(pathFormula.getSymbolicFormula());
     final SSAMap ssa = pathFormula.getSsa();
-    
+
     SymbolicFormula f = smgr.makeAnd(absFormula, symbFormula);
-    
+
 //    Pair<SymbolicFormula, SSAMap> pc =
 //        buildConcreteFormula(mmgr, e, succ, edge, false);
 //    SymbolicFormula f = pc.getFirst();
@@ -266,7 +266,7 @@ implements SymbPredAbsFormulaManager
 
     thmProver.init(TheoremProver.CARTESIAN_ABSTRACTION);
     try {
-      
+
       if (!skipFeasibilityCheck) {
         //++stats.abstractionNumMathsatQueries;
         boolean unsat = thmProver.isUnsat(f);
@@ -280,20 +280,20 @@ implements SymbPredAbsFormulaManager
       } else {
           //++stats.abstractionNumCachedQueries;
       }
-  
+
       thmProver.push(f);
       try {
         long totBddTime = 0;
-    
+
         AbstractFormula absbdd = amgr.makeTrue();
-    
+
         // check whether each of the predicate is implied in the next state...
         Set<String> predvars = new HashSet<String>();
         Set<Pair<String, SymbolicFormula[]>> predlvals =
             new HashSet<Pair<String, SymbolicFormula[]>>();
         Map<SymbolicFormula, SymbolicFormula> predLvalsCache =
             new HashMap<SymbolicFormula, SymbolicFormula>();
-    
+
         int predIndex = -1;
         for (Predicate p : predicates) {
           ++predIndex;
@@ -355,8 +355,8 @@ implements SymbPredAbsFormulaManager
                 absbdd = amgr.makeAnd(absbdd, v);
                 long endBddTime = System.currentTimeMillis();
                 totBddTime += (endBddTime - startBddTime);
-                
-                predVal = 1; 
+
+                predVal = 1;
             } else {
                 // check whether it's false...
                 //++stats.abstractionNumMathsatQueries;
@@ -369,7 +369,7 @@ implements SymbPredAbsFormulaManager
                     absbdd = amgr.makeAnd(absbdd, v);
                     long endBddTime = System.currentTimeMillis();
                     totBddTime += (endBddTime - startBddTime);
-                    
+
                     predVal = -1;
                 }
             }
@@ -396,7 +396,7 @@ implements SymbPredAbsFormulaManager
         stats.abstractionMathsatSolveTime += solveTime;
         stats.abstractionMaxMathsatSolveTime =
             Math.max(solveTime, stats.abstractionMaxMathsatSolveTime);
-        
+
         return absbdd;
 
       } finally {
@@ -404,7 +404,7 @@ implements SymbPredAbsFormulaManager
       }
 
     } finally {
-      thmProver.reset();     
+      thmProver.reset();
     }
   }
 
@@ -430,10 +430,10 @@ implements SymbPredAbsFormulaManager
 
     long end = System.currentTimeMillis();
     stats.replacing += (end - start);
-    
+
     // from now on, abstractionFormula, pathFormula and functionExitFormula should not be used,
     // only absFormula, absSsa, symbFormula, symbSsa
-    
+
     if (useBitwiseAxioms) {
       SymbolicFormula bitwiseAxioms = mmgr.getBitwiseAxioms(symbFormula);
       symbFormula = smgr.makeAnd(symbFormula, bitwiseAxioms);
@@ -441,18 +441,18 @@ implements SymbPredAbsFormulaManager
       logger.log(Level.ALL, "DEBUG_3", "ADDED BITWISE AXIOMS:",
           bitwiseAxioms);
     }
-   
+
     return new PathFormula(smgr.makeAnd(absFormula, symbFormula), symbSsa);
   }
-  
+
   private AbstractFormula buildBooleanAbstraction(
       AbstractFormula abstractionFormula, PathFormula pathFormula,
       Collection<Predicate> predicates) {
-    
+
     logger.log(Level.ALL, "Old abstraction:", abstractionFormula);
     logger.log(Level.ALL, "Path formula:", pathFormula);
     logger.log(Level.ALL, "Predicates:", predicates);
-    
+
     long startTime = System.currentTimeMillis();
 
     // first, create the new formula corresponding to
@@ -465,7 +465,7 @@ implements SymbPredAbsFormulaManager
     PathFormula symbFormulaPair = buildSymbolicFormula(abstractionFormula, pathFormula);
     SymbolicFormula symbFormula = symbFormulaPair.getFirst();
     SSAMap symbSsa = symbFormulaPair.getSecond();
-    
+
     // build the definition of the predicates, and instantiate them
     PredicateInfo predinfo = buildPredicateInformation(predicates);
     {
@@ -486,18 +486,18 @@ implements SymbPredAbsFormulaManager
         }
       }
     }
-  
+
     List<SymbolicFormula> importantPreds = predinfo.predicateNames;
-    logger.log(Level.ALL, 
+    logger.log(Level.ALL,
         "IMPORTANT SYMBOLS (", importantPreds.size(), "): ",
         importantPreds);
-    
+
     // instantiate the definitions with the right SSA
     SymbolicFormula predDef = smgr.instantiate(predinfo.predicateDefinition, symbSsa);
 
     // the formula is (abstractionFormula & pathFormula & predDef)
     final SymbolicFormula fm = smgr.makeAnd(symbFormula, predDef);
-    
+
     logger.log(Level.ALL, "DEBUG_2",
         "COMPUTING ALL-SMT ON FORMULA: ", fm);
 
@@ -507,12 +507,12 @@ implements SymbPredAbsFormulaManager
     if (useCache && abstractionCache.containsKey(absKey)) {
       ++stats.numCallsAbstractionCached;
       result = abstractionCache.get(absKey);
-      
+
       logger.log(Level.ALL, "Abstraction was cached, result is", result);
     } else {
       // get the environment from the manager - this is unique, it is the
       // environment in which all terms are created
-   
+
       AllSatCallback allSatCallback = new AllSatCallback();
       long msatSolveStartTime = System.currentTimeMillis();
       final int numModels = thmProver.allSat(fm, importantPreds, allSatCallback);
@@ -530,7 +530,7 @@ implements SymbPredAbsFormulaManager
       if (useCache) {
         abstractionCache.put(absKey, result);
       }
-      
+
       // update statistics
       long bddTime       = allSatCallback.totalTime;
       long msatSolveTime = (msatSolveEndTime - msatSolveStartTime) - bddTime;
@@ -561,25 +561,25 @@ implements SymbPredAbsFormulaManager
     stats.abstractionMathsatTime += abstractionMsatTime;
     stats.abstractionMaxMathsatTime =
       Math.max(abstractionMsatTime, stats.abstractionMaxMathsatTime);
-    
+
     return result;
   }
 
   @Override
   public boolean unsat(AbstractFormula abstractionFormula, PathFormula pathFormula) {
-    
+
     PathFormula symbFormula = buildSymbolicFormula(abstractionFormula, pathFormula);
     logger.log(Level.ALL, "Checking satisfiability of formula", symbFormula.getFirst());
-    
+
     // purpose = ENTAILMENT_CHECK copied from MathsatSymbolicFormulaManager.entails()
     // this method does essentially the same (just check one formula for unsatisfiability)
     thmProver.init(TheoremProver.ENTAILMENT_CHECK);
     boolean result = thmProver.isUnsat(symbFormula.getFirst());
     thmProver.reset();
-    
+
     return result;
   }
-  
+
   @Override
   public CounterexampleTraceInfo buildCounterexampleTrace(
       ArrayList<SymbPredAbsAbstractElement> abstractTrace) throws CPAException {
@@ -617,46 +617,46 @@ implements SymbPredAbsFormulaManager
     if (dumpInterpolationProblems) {
       int refinement = stats.numCallsCexAnalysis;
       logger.log(Level.FINEST, "Dumping", f.size(), "formulas of refinement number", refinement);
-      
+
       int k = 0;
       for (SymbolicFormula formula : f) {
         dumpFormulasToFile(Collections.singleton(formula), msatCexFile + ".ref" + refinement + ".f" + k++);
       }
     }
-    
+
     List<T> itpGroupsIds = new ArrayList<T>(f.size());
     for (int i = 0; i < f.size(); i++) {
       itpGroupsIds.add(null);
     }
-    
+
     boolean spurious;
     if (getUsefulBlocks || !shortestTrace) {
       // check all formulas in f at once
-      
+
       for (int i = useSuffix ? f.size()-1 : 0;
           useSuffix ? i >= 0 : i < f.size(); i += useSuffix ? -1 : 1) {
-          
-        itpGroupsIds.set(i, itpProver.addFormula(f.get(i))); 
+
+        itpGroupsIds.set(i, itpProver.addFormula(f.get(i)));
       }
       spurious = itpProver.isUnsat();
-      
+
     } else {
       spurious = checkInfeasabilityOfShortestTrace(f, itpGroupsIds);
     }
     assert itpGroupsIds.size() == f.size();
     assert !itpGroupsIds.contains(null); // has to be filled completely
-      
+
     long msatSolveTimeEnd = System.currentTimeMillis();
     long msatSolveTime = msatSolveTimeEnd - msatSolveTimeStart;
 
     CounterexampleTraceInfo info = new CounterexampleTraceInfo(spurious);
 
     logger.log(Level.FINEST, "Counterexample trace is", (spurious ? "infeasible" : "feasible"));
-    
+
     if (spurious) {
       // the counterexample is spurious. Extract the predicates from
       // the interpolants
-      
+
       // how to partition the trace into (A, B) depends on whether
       // there are function calls involved or not: in general, A
       // is the trace from the entry point of the current function
@@ -674,18 +674,18 @@ implements SymbPredAbsFormulaManager
         // last iteration is left out because B would be empty
         final int start_of_a = (wellScopedPredicates ? entryPoints.peek() : 0);
         SymbPredAbsAbstractElement e = abstractTrace.get(i);
-        
+
         logger.log(Level.ALL, "Looking for interpolant for formulas from",
             start_of_a, "to", i);
-                
+
         msatSolveTimeStart = System.currentTimeMillis();
         SymbolicFormula itp = itpProver.getInterpolant(itpGroupsIds.subList(start_of_a, i+1));
         msatSolveTimeEnd = System.currentTimeMillis();
         msatSolveTime += msatSolveTimeEnd - msatSolveTimeStart;
-                
+
         if (itp.isTrue() || itp.isFalse()) {
           logger.log(Level.ALL, "For location", e.getAbstractionLocation(), "got no interpolant.");
-        
+
         } else {
           foundPredicates = true;
 
@@ -698,11 +698,11 @@ implements SymbPredAbsFormulaManager
               "interpolant", itp,
               "atoms ", atoms,
               "predicates", preds);
-        
+
         }
 
         // TODO the following code relies on the fact that there is always an abstraction on function call and return
-        
+
         // If we are entering or exiting a function, update the stack
         // of entry points
         // TODO checking if the abstraction node is a new function
@@ -714,14 +714,14 @@ implements SymbPredAbsFormulaManager
           entryPoints.pop();
         }
       }
-      
+
       if (!foundPredicates) {
         throw new RefinementFailedException(RefinementFailedException.Reason.InterpolationFailed, null);
       }
 
     } else {
       // this is a real bug, notify the user
-      
+
       // TODO - reconstruct counterexample
       // For now, we dump the asserted formula to a user-specified file
       dumpFormulasToFile(f, msatCexFile);
@@ -757,7 +757,7 @@ implements SymbPredAbsFormulaManager
       PathFormula p = e.getInitAbstractionFormula();
       SSAMap newSsa;
       SymbolicFormula f;
-      
+
       if (ssa != null) {
         // don't need to call replaceAssignments because shift does the same trick
         p = smgr.shift(p.getSymbolicFormula(), ssa);
@@ -768,7 +768,7 @@ implements SymbPredAbsFormulaManager
         f = mmgr.replaceAssignments(p.getSymbolicFormula());
         newSsa = p.getSsa();
       }
-      
+
       result.add(f);
       ssa = newSsa;
     }
@@ -785,13 +785,13 @@ implements SymbPredAbsFormulaManager
   private boolean addBitwiseAxioms(List<SymbolicFormula> traceFormulas) {
 
     boolean foundUninterpretedFunction = false;
-    
+
     SymbolicFormula bitwiseAxioms = smgr.makeTrue();
-    
+
     for (SymbolicFormula fm : traceFormulas) {
       boolean hasUf = mmgr.hasUninterpretedFunctions(fm);
       if (hasUf) {
-        foundUninterpretedFunction = true;  
+        foundUninterpretedFunction = true;
 
         if (useBitwiseAxioms) {
           SymbolicFormula a = mmgr.getBitwiseAxioms(fm);
@@ -802,7 +802,7 @@ implements SymbPredAbsFormulaManager
         }
       }
     }
-    
+
     if (useBitwiseAxioms && foundUninterpretedFunction) {
       logger.log(Level.ALL, "DEBUG_3", "ADDING BITWISE AXIOMS TO THE",
           "LAST GROUP: ", bitwiseAxioms);
@@ -810,11 +810,11 @@ implements SymbPredAbsFormulaManager
     }
     return foundUninterpretedFunction;
   }
-  
+
   private boolean checkInfeasabilityOfShortestTrace(List<SymbolicFormula> traceFormulas,
                                                     List<T> itpGroupsIds) {
       Boolean tmpSpurious = null;
-      
+
       if (useZigZag) {
         int e = traceFormulas.size()-1;
         int s = 0;
@@ -824,7 +824,7 @@ implements SymbPredAbsFormulaManager
           if (fromStart) s++;
           else e--;
           fromStart = !fromStart;
-          
+
           tmpSpurious = null;
           SymbolicFormula fm = traceFormulas.get(i);
           itpGroupsIds.set(i, itpProver.addFormula(fm));
@@ -840,11 +840,11 @@ implements SymbPredAbsFormulaManager
             }
           }
         }
-        
+
       } else {
         for (int i = useSuffix ? traceFormulas.size()-1 : 0;
               useSuffix ? i >= 0 : i < traceFormulas.size(); i += useSuffix ? -1 : 1) {
-          
+
           tmpSpurious = null;
           SymbolicFormula fm = traceFormulas.get(i);
           itpGroupsIds.set(i, itpProver.addFormula(fm));
@@ -865,14 +865,14 @@ implements SymbPredAbsFormulaManager
           }
         }
       }
-      
+
       return (tmpSpurious == null) ? itpProver.isUnsat() : tmpSpurious;
   }
 
   private List<SymbolicFormula> getUsefulBlocks(List<SymbolicFormula> f,
       boolean theoryCombinationNeeded, boolean suffixTrace, boolean zigZag) {
     long gubStart = System.currentTimeMillis();
-    
+
     // try to find a minimal-unsatisfiable-core of the trace (as Blast does)
 
     thmProver.init(TheoremProver.COUNTEREXAMPLE_ANALYSIS);
@@ -977,7 +977,7 @@ implements SymbPredAbsFormulaManager
     stats.cexAnalysisGetUsefulBlocksTime += gubEnd - gubStart;
     stats.cexAnalysisGetUsefulBlocksMaxTime = Math.max(
         stats.cexAnalysisGetUsefulBlocksMaxTime, gubEnd - gubStart);
-    
+
     return f;
   }
 

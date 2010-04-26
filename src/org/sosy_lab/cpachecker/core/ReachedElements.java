@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -49,12 +49,12 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
  * This class implements a set of reached elements, including storing a
  * precision for each one. It groups elements by location (if enabled) and allows
  * access to either all elements or those with the same location as a given one.
- * 
+ *
  * In all its operations it preserves the order in which the elements were added.
  * All the collections returned from methods of this class ensure this ordering, too.
  */
 public class ReachedElements implements UnmodifiableReachedElements {
-  
+
   private final LinkedHashMap<AbstractElement, Precision> reached;
   private final Set<AbstractElement> unmodifiableReached;
   private final Collection<Pair<AbstractElement, Precision>> reachedWithPrecision;
@@ -63,8 +63,8 @@ public class ReachedElements implements UnmodifiableReachedElements {
   private AbstractElement firstElement = null;
   private final LinkedList<AbstractElement> waitlist;
   private final TraversalMethod traversal;
-  
-  private final Function<AbstractElement, Pair<AbstractElement, Precision>> getPrecisionAsPair = 
+
+  private final Function<AbstractElement, Pair<AbstractElement, Precision>> getPrecisionAsPair =
     new Function<AbstractElement, Pair<AbstractElement, Precision>>() {
 
       @Override
@@ -73,25 +73,25 @@ public class ReachedElements implements UnmodifiableReachedElements {
 
         return new Pair<AbstractElement, Precision>(element, getPrecision(element));
       }
-    
+
   };
- 
+
   public ReachedElements(TraversalMethod traversal, boolean locationMapped) {
     Preconditions.checkNotNull(traversal);
-    
+
     reached = new LinkedHashMap<AbstractElement, Precision>();
     unmodifiableReached = Collections.unmodifiableSet(reached.keySet());
     reachedWithPrecision = Collections2.transform(unmodifiableReached, getPrecisionAsPair);
     if (locationMapped) {
-      locationMappedReached = LinkedHashMultimap.create(); 
+      locationMappedReached = LinkedHashMultimap.create();
     } else {
       locationMappedReached = null;
     }
-    
+
     waitlist = new LinkedList<AbstractElement>();
     this.traversal = traversal;
   }
-  
+
   //enumerator for traversal methods
   public enum TraversalMethod {
     DFS, BFS, TOPSORT, RAND
@@ -106,17 +106,17 @@ public class ReachedElements implements UnmodifiableReachedElements {
 
     } else if (element instanceof AbstractElementWithLocation) {
       return ((AbstractElementWithLocation)element).getLocationNode();
-    
+
     } else {
       return null;
     }
   }
-  
+
   public void add(AbstractElement element, Precision precision) {
     if (reached.size() == 0) {
       firstElement = element;
     }
-    
+
     reached.put(element, precision);
     if (locationMappedReached != null) {
       CFANode location = getLocationFromElement(element);
@@ -133,24 +133,24 @@ public class ReachedElements implements UnmodifiableReachedElements {
       add(pair.getFirst(), pair.getSecond());
     }
   }
-  
+
   /**
    * Re-add an element to the waitlist which already is contained in the reached set.
    */
   public void reAddToWaitlist(AbstractElement e) {
     Preconditions.checkArgument(reached.containsKey(e), "Element has to be in the reached set");
-    
+
     if (!waitlist.contains(e)) {
       waitlist.add(e);
     }
   }
-  
+
   public void remove(AbstractElement element) {
     int hc = element.hashCode();
     if ((firstElement == null) || hc == firstElement.hashCode() && element.equals(firstElement)) {
       firstElement = null;
     }
-    
+
     if ((lastElement == null) || (hc == lastElement.hashCode() && element.equals(lastElement))) {
       lastElement = null;
     }
@@ -163,14 +163,14 @@ public class ReachedElements implements UnmodifiableReachedElements {
       }
     }
   }
-  
+
   public void removeAll(Collection<? extends AbstractElement> toRemove) {
     for (AbstractElement element : toRemove) {
       remove(element);
     }
     assert firstElement != null || reached.isEmpty() : "firstElement may only be removed if the whole reached set is cleared";
   }
-  
+
   public void clear() {
     firstElement = null;
     lastElement = null;
@@ -180,32 +180,32 @@ public class ReachedElements implements UnmodifiableReachedElements {
       locationMappedReached.clear();
     }
   }
-  
+
   public Set<AbstractElement> getReached() {
     return unmodifiableReached;
   }
-  
+
   @Override
   public Iterator<AbstractElement> iterator() {
     return unmodifiableReached.iterator();
   }
-  
+
   public Collection<Pair<AbstractElement, Precision>> getReachedWithPrecision() {
     return reachedWithPrecision; // this is unmodifiable
   }
- 
+
   /**
    * Returns a subset of the reached set, which contains at least all abstract
    * elements belonging to the same location as a given element. It may even
    * return an empty set if there are no such states. Note that it may return up to
-   * all abstract states. 
-   * 
+   * all abstract states.
+   *
    * The returned set is a view of the actual data, so it might change if nodes
    * are added to the reached set. Subsequent calls to this method with the same
    * parameter value will always return the same object.
-   * 
+   *
    * The returned set is unmodifiable.
-   * 
+   *
    * @param element An abstract element for whose location the abstract states should be retrieved.
    * @return A subset of the reached set.
    */
@@ -213,14 +213,14 @@ public class ReachedElements implements UnmodifiableReachedElements {
     CFANode loc = getLocationFromElement(element);
     return getReached(loc);
   }
-  
+
   public Set<AbstractElement> getReached(CFANode location) {
     if (locationMappedReached != null)
       return Collections.unmodifiableSet(locationMappedReached.get(location));
     else
       return unmodifiableReached;
   }
-  
+
   public AbstractElement getFirstElement() {
     return firstElement;
   }
@@ -228,19 +228,19 @@ public class ReachedElements implements UnmodifiableReachedElements {
   public AbstractElement getLastElement() {
     return lastElement;
   }
-  
+
   public TraversalMethod getTraversalMethod() {
     return traversal;
   }
-  
+
   public boolean hasWaitingElement() {
     return !waitlist.isEmpty();
   }
-  
+
   public List<AbstractElement> getWaitlist() {
     return Collections.unmodifiableList(waitlist);
   }
-  
+
   public Pair<AbstractElement, Precision> popFromWaitlist() {
     AbstractElement result = null;
 
@@ -248,11 +248,11 @@ public class ReachedElements implements UnmodifiableReachedElements {
     case BFS:
       result = waitlist.removeFirst();
       break;
-      
+
     case DFS:
       result = waitlist.removeLast();
       break;
-      
+
     case RAND:
       Random rand = new Random();
       int randInd = rand.nextInt(waitlist.size());
@@ -263,7 +263,7 @@ public class ReachedElements implements UnmodifiableReachedElements {
     default:
       int resultTopSortId = Integer.MIN_VALUE;
       for (AbstractElement currentElement : waitlist) {
-        if ((result == null) 
+        if ((result == null)
             || (getLocationFromElement(currentElement).getTopologicalSortId() >
                 resultTopSortId)) {
           result = currentElement;
@@ -273,14 +273,14 @@ public class ReachedElements implements UnmodifiableReachedElements {
       waitlist.remove(result);
       break;
     }
-    
+
     return getPrecisionAsPair.apply(result);
   }
-  
+
   public int getWaitlistSize() {
     return waitlist.size();
   }
-  
+
   /**
    * Returns the precision for an element.
    * @param element The element to look for.
@@ -289,21 +289,21 @@ public class ReachedElements implements UnmodifiableReachedElements {
   public Precision getPrecision(AbstractElement element) {
     return reached.get(element);
   }
-  
+
   public boolean contains(AbstractElement element) {
     return reached.containsKey(element);
   }
-  
+
   public int size() {
     return reached.size();
   }
-  
+
   public boolean isEmpty() {
     return (size() == 0);
   }
-  
+
   @Override
-  public String toString() {   
+  public String toString() {
     return reached.keySet().toString();
   }
 }

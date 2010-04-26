@@ -4,14 +4,14 @@ AUTOMATON LockingAutomaton
 
 INITIAL STATE Init;
 
-STATE Init : 
+STATE Init :
   MATCH  { x = $?; } -> ERROR;
   MATCH  { init(); }  -> GOTO Unlocked;
   MATCH  { lock($?); }  -> ERROR;
   MATCH  { unlock($?); }  -> ERROR;
   TRUE -> GOTO Init;
 
-STATE Locked : 
+STATE Locked :
   MATCH  { x = $?; } -> GOTO Locked; // unnecessary line
   MATCH  { init(); }  ->  ERROR;
   MATCH  { lock($?); }  ->  ERROR;
@@ -19,7 +19,7 @@ STATE Locked :
   TRUE -> GOTO Locked;
 
 
-STATE Unlocked : 
+STATE Unlocked :
   MATCH  { x = $?; } -> ERROR;
   MATCH  { init(); }  ->  ERROR;
   MATCH  { lock($?); }  -> GOTO Locked;

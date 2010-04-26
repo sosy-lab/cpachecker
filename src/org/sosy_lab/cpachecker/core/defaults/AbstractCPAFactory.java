@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -37,7 +37,7 @@ public abstract class AbstractCPAFactory implements CPAFactory {
 
   private LogManager logger = null;
   private Configuration configuration = null;
-  
+
   @Override
   public CPAFactory setChild(ConfigurableProgramAnalysis pChild)
       throws UnsupportedOperationException {
@@ -54,7 +54,7 @@ public abstract class AbstractCPAFactory implements CPAFactory {
   public CPAFactory setConfiguration(Configuration pConfiguration) {
     Preconditions.checkNotNull(pConfiguration);
     Preconditions.checkState(configuration == null, "setConfiguration called twice on CPAFactory");
-    
+
     configuration = pConfiguration;
     return this;
   }
@@ -63,16 +63,16 @@ public abstract class AbstractCPAFactory implements CPAFactory {
   public CPAFactory setLogger(LogManager pLogger) {
     Preconditions.checkNotNull(pLogger);
     Preconditions.checkState(logger == null, "setConfiguration called twice on CPAFactory");
-    
+
     logger = pLogger;
     return this;
   }
-  
+
   protected LogManager getLogger() {
     Preconditions.checkState(logger != null, "LogManager object needed to create CPA");
     return logger;
   }
-  
+
   protected Configuration getConfiguration() {
     Preconditions.checkState(configuration != null, "Configuration object needed to create CPA");
     return configuration;

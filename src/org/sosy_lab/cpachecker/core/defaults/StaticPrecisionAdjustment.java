@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
  * This class implements the PrecisionAdjustment operator for a CPA, where the
  * precision never changes. It does not make any assumptions about the precision,
  * even not that the precision is non-null.
- *  
+ *
  * @author wendler
  */
 public class StaticPrecisionAdjustment implements PrecisionAdjustment {
@@ -43,12 +43,12 @@ public class StaticPrecisionAdjustment implements PrecisionAdjustment {
   @Override
   public Pair<AbstractElement, Precision> prec(AbstractElement element,
         Precision precision, UnmodifiableReachedElements elements) {
-    
+
     return new Pair<AbstractElement, Precision>(element, precision);
   }
-  
+
   private static final PrecisionAdjustment instance = new StaticPrecisionAdjustment();
-  
+
   public static PrecisionAdjustment getInstance() {
     return instance;
   }

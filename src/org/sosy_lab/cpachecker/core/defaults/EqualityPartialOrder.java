@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -32,22 +32,22 @@ import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
  * identical to the equality relation, if both of the two operands are neither
  * bottom nor top. The resulting lattice is a layered graph with three layers
  * (one for top, one for bottom and one for all other elements) and edges only
- * between different layers. 
- * 
+ * between different layers.
+ *
  * @author wendler
  */
 public class EqualityPartialOrder implements PartialOrder {
 
   private final AbstractDomain domain;
-  
+
   public EqualityPartialOrder(AbstractDomain domain) {
     this.domain = domain;
   }
- 
+
   @Override
   public boolean satisfiesPartialOrder(AbstractElement newElement,
                                        AbstractElement reachedElement) {
-   
+
     return(domain.getBottomElement().equals(newElement)
         || domain.getTopElement().equals(reachedElement)
         || newElement.equals(reachedElement));

@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -40,11 +40,11 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public class UninitializedVariablesDomain implements AbstractDomain {
 
   private static class UninitializedVariablesBottomElement extends UninitializedVariablesElement {
-    
+
     public UninitializedVariablesBottomElement() {
       super("<BOTTOM>");
     }
-    
+
     @Override
     public String toString() {
       return "<UninitializedVariables BOTTOM>";
@@ -52,26 +52,26 @@ public class UninitializedVariablesDomain implements AbstractDomain {
   }
 
   private static class UninitializedVariablesTopElement extends UninitializedVariablesElement {
-    
+
     public UninitializedVariablesTopElement() {
       super("<TOP>");
     }
-    
+
     @Override
     public String toString() {
       return "<UninitializedVariables TOP>";
     }
   }
-  
+
   private static class UninitializedVariablesJoinOperator implements JoinOperator {
     @Override
     public AbstractElement join(AbstractElement element1,
                                 AbstractElement element2) throws CPAException {
       UninitializedVariablesElement uninitVarsElement1 = (UninitializedVariablesElement)element1;
       UninitializedVariablesElement uninitVarsElement2 = (UninitializedVariablesElement)element2;
-      
+
       UninitializedVariablesElement newElement = uninitVarsElement1.clone();
-      
+
       newElement.getGlobalVariables().addAll(uninitVarsElement2.getGlobalVariables());
       newElement.getLocalVariables().addAll(uninitVarsElement2.getLocalVariables());
       // only the local variables of the current context need to be joined,
@@ -87,49 +87,49 @@ public class UninitializedVariablesDomain implements AbstractDomain {
     public boolean satisfiesPartialOrder(AbstractElement element1,
                                          AbstractElement element2)
                                          throws CPAException {
-      
+
       UninitializedVariablesElement uninitVarsElement1 = (UninitializedVariablesElement)element1;
       UninitializedVariablesElement uninitVarsElement2 = (UninitializedVariablesElement)element2;
-      
+
       if (element1 == bottomElement || element2 == topElement) {
         return true;
       }
       if (element2 == bottomElement || element1 == topElement) {
         return false;
       }
-      
+
       if (!uninitVarsElement1.getGlobalVariables().containsAll(
                               uninitVarsElement2.getGlobalVariables())) {
         return false;
       }
-      
+
       // need to check all function contexts
       Iterator<Pair<String, Set<String>>> it1 = uninitVarsElement1.getallLocalVariables().iterator();
       Iterator<Pair<String, Set<String>>> it2 = uninitVarsElement2.getallLocalVariables().iterator();
-      
+
       while (it1.hasNext()) {
         assert it2.hasNext();
-        
+
         Pair<String, Set<String>> stackframe1 = it1.next();
         Pair<String, Set<String>> stackframe2   = it2.next();
-        
+
         assert stackframe1.getFirst().equals(stackframe1.getFirst());
-        
+
         if (!stackframe1.getSecond().containsAll(stackframe2.getSecond())) {
           return false;
         }
       }
       assert !it2.hasNext(); // ensure same length
-      
-      return true; 
-    } 
+
+      return true;
+    }
   }
-  
+
   private static final JoinOperator joinOperator = new UninitializedVariablesJoinOperator();
   private static final PartialOrder partialOrder = new UninitializedVariablesPartialOrder();
   private static final AbstractElement bottomElement = new UninitializedVariablesBottomElement();
   private static final AbstractElement topElement = new UninitializedVariablesTopElement();
-  
+
   @Override
   public JoinOperator getJoinOperator() {
     return joinOperator;

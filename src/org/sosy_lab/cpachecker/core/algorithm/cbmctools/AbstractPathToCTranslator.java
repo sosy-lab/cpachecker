@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -22,7 +22,7 @@
  *    http://cpachecker.sosy-lab.org
  */
 /**
- * 
+ *
  */
 package org.sosy_lab.cpachecker.core.algorithm.cbmctools;
 
@@ -180,7 +180,7 @@ public class AbstractPathToCTranslator {
     assert(firstElement.getChildren().size() == 1);
     ARTElement firstElementsChild = (ARTElement)firstElement.getChildren().toArray()[0];
     // create the first stack element using the first element of the initiating function
-    CBMCStackElement firstStackElement = new CBMCStackElement(firstElement.getElementId(), 
+    CBMCStackElement firstStackElement = new CBMCStackElement(firstElement.getElementId(),
         startFunction(mFunctionIndex++, firstElement.retrieveLocationElement().getLocationNode()));
     functions.add(firstStackElement);
 
@@ -190,7 +190,7 @@ public class AbstractPathToCTranslator {
     newStack.add(newElementsStack);
 
     // add the first edge and the first stack element
-    CBMCEdge firstEdge = new CBMCEdge(firstElement, firstElementsChild, 
+    CBMCEdge firstEdge = new CBMCEdge(firstElement, firstElementsChild,
         firstElement.getEdgeToChild(firstElementsChild), newStack);
     waitlist.add(firstEdge);
 
@@ -207,7 +207,7 @@ public class AbstractPathToCTranslator {
       edge = nextCBMCEdge.getEdge();
       stack = nextCBMCEdge.getStack();
 
-      // clone stack to have a different representation of the function calls and conditions 
+      // clone stack to have a different representation of the function calls and conditions
       // every element
       stack = cloneStack(stack);
 
@@ -231,7 +231,7 @@ public class AbstractPathToCTranslator {
           Stack<CBMCStackElement> newFunctionStack = new Stack<CBMCStackElement>();
           // create a new function
           ARTElement firstFunctionElement = nextCBMCEdge.getChildElement();
-          CBMCStackElement firstFunctionStackElement = new CBMCStackElement(firstFunctionElement.getElementId(), 
+          CBMCStackElement firstFunctionStackElement = new CBMCStackElement(firstFunctionElement.getElementId(),
               startFunction(mFunctionIndex++, firstFunctionElement.retrieveLocationElement().getLocationNode()));
           functions.add(firstFunctionStackElement);
           newFunctionStack.push(firstFunctionStackElement);
@@ -340,7 +340,7 @@ public class AbstractPathToCTranslator {
         assert(relevantChildrenOfElement.size() == 2);
         int ind = 0;
         for(ARTElement elem: relevantChildrenOfElement){
-          Stack<Stack<CBMCStackElement>> newCondStack = cloneStack(stack);  
+          Stack<Stack<CBMCStackElement>> newCondStack = cloneStack(stack);
           CFAEdge e = childElement.getEdgeToChild(elem);
           Stack<CBMCStackElement> lastStackOfFunction = newCondStack.peek();
           assert(e instanceof AssumeEdge);

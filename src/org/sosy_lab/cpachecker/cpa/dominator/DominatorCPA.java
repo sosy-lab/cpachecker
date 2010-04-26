@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -39,17 +39,17 @@ import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 public class DominatorCPA implements ConfigurableProgramAnalysis {
 
   private static class DominatorCPAFactory extends AbstractCPAFactory {
-    
+
     @Override
     public ConfigurableProgramAnalysis createInstance() {
       return new DominatorCPA();
     }
   }
-  
+
   public static CPAFactory factory() {
     return new DominatorCPAFactory();
   }
-  
+
 	private org.sosy_lab.cpachecker.cpa.dominator.parametric.DominatorCPA parametricDominatorCPA;
 
 	private DominatorCPA() {

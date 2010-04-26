@@ -70,7 +70,7 @@ output.path = test/output/
 # name of the log file
 log.file = CPALog.txt
 
-# Possible log levels in descending order (lower levels include higher ones): 
+# Possible log levels in descending order (lower levels include higher ones):
 # OFF: 		no logs published
 # SEVERE: 	error messages
 # WARNING: 	warnings
@@ -79,8 +79,8 @@ log.file = CPALog.txt
 # FINER: 	logs on central CPA algorithm level
 # FINEST: 	logs published by specific CPAs
 # ALL: 		debugging information
-# Care must be taken with levels of FINER or lower, as output files may 
-# become quite large and memory usage might become an issue. 
+# Care must be taken with levels of FINER or lower, as output files may
+# become quite large and memory usage might become an issue.
 
 # log level of file output
 log.level = OFF
@@ -93,7 +93,7 @@ log.fileExclude =
 log.consoleExclude =
 
 # C code file to analyze, normally given on command line
-analysis.programs = 
+analysis.programs =
 
 # C dialect for parser (GNUC or C99)
 parser.dialect = GNUC
@@ -190,10 +190,10 @@ cpas.explicit.merge = sep
 cpas.explicit.threshold = 0
 
 # file with automaton specification for ObserverAnalysisCPA
-observerAnalysis.inputFile = 
+observerAnalysis.inputFile =
 
 # file for saving the ObserverAutomaton in DOT format, no saving if omitted
-observerAnalysis.dotExportFile = 
+observerAnalysis.dotExportFile =
 
 # which merge operator to use for PointerAnalysisCPA? (join or sep)
 cpas.pointeranalysis.merge = sep
@@ -230,7 +230,7 @@ cpas.symbpredabs.abstraction.norefinement = false
 
 # when not using refinement, where to get the list of predicates from
 # (in MSAT format)
-cpas.symbpredabs.abstraction.fixedPredMap = 
+cpas.symbpredabs.abstraction.fixedPredMap =
 
 # cache queries to mathsat and BDD entailment checks
 cpas.symbpredabs.mathsat.useCache = true

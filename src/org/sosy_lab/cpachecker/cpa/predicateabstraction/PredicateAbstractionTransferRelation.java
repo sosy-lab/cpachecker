@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -135,28 +135,28 @@ public class PredicateAbstractionTransferRelation implements TransferRelation {
   @Override
   public Collection<PredicateAbstractionAbstractElement> getAbstractSuccessors(
       AbstractElement element, Precision prec, CFAEdge cfaEdge) throws CPATransferException {
-    CPAchecker.logger.log(Level.FINEST, 
+    CPAchecker.logger.log(Level.FINEST,
         "Getting Abstract Successor of element: ", element,
         " on edge: ", cfaEdge.getRawStatement());
-    
+
     // To get the successor, we compute the predicate abstraction of the
     // formula of element plus all the edges that connect any of the
     // inner nodes of the summary of element to any inner node of the
     // destination
     PredicateAbstractionAbstractElement e = (PredicateAbstractionAbstractElement)element;
-    
+
     Collection<PredicateAbstractionAbstractElement> ret = buildSuccessor(e, cfaEdge);
-    
+
     CPAchecker.logger.log(Level.FINEST,
         "Successor is: ", ret);
-    
+
     return ret;
   }
 
   @Override
   public Collection<? extends AbstractElement> strengthen(AbstractElement element,
       List<AbstractElement> otherElements, CFAEdge cfaEdge,
-      Precision precision) {    
+      Precision precision) {
     return null;
   }
 }

@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -45,14 +45,14 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
   private final ImmutableList<PrecisionAdjustment> precisionAdjustments;
   private final ImmutableList<ElementProjectionFunction> elementProjectionFunctions;
   private final ImmutableList<PrecisionProjectionFunction> precisionProjectionFunctions;
-  
-  
+
+
   public CompositePrecisionAdjustment(ImmutableList<PrecisionAdjustment> precisionAdjustments) {
     this.precisionAdjustments = precisionAdjustments;
-    
+
     ImmutableList.Builder<ElementProjectionFunction> elementProjectionFunctions = ImmutableList.builder();
     ImmutableList.Builder<PrecisionProjectionFunction> precisionProjectionFunctions = ImmutableList.builder();
-    
+
     for (int i = 0; i < precisionAdjustments.size(); i++) {
       elementProjectionFunctions.add(new ElementProjectionFunction(i));
       precisionProjectionFunctions.add(new PrecisionProjectionFunction(i));
@@ -60,12 +60,12 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
     this.elementProjectionFunctions = elementProjectionFunctions.build();
     this.precisionProjectionFunctions = precisionProjectionFunctions.build();
   }
-  
+
   private static class ElementProjectionFunction
     implements Function<AbstractElement, AbstractElement>
   {
     private final int dimension;
-    
+
     public ElementProjectionFunction(int d) {
       dimension = d;
     }
@@ -75,22 +75,22 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
       return ((CompositeElement)from).get(dimension);
     }
   }
-  
+
   private static class PrecisionProjectionFunction
   implements Function<Precision, Precision>
   {
     private final int dimension;
-    
+
     public PrecisionProjectionFunction(int d) {
       dimension = d;
     }
-  
+
     @Override
     public Precision apply(Precision from) {
       return ((CompositePrecision)from).get(dimension);
     }
   }
-  
+
   /* (non-Javadoc)
    * @see org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment#prec(org.sosy_lab.cpachecker.core.interfaces.AbstractElement, org.sosy_lab.cpachecker.core.interfaces.Precision, java.util.Collection)
    */
@@ -101,16 +101,16 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
     CompositePrecision prec = (CompositePrecision) pPrecision;
     assert (comp.getElements().size() == prec.getPrecisions().size());
     int dim = comp.getElements().size();
-    
+
     List<AbstractElement> outElements = new ArrayList<AbstractElement>();
     List<Precision> outPrecisions = new ArrayList<Precision>();
-    
+
     boolean modified = false;
-    
+
     for (int i = 0; i < dim; ++i) {
       UnmodifiableReachedElements slice =
         new UnmodifiableReachedElementsView(pElements, elementProjectionFunctions.get(i), precisionProjectionFunctions.get(i));
-      PrecisionAdjustment precisionAdjustment = precisionAdjustments.get(i); 
+      PrecisionAdjustment precisionAdjustment = precisionAdjustments.get(i);
       Pair<AbstractElement,Precision> out = precisionAdjustment.prec(comp.get(i), prec.get(i), slice);
       if (out != null) {
         outElements.add(out.getFirst());
@@ -120,10 +120,10 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
         outElements.add(comp.get(i));
         outPrecisions.add(prec.get(i));
       }
-    }      
-    
+    }
+
     if (modified) {
-      // TODO for now we just take the input call stack, that may be wrong, but how to construct 
+      // TODO for now we just take the input call stack, that may be wrong, but how to construct
       // a proper one in case this _is_ wrong?
       return new Pair<AbstractElement, Precision>(new CompositeElement(outElements, comp.getCallStack()),
           new CompositePrecision(outPrecisions));

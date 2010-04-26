@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.core.interfaces.JoinOperator;
 import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
 
 public class OctDomain implements AbstractDomain{
-  
+
   public static long totaltime = 0;
 
   private static class OctBottomElement extends OctElement
@@ -58,9 +58,9 @@ public class OctDomain implements AbstractDomain{
   {
     public boolean satisfiesPartialOrder (AbstractElement element1, AbstractElement element2)
     {
-      
+
       Map<OctElement, Set<OctElement>> covers = new HashMap<OctElement, Set<OctElement>>();
-      
+
       long start = System.currentTimeMillis();
       OctElement octElement1 = (OctElement) element1;
       OctElement octElement2 = (OctElement) element2;
@@ -85,7 +85,7 @@ public class OctDomain implements AbstractDomain{
         if(covers.containsKey(octElement2) && ((HashSet<OctElement>)(covers.get(octElement2))).contains(octElement1)){
           return true;
         }
-        
+
         boolean included = LibraryAccess.isIn(octElement1, octElement2);
         if(included){
           Set<OctElement> s;

@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -38,11 +38,11 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public class UninitializedVariablesStopJoin implements StopOperator {
 
  private final UninitializedVariablesDomain domain;
-  
+
   public UninitializedVariablesStopJoin(UninitializedVariablesDomain domain) {
     this.domain = domain;
   }
-  
+
   @Override
   public boolean stop(AbstractElement element, Collection<AbstractElement> reached,
                       Precision precision) throws CPAException {
@@ -52,7 +52,7 @@ public class UninitializedVariablesStopJoin implements StopOperator {
     while (it.hasNext()) {
       joinedElement = join.join(it.next(), joinedElement);
     }
-    
+
     return domain.getPartialOrder().satisfiesPartialOrder(element, joinedElement);
   }
 

@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -42,32 +42,32 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 public class TransferRelationMonitorCPA extends AbstractSingleWrapperCPA {
 
   private static class TransferRelationMonitorCPAFactory extends AbstractSingleWrapperCPAFactory {
-    
+
     @Override
     public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException {
       return new TransferRelationMonitorCPA(getChild(), getConfiguration());
     }
   }
-  
+
   public static CPAFactory factory() {
     return new TransferRelationMonitorCPAFactory();
   }
-  
+
   private final AbstractDomain abstractDomain;
   private final TransferRelation transferRelation;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
   private final PrecisionAdjustment precisionAdjustment;
-  
+
   private TransferRelationMonitorCPA(ConfigurableProgramAnalysis pCpa, Configuration config) throws InvalidConfigurationException {
     super(pCpa);
     abstractDomain = new TransferRelationMonitorDomain(this);
     transferRelation = new TransferRelationMonitorTransferRelation(getWrappedCpa(), config);
     precisionAdjustment = StaticPrecisionAdjustment.getInstance(); // TODO
     mergeOperator = new TransferRelationMonitorMerge(getWrappedCpa());
-    stopOperator = new TransferRelationMonitorStop(getWrappedCpa());  
+    stopOperator = new TransferRelationMonitorStop(getWrappedCpa());
   }
-  
+
   @Override
   public AbstractDomain getAbstractDomain() {
     return this.abstractDomain;

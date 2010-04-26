@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -27,11 +27,11 @@ import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.ASTVisitor;
 
 public class Identity implements Filter {
   private static Identity mInstance = new Identity();
-  
+
   private Identity() {
-    
+
   }
-  
+
   public static Identity getInstance() {
     return mInstance;
   }
@@ -39,13 +39,13 @@ public class Identity implements Filter {
   @Override
   public <T> T accept(ASTVisitor<T> pVisitor) {
     assert(pVisitor != null);
-    
+
     return pVisitor.visit(this);
   }
-  
+
   @Override
   public String toString() {
     return "ID";
   }
-  
+
 }

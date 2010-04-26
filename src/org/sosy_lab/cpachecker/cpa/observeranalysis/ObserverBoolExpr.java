@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
  * @author rhein
  */
 abstract class ObserverBoolExpr {
-  
+
   /**
    * @author rhein
    * This is a extension of the boolean data type. It also contains a dont-know-value (MAYBE).
@@ -51,12 +51,12 @@ abstract class ObserverBoolExpr {
       return pB ? TRUE : FALSE;
     }
   }
-  
+
   private ObserverBoolExpr() {} //nobody can use this
-  
+
   public abstract MaybeBoolean eval(ObserverExpressionArguments pArgs);
-  
-  
+
+
   /**
    * Implements a regex match on the label after the current CFAEdge.
    * The eval method returns false if there is no label following the CFAEdge.
@@ -64,13 +64,13 @@ abstract class ObserverBoolExpr {
    * @author rhein
    */
   static class MatchLabelRegEx extends ObserverBoolExpr {
-    
+
     private final Pattern pattern;
-    
+
     public MatchLabelRegEx(String pPattern) {
       pattern = Pattern.compile(pPattern);
     }
-    
+
     @Override
     public MaybeBoolean eval(ObserverExpressionArguments pArgs) {
       CFANode successorNode = pArgs.getCfaEdge().getSuccessor();
@@ -82,14 +82,14 @@ abstract class ObserverBoolExpr {
         return MaybeBoolean.FALSE;
       }
     }
-    
+
     @Override
     public String toString() {
       return "MATCH LABEL [" + pattern + "]";
     }
   }
-  
-  
+
+
   /**
    * This is a efficient implementation of the ASTComparison (it caches the generated ASTs for the pattern).
    * It also displays error messages if the AST contains problems/errors.
@@ -97,57 +97,57 @@ abstract class ObserverBoolExpr {
    * @author rhein
    */
   static class MatchCFAEdgeASTComparison extends ObserverBoolExpr {
-    
+
     private final IASTNode patternAST;
-    
+
     public MatchCFAEdgeASTComparison(String pPattern) throws InvalidAutomatonException {
       this.patternAST = ObserverASTComparator.generatePatternAST(pPattern);
     }
-    
+
     @Override
     public MaybeBoolean eval(ObserverExpressionArguments pArgs) {
-     
+
       IASTNode ast = pArgs.getCfaEdge().getRawAST();
       if (ast != null) {
-        // some edges do not have an AST node attached to them, e.g. BlankEdges 
+        // some edges do not have an AST node attached to them, e.g. BlankEdges
         return MaybeBoolean.valueOf(ObserverASTComparator.compareASTs(ast, patternAST, pArgs));
       }
-      
+
       return MaybeBoolean.FALSE;
     }
-    
+
     @Override
     public String toString() {
       return "MATCH {" + patternAST.getRawSignature() + "}";
     }
   }
-  
-  
+
+
   static class MatchCFAEdgeRegEx extends ObserverBoolExpr {
-    
+
     private final Pattern pattern;
-    
+
     public MatchCFAEdgeRegEx(String pPattern) {
       pattern = Pattern.compile(pPattern);
     }
-    
+
     @Override
     public MaybeBoolean eval(ObserverExpressionArguments pArgs) {
       return MaybeBoolean.valueOf(
           pattern.matcher(pArgs.getCfaEdge().getRawStatement()).matches());
     }
-    
+
     @Override
     public String toString() {
       return "MATCH [" + pattern + "]";
     }
   }
 
-  
+
   static class MatchCFAEdgeExact extends ObserverBoolExpr {
-    
+
     private final String pattern;
-    
+
     public MatchCFAEdgeExact(String pPattern) {
       pattern = pPattern;
     }
@@ -157,28 +157,28 @@ abstract class ObserverBoolExpr {
       return MaybeBoolean.valueOf(
           pArgs.getCfaEdge().getRawStatement().equals(pattern));
     }
-    
+
     @Override
     public String toString() {
       return "MATCH \"" + pattern + "\"";
     }
   }
-  
-  
+
+
   /**
-   * Sends a query-String to an <code>AbstractElement</code> of another analysis and returns the query-Result.  
+   * Sends a query-String to an <code>AbstractElement</code> of another analysis and returns the query-Result.
    * @author rhein
    */
   static class CPAQuery extends ObserverBoolExpr {
     private final String cpaName;
     private final String queryString;
-    
+
     // the pattern \$\d+ matches Expressions like $1 $2 $3
     private static Pattern TRANSITION_VARS_PATTERN = Pattern.compile("\\$\\d+");
-    
+
     // the pattern \$\$\d+ matches Expressions like $$x $$y23rinnksd $$observerVar (all terminated by a non-word-character)
     private static Pattern OBSERVER_VARS_PATTERN = Pattern.compile("\\$\\$[a-zA-Z]\\w*");
-    
+
     public CPAQuery(String pCPAName, String pQuery) {
       cpaName = pCPAName;
       queryString = pQuery;
@@ -191,17 +191,17 @@ abstract class ObserverBoolExpr {
       if (modifiedQueryString == null) {
         return MaybeBoolean.MAYBE;
       }
-      
+
       for (AbstractElement ae : pArgs.getAbstractElements()) {
         if (ae instanceof AbstractQueryableElement) {
           AbstractQueryableElement aqe = (AbstractQueryableElement) ae;
           if (aqe.getCPAName().equals(cpaName)) {
             try {
               return MaybeBoolean.valueOf(aqe.checkProperty(modifiedQueryString));
-              
+
             } catch (InvalidQueryException e) {
-              pArgs.getLogger().logException(Level.WARNING, e, 
-                  "ObserverAutomaton encountered an Exception during Query of the " 
+              pArgs.getLogger().logException(Level.WARNING, e,
+                  "ObserverAutomaton encountered an Exception during Query of the "
                   + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getRawStatement());
               return MaybeBoolean.FALSE;
             }
@@ -210,7 +210,7 @@ abstract class ObserverBoolExpr {
       }
       return MaybeBoolean.MAYBE; // the necessary CPA-State was not found
     }
-    
+
     /**
      * This method replaces all references to
      * 1. ObserverVariables (referenced by $$<Name-of-Variable>)
@@ -223,7 +223,7 @@ abstract class ObserverBoolExpr {
      */
     static String replaceVariables (
         ObserverExpressionArguments pArgs, String pQueryString) {
-      
+
       // replace references to Transition Variables
       Matcher matcher = TRANSITION_VARS_PATTERN.matcher(pQueryString);
       StringBuffer result = new StringBuffer();
@@ -246,7 +246,7 @@ abstract class ObserverBoolExpr {
         }
       }
       matcher.appendTail(result);
-      
+
       // replace references to observer Variables
       matcher = OBSERVER_VARS_PATTERN.matcher(result.toString());
       result = new StringBuffer();
@@ -265,14 +265,14 @@ abstract class ObserverBoolExpr {
       matcher.appendTail(result);
       return result.toString();
     }
-    
+
     @Override
     public String toString() {
       return "CHECK(" + cpaName + "(\"" + queryString + "\"))";
     }
   }
-  
-  
+
+
   /** Constant for true.
    * @author rhein
    */
@@ -281,14 +281,14 @@ abstract class ObserverBoolExpr {
     public MaybeBoolean eval(ObserverExpressionArguments pArgs) {
       return MaybeBoolean.TRUE;
     }
-    
+
     @Override
     public String toString() {
       return "TRUE";
     }
   }
-  
-  
+
+
   /** Constant for false.
    * @author rhein
    */
@@ -297,14 +297,14 @@ abstract class ObserverBoolExpr {
     public MaybeBoolean eval(ObserverExpressionArguments pArgs) {
       return MaybeBoolean.FALSE;
     }
-    
+
     @Override
     public String toString() {
       return "FALSE";
     }
   }
-  
-  
+
+
   /** Tests the equality of the values of two instances of {@link ObserverIntExpr}.
    * @author rhein
    */
@@ -312,62 +312,62 @@ abstract class ObserverBoolExpr {
 
     private final ObserverIntExpr a;
     private final ObserverIntExpr b;
-    
+
     public IntEqTest(ObserverIntExpr pA, ObserverIntExpr pB) {
       this.a = pA;
       this.b = pB;
     }
-    
+
     @Override
     public MaybeBoolean eval(ObserverExpressionArguments pArgs) {
       return MaybeBoolean.valueOf(a.eval(pArgs) == b.eval(pArgs));
     }
-    
+
     @Override
     public String toString() {
       return a + " == " + b;
     }
   }
-  
-  
+
+
   /** Tests whether two instances of {@link ObserverIntExpr} evaluate to different integers.
    * @author rhein
    */
   static class IntNotEqTest extends ObserverBoolExpr {
-    
+
     private final ObserverIntExpr a;
     private final ObserverIntExpr b;
-    
+
     public IntNotEqTest(ObserverIntExpr pA, ObserverIntExpr pB) {
       this.a = pA;
       this.b = pB;
     }
-    
-    public @Override MaybeBoolean eval(ObserverExpressionArguments pArgs) { 
+
+    public @Override MaybeBoolean eval(ObserverExpressionArguments pArgs) {
       return MaybeBoolean.valueOf(a.eval(pArgs) != b.eval(pArgs));
     }
-    
+
     @Override
     public String toString() {
       return a + " != " + b;
     }
   }
-  
-  
+
+
   /** Computes the disjunction of two {@link ObserverBoolExpr} (lazy evaluation).
    * @author rhein
    */
   static class Or extends ObserverBoolExpr {
-    
+
     private final ObserverBoolExpr a;
     private final ObserverBoolExpr b;
-    
+
     public Or(ObserverBoolExpr pA, ObserverBoolExpr pB) {
       this.a = pA;
       this.b = pB;
     }
-    
-    public @Override MaybeBoolean eval(ObserverExpressionArguments pArgs) { 
+
+    public @Override MaybeBoolean eval(ObserverExpressionArguments pArgs) {
       MaybeBoolean resultA = a.eval(pArgs);
       if (resultA == MaybeBoolean.TRUE) {
         return MaybeBoolean.TRUE;
@@ -378,29 +378,29 @@ abstract class ObserverBoolExpr {
         return resultB; // in this case resultB==MAYBE
       }
     }
-    
+
     @Override
     public String toString() {
       return "(" + a + " || " + b + ")";
     }
   }
-  
-  
+
+
   /** Computes the conjunction of two {@link ObserverBoolExpr} (lazy evaluation).
    * @author rhein
    */
   static class And extends ObserverBoolExpr {
-    
+
     private final ObserverBoolExpr a;
     private final ObserverBoolExpr b;
-    
+
     public And(ObserverBoolExpr pA, ObserverBoolExpr pB) {
       this.a = pA;
       this.b = pB;
     }
-    
+
     @Override
-    public MaybeBoolean eval(ObserverExpressionArguments pArgs) { 
+    public MaybeBoolean eval(ObserverExpressionArguments pArgs) {
       MaybeBoolean resultA = a.eval(pArgs);
       if (resultA == MaybeBoolean.FALSE) {
         return MaybeBoolean.FALSE;
@@ -411,14 +411,14 @@ abstract class ObserverBoolExpr {
         return resultB; // in this case resultB==MAYBE
       }
     }
-    
+
     @Override
     public String toString() {
       return "(" + a + " && " + b + ")";
     }
   }
 
-  
+
   /**
    * Negates the result of a {@link ObserverBoolExpr}. If the result is MAYBE it is returned unchanged.
    * @author rhein
@@ -426,44 +426,44 @@ abstract class ObserverBoolExpr {
   static class Negation extends ObserverBoolExpr {
 
     private final ObserverBoolExpr a;
-    
+
     public Negation(ObserverBoolExpr pA) {
       this.a = pA;
     }
-    
+
     @Override
-    public MaybeBoolean eval(ObserverExpressionArguments pArgs) { 
+    public MaybeBoolean eval(ObserverExpressionArguments pArgs) {
       MaybeBoolean resultA = a.eval(pArgs);
       switch (resultA) {
-      case TRUE: return MaybeBoolean.FALSE; 
+      case TRUE: return MaybeBoolean.FALSE;
       case FALSE: return MaybeBoolean.TRUE;
       default: return MaybeBoolean.MAYBE;
       }
     }
-    
+
     @Override
     public String toString() {
       return "!" + a;
     }
   }
 
-  
+
   /**
    * Boolean Equality
    * @author rhein
    */
   static class BoolEqTest extends ObserverBoolExpr {
-    
+
     private final ObserverBoolExpr a;
     private final ObserverBoolExpr b;
-    
+
     public BoolEqTest(ObserverBoolExpr pA, ObserverBoolExpr pB) {
       this.a = pA;
       this.b = pB;
     }
-    
+
     @Override
-    public MaybeBoolean eval(ObserverExpressionArguments pArgs) { 
+    public MaybeBoolean eval(ObserverExpressionArguments pArgs) {
       MaybeBoolean resultA = a.eval(pArgs);
       MaybeBoolean resultB = b.eval(pArgs);
       if (resultA == MaybeBoolean.MAYBE || resultB == MaybeBoolean.MAYBE) {
@@ -472,14 +472,14 @@ abstract class ObserverBoolExpr {
         return MaybeBoolean.valueOf(resultA.equals(resultB));
       }
     }
-    
+
     @Override
     public String toString() {
       return a + " == " + b;
     }
   }
-  
-  
+
+
   /**
    * Boolean !=
    * @author rhein
@@ -488,14 +488,14 @@ abstract class ObserverBoolExpr {
 
     private final ObserverBoolExpr a;
     private final ObserverBoolExpr b;
-    
+
     public BoolNotEqTest(ObserverBoolExpr pA, ObserverBoolExpr pB) {
       this.a = pA;
       this.b = pB;
     }
-    
-    @Override 
-    public MaybeBoolean eval(ObserverExpressionArguments pArgs) { 
+
+    @Override
+    public MaybeBoolean eval(ObserverExpressionArguments pArgs) {
       MaybeBoolean resultA = a.eval(pArgs);
       MaybeBoolean resultB = b.eval(pArgs);
       if (resultA == MaybeBoolean.MAYBE || resultB == MaybeBoolean.MAYBE) {
@@ -504,7 +504,7 @@ abstract class ObserverBoolExpr {
         return MaybeBoolean.valueOf(! resultA.equals(resultB));
       }
     }
-    
+
     @Override
     public String toString() {
       return a + " != " + b;

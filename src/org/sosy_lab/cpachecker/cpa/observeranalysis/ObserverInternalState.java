@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -37,23 +37,23 @@ class ObserverInternalState {
   private static int stateIdCounter = 0;
   // stateIdCounter is incremented every time an instance of ObserverState is created.
   private int stateId = stateIdCounter++;
-  
+
   /** Error State */
   static final ObserverInternalState ERROR = new ObserverInternalState("_predefindedState_ERROR", emptyTransitionList);
 
   /** State representing BOTTOM */
-  static final ObserverInternalState BOTTOM = new ObserverInternalState("_predefinedState_BOTTOM", emptyTransitionList); 
-  
+  static final ObserverInternalState BOTTOM = new ObserverInternalState("_predefinedState_BOTTOM", emptyTransitionList);
+
   /** Name of this State.  */
   private String name;
   /** Outgoing transitions of this state.  */
   private List<ObserverTransition> transitions;
-  
+
   public ObserverInternalState(String pName, List<ObserverTransition> pTransitions) {
     this.name = pName;
     this.transitions = pTransitions;
   }
-  
+
   /** Lets all outgoing transitions of this state resolve their "sink" states.
    * @param pAllStates map of all states of this automaton.
    */
@@ -85,7 +85,7 @@ class ObserverInternalState {
   public List<ObserverTransition> getTransitions() {
     return transitions;
   }
-  
+
   @Override
   public String toString() {
     return this.name;

@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -58,12 +58,12 @@ class ObserverAutomaton {
     }
     // implicit error State (might be followState of Transitions)
     // pStates.add(ObserverInternalState.ERROR);
-    
+
     // set the FollowStates of all Transitions
     for (ObserverInternalState s : pStates) {
       s.setFollowStates(pStates);
     }
-  }  
+  }
 
   public void setName(String pName) {
     this.name = pName;
@@ -71,11 +71,11 @@ class ObserverAutomaton {
   public String getName() {
     return name;
   }
-  
+
   ObserverInternalState getInitialState() {
     return initState;
   }
-  
+
   /**
    * Prints the contents of a DOT file representing this automaton to the PrintStream.
    * @param pOut

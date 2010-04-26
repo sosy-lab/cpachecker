@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -73,7 +73,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
  * @author Philipp Wendler
  */
 public class TypesTransferRelation implements TransferRelation {
-  
+
   private FunctionDefinitionNode entryFunctionDefinitionNode = null;
   private boolean entryFunctionProcessed = false;
 
@@ -85,12 +85,12 @@ public class TypesTransferRelation implements TransferRelation {
                                               throws CPATransferException {
     // no need to clone as type information is global
     TypesElement successor = (TypesElement)element;
-    
+
     switch (cfaEdge.getEdgeType()) {
     case DeclarationEdge:
       handleDeclaration(successor, (DeclarationEdge)cfaEdge);
       break;
-      
+
     case FunctionCallEdge:
       FunctionCallEdge funcCallEdge = (FunctionCallEdge)cfaEdge;
       if (!funcCallEdge.isExternalCall()) {
@@ -107,23 +107,23 @@ public class TypesTransferRelation implements TransferRelation {
         }
       }
       break;
-      
+
     case AssumeEdge:
     case StatementEdge:
     case ReturnEdge:
       break;
     case BlankEdge:
       //the first function start dummy edge is the actual start of the entry function
-      if (!entryFunctionProcessed 
+      if (!entryFunctionProcessed
           && cfaEdge.getRawStatement().equals("Function start dummy edge")) {
         //since by this point all global variables have been processed, we can now process the entry function
         IASTFunctionDefinition funcDef = entryFunctionDefinitionNode.getFunctionDefinition();
         handleFunctionDeclaration(successor, null, funcDef.getDeclarator(), funcDef.getDeclSpecifier());
-        
+
         entryFunctionProcessed = true;
       }
       break;
-    
+
     default:
       throw new UnrecognizedCFAEdgeException(cfaEdge);
     }
@@ -140,15 +140,15 @@ public class TypesTransferRelation implements TransferRelation {
     if ((declarators.length == 1)
         && (declarators[0] instanceof IASTFunctionDeclarator)) {
       handleFunctionDeclaration(element, declarationEdge, (IASTFunctionDeclarator)declarators[0], specifier);
-    
+
     } else {
-    
+
       Type type = getType(element, declarationEdge, specifier);
-      
+
       for (IASTDeclarator declarator : declarators) {
         Type thisType = getPointerType(type, declarationEdge, declarator);
         String thisName = declarator.getName().getRawSignature();
-  
+
         if (specifier.getStorageClass() == IASTDeclSpecifier.sc_typedef) {
           element.addTypedef(thisName, thisType);
         } else {
@@ -156,7 +156,7 @@ public class TypesTransferRelation implements TransferRelation {
           if (!(declarationEdge instanceof GlobalDeclarationEdge)) {
             functionName = declarationEdge.getSuccessor().getFunctionName();
           }
-          
+
           element.addVariable(functionName, thisName, thisType);
         }
       }
@@ -168,13 +168,13 @@ public class TypesTransferRelation implements TransferRelation {
                                         IASTFunctionDeclarator funcDeclarator,
                                         IASTDeclSpecifier funcDeclSpecifier)
                                         throws UnrecognizedCCodeException {
-    
+
     if (!(funcDeclarator instanceof IASTStandardFunctionDeclarator)) {
       throw new UnrecognizedCCodeException(null, cfaEdge, funcDeclarator);
     }
-            
+
     IASTStandardFunctionDeclarator standardFuncDeclarator = (IASTStandardFunctionDeclarator)funcDeclarator;
-    
+
     String name;
     //in case of a nested declarator, get the variable name from the inner declarator
     if (standardFuncDeclarator.getNestedDeclarator() != null) {
@@ -186,24 +186,24 @@ public class TypesTransferRelation implements TransferRelation {
 
     Type returnType = getType(element, cfaEdge, funcDeclSpecifier);
     returnType = getPointerType(returnType, cfaEdge, standardFuncDeclarator);
-    
+
     FunctionType function = new FunctionType(name, returnType, standardFuncDeclarator.takesVarArgs());
-    
+
     boolean external = (funcDeclSpecifier.getStorageClass() == IASTDeclSpecifier.sc_extern);
-    
+
     for (IASTParameterDeclaration parameter : standardFuncDeclarator.getParameters()) {
       IASTDeclarator paramDeclarator = parameter.getDeclarator();
-      
+
       Type parameterType = getType(element, cfaEdge, parameter.getDeclSpecifier());
       parameterType = getPointerType(parameterType, cfaEdge, paramDeclarator);
-    
+
       String parameterName = (external ? null : paramDeclarator.getName().getRawSignature());
-      
+
       function.addParameter(parameterName, parameterType);
     }
     element.addFunction(name, function);
   }
-  
+
   private Type getType(TypesElement element, CFAEdge cfaEdge, IASTDeclSpecifier declSpecifier)
                        throws UnrecognizedCCodeException {
     Type type;
@@ -213,13 +213,13 @@ public class TypesTransferRelation implements TransferRelation {
       // primitive type
       IASTSimpleDeclSpecifier simpleSpecifier = (IASTSimpleDeclSpecifier)declSpecifier;
       Primitive primitiveType;
-      
+
       switch (simpleSpecifier.getType()) {
-      
+
       case IASTSimpleDeclSpecifier.t_char:
         primitiveType = Primitive.CHAR;
         break;
-        
+
       case IASTSimpleDeclSpecifier.t_int:
       case IASTSimpleDeclSpecifier.t_unspecified:
         if (simpleSpecifier.isShort()) {
@@ -230,11 +230,11 @@ public class TypesTransferRelation implements TransferRelation {
           primitiveType = Primitive.LONG;
         }
         break;
-        
+
       case IASTSimpleDeclSpecifier.t_float:
         primitiveType = Primitive.SHORT;
         break;
-        
+
       case IASTSimpleDeclSpecifier.t_double:
         if (simpleSpecifier.isLong()) {
           primitiveType = Primitive.LONGDOUBLE;
@@ -242,25 +242,25 @@ public class TypesTransferRelation implements TransferRelation {
           primitiveType = Primitive.DOUBLE;
         }
         break;
-        
+
       case IASTSimpleDeclSpecifier.t_void:
         primitiveType = Primitive.VOID;
         break;
-        
+
       default:
         throw new UnrecognizedCCodeException(cfaEdge, simpleSpecifier);
       }
-      
+
       boolean signed = (simpleSpecifier.isUnsigned() ? false : true);
-      
+
       type = new PrimitiveType(primitiveType, signed, constant);
-      
+
     } else if (declSpecifier instanceof IASTCompositeTypeSpecifier) {
       // struct & union
       IASTCompositeTypeSpecifier compositeSpecifier = (IASTCompositeTypeSpecifier)declSpecifier;
       String name = compositeSpecifier.getName().getRawSignature();
       CompositeType compType;
-      
+
       switch (compositeSpecifier.getKey()) {
       case IASTCompositeTypeSpecifier.k_struct:
         compType = new StructType(name, constant);
@@ -271,46 +271,46 @@ public class TypesTransferRelation implements TransferRelation {
         compType = new StructType(name, constant);
         name = "union " + name;
         break;
-        
+
       default:
         throw new UnrecognizedCCodeException(cfaEdge, compositeSpecifier);
       }
-      
+
       if (element.getTypedefs().containsKey(name)) {
         // previous forward declaration exists
         compType = (CompositeType)element.getTypedef(name);
         if (!compType.getMembers().isEmpty()) {
           throw new IllegalStateException("Redeclaration of type " + name);
         }
-      
+
       } else {
         element.addTypedef(name, compType); // add type "struct a"
       }
-      
+
       for (IASTDeclaration subDeclaration : compositeSpecifier.getMembers()) {
         if (subDeclaration instanceof IASTSimpleDeclaration) {
           IASTSimpleDeclaration simpleSubDeclaration = (IASTSimpleDeclaration)subDeclaration;
-                  
-          Type subType = getType(element, cfaEdge, simpleSubDeclaration.getDeclSpecifier());  
+
+          Type subType = getType(element, cfaEdge, simpleSubDeclaration.getDeclSpecifier());
 
           for (IASTDeclarator declarator : simpleSubDeclaration.getDeclarators()) {
             Type thisSubType = getPointerType(subType, cfaEdge, declarator);
             String thisSubName = declarator.getRawSignature();
-            
+
             compType.addMember(thisSubName, thisSubType);
           }
         } else {
           throw new UnrecognizedCCodeException(cfaEdge, subDeclaration);
         }
       }
-      
+
       type = compType;
-      
+
     } else if (declSpecifier instanceof IASTElaboratedTypeSpecifier) {
       // type reference like "struct a"
       IASTElaboratedTypeSpecifier elaboratedTypeSpecifier = (IASTElaboratedTypeSpecifier)declSpecifier;
       String name = elaboratedTypeSpecifier.getName().getRawSignature();
-      
+
       switch (elaboratedTypeSpecifier.getKind()) {
       case IASTElaboratedTypeSpecifier.k_enum:
         name = "enum " + name;
@@ -321,13 +321,13 @@ public class TypesTransferRelation implements TransferRelation {
       case IASTElaboratedTypeSpecifier.k_union:
         name = "union " + name;
         break;
-        
+
       default:
         throw new UnrecognizedCCodeException(cfaEdge, elaboratedTypeSpecifier);
       }
-      
+
       type = element.getTypedef(name);
-      
+
       if (type == null) {
         // forward declaration
 
@@ -344,28 +344,28 @@ public class TypesTransferRelation implements TransferRelation {
         default:
           throw new RuntimeException("Missing case clause");
         }
-      
+
         element.addTypedef(name, type);
       }
-      
+
     } else if (declSpecifier instanceof IASTEnumerationSpecifier) {
       // enum
       IASTEnumerationSpecifier enumSpecifier = (IASTEnumerationSpecifier)declSpecifier;
       String name = enumSpecifier.getName().getRawSignature();
       EnumType enumType;
-      
+
       if (element.getTypedefs().containsKey(name)) {
         // previous forward declaration exists
         enumType = (EnumType)element.getTypedef(name);
         if (!enumType.getEnumerators().isEmpty()) {
           throw new IllegalStateException("Redeclaration of type " + name);
         }
-      
+
       } else {
         enumType = new EnumType(name, constant);
         element.addTypedef(name, enumType); // add type "enum a"
       }
-      
+
       for (IASTEnumerator enumerator : enumSpecifier.getEnumerators()) {
         int value;
         try {
@@ -375,24 +375,24 @@ public class TypesTransferRelation implements TransferRelation {
         }
         enumType.addEnumerator(enumerator.getName().getRawSignature(), value);
       }
-      
+
       type = enumType;
-      
+
     } else if (declSpecifier instanceof IASTNamedTypeSpecifier) {
       // type reference to type declared with typedef
       IASTNamedTypeSpecifier namedTypeSpecifier = (IASTNamedTypeSpecifier)declSpecifier;
-           
+
       type = element.getTypedef(namedTypeSpecifier.getName().getRawSignature());
-      
+
       //if it is not found in the typedefs, it may be a typedef'd function
       if (type == null) {
         type = element.getFunction(namedTypeSpecifier.getName().getRawSignature());
        }
-      
+
       if (type == null) {
         throw new UnrecognizedCCodeException("type not defined", cfaEdge, namedTypeSpecifier);
        }
-      
+
     } else {
       throw new UnrecognizedCCodeException(cfaEdge, declSpecifier);
     }
@@ -408,16 +408,16 @@ public class TypesTransferRelation implements TransferRelation {
       IASTArrayModifier[] arrayOps = ((IASTArrayDeclarator)declarator).getArrayModifiers();
       for (IASTArrayModifier arrayOp : arrayOps) {
         int length = 0;
-        
+
         IASTExpression lengthExpression = arrayOp.getConstantExpression();
         if (lengthExpression != null) {
           try {
-            //if the length expression is a literal, get its integer value 
+            //if the length expression is a literal, get its integer value
             if (lengthExpression instanceof IASTLiteralExpression) {
               length = parseLiteral(lengthExpression).intValue();
-            //if not, we can't get the value with this cpa alone, and so use the default value 
+            //if not, we can't get the value with this cpa alone, and so use the default value
             } else {
-              length = 0; 
+              length = 0;
             }
           } catch (NumberFormatException e) {
             throw new UnrecognizedCCodeException(cfaEdge, declarator);
@@ -426,7 +426,7 @@ public class TypesTransferRelation implements TransferRelation {
         result = new ArrayType(result, length);
       }
     }
-    
+
     IASTPointerOperator[] pointerOps = declarator.getPointerOperators();
     if (pointerOps != null) {
       for (IASTPointerOperator pointerOp : pointerOps) {
@@ -439,7 +439,7 @@ public class TypesTransferRelation implements TransferRelation {
     }
     return result;
   }
-  
+
   private Long parseLiteral(IASTExpression expression) throws NumberFormatException {
     if (expression instanceof IASTLiteralExpression) {
 
@@ -456,7 +456,7 @@ public class TypesTransferRelation implements TransferRelation {
     }
     return null;
   }
-  
+
   public void setEntryFunctionDefinitionNode(FunctionDefinitionNode pEntryFunctionDefNode) {
     entryFunctionDefinitionNode = pEntryFunctionDefNode;
   }

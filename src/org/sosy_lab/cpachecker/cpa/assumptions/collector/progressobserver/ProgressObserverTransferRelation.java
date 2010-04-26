@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -50,24 +50,24 @@ public class ProgressObserverTransferRelation implements TransferRelation {
   private final ImmutableList<StopHeuristics<? extends StopHeuristicsData>> heuristics;
   private final ProgressObserverElement bottom;
   private final LogManager logger;
-  
+
   public ProgressObserverTransferRelation(ProgressObserverCPA aCPA) {
     heuristics = aCPA.getEnabledHeuristics();
     bottom = aCPA.getAbstractDomain().getBottomElement();
     logger = aCPA.getLogger();
   }
-  
+
   @Override
   public Collection<ProgressObserverElement> getAbstractSuccessors(
       AbstractElement el, Precision pPrecision, CFAEdge edge)
       throws CPATransferException {
     ProgressObserverElement pre = (ProgressObserverElement)el;
-    
+
     if (pre.mustDumpAssumptionForAvoidance())
       // i.e., it is bottom; only needed if assumption collection
       // is not used
       return Collections.emptySet();
-    
+
     List<StopHeuristicsData> preData = pre.getComponents();
     List<StopHeuristicsData> postData = new ArrayList<StopHeuristicsData>(preData.size());
 

@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -46,10 +46,10 @@ class ObserverTransition {
   private final List<ObserverActionExpr> actions;
 
   /**
-   * When the parser instances this class it can not assign a followstate because 
+   * When the parser instances this class it can not assign a followstate because
    * that state might not be created (forward-reference).
-   * Only the name is known in the beginning and the followstate relation must be 
-   * resolved by calling setFollowState() when all States are known. 
+   * Only the name is known in the beginning and the followstate relation must be
+   * resolved by calling setFollowState() when all States are known.
    */
   private final String followStateName;
   private ObserverInternalState followState = null;
@@ -86,7 +86,7 @@ class ObserverTransition {
       throw new InvalidAutomatonException("No Follow-State with name " + followStateName + " found.");
     }
   }
-  
+
   /** Writes a representation of this transition (as edge) in DOT file format to the argument {@link PrintStream}.
    */
   void writeTransitionToDotFile(int sourceStateId, PrintStream out) {
@@ -108,7 +108,7 @@ class ObserverTransition {
   }
 
   /**
-   * Checks if all assertions of this transition are fulfilled 
+   * Checks if all assertions of this transition are fulfilled
    * in the current configuration of the automaton this method is called.
    */
   public boolean assertionsHold(ObserverExpressionArguments pArgs) {
@@ -119,7 +119,7 @@ class ObserverTransition {
     }
     return true;
   }
-  
+
   /**
    * Executes all actions of this transition in the order which is defined in the automaton definition file.
    */

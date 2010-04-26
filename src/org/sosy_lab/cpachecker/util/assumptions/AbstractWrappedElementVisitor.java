@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -33,18 +33,18 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperElement;
  * @author g.theoduloz
  */
 public abstract class AbstractWrappedElementVisitor {
-  
+
   /**
    * Operation to apply on an element when it is visited
    */
   public abstract void process(AbstractElement element);
-  
+
   /**
    * Visit a given abstract element and all its sub-elements
    */
   public final void visit(AbstractElement element) {
     process(element);
-    
+
     if (element instanceof AbstractWrapperElement) {
       AbstractWrapperElement wrapperElement = (AbstractWrapperElement) element;
       for (AbstractElement wrappedElement : wrapperElement.getWrappedElements()) {
@@ -52,5 +52,5 @@ public abstract class AbstractWrappedElementVisitor {
       }
     }
   }
-  
+
 }

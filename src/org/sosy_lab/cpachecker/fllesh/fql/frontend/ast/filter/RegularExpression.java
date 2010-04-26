@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -28,50 +28,50 @@ import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.ASTVisitor;
 public class RegularExpression implements Filter {
 
   String mRegularExpression;
-  
+
   public RegularExpression(String pRegularExpression) {
     assert(pRegularExpression != null);
-    
+
     mRegularExpression = pRegularExpression;
   }
-  
+
   public String getRegularExpression() {
     return mRegularExpression;
   }
-  
+
   @Override
   public String toString() {
     return "@REGEXP(" + mRegularExpression + ")";
   }
-  
+
   @Override
   public int hashCode() {
     return 232134 + mRegularExpression.hashCode();
   }
-  
+
   @Override
   public boolean equals(Object pOther) {
     if (this == pOther) {
       return true;
     }
-    
+
     if (pOther == null) {
       return false;
     }
-    
+
     if (pOther.getClass() == getClass()) {
       RegularExpression mRegularExpressionFilter = (RegularExpression)pOther;
-      
+
       return mRegularExpression.equals(mRegularExpressionFilter.mRegularExpression);
     }
-    
+
     return false;
   }
-  
+
   @Override
   public <T> T accept(ASTVisitor<T> pVisitor) {
     assert(pVisitor != null);
-    
+
     return pVisitor.visit(this);
   }
 

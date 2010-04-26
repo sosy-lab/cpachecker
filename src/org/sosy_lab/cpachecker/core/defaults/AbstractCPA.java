@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -43,27 +43,27 @@ public abstract class AbstractCPA implements ConfigurableProgramAnalysis {
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
   private final TransferRelation transferRelation;
-  
+
   protected AbstractCPA(String mergeType, String stopType, TransferRelation transfer) {
     this(mergeType, stopType, new FlatLatticeDomain(), transfer);
   }
-  
+
   protected AbstractCPA(String mergeType, String stopType, AbstractDomain domain, TransferRelation transfer) {
     this.abstractDomain = domain;
-    
+
     if (mergeType.equals("join")) {
       mergeOperator = new MergeJoinOperator(abstractDomain.getJoinOperator());
     } else {
       assert mergeType.equals("sep");
       mergeOperator = MergeSepOperator.getInstance();
     }
-    
+
     assert stopType.equals("sep");
     stopOperator = new StopSepOperator(abstractDomain.getPartialOrder());
-    
+
     this.transferRelation = transfer;
   }
-  
+
   @Override
   public AbstractDomain getAbstractDomain() {
     return abstractDomain;

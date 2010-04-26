@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormu
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
 class BDDAbstractFormula implements AbstractFormula {
-    
+
     private final BDD bddRepr;
 
     public BDDAbstractFormula(BDD pBDD) {
@@ -50,12 +50,12 @@ class BDDAbstractFormula implements AbstractFormula {
         }
         return false;
     }
-    
+
     @Override
     public int hashCode() {
         return bddRepr.hashCode();
     }
-    
+
     @Override
     public String toString() {
       return bddRepr.isOne() ? "true" : bddRepr.toString();

@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 /**
  * Merge operator for symbolic predicate abstraction.
  * This is not a trivial merge operator in the sense that it implements
- * mergeSep and mergeJoin together. If the abstract element is on an 
+ * mergeSep and mergeJoin together. If the abstract element is on an
  * abstraction location we don't merge, otherwise we merge two elements
  * and update the {@link SymbPredAbsAbstractElement}'s pathFormula.
  *
@@ -52,7 +52,7 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
   private final FormulaManager formulaManager;
 
   long totalMergeTime = 0;
-  
+
   public SymbPredAbsMergeOperator(SymbPredAbsCPA pCpa) {
     this.logger = pCpa.getLogger();
     formulaManager = pCpa.getFormulaManager();
@@ -78,7 +78,7 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
       else if(!elem1.getAbstraction().equals(elem2.getAbstraction())) {
         merged = elem2;
       }
-      // if they have the same abstraction paths, we will take the disjunction 
+      // if they have the same abstraction paths, we will take the disjunction
       // of two path formulas from two merged elements
       else{
         long start = System.currentTimeMillis();
@@ -93,12 +93,12 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
                 elem1.getPfParents(), "and", elem2.getPfParents(), ".");
 
         PathFormula pathFormula = formulaManager.makeOr(elem1.getPathFormula(), elem2.getPathFormula());
-       
+
         logger.log(Level.ALL, "New path formula is", pathFormula);
 
         // now we update the pfParents
         // elem1 is the successor element and elem2 is the reached element from
-        // the reached set the successor (elem1) should have only 1 element in 
+        // the reached set the successor (elem1) should have only 1 element in
         // its pfParents list
         CFANode elem1Parent = Iterables.getOnlyElement(elem1.getPfParents());
         ImmutableSet<CFANode> pfParents = elem2.getPfParents();
@@ -106,9 +106,9 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
           ImmutableSet.Builder<CFANode> builder = ImmutableSet.builder();
           pfParents = builder.addAll(pfParents).add(elem1Parent).build();
         }
-                
-        merged = new SymbPredAbsAbstractElement(elem1.getAbstractionLocation(), 
-            pathFormula, pfParents, elem1.getInitAbstractionFormula(), elem1.getAbstraction(), 
+
+        merged = new SymbPredAbsAbstractElement(elem1.getAbstractionLocation(),
+            pathFormula, pfParents, elem1.getInitAbstractionFormula(), elem1.getAbstraction(),
             elem1.getAbstractionPathList(),
             Math.max(elem1.getSizeSinceAbstraction(), elem2.getSizeSinceAbstraction()));
 

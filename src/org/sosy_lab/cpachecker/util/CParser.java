@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -48,23 +48,23 @@ public final class CParser {
   /**
    * Enum for clients of this class to choose the C dialect the parser uses.
    * Each instance has a ILanguage instance that can be used to parser C with
-   * the given dialect. 
+   * the given dialect.
    */
   public static enum Dialect {
     C99(new ANSICParserExtensionConfiguration()),
     GNUC(GCCParserExtensionConfiguration.getInstance());
-    
+
     private final ILanguage language;
-    
+
     private Dialect(ICParserExtensionConfiguration parserConfig) {
       this.language = new CLanguage(parserConfig);
     }
-    
+
     public ILanguage getLanguage() {
       return language;
     }
   }
-  
+
   /**
    * Private class extending the Eclipse CDT class that is the starting point
    * for using the parser.
@@ -73,17 +73,17 @@ public final class CParser {
   private static class CLanguage extends GCCLanguage {
 
     private final ICParserExtensionConfiguration parserConfig;
-    
+
     public CLanguage(ICParserExtensionConfiguration parserConfig) {
       this.parserConfig = parserConfig;
     }
-    
+
     @Override
     protected ICParserExtensionConfiguration getParserExtensionConfiguration() {
       return parserConfig;
     }
   }
-  
+
   /**
    * Private class that creates CodeReaders for files. Caching is not supported.
    * TODO: Errors are ignored currently.
@@ -91,7 +91,7 @@ public final class CParser {
   private static class StubCodeReaderFactory implements ICodeReaderFactory {
 
     private static ICodeReaderFactory instance = new StubCodeReaderFactory();
-    
+
     @Override
     public int getUniqueIdentifier() {
       throw new UnsupportedOperationException();
@@ -115,7 +115,7 @@ public final class CParser {
       throw new UnsupportedOperationException();
     }
   }
-  
+
   /**
    * Private class that tells the Eclipse CDT scanner that no macros and include
    * paths have been defined externally.
@@ -126,7 +126,7 @@ public final class CParser {
 
     @Override
     public Map<String, String> getDefinedSymbols() {
-      // the externally defined pre-processor macros  
+      // the externally defined pre-processor macros
       return null;
     }
 
@@ -135,12 +135,12 @@ public final class CParser {
       return null;
     }
   }
-  
+
   private CParser() {} // utility class should not be instantiated
-  
+
   /**
    * Parse the content of a file into an AST with the Eclipse CDT parser.
-   * 
+   *
    * @param fileName  The file to parse.
    * @return The AST.
    * @throws IOException If file cannot be read.
@@ -149,10 +149,10 @@ public final class CParser {
   public static IASTTranslationUnit parseFile(String filename, Dialect dialect) throws IOException, CoreException {
     return parse(new CodeReader(filename), dialect);
   }
-  
+
   /**
    * Parse the content of a String into an AST with the Eclipse CDT parser.
-   * 
+   *
    * @param code  The code to parse.
    * @return The AST.
    * @throws CoreException If Eclipse C parser throws an exception.
@@ -160,7 +160,7 @@ public final class CParser {
   public static IASTTranslationUnit parseString(String code, Dialect dialect) throws CoreException {
     return parse(new CodeReader(code.toCharArray()), dialect);
   }
-  
+
   private static IASTTranslationUnit parse(CodeReader codeReader, Dialect dialect) throws CoreException {
     IParserLogService parserLog = ParserFactory.createDefaultLogService();
 

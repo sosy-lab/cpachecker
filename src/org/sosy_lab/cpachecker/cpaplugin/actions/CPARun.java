@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -121,7 +121,7 @@ public class CPARun implements IWorkbenchWindowActionDelegate
       JOptionPane.showMessageDialog(null, "Invalid configuration: " + e.getMessage(), "Invalid configuration", JOptionPane.ERROR_MESSAGE);
       return;
     }
-    
+
     //Lets set up a console to write to
     init();
 		MessageConsole myConsole = findConsole("CPACHECKER");
@@ -180,12 +180,12 @@ public class CPARun implements IWorkbenchWindowActionDelegate
 				MessageDialog.openInformation (window.getShell (), "CPAPlugin Plug-in", "Cannot parse non-c file");
 				return;
 			}
-			
+
 			//Now grab its attention and display
       String id = IConsoleConstants.ID_CONSOLE_VIEW;
       IConsoleView view = (IConsoleView) workbenchPage.showView(id);
       view.display(myConsole);
-			
+
       //Now run analysis
       CPAchecker cpachecker = new CPAchecker(cpaConfig, logManager);
       CPAcheckerResult result = cpachecker.run(currentFile.getLocation().toOSString());

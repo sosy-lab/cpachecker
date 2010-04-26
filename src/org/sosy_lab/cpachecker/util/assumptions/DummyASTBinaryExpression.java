@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -45,14 +45,14 @@ public class DummyASTBinaryExpression implements IASTBinaryExpression {
   private int operator;
   private IASTExpression operand1;
   private IASTExpression operand2;
-  
+
   public DummyASTBinaryExpression(int op, IASTExpression op1, IASTExpression op2)
   {
     operator = op;
     operand1 = op1;
     operand2 = op2;
   }
-  
+
   @Override
   public IASTBinaryExpression copy() {
     throw new UnsupportedOperationException();
@@ -187,7 +187,7 @@ public class DummyASTBinaryExpression implements IASTBinaryExpression {
   public void setPropertyInParent(ASTNodeProperty pProperty) {
     throw new UnsupportedOperationException();
   }
-  
+
   @Override
   public String toString() {
     return getRawSignature();

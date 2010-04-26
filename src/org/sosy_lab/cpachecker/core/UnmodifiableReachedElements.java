@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
 /**
  * Interface representing an unmodifiable reached set
- * 
+ *
  * @author g.theoduloz
  */
 public interface UnmodifiableReachedElements extends Iterable<AbstractElement> {
@@ -54,32 +54,32 @@ public interface UnmodifiableReachedElements extends Iterable<AbstractElement> {
    * Returns a subset of the reached set, which contains at least all abstract
    * elements belonging to the same location as a given element. It may even
    * return an empty set if there are no such states. Note that it may return up to
-   * all abstract states. 
-   * 
+   * all abstract states.
+   *
    * The returned set is a view of the actual data, so it might change if nodes
    * are added to the reached set. Subsequent calls to this method with the same
    * parameter value will always return the same object.
-   * 
+   *
    * The returned set is unmodifiable.
-   * 
+   *
    * @param element An abstract element for whose location the abstract states should be retrieved.
    * @return A subset of the reached set.
    */
   public Collection<AbstractElement> getReached(AbstractElement element)
     throws OperationNotSupportedException;
-  
+
   /**
    * Returns a subset of the reached set, which contains at least all abstract
    * elements belonging to given location. It may even
    * return an empty set if there are no such states. Note that it may return up to
-   * all abstract states. 
-   * 
+   * all abstract states.
+   *
    * The returned set is a view of the actual data, so it might change if nodes
    * are added to the reached set. Subsequent calls to this method with the same
    * parameter value will always return the same object.
-   * 
+   *
    * The returned set is unmodifiable.
-   * 
+   *
    * @param location A location
    * @return A subset of the reached set.
    */

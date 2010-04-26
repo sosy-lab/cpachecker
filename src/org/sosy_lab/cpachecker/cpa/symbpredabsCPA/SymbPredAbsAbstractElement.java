@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -45,13 +45,13 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
    * is an abstraction node, this node is set to the new abstraction node, otherwise it is
    * the same node with the last element's abstraction node  */
   private final CFANode abstractionLocation;
-  /** The path formula for the path from the last abstraction node to this node. 
-   * it is set to true on a new abstraction location and updated with a new 
+  /** The path formula for the path from the last abstraction node to this node.
+   * it is set to true on a new abstraction location and updated with a new
    * non-abstraction location */
   private final PathFormula pathFormula;
-  /** If this node is not and abstraction node, then this is invalid; 
-   * otherwise this is the {@link PathFormula} of the last element before the 
-   * abstraction is computed. This formula is used by the refinement procedure 
+  /** If this node is not and abstraction node, then this is invalid;
+   * otherwise this is the {@link PathFormula} of the last element before the
+   * abstraction is computed. This formula is used by the refinement procedure
    * to build the formula to the error location */
   private final PathFormula initAbstractionFormula;
   /** The abstraction which is updated only on abstraction locations */
@@ -62,13 +62,13 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
   private final ImmutableList<CFANode> abstractionPathList;
   /** List of {@link CFANode} that we constructed the {@link PathFormula}. This is
    * updated if {@link SymbPredAbsMergeOperator#merge(AbstractElement, AbstractElement, org.sosy_lab.cpachecker.core.interfaces.Precision)}
-   * is called and the {@link PathFormula} is updated. This list is also used by 
-   * {@link SymbPredAbsAbstractElement#equals(Object)} to make a fast, syntactic check on 
+   * is called and the {@link PathFormula} is updated. This list is also used by
+   * {@link SymbPredAbsAbstractElement#equals(Object)} to make a fast, syntactic check on
    * equality of formula*/
   private final ImmutableSet<CFANode> pfParents;
-  
+
   private final int sizeSinceAbstraction;
-  
+
   public int getSizeSinceAbstraction() {
     return sizeSinceAbstraction;
   }
@@ -88,7 +88,7 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
   public void setAbstraction(AbstractFormula pAbstraction) {
     abstraction = pAbstraction;
   }
-  
+
   public ImmutableList<CFANode> getAbstractionPathList() {
     return abstractionPathList;
   }
@@ -107,7 +107,7 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
     this.abstractionPathList = null;
     this.sizeSinceAbstraction = 0;
   }
-  
+
   /**
    * Constructor for non-abstraction location.
    * @param abstLoc
@@ -119,7 +119,7 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
    * @param sizeSinceAbstraction
    */
   public SymbPredAbsAbstractElement(CFANode abstLoc,
-      PathFormula pf, ImmutableSet<CFANode> pfParentsList, PathFormula initFormula, AbstractFormula a, 
+      PathFormula pf, ImmutableSet<CFANode> pfParentsList, PathFormula initFormula, AbstractFormula a,
       ImmutableList<CFANode> pl, int sizeSinceAbstraction){
     this.isAbstractionNode = false;
     this.abstractionLocation = abstLoc;
@@ -130,7 +130,7 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
     this.abstractionPathList = pl;
     this.sizeSinceAbstraction = sizeSinceAbstraction;
   }
-  
+
   /**
    * Constructor for abstraction element.
    * @param abstLoc The CFANode where the abstraction took place.
@@ -140,7 +140,7 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
    * @param oldAbstractionPathList The old abstraction path.
    */
   public SymbPredAbsAbstractElement(CFANode abstLoc,
-      PathFormula pf, PathFormula initFormula, AbstractFormula a, 
+      PathFormula pf, PathFormula initFormula, AbstractFormula a,
       ImmutableList<CFANode> oldAbstractionPathList){
     // set 'isAbstractionLocation' to true
     this.isAbstractionNode = true;
@@ -150,13 +150,13 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
     this.pfParents = null;
     this.initAbstractionFormula = initFormula;
     this.abstraction = a;
-    
+
     // add the new abstraction location to the abstractionPath
     ImmutableList.Builder<CFANode> newAbstractionPath = ImmutableList.builder();
     newAbstractionPath.addAll(oldAbstractionPathList);
     newAbstractionPath.add(abstLoc);
     this.abstractionPathList = newAbstractionPath.build();
-    
+
     this.sizeSinceAbstraction = 0;
   }
 
@@ -164,10 +164,10 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
   public boolean equals(Object o) {
     if (this == o) {
       return true;
-    
+
     } else if (o == null || !(o instanceof SymbPredAbsAbstractElement)) {
       return false;
-    
+
     } else{
       SymbPredAbsAbstractElement other = (SymbPredAbsAbstractElement)o;
 
@@ -175,7 +175,7 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
           || !this.getAbstractionPathList().equals(other.getAbstractionPathList())) {
         return false;
       }
-      
+
       if (isAbstractionNode()) {
         // if this is an abstraction location
 
@@ -186,11 +186,11 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
         // ** initAbstractionFormula cannot be different though, we have the same
         // AbstractionPathList
         return this.getAbstraction().equals(other.getAbstraction());
-        
+
       } else{
         // if this is not an abstraction location
 
-        // we check if this element and the other element has the same 
+        // we check if this element and the other element has the same
         // PathFormulas. We can do this by comparing pfParents because
         // since two elements have the same abstraction path list PathFormulas
         // of two elements are same if they are constructed by same edges
@@ -217,7 +217,7 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
   public PathFormula getInitAbstractionFormula() {
     return initAbstractionFormula;
   }
-  
+
   public ImmutableSet<CFANode> getPfParents() {
     assert !isAbstractionNode : "abstraction nodes have no pathformula parents";
     return pfParents;

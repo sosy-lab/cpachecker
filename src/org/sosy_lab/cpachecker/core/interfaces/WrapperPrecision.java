@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -32,7 +32,7 @@ public interface WrapperPrecision extends Precision {
    * @return An instance of a precision with type T or null if there is none.
    */
   public <T extends Precision> T retrieveWrappedPrecision(Class<T> type);
-  
+
   /**
    * Create a new precision object where one of the wrapped precisions is
    * replaced. It looks for a precision with the same type as the argument and
@@ -43,5 +43,5 @@ public interface WrapperPrecision extends Precision {
    * @return A new precision object containing the argument in some place or null.
    */
   public Precision replaceWrappedPrecision(Precision newPrecision);
-  
+
 }

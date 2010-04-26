@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -60,12 +60,12 @@ public class CBMCAlgorithm implements Algorithm, StatisticsProvider {
 
     if (reached.getLastElement().isError()) {
       System.out.println("________ ERROR PATH ____________");
-      // commented out because breaks locality, contains hard-coded path 
+      // commented out because breaks locality, contains hard-coded path
       // ARTStatistics.dumpARTToDotFile(reached, new File("/localhome/erkan/cbmcArt.dot"));
       List<ARTElement> elementsOnErrorPath = getElementsToErrorPath((ARTElement)reached.getLastElement());
       String pathProgram = AbstractPathToCTranslator.translatePaths(cfa, elementsOnErrorPath);
       int cbmcRes = CProver.checkSat(pathProgram);
-      
+
       if(cbmcRes == 10) {
         System.out.println("CBMC comfirms the bug");
         // TODO: if stopAfterError != true, continue analysis
@@ -83,23 +83,23 @@ public class CBMCAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   private List<ARTElement> getElementsToErrorPath(ARTElement pElement) {
-    
+
     List<ARTElement> waitList = new ArrayList<ARTElement>();
     List<ARTElement> retList = new ArrayList<ARTElement>();
-    
+
     waitList.add(pElement);
-    
+
     while(waitList.size() > 0){
       ARTElement currentElement = waitList.remove(0);
       retList.add(currentElement);
       for(ARTElement parent: currentElement.getParents()){
-        if((!retList.contains(parent)) && 
+        if((!retList.contains(parent)) &&
             (!waitList.contains(parent))){
           waitList.add(parent);
         }
       }
     }
-    
+
     return retList;
   }
 

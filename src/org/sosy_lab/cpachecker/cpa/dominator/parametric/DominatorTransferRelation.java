@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -64,35 +64,35 @@ public class DominatorTransferRelation implements TransferRelation {
 	    AbstractElement element, Precision prec, CFAEdge cfaEdge) throws CPATransferException {
 
 	  assert element instanceof DominatorElement;
-    
+
     DominatorElement dominatorElement = (DominatorElement)element;
-    
+
     Collection<? extends AbstractElement> successorsOfDominatedElement = this.cpa.getTransferRelation().getAbstractSuccessors(dominatorElement.getDominatedElement(), prec, cfaEdge);
-    
+
     Collection<DominatorElement> successors = new ArrayList<DominatorElement>(successorsOfDominatedElement.size());
     for (AbstractElement successorOfDominatedElement : successorsOfDominatedElement) {
       if (successorOfDominatedElement.equals(this.cpa.getAbstractDomain().getBottomElement())) {
         // don't need to return bottom, may just leave out this element from result set
         continue;
       }
-      
+
       if (successorOfDominatedElement.equals(this.cpa.getAbstractDomain().getTopElement())) {
         successors.add(this.domain.getTopElement());
-      
+
       } else {
         DominatorElement successor = new DominatorElement(successorOfDominatedElement, dominatorElement);
         successor.update(successorOfDominatedElement);
         successors.add(successor);
       }
     }
-    
-    return successors;	  
+
+    return successors;
 	}
 
   @Override
   public Collection<? extends AbstractElement> strengthen(AbstractElement element,
                          List<AbstractElement> otherElements, CFAEdge cfaEdge,
-                         Precision precision) {    
+                         Precision precision) {
     return null;
   }
 }

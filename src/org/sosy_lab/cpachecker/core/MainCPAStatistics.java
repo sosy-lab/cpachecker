@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -43,16 +43,16 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 
 @Options
 public class MainCPAStatistics implements Statistics {
-  
+
     @Option(name="reachedSet.export")
     private boolean exportReachedSet = true;
-    
+
     @Option(name="output.path")
     private String outputDirectory = "test/output/";
-  
+
     @Option(name="reachedSet.file")
     private String outputFile = "reached.txt";
-  
+
     private final LogManager logger;
     private final Collection<Statistics> subStats;
     private long programStartingTime;
@@ -61,7 +61,7 @@ public class MainCPAStatistics implements Statistics {
 
     public MainCPAStatistics(Configuration config, LogManager logger) throws InvalidConfigurationException {
         config.inject(this);
-        
+
         this.logger = logger;
         subStats = new ArrayList<Statistics>();
         programStartingTime = 0;
@@ -80,7 +80,7 @@ public class MainCPAStatistics implements Statistics {
     public void stopAnalysisTimer() {
         analysisEndingTime = System.currentTimeMillis();
     }
-    
+
     public Collection<Statistics> getSubStatistics() {
       return subStats;
   }
@@ -110,7 +110,7 @@ public class MainCPAStatistics implements Statistics {
                 ", (", e.getMessage(), ")");
           }
         }
-        
+
         long totalTimeInMillis = analysisEndingTime - analysisStartingTime;
         long totalAbsoluteTimeMillis = analysisEndingTime - programStartingTime;
 

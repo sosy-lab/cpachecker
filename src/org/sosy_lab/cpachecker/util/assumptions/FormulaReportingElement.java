@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -29,14 +29,14 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormu
  * Interface to implement in order for an object (typically abstract element)
  * to be able to be over-approximated by a symbolic formula representing
  * the abstract element.
- * 
+ *
  * @author g.theoduloz
  */
 public interface FormulaReportingElement {
-  
+
   /**
    * Returns a symbolic formula over-approximating the element
    */
   public SymbolicFormula getFormulaApproximation();
-  
+
 }

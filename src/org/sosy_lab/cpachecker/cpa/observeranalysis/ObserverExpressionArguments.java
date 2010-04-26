@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -55,7 +55,7 @@ public class ObserverExpressionArguments {
       observerVariables = pObserverVariables;
     if (pAbstractElements == null)
       abstractElements = Collections.emptyList();
-    else 
+    else
       abstractElements = pAbstractElements;
     cfaEdge = pCfaEdge;
     logger = pLogger;
@@ -76,7 +76,7 @@ public class ObserverExpressionArguments {
   CFAEdge getCfaEdge() {
     return cfaEdge;
   }
-  
+
   LogManager getLogger() {
     return logger;
   }
@@ -89,7 +89,7 @@ public class ObserverExpressionArguments {
   String getLogMessage() {
     return transitionLogMessages;
   }
-  
+
   void clearTransitionVariables() {
     this.transitionVariables.clear();
   }
@@ -97,7 +97,7 @@ public class ObserverExpressionArguments {
     // this is the variable adressed with $<key> in the observer automaton
     return this.transitionVariables.get(Integer.valueOf(key));
   }
-  
+
   void putTransitionVariable(int key, String value) {
     this.transitionVariables.put(key, value);
   }

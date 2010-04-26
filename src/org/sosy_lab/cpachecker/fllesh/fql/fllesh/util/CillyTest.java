@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -44,31 +44,31 @@ public class CillyTest {
   @Test
   public void test001() throws IOException {
     Cilly lCilly = new Cilly();
-    
+
     lCilly.cillyfy("test/programs/simple/functionCall.c");
   }
-  
+
   @Test
   public void test002() throws IOException {
     Cilly lCilly = new Cilly();
-    
+
     assertFalse(lCilly.isCillyInvariant("test/programs/simple/functionCall.c"));
   }
-  
+
   @Test
   public void test003() throws IOException {
     Cilly lCilly = new Cilly();
-    
+
     File lCillyfiedFile = lCilly.cillyfy("test/programs/simple/functionCall.c");
-    
+
     System.out.println(lCillyfiedFile);
-    
+
     assertTrue(lCilly.isCillyInvariant(lCillyfiedFile));
   }
-  
+
   @Test
   public void test004() throws IOException {
     assertEquals("test/programs/simple/functionCall.cil.c", Cilly.getNiceCILName("test/programs/simple/functionCall.c"));
   }
-  
+
 }

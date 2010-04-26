@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -26,38 +26,38 @@ package org.sosy_lab.cpachecker.fllesh.fql.fllesh.cpa;
 public class QueryTopElement implements QueryElement {
 
   private static QueryTopElement mInstance = new QueryTopElement();
-  
+
   private QueryTopElement() {
-    
+
   }
-  
+
   public static QueryTopElement getInstance() {
     return mInstance;
   }
-  
+
   @Override
   public boolean equals(Object pOther) {
     if (this == pOther) {
       return true;
     }
-    
+
     if (pOther == null) {
       return false;
     }
-    
+
     return (pOther.getClass() == getClass());
   }
-  
+
   @Override
   public int hashCode() {
     return Integer.MAX_VALUE;
   }
-  
+
   @Override
   public String toString() {
     return "Query Top Element";
   }
-  
+
   @Override
   public boolean isError() {
     // TODO Auto-generated method stub

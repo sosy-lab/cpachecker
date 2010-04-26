@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -34,24 +34,24 @@ import org.sosy_lab.cpachecker.fllesh.fql.backend.pathmonitor.Automaton;
 
 public class SingletonQuery extends AbstractQuery {
   Iterator<Waypoint> mIterator;
-  
+
   public static SingletonQuery create(CompositeElement pElement, CompositePrecision pPrecision, Automaton pFirstAutomaton, Set<Integer> pStatesOfFirstAutomaton, Automaton pSecondAutomaton, Set<Integer> pStatesOfSecondAutomaton) {
     assert(pElement != null);
     assert(pPrecision != null);
-    
+
     SingletonQuery lQuery = new SingletonQuery(pFirstAutomaton, pSecondAutomaton);
-    
+
     Waypoint lWaypoint = new Waypoint(lQuery, pElement, pPrecision, pStatesOfFirstAutomaton, pStatesOfSecondAutomaton);
-    
+
     lQuery.mIterator = Collections.singleton(lWaypoint).iterator();
-    
+
     return lQuery;
   }
-  
+
   private SingletonQuery(Automaton pFirstAutomaton, Automaton pSecondAutomaton) {
     super(pFirstAutomaton, pSecondAutomaton);
   }
-  
+
   @Override
   public boolean hasNext() {
     return mIterator.hasNext();
@@ -59,7 +59,7 @@ public class SingletonQuery extends AbstractQuery {
 
   @Override
   public Waypoint next() {
-    return mIterator.next();   
+    return mIterator.next();
   }
 
   @Override

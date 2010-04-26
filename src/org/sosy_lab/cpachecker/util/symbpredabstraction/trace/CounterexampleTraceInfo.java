@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 
 
 /**
- * A class that stores information about a counterexample trace. 
+ * A class that stores information about a counterexample trace.
  * For spurious counterexamples, this stores a predicate map
  * with new predicates that are sufficient to rule out the trace in the
  * refined abstract model.

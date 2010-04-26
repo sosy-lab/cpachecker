@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -42,7 +42,7 @@ public class BlankEdge extends AbstractCFAEdge
     }
 
     /**
-     * Gives information whether this edge is a jump as produced by a goto, 
+     * Gives information whether this edge is a jump as produced by a goto,
      * continue and break statements.
      */
     @Override

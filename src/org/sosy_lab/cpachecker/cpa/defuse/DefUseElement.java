@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -88,7 +88,7 @@ public class DefUseElement implements AbstractElement
 
         definitions.add (def);
     }
-    
+
     @Override
     public boolean isError() {
       return false;

@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -31,10 +31,10 @@ package org.sosy_lab.cpachecker.exceptions;
 public class ForceStopCPAException extends CPAException {
 
   private static final long serialVersionUID = 4425370871668226283L;
-  
+
   public ForceStopCPAException()
   {
     super("CPA is stopping, forcefully");
   }
-  
+
 }

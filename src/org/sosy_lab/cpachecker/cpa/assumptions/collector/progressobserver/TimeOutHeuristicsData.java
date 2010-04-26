@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -30,12 +30,12 @@ public class TimeOutHeuristicsData implements StopHeuristicsData {
 
   private final boolean stop;
   private final long time;
-  
+
   public TimeOutHeuristicsData(long pTime, boolean pStop) {
     stop = pStop;
     time = pTime;
   }
-  
+
   @Override
   public boolean isBottom() {
     return stop;
@@ -54,7 +54,7 @@ public class TimeOutHeuristicsData implements StopHeuristicsData {
   public long getTime() {
     return time;
   }
-  
+
   public static final TimeOutHeuristicsData BOTTOM = new TimeOutHeuristicsData(0, true);
 
 }

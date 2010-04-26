@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -27,7 +27,7 @@ package org.sosy_lab.cpachecker.util.assumptions;
 /**
  * Interface to implement in order for an object to be able to
  * contribute invariants to the invariant construction.
- * 
+ *
  * @author g.theoduloz
  */
 public interface AssumptionReportingElement {
@@ -35,10 +35,10 @@ public interface AssumptionReportingElement {
   /**
    * Get the assumption that the given abstract element
    * wants to report for its containing node's location.
-   * 
+   *
    * @return an assumption representing the assumptions to generate
    *         for the given element, or the value null representing
-   *         the assumption true. 
+   *         the assumption true.
    */
   public AssumptionWithLocation getAssumptionWithLocation();
 

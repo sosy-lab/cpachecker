@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -32,22 +32,22 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
  * <code>XXXHeuristics(CPAConfiguration, LogManager)</code> to create
  * an instance of the heuristics with the given configuration
  * and logger.
- * 
+ *
  * @author g.theoduloz
  */
 public interface StopHeuristics <D extends StopHeuristicsData> {
   /** Get the initial data */
   public D getInitialData(CFANode node);
-  
+
   /** Get top */
   public D getTop();
-  
+
   /** Get bottom */
   public D getBottom();
-  
+
   /** Collect data with respect to the given set of reached states */
   public D collectData(StopHeuristicsData data, ReachedHeuristicsDataSetView reached);
-  
+
   /** Process an edge and update the data */
   public D processEdge(StopHeuristicsData data, CFAEdge edge);
 }

@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 
 public class ConcreteAnalysisDomain extends FlatLatticeDomain {
   private static ConcreteAnalysisDomain mInstance = new ConcreteAnalysisDomain();
-  
+
   private ConcreteAnalysisDomain() {
     super(ConcreteAnalysisTopElement.getInstance(), ConcreteAnalysisBottomElement.getInstance());
   }
@@ -36,12 +36,12 @@ public class ConcreteAnalysisDomain extends FlatLatticeDomain {
   public ConcreteAnalysisTopElement getTopElement() {
     return ConcreteAnalysisTopElement.getInstance();
   }
-  
+
   @Override
   public ConcreteAnalysisBottomElement getBottomElement() {
     return ConcreteAnalysisBottomElement.getInstance();
   }
-  
+
   public static ConcreteAnalysisDomain getInstance() {
     return mInstance;
   }

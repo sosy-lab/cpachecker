@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -60,7 +60,7 @@ public class DominatorElement implements AbstractElementWithLocation, AbstractEl
 
 		this.dominators.addAll(dominators);
 	}
-	
+
 	protected DominatorElement() {
 	  dominatedElement = null;
 	}
@@ -104,7 +104,7 @@ public class DominatorElement implements AbstractElementWithLocation, AbstractEl
   public boolean isError() {
     return false;
   }
-	
+
 	@Override
 	public boolean equals(Object other) {
 		if (!(other instanceof DominatorElement)) {

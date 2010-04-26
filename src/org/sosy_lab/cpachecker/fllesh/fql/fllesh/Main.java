@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -53,98 +53,98 @@ import org.sosy_lab.cpachecker.fllesh.fql.frontend.parser.FQLParser;
 public class Main {
 
   private static final String mPropertiesFile = "test/config/simpleMustMayAnalysis.properties";
-  
+
   /**
    * @param pArguments
-   * @throws Exception 
+   * @throws Exception
    */
   public static void main(String[] pArguments) throws Exception {
     assert(pArguments != null);
     assert(pArguments.length > 1);
-    
+
     // check cilly invariance of source file, i.e., is it changed when preprocessed by cilly?
     Cilly lCilly = new Cilly();
-    
+
     String lSourceFileName = pArguments[1];
-    
+
     if (!lCilly.isCillyInvariant(pArguments[1])) {
       File lCillyProcessedFile = lCilly.cillyfy(pArguments[1]);
-      
+
       lSourceFileName = lCillyProcessedFile.getAbsolutePath();
-      
+
       System.err.println("WARNING: Given source file is not CIL invariant ... did preprocessing!");
     }
-    
+
     // set source file name
     ImmutableMap<String, String> lProperties =
       ImmutableMap.of("analysis.programNames", lSourceFileName);
-    
+
     Configuration lConfiguration = new Configuration(mPropertiesFile, lProperties);
 
     LogManager lLogManager = new LogManager(lConfiguration);
-      
+
     CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
-    
+
     Query lQuery = parseQuery(pArguments[0]);
-    
+
     CFAFunctionDefinitionNode lMainFunction = lCPAchecker.getMainFunction();
-    
+
     TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lMainFunction);
-    
+
     Pair<CoverageSequence, Automaton> lQueryEvaluation = QueryEvaluation.evaluate(lQuery, lTargetGraph);
-    
+
     Automaton lPassingMonitor = lQueryEvaluation.getSecond();
-    
+
     List<Pair<Automaton, Set<? extends TestGoal>>> lTargetSequence = new LinkedList<Pair<Automaton, Set<? extends TestGoal>>>();
-    
+
     CoverageSequence lCoverageSequence = lQueryEvaluation.getFirst();
-    
+
     for (Pair<Automaton, Set<? extends TestGoal>> lPair : lCoverageSequence) {
       lTargetSequence.add(lPair);
     }
-    
-    
+
+
     // add self loops to CFA
     AddSelfLoop.addSelfLoops(lMainFunction);
-    
-    
+
+
     // TODO remove this output code
     DOTBuilder dotBuilder = new DOTBuilder();
     dotBuilder.generateDOT(lCPAchecker.getCFAMap().values(), lMainFunction, new File("/tmp/mycfa.dot"));
-    
-    
+
+
     Node lProgramEntry = new Node(lMainFunction);
     Node lProgramExit = new Node(lMainFunction.getExitNode());
-    
+
     lTargetSequence.add(new Pair<Automaton, Set<? extends TestGoal>>(lCoverageSequence.getFinalMonitor(), Collections.singleton(lProgramExit)));
-    
+
     FeasibilityCheck lFeasibilityCheck = new FeasibilityCheck(lLogManager);
-    
+
     Set<FeasibilityWitness> lWitnesses = TestGoalEnumeration.run(lTargetSequence, lPassingMonitor, lProgramEntry, lFeasibilityCheck);
-    
+
     generateTestCases(lWitnesses);
   }
-  
+
   private static void generateTestCases(Set<FeasibilityWitness> pWitnesses) {
     // TODO: implement test case generation mechanism
   }
-  
+
   private static Query parseQuery(String pFQLQuery) throws Exception {
     FQLParser lParser = new FQLParser(pFQLQuery);
-    
+
     Object pParseResult;
-    
+
     try {
       pParseResult = lParser.parse().value;
     }
     catch (Exception e) {
       System.out.println(pFQLQuery);
-      
+
       throw e;
     }
-    
+
     assert(pParseResult instanceof Query);
-    
+
     return (Query)pParseResult;
   }
 

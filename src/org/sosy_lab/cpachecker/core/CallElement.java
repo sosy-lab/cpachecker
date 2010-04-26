@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -77,7 +77,7 @@ public class CallElement {
 	public int hashCode() {
 	  return functionName.hashCode() + 17 * callNode.hashCode();
 	}
-	
+
 	public boolean isConsistent(String functionName) {
 		return (functionName.equals(this.functionName));
 	}

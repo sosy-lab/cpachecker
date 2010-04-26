@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -56,25 +56,25 @@ public class CPAMain {
       super(msg);
     }
   }
-  
+
   private static class ShutdownHook extends Thread {
-    
+
     private final LogManager logManager;
     private final Thread mainThread;
-    
+
     // if still null when run() is executed, analysis has been interrupted by user
     private CPAcheckerResult mResult = null;
-    
+
     public ShutdownHook(LogManager logger) {
       this.logManager = logger;
       mainThread = Thread.currentThread();
     }
-    
+
     public void setResult(CPAcheckerResult pResult) {
       assert mResult == null;
       mResult = pResult;
     }
-    
+
     // We want to use Thread.stop() to force the main thread to stop
     // when interrupted by the user.
     @SuppressWarnings("deprecation")
@@ -102,8 +102,8 @@ public class CPAMain {
       logManager.flush();
     }
   }
-  
-  
+
+
   public static void main(String[] args) {
     // initialize various components
     Configuration cpaConfig = null;
@@ -116,7 +116,7 @@ public class CPAMain {
       System.err.println("Could not read config file " + e.getMessage());
       System.exit(1);
     }
-    
+
     LogManager logManager = null;
     try {
       logManager = new LogManager(cpaConfig);
@@ -124,25 +124,25 @@ public class CPAMain {
       System.err.println("Invalid configuration: " + e.getMessage());
       System.exit(1);
     }
-    
+
     // get code file name
-    String[] names = cpaConfig.getPropertiesArray("analysis.programNames");    
+    String[] names = cpaConfig.getPropertiesArray("analysis.programNames");
     if (names.length != 1) {
       logManager.log(Level.SEVERE, "Exactly one code file has to be given!");
       System.exit(1);
     }
-    
+
     File sourceFile = new File(names[0]);
     if (!sourceFile.exists()) {
       logManager.log(Level.SEVERE, "File", names[0], "does not exist!");
       System.exit(1);
     }
-    
+
     if (!sourceFile.isFile()) {
       logManager.log(Level.SEVERE, "File", names[0], "is not a normal file!");
       System.exit(1);
     }
-    
+
     if (!sourceFile.canRead()) {
       logManager.log(Level.SEVERE, "File", names[0], "is not readable!");
       System.exit(1);
@@ -156,7 +156,7 @@ public class CPAMain {
       logManager.log(Level.SEVERE, "Invalid configuration:", e.getMessage());
       System.exit(1);
     }
-    
+
     // this is for catching Ctrl+C and printing statistics even in that
     // case. It might be useful to understand what's going on when
     // the analysis takes a lot of time...
@@ -164,7 +164,7 @@ public class CPAMain {
     Runtime.getRuntime().addShutdownHook(shutdownHook);
 
     CPAcheckerResult result = cpachecker.run(names[0]);
-    
+
     shutdownHook.setResult(result);
 
     // statistics are displayed by shutdown hook
@@ -177,12 +177,12 @@ public class CPAMain {
     }
 
     // if there are some command line arguments, process them
-    Map<String, String> cmdLineOptions = processArguments(args);                
+    Map<String, String> cmdLineOptions = processArguments(args);
 
     // get name of config file (may be null)
     // and remove this from the list of options (it's not a real option)
     String configFile = cmdLineOptions.remove(CONFIGURATION_FILE_OPTION);
-    
+
     Configuration config = new Configuration(configFile, cmdLineOptions);
 
     //normalizeValues();
@@ -207,13 +207,13 @@ public class CPAMain {
           || handleArgument1("-logfile", "log.file", arg, argsIt, properties)
           || handleArgument1("-entryfunction", "analysis.entryFunction", arg, argsIt, properties)
           || handleArgument1("-config", CONFIGURATION_FILE_OPTION, arg, argsIt, properties)
-      ) { 
-        // nothing left to do 
+      ) {
+        // nothing left to do
 
       } else if (arg.equals("-cpas")) {
         if (argsIt.hasNext()) {
           properties.put("cpa", CompositeCPA.class.getName());
-          properties.put(CompositeCPA.class.getSimpleName() + ".cpas", argsIt.next());          
+          properties.put(CompositeCPA.class.getSimpleName() + ".cpas", argsIt.next());
         } else {
           throw new InvalidCmdlineArgumentException("-cpas argument missing!");
         }
@@ -285,14 +285,14 @@ public class CPAMain {
 //    for (Enumeration<?> keys = propertyNames(); keys.hasMoreElements();) {
 //      String k = (String) keys.nextElement();
 //      String v = getProperty(k);
-//    
+//
 //      // trim heading and trailing blanks (at least Java 1.4.2 does not take care of trailing blanks)
 //      String v0 = v;
 //      v = v.trim();
 //      if (!v.equals(v0)) {
 //        put(k, v);
 //      }
-//    
+//
 //      if ("true".equalsIgnoreCase(v) || "t".equalsIgnoreCase(v)
 //            || "yes".equalsIgnoreCase(v) || "y".equalsIgnoreCase(v)) {
 //        put(k, "true");

@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -22,7 +22,7 @@
  *    http://cpachecker.sosy-lab.org
  */
 /**
- * 
+ *
  */
 package org.sosy_lab.cpachecker.cpa.concrete;
 
@@ -33,15 +33,15 @@ package org.sosy_lab.cpachecker.cpa.concrete;
  */
 public class ConcreteAnalysisTopElement implements ConcreteAnalysisDomainElement {
   private final static ConcreteAnalysisTopElement mInstance = new ConcreteAnalysisTopElement();
-  
+
   public static ConcreteAnalysisTopElement getInstance() {
     return mInstance;
   }
-  
+
   private ConcreteAnalysisTopElement() {
-    
+
   }
-  
+
   @Override
   public String toString() {
     return "<ConcreteAnalysis TOP>";

@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -29,20 +29,20 @@ package org.sosy_lab.cpachecker.fllesh.ecp.reduced;
 public class Repetition implements Pattern {
 
   private Pattern mSubpattern;
-  
+
   public Repetition(Pattern pSubpattern) {
     mSubpattern = pSubpattern;
   }
-  
+
   public Pattern getSubpattern() {
     return mSubpattern;
   }
-  
+
   @Override
   public String toString() {
     return "(" + mSubpattern.toString() + ")*";
   }
-  
+
   @Override
   public <T> T accept(ASTVisitor<T> pVisitor) {
     return pVisitor.visit(this);

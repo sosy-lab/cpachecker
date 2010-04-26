@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -34,25 +34,25 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 public class SymbPredAbsPrecision implements Precision {
 
   private final SetMultimap<CFANode, Predicate> predicateMap;
-  
+
   public SymbPredAbsPrecision(ImmutableSetMultimap<CFANode, Predicate> predicateMap) {
     assert predicateMap != null;
     this.predicateMap = predicateMap;
   }
-  
+
   public SymbPredAbsPrecision() {
     predicateMap = ImmutableSetMultimap.of();
   }
-  
+
   public SetMultimap<CFANode, Predicate> getPredicateMap() {
     return predicateMap;
   }
-  
+
   @Override
   public int hashCode() {
     return predicateMap.hashCode();
   }
-  
+
   @Override
   public boolean equals(Object pObj) {
     if (pObj == this) {
@@ -63,7 +63,7 @@ public class SymbPredAbsPrecision implements Precision {
       return predicateMap.equals(((SymbPredAbsPrecision)pObj).predicateMap);
     }
   }
-  
+
   @Override
   public String toString() {
     return predicateMap.toString();

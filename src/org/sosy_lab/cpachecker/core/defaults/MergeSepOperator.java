@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -42,9 +42,9 @@ public class MergeSepOperator implements MergeOperator {
   }
 
   private static final MergeOperator instance = new MergeSepOperator();
-  
+
   public static MergeOperator getInstance() {
     return instance;
   }
-  
+
 }

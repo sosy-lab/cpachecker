@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -112,40 +112,40 @@ implements PredicateAbstractionFormulaManager {
 
   @Option(name="abstraction.cartesian")
   private boolean cartesianAbstraction = false;
-  
+
   @Option(name="explicit.getUsefulBlocks")
   private boolean getUsefulBlocks = false;
-  
+
   @Option(name="shortestCexTrace")
   private boolean shortestTrace = false;
-  
+
   @Option(name="refinement.splitItpAtoms")
   private boolean splitItpAtoms = false;
-  
+
   @Option
   private boolean useBitwiseAxioms = false;
-  
+
   @Option(name="shortestCexTraceUseSuffix")
   private boolean useSuffix = false;
-  
+
   @Option(name="shortestCexTraceZigZag")
   private boolean useZigZag = false;
 
   @Option(name="refinement.useBlastWay")
   private boolean useBlastWay = false;
-  
+
   @Option(name="refinement.addWellScopedPredicates")
   private boolean wellScopedPredicates = false;
-  
+
   @Option(name="refinement.addPredicatesGlobally")
   private boolean addPredicatesGlobally;
-  
+
   @Option(name="refinement.msatCexFile")
   private String msatCexFile = "cex.msat";
-  
+
   @Option(name="abstraction.explicit.nonAtomicPredicates")
   private boolean nonAtomicPredicates = false;
-  
+
   static abstract class KeyWithTimeStamp {
     public long timeStamp;
 
@@ -303,7 +303,7 @@ implements PredicateAbstractionFormulaManager {
       }
     }
   }
-  
+
   // cache for cartesian abstraction queries. For each predicate, the values
   // are -1: predicate is false, 0: predicate is don't care,
   // 1: predicate is true
@@ -860,7 +860,7 @@ implements PredicateAbstractionFormulaManager {
     for (int i = 0; i < f.size(); i++) {
       itpGroupsIds.add(null);
     }
-    
+
     int res = -1;
     long msatSolveTimeStart = System.currentTimeMillis();
     for (int i = useSuffix ? f.size()-1 : 0;

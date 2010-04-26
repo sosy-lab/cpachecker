@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -56,8 +56,8 @@ import org.sosy_lab.common.configuration.Options;
 public class SimplifyTheoremProver implements TheoremProver {
 
     @Option(name="cpas.symbpredabs.explicit.abstraction.simplifyDumpQueries")
-    private boolean simplifyDumpQueries = false; 
-  
+    private boolean simplifyDumpQueries = false;
+
     private Map<Long, String> msatVarToSimplifyVar;
     private Map<Long, String> msatToSimplifyCache;
     private Map<String, Long> simplifyPredToMsat;
@@ -73,7 +73,7 @@ public class SimplifyTheoremProver implements TheoremProver {
     private BufferedReader simplifyWithCexOut;
 
     private final LogManager logger;
-    
+
     public SimplifyTheoremProver(SymbolicFormulaManager mgr, Configuration config, LogManager logger) throws InvalidConfigurationException {
         config.inject(this);
         this.logger = logger;

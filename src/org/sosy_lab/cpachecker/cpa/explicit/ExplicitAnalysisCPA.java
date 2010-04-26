@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -49,20 +49,20 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 public class ExplicitAnalysisCPA implements ConfigurableProgramAnalysis {
 
   private static class ExplicitAnalysisCPAFactory extends AbstractCPAFactory {
-    
+
     @Override
     public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException {
       return new ExplicitAnalysisCPA(getConfiguration());
     }
   }
-  
+
   public static CPAFactory factory() {
     return new ExplicitAnalysisCPAFactory();
   }
-  
+
   @Option(name="merge", toUppercase=true, values={"SEP", "JOIN"})
   private String mergeType = "SEP";
-  
+
   private AbstractDomain abstractDomain;
   private MergeOperator mergeOperator;
   private StopOperator stopOperator;
@@ -71,7 +71,7 @@ public class ExplicitAnalysisCPA implements ConfigurableProgramAnalysis {
 
   private ExplicitAnalysisCPA(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
-    
+
     ExplicitAnalysisDomain explicitAnalysisDomain = new ExplicitAnalysisDomain ();
     MergeOperator explicitAnalysisMergeOp = null;
     if (mergeType.equals("SEP")){
@@ -83,7 +83,7 @@ public class ExplicitAnalysisCPA implements ConfigurableProgramAnalysis {
     StopOperator explicitAnalysisStopOp = new StopSepOperator(explicitAnalysisDomain.getPartialOrder());
 
     TransferRelation explicitAnalysisTransferRelation = new ExplicitAnalysisTransferRelation(config);
-    
+
     this.abstractDomain = explicitAnalysisDomain;
     this.mergeOperator = explicitAnalysisMergeOp;
     this.stopOperator = explicitAnalysisStopOp;

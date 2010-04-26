@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -34,7 +34,7 @@ public class CBMCEdge implements Comparable<CBMCEdge>{
   private ARTElement childElement;
   private CFAEdge edge;
   private Stack<Stack<CBMCStackElement>> stack;
-  
+
   public CBMCEdge(ARTElement pParentElement, ARTElement pChildElement,
       CFAEdge pEdge, Stack<Stack<CBMCStackElement>> pStack) {
     parentElement = pParentElement;
@@ -66,11 +66,11 @@ public class CBMCEdge implements Comparable<CBMCEdge>{
   public void setEdge(CFAEdge pEdge) {
     edge = pEdge;
   }
-  
+
   public void pushToStack(Stack<CBMCStackElement> pStack){
     stack.push(pStack);
   }
-  
+
   public Stack<Stack<CBMCStackElement>> getStack() {
     return stack;
   }
@@ -80,13 +80,13 @@ public class CBMCEdge implements Comparable<CBMCEdge>{
     CBMCStackElement lastStackElement = lastFunctionStack.peek();
     lastStackElement.write(pStatement);
   }
-  
+
   @Override
   /** comparison based on the child element*/
   public int compareTo(CBMCEdge pO) {
     int otherElementId = pO.getChildElement().getElementId();
     int thisElementId = this.getChildElement().getElementId();
-    
+
     if(thisElementId > otherElementId){
       return 1;
     }
@@ -95,7 +95,7 @@ public class CBMCEdge implements Comparable<CBMCEdge>{
     }
     return 0;
   }
-  
+
   @Override
   public boolean equals(Object pObj) {
     if (pObj == this) {
@@ -108,15 +108,15 @@ public class CBMCEdge implements Comparable<CBMCEdge>{
       return false;
     }
   }
-  
+
   @Override
   public int hashCode() {
     return getChildElement().getElementId();
   }
-  
+
   @Override
   public String toString() {
     return "CBMC ELEMENT > " + parentElement.getElementId() + " --> " + childElement.getElementId();
   }
-  
+
 }

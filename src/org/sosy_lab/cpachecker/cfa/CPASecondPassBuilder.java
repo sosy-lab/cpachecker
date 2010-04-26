@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -78,7 +78,7 @@ public class CPASecondPassBuilder {
     Deque<String> worklist = new ArrayDeque<String>();
     worklist.addLast(functionName);
     Set<String> reachedFunctions = new HashSet<String>();
-    
+
     while (!worklist.isEmpty()) {
       String currentFunction = worklist.pollFirst();
       if (!reachedFunctions.add(currentFunction)) {
@@ -93,7 +93,7 @@ public class CPASecondPassBuilder {
     }
     return reachedFunctions;
   }
-  
+
   /**
    * Traverses a CFA with the specified function name and insert call edges
    * and return edges from the call site and to the return site of the function
@@ -130,7 +130,7 @@ public class CPASecondPassBuilder {
             // if statement is of the form x = call(a,b);
             if(operand2 instanceof IASTFunctionCallExpression &&
                 shouldCreateCallEdges((IASTFunctionCallExpression)operand2)) {
-              
+
               IASTFunctionCallExpression functionCall = (IASTFunctionCallExpression)operand2;
               calledFunctions.add(functionCall.getFunctionNameExpression().getRawSignature());
               createCallAndReturnEdges(node, successorNode, edge, expr, functionCall);
@@ -196,7 +196,7 @@ public class CPASecondPassBuilder {
     //get the parameter expression
     IASTExpression parameterExpression = functionCall.getParameterExpression();
     IASTExpression[] parameters = null;
-    //in case of an expression list, get the corresponding array 
+    //in case of an expression list, get the corresponding array
     if (parameterExpression instanceof IASTExpressionList) {
       IASTExpressionList paramList = (IASTExpressionList)parameterExpression;
       parameters = paramList.getExpressions();
@@ -209,7 +209,7 @@ public class CPASecondPassBuilder {
     // if the function definition node is null, then this is an external call
     if(fDefNode == null){
       assert(createCallEdgesForExternalCalls); // AG
-      
+
       callEdge = new FunctionCallEdge(functionCall, edge.getLineNumber(), node, edge.getSuccessor(), parameters, true);
       callEdge.addToCFA();
       callEdge.getSuccessor().setFunctionName(node.getFunctionName());

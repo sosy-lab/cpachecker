@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -35,8 +35,8 @@ public class AddSelfLoop {
   private static class AddSelfLoopCFAVisitor implements CFAVisitor {
 
     private static AddSelfLoopCFAVisitor mInstance = new AddSelfLoopCFAVisitor();
-    private Set<CFAEdge> mSelfLoops = new HashSet<CFAEdge>(); 
-    
+    private Set<CFAEdge> mSelfLoops = new HashSet<CFAEdge>();
+
     @Override
     public void init(CFANode pInitialNode) {
       mSelfLoops.add(InternalSelfLoop.getOrCreate(pInitialNode));
@@ -45,15 +45,15 @@ public class AddSelfLoop {
     @Override
     public void visit(CFAEdge pEdge) {
       CFANode lSuccessor = pEdge.getSuccessor();
-      
+
       mSelfLoops.add(InternalSelfLoop.getOrCreate(lSuccessor));
     }
-    
+
   }
-  
+
   public static Set<CFAEdge> addSelfLoops(CFANode pInitialNode) {
     CFATraversal.traverse(pInitialNode, AddSelfLoopCFAVisitor.mInstance);
-    
+
     return AddSelfLoopCFAVisitor.mInstance.mSelfLoops;
   }
 }

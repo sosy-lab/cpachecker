@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -34,13 +34,13 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 /**
  * Interface for classes which know how to create an instance of one specific
  * CPA.
- * 
+ *
  * Each class implementing the ConfigurableProgramAnalysis interface has to
  * provide a factory implementing this interface. The CPA class has to have a
  * public static method "factory()" which takes no arguments, returns an instance
  * of CPAFactory and never fails (that is, it never returns null or throws an
  * exception).
- * 
+ *
  * If the CPA cannot be instantiated for one reason or another (e.g. because
  * not all necessary objects have been provided to the factory), this has to be
  * signaled by an exception returned from the createInstance() method. The only
@@ -49,8 +49,8 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  * them). The methods of this related to such optional features are marked with
  * an {@link UnsupportedOperationException}. A CPA which does not support a
  * feature should throw such an exception if the method is called (which might
- * not always be the case). 
- * 
+ * not always be the case).
+ *
  * All methods except the {@link #createInstance()} method return an instance
  * of CPAFactory. Implementations have to return "this" (that is the very same
  * object on which the method was called) in all cases, to support a programming
@@ -65,14 +65,14 @@ public interface CPAFactory {
    * @return this
    */
   public CPAFactory setLogger(LogManager logger);
-  
+
   /**
    * Provides a configuration object to the CPA. If it does not need it, this
    * method should do nothing.
    * @return this
    */
   public CPAFactory setConfiguration(Configuration configuration);
-  
+
   /**
    * Provides exactly one child to the CPA. If the CPA does not support wrapping
    * other CPAs, it should throw an {@link UnsupportedOperationException}.
@@ -83,7 +83,7 @@ public interface CPAFactory {
    * @throws UnsupportedOperationException if this is no wrapper CPA
    */
   public CPAFactory setChild(ConfigurableProgramAnalysis child) throws UnsupportedOperationException;
-  
+
   /**
    * Provides at least one child to the CPA. If the CPA does not support wrapping
    * several other CPAs, it should throw an {@link UnsupportedOperationException}.
@@ -92,7 +92,7 @@ public interface CPAFactory {
    * @throws UnsupportedOperationException if this is no wrapper CPA
    */
   public CPAFactory setChildren(List<ConfigurableProgramAnalysis> children) throws UnsupportedOperationException;
-  
+
   /**
    * Returns a new instance of the CPA belonging to this CPAFactory, using the
    * objects passed to the other methods of this CPAFactory before. If this is not

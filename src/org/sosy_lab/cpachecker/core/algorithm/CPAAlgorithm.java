@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -49,26 +49,26 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
   private static class CPAStatistics implements Statistics {
-  
+
     private long totalTime = 0;
     private long chooseTime = 0;
     private long precisionTime = 0;
     private long transferTime = 0;
     private long mergeTime = 0;
     private long stopTime = 0;
-   
+
     private int countIterations = 0;
     private int countWaitlistSize = 0;
     private int countSuccessors = 0;
     private int maxSuccessors = 0;
     private int countMerge = 0;
     private int countStop = 0;
-    
+
     @Override
     public String getName() {
       return "CPA algorithm";
     }
-    
+
     @Override
     public void printStatistics(PrintWriter out, Result pResult,
         ReachedElements pReached) {
@@ -86,18 +86,18 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       out.println("Time for merge operator:        " + toTime(mergeTime));
       out.println("Time for stop operator:         " + toTime(stopTime));
     }
-    
+
     private String toTime(long timeMillis) {
       return String.format("% 5d.%03ds", timeMillis/1000, timeMillis%1000);
     }
   }
-  
+
   private final CPAStatistics stats = new CPAStatistics();
-  
+
   private final ConfigurableProgramAnalysis cpa;
 
   private final LogManager logger;
-  
+
   public CPAAlgorithm(ConfigurableProgramAnalysis cpa, LogManager logger) {
     this.cpa = cpa;
     this.logger = logger;
@@ -115,16 +115,16 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       CPAchecker.stopIfNecessary();
 
       stats.countIterations++;
-      
+
       // Pick next element using strategy
       // BFS, DFS or top sort according to the configuration
       stats.countWaitlistSize += reachedElements.getWaitlistSize();
-      
+
       long start = System.currentTimeMillis();
       Pair<AbstractElement,Precision> e = reachedElements.popFromWaitlist();
       long end = System.currentTimeMillis();
       stats.chooseTime += (end - start);
-      
+
       Pair<AbstractElement, Precision> tempPair;
       start = System.currentTimeMillis();
       tempPair = precisionAdjustment.prec(e.getFirst(), e.getSecond(), reachedElements);
@@ -144,16 +144,16 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       end = System.currentTimeMillis();
       stats.transferTime += (end - start);
       // TODO When we have a nice way to mark the analysis result as incomplete, we could continue analysis on a CPATransferException with the next element from waitlist.
-      
+
       int numSuccessors = successors.size();
       logger.log(Level.FINER, "Current element has", numSuccessors, "successors");
       stats.countSuccessors += numSuccessors;
       stats.maxSuccessors = Math.max(numSuccessors, stats.maxSuccessors);
-      
+
       for (AbstractElement successor : successors) {
         logger.log(Level.FINER, "Considering successor of current element");
         logger.log(Level.ALL, "Successor of", element, "\nis", successor);
-        
+
         Collection<AbstractElement> reached = reachedElements.getReached(successor);
 
         // AG as an optimization, we allow the mergeOperator to be null,
@@ -163,7 +163,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
           List<AbstractElement> toRemove = new ArrayList<AbstractElement>();
           List<Pair<AbstractElement, Precision>> toAdd = new ArrayList<Pair<AbstractElement, Precision>>();
-          
+
           logger.log(Level.FINER, "Considering", reached.size(), "elements from reached set for merge");
           for (AbstractElement reachedElement : reached) {
             AbstractElement mergedElement = mergeOperator.merge( successor, reachedElement, precision);
@@ -173,29 +173,29 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
               logger.log(Level.ALL,
                   "Merged", successor, "\nand", reachedElement, "\n-->", mergedElement);
               stats.countMerge++;
-              
+
               toRemove.add(reachedElement);
               toAdd.add(new Pair<AbstractElement, Precision>(mergedElement, precision));
             }
           }
           reachedElements.removeAll(toRemove);
           reachedElements.addAll(toAdd);
-          
+
           end = System.currentTimeMillis();
           stats.mergeTime += (end - start);
         }
-        
+
         start = System.currentTimeMillis();
 
         if (stopOperator.stop(successor, reached, precision)) {
           logger.log(Level.FINER, "Successor is covered or unreachable, not adding to waitlist");
           stats.countStop++;
-          
+
         } else {
           logger.log(Level.FINER, "No need to stop, adding successor to waitlist");
 
           reachedElements.add(successor, precision);
-          
+
           if(stopAfterError && successor.isError()) {
             end = System.currentTimeMillis();
             stats.stopTime += (end - start);
@@ -214,7 +214,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
   public ConfigurableProgramAnalysis getCPA() {
     return cpa;
   }
-  
+
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(stats);

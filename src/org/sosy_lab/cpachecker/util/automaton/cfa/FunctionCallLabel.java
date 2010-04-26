@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -22,7 +22,7 @@
  *    http://cpachecker.sosy-lab.org
  */
 /**
- * 
+ *
  */
 package org.sosy_lab.cpachecker.util.automaton.cfa;
 
@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
  */
 public class FunctionCallLabel implements Label<CFAEdge> {
   private String mFunctionName;
-  
+
   public FunctionCallLabel(String pFunctionName) {
     mFunctionName = pFunctionName;
   }
@@ -45,31 +45,31 @@ public class FunctionCallLabel implements Label<CFAEdge> {
   public boolean matches(CFAEdge pEdge) {
     if (CFAEdgeType.FunctionCallEdge == pEdge.getEdgeType()) {
       return pEdge.getSuccessor().getFunctionName().equals(mFunctionName);
-    }    
+    }
 
     return false;
   }
-  
+
   @Override
   public boolean equals(Object pObject) {
     if (pObject == null) {
       return false;
     }
-    
+
     if (!(pObject instanceof FunctionCallLabel)) {
       return false;
     }
-    
+
     FunctionCallLabel lLabel = (FunctionCallLabel)pObject;
-    
+
     return mFunctionName.equals(lLabel.mFunctionName);
   }
-  
+
   @Override
   public int hashCode() {
     return mFunctionName.hashCode();
   }
-  
+
   @Override
   public String toString() {
     return "@CALL(" + mFunctionName + ")";

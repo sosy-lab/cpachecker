@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -32,11 +32,11 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 class ObserverStatistics implements Statistics {
 
   private final ObserverAutomatonCPA mCpa;
-  
+
   public ObserverStatistics(ObserverAutomatonCPA pCpa) {
     mCpa = pCpa;
   }
-  
+
   @Override
   public String getName() {
     return "ObserverAnalysis";
@@ -45,7 +45,7 @@ class ObserverStatistics implements Statistics {
   @Override
   public void printStatistics(PrintWriter out, Result pResult,
       ReachedElements pReached) {
-    
+
     ObserverTransferRelation trans = mCpa.getTransferRelation();
     out.println("Total time for sucessor computation: " + toTime(trans.totalPostTime));
     out.println("  Time for transition matches:       " + toTime(trans.matchTime));
@@ -53,7 +53,7 @@ class ObserverStatistics implements Statistics {
     out.println("  Time for transition actions:       " + toTime(trans.actionTime));
     out.println("Total time for strengthen operator:  " + toTime(trans.totalStrengthenTime));
   }
-  
+
   private String toTime(long timeMillis) {
     return String.format("% 5d.%03ds", timeMillis/1000, timeMillis%1000);
   }

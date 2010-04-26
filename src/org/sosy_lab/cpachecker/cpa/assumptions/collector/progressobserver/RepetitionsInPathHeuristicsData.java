@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -36,26 +36,26 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
  * @author g.theoduloz
  */
 public class RepetitionsInPathHeuristicsData implements StopHeuristicsData {
-  
+
   private static long threshold = -1;
-  
+
   public static void setThreshold(long newThreshold)
   {
     threshold = newThreshold;
   }
-  
+
   public static long getThreshold()
   {
     return threshold;
   }
-  
+
   private final Map<CFAEdge, Integer> frequencyMap;
-  
+
   public RepetitionsInPathHeuristicsData()
   {
     frequencyMap = new HashMap<CFAEdge, Integer>();
   }
-  
+
   /** The given map is copied to the new object's map */
   public RepetitionsInPathHeuristicsData(Map<CFAEdge, Integer> map)
   {
@@ -82,10 +82,10 @@ public class RepetitionsInPathHeuristicsData implements StopHeuristicsData {
     return (edge.getEdgeType() == CFAEdgeType.FunctionCallEdge)
         || (edge.getPredecessor().isLoopStart());
   }
-  
+
   public RepetitionsInPathHeuristicsData updateForEdge(CFAEdge edge, Function<? super CFAEdge, Integer> thresholds) {
     if (!isInteresting(edge)) return this;
-    
+
     Integer oldValueInTable = frequencyMap.get(edge);
     int newValue = (oldValueInTable == null) ? 1 : (oldValueInTable.intValue() + 1);
     Integer threshold = thresholds.apply(edge);
@@ -97,7 +97,7 @@ public class RepetitionsInPathHeuristicsData implements StopHeuristicsData {
       return result;
     }
   }
-  
+
   private RepetitionsInPathHeuristicsData copy() {
     return new RepetitionsInPathHeuristicsData(frequencyMap);
   }
@@ -112,7 +112,7 @@ public class RepetitionsInPathHeuristicsData implements StopHeuristicsData {
     }
     return builder.toString();
   }
-  
+
   public static final RepetitionsInPathHeuristicsData TOP = new RepetitionsInPathHeuristicsData() {
     @Override
     public boolean isTop() { return true; }
@@ -121,7 +121,7 @@ public class RepetitionsInPathHeuristicsData implements StopHeuristicsData {
     @Override
     public String toString() { return "TOP"; }
   };
-  
+
   public static final RepetitionsInPathHeuristicsData BOTTOM = new RepetitionsInPathHeuristicsData() {
     @Override
     public boolean isBottom() { return true; }
@@ -130,5 +130,5 @@ public class RepetitionsInPathHeuristicsData implements StopHeuristicsData {
     @Override
     public String toString() { return "BOTTOM"; }
   };
-  
+
 }

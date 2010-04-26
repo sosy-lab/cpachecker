@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -37,9 +37,9 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
 public class DominatorCPA {
-  
+
   private ConfigurableProgramAnalysis cpa;
-  
+
   private DominatorDomain abstractDomain;
   private TransferRelation transferRelation;
   private MergeOperator mergeOperator;
@@ -48,7 +48,7 @@ public class DominatorCPA {
 
 	public DominatorCPA(ConfigurableProgramAnalysis cpa) {
 	  this.cpa = cpa;
-	  
+
 		this.abstractDomain = new DominatorDomain(this.cpa);
     this.transferRelation = new DominatorTransferRelation(this.abstractDomain, this.cpa);
     this.mergeOperator = new MergeJoinOperator(abstractDomain.getJoinOperator());
@@ -75,7 +75,7 @@ public class DominatorCPA {
   public PrecisionAdjustment getPrecisionAdjustment() {
     return precisionAdjustment;
   }
-	
+
   public AbstractElement getInitialElement(CFAFunctionDefinitionNode node) {
     AbstractElement dominatedInitialElement_tmp = this.cpa.getInitialElement(node);
 

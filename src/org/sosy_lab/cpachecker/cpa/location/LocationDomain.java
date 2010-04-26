@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -36,21 +36,21 @@ public class LocationDomain implements AbstractDomain
       public LocationBottomElement() {
         super(null);
       }
-      
+
       @Override
       public boolean equals(Object pOther) {
         if (pOther == null) {
           return false;
         }
-        
+
         return (pOther instanceof LocationBottomElement);
       }
-      
+
       @Override
       public int hashCode() {
         return Integer.MIN_VALUE;
       }
-      
+
       @Override
       public String toString() {
         return "LocationBottomElement";
@@ -69,15 +69,15 @@ public class LocationDomain implements AbstractDomain
         if (pOther == null) {
           return false;
         }
-        
+
         return (pOther instanceof LocationTopElement);
       }
-      
+
       @Override
       public int hashCode() {
         return Integer.MAX_VALUE;
       }
-      
+
       @Override
       public String toString() {
         return "LoctionTopElement";

@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -35,7 +35,7 @@ public class ExplicitAnalysisElement implements AbstractQueryableElement {
   private Map<String, Long> constantsMap;
 
   private Map<String, Integer> noOfReferences;
-  
+
   public ExplicitAnalysisElement() {
     constantsMap = new HashMap<String, Long>();
     noOfReferences = new HashMap<String, Integer>();
@@ -55,7 +55,7 @@ public class ExplicitAnalysisElement implements AbstractQueryableElement {
    */
   public void assignConstant(String nameOfVar, long value, int pThreshold){
 
-    if(constantsMap.containsKey(nameOfVar) && 
+    if(constantsMap.containsKey(nameOfVar) &&
         constantsMap.get(nameOfVar).intValue() == value){
       return;
     }
@@ -107,7 +107,7 @@ public class ExplicitAnalysisElement implements AbstractQueryableElement {
     if (this == other)
       return true;
 
-    assert (other instanceof ExplicitAnalysisElement);   
+    assert (other instanceof ExplicitAnalysisElement);
 
     ExplicitAnalysisElement otherElement = (ExplicitAnalysisElement) other;
     if (otherElement.constantsMap.size() != constantsMap.size()){
@@ -118,7 +118,7 @@ public class ExplicitAnalysisElement implements AbstractQueryableElement {
       if(!otherElement.constantsMap.containsKey(s)){
         return false;
       }
-      if(otherElement.constantsMap.get(s).longValue() != 
+      if(otherElement.constantsMap.get(s).longValue() !=
         constantsMap.get(s)){
         return false;
       }
@@ -155,7 +155,7 @@ public class ExplicitAnalysisElement implements AbstractQueryableElement {
   public Map<String, Integer> getNoOfReferences() {
     return noOfReferences;
   }
-  
+
   @Override
   public boolean isError() {
     return false;
@@ -165,7 +165,7 @@ public class ExplicitAnalysisElement implements AbstractQueryableElement {
   public boolean checkProperty(String pProperty) throws InvalidQueryException {
     // e.g. "x==5" where x is a variable. Returns if 5 is the associated constant
     String[] parts = pProperty.split("==");
-    if (parts.length != 2) 
+    if (parts.length != 2)
       throw new InvalidQueryException("The Query \"" + pProperty + "\" is invalid. Could not split the property string correctly.");
     else {
       Long value = this.constantsMap.get(parts[0]);

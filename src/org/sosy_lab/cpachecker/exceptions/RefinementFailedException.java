@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -27,8 +27,8 @@ import org.sosy_lab.cpachecker.cpa.art.Path;
 
 /**
  * Exception raised when the refinement procedure fails, or was
- * abandoned. 
- * 
+ * abandoned.
+ *
  * @author g.theoduloz
  */
 public class RefinementFailedException extends CPAException {
@@ -38,9 +38,9 @@ public class RefinementFailedException extends CPAException {
     NoNewPredicates,
     TooMuchUnrolling
   }
-  
+
   private static final long serialVersionUID = 2353178323706458175L;
-  
+
   public String reasonToString(Reason reason) {
     switch (reason)
     {
@@ -55,29 +55,29 @@ public class RefinementFailedException extends CPAException {
       return "";
     }
   }
- 
+
   private final Reason reason;
   private final Path path;
   private final int failurePoint;
-  
+
   public RefinementFailedException(Reason r, Path p, int pFailurePoint)
   {
-    reason = r; 
+    reason = r;
     path = p;
     failurePoint = pFailurePoint;
   }
-  
+
   public RefinementFailedException(Reason r, Path p)
   {
     this(r, p, -1);
   }
-  
+
   /** Return the reason for the failure */
   public Reason getReason()
   {
     return reason;
   }
-  
+
   /** Return the path that caused the failure */
   public Path getErrorPath()
   {
@@ -93,7 +93,7 @@ public class RefinementFailedException extends CPAException {
   {
     return failurePoint;
   }
-  
+
   @Override
   public String toString() {
     return super.toString() + "[" + reason.toString() + "]";

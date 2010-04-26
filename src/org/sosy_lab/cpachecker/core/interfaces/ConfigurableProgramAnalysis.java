@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 
 /**
  * Interface for classes representing a Configurable Program Analysis.
- * 
+ *
  * All instances of this class have to have a public static method "factory()"
  * which takes no arguments, returns an instance of {@link CPAFactory} and never
  * fails that is, it never returns null or throws an exception).

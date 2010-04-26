@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -35,25 +35,25 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class ARTTransferRelation implements TransferRelation {
-  
+
   private final TransferRelation transferRelation;
-  
+
   public ARTTransferRelation(TransferRelation tr) {
     transferRelation = tr;
   }
-  
+
   @Override
   public Collection<ARTElement> getAbstractSuccessors(
       AbstractElement pElement, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException {
     ARTElement element = (ARTElement)pElement;
-    
+
     AbstractElement wrappedElement = element.getWrappedElement();
     Collection<? extends AbstractElement> successors = transferRelation.getAbstractSuccessors(wrappedElement, pPrecision, pCfaEdge);
     if (successors.isEmpty()) {
       return Collections.emptySet();
     }
-    
+
     Collection<ARTElement> wrappedSuccessors = new ArrayList<ARTElement>();
     for (AbstractElement absElement : successors) {
       ARTElement successorElem = new ARTElement(absElement, element);
@@ -65,7 +65,7 @@ public class ARTTransferRelation implements TransferRelation {
   @Override
   public Collection<? extends AbstractElement> strengthen(AbstractElement element,
                          List<AbstractElement> otherElements, CFAEdge cfaEdge,
-                         Precision precision) {    
+                         Precision precision) {
     return null;
   }
 }

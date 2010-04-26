@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -52,7 +52,7 @@ public class ARTStatistics implements Statistics {
 
   @Option(name="ART.export")
   private boolean exportART = true;
-  
+
   @Option(name="output.path")
   private String outputDirectory = "test/output/";
 
@@ -61,17 +61,17 @@ public class ARTStatistics implements Statistics {
 
   @Option(name="cpas.art.errorPath.export")
   private boolean exportErrorPath = true;
-  
+
   @Option(name="cpas.art.errorPath.file")
   private String errorPathFile = "ErrorPath.txt";
-  
+
   private final LogManager logger;
-  
+
   public ARTStatistics(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
     this.logger = logger;
-  }  
-  
+  }
+
   @Override
   public String getName() {
     return null; // return null because we do not print statistics
@@ -83,7 +83,7 @@ public class ARTStatistics implements Statistics {
     if (exportART) {
       dumpARTToDotFile(pReached);
     }
-    
+
     if (exportErrorPath) {
       AbstractElement lastElement = pReached.getLastElement();
       if (lastElement != null && lastElement.isError() && (lastElement instanceof ARTElement)) {
@@ -103,7 +103,7 @@ public class ARTStatistics implements Statistics {
           "Could not write to file ", outfile, ", (", e.getMessage(), ")");
       return;
     }
-    
+
     out.println(content);
     out.flush();
     out.close();
@@ -111,7 +111,7 @@ public class ARTStatistics implements Statistics {
       logger.log(Level.WARNING, "Could not write to file ", outfile);
     }
   }
-  
+
   private void dumpARTToDotFile(ReachedElements pReached) {
     ARTElement firstElement = (ARTElement)pReached.getFirstElement();
 
@@ -120,7 +120,7 @@ public class ARTStatistics implements Statistics {
     Set<ARTElement> processed = new HashSet<ARTElement>();
     StringBuffer sb = new StringBuffer();
     StringBuffer edges = new StringBuffer();
-    
+
     sb.append("digraph ART {\n");
     sb.append("style=filled; color=lightgrey; \n");
 
@@ -150,17 +150,17 @@ public class ARTStatistics implements Statistics {
         CFANode loc = currentElement.retrieveLocationElement().getLocationNode();
         String label = (loc==null ? 0 : loc.getNodeNumber()) + "000" + currentElement.getElementId();
         sb.append("node [shape = diamond, color = " + color + ", style = filled, label=" + label +"] " + currentElement.getElementId() + ";\n");
-        
+
         nodesList.add(currentElement.getElementId());
       }
-      
+
       for (ARTElement covered : currentElement.getCoveredByThis()) {
         edges.append(covered.getElementId());
         edges.append(" -> ");
         edges.append(currentElement.getElementId());
         edges.append(" [style = dashed, label = \"covered by\"];\n");
       }
-      
+
       for(ARTElement child : currentElement.getChildren()){
         CFAEdge edge = currentElement.getEdgeToChild(child);
         edges.append(currentElement.getElementId());

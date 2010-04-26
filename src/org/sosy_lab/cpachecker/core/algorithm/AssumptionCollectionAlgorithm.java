@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -59,7 +59,7 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 /**
  * Outer algorithm to collect all invariants generated during
  * the analysis, and report them to the user
- * 
+ *
  * @author g.theoduloz
  */
 @Options
@@ -67,38 +67,38 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
 
   @Option(name="assumptions.export")
   private boolean exportAssumptions = false;
-  
+
   @Option(name="output.path")
   private String outfilePath = "";
-  
+
   @Option(name="assumptions.file")
   private String outfileName = "assumptions.txt";
-  
+
   private final LogManager logger;
   private final Algorithm innerAlgorithm;
   private final MathsatInvariantSymbolicFormulaManager symbolicManager;
-  
+
   public AssumptionCollectionAlgorithm(Algorithm algo, Configuration config, LogManager logger) throws InvalidConfigurationException
   {
     config.inject(this);
-    
+
     this.logger = logger;
     innerAlgorithm = algo;
     symbolicManager = MathsatInvariantSymbolicFormulaManager.createInstance(config, logger);
   }
-  
+
   @Override
   public ConfigurableProgramAnalysis getCPA() {
     return innerAlgorithm.getCPA();
   }
-  
+
   @Override
   public void run(ReachedElements reached, boolean stopAfterError)
       throws CPAException {
-    
+
     AssumptionWithMultipleLocations resultAssumption = new AssumptionWithMultipleLocations();
     boolean restartCPA = false;
-    
+
     // loop if restartCPA is set to false
     do {
       restartCPA = false;
@@ -112,26 +112,26 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
         logger.log(Level.FINER, "Dumping assumptions due to: " + e.toString());
       }
     } while (restartCPA);
-      
+
     // collect and dump all assumptions stored in abstract states
     logger.log(Level.FINER, "Dumping assumptions resulting from tool assumptions");
-    for (AbstractElement element : reached) {      
+    for (AbstractElement element : reached) {
       AssumptionWithLocation assumption = extractAssumption(element);
-      
+
       resultAssumption.addAssumption(assumption);
     }
-    
+
     // dump invariants to prevent going further with nodes in
     // the waitlist
     if (reached.hasWaitingElement()) {
       logger.log(Level.FINER, "Dumping assumptions resulting from unprocessed elements");
       addAssumptionsForWaitlist(resultAssumption, reached.getWaitlist());
     }
-    
+
     Appendable output;
     if (exportAssumptions) {
       //if no filename is given, use default value
-      
+
       File assumptionsFile = new File(outfilePath, outfileName);
       try {
         output = new PrintWriter(assumptionsFile);
@@ -142,7 +142,7 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
         output = null;
       }
     } else {
-      output = System.out; 
+      output = System.out;
     }
     if (output != null) {
       resultAssumption.dump(output);
@@ -158,43 +158,43 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
   private AssumptionWithLocation extractAssumption(AbstractElement element)
   {
     AssumptionWithLocation result = AssumptionWithLocation.TRUE;
-    
+
     // If it is a wrapper, add its sub-element's assertions
     if (element instanceof AbstractWrapperElement)
     {
       for (AbstractElement subel : ((AbstractWrapperElement) element).getWrappedElements())
         result = result.and(extractAssumption(subel));
     }
-    
+
     if (element instanceof AssumptionCollectorElement)
     {
       AssumptionWithLocation dumpedInvariant = ((AssumptionCollectorElement) element).getCollectedAssumptions();
       if (dumpedInvariant != null)
         result = result.and(dumpedInvariant);
     }
-     
+
     return result;
   }
 
   /**
    * Add to the given map the invariant required to
-   * avoid the given refinement failure 
+   * avoid the given refinement failure
    */
   private void addAssumptionsForFailedRefinement(
       AssumptionWithMultipleLocations invariant,
       RefinementFailedException failedRefinement) {
     Path path = failedRefinement.getErrorPath();
-    
+
     int pos = failedRefinement.getFailurePoint();
-    
+
     if (pos == -1)
       pos = path.size() - 2; // the node before the error node
-    
+
     Pair<ARTElement, CFAEdge> pair = path.get(pos);
     SymbolicFormula dataRegion = ReportingUtils.extractReportedFormulas(symbolicManager, pair.getFirst());
     invariant.addAssumption(pair.getFirst().retrieveLocationElement().getLocationNode(), new Assumption(dataRegion, false));
   }
-  
+
   /**
    * Add to the given map the invariant required to
    * avoid nodes in the given set of states
@@ -207,7 +207,7 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
       invariant.addAssumption(((AbstractWrapperElement)element).retrieveLocationElement().getLocationNode(), new Assumption(symbolicManager.makeNot(dataRegion), false));
     }
   }
-  
+
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     if (innerAlgorithm instanceof StatisticsProvider) {

@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -22,7 +22,7 @@
  *    http://cpachecker.sosy-lab.org
  */
 /**
- * 
+ *
  */
 package org.sosy_lab.cpachecker.cpa.scoperestriction;
 
@@ -51,17 +51,17 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
  *
  */
 public class ScopeRestrictionCPA implements ConfigurableProgramAnalysis {
-  
+
   public class ScopeRestrictionTransferRelation implements TransferRelation {
 
     private AbstractElement getAbstractSuccessor(AbstractElement pElement,
                                                 CFAEdge pCfaEdge, Precision prec)
                                                                  throws CPATransferException {
       AutomatonCPADomain<CFAEdge>.Element lSuccessor = mDomain.getSuccessor(pElement, pCfaEdge);
-      
+
       // we want a deterministic behavior
       assert(lSuccessor.isSingleton() || lSuccessor.equals(mDomain.getBottomElement()) || lSuccessor.equals(mDomain.getTopElement()));
-      
+
       return lSuccessor;
     }
 
@@ -74,28 +74,28 @@ public class ScopeRestrictionCPA implements ConfigurableProgramAnalysis {
     @Override
     public Collection<? extends AbstractElement> strengthen(AbstractElement element,
                            List<AbstractElement> otherElements, CFAEdge cfaEdge,
-                           Precision precision) {    
+                           Precision precision) {
       return null;
     }
   }
-  
+
   private AutomatonCPADomain<CFAEdge> mDomain;
   private ScopeRestrictionTransferRelation mTransferRelation;
   private MergeOperator mMergeOperator;
   private StopOperator mStopOperator;
   private PrecisionAdjustment mPrecisionAdjustment;
-  
+
   public ScopeRestrictionCPA(Automaton<CFAEdge> pTestGoalAutomaton) {
     // Check for invariant: No final states
     assert(pTestGoalAutomaton.getFinalStates().isEmpty());
-    
+
     mDomain = new AutomatonCPADomain<CFAEdge>(pTestGoalAutomaton);
     mTransferRelation = new ScopeRestrictionTransferRelation();
     mMergeOperator = MergeSepOperator.getInstance();
     mStopOperator = new StopSepOperator(mDomain.getPartialOrder());
     mPrecisionAdjustment = StaticPrecisionAdjustment.getInstance();
   }
-  
+
   /* (non-Javadoc)
    * @see org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis#getAbstractDomain()
    */
@@ -103,7 +103,7 @@ public class ScopeRestrictionCPA implements ConfigurableProgramAnalysis {
   public AutomatonCPADomain<CFAEdge> getAbstractDomain() {
     return mDomain;
   }
-  
+
   /* (non-Javadoc)
    * @see org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis#getTransferRelation()
    */
@@ -127,11 +127,11 @@ public class ScopeRestrictionCPA implements ConfigurableProgramAnalysis {
   public StopOperator getStopOperator() {
     return mStopOperator;
   }
-  
+
   public PrecisionAdjustment getPrecisionAdjustment() {
     return mPrecisionAdjustment;
   }
-  
+
   /* (non-Javadoc)
    * @see org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis#getInitialElement(org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode)
    */

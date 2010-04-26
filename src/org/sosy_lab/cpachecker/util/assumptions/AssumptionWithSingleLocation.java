@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -30,22 +30,22 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
 /**
  * Representation of an assumption of the form pc = l ==> \phi
- * 
+ *
  * @author g.theoduloz
  */
 public class AssumptionWithSingleLocation
   extends AssumptionWithLocation
 {
-  
+
   private final CFANode location;
   private final Assumption assumption;
-  
+
   public AssumptionWithSingleLocation(CFANode pLocation, Assumption pAssumption)
   {
     location = pLocation;
     assumption = pAssumption;
   }
-  
+
   @Override
   public AssumptionWithLocation and(AssumptionWithLocation other) {
     if (other instanceof AssumptionWithSingleLocation) {
@@ -75,7 +75,7 @@ public class AssumptionWithSingleLocation
   public Iterable<Entry<CFANode, Assumption>> getAssumptionsIterator() {
     return Collections.singletonMap(location, assumption).entrySet();
   }
-  
+
   @Override
   public boolean equals(Object other) {
     if (other instanceof AssumptionWithSingleLocation)

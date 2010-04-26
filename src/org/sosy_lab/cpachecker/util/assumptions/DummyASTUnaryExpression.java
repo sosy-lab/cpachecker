@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -44,13 +44,13 @@ public class DummyASTUnaryExpression implements IASTUnaryExpression {
 
   private int operator;
   private IASTExpression operand;
-  
+
   public DummyASTUnaryExpression(int op, IASTExpression op1)
   {
     operator = op;
     operand = op1;
   }
-  
+
   @Override
   public IASTUnaryExpression copy() {
     throw new UnsupportedOperationException();
@@ -177,5 +177,5 @@ public class DummyASTUnaryExpression implements IASTUnaryExpression {
   public String toString() {
     return getRawSignature();
   }
-  
+
 }

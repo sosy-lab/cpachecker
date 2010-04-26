@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -46,7 +46,7 @@ public abstract class AbstractCFAEdgeVisitor<T> implements CFAEdgeVisitor<T> {
       if (pEdge instanceof InternalSelfLoop) {
         return visit((InternalSelfLoop)pEdge);
       }
-      
+
       return visit((BlankEdge)pEdge);
     case CallToReturnEdge:
       return visit((CallToReturnEdge)pEdge);
@@ -61,11 +61,11 @@ public abstract class AbstractCFAEdgeVisitor<T> implements CFAEdgeVisitor<T> {
     case ReturnEdge:
       return visit((ReturnEdge)pEdge);
     case StatementEdge:
-      return visit((StatementEdge)pEdge);         
+      return visit((StatementEdge)pEdge);
     }
-    
+
     // this should not happen
     throw new IllegalArgumentException(pEdge.toString() + " not supported!");
   }
-  
+
 }

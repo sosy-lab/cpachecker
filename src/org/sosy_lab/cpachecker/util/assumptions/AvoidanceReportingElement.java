@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -27,14 +27,14 @@ package org.sosy_lab.cpachecker.util.assumptions;
  * Interface to implement in order for an object to be able to
  * make the system generate an assumption to avoid re-considering
  * this node.
- * 
+ *
  * @author g.theoduloz
  */
 public interface AvoidanceReportingElement {
-  
+
   /**
    * Returns true if an invariant must be added so as to avoid
-   * the given state in the future.  
+   * the given state in the future.
    */
   public boolean mustDumpAssumptionForAvoidance();
 

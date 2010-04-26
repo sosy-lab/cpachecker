@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -28,20 +28,20 @@ import org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.PathPattern;
 public class Quotation implements CoverageSpecification {
 
   private PathPattern mPathPattern;
-  
+
   public Quotation(PathPattern pPathPattern) {
     mPathPattern = pPathPattern;
   }
-  
+
   public PathPattern getPathPattern() {
     return mPathPattern;
   }
-  
+
   @Override
   public <T> T accept(ASTVisitor<T> pVisitor) {
     return pVisitor.visit(this);
   }
-  
+
   @Override
   public String toString() {
     return "\"(" + mPathPattern.toString() + ")\"";

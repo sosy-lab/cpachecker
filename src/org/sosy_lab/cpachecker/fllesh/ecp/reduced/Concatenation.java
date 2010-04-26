@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -30,28 +30,28 @@ public class Concatenation implements Pattern {
 
   private Pattern mElement1;
   private Pattern mElement2;
-  
+
   public Concatenation(Pattern pElement1, Pattern pElement2) {
     mElement1 = pElement1;
     mElement2 = pElement2;
   }
-  
+
   public Pattern getFirstSubpattern() {
     return mElement1;
   }
-  
+
   public Pattern getSecondSubpattern() {
     return mElement2;
   }
-  
+
   @Override
   public String toString() {
     return "(" + mElement1.toString() + ").(" + mElement2.toString() + ")";
   }
-  
+
   @Override
   public <T> T accept(ASTVisitor<T> pVisitor) {
     return pVisitor.visit(this);
   }
-  
+
 }

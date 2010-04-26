@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -52,7 +52,7 @@ public class AutomatonTest {
   private final ImmutableMap<String, String> mProperties =
         ImmutableMap.of("analysis.programNames", "test/programs/simple/functionCall.c");
 
-  
+
   @Before
   public void tearDown() {
     /* XXX: Currently this is necessary to pass all assertions. */
@@ -60,157 +60,157 @@ public class AutomatonTest {
   }
 
   @Test
-  public void test_01() throws IOException, InvalidConfigurationException, CPAException {    
+  public void test_01() throws IOException, InvalidConfigurationException, CPAException {
     Configuration lConfiguration = new Configuration(mPropertiesFile, mProperties);
-    
+
     LogManager lLogManager = new LogManager(lConfiguration);
-      
+
     CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
-    
+
     TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
-    
+
     //System.out.println(lTargetGraph);
-    
+
     Filter lFilter = Identity.getInstance();
-    
+
     Automaton lAutomaton = Automaton.create(lFilter, lTargetGraph);
-    
+
     System.out.println(lAutomaton);
   }
-  
+
   @Test
   public void test_02() throws IOException, InvalidConfigurationException, CPAException {
     Configuration lConfiguration = new Configuration(mPropertiesFile, mProperties);
-    
+
     LogManager lLogManager = new LogManager(lConfiguration);
-      
+
     CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
-    
+
     TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
-    
+
     //System.out.println(lTargetGraph);
-    
+
     /*Filter lFilter = Identity.getInstance();
-    
+
     Automaton lAutomaton = Automaton.create(lFilter, lTargetGraph);*/
-    
+
     Alternative lAlternative = new Alternative(Identity.getInstance(), Identity.getInstance());
-    
+
     Automaton lAutomaton = Automaton.create(lAlternative, lTargetGraph);
-    
+
     System.out.println(lAutomaton);
   }
-  
+
   @Test
   public void test_03() throws IOException, InvalidConfigurationException, CPAException {
     Configuration lConfiguration = new Configuration(mPropertiesFile, mProperties);
-    
+
     LogManager lLogManager = new LogManager(lConfiguration);
-      
+
     CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
-    
+
     TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
-    
+
     Predicates lPreconditions = new Predicates();
     Predicates lPostconditions = new Predicates();
-    
+
     //new Predicate(new CIdentifier("x"), Predicate.Comparison.LESS, new NaturalNumber(100))
-    
+
     ConditionalMonitor lConditionalMonitor = new ConditionalMonitor(lPreconditions, Identity.getInstance(), lPostconditions);
-    
+
     Automaton lAutomaton = Automaton.create(lConditionalMonitor, lTargetGraph);
-    
+
     System.out.println(lAutomaton);
   }
-  
+
   @Test
   public void test_04() throws IOException, InvalidConfigurationException, CPAException {
     Configuration lConfiguration = new Configuration(mPropertiesFile, mProperties);
-    
+
     LogManager lLogManager = new LogManager(lConfiguration);
-    
+
     CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
-    
+
     TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
-    
+
     Predicates lPreconditions = new Predicates();
     Predicates lPostconditions = new Predicates();
-    
+
     lPreconditions.add(new Predicate(new CIdentifier("x"), Predicate.Comparison.LESS, new NaturalNumber(100)));
-    
+
     ConditionalMonitor lConditionalMonitor = new ConditionalMonitor(lPreconditions, Identity.getInstance(), lPostconditions);
-    
+
     Automaton lAutomaton = Automaton.create(lConditionalMonitor, lTargetGraph);
-    
+
     System.out.println(lAutomaton);
   }
-  
+
   @Test
   public void test_05() throws IOException, InvalidConfigurationException, CPAException {
     Configuration lConfiguration = new Configuration(mPropertiesFile, mProperties);
-    
+
     LogManager lLogManager = new LogManager(lConfiguration);
-      
+
     CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
-    
+
     TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
-    
+
     Predicates lPreconditions = new Predicates();
     Predicates lPostconditions = new Predicates();
-    
+
     lPostconditions.add(new Predicate(new CIdentifier("x"), Predicate.Comparison.LESS, new NaturalNumber(100)));
-    
+
     ConditionalMonitor lConditionalMonitor = new ConditionalMonitor(lPreconditions, Identity.getInstance(), lPostconditions);
-    
+
     Automaton lAutomaton = Automaton.create(lConditionalMonitor, lTargetGraph);
-    
+
     System.out.println(lAutomaton);
   }
-  
+
   @Test
   public void test_06() throws IOException, InvalidConfigurationException, CPAException {
     Configuration lConfiguration = new Configuration(mPropertiesFile, mProperties);
 
     LogManager lLogManager = new LogManager(lConfiguration);
-      
+
     CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
-    
+
     TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
-    
+
     Predicates lPreconditions = new Predicates();
     Predicates lPostconditions = new Predicates();
-    
+
     lPreconditions.add(new Predicate(new CIdentifier("y"), Predicate.Comparison.LESS, new CIdentifier("z")));
     lPostconditions.add(new Predicate(new CIdentifier("x"), Predicate.Comparison.LESS, new NaturalNumber(100)));
-    
+
     ConditionalMonitor lConditionalMonitor = new ConditionalMonitor(lPreconditions, Identity.getInstance(), lPostconditions);
-    
+
     Automaton lAutomaton = Automaton.create(lConditionalMonitor, lTargetGraph);
-    
+
     System.out.println(lAutomaton);
   }
-  
+
   @Test
   public void test_07() throws IOException, InvalidConfigurationException, CPAException {
     Configuration lConfiguration = new Configuration(mPropertiesFile, mProperties);
-    
+
     LogManager lLogManager = new LogManager(lConfiguration);
-      
+
     CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
-    
+
     TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
-    
+
     Predicates lPreconditions = new Predicates();
     Predicates lPostconditions = new Predicates();
-    
+
     lPreconditions.add(new Predicate(new CIdentifier("y"), Predicate.Comparison.LESS, new CIdentifier("z")));
     lPostconditions.add(new Predicate(new CIdentifier("x"), Predicate.Comparison.LESS, new NaturalNumber(100)));
-    
+
     ConditionalMonitor lConditionalMonitor = new ConditionalMonitor(lPreconditions, Identity.getInstance(), lPostconditions);
-    
+
     Automaton lAutomaton = Automaton.create(new Concatenation(lConditionalMonitor, lConditionalMonitor), lTargetGraph);
-    
+
     System.out.println(lAutomaton);
   }
-  
+
 }

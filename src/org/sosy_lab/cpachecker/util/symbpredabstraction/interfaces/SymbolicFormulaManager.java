@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -41,14 +41,14 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
  * SymbolicFormulas
  */
 public interface SymbolicFormulaManager {
-  
+
     /**
      * Creates a formula representing a negation of the argument.
      * @param f a SymbolicFormula
      * @return (!f1)
      */
     public SymbolicFormula makeNot(SymbolicFormula f);
-  
+
     /**
      * Creates a formula representing an AND of the two arguments.
      * @param f1 a SymbolicFormula
@@ -72,7 +72,7 @@ public interface SymbolicFormulaManager {
      * @return (f1 <-> f2)
      */
     public SymbolicFormula makeEquivalence(SymbolicFormula f1, SymbolicFormula f2);
-    
+
     /**
      * Creates a formula representing "IF atom THEN f1 ELSE f2"
      * @param atom a SymbolicFormula
@@ -80,10 +80,10 @@ public interface SymbolicFormulaManager {
      * @param f2 a SymbolicFormula
      * @return (IF atom THEN f1 ELSE f2)
      */
-    
+
     public SymbolicFormula makeIfThenElse(SymbolicFormula atom,
         SymbolicFormula f1, SymbolicFormula f2);
-    
+
     /**
      * Creates a formula representing an AND of the two argument.
      * @param f1 a SymbolicFormula
@@ -108,10 +108,10 @@ public interface SymbolicFormulaManager {
     /**
      * Parse a formula given as a String in the common infix notation.
      * @return The same formula in the internal representation.
-     * @throws IllegalArgumentException If the string cannot be parsed. 
+     * @throws IllegalArgumentException If the string cannot be parsed.
      */
     public SymbolicFormula parseInfix(String s) throws IllegalArgumentException;
-    
+
     /**
      * builds a formula that represents the necessary variable assignments
      * to "merge" the two ssa maps. That is, for every variable X that has two
@@ -178,7 +178,7 @@ public interface SymbolicFormulaManager {
 
     /**
      * Create the variable representing a predicate for the given atom. There won't
-     * be any tracking of the correspondence between the atom and the variable, 
+     * be any tracking of the correspondence between the atom and the variable,
      * if it is not done by the caller of this method.
      */
     public SymbolicFormula createPredicateVariable(SymbolicFormula pAtom);

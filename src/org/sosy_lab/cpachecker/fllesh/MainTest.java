@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -37,31 +37,31 @@ public class MainTest {
   @Test
   public void testMain001() throws Exception {
     String[] lArguments = new String[2];
-    
+
     lArguments[0] = "COVER STATES(@ENTRY(f))";
     lArguments[1] = "test/programs/simple/functionCall.c";
-    
+
     Main.main(lArguments);
   }
-  
+
   @Test
   public void testMain002() throws Exception {
     String[] lArguments = new String[2];
-    
+
     lArguments[0] = "COVER EDGES(@ENTRY(f))";
     lArguments[1] = "test/programs/simple/functionCall.c";
-    
+
     Main.main(lArguments);
   }
 
   @Test
   public void testMain003() throws Exception {
     String[] lArguments = new String[2];
-    
+
     lArguments[0] = "COVER EDGES(UNION(@ENTRY(f), @ENTRY(main)))";
     lArguments[1] = "test/programs/simple/functionCall.c";
-    
+
     Main.main(lArguments);
   }
-  
+
 }

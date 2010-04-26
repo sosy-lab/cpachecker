@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -32,22 +32,22 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 /**
  * Representation of an assumption of the form \land_i. pc = l_i ==> \phi_i,
  * using a hash map of locations for efficient lookup.
- * 
+ *
  * @author g.theoduloz
  */
 public class AssumptionWithMultipleLocations
   extends AssumptionWithLocation
 {
-  
+
   // map from location to (conjunctive) list of invariants
   private final Map<CFANode, Assumption> map;
-  
+
   public AssumptionWithMultipleLocations() {
     map = new HashMap<CFANode, Assumption>();
   }
-  
+
   /**
-   * Return a copy of the given assumption (shallow copy of the map) 
+   * Return a copy of the given assumption (shallow copy of the map)
    */
   public AssumptionWithMultipleLocations copy()
   {
@@ -55,7 +55,7 @@ public class AssumptionWithMultipleLocations
     result.map.putAll(this.map);
     return result;
   }
-  
+
   /**
    * Return the assumption as a formula for a given node
    */
@@ -63,7 +63,7 @@ public class AssumptionWithMultipleLocations
   public Assumption getAssumption(CFANode node)
   {
     Assumption result = map.get(node);
-    
+
     if (result == null)
       return Assumption.TRUE;
     else
@@ -83,7 +83,7 @@ public class AssumptionWithMultipleLocations
         map.put(node, oldInvariant.and(assumption));
     }
   }
-  
+
   /**
    * Add a given assumption with location
    * (same as and, but with side-effect)
@@ -106,6 +106,6 @@ public class AssumptionWithMultipleLocations
   public Iterable<Entry<CFANode, Assumption>> getAssumptionsIterator() {
     return map.entrySet();
   }
-  
-    
+
+
 }

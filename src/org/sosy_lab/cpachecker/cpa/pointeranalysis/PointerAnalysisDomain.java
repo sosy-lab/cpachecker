@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -35,41 +35,41 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public class PointerAnalysisDomain implements AbstractDomain {
 
   private static class PointerAnalysisBottomElement implements AbstractElement {
-    
+
     @Override
     public boolean isError() {
       return false;
     }
-    
+
     @Override
     public String toString() {
       return "<PointerAnalysis BOTTOM>";
     }
   }
-  
+
   private static class PointerAnalysisTopElement implements AbstractElement {
-    
+
     @Override
     public boolean isError() {
       return false;
     }
-    
+
     @Override
     public String toString() {
       return "<PointerAnalysis TOP>";
     }
   }
-  
+
   private static class PointerAnalysisJoinOperator implements JoinOperator {
     @Override
     public AbstractElement join(AbstractElement element1,
                                 AbstractElement element2) throws CPAException {
-      
+
       PointerAnalysisElement pointerElement1 = (PointerAnalysisElement)element1;
       //PointerAnalysisElement pointerElement2 = (PointerAnalysisElement)element2;
-      
+
       PointerAnalysisElement pointerElementNew = pointerElement1.clone();
-      
+
       // TODO Join Operator
       /*
       Map<String, Pointer> pointers2   = pointerElement2.getGlobalPointers();
@@ -81,7 +81,7 @@ public class PointerAnalysisDomain implements AbstractDomain {
           pointersNew.put(name, pointers2.get(name).clone());
         }
       }
-      
+
       pointers2   = pointerElement2.getLocalPointers();
       pointersNew = pointerElementNew.getLocalPointers();
       for (String name : pointers2.keySet()) {
@@ -97,7 +97,7 @@ public class PointerAnalysisDomain implements AbstractDomain {
       return pointerElementNew;
     }
   }
-  
+
   private static class PointerAnalysisPartialOrder implements PartialOrder {
     @Override
     public boolean satisfiesPartialOrder(AbstractElement newElement,
@@ -113,19 +113,19 @@ public class PointerAnalysisDomain implements AbstractDomain {
       } else if (newElement == topElement) {
         return false;
       }
-      
+
       PointerAnalysisElement newPointerElement = (PointerAnalysisElement)newElement;
       PointerAnalysisElement reachedPointerElement = (PointerAnalysisElement)reachedElement;
-      
+
       return reachedPointerElement.isSubsetOf(newPointerElement);
     }
   }
-  
+
   private static final JoinOperator joinOperator = new PointerAnalysisJoinOperator();
   private static final PartialOrder partialOrder = new PointerAnalysisPartialOrder();
   private static final AbstractElement bottomElement = new PointerAnalysisBottomElement();
   private static final AbstractElement topElement = new PointerAnalysisTopElement();
-  
+
   @Override
   public JoinOperator getJoinOperator() {
     return joinOperator;

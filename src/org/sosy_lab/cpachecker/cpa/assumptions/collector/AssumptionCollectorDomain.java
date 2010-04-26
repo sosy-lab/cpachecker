@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -34,15 +34,15 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  * @author g.theoduloz
  */
 public class AssumptionCollectorDomain implements AbstractDomain {
-  
+
   private final AbstractElement top;
   private final AbstractElement bottom;
-  
+
   public AssumptionCollectorDomain(AbstractDomain wrappedDomain) {
     top = new AssumptionCollectorElement(wrappedDomain.getTopElement(), AssumptionWithLocation.TRUE, false);
     bottom = new AssumptionCollectorElement(wrappedDomain.getBottomElement(), AssumptionWithLocation.TRUE, true);
   }
-  
+
   @Override
   public AbstractElement getBottomElement() {
     return bottom;
@@ -81,5 +81,5 @@ public class AssumptionCollectorDomain implements AbstractDomain {
   public AbstractElement getTopElement() {
     return top;
   }
-  
+
 }

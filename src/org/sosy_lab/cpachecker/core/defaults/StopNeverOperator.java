@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -49,7 +49,7 @@ public class StopNeverOperator implements StopOperator {
   }
 
   private static final StopOperator instance = new StopNeverOperator();
-  
+
   public static StopOperator getInstance() {
     return instance;
   }

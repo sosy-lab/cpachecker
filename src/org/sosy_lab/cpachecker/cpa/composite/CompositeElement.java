@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -60,7 +60,7 @@ public class CompositeElement implements AbstractWrapperElement {
     }
     return false;
   }
-  
+
   @Override
   public boolean equals(Object other) {
     if (other == this) {
@@ -72,7 +72,7 @@ public class CompositeElement implements AbstractWrapperElement {
     }
 
     CompositeElement otherComposite = (CompositeElement) other;
-    
+
     return (otherComposite.elements.equals(this.elements))
         && otherComposite.getCallStack().equals(this.getCallStack());
   }
@@ -123,11 +123,11 @@ public class CompositeElement implements AbstractWrapperElement {
         if (result != null) {
           return result;
         }
-      }  
+      }
     }
     return null;
   }
-  
+
   @Override
   public AbstractElementWithLocation retrieveLocationElement() {
     if (elements.get(0) instanceof AbstractElementWithLocation) {
@@ -137,7 +137,7 @@ public class CompositeElement implements AbstractWrapperElement {
       return retrieveWrappedElement(AbstractElementWithLocation.class);
     }
   }
-  
+
   @Override
   public List<AbstractElement> getWrappedElements() {
     return elements;

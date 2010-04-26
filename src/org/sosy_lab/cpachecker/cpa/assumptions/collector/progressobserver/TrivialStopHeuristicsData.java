@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -30,20 +30,20 @@ package org.sosy_lab.cpachecker.cpa.assumptions.collector.progressobserver;
 public class TrivialStopHeuristicsData implements StopHeuristicsData {
 
   private final boolean bottom;
-  
+
   /** Instances are only accessible via TOP/BOTTOM */
   private TrivialStopHeuristicsData(boolean isBottom) {
     bottom = isBottom;
   }
-  
+
   public static final TrivialStopHeuristicsData TOP = new TrivialStopHeuristicsData(false);
   public static final TrivialStopHeuristicsData BOTTOM = new TrivialStopHeuristicsData(true);
-  
+
   @Override
   public boolean isBottom() {
     return bottom;
   }
-  
+
   @Override
   public boolean isTop() {
     return !bottom;
@@ -63,5 +63,5 @@ public class TrivialStopHeuristicsData implements StopHeuristicsData {
     else
       return "TOP";
   }
-  
+
 }

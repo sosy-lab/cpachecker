@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -31,7 +31,7 @@ import org.sosy_lab.common.Pair;
 
 
 public class Path extends LinkedList<Pair<ARTElement, CFAEdge>> {
-  
+
   private static final long serialVersionUID = -3223480082103314555L;
 
   @Override
@@ -45,7 +45,7 @@ public class Path extends LinkedList<Pair<ARTElement, CFAEdge>> {
       sb.append(pair.getSecond());
       sb.append("\n");
     }
-    
+
     return sb.toString();
   }
 

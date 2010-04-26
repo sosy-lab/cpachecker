@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -47,7 +47,7 @@ import com.google.common.collect.ImmutableMap;
 public class Configuration {
 
   private static final long serialVersionUID = -5910186668866464153L;
-  
+
   /** Split pattern to create string arrays */
   private static final Pattern ARRAY_SPLIT_PATTERN = Pattern.compile("\\s*,\\s*");
 
@@ -62,23 +62,23 @@ public class Configuration {
                      .put(long.class,    Long.class)
                      .put(short.class,   Short.class)
                      .build();
-          
+
 
   private final Properties properties;
-  
+
   private final String prefix;
-  
+
   private final Set<String> unusedProperties;
-  
+
   /**
    * Constructor for creating a Configuration with values set from a file.
    * Also allows for passing an optional map of settings overriding those from
    * the file.
-   * 
+   *
    * Either the fileName or the map of overrides may be null, not both. If the
    * fileName is null, this constructor behaves identically to the constructor
-   * {@link #Configuration(Map)}. 
-   * 
+   * {@link #Configuration(Map)}.
+   *
    * @param fileName The optional complete path to the configuration file.
    * @param pOverrides An optional set of option values.
    * @throws IOException If the file cannot be read.
@@ -87,15 +87,15 @@ public class Configuration {
     Preconditions.checkArgument(fileName != null || pOverrides != null);
     properties = new Properties();
     prefix = "";
-    
+
     if (fileName != null) {
       loadFile(fileName);
     }
-    
+
     if (pOverrides != null) {
       properties.putAll(pOverrides);
     }
-    
+
     unusedProperties = new HashSet<String>(properties.size());
     for (Object key : properties.keySet()) {
       unusedProperties.add((String)key);
@@ -112,13 +112,13 @@ public class Configuration {
     prefix = "";
 
     properties.putAll(pValues);
-    
+
     unusedProperties = new HashSet<String>(properties.size());
     for (Object key : properties.keySet()) {
       unusedProperties.add((String)key);
     }
   }
-  
+
   /**
    * Constructor for creating Configuration from a given configuration.
    * Allows to pass a prefix. Options with the prefix will override those with
@@ -129,7 +129,7 @@ public class Configuration {
   public Configuration(Configuration pConfig, String pPrefix) {
     Preconditions.checkNotNull(pConfig);
     Preconditions.checkNotNull(pPrefix);
-    
+
     properties = pConfig.properties;
     prefix = pPrefix.isEmpty() ? "" : pPrefix + ".";
     unusedProperties = pConfig.unusedProperties; // use same instance here!
@@ -155,7 +155,7 @@ public class Configuration {
   public String getProperty(String key) {
     String result = properties.getProperty(prefix + key);
     unusedProperties.remove(prefix + key);
-    
+
     if (result == null && !prefix.isEmpty()) {
       result = properties.getProperty(key);
       unusedProperties.remove(key);
@@ -173,7 +173,7 @@ public class Configuration {
     }
     return result;
   }
-  
+
   /**
    * If there are a number of properties for a given key, this method will split them
    * using {@link Configuration#DELIMS} and return the array of properties
@@ -188,12 +188,12 @@ public class Configuration {
   public Set<String> getUnusedProperties() {
     return Collections.unmodifiableSet(unusedProperties);
   }
-  
+
   /**
    * Inject the values of configuration options into an object.
    * The class of the object has to have a {@link Options} annotation, and each
    * field to set / method to call has to have a {@link Option} annotation.
-   * 
+   *
    * @param obj The object in which the configuration options should be injected.
    * @throws InvalidConfigurationException If the user specified configuration is wrong.
    */
@@ -203,37 +203,37 @@ public class Configuration {
 
   /**
    * @see #inject(Object)
-   * 
+   *
    * Use this method if the calling class is likely to be sub-classed, so that
    * the options of the calling class get injected, not the options of the
    * dynamic class type of the object.
-   * 
+   *
    * @param cls The static class type of the object to inject.
    */
   public void inject(Object obj, Class<?> cls) throws InvalidConfigurationException {
     Preconditions.checkNotNull(obj);
     Preconditions.checkNotNull(cls);
     Preconditions.checkArgument(cls.isAssignableFrom(obj.getClass()));
-    
+
     Options options = cls.getAnnotation(Options.class);
     Preconditions.checkNotNull(options, "Class must have @Options annotation.");
-    
+
     String prefix = options.prefix();
     if (!prefix.isEmpty()) {
       prefix += ".";
     }
-    
+
     // handle fields of the class
     Field[] fields = cls.getDeclaredFields();
     Field.setAccessible(fields, true); // override all final & private modifiers
-    
+
     for (Field field : fields) {
       Option option = field.getAnnotation(Option.class);
       if (option == null) {
         // ignore all non-option fields
         continue;
       }
-      
+
       String name = getOptionName(prefix, field, option);
       Class<?> type = field.getType();
 
@@ -241,24 +241,24 @@ public class Configuration {
       if (valueStr == null) {
         continue;
       }
-      
+
       Object value = convertValue(name, valueStr, type);
-      
+
       // set value to field
       try {
         field.set(obj, value);
-        
+
       } catch (IllegalArgumentException e) {
         assert false : "Type checks above were not successful apparently.";
       } catch (IllegalAccessException e) {
         assert false : "Accessibility setting failed silently above.";
       }
     }
-    
+
     // handle methods of the class
     Method[] methods = cls.getDeclaredMethods();
     Method.setAccessible(methods, true); // override all final & private modifiers
-    
+
     for (Method method : methods) {
       Option option = method.getAnnotation(Option.class);
       if (option == null) {
@@ -270,7 +270,7 @@ public class Configuration {
       if (parameters.length != 1) {
         throw new IllegalArgumentException("Method with @Option must have exactly one parameter!");
       }
-      
+
       String name = getOptionName(prefix, method, option);
       Class<?> type = parameters[0];
 
@@ -278,13 +278,13 @@ public class Configuration {
       if (valueStr == null) {
         continue;
       }
-      
+
       Object value = convertValue(name, valueStr, type);
-      
+
       // set value to field
       try {
         method.invoke(obj, value);
-        
+
       } catch (IllegalArgumentException e) {
         assert false : "Type checks above were not successful apparently.";
       } catch (IllegalAccessException e) {
@@ -295,18 +295,18 @@ public class Configuration {
         // (again) and catch it immediately.
         try {
           throw e.getCause();
-          
+
         } catch (IllegalArgumentException iae) {
           throw new InvalidConfigurationException("Invalid value in configuration file: \""
               + name + " = " + valueStr + '\"'
               + (iae.getMessage() != null ? " (" + iae.getMessage() + ")" : ""));
-        
+
         } catch (RuntimeException re) {
           throw re; // for these exceptions it is easy, we can just re-throw without declaring them
-        
+
         } catch (Error err) {
           throw err; // errors should never be caught!
-        
+
         } catch (Throwable t) {
           // We can't handle it correctly, but we can't throw it either.
           InvalidConfigurationException newException = new InvalidConfigurationException(
@@ -329,7 +329,7 @@ public class Configuration {
     name = prefix + name;
     return name;
   }
-  
+
   private String getOptionValue(String name, Option option, boolean alwaysUppercase) throws InvalidConfigurationException {
     // get value in String representation
     String valueStr = getProperty(name);
@@ -339,13 +339,13 @@ public class Configuration {
       }
       return null;
     }
-    
+
     valueStr = valueStr.trim();
-    
+
     if (alwaysUppercase || option.toUppercase()) {
       valueStr = valueStr.toUpperCase();
     }
-    
+
     // check if it is included in the allowed values list
     String[] allowedValues = option.values();
     if (allowedValues.length > 0) {
@@ -362,7 +362,7 @@ public class Configuration {
             + " (not listed as allowed value)");
       }
     }
-    
+
     // check if it matches the specification regexp
     String regexp = option.regexp();
     if (!regexp.isEmpty()) {
@@ -372,30 +372,30 @@ public class Configuration {
             + " (does not match RegExp \"" + regexp + "\")");
       }
     }
-    
+
     return valueStr;
   }
-  
+
   private Object convertValue(String name, String valueStr, Class<?> type) throws UnsupportedOperationException,
                      InvalidConfigurationException {
     // convert value to correct type
     Object result;
-    
+
     if (type.isArray()) {
       if (!type.equals(String[].class)) {
         throw new UnsupportedOperationException("Currently only arrays of type String are supported for configuration options");
       }
       result = ARRAY_SPLIT_PATTERN.split(valueStr);
-    
+
     } else if (type.isPrimitive()) {
       Class<?> wrapperType = PRIMITIVE_TYPES.get(type); // get wrapper type in order to use valueOf method
-      
+
       result = valueOf(wrapperType, name, valueStr);
-      
+
     } else if (type.isEnum()) {
       // all enums have valueOf method
       result = valueOf(type, name, valueStr);
-      
+
     } else if (type.equals(String.class)) {
       result = valueStr;
 
@@ -404,14 +404,14 @@ public class Configuration {
     }
     return result;
   }
-  
+
   private Object valueOf(Class<?> type, String name, String value) throws InvalidConfigurationException {
     try {
       Method valueOf = type.getMethod("valueOf", String.class);
       return valueOf.invoke(null, value);
-      
+
     } catch (NoSuchMethodException e) {
-      throw new AssertionError("Primitive type class without valueOf(String) method!"); 
+      throw new AssertionError("Primitive type class without valueOf(String) method!");
     } catch (IllegalAccessException e) {
       throw new AssertionError("Primitive type class without accessible valueOf(String) method!");
     } catch (InvocationTargetException e) {

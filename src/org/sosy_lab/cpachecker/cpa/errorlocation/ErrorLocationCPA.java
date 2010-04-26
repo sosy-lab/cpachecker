@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -34,35 +34,35 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 public class ErrorLocationCPA extends AbstractCPA {
 
   private static class ErrorLocationCPAFactory extends AbstractCPAFactory {
-    
+
     @Override
     public ConfigurableProgramAnalysis createInstance() {
       return new ErrorLocationCPA();
     }
   }
-  
+
   public static CPAFactory factory() {
     return new ErrorLocationCPAFactory();
   }
-  
+
   private static enum ErrorLocationElement implements AbstractElement {
-    
+
     NORMAL(false),
     ERROR(true),
     TOP(true),
     BOTTOM(false);
-    
+
     private final boolean isError;
-    
+
     private ErrorLocationElement(boolean isError) {
       this.isError = isError;
     }
-    
+
     @Override
     public String toString() {
       return "<" + super.toString() + ">";
     }
-    
+
     @Override
     public boolean isError() {
       return isError;
@@ -70,7 +70,7 @@ public class ErrorLocationCPA extends AbstractCPA {
   }
 
   private static final TransferRelation transferRelation = new ErrorLocationTransferRelation(ErrorLocationElement.ERROR);
-  
+
   private ErrorLocationCPA() {
     super("sep", "sep", transferRelation);
   }

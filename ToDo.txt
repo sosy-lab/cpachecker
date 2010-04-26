@@ -48,7 +48,7 @@ Conceptual suggestions:
 
 - [MT] move getInitialElement to its own class
   * method makeInitialElement (AE, AEwLoc, must be static)
- 
+
 - [MT] Instead of the String parameters to set sep or join for merge and stop just
   create multiple CPA classes that fix the operator ** did not understand this, erkan **
 
@@ -150,12 +150,12 @@ Handled Jobs
 
 - [MT] Remove isBottomElement(x) and replace by call to satisfiesPartialOrder(x,
   domain.getBottomElement()) -- [Erkan]
-  
+
 - [MT] Remove getAbstractDomain in those cases where it is now not needed anymore -- [Erkan]
 
 - [AH] stop operator in LocationCPA is very time consuming (must iterate over
   all elements of reached) -- [Erkan] Fixed by introducing LocationMappedReachedSet
-  
+
 - [MT] CFAFunctionDefinitionNode.getContainingFileName is used only 2 times in a
   not-so-well maintained CPA and refers to property analysis.programs, which is
   not defined in any of the current config files. Even when I added the

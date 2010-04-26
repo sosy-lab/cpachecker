@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -51,13 +51,13 @@ public class SymbPredAbsCPAStatistics implements Statistics {
 
     @Option(name="cpas.symbpredabs.predmap.export")
     private boolean exportPredMap = true;
-    
+
     @Option(name="output.path")
     private String outputDirectory = "test/output/";
-  
+
     @Option(name="cpas.symbpredabs.predmap.file")
     private String predMapFile = "predmap.txt";
-  
+
     private final SymbPredAbsCPA cpa;
 
     public SymbPredAbsCPAStatistics(SymbPredAbsCPA cpa) {
@@ -75,21 +75,21 @@ public class SymbPredAbsCPAStatistics implements Statistics {
         (MathsatSymbPredAbsFormulaManager<?>)cpa.getFormulaManager();
 
       Multimap<CFANode, Predicate> predicates = HashMultimap.create();
-      
+
       for (AbstractElement e : reached) {
         Precision precision = reached.getPrecision(e);
         if (precision != null && precision instanceof WrapperPrecision) {
-          
+
           SymbPredAbsPrecision preds = ((WrapperPrecision)precision).retrieveWrappedPrecision(SymbPredAbsPrecision.class);
           predicates.putAll(preds.getPredicateMap());
         }
       }
-      
+
       Set<Predicate> allPreds = new HashSet<Predicate>(predicates.values());
       Collection<CFANode> allLocs = predicates.keySet();
       int maxPredsPerLocation = 0;
       int totPredsUsed = 0;
-      
+
       for (CFANode l : allLocs) {
         Collection<Predicate> p = predicates.get(l);
         maxPredsPerLocation = Math.max(maxPredsPerLocation, p.size());
@@ -108,7 +108,7 @@ public class SymbPredAbsCPAStatistics implements Statistics {
             Pair<? extends SymbolicFormula, ? extends SymbolicFormula> d = amgr.getPredicateVarAndAtom(p);
             pw.format("%s ==> %s <-> %s\n", p, d.getFirst(), d.getSecond());
           }
-          
+
           pw.println("\nFOR EACH LOCATION:");
           for (CFANode l : allLocs) {
             Collection<Predicate> c = predicates.get(l);

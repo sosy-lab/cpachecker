@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -44,7 +44,7 @@ public abstract class AbstractSingleWrapperCPA implements ConfigurableProgramAna
   protected abstract static class AbstractSingleWrapperCPAFactory extends AbstractCPAFactory {
 
     private ConfigurableProgramAnalysis child = null;
-    
+
     public ConfigurableProgramAnalysis getChild() {
       Preconditions.checkState(child != null, "Child CPA object needed to create CPA!");
 
@@ -55,24 +55,24 @@ public abstract class AbstractSingleWrapperCPA implements ConfigurableProgramAna
     public CPAFactory setChild(ConfigurableProgramAnalysis pChild) {
       Preconditions.checkNotNull(pChild);
       Preconditions.checkState(child == null, "setChild called twice on CPAFactory");
-      
+
       child = pChild;
       return this;
     }
   }
-  
+
   private final ConfigurableProgramAnalysis wrappedCpa;
-  
+
   public AbstractSingleWrapperCPA(ConfigurableProgramAnalysis pCpa) {
     Preconditions.checkNotNull(pCpa);
-    
+
     wrappedCpa = pCpa;
   }
-  
+
   public ConfigurableProgramAnalysis getWrappedCpa() {
     return wrappedCpa;
   }
-  
+
   @Override
   public Precision getInitialPrecision(CFAFunctionDefinitionNode pNode) {
     return wrappedCpa.getInitialPrecision(pNode);

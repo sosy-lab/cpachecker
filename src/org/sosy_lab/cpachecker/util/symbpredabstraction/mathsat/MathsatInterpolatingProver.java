@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -41,10 +41,10 @@ public class MathsatInterpolatingProver implements InterpolatingTheoremProver<In
 
     @Option
     private boolean useIntegers = false;
-    
+
     @Option
     private boolean useDtc = false;
-  
+
     private final long msatEnv;
     private long env;
     private final boolean useSharedEnv;
@@ -92,7 +92,7 @@ public class MathsatInterpolatingProver implements InterpolatingTheoremProver<In
     @Override
     public Integer addFormula(SymbolicFormula f) {
         assert env != 0;
-      
+
         long t = ((MathsatSymbolicFormula)f).getTerm();
         if (!useSharedEnv) {
             long t2;
@@ -120,7 +120,7 @@ public class MathsatInterpolatingProver implements InterpolatingTheoremProver<In
     @Override
     public SymbolicFormula getInterpolant(List<Integer> formulasOfA) {
         assert env != 0;
-      
+
         int[] groupsOfA = new int[formulasOfA.size()];
         int i = 0;
         for (Integer f : formulasOfA) {

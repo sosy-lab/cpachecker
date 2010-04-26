@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -22,7 +22,7 @@
  *    http://cpachecker.sosy-lab.org
  */
 /**
- * 
+ *
  */
 package org.sosy_lab.cpachecker.core.defaults;
 
@@ -42,24 +42,24 @@ public class EqualityJoinOperator implements JoinOperator {
 
   private final PartialOrder mPartialOrder;
   private final AbstractElement mTopElement;
-  
+
   public EqualityJoinOperator(AbstractDomain pDomain) {
     assert(pDomain != null);
-    
+
     this.mPartialOrder = pDomain.getPartialOrder();
     this.mTopElement = pDomain.getTopElement();
   }
-  
+
   @Override
   public AbstractElement join(AbstractElement element1, AbstractElement element2) throws CPAException {
     if (this.mPartialOrder.satisfiesPartialOrder(element1, element2)) {
       return element2;
     }
-    
+
     if (this.mPartialOrder.satisfiesPartialOrder(element2, element1)) {
       return element1;
     }
-    
+
     return this.mTopElement;
   }
 

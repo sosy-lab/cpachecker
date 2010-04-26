@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -24,6 +24,6 @@
 package org.sosy_lab.cpachecker.core.interfaces;
 
 public interface AbstractElement {
-  
+
   public boolean isError();
 }

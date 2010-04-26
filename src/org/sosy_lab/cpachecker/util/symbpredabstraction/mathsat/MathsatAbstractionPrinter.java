@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -70,8 +70,8 @@ public class MathsatAbstractionPrinter {
           ((MathsatSymbolicFormula)predDef).getTerm(),
           imp);
     }
-    
-    
+
+
     public void printMsatFormat(long curStateTerm, long edgeFormulaTerm,
                                 long predDef, long[] importantSymbols) {
         String fileName = baseFileName + "." + curNum + ".msat";
@@ -115,7 +115,7 @@ public class MathsatAbstractionPrinter {
           ((MathsatSymbolicFormula)predDef).getTerm(),
           imp);
     }
-    
+
     public void printNusmvFormat(long curStateTerm, long edgeFormulaTerm,
                                  long predDef, long[] importantSymbols) {
         Stack<Long> toProcess = new Stack<Long>();

@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -57,7 +57,7 @@ public interface AbstractFormulaManager {
    * @return a representation of logical falseness
    */
   public AbstractFormula makeFalse();
-  
+
   /**
    * Creates a formula representing a negation of the argument
    * @param f an AbstractFormula
@@ -80,20 +80,20 @@ public interface AbstractFormulaManager {
    * @return (f1 | f2)
    */
   public AbstractFormula makeOr(AbstractFormula f1, AbstractFormula f2);
-  
+
   /**
-   * Creates a new variable and returns the predicate representing it. 
+   * Creates a new variable and returns the predicate representing it.
    * @return a new predicate
    */
   public Predicate createPredicate();
-  
+
   /**
    * An abstract formula consists of the form
    * if (predicate) then formula1 else formula2
-   * This method decomposes a formula into these three parts. 
+   * This method decomposes a formula into these three parts.
    * @param pF an abstract formula
    * @return a triple with the condition predicate and the formulas for the true
-   *         branch and the else branch 
+   *         branch and the else branch
    */
   public Triple<Predicate, AbstractFormula, AbstractFormula>
       getIfThenElse(AbstractFormula f);

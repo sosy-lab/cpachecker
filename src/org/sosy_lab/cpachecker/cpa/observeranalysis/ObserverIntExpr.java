@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -32,12 +32,12 @@ import java.util.regex.Pattern;
  * @author rhein
  */
 abstract class ObserverIntExpr {
-    
+
   private ObserverIntExpr() {} //nobody can use this
-  
+
   abstract int eval(ObserverExpressionArguments pArgs);
-  
-  
+
+
   /** Stores a constant integer.
    * @author rhein
    */
@@ -49,16 +49,16 @@ abstract class ObserverIntExpr {
     @Override public int eval(ObserverExpressionArguments pArgs) {return i; }
   }
 
-  
-  /** Loads an {@link ObserverVariable} from the VariableMap and returns its int value. 
+
+  /** Loads an {@link ObserverVariable} from the VariableMap and returns its int value.
    * @author rhein
    */
   static class VarAccess extends ObserverIntExpr {
-    
+
     private final String varId;
 
     private static Pattern TRANSITION_VARS_PATTERN = Pattern.compile("\\$\\d+");
-    
+
     public VarAccess(String pId) {
       if (pId.startsWith("$$")) {
         // throws a NumberFormatException and this is good!
@@ -66,7 +66,7 @@ abstract class ObserverIntExpr {
       }
       this.varId = pId;
     }
-    
+
     @Override
     public int eval(ObserverExpressionArguments pArgs) {
       if (TRANSITION_VARS_PATTERN.matcher(varId).matches()) { // $1  ObserverTransitionVariables
@@ -91,57 +91,57 @@ abstract class ObserverIntExpr {
         return pArgs.getObserverVariables().get(varId).getValue(); // only ints supported so far
       }
     }
-    
+
     @Override
     public String toString() {
       return varId;
     }
   }
-  
-  
-  /** Addition of {@link ObserverIntExpr} instances. 
+
+
+  /** Addition of {@link ObserverIntExpr} instances.
    * @author rhein
    */
   static class Plus extends ObserverIntExpr {
-    
+
     private final ObserverIntExpr a;
     private final ObserverIntExpr b;
-    
+
     public Plus(ObserverIntExpr pA, ObserverIntExpr pB) {
       this.a = pA;
       this.b = pB;
     }
-    
+
     @Override
     public int eval(ObserverExpressionArguments pArgs) {
       return a.eval(pArgs) + b.eval(pArgs);
     }
-    
+
     @Override
     public String toString() {
       return "(" + a + " + " + b + ")";
     }
   }
-  
-  
+
+
   /** Subtraction of {@link ObserverIntExpr} instances.
    * @author rhein
    */
   static class Minus extends ObserverIntExpr {
-    
+
     private final ObserverIntExpr a;
     private final ObserverIntExpr b;
-    
+
     public Minus(ObserverIntExpr pA, ObserverIntExpr pB) {
       this.a = pA;
       this.b = pB;
     }
-    
+
     @Override
     public int eval(ObserverExpressionArguments pArgs) {
       return a.eval(pArgs) - b.eval(pArgs);
     }
-    
+
     @Override
     public String toString() {
       return "(" + a + " - " + b + ")";

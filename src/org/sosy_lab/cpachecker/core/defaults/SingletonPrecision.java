@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -22,7 +22,7 @@
  *    http://cpachecker.sosy-lab.org
  */
 /**
- * 
+ *
  */
 package org.sosy_lab.cpachecker.core.defaults;
 
@@ -34,12 +34,12 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
  */
 public class SingletonPrecision implements Precision {
   private final static SingletonPrecision mInstance = new SingletonPrecision();
-  
+
   public static SingletonPrecision getInstance() {
     return mInstance;
   }
-  
+
   private SingletonPrecision() {
-    
+
   }
 }

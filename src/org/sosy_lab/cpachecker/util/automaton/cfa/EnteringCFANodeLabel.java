@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -22,7 +22,7 @@
  *    http://cpachecker.sosy-lab.org
  */
 /**
- * 
+ *
  */
 package org.sosy_lab.cpachecker.util.automaton.cfa;
 
@@ -37,32 +37,32 @@ import org.sosy_lab.cpachecker.util.automaton.Label;
 public class EnteringCFANodeLabel implements Label<CFAEdge> {
 
   private CFANode mNode;
-  
+
   public EnteringCFANodeLabel(CFANode pNode) {
     assert(pNode != null);
-    
+
     mNode = pNode;
   }
-  
+
   @Override
   public boolean matches(CFAEdge pE) {
     assert(pE != null);
-    
+
     return mNode.equals(pE.getSuccessor());
   }
-  
+
   @Override
   public boolean equals(Object pOther) {
     if (pOther == null) {
       return false;
     }
-    
+
     if (!(pOther instanceof EnteringCFANodeLabel)) {
       return false;
     }
-    
+
     EnteringCFANodeLabel lOther = (EnteringCFANodeLabel)pOther;
-    
+
     return mNode.equals(lOther.mNode);
   }
 
@@ -70,7 +70,7 @@ public class EnteringCFANodeLabel implements Label<CFAEdge> {
   public int hashCode() {
     return mNode.hashCode();
   }
-  
+
   @Override
   public String toString() {
     return "MATCH(" + mNode.toString() + ")";

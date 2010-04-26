@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -38,9 +38,9 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
  * @author g.theoduloz
  */
 public class ProgressObserverElement implements AbstractElement, AvoidanceReportingElement {
-  
+
   private final List<StopHeuristicsData> data;
-  
+
   /** Bottom */
   public static final ProgressObserverElement getBottom(ProgressObserverCPA cpa)
   {
@@ -50,7 +50,7 @@ public class ProgressObserverElement implements AbstractElement, AvoidanceReport
     }
     return new ProgressObserverElement(data);
   }
-    
+
   /** Top */
   public static final ProgressObserverElement getTop(ProgressObserverCPA cpa)
   {
@@ -60,13 +60,13 @@ public class ProgressObserverElement implements AbstractElement, AvoidanceReport
     }
     return new ProgressObserverElement(data);
   }
-  
+
   /** Initial */
   public static final ProgressObserverElement getInitial(ProgressObserverCPA cpa, CFANode node)
   {
     return new ProgressObserverElement(cpa, node);
   }
-  
+
   @Override
   public boolean isError() {
     return false;
@@ -75,56 +75,56 @@ public class ProgressObserverElement implements AbstractElement, AvoidanceReport
   public ProgressObserverElement(ProgressObserverCPA a, CFANode node)
   {
     this(new ArrayList<StopHeuristicsData>(a.getEnabledHeuristics().size()));
-    
+
     for (StopHeuristics<? extends StopHeuristicsData> h : a.getEnabledHeuristics()) {
       data.add(h.getInitialData(node));
     }
   }
-  
+
   ProgressObserverElement(List<StopHeuristicsData> d)
   {
     data = d;
   }
-  
+
   public List<StopHeuristicsData> getComponents()
   {
     return data;
   }
-  
+
   /** Is this element less than the given element? */
   public boolean isLessThan(ProgressObserverElement other)
   {
     Iterator<StopHeuristicsData> it1 = data.iterator();
     Iterator<StopHeuristicsData> it2 = other.data.iterator();
-    
+
     while (it1.hasNext()) {
       assert it2.hasNext();
       if (!it1.next().isLessThan(it2.next()))
         return false;
     }
     assert !it2.hasNext();
-    
+
     return true;
   }
-  
+
   @Override
   public boolean equals(Object other) {
     if (other == this) return true;
-    
+
     if (other instanceof ProgressObserverElement) {
       ProgressObserverElement o = (ProgressObserverElement) other;
       boolean bottom1 = false;
       boolean bottom2 = false;
       boolean mismatch = false;
-      
+
       Iterator<StopHeuristicsData> it1 = data.iterator();
       Iterator<StopHeuristicsData> it2 = o.data.iterator();
       while (it1.hasNext()) {
         if (!it2.hasNext()) return false;
-        
+
         StopHeuristicsData d1 = it1.next();
         StopHeuristicsData d2 = it2.next();
-        
+
         if (!bottom1 && d1.isBottom()) {
           if (bottom2 || d2.isBottom()) {
             return true;
@@ -150,7 +150,7 @@ public class ProgressObserverElement implements AbstractElement, AvoidanceReport
       return false;
     }
   }
-  
+
   @Override
   public String toString() {
     StringBuffer buffer = new StringBuffer();
@@ -172,8 +172,8 @@ public class ProgressObserverElement implements AbstractElement, AvoidanceReport
       if (d.isBottom())
         return true;
     }
-    
+
     return false;
   }
- 
+
 }

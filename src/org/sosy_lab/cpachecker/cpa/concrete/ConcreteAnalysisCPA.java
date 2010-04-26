@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -38,29 +38,29 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 public class ConcreteAnalysisCPA implements org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis {
 
   private static class ConcreteAnalysisCPAFactory extends AbstractCPAFactory {
-    
+
     @Override
     public ConfigurableProgramAnalysis createInstance() {
       return new ConcreteAnalysisCPA();
     }
   }
-  
+
   public static CPAFactory factory() {
     return new ConcreteAnalysisCPAFactory();
   }
-  
+
   private ConcreteAnalysisDomain mAbstractDomain;
   private MergeOperator mMergeOperator;
   private StopOperator mStopOperator;
   private ConcreteAnalysisTransferRelation mTransferRelation;
   private PrecisionAdjustment mPrecisionAdjustment;
-  
+
   public ConcreteAnalysisCPA() {
-    
+
     this.mAbstractDomain = ConcreteAnalysisDomain.getInstance();
-    
+
     this.mTransferRelation = new ConcreteAnalysisTransferRelation(this.mAbstractDomain);
-    
+
     this.mMergeOperator = MergeSepOperator.getInstance();
     this.mStopOperator = new StopSepOperator(this.mAbstractDomain.getPartialOrder());
     this.mPrecisionAdjustment = StaticPrecisionAdjustment.getInstance();

@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -36,11 +36,11 @@ public abstract class AbstractFlleshCFAEdgeVisitor<T> extends AbstractCFAEdgeVis
       if (pEdge instanceof InternalSelfLoop) {
         return visit((InternalSelfLoop)pEdge);
       }
-      
+
       return visit((BlankEdge)pEdge);
     }
-    
+
     return super.visit(pEdge);
   }
-  
+
 }

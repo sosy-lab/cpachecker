@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -47,10 +47,10 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public class CPABuilder {
 
   private static final String CPA_CLASS_PREFIX = "org.sosy_lab.cpachecker.";
-  
+
   @Option(name="cpa")
   private String cpaName = CompositeCPA.class.getCanonicalName();
-  
+
   private final Configuration config;
   private final LogManager logger;
 
@@ -66,36 +66,36 @@ public class CPABuilder {
 
   private ConfigurableProgramAnalysis buildCPAs(String optionValue, String optionName, Set<String> usedAliases) throws InvalidConfigurationException, CPAException {
     Preconditions.checkNotNull(optionValue);
-    
+
     // parse option (may be of syntax "classname alias"
     String[] optionParts = optionValue.trim().split("\\s+");
     String cpaName = optionParts[0];
-    String cpaAlias = getCPAAlias(optionValue, optionName, optionParts, cpaName);      
-    
+    String cpaAlias = getCPAAlias(optionValue, optionName, optionParts, cpaName);
+
     if (!usedAliases.add(cpaAlias)) {
       throw new InvalidConfigurationException("Alias " + cpaAlias + " used twice for a CPA.");
     }
-    
+
     // first get instance of appropriate factory
-    
+
     Class<?> cpaClass = getCPAClass(optionName, cpaName);
 
     Method factoryMethod = getFactoryMethod(cpaName, cpaClass);
 
     CPAFactory factory = getFactoryInstance(cpaName, factoryMethod);
-    
+
     // now use factory to get an instance of the CPA
-    
+
     factory.setConfiguration(new Configuration(config, cpaAlias));
     factory.setLogger(logger);
-    
+
     createAndSetChildrenCPAs(cpaName, cpaAlias, factory, usedAliases);
-    
+
     // finally call createInstance
     ConfigurableProgramAnalysis cpa;
     try {
       cpa = factory.createInstance();
-    } catch (IllegalStateException e) { 
+    } catch (IllegalStateException e) {
       throw new InvalidConfigurationException(e.getMessage());
     }
     return cpa;
@@ -103,7 +103,7 @@ public class CPABuilder {
 
   private String getCPAAlias(String optionValue, String optionName,
       String[] optionParts, String cpaName) throws InvalidConfigurationException {
-    
+
     if (optionParts.length == 1) {
       // no user-specified alias, use last part of class name
       int dotIndex = cpaName.lastIndexOf('.');
@@ -111,7 +111,7 @@ public class CPABuilder {
 
     } else if (optionParts.length == 2) {
       return optionParts[1];
-    
+
     } else {
       throw new InvalidConfigurationException("Option " + optionName + " contains invalid CPA specification \"" + optionValue + "\"!");
     }
@@ -163,11 +163,11 @@ public class CPABuilder {
       logger.logException(Level.FINE, cause, "CPA factory methods should never throw an exception!");
       throw new CPAException("Cannot create CPA because of unexpected exception: " + cause.getMessage());
     }
-    
+
     if ((factoryObj == null) || !(factoryObj instanceof CPAFactory)) {
       throw new CPAException("The factory method of a CPA has to return an instance of CPAFactory!");
     }
-    
+
     return (CPAFactory)factoryObj;
   }
 
@@ -177,28 +177,28 @@ public class CPABuilder {
     String childrenOptionName = cpaAlias + ".cpas";
     String childCpaName = config.getProperty(childOptionName);
     String childrenCpaNames = config.getProperty(childrenOptionName);
-    
+
     if (childCpaName != null) {
       // only one child CPA
       if (childrenCpaNames != null) {
         throw new InvalidConfigurationException("Ambiguous configuration: both "
             + childOptionName + " and " + childrenOptionName + " are specified!");
       }
-      
+
       try {
         factory.setChild(buildCPAs(childCpaName, childOptionName, usedAliases));
       } catch (UnsupportedOperationException e) {
         throw new InvalidConfigurationException(cpaName + " is no wrapper CPA, but option " + childOptionName + " was specified!");
       }
-    
+
     } else if (childrenCpaNames != null) {
       // several children CPAs
       ImmutableList.Builder<ConfigurableProgramAnalysis> childrenCpas = ImmutableList.builder();
-      
+
       for (String currentChildCpaName : childrenCpaNames.split("\\s*,\\s*")) {
         childrenCpas.add(buildCPAs(currentChildCpaName, childrenOptionName, usedAliases));
       }
-      
+
       try {
         factory.setChildren(childrenCpas.build());
       } catch (UnsupportedOperationException e) {

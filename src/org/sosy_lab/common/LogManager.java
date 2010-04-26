@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -48,14 +48,14 @@ import org.sosy_lab.common.configuration.Options;
 
 /**
  * @author Gregor Endler
- * 
+ *
  * Class providing all logging functionality.
- * 
+ *
  * The log levels used are the ones from java.util.logging.
  * SEVERE, WARNING and INFO are used normally, the first two denoting (among other things)
  * exceptions. FINE, FINER, FINEST, and ALL correspond to main application, central algorithm,
  * component level, and debug level respectively.
- * 
+ *
  * The main advantage of this class is that the arguments to the log methods
  * are only converted to strings, if the message is really logged.
  */
@@ -64,22 +64,22 @@ public class LogManager {
 
   @Option(name="log.level", toUppercase=true, values={"OFF", "SEVERE", "WARNING", "INFO", "FINE", "FINER", "FINEST", "ALL"})
   private String logLevelStr = "OFF";
-  
+
   @Option(name="log.consoleLevel", toUppercase=true, values={"OFF", "SEVERE", "WARNING", "INFO", "FINE", "FINER", "FINEST", "ALL"})
   private String consoleLevelStr = "INFO";
-  
+
   @Option(name="log.fileExclude", toUppercase=true)
   private String[] excludeLevelsFileStr = {};
-  
+
   @Option(name="log.consoleExclude", toUppercase=true)
   private String[] excludeLevelsConsoleStr = {};
-  
+
   @Option(name="output.path")
   private String outputDirectory = "test/output/";
-  
+
   @Option(name="log.file")
   private String outputFile = "CPALog.txt";
-  
+
   private static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS");
   private static final Joiner messageFormat = Joiner.on(' ').useForNull("null");
   private final Logger logger;
@@ -90,7 +90,7 @@ public class LogManager {
   public static class StringHandler extends Handler {
 
     private final StringBuilder sb = new StringBuilder();
-    
+
     @Override
     public void close() throws SecurityException {
       // ignore
@@ -125,18 +125,18 @@ public class LogManager {
         reportError(null, ex, ErrorManager.WRITE_FAILURE);
       }
     }
-    
+
     public String getLog() {
       return sb.toString();
     }
-    
+
 
     public void clear() {
       sb.setLength(0);
       sb.trimToSize(); // free memory
     }
   }
-  
+
   // class to handle formatting for file output
   private static class FileLogFormatter extends Formatter {
     @Override
@@ -144,9 +144,9 @@ public class LogManager {
       String[] className = lr.getSourceClassName().split("\\.");
       String[] methodName = lr.getSourceMethodName().split("\\.");
       return dateFormat.format(lr.getMillis()) + "\t "
-      + "level: " + lr.getLevel().toString() + "\t " 
-      + className[0]  + "."  
-      + methodName[0]  + "\t " 
+      + "level: " + lr.getLevel().toString() + "\t "
+      + className[0]  + "."
+      + methodName[0]  + "\t "
       + lr.getMessage() + "\n\n";
     }
   }
@@ -157,22 +157,22 @@ public class LogManager {
     public String format(LogRecord lr) {
       String[] className = lr.getSourceClassName().split("\\.");
       String[] methodName = lr.getSourceMethodName().split("\\.");
-      return lr.getMessage() + " (" 
-      + className[0]  + "."  
-      + methodName[0]  + ", " 
+      return lr.getMessage() + " ("
+      + className[0]  + "."
+      + methodName[0]  + ", "
       + lr.getLevel().toString()
       + ")\n\n";
     }
   }
-  
+
   private static class LogLevelFilter implements Filter {
-    
+
     private final List<Level> excludeLevels;
-    
+
     public LogLevelFilter(List<Level> excludeLevels) {
       this.excludeLevels = excludeLevels;
     }
-    
+
     @Override
     public boolean isLoggable(LogRecord pRecord) {
       return !(excludeLevels.contains(pRecord.getLevel()));
@@ -186,16 +186,16 @@ public class LogManager {
   /**
    * Constructor which allows to customize where the console output of the
    * LogManager is written to. Suggestions for the consoleOutputHandler are
-   * StringHandler or OutputStreamHandler. 
-   * 
-   * The level, filter and formatter of that handler are set by this class. 
-   * 
+   * StringHandler or OutputStreamHandler.
+   *
+   * The level, filter and formatter of that handler are set by this class.
+   *
    * @param consoleOutputHandler A handler, may not be null.
    */
   public LogManager(Configuration config, Handler consoleOutputHandler) throws InvalidConfigurationException {
     Preconditions.checkNotNull(consoleOutputHandler);
     config.inject(this);
-    
+
     Level logFileLevel = Level.parse(logLevelStr);
     Level logConsoleLevel = Level.parse(consoleLevelStr);
 
@@ -205,31 +205,31 @@ public class LogManager {
     } else {
       logLevel = logFileLevel;
     }
-    
+
     logger = Logger.getAnonymousLogger();
     logger.setLevel(logLevel);
     logger.setUseParentHandlers(false);
-    
+
     if (logLevel == Level.OFF) {
       return;
     }
-    
+
     // create console logger
     setupHandler(consoleOutputHandler, new ConsoleLogFormatter(), logConsoleLevel, excludeLevelsConsoleStr);
-    
+
     // create file logger
     if (logFileLevel != Level.OFF) {
       try {
         Handler outfileHandler = new FileHandler(new File(outputDirectory, outputFile).getAbsolutePath(), false);
-        
+
         setupHandler(outfileHandler, new FileLogFormatter(), logFileLevel, excludeLevelsFileStr);
-      
+
       } catch (IOException e) {
         // redirect log messages to console
         if (logConsoleLevel.intValue() > logFileLevel.intValue()) {
           logger.getHandlers()[0].setLevel(logFileLevel);
         }
-        
+
         logger.log(Level.WARNING, "Could not open log file " + e.getMessage() + ", redirecting log output to console");
       }
     }
@@ -238,7 +238,7 @@ public class LogManager {
   private void setupHandler(Handler handler, Formatter formatter, Level level, String[] excludeLevelsStr) {
     //build up list of Levels to exclude from logging
     if (excludeLevelsStr.length != 0) {
-      ImmutableList.Builder<Level> excludeLevels = ImmutableList.builder(); 
+      ImmutableList.Builder<Level> excludeLevels = ImmutableList.builder();
       for (String s : excludeLevelsStr) {
         excludeLevels.add(Level.parse(s));
       }
@@ -246,25 +246,25 @@ public class LogManager {
     } else {
       handler.setFilter(null);
     }
-    
+
     //handler with format for the console logger
     handler.setFormatter(formatter);
 
     //log only records of priority equal to or greater than the level defined in the configuration
     handler.setLevel(level);
-    
+
     logger.addHandler(handler);
   }
 
   /**
    * Returns true if a message with the given log level would be logged.
-   * @param priority the log level 
+   * @param priority the log level
    * @return whether this log level is enabled
    */
   public boolean wouldBeLogged(Level priority) {
     return (logger.isLoggable(priority));
   }
-  
+
   /**
    * Logs any message occurring during program execution.
    * @param priority the log level for the message
@@ -282,8 +282,8 @@ public class LogManager {
    */
   public void log(Level priority, int callStackOffset, Object... args) {
 
-    //Since some toString() methods may be rather costly, only log if the level is 
-    //sufficiently high. 
+    //Since some toString() methods may be rather costly, only log if the level is
+    //sufficiently high.
     if (wouldBeLogged(priority))  {
 
       String[] argsStr = new String[args.length];
@@ -293,11 +293,11 @@ public class LogManager {
         argsStr[i] = arg.length() <= 10000 ? arg : "<ARGUMENT OMITTED BECAUSE " + arg.length() + " CHARACTERS LONG>";
         size += argsStr[i].length();
       }
-      
+
       LogRecord record = new LogRecord(priority, messageFormat.join(argsStr));
       StackTraceElement[] trace = Thread.currentThread().getStackTrace();
       callStackOffset += 2; // add 2 for this method and the getStackTrace method
-      
+
       record.setSourceClassName(trace[callStackOffset].getFileName());
       record.setSourceMethodName(trace[callStackOffset].getMethodName());
 
@@ -308,9 +308,9 @@ public class LogManager {
   /**
    * Logs any Exception occurring during program execution by composing a message of
    * the exception's properties, and optionally an additional message passed.
-   * 
+   *
    * After logging, print the stack trace.
-   * TODO remove this, better log stack trace with level debug (if enabled) 
+   * TODO remove this, better log stack trace with level debug (if enabled)
    * @param priority the log level for the message
    * @param e the occurred exception
    * @param additionalMessage an optional message

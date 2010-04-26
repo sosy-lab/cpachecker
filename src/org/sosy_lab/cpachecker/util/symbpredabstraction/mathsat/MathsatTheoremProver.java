@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -37,13 +37,13 @@ import org.sosy_lab.common.configuration.Options;
 
 @Options(prefix="cpas.symbpredabs.mathsat")
 public class MathsatTheoremProver implements TheoremProver {
-    
+
     @Option
     private boolean useIntegers = false;
-    
+
     @Option
     private boolean useDtc = false;
-  
+
     private long absEnv;
     private long msatEnv;
     private MathsatSymbolicFormulaManager mmgr;

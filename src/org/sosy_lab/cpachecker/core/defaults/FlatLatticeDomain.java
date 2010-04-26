@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -22,7 +22,7 @@
  *    http://cpachecker.sosy-lab.org
  */
 /**
- * 
+ *
  */
 package org.sosy_lab.cpachecker.core.defaults;
 
@@ -40,46 +40,46 @@ public class FlatLatticeDomain implements AbstractDomain {
   private final AbstractElement mBottomElement;
   private final JoinOperator mJoinOperator;
   private final PartialOrder mPartialOrder;
-  
+
   private static class BottomElement implements AbstractElement {
     @Override
     public boolean isError() {
       return false;
     }
-    
+
     @Override
     public String toString() {
       return "<BOTTOM>";
     }
   }
-  
+
   private static class TopElement implements AbstractElement {
     @Override
     public boolean isError() {
       return false;
     }
-    
+
     @Override
     public String toString() {
       return "<TOP>";
     }
   }
-  
+
   public FlatLatticeDomain(AbstractElement pTopElement, AbstractElement pBottomElement) {
     assert(pTopElement != null);
     assert(pBottomElement != null);
-    
+
     this.mTopElement = pTopElement;
     this.mBottomElement = pBottomElement;
-    
+
     this.mPartialOrder = new EqualityPartialOrder(this);
     this.mJoinOperator = new EqualityJoinOperator(this);
   }
-  
+
   public FlatLatticeDomain() {
     this(new TopElement(), new BottomElement());
   }
-  
+
   @Override
   public AbstractElement getBottomElement() {
     return this.mBottomElement;

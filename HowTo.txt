@@ -1,14 +1,14 @@
 CPAchecker Installation Requirements
 
 Requirements for executing CPAchecker:
-0. Sources have to be preprocessed by CIL 
+0. Sources have to be preprocessed by CIL
    (http://hal.cs.berkeley.edu/cil/, mirror at http://www.cs.berkeley.edu/~necula/cil/).
-   Necessary flags: 
+   Necessary flags:
    --dosimplify --printCilAsIs --save-temps --domakeCFG
    Possibly necessary flags:
    --dosimpleMem
    Comments:
-   --save-temps saves files to the current directory, a different directory can 
+   --save-temps saves files to the current directory, a different directory can
    be specified by using --save-temps=<DIRECTORY>
 
 Building CPAchecker:
@@ -25,7 +25,7 @@ Running CPAchecker:
 5. Choose a configuration file and a source code file
    Example: test/config/explicitAnalysisInf.properties
             test/programs/simple/loop1.c
-   Check that the configuration file does not contain any non-existent paths 
+   Check that the configuration file does not contain any non-existent paths
 6. Execute "scripts/cpa.sh -config <CONFIG_FILE> <SOURCE_FILE>"
 
 Running test cases:
@@ -35,7 +35,7 @@ Running test cases:
    results) will be in test/output/.
 
 Building and running CPAchecker from within Eclipse:
-----------------------------------------------------  
+----------------------------------------------------
 1. Install Eclipse 3.5 with JDT.
    http://www.eclipse.org/
 2. Install the C/C++ Development Kit version 6.0.
@@ -45,11 +45,11 @@ Building and running CPAchecker from within Eclipse:
    URL: http://svn.sosy-lab.org/software/cpachecker/trunk
 4. If you need the parser and scanner classes or you want to remove the compiler
    errors shown by Eclipse, run "ant build-subprojects" in the project directory.
-5. Create a run configuration with main class "cmdline.CPAMain", 
+5. Create a run configuration with main class "cmdline.CPAMain",
    program arguments "-config <CONFIG_FILE> <SOURCE_FILE>", and
-   VM arguments "-Djava.library.path=lib/native/<ENVIRONMENT>" 
-   specifying your environment for the library path. 
-   Settings for <ENVIRONMENT>: 
+   VM arguments "-Djava.library.path=lib/native/<ENVIRONMENT>"
+   specifying your environment for the library path.
+   Settings for <ENVIRONMENT>:
    		ppc-macosx, x86_64-linux, x86-linux, x86-macosx,  x86-win32
 
 Troubleshooting:

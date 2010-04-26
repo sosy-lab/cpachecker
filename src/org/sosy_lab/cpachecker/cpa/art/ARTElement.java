@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -106,10 +106,10 @@ public class ARTElement extends AbstractSingleWrapperElement {
   protected void setMergedWith(ARTElement pMergedWith) {
     assert !destroyed;
     assert mergedWith == null;
-    
+
     mergedWith = pMergedWith;
   }
-  
+
   public ARTElement getMergedWith() {
     return mergedWith;
   }
@@ -162,17 +162,17 @@ public class ARTElement extends AbstractSingleWrapperElement {
   /**
    * This method removes this element from the ART by removing it from its
    * parents' children list and from its children's parents list.
-   * 
+   *
    * This method also removes the element from the covered set of the other
    * element covering this element, if it is covered.
-   * 
+   *
    * This means, if its children do not have any other parents, they will be not
    * reachable any more, i.e. they do not belong to the ART any more. But those
    * elements will not be removed from the covered set.
    */
   public void removeFromART() {
     assert !destroyed;
-    
+
     // clear children
     for (ARTElement child : children) {
       assert (child.parents.contains(this));
@@ -190,18 +190,18 @@ public class ARTElement extends AbstractSingleWrapperElement {
     // clear coverage relation
     if (isCovered()) {
       assert mCoveredBy.mCoveredByThis.contains(this);
-    
+
       mCoveredBy.mCoveredByThis.remove(this);
       mCoveredBy = null;
     }
-    
+
     if (mCoveredByThis != null) {
       for (ARTElement covered : mCoveredByThis) {
         covered.mCoveredBy = null;
       }
       mCoveredByThis.clear();
     }
-    
+
     destroyed = true;
   }
 
@@ -223,7 +223,7 @@ public class ARTElement extends AbstractSingleWrapperElement {
 
   public CFAEdge getEdgeToChild(ARTElement pChild) {
     Preconditions.checkArgument(children.contains(pChild));
-    
+
     CFANode currentLoc = this.retrieveLocationElement().getLocationNode();
     CFANode childNode = pChild.retrieveLocationElement().getLocationNode();
 

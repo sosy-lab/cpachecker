@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -64,7 +64,7 @@ public class ObserverAutomatonTest {
       Assert.assertTrue(results.logContains("Observer: Uninitialized variable used"));
     } catch (InvalidConfigurationException e) {
       Assert.fail("InvalidConfiguration");
-    }    
+    }
   }
   @Test
   public void pointerAnalyisTest() {
@@ -84,9 +84,9 @@ public class ObserverAutomatonTest {
       Assert.assertTrue(results.logContains("Found an UNSAFE_DEREFERENCE"));
     } catch (InvalidConfigurationException e) {
       Assert.fail("InvalidConfiguration");
-    }    
+    }
   }
-  
+
   @Test
   public void locking_correct() {
     Map<String, String> prop = ImmutableMap.of(
@@ -94,7 +94,7 @@ public class ObserverAutomatonTest {
         "observerAnalysis.inputFile",     "test/programs/observerAutomata/LockingAutomatonAll.txt",
         "log.consoleLevel",               "INFO",
         "observerAnalysis.dotExportFile", OUTPUT_FILE
-      );   
+      );
     try {
       TestResults results = run(prop, "test/programs/simple/locking_correct.c");
       Assert.assertTrue(results.isSafe());
@@ -102,7 +102,7 @@ public class ObserverAutomatonTest {
       Assert.fail("InvalidConfiguration");
     }
   }
-  
+
   @Test
   public void locking_incorrect() {
     Map<String, String> prop = ImmutableMap.of(
@@ -117,7 +117,7 @@ public class ObserverAutomatonTest {
       Assert.fail("InvalidConfiguration");
     }
   }
-  
+
   @Test
   public void explicitAnalysis_observing() {
     Map<String, String> prop = ImmutableMap.of(
@@ -125,7 +125,7 @@ public class ObserverAutomatonTest {
         "observerAnalysis.inputFile",     "test/programs/observerAutomata/ExcplicitAnalysisObservingAutomaton.txt",
         "log.consoleLevel",               "INFO",
         "cpas.explicit.threshold" , "2000"
-      );   
+      );
     try {
       TestResults results = run(prop, "test/programs/simple/ex2.cil.c");
       //System.out.println(results.log);
@@ -134,12 +134,12 @@ public class ObserverAutomatonTest {
       Assert.assertTrue(results.logContains("st==2 after Edge st = 2;"));
       Assert.assertTrue(results.logContains("st==4 after Edge st = 4;"));
       Assert.assertTrue(results.isSafe());
-      
+
     } catch (InvalidConfigurationException e) {
       Assert.fail("InvalidConfiguration");
     }
   }
-  
+
   @Test
   public void functionIdentifying() {
     Map<String, String> prop = ImmutableMap.of(
@@ -158,7 +158,7 @@ public class ObserverAutomatonTest {
       Assert.fail("InvalidConfiguration");
     }
   }
-  
+
   @Test
   public void transitionVariableReplacement() {
     Map<String, ObserverVariable> pObserverVariables = null;
@@ -167,7 +167,7 @@ public class ObserverAutomatonTest {
     Map<String, String> map = new HashMap<String, String>();
     map.put("log.level", "OFF");
     map.put("log.consoleLevel", "WARNING");
-    
+
     Configuration config = new Configuration(map);
     LogManager pLogger = null;
     try {
@@ -183,7 +183,7 @@ public class ObserverAutomatonTest {
     Assert.assertTrue("hi == hello".equals(result));
     result = CPAQuery.replaceVariables(args, "$1 == $1");
     Assert.assertTrue("hi == hi".equals(result));
-    
+
     pLogger.log(Level.WARNING, "Warning expected in the next line (concerning $5)");
     result = CPAQuery.replaceVariables(args, "$1 == $5");
     Assert.assertTrue(result == null); // $5 has not been found
@@ -208,14 +208,14 @@ public class ObserverAutomatonTest {
     IASTNode patternAST = ObserverASTComparator.generatePatternAST("$20 = $5($?($1, $?));");
     IASTNode sourceAST  = ObserverASTComparator.generateSourceAST("var1 = function(g(var2, egal));");
     ObserverExpressionArguments args = new ObserverExpressionArguments(null, null, null, null);
-    
+
     boolean result = ObserverASTComparator.compareASTs(sourceAST, patternAST, args);
     Assert.assertTrue(result);
     Assert.assertTrue(args.getTransitionVariable(20).equals("var1"));
     Assert.assertTrue(args.getTransitionVariable(1).equals("var2"));
     Assert.assertTrue(args.getTransitionVariable(5).equals("function"));
   }
-  
+
   @Test
   public void interacting_Observers() {
     Map<String, String> prop = ImmutableMap.of(
@@ -224,7 +224,7 @@ public class ObserverAutomatonTest {
         "observerB.observerAnalysis.inputFile",     "test/programs/observerAutomata/InteractionAutomatonB.txt",
         "log.consoleLevel", "INFO",
         "cpas.explicit.threshold" , "2000"
-      );   
+      );
     try {
       TestResults results = run(prop, "test/programs/simple/loop1.c");
       Assert.assertTrue(results.logContains("A: Matched i in line 9 x=2"));
@@ -234,18 +234,18 @@ public class ObserverAutomatonTest {
       Assert.fail("InvalidConfiguration");
     }
   }
-  
-  
-  
+
+
+
   private TestResults run(Map<String, String> pProperties, String pSourceCodeFilePath) throws InvalidConfigurationException {
-    Configuration config = new Configuration(pProperties);  
+    Configuration config = new Configuration(pProperties);
     StringHandler stringLogHandler = new LogManager.StringHandler();
-    LogManager logger = new LogManager(config, stringLogHandler);      
+    LogManager logger = new LogManager(config, stringLogHandler);
     CPAchecker cpaChecker = new CPAchecker(config, logger);
     CPAcheckerResult results = cpaChecker.run(pSourceCodeFilePath);
     return new TestResults(stringLogHandler.getLog(), results);
   }
-  
+
   private class TestResults {
     private String log;
     private CPAcheckerResult checkerResult;

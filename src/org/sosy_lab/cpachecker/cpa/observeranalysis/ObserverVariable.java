@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -38,11 +38,11 @@ class ObserverVariable implements Cloneable {
       throw new IllegalArgumentException("Only Type int supported");
     }
   }
-  
+
   public String getName() {
     return name;
   }
-  
+
   public int getValue() {
     return value;
   }
@@ -54,7 +54,7 @@ class ObserverVariable implements Cloneable {
   public String toString() {
     return String.valueOf(value);
   }
-  
+
   @Override
   public ObserverVariable clone() {
     try {
@@ -76,11 +76,11 @@ class ObserverVariable implements Cloneable {
   }
   /* (non-Javadoc)
    * @see java.lang.Object#hashCode()
-   * 
+   *
    * I don't use the hashcode, but it should be redefined every time equals is overwritten.
    */
   @Override
   public int hashCode() {
-    return this.value + this.name.hashCode(); 
+    return this.value + this.name.hashCode();
   }
 }

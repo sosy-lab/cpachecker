@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -56,12 +56,12 @@ public class PredicateAbstractionAbstractElement implements AbstractElement, For
     this(pCpa, null);
   }
 
-  public int getId() { 
-    return elemId; 
+  public int getId() {
+    return elemId;
   }
 
-  public AbstractFormula getAbstraction() { 
-    return abstraction; 
+  public AbstractFormula getAbstraction() {
+    return abstraction;
   }
 
   public void setAbstraction(AbstractFormula a) {
@@ -69,27 +69,27 @@ public class PredicateAbstractionAbstractElement implements AbstractElement, For
   }
 
 //  public boolean isCovered() {
-//    return covered; 
+//    return covered;
 //  }
-//  public void setCovered(boolean yes) { 
-//    covered = yes; setMark(); 
+//  public void setCovered(boolean yes) {
+//    covered = yes; setMark();
 //  }
 //
-//  public boolean isMarked() { 
-//    return mark > 0; 
+//  public boolean isMarked() {
+//    return mark > 0;
 //  }
-//  public void setMark() { 
-//    mark = nextAvailableId++; 
+//  public void setMark() {
+//    mark = nextAvailableId++;
 //  }
-//  public int getMark() { 
-//    return mark; 
+//  public int getMark() {
+//    return mark;
 //  }
 
   @Override
   public boolean isError() {
     return false;
   }
-  
+
   @Override
   public boolean equals(Object o) {
     if (this == o) {

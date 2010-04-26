@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -53,17 +53,17 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private static class CompositeCPAFactory extends AbstractCPAFactory {
 
     private ImmutableList<ConfigurableProgramAnalysis> cpas = null;
-    
+
     @Override
     public ConfigurableProgramAnalysis createInstance() {
       Preconditions.checkState(cpas != null, "CompositeCPA needs wrapped CPAs!");
-      
+
       ImmutableList.Builder<AbstractDomain> domains = ImmutableList.builder();
       ImmutableList.Builder<TransferRelation> transferRelations = ImmutableList.builder();
       ImmutableList.Builder<MergeOperator> mergeOperators = ImmutableList.builder();
       ImmutableList.Builder<StopOperator> stopOperators = ImmutableList.builder();
       ImmutableList.Builder<PrecisionAdjustment> precisionAdjustments = ImmutableList.builder();
-      
+
       for (ConfigurableProgramAnalysis sp : cpas) {
         domains.add(sp.getAbstractDomain());
         transferRelations.add(sp.getTransferRelation());
@@ -71,13 +71,13 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
         stopOperators.add(sp.getStopOperator());
         precisionAdjustments.add(sp.getPrecisionAdjustment());
       }
-      
+
       CompositeDomain compositeDomain = new CompositeDomain(domains.build());
       CompositeTransferRelation compositeTransfer = new CompositeTransferRelation(transferRelations.build());
       CompositeMergeOperator compositeMerge = new CompositeMergeOperator(mergeOperators.build());
       CompositeStopOperator compositeStop = new CompositeStopOperator(compositeDomain, stopOperators.build());
       CompositePrecisionAdjustment compositePrecisionAdjustment = new CompositePrecisionAdjustment(precisionAdjustments.build());
-      
+
       return new CompositeCPA(compositeDomain, compositeTransfer, compositeMerge, compositeStop,
           compositePrecisionAdjustment, cpas);
     }
@@ -93,16 +93,16 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       Preconditions.checkNotNull(pChildren);
       Preconditions.checkArgument(!pChildren.isEmpty());
       Preconditions.checkState(cpas == null);
-      
+
       cpas = ImmutableList.copyOf(pChildren);
       return this;
     }
   }
-  
+
   public static CPAFactory factory() {
     return new CompositeCPAFactory();
   }
-  
+
   private final AbstractDomain abstractDomain;
   private final TransferRelation transferRelation;
   private final MergeOperator mergeOperator;
@@ -110,7 +110,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final PrecisionAdjustment precisionAdjustment;
 
   private final ImmutableList<ConfigurableProgramAnalysis> cpas;
-  
+
   private CompositeCPA (AbstractDomain abstractDomain,
       TransferRelation transferRelation,
       MergeOperator mergeOperator,
@@ -148,25 +148,25 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
   @Override
   public AbstractElement getInitialElement (CFAFunctionDefinitionNode node) {
     Preconditions.checkNotNull(node);
-    
+
     ImmutableList.Builder<AbstractElement> initialElements = ImmutableList.builder();
     for (ConfigurableProgramAnalysis sp : cpas) {
       initialElements.add(sp.getInitialElement(node));
     }
-    
+
     CompositeElement initialElement = new CompositeElement(initialElements.build(), null);
     // set call stack
     CallStack initialCallStack = new CallStack();
     CallElement initialCallElement = new CallElement(node.getFunctionName(), node, initialElement);
     initialCallStack.push(initialCallElement);
     initialElement.setCallStack(initialCallStack);
-    
+
     return initialElement;
   }
 
   public Precision getInitialPrecision (CFAFunctionDefinitionNode node) {
     Preconditions.checkNotNull(node);
-    
+
     List<Precision> initialPrecisions = new ArrayList<Precision>(cpas.size());
     for (ConfigurableProgramAnalysis sp : cpas) {
       initialPrecisions.add(sp.getInitialPrecision(node));
@@ -182,7 +182,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       }
     }
   }
-  
+
   @Override
   public <T extends ConfigurableProgramAnalysis> T retrieveWrappedCpa(Class<T> pType) {
     if (pType.isAssignableFrom(getClass())) {
@@ -196,7 +196,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
         if (result != null) {
           return result;
         }
-      }  
+      }
     }
     return null;
   }

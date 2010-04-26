@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -53,7 +53,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
   private final LogManager logger;
 
   private final Set<Path> seenCounterexamples = Sets.newHashSet();
-  
+
   protected AbstractARTBasedRefiner(ConfigurableProgramAnalysis pCpa) throws CPAException {
     if (!(pCpa instanceof ARTCPA)) {
       throw new CPAException("ARTCPA needed for refinement");
@@ -61,15 +61,15 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
     mArtCpa = (ARTCPA)pCpa;
     this.logger = mArtCpa.getLogger();
   }
-  
+
   protected ARTCPA getArtCpa() {
     return mArtCpa;
   }
-  
-  private static final Function<Pair<ARTElement, CFAEdge>, String> pathToFunctionCalls 
+
+  private static final Function<Pair<ARTElement, CFAEdge>, String> pathToFunctionCalls
         = new Function<Pair<ARTElement, CFAEdge>, String>() {
     public String apply(Pair<ARTElement,CFAEdge> arg) {
-      
+
       if (arg.getSecond() instanceof FunctionCallEdge) {
         FunctionCallEdge funcEdge = (FunctionCallEdge)arg.getSecond();
         return "line " + funcEdge.getLineNumber() + ":\t" + funcEdge.getRawStatement();
@@ -78,13 +78,13 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
       }
     }
   };
-  
+
   @Override
   public final boolean performRefinement(ReachedElements pReached) throws CPAException {
     logger.log(Level.FINEST, "Starting ART based refinement");
-    
+
     assert checkART(pReached);
-    
+
     AbstractElement lastElement = pReached.getLastElement();
     assert lastElement instanceof ARTElement;
     Path path = buildPath((ARTElement)lastElement);
@@ -94,11 +94,11 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
       logger.log(Level.ALL, "Function calls on Error path:\n",
           Joiner.on("\n ").skipNulls().join(Collections2.transform(path, pathToFunctionCalls)));
     }
-    
+
     assert seenCounterexamples.add(path);
-    
+
     boolean result = performRefinement(new ARTReachedSet(pReached, mArtCpa), path);
-    
+
     assert checkART(pReached);
 
     logger.log(Level.FINEST, "ART based refinement finished, result is", result);
@@ -111,7 +111,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
    * Perform refinement.
    * @param pReached
    * @param pPath
-   * @return whether the refinement was successful 
+   * @return whether the refinement was successful
    */
   protected abstract boolean performRefinement(ARTReachedSet pReached, Path pPath)
             throws CPAException;
@@ -121,15 +121,15 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
    * @param pLastElement The last element in the path.
    * @return A path from root to lastElement.
    */
-  static Path buildPath(ARTElement pLastElement) { 
+  static Path buildPath(ARTElement pLastElement) {
     Path path = new Path();
     Set<ARTElement> seenElements = new HashSet<ARTElement>();
-    
+
     // each element of the path consists of the abstract element and the incoming
     // edge from its predecessor
     // an exception is the last element: it is contained two times in the path,
     // first with the incoming edge and second with the outgoing edge
-    
+
     ARTElement currentARTElement = pLastElement;
     assert pLastElement.isError();
     // add the error node and its -first- outgoing edge
@@ -138,7 +138,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
     CFAEdge lastEdge = currentARTElement.retrieveLocationElement().getLocationNode().getLeavingEdge(0);
     path.addFirst(new Pair<ARTElement, CFAEdge>(currentARTElement, lastEdge));
     seenElements.add(currentARTElement);
-    
+
     while (!currentARTElement.getParents().isEmpty()) {
       Iterator<ARTElement> parents = currentARTElement.getParents().iterator();
 
@@ -147,7 +147,7 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
         // while seenElements already contained parentElement, try next parent
         parentElement = parents.next();
       }
-      
+
       CFAEdge edge = parentElement.getEdgeToChild(currentARTElement);
       path.addFirst(new Pair<ARTElement, CFAEdge>(currentARTElement, edge));
 
@@ -155,13 +155,13 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
     }
     return path;
   }
-  
+
   private static boolean checkART(ReachedElements pReached) {
     Set<? extends AbstractElement> reached = pReached.getReached();
-    
+
     Deque<AbstractElement> workList = new ArrayDeque<AbstractElement>();
     Set<ARTElement> art = new HashSet<ARTElement>();
-    
+
     workList.add(pReached.getFirstElement());
     while (!workList.isEmpty()) {
       ARTElement currentElement = (ARTElement)workList.removeFirst();
@@ -171,15 +171,15 @@ public abstract class AbstractARTBasedRefiner implements Refiner {
       for (ARTElement child : currentElement.getChildren()) {
         assert child.getParents().contains(currentElement);
       }
-      
+
       // check if (e \in ART) => (e \in Reached ^ e.isCovered())
       assert reached.contains(currentElement) ^ currentElement.isCovered();
-      
+
       if (art.add(currentElement)) {
         workList.addAll(currentElement.getChildren());
       }
     }
-    
+
     // check if (e \in Reached) => (e \in ART)
     assert art.containsAll(reached) : "Element in reached but not in ART";
 

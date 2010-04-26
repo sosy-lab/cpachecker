@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -111,7 +111,7 @@ public class MustMayAnalysisTransferRelation implements TransferRelation {
       for (AbstractElement lMustSuccessor : lConsolidatedMustSuccessors) {
         // TODO: the strengthening operator of the must transfer relation has to guarantee (and establish) the subset relation of concretizations
         Collection<? extends AbstractElement> lStrengthenList = mMustTransferRelation.strengthen(lMustSuccessor, Collections.singletonList(lMaySuccessor), pCfaEdge, lPrecision.getMustPrecision());
-        
+
         if (lStrengthenList == null) {
           lSuccessors.add(new MustMayAnalysisElement(lMustSuccessor, lMaySuccessor));
         }

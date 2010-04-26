@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -33,15 +33,15 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public class AssumptionCollectorMerge implements MergeOperator {
 
   private final ConfigurableProgramAnalysis wrappedCPA;
-  
+
   public AssumptionCollectorMerge(ConfigurableProgramAnalysis pWrappedCPA) {
     wrappedCPA = pWrappedCPA;
   }
-  
+
   @Override
   public AbstractElement merge(AbstractElement element1,
       AbstractElement element2, Precision precision) throws CPAException {
-    
+
     AssumptionCollectorElement collectorElement1= (AssumptionCollectorElement)element1;
     AssumptionCollectorElement collectorElement2 = (AssumptionCollectorElement)element2;
 
@@ -55,15 +55,15 @@ public class AssumptionCollectorMerge implements MergeOperator {
 
     AssumptionWithLocation assumption1 = collectorElement1.getCollectedAssumptions();
     boolean shouldStop1 = collectorElement1.isStop();
-    
+
     AssumptionWithLocation assumption2 = collectorElement2.getCollectedAssumptions();
     boolean shouldStop2 = collectorElement2.isStop();
-    
+
     AssumptionWithLocation mergedAssumption = assumption1.and(assumption2);
     boolean mergedShouldStop = shouldStop1 && shouldStop2;
-    
+
     AssumptionCollectorElement mergedElement = new AssumptionCollectorElement(retElement, mergedAssumption, mergedShouldStop);
-    
+
     return mergedElement;
   }
 

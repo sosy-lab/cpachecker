@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -27,24 +27,24 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class ConcreteAnalysisElement implements ConcreteAnalysisDomainElement {
-  
+
   // map that keeps the name of variables and their constant values
   private Map<String, Long> mConstantsMap;
-  
+
   public ConcreteAnalysisElement() {
     mConstantsMap = new HashMap<String, Long>();
   }
 
   public ConcreteAnalysisElement(Map<String, Long> pConstantsMap) {
     assert(pConstantsMap != null);
-    
+
     this.mConstantsMap = pConstantsMap;
   }
-  
+
   public ConcreteAnalysisElement(ConcreteAnalysisElement pElement) {
     assert(pElement != null);
     assert(pElement.mConstantsMap != null);
-    
+
     this.mConstantsMap = new HashMap<String, Long>(pElement.mConstantsMap);
   }
 
@@ -58,7 +58,7 @@ public class ConcreteAnalysisElement implements ConcreteAnalysisDomainElement {
         mConstantsMap.get(pNameOfVar).longValue() == pValue) {
       return;
     }
-    
+
     mConstantsMap.put(pNameOfVar, pValue);
   }
 
@@ -79,19 +79,19 @@ public class ConcreteAnalysisElement implements ConcreteAnalysisDomainElement {
     if (pOther == null) {
       return false;
     }
-    
+
     if (pOther.getClass() == getClass()) {
       ConcreteAnalysisElement lOtherElement = (ConcreteAnalysisElement) pOther;
-      
+
       return lOtherElement.mConstantsMap.equals(mConstantsMap);
     }
-    
+
     return false;
   }
 
   /*
    * CAUTION: The hash code of an object can change during its lifetime.
-   * 
+   *
    * (non-Javadoc)
    * @see java.lang.Object#hashCode()
    */
@@ -103,28 +103,28 @@ public class ConcreteAnalysisElement implements ConcreteAnalysisDomainElement {
   @Override
   public String toString() {
     StringBuffer lBuffer = new StringBuffer();
-    
+
     lBuffer.append("[");
-    
+
     for (String key: mConstantsMap.keySet()){
       long val = mConstantsMap.get(key);
-      
+
       lBuffer.append(" <");
       lBuffer.append(key);
       lBuffer.append(" = ");
       lBuffer.append(val);
       lBuffer.append("> ");
     }
-    
+
     lBuffer.append("] size->  ");
-    lBuffer.append(mConstantsMap.size()); 
-    
+    lBuffer.append(mConstantsMap.size());
+
     return lBuffer.toString();
   }
-  
+
   @Override
   public boolean isError() {
     return false;
   }
-  
+
 }

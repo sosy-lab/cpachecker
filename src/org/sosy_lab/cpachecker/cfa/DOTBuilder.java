@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -61,13 +61,13 @@ public class DOTBuilder {
       this.nodeNumber = nodeNo;
       this.shape = shape;
     }
-    
+
     @Override
     public String toString() {
-      return "node [shape = " + shape + "]; " + nodeNumber + ";"; 
+      return "node [shape = " + shape + "]; " + nodeNumber + ";";
     }
   }
-  
+
   private static class DOTNodeShapeWriter extends ArrayList<ShapePair> {
 
     private static final long serialVersionUID = -595748260228384806L;
@@ -75,13 +75,13 @@ public class DOTBuilder {
     public void add(int no, String shape){
       add(new ShapePair(no, shape));
     }
-    
+
     public String getDot(){
       return JOINER_ON_NEWLINE.join(this);
     }
-    
+
   }
-  
+
   private static class DOTWriter extends ArrayList<String> {
 
     private static final long serialVersionUID = -3086512411642445646L;
@@ -90,7 +90,7 @@ public class DOTBuilder {
       return JOINER_ON_NEWLINE.join(this);
     }
   }
-  
+
   public void generateDOT (Collection<CFAFunctionDefinitionNode> cfasMapList, CFAFunctionDefinitionNode cfa, File fileName) throws IOException
 	{
 		Map<String, DOTWriter> subGraphWriters = new HashMap<String, DOTWriter>();
@@ -172,7 +172,7 @@ public class DOTBuilder {
 				line = line + " -> ";
 				line = line + successor.getNodeNumber ();
 				line = line + " [label=\"" ;
-				
+
 				//the first call to replaceAll replaces \" with \ " to prevent a bug in dotty.
 				//future updates of dotty may make this obsolete.
 				String edgeText = edge.getRawStatement().replaceAll("\\Q\\\"\\E", "\\ \"")

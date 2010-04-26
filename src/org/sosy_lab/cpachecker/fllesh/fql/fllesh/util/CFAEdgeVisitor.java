@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 public interface CFAEdgeVisitor<T> {
 
   public T visit(CFAEdge pEdge);
-  
+
   public T visit(BlankEdge pEdge);
   public T visit(AssumeEdge pEdge);
   public T visit(CallToReturnEdge pEdge);
@@ -49,5 +49,5 @@ public interface CFAEdgeVisitor<T> {
   public T visit(MultiStatementEdge pEdge);
   public T visit(ReturnEdge pEdge);
   public T visit(StatementEdge pEdge);
-  
+
 }

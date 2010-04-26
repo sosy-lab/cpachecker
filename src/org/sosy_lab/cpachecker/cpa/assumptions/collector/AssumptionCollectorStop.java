@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -36,32 +36,32 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 /**
  * Stop operator for the assumption collector CPA. Stops if the stop flag is
  * true; otherwise rely on the stop operator of the wrapped CPA.
- * 
+ *
  * @author g.theoduloz
  */
 public class AssumptionCollectorStop implements StopOperator {
 
   private final StopOperator wrappedStop;
-  
+
   public AssumptionCollectorStop(ConfigurableProgramAnalysis wrappedCPA)
   {
     wrappedStop = wrappedCPA.getStopOperator();
   }
- 
+
   @Override
   public boolean stop(AbstractElement element,
       Collection<AbstractElement> reached, Precision precision)
       throws CPAException
   {
     AssumptionCollectorElement assumptionElement = (AssumptionCollectorElement) element;
-    
+
     // if stop, then do not stop to make sure the state is
     // added to the reached set
     if (assumptionElement.isStop())
       return false;
-    
+
     Collection<AbstractElement> wrappedReached = Collections2.transform(reached, AssumptionCollectorElement.getUnwrapFunction());
-    
+
     return wrappedStop.stop(assumptionElement.getWrappedElement(), wrappedReached, precision);
   }
 
@@ -75,10 +75,10 @@ public class AssumptionCollectorStop implements StopOperator {
     // added to the reached set
     if (assumptionElement.isStop())
       return false;
-    
+
     AssumptionCollectorElement reachedAssumptionElement = (AssumptionCollectorElement) reachedElement;
     return wrappedStop.stop(assumptionElement.getWrappedElement(), reachedAssumptionElement.getWrappedElement());
-    
+
   }
 
 }

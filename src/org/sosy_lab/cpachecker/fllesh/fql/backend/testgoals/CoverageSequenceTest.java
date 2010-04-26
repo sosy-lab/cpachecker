@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -48,7 +48,7 @@ import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.query.Query;
 
 
 public class CoverageSequenceTest {
-  
+
   private final String mPropertiesFile = "test/config/simpleMustMayAnalysis.properties";
   private final ImmutableMap<String, String> mProperties =
         ImmutableMap.of("analysis.programNames", "test/programs/simple/functionCall.c");
@@ -62,80 +62,80 @@ public class CoverageSequenceTest {
   @Test
   public void test_01() throws IOException, InvalidConfigurationException, CPAException {
     Configuration lConfiguration = new Configuration(mPropertiesFile, mProperties);
-    
+
     LogManager lLogManager = new LogManager(lConfiguration);
-      
+
     CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
-    
+
     TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
-    
+
     States lStatesCoverage = new States(Identity.getInstance());
-    
+
     Query lQuery = new Query(lStatesCoverage, new LowerBound(Identity.getInstance(), 0));
-    
+
     CoverageSequence lCoverageSequence = CoverageSequence.create(lQuery.getCoverage(), lTargetGraph);
-    
+
     Automaton lPassingAutomaton = Automaton.create(lQuery.getPassingMonitor(), lTargetGraph);
-    
+
     System.out.println(lCoverageSequence);
     System.out.println("PASSING AUTOMATON: ");
     System.out.println(lPassingAutomaton);
   }
-  
+
   @Test
   public void test_02() throws IOException, InvalidConfigurationException, CPAException {
     Configuration lConfiguration = new Configuration(mPropertiesFile, mProperties);
-    
+
     LogManager lLogManager = new LogManager(lConfiguration);
-      
+
     CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
-    
+
     TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
-    
+
     States lStatesCoverage = new States(Identity.getInstance());
-    
+
     PathMonitor lTrueMonitor = new LowerBound(Identity.getInstance(), 0);
-    
+
     Sequence lSequence = new Sequence(lTrueMonitor, lStatesCoverage, lTrueMonitor);
-    
+
     Query lQuery = new Query(lSequence, lTrueMonitor);
-    
+
     CoverageSequence lCoverageSequence = CoverageSequence.create(lQuery.getCoverage(), lTargetGraph);
-    
+
     Automaton lPassingAutomaton = Automaton.create(lQuery.getPassingMonitor(), lTargetGraph);
-    
+
     System.out.println(lCoverageSequence);
     System.out.print("PASSING AUTOMATON: ");
     System.out.println(lPassingAutomaton);
   }
-  
+
   @Test
   public void test_03() throws IOException, InvalidConfigurationException, CPAException {
     Configuration lConfiguration = new Configuration(mPropertiesFile, mProperties);
-    
+
     LogManager lLogManager = new LogManager(lConfiguration);
-      
+
     CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
-    
+
     TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
-    
+
     States lStatesCoverage = new States(Identity.getInstance());
-    
+
     PathMonitor lTrueMonitor = new LowerBound(Identity.getInstance(), 0);
-    
+
     Sequence lSequence = new Sequence(lTrueMonitor, lStatesCoverage, lTrueMonitor);
-    
+
     lSequence.extend(lTrueMonitor, new Edges(Identity.getInstance()));
-    
+
     Query lQuery = new Query(lSequence, lTrueMonitor);
-    
+
     CoverageSequence lCoverageSequence = CoverageSequence.create(lQuery.getCoverage(), lTargetGraph);
-    
+
     Automaton lPassingAutomaton = Automaton.create(lQuery.getPassingMonitor(), lTargetGraph);
-    
+
     System.out.println(lCoverageSequence);
     System.out.print("PASSING AUTOMATON: ");
     System.out.println(lPassingAutomaton);
   }
-  
+
 }

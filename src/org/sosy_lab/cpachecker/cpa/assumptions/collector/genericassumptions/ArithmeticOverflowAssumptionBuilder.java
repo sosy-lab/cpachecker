@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -46,9 +46,9 @@ import org.sosy_lab.common.Pair;
 
 
 /**
- * Class to generate assumptions related to over/underflow 
+ * Class to generate assumptions related to over/underflow
  * of integer arithmetic operations
- * 
+ *
  * @author g.theoduloz
  */
 public class ArithmeticOverflowAssumptionBuilder
@@ -95,12 +95,12 @@ public class ArithmeticOverflowAssumptionBuilder
       return new Pair<DummyASTNumericalLiteralExpression, DummyASTNumericalLiteralExpression>
         (null, null);
     }
-  
+
   /**
    * Visitor to produce the invariant.
    * Note it is only intended to be used on code
    * occurring on one single edge.
-   * 
+   *
    * @author g.theoduloz
    */
   private class CustomASTVisitor
@@ -108,7 +108,7 @@ public class ArithmeticOverflowAssumptionBuilder
   {
     // Fields to accumulate the built invariants
     private IASTExpression result;
-    
+
     /**
      * Default constructor. The result is initially reseted.
      */
@@ -117,7 +117,7 @@ public class ArithmeticOverflowAssumptionBuilder
       reset();
       shouldVisitExpressions = true;
     }
-    
+
     /**
      * Returns the invariant accumulated so far
      * @return A non-null predicate
@@ -126,7 +126,7 @@ public class ArithmeticOverflowAssumptionBuilder
     {
       return result;
     }
-    
+
     /**
      * Reset the visitor by dropping the invariant computed so far
      */
@@ -134,7 +134,7 @@ public class ArithmeticOverflowAssumptionBuilder
     {
       result = DummyASTNumericalLiteralExpression.TRUE;
     }
-    
+
     /**
      * Compute and conjunct the assumption for the given arithmetic
      * expression. The method does not check that the expression is
@@ -144,7 +144,7 @@ public class ArithmeticOverflowAssumptionBuilder
     {
       conjunctPredicateForArithmeticExpression(exp, false, false);
     }
-    
+
     /**
      * Compute and conjunct the assumption for the given arithmetic
      * expression, ignoring bounds if applicable. The method does
@@ -154,7 +154,7 @@ public class ArithmeticOverflowAssumptionBuilder
     {
       conjunctPredicateForArithmeticExpression(exp.getExpressionType(), exp, ignoreLower, ignoreUpper);
     }
-    
+
     /**
      * Compute and conjunct the assumption for the given arithmetic
      * expression, given as its type and its expression.
@@ -174,7 +174,7 @@ public class ArithmeticOverflowAssumptionBuilder
                 IASTBinaryExpression.op_greaterEqual,
                 exp,
                 bounds.getFirst()));
-      
+
       if ((!ignoreUpper) && (bounds.getSecond() != null))
         result = new DummyASTBinaryExpression(
             IASTBinaryExpression.op_logicalAnd,
@@ -184,7 +184,7 @@ public class ArithmeticOverflowAssumptionBuilder
                 exp,
                 bounds.getSecond()));
     }
-    
+
     /**
      * Analyse a term to determine whether we can immediately
      * say whether it is positive, null, or negative
@@ -195,20 +195,20 @@ public class ArithmeticOverflowAssumptionBuilder
       boolean isNegative = false;
       boolean isNull = false;
       boolean isPositive = false;
-      
+
       if (t instanceof IASTLiteralExpression)
       {
         IASTLiteralExpression lit = (IASTLiteralExpression)t;
         switch (lit.getKind())
         {
         case (IASTLiteralExpression.lk_integer_constant):
-        case (IASTLiteralExpression.lk_float_constant):  
+        case (IASTLiteralExpression.lk_float_constant):
           String repr = lit.getRawSignature();
           if (repr.charAt(0) == '-')
             isNegative = true;
           else
             isPositive = true;
-          
+
           isNull = true;
           for (char c : repr.toCharArray()) {
             if ((c != '0') && Character.isDigit(c)) {
@@ -228,17 +228,17 @@ public class ArithmeticOverflowAssumptionBuilder
           } catch (DOMException e) { }
         }
       }
-      
+
       return new Pair<Boolean, Boolean>(isNegative || isNull, isPositive || isNull);
     }
-    
+
     @Override
     public int visit(IASTExpression pExpression) {
       if (pExpression instanceof IASTBinaryExpression)
       {
         IASTBinaryExpression binexp = (IASTBinaryExpression)pExpression;
         int op = binexp.getOperator();
-        
+
         // Sign analysis
         Pair<Boolean, Boolean> signs1 = analyzeTermSign(binexp.getOperand1());
         Pair<Boolean, Boolean> signs2 = analyzeTermSign(binexp.getOperand2());
@@ -265,7 +265,7 @@ public class ArithmeticOverflowAssumptionBuilder
           ignoreUpper = signs2.getSecond();
           break;
         }
-        
+
         switch (op) {
         case IASTBinaryExpression.op_plus:
         case IASTBinaryExpression.op_minus:
@@ -318,7 +318,7 @@ public class ArithmeticOverflowAssumptionBuilder
                     unexp.getOperand(),
                     DummyASTNumericalLiteralExpression.ONE),
               true, false);
-          break;          
+          break;
         case IASTUnaryExpression.op_prefixDecr:
         case IASTUnaryExpression.op_postFixDecr:
           conjunctPredicateForArithmeticExpression(
@@ -336,22 +336,22 @@ public class ArithmeticOverflowAssumptionBuilder
         IASTCastExpression castexp = (IASTCastExpression)pExpression;
         IType fromType = castexp.getOperand().getExpressionType();
         IType toType = castexp.getExpressionType();
-        
+
         Pair<DummyASTNumericalLiteralExpression, DummyASTNumericalLiteralExpression> fromBounds = boundsForType(fromType);
         Pair<DummyASTNumericalLiteralExpression, DummyASTNumericalLiteralExpression> toBounds = boundsForType(toType);
-        
+
         boolean ignoreLower = true;
         boolean ignoreUpper = true;
-        
+
         if ((fromBounds.getFirst() != null) && (toBounds.getFirst() != null))
           if (fromBounds.getFirst().compareTo(toBounds.getFirst()) < 0)
             ignoreLower = false;
-        
+
         if ((fromBounds.getSecond() != null) && (toBounds.getSecond() != null))
           if (fromBounds.getSecond().compareTo(toBounds.getSecond()) > 0)
             ignoreUpper = false;
-        
-        conjunctPredicateForArithmeticExpression(toType, castexp.getOperand(), ignoreLower, ignoreUpper); 
+
+        conjunctPredicateForArithmeticExpression(toType, castexp.getOperand(), ignoreLower, ignoreUpper);
       }
       return super.visit(pExpression);
     }
@@ -359,7 +359,7 @@ public class ArithmeticOverflowAssumptionBuilder
 
   // visitor
   private CustomASTVisitor visitor = new CustomASTVisitor();
-  
+
   @Override
   public IASTExpression assumptionsForEdge(CFAEdge pEdge) {
     visitor.reset();

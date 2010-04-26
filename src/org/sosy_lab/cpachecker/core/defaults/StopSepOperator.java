@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public class StopSepOperator implements StopOperator {
 
   private final PartialOrder partialOrder;
-  
+
   /**
    * Creates a stop-sep operator based on the given
    * partial order
@@ -46,7 +46,7 @@ public class StopSepOperator implements StopOperator {
   public StopSepOperator(PartialOrder order) {
     partialOrder = order;
   }
-  
+
   @Override
   public boolean stop(AbstractElement el, Collection<AbstractElement> reached, Precision precision)
     throws CPAException

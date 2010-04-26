@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -126,7 +126,7 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
       successorElem.setTransferTime(timeOfExecution);
       successorElem.setTotalTime(element.isIgnore(), element.getTotalTimeOnThePath());
 //      if(!successorElem.isIgnore()){
-        if(timeLimitForPath > 0 && 
+        if(timeLimitForPath > 0 &&
             successorElem.getTotalTimeOnThePath() > timeLimitForPath){
           noOfStops++;
           if(noOfStops % 20 == 0){

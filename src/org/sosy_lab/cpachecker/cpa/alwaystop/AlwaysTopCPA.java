@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -44,17 +44,17 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public class AlwaysTopCPA implements ConfigurableProgramAnalysis {
 
   private static class AlwaysTopCPAFactory extends AbstractCPAFactory {
-    
+
     @Override
     public ConfigurableProgramAnalysis createInstance() throws CPAException {
       return new AlwaysTopCPA();
     }
   }
-  
+
   public static CPAFactory factory() {
     return new AlwaysTopCPAFactory();
   }
-  
+
   FlatLatticeDomain mDomain;
   MergeSepOperator mMergeOperator;
   StopSepOperator mStopOperator;
@@ -64,7 +64,7 @@ public class AlwaysTopCPA implements ConfigurableProgramAnalysis {
     mMergeOperator = new MergeSepOperator();
     mStopOperator = new StopSepOperator(mDomain.getPartialOrder());
   }
-  
+
   @Override
   public AbstractDomain getAbstractDomain() {
     return mDomain;

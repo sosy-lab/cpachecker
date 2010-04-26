@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -42,9 +42,9 @@ import org.sosy_lab.common.Pair;
  * referring to that variable
  */
 public class SSAMap {
-  
+
   private static interface Key {}
-  
+
   private static class VarKey implements Key {
     private final String name;
 
@@ -55,7 +55,7 @@ public class SSAMap {
     public int hashCode() {
       return name.hashCode();
     }
-    
+
     @Override
     public boolean equals(Object o) {
       if (o == this) {
@@ -70,7 +70,7 @@ public class SSAMap {
     @Override
     public String toString() { return name; }
   }
-    
+
   private static class FuncKey implements Key {
     private final String name;
     private final SymbolicFormula[] args;
@@ -79,7 +79,7 @@ public class SSAMap {
         name = n;
         args = a;
     }
-    
+
     public String getName() { return name; }
     public SymbolicFormula[] getArgs() { return args; }
 
@@ -87,7 +87,7 @@ public class SSAMap {
     public int hashCode() {
         return 31 * name.hashCode() + Arrays.hashCode(args);
     }
-    
+
     @Override
     public boolean equals(Object o) {
       if (o == this) {
@@ -105,9 +105,9 @@ public class SSAMap {
       return name + "(" + Joiner.on(",").join(args) + ")";
     }
   }
-  
+
   private final Map<Key, Integer> repr = new HashMap<Key, Integer>();
-  
+
     /**
      * returns the index of the variable in the map
      */
@@ -150,7 +150,7 @@ public class SSAMap {
       }
       return ret;
     }
-    
+
     public Collection<Pair<String, SymbolicFormula[]>> allFunctions() {
       List<Pair<String, SymbolicFormula[]>> ret = Lists.newArrayList();
 

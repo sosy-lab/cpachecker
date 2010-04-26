@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -60,7 +60,7 @@ import static org.sosy_lab.cpachecker.fllesh.fql.frontend.parser.FQLSym.*;
 	private Symbol sym(int type, Object value)
 	{
 		//System.out.println(value);
-	
+
 		return new Symbol(type, yyline, yycolumn, value);
 	}
 

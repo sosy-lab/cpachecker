@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 /**
- * Transfer relation for the generic assumption generator. 
+ * Transfer relation for the generic assumption generator.
  * @author g.theoduloz
  */
 public class GenericAssumptionsTransferRelation implements TransferRelation {
@@ -48,21 +48,21 @@ public class GenericAssumptionsTransferRelation implements TransferRelation {
    * List of interfaces used to build the default
    * assumptions made by the model checker for
    * program operations.
-   */ 
+   */
   protected final List<GenericAssumptionBuilder> assumptionBuilders;
-  
+
   /**
    * Register the default set of assumption builders.
-   * Modify this method to register new kind of assumptions. 
+   * Modify this method to register new kind of assumptions.
    */
   private void registerDefaultAssumptionBuilders()
   {
     // arithmetic overflows
     assumptionBuilders.add(new ArithmeticOverflowAssumptionBuilder());
   }
-  
+
   private final AssumptionSymbolicFormulaManager manager;
-  
+
   /**
    * Constructor
    */
@@ -72,7 +72,7 @@ public class GenericAssumptionsTransferRelation implements TransferRelation {
     assumptionBuilders = new LinkedList<GenericAssumptionBuilder>();
     registerDefaultAssumptionBuilders();
   }
-  
+
   private AbstractElement getAbstractSuccessor(AbstractElement el, CFAEdge edge, Precision p)
     throws CPATransferException
   {

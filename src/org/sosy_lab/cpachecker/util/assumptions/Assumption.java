@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -32,25 +32,25 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormu
  * @author g.theoduloz
  */
 public class Assumption {
- 
-  private final AssumptionSymbolicFormulaManager manager; 
+
+  private final AssumptionSymbolicFormulaManager manager;
   private final SymbolicFormula dischargeableAssumption;
   private final SymbolicFormula otherAssumption;
-  
+
   public Assumption(SymbolicFormula dischargeable, SymbolicFormula rest)
   {
     manager = MathsatInvariantSymbolicFormulaManager.getInstance();
     dischargeableAssumption = dischargeable;
     otherAssumption = rest;
   }
-  
+
   public Assumption(SymbolicFormula assumption, boolean isDischargeable)
   {
     manager = MathsatInvariantSymbolicFormulaManager.getInstance();
     dischargeableAssumption = isDischargeable ? assumption : manager.makeTrue();
     otherAssumption = isDischargeable ? manager.makeTrue() : assumption;
   }
-  
+
   /** Constructs an invariant corresponding to true */
   public Assumption()
   {
@@ -62,11 +62,11 @@ public class Assumption {
   public SymbolicFormula getDischargeableFormula() {
     return dischargeableAssumption;
   }
-  
+
   public SymbolicFormula getOtherFormula() {
     return otherAssumption;
   }
-  
+
   /**
    * Return a formula representing all assumptions
    * contained in this invariant
@@ -74,7 +74,7 @@ public class Assumption {
   public SymbolicFormula getAllFormula() {
     return manager.makeAnd(dischargeableAssumption, otherAssumption);
   }
-  
+
   /**
    * Conjunct this invariant with an other invariant and
    * return the result
@@ -86,12 +86,12 @@ public class Assumption {
       return other;
     else if (other == TRUE)
       return this;
-      
+
     SymbolicFormula newDischargeable = manager.makeAnd(dischargeableAssumption, other.dischargeableAssumption);
     SymbolicFormula newOther = manager.makeAnd(dischargeableAssumption, other.dischargeableAssumption);
     return new Assumption(newDischargeable, newOther);
   }
-  
+
   /**
    * Check whether an invariant is true
    */
@@ -99,11 +99,11 @@ public class Assumption {
     // shortcut
     if (this == TRUE)
       return true;
-    else 
+    else
       return dischargeableAssumption.isTrue()
           && otherAssumption.isTrue();
   }
-  
+
   public boolean isFalse() {
     if (this == FALSE)
       return true;
@@ -111,9 +111,9 @@ public class Assumption {
       return false;
     else
       return dischargeableAssumption.isFalse()
-          || otherAssumption.isFalse(); 
+          || otherAssumption.isFalse();
   }
-  
+
   /**
    * Return an assumption with location for the given
    * location
@@ -125,8 +125,8 @@ public class Assumption {
     else
       return new AssumptionWithSingleLocation(node, this);
   }
-  
+
   public static final Assumption TRUE = new Assumption();
   public static final Assumption FALSE = new Assumption(MathsatInvariantSymbolicFormulaManager.getInstance().makeFalse(), false);
- 
+
 }

@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -66,7 +66,7 @@ public class AssumeEdge extends AbstractCFAEdge
     {
         return "[" + super.getRawStatement () + "]";
     }
-    
+
     /**
      * TODO
      * Warning: for instances with {@link #getTruthAssumption()} == false, the

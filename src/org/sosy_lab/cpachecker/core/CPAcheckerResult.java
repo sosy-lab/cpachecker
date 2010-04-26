@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -43,32 +43,32 @@ public class CPAcheckerResult {
   public static enum Result { UNKNOWN, UNSAFE, SAFE }
 
   private final Result result;
-  
+
   private final ReachedElements reached;
-  
+
   private final Statistics stats;
-  
+
   CPAcheckerResult(Result result, ReachedElements reached, Statistics stats) {
     Preconditions.checkNotNull(result);
     this.result = result;
     this.reached = reached;
     this.stats = stats;
   }
-  
+
   /**
    * Return the result of the analysis.
    */
   public Result getResult() {
     return result;
   }
-  
+
   /**
    * Return the final reached set.
    */
   public UnmodifiableReachedElements getReached() {
     return reached;
   }
-  
+
   /**
    * Write the statistics to a given PrintWriter. Additionally some output files
    * may be written here, if configuration says so.

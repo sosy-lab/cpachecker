@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -44,34 +44,34 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
 /**
  * CPA used to capture the assumptions that ought to be dumped.
- * 
+ *
  * Note that once the CPA algorithm has finished running, a call
  * to dumpInvariants() is needed to process the reachable states
  * and produce the actual invariants.
- *  
+ *
  * @author g.theoduloz
  */
 public class AssumptionCollectorCPA extends AbstractSingleWrapperCPA {
 
   private static class AssumptionCollectorCPAFactory extends AbstractSingleWrapperCPAFactory {
-    
+
     @Override
     public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException {
       return new AssumptionCollectorCPA(getChild(), getConfiguration(), getLogger());
     }
   }
-  
+
   public static CPAFactory factory() {
     return new AssumptionCollectorCPAFactory();
   }
-  
+
   private final AssumptionCollectorDomain abstractDomain;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
   private final TransferRelation transferRelation;
   private final AssumptionSymbolicFormulaManager symbolicFormulaManager;
   private final PrecisionAdjustment precisionAdjustment;
-  
+
   private AssumptionCollectorCPA(ConfigurableProgramAnalysis cpa,
             Configuration config, LogManager logger) throws InvalidConfigurationException
   {
@@ -83,12 +83,12 @@ public class AssumptionCollectorCPA extends AbstractSingleWrapperCPA {
     transferRelation = new AssumptionCollectorTransferRelation(this);
     precisionAdjustment = new AssumptionCollectorPrecisionAdjustment(getWrappedCpa());
   }
-  
+
   public AssumptionSymbolicFormulaManager getSymbolicFormulaManager()
   {
     return symbolicFormulaManager;
   }
-  
+
   @Override
   public AbstractDomain getAbstractDomain() {
     return abstractDomain;

@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -33,12 +33,12 @@ public interface StatisticsProvider {
 
   /**
    * Add a {@link Statistics} object from this provider to a collection.
-   * 
+   *
    * The provider is free to add zero, one or more objects. However it SHOULD not
    * make any other modifications to the collection.
-   * 
+   *
    * @param statsCollection The collection where the statistics are added.
    */
   public void collectStatistics(Collection<Statistics> statsCollection);
-  
+
 }

@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -43,7 +43,7 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 /**
  * This class is the abstraction of the memory of the program (global variables,
  * local variables, heap).
- * 
+ *
  * @author Philipp Wendler
  */
 public class PointerAnalysisElement implements AbstractQueryableElement, Memory,
@@ -58,11 +58,11 @@ public class PointerAnalysisElement implements AbstractQueryableElement, Memory,
    * true if this AbstractElement represents an error state
    */
   private boolean error = false;
-  
+
   static enum ElementProperty {DOUBLE_FREE, NO_MEMORY_LEAK,
     MEMORY_LEAK, UNSAFE_DEREFERENCE, POTENTIALLY_UNSAFE_DEREFERENCE, INVALID_FREE}
   private Set<ElementProperty> properties = EnumSet.noneOf(ElementProperty.class); // emptySet
-  
+
   private final Map<String, Map<String, Pointer>>              stack;
   // global variables are stored here with function name ""
   // non-pointer variables are tracked too, (mapped to null)
@@ -88,7 +88,7 @@ public class PointerAnalysisElement implements AbstractQueryableElement, Memory,
    *        ASTNode contains type specifier
    * Pointer, PointerBackup, OffsetNegative: an unknown offset was added to a pointer,
    *        Pointer is the new one, PointerBackup is the old one (before shifting),
-   *        and ASTNode is the shift operand   
+   *        and ASTNode is the shift operand
    */
 
   public PointerAnalysisElement() {
@@ -239,7 +239,7 @@ public class PointerAnalysisElement implements AbstractQueryableElement, Memory,
   void clearProperties() {
     this.properties.clear();
   }
-  
+
   private Map<String, Pointer> getGlobalPointers() {
     return stack.get("");
   }
@@ -340,7 +340,7 @@ public class PointerAnalysisElement implements AbstractQueryableElement, Memory,
     } else {
       throw new IllegalStateException("Unknown variable " + name);
       // unknown variable has to be a local variable, as we store all global
-      // variables (not just global pointer variables) in the globalPointers map 
+      // variables (not just global pointer variables) in the globalPointers map
       //return new LocalVariable(getCurrentFunctionName(), name);
     }
   }
@@ -433,7 +433,7 @@ public class PointerAnalysisElement implements AbstractQueryableElement, Memory,
 
   /**
    * Merge the alias lists of both pointers. This does not change the actual list of targets.
-   * 
+   *
    * @param firstPointer
    * @param secondPointer
    */
@@ -577,10 +577,10 @@ public class PointerAnalysisElement implements AbstractQueryableElement, Memory,
 
     PointerOperation opInvalid = new Pointer.Assign(INVALID_POINTER);
 
-    
+
     // This is wrong, as we lose all information about possible aliases of the pointer passed to free
-    // An invalid memory region is marked as INVALID, so we don't need to reset the pointers 
-    // 
+    // An invalid memory region is marked as INVALID, so we don't need to reset the pointers
+    //
     //
     // set all pointers pointing to mem to INVALID
     /*Iterator<PointerTarget> reverseIt = reverseRelation.keySet().iterator();
@@ -633,14 +633,14 @@ public class PointerAnalysisElement implements AbstractQueryableElement, Memory,
       }
       return result;
 
-      
+
     } else if (target == UNKNOWN_POINTER) {
-      
+
       PointerOperation op = new Assign(UNKNOWN_POINTER);
-      
+
       op.doOperation(null, pointer, false);
-      
-      
+
+
       return pointer;
     } else if (target == NULL_POINTER || target == INVALID_POINTER
         || target == UNINITIALIZED_POINTER) {
@@ -698,8 +698,8 @@ public class PointerAnalysisElement implements AbstractQueryableElement, Memory,
 
   public void pointerOpForAllAliases(PointerOperation op, Pointer pointer,
       boolean keepOldTargets) {
-    
-   
+
+
 
     for (PointerLocation aliasLoc : getAliases(pointer.getLocation())) {
       Pointer aliasPointer = getPointer(aliasLoc);
@@ -710,10 +710,10 @@ public class PointerAnalysisElement implements AbstractQueryableElement, Memory,
       addAllReverseRelations(aliasPointer);
       if (op instanceof AssumeInequality) {
         AssumeInequality assumeIneqOp = (AssumeInequality) op;
-        
+
         for (PointerTarget target : reverseRelation.keySet()) {
           if (reverseRelation.get(target).contains(assumeIneqOp.getRemoveTarget() ) && reverseRelation.get(target).size() == 1) {
-             reverseRelation.remove(target);   
+             reverseRelation.remove(target);
           }
         }
       }
@@ -761,7 +761,7 @@ public class PointerAnalysisElement implements AbstractQueryableElement, Memory,
 
       findAndMergePossibleAliases(pointer);
     } else {
-      // it is already equal like it should be 
+      // it is already equal like it should be
     }
   }
 
@@ -800,7 +800,7 @@ public class PointerAnalysisElement implements AbstractQueryableElement, Memory,
     //FIXME: this method is wrong as it does not check for UNKNOWN pointers
     //TODO: this method does not detect memory leaks of circular data structures
     //perhaps revert to revision 1020 where both cases were working
-    
+
     Set<MemoryRegion> unmarkedRegions = new HashSet<MemoryRegion>(mallocs);
     Set<MemoryRegion> unreferencedRegions = new HashSet<MemoryRegion>();
 
@@ -909,7 +909,7 @@ public class PointerAnalysisElement implements AbstractQueryableElement, Memory,
         }
       }
 
-      // remove all pointers to local variables from reverse relation 
+      // remove all pointers to local variables from reverse relation
       if (target instanceof LocalVariable) {
         if (oldFunctionName.equals(((LocalVariable) target).getFunctionName())) {
           // this target is a local variable, there may be no remaining reference to this target!
@@ -1053,7 +1053,7 @@ public class PointerAnalysisElement implements AbstractQueryableElement, Memory,
         throw new InvalidQueryException("The Query \"" + pProperty + "\" is not defined for this CPA (\""+ this.getCPAName() + "\"");
       }
       return this.properties.contains(prop);
-      
+
     }
   }
 
@@ -1061,7 +1061,7 @@ public class PointerAnalysisElement implements AbstractQueryableElement, Memory,
   public String getCPAName() {
     return "PointerAnalysis";
   }
-  
+
   public void setError(boolean pError) {
     this.error = pError;
   }

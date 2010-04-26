@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 public class DefUseCPA implements ConfigurableProgramAnalysis{
 
   private static class DefUseCPAFactory extends AbstractCPAFactory {
-    
+
     @Override
     public ConfigurableProgramAnalysis createInstance() {
       Configuration config = getConfiguration();
@@ -56,11 +56,11 @@ public class DefUseCPA implements ConfigurableProgramAnalysis{
       return new DefUseCPA(mergeType, stopType);
     }
   }
-  
+
   public static CPAFactory factory() {
     return new DefUseCPAFactory();
   }
-  
+
   private AbstractDomain abstractDomain;
   private TransferRelation transferRelation;
   private MergeOperator mergeOperator;

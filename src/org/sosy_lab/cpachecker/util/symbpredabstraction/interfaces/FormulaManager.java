@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -39,8 +39,8 @@ public interface FormulaManager {
    * Creates a new path formula representing an OR of the two arguments. Differently
    * from {@link SymbolicFormulaManager#makeOr(SymbolicFormula, SymbolicFormula)},
    * it also merges the SSA maps and creates the necessary adjustments to the
-   * formulas if the two SSA maps contain different values for the same variables. 
-   * 
+   * formulas if the two SSA maps contain different values for the same variables.
+   *
    * @param pF1 a PathFormula
    * @param pF2 a PathFormula
    * @return (pF1 | pF2)
@@ -52,18 +52,18 @@ public interface FormulaManager {
    * the atom that defines it
    */
   public Predicate makePredicate(SymbolicFormula var, SymbolicFormula atom);
-  
+
   /**
    * Get the symbolic formulas for the variable and the atom which belong to a
-   * predicate. 
+   * predicate.
    * @param p A predicate which has been return by {@link #makePredicate(SymbolicFormula, SymbolicFormula)}
    * @return The values passed to the makePredicate call (symbolic formula for var and atom)
    */
   public Pair<? extends SymbolicFormula, ? extends SymbolicFormula> getPredicateVarAndAtom(Predicate p);
-  
+
   /**
    * Get predicate corresponding to a variable.
-   * @param var A symbolic formula representing the variable. The same formula has to been passed to makePredicate earlier. 
+   * @param var A symbolic formula representing the variable. The same formula has to been passed to makePredicate earlier.
    * @return a Predicate
    */
   public Predicate getPredicate(SymbolicFormula var);

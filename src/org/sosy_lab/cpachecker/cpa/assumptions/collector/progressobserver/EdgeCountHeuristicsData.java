@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -38,14 +38,14 @@ public class EdgeCountHeuristicsData
   private final int[] counters;
   private final CFANode node;
   private boolean untouched;
-  
+
   private static int threshold = -1;
-  
+
   public static void setBaseThreshold(int newThreshold)
   {
     threshold = newThreshold;
   }
-  
+
   public static int getBaseThreshold()
   {
     return threshold;
@@ -58,24 +58,24 @@ public class EdgeCountHeuristicsData
     counters = new int[sourceNode.getNumLeavingEdges()];
     untouched = true;
   }
-  
+
   private EdgeCountHeuristicsData() {
     node = null;
     counters = null;
   }
-  
+
   /** Copy constructor */
   public EdgeCountHeuristicsData(EdgeCountHeuristicsData d)
   {
     node = d.node;
     counters = d.counters.clone();
   }
-  
+
   public EdgeCountHeuristicsData copy()
   {
     return new EdgeCountHeuristicsData(this);
   }
-  
+
   @Override
   public boolean isBottom() {
     return false;
@@ -90,7 +90,7 @@ public class EdgeCountHeuristicsData
   public boolean isTop() {
     return false;
   }
-  
+
   /**
    * processEdge relies on side-effect to update the pre, because
    * prec has access only to pre-states, while the edge is only
@@ -98,7 +98,7 @@ public class EdgeCountHeuristicsData
    */
   public EdgeCountHeuristicsData updateForEdge(CFAEdge edge, Function<? super CFAEdge, Integer> thresholds) {
     assert edge.getPredecessor() == node;
-    
+
     for (int i=0; i < counters.length; i++)
       if (node.getLeavingEdge(i) == edge) {
         counters[i]++;
@@ -108,10 +108,10 @@ public class EdgeCountHeuristicsData
           return BOTTOM;
         }
       }
-    
+
     return new EdgeCountHeuristicsData(edge.getSuccessor());
   }
-  
+
   private boolean isInteresting()
   {
     if (node.isLoopStart())
@@ -124,10 +124,10 @@ public class EdgeCountHeuristicsData
     }
     return false;
   }
-  
+
   public EdgeCountHeuristicsData collectData(ReachedHeuristicsDataSetView reached) {
     if (isTop() || isBottom() || !isInteresting()) return this;
-    
+
     for (StopHeuristicsData d : reached.getHeuristicsDataForLocation(node)) {
       EdgeCountHeuristicsData other = (EdgeCountHeuristicsData) d;
       if (other.untouched && (other != this) && (other.node == node)) {
@@ -142,7 +142,7 @@ public class EdgeCountHeuristicsData
     }
     return this;
   }
-  
+
   @Override
   public String toString() {
     StringBuffer buffer = new StringBuffer();
@@ -151,56 +151,56 @@ public class EdgeCountHeuristicsData
         .append(node.getLeavingEdge(i).getSuccessor()).append(") ");
     return buffer.toString();
   }
-    
+
   /** Bottom singleton */
   public static final EdgeCountHeuristicsData BOTTOM = new EdgeCountHeuristicsData()
   {
     @Override
     public boolean isBottom() { return true; }
-    
+
     @Override
     public boolean isLessThan(StopHeuristicsData d) { return true; }
-    
+
     @Override
     public EdgeCountHeuristicsData updateForEdge(CFAEdge edge, Function<? super CFAEdge,Integer> thresholds) {
       return this;
     }
-    
+
     @Override
     public EdgeCountHeuristicsData collectData(ReachedHeuristicsDataSetView reached) {
       return this;
     }
-    
+
     @Override
     public String toString() { return "BOTTOM"; }
-    
+
     @Override
     public boolean equals(Object obj) { return obj == this; }
-    
+
   };
-  
+
   /** Top singleton */
   public static final EdgeCountHeuristicsData TOP = new EdgeCountHeuristicsData()
   {
     @Override
     public boolean isTop() { return true; }
-    
+
     @Override
     public boolean isLessThan(StopHeuristicsData d) { return d == this; }
-    
+
     @Override
     public EdgeCountHeuristicsData updateForEdge(CFAEdge edge, Function<? super CFAEdge,Integer> thresholds) {
       return new EdgeCountHeuristicsData(edge.getSuccessor());
     }
-    
+
     @Override
     public EdgeCountHeuristicsData collectData(ReachedHeuristicsDataSetView reached) {
       return this;
     }
-    
+
     @Override
     public String toString() { return "TOP"; }
-    
+
     @Override
     public boolean equals(Object obj) { return obj == this; }
   };

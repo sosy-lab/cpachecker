@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -38,12 +38,12 @@ public class TransferRelationMonitorStop implements StopOperator {
   public TransferRelationMonitorStop(ConfigurableProgramAnalysis cpa) {
     this.wrappedCpa = cpa;
   }
-  
+
   @Override
   public boolean stop(AbstractElement pElement,
       Collection<AbstractElement> pReached, Precision pPrecision) throws CPAException {
 
-    TransferRelationMonitorElement transferRelationMonitorElement = (TransferRelationMonitorElement)pElement;   
+    TransferRelationMonitorElement transferRelationMonitorElement = (TransferRelationMonitorElement)pElement;
 
     for (AbstractElement reachedElement : pReached) {
       TransferRelationMonitorElement transferRelationMonitorReachedElement = (TransferRelationMonitorElement)reachedElement;
@@ -69,5 +69,5 @@ public class TransferRelationMonitorStop implements StopOperator {
       throws CPAException {
     return stop((TransferRelationMonitorElement)pElement, (TransferRelationMonitorElement)pReachedElement);
   }
-  
+
 }

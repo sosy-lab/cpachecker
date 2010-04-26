@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -85,13 +85,13 @@ public interface ASTVisitor<T> {
   public T visit(Intersection pIntersection);
   public T visit(SetMinus pSetMinus);
   public T visit(EnclosingScopes pEnclosingScopes);
-  
+
   // predicates
   public T visit(Predicate pPredicate);
   public T visit(CIdentifier pCIdentifier);
   public T visit(NaturalNumber pNaturalNumber);
   public T visit(Predicates pPredicates);
-  
+
   // coverage expressions
   public T visit(States pStates);
   public T visit(Edges pEdges);
@@ -100,16 +100,16 @@ public interface ASTVisitor<T> {
   public T visit(org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.coverage.Union pUnion);
   public T visit(org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.coverage.Intersection pIntersection);
   public T visit(ConditionalCoverage pConditionalCoverage);
-  
+
   public T visit(Sequence pSequence);
-  
+
   // path monitor expressions
   public T visit(ConditionalMonitor pConditionalMonitor);
   public T visit(Alternative pAlternative);
   public T visit(Concatenation pConcatenation);
   public T visit(UpperBound pUpperBound);
   public T visit(LowerBound pLowerBound);
-  
+
   // queries
   public T visit(Query pQuery);
 }

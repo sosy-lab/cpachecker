@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -28,8 +28,8 @@ import java.util.Iterator;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.pathmonitor.Automaton;
 
 public interface Query extends Iterator<Waypoint> {
-  
+
   public Automaton getFirstAutomaton();
   public Automaton getSecondAutomaton();
-  
+
 }

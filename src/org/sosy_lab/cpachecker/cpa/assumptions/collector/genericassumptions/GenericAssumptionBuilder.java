@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
  * @author g.theoduloz
  */
 public interface GenericAssumptionBuilder {
-  
+
   /**
    * Returns the assumption predicate that the system assumes when
    * it encounters the given edge. The assumption is evaluated in
@@ -41,5 +41,5 @@ public interface GenericAssumptionBuilder {
    * @return A non-null predicate representing the assumptions
    */
   public IASTExpression assumptionsForEdge(CFAEdge edge);
-  
+
 }

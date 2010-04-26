@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -38,9 +38,9 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 
 /**
  * @author Gregor Endler
- * 
+ *
  * Statistics for UninitializedVariablesCPA.
- * Displays warnings about all uninitialized variables found. 
+ * Displays warnings about all uninitialized variables found.
  */
 public class UninitializedVariablesStatistics implements Statistics {
 
@@ -67,7 +67,7 @@ public class UninitializedVariablesStatistics implements Statistics {
       //find all UninitializedVariablesElements and get their warnings
       for (AbstractElement reachedElement : pReached) {
         if (reachedElement instanceof AbstractWrapperElement) {
-          UninitializedVariablesElement uninitElement = 
+          UninitializedVariablesElement uninitElement =
             ((AbstractWrapperElement)reachedElement).retrieveWrappedElement(UninitializedVariablesElement.class);
           if (uninitElement != null) {
             Set<Triple<Integer, String, String>> warnings = uninitElement.getWarnings();

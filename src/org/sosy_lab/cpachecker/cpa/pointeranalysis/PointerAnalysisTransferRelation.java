@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -96,12 +96,12 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
 
   /*
    * Exception usage during analysis:
-   * 
+   *
    * UnreachableStateException: Thrown when the analysis determines that the
    *      current edge represents an infeasible code path of the program. The
    *      exception will be caught silently and the new abstract element will be
    *      the bottom element of the domain.
-   * 
+   *
    * InvalidPointerException: The program produces a pointer related error.
    *      If it's a non-critical error like incrementing a pointer above the
    *      length of it's memory region, the exception is caught and a warning is
@@ -111,11 +111,11 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
    *      the exception is caught a the top-most level of the analysis, an
    *      error is printed and the new abstract element will be the bottom
    *      element of the domain.
-   *      
+   *
    * UnrecognizedCCodeException: The program has invalid syntax, a type error or
    *      C constructs which should not appear in CIL. An error is printed and
    *      analysis will halt completely.
-   *      
+   *
    * ? extends RuntimeException: These exceptions should never happen during
    *      analysis as they indicate an illegal state, probably due to missing
    *      checks in the call stack of the throwing method. Program will terminate.
@@ -133,7 +133,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
    * Here some information about the last action is stored;
    * the strengthen operator can use this to find out what information could be
    * updated.
-   * 
+   *
    * This information is stored in a separate object which can be garbage
    * collected after it was used, this reduces the memory footprint of a
    * PointerAnalysisElement.
@@ -159,7 +159,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
   private static Set<Pair<Integer, String>> warnings           = null;
   private static LogManager                 logger             = null;
   private static LinkedList<MemoryRegion>   memoryLeakWarnings = null;
-  
+
   private FunctionDefinitionNode entryFunctionDefinitionNode = null;
   private boolean entryFunctionProcessed = false;
 
@@ -230,7 +230,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
     if (successor.isError()) {
       return Collections.emptySet();
     }
-    
+
     successor.setCurrentEdge(cfaEdge);
     successor.clearProperties();
 
@@ -266,15 +266,15 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
 
       case BlankEdge:
         //the first function start dummy edge is the actual start of the entry function
-        if (!entryFunctionProcessed && 
+        if (!entryFunctionProcessed &&
             cfaEdge.getRawStatement().equals("Function start dummy edge")) {
 
           //since by this point all global variables have been processed, we can now process the entry function
           //by first creating its context...
           successor.callFunction(entryFunctionDefinitionNode.getFunctionName());
-          
+
           List<IASTParameterDeclaration> l = entryFunctionDefinitionNode.getFunctionParameters();
-          
+
           //..then adding all parameters as local variables
           for (IASTParameterDeclaration dec : l) {
             IASTDeclarator[] declarators = {dec.getDeclarator()};
@@ -333,9 +333,9 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       throw new UnrecognizedCCodeException("not expected in CIL", edge,
                                     specifier.getParent());
     }
-    
+
     if (declarators[0] instanceof IASTFunctionDeclarator) {
-      return; 
+      return;
     }
 
     String varName = declarators[0].getName().toString();
@@ -352,14 +352,14 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       IASTArrayModifier[] modifiers =
           ((IASTArrayDeclarator)(declarators[0])).getArrayModifiers();
       if (modifiers.length != 1 || modifiers[0] == null) {
-        throw new UnrecognizedCCodeException("unsupported array declaration", 
-                                                     edge, declarators[0]); 
+        throw new UnrecognizedCCodeException("unsupported array declaration",
+                                                     edge, declarators[0]);
       }
 
       IASTExpression lengthExpression = modifiers[0].getConstantExpression();
       if (!(lengthExpression instanceof IASTLiteralExpression)) {
-        throw new UnrecognizedCCodeException("variable sized stack arrays are not supported", 
-            edge, declarators[0]); 
+        throw new UnrecognizedCCodeException("variable sized stack arrays are not supported",
+            edge, declarators[0]);
       }
 
       long length = parseIntegerLiteral((IASTLiteralExpression)lengthExpression);
@@ -387,8 +387,8 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
           element.addNewLocalPointer(varName, p);
           //if the entryFunction has not yet been processed, this means this pointer is a parameter
           //and should be considered unknown rather than uninitialized
-          PointerTarget pTarg = 
-            (!entryFunctionProcessed ? Memory.UNKNOWN_POINTER : Memory.UNINITIALIZED_POINTER); 
+          PointerTarget pTarg =
+            (!entryFunctionProcessed ? Memory.UNKNOWN_POINTER : Memory.UNINITIALIZED_POINTER);
           element.pointerOp(new Pointer.Assign(pTarg), p);
 
         }
@@ -438,37 +438,37 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
             assumeEdge);
 
       } else if (unaryExpression.getOperator() == IASTUnaryExpression.op_star) {
-        // if (*var)      
+        // if (*var)
         String varName = expression.getRawSignature();
         Pointer p = element.lookupPointer(varName);
-        
+
         if (p == null) {
           throw new UnrecognizedCCodeException("Trying to dereference a non-pointer variable",
               assumeEdge, expression);
         }
-        
+
         boolean isNull = (p.contains(Memory.NULL_POINTER));
         boolean isUninitialized = p.contains(Memory.UNINITIALIZED_POINTER);
-        
+
         if (isNull && p.getNumberOfTargets() == 1) {
           addError("Trying to dereference a NULL pointer" , assumeEdge);
         }
-        
+
         if (isUninitialized && p.getNumberOfTargets() == 1) {
           // C actually allows this in special cases
           addWarning("Trying to dereference an uninitialized pointer" , assumeEdge, varName);
         }
-        
+
         if (isTrueBranch) {
           // *p holds, i.e. *p != 0 holds, i.e. p cannot be NULL
           element.pointerOpAssumeInequality(p, Memory.NULL_POINTER);
         }
 
       } else if (unaryExpression instanceof IASTCastExpression) {
- 
+
         handleAssume(element, unaryExpression.getOperand(), isTrueBranch,
             assumeEdge);
-        
+
       } else {
 
         throw new UnrecognizedCCodeException("not expected in CIL", assumeEdge,
@@ -496,7 +496,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       if (isTrueBranch) {
         // p holds, i.e. p != 0 holds, i.e. p cannot point to null
         element.pointerOpAssumeInequality(p, Memory.NULL_POINTER);
-        
+
 
       } else {
         // !p holds, i.e. p == 0 holds, i.e. p points to null
@@ -576,7 +576,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
           if ((literal.getKind() == IASTLiteralExpression.lk_integer_constant)
               && parseIntegerLiteral(literal) == 0) {
 
-            actualValues.add(new Pointer()); // null pointer               
+            actualValues.add(new Pointer()); // null pointer
           } else {
             actualValues.add(null); // probably not a pointer
           }
@@ -808,12 +808,12 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       throws UnrecognizedCCodeException, InvalidPointerException {
 
     IASTExpression parameter = expression.getParameterExpression();
-    
+
     if (parameter instanceof IASTIdExpression) {
       Pointer p = element.lookupPointer(parameter.getRawSignature());
 
       if (p == null) {
-        throw new UnrecognizedCCodeException("freeing non-pointer pointer", 
+        throw new UnrecognizedCCodeException("freeing non-pointer pointer",
                                                         cfaEdge, parameter);
       }
 
@@ -868,7 +868,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       }
 
       // free only if there is exactly one target and it is the beginning
-      // of a memory region or the pointer has two targets and one of them 
+      // of a memory region or the pointer has two targets and one of them
       // is the NULL-pointer (because malloc leaves us with at least one NULL-pointer. if the malloc result is unchecked)
       if ((p.getNumberOfTargets() == 1 || (p.getNumberOfTargets() == 2 && p
           .contains(Memory.NULL_POINTER)))
@@ -899,7 +899,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       IASTBinaryExpression expression, CFAEdge cfaEdge)
       throws UnrecognizedCCodeException, InvalidPointerException {
 
-    // left hand side    
+    // left hand side
     IASTExpression leftExpression = expression.getOperand1();
     String leftVarName = null;
     Pointer leftPointer;
@@ -955,8 +955,8 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
 
           if (!leftPointer.isDereferencable()) {
             element.addProperty(ElementProperty.UNSAFE_DEREFERENCE);
-            throw new InvalidPointerException("Unsafe deref of pointer " 
-                + leftPointer.getLocation() + " = " + leftPointer); 
+            throw new InvalidPointerException("Unsafe deref of pointer "
+                + leftPointer.getLocation() + " = " + leftPointer);
             }
 
           if (!leftPointer.isSafe()) {
@@ -1000,7 +1000,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
 
     } else if (typeOfOperator == IASTBinaryExpression.op_minusAssign
         || typeOfOperator == IASTBinaryExpression.op_plusAssign) {
-      // a += x 
+      // a += x
 
       if (op2 instanceof IASTLiteralExpression) {
         // a += 5
@@ -1035,7 +1035,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
   /**
    * Handles an assignment, where the left-hand side is a pointer.
    * If the right-hand side seems to not evaluate to a pointer, the left pointer
-   * is just set to unknown (no warning / error etc. is produced). 
+   * is just set to unknown (no warning / error etc. is produced).
    */
   private void handleAssignment(PointerAnalysisElement element,
       String leftVarName, Pointer leftPointer, boolean leftDereference,
@@ -1113,7 +1113,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
           if (leftPointer == null) {
             // start tracking left hand side
             // assigning rightPointer is wrong, but at least it sets the correct
-            // target size etc. and it will be overwritten anyway 
+            // target size etc. and it will be overwritten anyway
             element.addTemporaryTracking(leftVarName, rightPointer);
             leftPointer = element.lookupPointer(leftVarName);
             assert leftPointer != null;
@@ -1243,9 +1243,9 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
 
           if (!rightPointer.isDereferencable()) {
             element.addProperty(ElementProperty.UNSAFE_DEREFERENCE);
-            throw new InvalidPointerException("Unsafe deref of pointer " 
-                                              + rightPointer.getLocation() 
-                                              + " = " + rightPointer); 
+            throw new InvalidPointerException("Unsafe deref of pointer "
+                                              + rightPointer.getLocation()
+                                              + " = " + rightPointer);
           }
 
           if (!rightPointer.isSafe()) {
@@ -1336,7 +1336,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
           expression);
     }
 
-    // we can assume, that after any assignment the pointer is not uninitialized anymore ... 
+    // we can assume, that after any assignment the pointer is not uninitialized anymore ...
     // it either contains NULL, UNKNOWN or an actual pointer target
     if (leftPointer != null
         && leftPointer.contains(Memory.UNINITIALIZED_POINTER)) {
@@ -1366,7 +1366,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
     if (parameter instanceof IASTLiteralExpression) {
       long size = parseIntegerLiteral((IASTLiteralExpression)parameter);
       if (size < 0) {
-        throw new UnrecognizedCCodeException("malloc with size < 0, but malloc takes unsigned parameter", 
+        throw new UnrecognizedCCodeException("malloc with size < 0, but malloc takes unsigned parameter",
                                               cfaEdge, parameter);
       }
       if (size > 0x7FFFFFFF) {
@@ -1562,7 +1562,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
    * TODO call, implementation
    * recursively traverses all fields of a struct
    */
-  private void handleStructDeclaration(PointerAnalysisElement element, 
+  private void handleStructDeclaration(PointerAnalysisElement element,
                                        TypesElement typeElem, Type.CompositeType structType,
                                        String varName,String recursiveVarName) {
 
@@ -1572,14 +1572,14 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       Type t = structType.getMemberType(member);
       //for a field that is itself a struct, repeat the whole process
       if (t != null && t.getTypeClass() == TypeClass.STRUCT) {
-        handleStructDeclaration(element, typeElem, (Type.CompositeType)t, member, 
+        handleStructDeclaration(element, typeElem, (Type.CompositeType)t, member,
             recursiveVarName + "." + member);
       } else {
         //TODO handle pointers
       }
     }
   }
-  
+
   /**
    * checks all possible locations for type information of a given name
    */
@@ -1605,35 +1605,35 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
     }
     return t;
   }
-  
+
   /**
    * TODO call
    * checks wether a given expression is a field reference;
    * if yes, find the type of the referenced field, if no, try to determine the type of the variable
    */
   private Type checkForFieldReferenceType(IASTExpression exp, TypesElement typeElem, CFAEdge cfaEdge) {
-    
+
     String name = exp.getRawSignature();
     Type t = null;
-    
+
     if (exp instanceof IASTFieldReference) {
       String[] s = name.split("[.]");
       t = findType(typeElem, cfaEdge, s[0]);
       int i = 1;
-      
+
       //follow the field reference to its end
       while (t != null && t.getTypeClass() == TypeClass.STRUCT && i < s.length) {
         t = ((Type.CompositeType)t).getMemberType(s[i]);
         i++;
       }
-      
+
     //if exp is not a field reference, simply try to find the type of the associated variable name
     } else {
       t = findType(typeElem, cfaEdge, name);
     }
     return t;
   }
-  
+
   /**
    * TODO call, implementation
    * recursively checks the fields of a struct being assigned to another struct of
@@ -1641,9 +1641,9 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
    */
   private void checkFields(PointerAnalysisElement element, CFAEdge cfaEdge, IASTExpression exp,
                            TypesElement typeElem, Type.CompositeType structType,
-                           String leftName, String rightName, 
+                           String leftName, String rightName,
                            String recursiveLeftName, String recursiveRightName) {
-    
+
     Set<String> members = structType.getMembers();
 
     //check all members
@@ -1651,7 +1651,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       Type t = structType.getMemberType(member);
       //for a field that is itself a struct, repeat the whole process
       if (t != null && t.getTypeClass() == TypeClass.STRUCT) {
-        checkFields(element, cfaEdge, exp, typeElem, (Type.CompositeType)t, member, member, 
+        checkFields(element, cfaEdge, exp, typeElem, (Type.CompositeType)t, member, member,
                          recursiveLeftName + "." + member, recursiveRightName + "." + member);
       //else, check the assigned variable and set the assignee accordingly
       } else {
@@ -1659,7 +1659,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
       }
     }
   }
-  
+
   private void setSizeOfTarget(Pointer pointer, Type type) {
 
     switch (type.getTypeClass()) {
@@ -1681,5 +1681,5 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
   public void setEntryFunctionDefinitionNode(FunctionDefinitionNode pEntryFunctionDefNode) {
     entryFunctionDefinitionNode = pEntryFunctionDefNode;
   }
-  
+
 }

@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -46,12 +46,12 @@ public class AssumptionCollectorPrecisionAdjustment
 {
 
   private final PrecisionAdjustment wrappedPrecisionAdjustment;
-  
+
   public AssumptionCollectorPrecisionAdjustment(ConfigurableProgramAnalysis wrappedCPA)
   {
     wrappedPrecisionAdjustment = wrappedCPA.getPrecisionAdjustment();
   }
-    
+
   private static final Function<Precision, Precision> UNWRAP_PRECISION_FUNCTION = Functions.<Precision>identity();
 
   @Override
@@ -62,7 +62,7 @@ public class AssumptionCollectorPrecisionAdjustment
     AbstractElement unwrappedElement = assumptionElement.getWrappedElement();
     UnmodifiableReachedElements unwrappedReached = new UnmodifiableReachedElementsView(reachedElements, AssumptionCollectorElement.getUnwrapFunction(), UNWRAP_PRECISION_FUNCTION);
     Pair<AbstractElement, Precision> unwrappedResult = wrappedPrecisionAdjustment.prec(unwrappedElement, precision, unwrappedReached);
-    
+
     AbstractElement resultElement;
     if (unwrappedElement != unwrappedResult.getFirst()) {
       AssumptionWithLocation assumption = assumptionElement.getCollectedAssumptions();

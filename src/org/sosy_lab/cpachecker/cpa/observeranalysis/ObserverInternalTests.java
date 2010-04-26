@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -47,14 +47,14 @@ class ObserverInternalTests {
    * @param args
    */
   public static void main(String[] args) {
-    
-    
-    
+
+
+
     ObserverBoolExpr ex = new ObserverBoolExpr.True();
     System.out.println(ex.eval(null));
     try {
       File f = new File("test/programs/observerAutomata/LockingAutomatonAstComp.txt");
-      
+
       /*
       SymbolFactory sf1 = new ComplexSymbolFactory();
       Scanner s = new Scanner(new FileInputStream(f), sf1);
@@ -65,23 +65,23 @@ class ObserverInternalTests {
       }
       System.out.println(s.next_token());
       */
-      
+
       SymbolFactory sf = new ComplexSymbolFactory();
-      //change back if you have problems:   
+      //change back if you have problems:
       //SymbolFactory sf = new DefaultSymbolFactory();
      Symbol symbol = new ObserverParser(new ObserverScanner(new java.io.FileInputStream(f), sf),sf).parse();
      ObserverAutomaton a = (ObserverAutomaton) symbol.value;
      a.writeDotFile(System.out);
-     
-     
+
+
     } catch (Exception e) {
       // TODO Auto-generated catch block
       e.printStackTrace();
     }
-    
+
     testExpressionEvaluator();
     testASTcomparison();
-    
+
     testAndOr();
   }
   private static void testAndOr() {
@@ -114,7 +114,7 @@ class ObserverInternalTests {
     ex = new ObserverBoolExpr.Or(maybe, myTrue); if (ex.eval(args) != MaybeBoolean.TRUE) ok = false;
     ex = new ObserverBoolExpr.Or(maybe, myFalse); if (ex.eval(args) != MaybeBoolean.MAYBE) ok = false;
     ex = new ObserverBoolExpr.Or(maybe, maybe); if (ex.eval(args) != MaybeBoolean.MAYBE) ok = false;
-    
+
     if (!ok) {
       System.out.println("AndOr test has failed!");
     } else {
@@ -126,55 +126,55 @@ class ObserverInternalTests {
     Map<String, ObserverVariable> map = new HashMap<String, ObserverVariable>();
     ObserverIntExpr AccessA = new ObserverIntExpr.VarAccess("a");
     ObserverIntExpr AccessB = new ObserverIntExpr.VarAccess("b");
-    
+
     ObserverActionExpr storeA = new ObserverActionExpr.Assignment("a",
         new ObserverIntExpr.Constant(5));
-    
+
     ObserverActionExpr storeB = new ObserverActionExpr.Assignment("b",
         new ObserverIntExpr.Plus(AccessA, new ObserverIntExpr.Constant(2)));
-    
+
     ObserverBoolExpr bool = new ObserverBoolExpr.EqTest(
         new ObserverIntExpr.Plus(new ObserverIntExpr.Constant(2), AccessA)
         , AccessB
         );
-    
+
     storeA.execute(map);
     storeB.execute(map);
-    
+
     System.out.println("Expression Evaluation result: " + bool.eval(map));
     */
   }
   private static void testASTcomparison() {
-   
+
    testAST("x=5;", "x= $?;");
    testAST("x=5;", "x= 10;");
    //ObserverASTComparator.printAST("x=10;");
    testAST("x=5;", "$? =10;");
    testAST("x  = 5;", "$?=$?;");
-   
+
    testAST("a = 5;", "b    = 5;");
-   
+
    testAST("init(a);", "init($?);");
    testAST("init();", "init($?);");
-   
+
    testAST("init(a, b);", "init($?, b);");
    testAST("init(a, b);", "init($?, c);");
-   
-   
+
+
    testAST("init();", "init();;"); // two ';' lead to not-equal
    testAST("x = 5;", "x=$?");
    testAST("x = 5", "x=$?;");
    testAST("x = 5;;", "x=$?");
-   
-   
+
+
    testAST("f();", "f($?);");
    testAST("f(x);", "f($?);");
    testAST("f(x, y);", "f($?);");
-   
+
    testAST("f(x);", "f(x, $?);");
    testAST("f(x, y);", "f(x, $?);");
    testAST("f(x, y, z);", "f(x, $?);");
-   
+
   }
   /**
    * Tests the equality of two strings as used the ASTComparison transition.
@@ -197,7 +197,7 @@ class ObserverInternalTests {
     }
     System.out.println();
   }
-  
-  
+
+
 
 }

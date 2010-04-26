@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -80,7 +80,7 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
     stats.bddCoverageCheckTime += (end - start);
     ++stats.numCoverageChecks;
        */
-      
+
       if (e1 == bottom) {
         return true;
       } else if (e2 == top) {
@@ -100,7 +100,7 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
         return false;
       } else {
         // if not an abstraction location
-        if (e1.getAbstractionLocation().equals(e2.getAbstractionLocation()) 
+        if (e1.getAbstractionLocation().equals(e2.getAbstractionLocation())
           && e1.getAbstractionPathList().equals(e2.getAbstractionPathList())
           && e1.getAbstraction().equals(e2.getAbstraction())) {
 

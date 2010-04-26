@@ -1,6 +1,6 @@
 /*
  *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker. 
+ *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
@@ -31,13 +31,13 @@ import org.sosy_lab.cpachecker.fllesh.fql.backend.testgoals.CoverageSequence;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.query.Query;
 
 public class QueryEvaluation {
-  
+
   public static Pair<CoverageSequence, Automaton> evaluate(Query pQuery, TargetGraph pTargetGraph) {
     CoverageSequence lCoverageSequence = CoverageSequence.create(pQuery.getCoverage(), pTargetGraph);
-    
+
     Automaton lPassingAutomaton = Automaton.create(pQuery.getPassingMonitor(), pTargetGraph);
-   
+
     return new Pair<CoverageSequence, Automaton>(lCoverageSequence, lPassingAutomaton);
   }
-  
+
 }
