@@ -52,14 +52,14 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
-import org.sosy_lab.cpachecker.core.LogManager;
-import org.sosy_lab.cpachecker.exceptions.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 
 /**

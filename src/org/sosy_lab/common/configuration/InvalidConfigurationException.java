@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://www.cs.sfu.ca/~dbeyer/CPAchecker/
  */
-package org.sosy_lab.cpachecker.exceptions;
+package org.sosy_lab.common.configuration;
 
 /**
  * Exception class to signal that something is wrong in the user-specified

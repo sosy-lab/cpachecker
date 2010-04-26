@@ -31,10 +31,10 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
 
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 
-import org.sosy_lab.cpachecker.core.LogManager;
-import org.sosy_lab.cpachecker.exceptions.InvalidConfigurationException;
 
 /**
  * Implementation of InvariantSymbolicFormulaManager based on

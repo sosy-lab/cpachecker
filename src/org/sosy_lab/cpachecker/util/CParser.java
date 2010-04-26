@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://www.cs.sfu.ca/~dbeyer/CPAchecker/
  */
-package org.sosy_lab.cpachecker.core;
+package org.sosy_lab.cpachecker.util;
 
 import java.io.IOException;
 import java.util.Map;

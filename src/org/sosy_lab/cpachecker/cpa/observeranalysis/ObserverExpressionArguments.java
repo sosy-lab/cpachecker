@@ -5,8 +5,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.core.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 
 public class ObserverExpressionArguments {

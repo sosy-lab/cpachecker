@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.symbpredabsCPA;
 
 import java.util.logging.Level;
 
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
@@ -32,7 +33,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 
-import org.sosy_lab.cpachecker.core.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;

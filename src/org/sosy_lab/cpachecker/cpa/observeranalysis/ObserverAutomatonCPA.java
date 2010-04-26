@@ -11,11 +11,12 @@ import java_cup.runtime.Symbol;
 import java_cup.runtime.SymbolFactory;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 
-import org.sosy_lab.cpachecker.core.LogManager;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.EqualityPartialOrder;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
@@ -33,7 +34,6 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.InvalidConfigurationException;
 
 /**
  * This class implements an ObserverAutomatonAnalysis as described in the related Documentation. 

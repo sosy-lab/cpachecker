@@ -14,9 +14,10 @@ import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Sets;
+
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 
-import org.sosy_lab.cpachecker.core.LogManager;
 import org.sosy_lab.cpachecker.core.ReachedElements;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;

@@ -3,9 +3,10 @@ package org.sosy_lab.cpachecker.core.defaults;
 import java.util.List;
 
 import com.google.common.base.Preconditions;
+
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 
-import org.sosy_lab.cpachecker.core.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 

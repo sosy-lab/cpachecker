@@ -13,6 +13,7 @@ import java.util.concurrent.TimeoutException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 
@@ -23,7 +24,6 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.InvalidConfigurationException;
 
 @Options(prefix="trackabstractioncomputation")
 public class TransferRelationMonitorTransferRelation implements TransferRelation {

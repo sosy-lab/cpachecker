@@ -51,13 +51,15 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.GlobalDeclarationEdge;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
+
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.CParser.Dialect;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CBMCAlgorithm;
@@ -70,7 +72,8 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.exceptions.CFAGenerationRuntimeException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ForceStopCPAException;
-import org.sosy_lab.cpachecker.exceptions.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.util.CParser;
+import org.sosy_lab.cpachecker.util.CParser.Dialect;
 
 public class CPAchecker {
   

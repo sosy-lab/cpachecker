@@ -6,11 +6,12 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
-import org.sosy_lab.common.configuration.Configuration;
 
-import org.sosy_lab.cpachecker.core.LogManager;
+import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.pathmonitor.Automaton;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.TargetGraph;
 import org.sosy_lab.cpachecker.fllesh.fql.fllesh.util.CPAchecker;

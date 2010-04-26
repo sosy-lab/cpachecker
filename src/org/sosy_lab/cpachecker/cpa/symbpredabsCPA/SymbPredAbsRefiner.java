@@ -15,13 +15,14 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Multimap;
+
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.AbstractARTBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.art.Path;
-import org.sosy_lab.cpachecker.core.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;

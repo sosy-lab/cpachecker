@@ -11,13 +11,15 @@ import org.sosy_lab.cpachecker.cfa.DOTBuilder;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 
 import com.google.common.collect.ImmutableMap;
+
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeElement;
 import org.sosy_lab.cpachecker.cpa.composite.CompositePrecision;
 
 import org.sosy_lab.cpachecker.cpa.alwaystop.AlwaysTopCPA;
-import org.sosy_lab.cpachecker.core.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -28,7 +30,6 @@ import org.sosy_lab.cpachecker.cpa.mustmay.MustMayAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.mustmay.MustMayAnalysisElement;
 import org.sosy_lab.cpachecker.cpa.symbpredabsCPA.SymbPredAbsCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.pathmonitor.Automaton;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.Node;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.TargetGraph;

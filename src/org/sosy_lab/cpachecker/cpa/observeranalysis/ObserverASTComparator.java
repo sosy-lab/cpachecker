@@ -19,8 +19,8 @@ import org.eclipse.core.runtime.CoreException;
 
 import com.google.common.base.Preconditions;
 
-import org.sosy_lab.cpachecker.core.CParser;
-import org.sosy_lab.cpachecker.core.CParser.Dialect;
+import org.sosy_lab.cpachecker.util.CParser;
+import org.sosy_lab.cpachecker.util.CParser.Dialect;
 
 /**
  * Provides methods for generating, comparing and printing the ASTs generated from String.

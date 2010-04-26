@@ -56,6 +56,7 @@ import org.eclipse.cdt.core.dom.ast.IASTStatement;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.cdt.core.dom.ast.IASTWhileStatement;
 
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAErrorNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAExitNode;
@@ -66,7 +67,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
-import org.sosy_lab.cpachecker.core.LogManager;
 import org.sosy_lab.cpachecker.exceptions.CFAGenerationRuntimeException;
 
 /**

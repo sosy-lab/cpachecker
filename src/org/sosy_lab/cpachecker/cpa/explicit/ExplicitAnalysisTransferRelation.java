@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 
@@ -64,7 +65,6 @@ import org.sosy_lab.cpachecker.cpa.pointeranalysis.Memory;
 import org.sosy_lab.cpachecker.cpa.pointeranalysis.Pointer;
 import org.sosy_lab.cpachecker.cpa.pointeranalysis.PointerAnalysisElement;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 

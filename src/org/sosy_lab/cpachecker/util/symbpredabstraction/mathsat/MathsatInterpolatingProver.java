@@ -31,10 +31,10 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Interpolating
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 
-import org.sosy_lab.cpachecker.exceptions.InvalidConfigurationException;
 
 @Options(prefix="cpas.symbpredabs.mathsat")
 public class MathsatInterpolatingProver implements InterpolatingTheoremProver<Integer> {

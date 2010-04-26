@@ -45,12 +45,11 @@ import org.sosy_lab.cpachecker.cfa.CFABuilder;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cmdline.CPAMain.InvalidCmdlineArgumentException;
 
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 
 import org.sosy_lab.cpachecker.core.CPAchecker;
-import org.sosy_lab.cpachecker.core.CParser;
-import org.sosy_lab.cpachecker.core.LogManager;
-import org.sosy_lab.cpachecker.core.CParser.Dialect;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.JoinOperator;
@@ -59,7 +58,8 @@ import org.sosy_lab.cpachecker.core.interfaces.PartialOrder;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.util.CParser;
+import org.sosy_lab.cpachecker.util.CParser.Dialect;
 
 /**
  * @author Michael Tautschnig <tautschnig@forsyte.de>

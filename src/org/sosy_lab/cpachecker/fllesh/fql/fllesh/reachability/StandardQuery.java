@@ -5,13 +5,13 @@ import java.util.LinkedList;
 import java.util.NoSuchElementException;
 import java.util.Set;
 
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeElement;
 import org.sosy_lab.cpachecker.cpa.composite.CompositePrecision;
 
-import org.sosy_lab.cpachecker.core.LogManager;
 import org.sosy_lab.cpachecker.core.ReachedElements;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;

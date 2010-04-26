@@ -44,14 +44,14 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 
-import org.sosy_lab.cpachecker.core.LogManager;
-import org.sosy_lab.cpachecker.exceptions.InvalidConfigurationException;
 
 /**
  * Abstract super class for classes implementing the FormulaManager interface,

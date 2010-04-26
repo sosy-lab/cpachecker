@@ -12,7 +12,9 @@ import java.util.List;
 import java.util.LinkedList;
 import java.util.HashMap;
 import java.util.Map;
-import org.sosy_lab.cpachecker.core.LogManager;
+
+import org.sosy_lab.common.LogManager;
+
 import java.util.logging.Level;
 import java.util.Collections;
 

@@ -26,8 +26,8 @@ package org.sosy_lab.cpachecker.cpa.assumptions.collector.progressobserver;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.cpachecker.core.LogManager;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;

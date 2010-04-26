@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
-import org.sosy_lab.cpachecker.core.LogManager;
+import org.sosy_lab.common.LogManager;
 
 /**
  * @author rhein

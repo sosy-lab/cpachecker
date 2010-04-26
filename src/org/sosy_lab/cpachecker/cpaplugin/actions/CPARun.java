@@ -50,12 +50,12 @@ import org.eclipse.ui.console.IConsoleView;
 import org.eclipse.ui.console.IOConsoleOutputStream;
 import org.eclipse.ui.console.MessageConsole;
 
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
-import org.sosy_lab.cpachecker.core.LogManager;
-import org.sosy_lab.cpachecker.exceptions.InvalidConfigurationException;
 
 public class CPARun implements IWorkbenchWindowActionDelegate
 {

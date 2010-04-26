@@ -5,6 +5,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
+import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
@@ -16,7 +18,6 @@ import org.sosy_lab.cpachecker.cpa.alwaystop.AlwaysTopCPA;
 import org.sosy_lab.cpachecker.cpa.alwaystop.AlwaysTopTopElement;
 import org.sosy_lab.cpachecker.core.CallElement;
 import org.sosy_lab.cpachecker.core.CallStack;
-import org.sosy_lab.cpachecker.core.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.concrete.ConcreteAnalysisCPA;
@@ -26,7 +27,6 @@ import org.sosy_lab.cpachecker.cpa.location.LocationElement;
 import org.sosy_lab.cpachecker.cpa.mustmay.MustMayAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.mustmay.MustMayAnalysisElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.pathmonitor.Automaton;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.Node;
 import org.sosy_lab.cpachecker.fllesh.fql.fllesh.reachability.Query;

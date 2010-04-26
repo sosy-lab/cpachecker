@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://www.cs.sfu.ca/~dbeyer/CPAchecker/
  */
-package org.sosy_lab.cpachecker.core;
+package org.sosy_lab.common;
 
 import java.io.File;
 import java.io.IOException;
@@ -41,10 +41,10 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 
-import org.sosy_lab.cpachecker.exceptions.InvalidConfigurationException;
 
 /**
  * @author Gregor Endler

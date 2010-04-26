@@ -12,15 +12,16 @@ import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 
 import com.google.common.collect.ImmutableMap;
+
+import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.LogManager.StringHandler;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
-import org.sosy_lab.cpachecker.core.LogManager;
-import org.sosy_lab.cpachecker.core.LogManager.StringHandler;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.cpa.observeranalysis.ObserverBoolExpr.CPAQuery;
-import org.sosy_lab.cpachecker.exceptions.InvalidConfigurationException;
 
 public class ObserverAutomatonTest {
   private static final String OUTPUT_FILE = "test/output/observerAutomatonExport.dot";

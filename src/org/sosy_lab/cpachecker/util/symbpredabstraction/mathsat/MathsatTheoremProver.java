@@ -30,10 +30,10 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormu
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver;
 
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 
-import org.sosy_lab.cpachecker.exceptions.InvalidConfigurationException;
 
 @Options(prefix="cpas.symbpredabs.mathsat")
 public class MathsatTheoremProver implements TheoremProver {

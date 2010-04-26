@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.InterpolatingTheoremProver;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
@@ -38,7 +39,6 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormu
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 
-import org.sosy_lab.cpachecker.core.LogManager;
 
 /**
  * Wrapper class around CSIsat for interpolant generation.

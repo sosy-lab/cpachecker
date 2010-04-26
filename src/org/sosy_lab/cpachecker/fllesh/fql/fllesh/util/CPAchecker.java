@@ -7,11 +7,11 @@ import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 
-import org.sosy_lab.cpachecker.core.LogManager;
-import org.sosy_lab.cpachecker.exceptions.InvalidConfigurationException;
 
 // TODO: where is the right place to collect statistics?
 public class CPAchecker extends org.sosy_lab.cpachecker.core.CPAchecker {

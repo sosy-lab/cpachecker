@@ -29,10 +29,10 @@ import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 
 import org.sosy_lab.cpachecker.core.CPAchecker;
-import org.sosy_lab.cpachecker.core.LogManager;
 import org.sosy_lab.cpachecker.core.ReachedElements;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;

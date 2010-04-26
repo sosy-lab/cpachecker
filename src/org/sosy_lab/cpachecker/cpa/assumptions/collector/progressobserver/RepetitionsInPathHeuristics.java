@@ -28,9 +28,10 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
+
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 
-import org.sosy_lab.cpachecker.core.LogManager;
 
 /**
  * @author g.theoduloz

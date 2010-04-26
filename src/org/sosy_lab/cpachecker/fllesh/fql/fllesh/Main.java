@@ -11,10 +11,10 @@ import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.cfa.DOTBuilder;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 
-import org.sosy_lab.cpachecker.core.LogManager;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.pathmonitor.Automaton;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.query.QueryEvaluation;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.Node;

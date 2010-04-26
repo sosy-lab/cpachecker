@@ -38,11 +38,11 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormu
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver;
 
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 
-import org.sosy_lab.cpachecker.core.LogManager;
-import org.sosy_lab.cpachecker.exceptions.InvalidConfigurationException;
 
 // TODO decide which parts of the API of this class can be move to the FormularManager interface
 public class MathsatFormulaManager extends CommonFormulaManager {

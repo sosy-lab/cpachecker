@@ -16,6 +16,7 @@ import org.eclipse.cdt.core.dom.ast.IASTProblem;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.core.runtime.CoreException;
 
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFABuilder;
 import org.sosy_lab.cpachecker.cfa.CFATopologicalSort;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
@@ -26,12 +27,11 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
-import org.sosy_lab.cpachecker.core.CParser;
-import org.sosy_lab.cpachecker.core.LogManager;
-import org.sosy_lab.cpachecker.core.CParser.Dialect;
 import org.sosy_lab.cpachecker.fllesh.cpa.edgevisit.Annotations;
 import org.sosy_lab.cpachecker.fllesh.fql.fllesh.util.CFATraversal;
 import org.sosy_lab.cpachecker.fllesh.fql.fllesh.util.CFAVisitor;
+import org.sosy_lab.cpachecker.util.CParser;
+import org.sosy_lab.cpachecker.util.CParser.Dialect;
 
 public class Wrapper {
   

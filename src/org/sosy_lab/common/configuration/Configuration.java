@@ -39,7 +39,6 @@ import java.util.regex.Pattern;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 
-import org.sosy_lab.cpachecker.exceptions.InvalidConfigurationException;
 
 /**
  * Immutable wrapper around a {@link Properties} instance, providing some
