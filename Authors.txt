@@ -10,6 +10,6 @@ Contributors:
   Michael Tautschnig (2008 - 2009)
   Gregory Theoduloz (2009 - 2010)
 
-Bug reports:
+Questions and bug reports:
   Dirk Beyer: CPAchecker-Users@sosy-lab.org
 

@@ -18,7 +18,4 @@
  *
  *
  *  CPAchecker web page:
- *    http://www.cs.sfu.ca/~dbeyer/CPAchecker/
- *
- *  Bug reports:
- *    e-Mail to Dirk Beyer
+ *    http://cpachecker.sosy-lab.org
