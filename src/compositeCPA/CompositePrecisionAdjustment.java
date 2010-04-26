@@ -105,19 +105,31 @@ public class CompositePrecisionAdjustment implements PrecisionAdjustment {
     List<AbstractElement> outElements = new ArrayList<AbstractElement>();
     List<Precision> outPrecisions = new ArrayList<Precision>();
     
+    boolean modified = false;
+    
     for (int i = 0; i < dim; ++i) {
       UnmodifiableReachedElements slice =
         new UnmodifiableReachedElementsView(pElements, elementProjectionFunctions.get(i), precisionProjectionFunctions.get(i));
       PrecisionAdjustment precisionAdjustment = precisionAdjustments.get(i); 
       Pair<AbstractElement,Precision> out = precisionAdjustment.prec(comp.get(i), prec.get(i), slice);
-      outElements.add(out.getFirst());
-      outPrecisions.add(out.getSecond());
+      if (out != null) {
+        outElements.add(out.getFirst());
+        outPrecisions.add(out.getSecond());
+        modified = true;
+      } else {
+        outElements.add(comp.get(i));
+        outPrecisions.add(prec.get(i));
+      }
     }      
     
-    // TODO for now we just take the input call stack, that may be wrong, but how to construct 
-    // a proper one in case this _is_ wrong?
-    return new Pair<AbstractElement, Precision>(new CompositeElement(outElements, comp.getCallStack()),
-        new CompositePrecision(outPrecisions));
+    if (modified) {
+      // TODO for now we just take the input call stack, that may be wrong, but how to construct 
+      // a proper one in case this _is_ wrong?
+      return new Pair<AbstractElement, Precision>(new CompositeElement(outElements, comp.getCallStack()),
+          new CompositePrecision(outPrecisions));
+    } else {
+      return null;
+    }
   }
 
 }
