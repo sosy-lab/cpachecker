@@ -29,6 +29,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -76,6 +77,10 @@ import org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.PathPattern;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.Repetition;
 
 public class Main {
+  
+  private static final String GOAL_AUTOMATON = "GoalAutomaton";
+  private static final String PASSING_AUTOMATON = "PassingAutomaton";
+  private static final String PRODUCT_AUTOMATON = "ProductAutomaton";
 
   private static Configuration createConfiguration(String pSourceFile, String pPropertiesFile) {
     return createConfiguration(Collections.singletonList(pSourceFile), pPropertiesFile);
@@ -151,6 +156,43 @@ public class Main {
 
     return null;
   }
+  
+  private static File createPropertiesFile2(File pObserverAutomatonFile) {
+    File lPropertiesFile = Main.createPropertiesFile();
+
+    // append configuration for observer automaton
+    PrintWriter lWriter;
+    try {
+
+      lWriter = new PrintWriter(new FileOutputStream(lPropertiesFile, true));
+
+      lWriter.println("observerAnalysis.inputFile = " + pObserverAutomatonFile.getAbsolutePath());
+      lWriter.println("observerAnalysis.dotExportFile = test/output/observerAutomatonExport.product.dot");
+      lWriter.close();
+
+      return lPropertiesFile;
+
+    } catch (FileNotFoundException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
+
+    return null;
+  }
+  
+  private static String getProductAutomaton() {
+    StringWriter lResult = new StringWriter();
+    PrintWriter lWriter = new PrintWriter(lResult);
+    
+    lWriter.println("AUTOMATON " + PRODUCT_AUTOMATON);
+    lWriter.println("INITIAL STATE Init;");
+    lWriter.println();
+    lWriter.println("STATE Init:");
+    lWriter.println("  CHECK(ObserverAnalysis_" + GOAL_AUTOMATON + "(\"state == Accept\")) -> ERROR;"); 
+    lWriter.println("  TRUE -> GOTO Init;");
+    
+    return lResult.toString();
+  }
 
   /**
    * @param pArguments
@@ -225,13 +267,20 @@ public class Main {
 
     // TODO: was sind die Parameter, die an eine TestInputGen-Funktion ab hier übergeben werden müssten?
 
-    File lAutomatonFile = File.createTempFile("fllesh.", ".oa");
-    lAutomatonFile.deleteOnExit();
+    File lAutomatonFile = File.createTempFile("fllesh.goal.", ".oa");
+    //lAutomatonFile.deleteOnExit();
 
     PrintStream lObserverAutomaton = new PrintStream(new FileOutputStream(lAutomatonFile));
-    lObserverAutomaton.println(ObserverAutomatonTranslator.translate(lTestGoal, "Goal", lAlphaId, lOmegaId));
+    lObserverAutomaton.println(ObserverAutomatonTranslator.translate(lTestGoal, GOAL_AUTOMATON, lAlphaId, lOmegaId));
     lObserverAutomaton.close();
 
+    File lProductAutomatonFile = File.createTempFile("fllesh.product.", ".oa");
+    //lProductAutomatonFile.deleteOnExit();
+    
+    PrintStream lProductAutomatonStream = new PrintStream(new FileOutputStream(lProductAutomatonFile));
+    lProductAutomatonStream.println(getProductAutomaton());
+    lProductAutomatonStream.close();
+    
 
 
 
@@ -247,6 +296,14 @@ public class Main {
     lAutomatonFactory.setConfiguration(lExtendedConfiguration);
     lAutomatonFactory.setLogger(lLogManager);
     ConfigurableProgramAnalysis lObserverCPA = lAutomatonFactory.createInstance();
+    
+    File lExtendedPropertiesFile2 = Main.createPropertiesFile2(lProductAutomatonFile);
+    Configuration lExtendedConfiguration2 = Main.createConfiguration(lSourceFileName, lExtendedPropertiesFile2.getAbsolutePath());
+
+    CPAFactory lProducctAutomatonFactory = ObserverAutomatonCPA.factory();
+    lProducctAutomatonFactory.setConfiguration(lExtendedConfiguration2);
+    lProducctAutomatonFactory.setLogger(lLogManager);
+    ConfigurableProgramAnalysis lProductObserverCPA = lProducctAutomatonFactory.createInstance();
 
     CPAFactory lLocationCPAFactory = LocationCPA.factory();
     ConfigurableProgramAnalysis lLocationCPA = lLocationCPAFactory.createInstance();
@@ -261,6 +318,7 @@ public class Main {
     lComponentAnalyses.add(lEdgeVisitCPA);
     lComponentAnalyses.add(lSymbPredAbsCPA);
     lComponentAnalyses.add(lObserverCPA);
+    lComponentAnalyses.add(lProductObserverCPA);
 
     // create composite CPA
     CPAFactory lCPAFactory = CompositeCPA.factory();

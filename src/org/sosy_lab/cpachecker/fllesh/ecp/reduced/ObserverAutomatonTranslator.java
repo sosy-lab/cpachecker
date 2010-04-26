@@ -268,13 +268,18 @@ public class ObserverAutomatonTranslator {
       }
 
       if (lState.equals(lFinalState)) {
-        lWriter.println("  CHECK(edgevisit(\"" + pOmegaEdge + "\")) -> ERROR;");
+        //lWriter.println("  CHECK(edgevisit(\"" + pOmegaEdge + "\")) -> ERROR;");
+        lWriter.println("  CHECK(edgevisit(\"" + pOmegaEdge + "\")) -> GOTO Accept;");
       }
 
       lWriter.println("  TRUE -> BOTTOM;");
-
+      
       lWriter.println();
     }
+    
+    lWriter.println("STATE Accept:");
+    lWriter.println("  TRUE -> GOTO Accept;");
+    lWriter.println();
 
     return lResult.toString();
   }
