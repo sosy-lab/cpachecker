@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker. 
  *
- *  Copyright (C) 2007-2008  Dirk Beyer and Erkan Keremoglu.
+ *  Copyright (C) 2007-2010  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,7 +19,7 @@
  *
  *
  *  CPAchecker web page:
- *    http://www.cs.sfu.ca/~dbeyer/CPAchecker/
+ *    http://cpachecker.sosy-lab.org
  */
 package org.sosy_lab.cpachecker.cpa.assumptions.collector;
 
