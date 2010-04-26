@@ -200,7 +200,7 @@ public class Main {
     
     // TODO: for every test goal (i.e., pattern) create an automaton and check reachability
     
-    // TODO: was sind die Parameter, die an eine TestInputGen-Funktion ab hier übergeben werden müssten?
+    // TODO: was sind die Parameter, die an eine TestInputGen-Funktion ab hier Ã¼bergeben werden mÃ¼ssten?
     
     File lAutomatonFile = File.createTempFile("fllesh.", ".oa");
     lAutomatonFile.deleteOnExit();
