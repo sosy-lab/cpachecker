@@ -1562,6 +1562,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
    * TODO call, implementation
    * recursively traverses all fields of a struct
    */
+  @SuppressWarnings("unused")
   private void handleStructDeclaration(PointerAnalysisElement element,
                                        TypesElement typeElem, Type.CompositeType structType,
                                        String varName,String recursiveVarName) {
@@ -1611,6 +1612,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
    * checks wether a given expression is a field reference;
    * if yes, find the type of the referenced field, if no, try to determine the type of the variable
    */
+  @SuppressWarnings("unused")
   private Type checkForFieldReferenceType(IASTExpression exp, TypesElement typeElem, CFAEdge cfaEdge) {
 
     String name = exp.getRawSignature();
@@ -1639,6 +1641,7 @@ public class PointerAnalysisTransferRelation implements TransferRelation {
    * recursively checks the fields of a struct being assigned to another struct of
    * the same type, setting the assignee's fields accordingly
    */
+  @SuppressWarnings("unused")
   private void checkFields(PointerAnalysisElement element, CFAEdge cfaEdge, IASTExpression exp,
                            TypesElement typeElem, Type.CompositeType structType,
                            String leftName, String rightName,

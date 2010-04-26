@@ -575,15 +575,14 @@ public class PointerAnalysisElement implements AbstractQueryableElement, Memory,
       }
     }
 
-    PointerOperation opInvalid = new Pointer.Assign(INVALID_POINTER);
-
 
     // This is wrong, as we lose all information about possible aliases of the pointer passed to free
     // An invalid memory region is marked as INVALID, so we don't need to reset the pointers
     //
     //
     // set all pointers pointing to mem to INVALID
-    /*Iterator<PointerTarget> reverseIt = reverseRelation.keySet().iterator();
+    /*PointerOperation opInvalid = new Pointer.Assign(INVALID_POINTER);
+    Iterator<PointerTarget> reverseIt = reverseRelation.keySet().iterator();
     while (reverseIt.hasNext()) {
       PointerTarget target = reverseIt.next();
       if (target instanceof MemoryAddress

@@ -54,6 +54,7 @@ public class CPAcheckerTest {
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
+    @SuppressWarnings("unused")
     CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
 
     // TODO: reimplement or reuse?
@@ -69,6 +70,7 @@ public class CPAcheckerTest {
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
+    @SuppressWarnings("unused")
     CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
 
     // TODO: reimplement or reuse?
@@ -90,6 +92,7 @@ public class CPAcheckerTest {
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
+    @SuppressWarnings("unused")
     CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
 
     // TODO: reimplement or reuse?

@@ -100,6 +100,7 @@ public class QueryTransferRelationTest {
 
     CFAEdge lCFAEdge = InternalSelfLoop.getOrCreate(lNode);
 
+    @SuppressWarnings("unused")
     Collection<? extends AbstractElement> lSuccessors = lTransferRelation.getAbstractSuccessors(lElement, null, lCFAEdge);
   }
 
@@ -118,6 +119,7 @@ public class QueryTransferRelationTest {
 
     CFAEdge lCFAEdge = new ReturnEdge("bla", 0, null, null);
 
+    @SuppressWarnings("unused")
     Collection<? extends AbstractElement> lSuccessors = lTransferRelation.getAbstractSuccessors(lElement, null, lCFAEdge);
   }
 
@@ -136,6 +138,7 @@ public class QueryTransferRelationTest {
 
     CFAEdge lCFAEdge = new BlankEdge("blub", 0, null, null);
 
+    @SuppressWarnings("unused")
     Collection<? extends AbstractElement> lSuccessors = lTransferRelation.getAbstractSuccessors(lElement, null, lCFAEdge);
   }
 

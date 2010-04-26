@@ -66,6 +66,7 @@ public class Cilly {
       }
     }
 
+    @SuppressWarnings("unused")
     public String getInput() {
       return mBuffer.toString();
     }
