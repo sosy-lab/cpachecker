@@ -12,7 +12,7 @@ following arguments (see below to learn what the options mean):
 
 -help			print list of command-line argumments and exit
 -config <FILE>		sets configuration file name
--cpas <CPAS>		sets "cpa = compositeCPA.CompositeCPA" and "CompositeCPA.cpas = <CPAS>"
+-cpas <CPAS>		sets "cpa = cpa.composite.CompositeCPA" and "CompositeCPA.cpas = <CPAS>"
 -outputpath <DIR>	sets "output.path = <DIR>"
 -logfile <FILE>		sets "log.file = <FILE>"
 -nolog			sets "log.level = OFF" and "log.consoleLevel = OFF"
@@ -36,11 +36,14 @@ to be specified.
 Specifying the CPA(s)
 ---------------------
 The CPA that CPAchecker uses is specified with the "cpa" option (default:
-compositeCPA.CompositeCPA). The syntax of the value is "package.ClassName Alias",
+cpa.composite.CompositeCPA). The syntax of the value is "package.ClassName Alias",
 where the alias is an optional unique identifier for this instance of the
 CPA. Without an alias, the class name is used as identifier. Configuration
 options that should be used for only one instance of a CPA can be prefixed
 with "alias.". Their values override the options without this prefix.
+
+If the package name starts with "org.sosy_lab.cpachecker.", this prefix can be
+omitted.
 
 Wrapper CPAs like ARTCPA and CompositeCPA take one option "cpa" or "cpas"
 to specify the wrapped CPA, depending whether this CPA wraps one or
@@ -48,13 +51,13 @@ several other CPAs (the latter is only used for CompositeCPA). This option
 has to be prefixed with the identifier of the CPA as described above.
 
 A simple example (the first line could be ommitted as it's the default):
-cpa = compositeCPA.CompositeCPA
+cpa = cpa.composite.CompositeCPA
 CompositeCPA.cpas = cpa.location.LocationCPA, cpa.explicit.ExplicitAnalysisCPA explicitCPA
 explicitCPA.cpas.explicit.threshold = 10
 
 A more complex example:
 cpa = cpa.art.ARTCPA art
-art.cpa = compositeCPA.CompositeCPA composite
+art.cpa = cpa.composite.CompositeCPA composite
 composite.cpas = cpa.location.LocationCPA, cpa.symbpredabs.SymbPredAbsCPA
 
 
@@ -136,7 +139,7 @@ analysis.useRefinement = false
 analysis.useCBMC = false
 
 # Which CPA to use?
-cpa = compositeCPA.CompositeCPA
+cpa = cpa.composite.CompositeCPA
 
 # which strategy to adopt for visiting states? dfs, bfs, or topsort
 analysis.traversal = dfs
@@ -157,6 +160,7 @@ assumptions.export = false
 assumptions.file = assumptions.txt
 
 # Which refinement algorithm to use? (give class name, required for CEGAR)
+# If the package name starts with "org.sosy_lab.cpachecker.", this prefix can be omitted.
 cegar.refiner =
 
 # completely restart analysis on refinement by removing everything from

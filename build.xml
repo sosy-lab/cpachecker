@@ -23,15 +23,15 @@
     <target depends="clean" name="cleanall"/>
     <target depends="build-subprojects,build-project" name="build"/>
     <target name="build-subprojects">
-	    <ant antfile="src/cpa/observeranalysis/observerBuild.xml" inheritAll="false"/>
-	    <ant antfile="src/fllesh/fql/frontend/parser/build.xml" inheritAll="false"/>
+	    <ant antfile="src/org/sosy_lab/cpachecker/cpa/observeranalysis/observerBuild.xml" inheritAll="false"/>
+	    <ant antfile="src/org/sosy_lab/cpachecker/fllesh/fql/frontend/parser/build.xml" inheritAll="false"/>
     </target>
 
     <target depends="init" name="build-project">
         <echo message="${ant.project.name}: ${ant.file}"/>
         <javac debug="true" debuglevel="${debuglevel}" destdir="bin" source="${source}" target="${target}">
             <src path="src"/>
-       	    <exclude name="cpaplugin/**"/>
+	    <exclude name="org/sosy_lab/cpachecker/cpaplugin/**"/>
             <classpath refid="CPAchecker.classpath"/>
         </javac>
     </target>
@@ -49,7 +49,7 @@
                 <fileset dir="${basedir}/bin">
                     <include name="**/*Test.*"/>
                     <exclude name="**/*$*Test.*"/>
-                    <exclude name="octagon/OctLibraryTest.class"/>
+		    <exclude name="org/sosy_lab/cpachecker/util/octagon/OctLibraryTest.class"/>
                 </fileset>
             </batchtest>
         </junit>

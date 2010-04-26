@@ -17,11 +17,11 @@
          </menu>
          <action
                label="&amp;Launch CPA"
-               class="cpaplugin.actions.CPARun"
+               class="org.sosy_lab.cpachecker.cpaplugin.actions.CPARun"
                tooltip="Configurable Program Analysis"
                menubarPath="CPAMenu/sampleGroup"
                toolbarPath="CPAGroup"
-               id="cpaplugin.actions.SampleAction">
+               id="org.sosy_lab.cpachecker.cpaplugin.actions.SampleAction">
          </action>
       </actionSet>
    </extension>
@@ -29,14 +29,14 @@
          point="org.eclipse.ui.preferencePages">
       <page
             name="CPAPlugin"
-            class="cpaplugin.preferences.CPAPreferencePage"
-            id="cpaplugin.preferences.CPAPreferencePage">
+            class="org.sosy_lab.cpachecker.cpaplugin.preferences.CPAPreferencePage"
+            id="org.sosy_lab.cpachecker.cpaplugin.preferences.CPAPreferencePage">
       </page>
    </extension>
    <extension
          point="org.eclipse.core.runtime.preferences">
       <initializer
-            class="cpaplugin.preferences.PreferenceInitializer">
+            class="org.sosy_lab.cpachecker.cpaplugin.preferences.PreferenceInitializer">
       </initializer>
    </extension>
 
