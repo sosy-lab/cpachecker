@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+	<extension-point id="listeners" name="Test Listeners" />
+	<extension point="org.sosy_lab.cpachecker.plugin.eclipse.listeners">
+	<listener
+		class="org.sosy_lab.cpachecker.plugin.eclipse.Listener">
+		</listener>
+	</extension> 
+	<extension point="org.eclipse.ui.views">
+		<category
+			name="CPAchecker"
+			id="org.sosy_lab.cpachecker.plugin.eclipse.catMain">
+		</category>
+		<view
+			name="CPAchecker Tasks View"
+			category="org.sosy_lab.cpachecker.plugin.eclipse.catMain"
+			class="org.sosy_lab.cpachecker.plugin.eclipse.views.TasksView"
+			id="org.sosy_lab.cpachecker.plugin.eclipse.views.TasksView">
+		</view>
+	</extension>
+   <extension
+         point="org.eclipse.ui.editors">  	
+      	<editor
+            name="Automaton Editor"
+            extensions="auto"
+            icon="icons/sample.gif"
+            contributorClass="org.eclipse.ui.texteditor.BasicTextEditorActionContributor"
+            class="org.sosy_lab.cpachecker.plugin.eclipse.editors.AutomatonEditor"
+            id="org.sosy_lab.cpachecker.plugin.eclipse.editors.AutomatonEditor">
+      	</editor>
+   </extension>
+   <extension
+         point="org.eclipse.ui.popupMenus">
+      <objectContribution
+            id="org.sosy_lab.cpachecker.plugin.eclipse.popupmenu"
+            objectClass="org.eclipse.cdt.core.model.ITranslationUnit">
+         <menu
+               id="org.sosy_lab.cpachecker.plugin.eclipse.CFilesMenu"
+               label="CPAchecker"
+               path="additions">
+            <separator
+                  name="group1">
+            </separator>
+         </menu>
+         <action
+               class="org.sosy_lab.cpachecker.plugin.eclipse.popup.actions.DefaultCheckAction"
+               enablesFor="1"
+               id="org.sosy_lab.cpachecker.plugin.eclipse.popup.actions.DefaultCheckAction"
+               label="run Default Check"
+               menubarPath="org.sosy_lab.cpachecker.plugin.eclipse.CFilesMenu/group1">
+         </action>
+      </objectContribution>
+   </extension>
+
+</plugin>

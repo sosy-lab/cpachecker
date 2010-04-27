@@ -1,0 +1,13 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: CPAcheckerPlugin
+Bundle-SymbolicName: org.sosy_lab.cpachecker.plugin.eclipse;singleton:=true
+Bundle-Version: 1.0.0.qualifier
+Bundle-Activator: org.sosy_lab.cpachecker.plugin.eclipse.CPAcheckerPlugin
+Require-Bundle: org.eclipse.ui,
+ org.eclipse.core.runtime,
+ org.eclipse.jface.text,
+ org.eclipse.ui.editors,
+ org.eclipse.cdt.core
+Bundle-ActivationPolicy: lazy
+Bundle-RequiredExecutionEnvironment: JavaSE-1.6
