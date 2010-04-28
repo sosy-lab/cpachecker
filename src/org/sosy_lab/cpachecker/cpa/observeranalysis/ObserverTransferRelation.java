@@ -138,6 +138,7 @@ class ObserverTransferRelation implements TransferRelation {
 
           return ObserverState.observerStateFactory(newVars, t.getFollowState(), state.getAutomatonCPA());
         } else {
+          logger.log(Level.INFO, "ObserverAutomaton going to ErrorState on edge \"" + edge.getRawStatement() + "\"");
           // matching transitions, but unfulfilled assertions: goto error state
           return ObserverState.observerStateFactory(Collections.<String, ObserverVariable>emptyMap(),
                                    ObserverInternalState.ERROR, state.getAutomatonCPA());

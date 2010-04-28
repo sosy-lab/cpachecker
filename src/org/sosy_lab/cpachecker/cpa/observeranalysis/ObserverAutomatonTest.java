@@ -50,6 +50,24 @@ public class ObserverAutomatonTest {
   private static final String OUTPUT_FILE = "test/output/observerAutomatonExport.dot";
 
   @Test
+  public void setuidTest() {
+    Map<String, String> prop = ImmutableMap.of(
+        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.observeranalysis.ObserverAutomatonCPA",
+        "observerAnalysis.inputFile",     "test/programs/observerAutomata/simple_setuid.txt",
+        "log.consoleLevel",               "INFO",
+        "analysis.stopAfterError",        "FALSE"
+      );
+    try {
+      
+      TestResults results = run(prop, "test/programs/simple/simple_setuid_test.c");
+      System.out.println(results.log);
+      Assert.assertTrue(results.logContains("going to ErrorState on edge \"system(40);\""));
+      Assert.assertTrue(results.isUnsafe());
+    } catch (InvalidConfigurationException e) {
+      Assert.fail("InvalidConfiguration");
+    }
+  }
+  @Test
   public void uninitVarsTest() {
     Map<String, String> prop = ImmutableMap.of(
         "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.observeranalysis.ObserverAutomatonCPA, cpa.uninitvars.UninitializedVariablesCPA, cpa.types.TypesCPA",
