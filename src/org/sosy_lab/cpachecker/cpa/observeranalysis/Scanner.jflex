@@ -85,6 +85,7 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
 <YYINITIAL> "TRUE"              { return symbol("TRUE", ObserverSym.TRUE); }
 <YYINITIAL> "FALSE"             { return symbol("FALSE", ObserverSym.FALSE); }
 <YYINITIAL> "PRINT"             { return symbol("PRINT", ObserverSym.PRINT); }
+<YYINITIAL> "ALL"				{ return symbol("ALL", ObserverSym.ALL); }
 
 <YYINITIAL> {
   /* identifiers */ 

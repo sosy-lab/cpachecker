@@ -68,7 +68,7 @@ parser code {:
 
 
 
-terminal EXCLAMATION, AND, OR, ARROW, SEMICOLON, COLON, OPEN_BRACKETS, CLOSE_BRACKETS, AUTOMATON, LOCAL, INITIAL, STATE, ERROR, BOTTOM, ASS, MATCH, LABEL, CHECK, DO, PRINT, GOTO, IDENTIFIER, INTEGER_LITERAL, NEQ, EQ, EQEQ, PLUS, MINUS, TRUE, FALSE, STRING_LITERAL, CURLYEXPR, SQUAREEXPR ;
+terminal EXCLAMATION, AND, OR, ARROW, SEMICOLON, COLON, OPEN_BRACKETS, CLOSE_BRACKETS, AUTOMATON, LOCAL, INITIAL, STATE, ERROR, BOTTOM, ASS, MATCH, LABEL, CHECK, DO, PRINT, GOTO, IDENTIFIER, INTEGER_LITERAL, NEQ, EQ, EQEQ, PLUS, MINUS, TRUE, FALSE, STRING_LITERAL, CURLYEXPR, SQUAREEXPR, ALL ;
 
 non terminal ObserverAutomaton initial ;
 non terminal String Naming, InitDef ;
@@ -121,6 +121,7 @@ StateDefs ::= StateDef:s StateDefs:lst  {: lst.add(s); RESULT = lst; :} // eleme
               ;
 
 StateDef  ::= STATE IDENTIFIER:id COLON  Transitions:ts   {: RESULT = new ObserverInternalState(id.toString(), ts); :}
+            | STATE ALL IDENTIFIER:id COLON  Transitions:ts   {: RESULT = new ObserverInternalState(id.toString(), ts, true); :}
             ;
 
 Transitions   ::= Transition:t Transitions:lst {: lst.add(0, t); RESULT = lst; :}

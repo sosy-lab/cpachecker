@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.observeranalysis;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -70,22 +71,31 @@ class ObserverTransferRelation implements TransferRelation {
     long start = System.currentTimeMillis();
     try {
 
-    if (pElement instanceof ObserverUnknownState) {
-      // the last CFA edge could not be processed properly
-      // (strengthen was not called on the ObserverUnknownState or the strengthen operation had not enough information to determine a new following state.)
-      ObserverState top = ((ObserverUnknownState)pElement).getAutomatonCPA().getTopState();
-      return Collections.singleton((AbstractElement)top);
-    }
-    if (! (pElement instanceof ObserverState)) {
-      throw new IllegalArgumentException("Cannot getAbstractSuccessor for non-ObserverState AbstractElements.");
-    }
-    AbstractElement ns = getFollowState((ObserverState)pElement, null, pCfaEdge);
-
-    if (ns instanceof ObserverState.BOTTOM) {
-      return Collections.emptySet();
-    }
-
-    return Collections.singleton(ns);
+      if (pElement instanceof ObserverUnknownState) {
+        // the last CFA edge could not be processed properly
+        // (strengthen was not called on the ObserverUnknownState or the strengthen operation had not enough information to determine a new following state.)
+        ObserverState top = ((ObserverUnknownState)pElement).getAutomatonCPA().getTopState();
+        return Collections.singleton((AbstractElement)top);
+      }
+      if (! (pElement instanceof ObserverState)) {
+        throw new IllegalArgumentException("Cannot getAbstractSuccessor for non-ObserverState AbstractElements.");
+      }
+      
+      ObserverState lCurrentObserverState = (ObserverState)pElement;
+      
+      if (lCurrentObserverState.getInternalState().isAllState()) {
+        return getFollowStates(lCurrentObserverState, null, pCfaEdge);
+      }
+      else {
+        AbstractElement ns = getFollowState(lCurrentObserverState, null, pCfaEdge);
+  
+        if (ns instanceof ObserverState.BOTTOM) {
+          return Collections.emptySet();
+        }
+  
+        return Collections.singleton(ns);
+      }
+    
     } finally {
       totalPostTime += System.currentTimeMillis() - start;
     }
@@ -146,6 +156,88 @@ class ObserverTransferRelation implements TransferRelation {
     // if no transition is possible reject
     return state.getAutomatonCPA().getBottomState();
   }
+  
+  /**
+   * Returns the <code>ObserverState</code> that follows this State in the ObserverAutomatonCPA.
+   * If the passed <code>ObserverExpressionArguments</code> are not sufficient to determine the following state
+   * this method returns a <code>ObserverUnknownState</code> that contains this as previous State.
+   * The strengthen method of the <code>ObserverUnknownState</code> should be used once enough Information is available to determine the correct following State.
+   */
+  private Collection<AbstractElement> getFollowStates(ObserverState state, List<AbstractElement> otherElements, CFAEdge edge) {
+    if (state == state.getAutomatonCPA().getTopState()) {
+      return Collections.singleton((AbstractElement)state);
+    }
+    
+    if (state == state.getAutomatonCPA().getBottomState()) {
+      return Collections.emptySet();
+    }
+    
+    if (state.isError()) {
+      // TODO is this a good semantics?
+      return Collections.singleton((AbstractElement)state);
+    }
+    
+
+    Collection<AbstractElement> lSuccessors = new HashSet<AbstractElement>();
+
+    
+    ObserverExpressionArguments exprArgs = new ObserverExpressionArguments(state.getVars(), otherElements, edge, logger);
+    
+    for (ObserverTransition t : state.getInternalState().getTransitions()) {
+      exprArgs.clearTransitionVariables();
+
+      long startMatch = System.currentTimeMillis();
+      MaybeBoolean match = t.match(exprArgs);      
+      matchTime += System.currentTimeMillis() - startMatch;
+
+      switch (match) {
+      case TRUE :
+
+        long startAssertions = System.currentTimeMillis();
+        boolean assertionsHold = t.assertionsHold(exprArgs);
+        assertionsTime += System.currentTimeMillis() - startAssertions;
+
+        if (assertionsHold) {
+          // this transition will be taken. copy the variables
+          long startAction = System.currentTimeMillis();
+          Map<String, ObserverVariable> newVars = deepCloneVars(state.getVars());
+          exprArgs.setObserverVariables(newVars);
+          t.executeActions(exprArgs);
+          actionTime += System.currentTimeMillis() - startAction;
+
+          ObserverState lSuccessor = ObserverState.observerStateFactory(newVars, t.getFollowState(), state.getAutomatonCPA());
+          
+          if (!(lSuccessor instanceof ObserverState.BOTTOM)) {
+            lSuccessors.add(lSuccessor);
+          }
+          
+        } else {
+          // matching transitions, but unfulfilled assertions: goto error state
+          lSuccessors.add(ObserverState.observerStateFactory(Collections.<String, ObserverVariable>emptyMap(), ObserverInternalState.ERROR, state.getAutomatonCPA()));
+        }
+        
+        break;
+
+      case MAYBE :
+        // if one transition cannot be evaluated the evaluation must be postponed until enough information is available
+        // TODO implement corresponding strengthening
+        //lSuccessors.add(new ObserverUnknownState(state));
+        
+        // we apply the transfer function in the strengthening method again
+        // in order to not generate duplicate states we only return the 
+        // unknown state
+        
+        return Collections.singleton((AbstractElement)new ObserverUnknownState(state));
+
+      case FALSE :
+      default :
+        // consider next transition
+      }
+    }
+
+    
+    return lSuccessors;
+  }
 
   private static Map<String, ObserverVariable> deepCloneVars(Map<String, ObserverVariable> pOld) {
     Map<String, ObserverVariable> result = new HashMap<String, ObserverVariable>(pOld.size());
@@ -168,12 +260,30 @@ class ObserverTransferRelation implements TransferRelation {
     } else {
       long start = System.currentTimeMillis();
 
-      ObserverState newState = getFollowState((ObserverUnknownState)pElement, pOtherElements, pCfaEdge);
-      if (newState.equals(((ObserverUnknownState)pElement).getAutomatonCPA().getTopState())) {
-        logger.log(Level.WARNING, "Following ObserverState could not be determined, ObserverAnalysis will not be available during the rest of this path");
+      ObserverUnknownState lUnknownState = (ObserverUnknownState)pElement;
+      
+      if (lUnknownState.getInternalState().isAllState()) {
+        Collection<AbstractElement> lSuccessors = getFollowStates(lUnknownState, pOtherElements, pCfaEdge);
+        
+        totalStrengthenTime += System.currentTimeMillis() - start;
+        
+        return lSuccessors;
       }
-      totalStrengthenTime += System.currentTimeMillis() - start;
-      return Collections.singleton(newState);
+      else {
+        ObserverState newState = getFollowState(lUnknownState, pOtherElements, pCfaEdge);
+        
+        if (newState.equals(lUnknownState.getAutomatonCPA().getTopState())) {
+          logger.log(Level.WARNING, "Following ObserverState could not be determined, ObserverAnalysis will not be available during the rest of this path");
+        }
+        
+        if (newState instanceof ObserverState.BOTTOM) {
+          return Collections.emptySet();
+        }
+        
+        totalStrengthenTime += System.currentTimeMillis() - start;
+        
+        return Collections.singleton(newState);
+      }
     }
   }
 }

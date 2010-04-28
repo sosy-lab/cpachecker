@@ -100,6 +100,8 @@ class ObserverTransition {
   public MaybeBoolean match(ObserverExpressionArguments pArgs) {
     for (ObserverBoolExpr trigger : triggers) {
       MaybeBoolean triggerValue = trigger.eval(pArgs);
+      
+      // Why this condition ? Why not MaybeBoolean.MAYBE ? 
       if (triggerValue != MaybeBoolean.TRUE) {
         return triggerValue;
       }
@@ -137,5 +139,9 @@ class ObserverTransition {
    */
   public ObserverInternalState getFollowState() {
     return followState;
+  }
+  
+  public String toString() {
+    return this.triggers.toString();
   }
 }

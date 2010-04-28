@@ -48,10 +48,20 @@ class ObserverInternalState {
   private String name;
   /** Outgoing transitions of this state.  */
   private List<ObserverTransition> transitions;
+  private boolean mAllTransitions;
 
-  public ObserverInternalState(String pName, List<ObserverTransition> pTransitions) {
+  public ObserverInternalState(String pName, List<ObserverTransition> pTransitions, boolean pAllTransitions) {
     this.name = pName;
     this.transitions = pTransitions;
+    this.mAllTransitions = pAllTransitions;
+  }
+  
+  public ObserverInternalState(String pName, List<ObserverTransition> pTransitions) {
+    this(pName, pTransitions, false);
+  }
+  
+  public boolean isAllState() {
+    return mAllTransitions;
   }
 
   /** Lets all outgoing transitions of this state resolve their "sink" states.

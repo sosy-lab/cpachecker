@@ -256,6 +256,15 @@ public class Main {
 
     System.out.println(lTestGoal);
 
+    
+    // 1) enumerate all test goals, i.e., evaluate them before adding the wrapper function
+    
+    // 2) check the feasibility of every test goal
+    
+    
+    
+    // TODO: for every test goal (i.e., pattern) create an automaton and check reachabilities
+
 
     /** Generating a wrapper start up method */
     Wrapper lWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCPAchecker.getCFAMap(), lCoverageSpecificationTranslator.getAnnotations(),lLogManager);
@@ -263,19 +272,16 @@ public class Main {
     String lAlphaId = lCoverageSpecificationTranslator.getAnnotations().getId(lWrapper.getAlphaEdge());
     String lOmegaId = lCoverageSpecificationTranslator.getAnnotations().getId(lWrapper.getOmegaEdge());
 
-    // TODO: for every test goal (i.e., pattern) create an automaton and check reachability
-
-    // TODO: was sind die Parameter, die an eine TestInputGen-Funktion ab hier übergeben werden müssten?
 
     File lAutomatonFile = File.createTempFile("fllesh.goal.", ".oa");
-    //lAutomatonFile.deleteOnExit();
+    lAutomatonFile.deleteOnExit();
 
     PrintStream lObserverAutomaton = new PrintStream(new FileOutputStream(lAutomatonFile));
     lObserverAutomaton.println(ObserverAutomatonTranslator.translate(lTestGoal, GOAL_AUTOMATON, lAlphaId, lOmegaId));
     lObserverAutomaton.close();
 
     File lProductAutomatonFile = File.createTempFile("fllesh.product.", ".oa");
-    //lProductAutomatonFile.deleteOnExit();
+    lProductAutomatonFile.deleteOnExit();
     
     PrintStream lProductAutomatonStream = new PrintStream(new FileOutputStream(lProductAutomatonFile));
     lProductAutomatonStream.println(getProductAutomaton());

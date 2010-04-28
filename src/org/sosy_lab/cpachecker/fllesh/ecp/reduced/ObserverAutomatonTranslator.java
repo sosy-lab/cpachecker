@@ -257,7 +257,7 @@ public class ObserverAutomatonTranslator {
 
       lProcessedStates.add(lState);
 
-      lWriter.println("STATE State" + lState + ":");
+      lWriter.println("STATE ALL State" + lState + ":");
 
       for (Triple<Integer, Integer, Atom> lOutgoingEdge : lVisitor.getOutgoingEdges(lState)) {
         Integer lTarget = lOutgoingEdge.getSecond();
@@ -272,7 +272,7 @@ public class ObserverAutomatonTranslator {
         lWriter.println("  CHECK(edgevisit(\"" + pOmegaEdge + "\")) -> GOTO Accept;");
       }
 
-      lWriter.println("  TRUE -> BOTTOM;");
+      //lWriter.println("  TRUE -> BOTTOM;");
       
       lWriter.println();
     }

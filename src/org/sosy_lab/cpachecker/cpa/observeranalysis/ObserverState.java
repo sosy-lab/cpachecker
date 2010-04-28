@@ -231,7 +231,7 @@ class ObserverState implements AbstractQueryableElement {
 
     @Override
     protected ObserverAutomatonCPA getAutomatonCPA() {
-      return previousState.automatonCPA;
+      return previousState.getAutomatonCPA();
     }
   }
 
@@ -243,7 +243,7 @@ class ObserverState implements AbstractQueryableElement {
       throw new InvalidQueryException("The Query \"" + pProperty + "\" is invalid. Could not split the property string correctly.");
     else {
       if (parts[0].trim().toLowerCase().equals("state")) {
-        return this.internalState.getName().equals(parts[1].trim());
+        return this.getInternalState().getName().equals(parts[1].trim());
       } else {
         if (this.vars.containsKey(parts[0].trim())) {
           // is a local variable
