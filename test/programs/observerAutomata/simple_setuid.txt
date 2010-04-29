@@ -1,11 +1,11 @@
-// this is a ObserverAutomaton copy of the simple_setuid.spc.txt of Blast
-// the last event was not copied
+// This is an ObserverAutomaton similar to the example simple_setuid.spc.txt in the Blast test suite.
+// (The last (erroneous) event was not copied.)
 
 AUTOMATON simple_setuid
 LOCAL int uid = 0;
 INITIAL STATE Init;
 
-STATE Init : 
+STATE Init: 
   MATCH { $? = system($?); } -> ASSERT !(uid == 0) GOTO Init;
   MATCH { system($?); } -> ASSERT !(uid == 0) GOTO Init;
   
