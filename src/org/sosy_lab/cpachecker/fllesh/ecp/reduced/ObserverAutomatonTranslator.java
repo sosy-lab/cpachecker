@@ -257,7 +257,7 @@ public class ObserverAutomatonTranslator {
 
       lProcessedStates.add(lState);
 
-      lWriter.println("STATE ALL State" + lState + ":");
+      lWriter.println("STATE NONDET State" + lState + ":");
 
       for (Triple<Integer, Integer, Atom> lOutgoingEdge : lVisitor.getOutgoingEdges(lState)) {
         Integer lTarget = lOutgoingEdge.getSecond();
