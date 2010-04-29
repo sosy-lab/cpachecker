@@ -61,6 +61,7 @@ public class ObserverAutomatonTest {
       
       TestResults results = run(prop, "test/programs/simple/simple_setuid_test.c");
       System.out.println(results.log);
+      Assert.assertTrue(results.logContains("Systemcall in line 10 with userid 2"));
       Assert.assertTrue(results.logContains("going to ErrorState on edge \"system(40);\""));
       Assert.assertTrue(results.isUnsafe());
     } catch (InvalidConfigurationException e) {
