@@ -82,109 +82,37 @@ class ObserverTransferRelation implements TransferRelation {
       }
       
       ObserverState lCurrentObserverState = (ObserverState)pElement;
-      
-      if (lCurrentObserverState.getInternalState().isAllState()) {
-        return getFollowStates(lCurrentObserverState, null, pCfaEdge);
-      }
-      else {
-        AbstractElement ns = getFollowState(lCurrentObserverState, null, pCfaEdge);
-  
-        if (ns instanceof ObserverState.BOTTOM) {
-          return Collections.emptySet();
-        }
-  
-        return Collections.singleton(ns);
-      }
+      return getFollowStates(lCurrentObserverState, null, pCfaEdge);
     
     } finally {
       totalPostTime += System.currentTimeMillis() - start;
     }
   }
-
-  /**
-   * Returns the <code>ObserverState</code> that follows this State in the ObserverAutomatonCPA.
-   * If the passed <code>ObserverExpressionArguments</code> are not sufficient to determine the following state
-   * this method returns a <code>ObserverUnknownState</code> that contains this as previous State.
-   * The strengthen method of the <code>ObserverUnknownState</code> should be used once enough Information is available to determine the correct following State.
-   */
-  private ObserverState getFollowState(ObserverState state, List<AbstractElement> otherElements, CFAEdge edge) {
-    if (state == state.getAutomatonCPA().getTopState()) return state;
-    if (state == state.getAutomatonCPA().getBottomState()) return state;
-    if (state.isError()) return state;
-
-    ObserverExpressionArguments exprArgs = new ObserverExpressionArguments(state.getVars(), otherElements, edge, logger);
-
-    for (ObserverTransition t : state.getInternalState().getTransitions()) {
-      exprArgs.clearTransitionVariables();
-
-      long startMatch = System.currentTimeMillis();
-      MaybeBoolean match = t.match(exprArgs);
-      matchTime += System.currentTimeMillis() - startMatch;
-
-      switch (match) {
-      case TRUE :
-
-        long startAssertions = System.currentTimeMillis();
-        boolean assertionsHold = t.assertionsHold(exprArgs);
-        assertionsTime += System.currentTimeMillis() - startAssertions;
-
-        if (assertionsHold) {
-          // this transition will be taken. copy the variables
-          long startAction = System.currentTimeMillis();
-          Map<String, ObserverVariable> newVars = deepCloneVars(state.getVars());
-          exprArgs.setObserverVariables(newVars);
-          t.executeActions(exprArgs);
-          actionTime += System.currentTimeMillis() - startAction;
-
-          return ObserverState.observerStateFactory(newVars, t.getFollowState(), state.getAutomatonCPA());
-        } else {
-          logger.log(Level.INFO, "ObserverAutomaton going to ErrorState on edge \"" + edge.getRawStatement() + "\"");
-          // matching transitions, but unfulfilled assertions: goto error state
-          return ObserverState.observerStateFactory(Collections.<String, ObserverVariable>emptyMap(),
-                                   ObserverInternalState.ERROR, state.getAutomatonCPA());
-        }
-
-      case MAYBE :
-        // if one transition cannot be evaluated the evaluation must be postponed until enough information is available
-        return new ObserverUnknownState(state);
-
-      case FALSE :
-      default :
-        // consider next transition
-      }
-    }
-
-    // if no transition is possible reject
-    //return state.getAutomatonCPA().getBottomState();
-    
-    return state;
-  }
   
   /**
-   * Returns the <code>ObserverState</code> that follows this State in the ObserverAutomatonCPA.
+   * Returns the <code>ObserverStates</code> that follow this State in the ObserverAutomatonCPA.
    * If the passed <code>ObserverExpressionArguments</code> are not sufficient to determine the following state
    * this method returns a <code>ObserverUnknownState</code> that contains this as previous State.
    * The strengthen method of the <code>ObserverUnknownState</code> should be used once enough Information is available to determine the correct following State.
+   * 
+   * If the state is a NonDet-State multiple following states may be returned.
+   * If the only following state is BOTTOM an empty set is returned.
    */
   private Collection<AbstractElement> getFollowStates(ObserverState state, List<AbstractElement> otherElements, CFAEdge edge) {
     if (state == state.getAutomatonCPA().getTopState()) {
       return Collections.singleton((AbstractElement)state);
     }
-    
     if (state == state.getAutomatonCPA().getBottomState()) {
       return Collections.emptySet();
     }
-    
     if (state.isError()) {
-      // TODO is this a good semantics?
       return Collections.singleton((AbstractElement)state);
     }
     
-
-    Collection<AbstractElement> lSuccessors = new HashSet<AbstractElement>();
-
-    
+    Collection<AbstractElement> lSuccessors = new HashSet<AbstractElement>();    
     ObserverExpressionArguments exprArgs = new ObserverExpressionArguments(state.getVars(), otherElements, edge, logger);
+    boolean edgeMatched = false;
+    boolean nonDetState = state.getInternalState().isNonDetState();
     
     for (ObserverTransition t : state.getInternalState().getTransitions()) {
       exprArgs.clearTransitionVariables();
@@ -195,7 +123,7 @@ class ObserverTransferRelation implements TransferRelation {
 
       switch (match) {
       case TRUE :
-
+        edgeMatched = true;
         long startAssertions = System.currentTimeMillis();
         boolean assertionsHold = t.assertionsHold(exprArgs);
         assertionsTime += System.currentTimeMillis() - startAssertions;
@@ -207,18 +135,28 @@ class ObserverTransferRelation implements TransferRelation {
           exprArgs.setObserverVariables(newVars);
           t.executeActions(exprArgs);
           actionTime += System.currentTimeMillis() - startAction;
-
           ObserverState lSuccessor = ObserverState.observerStateFactory(newVars, t.getFollowState(), state.getAutomatonCPA());
-          
-          if (!(lSuccessor instanceof ObserverState.BOTTOM)) {
-            lSuccessors.add(lSuccessor);
+          if (nonDetState) {
+            if (!(lSuccessor instanceof ObserverState.BOTTOM)) {
+              lSuccessors.add(lSuccessor);
+            } // else add nothing
+          } else { // not a nondet State, return the first state, that was found
+            if (lSuccessor instanceof ObserverState.BOTTOM) {
+              return Collections.emptySet();
+            } else {
+              return Collections.singleton((AbstractElement)lSuccessor);
+            }
           }
-          
         } else {
           // matching transitions, but unfulfilled assertions: goto error state
-          lSuccessors.add(ObserverState.observerStateFactory(Collections.<String, ObserverVariable>emptyMap(), ObserverInternalState.ERROR, state.getAutomatonCPA()));
+          ObserverState errorState = ObserverState.observerStateFactory(Collections.<String, ObserverVariable>emptyMap(), ObserverInternalState.ERROR, state.getAutomatonCPA());
+          logger.log(Level.INFO, "ObserverAutomaton going to ErrorState on edge \"" + edge.getRawStatement() + "\"");
+          if (nonDetState) {
+            lSuccessors.add(errorState);
+          } else {
+            return Collections.singleton((AbstractElement)errorState); 
+          }
         }
-        
         break;
 
       case MAYBE :
@@ -231,15 +169,17 @@ class ObserverTransferRelation implements TransferRelation {
         // unknown state
         
         return Collections.singleton((AbstractElement)new ObserverUnknownState(state));
-
       case FALSE :
       default :
         // consider next transition
       }
     }
-
-    
-    return lSuccessors;
+    if (edgeMatched) {
+      return lSuccessors;
+    } else {
+      // stay in same state
+      return Collections.singleton((AbstractElement)state);
+    }
   }
 
   private static Map<String, ObserverVariable> deepCloneVars(Map<String, ObserverVariable> pOld) {
@@ -262,31 +202,10 @@ class ObserverTransferRelation implements TransferRelation {
       return null;
     } else {
       long start = System.currentTimeMillis();
-
       ObserverUnknownState lUnknownState = (ObserverUnknownState)pElement;
-      
-      if (lUnknownState.getInternalState().isAllState()) {
-        Collection<AbstractElement> lSuccessors = getFollowStates(lUnknownState.getPreviousState(), pOtherElements, pCfaEdge);
-        
-        totalStrengthenTime += System.currentTimeMillis() - start;
-        
-        return lSuccessors;
-      }
-      else {
-        ObserverState newState = getFollowState(lUnknownState.getPreviousState(), pOtherElements, pCfaEdge);
-        
-        if (newState.equals(lUnknownState.getAutomatonCPA().getTopState())) {
-          logger.log(Level.WARNING, "Following ObserverState could not be determined, ObserverAnalysis will not be available during the rest of this path");
-        }
-        
-        if (newState instanceof ObserverState.BOTTOM) {
-          return Collections.emptySet();
-        }
-        
-        totalStrengthenTime += System.currentTimeMillis() - start;
-        
-        return Collections.singleton(newState);
-      }
+      Collection<AbstractElement> lSuccessors = getFollowStates(lUnknownState.getPreviousState(), pOtherElements, pCfaEdge);
+      totalStrengthenTime += System.currentTimeMillis() - start;
+      return lSuccessors;
     }
   }
 }

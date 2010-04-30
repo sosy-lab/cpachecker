@@ -48,6 +48,9 @@ class ObserverInternalState {
   private String name;
   /** Outgoing transitions of this state.  */
   private List<ObserverTransition> transitions;
+  /**
+   * determines if all transitions of the state are considered or only the first that matches
+   */
   private boolean mAllTransitions;
 
   public ObserverInternalState(String pName, List<ObserverTransition> pTransitions, boolean pAllTransitions) {
@@ -60,7 +63,7 @@ class ObserverInternalState {
     this(pName, pTransitions, false);
   }
   
-  public boolean isAllState() {
+  public boolean isNonDetState() {
     return mAllTransitions;
   }
 

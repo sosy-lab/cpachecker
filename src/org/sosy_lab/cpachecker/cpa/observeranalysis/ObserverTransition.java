@@ -102,6 +102,7 @@ class ObserverTransition {
       MaybeBoolean triggerValue = trigger.eval(pArgs);
       
       // Why this condition ? Why not MaybeBoolean.MAYBE ? 
+      // rhein: MAYBE and FALSE have to be handled identically (immediate abort of the trigger checks) 
       if (triggerValue != MaybeBoolean.TRUE) {
         return triggerValue;
       }
@@ -142,6 +143,7 @@ class ObserverTransition {
     return followState;
   }
   
+  @Override
   public String toString() {
     return this.triggers.toString();
   }
