@@ -89,6 +89,9 @@ public class ObserverExpressionArguments {
   String getLogMessage() {
     return transitionLogMessages;
   }
+  public void clearLogMessage() {
+    transitionLogMessages = "";
+  }
 
   void clearTransitionVariables() {
     this.transitionVariables.clear();

@@ -48,7 +48,7 @@ import org.sosy_lab.cpachecker.cpa.observeranalysis.ObserverBoolExpr.CPAQuery;
 
 public class ObserverAutomatonTest {
   private static final String OUTPUT_FILE = "test/output/observerAutomatonExport.dot";
-
+  
   @Test
   public void setuidTest() {
     Map<String, String> prop = ImmutableMap.of(
@@ -60,7 +60,6 @@ public class ObserverAutomatonTest {
     try {
       
       TestResults results = run(prop, "test/programs/simple/simple_setuid_test.c");
-      System.out.println(results.log);
       Assert.assertTrue(results.logContains("Systemcall in line 10 with userid 2"));
       Assert.assertTrue(results.logContains("going to ErrorState on edge \"system(40);\""));
       Assert.assertTrue(results.isUnsafe());
@@ -147,7 +146,6 @@ public class ObserverAutomatonTest {
       );
     try {
       TestResults results = run(prop, "test/programs/simple/ex2.cil.c");
-      //System.out.println(results.log);
       Assert.assertTrue(results.logContains("st==3 after Edge st = 3;"));
       Assert.assertTrue(results.logContains("st==1 after Edge st = 1;"));
       Assert.assertTrue(results.logContains("st==2 after Edge st = 2;"));
@@ -253,7 +251,50 @@ public class ObserverAutomatonTest {
       Assert.fail("InvalidConfiguration");
     }
   }
-
+  @Test
+  public void AST_Comparison() throws InvalidAutomatonException {
+    Assert.assertTrue(testAST("x=5;", "x= $?;"));
+    Assert.assertFalse(testAST("x=5;", "x= 10;"));
+    //ObserverASTComparator.printAST("x=10;");
+    Assert.assertFalse(testAST("x=5;", "$? =10;"));
+    Assert.assertTrue(testAST("x  = 5;", "$?=$?;"));
+  
+    Assert.assertFalse(testAST("a = 5;", "b    = 5;"));
+  
+    Assert.assertTrue(testAST("init(a);", "init($?);"));
+    Assert.assertFalse(testAST("init();", "init($?);"));
+  
+    Assert.assertTrue(testAST("init(a, b);", "init($?, b);"));
+    Assert.assertFalse(testAST("init(a, b);", "init($?, c);"));
+  
+    Assert.assertTrue(testAST("x = 5;", "x=$?"));
+    Assert.assertTrue(testAST("x = 5", "x=$?;"));
+  
+  
+    Assert.assertFalse(testAST("f();", "f($?);"));
+    Assert.assertTrue(testAST("f(x);", "f($?);"));
+    Assert.assertTrue(testAST("f(x, y);", "f($?);"));
+  
+    Assert.assertFalse(testAST("f(x);", "f(x, $?);"));
+    Assert.assertTrue(testAST("f(x, y);", "f(x, $?);"));
+    Assert.assertFalse(testAST("f(x, y, z);", "f(x, $?);"));
+    
+    /* in the observerAutomata this is 
+     * not possible at the moment, because the generated pattern 
+     * AST has one node that is missing in the the sub-AST of the CFA
+     * 
+     */
+    Assert.assertTrue(testAST("int y;", "int $?;"));
+    Assert.assertTrue(testAST("int y;", "int y;"));
+    
+  }
+  private boolean testAST(String src, String pattern) throws InvalidAutomatonException {
+    ObserverExpressionArguments args = new ObserverExpressionArguments(null, null, null, null);
+    IASTNode sourceAST;
+    sourceAST = ObserverASTComparator.generateSourceAST(src);
+    IASTNode patternAST = ObserverASTComparator.generatePatternAST(pattern);
+    return ObserverASTComparator.compareASTs(sourceAST, patternAST, args);
+  }
 
 
   private TestResults run(Map<String, String> pProperties, String pSourceCodeFilePath) throws InvalidConfigurationException {

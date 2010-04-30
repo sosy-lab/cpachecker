@@ -131,6 +131,7 @@ class ObserverTransition {
     }
     if (pArgs.getLogMessage() != null && pArgs.getLogMessage().length() > 0) {
       pArgs.getLogger().log(Level.INFO, pArgs.getLogMessage());
+      pArgs.clearLogMessage();
     }
   }
 

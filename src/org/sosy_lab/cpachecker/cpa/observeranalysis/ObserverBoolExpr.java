@@ -108,6 +108,8 @@ abstract class ObserverBoolExpr {
     public MaybeBoolean eval(ObserverExpressionArguments pArgs) {
 
       IASTNode ast = pArgs.getCfaEdge().getRawAST();
+      //ObserverASTComparator.printAST(ast);
+      //ObserverASTComparator.printAST(patternAST);
       if (ast != null) {
         // some edges do not have an AST node attached to them, e.g. BlankEdges
         return MaybeBoolean.valueOf(ObserverASTComparator.compareASTs(ast, patternAST, pArgs));

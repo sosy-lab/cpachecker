@@ -24,6 +24,7 @@
 package org.sosy_lab.common.configuration;
 
 import java.io.FileInputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -34,6 +35,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.Map.Entry;
 import java.util.regex.Pattern;
 
 import com.google.common.base.Preconditions;
@@ -417,6 +419,25 @@ public class Configuration {
     } catch (InvocationTargetException e) {
       throw new InvalidConfigurationException("Could not parse \"" + name + " = " + value
           + "\" (" + e.getTargetException().getMessage() + ")");
+    }
+  }
+  
+  /** Debug method to write a Configuration into a properties file.
+   * @param filename
+   */
+  public void writeToFile(String filename) {
+    FileWriter fw = null;
+    try {
+      fw = new FileWriter(filename);
+      fw.write("");// clear the file
+      for (Entry<Object, Object> e : properties.entrySet()) {
+        fw.append(e.getKey().toString() + " = " + e.getValue().toString() + "\n");
+      }
+      fw.flush();
+      fw.close();
+    } catch (IOException e1) {
+      e1.printStackTrace();
+      // this is a debug method. No proper Exception handling
     }
   }
 }

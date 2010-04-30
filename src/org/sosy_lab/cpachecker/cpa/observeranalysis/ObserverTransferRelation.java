@@ -155,7 +155,9 @@ class ObserverTransferRelation implements TransferRelation {
     }
 
     // if no transition is possible reject
-    return state.getAutomatonCPA().getBottomState();
+    //return state.getAutomatonCPA().getBottomState();
+    
+    return state;
   }
   
   /**
@@ -264,14 +266,14 @@ class ObserverTransferRelation implements TransferRelation {
       ObserverUnknownState lUnknownState = (ObserverUnknownState)pElement;
       
       if (lUnknownState.getInternalState().isAllState()) {
-        Collection<AbstractElement> lSuccessors = getFollowStates(lUnknownState, pOtherElements, pCfaEdge);
+        Collection<AbstractElement> lSuccessors = getFollowStates(lUnknownState.getPreviousState(), pOtherElements, pCfaEdge);
         
         totalStrengthenTime += System.currentTimeMillis() - start;
         
         return lSuccessors;
       }
       else {
-        ObserverState newState = getFollowState(lUnknownState, pOtherElements, pCfaEdge);
+        ObserverState newState = getFollowState(lUnknownState.getPreviousState(), pOtherElements, pCfaEdge);
         
         if (newState.equals(lUnknownState.getAutomatonCPA().getTopState())) {
           logger.log(Level.WARNING, "Following ObserverState could not be determined, ObserverAnalysis will not be available during the rest of this path");

@@ -184,6 +184,10 @@ class ObserverState implements AbstractQueryableElement {
       super();
       previousState = pPreviousState;
     }
+
+    ObserverState getPreviousState() {
+      return previousState;
+    }
     @Override
     ObserverInternalState getInternalState() {
       return previousState.getInternalState();
