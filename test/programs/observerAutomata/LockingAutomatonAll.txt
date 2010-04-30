@@ -9,7 +9,7 @@ STATE Init :
   MATCH [init\(\)] && MATCH "init()" &&  MATCH { init(); }  -> GOTO Unlocked;
   MATCH { lock($?); }  -> ERROR;
   MATCH { unlock($?); } -> ERROR;
-  TRUE -> GOTO Init;
+
 
 STATE Locked :
   MATCH  { x = $?; } -> GOTO Locked; // unnecessary line

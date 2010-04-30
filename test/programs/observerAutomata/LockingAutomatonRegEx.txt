@@ -10,7 +10,7 @@ STATE Init :
   MATCH  [init\(\)]  -> ASSERT lock == 0 DO lock = 0  GOTO Unlocked;
   MATCH  [lock\(\)]  -> ERROR;
   MATCH  [unlock\(\)]  -> ERROR;
-  TRUE -> GOTO Init;
+
 
 STATE Locked :
   MATCH  [init\(\)]  ->  ERROR;

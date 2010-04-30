@@ -6,4 +6,3 @@ STATE Init :
   CHECK(ObserverAnalysis_InteractionAutomatonA("x==$$y"))
   -> DO y=y+1 PRINT "B: A increased to " PRINT y-1 PRINT " And i followed"
   GOTO Init;
-  TRUE -> GOTO Init;

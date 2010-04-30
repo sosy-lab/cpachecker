@@ -4,4 +4,3 @@ INITIAL STATE Init;
 
 STATE Init :
   MATCH {i = $?; } || MATCH {i++;} -> DO x=x+1 PRINT "A: Matched i in line $line x=" PRINT x GOTO Init;
-  TRUE -> GOTO Init;

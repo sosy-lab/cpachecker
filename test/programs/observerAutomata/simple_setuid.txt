@@ -14,4 +14,5 @@ STATE Init:
   MATCH { $? = setuid($1); } -> DO uid=$1 PRINT "userid set to $1" GOTO Init;
   MATCH { setuid($1); } -> DO uid=$1 PRINT "userid set to $1"  GOTO Init;
   
-  TRUE -> GOTO Init;
+  //TRUE -> GOTO Init;
+

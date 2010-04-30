@@ -16,4 +16,4 @@ STATE Init :
   || MATCH {__assert_fail($?)}
 
   -> ERROR;
-  TRUE -> GOTO Init;
+
