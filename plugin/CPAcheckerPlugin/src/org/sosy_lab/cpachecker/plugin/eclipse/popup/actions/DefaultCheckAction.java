@@ -1,5 +1,9 @@
 package org.sosy_lab.cpachecker.plugin.eclipse.popup.actions;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Map;
+
 import org.eclipse.cdt.core.model.ICElement;
 import org.eclipse.cdt.core.model.ITranslationUnit;
 import org.eclipse.jface.action.IAction;
@@ -10,7 +14,9 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.IActionDelegate;
 import org.eclipse.ui.IObjectActionDelegate;
 import org.eclipse.ui.IWorkbenchPart;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.plugin.eclipse.CPAcheckerPlugin;
+import org.sosy_lab.cpachecker.plugin.eclipse.TaskRunner;
 
 public class DefaultCheckAction implements IObjectActionDelegate {
 
@@ -42,7 +48,13 @@ public class DefaultCheckAction implements IObjectActionDelegate {
 			shell,
 			"CPAcheckerPlugin",
 			"C File Type + " + selected.getClass().toString() + " Resource: " + selected);
-		CPAcheckerPlugin.runTest(selected);
+		
+		Map<String, String> emptyMap = Collections.emptyMap();
+		//TODO: provide real configuration
+		Configuration config = new Configuration(emptyMap);
+		String filename = selected.toString();		
+		
+		CPAcheckerPlugin.runTest(Collections.singletonList(new TaskRunner.Task("anonymous Task", config, filename)));
 	}
 
 	/**

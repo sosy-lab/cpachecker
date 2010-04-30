@@ -1,48 +1,147 @@
 package org.sosy_lab.cpachecker.plugin.eclipse.views;
 
-import java.util.LinkedList;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
+import org.eclipse.jface.resource.ImageDescriptor;
+import org.eclipse.jface.viewers.ArrayContentProvider;
+import org.eclipse.jface.viewers.ITreeContentProvider;
 import org.eclipse.jface.viewers.LabelProvider;
-import org.eclipse.jface.viewers.TreeNode;
-import org.eclipse.jface.viewers.TreeNodeContentProvider;
+import org.eclipse.jface.viewers.StyledString;
 import org.eclipse.jface.viewers.TreeViewer;
+import org.eclipse.jface.viewers.DelegatingStyledCellLabelProvider.IStyledLabelProvider;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Image;
+import org.eclipse.swt.layout.RowLayout;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.part.ViewPart;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.cpachecker.plugin.eclipse.CPAcheckerPlugin;
+import org.sosy_lab.cpachecker.plugin.eclipse.ITestListener;
+import org.sosy_lab.cpachecker.plugin.eclipse.TaskRunner.Task;
 
 public class TasksView extends ViewPart {
-	Label label;
+	private ITestListener listener = null;
+	private List<Task> tasks = new ArrayList<Task>();
+	private Label progress;
+	private TopNode topNode  = new TopNode();
+	private TreeViewer myTreeViewer;
+	private Image configIcon;
+	private Image sourceFileImage;
+	private List<Image> imagesToBeDisposed = new ArrayList<Image>();
+	
+	
+	public static void main(String[] args) {
+		Display display = new Display();
+		Shell shell = new Shell(display);
+		final TasksView taskView = new TasksView();
+		taskView.createPartControl(shell);
+				
+		shell.setBounds(220, 220, 440, 440);
+		
 
+		Map<String, String> emptyMap = Collections.emptyMap();
+		Task t1 = new Task("Task 1", new Configuration(emptyMap), "File1");
+		taskView.addTask(t1);
+		
+		Task t2 = new Task("Task 2", new Configuration(emptyMap), "File2");
+		taskView.addTask(t2);
+		
+		shell.pack();
+		shell.open();
+		while (!shell.isDisposed()) {
+			if (!display.readAndDispatch())
+				display.sleep();
+		}
+		display.dispose();
+	}
+	
 	public TasksView() {
+		Image missingImage = ImageDescriptor.getMissingImageDescriptor().createImage();
+		try {
+			ImageDescriptor desc = CPAcheckerPlugin.getImageDescriptor("icons/configIcon.tiff"); 	
+		if (desc != null) {
+			configIcon = desc.createImage(true);
+		} else {
+			configIcon = missingImage;
+		}
+		desc = CPAcheckerPlugin.getImageDescriptor("icons/sample.gif");
+		if (desc != null) {
+			configIcon = desc.createImage(true);
+		} else {
+			configIcon = missingImage;
+		}
+		imagesToBeDisposed.add(configIcon);
+		imagesToBeDisposed.add(sourceFileImage);
+		imagesToBeDisposed.add(missingImage);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 
 	@Override
 	public void createPartControl(Composite parent) {
-		label = new Label(parent, SWT.WRAP);
-		label.setText("Hello World");
+		parent.setLayout(new RowLayout(SWT.VERTICAL));
+		progress = new Label(parent, SWT.WRAP);
+		progress.setText("Hello World");
 
-		final TreeViewer myTreeViewer = new TreeViewer(parent, SWT.SINGLE);
-
+		myTreeViewer = new TreeViewer(parent, SWT.V_SCROLL | SWT.SINGLE);
 		myTreeViewer.setLabelProvider(new MyTreeLabelProvider());
-
-		myTreeViewer.setContentProvider(new TreeNodeContentProvider());
+		myTreeViewer.setContentProvider(new MyTreeContentProvider());
 		
-		CPATaskNode t1 = new CPATaskNode("Task1");
-		t1.addCPA("LocationCPA");
-		t1.addCPA("EcplicitAnalysis");
+		myTreeViewer.setAutoExpandLevel(TreeViewer.ALL_LEVELS);
+		myTreeViewer.setInput(new Node[]{topNode});
 		
-		CPATaskNode t2 = new CPATaskNode("Task2");
-		t2.addCPA("LocationCPA");
-		t2.addCPA("ObserverAnalysis");
-		
-		myTreeViewer.setInput(new TreeNode[] {t1,t2} );
-		
-
+		listener = new ITestListener() {
+			// TODO: find a more fine-granular update method
+			@Override
+			public void testFailed(String id) {
+				myTreeViewer.refresh();
+			}
+			@Override
+			public void testStarted(String id) {
+				myTreeViewer.refresh();	
+			}
+			@Override
+			public void testsFinished() {
+				myTreeViewer.refresh();	
+			}
+			@Override
+			public void testsStarted(int testCount) {
+				myTreeViewer.refresh();
+			}
+		};
+		CPAcheckerPlugin plugin = CPAcheckerPlugin.getPlugin();
+		if (plugin != null) { // to avoid errors when testing without plugin (with the main function)
+			plugin.addTestListener(listener);
+		}
+		Map<String, String> emptyMap = Collections.emptyMap();
+		Task t2 = new Task("Task 2", new Configuration(emptyMap), "File2");
+		this.addTask(t2);
 	}
-
+	@Override
+	public void dispose() {
+		if (this.listener != null) {
+			CPAcheckerPlugin.getPlugin().removeTestListener(listener);
+		}
+		for (Image img : imagesToBeDisposed) {
+			if (img!= null) {
+				img.dispose();
+			}
+		}
+		super.dispose();
+	}
+	public void addTask(Task t) {
+		this.tasks.add(t);
+		this.topNode.reconstruct(tasks);
+		this.myTreeViewer.refresh();
+	}
+	
 	@Override
 	public void setFocus() {
 		// set focus to my widget. For a label, this doesn't
@@ -50,74 +149,133 @@ public class TasksView extends ViewPart {
 		// you would decide which one gets the focus.
 	}
 	
-	private TreeNode[] createModel() {
-        final int firstlevel = 5;
-        final int secondlevel = 8;
-        TreeNode[] root = new TreeNode[firstlevel];
-        String people;
-        for (int i = 0; i < firstlevel; ++i) {
-            people = new String("Parent " + i);
-            TreeNode parent = new TreeNode(people);
-            parent.setParent(null);
-            TreeNode[] children = new TreeNode[secondlevel];
-            for (int j = 0; j < secondlevel; ++j) {
-                people = new String("Kid " + j);
-                TreeNode child = new TreeNode(people);
-                child.setParent(parent);
-                child.setChildren(null);
-                children[j] = child;
-            }
-            parent.setChildren(children);
-            root[i] = parent;
-        }
-        return root;
-    }
-	private static class CPATaskNode extends TreeNode {
-		TreeNode previousTarget = new TreeNode("noPreviousTarget");
-		CPAsNode myCPAs = new CPAsNode();
-		public CPATaskNode(Object value) {
-			super(value);
-			this.setChildren(new TreeNode[] {myCPAs, previousTarget});
-		}
-		void addCPA(String name) {
-			this.myCPAs.addCPA(name);
-		}
-	}
-	private static class CPAsNode extends TreeNode {
-		List<TreeNode> cpaList = new LinkedList<TreeNode>();
-		public CPAsNode() {
-			super("CPAs");
-		}
-		public void addCPA (String name) {
-			cpaList.add(new TreeNode(name));
-		}
-		
+	public class MyTreeContentProvider extends ArrayContentProvider implements ITreeContentProvider {
+
+	   public Object[] getChildren(Object parent) {
+	      Node ex1 = (Node) parent;
+	      return ex1.getChildren();
+	   }
+
+	   public Object getParent(Object element) {
+	      Node ex1 = (Node) element;
+	      return ex1.getParent();
+	   }
+
+	   public boolean hasChildren(Object element) {
+	      Node ex1 = (Node) element;
+	      return ex1.getChildren().length > 0;
+	   }
+/*
 		@Override
-		public TreeNode[] getChildren() {
-			return this.cpaList.toArray(new TreeNode[0]);
+		public Object[] getElements(Object inputElement) {
+			System.out.println(inputElement.getClass().toString());
+			if (((Node)inputElement).getType().equals(Node.NodeType.TOP)) {
+				return ((Node)inputElement).getChildren();
+			} else {
+				return new Object[0];
+			}
 		}
+	
 		@Override
-		public boolean hasChildren() {
-			return !this.cpaList.isEmpty();
+		public void dispose() {
+			// TODO Auto-generated method stub
+			
 		}
+	
+		@Override
+		public void inputChanged(Viewer viewer, Object oldInput, Object newInput) {
+			System.out.println("input Changed");
+			
+		}*/
 	}
 
-	/**
-	 * Provides label := element.name
-	 * @author rhein
-	 *
-	 */
-	public static class MyTreeLabelProvider extends LabelProvider {
-
-		@Override
-		public Image getImage(Object element) {
+	public class MyTreeLabelProvider extends LabelProvider implements IStyledLabelProvider {
+	@Override
+	public Image getImage(Object element) {
+		   Node n = (Node) element;
+		   switch (n.getType()) {
+		case TOP:
+			return null;
+		case TASK:
+			return null;
+		case CONFIG:
+			return configIcon;
+		case SOURCE_FILE:
+			return sourceFileImage;
+		default:
 			return null;
 		}
+		   
+	   }
+	@Override
+	   public String getText(Object element) {
+	      Node ex1 = (Node) element;
+	      return ex1.getName();
+	   }
+	@Override
+	public StyledString getStyledText(Object element) {
+		return new StyledString(this.getText(element));
+	}
+	}
 
-		@Override
-		public String getText(Object element) {
-			//return element.toString();
-			return ((TreeNode)element).getValue().toString();
+	static interface Node {
+		enum NodeType {TOP, TASK, CONFIG, SOURCE_FILE}
+		NodeType getType();
+		String getName();
+		Node[] getChildren();
+		Node getParent();
+	}
+	static class TopNode implements Node {
+		private Node[] children = new Node[0];
+		public NodeType getType() { return NodeType.TOP; }
+		public String getName() { return "CPAcheckerTasks"; }
+		public Node getParent() {return null; }
+		void reconstruct(List<Task> tasks) {
+			children = new Node[tasks.size()];
+			for (int i = 0; i < children.length; i++) {
+				children[i] = new TaskNode(tasks.get(i), this);
+			}
 		}
+		public Node[] getChildren() { return children; }
+	}
+	static class TaskNode implements Node {
+		private Task task;
+		private Node parent;
+		private Node[] children = new Node[2];
+		public TaskNode(Task task, Node parent) {
+			this.parent = parent;
+			this.task = task;
+			children[0] = new ConfigNode(task.getConfigName(), this);
+			children[1] = new SourceFileNode(task.getSourceFileName(), this);
+		}
+		public NodeType getType() { return NodeType.TASK; }
+		public String getName() { return task.getName(); }
+		public Node getParent() {return parent; }
+		public Node[] getChildren() { return children; }
+	}
+	static class ConfigNode implements Node {
+		private String name;
+		private Node parent;
+		public ConfigNode(String configName, Node parent) {
+			this.name = configName;
+			this.parent = parent;
+		}
+		public NodeType getType() { return NodeType.CONFIG; }
+		public String getName() { return name; }
+		public Node getParent() {return parent; }
+		public Node[] getChildren() { return new Node[0]; }
+	}
+	static class SourceFileNode implements Node {
+		private String name;
+		private Node parent;
+		public SourceFileNode(String sourceFileName, Node parent) {
+			this.name = sourceFileName;
+			this.parent = parent;
+		}
+		public NodeType getType() { return NodeType.SOURCE_FILE; }
+		public String getName() { return name; }
+		public Node getParent() {return parent; }
+		public Node[] getChildren() { return new Node[0]; }
 	}
 }
+

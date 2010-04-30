@@ -1,0 +1,3 @@
+#!/bin/sh
+
+`dirname $0`/../x86-linux/Simplify $@

@@ -16,21 +16,24 @@ import org.eclipse.core.runtime.SafeRunner;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.osgi.framework.BundleContext;
+import org.sosy_lab.cpachecker.plugin.eclipse.TaskRunner.Task;
 
 public class CPAcheckerPlugin extends AbstractUIPlugin {
+	
+	
 
 	// The plug-in ID
 	public static final String PLUGIN_ID = "CPAcheckerPlugin";
 	
 	private static final String listenerId = "org.sosy_lab.cpachecker.plugin.eclipse.listeners";
 	private List<ITestListener> listeners;
-	private static CPAcheckerPlugin instance;
+	private static CPAcheckerPlugin instance = null;
 	
 	public CPAcheckerPlugin() {
 		super();
 		// instance will be overwritten each time, but this seems to be intended by eclipse people
 		instance = this;
-	};
+	}
 	
 	public static CPAcheckerPlugin getPlugin() {
 		return instance;
@@ -65,8 +68,8 @@ public class CPAcheckerPlugin extends AbstractUIPlugin {
 		return imageDescriptorFromPlugin(PLUGIN_ID, path);
 	}
 	
-	public static void runTest(ICElement selected) {
-		new TestRunner().run(selected);
+	public static void runTest(List<Task> tasks) {
+		new TaskRunner().run(tasks);
 	}
 
 	public List<ITestListener> getListeners() {
