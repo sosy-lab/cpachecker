@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.observeranalysis;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -35,6 +36,7 @@ import java.util.logging.Level;
 import com.google.common.base.Preconditions;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -113,6 +115,11 @@ class ObserverTransferRelation implements TransferRelation {
     ObserverExpressionArguments exprArgs = new ObserverExpressionArguments(state.getVars(), otherElements, edge, logger);
     boolean edgeMatched = false;
     boolean nonDetState = state.getInternalState().isNonDetState();
+  
+    // these transitions cannot be evaluated until last, because they might have sideeffects on other CPAs (dont want to execute them twice)
+    // the transitionVariables have to be cached (produced during the match operation)
+    // the list holds a Transition and the TransitionVariables generated during its match
+    List<Pair<ObserverTransition, Map<Integer, String>>> transitionsToBeTaken = new ArrayList<Pair<ObserverTransition, Map<Integer, String>>>();
     
     for (ObserverTransition t : state.getInternalState().getTransitions()) {
       exprArgs.clearTransitionVariables();
@@ -128,23 +135,12 @@ class ObserverTransferRelation implements TransferRelation {
         MaybeBoolean assertionsHold = t.assertionsHold(exprArgs);
         assertionsTime += System.currentTimeMillis() - startAssertions;
         if (assertionsHold == MaybeBoolean.TRUE) {
-          // this transition will be taken. copy the variables
-          long startAction = System.currentTimeMillis();
-          Map<String, ObserverVariable> newVars = deepCloneVars(state.getVars());
-          exprArgs.setObserverVariables(newVars);
-          t.executeActions(exprArgs);
-          actionTime += System.currentTimeMillis() - startAction;
-          ObserverState lSuccessor = ObserverState.observerStateFactory(newVars, t.getFollowState(), state.getAutomatonCPA());
-          if (nonDetState) {
-            if (!(lSuccessor instanceof ObserverState.BOTTOM)) {
-              lSuccessors.add(lSuccessor);
-            } // else add nothing
-          } else { // not a nondet State, return the first state, that was found
-            if (lSuccessor instanceof ObserverState.BOTTOM) {
-              return Collections.emptySet();
-            } else {
-              return Collections.singleton((AbstractElement)lSuccessor);
-            }
+          if (t.canExecuteActionsOn(exprArgs)) {
+            Map<Integer, String> transitionVariables = new HashMap<Integer, String>(exprArgs.getTransitionVariables()); 
+            transitionsToBeTaken.add(new Pair<ObserverTransition, Map<Integer, String>>(t, transitionVariables));
+          } else {
+            // cannot yet execute, goto UnknownState
+            return Collections.singleton((AbstractElement)new ObserverUnknownState(state));
           }
         } else if (assertionsHold == MaybeBoolean.MAYBE) {
           // cannot yet be evaluated
@@ -171,9 +167,33 @@ class ObserverTransferRelation implements TransferRelation {
       }
     }
     if (edgeMatched) {
+      // execute Transitions
+      for (Pair<ObserverTransition, Map<Integer, String>> pair : transitionsToBeTaken) {
+        // this transition will be taken. copy the variables
+        ObserverTransition t = pair.getFirst();
+        Map<Integer, String> transitionVariables = pair.getSecond();
+        long startAction = System.currentTimeMillis();
+        Map<String, ObserverVariable> newVars = deepCloneVars(state.getVars());
+        exprArgs.setObserverVariables(newVars);
+        exprArgs.putTransitionVariables(transitionVariables);
+        t.executeActions(exprArgs);
+        actionTime += System.currentTimeMillis() - startAction;
+        ObserverState lSuccessor = ObserverState.observerStateFactory(newVars, t.getFollowState(), state.getAutomatonCPA());
+        if (nonDetState) {
+          if (!(lSuccessor instanceof ObserverState.BOTTOM)) {
+            lSuccessors.add(lSuccessor);
+          } // else add nothing
+        } else { // not a nondet State, return the first state, that was found
+          if (lSuccessor instanceof ObserverState.BOTTOM) {
+            return Collections.emptySet();
+          } else {
+            return Collections.singleton((AbstractElement)lSuccessor);
+          }
+        }
+      }
       return lSuccessors;
     } else {
-      // stay in same state
+      // stay in same state, no transitions to be executed here (no transition matched)
       return Collections.singleton((AbstractElement)state);
     }
   }

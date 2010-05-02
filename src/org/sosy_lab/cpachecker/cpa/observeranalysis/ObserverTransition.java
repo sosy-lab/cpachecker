@@ -136,6 +136,20 @@ class ObserverTransition {
       pArgs.clearLogMessage();
     }
   }
+  
+  /** Returns if the actions of this transiton can be executed on these ObserverExpressionArguments.
+   * If false is returned more Information is needed (probably more AbstractElements from other CPAs).
+   * @param pArgs
+   * @return
+   */
+  public boolean canExecuteActionsOn(ObserverExpressionArguments pArgs) {
+    for (ObserverActionExpr action : actions) {
+      if (! action.canExecuteOn(pArgs)) {
+        return false;
+      }
+    }
+    return true;
+  }
 
   /**
    * returns null if setFollowState() was not called or no followState with appropriate name was found.

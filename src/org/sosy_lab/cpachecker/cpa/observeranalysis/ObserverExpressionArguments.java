@@ -166,4 +166,12 @@ public class ObserverExpressionArguments {
     matcher.appendTail(result);
     return result.toString();
   }
+
+  public Map<Integer, String> getTransitionVariables() {
+    return this.transitionVariables;
+  }
+
+  public void putTransitionVariables(Map<Integer, String> pTransitionVariables) {
+    this.transitionVariables.putAll(pTransitionVariables);
+  }
 }

@@ -38,6 +38,16 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
  */
 abstract class ObserverActionExpr {
   private ObserverActionExpr() {};
+  
+  /**
+   * Returns if the action can execute on the given ObserverExpressionArguments.
+   * If it cannot execute this is probably because of missing AbstractElements (from other CPAs).
+   * @param pArgs
+   * @return
+   */
+  boolean canExecuteOn(ObserverExpressionArguments pArgs) {
+    return true;
+  }
   abstract void execute(ObserverExpressionArguments pArgs);
 
   /**
@@ -109,13 +119,25 @@ abstract class ObserverActionExpr {
       cpaName = pCPAName;
       modificationString = pModification;
     }
-
+    @Override
+    boolean canExecuteOn(ObserverExpressionArguments pArgs) {
+      for (AbstractElement ae : pArgs.getAbstractElements()) {
+        if (ae instanceof AbstractQueryableElement) {
+          AbstractQueryableElement aqe = (AbstractQueryableElement) ae;
+          if (aqe.getCPAName().equals(cpaName)) {
+            return true;
+          }
+        }
+      }
+      return false;
+    }
     @Override
     void execute(ObserverExpressionArguments pArgs) {
       // replace transition variables
       String processedModificationString = pArgs.replaceVariables(modificationString);
       if (processedModificationString == null) {
         pArgs.getLogger().log(Level.WARNING, "Modification String \"" + modificationString + "\" could not be processed (Variable not found).");
+        return;
       }
       for (AbstractElement ae : pArgs.getAbstractElements()) {
         if (ae instanceof AbstractQueryableElement) {

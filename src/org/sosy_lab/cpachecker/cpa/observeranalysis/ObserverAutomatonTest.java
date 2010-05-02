@@ -44,7 +44,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
-import org.sosy_lab.cpachecker.cpa.observeranalysis.ObserverBoolExpr.CPAQuery;
 
 public class ObserverAutomatonTest {
   private static final String OUTPUT_FILE = "test/output/observerAutomatonExport.dot";
