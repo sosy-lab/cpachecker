@@ -117,6 +117,13 @@ public class EdgeVisitCPA implements ConfigurableProgramAnalysis {
     public boolean isError() {
       return false;
     }
+    
+    @Override
+    public void modifyProperty(String pModification)
+        throws InvalidQueryException {
+      throw new InvalidQueryException("The EdgeVisit CPA does not (yet) support modification.");
+      
+    }
 
   }
 
