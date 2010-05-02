@@ -14,7 +14,8 @@ import org.eclipse.jface.viewers.TreeViewer;
 import org.eclipse.jface.viewers.DelegatingStyledCellLabelProvider.IStyledLabelProvider;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Image;
-import org.eclipse.swt.layout.RowLayout;
+import org.eclipse.swt.layout.GridData;
+import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
@@ -64,7 +65,7 @@ public class TasksView extends ViewPart {
 	public TasksView() {
 		Image missingImage = ImageDescriptor.getMissingImageDescriptor().createImage();
 		try {
-			ImageDescriptor desc = CPAcheckerPlugin.getImageDescriptor("icons/configIcon.tiff"); 	
+			ImageDescriptor desc = CPAcheckerPlugin.getImageDescriptor("icons/config16.gif"); 	
 		if (desc != null) {
 			configIcon = desc.createImage(true);
 		} else {
@@ -72,9 +73,9 @@ public class TasksView extends ViewPart {
 		}
 		desc = CPAcheckerPlugin.getImageDescriptor("icons/sample.gif");
 		if (desc != null) {
-			configIcon = desc.createImage(true);
+			sourceFileImage = desc.createImage(true);
 		} else {
-			configIcon = missingImage;
+			sourceFileImage = missingImage;
 		}
 		imagesToBeDisposed.add(configIcon);
 		imagesToBeDisposed.add(sourceFileImage);
@@ -86,17 +87,35 @@ public class TasksView extends ViewPart {
 
 	@Override
 	public void createPartControl(Composite parent) {
-		parent.setLayout(new RowLayout(SWT.VERTICAL));
+		GridLayout gridLayout= new GridLayout();
+		gridLayout.marginWidth= 0;
+		gridLayout.marginHeight= 0;
+		parent.setLayout(gridLayout);
+		//parent.setLayout(new FillLayout(SWT.VERTICAL));
+		
 		progress = new Label(parent, SWT.WRAP);
 		progress.setText("Hello World");
+		GridData gridData = new GridData();
+		gridData.horizontalAlignment = SWT.FILL;
+		gridData.grabExcessHorizontalSpace = true;
+		progress.setLayoutData(gridData);
+		
+		//progress.setLayoutData(new GridData(GridData.GRAB_HORIZONTAL | GridData.HORIZONTAL_ALIGN_FILL));
 
 		myTreeViewer = new TreeViewer(parent, SWT.V_SCROLL | SWT.SINGLE);
 		myTreeViewer.setLabelProvider(new MyTreeLabelProvider());
 		myTreeViewer.setContentProvider(new MyTreeContentProvider());
+		gridData = new GridData();
+		gridData.horizontalAlignment = SWT.FILL;
+		gridData.grabExcessHorizontalSpace = true;
+		gridData.verticalAlignment = SWT.FILL;
+		gridData.grabExcessVerticalSpace = true;
+		myTreeViewer.getTree().setLayoutData(gridData);
+		
 		
 		myTreeViewer.setAutoExpandLevel(TreeViewer.ALL_LEVELS);
 		myTreeViewer.setInput(new Node[]{topNode});
-		
+		myTreeViewer.setAutoExpandLevel(TreeViewer.ALL_LEVELS);
 		listener = new ITestListener() {
 			// TODO: find a more fine-granular update method
 			@Override
@@ -120,6 +139,8 @@ public class TasksView extends ViewPart {
 		if (plugin != null) { // to avoid errors when testing without plugin (with the main function)
 			plugin.addTestListener(listener);
 		}
+		
+		// for Debug: one Task in the treeview
 		Map<String, String> emptyMap = Collections.emptyMap();
 		Task t2 = new Task("Task 2", new Configuration(emptyMap), "File2");
 		this.addTask(t2);
@@ -165,28 +186,6 @@ public class TasksView extends ViewPart {
 	      Node ex1 = (Node) element;
 	      return ex1.getChildren().length > 0;
 	   }
-/*
-		@Override
-		public Object[] getElements(Object inputElement) {
-			System.out.println(inputElement.getClass().toString());
-			if (((Node)inputElement).getType().equals(Node.NodeType.TOP)) {
-				return ((Node)inputElement).getChildren();
-			} else {
-				return new Object[0];
-			}
-		}
-	
-		@Override
-		public void dispose() {
-			// TODO Auto-generated method stub
-			
-		}
-	
-		@Override
-		public void inputChanged(Viewer viewer, Object oldInput, Object newInput) {
-			System.out.println("input Changed");
-			
-		}*/
 	}
 
 	public class MyTreeLabelProvider extends LabelProvider implements IStyledLabelProvider {

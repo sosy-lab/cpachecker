@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import org.eclipse.cdt.core.model.ICElement;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtension;
@@ -23,7 +22,7 @@ public class CPAcheckerPlugin extends AbstractUIPlugin {
 	
 
 	// The plug-in ID
-	public static final String PLUGIN_ID = "CPAcheckerPlugin";
+	public static final String PLUGIN_ID = "org.sosy_lab.cpachecker.plugin.eclipse";
 	
 	private static final String listenerId = "org.sosy_lab.cpachecker.plugin.eclipse.listeners";
 	private List<ITestListener> listeners;
