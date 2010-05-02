@@ -175,12 +175,6 @@ abstract class ObserverBoolExpr {
     private final String cpaName;
     private final String queryString;
 
-    // the pattern \$\d+ matches Expressions like $1 $2 $3
-    private static Pattern TRANSITION_VARS_PATTERN = Pattern.compile("\\$\\d+");
-
-    // the pattern \$\$\d+ matches Expressions like $$x $$y23rinnksd $$observerVar (all terminated by a non-word-character)
-    private static Pattern OBSERVER_VARS_PATTERN = Pattern.compile("\\$\\$[a-zA-Z]\\w*");
-
     public CPAQuery(String pCPAName, String pQuery) {
       cpaName = pCPAName;
       queryString = pQuery;
@@ -189,7 +183,7 @@ abstract class ObserverBoolExpr {
     @Override
     public MaybeBoolean eval(ObserverExpressionArguments pArgs) {
       // replace transition variables
-      String modifiedQueryString = replaceVariables(pArgs, queryString);
+      String modifiedQueryString = pArgs.replaceVariables(queryString);
       if (modifiedQueryString == null) {
         return MaybeBoolean.MAYBE;
       }
@@ -212,62 +206,7 @@ abstract class ObserverBoolExpr {
       }
       return MaybeBoolean.MAYBE; // the necessary CPA-State was not found
     }
-
-    /**
-     * This method replaces all references to
-     * 1. ObserverVariables (referenced by $$<Name-of-Variable>)
-     * 2. TransitionVariables (referenced by $<Number-of-Variable>)
-     * with the values of the variables.
-     * If the variable is not found the function returns null.
-     * @param pArgs
-     * @param pQueryString
-     * @return
-     */
-    static String replaceVariables (
-        ObserverExpressionArguments pArgs, String pQueryString) {
-
-      // replace references to Transition Variables
-      Matcher matcher = TRANSITION_VARS_PATTERN.matcher(pQueryString);
-      StringBuffer result = new StringBuffer();
-      while (matcher.find()) {
-        matcher.appendReplacement(result, "");
-        String key = matcher.group().substring(1); // matched string startswith $
-        try {
-          int varKey = Integer.parseInt(key);
-          String var = pArgs.getTransitionVariable(varKey);
-          if (var == null) {
-            // this variable has not been set.
-            pArgs.getLogger().log(Level.WARNING, "could not replace the transition variable $" + varKey + " (not found).");
-            return null;
-          } else {
-            result.append(var);
-          }
-        } catch (NumberFormatException e) {
-          pArgs.getLogger().log(Level.WARNING, "could not parse the int in " + matcher.group() + " , leaving it untouched");
-          result.append(matcher.group());
-        }
-      }
-      matcher.appendTail(result);
-
-      // replace references to observer Variables
-      matcher = OBSERVER_VARS_PATTERN.matcher(result.toString());
-      result = new StringBuffer();
-      while (matcher.find()) {
-        matcher.appendReplacement(result, "");
-        String varName = matcher.group().substring(2); // matched string starts with $$
-        ObserverVariable variable = pArgs.getObserverVariables().get(varName);
-        if (variable == null) {
-          // this variable has not been set.
-          pArgs.getLogger().log(Level.WARNING, "could not replace the Observer variable reference " + varName + " (not found).");
-          return null;
-        } else {
-          result.append(variable.getValue());
-        }
-      }
-      matcher.appendTail(result);
-      return result.toString();
-    }
-
+    
     @Override
     public String toString() {
       return "CHECK(" + cpaName + "(\"" + queryString + "\"))";

@@ -59,7 +59,6 @@ public class ObserverAutomatonTest {
       );
     try {
       TestResults results = run(prop, "test/programs/simple/modificationExample.c");
-      System.out.println(results.log);
       Assert.assertTrue(results.logContains("MODIFIED"));
       Assert.assertTrue(results.logContains("Modification successful"));
       Assert.assertTrue(results.isSafe());
@@ -215,13 +214,13 @@ public class ObserverAutomatonTest {
     args.putTransitionVariable(1, "hi");
     args.putTransitionVariable(2, "hello");
     // actual test
-    String result = CPAQuery.replaceVariables(args, "$1 == $2");
+    String result = args.replaceVariables("$1 == $2");
     Assert.assertTrue("hi == hello".equals(result));
-    result = CPAQuery.replaceVariables(args, "$1 == $1");
+    result = args.replaceVariables("$1 == $1");
     Assert.assertTrue("hi == hi".equals(result));
 
     pLogger.log(Level.WARNING, "Warning expected in the next line (concerning $5)");
-    result = CPAQuery.replaceVariables(args, "$1 == $5");
+    result = args.replaceVariables("$1 == $5");
     Assert.assertTrue(result == null); // $5 has not been found
     // this test should issue a log message!
   }

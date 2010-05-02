@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.observeranalysis;
 
 import java.util.Map;
 import java.util.logging.Level;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -55,29 +54,9 @@ abstract class ObserverActionExpr {
       String str = toPrint.replaceAll("\\$[rR]aw[Ss]tatement", pArgs.getCfaEdge().getRawStatement());
       // replace $line
       str = str.replaceAll("\\$[Ll]ine", String.valueOf(pArgs.getCfaEdge().getLineNumber()));
-      // replace Transition Variables
-      Matcher matcher = TRANSITION_VARS_PATTERN.matcher(str);
-      StringBuffer result = new StringBuffer();
-      while (matcher.find()) {
-        matcher.appendReplacement(result, "");
-        String key = str.substring(matcher.start()+1, matcher.end());
-        try {
-          int varKey = Integer.parseInt(key);
-          String var = pArgs.getTransitionVariable(varKey);
-          if (var == null) {
-            // this variable has not been set.
-            pArgs.getLogger().log(Level.WARNING, "could not replace the transition variable $" + varKey + " (not found).");
-            return;
-          } else {
-            result.append(var);
-          }
-        } catch (NumberFormatException e) {
-          pArgs.getLogger().log(Level.WARNING, "could not parse the int in " + matcher.group() + " , leaving it untouched");
-          result.append(matcher.group());
-        }
-      }
-      matcher.appendTail(result);
-      pArgs.appendToLogMessage(result.toString());
+      // replace Transition Variables and observerVariables
+      str = pArgs.replaceVariables(str);
+      pArgs.appendToLogMessage(str.toString());
     }
   }
 
@@ -126,12 +105,6 @@ abstract class ObserverActionExpr {
     private final String cpaName;
     private final String modificationString;
 
-    // the pattern \$\d+ matches Expressions like $1 $2 $3
-    private static Pattern TRANSITION_VARS_PATTERN = Pattern.compile("\\$\\d+");
-
-    // the pattern \$\$\d+ matches Expressions like $$x $$y23rinnksd $$observerVar (all terminated by a non-word-character)
-    private static Pattern OBSERVER_VARS_PATTERN = Pattern.compile("\\$\\$[a-zA-Z]\\w*");
-
     public CPAModification(String pCPAName, String pModification) {
       cpaName = pCPAName;
       modificationString = pModification;
@@ -140,7 +113,7 @@ abstract class ObserverActionExpr {
     @Override
     void execute(ObserverExpressionArguments pArgs) {
       // replace transition variables
-      String processedModificationString = replaceVariables(pArgs, modificationString);
+      String processedModificationString = pArgs.replaceVariables(modificationString);
       if (processedModificationString == null) {
         pArgs.getLogger().log(Level.WARNING, "Modification String \"" + modificationString + "\" could not be processed (Variable not found).");
       }
@@ -158,61 +131,6 @@ abstract class ObserverActionExpr {
           }
         }
       }
-    }
-
-    /**
-     * This method replaces all references to
-     * 1. ObserverVariables (referenced by $$<Name-of-Variable>)
-     * 2. TransitionVariables (referenced by $<Number-of-Variable>)
-     * with the values of the variables.
-     * If the variable is not found the function returns null.
-     * @param pArgs
-     * @param pQueryString
-     * @return
-     */
-    static String replaceVariables (
-        ObserverExpressionArguments pArgs, String pQueryString) {
-
-      // replace references to Transition Variables
-      Matcher matcher = TRANSITION_VARS_PATTERN.matcher(pQueryString);
-      StringBuffer result = new StringBuffer();
-      while (matcher.find()) {
-        matcher.appendReplacement(result, "");
-        String key = matcher.group().substring(1); // matched string startswith $
-        try {
-          int varKey = Integer.parseInt(key);
-          String var = pArgs.getTransitionVariable(varKey);
-          if (var == null) {
-            // this variable has not been set.
-            pArgs.getLogger().log(Level.WARNING, "could not replace the transition variable $" + varKey + " (not found).");
-            return null;
-          } else {
-            result.append(var);
-          }
-        } catch (NumberFormatException e) {
-          pArgs.getLogger().log(Level.WARNING, "could not parse the int in " + matcher.group() + " , leaving it untouched");
-          result.append(matcher.group());
-        }
-      }
-      matcher.appendTail(result);
-
-      // replace references to observer Variables
-      matcher = OBSERVER_VARS_PATTERN.matcher(result.toString());
-      result = new StringBuffer();
-      while (matcher.find()) {
-        matcher.appendReplacement(result, "");
-        String varName =  matcher.group().substring(2); // matched string starts with $$
-        ObserverVariable variable = pArgs.getObserverVariables().get(varName);
-        if (variable == null) {
-          // this variable has not been set.
-          pArgs.getLogger().log(Level.WARNING, "could not replace the Observer variable reference " + varName + " (not found).");
-          return null;
-        } else {
-          result.append(variable.getValue());
-        }
-      }
-      matcher.appendTail(result);
-      return result.toString();
     }
 
     @Override
