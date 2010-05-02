@@ -1055,7 +1055,13 @@ public class PointerAnalysisElement implements AbstractQueryableElement, Memory,
 
     }
   }
-
+  
+  @Override
+  public void modifyProperty(String pModification)
+      throws InvalidQueryException {
+    throw new InvalidQueryException("The PointerAnalysis CPA does not support modification.");
+  }
+  
   @Override
   public String getCPAName() {
     return "PointerAnalysis";

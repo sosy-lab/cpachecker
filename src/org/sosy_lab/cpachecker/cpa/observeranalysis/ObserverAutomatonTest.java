@@ -50,6 +50,25 @@ public class ObserverAutomatonTest {
   private static final String OUTPUT_FILE = "test/output/observerAutomatonExport.dot";
   
   @Test
+  public void modificationTest() {
+    Map<String, String> prop = ImmutableMap.of(
+        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.explicit.ExplicitAnalysisCPA, cpa.observeranalysis.ObserverAutomatonCPA",
+        "observerAnalysis.inputFile",     "test/programs/observerAutomata/modifyingAutomaton.txt",
+        "log.consoleLevel",               "INFO",
+        "cpas.explicit.threshold",       "10"
+      );
+    try {
+      TestResults results = run(prop, "test/programs/simple/modificationExample.c");
+      System.out.println(results.log);
+      Assert.assertTrue(results.logContains("MODIFIED"));
+      Assert.assertTrue(results.logContains("Modification successful"));
+      Assert.assertTrue(results.isSafe());
+    } catch (InvalidConfigurationException e) {
+      Assert.fail("InvalidConfiguration");
+    }
+  }
+  
+  @Test
   public void setuidTest() {
     Map<String, String> prop = ImmutableMap.of(
         "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.observeranalysis.ObserverAutomatonCPA",

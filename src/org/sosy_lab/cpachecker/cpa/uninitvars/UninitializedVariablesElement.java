@@ -204,6 +204,12 @@ public class UninitializedVariablesElement implements AbstractQueryableElement {
     }
     return this.properties.contains(prop);
   }
+  
+  @Override
+  public void modifyProperty(String pModification)
+      throws InvalidQueryException {
+    throw new InvalidQueryException("The uninitVars CPA does not support modification.");
+  }
 
   @Override
   public String getCPAName() {

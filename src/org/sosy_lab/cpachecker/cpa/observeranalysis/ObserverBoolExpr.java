@@ -231,7 +231,7 @@ abstract class ObserverBoolExpr {
       StringBuffer result = new StringBuffer();
       while (matcher.find()) {
         matcher.appendReplacement(result, "");
-        String key = pQueryString.substring(matcher.start()+1, matcher.end()); // matched string startswith $
+        String key = matcher.group().substring(1); // matched string startswith $
         try {
           int varKey = Integer.parseInt(key);
           String var = pArgs.getTransitionVariable(varKey);
@@ -254,7 +254,7 @@ abstract class ObserverBoolExpr {
       result = new StringBuffer();
       while (matcher.find()) {
         matcher.appendReplacement(result, "");
-        String varName = pQueryString.substring(matcher.start()+2, matcher.end()); // matched string starts with $$
+        String varName = matcher.group().substring(2); // matched string starts with $$
         ObserverVariable variable = pArgs.getObserverVariables().get(varName);
         if (variable == null) {
           // this variable has not been set.

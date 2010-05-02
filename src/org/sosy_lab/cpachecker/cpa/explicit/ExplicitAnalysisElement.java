@@ -66,7 +66,7 @@ public class ExplicitAnalysisElement implements AbstractQueryableElement {
 
     if(noOfReferences.containsKey(nameOfVar)){
       int currentVal = noOfReferences.get(nameOfVar).intValue();
-      if(currentVal >= pThreshold){
+      if(currentVal >= pThreshold) {
         forget(nameOfVar);
         return;
       }
@@ -183,7 +183,44 @@ public class ExplicitAnalysisElement implements AbstractQueryableElement {
       }
     }
   }
-
+  
+  @Override
+  public void modifyProperty(String pModification)
+      throws InvalidQueryException {
+    // either "deletevalues(methodname::varname)" or "setvalue(methodname::varname:=1929)"
+    String[] statements = pModification.split(";");
+    for (int i = 0; i < statements.length; i++) {
+      String statement = statements[i].trim().toLowerCase(); 
+      if (statement.startsWith("deletevalues(")) {
+        if (!statement.endsWith(")")) throw new InvalidQueryException(statement +" should end with \")\"");
+        String varName = statement.substring("deletevalues(".length(), statement.length()-1);
+        
+        Object x = this.constantsMap.remove(varName);
+        Object y = this.noOfReferences.remove(varName);
+        
+        if (x==null || y==null) {
+          // varname was not present in one of the maps
+          // i would like to log an error here, but no logger is available
+        }
+      } else if (statement.startsWith("setvalue(")) {
+        if (!statement.endsWith(")")) throw new InvalidQueryException(statement +" should end with \")\"");
+        String assignment = statement.substring("setvalue(".length(), statement.length()-1);
+        String[] assignmentParts = assignment.split(":=");
+        if (assignmentParts.length != 2)
+          throw new InvalidQueryException("The Query \"" + pModification + "\" is invalid. Could not split the property string correctly.");
+        else {
+          String varName = assignmentParts[0].trim();
+          try {
+            long newValue = Long.parseLong(assignmentParts[1].trim());
+            this.assignConstant(varName, newValue, 1); // threshold is passed as 1! This will only succeed if no other value for this variable is present
+          } catch (NumberFormatException e) {
+            throw new InvalidQueryException("The Query \"" + pModification + "\" is invalid. Could not parse the long \"" + assignmentParts[1].trim() + "\"");
+          }
+        }
+      }
+    }
+  }
+  
   @Override
   public String getCPAName() {
     return "ExplicitAnalysis";

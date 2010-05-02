@@ -101,6 +101,12 @@ public class LocationElement implements AbstractElementWithLocation, AbstractQue
         }
       }
     }
+    
+    @Override
+    public void modifyProperty(String pModification)
+        throws InvalidQueryException {
+      throw new InvalidQueryException("The location CPA does not support modification.");
+    }
 
     @Override
     public String getCPAName() {

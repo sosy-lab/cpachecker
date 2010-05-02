@@ -114,13 +114,14 @@ class ObserverTransition {
    * Checks if all assertions of this transition are fulfilled
    * in the current configuration of the automaton this method is called.
    */
-  public boolean assertionsHold(ObserverExpressionArguments pArgs) {
+  public MaybeBoolean assertionsHold(ObserverExpressionArguments pArgs) {
     for (ObserverBoolExpr assertion : assertions) {
-      if (assertion.eval(pArgs) != MaybeBoolean.TRUE) {
-        return false; // Lazy Evaluation
+      MaybeBoolean assertionValue = assertion.eval(pArgs);
+      if (assertionValue == MaybeBoolean.MAYBE || assertionValue == MaybeBoolean.FALSE) {
+        return assertionValue; // LazyEvaluation
       }
     }
-    return true;
+    return MaybeBoolean.TRUE;
   }
 
   /**

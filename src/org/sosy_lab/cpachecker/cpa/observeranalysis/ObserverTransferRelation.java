@@ -125,10 +125,9 @@ class ObserverTransferRelation implements TransferRelation {
       case TRUE :
         edgeMatched = true;
         long startAssertions = System.currentTimeMillis();
-        boolean assertionsHold = t.assertionsHold(exprArgs);
+        MaybeBoolean assertionsHold = t.assertionsHold(exprArgs);
         assertionsTime += System.currentTimeMillis() - startAssertions;
-
-        if (assertionsHold) {
+        if (assertionsHold == MaybeBoolean.TRUE) {
           // this transition will be taken. copy the variables
           long startAction = System.currentTimeMillis();
           Map<String, ObserverVariable> newVars = deepCloneVars(state.getVars());
@@ -147,7 +146,10 @@ class ObserverTransferRelation implements TransferRelation {
               return Collections.singleton((AbstractElement)lSuccessor);
             }
           }
-        } else {
+        } else if (assertionsHold == MaybeBoolean.MAYBE) {
+          // cannot yet be evaluated
+          return Collections.singleton((AbstractElement)new ObserverUnknownState(state));
+        } else if (assertionsHold == MaybeBoolean.FALSE) {
           // matching transitions, but unfulfilled assertions: goto error state
           ObserverState errorState = ObserverState.observerStateFactory(Collections.<String, ObserverVariable>emptyMap(), ObserverInternalState.ERROR, state.getAutomatonCPA());
           logger.log(Level.INFO, "ObserverAutomaton going to ErrorState on edge \"" + edge.getRawStatement() + "\"");
@@ -161,12 +163,6 @@ class ObserverTransferRelation implements TransferRelation {
 
       case MAYBE :
         // if one transition cannot be evaluated the evaluation must be postponed until enough information is available
-        // TODO implement corresponding strengthening
-        //lSuccessors.add(new ObserverUnknownState(state));
-        
-        // we apply the transfer function in the strengthening method again
-        // in order to not generate duplicate states we only return the 
-        // unknown state
         
         return Collections.singleton((AbstractElement)new ObserverUnknownState(state));
       case FALSE :

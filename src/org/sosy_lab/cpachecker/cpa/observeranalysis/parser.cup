@@ -68,7 +68,7 @@ parser code {:
 
 
 
-terminal EXCLAMATION, AND, OR, ARROW, SEMICOLON, COLON, OPEN_BRACKETS, CLOSE_BRACKETS, AUTOMATON, LOCAL, INITIAL, STATE, ERROR, BOTTOM, ASS, MATCH, LABEL, CHECK, DO, PRINT, GOTO, IDENTIFIER, INTEGER_LITERAL, NEQ, EQ, EQEQ, PLUS, MINUS, TRUE, FALSE, STRING_LITERAL, CURLYEXPR, SQUAREEXPR, NONDET ;
+terminal EXCLAMATION, AND, OR, ARROW, SEMICOLON, COLON, OPEN_BRACKETS, CLOSE_BRACKETS, AUTOMATON, LOCAL, INITIAL, STATE, ERROR, BOTTOM, ASS, MATCH, LABEL, CHECK, MODIFY, DO, PRINT, GOTO, IDENTIFIER, INTEGER_LITERAL, NEQ, EQ, EQEQ, PLUS, MINUS, TRUE, FALSE, STRING_LITERAL, CURLYEXPR, SQUAREEXPR, NONDET ;
 
 non terminal ObserverAutomaton initial ;
 non terminal String Naming, InitDef ;
@@ -150,6 +150,8 @@ Actions   ::= Action:a Actions:lst {: lst.add(0,a); RESULT = lst; :} // insert a
 Action    ::= DO  IDENTIFIER:var EQ Int:i   {: RESULT = new ObserverActionExpr.Assignment(var.toString(), i); :}
             | PRINT  STRING_LITERAL:lit {: RESULT = new ObserverActionExpr.Print(lit.toString()); :}
             | PRINT  Int:int_expr {: RESULT = new ObserverActionExpr.PrintInt(int_expr); :}
+            | MODIFY OPEN_BRACKETS IDENTIFIER:cpa OPEN_BRACKETS STRING_LITERAL:query CLOSE_BRACKETS CLOSE_BRACKETS
+              {: RESULT = new ObserverActionExpr.CPAModification(cpa.toString(), query.toString()); :}
             ;
 
 Int       ::= ConstantInt:c  {: RESULT = c; :}

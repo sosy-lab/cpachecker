@@ -263,6 +263,28 @@ class ObserverState implements AbstractQueryableElement {
       }
     }
   }
+  
+  @Override
+  public void modifyProperty(String pModification)
+  // allows to set values of observer variables like "x:=6"
+      throws InvalidQueryException {
+    String[] parts = pModification.split(":=");
+    if (parts.length != 2)
+      throw new InvalidQueryException("The Query \"" + pModification + "\" is invalid. Could not split the string correctly.");
+    else {
+      ObserverVariable var = this.vars.get(parts[0].trim());
+      if (var != null) {
+        try {
+          int val = Integer.parseInt(parts[1]);
+          var.setValue(val);
+        } catch (NumberFormatException e) {
+          throw new InvalidQueryException("The Query \"" + pModification + "\" is invalid. Could not parse the int \"" + parts[1].trim() + "\".");
+        }
+      } else {
+        throw new InvalidQueryException("Could not modify the variable \"" + parts[0].trim() + "\" (Variable not found)");
+      }
+    }
+  }
 
   @Override
   public String getCPAName() {

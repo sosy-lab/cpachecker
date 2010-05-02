@@ -43,4 +43,12 @@ public interface AbstractQueryableElement extends AbstractElement {
    */
   public boolean checkProperty(String property) throws InvalidQueryException;
 
+  /**
+   * Modifies the internal state of this AbstractElement.
+   * Each CPA defines a separate language for definition of modifications.
+   * @param modification
+   * @throws InvalidQueryException
+   */
+  public void modifyProperty(String modification) throws InvalidQueryException;
+
 }
