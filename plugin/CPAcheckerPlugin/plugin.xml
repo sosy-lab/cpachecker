@@ -19,6 +19,21 @@
 			id="org.sosy_lab.cpachecker.plugin.eclipse.views.TasksView">
 		</view>
 	</extension>
+	<extension point="org.eclipse.ui.newWizards">
+      <category
+            name="CPAchecker"
+            id="org.sosy_lab.cpachecker.plugin.eclipse.catMain">
+      </category>
+      <wizard
+            name="new CPAchecker Task"
+            icon="$nl$/icons/sample.gif"
+            class="org.sosy_lab.cpachecker.plugin.eclipse.wizards.NewTaskCreationWizard"
+            id="org.sosy_lab.cpachecker.plugin.eclipse.wizards.NewTaskCreationWizard">
+         <description>
+            new CPAchecker Task
+         </description>
+      </wizard>
+   </extension>
    <extension
          point="org.eclipse.ui.editors">  	
       	<editor

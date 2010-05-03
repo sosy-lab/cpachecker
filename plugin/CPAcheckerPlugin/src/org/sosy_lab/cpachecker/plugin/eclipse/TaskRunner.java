@@ -10,10 +10,11 @@ public class TaskRunner {
 		// TODO Auto-generated method stub
 		
 		// use:
-		CPAcheckerPlugin.getPlugin().fireTestsStarted(10);
-		CPAcheckerPlugin.getPlugin().fireTestStarted("someid");
-		CPAcheckerPlugin.getPlugin().fireTestFailed("someid");
-		CPAcheckerPlugin.getPlugin().fireTestsFinished();
+		/*CPAcheckerPlugin.getPlugin().fireTasksStarted(10);
+		CPAcheckerPlugin.getPlugin().fireTaskStarted("someid");
+		CPAcheckerPlugin.getPlugin().fireTaskFailed("someid");
+		CPAcheckerPlugin.getPlugin().fireTasksFinished();
+		*/
 	}
 	public interface ITask {
 		public String getName();
@@ -24,11 +25,18 @@ public class TaskRunner {
 	public static class Task implements ITask {
 		String name;
 		Configuration config;
-		String sourceFileName;
+		String sourceFileName = "noSourceFileSpecified";
+		private String configFile;
 		public Task(String name, Configuration config, String sourceFileName) {
 			super();
 			this.name = name;
 			this.config = config;
+			this.sourceFileName = sourceFileName;
+		}
+		public Task(String name, String configFile, String sourceFileName) {
+			super();
+			this.name = name;
+			this.configFile = configFile;
 			this.sourceFileName = sourceFileName;
 		}
 		@Override
@@ -50,7 +58,7 @@ public class TaskRunner {
 			return name;
 		}
 		public String getConfigName() {
-			return "unknown config file name"; // TODO: implement
+			return configFile;
 		}
 		
 	}

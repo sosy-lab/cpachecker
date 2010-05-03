@@ -1,8 +1,11 @@
 package org.sosy_lab.cpachecker.plugin.eclipse;
 
+import org.sosy_lab.cpachecker.plugin.eclipse.TaskRunner.Task;
+
 public interface ITestListener {
-	void testsStarted(int testCount);
-	void testsFinished();
-	void testStarted(String id);
-	void testFailed(String id);
+	void tasksStarted(int taskCount);
+	void tasksFinished();
+	void taskStarted(Task id);
+	void taskFailed(Task id);
+	void tasksChanged();
 }

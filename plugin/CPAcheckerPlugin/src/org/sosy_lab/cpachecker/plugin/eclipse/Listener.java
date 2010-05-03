@@ -1,29 +1,37 @@
 package org.sosy_lab.cpachecker.plugin.eclipse;
 
+import org.sosy_lab.cpachecker.plugin.eclipse.TaskRunner.Task;
+
 public class Listener implements ITestListener {
 
 	@Override
-	public void testFailed(String id) {
+	public void taskFailed(Task id) {
 		// TODO Auto-generated method stub
 		
 	}
 
 	@Override
-	public void testStarted(String id) {
+	public void taskStarted(Task id) {
 		// TODO Auto-generated method stub
 		
 	}
 
 	@Override
-	public void testsFinished() {
+	public void tasksFinished() {
 		// TODO Auto-generated method stub
 		
 	}
 
 	@Override
-	public void testsStarted(int testCount) {
+	public void tasksStarted(int taskCount) {
 		// TODO Auto-generated method stub
-		System.out.println(testCount + " Tests started");
+		System.out.println(taskCount + " Tasks started");
+		
+	}
+
+	@Override
+	public void tasksChanged() {
+		// TODO Auto-generated method stub
 		
 	}
 

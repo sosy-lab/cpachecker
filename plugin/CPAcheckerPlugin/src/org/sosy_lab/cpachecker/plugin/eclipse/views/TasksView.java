@@ -1,9 +1,7 @@
 package org.sosy_lab.cpachecker.plugin.eclipse.views;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.viewers.ArrayContentProvider;
@@ -21,14 +19,12 @@ import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.part.ViewPart;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.plugin.eclipse.CPAcheckerPlugin;
 import org.sosy_lab.cpachecker.plugin.eclipse.ITestListener;
 import org.sosy_lab.cpachecker.plugin.eclipse.TaskRunner.Task;
 
 public class TasksView extends ViewPart {
 	private ITestListener listener = null;
-	private List<Task> tasks = new ArrayList<Task>();
 	private Label progress;
 	private TopNode topNode  = new TopNode();
 	private TreeViewer myTreeViewer;
@@ -46,12 +42,12 @@ public class TasksView extends ViewPart {
 		shell.setBounds(220, 220, 440, 440);
 		
 
-		Map<String, String> emptyMap = Collections.emptyMap();
-		Task t1 = new Task("Task 1", new Configuration(emptyMap), "File1");
-		taskView.addTask(t1);
+		//Map<String, String> emptyMap = Collections.emptyMap();
+		//Task t1 = new Task("Task 1", new Configuration(emptyMap), "File1");
+		//taskView.addTask(t1);
 		
-		Task t2 = new Task("Task 2", new Configuration(emptyMap), "File2");
-		taskView.addTask(t2);
+		//Task t2 = new Task("Task 2", new Configuration(emptyMap), "File2");
+		//taskView.addTask(t2);
 		
 		shell.pack();
 		shell.open();
@@ -112,38 +108,41 @@ public class TasksView extends ViewPart {
 		gridData.grabExcessVerticalSpace = true;
 		myTreeViewer.getTree().setLayoutData(gridData);
 		
-		
 		myTreeViewer.setAutoExpandLevel(TreeViewer.ALL_LEVELS);
 		myTreeViewer.setInput(new Node[]{topNode});
 		myTreeViewer.setAutoExpandLevel(TreeViewer.ALL_LEVELS);
+		
+		
+		
 		listener = new ITestListener() {
+			@Override
+			public void tasksChanged() {
+				TasksView.this.refresh();
+			}
 			// TODO: find a more fine-granular update method
 			@Override
-			public void testFailed(String id) {
+			public void taskFailed(Task id) {
 				myTreeViewer.refresh();
 			}
 			@Override
-			public void testStarted(String id) {
+			public void taskStarted(Task id) {
 				myTreeViewer.refresh();	
 			}
 			@Override
-			public void testsFinished() {
+			public void tasksFinished() {
 				myTreeViewer.refresh();	
 			}
 			@Override
-			public void testsStarted(int testCount) {
+			public void tasksStarted(int taskCount) {
 				myTreeViewer.refresh();
 			}
 		};
 		CPAcheckerPlugin plugin = CPAcheckerPlugin.getPlugin();
 		if (plugin != null) { // to avoid errors when testing without plugin (with the main function)
 			plugin.addTestListener(listener);
+			this.refresh();
 		}
 		
-		// for Debug: one Task in the treeview
-		Map<String, String> emptyMap = Collections.emptyMap();
-		Task t2 = new Task("Task 2", new Configuration(emptyMap), "File2");
-		this.addTask(t2);
 	}
 	@Override
 	public void dispose() {
@@ -157,9 +156,9 @@ public class TasksView extends ViewPart {
 		}
 		super.dispose();
 	}
-	public void addTask(Task t) {
-		this.tasks.add(t);
-		this.topNode.reconstruct(tasks);
+	
+	public void refresh() {
+		this.topNode.reconstruct(CPAcheckerPlugin.getPlugin().getTasks());
 		this.myTreeViewer.refresh();
 	}
 	
