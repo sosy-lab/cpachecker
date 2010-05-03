@@ -14,7 +14,7 @@ STATE Init:
     
     // these edges are to check for bugs. The functionality is implemented in the first edge.
   MATCH "somefunction();" -> 
-  	ASSERT CHECK(ExplicitAnalysis("clong==0"))
+  	ASSERT CHECK(ExplicitAnalysis("c==0"))
   	PRINT "Modification successful" 
   	GOTO Init;
   	

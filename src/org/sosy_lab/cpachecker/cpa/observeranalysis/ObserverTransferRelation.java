@@ -120,7 +120,6 @@ class ObserverTransferRelation implements TransferRelation {
     // the transitionVariables have to be cached (produced during the match operation)
     // the list holds a Transition and the TransitionVariables generated during its match
     List<Pair<ObserverTransition, Map<Integer, String>>> transitionsToBeTaken = new ArrayList<Pair<ObserverTransition, Map<Integer, String>>>();
-    boolean stopEdgeMatching = false;
     for (ObserverTransition t : state.getInternalState().getTransitions()) {
       exprArgs.clearTransitionVariables();
 

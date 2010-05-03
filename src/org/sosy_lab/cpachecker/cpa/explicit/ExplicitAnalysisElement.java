@@ -29,6 +29,8 @@ import java.util.Map;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
+import com.google.common.base.Preconditions;
+
 public class ExplicitAnalysisElement implements AbstractQueryableElement {
 
   // map that keeps the name of variables and their constant values
@@ -187,6 +189,7 @@ public class ExplicitAnalysisElement implements AbstractQueryableElement {
   @Override
   public void modifyProperty(String pModification)
       throws InvalidQueryException {
+    Preconditions.checkNotNull(pModification);
     // either "deletevalues(methodname::varname)" or "setvalue(methodname::varname:=1929)"
     String[] statements = pModification.split(";");
     for (int i = 0; i < statements.length; i++) {
