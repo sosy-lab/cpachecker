@@ -120,7 +120,7 @@ class ObserverTransferRelation implements TransferRelation {
     // the transitionVariables have to be cached (produced during the match operation)
     // the list holds a Transition and the TransitionVariables generated during its match
     List<Pair<ObserverTransition, Map<Integer, String>>> transitionsToBeTaken = new ArrayList<Pair<ObserverTransition, Map<Integer, String>>>();
-    
+    boolean stopEdgeMatching = false;
     for (ObserverTransition t : state.getInternalState().getTransitions()) {
       exprArgs.clearTransitionVariables();
 
@@ -137,7 +137,22 @@ class ObserverTransferRelation implements TransferRelation {
         if (assertionsHold == MaybeBoolean.TRUE) {
           if (t.canExecuteActionsOn(exprArgs)) {
             Map<Integer, String> transitionVariables = new HashMap<Integer, String>(exprArgs.getTransitionVariables()); 
-            transitionsToBeTaken.add(new Pair<ObserverTransition, Map<Integer, String>>(t, transitionVariables));
+            if (nonDetState) {
+              transitionsToBeTaken.add(new Pair<ObserverTransition, Map<Integer, String>>(t, transitionVariables)); 
+            } else { // not a nondet State, return the first state, that was found
+              long startAction = System.currentTimeMillis();
+              Map<String, ObserverVariable> newVars = deepCloneVars(state.getVars());
+              exprArgs.setObserverVariables(newVars);
+              exprArgs.putTransitionVariables(transitionVariables);
+              t.executeActions(exprArgs);
+              actionTime += System.currentTimeMillis() - startAction;
+              ObserverState lSuccessor = ObserverState.observerStateFactory(newVars, t.getFollowState(), state.getAutomatonCPA());
+              if (lSuccessor instanceof ObserverState.BOTTOM) {
+                return Collections.emptySet();
+              } else {
+                return Collections.singleton((AbstractElement)lSuccessor);
+              }
+            }
           } else {
             // cannot yet execute, goto UnknownState
             return Collections.singleton((AbstractElement)new ObserverUnknownState(state));
@@ -179,17 +194,10 @@ class ObserverTransferRelation implements TransferRelation {
         t.executeActions(exprArgs);
         actionTime += System.currentTimeMillis() - startAction;
         ObserverState lSuccessor = ObserverState.observerStateFactory(newVars, t.getFollowState(), state.getAutomatonCPA());
-        if (nonDetState) {
-          if (!(lSuccessor instanceof ObserverState.BOTTOM)) {
-            lSuccessors.add(lSuccessor);
-          } // else add nothing
-        } else { // not a nondet State, return the first state, that was found
-          if (lSuccessor instanceof ObserverState.BOTTOM) {
-            return Collections.emptySet();
-          } else {
-            return Collections.singleton((AbstractElement)lSuccessor);
-          }
-        }
+        // non-det state
+        if (!(lSuccessor instanceof ObserverState.BOTTOM)) {
+          lSuccessors.add(lSuccessor);
+        } // else add nothing
       }
       return lSuccessors;
     } else {
