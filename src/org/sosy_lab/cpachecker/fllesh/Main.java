@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 
 import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
 import org.sosy_lab.cpachecker.cpa.art.ARTStatistics;
+import org.sosy_lab.cpachecker.cpa.automatonanalysis.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.core.ReachedElements;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
@@ -59,7 +60,6 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
-import org.sosy_lab.cpachecker.cpa.observeranalysis.ObserverAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.symbpredabsCPA.SymbPredAbsCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.fllesh.cpa.edgevisit.EdgeVisitCPA;
@@ -298,7 +298,7 @@ public class Main {
     lFactory.setLogger(lLogManager);
     ConfigurableProgramAnalysis lEdgeVisitCPA = lFactory.createInstance();
 
-    CPAFactory lAutomatonFactory = ObserverAutomatonCPA.factory();
+    CPAFactory lAutomatonFactory = ControlAutomatonCPA.factory();
     lAutomatonFactory.setConfiguration(lExtendedConfiguration);
     lAutomatonFactory.setLogger(lLogManager);
     ConfigurableProgramAnalysis lObserverCPA = lAutomatonFactory.createInstance();
@@ -306,7 +306,7 @@ public class Main {
     File lExtendedPropertiesFile2 = Main.createPropertiesFile2(lProductAutomatonFile);
     Configuration lExtendedConfiguration2 = Main.createConfiguration(lSourceFileName, lExtendedPropertiesFile2.getAbsolutePath());
 
-    CPAFactory lProducctAutomatonFactory = ObserverAutomatonCPA.factory();
+    CPAFactory lProducctAutomatonFactory = ControlAutomatonCPA.factory();
     lProducctAutomatonFactory.setConfiguration(lExtendedConfiguration2);
     lProducctAutomatonFactory.setLogger(lLogManager);
     ConfigurableProgramAnalysis lProductObserverCPA = lProducctAutomatonFactory.createInstance();

@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.observeranalysis;
+package org.sosy_lab.cpachecker.cpa.automatonanalysis;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -35,8 +35,8 @@ import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 
-public class ObserverExpressionArguments {
-  private Map<String, ObserverVariable> observerVariables;
+public class AutomatonExpressionArguments {
+  private Map<String, AutomatonVariable> automatonVariables;
   // Variables that are only valid for one transition ($1,$2,...)
   // these will be set in a MATCH statement, and are erased when the transitions actions are executed.
   private Map<Integer, String> transitionVariables = new HashMap<Integer, String>();
@@ -49,19 +49,19 @@ public class ObserverExpressionArguments {
    */
   private String transitionLogMessages = "";
   
-  // the pattern \$\$\d+ matches Expressions like $$x $$y23rinnksd $$observerVar (all terminated by a non-word-character)
-  static Pattern OBSERVER_VARS_PATTERN = Pattern.compile("\\$\\$[a-zA-Z]\\w*");
+  // the pattern \$\$\d+ matches Expressions like $$x $$y23rinnksd $$AutomatonVar (all terminated by a non-word-character)
+  static Pattern AUTOMATON_VARS_PATTERN = Pattern.compile("\\$\\$[a-zA-Z]\\w*");
   // the pattern \$\d+ matches Expressions like $1 $2 $3 $201
-  // If this pattern is changed the pattern in ObserverASTcomparison should be changed too!
+  // If this pattern is changed the pattern in AutomatonASTcomparison should be changed too!
   static Pattern TRANSITION_VARS_PATTERN = Pattern.compile("\\$\\d+");
 
-  ObserverExpressionArguments(Map<String, ObserverVariable> pObserverVariables,
+  AutomatonExpressionArguments(Map<String, AutomatonVariable> pAutomatonVariables,
       List<AbstractElement> pAbstractElements, CFAEdge pCfaEdge, LogManager pLogger) {
     super();
-    if (pObserverVariables == null)
-      observerVariables = Collections.emptyMap();
+    if (pAutomatonVariables == null)
+      automatonVariables = Collections.emptyMap();
     else
-      observerVariables = pObserverVariables;
+      automatonVariables = pAutomatonVariables;
     if (pAbstractElements == null)
       abstractElements = Collections.emptyList();
     else
@@ -70,12 +70,12 @@ public class ObserverExpressionArguments {
     logger = pLogger;
   }
 
-  void setObserverVariables(Map<String, ObserverVariable> pObserverVariables) {
-    observerVariables = pObserverVariables;
+  void setAutomatonVariables(Map<String, AutomatonVariable> pAutomatonVariables) {
+    automatonVariables = pAutomatonVariables;
   }
 
-  Map<String, ObserverVariable> getObserverVariables() {
-    return observerVariables;
+  Map<String, AutomatonVariable> getAutomatonVariables() {
+    return automatonVariables;
   }
 
   List<AbstractElement> getAbstractElements() {
@@ -106,7 +106,7 @@ public class ObserverExpressionArguments {
     this.transitionVariables.clear();
   }
   String getTransitionVariable(int key) {
-    // this is the variable adressed with $<key> in the observer automaton
+    // this is the variable adressed with $<key> in the automaton definition
     return this.transitionVariables.get(Integer.valueOf(key));
   }
 
@@ -116,7 +116,7 @@ public class ObserverExpressionArguments {
 
   /**
    * This method replaces all references to
-   * 1. ObserverVariables (referenced by $$<Name-of-Variable>)
+   * 1. AutomatonVariables (referenced by $$<Name-of-Variable>)
    * 2. TransitionVariables (referenced by $<Number-of-Variable>)
    * with the values of the variables.
    * If the variable is not found the function returns null.
@@ -126,7 +126,7 @@ public class ObserverExpressionArguments {
   String replaceVariables (String pSourceString) {
   
     // replace references to Transition Variables
-    Matcher matcher = ObserverExpressionArguments.TRANSITION_VARS_PATTERN.matcher(pSourceString);
+    Matcher matcher = AutomatonExpressionArguments.TRANSITION_VARS_PATTERN.matcher(pSourceString);
     StringBuffer result = new StringBuffer();
     while (matcher.find()) {
       matcher.appendReplacement(result, "");
@@ -148,16 +148,16 @@ public class ObserverExpressionArguments {
     }
     matcher.appendTail(result);
   
-    // replace references to observer Variables
-    matcher = ObserverExpressionArguments.OBSERVER_VARS_PATTERN.matcher(result.toString());
+    // replace references to automaton Variables
+    matcher = AutomatonExpressionArguments.AUTOMATON_VARS_PATTERN.matcher(result.toString());
     result = new StringBuffer();
     while (matcher.find()) {
       matcher.appendReplacement(result, "");
       String varName =  matcher.group().substring(2); // matched string starts with $$
-      ObserverVariable variable = this.getObserverVariables().get(varName);
+      AutomatonVariable variable = this.getAutomatonVariables().get(varName);
       if (variable == null) {
         // this variable has not been set.
-        this.getLogger().log(Level.WARNING, "could not replace the Observer variable reference " + varName + " (not found).");
+        this.getLogger().log(Level.WARNING, "could not replace the Automaton variable reference " + varName + " (not found).");
         return null;
       } else {
         result.append(variable.getValue());

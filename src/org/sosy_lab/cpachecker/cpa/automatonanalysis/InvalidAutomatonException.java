@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.observeranalysis;
+package org.sosy_lab.cpachecker.cpa.automatonanalysis;
 
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 

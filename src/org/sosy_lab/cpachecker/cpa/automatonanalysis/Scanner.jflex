@@ -1,12 +1,12 @@
-package org.sosy_lab.cpachecker.cpa.observeranalysis;
+package org.sosy_lab.cpachecker.cpa.automatonanalysis;
 
 import java_cup.runtime.*;
 @SuppressWarnings(value = { "all" })
 %%
 
 %cup
-%class ObserverScanner
-%implements ObserverSym
+%class AutomatonScanner
+%implements AutomatonSym
 %line
 %column
 
@@ -15,7 +15,7 @@ import java_cup.runtime.*;
   private StringBuilder string = new StringBuilder();
   private SymbolFactory sf;
 
-   public ObserverScanner(java.io.InputStream r, SymbolFactory sf){
+   public AutomatonScanner(java.io.InputStream r, SymbolFactory sf){
 	this(r);
 	this.sf = sf;
   }
@@ -38,7 +38,7 @@ import java_cup.runtime.*;
   }
 %}
 %eofval{
-    return symbol("EOF", ObserverSym.EOF);
+    return symbol("EOF", AutomatonSym.EOF);
 %eofval}
 
 LineTerminator = \r|\n|\r\n
@@ -63,50 +63,50 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
 %%
 
 /* keywords */
-<YYINITIAL> ";"                 { return symbol(";", ObserverSym.SEMICOLON); }
-<YYINITIAL> ":"                 { return symbol(":", ObserverSym.COLON); }
-<YYINITIAL> "("                 { return symbol("(", ObserverSym.OPEN_BRACKETS); }
-<YYINITIAL> ")"                 { return symbol(")", ObserverSym.CLOSE_BRACKETS); }
-<YYINITIAL> "->"                { return symbol("->", ObserverSym.ARROW); }
-<YYINITIAL> "AUTOMATON"         { return symbol("AUTOMATON", ObserverSym.AUTOMATON); }
-<YYINITIAL> "LOCAL"             { return symbol("LOCAL", ObserverSym.LOCAL); }
-<YYINITIAL> "INITIAL"           { return symbol("INITIAL", ObserverSym.INITIAL); }
-<YYINITIAL> "STATE"             { return symbol("STATE", ObserverSym.STATE); }
-<YYINITIAL> "ERROR"             { return symbol("ERROR", ObserverSym.ERROR); }
-<YYINITIAL> "BOTTOM"            { return symbol("BOTTOM", ObserverSym.BOTTOM); }
-<YYINITIAL> "ASSERT"            { return symbol("ASSERT", ObserverSym.ASS); }
-<YYINITIAL> "MATCH"             { return symbol("MATCH", ObserverSym.MATCH); }
-<YYINITIAL> "LABEL"             { return symbol("LABEL", ObserverSym.LABEL); }
-<YYINITIAL> "CHECK"             { return symbol("CHECK", ObserverSym.CHECK); }
-<YYINITIAL> "MODIFY"             { return symbol("MODIFY", ObserverSym.MODIFY); }
-<YYINITIAL> "DO"                { return symbol("DO", ObserverSym.DO); }
-<YYINITIAL> "GOTO"              { return symbol("GOTO", ObserverSym.GOTO); }
-<YYINITIAL> "true"              { return symbol("TRUE", ObserverSym.TRUE); }
-<YYINITIAL> "false"             { return symbol("FALSE", ObserverSym.FALSE); }
-<YYINITIAL> "TRUE"              { return symbol("TRUE", ObserverSym.TRUE); }
-<YYINITIAL> "FALSE"             { return symbol("FALSE", ObserverSym.FALSE); }
-<YYINITIAL> "PRINT"             { return symbol("PRINT", ObserverSym.PRINT); }
-<YYINITIAL> "NONDET"			{ return symbol("NONDET", ObserverSym.NONDET); }
+<YYINITIAL> ";"                 { return symbol(";", AutomatonSym.SEMICOLON); }
+<YYINITIAL> ":"                 { return symbol(":", AutomatonSym.COLON); }
+<YYINITIAL> "("                 { return symbol("(", AutomatonSym.OPEN_BRACKETS); }
+<YYINITIAL> ")"                 { return symbol(")", AutomatonSym.CLOSE_BRACKETS); }
+<YYINITIAL> "->"                { return symbol("->", AutomatonSym.ARROW); }
+<YYINITIAL> "AUTOMATON"  { return symbol("AUTOMATON", AutomatonSym.AUTOMATON); }
+<YYINITIAL> "LOCAL"             { return symbol("LOCAL", AutomatonSym.LOCAL); }
+<YYINITIAL> "INITIAL"           { return symbol("INITIAL", AutomatonSym.INITIAL); }
+<YYINITIAL> "STATE"             { return symbol("STATE", AutomatonSym.STATE); }
+<YYINITIAL> "ERROR"             { return symbol("ERROR", AutomatonSym.ERROR); }
+<YYINITIAL> "BOTTOM"            { return symbol("BOTTOM", AutomatonSym.BOTTOM); }
+<YYINITIAL> "ASSERT"            { return symbol("ASSERT", AutomatonSym.ASS); }
+<YYINITIAL> "MATCH"             { return symbol("MATCH", AutomatonSym.MATCH); }
+<YYINITIAL> "LABEL"             { return symbol("LABEL", AutomatonSym.LABEL); }
+<YYINITIAL> "CHECK"             { return symbol("CHECK", AutomatonSym.CHECK); }
+<YYINITIAL> "MODIFY"            { return symbol("MODIFY", AutomatonSym.MODIFY); }
+<YYINITIAL> "DO"                { return symbol("DO", AutomatonSym.DO); }
+<YYINITIAL> "GOTO"              { return symbol("GOTO", AutomatonSym.GOTO); }
+<YYINITIAL> "true"              { return symbol("TRUE", AutomatonSym.TRUE); }
+<YYINITIAL> "false"             { return symbol("FALSE", AutomatonSym.FALSE); }
+<YYINITIAL> "TRUE"              { return symbol("TRUE", AutomatonSym.TRUE); }
+<YYINITIAL> "FALSE"             { return symbol("FALSE", AutomatonSym.FALSE); }
+<YYINITIAL> "PRINT"             { return symbol("PRINT", AutomatonSym.PRINT); }
+<YYINITIAL> "NONDET"			{ return symbol("NONDET", AutomatonSym.NONDET); }
 
 <YYINITIAL> {
   /* identifiers */ 
-  {Identifier}                   { return symbol("ID", ObserverSym.IDENTIFIER, yytext()); }
+  {Identifier}                   { return symbol("ID", AutomatonSym.IDENTIFIER, yytext()); }
  
   /* literals */
-  {DecIntegerLiteral}            { return symbol("INT", ObserverSym.INTEGER_LITERAL, yytext()); }
+  {DecIntegerLiteral}            { return symbol("INT", AutomatonSym.INTEGER_LITERAL, yytext()); }
   \"                             { string.setLength(0); yybegin(STRING); }
   \{                             { string.setLength(0); yybegin(CURLYEXPR); }
   \[                             { string.setLength(0); yybegin(SQUAREEXPR); }
 
   /* operators */
-  "!"                           { return symbol("!", ObserverSym.EXCLAMATION); }
-  "=="                           { return symbol("==", ObserverSym.EQEQ); }
-  "&&"                           { return symbol("&&", ObserverSym.AND); }
-  "||"                           { return symbol("||", ObserverSym.OR); }
-  "!="                           { return symbol("!=", ObserverSym.NEQ); }
-  "="                            { return symbol("=", ObserverSym.EQ); }
-  "+"                            { return symbol("+", ObserverSym.PLUS); }
-  "-"                            { return symbol("-", ObserverSym.MINUS); }
+  "!"                           { return symbol("!", AutomatonSym.EXCLAMATION); }
+  "=="                           { return symbol("==", AutomatonSym.EQEQ); }
+  "&&"                           { return symbol("&&", AutomatonSym.AND); }
+  "||"                           { return symbol("||", AutomatonSym.OR); }
+  "!="                           { return symbol("!=", AutomatonSym.NEQ); }
+  "="                            { return symbol("=", AutomatonSym.EQ); }
+  "+"                            { return symbol("+", AutomatonSym.PLUS); }
+  "-"                            { return symbol("-", AutomatonSym.MINUS); }
 
   /* comments */
   {Comment}                      { /* ignore */ }
@@ -117,7 +117,7 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
 
 <STRING> {
   \"                             { yybegin(YYINITIAL); 
-                                   return symbol("STRING", ObserverSym.STRING_LITERAL, 
+                                   return symbol("STRING", AutomatonSym.STRING_LITERAL, 
                                    string.toString()); }
   [^\n\r\"\\]+                   { string.append( yytext() ); }
   \\t                            { string.append('\t'); }
@@ -129,7 +129,7 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
 }
 <CURLYEXPR> {
   \}                             { yybegin(YYINITIAL); 
-                                   return symbol("CURLYEXPR", ObserverSym.CURLYEXPR, 
+                                   return symbol("CURLYEXPR", AutomatonSym.CURLYEXPR, 
                                    string.toString()); }
   [^\n\r\}\\]+                   { string.append( yytext() ); }
   \\t                            { string.append('\t'); }
@@ -141,7 +141,7 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
 }
 <SQUAREEXPR> {
   \]                             { yybegin(YYINITIAL); 
-                                   return symbol("CURLYEXPR", ObserverSym.SQUAREEXPR, 
+                                   return symbol("CURLYEXPR", AutomatonSym.SQUAREEXPR, 
                                    string.toString()); }
   [^\n\r\]\\]+                   { string.append( yytext() ); }
   \\t                            { string.append('\t'); }

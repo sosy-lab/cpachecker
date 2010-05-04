@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<!DOCTYPE project> <!-- generic AcceptAllDTD to make the Eclipse Warning go away -->
+<project name="AutomatonParserGeneration" default="generate" basedir="./../../../../../../">
+  <!-- basedir should be the "CPAchecker" directory -->
+  <property name="parserDir" location="src/org/sosy_lab/cpachecker/cpa/automatonanalysis/" />
+  <property name="src"       location="src" />
+  <property name="lib"       location="lib" />
+  <property environment="env" />
+
+  <taskdef name="jflex"
+           classname="JFlex.anttask.JFlexTask"
+  	       classpath="${lib}/JFlex.jar"
+  />
+  <taskdef name="cup"
+           classname="java_cup.anttask.CUPTask"
+           classpath="${lib}/java-cup-11a.jar"
+  />
+
+  <target name="echos">
+  	<echo>${lib}</echo>
+  	<echo>${src}</echo>
+  	<echo>${parserDir}</echo>
+  	<echo>${basedir}</echo>
+  </target>
+
+  <target name="generate">
+    <cup srcfile="${parserDir}/parser.cup"
+         destdir="${src}"
+         interface="true"
+         parser="AutomatonParser"
+    	 symbols="AutomatonSym"
+    	 nopositions="true"
+    />
+    <jflex file="${parserDir}/Scanner.jflex" destdir="${src}" />
+  	<!-- places the suppressWarnings-tag in front of the outer class -->
+  	<replace file="${parserDir}/AutomatonParser.java" token="public class " value="@SuppressWarnings(value = { &quot;all&quot; }) public  class "/>
+  	<!-- places the suppressWarnings-tag in front of the inner class -->
+  	<replace file="${parserDir}/AutomatonParser.java" token="class CUP$" value="@SuppressWarnings(value = { &quot;all&quot; }) class  CUP$"/>
+  	<!-- SVN had "inconsistent line endings"-Problems. Let ANT fix it -->
+  	<fixcrlf file="${parserDir}/AutomatonParser.java" eol="lf" />
+  </target>
+</project>

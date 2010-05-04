@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.observeranalysis;
+package org.sosy_lab.cpachecker.cpa.automatonanalysis;
 
 import java.util.HashMap;
 import java.util.List;
@@ -31,28 +31,25 @@ import java.util.logging.Level;
 import org.eclipse.cdt.core.dom.ast.IASTNode;
 import org.junit.Assert;
 import org.junit.Test;
-
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-
-import com.google.common.collect.ImmutableMap;
-
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.LogManager.StringHandler;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 
-public class ObserverAutomatonTest {
-  private static final String OUTPUT_FILE = "test/output/observerAutomatonExport.dot";
+import com.google.common.collect.ImmutableMap;
+
+public class AutomatonTest {
+  private static final String OUTPUT_FILE = "test/output/AutomatonExport.dot";
   
   @Test
   public void modificationTest() {
     Map<String, String> prop = ImmutableMap.of(
-        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.explicit.ExplicitAnalysisCPA, cpa.observeranalysis.ObserverAutomatonCPA",
-        "observerAnalysis.inputFile",     "test/programs/observerAutomata/modifyingAutomaton.txt",
+        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.explicit.ExplicitAnalysisCPA, cpa.automatonanalysis.ControlAutomatonCPA",
+        "automatonAnalysis.inputFile",     "test/config/automata/modifyingAutomaton.txt",
         "log.consoleLevel",               "INFO",
         "cpas.explicit.threshold",       "10"
       );
@@ -67,10 +64,27 @@ public class ObserverAutomatonTest {
   }
   
   @Test
+  public void modification_in_Observer_throws_Test() {
+    Map<String, String> prop = ImmutableMap.of(
+        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.explicit.ExplicitAnalysisCPA, cpa.automatonanalysis.ObserverAutomatonCPA",
+        "automatonAnalysis.inputFile",     "test/config/automata/modifyingAutomaton.txt",
+        "log.consoleLevel",               "SEVERE",
+        "cpas.explicit.threshold",       "10"
+      );
+    try {
+      TestResults results = run(prop, "test/programs/simple/modificationExample.c");
+      // check for stack trace
+      Assert.assertTrue(results.logContains("Invalid configuration: The Transition [MATCH "));
+    } catch (InvalidConfigurationException e) {
+      Assert.fail("InvalidConfiguration");
+    }
+  }
+  
+  @Test
   public void setuidTest() {
     Map<String, String> prop = ImmutableMap.of(
-        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.observeranalysis.ObserverAutomatonCPA",
-        "observerAnalysis.inputFile",     "test/programs/observerAutomata/simple_setuid.txt",
+        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.automatonanalysis.ObserverAutomatonCPA",
+        "automatonAnalysis.inputFile",     "test/config/automata/simple_setuid.txt",
         "log.consoleLevel",               "INFO",
         "analysis.stopAfterError",        "FALSE"
       );
@@ -87,16 +101,16 @@ public class ObserverAutomatonTest {
   @Test
   public void uninitVarsTest() {
     Map<String, String> prop = ImmutableMap.of(
-        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.observeranalysis.ObserverAutomatonCPA, cpa.uninitvars.UninitializedVariablesCPA, cpa.types.TypesCPA",
-        "observerAnalysis.inputFile",     "test/programs/observerAutomata/UninitializedVariablesTestAutomaton.txt",
+        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.automatonanalysis.ObserverAutomatonCPA, cpa.uninitvars.UninitializedVariablesCPA, cpa.types.TypesCPA",
+        "automatonAnalysis.inputFile",     "test/config/automata/UninitializedVariablesTestAutomaton.txt",
         "log.consoleLevel",               "FINER",
-        "observerAnalysis.dotExportFile", OUTPUT_FILE,
+        "automatonAnalysis.dotExportFile", OUTPUT_FILE,
         "analysis.stopAfterError",        "FALSE"
       );
     try {
       TestResults results = run(prop, "test/programs/simple/UninitVarsErrors.c");
-      Assert.assertTrue(results.logContains("Observer: Uninitialized return value"));
-      Assert.assertTrue(results.logContains("Observer: Uninitialized variable used"));
+      Assert.assertTrue(results.logContains("Automaton: Uninitialized return value"));
+      Assert.assertTrue(results.logContains("Automaton: Uninitialized variable used"));
     } catch (InvalidConfigurationException e) {
       Assert.fail("InvalidConfiguration");
     }
@@ -104,10 +118,10 @@ public class ObserverAutomatonTest {
   @Test
   public void pointerAnalyisTest() {
     Map<String, String> prop = ImmutableMap.of(
-        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.observeranalysis.ObserverAutomatonCPA, cpa.pointeranalysis.PointerAnalysisCPA",
-        "observerAnalysis.inputFile",     "test/programs/observerAutomata/PointerAnalysisTestAutomaton.txt",
+        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.automatonanalysis.ObserverAutomatonCPA, cpa.pointeranalysis.PointerAnalysisCPA",
+        "automatonAnalysis.inputFile",     "test/config/automata/PointerAnalysisTestAutomaton.txt",
         "log.consoleLevel",               "INFO",
-        "observerAnalysis.dotExportFile", OUTPUT_FILE,
+        "automatonAnalysis.dotExportFile", OUTPUT_FILE,
         "analysis.stopAfterError",        "FALSE"
       );
     try {
@@ -125,10 +139,10 @@ public class ObserverAutomatonTest {
   @Test
   public void locking_correct() {
     Map<String, String> prop = ImmutableMap.of(
-        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.observeranalysis.ObserverAutomatonCPA",
-        "observerAnalysis.inputFile",     "test/programs/observerAutomata/LockingAutomatonAll.txt",
+        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.automatonanalysis.ObserverAutomatonCPA",
+        "automatonAnalysis.inputFile",     "test/config/automata/LockingAutomatonAll.txt",
         "log.consoleLevel",               "INFO",
-        "observerAnalysis.dotExportFile", OUTPUT_FILE
+        "automatonAnalysis.dotExportFile", OUTPUT_FILE
       );
     try {
       TestResults results = run(prop, "test/programs/simple/locking_correct.c");
@@ -141,8 +155,8 @@ public class ObserverAutomatonTest {
   @Test
   public void locking_incorrect() {
     Map<String, String> prop = ImmutableMap.of(
-        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.observeranalysis.ObserverAutomatonCPA",
-        "observerAnalysis.inputFile",     "test/programs/observerAutomata/LockingAutomatonAll.txt",
+        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.automatonanalysis.ObserverAutomatonCPA",
+        "automatonAnalysis.inputFile",     "test/config/automata/LockingAutomatonAll.txt",
         "log.consoleLevel",               "INFO"
       );
     try {
@@ -156,8 +170,8 @@ public class ObserverAutomatonTest {
   @Test
   public void explicitAnalysis_observing() {
     Map<String, String> prop = ImmutableMap.of(
-        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.observeranalysis.ObserverAutomatonCPA, cpa.explicit.ExplicitAnalysisCPA",
-        "observerAnalysis.inputFile",     "test/programs/observerAutomata/ExcplicitAnalysisObservingAutomaton.txt",
+        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.automatonanalysis.ObserverAutomatonCPA, cpa.explicit.ExplicitAnalysisCPA",
+        "automatonAnalysis.inputFile",     "test/config/automata/ExcplicitAnalysisObservingAutomaton.txt",
         "log.consoleLevel",               "INFO",
         "cpas.explicit.threshold" , "2000"
       );
@@ -177,8 +191,8 @@ public class ObserverAutomatonTest {
   @Test
   public void functionIdentifying() {
     Map<String, String> prop = ImmutableMap.of(
-        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.observeranalysis.ObserverAutomatonCPA",
-        "observerAnalysis.inputFile",     "test/programs/observerAutomata/FunctionIdentifyingAutomaton.txt",
+        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.automatonanalysis.ObserverAutomatonCPA",
+        "automatonAnalysis.inputFile",     "test/config/automata/FunctionIdentifyingAutomaton.txt",
         "log.consoleLevel",               "FINER"
       );
     try {
@@ -195,7 +209,7 @@ public class ObserverAutomatonTest {
 
   @Test
   public void transitionVariableReplacement() {
-    Map<String, ObserverVariable> pObserverVariables = null;
+    Map<String, AutomatonVariable> pAutomatonVariables = null;
     List<AbstractElement> pAbstractElements = null;
     CFAEdge pCfaEdge = null;
     Map<String, String> map = new HashMap<String, String>();
@@ -209,7 +223,7 @@ public class ObserverAutomatonTest {
     } catch (InvalidConfigurationException e1) {
       Assert.fail("Test setup failed");
     }
-    ObserverExpressionArguments args = new ObserverExpressionArguments(pObserverVariables, pAbstractElements, pCfaEdge, pLogger);
+    AutomatonExpressionArguments args = new AutomatonExpressionArguments(pAutomatonVariables, pAbstractElements, pCfaEdge, pLogger);
     args.putTransitionVariable(1, "hi");
     args.putTransitionVariable(2, "hello");
     // actual test
@@ -227,23 +241,23 @@ public class ObserverAutomatonTest {
   @Test
   public void testJokerReplacementInPattern() {
     // tests the replacement of Joker expressions in the AST comparison
-    String result = ObserverASTComparator.replaceJokersInPattern("$20 = $?");
-    Assert.assertTrue(result.contains("CPAChecker_ObserverAnalysis_JokerExpression_Num20  =  CPAChecker_ObserverAnalysis_JokerExpression"));
-    result = ObserverASTComparator.replaceJokersInPattern("$1 = $?");
-    Assert.assertTrue(result.contains("CPAChecker_ObserverAnalysis_JokerExpression_Num1  =  CPAChecker_ObserverAnalysis_JokerExpression"));
-    result = ObserverASTComparator.replaceJokersInPattern("$? = $?");
-    Assert.assertTrue(result.contains("CPAChecker_ObserverAnalysis_JokerExpression  =  CPAChecker_ObserverAnalysis_JokerExpression"));
-    result = ObserverASTComparator.replaceJokersInPattern("$1 = $5");
-    Assert.assertTrue(result.contains("CPAChecker_ObserverAnalysis_JokerExpression_Num1  =  CPAChecker_ObserverAnalysis_JokerExpression_Num5 "));
+    String result = AutomatonASTComparator.replaceJokersInPattern("$20 = $?");
+    Assert.assertTrue(result.contains("CPAChecker_AutomatonAnalysis_JokerExpression_Num20  =  CPAChecker_AutomatonAnalysis_JokerExpression"));
+    result = AutomatonASTComparator.replaceJokersInPattern("$1 = $?");
+    Assert.assertTrue(result.contains("CPAChecker_AutomatonAnalysis_JokerExpression_Num1  =  CPAChecker_AutomatonAnalysis_JokerExpression"));
+    result = AutomatonASTComparator.replaceJokersInPattern("$? = $?");
+    Assert.assertTrue(result.contains("CPAChecker_AutomatonAnalysis_JokerExpression  =  CPAChecker_AutomatonAnalysis_JokerExpression"));
+    result = AutomatonASTComparator.replaceJokersInPattern("$1 = $5");
+    Assert.assertTrue(result.contains("CPAChecker_AutomatonAnalysis_JokerExpression_Num1  =  CPAChecker_AutomatonAnalysis_JokerExpression_Num5 "));
   }*/
   @Test
   public void testJokerReplacementInAST() throws InvalidAutomatonException {
     // tests the replacement of Joker expressions in the AST comparison
-    IASTNode patternAST = ObserverASTComparator.generatePatternAST("$20 = $5($?($1, $?));");
-    IASTNode sourceAST  = ObserverASTComparator.generateSourceAST("var1 = function(g(var2, egal));");
-    ObserverExpressionArguments args = new ObserverExpressionArguments(null, null, null, null);
+    IASTNode patternAST = AutomatonASTComparator.generatePatternAST("$20 = $5($?($1, $?));");
+    IASTNode sourceAST  = AutomatonASTComparator.generateSourceAST("var1 = function(g(var2, egal));");
+    AutomatonExpressionArguments args = new AutomatonExpressionArguments(null, null, null, null);
 
-    boolean result = ObserverASTComparator.compareASTs(sourceAST, patternAST, args);
+    boolean result = AutomatonASTComparator.compareASTs(sourceAST, patternAST, args);
     Assert.assertTrue(result);
     Assert.assertTrue(args.getTransitionVariable(20).equals("var1"));
     Assert.assertTrue(args.getTransitionVariable(1).equals("var2"));
@@ -251,11 +265,11 @@ public class ObserverAutomatonTest {
   }
 
   @Test
-  public void interacting_Observers() {
+  public void interacting_Automata() {
     Map<String, String> prop = ImmutableMap.of(
-        "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.observeranalysis.ObserverAutomatonCPA observerA, cpa.observeranalysis.ObserverAutomatonCPA observerB, cpa.explicit.ExplicitAnalysisCPA",
-        "observerA.observerAnalysis.inputFile",     "test/programs/observerAutomata/InteractionAutomatonA.txt",
-        "observerB.observerAnalysis.inputFile",     "test/programs/observerAutomata/InteractionAutomatonB.txt",
+        "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.automatonanalysis.ObserverAutomatonCPA automatonA, cpa.automatonanalysis.ObserverAutomatonCPA automatonB, cpa.explicit.ExplicitAnalysisCPA",
+        "automatonA.automatonAnalysis.inputFile",     "test/config/automata/InteractionAutomatonA.txt",
+        "automatonB.automatonAnalysis.inputFile",     "test/config/automata/InteractionAutomatonB.txt",
         "log.consoleLevel", "INFO",
         "cpas.explicit.threshold" , "2000"
       );
@@ -272,7 +286,7 @@ public class ObserverAutomatonTest {
   public void AST_Comparison() throws InvalidAutomatonException {
     Assert.assertTrue(testAST("x=5;", "x= $?;"));
     Assert.assertFalse(testAST("x=5;", "x= 10;"));
-    //ObserverASTComparator.printAST("x=10;");
+    //AutomatonASTComparator.printAST("x=10;");
     Assert.assertFalse(testAST("x=5;", "$? =10;"));
     Assert.assertTrue(testAST("x  = 5;", "$?=$?;"));
   
@@ -296,7 +310,7 @@ public class ObserverAutomatonTest {
     Assert.assertTrue(testAST("f(x, y);", "f(x, $?);"));
     Assert.assertFalse(testAST("f(x, y, z);", "f(x, $?);"));
     
-    /* in the observerAutomata this is 
+    /* in the automata this is 
      * not possible at the moment, because the generated pattern 
      * AST has one node that is missing in the the sub-AST of the CFA
      * 
@@ -306,11 +320,11 @@ public class ObserverAutomatonTest {
     
   }
   private boolean testAST(String src, String pattern) throws InvalidAutomatonException {
-    ObserverExpressionArguments args = new ObserverExpressionArguments(null, null, null, null);
+    AutomatonExpressionArguments args = new AutomatonExpressionArguments(null, null, null, null);
     IASTNode sourceAST;
-    sourceAST = ObserverASTComparator.generateSourceAST(src);
-    IASTNode patternAST = ObserverASTComparator.generatePatternAST(pattern);
-    return ObserverASTComparator.compareASTs(sourceAST, patternAST, args);
+    sourceAST = AutomatonASTComparator.generateSourceAST(src);
+    IASTNode patternAST = AutomatonASTComparator.generatePatternAST(pattern);
+    return AutomatonASTComparator.compareASTs(sourceAST, patternAST, args);
   }
 
 

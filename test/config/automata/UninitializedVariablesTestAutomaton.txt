@@ -6,5 +6,5 @@ AUTOMATON UninitializedVariablesTestAutomaton
 INITIAL STATE Init;
 
 STATE Init :
-  CHECK(uninitVars("UNINITIALIZED_RETURN_VALUE")) -> PRINT "Observer: Uninitialized return value" GOTO Init;
-  CHECK(uninitVars("UNINITIALIZED_VARIABLE_USED")) -> PRINT "Observer: Uninitialized variable used" GOTO Init;
+  CHECK(uninitVars("UNINITIALIZED_RETURN_VALUE")) -> PRINT "Automaton: Uninitialized return value" GOTO Init;
+  CHECK(uninitVars("UNINITIALIZED_VARIABLE_USED")) -> PRINT "Automaton: Uninitialized variable used" GOTO Init;
