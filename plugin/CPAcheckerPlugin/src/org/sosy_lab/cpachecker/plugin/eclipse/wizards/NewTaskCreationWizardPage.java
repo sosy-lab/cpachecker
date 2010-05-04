@@ -9,11 +9,13 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Text;
 
 public class NewTaskCreationWizardPage extends WizardPage {
-	Text sourceText;
-	Text configText;
+	private Text sourceText;
+	private Text configText;
+	private Text nameText;
 	
 	NewTaskCreationWizard parent;
 	private Composite composite;
+
 	protected NewTaskCreationWizardPage(String pageName, NewTaskCreationWizard newTaskWizard) {
 		super(pageName);
 		parent = newTaskWizard;
@@ -24,11 +26,21 @@ public class NewTaskCreationWizardPage extends WizardPage {
 		composite = new Composite(parent, SWT.NONE);
 		composite.setLayout(new GridLayout());
 		
+		Label nameLabel = new Label(composite, SWT.NONE);
+		nameLabel.setText("Task Name:");
+		
+		nameText = new Text(composite, SWT.BORDER);
+		GridData gridData = new GridData();
+		gridData.horizontalAlignment = SWT.FILL;
+		gridData.grabExcessHorizontalSpace = true;
+		nameText.setLayoutData(gridData);
+		nameText.setText("default name");
+		
 		Label configLabel = new Label(composite, SWT.NONE);
 		configLabel.setText("Config File:");
 		
 		configText = new Text(composite, SWT.BORDER);
-		GridData gridData = new GridData();
+		gridData = new GridData();
 		gridData.horizontalAlignment = SWT.FILL;
 		gridData.grabExcessHorizontalSpace = true;
 		configText.setLayoutData(gridData);
@@ -58,5 +70,9 @@ public class NewTaskCreationWizardPage extends WizardPage {
 	
 	String getSourceText() {
 		return sourceText.getText();
+	}
+
+	public String getTaskName() {
+		return nameText.getText();
 	}
 }

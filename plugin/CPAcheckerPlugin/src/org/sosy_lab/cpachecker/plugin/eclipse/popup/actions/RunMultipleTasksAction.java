@@ -21,10 +21,6 @@ public class RunMultipleTasksAction extends Action {
 
 	@Override
 	public void run() {
-		for (Task t :toRun) {
-			System.out.println("RunMultipleTasksAction.starting: " + t.getName());
-		}
-				
 		CPAcheckerPlugin.runTasks(toRun);
 	}
 }

@@ -3,6 +3,7 @@ package org.sosy_lab.cpachecker.plugin.eclipse.views;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.eclipse.cdt.core.model.ITranslationUnit;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.viewers.ArrayContentProvider;
 import org.eclipse.jface.viewers.ITreeContentProvider;
@@ -14,6 +15,7 @@ import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.widgets.Composite;
 import org.sosy_lab.cpachecker.plugin.eclipse.CPAcheckerPlugin;
 import org.sosy_lab.cpachecker.plugin.eclipse.TaskRunner.Task;
+import org.sosy_lab.cpachecker.plugin.eclipse.views.TaskTreeViewer.Node.NodeType;
 
 public class TaskTreeViewer extends TreeViewer {
 	
@@ -69,16 +71,28 @@ public class TaskTreeViewer extends TreeViewer {
 	public class MyTreeContentProvider extends ArrayContentProvider implements ITreeContentProvider {
 
 		   public Object[] getChildren(Object parent) {
+			  if (!(parent instanceof Node)) return new Object[0];
 		      Node ex1 = (Node) parent;
+		      if (ex1.getType() == NodeType.TASK) {
+		    	  Object[] ret = new Object[1];
+		    	  ret[0] = ((TaskNode)ex1).task.TU;
+		    	  if (ret[0] == null) {
+		    		  return ex1.getChildren();
+		    	  } else {
+		    		  return ret;
+		    	  }
+		      }
 		      return ex1.getChildren();
 		   }
 
 		   public Object getParent(Object element) {
+			   if (!(element instanceof Node)) return null;
 		      Node ex1 = (Node) element;
 		      return ex1.getParent();
 		   }
 
 		   public boolean hasChildren(Object element) {
+			   if (!(element instanceof Node)) return false;
 		      Node ex1 = (Node) element;
 		      return ex1.getChildren().length > 0;
 		   }
@@ -87,6 +101,7 @@ public class TaskTreeViewer extends TreeViewer {
 		public class MyTreeLabelProvider extends LabelProvider implements IStyledLabelProvider {
 		@Override
 		public Image getImage(Object element) {
+			if (!(element instanceof Node)) return null;
 			   Node n = (Node) element;
 			   switch (n.getType()) {
 			case TOP:
@@ -104,6 +119,10 @@ public class TaskTreeViewer extends TreeViewer {
 		   }
 		@Override
 		   public String getText(Object element) {
+			if (!(element instanceof Node))
+				if (element instanceof ITranslationUnit) {
+					return ((ITranslationUnit)element).getElementName();
+				}
 		      Node ex1 = (Node) element;
 		      return ex1.getName();
 		   }
@@ -140,7 +159,7 @@ public class TaskTreeViewer extends TreeViewer {
 			public TaskNode(Task task, TopNode parent) {
 				this.parent = parent;
 				this.task = task;
-				children[0] = new ConfigNode(task.getConfigName(), this);
+				children[0] = new ConfigNode(task.getConfigFilePath(), this);
 				children[1] = new SourceFileNode(task.getSourceFileName(), this);
 			}
 			public NodeType getType() { return NodeType.TASK; }

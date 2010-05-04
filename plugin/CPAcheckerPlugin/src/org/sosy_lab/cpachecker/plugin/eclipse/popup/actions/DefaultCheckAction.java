@@ -1,8 +1,6 @@
 package org.sosy_lab.cpachecker.plugin.eclipse.popup.actions;
 
-import java.util.Collection;
 import java.util.Collections;
-import java.util.Map;
 
 import org.eclipse.cdt.core.model.ICElement;
 import org.eclipse.cdt.core.model.ITranslationUnit;
@@ -17,6 +15,7 @@ import org.eclipse.ui.IWorkbenchPart;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.plugin.eclipse.CPAcheckerPlugin;
 import org.sosy_lab.cpachecker.plugin.eclipse.TaskRunner;
+import org.sosy_lab.cpachecker.plugin.eclipse.TaskRunner.Task;
 
 public class DefaultCheckAction implements IObjectActionDelegate {
 
@@ -42,19 +41,21 @@ public class DefaultCheckAction implements IObjectActionDelegate {
 			return;
 		}
 		IStructuredSelection structured = (IStructuredSelection) selection;
-		ICElement selected = (ITranslationUnit) structured.getFirstElement();
+		ITranslationUnit selected = (ITranslationUnit) structured.getFirstElement();
+		//ICElement
 		// safe cast because plugin.xml states that only ITranslationUnits can be subject of this action
 		MessageDialog.openInformation(
 			shell,
 			"CPAcheckerPlugin",
 			"C File Type + " + selected.getClass().toString() + " Resource: " + selected);
 		
-		Map<String, String> emptyMap = Collections.emptyMap();
 		//TODO: provide real configuration
-		Configuration config = new Configuration(emptyMap);
+		Configuration config = new Configuration(Collections.<String, String>emptyMap());
 		String filename = selected.toString();		
+		CPAcheckerPlugin.getPlugin().addTask(new Task("generated", config, selected));
 		
-		CPAcheckerPlugin.runTasks(Collections.singletonList(new TaskRunner.Task("anonymous Task", config, filename)));
+		
+		//CPAcheckerPlugin.runTasks(Collections.singletonList(new TaskRunner.Task("anonymous Task", config, filename)));
 	}
 
 	/**

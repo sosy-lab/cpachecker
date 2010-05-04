@@ -3,6 +3,7 @@ package org.sosy_lab.cpachecker.plugin.eclipse.views;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.eclipse.cdt.ui.actions.OpenAction;
 import org.eclipse.jface.action.IMenuListener;
 import org.eclipse.jface.action.IMenuManager;
 import org.eclipse.jface.action.MenuManager;
@@ -91,6 +92,7 @@ public class TasksView extends ViewPart {
 		gridData.verticalAlignment = SWT.FILL;
 		gridData.grabExcessVerticalSpace = true;
 		myTreeViewer.getTree().setLayoutData(gridData);
+		this.getSite().setSelectionProvider(myTreeViewer);
 		
 		listener = new ITestListener() {
 			@Override
@@ -195,6 +197,10 @@ public class TasksView extends ViewPart {
 		}
 		
 		manager.add(new RunMultipleTasksAction(this.getSite().getShell(), selectedTasks));
+		//this.getSite().setSelectionProvider(myTreeViewer);
+		OpenAction open = new OpenAction(this.getSite());
+		open.selectionChanged(selection);
+		manager.add(open);
 		manager.add(new Separator(IWorkbenchActionConstants.MB_ADDITIONS));
 		manager.add(new Separator(IWorkbenchActionConstants.MB_ADDITIONS + "-end")); //$NON-NLS-1$
 	}
