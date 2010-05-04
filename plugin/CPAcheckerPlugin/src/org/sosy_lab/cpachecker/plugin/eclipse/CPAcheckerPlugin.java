@@ -74,7 +74,7 @@ public class CPAcheckerPlugin extends AbstractUIPlugin {
 		return imageDescriptorFromPlugin(PLUGIN_ID, path);
 	}
 	
-	public static void runTest(List<Task> tasks) {
+	public static void runTasks(List<Task> tasks) {
 		new TaskRunner().run(tasks);
 	}
 

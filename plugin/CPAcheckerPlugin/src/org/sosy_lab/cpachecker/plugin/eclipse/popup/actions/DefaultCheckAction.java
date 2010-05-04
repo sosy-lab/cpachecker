@@ -54,7 +54,7 @@ public class DefaultCheckAction implements IObjectActionDelegate {
 		Configuration config = new Configuration(emptyMap);
 		String filename = selected.toString();		
 		
-		CPAcheckerPlugin.runTest(Collections.singletonList(new TaskRunner.Task("anonymous Task", config, filename)));
+		CPAcheckerPlugin.runTasks(Collections.singletonList(new TaskRunner.Task("anonymous Task", config, filename)));
 	}
 
 	/**

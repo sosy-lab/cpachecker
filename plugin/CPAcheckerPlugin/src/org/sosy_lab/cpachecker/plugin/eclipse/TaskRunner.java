@@ -8,7 +8,7 @@ public class TaskRunner {
 
 	public void run(List<Task> tasks) {
 		// TODO Auto-generated method stub
-		
+		System.out.println("TaskRunner : run some tests");
 		// use:
 		/*CPAcheckerPlugin.getPlugin().fireTasksStarted(10);
 		CPAcheckerPlugin.getPlugin().fireTaskStarted("someid");
