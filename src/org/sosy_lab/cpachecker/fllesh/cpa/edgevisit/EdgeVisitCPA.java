@@ -61,6 +61,17 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
  */
 public class EdgeVisitCPA implements ConfigurableProgramAnalysis {
 
+  private class TransferException extends CPATransferException {
+    /**
+     * 
+     */
+    private static final long serialVersionUID = 1L;
+
+    public TransferException(CFAEdge pCfaEdge) {
+      super("EdgeVisitCPA has not found a corresponding EdgeElement: " + pCfaEdge.toString());
+    }
+  }
+  
   private final StopOperator mStopOperator = new StopOperator() {
 
     @Override
@@ -92,7 +103,13 @@ public class EdgeVisitCPA implements ConfigurableProgramAnalysis {
       if (pElement.equals(mDomain.getBottomElement())) {
         return Collections.emptySet();
       }
-
+      
+      EdgeElement lEdgeElement = mElements.get(pCfaEdge);
+      
+      if (lEdgeElement == null) {
+        throw new TransferException(pCfaEdge);
+      }
+      
       return Collections.singleton(mElements.get(pCfaEdge));
     }
 

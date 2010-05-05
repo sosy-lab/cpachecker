@@ -54,6 +54,10 @@ public class Translator {
   public Annotations getAnnotations() {
     return mPathPatternTranslator;
   }
+  
+  public org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.Translator getPathPatternTranslator() {
+    return mPathPatternTranslator;
+  }
 
   public Set<Pattern> translate(CoverageSpecification pSpecification) {
     return pSpecification.accept(mVisitor);

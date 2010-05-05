@@ -107,6 +107,9 @@ public class Wrapper {
           mCFAEdges.add(mOmegaEdge);
           mCFAEdges.add(mAlphaToOmegaEdge);
         }
+        else {
+          mCFAEdges.add(pP);
+        }
 
       }
       else {
