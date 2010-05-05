@@ -26,7 +26,6 @@ import org.sosy_lab.cpachecker.plugin.eclipse.TaskRunner.Task;
 import org.sosy_lab.cpachecker.plugin.eclipse.popup.actions.RunMultipleTasksAction;
 import org.sosy_lab.cpachecker.plugin.eclipse.views.TaskTreeViewer.ConfigNode;
 import org.sosy_lab.cpachecker.plugin.eclipse.views.TaskTreeViewer.Node;
-import org.sosy_lab.cpachecker.plugin.eclipse.views.TaskTreeViewer.SourceFileNode;
 import org.sosy_lab.cpachecker.plugin.eclipse.views.TaskTreeViewer.TaskNode;
 import org.sosy_lab.cpachecker.plugin.eclipse.views.TaskTreeViewer.TopNode;
 import org.sosy_lab.cpachecker.plugin.eclipse.views.TaskTreeViewer.Node.NodeType;
@@ -183,12 +182,9 @@ public class TasksView extends ViewPart {
 				case CONFIG:
 					selectedTasks.add(((ConfigNode)element).getParent().getTask());
 					break;
-				case SOURCE_FILE:
-					selectedTasks.add(((SourceFileNode)element).getParent().getTask());
-					break;
 				case TASK :
 					selectedTasks.add(((TaskNode)element).getTask());
-					break;
+			        break;
 				}
 			}
 			if (exitLoop) {

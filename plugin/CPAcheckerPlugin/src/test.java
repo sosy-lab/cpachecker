@@ -3,9 +3,7 @@ import java.util.Iterator;
 import java.util.Set;
 
 import org.eclipse.core.runtime.ISafeRunnable;
-import org.eclipse.core.runtime.Platform;
 import org.eclipse.core.runtime.SafeRunner;
-import org.sosy_lab.cpachecker.plugin.eclipse.ITestListener;
 
 
 public class test {

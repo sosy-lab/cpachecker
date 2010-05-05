@@ -1,10 +1,8 @@
 package org.sosy_lab.cpachecker.plugin.eclipse;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IConfigurationElement;
@@ -17,7 +15,6 @@ import org.eclipse.core.runtime.SafeRunner;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.osgi.framework.BundleContext;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.plugin.eclipse.TaskRunner.Task;
 
 public class CPAcheckerPlugin extends AbstractUIPlugin {
@@ -34,11 +31,6 @@ public class CPAcheckerPlugin extends AbstractUIPlugin {
 		super();
 		// instance will be overwritten each time, but this seems to be intended by eclipse people
 		instance = this;
-		
-		// for Debug: one Task in the treeview
-		Map<String, String> emptyMap = Collections.emptyMap();
-		Task t2 = new Task("Task 2", new Configuration(emptyMap), "File2");
-		instance.addTask(t2);
 	}
 
 	public static CPAcheckerPlugin getPlugin() {

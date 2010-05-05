@@ -2,7 +2,6 @@ package org.sosy_lab.cpachecker.plugin.eclipse.popup.actions;
 
 import java.util.Collections;
 
-import org.eclipse.cdt.core.model.ICElement;
 import org.eclipse.cdt.core.model.ITranslationUnit;
 import org.eclipse.jface.action.IAction;
 import org.eclipse.jface.dialogs.MessageDialog;
@@ -14,7 +13,6 @@ import org.eclipse.ui.IObjectActionDelegate;
 import org.eclipse.ui.IWorkbenchPart;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.plugin.eclipse.CPAcheckerPlugin;
-import org.sosy_lab.cpachecker.plugin.eclipse.TaskRunner;
 import org.sosy_lab.cpachecker.plugin.eclipse.TaskRunner.Task;
 
 public class DefaultCheckAction implements IObjectActionDelegate {

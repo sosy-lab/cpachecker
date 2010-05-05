@@ -23,38 +23,20 @@ public class TaskRunner {
 		CPAcheckerPlugin.getPlugin().fireTasksFinished();
 		*/
 	}
-	public interface ITask {
-		public String getName();
-		public Configuration getConfig();
-		public String getSourceFileName();
-	}
 	
-	public static class Task implements ITask {
+	public static class Task {
 		String name;
 		Configuration config;
-		String sourceFileName = "noSourceFileSpecified";
-		public ITranslationUnit TU;
+		public ITranslationUnit sourceTranslationUnit;
 		private String configFilePath;
-		public Task(String name, Configuration config, String sourceFileName) {
-			super();
-			this.name = name;
-			this.config = config;
-			this.sourceFileName = sourceFileName;
-		}
-		public Task(String name, String configFile, String sourceFileName) {
-			super();
-			this.name = name;
-			this.configFilePath = configFile;
-			this.sourceFileName = sourceFileName;
-		}
+
 		public Task(String name, Configuration config,
 				ITranslationUnit selected) {
 			super();
 			this.name = name;
 			this.config = config;
-			TU = selected;
+			sourceTranslationUnit = selected;
 		}
-		@Override
 		public Configuration getConfig() {
 			return config;
 		}
@@ -64,15 +46,6 @@ public class TaskRunner {
 		public void setConfigFilePath(String configFilePath) {
 			this.configFilePath = configFilePath;
 		}
-		
-		@Override
-		public String getSourceFileName() {
-			return sourceFileName;
-		}
-		public void setSourceFileName(String sourceFileName) {
-			this.sourceFileName = sourceFileName;
-		}
-		@Override
 		public String getName() {
 			return name;
 		}
@@ -100,6 +73,9 @@ public class TaskRunner {
 			} else {
 				return "";
 			}
+		}
+		public Object getTranslationUnit() {
+			return this.sourceTranslationUnit;
 		}
 		
 		
