@@ -25,6 +25,7 @@
     <target name="build-subprojects">
 	    <ant antfile="src/org/sosy_lab/cpachecker/cpa/automatonanalysis/AutomatonBuild.xml" inheritAll="false"/>
 	    <ant antfile="src/org/sosy_lab/cpachecker/fllesh/fql/frontend/parser/build.xml" inheritAll="false"/>
+	    <ant antfile="src/org/sosy_lab/cpachecker/fllesh/fql2/parser/build.xml" inheritAll="false"/>
     </target>
 
     <target depends="init" name="build-project">
