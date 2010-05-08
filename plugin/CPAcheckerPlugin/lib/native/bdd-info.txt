@@ -1,7 +1,0 @@
-JavaBDD version 1.0b2 is downloaded from
-
-http://javabdd.sourceforge.net/index.html
-
-
-
-
