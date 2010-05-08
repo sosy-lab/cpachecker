@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.automatonanalysis;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.logging.Level;
@@ -153,18 +154,24 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis {
 
   private Automaton parseAutomatonFile(LogManager pLogger) throws InvalidConfigurationException {
     SymbolFactory sf = new ComplexSymbolFactory();
+    FileInputStream input = null;
     try {
-      FileInputStream input = new FileInputStream(inputFile);
-      try {
-        Symbol symbol = new AutomatonParser(new AutomatonScanner(input, sf),sf,pLogger).parse();
-        return (Automaton)symbol.value;
-      } finally {
-        input.close();
-      }
+      input = new FileInputStream(inputFile);
+      Symbol symbol = new AutomatonParser(new AutomatonScanner(input, sf),sf,pLogger).parse();
+      return (Automaton)symbol.value;
     } catch (Exception e) {
       pLogger.logException(Level.FINER, e, "Could not load automaton from file " + inputFile);
       throw new InvalidConfigurationException("Could not load automaton from file " + inputFile
           + " (" + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()) + ")");
+    } finally {
+      if (input!= null) {
+        try {
+          input.close();
+        } catch (IOException e) {
+          throw new InvalidConfigurationException(
+              "IO Exception when closing the FileStream to \"" + inputFile + "\": "+e.getMessage());
+        }
+      }
     }
   }
 

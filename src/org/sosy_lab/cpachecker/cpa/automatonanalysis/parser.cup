@@ -50,19 +50,18 @@ parser code {:
       this.scanner = scanner;
       this.logger = pLogger;
   }
-
   @Override
   public void report_error(String message, Object info) {
     syntaxErrors = true;
     String errorString = message;
-    errorString = errorString + "ScannerLine: " + (scanner.getLine()+1) + " ScannerColumn: " + scanner.getColumn();
+    errorString = errorString + " Line: " + (scanner.getLine()+1) + " Column: " + scanner.getColumn();
 
     if (info instanceof Symbol) {
     	Symbol symbol = (Symbol) info;
     	if (!( symbol.left < 0 || symbol.right < 0 ))
     		errorString = errorString + "\n at line "+symbol.left+", column "+symbol.right;
     }
-    logger.log(Level.FINER, errorString);
+    logger.log(Level.INFO, errorString);
   }
 :};
 
