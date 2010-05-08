@@ -1,17 +1,17 @@
-package org.sosy_lab.cpachecker.plugin.eclipse.editors;
+package org.sosy_lab.cpachecker.plugin.eclipse.editors.automatoneditor;
 
 import org.eclipse.jface.text.rules.*;
 
-public class TagRule extends MultiLineRule {
+public class StatePartitionRule extends MultiLineRule {
 
-	public TagRule(IToken token) {
-		super("<", ">", token);
+	public StatePartitionRule(IToken token) {
+		super("STATE", ";", token);
 	}
 	protected boolean sequenceDetected(
 		ICharacterScanner scanner,
 		char[] sequence,
 		boolean eofAllowed) {
-		int c = scanner.read();
+		/*int c = scanner.read();
 		if (sequence[0] == '<') {
 			if (c == '?') {
 				// processing instruction - abort
@@ -25,7 +25,7 @@ public class TagRule extends MultiLineRule {
 			}
 		} else if (sequence[0] == '>') {
 			scanner.unread();
-		}
+		}*/
 		return super.sequenceDetected(scanner, sequence, eofAllowed);
 	}
 }

@@ -1,4 +1,4 @@
-package org.sosy_lab.cpachecker.plugin.eclipse.editors;
+package org.sosy_lab.cpachecker.plugin.eclipse.editors.automatoneditor;
 
 import org.eclipse.jface.text.*;
 import org.eclipse.jface.text.rules.*;

@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import org.eclipse.core.resources.IWorkspace;
+import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtension;
@@ -192,5 +194,9 @@ public class CPAcheckerPlugin extends AbstractUIPlugin {
 	public void addTask(Task t) {
 		this.tasks.add(t);
 		fireTasksChanged();
+	}
+
+	public static IWorkspace getWorkspace() {
+		return ResourcesPlugin.getWorkspace();
 	}
 }

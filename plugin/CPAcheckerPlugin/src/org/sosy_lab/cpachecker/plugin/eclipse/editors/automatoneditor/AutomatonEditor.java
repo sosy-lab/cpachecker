@@ -1,4 +1,4 @@
-package org.sosy_lab.cpachecker.plugin.eclipse.editors;
+package org.sosy_lab.cpachecker.plugin.eclipse.editors.automatoneditor;
 
 import org.eclipse.ui.editors.text.TextEditor;
 
@@ -10,7 +10,7 @@ public class AutomatonEditor extends TextEditor {
 		super();
 		colorManager = new ColorManager();
 		setSourceViewerConfiguration(new XMLConfiguration(colorManager));
-		setDocumentProvider(new XMLDocumentProvider());
+		setDocumentProvider(new AutomatonDocumentProvider());
 	}
 	public void dispose() {
 		colorManager.dispose();

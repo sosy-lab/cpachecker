@@ -1,4 +1,4 @@
-package org.sosy_lab.cpachecker.plugin.eclipse.editors;
+package org.sosy_lab.cpachecker.plugin.eclipse.editors.automatoneditor;
 
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.ITextDoubleClickStrategy;
@@ -22,8 +22,8 @@ public class XMLConfiguration extends SourceViewerConfiguration {
 	public String[] getConfiguredContentTypes(ISourceViewer sourceViewer) {
 		return new String[] {
 			IDocument.DEFAULT_CONTENT_TYPE,
-			XMLPartitionScanner.XML_COMMENT,
-			XMLPartitionScanner.XML_TAG };
+			AutomatonPartitionScanner.AUTOMATON_SINGLE_LINE_COMMENT,
+			AutomatonPartitionScanner.AUTOMATON_STATE_PARTITION };
 	}
 	public ITextDoubleClickStrategy getDoubleClickStrategy(
 		ISourceViewer sourceViewer,
@@ -59,8 +59,8 @@ public class XMLConfiguration extends SourceViewerConfiguration {
 
 		DefaultDamagerRepairer dr =
 			new DefaultDamagerRepairer(getXMLTagScanner());
-		reconciler.setDamager(dr, XMLPartitionScanner.XML_TAG);
-		reconciler.setRepairer(dr, XMLPartitionScanner.XML_TAG);
+		reconciler.setDamager(dr, AutomatonPartitionScanner.AUTOMATON_STATE_PARTITION);
+		reconciler.setRepairer(dr, AutomatonPartitionScanner.AUTOMATON_STATE_PARTITION);
 
 		dr = new DefaultDamagerRepairer(getXMLScanner());
 		reconciler.setDamager(dr, IDocument.DEFAULT_CONTENT_TYPE);
@@ -70,8 +70,8 @@ public class XMLConfiguration extends SourceViewerConfiguration {
 			new NonRuleBasedDamagerRepairer(
 				new TextAttribute(
 					colorManager.getColor(IXMLColorConstants.XML_COMMENT)));
-		reconciler.setDamager(ndr, XMLPartitionScanner.XML_COMMENT);
-		reconciler.setRepairer(ndr, XMLPartitionScanner.XML_COMMENT);
+		reconciler.setDamager(ndr, AutomatonPartitionScanner.AUTOMATON_SINGLE_LINE_COMMENT);
+		reconciler.setRepairer(ndr, AutomatonPartitionScanner.AUTOMATON_SINGLE_LINE_COMMENT);
 
 		return reconciler;
 	}

@@ -34,15 +34,23 @@
          </description>
       </wizard>
    </extension>
-   <extension
-         point="org.eclipse.ui.editors">  	
+    <extension
+         point="org.eclipse.ui.editors">
+      <editor
+            name="Property File GUI Editor"
+            icon="icons/config32.gif"
+            extensions="properties"
+            contributorClass="org.eclipse.ui.texteditor.BasicTextEditorActionContributor"
+            class="org.sosy_lab.cpachecker.plugin.eclipse.editors.propertieseditor.PropertyFileEditor"
+            id="org.sosy_lab.cpachecker.plugin.eclipse.editors.propertieseditor.PropertyFileEditor">
+      </editor>  	
       	<editor
             name="Automaton Editor"
             extensions="auto"
             icon="icons/sample.gif"
             contributorClass="org.eclipse.ui.texteditor.BasicTextEditorActionContributor"
-            class="org.sosy_lab.cpachecker.plugin.eclipse.editors.AutomatonEditor"
-            id="org.sosy_lab.cpachecker.plugin.eclipse.editors.AutomatonEditor">
+            class="org.sosy_lab.cpachecker.plugin.eclipse.editors.automatoneditor.AutomatonEditor"
+            id="org.sosy_lab.cpachecker.plugin.eclipse.editors.automatoneditor.AutomatonEditor">
       	</editor>
    </extension>
    <extension

@@ -22,3 +22,7 @@ Bundle-ClassPath: .,
  lib/jgrapht-jdk1.6.jar,
  lib/mathsat.jar,
  lib/yicesapijava.jar
+Import-Package: junit.framework,
+ org.eclipse.ui.actions,
+ org.eclipse.ui.dialogs,
+ org.eclipse.ui.part

@@ -1,4 +1,4 @@
-package org.sosy_lab.cpachecker.plugin.eclipse.editors;
+package org.sosy_lab.cpachecker.plugin.eclipse.editors.automatoneditor;
 
 import java.util.HashMap;
 import java.util.Iterator;
