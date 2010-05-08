@@ -1,15 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-	<classpathentry exported="true" kind="lib" path="lib/google-collect-1.0.jar"/>
-	<classpathentry exported="true" kind="lib" path="lib/java-cup-11a.jar"/>
-	<classpathentry exported="true" kind="lib" path="lib/javabdd-1.0b2.jar"/>
-	<classpathentry exported="true" kind="lib" path="lib/JFlex.jar"/>
-	<classpathentry exported="true" kind="lib" path="lib/jgrapht-jdk1.6.jar"/>
-	<classpathentry exported="true" kind="lib" path="lib/mathsat.jar"/>
-	<classpathentry exported="true" kind="lib" path="lib/yicesapijava.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>
 	<classpathentry kind="con" path="org.eclipse.pde.core.requiredPlugins"/>
 	<classpathentry kind="src" path="src"/>
-	<classpathentry kind="lib" path="lib/CPAchecker.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
