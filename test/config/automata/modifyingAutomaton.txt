@@ -5,7 +5,7 @@ LOCAL int a = 1;
 INITIAL STATE Init;
 
 STATE Init:
-  MATCH {func($1, $2); } -> 
+  MATCH {$? = func($1, $2); } -> 
     ASSERT CHECK(ExplicitAnalysis("$1==$$a")) 
     MODIFY(ExplicitAnalysis("deletevalues($2);setvalue($2:=0)"))
     PRINT "MODIFIED" 
@@ -14,7 +14,7 @@ STATE Init:
     
     // these edges are to check for bugs. The functionality is implemented in the first edge.
   MATCH "somefunction();" -> 
-  	ASSERT CHECK(ExplicitAnalysis("clong==0"))
+  	ASSERT CHECK(ExplicitAnalysis("c==0"))
   	PRINT "Modification successful" 
   	GOTO Init;
   	

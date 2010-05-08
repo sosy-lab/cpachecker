@@ -198,7 +198,7 @@ public class AutomatonTest {
     try {
       TestResults results = run(prop, "test/programs/simple/functionCall.c");
       Assert.assertTrue(results.logContains("i'm in Main after Edge int y;"));
-      Assert.assertTrue(results.logContains("i'm in f after Edge f()"));
+      Assert.assertTrue(results.logContains("i'm in f after Edge y = f()"));
       Assert.assertTrue(results.logContains("i'm in f after Edge int x;"));
       Assert.assertTrue(results.logContains("i'm in Main after Edge Return Edge to"));
       Assert.assertTrue(results.logContains("i'm in Main after Edge Label: ERROR"));
