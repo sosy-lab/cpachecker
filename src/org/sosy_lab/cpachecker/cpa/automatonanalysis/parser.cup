@@ -184,4 +184,6 @@ Trigger   ::= MATCH STRING_LITERAL:lit
               {: RESULT = new AutomatonBoolExpr.MatchLabelRegEx(expr.toString()); :}
             | CHECK OPEN_BRACKETS IDENTIFIER:cpa OPEN_BRACKETS STRING_LITERAL:query CLOSE_BRACKETS CLOSE_BRACKETS
               {: RESULT = new AutomatonBoolExpr.CPAQuery(cpa.toString(), query.toString()); :}
+            | CHECK OPEN_BRACKETS STRING_LITERAL:query CLOSE_BRACKETS
+              {: RESULT = new AutomatonBoolExpr.ALLCPAQuery(query.toString()); :}
             ;

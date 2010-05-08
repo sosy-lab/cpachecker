@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="ISO-8859-1" ?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE project> <!-- generic AcceptAllDTD to make the Eclipse Warning go away -->
 <project name="AutomatonParserGeneration" default="generate" basedir="./../../../../../../">
   <!-- basedir should be the "CPAchecker" directory -->

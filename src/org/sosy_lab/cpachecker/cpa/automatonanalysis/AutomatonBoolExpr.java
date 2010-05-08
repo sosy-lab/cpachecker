@@ -164,7 +164,46 @@ abstract class AutomatonBoolExpr {
     }
   }
 
+  /**
+   * Sends a query string to all available AbstractElements.
+   * Returns TRUE if one Element returned TRUE;
+   * Returns FALSE if all Elements returned either FALSE or an InvalidQueryException.
+   * Returns MAYBE if no Element is available or the Variables could not be replaced.
+   * @author rhein
+   */
+  public static class ALLCPAQuery extends AutomatonBoolExpr {
+    private final String queryString;
+    
+    public ALLCPAQuery(String pString) {
+      queryString = pString;
+    }
 
+    @Override
+    public MaybeBoolean eval(AutomatonExpressionArguments pArgs) {
+      if (pArgs.getAbstractElements().isEmpty()) {
+        return MaybeBoolean.MAYBE;
+      } else {
+        // replace transition variables
+        String modifiedQueryString = pArgs.replaceVariables(queryString);
+        if (modifiedQueryString == null) {
+          return MaybeBoolean.MAYBE;
+        }
+        for (AbstractElement ae : pArgs.getAbstractElements()) {
+          if (ae instanceof AbstractQueryableElement) {
+            AbstractQueryableElement aqe = (AbstractQueryableElement) ae;
+            try {
+              if (aqe.checkProperty(modifiedQueryString)) {
+                return MaybeBoolean.TRUE;
+              }
+            } catch (InvalidQueryException e) {
+              // do nothing;
+            }
+          }
+        }
+        return MaybeBoolean.FALSE;
+      }
+    }
+  }
   /**
    * Sends a query-String to an <code>AbstractElement</code> of another analysis and returns the query-Result.
    * @author rhein
