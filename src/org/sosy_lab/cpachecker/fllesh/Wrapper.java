@@ -134,7 +134,7 @@ public class Wrapper {
       }
       FunctionCallEdge callEdge;
 
-      callEdge = new FunctionCallEdge(functionCall, edge.getLineNumber(), node, fDefNode, parameters, false);
+      callEdge = new FunctionCallEdge(functionCall.getRawSignature(), expr, edge.getLineNumber(), node, fDefNode, parameters, false);
       callEdge.addToCFA();
       mAlphaEdge = callEdge;
 
