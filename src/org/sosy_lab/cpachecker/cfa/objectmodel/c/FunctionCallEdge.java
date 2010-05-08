@@ -24,8 +24,6 @@
 package org.sosy_lab.cpachecker.cfa.objectmodel.c;
 
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
-import org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression;
-
 import org.sosy_lab.cpachecker.cfa.objectmodel.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
@@ -34,10 +32,10 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 public class FunctionCallEdge extends AbstractCFAEdge
 {
 	private final IASTExpression[] functionArguments;
-	private final IASTFunctionCallExpression rawAST;
+	private final IASTExpression rawAST;
 	private final boolean isExternalCall;
 
-    public FunctionCallEdge (IASTFunctionCallExpression rawAST, int lineNumber, CFANode predecessor, CFANode successor, IASTExpression[] arguments, boolean isExternalCall) {
+    public FunctionCallEdge (String rawStatement, IASTExpression rawAST, int lineNumber, CFANode predecessor, CFANode successor, IASTExpression[] arguments, boolean isExternalCall) {
         super(rawAST.getRawSignature(), lineNumber, predecessor, successor);
         this.functionArguments = arguments;
         this.rawAST = rawAST;
@@ -54,7 +52,7 @@ public class FunctionCallEdge extends AbstractCFAEdge
     }
 
   @Override
-  public IASTFunctionCallExpression getRawAST() {
+  public IASTExpression getRawAST() {
     return rawAST;
   }
 

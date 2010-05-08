@@ -210,7 +210,7 @@ public class CPASecondPassBuilder {
     if(fDefNode == null){
       assert(createCallEdgesForExternalCalls); // AG
 
-      callEdge = new FunctionCallEdge(functionCall, edge.getLineNumber(), node, edge.getSuccessor(), parameters, true);
+      callEdge = new FunctionCallEdge(functionCall.getRawSignature(), expr, edge.getLineNumber(), node, edge.getSuccessor(), parameters, true);
       callEdge.addToCFA();
       callEdge.getSuccessor().setFunctionName(node.getFunctionName());
       CallToReturnEdge calltoReturnEdge = new CallToReturnEdge("External Call", edge.getLineNumber(), node, edge.getSuccessor(), expr);
@@ -220,7 +220,7 @@ public class CPASecondPassBuilder {
       return;
     }
 
-    callEdge = new FunctionCallEdge(functionCall, edge.getLineNumber(), node, fDefNode, parameters, false);
+    callEdge = new FunctionCallEdge(functionCall.getRawSignature(), expr, edge.getLineNumber(), node, fDefNode, parameters, false);
     callEdge.addToCFA();
     // set name of the function
     fDefNode.setFunctionName(functionName);
