@@ -67,14 +67,17 @@ import org.sosy_lab.cpachecker.fllesh.ecp.reduced.ObserverAutomatonTranslator;
 import org.sosy_lab.cpachecker.fllesh.ecp.reduced.Pattern;
 import org.sosy_lab.cpachecker.fllesh.fql.fllesh.util.CPAchecker;
 import org.sosy_lab.cpachecker.fllesh.fql.fllesh.util.Cilly;
+import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Filter;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.FunctionCall;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Identity;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.SetMinus;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Edges;
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification.CoverageSpecification;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification.Quotation;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.PathPattern;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.Repetition;
+import org.sosy_lab.cpachecker.fllesh.fql2.parser.FQLParser;
 
 public class Main {
   
@@ -134,7 +137,7 @@ public class Main {
     return lPropertiesFile;
   }
 
-  private static File createPropertiesFile(File pObserverAutomatonFile) {
+  private static File createPropertiesFile(File pObserverAutomatonFile, String pDotFile) {
     File lPropertiesFile = Main.createPropertiesFile();
 
     // append configuration for observer automaton
@@ -143,31 +146,8 @@ public class Main {
 
       lWriter = new PrintWriter(new FileOutputStream(lPropertiesFile, true));
 
-      lWriter.println("observerAnalysis.inputFile = " + pObserverAutomatonFile.getAbsolutePath());
-      lWriter.println("observerAnalysis.dotExportFile = test/output/observerAutomatonExport.dot");
-      lWriter.close();
-
-      return lPropertiesFile;
-
-    } catch (FileNotFoundException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    }
-
-    return null;
-  }
-  
-  private static File createPropertiesFile2(File pObserverAutomatonFile) {
-    File lPropertiesFile = Main.createPropertiesFile();
-
-    // append configuration for observer automaton
-    PrintWriter lWriter;
-    try {
-
-      lWriter = new PrintWriter(new FileOutputStream(lPropertiesFile, true));
-
-      lWriter.println("observerAnalysis.inputFile = " + pObserverAutomatonFile.getAbsolutePath());
-      lWriter.println("observerAnalysis.dotExportFile = test/output/observerAutomatonExport.product.dot");
+      lWriter.println("automatonAnalysis.inputFile = " + pObserverAutomatonFile.getAbsolutePath());
+      lWriter.println("automatonAnalysis.dotExportFile = " + pDotFile);
       lWriter.close();
 
       return lPropertiesFile;
@@ -188,7 +168,8 @@ public class Main {
     lWriter.println("INITIAL STATE Init;");
     lWriter.println();
     lWriter.println("STATE Init:");
-    lWriter.println("  CHECK(ObserverAnalysis_" + GOAL_AUTOMATON + "(\"state == Accept\")) -> ERROR;"); 
+    //lWriter.println("  CHECK(AutomatonAnalysis_" + GOAL_AUTOMATON + "(\"state == Accept\")) && CHECK(AutomatonAnalysis_" + PASSING_AUTOMATON + "(\"state == Accept\")) -> ERROR;"); 
+    lWriter.println("  CHECK(AutomatonAnalysis_" + GOAL_AUTOMATON + "(\"state == Accept\")) -> ERROR;");
     lWriter.println("  TRUE -> GOTO Init;");
     
     return lResult.toString();
@@ -209,6 +190,7 @@ public class Main {
 
     if (!lCilly.isCillyInvariant(lSourceFileName)) {
       File lCillyProcessedFile = lCilly.cillyfy(pArguments[1]);
+      lCillyProcessedFile.deleteOnExit();
 
       lSourceFileName = lCillyProcessedFile.getAbsolutePath();
 
@@ -225,15 +207,37 @@ public class Main {
 
     CFAFunctionDefinitionNode lMainFunction = lCPAchecker.getMainFunction();
 
+    
+    String lFQLSpecificationString = pArguments[0];
+    
 
-
-
-
-
-    final org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification.Translator lCoverageSpecificationTranslator = new org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification.Translator(lMainFunction);
-
+    FQLSpecification lFQLSpecification = Main.parse(lFQLSpecificationString);
+    
+    System.out.println("FQL query: " + lFQLSpecification);
+    System.out.println("File: " + lSourceFileName);
+    
+    
+    org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification.Translator lCoverageSpecificationTranslator = new org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification.Translator(lMainFunction);
+    //Pattern lPassingClause = lCoverageSpecificationTranslator.getPathPatternTranslator().translate(lFQLSpecification.getPathPattern());
+    /*Set<Pattern> lTestGoals = lCoverageSpecificationTranslator.translate(lFQLSpecification.getCoverageSpecification());
+    Pattern lPassingClause = lCoverageSpecificationTranslator.getPathPatternTranslator().translate(lFQLSpecification.getPathPattern());
+    
+    int lTestGoalIndex = 0;
+    
+    for (Pattern lTestGoal : lTestGoals) {
+      System.out.print("Test Goal #" + (++lTestGoalIndex) + ": ");
+      System.out.println(lTestGoal);
+    }
+    
+    System.out.print("Passing clause: ");
+    
+    System.out.println(lPassingClause);*/
+    
+    
+    
     FunctionCall lFunctionCallFilter = new FunctionCall("f");
-    SetMinus lSetMinus = new SetMinus(Identity.getInstance(), lFunctionCallFilter);
+    //SetMinus lSetMinus = new SetMinus(Identity.getInstance(), lFunctionCallFilter);
+    Filter lSetMinus = Identity.getInstance();
     //PathPattern lPrefixPattern = new Repetition(new Edges(Identity.getInstance()));
     PathPattern lPrefixPattern = new Repetition(new Edges(lSetMinus));
     Quotation lQuotation = new Quotation(lPrefixPattern);
@@ -257,6 +261,9 @@ public class Main {
     System.out.println(lTestGoal);
 
     
+
+    
+    
     // 1) enumerate all test goals, i.e., evaluate them before adding the wrapper function
     
     // 2) check the feasibility of every test goal
@@ -266,51 +273,86 @@ public class Main {
     // TODO: for every test goal (i.e., pattern) create an automaton and check reachabilities
 
 
-    /** Generating a wrapper start up method */
-    Wrapper lWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCPAchecker.getCFAMap(), lCoverageSpecificationTranslator.getAnnotations(),lLogManager);
+    /** Generating a wrapper start up method.
+     * 
+     *  The wrapper method is necessary for a correct semantics of the
+     *  generated automata, especially, the correct semantics of the
+     *  Kleene star operation.
+     **/
+    Wrapper lWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCPAchecker.getCFAMap(), lCoverageSpecificationTranslator.getAnnotations(), lLogManager);
 
     String lAlphaId = lCoverageSpecificationTranslator.getAnnotations().getId(lWrapper.getAlphaEdge());
     String lOmegaId = lCoverageSpecificationTranslator.getAnnotations().getId(lWrapper.getOmegaEdge());
 
 
-    File lAutomatonFile = File.createTempFile("fllesh.goal.", ".oa");
-    lAutomatonFile.deleteOnExit();
+    /** create test goal automaton */
+    File lTestGoalAutomatonFile = File.createTempFile("fllesh.goal.", ".oa");
+    //lTestGoalAutomatonFile.deleteOnExit();
+    
+    PrintStream lTestGoalAutomaton = new PrintStream(new FileOutputStream(lTestGoalAutomatonFile));
+    lTestGoalAutomaton.println(ObserverAutomatonTranslator.translate(lTestGoal, GOAL_AUTOMATON, lAlphaId, lOmegaId));
+    lTestGoalAutomaton.close();
+    
+    File lTestGoalPropertiesFile = Main.createPropertiesFile(lTestGoalAutomatonFile, "test/output/test_goal_automaton.dot");
+    Configuration lTestGoalConfiguration = Main.createConfiguration(lSourceFileName, lTestGoalPropertiesFile.getAbsolutePath());
 
-    PrintStream lObserverAutomaton = new PrintStream(new FileOutputStream(lAutomatonFile));
-    lObserverAutomaton.println(ObserverAutomatonTranslator.translate(lTestGoal, GOAL_AUTOMATON, lAlphaId, lOmegaId));
-    lObserverAutomaton.close();
+    CPAFactory lTestGoalAutomatonFactory = ControlAutomatonCPA.factory();
+    lTestGoalAutomatonFactory.setConfiguration(lTestGoalConfiguration);
+    lTestGoalAutomatonFactory.setLogger(lLogManager);
+    ConfigurableProgramAnalysis lTestGoalCPA = lTestGoalAutomatonFactory.createInstance();
+    
+    
+    
+    
+    
+    /** create passing automaton */
+    /*File lPassingAutomatonFile = File.createTempFile("fllesh.passing.", ".oa");
+    //lPassingAutomatonFile.deleteOnExit();
 
+    PrintStream lPassingAutomaton = new PrintStream(new FileOutputStream(lPassingAutomatonFile));
+    lPassingAutomaton.println(ObserverAutomatonTranslator.translate(lPassingClause, PASSING_AUTOMATON, lAlphaId, lOmegaId));
+    lPassingAutomaton.close();
+    
+    File lPassingPropertiesFile = Main.createPropertiesFile(lPassingAutomatonFile, "test/output/passing_automaton.dot");
+    Configuration lPassingConfiguration = Main.createConfiguration(lSourceFileName, lPassingPropertiesFile.getAbsolutePath());
+    
+    CPAFactory lPassingAutomatonFactory = ControlAutomatonCPA.factory();
+    lPassingAutomatonFactory.setConfiguration(lPassingConfiguration);
+    lPassingAutomatonFactory.setLogger(lLogManager);
+    ConfigurableProgramAnalysis lPassingCPA = lPassingAutomatonFactory.createInstance();*/
+    
+    
+    
+    /** create product automaton */
     File lProductAutomatonFile = File.createTempFile("fllesh.product.", ".oa");
-    lProductAutomatonFile.deleteOnExit();
+    //lProductAutomatonFile.deleteOnExit();
     
     PrintStream lProductAutomatonStream = new PrintStream(new FileOutputStream(lProductAutomatonFile));
-    lProductAutomatonStream.println(getProductAutomaton());
+    lProductAutomatonStream.println(Main.getProductAutomaton());
     lProductAutomatonStream.close();
     
+    File lProductAutomatonPropertiesFile = Main.createPropertiesFile(lProductAutomatonFile, "test/output/product_automaton.dot");
+    Configuration lProductAutomatonConfiguration = Main.createConfiguration(lSourceFileName, lProductAutomatonPropertiesFile.getAbsolutePath());
 
+    CPAFactory lProductAutomatonFactory = ControlAutomatonCPA.factory();
+    lProductAutomatonFactory.setConfiguration(lProductAutomatonConfiguration);
+    lProductAutomatonFactory.setLogger(lLogManager);
+    ConfigurableProgramAnalysis lProductObserverCPA = lProductAutomatonFactory.createInstance();
 
-
-    File lExtendedPropertiesFile = Main.createPropertiesFile(lAutomatonFile);
-    Configuration lExtendedConfiguration = Main.createConfiguration(lSourceFileName, lExtendedPropertiesFile.getAbsolutePath());
-
+    
+    
+    
     EdgeVisitCPA.Factory lFactory = new EdgeVisitCPA.Factory(lCoverageSpecificationTranslator.getAnnotations());
-    lFactory.setConfiguration(lExtendedConfiguration);
+    //lFactory.setConfiguration(lExtendedConfiguration);
+    lFactory.setConfiguration(lConfiguration);
     lFactory.setLogger(lLogManager);
     ConfigurableProgramAnalysis lEdgeVisitCPA = lFactory.createInstance();
 
-    CPAFactory lAutomatonFactory = ControlAutomatonCPA.factory();
-    lAutomatonFactory.setConfiguration(lExtendedConfiguration);
-    lAutomatonFactory.setLogger(lLogManager);
-    ConfigurableProgramAnalysis lObserverCPA = lAutomatonFactory.createInstance();
     
-    File lExtendedPropertiesFile2 = Main.createPropertiesFile2(lProductAutomatonFile);
-    Configuration lExtendedConfiguration2 = Main.createConfiguration(lSourceFileName, lExtendedPropertiesFile2.getAbsolutePath());
-
-    CPAFactory lProducctAutomatonFactory = ControlAutomatonCPA.factory();
-    lProducctAutomatonFactory.setConfiguration(lExtendedConfiguration2);
-    lProducctAutomatonFactory.setLogger(lLogManager);
-    ConfigurableProgramAnalysis lProductObserverCPA = lProducctAutomatonFactory.createInstance();
-
+    
+    
+    
+    
     CPAFactory lLocationCPAFactory = LocationCPA.factory();
     ConfigurableProgramAnalysis lLocationCPA = lLocationCPAFactory.createInstance();
 
@@ -323,7 +365,8 @@ public class Main {
     lComponentAnalyses.add(lLocationCPA);
     lComponentAnalyses.add(lEdgeVisitCPA);
     lComponentAnalyses.add(lSymbPredAbsCPA);
-    lComponentAnalyses.add(lObserverCPA);
+    lComponentAnalyses.add(lTestGoalCPA);
+    //lComponentAnalyses.add(lPassingCPA);
     lComponentAnalyses.add(lProductObserverCPA);
 
     // create composite CPA
@@ -371,6 +414,25 @@ public class Main {
     PrintWriter lStatisticsWriter = new PrintWriter(System.out);
 
     lARTStatistics.printStatistics(lStatisticsWriter, Result.SAFE, lReachedElements);
+  }
+  
+  private static FQLSpecification parse(String pFQLSpecificationString) throws Exception {
+    FQLParser lParser = new FQLParser(pFQLSpecificationString);
+
+    Object pParseResult;
+
+    try {
+      pParseResult = lParser.parse().value;
+    }
+    catch (Exception e) {
+      System.out.println(pFQLSpecificationString);
+
+      throw e;
+    }
+
+    assert(pParseResult instanceof FQLSpecification);
+
+    return (FQLSpecification)pParseResult;
   }
 
 }

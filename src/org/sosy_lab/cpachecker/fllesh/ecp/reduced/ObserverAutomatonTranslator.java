@@ -26,261 +26,179 @@ package org.sosy_lab.cpachecker.fllesh.ecp.reduced;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.Map;
-import java.util.Set;
-
-import org.sosy_lab.common.Triple;
 
 public class ObserverAutomatonTranslator {
 
-  private static class Visitor implements ASTVisitor<Integer> {
-
-    private Integer mCurrentInitialState;
-    private Integer mInitialState;
-
-    private Map<Integer, Set<Triple<Integer, Integer, Atom>>> mOutgoingEdges;
-    private Map<Integer, Set<Triple<Integer, Integer, Atom>>> mIncomingEdges;
-
-    private int mEdgeIndex;
-
+  private static class Visitor implements ASTVisitor<Void> {
+    
+    private Automaton<Atom> mAutomaton = new Automaton<Atom>();
+    
+    private Automaton<Atom>.State mCurrentInitialState = null;
+    private Automaton<Atom>.State mCurrentFinalState = null;
+    
     public Visitor() {
-      mEdgeIndex = 0;
-      mOutgoingEdges = new HashMap<Integer, Set<Triple<Integer, Integer, Atom>>>();
-      mIncomingEdges = new HashMap<Integer, Set<Triple<Integer, Integer, Atom>>>();
-
-      setCurrentInitialState(createState());
-
-      mInitialState = getCurrentInitialState();
+      mCurrentInitialState = mAutomaton.getInitialState();
     }
-
-    private Integer getInitialState() {
-      return mInitialState;
+    
+    public Automaton<Atom> getAutomaton() {
+      return mAutomaton;
     }
-
-    private void setCurrentInitialState(Integer pState) {
-      mCurrentInitialState = pState;
-    }
-
-    private Integer getCurrentInitialState() {
+    
+    private Automaton<Atom>.State getInitialState() {
       return mCurrentInitialState;
     }
-
-    private Integer createState() {
-      int lNewId = mOutgoingEdges.size();
-
-      mOutgoingEdges.put(lNewId, new HashSet<Triple<Integer, Integer, Atom>>());
-      mIncomingEdges.put(lNewId, new HashSet<Triple<Integer, Integer, Atom>>());
-
-      return lNewId;
+    
+    private Automaton<Atom>.State getFinalState() {
+      return  mCurrentFinalState;
     }
-
-    private Integer createEdge(Integer pState1, Integer pState2, Atom pAtom) {
-      Integer lNewId = mEdgeIndex;
-      mEdgeIndex++;
-
-      Triple<Integer, Integer, Atom> lEdge = new Triple<Integer, Integer, Atom>(pState1, pState2, pAtom);
-
-      mOutgoingEdges.get(pState1).add(lEdge);
-      mIncomingEdges.get(pState2).add(lEdge);
-
-      return lNewId;
+    
+    private void unsetFinalState() {
+      mCurrentFinalState = null;
     }
-
-    private Set<Triple<Integer, Integer, Atom>> getOutgoingEdges(Integer pState) {
-      return mOutgoingEdges.get(pState);
+    
+    private boolean hasFinalState() {
+      return (mCurrentFinalState != null);
     }
+    
+    private void setFinalState(Automaton<Atom>.State pFinalState) {
+      mCurrentFinalState = pFinalState;
+    }
+    
+    private void setInitialState(Automaton<Atom>.State pInitialState) {
+      mCurrentInitialState = pInitialState;
+    }
+    
+    public static String translate(Pattern pECP, String pAutomatonName, String pAlphaEdge, String pOmegaEdge) {
+      Visitor lVisitor = new Visitor();
 
-    private Set<Triple<Integer, Integer, Atom>> getIncomingEdges(Integer pState) {
-      return mIncomingEdges.get(pState);
+      pECP.accept(lVisitor);
+      
+      Automaton<Atom> lOriginalAutomaton = lVisitor.getAutomaton();
+      
+      lOriginalAutomaton.addToFinalStates(lVisitor.getFinalState());
+      
+      Automaton<Atom> lAutomaton = lOriginalAutomaton.getLambdaFreeAutomaton();
+      
+      StringWriter lResult = new StringWriter();
+      PrintWriter lWriter = new PrintWriter(lResult);
+
+      Map<Automaton<Atom>.State, String> lStateNames = new HashMap<Automaton<Atom>.State, String>();
+      
+      /**
+       * Create initial state that checks for passing of alpha edge (call of main function from wrapper)
+       */
+      lWriter.println("AUTOMATON " + pAutomatonName);
+      lWriter.println("INITIAL STATE Init;");
+      lWriter.println();
+      lWriter.println("STATE Init:");
+      lWriter.println("  CHECK(edgevisit(\"" + pAlphaEdge + "\")) -> GOTO " + getStateIdentifier(lAutomaton.getInitialState(), lStateNames) + ";");
+      lWriter.println("  !CHECK(edgevisit(\"" + pAlphaEdge + "\")) -> GOTO Init;");
+      lWriter.println();
+
+      for (Automaton<Atom>.State lState : lAutomaton.getStates()) {
+        lWriter.println("STATE NONDET " + getStateIdentifier(lState, lStateNames) + ":");
+
+        for (Automaton<Atom>.Edge lOutgoingEdge : lAutomaton.getOutgoingEdges(lState)) {
+          Automaton<Atom>.State lTarget = lOutgoingEdge.getTarget();
+          lWriter.println("  CHECK(edgevisit(\"" + lOutgoingEdge.getLabel().getIdentifier() + "\")) -> GOTO " + getStateIdentifier(lTarget, lStateNames) + ";");
+        }
+
+        if (lAutomaton.getFinalStates().contains(lState)) {
+          lWriter.println("  CHECK(edgevisit(\"" + pOmegaEdge + "\")) -> GOTO Accept;");
+        }
+        
+        lWriter.println("  TRUE -> BOTTOM;");
+        
+        lWriter.println();
+      }
+      
+      // add accepting state
+      lWriter.println("STATE Accept:");
+      // we stay in the accepting state
+      lWriter.println("  TRUE -> GOTO Accept;");
+      
+      return lResult.toString();
+    }
+    
+    public static String getStateIdentifier(Automaton<Atom>.State pState, Map<Automaton<Atom>.State, String> pIdentifiers) {
+      if (pIdentifiers.containsKey(pState)) {
+        return pIdentifiers.get(pState);
+      }
+      
+      int lNextIndex = pIdentifiers.size();
+      
+      String lIdentifier = "State" + lNextIndex;
+      
+      pIdentifiers.put(pState, lIdentifier);
+      
+      return lIdentifier;
     }
 
     @Override
-    public Integer visit(Atom pAtom) {
-      Integer lFinalState = createState();
-
-      createEdge(getCurrentInitialState(), lFinalState, pAtom);
-
-      return lFinalState;
+    public Void visit(Atom pAtom) {
+      if (!hasFinalState()) {
+        Automaton<Atom>.State lFinalState = mAutomaton.createState();
+        setFinalState(lFinalState);
+      }
+      
+      mAutomaton.createEdge(getInitialState(), getFinalState(), pAtom);
+      
+      return null;
     }
 
     @Override
-    public Integer visit(Concatenation pConcatenation) {
-      Integer lFirstFinalState = pConcatenation.getFirstSubpattern().accept(this);
-
-      Integer lSecondInitialState = createState();
-
-      setCurrentInitialState(lSecondInitialState);
-
-      Integer lSecondFinalState = pConcatenation.getSecondSubpattern().accept(this);
-
-      for (Triple<Integer, Integer, Atom> lOutgoingEdge : getOutgoingEdges(lSecondInitialState)) {
-        createEdge(lFirstFinalState, lOutgoingEdge.getSecond(), lOutgoingEdge.getThird());
-      }
-
-      return lSecondFinalState;
+    public Void visit(Concatenation pConcatenation) {
+      pConcatenation.getFirstSubpattern().accept(this);
+      
+      Automaton<Atom>.State lInitialState = getInitialState();
+      Automaton<Atom>.State lFinalState = getFinalState();
+      
+      setInitialState(lFinalState);
+      unsetFinalState();
+      
+      pConcatenation.getSecondSubpattern().accept(this);
+      
+      setInitialState(lInitialState);
+      
+      return null;
     }
 
     @Override
-    public Integer visit(Repetition pRepetition) {
-      Integer lInitialState = getCurrentInitialState();
-
-      Integer lSubInitialState = this.createState();
-      this.setCurrentInitialState(lSubInitialState);
-
-      Integer lSubFinalState = pRepetition.getSubpattern().accept(this);
-
-      for (Triple<Integer, Integer, Atom> lOutgoingEdge : getOutgoingEdges(lSubInitialState)) {
-        createEdge(lInitialState, lOutgoingEdge.getSecond(), lOutgoingEdge.getThird());
-      }
-
-      for (Triple<Integer, Integer, Atom> lIncomingEdge : getIncomingEdges(lSubFinalState)) {
-        createEdge(lIncomingEdge.getFirst(), lInitialState, lIncomingEdge.getThird());
-      }
-
-      return lInitialState;
-    }
-
-    @Override
-    public Integer visit(Union pUnion) {
-
-      Integer lInitialState = this.getCurrentInitialState();
-
-
-      Integer lFirstInitialState = this.createState();
-      this.setCurrentInitialState(lFirstInitialState);
-
-      Integer lFirstFinalState = pUnion.getFirstSubpattern().accept(this);
-
-      for (Triple<Integer, Integer, Atom> lOutgoingEdge : this.getOutgoingEdges(lFirstInitialState)) {
-        this.createEdge(lInitialState, lOutgoingEdge.getSecond(), lOutgoingEdge.getThird());
-      }
-
-
-      Integer lSecondInitialState = this.createState();
-      this.setCurrentInitialState(lSecondInitialState);
-
-      Integer lSecondFinalState = pUnion.getSecondSubpattern().accept(this);
-
-      for (Triple<Integer, Integer, Atom> lOutgoingEdge : this.getOutgoingEdges(lSecondInitialState)) {
-        this.createEdge(lInitialState, lOutgoingEdge.getSecond(), lOutgoingEdge.getThird());
-      }
-
-      Integer lFinalState = this.createState();
-
-
-      for (Triple<Integer, Integer, Atom> lIncomingEdge : this.getIncomingEdges(lFirstFinalState)) {
-        this.createEdge(lIncomingEdge.getFirst(), lFinalState, lIncomingEdge.getThird());
-      }
-
-      for (Triple<Integer, Integer, Atom> lIncomingEdge : this.getIncomingEdges(lSecondFinalState)) {
-        this.createEdge(lIncomingEdge.getFirst(), lFinalState, lIncomingEdge.getThird());
-      }
-
-
-      return lFinalState;
-    }
-
-    public void reduce(Integer pFinalState) {
-      boolean changed;
-
-      do {
-        changed = false;
-
-        for (Integer lState : mOutgoingEdges.keySet()) {
-          if (this.getOutgoingEdges(lState).size() == 0) {
-            if (!lState.equals(pFinalState)) {
-              mOutgoingEdges.remove(lState);
-
-              for (Triple<Integer, Integer, Atom> lEdge : getIncomingEdges(lState)) {
-                mOutgoingEdges.get(lEdge.getFirst()).remove(lEdge);
-              }
-              mIncomingEdges.remove(lState);
-
-              changed = true;
-
-              break;
-            }
-          }
-          else if (this.getIncomingEdges(lState).size() == 0) {
-            if (!lState.equals(this.getInitialState())) {
-              mIncomingEdges.remove(lState);
-
-              for (Triple<Integer, Integer, Atom> lEdge : getOutgoingEdges(lState)) {
-                mIncomingEdges.get(lEdge.getSecond()).remove(lEdge);
-              }
-              mOutgoingEdges.remove(lState);
-
-              changed = true;
-
-              break;
-            }
-          }
+    public Void visit(Repetition pRepetition) {
+      Automaton<Atom>.State lInitialState = getInitialState();
+      
+      Automaton<Atom>.State lFinalState;
+      
+      if (hasFinalState()) {
+        lFinalState = getFinalState();
+        if (!lFinalState.equals(lInitialState)) {
+          mAutomaton.createLambdaEdge(lInitialState, lFinalState);
         }
       }
-      while (changed);
+      else {
+        lFinalState = lInitialState;
+      }
+      
+      setFinalState(lInitialState);
+      pRepetition.getSubpattern().accept(this);
+      setFinalState(lFinalState);
+      
+      return null;
+    }
+
+    @Override
+    public Void visit(Union pUnion) {
+      pUnion.getFirstSubpattern().accept(this);
+      pUnion.getSecondSubpattern().accept(this);
+      
+      return null;
     }
 
   }
-
+  
   public static String translate(Pattern pECP, String pAutomatonName, String pAlphaEdge, String pOmegaEdge) {
-    Visitor lVisitor = new Visitor();
-
-    Integer lFinalState = pECP.accept(lVisitor);
-
-    StringWriter lResult = new StringWriter();
-    PrintWriter lWriter = new PrintWriter(lResult);
-
-    lWriter.println("AUTOMATON " + pAutomatonName);
-    lWriter.println("INITIAL STATE Init;");
-    lWriter.println();
-    lWriter.println("STATE Init:");
-    lWriter.println("  CHECK(edgevisit(\"" + pAlphaEdge + "\")) -> GOTO State" + lVisitor.getInitialState() + ";");
-    lWriter.println("  !CHECK(edgevisit(\"" + pAlphaEdge + "\")) -> GOTO Init;");
-    lWriter.println();
-
-    lVisitor.reduce(lFinalState);
-
-    Set<Integer> lProcessedStates = new HashSet<Integer>();
-    LinkedList<Integer> lWorklist = new LinkedList<Integer>();
-
-    lWorklist.add(lVisitor.getInitialState());
-
-    while (!lWorklist.isEmpty()) {
-      Integer lState = lWorklist.pop();
-
-      if (lProcessedStates.contains(lState)) {
-        continue;
-      }
-
-      lProcessedStates.add(lState);
-
-      lWriter.println("STATE NONDET State" + lState + ":");
-
-      for (Triple<Integer, Integer, Atom> lOutgoingEdge : lVisitor.getOutgoingEdges(lState)) {
-        Integer lTarget = lOutgoingEdge.getSecond();
-
-        lWorklist.addLast(lTarget);
-
-        lWriter.println("  CHECK(edgevisit(\"" + lOutgoingEdge.getThird().getIdentifier() + "\")) -> GOTO State" + lTarget + ";");
-      }
-
-      if (lState.equals(lFinalState)) {
-        //lWriter.println("  CHECK(edgevisit(\"" + pOmegaEdge + "\")) -> ERROR;");
-        lWriter.println("  CHECK(edgevisit(\"" + pOmegaEdge + "\")) -> GOTO Accept;");
-      }
-
-      lWriter.println("  TRUE -> BOTTOM;");
-      
-      lWriter.println();
-    }
-    
-    lWriter.println("STATE Accept:");
-    lWriter.println("  TRUE -> GOTO Accept;");
-    lWriter.println();
-
-    return lResult.toString();
+    return Visitor.translate(pECP, pAutomatonName, pAlphaEdge, pOmegaEdge);
   }
 
 }
