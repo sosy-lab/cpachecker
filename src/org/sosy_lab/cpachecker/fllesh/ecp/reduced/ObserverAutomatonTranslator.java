@@ -108,7 +108,7 @@ public class ObserverAutomatonTranslator {
           lWriter.println("  CHECK(edgevisit(\"" + pOmegaEdge + "\")) -> GOTO Accept;");
         }
         
-        lWriter.println("  TRUE -> BOTTOM;");
+        lWriter.println("  TRUE -> STOP;");
         
         lWriter.println();
       }

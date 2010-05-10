@@ -73,7 +73,7 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
 <YYINITIAL> "INITIAL"           { return symbol("INITIAL", AutomatonSym.INITIAL); }
 <YYINITIAL> "STATE"             { return symbol("STATE", AutomatonSym.STATE); }
 <YYINITIAL> "ERROR"             { return symbol("ERROR", AutomatonSym.ERROR); }
-<YYINITIAL> "BOTTOM"            { return symbol("BOTTOM", AutomatonSym.BOTTOM); }
+<YYINITIAL> "STOP"              { return symbol("STOP", AutomatonSym.STOP); }
 <YYINITIAL> "ASSERT"            { return symbol("ASSERT", AutomatonSym.ASS); }
 <YYINITIAL> "MATCH"             { return symbol("MATCH", AutomatonSym.MATCH); }
 <YYINITIAL> "LABEL"             { return symbol("LABEL", AutomatonSym.LABEL); }

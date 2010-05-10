@@ -230,7 +230,19 @@ abstract class AutomatonBoolExpr {
           AbstractQueryableElement aqe = (AbstractQueryableElement) ae;
           if (aqe.getCPAName().equals(cpaName)) {
             try {
-              return MaybeBoolean.valueOf(aqe.checkProperty(modifiedQueryString));
+              if (aqe.checkProperty(modifiedQueryString)) {
+                String message = "CPA-Check succeeded: ModifiedCheckString: \"" + 
+                modifiedQueryString + "\" CPAElement: (" + aqe.getCPAName() + ") \"" +
+                aqe.toString() + "\"";
+                pArgs.getLogger().log(Level.FINER, message);
+                return MaybeBoolean.TRUE;
+              } else {
+                String message = "CPA-Check failed: ModifiedCheckString: \"" + 
+                modifiedQueryString + "\" CPAElement: (" + aqe.getCPAName() + ") \"" +
+                aqe.toString() + "\"";
+                pArgs.getLogger().log(Level.FINER, message);
+                return MaybeBoolean.FALSE;
+              }
 
             } catch (InvalidQueryException e) {
               pArgs.getLogger().logException(Level.WARNING, e,

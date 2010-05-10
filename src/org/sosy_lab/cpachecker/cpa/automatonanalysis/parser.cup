@@ -67,7 +67,7 @@ parser code {:
 
 
 
-terminal EXCLAMATION, AND, OR, ARROW, SEMICOLON, COLON, OPEN_BRACKETS, CLOSE_BRACKETS, AUTOMATON, LOCAL, INITIAL, STATE, ERROR, BOTTOM, ASS, MATCH, LABEL, CHECK, MODIFY, DO, PRINT, GOTO, IDENTIFIER, INTEGER_LITERAL, NEQ, EQ, EQEQ, PLUS, MINUS, TRUE, FALSE, STRING_LITERAL, CURLYEXPR, SQUAREEXPR, NONDET ;
+terminal EXCLAMATION, AND, OR, ARROW, SEMICOLON, COLON, OPEN_BRACKETS, CLOSE_BRACKETS, AUTOMATON, LOCAL, INITIAL, STATE, ERROR, STOP, ASS, MATCH, LABEL, CHECK, MODIFY, DO, PRINT, GOTO, IDENTIFIER, INTEGER_LITERAL, NEQ, EQ, EQEQ, PLUS, MINUS, TRUE, FALSE, STRING_LITERAL, CURLYEXPR, SQUAREEXPR, NONDET ;
 
 non terminal Automaton initial ;
 non terminal String InitDef ;
@@ -128,7 +128,7 @@ Transition   ::= Triggers:triggers  ARROW Assertions:ass Actions:acts GOTO IDENT
               {: RESULT = new AutomatonTransition(triggers, ass, acts, follow.toString()); :}
                | Triggers:triggers  ARROW Assertions:ass Actions:acts ERROR SEMICOLON
               {: RESULT = new AutomatonTransition(triggers, ass, acts, AutomatonInternalState.ERROR); :}
-               | Triggers:triggers  ARROW Assertions:ass Actions:acts BOTTOM SEMICOLON
+               | Triggers:triggers  ARROW Assertions:ass Actions:acts STOP SEMICOLON
               {: RESULT = new AutomatonTransition(triggers, ass, acts, AutomatonInternalState.BOTTOM); :}
               ;
 
