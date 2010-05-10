@@ -9,7 +9,7 @@ public class AutomatonEditor extends TextEditor {
 	public AutomatonEditor() {
 		super();
 		colorManager = new ColorManager();
-		setSourceViewerConfiguration(new XMLConfiguration(colorManager));
+		setSourceViewerConfiguration(new AutomatonConfiguration(colorManager));
 		setDocumentProvider(new AutomatonDocumentProvider());
 	}
 	public void dispose() {

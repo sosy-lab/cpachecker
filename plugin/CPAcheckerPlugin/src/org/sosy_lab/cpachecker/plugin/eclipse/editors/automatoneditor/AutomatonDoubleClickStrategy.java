@@ -2,7 +2,7 @@ package org.sosy_lab.cpachecker.plugin.eclipse.editors.automatoneditor;
 
 import org.eclipse.jface.text.*;
 
-public class XMLDoubleClickStrategy implements ITextDoubleClickStrategy {
+public class AutomatonDoubleClickStrategy implements ITextDoubleClickStrategy {
 	protected ITextViewer fText;
 
 	public void doubleClicked(ITextViewer part) {

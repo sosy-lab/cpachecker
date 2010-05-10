@@ -15,10 +15,10 @@ public class AutomatonDocumentProvider extends FileDocumentProvider {
 				new FastPartitioner(
 					new AutomatonPartitionScanner(),
 					new String[] {
-						AutomatonPartitionScanner.AUTOMATON_STATE_PARTITION,
 						AutomatonPartitionScanner.AUTOMATON_SINGLE_LINE_COMMENT,
 						AutomatonPartitionScanner.AUTOMATON_MULTI_LINE_COMMENT,
-						AutomatonPartitionScanner.AUTOMATON_STRING});
+						AutomatonPartitionScanner.AUTOMATON_STRING,
+						AutomatonPartitionScanner.AUTOMATON_KEYWORD});
 			partitioner.connect(document);
 			document.setDocumentPartitioner(partitioner);
 		}
