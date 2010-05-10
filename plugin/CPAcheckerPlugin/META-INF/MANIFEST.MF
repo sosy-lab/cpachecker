@@ -10,19 +10,13 @@ Require-Bundle: org.eclipse.ui,
  org.eclipse.ui.editors,
  org.eclipse.cdt.core,
  org.eclipse.cdt.ui,
- org.eclipse.core.resources;bundle-version="3.5.2"
+ org.eclipse.core.resources;bundle-version="3.5.2",
+ org.sosy_lab.cpachecker.runtime;bundle-version="1.0.0"
 Bundle-ActivationPolicy: lazy
 Bundle-RequiredExecutionEnvironment: JavaSE-1.6
-Bundle-ClassPath: .,
- lib/CPAchecker.jar,
- lib/google-collect-1.0.jar,
- lib/java-cup-11a.jar,
- lib/javabdd-1.0b2.jar,
- lib/JFlex.jar,
- lib/jgrapht-jdk1.6.jar,
- lib/mathsat.jar,
- lib/yicesapijava.jar
+Bundle-ClassPath: .
 Import-Package: junit.framework,
  org.eclipse.ui.actions,
+ org.eclipse.ui.console,
  org.eclipse.ui.dialogs,
  org.eclipse.ui.part

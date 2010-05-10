@@ -22,8 +22,8 @@ public class AutomatonConfiguration extends SourceViewerConfiguration {
 			AutomatonPartitionScanner.AUTOMATON_SINGLE_LINE_COMMENT,
 			AutomatonPartitionScanner.AUTOMATON_MULTI_LINE_COMMENT,
 			AutomatonPartitionScanner.AUTOMATON_STRING,
-			AutomatonPartitionScanner.AUTOMATON_KEYWORD}
-		;
+			AutomatonPartitionScanner.AUTOMATON_KEYWORD
+			};
 	}
 	
 	public ITextDoubleClickStrategy getDoubleClickStrategy(

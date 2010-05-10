@@ -41,13 +41,14 @@
             icon="icons/config32.gif"
             extensions="properties"
             contributorClass="org.eclipse.ui.texteditor.BasicTextEditorActionContributor"
-            class="org.sosy_lab.cpachecker.plugin.eclipse.editors.propertieseditor.PropertyFileEditor"
-            id="org.sosy_lab.cpachecker.plugin.eclipse.editors.propertieseditor.PropertyFileEditor">
+            class="org.sosy_lab.cpachecker.plugin.eclipse.editors.propertieseditor.PropertiesEditor"
+            id="org.sosy_lab.cpachecker.plugin.eclipse.editors.propertieseditor.PropertiesEditor">
       </editor>  	
       	<editor
             name="Automaton Editor"
             extensions="auto"
             icon="icons/sample.gif"
+            default="true"
             contributorClass="org.eclipse.ui.texteditor.BasicTextEditorActionContributor"
             class="org.sosy_lab.cpachecker.plugin.eclipse.editors.automatoneditor.AutomatonEditor"
             id="org.sosy_lab.cpachecker.plugin.eclipse.editors.automatoneditor.AutomatonEditor">
@@ -75,5 +76,18 @@
          </action>
       </objectContribution>
    </extension>
-
+   <extension
+         point="org.eclipse.ui.preferencePages">
+      <page
+            name="CPAPlugin"
+            class="org.sosy_lab.cpachecker.plugin.eclipse.preferences.CPAPreferencePage"
+            id="org.sosy_lab.cpachecker.plugin.eclipse.preferences.CPAPreferencePage">
+      </page>
+   </extension>
+   <extension
+         point="org.eclipse.core.runtime.preferences">
+      <initializer
+            class="org.sosy_lab.cpachecker.plugin.eclipse.preferences.PreferenceInitializer">
+      </initializer>
+   </extension>
 </plugin>
