@@ -75,10 +75,15 @@ public class TaskTreeViewer extends TreeViewer {
 			if (parent instanceof Node) {
 				Node ex1 = (Node) parent;
 				if (ex1.getType() == NodeType.TASK) {
-					Object[] ret = new Object[2];
-					ret[0] = ((TaskNode)ex1).getConfigNode();
-					ret[1] = ((TaskNode)ex1).task.getTranslationUnit();
-					return ret;
+					ConfigNode c = ((TaskNode)ex1).getConfigNode();
+					ITranslationUnit u = ((TaskNode)ex1).getTask().getTranslationUnit();
+					if (c != null && u != null) {
+						return new Object[] {c, u};
+					} else if (c != null) {
+						return new Object[] {c};
+					} else {
+						return new Object[] {u};
+					}
 				} else if (ex1.getType() == NodeType.TOP) {
 					return ((TopNode)ex1).getChildren();
 				}
@@ -155,11 +160,13 @@ public class TaskTreeViewer extends TreeViewer {
 	static class TaskNode implements Node {
 		private Task task;
 		private TopNode parent;
-		private ConfigNode configNode;
+		private ConfigNode configNode = null;
 		public TaskNode(Task task, TopNode parent) {
 			this.parent = parent;
 			this.task = task;
-			configNode = new ConfigNode(task.getConfigFilePath(), this);
+			if (task.hasConfigurationFile()) {
+				configNode = new ConfigNode(task.getConfigFilePath(), this);
+			}
 		}
 		public NodeType getType() { return NodeType.TASK; }
 		public String getName() { return task.getName(); }

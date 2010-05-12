@@ -58,21 +58,26 @@
          point="org.eclipse.ui.popupMenus">
       <objectContribution
             id="org.sosy_lab.cpachecker.plugin.eclipse.popupmenu"
-            objectClass="org.eclipse.cdt.core.model.ITranslationUnit">
+			objectClass="java.lang.Object">
+			<visibility>
+			<or>
+				<objectClass name="org.eclipse.cdt.core.model.ITranslationUnit"/>
+				<objectClass name="org.eclipse.core.resources.IFile"/>
+			</or>
+			</visibility>
          <menu
-               id="org.sosy_lab.cpachecker.plugin.eclipse.CFilesMenu"
+               id="org.sosy_lab.cpachecker.plugin.eclipse.generalMenu"
                label="CPAchecker"
                path="additions">
-            <separator
-                  name="group1">
+            <separator name="group2">
             </separator>
          </menu>
          <action
-               class="org.sosy_lab.cpachecker.plugin.eclipse.popup.actions.DefaultCheckAction"
-               enablesFor="1"
-               id="org.sosy_lab.cpachecker.plugin.eclipse.popup.actions.DefaultCheckAction"
-               label="run Default Check"
-               menubarPath="org.sosy_lab.cpachecker.plugin.eclipse.CFilesMenu/group1">
+               class="org.sosy_lab.cpachecker.plugin.eclipse.popup.actions.NewTaskAction"
+               enablesFor="+"
+               id="org.sosy_lab.cpachecker.plugin.eclipse.popup.actions.NewTaskAction"
+               label="create new Task"
+               menubarPath="org.sosy_lab.cpachecker.plugin.eclipse.generalMenu/group2">
          </action>
       </objectContribution>
    </extension>

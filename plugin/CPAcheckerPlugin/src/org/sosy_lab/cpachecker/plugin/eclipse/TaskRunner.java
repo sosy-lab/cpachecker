@@ -3,27 +3,17 @@ package org.sosy_lab.cpachecker.plugin.eclipse;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.util.Collections;
 import java.util.List;
-import java.util.logging.Level;
 import java.util.logging.StreamHandler;
-
-import javax.swing.JOptionPane;
 
 import org.eclipse.cdt.core.model.ITranslationUnit;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.runtime.CoreException;
-import org.eclipse.swt.widgets.Display;
-import org.eclipse.ui.IWorkbenchPage;
-import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.console.ConsolePlugin;
 import org.eclipse.ui.console.IConsole;
-import org.eclipse.ui.console.IConsoleConstants;
 import org.eclipse.ui.console.IConsoleManager;
-import org.eclipse.ui.console.IConsoleView;
-import org.eclipse.ui.console.IOConsoleOutputStream;
 import org.eclipse.ui.console.MessageConsole;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.LogManager.ConsoleLogFormatter;
@@ -48,7 +38,7 @@ public class TaskRunner {
 				
 				Configuration config;
 				try {
-					config = t.getConfig();
+					config = t.loadConfig();
 					OutputStream outStream = con.newMessageStream();
 					LogManager logger = new LogManager(config, new StreamHandler(outStream , new ConsoleLogFormatter()));		
 					Thread run = new Thread(new TaskRun(t.getTranslationUnit(), config, outStream, logger, t));
@@ -107,39 +97,8 @@ public class TaskRunner {
 			} catch (Exception e) {
 				System.err.println("Task \"" + task.getName() + "\" run has thrown an exception:");
 				e.printStackTrace();
-			}
-			
+			}			
 		}
-	}
-	
-	
-	
-	private void closeStreams(OutputStream outStream, OutputStream errStream) {
-		try {
-			if (outStream!= null) {
-				outStream.flush();	
-				outStream.close();
-			}
-			if (errStream != null) {
-				errStream.flush();
-				errStream.close();
-			}
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
-
-	private MessageConsole findConsole(String name) {
-		ConsolePlugin plugin = ConsolePlugin.getDefault();
-		IConsoleManager conMan = plugin.getConsoleManager();
-		IConsole[] existing = conMan.getConsoles();
-		for (int i = 0; i < existing.length; i++)
-			if (name.equals(existing[i].getName()))
-				return (MessageConsole) existing[i];
-		// no consoleStream found, so create a new one
-		MessageConsole myConsole = new MessageConsole(name, null);
-		conMan.addConsoles(new IConsole[] { myConsole });
-		return myConsole;
 	}
 	
 	public static class Task {
@@ -148,6 +107,12 @@ public class TaskRunner {
 		private IFile configFile = null;
 		private Configuration config = null;
 
+		/**
+		 * One of the parameters configFile and source may be null.
+		 * @param taskName
+		 * @param configFile
+		 * @param source
+		 */
 		public Task(String taskName, IFile configFile, ITranslationUnit source) {
 			this.name = taskName;
 			this.configFile = configFile;
@@ -164,7 +129,13 @@ public class TaskRunner {
 			this.sourceTranslationUnit = source;
 		}
 		
-		public Configuration getConfig() throws IOException, CoreException {
+		/**
+		 * Assumes that configfile is not null
+		 * @return
+		 * @throws IOException
+		 * @throws CoreException
+		 */
+		public Configuration loadConfig() throws IOException, CoreException {
 			if (config == null) {
 				config = new Configuration(configFile.getContents(), Collections.<String,String>emptyMap());
 				String projectRoot = this.configFile.getProject().getLocation().toPortableString();
@@ -203,7 +174,7 @@ public class TaskRunner {
 		 */
 		public boolean hasPreRunError() {
 			try {
-				if (getConfig() == null) {
+				if (configFile == null || loadConfig() == null) {
 					return true;
 				} else if (this.getTranslationUnit() == null) {
 					return true;
@@ -217,7 +188,9 @@ public class TaskRunner {
 		}
 		
 		public String getErrorMessage() {
-			if (this.config == null) {
+			if (this.configFile == null) {
+				return "No configuration file was associated with this task!";
+			} else if (this.config == null) {
 				return "Could not parse the configuration file \"" + this.configFile.getProjectRelativePath() +" \".";
 			} else if (this.getTranslationUnit() == null) {
 				return "No Source file was associated with this Task!";
@@ -228,6 +201,10 @@ public class TaskRunner {
 		
 		public ITranslationUnit getTranslationUnit() {
 			return this.sourceTranslationUnit;
+		}
+
+		public boolean hasConfigurationFile() {
+			return this.configFile != null;
 		}
 	}
 }

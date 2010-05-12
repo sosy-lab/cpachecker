@@ -141,6 +141,7 @@ public class TasksView extends ViewPart {
 	
 	public void refresh() {
 		myTreeViewer.refresh();
+		this.progress.setText(CPAcheckerPlugin.getPlugin().getTasks().size() + "Tasks listed");
 	}
 	
 	@Override
