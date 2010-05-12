@@ -8,6 +8,7 @@ import org.eclipse.cdt.core.model.ICProject;
 import org.eclipse.cdt.core.model.ITranslationUnit;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
+import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.jface.wizard.WizardPage;
@@ -21,13 +22,14 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Text;
 
 public class NewTaskCreationWizardPage extends WizardPage {
-	private Text sourceText;
-	private Text configText;
-	private Text nameText;
+	private Text sourceTextControl;
+	private Text configTextControl;
+	private Text nameTextControl;
 	
 	NewTaskCreationWizard parent;
 	private Composite composite;
 	private ITranslationUnit sourceFile;
+	private IFile configFile;
 
 	protected NewTaskCreationWizardPage(String pageName, NewTaskCreationWizard newTaskWizard) {
 		super(pageName);
@@ -42,22 +44,22 @@ public class NewTaskCreationWizardPage extends WizardPage {
 		Label nameLabel = new Label(composite, SWT.NONE);
 		nameLabel.setText("Task Name:");
 		
-		nameText = new Text(composite, SWT.BORDER);
+		nameTextControl = new Text(composite, SWT.BORDER);
 		GridData gridData = new GridData();
 		gridData.horizontalAlignment = SWT.FILL;
 		gridData.grabExcessHorizontalSpace = true;
-		nameText.setLayoutData(gridData);
-		nameText.setText("default name");
+		nameTextControl.setLayoutData(gridData);
+		nameTextControl.setText("default name");
 		
 		Label configLabel = new Label(composite, SWT.NONE);
 		configLabel.setText("Config File:");
 		
-		configText = new Text(composite, SWT.BORDER);
+		configTextControl = new Text(composite, SWT.BORDER);
 		gridData = new GridData();
 		gridData.horizontalAlignment = SWT.FILL;
 		gridData.grabExcessHorizontalSpace = true;
-		configText.setLayoutData(gridData);
-		configText.setText("some_properties.properties");
+		configTextControl.setLayoutData(gridData);
+		configTextControl.setText("TestProjekt/src/setuid.properties");
 		
 		Label sourceLabel = new Label(composite, SWT.NONE);
 		sourceLabel.setText("Source File:");
@@ -65,18 +67,29 @@ public class NewTaskCreationWizardPage extends WizardPage {
 		gridData.verticalAlignment = SWT.TOP;
 		sourceLabel.setLayoutData(gridData);
 		
-		sourceText = new Text(composite, SWT.BORDER | SWT.WRAP | SWT.MULTI);
+		sourceTextControl = new Text(composite, SWT.BORDER | SWT.WRAP | SWT.MULTI);
 		gridData = new GridData();
 		gridData.horizontalAlignment = SWT.FILL;
 		gridData.grabExcessHorizontalSpace = true;
 		gridData.verticalAlignment = SWT.FILL;
 		gridData.grabExcessVerticalSpace = true;
-		sourceText.setLayoutData(gridData);
-		sourceText.setText("some_source_file.c");
-		sourceText.addFocusListener(new FocusListener() {
+		sourceTextControl.setLayoutData(gridData);
+		sourceTextControl.setText("src/simple_setuid_test.c");
+		sourceTextControl.addFocusListener(new FocusListener() {
 			@Override
 			public void focusLost(FocusEvent e) {
-				NewTaskCreationWizardPage.this.obtainSourceFile(sourceText.getText());
+				NewTaskCreationWizardPage.this.obtainSourceFile(sourceTextControl.getText());
+				
+			}
+			@Override
+			public void focusGained(FocusEvent e) {
+				// nothing
+			}
+		});
+		configTextControl.addFocusListener(new FocusListener() {
+			@Override
+			public void focusLost(FocusEvent e) {
+				NewTaskCreationWizardPage.this.obtainConfigFile(configTextControl.getText());
 				
 			}
 			@Override
@@ -87,8 +100,11 @@ public class NewTaskCreationWizardPage extends WizardPage {
 		super.setControl(composite);
 	}
 	
-	String getConfigText() {
-		return configText.getText();
+	IFile getConfigFile() {
+		if (configFile == null) {
+			obtainConfigFile(this.configTextControl.getText());
+		}
+		return configFile;
 	}
 	
 	private void setITranslationUnit(ITranslationUnit source) {
@@ -96,12 +112,29 @@ public class NewTaskCreationWizardPage extends WizardPage {
 	}
 	
 	public ITranslationUnit getITranslationUnit() {
+		if (this.sourceFile == null) {
+			obtainSourceFile(this.sourceTextControl.getText());
+		}
 		return this.sourceFile;
 	}
 
 	public String getTaskName() {
-		return nameText.getText();
+		return nameTextControl.getText();
 	}
+	private boolean obtainConfigFile(String configFilePath) {
+		IWorkspaceRoot fWorkspaceRoot = ResourcesPlugin.getWorkspace().getRoot();
+		IResource member = fWorkspaceRoot.findMember(configFilePath);
+		if (member == null || !member.exists() || !(member.getType() == IResource.FILE)) {
+			this.setErrorMessage("Failed to locate the file " + configFilePath);
+			return false;
+		} else {
+			IFile file = (IFile)member;
+			this.configFile = file;
+			this.setMessage("ConfigFile is now: " + member.getFullPath().toPortableString());
+			return true;
+		}
+	}
+	
 	
 	private boolean obtainSourceFile(String sourceFilePath) {
 		IWorkspaceRoot fWorkspaceRoot = ResourcesPlugin.getWorkspace().getRoot();

@@ -6,6 +6,6 @@ public interface ITestListener {
 	void tasksStarted(int taskCount);
 	void tasksFinished();
 	void taskStarted(Task id);
-	void taskFailed(Task id);
+	void taskFinished(Task id, boolean succeded);
 	void tasksChanged();
 }

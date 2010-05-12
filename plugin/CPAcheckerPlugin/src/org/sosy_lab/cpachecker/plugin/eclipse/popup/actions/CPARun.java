@@ -59,8 +59,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.plugin.eclipse.CPAcheckerPlugin;
 import org.sosy_lab.cpachecker.plugin.eclipse.preferences.PreferenceConstants;
 
-public class CPARun implements IWorkbenchWindowActionDelegate
-{
+public class CPARun implements IWorkbenchWindowActionDelegate {
 	private boolean init = false;
 	private int numberOfRuns = 0;
 	private IWorkbenchWindow window;
@@ -68,134 +67,145 @@ public class CPARun implements IWorkbenchWindowActionDelegate
 	/**
 	 * The constructor.
 	 */
-	public CPARun ()
-	{
+	public CPARun() {
 
 	}
-	private void init()
-	{
-		if(init == false)
-		{
+
+	private void init() {
+		if (init == false) {
 			MessageConsole myConsole = findConsole("CPACHECKER");
 			IOConsoleOutputStream outStream = myConsole.newOutputStream();
 			IOConsoleOutputStream errStream = myConsole.newOutputStream();
-			errStream.setColor(new org.eclipse.swt.graphics.Color(Display.getDefault(), 255,0,0));
+			errStream.setColor(new org.eclipse.swt.graphics.Color(Display
+					.getDefault(), 255, 0, 0));
 			System.setOut(new PrintStream(outStream));
 			System.setErr(new PrintStream(errStream));
 			init = true;
 		}
 		return;
 	}
+
 	private MessageConsole findConsole(String name) {
-	      ConsolePlugin plugin = ConsolePlugin.getDefault();
-	      IConsoleManager conMan = plugin.getConsoleManager();
-	      IConsole[] existing = conMan.getConsoles();
-	      for (int i = 0; i < existing.length; i++)
-	         if (name.equals(existing[i].getName()))
-	            return (MessageConsole) existing[i];
-	      //no console found, so create a new one
-	      MessageConsole myConsole = new MessageConsole(name, null);
-	      conMan.addConsoles(new IConsole[]{myConsole});
-	      return myConsole;
-	   }
+		ConsolePlugin plugin = ConsolePlugin.getDefault();
+		IConsoleManager conMan = plugin.getConsoleManager();
+		IConsole[] existing = conMan.getConsoles();
+		for (int i = 0; i < existing.length; i++)
+			if (name.equals(existing[i].getName()))
+				return (MessageConsole) existing[i];
+		// no console found, so create a new one
+		MessageConsole myConsole = new MessageConsole(name, null);
+		conMan.addConsoles(new IConsole[] { myConsole });
+		return myConsole;
+	}
+
 	/**
 	 * The action has been activated. The argument of the method represents the
 	 * 'real' action sitting in the workbench UI.
-	 *
+	 * 
 	 * @see IWorkbenchWindowActionDelegate#run
 	 */
-	public void run (IAction action)
-	{
-	  Configuration cpaConfig = null;
+	public void run(IAction action) {
+		Configuration cpaConfig = null;
 		numberOfRuns++;
-    try {
-      String configFile = CPAcheckerPlugin.getPlugin().getPreferenceStore().getString(PreferenceConstants.P_PATH);
-      cpaConfig = new Configuration(configFile, null);
-    } catch (IOException e) {
-      // TODO shouldn't an Eclipse Dialog be used here?
-      JOptionPane.showMessageDialog(null, "Could not read config file " + e.getMessage(), "Could not read config file", JOptionPane.ERROR_MESSAGE);
-      return;
-    }
-    LogManager logManager;
-    try {
-      logManager = new LogManager(cpaConfig);
-    } catch (InvalidConfigurationException e) {
-      JOptionPane.showMessageDialog(null, "Invalid configuration: " + e.getMessage(), "Invalid configuration", JOptionPane.ERROR_MESSAGE);
-      return;
-    }
+		try {
+			String configFile = CPAcheckerPlugin.getPlugin()
+					.getPreferenceStore().getString(PreferenceConstants.P_PATH);
+			cpaConfig = new Configuration(configFile, null);
+		} catch (IOException e) {
+			// TODO shouldn't an Eclipse Dialog be used here?
+			JOptionPane.showMessageDialog(null, "Could not read config file "
+					+ e.getMessage(), "Could not read config file",
+					JOptionPane.ERROR_MESSAGE);
+			return;
+		}
+		LogManager logManager;
+		try {
+			logManager = new LogManager(cpaConfig);
+		} catch (InvalidConfigurationException e) {
+			JOptionPane.showMessageDialog(null, "Invalid configuration: "
+					+ e.getMessage(), "Invalid configuration",
+					JOptionPane.ERROR_MESSAGE);
+			return;
+		}
 
-    //Lets set up a console to write to
-    init();
+		// Lets set up a console to write to
+		init();
 		MessageConsole myConsole = findConsole("CPACHECKER");
 		logManager.log(Level.INFO, "Run #:" + numberOfRuns);
 		logManager.log(Level.INFO, "Program Started");
 
-		MessageDialog.openInformation (window.getShell (), "CPAPlugin Plug-in", "Launching CPAChecker Eclipse Plugin");
+		MessageDialog.openInformation(window.getShell(), "CPAPlugin Plug-in",
+				"Launching CPAChecker Eclipse Plugin");
 
-		try
-		{
+		try {
 			// Get the current document
-			IWorkbench workbench = PlatformUI.getWorkbench ();
-			if (workbench == null)
-			{
-				MessageDialog.openInformation (window.getShell (), "CPAPlugin Plug-in", "Workbench cannot be found");
+			IWorkbench workbench = PlatformUI.getWorkbench();
+			if (workbench == null) {
+				MessageDialog.openInformation(window.getShell(),
+						"CPAPlugin Plug-in", "Workbench cannot be found");
 				return;
 			}
 
-			IWorkbenchWindow workbenchWindow = workbench.getActiveWorkbenchWindow ();
-			if (workbenchWindow == null)
-			{
-				MessageDialog.openInformation (window.getShell (), "CPAPlugin Plug-in", "No active workbench window");
+			IWorkbenchWindow workbenchWindow = workbench
+					.getActiveWorkbenchWindow();
+			if (workbenchWindow == null) {
+				MessageDialog.openInformation(window.getShell(),
+						"CPAPlugin Plug-in", "No active workbench window");
 				return;
 			}
 
-			IWorkbenchPage workbenchPage = workbenchWindow.getActivePage ();
-			if (workbenchPage == null)
-			{
-				MessageDialog.openInformation (window.getShell (), "CPAPlugin Plug-in", "No active page in active workbench window");
+			IWorkbenchPage workbenchPage = workbenchWindow.getActivePage();
+			if (workbenchPage == null) {
+				MessageDialog.openInformation(window.getShell(),
+						"CPAPlugin Plug-in",
+						"No active page in active workbench window");
 				return;
 			}
 
-			IEditorPart editorPart = workbenchPage.getActiveEditor ();
-			if (editorPart == null)
-			{
-				MessageDialog.openInformation (window.getShell (), "CPAPlugin Plug-in", "No active editor in the active workbench");
+			IEditorPart editorPart = workbenchPage.getActiveEditor();
+			if (editorPart == null) {
+				MessageDialog.openInformation(window.getShell(),
+						"CPAPlugin Plug-in",
+						"No active editor in the active workbench");
 				return;
 			}
 
-			IEditorInput editorInput = editorPart.getEditorInput ();
-			if (editorInput == null)
-			{
-				MessageDialog.openInformation (window.getShell (), "CPAPlugin Plug-in", "No active editor input in active editor part");
+			IEditorInput editorInput = editorPart.getEditorInput();
+			if (editorInput == null) {
+				MessageDialog.openInformation(window.getShell(),
+						"CPAPlugin Plug-in",
+						"No active editor input in active editor part");
 				return;
 			}
 
-			IFile currentFile = (IFile) editorInput.getAdapter (IFile.class);
-			if (currentFile == null)
-			{
-				MessageDialog.openInformation (window.getShell (), "CPAPlugin Plug-in", "No file associated with current editor input");
+			IFile currentFile = (IFile) editorInput.getAdapter(IFile.class);
+			if (currentFile == null) {
+				MessageDialog.openInformation(window.getShell(),
+						"CPAPlugin Plug-in",
+						"No file associated with current editor input");
 				return;
 			}
 			String extension = currentFile.getFileExtension();
-			if(extension.compareTo("c") != 0)
-			{
-				MessageDialog.openInformation (window.getShell (), "CPAPlugin Plug-in", "Cannot parse non-c file");
+			if (extension.compareTo("c") != 0) {
+				MessageDialog.openInformation(window.getShell(),
+						"CPAPlugin Plug-in", "Cannot parse non-c file");
 				return;
 			}
 
-			//Now grab its attention and display
-      String id = IConsoleConstants.ID_CONSOLE_VIEW;
-      IConsoleView view = (IConsoleView) workbenchPage.showView(id);
-      view.display(myConsole);
+			// Now grab its attention and display
+			String id = IConsoleConstants.ID_CONSOLE_VIEW;
+			IConsoleView view = (IConsoleView) workbenchPage.showView(id);
+			view.display(myConsole);
 
-      //Now run analysis
-      CPAchecker cpachecker = new CPAchecker(cpaConfig, logManager);
-      CPAcheckerResult result = cpachecker.run(currentFile.getLocation().toOSString());
-      result.printStatistics(new PrintWriter(myConsole.newOutputStream()));
-		}
-		catch (Exception e)
-		{
-      logManager.logException(Level.WARNING, e, "");
+			// Now run analysis
+			CPAchecker cpachecker = new CPAchecker(cpaConfig, logManager);
+			CPAcheckerResult result = cpachecker.run(currentFile.getLocation()
+					.toOSString());
+			result
+					.printStatistics(new PrintWriter(myConsole
+							.newOutputStream()));
+		} catch (Exception e) {
+			logManager.logException(Level.WARNING, e, "");
 		}
 	}
 
@@ -203,31 +213,28 @@ public class CPARun implements IWorkbenchWindowActionDelegate
 	 * Selection in the workbench has been changed. We can change the state of
 	 * the 'real' action here if we want, but this can only happen after the
 	 * delegate has been created.
-	 *
+	 * 
 	 * @see IWorkbenchWindowActionDelegate#selectionChanged
 	 */
-	public void selectionChanged (IAction action, ISelection selection)
-	{
+	public void selectionChanged(IAction action, ISelection selection) {
 	}
 
 	/**
 	 * We can use this method to dispose of any system resources we previously
 	 * allocated.
-	 *
+	 * 
 	 * @see IWorkbenchWindowActionDelegate#dispose
 	 */
-	public void dispose ()
-	{
+	public void dispose() {
 	}
 
 	/**
 	 * We will cache window object in order to be able to provide parent shell
 	 * for the message dialog.
-	 *
+	 * 
 	 * @see IWorkbenchWindowActionDelegate#init
 	 */
-	public void init (IWorkbenchWindow window)
-	{
+	public void init(IWorkbenchWindow window) {
 		this.window = window;
 	}
 }

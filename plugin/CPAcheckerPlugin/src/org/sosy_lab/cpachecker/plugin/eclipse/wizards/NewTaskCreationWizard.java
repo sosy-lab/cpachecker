@@ -10,14 +10,11 @@
  *******************************************************************************/
 package org.sosy_lab.cpachecker.plugin.eclipse.wizards;
 
-import java.util.Collections;
-
 import org.eclipse.cdt.core.model.ITranslationUnit;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.wizard.Wizard;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchWizard;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.plugin.eclipse.CPAcheckerPlugin;
 import org.sosy_lab.cpachecker.plugin.eclipse.TaskRunner;
 import org.sosy_lab.cpachecker.plugin.eclipse.TaskRunner.Task;
@@ -40,10 +37,10 @@ public class NewTaskCreationWizard extends Wizard implements IWorkbenchWizard{
 	    if (source == null) {
 	    	return false;
 	    }
-		
-		Task t = new TaskRunner.Task(firstPage.getTaskName(), new Configuration(Collections.<String,String>emptyMap()), source);
-		CPAcheckerPlugin.getPlugin().addTask(t);
 	    
+		Task t;
+		t = new TaskRunner.Task(firstPage.getTaskName(),firstPage.getConfigFile() , source);
+		CPAcheckerPlugin.getPlugin().addTask(t);
 		return true;
 	}
 	

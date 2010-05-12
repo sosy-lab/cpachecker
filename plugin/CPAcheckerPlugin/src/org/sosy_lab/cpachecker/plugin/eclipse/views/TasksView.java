@@ -100,7 +100,7 @@ public class TasksView extends ViewPart {
 			}
 			// TODO: find a more fine-granular update method
 			@Override
-			public void taskFailed(Task id) {
+			public void taskFinished(Task id, boolean success) {
 				myTreeViewer.refresh();
 			}
 			@Override

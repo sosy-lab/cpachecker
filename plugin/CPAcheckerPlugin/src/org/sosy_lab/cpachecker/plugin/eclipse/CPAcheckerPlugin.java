@@ -33,6 +33,29 @@ public class CPAcheckerPlugin extends AbstractUIPlugin {
 		super();
 		// instance will be overwritten each time, but this seems to be intended by eclipse people
 		instance = this;
+		this.addTestListener(new ITestListener() {
+			@Override
+			public void tasksStarted(int taskCount) {
+				System.out.println(taskCount + " Tasks started");
+			}
+			@Override
+			public void tasksFinished() {
+				System.out.println("all Tasks finished");
+			}
+			@Override
+			public void tasksChanged() {
+				System.out.println("tasks Changed");
+			}
+			@Override
+			public void taskStarted(Task id) {
+				System.out.println("started Task \"" + id.getName() + "\"");
+			}
+			@Override
+			public void taskFinished(Task id, boolean succeded) {
+				String result = (succeded ? "succeded " : "failed ");
+				System.out.println(result + " Task \"" + id.getName() + "\"");
+			}
+		});
 	}
 
 	public static CPAcheckerPlugin getPlugin() {
@@ -69,7 +92,9 @@ public class CPAcheckerPlugin extends AbstractUIPlugin {
 	}
 	
 	public static void runTasks(List<Task> tasks) {
-		new TaskRunner().run(tasks);
+		TaskRunner runner = new TaskRunner();
+		runner.activateConsole();
+		runner.run(tasks);
 	}
 
 	public List<ITestListener> getListeners() {
@@ -104,7 +129,7 @@ public class CPAcheckerPlugin extends AbstractUIPlugin {
 		getListeners().remove(listener);
 	}
 	
-	public void fireTestsStarted(final int count) {
+	public void fireTasksStarted(final int count) {
 		for (final Iterator<ITestListener> iter = getListeners().iterator(); iter.hasNext();) {
 			final ITestListener current = iter.next();
 			ISafeRunnable runnable = new ISafeRunnable() {
@@ -120,7 +145,7 @@ public class CPAcheckerPlugin extends AbstractUIPlugin {
 			SafeRunner.run(runnable);
 		}
 	}
-	public void fireTestsFinished() {
+	public void fireTasksFinished() {
 		for (final Iterator<ITestListener> iter = getListeners().iterator(); iter.hasNext();) {
 			final ITestListener current = iter.next();
 			ISafeRunnable runnable = new ISafeRunnable() {
@@ -136,7 +161,7 @@ public class CPAcheckerPlugin extends AbstractUIPlugin {
 			SafeRunner.run(runnable);
 		}
 	}
-	public void fireTestStarted(final Task taskID) {
+	public void fireTaskStarted(final Task taskID) {
 		for (final Iterator<ITestListener> iter = getListeners().iterator(); iter.hasNext();) {
 			final ITestListener current = iter.next();
 			ISafeRunnable runnable = new ISafeRunnable() {
@@ -152,13 +177,13 @@ public class CPAcheckerPlugin extends AbstractUIPlugin {
 			SafeRunner.run(runnable);
 		}
 	}
-	public void fireTestFailed(final Task taskID) {
+	public void fireTaskFinished(final Task taskID, final boolean succeded) {
 		for (final Iterator<ITestListener> iter = getListeners().iterator(); iter.hasNext();) {
 			final ITestListener current = iter.next();
 			ISafeRunnable runnable = new ISafeRunnable() {
 				@Override
 				public void run() throws Exception {
-					current.taskFailed(taskID);
+					current.taskFinished(taskID, succeded);
 				}		
 				@Override
 				public void handleException(Throwable exception) {
