@@ -26,6 +26,7 @@ package org.sosy_lab.common.configuration;
 import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Member;
@@ -103,7 +104,34 @@ public class Configuration {
       unusedProperties.add((String)key);
     }
   }
+  /**
+   * Constructor for creating a Configuration with values set from an inputStream.
+   * Also allows for passing an optional map of settings overriding those from
+   * the stream.
+   *
+   * Either the stream or the map of overrides may be null, not both. If the
+   * stream is null, this constructor behaves identically to the constructor
+   * {@link #Configuration(Map)}.
+   *
+   * @param inStream The optional inputStream containing the key-value pairs in propertyFile-format.
+   * @param pOverrides An optional set of option values.
+   * @throws IOException If the file cannot be read.
+   */
+  public Configuration(InputStream inStream, Map<String, String> pOverrides) throws IOException {
+    Preconditions.checkArgument(inStream != null || pOverrides != null);
+    properties = new Properties();
+    prefix = "";
+    properties.load(inStream);
 
+    if (pOverrides != null) {
+      properties.putAll(pOverrides);
+    }
+
+    unusedProperties = new HashSet<String>(properties.size());
+    for (Object key : properties.keySet()) {
+      unusedProperties.add((String)key);
+    }
+  }
   /**
    * Constructor for creating a Configuration with values set from a given map.
    * @param pValues The values this configuration should represent.
@@ -439,5 +467,17 @@ public class Configuration {
       e1.printStackTrace();
       // this is a debug method. No proper Exception handling
     }
+  }
+  /**
+   * sets the value of the property
+   * @param pKey
+   * @param pValue
+   */
+  public void setProperty(String pKey, String pValue) {
+    // not nice since configurations should be immutable. 
+    // Plugin needs it (this is the only way i can think of at the moment)
+    //TODO: Check if this is ok!
+    this.properties.put(prefix + pKey, pValue);
+    unusedProperties.add(prefix + pKey);
   }
 }

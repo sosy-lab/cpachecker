@@ -152,7 +152,7 @@ public class LogManager {
   }
 
   // class to handle formatting for console output
-  private static class ConsoleLogFormatter extends Formatter {
+  public static class ConsoleLogFormatter extends Formatter {
     @Override
     public String format(LogRecord lr) {
       String[] className = lr.getSourceClassName().split("\\.");
