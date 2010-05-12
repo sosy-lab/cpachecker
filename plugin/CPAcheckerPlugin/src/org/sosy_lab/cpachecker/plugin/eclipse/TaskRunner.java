@@ -1,6 +1,5 @@
 package org.sosy_lab.cpachecker.plugin.eclipse;
 
-import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -42,98 +41,79 @@ public class TaskRunner {
 		for (Task t : tasks) {
 			CPAcheckerPlugin.getPlugin().fireTaskStarted(t);
 			if (t.hasPreRunError()) {
-				CPAcheckerPlugin.getPlugin().fireTaskFinished(t, false);
+				CPAcheckerPlugin.getPlugin().firePreRunError(t, t.getErrorMessage());
 			} else {
-				CPAcheckerResult results = execute(t);
-				boolean success = results.getResult().equals(CPAcheckerResult.Result.SAFE);
-				CPAcheckerPlugin.getPlugin().fireTaskFinished(t, success);
+				
+				MessageConsole con = createMessageConsole("CPAchecker : " + t.getName());
+				
+				Configuration config;
+				try {
+					config = t.getConfig();
+					OutputStream outStream = con.newMessageStream();
+					LogManager logger = new LogManager(config, new StreamHandler(outStream , new ConsoleLogFormatter()));		
+					Thread run = new Thread(new TaskRun(t.getTranslationUnit(), config, outStream, logger, t));
+					run.start();
+					
+				} catch (IOException e) {
+					// cannot happen because this would have been a preRunError
+					assert false;
+				} catch (CoreException e) {
+					// cannot happen because this would have been a preRunError
+					assert false;
+				} catch (InvalidConfigurationException e) {
+					// cannot happen because this would have been a preRunError
+					assert false;
+				}
 			}
 		}
 		CPAcheckerPlugin.getPlugin().fireTasksFinished();
 	}
 	
-	void activateConsole() {
-		this.findConsole("CPACHECKER").activate();
+	private MessageConsole createMessageConsole(String name) {
+		ConsolePlugin plugin = ConsolePlugin.getDefault();
+		IConsoleManager conMan = plugin.getConsoleManager();
+		MessageConsole myConsole = new MessageConsole(name, null);
+		conMan.addConsoles(new IConsole[] { myConsole });
+		myConsole.activate();
+		return myConsole;
 	}
 	
-	private CPAcheckerResult execute(final Task task) {
+	private static class TaskRun implements Runnable {
+		private ITranslationUnit source;
+		private Configuration config;
+		private OutputStream consoleStream;
+		private LogManager logger;
+		private Task task;
 		
-		Configuration config = null;
-		try {
-			config = task.getConfig();
-		} catch (IOException e1) { // exceptions will be caught in the next statement
-		} catch (CoreException e1) {
+		TaskRun(ITranslationUnit source, Configuration config,
+				OutputStream outStream, LogManager logger, Task t) {
+			super();
+			this.task = t;
+			this.source = source;
+			this.config = config;
+			this.consoleStream = outStream;
+			this.logger = logger;
 		}
-		if (config == null) {
-			// TODO shouldn't an Eclipse Dialog be used here?
-			JOptionPane.showMessageDialog(null, "Configuration could not be created"
-					, "unable to perform task",
-					JOptionPane.ERROR_MESSAGE);
-			return null;
-		}
-
-		// Lets set up a console to write to
 		
-		MessageConsole myConsole = findConsole("CPACHECKER");
-
-		IOConsoleOutputStream outStream = myConsole.newOutputStream();
-		IOConsoleOutputStream errStream = myConsole.newOutputStream();
-		errStream.setColor(new org.eclipse.swt.graphics.Color(Display.getDefault(), 255, 0, 0));
-		System.setOut(new PrintStream(outStream));
-		System.setErr(new PrintStream(errStream));
-		LogManager logManager;
-		try {
-			logManager = new LogManager(config, new StreamHandler(outStream, new ConsoleLogFormatter()));
-		} catch (InvalidConfigurationException e) {
-			JOptionPane.showMessageDialog(null, "Invalid configuration: "
-					+ e.getMessage(), "Invalid configuration",
-					JOptionPane.ERROR_MESSAGE);
-			return null;
-		} finally {
-			closeStreams(outStream, errStream);
-		}
-		logManager.log(Level.INFO, "Running Task " + task.getName() + " on Program " + task.getTranslationUnit().getLocation());
-		logManager.log(Level.INFO, "Program Started");
-		try {
-			// Now grab its attention and display
-			String id = IConsoleConstants.ID_CONSOLE_VIEW;
-			
-			IWorkbenchPage workbenchPage = CPAcheckerPlugin.getPlugin().getWorkbench().getActiveWorkbenchWindow().getActivePage();
-			IConsoleView view;
-			
-			view = (IConsoleView) workbenchPage.showView(id);
-			
-			view.display(myConsole);
-			// Now run analysis
-			final CPAchecker cpachecker = new CPAchecker(config, logManager);
-			// TODO: insert CIL here somewhere
-			CPAcheckerResult result = cpachecker.run(task.getTranslationUnit().getLocation().toOSString());					
-			
-			OutputStream outStream2 = myConsole.newOutputStream();
-			result.printStatistics(new PrintWriter(outStream2));
+		@Override
+		public void run() {
 			try {
-				outStream2.flush();
-				outStream2.close();
-			} catch (IOException e) {
+				CPAchecker cpachecker = new CPAchecker(config, logger);
+				CPAcheckerResult results = cpachecker.run(source.getLocation().toOSString());
+				CPAcheckerPlugin.getPlugin().fireTaskFinished(task, results);
+				logger.flush();
+				results.printStatistics(new PrintWriter(consoleStream));
+				consoleStream.close();
+			} catch (Exception e) {
+				System.err.println("Task \"" + task.getName() + "\" run has thrown an exception:");
 				e.printStackTrace();
 			}
-			return result;
-		} catch (PartInitException e) {
-			logManager.log(Level.WARNING, e);
-			JOptionPane.showMessageDialog(null, "Exception during console initialization: "
-					+ e.getMessage(), "Exception during console initialization",
-					JOptionPane.ERROR_MESSAGE);
-		} catch (InvalidConfigurationException e) {
-			logManager.log(Level.WARNING, e);
-			JOptionPane.showMessageDialog(null, "Invalid configuration: "
-					+ e.getMessage(), "Invalid configuration",
-					JOptionPane.ERROR_MESSAGE);
-		} finally {
-			closeStreams(outStream, errStream);
+			
 		}
-		closeStreams(outStream, errStream);
-		return null;
 	}
+	
+	
+	
 	private void closeStreams(OutputStream outStream, OutputStream errStream) {
 		try {
 			if (outStream!= null) {
@@ -156,7 +136,7 @@ public class TaskRunner {
 		for (int i = 0; i < existing.length; i++)
 			if (name.equals(existing[i].getName()))
 				return (MessageConsole) existing[i];
-		// no console found, so create a new one
+		// no consoleStream found, so create a new one
 		MessageConsole myConsole = new MessageConsole(name, null);
 		conMan.addConsoles(new IConsole[] { myConsole });
 		return myConsole;
@@ -164,9 +144,9 @@ public class TaskRunner {
 	
 	public static class Task {
 		private String name;
-		private ITranslationUnit sourceTranslationUnit;
-		private IFile configFile;
-		private Configuration config;
+		private ITranslationUnit sourceTranslationUnit = null;
+		private IFile configFile = null;
+		private Configuration config = null;
 
 		public Task(String taskName, IFile configFile, ITranslationUnit source) {
 			this.name = taskName;
@@ -174,9 +154,14 @@ public class TaskRunner {
 			sourceTranslationUnit = source;
 		}
 		
-		public Task(String string, ITranslationUnit selected) {
-			this.name = string;
-			this.sourceTranslationUnit = selected;
+		public Task(String taskName, IFile configFile) {
+			this.name = taskName;
+			this.configFile = configFile;
+		}
+		
+		public Task(String taskName, ITranslationUnit source) {
+			this.name = taskName;
+			this.sourceTranslationUnit = source;
 		}
 		
 		public Configuration getConfig() throws IOException, CoreException {
@@ -200,7 +185,6 @@ public class TaskRunner {
 				} else {
 					config.setProperty("output.path", projectRoot);
 				}
-					
 			}
 			return config;
 		}
@@ -208,6 +192,7 @@ public class TaskRunner {
 		public String getName() {
 			return name;
 		}
+		
 		public String getConfigFilePath() {
 			return configFile.getProjectRelativePath().toPortableString();
 		}
@@ -218,25 +203,31 @@ public class TaskRunner {
 		 */
 		public boolean hasPreRunError() {
 			try {
-				return getConfig() == null;
+				if (getConfig() == null) {
+					return true;
+				} else if (this.getTranslationUnit() == null) {
+					return true;
+				}
 			} catch (IOException e) {
 				return true;
 			} catch (CoreException e) {
 				return true;
 			}
+			return false;
 		}
+		
 		public String getErrorMessage() {
 			if (this.config == null) {
 				return "Could not parse the configuration file \"" + this.configFile.getProjectRelativePath() +" \".";
+			} else if (this.getTranslationUnit() == null) {
+				return "No Source file was associated with this Task!";
 			} else {
 				return "";
 			}
 		}
+		
 		public ITranslationUnit getTranslationUnit() {
 			return this.sourceTranslationUnit;
 		}
-		
-		
-		
 	}
 }

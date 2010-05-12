@@ -20,6 +20,7 @@ import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.IWorkbenchActionConstants;
 import org.eclipse.ui.part.ViewPart;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.plugin.eclipse.CPAcheckerPlugin;
 import org.sosy_lab.cpachecker.plugin.eclipse.ITestListener;
 import org.sosy_lab.cpachecker.plugin.eclipse.TaskRunner.Task;
@@ -100,10 +101,6 @@ public class TasksView extends ViewPart {
 			}
 			// TODO: find a more fine-granular update method
 			@Override
-			public void taskFinished(Task id, boolean success) {
-				myTreeViewer.refresh();
-			}
-			@Override
 			public void taskStarted(Task id) {
 				myTreeViewer.refresh();	
 			}
@@ -114,6 +111,16 @@ public class TasksView extends ViewPart {
 			@Override
 			public void tasksStarted(int taskCount) {
 				myTreeViewer.refresh();
+			}
+			@Override
+			public void taskFinished(Task id, CPAcheckerResult results) {
+				myTreeViewer.refresh();
+				
+			}
+			@Override
+			public void taskHasPreRunError(Task t, String errorMessage) {
+				myTreeViewer.refresh();
+				
 			}
 		};
 		CPAcheckerPlugin plugin = CPAcheckerPlugin.getPlugin();

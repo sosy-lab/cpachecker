@@ -17,6 +17,7 @@ import org.eclipse.core.runtime.SafeRunner;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.osgi.framework.BundleContext;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.plugin.eclipse.TaskRunner.Task;
 
 public class CPAcheckerPlugin extends AbstractUIPlugin {
@@ -51,9 +52,14 @@ public class CPAcheckerPlugin extends AbstractUIPlugin {
 				System.out.println("started Task \"" + id.getName() + "\"");
 			}
 			@Override
-			public void taskFinished(Task id, boolean succeded) {
-				String result = (succeded ? "succeded " : "failed ");
-				System.out.println(result + " Task \"" + id.getName() + "\"");
+			public void taskFinished(Task id,CPAcheckerResult result) {
+				String resStr = (result.getResult().equals(CPAcheckerResult.Result.SAFE) 
+						? "succeded " : "failed ");
+				System.out.println(resStr + " Task \"" + id.getName() + "\"");
+			}
+			@Override
+			public void taskHasPreRunError(Task id, String errorMessage) {
+				System.out.println("Task \"" + id.getName() + "\" could not be started: " + errorMessage);
 			}
 		});
 	}
@@ -93,7 +99,6 @@ public class CPAcheckerPlugin extends AbstractUIPlugin {
 	
 	public static void runTasks(List<Task> tasks) {
 		TaskRunner runner = new TaskRunner();
-		runner.activateConsole();
 		runner.run(tasks);
 	}
 
@@ -177,13 +182,13 @@ public class CPAcheckerPlugin extends AbstractUIPlugin {
 			SafeRunner.run(runnable);
 		}
 	}
-	public void fireTaskFinished(final Task taskID, final boolean succeded) {
+	public void fireTaskFinished(final Task taskID, final CPAcheckerResult results) {
 		for (final Iterator<ITestListener> iter = getListeners().iterator(); iter.hasNext();) {
 			final ITestListener current = iter.next();
 			ISafeRunnable runnable = new ISafeRunnable() {
 				@Override
 				public void run() throws Exception {
-					current.taskFinished(taskID, succeded);
+					current.taskFinished(taskID, results);
 				}		
 				@Override
 				public void handleException(Throwable exception) {
@@ -223,5 +228,22 @@ public class CPAcheckerPlugin extends AbstractUIPlugin {
 
 	public static IWorkspace getWorkspace() {
 		return ResourcesPlugin.getWorkspace();
+	}
+
+	public void firePreRunError(final Task t, final String errorMessage) {
+		for (final Iterator<ITestListener> iter = getListeners().iterator(); iter.hasNext();) {
+			final ITestListener current = iter.next();
+			ISafeRunnable runnable = new ISafeRunnable() {
+				@Override
+				public void run() throws Exception {
+					current.taskHasPreRunError(t, errorMessage);
+				}		
+				@Override
+				public void handleException(Throwable exception) {
+					iter.remove(); // listener is likely in some error-state, ignore it
+				}
+			};
+			SafeRunner.run(runnable);
+		}
 	}
 }
