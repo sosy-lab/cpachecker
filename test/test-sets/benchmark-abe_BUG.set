@@ -1,0 +1,3 @@
+test/programs/locks/*BUG*.c
+test/programs/ntdrivers-simplified/*BUG*.cil.c
+test/programs/ssh-simplified/*BUG*.cil.c
