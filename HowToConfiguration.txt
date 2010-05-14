@@ -244,14 +244,18 @@ cpas.symbpredabs.mathsat.useIntegers = false
 
 
 # maximum blocksize before abstraction is forced
-# (non-negative number, special values: 0 = LBE, 1 = SBE)
-cpas.symbpredabs.blocksize = 0
+# (non-negative number, special values: 0 = don't check threshold, 1 = SBE)
+cpas.symbpredabs.blk.threshold = 0
 
-# dont force abstraction on function call/return (when blocksize != 1)
-cpas.symbpredabs.inlineFunction = false
+# force abstractions on function call/return
+cpas.symbpredabs.blk.functions = true
 
-# dont force abstraction for each loop iteration (when blocksize != 1)
-cpas.symbpredabs.unrollLoops = false
+# force abstractions for each loop iteration
+cpas.symbpredabs.blk.loops = true
+
+# require that both the threshold and (functions or loops) have to be fulfilled to compute an abstraction
+cpas.symbpredabs.blk.requiredThresholdAndLBE = false
+
 
 # maximum blocksize before a satisfiability check is done
 # (non-negative number, 0 means never, if positive should be smaller than blocksize)

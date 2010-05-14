@@ -65,14 +65,17 @@ import exceptions.UnrecognizedCFAEdgeException;
 @Options(prefix="cpas.symbpredabs")
 public class SymbPredAbsTransferRelation implements TransferRelation {
 
-  @Option(name="blocksize")
-  private int abstractionBlockSize = 0;
+  @Option(name="blk.threshold")
+  private int absBlockSize = 0;
   
-  @Option
-  private boolean inlineFunctions = false;
+  @Option(name="blk.functions")
+  private boolean absOnFunction = true;
   
-  @Option
-  private boolean unrollLoops = false;
+  @Option(name="blk.loops")
+  private boolean absOnLoop = true;
+  
+  @Option(name="blk.requireThresholdAndLBE")
+  private boolean absOnlyIfBoth = false;
   
   @Option(name="satCheck")
   private int satCheckBlockSize = 0;
@@ -119,12 +122,11 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     long time = System.currentTimeMillis();
     SymbPredAbsAbstractElement element = (SymbPredAbsAbstractElement) pElement;
     SymbPredAbsPrecision precision = (SymbPredAbsPrecision) pPrecision;
-    //boolean abstractionLocation = (blockSize == 0) ? isAbstractionLocation(edge.getSuccessor())
-    //    : (element.getSizeSinceAbstraction() >= (blockSize-1));
-    boolean abstractionLocation = isAbstractionLocation(edge.getSuccessor())
-        || ((abstractionBlockSize > 0) && (element.getSizeSinceAbstraction() >= (abstractionBlockSize-1)));
-    boolean satCheck = (satCheckBlockSize > 0) && (element.getSizeSinceAbstraction() >= (satCheckBlockSize-1));
-
+  
+    boolean thresholdReached = (absBlockSize > 0) && (element.getSizeSinceAbstraction() >= absBlockSize-1);
+    boolean abstractionLocation = isAbstractionLocation(edge.getSuccessor(), thresholdReached);
+    
+    boolean satCheck = (satCheckBlockSize > 0) && (element.getSizeSinceAbstraction() >= satCheckBlockSize-1);
     
     try {
       if (abstractionLocation) {
@@ -288,7 +290,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     final long start = System.currentTimeMillis();
     PathFormula pf = null;
     
-    if (inlineFunctions || unrollLoops) {
+    if (!absOnFunction || !absOnLoop) {
       long startComp = System.currentTimeMillis();
       // compute new pathFormula with the operation on the edge
       pf = symbolicFormulaManager.makeAnd(
@@ -327,23 +329,30 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   
   /**
    * @param succLoc successor CFA location.
+   * @param thresholdReached if the maximum block size has been reached
    * @return true if succLoc is an abstraction location. For now a location is 
    * an abstraction location if it has an incoming loop-back edge, if it is
    * the start node of a function or if it is the call site from a function call.
    */
-  private boolean isAbstractionLocation(CFANode succLoc) {
-    if (!unrollLoops && succLoc.isLoopStart()) {
-      // loop head
-      return true;
-    } else if (!inlineFunctions && (succLoc instanceof CFAFunctionDefinitionNode)) {
-      // function call edge
-      return true;
-    } else if (!inlineFunctions && (succLoc.getEnteringSummaryEdge() != null)) {
-      // function return edge
-      return true;
-    } else {
-      return false;
+  private boolean isAbstractionLocation(CFANode succLoc, boolean thresholdReached) {
+    boolean result = false;
+    
+    if (absOnLoop) {
+      result = succLoc.isLoopStart();
     }
+    if (absOnFunction) {
+      result = result
+            || (succLoc instanceof CFAFunctionDefinitionNode) // function call edge
+            || (succLoc.getEnteringSummaryEdge() != null); // function return edge
+    }
+    
+    if (absOnlyIfBoth) {
+      result = result && thresholdReached;
+    } else {
+      result = result || thresholdReached;
+    }
+
+    return result;
   }
 
   @Override
