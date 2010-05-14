@@ -7,33 +7,18 @@
 # the location of the java command
 JAVA=java
 
-# installation of eclipse
-ECLIPSE_SEARCH_PATH="$ECLIPSE_HOME $HOME/eclipse /opt/eclipse $HOME/Desktop/eclipse $HOME/progs/eclipse"
-
 #------------------------------------------------------------------------------
 # From here on you should not need to change anything
 #------------------------------------------------------------------------------
 
-if [ ! -e $PATH_TO_CPACHECKER/bin/cmdline/CPAMain.class ] ; then
-  echo "bin/cmdline/CPAMain.class not found, please check path to project directory" 1>&2
+if [ ! -e $PATH_TO_CPACHECKER/bin/org/sosy_lab/cpachecker/cmdline/CPAMain.class ] ; then
+  echo "bin/org/sosy_lab/cpachecker/cmdline/CPAMain.class not found, please check path to project directory" 1>&2
   exit 1
 fi
 
 java_version="`$JAVA -version 2>&1 | grep "^java version" | cut -f2 -d\\\" | sed 's/\.//g' | cut -b1-2`"
 if [ -z "$java_version" -o "$java_version" -lt 16 ] ; then
   echo "$JAVA not found or version less than 1.6" 1>&2
-  exit 1
-fi
-
-eclipse_plugins=""
-for d in $ECLIPSE_SEARCH_PATH ; do
-  if [ -d $d/plugins ] ; then
-    eclipse_plugins="$d/plugins/"
-    break
-  fi
-done
-if [ -z "$eclipse_plugins" ] ; then
-  echo "Eclipse plugin directory not found" 1>&2
   exit 1
 fi
 
@@ -62,16 +47,11 @@ if [ "$PATH_TO_CPACHECKER" != "`dirname $0`/../../.." ] ; then
   arch_platform_path="$arch_platform_path:`dirname $0`/../../../lib/native/$arch_platform"
 fi
 
-# the core jar files for eclipse
-CLASSPATH="`ls --color=no $eclipse_plugins/org.eclipse.core*jar $eclipse_plugins/org.eclipse.equinox*jar $eclipse_plugins/org.eclipse.osgi*jar | tr "[:space:]" ":"`"
-# the jar files of the CDT plugin
-CLASSPATH="$CLASSPATH:`ls --color=no $eclipse_plugins/org.eclipse.cdt*jar | tr "[:space:]" ":"`"
-
 # project files
 CLASSPATH="$CLASSPATH:$PATH_TO_CPACHECKER/bin"
 
 # external jars shipped with the project
-CLASSPATH="$CLASSPATH:`ls --color=no $PATH_TO_CPACHECKER/lib/*.jar | tr "[:space:]" ":"`"
+CLASSPATH="$CLASSPATH:`find $PATH_TO_CPACHECKER/lib -name '*.jar' | tr "[:space:]" ":"`"
 
 export CLASSPATH
 
@@ -81,4 +61,4 @@ export PATH="$PATH:$arch_platform_path"
 if [ ! -z "$JAVA_VM_ARGUMENTS" ]; then
   echo "Running CPAchecker with the following extra VM options: $JAVA_VM_ARGUMENTS"
 fi
-$JAVA $JAVA_VM_ARGUMENTS -Djava.library.path=$arch_platform_path -Xmx1200m -ea cmdline.CPAMain "$@"
+$JAVA $JAVA_VM_ARGUMENTS -Djava.library.path=$arch_platform_path -Xmx1200m -ea org.sosy_lab.cpachecker.cmdline.CPAMain "$@"
