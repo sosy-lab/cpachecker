@@ -1,7 +1,0 @@
-AUTOMATON TestAutomaton
-
-INITIAL STATE Init;
-
-STATE Init:
-    MATCH { func($1); } ->
-ASSERT EVAL(ExplicitAnalysis("func::a==10")) GOTO Init; 
