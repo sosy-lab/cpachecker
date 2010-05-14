@@ -40,7 +40,7 @@ abstract class AutomatonIntExpr {
 
   private AutomatonIntExpr() {} //nobody can use this
   /**
-   * Returns if the action can execute on the given AutomatonExpressionArguments.
+   * Returns if this IntExpression can execute on the given AutomatonExpressionArguments.
    * If it cannot execute this is probably because of missing AbstractElements (from other CPAs).
    * @param pArgs
    * @return

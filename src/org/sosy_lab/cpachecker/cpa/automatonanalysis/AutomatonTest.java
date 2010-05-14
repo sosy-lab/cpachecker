@@ -51,8 +51,7 @@ public class AutomatonTest {
         "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.explicit.ExplicitAnalysisCPA, cpa.automatonanalysis.ControlAutomatonCPA",
         "automatonAnalysis.inputFile",     "test/config/automata/modifyingAutomaton.txt",
         "log.consoleLevel",               "INFO",
-        "cpas.explicit.threshold",       "10"
-      );
+        "cpas.explicit.threshold",       "10");
     try {
       TestResults results = run(prop, "test/programs/simple/modificationExample.c");
       Assert.assertTrue(results.logContains("MODIFIED"));

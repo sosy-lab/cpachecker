@@ -166,7 +166,9 @@ public class CPAchecker {
 
   public CPAchecker(Configuration pConfiguration, LogManager pLogManager) throws InvalidConfigurationException {
     // currently only one instance is possible due to these static fields
-    assert logger == null;
+
+    // if CPAchecker is started multiple times this assertion would not hold (strictly sequentially)
+    //assert logger == null;
 
     config = pConfiguration;
     logger = pLogManager;

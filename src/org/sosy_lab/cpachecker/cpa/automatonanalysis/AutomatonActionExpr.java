@@ -129,6 +129,9 @@ abstract class AutomatonActionExpr {
     }
     @Override
     boolean canExecuteOn(AutomatonExpressionArguments pArgs) {
+      if (pArgs.replaceVariables(modificationString) == null) {
+        return false;
+      }
       for (AbstractElement ae : pArgs.getAbstractElements()) {
         if (ae instanceof AbstractQueryableElement) {
           AbstractQueryableElement aqe = (AbstractQueryableElement) ae;

@@ -110,7 +110,16 @@ LocalDefs ::= LocalDef:d LocalDefs:lst {: lst.put(d.getName(), d); RESULT = lst;
               ;
 
 LocalDef  ::= LOCAL IDENTIFIER:type IDENTIFIER:name  SEMICOLON {: RESULT = new AutomatonVariable(type.toString(), name.toString()); :}
-            | LOCAL IDENTIFIER:type IDENTIFIER:name  EQ ConstantInt:ci SEMICOLON {: RESULT = new AutomatonVariable(type.toString(), name.toString()); RESULT.setValue(ci.eval()); :}
+            | LOCAL IDENTIFIER:type IDENTIFIER:name  EQ ConstantInt:ci SEMICOLON 
+            {: 
+             RESULT = new AutomatonVariable(type.toString(),
+             name.toString());
+             if (ci.canEvaluateOn(AutomatonExpressionArguments.emptyArguments)) {
+             	RESULT.setValue(ci.eval());
+             } else {
+             	throw new InvalidAutomatonException("Could not initialize the Variable \"" + name.toString() +"\"");
+             }
+             :}
             ;
 
 StateDefs ::= StateDef:s StateDefs:lst  {: lst.add(s); RESULT = lst; :} // elements will be in reversed order (irrelevant ?)
