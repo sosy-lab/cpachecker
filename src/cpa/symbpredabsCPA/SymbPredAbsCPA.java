@@ -86,6 +86,9 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
   @Option(name="interpolatingProver", toUppercase=true, values={"MATHSAT", "CSISAT"})
   private String whichItpProver = "MATHSAT";
   
+  @Option
+  private boolean symbolicCoverageCheck = false; 
+  
   private final Configuration config;
   private final LogManager logger;
   
@@ -127,7 +130,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
       throw new InternalError("Update list of allowed solvers!");
     }
     formulaManager = new MathsatSymbPredAbsFormulaManager<Integer>(abstractFormulaManager, symbolicFormulaManager, thmProver, itpProver, config, logger);
-    domain = new SymbPredAbsAbstractDomain(abstractFormulaManager);
+    domain = new SymbPredAbsAbstractDomain(abstractFormulaManager, formulaManager, symbolicCoverageCheck);
     transfer = new SymbPredAbsTransferRelation(this);
     merge = new SymbPredAbsMergeOperator(this);
     stop = new StopSepOperator(domain.getPartialOrder());
