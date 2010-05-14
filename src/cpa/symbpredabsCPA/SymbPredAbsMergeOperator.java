@@ -27,11 +27,6 @@ import java.util.logging.Level;
 
 import symbpredabstraction.PathFormula;
 import symbpredabstraction.interfaces.FormulaManager;
-import cfa.objectmodel.CFANode;
-
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-
 import cpa.common.LogManager;
 import cpa.common.interfaces.AbstractElement;
 import cpa.common.interfaces.MergeOperator;
@@ -89,29 +84,20 @@ public class SymbPredAbsMergeOperator implements MergeOperator {
         assert (elem1.getInitAbstractionFormula() == elem2.getInitAbstractionFormula());
         assert (elem1.getAbstractionLocation() == elem2.getAbstractionLocation());
 
-        logger.log(Level.FINEST, "Merging two non-abstraction nodes with parents",
-                elem1.getPfParents(), "and", elem2.getPfParents(), ".");
+        logger.log(Level.FINEST, "Merging two non-abstraction nodes.");
 
         PathFormula pathFormula = formulaManager.makeOr(elem1.getPathFormula(), elem2.getPathFormula());
        
         logger.log(Level.ALL, "New path formula is", pathFormula);
-
-        // now we update the pfParents
-        // elem1 is the successor element and elem2 is the reached element from
-        // the reached set the successor (elem1) should have only 1 element in 
-        // its pfParents list
-        CFANode elem1Parent = Iterables.getOnlyElement(elem1.getPfParents());
-        ImmutableSet<CFANode> pfParents = elem2.getPfParents();
-        if (!pfParents.contains(elem1Parent)) {
-          ImmutableSet.Builder<CFANode> builder = ImmutableSet.builder();
-          pfParents = builder.addAll(pfParents).add(elem1Parent).build();
-        }
                 
         merged = new SymbPredAbsAbstractElement(elem1.getAbstractionLocation(), 
-            pathFormula, pfParents, elem1.getInitAbstractionFormula(), elem1.getAbstraction(), 
+            pathFormula, elem1.getInitAbstractionFormula(), elem1.getAbstraction(), 
             elem1.getAbstractionPathList(),
             Math.max(elem1.getSizeSinceAbstraction(), elem2.getSizeSinceAbstraction()));
 
+        // now mark elem1 so that coverage check can find out it was merged
+        elem1.setMergedInto(merged);
+        
         long end = System.currentTimeMillis();
         totalMergeTime = totalMergeTime + (end - start);
       }

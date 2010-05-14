@@ -41,7 +41,6 @@ import cfa.objectmodel.CFAFunctionDefinitionNode;
 import cfa.objectmodel.CFANode;
 import cfa.objectmodel.c.ReturnEdge;
 
-import com.google.common.collect.ImmutableSet;
 import common.Triple;
 import common.configuration.Option;
 import common.configuration.Options;
@@ -175,16 +174,12 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
       logger.log(Level.FINEST, "Abstraction & PathFormula is unsatisfiable.");
       return Collections.emptySet();
     }
-    
-    // update pfParents list
-    ImmutableSet<CFANode> newPfParents = ImmutableSet.of(edge.getPredecessor());
 
     // create the new abstract element for non-abstraction location
     return Collections.singleton(new SymbPredAbsAbstractElement(
         // set 'abstractionLocation' to last element's abstractionLocation since they are same
         // set 'pathFormula' to pf - the updated pathFormula -
-        // set 'pfParents' to newPfParents - the updated list of nodes that constructed the pathFormula -
-        element.getAbstractionLocation(), pf, newPfParents,
+        element.getAbstractionLocation(), pf,
         // set 'initAbstractionFormula', 'abstraction' and 'abstractionPathList' to last element's values, they don't change
         element.getInitAbstractionFormula(), element.getAbstraction(),
         element.getAbstractionPathList(),

@@ -27,8 +27,8 @@ import symbpredabstraction.PathFormula;
 import symbpredabstraction.interfaces.AbstractFormula;
 import cfa.objectmodel.CFANode;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 
 import cpa.common.interfaces.AbstractElement;
 
@@ -60,19 +60,28 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
    * up to that point. We use this list in {@link SymbPredAbsMergeOperator#merge(AbstractElement, AbstractElement, cpa.common.interfaces.Precision)} and
    * for partial order operator*/
   private final ImmutableList<CFANode> abstractionPathList;
-  /** List of {@link CFANode} that we constructed the {@link PathFormula}. This is
-   * updated if {@link SymbPredAbsMergeOperator#merge(AbstractElement, AbstractElement, cpa.common.interfaces.Precision)}
-   * is called and the {@link PathFormula} is updated. This list is also used by 
-   * {@link SymbPredAbsAbstractElement#equals(Object)} to make a fast, syntactic check on 
-   * equality of formula*/
-  private final ImmutableSet<CFANode> pfParents;
   
   private final int sizeSinceAbstraction;
+
+  /**
+   * The abstract element this element was merged into.
+   * Used for fast coverage checks.
+   */
+  private SymbPredAbsAbstractElement mergedInto = null;
   
   public int getSizeSinceAbstraction() {
     return sizeSinceAbstraction;
   }
 
+  SymbPredAbsAbstractElement getMergedInto() {
+    return mergedInto;
+  }
+  
+  void setMergedInto(SymbPredAbsAbstractElement pMergedInto) {
+    Preconditions.checkNotNull(pMergedInto);
+    mergedInto = pMergedInto;
+  }
+  
   public PathFormula getPathFormula() {
     return pathFormula;
   }
@@ -101,7 +110,6 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
     this.isAbstractionNode = false;
     this.abstractionLocation = null;
     this.pathFormula = null;
-    this.pfParents = null;
     this.initAbstractionFormula = null;
     this.abstraction = null;
     this.abstractionPathList = null;
@@ -119,12 +127,11 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
    * @param sizeSinceAbstraction
    */
   public SymbPredAbsAbstractElement(CFANode abstLoc,
-      PathFormula pf, ImmutableSet<CFANode> pfParentsList, PathFormula initFormula, AbstractFormula a, 
+      PathFormula pf, PathFormula initFormula, AbstractFormula a, 
       ImmutableList<CFANode> pl, int sizeSinceAbstraction){
     this.isAbstractionNode = false;
     this.abstractionLocation = abstLoc;
     this.pathFormula = pf;
-    this.pfParents = pfParentsList;
     this.initAbstractionFormula = initFormula;
     this.abstraction = a;
     this.abstractionPathList = pl;
@@ -146,8 +153,6 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
     this.isAbstractionNode = true;
     this.abstractionLocation = abstLoc;
     this.pathFormula = pf;
-    // 'pfParents' is not instantiated for abstraction locations
-    this.pfParents = null;
     this.initAbstractionFormula = initFormula;
     this.abstraction = a;
     
@@ -216,11 +221,6 @@ public class SymbPredAbsAbstractElement implements AbstractElement {
 
   public PathFormula getInitAbstractionFormula() {
     return initAbstractionFormula;
-  }
-  
-  public ImmutableSet<CFANode> getPfParents() {
-    assert !isAbstractionNode : "abstraction nodes have no pathformula parents";
-    return pfParents;
   }
 
   @Override
