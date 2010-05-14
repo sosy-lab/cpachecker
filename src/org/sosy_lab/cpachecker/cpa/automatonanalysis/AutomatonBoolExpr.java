@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement.EvaluationReturnValue;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
 /**
@@ -192,8 +193,15 @@ abstract class AutomatonBoolExpr {
           if (ae instanceof AbstractQueryableElement) {
             AbstractQueryableElement aqe = (AbstractQueryableElement) ae;
             try {
-              if (aqe.checkProperty(modifiedQueryString)) {
-                return MaybeBoolean.TRUE;
+              EvaluationReturnValue<? extends Object> result = aqe.evaluateProperty(modifiedQueryString);
+              if (result.getValueType().equals(Boolean.class)) {
+                if (((Boolean)result.getValue()).booleanValue()) {
+                  String message = "CPA-Check succeeded: ModifiedCheckString: \"" + 
+                  modifiedQueryString + "\" CPAElement: (" + aqe.getCPAName() + ") \"" +
+                  aqe.toString() + "\"";
+                  pArgs.getLogger().log(Level.FINER, message);
+                  return MaybeBoolean.TRUE;
+                }
               }
             } catch (InvalidQueryException e) {
               // do nothing;
@@ -230,20 +238,28 @@ abstract class AutomatonBoolExpr {
           AbstractQueryableElement aqe = (AbstractQueryableElement) ae;
           if (aqe.getCPAName().equals(cpaName)) {
             try {
-              if (aqe.checkProperty(modifiedQueryString)) {
-                String message = "CPA-Check succeeded: ModifiedCheckString: \"" + 
-                modifiedQueryString + "\" CPAElement: (" + aqe.getCPAName() + ") \"" +
-                aqe.toString() + "\"";
-                pArgs.getLogger().log(Level.FINER, message);
-                return MaybeBoolean.TRUE;
+              EvaluationReturnValue<? extends Object> result = aqe.evaluateProperty(modifiedQueryString);
+              if (result.getValueType().equals(Boolean.class)) {
+                if (((Boolean)result.getValue()).booleanValue()) {
+                  String message = "CPA-Check succeeded: ModifiedCheckString: \"" + 
+                  modifiedQueryString + "\" CPAElement: (" + aqe.getCPAName() + ") \"" +
+                  aqe.toString() + "\"";
+                  pArgs.getLogger().log(Level.FINER, message);
+                  return MaybeBoolean.TRUE;
+                } else {
+                  String message = "CPA-Check failed: ModifiedCheckString: \"" + 
+                  modifiedQueryString + "\" CPAElement: (" + aqe.getCPAName() + ") \"" +
+                  aqe.toString() + "\"";
+                  pArgs.getLogger().log(Level.FINER, message);
+                  return MaybeBoolean.FALSE;
+                }
               } else {
-                String message = "CPA-Check failed: ModifiedCheckString: \"" + 
-                modifiedQueryString + "\" CPAElement: (" + aqe.getCPAName() + ") \"" +
-                aqe.toString() + "\"";
-                pArgs.getLogger().log(Level.FINER, message);
+                pArgs.getLogger().log(Level.WARNING,
+                    "Automaton got a non-Boolean value during Query of the "
+                    + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getRawStatement() + 
+                    ". Assuming FALSE.");
                 return MaybeBoolean.FALSE;
               }
-
             } catch (InvalidQueryException e) {
               pArgs.getLogger().logException(Level.WARNING, e,
                   "Automaton encountered an Exception during Query of the "
@@ -307,10 +323,14 @@ abstract class AutomatonBoolExpr {
       this.a = pA;
       this.b = pB;
     }
-
+    
     @Override
     public MaybeBoolean eval(AutomatonExpressionArguments pArgs) {
-      return MaybeBoolean.valueOf(a.eval(pArgs) == b.eval(pArgs));
+      if (! (a.canEvaluateOn(pArgs) && b.canEvaluateOn(pArgs))) {
+        return MaybeBoolean.MAYBE;
+      } else {
+        return MaybeBoolean.valueOf(a.eval(pArgs) == b.eval(pArgs));
+      }
     }
 
     @Override
@@ -334,7 +354,11 @@ abstract class AutomatonBoolExpr {
     }
 
     public @Override MaybeBoolean eval(AutomatonExpressionArguments pArgs) {
-      return MaybeBoolean.valueOf(a.eval(pArgs) != b.eval(pArgs));
+      if (! (a.canEvaluateOn(pArgs) && b.canEvaluateOn(pArgs))) {
+        return MaybeBoolean.MAYBE;
+      } else {
+        return MaybeBoolean.valueOf(a.eval(pArgs) != b.eval(pArgs));
+      }
     }
 
     @Override

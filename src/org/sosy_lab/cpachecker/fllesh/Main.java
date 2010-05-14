@@ -38,18 +38,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.google.common.base.Joiner;
-
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
-
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
-
-import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
-import org.sosy_lab.cpachecker.cpa.art.ARTStatistics;
-import org.sosy_lab.cpachecker.cpa.automatonanalysis.ControlAutomatonCPA;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.ReachedElements;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
@@ -59,6 +51,10 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
+import org.sosy_lab.cpachecker.cpa.art.ARTStatistics;
+import org.sosy_lab.cpachecker.cpa.automatonanalysis.ControlAutomatonCPA;
+import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.symbpredabsCPA.SymbPredAbsCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -70,7 +66,6 @@ import org.sosy_lab.cpachecker.fllesh.fql.fllesh.util.Cilly;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Filter;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.FunctionCall;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Identity;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.SetMinus;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Edges;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification.CoverageSpecification;
@@ -78,6 +73,8 @@ import org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification.Quotation;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.PathPattern;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.Repetition;
 import org.sosy_lab.cpachecker.fllesh.fql2.parser.FQLParser;
+
+import com.google.common.base.Joiner;
 
 public class Main {
   

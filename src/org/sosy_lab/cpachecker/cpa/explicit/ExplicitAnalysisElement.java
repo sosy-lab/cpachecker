@@ -164,6 +164,22 @@ public class ExplicitAnalysisElement implements AbstractQueryableElement {
   }
 
   @Override
+  public EvaluationReturnValue<? extends Object> evaluateProperty(String pProperty) throws InvalidQueryException {
+    pProperty = pProperty.trim();
+    String[] parts = pProperty.split("==");
+    if (parts.length != 2) {
+      Long value = this.constantsMap.get(pProperty);
+      if (value != null) {
+        return new EvaluationReturnValue<Long>(Long.valueOf(value));
+      } else {
+        throw new InvalidQueryException("The Query \"" + pProperty + "\" is invalid. Could not find the variable \"" + pProperty + "\"");
+      }
+    } else {
+      boolean checkResult = checkProperty(pProperty);
+      return new EvaluationReturnValue<Boolean>(new Boolean(checkResult));
+    }
+  }
+  @Override
   public boolean checkProperty(String pProperty) throws InvalidQueryException {
     // e.g. "x==5" where x is a variable. Returns if 5 is the associated constant
     String[] parts = pProperty.split("==");
@@ -185,7 +201,6 @@ public class ExplicitAnalysisElement implements AbstractQueryableElement {
       }
     }
   }
-  
   @Override
   public void modifyProperty(String pModification)
       throws InvalidQueryException {
@@ -228,4 +243,6 @@ public class ExplicitAnalysisElement implements AbstractQueryableElement {
   public String getCPAName() {
     return "ExplicitAnalysis";
   }
+
+ 
 }

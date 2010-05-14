@@ -77,7 +77,8 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
 <YYINITIAL> "ASSERT"            { return symbol("ASSERT", AutomatonSym.ASS); }
 <YYINITIAL> "MATCH"             { return symbol("MATCH", AutomatonSym.MATCH); }
 <YYINITIAL> "LABEL"             { return symbol("LABEL", AutomatonSym.LABEL); }
-<YYINITIAL> "CHECK"             { return symbol("CHECK", AutomatonSym.CHECK); }
+<YYINITIAL> "EVAL"             { return symbol("EVAL", AutomatonSym.EVAL); }
+<YYINITIAL> "CHECK"             { return symbol("EVAL", AutomatonSym.CHECK); }
 <YYINITIAL> "MODIFY"            { return symbol("MODIFY", AutomatonSym.MODIFY); }
 <YYINITIAL> "DO"                { return symbol("DO", AutomatonSym.DO); }
 <YYINITIAL> "GOTO"              { return symbol("GOTO", AutomatonSym.GOTO); }

@@ -67,7 +67,7 @@ parser code {:
 
 
 
-terminal EXCLAMATION, AND, OR, ARROW, SEMICOLON, COLON, OPEN_BRACKETS, CLOSE_BRACKETS, AUTOMATON, LOCAL, INITIAL, STATE, ERROR, STOP, ASS, MATCH, LABEL, CHECK, MODIFY, DO, PRINT, GOTO, IDENTIFIER, INTEGER_LITERAL, NEQ, EQ, EQEQ, PLUS, MINUS, TRUE, FALSE, STRING_LITERAL, CURLYEXPR, SQUAREEXPR, NONDET ;
+terminal EXCLAMATION, AND, OR, ARROW, SEMICOLON, COLON, OPEN_BRACKETS, CLOSE_BRACKETS, AUTOMATON, LOCAL, INITIAL, STATE, ERROR, STOP, ASS, MATCH, LABEL, CHECK, EVAL, MODIFY, DO, PRINT, GOTO, IDENTIFIER, INTEGER_LITERAL, NEQ, EQ, EQEQ, PLUS, MINUS, TRUE, FALSE, STRING_LITERAL, CURLYEXPR, SQUAREEXPR, NONDET ;
 
 non terminal Automaton initial ;
 non terminal String InitDef ;
@@ -94,6 +94,7 @@ precedence left PLUS, MINUS;
 precedence left AND, OR;
 precedence left EQEQ, NEQ;
 precedence left EXCLAMATION;
+//precedence left EVAL;
 
 initial ::= AUTOMATON IDENTIFIER:id Body:b {: b.setName(id.toString()); RESULT = b; :}
             ;
@@ -144,17 +145,23 @@ Actions   ::= Action:a Actions:lst {: lst.add(0,a); RESULT = lst; :} // insert a
             | /* empty */ {: RESULT = new LinkedList<AutomatonActionExpr>(); :}
             ;
 Action    ::= DO  IDENTIFIER:var EQ Int:i   {: RESULT = new AutomatonActionExpr.Assignment(var.toString(), i); :}
-            | PRINT  STRING_LITERAL:lit {: RESULT = new AutomatonActionExpr.Print(lit.toString()); :}
-            | PRINT  Int:int_expr {: RESULT = new AutomatonActionExpr.PrintInt(int_expr); :}
+            | PRINT STRING_LITERAL:lit {: RESULT = new AutomatonActionExpr.Print(lit.toString()); :}
+            | PRINT Int:int_expr {: RESULT = new AutomatonActionExpr.PrintInt(int_expr); :}
             | MODIFY OPEN_BRACKETS IDENTIFIER:cpa OPEN_BRACKETS STRING_LITERAL:query CLOSE_BRACKETS CLOSE_BRACKETS
               {: RESULT = new AutomatonActionExpr.CPAModification(cpa.toString(), query.toString()); :}
             ;
+// this will not work because of a reduce/reduce conflict (cant decide if EVAL ... is an int expression or not)
+//            | PRINT EVAL OPEN_BRACKETS IDENTIFIER:cpa OPEN_BRACKETS STRING_LITERAL:query CLOSE_BRACKETS CLOSE_BRACKETS
+//             {: RESULT = new AutomatonActionExpr.PrintCPAEvaluation(cpa.toString(), query.toString()); :}
+            
 
 Int       ::= ConstantInt:c  {: RESULT = c; :}
 			| OPEN_BRACKETS Int:i CLOSE_BRACKETS {: RESULT = i; :}
             | IDENTIFIER:x  {: RESULT = new AutomatonIntExpr.VarAccess(x.toString()); :}
             | Int:a PLUS Int:b  {: RESULT = new AutomatonIntExpr.Plus(a,b); :}
             | Int:a MINUS Int:b  {: RESULT = new AutomatonIntExpr.Minus(a,b); :}
+            | EVAL OPEN_BRACKETS IDENTIFIER:cpa OPEN_BRACKETS STRING_LITERAL:query CLOSE_BRACKETS CLOSE_BRACKETS
+             {: RESULT = new AutomatonIntExpr.CPAQuery(cpa.toString(), query.toString()); :}
             ;
 
 ConstantInt ::= INTEGER_LITERAL:c  {: RESULT = new AutomatonIntExpr.Constant(c.toString()); :}

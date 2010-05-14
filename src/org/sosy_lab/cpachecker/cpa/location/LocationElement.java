@@ -112,4 +112,10 @@ public class LocationElement implements AbstractElementWithLocation, AbstractQue
     public String getCPAName() {
       return "location";
     }
+
+    @Override
+    public EvaluationReturnValue<? extends Object> evaluateProperty(
+        String pProperty) throws InvalidQueryException {
+      return new EvaluationReturnValue<Boolean>(Boolean.valueOf(checkProperty(pProperty)));
+    }
 }

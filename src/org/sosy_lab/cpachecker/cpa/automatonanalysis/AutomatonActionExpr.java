@@ -79,6 +79,10 @@ abstract class AutomatonActionExpr {
     public PrintInt(AutomatonIntExpr pIntExpr) {
       toPrint = pIntExpr;
     }
+    @Override
+    boolean canExecuteOn(AutomatonExpressionArguments pArgs) {
+     return toPrint.canEvaluateOn(pArgs);
+    }
     @Override void execute(AutomatonExpressionArguments pArgs) {
       pArgs.appendToLogMessage(toPrint.eval(pArgs));
     }
@@ -93,6 +97,10 @@ abstract class AutomatonActionExpr {
     public Assignment(String pVarId, AutomatonIntExpr pVar) {
       this.varId = pVarId;
       this.var = pVar;
+    }
+    @Override
+    boolean canExecuteOn(AutomatonExpressionArguments pArgs) {
+      return var.canEvaluateOn(pArgs);
     }
     @Override  void execute(AutomatonExpressionArguments pArgs) {
       Map<String, AutomatonVariable> vars = pArgs.getAutomatonVariables();

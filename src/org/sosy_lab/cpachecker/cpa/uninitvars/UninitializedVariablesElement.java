@@ -31,7 +31,6 @@ import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
@@ -204,7 +203,11 @@ public class UninitializedVariablesElement implements AbstractQueryableElement {
     }
     return this.properties.contains(prop);
   }
-  
+  @Override
+  public EvaluationReturnValue<? extends Object> evaluateProperty(
+      String pProperty) throws InvalidQueryException {
+    return new EvaluationReturnValue<Boolean>(Boolean.valueOf(checkProperty(pProperty)));
+  }
   @Override
   public void modifyProperty(String pModification)
       throws InvalidQueryException {

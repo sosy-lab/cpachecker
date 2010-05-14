@@ -160,6 +160,11 @@ public class EdgeVisitCPA implements ConfigurableProgramAnalysis {
     public boolean checkProperty(String pProperty) throws InvalidQueryException {
       // We do not know which edge we have taken, so we return false.
       return false;
+    }    
+    @Override
+    public EvaluationReturnValue<? extends Object> evaluateProperty(
+        String pProperty) throws InvalidQueryException {
+      return new EvaluationReturnValue<Boolean>(Boolean.valueOf(checkProperty(pProperty)));
     }
 
     @Override
@@ -186,6 +191,11 @@ public class EdgeVisitCPA implements ConfigurableProgramAnalysis {
       // We do not know which edge we have taken, so we return false.
       return false;
     }
+    @Override
+    public EvaluationReturnValue<? extends Object> evaluateProperty(
+        String pProperty) throws InvalidQueryException {
+      return new EvaluationReturnValue<Boolean>(Boolean.valueOf(checkProperty(pProperty)));
+    }
 
     @Override
     public String toString() {
@@ -210,6 +220,11 @@ public class EdgeVisitCPA implements ConfigurableProgramAnalysis {
     public boolean checkProperty(String pProperty) throws InvalidQueryException {
       // We have not visited a CFA edge, therefore we return false.
       return false;
+    }
+    @Override
+    public EvaluationReturnValue<? extends Object> evaluateProperty(
+        String pProperty) throws InvalidQueryException {
+      return new EvaluationReturnValue<Boolean>(Boolean.valueOf(checkProperty(pProperty)));
     }
 
     @Override
@@ -244,7 +259,11 @@ public class EdgeVisitCPA implements ConfigurableProgramAnalysis {
         return mAnnotations.contains(pProperty);
       }
     }
-
+    @Override
+    public EvaluationReturnValue<? extends Object> evaluateProperty(
+        String pProperty) throws InvalidQueryException {
+      return new EvaluationReturnValue<Boolean>(Boolean.valueOf(checkProperty(pProperty)));
+    }
     @Override
     public String toString() {
       return "<VisitEdge - " + mId + ">";

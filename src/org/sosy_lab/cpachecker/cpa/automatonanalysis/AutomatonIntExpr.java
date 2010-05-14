@@ -26,6 +26,11 @@ package org.sosy_lab.cpachecker.cpa.automatonanalysis;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 
+import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement.EvaluationReturnValue;
+import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+
 /**
  * Implements a integer expression that evaluates and returns a <code>int</code> value when <code>eval()</code> is called.
  * The Expression can be evaluated multiple times.
@@ -34,9 +39,16 @@ import java.util.regex.Pattern;
 abstract class AutomatonIntExpr {
 
   private AutomatonIntExpr() {} //nobody can use this
-
+  /**
+   * Returns if the action can execute on the given AutomatonExpressionArguments.
+   * If it cannot execute this is probably because of missing AbstractElements (from other CPAs).
+   * @param pArgs
+   * @return
+   */
+  boolean canEvaluateOn(AutomatonExpressionArguments pArgs) {
+    return true;
+  }
   abstract int eval(AutomatonExpressionArguments pArgs);
-
 
   /** Stores a constant integer.
    * @author rhein
@@ -66,7 +78,7 @@ abstract class AutomatonIntExpr {
       }
       this.varId = pId;
     }
-
+      
     @Override
     public int eval(AutomatonExpressionArguments pArgs) {
       if (TRANSITION_VARS_PATTERN.matcher(varId).matches()) { // $1  AutomatonTransitionVariables
@@ -98,7 +110,80 @@ abstract class AutomatonIntExpr {
     }
   }
 
+  /**
+   * Sends a query-String to an <code>AbstractElement</code> of another analysis and returns the query-Result.
+   * @author rhein
+   */
+  static class CPAQuery extends AutomatonIntExpr {
+    private final String cpaName;
+    private final String queryString;
 
+    public CPAQuery(String pCPAName, String pQuery) {
+      cpaName = pCPAName;
+      queryString = pQuery;
+    }
+    @Override
+    boolean canEvaluateOn(AutomatonExpressionArguments pArgs) {
+      for (AbstractElement ae : pArgs.getAbstractElements()) {
+        if (ae instanceof AbstractQueryableElement) {
+          AbstractQueryableElement aqe = (AbstractQueryableElement) ae;
+          if (aqe.getCPAName().equals(cpaName)) {
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+    @Override
+    public int eval(AutomatonExpressionArguments pArgs) {
+      // replace transition variables
+      String modifiedQueryString = pArgs.replaceVariables(queryString);
+      if (modifiedQueryString == null) {
+        throw new IllegalArgumentException("The queryString could not be processed!");
+      }
+
+      for (AbstractElement ae : pArgs.getAbstractElements()) {
+        if (ae instanceof AbstractQueryableElement) {
+          AbstractQueryableElement aqe = (AbstractQueryableElement) ae;
+          if (aqe.getCPAName().equals(cpaName)) {
+            try {
+              EvaluationReturnValue<? extends Object> result = aqe.evaluateProperty(modifiedQueryString);
+              if (result.getValueType().equals(Integer.class)) {
+                  String message = "CPA-Check succeeded: ModifiedCheckString: \"" + 
+                  modifiedQueryString + "\" CPAElement: (" + aqe.getCPAName() + ") \"" +
+                  aqe.toString() + "\"";
+                  pArgs.getLogger().log(Level.FINER, message);
+                  return ((Integer)result.getValue()).intValue();
+              } else if (result.getValueType().equals(Long.class)) {
+                String message = "CPA-Check succeeded: ModifiedCheckString: \"" + 
+                modifiedQueryString + "\" CPAElement: (" + aqe.getCPAName() + ") \"" +
+                aqe.toString() + "\"";
+                pArgs.getLogger().log(Level.FINER, message);
+                return ((Long)result.getValue()).intValue();
+              } else {
+                pArgs.getLogger().log(Level.WARNING,
+                    "Automaton got a non-Numeric value during Query of the "
+                    + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getRawStatement() + 
+                    ". Assuming 0.");
+                return 0;
+              }
+            } catch (InvalidQueryException e) {
+              pArgs.getLogger().logException(Level.WARNING, e,
+                  "Automaton encountered an Exception during Query of the "
+                  + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getRawStatement() + 
+                ". Assuming 0.");
+                return 0;
+            }
+          }
+        }
+      }
+      pArgs.getLogger().log(Level.WARNING,
+          "Did not find the CPA to be queried "
+          + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getRawStatement() + 
+        ". Assuming 0.");
+        return 0;
+    }
+  }
   /** Addition of {@link AutomatonIntExpr} instances.
    * @author rhein
    */
@@ -111,7 +196,10 @@ abstract class AutomatonIntExpr {
       this.a = pA;
       this.b = pB;
     }
-
+    @Override
+    boolean canEvaluateOn(AutomatonExpressionArguments pArgs) {
+      return a.canEvaluateOn(pArgs) && b.canEvaluateOn(pArgs);
+    }
     @Override
     public int eval(AutomatonExpressionArguments pArgs) {
       return a.eval(pArgs) + b.eval(pArgs);
@@ -122,7 +210,6 @@ abstract class AutomatonIntExpr {
       return "(" + a + " + " + b + ")";
     }
   }
-
 
   /** Subtraction of {@link AutomatonIntExpr} instances.
    * @author rhein
@@ -136,7 +223,10 @@ abstract class AutomatonIntExpr {
       this.a = pA;
       this.b = pB;
     }
-
+    @Override
+    boolean canEvaluateOn(AutomatonExpressionArguments pArgs) {
+      return a.canEvaluateOn(pArgs) && b.canEvaluateOn(pArgs);
+    }
     @Override
     public int eval(AutomatonExpressionArguments pArgs) {
       return a.eval(pArgs) - b.eval(pArgs);
