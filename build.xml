@@ -1,9 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- WARNING: Eclipse auto-generated file.
-              Any modifications will be overwritten.
-              To include a user specific buildfile here, simply create one in the same
-              directory with the processing instruction <?eclipse.ant.import?>
-              as the first entry and export the buildfile again. -->
 <project basedir="." default="build" name="CPAchecker">
     <property environment="env"/>
     <property name="debuglevel" value="source,lines,vars"/>
@@ -12,12 +7,7 @@
     <path id="org.eclipse.pde.core.requiredPlugins.libraryclasspath"/>
     <path id="CPAchecker.classpath">
         <pathelement location="bin"/>
-        <path refid="org.eclipse.pde.core.requiredPlugins.libraryclasspath"/>
-        <fileset dir="lib" includes="*.jar"/>
-        <!-- Your eclipse plugin directory: do export ECLIPSE_HOME=<where eclipse is> -->
-	<fileset dir="${env.ECLIPSE_HOME}/plugins" includes="*.jar"/>
-	<fileset dir="${env.ECLIPSE_HOME}/plugins" includes="*junit4*/*.jar"/>
-	<fileset dir="${env.ECLIPSE_HOME}/plugins" includes="org.hamcrest*.jar"/>
+        <fileset dir="lib" includes="**/*.jar"/>
     </path>
     <target name="init">
         <mkdir dir="bin"/>
@@ -36,44 +26,13 @@
 	    <ant antfile="src/cpa/observeranalysis/observerBuild.xml" inheritAll="false"/>
 	    <ant antfile="src/fql/frontend/parser/build.xml" inheritAll="false"/>
     </target>
+
     <target depends="init" name="build-project">
         <echo message="${ant.project.name}: ${ant.file}"/>
         <javac debug="true" debuglevel="${debuglevel}" destdir="bin" source="${source}" target="${target}">
             <src path="src"/>
+	    <exclude name="cpaplugin/**"/>
             <classpath refid="CPAchecker.classpath"/>
         </javac>
     </target>
-    <target description="Build all projects which reference this project. Useful to propagate changes." name="build-refprojects"/>
-    <target description="copy Eclipse compiler jars to ant lib directory" name="init-eclipse-compiler">
-        <copy todir="${ant.library.dir}">
-            <fileset dir="${ECLIPSE_HOME}/plugins" includes="org.eclipse.jdt.core_*.jar"/>
-        </copy>
-        <unzip dest="${ant.library.dir}">
-            <patternset includes="jdtCompilerAdapter.jar"/>
-            <fileset dir="${ECLIPSE_HOME}/plugins" includes="org.eclipse.jdt.core_*.jar"/>
-        </unzip>
-    </target>
-    <target description="compile project with Eclipse compiler" name="build-eclipse-compiler">
-        <property name="build.compiler" value="org.eclipse.jdt.core.JDTCompilerAdapter"/>
-        <antcall target="build"/>
-    </target>
-   <target description="Run all JUnit tests" depends="build" name="tests">
-        <property name="test.report.dir" value="test/output" />
-	<mkdir dir="${test.report.dir}" />
-	<junit fork="true" printSummary="true" showOutput="false">
-	    <assertions>
-		<enable />
-	    </assertions>
-            <formatter type="plain" />
-            <classpath refid="CPAchecker.classpath"/>
-            <batchtest fork="true" todir="${test.report.dir}" >
-                <fileset dir="${basedir}/bin">
-                    <include name="**/*Test.*" />
-		    <exclude name="**/*$*Test.*" />
-		    <exclude name="octagon/OctLibraryTest.class" />
-                </fileset>
-            </batchtest>
-        </junit>
-    </target>
-
 </project>
