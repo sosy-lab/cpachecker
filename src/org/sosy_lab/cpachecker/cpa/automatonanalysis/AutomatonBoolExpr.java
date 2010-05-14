@@ -46,8 +46,8 @@ abstract class AutomatonBoolExpr {
    * This is a extension of the boolean data type. It also contains a dont-know-value (MAYBE).
    */
   static enum MaybeBoolean {TRUE, FALSE, MAYBE;
-    static MaybeBoolean valueOf(boolean pB) {
-      return pB ? TRUE : FALSE;
+    static MaybeBoolean valueOf(boolean pBool) {
+      return pBool ? TRUE : FALSE;
     }
   }
 
@@ -382,6 +382,12 @@ abstract class AutomatonBoolExpr {
     }
 
     public @Override MaybeBoolean eval(AutomatonExpressionArguments pArgs) {
+      /* OR:
+       * True  || _ -> True
+       * _ || True -> True
+       * false || false -> false
+       * every other combination returns MAYBE
+       */
       MaybeBoolean resultA = a.eval(pArgs);
       if (resultA == MaybeBoolean.TRUE) {
         return MaybeBoolean.TRUE;
@@ -415,6 +421,12 @@ abstract class AutomatonBoolExpr {
 
     @Override
     public MaybeBoolean eval(AutomatonExpressionArguments pArgs) {
+      /* AND:
+       * false && _ -> false
+       * _ && false -> false
+       * true && true -> true
+       * every other combination returns MAYBE
+       */
       MaybeBoolean resultA = a.eval(pArgs);
       if (resultA == MaybeBoolean.FALSE) {
         return MaybeBoolean.FALSE;

@@ -41,7 +41,7 @@ import com.google.common.collect.ImmutableList;
 class AutomatonTransition {
 
   // The order of triggers, assertions and (more importantly) actions is preserved by the parser.
-  private final List<AutomatonBoolExpr> triggers;
+  private final AutomatonBoolExpr trigger;
   private final List<AutomatonBoolExpr> assertions;
   private final List<AutomatonActionExpr> actions;
 
@@ -54,18 +54,18 @@ class AutomatonTransition {
   private final String followStateName;
   private AutomatonInternalState followState = null;
 
-  public AutomatonTransition(List<AutomatonBoolExpr> pTriggers, List<AutomatonBoolExpr> pAssertions, List<AutomatonActionExpr> pActions,
+  public AutomatonTransition(AutomatonBoolExpr pTrigger, List<AutomatonBoolExpr> pAssertions, List<AutomatonActionExpr> pActions,
       String pFollowStateName) {
-    this.triggers = ImmutableList.copyOf(pTriggers);
+    this.trigger = pTrigger;
     this.assertions = ImmutableList.copyOf(pAssertions);
     this.actions = ImmutableList.copyOf(pActions);
     this.followStateName = pFollowStateName;
   }
 
-  public AutomatonTransition(List<AutomatonBoolExpr> pTriggers,
+  public AutomatonTransition(AutomatonBoolExpr pTrigger,
       List<AutomatonBoolExpr> pAssertions, List<AutomatonActionExpr> pActions,
       AutomatonInternalState pFollowState) {
-    this.triggers = ImmutableList.copyOf(pTriggers);
+    this.trigger = pTrigger;
     this.assertions = ImmutableList.copyOf(pAssertions);
     this.actions = ImmutableList.copyOf(pActions);
     this.followState = pFollowState;
@@ -98,16 +98,7 @@ class AutomatonTransition {
    * In this case more information (e.g. more AbstractElements of other CPAs) are needed.
    */
   public MaybeBoolean match(AutomatonExpressionArguments pArgs) {
-    for (AutomatonBoolExpr trigger : triggers) {
-      MaybeBoolean triggerValue = trigger.eval(pArgs);
-      
-      // Why this condition ? Why not MaybeBoolean.MAYBE ? 
-      // rhein: MAYBE and FALSE have to be handled identically (immediate abort of the trigger checks) 
-      if (triggerValue != MaybeBoolean.TRUE) {
-        return triggerValue;
-      }
-    }
-    return MaybeBoolean.TRUE;
+    return trigger.eval(pArgs);
   }
 
   /**
@@ -160,7 +151,7 @@ class AutomatonTransition {
   
   @Override
   public String toString() {
-    return this.triggers.toString();
+    return this.trigger.toString();
   }
 
   /**

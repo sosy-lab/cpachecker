@@ -73,7 +73,7 @@ public class AutomatonTest {
     try {
       TestResults results = run(prop, "test/programs/simple/modificationExample.c");
       // check for stack trace
-      Assert.assertTrue(results.logContains("Invalid configuration: The Transition [MATCH "));
+      Assert.assertTrue(results.logContains("Invalid configuration: The Transition MATCH "));
     } catch (InvalidConfigurationException e) {
       Assert.fail("InvalidConfiguration");
     }

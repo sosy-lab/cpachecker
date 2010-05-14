@@ -75,14 +75,12 @@ non terminal Automaton Body ;
 non terminal Map<String, AutomatonVariable> LocalDefs ;
 non terminal List<AutomatonInternalState> StateDefs ;
 non terminal List<AutomatonTransition> Transitions ;
-non terminal List<AutomatonBoolExpr> Triggers ;
 non terminal List<AutomatonBoolExpr> Assertions ;
 non terminal List<AutomatonActionExpr> Actions ;
 
 non terminal AutomatonVariable LocalDef ;
 non terminal AutomatonInternalState StateDef ;
 non terminal AutomatonTransition Transition ;
-non terminal AutomatonBoolExpr Trigger ;
 non terminal AutomatonBoolExpr Assertion ;
 non terminal AutomatonActionExpr Action ;
 
@@ -134,16 +132,13 @@ Transitions   ::= Transition:t Transitions:lst {: lst.add(0, t); RESULT = lst; :
             | /* empty */ {: RESULT = new LinkedList<AutomatonTransition>(); :}
             ;
 
-Transition   ::= Triggers:triggers  ARROW Assertions:ass Actions:acts GOTO IDENTIFIER:follow SEMICOLON
-              {: RESULT = new AutomatonTransition(triggers, ass, acts, follow.toString()); :}
-               | Triggers:triggers  ARROW Assertions:ass Actions:acts ERROR SEMICOLON
-              {: RESULT = new AutomatonTransition(triggers, ass, acts, AutomatonInternalState.ERROR); :}
-               | Triggers:triggers  ARROW Assertions:ass Actions:acts STOP SEMICOLON
-              {: RESULT = new AutomatonTransition(triggers, ass, acts, AutomatonInternalState.BOTTOM); :}
+Transition   ::= Bool:trigger  ARROW Assertions:ass Actions:acts GOTO IDENTIFIER:follow SEMICOLON
+              {: RESULT = new AutomatonTransition(trigger, ass, acts, follow.toString()); :}
+               | Bool:trigger  ARROW Assertions:ass Actions:acts ERROR SEMICOLON
+              {: RESULT = new AutomatonTransition(trigger, ass, acts, AutomatonInternalState.ERROR); :}
+               | Bool:trigger  ARROW Assertions:ass Actions:acts STOP SEMICOLON
+              {: RESULT = new AutomatonTransition(trigger, ass, acts, AutomatonInternalState.BOTTOM); :}
               ;
-
-Triggers   ::= Bool:t {: RESULT = Collections.singletonList(t); :}
-             ;
 
 Assertions ::= Assertion:a Assertions:lst {: lst.add(0,a); RESULT = lst; :}
              | /* empty */ {: RESULT = new LinkedList<AutomatonBoolExpr>(); :}
@@ -186,10 +181,7 @@ Bool      ::= TRUE  {: RESULT = new AutomatonBoolExpr.True(); :}
             | Bool:a NEQ Bool:b  {: RESULT = new AutomatonBoolExpr.BoolNotEqTest(a,b); :}
             | Bool:a AND Bool:b {: RESULT = new AutomatonBoolExpr.And(a,b); :}
             | Bool:a OR Bool:b {: RESULT = new AutomatonBoolExpr.Or(a,b); :}
-            | Trigger:t {: RESULT = t; :}
-            ;
-
-Trigger   ::= MATCH STRING_LITERAL:lit
+            | MATCH STRING_LITERAL:lit
               {: RESULT = new AutomatonBoolExpr.MatchCFAEdgeExact(lit.toString()); :}
             | MATCH CURLYEXPR:expr
               {: RESULT = new AutomatonBoolExpr.MatchCFAEdgeASTComparison(expr.toString()); :}
