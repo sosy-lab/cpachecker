@@ -61,4 +61,4 @@ export PATH="$PATH:$arch_platform_path"
 if [ ! -z "$JAVA_VM_ARGUMENTS" ]; then
   echo "Running CPAchecker with the following extra VM options: $JAVA_VM_ARGUMENTS"
 fi
-$JAVA $JAVA_VM_ARGUMENTS -Djava.library.path=$arch_platform_path -Xmx1200m -ea cmdline.CPAMain "$@"
+$JAVA $JAVA_VM_ARGUMENTS -Djava.library.path=$arch_platform_path -Xmx1200m cmdline.CPAMain "$@"
