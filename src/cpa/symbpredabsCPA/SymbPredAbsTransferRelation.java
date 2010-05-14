@@ -290,7 +290,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     final long start = System.currentTimeMillis();
     PathFormula pf = null;
     
-    if (!absOnFunction || !absOnLoop) {
+    if (!absOnFunction || !absOnLoop || absBlockSize > 0) {
       long startComp = System.currentTimeMillis();
       // compute new pathFormula with the operation on the edge
       pf = symbolicFormulaManager.makeAnd(
