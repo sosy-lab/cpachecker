@@ -204,9 +204,9 @@ public class UninitializedVariablesElement implements AbstractQueryableElement {
     return this.properties.contains(prop);
   }
   @Override
-  public EvaluationReturnValue<? extends Object> evaluateProperty(
+  public Boolean evaluateProperty(
       String pProperty) throws InvalidQueryException {
-    return new EvaluationReturnValue<Boolean>(Boolean.valueOf(checkProperty(pProperty)));
+    return Boolean.valueOf(checkProperty(pProperty));
   }
   @Override
   public void modifyProperty(String pModification)

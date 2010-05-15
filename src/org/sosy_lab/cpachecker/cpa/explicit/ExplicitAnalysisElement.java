@@ -164,19 +164,19 @@ public class ExplicitAnalysisElement implements AbstractQueryableElement {
   }
 
   @Override
-  public EvaluationReturnValue<? extends Object> evaluateProperty(String pProperty) throws InvalidQueryException {
+  public Object evaluateProperty(String pProperty) throws InvalidQueryException {
     pProperty = pProperty.trim();
     String[] parts = pProperty.split("==");
     if (parts.length != 2) {
       Long value = this.constantsMap.get(pProperty);
       if (value != null) {
-        return new EvaluationReturnValue<Long>(Long.valueOf(value));
+        return value;
       } else {
         throw new InvalidQueryException("The Query \"" + pProperty + "\" is invalid. Could not find the variable \"" + pProperty + "\"");
       }
     } else {
       boolean checkResult = checkProperty(pProperty);
-      return new EvaluationReturnValue<Boolean>(new Boolean(checkResult));
+      return new Boolean(checkResult);
     }
   }
   @Override

@@ -162,9 +162,9 @@ public class EdgeVisitCPA implements ConfigurableProgramAnalysis {
       return false;
     }    
     @Override
-    public EvaluationReturnValue<? extends Object> evaluateProperty(
+    public Boolean evaluateProperty(
         String pProperty) throws InvalidQueryException {
-      return new EvaluationReturnValue<Boolean>(Boolean.valueOf(checkProperty(pProperty)));
+      return Boolean.valueOf(checkProperty(pProperty));
     }
 
     @Override
@@ -192,9 +192,9 @@ public class EdgeVisitCPA implements ConfigurableProgramAnalysis {
       return false;
     }
     @Override
-    public EvaluationReturnValue<? extends Object> evaluateProperty(
+    public Boolean evaluateProperty(
         String pProperty) throws InvalidQueryException {
-      return new EvaluationReturnValue<Boolean>(Boolean.valueOf(checkProperty(pProperty)));
+      return Boolean.valueOf(checkProperty(pProperty));
     }
 
     @Override
@@ -222,9 +222,9 @@ public class EdgeVisitCPA implements ConfigurableProgramAnalysis {
       return false;
     }
     @Override
-    public EvaluationReturnValue<? extends Object> evaluateProperty(
+    public Boolean evaluateProperty(
         String pProperty) throws InvalidQueryException {
-      return new EvaluationReturnValue<Boolean>(Boolean.valueOf(checkProperty(pProperty)));
+      return Boolean.valueOf(checkProperty(pProperty));
     }
 
     @Override
@@ -260,9 +260,9 @@ public class EdgeVisitCPA implements ConfigurableProgramAnalysis {
       }
     }
     @Override
-    public EvaluationReturnValue<? extends Object> evaluateProperty(
+    public Boolean evaluateProperty(
         String pProperty) throws InvalidQueryException {
-      return new EvaluationReturnValue<Boolean>(Boolean.valueOf(checkProperty(pProperty)));
+      return Boolean.valueOf(checkProperty(pProperty));
     }
     @Override
     public String toString() {

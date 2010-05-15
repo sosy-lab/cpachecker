@@ -109,15 +109,7 @@ LocalDefs ::= LocalDef:d LocalDefs:lst {: lst.put(d.getName(), d); RESULT = lst;
 
 LocalDef  ::= LOCAL IDENTIFIER:type IDENTIFIER:name  SEMICOLON {: RESULT = new AutomatonVariable(type.toString(), name.toString()); :}
             | LOCAL IDENTIFIER:type IDENTIFIER:name  EQ ConstantInt:ci SEMICOLON 
-            {: 
-             RESULT = new AutomatonVariable(type.toString(),
-             name.toString());
-             if (ci.canEvaluateOn(AutomatonExpressionArguments.emptyArguments)) {
-             	RESULT.setValue(ci.eval());
-             } else {
-             	throw new InvalidAutomatonException("Could not initialize the Variable \"" + name.toString() +"\"");
-             }
-             :}
+            {: RESULT = new AutomatonVariable(type.toString(), name.toString()); RESULT.setValue(ci.getIntValue()); :}
             ;
 
 StateDefs ::= StateDef:s StateDefs:lst  {: lst.add(s); RESULT = lst; :} // elements will be in reversed order (irrelevant ?)
@@ -167,7 +159,7 @@ Int       ::= ConstantInt:c  {: RESULT = c; :}
             | EVAL OPEN_BRACKETS IDENTIFIER:cpa OPEN_BRACKETS STRING_LITERAL:query CLOSE_BRACKETS CLOSE_BRACKETS
              {: RESULT = new AutomatonIntExpr.CPAQuery(cpa.toString(), query.toString()); :}
             ;
-
+            
 ConstantInt ::= INTEGER_LITERAL:c  {: RESULT = new AutomatonIntExpr.Constant(c.toString()); :}
 			;
 

@@ -33,27 +33,6 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
  */
 public interface AbstractQueryableElement extends AbstractElement {
 
-  /**
-   * This type is used as return value for the evaluateProperty Method
-   * @param <type>
-   */
-  public class EvaluationReturnValue<type> {
-    type value;
-    public EvaluationReturnValue (type val) {
-      this.value = val;
-    }
-    public Class<? extends Object> getValueType() {
-      return this.value.getClass();
-    }
-    public type getValue() {
-      return value;
-    }
-    @Override
-    public String toString () {
-      return value.toString();
-    }
-  }
-
   public String getCPAName();
 
   /**
@@ -65,7 +44,7 @@ public interface AbstractQueryableElement extends AbstractElement {
    */
   public boolean checkProperty(String property) throws InvalidQueryException;
   
-  public EvaluationReturnValue<? extends Object> evaluateProperty(String property) throws InvalidQueryException;
+  public Object evaluateProperty(String property) throws InvalidQueryException;
 
   /**
    * Modifies the internal state of this AbstractElement.

@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.automatonanalysis;
 
 import java.util.Map;
 import java.util.logging.Level;
-import java.util.regex.Pattern;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
@@ -36,8 +35,14 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
  * Implements an Action with side-effects that has no return value.
  * The Action can be executed multiple times.
  */
-abstract class AutomatonActionExpr {
+abstract class AutomatonActionExpr extends AutomatonExpression {
   private AutomatonActionExpr() {};
+  private static ResultValue<String> defaultResultValue = new ResultValue<String>("");
+  
+  // in this method the Value inside the resultValueObject is not important (most ActionClasses will return "" as inner value)
+  // more important is if the action was evaluated (ResultValue.canNotEvaluate())
+  @Override
+  abstract ResultValue<? extends Object> eval(AutomatonExpressionArguments pArgs);
   
   /**
    * Returns if the action can execute on the given AutomatonExpressionArguments.
@@ -48,25 +53,28 @@ abstract class AutomatonActionExpr {
   boolean canExecuteOn(AutomatonExpressionArguments pArgs) {
     return true;
   }
-  abstract void execute(AutomatonExpressionArguments pArgs);
+  //abstract void execute(AutomatonExpressionArguments pArgs);
 
   /**
    * Prints a string to System.out when executed.
    * @author rhein
    */
   static class Print extends AutomatonActionExpr {
-    // the pattern \$\d+ matches Expressions like $1 $2 $3
-    static Pattern TRANSITION_VARS_PATTERN = Pattern.compile("\\$\\d+");
     private String toPrint;
     public Print(String pToPrint) { toPrint = pToPrint; }
-    @Override void execute(AutomatonExpressionArguments pArgs) {
+    @Override ResultValue<? extends Object> eval(AutomatonExpressionArguments pArgs) {
       // replace $rawstatement
       String str = toPrint.replaceAll("\\$[rR]aw[Ss]tatement", pArgs.getCfaEdge().getRawStatement());
       // replace $line
       str = str.replaceAll("\\$[Ll]ine", String.valueOf(pArgs.getCfaEdge().getLineNumber()));
       // replace Transition Variables and AutomatonVariables
       str = pArgs.replaceVariables(str);
-      pArgs.appendToLogMessage(str.toString());
+      if (str == null) {
+        return new ResultValue<Object>("Failure in Variable Replacement in String \"" + toPrint + "\"","ActionExpr.Print");
+      } else {
+        pArgs.appendToLogMessage(str.toString());
+        return defaultResultValue;
+      }
     }
   }
 
@@ -81,10 +89,16 @@ abstract class AutomatonActionExpr {
     }
     @Override
     boolean canExecuteOn(AutomatonExpressionArguments pArgs) {
-     return toPrint.canEvaluateOn(pArgs);
+     return ! toPrint.eval(pArgs).canNotEvaluate();
     }
-    @Override void execute(AutomatonExpressionArguments pArgs) {
-      pArgs.appendToLogMessage(toPrint.eval(pArgs));
+    @Override ResultValue<? extends Object> eval(AutomatonExpressionArguments pArgs) {
+      ResultValue<Integer> res = toPrint.eval(pArgs);
+      if (res.canNotEvaluate()) { 
+        return res;
+      } else {
+        pArgs.appendToLogMessage(res.getValue());
+        return defaultResultValue;
+      }
     }
   }
 
@@ -100,18 +114,23 @@ abstract class AutomatonActionExpr {
     }
     @Override
     boolean canExecuteOn(AutomatonExpressionArguments pArgs) {
-      return var.canEvaluateOn(pArgs);
+      return ! var.eval(pArgs).canNotEvaluate();
     }
-    @Override  void execute(AutomatonExpressionArguments pArgs) {
+    @Override  ResultValue<? extends Object> eval(AutomatonExpressionArguments pArgs) {
+      ResultValue<Integer> res = var.eval(pArgs);
+      if (res.canNotEvaluate()) {
+        return res;
+      }
       Map<String, AutomatonVariable> vars = pArgs.getAutomatonVariables();
       if (vars.containsKey(varId)) {
-        vars.get(varId).setValue(var.eval(pArgs));
+        vars.get(varId).setValue(res.getValue());     
       } else {
         AutomatonVariable newVar = new AutomatonVariable("int", varId);
-        newVar.setValue(var.eval(pArgs));
+        newVar.setValue(res.getValue());
         vars.put(varId, newVar);
         pArgs.getLogger().log(Level.WARNING, "Defined a Variable " + varId + " that was unknown before (not set in automaton Definition).");
       }
+      return defaultResultValue;
     }
   }
   /**
@@ -143,12 +162,12 @@ abstract class AutomatonActionExpr {
       return false;
     }
     @Override
-    void execute(AutomatonExpressionArguments pArgs) {
+    ResultValue<? extends Object> eval(AutomatonExpressionArguments pArgs) {
       // replace transition variables
       String processedModificationString = pArgs.replaceVariables(modificationString);
       if (processedModificationString == null) {
         pArgs.getLogger().log(Level.WARNING, "Modification String \"" + modificationString + "\" could not be processed (Variable not found).");
-        return;
+        return new ResultValue<Boolean>("Modification String \"" + modificationString + "\" could not be processed (Variable not found).", "AutomatonActionExpr.CPAModification");
       }
       for (AbstractElement ae : pArgs.getAbstractElements()) {
         if (ae instanceof AbstractQueryableElement) {
@@ -160,10 +179,12 @@ abstract class AutomatonActionExpr {
               pArgs.getLogger().logException(Level.WARNING, e,
                   "Automaton encountered an Exception during Query of the "
                   + cpaName + " CPA (Element " + aqe.toString() + ") on Edge " + pArgs.getCfaEdge().getRawStatement());
+              return defaultResultValue; // try to carry on with the further evaluation
             }
           }
         }
       }
+      return new ResultValue<Boolean>("Did not find an element of the CPA \"" + cpaName + "\" to be modified.", "AutomatonActionExpr.CPAModification"); 
     }
 
     @Override

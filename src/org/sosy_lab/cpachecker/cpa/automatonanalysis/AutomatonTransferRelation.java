@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.automatonanalysis.AutomatonBoolExpr.MaybeBoolean;
+import org.sosy_lab.cpachecker.cpa.automatonanalysis.AutomatonExpression.ResultValue;
 import org.sosy_lab.cpachecker.cpa.automatonanalysis.AutomatonState.AutomatonUnknownState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -84,7 +84,7 @@ class AutomatonTransferRelation implements TransferRelation {
       }
       
       AutomatonState lCurrentAutomatonState = (AutomatonState)pElement;
-      return getFollowStates(lCurrentAutomatonState, null, pCfaEdge);
+      return getFollowStates(lCurrentAutomatonState, null, pCfaEdge, false);
     
     } finally {
       totalPostTime += System.currentTimeMillis() - start;
@@ -100,7 +100,7 @@ class AutomatonTransferRelation implements TransferRelation {
    * If the state is a NonDet-State multiple following states may be returned.
    * If the only following state is BOTTOM an empty set is returned.
    */
-  private Collection<AbstractElement> getFollowStates(AutomatonState state, List<AbstractElement> otherElements, CFAEdge edge) {
+  private Collection<AbstractElement> getFollowStates(AutomatonState state, List<AbstractElement> otherElements, CFAEdge edge, boolean strengthen) {
     if (state == state.getAutomatonCPA().getTopState()) {
       return Collections.singleton((AbstractElement)state);
     }
@@ -124,60 +124,61 @@ class AutomatonTransferRelation implements TransferRelation {
       exprArgs.clearTransitionVariables();
 
       long startMatch = System.currentTimeMillis();
-      MaybeBoolean match = t.match(exprArgs);      
+      ResultValue<Boolean> match = t.match(exprArgs);      
       matchTime += System.currentTimeMillis() - startMatch;
-
-      switch (match) {
-      case TRUE :
-        edgeMatched = true;
-        long startAssertions = System.currentTimeMillis();
-        MaybeBoolean assertionsHold = t.assertionsHold(exprArgs);
-        assertionsTime += System.currentTimeMillis() - startAssertions;
-        if (assertionsHold == MaybeBoolean.TRUE) {
-          if (t.canExecuteActionsOn(exprArgs)) {
-            Map<Integer, String> transitionVariables = new HashMap<Integer, String>(exprArgs.getTransitionVariables()); 
-            if (nonDetState) {
-              transitionsToBeTaken.add(new Pair<AutomatonTransition, Map<Integer, String>>(t, transitionVariables)); 
-            } else { // not a nondet State, return the first state, that was found
-              long startAction = System.currentTimeMillis();
-              Map<String, AutomatonVariable> newVars = deepCloneVars(state.getVars());
-              exprArgs.setAutomatonVariables(newVars);
-              exprArgs.putTransitionVariables(transitionVariables);
-              t.executeActions(exprArgs);
-              actionTime += System.currentTimeMillis() - startAction;
-              AutomatonState lSuccessor = AutomatonState.automatonStateFactory(newVars, t.getFollowState(), state.getAutomatonCPA());
-              if (lSuccessor instanceof AutomatonState.BOTTOM) {
-                return Collections.emptySet();
-              } else {
-                return Collections.singleton((AbstractElement)lSuccessor);
+      if (match.canNotEvaluate()) {
+        if (strengthen) {
+          logger.log(Level.INFO, match.getFailureMessage() +" IN " + match.getFailureOrigin());
+        }
+        // if one transition cannot be evaluated the evaluation must be postponed until enough information is available
+        return Collections.singleton((AbstractElement)new AutomatonUnknownState(state));
+      } else {
+        if (match.getValue().equals(Boolean.TRUE)) {
+          edgeMatched = true;
+          long startAssertions = System.currentTimeMillis();
+          ResultValue<Boolean> assertionsHold = t.assertionsHold(exprArgs);
+          assertionsTime += System.currentTimeMillis() - startAssertions;
+          if (assertionsHold.canNotEvaluate()) {
+            if (strengthen) {
+              logger.log(Level.INFO, match.getFailureMessage() +" IN " + match.getFailureOrigin());
+            }
+            // cannot yet be evaluated
+            return Collections.singleton((AbstractElement)new AutomatonUnknownState(state));
+          } else if (assertionsHold.getValue().equals(Boolean.TRUE)) {
+            if (t.canExecuteActionsOn(exprArgs)) {
+              Map<Integer, String> transitionVariables = new HashMap<Integer, String>(exprArgs.getTransitionVariables()); 
+              if (nonDetState) {
+                transitionsToBeTaken.add(new Pair<AutomatonTransition, Map<Integer, String>>(t, transitionVariables)); 
+              } else { // not a nondet State, return the first state, that was found
+                long startAction = System.currentTimeMillis();
+                Map<String, AutomatonVariable> newVars = deepCloneVars(state.getVars());
+                exprArgs.setAutomatonVariables(newVars);
+                exprArgs.putTransitionVariables(transitionVariables);
+                t.executeActions(exprArgs);
+                actionTime += System.currentTimeMillis() - startAction;
+                AutomatonState lSuccessor = AutomatonState.automatonStateFactory(newVars, t.getFollowState(), state.getAutomatonCPA());
+                if (lSuccessor instanceof AutomatonState.BOTTOM) {
+                  return Collections.emptySet();
+                } else {
+                  return Collections.singleton((AbstractElement)lSuccessor);
+                }
               }
+            } else {
+              // cannot yet execute, goto UnknownState
+              return Collections.singleton((AbstractElement)new AutomatonUnknownState(state));
             }
           } else {
-            // cannot yet execute, goto UnknownState
-            return Collections.singleton((AbstractElement)new AutomatonUnknownState(state));
-          }
-        } else if (assertionsHold == MaybeBoolean.MAYBE) {
-          // cannot yet be evaluated
-          return Collections.singleton((AbstractElement)new AutomatonUnknownState(state));
-        } else if (assertionsHold == MaybeBoolean.FALSE) {
-          // matching transitions, but unfulfilled assertions: goto error state
-          AutomatonState errorState = AutomatonState.automatonStateFactory(Collections.<String, AutomatonVariable>emptyMap(), AutomatonInternalState.ERROR, state.getAutomatonCPA());
-          logger.log(Level.INFO, "Automaton going to ErrorState on edge \"" + edge.getRawStatement() + "\"");
-          if (nonDetState) {
-            lSuccessors.add(errorState);
-          } else {
-            return Collections.singleton((AbstractElement)errorState); 
+            // matching transitions, but unfulfilled assertions: goto error state
+            AutomatonState errorState = AutomatonState.automatonStateFactory(Collections.<String, AutomatonVariable>emptyMap(), AutomatonInternalState.ERROR, state.getAutomatonCPA());
+            logger.log(Level.INFO, "Automaton going to ErrorState on edge \"" + edge.getRawStatement() + "\"");
+            if (nonDetState) {
+              lSuccessors.add(errorState);
+            } else {
+              return Collections.singleton((AbstractElement)errorState); 
+            }
           }
         }
-        break;
-
-      case MAYBE :
-        // if one transition cannot be evaluated the evaluation must be postponed until enough information is available
-        
-        return Collections.singleton((AbstractElement)new AutomatonUnknownState(state));
-      case FALSE :
-      default :
-        // consider next transition
+        // do nothing if the edge did not match
       }
     }
     if (edgeMatched) {
@@ -226,7 +227,7 @@ class AutomatonTransferRelation implements TransferRelation {
     } else {
       long start = System.currentTimeMillis();
       AutomatonUnknownState lUnknownState = (AutomatonUnknownState)pElement;
-      Collection<AbstractElement> lSuccessors = getFollowStates(lUnknownState.getPreviousState(), pOtherElements, pCfaEdge);
+      Collection<AbstractElement> lSuccessors = getFollowStates(lUnknownState.getPreviousState(), pOtherElements, pCfaEdge, true);
       totalStrengthenTime += System.currentTimeMillis() - start;
       assert (!(lSuccessors instanceof AutomatonUnknownState)): "automaton.strengthen returned an unknownState!";
       return lSuccessors;

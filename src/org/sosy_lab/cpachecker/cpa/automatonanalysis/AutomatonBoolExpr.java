@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement.EvaluationReturnValue;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
 /**
@@ -39,22 +38,21 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
  * The Expression can be evaluated multiple times.
  * @author rhein
  */
-abstract class AutomatonBoolExpr {
-
-  /**
-   * @author rhein
-   * This is a extension of the boolean data type. It also contains a dont-know-value (MAYBE).
-   */
-  static enum MaybeBoolean {TRUE, FALSE, MAYBE;
-    static MaybeBoolean valueOf(boolean pBool) {
-      return pBool ? TRUE : FALSE;
+abstract class AutomatonBoolExpr extends AutomatonExpression {
+  static final ResultValue<Boolean> CONST_TRUE = new ResultValue<Boolean>(Boolean.TRUE);
+  static final ResultValue<Boolean> CONST_FALSE = new ResultValue<Boolean>(Boolean.FALSE);
+  protected static ResultValue<Boolean> getConstResult(boolean value) {
+    if (value) { // this construct is used to avoid creation of Objects when only simple values like true/false are needed
+      return CONST_TRUE;
+    } else {
+      return CONST_FALSE;
     }
   }
 
   private AutomatonBoolExpr() {} //nobody can use this
 
-  public abstract MaybeBoolean eval(AutomatonExpressionArguments pArgs);
-
+  @Override
+  public abstract ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs);
 
   /**
    * Implements a regex match on the label after the current CFAEdge.
@@ -71,14 +69,13 @@ abstract class AutomatonBoolExpr {
     }
 
     @Override
-    public MaybeBoolean eval(AutomatonExpressionArguments pArgs) {
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       CFANode successorNode = pArgs.getCfaEdge().getSuccessor();
       if (successorNode instanceof CFALabelNode) {
         String label = ((CFALabelNode)successorNode).getLabel().toLowerCase();
-        return MaybeBoolean.valueOf(pattern.matcher(label).matches());
-
+        return getConstResult(pattern.matcher(label).matches());
       } else {
-        return MaybeBoolean.FALSE;
+        return new ResultValue<Boolean>("cannot evaluate if the CFAEdge is not a CFALabelNode", "MatchLabelRegEx.eval(..)");
       }
     }
 
@@ -104,17 +101,15 @@ abstract class AutomatonBoolExpr {
     }
 
     @Override
-    public MaybeBoolean eval(AutomatonExpressionArguments pArgs) {
-
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       IASTNode ast = pArgs.getCfaEdge().getRawAST();
       //AutomatonASTComparator.printAST(ast);
       //AutomatonASTComparator.printAST(patternAST);
       if (ast != null) {
         // some edges do not have an AST node attached to them, e.g. BlankEdges
-        return MaybeBoolean.valueOf(AutomatonASTComparator.compareASTs(ast, patternAST, pArgs));
+        return getConstResult(AutomatonASTComparator.compareASTs(ast, patternAST, pArgs));
       }
-
-      return MaybeBoolean.FALSE;
+      return getConstResult(false);
     }
 
     @Override
@@ -133,9 +128,8 @@ abstract class AutomatonBoolExpr {
     }
 
     @Override
-    public MaybeBoolean eval(AutomatonExpressionArguments pArgs) {
-      return MaybeBoolean.valueOf(
-          pattern.matcher(pArgs.getCfaEdge().getRawStatement()).matches());
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
+      return getConstResult(pattern.matcher(pArgs.getCfaEdge().getRawStatement()).matches());
     }
 
     @Override
@@ -154,9 +148,8 @@ abstract class AutomatonBoolExpr {
     }
 
     @Override
-    public MaybeBoolean eval(AutomatonExpressionArguments pArgs) {
-      return MaybeBoolean.valueOf(
-          pArgs.getCfaEdge().getRawStatement().equals(pattern));
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
+      return getConstResult(pArgs.getCfaEdge().getRawStatement().equals(pattern));
     }
 
     @Override
@@ -180,27 +173,27 @@ abstract class AutomatonBoolExpr {
     }
 
     @Override
-    public MaybeBoolean eval(AutomatonExpressionArguments pArgs) {
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       if (pArgs.getAbstractElements().isEmpty()) {
-        return MaybeBoolean.MAYBE;
+        return new ResultValue<Boolean>("No CPA elements available", "AutomatonBoolExpr.ALLCPAQuery");
       } else {
         // replace transition variables
         String modifiedQueryString = pArgs.replaceVariables(queryString);
         if (modifiedQueryString == null) {
-          return MaybeBoolean.MAYBE;
+          return new ResultValue<Boolean>("Failed to modify queryString \"" + queryString + "\"", "AutomatonBoolExpr.ALLCPAQuery");
         }
         for (AbstractElement ae : pArgs.getAbstractElements()) {
           if (ae instanceof AbstractQueryableElement) {
             AbstractQueryableElement aqe = (AbstractQueryableElement) ae;
             try {
-              EvaluationReturnValue<? extends Object> result = aqe.evaluateProperty(modifiedQueryString);
-              if (result.getValueType().equals(Boolean.class)) {
-                if (((Boolean)result.getValue()).booleanValue()) {
+              Object result = aqe.evaluateProperty(modifiedQueryString);
+              if (result instanceof Boolean) {
+                if (((Boolean)result).booleanValue()) {
                   String message = "CPA-Check succeeded: ModifiedCheckString: \"" + 
                   modifiedQueryString + "\" CPAElement: (" + aqe.getCPAName() + ") \"" +
                   aqe.toString() + "\"";
                   pArgs.getLogger().log(Level.FINER, message);
-                  return MaybeBoolean.TRUE;
+                  return getConstResult(true);
                 }
               }
             } catch (InvalidQueryException e) {
@@ -208,7 +201,7 @@ abstract class AutomatonBoolExpr {
             }
           }
         }
-        return MaybeBoolean.FALSE;
+        return getConstResult(false);
       }
     }
   }
@@ -226,11 +219,11 @@ abstract class AutomatonBoolExpr {
     }
 
     @Override
-    public MaybeBoolean eval(AutomatonExpressionArguments pArgs) {
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       // replace transition variables
       String modifiedQueryString = pArgs.replaceVariables(queryString);
       if (modifiedQueryString == null) {
-        return MaybeBoolean.MAYBE;
+        return new ResultValue<Boolean>("Failed to modify queryString \"" + queryString + "\"", "AutomatonBoolExpr.CPAQuery");
       }
 
       for (AbstractElement ae : pArgs.getAbstractElements()) {
@@ -238,38 +231,38 @@ abstract class AutomatonBoolExpr {
           AbstractQueryableElement aqe = (AbstractQueryableElement) ae;
           if (aqe.getCPAName().equals(cpaName)) {
             try {
-              EvaluationReturnValue<? extends Object> result = aqe.evaluateProperty(modifiedQueryString);
-              if (result.getValueType().equals(Boolean.class)) {
-                if (((Boolean)result.getValue()).booleanValue()) {
+              Object result = aqe.evaluateProperty(modifiedQueryString);
+              if (result instanceof Boolean) {
+                if (((Boolean)result).booleanValue()) {
                   String message = "CPA-Check succeeded: ModifiedCheckString: \"" + 
                   modifiedQueryString + "\" CPAElement: (" + aqe.getCPAName() + ") \"" +
                   aqe.toString() + "\"";
                   pArgs.getLogger().log(Level.FINER, message);
-                  return MaybeBoolean.TRUE;
+                  return getConstResult(true);
                 } else {
                   String message = "CPA-Check failed: ModifiedCheckString: \"" + 
                   modifiedQueryString + "\" CPAElement: (" + aqe.getCPAName() + ") \"" +
                   aqe.toString() + "\"";
                   pArgs.getLogger().log(Level.FINER, message);
-                  return MaybeBoolean.FALSE;
+                  return getConstResult(false);
                 }
               } else {
                 pArgs.getLogger().log(Level.WARNING,
                     "Automaton got a non-Boolean value during Query of the "
                     + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getRawStatement() + 
                     ". Assuming FALSE.");
-                return MaybeBoolean.FALSE;
+                return getConstResult(false);
               }
             } catch (InvalidQueryException e) {
               pArgs.getLogger().logException(Level.WARNING, e,
                   "Automaton encountered an Exception during Query of the "
                   + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getRawStatement());
-              return MaybeBoolean.FALSE;
+              return getConstResult(false);
             }
           }
         }
       }
-      return MaybeBoolean.MAYBE; // the necessary CPA-State was not found
+      return new ResultValue<Boolean>("No State of CPA \"" + cpaName + "\" was found!", "AutomatonBoolExpr.CPAQuery");
     }
     
     @Override
@@ -284,8 +277,8 @@ abstract class AutomatonBoolExpr {
    */
   static class True extends AutomatonBoolExpr {
     @Override
-    public MaybeBoolean eval(AutomatonExpressionArguments pArgs) {
-      return MaybeBoolean.TRUE;
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
+      return getConstResult(true);
     }
 
     @Override
@@ -300,8 +293,8 @@ abstract class AutomatonBoolExpr {
    */
   static class False extends AutomatonBoolExpr {
     @Override
-    public MaybeBoolean eval(AutomatonExpressionArguments pArgs) {
-      return MaybeBoolean.FALSE;
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
+      return getConstResult(false);
     }
 
     @Override
@@ -325,12 +318,12 @@ abstract class AutomatonBoolExpr {
     }
     
     @Override
-    public MaybeBoolean eval(AutomatonExpressionArguments pArgs) {
-      if (! (a.canEvaluateOn(pArgs) && b.canEvaluateOn(pArgs))) {
-        return MaybeBoolean.MAYBE;
-      } else {
-        return MaybeBoolean.valueOf(a.eval(pArgs) == b.eval(pArgs));
-      }
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
+      ResultValue<Integer> resA = a.eval(pArgs);
+      ResultValue<Integer> resB = b.eval(pArgs);
+      if (resA.canNotEvaluate()) return new ResultValue<Boolean>(resA);
+      if (resB.canNotEvaluate()) return new ResultValue<Boolean>(resB);
+      return getConstResult(resA.getValue().equals(resB.getValue()));
     }
 
     @Override
@@ -353,12 +346,13 @@ abstract class AutomatonBoolExpr {
       this.b = pB;
     }
 
-    public @Override MaybeBoolean eval(AutomatonExpressionArguments pArgs) {
-      if (! (a.canEvaluateOn(pArgs) && b.canEvaluateOn(pArgs))) {
-        return MaybeBoolean.MAYBE;
-      } else {
-        return MaybeBoolean.valueOf(a.eval(pArgs) != b.eval(pArgs));
-      }
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
+      ResultValue<Integer> resA = a.eval(pArgs);
+      ResultValue<Integer> resB = b.eval(pArgs);
+      if (resA.canNotEvaluate()) return new ResultValue<Boolean>(resA);
+      if (resB.canNotEvaluate()) return new ResultValue<Boolean>(resB);
+      return getConstResult(! resA.getValue().equals(resB.getValue()));
     }
 
     @Override
@@ -381,21 +375,32 @@ abstract class AutomatonBoolExpr {
       this.b = pB;
     }
 
-    public @Override MaybeBoolean eval(AutomatonExpressionArguments pArgs) {
+    public @Override ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       /* OR:
        * True  || _ -> True
        * _ || True -> True
        * false || false -> false
-       * every other combination returns MAYBE
+       * every other combination returns the result that can not evaluate
        */
-      MaybeBoolean resultA = a.eval(pArgs);
-      if (resultA == MaybeBoolean.TRUE) {
-        return MaybeBoolean.TRUE;
+      ResultValue<Boolean> resA = a.eval(pArgs);
+      if (resA.canNotEvaluate()) {
+        ResultValue<Boolean> resB = b.eval(pArgs);
+        if ((!resB.canNotEvaluate()) && resB.getValue().equals(Boolean.TRUE)) {
+          return resB;
+        } else {
+          return resA;
+        }
       } else {
-        MaybeBoolean resultB = b.eval(pArgs);
-        if (resultB == MaybeBoolean.TRUE)  return MaybeBoolean.TRUE;
-        if (resultB == MaybeBoolean.FALSE) return resultA;
-        return resultB; // in this case resultB==MAYBE
+        if (resA.getValue().equals(Boolean.TRUE)) {
+          return resA;
+        } else {
+          ResultValue<Boolean> resB = b.eval(pArgs);
+          if (resB.canNotEvaluate()) return resB;
+          if (resB.getValue().equals(Boolean.TRUE))
+            return resB;
+          else
+            return resA;
+        }
       }
     }
 
@@ -420,21 +425,32 @@ abstract class AutomatonBoolExpr {
     }
 
     @Override
-    public MaybeBoolean eval(AutomatonExpressionArguments pArgs) {
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       /* AND:
        * false && _ -> false
        * _ && false -> false
        * true && true -> true
-       * every other combination returns MAYBE
+       * every other combination returns the result that can not evaluate
        */
-      MaybeBoolean resultA = a.eval(pArgs);
-      if (resultA == MaybeBoolean.FALSE) {
-        return MaybeBoolean.FALSE;
+      ResultValue<Boolean> resA = a.eval(pArgs);
+      if (resA.canNotEvaluate()) {
+        ResultValue<Boolean> resB = b.eval(pArgs);
+        if ((! resB.canNotEvaluate()) && resB.getValue().equals(Boolean.FALSE)) {
+          return resB;
+        } else {
+          return resA;
+        }
       } else {
-        MaybeBoolean resultB = b.eval(pArgs);
-        if (resultB == MaybeBoolean.FALSE)  return MaybeBoolean.FALSE;
-        if (resultB == MaybeBoolean.TRUE) return resultA;
-        return resultB; // in this case resultB==MAYBE
+        if (resA.getValue().equals(Boolean.FALSE)) {
+          return resA;
+        } else {
+          ResultValue<Boolean> resB = b.eval(pArgs);
+          if (resB.canNotEvaluate()) return resB;
+          if (resB.getValue().equals(Boolean.FALSE))
+            return resB;
+          else
+            return resA;
+        }
       }
     }
 
@@ -458,12 +474,13 @@ abstract class AutomatonBoolExpr {
     }
 
     @Override
-    public MaybeBoolean eval(AutomatonExpressionArguments pArgs) {
-      MaybeBoolean resultA = a.eval(pArgs);
-      switch (resultA) {
-      case TRUE: return MaybeBoolean.FALSE;
-      case FALSE: return MaybeBoolean.TRUE;
-      default: return MaybeBoolean.MAYBE;
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
+      ResultValue<Boolean> resA = a.eval(pArgs);
+      if (resA.canNotEvaluate()) return resA;
+      if (resA.getValue().equals(Boolean.TRUE)) {
+        return getConstResult(false);
+      } else {
+        return getConstResult(true);
       }
     }
 
@@ -489,14 +506,14 @@ abstract class AutomatonBoolExpr {
     }
 
     @Override
-    public MaybeBoolean eval(AutomatonExpressionArguments pArgs) {
-      MaybeBoolean resultA = a.eval(pArgs);
-      MaybeBoolean resultB = b.eval(pArgs);
-      if (resultA == MaybeBoolean.MAYBE || resultB == MaybeBoolean.MAYBE) {
-        return MaybeBoolean.MAYBE;
-      } else {
-        return MaybeBoolean.valueOf(resultA.equals(resultB));
-      }
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
+      ResultValue<Boolean> resA = a.eval(pArgs);
+      if (resA.canNotEvaluate()) 
+        return resA;
+      ResultValue<Boolean> resB = b.eval(pArgs);
+      if (resB.canNotEvaluate()) 
+        return resB;
+      return getConstResult(resA.getValue().equals(resB.getValue()));
     }
 
     @Override
@@ -521,14 +538,14 @@ abstract class AutomatonBoolExpr {
     }
 
     @Override
-    public MaybeBoolean eval(AutomatonExpressionArguments pArgs) {
-      MaybeBoolean resultA = a.eval(pArgs);
-      MaybeBoolean resultB = b.eval(pArgs);
-      if (resultA == MaybeBoolean.MAYBE || resultB == MaybeBoolean.MAYBE) {
-        return MaybeBoolean.MAYBE;
-      } else {
-        return MaybeBoolean.valueOf(! resultA.equals(resultB));
-      }
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
+      ResultValue<Boolean> resA = a.eval(pArgs);
+      if (resA.canNotEvaluate()) 
+        return resA;
+      ResultValue<Boolean> resB = b.eval(pArgs);
+      if (resB.canNotEvaluate()) 
+        return resB;
+      return getConstResult(! resA.getValue().equals(resB.getValue()));
     }
 
     @Override

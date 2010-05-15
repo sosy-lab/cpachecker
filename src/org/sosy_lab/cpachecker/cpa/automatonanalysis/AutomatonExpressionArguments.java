@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 
 class AutomatonExpressionArguments {
-  public static AutomatonExpressionArguments emptyArguments = new AutomatonExpressionArguments();
   
   private Map<String, AutomatonVariable> automatonVariables;
   // Variables that are only valid for one transition ($1,$2,...)
@@ -56,17 +55,6 @@ class AutomatonExpressionArguments {
   // the pattern \$\d+ matches Expressions like $1 $2 $3 $201
   // If this pattern is changed the pattern in AutomatonASTcomparison should be changed too!
   static Pattern TRANSITION_VARS_PATTERN = Pattern.compile("\\$\\d+");
-
-  /**
-   * Constructs empty Expression Arguments ( used in situations where no arguments are known, but a parameter must be given)
-   * Access to the cfaEdge or the logger will return null!
-   */
-  AutomatonExpressionArguments() {
-    this.abstractElements = Collections.<AbstractElement>emptyList();
-    this.automatonVariables = Collections.<String, AutomatonVariable>emptyMap();
-    this.cfaEdge = null;
-    this.logger = null;
-  }
   
   AutomatonExpressionArguments(Map<String, AutomatonVariable> pAutomatonVariables,
       List<AbstractElement> pAbstractElements, CFAEdge pCfaEdge, LogManager pLogger) {

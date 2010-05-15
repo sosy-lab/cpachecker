@@ -29,7 +29,7 @@ import java.util.logging.Level;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.automatonanalysis.AutomatonActionExpr.CPAModification;
-import org.sosy_lab.cpachecker.cpa.automatonanalysis.AutomatonBoolExpr.MaybeBoolean;
+import org.sosy_lab.cpachecker.cpa.automatonanalysis.AutomatonExpression.ResultValue;
 
 import com.google.common.collect.ImmutableList;
 
@@ -42,7 +42,7 @@ class AutomatonTransition {
 
   // The order of triggers, assertions and (more importantly) actions is preserved by the parser.
   private final AutomatonBoolExpr trigger;
-  private final List<AutomatonBoolExpr> assertions;
+  private AutomatonBoolExpr assertion;
   private final List<AutomatonActionExpr> actions;
 
   /**
@@ -57,7 +57,7 @@ class AutomatonTransition {
   public AutomatonTransition(AutomatonBoolExpr pTrigger, List<AutomatonBoolExpr> pAssertions, List<AutomatonActionExpr> pActions,
       String pFollowStateName) {
     this.trigger = pTrigger;
-    this.assertions = ImmutableList.copyOf(pAssertions);
+    initAssertions(this, pAssertions);
     this.actions = ImmutableList.copyOf(pActions);
     this.followStateName = pFollowStateName;
   }
@@ -66,10 +66,30 @@ class AutomatonTransition {
       List<AutomatonBoolExpr> pAssertions, List<AutomatonActionExpr> pActions,
       AutomatonInternalState pFollowState) {
     this.trigger = pTrigger;
-    this.assertions = ImmutableList.copyOf(pAssertions);
+    initAssertions(this, pAssertions);
     this.actions = ImmutableList.copyOf(pActions);
     this.followState = pFollowState;
     this.followStateName = pFollowState.getName();
+  }
+  
+  /** this constructor initializes only the assertion!
+   * Use with care
+   * @param pAssertions
+   */
+  private static void initAssertions(AutomatonTransition trans, List<AutomatonBoolExpr> pAssertions) {
+    if (pAssertions.isEmpty()) {
+      trans.assertion = new AutomatonBoolExpr.True();
+    } else {
+      for (AutomatonBoolExpr nextAssertion : pAssertions) {
+        if (trans.assertion == null) {
+          // first iteration
+          trans.assertion = nextAssertion;
+        } else {
+          // other iterations
+          trans.assertion = new AutomatonBoolExpr.And(trans.assertion, nextAssertion);
+        }
+      }
+    }
   }
 
   /**
@@ -97,7 +117,7 @@ class AutomatonTransition {
    * This might return a <code>MaybeBoolean.MAYBE</code> value if the method cannot determine if the transition matches.
    * In this case more information (e.g. more AbstractElements of other CPAs) are needed.
    */
-  public MaybeBoolean match(AutomatonExpressionArguments pArgs) {
+  public ResultValue<Boolean> match(AutomatonExpressionArguments pArgs) {
     return trigger.eval(pArgs);
   }
 
@@ -105,14 +125,8 @@ class AutomatonTransition {
    * Checks if all assertions of this transition are fulfilled
    * in the current configuration of the automaton this method is called.
    */
-  public MaybeBoolean assertionsHold(AutomatonExpressionArguments pArgs) {
-    for (AutomatonBoolExpr assertion : assertions) {
-      MaybeBoolean assertionValue = assertion.eval(pArgs);
-      if (assertionValue == MaybeBoolean.MAYBE || assertionValue == MaybeBoolean.FALSE) {
-        return assertionValue; // LazyEvaluation
-      }
-    }
-    return MaybeBoolean.TRUE;
+  public ResultValue<Boolean> assertionsHold(AutomatonExpressionArguments pArgs) {
+    return assertion.eval(pArgs);
   }
 
   /**
@@ -120,7 +134,7 @@ class AutomatonTransition {
    */
   public void executeActions(AutomatonExpressionArguments pArgs) {
     for (AutomatonActionExpr action : actions) {
-      action.execute(pArgs);
+      action.eval(pArgs);
     }
     if (pArgs.getLogMessage() != null && pArgs.getLogMessage().length() > 0) {
       pArgs.getLogger().log(Level.INFO, pArgs.getLogMessage());

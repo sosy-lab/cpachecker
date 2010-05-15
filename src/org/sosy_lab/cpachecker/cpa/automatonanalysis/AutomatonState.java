@@ -286,9 +286,9 @@ class AutomatonState implements AbstractQueryableElement {
     }
   }
   @Override
-  public EvaluationReturnValue<? extends Object> evaluateProperty(
+  public Boolean evaluateProperty(
       String pProperty) throws InvalidQueryException {
-    return new EvaluationReturnValue<Boolean>(Boolean.valueOf(checkProperty(pProperty)));
+    return Boolean.valueOf(checkProperty(pProperty));
   }
   @Override
   public String getCPAName() {
