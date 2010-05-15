@@ -22,9 +22,10 @@
 	<extension point="org.eclipse.ui.newWizards">
       <category
             name="CPAchecker"
-            id="org.sosy_lab.cpachecker.plugin.eclipse.catMain">
+            id="org.sosy_lab.cpachecker.plugin.eclipse.wizards">
       </category>
       <wizard
+      		category="org.sosy_lab.cpachecker.plugin.eclipse.wizards"
             name="new CPAchecker Task"
             icon="$nl$/icons/sample.gif"
             class="org.sosy_lab.cpachecker.plugin.eclipse.wizards.NewTaskCreationWizard"

@@ -98,8 +98,7 @@ public class CPAcheckerPlugin extends AbstractUIPlugin {
 	}
 	
 	public static void runTasks(List<Task> tasks) {
-		TaskRunner runner = new TaskRunner();
-		runner.run(tasks);
+		TaskRunner.run(tasks);
 	}
 
 	public List<ITestListener> getListeners() {

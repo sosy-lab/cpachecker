@@ -10,4 +10,19 @@ public interface ITestListener {
 	void taskFinished(Task id, CPAcheckerResult results);
 	void tasksChanged();
 	void taskHasPreRunError(Task t, String errorMessage);
+	
+	static class DefaultImplementation implements ITestListener {
+		@Override
+		public void taskFinished(Task id, CPAcheckerResult results) {}
+		@Override
+		public void taskHasPreRunError(Task t, String errorMessage) {}
+		@Override
+		public void taskStarted(Task id) {}
+		@Override
+		public void tasksChanged() {}
+		@Override
+		public void tasksFinished() {}
+		@Override
+		public void tasksStarted(int taskCount) {}
+	}
 }

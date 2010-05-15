@@ -19,6 +19,7 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.IWorkbenchActionConstants;
+import org.eclipse.ui.actions.NewWizardMenu;
 import org.eclipse.ui.part.ViewPart;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.plugin.eclipse.CPAcheckerPlugin;
@@ -38,7 +39,6 @@ public class TasksView extends ViewPart {
 	private TaskTreeViewer myTreeViewer;
 	private Control parent;
 	
-	
 	public static void main(String[] args) {
 		Display display = new Display();
 		Shell shell = new Shell(display);
@@ -47,7 +47,6 @@ public class TasksView extends ViewPart {
 				
 		shell.setBounds(220, 220, 440, 440);
 		
-
 		//Map<String, String> emptyMap = Collections.emptyMap();
 		//Task t1 = new Task("Task 1", new Configuration(emptyMap), "File1");
 		//taskView.addTask(t1);
@@ -165,8 +164,29 @@ public class TasksView extends ViewPart {
 	
 	@SuppressWarnings("unchecked")
 	void handleMenuAboutToShow(IMenuManager manager) {
+		
+		
+		manager.add(new Separator("New"));
+		MenuManager newMenu = new MenuManager("Ne&w");
+		manager.appendToGroup("New", newMenu);
+		newMenu.add(new NewWizardMenu(this.getSite().getWorkbenchWindow(),"org.sosy_lab.cpachecker.plugin.eclipse.wizards.NewTaskCreationWizard"));
+		/*ActionGroup[] groups = new ActionGroup[1];
+		groups[0] = new ActionGroup() {
+			@Override
+			public void fillContextMenu(IMenuManager menu) {
+				MenuManager newMenu = new MenuManager("Ne&w");
+			    menu.appendToGroup("New", newMenu);
+				newMenu.add(new NewWizardMenu(TasksView.this.getSite().getWorkbenchWindow()));
+				super.fillContextMenu(menu);
+			}
+		};*/
+		
+		
+		
+		
 		final IStructuredSelection selection= (IStructuredSelection) myTreeViewer.getSelection();
 		if (selection.isEmpty()) {
+			System.out.println("I think this cant happen");
 			return;
 		}
 		List<Task> selectedTasks = new ArrayList<Task>();
@@ -199,7 +219,6 @@ public class TasksView extends ViewPart {
 				break;
 			}
 		}
-		
 		manager.add(new RunMultipleTasksAction(this.getSite().getShell(), selectedTasks));
 		//this.getSite().setSelectionProvider(myTreeViewer);
 		OpenAction open = new OpenAction(this.getSite());
