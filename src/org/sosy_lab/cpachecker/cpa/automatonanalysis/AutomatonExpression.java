@@ -6,19 +6,19 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
-abstract class AutomatonExpression {
+interface AutomatonExpression {
   
-  abstract ResultValue<?> eval(AutomatonExpressionArguments pArgs);
+  ResultValue<?> eval(AutomatonExpressionArguments pArgs);
   
   
-  static class StringExpression extends AutomatonExpression {
+  static class StringExpression implements AutomatonExpression {
     private String toPrint;
     public StringExpression(String pString) {
       super();
       this.toPrint = pString;
     }
     @Override
-    ResultValue<?> eval(AutomatonExpressionArguments pArgs) {
+    public ResultValue<?> eval(AutomatonExpressionArguments pArgs) {
       // replace $rawstatement
       String str = toPrint.replaceAll("\\$[rR]aw[Ss]tatement", pArgs.getCfaEdge().getRawStatement());
       // replace $line
@@ -36,7 +36,7 @@ abstract class AutomatonExpression {
    * Sends a query-String to an <code>AbstractElement</code> of another analysis and returns the query-Result.
    * @author rhein
    */
-  static class CPAQuery extends AutomatonExpression {
+  static class CPAQuery implements AutomatonExpression {
     private final String cpaName;
     private final String queryString;
 
@@ -82,7 +82,7 @@ abstract class AutomatonExpression {
 
   // TODO: lift CPA Query here
   
-  static class ResultValue<resultType> {
+  public static class ResultValue<resultType> {
     private boolean canNotEvaluate = false;
     private String failureMessage = null; // only set if cannotEvaluate == true
     private String failureOrigin = null;  // only set if cannotEvaluate == true

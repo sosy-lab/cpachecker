@@ -35,16 +35,15 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
  * The Expression can be evaluated multiple times.
  * @author rhein
  */
-abstract class AutomatonIntExpr extends AutomatonExpression {
+interface AutomatonIntExpr extends AutomatonExpression {
 
-  private AutomatonIntExpr() {} //nobody can use this
   @Override
   abstract ResultValue<Integer> eval(AutomatonExpressionArguments pArgs);
 
   /** Stores a constant integer.
    * @author rhein
    */
-  static class Constant extends AutomatonIntExpr {
+  static class Constant implements AutomatonIntExpr {
     private final ResultValue<Integer> constantResult;
     public Constant(int pI) {this.constantResult = new ResultValue<Integer>(Integer.valueOf(pI)); }
     public Constant(String pI) {this(Integer.parseInt(pI)); }
@@ -59,7 +58,7 @@ abstract class AutomatonIntExpr extends AutomatonExpression {
   /** Loads an {@link AutomatonVariable} from the VariableMap and returns its int value.
    * @author rhein
    */
-  static class VarAccess extends AutomatonIntExpr {
+  static class VarAccess implements AutomatonIntExpr {
 
     private final String varId;
 
@@ -113,7 +112,7 @@ abstract class AutomatonIntExpr extends AutomatonExpression {
    * Sends a query-String to an <code>AbstractElement</code> of another analysis and returns the query-Result.
    * @author rhein
    */
-  static class CPAQuery extends AutomatonIntExpr {
+  static class CPAQuery implements AutomatonIntExpr {
     private final String cpaName;
     private final String queryString;
 
@@ -180,7 +179,7 @@ abstract class AutomatonIntExpr extends AutomatonExpression {
   /** Addition of {@link AutomatonIntExpr} instances.
    * @author rhein
    */
-  static class Plus extends AutomatonIntExpr {
+  static class Plus implements AutomatonIntExpr {
 
     private final AutomatonIntExpr a;
     private final AutomatonIntExpr b;
@@ -207,7 +206,7 @@ abstract class AutomatonIntExpr extends AutomatonExpression {
   /** Subtraction of {@link AutomatonIntExpr} instances.
    * @author rhein
    */
-  static class Minus extends AutomatonIntExpr {
+  static class Minus implements AutomatonIntExpr {
 
     private final AutomatonIntExpr a;
     private final AutomatonIntExpr b;

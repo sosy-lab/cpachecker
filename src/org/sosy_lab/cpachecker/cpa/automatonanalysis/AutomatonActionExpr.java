@@ -29,6 +29,7 @@ import java.util.logging.Level;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
+import org.sosy_lab.cpachecker.cpa.automatonanalysis.AutomatonExpression.ResultValue;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
 
@@ -36,13 +37,12 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
  * Implements an Action with side-effects that has no return value.
  * The Action can be executed multiple times.
  */
-abstract class AutomatonActionExpr extends AutomatonExpression {
+abstract class AutomatonActionExpr {
   private AutomatonActionExpr() {};
   private static ResultValue<String> defaultResultValue = new ResultValue<String>("");
   
   // in this method the Value inside the resultValueObject is not important (most ActionClasses will return "" as inner value)
   // more important is if the action was evaluated (ResultValue.canNotEvaluate())
-  @Override
   abstract ResultValue<? extends Object> eval(AutomatonExpressionArguments pArgs);
   
   /**

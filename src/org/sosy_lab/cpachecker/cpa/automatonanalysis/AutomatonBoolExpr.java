@@ -38,21 +38,12 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
  * The Expression can be evaluated multiple times.
  * @author rhein
  */
-abstract class AutomatonBoolExpr extends AutomatonExpression {
+interface AutomatonBoolExpr extends AutomatonExpression {
   static final ResultValue<Boolean> CONST_TRUE = new ResultValue<Boolean>(Boolean.TRUE);
   static final ResultValue<Boolean> CONST_FALSE = new ResultValue<Boolean>(Boolean.FALSE);
-  protected static ResultValue<Boolean> getConstResult(boolean value) {
-    if (value) { // this construct is used to avoid creation of Objects when only simple values like true/false are needed
-      return CONST_TRUE;
-    } else {
-      return CONST_FALSE;
-    }
-  }
-
-  private AutomatonBoolExpr() {} //nobody can use this
 
   @Override
-  public abstract ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs);
+  abstract ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs);
 
   /**
    * Implements a regex match on the label after the current CFAEdge.
@@ -60,7 +51,7 @@ abstract class AutomatonBoolExpr extends AutomatonExpression {
    * (".*" in java-regex means "any characters")
    * @author rhein
    */
-  static class MatchLabelRegEx extends AutomatonBoolExpr {
+  static class MatchLabelRegEx implements AutomatonBoolExpr {
 
     private final Pattern pattern;
 
@@ -73,7 +64,11 @@ abstract class AutomatonBoolExpr extends AutomatonExpression {
       CFANode successorNode = pArgs.getCfaEdge().getSuccessor();
       if (successorNode instanceof CFALabelNode) {
         String label = ((CFALabelNode)successorNode).getLabel().toLowerCase();
-        return getConstResult(pattern.matcher(label).matches());
+        if (pattern.matcher(label).matches()) {
+          return CONST_TRUE;
+        } else {
+          return CONST_FALSE;
+        }
       } else {
         return new ResultValue<Boolean>("cannot evaluate if the CFAEdge is not a CFALabelNode", "MatchLabelRegEx.eval(..)");
       }
@@ -92,7 +87,7 @@ abstract class AutomatonBoolExpr extends AutomatonExpression {
    * The AST Comparison evaluates the pattern (coming from the Automaton Definition) and the C-Statement on the CFA Edge to ASTs and compares these with a Tree comparison algorithm.
    * @author rhein
    */
-  static class MatchCFAEdgeASTComparison extends AutomatonBoolExpr {
+  static class MatchCFAEdgeASTComparison implements AutomatonBoolExpr {
 
     private final IASTNode patternAST;
 
@@ -107,9 +102,13 @@ abstract class AutomatonBoolExpr extends AutomatonExpression {
       //AutomatonASTComparator.printAST(patternAST);
       if (ast != null) {
         // some edges do not have an AST node attached to them, e.g. BlankEdges
-        return getConstResult(AutomatonASTComparator.compareASTs(ast, patternAST, pArgs));
+      if(AutomatonASTComparator.compareASTs(ast, patternAST, pArgs)) {
+        return CONST_TRUE;
+      } else {
+        return CONST_FALSE;
       }
-      return getConstResult(false);
+      }
+      return CONST_FALSE;
     }
 
     @Override
@@ -119,7 +118,7 @@ abstract class AutomatonBoolExpr extends AutomatonExpression {
   }
 
 
-  static class MatchCFAEdgeRegEx extends AutomatonBoolExpr {
+  static class MatchCFAEdgeRegEx implements AutomatonBoolExpr {
 
     private final Pattern pattern;
 
@@ -129,7 +128,11 @@ abstract class AutomatonBoolExpr extends AutomatonExpression {
 
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
-      return getConstResult(pattern.matcher(pArgs.getCfaEdge().getRawStatement()).matches());
+      if (pattern.matcher(pArgs.getCfaEdge().getRawStatement()).matches()) {
+        return CONST_TRUE;
+      } else {
+        return CONST_FALSE;
+      }
     }
 
     @Override
@@ -139,7 +142,7 @@ abstract class AutomatonBoolExpr extends AutomatonExpression {
   }
 
 
-  static class MatchCFAEdgeExact extends AutomatonBoolExpr {
+  static class MatchCFAEdgeExact implements AutomatonBoolExpr {
 
     private final String pattern;
 
@@ -149,7 +152,11 @@ abstract class AutomatonBoolExpr extends AutomatonExpression {
 
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
-      return getConstResult(pArgs.getCfaEdge().getRawStatement().equals(pattern));
+      if (pArgs.getCfaEdge().getRawStatement().equals(pattern)) {
+        return CONST_TRUE;
+      } else {
+        return CONST_FALSE;
+      }
     }
 
     @Override
@@ -165,7 +172,7 @@ abstract class AutomatonBoolExpr extends AutomatonExpression {
    * Returns MAYBE if no Element is available or the Variables could not be replaced.
    * @author rhein
    */
-  public static class ALLCPAQuery extends AutomatonBoolExpr {
+  public static class ALLCPAQuery implements AutomatonBoolExpr {
     private final String queryString;
     
     public ALLCPAQuery(String pString) {
@@ -193,7 +200,7 @@ abstract class AutomatonBoolExpr extends AutomatonExpression {
                   modifiedQueryString + "\" CPAElement: (" + aqe.getCPAName() + ") \"" +
                   aqe.toString() + "\"";
                   pArgs.getLogger().log(Level.FINER, message);
-                  return getConstResult(true);
+                  return CONST_TRUE;
                 }
               }
             } catch (InvalidQueryException e) {
@@ -201,7 +208,7 @@ abstract class AutomatonBoolExpr extends AutomatonExpression {
             }
           }
         }
-        return getConstResult(false);
+        return CONST_FALSE;
       }
     }
   }
@@ -209,7 +216,7 @@ abstract class AutomatonBoolExpr extends AutomatonExpression {
    * Sends a query-String to an <code>AbstractElement</code> of another analysis and returns the query-Result.
    * @author rhein
    */
-  static class CPAQuery extends AutomatonBoolExpr {
+  static class CPAQuery implements AutomatonBoolExpr {
     private final String cpaName;
     private final String queryString;
 
@@ -238,26 +245,26 @@ abstract class AutomatonBoolExpr extends AutomatonExpression {
                   modifiedQueryString + "\" CPAElement: (" + aqe.getCPAName() + ") \"" +
                   aqe.toString() + "\"";
                   pArgs.getLogger().log(Level.FINER, message);
-                  return getConstResult(true);
+                  return CONST_TRUE;
                 } else {
                   String message = "CPA-Check failed: ModifiedCheckString: \"" + 
                   modifiedQueryString + "\" CPAElement: (" + aqe.getCPAName() + ") \"" +
                   aqe.toString() + "\"";
                   pArgs.getLogger().log(Level.FINER, message);
-                  return getConstResult(false);
+                  return CONST_FALSE;
                 }
               } else {
                 pArgs.getLogger().log(Level.WARNING,
                     "Automaton got a non-Boolean value during Query of the "
                     + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getRawStatement() + 
                     ". Assuming FALSE.");
-                return getConstResult(false);
+                return CONST_FALSE;
               }
             } catch (InvalidQueryException e) {
               pArgs.getLogger().logException(Level.WARNING, e,
                   "Automaton encountered an Exception during Query of the "
                   + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getRawStatement());
-              return getConstResult(false);
+              return CONST_FALSE;
             }
           }
         }
@@ -275,10 +282,10 @@ abstract class AutomatonBoolExpr extends AutomatonExpression {
   /** Constant for true.
    * @author rhein
    */
-  static class True extends AutomatonBoolExpr {
+  static class True implements AutomatonBoolExpr {
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
-      return getConstResult(true);
+      return CONST_TRUE;
     }
 
     @Override
@@ -291,10 +298,10 @@ abstract class AutomatonBoolExpr extends AutomatonExpression {
   /** Constant for false.
    * @author rhein
    */
-  static class False extends AutomatonBoolExpr {
+  static class False implements AutomatonBoolExpr {
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
-      return getConstResult(false);
+      return CONST_FALSE;
     }
 
     @Override
@@ -307,7 +314,7 @@ abstract class AutomatonBoolExpr extends AutomatonExpression {
   /** Tests the equality of the values of two instances of {@link AutomatonIntExpr}.
    * @author rhein
    */
-  static class IntEqTest extends AutomatonBoolExpr {
+  static class IntEqTest implements AutomatonBoolExpr {
 
     private final AutomatonIntExpr a;
     private final AutomatonIntExpr b;
@@ -323,7 +330,11 @@ abstract class AutomatonBoolExpr extends AutomatonExpression {
       ResultValue<Integer> resB = b.eval(pArgs);
       if (resA.canNotEvaluate()) return new ResultValue<Boolean>(resA);
       if (resB.canNotEvaluate()) return new ResultValue<Boolean>(resB);
-      return getConstResult(resA.getValue().equals(resB.getValue()));
+      if (resA.getValue().equals(resB.getValue())) {
+        return CONST_TRUE;
+      } else {
+        return CONST_FALSE;
+      }
     }
 
     @Override
@@ -336,7 +347,7 @@ abstract class AutomatonBoolExpr extends AutomatonExpression {
   /** Tests whether two instances of {@link AutomatonIntExpr} evaluate to different integers.
    * @author rhein
    */
-  static class IntNotEqTest extends AutomatonBoolExpr {
+  static class IntNotEqTest implements AutomatonBoolExpr {
 
     private final AutomatonIntExpr a;
     private final AutomatonIntExpr b;
@@ -352,7 +363,11 @@ abstract class AutomatonBoolExpr extends AutomatonExpression {
       ResultValue<Integer> resB = b.eval(pArgs);
       if (resA.canNotEvaluate()) return new ResultValue<Boolean>(resA);
       if (resB.canNotEvaluate()) return new ResultValue<Boolean>(resB);
-      return getConstResult(! resA.getValue().equals(resB.getValue()));
+      if (! resA.getValue().equals(resB.getValue())) {
+        return CONST_TRUE;
+      } else {
+        return CONST_FALSE;
+      }
     }
 
     @Override
@@ -365,7 +380,7 @@ abstract class AutomatonBoolExpr extends AutomatonExpression {
   /** Computes the disjunction of two {@link AutomatonBoolExpr} (lazy evaluation).
    * @author rhein
    */
-  static class Or extends AutomatonBoolExpr {
+  static class Or implements AutomatonBoolExpr {
 
     private final AutomatonBoolExpr a;
     private final AutomatonBoolExpr b;
@@ -414,7 +429,7 @@ abstract class AutomatonBoolExpr extends AutomatonExpression {
   /** Computes the conjunction of two {@link AutomatonBoolExpr} (lazy evaluation).
    * @author rhein
    */
-  static class And extends AutomatonBoolExpr {
+  static class And implements AutomatonBoolExpr {
 
     private final AutomatonBoolExpr a;
     private final AutomatonBoolExpr b;
@@ -465,7 +480,7 @@ abstract class AutomatonBoolExpr extends AutomatonExpression {
    * Negates the result of a {@link AutomatonBoolExpr}. If the result is MAYBE it is returned unchanged.
    * @author rhein
    */
-  static class Negation extends AutomatonBoolExpr {
+  static class Negation implements AutomatonBoolExpr {
 
     private final AutomatonBoolExpr a;
 
@@ -478,9 +493,9 @@ abstract class AutomatonBoolExpr extends AutomatonExpression {
       ResultValue<Boolean> resA = a.eval(pArgs);
       if (resA.canNotEvaluate()) return resA;
       if (resA.getValue().equals(Boolean.TRUE)) {
-        return getConstResult(false);
+        return CONST_FALSE;
       } else {
-        return getConstResult(true);
+        return CONST_TRUE;
       }
     }
 
@@ -495,7 +510,7 @@ abstract class AutomatonBoolExpr extends AutomatonExpression {
    * Boolean Equality
    * @author rhein
    */
-  static class BoolEqTest extends AutomatonBoolExpr {
+  static class BoolEqTest implements AutomatonBoolExpr {
 
     private final AutomatonBoolExpr a;
     private final AutomatonBoolExpr b;
@@ -513,7 +528,11 @@ abstract class AutomatonBoolExpr extends AutomatonExpression {
       ResultValue<Boolean> resB = b.eval(pArgs);
       if (resB.canNotEvaluate()) 
         return resB;
-      return getConstResult(resA.getValue().equals(resB.getValue()));
+      if (resA.getValue().equals(resB.getValue())) {
+        return CONST_TRUE;
+      } else {
+        return CONST_FALSE;
+      }
     }
 
     @Override
@@ -527,7 +546,7 @@ abstract class AutomatonBoolExpr extends AutomatonExpression {
    * Boolean !=
    * @author rhein
    */
-  static class BoolNotEqTest extends AutomatonBoolExpr {
+  static class BoolNotEqTest implements AutomatonBoolExpr {
 
     private final AutomatonBoolExpr a;
     private final AutomatonBoolExpr b;
@@ -545,7 +564,11 @@ abstract class AutomatonBoolExpr extends AutomatonExpression {
       ResultValue<Boolean> resB = b.eval(pArgs);
       if (resB.canNotEvaluate()) 
         return resB;
-      return getConstResult(! resA.getValue().equals(resB.getValue()));
+      if (! resA.getValue().equals(resB.getValue())) {
+        return CONST_TRUE;
+      } else {
+        return CONST_FALSE;
+      }
     }
 
     @Override
