@@ -28,7 +28,6 @@ import java.util.regex.Pattern;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableElement;
-import org.sosy_lab.cpachecker.cpa.automatonanalysis.AutomatonExpression.ResultValue;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
 /**
@@ -36,9 +35,10 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
  * The Expression can be evaluated multiple times.
  * @author rhein
  */
-abstract class AutomatonIntExpr {
+abstract class AutomatonIntExpr extends AutomatonExpression {
 
   private AutomatonIntExpr() {} //nobody can use this
+  @Override
   abstract ResultValue<Integer> eval(AutomatonExpressionArguments pArgs);
 
   /** Stores a constant integer.

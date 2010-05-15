@@ -16,9 +16,7 @@ STATE Init:
   MATCH "somefunction();" -> 
   	ASSERT CHECK(ExplicitAnalysis("c==0"))
   	ASSERT EVAL(ExplicitAnalysis("c"))==0
-  	PRINT "Explicit Value of c: "
-  	PRINT EVAL(ExplicitAnalysis("c"))
-  	PRINT " Modification successful" 
+  	PRINT "Explicit Value of c: " EVAL(ExplicitAnalysis("c")) " Modification successful" 
   	GOTO Init;
   	
   MATCH "error();" -> PRINT "Found an error" ERROR;

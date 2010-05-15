@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.automatonanalysis;
 
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
@@ -60,47 +61,24 @@ abstract class AutomatonActionExpr extends AutomatonExpression {
    * @author rhein
    */
   static class Print extends AutomatonActionExpr {
-    private String toPrint;
-    public Print(String pToPrint) { toPrint = pToPrint; }
+    private List<AutomatonExpression> toPrint;
+    public Print(List<AutomatonExpression> pArgs) { toPrint = pArgs; }
     @Override ResultValue<? extends Object> eval(AutomatonExpressionArguments pArgs) {
-      // replace $rawstatement
-      String str = toPrint.replaceAll("\\$[rR]aw[Ss]tatement", pArgs.getCfaEdge().getRawStatement());
-      // replace $line
-      str = str.replaceAll("\\$[Ll]ine", String.valueOf(pArgs.getCfaEdge().getLineNumber()));
-      // replace Transition Variables and AutomatonVariables
-      str = pArgs.replaceVariables(str);
-      if (str == null) {
-        return new ResultValue<Object>("Failure in Variable Replacement in String \"" + toPrint + "\"","ActionExpr.Print");
-      } else {
-        pArgs.appendToLogMessage(str.toString());
-        return defaultResultValue;
+      StringBuilder sb = new StringBuilder();  
+      for (AutomatonExpression expr : toPrint) {
+        ResultValue<?> res = expr.eval(pArgs);
+        if (res.canNotEvaluate()) {
+          return res;
+        } else {
+          sb.append(res.getValue().toString());
+        }
       }
+      pArgs.appendToLogMessage(sb.toString());
+      return defaultResultValue;
     }
   }
 
-  /**
-   * Prints the value of an AutomatonIntExpr
-   * @author rhein
-   */
-  static class PrintInt extends AutomatonActionExpr {
-    private AutomatonIntExpr toPrint;
-    public PrintInt(AutomatonIntExpr pIntExpr) {
-      toPrint = pIntExpr;
-    }
-    @Override
-    boolean canExecuteOn(AutomatonExpressionArguments pArgs) {
-     return ! toPrint.eval(pArgs).canNotEvaluate();
-    }
-    @Override ResultValue<? extends Object> eval(AutomatonExpressionArguments pArgs) {
-      ResultValue<Integer> res = toPrint.eval(pArgs);
-      if (res.canNotEvaluate()) { 
-        return res;
-      } else {
-        pArgs.appendToLogMessage(res.getValue());
-        return defaultResultValue;
-      }
-    }
-  }
+  
 
   /** Assigns the value of a AutomatonIntExpr to a AutomatonVariable determined by its name.
    * @author rhein
