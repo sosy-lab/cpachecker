@@ -24,6 +24,9 @@
 package org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification;
 
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Edges;
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.Nodes;
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.Paths;
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.Predicate;
 
 public interface ASTVisitor<T> {
 
@@ -31,5 +34,8 @@ public interface ASTVisitor<T> {
   public T visit(Quotation pQuotation);
   public T visit(Union pUnion);
   public T visit(Edges pEdges);
+  public T visit(Nodes pNodes);
+  public T visit(Paths pPaths);
+  public T visit(Predicate pPredicate);
 
 }

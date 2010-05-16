@@ -21,20 +21,32 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification;
+package org.sosy_lab.cpachecker.fllesh.fql2.ast;
 
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.PathPattern;
+import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Filter;
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification.ASTVisitor;
 
-public class Quotation implements CoverageSpecification {
+public class Paths implements Atom {
 
-  private PathPattern mPathPattern;
+  private Filter mFilter;
+  private int mBound;
 
-  public Quotation(PathPattern pPathPattern) {
-    mPathPattern = pPathPattern;
+  public Paths(Filter pFilter, int pBound) {
+    mFilter = pFilter;
+    mBound = pBound;
   }
 
-  public PathPattern getPathPattern() {
-    return mPathPattern;
+  public Filter getFilter() {
+    return mFilter;
+  }
+  
+  public int getBound() {
+    return mBound;
+  }
+
+  @Override
+  public String toString() {
+    return "PATHS(" + mFilter.toString() + ", " + mBound + ")";
   }
 
   @Override
@@ -43,8 +55,8 @@ public class Quotation implements CoverageSpecification {
   }
 
   @Override
-  public String toString() {
-    return "\"" + mPathPattern.toString() + "\"";
+  public <T> T accept(org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.ASTVisitor<T> pVisitor) {
+    return pVisitor.visit(this);
   }
 
 }

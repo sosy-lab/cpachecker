@@ -21,20 +21,25 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification;
+package org.sosy_lab.cpachecker.fllesh.fql2.ast;
 
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.PathPattern;
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification.ASTVisitor;
 
-public class Quotation implements CoverageSpecification {
+public class Predicate implements Atom {
 
-  private PathPattern mPathPattern;
+  private String mPredicate;
 
-  public Quotation(PathPattern pPathPattern) {
-    mPathPattern = pPathPattern;
+  public Predicate(String pPredicate) {
+    mPredicate = pPredicate;
   }
 
-  public PathPattern getPathPattern() {
-    return mPathPattern;
+  public String getPredicate() {
+    return mPredicate;
+  }
+  
+  @Override
+  public String toString() {
+    return "{ " + mPredicate + " }";
   }
 
   @Override
@@ -43,8 +48,8 @@ public class Quotation implements CoverageSpecification {
   }
 
   @Override
-  public String toString() {
-    return "\"" + mPathPattern.toString() + "\"";
+  public <T> T accept(org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.ASTVisitor<T> pVisitor) {
+    return pVisitor.visit(this);
   }
 
 }

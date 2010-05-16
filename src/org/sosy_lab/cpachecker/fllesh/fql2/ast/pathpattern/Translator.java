@@ -38,6 +38,9 @@ import org.sosy_lab.cpachecker.fllesh.ecp.reduced.Pattern;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.Edge;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.TargetGraph;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Edges;
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.Nodes;
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.Paths;
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.Predicate;
 
 public class Translator implements Annotations {
 
@@ -113,6 +116,21 @@ public class Translator implements Annotations {
       Pattern lAtom = new org.sosy_lab.cpachecker.fllesh.ecp.reduced.Atom(getId(lCFAEdges));
 
       return lAtom;
+    }
+
+    @Override
+    public Pattern visit(Nodes pNodes) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Pattern visit(Paths pPaths) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Pattern visit(Predicate pPredicate) {
+      throw new UnsupportedOperationException();
     }
 
   }

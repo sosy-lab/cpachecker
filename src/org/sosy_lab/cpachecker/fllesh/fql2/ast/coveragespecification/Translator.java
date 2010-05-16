@@ -37,6 +37,9 @@ import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.Edge;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.TargetGraph;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Filter;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Edges;
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.Nodes;
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.Paths;
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.Predicate;
 
 public class Translator {
 
@@ -117,6 +120,21 @@ public class Translator {
       }
 
       return lResultSet;
+    }
+
+    @Override
+    public Set<Pattern> visit(Nodes pNodes) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Set<Pattern> visit(Paths pPaths) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Set<Pattern> visit(Predicate pPredicate) {
+      throw new UnsupportedOperationException();
     }
 
   }

@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern;
 
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.Atom;
+
 public class Repetition implements PathPattern {
 
   private PathPattern mSubpattern;
@@ -42,7 +44,12 @@ public class Repetition implements PathPattern {
 
   @Override
   public String toString() {
-    return "(" + mSubpattern.toString() + ")*";
+    if (mSubpattern instanceof Atom) {
+      return mSubpattern.toString() + "*";
+    }
+    else {
+      return "(" + mSubpattern.toString() + ")*";
+    }
   }
 
 }

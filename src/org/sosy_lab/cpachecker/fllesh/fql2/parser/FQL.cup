@@ -26,8 +26,12 @@ package org.sosy_lab.cpachecker.fllesh.fql2.parser;
 
 import java_cup.runtime.*;
 
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.Nodes;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Edges;
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.Paths;
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.Predicate;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.FQLSpecification;
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification.ScopePropagator;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification.CoverageSpecification;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification.Quotation;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification.Concatenation;
@@ -112,6 +116,7 @@ terminal TOK_ENCLOSING_SCOPES;
 terminal TOK_COMPOSE;
 
 /* abstraction/predicates */
+/*
 terminal TOK_L_BRACE;
 terminal TOK_R_BRACE;
 terminal TOK_GREATER_OR_EQ;
@@ -120,9 +125,10 @@ terminal TOK_EQ;
 terminal TOK_LESS_OR_EQ;
 terminal TOK_LESS;
 terminal TOK_NEQ;
+*/
 
 /* coverage specification */
-terminal TOK_STATECOV;
+terminal TOK_NODECOV;
 terminal TOK_EDGECOV;
 terminal TOK_PATHCOV;
 terminal TOK_L_SEQ;
@@ -144,6 +150,8 @@ terminal TOK_PASSING;
 /* C identifier */
 terminal String TOK_C_IDENT;
 terminal String TOK_QUOTED_STRING;
+
+terminal String TOK_PREDICATE;
 
 /* a natural number */
 terminal Integer TOK_NAT_NUMBER;
@@ -171,6 +179,23 @@ FQLSpecification 	::= Cover:coverage Passing:passing
 							assert(passing instanceof PathPattern);
 							
 							RESULT = new FQLSpecification((CoverageSpecification)coverage, (PathPattern)passing);
+						:}
+					|   TOK_IN Filter:filter Cover:coverage Passing:passing
+						{:
+						 	assert(filter != null);
+						 	assert(filter instanceof Filter);
+						 	assert(coverage != null);
+							assert(coverage instanceof CoverageSpecification);
+							assert(passing != null);
+							assert(passing instanceof PathPattern);
+							
+							Filter lScope = (Filter)filter;
+							
+							ScopePropagator lScopePropagator = new ScopePropagator(lScope);
+							
+							CoverageSpecification lScopedSpecification = ((CoverageSpecification)coverage).accept(lScopePropagator);
+							
+							RESULT = new FQLSpecification(lScopedSpecification, (PathPattern)passing);
 						:}
 					;
 
@@ -261,12 +286,39 @@ PathPattern			::= Atom:atom
 						:}
 					;
 				
-Atom				::= TOK_EDGECOV TOK_L_PARENTHESIS Filter:filter TOK_R_PARENTHESIS
+Atom				::= TOK_NODECOV TOK_L_PARENTHESIS Filter:filter TOK_R_PARENTHESIS
+						{:
+							assert(filter != null);
+							assert(filter instanceof Filter);
+							
+							RESULT = new Nodes((Filter)filter);
+						:}
+					|	TOK_EDGECOV TOK_L_PARENTHESIS Filter:filter TOK_R_PARENTHESIS
 						{:
 							assert(filter != null);
 							assert(filter instanceof Filter);
 						
 							RESULT = new Edges((Filter)filter);
+						:}
+					|  	TOK_PATHCOV TOK_L_PARENTHESIS Filter:filter TOK_COMMA TOK_NAT_NUMBER:bound TOK_R_PARENTHESIS
+						{:
+							assert(filter != null);
+							assert(filter instanceof Filter);
+							
+							assert(bound != null);
+							
+							RESULT = new Paths((Filter)filter, bound.intValue());
+						:}
+					| 	TOK_PREDICATE:predicate
+						{:
+							assert(predicate != null);
+							assert(predicate instanceof String);
+							
+							String lOriginalString = (String)predicate;
+							
+							String lPredicateString = lOriginalString.substring(1, lOriginalString.length() - 1).trim();
+							
+							RESULT = new Predicate(lPredicateString);
 						:}
 					;
 

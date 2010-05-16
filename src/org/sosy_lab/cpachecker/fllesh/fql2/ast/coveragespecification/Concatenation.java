@@ -48,7 +48,25 @@ public class Concatenation implements CoverageSpecification {
 
   @Override
   public String toString() {
-    return "(" + mFirstSubspecification.toString() + "." + mSecondSubspecification.toString() + ")";
+    String lFirstSubspecificationString;
+    
+    if (mFirstSubspecification instanceof Concatenation || mFirstSubspecification instanceof Union) {
+      lFirstSubspecificationString = "(" + mFirstSubspecification.toString() + ")";
+    }
+    else {
+      lFirstSubspecificationString = mFirstSubspecification.toString();
+    }
+    
+    String lSecondSubspecificationString;
+    
+    if (mSecondSubspecification instanceof Concatenation || mSecondSubspecification instanceof Union) {
+      lSecondSubspecificationString = "(" + mSecondSubspecification.toString() + ")";
+    }
+    else {
+      lSecondSubspecificationString = mSecondSubspecification.toString();
+    }
+    
+    return lFirstSubspecificationString + "." + lSecondSubspecificationString;
   }
 
 }

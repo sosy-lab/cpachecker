@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.fllesh.fql2.parser;
 
 import java.io.StringReader;
 
+import junit.framework.Assert;
+
 import org.junit.Before;
 import org.junit.Test;
 
@@ -47,7 +49,11 @@ public class FQLParserTest {
 
     FQLParser lParser = new FQLParser(new FQLLexer(new StringReader(lInput)));
 
-    System.out.println("RESULT: " + lParser.parse().value.toString());
+    Object lResult = lParser.parse().value;
+    
+    System.out.println("RESULT: " + lResult.toString());
+    
+    Assert.assertEquals(lResult.toString(), "COVER EDGES(@BASICBLOCKENTRY) PASSING EDGES(ID)*");
   }
 
   @Test
@@ -58,7 +64,11 @@ public class FQLParserTest {
 
     FQLParser lParser = new FQLParser(new FQLLexer(new StringReader(lInput)));
 
-    System.out.println("RESULT: " + lParser.parse().value.toString());
+    Object lResult = lParser.parse().value;
+    
+    System.out.println("RESULT: " + lResult.toString());
+    
+    Assert.assertEquals(lResult.toString(), "COVER EDGES(@CONDITIONEDGE) PASSING EDGES(ID)*");
   }
 
   @Test
@@ -69,7 +79,11 @@ public class FQLParserTest {
 
     FQLParser lParser = new FQLParser(new FQLLexer(new StringReader(lInput)));
 
-    System.out.println("RESULT: " + lParser.parse().value.toString());
+    Object lResult = lParser.parse().value;
+    
+    System.out.println("RESULT: " + lResult.toString());
+    
+    Assert.assertEquals(lResult.toString(), "COVER EDGES(@DECISIONEDGE) PASSING EDGES(ID)*");
   }
 
   @Test
@@ -80,7 +94,11 @@ public class FQLParserTest {
 
     FQLParser lParser = new FQLParser(new FQLLexer(new StringReader(lInput)));
 
-    System.out.println("RESULT: " + lParser.parse().value.toString());
+    Object lResult = lParser.parse().value;
+    
+    System.out.println("RESULT: " + lResult.toString());
+    
+    Assert.assertEquals(lResult.toString(), "COVER EDGES(@CONDITIONGRAPH) PASSING EDGES(ID)*");
   }
 
   @Test
@@ -91,7 +109,11 @@ public class FQLParserTest {
 
     FQLParser lParser = new FQLParser(new FQLLexer(new StringReader(lInput)));
 
-    System.out.println("RESULT: " + lParser.parse().value.toString());
+    Object lResult = lParser.parse().value;
+    
+    System.out.println("RESULT: " + lResult.toString());
+    
+    Assert.assertEquals(lResult.toString(), "COVER EDGES(ID) PASSING EDGES(ID)*");
   }
 
   @Test
@@ -102,7 +124,11 @@ public class FQLParserTest {
 
     FQLParser lParser = new FQLParser(new FQLLexer(new StringReader(lInput)));
 
-    System.out.println("RESULT: " + lParser.parse().value.toString());
+    Object lResult = lParser.parse().value;
+    
+    System.out.println("RESULT: " + lResult.toString());
+    
+    Assert.assertEquals(lResult.toString(), "COVER EDGES(COMPLEMENT(@BASICBLOCKENTRY)) PASSING EDGES(ID)*");
   }
 
   @Test
@@ -113,7 +139,11 @@ public class FQLParserTest {
 
     FQLParser lParser = new FQLParser(new FQLLexer(new StringReader(lInput)));
 
-    System.out.println("RESULT: " + lParser.parse().value.toString());
+    Object lResult = lParser.parse().value;
+    
+    System.out.println("RESULT: " + lResult.toString());
+    
+    Assert.assertEquals(lResult.toString(), "COVER EDGES(INTERSECT(@BASICBLOCKENTRY, @CONDITIONEDGE)) PASSING EDGES(ID)*");
   }
 
   @Test
@@ -124,7 +154,11 @@ public class FQLParserTest {
 
     FQLParser lParser = new FQLParser(new FQLLexer(new StringReader(lInput)));
 
-    System.out.println("RESULT: " + lParser.parse().value.toString());
+    Object lResult = lParser.parse().value;
+    
+    System.out.println("RESULT: " + lResult.toString());
+    
+    Assert.assertEquals(lResult.toString(), "COVER EDGES(UNION(@BASICBLOCKENTRY, @CONDITIONEDGE)) PASSING EDGES(ID)*");
   }
 
   @Test
@@ -135,7 +169,11 @@ public class FQLParserTest {
 
     FQLParser lParser = new FQLParser(new FQLLexer(new StringReader(lInput)));
 
-    System.out.println("RESULT: " + lParser.parse().value.toString());
+    Object lResult = lParser.parse().value;
+    
+    System.out.println("RESULT: " + lResult.toString());
+    
+    Assert.assertEquals(lResult.toString(), "COVER \"EDGES(ID)*\" PASSING EDGES(ID)*");
   }
   
   @Test
@@ -146,7 +184,71 @@ public class FQLParserTest {
 
     FQLParser lParser = new FQLParser(new FQLLexer(new StringReader(lInput)));
 
-    System.out.println("RESULT: " + lParser.parse().value.toString());
+    Object lResult = lParser.parse().value;
+    
+    System.out.println("RESULT: " + lResult.toString());
+    
+    Assert.assertEquals(lResult.toString(), "COVER (\"EDGES(ID)*\".EDGES(@CALL(f))).\"EDGES(ID)*\" PASSING EDGES(ID)*");
+  }
+
+  @Test
+  public void testFQLParserScanner011() throws Exception {
+    String lInput = "COVER \"EDGES(ID)*\".NODES(@CALL(f)).\"EDGES(ID)*\"";
+
+    System.out.println(lInput);
+
+    FQLParser lParser = new FQLParser(new FQLLexer(new StringReader(lInput)));
+
+    Object lResult = lParser.parse().value;
+    
+    System.out.println("RESULT: " + lResult.toString());
+    
+    Assert.assertEquals(lResult.toString(), "COVER (\"EDGES(ID)*\".NODES(@CALL(f))).\"EDGES(ID)*\" PASSING EDGES(ID)*");
+  }
+
+  @Test
+  public void testFQLParserScanner012() throws Exception {
+    String lInput = "COVER \"EDGES(ID)*\".PATHS(@CALL(f), 2).\"EDGES(ID)*\"";
+
+    System.out.println(lInput);
+
+    FQLParser lParser = new FQLParser(new FQLLexer(new StringReader(lInput)));
+    
+    Object lResult = lParser.parse().value;
+
+    System.out.println("RESULT: " + lResult.toString());
+    
+    Assert.assertEquals(lResult.toString(), "COVER (\"EDGES(ID)*\".PATHS(@CALL(f), 2)).\"EDGES(ID)*\" PASSING EDGES(ID)*");
+  }
+
+  @Test
+  public void testFQLParserScanner013() throws Exception {
+    String lInput = "COVER \"NODES(ID)*\".{ x > 10 }.EDGES(@CALL(f)).\"PATHS(ID, 5)*\"";
+
+    System.out.println(lInput);
+
+    FQLParser lParser = new FQLParser(new FQLLexer(new StringReader(lInput)));
+
+    Object lResult = lParser.parse().value;
+    
+    System.out.println("RESULT: " + lResult.toString());
+    
+    Assert.assertEquals(lResult.toString(), "COVER ((\"NODES(ID)*\".{ x > 10 }).EDGES(@CALL(f))).\"PATHS(ID, 5)*\" PASSING EDGES(ID)*");
+  }
+  
+  @Test
+  public void testFQLParserScanner014() throws Exception {
+    String lInput = "IN @FILE('source.c') COVER \"NODES(ID)*\".{ x > 10 }.EDGES(@CALL(f)).\"PATHS(ID, 5)*\"";
+
+    System.out.println(lInput);
+
+    FQLParser lParser = new FQLParser(new FQLLexer(new StringReader(lInput)));
+
+    Object lResult = lParser.parse().value;
+    
+    System.out.println("RESULT: " + lResult.toString());
+    
+    Assert.assertEquals(lResult.toString(), "COVER ((\"NODES(COMPOSE(ID, @FILE('source.c')))*\".{ x > 10 }).EDGES(COMPOSE(@CALL(f), @FILE('source.c')))).\"PATHS(COMPOSE(ID, @FILE('source.c')), 5)*\" PASSING EDGES(ID)*");
   }
 
 }
