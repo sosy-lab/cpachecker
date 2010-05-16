@@ -8,6 +8,7 @@ import org.eclipse.jface.action.IMenuListener;
 import org.eclipse.jface.action.IMenuManager;
 import org.eclipse.jface.action.MenuManager;
 import org.eclipse.jface.action.Separator;
+import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
@@ -20,19 +21,25 @@ import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.IWorkbenchActionConstants;
 import org.eclipse.ui.actions.NewWizardMenu;
+import org.eclipse.ui.part.ISetSelectionTarget;
 import org.eclipse.ui.part.ViewPart;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.plugin.eclipse.CPAcheckerPlugin;
 import org.sosy_lab.cpachecker.plugin.eclipse.ITestListener;
 import org.sosy_lab.cpachecker.plugin.eclipse.TaskRunner.Task;
+import org.sosy_lab.cpachecker.plugin.eclipse.popup.actions.DeleteTasksAction;
+import org.sosy_lab.cpachecker.plugin.eclipse.popup.actions.RenameTasksAction;
 import org.sosy_lab.cpachecker.plugin.eclipse.popup.actions.RunMultipleTasksAction;
+import org.sosy_lab.cpachecker.plugin.eclipse.popup.actions.SaveTasksAction;
+import org.sosy_lab.cpachecker.plugin.eclipse.popup.actions.SetConfigFileInTaskAction;
+import org.sosy_lab.cpachecker.plugin.eclipse.popup.actions.SetSourceFileInTaskAction;
 import org.sosy_lab.cpachecker.plugin.eclipse.views.TaskTreeViewer.ConfigNode;
 import org.sosy_lab.cpachecker.plugin.eclipse.views.TaskTreeViewer.Node;
 import org.sosy_lab.cpachecker.plugin.eclipse.views.TaskTreeViewer.TaskNode;
 import org.sosy_lab.cpachecker.plugin.eclipse.views.TaskTreeViewer.TopNode;
 import org.sosy_lab.cpachecker.plugin.eclipse.views.TaskTreeViewer.Node.NodeType;
 
-public class TasksView extends ViewPart {
+public class TasksView extends ViewPart implements ISetSelectionTarget {
 	private ITestListener listener = null;
 	private Label progress;
 	
@@ -121,6 +128,10 @@ public class TasksView extends ViewPart {
 				myTreeViewer.refresh();
 				
 			}
+			@Override
+			public void tasksChanged(List<Task> changed) {
+				myTreeViewer.refresh();
+			}
 		};
 		CPAcheckerPlugin plugin = CPAcheckerPlugin.getPlugin();
 		if (plugin != null) { // to avoid errors when testing without plugin (with the main function)
@@ -184,7 +195,7 @@ public class TasksView extends ViewPart {
 		
 		
 		
-		final IStructuredSelection selection= (IStructuredSelection) myTreeViewer.getSelection();
+		final IStructuredSelection selection = (IStructuredSelection) myTreeViewer.getSelection();
 		if (selection.isEmpty()) {
 			System.out.println("I think this cant happen");
 			return;
@@ -220,12 +231,30 @@ public class TasksView extends ViewPart {
 			}
 		}
 		manager.add(new RunMultipleTasksAction(this.getSite().getShell(), selectedTasks));
+		manager.add(new RenameTasksAction(this.getSite().getShell(), selectedTasks));
+		manager.add(new DeleteTasksAction(this.getSite().getShell(), selectedTasks));
+		manager.add(new SaveTasksAction(this.getSite().getShell(), selectedTasks));
+		
+		if (selection.size()==1 
+				&& selection.getFirstElement() instanceof Node 
+				&& (((Node)selection.getFirstElement()).getType().equals(NodeType.TASK))) {
+			manager.add(new SetConfigFileInTaskAction(this.getSite().getShell(), selectedTasks.get(0)));
+			manager.add(new SetSourceFileInTaskAction(this.getSite().getShell(), selectedTasks.get(0)));
+		}
+		
 		//this.getSite().setSelectionProvider(myTreeViewer);
 		OpenAction open = new OpenAction(this.getSite());
 		open.selectionChanged(selection);
 		manager.add(open);
 		manager.add(new Separator(IWorkbenchActionConstants.MB_ADDITIONS));
 		manager.add(new Separator(IWorkbenchActionConstants.MB_ADDITIONS + "-end")); //$NON-NLS-1$
+	}
+	
+
+	@Override
+	public void selectReveal(ISelection selection) {
+		System.out.println("TasksView.selectReveal:" + selection.getClass());
+		//TODO: Test & implement, should be called somehow by wizard to show the view with the new element
 	}
 
 }

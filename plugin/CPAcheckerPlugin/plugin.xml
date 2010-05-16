@@ -2,11 +2,12 @@
 <?eclipse version="3.4"?>
 <plugin>
 	<extension-point id="listeners" name="Test Listeners" />
+	<!--
 	<extension point="org.sosy_lab.cpachecker.plugin.eclipse.listeners">
 	<listener
 		class="org.sosy_lab.cpachecker.plugin.eclipse.Listener">
 		</listener>
-	</extension> 
+	</extension> -->
 	<extension point="org.eclipse.ui.views">
 		<category
 			name="CPAchecker"
@@ -95,5 +96,16 @@
       <initializer
             class="org.sosy_lab.cpachecker.plugin.eclipse.preferences.PreferenceInitializer">
       </initializer>
+   </extension>
+   <extension point="org.eclipse.ltk.core.refactoring.renameParticipants">
+      <renameParticipant
+	    id="org.sosy_lab.cpachecker.plugin.eclipse.taskRenameParticipant"
+	    name="Rename Task" 
+	    class="org.sosy_lab.cpachecker.plugin.eclipse.popup.actions.taskRenameParticipant">
+	    <enablement>
+	      <instanceof value="org.sosy_lab.cpachecker.plugin.eclipse.views.TaskTreeViewer.TaskNode">
+	      </instanceof>
+	    </enablement>
+	</renameParticipant>
    </extension>
 </plugin>

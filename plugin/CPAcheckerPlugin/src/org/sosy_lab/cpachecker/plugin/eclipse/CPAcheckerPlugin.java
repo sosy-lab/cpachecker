@@ -26,6 +26,7 @@ public class CPAcheckerPlugin extends AbstractUIPlugin {
 	public static final String PLUGIN_ID = "org.sosy_lab.cpachecker.plugin.eclipse";
 	
 	private static final String listenerId = "org.sosy_lab.cpachecker.plugin.eclipse.listeners";
+
 	private List<ITestListener> listeners;
 	private List<Task> tasks = new ArrayList<Task>();
 	private static CPAcheckerPlugin instance = null;
@@ -44,7 +45,7 @@ public class CPAcheckerPlugin extends AbstractUIPlugin {
 				System.out.println("all Tasks finished");
 			}
 			@Override
-			public void tasksChanged() {
+			public void tasksChanged(List<Task> t) {
 				System.out.println("tasks Changed");
 			}
 			@Override
@@ -61,6 +62,10 @@ public class CPAcheckerPlugin extends AbstractUIPlugin {
 			public void taskHasPreRunError(Task id, String errorMessage) {
 				System.out.println("Task \"" + id.getName() + "\" could not be started: " + errorMessage);
 			}
+			@Override
+			public void tasksChanged() {
+				System.out.println("tasks Changed");
+			}
 		});
 	}
 
@@ -75,6 +80,7 @@ public class CPAcheckerPlugin extends AbstractUIPlugin {
 	public void start(BundleContext context) throws Exception {
 		super.start(context);
 		instance = this;
+		this.tasks.addAll(TasksIO.loadTasks());
 	}
 
 	/*
@@ -213,13 +219,30 @@ public class CPAcheckerPlugin extends AbstractUIPlugin {
 			SafeRunner.run(runnable);
 		}
 	}
+	public void fireTasksChanged(final List<Task> changed) {
+		for (final Iterator<ITestListener> iter = getListeners().iterator(); iter.hasNext();) {
+			final ITestListener current = iter.next();
+			ISafeRunnable runnable = new ISafeRunnable() {
+				@Override
+				public void run() throws Exception {
+					current.tasksChanged(changed);
+				}		
+				@Override
+				public void handleException(Throwable exception) {
+					iter.remove(); // listener is likely in some error-state, ignore it
+				}
+			};
+			SafeRunner.run(runnable);
+		}
+	}
 	public List<Task> getTasks() {
 		return tasks;
 	}
-	public void removeTask(Task t) {
-		tasks.remove(t);
+	public void removeTasks(List<Task> t) {
+		tasks.removeAll(t);
 		fireTasksChanged();
 	}
+
 	public void addTask(Task t) {
 		this.tasks.add(t);
 		fireTasksChanged();

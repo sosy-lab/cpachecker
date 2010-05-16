@@ -165,11 +165,17 @@ public class TaskTreeViewer extends TreeViewer {
 			this.parent = parent;
 			this.task = task;
 			if (task.hasConfigurationFile()) {
-				configNode = new ConfigNode(task.getConfigFilePath(), this);
+				configNode = new ConfigNode(task.getConfigFilePathProjRelative(), this);
 			}
 		}
 		public NodeType getType() { return NodeType.TASK; }
-		public String getName() { return task.getName(); }
+		public String getName() { 
+			if (task.isDirty()) {
+				return "* " + task.getName();
+			} else {
+				return task.getName(); 
+			}
+		}
 		public TopNode getParent() {return parent; }
 		ConfigNode getConfigNode() {return this.configNode; }
 		public Task getTask() {

@@ -147,7 +147,7 @@ public class NewTaskCreationWizardPage extends WizardPage {
 			for (int i = 0; i < cProjects.length; i++) {
 				projectsToLookIn[i] = cProjects[i].getProject();
 			}
-			
+			//TODO: so far we are only looking in the first project!
 			IFile ifile = projectsToLookIn[0].getFile(sourceFilePath);
 			tu = CoreModelUtil.findTranslationUnit(ifile);
 		} catch (CModelException e) {

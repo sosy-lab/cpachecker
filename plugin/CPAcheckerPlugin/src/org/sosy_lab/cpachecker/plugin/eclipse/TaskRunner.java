@@ -141,11 +141,17 @@ public class TaskRunner {
 		public void run() {
 			try {
 				CPAchecker cpachecker = new CPAchecker(config, logger);
-				CPAcheckerResult results = cpachecker.run(source.getLocation().toOSString());
-				CPAcheckerPlugin.getPlugin().fireTaskFinished(task, results);
+				final CPAcheckerResult results = cpachecker.run(source.getLocation().toOSString());
 				logger.flush();
 				results.printStatistics(new PrintWriter(consoleStream));
 				consoleStream.close();
+				// finshedAnnouncement must be fired in Eclipse UI thread
+				CPAcheckerPlugin.getPlugin().getWorkbench().getDisplay().asyncExec(new Runnable() {
+					@Override
+					public void run() {
+						CPAcheckerPlugin.getPlugin().fireTaskFinished(task, results);	
+					}
+				});
 			} catch (Exception e) {
 				System.err.println("Task \"" + task.getName() + "\" run has thrown an exception:");
 				e.printStackTrace();
@@ -158,6 +164,7 @@ public class TaskRunner {
 		private ITranslationUnit sourceTranslationUnit = null;
 		private IFile configFile = null;
 		private Configuration config = null;
+		private boolean isDirty = true;
 
 		/**
 		 * One of the parameters configFile and source may be null.
@@ -168,7 +175,7 @@ public class TaskRunner {
 		public Task(String taskName, IFile configFile, ITranslationUnit source) {
 			this.name = createUniqueName(taskName);
 			this.configFile = configFile;
-			sourceTranslationUnit = source;
+			this.sourceTranslationUnit = source;
 		}
 		
 		public Task(String taskName, IFile configFile) {
@@ -235,8 +242,10 @@ public class TaskRunner {
 		public String getName() {
 			return name;
 		}
-		
-		public String getConfigFilePath() {
+		public IFile getConfigFile() {
+			return this.configFile;
+		}
+		public String getConfigFilePathProjRelative() {
 			return configFile.getProjectRelativePath().toPortableString();
 		}
 		
@@ -277,6 +286,26 @@ public class TaskRunner {
 
 		public boolean hasConfigurationFile() {
 			return this.configFile != null;
+		}
+
+		public void setName(String newName) {
+			this.name = createUniqueName(newName);
+		}
+
+		public boolean isDirty() {
+			return this.isDirty;
+		}
+		public void setDirty(boolean b) {
+			this.isDirty = b;
+		}
+
+		public void setConfigFile(IFile member) {
+			this.configFile = member;
+			this.configFile = null;
+		}
+
+		public void setTranslationUnit(ITranslationUnit tu) {
+			this.sourceTranslationUnit = tu;
 		}
 	}
 }

@@ -1,15 +1,18 @@
 package org.sosy_lab.cpachecker.plugin.eclipse;
 
+import java.util.List;
+
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.plugin.eclipse.TaskRunner.Task;
 
 public interface ITestListener {
 	void tasksStarted(int taskCount);
+	void tasksChanged(List<Task> changed);
 	void tasksFinished();
 	void taskStarted(Task id);
 	void taskFinished(Task id, CPAcheckerResult results);
-	void tasksChanged();
 	void taskHasPreRunError(Task t, String errorMessage);
+	void tasksChanged();
 	
 	static class DefaultImplementation implements ITestListener {
 		@Override
@@ -19,10 +22,14 @@ public interface ITestListener {
 		@Override
 		public void taskStarted(Task id) {}
 		@Override
-		public void tasksChanged() {}
+		public void tasksChanged(List<Task> changed) {}
 		@Override
 		public void tasksFinished() {}
 		@Override
 		public void tasksStarted(int taskCount) {}
+		@Override
+		public void tasksChanged() {}
 	}
+
+	
 }
