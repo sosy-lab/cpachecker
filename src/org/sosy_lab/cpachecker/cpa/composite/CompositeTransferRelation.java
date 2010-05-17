@@ -26,7 +26,9 @@ package org.sosy_lab.cpachecker.cpa.composite;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
@@ -170,31 +172,38 @@ public class CompositeTransferRelation implements TransferRelation{
     }
 
     assert resultCount == allResultingElements.size();
-
-    for (List<AbstractElement> resultingElements : allResultingElements) {
-      List<AbstractElement> resultingElementsRO = Collections.unmodifiableList(resultingElements);
-      boolean isBottom = false;
+    
+    for (List<AbstractElement> lResultingElements : allResultingElements) {
+      
+      Set<List<AbstractElement>> lStrengthenedElements = new HashSet<List<AbstractElement>>();
+      lStrengthenedElements.add(lResultingElements);
+      
       for (int idx = 0; idx < transferRelations.size(); idx++) {
-        Collection<? extends AbstractElement> resultsList = transferRelations.get(idx).strengthen(
-            resultingElements.get(idx),
-            resultingElementsRO, cfaEdge,
-            (lCompositePrecision == null) ? null : lCompositePrecision.get(idx));
-        // TODO for now we assume that there is either a single element returned or empty list returned
-        // to represent bottom
-        if (resultsList != null) {
-          assert(resultsList.size() < 2);
-          if(resultsList.size() == 1){
-            AbstractElement result = resultsList.iterator().next();
-            //          if (result != null) {
-            resultingElements.set(idx, result);
+        Set<List<AbstractElement>> lStrengthenedElementsTmp = lStrengthenedElements;
+        
+        lStrengthenedElements = new HashSet<List<AbstractElement>>();
+        
+        for (List<AbstractElement> lList : lStrengthenedElementsTmp) {
+          Collection<? extends AbstractElement> resultsList = transferRelations.get(idx).strengthen(
+              lList.get(idx),
+              lList, cfaEdge,
+              (lCompositePrecision == null) ? null : lCompositePrecision.get(idx));
+          
+          if (resultsList != null) {
+            for (AbstractElement lResult : resultsList) {
+              List<AbstractElement> lNewEntry = new ArrayList<AbstractElement>(lList);
+              lNewEntry.set(idx, lResult);                
+              lStrengthenedElements.add(lNewEntry);
+            }
           }
-          else{
-            isBottom = true;
+          else {
+            lStrengthenedElements.add(lList);
           }
         }
       }
-      if(!isBottom){
-        CompositeElement compositeSuccessor = new CompositeElement(resultingElements, updatedCallStack);
+      
+      for (List<AbstractElement> lList : lStrengthenedElements) {
+        CompositeElement compositeSuccessor = new CompositeElement(lList, updatedCallStack);
         compositeSuccessors.add(compositeSuccessor);
       }
     }
