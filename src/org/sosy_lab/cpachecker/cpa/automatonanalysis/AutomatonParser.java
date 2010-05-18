@@ -726,10 +726,10 @@ import java.util.Collections;
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 24: // Action ::= MODIFY OPEN_BRACKETS IDENTIFIER OPEN_BRACKETS STRING_LITERAL CLOSE_BRACKETS CLOSE_BRACKETS 
             {
-              AutomatonActionExpr RESULT =null;
+              AutomatonAction RESULT =null;
 		Object cpa = (Object)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-4)).value;
 		Object query = (Object)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-2)).value;
-		 RESULT = new AutomatonActionExpr.CPAModification(cpa.toString(), query.toString()); 
+		 RESULT = new AutomatonAction.CPAModification(cpa.toString(), query.toString()); 
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Action",12, RESULT);
             }
           return CUP$AutomatonParser$result;
@@ -737,9 +737,9 @@ import java.util.Collections;
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 23: // Action ::= PRINT PrintArguments 
             {
-              AutomatonActionExpr RESULT =null;
+              AutomatonAction RESULT =null;
 		List<AutomatonExpression> args = (List<AutomatonExpression>)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.peek()).value;
-		 RESULT = new AutomatonActionExpr.Print(args); 
+		 RESULT = new AutomatonAction.Print(args); 
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Action",12, RESULT);
             }
           return CUP$AutomatonParser$result;
@@ -747,10 +747,10 @@ import java.util.Collections;
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 22: // Action ::= DO IDENTIFIER EQ InnerInt 
             {
-              AutomatonActionExpr RESULT =null;
+              AutomatonAction RESULT =null;
 		Object var = (Object)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-2)).value;
 		AutomatonIntExpr i = (AutomatonIntExpr)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.peek()).value;
-		 RESULT = new AutomatonActionExpr.Assignment(var.toString(), i); 
+		 RESULT = new AutomatonAction.Assignment(var.toString(), i); 
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Action",12, RESULT);
             }
           return CUP$AutomatonParser$result;
@@ -758,8 +758,8 @@ import java.util.Collections;
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 21: // Actions ::= 
             {
-              List<AutomatonActionExpr> RESULT =null;
-		 RESULT = new LinkedList<AutomatonActionExpr>(); 
+              List<AutomatonAction> RESULT =null;
+		 RESULT = new LinkedList<AutomatonAction>(); 
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Actions",7, RESULT);
             }
           return CUP$AutomatonParser$result;
@@ -767,9 +767,9 @@ import java.util.Collections;
           /*. . . . . . . . . . . . . . . . . . . .*/
           case 20: // Actions ::= Action Actions 
             {
-              List<AutomatonActionExpr> RESULT =null;
-		AutomatonActionExpr a = (AutomatonActionExpr)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-1)).value;
-		List<AutomatonActionExpr> lst = (List<AutomatonActionExpr>)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.peek()).value;
+              List<AutomatonAction> RESULT =null;
+		AutomatonAction a = (AutomatonAction)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-1)).value;
+		List<AutomatonAction> lst = (List<AutomatonAction>)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.peek()).value;
 		 lst.add(0,a); RESULT = lst; 
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Actions",7, RESULT);
             }
@@ -811,7 +811,7 @@ import java.util.Collections;
               AutomatonTransition RESULT =null;
 		AutomatonBoolExpr trigger = (AutomatonBoolExpr)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-5)).value;
 		List<AutomatonBoolExpr> ass = (List<AutomatonBoolExpr>)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-3)).value;
-		List<AutomatonActionExpr> acts = (List<AutomatonActionExpr>)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-2)).value;
+		List<AutomatonAction> acts = (List<AutomatonAction>)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-2)).value;
 		 RESULT = new AutomatonTransition(trigger, ass, acts, AutomatonInternalState.BOTTOM); 
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Transition",10, RESULT);
             }
@@ -823,7 +823,7 @@ import java.util.Collections;
               AutomatonTransition RESULT =null;
 		AutomatonBoolExpr trigger = (AutomatonBoolExpr)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-5)).value;
 		List<AutomatonBoolExpr> ass = (List<AutomatonBoolExpr>)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-3)).value;
-		List<AutomatonActionExpr> acts = (List<AutomatonActionExpr>)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-2)).value;
+		List<AutomatonAction> acts = (List<AutomatonAction>)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-2)).value;
 		 RESULT = new AutomatonTransition(trigger, ass, acts, AutomatonInternalState.ERROR); 
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Transition",10, RESULT);
             }
@@ -835,7 +835,7 @@ import java.util.Collections;
               AutomatonTransition RESULT =null;
 		AutomatonBoolExpr trigger = (AutomatonBoolExpr)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-6)).value;
 		List<AutomatonBoolExpr> ass = (List<AutomatonBoolExpr>)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-4)).value;
-		List<AutomatonActionExpr> acts = (List<AutomatonActionExpr>)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-3)).value;
+		List<AutomatonAction> acts = (List<AutomatonAction>)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-3)).value;
 		Object follow = (Object)((java_cup.runtime.Symbol) CUP$AutomatonParser$stack.elementAt(CUP$AutomatonParser$top-1)).value;
 		 RESULT = new AutomatonTransition(trigger, ass, acts, follow.toString()); 
               CUP$AutomatonParser$result = parser.getSymbolFactory().newSymbol("Transition",10, RESULT);

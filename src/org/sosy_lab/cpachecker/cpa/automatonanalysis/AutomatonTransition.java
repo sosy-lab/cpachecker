@@ -28,7 +28,7 @@ import java.util.List;
 import java.util.logging.Level;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cpa.automatonanalysis.AutomatonActionExpr.CPAModification;
+import org.sosy_lab.cpachecker.cpa.automatonanalysis.AutomatonAction.CPAModification;
 import org.sosy_lab.cpachecker.cpa.automatonanalysis.AutomatonExpression.ResultValue;
 
 import com.google.common.collect.ImmutableList;
@@ -43,7 +43,7 @@ class AutomatonTransition {
   // The order of triggers, assertions and (more importantly) actions is preserved by the parser.
   private final AutomatonBoolExpr trigger;
   private AutomatonBoolExpr assertion;
-  private final List<AutomatonActionExpr> actions;
+  private final List<AutomatonAction> actions;
 
   /**
    * When the parser instances this class it can not assign a followstate because
@@ -54,7 +54,7 @@ class AutomatonTransition {
   private final String followStateName;
   private AutomatonInternalState followState = null;
 
-  public AutomatonTransition(AutomatonBoolExpr pTrigger, List<AutomatonBoolExpr> pAssertions, List<AutomatonActionExpr> pActions,
+  public AutomatonTransition(AutomatonBoolExpr pTrigger, List<AutomatonBoolExpr> pAssertions, List<AutomatonAction> pActions,
       String pFollowStateName) {
     this.trigger = pTrigger;
     initAssertions(this, pAssertions);
@@ -63,7 +63,7 @@ class AutomatonTransition {
   }
 
   public AutomatonTransition(AutomatonBoolExpr pTrigger,
-      List<AutomatonBoolExpr> pAssertions, List<AutomatonActionExpr> pActions,
+      List<AutomatonBoolExpr> pAssertions, List<AutomatonAction> pActions,
       AutomatonInternalState pFollowState) {
     this.trigger = pTrigger;
     initAssertions(this, pAssertions);
@@ -133,7 +133,7 @@ class AutomatonTransition {
    * Executes all actions of this transition in the order which is defined in the automaton definition file.
    */
   public void executeActions(AutomatonExpressionArguments pArgs) {
-    for (AutomatonActionExpr action : actions) {
+    for (AutomatonAction action : actions) {
       action.eval(pArgs);
     }
     if (pArgs.getLogMessage() != null && pArgs.getLogMessage().length() > 0) {
@@ -148,7 +148,7 @@ class AutomatonTransition {
    * @return
    */
   public boolean canExecuteActionsOn(AutomatonExpressionArguments pArgs) {
-    for (AutomatonActionExpr action : actions) {
+    for (AutomatonAction action : actions) {
       if (! action.canExecuteOn(pArgs)) {
         return false;
       }
@@ -178,7 +178,7 @@ class AutomatonTransition {
       return false;
     }
     // actions are not MODIFY actions
-    for (AutomatonActionExpr action : this.actions) {
+    for (AutomatonAction action : this.actions) {
       if ((action instanceof CPAModification)) {
         return false;
       }
