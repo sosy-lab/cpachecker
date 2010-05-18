@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.fllesh.fql2.ast.Edges;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Nodes;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Paths;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Predicate;
+import org.sosy_lab.cpachecker.fllesh.fql2.normalization.coveragespecification.QuotePredicates;
 
 public class Translator {
 
@@ -63,7 +64,13 @@ public class Translator {
   }
 
   public Set<Pattern> translate(CoverageSpecification pSpecification) {
-    return pSpecification.accept(mVisitor);
+    
+    /** before translating the given specification we perform some rewritings */
+    
+    // quote predicates
+    CoverageSpecification lSpecification = QuotePredicates.getRewriter().rewrite(pSpecification);
+    
+    return lSpecification.accept(mVisitor);
   }
 
   private class Visitor implements ASTVisitor<Set<Pattern>> {
@@ -134,6 +141,8 @@ public class Translator {
 
     @Override
     public Set<Pattern> visit(Predicate pPredicate) {
+      /** since predicates are quoted beforehand, this method should be never called */
+      
       throw new UnsupportedOperationException();
     }
 

@@ -21,6 +21,12 @@ public class QuotePredicates implements CoverageSpecificationRewriter {
     return mFQLRewriter;
   }
   
+  public static QuotePredicates mInstance = new QuotePredicates();
+  
+  public static QuotePredicates getRewriter() {
+    return mInstance;
+  }
+  
   private Visitor mVisitor = new Visitor();
   
   @Override
