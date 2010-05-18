@@ -76,13 +76,13 @@ non terminal Map<String, AutomatonVariable> LocalDefs ;
 non terminal List<AutomatonInternalState> StateDefs ;
 non terminal List<AutomatonTransition> Transitions ;
 non terminal List<AutomatonBoolExpr> Assertions ;
-non terminal List<AutomatonActionExpr> Actions ;
+non terminal List<AutomatonAction> Actions ;
 
 non terminal AutomatonVariable LocalDef ;
 non terminal AutomatonInternalState StateDef ;
 non terminal AutomatonTransition Transition ;
 non terminal AutomatonBoolExpr Assertion ;
-non terminal AutomatonActionExpr Action ;
+non terminal AutomatonAction Action ;
 
 non terminal List<AutomatonExpression> PrintArguments ;
 
@@ -142,13 +142,13 @@ Assertions ::= Assertion:a Assertions:lst {: lst.add(0,a); RESULT = lst; :}
 Assertion  ::= ASS  Bool:b   {: RESULT = b; :};
 
 Actions   ::= Action:a Actions:lst {: lst.add(0,a); RESULT = lst; :} // insert at the beginning of the list to preserve the order.
-            | /* empty */ {: RESULT = new LinkedList<AutomatonActionExpr>(); :}
+            | /* empty */ {: RESULT = new LinkedList<AutomatonAction>(); :}
             ;
-Action    ::= DO  IDENTIFIER:var EQ InnerInt:i   {: RESULT = new AutomatonActionExpr.Assignment(var.toString(), i); :}
+Action    ::= DO  IDENTIFIER:var EQ InnerInt:i   {: RESULT = new AutomatonAction.Assignment(var.toString(), i); :}
 			// InnerInt in this position allows for x = EVAL(..) Statements
-            | PRINT PrintArguments:args {: RESULT = new AutomatonActionExpr.Print(args); :}
+            | PRINT PrintArguments:args {: RESULT = new AutomatonAction.Print(args); :}
             | MODIFY OPEN_BRACKETS IDENTIFIER:cpa OPEN_BRACKETS STRING_LITERAL:query CLOSE_BRACKETS CLOSE_BRACKETS
-              {: RESULT = new AutomatonActionExpr.CPAModification(cpa.toString(), query.toString()); :}
+              {: RESULT = new AutomatonAction.CPAModification(cpa.toString(), query.toString()); :}
             ;
             
 PrintArguments ::= Expression:a PrintArguments:lst {: lst.add(0,a); RESULT = lst; :}

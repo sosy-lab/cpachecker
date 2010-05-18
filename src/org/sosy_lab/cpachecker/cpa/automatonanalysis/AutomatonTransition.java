@@ -134,7 +134,10 @@ class AutomatonTransition {
    */
   public void executeActions(AutomatonExpressionArguments pArgs) {
     for (AutomatonAction action : actions) {
-      action.eval(pArgs);
+      ResultValue<? extends Object> res = action.eval(pArgs);
+      if (res.canNotEvaluate()) {
+        pArgs.getLogger().log(Level.SEVERE, res.getFailureMessage() + " in " + res.getFailureOrigin());
+      }
     }
     if (pArgs.getLogMessage() != null && pArgs.getLogMessage().length() > 0) {
       pArgs.getLogger().log(Level.INFO, pArgs.getLogMessage());

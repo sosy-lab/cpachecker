@@ -62,7 +62,20 @@ abstract class AutomatonAction {
    */
   static class Print extends AutomatonAction {
     private List<AutomatonExpression> toPrint;
+    
     public Print(List<AutomatonExpression> pArgs) { toPrint = pArgs; }
+    
+    @Override
+    boolean canExecuteOn(AutomatonExpressionArguments pArgs) {
+      // TODO: every action is computed twice (once here, once in eval)
+      for (AutomatonExpression expr : toPrint) {
+        ResultValue<?> res = expr.eval(pArgs);
+        if (res.canNotEvaluate()) {
+          return false;
+        }
+      }
+      return true;
+    }
     @Override ResultValue<? extends Object> eval(AutomatonExpressionArguments pArgs) {
       StringBuilder sb = new StringBuilder();  
       for (AutomatonExpression expr : toPrint) {
