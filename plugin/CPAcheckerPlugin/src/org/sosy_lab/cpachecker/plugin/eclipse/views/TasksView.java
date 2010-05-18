@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.plugin.eclipse.popup.actions.RunMultipleTasksActi
 import org.sosy_lab.cpachecker.plugin.eclipse.popup.actions.SaveTasksAction;
 import org.sosy_lab.cpachecker.plugin.eclipse.popup.actions.SetConfigFileInTaskAction;
 import org.sosy_lab.cpachecker.plugin.eclipse.popup.actions.SetSourceFileInTaskAction;
-import org.sosy_lab.cpachecker.plugin.eclipse.views.TaskTreeViewer.ConfigNode;
 import org.sosy_lab.cpachecker.plugin.eclipse.views.TaskTreeViewer.Node;
 import org.sosy_lab.cpachecker.plugin.eclipse.views.TaskTreeViewer.TaskNode;
 import org.sosy_lab.cpachecker.plugin.eclipse.views.TaskTreeViewer.TopNode;
@@ -192,9 +191,6 @@ public class TasksView extends ViewPart implements ISetSelectionTarget {
 			}
 		};*/
 		
-		
-		
-		
 		final IStructuredSelection selection = (IStructuredSelection) myTreeViewer.getSelection();
 		if (selection.isEmpty()) {
 			System.out.println("I think this cant happen");
@@ -218,9 +214,6 @@ public class TasksView extends ViewPart implements ISetSelectionTarget {
 					}
 					exitLoop = true;
 					break;
-				case CONFIG:
-					selectedTasks.add(((ConfigNode)element).getParent().getTask());
-					break;
 				case TASK :
 					selectedTasks.add(((TaskNode)element).getTask());
 			        break;
@@ -230,22 +223,27 @@ public class TasksView extends ViewPart implements ISetSelectionTarget {
 				break;
 			}
 		}
-		manager.add(new RunMultipleTasksAction(this.getSite().getShell(), selectedTasks));
-		manager.add(new RenameTasksAction(this.getSite().getShell(), selectedTasks));
-		manager.add(new DeleteTasksAction(this.getSite().getShell(), selectedTasks));
-		manager.add(new SaveTasksAction(this.getSite().getShell(), selectedTasks));
-		
-		if (selection.size()==1 
-				&& selection.getFirstElement() instanceof Node 
-				&& (((Node)selection.getFirstElement()).getType().equals(NodeType.TASK))) {
-			manager.add(new SetConfigFileInTaskAction(this.getSite().getShell(), selectedTasks.get(0)));
-			manager.add(new SetSourceFileInTaskAction(this.getSite().getShell(), selectedTasks.get(0)));
-		}
-		
-		//this.getSite().setSelectionProvider(myTreeViewer);
 		OpenAction open = new OpenAction(this.getSite());
 		open.selectionChanged(selection);
 		manager.add(open);
+		if ( ! selectedTasks.isEmpty()) {
+			manager.add(new Separator());
+			manager.add(new RunMultipleTasksAction(this.getSite().getShell(), selectedTasks));
+			manager.add(new Separator());
+			manager.add(new RenameTasksAction(this.getSite().getShell(), selectedTasks));
+			manager.add(new DeleteTasksAction(this.getSite().getShell(), selectedTasks));
+			manager.add(new SaveTasksAction(this.getSite().getShell(), selectedTasks));
+			manager.add(new Separator());
+			if (selection.size()==1 
+					&& selection.getFirstElement() instanceof Node 
+					&& (((Node)selection.getFirstElement()).getType().equals(NodeType.TASK))) {
+				manager.add(new SetConfigFileInTaskAction(this.getSite().getShell(), selectedTasks.get(0)));
+				manager.add(new SetSourceFileInTaskAction(this.getSite().getShell(), selectedTasks.get(0)));
+			}
+		}
+		
+		//this.getSite().setSelectionProvider(myTreeViewer);
+
 		manager.add(new Separator(IWorkbenchActionConstants.MB_ADDITIONS));
 		manager.add(new Separator(IWorkbenchActionConstants.MB_ADDITIONS + "-end")); //$NON-NLS-1$
 	}

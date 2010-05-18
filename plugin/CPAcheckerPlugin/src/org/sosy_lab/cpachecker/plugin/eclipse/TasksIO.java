@@ -27,6 +27,7 @@ import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.Path;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.plugin.eclipse.TaskRunner.Task;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -44,6 +45,7 @@ public class TasksIO {
 	private final static String SOURCE_NODE_NAME = "SourceFile";
 	private final static String PATH_ATTR_NAME = "WorkspaceRelativePath";
 	private static final String LOADER_GENERATED_NAME = "loader_generated_name";
+	private static final String LAST_RESULT_ATTR_NAME = "last_result";
 	
 	private static File getFile(String location) throws URISyntaxException, MalformedURLException {
 		IResource root = ResourcesPlugin.getWorkspace().getRoot();
@@ -103,6 +105,10 @@ public class TasksIO {
 				}
 				assert (config != null || source != null) : "Task had neither a configFile nor a sourceFile defined";
 				Task t = new TaskRunner.Task(taskName, config, source);
+				Node taskResultNode = nd.getAttributes().getNamedItem(LAST_RESULT_ATTR_NAME);
+				if (taskResultNode != null) {
+					t.setLastResult(CPAcheckerResult.Result.valueOf(taskResultNode.getNodeValue()));
+				}
 				t.setDirty(false);
 				returnList.add(t);
 			}
@@ -249,6 +255,7 @@ public class TasksIO {
 		eventWriter.add(tab);eventWriter.add(tab);
 		eventWriter.add(eventFactory.createStartElement("", "", TASK_NODE_NAME));
 		eventWriter.add(eventFactory.createAttribute(TASKNAME_ATTR_NAME, task.getName()));
+		eventWriter.add(eventFactory.createAttribute(LAST_RESULT_ATTR_NAME, task.getLastResult().toString()));
 		eventWriter.add(newline);
 		// Create Content
 		if (task.hasConfigurationFile()) {

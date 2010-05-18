@@ -23,6 +23,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 
 
 public class TaskRunner {
@@ -145,6 +146,7 @@ public class TaskRunner {
 				logger.flush();
 				results.printStatistics(new PrintWriter(consoleStream));
 				consoleStream.close();
+				task.setLastResult(results.getResult());
 				// finshedAnnouncement must be fired in Eclipse UI thread
 				CPAcheckerPlugin.getPlugin().getWorkbench().getDisplay().asyncExec(new Runnable() {
 					@Override
@@ -165,6 +167,7 @@ public class TaskRunner {
 		private IFile configFile = null;
 		private Configuration config = null;
 		private boolean isDirty = true;
+		private Result lastResult = Result.UNKNOWN;
 
 		/**
 		 * One of the parameters configFile and source may be null.
@@ -178,6 +181,13 @@ public class TaskRunner {
 			this.sourceTranslationUnit = source;
 		}
 		
+		public void setLastResult(Result result) {
+			this.lastResult = result;
+		}
+		public Result getLastResult() {
+			return this.lastResult;
+		}
+
 		public Task(String taskName, IFile configFile) {
 			this.name = createUniqueName(taskName);
 			this.configFile = configFile;

@@ -3,8 +3,10 @@ package org.sosy_lab.cpachecker.plugin.eclipse.views;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.cdt.core.model.ITranslationUnit;
 import org.eclipse.cdt.ui.CElementLabelProvider;
+import org.eclipse.core.resources.IFile;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.viewers.ArrayContentProvider;
 import org.eclipse.jface.viewers.ITreeContentProvider;
@@ -21,6 +23,9 @@ import org.sosy_lab.cpachecker.plugin.eclipse.views.TaskTreeViewer.Node.NodeType
 public class TaskTreeViewer extends TreeViewer {
 
 	private TopNode topNode  = new TopNode();
+	private Image safeResultIcon;
+	private Image unsafeResultIcon;
+	private Image unknownResultIcon;
 	private Image configIcon;
 	private Image sourceFileImage;
 	private List<Image> imagesToBeDisposed = new ArrayList<Image>();
@@ -42,19 +47,29 @@ public class TaskTreeViewer extends TreeViewer {
 	private void createImages() {
 		Image missingImage = ImageDescriptor.getMissingImageDescriptor().createImage();
 		try {
-			ImageDescriptor desc = CPAcheckerPlugin.getImageDescriptor("icons/config16.gif"); 	
-			if (desc != null) {
-				configIcon = desc.createImage(true);
-			} else {
-				configIcon = missingImage;
-			}
+			ImageDescriptor desc = CPAcheckerPlugin.getImageDescriptor("icons/config.gif"); 	
+			if (desc != null) configIcon = desc.createImage(true);
+			else configIcon = missingImage;
+			
+			desc = CPAcheckerPlugin.getImageDescriptor("icons/Thumbs up.gif");
+			if (desc != null) safeResultIcon = desc.createImage(true);
+			else safeResultIcon = missingImage;
+			
+			desc = CPAcheckerPlugin.getImageDescriptor("icons/Thumbs down.gif");
+			if (desc != null) unsafeResultIcon = desc.createImage(true);
+			else unsafeResultIcon = missingImage;
+			
+			desc = CPAcheckerPlugin.getImageDescriptor("icons/Stop sign.gif");
+			if (desc != null) unknownResultIcon = desc.createImage(true);
+			else unknownResultIcon = missingImage;
+			
 			desc = CPAcheckerPlugin.getImageDescriptor("icons/sample.gif");
-			if (desc != null) {
-				sourceFileImage = desc.createImage(true);
-			} else {
-				sourceFileImage = missingImage;
-			}
+			if (desc != null) sourceFileImage = desc.createImage(true);
+			else sourceFileImage = missingImage;
 			imagesToBeDisposed.add(configIcon);
+			imagesToBeDisposed.add(safeResultIcon);
+			imagesToBeDisposed.add(unsafeResultIcon);
+			imagesToBeDisposed.add(unknownResultIcon);
 			imagesToBeDisposed.add(sourceFileImage);
 			imagesToBeDisposed.add(missingImage);
 		} catch (Exception e) {
@@ -75,7 +90,8 @@ public class TaskTreeViewer extends TreeViewer {
 			if (parent instanceof Node) {
 				Node ex1 = (Node) parent;
 				if (ex1.getType() == NodeType.TASK) {
-					ConfigNode c = ((TaskNode)ex1).getConfigNode();
+					Task t = ((TaskNode)ex1).getTask();
+					IFile c = t.hasConfigurationFile() ? t.getConfigFile() : null;
 					ITranslationUnit u = ((TaskNode)ex1).getTask().getTranslationUnit();
 					if (c != null && u != null) {
 						return new Object[] {c, u};
@@ -108,26 +124,40 @@ public class TaskTreeViewer extends TreeViewer {
 		CElementLabelProvider cLabelProvider = new CElementLabelProvider();
 		@Override
 		public Image getImage(Object element) {
-			if (!(element instanceof Node)) return cLabelProvider.getImage(element);
-			Node n = (Node) element;
-			switch (n.getType()) {
-			case TOP:
-				return null;
-			case TASK:
-				return null;
-			case CONFIG:
+			if (element instanceof Node) {
+				Node n = (Node) element;
+				switch (n.getType()) {
+				case TOP:
+					return null;
+				case TASK:
+					Task t  = ((TaskNode)n).getTask();
+					switch (t.getLastResult()) {
+					case SAFE :
+						return safeResultIcon;
+					case UNSAFE :
+						return unsafeResultIcon;
+					case UNKNOWN :
+					default :
+						// also kind of unknown
+						return unknownResultIcon;
+					}
+				}
+			} else if (element instanceof IASTTranslationUnit) {
+				return cLabelProvider.getImage(element);
+			} else if (element instanceof IFile) {
 				return configIcon;
-			default:
-				return null;
 			}
+			return null;
 		}
 		@Override
 		public String getText(Object element) {
-			if (!(element instanceof Node))
+			if (!(element instanceof Node)) {
 				if (element instanceof ITranslationUnit) {
-					//return ((ITranslationUnit)element).getElementName();
 					return cLabelProvider.getText(element);
+				} else if (element instanceof IFile && ((IFile)element).getFileExtension().equals("properties")) {
+					return ((IFile)element).getProjectRelativePath().toPortableString();
 				}
+			}
 			Node ex1 = (Node) element;
 			return ex1.getName();
 		}
@@ -160,14 +190,11 @@ public class TaskTreeViewer extends TreeViewer {
 	static class TaskNode implements Node {
 		private Task task;
 		private TopNode parent;
-		private ConfigNode configNode = null;
 		public TaskNode(Task task, TopNode parent) {
 			this.parent = parent;
 			this.task = task;
-			if (task.hasConfigurationFile()) {
-				configNode = new ConfigNode(task.getConfigFilePathProjRelative(), this);
-			}
 		}
+		
 		public NodeType getType() { return NodeType.TASK; }
 		public String getName() { 
 			if (task.isDirty()) {
@@ -177,15 +204,15 @@ public class TaskTreeViewer extends TreeViewer {
 			}
 		}
 		public TopNode getParent() {return parent; }
-		ConfigNode getConfigNode() {return this.configNode; }
+		
 		public Task getTask() {
 			return task;
 		}
 	}
-	static class ConfigNode implements Node {
+	static class ConfigNode2 implements Node {
 		private String name;
 		private TaskNode parent;
-		public ConfigNode(String configName, TaskNode parent) {
+		public ConfigNode2(String configName, TaskNode parent) {
 			this.name = configName;
 			this.parent = parent;
 		}
