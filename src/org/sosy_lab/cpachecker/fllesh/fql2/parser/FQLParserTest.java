@@ -47,7 +47,7 @@ public class FQLParserTest {
 
     System.out.println(lInput);
 
-    FQLParser lParser = new FQLParser(new FQLLexer(new StringReader(lInput)));
+    FQLParser lParser = new FQLParser(new StringReader(lInput));
 
     Object lResult = lParser.parse().value;
     
@@ -62,7 +62,7 @@ public class FQLParserTest {
 
     System.out.println(lInput);
 
-    FQLParser lParser = new FQLParser(new FQLLexer(new StringReader(lInput)));
+    FQLParser lParser = new FQLParser(new StringReader(lInput));
 
     Object lResult = lParser.parse().value;
     
@@ -77,7 +77,7 @@ public class FQLParserTest {
 
     System.out.println(lInput);
 
-    FQLParser lParser = new FQLParser(new FQLLexer(new StringReader(lInput)));
+    FQLParser lParser = new FQLParser(new StringReader(lInput));
 
     Object lResult = lParser.parse().value;
     
@@ -92,7 +92,7 @@ public class FQLParserTest {
 
     System.out.println(lInput);
 
-    FQLParser lParser = new FQLParser(new FQLLexer(new StringReader(lInput)));
+    FQLParser lParser = new FQLParser(new StringReader(lInput));
 
     Object lResult = lParser.parse().value;
     
@@ -107,7 +107,7 @@ public class FQLParserTest {
 
     System.out.println(lInput);
 
-    FQLParser lParser = new FQLParser(new FQLLexer(new StringReader(lInput)));
+    FQLParser lParser = new FQLParser(new StringReader(lInput));
 
     Object lResult = lParser.parse().value;
     
@@ -122,7 +122,7 @@ public class FQLParserTest {
 
     System.out.println(lInput);
 
-    FQLParser lParser = new FQLParser(new FQLLexer(new StringReader(lInput)));
+    FQLParser lParser = new FQLParser(new StringReader(lInput));
 
     Object lResult = lParser.parse().value;
     
@@ -137,7 +137,7 @@ public class FQLParserTest {
 
     System.out.println(lInput);
 
-    FQLParser lParser = new FQLParser(new FQLLexer(new StringReader(lInput)));
+    FQLParser lParser = new FQLParser(new StringReader(lInput));
 
     Object lResult = lParser.parse().value;
     
@@ -152,7 +152,7 @@ public class FQLParserTest {
 
     System.out.println(lInput);
 
-    FQLParser lParser = new FQLParser(new FQLLexer(new StringReader(lInput)));
+    FQLParser lParser = new FQLParser(new StringReader(lInput));
 
     Object lResult = lParser.parse().value;
     
@@ -167,7 +167,7 @@ public class FQLParserTest {
 
     System.out.println(lInput);
 
-    FQLParser lParser = new FQLParser(new FQLLexer(new StringReader(lInput)));
+    FQLParser lParser = new FQLParser(new StringReader(lInput));
 
     Object lResult = lParser.parse().value;
     
@@ -182,7 +182,7 @@ public class FQLParserTest {
 
     System.out.println(lInput);
 
-    FQLParser lParser = new FQLParser(new FQLLexer(new StringReader(lInput)));
+    FQLParser lParser = new FQLParser(new StringReader(lInput));
 
     Object lResult = lParser.parse().value;
     
@@ -197,7 +197,7 @@ public class FQLParserTest {
 
     System.out.println(lInput);
 
-    FQLParser lParser = new FQLParser(new FQLLexer(new StringReader(lInput)));
+    FQLParser lParser = new FQLParser(new StringReader(lInput));
 
     Object lResult = lParser.parse().value;
     
@@ -212,7 +212,7 @@ public class FQLParserTest {
 
     System.out.println(lInput);
 
-    FQLParser lParser = new FQLParser(new FQLLexer(new StringReader(lInput)));
+    FQLParser lParser = new FQLParser(new StringReader(lInput));
     
     Object lResult = lParser.parse().value;
 
@@ -227,7 +227,7 @@ public class FQLParserTest {
 
     System.out.println(lInput);
 
-    FQLParser lParser = new FQLParser(new FQLLexer(new StringReader(lInput)));
+    FQLParser lParser = new FQLParser(new StringReader(lInput));
 
     Object lResult = lParser.parse().value;
     
@@ -242,7 +242,7 @@ public class FQLParserTest {
 
     System.out.println(lInput);
 
-    FQLParser lParser = new FQLParser(new FQLLexer(new StringReader(lInput)));
+    FQLParser lParser = new FQLParser(new StringReader(lInput));
 
     Object lResult = lParser.parse().value;
     
