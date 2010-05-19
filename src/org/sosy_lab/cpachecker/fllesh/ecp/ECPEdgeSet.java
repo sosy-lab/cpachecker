@@ -50,4 +50,9 @@ public class ECPEdgeSet implements ECPAtom, Iterable<CFAEdge> {
     return mCFAEdges.iterator();
   }
 
+  @Override
+  public <T> T accept(ECPVisitor<T> pVisitor) {
+    return pVisitor.visit(this);
+  }
+
 }

@@ -36,5 +36,10 @@ public class ECPPredicate implements ECPGuard {
   public String toString() {
     return mPredicate;
   }
+
+  @Override
+  public <T> T accept(ECPVisitor<T> pVisitor) {
+    return pVisitor.visit(this);
+  }
   
 }

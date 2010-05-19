@@ -48,5 +48,10 @@ public class ECPNodeSet implements ECPGuard, Iterable<CFANode> {
   public Iterator<CFANode> iterator() {
     return mCFANodes.iterator();
   }
+
+  @Override
+  public <T> T accept(ECPVisitor<T> pVisitor) {
+    return pVisitor.visit(this);
+  }
   
 }

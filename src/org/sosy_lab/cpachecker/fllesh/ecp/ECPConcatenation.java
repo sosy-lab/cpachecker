@@ -81,5 +81,10 @@ public class ECPConcatenation implements ElementaryCoveragePattern, Iterable<Ele
     
     return lResult.toString();
   }
+
+  @Override
+  public <T> T accept(ECPVisitor<T> pVisitor) {
+    return pVisitor.visit(this);
+  }
   
 }

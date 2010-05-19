@@ -81,5 +81,10 @@ public class ECPUnion implements ElementaryCoveragePattern , Iterable<Elementary
     
     return lResult.toString();
   }
+
+  @Override
+  public <T> T accept(ECPVisitor<T> pVisitor) {
+    return pVisitor.visit(this);
+  }
   
 }
