@@ -4,7 +4,7 @@ import org.sosy_lab.cpachecker.fllesh.fql2.ast.Edges;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Nodes;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Paths;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Predicate;
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification.ASTVisitor;
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification.CoverageSpecificationVisitor;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification.Concatenation;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification.CoverageSpecification;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification.Quotation;
@@ -27,7 +27,7 @@ public class PatternRewriter implements CoverageSpecificationRewriter {
     return pSpecification.accept(mVisitor);
   }
 
-  private class Visitor implements ASTVisitor<CoverageSpecification> {
+  private class Visitor implements CoverageSpecificationVisitor<CoverageSpecification> {
 
     @Override
     public Concatenation visit(Concatenation pConcatenation) {

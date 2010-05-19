@@ -4,7 +4,7 @@ import org.sosy_lab.cpachecker.fllesh.fql2.ast.Edges;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Nodes;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Paths;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Predicate;
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.ASTVisitor;
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.PathPatternVisitor;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.Concatenation;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.PathPattern;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.Repetition;
@@ -42,7 +42,7 @@ public class UnnecessaryRepetitionRemover implements PathPatternRewriter {
     return mRemover; 
   }
   
-  private class Visitor implements ASTVisitor<PathPattern> {
+  private class Visitor implements PathPatternVisitor<PathPattern> {
     @Override
     public Concatenation visit(Concatenation pConcatenation) {
       PathPattern lFirstSubpattern = pConcatenation.getFirstSubpattern();
