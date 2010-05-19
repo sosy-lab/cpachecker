@@ -9,11 +9,14 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 
 public class ECPEdgeSet implements ECPAtom, Iterable<CFAEdge> {
 
-  private Set<CFAEdge> mCFAEdges;
+  private Set<CFAEdge> mCFAEdges = new HashSet<CFAEdge>();
   
-  public ECPEdgeSet(Collection<CFAEdge> pCFAEdge) {
-    mCFAEdges = new HashSet<CFAEdge>();
-    mCFAEdges.addAll(pCFAEdge);
+  public ECPEdgeSet(Collection<CFAEdge> pCFAEdges) {
+    mCFAEdges.addAll(pCFAEdges);
+  }
+  
+  public ECPEdgeSet(CFAEdge pCFAEdge) {
+    mCFAEdges.add(pCFAEdge);
   }
   
   /** copy constructor */

@@ -35,6 +35,10 @@ public class PathPatternToECPTranslator {
     mVisitor = new Visitor();
   }
   
+  public TargetGraph getTargetGraph() {
+    return mTargetGraph;
+  }
+  
   public ElementaryCoveragePattern translate(PathPattern pPattern) {
     return pPattern.accept(mVisitor);
   }
@@ -42,7 +46,7 @@ public class PathPatternToECPTranslator {
   private class Visitor implements PathPatternVisitor<ElementaryCoveragePattern> {
 
     @Override
-    public ElementaryCoveragePattern visit(Concatenation pConcatenation) {
+    public ECPConcatenation visit(Concatenation pConcatenation) {
       ElementaryCoveragePattern lFirstSubpattern = pConcatenation.getFirstSubpattern().accept(this);
       ElementaryCoveragePattern lSecondSubpattern = pConcatenation.getSecondSubpattern().accept(this);
       
@@ -50,7 +54,7 @@ public class PathPatternToECPTranslator {
     }
 
     @Override
-    public ElementaryCoveragePattern visit(Repetition pRepetition) {
+    public ECPRepetition visit(Repetition pRepetition) {
       ElementaryCoveragePattern lSubpattern = pRepetition.getSubpattern().accept(this);
       
       return new ECPRepetition(lSubpattern);
@@ -65,7 +69,7 @@ public class PathPatternToECPTranslator {
     }
 
     @Override
-    public ECPEdgeSet visit(Edges pEdges) {
+    public ElementaryCoveragePattern visit(Edges pEdges) {
       TargetGraph lFilteredTargetGraph = mTargetGraph.apply(pEdges.getFilter());
 
       Set<CFAEdge> lCFAEdges = new HashSet<CFAEdge>();
@@ -84,7 +88,7 @@ public class PathPatternToECPTranslator {
     }
 
     @Override
-    public ECPNodeSet visit(Nodes pNodes) {
+    public ElementaryCoveragePattern visit(Nodes pNodes) {
       TargetGraph lFilteredTargetGraph = mTargetGraph.apply(pNodes.getFilter());
 
       Set<CFANode> lCFANodes = new HashSet<CFANode>();

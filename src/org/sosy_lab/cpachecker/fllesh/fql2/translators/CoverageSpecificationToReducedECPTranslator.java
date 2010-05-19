@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification;
+package org.sosy_lab.cpachecker.fllesh.fql2.translators;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -40,15 +40,20 @@ import org.sosy_lab.cpachecker.fllesh.fql2.ast.Edges;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Nodes;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Paths;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Predicate;
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification.Concatenation;
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification.CoverageSpecification;
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification.CoverageSpecificationVisitor;
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification.Quotation;
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification.Union;
 import org.sosy_lab.cpachecker.fllesh.fql2.normalization.coveragespecification.QuotePredicates;
 
-public class Translator {
+public class CoverageSpecificationToReducedECPTranslator {
 
   private Visitor mVisitor;
   private TargetGraph mTargetGraph;
   private org.sosy_lab.cpachecker.fllesh.fql2.translators.PathPatternToReducedECPTranslator mPathPatternTranslator;
 
-  public Translator(CFAFunctionDefinitionNode pMainFunction) {
+  public CoverageSpecificationToReducedECPTranslator(CFAFunctionDefinitionNode pMainFunction) {
     mVisitor = new Visitor();
 
     mTargetGraph = TargetGraph.createTargetGraphFromCFA(pMainFunction);

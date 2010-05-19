@@ -8,11 +8,14 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
 public class ECPNodeSet implements ECPGuard, Iterable<CFANode> {
   
-  private Set<CFANode> mCFANodes;
+  private Set<CFANode> mCFANodes = new HashSet<CFANode>();
   
   public ECPNodeSet(Set<CFANode> pCFANodes) {
-    mCFANodes = new HashSet<CFANode>();
     mCFANodes.addAll(pCFANodes);
+  }
+  
+  public ECPNodeSet(CFANode pCFANode) {
+    mCFANodes.add(pCFANode);
   }
   
   /** copy constructor */
