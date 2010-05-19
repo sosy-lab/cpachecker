@@ -639,6 +639,10 @@ public class TargetGraph {
       mGraph.addEdge(lSourceNode, lTargetNode, lEdge);
     }
   }
+  
+  public Set<Node> getNodes() {
+    return mGraph.vertexSet();
+  }
 
   public Set<Edge> getEdges() {
     return mGraph.edgeSet();

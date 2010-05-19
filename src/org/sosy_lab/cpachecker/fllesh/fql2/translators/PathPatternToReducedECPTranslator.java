@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern;
+package org.sosy_lab.cpachecker.fllesh.fql2.translators;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -41,9 +41,13 @@ import org.sosy_lab.cpachecker.fllesh.fql2.ast.Edges;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Nodes;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Paths;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Predicate;
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.Concatenation;
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.PathPattern;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.PathPatternVisitor;
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.Repetition;
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.Union;
 
-public class Translator implements Annotations {
+public class PathPatternToReducedECPTranslator implements Annotations {
 
   private TargetGraph mTargetGraph;
   private Map<Set<CFAEdge>, String> mIds;
@@ -52,7 +56,7 @@ public class Translator implements Annotations {
   private Set<CFAEdge> mCFAEdges;
   private Visitor mVisitor;
 
-  public Translator(TargetGraph pTargetGraph) {
+  public PathPatternToReducedECPTranslator(TargetGraph pTargetGraph) {
     mTargetGraph = pTargetGraph;
     mIds = new HashMap<Set<CFAEdge>, String>();
     mAnnotations = new HashMap<CFAEdge, Set<String>>();

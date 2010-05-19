@@ -46,20 +46,20 @@ public class Translator {
 
   private Visitor mVisitor;
   private TargetGraph mTargetGraph;
-  private org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.Translator mPathPatternTranslator;
+  private org.sosy_lab.cpachecker.fllesh.fql2.translators.PathPatternToReducedECPTranslator mPathPatternTranslator;
 
   public Translator(CFAFunctionDefinitionNode pMainFunction) {
     mVisitor = new Visitor();
 
     mTargetGraph = TargetGraph.createTargetGraphFromCFA(pMainFunction);
-    mPathPatternTranslator = new org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.Translator(mTargetGraph);
+    mPathPatternTranslator = new org.sosy_lab.cpachecker.fllesh.fql2.translators.PathPatternToReducedECPTranslator(mTargetGraph);
   }
 
   public Annotations getAnnotations() {
     return mPathPatternTranslator;
   }
   
-  public org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.Translator getPathPatternTranslator() {
+  public org.sosy_lab.cpachecker.fllesh.fql2.translators.PathPatternToReducedECPTranslator getPathPatternTranslator() {
     return mPathPatternTranslator;
   }
 
