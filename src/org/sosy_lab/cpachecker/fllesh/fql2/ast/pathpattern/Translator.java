@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.fllesh.fql2.ast.Edges;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Nodes;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Paths;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Predicate;
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.PathPatternVisitor;
 
 public class Translator implements Annotations {
 
