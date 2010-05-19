@@ -15,6 +15,27 @@ public class ECPNodeSet implements ECPGuard, Iterable<CFANode> {
     mCFANodes.addAll(pCFANodes);
   }
   
+  /** copy constructor */
+  public ECPNodeSet(ECPNodeSet pNodeSet) {
+    this(pNodeSet.mCFANodes);
+  }
+  
+  public ECPNodeSet intersect(ECPNodeSet pOther) {
+    HashSet<CFANode> lIntersection = new HashSet<CFANode>();
+    lIntersection.addAll(mCFANodes);
+    lIntersection.retainAll(pOther.mCFANodes);
+    
+    return new ECPNodeSet(lIntersection);
+  }
+  
+  public ECPNodeSet union(ECPNodeSet pOther) {
+    HashSet<CFANode> lUnion = new HashSet<CFANode>();
+    lUnion.addAll(mCFANodes);
+    lUnion.addAll(pOther.mCFANodes);
+    
+    return new ECPNodeSet(lUnion);
+  }
+  
   @Override
   public int hashCode() {
     return mCFANodes.hashCode();
@@ -37,6 +58,18 @@ public class ECPNodeSet implements ECPGuard, Iterable<CFANode> {
     }
     
     return false;
+  }
+  
+  public int size() {
+    return mCFANodes.size();
+  }
+  
+  public boolean isEmpty() {
+    return mCFANodes.isEmpty();
+  }
+  
+  public boolean contains(CFANode pNode) {
+    return mCFANodes.contains(pNode);
   }
   
   @Override

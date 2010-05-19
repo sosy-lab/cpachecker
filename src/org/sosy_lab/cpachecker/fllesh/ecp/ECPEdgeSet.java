@@ -16,6 +16,51 @@ public class ECPEdgeSet implements ECPAtom, Iterable<CFAEdge> {
     mCFAEdges.addAll(pCFAEdge);
   }
   
+  /** copy constructor */
+  public ECPEdgeSet(ECPEdgeSet pEdgeSet) {
+    this(pEdgeSet.mCFAEdges);
+  }
+  
+  public ECPEdgeSet startIn(ECPNodeSet pNodeSet) {
+    HashSet<CFAEdge> lResult = new HashSet<CFAEdge>();
+    
+    for (CFAEdge lEdge : mCFAEdges) {
+      if (pNodeSet.contains(lEdge.getPredecessor())) {
+        lResult.add(lEdge);
+      }
+    }
+    
+    return new ECPEdgeSet(lResult);
+  }
+  
+  public ECPEdgeSet endIn(ECPNodeSet pNodeSet) {
+    HashSet<CFAEdge> lResult = new HashSet<CFAEdge>();
+    
+    for (CFAEdge lEdge : mCFAEdges) {
+      if (pNodeSet.contains(lEdge.getSuccessor())) {
+        lResult.add(lEdge);
+      }
+    }
+    
+    return new ECPEdgeSet(lResult);
+  }
+  
+  public ECPEdgeSet intersect(ECPEdgeSet pOther) {
+    HashSet<CFAEdge> lIntersection = new HashSet<CFAEdge>();
+    lIntersection.addAll(mCFAEdges);
+    lIntersection.retainAll(pOther.mCFAEdges);
+    
+    return new ECPEdgeSet(lIntersection);
+  }
+  
+  public ECPEdgeSet union(ECPEdgeSet pOther) {
+    HashSet<CFAEdge> lUnion = new HashSet<CFAEdge>();
+    lUnion.addAll(mCFAEdges);
+    lUnion.addAll(pOther.mCFAEdges);
+    
+    return new ECPEdgeSet(lUnion);
+  }
+  
   @Override
   public int hashCode() {
     return mCFAEdges.hashCode();
@@ -38,6 +83,14 @@ public class ECPEdgeSet implements ECPAtom, Iterable<CFAEdge> {
     }
     
     return false;
+  }
+  
+  public int size() {
+    return mCFAEdges.size();
+  }
+  
+  public boolean isEmpty() {
+    return mCFAEdges.isEmpty();
   }
   
   @Override

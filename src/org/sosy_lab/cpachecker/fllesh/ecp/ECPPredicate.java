@@ -8,6 +8,11 @@ public class ECPPredicate implements ECPGuard {
     mPredicate = pPredicate;
   }
   
+  /** copy constructor */
+  public ECPPredicate(ECPPredicate pPredicate) {
+    this(pPredicate.toString());
+  }
+  
   @Override
   public int hashCode() {
     return mPredicate.hashCode();
