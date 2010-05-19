@@ -7,7 +7,7 @@ import org.sosy_lab.cpachecker.fllesh.fql2.ast.Paths;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Predicate;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.PathPattern;
 
-public class ScopePropagator implements ASTVisitor<CoverageSpecification> {
+public class ScopePropagator implements CoverageSpecificationVisitor<CoverageSpecification> {
 
   private org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.ScopePropagator mPatternScopePropagator;
   

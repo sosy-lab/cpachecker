@@ -7,7 +7,7 @@ import org.sosy_lab.cpachecker.fllesh.fql2.ast.Nodes;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Paths;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Predicate;
 
-public class ScopePropagator implements ASTVisitor<PathPattern> {
+public class ScopePropagator implements PathPatternVisitor<PathPattern> {
 
   Filter mFilter;
   

@@ -78,7 +78,7 @@ public class Translator implements Annotations {
     return pPattern.accept(mVisitor);
   }
 
-  private class Visitor implements ASTVisitor<Pattern> {
+  private class Visitor implements PathPatternVisitor<Pattern> {
 
     @Override
     public Pattern visit(Concatenation pConcatenation) {

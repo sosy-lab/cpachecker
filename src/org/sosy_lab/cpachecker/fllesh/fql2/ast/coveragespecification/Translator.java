@@ -73,7 +73,7 @@ public class Translator {
     return lSpecification.accept(mVisitor);
   }
 
-  private class Visitor implements ASTVisitor<Set<Pattern>> {
+  private class Visitor implements CoverageSpecificationVisitor<Set<Pattern>> {
 
     @Override
     public Set<Pattern> visit(Concatenation pConcatenation) {

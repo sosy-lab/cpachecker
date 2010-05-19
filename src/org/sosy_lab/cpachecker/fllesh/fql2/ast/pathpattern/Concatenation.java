@@ -42,7 +42,7 @@ public class Concatenation implements PathPattern {
   }
 
   @Override
-  public <T> T accept(ASTVisitor<T> pVisitor) {
+  public <T> T accept(PathPatternVisitor<T> pVisitor) {
     return pVisitor.visit(this);
   }
 

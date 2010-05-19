@@ -42,7 +42,7 @@ public class Union implements CoverageSpecification {
   }
 
   @Override
-  public <T> T accept(ASTVisitor<T> pVisitor) {
+  public <T> T accept(CoverageSpecificationVisitor<T> pVisitor) {
     return pVisitor.visit(this);
   }
 

@@ -24,7 +24,8 @@
 package org.sosy_lab.cpachecker.fllesh.fql2.ast;
 
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Filter;
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification.ASTVisitor;
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification.CoverageSpecificationVisitor;
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.PathPatternVisitor;
 
 public class Edges implements Atom {
 
@@ -44,12 +45,12 @@ public class Edges implements Atom {
   }
 
   @Override
-  public <T> T accept(ASTVisitor<T> pVisitor) {
+  public <T> T accept(CoverageSpecificationVisitor<T> pVisitor) {
     return pVisitor.visit(this);
   }
 
   @Override
-  public <T> T accept(org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.ASTVisitor<T> pVisitor) {
+  public <T> T accept(PathPatternVisitor<T> pVisitor) {
     return pVisitor.visit(this);
   }
 

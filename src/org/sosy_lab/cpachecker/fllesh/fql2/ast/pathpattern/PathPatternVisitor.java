@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.fllesh.fql2.ast.Nodes;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Paths;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Predicate;
 
-public interface ASTVisitor<T> {
+public interface PathPatternVisitor<T> {
 
   public T visit(Concatenation pConcatenation);
   public T visit(Repetition pRepetition);
