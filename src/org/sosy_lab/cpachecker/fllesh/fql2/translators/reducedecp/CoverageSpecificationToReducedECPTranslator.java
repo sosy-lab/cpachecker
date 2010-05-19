@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.fllesh.fql2.translators;
+package org.sosy_lab.cpachecker.fllesh.fql2.translators.reducedecp;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -51,20 +51,20 @@ public class CoverageSpecificationToReducedECPTranslator {
 
   private Visitor mVisitor;
   private TargetGraph mTargetGraph;
-  private org.sosy_lab.cpachecker.fllesh.fql2.translators.PathPatternToReducedECPTranslator mPathPatternTranslator;
+  private org.sosy_lab.cpachecker.fllesh.fql2.translators.reducedecp.PathPatternToReducedECPTranslator mPathPatternTranslator;
 
   public CoverageSpecificationToReducedECPTranslator(CFAFunctionDefinitionNode pMainFunction) {
     mVisitor = new Visitor();
 
     mTargetGraph = TargetGraph.createTargetGraphFromCFA(pMainFunction);
-    mPathPatternTranslator = new org.sosy_lab.cpachecker.fllesh.fql2.translators.PathPatternToReducedECPTranslator(mTargetGraph);
+    mPathPatternTranslator = new org.sosy_lab.cpachecker.fllesh.fql2.translators.reducedecp.PathPatternToReducedECPTranslator(mTargetGraph);
   }
 
   public Annotations getAnnotations() {
     return mPathPatternTranslator;
   }
   
-  public org.sosy_lab.cpachecker.fllesh.fql2.translators.PathPatternToReducedECPTranslator getPathPatternTranslator() {
+  public org.sosy_lab.cpachecker.fllesh.fql2.translators.reducedecp.PathPatternToReducedECPTranslator getPathPatternTranslator() {
     return mPathPatternTranslator;
   }
 

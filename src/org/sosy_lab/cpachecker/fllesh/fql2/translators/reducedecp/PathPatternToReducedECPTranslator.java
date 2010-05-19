@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.fllesh.fql2.translators;
+package org.sosy_lab.cpachecker.fllesh.fql2.translators.reducedecp;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;

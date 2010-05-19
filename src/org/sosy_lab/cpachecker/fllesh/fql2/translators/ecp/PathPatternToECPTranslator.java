@@ -1,4 +1,4 @@
-package org.sosy_lab.cpachecker.fllesh.fql2.translators;
+package org.sosy_lab.cpachecker.fllesh.fql2.translators.ecp;
 
 import java.util.HashSet;
 import java.util.Set;
