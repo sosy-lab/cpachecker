@@ -47,24 +47,24 @@ import org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification.Quotation;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification.Union;
 import org.sosy_lab.cpachecker.fllesh.fql2.normalization.coveragespecification.QuotePredicates;
 
-public class CoverageSpecificationToReducedECPTranslator {
+public class CoverageSpecificationTranslator {
 
   private Visitor mVisitor;
   private TargetGraph mTargetGraph;
-  private org.sosy_lab.cpachecker.fllesh.fql2.translators.reducedecp.PathPatternToReducedECPTranslator mPathPatternTranslator;
+  private org.sosy_lab.cpachecker.fllesh.fql2.translators.reducedecp.PathPatternTranslator mPathPatternTranslator;
 
-  public CoverageSpecificationToReducedECPTranslator(CFAFunctionDefinitionNode pMainFunction) {
+  public CoverageSpecificationTranslator(CFAFunctionDefinitionNode pMainFunction) {
     mVisitor = new Visitor();
 
     mTargetGraph = TargetGraph.createTargetGraphFromCFA(pMainFunction);
-    mPathPatternTranslator = new org.sosy_lab.cpachecker.fllesh.fql2.translators.reducedecp.PathPatternToReducedECPTranslator(mTargetGraph);
+    mPathPatternTranslator = new org.sosy_lab.cpachecker.fllesh.fql2.translators.reducedecp.PathPatternTranslator(mTargetGraph);
   }
 
   public Annotations getAnnotations() {
     return mPathPatternTranslator;
   }
   
-  public org.sosy_lab.cpachecker.fllesh.fql2.translators.reducedecp.PathPatternToReducedECPTranslator getPathPatternTranslator() {
+  public org.sosy_lab.cpachecker.fllesh.fql2.translators.reducedecp.PathPatternTranslator getPathPatternTranslator() {
     return mPathPatternTranslator;
   }
 

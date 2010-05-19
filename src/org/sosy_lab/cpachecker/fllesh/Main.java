@@ -214,7 +214,7 @@ public class Main {
     System.out.println("File: " + lSourceFileName);
     
     
-    org.sosy_lab.cpachecker.fllesh.fql2.translators.reducedecp.CoverageSpecificationToReducedECPTranslator lCoverageSpecificationTranslator = new org.sosy_lab.cpachecker.fllesh.fql2.translators.reducedecp.CoverageSpecificationToReducedECPTranslator(lMainFunction);
+    org.sosy_lab.cpachecker.fllesh.fql2.translators.reducedecp.CoverageSpecificationTranslator lCoverageSpecificationTranslator = new org.sosy_lab.cpachecker.fllesh.fql2.translators.reducedecp.CoverageSpecificationTranslator(lMainFunction);
     //Pattern lPassingClause = lCoverageSpecificationTranslator.getPathPatternTranslator().translate(lFQLSpecification.getPathPattern());
     /*Set<Pattern> lTestGoals = lCoverageSpecificationTranslator.translate(lFQLSpecification.getCoverageSpecification());
     Pattern lPassingClause = lCoverageSpecificationTranslator.getPathPatternTranslator().translate(lFQLSpecification.getPathPattern());

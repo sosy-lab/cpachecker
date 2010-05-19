@@ -22,14 +22,14 @@ import org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification.CoverageSpe
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification.Quotation;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification.Union;
 
-public class CoverageSpecificationToECPTranslator {
+public class CoverageSpecificationTranslator {
 
   private Visitor mVisitor;
-  private PathPatternToECPTranslator mPathPatternTranslator;
+  private PathPatternTranslator mPathPatternTranslator;
   
-  public CoverageSpecificationToECPTranslator(TargetGraph pTargetGraph) {
+  public CoverageSpecificationTranslator(TargetGraph pTargetGraph) {
     mVisitor = new Visitor();
-    mPathPatternTranslator = new PathPatternToECPTranslator(pTargetGraph);
+    mPathPatternTranslator = new PathPatternTranslator(pTargetGraph);
   }
   
   public Set<ElementaryCoveragePattern> translate(CoverageSpecification pCoverageSpecification) {

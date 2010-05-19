@@ -1,4 +1,4 @@
-package org.sosy_lab.cpachecker.fllesh.fql2.translators.ecp;
+package org.sosy_lab.cpachecker.fllesh.ecp.translators;
 
 import org.sosy_lab.cpachecker.fllesh.ecp.ECPGuard;
 

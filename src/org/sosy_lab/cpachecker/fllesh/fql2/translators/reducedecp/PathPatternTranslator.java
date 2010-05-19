@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.PathPatternVisitor;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.Repetition;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.Union;
 
-public class PathPatternToReducedECPTranslator implements Annotations {
+public class PathPatternTranslator implements Annotations {
 
   private TargetGraph mTargetGraph;
   private Map<Set<CFAEdge>, String> mIds;
@@ -56,7 +56,7 @@ public class PathPatternToReducedECPTranslator implements Annotations {
   private Set<CFAEdge> mCFAEdges;
   private Visitor mVisitor;
 
-  public PathPatternToReducedECPTranslator(TargetGraph pTargetGraph) {
+  public PathPatternTranslator(TargetGraph pTargetGraph) {
     mTargetGraph = pTargetGraph;
     mIds = new HashMap<Set<CFAEdge>, String>();
     mAnnotations = new HashMap<CFAEdge, Set<String>>();

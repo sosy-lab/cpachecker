@@ -25,12 +25,12 @@ import org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.PathPatternVisitor;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.Repetition;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.Union;
 
-public class PathPatternToECPTranslator {
+public class PathPatternTranslator {
 
   private TargetGraph mTargetGraph;
   private Visitor mVisitor;
   
-  public PathPatternToECPTranslator(TargetGraph pTargetGraph) {
+  public PathPatternTranslator(TargetGraph pTargetGraph) {
     mTargetGraph = pTargetGraph;
     mVisitor = new Visitor();
   }
