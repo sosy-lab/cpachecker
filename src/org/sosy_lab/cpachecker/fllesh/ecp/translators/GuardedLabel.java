@@ -35,6 +35,10 @@ public abstract class GuardedLabel implements Iterable<ECPGuard> {
   protected Set<ECPGuard> getGuards() {
     return mGuards;
   }
+  
+  public boolean hasGuards() {
+    return !mGuards.isEmpty();
+  }
 
   public abstract <T> T accept(GuardedLabelVisitor<T> pVisitor);
   

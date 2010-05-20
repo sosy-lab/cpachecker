@@ -321,7 +321,7 @@ public class Automaton<T> {
         lLabelString = "Lambda";
       }
       
-      lBuffer.append(lIdMap.get(lEdge.getSource()) + " -[" + lLabelString + "]>" + lIdMap.get(lEdge.getTarget()));
+      lBuffer.append(lIdMap.get(lEdge.getSource()) + " -[" + lLabelString + "]> " + lIdMap.get(lEdge.getTarget()));
       lBuffer.append("\n");
     }
     

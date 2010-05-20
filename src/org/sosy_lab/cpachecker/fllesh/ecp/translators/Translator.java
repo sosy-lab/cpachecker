@@ -17,6 +17,8 @@ public class Translator {
     
     pPattern.accept(lVisitor);
     
+    lVisitor.getAutomaton().addToFinalStates(lVisitor.getFinalState());
+    
     return lVisitor.getAutomaton();
   }
   
@@ -29,8 +31,8 @@ public class Translator {
     
     public Visitor() {
       mAutomaton = new Automaton<GuardedLabel>();
-      mInitialState = mAutomaton.createState();
-      mFinalState = mAutomaton.createState();
+      setInitialState(mAutomaton.getInitialState());
+      setFinalState(mAutomaton.createState());
     }
     
     public Automaton<GuardedLabel> getAutomaton() {
@@ -136,13 +138,15 @@ public class Translator {
 
     @Override
     public Void visit(ECPRepetition pRepetition) {
-      mAutomaton.createEdge(getInitialState(), getFinalState(), new GuardedLambdaLabel());
-      
       Automaton<GuardedLabel>.State lTmpInitialState = getInitialState();
       Automaton<GuardedLabel>.State lTmpFinalState = getFinalState();
       
+      mAutomaton.createEdge(lTmpInitialState, lTmpFinalState, new GuardedLambdaLabel());
+      
       setInitialState(mAutomaton.createState());
       setFinalState(lTmpInitialState);
+      
+      mAutomaton.createEdge(lTmpInitialState, getInitialState(), new GuardedLambdaLabel());
       
       pRepetition.getSubpattern().accept(this);
       

@@ -32,6 +32,11 @@ public class CoverageSpecificationTranslator {
     mPathPatternTranslator = new PathPatternTranslator(pTargetGraph);
   }
   
+  public CoverageSpecificationTranslator(PathPatternTranslator pPatternTranslator) {
+    mVisitor = new Visitor();
+    mPathPatternTranslator = pPatternTranslator;
+  }
+  
   public Set<ElementaryCoveragePattern> translate(CoverageSpecification pCoverageSpecification) {
     return pCoverageSpecification.accept(mVisitor);
   }

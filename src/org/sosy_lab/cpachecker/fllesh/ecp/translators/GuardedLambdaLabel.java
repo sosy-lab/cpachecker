@@ -40,5 +40,15 @@ public class GuardedLambdaLabel extends GuardedLabel {
   public <T> T accept(GuardedLabelVisitor<T> pVisitor) {
     return pVisitor.visit(this);
   }
+  
+  @Override
+  public String toString() {
+    if (hasGuards()) {
+      return "Lambda " + getGuards().toString();
+    }
+    else {
+      return "Lambda";
+    }
+  }
 
 }

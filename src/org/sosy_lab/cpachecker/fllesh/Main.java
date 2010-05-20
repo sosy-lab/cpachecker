@@ -72,7 +72,7 @@ import org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification.CoverageSpe
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification.Quotation;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.PathPattern;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.Repetition;
-import org.sosy_lab.cpachecker.fllesh.fql2.parser.FQLParser;
+import org.sosy_lab.cpachecker.fllesh.fql2.translators.reducedecp.CoverageSpecificationTranslator;
 
 import com.google.common.base.Joiner;
 
@@ -82,7 +82,7 @@ public class Main {
   private static final String PASSING_AUTOMATON = "PassingAutomaton";
   private static final String PRODUCT_AUTOMATON = "ProductAutomaton";
 
-  private static Configuration createConfiguration(String pSourceFile, String pPropertiesFile) {
+  public static Configuration createConfiguration(String pSourceFile, String pPropertiesFile) {
     return createConfiguration(Collections.singletonList(pSourceFile), pPropertiesFile);
   }
 
@@ -103,7 +103,7 @@ public class Main {
     return lConfiguration;
   }
 
-  private static File createPropertiesFile() {
+  public static File createPropertiesFile() {
     File lPropertiesFile = null;
 
     try {
@@ -208,13 +208,13 @@ public class Main {
     String lFQLSpecificationString = pArguments[0];
     
 
-    FQLSpecification lFQLSpecification = Main.parse(lFQLSpecificationString);
+    FQLSpecification lFQLSpecification = FQLSpecification.parse(lFQLSpecificationString);
     
     System.out.println("FQL query: " + lFQLSpecification);
     System.out.println("File: " + lSourceFileName);
     
     
-    org.sosy_lab.cpachecker.fllesh.fql2.translators.reducedecp.CoverageSpecificationTranslator lCoverageSpecificationTranslator = new org.sosy_lab.cpachecker.fllesh.fql2.translators.reducedecp.CoverageSpecificationTranslator(lMainFunction);
+    CoverageSpecificationTranslator lCoverageSpecificationTranslator = new CoverageSpecificationTranslator(lMainFunction);
     //Pattern lPassingClause = lCoverageSpecificationTranslator.getPathPatternTranslator().translate(lFQLSpecification.getPathPattern());
     /*Set<Pattern> lTestGoals = lCoverageSpecificationTranslator.translate(lFQLSpecification.getCoverageSpecification());
     Pattern lPassingClause = lCoverageSpecificationTranslator.getPathPatternTranslator().translate(lFQLSpecification.getPathPattern());
@@ -411,25 +411,6 @@ public class Main {
     PrintWriter lStatisticsWriter = new PrintWriter(System.out);
 
     lARTStatistics.printStatistics(lStatisticsWriter, Result.SAFE, lReachedElements);
-  }
-  
-  private static FQLSpecification parse(String pFQLSpecificationString) throws Exception {
-    FQLParser lParser = new FQLParser(pFQLSpecificationString);
-
-    Object pParseResult;
-
-    try {
-      pParseResult = lParser.parse().value;
-    }
-    catch (Exception e) {
-      System.out.println(pFQLSpecificationString);
-
-      throw e;
-    }
-
-    assert(pParseResult instanceof FQLSpecification);
-
-    return (FQLSpecification)pParseResult;
   }
 
 }

@@ -51,20 +51,20 @@ public class CoverageSpecificationTranslator {
 
   private Visitor mVisitor;
   private TargetGraph mTargetGraph;
-  private org.sosy_lab.cpachecker.fllesh.fql2.translators.reducedecp.PathPatternTranslator mPathPatternTranslator;
+  private PathPatternTranslator mPathPatternTranslator;
 
   public CoverageSpecificationTranslator(CFAFunctionDefinitionNode pMainFunction) {
     mVisitor = new Visitor();
 
     mTargetGraph = TargetGraph.createTargetGraphFromCFA(pMainFunction);
-    mPathPatternTranslator = new org.sosy_lab.cpachecker.fllesh.fql2.translators.reducedecp.PathPatternTranslator(mTargetGraph);
+    mPathPatternTranslator = new PathPatternTranslator(mTargetGraph);
   }
 
   public Annotations getAnnotations() {
     return mPathPatternTranslator;
   }
   
-  public org.sosy_lab.cpachecker.fllesh.fql2.translators.reducedecp.PathPatternTranslator getPathPatternTranslator() {
+  public PathPatternTranslator getPathPatternTranslator() {
     return mPathPatternTranslator;
   }
 

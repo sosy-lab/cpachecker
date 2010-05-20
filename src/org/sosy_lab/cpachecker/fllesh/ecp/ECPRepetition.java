@@ -35,6 +35,16 @@ public class ECPRepetition implements ElementaryCoveragePattern {
   public int hashCode() {
     return mSubpattern.hashCode() + 7879;
   }
+  
+  @Override
+  public String toString() {
+    if (mSubpattern instanceof ECPAtom) {
+      return mSubpattern.toString() + "*";
+    }
+    else {
+      return "(" + mSubpattern.toString() + ")*";
+    }
+  }
 
   @Override
   public <T> T accept(ECPVisitor<T> pVisitor) {

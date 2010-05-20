@@ -2,6 +2,7 @@ package org.sosy_lab.cpachecker.fllesh.fql2.ast;
 
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification.CoverageSpecification;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.PathPattern;
+import org.sosy_lab.cpachecker.fllesh.fql2.parser.FQLParser;
 
 public class FQLSpecification {
   private CoverageSpecification mCoverageSpecification;
@@ -23,6 +24,25 @@ public class FQLSpecification {
   @Override
   public String toString() {
     return "COVER " + mCoverageSpecification.toString() + " PASSING " + mPathPattern.toString(); 
+  }
+  
+  public static FQLSpecification parse(String pFQLSpecificationString) throws Exception {
+    FQLParser lParser = new FQLParser(pFQLSpecificationString);
+
+    Object pParseResult;
+
+    try {
+      pParseResult = lParser.parse().value;
+    }
+    catch (Exception e) {
+      System.out.println(pFQLSpecificationString);
+
+      throw e;
+    }
+
+    assert(pParseResult instanceof FQLSpecification);
+
+    return (FQLSpecification)pParseResult;
   }
   
 }
