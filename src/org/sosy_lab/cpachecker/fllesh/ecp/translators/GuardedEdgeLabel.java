@@ -9,6 +9,12 @@ public class GuardedEdgeLabel extends GuardedLabel {
 
   private ECPEdgeSet mEdgeSet;
   
+  public GuardedEdgeLabel(ECPEdgeSet pEdgeSet) {
+    super();
+    
+    mEdgeSet = pEdgeSet;
+  }
+  
   public GuardedEdgeLabel(ECPEdgeSet pEdgeSet, ECPGuard pGuard) {
     super(pGuard);
     

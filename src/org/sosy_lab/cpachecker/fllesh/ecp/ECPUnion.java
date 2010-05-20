@@ -38,6 +38,14 @@ public class ECPUnion implements ElementaryCoveragePattern , Iterable<Elementary
     return mSubpatterns.size();
   }
   
+  public boolean isEmpty() {
+    return mSubpatterns.isEmpty();
+  }
+  
+  public ElementaryCoveragePattern get(int lIndex) {
+    return mSubpatterns.get(lIndex);
+  }
+  
   @Override
   public boolean equals(Object pOther) {
     if (this == pOther) {

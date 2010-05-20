@@ -34,8 +34,16 @@ public class ECPConcatenation implements ElementaryCoveragePattern, Iterable<Ele
     return mSubpatterns.iterator();
   }
   
+  public ElementaryCoveragePattern get(int lIndex) {
+    return mSubpatterns.get(lIndex);
+  }
+  
   public int size() {
     return mSubpatterns.size();
+  }
+  
+  public boolean isEmpty() {
+    return mSubpatterns.isEmpty();
   }
   
   @Override

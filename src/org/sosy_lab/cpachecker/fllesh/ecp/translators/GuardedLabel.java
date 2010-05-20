@@ -10,6 +10,10 @@ public abstract class GuardedLabel implements Iterable<ECPGuard> {
 
   private Set<ECPGuard> mGuards = new HashSet<ECPGuard>();
   
+  public GuardedLabel() {
+    
+  }
+  
   public GuardedLabel(Set<ECPGuard> pGuards) {
     mGuards.addAll(pGuards);
   }
