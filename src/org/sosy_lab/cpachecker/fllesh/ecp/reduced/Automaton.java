@@ -303,6 +303,8 @@ public class Automaton<T> {
         lBuffer.append(", ");
       }
       
+      System.out.println(lFinalState);
+      
       lBuffer.append(lIdMap.get(lFinalState).toString());
     }
     

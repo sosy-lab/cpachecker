@@ -1,5 +1,7 @@
 package org.sosy_lab.cpachecker.fllesh.ecp.translators;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.fllesh.ecp.ECPEdgeSet;
@@ -7,6 +9,8 @@ import org.sosy_lab.cpachecker.fllesh.ecp.ECPGuard;
 
 public class GuardedEdgeLabel extends GuardedLabel {
 
+  private static Map<ECPEdgeSet, Integer> mIds = new HashMap<ECPEdgeSet, Integer>();
+  
   private ECPEdgeSet mEdgeSet;
   
   public GuardedEdgeLabel(ECPEdgeSet pEdgeSet) {
@@ -63,6 +67,15 @@ public class GuardedEdgeLabel extends GuardedLabel {
   @Override
   public <T> T accept(GuardedLabelVisitor<T> pVisitor) {
     return pVisitor.visit(this);
+  }
+  
+  @Override
+  public String toString() {
+    if (!mIds.containsKey(mEdgeSet)) {
+      mIds.put(mEdgeSet, mIds.size());
+    }
+    
+    return "E" + mIds.get(mEdgeSet) + " " + getGuards().toString();
   }
 
 }

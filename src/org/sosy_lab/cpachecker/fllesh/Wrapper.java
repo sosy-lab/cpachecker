@@ -182,6 +182,28 @@ public class Wrapper {
     //dotBuilder.generateDOT(lCPAchecker.getCFAMap().values(), lMainFunction, new File("/tmp/mycfa.dot"));
 
   }
+  
+  public Wrapper(FunctionDefinitionNode pMainFunction, Map<String, CFAFunctionDefinitionNode> pCFAs, LogManager pLogManager) {
+    mLogManager = pLogManager;
+    mCFAs = new HashMap<String, CFAFunctionDefinitionNode>();
+    mCFAs.putAll(this.getWrapper(pMainFunction));
+    mCFAs.putAll(pCFAs);
+
+    mEntry = mCFAs.get("__FLLESH__main");
+
+    // set function names
+    CFATraversal.traverse(mEntry, Wrapper.FunctionNameSetter.getInstance());
+
+    // correct call to main function
+    //mVisitor = new AddFunctionCallVisitor(this.getCFAs());
+    mVisitor = new AddFunctionCallVisitor();
+
+    CFATraversal.traverse(mEntry, mVisitor);
+
+    //DOTBuilder dotBuilder = new DOTBuilder();
+    //dotBuilder.generateDOT(lCPAchecker.getCFAMap().values(), lMainFunction, new File("/tmp/mycfa.dot"));
+
+  }
 
   public CFAEdge getAlphaEdge() {
     return mVisitor.getAlphaEdge();
