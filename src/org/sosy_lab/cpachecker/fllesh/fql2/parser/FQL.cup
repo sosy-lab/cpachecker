@@ -24,8 +24,6 @@
 
 package org.sosy_lab.cpachecker.fllesh.fql2.parser;
 
-import java_cup.runtime.*;
-
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Nodes;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Edges;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Paths;
@@ -59,6 +57,7 @@ import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.SetMinus;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Intersection;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Union;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Complement;
+import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Predication;
 
 import java.io.Reader;
 import java.io.InputStream;
@@ -106,6 +105,7 @@ terminal TOK_BASICBLOCKENTRY;
 terminal TOK_CONDITIONEDGE;
 terminal TOK_DECISIONEDGE;
 terminal TOK_CONDITIONGRAPH;
+terminal TOK_PREDICATION;
 
 /* operations on target graphs */
 terminal TOK_COMPLEMENT;
@@ -131,9 +131,6 @@ terminal TOK_NEQ;
 terminal TOK_NODECOV;
 terminal TOK_EDGECOV;
 terminal TOK_PATHCOV;
-terminal TOK_L_SEQ;
-terminal TOK_R_SEQ;
-
 
 /* path monitors */
 terminal TOK_CONCAT;
@@ -377,6 +374,20 @@ Filter				::=
 							assert(filter2 instanceof Filter);
 
 							RESULT = new Compose((Filter)filter1, (Filter)filter2);
+						:}
+					|	TOK_PREDICATION TOK_L_PARENTHESIS Filter:filter TOK_COMMA TOK_PREDICATE:predicate TOK_R_PARENTHESIS
+						{:
+							assert(filter != null);
+							assert(filter instanceof Filter);
+							
+							assert(predicate != null);
+							assert(predicate instanceof String);
+							
+							String lOriginalString = (String)predicate;
+							
+							String lPredicateString = lOriginalString.substring(1, lOriginalString.length() - 1).trim();
+							
+							RESULT = new Predication((Filter)filter, new Predicate(lPredicateString));
 						:}
 					;
 

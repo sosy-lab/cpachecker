@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Identity;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Intersection;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Label;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Line;
+import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Predication;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.RegularExpression;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.SetMinus;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Union;
@@ -364,6 +365,11 @@ public class FilterPropagator implements ASTVisitor<FQLNode> {
     assert(lNode instanceof Coverage);
 
     return new Query((Coverage)lNode, pQuery.getPassingMonitor());
+  }
+
+  @Override
+  public FQLNode visit(Predication pPredication) {
+    return apply(pPredication);
   }
 
 }

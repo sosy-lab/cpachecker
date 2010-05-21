@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Identity;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Intersection;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Label;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Line;
+import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Predication;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.RegularExpression;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.SetMinus;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Union;
@@ -170,6 +171,11 @@ public class DefaultASTVisitor<T> implements ASTVisitor<T> {
 
   @Override
   public T visit(EnclosingScopes pEnclosingScopes) {
+    throw new UnsupportedOperationException("The method visit(EnclosingScopes pEnclosingScopes) is not supported!");
+  }
+  
+  @Override
+  public T visit(Predication pPredication) {
     throw new UnsupportedOperationException("The method visit(EnclosingScopes pEnclosingScopes) is not supported!");
   }
 

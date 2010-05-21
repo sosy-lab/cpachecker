@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Intersection;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Label;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Line;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Expression;
+import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Predication;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.RegularExpression;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Complement;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.SetMinus;
@@ -85,6 +86,7 @@ public interface ASTVisitor<T> {
   public T visit(Intersection pIntersection);
   public T visit(SetMinus pSetMinus);
   public T visit(EnclosingScopes pEnclosingScopes);
+  public T visit(Predication pPredication);
 
   // predicates
   public T visit(Predicate pPredicate);

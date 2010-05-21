@@ -5,7 +5,6 @@ import org.sosy_lab.cpachecker.fllesh.ecp.reduced.Automaton;
 
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Set;
 
 public class GuardedState {
