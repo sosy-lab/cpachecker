@@ -43,6 +43,30 @@ public class Edges implements Atom {
   public String toString() {
     return "EDGES(" + mFilter.toString() + ")";
   }
+  
+  @Override
+  public boolean equals(Object pOther) {
+    if (this == pOther) {
+      return true;
+    }
+    
+    if (pOther == null) {
+      return false;
+    }
+    
+    if (!pOther.getClass().equals(getClass())) {
+      return false;
+    }
+    
+    Edges lEdges = (Edges)pOther;
+    
+    return mFilter.equals(lEdges.mFilter);
+  }
+  
+  @Override
+  public int hashCode() {
+    return mFilter.hashCode() + 3142;
+  }
 
   @Override
   public <T> T accept(CoverageSpecificationVisitor<T> pVisitor) {

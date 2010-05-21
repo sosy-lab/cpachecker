@@ -43,6 +43,30 @@ public class Nodes implements Atom {
   public String toString() {
     return "NODES(" + mFilter.toString() + ")";
   }
+  
+  @Override
+  public boolean equals(Object pOther) {
+    if (this == pOther) {
+      return true;
+    }
+    
+    if (pOther == null) {
+      return false;
+    }
+    
+    if (!pOther.getClass().equals(getClass())) {
+      return false;
+    }
+    
+    Nodes lNodes = (Nodes)pOther;
+    
+    return mFilter.equals(lNodes.mFilter);
+  }
+  
+  @Override
+  public int hashCode() {
+    return mFilter.hashCode() + 3143;
+  }
 
   @Override
   public <T> T accept(CoverageSpecificationVisitor<T> pVisitor) {

@@ -42,6 +42,30 @@ public class Predicate implements Atom {
   public String toString() {
     return "{ " + mPredicate + " }";
   }
+  
+  @Override
+  public boolean equals(Object pOther) {
+    if (this == pOther) {
+      return true;
+    }
+    
+    if (pOther == null) {
+      return false;
+    }
+    
+    if (!pOther.getClass().equals(getClass())) {
+      return false;
+    }
+    
+    Predicate lPredicate = (Predicate)pOther;
+    
+    return mPredicate.equals(lPredicate.mPredicate);
+  }
+  
+  @Override
+  public int hashCode() {
+    return mPredicate.hashCode() + 2343;
+  }
 
   @Override
   public <T> T accept(CoverageSpecificationVisitor<T> pVisitor) {

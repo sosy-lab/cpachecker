@@ -52,8 +52,7 @@ public class Predication implements Filter {
   
   @Override
   public <T> T accept(ASTVisitor<T> pVisitor) {
-    // TODO Auto-generated method stub
-    return null;
+    return pVisitor.visit(this);
   }
 
 }

@@ -153,4 +153,57 @@ public class CoverageSpecificationTranslatorTest {
     System.out.println(lPrettyPrinter.printPretty(lPassing));
   }
   
+  @Test
+  public void testMain003() throws Exception {
+    /** process FQL query */
+    String lSpecificationString = "COVER \"EDGES(ID)*\".{ x > 100 }.(EDGES(@CALL(f)) + NODES(@CALL(f))).\"EDGES(ID)*\"";
+    FQLSpecification lSpecification = FQLSpecification.parse(lSpecificationString);
+    System.out.println(lSpecification);
+    
+    /** process source code */
+    Cilly lCilly = new Cilly();
+
+    String lSourceFileName = "test/programs/simple/functionCall.c";
+
+    if (!lCilly.isCillyInvariant(lSourceFileName)) {
+      File lCillyProcessedFile = lCilly.cillyfy(lSourceFileName);
+      lCillyProcessedFile.deleteOnExit();
+
+      lSourceFileName = lCillyProcessedFile.getAbsolutePath();
+
+      System.err.println("WARNING: Given source file is not CIL invariant ... did preprocessing!");
+    }
+
+    File lPropertiesFile = Main.createPropertiesFile();
+    Configuration lConfiguration = Main.createConfiguration(lSourceFileName, lPropertiesFile.getAbsolutePath());
+
+    LogManager lLogManager = new LogManager(lConfiguration);
+
+    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
+
+    CFAFunctionDefinitionNode lMainFunction = lCPAchecker.getMainFunction();
+    
+    TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lMainFunction);
+    
+    /** do translation */
+    PathPatternTranslator lPatternTranslator = new PathPatternTranslator(lTargetGraph);
+    CoverageSpecificationTranslator lSpecificationTranslator = new CoverageSpecificationTranslator(lPatternTranslator);
+    Set<ElementaryCoveragePattern> lGoals = lSpecificationTranslator.translate(lSpecification.getCoverageSpecification());
+    ElementaryCoveragePattern lPassing = lPatternTranslator.translate(lSpecification.getPathPattern());
+    
+    ECPPrettyPrinter lPrettyPrinter = new ECPPrettyPrinter();
+    
+    System.out.println("TEST GOALS:");
+    
+    int lIndex = 0;
+    
+    for (ElementaryCoveragePattern lGoal : lGoals) {
+      System.out.println("Goal #" + (++lIndex));
+      System.out.println(lPrettyPrinter.printPretty(lGoal));
+    }
+    
+    System.out.println("PASSING:");
+    System.out.println(lPrettyPrinter.printPretty(lPassing));
+  }
+  
 }
