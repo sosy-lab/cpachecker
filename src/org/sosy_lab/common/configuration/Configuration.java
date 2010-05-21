@@ -193,12 +193,13 @@ public class Configuration {
     }
     // try to create the output directory (lazy, only if a CPA requests the path)
     if ("output.path".equals(key)) {
+      if (result != null) {
       boolean couldCreateDirs = (new File(result)).mkdirs();
-      if (!couldCreateDirs) {
-        // log? i don't find access to a logger
-        // TODO: i think we should provide a "default" output directory in this case (one that is probably already existent)
+        if (!couldCreateDirs) {
+          // log? i don't find access to a logger
+          // TODO: i think we should provide a "default" output directory in this case (one that is probably already existent)
+        }
       }
-        
     }
     return result;
   }
