@@ -33,10 +33,10 @@ import org.sosy_lab.cpachecker.fllesh.fql.backend.pathmonitor.Automaton;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.TargetGraph;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.coverage.Coverage;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.coverage.Sequence;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Identity;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.FilterMonitor;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.LowerBound;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.PathMonitor;
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Identity;
 
 public class CoverageSequence implements Iterable<Pair<Automaton, Set<? extends TestGoal>>> {
   private Automaton mFinalMonitor;

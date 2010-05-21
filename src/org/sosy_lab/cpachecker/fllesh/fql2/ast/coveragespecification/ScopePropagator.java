@@ -1,10 +1,10 @@
 package org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification;
 
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Filter;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Edges;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Nodes;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Paths;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Predicate;
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Filter;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.PathPattern;
 
 public class ScopePropagator implements CoverageSpecificationVisitor<CoverageSpecification> {

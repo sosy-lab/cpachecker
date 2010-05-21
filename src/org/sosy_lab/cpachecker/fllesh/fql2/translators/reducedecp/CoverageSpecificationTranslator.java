@@ -35,7 +35,6 @@ import org.sosy_lab.cpachecker.fllesh.ecp.reduced.Atom;
 import org.sosy_lab.cpachecker.fllesh.ecp.reduced.Pattern;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.Edge;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.TargetGraph;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Filter;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Edges;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Nodes;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Paths;
@@ -45,6 +44,7 @@ import org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification.CoverageSpe
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification.CoverageSpecificationVisitor;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification.Quotation;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification.Union;
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Filter;
 import org.sosy_lab.cpachecker.fllesh.fql2.normalization.coveragespecification.QuotePredicates;
 
 public class CoverageSpecificationTranslator {

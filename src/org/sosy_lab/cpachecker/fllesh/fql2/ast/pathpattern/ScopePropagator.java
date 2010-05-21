@@ -1,11 +1,11 @@
 package org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern;
 
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Compose;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Filter;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Edges;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Nodes;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Paths;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Predicate;
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Compose;
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Filter;
 
 public class ScopePropagator implements PathPatternVisitor<PathPattern> {
 

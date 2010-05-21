@@ -24,8 +24,8 @@
 package org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.coverage;
 
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.ASTVisitor;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Filter;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.predicate.Predicates;
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Filter;
 
 public class Edges implements Coverage {
 

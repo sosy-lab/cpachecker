@@ -21,60 +21,55 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.fllesh.fql2.ast;
+package org.sosy_lab.cpachecker.fllesh.fql2.ast.filter;
 
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification.CoverageSpecificationVisitor;
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Filter;
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.PathPatternVisitor;
+public class Expression implements Filter {
 
-public class Nodes implements Atom {
+  String mExpression;
 
-  private Filter mFilter;
+  public Expression(String pExpression) {
+    assert(pExpression != null);
 
-  public Nodes(Filter pFilter) {
-    mFilter = pFilter;
+    mExpression = pExpression;
   }
 
-  public Filter getFilter() {
-    return mFilter;
+  public String getExpression() {
+    return mExpression;
   }
 
   @Override
   public String toString() {
-    return "NODES(" + mFilter.toString() + ")";
+    return "@EXPR(" + mExpression + ")";
   }
-  
+
+  @Override
+  public int hashCode() {
+    return 78674 + mExpression.hashCode();
+  }
+
   @Override
   public boolean equals(Object pOther) {
     if (this == pOther) {
       return true;
     }
-    
+
     if (pOther == null) {
       return false;
     }
-    
-    if (!pOther.getClass().equals(getClass())) {
-      return false;
+
+    if (pOther.getClass() == getClass()) {
+      Expression mExpressionFilter = (Expression)pOther;
+
+      return mExpression.equals(mExpressionFilter.mExpression);
     }
-    
-    Nodes lNodes = (Nodes)pOther;
-    
-    return mFilter.equals(lNodes.mFilter);
-  }
-  
-  @Override
-  public int hashCode() {
-    return mFilter.hashCode() + 3143;
+
+    return false;
   }
 
   @Override
-  public <T> T accept(CoverageSpecificationVisitor<T> pVisitor) {
-    return pVisitor.visit(this);
-  }
+  public <T> T accept(FilterVisitor<T> pVisitor) {
+    assert(pVisitor != null);
 
-  @Override
-  public <T> T accept(PathPatternVisitor<T> pVisitor) {
     return pVisitor.visit(this);
   }
 

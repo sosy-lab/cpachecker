@@ -1,7 +1,7 @@
 package org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor;
 
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.ASTVisitor;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Filter;
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Filter;
 
 public class FilterMonitor implements PathMonitor {
 

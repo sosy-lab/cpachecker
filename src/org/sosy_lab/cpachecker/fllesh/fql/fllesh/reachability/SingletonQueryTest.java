@@ -57,8 +57,8 @@ import org.sosy_lab.cpachecker.fllesh.fql.fllesh.FeasibilityCheck;
 import org.sosy_lab.cpachecker.fllesh.fql.fllesh.cpa.AddSelfLoop;
 import org.sosy_lab.cpachecker.fllesh.fql.fllesh.util.CPAchecker;
 import org.sosy_lab.cpachecker.fllesh.fql.fllesh.util.Cilly;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Identity;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.FilterMonitor;
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Identity;
 
 public class SingletonQueryTest {
 

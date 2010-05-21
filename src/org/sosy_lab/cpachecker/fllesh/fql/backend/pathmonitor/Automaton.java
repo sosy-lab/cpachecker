@@ -34,8 +34,6 @@ import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.Edge;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.TargetGraph;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.testgoals.EdgeSequence;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.DefaultASTVisitor;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Filter;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Identity;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.Alternative;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.Concatenation;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.ConditionalMonitor;
@@ -44,6 +42,8 @@ import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.LowerBound;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.PathMonitor;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.UpperBound;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.predicate.Predicates;
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Filter;
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Identity;
 
 public class Automaton {
 

@@ -43,17 +43,17 @@ import org.sosy_lab.cpachecker.fllesh.fql.fllesh.util.CPAchecker;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.coverage.Edges;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.coverage.Paths;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.coverage.States;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Filter;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Function;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.FunctionCall;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.FunctionCalls;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.FunctionEntry;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Identity;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Line;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.predicate.CIdentifier;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.predicate.NaturalNumber;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.predicate.Predicate;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.predicate.Predicates;
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Filter;
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Function;
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.FunctionCall;
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.FunctionCalls;
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.FunctionEntry;
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Identity;
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Line;
 
 public class TargetGraphTest {
   private String mPropertiesFile = "test/config/simpleMustMayAnalysis.properties";

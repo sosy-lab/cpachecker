@@ -33,8 +33,6 @@ import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.coverage.Edges;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.coverage.Paths;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.coverage.Sequence;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.coverage.States;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Compose;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Filter;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.Alternative;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.Concatenation;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.ConditionalMonitor;
@@ -46,6 +44,8 @@ import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.predicate.CIdentifier;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.predicate.NaturalNumber;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.predicate.Predicate;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.predicate.Predicates;
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Compose;
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Filter;
 
 public class FilterPropagator implements ASTVisitor<FQLNode> {
 

@@ -21,60 +21,55 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.fllesh.fql2.ast;
+package org.sosy_lab.cpachecker.fllesh.fql2.ast.filter;
 
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification.CoverageSpecificationVisitor;
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Filter;
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.PathPatternVisitor;
+public class RegularExpression implements Filter {
 
-public class Nodes implements Atom {
+  String mRegularExpression;
 
-  private Filter mFilter;
+  public RegularExpression(String pRegularExpression) {
+    assert(pRegularExpression != null);
 
-  public Nodes(Filter pFilter) {
-    mFilter = pFilter;
+    mRegularExpression = pRegularExpression;
   }
 
-  public Filter getFilter() {
-    return mFilter;
+  public String getRegularExpression() {
+    return mRegularExpression;
   }
 
   @Override
   public String toString() {
-    return "NODES(" + mFilter.toString() + ")";
+    return "@REGEXP(" + mRegularExpression + ")";
   }
-  
+
+  @Override
+  public int hashCode() {
+    return 232134 + mRegularExpression.hashCode();
+  }
+
   @Override
   public boolean equals(Object pOther) {
     if (this == pOther) {
       return true;
     }
-    
+
     if (pOther == null) {
       return false;
     }
-    
-    if (!pOther.getClass().equals(getClass())) {
-      return false;
+
+    if (pOther.getClass() == getClass()) {
+      RegularExpression mRegularExpressionFilter = (RegularExpression)pOther;
+
+      return mRegularExpression.equals(mRegularExpressionFilter.mRegularExpression);
     }
-    
-    Nodes lNodes = (Nodes)pOther;
-    
-    return mFilter.equals(lNodes.mFilter);
-  }
-  
-  @Override
-  public int hashCode() {
-    return mFilter.hashCode() + 3143;
+
+    return false;
   }
 
   @Override
-  public <T> T accept(CoverageSpecificationVisitor<T> pVisitor) {
-    return pVisitor.visit(this);
-  }
+  public <T> T accept(FilterVisitor<T> pVisitor) {
+    assert(pVisitor != null);
 
-  @Override
-  public <T> T accept(PathPatternVisitor<T> pVisitor) {
     return pVisitor.visit(this);
   }
 

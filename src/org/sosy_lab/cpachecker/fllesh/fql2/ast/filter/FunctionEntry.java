@@ -21,60 +21,55 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.fllesh.fql2.ast;
+package org.sosy_lab.cpachecker.fllesh.fql2.ast.filter;
 
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification.CoverageSpecificationVisitor;
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Filter;
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.PathPatternVisitor;
+public class FunctionEntry implements Filter {
 
-public class Nodes implements Atom {
+  String mFuncName;
 
-  private Filter mFilter;
+  public FunctionEntry(String pFuncName) {
+    assert(pFuncName != null);
 
-  public Nodes(Filter pFilter) {
-    mFilter = pFilter;
+    mFuncName = pFuncName;
   }
 
-  public Filter getFilter() {
-    return mFilter;
+  public String getFunctionName() {
+    return mFuncName;
   }
 
   @Override
   public String toString() {
-    return "NODES(" + mFilter.toString() + ")";
+    return "@ENTRY(" + mFuncName + ")";
   }
-  
+
+  @Override
+  public int hashCode() {
+    return 832726 + mFuncName.hashCode();
+  }
+
   @Override
   public boolean equals(Object pOther) {
-    if (this == pOther) {
+    if (pOther == this) {
       return true;
     }
-    
+
     if (pOther == null) {
       return false;
     }
-    
-    if (!pOther.getClass().equals(getClass())) {
-      return false;
+
+    if (pOther.getClass() == getClass()) {
+      FunctionEntry mEntryFilter = (FunctionEntry)pOther;
+
+      return mFuncName.equals(mEntryFilter.mFuncName);
     }
-    
-    Nodes lNodes = (Nodes)pOther;
-    
-    return mFilter.equals(lNodes.mFilter);
-  }
-  
-  @Override
-  public int hashCode() {
-    return mFilter.hashCode() + 3143;
+
+    return false;
   }
 
   @Override
-  public <T> T accept(CoverageSpecificationVisitor<T> pVisitor) {
-    return pVisitor.visit(this);
-  }
+  public <T> T accept(FilterVisitor<T> pVisitor) {
+    assert(pVisitor != null);
 
-  @Override
-  public <T> T accept(PathPatternVisitor<T> pVisitor) {
     return pVisitor.visit(this);
   }
 

@@ -21,17 +21,15 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.fllesh.fql2.ast;
+package org.sosy_lab.cpachecker.fllesh.fql2.ast.filter;
 
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification.CoverageSpecificationVisitor;
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Filter;
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.PathPatternVisitor;
-
-public class Nodes implements Atom {
+public class Complement implements Filter {
 
   private Filter mFilter;
 
-  public Nodes(Filter pFilter) {
+  public Complement(Filter pFilter) {
+    assert(pFilter != null);
+
     mFilter = pFilter;
   }
 
@@ -41,40 +39,29 @@ public class Nodes implements Atom {
 
   @Override
   public String toString() {
-    return "NODES(" + mFilter.toString() + ")";
+    return "COMPLEMENT(" + mFilter.toString() + ")";
   }
-  
+
   @Override
-  public boolean equals(Object pOther) {
-    if (this == pOther) {
-      return true;
-    }
-    
-    if (pOther == null) {
-      return false;
-    }
-    
-    if (!pOther.getClass().equals(getClass())) {
-      return false;
-    }
-    
-    Nodes lNodes = (Nodes)pOther;
-    
-    return mFilter.equals(lNodes.mFilter);
+  public boolean equals(Object obj) {
+    if (this == obj) return true;
+    if (obj == null) return false;
+    if (getClass() != obj.getClass()) return false;
+
+    Complement other = (Complement) obj;
+
+    return mFilter.equals(other.mFilter);
   }
-  
+
   @Override
   public int hashCode() {
-    return mFilter.hashCode() + 3143;
+    return 155 + mFilter.hashCode();
   }
 
   @Override
-  public <T> T accept(CoverageSpecificationVisitor<T> pVisitor) {
-    return pVisitor.visit(this);
-  }
+  public <T> T accept(FilterVisitor<T> pVisitor) {
+    assert(pVisitor != null);
 
-  @Override
-  public <T> T accept(PathPatternVisitor<T> pVisitor) {
     return pVisitor.visit(this);
   }
 

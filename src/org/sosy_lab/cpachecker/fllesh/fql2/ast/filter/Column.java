@@ -21,60 +21,54 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.fllesh.fql2.ast;
+package org.sosy_lab.cpachecker.fllesh.fql2.ast.filter;
 
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification.CoverageSpecificationVisitor;
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Filter;
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.PathPatternVisitor;
+public class Column implements Filter {
+  private int mColumn;
 
-public class Nodes implements Atom {
+  public Column(Integer pColumn) {
+    assert(pColumn != null);
 
-  private Filter mFilter;
-
-  public Nodes(Filter pFilter) {
-    mFilter = pFilter;
+    mColumn = pColumn.intValue();
   }
 
-  public Filter getFilter() {
-    return mFilter;
+  public int getColumn() {
+    return mColumn;
   }
 
   @Override
   public String toString() {
-    return "NODES(" + mFilter.toString() + ")";
+    return "@COLUMN(" + mColumn + ")";
   }
-  
+
   @Override
   public boolean equals(Object pOther) {
     if (this == pOther) {
       return true;
     }
-    
+
     if (pOther == null) {
       return false;
     }
-    
-    if (!pOther.getClass().equals(getClass())) {
-      return false;
+
+    if (pOther.getClass() == getClass()) {
+      Column mOtherColumn = (Column)pOther;
+
+      return (mOtherColumn.getColumn() == mColumn);
     }
-    
-    Nodes lNodes = (Nodes)pOther;
-    
-    return mFilter.equals(lNodes.mFilter);
+
+    return false;
   }
-  
+
   @Override
   public int hashCode() {
-    return mFilter.hashCode() + 3143;
+    return mColumn;
   }
 
   @Override
-  public <T> T accept(CoverageSpecificationVisitor<T> pVisitor) {
-    return pVisitor.visit(this);
-  }
+  public <T> T accept(FilterVisitor<T> pVisitor) {
+    assert(pVisitor != null);
 
-  @Override
-  public <T> T accept(PathPatternVisitor<T> pVisitor) {
     return pVisitor.visit(this);
   }
 

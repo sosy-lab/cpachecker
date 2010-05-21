@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.fllesh.fql2.ast;
 
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Filter;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification.CoverageSpecificationVisitor;
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Filter;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.PathPatternVisitor;
 
 public class Edges implements Atom {
