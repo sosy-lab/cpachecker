@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.common.configuration;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -189,6 +190,15 @@ public class Configuration {
     if (result == null && !prefix.isEmpty()) {
       result = properties.getProperty(key);
       unusedProperties.remove(key);
+    }
+    // try to create the output directory (lazy, only if a CPA requests the path)
+    if ("output.path".equals(key)) {
+      boolean couldCreateDirs = (new File(result)).mkdirs();
+      if (!couldCreateDirs) {
+        // log? i don't find access to a logger
+        // TODO: i think we should provide a "default" output directory in this case (one that is probably already existent)
+      }
+        
     }
     return result;
   }
