@@ -65,6 +65,7 @@ import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.LowerBound;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.UpperBound;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.Concatenation;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.Alternative;
+import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.FilterMonitor;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.coverage.Sequence;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.query.Query;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.query.FilterPropagator;
@@ -216,7 +217,7 @@ Query				::=
 							PathMonitor lMonitor;
 
 							if (monitor == null) {
-								lMonitor = new LowerBound(Identity.getInstance(), 0);
+								lMonitor = new LowerBound(new FilterMonitor(Identity.getInstance()), 0);
 							}
 							else {
 								assert(monitor instanceof PathMonitor);
@@ -255,8 +256,8 @@ Test_Goal_Sequence 	::=
 							assert(coverage != null);
 							assert(coverage instanceof Coverage);
 
-							PathMonitor lInitialMonitor = new LowerBound(Identity.getInstance(), 0);
-							PathMonitor lFinalMonitor = new LowerBound(Identity.getInstance(), 0);
+							PathMonitor lInitialMonitor = new LowerBound(new FilterMonitor(Identity.getInstance()), 0);
+							PathMonitor lFinalMonitor = new LowerBound(new FilterMonitor(Identity.getInstance()), 0);
 
 							RESULT = new Sequence(lInitialMonitor, (Coverage)coverage, lFinalMonitor);
 						:}
@@ -287,7 +288,7 @@ Test_Goal_Sequence 	::=
 
 							Sequence lSequence = (Sequence)sequence;
 
-							lSequence.extend(new LowerBound(Identity.getInstance(), 0), (Coverage)coverage);
+							lSequence.extend(new LowerBound(new FilterMonitor(Identity.getInstance()), 0), (Coverage)coverage);
 
 							RESULT = lSequence;
 						:}
@@ -335,7 +336,7 @@ Path_Monitor_Term	::=
 							assert(monitor2 != null);
 							assert(monitor2 instanceof PathMonitor);
 
-							PathMonitor lIdStar = new LowerBound(Identity.getInstance(), 0);
+							PathMonitor lIdStar = new LowerBound(new FilterMonitor(Identity.getInstance()), 0);
 
 							PathMonitor lConcatenation = new Concatenation((PathMonitor)monitor1, lIdStar);
 							RESULT = new Concatenation(lConcatenation, (PathMonitor)monitor2);
@@ -345,7 +346,10 @@ Path_Monitor_Term	::=
 Path_Monitor_Factor	::=
 						Preconditions:preconditions Filter:filter
 						{:
-							RESULT = filter;
+							assert(filter != null);
+							assert(filter instanceof Filter);
+						
+							RESULT = new FilterMonitor((Filter)filter);
 						:}
 					| 	Preconditions:preconditions TOK_L_PARENTHESIS Path_Monitor:monitor TOK_R_PARENTHESIS
 						{:

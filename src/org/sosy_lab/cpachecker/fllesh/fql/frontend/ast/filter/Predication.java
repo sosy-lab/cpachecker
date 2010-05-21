@@ -1,6 +1,5 @@
 package org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter;
 
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.ASTVisitor;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Predicate;
 
 public class Predication implements Filter {
@@ -51,7 +50,7 @@ public class Predication implements Filter {
   }
   
   @Override
-  public <T> T accept(ASTVisitor<T> pVisitor) {
+  public <T> T accept(FilterVisitor<T> pVisitor) {
     return pVisitor.visit(this);
   }
 

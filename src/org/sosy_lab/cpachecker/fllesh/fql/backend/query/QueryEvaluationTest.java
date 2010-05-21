@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.coverage.Edges;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.coverage.Sequence;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.coverage.States;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Identity;
+import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.FilterMonitor;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.LowerBound;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.PathMonitor;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.query.Query;
@@ -70,7 +71,7 @@ public class QueryEvaluationTest {
 
     States lStatesCoverage = new States(Identity.getInstance());
 
-    Query lQuery = new Query(lStatesCoverage, new LowerBound(Identity.getInstance(), 0));
+    Query lQuery = new Query(lStatesCoverage, new LowerBound(new FilterMonitor(Identity.getInstance()), 0));
 
     System.out.println(QueryEvaluation.evaluate(lQuery, lTargetGraph));
   }
@@ -87,7 +88,7 @@ public class QueryEvaluationTest {
 
     States lStatesCoverage = new States(Identity.getInstance());
 
-    PathMonitor lTrueMonitor = new LowerBound(Identity.getInstance(), 0);
+    PathMonitor lTrueMonitor = new LowerBound(new FilterMonitor(Identity.getInstance()), 0);
 
     Sequence lSequence = new Sequence(lTrueMonitor, lStatesCoverage, lTrueMonitor);
 
@@ -108,7 +109,7 @@ public class QueryEvaluationTest {
 
     States lStatesCoverage = new States(Identity.getInstance());
 
-    PathMonitor lTrueMonitor = new LowerBound(Identity.getInstance(), 0);
+    PathMonitor lTrueMonitor = new LowerBound(new FilterMonitor(Identity.getInstance()), 0);
 
     Sequence lSequence = new Sequence(lTrueMonitor, lStatesCoverage, lTrueMonitor);
 

@@ -33,33 +33,12 @@ import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.coverage.Edges;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.coverage.Paths;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.coverage.Sequence;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.coverage.States;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.BasicBlockEntry;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Column;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Complement;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Compose;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.ConditionEdge;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.ConditionGraph;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.DecisionEdge;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.EnclosingScopes;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Expression;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.File;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Filter;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Function;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.FunctionCall;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.FunctionCalls;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.FunctionEntry;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.FunctionExit;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Identity;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Intersection;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Label;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Line;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Predication;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.RegularExpression;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.SetMinus;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Union;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.Alternative;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.Concatenation;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.ConditionalMonitor;
+import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.FilterMonitor;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.LowerBound;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.PathMonitor;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.UpperBound;
@@ -82,116 +61,6 @@ public class FilterPropagator implements ASTVisitor<FQLNode> {
     assert(pFilter != null);
 
     return new Compose(pFilter, mFilter);
-  }
-
-  @Override
-  public FQLNode visit(Identity pIdentity) {
-    return apply(pIdentity);
-  }
-
-  @Override
-  public FQLNode visit(File pFileFilter) {
-    return apply(pFileFilter);
-  }
-
-  @Override
-  public FQLNode visit(BasicBlockEntry pBasicBlockEntry) {
-    return apply(pBasicBlockEntry);
-  }
-
-  @Override
-  public FQLNode visit(ConditionEdge pConditionEdge) {
-    return apply(pConditionEdge);
-  }
-
-  @Override
-  public FQLNode visit(ConditionGraph pConditionGraph) {
-    return apply(pConditionGraph);
-  }
-
-  @Override
-  public FQLNode visit(DecisionEdge pDecisionEdge) {
-    return apply(pDecisionEdge);
-  }
-
-  @Override
-  public FQLNode visit(Line pLine) {
-    return apply(pLine);
-  }
-
-  @Override
-  public FQLNode visit(FunctionCalls pCalls) {
-    return apply(pCalls);
-  }
-
-  @Override
-  public FQLNode visit(Column pColumn) {
-    return apply(pColumn);
-  }
-
-  @Override
-  public FQLNode visit(Function pFunc) {
-    return apply(pFunc);
-  }
-
-  @Override
-  public FQLNode visit(FunctionCall pCall) {
-    return apply(pCall);
-  }
-
-  @Override
-  public FQLNode visit(FunctionEntry pEntry) {
-    return apply(pEntry);
-  }
-
-  @Override
-  public FQLNode visit(FunctionExit pExit) {
-    return apply(pExit);
-  }
-
-  @Override
-  public FQLNode visit(Label pLabel) {
-    return apply(pLabel);
-  }
-
-  @Override
-  public FQLNode visit(Expression pExpression) {
-    return apply(pExpression);
-  }
-
-  @Override
-  public FQLNode visit(RegularExpression pRegularExpression) {
-    return apply(pRegularExpression);
-  }
-
-  @Override
-  public FQLNode visit(Complement pComplement) {
-    return apply(pComplement);
-  }
-
-  @Override
-  public FQLNode visit(Union pUnion) {
-    return apply(pUnion);
-  }
-
-  @Override
-  public FQLNode visit(Compose pCompose) {
-    return apply(pCompose);
-  }
-
-  @Override
-  public FQLNode visit(Intersection pIntersection) {
-    return apply(pIntersection);
-  }
-
-  @Override
-  public FQLNode visit(SetMinus pSetMinus) {
-    return apply(pSetMinus);
-  }
-
-  @Override
-  public FQLNode visit(EnclosingScopes pEnclosingScopes) {
-    return apply(pEnclosingScopes);
   }
 
   @Override
@@ -368,8 +237,8 @@ public class FilterPropagator implements ASTVisitor<FQLNode> {
   }
 
   @Override
-  public FQLNode visit(Predication pPredication) {
-    return apply(pPredication);
+  public FQLNode visit(FilterMonitor pFilterMonitor) {
+    return new FilterMonitor(apply(pFilterMonitor.getFilter()));
   }
 
 }

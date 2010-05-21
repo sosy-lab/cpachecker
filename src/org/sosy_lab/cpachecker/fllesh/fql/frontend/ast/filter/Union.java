@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter;
 
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.ASTVisitor;
-
 public class Union implements Filter {
 
   private Filter mFilter1;
@@ -67,7 +65,7 @@ public class Union implements Filter {
   }
 
   @Override
-  public <T> T accept(ASTVisitor<T> pVisitor) {
+  public <T> T accept(FilterVisitor<T> pVisitor) {
     assert(pVisitor != null);
 
     return pVisitor.visit(this);

@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.TargetGraph;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.coverage.Coverage;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.coverage.Sequence;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Identity;
+import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.FilterMonitor;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.LowerBound;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.PathMonitor;
 
@@ -163,7 +164,7 @@ public class CoverageSequence implements Iterable<Pair<Automaton, Set<? extends 
       // simple coverage specification
       Set<? extends TestGoal> lTestGoals = pTargetGraph.apply(pCoverageSpecification);
 
-      PathMonitor lIdStarMonitor = new LowerBound(Identity.getInstance(), 0);
+      PathMonitor lIdStarMonitor = new LowerBound(new FilterMonitor(Identity.getInstance()), 0);
 
       Automaton lAutomaton = Automaton.create(lIdStarMonitor, pTargetGraph);
 

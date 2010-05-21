@@ -331,12 +331,10 @@ public class TranslatorTest {
     Wrapper lWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCPAchecker.getCFAMap(), lLogManager);
     
     Automaton<GuardedLabel> lLambdaFreeAutomaton = Translator.removeLambdaEdges(lInitialAutomaton, lWrapper.getAlphaEdge(), lWrapper.getOmegaEdge());
-    
-    System.out.println(lLambdaFreeAutomaton);
+    System.out.println(AutomatonPrettyPrinter.print(lLambdaFreeAutomaton));
     
     Automaton<GuardedLabel> lNodeSetFreeAutomaton = Translator.removeNodeSetGuards(lLambdaFreeAutomaton);
-    
-    System.out.println(lNodeSetFreeAutomaton);
+    System.out.println(AutomatonPrettyPrinter.print(lNodeSetFreeAutomaton));
   }
   
   @Test
@@ -399,13 +397,9 @@ public class TranslatorTest {
     Wrapper lWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCPAchecker.getCFAMap(), lLogManager);
     
     Automaton<GuardedLabel> lLambdaFreeAutomaton = Translator.removeLambdaEdges(lInitialAutomaton, lWrapper.getAlphaEdge(), lWrapper.getOmegaEdge());
-    
-    System.out.println(lLambdaFreeAutomaton);
     System.out.println(AutomatonPrettyPrinter.print(lLambdaFreeAutomaton));
     
     Automaton<GuardedLabel> lNodeSetFreeAutomaton = Translator.removeNodeSetGuards(lLambdaFreeAutomaton);
-    
-    System.out.println(lNodeSetFreeAutomaton);
     System.out.println(AutomatonPrettyPrinter.print(lNodeSetFreeAutomaton));
   }
   

@@ -31,19 +31,14 @@ import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.coverage.Edges;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.coverage.Paths;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.coverage.ConditionalCoverage;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.coverage.Union;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.FilterVisitor;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.Alternative;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.Concatenation;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.ConditionalMonitor;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.LowerBound;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.UpperBound;
+import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.PathMonitorVisitor;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.predicate.CIdentifier;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.predicate.NaturalNumber;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.predicate.Predicate;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.predicate.Predicates;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.query.Query;
 
-public interface ASTVisitor<T> extends FilterVisitor<T> {
+public interface ASTVisitor<T> extends PathMonitorVisitor<T> {
 
   // predicates
   public T visit(Predicate pPredicate);
@@ -61,13 +56,6 @@ public interface ASTVisitor<T> extends FilterVisitor<T> {
   public T visit(ConditionalCoverage pConditionalCoverage);
 
   public T visit(Sequence pSequence);
-
-  // path monitor expressions
-  public T visit(ConditionalMonitor pConditionalMonitor);
-  public T visit(Alternative pAlternative);
-  public T visit(Concatenation pConcatenation);
-  public T visit(UpperBound pUpperBound);
-  public T visit(LowerBound pLowerBound);
 
   // queries
   public T visit(Query pQuery);

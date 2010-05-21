@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.fllesh.fql.fllesh.cpa.AddSelfLoop;
 import org.sosy_lab.cpachecker.fllesh.fql.fllesh.util.CPAchecker;
 import org.sosy_lab.cpachecker.fllesh.fql.fllesh.util.Cilly;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Identity;
+import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.FilterMonitor;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.LowerBound;
 
 
@@ -137,8 +138,8 @@ public class StandardQueryTest {
 
     CompositePrecision lDataSpacePrecision = (CompositePrecision)lCompositeCPA.getInitialPrecision(lMainFunction);
 
-    Automaton lFirstAutomaton = Automaton.create(Identity.getInstance(), lTargetGraph);
-    Automaton lSecondAutomaton = Automaton.create(Identity.getInstance(), lTargetGraph);
+    Automaton lFirstAutomaton = Automaton.create(new FilterMonitor(Identity.getInstance()), lTargetGraph);
+    Automaton lSecondAutomaton = Automaton.create(new FilterMonitor(Identity.getInstance()), lTargetGraph);
 
     StandardQuery.Factory lQueryFactory = new StandardQuery.Factory(lLogManager, lMustCPA, lMayCPA);
 
@@ -213,8 +214,8 @@ public class StandardQueryTest {
 
     CompositePrecision lDataSpacePrecision = (CompositePrecision)lCompositeCPA.getInitialPrecision(lMainFunction);
 
-    Automaton lFirstAutomaton = Automaton.create(new LowerBound(Identity.getInstance(), 0), lTargetGraph);
-    Automaton lSecondAutomaton = Automaton.create(new LowerBound(Identity.getInstance(), 0), lTargetGraph);
+    Automaton lFirstAutomaton = Automaton.create(new LowerBound(new FilterMonitor(Identity.getInstance()), 0), lTargetGraph);
+    Automaton lSecondAutomaton = Automaton.create(new LowerBound(new FilterMonitor(Identity.getInstance()), 0), lTargetGraph);
 
     StandardQuery.Factory lQueryFactory = new StandardQuery.Factory(lLogManager, lMustCPA, lMayCPA);
 
@@ -292,8 +293,8 @@ public class StandardQueryTest {
 
     CompositePrecision lDataSpacePrecision = (CompositePrecision)lCompositeCPA.getInitialPrecision(lMainFunction);
 
-    Automaton lFirstAutomaton = Automaton.create(new LowerBound(Identity.getInstance(), 0), lTargetGraph);
-    Automaton lSecondAutomaton = Automaton.create(new LowerBound(Identity.getInstance(), 0), lTargetGraph);
+    Automaton lFirstAutomaton = Automaton.create(new LowerBound(new FilterMonitor(Identity.getInstance()), 0), lTargetGraph);
+    Automaton lSecondAutomaton = Automaton.create(new LowerBound(new FilterMonitor(Identity.getInstance()), 0), lTargetGraph);
 
     StandardQuery.Factory lQueryFactory = new StandardQuery.Factory(lLogManager, lMustCPA, lMayCPA);
 
@@ -387,8 +388,8 @@ public class StandardQueryTest {
 
     CompositePrecision lDataSpacePrecision = (CompositePrecision)lCompositeCPA.getInitialPrecision(lMainFunction);
 
-    Automaton lFirstAutomaton = Automaton.create(new LowerBound(Identity.getInstance(), 0), lTargetGraph);
-    Automaton lSecondAutomaton = Automaton.create(new LowerBound(Identity.getInstance(), 0), lTargetGraph);
+    Automaton lFirstAutomaton = Automaton.create(new LowerBound(new FilterMonitor(Identity.getInstance()), 0), lTargetGraph);
+    Automaton lSecondAutomaton = Automaton.create(new LowerBound(new FilterMonitor(Identity.getInstance()), 0), lTargetGraph);
 
     StandardQuery.Factory lQueryFactory = new StandardQuery.Factory(lLogManager, lMustCPA, lMayCPA);
 

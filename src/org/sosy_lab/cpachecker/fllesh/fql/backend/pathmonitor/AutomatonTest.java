@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Identity;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.Alternative;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.Concatenation;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.ConditionalMonitor;
+import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.FilterMonitor;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.predicate.CIdentifier;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.predicate.NaturalNumber;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.predicate.Predicate;
@@ -73,7 +74,7 @@ public class AutomatonTest {
 
     Filter lFilter = Identity.getInstance();
 
-    Automaton lAutomaton = Automaton.create(lFilter, lTargetGraph);
+    Automaton lAutomaton = Automaton.create(new FilterMonitor(lFilter), lTargetGraph);
 
     System.out.println(lAutomaton);
   }
@@ -94,7 +95,7 @@ public class AutomatonTest {
 
     Automaton lAutomaton = Automaton.create(lFilter, lTargetGraph);*/
 
-    Alternative lAlternative = new Alternative(Identity.getInstance(), Identity.getInstance());
+    Alternative lAlternative = new Alternative(new FilterMonitor(Identity.getInstance()), new FilterMonitor(Identity.getInstance()));
 
     Automaton lAutomaton = Automaton.create(lAlternative, lTargetGraph);
 
@@ -116,7 +117,7 @@ public class AutomatonTest {
 
     //new Predicate(new CIdentifier("x"), Predicate.Comparison.LESS, new NaturalNumber(100))
 
-    ConditionalMonitor lConditionalMonitor = new ConditionalMonitor(lPreconditions, Identity.getInstance(), lPostconditions);
+    ConditionalMonitor lConditionalMonitor = new ConditionalMonitor(lPreconditions, new FilterMonitor(Identity.getInstance()), lPostconditions);
 
     Automaton lAutomaton = Automaton.create(lConditionalMonitor, lTargetGraph);
 
@@ -138,7 +139,7 @@ public class AutomatonTest {
 
     lPreconditions.add(new Predicate(new CIdentifier("x"), Predicate.Comparison.LESS, new NaturalNumber(100)));
 
-    ConditionalMonitor lConditionalMonitor = new ConditionalMonitor(lPreconditions, Identity.getInstance(), lPostconditions);
+    ConditionalMonitor lConditionalMonitor = new ConditionalMonitor(lPreconditions, new FilterMonitor(Identity.getInstance()), lPostconditions);
 
     Automaton lAutomaton = Automaton.create(lConditionalMonitor, lTargetGraph);
 
@@ -160,7 +161,7 @@ public class AutomatonTest {
 
     lPostconditions.add(new Predicate(new CIdentifier("x"), Predicate.Comparison.LESS, new NaturalNumber(100)));
 
-    ConditionalMonitor lConditionalMonitor = new ConditionalMonitor(lPreconditions, Identity.getInstance(), lPostconditions);
+    ConditionalMonitor lConditionalMonitor = new ConditionalMonitor(lPreconditions, new FilterMonitor(Identity.getInstance()), lPostconditions);
 
     Automaton lAutomaton = Automaton.create(lConditionalMonitor, lTargetGraph);
 
@@ -183,7 +184,7 @@ public class AutomatonTest {
     lPreconditions.add(new Predicate(new CIdentifier("y"), Predicate.Comparison.LESS, new CIdentifier("z")));
     lPostconditions.add(new Predicate(new CIdentifier("x"), Predicate.Comparison.LESS, new NaturalNumber(100)));
 
-    ConditionalMonitor lConditionalMonitor = new ConditionalMonitor(lPreconditions, Identity.getInstance(), lPostconditions);
+    ConditionalMonitor lConditionalMonitor = new ConditionalMonitor(lPreconditions, new FilterMonitor(Identity.getInstance()), lPostconditions);
 
     Automaton lAutomaton = Automaton.create(lConditionalMonitor, lTargetGraph);
 
@@ -206,7 +207,7 @@ public class AutomatonTest {
     lPreconditions.add(new Predicate(new CIdentifier("y"), Predicate.Comparison.LESS, new CIdentifier("z")));
     lPostconditions.add(new Predicate(new CIdentifier("x"), Predicate.Comparison.LESS, new NaturalNumber(100)));
 
-    ConditionalMonitor lConditionalMonitor = new ConditionalMonitor(lPreconditions, Identity.getInstance(), lPostconditions);
+    ConditionalMonitor lConditionalMonitor = new ConditionalMonitor(lPreconditions, new FilterMonitor(Identity.getInstance()), lPostconditions);
 
     Automaton lAutomaton = Automaton.create(new Concatenation(lConditionalMonitor, lConditionalMonitor), lTargetGraph);
 

@@ -54,23 +54,36 @@ import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.coverage.Coverage;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.coverage.Edges;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.coverage.Paths;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.coverage.States;
+import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.BasicBlockEntry;
+import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Column;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Complement;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Compose;
+import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.ConditionEdge;
+import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.ConditionGraph;
+import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.DecisionEdge;
+import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.EnclosingScopes;
+import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Expression;
+import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.File;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Filter;
+import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.FilterVisitor;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Function;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.FunctionCall;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.FunctionCalls;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.FunctionEntry;
+import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.FunctionExit;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Identity;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Intersection;
+import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Label;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Line;
+import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Predication;
+import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.RegularExpression;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.SetMinus;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Union;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.predicate.Predicate;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.predicate.Predicates;
 
 public class TargetGraph {
-  private class FilterEvaluator extends DefaultASTVisitor<TargetGraph> {
+  private class FilterEvaluator implements FilterVisitor<TargetGraph> {
 
     private Map<Filter, TargetGraph> mCache;
 
@@ -270,6 +283,66 @@ public class TargetGraph {
 
         return lResult;
       }
+    }
+
+    @Override
+    public TargetGraph visit(File pFileFilter) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public TargetGraph visit(BasicBlockEntry pBasicBlockEntry) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public TargetGraph visit(ConditionEdge pConditionEdge) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public TargetGraph visit(ConditionGraph pConditionGraph) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public TargetGraph visit(DecisionEdge pDecisionEdge) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public TargetGraph visit(Column pColumn) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public TargetGraph visit(FunctionExit pExit) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public TargetGraph visit(Label pLabel) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public TargetGraph visit(Expression pExpression) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public TargetGraph visit(RegularExpression pRegularExpression) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public TargetGraph visit(EnclosingScopes pEnclosingScopes) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public TargetGraph visit(Predication pPredication) {
+      throw new UnsupportedOperationException();
     }
 
   }

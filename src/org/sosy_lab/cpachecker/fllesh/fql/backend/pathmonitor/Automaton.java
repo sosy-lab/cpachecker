@@ -34,32 +34,12 @@ import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.Edge;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.TargetGraph;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.testgoals.EdgeSequence;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.DefaultASTVisitor;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.BasicBlockEntry;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Column;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Complement;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Compose;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.ConditionEdge;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.ConditionGraph;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.DecisionEdge;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.EnclosingScopes;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Expression;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.File;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Filter;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Function;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.FunctionCall;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.FunctionCalls;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.FunctionEntry;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.FunctionExit;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Identity;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Intersection;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Label;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Line;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.RegularExpression;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.SetMinus;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Union;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.Alternative;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.Concatenation;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.ConditionalMonitor;
+import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.FilterMonitor;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.LowerBound;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.PathMonitor;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.UpperBound;
@@ -136,7 +116,7 @@ public class Automaton {
   public static Automaton create(Edge pEdge) {
     assert(pEdge != null);
 
-    return Automaton.create(Identity.getInstance(), TargetGraph.createTargetGraph(pEdge));
+    return Automaton.create(new FilterMonitor(Identity.getInstance()), TargetGraph.createTargetGraph(pEdge));
   }
 
   public static Automaton create(EdgeSequence pEdgeSequence) {
@@ -188,115 +168,10 @@ public class Automaton {
 
       return new Automaton(lInitialStates, lFinalStates, lTransitionRelation, 2);
     }
-
+    
     @Override
-    public Automaton visit(Identity pFilter) {
-      return visitFilter(pFilter);
-    }
-
-    @Override
-    public Automaton visit(File pFilter) {
-      return visitFilter(pFilter);
-    }
-
-    @Override
-    public Automaton visit(BasicBlockEntry pFilter) {
-      return visitFilter(pFilter);
-    }
-
-    @Override
-    public Automaton visit(ConditionEdge pFilter) {
-      return visitFilter(pFilter);
-    }
-
-    @Override
-    public Automaton visit(ConditionGraph pFilter) {
-      return visitFilter(pFilter);
-    }
-
-    @Override
-    public Automaton visit(DecisionEdge pFilter) {
-      return visitFilter(pFilter);
-    }
-
-    @Override
-    public Automaton visit(Line pFilter) {
-      return visitFilter(pFilter);
-    }
-
-    @Override
-    public Automaton visit(FunctionCalls pFilter) {
-      return visitFilter(pFilter);
-    }
-
-    @Override
-    public Automaton visit(Column pFilter) {
-      return visitFilter(pFilter);
-    }
-
-    @Override
-    public Automaton visit(Function pFilter) {
-      return visitFilter(pFilter);
-    }
-
-    @Override
-    public Automaton visit(FunctionCall pFilter) {
-      return visitFilter(pFilter);
-    }
-
-    @Override
-    public Automaton visit(FunctionEntry pFilter) {
-      return visitFilter(pFilter);
-    }
-
-    @Override
-    public Automaton visit(FunctionExit pFilter) {
-      return visitFilter(pFilter);
-    }
-
-    @Override
-    public Automaton visit(Label pFilter) {
-      return visitFilter(pFilter);
-    }
-
-    @Override
-    public Automaton visit(Expression pFilter) {
-      return visitFilter(pFilter);
-    }
-
-    @Override
-    public Automaton visit(RegularExpression pFilter) {
-      return visitFilter(pFilter);
-    }
-
-    @Override
-    public Automaton visit(Complement pFilter) {
-      return visitFilter(pFilter);
-    }
-
-    @Override
-    public Automaton visit(Union pFilter) {
-      return visitFilter(pFilter);
-    }
-
-    @Override
-    public Automaton visit(Compose pFilter) {
-      return visitFilter(pFilter);
-    }
-
-    @Override
-    public Automaton visit(Intersection pFilter) {
-      return visitFilter(pFilter);
-    }
-
-    @Override
-    public Automaton visit(SetMinus pFilter) {
-      return visitFilter(pFilter);
-    }
-
-    @Override
-    public Automaton visit(EnclosingScopes pFilter) {
-      return visitFilter(pFilter);
+    public Automaton visit(FilterMonitor pFilterMonitor) {
+      return visitFilter(pFilterMonitor.getFilter());
     }
 
     @Override

@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.fllesh.fql.fllesh.cpa.AddSelfLoop;
 import org.sosy_lab.cpachecker.fllesh.fql.fllesh.util.CPAchecker;
 import org.sosy_lab.cpachecker.fllesh.fql.fllesh.util.Cilly;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.filter.Identity;
+import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.FilterMonitor;
 
 public class SingletonQueryTest {
 
@@ -129,8 +130,8 @@ public class SingletonQueryTest {
     CompositeElement lDataSpaceElement = FeasibilityCheck.createInitialElement(lProgramEntry);
     CompositePrecision lDataSpacePrecision = (CompositePrecision)lCompositeCPA.getInitialPrecision(lMainFunction);
 
-    Automaton lFirstAutomaton = Automaton.create(Identity.getInstance(), lTargetGraph);
-    Automaton lSecondAutomaton = Automaton.create(Identity.getInstance(), lTargetGraph);
+    Automaton lFirstAutomaton = Automaton.create(new FilterMonitor(Identity.getInstance()), lTargetGraph);
+    Automaton lSecondAutomaton = Automaton.create(new FilterMonitor(Identity.getInstance()), lTargetGraph);
 
     Query lQuery = SingletonQuery.create(lDataSpaceElement, lDataSpacePrecision, lFirstAutomaton, lFirstAutomaton.getInitialStates(), lSecondAutomaton, lSecondAutomaton.getInitialStates());
 
