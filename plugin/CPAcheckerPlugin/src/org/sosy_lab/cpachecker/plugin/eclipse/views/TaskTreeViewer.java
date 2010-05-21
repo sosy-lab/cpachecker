@@ -59,7 +59,7 @@ public class TaskTreeViewer extends TreeViewer {
 			if (desc != null) unsafeResultIcon = desc.createImage(true);
 			else unsafeResultIcon = missingImage;
 			
-			desc = CPAcheckerPlugin.getImageDescriptor("icons/Stop sign.gif");
+			desc = CPAcheckerPlugin.getImageDescriptor("icons/Question.gif");
 			if (desc != null) unknownResultIcon = desc.createImage(true);
 			else unknownResultIcon = missingImage;
 			

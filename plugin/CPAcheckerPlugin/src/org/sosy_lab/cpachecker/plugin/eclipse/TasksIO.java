@@ -37,7 +37,7 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 public class TasksIO {
-	private final static String DEFAULT_TASKS_SAVE_LOCATION = "/CPAcheckerTasks.xml";
+	private final static String DEFAULT_TASKS_SAVE_LOCATION = "/.metadata/.plugins/org.sosy_lab.cpachecker.plugin.eclipse/CPAcheckerTasks.xml";
 	private final static String TOP_NODE_NAME = "CPAcheckerTasks";
 	private final static String TASK_NODE_NAME = "Task";
 	private final static String TASKNAME_ATTR_NAME = "Name";
@@ -164,8 +164,8 @@ public class TasksIO {
 		tasksInputFile = getFile(DEFAULT_TASKS_SAVE_LOCATION);
 		
 		if (!tasksInputFile.exists()) {
-				tasksInputFile.createNewFile();
-			
+			tasksInputFile.getParentFile().mkdirs();
+			tasksInputFile.createNewFile();
 		}
 		// Create a XMLOutputFactory
 		XMLOutputFactory outputFactory = XMLOutputFactory.newInstance();

@@ -28,6 +28,9 @@ package org.sosy_lab.cpachecker.plugin.eclipse.preferences;
  */
 public class PreferenceConstants {
 
+	public static final String P_STATS = "PrintStatistics";
+	
+	
 	public static final String P_PATH = "what";
 
 	public static final String P_BOOLEAN = "booleanPreference";

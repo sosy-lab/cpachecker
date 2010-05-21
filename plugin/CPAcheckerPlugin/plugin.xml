@@ -86,7 +86,7 @@
    <extension
          point="org.eclipse.ui.preferencePages">
       <page
-            name="CPAPlugin"
+            name="CPAcheckerPlugin"
             class="org.sosy_lab.cpachecker.plugin.eclipse.preferences.CPAPreferencePage"
             id="org.sosy_lab.cpachecker.plugin.eclipse.preferences.CPAPreferencePage">
       </page>

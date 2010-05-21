@@ -30,10 +30,24 @@ public class SetSourceFileInTaskAction extends Action {
 
 	@Override
 	public void run() {
+		ITranslationUnit newTransUnit;
+		if (task.getTranslationUnit() != null) {
+			newTransUnit = CPAcheckerPlugin.askForSourceFile(shell, task.getTranslationUnit());
+		} else {
+			newTransUnit = CPAcheckerPlugin.askForSourceFile(shell, null);
+		}
+		if (newTransUnit != null) {
+			task.setTranslationUnit(newTransUnit);
+			task.setDirty(true);
+			CPAcheckerPlugin.getPlugin().fireTasksChanged(Collections.singletonList(task));
+		}
+	}
+		/*
 		String currentPath = "";
 		if (task.getTranslationUnit() != null) {
 			currentPath = task.getTranslationUnit().getResource().getFullPath().toPortableString();
 		}
+		
 		InputDialog inputdialog = new InputDialog(
 				shell, "enter new source File", "Enter the path to the new SourceFile " +  task.getName(), currentPath, new Vaildator());
 		inputdialog.setBlockOnOpen(true);
@@ -50,7 +64,7 @@ public class SetSourceFileInTaskAction extends Action {
 				CPAcheckerPlugin.getPlugin().fireTasksChanged(Collections.singletonList(task));
 			}
 		}
-	}
+	}*/
 	
 	private static class Vaildator implements IInputValidator {
 		@Override

@@ -31,68 +31,70 @@ import org.sosy_lab.cpachecker.plugin.eclipse.preferences.PreferenceConstants;
 import org.sosy_lab.cpachecker.plugin.eclipse.CPAcheckerPlugin;
 
 /**
- * This class represents a preference page that
- * is contributed to the Preferences dialog. By
- * subclassing <samp>FieldEditorPreferencePage</samp>, we
- * can use the field support built into JFace that allows
- * us to create a page that is small and knows how to
- * save, restore and apply itself.
+ * This class represents a preference page that is contributed to the
+ * Preferences dialog. By subclassing <samp>FieldEditorPreferencePage</samp>, we
+ * can use the field support built into JFace that allows us to create a page
+ * that is small and knows how to save, restore and apply itself.
  * <p>
- * This page is used to modify preferences only. They
- * are stored in the preference store that belongs to
- * the main plug-in class. That way, preferences can
- * be accessed directly via the preference store.
+ * This page is used to modify preferences only. They are stored in the
+ * preference store that belongs to the main plug-in class. That way,
+ * preferences can be accessed directly via the preference store.
  */
 
-public class CPAPreferencePage
-	extends FieldEditorPreferencePage
-	implements IWorkbenchPreferencePage {
-	private FileFieldEditor fieldEditor;
+public class CPAPreferencePage extends FieldEditorPreferencePage implements
+		IWorkbenchPreferencePage {
+
 	public CPAPreferencePage() {
 		super(GRID);
 		setPreferenceStore(CPAcheckerPlugin.getPlugin().getPreferenceStore());
-		setDescription("Preference Page for CPAPlugin");
+		setDescription("Preference Page for the CPAcheckerPlugin");
 	}
 
 	/**
-	 * Creates the field editors. Field editors are abstractions of
-	 * the common GUI blocks needed to manipulate various types
-	 * of preferences. Each field editor knows how to save and
-	 * restore itself.
+	 * Creates the field editors. Field editors are abstractions of the common
+	 * GUI blocks needed to manipulate various types of preferences. Each field
+	 * editor knows how to save and restore itself.
 	 */
 	@Override
 	public void createFieldEditors() {
-		fieldEditor = new FileFieldEditor(PreferenceConstants.P_PATH,
-				"&Directory preference:", getFieldEditorParent());
-		String[] ext = {"*.properties"};
-		fieldEditor.setFileExtensions(ext);
-		addField(fieldEditor);
+		
+		BooleanFieldEditor editor = new BooleanFieldEditor(
+				PreferenceConstants.P_STATS, "&Print Statistics",
+				getFieldEditorParent());
+		addField(editor);
+
+		/*
+		 * fieldEditor = new FileFieldEditor(PreferenceConstants.P_PATH,
+		 * "&Directory preference:", getFieldEditorParent()); String[] ext =
+		 * {"*.properties"}; fieldEditor.setFileExtensions(ext);
+		 * addField(fieldEditor);
+		 */
 	}
+
 	@Override
-	protected void checkState()
-	{
+	protected void checkState() {
 		super.checkState();
-		boolean valid = fieldEditor.getStringValue().endsWith(".properties");
-		if(!valid)
-		{
-			setErrorMessage("Not a .properties file!");
-			setValid(false);
-			return;
-		}
-		setErrorMessage(null);
+		/*
+		 * boolean valid = fieldEditor.getStringValue().endsWith(".properties");
+		 * if(!valid) { setErrorMessage("Not a .properties file!");
+		 * setValid(false); return; } setErrorMessage(null);
+		 */
 		setValid(true);
 	}
+
 	@Override
-	public void propertyChange(PropertyChangeEvent event)
-	{
+	public void propertyChange(PropertyChangeEvent event) {
 		super.propertyChange(event);
-		if(event.getProperty().equals(FieldEditor.VALUE))
-		{
-			checkState();
-		}
+		/*
+		 * if(event.getProperty().equals(FieldEditor.VALUE)) { checkState(); }
+		 */
 	}
-	/* (non-Javadoc)
-	 * @see org.eclipse.ui.IWorkbenchPreferencePage#init(org.eclipse.ui.IWorkbench)
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * org.eclipse.ui.IWorkbenchPreferencePage#init(org.eclipse.ui.IWorkbench)
 	 */
 	public void init(IWorkbench workbench) {
 	}

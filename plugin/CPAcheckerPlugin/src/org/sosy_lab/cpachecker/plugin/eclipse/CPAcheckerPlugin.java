@@ -4,6 +4,9 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import org.eclipse.cdt.core.model.CoreModelUtil;
+import org.eclipse.cdt.core.model.ITranslationUnit;
+import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IWorkspace;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
@@ -12,9 +15,14 @@ import org.eclipse.core.runtime.IExtension;
 import org.eclipse.core.runtime.IExtensionPoint;
 import org.eclipse.core.runtime.IExtensionRegistry;
 import org.eclipse.core.runtime.ISafeRunnable;
+import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.core.runtime.SafeRunner;
+import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.resource.ImageDescriptor;
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.widgets.FileDialog;
+import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.osgi.framework.BundleContext;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
@@ -81,6 +89,7 @@ public class CPAcheckerPlugin extends AbstractUIPlugin {
 		super.start(context);
 		instance = this;
 		this.tasks.addAll(TasksIO.loadTasks());
+		fireTasksChanged();
 	}
 
 	/*
@@ -267,5 +276,63 @@ public class CPAcheckerPlugin extends AbstractUIPlugin {
 			};
 			SafeRunner.run(runnable);
 		}
+	}
+	public static ITranslationUnit askForSourceFile(Shell shell, ITranslationUnit initial) {
+		String[] extension = {"*.c"};
+		// TODO: should we accept other extensions than .c?
+        FileDialog dialog = new FileDialog(shell, SWT.OPEN | SWT.SHEET);
+        
+        if (initial != null) {
+			dialog.setFileName(initial.getResource().getLocation().toPortableString());
+		} else {
+			dialog.setFileName(CPAcheckerPlugin.getWorkspace().getRoot().getLocation().toPortableString());
+		}
+        
+		dialog.setFilterExtensions(extension);
+        String file = dialog.open();
+        if (file != null) {
+            file = file.trim();
+            if (file.length() > 0) {
+            	Path p = new Path(file);
+            	IFile member = CPAcheckerPlugin.getWorkspace().getRoot().getFileForLocation(p);
+            	if (member != null && member.exists()) {
+            		ITranslationUnit tu = CoreModelUtil.findTranslationUnit((IFile) member);
+        			if (tu != null) {
+        				return tu;
+        			}
+            	}
+			}
+            // translationUnit could not be found.
+            MessageDialog.openError(shell, "Error opening the Source file", "Could not find the c Source file " + file);
+            return null;            
+        } else {
+        	return null;
+        }
+	}
+	public static IFile askForConfigFile(Shell shell, IFile initial) {
+		String extension = "*.properties";
+        FileDialog dialog = new FileDialog(shell, SWT.OPEN | SWT.SHEET);
+        
+        if (initial != null) {
+			dialog.setFileName(initial.getLocation().toPortableString());
+		} else {
+			dialog.setFileName(CPAcheckerPlugin.getWorkspace().getRoot().getLocation().toPortableString());
+		}
+        
+		dialog.setFilterExtensions(new String[] {extension});
+        String file = dialog.open();
+        if (file != null) {
+            file = file.trim();
+            if (file.length() > 0) {
+            	Path p = new Path(file);
+            	IFile member = CPAcheckerPlugin.getWorkspace().getRoot().getFileForLocation(p);
+            	if (member != null) {
+            		return member;
+            	} else {
+            		MessageDialog.openError(shell, "Error opening the file", "Could not locate the file " + file +" in the workspace");
+            	}
+			}
+        }
+        return null;
 	}
 }

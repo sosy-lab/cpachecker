@@ -26,10 +26,19 @@ public class SetConfigFileInTaskAction extends Action {
 
 	@Override
 	public void run() {
-		String currentPath = "";
+		IFile result;
 		if (task.hasConfigurationFile()) {
-			currentPath = task.getConfigFile().getFullPath().toPortableString();
+			result = CPAcheckerPlugin.askForConfigFile(shell, task.getConfigFile());
+		} else {
+			result = CPAcheckerPlugin.askForConfigFile(shell, null);
 		}
+		if (result != null) {
+			task.setConfigFile( result);
+			task.setDirty(true);
+			CPAcheckerPlugin.getPlugin().fireTasksChanged(Collections.singletonList(task));
+		}
+		
+		/* 
 		InputDialog inputdialog = new InputDialog(
 				shell, "enter new config File", "Enter the path to the new ConfigurationFile " +  task.getName(), currentPath, new Vaildator());
 		inputdialog.setBlockOnOpen(true);
@@ -42,7 +51,7 @@ public class SetConfigFileInTaskAction extends Action {
 			task.setConfigFile((IFile) member);
 			task.setDirty(true);
 			CPAcheckerPlugin.getPlugin().fireTasksChanged(Collections.singletonList(task));
-		}
+		}*/
 	}
 	
 	private static class Vaildator implements IInputValidator {

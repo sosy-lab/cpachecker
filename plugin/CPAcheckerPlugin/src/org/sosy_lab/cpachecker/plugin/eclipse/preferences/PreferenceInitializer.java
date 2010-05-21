@@ -42,7 +42,7 @@ public class PreferenceInitializer extends AbstractPreferenceInitializer {
 	public void initializeDefaultPreferences() {
 		IPreferenceStore store = CPAcheckerPlugin.getPlugin().getPreferenceStore();
 		// getClass().getProtectionDomain().getCodeSource().getLocation().getPath()
-		String defaultPath = CPAcheckerPlugin.getWorkspace().getRoot().getProjectRelativePath().toPortableString();
-		store.setDefault(PreferenceConstants.P_PATH, defaultPath);
+		//String defaultPath = CPAcheckerPlugin.getWorkspace().getRoot().getProjectRelativePath().toPortableString();
+		store.setDefault(PreferenceConstants.P_STATS, "false");
 	}
 }

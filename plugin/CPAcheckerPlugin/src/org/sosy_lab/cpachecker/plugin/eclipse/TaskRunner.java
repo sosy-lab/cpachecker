@@ -2,7 +2,6 @@ package org.sosy_lab.cpachecker.plugin.eclipse;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.util.Collections;
 import java.util.HashSet;
@@ -17,6 +16,7 @@ import org.eclipse.ui.console.ConsolePlugin;
 import org.eclipse.ui.console.IConsole;
 import org.eclipse.ui.console.IConsoleManager;
 import org.eclipse.ui.console.MessageConsole;
+import org.eclipse.ui.console.MessageConsoleStream;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.LogManager.ConsoleLogFormatter;
 import org.sosy_lab.common.configuration.Configuration;
@@ -24,49 +24,58 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-
+import org.sosy_lab.cpachecker.plugin.eclipse.preferences.PreferenceConstants;
 
 public class TaskRunner {
 
 	public static void run(final List<Task> tasks) {
 		CPAcheckerPlugin.getPlugin().fireTasksStarted(tasks.size());
-		
-		CPAcheckerPlugin.getPlugin().addTestListener(new ITestListener.DefaultImplementation() {
-			int currentTaskIndex = 1;
-			@Override
-			public void taskHasPreRunError(Task t, String errorMessage) {
-				if (currentTaskIndex >= tasks.size()) {
-					CPAcheckerPlugin.getPlugin().fireTasksFinished();
-				} else {
-					startNext();
-				}
-			}
-			@Override
-			public void taskFinished(Task id, CPAcheckerResult results) {
-				if (currentTaskIndex >= tasks.size()) {
-					CPAcheckerPlugin.getPlugin().fireTasksFinished();
-				} else {
-					startNext();
-				}
-			}
-			private void startNext() {
-				startSingleTask(tasks.get(currentTaskIndex++));
-			}
-		});
+
+		CPAcheckerPlugin.getPlugin().addTestListener(
+				new ITestListener.DefaultImplementation() {
+					int currentTaskIndex = 1;
+
+					@Override
+					public void taskHasPreRunError(Task t, String errorMessage) {
+						if (currentTaskIndex >= tasks.size()) {
+							CPAcheckerPlugin.getPlugin().fireTasksFinished();
+						} else {
+							startNext();
+						}
+					}
+
+					@Override
+					public void taskFinished(Task id, CPAcheckerResult results) {
+						if (currentTaskIndex >= tasks.size()) {
+							CPAcheckerPlugin.getPlugin().fireTasksFinished();
+						} else {
+							startNext();
+						}
+					}
+
+					private void startNext() {
+						startSingleTask(tasks.get(currentTaskIndex++));
+					}
+				});
 		startSingleTask(tasks.get(0));
 	}
+
 	public static void startSingleTask(Task t) {
 		CPAcheckerPlugin.getPlugin().fireTaskStarted(t);
 		if (t.hasPreRunError()) {
-			CPAcheckerPlugin.getPlugin().firePreRunError(t, t.getErrorMessage());
+			CPAcheckerPlugin.getPlugin()
+					.firePreRunError(t, t.getErrorMessage());
 		} else {
-			MessageConsole con = createMessageConsole("CPAchecker : " + t.getName());
+			MessageConsole con = createMessageConsole("CPAchecker : "
+					+ t.getName());
 			Configuration config;
 			try {
 				config = t.loadConfig();
-				OutputStream outStream = con.newMessageStream();
-				LogManager logger = new LogManager(config, new StreamHandler(outStream , new ConsoleLogFormatter()));		
-				Thread run = new Thread(new TaskRun(t.getTranslationUnit(), config, outStream, logger, t));
+				MessageConsoleStream outStream = con.newMessageStream();
+				LogManager logger = new LogManager(config, new StreamHandler(
+						outStream, new ConsoleLogFormatter()));
+				Thread run = new Thread(new TaskRun(t.getTranslationUnit(),
+						config, outStream, logger, t));
 				run.start();
 			} catch (IOException e) {
 				// cannot happen because this would have been a preRunError
@@ -80,21 +89,26 @@ public class TaskRunner {
 			}
 		}
 	}
-	
+
 	public static void runParallel(List<Task> tasks) {
 		CPAcheckerPlugin.getPlugin().fireTasksStarted(tasks.size());
 		for (Task t : tasks) {
 			CPAcheckerPlugin.getPlugin().fireTaskStarted(t);
 			if (t.hasPreRunError()) {
-				CPAcheckerPlugin.getPlugin().firePreRunError(t, t.getErrorMessage());
+				CPAcheckerPlugin.getPlugin().firePreRunError(t,
+						t.getErrorMessage());
 			} else {
-				MessageConsole con = createMessageConsole("CPAchecker : " + t.getName());
+				MessageConsole con = createMessageConsole("CPAchecker : "
+						+ t.getName());
 				Configuration config;
 				try {
 					config = t.loadConfig();
-					OutputStream outStream = con.newMessageStream();
-					LogManager logger = new LogManager(config, new StreamHandler(outStream , new ConsoleLogFormatter()));		
-					Thread run = new Thread(new TaskRun(t.getTranslationUnit(), config, outStream, logger, t));
+					MessageConsoleStream outStream = con.newMessageStream();
+					LogManager logger = new LogManager(config,
+							new StreamHandler(outStream,
+									new ConsoleLogFormatter()));
+					Thread run = new Thread(new TaskRun(t.getTranslationUnit(),
+							config, outStream, logger, t));
 					run.start();
 				} catch (IOException e) {
 					// cannot happen because this would have been a preRunError
@@ -109,9 +123,9 @@ public class TaskRunner {
 			}
 		}
 		// wont work
-		//CPAcheckerPlugin.getPlugin().fireTasksFinished();
+		// CPAcheckerPlugin.getPlugin().fireTasksFinished();
 	}
-	
+
 	private static MessageConsole createMessageConsole(String name) {
 		ConsolePlugin plugin = ConsolePlugin.getDefault();
 		IConsoleManager conMan = plugin.getConsoleManager();
@@ -120,16 +134,16 @@ public class TaskRunner {
 		myConsole.activate();
 		return myConsole;
 	}
-	
+
 	private static class TaskRun implements Runnable {
 		private ITranslationUnit source;
 		private Configuration config;
-		private OutputStream consoleStream;
+		private MessageConsoleStream consoleStream;
 		private LogManager logger;
 		private Task task;
-		
+
 		TaskRun(ITranslationUnit source, Configuration config,
-				OutputStream outStream, LogManager logger, Task t) {
+				MessageConsoleStream outStream, LogManager logger, Task t) {
 			super();
 			this.task = t;
 			this.source = source;
@@ -137,14 +151,34 @@ public class TaskRunner {
 			this.consoleStream = outStream;
 			this.logger = logger;
 		}
-		
+
 		@Override
 		public void run() {
 			try {
 				CPAchecker cpachecker = new CPAchecker(config, logger);
 				final CPAcheckerResult results = cpachecker.run(source.getLocation().toOSString());
 				logger.flush();
-				results.printStatistics(new PrintWriter(consoleStream));
+				if (CPAcheckerPlugin.getPlugin().getPreferenceStore().getBoolean(PreferenceConstants.P_STATS)) {
+					results.printStatistics(new PrintWriter(consoleStream));					
+				} else {
+					switch (results.getResult()) {
+					case SAFE:
+						//color: green, doesnt work, threading issues
+						//consoleStream.setColor(new Color(CPAcheckerPlugin.getPlugin().getWorkbench().getDisplay(), 0, 255,0));
+						consoleStream.println("\nCPA run was safe. No Error locations found.");
+						break;
+					case UNKNOWN:
+						//color: blue, doesnt work, threading issues
+						//consoleStream.setColor(new Color(CPAcheckerPlugin.getPlugin().getWorkbench().getDisplay(), 0, 0,255));
+						consoleStream.println("\nThe CPA run could not be terminated correctly. The result is unknown.");
+						break;
+					case UNSAFE:
+						// color: red, doesnt work, threading issues
+						//consoleStream.setColor(new Color(CPAcheckerPlugin.getPlugin().getWorkbench().getDisplay(), 255, 0,0));
+						consoleStream.println("\nCPA found a reachable error location. The program is UNSAFE!");
+						break;
+					}
+				}
 				consoleStream.close();
 				task.setLastResult(results.getResult());
 				// finshedAnnouncement must be fired in Eclipse UI thread
@@ -160,7 +194,7 @@ public class TaskRunner {
 			}			
 		}
 	}
-	
+
 	public static class Task {
 		private String name;
 		private ITranslationUnit sourceTranslationUnit = null;
@@ -171,6 +205,7 @@ public class TaskRunner {
 
 		/**
 		 * One of the parameters configFile and source may be null.
+		 * 
 		 * @param taskName
 		 * @param configFile
 		 * @param source
@@ -180,10 +215,11 @@ public class TaskRunner {
 			this.configFile = configFile;
 			this.sourceTranslationUnit = source;
 		}
-		
+
 		public void setLastResult(Result result) {
 			this.lastResult = result;
 		}
+
 		public Result getLastResult() {
 			return this.lastResult;
 		}
@@ -192,12 +228,12 @@ public class TaskRunner {
 			this.name = createUniqueName(taskName);
 			this.configFile = configFile;
 		}
-		
+
 		public Task(String taskName, ITranslationUnit source) {
 			this.name = createUniqueName(taskName);
 			this.sourceTranslationUnit = source;
 		}
-		
+
 		private static String createUniqueName(String preferredName) {
 			List<Task> tasks = CPAcheckerPlugin.getPlugin().getTasks();
 			Set<String> takenNames = new HashSet<String>();
@@ -212,35 +248,42 @@ public class TaskRunner {
 					} else {
 						return preferredName + " (" + i + ")";
 					}
-				}				
+				}
 			} else {
 				return preferredName;
 			}
-			
+
 		}
+
 		/**
 		 * Assumes that configfile is not null
+		 * 
 		 * @return
 		 * @throws IOException
 		 * @throws CoreException
 		 */
 		public Configuration loadConfig() throws IOException, CoreException {
 			if (config == null) {
-				config = new Configuration(configFile.getContents(), Collections.<String,String>emptyMap());
-				String projectRoot = this.configFile.getProject().getLocation().toPortableString();
-				//config.setProperty("automatonAnalyis.rootPath", projectRoot);
-				String property = config.getProperty("automatonAnalysis.inputFile");
+				config = new Configuration(configFile.getContents(),
+						Collections.<String, String> emptyMap());
+				String projectRoot = this.configFile.getProject().getLocation()
+						.toPortableString();
+				// config.setProperty("automatonAnalyis.rootPath", projectRoot);
+				String property = config
+						.getProperty("automatonAnalysis.inputFile");
 				if (property != null) {
 					File file = new File(property);
 					if (!file.isAbsolute()) {
-						config.setProperty("automatonAnalysis.inputFile", projectRoot + property);
+						config.setProperty("automatonAnalysis.inputFile",
+								projectRoot + property);
 					}
 				}
 				property = config.getProperty("output.path");
 				if (property != null) {
 					File file = new File(property);
 					if (!file.isAbsolute()) {
-						config.setProperty("output.path", projectRoot + property);
+						config.setProperty("output.path", projectRoot
+								+ property);
 					}
 				} else {
 					config.setProperty("output.path", projectRoot);
@@ -248,19 +291,22 @@ public class TaskRunner {
 			}
 			return config;
 		}
-		
+
 		public String getName() {
 			return name;
 		}
+
 		public IFile getConfigFile() {
 			return this.configFile;
 		}
+
 		public String getConfigFilePathProjRelative() {
 			return configFile.getProjectRelativePath().toPortableString();
 		}
-		
+
 		/**
 		 * PreRunError == an error that does not allow the task to be run.
+		 * 
 		 * @return
 		 */
 		public boolean hasPreRunError() {
@@ -277,19 +323,20 @@ public class TaskRunner {
 			}
 			return false;
 		}
-		
+
 		public String getErrorMessage() {
 			if (this.configFile == null) {
 				return "No configuration file was associated with this task!";
 			} else if (this.config == null) {
-				return "Could not parse the configuration file \"" + this.configFile.getProjectRelativePath() +" \".";
+				return "Could not parse the configuration file \""
+						+ this.configFile.getProjectRelativePath() + " \".";
 			} else if (this.getTranslationUnit() == null) {
 				return "No Source file was associated with this Task!";
 			} else {
 				return "";
 			}
 		}
-		
+
 		public ITranslationUnit getTranslationUnit() {
 			return this.sourceTranslationUnit;
 		}
@@ -305,13 +352,14 @@ public class TaskRunner {
 		public boolean isDirty() {
 			return this.isDirty;
 		}
+
 		public void setDirty(boolean b) {
 			this.isDirty = b;
 		}
 
 		public void setConfigFile(IFile member) {
 			this.configFile = member;
-			this.configFile = null;
+			this.config = null;
 		}
 
 		public void setTranslationUnit(ITranslationUnit tu) {
