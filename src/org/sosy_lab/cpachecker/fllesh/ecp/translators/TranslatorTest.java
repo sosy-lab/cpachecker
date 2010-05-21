@@ -333,6 +333,77 @@ public class TranslatorTest {
     Automaton<GuardedLabel> lLambdaFreeAutomaton = Translator.removeLambdaEdges(lInitialAutomaton, lWrapper.getAlphaEdge(), lWrapper.getOmegaEdge());
     
     System.out.println(lLambdaFreeAutomaton);
+    
+    Automaton<GuardedLabel> lNodeSetFreeAutomaton = Translator.removeNodeSetGuards(lLambdaFreeAutomaton);
+    
+    System.out.println(lNodeSetFreeAutomaton);
+  }
+  
+  @Test
+  public void testMain006() throws Exception {
+    /** process FQL query */
+    String lSpecificationString = "COVER \"EDGES(ID)*\".(EDGES(@CALL(f)) + NODES(@CALL(f))).\"EDGES(ID)*\" PASSING EDGES(ID)*.{ x > 10 }.NODES(@CALL(f))";
+    FQLSpecification lSpecification = FQLSpecification.parse(lSpecificationString);
+    System.out.println(lSpecification);
+    
+    /** process source code */
+    Cilly lCilly = new Cilly();
+
+    String lSourceFileName = "test/programs/simple/functionCall.c";
+
+    if (!lCilly.isCillyInvariant(lSourceFileName)) {
+      File lCillyProcessedFile = lCilly.cillyfy(lSourceFileName);
+      lCillyProcessedFile.deleteOnExit();
+
+      lSourceFileName = lCillyProcessedFile.getAbsolutePath();
+
+      System.err.println("WARNING: Given source file is not CIL invariant ... did preprocessing!");
+    }
+
+    File lPropertiesFile = Main.createPropertiesFile();
+    Configuration lConfiguration = Main.createConfiguration(lSourceFileName, lPropertiesFile.getAbsolutePath());
+
+    LogManager lLogManager = new LogManager(lConfiguration);
+
+    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
+
+    CFAFunctionDefinitionNode lMainFunction = lCPAchecker.getMainFunction();
+    
+    TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lMainFunction);
+    
+    /** do translation */
+    PathPatternTranslator lPatternTranslator = new PathPatternTranslator(lTargetGraph);
+    CoverageSpecificationTranslator lSpecificationTranslator = new CoverageSpecificationTranslator(lPatternTranslator);
+    Set<ElementaryCoveragePattern> lGoals = lSpecificationTranslator.translate(lSpecification.getCoverageSpecification());
+    ElementaryCoveragePattern lPassing = lPatternTranslator.translate(lSpecification.getPathPattern());
+    
+    ECPPrettyPrinter lPrettyPrinter = new ECPPrettyPrinter();
+    
+    System.out.println("TEST GOALS:");
+    
+    int lIndex = 0;
+    
+    for (ElementaryCoveragePattern lGoal : lGoals) {
+      System.out.println("Goal #" + (++lIndex));
+      System.out.println(lPrettyPrinter.printPretty(lGoal));
+    }
+    
+    System.out.println("PASSING:");
+    System.out.println(lPrettyPrinter.printPretty(lPassing));
+    
+    Automaton<GuardedLabel> lInitialAutomaton = Translator.translate(lPassing);
+    
+    System.out.println(lInitialAutomaton);
+    
+    Wrapper lWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCPAchecker.getCFAMap(), lLogManager);
+    
+    Automaton<GuardedLabel> lLambdaFreeAutomaton = Translator.removeLambdaEdges(lInitialAutomaton, lWrapper.getAlphaEdge(), lWrapper.getOmegaEdge());
+    
+    System.out.println(lLambdaFreeAutomaton);
+    
+    Automaton<GuardedLabel> lNodeSetFreeAutomaton = Translator.removeNodeSetGuards(lLambdaFreeAutomaton);
+    
+    System.out.println(lNodeSetFreeAutomaton);
   }
   
 }

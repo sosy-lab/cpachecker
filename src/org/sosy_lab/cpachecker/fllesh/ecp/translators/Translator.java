@@ -11,6 +11,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.fllesh.ecp.ECPConcatenation;
 import org.sosy_lab.cpachecker.fllesh.ecp.ECPEdgeSet;
+import org.sosy_lab.cpachecker.fllesh.ecp.ECPGuard;
 import org.sosy_lab.cpachecker.fllesh.ecp.ECPNodeSet;
 import org.sosy_lab.cpachecker.fllesh.ecp.ECPPredicate;
 import org.sosy_lab.cpachecker.fllesh.ecp.ECPRepetition;
@@ -132,7 +133,6 @@ public class Translator {
         }
         
         if (lHasNonLambdaEdge) {
-          // TODO create new edge in new automaton
           Automaton<GuardedLabel>.State lOldTarget = lReachedState.getState();
           
           if (!lStateMap.containsKey(lOldTarget)) {
@@ -148,6 +148,150 @@ public class Translator {
     
     for (Automaton<GuardedLabel>.State lFinalState : pAutomaton.getFinalStates()) {
       lAutomaton.addToFinalStates(lStateMap.get(lFinalState));
+    }
+    
+    return lAutomaton;
+  }
+  
+  public static Automaton<GuardedLabel> removeNodeSetGuards(Automaton<GuardedLabel> pAutomaton) {
+    Automaton<GuardedLabel> lAutomaton = new Automaton<GuardedLabel>();
+    
+    Map<Automaton<GuardedLabel>.State, Automaton<GuardedLabel>.State> lStateMap = new HashMap<Automaton<GuardedLabel>.State, Automaton<GuardedLabel>.State>();
+    lStateMap.put(pAutomaton.getInitialState(), lAutomaton.getInitialState());
+    
+    List<Automaton<GuardedLabel>.Edge> lWorklist = new LinkedList<Automaton<GuardedLabel>.Edge>();
+    lWorklist.addAll(pAutomaton.getOutgoingEdges(pAutomaton.getInitialState()));
+    
+    Set<Automaton<GuardedLabel>.Edge> lReachedEdges = new HashSet<Automaton<GuardedLabel>.Edge>();
+    
+    while (!lWorklist.isEmpty()) {
+      Automaton<GuardedLabel>.Edge lCurrentEdge = lWorklist.remove(0);
+    
+      if (lReachedEdges.contains(lCurrentEdge)) {
+        continue;
+      }
+      
+      lReachedEdges.add(lCurrentEdge);
+      
+      GuardedLabel lLabel = lCurrentEdge.getLabel();
+      
+      if (lLabel.hasGuards()) {
+        ECPNodeSet lNodeSet = null;
+        
+        Set<ECPGuard> lRemainingGuards = new HashSet<ECPGuard>();
+        
+        for (ECPGuard lGuard : lLabel.getGuards()) {
+          if (lGuard instanceof ECPNodeSet) {
+            if (lNodeSet == null) {
+              lNodeSet = (ECPNodeSet)lGuard;
+            }
+            else {
+              lNodeSet = lNodeSet.intersect((ECPNodeSet)lGuard);
+            }
+          }
+          else {
+            lRemainingGuards.add(lGuard);
+          }
+        }
+        
+        if (lNodeSet != null) {
+          if (!lNodeSet.isEmpty()) {
+            assert(lLabel instanceof GuardedEdgeLabel);
+            
+            GuardedEdgeLabel lEdgeLabel = (GuardedEdgeLabel)lLabel;
+            
+            ECPEdgeSet lCurrentEdgeSet = lEdgeLabel.getEdgeSet();
+            
+            Set<CFAEdge> lRemainingCFAEdges = new HashSet<CFAEdge>();
+            
+            for (CFAEdge lCFAEdge : lCurrentEdgeSet) {
+              if (lNodeSet.contains(lCFAEdge.getSuccessor())) {
+                lRemainingCFAEdges.add(lCFAEdge);
+              }
+            }
+            
+            if (!lRemainingCFAEdges.isEmpty()) {
+              ECPEdgeSet lNewEdgeSet = new ECPEdgeSet(lRemainingCFAEdges);
+              
+              GuardedEdgeLabel lNewGuard = new GuardedEdgeLabel(lNewEdgeSet, lRemainingGuards);
+              
+              // add edge
+              
+              Automaton<GuardedLabel>.State lCurrentSource = lCurrentEdge.getSource();
+              Automaton<GuardedLabel>.State lCurrentTarget = lCurrentEdge.getTarget();
+              
+              if (!lStateMap.containsKey(lCurrentSource)) {
+                lStateMap.put(lCurrentSource, lAutomaton.createState());
+              }
+              
+              if (!lStateMap.containsKey(lCurrentTarget)) {
+                lStateMap.put(lCurrentTarget, lAutomaton.createState());
+              }
+              
+              Automaton<GuardedLabel>.State lSourceState = lStateMap.get(lCurrentSource);
+              Automaton<GuardedLabel>.State lTargetState = lStateMap.get(lCurrentTarget);
+              
+              lAutomaton.createEdge(lSourceState, lTargetState, lNewGuard);
+            }
+          }
+        }
+        else {
+          assert(lLabel instanceof GuardedEdgeLabel);
+          
+          GuardedEdgeLabel lEdgeLabel = (GuardedEdgeLabel)lLabel;
+          
+          if (!lEdgeLabel.getEdgeSet().isEmpty()) {
+            // add edge
+            Automaton<GuardedLabel>.State lCurrentSource = lCurrentEdge.getSource();
+            Automaton<GuardedLabel>.State lCurrentTarget = lCurrentEdge.getTarget();
+            
+            if (!lStateMap.containsKey(lCurrentSource)) {
+              lStateMap.put(lCurrentSource, lAutomaton.createState());
+            }
+            
+            if (!lStateMap.containsKey(lCurrentTarget)) {
+              lStateMap.put(lCurrentTarget, lAutomaton.createState());
+            }
+            
+            Automaton<GuardedLabel>.State lSourceState = lStateMap.get(lCurrentSource);
+            Automaton<GuardedLabel>.State lTargetState = lStateMap.get(lCurrentTarget);
+            
+            lAutomaton.createEdge(lSourceState, lTargetState, lEdgeLabel);
+          }
+        }
+      }
+      else {
+        assert(lLabel instanceof GuardedEdgeLabel);
+        
+        GuardedEdgeLabel lEdgeLabel = (GuardedEdgeLabel)lLabel;
+        
+        if (!lEdgeLabel.getEdgeSet().isEmpty()) {
+          // add edge
+          Automaton<GuardedLabel>.State lCurrentSource = lCurrentEdge.getSource();
+          Automaton<GuardedLabel>.State lCurrentTarget = lCurrentEdge.getTarget();
+          
+          if (!lStateMap.containsKey(lCurrentSource)) {
+            lStateMap.put(lCurrentSource, lAutomaton.createState());
+          }
+          
+          if (!lStateMap.containsKey(lCurrentTarget)) {
+            lStateMap.put(lCurrentTarget, lAutomaton.createState());
+          }
+          
+          Automaton<GuardedLabel>.State lSourceState = lStateMap.get(lCurrentSource);
+          Automaton<GuardedLabel>.State lTargetState = lStateMap.get(lCurrentTarget);
+          
+          lAutomaton.createEdge(lSourceState, lTargetState, lEdgeLabel);
+        }
+      }
+      
+      lWorklist.addAll(pAutomaton.getOutgoingEdges(lCurrentEdge.getTarget()));
+    }
+    
+    for (Automaton<GuardedLabel>.State lFinalState : pAutomaton.getFinalStates()) {
+      if (lStateMap.containsKey(lFinalState)) {
+        lAutomaton.addToFinalStates(lStateMap.get(lFinalState));
+      }
     }
     
     return lAutomaton;
