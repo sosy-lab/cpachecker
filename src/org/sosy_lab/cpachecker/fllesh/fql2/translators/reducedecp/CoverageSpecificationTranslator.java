@@ -123,7 +123,7 @@ public class CoverageSpecificationTranslator {
 
       Filter lFilter = pEdges.getFilter();
 
-      TargetGraph lFilteredTargetGraph = mTargetGraph.apply(lFilter);
+      TargetGraph lFilteredTargetGraph = mPathPatternTranslator.getFilterEvaluator().evaluate(lFilter);
 
       for (Edge lEdge : lFilteredTargetGraph.getEdges()) {
         CFAEdge lCFAEdge = lEdge.getCFAEdge();

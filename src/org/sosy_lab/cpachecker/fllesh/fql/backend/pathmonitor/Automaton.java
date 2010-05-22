@@ -31,6 +31,7 @@ import org.jgrapht.DirectedGraph;
 import org.jgrapht.graph.DefaultDirectedGraph;
 
 import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.Edge;
+import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.FilterEvaluator;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.TargetGraph;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.testgoals.EdgeSequence;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.DefaultASTVisitor;
@@ -116,7 +117,7 @@ public class Automaton {
   public static Automaton create(Edge pEdge) {
     assert(pEdge != null);
 
-    return Automaton.create(new FilterMonitor(Identity.getInstance()), TargetGraph.createTargetGraph(pEdge));
+    return Automaton.create(new FilterMonitor(Identity.getInstance()), new TargetGraph(pEdge));
   }
 
   public static Automaton create(EdgeSequence pEdgeSequence) {
@@ -127,7 +128,7 @@ public class Automaton {
     int lIndex = 0;
 
     for (Edge lEdge : pEdgeSequence) {
-      new TargetGraphEdge(lIndex, lIndex + 1, lTransitionRelation, TargetGraph.createTargetGraph(lEdge));
+      new TargetGraphEdge(lIndex, lIndex + 1, lTransitionRelation, new TargetGraph(lEdge));
       lIndex++;
     }
 
@@ -147,7 +148,9 @@ public class Automaton {
     public Automaton visitFilter(Filter pFilter) {
       assert(pFilter != null);
 
-      TargetGraph lFilteredTargetGraph = mTargetGraph.apply(pFilter);
+      FilterEvaluator lFilterEvaluator = new FilterEvaluator(mTargetGraph);
+      
+      TargetGraph lFilteredTargetGraph = lFilterEvaluator.evaluate(pFilter);
 
       // automaton states
       Integer lZero = 0;

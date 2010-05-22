@@ -248,8 +248,9 @@ public class TargetGraphTest {
 
     TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
 
-    TargetGraph lFilteredTargetGraph = lTargetGraph.apply(Identity.getInstance());
-
+    FilterEvaluator lFilterEvaluator = new FilterEvaluator(lTargetGraph);
+    TargetGraph lFilteredTargetGraph = lFilterEvaluator.evaluate(Identity.getInstance());
+    
     // identity returns the (physically) same target graph
     assertTrue(lFilteredTargetGraph == lTargetGraph);
   }
@@ -268,24 +269,26 @@ public class TargetGraphTest {
     TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
 
     Function lFunctionFilter = new Function("f");
+    
+    FilterEvaluator lFilterEvaluator = new FilterEvaluator(lTargetGraph);
 
-    TargetGraph lFilteredTargetGraph1 = lTargetGraph.apply(lFunctionFilter);
+    TargetGraph lFilteredTargetGraph1 = lFilterEvaluator.evaluate(lFunctionFilter);
 
-    TargetGraph lFilteredTargetGraph2 = lTargetGraph.apply(lFunctionFilter);
+    TargetGraph lFilteredTargetGraph2 = lFilterEvaluator.evaluate(lFunctionFilter);
 
     // caching should return in the same target graphs
     assertTrue(lFilteredTargetGraph1 == lFilteredTargetGraph2);
 
     Function lFunctionFilter2 = new Function("f");
 
-    TargetGraph lFilteredTargetGraph3 = lTargetGraph.apply(lFunctionFilter2);
+    TargetGraph lFilteredTargetGraph3 = lFilterEvaluator.evaluate(lFunctionFilter2);
 
     // caching should also work with logically equal filters
     assertTrue(lFilteredTargetGraph1 == lFilteredTargetGraph3);
 
     Function lFunctionFilter3 = new Function("foo");
 
-    TargetGraph lFilteredTargetGraph4 = lTargetGraph.apply(lFunctionFilter3);
+    TargetGraph lFilteredTargetGraph4 = lFilterEvaluator.evaluate(lFunctionFilter3);
 
     // a different function name filter should return in a different target graph
     assertFalse(lFilteredTargetGraph3.equals(lFilteredTargetGraph4));
@@ -306,12 +309,14 @@ public class TargetGraphTest {
 
     FunctionCall lFunctionCallFilter = new FunctionCall("f");
 
-    TargetGraph lFilteredTargetGraph = lTargetGraph.apply(lFunctionCallFilter);
+    FilterEvaluator lFilterEvaluator = new FilterEvaluator(lTargetGraph);
+    
+    TargetGraph lFilteredTargetGraph = lFilterEvaluator.evaluate(lFunctionCallFilter);
 
     System.out.println(lFilteredTargetGraph);
 
     // check caching
-    assertTrue(lFilteredTargetGraph == lTargetGraph.apply(lFunctionCallFilter));
+    assertTrue(lFilteredTargetGraph == lFilterEvaluator.evaluate(lFunctionCallFilter));
   }
 
   @Test
@@ -329,17 +334,19 @@ public class TargetGraphTest {
 
     FunctionCall lFunctionCallFilter = new FunctionCall("func");
 
-    TargetGraph lFilteredTargetGraph = lTargetGraph.apply(lFunctionCallFilter);
+    FilterEvaluator lFilterEvaluator = new FilterEvaluator(lTargetGraph);
+    
+    TargetGraph lFilteredTargetGraph = lFilterEvaluator.evaluate(lFunctionCallFilter);
 
     System.out.println(lFilteredTargetGraph);
 
     // check caching
-    assertTrue(lFilteredTargetGraph == lTargetGraph.apply(lFunctionCallFilter));
+    assertTrue(lFilteredTargetGraph == lFilterEvaluator.evaluate(lFunctionCallFilter));
 
     FunctionCall lFunctionCallFilter2 = new FunctionCall("func");
 
     // caching should also work with logically equal filters
-    assertTrue(lFilteredTargetGraph == lTargetGraph.apply(lFunctionCallFilter2));
+    assertTrue(lFilteredTargetGraph == lFilterEvaluator.evaluate(lFunctionCallFilter2));
   }
 
   @Test
@@ -357,12 +364,14 @@ public class TargetGraphTest {
 
     Filter lFunctionCallsFilter = FunctionCalls.getInstance();
 
-    TargetGraph lFilteredTargetGraph = lTargetGraph.apply(lFunctionCallsFilter);
+    FilterEvaluator lFilterEvaluator = new FilterEvaluator(lTargetGraph);
+    
+    TargetGraph lFilteredTargetGraph = lFilterEvaluator.evaluate(lFunctionCallsFilter);
 
     System.out.println(lFilteredTargetGraph);
 
     // check caching
-    assertTrue(lFilteredTargetGraph == lTargetGraph.apply(lFunctionCallsFilter));
+    assertTrue(lFilteredTargetGraph == lFilterEvaluator.evaluate(lFunctionCallsFilter));
   }
 
   @Test
@@ -380,17 +389,19 @@ public class TargetGraphTest {
 
     Filter lFunctionEntryFilter = new FunctionEntry("func");
 
-    TargetGraph lFilteredTargetGraph = lTargetGraph.apply(lFunctionEntryFilter);
+    FilterEvaluator lFilterEvaluator = new FilterEvaluator(lTargetGraph);
+    
+    TargetGraph lFilteredTargetGraph = lFilterEvaluator.evaluate(lFunctionEntryFilter);
 
     System.out.println(lFilteredTargetGraph);
 
     // check caching
-    assertTrue(lFilteredTargetGraph == lTargetGraph.apply(lFunctionEntryFilter));
+    assertTrue(lFilteredTargetGraph == lFilterEvaluator.evaluate(lFunctionEntryFilter));
 
     Filter lFunctionEntryFilter2 = new FunctionEntry("func");
 
     // caching should also work with logically equal filters
-    assertTrue(lFilteredTargetGraph == lTargetGraph.apply(lFunctionEntryFilter2));
+    assertTrue(lFilteredTargetGraph == lFilterEvaluator.evaluate(lFunctionEntryFilter2));
   }
 
   @Test
@@ -407,18 +418,20 @@ public class TargetGraphTest {
     TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
 
     Filter lLineFilter = new Line(102);
+    
+    FilterEvaluator lFilterEvaluator = new FilterEvaluator(lTargetGraph);
 
-    TargetGraph lFilteredTargetGraph = lTargetGraph.apply(lLineFilter);
+    TargetGraph lFilteredTargetGraph = lFilterEvaluator.evaluate(lLineFilter);
 
     System.out.println(lFilteredTargetGraph);
 
     // check caching
-    assertTrue(lFilteredTargetGraph == lTargetGraph.apply(lLineFilter));
+    assertTrue(lFilteredTargetGraph == lFilterEvaluator.evaluate(lLineFilter));
 
     Filter lLineFilter2 = new Line(102);
 
     // caching should also work with logically equal filters
-    assertTrue(lFilteredTargetGraph == lTargetGraph.apply(lLineFilter2));
+    assertTrue(lFilteredTargetGraph == lFilterEvaluator.evaluate(lLineFilter2));
   }
 
   @Test
@@ -438,7 +451,9 @@ public class TargetGraphTest {
 
     States lStates = new States(lFunctionFilter, new Predicates());
 
-    Set<? extends TestGoal> lTestGoals = lTargetGraph.apply(lStates);
+    CoverageSpecificationEvaluator lEvaluator = new CoverageSpecificationEvaluator(lTargetGraph);
+    
+    Set<? extends TestGoal> lTestGoals = lEvaluator.evaluate(lStates);
 
     System.out.println(lTestGoals);
   }
@@ -459,8 +474,10 @@ public class TargetGraphTest {
     Filter lFunctionFilter = new Function("func");
 
     Edges lEdges = new Edges(lFunctionFilter, new Predicates());
-
-    Set<? extends TestGoal> lTestGoals = lTargetGraph.apply(lEdges);
+    
+    CoverageSpecificationEvaluator lEvaluator = new CoverageSpecificationEvaluator(lTargetGraph);
+    
+    Set<? extends TestGoal> lTestGoals = lEvaluator.evaluate(lEdges);
 
     System.out.println(lTestGoals);
   }
@@ -481,8 +498,10 @@ public class TargetGraphTest {
     Filter lFunctionFilter = new Function("func");
 
     Paths lPaths = new Paths(lFunctionFilter, 2, new Predicates());
+    
+    CoverageSpecificationEvaluator lEvaluator = new CoverageSpecificationEvaluator(lTargetGraph);
 
-    Set<? extends TestGoal> lTestGoals = lTargetGraph.apply(lPaths);
+    Set<? extends TestGoal> lTestGoals = lEvaluator.evaluate(lPaths);
 
     System.out.println(lTestGoals);
   }
@@ -501,8 +520,10 @@ public class TargetGraphTest {
     TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
 
     Paths lPaths = new Paths(Identity.getInstance(), 2, new Predicates());
+    
+    CoverageSpecificationEvaluator lEvaluator = new CoverageSpecificationEvaluator(lTargetGraph);
 
-    Set<? extends TestGoal> lTestGoals = lTargetGraph.apply(lPaths);
+    Set<? extends TestGoal> lTestGoals = lEvaluator.evaluate(lPaths);
 
     System.out.println(lTestGoals);
   }
@@ -526,7 +547,9 @@ public class TargetGraphTest {
 
     org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.coverage.Union lUnion = new org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.coverage.Union(lEdges, lStates);
 
-    Set<? extends TestGoal> lTestGoals = lTargetGraph.apply(lUnion);
+    CoverageSpecificationEvaluator lEvaluator = new CoverageSpecificationEvaluator(lTargetGraph);
+    
+    Set<? extends TestGoal> lTestGoals = lEvaluator.evaluate(lUnion);
 
     System.out.println(lTestGoals);
   }

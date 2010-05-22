@@ -28,8 +28,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -45,643 +43,15 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAExitNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
-import org.sosy_lab.cpachecker.fllesh.fql.backend.testgoals.DefaultTestGoalVisitor;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.testgoals.EdgeSequence;
-import org.sosy_lab.cpachecker.fllesh.fql.backend.testgoals.TestGoal;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.DefaultASTVisitor;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.coverage.ConditionalCoverage;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.coverage.Coverage;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.coverage.Edges;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.coverage.Paths;
-import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.coverage.States;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.predicate.Predicate;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.predicate.Predicates;
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.BasicBlockEntry;
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Column;
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Complement;
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Compose;
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.ConditionEdge;
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.ConditionGraph;
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.DecisionEdge;
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.EnclosingScopes;
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Expression;
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.File;
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Filter;
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.FilterVisitor;
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Function;
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.FunctionCall;
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.FunctionCalls;
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.FunctionEntry;
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.FunctionExit;
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Identity;
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Intersection;
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Label;
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Line;
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Predication;
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.RegularExpression;
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.SetMinus;
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Union;
 
 public class TargetGraph {
-  private class FilterEvaluator implements FilterVisitor<TargetGraph> {
-
-    private Map<Filter, TargetGraph> mCache;
-
-    public FilterEvaluator() {
-      mCache = new HashMap<Filter, TargetGraph>();
-    }
-
-    @Override
-    public TargetGraph visit(Complement pComplement) {
-      assert(pComplement != null);
-
-      if (mCache.containsKey(pComplement)) {
-        return mCache.get(pComplement);
-      }
-      else {
-        Filter lFilter = pComplement.getFilter();
-
-        TargetGraph lResult = TargetGraph.applyMinusFilter(mSelf, mSelf.apply(lFilter));
-
-        mCache.put(pComplement, lResult);
-
-        return lResult;
-      }
-    }
-
-    @Override
-    public TargetGraph visit(Compose pCompose) {
-      assert(pCompose != null);
-
-      if (mCache.containsKey(pCompose)) {
-        return mCache.get(pCompose);
-      }
-      else {
-        TargetGraph lResult = mSelf.apply(pCompose.getFilterAppliedFirst()).apply(pCompose.getFilterAppliedSecond());
-
-        mCache.put(pCompose, lResult);
-
-        return lResult;
-      }
-    }
-
-    @Override
-    public TargetGraph visit(Identity pIdentity) {
-      return mSelf;
-    }
-
-    @Override
-    public TargetGraph visit(Intersection pIntersection) {
-      assert(pIntersection != null);
-
-      if (mCache.containsKey(pIntersection)) {
-        return mCache.get(pIntersection);
-      }
-      else {
-        TargetGraph lGraph1 = mSelf.apply(pIntersection.getFirstFilter());
-        TargetGraph lGraph2 = mSelf.apply(pIntersection.getSecondFilter());
-
-        TargetGraph lResult = TargetGraph.applyIntersectionFilter(lGraph1, lGraph2);
-
-        mCache.put(pIntersection, lResult);
-
-        return lResult;
-      }
-    }
-
-    @Override
-    public TargetGraph visit(SetMinus pSetMinus) {
-      assert(pSetMinus != null);
-
-      if (mCache.containsKey(pSetMinus)) {
-        return mCache.get(pSetMinus);
-      }
-      else {
-        System.out.println("SETMINUS");
-
-        TargetGraph lGraph1 = mSelf.apply(pSetMinus.getFirstFilter());
-        TargetGraph lGraph2 = mSelf.apply(pSetMinus.getSecondFilter());
-
-        System.out.println(lGraph1);
-
-        System.out.println("*****************");
-
-        System.out.println(lGraph2);
-
-        TargetGraph lResult = TargetGraph.applyMinusFilter(lGraph1, lGraph2);
-
-        System.out.println("*****************");
-
-        System.out.println(lResult);
-
-        mCache.put(pSetMinus, lResult);
-
-        return lResult;
-      }
-    }
-
-    @Override
-    public TargetGraph visit(Union pUnion) {
-      assert(pUnion != null);
-
-      if (mCache.containsKey(pUnion)) {
-        return mCache.get(pUnion);
-      }
-      else {
-        TargetGraph lGraph1 = mSelf.apply(pUnion.getFirstFilter());
-        TargetGraph lGraph2 = mSelf.apply(pUnion.getSecondFilter());
-
-        TargetGraph lResult = TargetGraph.applyUnionFilter(lGraph1, lGraph2);
-
-        mCache.put(pUnion, lResult);
-
-        return lResult;
-      }
-    }
-
-    @Override
-    public TargetGraph visit(Function pFunc) {
-      assert(pFunc != null);
-
-      if (mCache.containsKey(pFunc)) {
-        return mCache.get(pFunc);
-      }
-      else {
-        TargetGraph lResult = TargetGraph.applyFunctionNameFilter(mSelf, pFunc.getFunctionName());
-
-        mCache.put(pFunc, lResult);
-
-        return lResult;
-      }
-    }
-
-    @Override
-    public TargetGraph visit(FunctionCall pFunctionCall) {
-      assert(pFunctionCall != null);
-
-      if (mCache.containsKey(pFunctionCall)) {
-        return mCache.get(pFunctionCall);
-      }
-      else {
-        MaskFunctor<Node, Edge> lMaskFunctor = new FunctionCallMaskFunctor(pFunctionCall.getFunctionName());
-
-        TargetGraph lResult = TargetGraph.applyStandardEdgeBasedFilter(mSelf, lMaskFunctor);
-
-        mCache.put(pFunctionCall, lResult);
-
-        return lResult;
-      }
-    }
-
-    @Override
-    public TargetGraph visit(FunctionCalls pFunctionCalls) {
-      assert(pFunctionCalls != null);
-
-      if (mCache.containsKey(pFunctionCalls)) {
-        return mCache.get(pFunctionCalls);
-      }
-      else {
-        TargetGraph lResult = TargetGraph.applyStandardEdgeBasedFilter(mSelf, FunctionCallsMaskFunctor.getInstance());
-
-        mCache.put(pFunctionCalls, lResult);
-
-        return  lResult;
-      }
-    }
-
-    @Override
-    public TargetGraph visit(FunctionEntry pEntry) {
-      assert(pEntry != null);
-
-      if (mCache.containsKey(pEntry)) {
-        return mCache.get(pEntry);
-      }
-      else {
-        MaskFunctor<Node, Edge> lMaskFunctor = new FunctionEntryMaskFunctor(pEntry.getFunctionName());
-
-        TargetGraph lResult = TargetGraph.applyStandardEdgeBasedFilter(mSelf, lMaskFunctor);
-
-        mCache.put(pEntry, lResult);
-
-        return lResult;
-      }
-    }
-
-    @Override
-    public TargetGraph visit(Line pLine) {
-      assert(pLine != null);
-
-      if (mCache.containsKey(pLine)) {
-        return mCache.get(pLine);
-      }
-      else {
-        MaskFunctor<Node, Edge> lMaskFunctor = new LineNumberMaskFunctor(pLine.getLine());
-
-        TargetGraph lResult = TargetGraph.applyStandardEdgeBasedFilter(mSelf, lMaskFunctor);
-
-        mCache.put(pLine, lResult);
-
-        return lResult;
-      }
-    }
-
-    @Override
-    public TargetGraph visit(File pFileFilter) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public TargetGraph visit(BasicBlockEntry pBasicBlockEntry) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public TargetGraph visit(ConditionEdge pConditionEdge) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public TargetGraph visit(ConditionGraph pConditionGraph) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public TargetGraph visit(DecisionEdge pDecisionEdge) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public TargetGraph visit(Column pColumn) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public TargetGraph visit(FunctionExit pExit) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public TargetGraph visit(Label pLabel) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public TargetGraph visit(Expression pExpression) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public TargetGraph visit(RegularExpression pRegularExpression) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public TargetGraph visit(EnclosingScopes pEnclosingScopes) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public TargetGraph visit(Predication pPredication) {
-      throw new UnsupportedOperationException();
-    }
-
-  }
-
-  private class CoverageSpecificationEvaluator extends DefaultASTVisitor<Set<? extends TestGoal>> {
-
-    private class TestGoalPredicator extends DefaultTestGoalVisitor<TestGoal> {
-
-      private Predicates mPreconditions;
-      private Predicates mPostconditions;
-
-      public TestGoalPredicator(Predicates pPreconditions, Predicates pPostconditions) {
-        assert(pPreconditions != null);
-        assert(pPostconditions != null);
-
-        mPreconditions = pPreconditions;
-        mPostconditions = pPostconditions;
-      }
-
-      private Node getPredicatedNode(Node pNode, Predicates pPredicates) {
-        assert(pNode != null);
-        assert(pPredicates != null);
-
-        if (pPredicates.isEmpty()) {
-          return pNode;
-        }
-        else {
-          Node lNode = new Node(pNode);
-
-          for (Predicate lPredicate : pPredicates) {
-            lNode.addPredicate(lPredicate, true);
-          }
-
-          return lNode;
-        }
-      }
-
-      @Override
-      public Edge visit(Edge pEdge) {
-        assert(pEdge != null);
-
-        Node lSource = pEdge.getSource();
-        Node lTarget = pEdge.getTarget();
-        CFAEdge lCFAEdge = pEdge.getCFAEdge();
-
-        Node lNewSource = getPredicatedNode(lSource, mPreconditions);
-
-        Node lNewTarget = getPredicatedNode(lTarget, mPostconditions);
-
-        return new Edge(lNewSource, lNewTarget, lCFAEdge);
-      }
-
-      @Override
-      public EdgeSequence visit(EdgeSequence pEdgeSequence) {
-        assert(pEdgeSequence != null);
-
-        assert(pEdgeSequence.size() > 1);
-
-        Edge lFirstEdge = pEdgeSequence.get(0);
-        Edge lLastEdge = pEdgeSequence.get(pEdgeSequence.size() - 1);
-
-
-        Edge lNewFirstEdge;
-
-        if (mPreconditions.isEmpty()) {
-          lNewFirstEdge = lFirstEdge;
-        }
-        else {
-          Node lFirstNode = lFirstEdge.getSource();
-
-          Node lNewFirstNode = getPredicatedNode(lFirstNode, mPreconditions);
-
-          lNewFirstEdge = new Edge(lNewFirstNode, lFirstEdge.getTarget(), lFirstEdge.getCFAEdge());
-        }
-
-        Edge lNewLastEdge;
-
-        if (mPostconditions.isEmpty()) {
-          lNewLastEdge = lLastEdge;
-        }
-        else {
-          Node lLastNode = lLastEdge.getTarget();
-
-          Node lNewLastNode = getPredicatedNode(lLastNode, mPostconditions);
-
-          lNewLastEdge = new Edge(lLastEdge.getSource(), lNewLastNode, lLastEdge.getCFAEdge());
-        }
-
-        List<Edge> lEdgeSequence = new LinkedList<Edge>();
-
-        lEdgeSequence.add(lNewFirstEdge);
-
-        for (int lIndex = 1; lIndex < pEdgeSequence.size() - 1; lIndex++) {
-          lEdgeSequence.add(pEdgeSequence.get(lIndex));
-        }
-
-        lEdgeSequence.add(lNewLastEdge);
-
-        return new EdgeSequence(lEdgeSequence);
-      }
-
-      @Override
-      public Node visit(Node pNode) {
-        assert(pNode != null);
-
-        Node lNode = new Node(pNode);
-
-        for (Predicate lPredicate : mPreconditions) {
-          lNode.addPredicate(lPredicate, true);
-        }
-
-        for (Predicate lPredicate : mPostconditions) {
-          lNode.addPredicate(lPredicate, true);
-        }
-
-        return lNode;
-      }
-
-    }
-
-    @Override
-    public Set<? extends TestGoal> visit(ConditionalCoverage pConditionalCoverage) {
-      assert(pConditionalCoverage != null);
-
-      Predicates lPreconditions = pConditionalCoverage.getPreconditions();
-      Predicates lPostconditions = pConditionalCoverage.getPostconditions();
-
-      Coverage lCoverage = pConditionalCoverage.getCoverage();
-
-      Set<? extends TestGoal> lTestGoals = mSelf.apply(lCoverage);
-
-      Set<TestGoal> lPredicatedTestGoals = new HashSet<TestGoal>();
-
-      TestGoalPredicator lPredicator = new TestGoalPredicator(lPreconditions, lPostconditions);
-
-      for (TestGoal lTestGoal : lTestGoals) {
-        lPredicatedTestGoals.add(lTestGoal.accept(lPredicator));
-      }
-
-      return lPredicatedTestGoals;
-    }
-
-    @Override
-    public Set<? extends TestGoal> visit(Edges pEdges) {
-      assert(pEdges != null);
-
-      Filter lFilter = pEdges.getFilter();
-      Predicates lPredicates = pEdges.getPredicates();
-
-      TargetGraph lFilteredTargetGraph = mSelf.apply(lFilter);
-      TargetGraph lPredicatedTargetGraph = TargetGraph.applyPredication(lFilteredTargetGraph, lPredicates);
-
-      return lPredicatedTargetGraph.mGraph.edgeSet();
-    }
-
-    @Override
-    public Set<? extends TestGoal> visit(Paths pPaths) {
-      assert(pPaths != null);
-
-      Filter lFilter = pPaths.getFilter();
-      Predicates lPredicates = pPaths.getPredicates();
-
-      TargetGraph lFilteredTargetGraph = mSelf.apply(lFilter);
-      TargetGraph lPredicatedTargetGraph = TargetGraph.applyPredication(lFilteredTargetGraph, lPredicates);
-
-      Iterator<Node> lInitialNodesIterator = lPredicatedTargetGraph.getInitialNodes();
-
-      HashSet<TestGoal> lTestGoals = new HashSet<TestGoal>();
-
-      while (lInitialNodesIterator.hasNext()) {
-        Node lInitialNode = lInitialNodesIterator.next();
-
-        Set<Edge> lOutgoingEdges = lPredicatedTargetGraph.mGraph.outgoingEdgesOf(lInitialNode);
-
-        if (lOutgoingEdges.size() == 0) {
-          lTestGoals.add(lInitialNode);
-        }
-        else {
-          // enumerate all k-bounded paths starting in lInitialNode
-          HashMap<Node, Integer> lNumberOfOccurrences = new HashMap<Node, Integer>();
-
-          lNumberOfOccurrences.put(lInitialNode, 1);
-
-          LinkedList<Iterator<Edge>> lIteratorStack = new LinkedList<Iterator<Edge>>();
-
-          lIteratorStack.addFirst(lOutgoingEdges.iterator());
-
-          LinkedList<Edge> lEdgeStack = new LinkedList<Edge>();
-
-          while (!lIteratorStack.isEmpty()) {
-            Iterator<Edge> lIterator = lIteratorStack.getLast();
-
-            if (lIterator.hasNext()) {
-              Edge lEdge = lIterator.next();
-
-              lEdgeStack.addLast(lEdge);
-
-              Node lTarget = lEdge.getTarget();
-
-              int lOccurrences;
-
-              if (lNumberOfOccurrences.containsKey(lTarget)) {
-                lOccurrences = lNumberOfOccurrences.get(lTarget);
-
-                lOccurrences++;
-              }
-              else {
-                lOccurrences = 1;
-              }
-
-              if (lOccurrences > pPaths.getBound()) {
-                lEdgeStack.removeLast();
-                lNumberOfOccurrences.put(lTarget, lOccurrences - 1);
-
-                switch (lEdgeStack.size()) {
-                case 0:
-                  lTestGoals.add(lInitialNode);
-                  break;
-                case 1:
-                  lTestGoals.add(lEdgeStack.getFirst());
-                  break;
-                default:
-                  lTestGoals.add(new EdgeSequence(lEdgeStack));
-                  break;
-                }
-              }
-              else {
-                // add iterator to stack
-                Iterator<Edge> lNextIterator = lPredicatedTargetGraph.mGraph.outgoingEdgesOf(lTarget).iterator();
-
-                if (lNextIterator.hasNext()) {
-                  // update occurrences
-                  lNumberOfOccurrences.put(lTarget, lOccurrences);
-
-                  // add to stack
-                  lIteratorStack.addLast(lNextIterator);
-                }
-                else {
-                  assert(lEdgeStack.size() > 0);
-
-                  if (lEdgeStack.size() == 1) {
-                    lTestGoals.add(lEdge);
-                  }
-                  else {
-                    lTestGoals.add(new EdgeSequence(lEdgeStack));
-                  }
-
-                  lEdgeStack.removeLast();
-                }
-              }
-            }
-            else {
-              lIteratorStack.removeLast();
-
-              // first iterator is not associated with an edge,
-              // so remove only edge if it is not the first one
-              if (lIteratorStack.size() > 0) {
-                Edge lEdge = lEdgeStack.getLast();
-                Node lTarget = lEdge.getTarget();
-                int lOccurrences = lNumberOfOccurrences.get(lTarget);
-                lNumberOfOccurrences.put(lTarget, lOccurrences - 1);
-
-                lEdgeStack.removeLast();
-              }
-            }
-          }
-        }
-      }
-
-      return lTestGoals;
-    }
-
-    @Override
-    public Set<? extends TestGoal> visit(States pStates) {
-      assert(pStates != null);
-
-      Filter lFilter = pStates.getFilter();
-      Predicates lPredicates = pStates.getPredicates();
-
-      TargetGraph lFilteredTargetGraph = mSelf.apply(lFilter);
-      TargetGraph lPredicatedTargetGraph = TargetGraph.applyPredication(lFilteredTargetGraph, lPredicates);
-
-      return lPredicatedTargetGraph.mGraph.vertexSet();
-    }
-
-    @Override
-    public Set<? extends TestGoal> visit(org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.coverage.Union pUnion) {
-      assert(pUnion != null);
-
-      Coverage lLeftCoverage = pUnion.getLeftCoverage();
-      Coverage lRightCoverage = pUnion.getRightCoverage();
-
-      assert(lLeftCoverage != null);
-      assert(lRightCoverage != null);
-
-      Set<? extends TestGoal> lFirstTestGoalSet = mSelf.apply(lLeftCoverage);
-      Set<? extends TestGoal> lSecondTestGoalSet = mSelf.apply(lRightCoverage);
-
-      Set<TestGoal> lResult = new HashSet<TestGoal>();
-
-      lResult.addAll(lFirstTestGoalSet);
-      lResult.addAll(lSecondTestGoalSet);
-
-      return lResult;
-    }
-
-    @Override
-    public Set<? extends TestGoal> visit(org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.coverage.Intersection pIntersection) {
-      // TODO Auto-generated method stub
-      return super.visit(pIntersection);
-    }
-
-    @Override
-    public Set<? extends TestGoal> visit(org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.coverage.SetMinus pSetMinus) {
-      // TODO Auto-generated method stub
-      return super.visit(pSetMinus);
-    }
-
-  }
-
-  public TargetGraph apply(Filter pFilter) {
-    assert(pFilter != null);
-
-    return pFilter.accept(mFilterEvaluator);
-  }
-
-  public Set<? extends TestGoal> apply(Coverage pCoverageSpecification) {
-    assert(pCoverageSpecification != null);
-
-    return pCoverageSpecification.accept(mCoverageSpecificationEvaluator);
-  }
-
-  private FilterEvaluator mFilterEvaluator = new FilterEvaluator();
-  private CoverageSpecificationEvaluator mCoverageSpecificationEvaluator = new CoverageSpecificationEvaluator();
 
   private Set<Node> mInitialNodes;
   private Set<Node> mFinalNodes;
   private DirectedGraph<Node, Edge> mGraph;
-  private TargetGraph mSelf = this;
 
   private TargetGraph(Set<Node> pInitialNodes, Set<Node> pFinalNodes, DirectedGraph<Node, Edge> pGraph) {
     assert(pInitialNodes != null);
@@ -693,8 +63,8 @@ public class TargetGraph {
     mGraph = pGraph;
   }
 
-  /* copy constructor */
-  private TargetGraph(TargetGraph pTargetGraph) {
+  /** copy constructor */
+  public TargetGraph(TargetGraph pTargetGraph) {
     assert(pTargetGraph != null);
 
     mInitialNodes = new HashSet<Node>(pTargetGraph.mInitialNodes);
@@ -713,6 +83,20 @@ public class TargetGraph {
     }
   }
   
+  public TargetGraph(Edge pEdge) {
+    assert(pEdge != null);
+    
+    Node lSourceNode = new Node(pEdge.getSource());
+    Node lTargetNode = new Node(pEdge.getTarget());
+    
+    mInitialNodes = Collections.singleton(lSourceNode);
+    mFinalNodes = Collections.singleton(lTargetNode);
+    
+    mGraph = new DefaultDirectedGraph<Node, Edge>(Edge.class);
+    
+    new Edge(lSourceNode, lTargetNode, pEdge.getCFAEdge(), mGraph);
+  }
+  
   public Set<Node> getNodes() {
     return mGraph.vertexSet();
   }
@@ -720,18 +104,17 @@ public class TargetGraph {
   public Set<Edge> getEdges() {
     return mGraph.edgeSet();
   }
+  
+  public Set<Edge> getOutgoingEdges(Node pNode) {
+    return mGraph.outgoingEdgesOf(pNode);
+  }
+  
+  public Iterator<Node> getInitialNodes() {
+    return mInitialNodes.iterator();
+  }
 
-  public static TargetGraph createTargetGraph(Edge pEdge) {
-    assert(pEdge != null);
-
-    Node lSourceNode = new Node(pEdge.getSource());
-    Node lTargetNode = new Node(pEdge.getTarget());
-
-    DirectedGraph<Node, Edge> lGraph = new DefaultDirectedGraph<Node, Edge>(Edge.class);
-
-    new Edge(lSourceNode, lTargetNode, pEdge.getCFAEdge(), lGraph);
-
-    return new TargetGraph(Collections.singleton(lSourceNode), Collections.singleton(lTargetNode), lGraph);
+  public Iterator<Node> getFinalNodes() {
+    return mFinalNodes.iterator();
   }
 
   public static TargetGraph createTargetGraph(EdgeSequence pEdgeSequence) {
@@ -893,12 +276,6 @@ public class TargetGraph {
 
     TargetGraph lCopy = new TargetGraph(pTargetGraph1);
 
-    /*lCopy.mInitialNodes.removeAll(pTargetGraph2.mInitialNodes);
-    lCopy.mFinalNodes.removeAll(pTargetGraph2.mFinalNodes);
-
-    lCopy.mGraph.removeAllEdges(pTargetGraph2.mGraph.edgeSet());
-    lCopy.mGraph.removeAllVertices(pTargetGraph2.mGraph.vertexSet());*/
-
     lCopy.mGraph.removeAllEdges(pTargetGraph2.mGraph.edgeSet());
 
     for (Node lNode : pTargetGraph2.mGraph.vertexSet()) {
@@ -988,14 +365,6 @@ public class TargetGraph {
     }
 
     return lResultGraph;
-  }
-
-  public Iterator<Node> getInitialNodes() {
-    return mInitialNodes.iterator();
-  }
-
-  public Iterator<Node> getFinalNodes() {
-    return mFinalNodes.iterator();
   }
 
   private static void createTargetGraphFromCFA(CFANode pInitialNode, Set<Node> pInitialNodes, Set<Node> pFinalNodes, DirectedGraph<Node, Edge> pGraph) {

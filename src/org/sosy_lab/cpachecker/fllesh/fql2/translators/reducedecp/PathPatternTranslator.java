@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.fllesh.cpa.edgevisit.Annotations;
 import org.sosy_lab.cpachecker.fllesh.ecp.reduced.Pattern;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.Edge;
+import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.FilterEvaluator;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.TargetGraph;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Edges;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Nodes;
@@ -55,6 +56,7 @@ public class PathPatternTranslator implements Annotations {
   private Map<CFAEdge, String> mMapping;
   private Set<CFAEdge> mCFAEdges;
   private Visitor mVisitor;
+  private FilterEvaluator mFilterEvaluator;
 
   public PathPatternTranslator(TargetGraph pTargetGraph) {
     mTargetGraph = pTargetGraph;
@@ -69,6 +71,8 @@ public class PathPatternTranslator implements Annotations {
     }
 
     mVisitor = new Visitor();
+    
+    mFilterEvaluator = new FilterEvaluator(pTargetGraph);
   }
 
   public Set<CFAEdge> getCFAEdges() {
@@ -81,6 +85,10 @@ public class PathPatternTranslator implements Annotations {
 
   public Pattern translate(PathPattern pPattern) {
     return pPattern.accept(mVisitor);
+  }
+  
+  public FilterEvaluator getFilterEvaluator() {
+    return mFilterEvaluator;
   }
 
   private class Visitor implements PathPatternVisitor<Pattern> {
@@ -110,7 +118,7 @@ public class PathPatternTranslator implements Annotations {
 
     @Override
     public Pattern visit(Edges pEdges) {
-      TargetGraph lFilteredTargetGraph = mTargetGraph.apply(pEdges.getFilter());
+      TargetGraph lFilteredTargetGraph = mFilterEvaluator.evaluate(pEdges.getFilter());
 
       Set<CFAEdge> lCFAEdges = new HashSet<CFAEdge>();
 

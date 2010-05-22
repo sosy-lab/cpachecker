@@ -30,6 +30,7 @@ import java.util.Set;
 import org.sosy_lab.common.Pair;
 
 import org.sosy_lab.cpachecker.fllesh.fql.backend.pathmonitor.Automaton;
+import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.CoverageSpecificationEvaluator;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.TargetGraph;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.coverage.Coverage;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.coverage.Sequence;
@@ -149,7 +150,9 @@ public class CoverageSequence implements Iterable<Pair<Automaton, Set<? extends 
 
         Automaton lAutomaton = Automaton.create(lMonitor, pTargetGraph);
 
-        Set<? extends TestGoal> lTestGoals = pTargetGraph.apply(lCoverageSpecification);
+        CoverageSpecificationEvaluator lEvaluator = new CoverageSpecificationEvaluator(pTargetGraph);
+        
+        Set<? extends TestGoal> lTestGoals = lEvaluator.evaluate(lCoverageSpecification);
 
         lCoverageSequence.mSequence.add(new Pair<Automaton, Set<? extends TestGoal>>(lAutomaton, lTestGoals));
       }
@@ -162,7 +165,9 @@ public class CoverageSequence implements Iterable<Pair<Automaton, Set<? extends 
     }
     else {
       // simple coverage specification
-      Set<? extends TestGoal> lTestGoals = pTargetGraph.apply(pCoverageSpecification);
+      CoverageSpecificationEvaluator lEvaluator = new CoverageSpecificationEvaluator(pTargetGraph);
+      
+      Set<? extends TestGoal> lTestGoals = lEvaluator.evaluate(pCoverageSpecification);
 
       PathMonitor lIdStarMonitor = new LowerBound(new FilterMonitor(Identity.getInstance()), 0);
 

@@ -78,7 +78,7 @@ public class CoverageSpecificationTranslator {
 
     @Override
     public Set<ElementaryCoveragePattern> visit(Edges pEdges) {
-      TargetGraph lFilteredTargetGraph = mPathPatternTranslator.getTargetGraph().apply(pEdges.getFilter());
+      TargetGraph lFilteredTargetGraph = mPathPatternTranslator.getFilterEvaluator().evaluate(pEdges.getFilter());
 
       Set<ElementaryCoveragePattern> lResultSet = new HashSet<ElementaryCoveragePattern>();
 
@@ -97,7 +97,7 @@ public class CoverageSpecificationTranslator {
 
     @Override
     public Set<ElementaryCoveragePattern> visit(Nodes pNodes) {
-      TargetGraph lFilteredTargetGraph = mPathPatternTranslator.getTargetGraph().apply(pNodes.getFilter());
+      TargetGraph lFilteredTargetGraph = mPathPatternTranslator.getFilterEvaluator().evaluate(pNodes.getFilter());
 
       Set<ElementaryCoveragePattern> lResultSet = new HashSet<ElementaryCoveragePattern>();
 

@@ -13,6 +13,7 @@ import org.sosy_lab.cpachecker.fllesh.ecp.ECPRepetition;
 import org.sosy_lab.cpachecker.fllesh.ecp.ECPUnion;
 import org.sosy_lab.cpachecker.fllesh.ecp.ElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.Edge;
+import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.FilterEvaluator;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.Node;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.TargetGraph;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Edges;
@@ -29,14 +30,16 @@ public class PathPatternTranslator {
 
   private TargetGraph mTargetGraph;
   private Visitor mVisitor;
+  private FilterEvaluator mFilterEvaluator;
   
   public PathPatternTranslator(TargetGraph pTargetGraph) {
     mTargetGraph = pTargetGraph;
     mVisitor = new Visitor();
+    mFilterEvaluator = new FilterEvaluator(mTargetGraph);
   }
   
-  public TargetGraph getTargetGraph() {
-    return mTargetGraph;
+  public FilterEvaluator getFilterEvaluator() {
+    return mFilterEvaluator;
   }
   
   public ElementaryCoveragePattern translate(PathPattern pPattern) {
@@ -70,7 +73,7 @@ public class PathPatternTranslator {
 
     @Override
     public ElementaryCoveragePattern visit(Edges pEdges) {
-      TargetGraph lFilteredTargetGraph = mTargetGraph.apply(pEdges.getFilter());
+      TargetGraph lFilteredTargetGraph = mFilterEvaluator.evaluate(pEdges.getFilter());
 
       Set<CFAEdge> lCFAEdges = new HashSet<CFAEdge>();
 
@@ -89,7 +92,7 @@ public class PathPatternTranslator {
 
     @Override
     public ElementaryCoveragePattern visit(Nodes pNodes) {
-      TargetGraph lFilteredTargetGraph = mTargetGraph.apply(pNodes.getFilter());
+      TargetGraph lFilteredTargetGraph = mFilterEvaluator.evaluate(pNodes.getFilter());
 
       Set<CFANode> lCFANodes = new HashSet<CFANode>();
       
