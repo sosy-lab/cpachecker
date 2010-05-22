@@ -56,7 +56,7 @@ public class ECPConcatenation implements ElementaryCoveragePattern, Iterable<Ele
       return false;
     }
     
-    if (pOther instanceof ECPConcatenation) {
+    if (pOther.getClass().equals(getClass())) {
       ECPConcatenation lOther = (ECPConcatenation)pOther;
       
       return mSubpatterns.equals(lOther.mSubpatterns);

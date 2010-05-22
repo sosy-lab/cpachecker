@@ -79,7 +79,7 @@ public class ECPEdgeSet implements ECPAtom, Iterable<CFAEdge> {
       return false;
     }
     
-    if (pOther instanceof ECPEdgeSet) {
+    if (pOther.getClass().equals(getClass())) {
       ECPEdgeSet lOther = (ECPEdgeSet)pOther;
       
       return mCFAEdges.equals(lOther.mCFAEdges);

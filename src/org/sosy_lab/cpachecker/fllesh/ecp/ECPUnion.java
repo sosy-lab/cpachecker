@@ -56,7 +56,7 @@ public class ECPUnion implements ElementaryCoveragePattern , Iterable<Elementary
       return false;
     }
     
-    if (pOther instanceof ECPUnion) {
+    if (pOther.getClass().equals(getClass())) {
       ECPUnion lOther = (ECPUnion)pOther;
       
       return mSubpatterns.equals(lOther.mSubpatterns);

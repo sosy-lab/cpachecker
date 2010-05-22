@@ -22,7 +22,7 @@ public class ECPRepetition implements ElementaryCoveragePattern {
       return false;
     }
     
-    if (pOther instanceof ECPRepetition) {
+    if (pOther.getClass().equals(getClass())) {
       ECPRepetition lOther = (ECPRepetition)pOther;
       
       return mSubpattern.equals(lOther.mSubpattern);

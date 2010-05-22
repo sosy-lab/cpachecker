@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.fllesh.ecp.translators;
+package org.sosy_lab.cpachecker.fllesh.ecp.translators.observerautomaton;
 
 import java.io.File;
 import java.util.Set;
@@ -44,7 +44,7 @@ import org.sosy_lab.cpachecker.fllesh.fql2.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.fllesh.fql2.translators.ecp.CoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.fllesh.fql2.translators.ecp.PathPatternTranslator;
 
-public class TranslatorTest {
+public class ToControlAutomatonTranslatorTest {
 
   @Before
   public void tearDown() {
@@ -104,7 +104,9 @@ public class TranslatorTest {
     System.out.println("PASSING:");
     System.out.println(lPrettyPrinter.printPretty(lPassing));
     
-    System.out.println(Translator.translate(lPassing));
+    Wrapper lWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCPAchecker.getCFAMap(), lLogManager);
+
+    System.out.println(ToControlAutomatonTranslator.translate(lPassing, lWrapper.getAlphaEdge(), lWrapper.getOmegaEdge(), "PassingAutomaton"));
   }
 
   @Test
@@ -159,7 +161,9 @@ public class TranslatorTest {
     System.out.println("PASSING:");
     System.out.println(lPrettyPrinter.printPretty(lPassing));
     
-    System.out.println(Translator.translate(lPassing));
+    Wrapper lWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCPAchecker.getCFAMap(), lLogManager);
+
+    System.out.println(ToControlAutomatonTranslator.translate(lPassing, lWrapper.getAlphaEdge(), lWrapper.getOmegaEdge(), "PassingAutomaton"));
   }
   
   @Test
@@ -214,7 +218,9 @@ public class TranslatorTest {
     System.out.println("PASSING:");
     System.out.println(lPrettyPrinter.printPretty(lPassing));
     
-    System.out.println(Translator.translate(lPassing));
+    Wrapper lWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCPAchecker.getCFAMap(), lLogManager);
+
+    System.out.println(ToControlAutomatonTranslator.translate(lPassing, lWrapper.getAlphaEdge(), lWrapper.getOmegaEdge(), "PassingAutomaton"));
   }
   
   @Test
@@ -269,7 +275,9 @@ public class TranslatorTest {
     System.out.println("PASSING:");
     System.out.println(lPrettyPrinter.printPretty(lPassing));
     
-    System.out.println(Translator.translate(lPassing));
+    Wrapper lWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCPAchecker.getCFAMap(), lLogManager);
+
+    System.out.println(ToControlAutomatonTranslator.translate(lPassing, lWrapper.getAlphaEdge(), lWrapper.getOmegaEdge(), "PassingAutomaton"));
   }
   
   @Test
@@ -324,17 +332,9 @@ public class TranslatorTest {
     System.out.println("PASSING:");
     System.out.println(lPrettyPrinter.printPretty(lPassing));
     
-    Automaton<GuardedLabel> lInitialAutomaton = Translator.translate(lPassing);
-    
-    System.out.println(lInitialAutomaton);
-    
     Wrapper lWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCPAchecker.getCFAMap(), lLogManager);
-    
-    Automaton<GuardedLabel> lLambdaFreeAutomaton = Translator.removeLambdaEdges(lInitialAutomaton, lWrapper.getAlphaEdge(), lWrapper.getOmegaEdge());
-    System.out.println(AutomatonPrettyPrinter.print(lLambdaFreeAutomaton));
-    
-    Automaton<GuardedLabel> lNodeSetFreeAutomaton = Translator.removeNodeSetGuards(lLambdaFreeAutomaton);
-    System.out.println(AutomatonPrettyPrinter.print(lNodeSetFreeAutomaton));
+
+    System.out.println(ToControlAutomatonTranslator.translate(lPassing, lWrapper.getAlphaEdge(), lWrapper.getOmegaEdge(), "PassingAutomaton"));
   }
   
   @Test
@@ -389,18 +389,9 @@ public class TranslatorTest {
     System.out.println("PASSING:");
     System.out.println(lPrettyPrinter.printPretty(lPassing));
     
-    Automaton<GuardedLabel> lInitialAutomaton = Translator.translate(lPassing);
-    
-    System.out.println(lInitialAutomaton);
-    System.out.println(AutomatonPrettyPrinter.print(lInitialAutomaton));
-    
     Wrapper lWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCPAchecker.getCFAMap(), lLogManager);
-    
-    Automaton<GuardedLabel> lLambdaFreeAutomaton = Translator.removeLambdaEdges(lInitialAutomaton, lWrapper.getAlphaEdge(), lWrapper.getOmegaEdge());
-    System.out.println(AutomatonPrettyPrinter.print(lLambdaFreeAutomaton));
-    
-    Automaton<GuardedLabel> lNodeSetFreeAutomaton = Translator.removeNodeSetGuards(lLambdaFreeAutomaton);
-    System.out.println(AutomatonPrettyPrinter.print(lNodeSetFreeAutomaton));
+
+    System.out.println(ToControlAutomatonTranslator.translate(lPassing, lWrapper.getAlphaEdge(), lWrapper.getOmegaEdge(), "PassingAutomaton"));
   }
   
 }

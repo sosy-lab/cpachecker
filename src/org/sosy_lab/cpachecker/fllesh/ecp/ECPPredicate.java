@@ -28,7 +28,7 @@ public class ECPPredicate implements ECPGuard {
       return false;
     }
     
-    if (pOther instanceof ECPPredicate) {
+    if (pOther.getClass().equals(getClass())) {
       ECPPredicate lOther = (ECPPredicate)pOther;
       
       return mPredicate.equals(lOther.mPredicate);

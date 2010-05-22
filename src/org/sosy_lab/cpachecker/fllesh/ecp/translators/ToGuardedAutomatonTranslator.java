@@ -20,7 +20,7 @@ import org.sosy_lab.cpachecker.fllesh.ecp.ECPVisitor;
 import org.sosy_lab.cpachecker.fllesh.ecp.ElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.fllesh.ecp.reduced.Automaton;
 
-public class Translator {
+public class ToGuardedAutomatonTranslator {
   
   public static Automaton<GuardedLabel> translate(ElementaryCoveragePattern pPattern) {
     Visitor lVisitor = new Visitor();

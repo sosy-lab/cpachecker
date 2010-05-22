@@ -54,7 +54,7 @@ public class ECPNodeSet implements ECPGuard, Iterable<CFANode> {
       return false;
     }
     
-    if (pOther instanceof ECPNodeSet) {
+    if (pOther.getClass().equals(getClass())) {
       ECPNodeSet lECPNodeSet = (ECPNodeSet)pOther;
       
       return mCFANodes.equals(lECPNodeSet.mCFANodes); 
