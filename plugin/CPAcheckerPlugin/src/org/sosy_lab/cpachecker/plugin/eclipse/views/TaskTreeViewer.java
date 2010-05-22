@@ -1,5 +1,6 @@
 package org.sosy_lab.cpachecker.plugin.eclipse.views;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -86,25 +87,30 @@ public class TaskTreeViewer extends TreeViewer {
 
 	public class MyTreeContentProvider extends ArrayContentProvider implements ITreeContentProvider {
 
+		@Override
 		public Object[] getChildren(Object parent) {
 			if (parent instanceof Node) {
 				Node ex1 = (Node) parent;
 				if (ex1.getType() == NodeType.TASK) {
 					Task t = ((TaskNode)ex1).getTask();
+					
+					File outDir = t.getOutputDirectory();
 					IFile c = t.hasConfigurationFile() ? t.getConfigFile() : null;
 					ITranslationUnit u = ((TaskNode)ex1).getTask().getTranslationUnit();
 					if (c != null && u != null) {
-						return new Object[] {c, u};
+						return new Object[] {c, u, outDir };
 					} else if (c != null) {
-						return new Object[] {c};
+						return new Object[] {c, outDir };
 					} else {
-						return new Object[] {u};
+						return new Object[] {u, outDir };
 					}
 				} else if (ex1.getType() == NodeType.TOP) {
 					return ((TopNode)ex1).getChildren();
 				}
+			} else if (parent instanceof File) {
+				return ((File)parent).listFiles();
 			}
-			return new Object[0];
+			return super.getElements(parent);
 		}
 
 		public Object getParent(Object element) {
@@ -114,9 +120,18 @@ public class TaskTreeViewer extends TreeViewer {
 		}
 
 		public boolean hasChildren(Object element) {
-			if (!(element instanceof Node)) return false;
-			Node ex1 = (Node) element;
-			return ex1.getType()== NodeType.TOP || ex1.getType() == NodeType.TASK;
+			if (element instanceof Node) {
+				Node ex1 = (Node) element;
+				if (ex1.getType()== NodeType.TOP || ex1.getType() == NodeType.TASK) {
+					return true;
+				} else {
+					return false; 
+				}
+			} else if (element instanceof File) {
+				return ((File)element).isDirectory();
+			} else {
+				return false;
+			}
 		}
 	}
 
@@ -146,20 +161,27 @@ public class TaskTreeViewer extends TreeViewer {
 				return cLabelProvider.getImage(element);
 			} else if (element instanceof IFile) {
 				return configIcon;
-			}
-			return null;
+			} 
+			return super.getImage(element);
 		}
 		@Override
 		public String getText(Object element) {
-			if (!(element instanceof Node)) {
-				if (element instanceof ITranslationUnit) {
-					return cLabelProvider.getText(element);
-				} else if (element instanceof IFile && ((IFile)element).getFileExtension().equals("properties")) {
-					return ((IFile)element).getProjectRelativePath().toPortableString();
+			if (element instanceof Node) {
+				Node ex1 = (Node) element;
+				return ex1.getName();	
+			} else if (element instanceof ITranslationUnit) {
+				return cLabelProvider.getText(element);
+			} else if (element instanceof IFile && ((IFile)element).getFileExtension().equals("properties")) {
+				return ((IFile)element).getProjectRelativePath().toPortableString();
+			} else if (element instanceof File) {
+				if (((File)element).isDirectory()) {
+					return "ResultFiles: " + ((File)element).getName();
+				} else {
+					return ((File)element).getName();
 				}
+			} else {
+				return super.getText(element);
 			}
-			Node ex1 = (Node) element;
-			return ex1.getName();
 		}
 		@Override
 		public StyledString getStyledText(Object element) {

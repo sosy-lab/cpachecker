@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.plugin.eclipse.preferences;
 
 import org.eclipse.core.runtime.preferences.AbstractPreferenceInitializer;
 import org.eclipse.jface.preference.IPreferenceStore;
-
 import org.sosy_lab.cpachecker.plugin.eclipse.CPAcheckerPlugin;
 
 /**
@@ -43,6 +42,7 @@ public class PreferenceInitializer extends AbstractPreferenceInitializer {
 		IPreferenceStore store = CPAcheckerPlugin.getPlugin().getPreferenceStore();
 		// getClass().getProtectionDomain().getCodeSource().getLocation().getPath()
 		//String defaultPath = CPAcheckerPlugin.getWorkspace().getRoot().getProjectRelativePath().toPortableString();
-		store.setDefault(PreferenceConstants.P_STATS, "false");
+		store.setDefault(PreferenceConstants.P_STATS, false);
+		//store.setDefault(PreferenceConstants.P_RESULT_DIR, PreferenceConstants.P_RESULT_DIR_DEFAULT_VALUE);
 	}
 }

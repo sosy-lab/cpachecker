@@ -23,11 +23,12 @@
  */
 package org.sosy_lab.cpachecker.plugin.eclipse.preferences;
 
-import org.eclipse.jface.preference.*;
+import org.eclipse.jface.preference.BooleanFieldEditor;
+import org.eclipse.jface.preference.DirectoryFieldEditor;
+import org.eclipse.jface.preference.FieldEditorPreferencePage;
 import org.eclipse.jface.util.PropertyChangeEvent;
-import org.eclipse.ui.IWorkbenchPreferencePage;
 import org.eclipse.ui.IWorkbench;
-import org.sosy_lab.cpachecker.plugin.eclipse.preferences.PreferenceConstants;
+import org.eclipse.ui.IWorkbenchPreferencePage;
 import org.sosy_lab.cpachecker.plugin.eclipse.CPAcheckerPlugin;
 
 /**
@@ -63,10 +64,17 @@ public class CPAPreferencePage extends FieldEditorPreferencePage implements
 				getFieldEditorParent());
 		addField(editor);
 
+		/*DirectoryFieldEditor dirFieldEd = new DirectoryFieldEditor(
+				PreferenceConstants.P_RESULT_DIR,
+				"Directory where CPAchecker stores the Task Results (WS-relative)",
+				getFieldEditorParent());
+		dirFieldEd.setEmptyStringAllowed(false);*/
 		/*
 		 * fieldEditor = new FileFieldEditor(PreferenceConstants.P_PATH,
-		 * "&Directory preference:", getFieldEditorParent()); String[] ext =
-		 * {"*.properties"}; fieldEditor.setFileExtensions(ext);
+		 * "&Directory preference:", getFieldEditorParent()); 
+		 * String[] ext =
+		 * {"*.properties"}; 
+		 * fieldEditor.setFileExtensions(ext);
 		 * addField(fieldEditor);
 		 */
 	}

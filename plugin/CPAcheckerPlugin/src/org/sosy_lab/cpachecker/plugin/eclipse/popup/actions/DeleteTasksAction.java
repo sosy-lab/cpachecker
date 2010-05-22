@@ -1,5 +1,6 @@
 package org.sosy_lab.cpachecker.plugin.eclipse.popup.actions;
 
+import java.io.File;
 import java.util.List;
 
 import org.eclipse.jface.action.Action;
@@ -24,8 +25,36 @@ public class DeleteTasksAction extends Action {
 	public void run() {
 		if (MessageDialog.openQuestion(shell, "Deletion Confirmation", "Sure? \nTask cannot be restored, all Tasks have to be saved \n(we dont support undo)")) {
 			CPAcheckerPlugin.getPlugin().removeTasks(toDelete);
+			for (Task t : toDelete) {
+				if (!deleteDir(t.getOutputDirectory())) {
+					// TODO: Proper Error handling
+					System.out.println("Could not delete the Output Directory for Task " + t.getName());
+				}
+			}
 			TasksIO.saveTasks(CPAcheckerPlugin.getPlugin().getTasks());
 			CPAcheckerPlugin.getPlugin().fireTasksChanged();
 		}
+	}
+	private boolean deleteDir(File dir) {
+		if (!dir.exists()) return true;
+		boolean success = true;
+		File[] subFiles = dir.listFiles();
+		for (int i = 0; i < subFiles.length; i++) {
+			if (subFiles[i].exists()) {
+				if (subFiles[i].isDirectory()) {
+					if (!deleteDir(subFiles[i])) {
+						success = false;
+					}
+				}  else {
+					if (!subFiles[i].delete()) {
+						success = false;
+					}
+				}
+			}
+		}
+		if (!dir.delete()) {
+			success = false;
+		}
+		return success;
 	}
 }

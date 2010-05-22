@@ -1,6 +1,9 @@
 package org.sosy_lab.cpachecker.plugin.eclipse.editors.automatoneditor;
 
-import org.eclipse.jface.text.*;
+import org.eclipse.jface.text.BadLocationException;
+import org.eclipse.jface.text.IDocument;
+import org.eclipse.jface.text.ITextDoubleClickStrategy;
+import org.eclipse.jface.text.ITextViewer;
 
 public class AutomatonDoubleClickStrategy implements ITextDoubleClickStrategy {
 	protected ITextViewer fText;

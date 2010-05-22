@@ -30,13 +30,7 @@ public class PreferenceConstants {
 
 	public static final String P_STATS = "PrintStatistics";
 	
+	//public static final String P_RESULT_DIR = "ResultDirectoryRelativePath";
+	//public static final String P_RESULT_DIR_DEFAULT_VALUE = "CPAcheckerResultStore/";
 	
-	public static final String P_PATH = "what";
-
-	public static final String P_BOOLEAN = "booleanPreference";
-
-	public static final String P_CHOICE = "choicePreference";
-
-	public static final String P_STRING = "stringPreference";
-
 }

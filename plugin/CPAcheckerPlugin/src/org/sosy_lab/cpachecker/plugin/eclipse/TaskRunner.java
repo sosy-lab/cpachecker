@@ -11,6 +11,7 @@ import java.util.logging.StreamHandler;
 
 import org.eclipse.cdt.core.model.ITranslationUnit;
 import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.ui.console.ConsolePlugin;
 import org.eclipse.ui.console.IConsole;
@@ -70,7 +71,7 @@ public class TaskRunner {
 					+ t.getName());
 			Configuration config;
 			try {
-				config = t.loadConfig();
+				config = t.createConfig();
 				MessageConsoleStream outStream = con.newMessageStream();
 				LogManager logger = new LogManager(config, new StreamHandler(
 						outStream, new ConsoleLogFormatter()));
@@ -102,7 +103,7 @@ public class TaskRunner {
 						+ t.getName());
 				Configuration config;
 				try {
-					config = t.loadConfig();
+					config = t.createConfig();
 					MessageConsoleStream outStream = con.newMessageStream();
 					LogManager logger = new LogManager(config,
 							new StreamHandler(outStream,
@@ -199,7 +200,7 @@ public class TaskRunner {
 		private String name;
 		private ITranslationUnit sourceTranslationUnit = null;
 		private IFile configFile = null;
-		private Configuration config = null;
+		//private Configuration config = null;
 		private boolean isDirty = true;
 		private Result lastResult = Result.UNKNOWN;
 
@@ -255,22 +256,15 @@ public class TaskRunner {
 
 		}
 
-		/**
-		 * Assumes that configfile is not null
-		 * 
-		 * @return
-		 * @throws IOException
-		 * @throws CoreException
-		 */
-		public Configuration loadConfig() throws IOException, CoreException {
-			if (config == null) {
-				config = new Configuration(configFile.getContents(),
+		
+		public Configuration createConfig() throws IOException, CoreException {
+				Configuration config = new Configuration(configFile.getContents(),
 						Collections.<String, String> emptyMap());
 				String projectRoot = this.configFile.getProject().getLocation()
-						.toPortableString();
+						.toPortableString() + "/";
 				// config.setProperty("automatonAnalyis.rootPath", projectRoot);
-				String property = config
-						.getProperty("automatonAnalysis.inputFile");
+				String property = config.getProperty("automatonAnalysis.inputFile");
+				// TODO: handle multiple automaton files
 				if (property != null) {
 					File file = new File(property);
 					if (!file.isAbsolute()) {
@@ -278,17 +272,17 @@ public class TaskRunner {
 								projectRoot + property);
 					}
 				}
-				property = config.getProperty("output.path");
+				config.setProperty("output.path",  
+						this.getOutputDirectory().getAbsolutePath());
+				/*property = config.getProperty("output.path");
 				if (property != null) {
 					File file = new File(property);
 					if (!file.isAbsolute()) {
-						config.setProperty("output.path", projectRoot
-								+ property);
+						//config.setProperty("output.path", projectRoot + property);
 					}
 				} else {
 					config.setProperty("output.path", projectRoot);
-				}
-			}
+				}*/
 			return config;
 		}
 
@@ -311,7 +305,7 @@ public class TaskRunner {
 		 */
 		public boolean hasPreRunError() {
 			try {
-				if (configFile == null || loadConfig() == null) {
+				if (configFile == null || createConfig() == null) {
 					return true;
 				} else if (this.getTranslationUnit() == null) {
 					return true;
@@ -327,9 +321,6 @@ public class TaskRunner {
 		public String getErrorMessage() {
 			if (this.configFile == null) {
 				return "No configuration file was associated with this task!";
-			} else if (this.config == null) {
-				return "Could not parse the configuration file \""
-						+ this.configFile.getProjectRelativePath() + " \".";
 			} else if (this.getTranslationUnit() == null) {
 				return "No Source file was associated with this Task!";
 			} else {
@@ -359,11 +350,39 @@ public class TaskRunner {
 
 		public void setConfigFile(IFile member) {
 			this.configFile = member;
-			this.config = null;
 		}
 
 		public void setTranslationUnit(ITranslationUnit tu) {
 			this.sourceTranslationUnit = tu;
 		}
+		
+		/**Returns the File (a Directory) where the results of this Task should be saved.
+		 * @return
+		 */
+		public File getOutputDirectory() {
+			/*IPreferencesService service = Platform.getPreferencesService();
+			String value = service.getString(CPAcheckerPlugin.PLUGIN_ID,
+					PreferenceConstants.P_RESULT_DIR,
+					PreferenceConstants.P_RESULT_DIR_DEFAULT_VALUE, null);
+			IFolder outDir = ResourcesPlugin.getWorkspace().getRoot().getFolder(new Path(value));
+			assert outDir.exists() : "OutputDirectory of CPAchecker does not exist! Could not create Task Output dir.";
+			outDir = outDir.getFolder(this.getName());
+			if (create) {
+				try {
+					outDir.create(true, true, null);
+				} catch (CoreException e) {
+					e.printStackTrace();
+				}
+			}
+			// TODO: as this will be a directory we should escape characters that can not occur in directory paths
+			
+			return outDir;
+			*/
+			File file = new File(ResourcesPlugin.getWorkspace().getRoot().getLocation().toPortableString() + "/.metadata/.plugins/" 
+					+ CPAcheckerPlugin.PLUGIN_ID + "/results/" + this.getName() + "/");
+			file.mkdirs();
+			return file;
+		}
+		
 	}
 }
