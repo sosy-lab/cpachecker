@@ -16,8 +16,7 @@ import org.eclipse.jface.wizard.Wizard;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchWizard;
 import org.sosy_lab.cpachecker.plugin.eclipse.CPAcheckerPlugin;
-import org.sosy_lab.cpachecker.plugin.eclipse.TaskRunner;
-import org.sosy_lab.cpachecker.plugin.eclipse.TaskRunner.Task;
+import org.sosy_lab.cpachecker.plugin.eclipse.Task;
 
 
 public class NewTaskCreationWizard extends Wizard implements IWorkbenchWizard{
@@ -39,7 +38,7 @@ public class NewTaskCreationWizard extends Wizard implements IWorkbenchWizard{
 	    }
 	    
 		Task t;
-		t = new TaskRunner.Task(firstPage.getTaskName(),firstPage.getConfigFile() , source);
+		t = new Task(firstPage.getTaskName(),firstPage.getConfigFile() , source);
 		CPAcheckerPlugin.getPlugin().addTask(t);
 		return true;
 	}

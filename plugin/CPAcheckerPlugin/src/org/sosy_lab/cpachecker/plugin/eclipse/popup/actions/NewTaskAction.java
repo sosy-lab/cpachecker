@@ -13,7 +13,7 @@ import org.eclipse.ui.IActionDelegate;
 import org.eclipse.ui.IObjectActionDelegate;
 import org.eclipse.ui.IWorkbenchPart;
 import org.sosy_lab.cpachecker.plugin.eclipse.CPAcheckerPlugin;
-import org.sosy_lab.cpachecker.plugin.eclipse.TaskRunner.Task;
+import org.sosy_lab.cpachecker.plugin.eclipse.Task;
 
 public class NewTaskAction implements IObjectActionDelegate {
 

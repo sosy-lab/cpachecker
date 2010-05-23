@@ -26,7 +26,7 @@ import org.eclipse.ui.part.ViewPart;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.plugin.eclipse.CPAcheckerPlugin;
 import org.sosy_lab.cpachecker.plugin.eclipse.ITestListener;
-import org.sosy_lab.cpachecker.plugin.eclipse.TaskRunner.Task;
+import org.sosy_lab.cpachecker.plugin.eclipse.Task;
 import org.sosy_lab.cpachecker.plugin.eclipse.popup.actions.DeleteTasksAction;
 import org.sosy_lab.cpachecker.plugin.eclipse.popup.actions.RenameTasksAction;
 import org.sosy_lab.cpachecker.plugin.eclipse.popup.actions.RunMultipleTasksAction;

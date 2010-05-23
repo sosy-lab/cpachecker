@@ -28,7 +28,6 @@ import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.Path;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
-import org.sosy_lab.cpachecker.plugin.eclipse.TaskRunner.Task;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NamedNodeMap;
@@ -104,7 +103,7 @@ public class TasksIO {
 					}
 				}
 				assert (config != null || source != null) : "Task had neither a configFile nor a sourceFile defined";
-				Task t = new TaskRunner.Task(taskName, config, source);
+				Task t = new Task(taskName, config, source);
 				Node taskResultNode = nd.getAttributes().getNamedItem(LAST_RESULT_ATTR_NAME);
 				if (taskResultNode != null) {
 					t.setLastResult(CPAcheckerResult.Result.valueOf(taskResultNode.getNodeValue()));

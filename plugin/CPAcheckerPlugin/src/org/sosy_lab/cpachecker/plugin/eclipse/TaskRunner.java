@@ -1,17 +1,11 @@
 package org.sosy_lab.cpachecker.plugin.eclipse;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.logging.StreamHandler;
 
 import org.eclipse.cdt.core.model.ITranslationUnit;
-import org.eclipse.core.resources.IFile;
-import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.ui.console.ConsolePlugin;
 import org.eclipse.ui.console.IConsole;
@@ -24,7 +18,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.plugin.eclipse.preferences.PreferenceConstants;
 
 public class TaskRunner {
@@ -194,195 +187,5 @@ public class TaskRunner {
 				e.printStackTrace();
 			}			
 		}
-	}
-
-	public static class Task {
-		private String name;
-		private ITranslationUnit sourceTranslationUnit = null;
-		private IFile configFile = null;
-		//private Configuration config = null;
-		private boolean isDirty = true;
-		private Result lastResult = Result.UNKNOWN;
-
-		/**
-		 * One of the parameters configFile and source may be null.
-		 * 
-		 * @param taskName
-		 * @param configFile
-		 * @param source
-		 */
-		public Task(String taskName, IFile configFile, ITranslationUnit source) {
-			this.name = createUniqueName(taskName);
-			this.configFile = configFile;
-			this.sourceTranslationUnit = source;
-		}
-
-		public void setLastResult(Result result) {
-			this.lastResult = result;
-		}
-
-		public Result getLastResult() {
-			return this.lastResult;
-		}
-
-		public Task(String taskName, IFile configFile) {
-			this.name = createUniqueName(taskName);
-			this.configFile = configFile;
-		}
-
-		public Task(String taskName, ITranslationUnit source) {
-			this.name = createUniqueName(taskName);
-			this.sourceTranslationUnit = source;
-		}
-
-		private static String createUniqueName(String preferredName) {
-			List<Task> tasks = CPAcheckerPlugin.getPlugin().getTasks();
-			Set<String> takenNames = new HashSet<String>();
-			for (Task t : tasks) {
-				takenNames.add(t.getName());
-			}
-			if (takenNames.contains(preferredName)) {
-				int i = 1;
-				while (true) {
-					if (takenNames.contains(preferredName + " (" + i + ")")) {
-						i++;
-					} else {
-						return preferredName + " (" + i + ")";
-					}
-				}
-			} else {
-				return preferredName;
-			}
-
-		}
-
-		
-		public Configuration createConfig() throws IOException, CoreException {
-				Configuration config = new Configuration(configFile.getContents(),
-						Collections.<String, String> emptyMap());
-				String projectRoot = this.configFile.getProject().getLocation()
-						.toPortableString() + "/";
-				// config.setProperty("automatonAnalyis.rootPath", projectRoot);
-				String property = config.getProperty("automatonAnalysis.inputFile");
-				// TODO: handle multiple automaton files
-				if (property != null) {
-					File file = new File(property);
-					if (!file.isAbsolute()) {
-						config.setProperty("automatonAnalysis.inputFile",
-								projectRoot + property);
-					}
-				}
-				config.setProperty("output.path",  
-						this.getOutputDirectory().getAbsolutePath());
-				/*property = config.getProperty("output.path");
-				if (property != null) {
-					File file = new File(property);
-					if (!file.isAbsolute()) {
-						//config.setProperty("output.path", projectRoot + property);
-					}
-				} else {
-					config.setProperty("output.path", projectRoot);
-				}*/
-			return config;
-		}
-
-		public String getName() {
-			return name;
-		}
-
-		public IFile getConfigFile() {
-			return this.configFile;
-		}
-
-		public String getConfigFilePathProjRelative() {
-			return configFile.getProjectRelativePath().toPortableString();
-		}
-
-		/**
-		 * PreRunError == an error that does not allow the task to be run.
-		 * 
-		 * @return
-		 */
-		public boolean hasPreRunError() {
-			try {
-				if (configFile == null || createConfig() == null) {
-					return true;
-				} else if (this.getTranslationUnit() == null) {
-					return true;
-				}
-			} catch (IOException e) {
-				return true;
-			} catch (CoreException e) {
-				return true;
-			}
-			return false;
-		}
-
-		public String getErrorMessage() {
-			if (this.configFile == null) {
-				return "No configuration file was associated with this task!";
-			} else if (this.getTranslationUnit() == null) {
-				return "No Source file was associated with this Task!";
-			} else {
-				return "";
-			}
-		}
-
-		public ITranslationUnit getTranslationUnit() {
-			return this.sourceTranslationUnit;
-		}
-
-		public boolean hasConfigurationFile() {
-			return this.configFile != null;
-		}
-
-		public void setName(String newName) {
-			this.name = createUniqueName(newName);
-		}
-
-		public boolean isDirty() {
-			return this.isDirty;
-		}
-
-		public void setDirty(boolean b) {
-			this.isDirty = b;
-		}
-
-		public void setConfigFile(IFile member) {
-			this.configFile = member;
-		}
-
-		public void setTranslationUnit(ITranslationUnit tu) {
-			this.sourceTranslationUnit = tu;
-		}
-		
-		/**Returns the File (a Directory) where the results of this Task should be saved.
-		 * @return
-		 */
-		public File getOutputDirectory() {
-			/*IPreferencesService service = Platform.getPreferencesService();
-			String value = service.getString(CPAcheckerPlugin.PLUGIN_ID,
-					PreferenceConstants.P_RESULT_DIR,
-					PreferenceConstants.P_RESULT_DIR_DEFAULT_VALUE, null);
-			IFolder outDir = ResourcesPlugin.getWorkspace().getRoot().getFolder(new Path(value));
-			assert outDir.exists() : "OutputDirectory of CPAchecker does not exist! Could not create Task Output dir.";
-			outDir = outDir.getFolder(this.getName());
-			if (create) {
-				try {
-					outDir.create(true, true, null);
-				} catch (CoreException e) {
-					e.printStackTrace();
-				}
-			}
-			// TODO: as this will be a directory we should escape characters that can not occur in directory paths
-			
-			return outDir;
-			*/
-			File file = new File(ResourcesPlugin.getWorkspace().getRoot().getLocation().toPortableString() + "/.metadata/.plugins/" 
-					+ CPAcheckerPlugin.PLUGIN_ID + "/results/" + this.getName() + "/");
-			file.mkdirs();
-			return file;
-		}
-		
 	}
 }

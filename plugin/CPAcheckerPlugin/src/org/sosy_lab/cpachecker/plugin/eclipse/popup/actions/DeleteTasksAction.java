@@ -7,8 +7,8 @@ import org.eclipse.jface.action.Action;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.swt.widgets.Shell;
 import org.sosy_lab.cpachecker.plugin.eclipse.CPAcheckerPlugin;
+import org.sosy_lab.cpachecker.plugin.eclipse.Task;
 import org.sosy_lab.cpachecker.plugin.eclipse.TasksIO;
-import org.sosy_lab.cpachecker.plugin.eclipse.TaskRunner.Task;
 
 public class DeleteTasksAction extends Action {
 	private Shell shell;

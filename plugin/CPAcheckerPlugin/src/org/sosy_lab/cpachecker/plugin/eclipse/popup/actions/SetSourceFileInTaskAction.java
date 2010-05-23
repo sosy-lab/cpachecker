@@ -14,7 +14,7 @@ import org.eclipse.jface.action.Action;
 import org.eclipse.jface.dialogs.IInputValidator;
 import org.eclipse.swt.widgets.Shell;
 import org.sosy_lab.cpachecker.plugin.eclipse.CPAcheckerPlugin;
-import org.sosy_lab.cpachecker.plugin.eclipse.TaskRunner.Task;
+import org.sosy_lab.cpachecker.plugin.eclipse.Task;
 
 public class SetSourceFileInTaskAction extends Action {
 	private Shell shell;

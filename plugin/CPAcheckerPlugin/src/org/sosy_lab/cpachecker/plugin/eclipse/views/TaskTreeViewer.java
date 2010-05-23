@@ -18,7 +18,7 @@ import org.eclipse.jface.viewers.DelegatingStyledCellLabelProvider.IStyledLabelP
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.widgets.Composite;
 import org.sosy_lab.cpachecker.plugin.eclipse.CPAcheckerPlugin;
-import org.sosy_lab.cpachecker.plugin.eclipse.TaskRunner.Task;
+import org.sosy_lab.cpachecker.plugin.eclipse.Task;
 import org.sosy_lab.cpachecker.plugin.eclipse.views.TaskTreeViewer.Node.NodeType;
 
 public class TaskTreeViewer extends TreeViewer {
@@ -161,7 +161,8 @@ public class TaskTreeViewer extends TreeViewer {
 				return cLabelProvider.getImage(element);
 			} else if (element instanceof IFile) {
 				return configIcon;
-			} 
+			}
+			
 			return super.getImage(element);
 		}
 		@Override

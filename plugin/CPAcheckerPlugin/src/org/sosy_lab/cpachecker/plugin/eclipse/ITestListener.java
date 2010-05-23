@@ -3,7 +3,6 @@ package org.sosy_lab.cpachecker.plugin.eclipse;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
-import org.sosy_lab.cpachecker.plugin.eclipse.TaskRunner.Task;
 
 public interface ITestListener {
 	void tasksStarted(int taskCount);
