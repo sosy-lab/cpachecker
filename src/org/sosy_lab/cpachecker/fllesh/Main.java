@@ -23,9 +23,11 @@
  */
 package org.sosy_lab.cpachecker.fllesh;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.PrintWriter;
@@ -63,6 +65,7 @@ import org.sosy_lab.cpachecker.fllesh.ecp.ECPPrettyPrinter;
 import org.sosy_lab.cpachecker.fllesh.ecp.ElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.fllesh.ecp.translators.observerautomaton.ToControlAutomatonTranslator;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.TargetGraph;
+import org.sosy_lab.cpachecker.fllesh.fql.fllesh.util.AutomaticStreamReader;
 import org.sosy_lab.cpachecker.fllesh.fql.fllesh.util.CPAchecker;
 import org.sosy_lab.cpachecker.fllesh.fql.fllesh.util.Cilly;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.FQLSpecification;
@@ -176,7 +179,9 @@ public class Main {
     int lIndex = 0;
     
     for (ElementaryCoveragePattern lGoal : lGoals) {
-      System.out.println("Goal #" + (++lIndex));
+      int lCurrentGoalNumber = ++lIndex;
+      
+      System.out.println("Goal #" + lCurrentGoalNumber);
       System.out.println(lPrettyPrinter.printPretty(lGoal));
       
       File lGoalAutomatonFile = lTranslator.getControlAutomatonFile(lGoal, Main.GOAL_AUTOMATON);
@@ -254,16 +259,58 @@ public class Main {
         e.printStackTrace();
       }
 
+      boolean lErrorReached = false;
+      
       for (AbstractElement reachedElement : lReachedElements) {
-        // TODO determine whether ERROR element was reached
+        if (reachedElement.isError()) {
+          lErrorReached = true;
+        }
 
         System.out.println(reachedElement);
       }
 
       PrintWriter lStatisticsWriter = new PrintWriter(System.out);
 
-      lARTStatistics.printStatistics(lStatisticsWriter, Result.SAFE, lReachedElements);
-      
+      if (lErrorReached) {
+        lARTStatistics.printStatistics(lStatisticsWriter, Result.UNSAFE, lReachedElements);
+        
+        System.out.println("Goal #" + lCurrentGoalNumber + " is feasible:");
+        
+        /** determine test input */
+        // TODO get data direct from SymbPredAbsCPA
+        List<String> lCommand = new LinkedList<String>();
+        lCommand.add("/home/holzera/mathsat-4.2.8-linux-x86/bin/mathsat");
+        lCommand.add("-solve");
+        lCommand.add("-print_model");
+        lCommand.add("test/output/cex.msat");
+        
+        ProcessBuilder lMathsatBuilder = new ProcessBuilder(lCommand);
+        Process lMathsat = lMathsatBuilder.start();
+        
+        AutomaticStreamReader lInputReader = new AutomaticStreamReader(lMathsat.getInputStream());
+        Thread lInputReaderThread = new Thread(lInputReader);
+        lInputReaderThread.start();
+        
+        AutomaticStreamReader lErrorReader = new AutomaticStreamReader(lMathsat.getErrorStream());
+        Thread lErrorReaderThread = new Thread(lErrorReader);
+        lErrorReaderThread.start();
+
+        try {
+          lMathsat.waitFor();
+          lInputReaderThread.join();
+          lErrorReaderThread.join();
+
+          System.out.println(lInputReader.getInput());
+          System.out.println(lErrorReader.getInput());
+        } catch (InterruptedException e) {
+          e.printStackTrace();
+        }
+      }
+      else {
+        lARTStatistics.printStatistics(lStatisticsWriter, Result.SAFE, lReachedElements);
+        
+        System.out.println("Goal #" + lCurrentGoalNumber + " is infeasible!");
+      }
     }    
   }
 

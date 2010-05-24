@@ -27,51 +27,12 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 
 /*
  * This class provides basic access to some functionality provided by the CIL infrastructure.
  */
 
 public class Cilly {
-
-  private class AutomaticStreamReader implements Runnable {
-    private InputStream mStream;
-    private StringBuffer mBuffer;
-
-    public AutomaticStreamReader(InputStream pStream) {
-      assert(pStream != null);
-
-      mStream = pStream;
-      mBuffer = new StringBuffer();
-    }
-
-    @Override
-    public void run() {
-      mBuffer.delete(0, mBuffer.length());
-
-      BufferedReader lReader = new BufferedReader(new InputStreamReader(mStream));
-
-      String lLine = null;
-
-      try {
-        while ((lLine = lReader.readLine()) != null) {
-          mBuffer.append(lLine);
-          mBuffer.append("\n");
-        }
-      } catch (IOException e) {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
-      }
-    }
-
-    @SuppressWarnings("unused")
-    public String getInput() {
-      return mBuffer.toString();
-    }
-
-  }
 
   public static void main(String[] pArguments) throws IOException {
     assert(pArguments != null);
