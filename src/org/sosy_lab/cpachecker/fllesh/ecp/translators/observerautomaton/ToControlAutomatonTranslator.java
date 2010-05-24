@@ -35,6 +35,10 @@ public class ToControlAutomatonTranslator {
     mAnnotations = new ECPEdgeSetBasedAnnotations(mEdgeSetNameMap);
   }
   
+  public static String getAcceptingStateName() {
+    return "Accept";
+  }
+  
   public ECPEdgeSetBasedAnnotations getAnnotations() {
     return mAnnotations;
   }
@@ -169,7 +173,7 @@ public class ToControlAutomatonTranslator {
     public StateNameMap(Automaton<GuardedLabel>.State pFinalState) {
       // We need a special name for the accepting state to be able
       // to refer to it in the product automaton CPA.
-      mStateNames.put(pFinalState, "Accept");
+      mStateNames.put(pFinalState, getAcceptingStateName());
     }
     
     public String get(Automaton<GuardedLabel>.State pState) {

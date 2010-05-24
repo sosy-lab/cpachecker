@@ -61,17 +61,6 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
  *
  */
 public class EdgeVisitCPA implements ConfigurableProgramAnalysis {
-
-  private class TransferException extends CPATransferException {
-    /**
-     * 
-     */
-    private static final long serialVersionUID = 1L;
-
-    public TransferException(CFAEdge pCfaEdge) {
-      super("EdgeVisitCPA has not found a corresponding EdgeElement: " + pCfaEdge.toString());
-    }
-  }
   
   private final StopOperator mStopOperator = new StopOperator() {
 
@@ -106,14 +95,6 @@ public class EdgeVisitCPA implements ConfigurableProgramAnalysis {
       }
       
       return mElements.get(pCfaEdge);
-      
-      /*EdgeElement lEdgeElement = mElements.get(pCfaEdge);
-      
-      if (lEdgeElement == null) {
-        throw new TransferException(pCfaEdge);
-      }
-      
-      return Collections.singleton(lEdgeElement);*/
     }
 
     @Override
@@ -277,10 +258,6 @@ public class EdgeVisitCPA implements ConfigurableProgramAnalysis {
       mAnnotations = pAnnotations;
     }
 
-    /*public String getId(CFAEdge pEdge) {
-      return mAnnotations.getId(pEdge);
-    }*/
-
     @Override
     public ConfigurableProgramAnalysis createInstance() throws CPAException {
       return new EdgeVisitCPA(mAnnotations);
@@ -315,7 +292,6 @@ public class EdgeVisitCPA implements ConfigurableProgramAnalysis {
   private final PrecisionAdjustment mPrecisionAdjustment;
   private final MergeJoinOperator mMergeOperator;
 
-  //private final HashMap<CFAEdge, EdgeElement> mElements;
   private EdgeElementCache mElements;
 
   //public EdgeVisitCPA(Annotations pAnnotations) {
@@ -324,17 +300,7 @@ public class EdgeVisitCPA implements ConfigurableProgramAnalysis {
     mPrecision = SingletonPrecision.getInstance();
     mPrecisionAdjustment = StaticPrecisionAdjustment.getInstance();
     mMergeOperator = new MergeJoinOperator(mDomain.getJoinOperator());
-
-    //mElements = new HashMap<CFAEdge, EdgeElement>();
     mElements = new EdgeElementCache(pAnnotations);
-
-    /*for (CFAEdge lEdge : pAnnotations.getCFAEdges()) {
-      Set<String> lAnnotations = new HashSet<String>();
-      lAnnotations.addAll(pAnnotations.getAnnotations(lEdge));
-      lAnnotations.add(pAnnotations.getId(lEdge));
-      EdgeElement lEdgeElement = new EdgeElement(lEdge, lAnnotations);
-      mElements.put(lEdge, lEdgeElement);
-    }*/
   }
 
   @Override
