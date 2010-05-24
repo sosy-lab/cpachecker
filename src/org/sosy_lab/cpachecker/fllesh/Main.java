@@ -59,8 +59,12 @@ import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.symbpredabsCPA.SymbPredAbsCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.fllesh.cpa.edgevisit.EdgeVisitCPA;
+import org.sosy_lab.cpachecker.fllesh.ecp.ECPPrettyPrinter;
+import org.sosy_lab.cpachecker.fllesh.ecp.ElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.fllesh.ecp.reduced.ObserverAutomatonTranslator;
 import org.sosy_lab.cpachecker.fllesh.ecp.reduced.Pattern;
+import org.sosy_lab.cpachecker.fllesh.ecp.translators.observerautomaton.ToControlAutomatonTranslator;
+import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.TargetGraph;
 import org.sosy_lab.cpachecker.fllesh.fql.fllesh.util.CPAchecker;
 import org.sosy_lab.cpachecker.fllesh.fql.fllesh.util.Cilly;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Edges;
@@ -72,7 +76,7 @@ import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.FunctionCall;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Identity;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.PathPattern;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.Repetition;
-import org.sosy_lab.cpachecker.fllesh.fql2.translators.reducedecp.CoverageSpecificationTranslator;
+import org.sosy_lab.cpachecker.fllesh.fql2.translators.ecp.CoverageSpecificationTranslator;
 
 import com.google.common.base.Joiner;
 
@@ -81,6 +85,196 @@ public class Main {
   private static final String GOAL_AUTOMATON = "GoalAutomaton";
   private static final String PASSING_AUTOMATON = "PassingAutomaton";
   private static final String PRODUCT_AUTOMATON = "ProductAutomaton";
+
+  /**
+   * @param pArguments
+   * @throws Exception
+   */
+  public static void main(String[] pArguments) throws Exception {
+    assert(pArguments != null);
+    assert(pArguments.length > 1);
+    
+    String lFQLSpecificationString = pArguments[0];
+    String lSourceFileName = pArguments[1];
+
+    // check cilly invariance of source file, i.e., is it changed when preprocessed by cilly?
+    Cilly lCilly = new Cilly();
+
+    if (!lCilly.isCillyInvariant(lSourceFileName)) {
+      File lCillyProcessedFile = lCilly.cillyfy(pArguments[1]);
+      lCillyProcessedFile.deleteOnExit();
+
+      lSourceFileName = lCillyProcessedFile.getAbsolutePath();
+
+      System.err.println("WARNING: Given source file is not CIL invariant ... did preprocessing!");
+    }
+
+    File lPropertiesFile = Main.createPropertiesFile();
+    Configuration lConfiguration = Main.createConfiguration(lSourceFileName, lPropertiesFile.getAbsolutePath());
+
+    LogManager lLogManager = new LogManager(lConfiguration);
+    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
+
+    CFAFunctionDefinitionNode lMainFunction = lCPAchecker.getMainFunction();
+    
+    FQLSpecification lFQLSpecification = FQLSpecification.parse(lFQLSpecificationString);
+    
+    System.out.println("FQL query: " + lFQLSpecification);
+    System.out.println("File: " + lSourceFileName);
+    
+    TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lMainFunction);
+    
+    /** do translation */
+    CoverageSpecificationTranslator lSpecificationTranslator = new CoverageSpecificationTranslator(lTargetGraph);
+    Set<ElementaryCoveragePattern> lGoals = lSpecificationTranslator.translate(lFQLSpecification.getCoverageSpecification());
+    ElementaryCoveragePattern lPassing = lSpecificationTranslator.translate(lFQLSpecification.getPathPattern());
+    
+    
+    Wrapper lWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCPAchecker.getCFAMap(), lLogManager);
+    
+    ToControlAutomatonTranslator lTranslator = new ToControlAutomatonTranslator(lWrapper.getAlphaEdge(), lWrapper.getOmegaEdge());
+    
+    File lControlAutomatonFile = lTranslator.getControlAutomatonFile(lPassing, Main.PASSING_AUTOMATON);
+
+    File lPassingPropertiesFile = Main.createPropertiesFile(lControlAutomatonFile, "test/output/" + Main.PASSING_AUTOMATON + ".dot");
+    Configuration lPassingConfiguration = Main.createConfiguration(lSourceFileName, lPassingPropertiesFile.getAbsolutePath());
+
+    CPAFactory lPassingAutomatonFactory = ControlAutomatonCPA.factory();
+    lPassingAutomatonFactory.setConfiguration(lPassingConfiguration);
+    lPassingAutomatonFactory.setLogger(lLogManager);
+    ConfigurableProgramAnalysis lPassingAutomatonCPA = lPassingAutomatonFactory.createInstance();
+    
+    
+    
+    
+    ECPPrettyPrinter lPrettyPrinter = new ECPPrettyPrinter();
+    
+    // passing clause
+    System.out.println("PASSING:");
+    System.out.println(lPrettyPrinter.printPretty(lPassing));
+    
+    
+    
+    
+    
+    /** create product automaton */
+    File lProductAutomatonFile = File.createTempFile("fllesh." + Main.PRODUCT_AUTOMATON + ".", ".ca");
+    //lProductAutomatonFile.deleteOnExit();
+    
+    PrintStream lProductAutomatonStream = new PrintStream(new FileOutputStream(lProductAutomatonFile));
+    lProductAutomatonStream.println(Main.getProductAutomaton());
+    lProductAutomatonStream.close();
+    
+    File lProductAutomatonPropertiesFile = Main.createPropertiesFile(lProductAutomatonFile, "test/output/" + Main.PRODUCT_AUTOMATON + ".dot");
+    Configuration lProductAutomatonConfiguration = Main.createConfiguration(lSourceFileName, lProductAutomatonPropertiesFile.getAbsolutePath());
+
+    CPAFactory lProductAutomatonFactory = ControlAutomatonCPA.factory();
+    lProductAutomatonFactory.setConfiguration(lProductAutomatonConfiguration);
+    lProductAutomatonFactory.setLogger(lLogManager);
+    ConfigurableProgramAnalysis lProductObserverCPA = lProductAutomatonFactory.createInstance();
+
+    
+    
+    
+    
+    
+    
+    
+    System.out.println("TEST GOALS:");
+    
+    int lIndex = 0;
+    
+    for (ElementaryCoveragePattern lGoal : lGoals) {
+      System.out.println("Goal #" + (++lIndex));
+      System.out.println(lPrettyPrinter.printPretty(lGoal));
+      
+      File lGoalAutomatonFile = lTranslator.getControlAutomatonFile(lGoal, Main.GOAL_AUTOMATON);
+      
+      File lTestGoalPropertiesFile = Main.createPropertiesFile(lGoalAutomatonFile, "test/output/" + Main.GOAL_AUTOMATON + ".dot");
+      Configuration lTestGoalConfiguration = Main.createConfiguration(lSourceFileName, lTestGoalPropertiesFile.getAbsolutePath());
+
+      CPAFactory lTestGoalAutomatonFactory = ControlAutomatonCPA.factory();
+      lTestGoalAutomatonFactory.setConfiguration(lTestGoalConfiguration);
+      lTestGoalAutomatonFactory.setLogger(lLogManager);
+      ConfigurableProgramAnalysis lTestGoalCPA = lTestGoalAutomatonFactory.createInstance();
+      
+      // TODO annotations accumulate over test goals ... reset?
+      EdgeVisitCPA.Factory lFactory = new EdgeVisitCPA.Factory(lTranslator.getAnnotations());
+      lFactory.setConfiguration(lConfiguration);
+      lFactory.setLogger(lLogManager);
+      ConfigurableProgramAnalysis lEdgeVisitCPA = lFactory.createInstance();
+      
+      
+      
+      
+      
+      
+      
+      
+      CPAFactory lLocationCPAFactory = LocationCPA.factory();
+      ConfigurableProgramAnalysis lLocationCPA = lLocationCPAFactory.createInstance();
+
+      CPAFactory lSymbPredAbsCPAFactory = SymbPredAbsCPA.factory();
+      lSymbPredAbsCPAFactory.setConfiguration(lConfiguration);
+      lSymbPredAbsCPAFactory.setLogger(lLogManager);
+      ConfigurableProgramAnalysis lSymbPredAbsCPA = lSymbPredAbsCPAFactory.createInstance();
+
+      LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<ConfigurableProgramAnalysis>();
+      lComponentAnalyses.add(lLocationCPA);
+      lComponentAnalyses.add(lEdgeVisitCPA);
+      lComponentAnalyses.add(lSymbPredAbsCPA);
+      lComponentAnalyses.add(lTestGoalCPA);
+      //lComponentAnalyses.add(lPassingCPA);
+      lComponentAnalyses.add(lProductObserverCPA);
+
+      // create composite CPA
+      CPAFactory lCPAFactory = CompositeCPA.factory();
+      lCPAFactory.setChildren(lComponentAnalyses);
+      lCPAFactory.setConfiguration(lConfiguration);
+      lCPAFactory.setLogger(lLogManager);
+      ConfigurableProgramAnalysis lCPA = lCPAFactory.createInstance();
+
+      // create ART CPA
+      CPAFactory lARTCPAFactory = ARTCPA.factory();
+      lARTCPAFactory.setChild(lCPA);
+      lARTCPAFactory.setConfiguration(lConfiguration);
+      lARTCPAFactory.setLogger(lLogManager);
+      ConfigurableProgramAnalysis lARTCPA = lARTCPAFactory.createInstance();
+
+
+
+      CEGARAlgorithm lAlgorithm = new CEGARAlgorithm(new CPAAlgorithm(lARTCPA, lLogManager), lConfiguration, lLogManager);
+
+      Statistics lARTStatistics = new ARTStatistics(lConfiguration, lLogManager);
+      Set<Statistics> lStatistics = new HashSet<Statistics>();
+      lStatistics.add(lARTStatistics);
+      lAlgorithm.collectStatistics(lStatistics);
+
+      AbstractElement initialElement = lARTCPA.getInitialElement(lWrapper.getEntry());
+      Precision initialPrecision = lARTCPA.getInitialPrecision(lWrapper.getEntry());
+
+      ReachedElements lReachedElements = new ReachedElements(ReachedElements.TraversalMethod.TOPSORT, true);
+      lReachedElements.add(initialElement, initialPrecision);
+
+      try {
+        lAlgorithm.run(lReachedElements, true);
+      } catch (CPAException e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+      }
+
+      for (AbstractElement reachedElement : lReachedElements) {
+        // TODO determine whether ERROR element was reached
+
+        System.out.println(reachedElement);
+      }
+
+      PrintWriter lStatisticsWriter = new PrintWriter(System.out);
+
+      lARTStatistics.printStatistics(lStatisticsWriter, Result.SAFE, lReachedElements);
+      
+    }    
+  }
 
   public static Configuration createConfiguration(String pSourceFile, String pPropertiesFile) {
     return createConfiguration(Collections.singletonList(pSourceFile), pPropertiesFile);
@@ -116,7 +310,7 @@ public class Main {
       // we do not want to remove parts of the CFA
       lWriter.println("cfa.removeIrrelevantForErrorLocations = false");
 
-      lWriter.println("log.consoleLevel = ALL");
+      //lWriter.println("log.consoleLevel = ALL");
 
       lWriter.println("analysis.traversal = topsort");
 
@@ -166,17 +360,18 @@ public class Main {
     lWriter.println();
     lWriter.println("STATE Init:");
     //lWriter.println("  CHECK(AutomatonAnalysis_" + GOAL_AUTOMATON + "(\"state == Accept\")) && CHECK(AutomatonAnalysis_" + PASSING_AUTOMATON + "(\"state == Accept\")) -> ERROR;"); 
+    // TODO make name "Accept" parametrized
     lWriter.println("  CHECK(AutomatonAnalysis_" + GOAL_AUTOMATON + "(\"state == Accept\")) -> ERROR;");
     lWriter.println("  TRUE -> GOTO Init;");
     
     return lResult.toString();
   }
-
+  
   /**
    * @param pArguments
    * @throws Exception
    */
-  public static void main(String[] pArguments) throws Exception {
+  public static void mainOld(String[] pArguments) throws Exception {
     assert(pArguments != null);
     assert(pArguments.length > 1);
 
@@ -214,7 +409,7 @@ public class Main {
     System.out.println("File: " + lSourceFileName);
     
     
-    CoverageSpecificationTranslator lCoverageSpecificationTranslator = new CoverageSpecificationTranslator(lMainFunction);
+    org.sosy_lab.cpachecker.fllesh.fql2.translators.reducedecp.CoverageSpecificationTranslator lCoverageSpecificationTranslator = new org.sosy_lab.cpachecker.fllesh.fql2.translators.reducedecp.CoverageSpecificationTranslator(lMainFunction);
     //Pattern lPassingClause = lCoverageSpecificationTranslator.getPathPatternTranslator().translate(lFQLSpecification.getPathPattern());
     /*Set<Pattern> lTestGoals = lCoverageSpecificationTranslator.translate(lFQLSpecification.getCoverageSpecification());
     Pattern lPassingClause = lCoverageSpecificationTranslator.getPathPatternTranslator().translate(lFQLSpecification.getPathPattern());
@@ -336,7 +531,7 @@ public class Main {
     lProductAutomatonFactory.setLogger(lLogManager);
     ConfigurableProgramAnalysis lProductObserverCPA = lProductAutomatonFactory.createInstance();
 
-    
+    /*
     
     
     EdgeVisitCPA.Factory lFactory = new EdgeVisitCPA.Factory(lCoverageSpecificationTranslator.getAnnotations());
@@ -410,7 +605,7 @@ public class Main {
 
     PrintWriter lStatisticsWriter = new PrintWriter(System.out);
 
-    lARTStatistics.printStatistics(lStatisticsWriter, Result.SAFE, lReachedElements);
+    lARTStatistics.printStatistics(lStatisticsWriter, Result.SAFE, lReachedElements);*/
   }
 
 }

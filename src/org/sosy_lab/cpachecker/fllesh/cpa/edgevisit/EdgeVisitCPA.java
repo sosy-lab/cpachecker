@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.fllesh.cpa.edgevisit;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -104,13 +105,15 @@ public class EdgeVisitCPA implements ConfigurableProgramAnalysis {
         return Collections.emptySet();
       }
       
-      EdgeElement lEdgeElement = mElements.get(pCfaEdge);
+      return mElements.get(pCfaEdge);
+      
+      /*EdgeElement lEdgeElement = mElements.get(pCfaEdge);
       
       if (lEdgeElement == null) {
         throw new TransferException(pCfaEdge);
       }
       
-      return Collections.singleton(mElements.get(pCfaEdge));
+      return Collections.singleton(lEdgeElement);*/
     }
 
     @Override
@@ -236,51 +239,47 @@ public class EdgeVisitCPA implements ConfigurableProgramAnalysis {
 
   public static class EdgeElement extends EdgeVisitElement {
 
+    private CFAEdge mCFAEdge;
     private Set<String> mAnnotations;
 
-    private final String mId;
-
-    public EdgeElement(String pId) {
-      mId = pId;
+    public EdgeElement(CFAEdge pCFAEdge) {
+      mCFAEdge = pCFAEdge;
       mAnnotations = Collections.emptySet();
     }
-
-    public EdgeElement(String pId, Set<String> pAnnotations) {
-      mId = pId;
-      mAnnotations = pAnnotations;
+    
+    public EdgeElement(CFAEdge pCFAEdge, Set<String> pAnnotations) {
+      mCFAEdge = pCFAEdge;
+      mAnnotations = new HashSet<String>(pAnnotations);
     }
-
+    
     @Override
     public boolean checkProperty(String pProperty) throws InvalidQueryException {
-      if (pProperty.startsWith("E")) {
-        return mId.equals(pProperty);
-      }
-      else {
-        return mAnnotations.contains(pProperty);
-      }
+      return mAnnotations.contains(pProperty);
     }
+    
     @Override
     public Boolean evaluateProperty(
         String pProperty) throws InvalidQueryException {
       return Boolean.valueOf(checkProperty(pProperty));
     }
+    
     @Override
     public String toString() {
-      return "<VisitEdge - " + mId + ">";
+      return "<VisitEdge - " + mCFAEdge.toString() + " - " + mAnnotations.toString() + ">";
     }
   }
 
   public static class Factory extends AbstractCPAFactory {
 
-    Annotations mAnnotations;
+    ECPEdgeSetBasedAnnotations mAnnotations;
 
-    public Factory(Annotations pAnnotations) {
+    public Factory(ECPEdgeSetBasedAnnotations pAnnotations) {
       mAnnotations = pAnnotations;
     }
 
-    public String getId(CFAEdge pEdge) {
+    /*public String getId(CFAEdge pEdge) {
       return mAnnotations.getId(pEdge);
-    }
+    }*/
 
     @Override
     public ConfigurableProgramAnalysis createInstance() throws CPAException {
@@ -289,24 +288,53 @@ public class EdgeVisitCPA implements ConfigurableProgramAnalysis {
 
   }
 
+  private class EdgeElementCache {
+    private HashMap<CFAEdge, Set<EdgeElement>> mCache;
+    private ECPEdgeSetBasedAnnotations mAnnotations; 
+    
+    public EdgeElementCache(ECPEdgeSetBasedAnnotations pAnnotations) {
+      mCache = new HashMap<CFAEdge, Set<EdgeElement>>();
+      mAnnotations = pAnnotations;
+    }
+    
+    public Set<EdgeElement> get(CFAEdge pCFAEdge) {
+      if (mCache.containsKey(pCFAEdge)) {
+        return mCache.get(pCFAEdge);
+      }
+      else {
+        EdgeElement lEdgeElement = new EdgeElement(pCFAEdge, mAnnotations.getAnnotations(pCFAEdge));
+        Set<EdgeElement> lSet = Collections.singleton(lEdgeElement);
+        mCache.put(pCFAEdge, lSet);
+        return lSet;
+      }
+    }
+  }
+  
   private final FlatLatticeDomain mDomain;
   private final SingletonPrecision mPrecision;
   private final PrecisionAdjustment mPrecisionAdjustment;
   private final MergeJoinOperator mMergeOperator;
 
-  private final HashMap<CFAEdge, EdgeElement> mElements;
+  //private final HashMap<CFAEdge, EdgeElement> mElements;
+  private EdgeElementCache mElements;
 
-  public EdgeVisitCPA(Annotations pAnnotations) {
+  //public EdgeVisitCPA(Annotations pAnnotations) {
+  public EdgeVisitCPA(ECPEdgeSetBasedAnnotations pAnnotations) {
     mDomain = new FlatLatticeDomain(TopElement.getInstance(), BottomElement.getInstance());
     mPrecision = SingletonPrecision.getInstance();
     mPrecisionAdjustment = StaticPrecisionAdjustment.getInstance();
     mMergeOperator = new MergeJoinOperator(mDomain.getJoinOperator());
 
-    mElements = new HashMap<CFAEdge, EdgeElement>();
+    //mElements = new HashMap<CFAEdge, EdgeElement>();
+    mElements = new EdgeElementCache(pAnnotations);
 
-    for (CFAEdge lEdge : pAnnotations.getCFAEdges()) {
-      mElements.put(lEdge, new EdgeElement(pAnnotations.getId(lEdge), pAnnotations.getAnnotations(lEdge)));
-    }
+    /*for (CFAEdge lEdge : pAnnotations.getCFAEdges()) {
+      Set<String> lAnnotations = new HashSet<String>();
+      lAnnotations.addAll(pAnnotations.getAnnotations(lEdge));
+      lAnnotations.add(pAnnotations.getId(lEdge));
+      EdgeElement lEdgeElement = new EdgeElement(lEdge, lAnnotations);
+      mElements.put(lEdge, lEdgeElement);
+    }*/
   }
 
   @Override

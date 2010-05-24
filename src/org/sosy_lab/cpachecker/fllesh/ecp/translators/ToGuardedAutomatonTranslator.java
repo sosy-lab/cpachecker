@@ -33,16 +33,17 @@ public class ToGuardedAutomatonTranslator {
   }
   
   public static Automaton<GuardedLabel> removeLambdaEdges(Automaton<GuardedLabel> pAutomaton, CFAEdge pAlphaEdge, CFAEdge pOmegaEdge) {
-    /** first we augment the given automaton with the alpha and omega edge */
-    ECPEdgeSet lAlphaSet = new ECPEdgeSet(pAlphaEdge);
-    ECPEdgeSet lOmegaSet = new ECPEdgeSet(pOmegaEdge);
-    
+    return removeLambdaEdges(pAutomaton, new ECPEdgeSet(pAlphaEdge), new ECPEdgeSet(pOmegaEdge));
+  }
+  
+  public static Automaton<GuardedLabel> removeLambdaEdges(Automaton<GuardedLabel> pAutomaton, ECPEdgeSet pAlphaSet, ECPEdgeSet pOmegaSet) {
+    /** first we augment the given automaton with the alpha and omega edge */  
     Automaton<GuardedLabel>.State lNewInitialState = pAutomaton.createState();
-    Automaton<GuardedLabel>.Edge lInitialEdge = pAutomaton.createEdge(lNewInitialState, pAutomaton.getInitialState(), new GuardedEdgeLabel(lAlphaSet));
+    Automaton<GuardedLabel>.Edge lInitialEdge = pAutomaton.createEdge(lNewInitialState, pAutomaton.getInitialState(), new GuardedEdgeLabel(pAlphaSet));
     pAutomaton.setInitialState(lNewInitialState);
     
     Automaton<GuardedLabel>.State lNewFinalState = pAutomaton.createState();
-    GuardedEdgeLabel lOmegaLabel = new GuardedEdgeLabel(lOmegaSet);
+    GuardedEdgeLabel lOmegaLabel = new GuardedEdgeLabel(pOmegaSet);
     for (Automaton<GuardedLabel>.State lFinalState : pAutomaton.getFinalStates()) {
       pAutomaton.createEdge(lFinalState, lNewFinalState, lOmegaLabel);
     }

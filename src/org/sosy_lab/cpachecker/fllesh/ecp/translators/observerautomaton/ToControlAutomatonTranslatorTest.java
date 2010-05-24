@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.fllesh.Main;
 import org.sosy_lab.cpachecker.fllesh.Wrapper;
 import org.sosy_lab.cpachecker.fllesh.ecp.ECPPrettyPrinter;
 import org.sosy_lab.cpachecker.fllesh.ecp.ElementaryCoveragePattern;
-import org.sosy_lab.cpachecker.fllesh.ecp.reduced.Automaton;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.TargetGraph;
 import org.sosy_lab.cpachecker.fllesh.fql.fllesh.util.CPAchecker;
 import org.sosy_lab.cpachecker.fllesh.fql.fllesh.util.Cilly;
@@ -106,7 +105,9 @@ public class ToControlAutomatonTranslatorTest {
     
     Wrapper lWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCPAchecker.getCFAMap(), lLogManager);
 
-    System.out.println(ToControlAutomatonTranslator.translate(lPassing, lWrapper.getAlphaEdge(), lWrapper.getOmegaEdge(), "PassingAutomaton"));
+    ToControlAutomatonTranslator lTranslator = new ToControlAutomatonTranslator(lWrapper.getAlphaEdge(), lWrapper.getOmegaEdge());
+    
+    System.out.println(lTranslator.translate(lPassing, "PassingAutomaton"));
   }
 
   @Test
@@ -163,7 +164,9 @@ public class ToControlAutomatonTranslatorTest {
     
     Wrapper lWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCPAchecker.getCFAMap(), lLogManager);
 
-    System.out.println(ToControlAutomatonTranslator.translate(lPassing, lWrapper.getAlphaEdge(), lWrapper.getOmegaEdge(), "PassingAutomaton"));
+    ToControlAutomatonTranslator lTranslator = new ToControlAutomatonTranslator(lWrapper.getAlphaEdge(), lWrapper.getOmegaEdge());
+    
+    System.out.println(lTranslator.translate(lPassing, "PassingAutomaton"));
   }
   
   @Test
@@ -220,7 +223,9 @@ public class ToControlAutomatonTranslatorTest {
     
     Wrapper lWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCPAchecker.getCFAMap(), lLogManager);
 
-    System.out.println(ToControlAutomatonTranslator.translate(lPassing, lWrapper.getAlphaEdge(), lWrapper.getOmegaEdge(), "PassingAutomaton"));
+    ToControlAutomatonTranslator lTranslator = new ToControlAutomatonTranslator(lWrapper.getAlphaEdge(), lWrapper.getOmegaEdge());
+    
+    System.out.println(lTranslator.translate(lPassing, "PassingAutomaton"));
   }
   
   @Test
@@ -277,7 +282,9 @@ public class ToControlAutomatonTranslatorTest {
     
     Wrapper lWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCPAchecker.getCFAMap(), lLogManager);
 
-    System.out.println(ToControlAutomatonTranslator.translate(lPassing, lWrapper.getAlphaEdge(), lWrapper.getOmegaEdge(), "PassingAutomaton"));
+    ToControlAutomatonTranslator lTranslator = new ToControlAutomatonTranslator(lWrapper.getAlphaEdge(), lWrapper.getOmegaEdge());
+    
+    System.out.println(lTranslator.translate(lPassing, "PassingAutomaton"));
   }
   
   @Test
@@ -334,7 +341,9 @@ public class ToControlAutomatonTranslatorTest {
     
     Wrapper lWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCPAchecker.getCFAMap(), lLogManager);
 
-    System.out.println(ToControlAutomatonTranslator.translate(lPassing, lWrapper.getAlphaEdge(), lWrapper.getOmegaEdge(), "PassingAutomaton"));
+    ToControlAutomatonTranslator lTranslator = new ToControlAutomatonTranslator(lWrapper.getAlphaEdge(), lWrapper.getOmegaEdge());
+    
+    System.out.println(lTranslator.translate(lPassing, "PassingAutomaton"));
   }
   
   @Test
@@ -391,7 +400,9 @@ public class ToControlAutomatonTranslatorTest {
     
     Wrapper lWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCPAchecker.getCFAMap(), lLogManager);
 
-    System.out.println(ToControlAutomatonTranslator.translate(lPassing, lWrapper.getAlphaEdge(), lWrapper.getOmegaEdge(), "PassingAutomaton"));
+    ToControlAutomatonTranslator lTranslator = new ToControlAutomatonTranslator(lWrapper.getAlphaEdge(), lWrapper.getOmegaEdge());
+    
+    System.out.println(lTranslator.translate(lPassing, "PassingAutomaton"));
   }
   
 }

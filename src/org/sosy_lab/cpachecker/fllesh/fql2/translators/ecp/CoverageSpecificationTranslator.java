@@ -21,6 +21,7 @@ import org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification.CoverageSpe
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification.CoverageSpecificationVisitor;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification.Quotation;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification.Union;
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.PathPattern;
 
 public class CoverageSpecificationTranslator {
 
@@ -39,6 +40,10 @@ public class CoverageSpecificationTranslator {
   
   public Set<ElementaryCoveragePattern> translate(CoverageSpecification pCoverageSpecification) {
     return pCoverageSpecification.accept(mVisitor);
+  }
+  
+  public ElementaryCoveragePattern translate(PathPattern pPathPattern) {
+    return mPathPatternTranslator.translate(pPathPattern);
   }
   
   private class Visitor implements CoverageSpecificationVisitor<Set<ElementaryCoveragePattern>> {
