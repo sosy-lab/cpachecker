@@ -33,7 +33,7 @@ public class Label implements Filter {
     mLabel = pLabel;
   }
 
-  public String getFileName() {
+  public String getLabel() {
     return mLabel;
   }
 

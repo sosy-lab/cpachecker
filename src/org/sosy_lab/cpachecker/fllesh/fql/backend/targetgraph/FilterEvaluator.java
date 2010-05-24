@@ -193,7 +193,13 @@ public class FilterEvaluator {
         return mCache.get(mTargetGraph, pLabel);
       }
       
-      throw new UnsupportedOperationException();
+      MaskFunctor<Node, Edge> lMaskFunctor = new LabelMaskFunctor(pLabel.getLabel());
+
+      TargetGraph lResultGraph = TargetGraph.applyStandardEdgeBasedFilter(mTargetGraph, lMaskFunctor);
+
+      mCache.add(mTargetGraph, pLabel, lResultGraph);
+
+      return lResultGraph;
     }
 
     @Override

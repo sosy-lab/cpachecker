@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.FunctionCall;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.FunctionCalls;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.FunctionEntry;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Identity;
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Label;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Line;
 
 public class TargetGraphTest {
@@ -553,4 +554,35 @@ public class TargetGraphTest {
 
     System.out.println(lTestGoals);
   }
+  
+  @Test
+  public void test_21() throws IOException, InvalidConfigurationException, CPAException {
+    ImmutableMap<String, String> lProperties =
+      ImmutableMap.of("analysis.programNames", "test/programs/simple/functionCall.c");
+
+    Configuration lConfiguration = new Configuration(mPropertiesFile, lProperties);
+
+    LogManager lLogManager = new LogManager(lConfiguration);
+
+    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
+
+    TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
+
+    Filter lLabelFilter = new Label("ERROR");
+    
+    FilterEvaluator lFilterEvaluator = new FilterEvaluator(lTargetGraph);
+
+    TargetGraph lFilteredTargetGraph = lFilterEvaluator.evaluate(lLabelFilter);
+
+    System.out.println(lFilteredTargetGraph);
+
+    // check caching
+    assertTrue(lFilteredTargetGraph == lFilterEvaluator.evaluate(lLabelFilter));
+
+    Filter lLabelFilter2 = new Label("ERROR");
+
+    // caching should also work with logically equal filters
+    assertTrue(lFilteredTargetGraph == lFilterEvaluator.evaluate(lLabelFilter2));
+  }
+  
 }
