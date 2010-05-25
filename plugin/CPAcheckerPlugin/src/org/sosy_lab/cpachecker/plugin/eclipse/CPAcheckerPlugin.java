@@ -84,6 +84,7 @@ public class CPAcheckerPlugin extends AbstractUIPlugin {
 	 * (non-Javadoc)
 	 * @see org.eclipse.ui.plugin.AbstractUIPlugin#start(org.osgi.framework.BundleContext)
 	 */
+	@Override
 	public void start(BundleContext context) throws Exception {
 		super.start(context);
 		instance = this;
@@ -95,6 +96,7 @@ public class CPAcheckerPlugin extends AbstractUIPlugin {
 	 * (non-Javadoc)
 	 * @see org.eclipse.ui.plugin.AbstractUIPlugin#stop(org.osgi.framework.BundleContext)
 	 */
+	@Override
 	public void stop(BundleContext context) throws Exception {
 		instance = null;
 		super.stop(context);
@@ -295,7 +297,7 @@ public class CPAcheckerPlugin extends AbstractUIPlugin {
             	Path p = new Path(file);
             	IFile member = CPAcheckerPlugin.getWorkspace().getRoot().getFileForLocation(p);
             	if (member != null && member.exists()) {
-            		ITranslationUnit tu = CoreModelUtil.findTranslationUnit((IFile) member);
+            		ITranslationUnit tu = CoreModelUtil.findTranslationUnit(member);
         			if (tu != null) {
         				return tu;
         			}

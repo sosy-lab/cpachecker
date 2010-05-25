@@ -16,6 +16,7 @@ public class AutomatonConfiguration extends SourceViewerConfiguration {
 		this.colorManager = colorManager;
 	}
 	
+	@Override
 	public String[] getConfiguredContentTypes(ISourceViewer sourceViewer) {
 		return new String[] {
 			IDocument.DEFAULT_CONTENT_TYPE,
@@ -26,6 +27,7 @@ public class AutomatonConfiguration extends SourceViewerConfiguration {
 			};
 	}
 	
+	@Override
 	public ITextDoubleClickStrategy getDoubleClickStrategy(
 		ISourceViewer sourceViewer,
 		String contentType) {
@@ -34,6 +36,7 @@ public class AutomatonConfiguration extends SourceViewerConfiguration {
 		return doubleClickStrategy;
 	}
 
+	@Override
 	public IPresentationReconciler getPresentationReconciler(ISourceViewer sourceViewer) {
 		PresentationReconciler reconciler = new PresentationReconciler();
 		

@@ -7,6 +7,7 @@ import java.util.logging.StreamHandler;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jface.action.Action;
+import org.eclipse.jface.action.IContributionItem;
 import org.eclipse.jface.action.IToolBarManager;
 import org.eclipse.jface.operation.IRunnableWithProgress;
 import org.eclipse.jface.resource.ImageDescriptor;
@@ -155,7 +156,13 @@ public class TaskRunner {
 						public IPageBookViewPage createPage(IConsoleView view) {
 							IToolBarManager toolBarManager = view.getViewSite().getActionBars().getToolBarManager();
 							if (toolBarManager.find(CloseCurrentConsoleAction.ID) == null) {
-								toolBarManager.add(new CloseCurrentConsoleAction(view));
+								IContributionItem firstItem = toolBarManager.getItems()[0];
+								if (firstItem == null) {
+									toolBarManager.add(new CloseCurrentConsoleAction(view));
+								} else {
+									toolBarManager.insertBefore(firstItem.getId(), new CloseCurrentConsoleAction(view));
+								}
+								
 							}
 							return super.createPage(view);							
 						}
@@ -163,9 +170,7 @@ public class TaskRunner {
 					};
 					conMan.addConsoles(new IConsole[] { console });
 					//myConsole.activate();
-					
 					consoleStream = console.newMessageStream();
-
 				}
 			});
 		}

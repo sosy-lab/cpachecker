@@ -1,5 +1,6 @@
 package org.sosy_lab.cpachecker.plugin.eclipse.views;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,7 +21,9 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.IWorkbenchActionConstants;
+import org.eclipse.ui.actions.BaseSelectionListenerAction;
 import org.eclipse.ui.actions.NewWizardMenu;
+import org.eclipse.ui.actions.OpenSystemEditorAction;
 import org.eclipse.ui.part.ISetSelectionTarget;
 import org.eclipse.ui.part.ViewPart;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
@@ -222,6 +225,14 @@ public class TasksView extends ViewPart implements ISetSelectionTarget {
 			if (exitLoop) {
 				break;
 			}
+		}
+		
+		if (selection.getFirstElement() instanceof File) {
+			System.out.println("added new Open action");
+			
+			BaseSelectionListenerAction o = new OpenSystemEditorAction(this.getSite().getPage());
+			o.selectionChanged(selection);
+            manager.add(o);
 		}
 		OpenAction open = new OpenAction(this.getSite());
 		open.selectionChanged(selection);

@@ -3,6 +3,7 @@ package org.sosy_lab.cpachecker.plugin.eclipse.popup.actions;
 import java.io.File;
 import java.util.List;
 
+import org.eclipse.core.runtime.CoreException;
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.swt.widgets.Shell;
@@ -26,10 +27,16 @@ public class DeleteTasksAction extends Action {
 		if (MessageDialog.openQuestion(shell, "Deletion Confirmation", "Sure? \nTask cannot be restored, all Tasks have to be saved \n(we dont support undo)")) {
 			CPAcheckerPlugin.getPlugin().removeTasks(toDelete);
 			for (Task t : toDelete) {
-				if (!deleteDir(t.getOutputDirectory())) {
+				try {
+					t.getOutputDirectory(false).delete(true, null);
+				} catch (CoreException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				/*if (!deleteDir(t.getOutputDirectory())) {
 					// TODO: Proper Error handling
 					System.out.println("Could not delete the Output Directory for Task " + t.getName());
-				}
+				}*/
 			}
 			TasksIO.saveTasks(CPAcheckerPlugin.getPlugin().getTasks());
 			CPAcheckerPlugin.getPlugin().fireTasksChanged();

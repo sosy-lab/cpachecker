@@ -8,16 +8,19 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Properties;
 import java.util.Set;
 
 import org.eclipse.cdt.core.model.ITranslationUnit;
 import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 
 public class Task {
+	private static final String DEFAULT_OUTPUT_DIR = "test/output/";
 	private String name;
 	private ITranslationUnit sourceTranslationUnit = null;
 	private IFile configFile = null;
@@ -74,9 +77,7 @@ public class Task {
 		} else {
 			return preferredName;
 		}
-
 	}
-
 	
 	public Configuration createConfig() throws IOException, CoreException {
 			Configuration config = new Configuration(configFile.getContents(),
@@ -94,7 +95,7 @@ public class Task {
 				}
 			}
 			config.setProperty("output.path",  
-					this.getOutputDirectory().getAbsolutePath());
+					this.getOutputDirectory(false).getLocation().toPortableString());
 			/*property = config.getProperty("output.path");
 			if (property != null) {
 				File file = new File(property);
@@ -180,12 +181,26 @@ public class Task {
 	/**Returns the File (a Directory) where the results of this Task should be saved.
 	 * @return
 	 */
-	public File getOutputDirectory() {
+	public IFolder getOutputDirectory(boolean create) {
 		/*IPreferencesService service = Platform.getPreferencesService();
 		String value = service.getString(CPAcheckerPlugin.PLUGIN_ID,
 				PreferenceConstants.P_RESULT_DIR,
 				PreferenceConstants.P_RESULT_DIR_DEFAULT_VALUE, null);
-		IFolder outDir = ResourcesPlugin.getWorkspace().getRoot().getFolder(new Path(value));
+				*/
+		Properties properties = new Properties();
+	    try {
+			properties.load(this.configFile.getContents());
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		} catch (CoreException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		String projectRelativePath = properties.getProperty("output.path", DEFAULT_OUTPUT_DIR);
+		
+		IFolder outDir = ResourcesPlugin.getWorkspace().getRoot().getFolder(
+				this.configFile.getProject().getFullPath().append(projectRelativePath));
 		assert outDir.exists() : "OutputDirectory of CPAchecker does not exist! Could not create Task Output dir.";
 		outDir = outDir.getFolder(this.getName());
 		if (create) {
@@ -198,11 +213,12 @@ public class Task {
 		// TODO: as this will be a directory we should escape characters that can not occur in directory paths
 		
 		return outDir;
-		*/
+		/*
 		File file = new File(ResourcesPlugin.getWorkspace().getRoot().getLocation().toPortableString() + "/.metadata/.plugins/" 
 				+ CPAcheckerPlugin.PLUGIN_ID + "/results/" + this.getName() + "/");
 		file.mkdirs();
 		return file;
+		*/
 	}
 	
 }

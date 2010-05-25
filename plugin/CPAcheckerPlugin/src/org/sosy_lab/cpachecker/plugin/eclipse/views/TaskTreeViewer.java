@@ -1,13 +1,12 @@
 package org.sosy_lab.cpachecker.plugin.eclipse.views;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.cdt.core.model.ITranslationUnit;
-import org.eclipse.cdt.ui.CElementLabelProvider;
 import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IFolder;
+import org.eclipse.core.runtime.CoreException;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.viewers.ArrayContentProvider;
 import org.eclipse.jface.viewers.ITreeContentProvider;
@@ -17,6 +16,7 @@ import org.eclipse.jface.viewers.TreeViewer;
 import org.eclipse.jface.viewers.DelegatingStyledCellLabelProvider.IStyledLabelProvider;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.ui.model.WorkbenchLabelProvider;
 import org.sosy_lab.cpachecker.plugin.eclipse.CPAcheckerPlugin;
 import org.sosy_lab.cpachecker.plugin.eclipse.Task;
 import org.sosy_lab.cpachecker.plugin.eclipse.views.TaskTreeViewer.Node.NodeType;
@@ -29,6 +29,7 @@ public class TaskTreeViewer extends TreeViewer {
 	private Image unknownResultIcon;
 	private Image configIcon;
 	private Image sourceFileImage;
+	private Image mainLogoIcon;
 	private List<Image> imagesToBeDisposed = new ArrayList<Image>();
 
 	public TaskTreeViewer(Composite parent, int style) {
@@ -64,6 +65,10 @@ public class TaskTreeViewer extends TreeViewer {
 			if (desc != null) unknownResultIcon = desc.createImage(true);
 			else unknownResultIcon = missingImage;
 			
+			desc = CPAcheckerPlugin.getImageDescriptor("icons/MainLogo.gif");
+			if (desc != null) mainLogoIcon = desc.createImage(true);
+			else mainLogoIcon = missingImage;
+			
 			desc = CPAcheckerPlugin.getImageDescriptor("icons/sample.gif");
 			if (desc != null) sourceFileImage = desc.createImage(true);
 			else sourceFileImage = missingImage;
@@ -71,6 +76,7 @@ public class TaskTreeViewer extends TreeViewer {
 			imagesToBeDisposed.add(safeResultIcon);
 			imagesToBeDisposed.add(unsafeResultIcon);
 			imagesToBeDisposed.add(unknownResultIcon);
+			imagesToBeDisposed.add(mainLogoIcon);
 			imagesToBeDisposed.add(sourceFileImage);
 			imagesToBeDisposed.add(missingImage);
 		} catch (Exception e) {
@@ -94,7 +100,7 @@ public class TaskTreeViewer extends TreeViewer {
 				if (ex1.getType() == NodeType.TASK) {
 					Task t = ((TaskNode)ex1).getTask();
 					
-					File outDir = t.getOutputDirectory();
+					IFolder outDir = t.getOutputDirectory(false);
 					IFile c = t.hasConfigurationFile() ? t.getConfigFile() : null;
 					ITranslationUnit u = ((TaskNode)ex1).getTask().getTranslationUnit();
 					if (c != null && u != null) {
@@ -107,8 +113,13 @@ public class TaskTreeViewer extends TreeViewer {
 				} else if (ex1.getType() == NodeType.TOP) {
 					return ((TopNode)ex1).getChildren();
 				}
-			} else if (parent instanceof File) {
-				return ((File)parent).listFiles();
+			} else if (parent instanceof IFolder) {
+				try {
+					return ((IFolder)parent).members();
+				} catch (CoreException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 			}
 			return super.getElements(parent);
 		}
@@ -127,8 +138,14 @@ public class TaskTreeViewer extends TreeViewer {
 				} else {
 					return false; 
 				}
-			} else if (element instanceof File) {
-				return ((File)element).isDirectory();
+			} else if (element instanceof IFolder) {
+				try {
+					return ((IFolder)element).exists() && ((IFolder)element).members().length > 0;
+				} catch (CoreException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+					return false;
+				} 
 			} else {
 				return false;
 			}
@@ -136,14 +153,14 @@ public class TaskTreeViewer extends TreeViewer {
 	}
 
 	public class MyTreeLabelProvider extends LabelProvider implements IStyledLabelProvider {
-		CElementLabelProvider cLabelProvider = new CElementLabelProvider();
+		WorkbenchLabelProvider myWorkbenchLabelProvider = new WorkbenchLabelProvider();
 		@Override
 		public Image getImage(Object element) {
 			if (element instanceof Node) {
 				Node n = (Node) element;
 				switch (n.getType()) {
 				case TOP:
-					return null;
+					return mainLogoIcon;
 				case TASK:
 					Task t  = ((TaskNode)n).getTask();
 					switch (t.getLastResult()) {
@@ -157,31 +174,20 @@ public class TaskTreeViewer extends TreeViewer {
 						return unknownResultIcon;
 					}
 				}
-			} else if (element instanceof IASTTranslationUnit) {
-				return cLabelProvider.getImage(element);
-			} else if (element instanceof IFile) {
+			} else if (element instanceof IFile && ((IFile)element).getFileExtension().equals("properties")) {
 				return configIcon;
 			}
-			
-			return super.getImage(element);
+			return myWorkbenchLabelProvider.getImage(element);
 		}
 		@Override
 		public String getText(Object element) {
 			if (element instanceof Node) {
 				Node ex1 = (Node) element;
 				return ex1.getName();	
-			} else if (element instanceof ITranslationUnit) {
-				return cLabelProvider.getText(element);
 			} else if (element instanceof IFile && ((IFile)element).getFileExtension().equals("properties")) {
 				return ((IFile)element).getProjectRelativePath().toPortableString();
-			} else if (element instanceof File) {
-				if (((File)element).isDirectory()) {
-					return "ResultFiles: " + ((File)element).getName();
-				} else {
-					return ((File)element).getName();
-				}
 			} else {
-				return super.getText(element);
+				return myWorkbenchLabelProvider.getText(element);
 			}
 		}
 		@Override
