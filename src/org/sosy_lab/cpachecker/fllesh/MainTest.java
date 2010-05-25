@@ -44,4 +44,28 @@ public class MainTest {
     Main.main(lArguments);
   }
 
+  @Test
+  public void testMain002() throws Exception {
+    String[] lArguments = new String[4];
+
+    lArguments[0] = "COVER \"EDGES(ID)*\".EDGES(@LABEL(L)).\"EDGES(ID)*\"";
+    lArguments[1] = "test/programs/simple/negate.c";
+    lArguments[2] = "negate";
+    lArguments[3] = "disablecilpreprocessing";
+    
+    Main.main(lArguments);
+  }
+
+  @Test
+  public void testMain003() throws Exception {
+    String[] lArguments = new String[4];
+
+    lArguments[0] = "COVER \"EDGES(ID)*\".{x > 100}.EDGES(@LABEL(L)).\"EDGES(ID)*\"";
+    lArguments[1] = "test/programs/simple/negate.c";
+    lArguments[2] = "negate";
+    lArguments[3] = "disablecilpreprocessing";
+    
+    Main.main(lArguments);
+  }
+  
 }

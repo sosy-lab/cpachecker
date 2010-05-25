@@ -23,11 +23,9 @@
  */
 package org.sosy_lab.cpachecker.fllesh;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.PrintWriter;
@@ -89,20 +87,29 @@ public class Main {
     
     String lFQLSpecificationString = pArguments[0];
     String lSourceFileName = pArguments[1];
-
-    // check cilly invariance of source file, i.e., is it changed when preprocessed by cilly?
-    Cilly lCilly = new Cilly();
-
-    if (!lCilly.isCillyInvariant(lSourceFileName)) {
-      File lCillyProcessedFile = lCilly.cillyfy(pArguments[1]);
-      lCillyProcessedFile.deleteOnExit();
-
-      lSourceFileName = lCillyProcessedFile.getAbsolutePath();
-
-      System.err.println("WARNING: Given source file is not CIL invariant ... did preprocessing!");
+    
+    String lEntryFunction = "main";
+    
+    if (pArguments.length > 2) {
+      lEntryFunction = pArguments[2];
+    }
+    
+    // TODO implement nicer mechanism for disabling cilly preprocessing
+    if (pArguments.length <= 3) {  
+      // check cilly invariance of source file, i.e., is it changed when preprocessed by cilly?
+      Cilly lCilly = new Cilly();
+  
+      if (!lCilly.isCillyInvariant(lSourceFileName)) {
+        File lCillyProcessedFile = lCilly.cillyfy(pArguments[1]);
+        lCillyProcessedFile.deleteOnExit();
+  
+        lSourceFileName = lCillyProcessedFile.getAbsolutePath();
+  
+        System.err.println("WARNING: Given source file is not CIL invariant ... did preprocessing!");
+      }
     }
 
-    File lPropertiesFile = Main.createPropertiesFile();
+    File lPropertiesFile = Main.createPropertiesFile(lEntryFunction);
     Configuration lConfiguration = Main.createConfiguration(lSourceFileName, lPropertiesFile.getAbsolutePath());
 
     LogManager lLogManager = new LogManager(lConfiguration);
@@ -129,7 +136,7 @@ public class Main {
     
     File lControlAutomatonFile = lTranslator.getControlAutomatonFile(lPassing, Main.PASSING_AUTOMATON);
 
-    File lPassingPropertiesFile = Main.createPropertiesFile(lControlAutomatonFile, "test/output/" + Main.PASSING_AUTOMATON + ".dot");
+    File lPassingPropertiesFile = Main.createPropertiesFile(lControlAutomatonFile, "test/output/" + Main.PASSING_AUTOMATON + ".dot", lEntryFunction);
     Configuration lPassingConfiguration = Main.createConfiguration(lSourceFileName, lPassingPropertiesFile.getAbsolutePath());
 
     CPAFactory lPassingAutomatonFactory = ControlAutomatonCPA.factory();
@@ -159,7 +166,7 @@ public class Main {
     lProductAutomatonStream.println(Main.getProductAutomaton(false));
     lProductAutomatonStream.close();
     
-    File lProductAutomatonPropertiesFile = Main.createPropertiesFile(lProductAutomatonFile, "test/output/" + Main.PRODUCT_AUTOMATON + ".dot");
+    File lProductAutomatonPropertiesFile = Main.createPropertiesFile(lProductAutomatonFile, "test/output/" + Main.PRODUCT_AUTOMATON + ".dot", lEntryFunction);
     Configuration lProductAutomatonConfiguration = Main.createConfiguration(lSourceFileName, lProductAutomatonPropertiesFile.getAbsolutePath());
 
     CPAFactory lProductAutomatonFactory = ControlAutomatonCPA.factory();
@@ -186,7 +193,7 @@ public class Main {
       
       File lGoalAutomatonFile = lTranslator.getControlAutomatonFile(lGoal, Main.GOAL_AUTOMATON);
       
-      File lTestGoalPropertiesFile = Main.createPropertiesFile(lGoalAutomatonFile, "test/output/" + Main.GOAL_AUTOMATON + ".dot");
+      File lTestGoalPropertiesFile = Main.createPropertiesFile(lGoalAutomatonFile, "test/output/" + Main.GOAL_AUTOMATON + ".dot", lEntryFunction);
       Configuration lTestGoalConfiguration = Main.createConfiguration(lSourceFileName, lTestGoalPropertiesFile.getAbsolutePath());
 
       CPAFactory lTestGoalAutomatonFactory = ControlAutomatonCPA.factory();
@@ -335,7 +342,11 @@ public class Main {
     return lConfiguration;
   }
 
-  public static File createPropertiesFile() {
+  public static File createPropertiesFile(String pEntryFunction) {
+    if (pEntryFunction == null) {
+      throw new IllegalArgumentException("Parameter pEntryFunction is null!");
+    }
+    
     File lPropertiesFile = null;
 
     try {
@@ -351,6 +362,7 @@ public class Main {
       //lWriter.println("log.consoleLevel = ALL");
 
       lWriter.println("analysis.traversal = topsort");
+      lWriter.println("analysis.entryFunction = " + pEntryFunction);
 
       // we want to use CEGAR algorithm
       lWriter.println("analysis.useRefinement = true");
@@ -366,8 +378,16 @@ public class Main {
     return lPropertiesFile;
   }
 
-  private static File createPropertiesFile(File pObserverAutomatonFile, String pDotFile) {
-    File lPropertiesFile = Main.createPropertiesFile();
+  private static File createPropertiesFile(File pObserverAutomatonFile, String pDotFile, String pEntryFunction) {
+    if (pObserverAutomatonFile == null) {
+      throw new IllegalArgumentException("Parameter pObserverAutomaton is null!");
+    }
+    
+    if (pDotFile == null) {
+      throw new IllegalArgumentException("Parameter pDotFile is null!");
+    }
+    
+    File lPropertiesFile = Main.createPropertiesFile(pEntryFunction);
 
     // append configuration for observer automaton
     PrintWriter lWriter;

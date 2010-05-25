@@ -72,7 +72,7 @@ public class ToControlAutomatonTranslatorTest {
       System.err.println("WARNING: Given source file is not CIL invariant ... did preprocessing!");
     }
 
-    File lPropertiesFile = Main.createPropertiesFile();
+    File lPropertiesFile = Main.createPropertiesFile("main");
     Configuration lConfiguration = Main.createConfiguration(lSourceFileName, lPropertiesFile.getAbsolutePath());
 
     LogManager lLogManager = new LogManager(lConfiguration);
@@ -131,7 +131,7 @@ public class ToControlAutomatonTranslatorTest {
       System.err.println("WARNING: Given source file is not CIL invariant ... did preprocessing!");
     }
 
-    File lPropertiesFile = Main.createPropertiesFile();
+    File lPropertiesFile = Main.createPropertiesFile("main");
     Configuration lConfiguration = Main.createConfiguration(lSourceFileName, lPropertiesFile.getAbsolutePath());
 
     LogManager lLogManager = new LogManager(lConfiguration);
@@ -190,7 +190,7 @@ public class ToControlAutomatonTranslatorTest {
       System.err.println("WARNING: Given source file is not CIL invariant ... did preprocessing!");
     }
 
-    File lPropertiesFile = Main.createPropertiesFile();
+    File lPropertiesFile = Main.createPropertiesFile("main");
     Configuration lConfiguration = Main.createConfiguration(lSourceFileName, lPropertiesFile.getAbsolutePath());
 
     LogManager lLogManager = new LogManager(lConfiguration);
@@ -249,7 +249,7 @@ public class ToControlAutomatonTranslatorTest {
       System.err.println("WARNING: Given source file is not CIL invariant ... did preprocessing!");
     }
 
-    File lPropertiesFile = Main.createPropertiesFile();
+    File lPropertiesFile = Main.createPropertiesFile("main");
     Configuration lConfiguration = Main.createConfiguration(lSourceFileName, lPropertiesFile.getAbsolutePath());
 
     LogManager lLogManager = new LogManager(lConfiguration);
@@ -308,7 +308,7 @@ public class ToControlAutomatonTranslatorTest {
       System.err.println("WARNING: Given source file is not CIL invariant ... did preprocessing!");
     }
 
-    File lPropertiesFile = Main.createPropertiesFile();
+    File lPropertiesFile = Main.createPropertiesFile("main");
     Configuration lConfiguration = Main.createConfiguration(lSourceFileName, lPropertiesFile.getAbsolutePath());
 
     LogManager lLogManager = new LogManager(lConfiguration);
@@ -367,7 +367,7 @@ public class ToControlAutomatonTranslatorTest {
       System.err.println("WARNING: Given source file is not CIL invariant ... did preprocessing!");
     }
 
-    File lPropertiesFile = Main.createPropertiesFile();
+    File lPropertiesFile = Main.createPropertiesFile("main");
     Configuration lConfiguration = Main.createConfiguration(lSourceFileName, lPropertiesFile.getAbsolutePath());
 
     LogManager lLogManager = new LogManager(lConfiguration);
