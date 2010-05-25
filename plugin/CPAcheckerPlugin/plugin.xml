@@ -15,6 +15,7 @@
 		</category>
 		<view
 			name="CPAchecker Tasks View"
+			icon="icons/MainLogo.gif"
 			category="org.sosy_lab.cpachecker.plugin.eclipse.catMain"
 			class="org.sosy_lab.cpachecker.plugin.eclipse.views.TasksView"
 			id="org.sosy_lab.cpachecker.plugin.eclipse.views.TasksView">

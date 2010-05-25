@@ -101,7 +101,6 @@ public class TasksView extends ViewPart implements ISetSelectionTarget {
 		gridData.grabExcessVerticalSpace = true;
 		myTreeViewer.getTree().setLayoutData(gridData);
 		this.getSite().setSelectionProvider(myTreeViewer);
-		
 		listener = new ITestListener() {
 			@Override
 			public void tasksChanged() {
@@ -142,6 +141,7 @@ public class TasksView extends ViewPart implements ISetSelectionTarget {
 		}
 		this.initContextMenu();
 	}
+	
 	@Override
 	public void dispose() {
 		if (this.listener != null) {
@@ -158,6 +158,8 @@ public class TasksView extends ViewPart implements ISetSelectionTarget {
 	
 	@Override
 	public void setFocus() {
+		if (this.myTreeViewer != null)
+			this.myTreeViewer.getControl().setFocus();
 		// set focus to my widget. For a label, this doesn't
 		// make much sense, but for more complex sets of widgets
 		// you would decide which one gets the focus.
