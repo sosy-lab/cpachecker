@@ -59,10 +59,10 @@ public class TasksIO {
 		try {
 			tasksInputFile = getFile(DEFAULT_TASKS_SAVE_LOCATION);
 		} catch (MalformedURLException e1) {
-			e1.printStackTrace();
+			CPAcheckerPlugin.logError("Error during save action", e1);
 			return Collections.<Task>emptyList();
 		} catch (URISyntaxException e1) {
-			e1.printStackTrace();
+		     CPAcheckerPlugin.logError("Error during save action", e1);
 			return Collections.<Task>emptyList();
 		}
 		
@@ -112,11 +112,11 @@ public class TasksIO {
 				returnList.add(t);
 			}
 		} catch (ParserConfigurationException e) {
-			e.printStackTrace();
+		     CPAcheckerPlugin.logError("Error during load action", e);
 		} catch (SAXException e) {
-			e.printStackTrace();
+			CPAcheckerPlugin.logError("Error during load action", e);
 		} catch (IOException e) {
-			e.printStackTrace();
+			CPAcheckerPlugin.logError("Error during load action", e);
 		}
 		return returnList;
 	}
@@ -206,19 +206,19 @@ public class TasksIO {
 				rootNode.appendChild(getNodeFromTask(t, doc));
 			}
 		} catch (ParserConfigurationException e) {
-			e.printStackTrace();
+			CPAcheckerPlugin.logError("Error during save action", e);
 			return;
 		} catch (SAXException e) {
-			e.printStackTrace();
+			CPAcheckerPlugin.logError("Error during save action", e);
 			return;
 		} catch (IOException e) {
-			e.printStackTrace();
+			CPAcheckerPlugin.logError("Error during save action", e);
 			return;
 		} catch (URISyntaxException e) {
-			e.printStackTrace();
+			CPAcheckerPlugin.logError("Error during save action", e);
 			return;
 		} catch (XMLStreamException e) {
-			e.printStackTrace();
+			CPAcheckerPlugin.logError("Error during save action", e);
 			return;
 		}
 		for (Task t : toSave) {

@@ -62,11 +62,9 @@ public class TaskRunner {
 			try {				
 				service.run(false, true, new TaskRun(t));
 			} catch (InvocationTargetException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				CPAcheckerPlugin.logError(e);
 			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				CPAcheckerPlugin.logError(e);
 			}
 		}
 	}
@@ -219,8 +217,7 @@ public class TaskRunner {
 					// finshedAnnouncement must be fired in Eclipse UI thread
 					fireTaskFinished(results);
 				} catch (Exception e) {
-					System.err.println("Task \"" + task.getName() + "\" run has thrown an exception:");
-					e.printStackTrace();
+					CPAcheckerPlugin.logError("Evaluation of Task "+ task.getName() + " has thrown an exception", e);
 				} finally {
 					fireTaskFinished(null);
 					monitor.worked(1);

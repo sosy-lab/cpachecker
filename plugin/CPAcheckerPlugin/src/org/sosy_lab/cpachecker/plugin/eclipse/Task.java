@@ -191,11 +191,9 @@ public class Task {
 	    try {
 			properties.load(this.configFile.getContents());
 		} catch (IOException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
+			CPAcheckerPlugin.logError("Could not load the configFile", e1);
 		} catch (CoreException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
+			CPAcheckerPlugin.logError("Could not load the configFile", e1);
 		}
 		String projectRelativePath = properties.getProperty("output.path", DEFAULT_OUTPUT_DIR);
 		
@@ -207,7 +205,8 @@ public class Task {
 			try {
 				outDir.create(true, true, null);
 			} catch (CoreException e) {
-				e.printStackTrace();
+				CPAcheckerPlugin.logError("Could not create Result Directory at path " 
+						+ outDir.getFullPath().toPortableString(), e);
 			}
 		}
 		// TODO: as this will be a directory we should escape characters that can not occur in directory paths

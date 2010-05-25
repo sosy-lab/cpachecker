@@ -30,8 +30,7 @@ public class DeleteTasksAction extends Action {
 				try {
 					t.getOutputDirectory(false).delete(true, null);
 				} catch (CoreException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					CPAcheckerPlugin.log(e.getStatus());
 				}
 				/*if (!deleteDir(t.getOutputDirectory())) {
 					// TODO: Proper Error handling

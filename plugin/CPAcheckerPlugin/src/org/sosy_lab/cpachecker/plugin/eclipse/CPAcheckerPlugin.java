@@ -15,9 +15,11 @@ import org.eclipse.core.runtime.IExtension;
 import org.eclipse.core.runtime.IExtensionPoint;
 import org.eclipse.core.runtime.IExtensionRegistry;
 import org.eclipse.core.runtime.ISafeRunnable;
+import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.core.runtime.SafeRunner;
+import org.eclipse.core.runtime.Status;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.swt.SWT;
@@ -134,7 +136,7 @@ public class CPAcheckerPlugin extends AbstractUIPlugin {
 							listeners.add((ITestListener) listener);
 						}
 					} catch (CoreException e) {
-						e.printStackTrace();
+						logError("Listener caused an exception: ", e);
 					}
 				}
 			}
@@ -335,5 +337,23 @@ public class CPAcheckerPlugin extends AbstractUIPlugin {
 			}
         }
         return null;
+	}
+	public static void log(IStatus status) {
+		getPlugin().getLog().log(status);
+	}
+	public static void logInfo(String message) {
+		log(IStatus.INFO, IStatus.OK, message, null);
+	}
+	public static void logError(Throwable exception) {
+		logError("Unexpected Exception", exception);
+	}
+	public static void logError(String message, Throwable exception) {
+		log(IStatus.ERROR, IStatus.OK, message, exception);
+	}
+	public static void log(int severity, int code, String message, Throwable exception) {
+		log(createStatus(severity, code, message, exception));
+	}
+	public static IStatus createStatus(int severity, int code, String message, Throwable exception) {
+		return new Status(severity, CPAcheckerPlugin.PLUGIN_ID, code, message, exception);
 	}
 }

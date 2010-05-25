@@ -80,7 +80,7 @@ public class TaskTreeViewer extends TreeViewer {
 			imagesToBeDisposed.add(sourceFileImage);
 			imagesToBeDisposed.add(missingImage);
 		} catch (Exception e) {
-			e.printStackTrace();
+			CPAcheckerPlugin.logError("could not create images", e);
 		}
 	}
 	void disposeImages() {
@@ -117,8 +117,7 @@ public class TaskTreeViewer extends TreeViewer {
 				try {
 					return ((IFolder)parent).members();
 				} catch (CoreException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					CPAcheckerPlugin.logError("Could not retrieve members of the ResultFolder", e);
 				}
 			}
 			return super.getElements(parent);
@@ -142,8 +141,7 @@ public class TaskTreeViewer extends TreeViewer {
 				try {
 					return ((IFolder)element).exists() && ((IFolder)element).members().length > 0;
 				} catch (CoreException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					CPAcheckerPlugin.logError(e);
 					return false;
 				} 
 			} else {
