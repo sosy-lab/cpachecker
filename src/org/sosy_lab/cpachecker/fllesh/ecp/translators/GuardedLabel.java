@@ -39,6 +39,10 @@ public abstract class GuardedLabel implements Iterable<ECPGuard> {
   public boolean hasGuards() {
     return !mGuards.isEmpty();
   }
+  
+  public int getNumberOfGuards() {
+    return mGuards.size();
+  }
 
   public abstract <T> T accept(GuardedLabelVisitor<T> pVisitor);
   

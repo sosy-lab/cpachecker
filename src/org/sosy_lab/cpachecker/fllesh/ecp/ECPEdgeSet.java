@@ -19,6 +19,10 @@ public class ECPEdgeSet implements ECPAtom, Iterable<CFAEdge> {
     mCFAEdges.add(pCFAEdge);
   }
   
+  public boolean contains(CFAEdge pCFAEdge) {
+    return mCFAEdges.contains(pCFAEdge);
+  }
+  
   /** copy constructor */
   public ECPEdgeSet(ECPEdgeSet pEdgeSet) {
     this(pEdgeSet.mCFAEdges);
