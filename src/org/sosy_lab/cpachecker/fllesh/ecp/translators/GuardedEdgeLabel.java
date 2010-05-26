@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.fllesh.ecp.ECPEdgeSet;
 import org.sosy_lab.cpachecker.fllesh.ecp.ECPGuard;
 
@@ -36,8 +37,12 @@ public class GuardedEdgeLabel extends GuardedLabel {
     this(pGuard.mEdgeSet, pGuard.getGuards());
   }
   
-  public ECPEdgeSet getEdgeSet() {
+  protected ECPEdgeSet getEdgeSet() {
     return mEdgeSet;
+  }
+  
+  public boolean contains(CFAEdge pCFAEdge) {
+    return mEdgeSet.contains(pCFAEdge);
   }
   
   @Override

@@ -53,6 +53,14 @@ public class AutomatonPrettyPrinter {
     return mNodeSetIds.get(pNodeSet);
   }
   
+  public String printPretty(Automaton<? extends GuardedLabel>.Edge pEdge) {
+    return printPretty(pEdge.getSource()) + " -[" + pEdge.getLabel().accept(mVisitor) + "]> " + printPretty(pEdge.getTarget());
+  }
+  
+  public String printPretty(Automaton<? extends GuardedLabel>.State pState) {
+    return getId(pState);
+  }
+  
   public String printPretty(Automaton<? extends GuardedLabel> pAutomaton) {
     StringBuffer lBuffer = new StringBuffer();
     
@@ -94,7 +102,8 @@ public class AutomatonPrettyPrinter {
     StringBuffer lTmpBuffer = new StringBuffer();
     
     for (Automaton<? extends GuardedLabel>.Edge lEdge : pAutomaton.getEdges()) {
-      lTmpBuffer.append(getId(lEdge.getSource()) + " -[" + lEdge.getLabel().accept(mVisitor) + "]> " + getId(lEdge.getTarget()));
+      //lTmpBuffer.append(getId(lEdge.getSource()) + " -[" + lEdge.getLabel().accept(mVisitor) + "]> " + getId(lEdge.getTarget()));
+      lTmpBuffer.append(printPretty(lEdge));
       lTmpBuffer.append("\n");
     }
     
@@ -155,6 +164,12 @@ public class AutomatonPrettyPrinter {
 
     @Override
     public String visit(GuardedEdgeLabel pLabel) {
+      String lPrefix = "";
+      
+      if (pLabel instanceof InverseGuardedEdgeLabel) {
+        lPrefix = "!";
+      }
+      
       if (pLabel.hasGuards()) {
         StringBuffer lGuardBuffer = new StringBuffer();
         
@@ -184,10 +199,10 @@ public class AutomatonPrettyPrinter {
         
         lGuardBuffer.append("]");
         
-        return getId(pLabel.getEdgeSet()) + " " + lGuardBuffer.toString();
+        return lPrefix + getId(pLabel.getEdgeSet()) + " " + lGuardBuffer.toString();
       }
       else {
-        return getId(pLabel.getEdgeSet());
+        return lPrefix + getId(pLabel.getEdgeSet());
       }
     }
   }

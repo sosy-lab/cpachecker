@@ -22,6 +22,21 @@ import org.sosy_lab.cpachecker.fllesh.ecp.reduced.Automaton;
 
 public class ToGuardedAutomatonTranslator {
   
+  public static Automaton<GuardedEdgeLabel> toAutomaton(ElementaryCoveragePattern pPattern, CFAEdge pAlphaEdge, CFAEdge pOmegaEdge) {
+    Automaton<GuardedLabel> lAutomaton1 = translate(pPattern);
+    
+    ECPEdgeSet lAlphaEdgeSet = new ECPEdgeSet(pAlphaEdge);
+    ECPEdgeSet lOmegaEdgeSet = new ECPEdgeSet(pOmegaEdge);
+    
+    Automaton<GuardedLabel> lAutomaton2 = removeLambdaEdges(lAutomaton1, lAlphaEdgeSet, lOmegaEdgeSet);
+    
+    Automaton<GuardedEdgeLabel> lAutomaton3 = removeNodeSetGuards(lAutomaton2);
+    
+    lAutomaton3.createEdge(lAutomaton3.getInitialState(), lAutomaton3.getInitialState(), new InverseGuardedEdgeLabel(new GuardedEdgeLabel(lAlphaEdgeSet)));
+    
+    return lAutomaton3;
+  }
+  
   public static Automaton<GuardedLabel> translate(ElementaryCoveragePattern pPattern) {
     Visitor lVisitor = new Visitor();
     

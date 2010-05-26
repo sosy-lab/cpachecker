@@ -59,8 +59,13 @@ import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.symbpredabsCPA.SymbPredAbsCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.fllesh.cpa.edgevisit.EdgeVisitCPA;
+import org.sosy_lab.cpachecker.fllesh.cpa.guardededgeautomaton.GuardedEdgeAutomatonCPA;
+import org.sosy_lab.cpachecker.fllesh.cpa.productautomaton.ProductAutomatonCPA;
 import org.sosy_lab.cpachecker.fllesh.ecp.ECPPrettyPrinter;
 import org.sosy_lab.cpachecker.fllesh.ecp.ElementaryCoveragePattern;
+import org.sosy_lab.cpachecker.fllesh.ecp.reduced.Automaton;
+import org.sosy_lab.cpachecker.fllesh.ecp.translators.GuardedEdgeLabel;
+import org.sosy_lab.cpachecker.fllesh.ecp.translators.ToGuardedAutomatonTranslator;
 import org.sosy_lab.cpachecker.fllesh.ecp.translators.observerautomaton.ToControlAutomatonTranslator;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.TargetGraph;
 import org.sosy_lab.cpachecker.fllesh.fql.fllesh.util.AutomaticStreamReader;
@@ -82,6 +87,195 @@ public class Main {
    * @throws Exception
    */
   public static void main(String[] pArguments) throws Exception {
+    assert(pArguments != null);
+    assert(pArguments.length > 1);
+    
+    String lFQLSpecificationString = pArguments[0];
+    String lSourceFileName = pArguments[1];
+    
+    String lEntryFunction = "main";
+    
+    if (pArguments.length > 2) {
+      lEntryFunction = pArguments[2];
+    }
+    
+    // TODO implement nicer mechanism for disabling cilly preprocessing
+    if (pArguments.length <= 3) {  
+      // check cilly invariance of source file, i.e., is it changed when preprocessed by cilly?
+      Cilly lCilly = new Cilly();
+  
+      if (!lCilly.isCillyInvariant(lSourceFileName)) {
+        File lCillyProcessedFile = lCilly.cillyfy(pArguments[1]);
+        lCillyProcessedFile.deleteOnExit();
+  
+        lSourceFileName = lCillyProcessedFile.getAbsolutePath();
+  
+        System.err.println("WARNING: Given source file is not CIL invariant ... did preprocessing!");
+      }
+    }
+
+    File lPropertiesFile = Main.createPropertiesFile(lEntryFunction);
+    Configuration lConfiguration = Main.createConfiguration(lSourceFileName, lPropertiesFile.getAbsolutePath());
+
+    LogManager lLogManager = new LogManager(lConfiguration);
+    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
+
+    CFAFunctionDefinitionNode lMainFunction = lCPAchecker.getMainFunction();
+    
+    FQLSpecification lFQLSpecification = FQLSpecification.parse(lFQLSpecificationString);
+    
+    System.out.println("FQL query: " + lFQLSpecification);
+    System.out.println("File: " + lSourceFileName);
+    
+    TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lMainFunction);
+    
+    /** do translation */
+    ECPPrettyPrinter lPrettyPrinter = new ECPPrettyPrinter();
+
+    CoverageSpecificationTranslator lSpecificationTranslator = new CoverageSpecificationTranslator(lTargetGraph);
+    Set<ElementaryCoveragePattern> lGoals = lSpecificationTranslator.translate(lFQLSpecification.getCoverageSpecification());
+    
+    Wrapper lWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCPAchecker.getCFAMap(), lLogManager);
+
+    // passing clause
+    ElementaryCoveragePattern lPassing = lSpecificationTranslator.translate(lFQLSpecification.getPathPattern());
+    System.out.println("PASSING:");
+    System.out.println(lPrettyPrinter.printPretty(lPassing));
+    Automaton<GuardedEdgeLabel> lPassingAutomaton = ToGuardedAutomatonTranslator.toAutomaton(lPassing, lWrapper.getAlphaEdge(), lWrapper.getOmegaEdge());
+    GuardedEdgeAutomatonCPA lPassingCPA = new GuardedEdgeAutomatonCPA(lPassingAutomaton);
+
+    
+    ProductAutomatonCPA lProductAutomatonCPA = new ProductAutomatonCPA();
+    
+    
+    System.out.println("TEST GOALS:");
+    
+    int lIndex = 0;
+    
+    for (ElementaryCoveragePattern lGoal : lGoals) {
+      int lCurrentGoalNumber = ++lIndex;
+      
+      System.out.println("Goal #" + lCurrentGoalNumber);
+      System.out.println(lPrettyPrinter.printPretty(lGoal));
+      
+      Automaton<GuardedEdgeLabel> lGoalAutomaton = ToGuardedAutomatonTranslator.toAutomaton(lGoal, lWrapper.getAlphaEdge(), lWrapper.getOmegaEdge());
+      GuardedEdgeAutomatonCPA lGoalCPA = new GuardedEdgeAutomatonCPA(lGoalAutomaton);
+      
+      CPAFactory lLocationCPAFactory = LocationCPA.factory();
+      ConfigurableProgramAnalysis lLocationCPA = lLocationCPAFactory.createInstance();
+
+      CPAFactory lSymbPredAbsCPAFactory = SymbPredAbsCPA.factory();
+      lSymbPredAbsCPAFactory.setConfiguration(lConfiguration);
+      lSymbPredAbsCPAFactory.setLogger(lLogManager);
+      ConfigurableProgramAnalysis lSymbPredAbsCPA = lSymbPredAbsCPAFactory.createInstance();
+
+      LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<ConfigurableProgramAnalysis>();
+      lComponentAnalyses.add(lLocationCPA);
+      lComponentAnalyses.add(lSymbPredAbsCPA);
+      lComponentAnalyses.add(lGoalCPA);
+      //lComponentAnalyses.add(lPassingCPA);
+      lComponentAnalyses.add(lProductAutomatonCPA);
+
+      // create composite CPA
+      CPAFactory lCPAFactory = CompositeCPA.factory();
+      lCPAFactory.setChildren(lComponentAnalyses);
+      lCPAFactory.setConfiguration(lConfiguration);
+      lCPAFactory.setLogger(lLogManager);
+      ConfigurableProgramAnalysis lCPA = lCPAFactory.createInstance();
+
+      // create ART CPA
+      CPAFactory lARTCPAFactory = ARTCPA.factory();
+      lARTCPAFactory.setChild(lCPA);
+      lARTCPAFactory.setConfiguration(lConfiguration);
+      lARTCPAFactory.setLogger(lLogManager);
+      ConfigurableProgramAnalysis lARTCPA = lARTCPAFactory.createInstance();
+
+
+
+      CEGARAlgorithm lAlgorithm = new CEGARAlgorithm(new CPAAlgorithm(lARTCPA, lLogManager), lConfiguration, lLogManager);
+
+      Statistics lARTStatistics = new ARTStatistics(lConfiguration, lLogManager);
+      Set<Statistics> lStatistics = new HashSet<Statistics>();
+      lStatistics.add(lARTStatistics);
+      lAlgorithm.collectStatistics(lStatistics);
+
+      AbstractElement initialElement = lARTCPA.getInitialElement(lWrapper.getEntry());
+      Precision initialPrecision = lARTCPA.getInitialPrecision(lWrapper.getEntry());
+
+      ReachedElements lReachedElements = new ReachedElements(ReachedElements.TraversalMethod.TOPSORT, true);
+      lReachedElements.add(initialElement, initialPrecision);
+
+      try {
+        lAlgorithm.run(lReachedElements, true);
+      } catch (CPAException e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+      }
+
+      Main.determineGoalFeasibility(lReachedElements, lCurrentGoalNumber, lARTStatistics);
+    }
+  }
+  
+  public static void determineGoalFeasibility(ReachedElements pReachedElements, int pCurrentGoalNumber, Statistics pStatistics) throws IOException {
+    boolean lErrorReached = false;
+    
+    for (AbstractElement reachedElement : pReachedElements) {
+      if (reachedElement.isError()) {
+        lErrorReached = true;
+      }
+
+      System.out.println(reachedElement);
+    }
+
+    PrintWriter lStatisticsWriter = new PrintWriter(System.out);
+
+    if (lErrorReached) {
+      pStatistics.printStatistics(lStatisticsWriter, Result.UNSAFE, pReachedElements);
+      
+      System.out.println("Goal #" + pCurrentGoalNumber + " is feasible:");
+      
+      /** determine test input */
+      // TODO get data direct from SymbPredAbsCPA
+      List<String> lCommand = new LinkedList<String>();
+      lCommand.add("/home/holzera/mathsat-4.2.8-linux-x86/bin/mathsat");
+      lCommand.add("-solve");
+      lCommand.add("-print_model");
+      lCommand.add("test/output/cex.msat");
+      
+      ProcessBuilder lMathsatBuilder = new ProcessBuilder(lCommand);
+      Process lMathsat = lMathsatBuilder.start();
+      
+      AutomaticStreamReader lInputReader = new AutomaticStreamReader(lMathsat.getInputStream());
+      Thread lInputReaderThread = new Thread(lInputReader);
+      lInputReaderThread.start();
+      
+      AutomaticStreamReader lErrorReader = new AutomaticStreamReader(lMathsat.getErrorStream());
+      Thread lErrorReaderThread = new Thread(lErrorReader);
+      lErrorReaderThread.start();
+
+      try {
+        lMathsat.waitFor();
+        lInputReaderThread.join();
+        lErrorReaderThread.join();
+
+        System.out.println(lInputReader.getInput());
+        System.out.println(lErrorReader.getInput());
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      }
+    }
+    else {
+      pStatistics.printStatistics(lStatisticsWriter, Result.SAFE, pReachedElements);
+      
+      System.out.println("Goal #" + pCurrentGoalNumber + " is infeasible!");
+    }
+  }
+  
+  /**
+   * @param pArguments
+   * @throws Exception
+   */
+  public static void mainOld(String[] pArguments) throws Exception {
     assert(pArguments != null);
     assert(pArguments.length > 1);
     

@@ -44,7 +44,7 @@ public class ToControlAutomatonTranslator {
   }
   
   public String translate(ElementaryCoveragePattern pPattern, String pAutomatonName) {
-    Automaton<GuardedLabel> lAutomaton = ToGuardedAutomatonTranslator.translate(pPattern);
+    /*Automaton<GuardedLabel> lAutomaton = ToGuardedAutomatonTranslator.translate(pPattern);
     
     Automaton<GuardedLabel> lLambdaFreeAutomaton = ToGuardedAutomatonTranslator.removeLambdaEdges(lAutomaton, mAlphaEdgeSet, mOmegaEdgeSet);
     
@@ -103,7 +103,9 @@ public class ToControlAutomatonTranslator {
       mAnnotations.add(lEdge.getLabel().getEdgeSet());
     }
     
-    return lResult.toString();
+    return lResult.toString();*/
+    
+    return null;
   }
   
   /**
@@ -138,7 +140,7 @@ public class ToControlAutomatonTranslator {
   }
   
   private static String getTransitions(Set<Automaton<GuardedEdgeLabel>.Edge> pOutgoingEdges, EdgeSetNameMap pEdgeSetNameMap, StateNameMap pStateNameMap) {
-    StringWriter lResult = new StringWriter();
+    /*StringWriter lResult = new StringWriter();
     PrintWriter lWriter = new PrintWriter(lResult);
     
     for (Automaton<GuardedEdgeLabel>.Edge lEdge : pOutgoingEdges) {
@@ -147,7 +149,9 @@ public class ToControlAutomatonTranslator {
       lWriter.println("  CHECK(edgevisit(\"" + lEdgeName + "\")) -> " + getModifyString(lEdge.getLabel()) + "GOTO " + pStateNameMap.get(lEdge.getTarget()) + ";");
     }
     
-    return lResult.toString();
+    return lResult.toString();*/
+    
+    return null;
   }
   
   private static String getModifyString(GuardedLabel pLabel) {
