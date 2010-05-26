@@ -333,7 +333,7 @@ public class ToGuardedAutomatonTranslatorTest {
     Automaton<GuardedLabel> lLambdaFreeAutomaton = ToGuardedAutomatonTranslator.removeLambdaEdges(lInitialAutomaton, lWrapper.getAlphaEdge(), lWrapper.getOmegaEdge());
     System.out.println(AutomatonPrettyPrinter.print(lLambdaFreeAutomaton));
     
-    Automaton<GuardedLabel> lNodeSetFreeAutomaton = ToGuardedAutomatonTranslator.removeNodeSetGuards(lLambdaFreeAutomaton);
+    Automaton<GuardedEdgeLabel> lNodeSetFreeAutomaton = ToGuardedAutomatonTranslator.removeNodeSetGuards(lLambdaFreeAutomaton);
     System.out.println(AutomatonPrettyPrinter.print(lNodeSetFreeAutomaton));
   }
   
@@ -399,7 +399,7 @@ public class ToGuardedAutomatonTranslatorTest {
     Automaton<GuardedLabel> lLambdaFreeAutomaton = ToGuardedAutomatonTranslator.removeLambdaEdges(lInitialAutomaton, lWrapper.getAlphaEdge(), lWrapper.getOmegaEdge());
     System.out.println(AutomatonPrettyPrinter.print(lLambdaFreeAutomaton));
     
-    Automaton<GuardedLabel> lNodeSetFreeAutomaton = ToGuardedAutomatonTranslator.removeNodeSetGuards(lLambdaFreeAutomaton);
+    Automaton<GuardedEdgeLabel> lNodeSetFreeAutomaton = ToGuardedAutomatonTranslator.removeNodeSetGuards(lLambdaFreeAutomaton);
     System.out.println(AutomatonPrettyPrinter.print(lNodeSetFreeAutomaton));
   }
   

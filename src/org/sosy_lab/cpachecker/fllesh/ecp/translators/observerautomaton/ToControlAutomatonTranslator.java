@@ -48,9 +48,9 @@ public class ToControlAutomatonTranslator {
     
     Automaton<GuardedLabel> lLambdaFreeAutomaton = ToGuardedAutomatonTranslator.removeLambdaEdges(lAutomaton, mAlphaEdgeSet, mOmegaEdgeSet);
     
-    Automaton<GuardedLabel> lNodeSetFreeAutomaton = ToGuardedAutomatonTranslator.removeNodeSetGuards(lLambdaFreeAutomaton);
+    Automaton<GuardedEdgeLabel> lNodeSetFreeAutomaton = ToGuardedAutomatonTranslator.removeNodeSetGuards(lLambdaFreeAutomaton);
     
-    Set<Automaton<GuardedLabel>.State> lFinalStates = lNodeSetFreeAutomaton.getFinalStates();
+    Set<Automaton<GuardedEdgeLabel>.State> lFinalStates = lNodeSetFreeAutomaton.getFinalStates();
     
     if (lFinalStates.isEmpty()) {
       // TODO implement immediately stopping automaton
@@ -60,11 +60,11 @@ public class ToControlAutomatonTranslator {
     // per construction there is exactly one final state 
     assert(lFinalStates.size() == 1);
     
-    Automaton<GuardedLabel>.State lFinalState = lFinalStates.iterator().next();
+    Automaton<GuardedEdgeLabel>.State lFinalState = lFinalStates.iterator().next();
     
     assert(lNodeSetFreeAutomaton.getOutgoingEdges(lFinalState).isEmpty());
     
-    Automaton<GuardedLabel>.State lInitialState = lNodeSetFreeAutomaton.getInitialState();
+    Automaton<GuardedEdgeLabel>.State lInitialState = lNodeSetFreeAutomaton.getInitialState();
     
     StateNameMap lStateNameMap = new StateNameMap(lFinalState);
     
@@ -79,7 +79,7 @@ public class ToControlAutomatonTranslator {
     lWriter.println();
     
     // create body
-    for (Automaton<GuardedLabel>.State lState : lNodeSetFreeAutomaton.getStates()) {
+    for (Automaton<GuardedEdgeLabel>.State lState : lNodeSetFreeAutomaton.getStates()) {
       
       if (lState.equals(lFinalState)) {
         lWriter.println("STATE " + lStateNameMap.get(lState) + ":");
@@ -99,14 +99,8 @@ public class ToControlAutomatonTranslator {
     }
     
     // determine annotations
-    for (Automaton<GuardedLabel>.Edge lEdge : lNodeSetFreeAutomaton.getEdges()) {
-      GuardedLabel lLabel = lEdge.getLabel();
-      
-      assert(lLabel instanceof GuardedEdgeLabel);
-      
-      GuardedEdgeLabel lEdgeLabel = (GuardedEdgeLabel)lLabel;
-      
-      mAnnotations.add(lEdgeLabel.getEdgeSet());
+    for (Automaton<GuardedEdgeLabel>.Edge lEdge : lNodeSetFreeAutomaton.getEdges()) {
+      mAnnotations.add(lEdge.getLabel().getEdgeSet());
     }
     
     return lResult.toString();
@@ -143,13 +137,12 @@ public class ToControlAutomatonTranslator {
     return lControlAutomatonFile;
   }
   
-  private static String getTransitions(Set<Automaton<GuardedLabel>.Edge> pOutgoingEdges, EdgeSetNameMap pEdgeSetNameMap, StateNameMap pStateNameMap) {
+  private static String getTransitions(Set<Automaton<GuardedEdgeLabel>.Edge> pOutgoingEdges, EdgeSetNameMap pEdgeSetNameMap, StateNameMap pStateNameMap) {
     StringWriter lResult = new StringWriter();
     PrintWriter lWriter = new PrintWriter(lResult);
     
-    for (Automaton<GuardedLabel>.Edge lEdge : pOutgoingEdges) {
-      GuardedEdgeLabel lLabel = (GuardedEdgeLabel)lEdge.getLabel();
-      String lEdgeName = pEdgeSetNameMap.get(lLabel.getEdgeSet());
+    for (Automaton<GuardedEdgeLabel>.Edge lEdge : pOutgoingEdges) {
+      String lEdgeName = pEdgeSetNameMap.get(lEdge.getLabel().getEdgeSet());
       
       lWriter.println("  CHECK(edgevisit(\"" + lEdgeName + "\")) -> " + getModifyString(lEdge.getLabel()) + "GOTO " + pStateNameMap.get(lEdge.getTarget()) + ";");
     }
@@ -168,15 +161,15 @@ public class ToControlAutomatonTranslator {
   }
   
   private class StateNameMap {
-    private Map<Automaton<GuardedLabel>.State, String> mStateNames = new HashMap<Automaton<GuardedLabel>.State, String>();
+    private Map<Automaton<GuardedEdgeLabel>.State, String> mStateNames = new HashMap<Automaton<GuardedEdgeLabel>.State, String>();
     
-    public StateNameMap(Automaton<GuardedLabel>.State pFinalState) {
+    public StateNameMap(Automaton<GuardedEdgeLabel>.State pFinalState) {
       // We need a special name for the accepting state to be able
       // to refer to it in the product automaton CPA.
       mStateNames.put(pFinalState, getAcceptingStateName());
     }
     
-    public String get(Automaton<GuardedLabel>.State pState) {
+    public String get(Automaton<GuardedEdgeLabel>.State pState) {
       if (mStateNames.containsKey(pState)) {
         return mStateNames.get(pState);
       }

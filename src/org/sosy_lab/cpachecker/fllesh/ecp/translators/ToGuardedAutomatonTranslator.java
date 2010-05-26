@@ -154,10 +154,15 @@ public class ToGuardedAutomatonTranslator {
     return lAutomaton;
   }
   
-  public static Automaton<GuardedLabel> removeNodeSetGuards(Automaton<GuardedLabel> pAutomaton) {
-    Automaton<GuardedLabel> lAutomaton = new Automaton<GuardedLabel>();
+  /**
+   * 
+   * @param pAutomaton Automaton that contains no lambda edges.
+   * @return Automaton that is only labeled with GuardedEdgeLabel objects.
+   */
+  public static Automaton<GuardedEdgeLabel> removeNodeSetGuards(Automaton<GuardedLabel> pAutomaton) {
+    Automaton<GuardedEdgeLabel> lAutomaton = new Automaton<GuardedEdgeLabel>();
     
-    Map<Automaton<GuardedLabel>.State, Automaton<GuardedLabel>.State> lStateMap = new HashMap<Automaton<GuardedLabel>.State, Automaton<GuardedLabel>.State>();
+    Map<Automaton<GuardedLabel>.State, Automaton<GuardedEdgeLabel>.State> lStateMap = new HashMap<Automaton<GuardedLabel>.State, Automaton<GuardedEdgeLabel>.State>();
     lStateMap.put(pAutomaton.getInitialState(), lAutomaton.getInitialState());
     
     List<Automaton<GuardedLabel>.Edge> lWorklist = new LinkedList<Automaton<GuardedLabel>.Edge>();
@@ -229,8 +234,8 @@ public class ToGuardedAutomatonTranslator {
                 lStateMap.put(lCurrentTarget, lAutomaton.createState());
               }
               
-              Automaton<GuardedLabel>.State lSourceState = lStateMap.get(lCurrentSource);
-              Automaton<GuardedLabel>.State lTargetState = lStateMap.get(lCurrentTarget);
+              Automaton<GuardedEdgeLabel>.State lSourceState = lStateMap.get(lCurrentSource);
+              Automaton<GuardedEdgeLabel>.State lTargetState = lStateMap.get(lCurrentTarget);
               
               lAutomaton.createEdge(lSourceState, lTargetState, lNewGuard);
             }
@@ -254,8 +259,8 @@ public class ToGuardedAutomatonTranslator {
               lStateMap.put(lCurrentTarget, lAutomaton.createState());
             }
             
-            Automaton<GuardedLabel>.State lSourceState = lStateMap.get(lCurrentSource);
-            Automaton<GuardedLabel>.State lTargetState = lStateMap.get(lCurrentTarget);
+            Automaton<GuardedEdgeLabel>.State lSourceState = lStateMap.get(lCurrentSource);
+            Automaton<GuardedEdgeLabel>.State lTargetState = lStateMap.get(lCurrentTarget);
             
             lAutomaton.createEdge(lSourceState, lTargetState, lEdgeLabel);
           }
@@ -279,8 +284,8 @@ public class ToGuardedAutomatonTranslator {
             lStateMap.put(lCurrentTarget, lAutomaton.createState());
           }
           
-          Automaton<GuardedLabel>.State lSourceState = lStateMap.get(lCurrentSource);
-          Automaton<GuardedLabel>.State lTargetState = lStateMap.get(lCurrentTarget);
+          Automaton<GuardedEdgeLabel>.State lSourceState = lStateMap.get(lCurrentSource);
+          Automaton<GuardedEdgeLabel>.State lTargetState = lStateMap.get(lCurrentTarget);
           
           lAutomaton.createEdge(lSourceState, lTargetState, lEdgeLabel);
         }
