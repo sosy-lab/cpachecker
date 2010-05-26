@@ -26,9 +26,7 @@ package org.sosy_lab.cpachecker.cpa.composite;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
@@ -172,39 +170,37 @@ public class CompositeTransferRelation implements TransferRelation{
     }
 
     assert resultCount == allResultingElements.size();
-    
-    for (List<AbstractElement> lResultingElements : allResultingElements) {
+
+    for (List<AbstractElement> lReachedElement : allResultingElements) {
       
-      Set<List<AbstractElement>> lStrengthenedElements = new HashSet<List<AbstractElement>>();
-      lStrengthenedElements.add(lResultingElements);
+      List<Collection<? extends AbstractElement>> lStrengthenedElements = new ArrayList<Collection<? extends AbstractElement>>(transferRelations.size());
       
-      for (int idx = 0; idx < transferRelations.size(); idx++) {
-        Set<List<AbstractElement>> lStrengthenedElementsTmp = lStrengthenedElements;
+      int lNumberOfResultingElements = 1;
+      
+      for (int lIndex = 0; lIndex < transferRelations.size() && lNumberOfResultingElements > 0; lIndex++) {
         
-        lStrengthenedElements = new HashSet<List<AbstractElement>>();
+        AbstractElement lCurrentElement = lReachedElement.get(lIndex);
+        TransferRelation lCurrentTransferRelation = transferRelations.get(lIndex);
         
-        for (List<AbstractElement> lList : lStrengthenedElementsTmp) {
-          Collection<? extends AbstractElement> resultsList = transferRelations.get(idx).strengthen(
-              lList.get(idx),
-              lList, cfaEdge,
-              (lCompositePrecision == null) ? null : lCompositePrecision.get(idx));
-          
-          if (resultsList != null) {
-            for (AbstractElement lResult : resultsList) {
-              List<AbstractElement> lNewEntry = new ArrayList<AbstractElement>(lList);
-              lNewEntry.set(idx, lResult);                
-              lStrengthenedElements.add(lNewEntry);
-            }
-          }
-          else {
-            lStrengthenedElements.add(lList);
-          }
+        Collection<? extends AbstractElement> lResultsList = lCurrentTransferRelation.strengthen(lCurrentElement, lReachedElement, cfaEdge, (lCompositePrecision == null) ? null : lCompositePrecision.get(lIndex));
+
+        if (lResultsList == null) {
+          lStrengthenedElements.add(Collections.singleton(lCurrentElement));
+        }
+        else {
+          lNumberOfResultingElements *= lResultsList.size();
+          lStrengthenedElements.add(lResultsList);
         }
       }
       
-      for (List<AbstractElement> lList : lStrengthenedElements) {
-        CompositeElement compositeSuccessor = new CompositeElement(lList, updatedCallStack);
-        compositeSuccessors.add(compositeSuccessor);
+      if (lNumberOfResultingElements > 0) {
+        Collection<List<AbstractElement>> lResultingElements = new ArrayList<List<AbstractElement>>(lNumberOfResultingElements);
+        List<AbstractElement> lInitialPrefix = Collections.emptyList();
+        createCartesianProduct(lStrengthenedElements, lInitialPrefix, lResultingElements);
+        
+        for (List<AbstractElement> lList : lResultingElements) {
+          compositeSuccessors.add(new CompositeElement(lList, updatedCallStack));
+        }
       }
     }
   }
