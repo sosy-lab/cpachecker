@@ -11,25 +11,25 @@ import org.sosy_lab.cpachecker.fllesh.ecp.reduced.Automaton;
 
 public class AutomatonPrettyPrinter {
   
-  public static String print(Automaton<GuardedLabel> pAutomaton) {
+  public static String print(Automaton<? extends GuardedLabel> pAutomaton) {
     AutomatonPrettyPrinter lPrettyPrinter = new AutomatonPrettyPrinter();
     
     return lPrettyPrinter.printPretty(pAutomaton);
   }
   
-  private Map<Automaton<GuardedLabel>.State, String> mStateIds;
+  private Map<Automaton<? extends GuardedLabel>.State, String> mStateIds;
   private Map<ECPEdgeSet, String> mEdgeSetIds;
   private Map<ECPNodeSet, String> mNodeSetIds;
   private Visitor mVisitor;
   
   public AutomatonPrettyPrinter() {
-    mStateIds = new HashMap<Automaton<GuardedLabel>.State, String>();
+    mStateIds = new HashMap<Automaton<? extends GuardedLabel>.State, String>();
     mEdgeSetIds = new HashMap<ECPEdgeSet, String>();
     mNodeSetIds = new HashMap<ECPNodeSet, String>();
     mVisitor = new Visitor();
   }
   
-  private String getId(Automaton<GuardedLabel>.State pState) {
+  private String getId(Automaton<? extends GuardedLabel>.State pState) {
     if (!mStateIds.containsKey(pState)) {
       mStateIds.put(pState, "S" + mStateIds.size());
     }
@@ -53,13 +53,13 @@ public class AutomatonPrettyPrinter {
     return mNodeSetIds.get(pNodeSet);
   }
   
-  public String printPretty(Automaton<GuardedLabel> pAutomaton) {
+  public String printPretty(Automaton<? extends GuardedLabel> pAutomaton) {
     StringBuffer lBuffer = new StringBuffer();
     
     boolean lIsFirst = true;
     
     lBuffer.append("States: {");
-    for (Automaton<GuardedLabel>.State lState : pAutomaton.getStates()) {
+    for (Automaton<? extends GuardedLabel>.State lState : pAutomaton.getStates()) {
       if (lIsFirst) {
         lIsFirst = false;
       }
@@ -78,7 +78,7 @@ public class AutomatonPrettyPrinter {
     
     lIsFirst = true;
     
-    for (Automaton<GuardedLabel>.State lFinalState : pAutomaton.getFinalStates()) {
+    for (Automaton<? extends GuardedLabel>.State lFinalState : pAutomaton.getFinalStates()) {
       if (lIsFirst) {
         lIsFirst = false;
       }
@@ -93,7 +93,7 @@ public class AutomatonPrettyPrinter {
     
     StringBuffer lTmpBuffer = new StringBuffer();
     
-    for (Automaton<GuardedLabel>.Edge lEdge : pAutomaton.getEdges()) {
+    for (Automaton<? extends GuardedLabel>.Edge lEdge : pAutomaton.getEdges()) {
       lTmpBuffer.append(getId(lEdge.getSource()) + " -[" + lEdge.getLabel().accept(mVisitor) + "]> " + getId(lEdge.getTarget()));
       lTmpBuffer.append("\n");
     }
