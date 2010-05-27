@@ -1,7 +1,9 @@
 package org.sosy_lab.cpachecker.fllesh.fql2.translators.c;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Predicate;
@@ -11,7 +13,13 @@ import org.sosy_lab.cpachecker.fllesh.fql2.ast.terms.Variable;
 
 public class PredicateTranslator {
 
+  private static Map<Predicate, String> mCache = new HashMap<Predicate, String>();
+  
   public static String translate(Predicate pPredicate) {
+    if (mCache.containsKey(pPredicate)) {
+      return mCache.get(pPredicate);
+    }
+    
     Set<String> lVariables = new HashSet<String>();
     
     Visitor lVisitor = new Visitor();
@@ -39,6 +47,8 @@ public class PredicateTranslator {
     lResult.append(") { (");
     lResult.append(pPredicate.toString());
     lResult.append("); }");
+    
+    mCache.put(pPredicate, lResult.toString());
     
     return lResult.toString();
   }

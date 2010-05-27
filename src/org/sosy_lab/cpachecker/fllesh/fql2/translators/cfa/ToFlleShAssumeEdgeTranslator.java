@@ -1,5 +1,8 @@
 package org.sosy_lab.cpachecker.fllesh.fql2.translators.cfa;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.eclipse.cdt.core.dom.ast.IASTCompoundStatement;
 import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
@@ -19,23 +22,31 @@ import org.sosy_lab.cpachecker.util.CParser.Dialect;
 
 public class ToFlleShAssumeEdgeTranslator {
 
+  private static Map<String, IASTExpression> mExpressionCache = new HashMap<String, IASTExpression>();
+  
   public static FlleShAssumeEdge translate(CFANode pNode, ECPPredicate pPredicate) {
     String lPredicateFunction = PredicateTranslator.translate(pPredicate.getPredicate());
-    
-    IASTTranslationUnit ast;
-    try {
-       ast = CParser.parseString(lPredicateFunction, Dialect.C99);
-    } catch (CoreException e) {
-      throw new RuntimeException("Error during parsing C code \""
-          + lPredicateFunction + "\": " + e.getMessage());
-    }
 
-    checkForASTProblems(ast);
+    IASTExpression lPredicateExpression;
     
-    IASTExpression lPredicateExpression = stripFunctionDeclaration(ast);
-    
-    // TODO remove
-    System.out.println(lPredicateExpression.getRawSignature());
+    if (mExpressionCache.containsKey(lPredicateFunction)) {
+      lPredicateExpression = mExpressionCache.get(lPredicateFunction);
+    }
+    else {
+      IASTTranslationUnit ast;
+      try {
+         ast = CParser.parseString(lPredicateFunction, Dialect.C99);
+      } catch (CoreException e) {
+        throw new RuntimeException("Error during parsing C code \""
+            + lPredicateFunction + "\": " + e.getMessage());
+      }
+
+      checkForASTProblems(ast);
+      
+      lPredicateExpression = stripFunctionDeclaration(ast);
+
+      mExpressionCache.put(lPredicateFunction, lPredicateExpression);
+    }
     
     return new FlleShAssumeEdge(pNode, lPredicateExpression);
   }
