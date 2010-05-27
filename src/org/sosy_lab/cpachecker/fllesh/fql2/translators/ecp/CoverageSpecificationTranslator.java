@@ -126,7 +126,7 @@ public class CoverageSpecificationTranslator {
 
     @Override
     public Set<ElementaryCoveragePattern> visit(Predicate pPredicate) {
-      ElementaryCoveragePattern lPattern = new ECPPredicate(pPredicate.getPredicate());
+      ElementaryCoveragePattern lPattern = new ECPPredicate(pPredicate);
       
       return Collections.singleton(lPattern);
     }

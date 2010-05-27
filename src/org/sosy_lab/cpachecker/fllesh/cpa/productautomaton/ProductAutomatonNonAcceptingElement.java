@@ -17,5 +17,10 @@ public class ProductAutomatonNonAcceptingElement implements
   public boolean isError() {
     return false;
   }
+  
+  @Override
+  public String toString() {
+    return "NonAccept";
+  }
 
 }

@@ -117,7 +117,7 @@ public class PathPatternTranslator {
 
     @Override
     public ECPPredicate visit(Predicate pPredicate) {
-      return new ECPPredicate(pPredicate.getPredicate());
+      return new ECPPredicate(pPredicate);
     }
     
   }

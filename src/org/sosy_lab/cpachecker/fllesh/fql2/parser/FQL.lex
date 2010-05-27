@@ -114,7 +114,6 @@ TOK_ENCLOSING_SCOPES    = "ENCLOSING_SCOPES"
 TOK_COMPOSE             = "COMPOSE"
 
 /* abstraction/predicates */
-/*
 TOK_L_BRACE             = "{"
 TOK_R_BRACE             = "}"
 TOK_GREATER_OR_EQ       = ">="
@@ -123,7 +122,6 @@ TOK_EQ                  = "=="
 TOK_LESS_OR_EQ          = "<="
 TOK_LESS                = "<"
 TOK_NEQ                 = "!="
-*/
 
 /* coverage specification */
 TOK_NODECOV             = "NODES"
@@ -149,8 +147,6 @@ TOK_C_IDENT             = [_a-zA-Z][_a-zA-Z0-9]*
  * http://dinosaur.compilertools.net/flex/flex_11.html for a more powerful
  * quoted-string lexer including support for escape sequences */
 TOK_QUOTED_STRING       = "'" [^"'"]* "'"
-
-TOK_PREDICATE		    = "{" [^("{"|"}")]* "}"
 
 /* a natural number */
 TOK_NAT_NUMBER          = [0-9]+
@@ -204,7 +200,6 @@ WHITESPACE				= [ \t\n]
 {TOK_COMPOSE}			{ return sym(TOK_COMPOSE); }
 
 /* abstraction/predicates */
-/*
 {TOK_L_BRACE}			{ return sym(TOK_L_BRACE); }
 {TOK_R_BRACE}			{ return sym(TOK_R_BRACE); }
 {TOK_GREATER_OR_EQ}		{ return sym(TOK_GREATER_OR_EQ); }
@@ -213,7 +208,6 @@ WHITESPACE				= [ \t\n]
 {TOK_LESS_OR_EQ}		{ return sym(TOK_LESS_OR_EQ); }
 {TOK_LESS}				{ return sym(TOK_LESS); }
 {TOK_NEQ}				{ return sym(TOK_NEQ); }
-*/
 
 /* coverage specification */
 {TOK_NODECOV}			{ return sym(TOK_NODECOV); }
@@ -236,8 +230,6 @@ WHITESPACE				= [ \t\n]
 /* C identifier */
 {TOK_C_IDENT}			{ return sym(TOK_C_IDENT, yytext()); }
 {TOK_QUOTED_STRING}		{ return sym(TOK_QUOTED_STRING, yytext()); }
-
-{TOK_PREDICATE}			{ return sym(TOK_PREDICATE, yytext()); }
 
 /* a natural number */
 {TOK_NAT_NUMBER}		{ return sym(TOK_NAT_NUMBER, Integer.valueOf(yytext())); }

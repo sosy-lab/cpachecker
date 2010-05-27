@@ -17,5 +17,10 @@ public class ProductAutomatonUndeterminedElement implements
   public boolean isError() {
     return false;
   }
+  
+  @Override
+  public String toString() {
+    return "Undetermined";
+  }
 
 }

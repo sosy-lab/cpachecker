@@ -240,6 +240,7 @@ public class Main {
       lCommand.add("/home/holzera/mathsat-4.2.8-linux-x86/bin/mathsat");
       lCommand.add("-solve");
       lCommand.add("-print_model");
+      lCommand.add("-tsolver=la");
       lCommand.add("test/output/cex.msat");
       
       ProcessBuilder lMathsatBuilder = new ProcessBuilder(lCommand);

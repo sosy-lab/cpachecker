@@ -1,16 +1,18 @@
 package org.sosy_lab.cpachecker.fllesh.ecp;
 
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.Predicate;
+
 public class ECPPredicate implements ECPGuard {
 
-  private String mPredicate;
+  private Predicate mPredicate;
   
-  public ECPPredicate(String pPredicate) {
+  public ECPPredicate(Predicate pPredicate) {
     mPredicate = pPredicate;
   }
   
   /** copy constructor */
   public ECPPredicate(ECPPredicate pPredicate) {
-    this(pPredicate.toString());
+    this(pPredicate.mPredicate);
   }
   
   @Override
@@ -39,12 +41,16 @@ public class ECPPredicate implements ECPGuard {
   
   @Override
   public String toString() {
-    return mPredicate;
+    return mPredicate.toString();
   }
 
   @Override
   public <T> T accept(ECPVisitor<T> pVisitor) {
     return pVisitor.visit(this);
+  }
+
+  public Predicate getPredicate() {
+    return mPredicate;
   }
   
 }

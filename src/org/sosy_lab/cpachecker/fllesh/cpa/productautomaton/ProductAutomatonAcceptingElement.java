@@ -16,5 +16,10 @@ public class ProductAutomatonAcceptingElement implements ProductAutomatonElement
   public boolean isError() {
     return true;
   }
+  
+  @Override
+  public String toString() {
+    return "Accept";
+  }
 
 }

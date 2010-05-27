@@ -23,48 +23,100 @@
  */
 package org.sosy_lab.cpachecker.fllesh.fql2.ast;
 
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.terms.Term;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.coveragespecification.CoverageSpecificationVisitor;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.PathPatternVisitor;
 
 public class Predicate implements Atom {
 
-  private String mPredicate;
-
-  public Predicate(String pPredicate) {
-    mPredicate = pPredicate;
+  public static enum Comparison {
+    GREATER_OR_EQUAL,
+    GREATER,
+    EQUAL,
+    LESS_OR_EQUAL,
+    LESS,
+    NOT_EQUAL
   }
 
-  public String getPredicate() {
-    return mPredicate;
+  private Comparison mComparison;
+  private Term mLeftTerm;
+  private Term mRightTerm;
+  private String mString;
+
+  public Predicate(Term pLeftTerm, Comparison pComparison, Term pRightTerm) {
+    assert(pLeftTerm != null);
+    assert(pComparison != null);
+    assert(pRightTerm != null);
+
+    mLeftTerm = pLeftTerm;
+    mComparison = pComparison;
+    mRightTerm = pRightTerm;
+
+    String lComparisonString = null;
+
+    switch (mComparison) {
+    case GREATER_OR_EQUAL:
+      lComparisonString = ">=";
+      break;
+    case GREATER:
+      lComparisonString = ">";
+      break;
+    case EQUAL:
+      lComparisonString = "==";
+      break;
+    case LESS_OR_EQUAL:
+      lComparisonString = "<=";
+      break;
+    case LESS:
+      lComparisonString = "<";
+      break;
+    case NOT_EQUAL:
+      lComparisonString = "!=";
+      break;
+    }
+
+    mString = mLeftTerm.toString() + " " + lComparisonString + " " + mRightTerm.toString();
   }
-  
+
+  public Comparison getComparison() {
+    return mComparison;
+  }
+
+  public Term getLeftTerm() {
+    return mLeftTerm;
+  }
+
+  public Term getRightTerm() {
+    return mRightTerm;
+  }
+
   @Override
   public String toString() {
-    return "{ " + mPredicate + " }";
+    return mString;
   }
-  
+
   @Override
   public boolean equals(Object pOther) {
     if (this == pOther) {
       return true;
     }
-    
+
     if (pOther == null) {
       return false;
     }
-    
-    if (!pOther.getClass().equals(getClass())) {
-      return false;
+
+    if (pOther.getClass() == getClass()) {
+      Predicate lOther = (Predicate)pOther;
+
+      return (mLeftTerm.equals(lOther.mLeftTerm) && mRightTerm.equals(lOther.mRightTerm) && mComparison.equals(lOther.mComparison));
     }
-    
-    Predicate lPredicate = (Predicate)pOther;
-    
-    return mPredicate.equals(lPredicate.mPredicate);
+
+    return false;
   }
-  
+
   @Override
   public int hashCode() {
-    return mPredicate.hashCode() + 2343;
+    return 3045820 + mLeftTerm.hashCode() + mComparison.hashCode() + mRightTerm.hashCode();
   }
 
   @Override

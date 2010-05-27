@@ -53,6 +53,11 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
+import org.sosy_lab.cpachecker.fllesh.cfa.FlleShAssumeEdge;
+import org.sosy_lab.cpachecker.fllesh.cpa.guardededgeautomaton.GuardedEdgeAutomatonElement;
+import org.sosy_lab.cpachecker.fllesh.cpa.guardededgeautomaton.GuardedEdgeAutomatonPredicateElement;
+import org.sosy_lab.cpachecker.fllesh.ecp.ECPPredicate;
+import org.sosy_lab.cpachecker.fllesh.fql2.translators.cfa.ToFlleShAssumeEdgeTranslator;
 
 /**
  * Transfer relation for symbolic predicate abstraction. It makes a case
@@ -338,13 +343,44 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     return result;
   }
 
+  public SymbPredAbsAbstractElement strengthen(CFANode pNode, SymbPredAbsAbstractElement pElement, GuardedEdgeAutomatonElement pAutomatonElement) {
+    
+    if (pAutomatonElement instanceof GuardedEdgeAutomatonPredicateElement) {
+      GuardedEdgeAutomatonPredicateElement lAutomatonElement = (GuardedEdgeAutomatonPredicateElement)pAutomatonElement;
+      
+      for (ECPPredicate lPredicate : lAutomatonElement) {
+        FlleShAssumeEdge lEdge = ToFlleShAssumeEdgeTranslator.translate(pNode, lPredicate);
+        
+        try {
+          pElement = handleNonAbstractionLocation(pElement, lEdge, false).iterator().next();
+        } catch (UnrecognizedCFAEdgeException e) {
+          throw new RuntimeException(e);
+        }
+      }
+    }
+    
+    return pElement;
+  }
+  
   @Override
   public Collection<? extends AbstractElement> strengthen(AbstractElement pElement,
       List<AbstractElement> otherElements, CFAEdge edge, Precision pPrecision) throws UnrecognizedCFAEdgeException {
     // do abstraction (including reachability check) if an error was found by another CPA
 
     SymbPredAbsAbstractElement element = (SymbPredAbsAbstractElement)pElement;
+    
+    for (AbstractElement lElement : otherElements) {
+      if (lElement instanceof GuardedEdgeAutomatonElement) {
+        element = strengthen(edge.getSuccessor(), element, (GuardedEdgeAutomatonElement)lElement);
+      }
+    }
+    
     if (element.isAbstractionNode()) {
+      // TODO satisfiability check?
+      if (element != pElement) {
+        return Collections.singleton(element);
+      }
+      
       // not necessary to do satisfiability check
       return null;
     }
@@ -382,6 +418,10 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
             element.getAbstractionPathList()));
       }
     } else {
+      if (element != pElement) {
+        return Collections.singleton(element);
+      }
+      
       return null;
     }
   }
