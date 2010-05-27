@@ -70,7 +70,8 @@ interface AutomatonBoolExpr extends AutomatonExpression {
           return CONST_FALSE;
         }
       } else {
-        return new ResultValue<Boolean>("cannot evaluate if the CFAEdge is not a CFALabelNode", "MatchLabelRegEx.eval(..)");
+        return CONST_FALSE;
+        //return new ResultValue<Boolean>("cannot evaluate if the CFAEdge is not a CFALabelNode", "MatchLabelRegEx.eval(..)");
       }
     }
 
@@ -102,11 +103,11 @@ interface AutomatonBoolExpr extends AutomatonExpression {
       //AutomatonASTComparator.printAST(patternAST);
       if (ast != null) {
         // some edges do not have an AST node attached to them, e.g. BlankEdges
-      if(AutomatonASTComparator.compareASTs(ast, patternAST, pArgs)) {
-        return CONST_TRUE;
-      } else {
-        return CONST_FALSE;
-      }
+        if(AutomatonASTComparator.compareASTs(ast, patternAST, pArgs)) {
+          return CONST_TRUE;
+        } else {
+          return CONST_FALSE;
+        }
       }
       return CONST_FALSE;
     }
