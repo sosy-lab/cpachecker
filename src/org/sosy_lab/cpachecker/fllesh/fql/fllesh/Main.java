@@ -45,10 +45,10 @@ import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.TargetGraph;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.testgoals.CoverageSequence;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.testgoals.TestGoal;
 import org.sosy_lab.cpachecker.fllesh.fql.fllesh.cpa.AddSelfLoop;
-import org.sosy_lab.cpachecker.fllesh.fql.fllesh.util.ModifiedCPAchecker;
-import org.sosy_lab.cpachecker.fllesh.fql.fllesh.util.Cilly;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.query.Query;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.parser.FQLParser;
+import org.sosy_lab.cpachecker.fllesh.util.Cilly;
+import org.sosy_lab.cpachecker.fllesh.util.ModifiedCPAchecker;
 
 public class Main {
 

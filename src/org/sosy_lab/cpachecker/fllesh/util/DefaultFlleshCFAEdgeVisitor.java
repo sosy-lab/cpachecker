@@ -21,51 +21,85 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.fllesh.fql.fllesh.util;
+package org.sosy_lab.cpachecker.fllesh.util;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.DeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.GlobalDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.MultiDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.MultiStatementEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.fllesh.fql.fllesh.cpa.InternalSelfLoop;
 
-public abstract class AbstractCFAEdgeVisitor<T> implements CFAEdgeVisitor<T> {
+public class DefaultFlleshCFAEdgeVisitor<T> extends AbstractFlleshCFAEdgeVisitor<T> {
 
   @Override
-  public T visit(CFAEdge pEdge) {
-    switch (pEdge.getEdgeType()) {
-    case AssumeEdge:
-      return visit((AssumeEdge)pEdge);
-    case BlankEdge:
-      if (pEdge instanceof InternalSelfLoop) {
-        return visit((InternalSelfLoop)pEdge);
-      }
+  public T visit(InternalSelfLoop pEdge) {
+    throw new UnsupportedOperationException();
+  }
 
-      return visit((BlankEdge)pEdge);
-    case CallToReturnEdge:
-      return visit((CallToReturnEdge)pEdge);
-    case DeclarationEdge:
-      return visit((DeclarationEdge)pEdge);
-    case FunctionCallEdge:
-      return visit((FunctionCallEdge)pEdge);
-    case MultiDeclarationEdge:
-      return visit((MultiDeclarationEdge)pEdge);
-    case MultiStatementEdge:
-      return visit((MultiStatementEdge)pEdge);
-    case ReturnEdge:
-      return visit((ReturnEdge)pEdge);
-    case StatementEdge:
-      return visit((StatementEdge)pEdge);
-    }
+  @Override
+  public T visit(BlankEdge pEdge) {
+    // TODO Auto-generated method stub
+    return null;
+  }
 
-    // this should not happen
-    throw new IllegalArgumentException(pEdge.toString() + " not supported!");
+  @Override
+  public T visit(AssumeEdge pEdge) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public T visit(CallToReturnEdge pEdge) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public T visit(DeclarationEdge pEdge) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public T visit(FunctionCallEdge pEdge) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public T visit(GlobalDeclarationEdge pEdge) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public T visit(MultiDeclarationEdge pEdge) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public T visit(MultiStatementEdge pEdge) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public T visit(ReturnEdge pEdge) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public T visit(StatementEdge pEdge) {
+    // TODO Auto-generated method stub
+    return null;
   }
 
 }

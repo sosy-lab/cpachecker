@@ -1,4 +1,4 @@
-package org.sosy_lab.cpachecker.fllesh.fql.fllesh.util;
+package org.sosy_lab.cpachecker.fllesh.util;
 
 import java.io.BufferedReader;
 import java.io.IOException;

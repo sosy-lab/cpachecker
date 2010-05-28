@@ -37,7 +37,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.pathmonitor.Automaton;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.TargetGraph;
-import org.sosy_lab.cpachecker.fllesh.fql.fllesh.util.ModifiedCPAchecker;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.coverage.Edges;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.coverage.Sequence;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.coverage.States;
@@ -46,6 +45,7 @@ import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.LowerBound;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.PathMonitor;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.query.Query;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Identity;
+import org.sosy_lab.cpachecker.fllesh.util.ModifiedCPAchecker;
 
 
 public class CoverageSequenceTest {

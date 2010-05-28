@@ -63,11 +63,11 @@ import org.sosy_lab.cpachecker.fllesh.ecp.reduced.Automaton;
 import org.sosy_lab.cpachecker.fllesh.ecp.translators.GuardedEdgeLabel;
 import org.sosy_lab.cpachecker.fllesh.ecp.translators.ToGuardedAutomatonTranslator;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.TargetGraph;
-import org.sosy_lab.cpachecker.fllesh.fql.fllesh.util.AutomaticStreamReader;
-import org.sosy_lab.cpachecker.fllesh.fql.fllesh.util.ModifiedCPAchecker;
-import org.sosy_lab.cpachecker.fllesh.fql.fllesh.util.Cilly;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.fllesh.fql2.translators.ecp.CoverageSpecificationTranslator;
+import org.sosy_lab.cpachecker.fllesh.util.AutomaticStreamReader;
+import org.sosy_lab.cpachecker.fllesh.util.Cilly;
+import org.sosy_lab.cpachecker.fllesh.util.ModifiedCPAchecker;
 
 import com.google.common.base.Joiner;
 

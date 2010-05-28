@@ -52,7 +52,7 @@ import org.sosy_lab.cpachecker.fllesh.fql.backend.pathmonitor.PredicatesEdge;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.pathmonitor.TargetGraphEdge;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.Edge;
 import org.sosy_lab.cpachecker.fllesh.fql.fllesh.reachability.Query;
-import org.sosy_lab.cpachecker.fllesh.fql.fllesh.util.DefaultFlleshCFAEdgeVisitor;
+import org.sosy_lab.cpachecker.fllesh.util.DefaultFlleshCFAEdgeVisitor;
 
 public class QueryTransferRelation implements TransferRelation {
 

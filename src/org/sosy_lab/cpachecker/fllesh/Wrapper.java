@@ -51,8 +51,8 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
 import org.sosy_lab.cpachecker.fllesh.cpa.edgevisit.Annotations;
-import org.sosy_lab.cpachecker.fllesh.fql.fllesh.util.CFATraversal;
-import org.sosy_lab.cpachecker.fllesh.fql.fllesh.util.CFAVisitor;
+import org.sosy_lab.cpachecker.fllesh.util.CFATraversal;
+import org.sosy_lab.cpachecker.fllesh.util.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CParser;
 import org.sosy_lab.cpachecker.util.CParser.Dialect;
 

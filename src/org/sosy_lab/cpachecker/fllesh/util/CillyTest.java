@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.fllesh.fql.fllesh.util;
+package org.sosy_lab.cpachecker.fllesh.util;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;

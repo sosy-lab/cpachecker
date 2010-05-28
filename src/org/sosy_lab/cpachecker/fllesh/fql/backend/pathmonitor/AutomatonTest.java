@@ -36,7 +36,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.TargetGraph;
-import org.sosy_lab.cpachecker.fllesh.fql.fllesh.util.ModifiedCPAchecker;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.Alternative;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.Concatenation;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.ConditionalMonitor;
@@ -47,6 +46,7 @@ import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.predicate.Predicate;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.predicate.Predicates;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Filter;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Identity;
+import org.sosy_lab.cpachecker.fllesh.util.ModifiedCPAchecker;
 
 public class AutomatonTest {
   private static final String mPropertiesFile = "test/config/simpleMustMayAnalysis.properties";
