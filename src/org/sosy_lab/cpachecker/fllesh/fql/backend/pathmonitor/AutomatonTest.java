@@ -36,7 +36,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.TargetGraph;
-import org.sosy_lab.cpachecker.fllesh.fql.fllesh.util.CPAchecker;
+import org.sosy_lab.cpachecker.fllesh.fql.fllesh.util.ModifiedCPAchecker;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.Alternative;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.Concatenation;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.ConditionalMonitor;
@@ -49,7 +49,7 @@ import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Filter;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Identity;
 
 public class AutomatonTest {
-  private final String mPropertiesFile = "test/config/simpleMustMayAnalysis.properties";
+  private static final String mPropertiesFile = "test/config/simpleMustMayAnalysis.properties";
   private final ImmutableMap<String, String> mProperties =
         ImmutableMap.of("analysis.programNames", "test/programs/simple/functionCall.c");
 
@@ -66,7 +66,7 @@ public class AutomatonTest {
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
+    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
 
     TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
 
@@ -85,7 +85,7 @@ public class AutomatonTest {
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
+    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
 
     TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
 
@@ -108,7 +108,7 @@ public class AutomatonTest {
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
+    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
 
     TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
 
@@ -130,7 +130,7 @@ public class AutomatonTest {
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
+    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
 
     TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
 
@@ -152,7 +152,7 @@ public class AutomatonTest {
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
+    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
 
     TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
 
@@ -174,7 +174,7 @@ public class AutomatonTest {
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
+    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
 
     TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
 
@@ -197,7 +197,7 @@ public class AutomatonTest {
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
+    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
 
     TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
 

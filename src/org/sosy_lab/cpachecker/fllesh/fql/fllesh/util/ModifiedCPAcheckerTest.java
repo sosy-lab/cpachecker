@@ -36,7 +36,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class CPAcheckerTest {
+public class ModifiedCPAcheckerTest {
   private String mPropertiesFile = "test/config/simpleMustMayAnalysis.properties";
 
   @Before
@@ -55,7 +55,7 @@ public class CPAcheckerTest {
     LogManager lLogManager = new LogManager(lConfiguration);
 
     @SuppressWarnings("unused")
-    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
+    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
 
     // TODO: reimplement or reuse?
     //System.out.println(lCPAchecker.runAlgorithm().toString());
@@ -71,7 +71,7 @@ public class CPAcheckerTest {
     LogManager lLogManager = new LogManager(lConfiguration);
 
     @SuppressWarnings("unused")
-    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
+    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
 
     // TODO: reimplement or reuse?
     //System.out.println(lCPAchecker.runAlgorithm().toString());
@@ -93,7 +93,7 @@ public class CPAcheckerTest {
     LogManager lLogManager = new LogManager(lConfiguration);
 
     @SuppressWarnings("unused")
-    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
+    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
 
     // TODO: reimplement or reuse?
     //System.out.println(lCPAchecker.runAlgorithm().toString());

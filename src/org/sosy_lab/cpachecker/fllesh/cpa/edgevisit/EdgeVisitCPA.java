@@ -265,7 +265,7 @@ public class EdgeVisitCPA implements ConfigurableProgramAnalysis {
 
   }
 
-  private class EdgeElementCache {
+  private static class EdgeElementCache {
     private HashMap<CFAEdge, Set<EdgeElement>> mCache;
     private ECPEdgeSetBasedAnnotations mAnnotations; 
     

@@ -34,7 +34,7 @@ public class QuotePredicates implements CoverageSpecificationRewriter {
     return pSpecification.accept(mVisitor);
   }
   
-  private class Visitor implements CoverageSpecificationVisitor<CoverageSpecification> {
+  private static class Visitor implements CoverageSpecificationVisitor<CoverageSpecification> {
 
     @Override
     public Concatenation visit(Concatenation pConcatenation) {

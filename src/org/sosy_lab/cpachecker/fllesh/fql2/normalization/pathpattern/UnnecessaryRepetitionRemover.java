@@ -42,7 +42,7 @@ public class UnnecessaryRepetitionRemover implements PathPatternRewriter {
     return mRemover; 
   }
   
-  private class Visitor implements PathPatternVisitor<PathPattern> {
+  private static class Visitor implements PathPatternVisitor<PathPattern> {
     @Override
     public Concatenation visit(Concatenation pConcatenation) {
       PathPattern lFirstSubpattern = pConcatenation.getFirstSubpattern();

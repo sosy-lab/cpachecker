@@ -4,7 +4,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
 public class FlleShCFANode extends CFANode {
 
-  public static int FlleShLineNumber = Integer.MIN_VALUE;
+  public final static int FlleShLineNumber = Integer.MIN_VALUE;
   
   public FlleShCFANode(CFANode pNode) {
     // TODO should we use the line number of pNode ?

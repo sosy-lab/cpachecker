@@ -37,7 +37,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.pathmonitor.Automaton;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.TargetGraph;
-import org.sosy_lab.cpachecker.fllesh.fql.fllesh.util.CPAchecker;
+import org.sosy_lab.cpachecker.fllesh.fql.fllesh.util.ModifiedCPAchecker;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.coverage.Edges;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.coverage.Sequence;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.coverage.States;
@@ -50,7 +50,7 @@ import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Identity;
 
 public class CoverageSequenceTest {
 
-  private final String mPropertiesFile = "test/config/simpleMustMayAnalysis.properties";
+  private static final String mPropertiesFile = "test/config/simpleMustMayAnalysis.properties";
   private final ImmutableMap<String, String> mProperties =
         ImmutableMap.of("analysis.programNames", "test/programs/simple/functionCall.c");
 
@@ -66,7 +66,7 @@ public class CoverageSequenceTest {
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
+    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
 
     TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
 
@@ -89,7 +89,7 @@ public class CoverageSequenceTest {
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
+    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
 
     TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
 
@@ -116,7 +116,7 @@ public class CoverageSequenceTest {
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
+    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
 
     TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
 

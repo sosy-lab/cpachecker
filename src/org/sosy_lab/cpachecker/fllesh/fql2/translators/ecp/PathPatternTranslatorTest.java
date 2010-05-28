@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.fllesh.Main;
 import org.sosy_lab.cpachecker.fllesh.ecp.ECPPrettyPrinter;
 import org.sosy_lab.cpachecker.fllesh.ecp.ElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.TargetGraph;
-import org.sosy_lab.cpachecker.fllesh.fql.fllesh.util.CPAchecker;
+import org.sosy_lab.cpachecker.fllesh.fql.fllesh.util.ModifiedCPAchecker;
 import org.sosy_lab.cpachecker.fllesh.fql.fllesh.util.Cilly;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.FQLSpecification;
 
@@ -72,7 +72,7 @@ public class PathPatternTranslatorTest {
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
+    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
 
     CFAFunctionDefinitionNode lMainFunction = lCPAchecker.getMainFunction();
     

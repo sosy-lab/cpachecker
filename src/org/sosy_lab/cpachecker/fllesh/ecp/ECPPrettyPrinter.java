@@ -31,7 +31,7 @@ public class ECPPrettyPrinter {
     return lResult.toString();
   }
   
-  private class Visitor implements ECPVisitor<String> {
+  private static class Visitor implements ECPVisitor<String> {
     
     private Map<ECPEdgeSet, Integer> mEdgeSetIds;
     private Map<ECPNodeSet, Integer> mNodeSetIds;

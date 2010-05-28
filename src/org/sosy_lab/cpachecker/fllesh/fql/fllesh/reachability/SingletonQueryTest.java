@@ -55,7 +55,7 @@ import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.Node;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.TargetGraph;
 import org.sosy_lab.cpachecker.fllesh.fql.fllesh.FeasibilityCheck;
 import org.sosy_lab.cpachecker.fllesh.fql.fllesh.cpa.AddSelfLoop;
-import org.sosy_lab.cpachecker.fllesh.fql.fllesh.util.CPAchecker;
+import org.sosy_lab.cpachecker.fllesh.fql.fllesh.util.ModifiedCPAchecker;
 import org.sosy_lab.cpachecker.fllesh.fql.fllesh.util.Cilly;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.pathmonitor.FilterMonitor;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Identity;
@@ -94,7 +94,7 @@ public class SingletonQueryTest {
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
+    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
 
     CFAFunctionDefinitionNode lMainFunction = lCPAchecker.getMainFunction();
 

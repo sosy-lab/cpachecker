@@ -45,7 +45,7 @@ import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.TargetGraph;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.testgoals.CoverageSequence;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.testgoals.TestGoal;
 import org.sosy_lab.cpachecker.fllesh.fql.fllesh.cpa.AddSelfLoop;
-import org.sosy_lab.cpachecker.fllesh.fql.fllesh.util.CPAchecker;
+import org.sosy_lab.cpachecker.fllesh.fql.fllesh.util.ModifiedCPAchecker;
 import org.sosy_lab.cpachecker.fllesh.fql.fllesh.util.Cilly;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.query.Query;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.parser.FQLParser;
@@ -83,7 +83,7 @@ public class Main {
 
     LogManager lLogManager = new LogManager(lConfiguration);
 
-    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
+    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
 
     Query lQuery = parseQuery(pArguments[0]);
 

@@ -164,7 +164,7 @@ public class ToControlAutomatonTranslator {
     return lModification.toString();
   }
   
-  private class StateNameMap {
+  private static class StateNameMap {
     private Map<Automaton<GuardedEdgeLabel>.State, String> mStateNames = new HashMap<Automaton<GuardedEdgeLabel>.State, String>();
     
     public StateNameMap(Automaton<GuardedEdgeLabel>.State pFinalState) {
@@ -185,7 +185,7 @@ public class ToControlAutomatonTranslator {
     }
   }
   
-  public class EdgeSetNameMap {
+  public static class EdgeSetNameMap {
     private Map<ECPEdgeSet, String> mEdgeSetNames = new HashMap<ECPEdgeSet, String>();
     
     public String get(ECPEdgeSet pEdgeSet) {

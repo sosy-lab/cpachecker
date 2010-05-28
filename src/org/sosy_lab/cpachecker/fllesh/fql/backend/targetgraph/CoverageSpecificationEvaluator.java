@@ -33,7 +33,7 @@ public class CoverageSpecificationEvaluator extends DefaultASTVisitor<Set<? exte
     return pCoverageSpecification.accept(this);
   }
   
-  private class TestGoalPredicator extends DefaultTestGoalVisitor<TestGoal> {
+  private static class TestGoalPredicator extends DefaultTestGoalVisitor<TestGoal> {
 
     private Predicates mPreconditions;
     private Predicates mPostconditions;

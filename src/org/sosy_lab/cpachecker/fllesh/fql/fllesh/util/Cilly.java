@@ -119,11 +119,14 @@ public class Cilly {
       String lCillyfiedLine = lCillyfiedReader.readLine();
 
       if (lSourceLine == null) {
+        lSourceReader.close();
+        lCillyfiedReader.close();
+        
         return (lCillyfiedLine == null);
       }
       else if (!lSourceLine.trim().equals(lCillyfiedLine.trim())) {
-        //System.out.println(lSourceLine);
-        //System.out.println(lCillyfiedLine);
+        lSourceReader.close();
+        lCillyfiedReader.close();
 
         return false;
       }

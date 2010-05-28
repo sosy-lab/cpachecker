@@ -24,11 +24,9 @@
 package org.sosy_lab.cpachecker.fllesh;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -64,10 +62,9 @@ import org.sosy_lab.cpachecker.fllesh.ecp.ElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.fllesh.ecp.reduced.Automaton;
 import org.sosy_lab.cpachecker.fllesh.ecp.translators.GuardedEdgeLabel;
 import org.sosy_lab.cpachecker.fllesh.ecp.translators.ToGuardedAutomatonTranslator;
-import org.sosy_lab.cpachecker.fllesh.ecp.translators.observerautomaton.ToControlAutomatonTranslator;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.TargetGraph;
 import org.sosy_lab.cpachecker.fllesh.fql.fllesh.util.AutomaticStreamReader;
-import org.sosy_lab.cpachecker.fllesh.fql.fllesh.util.CPAchecker;
+import org.sosy_lab.cpachecker.fllesh.fql.fllesh.util.ModifiedCPAchecker;
 import org.sosy_lab.cpachecker.fllesh.fql.fllesh.util.Cilly;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.fllesh.fql2.translators.ecp.CoverageSpecificationTranslator;
@@ -76,10 +73,6 @@ import com.google.common.base.Joiner;
 
 public class Main {
   
-  private static final String GOAL_AUTOMATON = "GoalAutomaton";
-  private static final String PASSING_AUTOMATON = "PassingAutomaton";
-  private static final String PRODUCT_AUTOMATON = "ProductAutomaton";
-
   /**
    * @param pArguments
    * @throws Exception
@@ -116,7 +109,7 @@ public class Main {
     Configuration lConfiguration = Main.createConfiguration(lSourceFileName, lPropertiesFile.getAbsolutePath());
 
     LogManager lLogManager = new LogManager(lConfiguration);
-    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
+    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
 
     CFAFunctionDefinitionNode lMainFunction = lCPAchecker.getMainFunction();
     
@@ -336,56 +329,6 @@ public class Main {
     }
 
     return lPropertiesFile;
-  }
-
-  private static File createPropertiesFile(File pObserverAutomatonFile, String pDotFile, String pEntryFunction) {
-    if (pObserverAutomatonFile == null) {
-      throw new IllegalArgumentException("Parameter pObserverAutomaton is null!");
-    }
-    
-    if (pDotFile == null) {
-      throw new IllegalArgumentException("Parameter pDotFile is null!");
-    }
-    
-    File lPropertiesFile = Main.createPropertiesFile(pEntryFunction);
-
-    // append configuration for observer automaton
-    PrintWriter lWriter;
-    try {
-
-      lWriter = new PrintWriter(new FileOutputStream(lPropertiesFile, true));
-
-      lWriter.println("automatonAnalysis.inputFile = " + pObserverAutomatonFile.getAbsolutePath());
-      lWriter.println("automatonAnalysis.dotExportFile = " + pDotFile);
-      lWriter.close();
-
-      return lPropertiesFile;
-
-    } catch (FileNotFoundException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    }
-
-    return null;
-  }
-  
-  private static String getProductAutomaton(boolean pPassingAutomatonEnabled) {
-    StringWriter lResult = new StringWriter();
-    PrintWriter lWriter = new PrintWriter(lResult);
-    
-    lWriter.println("AUTOMATON " + PRODUCT_AUTOMATON);
-    lWriter.println("INITIAL STATE Init;");
-    lWriter.println();
-    lWriter.println("STATE Init:");
-    if (pPassingAutomatonEnabled) {
-      lWriter.println("  CHECK(AutomatonAnalysis_" + GOAL_AUTOMATON + "(\"state == " + ToControlAutomatonTranslator.getAcceptingStateName() + "\")) && CHECK(AutomatonAnalysis_" + PASSING_AUTOMATON + "(\"state == " + ToControlAutomatonTranslator.getAcceptingStateName() + "\")) -> ERROR;");
-    }
-    else {
-      lWriter.println("  CHECK(AutomatonAnalysis_" + GOAL_AUTOMATON + "(\"state == " + ToControlAutomatonTranslator.getAcceptingStateName() + "\")) -> ERROR;");
-    }
-    lWriter.println("  TRUE -> GOTO Init;");
-    
-    return lResult.toString();
   }
   
 }

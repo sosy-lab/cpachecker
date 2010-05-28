@@ -56,7 +56,7 @@ import org.sosy_lab.cpachecker.fllesh.fql.fllesh.util.DefaultFlleshCFAEdgeVisito
 
 public class QueryTransferRelation implements TransferRelation {
 
-  private class QueryCFAEdgeVisitor extends
+  private static class QueryCFAEdgeVisitor extends
       DefaultFlleshCFAEdgeVisitor<Set<QueryElement>> {
 
     private Query mQuery;
