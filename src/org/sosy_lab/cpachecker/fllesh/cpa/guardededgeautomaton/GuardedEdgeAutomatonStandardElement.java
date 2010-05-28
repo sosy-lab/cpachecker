@@ -1,7 +1,7 @@
 package org.sosy_lab.cpachecker.fllesh.cpa.guardededgeautomaton;
 
-import org.sosy_lab.cpachecker.fllesh.ecp.reduced.Automaton;
 import org.sosy_lab.cpachecker.fllesh.ecp.translators.GuardedEdgeLabel;
+import org.sosy_lab.cpachecker.fllesh.util.Automaton;
 
 public class GuardedEdgeAutomatonStandardElement extends GuardedEdgeAutomatonStateElement {
 

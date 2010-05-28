@@ -1,7 +1,7 @@
 package org.sosy_lab.cpachecker.fllesh.ecp.translators;
 
 import org.sosy_lab.cpachecker.fllesh.ecp.ECPGuard;
-import org.sosy_lab.cpachecker.fllesh.ecp.reduced.Automaton;
+import org.sosy_lab.cpachecker.fllesh.util.Automaton;
 
 import java.util.Collections;
 import java.util.HashSet;

@@ -4,8 +4,8 @@ import java.util.ArrayList;
 
 import org.sosy_lab.cpachecker.fllesh.ecp.ECPGuard;
 import org.sosy_lab.cpachecker.fllesh.ecp.ECPPredicate;
-import org.sosy_lab.cpachecker.fllesh.ecp.reduced.Automaton;
 import org.sosy_lab.cpachecker.fllesh.ecp.translators.GuardedEdgeLabel;
+import org.sosy_lab.cpachecker.fllesh.util.Automaton;
 
 public abstract class GuardedEdgeAutomatonStateElement implements
     GuardedEdgeAutomatonElement {

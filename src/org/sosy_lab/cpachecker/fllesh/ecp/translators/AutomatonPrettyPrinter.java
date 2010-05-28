@@ -7,7 +7,7 @@ import org.sosy_lab.cpachecker.fllesh.ecp.ECPEdgeSet;
 import org.sosy_lab.cpachecker.fllesh.ecp.ECPGuard;
 import org.sosy_lab.cpachecker.fllesh.ecp.ECPNodeSet;
 import org.sosy_lab.cpachecker.fllesh.ecp.ECPPredicate;
-import org.sosy_lab.cpachecker.fllesh.ecp.reduced.Automaton;
+import org.sosy_lab.cpachecker.fllesh.util.Automaton;
 
 public class AutomatonPrettyPrinter {
   

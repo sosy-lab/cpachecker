@@ -28,6 +28,8 @@ import java.io.StringWriter;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.sosy_lab.cpachecker.fllesh.util.Automaton;
+
 public class ObserverAutomatonTranslator {
 
   private static class Visitor implements ASTVisitor<Void> {

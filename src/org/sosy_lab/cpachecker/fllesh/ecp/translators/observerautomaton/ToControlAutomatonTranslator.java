@@ -16,10 +16,10 @@ import org.sosy_lab.cpachecker.fllesh.cpa.edgevisit.ECPEdgeSetBasedAnnotations;
 import org.sosy_lab.cpachecker.fllesh.ecp.ECPEdgeSet;
 import org.sosy_lab.cpachecker.fllesh.ecp.ECPGuard;
 import org.sosy_lab.cpachecker.fllesh.ecp.ElementaryCoveragePattern;
-import org.sosy_lab.cpachecker.fllesh.ecp.reduced.Automaton;
 import org.sosy_lab.cpachecker.fllesh.ecp.translators.GuardedEdgeLabel;
 import org.sosy_lab.cpachecker.fllesh.ecp.translators.GuardedLabel;
 import org.sosy_lab.cpachecker.fllesh.ecp.translators.ToGuardedAutomatonTranslator;
+import org.sosy_lab.cpachecker.fllesh.util.Automaton;
 
 public class ToControlAutomatonTranslator {
   

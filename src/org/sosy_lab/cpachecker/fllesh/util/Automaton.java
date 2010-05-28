@@ -1,4 +1,4 @@
-package org.sosy_lab.cpachecker.fllesh.ecp.reduced;
+package org.sosy_lab.cpachecker.fllesh.util;
 
 import java.util.HashMap;
 import java.util.HashSet;

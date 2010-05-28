@@ -18,7 +18,7 @@ import org.sosy_lab.cpachecker.fllesh.ecp.ECPRepetition;
 import org.sosy_lab.cpachecker.fllesh.ecp.ECPUnion;
 import org.sosy_lab.cpachecker.fllesh.ecp.ECPVisitor;
 import org.sosy_lab.cpachecker.fllesh.ecp.ElementaryCoveragePattern;
-import org.sosy_lab.cpachecker.fllesh.ecp.reduced.Automaton;
+import org.sosy_lab.cpachecker.fllesh.util.Automaton;
 
 public class ToGuardedAutomatonTranslator {
   
