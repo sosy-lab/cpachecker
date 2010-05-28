@@ -174,6 +174,7 @@ public class Main {
       
       lTestGenAnalyses.add(lSymbPredAbsCPA);
       lTestGenAnalyses.add(lGoalCPA);
+      lTestGenAnalyses.add(lPassingCPA);
       lTestGenAnalyses.add(lProductAutomatonCPA);
       
       int[] lEqualityIndices = new int[2];
