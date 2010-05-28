@@ -63,7 +63,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       CFANode successorNode = pArgs.getCfaEdge().getSuccessor();
       if (successorNode instanceof CFALabelNode) {
-        String label = ((CFALabelNode)successorNode).getLabel().toLowerCase();
+        String label = ((CFALabelNode)successorNode).getLabel();
         if (pattern.matcher(label).matches()) {
           return CONST_TRUE;
         } else {
