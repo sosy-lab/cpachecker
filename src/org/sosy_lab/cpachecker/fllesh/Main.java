@@ -27,7 +27,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Collections;
@@ -53,12 +52,11 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
 import org.sosy_lab.cpachecker.cpa.art.ARTStatistics;
-import org.sosy_lab.cpachecker.cpa.automatonanalysis.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.symbpredabsCPA.SymbPredAbsCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.fllesh.cpa.edgevisit.EdgeVisitCPA;
+import org.sosy_lab.cpachecker.fllesh.cpa.composite.CompoundCPA;
 import org.sosy_lab.cpachecker.fllesh.cpa.guardededgeautomaton.GuardedEdgeAutomatonCPA;
 import org.sosy_lab.cpachecker.fllesh.cpa.productautomaton.ProductAutomatonCPA;
 import org.sosy_lab.cpachecker.fllesh.ecp.ECPPrettyPrinter;
@@ -171,10 +169,19 @@ public class Main {
 
       LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<ConfigurableProgramAnalysis>();
       lComponentAnalyses.add(lLocationCPA);
-      lComponentAnalyses.add(lSymbPredAbsCPA);
-      lComponentAnalyses.add(lGoalCPA);
-      //lComponentAnalyses.add(lPassingCPA);
-      lComponentAnalyses.add(lProductAutomatonCPA);
+      
+      LinkedList<ConfigurableProgramAnalysis> lTestGenAnalyses = new LinkedList<ConfigurableProgramAnalysis>();
+      
+      lTestGenAnalyses.add(lSymbPredAbsCPA);
+      lTestGenAnalyses.add(lGoalCPA);
+      lTestGenAnalyses.add(lProductAutomatonCPA);
+      
+      int[] lEqualityIndices = new int[2];
+      lEqualityIndices[0] = 1;
+      lEqualityIndices[1] = 2;
+      
+      CompoundCPA lCompoundCPA = new CompoundCPA(lTestGenAnalyses, lEqualityIndices);
+      lComponentAnalyses.add(lCompoundCPA);
 
       // create composite CPA
       CPAFactory lCPAFactory = CompositeCPA.factory();
@@ -191,8 +198,9 @@ public class Main {
       ConfigurableProgramAnalysis lARTCPA = lARTCPAFactory.createInstance();
 
 
+      CPAAlgorithm lBasicAlgorithm = new CPAAlgorithm(lARTCPA, lLogManager);
 
-      CEGARAlgorithm lAlgorithm = new CEGARAlgorithm(new CPAAlgorithm(lARTCPA, lLogManager), lConfiguration, lLogManager);
+      CEGARAlgorithm lAlgorithm = new CEGARAlgorithm(lBasicAlgorithm, lConfiguration, lLogManager);
 
       Statistics lARTStatistics = new ARTStatistics(lConfiguration, lLogManager);
       Set<Statistics> lStatistics = new HashSet<Statistics>();
@@ -272,250 +280,6 @@ public class Main {
     }
   }
   
-  /**
-   * @param pArguments
-   * @throws Exception
-   */
-  public static void mainOld(String[] pArguments) throws Exception {
-    assert(pArguments != null);
-    assert(pArguments.length > 1);
-    
-    String lFQLSpecificationString = pArguments[0];
-    String lSourceFileName = pArguments[1];
-    
-    String lEntryFunction = "main";
-    
-    if (pArguments.length > 2) {
-      lEntryFunction = pArguments[2];
-    }
-    
-    // TODO implement nicer mechanism for disabling cilly preprocessing
-    if (pArguments.length <= 3) {  
-      // check cilly invariance of source file, i.e., is it changed when preprocessed by cilly?
-      Cilly lCilly = new Cilly();
-  
-      if (!lCilly.isCillyInvariant(lSourceFileName)) {
-        File lCillyProcessedFile = lCilly.cillyfy(pArguments[1]);
-        lCillyProcessedFile.deleteOnExit();
-  
-        lSourceFileName = lCillyProcessedFile.getAbsolutePath();
-  
-        System.err.println("WARNING: Given source file is not CIL invariant ... did preprocessing!");
-      }
-    }
-
-    File lPropertiesFile = Main.createPropertiesFile(lEntryFunction);
-    Configuration lConfiguration = Main.createConfiguration(lSourceFileName, lPropertiesFile.getAbsolutePath());
-
-    LogManager lLogManager = new LogManager(lConfiguration);
-    CPAchecker lCPAchecker = new CPAchecker(lConfiguration, lLogManager);
-
-    CFAFunctionDefinitionNode lMainFunction = lCPAchecker.getMainFunction();
-    
-    FQLSpecification lFQLSpecification = FQLSpecification.parse(lFQLSpecificationString);
-    
-    System.out.println("FQL query: " + lFQLSpecification);
-    System.out.println("File: " + lSourceFileName);
-    
-    TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lMainFunction);
-    
-    /** do translation */
-    CoverageSpecificationTranslator lSpecificationTranslator = new CoverageSpecificationTranslator(lTargetGraph);
-    Set<ElementaryCoveragePattern> lGoals = lSpecificationTranslator.translate(lFQLSpecification.getCoverageSpecification());
-    ElementaryCoveragePattern lPassing = lSpecificationTranslator.translate(lFQLSpecification.getPathPattern());
-    
-    
-    Wrapper lWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCPAchecker.getCFAMap(), lLogManager);
-    
-    ToControlAutomatonTranslator lTranslator = new ToControlAutomatonTranslator(lWrapper.getAlphaEdge(), lWrapper.getOmegaEdge());
-    
-    File lControlAutomatonFile = lTranslator.getControlAutomatonFile(lPassing, Main.PASSING_AUTOMATON);
-
-    File lPassingPropertiesFile = Main.createPropertiesFile(lControlAutomatonFile, "test/output/" + Main.PASSING_AUTOMATON + ".dot", lEntryFunction);
-    Configuration lPassingConfiguration = Main.createConfiguration(lSourceFileName, lPassingPropertiesFile.getAbsolutePath());
-
-    CPAFactory lPassingAutomatonFactory = ControlAutomatonCPA.factory();
-    lPassingAutomatonFactory.setConfiguration(lPassingConfiguration);
-    lPassingAutomatonFactory.setLogger(lLogManager);
-    ConfigurableProgramAnalysis lPassingAutomatonCPA = lPassingAutomatonFactory.createInstance();
-    
-    
-    
-    
-    ECPPrettyPrinter lPrettyPrinter = new ECPPrettyPrinter();
-    
-    // passing clause
-    System.out.println("PASSING:");
-    System.out.println(lPrettyPrinter.printPretty(lPassing));
-    
-    
-    
-    
-    
-    /** create product automaton */
-    File lProductAutomatonFile = File.createTempFile("fllesh." + Main.PRODUCT_AUTOMATON + ".", ".ca");
-    //lProductAutomatonFile.deleteOnExit();
-    
-    PrintStream lProductAutomatonStream = new PrintStream(new FileOutputStream(lProductAutomatonFile));
-    // TODO enable passing automaton
-    lProductAutomatonStream.println(Main.getProductAutomaton(false));
-    lProductAutomatonStream.close();
-    
-    File lProductAutomatonPropertiesFile = Main.createPropertiesFile(lProductAutomatonFile, "test/output/" + Main.PRODUCT_AUTOMATON + ".dot", lEntryFunction);
-    Configuration lProductAutomatonConfiguration = Main.createConfiguration(lSourceFileName, lProductAutomatonPropertiesFile.getAbsolutePath());
-
-    CPAFactory lProductAutomatonFactory = ControlAutomatonCPA.factory();
-    lProductAutomatonFactory.setConfiguration(lProductAutomatonConfiguration);
-    lProductAutomatonFactory.setLogger(lLogManager);
-    ConfigurableProgramAnalysis lProductObserverCPA = lProductAutomatonFactory.createInstance();
-
-    
-    
-    
-    
-    
-    
-    
-    System.out.println("TEST GOALS:");
-    
-    int lIndex = 0;
-    
-    for (ElementaryCoveragePattern lGoal : lGoals) {
-      int lCurrentGoalNumber = ++lIndex;
-      
-      System.out.println("Goal #" + lCurrentGoalNumber);
-      System.out.println(lPrettyPrinter.printPretty(lGoal));
-      
-      File lGoalAutomatonFile = lTranslator.getControlAutomatonFile(lGoal, Main.GOAL_AUTOMATON);
-      
-      File lTestGoalPropertiesFile = Main.createPropertiesFile(lGoalAutomatonFile, "test/output/" + Main.GOAL_AUTOMATON + ".dot", lEntryFunction);
-      Configuration lTestGoalConfiguration = Main.createConfiguration(lSourceFileName, lTestGoalPropertiesFile.getAbsolutePath());
-
-      CPAFactory lTestGoalAutomatonFactory = ControlAutomatonCPA.factory();
-      lTestGoalAutomatonFactory.setConfiguration(lTestGoalConfiguration);
-      lTestGoalAutomatonFactory.setLogger(lLogManager);
-      ConfigurableProgramAnalysis lTestGoalCPA = lTestGoalAutomatonFactory.createInstance();
-      
-      // TODO annotations accumulate over test goals ... reset?
-      EdgeVisitCPA.Factory lFactory = new EdgeVisitCPA.Factory(lTranslator.getAnnotations());
-      lFactory.setConfiguration(lConfiguration);
-      lFactory.setLogger(lLogManager);
-      ConfigurableProgramAnalysis lEdgeVisitCPA = lFactory.createInstance();
-      
-      
-      
-      
-      
-      
-      
-      
-      CPAFactory lLocationCPAFactory = LocationCPA.factory();
-      ConfigurableProgramAnalysis lLocationCPA = lLocationCPAFactory.createInstance();
-
-      CPAFactory lSymbPredAbsCPAFactory = SymbPredAbsCPA.factory();
-      lSymbPredAbsCPAFactory.setConfiguration(lConfiguration);
-      lSymbPredAbsCPAFactory.setLogger(lLogManager);
-      ConfigurableProgramAnalysis lSymbPredAbsCPA = lSymbPredAbsCPAFactory.createInstance();
-
-      LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<ConfigurableProgramAnalysis>();
-      lComponentAnalyses.add(lLocationCPA);
-      lComponentAnalyses.add(lEdgeVisitCPA);
-      lComponentAnalyses.add(lSymbPredAbsCPA);
-      lComponentAnalyses.add(lTestGoalCPA);
-      //lComponentAnalyses.add(lPassingCPA);
-      lComponentAnalyses.add(lProductObserverCPA);
-
-      // create composite CPA
-      CPAFactory lCPAFactory = CompositeCPA.factory();
-      lCPAFactory.setChildren(lComponentAnalyses);
-      lCPAFactory.setConfiguration(lConfiguration);
-      lCPAFactory.setLogger(lLogManager);
-      ConfigurableProgramAnalysis lCPA = lCPAFactory.createInstance();
-
-      // create ART CPA
-      CPAFactory lARTCPAFactory = ARTCPA.factory();
-      lARTCPAFactory.setChild(lCPA);
-      lARTCPAFactory.setConfiguration(lConfiguration);
-      lARTCPAFactory.setLogger(lLogManager);
-      ConfigurableProgramAnalysis lARTCPA = lARTCPAFactory.createInstance();
-
-
-
-      CEGARAlgorithm lAlgorithm = new CEGARAlgorithm(new CPAAlgorithm(lARTCPA, lLogManager), lConfiguration, lLogManager);
-
-      Statistics lARTStatistics = new ARTStatistics(lConfiguration, lLogManager);
-      Set<Statistics> lStatistics = new HashSet<Statistics>();
-      lStatistics.add(lARTStatistics);
-      lAlgorithm.collectStatistics(lStatistics);
-
-      AbstractElement initialElement = lARTCPA.getInitialElement(lWrapper.getEntry());
-      Precision initialPrecision = lARTCPA.getInitialPrecision(lWrapper.getEntry());
-
-      ReachedElements lReachedElements = new ReachedElements(ReachedElements.TraversalMethod.TOPSORT, true);
-      lReachedElements.add(initialElement, initialPrecision);
-
-      try {
-        lAlgorithm.run(lReachedElements, true);
-      } catch (CPAException e) {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
-      }
-
-      boolean lErrorReached = false;
-      
-      for (AbstractElement reachedElement : lReachedElements) {
-        if (reachedElement.isError()) {
-          lErrorReached = true;
-        }
-
-        System.out.println(reachedElement);
-      }
-
-      PrintWriter lStatisticsWriter = new PrintWriter(System.out);
-
-      if (lErrorReached) {
-        lARTStatistics.printStatistics(lStatisticsWriter, Result.UNSAFE, lReachedElements);
-        
-        System.out.println("Goal #" + lCurrentGoalNumber + " is feasible:");
-        
-        /** determine test input */
-        // TODO get data direct from SymbPredAbsCPA
-        List<String> lCommand = new LinkedList<String>();
-        lCommand.add("/home/holzera/mathsat-4.2.8-linux-x86/bin/mathsat");
-        lCommand.add("-solve");
-        lCommand.add("-print_model");
-        lCommand.add("test/output/cex.msat");
-        
-        ProcessBuilder lMathsatBuilder = new ProcessBuilder(lCommand);
-        Process lMathsat = lMathsatBuilder.start();
-        
-        AutomaticStreamReader lInputReader = new AutomaticStreamReader(lMathsat.getInputStream());
-        Thread lInputReaderThread = new Thread(lInputReader);
-        lInputReaderThread.start();
-        
-        AutomaticStreamReader lErrorReader = new AutomaticStreamReader(lMathsat.getErrorStream());
-        Thread lErrorReaderThread = new Thread(lErrorReader);
-        lErrorReaderThread.start();
-
-        try {
-          lMathsat.waitFor();
-          lInputReaderThread.join();
-          lErrorReaderThread.join();
-
-          System.out.println(lInputReader.getInput());
-          System.out.println(lErrorReader.getInput());
-        } catch (InterruptedException e) {
-          e.printStackTrace();
-        }
-      }
-      else {
-        lARTStatistics.printStatistics(lStatisticsWriter, Result.SAFE, lReachedElements);
-        
-        System.out.println("Goal #" + lCurrentGoalNumber + " is infeasible!");
-      }
-    }    
-  }
-
   public static Configuration createConfiguration(String pSourceFile, String pPropertiesFile) {
     return createConfiguration(Collections.singletonList(pSourceFile), pPropertiesFile);
   }

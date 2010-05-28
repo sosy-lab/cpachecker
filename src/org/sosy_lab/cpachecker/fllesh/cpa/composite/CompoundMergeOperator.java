@@ -9,11 +9,11 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 import com.google.common.collect.ImmutableList;
 
-public class ConfigurableMergeOperator extends CompositeMergeOperator {
+public class CompoundMergeOperator extends CompositeMergeOperator {
 
   private int[] mIndices;
   
-  public ConfigurableMergeOperator(
+  public CompoundMergeOperator(
       ImmutableList<MergeOperator> pMergeOperators, int[] lIndices) {
     super(pMergeOperators);
     
@@ -29,13 +29,13 @@ public class ConfigurableMergeOperator extends CompositeMergeOperator {
   @Override
   public AbstractElement merge(AbstractElement pElement1,
       AbstractElement pElement2, Precision pPrecision) throws CPAException {
-    CompositeElement lElement1 = (CompositeElement)pElement1;
-    CompositeElement lElement2 = (CompositeElement)pElement2;
+    CompoundElement lElement1 = (CompoundElement)pElement1;
+    CompoundElement lElement2 = (CompoundElement)pElement2;
     
     boolean lMerge = true;
     
     for (int lIndex = 0; lIndex < mIndices.length; lIndex++) {
-      if (!lElement1.get(mIndices[lIndex]).equals(lElement2.get(mIndices[lIndex]))) {
+      if (!lElement1.getSubelement(mIndices[lIndex]).equals(lElement2.getSubelement(mIndices[lIndex]))) {
         lMerge = false;
       }
     }
