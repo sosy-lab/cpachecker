@@ -12,10 +12,10 @@ public class AutomatonEditor extends TextEditor {
 		setSourceViewerConfiguration(new AutomatonConfiguration(colorManager));
 		setDocumentProvider(new AutomatonDocumentProvider());
 	}
+	
 	@Override
 	public void dispose() {
 		colorManager.dispose();
 		super.dispose();
 	}
-
 }

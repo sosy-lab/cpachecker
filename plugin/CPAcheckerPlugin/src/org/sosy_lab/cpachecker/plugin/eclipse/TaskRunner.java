@@ -1,10 +1,13 @@
 package org.sosy_lab.cpachecker.plugin.eclipse;
 
+import java.io.IOException;
+import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.logging.StreamHandler;
 
+import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IContributionItem;
@@ -25,6 +28,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.plugin.eclipse.preferences.PreferenceConstants;
+
 
 public class TaskRunner {
 
@@ -59,7 +63,7 @@ public class TaskRunner {
 		CPAcheckerPlugin.getPlugin().fireTasksStarted(tasks.size());
 		IProgressService service = CPAcheckerPlugin.getPlugin().getWorkbench().getProgressService();
 		for (Task t : tasks) {
-			try {				
+			try {
 				service.run(false, true, new TaskRun(t));
 			} catch (InvocationTargetException e) {
 				CPAcheckerPlugin.logError(e);
@@ -67,6 +71,9 @@ public class TaskRunner {
 				CPAcheckerPlugin.logError(e);
 			}
 		}
+		CPAcheckerPlugin.getPlugin().fireTasksFinished();
+		CPAcheckerPlugin.getPlugin().fireTasksChanged(tasks);
+		
 	}
 
 	/*public static void startSingleTask(Task t) {
@@ -176,6 +183,12 @@ public class TaskRunner {
 		@Override
 		public void run(IProgressMonitor monitor) {
 			fireTaskStarted();
+			try {
+				task.getOutputDirectory(false).delete(false, monitor);
+			} catch (CoreException e2) {
+				CPAcheckerPlugin.logError("OCould not delete output directory prior to running task " + task.getName(), e2);
+			}
+			
 			monitor.subTask("Running: " + task.getName());
 			if (monitor.isCanceled()) {
 				fireTaskFinished(null);
@@ -192,8 +205,10 @@ public class TaskRunner {
 					final CPAcheckerResult results = cpachecker.run(task.getTranslationUnit().getLocation().toOSString());
 					logger.flush();
 					if (CPAcheckerPlugin.getPlugin().getPreferenceStore().getBoolean(PreferenceConstants.P_STATS)) {
-						results.printStatistics(new PrintWriter(consoleStream));					
+						results.printStatistics(new PrintWriter(consoleStream, true));					
 					} else {
+						// cannot avoid this, because i have to generate the (log)- files
+						results.printStatistics(new PrintWriter(consoleStream, true));
 						switch (results.getResult()) {
 						case SAFE:
 							//color: green, doesnt work, threading issues
@@ -217,6 +232,15 @@ public class TaskRunner {
 					// finshedAnnouncement must be fired in Eclipse UI thread
 					fireTaskFinished(results);
 				} catch (Exception e) {
+					if (consoleStream!= null) {
+						consoleStream.println("Evaluation of Task "+ task.getName() + " has thrown an exception");
+						e.printStackTrace(new PrintStream(consoleStream));
+						try {
+							consoleStream.close();
+						} catch (IOException e1) {
+							CPAcheckerPlugin.logError("OutputStream of the console could not be closed", e);
+						}
+					}
 					CPAcheckerPlugin.logError("Evaluation of Task "+ task.getName() + " has thrown an exception", e);
 				} finally {
 					fireTaskFinished(null);

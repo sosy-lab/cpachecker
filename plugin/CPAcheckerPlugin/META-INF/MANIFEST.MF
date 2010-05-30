@@ -11,11 +11,13 @@ Require-Bundle: org.eclipse.ui,
  org.eclipse.cdt.core,
  org.eclipse.cdt.ui,
  org.eclipse.core.resources;bundle-version="3.5.2",
- org.sosy_lab.cpachecker.runtime;bundle-version="1.0.0"
+ org.sosy_lab.cpachecker.runtime;bundle-version="1.0.0",
+ org.eclipse.ui.ide
 Bundle-ActivationPolicy: lazy
 Bundle-RequiredExecutionEnvironment: JavaSE-1.6
 Bundle-ClassPath: .
-Import-Package: org.eclipse.swt.graphics,
+Import-Package: org.eclipse.core.filesystem,
+ org.eclipse.swt.graphics,
  org.eclipse.ui.actions,
  org.eclipse.ui.console,
  org.eclipse.ui.part

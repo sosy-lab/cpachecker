@@ -41,7 +41,7 @@
          point="org.eclipse.ui.editors">
       <editor
             name="Property File GUI Editor"
-            icon="icons/config32.gif"
+            icon="icons/config.gif"
             extensions="properties"
             contributorClass="org.eclipse.ui.texteditor.BasicTextEditorActionContributor"
             class="org.sosy_lab.cpachecker.plugin.eclipse.editors.propertieseditor.PropertiesEditor"
@@ -50,12 +50,20 @@
       	<editor
             name="Automaton Editor"
             extensions="auto"
-            icon="icons/sample.gif"
+            icon="icons/automaton.gif"
             default="true"
             contributorClass="org.eclipse.ui.texteditor.BasicTextEditorActionContributor"
             class="org.sosy_lab.cpachecker.plugin.eclipse.editors.automatoneditor.AutomatonEditor"
             id="org.sosy_lab.cpachecker.plugin.eclipse.editors.automatoneditor.AutomatonEditor">
       	</editor>
+      	<editor
+            name="ErrorPath Editor"
+            icon="icons/ErrorPath.gif"
+            extensions="txt"
+            contributorClass="org.eclipse.ui.texteditor.BasicTextEditorActionContributor"
+            class="org.sosy_lab.cpachecker.plugin.eclipse.editors.errorPathEditor.ErrorPathEditor"
+            id="org.sosy_lab.cpachecker.plugin.eclipse.editors.errorPathEditor.ErrorPathEditor">
+      </editor>
    </extension>
    <extension
          point="org.eclipse.ui.popupMenus">
@@ -108,5 +116,25 @@
 	      </instanceof>
 	    </enablement>
 	</renameParticipant>
+	</extension>
+     <extension
+         point="org.eclipse.ui.workbench.texteditor.hyperlinkDetectorTargets">
+      <target
+            id="org.sosy_lab.cpachecker.plugin.eclipse.editors.errorPathEditor.ErrorPathEditor"
+            name="CPAtextEditorTarget">
+            <context type="org.sosy_lab.cpachecker.plugin.eclipse.editors.errorPathEditor.ErrorPathEditor"/>
+            <!--<context type="org.eclipse.ui.texteditor.ITextEditor"/>-->
+      </target>
    </extension>
+   <extension
+         point="org.eclipse.ui.workbench.texteditor.hyperlinkDetectors">
+      <hyperlinkDetector
+      		activate="true"
+            class="org.sosy_lab.cpachecker.plugin.eclipse.editors.errorPathEditor.ErrorPathHyperlinkDetector"
+            id="org.sosy_lab.cpachecker.plugin.eclipse.editors.errorPathEditor.ErrorPathHyperlinkDetector"
+            name="ErrorPathHyperlinkDetector"
+            targetId="org.sosy_lab.cpachecker.plugin.eclipse.editors.errorPathEditor.ErrorPathEditor">
+            <!--targetId="org.eclipse.ui.DefaultTextEditor">-->
+      </hyperlinkDetector>
+   </extension> 
 </plugin>

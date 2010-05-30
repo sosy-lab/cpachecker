@@ -63,7 +63,7 @@ public class CPAcheckerPlugin extends AbstractUIPlugin {
 			}
 			@Override
 			public void taskFinished(Task id,CPAcheckerResult result) {
-				String resStr = (result.getResult().equals(CPAcheckerResult.Result.SAFE) 
+				String resStr = (result != null && result.getResult().equals(CPAcheckerResult.Result.SAFE) 
 						? "succeded " : "failed ");
 				System.out.println(resStr + " Task \"" + id.getName() + "\"");
 			}

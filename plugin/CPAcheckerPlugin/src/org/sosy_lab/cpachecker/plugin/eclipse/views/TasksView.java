@@ -11,6 +11,7 @@ import org.eclipse.jface.action.MenuManager;
 import org.eclipse.jface.action.Separator;
 import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.jface.viewers.IStructuredSelection;
+import org.eclipse.jface.window.IShellProvider;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
@@ -24,6 +25,7 @@ import org.eclipse.ui.IWorkbenchActionConstants;
 import org.eclipse.ui.actions.BaseSelectionListenerAction;
 import org.eclipse.ui.actions.NewWizardMenu;
 import org.eclipse.ui.actions.OpenSystemEditorAction;
+import org.eclipse.ui.actions.RefreshAction;
 import org.eclipse.ui.part.ISetSelectionTarget;
 import org.eclipse.ui.part.ViewPart;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
@@ -41,7 +43,7 @@ import org.sosy_lab.cpachecker.plugin.eclipse.views.TaskTreeViewer.TaskNode;
 import org.sosy_lab.cpachecker.plugin.eclipse.views.TaskTreeViewer.TopNode;
 import org.sosy_lab.cpachecker.plugin.eclipse.views.TaskTreeViewer.Node.NodeType;
 
-public class TasksView extends ViewPart implements ISetSelectionTarget {
+public class TasksView extends ViewPart implements ISetSelectionTarget, IShellProvider {
 	private ITestListener listener = null;
 	private Label progress;
 	
@@ -131,7 +133,9 @@ public class TasksView extends ViewPart implements ISetSelectionTarget {
 			}
 			@Override
 			public void tasksChanged(List<Task> changed) {
-				myTreeViewer.refresh();
+				for (Task t: changed) {
+					myTreeViewer.refresh(t);
+				}
 			}
 		};
 		CPAcheckerPlugin plugin = CPAcheckerPlugin.getPlugin();
@@ -239,6 +243,9 @@ public class TasksView extends ViewPart implements ISetSelectionTarget {
 		OpenAction open = new OpenAction(this.getSite());
 		open.selectionChanged(selection);
 		manager.add(open);
+		RefreshAction refresh = new RefreshAction(this);
+		refresh.selectionChanged(selection);
+		manager.add(refresh);
 		if ( ! selectedTasks.isEmpty()) {
 			manager.add(new Separator());
 			manager.add(new RunMultipleTasksAction(this.getSite().getShell(), selectedTasks));
@@ -266,6 +273,11 @@ public class TasksView extends ViewPart implements ISetSelectionTarget {
 	public void selectReveal(ISelection selection) {
 		System.out.println("TasksView.selectReveal:" + selection.getClass());
 		//TODO: Test & implement, should be called somehow by wizard to show the view with the new element
+	}
+
+	@Override
+	public Shell getShell() {
+		return this.getSite().getShell();
 	}
 
 }
