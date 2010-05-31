@@ -221,7 +221,7 @@ public class LogManager {
     if (logFileLevel != Level.OFF) {
       try {
         Handler outfileHandler = new FileHandler(new File(outputDirectory, outputFile).getAbsolutePath(), false);
-
+        
         setupHandler(outfileHandler, new FileLogFormatter(), logFileLevel, excludeLevelsFileStr);
 
       } catch (IOException e) {
@@ -346,6 +346,11 @@ public class LogManager {
   public void flush() {
     for (Handler handler : logger.getHandlers()) {
       handler.flush();
+    }
+  }
+  public void close() {
+    for (Handler handler : logger.getHandlers()) {
+      handler.close();
     }
   }
 }
