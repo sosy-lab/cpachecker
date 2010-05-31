@@ -76,7 +76,7 @@ public class TargetGraphTest {
 
     ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
 
-    TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
+    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lCPAchecker.getMainFunction());
 
     System.out.println(lTargetGraph);
   }
@@ -92,7 +92,7 @@ public class TargetGraphTest {
 
     ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
 
-    TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
+    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lCPAchecker.getMainFunction());
 
     System.out.println(lTargetGraph);
   }
@@ -114,7 +114,7 @@ public class TargetGraphTest {
 
     ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
 
-    TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
+    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lCPAchecker.getMainFunction());
 
     System.out.println(lTargetGraph);
   }
@@ -136,7 +136,7 @@ public class TargetGraphTest {
 
     ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
 
-    TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
+    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lCPAchecker.getMainFunction());
 
     TargetGraph lFilteredTargetGraph = TargetGraph.applyFunctionNameFilter(lTargetGraph, "func");
 
@@ -160,12 +160,12 @@ public class TargetGraphTest {
 
     ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
 
-    TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
+    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lCPAchecker.getMainFunction());
 
     TargetGraph lFuncTargetGraph = TargetGraph.applyFunctionNameFilter(lTargetGraph, "func");
     TargetGraph lF2TargetGraph = TargetGraph.applyFunctionNameFilter(lTargetGraph, "f2");
 
-    TargetGraph lUnionGraph = TargetGraph.applyUnionFilter(lFuncTargetGraph, lF2TargetGraph);
+    TargetGraph lUnionGraph = TargetGraphUtil.union(lFuncTargetGraph, lF2TargetGraph);
 
     System.out.println(lUnionGraph);
   }
@@ -187,11 +187,11 @@ public class TargetGraphTest {
 
     ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
 
-    TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
+    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lCPAchecker.getMainFunction());
 
     TargetGraph lFuncTargetGraph = TargetGraph.applyFunctionNameFilter(lTargetGraph, "func");
 
-    TargetGraph lIntersectionGraph = TargetGraph.applyIntersectionFilter(lTargetGraph, lFuncTargetGraph);
+    TargetGraph lIntersectionGraph = TargetGraphUtil.intersect(lTargetGraph, lFuncTargetGraph);
 
     System.out.println(lIntersectionGraph);
   }
@@ -207,11 +207,11 @@ public class TargetGraphTest {
 
     ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
 
-    TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
+    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lCPAchecker.getMainFunction());
 
     TargetGraph lFuncTargetGraph = TargetGraph.applyFunctionNameFilter(lTargetGraph, "f");
 
-    TargetGraph lMinusGraph = TargetGraph.applyMinusFilter(lTargetGraph, lFuncTargetGraph);
+    TargetGraph lMinusGraph = TargetGraphUtil.minus(lTargetGraph, lFuncTargetGraph);
 
     System.out.println(lMinusGraph);
   }
@@ -227,7 +227,7 @@ public class TargetGraphTest {
 
     ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
 
-    TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
+    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lCPAchecker.getMainFunction());
 
     TargetGraph lFuncTargetGraph = TargetGraph.applyFunctionNameFilter(lTargetGraph, "f");
 
@@ -247,7 +247,7 @@ public class TargetGraphTest {
 
     ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
 
-    TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
+    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lCPAchecker.getMainFunction());
 
     FilterEvaluator lFilterEvaluator = new FilterEvaluator(lTargetGraph);
     TargetGraph lFilteredTargetGraph = lFilterEvaluator.evaluate(Identity.getInstance());
@@ -267,7 +267,7 @@ public class TargetGraphTest {
 
     ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
 
-    TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
+    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lCPAchecker.getMainFunction());
 
     Function lFunctionFilter = new Function("f");
     
@@ -306,7 +306,7 @@ public class TargetGraphTest {
 
     ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
 
-    TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
+    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lCPAchecker.getMainFunction());
 
     FunctionCall lFunctionCallFilter = new FunctionCall("f");
 
@@ -331,7 +331,7 @@ public class TargetGraphTest {
 
     ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
 
-    TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
+    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lCPAchecker.getMainFunction());
 
     FunctionCall lFunctionCallFilter = new FunctionCall("func");
 
@@ -361,7 +361,7 @@ public class TargetGraphTest {
 
     ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
 
-    TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
+    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lCPAchecker.getMainFunction());
 
     Filter lFunctionCallsFilter = FunctionCalls.getInstance();
 
@@ -386,7 +386,7 @@ public class TargetGraphTest {
 
     ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
 
-    TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
+    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lCPAchecker.getMainFunction());
 
     Filter lFunctionEntryFilter = new FunctionEntry("func");
 
@@ -416,7 +416,7 @@ public class TargetGraphTest {
 
     ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
 
-    TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
+    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lCPAchecker.getMainFunction());
 
     Filter lLineFilter = new Line(102);
     
@@ -446,7 +446,7 @@ public class TargetGraphTest {
 
     ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
 
-    TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
+    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lCPAchecker.getMainFunction());
 
     Filter lFunctionFilter = new Function("func");
 
@@ -470,7 +470,7 @@ public class TargetGraphTest {
 
     ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
 
-    TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
+    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lCPAchecker.getMainFunction());
 
     Filter lFunctionFilter = new Function("func");
 
@@ -494,7 +494,7 @@ public class TargetGraphTest {
 
     ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
 
-    TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
+    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lCPAchecker.getMainFunction());
 
     Filter lFunctionFilter = new Function("func");
 
@@ -518,7 +518,7 @@ public class TargetGraphTest {
 
     ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
 
-    TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
+    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lCPAchecker.getMainFunction());
 
     Paths lPaths = new Paths(Identity.getInstance(), 2, new Predicates());
     
@@ -540,7 +540,7 @@ public class TargetGraphTest {
 
     ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
 
-    TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
+    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lCPAchecker.getMainFunction());
 
     Edges lEdges = new Edges(Identity.getInstance(), new Predicates());
 
@@ -566,7 +566,7 @@ public class TargetGraphTest {
 
     ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
 
-    TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lCPAchecker.getMainFunction());
+    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lCPAchecker.getMainFunction());
 
     Filter lLabelFilter = new Label("ERROR");
     
@@ -583,6 +583,54 @@ public class TargetGraphTest {
 
     // caching should also work with logically equal filters
     assertTrue(lFilteredTargetGraph == lFilterEvaluator.evaluate(lLabelFilter2));
+  }
+  
+  @Test
+  public void test_22() throws IOException, InvalidConfigurationException, CPAException {
+    ImmutableMap<String, String> lProperties =
+      ImmutableMap.of("analysis.programNames", "test/programs/simple/functionCall.c");
+
+    Configuration lConfiguration = new Configuration(mPropertiesFile, lProperties);
+
+    LogManager lLogManager = new LogManager(lConfiguration);
+
+    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
+
+    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lCPAchecker.getMainFunction());
+
+    Filter lLabelFilter = new Label("ERROR");
+    
+    FilterEvaluator lFilterEvaluator = new FilterEvaluator(lTargetGraph);
+
+    TargetGraph lFilteredTargetGraph = lFilterEvaluator.evaluate(lLabelFilter);
+
+    System.out.println(lFilteredTargetGraph);
+
+    // check caching
+    assertTrue(lFilteredTargetGraph == lFilterEvaluator.evaluate(lLabelFilter));
+
+    Filter lLabelFilter2 = new Label("ERROR");
+
+    // caching should also work with logically equal filters
+    assertTrue(lFilteredTargetGraph == lFilterEvaluator.evaluate(lLabelFilter2));
+    
+    System.out.println(lFilteredTargetGraph.getBoundedPaths(1));
+  }
+  
+  @Test
+  public void test_23() throws IOException, InvalidConfigurationException, CPAException {
+    ImmutableMap<String, String> lProperties =
+      ImmutableMap.of("analysis.programNames", "test/programs/simple/functionCall.c");
+
+    Configuration lConfiguration = new Configuration(mPropertiesFile, lProperties);
+
+    LogManager lLogManager = new LogManager(lConfiguration);
+
+    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
+
+    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lCPAchecker.getMainFunction());
+    
+    System.out.println(lTargetGraph.getBoundedPaths(1));
   }
   
 }

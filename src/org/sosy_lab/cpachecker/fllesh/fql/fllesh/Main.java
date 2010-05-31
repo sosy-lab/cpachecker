@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.fllesh.fql.backend.pathmonitor.Automaton;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.query.QueryEvaluation;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.Node;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.TargetGraph;
+import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.TargetGraphUtil;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.testgoals.CoverageSequence;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.testgoals.TestGoal;
 import org.sosy_lab.cpachecker.fllesh.fql.fllesh.cpa.AddSelfLoop;
@@ -89,7 +90,7 @@ public class Main {
 
     CFAFunctionDefinitionNode lMainFunction = lCPAchecker.getMainFunction();
 
-    TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lMainFunction);
+    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
 
     Pair<CoverageSequence, Automaton> lQueryEvaluation = QueryEvaluation.evaluate(lQuery, lTargetGraph);
 

@@ -23,11 +23,13 @@
  */
 package org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -42,8 +44,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAExitNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
-import org.sosy_lab.cpachecker.fllesh.fql.backend.testgoals.EdgeSequence;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.predicate.Predicate;
 import org.sosy_lab.cpachecker.fllesh.fql.frontend.ast.predicate.Predicates;
 
@@ -105,8 +105,116 @@ public class TargetGraph {
     return mGraph.edgeSet();
   }
   
+  private static class Occurrences {
+    
+    Map<Edge, Integer> mOccurrences = new HashMap<Edge, Integer>();
+    
+    public Occurrences() {
+      
+    }
+    
+    public int current(Edge pEdge) {
+      if (!mOccurrences.containsKey(pEdge)) {
+        return 0;
+      }
+      else {
+        return mOccurrences.get(pEdge);
+      }
+    }
+    
+    public void decrement(Edge pEdge) {
+      if (mOccurrences.containsKey(pEdge)) {
+        int lCurrentValue = mOccurrences.get(pEdge);
+        
+        lCurrentValue--;
+        
+        if (lCurrentValue < 0) {
+          lCurrentValue = 0;
+        }
+        
+        mOccurrences.put(pEdge, lCurrentValue);
+      }
+      else {
+        throw new RuntimeException();
+      }
+    }
+    
+    public int increment(Edge pEdge) {
+      int lCurrentValue = 0;
+      
+      if (mOccurrences.containsKey(pEdge)) {
+        lCurrentValue = mOccurrences.get(pEdge);
+      }
+
+      lCurrentValue++;
+     
+      mOccurrences.put(pEdge, lCurrentValue);
+      
+      return lCurrentValue;
+    }
+    
+  }
+  
+  public Set<Path> getBoundedPaths(int pBound) {
+    if (pBound <= 0) {
+      throw new IllegalArgumentException();
+    }
+    
+    Set<Path> lPaths = new HashSet<Path>();
+    
+    LinkedList<Edge> lPrefix = new LinkedList<Edge>();
+    
+    Occurrences lOccurrences = new Occurrences();
+    
+    for (Node lNode : mInitialNodes) {
+      dfs(lNode, lPrefix, lPaths, lOccurrences, pBound);
+    }
+    
+    return lPaths;
+  }
+  
+  private void dfs(Node pCurrentNode, LinkedList<Edge> pPrefix, Set<Path> pPaths, Occurrences pOccurrences, int pBound) {
+    if (mFinalNodes.contains(pCurrentNode)) {
+      pPaths.add(new Path(pCurrentNode, pPrefix));
+    }
+    
+    for (Edge lOutgoingEdge : getOutgoingEdges(pCurrentNode)) {
+      int lOccurrences = pOccurrences.increment(lOutgoingEdge);
+      
+      if (lOccurrences <= pBound) {
+        pPrefix.addLast(lOutgoingEdge);
+        
+        dfs(lOutgoingEdge.getTarget(), pPrefix, pPaths, pOccurrences, pBound);
+        
+        pPrefix.pollLast();
+      }
+      
+      pOccurrences.decrement(lOutgoingEdge);
+    }
+  }
+  
   public Set<Edge> getOutgoingEdges(Node pNode) {
     return mGraph.outgoingEdgesOf(pNode);
+  }
+  
+  public int getNumberOfOutgoingEdges(Node pNode) {
+    return mGraph.outDegreeOf(pNode);
+  }
+  
+  public Set<Edge> getIncomingEdges(Node pNode) {
+    return mGraph.incomingEdgesOf(pNode);
+  }
+  
+  public int getNumberOfIncomingEdges(Node pNode) {
+    return mGraph.inDegreeOf(pNode);
+  }
+  
+  public Iterable<Node> initialNodes() {
+    return mInitialNodes;
+  }
+  
+  public Iterable<Node> finalNodes() {
+    return mFinalNodes;
   }
   
   public Iterator<Node> getInitialNodes() {
@@ -116,55 +224,188 @@ public class TargetGraph {
   public Iterator<Node> getFinalNodes() {
     return mFinalNodes.iterator();
   }
+  
+  public boolean contains(Node pNode) {
+    return mGraph.vertexSet().contains(pNode);
+  }
+  
+  public boolean contains(Edge pEdge) {
+    return mGraph.edgeSet().contains(pEdge);
+  }
+  
+  public boolean isInitialNode(Node pNode) {
+    return mInitialNodes.contains(pNode);
+  }
+  
+  public boolean isFinalNode(Node pNode) {
+    return mFinalNodes.contains(pNode);
+  }
+  
+  @Override
+  public String toString() {
+    String lInitialNodes = "INITIAL NODES: " + mInitialNodes.toString() + "\n";
+    String lFinalNodes = "FINAL NODES: " + mFinalNodes.toString() + "\n";
 
-  public static TargetGraph createTargetGraph(EdgeSequence pEdgeSequence) {
-    assert(pEdgeSequence != null);
-    assert(pEdgeSequence.size() > 1);
+    StringBuffer lBuffer = new StringBuffer();
 
-    Map<Node, Node> lNodeMap = new HashMap<Node, Node>();
+    lBuffer.append(lInitialNodes);
+    lBuffer.append(lFinalNodes);
 
-    DirectedGraph<Node, Edge> lGraph = new DefaultDirectedGraph<Node, Edge>(Edge.class);
-
-    for (Edge lEdge : pEdgeSequence) {
-      Node lOldSourceNode = lEdge.getSource();
-      Node lOldTargetNode = lEdge.getTarget();
-
-      Node lSourceNode;
-      Node lTargetNode;
-
-      if (!lNodeMap.containsKey(lOldSourceNode)) {
-        lSourceNode = new Node(lOldSourceNode);
-        lNodeMap.put(lOldSourceNode, lSourceNode);
-      }
-      else {
-        lSourceNode = lNodeMap.get(lOldSourceNode);
-      }
-
-      if (!lNodeMap.containsKey(lOldTargetNode)) {
-        lTargetNode = new Node(lOldTargetNode);
-        lNodeMap.put(lOldTargetNode, lTargetNode);
-      }
-      else {
-        lTargetNode = lNodeMap.get(lOldTargetNode);
-      }
-
-      new Edge(lSourceNode, lTargetNode, lEdge.getCFAEdge(), lGraph);
+    for (Edge lEdge : mGraph.edgeSet()) {
+      lBuffer.append(lEdge.toString());
+      lBuffer.append("\n");
     }
 
-    return new TargetGraph(Collections.singleton(lNodeMap.get(pEdgeSequence.getStartNode())), Collections.singleton(lNodeMap.get(pEdgeSequence.getEndNode())), lGraph);
+    return lBuffer.toString();
   }
-
-  public static TargetGraph createTargetGraphFromCFA(CFANode pInitialNode) {
-    assert(pInitialNode != null);
-
-    TargetGraph lTargetGraph = new TargetGraph(new HashSet<Node>(), new HashSet<Node>(), new DefaultDirectedGraph<Node, Edge>(Edge.class));
-
-    // create a target graph isomorphic to the given CFA (starting in pInitialNode)
-    createTargetGraphFromCFA(pInitialNode, lTargetGraph.mInitialNodes, lTargetGraph.mFinalNodes, lTargetGraph.mGraph);
-
-    return lTargetGraph;
+  
+  public static class Path {
+    
+    private Node mStartNode;
+    private Node mEndNode;
+    private List<Edge> mEdges;
+    
+    public Path(Node pNode, List<Edge> pEdges) {
+      if (pEdges.size() == 0) {
+        mStartNode = pNode;
+        mEndNode = pNode;
+        
+        mEdges = Collections.emptyList();
+      }
+      else {
+        mStartNode = pEdges.get(0).getSource();        
+        mEndNode = pEdges.get(pEdges.size() - 1).getTarget();
+        
+        if (!pNode.equals(mEndNode)) {
+          throw new IllegalArgumentException();
+        }
+        
+        mEdges = new ArrayList<Edge>(pEdges);
+      }
+    }
+    
+    public int length() {
+      return mEdges.size();
+    }
+    
+    @Override
+    public boolean equals(Object pOther) {
+      if (this == pOther) {
+        return true;
+      }
+      
+      if (pOther == null) {
+        return false;
+      }
+      
+      if (!getClass().equals(pOther.getClass())) {
+        return false;
+      }
+      
+      Path lOther = (Path)pOther;
+      
+      return lOther.mStartNode.equals(mStartNode) && lOther.mEndNode.equals(mEndNode) && lOther.mEdges.equals(mEdges);
+    }
+    
+    @Override
+    public String toString() {
+      StringBuffer lBuffer = new StringBuffer();
+      
+      lBuffer.append("[");
+      
+      if (this.length() > 0) {
+        boolean lIsFirst = true;
+        
+        for (Edge lEdge : mEdges) {
+          if (lIsFirst) {
+            lIsFirst = false;
+          }
+          else {
+            lBuffer.append(", ");
+          }
+          
+          lBuffer.append(lEdge.toString());
+        }        
+      }
+      else {
+        lBuffer.append(mStartNode.toString());
+      }
+      
+      lBuffer.append("]");
+      
+      return lBuffer.toString();
+    }
+    
   }
-
+  
+  public static class Builder {
+    
+    private TargetGraph mTargetGraph;
+    
+    public Builder() {
+      Set<Node> lInitialNodes = new HashSet<Node>();
+      Set<Node> lFinalNodes = new HashSet<Node>();
+      DirectedGraph<Node, Edge> lGraph = new DefaultDirectedGraph<Node, Edge>(Edge.class);
+      
+      mTargetGraph = new TargetGraph(lInitialNodes, lFinalNodes, lGraph);
+    }
+    
+    public Builder(TargetGraph pTargetGraph) {
+      mTargetGraph = new TargetGraph(pTargetGraph);
+    }
+    
+    public Edge addEdge(Node pSource, Node pTarget, CFAEdge pCFAEdge) {
+      return new Edge(pSource, pTarget, pCFAEdge, mTargetGraph.mGraph);
+    }
+    
+    public Edge addEdge(Edge pEdge) {
+      return addEdge(pEdge.getSource(), pEdge.getTarget(), pEdge.getCFAEdge());
+    }
+    
+    public void addEdges(Iterable<Edge> pEdges) {
+      for (Edge lEdge : pEdges) {
+        addEdge(lEdge);
+      }
+    }
+    
+    public void addNode(Node pNode) {
+      mTargetGraph.mGraph.addVertex(pNode);
+    }
+    
+    public void addNodes(Iterable<Node> pNodes) {
+      for (Node lNode : pNodes) {
+        addNode(lNode);
+      }
+    }
+    
+    public void addInitialNode(Node pNode) {
+      addNode(pNode);
+      mTargetGraph.mInitialNodes.add(pNode);
+    }
+    
+    public void addInitialNodes(Iterable<Node> pInitialNodes) {
+      for (Node lInitialNode : pInitialNodes) {
+        addInitialNode(lInitialNode);
+      }
+    }
+    
+    public void addFinalNode(Node pNode) {
+      addNode(pNode);
+      mTargetGraph.mFinalNodes.add(pNode);
+    }
+    
+    public void addFinalNodes(Iterable<Node> pFinalNodes) {
+      for (Node lFinalNode : pFinalNodes) {
+        addFinalNode(lFinalNode);
+      }
+    }
+    
+    public TargetGraph build() {
+      return new TargetGraph(mTargetGraph);
+    }
+    
+  }
+  
   /*
    * Returns a target graph that retains all nodes and edges in pTargetGraph that
    * belong the the function given by pFunctionName. The set of initial nodes is
@@ -215,81 +456,19 @@ public class TargetGraph {
     return new TargetGraph(lInitialNodes, lFinalNodes, lMaskedGraph);
   }
 
-  public static TargetGraph applyUnionFilter(TargetGraph pTargetGraph1, TargetGraph pTargetGraph2) {
-    assert(pTargetGraph1 != null);
-    assert(pTargetGraph2 != null);
+  public static TargetGraph applyPredication(TargetGraph pTargetGraph, Predicates pPredicates) {
+    assert(pTargetGraph != null);
+    assert(pPredicates != null);
 
-    TargetGraph lCopy = new TargetGraph(pTargetGraph1);
+    TargetGraph lResultGraph = pTargetGraph;
 
-    lCopy.mInitialNodes.addAll(pTargetGraph2.mInitialNodes);
-    lCopy.mFinalNodes.addAll(pTargetGraph2.mFinalNodes);
-
-    for (Node lNode : pTargetGraph2.mGraph.vertexSet()) {
-      lCopy.mGraph.addVertex(lNode);
+    for (Predicate lPredicate : pPredicates) {
+      lResultGraph = applyPredication(lResultGraph, lPredicate);
     }
 
-    for (Edge lEdge : pTargetGraph2.mGraph.edgeSet()) {
-      Node lSourceNode = pTargetGraph2.mGraph.getEdgeSource(lEdge);
-      Node lTargetNode = pTargetGraph2.mGraph.getEdgeTarget(lEdge);
-
-      lCopy.mGraph.addEdge(lSourceNode, lTargetNode, lEdge);
-    }
-
-    return lCopy;
+    return lResultGraph;
   }
-
-  public static TargetGraph applyIntersectionFilter(TargetGraph pTargetGraph1, TargetGraph pTargetGraph2) {
-    assert(pTargetGraph1 != null);
-    assert(pTargetGraph2 != null);
-
-    TargetGraph lCopy = new TargetGraph(pTargetGraph1);
-
-    lCopy.mInitialNodes.retainAll(pTargetGraph2.mInitialNodes);
-    lCopy.mFinalNodes.retainAll(pTargetGraph2.mFinalNodes);
-
-    HashSet<Node> lNodesToBeRemoved = new HashSet<Node>();
-
-    for (Node lNode : lCopy.mGraph.vertexSet()) {
-      if (!pTargetGraph2.mGraph.containsVertex(lNode)) {
-        lNodesToBeRemoved.add(lNode);
-      }
-    }
-
-    lCopy.mGraph.removeAllVertices(lNodesToBeRemoved);
-
-    HashSet<Edge> lEdgesToBeRemoved = new HashSet<Edge>();
-
-    for (Edge lEdge : lCopy.mGraph.edgeSet()) {
-      if (!pTargetGraph2.mGraph.containsEdge(lEdge)) {
-        lEdgesToBeRemoved.add(lEdge);
-      }
-    }
-
-    lCopy.mGraph.removeAllEdges(lEdgesToBeRemoved);
-
-    return lCopy;
-  }
-
-  public static TargetGraph applyMinusFilter(TargetGraph pTargetGraph1, TargetGraph pTargetGraph2) {
-    assert(pTargetGraph1 != null);
-    assert(pTargetGraph2 != null);
-
-    TargetGraph lCopy = new TargetGraph(pTargetGraph1);
-
-    lCopy.mGraph.removeAllEdges(pTargetGraph2.mGraph.edgeSet());
-
-    for (Node lNode : pTargetGraph2.mGraph.vertexSet()) {
-      if (lCopy.mGraph.inDegreeOf(lNode) == 0 && lCopy.mGraph.outDegreeOf(lNode) == 0) {
-        lCopy.mGraph.removeVertex(lNode);
-
-        lCopy.mInitialNodes.remove(lNode);
-        lCopy.mFinalNodes.remove(lNode);
-      }
-    }
-
-    return lCopy;
-  }
-
+  
   public static TargetGraph applyPredication(TargetGraph pTargetGraph, Predicate pPredicate) {
     assert(pTargetGraph != null);
     assert(pPredicate != null);
@@ -354,117 +533,4 @@ public class TargetGraph {
     return new TargetGraph(lInitialNodes, lFinalNodes, lGraph);
   }
 
-  public static TargetGraph applyPredication(TargetGraph pTargetGraph, Predicates pPredicates) {
-    assert(pTargetGraph != null);
-    assert(pPredicates != null);
-
-    TargetGraph lResultGraph = pTargetGraph;
-
-    for (Predicate lPredicate : pPredicates) {
-      lResultGraph = applyPredication(lResultGraph, lPredicate);
-    }
-
-    return lResultGraph;
-  }
-
-  private static void createTargetGraphFromCFA(CFANode pInitialNode, Set<Node> pInitialNodes, Set<Node> pFinalNodes, DirectedGraph<Node, Edge> pGraph) {
-    assert(pInitialNode != null);
-    assert(pInitialNodes.isEmpty());
-    assert(pFinalNodes.isEmpty());
-    assert(pGraph != null);
-
-    HashMap<CFANode, Node> lNodeMapping = new HashMap<CFANode, Node>();
-
-    Set<CFANode> lWorklist = new LinkedHashSet<CFANode>();
-    Set<CFANode> lVisitedNodes = new HashSet<CFANode>();
-
-    lWorklist.add(pInitialNode);
-
-    Node lInitialNode = new Node(pInitialNode);
-
-    pInitialNodes.add(lInitialNode);
-
-    lNodeMapping.put(pInitialNode, lInitialNode);
-    pGraph.addVertex(lInitialNode);
-
-    while (!lWorklist.isEmpty()) {
-      CFANode lCFANode = lWorklist.iterator().next();
-      lWorklist.remove(lCFANode);
-
-      lVisitedNodes.add(lCFANode);
-
-      Node lNode = lNodeMapping.get(lCFANode);
-
-      // determine successors
-      int lNumberOfLeavingEdges = lCFANode.getNumLeavingEdges();
-
-      CallToReturnEdge lCallToReturnEdge = lCFANode.getLeavingSummaryEdge();
-
-      if (lNumberOfLeavingEdges == 0 && lCallToReturnEdge == null) {
-        assert(lCFANode instanceof CFAExitNode);
-
-        pFinalNodes.add(lNode);
-      }
-      else {
-        for (int lEdgeIndex = 0; lEdgeIndex < lNumberOfLeavingEdges; lEdgeIndex++) {
-          CFAEdge lEdge = lCFANode.getLeavingEdge(lEdgeIndex);
-          CFANode lSuccessor = lEdge.getSuccessor();
-
-          Node lSuccessorNode;
-
-          if (lVisitedNodes.contains(lSuccessor)) {
-            lSuccessorNode = lNodeMapping.get(lSuccessor);
-          }
-          else {
-            lSuccessorNode = new Node(lSuccessor);
-
-            lNodeMapping.put(lSuccessor, lSuccessorNode);
-            pGraph.addVertex(lSuccessorNode);
-
-            lWorklist.add(lSuccessor);
-          }
-
-          new Edge(lNode, lSuccessorNode, lEdge, pGraph);
-        }
-
-        if (lCallToReturnEdge != null) {
-          CFANode lSuccessor = lCallToReturnEdge.getSuccessor();
-
-          Node lSuccessorNode;
-
-          if (lVisitedNodes.contains(lSuccessor)) {
-            lSuccessorNode = lNodeMapping.get(lSuccessor);
-          }
-          else {
-            lSuccessorNode = new Node(lSuccessor);
-
-            lNodeMapping.put(lSuccessor, lSuccessorNode);
-            pGraph.addVertex(lSuccessorNode);
-
-            lWorklist.add(lSuccessor);
-          }
-
-          new Edge(lNode, lSuccessorNode, lCallToReturnEdge, pGraph);
-        }
-      }
-    }
-  }
-
-  @Override
-  public String toString() {
-    String lInitialNodes = "INITIAL NODES: " + mInitialNodes.toString() + "\n";
-    String lFinalNodes = "FINAL NODES: " + mFinalNodes.toString() + "\n";
-
-    StringBuffer lBuffer = new StringBuffer();
-
-    lBuffer.append(lInitialNodes);
-    lBuffer.append(lFinalNodes);
-
-    for (Edge lEdge : mGraph.edgeSet()) {
-      lBuffer.append(lEdge.toString());
-      lBuffer.append("\n");
-    }
-
-    return lBuffer.toString();
-  }
 }

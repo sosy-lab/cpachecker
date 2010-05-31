@@ -78,6 +78,33 @@ public class Predicate implements Atom {
     mString = mLeftTerm.toString() + " " + lComparisonString + " " + mRightTerm.toString();
   }
 
+  public Predicate negate() {
+    Comparison lComparison = null;
+    
+    switch (mComparison) {
+    case GREATER_OR_EQUAL:
+      lComparison = Comparison.LESS;
+      break;
+    case GREATER:
+      lComparison = Comparison.LESS_OR_EQUAL;
+      break;
+    case EQUAL:
+      lComparison = Comparison.NOT_EQUAL;
+      break;
+    case LESS_OR_EQUAL:
+      lComparison = Comparison.GREATER;
+      break;
+    case LESS:
+      lComparison = Comparison.GREATER_OR_EQUAL;
+      break;
+    case NOT_EQUAL:
+      lComparison = Comparison.EQUAL;
+      break;
+    }
+    
+    return new Predicate(mLeftTerm, lComparison, mRightTerm);
+  }
+  
   public Comparison getComparison() {
     return mComparison;
   }

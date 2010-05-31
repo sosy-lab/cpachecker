@@ -62,6 +62,7 @@ import org.sosy_lab.cpachecker.fllesh.ecp.ElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.fllesh.ecp.translators.GuardedEdgeLabel;
 import org.sosy_lab.cpachecker.fllesh.ecp.translators.ToGuardedAutomatonTranslator;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.TargetGraph;
+import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.TargetGraphUtil;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.fllesh.fql2.translators.ecp.CoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.fllesh.util.AutomaticStreamReader;
@@ -118,7 +119,7 @@ public class Main {
     System.out.println("FQL query: " + lFQLSpecification);
     System.out.println("File: " + lSourceFileName);
     
-    TargetGraph lTargetGraph = TargetGraph.createTargetGraphFromCFA(lMainFunction);
+    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
     
     /** do translation */
     ECPPrettyPrinter lPrettyPrinter = new ECPPrettyPrinter();

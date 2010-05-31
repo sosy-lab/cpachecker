@@ -227,7 +227,7 @@ public class FilterEvaluator {
       }
       
       TargetGraph lFilteredGraph = pComplement.getFilter().accept(this);
-      TargetGraph lResultGraph = TargetGraph.applyMinusFilter(mTargetGraph, lFilteredGraph);
+      TargetGraph lResultGraph = TargetGraphUtil.minus(mTargetGraph, lFilteredGraph);
 
       mCache.add(mTargetGraph, pComplement, lResultGraph);
       
@@ -243,7 +243,7 @@ public class FilterEvaluator {
       TargetGraph lFirstGraph = pUnion.getFirstFilter().accept(this);
       TargetGraph lSecondGraph = pUnion.getSecondFilter().accept(this);
       
-      TargetGraph lResultGraph = TargetGraph.applyUnionFilter(lFirstGraph, lSecondGraph);
+      TargetGraph lResultGraph = TargetGraphUtil.union(lFirstGraph, lSecondGraph);
       
       mCache.add(mTargetGraph, pUnion, lResultGraph);
       
@@ -274,7 +274,7 @@ public class FilterEvaluator {
       TargetGraph lFirstGraph = pIntersection.getFirstFilter().accept(this);
       TargetGraph lSecondGraph = pIntersection.getSecondFilter().accept(this);
       
-      TargetGraph lResultGraph = TargetGraph.applyIntersectionFilter(lFirstGraph, lSecondGraph);
+      TargetGraph lResultGraph = TargetGraphUtil.intersect(lFirstGraph, lSecondGraph);
 
       mCache.add(mTargetGraph, pIntersection, lResultGraph);
 
@@ -289,7 +289,7 @@ public class FilterEvaluator {
 
       TargetGraph lFirstGraph = pSetMinus.getFirstFilter().accept(this);
       TargetGraph lSecondGraph = pSetMinus.getSecondFilter().accept(this);
-      TargetGraph lResultGraph = TargetGraph.applyMinusFilter(lFirstGraph, lSecondGraph);
+      TargetGraph lResultGraph = TargetGraphUtil.minus(lFirstGraph, lSecondGraph);
       
       mCache.add(mTargetGraph, pSetMinus, lResultGraph);
 

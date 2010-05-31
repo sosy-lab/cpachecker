@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.fllesh.ecp.reduced.Atom;
 import org.sosy_lab.cpachecker.fllesh.ecp.reduced.Pattern;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.Edge;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.TargetGraph;
+import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.TargetGraphUtil;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Edges;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Nodes;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Paths;
@@ -56,7 +57,7 @@ public class CoverageSpecificationTranslator {
   public CoverageSpecificationTranslator(CFAFunctionDefinitionNode pMainFunction) {
     mVisitor = new Visitor();
 
-    mTargetGraph = TargetGraph.createTargetGraphFromCFA(pMainFunction);
+    mTargetGraph = TargetGraphUtil.cfa(pMainFunction);
     mPathPatternTranslator = new PathPatternTranslator(mTargetGraph);
   }
 

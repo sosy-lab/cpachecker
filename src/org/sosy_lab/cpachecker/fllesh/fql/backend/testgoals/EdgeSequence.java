@@ -24,11 +24,15 @@
 package org.sosy_lab.cpachecker.fllesh.fql.backend.testgoals;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.Edge;
 import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.Node;
+import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.TargetGraph;
+import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.TargetGraph.Builder;
 
 public class EdgeSequence implements TestGoal, Iterable<Edge> {
 
@@ -117,6 +121,46 @@ public class EdgeSequence implements TestGoal, Iterable<Edge> {
   @Override
   public String toString() {
     return mEdgeSequence.toString();
+  }
+  
+  public static TargetGraph createTargetGraph(EdgeSequence pEdgeSequence) {
+    assert(pEdgeSequence != null);
+    assert(pEdgeSequence.size() > 1);
+    
+    Builder lBuilder = new Builder();
+    
+    Map<Node, Node> lNodeMap = new HashMap<Node, Node>();
+    
+    for (Edge lEdge : pEdgeSequence) {
+      Node lOldSourceNode = lEdge.getSource();
+      Node lOldTargetNode = lEdge.getTarget();
+
+      Node lSourceNode;
+      Node lTargetNode;
+
+      if (!lNodeMap.containsKey(lOldSourceNode)) {
+        lSourceNode = new Node(lOldSourceNode);
+        lNodeMap.put(lOldSourceNode, lSourceNode);
+      }
+      else {
+        lSourceNode = lNodeMap.get(lOldSourceNode);
+      }
+
+      if (!lNodeMap.containsKey(lOldTargetNode)) {
+        lTargetNode = new Node(lOldTargetNode);
+        lNodeMap.put(lOldTargetNode, lTargetNode);
+      }
+      else {
+        lTargetNode = lNodeMap.get(lOldTargetNode);
+      }
+      
+      lBuilder.addEdge(lSourceNode, lTargetNode, lEdge.getCFAEdge());
+    }
+    
+    lBuilder.addInitialNode(lNodeMap.get(pEdgeSequence.getStartNode()));
+    lBuilder.addFinalNode(lNodeMap.get(pEdgeSequence.getEndNode()));
+    
+    return lBuilder.build();
   }
 
 }
