@@ -15,7 +15,7 @@ import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.wizard.Wizard;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchWizard;
-import org.sosy_lab.cpachecker.plugin.eclipse.CPAcheckerPlugin;
+import org.sosy_lab.cpachecker.plugin.eclipse.CPAclipse;
 import org.sosy_lab.cpachecker.plugin.eclipse.Task;
 
 
@@ -39,7 +39,7 @@ public class NewTaskCreationWizard extends Wizard implements IWorkbenchWizard{
 	    
 		Task t;
 		t = new Task(firstPage.getTaskName(),firstPage.getConfigFile() , source);
-		CPAcheckerPlugin.getPlugin().addTask(t);
+		CPAclipse.getPlugin().addTask(t);
 		return true;
 	}
 	

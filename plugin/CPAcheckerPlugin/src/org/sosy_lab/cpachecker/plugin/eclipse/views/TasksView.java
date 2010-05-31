@@ -29,7 +29,7 @@ import org.eclipse.ui.actions.RefreshAction;
 import org.eclipse.ui.part.ISetSelectionTarget;
 import org.eclipse.ui.part.ViewPart;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
-import org.sosy_lab.cpachecker.plugin.eclipse.CPAcheckerPlugin;
+import org.sosy_lab.cpachecker.plugin.eclipse.CPAclipse;
 import org.sosy_lab.cpachecker.plugin.eclipse.ITestListener;
 import org.sosy_lab.cpachecker.plugin.eclipse.Task;
 import org.sosy_lab.cpachecker.plugin.eclipse.popup.actions.DeleteTasksAction;
@@ -138,7 +138,7 @@ public class TasksView extends ViewPart implements ISetSelectionTarget, IShellPr
 				}
 			}
 		};
-		CPAcheckerPlugin plugin = CPAcheckerPlugin.getPlugin();
+		CPAclipse plugin = CPAclipse.getPlugin();
 		if (plugin != null) { // to avoid errors when testing without plugin (with the main function)
 			plugin.addTestListener(listener);
 			this.refresh();
@@ -149,7 +149,7 @@ public class TasksView extends ViewPart implements ISetSelectionTarget, IShellPr
 	@Override
 	public void dispose() {
 		if (this.listener != null) {
-			CPAcheckerPlugin.getPlugin().removeTestListener(listener);
+			CPAclipse.getPlugin().removeTestListener(listener);
 		}
 		myTreeViewer.disposeImages();
 		super.dispose();
@@ -157,7 +157,7 @@ public class TasksView extends ViewPart implements ISetSelectionTarget, IShellPr
 	
 	public void refresh() {
 		myTreeViewer.refresh();
-		this.progress.setText(CPAcheckerPlugin.getPlugin().getTasks().size() + "Tasks listed");
+		this.progress.setText(CPAclipse.getPlugin().getTasks().size() + "Tasks listed");
 	}
 	
 	@Override

@@ -28,7 +28,7 @@ import org.eclipse.jface.preference.FieldEditorPreferencePage;
 import org.eclipse.jface.util.PropertyChangeEvent;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
-import org.sosy_lab.cpachecker.plugin.eclipse.CPAcheckerPlugin;
+import org.sosy_lab.cpachecker.plugin.eclipse.CPAclipse;
 
 /**
  * This class represents a preference page that is contributed to the
@@ -46,7 +46,7 @@ public class CPAPreferencePage extends FieldEditorPreferencePage implements
 
 	public CPAPreferencePage() {
 		super(GRID);
-		setPreferenceStore(CPAcheckerPlugin.getPlugin().getPreferenceStore());
+		setPreferenceStore(CPAclipse.getPlugin().getPreferenceStore());
 		setDescription("Preference Page for the CPAcheckerPlugin");
 	}
 

@@ -12,7 +12,7 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.IActionDelegate;
 import org.eclipse.ui.IObjectActionDelegate;
 import org.eclipse.ui.IWorkbenchPart;
-import org.sosy_lab.cpachecker.plugin.eclipse.CPAcheckerPlugin;
+import org.sosy_lab.cpachecker.plugin.eclipse.CPAclipse;
 import org.sosy_lab.cpachecker.plugin.eclipse.Task;
 
 public class NewTaskAction implements IObjectActionDelegate {
@@ -57,7 +57,7 @@ public class NewTaskAction implements IObjectActionDelegate {
 		} else {
 			Task t = new Task("generated", selectedConfig, selectedSource);
 			// at this time config does not need to be a correct configuration file
-			CPAcheckerPlugin.getPlugin().addTask(t);
+			CPAclipse.getPlugin().addTask(t);
 			System.out.println("NewTaskAction: Task added");
 		}
 	}

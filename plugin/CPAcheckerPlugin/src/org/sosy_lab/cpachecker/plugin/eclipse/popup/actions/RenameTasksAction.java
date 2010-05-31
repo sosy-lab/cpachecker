@@ -5,7 +5,7 @@ import java.util.List;
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.dialogs.InputDialog;
 import org.eclipse.swt.widgets.Shell;
-import org.sosy_lab.cpachecker.plugin.eclipse.CPAcheckerPlugin;
+import org.sosy_lab.cpachecker.plugin.eclipse.CPAclipse;
 import org.sosy_lab.cpachecker.plugin.eclipse.Task;
 
 public class RenameTasksAction extends Action {
@@ -28,7 +28,7 @@ public class RenameTasksAction extends Action {
 			inputdialog.open();
 			String newName =  inputdialog.getValue();
 			t.setName(newName);
-			CPAcheckerPlugin.getPlugin().fireTasksChanged();
+			CPAclipse.getPlugin().fireTasksChanged();
 		}
 	}
 }

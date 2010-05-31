@@ -4,7 +4,7 @@ import java.util.List;
 
 import org.eclipse.jface.action.Action;
 import org.eclipse.swt.widgets.Shell;
-import org.sosy_lab.cpachecker.plugin.eclipse.CPAcheckerPlugin;
+import org.sosy_lab.cpachecker.plugin.eclipse.CPAclipse;
 import org.sosy_lab.cpachecker.plugin.eclipse.Task;
 
 public class RunMultipleTasksAction extends Action {
@@ -21,6 +21,6 @@ public class RunMultipleTasksAction extends Action {
 
 	@Override
 	public void run() {
-		CPAcheckerPlugin.runTasks(toRun);
+		CPAclipse.runTasks(toRun);
 	}
 }

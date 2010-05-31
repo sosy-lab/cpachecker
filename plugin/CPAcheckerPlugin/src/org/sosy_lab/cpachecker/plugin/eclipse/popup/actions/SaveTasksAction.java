@@ -4,7 +4,7 @@ import java.util.List;
 
 import org.eclipse.jface.action.Action;
 import org.eclipse.swt.widgets.Shell;
-import org.sosy_lab.cpachecker.plugin.eclipse.CPAcheckerPlugin;
+import org.sosy_lab.cpachecker.plugin.eclipse.CPAclipse;
 import org.sosy_lab.cpachecker.plugin.eclipse.Task;
 import org.sosy_lab.cpachecker.plugin.eclipse.TasksIO;
 
@@ -21,7 +21,7 @@ public class SaveTasksAction extends Action {
 
 	@Override
 	public void run() {
-		TasksIO.saveTasks(CPAcheckerPlugin.getPlugin().getTasks());
-		CPAcheckerPlugin.getPlugin().fireTasksChanged();
+		TasksIO.saveTasks(CPAclipse.getPlugin().getTasks());
+		CPAclipse.getPlugin().fireTasksChanged();
 	}
 }

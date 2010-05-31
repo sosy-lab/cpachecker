@@ -1,12 +1,12 @@
 package org.sosy_lab.cpachecker.plugin.eclipse;
 
-import java.io.IOException;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.logging.StreamHandler;
 
+import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jface.action.Action;
@@ -44,7 +44,7 @@ public class TaskRunner {
 		}
 		@Override
 		public ImageDescriptor getImageDescriptor() {
-			return CPAcheckerPlugin.getImageDescriptor("icons/rem_co.gif");
+			return CPAclipse.getImageDescriptor("icons/rem_co.gif");
 		}
 		
 		@Override
@@ -60,19 +60,20 @@ public class TaskRunner {
 
 	public static void run(final List<Task> tasks) {
 		//CPAcheckerPlugin.getPlugin().getWorkbench().getProgressService()
-		CPAcheckerPlugin.getPlugin().fireTasksStarted(tasks.size());
-		IProgressService service = CPAcheckerPlugin.getPlugin().getWorkbench().getProgressService();
+		CPAclipse.getPlugin().fireTasksStarted(tasks.size());
+		IProgressService service = CPAclipse.getPlugin().getWorkbench().getProgressService();
 		for (Task t : tasks) {
 			try {
 				service.run(false, true, new TaskRun(t));
 			} catch (InvocationTargetException e) {
-				CPAcheckerPlugin.logError(e);
+				CPAclipse.logError(e);
 			} catch (InterruptedException e) {
-				CPAcheckerPlugin.logError(e);
+				CPAclipse.logError(e);
 			}
 		}
-		CPAcheckerPlugin.getPlugin().fireTasksFinished();
-		CPAcheckerPlugin.getPlugin().fireTasksChanged(tasks);
+		
+		CPAclipse.getPlugin().fireTasksFinished();
+		CPAclipse.getPlugin().fireTasksChanged(tasks);
 		
 	}
 
@@ -151,7 +152,7 @@ public class TaskRunner {
 			super();
 			this.task = t;
 			// Sync Exec !
-			CPAcheckerPlugin.getPlugin().getWorkbench().getDisplay().syncExec(new Runnable() {
+			CPAclipse.getPlugin().getWorkbench().getDisplay().syncExec(new Runnable() {
 				@Override
 				public void run() {
 					ConsolePlugin plugin = ConsolePlugin.getDefault();
@@ -184,14 +185,13 @@ public class TaskRunner {
 		public void run(IProgressMonitor monitor) {
 			fireTaskStarted();
 			try {
-				task.getOutputDirectory(false).delete(false, monitor);
+				task.getOutputDirectory(false).delete(IResource.FORCE, monitor);
 			} catch (CoreException e2) {
-				CPAcheckerPlugin.logError("OCould not delete output directory prior to running task " + task.getName(), e2);
+				CPAclipse.logError("Could not delete output directory prior to running task " + task.getName(), e2);
 			}
-			
 			monitor.subTask("Running: " + task.getName());
 			if (monitor.isCanceled()) {
-				fireTaskFinished(null);
+				fireTaskFinished(null, monitor);
 				return;
 			} else if (task.hasPreRunError()) {
 				firePreRunError();
@@ -204,7 +204,7 @@ public class TaskRunner {
 					CPAchecker cpachecker = new CPAchecker(config, logger);
 					final CPAcheckerResult results = cpachecker.run(task.getTranslationUnit().getLocation().toOSString());
 					logger.flush();
-					if (CPAcheckerPlugin.getPlugin().getPreferenceStore().getBoolean(PreferenceConstants.P_STATS)) {
+					if (CPAclipse.getPlugin().getPreferenceStore().getBoolean(PreferenceConstants.P_STATS)) {
 						results.printStatistics(new PrintWriter(consoleStream, true));					
 					} else {
 						// cannot avoid this, because i have to generate the (log)- files
@@ -227,49 +227,55 @@ public class TaskRunner {
 							break;
 						}
 					}
-					consoleStream.close();
 					task.setLastResult(results.getResult());
 					// finshedAnnouncement must be fired in Eclipse UI thread
-					fireTaskFinished(results);
+					fireTaskFinished(results, monitor);
 				} catch (Exception e) {
 					if (consoleStream!= null) {
 						consoleStream.println("Evaluation of Task "+ task.getName() + " has thrown an exception");
 						e.printStackTrace(new PrintStream(consoleStream));
-						try {
+						/*try {
 							consoleStream.close();
 						} catch (IOException e1) {
-							CPAcheckerPlugin.logError("OutputStream of the console could not be closed", e);
-						}
+							CPAclipse.logError("OutputStream of the console could not be closed", e);
+						}*/
 					}
-					CPAcheckerPlugin.logError("Evaluation of Task "+ task.getName() + " has thrown an exception", e);
+					CPAclipse.logError("Evaluation of Task "+ task.getName() + " has thrown an exception", e);
 				} finally {
-					fireTaskFinished(null);
+					if (logger != null)
+						logger.close();
+					fireTaskFinished(null, monitor);
 					monitor.worked(1);
 				}
 			}
 		}
 		private void firePreRunError() {
-			CPAcheckerPlugin.getPlugin().getWorkbench().getDisplay().asyncExec(new Runnable() {
+			CPAclipse.getPlugin().getWorkbench().getDisplay().syncExec(new Runnable() {
 				@Override
 				public void run() {
-					CPAcheckerPlugin.getPlugin().firePreRunError(task, task.getErrorMessage());	
+					CPAclipse.getPlugin().firePreRunError(task, task.getErrorMessage());	
 				}
 			});
 		}
 
 		void fireTaskStarted() {
-			CPAcheckerPlugin.getPlugin().getWorkbench().getDisplay().asyncExec(new Runnable() {
+			CPAclipse.getPlugin().getWorkbench().getDisplay().syncExec(new Runnable() {
 				@Override
 				public void run() {
-					CPAcheckerPlugin.getPlugin().fireTaskStarted(task);	
+					CPAclipse.getPlugin().fireTaskStarted(task);	
 				}
 			});
 		}
-		void fireTaskFinished(final CPAcheckerResult results) {
-			CPAcheckerPlugin.getPlugin().getWorkbench().getDisplay().asyncExec(new Runnable() {
+		void fireTaskFinished(final CPAcheckerResult results, final IProgressMonitor monitor) {
+			CPAclipse.getPlugin().getWorkbench().getDisplay().syncExec(new Runnable() {
 				@Override
 				public void run() {
-					CPAcheckerPlugin.getPlugin().fireTaskFinished(task, results);	
+					try {
+						task.getOutputDirectory(false).refreshLocal(IResource.DEPTH_INFINITE, monitor);
+					} catch (CoreException e) {
+						CPAclipse.logError("Could not refresh the output directory of Task " + task.getName(), e);
+					}
+					CPAclipse.getPlugin().fireTaskFinished(task, results);	
 				}
 			});
 		}

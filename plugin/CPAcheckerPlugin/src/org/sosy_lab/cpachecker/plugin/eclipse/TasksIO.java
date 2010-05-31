@@ -59,10 +59,10 @@ public class TasksIO {
 		try {
 			tasksInputFile = getFile(DEFAULT_TASKS_SAVE_LOCATION);
 		} catch (MalformedURLException e1) {
-			CPAcheckerPlugin.logError("Error during save action", e1);
+			CPAclipse.logError("Error during save action", e1);
 			return Collections.<Task>emptyList();
 		} catch (URISyntaxException e1) {
-		     CPAcheckerPlugin.logError("Error during save action", e1);
+		     CPAclipse.logError("Error during save action", e1);
 			return Collections.<Task>emptyList();
 		}
 		
@@ -112,11 +112,11 @@ public class TasksIO {
 				returnList.add(t);
 			}
 		} catch (ParserConfigurationException e) {
-		     CPAcheckerPlugin.logError("Error during load action", e);
+		     CPAclipse.logError("Error during load action", e);
 		} catch (SAXException e) {
-			CPAcheckerPlugin.logError("Error during load action", e);
+			CPAclipse.logError("Error during load action", e);
 		} catch (IOException e) {
-			CPAcheckerPlugin.logError("Error during load action", e);
+			CPAclipse.logError("Error during load action", e);
 		}
 		return returnList;
 	}
@@ -206,19 +206,19 @@ public class TasksIO {
 				rootNode.appendChild(getNodeFromTask(t, doc));
 			}
 		} catch (ParserConfigurationException e) {
-			CPAcheckerPlugin.logError("Error during save action", e);
+			CPAclipse.logError("Error during save action", e);
 			return;
 		} catch (SAXException e) {
-			CPAcheckerPlugin.logError("Error during save action", e);
+			CPAclipse.logError("Error during save action", e);
 			return;
 		} catch (IOException e) {
-			CPAcheckerPlugin.logError("Error during save action", e);
+			CPAclipse.logError("Error during save action", e);
 			return;
 		} catch (URISyntaxException e) {
-			CPAcheckerPlugin.logError("Error during save action", e);
+			CPAclipse.logError("Error during save action", e);
 			return;
 		} catch (XMLStreamException e) {
-			CPAcheckerPlugin.logError("Error during save action", e);
+			CPAclipse.logError("Error during save action", e);
 			return;
 		}
 		for (Task t : toSave) {

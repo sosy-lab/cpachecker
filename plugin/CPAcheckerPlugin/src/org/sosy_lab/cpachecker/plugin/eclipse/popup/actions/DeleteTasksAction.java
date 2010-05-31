@@ -7,7 +7,7 @@ import org.eclipse.core.runtime.CoreException;
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.swt.widgets.Shell;
-import org.sosy_lab.cpachecker.plugin.eclipse.CPAcheckerPlugin;
+import org.sosy_lab.cpachecker.plugin.eclipse.CPAclipse;
 import org.sosy_lab.cpachecker.plugin.eclipse.Task;
 import org.sosy_lab.cpachecker.plugin.eclipse.TasksIO;
 
@@ -25,20 +25,20 @@ public class DeleteTasksAction extends Action {
 	@Override
 	public void run() {
 		if (MessageDialog.openQuestion(shell, "Deletion Confirmation", "Sure? \nTask cannot be restored, all Tasks have to be saved \n(we dont support undo)")) {
-			CPAcheckerPlugin.getPlugin().removeTasks(toDelete);
+			CPAclipse.getPlugin().removeTasks(toDelete);
 			for (Task t : toDelete) {
 				try {
 					t.getOutputDirectory(false).delete(true, null);
 				} catch (CoreException e) {
-					CPAcheckerPlugin.log(e.getStatus());
+					CPAclipse.log(e.getStatus());
 				}
 				/*if (!deleteDir(t.getOutputDirectory())) {
 					// TODO: Proper Error handling
 					System.out.println("Could not delete the Output Directory for Task " + t.getName());
 				}*/
 			}
-			TasksIO.saveTasks(CPAcheckerPlugin.getPlugin().getTasks());
-			CPAcheckerPlugin.getPlugin().fireTasksChanged();
+			TasksIO.saveTasks(CPAclipse.getPlugin().getTasks());
+			CPAclipse.getPlugin().fireTasksChanged();
 		}
 	}
 	private boolean deleteDir(File dir) {

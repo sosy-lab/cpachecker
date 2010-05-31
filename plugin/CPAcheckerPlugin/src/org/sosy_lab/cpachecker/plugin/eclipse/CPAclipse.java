@@ -29,7 +29,7 @@ import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.osgi.framework.BundleContext;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 
-public class CPAcheckerPlugin extends AbstractUIPlugin {
+public class CPAclipse extends AbstractUIPlugin {
 	
 	// The plug-in ID
 	public static final String PLUGIN_ID = "org.sosy_lab.cpachecker.plugin.eclipse";
@@ -38,9 +38,9 @@ public class CPAcheckerPlugin extends AbstractUIPlugin {
 
 	private List<ITestListener> listeners;
 	private List<Task> tasks = new ArrayList<Task>();
-	private static CPAcheckerPlugin instance = null;
+	private static CPAclipse instance = null;
 	
-	public CPAcheckerPlugin() {
+	public CPAclipse() {
 		super();
 		// instance will be overwritten each time, but this seems to be intended by eclipse people
 		instance = this;
@@ -78,7 +78,7 @@ public class CPAcheckerPlugin extends AbstractUIPlugin {
 		});
 	}
 
-	public static CPAcheckerPlugin getPlugin() {
+	public static CPAclipse getPlugin() {
 		return instance;
 	}
 
@@ -288,7 +288,7 @@ public class CPAcheckerPlugin extends AbstractUIPlugin {
         if (initial != null) {
 			dialog.setFileName(initial.getResource().getLocation().toPortableString());
 		} else {
-			dialog.setFileName(CPAcheckerPlugin.getWorkspace().getRoot().getLocation().toPortableString());
+			dialog.setFileName(CPAclipse.getWorkspace().getRoot().getLocation().toPortableString());
 		}
         
 		dialog.setFilterExtensions(extension);
@@ -297,7 +297,7 @@ public class CPAcheckerPlugin extends AbstractUIPlugin {
             file = file.trim();
             if (file.length() > 0) {
             	Path p = new Path(file);
-            	IFile member = CPAcheckerPlugin.getWorkspace().getRoot().getFileForLocation(p);
+            	IFile member = CPAclipse.getWorkspace().getRoot().getFileForLocation(p);
             	if (member != null && member.exists()) {
             		ITranslationUnit tu = CoreModelUtil.findTranslationUnit(member);
         			if (tu != null) {
@@ -319,7 +319,7 @@ public class CPAcheckerPlugin extends AbstractUIPlugin {
         if (initial != null) {
 			dialog.setFileName(initial.getLocation().toPortableString());
 		} else {
-			dialog.setFileName(CPAcheckerPlugin.getWorkspace().getRoot().getLocation().toPortableString());
+			dialog.setFileName(CPAclipse.getWorkspace().getRoot().getLocation().toPortableString());
 		}
         
 		dialog.setFilterExtensions(new String[] {extension});
@@ -328,7 +328,7 @@ public class CPAcheckerPlugin extends AbstractUIPlugin {
             file = file.trim();
             if (file.length() > 0) {
             	Path p = new Path(file);
-            	IFile member = CPAcheckerPlugin.getWorkspace().getRoot().getFileForLocation(p);
+            	IFile member = CPAclipse.getWorkspace().getRoot().getFileForLocation(p);
             	if (member != null) {
             		return member;
             	} else {
@@ -354,6 +354,6 @@ public class CPAcheckerPlugin extends AbstractUIPlugin {
 		log(createStatus(severity, code, message, exception));
 	}
 	public static IStatus createStatus(int severity, int code, String message, Throwable exception) {
-		return new Status(severity, CPAcheckerPlugin.PLUGIN_ID, code, message, exception);
+		return new Status(severity, CPAclipse.PLUGIN_ID, code, message, exception);
 	}
 }

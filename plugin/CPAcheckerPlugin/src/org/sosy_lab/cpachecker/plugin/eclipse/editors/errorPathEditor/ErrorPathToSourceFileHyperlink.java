@@ -24,7 +24,7 @@ import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.actions.WorkspaceModifyOperation;
 import org.eclipse.ui.ide.IGotoMarker;
 import org.eclipse.ui.texteditor.ITextEditor;
-import org.sosy_lab.cpachecker.plugin.eclipse.CPAcheckerPlugin;
+import org.sosy_lab.cpachecker.plugin.eclipse.CPAclipse;
 import org.sosy_lab.cpachecker.plugin.eclipse.Task;
 
 public class ErrorPathToSourceFileHyperlink implements IHyperlink {
@@ -103,7 +103,7 @@ public class ErrorPathToSourceFileHyperlink implements IHyperlink {
 	public void open() {
 		System.out.println("Open Line " + sourceLineNumber + " in Source of " + inputFile.getFullPath());
 		String folderName = inputFile.getParent().getName();
-		List<Task> tasks = CPAcheckerPlugin.getPlugin().getTasks();
+		List<Task> tasks = CPAclipse.getPlugin().getTasks();
 		Task myTask = null;
 		for (Task t : tasks) {
 			if (t.getName().equalsIgnoreCase(folderName)) {
@@ -112,7 +112,7 @@ public class ErrorPathToSourceFileHyperlink implements IHyperlink {
 			}
 		}
 		if (myTask == null) {
-			CPAcheckerPlugin.logInfo("could not find task for Hyperlink (search by foldername:\"" + folderName + "\")");
+			CPAclipse.logInfo("could not find task for Hyperlink (search by foldername:\"" + folderName + "\")");
 		} else {
 			try {
 				
@@ -124,9 +124,9 @@ public class ErrorPathToSourceFileHyperlink implements IHyperlink {
 				//revealInEditor(edPart, fRegion.getOffset(), fRegion.getLength());
 		
 			} catch (CModelException e) {
-				CPAcheckerPlugin.logError(e);
+				CPAclipse.logError(e);
 			} catch (PartInitException e) {
-				CPAcheckerPlugin.logError(e);
+				CPAclipse.logError(e);
 			}
 		}
 		
@@ -152,6 +152,7 @@ public class ErrorPathToSourceFileHyperlink implements IHyperlink {
 			if (input instanceof IFileEditorInput) {
 				final IGotoMarker gotoMarkerTarget= (IGotoMarker)editor;
 				WorkspaceModifyOperation op = new WorkspaceModifyOperation() {
+					@Override
 					protected void execute(IProgressMonitor monitor) throws CoreException {
 						IMarker marker= null;
 						try {

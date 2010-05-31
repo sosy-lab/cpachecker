@@ -13,7 +13,7 @@ import org.eclipse.core.runtime.Path;
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.dialogs.IInputValidator;
 import org.eclipse.swt.widgets.Shell;
-import org.sosy_lab.cpachecker.plugin.eclipse.CPAcheckerPlugin;
+import org.sosy_lab.cpachecker.plugin.eclipse.CPAclipse;
 import org.sosy_lab.cpachecker.plugin.eclipse.Task;
 
 public class SetSourceFileInTaskAction extends Action {
@@ -31,14 +31,14 @@ public class SetSourceFileInTaskAction extends Action {
 	public void run() {
 		ITranslationUnit newTransUnit;
 		if (task.getTranslationUnit() != null) {
-			newTransUnit = CPAcheckerPlugin.askForSourceFile(shell, task.getTranslationUnit());
+			newTransUnit = CPAclipse.askForSourceFile(shell, task.getTranslationUnit());
 		} else {
-			newTransUnit = CPAcheckerPlugin.askForSourceFile(shell, null);
+			newTransUnit = CPAclipse.askForSourceFile(shell, null);
 		}
 		if (newTransUnit != null) {
 			task.setTranslationUnit(newTransUnit);
 			task.setDirty(true);
-			CPAcheckerPlugin.getPlugin().fireTasksChanged(Collections.singletonList(task));
+			CPAclipse.getPlugin().fireTasksChanged(Collections.singletonList(task));
 		}
 	}
 		/*

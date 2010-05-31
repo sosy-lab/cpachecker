@@ -60,7 +60,7 @@ public class Task {
 	}
 
 	private static String createUniqueName(String preferredName) {
-		List<Task> tasks = CPAcheckerPlugin.getPlugin().getTasks();
+		List<Task> tasks = CPAclipse.getPlugin().getTasks();
 		Set<String> takenNames = new HashSet<String>();
 		for (Task t : tasks) {
 			takenNames.add(t.getName());
@@ -191,9 +191,9 @@ public class Task {
 	    try {
 			properties.load(this.configFile.getContents());
 		} catch (IOException e1) {
-			CPAcheckerPlugin.logError("Could not load the configFile", e1);
+			CPAclipse.logError("Could not load the configFile", e1);
 		} catch (CoreException e1) {
-			CPAcheckerPlugin.logError("Could not load the configFile", e1);
+			CPAclipse.logError("Could not load the configFile", e1);
 		}
 		String projectRelativePath = properties.getProperty("output.path", DEFAULT_OUTPUT_DIR);
 		
@@ -205,7 +205,7 @@ public class Task {
 			try {
 				outDir.create(true, true, null);
 			} catch (CoreException e) {
-				CPAcheckerPlugin.logError("Could not create Result Directory at path " 
+				CPAclipse.logError("Could not create Result Directory at path " 
 						+ outDir.getFullPath().toPortableString(), e);
 			}
 		}

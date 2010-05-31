@@ -20,7 +20,7 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Text;
-import org.sosy_lab.cpachecker.plugin.eclipse.CPAcheckerPlugin;
+import org.sosy_lab.cpachecker.plugin.eclipse.CPAclipse;
 
 public class NewTaskCreationWizardPage extends WizardPage {
 	private Text sourceTextControl;
@@ -153,11 +153,11 @@ public class NewTaskCreationWizardPage extends WizardPage {
 			tu = CoreModelUtil.findTranslationUnit(ifile);
 		} catch (CModelException e) {
 			this.setErrorMessage("Exception in the CModel: " + e.getLocalizedMessage());
-			CPAcheckerPlugin.logError("Exception in the CModel: ", e);
+			CPAclipse.logError("Exception in the CModel: ", e);
 			return false;
 		} catch (Exception e) {
 			this.setErrorMessage("Failed to locate the file " + sourceFilePath);
-			CPAcheckerPlugin.logError("Failed to locate the file ", e);
+			CPAclipse.logError("Failed to locate the file ", e);
 			return false;
 		}
 		if (tu == null) {

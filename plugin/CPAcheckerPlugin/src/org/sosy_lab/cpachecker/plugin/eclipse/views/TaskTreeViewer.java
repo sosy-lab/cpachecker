@@ -17,7 +17,7 @@ import org.eclipse.jface.viewers.DelegatingStyledCellLabelProvider.IStyledLabelP
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.ui.model.WorkbenchLabelProvider;
-import org.sosy_lab.cpachecker.plugin.eclipse.CPAcheckerPlugin;
+import org.sosy_lab.cpachecker.plugin.eclipse.CPAclipse;
 import org.sosy_lab.cpachecker.plugin.eclipse.Task;
 import org.sosy_lab.cpachecker.plugin.eclipse.views.TaskTreeViewer.Node.NodeType;
 
@@ -42,34 +42,34 @@ public class TaskTreeViewer extends TreeViewer {
 
 	@Override
 	public void refresh() {
-		this.topNode.reconstruct(CPAcheckerPlugin.getPlugin().getTasks());
+		this.topNode.reconstruct(CPAclipse.getPlugin().getTasks());
 		super.refresh();
 	}
 
 	private void createImages() {
 		Image missingImage = ImageDescriptor.getMissingImageDescriptor().createImage();
 		try {
-			ImageDescriptor desc = CPAcheckerPlugin.getImageDescriptor("icons/config.gif"); 	
+			ImageDescriptor desc = CPAclipse.getImageDescriptor("icons/config.gif"); 	
 			if (desc != null) configIcon = desc.createImage(true);
 			else configIcon = missingImage;
 			
-			desc = CPAcheckerPlugin.getImageDescriptor("icons/Thumbs up.gif");
+			desc = CPAclipse.getImageDescriptor("icons/Thumbs up.gif");
 			if (desc != null) safeResultIcon = desc.createImage(true);
 			else safeResultIcon = missingImage;
 			
-			desc = CPAcheckerPlugin.getImageDescriptor("icons/Thumbs down.gif");
+			desc = CPAclipse.getImageDescriptor("icons/Thumbs down.gif");
 			if (desc != null) unsafeResultIcon = desc.createImage(true);
 			else unsafeResultIcon = missingImage;
 			
-			desc = CPAcheckerPlugin.getImageDescriptor("icons/Question.gif");
+			desc = CPAclipse.getImageDescriptor("icons/Question.gif");
 			if (desc != null) unknownResultIcon = desc.createImage(true);
 			else unknownResultIcon = missingImage;
 			
-			desc = CPAcheckerPlugin.getImageDescriptor("icons/MainLogo.gif");
+			desc = CPAclipse.getImageDescriptor("icons/MainLogo.gif");
 			if (desc != null) mainLogoIcon = desc.createImage(true);
 			else mainLogoIcon = missingImage;
 			
-			desc = CPAcheckerPlugin.getImageDescriptor("icons/sample.gif");
+			desc = CPAclipse.getImageDescriptor("icons/sample.gif");
 			if (desc != null) sourceFileImage = desc.createImage(true);
 			else sourceFileImage = missingImage;
 			imagesToBeDisposed.add(configIcon);
@@ -80,7 +80,7 @@ public class TaskTreeViewer extends TreeViewer {
 			imagesToBeDisposed.add(sourceFileImage);
 			imagesToBeDisposed.add(missingImage);
 		} catch (Exception e) {
-			CPAcheckerPlugin.logError("could not create images", e);
+			CPAclipse.logError("could not create images", e);
 		}
 	}
 	void disposeImages() {
@@ -117,7 +117,7 @@ public class TaskTreeViewer extends TreeViewer {
 				try {
 					return ((IFolder)parent).members();
 				} catch (CoreException e) {
-					CPAcheckerPlugin.logError("Could not retrieve members of the ResultFolder", e);
+					CPAclipse.logError("Could not retrieve members of the ResultFolder", e);
 				}
 			}
 			return super.getElements(parent);
@@ -141,7 +141,7 @@ public class TaskTreeViewer extends TreeViewer {
 				try {
 					return ((IFolder)element).exists() && ((IFolder)element).members().length > 0;
 				} catch (CoreException e) {
-					CPAcheckerPlugin.logError(e);
+					CPAclipse.logError(e);
 					return false;
 				} 
 			} else {

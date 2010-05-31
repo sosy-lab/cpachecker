@@ -9,7 +9,7 @@ import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.dialogs.IInputValidator;
 import org.eclipse.swt.widgets.Shell;
-import org.sosy_lab.cpachecker.plugin.eclipse.CPAcheckerPlugin;
+import org.sosy_lab.cpachecker.plugin.eclipse.CPAclipse;
 import org.sosy_lab.cpachecker.plugin.eclipse.Task;
 
 public class SetConfigFileInTaskAction extends Action {
@@ -27,14 +27,14 @@ public class SetConfigFileInTaskAction extends Action {
 	public void run() {
 		IFile result;
 		if (task.hasConfigurationFile()) {
-			result = CPAcheckerPlugin.askForConfigFile(shell, task.getConfigFile());
+			result = CPAclipse.askForConfigFile(shell, task.getConfigFile());
 		} else {
-			result = CPAcheckerPlugin.askForConfigFile(shell, null);
+			result = CPAclipse.askForConfigFile(shell, null);
 		}
 		if (result != null) {
 			task.setConfigFile( result);
 			task.setDirty(true);
-			CPAcheckerPlugin.getPlugin().fireTasksChanged(Collections.singletonList(task));
+			CPAclipse.getPlugin().fireTasksChanged(Collections.singletonList(task));
 		}
 		
 		/* 
