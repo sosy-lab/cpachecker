@@ -125,7 +125,7 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
   \\n                            { string.append('\n'); }
 
   \\r                            { string.append('\r'); }
-  \\\"                           { string.append('\"'); }
+  \\\"                           { string.append('"'); }
   \\                             { string.append('\\'); }
 }
 <CURLYEXPR> {
@@ -137,7 +137,7 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
   \\n                            { string.append('\n'); }
 
   \\r                            { string.append('\r'); }
-  \\\"                           { string.append('\"'); }
+  \\\}                           { string.append('}'); }
   \\                             { string.append('\\'); }
 }
 <SQUAREEXPR> {
@@ -149,7 +149,7 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
   \\n                            { string.append('\n'); }
 
   \\r                            { string.append('\r'); }
-  \\\"                           { string.append('\"'); }
+  \\\]                           { string.append(']'); }
   \\                             { string.append('\\'); }
 }
 

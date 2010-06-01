@@ -11,7 +11,7 @@ INITIAL STATE Init;
 
 STATE Init :
        // this transition matches if the label of the successor CFA location starts with "error"
-     MATCH LABEL [ERROR.*]
+     MATCH LABEL [[Ee\][Rr\][Rr\][Oo\][Rr\].*]
        // matches if assert_fail is called without arguments
   || MATCH {__assert_fail()}
        // matches if assert_fail is called with at least one argument
