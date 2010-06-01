@@ -1,4 +1,4 @@
-Retrieved on 2010-06-01 from 
+Retrieved on 2010-06-01 by dbeyer from 
 https://mobius.ucd.ie/repos/src/mobius.atp/mobius.simplify/simplify/license.txt
 
 

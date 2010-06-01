@@ -5,3 +5,6 @@ http://freshmeat.net/redir/simplifyprover/72120/url_zip/Simplify-1.5.5-13-06-07-
 The currently installed binaries as unpacked from that archive had filenames
 Simplify-1.5.4 and at runtime claim to be version 1.5.7.
 
+Current web page seems to be:
+http://kind.ucd.ie/products/opensource/Simplify/
+
