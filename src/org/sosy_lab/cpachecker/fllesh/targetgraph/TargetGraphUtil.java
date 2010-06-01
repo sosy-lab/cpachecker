@@ -5,11 +5,16 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
+import org.jgrapht.graph.MaskFunctor;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAExitNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.CallToReturnEdge;
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.Predicate;
 import org.sosy_lab.cpachecker.fllesh.targetgraph.TargetGraph.Builder;
+import org.sosy_lab.cpachecker.fllesh.targetgraph.mask.FunctionNameMaskFunctor;
 
 public class TargetGraphUtil {
 
@@ -172,6 +177,116 @@ public class TargetGraphUtil {
           lBuilder.addFinalNode(lNode);
         }
       }
+    }
+    
+    return lBuilder.build();
+  }
+  
+  public static TargetGraph predicate(TargetGraph pTargetGraph, Predicate pPredicate) {
+    if (pTargetGraph == null || pPredicate == null) {
+      throw new IllegalArgumentException();
+    }
+    
+    Predicate lNegatedPredicate = pPredicate.negate();
+    Builder lBuilder = new Builder();
+    
+    // 1) duplicate vertices
+
+    HashMap<Node, Pair<Node, Node>> lMap = new HashMap<Node, Pair<Node, Node>>();
+
+    for (Node lNode : pTargetGraph.getNodes()) {
+      Node lTrueNode = new Node(lNode);
+      lTrueNode.addPredicate(pPredicate);
+      lBuilder.addNode(lTrueNode);
+
+      Node lFalseNode = new Node(lNode);
+      lFalseNode.addPredicate(lNegatedPredicate);
+      lBuilder.addNode(lFalseNode);
+
+      Pair<Node, Node> lPair = new Pair<Node, Node>(lTrueNode, lFalseNode);
+
+      lMap.put(lNode, lPair);
+    }
+
+    for (Node lNode : pTargetGraph.initialNodes()) {
+      Pair<Node, Node> lPair = lMap.get(lNode);
+      
+      lBuilder.addInitialNode(lPair.getFirst());
+      lBuilder.addInitialNode(lPair.getSecond());
+    }
+
+    for (Node lNode : pTargetGraph.finalNodes()) {
+      Pair<Node, Node> lPair = lMap.get(lNode);
+
+      lBuilder.addFinalNode(lPair.getFirst());
+      lBuilder.addFinalNode(lPair.getSecond());
+    }
+
+    // 2) replicate edges
+
+    for (Edge lEdge : pTargetGraph.getEdges()) {
+      Node lSourceNode = lEdge.getSource();
+      Pair<Node, Node> lSourcePair = lMap.get(lSourceNode);
+
+      Node lTargetNode = lEdge.getTarget();
+      Pair<Node, Node> lTargetPair = lMap.get(lTargetNode);
+
+      Node lSourceTrueNode = lSourcePair.getFirst();
+      Node lSourceFalseNode = lSourcePair.getSecond();
+
+      Node lTargetTrueNode = lTargetPair.getFirst();
+      Node lTargetFalseNode = lTargetPair.getSecond();
+
+      lBuilder.addEdge(lSourceTrueNode, lTargetTrueNode, lEdge.getCFAEdge());
+      lBuilder.addEdge(lSourceTrueNode, lTargetFalseNode, lEdge.getCFAEdge());
+      lBuilder.addEdge(lSourceFalseNode, lTargetTrueNode, lEdge.getCFAEdge());
+      lBuilder.addEdge(lSourceFalseNode, lTargetFalseNode, lEdge.getCFAEdge());
+    }
+    
+    return lBuilder.build();
+  }
+  
+  /*
+   * Returns a target graph that retains all nodes and edges in pTargetGraph that
+   * belong the the function given by pFunctionName. The set of initial nodes is
+   * changed to the set of nodes in the resulting target graph that contain a
+   * CFAFunctionDefinitionNode. The set of final nodes is changed to the set of
+   * nodes in the resulting target graph that contain a CFAExitNode.
+   */
+  public static TargetGraph applyFunctionNameFilter(TargetGraph pTargetGraph, String pFunctionName) {
+    if (pTargetGraph == null || pFunctionName == null) {
+      throw new IllegalArgumentException();
+    }
+    
+    MaskFunctor<Node, Edge> lMaskFunctor = new FunctionNameMaskFunctor(pFunctionName);
+    
+    Builder lBuilder = new Builder(pTargetGraph, lMaskFunctor);
+    
+    for (Node lNode : lBuilder.nodes()) {
+      CFANode lCFANode = lNode.getCFANode();
+
+      if (lCFANode instanceof CFAFunctionDefinitionNode) {
+        lBuilder.addInitialNode(lNode);
+      }
+
+      if (lCFANode instanceof CFAExitNode) {
+        lBuilder.addFinalNode(lNode);
+      }
+    }
+    
+    return lBuilder.build();
+  }
+  
+  public static TargetGraph applyStandardEdgeBasedFilter(TargetGraph pTargetGraph, MaskFunctor<Node, Edge> pMaskFunctor) {
+    if (pTargetGraph == null || pMaskFunctor == null) {
+      throw new IllegalArgumentException();
+    }
+
+    Builder lBuilder = new Builder(pTargetGraph, pMaskFunctor);
+    
+    for (Edge lEdge : lBuilder.edges()) {
+      lBuilder.addInitialNode(lEdge.getSource());
+      lBuilder.addFinalNode(lEdge.getTarget());
     }
     
     return lBuilder.build();

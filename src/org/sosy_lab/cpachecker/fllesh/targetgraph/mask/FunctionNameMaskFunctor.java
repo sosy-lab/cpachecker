@@ -21,11 +21,13 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.fllesh.targetgraph;
+package org.sosy_lab.cpachecker.fllesh.targetgraph.mask;
 
 import org.jgrapht.graph.MaskFunctor;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.fllesh.targetgraph.Edge;
+import org.sosy_lab.cpachecker.fllesh.targetgraph.Node;
 
 public class FunctionNameMaskFunctor implements MaskFunctor<Node, Edge> {
 

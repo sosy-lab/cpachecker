@@ -21,28 +21,45 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.fllesh.targetgraph;
+package org.sosy_lab.cpachecker.fllesh.targetgraph.mask;
 
 import org.jgrapht.graph.MaskFunctor;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.fllesh.targetgraph.Edge;
+import org.sosy_lab.cpachecker.fllesh.targetgraph.Node;
 
-public class LineNumberMaskFunctor implements MaskFunctor<Node, Edge> {
+public class FunctionCallMaskFunctor implements MaskFunctor<Node, Edge> {
 
-  private int mLineNumber;
+  private String mFunctionName;
 
-  public LineNumberMaskFunctor(int pLineNumber) {
-    assert(pLineNumber > 0);
+  public FunctionCallMaskFunctor(String pFunctionName) {
+    assert(pFunctionName != null);
 
-    mLineNumber = pLineNumber;
+    mFunctionName = pFunctionName;
+  }
+
+  public String getFunctionName() {
+    return mFunctionName;
+  }
+
+  private boolean isProperFunctionCallEdge(CFAEdge lEdge) {
+    assert(lEdge != null);
+
+    if (lEdge.getEdgeType().equals(CFAEdgeType.FunctionCallEdge)) {
+      return lEdge.getSuccessor().getFunctionName().equals(mFunctionName);
+    }
+
+    return false;
   }
 
   @Override
   public boolean isEdgeMasked(Edge pArg0) {
     assert(pArg0 != null);
 
-    return pArg0.getTarget().getCFANode().getLineNumber() != mLineNumber;
+    return !isProperFunctionCallEdge(pArg0.getCFAEdge());
   }
 
   @Override
@@ -51,22 +68,19 @@ public class LineNumberMaskFunctor implements MaskFunctor<Node, Edge> {
 
     CFANode lCFANode = pArg0.getCFANode();
 
-    if (pArg0.getCFANode().getLineNumber() != mLineNumber) {
-      for (int lIndex = 0; lIndex < lCFANode.getNumLeavingEdges(); lIndex++) {
-        CFAEdge lCFAEdge = lCFANode.getLeavingEdge(lIndex);
-
-        if (lCFAEdge.getSuccessor().getLineNumber() == mLineNumber) {
-          // predecessor has correct line number and thus we have to keep this
-          // vertex to preserve the edge
-          return false;
-        }
+    for (int lIndex = 0; lIndex < lCFANode.getNumEnteringEdges(); lIndex++) {
+      if (isProperFunctionCallEdge(lCFANode.getEnteringEdge(lIndex))) {
+        return false;
       }
+    }
 
-      return true;
+    for (int lIndex = 0; lIndex < lCFANode.getNumLeavingEdges(); lIndex++) {
+      if (isProperFunctionCallEdge(lCFANode.getLeavingEdge(lIndex))) {
+        return false;
+      }
     }
-    else {
-      return false;
-    }
+
+    return true;
   }
 
   @Override
@@ -80,9 +94,9 @@ public class LineNumberMaskFunctor implements MaskFunctor<Node, Edge> {
     }
 
     if (pOther.getClass() == getClass()) {
-      LineNumberMaskFunctor lFunctor = (LineNumberMaskFunctor)pOther;
+      FunctionCallMaskFunctor lFunctor = (FunctionCallMaskFunctor)pOther;
 
-      return (mLineNumber == lFunctor.mLineNumber);
+      return mFunctionName.equals(lFunctor.mFunctionName);
     }
 
     return false;
@@ -90,7 +104,7 @@ public class LineNumberMaskFunctor implements MaskFunctor<Node, Edge> {
 
   @Override
   public int hashCode() {
-    return 234677 + mLineNumber;
+    return 87237737 + mFunctionName.hashCode();
   }
 
 }

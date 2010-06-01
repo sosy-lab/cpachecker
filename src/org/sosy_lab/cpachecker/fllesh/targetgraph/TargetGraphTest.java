@@ -132,7 +132,7 @@ public class TargetGraphTest {
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lCPAchecker.getMainFunction());
 
-    TargetGraph lFilteredTargetGraph = TargetGraph.applyFunctionNameFilter(lTargetGraph, "func");
+    TargetGraph lFilteredTargetGraph = TargetGraphUtil.applyFunctionNameFilter(lTargetGraph, "func");
 
     System.out.println(lFilteredTargetGraph);
   }
@@ -156,8 +156,8 @@ public class TargetGraphTest {
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lCPAchecker.getMainFunction());
 
-    TargetGraph lFuncTargetGraph = TargetGraph.applyFunctionNameFilter(lTargetGraph, "func");
-    TargetGraph lF2TargetGraph = TargetGraph.applyFunctionNameFilter(lTargetGraph, "f2");
+    TargetGraph lFuncTargetGraph = TargetGraphUtil.applyFunctionNameFilter(lTargetGraph, "func");
+    TargetGraph lF2TargetGraph = TargetGraphUtil.applyFunctionNameFilter(lTargetGraph, "f2");
 
     TargetGraph lUnionGraph = TargetGraphUtil.union(lFuncTargetGraph, lF2TargetGraph);
 
@@ -183,7 +183,7 @@ public class TargetGraphTest {
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lCPAchecker.getMainFunction());
 
-    TargetGraph lFuncTargetGraph = TargetGraph.applyFunctionNameFilter(lTargetGraph, "func");
+    TargetGraph lFuncTargetGraph = TargetGraphUtil.applyFunctionNameFilter(lTargetGraph, "func");
 
     TargetGraph lIntersectionGraph = TargetGraphUtil.intersect(lTargetGraph, lFuncTargetGraph);
 
@@ -203,7 +203,7 @@ public class TargetGraphTest {
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lCPAchecker.getMainFunction());
 
-    TargetGraph lFuncTargetGraph = TargetGraph.applyFunctionNameFilter(lTargetGraph, "f");
+    TargetGraph lFuncTargetGraph = TargetGraphUtil.applyFunctionNameFilter(lTargetGraph, "f");
 
     TargetGraph lMinusGraph = TargetGraphUtil.minus(lTargetGraph, lFuncTargetGraph);
 
@@ -223,13 +223,13 @@ public class TargetGraphTest {
 
     TargetGraph lTargetGraph = TargetGraphUtil.cfa(lCPAchecker.getMainFunction());
 
-    TargetGraph lFuncTargetGraph = TargetGraph.applyFunctionNameFilter(lTargetGraph, "f");
+    TargetGraph lFuncTargetGraph = TargetGraphUtil.applyFunctionNameFilter(lTargetGraph, "f");
 
     Variable lX = new Variable("x");
     Constant l100 = new Constant(100);
     Predicate lPredicate = new Predicate(lX, Predicate.Comparison.LESS, l100);
     
-    TargetGraph lPredicatedGraph = TargetGraph.applyPredication(lFuncTargetGraph, lPredicate);
+    TargetGraph lPredicatedGraph = TargetGraphUtil.predicate(lFuncTargetGraph, lPredicate);
 
     System.out.println(lPredicatedGraph);
   }

@@ -26,6 +26,11 @@ import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Predication;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.RegularExpression;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.SetMinus;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Union;
+import org.sosy_lab.cpachecker.fllesh.targetgraph.mask.FunctionCallMaskFunctor;
+import org.sosy_lab.cpachecker.fllesh.targetgraph.mask.FunctionCallsMaskFunctor;
+import org.sosy_lab.cpachecker.fllesh.targetgraph.mask.FunctionEntryMaskFunctor;
+import org.sosy_lab.cpachecker.fllesh.targetgraph.mask.LabelMaskFunctor;
+import org.sosy_lab.cpachecker.fllesh.targetgraph.mask.LineNumberMaskFunctor;
 
 public class FilterEvaluator {
   
@@ -106,7 +111,7 @@ public class FilterEvaluator {
       
       MaskFunctor<Node, Edge> lMaskFunctor = new LineNumberMaskFunctor(pLine.getLine());
 
-      TargetGraph lResultGraph = TargetGraph.applyStandardEdgeBasedFilter(mTargetGraph, lMaskFunctor);
+      TargetGraph lResultGraph = TargetGraphUtil.applyStandardEdgeBasedFilter(mTargetGraph, lMaskFunctor);
 
       mCache.add(mTargetGraph, pLine, lResultGraph);
 
@@ -119,7 +124,7 @@ public class FilterEvaluator {
         return mCache.get(mTargetGraph, pCalls);
       }
       
-      TargetGraph lResultGraph = TargetGraph.applyStandardEdgeBasedFilter(mTargetGraph, FunctionCallsMaskFunctor.getInstance());
+      TargetGraph lResultGraph = TargetGraphUtil.applyStandardEdgeBasedFilter(mTargetGraph, FunctionCallsMaskFunctor.getInstance());
 
       mCache.add(mTargetGraph, pCalls, lResultGraph);
 
@@ -141,7 +146,7 @@ public class FilterEvaluator {
         return mCache.get(mTargetGraph, pFunc);
       }
       
-      TargetGraph lResultGraph = TargetGraph.applyFunctionNameFilter(mTargetGraph, pFunc.getFunctionName());
+      TargetGraph lResultGraph = TargetGraphUtil.applyFunctionNameFilter(mTargetGraph, pFunc.getFunctionName());
 
       mCache.add(mTargetGraph, pFunc, lResultGraph);
       
@@ -156,7 +161,7 @@ public class FilterEvaluator {
       
       MaskFunctor<Node, Edge> lMaskFunctor = new FunctionCallMaskFunctor(pCall.getFunctionName());
 
-      TargetGraph lResultGraph = TargetGraph.applyStandardEdgeBasedFilter(mTargetGraph, lMaskFunctor);
+      TargetGraph lResultGraph = TargetGraphUtil.applyStandardEdgeBasedFilter(mTargetGraph, lMaskFunctor);
 
       mCache.add(mTargetGraph, pCall, lResultGraph);
       
@@ -171,7 +176,7 @@ public class FilterEvaluator {
       
       MaskFunctor<Node, Edge> lMaskFunctor = new FunctionEntryMaskFunctor(pEntry.getFunctionName());
 
-      TargetGraph lResultGraph = TargetGraph.applyStandardEdgeBasedFilter(mTargetGraph, lMaskFunctor);
+      TargetGraph lResultGraph = TargetGraphUtil.applyStandardEdgeBasedFilter(mTargetGraph, lMaskFunctor);
 
       mCache.add(mTargetGraph, pEntry, lResultGraph);
 
@@ -195,7 +200,7 @@ public class FilterEvaluator {
       
       MaskFunctor<Node, Edge> lMaskFunctor = new LabelMaskFunctor(pLabel.getLabel());
 
-      TargetGraph lResultGraph = TargetGraph.applyStandardEdgeBasedFilter(mTargetGraph, lMaskFunctor);
+      TargetGraph lResultGraph = TargetGraphUtil.applyStandardEdgeBasedFilter(mTargetGraph, lMaskFunctor);
 
       mCache.add(mTargetGraph, pLabel, lResultGraph);
 

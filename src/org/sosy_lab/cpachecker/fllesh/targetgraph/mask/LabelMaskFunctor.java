@@ -1,9 +1,11 @@
-package org.sosy_lab.cpachecker.fllesh.targetgraph;
+package org.sosy_lab.cpachecker.fllesh.targetgraph.mask;
 
 import org.jgrapht.graph.MaskFunctor;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.fllesh.targetgraph.Edge;
+import org.sosy_lab.cpachecker.fllesh.targetgraph.Node;
 
 public class LabelMaskFunctor implements MaskFunctor<Node, Edge> {
 

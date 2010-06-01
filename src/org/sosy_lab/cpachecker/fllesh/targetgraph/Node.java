@@ -51,9 +51,8 @@ public class Node {
     mPredicates = new ArrayList<Predicate>(pNode.mPredicates);
   }
 
-  public void addPredicate(Predicate pPredicate, Boolean pEvaluation) {
+  public void addPredicate(Predicate pPredicate) {
     assert(pPredicate != null);
-    assert(pEvaluation != null);
 
     mPredicates.add(pPredicate);
   }

@@ -23,13 +23,11 @@
  */
 package org.sosy_lab.cpachecker.fllesh.targetgraph;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -38,13 +36,7 @@ import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DirectedMaskSubgraph;
 import org.jgrapht.graph.MaskFunctor;
 
-import org.sosy_lab.common.Pair;
-
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAExitNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-import org.sosy_lab.cpachecker.fllesh.fql2.ast.Predicate;
 
 public class TargetGraph {
 
@@ -52,6 +44,12 @@ public class TargetGraph {
   private Set<Node> mFinalNodes;
   private DirectedGraph<Node, Edge> mGraph;
 
+  private TargetGraph() {
+    mInitialNodes = Collections.emptySet();
+    mFinalNodes = Collections.emptySet();
+    mGraph = new DefaultDirectedGraph<Node, Edge>(Edge.class);
+  }
+  
   private TargetGraph(Set<Node> pInitialNodes, Set<Node> pFinalNodes, DirectedGraph<Node, Edge> pGraph) {
     assert(pInitialNodes != null);
     assert(pFinalNodes != null);
@@ -248,103 +246,48 @@ public class TargetGraph {
 
     return lBuffer.toString();
   }
-  
-  public static class Path {
-    
-    private Node mStartNode;
-    private Node mEndNode;
-    private List<Edge> mEdges;
-    
-    public Path(Node pNode, List<Edge> pEdges) {
-      if (pEdges.size() == 0) {
-        mStartNode = pNode;
-        mEndNode = pNode;
-        
-        mEdges = Collections.emptyList();
-      }
-      else {
-        mStartNode = pEdges.get(0).getSource();        
-        mEndNode = pEdges.get(pEdges.size() - 1).getTarget();
-        
-        if (!pNode.equals(mEndNode)) {
-          throw new IllegalArgumentException();
-        }
-        
-        mEdges = new ArrayList<Edge>(pEdges);
-      }
-    }
-    
-    public int length() {
-      return mEdges.size();
-    }
-    
-    @Override
-    public boolean equals(Object pOther) {
-      if (this == pOther) {
-        return true;
-      }
-      
-      if (pOther == null) {
-        return false;
-      }
-      
-      if (!getClass().equals(pOther.getClass())) {
-        return false;
-      }
-      
-      Path lOther = (Path)pOther;
-      
-      return lOther.mStartNode.equals(mStartNode) && lOther.mEndNode.equals(mEndNode) && lOther.mEdges.equals(mEdges);
-    }
-    
-    @Override
-    public String toString() {
-      StringBuffer lBuffer = new StringBuffer();
-      
-      lBuffer.append("[");
-      
-      if (this.length() > 0) {
-        boolean lIsFirst = true;
-        
-        for (Edge lEdge : mEdges) {
-          if (lIsFirst) {
-            lIsFirst = false;
-          }
-          else {
-            lBuffer.append(", ");
-          }
-          
-          lBuffer.append(lEdge.toString());
-        }        
-      }
-      else {
-        lBuffer.append(mStartNode.toString());
-      }
-      
-      lBuffer.append("]");
-      
-      return lBuffer.toString();
-    }
-    
-  }
-  
+   
   public static class Builder {
     
+    private static TargetGraph mEmptyGraph = new TargetGraph();
+    private boolean mIsCopy = false;
     private TargetGraph mTargetGraph;
     
     public Builder() {
-      Set<Node> lInitialNodes = new HashSet<Node>();
-      Set<Node> lFinalNodes = new HashSet<Node>();
-      DirectedGraph<Node, Edge> lGraph = new DefaultDirectedGraph<Node, Edge>(Edge.class);
-      
-      mTargetGraph = new TargetGraph(lInitialNodes, lFinalNodes, lGraph);
+      mTargetGraph = mEmptyGraph;
     }
     
     public Builder(TargetGraph pTargetGraph) {
-      mTargetGraph = new TargetGraph(pTargetGraph);
+      mTargetGraph = pTargetGraph;
+    }
+    
+    public Builder(TargetGraph pTargetGraph, MaskFunctor<Node, Edge> pMaskFunctor) {
+      DirectedGraph<Node, Edge> lMaskedGraph = new DirectedMaskSubgraph<Node, Edge>(pTargetGraph.mGraph, pMaskFunctor);
+      mTargetGraph = new TargetGraph(new HashSet<Node>(), new HashSet<Node>(), lMaskedGraph);
+    }
+    
+    public Set<Edge> edges() {
+      return Collections.unmodifiableSet(mTargetGraph.getEdges());
+    }
+    
+    public Set<Node> nodes() {
+      return Collections.unmodifiableSet(mTargetGraph.getNodes());
+    }
+    
+    public Set<Node> initialNodes() {
+      return Collections.unmodifiableSet(mTargetGraph.mInitialNodes);
+    }
+    
+    public Set<Node> finalNodes() {
+      return Collections.unmodifiableSet(mTargetGraph.mFinalNodes);
     }
     
     public Edge addEdge(Node pSource, Node pTarget, CFAEdge pCFAEdge) {
+      if (!mIsCopy) {
+        mIsCopy = true;
+        mTargetGraph = new TargetGraph(mTargetGraph);        
+      }
+      
       return new Edge(pSource, pTarget, pCFAEdge, mTargetGraph.mGraph);
     }
     
@@ -359,6 +302,11 @@ public class TargetGraph {
     }
     
     public void addNode(Node pNode) {
+      if (!mIsCopy) {
+        mIsCopy = true;
+        mTargetGraph = new TargetGraph(mTargetGraph);        
+      }
+      
       mTargetGraph.mGraph.addVertex(pNode);
     }
     
@@ -391,123 +339,11 @@ public class TargetGraph {
     }
     
     public TargetGraph build() {
-      return new TargetGraph(mTargetGraph);
+      mIsCopy = false;
+      
+      return mTargetGraph;
     }
     
-  }
-  
-  /*
-   * Returns a target graph that retains all nodes and edges in pTargetGraph that
-   * belong the the function given by pFunctionName. The set of initial nodes is
-   * changed to the set of nodes in the resulting target graph that contain a
-   * CFAFunctionDefinitionNode. The set of final nodes is changed to the set of
-   * nodes in the resulting target graph that contain a CFAExitNode.
-   */
-  public static TargetGraph applyFunctionNameFilter(TargetGraph pTargetGraph, String pFunctionName) {
-    assert(pTargetGraph != null);
-    assert(pFunctionName != null);
-
-    MaskFunctor<Node, Edge> lMaskFunctor = new FunctionNameMaskFunctor(pFunctionName);
-
-    DirectedGraph<Node, Edge> lMaskedGraph = new DirectedMaskSubgraph<Node, Edge>(pTargetGraph.mGraph, lMaskFunctor);
-
-    HashSet<Node> lInitialNodes = new HashSet<Node>();
-    HashSet<Node> lFinalNodes = new HashSet<Node>();
-
-    for (Node lNode : lMaskedGraph.vertexSet()) {
-      CFANode lCFANode = lNode.getCFANode();
-
-      if (lCFANode instanceof CFAFunctionDefinitionNode) {
-        lInitialNodes.add(lNode);
-      }
-
-      if (lCFANode instanceof CFAExitNode) {
-        lFinalNodes.add(lNode);
-      }
-    }
-
-    return new TargetGraph(lInitialNodes, lFinalNodes, lMaskedGraph);
-  }
-
-  public static TargetGraph applyStandardEdgeBasedFilter(TargetGraph pTargetGraph, MaskFunctor<Node, Edge> pMaskFunctor) {
-    assert(pTargetGraph != null);
-    assert(pMaskFunctor != null);
-
-    DirectedGraph<Node, Edge> lMaskedGraph = new DirectedMaskSubgraph<Node, Edge>(pTargetGraph.mGraph, pMaskFunctor);
-
-    HashSet<Node> lInitialNodes = new HashSet<Node>();
-    HashSet<Node> lFinalNodes = new HashSet<Node>();
-
-    for (Edge lEdge : lMaskedGraph.edgeSet()) {
-      lInitialNodes.add(lEdge.getSource());
-      lFinalNodes.add(lEdge.getTarget());
-    }
-
-    return new TargetGraph(lInitialNodes, lFinalNodes, lMaskedGraph);
-  }
-  
-  public static TargetGraph applyPredication(TargetGraph pTargetGraph, Predicate pPredicate) {
-    assert(pTargetGraph != null);
-    assert(pPredicate != null);
-
-    HashSet<Node> lInitialNodes = new HashSet<Node>();
-    HashSet<Node> lFinalNodes = new HashSet<Node>();
-    DirectedGraph<Node, Edge> lGraph = new DefaultDirectedGraph<Node, Edge>(Edge.class);
-
-    // 1) duplicate vertices
-
-    HashMap<Node, Pair<Node, Node>> lMap = new HashMap<Node, Pair<Node, Node>>();
-
-    for (Node lNode : pTargetGraph.mGraph.vertexSet()) {
-      Node lTrueNode = new Node(lNode);
-      lTrueNode.addPredicate(pPredicate, true);
-      lGraph.addVertex(lTrueNode);
-
-      Node lFalseNode = new Node(lNode);
-      lFalseNode.addPredicate(pPredicate, false);
-      lGraph.addVertex(lFalseNode);
-
-      Pair<Node, Node> lPair = new Pair<Node, Node>(lTrueNode, lFalseNode);
-
-      lMap.put(lNode, lPair);
-    }
-
-    for (Node lNode : pTargetGraph.mInitialNodes) {
-      Pair<Node, Node> lPair = lMap.get(lNode);
-
-      lInitialNodes.add(lPair.getFirst());
-      lInitialNodes.add(lPair.getSecond());
-    }
-
-    for (Node lNode : pTargetGraph.mFinalNodes) {
-      Pair<Node, Node> lPair = lMap.get(lNode);
-
-      lFinalNodes.add(lPair.getFirst());
-      lFinalNodes.add(lPair.getSecond());
-    }
-
-    // 2) replicate edges
-
-    for (Edge lEdge : pTargetGraph.mGraph.edgeSet()) {
-      Node lSourceNode = lEdge.getSource();
-      Pair<Node, Node> lSourcePair = lMap.get(lSourceNode);
-
-      Node lTargetNode = lEdge.getTarget();
-      Pair<Node, Node> lTargetPair = lMap.get(lTargetNode);
-
-      Node lSourceTrueNode = lSourcePair.getFirst();
-      Node lSourceFalseNode = lSourcePair.getSecond();
-
-      Node lTargetTrueNode = lTargetPair.getFirst();
-      Node lTargetFalseNode = lTargetPair.getSecond();
-
-      new Edge(lSourceTrueNode, lTargetTrueNode, lEdge.getCFAEdge(), lGraph);
-      new Edge(lSourceTrueNode, lTargetFalseNode, lEdge.getCFAEdge(), lGraph);
-      new Edge(lSourceFalseNode, lTargetTrueNode, lEdge.getCFAEdge(), lGraph);
-      new Edge(lSourceFalseNode, lTargetFalseNode, lEdge.getCFAEdge(), lGraph);
-    }
-
-    return new TargetGraph(lInitialNodes, lFinalNodes, lGraph);
   }
 
 }
