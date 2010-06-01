@@ -316,7 +316,12 @@ public class FilterEvaluator {
         return mCache.get(mTargetGraph, pPredication);
       }
       
-      throw new UnsupportedOperationException();
+      TargetGraph lTargetGraph = pPredication.getFilter().accept(this);
+      TargetGraph lPredicatedTargetGraph = TargetGraphUtil.predicate(lTargetGraph, pPredication.getPredicate());
+
+      mCache.add(mTargetGraph, pPredication, lPredicatedTargetGraph);
+      
+      return lPredicatedTargetGraph;
     }
     
   }

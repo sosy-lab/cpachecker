@@ -2,9 +2,10 @@ package org.sosy_lab.cpachecker.fllesh.targetgraph;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 
-public class Path {
+public class Path implements Iterable<Edge> {
 
   private Node mStartNode;
   private Node mEndNode;
@@ -23,6 +24,16 @@ public class Path {
       
       if (!pNode.equals(mEndNode)) {
         throw new IllegalArgumentException();
+      }
+      
+      Node lTmpEndNode = mStartNode;
+      
+      for (Edge lEdge : pEdges) {
+        if (!lTmpEndNode.equals(lEdge.getSource())) {
+          throw new IllegalArgumentException();
+        }
+        
+        lTmpEndNode = lEdge.getTarget();
       }
       
       mEdges = new ArrayList<Edge>(pEdges);
@@ -87,6 +98,11 @@ public class Path {
     lBuffer.append("]");
     
     return lBuffer.toString();
+  }
+
+  @Override
+  public Iterator<Edge> iterator() {
+    return mEdges.iterator();
   }
   
 }

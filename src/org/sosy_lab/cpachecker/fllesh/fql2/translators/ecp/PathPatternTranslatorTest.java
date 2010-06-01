@@ -33,8 +33,8 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.fllesh.Main;
 import org.sosy_lab.cpachecker.fllesh.ecp.ECPPrettyPrinter;
 import org.sosy_lab.cpachecker.fllesh.ecp.ElementaryCoveragePattern;
-import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.TargetGraph;
-import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.TargetGraphUtil;
+import org.sosy_lab.cpachecker.fllesh.targetgraph.TargetGraph;
+import org.sosy_lab.cpachecker.fllesh.targetgraph.TargetGraphUtil;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.fllesh.util.Cilly;
 import org.sosy_lab.cpachecker.fllesh.util.ModifiedCPAchecker;
@@ -51,6 +51,129 @@ public class PathPatternTranslatorTest {
   public void testMain001() throws Exception {
     /** process FQL query */
     String lSpecificationString = "COVER \"EDGES(ID)*\".EDGES(@CALL(f)).\"EDGES(ID)*\"";
+    FQLSpecification lSpecification = FQLSpecification.parse(lSpecificationString);
+    System.out.println(lSpecification);
+    
+    /** process source code */
+    Cilly lCilly = new Cilly();
+
+    String lSourceFileName = "test/programs/simple/functionCall.c";
+
+    if (!lCilly.isCillyInvariant(lSourceFileName)) {
+      File lCillyProcessedFile = lCilly.cillyfy(lSourceFileName);
+      lCillyProcessedFile.deleteOnExit();
+
+      lSourceFileName = lCillyProcessedFile.getAbsolutePath();
+
+      System.err.println("WARNING: Given source file is not CIL invariant ... did preprocessing!");
+    }
+
+    File lPropertiesFile = Main.createPropertiesFile("main");
+    Configuration lConfiguration = Main.createConfiguration(lSourceFileName, lPropertiesFile.getAbsolutePath());
+
+    LogManager lLogManager = new LogManager(lConfiguration);
+
+    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
+
+    CFAFunctionDefinitionNode lMainFunction = lCPAchecker.getMainFunction();
+    
+    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
+    
+    /** do translation */
+    PathPatternTranslator lTranslator = new PathPatternTranslator(lTargetGraph);
+    ElementaryCoveragePattern lPattern = lTranslator.translate(lSpecification.getPathPattern());
+    
+    ECPPrettyPrinter lPrettyPrinter = new ECPPrettyPrinter();
+    
+    System.out.println(lPrettyPrinter.printPretty(lPattern));
+  }
+  
+  @Test
+  public void testMain002() throws Exception {
+    /** process FQL query */
+    String lSpecificationString = "COVER \"EDGES(ID)*\".EDGES(@CALL(f)).\"EDGES(ID)*\" PASSING EDGES(PRED(@CALL(f), {x < 7}))*";
+    FQLSpecification lSpecification = FQLSpecification.parse(lSpecificationString);
+    System.out.println(lSpecification);
+    
+    /** process source code */
+    Cilly lCilly = new Cilly();
+
+    String lSourceFileName = "test/programs/simple/functionCall.c";
+
+    if (!lCilly.isCillyInvariant(lSourceFileName)) {
+      File lCillyProcessedFile = lCilly.cillyfy(lSourceFileName);
+      lCillyProcessedFile.deleteOnExit();
+
+      lSourceFileName = lCillyProcessedFile.getAbsolutePath();
+
+      System.err.println("WARNING: Given source file is not CIL invariant ... did preprocessing!");
+    }
+
+    File lPropertiesFile = Main.createPropertiesFile("main");
+    Configuration lConfiguration = Main.createConfiguration(lSourceFileName, lPropertiesFile.getAbsolutePath());
+
+    LogManager lLogManager = new LogManager(lConfiguration);
+
+    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
+
+    CFAFunctionDefinitionNode lMainFunction = lCPAchecker.getMainFunction();
+    
+    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
+    
+    /** do translation */
+    PathPatternTranslator lTranslator = new PathPatternTranslator(lTargetGraph);
+    ElementaryCoveragePattern lPattern = lTranslator.translate(lSpecification.getPathPattern());
+    
+    ECPPrettyPrinter lPrettyPrinter = new ECPPrettyPrinter();
+    
+    System.out.println(lPrettyPrinter.printPretty(lPattern));
+  }
+  
+  @Test
+  public void testMain003() throws Exception {
+    /** process FQL query */
+    String lSpecificationString = "COVER \"EDGES(ID)*\".EDGES(@CALL(f)).\"EDGES(ID)*\" PASSING NODES(PRED(@CALL(f), {x < 7}))*";
+    FQLSpecification lSpecification = FQLSpecification.parse(lSpecificationString);
+    System.out.println(lSpecification);
+    
+    /** process source code */
+    Cilly lCilly = new Cilly();
+
+    String lSourceFileName = "test/programs/simple/functionCall.c";
+
+    if (!lCilly.isCillyInvariant(lSourceFileName)) {
+      File lCillyProcessedFile = lCilly.cillyfy(lSourceFileName);
+      lCillyProcessedFile.deleteOnExit();
+
+      lSourceFileName = lCillyProcessedFile.getAbsolutePath();
+
+      System.err.println("WARNING: Given source file is not CIL invariant ... did preprocessing!");
+    }
+
+    File lPropertiesFile = Main.createPropertiesFile("main");
+    Configuration lConfiguration = Main.createConfiguration(lSourceFileName, lPropertiesFile.getAbsolutePath());
+
+    LogManager lLogManager = new LogManager(lConfiguration);
+
+    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
+
+    CFAFunctionDefinitionNode lMainFunction = lCPAchecker.getMainFunction();
+    
+    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
+    
+    /** do translation */
+    PathPatternTranslator lTranslator = new PathPatternTranslator(lTargetGraph);
+    ElementaryCoveragePattern lPattern = lTranslator.translate(lSpecification.getPathPattern());
+    
+    ECPPrettyPrinter lPrettyPrinter = new ECPPrettyPrinter();
+    
+    System.out.println(lPrettyPrinter.printPretty(lPattern));
+  }
+  
+  @Test
+  public void testMain004() throws Exception {
+    /** process FQL query */
+    String lSpecificationString = "COVER \"EDGES(ID)*\".EDGES(@CALL(f)).\"EDGES(ID)*\" PASSING PATHS(ID, 1)*";
     FQLSpecification lSpecification = FQLSpecification.parse(lSpecificationString);
     System.out.println(lSpecification);
     

@@ -5,13 +5,12 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.fllesh.ecp.ECPConcatenation;
-import org.sosy_lab.cpachecker.fllesh.ecp.ECPEdgeSet;
-import org.sosy_lab.cpachecker.fllesh.ecp.ECPNodeSet;
 import org.sosy_lab.cpachecker.fllesh.ecp.ECPPredicate;
 import org.sosy_lab.cpachecker.fllesh.ecp.ElementaryCoveragePattern;
-import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.Edge;
-import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.Node;
-import org.sosy_lab.cpachecker.fllesh.fql.backend.targetgraph.TargetGraph;
+import org.sosy_lab.cpachecker.fllesh.targetgraph.Edge;
+import org.sosy_lab.cpachecker.fllesh.targetgraph.Node;
+import org.sosy_lab.cpachecker.fllesh.targetgraph.Path;
+import org.sosy_lab.cpachecker.fllesh.targetgraph.TargetGraph;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Edges;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Nodes;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Paths;
@@ -88,13 +87,7 @@ public class CoverageSpecificationTranslator {
       Set<ElementaryCoveragePattern> lResultSet = new HashSet<ElementaryCoveragePattern>();
 
       for (Edge lEdge : lFilteredTargetGraph.getEdges()) {
-        
-        // TODO add support for predicates
-        if (!lEdge.getSource().getPredicates().isEmpty() || !lEdge.getTarget().getPredicates().isEmpty()) {
-          throw new UnsupportedOperationException();
-        }
-        
-        lResultSet.add(new ECPEdgeSet(lEdge.getCFAEdge()));
+        lResultSet.add(mPathPatternTranslator.translate(lEdge));
       }
       
       return lResultSet;
@@ -107,13 +100,7 @@ public class CoverageSpecificationTranslator {
       Set<ElementaryCoveragePattern> lResultSet = new HashSet<ElementaryCoveragePattern>();
 
       for (Node lNode : lFilteredTargetGraph.getNodes()) {
-        
-        // TODO add support for predicates
-        if (!lNode.getPredicates().isEmpty()) {
-          throw new UnsupportedOperationException();
-        }
-        
-        lResultSet.add(new ECPNodeSet(lNode.getCFANode()));
+        lResultSet.add(mPathPatternTranslator.translate(lNode));
       }
 
       return lResultSet;
@@ -121,9 +108,17 @@ public class CoverageSpecificationTranslator {
 
     @Override
     public Set<ElementaryCoveragePattern> visit(Paths pPaths) {
-      throw new UnsupportedOperationException();
+      TargetGraph lFilteredTargetGraph = mPathPatternTranslator.getFilterEvaluator().evaluate(pPaths.getFilter());
+      
+      Set<ElementaryCoveragePattern> lResultSet = new HashSet<ElementaryCoveragePattern>();
+      
+      for (Path lPath : lFilteredTargetGraph.getBoundedPaths(pPaths.getBound())) {
+        lResultSet.add(mPathPatternTranslator.translate(lPath));
+      }
+      
+      return lResultSet;
     }
-
+    
     @Override
     public Set<ElementaryCoveragePattern> visit(Predicate pPredicate) {
       ElementaryCoveragePattern lPattern = new ECPPredicate(pPredicate);
