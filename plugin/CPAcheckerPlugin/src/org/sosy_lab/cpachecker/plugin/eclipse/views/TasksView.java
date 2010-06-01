@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.eclipse.cdt.ui.actions.OpenAction;
+import org.eclipse.core.resources.IFile;
 import org.eclipse.jface.action.IMenuListener;
 import org.eclipse.jface.action.IMenuManager;
 import org.eclipse.jface.action.MenuManager;
@@ -25,6 +26,7 @@ import org.eclipse.ui.IWorkbenchActionConstants;
 import org.eclipse.ui.actions.BaseSelectionListenerAction;
 import org.eclipse.ui.actions.NewWizardMenu;
 import org.eclipse.ui.actions.OpenSystemEditorAction;
+import org.eclipse.ui.actions.OpenWithMenu;
 import org.eclipse.ui.actions.RefreshAction;
 import org.eclipse.ui.part.ISetSelectionTarget;
 import org.eclipse.ui.part.ViewPart;
@@ -239,7 +241,9 @@ public class TasksView extends ViewPart implements ISetSelectionTarget, IShellPr
 			BaseSelectionListenerAction o = new OpenSystemEditorAction(this.getSite().getPage());
 			o.selectionChanged(selection);
             manager.add(o);
+            
 		}
+		fillOpenWithMenu(manager, selection);
 		OpenAction open = new OpenAction(this.getSite());
 		open.selectionChanged(selection);
 		manager.add(open);
@@ -274,11 +278,31 @@ public class TasksView extends ViewPart implements ISetSelectionTarget, IShellPr
 		System.out.println("TasksView.selectReveal:" + selection.getClass());
 		//TODO: Test & implement, should be called somehow by wizard to show the view with the new element
 	}
-
+	
 	@Override
 	public Shell getShell() {
 		return this.getSite().getShell();
 	}
+	
+    private void fillOpenWithMenu(IMenuManager menu,
+            IStructuredSelection selection) {
+
+        // Only supported if exactly one file is selected.
+        if (selection.size() != 1) {
+			return;
+		}
+        Object element = selection.getFirstElement();
+        if (!(element instanceof IFile)) {
+			return;
+		}
+
+        MenuManager submenu = new MenuManager(
+        		"Open Wit&h", CPAclipse.getPlugin() + ".OpenWithSubMenu"
+        		);
+        submenu.add(new OpenWithMenu(this.getSite().getPage(),
+                (IFile) element));
+        menu.add(submenu);
+    }
 
 }
 
