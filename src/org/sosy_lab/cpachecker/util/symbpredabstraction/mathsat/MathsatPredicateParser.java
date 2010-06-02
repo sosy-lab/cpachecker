@@ -30,9 +30,6 @@ import java.io.InputStreamReader;
 import java.util.Collection;
 import java.util.Stack;
 import java.util.Vector;
-import java.util.logging.Level;
-
-import org.sosy_lab.cpachecker.core.CPAchecker;
 
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
@@ -57,8 +54,7 @@ public class MathsatPredicateParser {
         this.mgr = mgr;
     }
 
-    public Collection<Predicate> parsePredicates(InputStream in) {
-        try {
+    public Collection<Predicate> parsePredicates(InputStream in) throws IOException {
             BufferedReader r = new BufferedReader(new InputStreamReader(in));
             StringBuffer data = new StringBuffer();
             String line = r.readLine();
@@ -77,18 +73,11 @@ public class MathsatPredicateParser {
                 return null;
             }
             return parsePredicates(formula);
-        } catch (IOException e) {
-          CPAchecker.logger.logException(Level.WARNING, e, "");
-            return null;
-        }
     }
 
     private Collection<Predicate> parsePredicates(long formula) {
         Collection<Predicate> ret = new Vector<Predicate>();
         Stack<Long> toProcess = new Stack<Long>();
-
-        CPAchecker.logger.log(Level.ALL, "DEBUG_3",
-                       "FORMULA IS: ", new MathsatSymbolicFormula(formula));
 
         // We *ASSUME* that in the original msat file the formula is a
         // conjunction of (name <-> def) for each predicate. Since mathsat
@@ -117,12 +106,6 @@ public class MathsatPredicateParser {
                     SymbolicFormula symbVar = new MathsatSymbolicFormula(var);
                     SymbolicFormula symbDef = new MathsatSymbolicFormula(def);
                     ret.add(mgr.makePredicate(symbVar, symbDef));
-
-                    CPAchecker.logger.log(Level.ALL, "DEBUG_1",
-                                   "ADDED PREDICATE, name: ",
-                                   symbVar,
-                                   ", atom: ",
-                                   symbDef);
                 }
             }
         }

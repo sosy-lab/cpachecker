@@ -563,7 +563,7 @@ implements SymbPredAbsFormulaManager
       // TODO dump hard abst
       if (msatSolveTime > 10000 && dumpHardAbstractions) {
         // we want to dump "hard" problems...
-        MathsatAbstractionPrinter absPrinter = new MathsatAbstractionPrinter(mmgr, "abs");
+        MathsatAbstractionPrinter absPrinter = new MathsatAbstractionPrinter(mmgr, "abs", logger);
         absPrinter.printMsatFormat(smgr.makeTrue(), symbFormula, predDef, importantPreds);
         absPrinter.printNusmvFormat(smgr.makeTrue(), symbFormula, predDef, importantPreds);
         absPrinter.nextNum();

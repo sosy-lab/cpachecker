@@ -32,8 +32,7 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.logging.Level;
 
-import org.sosy_lab.cpachecker.core.CPAchecker;
-
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 
 /**
@@ -44,14 +43,17 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormu
  */
 public class MathsatAbstractionPrinter {
 
-    private long msatEnv;
-    private String baseFileName;
+    private final long msatEnv;
+    private final String baseFileName;
     private int curNum;
 
-    public MathsatAbstractionPrinter(MathsatSymbolicFormulaManager mmgr, String baseName) {
+    private final LogManager logger;
+    
+    public MathsatAbstractionPrinter(MathsatSymbolicFormulaManager mmgr, String baseName, LogManager logger) {
         msatEnv = mmgr.getMsatEnv();
         baseFileName = baseName;
         curNum = 0;
+        this.logger = logger; 
     }
 
     public void nextNum() {
@@ -97,8 +99,7 @@ public class MathsatAbstractionPrinter {
             }
             out.close();
         } catch (FileNotFoundException e) {
-          CPAchecker.logger.logException(Level.WARNING, e, "");
-            assert(false);
+          logger.log(Level.WARNING, "Could not write formulas to file (", e.getMessage(), ")");
         }
     }
 
@@ -185,8 +186,7 @@ public class MathsatAbstractionPrinter {
             }
             out.close();
         } catch (FileNotFoundException e) {
-          CPAchecker.logger.logException(Level.WARNING, e, "");
-            assert(false);
+          logger.log(Level.WARNING, "Could not write formulas to file (", e.getMessage(), ")");
         }
 
     }

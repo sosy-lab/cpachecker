@@ -36,7 +36,6 @@ import java.util.Scanner;
 import java.util.Set;
 import java.util.Stack;
 import java.util.Vector;
-import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -47,7 +46,6 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormu
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.core.CPAchecker;
 
 public class YicesTheoremProver implements TheoremProver {
 
@@ -186,10 +184,8 @@ public class YicesTheoremProver implements TheoremProver {
                     } else if (mathsat.api.msat_term_is_negate(term) != 0) {
                         op = "-";
                     } else {
-                      CPAchecker.logger.log(Level.WARNING, "UNRECOGNIZED TERM: " +
+                      throw new IllegalArgumentException("UNRECOGNIZED TERM: " +
                                 mathsat.api.msat_term_repr(term));
-                        System.out.flush();
-                        assert(false);
                     }
                     String s = "(" + op;
                     for (String c : children) {
@@ -222,7 +218,7 @@ public class YicesTheoremProver implements TheoremProver {
     private int yicesCommand(String cmd, boolean ignoreError) {
         int ret = yicesManager.yicesl_read(yicesContext, cmd);
         if (ret == 0 && !ignoreError) {
-          CPAchecker.logger.log(Level.WARNING, "YICES ERROR: " +
+          throw new IllegalStateException("YICES ERROR: " +
                     yicesManager.yicesl_get_last_error_message());
         }
         assert(ignoreError || ret != 0);
@@ -303,9 +299,7 @@ public class YicesTheoremProver implements TheoremProver {
             tmpForModel = File.createTempFile("cpachecker", "yices_allsat");
             modelScanner = new Scanner(tmpForModel);
         } catch (IOException e1) {
-            // TODO Auto-generated catch block
-          CPAchecker.logger.logException(Level.WARNING, e1, "");
-            assert(false);
+          throw new IllegalStateException(e1);
         }
         String filename = tmpForModel.getAbsolutePath();
         yicesManager.yicesl_set_output_file(filename);
