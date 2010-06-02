@@ -27,10 +27,14 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Collection;
+import java.util.Collections;
 
 import org.junit.Before;
 import org.junit.Test;
 
+import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
@@ -51,8 +55,9 @@ public class QueryTransferRelationTest {
   }
 
   @Test
-  public void test_01() throws CPATransferException {
-    SimpleMustMayAnalysisCPA lMustMayCPA = new SimpleMustMayAnalysisCPA();
+  public void test_01() throws CPATransferException, InvalidConfigurationException {
+    LogManager lLogManager = new LogManager(new Configuration(Collections.<String, String>emptyMap()));
+    SimpleMustMayAnalysisCPA lMustMayCPA = new SimpleMustMayAnalysisCPA(lLogManager);
 
     AbstractElement lMustBottomElement = lMustMayCPA.getAbstractDomain().getBottomElement().getMustElement();
 
@@ -67,8 +72,9 @@ public class QueryTransferRelationTest {
   }
 
   @Test
-  public void test_02() throws CPATransferException {
-    SimpleMustMayAnalysisCPA lMustMayCPA = new SimpleMustMayAnalysisCPA();
+  public void test_02() throws CPATransferException, InvalidConfigurationException {
+    LogManager lLogManager = new LogManager(new Configuration(Collections.<String, String>emptyMap()));
+    SimpleMustMayAnalysisCPA lMustMayCPA = new SimpleMustMayAnalysisCPA(lLogManager);
 
     AbstractElement lMustBottomElement = lMustMayCPA.getAbstractDomain().getBottomElement().getMustElement();
 
@@ -84,8 +90,9 @@ public class QueryTransferRelationTest {
   }
 
   @Test
-  public void test_03() throws CPATransferException {
-    SimpleMustMayAnalysisCPA lMustMayCPA = new SimpleMustMayAnalysisCPA();
+  public void test_03() throws CPATransferException, InvalidConfigurationException {
+    LogManager lLogManager = new LogManager(new Configuration(Collections.<String, String>emptyMap()));
+    SimpleMustMayAnalysisCPA lMustMayCPA = new SimpleMustMayAnalysisCPA(lLogManager);
 
     AbstractElement lMustBottomElement = lMustMayCPA.getAbstractDomain().getBottomElement().getMustElement();
 
@@ -105,8 +112,9 @@ public class QueryTransferRelationTest {
   }
 
   @Test
-  public void test_04() throws CPATransferException {
-    SimpleMustMayAnalysisCPA lMustMayCPA = new SimpleMustMayAnalysisCPA();
+  public void test_04() throws CPATransferException, InvalidConfigurationException {
+    LogManager lLogManager = new LogManager(new Configuration(Collections.<String, String>emptyMap()));
+    SimpleMustMayAnalysisCPA lMustMayCPA = new SimpleMustMayAnalysisCPA(lLogManager);
 
     AbstractElement lMustBottomElement = lMustMayCPA.getAbstractDomain().getBottomElement().getMustElement();
 
@@ -124,8 +132,9 @@ public class QueryTransferRelationTest {
   }
 
   @Test
-  public void test_05() throws CPATransferException {
-    SimpleMustMayAnalysisCPA lMustMayCPA = new SimpleMustMayAnalysisCPA();
+  public void test_05() throws CPATransferException, InvalidConfigurationException {
+    LogManager lLogManager = new LogManager(new Configuration(Collections.<String, String>emptyMap()));
+    SimpleMustMayAnalysisCPA lMustMayCPA = new SimpleMustMayAnalysisCPA(lLogManager);
 
     AbstractElement lMustBottomElement = lMustMayCPA.getAbstractDomain().getBottomElement().getMustElement();
 

@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.concrete;
 
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
@@ -41,7 +42,7 @@ public class ConcreteAnalysisCPA implements org.sosy_lab.cpachecker.core.interfa
 
     @Override
     public ConfigurableProgramAnalysis createInstance() {
-      return new ConcreteAnalysisCPA();
+      return new ConcreteAnalysisCPA(getLogger());
     }
   }
 
@@ -55,11 +56,11 @@ public class ConcreteAnalysisCPA implements org.sosy_lab.cpachecker.core.interfa
   private ConcreteAnalysisTransferRelation mTransferRelation;
   private PrecisionAdjustment mPrecisionAdjustment;
 
-  public ConcreteAnalysisCPA() {
+  public ConcreteAnalysisCPA(LogManager logger) {
 
     this.mAbstractDomain = ConcreteAnalysisDomain.getInstance();
 
-    this.mTransferRelation = new ConcreteAnalysisTransferRelation(this.mAbstractDomain);
+    this.mTransferRelation = new ConcreteAnalysisTransferRelation(this.mAbstractDomain, logger);
 
     this.mMergeOperator = MergeSepOperator.getInstance();
     this.mStopOperator = new StopSepOperator(this.mAbstractDomain.getPartialOrder());

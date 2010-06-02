@@ -23,14 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.mustmay;
 
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cpa.alwaystop.AlwaysTopCPA;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
+import org.sosy_lab.cpachecker.cpa.alwaystop.AlwaysTopCPA;
 import org.sosy_lab.cpachecker.cpa.concrete.ConcreteAnalysisCPA;
 
 public class SimpleMustMayAnalysisCPA implements ConfigurableProgramAnalysis {
@@ -39,7 +40,7 @@ public class SimpleMustMayAnalysisCPA implements ConfigurableProgramAnalysis {
 
     @Override
     public ConfigurableProgramAnalysis createInstance() {
-      return new SimpleMustMayAnalysisCPA();
+      return new SimpleMustMayAnalysisCPA(getLogger());
     }
   }
 
@@ -49,9 +50,9 @@ public class SimpleMustMayAnalysisCPA implements ConfigurableProgramAnalysis {
 
   private final MustMayAnalysisCPA mMustMayAnalysisCPA;
 
-  public SimpleMustMayAnalysisCPA() {
+  public SimpleMustMayAnalysisCPA(LogManager pLogManager) {
     AlwaysTopCPA lMayCPA = new AlwaysTopCPA();
-    ConcreteAnalysisCPA lMustCPA = new ConcreteAnalysisCPA();
+    ConcreteAnalysisCPA lMustCPA = new ConcreteAnalysisCPA(pLogManager);
 
     mMustMayAnalysisCPA = new MustMayAnalysisCPA(lMustCPA, lMayCPA);
   }

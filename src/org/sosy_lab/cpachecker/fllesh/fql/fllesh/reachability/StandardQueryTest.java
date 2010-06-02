@@ -121,7 +121,7 @@ public class StandardQueryTest {
 
 
     AlwaysTopCPA lMayCPA = new AlwaysTopCPA();
-    ConcreteAnalysisCPA lMustCPA = new ConcreteAnalysisCPA();
+    ConcreteAnalysisCPA lMustCPA = new ConcreteAnalysisCPA(lLogManager);
 
     MustMayAnalysisCPA lMustMayAnalysisCPA = new MustMayAnalysisCPA(lMustCPA, lMayCPA);
 
@@ -197,7 +197,7 @@ public class StandardQueryTest {
 
 
     AlwaysTopCPA lMayCPA = new AlwaysTopCPA();
-    ConcreteAnalysisCPA lMustCPA = new ConcreteAnalysisCPA();
+    ConcreteAnalysisCPA lMustCPA = new ConcreteAnalysisCPA(lLogManager);
 
     MustMayAnalysisCPA lMustMayAnalysisCPA = new MustMayAnalysisCPA(lMustCPA, lMayCPA);
 
@@ -276,7 +276,7 @@ public class StandardQueryTest {
 
 
     AlwaysTopCPA lMayCPA = new AlwaysTopCPA();
-    ConcreteAnalysisCPA lMustCPA = new ConcreteAnalysisCPA();
+    ConcreteAnalysisCPA lMustCPA = new ConcreteAnalysisCPA(lLogManager);
 
     MustMayAnalysisCPA lMustMayAnalysisCPA = new MustMayAnalysisCPA(lMustCPA, lMayCPA);
 
@@ -364,7 +364,7 @@ public class StandardQueryTest {
     lMayARTFactory.setConfiguration(lConfiguration);
     lMayARTFactory.setLogger(lLogManager);*/
 
-    ConcreteAnalysisCPA lMustCPA = new ConcreteAnalysisCPA();
+    ConcreteAnalysisCPA lMustCPA = new ConcreteAnalysisCPA(lLogManager);
 
     MustMayAnalysisCPA lMustMayAnalysisCPA = new MustMayAnalysisCPA(lMustCPA, lMayCPA);
 

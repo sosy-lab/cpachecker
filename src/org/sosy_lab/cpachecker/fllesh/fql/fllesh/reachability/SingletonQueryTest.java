@@ -115,7 +115,7 @@ public class SingletonQueryTest {
 
 
     AlwaysTopCPA lMayCPA = new AlwaysTopCPA();
-    ConcreteAnalysisCPA lMustCPA = new ConcreteAnalysisCPA();
+    ConcreteAnalysisCPA lMustCPA = new ConcreteAnalysisCPA(lLogManager);
 
     MustMayAnalysisCPA lMustMayAnalysisCPA = new MustMayAnalysisCPA(lMustCPA, lMayCPA);
 
