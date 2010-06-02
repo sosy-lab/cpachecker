@@ -27,11 +27,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Stack;
 
-
-import java.util.logging.Level;
-
-import org.sosy_lab.cpachecker.core.CPAchecker;
-
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAErrorNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;

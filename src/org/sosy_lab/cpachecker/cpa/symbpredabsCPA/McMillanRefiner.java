@@ -27,27 +27,27 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.logging.Level;
 
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.trace.CounterexampleTraceInfo;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
-
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.AbstractARTBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.art.Path;
-import org.sosy_lab.cpachecker.core.CPAchecker;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.trace.CounterexampleTraceInfo;
 
 public class McMillanRefiner extends AbstractARTBasedRefiner {
 
   private final AbstractFormulaManager abstractFormulaManager;
   private final SymbPredAbsFormulaManager formulaManager;
 
+  private final LogManager logger;
+  
   public McMillanRefiner(final ConfigurableProgramAnalysis pCpa) throws CPAException {
     super(pCpa);
 
@@ -58,12 +58,13 @@ public class McMillanRefiner extends AbstractARTBasedRefiner {
 
     abstractFormulaManager = symbPredAbsCpa.getAbstractFormulaManager();
     formulaManager = symbPredAbsCpa.getFormulaManager();
+    logger = symbPredAbsCpa.getLogger();
   }
 
   @Override
   public boolean performRefinement(ARTReachedSet pReached, Path pPath) throws CPAException {
 
-    CPAchecker.logger.log(Level.FINEST, "Starting refinement for SymbPredAbsCPA");
+    logger.log(Level.FINEST, "Starting refinement for SymbPredAbsCPA");
 
     // create path with all abstraction location elements (excluding the initial
     // element, which is not in pPath)
@@ -88,12 +89,12 @@ public class McMillanRefiner extends AbstractARTBasedRefiner {
 
     // if error is spurious refine
     if (info.isSpurious()) {
-      CPAchecker.logger.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
+      logger.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
       performRefinement(pReached, pPath, info);
 
       return true;
     } else {
-      CPAchecker.logger.log(Level.FINEST, "Error trace is not spurious");
+      logger.log(Level.FINEST, "Error trace is not spurious");
       // we have a real error
       return false;
     }

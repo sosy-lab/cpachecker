@@ -28,11 +28,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.logging.Level;
-
-import org.sosy_lab.cpachecker.util.octagon.LibraryAccess;
-import org.sosy_lab.cpachecker.util.octagon.Num;
-import org.sosy_lab.cpachecker.util.octagon.Octagon;
 
 import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTCastExpression;
@@ -43,7 +38,6 @@ import org.eclipse.cdt.core.dom.ast.IASTIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
 import org.eclipse.cdt.core.dom.ast.IASTPointerOperator;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
-
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAErrorNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.AssumeEdge;
@@ -54,11 +48,13 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.GlobalDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.StatementEdge;
-import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.OctagonTransferException;
+import org.sosy_lab.cpachecker.util.octagon.LibraryAccess;
+import org.sosy_lab.cpachecker.util.octagon.Num;
+import org.sosy_lab.cpachecker.util.octagon.Octagon;
 /**
  * Handles transfer relation for Octagon abstract domain library.
  * See <a href="http://www.di.ens.fr/~mine/oct/">Octagon abstract domain library</a>
@@ -79,7 +75,7 @@ public class OctTransferRelation implements TransferRelation{
     LibraryAccess.initOctEnvironment();
   }
 
-  private AbstractElement getAbstractSuccessor (AbstractElement element, CFAEdge cfaEdge, Precision prec)
+  private AbstractElement getAbstractSuccessor (AbstractElement element, CFAEdge cfaEdge, Precision prec) throws OctagonTransferException
   {
 
 //  if(cfaEdge.getSuccessor().isLoopStart()){
@@ -111,20 +107,12 @@ public class OctTransferRelation implements TransferRelation{
       // to the return site of the caller function
       if(statementEdge.isJumpEdge())
       {
-        try {
-          handleExitFromFunction(octElement, expression, statementEdge);
-        } catch (OctagonTransferException e) {
-          CPAchecker.logger.logException(Level.WARNING, e, "");
-        }
+        handleExitFromFunction(octElement, expression, statementEdge);
       }
 
       // this is a regular statement
       else{
-        try {
-          handleStatement (octElement, expression, cfaEdge);
-        } catch (OctagonTransferException e) {
-          CPAchecker.logger.logException(Level.WARNING, e, "");
-        }
+        handleStatement (octElement, expression, cfaEdge);
       }
       break;
     }
@@ -146,11 +134,7 @@ public class OctTransferRelation implements TransferRelation{
 
       AssumeEdge assumeEdge = (AssumeEdge) cfaEdge;
       IASTExpression expression = assumeEdge.getExpression();
-      try {
-        handleAssumption (octElement, expression, cfaEdge, assumeEdge.getTruthAssumption());
-      } catch (OctagonTransferException e) {
-        CPAchecker.logger.logException(Level.WARNING, e, "");
-      }
+      handleAssumption (octElement, expression, cfaEdge, assumeEdge.getTruthAssumption());
       break;
 
     }
@@ -170,19 +154,10 @@ public class OctTransferRelation implements TransferRelation{
       // call to an external function
       if(functionCallEdge.isExternalCall())
       {
-        try {
-          handleExternalFunctionCall(octElement, functionCallEdge);
-        } catch (OctagonTransferException e) {
-          CPAchecker.logger.logException(Level.WARNING, e, "");
-        }
+        handleExternalFunctionCall(octElement, functionCallEdge);
       }
       else{
-        try {
-          handleFunctionCall(octElement, functionCallEdge);
-        } catch (OctagonTransferException e) {
-          // TODO Auto-generated catch block
-          CPAchecker.logger.logException(Level.WARNING, e, "");
-        }
+        handleFunctionCall(octElement, functionCallEdge);
       }
       break;
     }
@@ -193,12 +168,7 @@ public class OctTransferRelation implements TransferRelation{
     {
       octElement = octElement.clone ();
       ReturnEdge functionReturnEdge = (ReturnEdge) cfaEdge;
-      try {
-        handleFunctionReturn(octElement, functionReturnEdge);
-      } catch (OctagonTransferException e) {
-        // TODO Auto-generated catch block
-        CPAchecker.logger.logException(Level.WARNING, e, "");
-      }
+      handleFunctionReturn(octElement, functionReturnEdge);
       break;
     }
 
@@ -242,7 +212,7 @@ public class OctTransferRelation implements TransferRelation{
   }
 
   @Override
-  public Collection<AbstractElement> getAbstractSuccessors (AbstractElement element, Precision prec, CFAEdge cfaEdge) {
+  public Collection<AbstractElement> getAbstractSuccessors (AbstractElement element, Precision prec, CFAEdge cfaEdge) throws OctagonTransferException {
     return Collections.singleton(getAbstractSuccessor(element, cfaEdge, prec));
   }
 
