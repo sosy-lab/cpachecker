@@ -26,10 +26,9 @@ package org.sosy_lab.cpachecker.cfa.objectmodel;
 import java.util.logging.Level;
 
 import org.eclipse.cdt.core.dom.ast.IASTNode;
+import org.sosy_lab.common.LogManager;
 
 import com.google.common.base.Preconditions;
-
-import org.sosy_lab.cpachecker.core.CPAchecker;
 
 
 public abstract class AbstractCFAEdge implements CFAEdge
@@ -54,8 +53,9 @@ public abstract class AbstractCFAEdge implements CFAEdge
     /**
      * This method registers adds this edge to the leaving and entering edges
      * of its predecessor and successor respectively.
+     * @param logger TODO
      */
-    public void addToCFA() {
+    public void addToCFA(LogManager logger) {
       CFANode predecessor = getPredecessor();
       CFANode successor = getSuccessor();
 
@@ -64,7 +64,7 @@ public abstract class AbstractCFAEdge implements CFAEdge
 
         // the code following a jump statement is only reachable if there is a label
         if (!(successor instanceof CFALabelNode) || isJumpEdge()) {
-          CPAchecker.logger.log(Level.INFO, "Dead code detected after line " + predecessor.getLineNumber() + ": " + this.getRawStatement());
+          logger.log(Level.INFO, "Dead code detected after line " + predecessor.getLineNumber() + ": " + this.getRawStatement());
         }
 
         // don't add this edge to the CFA
@@ -79,7 +79,7 @@ public abstract class AbstractCFAEdge implements CFAEdge
             if (!(otherEdgeSuccessor instanceof CFALabelNode
                   || otherEdge.getRawStatement().isEmpty())) {
               // don't log if the dead code begins with a blank edge, this is most often a false positive
-              CPAchecker.logger.log(Level.INFO, "Dead code detected after line " + predecessor.getLineNumber() + ": " + otherEdge.getRawStatement());
+              logger.log(Level.INFO, "Dead code detected after line " + predecessor.getLineNumber() + ": " + otherEdge.getRawStatement());
             }
 
             predecessor.removeLeavingEdge(otherEdge);

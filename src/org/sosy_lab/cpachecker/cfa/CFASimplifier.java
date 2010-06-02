@@ -122,7 +122,7 @@ public class CFASimplifier {
 		successor.removeEnteringEdge(leavingEdge);
 
 		BlankEdge be = new BlankEdge("removed declaration", leavingEdge.getLineNumber(), node, successor);
-		be.addToCFA();
+		be.addToCFA(null);
 	}
 
 	private void makeMultiStatement (CFANode cfa)
@@ -150,7 +150,7 @@ public class CFASimplifier {
 			afterNode.removeEnteringEdge (leavingEdge);
 
 			MultiStatementEdge msEdge = new MultiStatementEdge("multi-statement edge", enteringEdge.getLineNumber(), priorNode, afterNode, expressions);
-			msEdge.addToCFA();
+			msEdge.addToCFA(null);
 		}
 		else if (enteringEdge.getEdgeType () == CFAEdgeType.MultiStatementEdge)
 		{
@@ -165,7 +165,7 @@ public class CFASimplifier {
 	    afterNode.removeEnteringEdge (leavingEdge);
 
 	    MultiStatementEdge newMsEdge = new MultiStatementEdge("multi-statement edge", enteringEdge.getLineNumber(), priorNode, afterNode, expressions);
-	    newMsEdge.addToCFA();
+	    newMsEdge.addToCFA(null);
 		}
 	}
 
@@ -199,7 +199,7 @@ public class CFASimplifier {
 			afterNode.removeEnteringEdge (leavingEdge);
 
 			MultiDeclarationEdge mdEdge = new MultiDeclarationEdge ("multi-declaration edge", enteringEdge.getLineNumber(), priorNode, afterNode, declarators, rawStatements);
-			mdEdge.addToCFA();
+			mdEdge.addToCFA(null);
 		}
 		else if (enteringEdge.getEdgeType () == CFAEdgeType.MultiDeclarationEdge)
 		{
@@ -218,7 +218,7 @@ public class CFASimplifier {
 	    afterNode.removeEnteringEdge (leavingEdge);
 
       MultiDeclarationEdge newMdEdge = new MultiDeclarationEdge ("multi-declaration edge", enteringEdge.getLineNumber(), priorNode, afterNode, declarators, rawStatements);
-      newMdEdge.addToCFA();
+      newMdEdge.addToCFA(null);
 		}
 	}
 }

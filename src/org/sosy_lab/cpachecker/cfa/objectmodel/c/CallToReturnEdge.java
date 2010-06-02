@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.objectmodel.c;
 
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
-
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.objectmodel.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
@@ -42,7 +42,7 @@ public class CallToReturnEdge extends AbstractCFAEdge {
 	}
 
 	@Override
-  public void addToCFA() {
+  public void addToCFA(LogManager logger) {
 		getPredecessor().addLeavingSummaryEdge(this);
 		getSuccessor().addEnteringSummaryEdge(this);
 	}

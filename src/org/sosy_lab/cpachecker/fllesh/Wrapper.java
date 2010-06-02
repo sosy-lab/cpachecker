@@ -135,20 +135,20 @@ public class Wrapper {
       FunctionCallEdge callEdge;
 
       callEdge = new FunctionCallEdge(functionCall.getRawSignature(), expr, edge.getLineNumber(), node, fDefNode, parameters, false);
-      callEdge.addToCFA();
+      callEdge.addToCFA(null);
       mAlphaEdge = callEdge;
 
       // set name of the function
       fDefNode.setFunctionName(functionName);
       // set return edge from exit node of the function
       ReturnEdge returnEdge = new ReturnEdge("Return Edge to " + successorNode.getNodeNumber(), edge.getLineNumber(), mCFAs.get(functionName).getExitNode(), successorNode);
-      returnEdge.addToCFA();
+      returnEdge.addToCFA(null);
       returnEdge.getSuccessor().setFunctionName(node.getFunctionName());
 
       mOmegaEdge = returnEdge;
 
       CallToReturnEdge calltoReturnEdge = new CallToReturnEdge(expr.getRawSignature(), edge.getLineNumber(), node, successorNode, expr);
-      calltoReturnEdge.addToCFA();
+      calltoReturnEdge.addToCFA(null);
 
       mAlphaToOmegaEdge = calltoReturnEdge;
 

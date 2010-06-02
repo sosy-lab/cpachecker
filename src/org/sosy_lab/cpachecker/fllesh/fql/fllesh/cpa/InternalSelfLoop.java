@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.fllesh.fql.fllesh.cpa;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
@@ -83,7 +84,7 @@ public class InternalSelfLoop extends BlankEdge {
   }
 
   @Override
-  public void addToCFA() {
+  public void addToCFA(LogManager logger) {
     throw new UnsupportedOperationException();
   }
 }

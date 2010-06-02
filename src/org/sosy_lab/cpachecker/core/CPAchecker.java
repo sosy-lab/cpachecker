@@ -412,7 +412,7 @@ public class CPAchecker {
       n.setFunctionName(cur.getFunctionName());
       GlobalDeclarationEdge e = new GlobalDeclarationEdge(sd,
           sd.getFileLocation().getStartingLineNumber(), cur, n);
-      e.addToCFA();
+      e.addToCFA(logger);
       decls.add(n);
       cur = n;
     }
@@ -429,11 +429,11 @@ public class CPAchecker {
 
     // and add a blank edge connecting the first node of CFA with declarations
     BlankEdge be = new BlankEdge("INIT GLOBAL VARS", 0, cfa, decls.get(0));
-    be.addToCFA();
+    be.addToCFA(logger);
 
     // and a blank edge connecting the declarations with the second node of CFA
     be = new BlankEdge(firstEdge.getRawStatement(), firstEdge.getLineNumber(), cur, secondNode);
-    be.addToCFA();
+    be.addToCFA(logger);
 
     return;
   }
