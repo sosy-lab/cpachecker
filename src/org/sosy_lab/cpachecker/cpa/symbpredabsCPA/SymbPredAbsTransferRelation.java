@@ -41,7 +41,6 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 
-import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Triple;
@@ -187,15 +186,11 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
       }
     }
 
-    // update pfParents list
-    ImmutableSet<CFANode> newPfParents = ImmutableSet.of(edge.getPredecessor());
-
     // create the new abstract element for non-abstraction location
     return Collections.singleton(new SymbPredAbsAbstractElement(
         // set 'abstractionLocation' to last element's abstractionLocation since they are same
         // set 'pathFormula' to pf - the updated pathFormula -
-        // set 'pfParents' to newPfParents - the updated list of nodes that constructed the pathFormula -
-        element.getAbstractionLocation(), pf, newPfParents,
+        element.getAbstractionLocation(), pf,
         // set 'initAbstractionFormula', 'abstraction' and 'abstractionPathList' to last element's values, they don't change
         element.getInitAbstractionFormula(), element.getAbstraction(),
         element.getAbstractionPathList(),

@@ -115,20 +115,8 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
         return false;
         
       } else {
-        // if not an abstraction location
-        if (e1.getAbstractionLocation().equals(e2.getAbstractionLocation())
-          && e1.getAbstractionPathList().equals(e2.getAbstractionPathList())
-          && e1.getAbstraction().equals(e2.getAbstraction())) {
-
-          assert(e1.getPfParents().size() == 1);
-          // and if pfParents of e1 is included in e2's pfParents
-          // we don't need to add again, return true
-          // this is useful after merging two elements which are not
-          // abstraction locations and stop not to add the same
-          // element again
-          return e2.getPfParents().containsAll(e1.getPfParents());
-        }
-        return false;
+        // only the fast check which returns true if a merge occurred for this element
+        return e1.getMergedInto() == e2;
       }
     }
   }
