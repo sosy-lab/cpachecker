@@ -445,6 +445,22 @@ implements SymbPredAbsFormulaManager
     return new PathFormula(smgr.makeAnd(absFormula, symbFormula), symbSsa);
   }
 
+  public boolean checkCoverage(AbstractFormula a1, PathFormula p1, AbstractFormula a2) {
+    PathFormula f1 = buildSymbolicFormula(a1, p1);
+    
+    SymbolicFormula a = f1.getSymbolicFormula();
+    
+    SymbolicFormula b = smgr.instantiate(toConcrete(a2), f1.getSsa());
+    
+    SymbolicFormula toCheck = smgr.makeAnd(a, smgr.makeNot(b));
+
+    thmProver.init(TheoremProver.ENTAILMENT_CHECK);
+    boolean ret = thmProver.isUnsat(toCheck);
+    thmProver.reset();
+
+    return ret;
+  }
+  
   private AbstractFormula buildBooleanAbstraction(
       AbstractFormula abstractionFormula, PathFormula pathFormula,
       Collection<Predicate> predicates) {

@@ -274,6 +274,9 @@ cpas.symbpredabs.blk.requiredThresholdAndLBE = false
 cpas.symbpredabs.satCheckBlockSize = 0
 
 
+# whether to include the symbolic path formula in the coverage checks or do only the fast abstract checks
+cpas.symbpredabs.symbolicCoverageCheck = false
+
 # use a combination of theories (this is incomplete)
 cpas.symbpredabs.mathsat.useDtc = false
 

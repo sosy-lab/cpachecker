@@ -39,9 +39,15 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public class SymbPredAbsAbstractDomain implements AbstractDomain {
 
   private final AbstractFormulaManager mAbstractFormulaManager;
+  private final SymbPredAbsFormulaManager mgr;
+  
+  private final boolean symbolicCoverageCheck;
 
-  public SymbPredAbsAbstractDomain(AbstractFormulaManager pAbstractFormulaManager) {
+  public SymbPredAbsAbstractDomain(AbstractFormulaManager pAbstractFormulaManager,
+        SymbPredAbsFormulaManager pMgr, boolean pSymbolicCoverageCheck) {
     mAbstractFormulaManager = pAbstractFormulaManager;
+    mgr = pMgr;
+    symbolicCoverageCheck = pSymbolicCoverageCheck;
   }
 
   private final static class SymbPredAbsBottomElement extends SymbPredAbsAbstractElement {
@@ -96,8 +102,18 @@ public class SymbPredAbsAbstractDomain implements AbstractDomain {
       if (e1.isAbstractionNode() && e2.isAbstractionNode()) {
         // if e1's predicate abstraction entails e2's pred. abst.
         return mAbstractFormulaManager.entails(e1.getAbstraction(), e2.getAbstraction());
-      } else if (e1.isAbstractionNode() || e2.isAbstractionNode()) {
+
+      } else if (e2.isAbstractionNode()) {
+        if (symbolicCoverageCheck) {
+          return mgr.checkCoverage(e1.getAbstraction(), e1.getPathFormula(), e2.getAbstraction());
+        
+        } else {
+          return false; 
+        }
+        
+      } else if (e1.isAbstractionNode()) {
         return false;
+        
       } else {
         // if not an abstraction location
         if (e1.getAbstractionLocation().equals(e2.getAbstractionLocation())

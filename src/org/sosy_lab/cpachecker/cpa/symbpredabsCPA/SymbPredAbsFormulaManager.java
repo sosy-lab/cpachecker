@@ -63,4 +63,9 @@ public interface SymbPredAbsFormulaManager extends FormulaManager {
      * @return unsat(pAbstractionFormula & pPathFormula)
      */
     boolean unsat(AbstractFormula pAbstractionFormula, PathFormula pPathFormula);
+    
+    /**
+     * Checks if (a1 & p1) => a2
+     */
+    boolean checkCoverage(AbstractFormula a1, PathFormula p1, AbstractFormula a2);
 }
