@@ -34,7 +34,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.util.logging.Level;
 
-import org.sosy_lab.cpachecker.core.CPAchecker;
+import org.sosy_lab.common.LogManager;
 
 
 /**
@@ -43,7 +43,7 @@ import org.sosy_lab.cpachecker.core.CPAchecker;
  */
 public class CProver {
 
-  public static int checkSat (String pTranslatedProgram) {
+  public static int checkSat (String pTranslatedProgram, LogManager logger) throws FileNotFoundException {
 
     File lFile = null;
     lFile = new File("/localhome/erkan/path.c");
@@ -57,16 +57,11 @@ public class CProver {
 //    lFile.deleteOnExit();
 
     PrintWriter lWriter = null;
-    try {
-      lWriter = new PrintWriter(lFile);
-    } catch (FileNotFoundException e) {
-      CPAchecker.logger.logException(Level.SEVERE, e, "");
-      System.exit(1);
-    }
+    lWriter = new PrintWriter(lFile);
+
 
 //    for (String lFunctionString : lPath.getValue()) {
-      lWriter.print(pTranslatedProgram);
-//    }
+    lWriter.print(pTranslatedProgram);
 
     lWriter.close();
 
@@ -112,18 +107,18 @@ public class CProver {
       default:
         // lCBMCExitValue == 6 : Start function symbol not found, but also gcc not found
         // more error codes?
-        CPAchecker.logger.log(Level.WARNING, "CBMC had exit code " + lCBMCExitValue + ", output was:");
+        logger.log(Level.WARNING, "CBMC had exit code " + lCBMCExitValue + ", output was:");
       BufferedReader br = new BufferedReader(new InputStreamReader(lCBMCProcess.getErrorStream()));
       String line = null;
 
       while ((line = br.readLine()) != null) {
-        CPAchecker.logger.log(Level.WARNING, line);
+        logger.log(Level.WARNING, line);
       }
       br.close();
 
       br = new BufferedReader(new InputStreamReader(lCBMCProcess.getInputStream()));
       while ((line = br.readLine()) != null) {
-        CPAchecker.logger.log(Level.WARNING, line);
+        logger.log(Level.WARNING, line);
       }
 
       br.close();
@@ -131,7 +126,7 @@ public class CProver {
       break;
       }
     } catch (IOException e) {
-      CPAchecker.logger.logException(Level.SEVERE, e, "");
+      logger.logException(Level.SEVERE, e, "");
       System.exit(1);
     }
 

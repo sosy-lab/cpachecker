@@ -143,6 +143,7 @@ public class CPAchecker {
   // TODO these fields should not be public and static
   // Write access to these fields is prohibited from outside of this class!
   // Use the constructor to initialize them.
+  @Deprecated
   public static LogManager logger = null;
 
   private static volatile boolean requireStopAsap = false;
@@ -181,6 +182,10 @@ public class CPAchecker {
     return config;
   }
 
+  protected LogManager getLogger() {
+    return logger;
+  }
+  
   public CPAcheckerResult run(String filename) {
 
     logger.log(Level.FINE, "Analysis Started");
@@ -481,7 +486,7 @@ public class CPAchecker {
     }
 
     if (options.useCBMC) {
-      algorithm = new CBMCAlgorithm(cfas, algorithm);
+      algorithm = new CBMCAlgorithm(cfas, algorithm, logger);
     }
 
     if (algorithm instanceof StatisticsProvider) {

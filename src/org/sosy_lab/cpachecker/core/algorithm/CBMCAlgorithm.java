@@ -23,30 +23,34 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
-import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.core.ReachedElements;
 import org.sosy_lab.cpachecker.core.algorithm.cbmctools.AbstractPathToCTranslator;
 import org.sosy_lab.cpachecker.core.algorithm.cbmctools.CProver;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.cpa.art.ARTCPA;
+import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class CBMCAlgorithm implements Algorithm, StatisticsProvider {
 
   private final Map<String, CFAFunctionDefinitionNode> cfa;
   private final Algorithm algorithm;
+  private final LogManager logger;
 
-  public CBMCAlgorithm(Map<String, CFAFunctionDefinitionNode> cfa, Algorithm algorithm) throws CPAException {
+  public CBMCAlgorithm(Map<String, CFAFunctionDefinitionNode> cfa, Algorithm algorithm, LogManager logger) throws CPAException {
     this.cfa = cfa;
     this.algorithm = algorithm;
+    this.logger = logger;
 
     if (!(algorithm.getCPA() instanceof ARTCPA)) {
       throw new CPAException("Need ART CPA for CBMC check");
@@ -64,7 +68,12 @@ public class CBMCAlgorithm implements Algorithm, StatisticsProvider {
       // ARTStatistics.dumpARTToDotFile(reached, new File("/localhome/erkan/cbmcArt.dot"));
       List<ARTElement> elementsOnErrorPath = getElementsToErrorPath((ARTElement)reached.getLastElement());
       String pathProgram = AbstractPathToCTranslator.translatePaths(cfa, elementsOnErrorPath);
-      int cbmcRes = CProver.checkSat(pathProgram);
+      int cbmcRes;
+      try {
+        cbmcRes = CProver.checkSat(pathProgram, logger);
+      } catch (FileNotFoundException e) {
+        throw new CPAException("Calling CBMC failed: " + e.getMessage());
+      }
 
       if(cbmcRes == 10) {
         System.out.println("CBMC comfirms the bug");

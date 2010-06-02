@@ -29,15 +29,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
-
-import org.sosy_lab.cpachecker.core.CPAchecker;
-
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.PredicateMap;
-
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.PredicateMap;
 
 /**
  * A predicate map which can be updated (refined) during execution
@@ -79,9 +74,6 @@ public class UpdateablePredicateMap implements PredicateMap {
             }
             Set<Predicate> s = functionGlobalPreds.get(fn);
             added |= s.addAll(preds);
-            if (added) {
-              CPAchecker.logger.log(Level.ALL, "Updated predicates for function", fn, ":", s);
-            }
         } else {
             if (!repr.containsKey(n)) {
                 Set<Predicate> s = new HashSet<Predicate>(initialGlobalPreds);
@@ -89,9 +81,6 @@ public class UpdateablePredicateMap implements PredicateMap {
             }
             Set<Predicate> s = repr.get(n);
             added |= s.addAll(preds);
-            if (added) {
-              CPAchecker.logger.log(Level.ALL, "Added predicates to", n, ":", preds);
-            }
         }
         return added;
     }

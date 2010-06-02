@@ -48,7 +48,7 @@ public class ModifiedCPAchecker extends CPAchecker {
     // get code file name
     String[] names = pConfiguration.getPropertiesArray("analysis.programNames");
     if (names.length != 1) {
-      org.sosy_lab.cpachecker.core.CPAchecker.logger.log(Level.SEVERE, "Exactly one code file has to be given!");
+      getLogger().log(Level.SEVERE, "Exactly one code file has to be given!");
 
       throw new RuntimeException();
     }

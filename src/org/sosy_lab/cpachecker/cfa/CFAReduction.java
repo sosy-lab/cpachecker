@@ -135,8 +135,6 @@ public class CFAReduction {
       }
       if (finished) {
         toProcess.pop();
-        CPAchecker.logger.log(Level.ALL, "DEBUG_3",
-            "FINISHED: ", n.getNodeNumber());
         dfsMarked.put(n, 1);
       }
     }

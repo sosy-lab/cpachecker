@@ -70,7 +70,7 @@ public class FeasibilityCheck {
   public FeasibilityCheck(LogManager pLogManager) throws InvalidConfigurationException, CPAException {
 
     mMayCPA = new AlwaysTopCPA();
-    mMustCPA = new ConcreteAnalysisCPA();
+    mMustCPA = new ConcreteAnalysisCPA(pLogManager);
 
     mMustMayAnalysisCPA = new MustMayAnalysisCPA(mMustCPA, mMayCPA);
 
