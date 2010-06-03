@@ -3,7 +3,6 @@ package org.sosy_lab.cpachecker.fllesh.cpa.composite;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.cpa.composite.CompositeElement;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeMergeOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 

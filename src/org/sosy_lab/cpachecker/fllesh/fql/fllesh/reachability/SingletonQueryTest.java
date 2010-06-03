@@ -29,7 +29,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.LinkedList;
 
-import org.junit.Before;
 import org.junit.Test;
 
 import org.sosy_lab.cpachecker.cfa.DOTBuilder;
@@ -65,19 +64,13 @@ public class SingletonQueryTest {
 
   private static final String mPropertiesFile = "test/config/simpleMustMayAnalysis.properties";
 
-  @Before
-  public void tearDown() {
-    /* XXX: Currently this is necessary to pass all assertions. */
-    org.sosy_lab.cpachecker.core.CPAchecker.logger = null;
-  }
-
   @Test
   public void test_01() throws IOException, InvalidConfigurationException, CPAException {
 
     // check cilly invariance of source file, i.e., is it changed when preprocessed by cilly?
     Cilly lCilly = new Cilly();
 
-    String lSourceFileName = "test/programs/simple/functionCall.cil.c";
+    String lSourceFileName = "test/programs/simple/functionCall.c";
 
     if (!lCilly.isCillyInvariant(lSourceFileName)) {
       File lCillyProcessedFile = lCilly.cillyfy(lSourceFileName);

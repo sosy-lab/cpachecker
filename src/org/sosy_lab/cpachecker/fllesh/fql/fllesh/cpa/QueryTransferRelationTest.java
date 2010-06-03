@@ -29,7 +29,6 @@ import static org.junit.Assert.assertTrue;
 import java.util.Collection;
 import java.util.Collections;
 
-import org.junit.Before;
 import org.junit.Test;
 
 import org.sosy_lab.common.LogManager;
@@ -40,19 +39,15 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.ReturnEdge;
 
+import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
+import org.sosy_lab.cpachecker.cpa.mustmay.MustMayAnalysisPrecision;
 import org.sosy_lab.cpachecker.cpa.mustmay.SimpleMustMayAnalysisCPA;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.fllesh.fql.fllesh.reachability.Query;
 
 
 public class QueryTransferRelationTest {
-
-  @Before
-  public void tearDown() {
-    /* XXX: Currently this is necessary to pass all assertions. */
-    org.sosy_lab.cpachecker.core.CPAchecker.logger = null;
-  }
 
   @Test
   public void test_01() throws CPATransferException, InvalidConfigurationException {
@@ -107,8 +102,10 @@ public class QueryTransferRelationTest {
 
     CFAEdge lCFAEdge = InternalSelfLoop.getOrCreate(lNode);
 
+    MustMayAnalysisPrecision lPrecision = new MustMayAnalysisPrecision(SingletonPrecision.getInstance(), SingletonPrecision.getInstance());
+    
     @SuppressWarnings("unused")
-    Collection<? extends AbstractElement> lSuccessors = lTransferRelation.getAbstractSuccessors(lElement, null, lCFAEdge);
+    Collection<? extends AbstractElement> lSuccessors = lTransferRelation.getAbstractSuccessors(lElement, lPrecision, lCFAEdge);
   }
 
   @Test
@@ -127,8 +124,10 @@ public class QueryTransferRelationTest {
 
     CFAEdge lCFAEdge = new ReturnEdge("bla", 0, null, null);
 
+    MustMayAnalysisPrecision lPrecision = new MustMayAnalysisPrecision(SingletonPrecision.getInstance(), SingletonPrecision.getInstance());
+    
     @SuppressWarnings("unused")
-    Collection<? extends AbstractElement> lSuccessors = lTransferRelation.getAbstractSuccessors(lElement, null, lCFAEdge);
+    Collection<? extends AbstractElement> lSuccessors = lTransferRelation.getAbstractSuccessors(lElement, lPrecision, lCFAEdge);
   }
 
   @Test
@@ -147,8 +146,10 @@ public class QueryTransferRelationTest {
 
     CFAEdge lCFAEdge = new BlankEdge("blub", 0, null, null);
 
+    MustMayAnalysisPrecision lPrecision = new MustMayAnalysisPrecision(SingletonPrecision.getInstance(), SingletonPrecision.getInstance());
+    
     @SuppressWarnings("unused")
-    Collection<? extends AbstractElement> lSuccessors = lTransferRelation.getAbstractSuccessors(lElement, null, lCFAEdge);
+    Collection<? extends AbstractElement> lSuccessors = lTransferRelation.getAbstractSuccessors(lElement, lPrecision, lCFAEdge);
   }
 
 }

@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.fllesh.fql.backend.testgoals;
 
 import java.io.IOException;
 
-import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
@@ -54,12 +53,6 @@ public class CoverageSequenceTest {
   private static final String mPropertiesFile = "test/config/simpleMustMayAnalysis.properties";
   private final ImmutableMap<String, String> mProperties =
         ImmutableMap.of("analysis.programNames", "test/programs/simple/functionCall.c");
-
-  @Before
-  public void tearDown() {
-    /* XXX: Currently this is necessary to pass all assertions. */
-    org.sosy_lab.cpachecker.core.CPAchecker.logger = null;
-  }
 
   @Test
   public void test_01() throws IOException, InvalidConfigurationException, CPAException {

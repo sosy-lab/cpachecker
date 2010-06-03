@@ -75,7 +75,7 @@ public class Predicate implements Atom {
       break;
     }
 
-    mString = mLeftTerm.toString() + " " + lComparisonString + " " + mRightTerm.toString();
+    mString = "{ " + mLeftTerm.toString() + " " + lComparisonString + " " + mRightTerm.toString() + " }";
   }
 
   public Predicate negate() {

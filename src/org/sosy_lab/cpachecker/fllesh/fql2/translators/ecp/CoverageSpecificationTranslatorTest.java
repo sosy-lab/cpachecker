@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.fllesh.fql2.translators.ecp;
 import java.io.File;
 import java.util.Set;
 
-import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -41,12 +40,6 @@ import org.sosy_lab.cpachecker.fllesh.util.Cilly;
 import org.sosy_lab.cpachecker.fllesh.util.ModifiedCPAchecker;
 
 public class CoverageSpecificationTranslatorTest {
-
-  @Before
-  public void tearDown() {
-    /* XXX: Currently this is necessary to pass all assertions. */
-    org.sosy_lab.cpachecker.core.CPAchecker.logger = null;
-  }
 
   @Test
   public void testMain001() throws Exception {

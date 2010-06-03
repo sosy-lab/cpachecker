@@ -44,8 +44,12 @@ public class PredicateTranslator {
       lResult.append(lVariable);
     }
     
+    String lPredicateString = pPredicate.toString();
+    
+    String lPredicate = lPredicateString.substring(2, lPredicateString.length() - 2);
+    
     lResult.append(") { (");
-    lResult.append(pPredicate.toString());
+    lResult.append(lPredicate);
     lResult.append("); }");
     
     mCache.put(pPredicate, lResult.toString());

@@ -113,15 +113,6 @@ public class TargetGraph {
       
     }
     
-    public int current(Edge pEdge) {
-      if (!mOccurrences.containsKey(pEdge)) {
-        return 0;
-      }
-      else {
-        return mOccurrences.get(pEdge);
-      }
-    }
-    
     public void decrement(Edge pEdge) {
       if (mOccurrences.containsKey(pEdge)) {
         int lCurrentValue = mOccurrences.get(pEdge);

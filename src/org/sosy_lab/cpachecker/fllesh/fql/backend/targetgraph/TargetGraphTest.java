@@ -28,7 +28,6 @@ import static org.junit.Assert.*;
 import java.io.IOException;
 import java.util.Set;
 
-import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
@@ -58,12 +57,6 @@ import org.sosy_lab.cpachecker.fllesh.util.ModifiedCPAchecker;
 
 public class TargetGraphTest {
   private String mPropertiesFile = "test/config/simpleMustMayAnalysis.properties";
-
-  @Before
-  public void tearDown() {
-    /* XXX: Currently this is necessary to pass all assertions. */
-    org.sosy_lab.cpachecker.core.CPAchecker.logger = null;
-  }
 
   @Test
   public void test_01() throws IOException, InvalidConfigurationException, CPAException {

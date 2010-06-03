@@ -27,17 +27,10 @@ import java.io.StringReader;
 
 import junit.framework.Assert;
 
-import org.junit.Before;
 import org.junit.Test;
 
 
 public class FQLParserTest {
-
-  @Before
-  public void tearDown() {
-    /* XXX: Currently this is necessary to pass all assertions. */
-    org.sosy_lab.cpachecker.core.CPAchecker.logger = null;
-  }
 
   // TODO Use Michael's test suite, too.
 

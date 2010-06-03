@@ -23,21 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.concrete;
 
-//import static org.junit.Assert.*;
-
-import org.junit.Before;
 import org.junit.Test;
 
 public class ConcreteAnalysisCPATest {
 
   private String mConfig = "-config";
   private String mPropertiesFile = "test/config/concreteAnalysis.properties";
-
-  @Before
-  public void tearDown() {
-    /* XXX: Currently this is necessary to pass all assertions. */
-    org.sosy_lab.cpachecker.core.CPAchecker.logger = null;
-  }
 
   @Test
   public void test_01() {
