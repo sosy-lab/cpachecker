@@ -36,6 +36,8 @@ public class TransferRelationMonitorElement extends AbstractSingleWrapperElement
   private long totalTimeOnThePath;
   public static long maxTimeOfTransfer = 0;
   public static long maxTotalTimeForPath = 0;
+  public static long totalTimeOfTransfer = 0;
+  public static long totalNumberOfTransfers = 0;
   private boolean ignore = false;
   
   private int noOfNodesOnPath;
@@ -55,6 +57,8 @@ public class TransferRelationMonitorElement extends AbstractSingleWrapperElement
 
   protected void setTransferTime(long pTransferTime){
     timeOfTranferToComputeElement = pTransferTime;
+    totalTimeOfTransfer = totalTimeOfTransfer + pTransferTime;
+    totalNumberOfTransfers ++;
     if(timeOfTranferToComputeElement > maxTimeOfTransfer){
       maxTimeOfTransfer = timeOfTranferToComputeElement;
     }

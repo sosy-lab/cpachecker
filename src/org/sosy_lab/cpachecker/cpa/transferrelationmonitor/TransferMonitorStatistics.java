@@ -1,6 +1,8 @@
 package org.sosy_lab.cpachecker.cpa.transferrelationmonitor;
 
 import java.io.PrintWriter;
+import java.text.NumberFormat;
+import java.util.Locale;
 
 import org.sosy_lab.cpachecker.core.ReachedElements;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -16,8 +18,15 @@ public class TransferMonitorStatistics implements Statistics{
   @Override
   public void printStatistics(PrintWriter pOut, Result pResult,
       ReachedElements pReached) {
-    pOut.println("Max transfer time:            " + TransferRelationMonitorElement.maxTimeOfTransfer + "ms");
-    pOut.println("Max transfer time for a path: " + TransferRelationMonitorElement.maxTotalTimeForPath +"ms" );
-    pOut.println("Max size of a single path:    " + TransferRelationMonitorTransferRelation.maxSizeOfSinglePath);
+
+    double averageTransferTime = ((new Long(TransferRelationMonitorElement.totalTimeOfTransfer)).doubleValue() /
+        (new Long(TransferRelationMonitorElement.totalNumberOfTransfers)).doubleValue());
+    NumberFormat numberFormat = NumberFormat.getNumberInstance(Locale.getDefault());
+    numberFormat.setMaximumFractionDigits(2);
+
+    pOut.println("Max. Post Time:            " + TransferRelationMonitorElement.maxTimeOfTransfer + "ms");
+    pOut.println("Av Post Time:              " + numberFormat.format(averageTransferTime) + "ms");
+    pOut.println("Max Post time on a path:   " + TransferRelationMonitorElement.maxTotalTimeForPath + "ms" );
+    pOut.println("Max size of a single path: " + TransferRelationMonitorTransferRelation.maxSizeOfSinglePath);
   }
 }
