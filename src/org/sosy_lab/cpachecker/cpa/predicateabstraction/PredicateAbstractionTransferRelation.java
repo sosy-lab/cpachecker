@@ -28,14 +28,14 @@ import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
 /**
  * TransferRelation for explicit-state lazy abstraction. This is the most
  * complex of the CPA-related classes, and where the analysis is actually
@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 public class PredicateAbstractionTransferRelation implements TransferRelation {
 
   private PredicateAbstractionAbstractDomain domain;
+  private final LogManager logger;
   //private Map<Path, Integer> abstractCex;
 
   private int numAbstractStates = 0; // for statistics
@@ -56,8 +57,9 @@ public class PredicateAbstractionTransferRelation implements TransferRelation {
 
   private boolean notEnoughPredicatesFlag = false;
 
-  public PredicateAbstractionTransferRelation(PredicateAbstractionAbstractDomain d) {
+  public PredicateAbstractionTransferRelation(PredicateAbstractionAbstractDomain d, LogManager logger) {
     domain = d;
+    this.logger = logger;
     //  abstractTree = new AbstractReachabilityTree();
     // lastErrorPath = null;
     //  abstractCex = new HashMap<Path, Integer>();
@@ -120,8 +122,8 @@ public class PredicateAbstractionTransferRelation implements TransferRelation {
     succ.setAbstraction(abstraction);
     //  succ.setParent(e);
 
-    if (CPAchecker.logger.wouldBeLogged(Level.ALL)) {
-      CPAchecker.logger.log(Level.ALL, "DEBUG_1", "COMPUTED ABSTRACTION:",
+    if (logger.wouldBeLogged(Level.ALL)) {
+      logger.log(Level.ALL, "DEBUG_1", "COMPUTED ABSTRACTION:",
           amgr.toConcrete(abstraction));
     }
 
@@ -135,7 +137,7 @@ public class PredicateAbstractionTransferRelation implements TransferRelation {
   @Override
   public Collection<PredicateAbstractionAbstractElement> getAbstractSuccessors(
       AbstractElement element, Precision prec, CFAEdge cfaEdge) throws CPATransferException {
-    CPAchecker.logger.log(Level.FINEST,
+    logger.log(Level.FINEST,
         "Getting Abstract Successor of element: ", element,
         " on edge: ", cfaEdge.getRawStatement());
 
@@ -147,7 +149,7 @@ public class PredicateAbstractionTransferRelation implements TransferRelation {
 
     Collection<PredicateAbstractionAbstractElement> ret = buildSuccessor(e, cfaEdge);
 
-    CPAchecker.logger.log(Level.FINEST,
+    logger.log(Level.FINEST,
         "Successor is: ", ret);
 
     return ret;

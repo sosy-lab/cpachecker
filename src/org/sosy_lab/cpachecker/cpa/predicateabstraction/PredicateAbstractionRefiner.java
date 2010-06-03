@@ -29,27 +29,26 @@ import java.util.Map;
 import java.util.Vector;
 import java.util.logging.Level;
 
-import org.sosy_lab.cpachecker.util.symbpredabstraction.UpdateablePredicateMap;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.trace.CounterexampleTraceInfo;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
-
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.AbstractARTBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.art.Path;
-import org.sosy_lab.cpachecker.core.CPAchecker;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.UpdateablePredicateMap;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.trace.CounterexampleTraceInfo;
 
 public class PredicateAbstractionRefiner extends AbstractARTBasedRefiner {
 
   private PredicateAbstractionCPA mCpa;
   private PredicateAbstractionFormulaManager amgr;
   private Map<Vector<Integer>, Integer> abstractCex;
-
+  private final LogManager logger;
+  
 //  private int numAbstractStates = 0; // for statistics
 
   // this is used for deciding how much of the ART to undo after refinement
@@ -67,6 +66,7 @@ public class PredicateAbstractionRefiner extends AbstractARTBasedRefiner {
     }
     amgr = mCpa.getPredAbsFormulaManager();
     abstractCex = new HashMap<Vector<Integer>, Integer>();
+    logger = mCpa.getLogger();
   }
 
   @Override
@@ -82,7 +82,7 @@ public class PredicateAbstractionRefiner extends AbstractARTBasedRefiner {
     assert(info != null);
 
     if (info.isSpurious()) {
-      CPAchecker.logger.log(Level.FINEST,
+      logger.log(Level.FINEST,
       "Found spurious error trace, refining the abstraction");
 
       ARTElement refinementRoot = performRefinement(pReached, pPath, pathArray, info);
@@ -92,7 +92,7 @@ public class PredicateAbstractionRefiner extends AbstractARTBasedRefiner {
       return true;
     } else {
       // we have a real error
-      CPAchecker.logger.log(Level.FINEST, "Error trace is not spurious");
+      logger.log(Level.FINEST, "Error trace is not spurious");
       return false;
     }
   }
@@ -101,7 +101,7 @@ public class PredicateAbstractionRefiner extends AbstractARTBasedRefiner {
   private ARTElement performRefinement(ARTReachedSet pReached, Path pPath,
       Pair<ARTElement, CFAEdge>[] pPathArray,
       CounterexampleTraceInfo pInfo) {
-    CPAchecker.logger.log(Level.ALL, "DEBUG_1", "STARTING REFINEMENT");
+    logger.log(Level.ALL, "DEBUG_1", "STARTING REFINEMENT");
     UpdateablePredicateMap curpmap =
       (UpdateablePredicateMap)mCpa.getPredicateMap();
 
@@ -145,7 +145,7 @@ public class PredicateAbstractionRefiner extends AbstractARTBasedRefiner {
         }
       } else {
         assert(firstInterpolant != null);
-        CPAchecker.logger.log(Level.FINEST,
+        logger.log(Level.FINEST,
         "Restarting ART from scratch");
         // if the root is theinitial element, we add
         // its child as the root so that refinement algorithm

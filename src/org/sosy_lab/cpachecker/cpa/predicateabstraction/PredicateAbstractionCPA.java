@@ -115,7 +115,7 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis, Sta
     private PredicateAbstractionCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
         this.logger = logger;
         domain = new PredicateAbstractionAbstractDomain(this);
-        trans = new PredicateAbstractionTransferRelation(domain);
+        trans = new PredicateAbstractionTransferRelation(domain, logger);
         merge = MergeSepOperator.getInstance();
         stop = new PredicateAbstractionStopOperator(domain);
         precisionAdjustment = StaticPrecisionAdjustment.getInstance();
@@ -212,6 +212,10 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis, Sta
         return pmap;
     }
 
+    LogManager getLogger() {
+      return logger;
+    }
+    
     @Override
     public void collectStatistics(Collection<Statistics> pStatsCollection) {
       pStatsCollection.add(stats);
