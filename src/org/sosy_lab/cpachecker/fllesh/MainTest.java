@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.fllesh;
 
+import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -37,7 +38,7 @@ public class MainTest {
   @Before
   public void createLogFile() {
     SimpleDateFormat lDateFormat = new SimpleDateFormat("'log.'yyyy-MM-dd'.'HH-mm-ss'.csv'");
-    String lFileName = lDateFormat.format(new Date());
+    String lFileName = "test" + File.separator + "output" + File.separator + lDateFormat.format(new Date());
     
     mExperiment = new Experiment(lFileName);
   }
