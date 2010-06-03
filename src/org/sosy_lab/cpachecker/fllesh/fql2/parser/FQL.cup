@@ -207,7 +207,7 @@ Cover				::=
 
 Passing				::= 
 						{:
-							RESULT = new org.sosy_lab.cpachecker.fllesh.fql2.ast.pathpattern.Repetition(new Edges(Identity.getInstance()));
+							RESULT = null;
 						:}
 					| 	TOK_PASSING PathPattern:pattern
 						{:

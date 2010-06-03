@@ -129,15 +129,43 @@ public class Main {
     
     Wrapper lWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCPAchecker.getCFAMap(), lLogManager);
 
-    // passing clause
-    ElementaryCoveragePattern lPassing = lSpecificationTranslator.translate(lFQLSpecification.getPathPattern());
-    System.out.println("PASSING:");
-    System.out.println(lPrettyPrinter.printPretty(lPassing));
-    Automaton<GuardedEdgeLabel> lPassingAutomaton = ToGuardedAutomatonTranslator.toAutomaton(lPassing, lWrapper.getAlphaEdge(), lWrapper.getOmegaEdge());
-    GuardedEdgeAutomatonCPA lPassingCPA = new GuardedEdgeAutomatonCPA(lPassingAutomaton);
-
     
     ProductAutomatonCPA lProductAutomatonCPA = new ProductAutomatonCPA();
+    
+    CPAFactory lLocationCPAFactory = LocationCPA.factory();
+    ConfigurableProgramAnalysis lLocationCPA = lLocationCPAFactory.createInstance();
+
+    CPAFactory lSymbPredAbsCPAFactory = SymbPredAbsCPA.factory();
+    lSymbPredAbsCPAFactory.setConfiguration(lConfiguration);
+    lSymbPredAbsCPAFactory.setLogger(lLogManager);
+    ConfigurableProgramAnalysis lSymbPredAbsCPA = lSymbPredAbsCPAFactory.createInstance();
+
+    
+    LinkedList<ConfigurableProgramAnalysis> lTestGenAnalyses = new LinkedList<ConfigurableProgramAnalysis>();
+    
+    lTestGenAnalyses.add(lSymbPredAbsCPA);
+    lTestGenAnalyses.add(lProductAutomatonCPA);
+    
+    int[] lEqualityIndices = null;
+    
+    if (lFQLSpecification.hasPassingClause()) {
+      lEqualityIndices = new int[2];
+      lEqualityIndices[0] = 2;
+      lEqualityIndices[1] = 3;
+      
+      // passing clause
+      ElementaryCoveragePattern lPassing = lSpecificationTranslator.translate(lFQLSpecification.getPathPattern());
+      System.out.println("PASSING:");
+      System.out.println(lPrettyPrinter.printPretty(lPassing));
+      Automaton<GuardedEdgeLabel> lPassingAutomaton = ToGuardedAutomatonTranslator.toAutomaton(lPassing, lWrapper.getAlphaEdge(), lWrapper.getOmegaEdge());
+      GuardedEdgeAutomatonCPA lPassingCPA = new GuardedEdgeAutomatonCPA(lPassingAutomaton);
+      
+      lTestGenAnalyses.add(lPassingCPA);
+    }
+    else {
+      lEqualityIndices = new int[1];
+      lEqualityIndices[0] = 2;
+    }
     
     
     System.out.println("TEST GOALS:");
@@ -153,27 +181,10 @@ public class Main {
       Automaton<GuardedEdgeLabel> lGoalAutomaton = ToGuardedAutomatonTranslator.toAutomaton(lGoal, lWrapper.getAlphaEdge(), lWrapper.getOmegaEdge());
       GuardedEdgeAutomatonCPA lGoalCPA = new GuardedEdgeAutomatonCPA(lGoalAutomaton);
       
-      CPAFactory lLocationCPAFactory = LocationCPA.factory();
-      ConfigurableProgramAnalysis lLocationCPA = lLocationCPAFactory.createInstance();
-
-      CPAFactory lSymbPredAbsCPAFactory = SymbPredAbsCPA.factory();
-      lSymbPredAbsCPAFactory.setConfiguration(lConfiguration);
-      lSymbPredAbsCPAFactory.setLogger(lLogManager);
-      ConfigurableProgramAnalysis lSymbPredAbsCPA = lSymbPredAbsCPAFactory.createInstance();
-
+      lTestGenAnalyses.add(lGoalCPA);
+      
       LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<ConfigurableProgramAnalysis>();
       lComponentAnalyses.add(lLocationCPA);
-      
-      LinkedList<ConfigurableProgramAnalysis> lTestGenAnalyses = new LinkedList<ConfigurableProgramAnalysis>();
-      
-      lTestGenAnalyses.add(lSymbPredAbsCPA);
-      lTestGenAnalyses.add(lGoalCPA);
-      lTestGenAnalyses.add(lPassingCPA);
-      lTestGenAnalyses.add(lProductAutomatonCPA);
-      
-      int[] lEqualityIndices = new int[2];
-      lEqualityIndices[0] = 1;
-      lEqualityIndices[1] = 2;
       
       CompoundCPA lCompoundCPA = new CompoundCPA(lTestGenAnalyses, lEqualityIndices);
       lComponentAnalyses.add(lCompoundCPA);
@@ -216,6 +227,8 @@ public class Main {
       }
 
       Main.determineGoalFeasibility(lReachedElements, lCurrentGoalNumber, lARTStatistics);
+      
+      lTestGenAnalyses.removeLast();
     }
   }
   
