@@ -16,10 +16,8 @@ public class TransferMonitorStatistics implements Statistics{
   @Override
   public void printStatistics(PrintWriter pOut, Result pResult,
       ReachedElements pReached) {
-    
     pOut.println("Max transfer time:            " + TransferRelationMonitorElement.maxTimeOfTransfer + "ms");
     pOut.println("Max transfer time for a path: " + TransferRelationMonitorElement.maxTotalTimeForPath +"ms" );
     pOut.println("Max size of a single path:    " + TransferRelationMonitorTransferRelation.maxSizeOfSinglePath);
-    
   }
 }

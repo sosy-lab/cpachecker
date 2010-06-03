@@ -43,7 +43,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
-public class TransferRelationMonitorCPA extends AbstractSingleWrapperCPA implements StatisticsProvider {
+public class TransferRelationMonitorCPA extends AbstractSingleWrapperCPA {
 
   private static class TransferRelationMonitorCPAFactory extends AbstractSingleWrapperCPAFactory {
 
@@ -107,5 +107,6 @@ public class TransferRelationMonitorCPA extends AbstractSingleWrapperCPA impleme
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(stats);
+    super.collectStatistics(pStatsCollection);
   }
 }
