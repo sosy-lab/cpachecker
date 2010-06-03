@@ -37,6 +37,8 @@ public class TransferRelationMonitorElement extends AbstractSingleWrapperElement
   public static long maxTimeOfTransfer = 0;
   public static long maxTotalTimeForPath = 0;
   private boolean ignore = false;
+  
+  private int noOfNodesOnPath;
 
   protected TransferRelationMonitorElement(TransferRelationMonitorCPA pCpa,
       AbstractElement pWrappedElement) {
@@ -44,6 +46,7 @@ public class TransferRelationMonitorElement extends AbstractSingleWrapperElement
     cpa = pCpa;
     timeOfTranferToComputeElement = 0;
     totalTimeOnThePath = 0;
+    setNoOfNodesOnPath(0);
   }
 
   public TransferRelationMonitorCPA getCpa() {
@@ -112,6 +115,22 @@ public class TransferRelationMonitorElement extends AbstractSingleWrapperElement
 
   public void setIgnore() {
     ignore = true;
+  }
+
+  public void setNoOfNodesOnPath(int noOfNodesOnPath) {
+    this.noOfNodesOnPath = noOfNodesOnPath;
+  }
+
+  public int getNoOfNodesOnPath() {
+    return noOfNodesOnPath;
+  }
+  
+  @Override
+  public String toString() {
+    // TODO Auto-generated method stub
+    return "No of nodes> " + this.noOfNodesOnPath
+    + "/n Total time> " + this.totalTimeOnThePath 
+    + "/n Max Single Operation Time> " + maxTimeOfTransfer;
   }
 
 }

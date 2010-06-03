@@ -54,7 +54,8 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
   private final AbstractDomain domain;
   private final TransferRelation transferRelation;
   private TransferCallable tc = new TransferCallable();
-
+  public static long maxSizeOfSinglePath = 0;
+  
   private static int noOfStops = 0;
 
   @Option(name="limit")
@@ -63,6 +64,9 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
   @Option(name="pathcomputationlimit")
   private long timeLimitForPath = 0;
 
+  @Option(name="pathlengthlimit")
+  private long nodeLimitForPath = 0;
+  
   public TransferRelationMonitorTransferRelation(ConfigurableProgramAnalysis pWrappedCPA,
       Configuration config) throws InvalidConfigurationException {
     config.inject(this);
@@ -125,16 +129,22 @@ public class TransferRelationMonitorTransferRelation implements TransferRelation
       TransferRelationMonitorElement successorElem = new TransferRelationMonitorElement(element.getCpa(), absElement);
       successorElem.setTransferTime(timeOfExecution);
       successorElem.setTotalTime(element.isIgnore(), element.getTotalTimeOnThePath());
+      successorElem.setNoOfNodesOnPath(element.getNoOfNodesOnPath()+1);
+      if(element.getNoOfNodesOnPath() > maxSizeOfSinglePath){
+        maxSizeOfSinglePath = element.getNoOfNodesOnPath();
+      }
 //      if(!successorElem.isIgnore()){
-        if(timeLimitForPath > 0 &&
-            successorElem.getTotalTimeOnThePath() > timeLimitForPath){
-          noOfStops++;
-          if(noOfStops % 20 == 0){
-            successorElem.resetTotalTime();
-          }
-          else{
+        if((timeLimitForPath > 0 &&
+            successorElem.getTotalTimeOnThePath() > timeLimitForPath)
+            ||
+            (nodeLimitForPath > 0 && successorElem.getNoOfNodesOnPath() > nodeLimitForPath)){
+//          noOfStops++;
+//          if(noOfStops % 20 == 0){
+//            successorElem.resetTotalTime();
+//          }
+//          else{
             return Collections.emptySet();
-          }
+//          }
         }
 //      }
       wrappedSuccessors.add(successorElem);

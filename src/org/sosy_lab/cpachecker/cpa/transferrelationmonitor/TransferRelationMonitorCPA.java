@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.transferrelationmonitor;
 
+import java.util.Collection;
+
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -36,10 +38,12 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
-public class TransferRelationMonitorCPA extends AbstractSingleWrapperCPA {
+public class TransferRelationMonitorCPA extends AbstractSingleWrapperCPA implements StatisticsProvider {
 
   private static class TransferRelationMonitorCPAFactory extends AbstractSingleWrapperCPAFactory {
 
@@ -58,6 +62,7 @@ public class TransferRelationMonitorCPA extends AbstractSingleWrapperCPA {
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
   private final PrecisionAdjustment precisionAdjustment;
+  private final Statistics stats;
 
   private TransferRelationMonitorCPA(ConfigurableProgramAnalysis pCpa, Configuration config) throws InvalidConfigurationException {
     super(pCpa);
@@ -66,6 +71,7 @@ public class TransferRelationMonitorCPA extends AbstractSingleWrapperCPA {
     precisionAdjustment = StaticPrecisionAdjustment.getInstance(); // TODO
     mergeOperator = new TransferRelationMonitorMerge(getWrappedCpa());
     stopOperator = new TransferRelationMonitorStop(getWrappedCpa());
+    stats = new TransferMonitorStatistics();
   }
 
   @Override
@@ -96,5 +102,10 @@ public class TransferRelationMonitorCPA extends AbstractSingleWrapperCPA {
   @Override
   public TransferRelation getTransferRelation() {
     return this.transferRelation;
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(stats);
   }
 }
