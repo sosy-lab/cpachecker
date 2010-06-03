@@ -23,10 +23,30 @@
  */
 package org.sosy_lab.cpachecker.fllesh;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 public class MainTest {
 
+  private Experiment mExperiment;
+  
+  @Before
+  public void createLogFile() {
+    SimpleDateFormat lDateFormat = new SimpleDateFormat("'log.'yyyy-MM-dd'.'HH-mm-ss'.csv'");
+    String lFileName = lDateFormat.format(new Date());
+    
+    mExperiment = new Experiment(lFileName);
+  }
+  
+  @After
+  public void closeLogFile() {
+    mExperiment.close();
+  }
+  
   @Test
   public void testMain001() throws Exception {
     String[] lArguments = new String[2];
@@ -35,6 +55,9 @@ public class MainTest {
     lArguments[1] = "test/programs/simple/functionCall.c";
 
     Main.main(lArguments);
+    
+    // TODO give correct values
+    mExperiment.addExperiment("001", 0, 0, 0, 0, 0);
   }
 
   @Test
@@ -47,6 +70,9 @@ public class MainTest {
     lArguments[3] = "disablecilpreprocessing";
     
     Main.main(lArguments);
+    
+    // TODO give correct values
+    mExperiment.addExperiment("002", 0, 0, 0, 0, 0);
   }
 
   @Test
@@ -59,6 +85,9 @@ public class MainTest {
     lArguments[3] = "disablecilpreprocessing";
     
     Main.main(lArguments);
+    
+    // TODO give correct values
+    mExperiment.addExperiment("003", 0, 0, 0, 0, 0);
   }
   
 }
