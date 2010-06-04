@@ -229,8 +229,12 @@ cpa.symbpredabs.interpolatingProver = mathsat
 cpas.symbpredabs.abstraction.norefinement = false
 
 # when not using refinement, where to get the list of predicates from
-# (in MSAT format)
+# (in MSAT format, for PredicateAbstractionCPA)
 cpas.symbpredabs.abstraction.fixedPredMap =
+
+# when not using refinement, where to get the list of predicates from
+# (in MSAT format, for SymbPredAbsCPA)
+cpas.symbpredabs.abstraction.initialPredicates =
 
 # cache queries to mathsat and BDD entailment checks
 cpas.symbpredabs.mathsat.useCache = true

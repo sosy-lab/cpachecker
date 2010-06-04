@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.symbpredabsCPA;
 
+import java.util.Collection;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
@@ -38,13 +39,13 @@ public class SymbPredAbsPrecision implements Precision {
   private final SetMultimap<CFANode, Predicate> predicateMap;
   private final Set<Predicate> globalPredicates;
 
-  public SymbPredAbsPrecision(ImmutableSetMultimap<CFANode, Predicate> predicateMap, Set<Predicate> globalPredicates) {
+  public SymbPredAbsPrecision(ImmutableSetMultimap<CFANode, Predicate> predicateMap, Collection<Predicate> globalPredicates) {
     assert predicateMap != null;
     this.predicateMap = predicateMap;
     this.globalPredicates = ImmutableSet.copyOf(globalPredicates);
   }
 
-  public SymbPredAbsPrecision(Set<Predicate> globalPredicates) {
+  public SymbPredAbsPrecision(Collection<Predicate> globalPredicates) {
     predicateMap = ImmutableSetMultimap.of();
     this.globalPredicates = (globalPredicates == null ? ImmutableSet.<Predicate>of() : ImmutableSet.copyOf(globalPredicates));
   }

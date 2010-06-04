@@ -31,32 +31,37 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.trace.CounterexampleTraceInfo;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-
-import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.Multimap;
-
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
-
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 import org.sosy_lab.cpachecker.cpa.art.ARTElement;
 import org.sosy_lab.cpachecker.cpa.art.ARTReachedSet;
 import org.sosy_lab.cpachecker.cpa.art.AbstractARTBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.art.Path;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.trace.CounterexampleTraceInfo;
 
+import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.Multimap;
+
+@Options(prefix="cpas.symbpredabs")
 public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
 
+  @Option(name="refinement.addPredicatesGlobally")
+  private boolean addPredicatesGlobally = false;
+  
   private final LogManager logger;
   private final SymbPredAbsFormulaManager formulaManager;
 
-  public SymbPredAbsRefiner(final ConfigurableProgramAnalysis pCpa) throws CPAException {
+  public SymbPredAbsRefiner(final ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
     super(pCpa);
 
     SymbPredAbsCPA symbPredAbsCpa = this.getArtCpa().retrieveWrappedCpa(SymbPredAbsCPA.class);
@@ -64,6 +69,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
       throw new CPAException(getClass().getSimpleName() + " needs a SymbPredAbsCPA");
     }
 
+    symbPredAbsCpa.getConfiguration().inject(this);
     logger = symbPredAbsCpa.getLogger();
     formulaManager = symbPredAbsCpa.getFormulaManager();
   }
@@ -154,7 +160,12 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
     assert(firstInterpolationElement != null);
 
     ImmutableSetMultimap<CFANode, Predicate> newPredicateMap = pmapBuilder.build();
-    SymbPredAbsPrecision newPrecision = new SymbPredAbsPrecision(newPredicateMap, globalPredicates);
+    SymbPredAbsPrecision newPrecision;
+    if (addPredicatesGlobally) {
+      newPrecision = new SymbPredAbsPrecision(newPredicateMap.values());
+    } else {
+      newPrecision = new SymbPredAbsPrecision(newPredicateMap, globalPredicates);
+    }
 
     logger.log(Level.ALL, "Predicate map now is", newPredicateMap);
 
