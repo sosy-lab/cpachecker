@@ -137,14 +137,9 @@ public class CPAchecker {
 
   }
 
+  private final LogManager logger;
   private final Configuration config;
   private final CPAcheckerOptions options;
-
-  // TODO these fields should not be public and static
-  // Write access to these fields is prohibited from outside of this class!
-  // Use the constructor to initialize them.
-  @Deprecated
-  public static LogManager logger = null;
 
   private static volatile boolean requireStopAsap = false;
 
@@ -166,11 +161,6 @@ public class CPAchecker {
   }
 
   public CPAchecker(Configuration pConfiguration, LogManager pLogManager) throws InvalidConfigurationException {
-    // currently only one instance is possible due to these static fields
-
-    // if CPAchecker is started multiple times this assertion would not hold (strictly sequentially)
-    //assert logger == null;
-
     config = pConfiguration;
     logger = pLogManager;
 
