@@ -140,7 +140,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     } else {
       throw new InternalError("Update list of allowed solvers!");
     }
-    formulaManager = new MathsatSymbPredAbsFormulaManager<Integer>(abstractFormulaManager, symbolicFormulaManager, thmProver, itpProver, config, logger);
+    formulaManager = new SymbPredAbsFormulaManagerImpl<Integer>(abstractFormulaManager, symbolicFormulaManager, thmProver, itpProver, config, logger);
     domain = new SymbPredAbsAbstractDomain(abstractFormulaManager, formulaManager, symbolicCoverageCheck);
     transfer = new SymbPredAbsTransferRelation(this);
     merge = new SymbPredAbsMergeOperator(this);

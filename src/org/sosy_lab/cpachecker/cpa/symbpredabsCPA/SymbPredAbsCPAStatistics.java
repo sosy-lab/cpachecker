@@ -71,8 +71,8 @@ public class SymbPredAbsCPAStatistics implements Statistics {
 
     @Override
     public void printStatistics(PrintWriter out, Result result, ReachedElements reached) {
-      MathsatSymbPredAbsFormulaManager<?> amgr =
-        (MathsatSymbPredAbsFormulaManager<?>)cpa.getFormulaManager();
+      SymbPredAbsFormulaManagerImpl<?> amgr =
+        (SymbPredAbsFormulaManagerImpl<?>)cpa.getFormulaManager();
 
       Multimap<CFANode, Predicate> predicates = HashMultimap.create();
 
@@ -128,7 +128,7 @@ public class SymbPredAbsCPAStatistics implements Statistics {
         }
       }
 
-      MathsatSymbPredAbsFormulaManager.Stats bs = amgr.stats;
+      SymbPredAbsFormulaManagerImpl.Stats bs = amgr.stats;
       SymbPredAbsTransferRelation trans = cpa.getTransferRelation();
 
       out.println("Number of abstraction steps:       " + bs.numCallsAbstraction + " (" + bs.numCallsAbstractionCached + " cached)");
@@ -149,9 +149,9 @@ public class SymbPredAbsCPAStatistics implements Statistics {
       out.println("  initial abstraction formula: " + toTime(trans.initAbstractionFormulaTime));
       out.println("  computing abstraction:       " + toTime(trans.computingAbstractionTime));
       out.println("    Time for All-SMT: ");
-      out.println("      Total:                   " + toTime(bs.abstractionMathsatTime));
-      out.println("      Max:                     " + toTime(bs.abstractionMaxMathsatTime));
-      out.println("      Solving time only:       " + toTime(bs.abstractionMathsatSolveTime));
+      out.println("      Total:                   " + toTime(bs.abstractionTime));
+      out.println("      Max:                     " + toTime(bs.abstractionMaxTime));
+      out.println("      Solving time only:       " + toTime(bs.abstractionSolveTime));
       out.println("    Time for BDD construction: ");
       out.println("      Total:                   " + toTime(bs.abstractionBddTime));
       out.println("      Max:                     " + toTime(bs.abstractionMaxBddTime));
@@ -164,7 +164,7 @@ public class SymbPredAbsCPAStatistics implements Statistics {
       out.println("Time for counterexample analysis/abstraction refinement: ");
       out.println("  Total:                       " + toTime(bs.cexAnalysisTime));
       out.println("  Max:                         " + toTime(bs.cexAnalysisMaxTime));
-      out.println("  Solving time only:           " + toTime(bs.cexAnalysisMathsatTime));
+      out.println("  Solving time only:           " + toTime(bs.cexAnalysisSolverTime));
       if (bs.cexAnalysisGetUsefulBlocksTime != 0) {
         out.println("  Cex.focusing total:          " + toTime(bs.cexAnalysisGetUsefulBlocksTime));
         out.println("  Cex.focusing max:            " + toTime(bs.cexAnalysisGetUsefulBlocksMaxTime));

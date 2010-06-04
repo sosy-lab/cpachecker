@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
@@ -139,6 +141,12 @@ public interface SymbolicFormulaManager {
     public SymbolicFormula instantiate(SymbolicFormula f, SSAMap ssa);
 
     /**
+     * TODO: document this method and probably clean up the signature
+     */
+    public SymbolicFormula[] getInstantiatedAt(SymbolicFormula[] args,
+        SSAMap ssa, Map<SymbolicFormula, SymbolicFormula> cache);
+    
+    /**
      * "shifts" forward all the variables in the formula f, of the amount
      * given by the input ssa. That is, variables x with index 1 in f will be
      * replaced by variables with index ssa.getIndex(x), vars with index 2 by
@@ -183,6 +191,15 @@ public interface SymbolicFormulaManager {
     public SSAMap extractSSA(SymbolicFormula f);
 
     /**
+     * Collects all variables names and all lValues in a term.
+     * @param term  the symbolic formula to analyze
+     * @param vars  the set were all variable names are stored
+     * @param lvals the set where all lValue UIFs and their arguments are stored
+     */
+    public void collectVarNames(SymbolicFormula term, Set<String> vars,
+                                Set<Pair<String, SymbolicFormula[]>> lvals);
+    
+    /**
      * Create string representation of a formula in a format which may be dumped
      * to a file.
      */
@@ -217,4 +234,15 @@ public interface SymbolicFormulaManager {
      * if it is not done by the caller of this method.
      */
     public SymbolicFormula createPredicateVariable(SymbolicFormula pAtom);
+    
+    /**
+     * Returns an instance of a class that knows how parse the AllSat result
+     * and create an abstract formula from it.
+     */
+    public AllSatCallback getAllSatCallback(FormulaManager mgr, AbstractFormulaManager amgr);
+    
+    public interface AllSatCallback extends TheoremProver.AllSatCallback {
+      public AbstractFormula getResult();
+      public long getTotalTime();
+  }
 }

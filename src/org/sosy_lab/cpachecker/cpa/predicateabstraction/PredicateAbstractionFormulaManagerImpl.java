@@ -37,6 +37,18 @@ import java.util.Stack;
 import java.util.Vector;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cpa.art.ARTElement;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.CommonFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
@@ -45,22 +57,9 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatFormulaManager;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager.AllSatCallback;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.trace.CounterexampleTraceInfo;
-import org.sosy_lab.cpachecker.cfa.objectmodel.BlankEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
-
-import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
-
-import org.sosy_lab.cpachecker.cpa.art.ARTElement;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 
 /**
  * Implementation of ExplicitAbstractFormulaManager that uses BDDs for
@@ -69,8 +68,8 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
 @Options(prefix="cpas.symbpredabs")
-class MathsatPredicateAbstractionFormulaManager<T> extends
-MathsatFormulaManager
+class PredicateAbstractionFormulaManagerImpl<T> extends
+CommonFormulaManager
 implements PredicateAbstractionFormulaManager {
 
   // some statistics. All times are in milliseconds
@@ -322,9 +321,9 @@ implements PredicateAbstractionFormulaManager {
   private TheoremProver thmProver;
   private InterpolatingTheoremProver<T> itpProver;
 
-  public MathsatPredicateAbstractionFormulaManager(
+  public PredicateAbstractionFormulaManagerImpl(
       AbstractFormulaManager amgr,
-      MathsatSymbolicFormulaManager mmgr,
+      SymbolicFormulaManager mmgr,
       TheoremProver prover,
       InterpolatingTheoremProver<T> interpolator,
       Configuration config,
@@ -514,7 +513,7 @@ implements PredicateAbstractionFormulaManager {
       new HashMap<SymbolicFormula, SymbolicFormula>();
     for (Pair<String, SymbolicFormula[]> p : predlvals) {
       SymbolicFormula[] args =
-        getInstantiatedAt(p.getSecond(), ssa, cache);
+        smgr.getInstantiatedAt(p.getSecond(), ssa, cache);
       if (ssa.getIndex(p.getFirst(), args) < 0) {
         ssa.setIndex(p.getFirst(), args, 1);
       }
@@ -543,7 +542,7 @@ implements PredicateAbstractionFormulaManager {
 
     ++stats.abstractionNumMathsatQueries;
 
-    AllSatCallback func = new AllSatCallback();
+    AllSatCallback func = smgr.getAllSatCallback(this, amgr);
     long libmsatStartTime = System.currentTimeMillis();
     int numModels = thmProver.allSat(formula, important, func);
     assert(numModels != -1);
@@ -551,14 +550,14 @@ implements PredicateAbstractionFormulaManager {
 
     // update statistics
     long endTime = System.currentTimeMillis();
-    long libmsatTime = (libmsatEndTime - libmsatStartTime) - func.totalTime;
-    long msatTime = (endTime - startTime) - func.totalTime;
+    long libmsatTime = (libmsatEndTime - libmsatStartTime) - func.getTotalTime();
+    long msatTime = (endTime - startTime) - func.getTotalTime();
     stats.abstractionMaxMathsatTime =
       Math.max(msatTime, stats.abstractionMaxMathsatTime);
     stats.abstractionMaxBddTime =
-      Math.max(func.totalTime, stats.abstractionMaxBddTime);
+      Math.max(func.getTotalTime(), stats.abstractionMaxBddTime);
     stats.abstractionMathsatTime += msatTime;
-    stats.abstractionBddTime += func.totalTime;
+    stats.abstractionBddTime += func.getTotalTime();
     stats.abstractionMathsatSolveTime += libmsatTime;
     stats.abstractionMaxMathsatSolveTime =
       Math.max(libmsatTime, stats.abstractionMaxMathsatSolveTime);
@@ -567,7 +566,7 @@ implements PredicateAbstractionFormulaManager {
     if (numModels == -2) {
       ret = amgr.makeTrue();
     } else {
-      ret = func.getBDD();
+      ret = func.getResult();
     }
     if (useCache) {
       booleanAbstractionCache.put(key, ret);
@@ -719,7 +718,7 @@ implements PredicateAbstractionFormulaManager {
         // (at index 1)
         predvars.clear();
         predlvals.clear();
-        collectVarNames(pi.getSecond(),
+        mmgr.collectVarNames(pi.getSecond(),
             predvars, predlvals);
         for (String var : predvars) {
           if (ssa.getIndex(var) < 0) {
@@ -728,7 +727,7 @@ implements PredicateAbstractionFormulaManager {
         }
         for (Pair<String, SymbolicFormula[]> pp : predlvals) {
           SymbolicFormula[] args =
-            getInstantiatedAt(pp.getSecond(), ssa,
+            smgr.getInstantiatedAt(pp.getSecond(), ssa,
                 predLvalsCache);
           if (ssa.getIndex(pp.getFirst(), args) < 0) {
             ssa.setIndex(pp.getFirst(), args, 1);
@@ -839,7 +838,7 @@ implements PredicateAbstractionFormulaManager {
 
     if (shortestTrace && getUsefulBlocks) {
       long gubStart = System.currentTimeMillis();
-      f = getUsefulBlocks(mmgr, f, theoryCombinationNeeded,
+      f = getUsefulBlocks(smgr, f, theoryCombinationNeeded,
           useSuffix, useZigZag, false);
       long gubEnd = System.currentTimeMillis();
       stats.cexAnalysisGetUsefulBlocksTime += gubEnd - gubStart;
@@ -955,7 +954,7 @@ implements PredicateAbstractionFormulaManager {
 //                abstarr[i-1]).getLocation());
 
         extTimeStart = System.currentTimeMillis();
-        Collection<SymbolicFormula> atoms = mmgr.extractAtoms(
+        Collection<SymbolicFormula> atoms = smgr.extractAtoms(
             itp, true, splitItpAtoms, nonAtomicPredicates);
         Set<Predicate> preds = buildPredicates(atoms);
 

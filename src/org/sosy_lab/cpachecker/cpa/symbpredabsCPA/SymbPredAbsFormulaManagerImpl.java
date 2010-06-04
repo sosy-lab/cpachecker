@@ -36,6 +36,16 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.CommonFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.Cache.CartesianAbstractionCacheKey;
@@ -46,37 +56,18 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormu
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.InterpolatingTheoremProver;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatFormulaManager;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager.AllSatCallback;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.trace.CounterexampleTraceInfo;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-
-import org.sosy_lab.common.LogManager;
-import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
-
-import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 
 
-/**
- * Implementation of SummaryAbstractFormulaManager that works with BDDs for
- * abstraction and MathSAT terms for concrete formulas
- *
- * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
- */
 @Options(prefix="cpas.symbpredabs")
-class MathsatSymbPredAbsFormulaManager<T> extends MathsatFormulaManager
-implements SymbPredAbsFormulaManager
-{
+class SymbPredAbsFormulaManagerImpl<T> extends CommonFormulaManager implements SymbPredAbsFormulaManager {
 
   static class Stats {
-    public long abstractionMathsatTime = 0;
-    public long abstractionMaxMathsatTime = 0;
+    public long abstractionTime = 0;
+    public long abstractionMaxTime = 0;
     public long abstractionBddTime = 0;
     public long abstractionMaxBddTime = 0;
     public int numCallsAbstraction = 0;
@@ -84,10 +75,10 @@ implements SymbPredAbsFormulaManager
     public long cexAnalysisTime = 0;
     public long cexAnalysisMaxTime = 0;
     public int numCallsCexAnalysis = 0;
-    public long abstractionMathsatSolveTime = 0;
-    public long abstractionMaxMathsatSolveTime = 0;
-    public long cexAnalysisMathsatTime = 0;
-    public long cexAnalysisMaxMathsatTime = 0;
+    public long abstractionSolveTime = 0;
+    public long abstractionMaxSolveTime = 0;
+    public long cexAnalysisSolverTime = 0;
+    public long cexAnalysisMaxSolverTime = 0;
     public int numCoverageChecks = 0;
     public long bddCoverageCheckTime = 0;
     public long bddCoverageCheckMaxTime = 0;
@@ -145,14 +136,14 @@ implements SymbPredAbsFormulaManager
   private final TimeStampCache<CartesianAbstractionCacheKey, Byte> cartesianAbstractionCache;
   private final TimeStampCache<FeasibilityCacheKey, Boolean> feasibilityCache;
 
-  public MathsatSymbPredAbsFormulaManager(
+  public SymbPredAbsFormulaManagerImpl(
       AbstractFormulaManager pAmgr,
-      MathsatSymbolicFormulaManager pMmgr,
+      SymbolicFormulaManager pSmgr,
       TheoremProver pThmProver,
       InterpolatingTheoremProver<T> pItpProver,
       Configuration config,
       LogManager logger) throws InvalidConfigurationException {
-    super(pAmgr, pMmgr, config, logger);
+    super(pAmgr, pSmgr, config, logger);
     config.inject(this);
 
     stats = new Stats();
@@ -182,7 +173,9 @@ implements SymbPredAbsFormulaManager
     }
   }
 
-  @Override
+  /**
+   * Abstract post operation.
+   */
   public AbstractFormula buildAbstraction(
       AbstractFormula abs, PathFormula pathFormula,
       Collection<Predicate> predicates) {
@@ -308,7 +301,7 @@ implements SymbPredAbsFormulaManager
             // (at index 1)
             predvars.clear();
             predlvals.clear();
-            collectVarNames(pi.getSecond(),
+            smgr.collectVarNames(pi.getSecond(),
                     predvars, predlvals);
             for (String var : predvars) {
                 if (ssa.getIndex(var) < 0) {
@@ -317,7 +310,7 @@ implements SymbPredAbsFormulaManager
             }
             for (Pair<String, SymbolicFormula[]> pp : predlvals) {
                 SymbolicFormula[] args =
-                    getInstantiatedAt(pp.getSecond(), ssa,
+                    smgr.getInstantiatedAt(pp.getSecond(), ssa,
                             predLvalsCache);
                 if (ssa.getIndex(pp.getFirst(), args) < 0) {
                     ssa.setIndex(pp.getFirst(), args, 1);
@@ -376,16 +369,16 @@ implements SymbPredAbsFormulaManager
         // update statistics
         long endTime = System.currentTimeMillis();
         long solveTime = (solveEndTime - solveStartTime) - totBddTime;
-        long msatTime = (endTime - startTime) - totBddTime;
-        stats.abstractionMaxMathsatTime =
-            Math.max(msatTime, stats.abstractionMaxMathsatTime);
+        long time = (endTime - startTime) - totBddTime;
+        stats.abstractionMaxTime =
+            Math.max(time, stats.abstractionMaxTime);
         stats.abstractionMaxBddTime =
             Math.max(totBddTime, stats.abstractionMaxBddTime);
-        stats.abstractionMathsatTime += msatTime;
+        stats.abstractionTime += time;
         stats.abstractionBddTime += totBddTime;
-        stats.abstractionMathsatSolveTime += solveTime;
-        stats.abstractionMaxMathsatSolveTime =
-            Math.max(solveTime, stats.abstractionMaxMathsatSolveTime);
+        stats.abstractionSolveTime += solveTime;
+        stats.abstractionMaxSolveTime =
+            Math.max(solveTime, stats.abstractionMaxSolveTime);
 
         return absbdd;
 
@@ -429,6 +422,9 @@ implements SymbPredAbsFormulaManager
     return new PathFormula(smgr.makeAnd(absFormula, symbFormula), symbSsa);
   }
 
+  /**
+   * Checks if (a1 & p1) => a2
+   */
   public boolean checkCoverage(AbstractFormula a1, PathFormula p1, AbstractFormula a2) {
     PathFormula f1 = buildSymbolicFormula(a1, p1);
     
@@ -480,7 +476,7 @@ implements SymbPredAbsFormulaManager
         new HashMap<SymbolicFormula, SymbolicFormula>();
       for (Pair<String, SymbolicFormula[]> p : predinfo.allFunctions) {
         SymbolicFormula[] args =
-          getInstantiatedAt(p.getSecond(), symbSsa, cache);
+          smgr.getInstantiatedAt(p.getSecond(), symbSsa, cache);
         if (symbSsa.getIndex(p.getFirst(), args) < 0) {
           symbSsa.setIndex(p.getFirst(), args, 1);
         }
@@ -513,10 +509,10 @@ implements SymbPredAbsFormulaManager
       // get the environment from the manager - this is unique, it is the
       // environment in which all terms are created
 
-      AllSatCallback allSatCallback = new AllSatCallback();
-      long msatSolveStartTime = System.currentTimeMillis();
+      AllSatCallback allSatCallback = smgr.getAllSatCallback(this, amgr);
+      long solveStartTime = System.currentTimeMillis();
       final int numModels = thmProver.allSat(fm, importantPreds, allSatCallback);
-      long msatSolveEndTime = System.currentTimeMillis();
+      long solveEndTime = System.currentTimeMillis();
 
       assert(numModels != -1);  // msat_all_sat returns -1 on error
 
@@ -524,7 +520,7 @@ implements SymbPredAbsFormulaManager
         // formula has infinite number of models
         result = amgr.makeTrue();
       } else {
-        result = allSatCallback.getBDD();
+        result = allSatCallback.getResult();
       }
 
       if (useCache) {
@@ -532,20 +528,20 @@ implements SymbPredAbsFormulaManager
       }
 
       // update statistics
-      long bddTime       = allSatCallback.totalTime;
-      long msatSolveTime = (msatSolveEndTime - msatSolveStartTime) - bddTime;
+      long bddTime   = allSatCallback.getTotalTime();
+      long solveTime = (solveEndTime - solveStartTime) - bddTime;
 
-      stats.abstractionMathsatSolveTime += msatSolveTime;
-      stats.abstractionBddTime          += bddTime;
+      stats.abstractionSolveTime += solveTime;
+      stats.abstractionBddTime   += bddTime;
       startTime += bddTime; // do not count BDD creation time
 
       stats.abstractionMaxBddTime =
         Math.max(bddTime, stats.abstractionMaxBddTime);
-      stats.abstractionMaxMathsatSolveTime =
-        Math.max(msatSolveTime, stats.abstractionMaxMathsatSolveTime);
+      stats.abstractionMaxSolveTime =
+        Math.max(solveTime, stats.abstractionMaxSolveTime);
 
       // TODO dump hard abst
-      if (msatSolveTime > 10000 && dumpHardAbstractions) {
+      if (solveTime > 10000 && dumpHardAbstractions) {
         // we want to dump "hard" problems...
         smgr.dumpAbstraction(smgr.makeTrue(), symbFormula, predDef, importantPreds);
       }
@@ -554,15 +550,20 @@ implements SymbPredAbsFormulaManager
 
     // update statistics
     long endTime = System.currentTimeMillis();
-    long abstractionMsatTime = (endTime - startTime);
-    stats.abstractionMathsatTime += abstractionMsatTime;
-    stats.abstractionMaxMathsatTime =
-      Math.max(abstractionMsatTime, stats.abstractionMaxMathsatTime);
+    long abstractionSolverTime = (endTime - startTime);
+    stats.abstractionTime += abstractionSolverTime;
+    stats.abstractionMaxTime =
+      Math.max(abstractionSolverTime, stats.abstractionMaxTime);
 
     return result;
   }
 
-  @Override
+  /**
+   * Checks if an abstraction formula and a pathFormula are unsatisfiable.
+   * @param pAbstractionFormula the abstraction formula
+   * @param pPathFormula the path formula
+   * @return unsat(pAbstractionFormula & pPathFormula)
+   */
   public boolean unsat(AbstractFormula abstractionFormula, PathFormula pathFormula) {
 
     PathFormula symbFormula = buildSymbolicFormula(abstractionFormula, pathFormula);
@@ -577,7 +578,10 @@ implements SymbPredAbsFormulaManager
     return result;
   }
 
-  @Override
+  /**
+   * Counterexample analysis and predicate discovery.
+   * @throws CPAException
+   */
   public CounterexampleTraceInfo buildCounterexampleTrace(
       ArrayList<SymbPredAbsAbstractElement> abstractTrace) throws CPAException {
 
@@ -729,9 +733,9 @@ implements SymbPredAbsFormulaManager
     long totTime = endTime - startTime;
     stats.cexAnalysisTime += totTime;
     stats.cexAnalysisMaxTime = Math.max(totTime, stats.cexAnalysisMaxTime);
-    stats.cexAnalysisMathsatTime += msatSolveTime;
-    stats.cexAnalysisMaxMathsatTime =
-      Math.max(msatSolveTime, stats.cexAnalysisMaxMathsatTime);
+    stats.cexAnalysisSolverTime += msatSolveTime;
+    stats.cexAnalysisMaxSolverTime =
+      Math.max(msatSolveTime, stats.cexAnalysisMaxSolverTime);
 
     logger.log(Level.ALL, "Counterexample information:", info);
 

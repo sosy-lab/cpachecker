@@ -189,7 +189,7 @@ public abstract class CommonFormulaManager implements FormulaManager {
     for (Predicate p : predicates) {
         SymbolicFormula var = getPredicateVarAndAtom(p).getFirst();
         SymbolicFormula def = getPredicateVarAndAtom(p).getSecond();
-        collectVarNames(def, allvars, allfuncs);
+        smgr.collectVarNames(def, allvars, allfuncs);
         important.add(var);
         // build the formula (var <-> def)
         SymbolicFormula equiv = smgr.makeEquivalence(var, def);
@@ -199,15 +199,6 @@ public abstract class CommonFormulaManager implements FormulaManager {
     }
     return new PredicateInfo(preddef, important, allvars, allfuncs);
   }
-
-  /**
-   * Collects all variables names and all lValues in a term.
-   * @param term  the symbolic formula to analyze
-   * @param vars  the set were all variable names are stored
-   * @param lvals the set where all lValue UIFs and their arguments are stored
-   */
-  protected abstract void collectVarNames(SymbolicFormula term, Set<String> vars,
-                                      Set<Pair<String, SymbolicFormula[]>> lvals);
 
   /**
    * Given an abstract formula (which is a BDD over the predicates), build

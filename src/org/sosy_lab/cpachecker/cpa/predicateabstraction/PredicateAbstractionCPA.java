@@ -133,7 +133,7 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis, Sta
         }
         InterpolatingTheoremProver<Integer> itpProver =
             new MathsatInterpolatingProver(mgr, true, config);
-        amgr = new MathsatPredicateAbstractionFormulaManager<Integer>(abstractFormulaManager, mgr, prover, itpProver, config, logger);
+        amgr = new PredicateAbstractionFormulaManagerImpl<Integer>(abstractFormulaManager, mgr, prover, itpProver, config, logger);
 
 //        covers = new HashMap<ExplicitAbstractElement,
 //                             Set<ExplicitAbstractElement>>();
