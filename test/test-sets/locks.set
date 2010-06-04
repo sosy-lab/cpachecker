@@ -1,1 +1,2 @@
-test/programs/locks/*.c
+test/programs/locks/test_locks_?.c
+test/programs/locks/test_locks_??.c
