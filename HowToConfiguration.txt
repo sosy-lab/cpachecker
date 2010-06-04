@@ -189,11 +189,11 @@ cpas.explicit.merge = sep
 # ExplicitAnalysisCPA (0 means infinitely)
 cpas.explicit.threshold = 0
 
-# file with automaton specification for ObserverAnalysisCPA
-observerAnalysis.inputFile =
+# file with automaton specification for ObserverAutomatonCPA and ControlAutomatonCPA
+automatonAnalysis.inputFile =
 
-# file for saving the ObserverAutomaton in DOT format, no saving if omitted
-observerAnalysis.dotExportFile =
+# file for saving the automaton in DOT format, no saving if omitted
+automatonAnalysis.dotExportFile =
 
 # which merge operator to use for PointerAnalysisCPA? (join or sep)
 cpas.pointeranalysis.merge = sep
