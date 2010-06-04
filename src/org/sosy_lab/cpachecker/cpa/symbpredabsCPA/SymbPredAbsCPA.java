@@ -23,33 +23,20 @@
  */
 package org.sosy_lab.cpachecker.cpa.symbpredabsCPA;
 
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Collection;
-
-import org.sosy_lab.cpachecker.util.symbpredabstraction.CSIsatInterpolatingProver;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.bdd.BDDAbstractFormulaManager;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.InterpolatingTheoremProver;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatInterpolatingProver;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatTheoremProver;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.SimplifyTheoremProver;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.YicesTheoremProver;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-
-import com.google.common.collect.ImmutableList;
+import java.util.Set;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
@@ -61,6 +48,24 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.CSIsatInterpolatingProver;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.bdd.BDDAbstractFormulaManager;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.InterpolatingTheoremProver;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatInterpolatingProver;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatPredicateParser;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatTheoremProver;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.SimplifyTheoremProver;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.YicesTheoremProver;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * CPA that defines symbolic predicate abstraction.
@@ -89,6 +94,9 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
 
   @Option
   private boolean symbolicCoverageCheck = false; 
+
+  @Option(name="abstraction.initialPredicates")
+  private String predicatesFile = "";
   
   private final Configuration config;
   private final LogManager logger;
@@ -110,7 +118,9 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     this.logger = logger;
 
     abstractFormulaManager = new BDDAbstractFormulaManager(config);
-    symbolicFormulaManager = new MathsatSymbolicFormulaManager(config, logger);
+    MathsatSymbolicFormulaManager mmgr = new MathsatSymbolicFormulaManager(config, logger);
+    symbolicFormulaManager = mmgr; 
+
     TheoremProver thmProver;
     if (whichProver.equals("MATHSAT")) {
       thmProver = new MathsatTheoremProver(symbolicFormulaManager, false, config);
@@ -135,37 +145,22 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     transfer = new SymbPredAbsTransferRelation(this);
     merge = new SymbPredAbsMergeOperator(this);
     stop = new StopSepOperator(domain.getPartialOrder());
-    initialPrecision = new SymbPredAbsPrecision();
+    
+    Set<Predicate> predicates = null;
+    if (!predicatesFile.isEmpty()) {
+      MathsatPredicateParser p = new MathsatPredicateParser(mmgr, formulaManager);
+      try {
+        InputStream file = new FileInputStream(predicatesFile);
+        predicates = p.parsePredicates(file);
+      } catch (IOException e) {
+        logger.log(Level.WARNING, "Could not read predicates from file", predicatesFile,
+            "(" + e.getMessage() + ")");
+      }
+    }
+    initialPrecision = new SymbPredAbsPrecision(predicates);
 
     stats = new SymbPredAbsCPAStatistics(this);
   }
-
-/* TODO do we still need this?
-  private PredicateMap createPredicateMap() {
-    Collection<Predicate> preds = null;
-
-    String path = CPAMain.cpaConfig.getProperty("predicates.path");
-    if (path != null) {
-      File f = new File(path, "predicates.msat");
-      try {
-        InputStream in = new FileInputStream(f);
-
-        MathsatPredicateParser p = new MathsatPredicateParser(symbolicFormulaManager, formulaManager);
-        preds = p.parsePredicates(in);
-      } catch (IOException e) {
-        CPAMain.logManager.log(Level.WARNING, "Cannot read predicates from", f.getPath());
-      }
-    }
-
-    if (CPAMain.cpaConfig.getBooleanValue("cpas.symbpredabs.abstraction.norefinement")) {
-      // for testing purposes, it's nice to be able to use a given set of
-      // predicates and disable refinement
-      return new FixedPredicateMap(preds);
-    } else {
-      return new UpdateablePredicateMap(preds);
-    }
-  }
-*/
 
   @Override
   public SymbPredAbsAbstractDomain getAbstractDomain() {

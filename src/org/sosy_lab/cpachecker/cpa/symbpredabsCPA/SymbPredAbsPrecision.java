@@ -44,9 +44,9 @@ public class SymbPredAbsPrecision implements Precision {
     this.globalPredicates = ImmutableSet.copyOf(globalPredicates);
   }
 
-  public SymbPredAbsPrecision() {
+  public SymbPredAbsPrecision(Set<Predicate> globalPredicates) {
     predicateMap = ImmutableSetMultimap.of();
-    globalPredicates = ImmutableSet.of();
+    this.globalPredicates = (globalPredicates == null ? ImmutableSet.<Predicate>of() : ImmutableSet.copyOf(globalPredicates));
   }
 
   public SetMultimap<CFANode, Predicate> getPredicateMap() {

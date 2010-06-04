@@ -27,9 +27,9 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.Stack;
-import java.util.Vector;
 
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
@@ -54,7 +54,7 @@ public class MathsatPredicateParser {
         this.mgr = mgr;
     }
 
-    public Collection<Predicate> parsePredicates(InputStream in) throws IOException {
+    public Set<Predicate> parsePredicates(InputStream in) throws IOException {
             BufferedReader r = new BufferedReader(new InputStreamReader(in));
             StringBuffer data = new StringBuffer();
             String line = r.readLine();
@@ -75,8 +75,8 @@ public class MathsatPredicateParser {
             return parsePredicates(formula);
     }
 
-    private Collection<Predicate> parsePredicates(long formula) {
-        Collection<Predicate> ret = new Vector<Predicate>();
+    private Set<Predicate> parsePredicates(long formula) {
+        Set<Predicate> ret = new HashSet<Predicate>();
         Stack<Long> toProcess = new Stack<Long>();
 
         // We *ASSUME* that in the original msat file the formula is a
