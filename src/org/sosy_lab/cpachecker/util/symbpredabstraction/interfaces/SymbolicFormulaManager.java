@@ -24,14 +24,13 @@
 package org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces;
 
 import java.util.Collection;
-
-import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import java.util.List;
 
 import org.sosy_lab.common.Pair;
-
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.SSAMap;
 
 
 /**
@@ -153,6 +152,14 @@ public interface SymbolicFormulaManager {
     public PathFormula shift(SymbolicFormula f, SSAMap ssa);
 
     /**
+     * The path formulas have an uninterpreted function :=
+     * where an assignment should be. This method replaces all those appearances
+     * by equalities (which is a valid representation of an assignment for a SSA
+     * formula).
+     */
+    public SymbolicFormula replaceAssignments(SymbolicFormula f);
+      
+    /**
      * Extracts the atoms from the given formula. If uninstantiate is true,
      * then the atoms are in the "generic" form
      * @param f the formula to operate on
@@ -171,16 +178,43 @@ public interface SymbolicFormulaManager {
             boolean conjunctionsOnly);
 
     /**
+     * Extracts the SSA indices from a formula. 
+     */
+    public SSAMap extractSSA(SymbolicFormula f);
+
+    /**
      * Create string representation of a formula in a format which may be dumped
      * to a file.
      */
     public String dumpFormula(SymbolicFormula pT);
 
     /**
+     * Prepare formula for solving problems. For example, this method can add
+     * some extra terms to the formula that help the solver.
+     * 
+     * This method returns either the argument or a new formula. The caller should
+     * use the result when asking the solver.
+     */
+    public SymbolicFormula prepareFormula(SymbolicFormula f);
+    
+    /**
+     * Prepare formulas for solving problems. For example, this method can add
+     * some extra terms to the formulas that help the solver.
+     *
+     * This method may change the supplied list.
+     */
+    public void prepareFormulas(List<SymbolicFormula> f);
+    
+    /**
+     * Dump an abstraction problem to a file so that the user can look at this problem later.
+     */
+    public void dumpAbstraction(SymbolicFormula curState, SymbolicFormula edgeFormula,
+        SymbolicFormula predDef, List<SymbolicFormula> importantPreds);
+    
+    /**
      * Create the variable representing a predicate for the given atom. There won't
      * be any tracking of the correspondence between the atom and the variable,
      * if it is not done by the caller of this method.
      */
     public SymbolicFormula createPredicateVariable(SymbolicFormula pAtom);
-
 }

@@ -115,6 +115,9 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
   @Option(name="mathsat.lvalsAsUIFs")
   private boolean lvalsAsUif = false;
 
+  @Option
+  private boolean useBitwiseAxioms = false;
+  
   // the MathSAT environment in which all terms are created
   private final long msatEnv;
 
@@ -182,7 +185,8 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
   private final long stringLitUfDecl;
 
   private final LogManager logger;
-
+  private final MathsatAbstractionPrinter absPrinter;  
+  
   public MathsatSymbolicFormulaManager(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this, MathsatSymbolicFormulaManager.class);
     this.logger = logger;
@@ -220,6 +224,8 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
 
     stringLitUfDecl = mathsat.api.msat_declare_uif(msatEnv, "__string__",
         msatVarType, 1, argtype);
+    
+    absPrinter = new MathsatAbstractionPrinter(msatEnv, "abs", logger);
   }
 
   long getMsatEnv() {
@@ -247,6 +253,14 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     MathsatSymbolicFormula m = (MathsatSymbolicFormula)f;
 
     return mathsat.api.msat_to_msat(msatEnv, m.getTerm());
+  }
+
+  public void dumpAbstraction(SymbolicFormula curState, SymbolicFormula edgeFormula,
+      SymbolicFormula predDef, List<SymbolicFormula> importantPreds) {
+    
+    absPrinter.printMsatFormat(curState, edgeFormula, predDef, importantPreds);
+    absPrinter.printNusmvFormat(curState, edgeFormula, predDef, importantPreds);
+    absPrinter.nextNum();
   }
 
   public SymbolicFormula makeNot(SymbolicFormula f) {
@@ -2280,6 +2294,55 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     return neededTheories.get(term);
   }
 
+  /**
+   * Looks for uninterpreted functions in the formula and adds bitwise
+   * axioms for them.
+   */
+  @Override
+  public SymbolicFormula prepareFormula(SymbolicFormula f) {
+    if (useBitwiseAxioms) {
+      SymbolicFormula bitwiseAxioms = getBitwiseAxioms(f);
+      f = makeAnd(f, bitwiseAxioms);
+
+      logger.log(Level.ALL, "DEBUG_3", "ADDED BITWISE AXIOMS:",
+          bitwiseAxioms);
+    }
+    return f;
+  }
+  
+  /**
+   * Looks for uninterpreted functions in the formulas and adds bitwise
+   * axioms for them to the last formula.
+   */
+  @Override
+  public void prepareFormulas(List<SymbolicFormula> formulas) {
+
+    boolean foundUninterpretedFunction = false;
+
+    SymbolicFormula bitwiseAxioms = makeTrue();
+
+    for (SymbolicFormula fm : formulas) {
+      boolean hasUf = hasUninterpretedFunctions(fm);
+      if (hasUf) {
+        foundUninterpretedFunction = true;
+
+        if (useBitwiseAxioms) {
+          SymbolicFormula a = getBitwiseAxioms(fm);
+          bitwiseAxioms = makeAnd(bitwiseAxioms, a);
+        } else {
+          // do not need to check all formulas, one with UF is enough
+          break;
+        }
+      }
+    }
+
+    if (useBitwiseAxioms && foundUninterpretedFunction) {
+      logger.log(Level.ALL, "DEBUG_3", "ADDING BITWISE AXIOMS TO THE",
+          "LAST GROUP: ", bitwiseAxioms);
+      formulas.set(formulas.size()-1, makeAnd(formulas.get(formulas.size()-1), bitwiseAxioms));
+    }
+  }
+  
   // returns a formula with some "static learning" about some bitwise
   // operations, so that they are (a bit) "less uninterpreted"
   public MathsatSymbolicFormula getBitwiseAxioms(SymbolicFormula f) {

@@ -47,7 +47,6 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Interpolating
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.TheoremProver;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatAbstractionPrinter;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.trace.CounterexampleTraceInfo;
@@ -117,9 +116,6 @@ implements SymbPredAbsFormulaManager
 
   @Option(name="refinement.splitItpAtoms")
   private boolean splitItpAtoms = false;
-
-  @Option
-  private boolean useBitwiseAxioms = false;
 
   @Option(name="mathsat.useDtc")
   private boolean useDtc = false;
@@ -206,11 +202,11 @@ implements SymbPredAbsFormulaManager
     long startTime = System.currentTimeMillis();
 
     final SymbolicFormula absFormula = smgr.instantiate(toConcrete(abs), null);
-    final SSAMap absSsa = mmgr.extractSSA(absFormula);
+    final SSAMap absSsa = smgr.extractSSA(absFormula);
 
 
     pathFormula = smgr.shift(pathFormula.getSymbolicFormula(), absSsa);
-    final SymbolicFormula symbFormula = mmgr.replaceAssignments(pathFormula.getSymbolicFormula());
+    final SymbolicFormula symbFormula = smgr.replaceAssignments(pathFormula.getSymbolicFormula());
     final SSAMap ssa = pathFormula.getSsa();
 
     SymbolicFormula f = smgr.makeAnd(absFormula, symbFormula);
@@ -254,13 +250,7 @@ implements SymbPredAbsFormulaManager
         }
     }
 
-    if (useBitwiseAxioms) {
-        SymbolicFormula bitwiseAxioms = mmgr.getBitwiseAxioms(f);
-        f = smgr.makeAnd(f, bitwiseAxioms);
-
-        logger.log(Level.ALL, "DEBUG_3", "ADDED BITWISE AXIOMS:",
-                bitwiseAxioms);
-    }
+    f = smgr.prepareFormula(fkey);
 
     long solveStartTime = System.currentTimeMillis();
 
@@ -339,7 +329,7 @@ implements SymbPredAbsFormulaManager
                     "CHECKING VALUE OF PREDICATE: ", pi.getFirst());
 
             // instantiate the definition of the predicate
-            SymbolicFormula predTrue = mmgr.instantiate(pi.getSecond(), ssa);
+            SymbolicFormula predTrue = smgr.instantiate(pi.getSecond(), ssa);
             SymbolicFormula predFalse = smgr.makeNot(predTrue);
 
             // check whether this predicate has a truth value in the next
@@ -419,13 +409,13 @@ implements SymbPredAbsFormulaManager
     final SymbolicFormula absFormula = smgr.instantiate(toConcrete(abstractionFormula), null);
 
     // create an ssamap from concrete formula
-    final SSAMap absSsa = mmgr.extractSSA(absFormula);
+    final SSAMap absSsa = smgr.extractSSA(absFormula);
 
     // shift pathFormula indices by the offsets in absSsa
     long start = System.currentTimeMillis();
 
     pathFormula = smgr.shift(pathFormula.getSymbolicFormula(), absSsa);
-    SymbolicFormula symbFormula = mmgr.replaceAssignments(pathFormula.getSymbolicFormula());
+    SymbolicFormula symbFormula = smgr.replaceAssignments(pathFormula.getSymbolicFormula());
     final SSAMap symbSsa = pathFormula.getSsa();
 
     long end = System.currentTimeMillis();
@@ -434,13 +424,7 @@ implements SymbPredAbsFormulaManager
     // from now on, abstractionFormula, pathFormula and functionExitFormula should not be used,
     // only absFormula, absSsa, symbFormula, symbSsa
 
-    if (useBitwiseAxioms) {
-      SymbolicFormula bitwiseAxioms = mmgr.getBitwiseAxioms(symbFormula);
-      symbFormula = smgr.makeAnd(symbFormula, bitwiseAxioms);
-
-      logger.log(Level.ALL, "DEBUG_3", "ADDED BITWISE AXIOMS:",
-          bitwiseAxioms);
-    }
+    symbFormula = smgr.prepareFormula(symbFormula);
 
     return new PathFormula(smgr.makeAnd(absFormula, symbFormula), symbSsa);
   }
@@ -563,10 +547,7 @@ implements SymbPredAbsFormulaManager
       // TODO dump hard abst
       if (msatSolveTime > 10000 && dumpHardAbstractions) {
         // we want to dump "hard" problems...
-        MathsatAbstractionPrinter absPrinter = new MathsatAbstractionPrinter(mmgr, "abs", logger);
-        absPrinter.printMsatFormat(smgr.makeTrue(), symbFormula, predDef, importantPreds);
-        absPrinter.printNusmvFormat(smgr.makeTrue(), symbFormula, predDef, importantPreds);
-        absPrinter.nextNum();
+        smgr.dumpAbstraction(smgr.makeTrue(), symbFormula, predDef, importantPreds);
       }
       logger.log(Level.ALL, "Abstraction computed, result is", result);
     }
@@ -607,10 +588,8 @@ implements SymbPredAbsFormulaManager
 
     List<SymbolicFormula> f = getFormulasForTrace(abstractTrace);
 
-    boolean theoryCombinationNeeded = false;
-
     if (useDtc) {
-      theoryCombinationNeeded = addBitwiseAxioms(f);
+      smgr.prepareFormulas(f);
     }
     f = Collections.unmodifiableList(f);
 
@@ -627,7 +606,7 @@ implements SymbPredAbsFormulaManager
     long msatSolveTimeStart = System.currentTimeMillis();
 
     if (shortestTrace && getUsefulBlocks) {
-      f = Collections.unmodifiableList(getUsefulBlocks(f, theoryCombinationNeeded, useSuffix, useZigZag));
+      f = Collections.unmodifiableList(getUsefulBlocks(f, useSuffix, useZigZag));
     }
 
     if (dumpInterpolationProblems) {
@@ -705,7 +684,7 @@ implements SymbPredAbsFormulaManager
         } else {
           foundPredicates = true;
 
-          Collection<SymbolicFormula> atoms = mmgr.extractAtoms(itp, true, splitItpAtoms, false);
+          Collection<SymbolicFormula> atoms = smgr.extractAtoms(itp, true, splitItpAtoms, false);
           assert !atoms.isEmpty();
           Set<Predicate> preds = buildPredicates(atoms);
           info.addPredicatesForRefinement(e, preds);
@@ -781,7 +760,7 @@ implements SymbPredAbsFormulaManager
         newSsa = p.getSsa();
         newSsa.update(ssa);
       } else {
-        f = mmgr.replaceAssignments(p.getSymbolicFormula());
+        f = smgr.replaceAssignments(p.getSymbolicFormula());
         newSsa = p.getSsa();
       }
 
@@ -789,42 +768,6 @@ implements SymbPredAbsFormulaManager
       ssa = newSsa;
     }
     return result;
-  }
-
-  /**
-   * Looks for uninterpreted functions in the trace formulas and adds bitwise
-   * axioms for them to the last trace formula. Returns true if an UF was found.
-   * @param mgr
-   * @param traceFormulas
-   * @return
-   */
-  private boolean addBitwiseAxioms(List<SymbolicFormula> traceFormulas) {
-
-    boolean foundUninterpretedFunction = false;
-
-    SymbolicFormula bitwiseAxioms = smgr.makeTrue();
-
-    for (SymbolicFormula fm : traceFormulas) {
-      boolean hasUf = mmgr.hasUninterpretedFunctions(fm);
-      if (hasUf) {
-        foundUninterpretedFunction = true;
-
-        if (useBitwiseAxioms) {
-          SymbolicFormula a = mmgr.getBitwiseAxioms(fm);
-          bitwiseAxioms = smgr.makeAnd(bitwiseAxioms, a);
-        } else {
-          // do not need to check all formulas, one with UF is enough
-          break;
-        }
-      }
-    }
-
-    if (useBitwiseAxioms && foundUninterpretedFunction) {
-      logger.log(Level.ALL, "DEBUG_3", "ADDING BITWISE AXIOMS TO THE",
-          "LAST GROUP: ", bitwiseAxioms);
-      traceFormulas.set(traceFormulas.size()-1, smgr.makeAnd(traceFormulas.get(traceFormulas.size()-1), bitwiseAxioms));
-    }
-    return foundUninterpretedFunction;
   }
 
   private boolean checkInfeasabilityOfShortestTrace(List<SymbolicFormula> traceFormulas,
@@ -886,7 +829,7 @@ implements SymbPredAbsFormulaManager
   }
 
   private List<SymbolicFormula> getUsefulBlocks(List<SymbolicFormula> f,
-      boolean theoryCombinationNeeded, boolean suffixTrace, boolean zigZag) {
+      boolean suffixTrace, boolean zigZag) {
     long gubStart = System.currentTimeMillis();
 
     // try to find a minimal-unsatisfiable-core of the trace (as Blast does)

@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormu
  *
  * @author Alberto Griggio <alberto.griggio@disi.unitn.it>
  */
-public class MathsatAbstractionPrinter {
+class MathsatAbstractionPrinter {
 
     private final long msatEnv;
     private final String baseFileName;
@@ -49,8 +49,8 @@ public class MathsatAbstractionPrinter {
 
     private final LogManager logger;
     
-    public MathsatAbstractionPrinter(MathsatSymbolicFormulaManager mmgr, String baseName, LogManager logger) {
-        msatEnv = mmgr.getMsatEnv();
+    public MathsatAbstractionPrinter(long msatEnv, String baseName, LogManager logger) {
+        this.msatEnv = msatEnv;
         baseFileName = baseName;
         curNum = 0;
         this.logger = logger; 
