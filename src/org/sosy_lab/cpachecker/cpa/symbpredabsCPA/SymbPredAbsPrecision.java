@@ -23,29 +23,46 @@
  */
 package org.sosy_lab.cpachecker.cpa.symbpredabsCPA;
 
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import java.util.Set;
 
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
+
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.SetMultimap;
-
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
 public class SymbPredAbsPrecision implements Precision {
 
   private final SetMultimap<CFANode, Predicate> predicateMap;
+  private final Set<Predicate> globalPredicates;
 
-  public SymbPredAbsPrecision(ImmutableSetMultimap<CFANode, Predicate> predicateMap) {
+  public SymbPredAbsPrecision(ImmutableSetMultimap<CFANode, Predicate> predicateMap, Set<Predicate> globalPredicates) {
     assert predicateMap != null;
     this.predicateMap = predicateMap;
+    this.globalPredicates = ImmutableSet.copyOf(globalPredicates);
   }
 
   public SymbPredAbsPrecision() {
     predicateMap = ImmutableSetMultimap.of();
+    globalPredicates = ImmutableSet.of();
   }
 
   public SetMultimap<CFANode, Predicate> getPredicateMap() {
     return predicateMap;
+  }
+
+  public Set<Predicate> getGlobalPredicates() {
+    return globalPredicates;
+  }
+  
+  public Set<Predicate> getPredicates(CFANode loc) {
+    Set<Predicate> result = predicateMap.get(loc);
+    if (result == null) {
+      result = globalPredicates;
+    }
+    return result;
   }
 
   @Override

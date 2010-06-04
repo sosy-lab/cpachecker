@@ -222,7 +222,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     int abstractionNodeId = element.getAbstractionLocation().getNodeNumber();
 
     PathFormula pathFormula = convertEdgeToPathFormula(element.getPathFormula(), edge, abstractionNodeId);
-    Collection<Predicate> preds = precision.getPredicateMap().get(edge.getSuccessor());
+    Collection<Predicate> preds = precision.getPredicates(edge.getSuccessor());
 
     maxBlockSize = Math.max(maxBlockSize, element.getSizeSinceAbstraction()+1);
     maxPredsPerAbstraction = Math.max(maxPredsPerAbstraction, preds.size());

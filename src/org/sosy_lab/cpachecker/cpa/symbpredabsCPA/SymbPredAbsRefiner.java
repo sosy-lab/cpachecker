@@ -130,6 +130,7 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
       ArrayList<SymbPredAbsAbstractElement> pPath, Path pArtPath, CounterexampleTraceInfo pInfo) throws CPAException {
 
     Multimap<CFANode, Predicate> oldPredicateMap = oldPrecision.getPredicateMap();
+    Set<Predicate> globalPredicates = oldPrecision.getGlobalPredicates();
     SymbPredAbsAbstractElement symbPredRootElement = null;
     SymbPredAbsAbstractElement firstInterpolationElement = null;
 
@@ -148,11 +149,12 @@ public class SymbPredAbsRefiner extends AbstractARTBasedRefiner {
         symbPredRootElement = e;
       }
       pmapBuilder.putAll(loc, newpreds);
+      pmapBuilder.putAll(loc, globalPredicates);
     }
     assert(firstInterpolationElement != null);
 
     ImmutableSetMultimap<CFANode, Predicate> newPredicateMap = pmapBuilder.build();
-    SymbPredAbsPrecision newPrecision = new SymbPredAbsPrecision(newPredicateMap);
+    SymbPredAbsPrecision newPrecision = new SymbPredAbsPrecision(newPredicateMap, globalPredicates);
 
     logger.log(Level.ALL, "Predicate map now is", newPredicateMap);
 
