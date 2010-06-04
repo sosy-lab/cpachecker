@@ -27,25 +27,31 @@ import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-import org.junit.After;
-import org.junit.Before;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class MainTest {
 
-  private Experiment mExperiment;
+  private static Experiment mExperiment = null;
   
-  @Before
-  public void createLogFile() {
+  @BeforeClass
+  public static void createLogFile() {
+    if (mExperiment != null) {
+      throw new RuntimeException();
+    }
+    
     SimpleDateFormat lDateFormat = new SimpleDateFormat("'log.'yyyy-MM-dd'.'HH-mm-ss'.csv'");
     String lFileName = "test" + File.separator + "output" + File.separator + lDateFormat.format(new Date());
     
     mExperiment = new Experiment(lFileName);
   }
   
-  @After
-  public void closeLogFile() {
+  @AfterClass
+  public static void closeLogFile() {
     mExperiment.close();
+    
+    mExperiment = null;
   }
   
   @Test
@@ -55,10 +61,14 @@ public class MainTest {
     lArguments[0] = "COVER \"EDGES(ID)*\".EDGES(@CALL(f)).\"EDGES(ID)*\"";
     lArguments[1] = "test/programs/simple/functionCall.c";
 
+    long lStartTime = System.currentTimeMillis();
+    
     Main.main(lArguments);
     
+    long lEndTime = System.currentTimeMillis();
+    
     // TODO give correct values
-    mExperiment.addExperiment("001", 0, 0, 0, 0, 0);
+    mExperiment.addExperiment("001", 0, 0, 0, 0, (lEndTime - lStartTime)/1000.0);
   }
 
   @Test
@@ -70,10 +80,14 @@ public class MainTest {
     lArguments[2] = "negate";
     lArguments[3] = "disablecilpreprocessing";
     
+    long lStartTime = System.currentTimeMillis();
+    
     Main.main(lArguments);
     
+    long lEndTime = System.currentTimeMillis();
+    
     // TODO give correct values
-    mExperiment.addExperiment("002", 0, 0, 0, 0, 0);
+    mExperiment.addExperiment("002", 0, 0, 0, 0, (lEndTime - lStartTime)/1000.0);
   }
 
   @Test
@@ -85,10 +99,14 @@ public class MainTest {
     lArguments[2] = "negate";
     lArguments[3] = "disablecilpreprocessing";
     
+    long lStartTime = System.currentTimeMillis();
+    
     Main.main(lArguments);
     
+    long lEndTime = System.currentTimeMillis();
+    
     // TODO give correct values
-    mExperiment.addExperiment("003", 0, 0, 0, 0, 0);
+    mExperiment.addExperiment("003", 0, 0, 0, 0, (lEndTime - lStartTime)/1000.0);
   }
   
 }

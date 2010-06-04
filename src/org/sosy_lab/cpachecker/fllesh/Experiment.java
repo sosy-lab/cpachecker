@@ -29,10 +29,10 @@ public class Experiment {
       throw new RuntimeException(e);
     }
     
-    mWriter.println("Experiment;Number of Test Goals;Number of Feasible Test Goals;Number of Infeasible Test Goals;Number of Test Cases;Time");
+    mWriter.println("Experiment;Number of Test Goals;Number of Feasible Test Goals;Number of Infeasible Test Goals;Number of Test Cases;Time [s]");
   }
   
-  public void addExperiment(String pName, int pNumberOfTestGoals, int pNumberOfFeasibleTestGoals, int pNumberOfInfeasibleTestGoals, int pNumberOfTestCases, int pTime) {
+  public void addExperiment(String pName, int pNumberOfTestGoals, int pNumberOfFeasibleTestGoals, int pNumberOfInfeasibleTestGoals, int pNumberOfTestCases, double pTime) {
     mWriter.println(pName + ";"+ pNumberOfTestGoals + ";" + pNumberOfFeasibleTestGoals + ";" + pNumberOfInfeasibleTestGoals + ";" + pNumberOfTestCases + ";" + pTime);
   }
   

@@ -14,6 +14,12 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
 public class ProductAutomatonCPA implements ConfigurableProgramAnalysis {
 
+  private static ProductAutomatonCPA mInstance = new ProductAutomatonCPA();
+  
+  public static ProductAutomatonCPA getInstance() {
+    return mInstance;
+  }
+  
   private ProductAutomatonDomain mDomain;
   private ProductAutomatonTransferRelation mTransferRelation;
   private StopSepOperator mStopOperator;

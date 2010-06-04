@@ -37,6 +37,7 @@ import java.util.Set;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.c.FunctionDefinitionNode;
 import org.sosy_lab.cpachecker.core.ReachedElements;
@@ -61,10 +62,7 @@ import org.sosy_lab.cpachecker.fllesh.ecp.ECPPrettyPrinter;
 import org.sosy_lab.cpachecker.fllesh.ecp.ElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.fllesh.ecp.translators.GuardedEdgeLabel;
 import org.sosy_lab.cpachecker.fllesh.ecp.translators.ToGuardedAutomatonTranslator;
-import org.sosy_lab.cpachecker.fllesh.targetgraph.TargetGraph;
-import org.sosy_lab.cpachecker.fllesh.targetgraph.TargetGraphUtil;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.FQLSpecification;
-import org.sosy_lab.cpachecker.fllesh.fql2.translators.ecp.CoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.fllesh.util.AutomaticStreamReader;
 import org.sosy_lab.cpachecker.fllesh.util.Automaton;
 import org.sosy_lab.cpachecker.fllesh.util.Cilly;
@@ -119,18 +117,10 @@ public class Main {
     System.out.println("FQL query: " + lFQLSpecification);
     System.out.println("File: " + lSourceFileName);
     
-    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lMainFunction);
-    
-    /** do translation */
-    ECPPrettyPrinter lPrettyPrinter = new ECPPrettyPrinter();
-
-    CoverageSpecificationTranslator lSpecificationTranslator = new CoverageSpecificationTranslator(lTargetGraph);
-    Set<ElementaryCoveragePattern> lGoals = lSpecificationTranslator.translate(lFQLSpecification.getCoverageSpecification());
+    Task lTask = Task.create(lFQLSpecification, lMainFunction);
     
     Wrapper lWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCPAchecker.getCFAMap(), lLogManager);
 
-    
-    ProductAutomatonCPA lProductAutomatonCPA = new ProductAutomatonCPA();
     
     CPAFactory lLocationCPAFactory = LocationCPA.factory();
     ConfigurableProgramAnalysis lLocationCPA = lLocationCPAFactory.createInstance();
@@ -139,70 +129,38 @@ public class Main {
     lSymbPredAbsCPAFactory.setConfiguration(lConfiguration);
     lSymbPredAbsCPAFactory.setLogger(lLogManager);
     ConfigurableProgramAnalysis lSymbPredAbsCPA = lSymbPredAbsCPAFactory.createInstance();
-
     
-    LinkedList<ConfigurableProgramAnalysis> lTestGenAnalyses = new LinkedList<ConfigurableProgramAnalysis>();
+    CompoundCPA.Factory lCompoundCPAFactory = new CompoundCPA.Factory();
     
-    lTestGenAnalyses.add(lSymbPredAbsCPA);
-    lTestGenAnalyses.add(lProductAutomatonCPA);
+    lCompoundCPAFactory.push(lSymbPredAbsCPA);
+    lCompoundCPAFactory.push(ProductAutomatonCPA.getInstance());
     
-    int[] lEqualityIndices = null;
+    ECPPrettyPrinter lPrettyPrinter = new ECPPrettyPrinter();
     
-    if (lFQLSpecification.hasPassingClause()) {
-      lEqualityIndices = new int[2];
-      lEqualityIndices[0] = 2;
-      lEqualityIndices[1] = 3;
-      
-      // passing clause
-      ElementaryCoveragePattern lPassing = lSpecificationTranslator.translate(lFQLSpecification.getPathPattern());
+    if (lTask.hasPassingClause()) {
       System.out.println("PASSING:");
-      System.out.println(lPrettyPrinter.printPretty(lPassing));
-      Automaton<GuardedEdgeLabel> lPassingAutomaton = ToGuardedAutomatonTranslator.toAutomaton(lPassing, lWrapper.getAlphaEdge(), lWrapper.getOmegaEdge());
-      GuardedEdgeAutomatonCPA lPassingCPA = new GuardedEdgeAutomatonCPA(lPassingAutomaton);
+      System.out.println(lPrettyPrinter.printPretty(lTask.getPassingClause()));
       
-      lTestGenAnalyses.add(lPassingCPA);
+      lCompoundCPAFactory.push(getAutomatonCPA(lTask.getPassingClause(), lWrapper), true);
     }
-    else {
-      lEqualityIndices = new int[1];
-      lEqualityIndices[0] = 2;
-    }
-    
     
     System.out.println("TEST GOALS:");
     
     int lIndex = 0;
     
-    for (ElementaryCoveragePattern lGoal : lGoals) {
+    for (ElementaryCoveragePattern lGoal : lTask) {
       int lCurrentGoalNumber = ++lIndex;
       
       System.out.println("Goal #" + lCurrentGoalNumber);
       System.out.println(lPrettyPrinter.printPretty(lGoal));
       
-      Automaton<GuardedEdgeLabel> lGoalAutomaton = ToGuardedAutomatonTranslator.toAutomaton(lGoal, lWrapper.getAlphaEdge(), lWrapper.getOmegaEdge());
-      GuardedEdgeAutomatonCPA lGoalCPA = new GuardedEdgeAutomatonCPA(lGoalAutomaton);
-      
-      lTestGenAnalyses.add(lGoalCPA);
+      lCompoundCPAFactory.push(getAutomatonCPA(lGoal, lWrapper), true);
       
       LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<ConfigurableProgramAnalysis>();
       lComponentAnalyses.add(lLocationCPA);
-      
-      CompoundCPA lCompoundCPA = new CompoundCPA(lTestGenAnalyses, lEqualityIndices);
-      lComponentAnalyses.add(lCompoundCPA);
+      lComponentAnalyses.add(lCompoundCPAFactory.createInstance());
 
-      // create composite CPA
-      CPAFactory lCPAFactory = CompositeCPA.factory();
-      lCPAFactory.setChildren(lComponentAnalyses);
-      lCPAFactory.setConfiguration(lConfiguration);
-      lCPAFactory.setLogger(lLogManager);
-      ConfigurableProgramAnalysis lCPA = lCPAFactory.createInstance();
-
-      // create ART CPA
-      CPAFactory lARTCPAFactory = ARTCPA.factory();
-      lARTCPAFactory.setChild(lCPA);
-      lARTCPAFactory.setConfiguration(lConfiguration);
-      lARTCPAFactory.setLogger(lLogManager);
-      ConfigurableProgramAnalysis lARTCPA = lARTCPAFactory.createInstance();
-
+      ConfigurableProgramAnalysis lARTCPA = getARTCPA(lComponentAnalyses, lConfiguration, lLogManager);
 
       CPAAlgorithm lBasicAlgorithm = new CPAAlgorithm(lARTCPA, lLogManager);
 
@@ -213,26 +171,56 @@ public class Main {
       lStatistics.add(lARTStatistics);
       lAlgorithm.collectStatistics(lStatistics);
 
-      AbstractElement initialElement = lARTCPA.getInitialElement(lWrapper.getEntry());
-      Precision initialPrecision = lARTCPA.getInitialPrecision(lWrapper.getEntry());
+      AbstractElement lInitialElement = lARTCPA.getInitialElement(lWrapper.getEntry());
+      Precision lInitialPrecision = lARTCPA.getInitialPrecision(lWrapper.getEntry());
 
       ReachedElements lReachedElements = new ReachedElements(ReachedElements.TraversalMethod.TOPSORT, true);
-      lReachedElements.add(initialElement, initialPrecision);
+      lReachedElements.add(lInitialElement, lInitialPrecision);
 
       try {
         lAlgorithm.run(lReachedElements, true);
       } catch (CPAException e) {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
+        throw new RuntimeException(e);
       }
 
-      Main.determineGoalFeasibility(lReachedElements, lCurrentGoalNumber, lARTStatistics);
+      boolean lIsFeasible = Main.determineGoalFeasibility(lReachedElements, lARTStatistics);
       
-      lTestGenAnalyses.removeLast();
+      if (lIsFeasible) {
+        System.out.println("Goal #" + lCurrentGoalNumber + " is feasible!");
+      }
+      else {
+        System.out.println("Goal #" + lCurrentGoalNumber + " is infeasible!");
+      }
+      
+      lCompoundCPAFactory.pop();
     }
   }
   
-  public static void determineGoalFeasibility(ReachedElements pReachedElements, int pCurrentGoalNumber, Statistics pStatistics) throws IOException {
+  public static GuardedEdgeAutomatonCPA getAutomatonCPA(ElementaryCoveragePattern pPattern, Wrapper pWrapper) {
+    Automaton<GuardedEdgeLabel> lAutomaton = ToGuardedAutomatonTranslator.toAutomaton(pPattern, pWrapper.getAlphaEdge(), pWrapper.getOmegaEdge());
+    GuardedEdgeAutomatonCPA lCPA = new GuardedEdgeAutomatonCPA(lAutomaton);
+    
+    return lCPA;
+  }
+  
+  public static ConfigurableProgramAnalysis getARTCPA(List<ConfigurableProgramAnalysis> pComponentCPAs, Configuration pConfiguration, LogManager pLogManager) throws InvalidConfigurationException, CPAException {
+    // create composite CPA
+    CPAFactory lCPAFactory = CompositeCPA.factory();
+    lCPAFactory.setChildren(pComponentCPAs);
+    lCPAFactory.setConfiguration(pConfiguration);
+    lCPAFactory.setLogger(pLogManager);
+    ConfigurableProgramAnalysis lCPA = lCPAFactory.createInstance();
+    
+    // create ART CPA
+    CPAFactory lARTCPAFactory = ARTCPA.factory();
+    lARTCPAFactory.setChild(lCPA);
+    lARTCPAFactory.setConfiguration(pConfiguration);
+    lARTCPAFactory.setLogger(pLogManager);
+    
+    return lARTCPAFactory.createInstance();
+  }
+  
+  public static boolean determineGoalFeasibility(ReachedElements pReachedElements, Statistics pStatistics) throws IOException {
     boolean lErrorReached = false;
     
     for (AbstractElement reachedElement : pReachedElements) {
@@ -247,8 +235,6 @@ public class Main {
 
     if (lErrorReached) {
       pStatistics.printStatistics(lStatisticsWriter, Result.UNSAFE, pReachedElements);
-      
-      System.out.println("Goal #" + pCurrentGoalNumber + " is feasible:");
       
       /** determine test input */
       // TODO get data direct from SymbPredAbsCPA
@@ -280,11 +266,13 @@ public class Main {
       } catch (InterruptedException e) {
         e.printStackTrace();
       }
+      
+      return true;
     }
     else {
       pStatistics.printStatistics(lStatisticsWriter, Result.SAFE, pReachedElements);
       
-      System.out.println("Goal #" + pCurrentGoalNumber + " is infeasible!");
+      return false;
     }
   }
   

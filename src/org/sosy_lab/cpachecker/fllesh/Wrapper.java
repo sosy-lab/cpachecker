@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.fllesh;
 
+import java.io.File;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.HashMap;
@@ -42,6 +44,7 @@ import org.eclipse.core.runtime.CoreException;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFABuilder;
 import org.sosy_lab.cpachecker.cfa.CFATopologicalSort;
+import org.sosy_lab.cpachecker.cfa.DOTBuilder;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
@@ -177,10 +180,6 @@ public class Wrapper {
     for (CFAEdge lEdge : mVisitor.getEdges()) {
       pAnnotations.getId(lEdge);
     }
-
-    //DOTBuilder dotBuilder = new DOTBuilder();
-    //dotBuilder.generateDOT(lCPAchecker.getCFAMap().values(), lMainFunction, new File("/tmp/mycfa.dot"));
-
   }
   
   public Wrapper(FunctionDefinitionNode pMainFunction, Map<String, CFAFunctionDefinitionNode> pCFAs, LogManager pLogManager) {
@@ -199,10 +198,6 @@ public class Wrapper {
     mVisitor = new AddFunctionCallVisitor();
 
     CFATraversal.traverse(mEntry, mVisitor);
-
-    //DOTBuilder dotBuilder = new DOTBuilder();
-    //dotBuilder.generateDOT(lCPAchecker.getCFAMap().values(), lMainFunction, new File("/tmp/mycfa.dot"));
-
   }
 
   public CFAEdge getAlphaEdge() {
@@ -212,9 +207,14 @@ public class Wrapper {
   public CFAEdge getOmegaEdge() {
     return mVisitor.getOmegaEdge();
   }
-
-  public Map<String, CFAFunctionDefinitionNode> getCFAs() {
-    return mCFAs;
+  
+  public CFAFunctionDefinitionNode getCFA(String pFunctionName) {
+    return mCFAs.get(pFunctionName);
+  }
+  
+  public void toDot(File pFile) throws IOException {
+    DOTBuilder lDotBuilder = new DOTBuilder();
+    lDotBuilder.generateDOT(mCFAs.values(), mEntry, pFile);
   }
 
   public CFAFunctionDefinitionNode getEntry() {
