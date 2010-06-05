@@ -72,6 +72,8 @@ import com.google.common.base.Joiner;
 
 public class Main {
   
+  public static FlleShResult mResult = null;
+  
   /**
    * @param pArguments
    * @throws Exception
@@ -119,8 +121,9 @@ public class Main {
     
     Task lTask = Task.create(lFQLSpecification, lMainFunction);
     
+    FlleShResult.Factory lResultFactory = FlleShResult.factory(lTask);
+    
     Wrapper lWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCPAchecker.getCFAMap(), lLogManager);
-
     
     CPAFactory lLocationCPAFactory = LocationCPA.factory();
     ConfigurableProgramAnalysis lLocationCPA = lLocationCPAFactory.createInstance();
@@ -186,14 +189,19 @@ public class Main {
       boolean lIsFeasible = Main.determineGoalFeasibility(lReachedElements, lARTStatistics);
       
       if (lIsFeasible) {
+        // TODO add correct test case
+        lResultFactory.addFeasibleTestCase(lGoal, "feasible");
         System.out.println("Goal #" + lCurrentGoalNumber + " is feasible!");
       }
       else {
+        lResultFactory.addInfeasibleTestCase(lGoal);
         System.out.println("Goal #" + lCurrentGoalNumber + " is infeasible!");
       }
       
       lCompoundCPAFactory.pop();
     }
+    
+    mResult = lResultFactory.create();
   }
   
   public static GuardedEdgeAutomatonCPA getAutomatonCPA(ElementaryCoveragePattern pPattern, Wrapper pWrapper) {

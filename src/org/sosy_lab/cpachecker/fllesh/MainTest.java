@@ -67,8 +67,7 @@ public class MainTest {
     
     long lEndTime = System.currentTimeMillis();
     
-    // TODO give correct values
-    mExperiment.addExperiment("001", 0, 0, 0, 0, (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment("001", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
   }
 
   @Test
@@ -86,8 +85,7 @@ public class MainTest {
     
     long lEndTime = System.currentTimeMillis();
     
-    // TODO give correct values
-    mExperiment.addExperiment("002", 0, 0, 0, 0, (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment("002", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
   }
 
   @Test
@@ -105,8 +103,7 @@ public class MainTest {
     
     long lEndTime = System.currentTimeMillis();
     
-    // TODO give correct values
-    mExperiment.addExperiment("003", 0, 0, 0, 0, (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment("003", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
   }
   
 }
