@@ -82,6 +82,8 @@ public class Main {
     assert(pArguments != null);
     assert(pArguments.length > 1);
     
+    mResult = null;
+    
     String lFQLSpecificationString = pArguments[0];
     String lSourceFileName = pArguments[1];
     
@@ -98,7 +100,7 @@ public class Main {
   
       if (!lCilly.isCillyInvariant(lSourceFileName)) {
         File lCillyProcessedFile = lCilly.cillyfy(pArguments[1]);
-        lCillyProcessedFile.deleteOnExit();
+        //lCillyProcessedFile.deleteOnExit();
   
         lSourceFileName = lCillyProcessedFile.getAbsolutePath();
   

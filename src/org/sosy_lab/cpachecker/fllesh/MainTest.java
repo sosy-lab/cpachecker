@@ -105,5 +105,22 @@ public class MainTest {
     
     mExperiment.addExperiment("003", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
   }
-  
+
+  @Test
+  public void testMain004() throws Exception {
+    String[] lArguments = new String[4];
+
+    lArguments[0] = "COVER \"EDGES(ID)*\".EDGES(ID).\"EDGES(ID)*\"";
+    lArguments[1] = "test/programs/fql/conditioncoverage.cil.c";
+    lArguments[2] = "foo";
+    lArguments[3] = "disablecilpreprocessing";
+    
+    long lStartTime = System.currentTimeMillis();
+    
+    Main.main(lArguments);
+    
+    long lEndTime = System.currentTimeMillis();
+    
+    mExperiment.addExperiment("004", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+  }
 }
