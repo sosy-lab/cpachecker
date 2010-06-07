@@ -23,23 +23,23 @@
  */
 package org.sosy_lab.cpachecker.core;
 
-import java.io.File;
-import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+
+import com.google.common.base.Joiner;
 
 @Options
 public class MainCPAStatistics implements Statistics {
@@ -97,17 +97,11 @@ public class MainCPAStatistics implements Statistics {
         }
 
         if (exportReachedSet) {
-          File reachedFile = new File(outputDirectory, outputFile);
           try {
-            PrintWriter file = new PrintWriter(reachedFile);
-            for (AbstractElement e : reached) {
-              file.println(e);
-            }
-            file.close();
-          } catch (FileNotFoundException e) {
+            Files.writeFile(outputDirectory, outputFile, Joiner.on('\n').join(reached), false);
+          } catch (IOException e) {
             logger.log(Level.WARNING,
-                "Could not write reached set to file ", reachedFile.getAbsolutePath(),
-                ", (", e.getMessage(), ")");
+                "Could not write reached set to file (", e.getMessage(), ")");
           }
         }
 

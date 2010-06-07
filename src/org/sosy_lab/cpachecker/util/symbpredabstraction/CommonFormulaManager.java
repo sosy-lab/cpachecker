@@ -23,27 +23,20 @@
  */
 package org.sosy_lab.cpachecker.util.symbpredabstraction;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.PrintWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 import java.util.logging.Level;
 
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManager;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
-
+import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
@@ -51,6 +44,12 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.AbstractFormulaManager;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
 
 
 /**
@@ -297,21 +296,18 @@ public abstract class CommonFormulaManager implements FormulaManager {
   @Override
   public void dumpFormulasToFile(Iterable<SymbolicFormula> f, String filename) {
     if (filename != null) {
-      File file = new File(outputDirectory, filename);
+      Iterator<SymbolicFormula> it = f.iterator();
+      SymbolicFormula t = it.next();
+      
+      while (it.hasNext()) { 
+        t = smgr.makeAnd(t, it.next());
+      }
+      
       try {
-        SymbolicFormula t = smgr.makeTrue();
-        for (SymbolicFormula fm : f) {
-          t = smgr.makeAnd(t, fm);
-        }
-        String msatRepr = smgr.dumpFormula(t);
-
-        PrintWriter pw = new PrintWriter(file);
-        pw.println(msatRepr);
-        pw.close();
-      } catch (FileNotFoundException e) {
+        Files.writeFile(outputDirectory, filename, smgr.dumpFormula(t), false);
+      } catch (IOException e) {
         logger.log(Level.WARNING,
-            "Failed to save formula to file ", file.getAbsolutePath(),
-            "(", e.getMessage(), ")");
+            "Failed to save formula to file ", filename, "(", e.getMessage(), ")");
       }
     }
   }

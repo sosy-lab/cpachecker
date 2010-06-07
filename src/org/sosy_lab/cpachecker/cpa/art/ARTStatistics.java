@@ -23,8 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.art;
 
-import java.io.File;
-import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Deque;
 import java.util.HashSet;
@@ -32,15 +31,14 @@ import java.util.LinkedList;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-
+import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.ReachedElements;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
@@ -87,28 +85,14 @@ public class ARTStatistics implements Statistics {
     if (exportErrorPath) {
       AbstractElement lastElement = pReached.getLastElement();
       if (lastElement != null && lastElement.isError() && (lastElement instanceof ARTElement)) {
-        writeToFile(AbstractARTBasedRefiner.buildPath((ARTElement)lastElement).toString(),
-                    errorPathFile);
+        try {
+          Files.writeFile(outputDirectory, errorPathFile,
+              AbstractARTBasedRefiner.buildPath((ARTElement)lastElement), false);
+        } catch (IOException e) {
+          logger.log(Level.WARNING,
+              "Could not write error path to file (", e.getMessage(), ")");
+        }
       }
-    }
-  }
-
-  private void writeToFile(String content, String filename) {
-    File outfile = new File(outputDirectory, filename);
-    PrintWriter out;
-    try {
-      out = new PrintWriter(outfile);
-    } catch (FileNotFoundException e) {
-      logger.log(Level.WARNING,
-          "Could not write to file ", outfile, ", (", e.getMessage(), ")");
-      return;
-    }
-
-    out.println(content);
-    out.flush();
-    out.close();
-    if (out.checkError()) {
-      logger.log(Level.WARNING, "Could not write to file ", outfile);
     }
   }
 
@@ -177,6 +161,11 @@ public class ARTStatistics implements Statistics {
     sb.append(edges);
     sb.append("}\n");
 
-    writeToFile(sb.toString(), artFile);
+    try {
+      Files.writeFile(outputDirectory, artFile, sb, false);
+    } catch (IOException e) {
+      logger.log(Level.WARNING,
+          "Could not write ART to file (", e.getMessage(), ")");
+    }
   }
 }

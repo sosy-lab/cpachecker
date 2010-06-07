@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cmdline;
 
-import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -34,15 +34,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
-import com.google.common.base.Joiner;
-
+import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
-
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
+import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
+
+import com.google.common.base.Joiner;
 
 public class CPAMain {
 
@@ -132,19 +132,10 @@ public class CPAMain {
       System.exit(1);
     }
 
-    File sourceFile = new File(names[0]);
-    if (!sourceFile.exists()) {
-      logManager.log(Level.SEVERE, "File", names[0], "does not exist!");
-      System.exit(1);
-    }
-
-    if (!sourceFile.isFile()) {
-      logManager.log(Level.SEVERE, "File", names[0], "is not a normal file!");
-      System.exit(1);
-    }
-
-    if (!sourceFile.canRead()) {
-      logManager.log(Level.SEVERE, "File", names[0], "is not readable!");
+    try {
+      Files.checkReadableFile(null, names[0]);
+    } catch (FileNotFoundException e) {
+      logManager.log(Level.SEVERE, e.getMessage());
       System.exit(1);
     }
 
