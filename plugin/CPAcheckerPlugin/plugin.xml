@@ -40,12 +40,13 @@
     <extension
          point="org.eclipse.ui.editors">
       <editor
-            name="Property File GUI Editor"
-            icon="icons/config.gif"
-            extensions="properties"
+            class="org.sosy_lab.cpachecker.plugin.eclipse.editors.propertieseditor.PropertiesTableEditor"
             contributorClass="org.eclipse.ui.texteditor.BasicTextEditorActionContributor"
-            class="org.sosy_lab.cpachecker.plugin.eclipse.editors.propertieseditor.PropertiesEditor"
-            id="org.sosy_lab.cpachecker.plugin.eclipse.editors.propertieseditor.PropertiesEditor">
+            default="true"
+            extensions="properties"
+            icon="icons/config.gif"
+            id="org.sosy_lab.cpachecker.plugin.eclipse.editors.propertieseditor.PropertiesTableEditor"
+            name="PropertiesTableEditor">
       </editor>  	
       	<editor
             name="Automaton Editor"
