@@ -146,8 +146,6 @@ public class CSIsatInterpolatingProver implements InterpolatingTheoremProver<Int
   public boolean isUnsat() {
     Preconditions.checkState(interpolants.isEmpty(), "Cannot call isUnsat after it returned true once!");
 
-    logger.log(Level.FINEST, "Calling CSIsat");
-
     CSIsatExecutor csisat;
     try {
       csisat = new CSIsatExecutor();

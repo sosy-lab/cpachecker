@@ -60,7 +60,8 @@ public class ProcessExecutor<E extends Exception> {
     this.logger = logger;
     this.name = cmd[0];
     
-    logger.log(Level.ALL, "Executing", cmd);
+    logger.log(Level.FINEST, "Executing", name);
+    logger.log(Level.ALL, (Object[])cmd);
     
     process = Runtime.getRuntime().exec(cmd);
     out = new BufferedReader(new InputStreamReader(process.getInputStream()));
