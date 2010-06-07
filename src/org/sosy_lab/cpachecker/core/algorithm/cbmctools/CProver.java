@@ -26,15 +26,13 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.cbmctools;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.ProcessExecutor;
 
 
 /**
@@ -43,93 +41,36 @@ import org.sosy_lab.common.LogManager;
  */
 public class CProver {
 
-  public static int checkSat (String pTranslatedProgram, LogManager logger) throws FileNotFoundException {
+  public static boolean checkSat (String pTranslatedProgram, LogManager logger) throws IOException {
 
-    File lFile = null;
-    lFile = new File("/localhome/erkan/path.c");
-//    try {
-//      lFile = File.createTempFile("path", ".c");
-//    } catch (IOException e1) {
-////      If this is activated again, it should call CPAMain.logManager.logException for
-////      documenting the exception. This automatically prints the stack trace as well.
-//      e1.printStackTrace();
-//    }
-//    lFile.deleteOnExit();
-
-    PrintWriter lWriter = null;
-    lWriter = new PrintWriter(lFile);
-
-
-//    for (String lFunctionString : lPath.getValue()) {
-    lWriter.print(pTranslatedProgram);
-
-    lWriter.close();
-
+    File cFile = Files.createTempFile("path", ".c", pTranslatedProgram);
     try {
+      
       // TODO function name
-      String lFunctionName = "main";
-      // TODO we check for assertion errors
-      System.out.println(" --- Starting CBMC verification --- ");
-
-      Process lCBMCProcess = Runtime.getRuntime().exec("cbmc --function " +
-          lFunctionName + "_0 --no-bounds-check --no-div-by-zero-check --no-pointer-check " + lFile.getAbsolutePath());
-
-      // TODO Remove output --- begin
-      /*BufferedReader lReader = new BufferedReader(new InputStreamReader(lCBMCProcess.getInputStream()));
-
-        String lLine = null;
-
-        while ((lLine = lReader.readLine()) != null) {
-          System.out.println(lLine);
-        }
-
-        BufferedReader lErrorReader = new BufferedReader(new InputStreamReader(lCBMCProcess.getErrorStream()));
-
-        String lErrorLine = null;
-
-        while ((lErrorLine = lErrorReader.readLine()) != null) {
-          System.out.println(lErrorLine);
-        }*/
-      // TODO Remove output --- end
-
-      int lCBMCExitValue;
-      try {
-        lCBMCExitValue = lCBMCProcess.waitFor();
-      } catch (InterruptedException e) {
-        lCBMCExitValue = -1;
-      }
-
-      switch (lCBMCExitValue) {
-      case 0: // lCBMCExitValue == 0 : Verification successful (Path is infeasible)
-        return 0;
-      case 10: // lCBMCExitValue == 10 : Verification failed (Path is feasible)
-        return 10;
+      String[] args = {"cbmc", "--function", "main_0", "--no-bounds-check", "--no-div-by-zero-check", "--no-pointer-check", cFile.getAbsolutePath()}; 
+      
+      logger.log(Level.FINER, "Starting CBMC verification.");
+      ProcessExecutor<IOException> cbmc = new ProcessExecutor<IOException>(logger, args);
+      cbmc.read();
+      logger.log(Level.FINER, "CBMC finished.");
+      
+      switch (cbmc.getExitCode()) {
+      case 0: // Verification successful (Path is infeasible)
+        return false;
+      case 10: // Verification failed (Path is feasible)
+        return true;
       default:
-        // lCBMCExitValue == 6 : Start function symbol not found, but also gcc not found
+        // exit code == 6 : Start function symbol not found, but also gcc not found
         // more error codes?
-        logger.log(Level.WARNING, "CBMC had exit code " + lCBMCExitValue + ", output was:");
-      BufferedReader br = new BufferedReader(new InputStreamReader(lCBMCProcess.getErrorStream()));
-      String line = null;
-
-      while ((line = br.readLine()) != null) {
-        logger.log(Level.WARNING, line);
+        
+        // exit code and stderr are already logged with level WARNING by ProcessExecutor
+        throw new UnsupportedOperationException("CBMC could not verify the program (CBMC exit code was " + cbmc.getExitCode() + ")!");
       }
-      br.close();
-
-      br = new BufferedReader(new InputStreamReader(lCBMCProcess.getInputStream()));
-      while ((line = br.readLine()) != null) {
-        logger.log(Level.WARNING, line);
+      
+    } finally {
+      if (cFile.exists()) {
+        cFile.delete();
       }
-
-      br.close();
-//      assert(false);
-      break;
-      }
-    } catch (IOException e) {
-      logger.logException(Level.SEVERE, e, "");
-      System.exit(1);
     }
-
-    return -99;
   }
 }

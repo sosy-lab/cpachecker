@@ -23,11 +23,12 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
-import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
@@ -63,30 +64,24 @@ public class CBMCAlgorithm implements Algorithm, StatisticsProvider {
     algorithm.run(reached, true);
 
     if (reached.getLastElement().isError()) {
-      System.out.println("________ ERROR PATH ____________");
-      // commented out because breaks locality, contains hard-coded path
-      // ARTStatistics.dumpARTToDotFile(reached, new File("/localhome/erkan/cbmcArt.dot"));
       List<ARTElement> elementsOnErrorPath = getElementsToErrorPath((ARTElement)reached.getLastElement());
       String pathProgram = AbstractPathToCTranslator.translatePaths(cfa, elementsOnErrorPath);
-      int cbmcRes;
+      
+      boolean cbmcResult;
       try {
-        cbmcRes = CProver.checkSat(pathProgram, logger);
-      } catch (FileNotFoundException e) {
-        throw new CPAException("Calling CBMC failed: " + e.getMessage());
+        cbmcResult = CProver.checkSat(pathProgram, logger);
+      } catch (IOException e) {
+        throw new CPAException("Could not verify program with CBMC (" + e.getMessage() + ")");
       }
-
-      if(cbmcRes == 10) {
-        System.out.println("CBMC comfirms the bug");
+      
+      if (cbmcResult) {
+        logger.log(Level.INFO, "CBMC confirms the bug");
         // TODO: if stopAfterError != true, continue analysis
 
-      } else if(cbmcRes == 0) {
-        System.out.println("CBMC thinks this path contains no bug");
+      } else {
+        logger.log(Level.INFO, "CBMC thinks this path contains no bug");
         // TODO: continue analysis
-//      reached.setLastElementToFalse();
-//      CPAAlgorithm.errorFound = false;
-//      stopAnalysis = false;
       }
-      System.out.println("________________________________");
     }
     return;
   }
