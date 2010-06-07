@@ -127,26 +127,16 @@ public class Main {
     
     Wrapper lWrapper = new Wrapper((FunctionDefinitionNode)lMainFunction, lCPAchecker.getCFAMap(), lLogManager);
     
-    CPAFactory lLocationCPAFactory = LocationCPA.factory();
-    ConfigurableProgramAnalysis lLocationCPA = lLocationCPAFactory.createInstance();
-
-    CPAFactory lSymbPredAbsCPAFactory = SymbPredAbsCPA.factory();
-    lSymbPredAbsCPAFactory.setConfiguration(lConfiguration);
-    lSymbPredAbsCPAFactory.setLogger(lLogManager);
-    ConfigurableProgramAnalysis lSymbPredAbsCPA = lSymbPredAbsCPAFactory.createInstance();
-    
-    CompoundCPA.Factory lCompoundCPAFactory = new CompoundCPA.Factory();
-    
-    lCompoundCPAFactory.push(lSymbPredAbsCPA);
-    lCompoundCPAFactory.push(ProductAutomatonCPA.getInstance());
     
     ECPPrettyPrinter lPrettyPrinter = new ECPPrettyPrinter();
+    
+    GuardedEdgeAutomatonCPA lPassingCPA = null;
     
     if (lTask.hasPassingClause()) {
       System.out.println("PASSING:");
       System.out.println(lPrettyPrinter.printPretty(lTask.getPassingClause()));
       
-      lCompoundCPAFactory.push(getAutomatonCPA(lTask.getPassingClause(), lWrapper), true);
+      lPassingCPA = getAutomatonCPA(lTask.getPassingClause(), lWrapper);
     }
     
     System.out.println("TEST GOALS:");
@@ -158,6 +148,23 @@ public class Main {
       
       System.out.println("Goal #" + lCurrentGoalNumber);
       System.out.println(lPrettyPrinter.printPretty(lGoal));
+      
+      CPAFactory lLocationCPAFactory = LocationCPA.factory();
+      ConfigurableProgramAnalysis lLocationCPA = lLocationCPAFactory.createInstance();
+
+      CPAFactory lSymbPredAbsCPAFactory = SymbPredAbsCPA.factory();
+      lSymbPredAbsCPAFactory.setConfiguration(lConfiguration);
+      lSymbPredAbsCPAFactory.setLogger(lLogManager);
+      ConfigurableProgramAnalysis lSymbPredAbsCPA = lSymbPredAbsCPAFactory.createInstance();
+      
+      CompoundCPA.Factory lCompoundCPAFactory = new CompoundCPA.Factory();
+      
+      lCompoundCPAFactory.push(lSymbPredAbsCPA);
+      lCompoundCPAFactory.push(ProductAutomatonCPA.getInstance());
+      
+      if (lTask.hasPassingClause()) {
+        lCompoundCPAFactory.push(lPassingCPA, true);
+      }
       
       lCompoundCPAFactory.push(getAutomatonCPA(lGoal, lWrapper), true);
       
@@ -333,6 +340,8 @@ public class Main {
       lWriter.println("analysis.useRefinement = true");
       lWriter.println("cegar.refiner = " + org.sosy_lab.cpachecker.cpa.symbpredabsCPA.SymbPredAbsRefiner.class.getCanonicalName());
 
+      lWriter.println("cpas.symbpredabs.initAllVars = false");
+      
       lWriter.close();
 
     } catch (IOException e) {
