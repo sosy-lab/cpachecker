@@ -20,4 +20,21 @@ public class Property {
 	public void setKey(String pKey) {
 		this.key = pKey;
 	}
+	public boolean isComment() {
+		return this.key.trim().startsWith("#") || this.key.trim().startsWith("!");
+	}
+	public String getFileRepresentation() {
+		if (this.key.equals("")) {
+			return "";
+		} else if (isComment()) {
+			return key + value;
+		} else {
+			// property
+			if (value == "") {
+				return "";
+			} else {
+				return key + " = " + value;
+			}
+		}
+	}
 }
