@@ -3,11 +3,11 @@ package org.sosy_lab.common;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
-
 
 import com.google.common.base.Preconditions;
 
@@ -35,7 +35,7 @@ public class ProcessExecutor<E extends Exception> {
   private final Process process;
   private final BufferedReader out;
   private final BufferedReader err;
-  private final PrintWriter in;
+  private final Writer in;
   
   private final List<String> output = new ArrayList<String>();
   private final List<String> errorOutput = new ArrayList<String>();
@@ -65,19 +65,44 @@ public class ProcessExecutor<E extends Exception> {
     process = Runtime.getRuntime().exec(cmd);
     out = new BufferedReader(new InputStreamReader(process.getInputStream()));
     err = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-    in = new PrintWriter(process.getOutputStream());
+    in = new OutputStreamWriter(process.getOutputStream());
   }
   
   /**
    * Write a String to the process. May only be called before {@link #read()}
    * was called, as afterwards the process is not running anymore.
+   * @throws IOException 
    */
-  public void println(String s) {
+  public void println(String s) throws IOException {
     if (finished) {
       throw new IllegalStateException("Cannot write to process that has already terminated.");
     }
-    in.println(s);
+    in.write(s + "\n");
     in.flush();
+  }
+  
+  /**
+   * Write a String to the process. May only be called before {@link #read()}
+   * was called, as afterwards the process is not running anymore.
+   * @throws IOException 
+   */
+  public void print(String s) throws IOException {
+    if (finished) {
+      throw new IllegalStateException("Cannot write to process that has already terminated.");
+    }
+    in.write(s);
+    in.flush();
+  }
+  
+  /**
+   * Sends the EOF (end of file) signal to stdin of the process.
+   * @throws IOException
+   */
+  public void sendEOF() throws IOException {
+    if (finished) {
+      throw new IllegalStateException("Cannot write to process that has already terminated.");
+    }
+    in.close();
   }
   
   /**

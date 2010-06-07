@@ -76,7 +76,7 @@ public class CSIsatInterpolatingProver implements InterpolatingTheoremProver<Int
       }
     }
 
-    public void writeFormulas(List<SymbolicFormula> formulas) {
+    public void writeFormulas(List<SymbolicFormula> formulas) throws IOException {
       String formulasStr = FORMULAS_JOINER.join(formulas);
       formulasStr = formulasStr.replaceAll("@", "__at__")
                                .replaceAll("::", "__colon__")
@@ -85,7 +85,8 @@ public class CSIsatInterpolatingProver implements InterpolatingTheoremProver<Int
 
       logger.log(Level.ALL, "Interpolation problem is", formulasStr);
 
-      println(formulasStr);
+      print(formulasStr);
+      sendEOF();
     }
 
     private SymbolicFormula fromCSIsat(String f) {
