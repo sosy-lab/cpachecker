@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Predication;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.RegularExpression;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.SetMinus;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Union;
+import org.sosy_lab.cpachecker.fllesh.targetgraph.mask.AssumeEdgeMaskFunctor;
 import org.sosy_lab.cpachecker.fllesh.targetgraph.mask.FunctionCallMaskFunctor;
 import org.sosy_lab.cpachecker.fllesh.targetgraph.mask.FunctionCallsMaskFunctor;
 import org.sosy_lab.cpachecker.fllesh.targetgraph.mask.FunctionEntryMaskFunctor;
@@ -81,8 +82,14 @@ public class FilterEvaluator {
       if (mCache.isCached(mTargetGraph, pConditionEdge)) {
         return mCache.get(mTargetGraph, pConditionEdge);
       }
-      
-      throw new UnsupportedOperationException();
+     
+      MaskFunctor<Node, Edge> lMaskFunctor = AssumeEdgeMaskFunctor.getInstance();
+
+      TargetGraph lResultGraph = TargetGraphUtil.applyStandardEdgeBasedFilter(mTargetGraph, lMaskFunctor);
+
+      mCache.add(mTargetGraph, pConditionEdge, lResultGraph);
+
+      return lResultGraph;
     }
 
     @Override
@@ -128,7 +135,7 @@ public class FilterEvaluator {
 
       mCache.add(mTargetGraph, pCalls, lResultGraph);
 
-      return  lResultGraph;
+      return lResultGraph;
     }
 
     @Override

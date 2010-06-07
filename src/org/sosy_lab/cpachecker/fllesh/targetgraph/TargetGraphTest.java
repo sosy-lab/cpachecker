@@ -37,6 +37,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.Predicate;
+import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.ConditionEdge;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Filter;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.Function;
 import org.sosy_lab.cpachecker.fllesh.fql2.ast.filter.FunctionCall;
@@ -504,4 +505,53 @@ public class TargetGraphTest {
     System.out.println(lTargetGraph.getBoundedPaths(1));
   }
   
+  @Test
+  public void test_24() throws IOException, InvalidConfigurationException, CPAException {
+    ImmutableMap<String, String> lProperties =
+      ImmutableMap.of("analysis.programNames", "test/programs/simple/functionCall.c");
+
+    Configuration lConfiguration = new Configuration(mPropertiesFile, lProperties);
+
+    LogManager lLogManager = new LogManager(lConfiguration);
+
+    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
+
+    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lCPAchecker.getMainFunction());
+
+    Filter lFilter = ConditionEdge.getInstance();
+    
+    FilterEvaluator lFilterEvaluator = new FilterEvaluator(lTargetGraph);
+
+    TargetGraph lFilteredTargetGraph = lFilterEvaluator.evaluate(lFilter);
+
+    System.out.println(lFilteredTargetGraph);
+
+    // check caching
+    assertTrue(lFilteredTargetGraph == lFilterEvaluator.evaluate(lFilter));
+  }
+  
+  @Test
+  public void test_25() throws IOException, InvalidConfigurationException, CPAException {
+    ImmutableMap<String, String> lProperties =
+      ImmutableMap.of("analysis.programNames", "test/programs/fql/conditioncoverage.cil.c", "analysis.entryFunction", "foo");
+
+    Configuration lConfiguration = new Configuration(mPropertiesFile, lProperties);
+
+    LogManager lLogManager = new LogManager(lConfiguration);
+
+    ModifiedCPAchecker lCPAchecker = new ModifiedCPAchecker(lConfiguration, lLogManager);
+
+    TargetGraph lTargetGraph = TargetGraphUtil.cfa(lCPAchecker.getMainFunction());
+
+    Filter lFilter = ConditionEdge.getInstance();
+    
+    FilterEvaluator lFilterEvaluator = new FilterEvaluator(lTargetGraph);
+
+    TargetGraph lFilteredTargetGraph = lFilterEvaluator.evaluate(lFilter);
+
+    System.out.println(lFilteredTargetGraph);
+
+    // check caching
+    assertTrue(lFilteredTargetGraph == lFilterEvaluator.evaluate(lFilter));
+  }  
 }

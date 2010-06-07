@@ -123,4 +123,42 @@ public class MainTest {
     
     mExperiment.addExperiment("004", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
   }
+  
+  @Test
+  public void testMain005() throws Exception {
+    String[] lArguments = new String[4];
+
+    // This query should be equivalent to statement coverage
+    lArguments[0] = "COVER \"EDGES(ID)*\".NODES(ID).\"EDGES(ID)*\"";
+    lArguments[1] = "test/programs/fql/conditioncoverage.cil.c";
+    lArguments[2] = "foo";
+    lArguments[3] = "disablecilpreprocessing";
+    
+    long lStartTime = System.currentTimeMillis();
+    
+    Main.main(lArguments);
+    
+    long lEndTime = System.currentTimeMillis();
+    
+    mExperiment.addExperiment("005", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+  }
+  
+  @Test
+  public void testMain006() throws Exception {
+    String[] lArguments = new String[3];
+
+    // This query should be equivalent to statement coverage
+    lArguments[0] = "COVER \"EDGES(ID)*\".NODES(ID).\"EDGES(ID)*\"";
+    lArguments[1] = "test/programs/fql/conditioncoverage.c";
+    lArguments[2] = "foo";
+    
+    long lStartTime = System.currentTimeMillis();
+    
+    Main.main(lArguments);
+    
+    long lEndTime = System.currentTimeMillis();
+    
+    mExperiment.addExperiment("005", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+  }
+  
 }
