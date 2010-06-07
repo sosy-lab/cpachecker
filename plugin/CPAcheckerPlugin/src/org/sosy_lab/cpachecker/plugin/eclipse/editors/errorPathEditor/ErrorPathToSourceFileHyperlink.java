@@ -120,7 +120,7 @@ public class ErrorPathToSourceFileHyperlink implements IHyperlink {
 								
 				System.out.println("Hyperlink to a " + element.getElementName() + "(" + element.toString() + ")");
 				
-				IEditorPart edPart = CDTUITools.openInEditor(element,true, true);
+				/*IEditorPart edPart = */CDTUITools.openInEditor(element,true, true);
 				//revealInEditor(edPart, fRegion.getOffset(), fRegion.getLength());
 		
 			} catch (CModelException e) {

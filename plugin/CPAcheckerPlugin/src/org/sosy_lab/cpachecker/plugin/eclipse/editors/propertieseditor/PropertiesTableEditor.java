@@ -5,6 +5,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -12,8 +13,10 @@ import java.util.Map.Entry;
 
 import org.eclipse.core.filesystem.URIUtil;
 import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IWorkspace;
 import org.eclipse.core.resources.ResourcesPlugin;
+import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jface.dialogs.IDialogConstants;
@@ -63,17 +66,99 @@ public class PropertiesTableEditor extends EditorPart {
 	
 	private boolean dirty = false;
 	
-	
 	private List<Property> data = new ArrayList<Property>();
 	
 	@Override
-	public void doSave(IProgressMonitor pMonitor) {
-		try {
-			storeToFile(this.input.getFile().getLocation().toFile());
-		} catch (IOException e) {
-			pMonitor.setCanceled(true);
-			CPAclipse.logError("Could not store Properties", e);
-		}
+	public void init(IEditorSite pSite, IEditorInput pInput)
+			throws PartInitException {
+		this.input = (IFileEditorInput)pInput.getAdapter(IFileEditorInput.class);
+		setInput(pInput);
+		// would be shown in a label below the tab-bar
+		//setContentDescription("Tabular Editor for PropertyFiles");
+		setSite(pSite);
+	}
+
+	@Override
+	public void createPartControl(final Composite pParent) {
+		this.parent = pParent;
+		pParent.setData(this);
+	
+	    GridLayout gridLayout = new GridLayout ();
+	    pParent.setLayout (gridLayout);
+	    
+		this.propertiesTableViewer = new TableViewer(pParent, SWT.MULTI | SWT.BORDER | SWT.H_SCROLL | SWT.V_SCROLL | SWT.FULL_SELECTION);
+		
+		TableViewerColumn keyColumn = new TableViewerColumn(propertiesTableViewer, SWT.BORDER);
+		keyColumn.getColumn().setText("Key");
+		TableViewerColumn valueColumn = new TableViewerColumn(propertiesTableViewer, SWT.BORDER);
+		valueColumn.getColumn().setText("Value");
+		propertiesTableViewer.setContentProvider(new ArrayContentProvider());
+		propertiesTableViewer.setLabelProvider(new PropertyTableLabelProvider());
+		
+		//propertiesTableViewer.setCellEditors(new CellEditor[] {new TextCellEditor(propertiesTableViewer.getTable())});
+		
+		keyColumn.setEditingSupport(new PropertyTableEditingSupport(propertiesTableViewer, 0));
+		valueColumn.setEditingSupport(new PropertyTableEditingSupport(propertiesTableViewer, 1));
+		
+		GridData data = new GridData (SWT.FILL, SWT.FILL, true, true);
+		propertiesTableViewer.getTable().setLayoutData (data);
+	    propertiesTableViewer.getTable().setHeaderVisible(true);
+	    propertiesTableViewer.getTable().setLinesVisible(true);
+	    
+	    // key column
+	    ColumnLayoutData keyColumnLayout = new ColumnWeightData(40, true);
+	    // value column
+	    ColumnLayoutData valueColumnLayout = new ColumnWeightData(60, true);
+	
+	    // set columns in Table layout
+	    
+	    TableLayout layout = new TableLayout();
+	    layout.addColumnData(keyColumnLayout);
+	    layout.addColumnData(valueColumnLayout);
+	    propertiesTableViewer.getTable().setLayout(layout);
+	    propertiesTableViewer.getTable().layout();
+	    
+	    newButton = new Button (pParent, SWT.PUSH);
+	    newButton.setVisible(true);
+	    newButton.setText("New Property");
+	    
+	    newButton.addMouseListener(new MouseAdapter() {
+	    	@Override
+	    	public void mouseDown(MouseEvent e) {
+	    		PropertiesTableEditor.this.data.add(new Property("newKey", "newValue"));
+	    		PropertiesTableEditor.this.refresh();
+	    		super.mouseDown(e);
+	    	}
+		});
+	    data = new GridData ();
+	    //data.widthHint = 105;
+	    data.horizontalAlignment = SWT.LEFT;
+	    data.verticalAlignment = SWT.BOTTOM;
+	    newButton.setLayoutData (data);
+	    
+	    delButton = new Button (pParent, SWT.PUSH);
+	    delButton.setVisible(true);
+	    delButton.setText("Remove Property");
+	    delButton.addMouseListener(new MouseAdapter() {
+	    	@Override
+	    	public void mouseDown(MouseEvent e) {
+	    		if (propertiesTableViewer.getSelection() instanceof IStructuredSelection) {
+	    			IStructuredSelection selection = (IStructuredSelection) propertiesTableViewer.getSelection();
+	    			propertiesTableViewer.remove(selection.toArray());
+	    			//propertiesTableViewer.remove(propertiesTableViewer.getSelectionIndices());
+	    		}
+	    		super.mouseDown(e);
+	    	}
+		});
+	    data = new GridData ();
+	    //data.widthHint = 105;
+	    data.horizontalAlignment = SWT.LEFT;
+	    data.verticalAlignment = SWT.BOTTOM;
+	    delButton.setLayoutData (data);
+	    
+	    //createTableViewer();
+	    loadFromFile();
+	
 	}
 
 	/** Stores the properties of this class in  the file, sets dirty to false.
@@ -88,6 +173,32 @@ public class PropertiesTableEditor extends EditorPart {
 		prop.store(new FileWriter(ioFile), "Stored by the PropertiesEditor of CPAclipse");
 		this.dirty = false;
 		firePropertyChange(PROP_DIRTY);
+	}
+	
+	private void loadFromFile() {
+		Properties prop = new Properties();
+		File ioFile = this.input.getFile().getLocation().toFile();
+		try {
+			prop.load(new FileReader(ioFile));
+			for (Entry<Object, Object> e : prop.entrySet()) {
+				this.data.add(new Property(e.getKey().toString(), e.getValue().toString()));
+			}
+		} catch (FileNotFoundException e) {
+			CPAclipse.logError(e);
+		} catch (IOException e) {
+			CPAclipse.logError(e);
+		}
+		refresh();
+	}
+
+	@Override
+	public void doSave(IProgressMonitor pMonitor) {
+		try {
+			storeToFile(this.input.getFile().getLocation().toFile());
+		} catch (IOException e) {
+			pMonitor.setCanceled(true);
+			CPAclipse.logError("Could not store Properties", e);
+		}
 	}
 	
 	@Override
@@ -137,36 +248,50 @@ public class PropertiesTableEditor extends EditorPart {
 			IFile original= (input instanceof IFileEditorInput) ? ((IFileEditorInput) input).getFile() : null;
 			if (original != null)
 				dialog.setOriginalFile(original);
-
 			dialog.create();
-
-			if (original != null && original.exists()) {
+			if (original == null || !original.exists()) {
 				String message= "The original file has been deleted or is not accessible";
 				dialog.setErrorMessage(null);
 				dialog.setMessage(message, IMessageProvider.WARNING);
 			}
-
 			if (dialog.open() == Window.CANCEL) {
 				return;
 			}
-
 			IPath filePath= dialog.getResult();
 			if (filePath == null) {
 				return;
 			}
 			IWorkspace workspace= ResourcesPlugin.getWorkspace();
-			IFile file= workspace.getRoot().getFile(filePath);
+			final IFile file= workspace.getRoot().getFile(filePath);
 			newInput= new FileEditorInput(file);
 
 			try {
-				this.storeToFile(file.getLocation().toFile());
-			} catch (IOException e) {
+		        org.eclipse.ui.actions.WorkspaceModifyOperation operation = new org.eclipse.ui.actions.WorkspaceModifyOperation() {
+		        	@Override
+		            public void execute(IProgressMonitor pm) throws CoreException {
+		        		try {
+							storeToFile(file.getLocation().toFile());
+							file.refreshLocal(IResource.DEPTH_ZERO, pm);
+		        		} catch (IOException e) {
+		    				CPAclipse.logError("Could not store Properties", e);
+		        		}
+		            }
+		        };
+	            new org.eclipse.jface.dialogs.ProgressMonitorDialog(getSite().getShell()).run(false, false, operation);
+			} catch (InvocationTargetException e) {
+				CPAclipse.logError("Could not store Properties", e);
+			} catch (InterruptedException e) {
 				CPAclipse.logError("Could not store Properties", e);
 			}
 			this.setInput(newInput);
 		}
-
 	}
+	
+	@Override
+	public boolean isSaveAsAllowed() {
+		return true;
+	}
+
 	@Override
 	protected void setInput(IEditorInput input) {
 		super.setInput(input);
@@ -176,135 +301,13 @@ public class PropertiesTableEditor extends EditorPart {
 		firePropertyChange(PROP_DIRTY);
 	}
 	@Override
-	public void init(IEditorSite pSite, IEditorInput pInput)
-			throws PartInitException {
-		this.input = (IFileEditorInput)pInput.getAdapter(IFileEditorInput.class);
-		setInput(pInput);
-		setContentDescription("Tabular Editor for PropertyFiles");
-		setPartName("Table PropertyFileEditor");
-		setSite(pSite);
-	}
-
-	@Override
 	public boolean isDirty() {
 		return dirty;
 	}
 
-	@Override
-	public boolean isSaveAsAllowed() {
-		return true;
-	}
-
-	@Override
-	public void createPartControl(final Composite pParent) {
-		this.parent = pParent;
-		pParent.setData(this);
-
-        GridLayout gridLayout = new GridLayout ();/*
-        gridLayout.marginHeight = 10;
-        gridLayout.verticalSpacing = 10;
-        gridLayout.marginWidth = 10;
-        gridLayout.horizontalSpacing = 10;*/
-        pParent.setLayout (gridLayout);
-        
-		this.propertiesTableViewer = new TableViewer(pParent, SWT.MULTI | SWT.BORDER | SWT.H_SCROLL | SWT.V_SCROLL | SWT.FULL_SELECTION);
-		
-		TableViewerColumn keyColumn = new TableViewerColumn(propertiesTableViewer, SWT.BORDER);
-		keyColumn.getColumn().setText("Key");
-		TableViewerColumn valueColumn = new TableViewerColumn(propertiesTableViewer, SWT.BORDER);
-		valueColumn.getColumn().setText("Value");
-		propertiesTableViewer.setContentProvider(new ArrayContentProvider());
-		propertiesTableViewer.setLabelProvider(new PropertyTableLabelProvider());
-		
-		//propertiesTableViewer.setCellEditors(new CellEditor[] {new TextCellEditor(propertiesTableViewer.getTable())});
-		
-		keyColumn.setEditingSupport(new PropertyTableEditingSupport(propertiesTableViewer, 0));
-		valueColumn.setEditingSupport(new PropertyTableEditingSupport(propertiesTableViewer, 1));
-		
-		GridData data = new GridData (SWT.FILL, SWT.FILL, true, true);
-		propertiesTableViewer.getTable().setLayoutData (data);
-        propertiesTableViewer.getTable().setHeaderVisible(true);
-        propertiesTableViewer.getTable().setLinesVisible(true);
-        
-        
-        // key column
-        ColumnLayoutData keyColumnLayout = new ColumnWeightData(40, true);
-        // value column
-        ColumnLayoutData valueColumnLayout = new ColumnWeightData(60, true);
-
-        // set columns in Table layout
-        
-        TableLayout layout = new TableLayout();
-        layout.addColumnData(keyColumnLayout);
-        layout.addColumnData(valueColumnLayout);
-        propertiesTableViewer.getTable().setLayout(layout);
-        propertiesTableViewer.getTable().layout();
-        
-        newButton = new Button (pParent, SWT.PUSH);
-        newButton.setVisible(true);
-        newButton.setText("New Property...");
-        
-        newButton.addMouseListener(new MouseAdapter() {
-        	@Override
-        	public void mouseDown(MouseEvent e) {
-        		PropertiesTableEditor.this.data.add(new Property("newKey", "newValue"));
-        		PropertiesTableEditor.this.refresh();
-        		super.mouseDown(e);
-        	}
-		});
-        data = new GridData ();
-        data.widthHint = 105;
-        data.horizontalAlignment = SWT.LEFT;
-        data.verticalAlignment = SWT.BOTTOM;
-        newButton.setLayoutData (data);
-        
-        delButton = new Button (pParent, SWT.PUSH);
-        delButton.setVisible(true);
-        delButton.setText("Remove Property...");
-        delButton.addMouseListener(new MouseAdapter() {
-        	@Override
-        	public void mouseDown(MouseEvent e) {
-        		if (propertiesTableViewer.getSelection() instanceof IStructuredSelection) {
-        			IStructuredSelection selection = (IStructuredSelection) propertiesTableViewer.getSelection();
-        			propertiesTableViewer.remove(selection.toArray());
-        			//propertiesTableViewer.remove(propertiesTableViewer.getSelectionIndices());
-        		}
-        		super.mouseDown(e);
-        	}
-		});
-        data = new GridData ();
-        data.widthHint = 105;
-        data.horizontalAlignment = SWT.LEFT;
-        data.verticalAlignment = SWT.BOTTOM;
-        delButton.setLayoutData (data);
-        
-        //createTableViewer();
-        loadFromFile();
-
-	}
 	private void refresh() {
 		this.propertiesTableViewer.setInput(this.data);
 		//this.propertiesTableViewer.refresh(true);
-	}
-	
-	private void loadFromFile() {
-		Properties prop = new Properties();
-		File ioFile = this.input.getFile().getLocation().toFile();
-		try {
-			prop.load(new FileReader(ioFile));
-			for (Entry<Object, Object> e : prop.entrySet()) {
-				this.data.add(new Property(e.getKey().toString(), e.getValue().toString()));
-				/*TableItem tableItem = createEmptyPropertyItem();
-				tableItem.setText(0, e.getKey().toString());
-				tableItem.setText(1, e.getValue().toString());
-				*/
-			}
-		} catch (FileNotFoundException e) {
-			CPAclipse.logError(e);
-		} catch (IOException e) {
-			CPAclipse.logError(e);
-		}
-		refresh();
 	}
 	
 	@Override
@@ -328,10 +331,20 @@ public class PropertiesTableEditor extends EditorPart {
 				return;
 			}
 			if (element instanceof Property && value instanceof String) {
+				Property p = (Property)element;
+				String str = (String) value;
 				if (column == 0) {
-					((Property)element).setKey((String)value);
+					if (p.getKey().equals(value)) {
+						return;
+					} else {
+						p.setKey(str);
+					}
 				} else {
-					((Property)element).setValue((String)value);
+					if (p.getValue().equals(value)) {
+						return;
+					} else {
+						p.setValue(str);
+					}
 				}
 				PropertiesTableEditor.this.dirty = true;
 				PropertiesTableEditor.this.firePropertyChange(PROP_DIRTY);
@@ -352,7 +365,6 @@ public class PropertiesTableEditor extends EditorPart {
 			} else {
 				return element.toString();
 			}
-			
 		}
 
 		@Override
