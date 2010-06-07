@@ -158,7 +158,43 @@ public class MainTest {
     
     long lEndTime = System.currentTimeMillis();
     
-    mExperiment.addExperiment("005", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+    mExperiment.addExperiment("006", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+  }
+  
+  @Test
+  public void testMain007() throws Exception {
+    String[] lArguments = new String[3];
+
+    // This query should be equivalent to statement coverage
+    lArguments[0] = "COVER \"EDGES(ID)*\".NODES(@CONDITIONEDGE).\"EDGES(ID)*\"";
+    lArguments[1] = "test/programs/fql/conditioncoverage.c";
+    lArguments[2] = "foo";
+    
+    long lStartTime = System.currentTimeMillis();
+    
+    Main.main(lArguments);
+    
+    long lEndTime = System.currentTimeMillis();
+    
+    mExperiment.addExperiment("007", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
+  }
+  
+  @Test
+  public void testMain008() throws Exception {
+    String[] lArguments = new String[3];
+
+    // This query should be equivalent to statement coverage
+    lArguments[0] = "COVER \"EDGES(ID)*\".NODES(@CONDITIONEDGE).\"EDGES(ID)*\"";
+    lArguments[1] = "test/programs/fql/using_random.c";
+    lArguments[2] = "foo";
+    
+    long lStartTime = System.currentTimeMillis();
+    
+    Main.main(lArguments);
+    
+    long lEndTime = System.currentTimeMillis();
+    
+    mExperiment.addExperiment("008", Main.mResult.getTask().getNumberOfTestGoals(), Main.mResult.getNumberOfFeasibleTestGoals(), Main.mResult.getNumberOfInfeasibleTestGoals(), Main.mResult.getNumberOfTestCases(), (lEndTime - lStartTime)/1000.0);
   }
   
 }

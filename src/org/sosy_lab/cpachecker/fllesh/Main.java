@@ -141,9 +141,22 @@ public class Main {
     
     System.out.println("TEST GOALS:");
     
-    int lIndex = 0;
+    List<ElementaryCoveragePattern> lGoals = new LinkedList<ElementaryCoveragePattern>();
+    
+    //int lTmpIndex = 0;
     
     for (ElementaryCoveragePattern lGoal : lTask) {
+      /*lTmpIndex++;
+      
+      if (lTmpIndex == 2) {*/
+        lGoals.add(lGoal);
+      //}
+    }
+    
+    int lIndex = 0;
+    
+    //for (ElementaryCoveragePattern lGoal : lTask) {
+    for (ElementaryCoveragePattern lGoal : lGoals) {
       int lCurrentGoalNumber = ++lIndex;
       
       System.out.println("Goal #" + lCurrentGoalNumber);
@@ -207,7 +220,7 @@ public class Main {
         System.out.println("Goal #" + lCurrentGoalNumber + " is infeasible!");
       }
       
-      lCompoundCPAFactory.pop();
+      //lCompoundCPAFactory.pop();
     }
     
     mResult = lResultFactory.create();
@@ -341,12 +354,12 @@ public class Main {
       lWriter.println("cegar.refiner = " + org.sosy_lab.cpachecker.cpa.symbpredabsCPA.SymbPredAbsRefiner.class.getCanonicalName());
 
       lWriter.println("cpas.symbpredabs.initAllVars = false");
+      lWriter.println("cpas.symbpredabs.noAutoInitPrefix = __BLAST_NONDET");
       
       lWriter.close();
 
     } catch (IOException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
+      throw new RuntimeException(e);
     }
 
     return lPropertiesFile;
