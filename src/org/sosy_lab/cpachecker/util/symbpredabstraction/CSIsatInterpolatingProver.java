@@ -23,15 +23,13 @@
  */
 package org.sosy_lab.cpachecker.util.symbpredabstraction;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.ProcessExecutor;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.InterpolatingTheoremProver;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormulaManager;
@@ -56,7 +54,48 @@ import com.google.common.base.Preconditions;
 public class CSIsatInterpolatingProver implements InterpolatingTheoremProver<Integer> {
 
   private static final Joiner FORMULAS_JOINER = Joiner.on("; ");
-  private static final String CSISAT_CMDLINE = "csisat -syntax infix -round -LAsolver simplex";
+  private static final String[] CSISAT_CMDLINE = {"csisat", "-syntax", "infix", "-round", "-LAsolver", "simplex"};
+
+  private class CSIsatExecutor extends ProcessExecutor<IOException> {
+
+    private boolean satisfiable = false;
+    
+    public CSIsatExecutor() throws IOException {
+      super(CSIsatInterpolatingProver.this.logger, CSISAT_CMDLINE);
+    }
+
+    @Override
+    public void handleOutput(String line) throws IOException {  
+      if (line.startsWith("Satisfiable: ")) {
+        satisfiable = true;
+
+      } else {
+        SymbolicFormula itp = fromCSIsat(line);
+        interpolants.add(itp);
+        logger.log(Level.ALL, "Parsed interpolant", line, "as", itp);
+      }
+    }
+
+    public void writeFormulas(List<SymbolicFormula> formulas) {
+      String formulasStr = FORMULAS_JOINER.join(formulas);
+      formulasStr = formulasStr.replaceAll("@", "__at__")
+                               .replaceAll("::", "__colon__")
+                               .replaceAll("!", "not ")
+                               ;
+
+      logger.log(Level.ALL, "Interpolation problem is", formulasStr);
+
+      println(formulasStr);
+    }
+
+    private SymbolicFormula fromCSIsat(String f) {
+      String itp = f.replaceAll("__at__", "@")
+                    .replaceAll("__colon__", "::")
+                    .replaceAll(" not ", " ! ")
+                    ;
+      return smgr.parseInfix(itp);
+    }   
+  }
 
   private final SymbolicFormulaManager smgr;
   private final LogManager logger;
@@ -96,107 +135,42 @@ public class CSIsatInterpolatingProver implements InterpolatingTheoremProver<Int
       Preconditions.checkArgument(aIdx.equals(i++), "CSIsatInterpolatingProver only accepts a contigous range at the beginning of the formulas for A");
     }
     i = i-1;
-    Preconditions.checkArgument(i < interpolants.size(), "Invalid index for interpolant");
+    Preconditions.checkElementIndex(i, interpolants.size(), "Invalid index for interpolant");
 
     return interpolants.get(i);
   }
 
-  private String toCSIsat(List<SymbolicFormula> formulas) {
-    String formulasStr = FORMULAS_JOINER.join(formulas);
-    return formulasStr.replaceAll("@", "__at__")
-                      .replaceAll("::", "__colon__")
-                      .replaceAll("!", "not ")
-                      ;
-  }
-
-  private SymbolicFormula fromCSIsat(String f) {
-    String itp = f.replaceAll("__at__", "@")
-                  .replaceAll("__colon__", "::")
-                  .replaceAll(" not ", " ! ")
-                  ;
-    return smgr.parseInfix(itp);
-  }
 
   @Override
   public boolean isUnsat() {
     Preconditions.checkState(interpolants.isEmpty(), "Cannot call isUnsat after it returned true once!");
 
-    String formulasStr = toCSIsat(formulas);
-
     logger.log(Level.FINEST, "Calling CSIsat");
-    logger.log(Level.ALL, "Interpolation problem is", formulasStr);
 
-    Process csisat = null;
-    BufferedReader csisatOut = null;
-    BufferedReader csisatErr = null;
-    PrintWriter csisatIn = null;
+    CSIsatExecutor csisat;
     try {
-      try {
-        csisat = Runtime.getRuntime().exec(CSISAT_CMDLINE);
-        csisatOut = new BufferedReader(new InputStreamReader(csisat.getInputStream()));
-        csisatErr = new BufferedReader(new InputStreamReader(csisat.getErrorStream()));
-        csisatIn = new PrintWriter(csisat.getOutputStream());
-
-        csisatIn.write(formulasStr);
-        csisatIn.close();
-
-        String line;
-        while ((line = csisatOut.readLine()) != null) {
-          if (line.startsWith("Satisfiable: ")) {
-            logger.log(Level.FINEST, "CSIsat result: satisfiable");
-            assert interpolants.isEmpty();
-            return false;
-          }
-
-          SymbolicFormula itp = fromCSIsat(line);
-          interpolants.add(itp);
-          logger.log(Level.ALL, "Parsed interpolant", line, "as", itp);
-        }
-
-        StringBuilder errorText = new StringBuilder();
-        while ((line = csisatErr.readLine()) != null) {
-          errorText.append(line);
-          errorText.append('\n');
-        }
-        if (errorText.length() != 0) {
-          logger.log(Level.WARNING, "CSIsat produced unexpected output:\n", errorText);
-        }
-
-        if (interpolants.size() != formulas.size()-1) {
-          logger.log(Level.SEVERE, "CSIsat failed to generate interpolants");
-          throw new UnsupportedOperationException();
-        }
-
-        logger.log(Level.FINEST, "CSIsat result: unsatisfiable,", interpolants.size(), " interpolants found.");
-
-      } catch (IOException e) {
-        logger.logException(Level.SEVERE, e, "Error during invocation of CSIsat interpolating theorem prover!");
-        throw new UnsupportedOperationException(e);
-      }
-    } finally {
-      if (csisat != null) {
-        csisat.destroy();
-      }
-      if (csisatErr != null) {
-        try {
-          csisatErr.close();
-        } catch (IOException e) {
-          logger.logException(Level.SEVERE, e, "Error during closing of input stream, ignored.");
-        }
-      }
-      if (csisatOut != null) {
-        try {
-          csisatOut.close();
-        } catch (IOException e) {
-          logger.logException(Level.SEVERE, e, "Error during closing of input stream, ignored.");
-        }
-      }
-      if (csisatIn != null) {
-        csisatIn.close();
-      }
+      csisat = new CSIsatExecutor();
+      csisat.writeFormulas(formulas);
+      csisat.read();
+    } catch (IOException e) {
+      logger.logException(Level.SEVERE, e, "Error during invocation of CSIsat interpolating theorem prover!");
+      throw new UnsupportedOperationException(e);
     }
-
-    return true;
+    
+    if (csisat.satisfiable) {
+      logger.log(Level.FINEST, "CSIsat result: satisfiable");
+      assert interpolants.isEmpty();
+      return false;
+      
+    } else {
+      if (interpolants.size() != formulas.size()-1) {
+        logger.log(Level.SEVERE, "CSIsat failed to generate interpolants");
+        throw new UnsupportedOperationException();
+      }
+      logger.log(Level.FINEST, "CSIsat result: unsatisfiable,", interpolants.size(), " interpolants found.");
+      
+      return true;
+    }
   }
 
   @Override
