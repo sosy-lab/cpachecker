@@ -31,37 +31,37 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
-import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
-
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
-
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.objectmodel.CFANode;
 import org.sosy_lab.cpachecker.core.ReachedElements;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.Predicate;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces.SymbolicFormula;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
+
+@Options(prefix="cpas.symbpredabs.predmap")
 public class SymbPredAbsCPAStatistics implements Statistics {
 
-    @Option(name="cpas.symbpredabs.predmap.export")
-    private boolean exportPredMap = true;
+    @Option
+    private boolean export = true;
 
-    @Option(name="output.path")
-    private String outputDirectory = "test/output/";
-
-    @Option(name="cpas.symbpredabs.predmap.file")
-    private String predMapFile = "predmap.txt";
+    @Option(type=Option.Type.OUTPUT_FILE)
+    private File file = new File("predmap.txt");
 
     private final SymbPredAbsCPA cpa;
 
-    public SymbPredAbsCPAStatistics(SymbPredAbsCPA cpa) {
+    public SymbPredAbsCPAStatistics(SymbPredAbsCPA cpa) throws InvalidConfigurationException {
       this.cpa = cpa;
+      cpa.getConfiguration().inject(this);
     }
 
     @Override
@@ -98,11 +98,10 @@ public class SymbPredAbsCPAStatistics implements Statistics {
       int avgPredsPerLocation = allLocs.size() > 0 ? totPredsUsed/allLocs.size() : 0;
 
       // check if/where to dump the predicate map
-      if (result == Result.SAFE && exportPredMap) {
-        File outfile = new File(outputDirectory, predMapFile);
+      if (result == Result.SAFE && export) {
 
         try {
-          PrintWriter pw = new PrintWriter(outfile);
+          PrintWriter pw = new PrintWriter(file);
           pw.println("ALL PREDICATES:");
           for (Predicate p : allPreds) {
             Pair<? extends SymbolicFormula, ? extends SymbolicFormula> d = amgr.getPredicateVarAndAtom(p);
@@ -120,10 +119,10 @@ public class SymbPredAbsCPAStatistics implements Statistics {
           pw.flush();
           pw.close();
           if (pw.checkError()) {
-            cpa.getLogger().log(Level.WARNING, "Could not write predicate map to file ", outfile);
+            cpa.getLogger().log(Level.WARNING, "Could not write predicate map to file ", file);
           }
         } catch (FileNotFoundException e) {
-          cpa.getLogger().log(Level.WARNING, "Could not write predicate map to file ", outfile,
+          cpa.getLogger().log(Level.WARNING, "Could not write predicate map to file ", file,
               (e.getMessage() != null ? "(" + e.getMessage() + ")" : ""));
         }
       }

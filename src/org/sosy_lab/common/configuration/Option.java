@@ -96,4 +96,18 @@ public @interface Option {
    *
    */
   public String[] values() default {};
+  
+  /**
+   * If the type of the option needs further specification, this field provides
+   * it. See {@link Type} for possible values. The type of the option and the
+   * value of this field have to match.
+   */
+  public Type type() default Type.NOT_APPLICABLE;
+  
+  public static enum Type { 
+    NOT_APPLICABLE,
+    REQUIRED_INPUT_FILE,
+    OPTIONAL_INPUT_FILE,
+    OUTPUT_FILE,
+  }
 }

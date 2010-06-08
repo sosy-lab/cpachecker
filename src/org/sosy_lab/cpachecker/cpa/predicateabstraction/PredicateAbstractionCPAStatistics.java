@@ -57,11 +57,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 @Options
 public class PredicateAbstractionCPAStatistics implements Statistics {
 
-    @Option(name="output.path")
-    private String outputDirectory = "test/output/";
-
-    @Option(name="cpas.symbpredabs.refinement.finalPredMapFile")
-    private String predmapFile = "predmap.txt";
+    @Option(name="cpas.symbpredabs.refinement.finalPredMapFile", type=Option.Type.OUTPUT_FILE)
+    private File predmapFile = new File("predmap.txt");
 
     @Option(name="cpas.symbpredabs.refinement.addPredicatesGlobally")
     private boolean addPredicatesGlobally = false;
@@ -120,9 +117,8 @@ public class PredicateAbstractionCPAStatistics implements Statistics {
         // check if/where to dump the predicate map
         if (result == Result.SAFE) {
           if (!predmapFile.equals("")) {
-            File f = new File(outputDirectory, predmapFile);
             try {
-              PrintWriter pw = new PrintWriter(f);
+              PrintWriter pw = new PrintWriter(predmapFile);
               pw.println("ALL PREDICATES:");
               for (Predicate p : allPreds) {
                 Pair<? extends SymbolicFormula, ? extends SymbolicFormula> d =
@@ -145,7 +141,7 @@ public class PredicateAbstractionCPAStatistics implements Statistics {
               pw.close();
             } catch (FileNotFoundException e) {
               // just issue a warning to the user
-              out.println("WARNING: impossible to dump predicate map on " + f.getAbsolutePath());
+              out.println("WARNING: impossible to dump predicate map on " + predmapFile.getAbsolutePath());
             }
           }
         }

@@ -68,11 +68,8 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
   @Option(name="assumptions.export")
   private boolean exportAssumptions = false;
 
-  @Option(name="output.path")
-  private String outfilePath = "";
-
-  @Option(name="assumptions.file")
-  private String outfileName = "assumptions.txt";
+  @Option(name="assumptions.file", type=Option.Type.OUTPUT_FILE)
+  private File assumptionsFile = new File("assumptions.txt");
 
   private final LogManager logger;
   private final Algorithm innerAlgorithm;
@@ -132,7 +129,6 @@ public class AssumptionCollectionAlgorithm implements Algorithm, StatisticsProvi
     if (exportAssumptions) {
       //if no filename is given, use default value
 
-      File assumptionsFile = new File(outfilePath, outfileName);
       try {
         output = new PrintWriter(assumptionsFile);
       } catch (Exception e) {

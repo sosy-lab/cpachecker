@@ -109,11 +109,8 @@ public class CPAchecker {
     @Option(name="cfa.export")
     boolean exportCfa = true;
 
-    @Option(name="cfa.file")
-    String exportCfaFile = "cfa.dot";
-
-    @Option(name="output.path")
-    String outputDirectory = "test/output/";
+    @Option(name="cfa.file", type=Option.Type.OUTPUT_FILE)
+    File exportCfaFile = new File("cfa.dot");
 
     // algorithm options
 
@@ -351,10 +348,9 @@ public class CPAchecker {
     // write CFA to file
     if (options.exportCfa) {
       DOTBuilder dotBuilder = new DOTBuilder();
-      File cfaFile = new File(options.outputDirectory, options.exportCfaFile);
 
       try {
-        dotBuilder.generateDOT(cfas.values(), mainFunction, cfaFile);
+        dotBuilder.generateDOT(cfas.values(), mainFunction, options.exportCfaFile);
       } catch (IOException e) {
         logger.log(Level.WARNING,
           "Could not write CFA to dot file, check configuration option cfa.file! (",

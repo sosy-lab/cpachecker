@@ -23,8 +23,10 @@
  */
 package org.sosy_lab.cpachecker.util.symbpredabstraction.interfaces;
 
-import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
+import java.io.File;
+
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.symbpredabstraction.PathFormula;
 
 public interface FormulaManager {
 
@@ -68,5 +70,5 @@ public interface FormulaManager {
    */
   public Predicate getPredicate(SymbolicFormula var);
 
-  void dumpFormulasToFile(Iterable<SymbolicFormula> pF, String pFilename);
+  void dumpFormulasToFile(Iterable<SymbolicFormula> pF, File outputFile);
 }

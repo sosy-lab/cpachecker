@@ -53,19 +53,6 @@ public final class Files {
     }
     return file;
   }
-
-  /**
-   * Writes content to a file.
-   * @param path The path (may be null).
-   * @param name The file name.
-   * @param content The content which shall be written.
-   * @param append Whether to append or to overwrite.
-   * @throws IOException
-   */
-  public static void writeFile(String path, String name, Object content, boolean append) throws IOException {
-    Preconditions.checkNotNull(name);
-    writeFile(new File(path, name), content, append);
-  }
     
   /**
    * Writes content to a file.

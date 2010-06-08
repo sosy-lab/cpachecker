@@ -74,11 +74,8 @@ public class LogManager {
   @Option(name="log.consoleExclude", toUppercase=true)
   private String[] excludeLevelsConsoleStr = {};
 
-  @Option(name="output.path")
-  private String outputDirectory = "test/output/";
-
-  @Option(name="log.file")
-  private String outputFile = "CPALog.txt";
+  @Option(name="log.file", type=Option.Type.OUTPUT_FILE)
+  private File outputFile = new File("CPALog.txt");
 
   private static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS");
   private static final Joiner messageFormat = Joiner.on(' ').useForNull("null");
@@ -220,7 +217,7 @@ public class LogManager {
     // create file logger
     if (logFileLevel != Level.OFF) {
       try {
-        Handler outfileHandler = new FileHandler(new File(outputDirectory, outputFile).getAbsolutePath(), false);
+        Handler outfileHandler = new FileHandler(outputFile.getAbsolutePath(), false);
         
         setupHandler(outfileHandler, new FileLogFormatter(), logFileLevel, excludeLevelsFileStr);
 

@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.art;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Deque;
@@ -51,17 +52,14 @@ public class ARTStatistics implements Statistics {
   @Option(name="ART.export")
   private boolean exportART = true;
 
-  @Option(name="output.path")
-  private String outputDirectory = "test/output/";
-
-  @Option(name="ART.file")
-  private String artFile = "ART.dot";
+  @Option(name="ART.file", type=Option.Type.OUTPUT_FILE)
+  private File artFile = new File("ART.dot");
 
   @Option(name="cpas.art.errorPath.export")
   private boolean exportErrorPath = true;
 
-  @Option(name="cpas.art.errorPath.file")
-  private String errorPathFile = "ErrorPath.txt";
+  @Option(name="cpas.art.errorPath.file", type=Option.Type.OUTPUT_FILE)
+  private File errorPathFile = new File("ErrorPath.txt");
 
   private final LogManager logger;
 
@@ -86,7 +84,7 @@ public class ARTStatistics implements Statistics {
       AbstractElement lastElement = pReached.getLastElement();
       if (lastElement != null && lastElement.isError() && (lastElement instanceof ARTElement)) {
         try {
-          Files.writeFile(outputDirectory, errorPathFile,
+          Files.writeFile(errorPathFile,
               AbstractARTBasedRefiner.buildPath((ARTElement)lastElement), false);
         } catch (IOException e) {
           logger.log(Level.WARNING,
@@ -162,7 +160,7 @@ public class ARTStatistics implements Statistics {
     sb.append("}\n");
 
     try {
-      Files.writeFile(outputDirectory, artFile, sb, false);
+      Files.writeFile(artFile, sb, false);
     } catch (IOException e) {
       logger.log(Level.WARNING,
           "Could not write ART to file (", e.getMessage(), ")");

@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.symbpredabsCPA;
 
+import java.io.File;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -123,8 +124,8 @@ class SymbPredAbsFormulaManagerImpl<T> extends CommonFormulaManager implements S
   @Option(name="refinement.addWellScopedPredicates")
   private boolean wellScopedPredicates = false;
 
-  @Option(name="refinement.msatCexFile")
-  private String msatCexFile = "cex.msat";
+  @Option(name="refinement.msatCexFile", type=Option.Type.OUTPUT_FILE)
+  private File msatCexFile = new File("cex.msat");
 
   @Option(name="refinement.dumpInterpolationProblems")
   private boolean dumpInterpolationProblems = false;
@@ -619,7 +620,8 @@ class SymbPredAbsFormulaManagerImpl<T> extends CommonFormulaManager implements S
 
       int k = 0;
       for (SymbolicFormula formula : f) {
-        dumpFormulasToFile(Collections.singleton(formula), msatCexFile + ".ref" + refinement + ".f" + k++);
+        dumpFormulasToFile(Collections.singleton(formula), 
+            new File(msatCexFile.getAbsolutePath() + ".ref" + refinement + ".f" + k++));
       }
     }
 

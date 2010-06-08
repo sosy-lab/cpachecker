@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.symbpredabstraction;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -74,9 +75,6 @@ public abstract class CommonFormulaManager implements FormulaManager {
   protected boolean useCache = true;
 
   private final Map<AbstractFormula, SymbolicFormula> toConcreteCache;
-
-  @Option(name="output.path")
-  private String outputDirectory = "test/output/";
 
   public CommonFormulaManager(AbstractFormulaManager pAmgr, SymbolicFormulaManager pSmgr,
                     Configuration config, LogManager pLogger) throws InvalidConfigurationException {
@@ -294,22 +292,19 @@ public abstract class CommonFormulaManager implements FormulaManager {
   }
 
   @Override
-  public void dumpFormulasToFile(Iterable<SymbolicFormula> f, String filename) {
-    if (filename != null) {
-      Iterator<SymbolicFormula> it = f.iterator();
-      SymbolicFormula t = it.next();
-      
-      while (it.hasNext()) { 
-        t = smgr.makeAnd(t, it.next());
-      }
-      
-      try {
-        Files.writeFile(outputDirectory, filename, smgr.dumpFormula(t), false);
-      } catch (IOException e) {
-        logger.log(Level.WARNING,
-            "Failed to save formula to file ", filename, "(", e.getMessage(), ")");
-      }
+  public void dumpFormulasToFile(Iterable<SymbolicFormula> f, File outputFile) {
+    Iterator<SymbolicFormula> it = f.iterator();
+    SymbolicFormula t = it.next();
+    
+    while (it.hasNext()) { 
+      t = smgr.makeAnd(t, it.next());
+    }
+    
+    try {
+      Files.writeFile(outputFile, smgr.dumpFormula(t), false);
+    } catch (IOException e) {
+      logger.log(Level.WARNING,
+          "Failed to save formula to file ", outputFile.getPath(), "(", e.getMessage(), ")");
     }
   }
-
 }

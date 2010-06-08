@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -47,11 +48,8 @@ public class MainCPAStatistics implements Statistics {
     @Option(name="reachedSet.export")
     private boolean exportReachedSet = true;
 
-    @Option(name="output.path")
-    private String outputDirectory = "test/output/";
-
-    @Option(name="reachedSet.file")
-    private String outputFile = "reached.txt";
+    @Option(name="reachedSet.file", type=Option.Type.OUTPUT_FILE)
+    private File outputFile = new File("reached.txt");
 
     private final LogManager logger;
     private final Collection<Statistics> subStats;
@@ -98,7 +96,7 @@ public class MainCPAStatistics implements Statistics {
 
         if (exportReachedSet) {
           try {
-            Files.writeFile(outputDirectory, outputFile, Joiner.on('\n').join(reached), false);
+            Files.writeFile(outputFile, Joiner.on('\n').join(reached), false);
           } catch (IOException e) {
             logger.log(Level.WARNING,
                 "Could not write reached set to file (", e.getMessage(), ")");

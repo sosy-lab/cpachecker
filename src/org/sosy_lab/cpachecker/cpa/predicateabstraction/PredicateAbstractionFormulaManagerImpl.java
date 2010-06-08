@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicateabstraction;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -139,8 +140,8 @@ implements PredicateAbstractionFormulaManager {
   @Option(name="refinement.addPredicatesGlobally")
   private boolean addPredicatesGlobally;
 
-  @Option(name="refinement.msatCexFile")
-  private String msatCexFile = "cex.msat";
+  @Option(name="refinement.msatCexFile", type=Option.Type.OUTPUT_FILE)
+  private File msatCexFile = new File("cex.msat");
 
   @Option(name="abstraction.explicit.nonAtomicPredicates")
   private boolean nonAtomicPredicates = false;
