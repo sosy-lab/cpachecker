@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.eclipse.cdt.ui.actions.OpenAction;
 import org.eclipse.core.resources.IFile;
+import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IMenuListener;
 import org.eclipse.jface.action.IMenuManager;
 import org.eclipse.jface.action.MenuManager;
@@ -250,6 +251,17 @@ public class TasksView extends ViewPart implements ISetSelectionTarget, IShellPr
 		RefreshAction refresh = new RefreshAction(this);
 		refresh.selectionChanged(selection);
 		manager.add(refresh);
+		manager.add(new Action() {
+			@Override
+			public String getText() {
+				return "Refresh this view";
+			}
+			@Override
+			public void run() {
+				refresh(); // refresh the taskView
+				super.run();
+			}
+		});
 		if ( ! selectedTasks.isEmpty()) {
 			manager.add(new Separator());
 			manager.add(new RunMultipleTasksAction(this.getSite().getShell(), selectedTasks));
