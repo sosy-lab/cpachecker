@@ -217,6 +217,8 @@ public class LogManager {
     // create file logger
     if (logFileLevel != Level.OFF) {
       try {
+        Files.ensureParentDirectoryExists(outputFile);
+
         Handler outfileHandler = new FileHandler(outputFile.getAbsolutePath(), false);
         
         setupHandler(outfileHandler, new FileLogFormatter(), logFileLevel, excludeLevelsFileStr);

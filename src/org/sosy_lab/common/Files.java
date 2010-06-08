@@ -55,6 +55,20 @@ public final class Files {
   }
     
   /**
+   * Checks if the parent directory of a file exists and creates it if necessary.
+   * @param file The file whose directory should be checked.
+   * @throws IOException If the directory does not exist and it's creation fails.
+   */
+  public static void ensureParentDirectoryExists(File file) throws IOException {
+    File directory = file.getParentFile();
+    if ((directory != null) && !directory.exists()) {
+      if (!directory.mkdirs()) {
+        throw new IOException("Could not create directory " + directory + " for output file!");
+      }
+    }
+  }
+  
+  /**
    * Writes content to a file.
    * @param file The file.
    * @param content The content which shall be written.
@@ -65,13 +79,8 @@ public final class Files {
     Preconditions.checkNotNull(file);
     Preconditions.checkNotNull(content);
     
-    // try to create directories
-    File directory = file.getParentFile();
-    if ((directory != null) && !directory.exists()) {
-      if (!directory.mkdirs()) {
-        throw new IOException("Could not create directory " + directory + " for output file!");
-      }
-    }
+    ensureParentDirectoryExists(file);
+
     Writer writer = new OutputStreamWriter(new FileOutputStream(file, append));
     try {
       writer.write(content.toString());
