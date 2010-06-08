@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.automatonanalysis;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -65,8 +66,11 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 @Options(prefix="automatonAnalysis")
 public class ControlAutomatonCPA implements ConfigurableProgramAnalysis {
 
-  @Option(name="dotExportFile")
-  protected String exportFile = "";
+  @Option(name="dotExport")
+  private boolean export = true;
+  
+  @Option(name="dotExportFile", type=Option.Type.OUTPUT_FILE)
+  private File exportFile = new File("automaton.dot");
 
   private static class AutomatonCPAFactory extends AbstractCPAFactory {
 
@@ -143,7 +147,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis {
     transferRelation = new AutomatonTransferRelation(automaton, logger);
     logger.log(Level.FINER, "loaded the Automaton " + automaton.getName() );
 
-    if (this.exportFile != "") {
+    if (export) {
       try {
         this.automaton.writeDotFile(new PrintStream(exportFile));
       } catch (FileNotFoundException e) {

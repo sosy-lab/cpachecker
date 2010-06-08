@@ -192,8 +192,11 @@ cpas.explicit.threshold = 0
 # file with automaton specification for ObserverAutomatonCPA and ControlAutomatonCPA
 automatonAnalysis.inputFile =
 
-# file for saving the automaton in DOT format, no saving if omitted
-automatonAnalysis.dotExportFile =
+# export automaton to file
+automatonAnalysis.dotExport = false
+
+# file for saving the automaton in DOT format
+automatonAnalysis.dotExportFile = automaton.txt
 
 # which merge operator to use for PointerAnalysisCPA? (join or sep)
 cpas.pointeranalysis.merge = sep
