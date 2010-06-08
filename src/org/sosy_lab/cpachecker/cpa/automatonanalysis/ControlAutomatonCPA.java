@@ -67,7 +67,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public class ControlAutomatonCPA implements ConfigurableProgramAnalysis {
 
   @Option(name="dotExport")
-  private boolean export = true;
+  private boolean export = false;
   
   @Option(name="dotExportFile", type=Option.Type.OUTPUT_FILE)
   private File exportFile = new File("automaton.dot");
@@ -84,8 +84,8 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis {
     return new AutomatonCPAFactory();
   }
 
-  @Option(required=true)
-  protected String inputFile = "";
+  @Option(required=true, type=Option.Type.REQUIRED_INPUT_FILE)
+  private File inputFile = null;
 
   private final Automaton automaton;
   private final AutomatonTransferRelation transferRelation;

@@ -497,7 +497,7 @@ public class Configuration {
         Files.checkReadableFile(file);
       } catch (FileNotFoundException e) {
         throw new InvalidConfigurationException("Option " + name
-            + " specifies an invalid input file:" + e.getMessage());
+            + " specifies an invalid input file: " + e.getMessage());
       }
     }
     
