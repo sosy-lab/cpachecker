@@ -3,7 +3,6 @@
  */
 package org.sosy_lab.cpachecker.plugin.eclipse;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashSet;
@@ -80,22 +79,9 @@ public class Task {
 	}
 	
 	public Configuration createConfig() throws IOException, CoreException {
-			Configuration config = new Configuration(configFile.getContents(),
-					Collections.<String, String> emptyMap());
-			String projectRoot = this.configFile.getProject().getLocation()
-					.toPortableString() + "/";
-			String property = config.getProperty("automatonAnalysis.inputFile");
-			// TODO: handle multiple automaton files
-			if (property != null) {
-				File file = new File(property);
-				if (!file.isAbsolute()) {
-					config.setProperty("automatonAnalysis.inputFile",
-							projectRoot + property);
-				}
-			}
-			config.setProperty("output.path",  
-					this.getOutputDirectory(false).getLocation().toPortableString());
-		return config;
+		String projectRoot = configFile.getProject().getLocation().toPortableString();
+		return new Configuration(configFile.getContents(),
+				Collections.<String, String>emptyMap(), projectRoot);
 	}
 
 	public String getName() {
