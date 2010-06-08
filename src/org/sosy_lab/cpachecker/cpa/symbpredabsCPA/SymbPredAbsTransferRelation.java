@@ -82,6 +82,9 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
   @Option(name="blk.requireThresholdAndLBE")
   private boolean absOnlyIfBoth = false;
   
+  @Option(name="blk.useCache")
+  private boolean useCache = true;
+  
   @Option(name="satCheck")
   private int satCheckBlockSize = 0;
 
@@ -280,7 +283,7 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     final long start = System.currentTimeMillis();
     PathFormula pf = null;
 
-    if (!absOnFunction || !absOnLoop || absBlockSize > 0) {
+    if (!useCache || !absOnFunction || !absOnLoop || absBlockSize > 0) {
       long startComp = System.currentTimeMillis();
       // compute new pathFormula with the operation on the edge
       pf = symbolicFormulaManager.makeAnd(

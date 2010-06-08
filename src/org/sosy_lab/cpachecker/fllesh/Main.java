@@ -354,7 +354,8 @@ public class Main {
       lWriter.println("cegar.refiner = " + org.sosy_lab.cpachecker.cpa.symbpredabsCPA.SymbPredAbsRefiner.class.getCanonicalName());
 
       lWriter.println("cpas.symbpredabs.initAllVars = false");
-      lWriter.println("cpas.symbpredabs.noAutoInitPrefix = __BLAST_NONDET");
+      //lWriter.println("cpas.symbpredabs.noAutoInitPrefix = __BLAST_NONDET");
+      lWriter.println("cpas.symbpredabs.blk.useCache = false");
       
       lWriter.close();
 
