@@ -145,7 +145,7 @@ public class LogManager {
       String[] methodName = lr.getSourceMethodName().split("\\.");
       return dateFormat.format(lr.getMillis()) + "\t "
       + "level: " + lr.getLevel().toString() + "\t "
-      + className[0]  + "."
+      + className[className.length-1]  + "."
       + methodName[0]  + "\t "
       + lr.getMessage() + "\n\n";
     }
@@ -158,7 +158,7 @@ public class LogManager {
       String[] className = lr.getSourceClassName().split("\\.");
       String[] methodName = lr.getSourceMethodName().split("\\.");
       return lr.getMessage() + " ("
-      + className[0]  + "."
+      + className[className.length-1]  + "."
       + methodName[0]  + ", "
       + lr.getLevel().toString()
       + ")\n\n";
@@ -298,7 +298,7 @@ public class LogManager {
       StackTraceElement[] trace = Thread.currentThread().getStackTrace();
       callStackOffset += 2; // add 2 for this method and the getStackTrace method
 
-      record.setSourceClassName(trace[callStackOffset].getFileName());
+      record.setSourceClassName(trace[callStackOffset].getClassName());
       record.setSourceMethodName(trace[callStackOffset].getMethodName());
 
       logger.log(record);
@@ -332,7 +332,7 @@ public class LogManager {
       //to the correct position of the caller in the stack trace.
       LogRecord record = new LogRecord(priority, logMessage);
       StackTraceElement[] trace = Thread.currentThread().getStackTrace();
-      record.setSourceClassName(trace[2].getFileName());
+      record.setSourceClassName(trace[2].getClassName());
       record.setSourceMethodName(trace[2].getMethodName());
 
       logger.log(record);
