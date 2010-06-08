@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.symbpredabsCPA;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -95,8 +96,8 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
   @Option
   private boolean symbolicCoverageCheck = false; 
 
-  @Option(name="abstraction.initialPredicates")
-  private String predicatesFile = "";
+  @Option(name="abstraction.initialPredicates", type=Option.Type.OPTIONAL_INPUT_FILE)
+  private File predicatesFile = null;
   
   private final Configuration config;
   private final LogManager logger;
@@ -147,7 +148,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     stop = new StopSepOperator(domain.getPartialOrder());
     
     Set<Predicate> predicates = null;
-    if (!predicatesFile.isEmpty()) {
+    if (predicatesFile != null) {
       MathsatPredicateParser p = new MathsatPredicateParser(mmgr, formulaManager);
       try {
         InputStream file = new FileInputStream(predicatesFile);
