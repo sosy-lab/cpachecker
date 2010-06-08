@@ -64,9 +64,27 @@ public final class Files {
    */
   public static void writeFile(String path, String name, Object content, boolean append) throws IOException {
     Preconditions.checkNotNull(name);
+    writeFile(new File(path, name), content, append);
+  }
+    
+  /**
+   * Writes content to a file.
+   * @param file The file.
+   * @param content The content which shall be written.
+   * @param append Whether to append or to overwrite.
+   * @throws IOException
+   */
+  public static void writeFile(File file, Object content, boolean append) throws IOException {
+    Preconditions.checkNotNull(file);
     Preconditions.checkNotNull(content);
-
-    File file = new File(path, name);
+    
+    // try to create directories
+    File directory = file.getParentFile();
+    if ((directory != null) && !directory.exists()) {
+      if (!directory.mkdirs()) {
+        throw new IOException("Could not create directory " + directory + " for output file!");
+      }
+    }
     Writer writer = new OutputStreamWriter(new FileOutputStream(file, append));
     try {
       writer.write(content.toString());
@@ -90,8 +108,19 @@ public final class Files {
    */
   public static void checkReadableFile(String path, String name) throws FileNotFoundException {
     Preconditions.checkNotNull(name);
+    checkReadableFile(new File(path, name));
+  }
     
-    File file = new File(path, name);
+  /**
+   * Verifies if a file exists, is a normal file and is readable. If this is not
+   * the case, a FileNotFoundException with a nice message is thrown.
+   * 
+   * @param file The file to check.
+   * @throws FileNotFoundException If one of the conditions is not true.
+   */
+  public static void checkReadableFile(File file) throws FileNotFoundException {
+    Preconditions.checkNotNull(file);
+    
     if (!file.exists()) {
       throw new FileNotFoundException("File " + file.getAbsolutePath() + " does not exist!");
     }
