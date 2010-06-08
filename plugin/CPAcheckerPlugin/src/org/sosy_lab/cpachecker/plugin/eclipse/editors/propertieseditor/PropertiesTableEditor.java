@@ -36,18 +36,27 @@ import org.eclipse.jface.viewers.TableLayout;
 import org.eclipse.jface.viewers.TableViewer;
 import org.eclipse.jface.viewers.TableViewerColumn;
 import org.eclipse.jface.viewers.TextCellEditor;
+import org.eclipse.jface.viewers.ViewerCell;
 import org.eclipse.jface.window.Window;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Image;
+import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.RGB;
+import org.eclipse.swt.graphics.Rectangle;
+import org.eclipse.swt.layout.FillLayout;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.FileDialog;
+import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Shell;
+import org.eclipse.swt.widgets.TableItem;
 import org.eclipse.swt.widgets.ToolBar;
 import org.eclipse.swt.widgets.ToolItem;
 import org.eclipse.ui.IEditorInput;
@@ -73,7 +82,6 @@ public class PropertiesTableEditor extends EditorPart {
 	private boolean dirty = false;
 	
 	private List<Property> data = new ArrayList<Property>();
-	
 	
 	@Override
 	public void init(IEditorSite pSite, IEditorInput pInput)
@@ -107,6 +115,8 @@ public class PropertiesTableEditor extends EditorPart {
 		keyColumn.getColumn().setText("Key");
 		TableViewerColumn valueColumn = new TableViewerColumn(propertiesTableViewer, SWT.BORDER);
 		valueColumn.getColumn().setText("Value");
+		TableViewerColumn descColumn = new TableViewerColumn(propertiesTableViewer, SWT.BORDER);
+		descColumn.getColumn().setText("Description");
 		propertiesTableViewer.setContentProvider(new ArrayContentProvider());
 		propertiesTableViewer.setLabelProvider(new PropertyTableLabelProvider());
 		
@@ -123,15 +133,103 @@ public class PropertiesTableEditor extends EditorPart {
 	    // key column
 	    ColumnLayoutData keyColumnLayout = new ColumnWeightData(40, true);
 	    // value column
-	    ColumnLayoutData valueColumnLayout = new ColumnWeightData(60, true);
+	    ColumnLayoutData valueColumnLayout = new ColumnWeightData(40, true);
+	    ColumnLayoutData descColumnLayout = new ColumnWeightData(20, true);
 	
 	    // set columns in Table layout
 	    
 	    TableLayout layout = new TableLayout();
 	    layout.addColumnData(keyColumnLayout);
 	    layout.addColumnData(valueColumnLayout);
+	    layout.addColumnData(descColumnLayout);
 	    propertiesTableViewer.getTable().setLayout(layout);
 	    propertiesTableViewer.getTable().layout();
+	    
+	    createToolTip(propertiesTableViewer, pParent);
+	}
+	private void createToolTip(final TableViewer tv, final Composite pParent) {
+		final Display display = pParent.getDisplay();
+		final Shell shell = pParent.getShell();
+		// Disable native tooltip
+		tv.getTable().setToolTipText ("");
+		
+		// Implement a "fake" tooltip
+		final Listener labelListener = new Listener () {
+			public void handleEvent (Event event) {
+				Label label = (Label)event.widget;
+				Shell shell = label.getShell ();
+				switch (event.type) {
+					case SWT.MouseDown:
+						Event e = new Event ();
+						e.item = (TableItem) label.getData ("_TABLEITEM");
+						// Assuming table is single select, set the selection as if
+						// the mouse down event went through to the table
+						tv.getTable().setSelection (new TableItem [] {(TableItem) e.item});
+						tv.getTable().notifyListeners (SWT.Selection, e);
+						shell.dispose ();
+						tv.getTable().setFocus();
+						break;
+					case SWT.MouseExit:
+						shell.dispose ();
+						break;
+				}
+			}
+		};
+		
+		Listener tableListener = new Listener () {
+			Shell tip = null;
+			Label label = null;
+			public void handleEvent (Event event) {
+				switch (event.type) {
+					case SWT.Dispose:
+					case SWT.KeyDown:
+					case SWT.MouseMove: {
+						if (tip == null) break;
+						tip.dispose ();
+						tip = null;
+						label = null;
+						break;
+					}
+					case SWT.MouseHover: {
+						// find the property for the point
+						Property prop = null;
+						ViewerCell cell = tv.getCell(new Point (event.x, event.y));						
+						if (cell != null) {
+							Object o = cell.getElement();
+							if (o instanceof Property) {
+								prop = (Property) o;
+							}
+						}
+							
+						if (prop != null) {
+							if (tip != null  && !tip.isDisposed ()) tip.dispose ();
+							tip = new Shell (shell, SWT.ON_TOP | SWT.NO_FOCUS | SWT.TOOL);
+							tip.setBackground (display.getSystemColor (SWT.COLOR_INFO_BACKGROUND));
+							FillLayout layout = new FillLayout ();
+							layout.marginWidth = 2;
+							tip.setLayout (layout);
+							label = new Label (tip, SWT.NONE);
+							label.setForeground (display.getSystemColor (SWT.COLOR_INFO_FOREGROUND));
+							label.setBackground (display.getSystemColor (SWT.COLOR_INFO_BACKGROUND));
+							//label.setData ("_TABLEITEM", item);
+							
+							label.setText (prop.getToolTip());
+							label.addListener (SWT.MouseExit, labelListener);
+							label.addListener (SWT.MouseDown, labelListener);
+							Point size = tip.computeSize (SWT.DEFAULT, SWT.DEFAULT);
+							Rectangle rect = cell.getBounds();
+							Point pt = tv.getTable().toDisplay (rect.x, rect.y);
+							tip.setBounds (pt.x, pt.y, size.x, size.y);
+							tip.setVisible (true);
+						}
+					}
+				}
+			}
+		};
+		tv.getTable().addListener (SWT.Dispose, tableListener);
+		tv.getTable().addListener (SWT.KeyDown, tableListener);
+		tv.getTable().addListener (SWT.MouseMove, tableListener);
+		tv.getTable().addListener (SWT.MouseHover, tableListener);
 	}
 
 	private void createToolBar(final Composite pParent) {
@@ -298,8 +396,11 @@ public class PropertiesTableEditor extends EditorPart {
 	public void doSave(IProgressMonitor pMonitor) {
 		try {
 			storeToFile(this.input.getFile().getLocation().toFile());
+			this.input.getFile().refreshLocal(IResource.DEPTH_ZERO, pMonitor);
 		} catch (IOException e) {
 			pMonitor.setCanceled(true);
+			CPAclipse.logError("Could not store Properties", e);
+		} catch (CoreException e) {
 			CPAclipse.logError("Could not store Properties", e);
 		}
 	}
@@ -425,7 +526,7 @@ public class PropertiesTableEditor extends EditorPart {
 	
 	private class PropertyTableEditingSupport extends EditingSupport {
 		int column;
-		private CellEditor freeTextEditor;
+		private TextCellEditor freeTextEditor;
 
 		private PropertyTableEditingSupport(ColumnViewer viewer, int pColumn) {
 			super(viewer);
@@ -447,12 +548,14 @@ public class PropertiesTableEditor extends EditorPart {
 					} else {
 						p.setKey(str);
 					}
-				} else {
+				} else if (column == 1) {
 					if (p.getValue().equals(value)) {
 						return;
 					} else {
 						p.setValue(str);
 					}
+				} else {
+					return;
 				}
 				PropertiesTableEditor.this.dirty = true;
 				PropertiesTableEditor.this.firePropertyChange(PROP_DIRTY);
@@ -467,16 +570,29 @@ public class PropertiesTableEditor extends EditorPart {
 			if (element instanceof Property) {
 				if (column == 0) {
 					return ((Property)element).getKey();
-				} else {
+				} else if (column == 1) {
 					return ((Property)element).getValue();
 				}
-			} else {
-				return element.toString();
 			}
+			return element.toString();
 		}
 
 		@Override
 		protected CellEditor getCellEditor(Object element) {
+			/*if (element instanceof Property && column == 1) {
+				final Property prop = (Property) element;
+				String[] values = prop.getPossibleValues();
+				boolean free = false;
+				for (int i = 0; i < values.length; i++) {
+					if (values[i].equals("")) {
+						free = true;
+						break;
+					}
+				}
+				if (! free) {
+					freeTextEditor.setValidator(new CellValidator(values));
+				}
+			}*/
 			return freeTextEditor;
 		}
 
@@ -485,6 +601,39 @@ public class PropertiesTableEditor extends EditorPart {
 			return true;
 		}
 	}
+/*	class CellValidator implements ICellEditorValidator {					
+		String[] possibleValues;
+		public CellValidator(String[] possibleValues) {
+			super();
+			this.possibleValues = possibleValues;
+		}
+
+		@Override
+		public String isValid(Object value) {
+			for (int i = 0; i < possibleValues.length; i++) {
+				if (possibleValues[i].equals(value)) {
+					return null; // valid
+				}
+			}
+			// failure
+			String message = "Valid Values: \n";
+			for (int i = 0; i < possibleValues.length; i++) {
+				if (possibleValues[i].equals(value)) {
+					message = message + possibleValues[i];
+				}
+			}
+			MessageDialog dialog = new MessageDialog(
+					PropertiesTableEditor.this.parent.getShell(), 
+					"Could not insert the value", 
+					null, 
+					message, 
+					SWT.ICON_WARNING,
+					new String[] {"OK"}, 0);
+			dialog.setBlockOnOpen(false);
+			dialog.open();
+			return message;
+		}
+	}*/
 
 	private class PropertyTableLabelProvider implements ITableLabelProvider, ITableColorProvider {
 		List<ILabelProviderListener> listeners = new ArrayList<ILabelProviderListener>(4);
@@ -516,9 +665,15 @@ public class PropertiesTableEditor extends EditorPart {
 				} else {
 					return element.toString();
 				}
-			} else {
+			} else if (columnIndex == 1) {
 				if (element instanceof Property) {
 					return ((Property)element).getValue();
+				} else {
+					return element.toString();
+				}
+			} else {
+				if (element instanceof Property) {
+					return ((Property)element).getDescription();
 				} else {
 					return element.toString();
 				}
@@ -546,4 +701,5 @@ public class PropertiesTableEditor extends EditorPart {
 			return null;
 		}
 	}
+	
 }
