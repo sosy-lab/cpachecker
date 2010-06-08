@@ -84,7 +84,11 @@ public class Property {
 			String tip = "Possible values: \n";
 			String[] possibleValues = getPossibleValues();
 			for (int i = 0; i < possibleValues.length; i++) {
-				tip = tip + possibleValues[i] + "\n";
+				if (i == 0) {
+					tip = tip + possibleValues[i] + " (default)\n";
+				} else {
+					tip = tip + possibleValues[i] + "\n";
+				}
 			}
 			return tip;
 		}

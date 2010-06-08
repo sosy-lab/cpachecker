@@ -84,7 +84,6 @@ public class Task {
 					Collections.<String, String> emptyMap());
 			String projectRoot = this.configFile.getProject().getLocation()
 					.toPortableString() + "/";
-			// config.setProperty("automatonAnalyis.rootPath", projectRoot);
 			String property = config.getProperty("automatonAnalysis.inputFile");
 			// TODO: handle multiple automaton files
 			if (property != null) {
@@ -96,15 +95,6 @@ public class Task {
 			}
 			config.setProperty("output.path",  
 					this.getOutputDirectory(false).getLocation().toPortableString());
-			/*property = config.getProperty("output.path");
-			if (property != null) {
-				File file = new File(property);
-				if (!file.isAbsolute()) {
-					//config.setProperty("output.path", projectRoot + property);
-				}
-			} else {
-				config.setProperty("output.path", projectRoot);
-			}*/
 		return config;
 	}
 
