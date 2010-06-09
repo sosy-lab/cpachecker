@@ -31,7 +31,6 @@ import java.util.Set;
 
 import com.google.common.collect.ImmutableMap;
 
-import org.sosy_lab.cpachecker.cfa.DOTBuilder;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 
 import org.sosy_lab.common.LogManager;
@@ -107,11 +106,6 @@ public class Main {
 
     // add self loops to CFA
     AddSelfLoop.addSelfLoops(lMainFunction);
-
-
-    // TODO remove this output code
-    DOTBuilder dotBuilder = new DOTBuilder();
-    dotBuilder.generateDOT(lCPAchecker.getCFAMap().values(), lMainFunction, new File("/tmp/mycfa.dot"));
 
 
     Node lProgramEntry = new Node(lMainFunction);

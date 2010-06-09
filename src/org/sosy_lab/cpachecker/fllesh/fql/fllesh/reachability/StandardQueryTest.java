@@ -29,7 +29,6 @@ import java.util.LinkedList;
 
 import org.junit.Test;
 
-import org.sosy_lab.cpachecker.cfa.DOTBuilder;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 
 import com.google.common.collect.ImmutableMap;
@@ -104,11 +103,6 @@ public class StandardQueryTest {
     AddSelfLoop.addSelfLoops(lMainFunction);
 
 
-    // TODO remove this output code
-    DOTBuilder dotBuilder = new DOTBuilder();
-    dotBuilder.generateDOT(lCPAchecker.getCFAMap().values(), lMainFunction, new File("/tmp/mycfa.dot"));
-
-
     Node lProgramEntry = new Node(lMainFunction);
     //Node lProgramExit = new Node(lMainFunction.getExitNode());
 
@@ -178,11 +172,6 @@ public class StandardQueryTest {
 
     // add self loops to CFA
     AddSelfLoop.addSelfLoops(lMainFunction);
-
-
-    // TODO remove this output code
-    DOTBuilder dotBuilder = new DOTBuilder();
-    dotBuilder.generateDOT(lCPAchecker.getCFAMap().values(), lMainFunction, new File("/tmp/mycfa.dot"));
 
 
     Node lProgramEntry = new Node(lMainFunction);
@@ -259,11 +248,6 @@ public class StandardQueryTest {
     AddSelfLoop.addSelfLoops(lMainFunction);
 
 
-    // TODO remove this output code
-    DOTBuilder dotBuilder = new DOTBuilder();
-    dotBuilder.generateDOT(lCPAchecker.getCFAMap().values(), lMainFunction, new File("/tmp/mycfa.dot"));
-
-
     Node lProgramEntry = new Node(lMainFunction);
     //Node lProgramExit = new Node(lMainFunction.getExitNode());
 
@@ -336,11 +320,6 @@ public class StandardQueryTest {
 
     // add self loops to CFA
     AddSelfLoop.addSelfLoops(lMainFunction);
-
-
-    // TODO remove this output code
-    DOTBuilder dotBuilder = new DOTBuilder();
-    dotBuilder.generateDOT(lCPAchecker.getCFAMap().values(), lMainFunction, new File("/tmp/mycfa.dot"));
 
 
     CPAFactory lSymbPredAbsFactory = SymbPredAbsCPA.factory();

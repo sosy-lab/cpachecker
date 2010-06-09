@@ -41,6 +41,7 @@ import org.eclipse.cdt.core.dom.ast.IASTProblem;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.core.runtime.CoreException;
 
+import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFABuilder;
 import org.sosy_lab.cpachecker.cfa.CFATopologicalSort;
@@ -213,8 +214,7 @@ public class Wrapper {
   }
   
   public void toDot(File pFile) throws IOException {
-    DOTBuilder lDotBuilder = new DOTBuilder();
-    lDotBuilder.generateDOT(mCFAs.values(), mEntry, pFile);
+    Files.writeFile(pFile, DOTBuilder.generateDOT(mCFAs.values(), mEntry), false);
   }
 
   public CFAFunctionDefinitionNode getEntry() {

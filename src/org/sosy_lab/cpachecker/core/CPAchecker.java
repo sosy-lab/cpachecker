@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.cfa.objectmodel.c.GlobalDeclarationEdge;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
 
+import org.sosy_lab.common.Files;
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
@@ -347,10 +348,9 @@ public class CPAchecker {
 
     // write CFA to file
     if (options.exportCfa) {
-      DOTBuilder dotBuilder = new DOTBuilder();
-
       try {
-        dotBuilder.generateDOT(cfas.values(), mainFunction, options.exportCfaFile);
+        Files.writeFile(options.exportCfaFile,
+            DOTBuilder.generateDOT(cfas.values(), mainFunction), false);
       } catch (IOException e) {
         logger.log(Level.WARNING,
           "Could not write CFA to dot file, check configuration option cfa.file! (",

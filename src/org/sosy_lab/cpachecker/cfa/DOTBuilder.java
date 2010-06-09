@@ -23,9 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -48,8 +45,10 @@ import com.google.common.base.Joiner;
 /**
  * Class for generating a DOT file from a CFA.
  */
-public class DOTBuilder {
+public final class DOTBuilder {
 
+  private DOTBuilder() { /* utility class */ }
+  
 	private static final String MAIN_GRAPH = "____Main____Diagram__";
   private static final Joiner JOINER_ON_NEWLINE = Joiner.on('\n');
 
@@ -91,8 +90,7 @@ public class DOTBuilder {
     }
   }
 
-  public void generateDOT (Collection<CFAFunctionDefinitionNode> cfasMapList, CFAFunctionDefinitionNode cfa, File fileName) throws IOException
-	{
+  public static String generateDOT(Collection<CFAFunctionDefinitionNode> cfasMapList, CFAFunctionDefinitionNode cfa) {
 		Map<String, DOTWriter> subGraphWriters = new HashMap<String, DOTWriter>();
 		DOTNodeShapeWriter nodeWriter = new DOTNodeShapeWriter();
 
@@ -106,28 +104,28 @@ public class DOTBuilder {
 
 		generateDotHelper (subGraphWriters, nodeWriter, cfa);
 
-    PrintWriter writer = new PrintWriter(fileName);
-		writer.println ("digraph " + "CFA" + " {");
+		StringBuffer sb = new StringBuffer();
+		sb.append("digraph " + "CFA" + " {\n");
 
-		writer.println(nodeWriter.getDot());
-		writer.println("node [shape = circle];");
+		sb.append(nodeWriter.getDot());
+		sb.append('\n');
+		sb.append("node [shape = circle];\n");
 
 		for(CFAFunctionDefinitionNode fnode:cfasMapList){
 			dw = subGraphWriters.get(fnode.getFunctionName());
-			writer.println ("subgraph cluster_" + fnode.getFunctionName() + " {");
-			writer.println ("label = \"" + fnode.getFunctionName() + "()\";");
-			writer.print(dw.getSubGraph());
-			writer.println ("}");
+			sb.append("subgraph cluster_" + fnode.getFunctionName() + " {\n");
+			sb.append("label = \"" + fnode.getFunctionName() + "()\";\n");
+			sb.append(dw.getSubGraph());
+			sb.append("}\n");
 		}
 
 		dw = subGraphWriters.get(MAIN_GRAPH);
-		writer.print(dw.getSubGraph());
-		writer.println ("}");
-		writer.close ();
+		sb.append(dw.getSubGraph());
+		sb.append("}");
+		return sb.toString();
 	}
 
-	private void generateDotHelper (Map<String, DOTWriter> subGraphWriters, DOTNodeShapeWriter nodeWriter, CFAFunctionDefinitionNode cfa)
-	{
+	private static void generateDotHelper(Map<String, DOTWriter> subGraphWriters, DOTNodeShapeWriter nodeWriter, CFAFunctionDefinitionNode cfa) {
 		Set<CFANode> visitedNodes = new HashSet<CFANode> ();
 		Deque<CFANode> waitingNodeList = new ArrayDeque<CFANode> ();
 		Set<CFANode> waitingNodeSet = new HashSet<CFANode> ();

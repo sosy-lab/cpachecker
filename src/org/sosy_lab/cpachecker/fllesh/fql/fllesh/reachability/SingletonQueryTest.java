@@ -31,7 +31,6 @@ import java.util.LinkedList;
 
 import org.junit.Test;
 
-import org.sosy_lab.cpachecker.cfa.DOTBuilder;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 
 import com.google.common.collect.ImmutableMap;
@@ -97,11 +96,6 @@ public class SingletonQueryTest {
 
     // add self loops to CFA
     AddSelfLoop.addSelfLoops(lMainFunction);
-
-
-    // TODO remove this output code
-    DOTBuilder dotBuilder = new DOTBuilder();
-    dotBuilder.generateDOT(lCPAchecker.getCFAMap().values(), lMainFunction, new File("/tmp/mycfa.dot"));
 
 
     Node lProgramEntry = new Node(lMainFunction);
