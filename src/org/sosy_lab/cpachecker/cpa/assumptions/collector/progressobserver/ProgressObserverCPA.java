@@ -95,7 +95,7 @@ public class ProgressObserverCPA implements ConfigurableProgramAnalysis {
 
     for (String heuristicsName : heuristicsNames) {
       if (!heuristicsName.contains("."))
-        heuristicsName = "cpa.assumptions.collector.progressobserver." + heuristicsName;
+        heuristicsName = "org.sosy_lab.cpachecker.cpa.assumptions.collector.progressobserver." + heuristicsName;
       try {
         Class<?> cls = Class.forName(heuristicsName);
         Constructor<?> constructor = cls.getConstructor(Configuration.class, LogManager.class);
