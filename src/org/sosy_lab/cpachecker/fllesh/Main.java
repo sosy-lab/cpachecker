@@ -99,7 +99,7 @@ public class Main {
       Cilly lCilly = new Cilly();
   
       if (!lCilly.isCillyInvariant(lSourceFileName)) {
-        File lCillyProcessedFile = lCilly.cillyfy(pArguments[1]);
+        File lCillyProcessedFile = lCilly.cillyfy(lSourceFileName);
         //lCillyProcessedFile.deleteOnExit();
   
         lSourceFileName = lCillyProcessedFile.getAbsolutePath();
@@ -146,9 +146,9 @@ public class Main {
     //int lTmpIndex = 0;
     
     for (ElementaryCoveragePattern lGoal : lTask) {
-      /*lTmpIndex++;
+      //lTmpIndex++;
       
-      if (lTmpIndex == 2) {*/
+      //if (lTmpIndex == 4) {
         lGoals.add(lGoal);
       //}
     }
@@ -258,7 +258,7 @@ public class Main {
         lErrorReached = true;
       }
 
-      System.out.println(reachedElement);
+      //System.out.println(reachedElement);
     }
 
     PrintWriter lStatisticsWriter = new PrintWriter(System.out);

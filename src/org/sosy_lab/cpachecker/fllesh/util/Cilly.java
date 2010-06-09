@@ -98,16 +98,26 @@ public class Cilly {
   }
 
   public boolean isCillyInvariant(String pSourceFile) throws IOException {
-    assert(pSourceFile != null);
+    if (pSourceFile == null) {
+      throw new IllegalArgumentException("Parameter is null!");
+    }
 
     return isCillyInvariant(new File(pSourceFile));
   }
 
   public boolean isCillyInvariant(File pSourceFile) throws IOException {
-    assert(pSourceFile != null);
-    assert(pSourceFile.exists());
-    assert(pSourceFile.canRead());
-
+    if (pSourceFile == null) {
+      throw new IllegalArgumentException();
+    }
+    
+    if (!pSourceFile.exists()) {
+      throw new IllegalArgumentException();
+    }
+    
+    if (!pSourceFile.canRead()) {
+      throw new IllegalArgumentException();
+    }
+    
     File lCillyfiedFile = cillyfy(pSourceFile);
 
     BufferedReader lSourceReader = new BufferedReader(new FileReader(pSourceFile));
@@ -163,7 +173,9 @@ public class Cilly {
   }
 
   public File cillyfy(File pSourceFile) throws IOException {
-    assert(pSourceFile != null);
+    if (pSourceFile == null) {
+      throw new IllegalArgumentException();
+    }
 
     String lSourceFileString = pSourceFile.getName();
 
@@ -184,7 +196,7 @@ public class Cilly {
     }
 
     File lTargetFile = File.createTempFile(lPrefix + ".cil.", "." + lPostfix);
-
+    
     cillyfy(pSourceFile, lTargetFile);
 
     return lTargetFile;
@@ -202,12 +214,22 @@ public class Cilly {
   }
 
   public void cillyfy(File pSourceFile, File pTargetFile) throws IOException {
-    assert(pSourceFile != null);
-    assert(pSourceFile.exists());
-    assert(pSourceFile.canRead());
-
-    assert(pTargetFile != null);
-
+    if (pSourceFile == null) {
+      throw new IllegalArgumentException();
+    }
+    
+    if (!pSourceFile.exists()) {
+      throw new IllegalArgumentException();
+    }
+    
+    if (!pSourceFile.canRead()) {
+      throw new IllegalArgumentException();
+    }
+    
+    if (pTargetFile == null) {
+      throw new IllegalArgumentException();
+    }
+    
     StringBuffer lOptionsString = new StringBuffer();
 
     if (mDoSimplify) {
@@ -250,14 +272,20 @@ public class Cilly {
     lErrorReaderThread.start();
 
     try {
-      lCillyProcess.waitFor();
+      int lExitValue = lCillyProcess.waitFor();
+      
       lInputReaderThread.join();
       lErrorReaderThread.join();
-
-      //System.out.println(lInputReader.getInput());
-      //System.out.println(lErrorReader.getInput());
+      
+      if (lExitValue != 0) {
+        System.out.println(lInputReader.getInput());
+        System.out.println(lErrorReader.getInput());
+        
+        throw new RuntimeException("Cilly processing failed!");
+      }
+      
     } catch (InterruptedException e) {
-      e.printStackTrace();
+      throw new RuntimeException(e);
     }
   }
 
