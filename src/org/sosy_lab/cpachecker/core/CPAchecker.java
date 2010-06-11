@@ -338,7 +338,8 @@ public class CPAchecker {
 
       if (mainFunction.getNumLeavingEdges() == 0) {
         logger.log(Level.INFO, "No error locations reachable from " + mainFunction.getFunctionName()
-              + ", analysis not necessary.");
+              + ", analysis not necessary. "
+              + "If the code contains no error location named ERROR, set the option cfa.removeIrrelevantForErrorLocations to false.");
         return null;
       }
     }
