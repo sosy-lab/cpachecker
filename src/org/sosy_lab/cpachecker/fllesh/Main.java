@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.symbpredabsCPA.SymbPredAbsCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.fllesh.cpa.assume.AssumeCPA;
 import org.sosy_lab.cpachecker.fllesh.cpa.composite.CompoundCPA;
 import org.sosy_lab.cpachecker.fllesh.cpa.guardededgeautomaton.GuardedEdgeAutomatonCPA;
 import org.sosy_lab.cpachecker.fllesh.cpa.productautomaton.ProductAutomatonCPA;
@@ -181,6 +182,9 @@ public class Main {
       
       lCompoundCPAFactory.push(getAutomatonCPA(lGoal, lWrapper), true);
       
+      AssumeCPA lAssumeCPA = new AssumeCPA("__CPROVER_assume");
+      lCompoundCPAFactory.push(lAssumeCPA);
+      
       LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<ConfigurableProgramAnalysis>();
       lComponentAnalyses.add(lLocationCPA);
       lComponentAnalyses.add(lCompoundCPAFactory.createInstance());
@@ -224,6 +228,8 @@ public class Main {
     }
     
     mResult = lResultFactory.create();
+    
+    System.out.println("#Goals: " + mResult.getTask().getNumberOfTestGoals() + ", #Feas: " + mResult.getNumberOfFeasibleTestGoals() + ", #Infeas: " + mResult.getNumberOfInfeasibleTestGoals());
   }
   
   public static GuardedEdgeAutomatonCPA getAutomatonCPA(ElementaryCoveragePattern pPattern, Wrapper pWrapper) {
@@ -268,6 +274,7 @@ public class Main {
       
       /** determine test input */
       // TODO get data direct from SymbPredAbsCPA
+      /*
       List<String> lCommand = new LinkedList<String>();
       lCommand.add("/home/holzera/mathsat-4.2.8-linux-x86/bin/mathsat");
       lCommand.add("-solve");
@@ -295,7 +302,7 @@ public class Main {
         System.out.println(lErrorReader.getInput());
       } catch (InterruptedException e) {
         e.printStackTrace();
-      }
+      }*/
       
       return true;
     }

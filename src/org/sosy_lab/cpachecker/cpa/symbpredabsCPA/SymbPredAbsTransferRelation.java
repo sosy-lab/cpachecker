@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.fllesh.cfa.FlleShAssumeEdge;
+import org.sosy_lab.cpachecker.fllesh.cpa.assume.ConstrainedAssumeElement;
 import org.sosy_lab.cpachecker.fllesh.cpa.guardededgeautomaton.GuardedEdgeAutomatonElement;
 import org.sosy_lab.cpachecker.fllesh.cpa.guardededgeautomaton.GuardedEdgeAutomatonPredicateElement;
 import org.sosy_lab.cpachecker.fllesh.ecp.ECPPredicate;
@@ -367,6 +368,18 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     return pElement;
   }
   
+  public SymbPredAbsAbstractElement strengthen(CFANode pNode, SymbPredAbsAbstractElement pElement, ConstrainedAssumeElement pAssumeElement) {
+    FlleShAssumeEdge lEdge = new FlleShAssumeEdge(pNode, pAssumeElement.getExpression());
+    
+    try {
+      pElement = handleNonAbstractionLocation(pElement, lEdge, false).iterator().next();
+    } catch (UnrecognizedCFAEdgeException e) {
+      throw new RuntimeException(e);
+    }
+    
+    return pElement;
+  }
+  
   @Override
   public Collection<? extends AbstractElement> strengthen(AbstractElement pElement,
       List<AbstractElement> otherElements, CFAEdge edge, Precision pPrecision) throws UnrecognizedCFAEdgeException {
@@ -377,6 +390,10 @@ public class SymbPredAbsTransferRelation implements TransferRelation {
     for (AbstractElement lElement : otherElements) {
       if (lElement instanceof GuardedEdgeAutomatonElement) {
         element = strengthen(edge.getSuccessor(), element, (GuardedEdgeAutomatonElement)lElement);
+      }
+      
+      if (lElement instanceof ConstrainedAssumeElement) {
+        element = strengthen(edge.getSuccessor(), element, (ConstrainedAssumeElement)lElement);
       }
     }
     
