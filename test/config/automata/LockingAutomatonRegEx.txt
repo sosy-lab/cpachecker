@@ -1,4 +1,4 @@
-AUTOMATON LockingAutomaton
+OBSERVER AUTOMATON LockingAutomaton
 // Kommentar
 /* Kommentar */
 
@@ -24,3 +24,5 @@ STATE Unlocked :
   MATCH  [lock\(\)]  -> ASSERT lock == 0  DO  lock = 1  GOTO Locked;
   MATCH  [unlock\(\)]  -> ERROR;
   TRUE -> GOTO Unlocked;
+
+END AUTOMATON

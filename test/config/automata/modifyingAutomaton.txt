@@ -1,5 +1,5 @@
 // This automaton modifies the Explicit Analysis.
-AUTOMATON modifyingAutomaton
+CONTROL AUTOMATON modifyingAutomaton
 
 LOCAL int a = 1;
 INITIAL STATE Init;
@@ -21,3 +21,4 @@ STATE Init:
   	
   MATCH "error();" -> PRINT "Found an error" ERROR;
     
+END AUTOMATON

@@ -120,6 +120,7 @@ public class ObserverAutomatonTranslator {
       // we stay in the accepting state
       lWriter.println("  TRUE -> GOTO Accept;");
       
+      lWriter.println("END AUTOMATON");
       return lResult.toString();
     }
     

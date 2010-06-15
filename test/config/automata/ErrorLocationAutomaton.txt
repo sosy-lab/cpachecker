@@ -1,4 +1,4 @@
-AUTOMATON ErrorLocationAutomaton
+OBSERVER AUTOMATON ErrorLocationAutomaton
 // This Automaton replaces the ErrorLocationCPA. 
 //   It detects error locations that can be specified by arbitrary labels 
 //   (or other pieces of matchable code) that occur in the source code.
@@ -19,3 +19,5 @@ STATE Init :
 
   -> ERROR;
 
+
+END AUTOMATON

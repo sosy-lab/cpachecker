@@ -40,7 +40,7 @@ parser code {:
   /* this map is used to collect the local variables. It is then passed to each "VarAccess" and "Assignment" Expression.
    * ( I don't want to pass the Variable-Instance directly, because it might be defined after the Expression in the input Document.)
    */
-  protected Map<String, AutomatonVariable> variablesMap = new HashMap<String, AutomatonVariable>();
+  protected Map<String, AutomatonVariable> variablesMap;
   public boolean syntaxErrors;
   AutomatonScanner scanner;
   LogManager logger;
@@ -49,6 +49,10 @@ parser code {:
       super(scanner, sf);
       this.scanner = scanner;
       this.logger = pLogger;
+      initVariablesMap();
+  }
+  void initVariablesMap() {
+  	this.variablesMap = new HashMap<String, AutomatonVariable>();
   }
   @Override
   public void report_error(String message, Object info) {
@@ -67,9 +71,9 @@ parser code {:
 
 
 
-terminal EXCLAMATION, AND, OR, ARROW, SEMICOLON, COLON, OPEN_BRACKETS, CLOSE_BRACKETS, AUTOMATON, LOCAL, INITIAL, STATE, ERROR, STOP, ASS, MATCH, LABEL, CHECK, EVAL, MODIFY, DO, PRINT, GOTO, IDENTIFIER, INTEGER_LITERAL, NEQ, EQ, EQEQ, PLUS, MINUS, TRUE, FALSE, STRING_LITERAL, CURLYEXPR, SQUAREEXPR, NONDET ;
-
-non terminal Automaton initial ;
+terminal EXCLAMATION, AND, OR, ARROW, SEMICOLON, COLON, OPEN_BRACKETS, CLOSE_BRACKETS, AUTOMATON,OBSERVER, CONTROL, END, LOCAL, INITIAL, STATE, ERROR, STOP, ASS, MATCH, LABEL, CHECK, EVAL, MODIFY, DO, PRINT, GOTO, IDENTIFIER, INTEGER_LITERAL, NEQ, EQ, EQEQ, PLUS, MINUS, TRUE, FALSE, STRING_LITERAL, CURLYEXPR, SQUAREEXPR, NONDET ;
+non terminal List<Automaton> initial ;  
+non terminal Automaton automaton ;
 non terminal String InitDef ;
 non terminal Automaton Body ;
 non terminal Map<String, AutomatonVariable> LocalDefs ;
@@ -98,7 +102,19 @@ precedence left EQEQ, NEQ;
 precedence left EXCLAMATION;
 //precedence left EVAL;
 
-initial ::= AUTOMATON IDENTIFIER:id Body:b {: b.setName(id.toString()); RESULT = b; :}
+initial ::= automaton:a initial:lst {: lst.add(0, a); RESULT = lst; :}
+              | /* empty */ {: RESULT = new LinkedList<Automaton>(); :}
+              ;
+
+automaton ::= OBSERVER AUTOMATON IDENTIFIER:id Body:b END AUTOMATON 
+				{: b.setName(id.toString()); b.assertObserverAutomaton();
+				   RESULT = b; parser.initVariablesMap(); 
+				:}
+              | CONTROL AUTOMATON IDENTIFIER:id Body:b END AUTOMATON 
+              	{: b.setName(id.toString()); RESULT = b; parser.initVariablesMap(); :}
+              | AUTOMATON IDENTIFIER:id Body:b END AUTOMATON 
+              	{: b.setName(id.toString()); RESULT = b; parser.initVariablesMap(); :}
+              	// the CONTROL keyword is optional
             ;
 
 Body      ::= LocalDefs:vars InitDef:init StateDefs:states
@@ -116,7 +132,7 @@ LocalDef  ::= LOCAL IDENTIFIER:type IDENTIFIER:name  SEMICOLON {: RESULT = new A
             {: RESULT = new AutomatonVariable(type.toString(), name.toString()); RESULT.setValue(ci.getIntValue()); :}
             ;
 
-StateDefs ::= StateDef:s StateDefs:lst  {: lst.add(s); RESULT = lst; :} // elements will be in reversed order (irrelevant ?)
+StateDefs ::= StateDef:s StateDefs:lst  {: lst.add(0, s); RESULT = lst; :}
             | /* empty */ {: RESULT = new LinkedList<AutomatonInternalState>(); :}
               ;
 

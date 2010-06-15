@@ -1,4 +1,4 @@
-AUTOMATON LockingAutomaton
+OBSERVER AUTOMATON LockingAutomaton
 // Kommentar
 /* The Match Expressions are linked by implicit "and" */
 
@@ -24,3 +24,5 @@ STATE Unlocked :
   MATCH { lock($?); }  -> GOTO Locked;
   MATCH { unlock($?); }  -> ERROR;
   TRUE -> GOTO Unlocked;
+
+END AUTOMATON

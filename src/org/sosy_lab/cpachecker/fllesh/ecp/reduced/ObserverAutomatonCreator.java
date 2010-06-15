@@ -84,6 +84,7 @@ public class ObserverAutomatonCreator implements ASTVisitor<Void> {
         pWriter.println(lTransition);
       }
     }
+    pWriter.println("END AUTOMATON");
   }
 
   @Override

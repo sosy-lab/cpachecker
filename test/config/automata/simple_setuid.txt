@@ -1,7 +1,7 @@
 // This is an ObserverAutomaton similar to the example simple_setuid.spc.txt in the Blast test suite.
 // (The last (erroneous) event was not copied.)
 
-AUTOMATON simple_setuid
+OBSERVER AUTOMATON simple_setuid
 LOCAL int uid = 0;
 INITIAL STATE Init;
 
@@ -16,3 +16,4 @@ STATE Init:
   
   //TRUE -> GOTO Init;
 
+END AUTOMATON

@@ -1,4 +1,4 @@
-AUTOMATON ParserTestingAutomaton
+OBSERVER AUTOMATON ParserTestingAutomaton
 // This Automaton is written to test the Parser of the ObserverAnalysis
 // it does not matter with which other CPAs and on which sourcecode file this automaton is run
 
@@ -9,4 +9,4 @@ STATE Init :
   (TRUE && !TRUE) -> GOTO Init;
   TRUE -> ERROR;
 
-
+END AUTOMATON

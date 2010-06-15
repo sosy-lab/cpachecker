@@ -1,4 +1,4 @@
-AUTOMATON ExcplicitAnalysisObservingAutomaton
+OBSERVER AUTOMATON ExcplicitAnalysisObservingAutomaton
 // This Automaton is meant to work on the file "ex2.cil.c"
 // it requires the LocationAnalysis and the ExplicitAnalysis
 
@@ -11,3 +11,5 @@ STATE Init :
   MATCH {st = $2; } && CHECK(ExplicitAnalysis("main::st==$2")) ->
   DO x=$2
   PRINT "st==" PRINT x PRINT " after Edge $RawStatement in line $line" GOTO Init;
+
+END AUTOMATON

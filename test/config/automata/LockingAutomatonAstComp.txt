@@ -1,4 +1,4 @@
-AUTOMATON LockingAutomaton
+OBSERVER AUTOMATON LockingAutomaton
 // Kommentar
 /* Kommentar */
 
@@ -25,3 +25,5 @@ STATE Unlocked :
   MATCH  { lock($?); }  -> GOTO Locked;
   MATCH  { unlock($?); }  -> ERROR;
   TRUE -> GOTO Unlocked;
+
+END AUTOMATON

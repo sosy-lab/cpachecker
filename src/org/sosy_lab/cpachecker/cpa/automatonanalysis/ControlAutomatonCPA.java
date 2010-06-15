@@ -29,6 +29,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Collection;
+import java.util.List;
 import java.util.logging.Level;
 
 import java_cup.runtime.ComplexSymbolFactory;
@@ -162,7 +163,8 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis {
     try {
       input = new FileInputStream(inputFile);
       Symbol symbol = new AutomatonParser(new AutomatonScanner(input, sf),sf,pLogger).parse();
-      return (Automaton)symbol.value;
+      return ((List<Automaton>) symbol.value).get(0);
+      //return (Automaton)symbol.value;
     } catch (Exception e) {
       pLogger.logException(Level.FINER, e, "Could not load automaton from file " + inputFile);
       throw new InvalidConfigurationException("Could not load automaton from file " + inputFile
