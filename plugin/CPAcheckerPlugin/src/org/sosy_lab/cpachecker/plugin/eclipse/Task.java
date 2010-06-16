@@ -80,8 +80,18 @@ public class Task {
 	
 	public Configuration createConfig() throws IOException, CoreException {
 		String projectRoot = configFile.getProject().getLocation().toPortableString();
-		return new Configuration(configFile.getContents(),
+		Configuration config =  new Configuration(configFile.getContents(),
 				Collections.<String, String>emptyMap(), projectRoot);
+		
+		// append Task Name to Output Path
+		String newPath = config.getProperty("output.path", DEFAULT_OUTPUT_DIR);
+		if (newPath.endsWith("/")) {
+			newPath = newPath + this.name + "/";
+		} else {
+			newPath = newPath + "/" + this.name + "/";
+		}
+		return new Configuration(configFile.getContents(),
+				Collections.singletonMap("output.path", newPath), projectRoot);
 	}
 
 	public String getName() {

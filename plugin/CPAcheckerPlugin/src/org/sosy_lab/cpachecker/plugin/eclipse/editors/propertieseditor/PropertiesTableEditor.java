@@ -148,6 +148,7 @@ public class PropertiesTableEditor extends EditorPart {
 	    createToolTip(propertiesTableViewer, pParent);
 	}
 	private void createToolTip(final TableViewer tv, final Composite pParent) {
+		// copied from: http://dev.eclipse.org/viewcvs/index.cgi/org.eclipse.swt.snippets/src/org/eclipse/swt/snippets/Snippet125.java?view=co
 		final Display display = pParent.getDisplay();
 		final Shell shell = pParent.getShell();
 		// Disable native tooltip
@@ -164,10 +165,15 @@ public class PropertiesTableEditor extends EditorPart {
 						e.item = (TableItem) label.getData ("_TABLEITEM");
 						// Assuming table is single select, set the selection as if
 						// the mouse down event went through to the table
-						tv.getTable().setSelection (new TableItem [] {(TableItem) e.item});
-						tv.getTable().notifyListeners (SWT.Selection, e);
-						shell.dispose ();
-						tv.getTable().setFocus();
+						if (e.item == null) {
+							shell.dispose();
+							tv.getTable().setFocus();
+						} else {
+							tv.getTable().setSelection (new TableItem [] {(TableItem) e.item});
+							tv.getTable().notifyListeners (SWT.Selection, e);
+							shell.dispose ();
+							tv.getTable().setFocus();
+						}
 						break;
 					case SWT.MouseExit:
 						shell.dispose ();

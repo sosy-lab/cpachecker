@@ -184,11 +184,11 @@ public class TaskRunner {
 		@Override
 		public void run(IProgressMonitor monitor) {
 			fireTaskStarted();
-			try {
+			/*try {
 				task.getOutputDirectory(false).delete(IResource.FORCE, monitor);
 			} catch (CoreException e2) {
 				CPAclipse.logError("Could not delete output directory prior to running task " + task.getName(), e2);
-			}
+			}*/
 			monitor.subTask("Running: " + task.getName());
 			if (monitor.isCanceled()) {
 				fireTaskFinished(null, monitor);
