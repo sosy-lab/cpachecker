@@ -52,9 +52,10 @@ import com.google.common.collect.ImmutableList;
 @Options
 public class CPABuilder {
 
+  private static final String CPA_OPTION_NAME = "cpa";
   private static final String CPA_CLASS_PREFIX = "org.sosy_lab.cpachecker.";
 
-  @Option(name="cpa")
+  @Option(name=CPA_OPTION_NAME)
   private String cpaName = CompositeCPA.class.getCanonicalName();
 
   @Option(name="specification", type=Option.Type.OPTIONAL_INPUT_FILE)
@@ -91,7 +92,7 @@ public class CPABuilder {
         cpas.add(factory.createInstance());
       }
     }
-    return buildCPAs(cpaName, "cpa", usedAliases, cpas);
+    return buildCPAs(cpaName, CPA_OPTION_NAME, usedAliases, cpas);
   }
 
   private ConfigurableProgramAnalysis buildCPAs(String optionValue, String optionName, Set<String> usedAliases, List<ConfigurableProgramAnalysis> cpas) throws InvalidConfigurationException, CPAException {
