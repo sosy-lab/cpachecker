@@ -31,9 +31,7 @@ import java.lang.reflect.Modifier;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Enumeration;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -99,7 +97,7 @@ public class CPASelfCheck {
 
     try {
       logManager.log(Level.INFO, "Searching for CPAs");
-      LinkedList<Class<ConfigurableProgramAnalysis>> cpas = getCPAs();
+      List<Class<ConfigurableProgramAnalysis>> cpas = getCPAs();
 
       for (Class<ConfigurableProgramAnalysis> cpa : cpas) {
         logManager.log(Level.INFO, "Checking " + cpa.getCanonicalName() + " ...");
@@ -279,67 +277,30 @@ public class CPASelfCheck {
     return ok;
   }
 
-  @SuppressWarnings("unchecked")
-  private static LinkedList<Class<ConfigurableProgramAnalysis>> getCPAs() throws ClassNotFoundException, IOException {
-    Class[] cpaCandidates = getClasses("cpa");
+  private static List<Class<ConfigurableProgramAnalysis>> getCPAs() throws ClassNotFoundException, IOException {
+    List<Class<?>> cpaCandidates = getClasses("org.sosy_lab.cpachecker.cpa");
+    List<Class<ConfigurableProgramAnalysis>> cpas = new ArrayList<Class<ConfigurableProgramAnalysis>>();
 
-    HashMap<Class,HashSet<String>> transitiveInterfaces = new HashMap<Class,HashSet<String>>();
-    LinkedList<Class> waitlist = new LinkedList<Class>();
-
-    for (Class cl : cpaCandidates) {
-      waitlist.add(cl);
-    }
-
-    while (!waitlist.isEmpty()) {
-      Class cl = waitlist.poll();
-      boolean allParentInterfacesKnown = true;
-      HashSet<String> allInterfaces = new HashSet<String>();
-
-      for (Class p : cl.getInterfaces()) {
-        if (!p.getCanonicalName().startsWith("cpa.")) continue;
-        allInterfaces.add(p.getCanonicalName());
-        HashSet<String> ifs = transitiveInterfaces.get(p);
-        if (null == ifs) {
-          allParentInterfacesKnown = false;
-          break;
-        } else {
-          allInterfaces.addAll(ifs);
-        }
-      }
-      if (allParentInterfacesKnown && null != cl.getSuperclass() &&
-          cl.getSuperclass().getCanonicalName().startsWith("cpa.")) {
-        HashSet<String> ifs = transitiveInterfaces.get(cl.getSuperclass());
-        if (null == ifs) {
-          allParentInterfacesKnown = false;
-        } else {
-          allInterfaces.addAll(ifs);
-        }
-      }
-      if (!allParentInterfacesKnown) {
-        waitlist.add(cl);
-        continue;
-      } else {
-        transitiveInterfaces.put(cl, allInterfaces);
+    Class<ConfigurableProgramAnalysis> targetType = null;
+    
+    for (Class<?> candidate : cpaCandidates) {
+      if (   !Modifier.isAbstract(candidate.getModifiers())
+          && !Modifier.isInterface(candidate.getModifiers())
+          && ConfigurableProgramAnalysis.class.isAssignableFrom(candidate)) {
+       
+        // candidate is non-abstract implementation of CPA interface
+        cpas.add(uncheckedGenericCast(candidate, targetType));
       }
     }
-
-    LinkedList<Class<ConfigurableProgramAnalysis>> cpas = new LinkedList<Class<ConfigurableProgramAnalysis>>();
-
-    for(Map.Entry<Class, HashSet<String>> clEntry : transitiveInterfaces.entrySet()) {
-      if (Modifier.isAbstract(clEntry.getKey().getModifiers()) ||
-          Modifier.isInterface(clEntry.getKey().getModifiers())) continue;
-
-      if (clEntry.getValue().contains("org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis")) {
-        cpas.add(clEntry.getKey());
-      } /*else {
-        System.out.println("Skipping " + clEntry.getKey().getCanonicalName());
-        System.out.println("Parents: " + clEntry.getValue());
-      }*/
-    }
-
+    
     return cpas;
   }
 
+  @SuppressWarnings("unchecked")
+  private static <T> Class<T> uncheckedGenericCast(Class<?> classObj, Class<T> targetType) {
+    return (Class<T>)classObj;
+  }
+  
   /**
    * Scans all classes accessible from the context class loader which belong to the given package and subpackages.
    *
@@ -350,23 +311,18 @@ public class CPASelfCheck {
    *
    * taken from http://www.sourcesnippets.com/java-get-all-classes-within-a-package.html
    */
-  @SuppressWarnings("unchecked")
-  private static Class[] getClasses(String packageName)
-  throws ClassNotFoundException, IOException {
+  private static List<Class<?>> getClasses(String packageName) throws IOException {
     ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
     assert classLoader != null;
     String path = packageName.replace('.', '/');
     Enumeration<URL> resources = classLoader.getResources(path);
-    List<File> dirs = new ArrayList<File>();
+    
+    ArrayList<Class<?>> classes = new ArrayList<Class<?>>();
     while (resources.hasMoreElements()) {
       URL resource = resources.nextElement();
-      dirs.add(new File(resource.getFile()));
+      collectClasses(new File(resource.getFile()), packageName, classes);
     }
-    ArrayList<Class> classes = new ArrayList<Class>();
-    for (File directory : dirs) {
-      classes.addAll(findClasses(directory, packageName));
-    }
-    return classes.toArray(new Class[classes.size()]);
+    return classes;
   }
 
   /**
@@ -374,28 +330,29 @@ public class CPASelfCheck {
    *
    * @param directory   The base directory
    * @param packageName The package name for classes found inside the base directory
-   * @return The classes
+   * @param classes     List where the classes are added.
    * @throws ClassNotFoundException
    *
    * taken from http://www.sourcesnippets.com/java-get-all-classes-within-a-package.html
    */
-  @SuppressWarnings("unchecked")
-  private static List<Class> findClasses(File directory, String packageName) throws ClassNotFoundException {
-    List<Class> classes = new ArrayList<Class>();
+  private static void collectClasses(File directory, String packageName, List<Class<?>> classes) {
     if (!directory.exists()) {
-      return classes;
+      return;
     }
     File[] files = directory.listFiles();
     for (File file : files) {
       if (file.isDirectory()) {
         assert !file.getName().contains(".");
-        classes.addAll(findClasses(file, packageName + "." + file.getName()));
+        collectClasses(file, packageName + "." + file.getName(), classes);
       } else if (file.getName().endsWith(".class")) {
-        // System.err.println("Processing " + file.getName());
-        classes.add(Class.forName(packageName + '.' + file.getName().substring(0, file.getName().length() - 6)));
+        try {
+          Class<?> foundClass = Class.forName(packageName + '.' + file.getName().substring(0, file.getName().length() - 6));
+          classes.add(foundClass);
+        } catch (ClassNotFoundException e) {
+          /* ignore, there is no class available for this file */
+        }
       }
     }
-    return classes;
   }
 
 }
