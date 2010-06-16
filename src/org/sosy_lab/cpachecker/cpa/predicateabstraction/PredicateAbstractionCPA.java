@@ -43,7 +43,6 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatInterpola
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatPredicateParser;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatTheoremProver;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.SimplifyTheoremProver;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.YicesTheoremProver;
 import org.sosy_lab.cpachecker.cfa.objectmodel.CFAFunctionDefinitionNode;
 
@@ -89,7 +88,7 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis, Sta
       return new PredicateAbstractionCPAFactory();
     }
 
-    @Option(name="explicit.abstraction.solver", values = {"mathsat", "simplify", "yices"})
+    @Option(name="explicit.abstraction.solver", values = {"mathsat", "yices"})
     private String whichProver = "mathsat";
 
     @Option(name="abstraction.fixedPredMap")
@@ -124,8 +123,6 @@ public class PredicateAbstractionCPA implements ConfigurableProgramAnalysis, Sta
         TheoremProver prover = null;
         if (whichProver.equals("mathsat")) {
             prover = new MathsatTheoremProver(mgr, false, config);
-        } else if (whichProver.equals("simplify")) {
-            prover = new SimplifyTheoremProver(mgr, config, logger);
         } else if (whichProver.equals("yices")) {
             prover = new YicesTheoremProver(mgr);
         } else {

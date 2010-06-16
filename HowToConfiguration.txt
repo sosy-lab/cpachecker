@@ -221,7 +221,7 @@ uninitVars.printWarnings = true
 # number of abstraction steps for each location)
 cpas.symbpredabs.explicit.extendedStats = false
 
-# which solver to use? (mathsat, simplify, yices)
+# which solver to use? (mathsat, yices)
 cpa.symbpredabs.explicit.abstraction.solver = mathsat
 
 # which interpolating solver to use for interpolant generation? (mathsat, csisat)
@@ -339,9 +339,6 @@ cpas.symbpredabs.predmap.file = predmap.txt
 
 # dump the abstraction formulas in both .msat and .smv formats if they took to long
 cpas.symbpredabs.mathsat.dumpHardAbstractionQueries = false
-
-# dump queries made to Simplify theorem prover
-cpas.symbpredabs.explicit.abstraction.simplifyDumpQueries = false
 
 # dump all interpolation problems
 cpas.symbpredabs.dumpInterpolationProblems = false

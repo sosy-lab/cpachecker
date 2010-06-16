@@ -63,7 +63,6 @@ import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatInterpola
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatPredicateParser;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatSymbolicFormulaManager;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.MathsatTheoremProver;
-import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.SimplifyTheoremProver;
 import org.sosy_lab.cpachecker.util.symbpredabstraction.mathsat.YicesTheoremProver;
 
 import com.google.common.collect.ImmutableList;
@@ -87,7 +86,7 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     return new SymbPredAbsCPAFactory();
   }
 
-  @Option(name="explicit.abstraction.solver", toUppercase=true, values={"MATHSAT", "SIMPLIFY", "YICES"})
+  @Option(name="explicit.abstraction.solver", toUppercase=true, values={"MATHSAT", "YICES"})
   private String whichProver = "MATHSAT";
 
   @Option(name="interpolatingProver", toUppercase=true, values={"MATHSAT", "CSISAT"})
@@ -125,8 +124,6 @@ public class SymbPredAbsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     TheoremProver thmProver;
     if (whichProver.equals("MATHSAT")) {
       thmProver = new MathsatTheoremProver(symbolicFormulaManager, false, config);
-    } else if (whichProver.equals("SIMPLIFY")) {
-      thmProver = new SimplifyTheoremProver(symbolicFormulaManager, config, logger);
     } else if (whichProver.equals("YICES")) {
       thmProver = new YicesTheoremProver(symbolicFormulaManager);
     } else {
