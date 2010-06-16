@@ -34,7 +34,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 /**
  * @author rhein
  */
-class Automaton {
+public class Automaton {
   // default name of this automaton is "anonymous".
   private String name = "anonymous";
   /* The internal variables used by the actions/ assignments of this automaton.

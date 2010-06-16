@@ -54,6 +54,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
+import com.google.common.base.Preconditions;
+
 /**
  * This class implements an AutomatonAnalysis as described in the related Documentation.
  * @author rhein
@@ -67,19 +69,33 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis {
   @Option(name="dotExportFile", type=Option.Type.OUTPUT_FILE)
   private File exportFile = new File("automaton.dot");
 
-  private static class AutomatonCPAFactory extends AbstractCPAFactory {
+  public static class AutomatonCPAFactory extends AbstractCPAFactory {
 
+    private Automaton mAutomaton = null;
+    
+    public CPAFactory setAutomaton(Automaton pAutomaton) {
+      Preconditions.checkNotNull(pAutomaton);
+      Preconditions.checkState(pAutomaton == null, "setAutomaton called twice on AutomatonCPAFactory");
+      
+      mAutomaton = pAutomaton;
+      return this;
+    }
+    
     @Override
     public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException {
-      return new ControlAutomatonCPA(getConfiguration(), getLogger());
+      if (mAutomaton == null) {
+        return new ControlAutomatonCPA(getConfiguration(), getLogger());
+      } else {
+        return new ControlAutomatonCPA(mAutomaton, getConfiguration(), getLogger()); 
+      }
     }
   }
 
-  public static CPAFactory factory() {
+  public static AutomatonCPAFactory factory() {
     return new AutomatonCPAFactory();
   }
 
-  @Option(required=true, type=Option.Type.REQUIRED_INPUT_FILE)
+  @Option(required=true, type=Option.Type.OPTIONAL_INPUT_FILE)
   private File inputFile = null;
 
   private final Automaton automaton;
@@ -127,6 +143,21 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis {
     }
   };
 
+  private ControlAutomatonCPA(Automaton automaton, Configuration config, LogManager logger) throws InvalidConfigurationException {
+    config.inject(this, ControlAutomatonCPA.class);
+    this.automaton = automaton;
+    logger.log(Level.FINEST, "Automaton", automaton.getName(), "loaded.");
+    transferRelation = new AutomatonTransferRelation(automaton, logger);
+
+    if (export) {
+      try {
+        this.automaton.writeDotFile(new PrintStream(exportFile));
+      } catch (FileNotFoundException e) {
+        logger.log(Level.WARNING, "Could not create/write to the Automaton DOT file \"" + exportFile + "\"");
+      }
+    }
+  }
+  
   /**
    * Loads a Automaton from the argument DefinitionFile.
    * The argument mergeType is ignored.
@@ -137,10 +168,12 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis {
    */
   protected ControlAutomatonCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this, ControlAutomatonCPA.class);
+    if (inputFile == null) {
+      throw new InvalidConfigurationException("Explicitly specified automaton CPA needs option automatonAnalysis.inputFile!");
+    }
     automaton = parseAutomatonFile(logger);
     logger.log(Level.FINEST, "Automaton", automaton.getName(), "loaded.");
     transferRelation = new AutomatonTransferRelation(automaton, logger);
-    logger.log(Level.FINER, "loaded the Automaton " + automaton.getName() );
 
     if (export) {
       try {
