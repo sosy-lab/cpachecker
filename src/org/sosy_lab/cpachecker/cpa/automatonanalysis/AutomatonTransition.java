@@ -78,7 +78,7 @@ class AutomatonTransition {
    */
   private static void initAssertions(AutomatonTransition trans, List<AutomatonBoolExpr> pAssertions) {
     if (pAssertions.isEmpty()) {
-      trans.assertion = new AutomatonBoolExpr.True();
+      trans.assertion = AutomatonBoolExpr.TRUE;
     } else {
       for (AutomatonBoolExpr nextAssertion : pAssertions) {
         if (trans.assertion == null) {

@@ -67,6 +67,18 @@ parser code {:
     }
     logger.log(Level.INFO, errorString);
   }
+  
+  public Automaton generateSkeletonForAssertion(AutomatonBoolExpr pA) throws InvalidAutomatonException {
+    AutomatonTransition trans = new AutomatonTransition(
+        AutomatonBoolExpr.TRUE, 
+        Collections.singletonList(pA),
+        Collections.<AutomatonAction>emptyList(),
+        "OK");
+    AutomatonInternalState okState = new AutomatonInternalState("OK", 
+        Collections.singletonList(trans));
+    return new Automaton(Collections.<String, AutomatonVariable>emptyMap(), 
+        Collections.singletonList(okState), "OK", logger);
+  }
 :};
 
 
@@ -115,6 +127,8 @@ automaton ::= OBSERVER AUTOMATON IDENTIFIER:id Body:b END AUTOMATON
               | AUTOMATON IDENTIFIER:id Body:b END AUTOMATON 
               	{: b.setName(id.toString()); RESULT = b; parser.initVariablesMap(); :}
               	// the CONTROL keyword is optional
+              | Assertion:a SEMICOLON 
+              	{: RESULT = parser.generateSkeletonForAssertion(a); parser.initVariablesMap(); :} 
             ;
 
 Body      ::= LocalDefs:vars InitDef:init StateDefs:states
@@ -188,8 +202,8 @@ InnerInt  ::= Int:i {: RESULT = i; :}
 ConstantInt ::= INTEGER_LITERAL:c  {: RESULT = new AutomatonIntExpr.Constant(c.toString()); :}
 			;
 
-Bool      ::= TRUE  {: RESULT = new AutomatonBoolExpr.True(); :}
-            | FALSE  {: RESULT = new AutomatonBoolExpr.False(); :}
+Bool      ::= TRUE  {: RESULT = AutomatonBoolExpr.TRUE; :}
+            | FALSE  {: RESULT = AutomatonBoolExpr.FALSE; :}
             | EXCLAMATION Bool:b  {: RESULT = new AutomatonBoolExpr.Negation(b); :}
             | OPEN_BRACKETS Bool:b CLOSE_BRACKETS {: RESULT = b; :}
             | InnerInt:a EQEQ InnerInt:b  {: RESULT = new AutomatonBoolExpr.IntEqTest(a,b); :}

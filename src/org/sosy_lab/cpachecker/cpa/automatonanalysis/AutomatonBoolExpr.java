@@ -278,12 +278,11 @@ interface AutomatonBoolExpr extends AutomatonExpression {
       return "CHECK(" + cpaName + "(\"" + queryString + "\"))";
     }
   }
-
-
+  
   /** Constant for true.
    * @author rhein
    */
-  static class True implements AutomatonBoolExpr {
+  static AutomatonBoolExpr TRUE = new AutomatonBoolExpr() {
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       return CONST_TRUE;
@@ -293,13 +292,12 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     public String toString() {
       return "TRUE";
     }
-  }
-
+  };
 
   /** Constant for false.
    * @author rhein
    */
-  static class False implements AutomatonBoolExpr {
+  static AutomatonBoolExpr FALSE = new AutomatonBoolExpr() {
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       return CONST_FALSE;
@@ -309,7 +307,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     public String toString() {
       return "FALSE";
     }
-  }
+  };
 
 
   /** Tests the equality of the values of two instances of {@link AutomatonIntExpr}.

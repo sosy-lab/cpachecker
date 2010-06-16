@@ -134,6 +134,21 @@ public class AutomatonTest {
       Assert.fail("InvalidConfiguration");
     }
   }
+  @Test
+  public void pointerAnalyisSkeletonTest() {
+    Map<String, String> prop = ImmutableMap.of(
+        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.automatonanalysis.ObserverAutomatonCPA, cpa.pointeranalysis.PointerAnalysisCPA",
+        "automatonAnalysis.inputFile",     "test/config/automata/PointerAnalysisTestSkeletonAutomaton.txt",
+        "log.consoleLevel",               "INFO"
+      );
+    try {
+      TestResults results = run(prop, "test/programs/simple/PointerAnalysisErrors.c");
+      Assert.assertTrue(results.logContains("Automaton going to ErrorState on edge \"free(a);\""));
+      Assert.assertTrue(results.isUnsafe());
+    } catch (InvalidConfigurationException e) {
+      Assert.fail("InvalidConfiguration");
+    }
+  }
 
   @Test
   public void locking_correct() {

@@ -46,7 +46,7 @@ class AutomatonInternalTests {
    */
   public static void main(String[] args) {
 
-    AutomatonBoolExpr ex = new AutomatonBoolExpr.True();
+    AutomatonBoolExpr ex = AutomatonBoolExpr.TRUE;
     System.out.println(ex.eval(null));
     try {
       File f = new File("test/programs/automata/LockingAutomatonAstComp.txt");
@@ -88,8 +88,8 @@ class AutomatonInternalTests {
     AutomatonExpressionArguments args = new AutomatonExpressionArguments(vars, elements, null, null);
     AutomatonBoolExpr ex;
     boolean ok = true;
-    AutomatonBoolExpr myTrue= new AutomatonBoolExpr.True();
-    AutomatonBoolExpr myFalse= new AutomatonBoolExpr.False();
+    AutomatonBoolExpr myTrue= AutomatonBoolExpr.TRUE;
+    AutomatonBoolExpr myFalse= AutomatonBoolExpr.FALSE;
 
     ex = new AutomatonBoolExpr.And(myTrue, myTrue); if (!ex.eval(args).getValue().equals(Boolean.TRUE)) ok = false;
     ex = new AutomatonBoolExpr.And(myTrue, myFalse); if (!ex.eval(args).getValue().equals(Boolean.FALSE)) ok = false;
