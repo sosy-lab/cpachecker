@@ -24,17 +24,11 @@
 package org.sosy_lab.cpachecker.cpa.automatonanalysis;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
-
-import java_cup.runtime.ComplexSymbolFactory;
-import java_cup.runtime.Symbol;
-import java_cup.runtime.SymbolFactory;
 
 import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -158,26 +152,15 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis {
   }
 
   private Automaton parseAutomatonFile(LogManager pLogger) throws InvalidConfigurationException {
-    SymbolFactory sf = new ComplexSymbolFactory();
-    FileInputStream input = null;
-    try {
-      input = new FileInputStream(inputFile);
-      Symbol symbol = new AutomatonParser(new AutomatonScanner(input, sf),sf,pLogger).parse();
-      return ((List<Automaton>) symbol.value).get(0);
-      //return (Automaton)symbol.value;
-    } catch (Exception e) {
-      pLogger.logException(Level.FINER, e, "Could not load automaton from file " + inputFile);
-      throw new InvalidConfigurationException("Could not load automaton from file " + inputFile
-          + " (" + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()) + ")");
-    } finally {
-      if (input!= null) {
-        try {
-          input.close();
-        } catch (IOException e) {
-          throw new InvalidConfigurationException(
-              "IO Exception when closing the FileStream to \"" + inputFile + "\": "+e.getMessage());
-        }
+    if (inputFile != null) {
+      List<Automaton> lst = AutomatonParser.parseAutomatonFile(inputFile, pLogger);
+      if (lst.size() > 0) {
+        return lst.get(0);
+      } else {
+        throw new InvalidConfigurationException("Could not find automata in the file " + inputFile.getAbsolutePath());
       }
+    } else {
+      throw new InvalidConfigurationException("No Specification file was given.");
     }
   }
 
