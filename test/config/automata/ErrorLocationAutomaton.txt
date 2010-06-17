@@ -17,7 +17,7 @@ STATE Init :
        // matches if assert_fail is called with at least one argument
   || MATCH {__assert_fail($?)}
 
-  -> ERROR;
+  -> PRINT "ERROR found in line $line: \"$rawstatement\"" ERROR;
 
 
 END AUTOMATON
