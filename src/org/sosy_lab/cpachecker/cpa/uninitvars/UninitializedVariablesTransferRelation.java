@@ -563,7 +563,8 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
                 !(((DeclarationEdge)cfaEdge).getDeclSpecifier().getStorageClass() == IASTDeclSpecifier.sc_extern)) {
 
               handleStructDeclaration((UninitializedVariablesElement)element, typeElem,
-                                      (Type.CompositeType)t, lastAdded, lastAdded);
+                                      (Type.CompositeType)t, lastAdded, lastAdded, 
+                                      cfaEdge instanceof GlobalDeclarationEdge);
             }
           }
         }
@@ -666,8 +667,9 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
                                        TypesElement typeElem,
                                        Type.CompositeType structType,
                                        String varName,
-                                       String recursiveVarName) {
-
+                                       String recursiveVarName,
+                                       boolean isGlobalDeclaration) {
+    
     //structs themselves are always considered initialized
     setInitialized(element, recursiveVarName);
 
@@ -678,9 +680,12 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
       //for a field that is itself a struct, repeat the whole process
       if (t != null && t.getTypeClass() == TypeClass.STRUCT) {
         handleStructDeclaration(element, typeElem, (Type.CompositeType)t, member,
-                                recursiveVarName + "." + member);
+                                recursiveVarName + "." + member, isGlobalDeclaration);
       } else {
         //set non structure fields uninitialized, since they have only just been declared
+        if (isGlobalDeclaration) {
+          globalVars.add(recursiveVarName + "." + member);
+        }
         setUninitialized(element, recursiveVarName + "." + member);
       }
     }
