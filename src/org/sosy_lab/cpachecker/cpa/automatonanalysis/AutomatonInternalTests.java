@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.automatonanalysis;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +34,7 @@ import java_cup.runtime.Symbol;
 import java_cup.runtime.SymbolFactory;
 
 import org.eclipse.cdt.core.dom.ast.IASTNode;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 
 /**
@@ -45,38 +47,42 @@ class AutomatonInternalTests {
    * @param args
    */
   public static void main(String[] args) {
-
+    /*
     AutomatonBoolExpr ex = AutomatonBoolExpr.TRUE;
     System.out.println(ex.eval(null));
+    */
     try {
-      File f = new File("test/programs/automata/LockingAutomatonAstComp.txt");
-
-      /*
+      File f = new File("test/config/automata/defaultSpecification.spc");
+      //File f = new File("test/config/automata/TestAutomaton.txt");
+      
+      Configuration emptyConfig = new Configuration(Collections.<String,String>emptyMap());
+      
       SymbolFactory sf1 = new ComplexSymbolFactory();
-      Scanner s = new Scanner(new FileInputStream(f), sf1);
+      AutomatonScanner s = new AutomatonScanner(new FileInputStream(f), emptyConfig, sf1);
       Symbol symb = s.next_token();
-      while (symb.sym != sym.EOF) {
+      while (symb.sym != AutomatonSym.EOF) {
         System.out.println(symb);
         symb = s.next_token();
       }
       System.out.println(s.next_token());
-      */
-
+      
+/*
       SymbolFactory sf = new ComplexSymbolFactory();
       //change back if you have problems:
       //SymbolFactory sf = new DefaultSymbolFactory();
      Symbol symbol = new AutomatonParser(new AutomatonScanner(new java.io.FileInputStream(f), sf),sf).parse();
      Automaton a = (Automaton) symbol.value;
      a.writeDotFile(System.out);
-
+*/
 
     } catch (Exception e) {
       // TODO Auto-generated catch block
       e.printStackTrace();
     }
 
-    testExpressionEvaluator();
-    testASTcomparison();
+    //testExpressionEvaluator();
+    
+    //testASTcomparison();
 
     testAndOr();
   }

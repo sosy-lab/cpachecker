@@ -31,7 +31,7 @@
     	 symbols="AutomatonSym"
     	 nopositions="true"
     />
-    <jflex file="${parserDir}/Scanner.jflex" destdir="${src}" />
+    <jflex file="${parserDir}/Scanner.jflex" destdir="${src}" skel="src/org/sosy_lab/cpachecker/cpa/automatonanalysis/skeleton.nested"/>
   	<!-- places the suppressWarnings-tag in front of the outer class -->
   	<replace file="${parserDir}/AutomatonParser.java" token="public class " value="@SuppressWarnings(value = { &quot;all&quot; }) public  class "/>
   	<!-- places the suppressWarnings-tag in front of the inner class -->

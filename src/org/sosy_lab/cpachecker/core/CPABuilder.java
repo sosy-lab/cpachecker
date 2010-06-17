@@ -76,7 +76,7 @@ public class CPABuilder {
     // create automata cpas for specification given in specification file
     List<ConfigurableProgramAnalysis> cpas = null;
     if (specificationFile != null) {
-      List<Automaton> automata = AutomatonParser.parseAutomatonFile(specificationFile, logger);
+      List<Automaton> automata = AutomatonParser.parseAutomatonFile(specificationFile, config, logger);
       cpas = new ArrayList<ConfigurableProgramAnalysis>(automata.size());
       
       for (Automaton automaton : automata) {
@@ -90,6 +90,7 @@ public class CPABuilder {
         factory.setLogger(logger);
         factory.setAutomaton(automaton);
         cpas.add(factory.createInstance());
+        logger.log(Level.FINE, "Loaded Automaton\"" + automaton.getName() + "\"");
       }
     }
     return buildCPAs(cpaName, CPA_OPTION_NAME, usedAliases, cpas);

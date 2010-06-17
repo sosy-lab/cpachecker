@@ -46,7 +46,30 @@ public class AutomatonTest {
   private static final String OUTPUT_FILE = "test/output/AutomatonExport.dot";
   
   // Specification Tests
-
+  @Test
+  public void IncludeSpecificationTest() {
+    Map<String, String> prop = ImmutableMap.of(
+        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.pointeranalysis.PointerAnalysisCPA, cpa.uninitvars.UninitializedVariablesCPA, cpa.types.TypesCPA",
+        "specification",     "test/config/automata/defaultSpecificationForTesting.spc",
+        "log.consoleLevel",               "INFO",
+        "analysis.stopAfterError",        "FALSE"
+      );
+    try {
+      TestResults results = run(prop, "test/programs/simple/UninitVarsErrors.c");
+      Assert.assertTrue(results.logContains("Automaton: Uninitialized return value"));
+      Assert.assertTrue(results.logContains("Automaton: Uninitialized variable used"));
+      
+      results = run(prop, "test/programs/simple/PointerAnalysisErrors.c");
+      Assert.assertTrue(results.logContains("Found a DOUBLE_FREE"));
+      Assert.assertTrue(results.logContains("Found an INVALID_FREE"));
+      Assert.assertTrue(results.logContains("Found a POTENTIALLY_UNSAFE_DEREFERENCE"));
+      Assert.assertTrue(results.logContains("Found a Memory Leak"));
+      Assert.assertTrue(results.logContains("Found an UNSAFE_DEREFERENCE"));
+      
+    } catch (InvalidConfigurationException e) {
+      Assert.fail("InvalidConfiguration");
+    }
+  }
   @Test
   public void SpecificationAndNoCompositeTest() {
     Map<String, String> prop = ImmutableMap.of(

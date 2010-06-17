@@ -171,7 +171,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis {
     if (inputFile == null) {
       throw new InvalidConfigurationException("Explicitly specified automaton CPA needs option automatonAnalysis.inputFile!");
     }
-    automaton = parseAutomatonFile(logger);
+    automaton = parseAutomatonFile(logger, config);
     logger.log(Level.FINEST, "Automaton", automaton.getName(), "loaded.");
     transferRelation = new AutomatonTransferRelation(automaton, logger);
 
@@ -184,9 +184,9 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis {
     }
   }
 
-  private Automaton parseAutomatonFile(LogManager pLogger) throws InvalidConfigurationException {
+  private Automaton parseAutomatonFile(LogManager pLogger, Configuration config) throws InvalidConfigurationException {
     if (inputFile != null) {
-      List<Automaton> lst = AutomatonParser.parseAutomatonFile(inputFile, pLogger);
+      List<Automaton> lst = AutomatonParser.parseAutomatonFile(inputFile, config, pLogger);
       if (lst.size() == 1) {
         return lst.get(0);
       } else if (lst.size() > 1) {

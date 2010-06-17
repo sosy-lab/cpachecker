@@ -503,4 +503,12 @@ public class Configuration {
     
     return file;
   }
+  
+  /**
+   * Might return null!
+   */
+  public String getRootDirectory() {
+    return this.rootDirectory;
+  }
+  
 }

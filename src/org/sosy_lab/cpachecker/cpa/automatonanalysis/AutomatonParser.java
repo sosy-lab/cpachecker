@@ -17,6 +17,7 @@ import java.util.LinkedList;
 import java.util.HashMap;
 import java.util.Map;
 import org.sosy_lab.common.LogManager;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import java.util.logging.Level;
 import java.util.Collections;
@@ -440,12 +441,12 @@ import java.util.Collections;
   /**
   * Parses a Specification File and returns the Automata found in the file.
   */
-  public static List<Automaton> parseAutomatonFile(File pInputFile, LogManager pLogger) throws InvalidConfigurationException {
+  public static List<Automaton> parseAutomatonFile(File pInputFile, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     SymbolFactory sf = new ComplexSymbolFactory();
     FileInputStream input = null;
     try {
       input = new FileInputStream(pInputFile);
-      Symbol symbol = new AutomatonParser(new AutomatonScanner(input, sf),sf,pLogger).parse();
+      Symbol symbol = new AutomatonParser(new AutomatonScanner(input, config, sf),sf,pLogger).parse();
       return ((List<Automaton>) symbol.value);
       //return (Automaton)symbol.value;
     } catch (Exception e) {

@@ -1,6 +1,11 @@
 package org.sosy_lab.cpachecker.cpa.automatonanalysis;
 
+import java.io.FileReader;
+import java.io.File;
 import java_cup.runtime.*;
+import org.sosy_lab.common.Files;
+import org.sosy_lab.common.configuration.Configuration;
+import java.io.FileNotFoundException;
 @SuppressWarnings(value = { "all" })
 %%
 
@@ -10,14 +15,15 @@ import java_cup.runtime.*;
 %line
 %column
 
-
 %{
   private StringBuilder string = new StringBuilder();
   private SymbolFactory sf;
+  private Configuration config;
 
-   public AutomatonScanner(java.io.InputStream r, SymbolFactory sf){
+   public AutomatonScanner(java.io.InputStream r, Configuration config, SymbolFactory sf){
 	this(r);
 	this.sf = sf;
+	this.config = config;
   }
   public int getLine() {
      return this.yyline;
@@ -25,6 +31,18 @@ import java_cup.runtime.*;
    public int getColumn() {
      return this.yycolumn;
    }
+   
+   private File getFile(String pYytext) throws FileNotFoundException {
+  	assert pYytext.startsWith("#include ");
+  	String fileName = pYytext.replaceFirst("#include ", "").trim();
+  	if (config != null && config.getRootDirectory() != null) {
+  	  fileName = config.getRootDirectory() + fileName;
+  	}
+  	System.out.println("File to be included: " + fileName);
+  	File file = new File(fileName);
+  	Files.checkReadableFile(file);
+  	return file;
+  }
   
   private Symbol symbol(String name, int sym) {
     return  sf.newSymbol(name, sym);
@@ -42,7 +60,7 @@ import java_cup.runtime.*;
 %eofval}
 
 LineTerminator = \r|\n|\r\n
-InputCharacter = [^\r\n]
+InputCharacter = [^\r\n] | .
 WhiteSpace     = {LineTerminator} | [ \t\f]
 
 /* comments */
@@ -63,6 +81,9 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
 %%
 
 /* keywords */
+<YYINITIAL>
+	"#include" {InputCharacter}+ 
+	{ yypushStream(new FileReader(getFile(yytext()))); }
 <YYINITIAL> ";"                 { return symbol(";", AutomatonSym.SEMICOLON); }
 <YYINITIAL> ":"                 { return symbol(":", AutomatonSym.COLON); }
 <YYINITIAL> "("                 { return symbol("(", AutomatonSym.OPEN_BRACKETS); }
@@ -155,7 +176,7 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
   \\\]                           { string.append(']'); }
   \\                             { string.append('\\'); }
 }
-
+<<EOF>> {if (yymoreStreams()) yypopStream(); else return symbol("EOF", AutomatonSym.EOF); }
 /* error fallback */
 .|\n                             { error("Fallback error"); throw new Error("Illegal character <"+
                                                     yytext()+">"); }
