@@ -51,6 +51,8 @@ parser code {:
   public boolean syntaxErrors;
   AutomatonScanner scanner;
   LogManager logger;
+  // this int is used to determine unique names for anonymous automata
+  private static int anonymousCounter;
 
   public AutomatonParser(AutomatonScanner scanner, SymbolFactory sf, LogManager pLogger) {
       super(scanner, sf);
@@ -83,8 +85,10 @@ parser code {:
         "OK");
     AutomatonInternalState okState = new AutomatonInternalState("OK", 
         Collections.singletonList(trans));
-    return new Automaton(Collections.<String, AutomatonVariable>emptyMap(), 
+    Automaton ret = new Automaton(Collections.<String, AutomatonVariable>emptyMap(), 
         Collections.singletonList(okState), "OK", logger);
+    ret.setName("AnonymousAutomaton" + anonymousCounter++);
+    return ret;
   }
   /**
   * Parses a Specification File and returns the Automata found in the file.
