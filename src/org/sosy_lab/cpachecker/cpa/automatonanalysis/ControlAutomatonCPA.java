@@ -75,7 +75,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis {
     
     public CPAFactory setAutomaton(Automaton pAutomaton) {
       Preconditions.checkNotNull(pAutomaton);
-      Preconditions.checkState(pAutomaton == null, "setAutomaton called twice on AutomatonCPAFactory");
+      Preconditions.checkState(mAutomaton == null, "setAutomaton called twice on AutomatonCPAFactory");
       
       mAutomaton = pAutomaton;
       return this;
@@ -95,7 +95,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis {
     return new AutomatonCPAFactory();
   }
 
-  @Option(required=true, type=Option.Type.OPTIONAL_INPUT_FILE)
+  @Option(required=false, type=Option.Type.OPTIONAL_INPUT_FILE)
   private File inputFile = null;
 
   private final Automaton automaton;

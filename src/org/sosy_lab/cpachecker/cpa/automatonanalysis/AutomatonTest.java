@@ -45,6 +45,56 @@ import com.google.common.collect.ImmutableMap;
 public class AutomatonTest {
   private static final String OUTPUT_FILE = "test/output/AutomatonExport.dot";
   
+  // Specification Tests
+
+  @Test
+  public void SpecificationAndNoCompositeTest() {
+    Map<String, String> prop = ImmutableMap.of(
+        "cpa", "cpa.location.LocationCPA",
+        "log.consoleLevel", "INFO",
+        "specification", "test/config/automata/LockingAutomatonAll.txt");
+    try {
+      TestResults results = run(prop, "test/programs/simple/modificationExample.c");
+      Assert.assertTrue(results.logContains("Option specification gave specification automata, but no CompositeCPA was used"));
+      Assert.assertTrue(results.getCheckerResult().getResult().equals(CPAcheckerResult.Result.UNKNOWN));
+    } catch (InvalidConfigurationException e) {
+      Assert.fail("InvalidConfiguration");
+    }
+  }
+  @Test
+  public void modificationTestWithSpecification() {
+    Map<String, String> prop = ImmutableMap.of(
+        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.explicit.ExplicitAnalysisCPA",
+        "specification",     "test/config/automata/modifyingAutomaton.txt",
+        "log.consoleLevel",               "INFO",
+        "cpas.explicit.threshold",       "10");
+    try {
+      TestResults results = run(prop, "test/programs/simple/modificationExample.c");
+      Assert.assertTrue(results.logContains("MODIFIED"));
+      Assert.assertTrue(results.logContains("Modification successful"));
+      Assert.assertTrue(results.isSafe());
+    } catch (InvalidConfigurationException e) {
+      Assert.fail("InvalidConfiguration");
+    }
+  }
+  
+  //Automaton Tests
+  
+  @Test
+  public void failIfNoAutomatonGiven() {
+    Map<String, String> prop = ImmutableMap.of(
+        "CompositeCPA.cpas",              "cpa.location.LocationCPA, cpa.explicit.ExplicitAnalysisCPA, cpa.automatonanalysis.ControlAutomatonCPA",
+        "log.consoleLevel",               "INFO",
+        "cpas.explicit.threshold",       "10");
+    try {
+      TestResults results = run(prop, "test/programs/simple/modificationExample.c");
+      Assert.assertTrue(results.getCheckerResult().getResult().equals(CPAcheckerResult.Result.UNKNOWN));
+      results.logContains("Explicitly specified automaton CPA needs option automatonAnalysis.inputFile!");
+    } catch (InvalidConfigurationException e) {
+      Assert.fail("InvalidConfiguration");
+    }
+  }
+  
   @Test
   public void modificationTest() {
     Map<String, String> prop = ImmutableMap.of(
@@ -363,7 +413,6 @@ public class AutomatonTest {
     public String getLog() {
       return log;
     }
-    @SuppressWarnings("unused")
     public CPAcheckerResult getCheckerResult() {
       return checkerResult;
     }
