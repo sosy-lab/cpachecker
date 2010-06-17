@@ -187,9 +187,11 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis {
   private Automaton parseAutomatonFile(LogManager pLogger) throws InvalidConfigurationException {
     if (inputFile != null) {
       List<Automaton> lst = AutomatonParser.parseAutomatonFile(inputFile, pLogger);
-      if (lst.size() > 0) {
+      if (lst.size() == 1) {
         return lst.get(0);
-      } else {
+      } else if (lst.size() > 1) {
+        throw new InvalidConfigurationException("Found " + lst.size() + " automata in the File " + inputFile.getAbsolutePath() + " The CPA can only handle ONE Automaton!");
+      } else { // lst.size == 0
         throw new InvalidConfigurationException("Could not find automata in the file " + inputFile.getAbsolutePath());
       }
     } else {
