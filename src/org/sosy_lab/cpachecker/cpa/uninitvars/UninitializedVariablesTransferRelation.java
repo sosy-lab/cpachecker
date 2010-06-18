@@ -204,33 +204,37 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
   private void handleDeclaration(UninitializedVariablesElement element,
       DeclarationEdge declaration) {
 
-    for (IASTDeclarator declarator : declaration.getDeclarators()) {
-      if (declarator != null) {
+    //typedefs do not concern this CPA
+    if (declaration.getDeclSpecifier().getStorageClass() != IASTDeclSpecifier.sc_typedef) {
 
-        String varName;
-        //in case of a nested declarator, get the variable name from the inner declarator
-        if (declarator.getNestedDeclarator() != null) {
-          varName = declarator.getNestedDeclarator().getName().toString();
-        } else {
-        //otherwise there is only one declarator
-          varName = declarator.getName().toString();
-        }
-        if (declaration instanceof GlobalDeclarationEdge) {
-          globalVars.add(varName);
-        }
+      for (IASTDeclarator declarator : declaration.getDeclarators()) {
+        if (declarator != null) {
 
-        lastAdded = varName;
+          String varName;
+          //in case of a nested declarator, get the variable name from the inner declarator
+          if (declarator.getNestedDeclarator() != null) {
+            varName = declarator.getNestedDeclarator().getName().toString();
+          } else {
+            //otherwise there is only one declarator
+            varName = declarator.getName().toString();
+          }
+          if (declaration instanceof GlobalDeclarationEdge) {
+            globalVars.add(varName);
+          }
 
-        IASTInitializer initializer = declarator.getInitializer();
-        // initializers in CIL are always constant, so no need to check if
-        // initializer expression contains uninitialized variables
-        if (initializer == null &&
-            !(declaration.getDeclSpecifier().getStorageClass() == IASTDeclSpecifier.sc_extern) &&
-            !(declarator instanceof IASTArrayDeclarator) &&
-            !(declarator instanceof IASTFunctionDeclarator)) {
-          setUninitialized(element, varName);
-        } else {
-          setInitialized(element, varName);
+          lastAdded = varName;
+
+          IASTInitializer initializer = declarator.getInitializer();
+          // initializers in CIL are always constant, so no need to check if
+          // initializer expression contains uninitialized variables
+          if (initializer == null &&
+              !(declaration.getDeclSpecifier().getStorageClass() == IASTDeclSpecifier.sc_extern) &&
+              !(declarator instanceof IASTArrayDeclarator) &&
+              !(declarator instanceof IASTFunctionDeclarator)) {
+            setUninitialized(element, varName);
+          } else {
+            setInitialized(element, varName);
+          }
         }
       }
     }
@@ -539,7 +543,7 @@ public class UninitializedVariablesTransferRelation implements TransferRelation 
   public Collection<? extends AbstractElement> strengthen(AbstractElement element,
                           List<AbstractElement> otherElements, CFAEdge cfaEdge,
                           Precision precision) {
-
+    
     //only call for declarations. check for lastAdded prevents unnecessary repeated executions for the same statement
     boolean typesCPAPresent = false;
 
