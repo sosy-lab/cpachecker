@@ -8,7 +8,6 @@ import org.eclipse.jface.text.presentation.IPresentationReconciler;
 import org.eclipse.jface.text.presentation.PresentationReconciler;
 import org.eclipse.jface.text.source.ISourceViewer;
 import org.eclipse.ui.editors.text.TextSourceViewerConfiguration;
-import org.sosy_lab.cpachecker.plugin.eclipse.editors.automatoneditor.NonRuleBasedDamagerRepairer;
 
 public class ErrorPathSourceViewerConfiguration extends TextSourceViewerConfiguration {
 	private final ErrorPathEditor fEditor;
@@ -17,17 +16,6 @@ public class ErrorPathSourceViewerConfiguration extends TextSourceViewerConfigur
 		super(prefStore);
 		this.fEditor = editor;
 	}
-	/*
-	@Override
-	public IHyperlinkDetector[] getHyperlinkDetectors(ISourceViewer sourceViewer) {
-		IHyperlinkDetector[] lst = super.getHyperlinkDetectors(sourceViewer);
-		lst = Arrays.copyOf(lst, lst.length+1);
-		ErrorPathHyperlinkDetector detector = new ErrorPathHyperlinkDetector();
-		detector.setContext(fEditor);
-		lst[lst.length-1] = detector;
-		return lst;
-	}
-	*/
 	
 	@SuppressWarnings("unchecked") // this part of the API is not generic
 	@Override

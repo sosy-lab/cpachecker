@@ -1,4 +1,4 @@
-package org.sosy_lab.cpachecker.plugin.eclipse.editors.automatoneditor;
+package org.sosy_lab.cpachecker.plugin.eclipse.editors.errorPathEditor;
 
 import org.eclipse.core.runtime.Assert;
 import org.eclipse.jface.text.BadLocationException;

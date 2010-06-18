@@ -122,9 +122,13 @@
          point="org.eclipse.ui.workbench.texteditor.hyperlinkDetectorTargets">
       <target
             id="org.sosy_lab.cpachecker.plugin.eclipse.editors.errorPathEditor.ErrorPathEditor"
-            name="CPAtextEditorTarget">
+            name="CPAtextEditorTargetErrorPath">
             <context type="org.sosy_lab.cpachecker.plugin.eclipse.editors.errorPathEditor.ErrorPathEditor"/>
-            <!--<context type="org.eclipse.ui.texteditor.ITextEditor"/>-->
+      </target>
+      <target
+            id="org.sosy_lab.cpachecker.plugin.eclipse.editors.automatoneditor.AutomatonEditor"
+            name="CPAtextEditorTargetSpecification">
+            <context type="org.sosy_lab.cpachecker.plugin.eclipse.editors.automatoneditor.AutomatonEditor"/>
       </target>
    </extension>
    <extension
@@ -135,7 +139,13 @@
             id="org.sosy_lab.cpachecker.plugin.eclipse.editors.errorPathEditor.ErrorPathHyperlinkDetector"
             name="ErrorPathHyperlinkDetector"
             targetId="org.sosy_lab.cpachecker.plugin.eclipse.editors.errorPathEditor.ErrorPathEditor">
-            <!--targetId="org.eclipse.ui.DefaultTextEditor">-->
+      </hyperlinkDetector>
+      <hyperlinkDetector
+      		activate="true"
+            class="org.sosy_lab.cpachecker.plugin.eclipse.editors.automatoneditor.IncludeHyperlinkDetector"
+            id="org.sosy_lab.cpachecker.plugin.eclipse.editors.automatoneditor.IncludeHyperlinkDetector"
+            name="IncludeHyperlinkDetector"
+            targetId="org.sosy_lab.cpachecker.plugin.eclipse.editors.automatoneditor.AutomatonEditor">
       </hyperlinkDetector>
    </extension> 
 </plugin>

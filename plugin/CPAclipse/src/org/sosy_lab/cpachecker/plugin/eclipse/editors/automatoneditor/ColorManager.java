@@ -9,10 +9,11 @@ import org.eclipse.swt.graphics.RGB;
 import org.eclipse.swt.widgets.Display;
 
 public class ColorManager {
-	static RGB COMMENT = new RGB(128, 0, 0);
-	static RGB KEYWORD = new RGB(0, 0, 128);
-	static RGB STRING = new RGB(0, 128, 0);
-	static RGB DEFAULT = new RGB(0, 0, 0);
+	static RGB INCLUDE = new RGB(42, 0, 255);
+	static RGB COMMENT = new RGB(63, 127, 95);
+	static RGB KEYWORD = new RGB(127, 0, 85);
+	static RGB STRING = new RGB(42, 0, 255);
+	static RGB DEFAULT = new RGB(128, 128, 128);
 
 	protected Map<RGB, Color> fColorTable = new HashMap<RGB, Color>(10);
 
