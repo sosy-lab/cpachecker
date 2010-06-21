@@ -143,6 +143,9 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
   private final long multUfDecl;
   private final long divUfDecl;
   private final long modUfDecl;
+  
+  // used to handle variable declarations
+  private final long variableDeclaration;
 
   // datatype to use for variables, when converting them to mathsat vars
   // can be either MSAT_REAL or MSAT_INT
@@ -160,6 +163,8 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
   private static final String OP_ADDRESSOF_NAME = "__ptrAmp__";
   private static final String OP_STAR_NAME = "__ptrStar__";
   private static final String OP_ARRAY_SUBSCRIPT = "__array__";
+  
+  private static final String NONDET_COUNTER = "__nondetCounter__";
 
   // a namespace to have a unique name for each variable in the program.
   // Whenever we enter a function, we push its name as namespace. Each
@@ -227,6 +232,9 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
 
     stringLitUfDecl = mathsat.api.msat_declare_uif(msatEnv, "__string__",
         msatVarType, 1, argtype);
+    
+    variableDeclaration = mathsat.api.msat_declare_uif(msatEnv, "__vardecl__", msatVarType, 1, argtype);
+    globalVars.add(NONDET_COUNTER);
     
     absPrinter = new MathsatAbstractionPrinter(msatEnv, "abs", logger);
   }
@@ -514,7 +522,37 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         } else {
           logger.log(Level.ALL, "DEBUG_3",
               "NOT AUTO-INITIALIZING VAR:", var);
+          
+          throw new RuntimeException("This is buggy!!! See nondet solution below");
         }
+      }
+      else {
+        // increment counter for nondeterministic value
+        int lOldNondetCounterIndex = newssa.getIndex(NONDET_COUNTER);
+        if (lOldNondetCounterIndex == -1) {
+          lOldNondetCounterIndex = 1;
+          newssa.setIndex(NONDET_COUNTER, lOldNondetCounterIndex);
+        }
+        long lOldNondetCounterVariable = buildMsatVariable(NONDET_COUNTER, lOldNondetCounterIndex);
+        long lOne = mathsat.api.msat_make_number(msatEnv, "1");
+        long lPlusOne = mathsat.api.msat_make_plus(msatEnv, lOldNondetCounterVariable, lOne);
+        int lNondetCounterIndex = getNewIndex(NONDET_COUNTER, newssa);
+        long lNondetCounterVariable = buildMsatVariable(NONDET_COUNTER, lNondetCounterIndex);
+        newssa.setIndex(NONDET_COUNTER, lNondetCounterIndex);
+        long lIncrement = makeAssignment(lNondetCounterVariable, lPlusOne);
+        long lNondetTerm = mathsat.api.msat_make_uif(msatEnv, variableDeclaration, new long[]{lNondetCounterVariable});
+        
+        // create variable term
+        int lNewIndex = getNewIndex(var, newssa);
+        newssa.setIndex(var, lNewIndex);
+        long lVariable = buildMsatVariable(var, lNewIndex);
+        long lDeclarationTerm = makeAssignment(lVariable, lNondetTerm);
+        long lTerm = mathsat.api.msat_make_and(msatEnv, lIncrement, lDeclarationTerm);
+        long t = mathsat.api.msat_make_and(msatEnv, m1.getTerm(), lTerm);
+        m1 = new MathsatSymbolicFormula(t);
+        
+        logger.log(Level.ALL, "DEBUG_3",
+            "NONDET-INITIALIZING VAR:", var);
       }
     }
     return new PathFormula(m1, newssa);
