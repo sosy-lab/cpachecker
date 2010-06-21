@@ -34,6 +34,7 @@ import java_cup.runtime.Symbol;
 import java_cup.runtime.SymbolFactory;
 
 import org.eclipse.cdt.core.dom.ast.IASTNode;
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractElement;
 
@@ -56,9 +57,9 @@ class AutomatonInternalTests {
       //File f = new File("test/config/automata/TestAutomaton.txt");
       
       Configuration emptyConfig = new Configuration(Collections.<String,String>emptyMap());
-      
+      LogManager logger = new LogManager(emptyConfig);
       SymbolFactory sf1 = new ComplexSymbolFactory();
-      AutomatonScanner s = new AutomatonScanner(new FileInputStream(f), emptyConfig, sf1);
+      AutomatonScanner s = new AutomatonScanner(new FileInputStream(f), emptyConfig, logger, sf1);
       Symbol symb = s.next_token();
       while (symb.sym != AutomatonSym.EOF) {
         System.out.println(symb);
@@ -123,6 +124,7 @@ class AutomatonInternalTests {
       System.out.println("AndOr Test was OK");
     }
   }
+  @SuppressWarnings("unused")
   private static void testExpressionEvaluator() {
     /*
     Map<String, AutomatonVariable> map = new HashMap<String, AutomatonVariable>();
@@ -146,6 +148,7 @@ class AutomatonInternalTests {
     System.out.println("Expression Evaluation result: " + bool.eval(map));
     */
   }
+  @SuppressWarnings("unused")
   private static void testASTcomparison() {
 
    testAST("x=5;", "x= $?;");

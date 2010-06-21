@@ -4,8 +4,12 @@ import java.io.FileReader;
 import java.io.File;
 import java_cup.runtime.*;
 import org.sosy_lab.common.Files;
+import org.sosy_lab.common.LogManager;
 import org.sosy_lab.common.configuration.Configuration;
 import java.io.FileNotFoundException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Level;
 @SuppressWarnings(value = { "all" })
 %%
 
@@ -19,11 +23,14 @@ import java.io.FileNotFoundException;
   private StringBuilder string = new StringBuilder();
   private SymbolFactory sf;
   private Configuration config;
+  private LogManager logger;
+  private List<String> scannedFiles = new ArrayList<String>();
 
-   public AutomatonScanner(java.io.InputStream r, Configuration config, SymbolFactory sf){
+   public AutomatonScanner(java.io.InputStream r, Configuration config, LogManager logger, SymbolFactory sf){
 	this(r);
 	this.sf = sf;
 	this.config = config;
+	this.logger = logger;
   }
   public int getLine() {
      return this.yyline;
@@ -35,12 +42,17 @@ import java.io.FileNotFoundException;
    private File getFile(String pYytext) throws FileNotFoundException {
   	assert pYytext.startsWith("#include ");
   	String fileName = pYytext.replaceFirst("#include ", "").trim();
-  	if (config != null && config.getRootDirectory() != null) {
-  	  fileName = config.getRootDirectory() + fileName;
+  	if (scannedFiles.contains(fileName)) {
+  	  logger.log(Level.WARNING, "File \"" + fileName + "\" was referenced multiple times. Redundant or cyclic references were ignored.");
+  	  return null;
   	}
-  	System.out.println("File to be included: " + fileName);
-  	File file = new File(fileName);
+  	String rootPrefix = "";
+  	if (config != null && config.getRootDirectory() != null) {
+  	  rootPrefix = config.getRootDirectory();
+  	}
+  	File file = new File(rootPrefix + fileName);
   	Files.checkReadableFile(file);
+  	scannedFiles.add(fileName);
   	return file;
   }
   
@@ -83,7 +95,8 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
 /* keywords */
 <YYINITIAL>
 	"#include" {InputCharacter}+ 
-	{ yypushStream(new FileReader(getFile(yytext()))); }
+	{ File file = getFile(yytext()); 
+	  if (file != null) yypushStream(new FileReader(file)); }
 <YYINITIAL> ";"                 { return symbol(";", AutomatonSym.SEMICOLON); }
 <YYINITIAL> ":"                 { return symbol(":", AutomatonSym.COLON); }
 <YYINITIAL> "("                 { return symbol("(", AutomatonSym.OPEN_BRACKETS); }
