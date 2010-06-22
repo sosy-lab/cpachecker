@@ -222,10 +222,10 @@ uninitVars.printWarnings = true
 cpas.symbpredabs.explicit.extendedStats = false
 
 # which solver to use? (mathsat, yices)
-cpa.symbpredabs.explicit.abstraction.solver = mathsat
+cpas.symbpredabs.explicit.abstraction.solver = mathsat
 
 # which interpolating solver to use for interpolant generation? (mathsat, csisat)
-cpa.symbpredabs.interpolatingProver = mathsat
+cpas.symbpredabs.interpolatingProver = mathsat
 
 # don't use abstraction refinement, but read predicates from the map specified
 # with fixedPredMap option
