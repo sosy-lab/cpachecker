@@ -129,6 +129,7 @@ public class ProcessExecutor<E extends Exception> {
       }
     } finally {
       process.destroy();
+
       try {
         out.close();
         err.close();
@@ -136,7 +137,9 @@ public class ProcessExecutor<E extends Exception> {
       } catch (IOException e) {
         // ignore errors here
       }
-      exitCode = process.exitValue();
+      try {
+        exitCode = process.waitFor();
+      } catch (InterruptedException e) { /* do nothing */ }
       finished = true;
       
       handleExitCode(exitCode);

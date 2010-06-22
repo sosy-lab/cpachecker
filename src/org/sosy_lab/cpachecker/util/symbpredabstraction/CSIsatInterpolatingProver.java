@@ -65,15 +65,19 @@ public class CSIsatInterpolatingProver implements InterpolatingTheoremProver<Int
     }
 
     @Override
-    public void handleOutput(String line) throws IOException {  
+    public void handleErrorOutput(String line) throws IOException {  
       if (line.startsWith("Satisfiable: ")) {
         satisfiable = true;
-
       } else {
-        SymbolicFormula itp = fromCSIsat(line);
-        interpolants.add(itp);
-        logger.log(Level.ALL, "Parsed interpolant", line, "as", itp);
+        super.handleErrorOutput(line);
       }
+    }
+
+    @Override
+    public void handleOutput(String line) throws IOException {
+      SymbolicFormula itp = fromCSIsat(line);
+      interpolants.add(itp);
+      logger.log(Level.ALL, "Parsed interpolant", line, "as", itp);
     }
 
     public void writeFormulas(List<SymbolicFormula> formulas) throws IOException {
