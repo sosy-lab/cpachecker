@@ -56,14 +56,13 @@ public class Triple<A, B, C> {
         return (x == null && y == null) || (x != null && x.equals(y));
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public boolean equals(Object other) {
         return
         other instanceof Triple &&
-        equals(first, ((Triple)other).first) &&
-        equals(second, ((Triple)other).second) &&
-        equals(third, ((Triple)other).third);
+        equals(first, ((Triple<?,?,?>)other).first) &&
+        equals(second, ((Triple<?,?,?>)other).second) &&
+        equals(third, ((Triple<?,?,?>)other).third);
     }
 
     @Override
