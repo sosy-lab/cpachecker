@@ -30,6 +30,7 @@ gcc -g -I$JAVA_DIR/include -I$JAVA_DIR/include/linux -I$MSAT_SRC_DIR -I$GMP_INCL
 gcc -g -o libmathsatj.so -shared -Wl,-soname,libmathsatj.so -L$MSAT_LIB_DIR -L$GMP_LIB_DIR mathsat_api.o -lc -lstdc++ -lmathsat -lgmpxx -lgmp > compile.log 2>&1
 
 if [ $? -eq 0 ]; then
+	strip libmathsatj.so
 	echo "Generating \"mathsat.jar\""
 	$JAVA_DIR/bin/javac mathsat/*.java
 	find mathsat -name "*.class" -o -name "*.java" | xargs $JAVA_DIR/bin/jar cf mathsat.jar
