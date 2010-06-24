@@ -243,6 +243,7 @@ public interface SymbolicFormulaManager {
     
     public interface AllSatCallback extends TheoremProver.AllSatCallback {
       public AbstractFormula getResult();
+      public int getCount();
       public long getTotalTime();
   }
 }

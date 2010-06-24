@@ -71,6 +71,8 @@ class SymbPredAbsFormulaManagerImpl<T> extends CommonFormulaManager implements S
     public long abstractionMaxTime = 0;
     public long abstractionBddTime = 0;
     public long abstractionMaxBddTime = 0;
+    public long allSatCount = 0;
+    public int maxAllSatCount = 0;
     public int numCallsAbstraction = 0;
     public int numCallsAbstractionCached = 0;
     public long cexAnalysisTime = 0;
@@ -529,6 +531,8 @@ class SymbPredAbsFormulaManagerImpl<T> extends CommonFormulaManager implements S
       }
 
       // update statistics
+      stats.maxAllSatCount = Math.max(allSatCallback.getCount(), stats.maxAllSatCount);
+      stats.allSatCount += allSatCallback.getCount();
       long bddTime   = allSatCallback.getTotalTime();
       long solveTime = (solveEndTime - solveStartTime) - bddTime;
 

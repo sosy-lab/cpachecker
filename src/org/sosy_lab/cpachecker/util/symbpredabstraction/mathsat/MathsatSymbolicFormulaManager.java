@@ -2788,6 +2788,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       private final LogManager logger;
       
       private long totalTime = 0;
+      private int count = 0;
 
       private AbstractFormula formula;
       private final Deque<AbstractFormula> cubes = new ArrayDeque<AbstractFormula>();
@@ -2802,6 +2803,11 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       @Override
       public long getTotalTime() {
           return totalTime;
+      }
+
+      @Override
+      public int getCount() {
+        return count;
       }
 
       @Override
@@ -2857,6 +2863,8 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
           assert(curCube.size() == 1);
           m = curCube.remove();
           cubes.add(m);
+
+          count++;
 
           long end = System.currentTimeMillis();
           totalTime += (end - start);

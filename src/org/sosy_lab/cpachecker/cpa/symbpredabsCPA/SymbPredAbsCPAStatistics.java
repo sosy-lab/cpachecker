@@ -142,6 +142,11 @@ public class SymbPredAbsCPAStatistics implements Statistics {
       out.println("Max number of predicates per location:    " + maxPredsPerLocation);
       out.println("Avg number of predicates per location:    " + avgPredsPerLocation);
       out.println("Max number of predicates per abstraction: " + trans.maxPredsPerAbstraction);
+      out.println("Total number of models for allsat:        " + bs.allSatCount);
+      out.println("Max number of models for allsat:          " + bs.maxAllSatCount);
+      if (bs.numCallsAbstraction > 0) {
+        out.println("Avg number of models for allsat:          " + bs.allSatCount / bs.numCallsAbstraction);
+      }
       out.println();
       out.println("Time for merge:                " + toTime(cpa.getMergeOperator().totalMergeTime));
       out.println("Time for abstraction post:     " + toTime(trans.abstractionTime));
