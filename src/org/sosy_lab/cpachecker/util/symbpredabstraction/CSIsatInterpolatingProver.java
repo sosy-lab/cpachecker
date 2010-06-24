@@ -75,31 +75,19 @@ public class CSIsatInterpolatingProver implements InterpolatingTheoremProver<Int
 
     @Override
     public void handleOutput(String line) throws IOException {
-      SymbolicFormula itp = fromCSIsat(line);
+      SymbolicFormula itp = smgr.parseInfix(line);
       interpolants.add(itp);
       logger.log(Level.ALL, "Parsed interpolant", line, "as", itp);
     }
 
     public void writeFormulas(List<SymbolicFormula> formulas) throws IOException {
       String formulasStr = FORMULAS_JOINER.join(formulas);
-      formulasStr = formulasStr.replaceAll("@", "__at__")
-                               .replaceAll("::", "__colon__")
-                               .replaceAll("!", "not ")
-                               ;
 
       logger.log(Level.ALL, "Interpolation problem is", formulasStr);
 
       print(formulasStr);
       sendEOF();
     }
-
-    private SymbolicFormula fromCSIsat(String f) {
-      String itp = f.replaceAll("__at__", "@")
-                    .replaceAll("__colon__", "::")
-                    .replaceAll(" not ", " ! ")
-                    ;
-      return smgr.parseInfix(itp);
-    }   
   }
 
   private final SymbolicFormulaManager smgr;
