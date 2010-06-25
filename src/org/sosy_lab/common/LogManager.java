@@ -77,6 +77,9 @@ public class LogManager {
   @Option(name="log.file", type=Option.Type.OUTPUT_FILE)
   private File outputFile = new File("CPALog.txt");
 
+  @Option(name="log.truncateSize")
+  private int truncateSize = 10000;
+  
   private static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS");
   private static final Joiner messageFormat = Joiner.on(' ').useForNull("null");
   private final Logger logger;
@@ -289,7 +292,11 @@ public class LogManager {
       int size = args.length;
       for (int i = 0; i < args.length; i++) {
         String arg = args[i].toString();
-        argsStr[i] = arg.length() <= 10000 ? arg : "<ARGUMENT OMITTED BECAUSE " + arg.length() + " CHARACTERS LONG>";
+        if ((truncateSize > 0) && (arg.length() > truncateSize)) {
+          argsStr[i] = "<ARGUMENT OMITTED BECAUSE " + arg.length() + " CHARACTERS LONG>";
+        } else {
+          argsStr[i] = arg;
+        }
         size += argsStr[i].length();
       }
 
