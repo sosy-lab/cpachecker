@@ -58,11 +58,10 @@ public class Triple<A, B, C> {
 
     @Override
     public boolean equals(Object other) {
-        return
-        other instanceof Triple &&
-        equals(first, ((Triple<?,?,?>)other).first) &&
-        equals(second, ((Triple<?,?,?>)other).second) &&
-        equals(third, ((Triple<?,?,?>)other).third);
+    return (other instanceof Triple<?,?,?>)
+        && equals(first,  ((Triple<?,?,?>)other).first)
+        && equals(second, ((Triple<?,?,?>)other).second)
+        && equals(third,  ((Triple<?,?,?>)other).third);
     }
 
     @Override

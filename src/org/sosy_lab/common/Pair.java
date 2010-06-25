@@ -55,10 +55,9 @@ public class Pair<A, B> {
 
     @Override
     public boolean equals(Object other) {
-        return
-        other instanceof Pair &&
-        equals(first, ((Pair<?,?>)other).first) &&
-        equals(second, ((Pair<?,?>)other).second);
+    return (other instanceof Pair<?,?>)
+        && equals(first,  ((Pair<?,?>)other).first)
+        && equals(second, ((Pair<?,?>)other).second);
     }
 
     @Override
