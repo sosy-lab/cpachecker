@@ -2228,36 +2228,6 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         new MathsatSymbolicFormula(cache.get(term)), newssa);
   }
 
-  // returns true if the given formula contains some uninterpreted
-  // functions. This is used to apply some optimizations to MathSAT when
-  // free functions are not used
-  public boolean hasUninterpretedFunctions(SymbolicFormula f) {
-    Stack<Long> toProcess = new Stack<Long>();
-    Set<Long> cache = new HashSet<Long>();
-
-    long term = ((MathsatSymbolicFormula)f).getTerm();
-    toProcess.push(term);
-    while (!toProcess.empty()) {
-      long t = toProcess.peek();
-      if (cache.contains(t)) {
-        toProcess.pop();
-        continue;
-      }
-      cache.add(t);
-      if (mathsat.api.msat_term_is_uif(t) != 0) {
-        return true;
-      }
-      for (int i = 0; i < mathsat.api.msat_term_arity(t); ++i) {
-        long c = mathsat.api.msat_term_get_arg(t, i);
-        if (!cache.contains(c)) {
-          toProcess.push(c);
-        }
-      }
-    }
-
-    return false;
-  }
-
   private boolean isArithmetic(long t) {
     return (mathsat.api.msat_term_is_plus(t) != 0 ||
         mathsat.api.msat_term_is_minus(t) != 0 ||
@@ -2316,10 +2286,11 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
   public SymbolicFormula prepareFormula(SymbolicFormula f) {
     if (useBitwiseAxioms) {
       SymbolicFormula bitwiseAxioms = getBitwiseAxioms(f);
-      f = makeAnd(f, bitwiseAxioms);
+      if (!bitwiseAxioms.isTrue()) {
+        f = makeAnd(f, bitwiseAxioms);
 
-      logger.log(Level.ALL, "DEBUG_3", "ADDED BITWISE AXIOMS:",
-          bitwiseAxioms);
+        logger.log(Level.ALL, "DEBUG_3", "ADDED BITWISE AXIOMS:", bitwiseAxioms);
+      }
     }
     return f;
   }
@@ -2330,103 +2301,71 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
    */
   @Override
   public void prepareFormulas(List<SymbolicFormula> formulas) {
-
-    boolean foundUninterpretedFunction = false;
-
-    SymbolicFormula bitwiseAxioms = makeTrue();
-
-    for (SymbolicFormula fm : formulas) {
-      boolean hasUf = hasUninterpretedFunctions(fm);
-      if (hasUf) {
-        foundUninterpretedFunction = true;
-
-        if (useBitwiseAxioms) {
-          SymbolicFormula a = getBitwiseAxioms(fm);
-          bitwiseAxioms = makeAnd(bitwiseAxioms, a);
-        } else {
-          // do not need to check all formulas, one with UF is enough
-          break;
+    if (useBitwiseAxioms) {
+      SymbolicFormula bitwiseAxioms = makeTrue();
+  
+      for (SymbolicFormula fm : formulas) {
+        SymbolicFormula a = getBitwiseAxioms(fm);
+        if (!a.isTrue()) {
+          bitwiseAxioms = makeAnd(bitwiseAxioms, a);  
         }
       }
-    }
-
-    if (useBitwiseAxioms && foundUninterpretedFunction) {
-      logger.log(Level.ALL, "DEBUG_3", "ADDING BITWISE AXIOMS TO THE",
-          "LAST GROUP: ", bitwiseAxioms);
-      formulas.set(formulas.size()-1, makeAnd(formulas.get(formulas.size()-1), bitwiseAxioms));
+  
+      if (!bitwiseAxioms.isTrue()) {
+        logger.log(Level.ALL, "DEBUG_3", "ADDING BITWISE AXIOMS TO THE",
+            "LAST GROUP: ", bitwiseAxioms);
+        formulas.set(formulas.size()-1, makeAnd(formulas.get(formulas.size()-1), bitwiseAxioms));
+      }
     }
   }
   
   // returns a formula with some "static learning" about some bitwise
   // operations, so that they are (a bit) "less uninterpreted"
+  // Currently it add's the following formulas for each number literal n that
+  // appears in the formula: "(n & 0 == 0) and (0 & n == 0)"
+  // But only if an bitwise "and" occurs in the formula. 
   public MathsatSymbolicFormula getBitwiseAxioms(SymbolicFormula f) {
-    Stack<Long> toProcess = new Stack<Long>();
-    Set<Long> cache = new HashSet<Long>();
-    Map<Long, Set<Long>> gs = new HashMap<Long, Set<Long>>();
+    Deque<Long> toProcess = new ArrayDeque<Long>();
+    Set<Long> seen = new HashSet<Long>();
+    Set<Long> allLiterals = new HashSet<Long>();
 
     boolean andFound = false;
 
-    toProcess.push(((MathsatSymbolicFormula)f).getTerm());
-    while (!toProcess.empty()) {
-      long t = toProcess.peek();
-      if (cache.contains(t)) {
-        toProcess.pop();
-        continue;
-      }
-      cache.add(t);
+    toProcess.add(((MathsatSymbolicFormula)f).getTerm());
+    while (!toProcess.isEmpty()) {
+      long t = toProcess.pollLast();
+
       if (mathsat.api.msat_term_is_number(t) != 0) {
-        Set<Long> s = null;
-        if (!gs.containsKey(bitwiseAndUfDecl)) {
-          s = new HashSet<Long>();
-          gs.put(bitwiseAndUfDecl, s);
-        }
-        s = gs.get(bitwiseAndUfDecl);
-        s.add(t);
+        allLiterals.add(t);
       }
       if (mathsat.api.msat_term_is_uif(t) != 0) {
         String r = mathsat.api.msat_term_repr(t);
         if (r.startsWith("_&_")) {
           andFound = true;
-//        // ok, found bitwise and, collect numbers
-//Set<Long> s = null;
-//if (!gs.containsKey(bitwiseAndUfDecl)) {
-//        s = new HashSet<Long>();
-//        gs.put(bitwiseAndUfDecl, s);
-//        }
-//        s = gs.get(bitwiseAndUfDecl);
-//        for (int i = 0; i < mathsat.api.msat_term_arity(t); ++i) {
-//        long c = mathsat.api.msat_term_get_arg(t, i);
-//        if (mathsat.api.msat_term_is_number(c) != 0) {
-//        s.add(c);
-//        }
-//        }
         }
       }
       for (int i = 0; i < mathsat.api.msat_term_arity(t); ++i) {
         long c = mathsat.api.msat_term_get_arg(t, i);
-        if (!cache.contains(c)) {
-          toProcess.push(c);
+        if (seen.add(c)) {
+          // was not already contained in seen
+          toProcess.add(c);
         }
       }
     }
-    long t = mathsat.api.msat_make_true(msatEnv);
+
+    long result = mathsat.api.msat_make_true(msatEnv);
     if (andFound) {
       long z = mathsat.api.msat_make_number(msatEnv, "0");
-      for (long d : gs.keySet()) {
-        Set<Long> s = gs.get(d);
-        for (long n : s) {
-          long u1 = mathsat.api.msat_make_uif(msatEnv, d,
-              new long[]{n, z});
-          long u2 = mathsat.api.msat_make_uif(msatEnv, d,
-              new long[]{z, n});
-          long e1 = mathsat.api.msat_make_equal(msatEnv, u1, z);
-          long e2 = mathsat.api.msat_make_equal(msatEnv, u2, z);
-          long a = mathsat.api.msat_make_and(msatEnv, e1, e2);
-          t = mathsat.api.msat_make_and(msatEnv, t, a);
-        }
+      for (long n : allLiterals) {
+        long u1 = mathsat.api.msat_make_uif(msatEnv, bitwiseAndUfDecl, new long[]{n, z});
+        long u2 = mathsat.api.msat_make_uif(msatEnv, bitwiseAndUfDecl, new long[]{z, n});
+        long e1 = mathsat.api.msat_make_equal(msatEnv, u1, z);
+        long e2 = mathsat.api.msat_make_equal(msatEnv, u2, z);
+        long a = mathsat.api.msat_make_and(msatEnv, e1, e2);
+        result = mathsat.api.msat_make_and(msatEnv, result, a);
       }
     }
-    return new MathsatSymbolicFormula(t);
+    return new MathsatSymbolicFormula(result);
   }
 
   private long uninstantiate(long term) {
@@ -2496,7 +2435,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
    * which all the variables are "generic" ones. This is the inverse of the
    * instantiate() method above
    */
-  public MathsatSymbolicFormula uninstantiate(SymbolicFormula f) {
+  protected MathsatSymbolicFormula uninstantiate(SymbolicFormula f) {
     return new MathsatSymbolicFormula(uninstantiate(((MathsatSymbolicFormula)f).getTerm()));
   }
 
