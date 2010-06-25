@@ -832,14 +832,13 @@ implements PredicateAbstractionFormulaManager {
     stats.termBuildTime += extTimeEnd - extTimeStart;
 
     Vector<SymbolicFormula> f = concPath.path;
-    boolean theoryCombinationNeeded = concPath.theoryCombinationNeeded;
 
     logger.log(Level.ALL, "DEBUG_3",
     "Checking feasibility of abstract trace");
 
     if (shortestTrace && getUsefulBlocks) {
       long gubStart = System.currentTimeMillis();
-      f = getUsefulBlocks(smgr, f, theoryCombinationNeeded,
+      f = getUsefulBlocks(smgr, f,
           useSuffix, useZigZag, false);
       long gubEnd = System.currentTimeMillis();
       stats.cexAnalysisGetUsefulBlocksTime += gubEnd - gubStart;
@@ -1331,7 +1330,7 @@ implements PredicateAbstractionFormulaManager {
 
   @Override
   public Vector<SymbolicFormula> getUsefulBlocks(SymbolicFormulaManager mgr,
-      Vector<SymbolicFormula> f, boolean theoryCombinationNeeded,
+      Vector<SymbolicFormula> f,
       boolean suffixTrace, boolean zigZag, boolean setAllTrueIfSat) {
     // try to find a minimal-unsatisfiable-core of the trace (as Blast does)
 
@@ -1476,8 +1475,6 @@ implements PredicateAbstractionFormulaManager {
 
     //AbstractElementWithLocation cur = path[0];
 
-    boolean theoryCombinationNeeded = false;
-
     for (int i = 1; i < pathArray.length; ++i) {
 //      AbstractElementWithLocation e = path[i];
 //      CFAEdge found = null;
@@ -1501,13 +1498,11 @@ implements PredicateAbstractionFormulaManager {
       logger.log(Level.ALL, "DEBUG_3", "INITIAL:", fm,
           " SSA: ", p.getSecond());
       newssa = p.getSecond();
-      boolean hasUf = mmgr.hasUninterpretedFunctions(fm);
-      theoryCombinationNeeded |= hasUf;
       f.add(fm);
       ssa = newssa;
 //      cur = e;
     }
-    ConcretePath ret = new ConcretePath(f, theoryCombinationNeeded, ssa);
+    ConcretePath ret = new ConcretePath(f, ssa);
     return ret;
   }
 

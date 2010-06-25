@@ -67,12 +67,10 @@ public interface PredicateAbstractionFormulaManager extends FormulaManager {
 
     public class ConcretePath {
         public Vector<SymbolicFormula> path;
-        public boolean theoryCombinationNeeded;
         public SSAMap ssa;
 
-        public ConcretePath(Vector<SymbolicFormula> p, boolean tc, SSAMap s) {
+        public ConcretePath(Vector<SymbolicFormula> p, SSAMap s) {
             path = p;
-            theoryCombinationNeeded = tc;
             ssa = s;
         }
     }
@@ -82,6 +80,6 @@ public interface PredicateAbstractionFormulaManager extends FormulaManager {
                 throws UnrecognizedCFAEdgeException;
 
     public Vector<SymbolicFormula> getUsefulBlocks(SymbolicFormulaManager mgr,
-            Vector<SymbolicFormula> trace, boolean theoryCombinationNeeded,
+            Vector<SymbolicFormula> trace,
             boolean suffixTrace, boolean zigZag, boolean setAllTrueIfSat);
 }
