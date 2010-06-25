@@ -82,6 +82,8 @@ public class CSIsatInterpolatingProver implements InterpolatingTheoremProver<Int
 
     public void writeFormulas(List<SymbolicFormula> formulas) throws IOException {
       String formulasStr = FORMULAS_JOINER.join(formulas);
+      // replace (var * number) with (number * var)
+      formulasStr = formulasStr.replaceAll("\\(([a-zA-Z0-9:_@]+) \\* (-?[0-9]+)\\)", "($2 * $1)");
 
       logger.log(Level.ALL, "Interpolation problem is", formulasStr);
 
