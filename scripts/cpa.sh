@@ -58,6 +58,11 @@ export CLASSPATH
 # where to find the native binaries
 export PATH="$PATH:$arch_platform_path"
 
+if [ "$1" = "-debug" ]; then
+  JAVA_VM_ARGUMENTS="$JAVA_VM_ARGUMENTS -Xdebug -Xrunjdwp:transport=dt_socket,server=y,address=5005,suspend=n"
+  shift
+fi
+
 if [ ! -z "$JAVA_VM_ARGUMENTS" ]; then
   echo "Running CPAchecker with the following extra VM options: $JAVA_VM_ARGUMENTS"
 fi
