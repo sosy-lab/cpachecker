@@ -721,7 +721,6 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       } else {
         idx = getNewIndex(retvalname, ssa);
       }
-      assert(idx > 1);
 
       SSAMap ssa2 = new SSAMap();
       ssa2.copyFrom(ssa);
@@ -776,31 +775,6 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     return buildMsatUFLvalue(name, a, idx);
   }
 
-  private int autoInstantiateVar(String var, SSAMap ssa) {
-    logger.log(Level.ALL, "DEBUG_3",
-        "WARNING: Auto-instantiating variable: ", var);
-    ssa.setIndex(var, 1);
-    return 1;
-  }
-
-  private int autoInstantiateLvalue(String name, SymbolicFormula[] args, SSAMap ssa) {
-    if (args.length == 1) {
-      logger.log(Level.ALL, "DEBUG_3",
-          "WARNING: Auto-instantiating lval: ", name, "(", args[0],
-      ")");
-    } else if (args.length == 2) {
-      logger.log(Level.ALL, "DEBUG_3",
-          "WARNING: Auto-instantiating lval: ", name, "(", args[0],
-          ",", args[1], ")");
-    } else {
-      logger.log(Level.ALL, "DEBUG_3",
-          "WARNING: Auto-instantiating lval: ", name, "(", args, ")");
-    }
-    ssa.setIndex(name, args, 1);
-    return 1;
-  }
-
-
   private String exprToVarName(IASTExpression e) {
     return e.getRawSignature().replaceAll("[ \n\t]", "");
   }
@@ -809,8 +783,10 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     var = scoped(var);
     int idx = ssa.getIndex(var);
     if (idx <= 0) {
-      // this might happen in this case
-      idx = autoInstantiateVar(var, ssa);
+      logger.log(Level.ALL, "DEBUG_3",
+          "WARNING: Auto-instantiating variable: ", var);
+      idx = 1;
+      ssa.setIndex(var, idx);
     }
     return buildMsatVariable(var, idx);
   }
@@ -948,7 +924,6 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
           //int idx = getNormalIndex(
           //    opname, term, ssa, absoluteSSAIndices);
 
-          if (idx <= 0) return mathsat.api.MSAT_MAKE_ERROR_TERM();
           // build the  function corresponding to this operation.
           long decl = mathsat.api.msat_declare_uif(
               msatEnv, opname + "@" + idx, msatVarType, 1,
@@ -1173,14 +1148,14 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
         String ufname =
           (fexp.isPointerDereference() ? "->{" : ".{") +
           tpname + "," + field + "}";
-        int idx = getNormalIndex(ufname, term, ssa);
+        long[] aterm = {term};
+        int idx = getNormalIndex(ufname, aterm, ssa, true);
         if (idx <= 0) return mathsat.api.MSAT_MAKE_ERROR_TERM();
         // see above for the case of &x and *x
         long decl = mathsat.api.msat_declare_uif(
             msatEnv, ufname + "@" + idx, msatVarType, 1,
             new int[]{msatVarType});
-        return mathsat.api.msat_make_uif(
-            msatEnv, decl, new long[]{term});
+        return mathsat.api.msat_make_uif(msatEnv, decl, aterm);
       } else {
         warnUnsafeVar(exp);
         return buildMsatTermVar(exprToVarName(exp), ssa);
@@ -1200,7 +1175,7 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
 
         String ufname = OP_ARRAY_SUBSCRIPT;
         long[] args = {aterm, sterm};
-        int idx = getNormalIndex(ufname, args, ssa);
+        int idx = getNormalIndex(ufname, args, ssa, true);
         if (idx <= 0) return mathsat.api.MSAT_MAKE_ERROR_TERM();
 
         long decl = mathsat.api.msat_declare_uif(
@@ -1244,10 +1219,9 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
   }
 
   private int getLvalIndex(String name, SSAMap ssa) {
-    int idx;
-    int oldidx = ssa.getIndex(name);
-    if (oldidx > 0) {
-      idx = getNewIndex(name, ssa);
+    int idx = ssa.getIndex(name);
+    if (idx > 0) {
+      idx = idx+1;
     } else {
       idx = 2; // AG - IMPORTANT!!! We must start from 2 and
       // not from 1, because this is an assignment,
@@ -1257,16 +1231,18 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     }
     return idx;
   }
+  
+  // TODO review uses of this method, if they should not use getLvalIndex instead 
+  private int getNewIndex(String var, SSAMap ssa) {
+    int idx = ssa.getIndex(var);
+    if (idx > 0) return idx+1;
+    else return 1;
+  }
 
-  private int getLvalIndex(String name, long[] args, SSAMap ssa) {
-    SymbolicFormula[] a = new SymbolicFormula[args.length];
-    for (int i = 0; i < a.length; ++i) {
-      a[i] = new MathsatSymbolicFormula(args[i]);
-    }
-    int idx;
-    int oldidx = ssa.getIndex(name, a);
-    if (oldidx > 0) {
-      idx = getNewIndex(name, a, ssa);
+  private int getLvalIndex(String name, SymbolicFormula[] args, SSAMap ssa) {
+    int idx = ssa.getIndex(name, args);
+    if (idx > 0) {
+      idx = idx+1;
     } else {
       idx = 2; // AG - IMPORTANT!!! We must start from 2 and
       // not from 1, because this is an assignment,
@@ -1276,25 +1252,6 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
     }
     return idx;
   }
-
-  private int getLvalIndex(String name, long arg, SSAMap ssa) {
-    long[] args = {arg};
-    return getLvalIndex(name, args, ssa);
-  }
-
-  /*
-    private int getNormalIndex(String name, SSAMap ssa, boolean absolute) {
-        int idx = ssa.getIndex(name);
-        if (idx <= 0) {
-            if (absolute) {
-                return -1;
-            } else {
-                idx = autoInstantiateVar(name, ssa);
-            }
-        }
-        return idx;
-    }
-   */
 
   private int getNormalIndex(String name, long[] args, SSAMap ssa, boolean autoInstantiate) {
     SymbolicFormula[] a = new SymbolicFormula[args.length];
@@ -1306,19 +1263,13 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       if (!autoInstantiate) {
         return -1;
       } else {
-        idx = autoInstantiateLvalue(name, a, ssa);
+        logger.log(Level.ALL, "DEBUG_3",
+            "WARNING: Auto-instantiating lval: ", name, "(", a, ")");
+        idx = 1;
+        ssa.setIndex(name, a, idx);
       }
     }
     return idx;
-  }
-
-  private int getNormalIndex(String name, long[] args, SSAMap ssa) {
-    return getNormalIndex(name, args, ssa, true);
-  }
-
-  private int getNormalIndex(String name, long arg, SSAMap ssa) {
-    long[] args = {arg};
-    return getNormalIndex(name, args, ssa, true);
   }
 
   private long buildMsatLvalueTerm(IASTExpression exp, SSAMap ssa) {
@@ -1379,8 +1330,8 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       String ufname =
         (fexp.isPointerDereference() ? "->{" : ".{") +
         tpname + "," + field + "}";
-      int idx = getLvalIndex(ufname, term, ssa);
       SymbolicFormula[] args = {new MathsatSymbolicFormula(term)};
+      int idx = getLvalIndex(ufname, args, ssa);
       ssa.setIndex(ufname, args, idx);
       // see above for the case of &x and *x
       long decl = mathsat.api.msat_declare_uif(msatEnv,
@@ -1399,11 +1350,9 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       if (mathsat.api.MSAT_ERROR_TERM(sterm)) return sterm;
 
       String ufname = OP_ARRAY_SUBSCRIPT;
-      long[] args = {aterm, sterm};
+      SymbolicFormula[] args = {new MathsatSymbolicFormula(aterm), new MathsatSymbolicFormula(sterm)};
       int idx = getLvalIndex(ufname, args, ssa);
-      SymbolicFormula[] a = {new MathsatSymbolicFormula(aterm),
-          new MathsatSymbolicFormula(sterm)};
-      ssa.setIndex(ufname, a, idx);
+      ssa.setIndex(ufname, args, idx);
 
       long decl = mathsat.api.msat_declare_uif(msatEnv,
           ufname + "@" + idx, msatVarType, 2,
@@ -1786,18 +1735,6 @@ public class MathsatSymbolicFormulaManager implements SymbolicFormulaManager {
       }
     }
     return new Pair<Long, Long>(e1, e2);
-  }
-
-  private int getNewIndex(String var, SSAMap ssa) {
-    int idx = ssa.getIndex(var);
-    if (idx > 0) return idx+1;
-    else return 1;
-  }
-
-  private int getNewIndex(String f, SymbolicFormula[] args, SSAMap ssa) {
-    int idx = ssa.getIndex(f, args);
-    if (idx > 0) return idx+1;
-    else return 1;
   }
 
   @Override
